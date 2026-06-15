@@ -1,0 +1,10 @@
+Manifest.toml
+*.cov
+*.ji
+*.so
+*.dylib
+*.dll
+.DS_Store
+results/
+docs/build/
+test/fixtures/local/

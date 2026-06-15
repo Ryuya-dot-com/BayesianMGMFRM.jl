@@ -1,0 +1,19 @@
+name: TagBot
+
+on:
+  issue_comment:
+    types:
+      - created
+  workflow_dispatch:
+
+jobs:
+  TagBot:
+    if: github.event_name == 'workflow_dispatch' || github.actor == 'JuliaTagBot'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: JuliaRegistries/TagBot@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # Optional but recommended once Documenter.jl deployment is enabled:
+          # add DOCUMENTER_KEY as a repository secret so tags trigger docs builds.
+          # ssh: ${{ secrets.DOCUMENTER_KEY }}
