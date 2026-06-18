@@ -18,6 +18,8 @@ ratings = (
 data = FacetData(ratings; person = :examinee, rater = :rater, item = :item, score = :score)
 spec = mfrm_spec(data; thresholds = :partial_credit)
 prior = MFRMPrior(; person_sd = 1.5, rater_sd = 1.0, item_sd = 1.0, step_sd = 1.0)
+prior_predict(spec; prior, ndraws = 100)
+prior_predictive_check(spec; prior, ndraws = 100)
 fit_result = fit(spec; prior, backend = :julia, ndraws = 500, warmup = 500, step_size = 0.04)
 
 posterior_summary(fit_result)
@@ -28,8 +30,8 @@ posterior_predictive_check(fit_result; ndraws = 100)
 
 This sampler is intended for small validation examples and API stabilization.
 The package does not yet expose production HMC/NUTS sampling, Stan/CmdStan
-sampling, convergence diagnostics, prior predictive checks, or model-comparison
-helpers. The current posterior predictive check returns compact observed-vs-
-replicated summaries for overall mean score, category proportions, rater-level
-mean scores, and item-level mean scores. The `backend` keyword is explicit so
+sampling, convergence diagnostics, or model-comparison helpers. The current
+prior and posterior predictive checks return compact observed-vs-replicated
+summaries for overall mean score, category proportions, rater-level mean
+scores, and item-level mean scores. The `backend` keyword is explicit so
 additional engines can be added without changing the fitted-object shape.

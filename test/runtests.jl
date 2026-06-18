@@ -35,6 +35,8 @@ using BayesianMGMFRM:
     posterior_predict,
     posterior_predictive_check,
     posterior_summary,
+    prior_predict,
+    prior_predictive_check,
     rater_overlap,
     threshold_map_data,
     validate_design,
@@ -115,6 +117,7 @@ end
             :coverage_matrix, :coverage_summary, :validate_design, :mfrm_spec, :getdesign,
             :pointwise_loglikelihood, :pointwise_loglikelihood_matrix, :posterior_predict,
             :posterior_predictive_check, :posterior_summary,
+            :prior_predict, :prior_predictive_check,
             :rater_overlap, :threshold_map_data, :evidence_metadata)
         @test has_doc(BayesianMGMFRM, name)
     end
@@ -553,6 +556,28 @@ end
         @test sum(probabilities) ≈ 1.0
         @test log(probabilities[data.category[row]]) ≈ draw_loglik[row]
     end
+
+    prior_replicated = prior_predict(design; prior, ndraws = 5, rng = MersenneTwister(2234))
+    @test size(prior_replicated) == (5, data.n)
+    @test all(score -> score in data.category_levels, prior_replicated)
+    prior_replicated_spec = prior_predict(spec; prior, ndraws = 2, rng = MersenneTwister(2235))
+    @test size(prior_replicated_spec) == (2, data.n)
+    @test_throws ArgumentError prior_predict(design; prior, ndraws = 0)
+
+    prior_ppc = prior_predictive_check(design; prior, ndraws = 6, rng = MersenneTwister(6678))
+    @test size(prior_ppc.replicated_scores) == (6, data.n)
+    @test size(prior_ppc.parameter_draws) == (6, length(design.parameter_names))
+    @test all(isfinite, prior_ppc.parameter_draws)
+    @test prior_ppc.category_levels == data.category_levels
+    @test prior_ppc.rater_levels == data.rater_levels
+    @test prior_ppc.item_levels == data.item_levels
+    @test length(prior_ppc.observed.category_proportions) == length(data.category_levels)
+    @test size(prior_ppc.replicated.category_proportions) == (6, length(data.category_levels))
+    @test all(rep -> sum(prior_ppc.replicated.category_proportions[rep, :]) ≈ 1.0,
+        axes(prior_ppc.replicated.category_proportions, 1))
+    prior_ppc_spec = prior_predictive_check(spec; prior, ndraws = 2, rng = MersenneTwister(6679))
+    @test size(prior_ppc_spec.replicated_scores) == (2, data.n)
+    @test_throws ArgumentError prior_predictive_check(design; prior, ndraws = 0)
 
     replicated = posterior_predict(result; ndraws = 5, rng = MersenneTwister(1234))
     @test size(replicated) == (5, data.n)

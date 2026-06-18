@@ -19,6 +19,8 @@
   Metropolis sampler.
 - Add `posterior_predict` and `posterior_predictive_check` for posterior
   replicated scores and compact observed-vs-replicated summaries.
+- Add `prior_predict` and `prior_predictive_check` for prior replicated scores
+  and compact observed-vs-replicated summaries before fitting.
 - Stabilize scalar faithful log-probability paths with log-sum-exp.
 - Add a non-optional scalar known-answer fixture for the analytic log-density
   and gradient, removing the default skipped Stan-fixture test path.

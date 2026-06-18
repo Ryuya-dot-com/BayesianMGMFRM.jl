@@ -5,10 +5,10 @@ Tools for preparing long-format many-facet Rasch rating data.
 
 The current public API is intentionally limited to deterministic indexing,
 pre-fit data validation, minimal RSM/PCM design scaffolding, and an initial
-Bayesian fitting path for small validation examples. Production HMC/NUTS,
-generalized discrimination terms, group/DFF effects, and Multidimensional
-Generalized Many-Facet Rasch Model (MGMFRM) terms are planned work and are not
-exposed as public fitting APIs yet.
+Bayesian fitting and predictive-check path for small validation examples.
+Production HMC/NUTS, generalized discrimination terms, group/DFF effects, and
+Multidimensional Generalized Many-Facet Rasch Model (MGMFRM) terms are planned
+work and are not exposed as public fitting APIs yet.
 """
 module BayesianMGMFRM
 
@@ -31,6 +31,8 @@ export FacetData,
     posterior_predict,
     posterior_predictive_check,
     posterior_summary,
+    prior_predict,
+    prior_predictive_check,
     rater_overlap,
     threshold_map_data,
     validate_design

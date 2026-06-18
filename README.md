@@ -89,6 +89,9 @@ Current public API:
 - `posterior_predict` and `posterior_predictive_check`: posterior replicated
   score generation plus compact observed-vs-replicated summaries for mean
   scores, category proportions, rater means, and item means.
+- `prior_predict` and `prior_predictive_check`: prior replicated score
+  generation for checking whether the declared priors imply plausible score
+  distributions before fitting.
 - `coverage_summary`, `coverage_matrix`, `rater_overlap`, and
   `threshold_map_data`: fit-independent reporting-data helpers for Quarto
   tables, coverage heat maps, rater-linking plots, and threshold-map
@@ -101,7 +104,7 @@ names with the package name.
 Not yet implemented in the public API:
 
 - Stan/CmdStan or production HMC/NUTS sampling, convergence diagnostics, or
-  automatic prior predictive/model-comparison workflows.
+  automatic model-comparison workflows.
 - Full GMFRM/MGMFRM identification, loading, and prior blocks.
 - Generalized discrimination, group/DFF, or MGMFRM terms.
 - Automated regeneration of external Stan/BridgeStan fixtures in CI. The scalar

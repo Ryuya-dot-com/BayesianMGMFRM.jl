@@ -325,6 +325,56 @@ function _sample_category_index(rng::AbstractRNG, probs::AbstractVector{Float64}
     return lastindex(probs)
 end
 
+function _replicate_scores(design::FacetDesign, draws::AbstractMatrix, rng::AbstractRNG)
+    size(draws, 2) == length(design.parameter_names) ||
+        throw(ArgumentError("draws has $(size(draws, 2)) column(s); expected $(length(design.parameter_names))"))
+    data = design.spec.data
+    K = length(data.category_levels)
+    replicated = Matrix{Int}(undef, size(draws, 1), data.n)
+    probs = zeros(Float64, K)
+
+    for replication in axes(draws, 1)
+        params = @view draws[replication, :]
+        for row in 1:data.n
+            _category_probabilities!(probs, design, params, row)
+            category = _sample_category_index(rng, probs)
+            replicated[replication, row] = data.category_levels[category]
+        end
+    end
+    return replicated
+end
+
+function _prior_parameter_draws(design::FacetDesign,
+        prior::MFRMPrior,
+        ndraws::Int,
+        rng::AbstractRNG)
+    ndraws >= 1 || throw(ArgumentError("ndraws must be positive"))
+    nparams = length(design.parameter_names)
+    draws = Matrix{Float64}(undef, ndraws, nparams)
+    for draw in 1:ndraws, param in 1:nparams
+        draws[draw, param] = _prior_sd(design, prior, param) * randn(rng)
+    end
+    return draws
+end
+
+"""
+    prior_predict(spec_or_design; prior = MFRMPrior(), ndraws = 1000,
+        rng = Random.default_rng())
+
+Generate replicated score matrices from prior draws for the minimal MFRM
+design. The returned matrix has one replicated dataset per row and one rating
+observation per column, with entries on the original integer score scale.
+"""
+function prior_predict(design::FacetDesign;
+        prior::MFRMPrior = MFRMPrior(),
+        ndraws::Int = 1000,
+        rng::AbstractRNG = Random.default_rng())
+    draws = _prior_parameter_draws(design, prior, ndraws, rng)
+    return _replicate_scores(design, draws, rng)
+end
+
+prior_predict(spec::FacetSpec; kwargs...) = prior_predict(getdesign(spec); kwargs...)
+
 """
     posterior_predict(fit::MFRMFit; ndraws = nothing, draw_indices = nothing,
         rng = Random.default_rng())
@@ -338,20 +388,7 @@ function posterior_predict(fit::MFRMFit;
         draw_indices = nothing,
         rng::AbstractRNG = Random.default_rng())
     indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
-    data = fit.design.spec.data
-    K = length(data.category_levels)
-    replicated = Matrix{Int}(undef, length(indices), data.n)
-    probs = zeros(Float64, K)
-
-    for (replication, draw_index) in pairs(indices)
-        params = @view fit.draws[draw_index, :]
-        for row in 1:data.n
-            _category_probabilities!(probs, fit.design, params, row)
-            category = _sample_category_index(rng, probs)
-            replicated[replication, row] = data.category_levels[category]
-        end
-    end
-    return replicated
+    return _replicate_scores(fit.design, fit.draws[indices, :], rng)
 end
 
 function _mean_score(scores::AbstractVector{<:Integer})
@@ -419,6 +456,35 @@ function _replicated_summaries(data::FacetData, replicated::AbstractMatrix{<:Int
         item_mean,
     )
 end
+
+"""
+    prior_predictive_check(spec_or_design; prior = MFRMPrior(), ndraws = 1000,
+        rng = Random.default_rng())
+
+Generate prior predictive replicated scores and compact observed-vs-replicated
+summaries for the minimal MFRM design. The returned object includes the prior
+parameter draws used to generate `replicated_scores`.
+"""
+function prior_predictive_check(design::FacetDesign;
+        prior::MFRMPrior = MFRMPrior(),
+        ndraws::Int = 1000,
+        rng::AbstractRNG = Random.default_rng())
+    draws = _prior_parameter_draws(design, prior, ndraws, rng)
+    replicated = _replicate_scores(design, draws, rng)
+    data = design.spec.data
+    return (;
+        observed = _predictive_summary(data, data.score),
+        replicated = _replicated_summaries(data, replicated),
+        replicated_scores = replicated,
+        parameter_draws = draws,
+        category_levels = copy(data.category_levels),
+        rater_levels = copy(data.rater_levels),
+        item_levels = copy(data.item_levels),
+    )
+end
+
+prior_predictive_check(spec::FacetSpec; kwargs...) =
+    prior_predictive_check(getdesign(spec); kwargs...)
 
 """
     posterior_predictive_check(fit::MFRMFit; ndraws = nothing,

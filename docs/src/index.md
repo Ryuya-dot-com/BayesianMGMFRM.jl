@@ -11,17 +11,17 @@ The current public slice focuses on:
   [`getdesign`](@ref);
 - initial Bayesian fitting for the minimal identified design via [`fit`](@ref),
   [`MFRMPrior`](@ref), and [`posterior_summary`](@ref);
-- posterior predictive replication via [`posterior_predict`](@ref) and
+- prior and posterior predictive replication via [`prior_predict`](@ref),
+  [`prior_predictive_check`](@ref), [`posterior_predict`](@ref), and
   [`posterior_predictive_check`](@ref);
 - fit-independent reporting data via [`coverage_summary`](@ref),
   [`coverage_matrix`](@ref), [`rater_overlap`](@ref), and
   [`threshold_map_data`](@ref);
 - scalar log-density validation against Julia and BridgeStan fixtures.
 
-Production HMC/NUTS sampling, prior predictive checks, model comparison,
-generalized discrimination terms, group/DFF model terms, and Multidimensional
-Generalized Many-Facet Rasch Model (MGMFRM) fitting APIs are planned work and
-are not exposed yet.
+Production HMC/NUTS sampling, model comparison, generalized discrimination
+terms, group/DFF model terms, and Multidimensional Generalized Many-Facet Rasch
+Model (MGMFRM) fitting APIs are planned work and are not exposed yet.
 
 ```@contents
 Pages = ["data-validation.md", "fitting.md", "api.md"]

@@ -23,6 +23,8 @@ pointwise_loglikelihood_matrix
 posterior_predict
 posterior_predictive_check
 posterior_summary
+prior_predict
+prior_predictive_check
 rater_overlap
 threshold_map_data
 evidence_metadata
