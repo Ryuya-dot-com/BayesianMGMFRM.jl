@@ -85,13 +85,24 @@ Current public API:
 - `pointwise_loglikelihood`: pointwise log-likelihood evaluation for the
   minimal identified design.
 - `pointwise_loglikelihood_matrix`: draws-by-observations log-likelihood output
-  for posterior checks and future model-comparison helpers.
+  for posterior checks and model-comparison helpers.
+- `waic`: widely applicable information criterion summaries from posterior
+  pointwise log-likelihood draws.
+- `compare_models`: WAIC-based comparison rows for fitted models.
 - `posterior_predict` and `posterior_predictive_check`: posterior replicated
   score generation plus compact observed-vs-replicated summaries for mean
   scores, category proportions, rater means, and item means.
 - `prior_predict` and `prior_predictive_check`: prior replicated score
   generation for checking whether the declared priors imply plausible score
   distributions before fitting.
+- `predictive_check_summary`: report-ready summaries of prior or posterior
+  predictive checks with replicated intervals and tail probabilities.
+- `predictive_probabilities`, `expected_scores`, `predictive_variances`, and
+  `predictive_residuals`: observation-level posterior predictive quantities for
+  calibration tables, residual checks, infit/outfit, and model-comparison
+  helpers.
+- `fit_stats`: posterior summaries of infit and outfit mean-square statistics
+  by facet level.
 - `coverage_summary`, `coverage_matrix`, `rater_overlap`, and
   `threshold_map_data`: fit-independent reporting-data helpers for Quarto
   tables, coverage heat maps, rater-linking plots, and threshold-map
@@ -103,16 +114,13 @@ names with the package name.
 
 Not yet implemented in the public API:
 
-- Stan/CmdStan or production HMC/NUTS sampling, convergence diagnostics, or
-  automatic model-comparison workflows.
+- Stan/CmdStan or production HMC/NUTS sampling, convergence diagnostics,
+  PSIS-LOO, or richer model-comparison workflows.
 - Full GMFRM/MGMFRM identification, loading, and prior blocks.
 - Generalized discrimination, group/DFF, or MGMFRM terms.
-- Automated regeneration of external Stan/BridgeStan fixtures in CI. The scalar
-  analytic target already has non-optional Julia known-answer and
-  BridgeStan-generated log-density fixtures in `Pkg.test()`. Its rater
-  consistency prior convention is fixture-specific: the lognormal density is
-  evaluated on constrained transformed `alpha_r` values and is not a general
-  fitting API prior declaration.
+- Automated regeneration of external Stan/BridgeStan validation fixtures in CI.
+  Current scalar Stan/BridgeStan checks are test-suite validation evidence, not
+  a public fitting API or a general prior declaration.
 
 Current registration checklist:
 
@@ -123,8 +131,9 @@ Current registration checklist:
 - Tests: `Pkg.test()` passes locally
 - Load check: `import BayesianMGMFRM` passes locally
 - General registration is pending until the constrained data/spec API is fully
-  documented and backed by non-optional validation fixtures. Stan-faithfulness
-  claims are currently limited to the scalar fixture checked in `Pkg.test()`.
+  documented and backed by non-optional validation fixtures. External
+  Stan/BridgeStan validation claims are currently limited to the scalar fixture
+  checked in `Pkg.test()`.
 
 ## Pre-Registration Gate
 

@@ -41,7 +41,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--known-fixture",
-        default="test/fixtures/faithful_scalar_known_value.json",
+        default="test/fixtures/scalar_validation_known_value.json",
         help="Julia analytic known-answer fixture to use as the fixed point.",
     )
     parser.add_argument(
@@ -51,7 +51,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--output",
-        default="test/fixtures/faithful_scalar_stan_logdensity.json",
+        default="test/fixtures/scalar_validation_stan_logdensity.json",
         help="Output JSON fixture path.",
     )
     args = parser.parse_args()

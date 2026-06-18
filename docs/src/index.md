@@ -14,14 +14,21 @@ The current public slice focuses on:
 - prior and posterior predictive replication via [`prior_predict`](@ref),
   [`prior_predictive_check`](@ref), [`posterior_predict`](@ref), and
   [`posterior_predictive_check`](@ref);
+- report-ready predictive-check summaries via [`predictive_check_summary`](@ref);
+- observation-level predictive probabilities, expected scores, variances, and
+  residuals via [`predictive_probabilities`](@ref), [`expected_scores`](@ref),
+  [`predictive_variances`](@ref), and [`predictive_residuals`](@ref);
+- posterior infit/outfit summaries by facet level via [`fit_stats`](@ref);
+- WAIC model-comparison summaries via [`waic`](@ref) and
+  [`compare_models`](@ref);
 - fit-independent reporting data via [`coverage_summary`](@ref),
   [`coverage_matrix`](@ref), [`rater_overlap`](@ref), and
   [`threshold_map_data`](@ref);
-- scalar log-density validation against Julia and BridgeStan fixtures.
+- test-suite validation against Julia and BridgeStan scalar fixtures.
 
-Production HMC/NUTS sampling, model comparison, generalized discrimination
-terms, group/DFF model terms, and Multidimensional Generalized Many-Facet Rasch
-Model (MGMFRM) fitting APIs are planned work and are not exposed yet.
+Production HMC/NUTS sampling, PSIS-LOO, generalized discrimination terms,
+group/DFF model terms, and Multidimensional Generalized Many-Facet Rasch Model
+(MGMFRM) fitting APIs are planned work and are not exposed yet.
 
 ```@contents
 Pages = ["data-validation.md", "fitting.md", "api.md"]

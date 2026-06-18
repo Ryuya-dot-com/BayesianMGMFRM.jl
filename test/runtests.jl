@@ -10,22 +10,25 @@ using SHA
 import BayesianMGMFRM
 using BayesianMGMFRM:
     FacetData,
+    compare_models,
     coverage_matrix,
     coverage_summary,
+    expected_scores,
     fit,
+    fit_stats,
     getdesign,
-    FaithfulFastData,
-    FaithfulFastAnalyticLogDensity,
-    FaithfulFastContrastLogDensity,
-    FaithfulFastLogDensity,
-    faithful_fast_contrast_num_params,
-    faithful_fast_decode,
-    faithful_fast_decode_contrast,
-    faithful_fast_logposterior,
-    faithful_fast_logposterior_and_gradient,
-    faithful_fast_logposterior_contrast,
-    faithful_fast_num_params,
-    faithful_fast_offsets,
+    ScalarValidationData,
+    ScalarValidationAnalyticLogDensity,
+    ScalarValidationContrastLogDensity,
+    ScalarValidationLogDensity,
+    scalar_validation_contrast_num_params,
+    scalar_validation_decode,
+    scalar_validation_decode_contrast,
+    scalar_validation_logposterior,
+    scalar_validation_logposterior_and_gradient,
+    scalar_validation_logposterior_contrast,
+    scalar_validation_num_params,
+    scalar_validation_offsets,
     logposterior,
     MFRMFit,
     MFRMPrior,
@@ -35,11 +38,16 @@ using BayesianMGMFRM:
     posterior_predict,
     posterior_predictive_check,
     posterior_summary,
+    predictive_check_summary,
+    predictive_probabilities,
+    predictive_residuals,
+    predictive_variances,
     prior_predict,
     prior_predictive_check,
     rater_overlap,
     threshold_map_data,
     validate_design,
+    waic,
     zerosum_basis_fast
 
 struct ExplodingTable end
@@ -71,7 +79,14 @@ end
 
 function has_doc(mod, name::Symbol)
     isdefined(mod, name) || return false
-    return Base.Docs.doc(getfield(mod, name)) !== nothing
+    binding = Base.Docs.Binding(mod, name)
+    haskey(Base.Docs.meta(mod), binding) && return true
+    try
+        return Base.Docs.doc(getfield(mod, name)) !== nothing
+    catch error
+        error isa MethodError || rethrow()
+        return false
+    end
 end
 
 function file_sha256(path)
@@ -81,6 +96,12 @@ end
 function test_logsumexp(vals)
     m = maximum(vals)
     return m + log(sum(exp(v - m) for v in vals))
+end
+
+function test_sample_variance(vals)
+    n = length(vals)
+    m = sum(Float64, vals) / n
+    return sum((Float64(v) - m)^2 for v in vals) / (n - 1)
 end
 
 function raw_pcm_pointwise(data, person, rater, item, steps_by_item)
@@ -98,9 +119,9 @@ function raw_pcm_pointwise(data, person, rater, item, steps_by_item)
     return out
 end
 
-function faithful_fixture_data(fixture)
+function scalar_validation_fixture_data(fixture)
     data = fixture[:data]
-    return FaithfulFastData(
+    return ScalarValidationData(
         X = Vector{Int}(data[:X]),
         examinee = Vector{Int}(data[:examinee]),
         rater = Vector{Int}(data[:rater]),
@@ -113,12 +134,14 @@ end
 
 @testset "public docstrings" begin
     for name in (:FacetData, :ValidationIssue, :ValidationReport, :FacetSpec, :FacetDesign,
-            :MFRMPrior, :MFRMFit, :fit, :logposterior,
-            :coverage_matrix, :coverage_summary, :validate_design, :mfrm_spec, :getdesign,
+            :MFRMPrior, :MFRMFit, :expected_scores, :fit, :fit_stats, :logposterior,
+            :compare_models, :coverage_matrix, :coverage_summary, :validate_design, :mfrm_spec, :getdesign,
             :pointwise_loglikelihood, :pointwise_loglikelihood_matrix, :posterior_predict,
             :posterior_predictive_check, :posterior_summary,
+            :predictive_check_summary, :predictive_probabilities,
+            :predictive_residuals, :predictive_variances,
             :prior_predict, :prior_predictive_check,
-            :rater_overlap, :threshold_map_data, :evidence_metadata)
+            :rater_overlap, :threshold_map_data, :evidence_metadata, :waic)
         @test has_doc(BayesianMGMFRM, name)
     end
     @test !isdefined(BayesianMGMFRM, :audit)
@@ -548,6 +571,71 @@ end
     @test pointwise_loglikelihood_matrix(design, result.draws) ≈ llmat
     @test_throws ArgumentError pointwise_loglikelihood_matrix(design, result.draws[:, 1:end-1])
 
+    waic_result = waic(result; draw_indices = [1, 2, 3])
+    manual_lppd = [test_logsumexp(@view llmat[1:3, row]) - log(3) for row in 1:data.n]
+    manual_p_waic = [test_sample_variance(@view llmat[1:3, row]) for row in 1:data.n]
+    manual_elpd = manual_lppd .- manual_p_waic
+    manual_waic = -2 .* manual_elpd
+    @test waic_result.criterion === :waic
+    @test waic_result.n_draws == 3
+    @test waic_result.n_observations == data.n
+    @test waic_result.pointwise.lppd ≈ manual_lppd
+    @test waic_result.pointwise.p_waic ≈ manual_p_waic
+    @test waic_result.pointwise.elpd_waic ≈ manual_elpd
+    @test waic_result.pointwise.waic ≈ manual_waic
+    @test waic_result.lppd ≈ sum(manual_lppd)
+    @test waic_result.p_waic ≈ sum(manual_p_waic)
+    @test waic_result.elpd_waic ≈ sum(manual_elpd)
+    @test waic_result.waic ≈ sum(manual_waic)
+    @test waic_result.waic ≈ -2 * waic_result.elpd_waic
+    @test waic_result.se_waic ≈ 2 * waic_result.se_elpd_waic
+    @test waic_result.high_variance_count == count(>(0.4), manual_p_waic)
+    @test waic_result.warning in (:ok, :high_loglik_variance)
+    @test waic(design, result.draws[1:3, :]).waic ≈ waic_result.waic
+    @test waic(llmat[1:3, :]).waic ≈ waic_result.waic
+    @test_throws ArgumentError waic(result; ndraws = 1)
+    @test_throws ArgumentError waic(result; ndraws = 2, draw_indices = [1])
+    @test_throws ArgumentError waic(design, result.draws[1:3, 1:end-1])
+    @test_throws ArgumentError waic(llmat[1:1, :])
+    @test_throws ArgumentError waic([0.0 Inf; 1.0 2.0])
+
+    comparison = compare_models(result, spec_result; names = [:main, :short], draw_indices = [1, 2])
+    comparison_stats = Dict(
+        "main" => waic(result; draw_indices = [1, 2]),
+        "short" => waic(spec_result; draw_indices = [1, 2]),
+    )
+    best_stat = comparison_stats[comparison[1].model]
+    @test length(comparison) == 2
+    @test [row.rank for row in comparison] == [1, 2]
+    @test comparison[1].elpd_waic >= comparison[2].elpd_waic
+    @test comparison[1].elpd_difference ≈ 0.0
+    @test comparison[1].waic_difference ≈ 0.0
+    @test comparison[2].elpd_difference <= 0
+    @test comparison[2].waic_difference >= 0
+    @test all(row -> row.criterion === :waic, comparison)
+    @test all(row -> row.n_observations == data.n, comparison)
+    for row in comparison
+        stat = comparison_stats[row.model]
+        pointwise_difference = stat.pointwise.elpd_waic .- best_stat.pointwise.elpd_waic
+        @test row.elpd_waic ≈ stat.elpd_waic
+        @test row.elpd_difference ≈ stat.elpd_waic - best_stat.elpd_waic
+        @test row.se_elpd_difference ≈ sqrt(length(pointwise_difference) * test_sample_variance(pointwise_difference))
+        @test row.waic ≈ stat.waic
+        @test row.waic_difference ≈ stat.waic - best_stat.waic
+        @test row.p_waic ≈ stat.p_waic
+        @test row.lppd ≈ stat.lppd
+        @test row.high_variance_count == stat.high_variance_count
+        @test row.warning === stat.warning
+    end
+    pair_comparison = compare_models(:main => result, :short => spec_result; draw_indices = [1, 2])
+    @test [row.model for row in pair_comparison] == [row.model for row in comparison]
+    @test [row.waic for row in pair_comparison] ≈ [row.waic for row in comparison]
+    @test_throws ArgumentError compare_models(result; names = [:single])
+    @test_throws ArgumentError compare_models(result, spec_result; names = [:only])
+    @test_throws ArgumentError compare_models(result, spec_result; names = [:dup, :dup])
+    @test_throws ArgumentError compare_models(result, spec_result; criterion = :loo)
+    @test_throws ArgumentError compare_models(:bad => design, :good => result)
+
     probabilities = zeros(Float64, length(data.category_levels))
     draw_params = @view result.draws[1, :]
     draw_loglik = pointwise_loglikelihood(design, draw_params)
@@ -556,6 +644,61 @@ end
         @test sum(probabilities) ≈ 1.0
         @test log(probabilities[data.category[row]]) ≈ draw_loglik[row]
     end
+
+    prob_array = predictive_probabilities(result; draw_indices = [1, 2])
+    @test size(prob_array) == (2, data.n, length(data.category_levels))
+    @test predictive_probabilities(design, result.draws[1:2, :]) ≈ prob_array
+    @test all(draw -> all(row -> sum(prob_array[draw, row, :]) ≈ 1.0, 1:data.n), 1:2)
+    @test all(row -> log(prob_array[1, row, data.category[row]]) ≈ llmat[1, row], 1:data.n)
+    @test_throws ArgumentError predictive_probabilities(result; ndraws = 0)
+    @test_throws ArgumentError predictive_probabilities(result; ndraws = 2, draw_indices = [1])
+    @test_throws ArgumentError predictive_probabilities(design, result.draws[:, 1:end-1])
+
+    expected = expected_scores(result; draw_indices = [1, 2])
+    variances = predictive_variances(result; draw_indices = [1, 2])
+    residuals = predictive_residuals(result; draw_indices = [1, 2])
+    @test size(expected) == (2, data.n)
+    @test expected_scores(design, result.draws[1:2, :]) ≈ expected
+    @test size(variances) == (2, data.n)
+    @test predictive_variances(design, result.draws[1:2, :]) ≈ variances
+    @test size(residuals) == (2, data.n)
+    @test predictive_residuals(design, result.draws[1:2, :]) ≈ residuals
+    for draw in 1:2, row in 1:data.n
+        manual_mean = sum(data.category_levels[k] * prob_array[draw, row, k] for k in eachindex(data.category_levels))
+        manual_second = sum(data.category_levels[k]^2 * prob_array[draw, row, k] for k in eachindex(data.category_levels))
+        @test expected[draw, row] ≈ manual_mean
+        @test variances[draw, row] ≈ manual_second - manual_mean^2 atol = 1e-12
+        @test residuals[draw, row] ≈ data.score[row] - expected[draw, row]
+    end
+    @test all(>=(0.0), variances)
+    @test_throws ArgumentError expected_scores(result; ndraws = 0)
+    @test_throws ArgumentError predictive_variances(result; ndraws = 0)
+    @test_throws ArgumentError predictive_residuals(result; ndraws = 0)
+
+    rater_fit = fit_stats(result; by = :rater, draw_indices = [1, 2], interval = 0.8)
+    @test length(rater_fit) == length(data.rater_levels)
+    @test [row.level for row in rater_fit] == data.rater_levels
+    @test all(row -> row.facet === :rater, rater_fit)
+    @test all(row -> row.method === :posterior, rater_fit)
+    @test all(row -> row.n_obs == count(==(findfirst(==(row.level), data.rater_levels)), data.rater), rater_fit)
+    @test all(row -> row.lower_probability ≈ 0.1, rater_fit)
+    @test all(row -> row.upper_probability ≈ 0.9, rater_fit)
+    @test all(row -> row.flag in (:ok, :tiny_predictive_variance), rater_fit)
+    @test all(row -> row.infit_lower <= row.infit_median <= row.infit_upper, rater_fit)
+    @test all(row -> row.outfit_lower <= row.outfit_median <= row.outfit_upper, rater_fit)
+    @test fit_stats(design, result.draws[1:2, :]; by = :rater, interval = 0.8) == rater_fit
+
+    item_fit = fit_stats(result; by = :item, draw_indices = [1, 2])
+    @test [row.level for row in item_fit] == data.item_levels
+    category_fit = fit_stats(result; by = :category, draw_indices = [1, 2])
+    @test [row.level for row in category_fit] == data.category_levels
+    sparse_fit = fit_stats(result; by = :rater, draw_indices = [1, 2], min_n = data.n + 1)
+    @test all(row -> row.flag === :below_min_n, sparse_fit)
+    @test all(row -> isnan(row.infit_mean) && isnan(row.outfit_mean), sparse_fit)
+    @test_throws ArgumentError fit_stats(result; by = :unknown)
+    @test_throws ArgumentError fit_stats(result; method = :plugin)
+    @test_throws ArgumentError fit_stats(result; interval = 1.0)
+    @test_throws ArgumentError fit_stats(result; min_n = 0)
 
     prior_replicated = prior_predict(design; prior, ndraws = 5, rng = MersenneTwister(2234))
     @test size(prior_replicated) == (5, data.n)
@@ -579,6 +722,29 @@ end
     @test size(prior_ppc_spec.replicated_scores) == (2, data.n)
     @test_throws ArgumentError prior_predictive_check(design; prior, ndraws = 0)
 
+    prior_ppc_summary = predictive_check_summary(prior_ppc; interval = 0.8)
+    expected_n_summary_rows = 1 + length(data.category_levels) + length(data.rater_levels) + length(data.item_levels)
+    @test length(prior_ppc_summary) == expected_n_summary_rows
+    @test prior_ppc_summary[1].statistic === :mean_score
+    @test prior_ppc_summary[1].level === missing
+    @test prior_ppc_summary[1].observed ≈ prior_ppc.observed.mean_score
+    @test prior_ppc_summary[1].replicated_mean ≈ sum(prior_ppc.replicated.mean_score) / 6
+    @test prior_ppc_summary[1].lower_probability ≈ 0.1
+    @test prior_ppc_summary[1].upper_probability ≈ 0.9
+    @test prior_ppc_summary[1].n_replicates == 6
+    @test prior_ppc_summary[1].lower_tail_probability ≈
+        count(<=(prior_ppc.observed.mean_score), prior_ppc.replicated.mean_score) / 6
+    @test prior_ppc_summary[1].upper_tail_probability ≈
+        count(>=(prior_ppc.observed.mean_score), prior_ppc.replicated.mean_score) / 6
+    @test prior_ppc_summary[1].two_sided_tail_probability ≈
+        min(1.0, 2 * min(prior_ppc_summary[1].lower_tail_probability,
+                prior_ppc_summary[1].upper_tail_probability))
+    @test all(row -> row.flag in (:ok, :outside_interval), prior_ppc_summary)
+    @test any(row -> row.statistic === :category_proportion && row.level == first(data.category_levels),
+        prior_ppc_summary)
+    @test_throws ArgumentError predictive_check_summary(prior_ppc; interval = 1.0)
+    @test_throws ArgumentError predictive_check_summary((observed = prior_ppc.observed,))
+
     replicated = posterior_predict(result; ndraws = 5, rng = MersenneTwister(1234))
     @test size(replicated) == (5, data.n)
     @test all(score -> score in data.category_levels, replicated)
@@ -600,6 +766,14 @@ end
     @test ppc.category_levels == data.category_levels
     @test ppc.rater_levels == data.rater_levels
     @test ppc.item_levels == data.item_levels
+    ppc_summary = predictive_check_summary(ppc; interval = 0.8)
+    @test length(ppc_summary) == expected_n_summary_rows
+    @test [row.statistic for row in ppc_summary[1:4]] ==
+        [:mean_score, :category_proportion, :category_proportion, :category_proportion]
+    @test ppc_summary[1].observed ≈ ppc.observed.mean_score
+    @test ppc_summary[1].replicated_lower <= ppc_summary[1].replicated_median <=
+        ppc_summary[1].replicated_upper
+    @test all(row -> row.n_replicates == 6, ppc_summary)
     ppc_by_index = posterior_predictive_check(result; draw_indices = [1, 2], rng = MersenneTwister(5679))
     @test size(ppc_by_index.replicated_scores) == (2, data.n)
     @test ppc_by_index.draw_indices == [1, 2]
@@ -607,22 +781,22 @@ end
     @test_throws ArgumentError posterior_predictive_check(result; ndraws = 2, draw_indices = [1])
 end
 
-@testset "faithful scalar analytic gradient" begin
-    fixture_path = joinpath(@__DIR__, "fixtures", "faithful_scalar_known_value.json")
+@testset "scalar validation analytic gradient" begin
+    fixture_path = joinpath(@__DIR__, "fixtures", "scalar_validation_known_value.json")
     stan_model_path = joinpath(@__DIR__, "stan", "scalar_gmfrm.stan")
     @test isfile(stan_model_path)
     @test occursin("categorical_logit", read(stan_model_path, String))
     fixture = JSON3.read(read(fixture_path, String))
-    @test String(fixture[:schema]) == "bayesianmgmfrm.faithful_scalar_known_value.v1"
+    @test String(fixture[:schema]) == "bayesianmgmfrm.scalar_validation_known_value.v1"
 
-    fd = faithful_fixture_data(fixture)
+    fd = scalar_validation_fixture_data(fixture)
     x = Vector{Float64}(fixture[:x])
     expected_lp = Float64(fixture[:log_density])
     expected_gradient = Vector{Float64}(fixture[:gradient])
     fixture_tol = Float64(fixture[:tolerance])
-    @test length(x) == faithful_fast_num_params(fd)
+    @test length(x) == scalar_validation_num_params(fd)
 
-    logp = z -> faithful_fast_logposterior(z, fd)
+    logp = z -> scalar_validation_logposterior(z, fd)
 
     facet_data = FacetData((
             examinee = ["E1", "E1", "E2", "E2", "E3", "E3"],
@@ -634,7 +808,7 @@ end
         rater = :rater,
         item = :item,
         score = :score)
-    facet_fd = FaithfulFastData(facet_data)
+    facet_fd = ScalarValidationData(facet_data)
     @test facet_fd.X == facet_data.category
     @test facet_fd.examinee == facet_data.person
     @test facet_fd.rater == facet_data.rater
@@ -651,15 +825,15 @@ end
         rater = :rater,
         item = :item,
         score = :score)
-    @test_throws ArgumentError FaithfulFastData(multi_item_data)
+    @test_throws ArgumentError ScalarValidationData(multi_item_data)
 
-    lp, g_analytic = faithful_fast_logposterior_and_gradient(x, fd)
+    lp, g_analytic = scalar_validation_logposterior_and_gradient(x, fd)
     @test lp ≈ logp(x) atol = 1e-10 rtol = 1e-10
     @test lp ≈ expected_lp atol = fixture_tol rtol = fixture_tol
     @test maximum(abs.(g_analytic .- expected_gradient)) < fixture_tol
-    o = faithful_fast_offsets(fd)
+    o = scalar_validation_offsets(fd)
 
-    stan_fixture_path = joinpath(@__DIR__, "fixtures", "faithful_scalar_stan_logdensity.json")
+    stan_fixture_path = joinpath(@__DIR__, "fixtures", "scalar_validation_stan_logdensity.json")
     stan_fixture = JSON3.read(read(stan_fixture_path, String))
     @test String(stan_fixture[:schema]) == "bayesianmgmfrm.scalar_stan_logdensity.v1"
     @test Bool(stan_fixture[:propto]) == false
@@ -691,9 +865,9 @@ end
     stan_gradient = Vector{Float64}(stan_fixture[:stan_gradient])
     @test lp ≈ stan_lp atol = stan_tol rtol = stan_tol
     @test maximum(abs.(g_analytic .- stan_gradient)) < stan_tol
-    @test LogDensityProblems.logdensity(FaithfulFastLogDensity(fd), x) ≈ lp atol = 1e-10 rtol = 1e-10
+    @test LogDensityProblems.logdensity(ScalarValidationLogDensity(fd), x) ≈ lp atol = 1e-10 rtol = 1e-10
 
-    decoded = faithful_fast_decode(x, fd)
+    decoded = scalar_validation_decode(x, fd)
     @test size(decoded.theta) == (1, fd.J)
     @test sum(log.(decoded.trans_alpha_r)) ≈ 0.0 atol = 1e-12
     @test sum(decoded.trans_beta_r) ≈ 0.0 atol = 1e-12
@@ -708,12 +882,12 @@ end
     @test Qr' * Qr ≈ Matrix{Float64}(I, fd.R - 1, fd.R - 1) atol = 1e-12 rtol = 1e-12
     @test Qs' * Qs ≈ Matrix{Float64}(I, fd.K - 2, fd.K - 2) atol = 1e-12 rtol = 1e-12
 
-    @test faithful_fast_contrast_num_params(fd) == faithful_fast_num_params(fd)
-    contrast_lp = faithful_fast_logposterior_contrast(x, fd, Qr, Qs)
-    contrast_target = FaithfulFastContrastLogDensity(fd, Qr, Qs)
+    @test scalar_validation_contrast_num_params(fd) == scalar_validation_num_params(fd)
+    contrast_lp = scalar_validation_logposterior_contrast(x, fd, Qr, Qs)
+    contrast_target = ScalarValidationContrastLogDensity(fd, Qr, Qs)
     @test isfinite(contrast_lp)
     @test LogDensityProblems.logdensity(contrast_target, x) ≈ contrast_lp atol = 1e-10 rtol = 1e-10
-    contrast_decoded = faithful_fast_decode_contrast(x, fd)
+    contrast_decoded = scalar_validation_decode_contrast(x, fd)
     @test sum(log.(contrast_decoded.trans_alpha_r)) ≈ 0.0 atol = 1e-12
     @test sum(contrast_decoded.trans_beta_r) ≈ 0.0 atol = 1e-12
     @test contrast_decoded.category_prm[1][end] ≈ 0.0 atol = 1e-12
@@ -724,14 +898,14 @@ end
     x_contrast[o.o_log_alpha_r:(o.o_log_alpha_r + fd.R - 2)] .= Qr' * raw_log_alpha_r
     x_contrast[o.o_beta_r:(o.o_beta_r + fd.R - 2)] .= Qr' * decoded.trans_beta_r
     x_contrast[o.o_beta_ik:(o.o_beta_ik + fd.K - 3)] .= Qs' * raw_category_est
-    matched_contrast_decoded = faithful_fast_decode_contrast(x_contrast, fd)
+    matched_contrast_decoded = scalar_validation_decode_contrast(x_contrast, fd)
     @test matched_contrast_decoded.theta ≈ decoded.theta atol = 1e-12 rtol = 1e-12
     @test matched_contrast_decoded.alpha_i ≈ decoded.alpha_i atol = 1e-12 rtol = 1e-12
     @test matched_contrast_decoded.beta_i ≈ decoded.beta_i atol = 1e-12 rtol = 1e-12
     @test matched_contrast_decoded.trans_alpha_r ≈ decoded.trans_alpha_r atol = 1e-12 rtol = 1e-12
     @test matched_contrast_decoded.trans_beta_r ≈ decoded.trans_beta_r atol = 1e-12 rtol = 1e-12
     @test matched_contrast_decoded.category_prm[1] ≈ decoded.category_prm[1] atol = 1e-12 rtol = 1e-12
-    @test faithful_fast_logposterior_contrast(x_contrast, fd, Qr, Qs) ≈ lp atol = 1e-10 rtol = 1e-10
+    @test scalar_validation_logposterior_contrast(x_contrast, fd, Qr, Qs) ≈ lp atol = 1e-10 rtol = 1e-10
 
     g_reverse = ReverseDiff.gradient(logp, x)
     @test maximum(abs.(g_analytic .- g_reverse)) < 1e-8
@@ -744,12 +918,12 @@ end
         @test g_analytic[i] ≈ central_difference(logp, x, i) atol = 1e-4 rtol = 1e-4
     end
 
-    x_extreme = zeros(faithful_fast_num_params(fd))
+    x_extreme = zeros(scalar_validation_num_params(fd))
     x_extreme[o.o_theta] = 10.0
     x_extreme[o.o_log_alpha_i] = 4.0
-    lp_extreme = faithful_fast_logposterior(x_extreme, fd)
-    lp_grad_extreme, _ = faithful_fast_logposterior_and_gradient(x_extreme, fd)
-    analytic_target = FaithfulFastAnalyticLogDensity(fd)
+    lp_extreme = scalar_validation_logposterior(x_extreme, fd)
+    lp_grad_extreme, _ = scalar_validation_logposterior_and_gradient(x_extreme, fd)
+    analytic_target = ScalarValidationAnalyticLogDensity(fd)
     @test isfinite(lp_extreme)
     @test lp_extreme ≈ lp_grad_extreme atol = 1e-8 rtol = 1e-8
     @test LogDensityProblems.logdensity(analytic_target, x_extreme) ≈
@@ -758,12 +932,12 @@ end
     external_stan_fixture = get(ENV, "MFRM_STAN_LOGDENSITY_FIXTURE", "")
     if !isempty(external_stan_fixture)
         fixture = JSON3.read(read(external_stan_fixture, String))
-        fd_stan = faithful_fixture_data(fixture)
+        fd_stan = scalar_validation_fixture_data(fixture)
         x_stan = Vector{Float64}(fixture[:x])
         lp_stan = Float64(fixture[:stan_log_density])
         tol = haskey(fixture, :tolerance) ? Float64(fixture[:tolerance]) : 1e-6
-        @test length(x_stan) == faithful_fast_num_params(fd_stan)
-        lp_julia, g_julia = faithful_fast_logposterior_and_gradient(x_stan, fd_stan)
+        @test length(x_stan) == scalar_validation_num_params(fd_stan)
+        lp_julia, g_julia = scalar_validation_logposterior_and_gradient(x_stan, fd_stan)
         @test lp_julia ≈ lp_stan atol = tol rtol = tol
         if haskey(fixture, :stan_gradient)
             g_stan = Vector{Float64}(fixture[:stan_gradient])

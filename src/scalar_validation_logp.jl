@@ -1,4 +1,4 @@
-# faithful_fastlogp.jl -- scalar D=1/I=1 Uto 2021-style validation target
+# scalar_validation_logp.jl -- scalar D=1/I=1 Uto 2021-style validation target
 # ==============================================================================
 # Reference implementation used for gradient validation while the public
 # model-specification API is being developed.
@@ -10,7 +10,7 @@ const LOG2PI_FAST = log(2 * pi)
 # Logistic-to-normal-ogive approximation scale used in the Uto 2021 MGMFRM/GPCM equations.
 const UTO_UENO_LOGISTIC_SCALE = 1.7
 
-Base.@kwdef struct FaithfulFastData
+Base.@kwdef struct ScalarValidationData
     X::Vector{Int}
     examinee::Vector{Int}
     rater::Vector{Int}
@@ -20,10 +20,10 @@ Base.@kwdef struct FaithfulFastData
     N::Int
 end
 
-function FaithfulFastData(data::FacetData)
+function ScalarValidationData(data::FacetData)
     length(data.item_levels) == 1 ||
-        throw(ArgumentError("FaithfulFastData only supports one item in the current scalar target"))
-    return FaithfulFastData(
+        throw(ArgumentError("ScalarValidationData only supports one item in the current scalar target"))
+    return ScalarValidationData(
         X = data.category,
         examinee = data.person,
         rater = data.rater,
@@ -34,10 +34,10 @@ function FaithfulFastData(data::FacetData)
     )
 end
 
-function FaithfulFastData(data)
-    getproperty(data, :I) == 1 || throw(ArgumentError("FaithfulFastData only supports I=1"))
-    getproperty(data, :D) == 1 || throw(ArgumentError("FaithfulFastData only supports D=1"))
-    return FaithfulFastData(
+function ScalarValidationData(data)
+    getproperty(data, :I) == 1 || throw(ArgumentError("ScalarValidationData only supports I=1"))
+    getproperty(data, :D) == 1 || throw(ArgumentError("ScalarValidationData only supports D=1"))
+    return ScalarValidationData(
         X = data.X,
         examinee = data.examinee,
         rater = data.rater,
@@ -48,8 +48,8 @@ function FaithfulFastData(data)
     )
 end
 
-faithful_fast_num_params(d::FaithfulFastData) = d.J + 1 + 1 + (d.R - 1) + (d.R - 1) + (d.K - 2)
-faithful_fast_contrast_num_params(d::FaithfulFastData) = faithful_fast_num_params(d)
+scalar_validation_num_params(d::ScalarValidationData) = d.J + 1 + 1 + (d.R - 1) + (d.R - 1) + (d.K - 2)
+scalar_validation_contrast_num_params(d::ScalarValidationData) = scalar_validation_num_params(d)
 
 @inline normal01_logpdf_fast(x) = -0.5 * (LOG2PI_FAST + x * x)
 
@@ -59,7 +59,7 @@ faithful_fast_contrast_num_params(d::FaithfulFastData) = faithful_fast_num_param
     return -logx - 0.5 * (LOG2PI_FAST + logx * logx)
 end
 
-function faithful_fast_offsets(d::FaithfulFastData)
+function scalar_validation_offsets(d::ScalarValidationData)
     o_theta = 1
     o_log_alpha_i = o_theta + d.J
     o_beta_i = o_log_alpha_i + 1
@@ -92,7 +92,7 @@ function _check_approx_zero(name::AbstractString, value; atol = 1e-8)
     return nothing
 end
 
-function _check_faithful_truth_constraints(truth, d::FaithfulFastData)
+function _check_scalar_validation_truth_constraints(truth, d::ScalarValidationData)
     _check_length("truth.theta", truth.theta, d.J)
     _check_length("truth.trans_alpha_r", truth.trans_alpha_r, d.R)
     _check_length("truth.trans_beta_r", truth.trans_beta_r, d.R)
@@ -105,11 +105,11 @@ function _check_faithful_truth_constraints(truth, d::FaithfulFastData)
     return nothing
 end
 
-function faithful_fast_pack_truth(data, truth)
-    d = FaithfulFastData(data)
-    _check_faithful_truth_constraints(truth, d)
-    x = Vector{Float64}(undef, faithful_fast_num_params(d))
-    o = faithful_fast_offsets(d)
+function scalar_validation_pack_truth(data, truth)
+    d = ScalarValidationData(data)
+    _check_scalar_validation_truth_constraints(truth, d)
+    x = Vector{Float64}(undef, scalar_validation_num_params(d))
+    o = scalar_validation_offsets(d)
     x[o.o_theta:(o.o_theta + d.J - 1)] .= truth.theta
     x[o.o_log_alpha_i] = log(truth.alpha_i)
     x[o.o_beta_i] = truth.beta_i
@@ -119,13 +119,13 @@ function faithful_fast_pack_truth(data, truth)
     return x
 end
 
-function faithful_fast_pack_truth_contrast(data, truth)
-    d = FaithfulFastData(data)
-    _check_faithful_truth_constraints(truth, d)
+function scalar_validation_pack_truth_contrast(data, truth)
+    d = ScalarValidationData(data)
+    _check_scalar_validation_truth_constraints(truth, d)
     Qr = zerosum_basis_fast(d.R)
     Qs = zerosum_basis_fast(d.K - 1)
-    x = Vector{Float64}(undef, faithful_fast_contrast_num_params(d))
-    o = faithful_fast_offsets(d)
+    x = Vector{Float64}(undef, scalar_validation_contrast_num_params(d))
+    o = scalar_validation_offsets(d)
     x[o.o_theta:(o.o_theta + d.J - 1)] .= truth.theta
     x[o.o_log_alpha_i] = log(truth.alpha_i)
     x[o.o_beta_i] = truth.beta_i
@@ -135,8 +135,8 @@ function faithful_fast_pack_truth_contrast(data, truth)
     return x
 end
 
-function faithful_fast_decode(x, d::FaithfulFastData)
-    o = faithful_fast_offsets(d)
+function scalar_validation_decode(x, d::ScalarValidationData)
+    o = scalar_validation_offsets(d)
     theta = reshape(collect(x[o.o_theta:(o.o_theta + d.J - 1)]), 1, d.J)
     alpha_i = reshape([exp(x[o.o_log_alpha_i])], 1, 1)
     beta_i = [x[o.o_beta_i]]
@@ -153,8 +153,8 @@ function faithful_fast_decode(x, d::FaithfulFastData)
     return (; theta, alpha_i, beta_i, trans_alpha_r, trans_beta_r, category_prm)
 end
 
-function faithful_fast_decode_contrast(x, d::FaithfulFastData)
-    o = faithful_fast_offsets(d)
+function scalar_validation_decode_contrast(x, d::ScalarValidationData)
+    o = scalar_validation_offsets(d)
     Qr = zerosum_basis_fast(d.R)
     Qs = zerosum_basis_fast(d.K - 1)
 
@@ -173,9 +173,9 @@ function faithful_fast_decode_contrast(x, d::FaithfulFastData)
             category_prm)
 end
 
-function faithful_fast_posterior_means(xs, d::FaithfulFastData; parameterization::Symbol = :raw)
+function scalar_validation_posterior_means(xs, d::ScalarValidationData; parameterization::Symbol = :raw)
     n = length(xs)
-    decode = parameterization == :contrast ? faithful_fast_decode_contrast : faithful_fast_decode
+    decode = parameterization == :contrast ? scalar_validation_decode_contrast : scalar_validation_decode
     first_pm = decode(first(xs), d)
     theta = zeros(size(first_pm.theta))
     alpha_i = zeros(size(first_pm.alpha_i))
@@ -202,7 +202,7 @@ function faithful_fast_posterior_means(xs, d::FaithfulFastData; parameterization
             category_prm = [category_prm[1] ./ n])
 end
 
-@inline function faithful_fast_step_logprob_cp(category_prm, scale, score, y::Int, K::Int)
+@inline function scalar_validation_step_logprob_cp(category_prm, scale, score, y::Int, K::Int)
     eta0 = scale * zero(score)
     eta_y = eta0
     max_eta = -Inf
@@ -221,7 +221,7 @@ end
     return eta_y - (max_eta + log(denom))
 end
 
-@inline function faithful_fast_step_logprob(x, o_beta_ik::Int, raw_step_sum, scale, score, y::Int, K::Int)
+@inline function scalar_validation_step_logprob(x, o_beta_ik::Int, raw_step_sum, scale, score, y::Int, K::Int)
     eta0 = scale * zero(score)
     eta_y = eta0
     prefix = zero(eta0)
@@ -260,8 +260,8 @@ end
     return eta_y - (max_eta + log(denom))
 end
 
-function faithful_fast_logposterior(x, d::FaithfulFastData)
-    o = faithful_fast_offsets(d)
+function scalar_validation_logposterior(x, d::ScalarValidationData)
+    o = scalar_validation_offsets(d)
     lp = zero(x[1])
 
     @inbounds for j in 1:d.J
@@ -305,14 +305,14 @@ function faithful_fast_logposterior(x, d::FaithfulFastData)
         theta = x[o.o_theta + d.examinee[n] - 1]
         score = alpha_i * theta - beta_i - beta_r
         scale = UTO_UENO_LOGISTIC_SCALE * exp(log_alpha_r)
-        lp += faithful_fast_step_logprob(x, o.o_beta_ik, raw_step_sum, scale, score, d.X[n], d.K)
+        lp += scalar_validation_step_logprob(x, o.o_beta_ik, raw_step_sum, scale, score, d.X[n], d.K)
     end
 
     return lp
 end
 
-function faithful_fast_logposterior_and_gradient(x, d::FaithfulFastData)
-    o = faithful_fast_offsets(d)
+function scalar_validation_logposterior_and_gradient(x, d::ScalarValidationData)
+    o = scalar_validation_offsets(d)
     lp = zero(x[1])
     g = zeros(eltype(x), length(x))
 
@@ -431,10 +431,10 @@ function faithful_fast_logposterior_and_gradient(x, d::FaithfulFastData)
     return lp, g
 end
 
-function faithful_fast_logposterior_contrast(x, d::FaithfulFastData,
+function scalar_validation_logposterior_contrast(x, d::ScalarValidationData,
                                             Qr = zerosum_basis_fast(d.R),
                                             Qs = zerosum_basis_fast(d.K - 1))
-    o = faithful_fast_offsets(d)
+    o = scalar_validation_offsets(d)
     lp = zero(x[1])
 
     @inbounds for j in 1:d.J
@@ -469,40 +469,40 @@ function faithful_fast_logposterior_contrast(x, d::FaithfulFastData,
         theta = x[o.o_theta + d.examinee[n] - 1]
         score = alpha_i * theta - beta_i - beta_r[r]
         scale = UTO_UENO_LOGISTIC_SCALE * exp(log_alpha_r[r])
-        lp += faithful_fast_step_logprob_cp(category_prm, scale, score, d.X[n], d.K)
+        lp += scalar_validation_step_logprob_cp(category_prm, scale, score, d.X[n], d.K)
     end
 
     return lp
 end
 
-struct FaithfulFastLogDensity
-    data::FaithfulFastData
+struct ScalarValidationLogDensity
+    data::ScalarValidationData
 end
 
-struct FaithfulFastContrastLogDensity
-    data::FaithfulFastData
+struct ScalarValidationContrastLogDensity
+    data::ScalarValidationData
     Qr::Matrix{Float64}
     Qs::Matrix{Float64}
 end
 
-struct FaithfulFastAnalyticLogDensity
-    data::FaithfulFastData
+struct ScalarValidationAnalyticLogDensity
+    data::ScalarValidationData
 end
 
-FaithfulFastContrastLogDensity(data::FaithfulFastData) =
-    FaithfulFastContrastLogDensity(data, zerosum_basis_fast(data.R), zerosum_basis_fast(data.K - 1))
+ScalarValidationContrastLogDensity(data::ScalarValidationData) =
+    ScalarValidationContrastLogDensity(data, zerosum_basis_fast(data.R), zerosum_basis_fast(data.K - 1))
 
-LogDensityProblems.logdensity(p::FaithfulFastLogDensity, x) = faithful_fast_logposterior(x, p.data)
-LogDensityProblems.dimension(p::FaithfulFastLogDensity) = faithful_fast_num_params(p.data)
-LogDensityProblems.capabilities(::Type{FaithfulFastLogDensity}) = LogDensityProblems.LogDensityOrder{0}()
+LogDensityProblems.logdensity(p::ScalarValidationLogDensity, x) = scalar_validation_logposterior(x, p.data)
+LogDensityProblems.dimension(p::ScalarValidationLogDensity) = scalar_validation_num_params(p.data)
+LogDensityProblems.capabilities(::Type{ScalarValidationLogDensity}) = LogDensityProblems.LogDensityOrder{0}()
 
-LogDensityProblems.logdensity(p::FaithfulFastContrastLogDensity, x) =
-    faithful_fast_logposterior_contrast(x, p.data, p.Qr, p.Qs)
-LogDensityProblems.dimension(p::FaithfulFastContrastLogDensity) = faithful_fast_contrast_num_params(p.data)
-LogDensityProblems.capabilities(::Type{FaithfulFastContrastLogDensity}) = LogDensityProblems.LogDensityOrder{0}()
+LogDensityProblems.logdensity(p::ScalarValidationContrastLogDensity, x) =
+    scalar_validation_logposterior_contrast(x, p.data, p.Qr, p.Qs)
+LogDensityProblems.dimension(p::ScalarValidationContrastLogDensity) = scalar_validation_contrast_num_params(p.data)
+LogDensityProblems.capabilities(::Type{ScalarValidationContrastLogDensity}) = LogDensityProblems.LogDensityOrder{0}()
 
-LogDensityProblems.logdensity(p::FaithfulFastAnalyticLogDensity, x) = faithful_fast_logposterior(x, p.data)
-LogDensityProblems.dimension(p::FaithfulFastAnalyticLogDensity) = faithful_fast_num_params(p.data)
-LogDensityProblems.capabilities(::Type{FaithfulFastAnalyticLogDensity}) = LogDensityProblems.LogDensityOrder{1}()
-LogDensityProblems.logdensity_and_gradient(p::FaithfulFastAnalyticLogDensity, x) =
-    faithful_fast_logposterior_and_gradient(x, p.data)
+LogDensityProblems.logdensity(p::ScalarValidationAnalyticLogDensity, x) = scalar_validation_logposterior(x, p.data)
+LogDensityProblems.dimension(p::ScalarValidationAnalyticLogDensity) = scalar_validation_num_params(p.data)
+LogDensityProblems.capabilities(::Type{ScalarValidationAnalyticLogDensity}) = LogDensityProblems.LogDensityOrder{1}()
+LogDensityProblems.logdensity_and_gradient(p::ScalarValidationAnalyticLogDensity, x) =
+    scalar_validation_logposterior_and_gradient(x, p.data)

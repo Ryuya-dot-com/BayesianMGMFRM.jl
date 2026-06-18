@@ -5,8 +5,8 @@
   "bridgestan_version": "2.8.0",
   "stan_model": "test/stan/scalar_gmfrm.stan",
   "stan_model_sha256": "cfdae879b1b3248497f2ce562586777c00417e7559590cb22148545a62a630fb",
-  "known_fixture": "test/fixtures/faithful_scalar_known_value.json",
-  "known_fixture_sha256": "9c356c1df0aad548dd56f5700fb9be1c714af75078d59d29c5156d00bd9c504d",
+  "known_fixture": "test/fixtures/scalar_validation_known_value.json",
+  "known_fixture_sha256": "cf1883deadd17456e4462da9f5b2e4b976e1740c7f6890f5469acaec8c1cb009",
   "stan_data": {
     "J": 5,
     "I": 1,

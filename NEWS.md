@@ -21,15 +21,23 @@
   replicated scores and compact observed-vs-replicated summaries.
 - Add `prior_predict` and `prior_predictive_check` for prior replicated scores
   and compact observed-vs-replicated summaries before fitting.
-- Stabilize scalar faithful log-probability paths with log-sum-exp.
+- Add `predictive_check_summary` for report-ready prior/posterior predictive
+  check rows with replicated intervals and tail probabilities.
+- Add observation-level predictive probabilities, expected scores, variances,
+  and residuals as the basis for future calibration, infit/outfit, and
+  model-comparison helpers.
+- Add `fit_stats` for posterior infit/outfit summaries by facet level.
+- Add `waic` for WAIC summaries from posterior pointwise log-likelihood draws.
+- Add `compare_models` for WAIC-based comparison rows across fitted models.
+- Stabilize scalar validation log-probability paths with log-sum-exp.
 - Add a non-optional scalar known-answer fixture for the analytic log-density
   and gradient, removing the default skipped Stan-fixture test path.
 - Check that raw and contrast scalar parameterizations agree at the same
   constrained parameter values.
 - Add the scalar Stan reference model, a BridgeStan-generated scalar
   log-density fixture, and a regeneration script under `scripts/`.
-- Connect the scalar faithful validation target to real `FacetData` input for
-  one-item designs, replacing the previous phantom-data-only construction path.
+- Connect the scalar validation target to real `FacetData` input for one-item
+  designs, replacing the previous synthetic-only construction path.
 - Add a minimal Documenter site for the data-validation workflow and public API,
   with a CI documentation build job.
 - Extend the GitHub Actions test matrix to Windows in addition to Ubuntu and

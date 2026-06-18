@@ -1,6 +1,6 @@
 {
-    "schema": "bayesianmgmfrm.faithful_scalar_known_value.v1",
-    "source": "Julia analytic known-answer fixture generated from faithful_fast_logposterior_and_gradient",
+    "schema": "bayesianmgmfrm.scalar_validation_known_value.v1",
+    "source": "Julia analytic known-answer fixture generated from scalar_validation_logposterior_and_gradient",
     "generated_date": "2026-06-16",
     "data": {
         "X": [
