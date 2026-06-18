@@ -1,6 +1,6 @@
 # API
 
-## Public Data and Design API
+## Public API
 
 ```@docs
 BayesianMGMFRM
@@ -9,12 +9,20 @@ ValidationIssue
 ValidationReport
 FacetSpec
 FacetDesign
+MFRMPrior
+MFRMFit
 coverage_matrix
 coverage_summary
 validate_design
 mfrm_spec
 getdesign
+fit
+logposterior
 BayesianMGMFRM.pointwise_loglikelihood
+pointwise_loglikelihood_matrix
+posterior_predict
+posterior_predictive_check
+posterior_summary
 rater_overlap
 threshold_map_data
 evidence_metadata

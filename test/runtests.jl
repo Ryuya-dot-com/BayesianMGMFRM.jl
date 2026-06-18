@@ -3,6 +3,7 @@ using ForwardDiff
 using JSON3
 using LinearAlgebra
 using LogDensityProblems
+using Random
 using ReverseDiff
 using SHA
 
@@ -11,6 +12,7 @@ using BayesianMGMFRM:
     FacetData,
     coverage_matrix,
     coverage_summary,
+    fit,
     getdesign,
     FaithfulFastData,
     FaithfulFastAnalyticLogDensity,
@@ -24,8 +26,15 @@ using BayesianMGMFRM:
     faithful_fast_logposterior_contrast,
     faithful_fast_num_params,
     faithful_fast_offsets,
+    logposterior,
+    MFRMFit,
+    MFRMPrior,
     mfrm_spec,
     pointwise_loglikelihood,
+    pointwise_loglikelihood_matrix,
+    posterior_predict,
+    posterior_predictive_check,
+    posterior_summary,
     rater_overlap,
     threshold_map_data,
     validate_design,
@@ -102,8 +111,11 @@ end
 
 @testset "public docstrings" begin
     for name in (:FacetData, :ValidationIssue, :ValidationReport, :FacetSpec, :FacetDesign,
+            :MFRMPrior, :MFRMFit, :fit, :logposterior,
             :coverage_matrix, :coverage_summary, :validate_design, :mfrm_spec, :getdesign,
-            :pointwise_loglikelihood, :rater_overlap, :threshold_map_data, :evidence_metadata)
+            :pointwise_loglikelihood, :pointwise_loglikelihood_matrix, :posterior_predict,
+            :posterior_predictive_check, :posterior_summary,
+            :rater_overlap, :threshold_map_data, :evidence_metadata)
         @test has_doc(BayesianMGMFRM, name)
     end
     @test !isdefined(BayesianMGMFRM, :audit)
@@ -463,6 +475,111 @@ end
     )
     stale_data = FacetData(disconnected_same_n; person = :examinee, rater = :rater, item = :item, score = :score)
     @test_throws ArgumentError mfrm_spec(stale_data; thresholds = :partial_credit, validation_report = validate_design(identified_data))
+end
+
+@testset "minimal Bayesian MFRM fitting" begin
+    table = (
+        examinee = ["E1", "E1", "E1", "E2", "E2", "E2", "E3", "E3", "E3"],
+        rater = ["R1", "R2", "R1", "R1", "R2", "R1", "R1", "R2", "R1"],
+        item = ["I1", "I1", "I2", "I1", "I2", "I2", "I1", "I2", "I2"],
+        score = [0, 1, 2, 1, 0, 2, 1, 2, 0],
+    )
+    data = FacetData(table; person = :examinee, rater = :rater, item = :item, score = :score)
+    spec = mfrm_spec(data; thresholds = :partial_credit)
+    design = getdesign(spec)
+    prior = MFRMPrior(; person_sd = 1.2, rater_sd = 0.8, item_sd = 0.9, step_sd = 0.7)
+    init = zeros(length(design.parameter_names))
+
+    @test logposterior(design, init, prior) ≈ logposterior(spec, init, prior)
+    @test isfinite(logposterior(design, init, prior))
+    @test_throws ArgumentError MFRMPrior(; person_sd = 0.0)
+    @test_throws ArgumentError logposterior(design, [0.0], prior)
+    @test_throws ArgumentError fit(design; ndraws = 0)
+    @test_throws ArgumentError fit(design; warmup = -1)
+    @test_throws ArgumentError fit(design; step_size = 0.0)
+    @test_throws ArgumentError fit(design; backend = :stan)
+
+    result = fit(design;
+        prior,
+        backend = :julia,
+        ndraws = 24,
+        warmup = 12,
+        step_size = 0.04,
+        init,
+        rng = MersenneTwister(20260618))
+    @test result isa MFRMFit
+    @test result.design === design
+    @test result.prior === prior
+    @test size(result.draws) == (24, length(design.parameter_names))
+    @test length(result.log_posterior) == 24
+    @test all(isfinite, result.log_posterior)
+    @test 0.0 <= result.acceptance_rate <= 1.0
+    @test result.backend === :julia
+    @test result.sampler === :random_walk_metropolis
+    @test result.warmup == 12
+    @test result.step_size == 0.04
+
+    spec_result = fit(spec;
+        prior,
+        backend = :julia,
+        ndraws = 2,
+        warmup = 0,
+        step_size = 0.04,
+        init,
+        rng = MersenneTwister(20260619))
+    @test spec_result isa MFRMFit
+    @test spec_result.design.parameter_names == design.parameter_names
+    @test size(spec_result.draws) == (2, length(design.parameter_names))
+
+    summary = posterior_summary(result)
+    @test length(summary) == length(design.parameter_names)
+    @test [row.parameter for row in summary] == design.parameter_names
+    @test all(row -> isfinite(row.mean), summary)
+    @test all(row -> row.lower <= row.median <= row.upper, summary)
+    @test_throws ArgumentError posterior_summary(result; lower = 0.6)
+    @test_throws ArgumentError posterior_summary(result; upper = 0.4)
+
+    llmat = pointwise_loglikelihood_matrix(result)
+    @test size(llmat) == (24, data.n)
+    @test llmat[1, :] ≈ pointwise_loglikelihood(design, result.draws[1, :])
+    @test pointwise_loglikelihood_matrix(design, result.draws) ≈ llmat
+    @test_throws ArgumentError pointwise_loglikelihood_matrix(design, result.draws[:, 1:end-1])
+
+    probabilities = zeros(Float64, length(data.category_levels))
+    draw_params = @view result.draws[1, :]
+    draw_loglik = pointwise_loglikelihood(design, draw_params)
+    for row in 1:data.n
+        BayesianMGMFRM._category_probabilities!(probabilities, design, draw_params, row)
+        @test sum(probabilities) ≈ 1.0
+        @test log(probabilities[data.category[row]]) ≈ draw_loglik[row]
+    end
+
+    replicated = posterior_predict(result; ndraws = 5, rng = MersenneTwister(1234))
+    @test size(replicated) == (5, data.n)
+    @test all(score -> score in data.category_levels, replicated)
+    replicated_by_index = posterior_predict(result; draw_indices = [1, 2], rng = MersenneTwister(1235))
+    @test size(replicated_by_index) == (2, data.n)
+    @test_throws ArgumentError posterior_predict(result; ndraws = 0)
+    @test_throws ArgumentError posterior_predict(result; ndraws = 2, draw_indices = [1])
+    @test_throws ArgumentError posterior_predict(result; draw_indices = [0])
+
+    ppc = posterior_predictive_check(result; ndraws = 6, rng = MersenneTwister(5678))
+    @test size(ppc.replicated_scores) == (6, data.n)
+    @test length(ppc.observed.category_proportions) == length(data.category_levels)
+    @test sum(ppc.observed.category_proportions) ≈ 1.0
+    @test size(ppc.replicated.category_proportions) == (6, length(data.category_levels))
+    @test all(rep -> sum(ppc.replicated.category_proportions[rep, :]) ≈ 1.0,
+        axes(ppc.replicated.category_proportions, 1))
+    @test size(ppc.replicated.rater_mean) == (6, length(data.rater_levels))
+    @test size(ppc.replicated.item_mean) == (6, length(data.item_levels))
+    @test ppc.category_levels == data.category_levels
+    @test ppc.rater_levels == data.rater_levels
+    @test ppc.item_levels == data.item_levels
+    ppc_by_index = posterior_predictive_check(result; draw_indices = [1, 2], rng = MersenneTwister(5679))
+    @test size(ppc_by_index.replicated_scores) == (2, data.n)
+    @test ppc_by_index.draw_indices == [1, 2]
+    @test_throws ArgumentError posterior_predictive_check(result; ndraws = 0)
+    @test_throws ArgumentError posterior_predictive_check(result; ndraws = 2, draw_indices = [1])
 end
 
 @testset "faithful scalar analytic gradient" begin

@@ -2,8 +2,8 @@
 
 ## Unreleased
 
-- Clarify that the current public package is a data validation and design
-  scaffold, not a Bayesian MGMFRM fitting API.
+- Clarify that the current public package is a data validation, design, and
+  minimal MFRM fitting scaffold, not a full GMFRM/MGMFRM fitting API.
 - Introduce `validate_design` / `ValidationReport` as the public terminology for
   pre-fit design checks.
 - Preserve requested DFF/bias validation evidence in `mfrm_spec`.
@@ -14,6 +14,11 @@
   because partial-credit thresholds may be weakly informed.
 - Add reference constraints for the minimal additive design: first rater and
   item levels are fixed, and threshold steps use a sum-to-zero reconstruction.
+- Add an initial Bayesian `fit` API for the minimal MFRM/RSM/PCM scaffold,
+  returning `MFRMFit` posterior draws from a `backend = :julia` random-walk
+  Metropolis sampler.
+- Add `posterior_predict` and `posterior_predictive_check` for posterior
+  replicated scores and compact observed-vs-replicated summaries.
 - Stabilize scalar faithful log-probability paths with log-sum-exp.
 - Add a non-optional scalar known-answer fixture for the analytic log-density
   and gradient, removing the default skipped Stan-fixture test path.

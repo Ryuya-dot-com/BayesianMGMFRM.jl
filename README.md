@@ -6,9 +6,10 @@ measurement workflows.
 The package is under active development. The current public slice focuses on
 long-format many-facet rating data, deterministic facet indexing, pre-fit design
 validation, and a minimal MFRM specification/design compiler. Bayesian
-estimation APIs, generalized discrimination terms, group/DFF effects, and
-Multidimensional Generalized Many-Facet Rasch Model (MGMFRM) terms are planned
-after this data/spec layer is stable.
+fitting for the minimal MFRM/RSM/PCM design is now available for small
+validation examples. Production HMC/NUTS sampling, generalized discrimination
+terms, group/DFF effects, and Multidimensional Generalized Many-Facet Rasch
+Model (MGMFRM) terms are planned after this data/spec layer is stable.
 
 ## Installation
 
@@ -78,21 +79,29 @@ Current public API:
 - `getdesign`: an inspectable internal design object with deterministic
   parameter-block ordering. The current minimal design fixes the first rater and
   item levels as references and uses sum-to-zero threshold steps.
+- `fit`, `MFRMPrior`, `MFRMFit`, and `posterior_summary`: an initial Bayesian
+  fitting path for the minimal MFRM/RSM/PCM design using a random-walk
+  Metropolis sampler with `backend = :julia` for small validation examples.
 - `pointwise_loglikelihood`: pointwise log-likelihood evaluation for the
-  minimal identified design, intended for validation and examples rather than
-  Bayesian fitting.
+  minimal identified design.
+- `pointwise_loglikelihood_matrix`: draws-by-observations log-likelihood output
+  for posterior checks and future model-comparison helpers.
+- `posterior_predict` and `posterior_predictive_check`: posterior replicated
+  score generation plus compact observed-vs-replicated summaries for mean
+  scores, category proportions, rater means, and item means.
 - `coverage_summary`, `coverage_matrix`, `rater_overlap`, and
   `threshold_map_data`: fit-independent reporting-data helpers for Quarto
   tables, coverage heat maps, rater-linking plots, and threshold-map
   prototypes.
 
-Planned fitting APIs will use domain-oriented names such as `fit`, `simulate`,
-and `posterior_summary` rather than repeatedly prefixing function names with the
-package name.
+Future workflow APIs will continue to use domain-oriented names such as
+`simulate` and `posterior_summary` rather than repeatedly prefixing function
+names with the package name.
 
 Not yet implemented in the public API:
 
-- Bayesian fitting or posterior summaries.
+- Stan/CmdStan or production HMC/NUTS sampling, convergence diagnostics, or
+  automatic prior predictive/model-comparison workflows.
 - Full GMFRM/MGMFRM identification, loading, and prior blocks.
 - Generalized discrimination, group/DFF, or MGMFRM terms.
 - Automated regeneration of external Stan/BridgeStan fixtures in CI. The scalar
