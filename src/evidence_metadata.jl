@@ -1,7 +1,6 @@
 # evidence_metadata.jl -- reproducibility metadata helpers.
 
 using Dates
-using InteractiveUtils
 using LinearAlgebra
 using Pkg
 
@@ -65,6 +64,12 @@ function _evidence_package_status(; direct_only::Bool = true)
     return out
 end
 
+"""
+    evidence_metadata(; include_packages = true)
+
+Return reproducibility metadata for the active Julia session, including Julia,
+OS, BLAS, optional R/CmdStan discovery, and direct package status.
+"""
 function evidence_metadata(; include_packages::Bool = true)
     cpu = Sys.cpu_info()
     cpu_model = isempty(cpu) ? nothing : getproperty(first(cpu), :model)

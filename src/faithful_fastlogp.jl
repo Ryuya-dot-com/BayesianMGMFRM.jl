@@ -1,13 +1,14 @@
-# faithful_fastlogp.jl -- scalar D=1/I=1 MGMFRM log posterior
+# faithful_fastlogp.jl -- scalar D=1/I=1 Uto 2021-style validation target
 # ==============================================================================
 # Reference implementation used for gradient validation while the public
 # model-specification API is being developed.
 
-using Statistics
 using LinearAlgebra
 import LogDensityProblems
 
 const LOG2PI_FAST = log(2 * pi)
+# Logistic-to-normal-ogive approximation scale used in the Uto 2021 MGMFRM/GPCM equations.
+const UTO_UENO_LOGISTIC_SCALE = 1.7
 
 Base.@kwdef struct FaithfulFastData
     X::Vector{Int}
@@ -19,9 +20,23 @@ Base.@kwdef struct FaithfulFastData
     N::Int
 end
 
+function FaithfulFastData(data::FacetData)
+    length(data.item_levels) == 1 ||
+        throw(ArgumentError("FaithfulFastData only supports one item in the current scalar target"))
+    return FaithfulFastData(
+        X = data.category,
+        examinee = data.person,
+        rater = data.rater,
+        J = length(data.person_levels),
+        R = length(data.rater_levels),
+        K = length(data.category_levels),
+        N = data.n,
+    )
+end
+
 function FaithfulFastData(data)
-    @assert data.I == 1 "FaithfulFastData only supports I=1"
-    @assert data.D == 1 "FaithfulFastData only supports D=1"
+    getproperty(data, :I) == 1 || throw(ArgumentError("FaithfulFastData only supports I=1"))
+    getproperty(data, :D) == 1 || throw(ArgumentError("FaithfulFastData only supports D=1"))
     return FaithfulFastData(
         X = data.X,
         examinee = data.examinee,
@@ -39,6 +54,8 @@ faithful_fast_contrast_num_params(d::FaithfulFastData) = faithful_fast_num_param
 @inline normal01_logpdf_fast(x) = -0.5 * (LOG2PI_FAST + x * x)
 
 @inline function lognormal01_logpdf_from_log_fast(logx)
+    # Density of alpha ~ LogNormal(0, 1), evaluated in log(alpha) coordinates.
+    # This intentionally includes the -log(alpha) term and matches the Stan fixture.
     return -logx - 0.5 * (LOG2PI_FAST + logx * logx)
 end
 
@@ -63,8 +80,34 @@ function zerosum_basis_fast(n::Int)
     return Q
 end
 
+function _check_length(name::AbstractString, value, expected::Int)
+    length(value) == expected ||
+        throw(ArgumentError("$name has length $(length(value)); expected $expected"))
+    return nothing
+end
+
+function _check_approx_zero(name::AbstractString, value; atol = 1e-8)
+    abs(value) <= atol ||
+        throw(ArgumentError("$name must be approximately zero under the scalar validation constraints; got $value"))
+    return nothing
+end
+
+function _check_faithful_truth_constraints(truth, d::FaithfulFastData)
+    _check_length("truth.theta", truth.theta, d.J)
+    _check_length("truth.trans_alpha_r", truth.trans_alpha_r, d.R)
+    _check_length("truth.trans_beta_r", truth.trans_beta_r, d.R)
+    _check_length("truth.category_est", truth.category_est, d.K - 1)
+    all(>(0), truth.trans_alpha_r) ||
+        throw(ArgumentError("truth.trans_alpha_r must be strictly positive"))
+    _check_approx_zero("sum(log.(truth.trans_alpha_r))", sum(log.(truth.trans_alpha_r)))
+    _check_approx_zero("sum(truth.trans_beta_r)", sum(truth.trans_beta_r))
+    _check_approx_zero("sum(truth.category_est)", sum(truth.category_est))
+    return nothing
+end
+
 function faithful_fast_pack_truth(data, truth)
     d = FaithfulFastData(data)
+    _check_faithful_truth_constraints(truth, d)
     x = Vector{Float64}(undef, faithful_fast_num_params(d))
     o = faithful_fast_offsets(d)
     x[o.o_theta:(o.o_theta + d.J - 1)] .= truth.theta
@@ -78,6 +121,7 @@ end
 
 function faithful_fast_pack_truth_contrast(data, truth)
     d = FaithfulFastData(data)
+    _check_faithful_truth_constraints(truth, d)
     Qr = zerosum_basis_fast(d.R)
     Qs = zerosum_basis_fast(d.K - 1)
     x = Vector{Float64}(undef, faithful_fast_contrast_num_params(d))
@@ -160,23 +204,28 @@ end
 
 @inline function faithful_fast_step_logprob_cp(category_prm, scale, score, y::Int, K::Int)
     eta0 = scale * zero(score)
-    denom = zero(eta0)
     eta_y = eta0
+    max_eta = -Inf
     @inbounds for k in 1:K
         eta = scale * ((k - 1) * score - category_prm[k])
-        denom += exp(eta)
+        max_eta = max(max_eta, eta)
         if k == y
             eta_y = eta
         end
     end
-    return eta_y - log(denom)
+    denom = zero(eta0)
+    @inbounds for k in 1:K
+        eta = scale * ((k - 1) * score - category_prm[k])
+        denom += exp(eta - max_eta)
+    end
+    return eta_y - (max_eta + log(denom))
 end
 
 @inline function faithful_fast_step_logprob(x, o_beta_ik::Int, raw_step_sum, scale, score, y::Int, K::Int)
     eta0 = scale * zero(score)
-    denom = zero(eta0)
     eta_y = eta0
     prefix = zero(eta0)
+    max_eta = -Inf
 
     @inbounds for k in 1:K
         if k == 1
@@ -188,12 +237,27 @@ end
             cp = prefix - raw_step_sum
         end
         eta = scale * ((k - 1) * score - cp)
-        denom += exp(eta)
+        max_eta = max(max_eta, eta)
         if k == y
             eta_y = eta
         end
     end
-    return eta_y - log(denom)
+
+    denom = zero(eta0)
+    prefix = zero(eta0)
+    @inbounds for k in 1:K
+        if k == 1
+            cp = zero(eta0)
+        elseif k <= K - 1
+            prefix += x[o_beta_ik + k - 2]
+            cp = prefix
+        else
+            cp = prefix - raw_step_sum
+        end
+        eta = scale * ((k - 1) * score - cp)
+        denom += exp(eta - max_eta)
+    end
+    return eta_y - (max_eta + log(denom))
 end
 
 function faithful_fast_logposterior(x, d::FaithfulFastData)
@@ -240,7 +304,7 @@ function faithful_fast_logposterior(x, d::FaithfulFastData)
         beta_r = r == 1 ? beta_r1 : x[o.o_beta_r + r - 2]
         theta = x[o.o_theta + d.examinee[n] - 1]
         score = alpha_i * theta - beta_i - beta_r
-        scale = 1.7 * exp(log_alpha_r)
+        scale = UTO_UENO_LOGISTIC_SCALE * exp(log_alpha_r)
         lp += faithful_fast_step_logprob(x, o.o_beta_ik, raw_step_sum, scale, score, d.X[n], d.K)
     end
 
@@ -316,7 +380,7 @@ function faithful_fast_logposterior_and_gradient(x, d::FaithfulFastData)
         y = d.X[n]
         theta = x[o.o_theta + j - 1]
         score = alpha_i * theta - beta_i - beta_r[r]
-        scale = 1.7 * exp(gamma[r])
+        scale = UTO_UENO_LOGISTIC_SCALE * exp(gamma[r])
 
         max_eta = -Inf
         for k in 1:d.K
@@ -404,7 +468,7 @@ function faithful_fast_logposterior_contrast(x, d::FaithfulFastData,
         r = d.rater[n]
         theta = x[o.o_theta + d.examinee[n] - 1]
         score = alpha_i * theta - beta_i - beta_r[r]
-        scale = 1.7 * exp(log_alpha_r[r])
+        scale = UTO_UENO_LOGISTIC_SCALE * exp(log_alpha_r[r])
         lp += faithful_fast_step_logprob_cp(category_prm, scale, score, d.X[n], d.K)
     end
 
