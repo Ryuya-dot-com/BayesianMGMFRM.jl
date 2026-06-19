@@ -113,6 +113,7 @@ sampler_diagnostics(fit_result)
 mcmc_diagnostics(fit_result)
 parameter_block_diagnostics(fit_result)
 posterior_summary(fit_result)
+posterior_summary(fit_result; intervals = (0.66, 0.9, 0.95), rope = 0.1)
 pointwise_loglikelihood_matrix(fit_result)
 waic(fit_result)
 waic_diagnostics(fit_result)
@@ -185,8 +186,11 @@ max-tree-depth hits, and E-BFMI when available.
 log-posterior summaries.
 `mcmc_diagnostics` returns classical split R-hat and autocorrelation-based ESS
 when a fit has at least two chains, and marks row-level `:mcmc_warning` flags
-when R-hat or ESS fails the supplied thresholds. `parameter_block_diagnostics`
-aggregates those rows for person, rater, item, and threshold blocks. The current prior and
+when R-hat or ESS fails the supplied thresholds. `posterior_summary` returns
+mean, standard deviation, median, the requested lower/upper interval, central
+credible-interval rows, probability of direction relative to a reference value,
+and optional ROPE/practical-equivalence probabilities. `parameter_block_diagnostics`
+aggregates R-hat/ESS rows for person, rater, item, and threshold blocks. The current prior and
 posterior predictive checks return compact observed-vs-replicated summaries for
 overall mean score, category proportions, person-level mean scores, rater-level
 mean scores, item-level mean scores, and optional facet mean scores;

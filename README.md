@@ -126,6 +126,7 @@ diagnostics(fit_result)
 fit_cache_key(spec; prior, ndraws = 4, warmup = 4, chains = 2, step_size = 0.1, seed = 102)
 fit_artifact(fit_result; include_draws = true, include_environment = false)
 posterior_summary(fit_result)
+posterior_summary(fit_result; intervals = (0.66, 0.9, 0.95), rope = 0.1)
 waic_diagnostics(fit_result)
 loo_diagnostics(fit_result)
 calibration_table(fit_result; bins = 2)
@@ -203,7 +204,10 @@ Current public API:
   `backend = :julia` for small random-walk validation examples or
   `backend = :advancedhmc` for the direct AdvancedHMC/NUTS path, or
   `backend = :turing` for the Turing/NUTS wrapper around the same
-  `MFRMLogDensity` target.
+  `MFRMLogDensity` target. Posterior summary rows include the legacy
+  lower/upper interval columns plus central credible-interval rows,
+  probability of direction, and optional ROPE/practical-equivalence
+  probabilities.
 - `GMFRMFit`: a guarded experimental scalar GMFRM fit result returned only by
   `fit(spec; experimental = true)` for the source-aligned one-dimensional
   rater-discrimination promotion candidate. This path is local validation

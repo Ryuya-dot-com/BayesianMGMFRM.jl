@@ -9752,8 +9752,57 @@ end
     @test [row.parameter for row in summary] == design.parameter_names
     @test all(row -> isfinite(row.mean), summary)
     @test all(row -> row.lower <= row.median <= row.upper, summary)
+    @test all(row -> length(row.intervals) == 3, summary)
+    @test [interval.probability for interval in summary[1].intervals] ≈
+        [0.66, 0.9, 0.95]
+    @test summary[1].intervals[end].lower ≈ summary[1].lower
+    @test summary[1].intervals[end].upper ≈ summary[1].upper
+    @test all(interval -> interval.lower_probability ≈ (1 - interval.probability) / 2,
+        summary[1].intervals)
+    @test all(interval -> interval.upper_probability ≈ 1 - interval.lower_probability,
+        summary[1].intervals)
+    @test all(interval -> interval.width ≈ interval.upper - interval.lower,
+        summary[1].intervals)
+    @test all(row -> row.reference == 0.0, summary)
+    @test all(row -> 0 <= row.probability_positive <= 1, summary)
+    @test all(row -> 0 <= row.probability_negative <= 1, summary)
+    @test all(row -> row.probability_of_direction ≈
+        max(row.probability_positive, row.probability_negative), summary)
+    @test all(row -> row.direction in (:positive, :negative, :undetermined), summary)
+    @test all(row -> row.practical_equivalence === :not_requested, summary)
+    @test all(row -> isnothing(row.probability_in_rope), summary)
+    @test all(row -> row.n_draws == size(result.draws, 1), summary)
+    first_values = Float64.(result.draws[:, 1])
+    @test summary[1].probability_positive ≈ count(>(0.0), first_values) / length(first_values)
+    @test summary[1].probability_negative ≈ count(<(0.0), first_values) / length(first_values)
+    rope_summary = posterior_summary(result;
+        intervals = (0.5,),
+        reference = 0.25,
+        rope = (-0.1, 0.1),
+        rope_probability_threshold = 0.75)
+    @test length(rope_summary[1].intervals) == 1
+    @test rope_summary[1].intervals[1].probability ≈ 0.5
+    @test all(row -> row.reference == 0.25, rope_summary)
+    @test rope_summary[1].rope_lower == -0.1
+    @test rope_summary[1].rope_upper == 0.1
+    @test rope_summary[1].probability_in_rope ≈
+        count(value -> -0.1 <= value <= 0.1, first_values) / length(first_values)
+    @test rope_summary[1].probability_below_rope ≈
+        count(<(-0.1), first_values) / length(first_values)
+    @test rope_summary[1].probability_above_rope ≈
+        count(>(0.1), first_values) / length(first_values)
+    @test rope_summary[1].practical_equivalence in (:inside_rope, :outside_rope, :mixed)
+    @test rope_summary[1].rope_probability_threshold == 0.75
+    single_interval_summary = posterior_summary(result; intervals = 0.8)
+    @test length(single_interval_summary[1].intervals) == 1
+    @test single_interval_summary[1].intervals[1].probability ≈ 0.8
     @test_throws ArgumentError posterior_summary(result; lower = 0.6)
     @test_throws ArgumentError posterior_summary(result; upper = 0.4)
+    @test_throws ArgumentError posterior_summary(result; intervals = (0.8, 1.2))
+    @test_throws ArgumentError posterior_summary(result; reference = Inf)
+    @test_throws ArgumentError posterior_summary(result; rope = -0.1)
+    @test_throws ArgumentError posterior_summary(result; rope = (0.1, -0.1))
+    @test_throws ArgumentError posterior_summary(result; rope_probability_threshold = 1.1)
 
     simulated_scores = simulate_responses(design, init; rng = MersenneTwister(8801), output = :scores)
     @test length(simulated_scores) == data.n
