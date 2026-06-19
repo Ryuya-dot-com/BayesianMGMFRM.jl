@@ -691,6 +691,7 @@ function _gmfrm_promotion_candidate_pointwise_fixture(
         public_fit = false,
         fit_ready = false,
         density_space = :constrained_direct,
+        parameter_layout = fit_ready_parameter_layout(design),
         parameter_names = copy(design.parameter_names),
         parameter_values = copy(direct),
         blocks = _candidate_block_value_rows(design.blocks, design.parameter_names, direct),
@@ -1568,6 +1569,83 @@ function _mgmfrm_direct_constraint_rows(design::FacetDesign, direct_params::Abst
         end
     end
     return rows
+end
+
+function _mgmfrm_confirmatory_candidate_pointwise_fixture(
+        design::FacetDesign,
+        direct_params::AbstractVector)
+    _check_mgmfrm_source_fixture_design(design, "_mgmfrm_confirmatory_candidate_pointwise_fixture")
+    design.spec.dimensions == 2 ||
+        throw(ArgumentError("_mgmfrm_confirmatory_candidate_pointwise_fixture currently supports dimensions = 2"))
+    _check_parameter_vector_length(design, direct_params)
+    _mgmfrm_source_fixture_constraints(design, direct_params)
+    direct = Float64.(collect(direct_params))
+    rows = _mgmfrm_source_fixture_values(design, direct)
+    pointwise = [Float64(row.log_probability) for row in rows if row.observed]
+    constraint_rows = _mgmfrm_direct_constraint_rows(design, direct)
+    n_failed_constraints = count(row -> !row.passed, constraint_rows)
+    loglikelihood = sum(pointwise; init = 0.0)
+    passed = length(pointwise) == design.spec.data.n && n_failed_constraints == 0 &&
+        all(isfinite, pointwise)
+    return (;
+        schema = "bayesianmgmfrm.mgmfrm_confirmatory_candidate_pointwise_fixture.v1",
+        family = :mgmfrm,
+        scope = :minimal_confirmatory_mgmfrm_candidate,
+        status = :internal_fit_ready_candidate,
+        public_fit = false,
+        fit_ready = false,
+        density_space = :constrained_direct,
+        q_matrix = _q_matrix_manifest(design.spec.q_matrix),
+        latent_correlation = :identity_fixed,
+        ability_scale = :standard_normal_by_dimension,
+        parameter_layout = fit_ready_parameter_layout(design),
+        parameter_names = copy(design.parameter_names),
+        parameter_values = copy(direct),
+        blocks = _candidate_block_value_rows(design.blocks, design.parameter_names, direct),
+        constraint_rows,
+        rows,
+        pointwise_loglikelihood = pointwise,
+        loglikelihood,
+        summary = (;
+            flag = passed ? :ok : :pointwise_fixture_mismatch,
+            passed,
+            n_parameters = length(direct),
+            n_observations = design.spec.data.n,
+            n_categories = length(design.spec.data.category_levels),
+            n_rows = length(rows),
+            n_pointwise = length(pointwise),
+            n_constraints = length(constraint_rows),
+            n_failed_constraints,
+            loglikelihood,
+        ),
+    )
+end
+
+function _mgmfrm_confirmatory_candidate_pointwise_fixture(
+        spec::FacetSpec,
+        direct_params::AbstractVector)
+    return _mgmfrm_confirmatory_candidate_pointwise_fixture(
+        getdesign(spec; preview = true),
+        direct_params,
+    )
+end
+
+function _mgmfrm_confirmatory_candidate_pointwise_fixture(
+        target::_MGMFRMGuardedLocalFitLogDensity,
+        raw_params::AbstractVector)
+    _check_source_fixture_raw_vector(target, raw_params)
+    raw = Float64.(collect(raw_params))
+    direct = _mgmfrm_source_constrained_params_from_unconstrained(target.design, raw)
+    direct_fixture = _mgmfrm_confirmatory_candidate_pointwise_fixture(target.design, direct)
+    return merge(direct_fixture, (;
+        raw_parameter_names = copy(target.blueprint.parameter_names),
+        raw_parameter_values = copy(raw),
+        raw_blocks = _candidate_block_value_rows(
+            target.blueprint.blocks,
+            target.blueprint.parameter_names,
+            raw,
+        ),
+    ))
 end
 
 function _mgmfrm_guarded_local_fit_direct_draw_values(

@@ -92,8 +92,8 @@ public MGMFRM exposure still requires a separate release decision.
 
 ## Progress Ledger
 
-The repository roadmap currently has 96 of 120 tracked checklist items complete,
-or roughly 80.0% by simple implementation accounting. The stronger claim-level
+The repository roadmap currently has 98 of 120 tracked checklist items complete,
+or roughly 81.7% by simple implementation accounting. The stronger claim-level
 progress is lower, about 40-45%, because the remaining work includes public
 generalized fitting, Stan comparisons, broader recovery simulations,
 and a public-scope release decision for generalized claims.
@@ -264,11 +264,11 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   local two-fixture candidate-chain study artifact, an experimental-public
   decision manifest, a local recovery-smoke artifact, guarded method-wiring
   evidence, and fit-ready scalar GMFRM BridgeStan oracle checks added; minimal
-  confirmatory MGMFRM gauge manifest and fit-ready candidate transform manifest
-  plus fit-ready confirmatory MGMFRM BridgeStan oracle checks, a local
-  confirmatory MGMFRM candidate-chain artifact, and a local recovery-smoke
-  artifact, and an internal keep-internal public API decision manifest added;
-  broader fit-ready generalized fixtures still planned]
+  confirmatory MGMFRM gauge manifest, fit-ready candidate transform manifest,
+  confirmatory direct/raw pointwise fixture, fit-ready confirmatory MGMFRM
+  BridgeStan oracle checks, a local confirmatory MGMFRM candidate-chain
+  artifact, and a local recovery-smoke artifact, and an internal keep-internal
+  public API decision manifest added]
 - Add BridgeStan fixture generation for scalar GMFRM and one minimal
   confirmatory MGMFRM before exposing generalized fitting. [Source-aligned raw
   GMFRM/MGMFRM Stan reference models, BridgeStan JSON fixtures, generation

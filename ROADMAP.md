@@ -351,8 +351,8 @@ rater-discrimination candidate.
 
 The roadmap has two different progress notions:
 
-- **Checklist progress**: currently 96 of 120 tracked roadmap checkboxes are
-  complete, or roughly 80.0%. This is useful for implementation accounting.
+- **Checklist progress**: currently 98 of 120 tracked roadmap checkboxes are
+  complete, or roughly 81.7%. This is useful for implementation accounting.
 - **Claim progress**: broad v1 claims are closer to 40-45% complete because
   the remaining items include public generalized fitting, Stan comparisons,
   broader recovery simulations and a public-scope release decision.
@@ -695,7 +695,7 @@ TODO:
   probabilities through the same linear-predictor evaluator.
 - [x] Generate fit-ready parameter names and block ranges for every compiled
   likelihood.
-- [ ] Add fixture tests showing compiled fit-ready specs reproduce
+- [x] Add fixture tests showing compiled fit-ready specs reproduce
   hand-computed or hand-coded pointwise log likelihoods.
   - [x] Initial source-aligned GMFRM/MGMFRM preview fixtures for constrained
     direct parameter values.
@@ -722,7 +722,7 @@ TODO:
     GMFRM promotion candidate.
   - [x] Fit-ready scalar GMFRM BridgeStan oracle checks for raw, direct,
     pointwise, gradient, and total likelihood quantities.
-  - [ ] Fit-ready GMFRM and MGMFRM fixtures after fit-ready identified
+  - [x] Fit-ready GMFRM and MGMFRM fixtures after fit-ready identified
     transforms are implemented.
 - [x] Add BridgeStan fixture generation for the scalar faithful GMFRM and one
   minimal confirmatory MGMFRM fixture.
