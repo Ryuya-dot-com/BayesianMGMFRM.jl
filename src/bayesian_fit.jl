@@ -6247,6 +6247,135 @@ function _replicated_summaries(data::FacetData, replicated::AbstractMatrix{<:Int
     )
 end
 
+function _cell_mean_score(scores::AbstractVector{<:Integer},
+        observations::AbstractVector{Int})
+    isempty(observations) && return NaN
+    total = 0.0
+    @inbounds for observation in observations
+        total += scores[observation]
+    end
+    return total / length(observations)
+end
+
+function _replicated_cell_mean_scores(replicated::AbstractMatrix{<:Integer},
+        observations::AbstractVector{Int})
+    means = Vector{Float64}(undef, size(replicated, 1))
+    if isempty(observations)
+        fill!(means, NaN)
+        return means
+    end
+    @inbounds for replication in axes(replicated, 1)
+        total = 0.0
+        for observation in observations
+            total += replicated[replication, observation]
+        end
+        means[replication] = total / length(observations)
+    end
+    return means
+end
+
+function _dff_cell_observations(data::FacetData,
+        index_a::AbstractVector{Int},
+        level_a::Int,
+        index_b::AbstractVector{Int},
+        level_b::Int)
+    observations = Int[]
+    for observation in 1:data.n
+        if index_a[observation] == level_a && index_b[observation] == level_b
+            push!(observations, observation)
+        end
+    end
+    return observations
+end
+
+function _push_dff_predictive_group_rows!(rows::Vector{NamedTuple},
+        data::FacetData,
+        replicated::AbstractMatrix{<:Integer},
+        term::Tuple{Symbol,Symbol})
+    facet_a = _facet(data, term[1])
+    facet_b = _facet(data, term[2])
+    facet_a === nothing &&
+        throw(ArgumentError("DFF term $(term) references unknown facet :$(term[1])"))
+    facet_b === nothing &&
+        throw(ArgumentError("DFF term $(term) references unknown facet :$(term[2])"))
+    index_a, levels_a = facet_a
+    index_b, levels_b = facet_b
+    for level_a_index in eachindex(levels_a), level_b_index in eachindex(levels_b)
+        observations = _dff_cell_observations(
+            data,
+            index_a,
+            level_a_index,
+            index_b,
+            level_b_index,
+        )
+        level_a = levels_a[level_a_index]
+        level_b = levels_b[level_b_index]
+        push!(rows, (;
+            statistic = :dff_cell_mean,
+            level = (term = term, cell = (level_a, level_b)),
+            facet_a = term[1],
+            facet_b = term[2],
+            level_a,
+            level_b,
+            n_observations = length(observations),
+            observed = _cell_mean_score(data.score, observations),
+            replicated = _replicated_cell_mean_scores(replicated, observations),
+        ))
+    end
+    return rows
+end
+
+function _push_sparse_design_block_predictive_rows!(rows::Vector{NamedTuple},
+        data::FacetData,
+        replicated::AbstractMatrix{<:Integer})
+    cells = Dict{Tuple{Int,Int,Int},Vector{Int}}()
+    for observation in 1:data.n
+        key = (data.person[observation], data.rater[observation], data.item[observation])
+        push!(get!(cells, key, Int[]), observation)
+    end
+    ordered_keys = sort(collect(keys(cells)); by = key -> string((
+        data.person_levels[key[1]],
+        data.rater_levels[key[2]],
+        data.item_levels[key[3]],
+    )))
+    for key in ordered_keys
+        observations = cells[key]
+        person = data.person_levels[key[1]]
+        rater = data.rater_levels[key[2]]
+        item = data.item_levels[key[3]]
+        push!(rows, (;
+            statistic = :sparse_design_block_mean,
+            level = (person = person, rater = rater, item = item),
+            block = :person_rater_item,
+            person,
+            rater,
+            item,
+            n_observations = length(observations),
+            observed = _cell_mean_score(data.score, observations),
+            replicated = _replicated_cell_mean_scores(replicated, observations),
+        ))
+    end
+    return rows
+end
+
+function _predictive_grouped_summary(spec::FacetSpec,
+        replicated::AbstractMatrix{<:Integer})
+    data = spec.data
+    rows = NamedTuple[]
+    for term in sort(copy(spec.validation_bias_terms); by = string)
+        _push_dff_predictive_group_rows!(rows, data, replicated, term)
+    end
+    n_dff_cells = length(rows)
+    _push_sparse_design_block_predictive_rows!(rows, data, replicated)
+    return (;
+        schema = "bayesianmgmfrm.predictive_grouped_summary.v1",
+        rows,
+        n_dff_terms = length(spec.validation_bias_terms),
+        n_dff_cells,
+        n_sparse_design_blocks = length(rows) - n_dff_cells,
+    )
+end
+
 function _check_prior_implication_controls(;
         min_category_probability::Real,
         prior_warning_probability::Real,
@@ -6476,13 +6605,14 @@ function _predictive_check_row(statistic::Symbol,
         replicated::AbstractVector{<:Real},
         interval::Real,
         lower_probability::Float64,
-        upper_probability::Float64)
+        upper_probability::Float64;
+        metadata = NamedTuple())
     summary = _finite_draw_summary(replicated, lower_probability, upper_probability)
     tails = _tail_probabilities(replicated, observed)
     obs = Float64(observed)
     outside = isfinite(obs) &&
         (obs < summary.lower || obs > summary.upper)
-    return (;
+    return merge((;
         statistic,
         level,
         observed = obs,
@@ -6498,7 +6628,7 @@ function _predictive_check_row(statistic::Symbol,
         two_sided_tail_probability = tails.two_sided,
         n_replicates = count(value -> isfinite(Float64(value)), replicated),
         flag = outside ? :outside_interval : :ok,
-    )
+    ), metadata)
 end
 
 function _require_predictive_check_fields(check)
@@ -6509,17 +6639,50 @@ function _require_predictive_check_fields(check)
     return nothing
 end
 
+function _require_predictive_grouped_fields(check)
+    hasproperty(check, :grouped) ||
+        throw(ArgumentError("predictive check object is missing .grouped"))
+    hasproperty(check.grouped, :rows) ||
+        throw(ArgumentError("predictive check grouped object is missing .rows"))
+    return nothing
+end
+
+function _predictive_grouped_row_metadata(row)
+    if row.statistic === :dff_cell_mean
+        return (;
+            n_observations = row.n_observations,
+            facet_a = row.facet_a,
+            facet_b = row.facet_b,
+            level_a = row.level_a,
+            level_b = row.level_b,
+        )
+    elseif row.statistic === :sparse_design_block_mean
+        return (;
+            n_observations = row.n_observations,
+            block = row.block,
+            person = row.person,
+            rater = row.rater,
+            item = row.item,
+        )
+    end
+    return (; n_observations = row.n_observations)
+end
+
 """
-    predictive_check_summary(check; interval = 0.9)
+    predictive_check_summary(check; interval = 0.9, include_grouped = false)
 
 Summarize a `prior_predictive_check` or `posterior_predictive_check` result as
 rows with observed values, replicated means, replicated intervals, and tail
 probabilities. The current summary covers overall mean score, category
 proportions, person-level mean scores, rater-level mean scores, item-level mean
-scores, and optional facet mean scores.
+scores, and optional facet mean scores. Set `include_grouped = true` to append
+DFF-cell and observed sparse-design-block mean-score rows from checks generated
+by current `prior_predictive_check` or `posterior_predictive_check` objects.
 """
-function predictive_check_summary(check; interval::Real = 0.9)
+function predictive_check_summary(check; interval::Real = 0.9,
+        include_grouped::Bool = false)
     _require_predictive_check_fields(check)
+    include_grouped && _require_predictive_grouped_fields(check)
     lower_probability, upper_probability = _interval_probabilities(interval)
     observed = check.observed
     replicated = check.replicated
@@ -6580,6 +6743,19 @@ function predictive_check_summary(check; interval::Real = 0.9)
         end
     end
 
+    if include_grouped
+        for row in check.grouped.rows
+            push!(rows, _predictive_check_row(row.statistic,
+                row.level,
+                row.observed,
+                row.replicated,
+                interval,
+                lower_probability,
+                upper_probability;
+                metadata = _predictive_grouped_row_metadata(row)))
+        end
+    end
+
     return rows
 end
 
@@ -6591,7 +6767,9 @@ end
 Generate prior predictive replicated scores and compact observed-vs-replicated
 summaries for the minimal MFRM design. The returned object includes the prior
 parameter draws used to generate `replicated_scores` and prior-implication
-diagnostics for category use and facet-score ranges.
+diagnostics for category use and facet-score ranges. It also includes grouped
+DFF-cell and observed sparse-design-block mean-score summaries for
+`predictive_check_summary(...; include_grouped = true)`.
 """
 function prior_predictive_check(design::FacetDesign;
         prior::MFRMPrior = MFRMPrior(),
@@ -6605,6 +6783,7 @@ function prior_predictive_check(design::FacetDesign;
     data = design.spec.data
     observed = _predictive_summary(data, data.score)
     replicated_summary = _replicated_summaries(data, replicated)
+    grouped = _predictive_grouped_summary(design.spec, replicated)
     implication_diagnostics = _prior_predictive_implication_diagnostics(
         data,
         observed,
@@ -6616,6 +6795,7 @@ function prior_predictive_check(design::FacetDesign;
     return (;
         observed,
         replicated = replicated_summary,
+        grouped,
         replicated_scores = replicated,
         parameter_draws = draws,
         implication_diagnostics,
@@ -6637,7 +6817,9 @@ prior_predictive_check(spec::FacetSpec; kwargs...) =
 Generate posterior predictive replicated scores and compact observed-vs-
 replicated summaries for the minimal MFRM design. The summary currently covers
 overall mean score, category proportions, person-level mean scores, rater-level
-mean scores, item-level mean scores, and optional facet mean scores.
+mean scores, item-level mean scores, optional facet mean scores, and grouped
+DFF-cell and observed sparse-design-block mean-score rows for
+`predictive_check_summary(...; include_grouped = true)`.
 """
 function posterior_predictive_check(fit::MFRMFit;
         ndraws::Union{Nothing,Int} = nothing,
@@ -6646,9 +6828,13 @@ function posterior_predictive_check(fit::MFRMFit;
     indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
     replicated = posterior_predict(fit; draw_indices = indices, rng)
     data = fit.design.spec.data
+    observed = _predictive_summary(data, data.score)
+    replicated_summary = _replicated_summaries(data, replicated)
+    grouped = _predictive_grouped_summary(fit.design.spec, replicated)
     return (;
-        observed = _predictive_summary(data, data.score),
-        replicated = _replicated_summaries(data, replicated),
+        observed,
+        replicated = replicated_summary,
+        grouped,
         replicated_scores = replicated,
         draw_indices = indices,
         category_levels = copy(data.category_levels),
@@ -6666,9 +6852,13 @@ function posterior_predictive_check(fit::GMFRMFit;
     indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
     replicated = posterior_predict(fit; draw_indices = indices, rng)
     data = fit.design.spec.data
+    observed = _predictive_summary(data, data.score)
+    replicated_summary = _replicated_summaries(data, replicated)
+    grouped = _predictive_grouped_summary(fit.design.spec, replicated)
     return (;
-        observed = _predictive_summary(data, data.score),
-        replicated = _replicated_summaries(data, replicated),
+        observed,
+        replicated = replicated_summary,
+        grouped,
         replicated_scores = replicated,
         draw_indices = indices,
         category_levels = copy(data.category_levels),

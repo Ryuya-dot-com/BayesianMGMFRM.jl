@@ -353,8 +353,8 @@ rater-discrimination candidate.
 
 The roadmap has two different progress notions:
 
-- **Checklist progress**: currently 101 of 120 tracked roadmap checkboxes are
-  complete, or roughly 84.2%. This is useful for implementation accounting.
+- **Checklist progress**: currently 102 of 120 tracked roadmap checkboxes are
+  complete, or roughly 85.0%. This is useful for implementation accounting.
 - **Claim progress**: broad v1 claims are closer to 40-45% complete because
   the remaining items include public generalized fitting, Stan comparisons,
   broader recovery simulations and a public-scope release decision.
@@ -785,7 +785,7 @@ TODO:
 
 - [x] Implement prior predictive checks for category use, facet ranges, and
   implausible prior implications.
-- [ ] Implement posterior predictive checks grouped by facet, group, DFF cell,
+- [x] Implement posterior predictive checks grouped by facet, group, DFF cell,
   category, and sparse-design block.
 - [ ] Extend calibration summaries to ordinal categories and expected scores.
 - [x] Implement posterior summaries with multiple intervals, probability of

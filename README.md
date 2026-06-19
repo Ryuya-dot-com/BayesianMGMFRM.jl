@@ -132,6 +132,7 @@ waic_diagnostics(fit_result)
 loo_diagnostics(fit_result)
 calibration_table(fit_result; bins = 2)
 predictive_check_summary(ppc)
+predictive_check_summary(ppc; include_grouped = true)
 
 truth = initial_params(design; value = 0.0)
 simulated = simulate_responses(design, truth; rng = MersenneTwister(104))
@@ -262,7 +263,8 @@ Current public API:
 - `posterior_predict` and `posterior_predictive_check`: posterior replicated
   score generation plus compact observed-vs-replicated summaries for mean
   scores, category proportions, person means, rater means, item means, and
-  optional facet means.
+  optional facet means. Predictive-check objects also carry grouped DFF-cell
+  and observed sparse-design-block summaries for report expansion.
 - `prior_predict` and `prior_predictive_check`: prior replicated score
   generation for checking whether the declared priors imply plausible score
   distributions before fitting. Prior predictive checks include
@@ -274,7 +276,8 @@ Current public API:
   bias, RMSE, interval coverage, and block-level recovery summaries.
 - `predictive_check_summary`: report-ready summaries of prior or posterior
   predictive checks with replicated intervals and tail probabilities, including
-  person, rater, item, and optional facet mean-score rows.
+  person, rater, item, and optional facet mean-score rows, plus DFF-cell and
+  sparse-design-block rows when called with `include_grouped = true`.
 - `calibration_table`: binned observed-vs-predicted calibration summaries from
   posterior expected scores or category probabilities.
 - `parameter_recovery_plot_data`, `calibration_plot_data`, and

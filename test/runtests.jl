@@ -10253,6 +10253,12 @@ end
     @test prior_ppc.rater_levels == data.rater_levels
     @test prior_ppc.item_levels == data.item_levels
     @test isempty(prior_ppc.optional_levels)
+    @test prior_ppc.grouped.schema == "bayesianmgmfrm.predictive_grouped_summary.v1"
+    @test prior_ppc.grouped.n_dff_terms == 0
+    @test prior_ppc.grouped.n_dff_cells == 0
+    @test prior_ppc.grouped.n_sparse_design_blocks > 0
+    @test any(row -> row.statistic === :sparse_design_block_mean,
+        prior_ppc.grouped.rows)
     @test length(prior_ppc.observed.category_proportions) == length(data.category_levels)
     @test size(prior_ppc.replicated.category_proportions) == (6, length(data.category_levels))
     @test length(prior_ppc.observed.person_mean) == length(data.person_levels)
@@ -10359,15 +10365,42 @@ end
     )
     grouped_data = FacetData(grouped_table; person = :examinee, rater = :rater, item = :item,
         score = :score, group = :group)
-    grouped_spec = mfrm_spec(grouped_data; thresholds = :partial_credit)
+    grouped_validation = validate_design(grouped_data; bias = [(:rater, :group)])
+    grouped_spec = mfrm_spec(grouped_data;
+        thresholds = :partial_credit,
+        validation_report = grouped_validation)
     grouped_ppc = prior_predictive_check(grouped_spec; prior, ndraws = 3, rng = MersenneTwister(6680))
     @test grouped_ppc.optional_levels[:group] == grouped_data.optional_levels[:group]
     @test size(grouped_ppc.replicated.optional_mean[:group]) == (3, length(grouped_data.optional_levels[:group]))
+    @test grouped_ppc.grouped.n_dff_terms == 1
+    @test grouped_ppc.grouped.n_dff_cells ==
+        length(grouped_data.rater_levels) * length(grouped_data.optional_levels[:group])
+    @test grouped_ppc.grouped.n_sparse_design_blocks > 0
+    dff_grouped_rows = filter(row -> row.statistic === :dff_cell_mean,
+        grouped_ppc.grouped.rows)
+    @test length(dff_grouped_rows) == grouped_ppc.grouped.n_dff_cells
+    @test any(row -> row.facet_a === :rater && row.facet_b === :group &&
+        row.level_a == "R1" && row.level_b == "A",
+        dff_grouped_rows)
+    @test all(row -> length(row.replicated) == 3, dff_grouped_rows)
     @test any(row -> row.facet === :group,
         grouped_ppc.implication_diagnostics.facet_range_rows)
     grouped_summary = predictive_check_summary(grouped_ppc; interval = 0.8)
     @test any(row -> row.statistic === :group_mean && row.level == "A", grouped_summary)
     @test any(row -> row.statistic === :group_mean && row.level == "B", grouped_summary)
+    grouped_summary_with_cells = predictive_check_summary(grouped_ppc;
+        interval = 0.8,
+        include_grouped = true)
+    @test length(grouped_summary_with_cells) ==
+        length(grouped_summary) + grouped_ppc.grouped.n_dff_cells +
+        grouped_ppc.grouped.n_sparse_design_blocks
+    @test any(row -> row.statistic === :dff_cell_mean &&
+        row.facet_a === :rater && row.facet_b === :group &&
+        row.n_observations > 0,
+        grouped_summary_with_cells)
+    @test any(row -> row.statistic === :sparse_design_block_mean &&
+        row.block === :person_rater_item && row.n_observations >= 1,
+        grouped_summary_with_cells)
     grouped_design = getdesign(grouped_spec)
     grouped_waic_rows = waic_diagnostics(grouped_design,
         zeros(2, length(grouped_design.parameter_names)))
@@ -10398,6 +10431,10 @@ end
     @test ppc.rater_levels == data.rater_levels
     @test ppc.item_levels == data.item_levels
     @test isempty(ppc.optional_levels)
+    @test ppc.grouped.schema == "bayesianmgmfrm.predictive_grouped_summary.v1"
+    @test ppc.grouped.n_dff_terms == 0
+    @test ppc.grouped.n_dff_cells == 0
+    @test ppc.grouped.n_sparse_design_blocks > 0
     ppc_summary = predictive_check_summary(ppc; interval = 0.8)
     @test length(ppc_summary) == expected_n_summary_rows
     @test [row.statistic for row in ppc_summary[1:4]] ==
@@ -10406,6 +10443,17 @@ end
     @test ppc_summary[1].replicated_lower <= ppc_summary[1].replicated_median <=
         ppc_summary[1].replicated_upper
     @test all(row -> row.n_replicates == 6, ppc_summary)
+    ppc_summary_with_blocks = predictive_check_summary(ppc;
+        interval = 0.8,
+        include_grouped = true)
+    @test length(ppc_summary_with_blocks) ==
+        expected_n_summary_rows + ppc.grouped.n_sparse_design_blocks
+    ppc_sparse_rows = filter(row -> row.statistic === :sparse_design_block_mean,
+        ppc_summary_with_blocks)
+    @test length(ppc_sparse_rows) == ppc.grouped.n_sparse_design_blocks
+    @test all(row -> row.block === :person_rater_item && row.n_observations >= 1,
+        ppc_sparse_rows)
+    @test all(row -> row.n_replicates == 6, ppc_sparse_rows)
     ppc_by_index = posterior_predictive_check(result; draw_indices = [1, 2], rng = MersenneTwister(5679))
     @test size(ppc_by_index.replicated_scores) == (2, data.n)
     @test ppc_by_index.draw_indices == [1, 2]
