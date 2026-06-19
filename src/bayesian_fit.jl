@@ -6711,6 +6711,196 @@ function fit_stats(fit::MFRMFit;
     return fit_stats(fit.design, fit.draws[indices, :]; by, interval, min_n)
 end
 
+function _residual_summary_groups(data::FacetData, by::Symbol)
+    by === :observation && return collect(1:data.n), collect(1:data.n)
+    return _fit_stat_groups(data, by)
+end
+
+function _posterior_group_mean(values::AbstractMatrix{<:Real},
+        observations::AbstractVector{Int})
+    out = Vector{Float64}(undef, size(values, 1))
+    for draw in axes(values, 1)
+        out[draw] = _mean_at_indices(@view(values[draw, :]), observations)
+    end
+    return out
+end
+
+function _posterior_group_absolute_mean(values::AbstractMatrix{<:Real},
+        observations::AbstractVector{Int})
+    out = Vector{Float64}(undef, size(values, 1))
+    for draw in axes(values, 1)
+        total = 0.0
+        for observation in observations
+            total += abs(Float64(values[draw, observation]))
+        end
+        out[draw] = total / length(observations)
+    end
+    return out
+end
+
+function _posterior_group_rmse(values::AbstractMatrix{<:Real},
+        observations::AbstractVector{Int})
+    out = Vector{Float64}(undef, size(values, 1))
+    for draw in axes(values, 1)
+        total = 0.0
+        for observation in observations
+            value = Float64(values[draw, observation])
+            total += value * value
+        end
+        out[draw] = sqrt(total / length(observations))
+    end
+    return out
+end
+
+function _residual_summary_rows(data::FacetData,
+        expected::AbstractMatrix{<:Real},
+        residuals::AbstractMatrix{<:Real};
+        by::Symbol,
+        interval::Real,
+        min_n::Int)
+    min_n >= 1 || throw(ArgumentError("min_n must be positive"))
+    size(expected) == size(residuals) ||
+        throw(ArgumentError("expected and residual matrices must have the same shape"))
+    size(expected, 1) >= 1 ||
+        throw(ArgumentError("residual_summary requires at least one posterior draw"))
+    size(expected, 2) == data.n ||
+        throw(ArgumentError("residual_summary observation count does not match data"))
+    all(value -> isfinite(Float64(value)), expected) ||
+        throw(ArgumentError("expected score matrix contains non-finite values"))
+    all(value -> isfinite(Float64(value)), residuals) ||
+        throw(ArgumentError("residual matrix contains non-finite values"))
+
+    lower_probability, upper_probability = _interval_probabilities(interval)
+    group_index, group_levels = _residual_summary_groups(data, by)
+    rows = NamedTuple[]
+    for (level_index, level) in pairs(group_levels)
+        observations = findall(==(level_index), group_index)
+        n_observations = length(observations)
+        expected_by_draw = _posterior_group_mean(expected, observations)
+        residual_by_draw = _posterior_group_mean(residuals, observations)
+        absolute_residual_by_draw =
+            _posterior_group_absolute_mean(residuals, observations)
+        rmse_by_draw = _posterior_group_rmse(residuals, observations)
+
+        expected_summary = _finite_draw_summary(
+            expected_by_draw,
+            lower_probability,
+            upper_probability,
+        )
+        residual_summary = _finite_draw_summary(
+            residual_by_draw,
+            lower_probability,
+            upper_probability,
+        )
+        absolute_residual_summary = _finite_draw_summary(
+            absolute_residual_by_draw,
+            lower_probability,
+            upper_probability,
+        )
+        rmse_summary = _finite_draw_summary(
+            rmse_by_draw,
+            lower_probability,
+            upper_probability,
+        )
+        residual_interval_excludes_zero =
+            isfinite(residual_summary.lower) &&
+            isfinite(residual_summary.upper) &&
+            (residual_summary.lower > 0 || residual_summary.upper < 0)
+        flag = n_observations < min_n ? :below_min_n :
+            residual_interval_excludes_zero ? :residual_interval_excludes_zero : :ok
+
+        push!(rows, (;
+            facet = by,
+            level,
+            n_observations,
+            n_draws = size(expected, 1),
+            method = :posterior_expected_score,
+            interval_probability = Float64(interval),
+            lower_probability,
+            upper_probability,
+            observed_mean = _mean_at_indices(data.score, observations),
+            expected_mean = expected_summary.mean,
+            expected_median = expected_summary.median,
+            expected_lower = expected_summary.lower,
+            expected_upper = expected_summary.upper,
+            residual_mean = residual_summary.mean,
+            residual_median = residual_summary.median,
+            residual_lower = residual_summary.lower,
+            residual_upper = residual_summary.upper,
+            absolute_residual_mean = absolute_residual_summary.mean,
+            absolute_residual_median = absolute_residual_summary.median,
+            absolute_residual_lower = absolute_residual_summary.lower,
+            absolute_residual_upper = absolute_residual_summary.upper,
+            rmse_mean = rmse_summary.mean,
+            rmse_median = rmse_summary.median,
+            rmse_lower = rmse_summary.lower,
+            rmse_upper = rmse_summary.upper,
+            residual_interval_excludes_zero,
+            caveat = :posterior_predictive_residual_screening_not_confirmatory,
+            flag,
+        ))
+    end
+    return rows
+end
+
+"""
+    residual_summary(fit::MFRMFit; by = :observation, interval = 0.95,
+        min_n = 1, ndraws = nothing, draw_indices = nothing,
+        rng = Random.default_rng())
+    residual_summary(design::FacetDesign, draws; by = :observation,
+        interval = 0.95, min_n = 1)
+
+Return posterior summaries of observed-minus-expected score residuals by
+observation or facet level. Rows include observed mean score, posterior
+expected-score intervals, residual intervals, mean absolute residual, RMSE, and
+a screening caveat flag. Use `by = :person`, `:rater`, `:item`, `:category`, or
+an optional facet name to aggregate rows; `by = :observation` returns one row
+per original response. Fitted-object methods are available for MFRM and guarded
+scalar GMFRM fit objects.
+"""
+function residual_summary(design::FacetDesign,
+        draws::AbstractMatrix;
+        by::Symbol = :observation,
+        interval::Real = 0.95,
+        min_n::Int = 1)
+    expected = expected_scores(design, draws)
+    residuals = predictive_residuals(design, draws)
+    return _residual_summary_rows(design.spec.data, expected, residuals;
+        by,
+        interval,
+        min_n)
+end
+
+function residual_summary(fit::MFRMFit;
+        by::Symbol = :observation,
+        interval::Real = 0.95,
+        min_n::Int = 1,
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    return residual_summary(fit.design, fit.draws[indices, :];
+        by,
+        interval,
+        min_n)
+end
+
+function residual_summary(fit::GMFRMFit;
+        by::Symbol = :observation,
+        interval::Real = 0.95,
+        min_n::Int = 1,
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    expected = expected_scores(fit; draw_indices = indices)
+    residuals = predictive_residuals(fit; draw_indices = indices)
+    return _residual_summary_rows(fit.design.spec.data, expected, residuals;
+        by,
+        interval,
+        min_n)
+end
+
 function _sample_category_index(rng::AbstractRNG, probs::AbstractVector{Float64})
     u = rand(rng)
     cumulative = 0.0

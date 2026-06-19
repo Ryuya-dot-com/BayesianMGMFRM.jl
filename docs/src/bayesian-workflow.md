@@ -61,7 +61,8 @@ without changing the data layer.
 13. Run [`posterior_predictive_check`](@ref), summarize it with
    [`predictive_check_summary`](@ref), and inspect binned calibration with
    [`calibration_table`](@ref).
-14. Inspect facet-level fit with [`fit_stats`](@ref).
+14. Inspect posterior residual summaries with [`residual_summary`](@ref), and
+   facet-level infit/outfit with [`fit_stats`](@ref).
 15. Compare same-observation candidate models with [`waic`](@ref), raw
     importance-sampling [`loo`](@ref), and [`compare_models`](@ref); inspect
     influential WAIC rows with [`waic_diagnostics`](@ref) and unstable LOO rows

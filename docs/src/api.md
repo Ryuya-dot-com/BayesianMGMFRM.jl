@@ -68,6 +68,7 @@ predictive_probabilities
 expected_scores
 predictive_variances
 predictive_residuals
+residual_summary
 prior_predict
 prior_predictive_check
 simulate_responses

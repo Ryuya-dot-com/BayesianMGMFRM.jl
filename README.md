@@ -299,6 +299,8 @@ Current public API:
   `predictive_residuals`: observation-level posterior predictive quantities for
   calibration tables, residual checks, infit/outfit, and model-comparison
   helpers.
+- `residual_summary`: observation- or facet-level posterior expected-score and
+  residual summaries with residual-screening caveat flags.
 - `fit_stats`: posterior summaries of infit and outfit mean-square statistics
   by facet level.
 - `coverage_summary`, `coverage_matrix`, `rater_overlap`, `design_row_table`,
