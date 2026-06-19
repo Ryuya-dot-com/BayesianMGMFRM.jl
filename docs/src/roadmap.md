@@ -296,7 +296,9 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   raw-target gradient checks, fixture-only AdvancedHMC/NUTS smoke tests,
   guarded scalar GMFRM method wiring, and swappable AdvancedHMC gradient
   adapter checks done]
-- Validate against Stan on small and medium fixtures.
+- Validate against Stan on small and medium fixtures. [Small and medium scalar
+  validation fixtures are committed; generalized small/medium GMFRM/MGMFRM fit
+  comparisons remain planned]
 
 ### v0.4 Bayesian Workflow Layer
 
