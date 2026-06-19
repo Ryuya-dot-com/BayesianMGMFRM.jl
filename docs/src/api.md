@@ -39,6 +39,7 @@ fit_archive_manifest
 fit_artifact
 fit_cache_key
 fit_metadata
+fit_ready_parameter_layout
 fit_stats
 initial_params
 loglikelihood

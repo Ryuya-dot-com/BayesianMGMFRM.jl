@@ -21,7 +21,9 @@ without changing the data layer.
    inspect the source-traced mathematical contract with [`model_equation`](@ref),
    constraints with [`constraint_table`](@ref), normalized identification
    declarations with [`identification_declarations`](@ref), and the identified
-   parameter design with [`getdesign`](@ref).
+   parameter design with [`getdesign`](@ref). Use
+   [`fit_ready_parameter_layout`](@ref) when sampler-coordinate and
+   constrained-coordinate block ranges are needed.
    For specified-only GMFRM/MGMFRM review, use `getdesign(spec; preview = true)`,
    `design_row_table(spec; preview = true)`, and
    `linear_predictor_table(spec; preview = true)`. Use
