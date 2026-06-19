@@ -5,7 +5,8 @@ design returned by `getdesign`. They place independent zero-centered normal
 priors on the identified parameter vector. `backend = :julia` uses a
 random-walk Metropolis kernel for small validation examples, while
 `backend = :advancedhmc` uses the package's `MFRMLogDensity` target with
-AdvancedHMC/NUTS.
+AdvancedHMC/NUTS and `backend = :turing` wraps the same target in a
+Turing/NUTS model.
 
 ## Guarded Generalized Model Caveats
 
@@ -98,6 +99,9 @@ fit_result_rsm = cached_fit(spec_rsm; cache_path = "cache/rsm_fit.jls", prior,
 fit_result_nuts = cached_fit(spec; cache_path = "cache/pcm_nuts_fit.jls", prior,
     backend = :advancedhmc, ndraws = 500, warmup = 500,
     chains = 4, step_size = 0.04, target_accept = 0.8, max_depth = 10, seed = 20260620)
+fit_result_turing = cached_fit(spec; cache_path = "cache/pcm_turing_fit.jls", prior,
+    backend = :turing, ndraws = 500, warmup = 500,
+    chains = 4, step_size = 0.04, target_accept = 0.8, max_depth = 10, seed = 20260623)
 
 fit_metadata(fit_result)
 model_manifest(fit_result)
@@ -136,10 +140,10 @@ predictive_check_plot_data(predictive_check_summary(ppc))
 ```
 
 The random-walk sampler is intended for small validation examples and API
-stabilization. The AdvancedHMC/NUTS backend is the first gradient-based sampler
-path for the minimal design; it is not yet a broad GMFRM/MGMFRM fitting
-backend. The package does not yet expose Stan/CmdStan sampling, Turing sampling,
-PSIS-smoothed or exact LOO, or richer model-comparison workflows.
+stabilization. The AdvancedHMC/NUTS and Turing/NUTS backends are
+gradient-based sampler paths for the minimal design; they are not yet broad
+GMFRM/MGMFRM fitting backends. The package does not yet expose Stan/CmdStan
+sampling, PSIS-smoothed or exact LOO, or richer model-comparison workflows.
 `MFRMLogDensity` exposes the
 same minimal posterior through the `LogDensityProblems.jl` protocol for
 external sampler and automatic differentiation experiments. AdvancedHMC uses a
@@ -147,7 +151,9 @@ shared gradient adapter: `ad_backend = :ForwardDiff` is the default,
 `:ReverseDiff` can be selected when that package is available in the active
 environment, and `:analytic` uses a target-provided
 `LogDensityProblems.logdensity_and_gradient` method for targets that implement
-one.
+one. Turing wraps the same target with a flat vector parameter and
+`Turing.@addlogprob!`; that backend currently accepts only
+`ad_backend = :ForwardDiff`.
 `linear_predictor_values` exposes the row-by-category `eta`, log-denominator,
 and category log-probability values for the same minimal likelihood used by
 `pointwise_loglikelihood`. `loglikelihood`, `logprior`, and `logposterior`

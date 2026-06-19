@@ -19,8 +19,8 @@ The current public slice focuses on:
 - initial Bayesian fitting for the minimal identified design via [`fit`](@ref),
   [`cached_fit`](@ref), [`MFRMPrior`](@ref), [`fit_metadata`](@ref),
   [`fit_artifact`](@ref), and [`posterior_summary`](@ref), including a small
-  random-walk backend, an initial AdvancedHMC/NUTS backend, and RDS-like
-  serialized fit caches;
+  random-walk backend, initial AdvancedHMC/NUTS and Turing/NUTS backends, and
+  RDS-like serialized fit caches;
 - a guarded experimental scalar GMFRM path via `fit(spec; experimental = true)`
   returning [`GMFRMFit`](@ref) for the one-dimensional rater-discrimination
   promotion candidate only, with local validation, posterior predictive, and
@@ -64,10 +64,11 @@ The current public slice focuses on:
   confirmatory MGMFRM gauge manifest with BridgeStan confirmatory-candidate and
   local candidate-chain/recovery-smoke evidence.
 
-Stan/CmdStan and Turing sampling, PSIS-smoothed or exact LOO, generalized
-discrimination likelihoods, group/DFF model terms, and Multidimensional
-Generalized Many-Facet Rasch Model (MGMFRM) fitting APIs are planned work and
-are not exposed yet.
+Stan/CmdStan sampling, PSIS-smoothed or exact LOO, generalized discrimination
+likelihoods, group/DFF model terms, and Multidimensional Generalized
+Many-Facet Rasch Model (MGMFRM) fitting APIs are planned work and are not
+exposed yet. The Turing/NUTS backend is currently limited to the minimal
+MFRM/RSM/PCM `MFRMLogDensity` target.
 Specified-only GMFRM/MGMFRM configs are available for constraint and manifest
 review, with estimation currently limited to the guarded scalar GMFRM
 rater-discrimination candidate. See the [Bayesian Workflow](bayesian-workflow.md)

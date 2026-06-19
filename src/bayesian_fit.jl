@@ -7,6 +7,7 @@ import AdvancedHMC
 import ForwardDiff
 import LogDensityProblems
 import LogDensityProblemsAD
+import Turing
 
 const LOG2PI_BAYES = log(2 * pi)
 
@@ -962,7 +963,10 @@ end
     fit(spec; experimental = true, backend = :advancedhmc, ...)
 
 Fit the current minimal Bayesian MFRM/RSM/PCM scaffold with the selected
-backend. Supplying `seed` uses a local `MersenneTwister(seed)` and records the
+backend. `backend = :julia` uses a random-walk Metropolis kernel,
+`backend = :advancedhmc` uses AdvancedHMC/NUTS directly, and
+`backend = :turing` wraps the same `MFRMLogDensity` target in a Turing/NUTS
+model. Supplying `seed` uses a local `MersenneTwister(seed)` and records the
 seed in `sampler_controls`; otherwise the supplied `rng` is used without a
 replayable seed record.
 
@@ -970,7 +974,10 @@ The AdvancedHMC backend accepts `ad_backend = :ForwardDiff` by default.
 `ad_backend = :ReverseDiff` can be used when the corresponding AD package is
 available in the active environment, and `ad_backend = :analytic` uses a
 target-provided `LogDensityProblems.logdensity_and_gradient` method when one
-exists.
+exists. The Turing backend currently accepts `ad_backend = :ForwardDiff`;
+analytic target gradients are not consumed by Turing's model trace, and the
+ReverseDiff path is left to a future adapter after the Turing AD interface can
+support this wrapped target reliably.
 
 The `experimental = true` keyword is intentionally narrow: it is accepted only
 for the scalar source-aligned GMFRM promotion candidate with `family = :gmfrm`,
@@ -1016,8 +1023,18 @@ function fit(design::FacetDesign;
             ad_backend,
             init_jitter,
             progress)
+    elseif backend === :turing
+        return _fit_turing(design, prior, ndraws, warmup, chains,
+            Float64(step_size), initial, fit_rng, rng_control;
+            target_accept,
+            max_depth,
+            max_energy_error,
+            metric,
+            ad_backend,
+            init_jitter,
+            progress)
     else
-        throw(ArgumentError("backend must be :julia or :advancedhmc"))
+        throw(ArgumentError("backend must be :julia, :advancedhmc, or :turing"))
     end
 end
 
@@ -1140,7 +1157,7 @@ function _advancedhmc_stat_row(stat::NamedTuple, chain::Int, iteration::Int)
         is_adapt = Bool(getstat(:is_adapt, false)),
         is_accept = Bool(getstat(:is_accept, true)),
         acceptance_rate = Float64(getstat(:acceptance_rate, NaN)),
-        log_density = Float64(getstat(:log_density, NaN)),
+        log_density = Float64(getstat(:log_density, getstat(:logjoint, NaN))),
         hamiltonian_energy = Float64(getstat(:hamiltonian_energy, NaN)),
         hamiltonian_energy_error = Float64(getstat(:hamiltonian_energy_error, NaN)),
         max_hamiltonian_energy_error = Float64(getstat(:max_hamiltonian_energy_error, NaN)),
@@ -1150,6 +1167,134 @@ function _advancedhmc_stat_row(stat::NamedTuple, chain::Int, iteration::Int)
         step_size = Float64(getstat(:step_size, NaN)),
         nom_step_size = Float64(getstat(:nom_step_size, NaN)),
     )
+end
+
+Turing.@model function _turing_mfrm_logdensity_model(target::MFRMLogDensity,
+        nparams::Int)
+    params ~ Turing.filldist(Turing.Flat(), nparams)
+    Turing.@addlogprob! LogDensityProblems.logdensity(target, params)
+    return params
+end
+
+function _turing_metric_type(metric::Symbol)
+    metric === :diagonal && return AdvancedHMC.DiagEuclideanMetric
+    metric === :unit && return AdvancedHMC.UnitEuclideanMetric
+    metric === :dense && return AdvancedHMC.DenseEuclideanMetric
+    throw(ArgumentError("metric must be :diagonal, :unit, or :dense"))
+end
+
+function _turing_adtype(ad_backend::Symbol)
+    ad_backend === :ForwardDiff && return Turing.AutoForwardDiff()
+    ad_backend === :ReverseDiff &&
+        throw(ArgumentError("ad_backend = :ReverseDiff is not supported for backend = :turing"))
+    ad_backend === :analytic &&
+        throw(ArgumentError("ad_backend = :analytic is not supported for backend = :turing"))
+    throw(ArgumentError("ad_backend must be :ForwardDiff for backend = :turing"))
+end
+
+function _turing_params(transition, nparams::Int)
+    values = getproperty(transition, :params)[Turing.@varname(params)]
+    length(values) == nparams ||
+        throw(ArgumentError("Turing returned $(length(values)) parameter(s); expected $nparams"))
+    return values
+end
+
+_turing_discard_initial(warmup::Int) = warmup == 0 ? 1 : warmup
+
+function _fit_turing(design::FacetDesign,
+        prior::MFRMPrior,
+        ndraws::Int,
+        warmup::Int,
+        chains::Int,
+        step::Float64,
+        initial::Vector{Float64},
+        rng::AbstractRNG,
+        rng_control::NamedTuple;
+        target_accept::Real,
+        max_depth::Int,
+        max_energy_error::Real,
+        metric::Symbol,
+        ad_backend::Symbol,
+        init_jitter::Real,
+        progress::Bool)
+    0 < target_accept < 1 ||
+        throw(ArgumentError("target_accept must be in (0, 1)"))
+    max_depth >= 1 || throw(ArgumentError("max_depth must be positive"))
+    isfinite(max_energy_error) && max_energy_error > 0 ||
+        throw(ArgumentError("max_energy_error must be finite and positive"))
+    isfinite(init_jitter) && init_jitter >= 0 ||
+        throw(ArgumentError("init_jitter must be finite and non-negative"))
+
+    nparams = length(design.parameter_names)
+    nparams >= 1 || throw(ArgumentError("at least one parameter is required for Turing fitting"))
+    adtype = _turing_adtype(ad_backend)
+    metric_type = _turing_metric_type(metric)
+    total_draws = ndraws * chains
+    draws = Matrix{Float64}(undef, total_draws, nparams)
+    logps = Vector{Float64}(undef, total_draws)
+    chain_ids = Vector{Int}(undef, total_draws)
+    iterations = Vector{Int}(undef, total_draws)
+    chain_acceptance = Vector{Float64}(undef, chains)
+    sampler_stats = NamedTuple[]
+    target = MFRMLogDensity(design; prior)
+    model = _turing_mfrm_logdensity_model(target, nparams)
+    sampler = Turing.NUTS(-1, Float64(target_accept), max_depth,
+        Float64(max_energy_error), step, metric_type; adtype)
+    discard_initial = _turing_discard_initial(warmup)
+    controls = (;
+        ndraws,
+        warmup,
+        chains,
+        step_size = step,
+        target_accept = Float64(target_accept),
+        max_depth,
+        max_energy_error = Float64(max_energy_error),
+        metric,
+        ad_backend,
+        gradient_backend = :ad,
+        rng = rng_control,
+        init_jitter = Float64(init_jitter),
+        turing_model = :mfrm_logdensity_flat_parameter_model,
+        chain_type = :raw_transitions,
+        discard_initial,
+    )
+
+    for chain in 1:chains
+        chain_initial = _advancedhmc_initial(initial, rng, Float64(init_jitter))
+        current_lp = logposterior(design, chain_initial, prior)
+        isfinite(current_lp) || throw(ArgumentError("initial parameter vector has non-finite log posterior"))
+        transitions = Turing.sample(
+            rng,
+            model,
+            sampler,
+            ndraws;
+            num_warmup = warmup,
+            discard_initial,
+            progress,
+            verbose = false,
+            initial_params = Turing.InitFromParams((params = copy(chain_initial),)),
+            chain_type = Any,
+        )
+        length(transitions) == ndraws ||
+            throw(ArgumentError("Turing returned $(length(transitions)) draw(s); expected $ndraws"))
+        chain_stats = NamedTuple[]
+        for iteration in 1:ndraws
+            row = (chain - 1) * ndraws + iteration
+            values = _turing_params(transitions[iteration], nparams)
+            draws[row, :] .= values
+            stat_row = _advancedhmc_stat_row(transitions[iteration].stats, chain, iteration)
+            logps[row] = stat_row.log_density
+            chain_ids[row] = chain
+            iterations[row] = iteration
+            push!(chain_stats, stat_row)
+            push!(sampler_stats, stat_row)
+        end
+        chain_acceptance[chain] = _stat_mean(chain_stats, :acceptance_rate)
+    end
+
+    return MFRMFit(design, prior, draws, logps, _column_mean(chain_acceptance),
+        chain_ids, iterations, chain_acceptance, :turing, :nuts, warmup,
+        _stat_mean(sampler_stats, :step_size), sampler_stats, controls)
 end
 
 function _stat_mean(rows, field::Symbol)
@@ -3888,8 +4033,31 @@ function _fit_cache_controls(backend::Symbol,
             initialization,
             init_jitter = Float64(init_jitter),
         )
+    elseif backend === :turing
+        _turing_adtype(ad_backend)
+        _turing_metric_type(metric)
+        return (;
+            backend,
+            sampler = :nuts,
+            ndraws,
+            warmup,
+            chains,
+            step_size = Float64(step_size),
+            target_accept = Float64(target_accept),
+            max_depth,
+            max_energy_error = Float64(max_energy_error),
+            metric,
+            ad_backend,
+            gradient_backend = :ad,
+            rng = rng_control,
+            initialization,
+            init_jitter = Float64(init_jitter),
+            turing_model = :mfrm_logdensity_flat_parameter_model,
+            chain_type = :raw_transitions,
+            discard_initial = _turing_discard_initial(warmup),
+        )
     end
-    throw(ArgumentError("backend must be :julia or :advancedhmc"))
+    throw(ArgumentError("backend must be :julia, :advancedhmc, or :turing"))
 end
 
 function _fit_cache_request(design::FacetDesign;
