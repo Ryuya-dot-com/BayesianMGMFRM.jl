@@ -355,8 +355,8 @@ rater-discrimination candidate.
 
 The roadmap has two different progress notions:
 
-- **Checklist progress**: currently 113 of 120 tracked roadmap checkboxes are
-  complete, or roughly 94.2%. This is useful for implementation accounting.
+- **Checklist progress**: currently 114 of 120 tracked roadmap checkboxes are
+  complete, or roughly 95.0%. This is useful for implementation accounting.
 - **Claim progress**: broad v1 claims are closer to 40-45% complete because
   the remaining items include public generalized fitting, Stan comparisons,
   broader recovery simulations and a public-scope release decision.
@@ -813,12 +813,15 @@ TODO:
   refit orchestration and PSIS smoothing remain planned.]
 - [x] Implement prior/likelihood sensitivity, including power-scaling or an
   equivalent package-native workflow.
-- [ ] Implement first-class sensitivity comparisons: RSM vs PCM/GPCM,
+- [x] Implement first-class sensitivity comparisons: RSM vs PCM/GPCM,
   discrimination on/off, pooled vs unpooled rater effects, DFF on/off, anchor
   choices, dimensionality, and prior regimes. [`sensitivity_comparison`] now
   provides same-data, fit-object sensitivity rows with declared axes, custom
-  axis values, and baseline-relative differences; unsupported generalized,
-  DFF, anchor, and dimensionality refit workflows remain planned.
+  axis values, baseline-relative differences, and declared dimensionality/Q
+  sensitivity safeguards; `sensitivity_comparison_summary` audits required
+  threshold, discrimination, rater-pooling, DFF, anchor, dimensionality, and
+  prior-regime row coverage. Unsupported generalized, DFF, anchor, and
+  dimensionality refit orchestration remains planned.
 
 Gate: a case-study report can be regenerated from fit objects without custom
 notebook logic for diagnostics, PPC, calibration, model comparison, or

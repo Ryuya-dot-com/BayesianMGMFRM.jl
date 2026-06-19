@@ -270,9 +270,13 @@ Current public API:
   dimensions, and fixed Q-matrix contract.
 - `compare_kfold`: K-fold comparison rows for `kfold` summaries that share the
   same heldout observation order and fold assignment order.
-- `sensitivity_comparison`: report-ready sensitivity rows that wrap
-  `compare_models` with a declared axis, per-model axis values, baseline
-  labels, and baseline-relative ELPD/information-criterion differences.
+- `sensitivity_comparison`: report-ready sensitivity rows using the same
+  WAIC/LOO scoring path as `compare_models`, plus a declared axis, per-model
+  axis values, baseline labels, and baseline-relative ELPD/information-criterion
+  differences.
+- `sensitivity_comparison_summary`: coverage summaries for declared
+  sensitivity rows across threshold, discrimination, rater-pooling, DFF,
+  anchor, dimensionality, and prior-regime axes.
 - `stan_validation_row` and `stan_validation_summary`: machine-readable
   Julia-vs-Stan/BridgeStan scalar fixture checks for the committed small and
   medium log-density/gradient validation gate.

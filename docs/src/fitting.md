@@ -239,9 +239,16 @@ discrimination mode, dimensionality, Q-matrix, and data signature.
 refits, and `compare_kfold` ranks those K-fold summaries when the heldout
 observation order and fold assignment order match across models. These helpers
 record K-fold evidence but do not create folds or refit models.
-`sensitivity_comparison` wraps those rows with a declared sensitivity axis,
-per-model axis values, a baseline model, and baseline-relative ELPD and
-information-criterion differences for report tables.
+`sensitivity_comparison` uses the same WAIC/LOO scoring path with a declared
+sensitivity axis, per-model axis values, a baseline model, and baseline-relative
+ELPD and information-criterion differences for report tables. Direct `compare_models`
+output keeps same-dimension and same-Q-matrix safeguards, while declared
+`sensitivity_comparison` rows can compare dimensionality or fixed-Q choices
+when those are the stated sensitivity axes and the observation data and
+category levels match. `sensitivity_comparison_summary` audits whether the
+declared rows cover the expected threshold, discrimination, rater-pooling, DFF,
+anchor, dimensionality, and prior-regime axes; it does not create refits or
+fit unsupported generalized/DFF/anchor effects.
 Observation-level
 predictive probabilities, expected scores,
 variances, and residuals are exposed as the substrate for calibration,
