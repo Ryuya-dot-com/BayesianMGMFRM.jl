@@ -6116,6 +6116,58 @@ function scalar_validation_fixture_data(fixture)
     )
 end
 
+function check_scalar_validation_stan_pair(known_fixture_path::AbstractString,
+        stan_fixture_path::AbstractString;
+        expected_size::Union{Nothing,String} = nothing,
+        expected_counts::Union{Nothing,NTuple{4,Int}} = nothing)
+    known = JSON3.read(read(known_fixture_path, String))
+    @test String(known[:schema]) == "bayesianmgmfrm.scalar_validation_known_value.v1"
+    if expected_size !== nothing
+        @test String(known[:size]) == expected_size
+    end
+    fd = scalar_validation_fixture_data(known)
+    if expected_counts !== nothing
+        @test (fd.J, fd.R, fd.K, fd.N) == expected_counts
+    end
+    x = Vector{Float64}(known[:x])
+    @test length(x) == scalar_validation_num_params(fd)
+    lp, gradient = scalar_validation_logposterior_and_gradient(x, fd)
+    known_tol = Float64(known[:tolerance])
+    @test lp ≈ Float64(known[:log_density]) atol = known_tol rtol = known_tol
+    @test maximum(abs.(gradient .- Vector{Float64}(known[:gradient]))) < known_tol
+
+    stan = JSON3.read(read(stan_fixture_path, String))
+    @test String(stan[:schema]) == "bayesianmgmfrm.scalar_stan_logdensity.v1"
+    if expected_size !== nothing
+        @test String(stan[:size]) == expected_size
+    end
+    @test Bool(stan[:propto]) == false
+    @test Bool(stan[:jacobian]) == true
+    @test String(stan[:stan_model]) == "test/stan/scalar_gmfrm.stan"
+    @test String(stan[:stan_model_sha256]) ==
+        file_sha256(joinpath(@__DIR__, "stan", "scalar_gmfrm.stan"))
+    @test String(stan[:known_fixture]) ==
+        "test/fixtures/$(basename(known_fixture_path))"
+    @test String(stan[:known_fixture_sha256]) == file_sha256(known_fixture_path)
+    stan_data = stan[:stan_data]
+    @test (Int(stan_data[:J]), Int(stan_data[:R]), Int(stan_data[:K]), Int(stan_data[:N])) ==
+        (fd.J, fd.R, fd.K, fd.N)
+    @test Vector{Float64}(stan[:x]) == x
+    @test length(Vector{String}(stan[:stan_parameter_order])) == length(x)
+    stan_tol = Float64(stan[:tolerance])
+    @test lp ≈ Float64(stan[:stan_log_density]) atol = stan_tol rtol = stan_tol
+    @test maximum(abs.(gradient .- Vector{Float64}(stan[:stan_gradient]))) <
+        max(stan_tol, 1e-9)
+    return (;
+        known,
+        stan,
+        data = fd,
+        x,
+        log_density = lp,
+        gradient,
+    )
+end
+
 @testset "public docstrings" begin
     for name in (:FacetData, :ValidationIssue, :ValidationReport, :FacetSpec, :FacetDesign,
             :MFRMPrior, :MFRMLogDensity, :MFRMFit, :GMFRMFit, :artifact_content_hash, :cached_fit, :calibration_plot_data,
@@ -10214,6 +10266,17 @@ end
     @test lp ≈ stan_lp atol = stan_tol rtol = stan_tol
     @test maximum(abs.(g_analytic .- stan_gradient)) < stan_tol
     @test LogDensityProblems.logdensity(ScalarValidationLogDensity(fd), x) ≈ lp atol = 1e-10 rtol = 1e-10
+
+    medium_pair = check_scalar_validation_stan_pair(
+        joinpath(@__DIR__, "fixtures", "scalar_validation_medium_known_value.json"),
+        joinpath(@__DIR__, "fixtures", "scalar_validation_medium_stan_logdensity.json");
+        expected_size = "medium",
+        expected_counts = (12, 6, 6, 72),
+    )
+    @test length(medium_pair.x) == 28
+    @test medium_pair.data.N > fd.N
+    @test medium_pair.data.J > fd.J
+    @test medium_pair.log_density < lp
 
     decoded = scalar_validation_decode(x, fd)
     @test size(decoded.theta) == (1, fd.J)

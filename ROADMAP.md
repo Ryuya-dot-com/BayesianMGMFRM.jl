@@ -770,6 +770,8 @@ TODO:
 - [ ] Extend simulation/recovery helpers to planned fit-ready GMFRM/MGMFRM
   specs after their public likelihoods and gauges are implemented.
 - [ ] Validate against Stan on small and medium fixtures before scaling.
+  [Small and medium scalar validation fixtures are committed; generalized
+  small/medium GMFRM/MGMFRM fit comparisons remain planned.]
 
 Gate: scalar GMFRM and one minimal MGMFRM configuration pass convergence,
 recovery, and Stan-comparison checks on predeclared sparse designs.

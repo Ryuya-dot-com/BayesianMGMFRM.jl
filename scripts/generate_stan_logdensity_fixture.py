@@ -99,6 +99,8 @@ def main() -> None:
         "jacobian": True,
         "tolerance": 1.0e-9,
     }
+    if "size" in known:
+        fixture["size"] = known["size"]
     output_path.write_text(json.dumps(fixture, indent=2) + "\n")
     print(f"Wrote {output_path.relative_to(root)}")
 
