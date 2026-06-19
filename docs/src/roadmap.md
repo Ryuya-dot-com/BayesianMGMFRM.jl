@@ -126,8 +126,10 @@ guarded fit API dry-run plus local confirmatory MGMFRM guarded public exposure
 review, a local prediction-target/model-weight policy, a local manual
 public-scope review, a local DFF
 estimand/validation grid, Gate E manuscript-scale evidence, and a local
-full-paper reproduction archive; the next blocker before broader generalized
-exposure is a guarded local MGMFRM fit entrypoint.
+full-paper reproduction archive. A private guarded local MGMFRM fit entrypoint
+now records fixed-Q confirmatory raw/direct draws, sampler diagnostics, direct
+constraints, pointwise log likelihood, and a guarded local fit artifact while
+keeping public MGMFRM exposure blocked.
 The minimal
 MGMFRM path now has an internal confirmatory gauge candidate manifest, a separated
 fit-ready candidate transform manifest, and a BridgeStan confirmatory-candidate

@@ -40,8 +40,9 @@ diagnostic artifact, recovery-smoke artifact, baseline-comparison artifact, and
 connected sparse-recovery grid plus a local guarded fit method-wiring artifact,
 local guarded fit validation grid, and local guarded fit API dry-run artifact,
 plus a local guarded public exposure review and prediction-target/model-weight
-policy, but not a public fit-ready sampler path. Its next local blocker is
-manual public-scope review; its
+policy. It now has a private guarded local fit entrypoint and artifact surface
+for the fixed-Q confirmatory candidate, but not a public fit-ready sampler path.
+Its next public blocker is manual public-scope review; its
 internal exposure decision remains `keep_internal`, and any publication or
 registration step remains manual.
 

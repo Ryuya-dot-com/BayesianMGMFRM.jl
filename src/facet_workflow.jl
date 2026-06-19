@@ -3790,6 +3790,8 @@ function _mgmfrm_experimental_public_evidence_rows()
             artifact = "test/fixtures/mgmfrm_guarded_fit_validation_grid.json"),
         (evidence = :guarded_fit_api_dry_run, status = :done,
             artifact = "test/fixtures/mgmfrm_guarded_fit_api_dry_run.json"),
+        (evidence = :guarded_local_fit_entrypoint, status = :done,
+            artifact = :_fit_guarded_mgmfrm),
         (evidence = :guarded_fit_public_exposure_review, status = :done,
             artifact =
                 "test/fixtures/mgmfrm_guarded_fit_public_exposure_review.json"),
@@ -3832,6 +3834,13 @@ function _mgmfrm_experimental_public_api_decision(blueprint)
         fit_ready = false,
         proposed_entrypoint = "fit(spec; experimental = true)",
         target_constructor = :_source_fixture_logdensity,
+        guarded_local_entrypoint = :_fit_guarded_mgmfrm,
+        guarded_local_fit_target_constructor =
+            :_mgmfrm_guarded_local_fit_logdensity,
+        guarded_local_fit_sampler_diagnostic_constructor =
+            :_mgmfrm_guarded_local_fit_sampler_diagnostics,
+        guarded_local_fit_artifact_schema =
+            "bayesianmgmfrm.mgmfrm_guarded_local_fit_artifact.v1",
         candidate_chain_study_artifact =
             "test/fixtures/mgmfrm_candidate_chain_study.json",
         recovery_smoke_artifact = "test/fixtures/mgmfrm_recovery_smoke.json",

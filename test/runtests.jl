@@ -8284,6 +8284,14 @@ end
     @test !mgmfrm_experimental_decision.experimental_public
     @test mgmfrm_experimental_decision.proposed_entrypoint ==
         "fit(spec; experimental = true)"
+    @test mgmfrm_experimental_decision.guarded_local_entrypoint ===
+        :_fit_guarded_mgmfrm
+    @test mgmfrm_experimental_decision.guarded_local_fit_target_constructor ===
+        :_mgmfrm_guarded_local_fit_logdensity
+    @test mgmfrm_experimental_decision.guarded_local_fit_sampler_diagnostic_constructor ===
+        :_mgmfrm_guarded_local_fit_sampler_diagnostics
+    @test mgmfrm_experimental_decision.guarded_local_fit_artifact_schema ==
+        "bayesianmgmfrm.mgmfrm_guarded_local_fit_artifact.v1"
     @test mgmfrm_experimental_decision.candidate_chain_study_artifact ==
         "test/fixtures/mgmfrm_candidate_chain_study.json"
     @test mgmfrm_experimental_decision.recovery_smoke_artifact ==
@@ -8395,6 +8403,10 @@ end
     @test any(row -> row.evidence === :guarded_fit_api_dry_run &&
         row.status === :done &&
         row.artifact == "test/fixtures/mgmfrm_guarded_fit_api_dry_run.json",
+        mgmfrm_experimental_decision.evidence_rows)
+    @test any(row -> row.evidence === :guarded_local_fit_entrypoint &&
+        row.status === :done &&
+        row.artifact === :_fit_guarded_mgmfrm,
         mgmfrm_experimental_decision.evidence_rows)
     @test any(row -> row.evidence === :guarded_fit_public_exposure_review &&
         row.status === :done &&
@@ -8534,6 +8546,91 @@ end
         seed = 20260620,
     )
     @test length(mgmfrm_hmc_samples) == length(mgmfrm_hmc_stats) == 2
+    mgmfrm_guarded_target =
+        BayesianMGMFRM._mgmfrm_guarded_local_fit_logdensity(
+            mgmfrm_preview;
+            prior = source_prior,
+        )
+    @test LogDensityProblems.dimension(mgmfrm_guarded_target) ==
+        mgmfrm_raw_blueprint.n_parameters
+    @test LogDensityProblems.logdensity(mgmfrm_guarded_target, mgmfrm_raw_params) ≈
+        LogDensityProblems.logdensity(mgmfrm_target, mgmfrm_raw_params)
+    @test occursin("MGMFRMGuardedLocalFitLogDensity",
+        sprint(show, mgmfrm_guarded_target))
+    mgmfrm_guarded_fit =
+        BayesianMGMFRM._fit_guarded_mgmfrm(
+            mgmfrm_spec;
+            init = mgmfrm_raw_params,
+            seed = 20260630,
+            ndraws = 2,
+            warmup = 0,
+            chains = 1,
+            step_size = 0.02,
+            max_depth = 2,
+            metric = :unit,
+        )
+    @test mgmfrm_guarded_fit isa BayesianMGMFRM.MGMFRMFit
+    @test mgmfrm_guarded_fit.design.spec.family === :mgmfrm
+    @test mgmfrm_guarded_fit.backend === :advancedhmc
+    @test mgmfrm_guarded_fit.sampler === :nuts
+    @test size(mgmfrm_guarded_fit.draws) ==
+        (2, mgmfrm_raw_blueprint.n_parameters)
+    @test size(mgmfrm_guarded_fit.direct_draws) == (2, length(mgmfrm_params))
+    @test size(mgmfrm_guarded_fit.direct_pointwise_loglikelihood) ==
+        (2, identified_data.n)
+    @test all(isfinite, mgmfrm_guarded_fit.log_posterior)
+    @test all(isfinite, mgmfrm_guarded_fit.direct_draws)
+    @test pointwise_loglikelihood_matrix(mgmfrm_guarded_fit) ==
+        mgmfrm_guarded_fit.direct_pointwise_loglikelihood
+    mgmfrm_guarded_surface = mgmfrm_guarded_fit.diagnostic_surface
+    @test mgmfrm_guarded_surface.schema ==
+        "bayesianmgmfrm.mgmfrm_guarded_local_fit_sampler_diagnostics.v1"
+    @test mgmfrm_guarded_surface.status === :guarded_local_fit
+    @test !mgmfrm_guarded_surface.public_fit
+    @test !mgmfrm_guarded_surface.experimental_public
+    @test mgmfrm_guarded_surface.target === :_mgmfrm_guarded_local_fit_logdensity
+    @test mgmfrm_guarded_surface.summary.total_draws == 2
+    @test mgmfrm_guarded_surface.summary.n_direct_parameters == length(mgmfrm_params)
+    @test mgmfrm_guarded_surface.summary.n_failed_direct_constraints == 0
+    @test all(row -> row.passed, mgmfrm_guarded_surface.direct_constraint_rows)
+    @test [row.parameter for row in mgmfrm_guarded_surface.direct_parameter_rows] ==
+        mgmfrm_preview.parameter_names
+    mgmfrm_guarded_metadata = fit_metadata(mgmfrm_guarded_fit)
+    @test !mgmfrm_guarded_metadata.public_fit
+    @test !mgmfrm_guarded_metadata.experimental_public
+    @test mgmfrm_guarded_metadata.guarded_local_fit
+    @test mgmfrm_guarded_metadata.scope === :minimal_confirmatory_mgmfrm_candidate
+    mgmfrm_guarded_diagnostics = diagnostics(mgmfrm_guarded_fit)
+    @test mgmfrm_guarded_diagnostics.schema ==
+        "bayesianmgmfrm.mgmfrm_guarded_local_fit_diagnostics.v1"
+    @test !mgmfrm_guarded_diagnostics.public_fit
+    @test mgmfrm_guarded_diagnostics.guarded_local_fit
+    @test length(sampler_diagnostics(mgmfrm_guarded_fit)) == 1
+    @test length(mcmc_diagnostics(mgmfrm_guarded_fit)) ==
+        size(mgmfrm_guarded_fit.draws, 2)
+    @test length(parameter_block_diagnostics(mgmfrm_guarded_fit)) >= 1
+    mgmfrm_guarded_artifact =
+        fit_artifact(mgmfrm_guarded_fit; include_environment = false)
+    @test mgmfrm_guarded_artifact.schema ==
+        "bayesianmgmfrm.mgmfrm_guarded_local_fit_artifact.v1"
+    @test !mgmfrm_guarded_artifact.public_fit
+    @test !mgmfrm_guarded_artifact.experimental_public
+    @test mgmfrm_guarded_artifact.guarded_local_fit
+    @test mgmfrm_guarded_artifact.entrypoint === :_fit_guarded_mgmfrm
+    @test mgmfrm_guarded_artifact.target === :_mgmfrm_guarded_local_fit_logdensity
+    @test size(mgmfrm_guarded_artifact.pointwise_loglikelihood) ==
+        (2, identified_data.n)
+    @test !isempty(mgmfrm_guarded_artifact.raw_to_direct_transform)
+    @test !isempty(mgmfrm_guarded_artifact.fixture_provenance)
+    @test isnothing(mgmfrm_guarded_artifact.raw_draws)
+    @test isnothing(mgmfrm_guarded_artifact.direct_draws)
+    @test waic(mgmfrm_guarded_fit).n_draws == 2
+    @test length(waic_diagnostics(mgmfrm_guarded_fit)) == identified_data.n
+    @test_throws ArgumentError BayesianMGMFRM._fit_guarded_mgmfrm(
+        gmfrm_spec;
+        ndraws = 1,
+        warmup = 0,
+    )
     mgmfrm_bridge_fixture = optional_fixture_path("MFRM_SOURCE_MGMFRM_BRIDGESTAN_FIXTURE", joinpath("test", "fixtures", "source_mgmfrm_bridge_logdensity.json"))
     if !isempty(mgmfrm_bridge_fixture)
         check_source_bridge_fixture(
