@@ -64,6 +64,7 @@ posterior_predictive_check
 posterior_summary
 predictive_check_summary
 predictive_check_plot_data
+wright_map_data
 predictive_probabilities
 expected_scores
 fair_average_summary

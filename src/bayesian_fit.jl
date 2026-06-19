@@ -6675,6 +6675,321 @@ function separation_reliability_summary(fit::MFRMFit;
         interval)
 end
 
+function _wright_map_facets(facets::Symbol)
+    facets === :all && return (:person, :rater, :item)
+    return _wright_map_facets((facets,))
+end
+
+function _wright_map_facets(facets)
+    out = Symbol[]
+    for facet in facets
+        facet isa Symbol ||
+            throw(ArgumentError("facets must contain symbols"))
+        facet in (:person, :rater, :item) ||
+            throw(ArgumentError("wright_map_data supports facets :person, :rater, and :item"))
+        facet in out &&
+            throw(ArgumentError("facets must not contain duplicates"))
+        push!(out, facet)
+    end
+    isempty(out) &&
+        throw(ArgumentError("facets must contain at least one facet"))
+    return Tuple(out)
+end
+
+function _wright_map_facet_index(data::FacetData, facet::Symbol)
+    facet === :person && return data.person, data.person_levels
+    facet === :rater && return data.rater, data.rater_levels
+    facet === :item && return data.item, data.item_levels
+    throw(ArgumentError("wright_map_data supports facets :person, :rater, and :item"))
+end
+
+function _wright_map_check_draws(design::FacetDesign, draws::AbstractMatrix)
+    _check_fit_supported_mfrm(design, "wright_map_data")
+    size(draws, 1) >= 1 ||
+        throw(ArgumentError("wright_map_data requires at least one posterior draw"))
+    size(draws, 2) == length(design.parameter_names) ||
+        throw(ArgumentError("draws has $(size(draws, 2)) column(s); expected $(length(design.parameter_names))"))
+    all(value -> isfinite(Float64(value)), draws) ||
+        throw(ArgumentError("draws contain non-finite values"))
+    return draws
+end
+
+function _wright_map_facet_parameter(design::FacetDesign,
+        facet::Symbol,
+        level_index::Int)
+    if facet === :person
+        parameter_index = design.blocks[:person][level_index]
+        return (;
+            parameter_index,
+            parameter_name = design.parameter_names[parameter_index],
+            status = :estimated,
+        )
+    elseif facet === :rater
+        level_index == 1 && return (;
+            parameter_index = missing,
+            parameter_name = missing,
+            status = :reference_zero,
+        )
+        parameter_index = design.blocks[:rater][level_index - 1]
+        return (;
+            parameter_index,
+            parameter_name = design.parameter_names[parameter_index],
+            status = :estimated,
+        )
+    elseif facet === :item
+        level_index == 1 && return (;
+            parameter_index = missing,
+            parameter_name = missing,
+            status = :reference_zero,
+        )
+        parameter_index = design.blocks[:item][level_index - 1]
+        return (;
+            parameter_index,
+            parameter_name = design.parameter_names[parameter_index],
+            status = :estimated,
+        )
+    end
+    throw(ArgumentError("wright_map_data supports facets :person, :rater, and :item"))
+end
+
+function _wright_map_facet_values(design::FacetDesign,
+        draws::AbstractMatrix,
+        facet::Symbol,
+        level_index::Int)
+    values = Vector{Float64}(undef, size(draws, 1))
+    for draw in axes(draws, 1)
+        values[draw] = _mfrm_facet_value(
+            design,
+            @view(draws[draw, :]),
+            facet,
+            level_index,
+        )
+    end
+    return values
+end
+
+function _wright_map_threshold_values(design::FacetDesign,
+        draws::AbstractMatrix,
+        item_index::Int,
+        step::Int)
+    item_values = Vector{Float64}(undef, size(draws, 1))
+    step_values = Vector{Float64}(undef, size(draws, 1))
+    positions = Vector{Float64}(undef, size(draws, 1))
+    for draw in axes(draws, 1)
+        params = @view draws[draw, :]
+        item_value = _mfrm_facet_value(design, params, :item, item_index)
+        step_value = Float64(_threshold_step(design, params, item_index, step))
+        item_values[draw] = item_value
+        step_values[draw] = step_value
+        positions[draw] = item_value + step_value
+    end
+    return item_values, step_values, positions
+end
+
+function _wright_map_facet_row(design::FacetDesign,
+        draws::AbstractMatrix,
+        facet::Symbol,
+        level,
+        level_index::Int,
+        interval::Real,
+        lower_probability::Float64,
+        upper_probability::Float64)
+    data = design.spec.data
+    facet_index, _ = _wright_map_facet_index(data, facet)
+    n_observations = count(==(level_index), facet_index)
+    parameter = _wright_map_facet_parameter(design, facet, level_index)
+    values = _wright_map_facet_values(design, draws, facet, level_index)
+    position_summary = _finite_draw_summary(values, lower_probability, upper_probability)
+
+    return (;
+        component = :facet_measure,
+        facet,
+        level,
+        level_index,
+        item = missing,
+        item_index = missing,
+        step = missing,
+        from_category = missing,
+        to_category = missing,
+        thresholds = design.spec.thresholds,
+        parameter.parameter_index,
+        parameter.parameter_name,
+        item_parameter_index = missing,
+        item_parameter_name = missing,
+        threshold_parameter_index = missing,
+        threshold_parameter_name = missing,
+        status = parameter.status,
+        n_observations,
+        n_draws = size(draws, 1),
+        scale = :logit,
+        position_mean = position_summary.mean,
+        position_median = position_summary.median,
+        position_lower = position_summary.lower,
+        position_upper = position_summary.upper,
+        item_measure_mean = missing,
+        item_measure_median = missing,
+        item_measure_lower = missing,
+        item_measure_upper = missing,
+        threshold_step_mean = missing,
+        threshold_step_median = missing,
+        threshold_step_lower = missing,
+        threshold_step_upper = missing,
+        interval_probability = Float64(interval),
+        lower_probability,
+        upper_probability,
+        label = string(facet, "=", level),
+        caveat = :wright_map_data_not_backend_rendering,
+        flag = n_observations == 0 ? :empty_level : :ok,
+    )
+end
+
+function _wright_map_threshold_row(design::FacetDesign,
+        draws::AbstractMatrix,
+        item,
+        item_index::Int,
+        step::Int,
+        interval::Real,
+        lower_probability::Float64,
+        upper_probability::Float64)
+    metadata = _threshold_step_metadata(design, item_index, step)
+    item_parameter = _wright_map_facet_parameter(design, :item, item_index)
+    item_values, step_values, positions =
+        _wright_map_threshold_values(design, draws, item_index, step)
+    item_summary = _finite_draw_summary(item_values, lower_probability, upper_probability)
+    step_summary = _finite_draw_summary(step_values, lower_probability, upper_probability)
+    position_summary = _finite_draw_summary(positions, lower_probability, upper_probability)
+
+    return (;
+        component = :threshold,
+        facet = :threshold,
+        level = missing,
+        level_index = missing,
+        item,
+        item_index,
+        step = metadata.step,
+        from_category = metadata.from_category,
+        to_category = metadata.to_category,
+        thresholds = design.spec.thresholds,
+        parameter_index = metadata.parameter_index,
+        parameter_name = metadata.parameter_name,
+        item_parameter_index = item_parameter.parameter_index,
+        item_parameter_name = item_parameter.parameter_name,
+        threshold_parameter_index = metadata.parameter_index,
+        threshold_parameter_name = metadata.parameter_name,
+        status = metadata.status,
+        n_observations = missing,
+        n_draws = size(draws, 1),
+        scale = :logit,
+        position_mean = position_summary.mean,
+        position_median = position_summary.median,
+        position_lower = position_summary.lower,
+        position_upper = position_summary.upper,
+        item_measure_mean = item_summary.mean,
+        item_measure_median = item_summary.median,
+        item_measure_lower = item_summary.lower,
+        item_measure_upper = item_summary.upper,
+        threshold_step_mean = step_summary.mean,
+        threshold_step_median = step_summary.median,
+        threshold_step_lower = step_summary.lower,
+        threshold_step_upper = step_summary.upper,
+        interval_probability = Float64(interval),
+        lower_probability,
+        upper_probability,
+        label = string("item=", item, ", step=", metadata.step),
+        caveat = :wright_map_data_not_backend_rendering,
+        flag = :ok,
+    )
+end
+
+function _wright_map_threshold_rows(design::FacetDesign,
+        draws::AbstractMatrix,
+        interval::Real,
+        lower_probability::Float64,
+        upper_probability::Float64)
+    data = design.spec.data
+    nsteps = max(length(data.category_levels) - 1, 0)
+    rows = NamedTuple[]
+    for (item_index, item) in pairs(data.item_levels), step in 1:nsteps
+        push!(rows, _wright_map_threshold_row(
+            design,
+            draws,
+            item,
+            item_index,
+            step,
+            interval,
+            lower_probability,
+            upper_probability,
+        ))
+    end
+    return rows
+end
+
+"""
+    wright_map_data(fit::MFRMFit; facets = :all, include_thresholds = true,
+        interval = 0.95, ndraws = nothing, draw_indices = nothing,
+        rng = Random.default_rng())
+    wright_map_data(design::FacetDesign, draws; facets = :all,
+        include_thresholds = true, interval = 0.95)
+
+Return plotting-backend-independent Wright-map rows for the current
+fit-supported MFRM/RSM/PCM design. Facet rows summarize posterior person,
+rater, and item measures on the logit scale. Threshold rows summarize item-step
+positions as `item measure + threshold step`, which puts category boundaries on
+the same latent scale as person measures. The returned rows are intended for
+Quarto, Makie, AlgebraOfGraphics, ggplot, or CSV workflows and do not commit
+the package to a specific plotting backend.
+"""
+function wright_map_data(design::FacetDesign,
+        draws::AbstractMatrix;
+        facets = :all,
+        include_thresholds::Bool = true,
+        interval::Real = 0.95)
+    _wright_map_check_draws(design, draws)
+    lower_probability, upper_probability = _interval_probabilities(interval)
+    requested_facets = _wright_map_facets(facets)
+    data = design.spec.data
+    rows = NamedTuple[]
+    for facet in requested_facets
+        _, levels = _wright_map_facet_index(data, facet)
+        for (level_index, level) in pairs(levels)
+            push!(rows, _wright_map_facet_row(
+                design,
+                draws,
+                facet,
+                level,
+                level_index,
+                interval,
+                lower_probability,
+                upper_probability,
+            ))
+        end
+    end
+    if include_thresholds
+        append!(rows, _wright_map_threshold_rows(
+            design,
+            draws,
+            interval,
+            lower_probability,
+            upper_probability,
+        ))
+    end
+    return rows
+end
+
+function wright_map_data(fit::MFRMFit;
+        facets = :all,
+        include_thresholds::Bool = true,
+        interval::Real = 0.95,
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    return wright_map_data(fit.design, fit.draws[indices, :];
+        facets,
+        include_thresholds,
+        interval)
+end
+
 function _predictive_variances_from_probabilities(probabilities::AbstractArray{<:Real,3},
         levels::AbstractVector{<:Real})
     expected = _expected_scores_from_probabilities(probabilities, levels)

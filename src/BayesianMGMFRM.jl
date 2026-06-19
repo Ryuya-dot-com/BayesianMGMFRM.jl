@@ -91,6 +91,7 @@ export FacetData,
     validate_design,
     validation_suggestions,
     predictive_check_plot_data,
+    wright_map_data,
     waic,
     waic_diagnostics
 

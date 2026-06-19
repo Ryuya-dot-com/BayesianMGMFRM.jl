@@ -94,6 +94,7 @@ using BayesianMGMFRM:
     validation_suggestions,
     waic,
     waic_diagnostics,
+    wright_map_data,
     zerosum_basis_fast
 
 struct ExplodingTable end
@@ -6197,7 +6198,7 @@ end
             :sampler_diagnostics, :save_fit_cache,
             :sensitivity_comparison, :separation_reliability_summary, :simulate_responses,
             :threshold_map_data, :validation_suggestions, :evidence_metadata,
-            :waic, :waic_diagnostics)
+            :waic, :waic_diagnostics, :wright_map_data)
         @test has_doc(BayesianMGMFRM, name)
     end
     @test !isdefined(BayesianMGMFRM, :audit)
@@ -9928,6 +9929,104 @@ end
     @test_throws ArgumentError posterior_summary(result; rope = -0.1)
     @test_throws ArgumentError posterior_summary(result; rope = (0.1, -0.1))
     @test_throws ArgumentError posterior_summary(result; rope_probability_threshold = 1.1)
+
+    manual_wright_facet_values = function (facet, level_index)
+        if facet === :person
+            return [Float64(result.draws[draw, design.blocks[:person][level_index]])
+                for draw in 1:2]
+        elseif facet === :rater
+            return level_index == 1 ? [0.0, 0.0] :
+                [Float64(result.draws[draw, design.blocks[:rater][level_index - 1]])
+                    for draw in 1:2]
+        elseif facet === :item
+            return level_index == 1 ? [0.0, 0.0] :
+                [Float64(result.draws[draw, design.blocks[:item][level_index - 1]])
+                    for draw in 1:2]
+        end
+        error("unexpected facet")
+    end
+    manual_wright_threshold_step = function (params, item_index, step)
+        nsteps = length(data.category_levels) - 1
+        free_steps = max(nsteps - 1, 0)
+        free_steps == 0 && return 0.0
+        step_range = design.blocks[:thresholds]
+        if design.spec.thresholds === :rating_scale
+            step <= free_steps && return Float64(params[step_range[step]])
+            return -sum(Float64(params[step_range[s]]) for s in 1:free_steps)
+        end
+        offset = (item_index - 1) * free_steps
+        step <= free_steps && return Float64(params[step_range[offset + step]])
+        return -sum(Float64(params[step_range[offset + s]]) for s in 1:free_steps)
+    end
+    wright_rows = wright_map_data(result; draw_indices = [1, 2], interval = 0.8)
+    wright_facet_rows = filter(row -> row.component === :facet_measure, wright_rows)
+    wright_threshold_rows = filter(row -> row.component === :threshold, wright_rows)
+    @test isequal(
+        wright_map_data(design, result.draws[1:2, :]; interval = 0.8),
+        wright_rows,
+    )
+    @test length(wright_facet_rows) ==
+        length(data.person_levels) + length(data.rater_levels) + length(data.item_levels)
+    @test length(wright_threshold_rows) ==
+        length(data.item_levels) * (length(data.category_levels) - 1)
+    @test all(row -> row.scale === :logit, wright_rows)
+    @test all(row -> row.interval_probability == 0.8, wright_rows)
+    @test all(row -> row.lower_probability ≈ 0.1, wright_rows)
+    @test all(row -> row.upper_probability ≈ 0.9, wright_rows)
+    @test all(row -> row.caveat === :wright_map_data_not_backend_rendering,
+        wright_rows)
+    for row in wright_facet_rows
+        levels = row.facet === :person ? data.person_levels :
+            row.facet === :rater ? data.rater_levels : data.item_levels
+        level_index = findfirst(==(row.level), levels)
+        values = manual_wright_facet_values(row.facet, level_index)
+        expected_parameter_name = row.facet === :person ?
+            design.parameter_names[design.blocks[:person][level_index]] :
+            level_index == 1 ? missing :
+            row.facet === :rater ?
+            design.parameter_names[design.blocks[:rater][level_index - 1]] :
+            design.parameter_names[design.blocks[:item][level_index - 1]]
+        @test row.level_index == level_index
+        @test row.n_draws == 2
+        @test row.position_mean ≈ sum(values) / length(values)
+        @test row.position_lower <= row.position_median <= row.position_upper
+        @test isequal(row.parameter_name, expected_parameter_name)
+        @test row.status === (level_index == 1 && row.facet !== :person ?
+            :reference_zero : :estimated)
+        @test row.flag === :ok
+    end
+    for row in wright_threshold_rows
+        item_index = findfirst(==(row.item), data.item_levels)
+        item_values = manual_wright_facet_values(:item, item_index)
+        step_values = [
+            manual_wright_threshold_step(@view(result.draws[draw, :]),
+                item_index,
+                row.step)
+            for draw in 1:2
+        ]
+        positions = item_values .+ step_values
+        @test row.item_index == item_index
+        @test row.from_category == data.category_levels[row.step]
+        @test row.to_category == data.category_levels[row.step + 1]
+        @test row.position_mean ≈ sum(positions) / length(positions)
+        @test row.item_measure_mean ≈ sum(item_values) / length(item_values)
+        @test row.threshold_step_mean ≈ sum(step_values) / length(step_values)
+        @test row.position_lower <= row.position_median <= row.position_upper
+        @test row.threshold_parameter_index === row.parameter_index
+        @test isequal(row.threshold_parameter_name, row.parameter_name)
+        @test row.flag === :ok
+    end
+    person_wright = wright_map_data(result;
+        facets = :person,
+        include_thresholds = false,
+        draw_indices = [1, 2])
+    @test length(person_wright) == length(data.person_levels)
+    @test all(row -> row.facet === :person, person_wright)
+    @test_throws ArgumentError wright_map_data(result; facets = :category)
+    @test_throws ArgumentError wright_map_data(result; facets = (:person, :person))
+    @test_throws ArgumentError wright_map_data(result; interval = 1.0)
+    @test_throws ArgumentError wright_map_data(result; draw_indices = [0])
+    @test_throws ArgumentError wright_map_data(design, result.draws[1:2, 1:end-1])
 
     simulated_scores = simulate_responses(design, init; rng = MersenneTwister(8801), output = :scores)
     @test length(simulated_scores) == data.n
