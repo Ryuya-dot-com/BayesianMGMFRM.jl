@@ -355,8 +355,8 @@ rater-discrimination candidate.
 
 The roadmap has two different progress notions:
 
-- **Checklist progress**: currently 116 of 120 tracked roadmap checkboxes are
-  complete, or roughly 96.7%. This is useful for implementation accounting.
+- **Checklist progress**: currently 117 of 120 tracked roadmap checkboxes are
+  complete, or roughly 97.5%. This is useful for implementation accounting.
 - **Claim progress**: broad v1 claims are closer to 40-45% complete because
   the remaining items include public generalized fitting, Stan comparisons,
   broader recovery simulations and a public-scope release decision.
@@ -880,8 +880,12 @@ TODO:
   [`simulation_grid` and `simulation_grid_summary` now predeclare and check
   these axes as machine-readable validation-grid rows. The helper does not run
   simulations, fit models, or establish claim-level evidence.]
-- [ ] Predeclare falsification conditions for the claim that hierarchical
+- [x] Predeclare falsification conditions for the claim that hierarchical
   priors stabilize sparse MGMFRM designs.
+  [`falsification_rules` and `falsification_rule_summary` now provide
+  machine-readable rule rows and required-domain checks for sparse
+  hierarchical-prior stability claims. They define claim blockers but do not
+  evaluate study results.]
 - [ ] Compare against Stan faithful models, overlapping R/frequentist tools,
   and simpler nested models.
 - [x] Secure and document at least one real rater-mediated case study.

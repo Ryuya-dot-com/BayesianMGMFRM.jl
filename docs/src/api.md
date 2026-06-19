@@ -40,6 +40,8 @@ parameter_recovery_plot_data
 parameter_recovery_summary
 simulation_grid
 simulation_grid_summary
+falsification_rules
+falsification_rule_summary
 fit
 fit_archive_manifest
 fit_artifact

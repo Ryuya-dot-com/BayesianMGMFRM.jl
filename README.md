@@ -301,6 +301,10 @@ Current public API:
   rows and coverage checks for density, anchor size, ratings per target,
   category pathology, rater noise, DFF, dimensionality, and misspecification
   axes. They plan a grid; they do not run simulations or fit models.
+- `falsification_rules` and `falsification_rule_summary`: predeclared
+  rule rows and domain-coverage summaries for sparse hierarchical-prior MGMFRM
+  stability claims. They define when a claim must be narrowed or blocked; they
+  do not evaluate study results.
 - `simulate_responses`, `parameter_recovery`, and
   `parameter_recovery_summary`: simulation-study helpers for generating one
   dataset from known minimal MFRM/RSM/PCM parameters and checking posterior

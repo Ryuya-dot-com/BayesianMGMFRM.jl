@@ -220,6 +220,9 @@ ratings-per-target, category-pathology, rater-noise, DFF, dimensionality, and
 misspecification axes, and `simulation_grid_summary` checks whether those rows
 cover the required axes. These helpers plan validation grids; they do not run
 simulations or fit models.
+`falsification_rules` predeclares rule rows for sparse hierarchical-prior
+MGMFRM stability claims, and `falsification_rule_summary` checks that all
+required claim domains are represented before a study is interpreted.
 `simulate_responses` generates one simulated response dataset from known
 identified parameters under the current fit-supported MFRM/RSM/PCM likelihood.
 It also supports specified-only GMFRM/MGMFRM preview designs for guarded
