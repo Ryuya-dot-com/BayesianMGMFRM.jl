@@ -119,6 +119,8 @@ pointwise_loglikelihood_matrix(fit_result)
 waic(fit_result)
 waic_diagnostics(fit_result)
 compare_models(:partial_credit => fit_result, :rating_scale => fit_result_rsm)
+sensitivity_comparison(:partial_credit => fit_result, :rating_scale => fit_result_rsm;
+    axis = :thresholds, baseline = :partial_credit)
 predictive_probabilities(fit_result)
 expected_scores(fit_result)
 predictive_variances(fit_result)
@@ -220,6 +222,9 @@ differences, `compare_models` requires the same observation data in the same
 row order, ordinal category levels, latent dimensionality, and fixed Q-matrix
 contract; returned rows include the checked model family, thresholds,
 discrimination mode, dimensionality, Q-matrix, and data signature.
+`sensitivity_comparison` wraps those rows with a declared sensitivity axis,
+per-model axis values, a baseline model, and baseline-relative ELPD and
+information-criterion differences for report tables.
 Observation-level
 predictive probabilities, expected scores,
 variances, and residuals are exposed as the substrate for calibration,

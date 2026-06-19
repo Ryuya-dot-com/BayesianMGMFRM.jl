@@ -124,3 +124,6 @@ the same observation data, not a posterior model probability. `compare_models`
 also checks the comparison contract up front: observation data and row order,
 ordinal category levels, latent dimensionality, and any fixed Q-matrix must
 match, and the returned rows carry those contract fields for reporting.
+[`sensitivity_comparison`](@ref) uses the same scoring path and adds declared
+axis values plus baseline-relative differences for fit-supported threshold,
+prior, backend, sampler, or custom externally labelled regimes.

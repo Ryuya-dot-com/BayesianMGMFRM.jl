@@ -81,6 +81,7 @@ using BayesianMGMFRM:
     sampler_diagnostics,
     save_fit_cache,
     simulate_responses,
+    sensitivity_comparison,
     threshold_map_data,
     model_ladder,
     validate_design,
@@ -6186,7 +6187,8 @@ end
             :predictive_check_summary, :predictive_check_plot_data, :predictive_probabilities,
             :predictive_residuals, :predictive_variances,
             :prior_predict, :prior_predictive_check,
-            :load_fit_cache, :rater_overlap, :sampler_diagnostics, :save_fit_cache, :simulate_responses,
+            :load_fit_cache, :rater_overlap, :sampler_diagnostics, :save_fit_cache,
+            :sensitivity_comparison, :simulate_responses,
             :threshold_map_data, :validation_suggestions, :evidence_metadata,
             :waic, :waic_diagnostics)
         @test has_doc(BayesianMGMFRM, name)
@@ -9370,6 +9372,19 @@ end
     @test !unseeded_artifact.reproducibility.replayable_rng
     @test unseeded_artifact.reproducibility.rng.seed === missing
 
+    rsm_spec = mfrm_spec(data; thresholds = :rating_scale)
+    rsm_design = getdesign(rsm_spec)
+    rsm_result = fit(rsm_design;
+        prior,
+        backend = :julia,
+        ndraws = 2,
+        warmup = 0,
+        step_size = 0.04,
+        init = initial_params(rsm_design),
+        rng = MersenneTwister(20260621))
+    @test rsm_result.design.spec.thresholds === :rating_scale
+    @test size(rsm_result.draws) == (2, length(rsm_design.parameter_names))
+
     hmc_result = fit(design;
         prior,
         backend = :advancedhmc,
@@ -10108,6 +10123,59 @@ end
     pair_comparison = compare_models(:main => result, :short => spec_result; draw_indices = [1, 2])
     @test [row.model for row in pair_comparison] == [row.model for row in comparison]
     @test [row.waic for row in pair_comparison] ≈ [row.waic for row in comparison]
+
+    threshold_sensitivity = sensitivity_comparison(
+        :partial_credit => spec_result,
+        :rating_scale => rsm_result;
+        axis = :thresholds,
+        baseline = :partial_credit,
+        draw_indices = [1, 2])
+    @test length(threshold_sensitivity) == 2
+    @test [row.rank for row in threshold_sensitivity] == [1, 2]
+    @test all(row -> row.sensitivity_axis === :thresholds, threshold_sensitivity)
+    @test Set(row.sensitivity_value for row in threshold_sensitivity) ==
+        Set([:partial_credit, :rating_scale])
+    threshold_baseline = only(filter(row -> row.model == "partial_credit",
+        threshold_sensitivity))
+    threshold_candidate = only(filter(row -> row.model == "rating_scale",
+        threshold_sensitivity))
+    @test threshold_baseline.is_baseline
+    @test !threshold_candidate.is_baseline
+    @test threshold_baseline.baseline_model == "partial_credit"
+    @test threshold_candidate.baseline_model == "partial_credit"
+    @test threshold_baseline.baseline_value === :partial_credit
+    @test threshold_candidate.baseline_value === :partial_credit
+    @test threshold_baseline.contrast === :baseline
+    @test threshold_candidate.contrast === :candidate_vs_baseline
+    @test threshold_candidate.sensitivity_contrast ==
+        (candidate = :rating_scale, baseline = :partial_credit)
+    @test threshold_baseline.elpd_difference_from_baseline ≈ 0.0
+    @test threshold_baseline.information_criterion_difference_from_baseline ≈ 0.0
+    @test threshold_candidate.elpd_difference_from_baseline ≈
+        threshold_candidate.elpd_waic - threshold_baseline.elpd_waic
+    @test threshold_candidate.information_criterion_difference_from_baseline ≈
+        threshold_candidate.waic - threshold_baseline.waic
+
+    prior_sensitivity = sensitivity_comparison(result, spec_result;
+        names = [:main, :short],
+        axis = :prior,
+        baseline = :main,
+        draw_indices = [1, 2])
+    @test all(row -> row.sensitivity_axis === :prior, prior_sensitivity)
+    @test all(row -> row.baseline_model == "main", prior_sensitivity)
+    @test all(row -> row.sensitivity_value.person_sd == prior.person_sd,
+        prior_sensitivity)
+    custom_sensitivity = sensitivity_comparison(
+        :main => result,
+        :short => spec_result;
+        axis = :prior_regime,
+        values = (main = :seeded, short = :unseeded),
+        baseline = :main,
+        draw_indices = [1, 2])
+    @test [row.sensitivity_axis for row in custom_sensitivity] ==
+        fill(:prior_regime, length(custom_sensitivity))
+    @test Set(row.sensitivity_value for row in custom_sensitivity) ==
+        Set([:seeded, :unseeded])
     loo_comparison = compare_models(result, hmc_result;
         names = [:main, :hmc],
         criterion = :loo,
@@ -10167,11 +10235,43 @@ end
         [row.model for row in loo_comparison]
     @test [row.looic for row in pair_loo_comparison] ≈
         [row.looic for row in loo_comparison]
+    loo_sensitivity = sensitivity_comparison(:main => result, :hmc => hmc_result;
+        axis = :sampler,
+        baseline = :main,
+        criterion = :loo,
+        draw_indices = loo_indices)
+    loo_sensitivity_baseline = only(filter(row -> row.model == "main",
+        loo_sensitivity))
+    loo_sensitivity_candidate = only(filter(row -> row.model == "hmc",
+        loo_sensitivity))
+    @test loo_sensitivity_baseline.sensitivity_value === :random_walk_metropolis
+    @test loo_sensitivity_candidate.sensitivity_value === :nuts
+    @test loo_sensitivity_candidate.elpd_difference_from_baseline ≈
+        loo_sensitivity_candidate.elpd_loo - loo_sensitivity_baseline.elpd_loo
+    @test loo_sensitivity_candidate.information_criterion_difference_from_baseline ≈
+        loo_sensitivity_candidate.looic - loo_sensitivity_baseline.looic
     @test_throws ArgumentError compare_models(result; names = [:single])
     @test_throws ArgumentError compare_models(result, spec_result; names = [:only])
     @test_throws ArgumentError compare_models(result, spec_result; names = [:dup, :dup])
     @test_throws ArgumentError compare_models(result, spec_result; criterion = :bad)
     @test_throws ArgumentError compare_models(:bad => design, :good => result)
+    @test_throws ArgumentError sensitivity_comparison(result; names = [:single])
+    @test_throws ArgumentError sensitivity_comparison(result, spec_result; names = [:only])
+    @test_throws ArgumentError sensitivity_comparison(result, spec_result;
+        names = [:dup, :dup])
+    @test_throws ArgumentError sensitivity_comparison(result, spec_result;
+        names = [:main, :short],
+        baseline = :missing)
+    @test_throws ArgumentError sensitivity_comparison(result, spec_result;
+        names = [:main, :short],
+        axis = :anchor,
+        draw_indices = [1, 2])
+    @test_throws ArgumentError sensitivity_comparison(result, spec_result;
+        names = [:main, :short],
+        axis = :anchor,
+        values = [:hard],
+        draw_indices = [1, 2])
+    @test_throws ArgumentError sensitivity_comparison(:bad => design, :good => result)
 
     altered_table = (
         examinee = table.examinee,

@@ -18,6 +18,7 @@ calibration_table
 calibration_plot_data
 cached_fit
 compare_models
+sensitivity_comparison
 constraint_table
 coverage_matrix
 coverage_summary

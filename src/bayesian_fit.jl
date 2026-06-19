@@ -5534,6 +5534,256 @@ function compare_models(models::Pair...;
         _compare_models_loo(fits, labels; ndraws, draw_indices, rng)
 end
 
+function _sensitivity_axis(axis::Symbol)
+    axis === :threshold && return :thresholds
+    axis === :family && return :model_family
+    axis === :dimensionality && return :dimensions
+    return axis
+end
+
+function _sensitivity_prior_value(fit::MFRMFit)
+    return (;
+        person_sd = fit.prior.person_sd,
+        rater_sd = fit.prior.rater_sd,
+        item_sd = fit.prior.item_sd,
+        step_sd = fit.prior.step_sd,
+    )
+end
+
+function _sensitivity_prior_value(fit::Union{GMFRMFit,MGMFRMFit})
+    return (;
+        person_sd = fit.prior.person_sd,
+        rater_sd = fit.prior.rater_sd,
+        item_sd = fit.prior.item_sd,
+        log_discrimination_sd = fit.prior.log_discrimination_sd,
+        log_consistency_sd = fit.prior.log_consistency_sd,
+        step_sd = fit.prior.step_sd,
+    )
+end
+
+function _default_sensitivity_value(fit::_ModelComparisonFit,
+        label::AbstractString,
+        axis::Symbol)
+    spec = fit.design.spec
+    axis === :model && return String(label)
+    axis === :model_family && return spec.family
+    axis === :thresholds && return spec.thresholds
+    axis === :discrimination && return spec.discrimination
+    axis === :dimensions && return spec.dimensions
+    axis === :q_matrix && return _q_matrix_manifest(spec.q_matrix)
+    axis === :estimation_status && return spec.estimation_status
+    axis === :prior && return _sensitivity_prior_value(fit)
+    axis === :backend && return fit.backend
+    axis === :sampler && return fit.sampler
+    throw(ArgumentError(
+        "axis = :$axis requires explicit values; supported inferred axes are " *
+        ":model, :model_family, :thresholds, :discrimination, :dimensions, " *
+        ":q_matrix, :estimation_status, :prior, :backend, and :sampler"))
+end
+
+function _explicit_sensitivity_values(
+        labels::AbstractVector{<:AbstractString},
+        values::NamedTuple)
+    out = Any[]
+    names = propertynames(values)
+    for label in labels
+        key = Symbol(label)
+        key in names ||
+            throw(ArgumentError("values does not contain a value for model $label"))
+        push!(out, getproperty(values, key))
+    end
+    return out
+end
+
+function _explicit_sensitivity_values(
+        labels::AbstractVector{<:AbstractString},
+        values::AbstractDict)
+    out = Any[]
+    for label in labels
+        if haskey(values, label)
+            push!(out, values[label])
+        elseif haskey(values, Symbol(label))
+            push!(out, values[Symbol(label)])
+        else
+            throw(ArgumentError("values does not contain a value for model $label"))
+        end
+    end
+    return out
+end
+
+function _explicit_sensitivity_values(
+        labels::AbstractVector{<:AbstractString},
+        values)
+    collected = collect(values)
+    length(collected) == length(labels) ||
+        throw(ArgumentError(
+            "values has length $(length(collected)); expected $(length(labels))"))
+    return Any[collected...]
+end
+
+function _sensitivity_value_map(fits::AbstractVector{<:_ModelComparisonFit},
+        labels::AbstractVector{<:AbstractString},
+        axis::Symbol,
+        values)
+    resolved_values = values === nothing ?
+        [_default_sensitivity_value(fit, label, axis)
+            for (fit, label) in zip(fits, labels)] :
+        _explicit_sensitivity_values(labels, values)
+    return Dict{String,Any}(labels[index] => resolved_values[index]
+        for index in eachindex(labels))
+end
+
+function _sensitivity_baseline_label(
+        labels::AbstractVector{<:AbstractString},
+        baseline)
+    isempty(labels) && throw(ArgumentError("at least two models are required"))
+    baseline === nothing && return labels[1]
+    label = string(baseline)
+    label in labels ||
+        throw(ArgumentError("baseline model $label is not present in the comparison"))
+    return label
+end
+
+function _sensitivity_baseline_difference(row::NamedTuple, baseline_row::NamedTuple)
+    row.criterion === :waic && return (;
+        baseline_elpd = baseline_row.elpd_waic,
+        baseline_information_criterion = baseline_row.waic,
+        elpd_difference_from_baseline = row.elpd_waic - baseline_row.elpd_waic,
+        information_criterion_difference_from_baseline = row.waic - baseline_row.waic,
+    )
+    row.criterion === :loo && return (;
+        baseline_elpd = baseline_row.elpd_loo,
+        baseline_information_criterion = baseline_row.looic,
+        elpd_difference_from_baseline = row.elpd_loo - baseline_row.elpd_loo,
+        information_criterion_difference_from_baseline = row.looic - baseline_row.looic,
+    )
+    throw(ArgumentError("unsupported comparison criterion $(row.criterion)"))
+end
+
+function _sensitivity_comparison_rows(comparison_rows::AbstractVector,
+        axis::Symbol,
+        value_map::AbstractDict{String,Any},
+        baseline_label::AbstractString)
+    baseline_index = findfirst(row -> row.model == baseline_label, comparison_rows)
+    baseline_index === nothing &&
+        throw(ArgumentError("baseline model $baseline_label is not present in comparison rows"))
+    baseline_row = comparison_rows[baseline_index]
+    baseline_value = value_map[String(baseline_label)]
+    rows = NamedTuple[]
+    for row in comparison_rows
+        value = value_map[row.model]
+        is_baseline = row.model == baseline_label
+        push!(rows, merge((;
+                sensitivity_axis = axis,
+                sensitivity_value = value,
+                baseline_model = String(baseline_label),
+                baseline_value,
+                is_baseline,
+                sensitivity_contrast = (candidate = value, baseline = baseline_value),
+                contrast = is_baseline ? :baseline : :candidate_vs_baseline,
+            ),
+            row,
+            _sensitivity_baseline_difference(row, baseline_row)))
+    end
+    return rows
+end
+
+function _sensitivity_comparison(fits::AbstractVector{<:_ModelComparisonFit},
+        labels::AbstractVector{<:AbstractString};
+        axis::Symbol = :model,
+        values = nothing,
+        baseline = nothing,
+        criterion::Symbol = :waic,
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    checked_axis = _sensitivity_axis(axis)
+    checked_criterion = _compare_criterion(criterion)
+    _compare_model_names(labels, length(labels))
+    value_map = _sensitivity_value_map(fits, labels, checked_axis, values)
+    baseline_label = _sensitivity_baseline_label(labels, baseline)
+    comparison_rows = checked_criterion === :waic ?
+        _compare_models_waic(fits, labels; ndraws, draw_indices, rng) :
+        _compare_models_loo(fits, labels; ndraws, draw_indices, rng)
+    return _sensitivity_comparison_rows(
+        comparison_rows,
+        checked_axis,
+        value_map,
+        baseline_label,
+    )
+end
+
+"""
+    sensitivity_comparison(fits...; names = nothing, axis = :model,
+        values = nothing, baseline = nothing, criterion = :waic,
+        ndraws = nothing, draw_indices = nothing, rng = Random.default_rng())
+    sensitivity_comparison(models::Pair...; axis = :model, values = nothing,
+        baseline = nothing, criterion = :waic, ndraws = nothing,
+        draw_indices = nothing, rng = Random.default_rng())
+
+Return report-ready sensitivity comparison rows for already fitted candidate
+models. The function delegates scoring to [`compare_models`](@ref), so the
+same observation-data, category-level, latent-dimension, and Q-matrix
+compatibility checks apply. Additional columns identify the requested
+`sensitivity_axis`, the per-model `sensitivity_value`, the baseline model and
+value, and expected-log-predictive-density and information-criterion
+differences relative to that baseline.
+
+When `values` is omitted, values are inferred for common axes: `:model`,
+`:model_family`, `:thresholds`, `:discrimination`, `:dimensions`, `:q_matrix`,
+`:estimation_status`, `:prior`, `:backend`, and `:sampler`. Pass a vector,
+tuple, dictionary, or named tuple to `values` for custom axes such as
+`:anchor`, `:dff`, or externally defined prior regimes. `baseline` names the
+baseline model label and defaults to the first supplied model.
+"""
+function sensitivity_comparison(fits::_ModelComparisonFit...;
+        names = nothing,
+        axis::Symbol = :model,
+        values = nothing,
+        baseline = nothing,
+        criterion::Symbol = :waic,
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    labels = _compare_model_names(names, length(fits))
+    collected_fits = _ModelComparisonFit[fits...]
+    return _sensitivity_comparison(collected_fits, labels;
+        axis,
+        values,
+        baseline,
+        criterion,
+        ndraws,
+        draw_indices,
+        rng)
+end
+
+function sensitivity_comparison(models::Pair...;
+        axis::Symbol = :model,
+        values = nothing,
+        baseline = nothing,
+        criterion::Symbol = :waic,
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    fits = _ModelComparisonFit[]
+    labels = String[]
+    for model in models
+        model.second isa _ModelComparisonFit ||
+            throw(ArgumentError("model pair :$(model.first) does not contain a comparable fitted model"))
+        push!(labels, string(model.first))
+        push!(fits, model.second)
+    end
+    _compare_model_names(labels, length(labels))
+    return _sensitivity_comparison(fits, labels;
+        axis,
+        values,
+        baseline,
+        criterion,
+        ndraws,
+        draw_indices,
+        rng)
+end
+
 function _draw_indices(fit, ndraws::Union{Nothing,Int}, rng::AbstractRNG)
     total = size(fit.draws, 1)
     if ndraws === nothing
