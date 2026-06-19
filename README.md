@@ -184,6 +184,9 @@ Current public API:
 - `fit_ready_parameter_layout`: deterministic fit-ready parameter names, block
   ranges, raw/constrained candidate blocks, and transform rows for the current
   MFRM/RSM/PCM likelihood and guarded GMFRM/MGMFRM compiler candidates.
+- `domain_compilation_summary`: review rows showing how family, thresholds,
+  dimensions, discrimination, fixed Q-masks, bias terms, anchors, priors, and
+  validation requirements compile into the current design contract.
 - `design_row_table`: observation-level compiler metadata showing which
   identified person, rater, item, source-step, item-discrimination,
   item-dimension-discrimination, and rater-consistency parameters each rating
@@ -313,12 +316,12 @@ Current public API:
   residual summaries with residual-screening caveat flags.
 - `fit_stats`: posterior summaries of infit and outfit mean-square statistics
   by facet level.
-- `coverage_summary`, `coverage_matrix`, `rater_overlap`, `design_row_table`,
-  `linear_predictor_table`, `threshold_map_data`, `wright_map_data`, and
-  `dff_report`:
+- `coverage_summary`, `coverage_matrix`, `rater_overlap`,
+  `domain_compilation_summary`, `design_row_table`, `linear_predictor_table`,
+  `threshold_map_data`, `wright_map_data`, and `dff_report`:
   reporting-data helpers for Quarto tables, coverage heat maps, rater-linking
-  plots, denominator reviews, threshold-map prototypes, Wright-map displays,
-  and DFF review tables. Use
+  plots, domain compiler reviews, denominator reviews, threshold-map prototypes,
+  Wright-map displays, and DFF review tables. Use
   `linear_predictor_values` when a parameter vector is available and numeric
   category-score inspection is needed.
 

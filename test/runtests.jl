@@ -23,6 +23,7 @@ using BayesianMGMFRM:
     diagnostics,
     design_row_table,
     dff_report,
+    domain_compilation_summary,
     expected_scores,
     fair_average_summary,
     fit,
@@ -6180,7 +6181,7 @@ end
 @testset "public docstrings" begin
     for name in (:FacetData, :ValidationIssue, :ValidationReport, :FacetSpec, :FacetDesign,
             :MFRMPrior, :MFRMLogDensity, :MFRMFit, :GMFRMFit, :artifact_content_hash, :cached_fit, :calibration_plot_data,
-            :constraint_table, :dff_report, :expected_scores, :fair_average_summary, :fit, :fit_archive_manifest, :fit_artifact, :fit_cache_key, :fit_metadata,
+            :constraint_table, :dff_report, :domain_compilation_summary, :expected_scores, :fair_average_summary, :fit, :fit_archive_manifest, :fit_artifact, :fit_cache_key, :fit_metadata,
             :fit_ready_parameter_layout, :fit_stats,
             :identification_declarations,
             :initial_params, :loglikelihood, :logposterior, :logprior,
@@ -6436,6 +6437,23 @@ end
         row.transform === :identity &&
         row.raw_parameter_names == ["person[E1]"],
         binary_layout.transforms)
+    binary_domain = domain_compilation_summary(spec)
+    @test any(row -> row.domain_option === :family &&
+        row.compiled_role === :likelihood_kernel &&
+        row.fit_ready &&
+        row.public_fit,
+        binary_domain)
+    binary_scoring = only(filter(row -> row.compiled_role === :scoring_vector,
+        binary_domain))
+    @test binary_scoring.domain_option === :thresholds
+    @test binary_scoring.block === :thresholds
+    @test binary_scoring.scoring_vector == data.category_levels
+    @test binary_scoring.constraint === :sum_to_zero
+    @test binary_scoring.prior === :normal
+    @test any(row -> row.block === :person &&
+        row.compiled_role === :additive_block &&
+        row.parameter_names == ["person[E1]"],
+        binary_domain)
 
     data_manifest = model_manifest(data)
     @test data_manifest.schema == "bayesianmgmfrm.model_manifest.v1"
@@ -6561,6 +6579,35 @@ end
         row.constrained_block === :thresholds &&
         row.constraint === :sum_to_zero,
         identified_layout.transforms)
+    identified_domain = domain_compilation_summary(identified_spec)
+    identified_design_domain = domain_compilation_summary(identified_design)
+    @test length(identified_domain) == length(identified_design_domain)
+    @test [row.compiled_role for row in identified_domain] ==
+        [row.compiled_role for row in identified_design_domain]
+    @test isequal(
+        [row.block for row in identified_domain],
+        [row.block for row in identified_design_domain],
+    )
+    identified_threshold_domain = only(filter(row ->
+        row.compiled_role === :scoring_vector,
+        identified_domain))
+    @test identified_threshold_domain.block === :thresholds
+    @test identified_threshold_domain.parameter_names ==
+        ["step[item=I1,1]", "step[item=I2,1]"]
+    @test identified_threshold_domain.scoring_vector == identified_data.category_levels
+    @test identified_threshold_domain.validation_requirement === :ordinal_score_categories
+    identified_item_domain = only(filter(row -> row.block === :item &&
+        row.compiled_role === :additive_block,
+        identified_domain))
+    @test identified_item_domain.constraint === :reference_first
+    @test identified_item_domain.prior_block === :item
+    @test identified_item_domain.prior === :normal
+    identified_validation_domain = only(filter(row ->
+        row.domain_option === :validation &&
+        row.compiled_role === :validation_requirement,
+        identified_domain))
+    @test identified_validation_domain.status === :passed
+    @test identified_validation_domain.option_value.passed
 
     identified_params = [0.4, -0.1, 0.2, -0.3, 0.5, -0.25]
     identified_pointwise = pointwise_loglikelihood(identified_design, identified_params)
@@ -6721,6 +6768,23 @@ end
     @test soft_anchor.anchor_scale == 0.25
     @test any(row -> row.constraint === :hard_anchor, constraint_table(anchored_spec))
     @test any(row -> row.constraint === :soft_anchor, constraint_table(anchored_spec))
+    @test_throws ArgumentError domain_compilation_summary(anchored_spec)
+    anchored_domain = domain_compilation_summary(anchored_spec; preview = true)
+    hard_anchor_domain = only(filter(row ->
+        row.domain_option === :anchors &&
+        row.constraint === :hard_anchor,
+        anchored_domain))
+    @test hard_anchor_domain.block === :item
+    @test hard_anchor_domain.compiled_role === :constraint
+    @test hard_anchor_domain.compiler_stage === :specified_only_preview
+    @test !hard_anchor_domain.fit_ready
+    soft_anchor_domain = only(filter(row ->
+        row.domain_option === :anchors &&
+        row.constraint === :soft_anchor,
+        anchored_domain))
+    @test soft_anchor_domain.block === :rater
+    @test soft_anchor_domain.transform === :soft_anchor_prior
+    @test soft_anchor_domain.validation_requirement === :anchor_declared
     @test_throws ArgumentError mfrm_spec(identified_data;
         thresholds = :partial_credit,
         anchors = [(block = :item, value = 0.0, type = :soft)])
@@ -6862,6 +6926,27 @@ end
         row.constrained_block === :item_discrimination &&
         row.transform === :geometric_mean_one_log_last,
         gmfrm_layout.transforms)
+    @test_throws ArgumentError domain_compilation_summary(gmfrm_spec)
+    gmfrm_domain = domain_compilation_summary(gmfrm_spec; preview = true)
+    gmfrm_item_discrimination_domain = only(filter(row ->
+        row.block === :item_discrimination &&
+        row.compiled_role === :discrimination_block,
+        gmfrm_domain))
+    @test gmfrm_item_discrimination_domain.raw_block === :log_item_discrimination_free
+    @test gmfrm_item_discrimination_domain.constraint === :geometric_mean_one
+    @test gmfrm_item_discrimination_domain.prior_block === :log_item_discrimination
+    @test gmfrm_item_discrimination_domain.prior === :lognormal_or_hierarchical
+    @test !gmfrm_item_discrimination_domain.fit_ready
+    @test gmfrm_item_discrimination_domain.experimental_public
+    gmfrm_scoring_domain = only(filter(row ->
+        row.compiled_role === :scoring_vector,
+        gmfrm_domain))
+    @test gmfrm_scoring_domain.block === :rater_steps
+    @test gmfrm_scoring_domain.parameter_names == [
+        "rater_step[rater=R1,m=2]",
+        "rater_step[rater=R2,m=2]",
+    ]
+    @test gmfrm_scoring_domain.scoring_vector == identified_data.category_levels
     gmfrm_preview_manifest = model_manifest(gmfrm_preview)
     gmfrm_raw_manifest = gmfrm_preview_manifest.design.raw_parameterization
     @test gmfrm_raw_manifest.schema == "bayesianmgmfrm.raw_parameterization.v1"
@@ -8522,6 +8607,37 @@ end
         row.constrained_block === :rater_consistency &&
         row.constraint === :geometric_mean_one,
         mgmfrm_layout.transforms)
+    @test_throws ArgumentError domain_compilation_summary(mgmfrm_spec)
+    mgmfrm_domain = domain_compilation_summary(mgmfrm_spec; preview = true)
+    mgmfrm_loading_block = only(filter(row ->
+        row.block === :item_dimension_discrimination &&
+        row.compiled_role === :loading_block,
+        mgmfrm_domain))
+    @test mgmfrm_loading_block.raw_block === :log_item_dimension_discrimination
+    @test mgmfrm_loading_block.constraint === :confirmatory_q_mask
+    @test mgmfrm_loading_block.prior_block === :log_item_dimension_discrimination
+    @test mgmfrm_loading_block.parameter_names == [
+        "item_dimension_discrimination[item=I1,dim=1]",
+        "item_dimension_discrimination[item=I2,dim=2]",
+    ]
+    mgmfrm_loading_mask = only(filter(row ->
+        row.compiled_role === :loading_mask,
+        mgmfrm_domain))
+    @test mgmfrm_loading_mask.domain_option === :q_matrix
+    @test mgmfrm_loading_mask.block === :item_dimension_discrimination
+    @test mgmfrm_loading_mask.loading_mask == q_matrix
+    @test mgmfrm_loading_mask.validation_requirement === :fixed_q_matrix_validated
+    @test !mgmfrm_loading_mask.fit_ready
+    @test !mgmfrm_loading_mask.public_fit
+    mgmfrm_scoring_domain = only(filter(row ->
+        row.compiled_role === :scoring_vector,
+        mgmfrm_domain))
+    @test mgmfrm_scoring_domain.block === :item_steps
+    @test mgmfrm_scoring_domain.parameter_names == [
+        "item_step[item=I1,m=2]",
+        "item_step[item=I2,m=2]",
+    ]
+    @test mgmfrm_scoring_domain.scoring_vector == identified_data.category_levels
     mgmfrm_raw_manifest = preview_manifest.design.raw_parameterization
     @test mgmfrm_raw_manifest.n_raw_parameters == mgmfrm_raw_blueprint.n_parameters
     @test mgmfrm_raw_manifest.raw_parameter_names == mgmfrm_raw_blueprint.parameter_names

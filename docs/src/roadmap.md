@@ -97,8 +97,8 @@ public MGMFRM exposure still requires a separate release decision.
 
 ## Progress Ledger
 
-The repository roadmap currently has 110 of 120 tracked checklist items complete,
-or roughly 91.7% by simple implementation accounting. The stronger claim-level
+The repository roadmap currently has 111 of 120 tracked checklist items complete,
+or roughly 92.5% by simple implementation accounting. The stronger claim-level
 progress is lower, about 40-45%, because the remaining work includes public
 generalized fitting, Stan comparisons, broader recovery simulations,
 and a public-scope release decision for generalized claims.
@@ -228,7 +228,9 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   targets and their missing parameter blocks. [Done]
 - Compile domain options into design blocks, loading masks, scoring vectors,
   constraints, priors, and validation requirements.
-  [Observation-level design row metadata added for MFRM and specified-only
+  [`domain_compilation_summary` now ties domain options to compiled blocks,
+  fixed loading masks, scoring vectors, constraints, priors, and validation
+  requirements. Observation-level design row metadata added for MFRM and specified-only
   GMFRM/MGMFRM previews; row-by-category linear-predictor metadata added for
   denominator review; internal hand-computed source-aligned GMFRM/MGMFRM preview
   fixture, raw-coordinate transform checks, and fixture-only raw-coordinate

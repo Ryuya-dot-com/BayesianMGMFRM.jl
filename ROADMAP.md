@@ -355,8 +355,8 @@ rater-discrimination candidate.
 
 The roadmap has two different progress notions:
 
-- **Checklist progress**: currently 110 of 120 tracked roadmap checkboxes are
-  complete, or roughly 91.7%. This is useful for implementation accounting.
+- **Checklist progress**: currently 111 of 120 tracked roadmap checkboxes are
+  complete, or roughly 92.5%. This is useful for implementation accounting.
 - **Claim progress**: broad v1 claims are closer to 40-45% complete because
   the remaining items include public generalized fitting, Stan comparisons,
   broader recovery simulations and a public-scope release decision.
@@ -494,8 +494,11 @@ TODO:
 - [x] Add a source-traced `model_equation` contract so manifests distinguish
   the current fit-supported MFRM/RSM/PCM kernel from the primary-literature
   GMFRM/MGMFRM targets and their missing parameter blocks.
-- [ ] Compile domain options into fit-ready additive blocks, loading masks,
+- [x] Compile domain options into fit-ready additive blocks, loading masks,
   scoring vectors, constraints, priors, and validation requirements.
+  [`domain_compilation_summary` returns review rows that tie domain options to
+  compiled parameter blocks, fixed loading masks, scoring vectors, constraints,
+  priors, and validation requirements for fit-supported and preview designs.]
   - [x] Add observation-level design row metadata for current MFRM and
     specified-only GMFRM/MGMFRM previews without enabling unsupported fitting.
   - [x] Add row-by-category linear-predictor metadata for denominator review
