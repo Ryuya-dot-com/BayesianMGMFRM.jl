@@ -22,6 +22,7 @@ using BayesianMGMFRM:
     coverage_summary,
     diagnostics,
     design_row_table,
+    dff_report,
     expected_scores,
     fair_average_summary,
     fit,
@@ -6179,7 +6180,7 @@ end
 @testset "public docstrings" begin
     for name in (:FacetData, :ValidationIssue, :ValidationReport, :FacetSpec, :FacetDesign,
             :MFRMPrior, :MFRMLogDensity, :MFRMFit, :GMFRMFit, :artifact_content_hash, :cached_fit, :calibration_plot_data,
-            :constraint_table, :expected_scores, :fair_average_summary, :fit, :fit_archive_manifest, :fit_artifact, :fit_cache_key, :fit_metadata,
+            :constraint_table, :dff_report, :expected_scores, :fair_average_summary, :fit, :fit_archive_manifest, :fit_artifact, :fit_cache_key, :fit_metadata,
             :fit_ready_parameter_layout, :fit_stats,
             :identification_declarations,
             :initial_params, :loglikelihood, :logposterior, :logprior,
@@ -11245,6 +11246,121 @@ end
         zeros(2, length(grouped_design.parameter_names)))
     @test grouped_waic_rows[1].optional.group ==
         grouped_data.optional_levels[:group][grouped_data.optional[:group][1]]
+
+    grouped_dff = dff_report(grouped_design, result.draws[1:2, :]; interval = 0.8)
+    @test length(grouped_dff) ==
+        length(grouped_data.rater_levels) * length(grouped_data.optional_levels[:group])
+    @test isequal(
+        dff_report(grouped_design, result.draws[1:2, :];
+            terms = (:rater, :group),
+            interval = 0.8),
+        grouped_dff,
+    )
+    @test all(row -> row.term === (:rater, :group), grouped_dff)
+    @test all(row -> row.focal_facet === :rater, grouped_dff)
+    @test all(row -> row.comparison_facet === :group, grouped_dff)
+    @test all(row -> row.method === :posterior_predictive_interaction_residual,
+        grouped_dff)
+    @test all(row -> row.logit_method ===
+        :local_expected_score_residual_divided_by_predictive_variance,
+        grouped_dff)
+    @test all(row -> row.scale === :expected_score_and_logit, grouped_dff)
+    @test all(row -> row.validation_status === :declared_validation_term,
+        grouped_dff)
+    @test all(row -> row.caveat === :dff_screening_not_fitted_dff_effect,
+        grouped_dff)
+    @test all(row -> row.n_draws == 2, grouped_dff)
+    @test all(row -> row.interval_probability == 0.8, grouped_dff)
+    @test all(row -> row.lower_probability ≈ 0.1, grouped_dff)
+    @test all(row -> row.upper_probability ≈ 0.9, grouped_dff)
+
+    grouped_expected = expected_scores(grouped_design, result.draws[1:2, :])
+    grouped_residuals = predictive_residuals(grouped_design, result.draws[1:2, :])
+    grouped_variances = predictive_variances(grouped_design, result.draws[1:2, :])
+    @test grouped_expected ≈ expected
+    @test grouped_residuals ≈ residuals
+    @test grouped_variances ≈ variances
+    mean_by_draw = function (values, observations)
+        [sum(values[draw, observation] for observation in observations) /
+            length(observations) for draw in axes(values, 1)]
+    end
+    logit_shift = function (residual_values, slope_values)
+        [residual_values[index] / slope_values[index]
+            for index in eachindex(residual_values)]
+    end
+    r1_a = only(row for row in grouped_dff
+        if row.focal_level == "R1" && row.comparison_level == "A")
+    rater_index = findfirst(==("R1"), grouped_data.rater_levels)
+    group_index = findfirst(==("A"), grouped_data.optional_levels[:group])
+    cell_observations = findall(row -> grouped_data.rater[row] == rater_index &&
+        grouped_data.optional[:group][row] == group_index, 1:grouped_data.n)
+    rater_observations = findall(==(rater_index), grouped_data.rater)
+    group_observations = findall(==(group_index), grouped_data.optional[:group])
+    all_observations = collect(1:grouped_data.n)
+    cell_expected = mean_by_draw(grouped_expected, cell_observations)
+    cell_residual = mean_by_draw(grouped_residuals, cell_observations)
+    cell_logit = logit_shift(
+        cell_residual,
+        mean_by_draw(grouped_variances, cell_observations),
+    )
+    rater_residual = mean_by_draw(grouped_residuals, rater_observations)
+    rater_logit = logit_shift(
+        rater_residual,
+        mean_by_draw(grouped_variances, rater_observations),
+    )
+    group_residual = mean_by_draw(grouped_residuals, group_observations)
+    group_logit = logit_shift(
+        group_residual,
+        mean_by_draw(grouped_variances, group_observations),
+    )
+    grand_residual = mean_by_draw(grouped_residuals, all_observations)
+    grand_logit = logit_shift(
+        grand_residual,
+        mean_by_draw(grouped_variances, all_observations),
+    )
+    expected_score_dff = cell_residual .- rater_residual .-
+        group_residual .+ grand_residual
+    logit_dff = cell_logit .- rater_logit .- group_logit .+ grand_logit
+    @test r1_a.n_observations == length(cell_observations)
+    @test r1_a.validation_cell_count == length(cell_observations)
+    @test r1_a.observed_mean ≈
+        sum(grouped_data.score[observation] for observation in cell_observations) /
+        length(cell_observations)
+    @test r1_a.expected_score_mean ≈ sum(cell_expected) / length(cell_expected)
+    @test r1_a.expected_score_residual_mean ≈
+        sum(cell_residual) / length(cell_residual)
+    @test r1_a.logit_residual_mean ≈ sum(cell_logit) / length(cell_logit)
+    @test r1_a.expected_score_dff_mean ≈
+        sum(expected_score_dff) / length(expected_score_dff)
+    @test r1_a.logit_dff_mean ≈ sum(logit_dff) / length(logit_dff)
+    @test r1_a.expected_score_lower <=
+        r1_a.expected_score_median <= r1_a.expected_score_upper
+    @test r1_a.expected_score_dff_lower <=
+        r1_a.expected_score_dff_median <= r1_a.expected_score_dff_upper
+    @test r1_a.logit_dff_lower <= r1_a.logit_dff_median <= r1_a.logit_dff_upper
+    @test r1_a.expected_score_dff_interval_excludes_zero ==
+        (r1_a.expected_score_dff_lower > 0 || r1_a.expected_score_dff_upper < 0)
+    @test r1_a.logit_dff_interval_excludes_zero ==
+        (r1_a.logit_dff_lower > 0 || r1_a.logit_dff_upper < 0)
+    @test r1_a.flag in (:ok, :dff_interval_excludes_zero)
+
+    sparse_dff = dff_report(grouped_design, result.draws[1:2, :];
+        min_n = grouped_data.n + 1)
+    @test all(row -> row.flag === :below_min_n, sparse_dff)
+    ad_hoc_dff = dff_report(result; terms = (:rater, :item), draw_indices = [1, 2])
+    @test length(ad_hoc_dff) ==
+        length(data.rater_levels) * length(data.item_levels)
+    @test all(row -> row.validation_status === :ad_hoc_term, ad_hoc_dff)
+    @test_throws ArgumentError dff_report(result; draw_indices = [1, 2])
+    @test_throws ArgumentError dff_report(grouped_design, result.draws[1:2, :];
+        terms = [(:rater, :group), (:rater, :group)])
+    @test_throws ArgumentError dff_report(grouped_design, result.draws[1:2, :];
+        terms = (:rater, :unknown))
+    @test_throws ArgumentError dff_report(grouped_design, result.draws[1:2, :];
+        interval = 1.0)
+    @test_throws ArgumentError dff_report(grouped_design, result.draws[1:2, :];
+        min_n = 0)
+    @test_throws ArgumentError dff_report(grouped_design, result.draws[1:2, 1:end-1])
 
     replicated = posterior_predict(result; ndraws = 5, rng = MersenneTwister(1234))
     @test size(replicated) == (5, data.n)

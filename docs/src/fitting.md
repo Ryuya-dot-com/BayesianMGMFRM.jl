@@ -144,6 +144,7 @@ parameter_recovery_plot_data(recovery)
 calibration_plot_data(calibration_table(fit_result; bins = 5))
 predictive_check_plot_data(predictive_check_summary(ppc))
 wright_map_data(fit_result)
+dff_report(fit_result; terms = (:rater, :item))
 ```
 
 The random-walk sampler is intended for small validation examples and API
@@ -249,6 +250,8 @@ separation and empirical reliability intervals for person, rater, and item
 measures; `residual_summary` returns observation- or facet-level expected-score
 and residual intervals with screening caveats for sparse groups and nonzero
 residual intervals; `rater_diagnostics` combines rater severity, category-use,
-range/centrality, residual, and available discrimination rows for reports. The
+range/centrality, residual, and available discrimination rows for reports;
+`dff_report` returns DFF screening rows with expected-score interaction
+residuals and local logit-scale approximations. The
 `backend` keyword is explicit
 so additional engines can be added without changing the fitted-object shape.

@@ -30,8 +30,9 @@ The current package supports:
 - fit metadata, chain summaries, R-hat/ESS summaries, posterior summaries,
   prior/posterior predictive checks, calibration summaries, fair-average
   summaries, separation/reliability summaries, rater diagnostics, Wright-map
-  rows, infit/outfit, WAIC, raw importance-sampling LOO, supplied heldout K-fold
-  summaries, and same-observation or heldout comparisons;
+  rows, DFF screening rows, infit/outfit, WAIC, raw importance-sampling LOO,
+  supplied heldout K-fold summaries, and same-observation or heldout
+  comparisons;
 - scalar Julia/BridgeStan validation fixtures and internal hand-computed
   source-aligned GMFRM/MGMFRM preview fixtures, including raw-coordinate
   source-constraint transforms, used by the test suite.
@@ -96,8 +97,8 @@ public MGMFRM exposure still requires a separate release decision.
 
 ## Progress Ledger
 
-The repository roadmap currently has 109 of 120 tracked checklist items complete,
-or roughly 90.8% by simple implementation accounting. The stronger claim-level
+The repository roadmap currently has 110 of 120 tracked checklist items complete,
+or roughly 91.7% by simple implementation accounting. The stronger claim-level
 progress is lower, about 40-45%, because the remaining work includes public
 generalized fitting, Stan comparisons, broader recovery simulations,
 and a public-scope release decision for generalized claims.
@@ -340,6 +341,8 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   range/centrality, residual, and available discrimination diagnostics,
   [`wright_map_data`](@ref) returns backend-independent posterior facet-measure
   and item-threshold position rows for Wright-map-style displays,
+  [`dff_report`](@ref) returns declared or ad hoc DFF screening rows with
+  expected-score interaction residuals and local logit-scale approximations,
   [`fit_stats`](@ref) provides posterior infit/outfit rows, and
   [`residual_summary`](@ref) now provides observation- or facet-level
   expected-score and residual intervals with residual-screening caveat flags.

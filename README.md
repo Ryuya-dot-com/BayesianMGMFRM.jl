@@ -303,6 +303,8 @@ Current public API:
   helpers.
 - `fair_average_summary`: posterior fair-average expected-score intervals for
   person, rater, or item reports using a balanced reference grid.
+- `dff_report`: declared or ad hoc DFF screening rows with expected-score
+  interaction residuals and local logit-scale approximations.
 - `separation_reliability_summary`: posterior separation and empirical
   reliability intervals for person, rater, and item measures.
 - `rater_diagnostics`: report-ready rater severity, category-use,
@@ -312,10 +314,11 @@ Current public API:
 - `fit_stats`: posterior summaries of infit and outfit mean-square statistics
   by facet level.
 - `coverage_summary`, `coverage_matrix`, `rater_overlap`, `design_row_table`,
-  `linear_predictor_table`, `threshold_map_data`, and `wright_map_data`:
+  `linear_predictor_table`, `threshold_map_data`, `wright_map_data`, and
+  `dff_report`:
   reporting-data helpers for Quarto tables, coverage heat maps, rater-linking
-  plots, denominator reviews, threshold-map prototypes, and Wright-map displays.
-  Use
+  plots, denominator reviews, threshold-map prototypes, Wright-map displays,
+  and DFF review tables. Use
   `linear_predictor_values` when a parameter vector is available and numeric
   category-score inspection is needed.
 

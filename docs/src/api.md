@@ -68,6 +68,7 @@ wright_map_data
 predictive_probabilities
 expected_scores
 fair_average_summary
+dff_report
 separation_reliability_summary
 rater_diagnostics
 predictive_variances

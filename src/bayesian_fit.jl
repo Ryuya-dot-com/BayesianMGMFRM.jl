@@ -7637,6 +7637,302 @@ function residual_summary(fit::GMFRMFit;
         min_n)
 end
 
+function _dff_report_terms(design::FacetDesign, terms)
+    data = design.spec.data
+    if terms === :validation
+        out = Tuple{Symbol,Symbol}[design.spec.validation_bias_terms...]
+        isempty(out) &&
+            throw(ArgumentError("dff_report requires declared validation DFF terms; pass terms explicitly for an ad hoc report"))
+    elseif terms isa Tuple && length(terms) == 2 &&
+            first(terms) isa Symbol && last(terms) isa Symbol
+        out = Tuple{Symbol,Symbol}[(first(terms), last(terms))]
+    elseif terms isa Symbol
+        throw(ArgumentError("terms must be :validation, one two-facet tuple, or a collection of two-facet tuples"))
+    else
+        out = Tuple{Symbol,Symbol}[]
+        for term in terms
+            term isa Tuple && length(term) == 2 &&
+                first(term) isa Symbol && last(term) isa Symbol ||
+                throw(ArgumentError("terms must be :validation, one two-facet tuple, or a collection of two-facet tuples"))
+            normalized = (first(term), last(term))
+            normalized in out &&
+                throw(ArgumentError("terms must not contain duplicates"))
+            push!(out, normalized)
+        end
+        isempty(out) &&
+            throw(ArgumentError("terms must contain at least one DFF term"))
+    end
+    for term in out
+        _fit_stat_groups(data, term[1])
+        _fit_stat_groups(data, term[2])
+    end
+    return Tuple(out)
+end
+
+function _dff_observations(index::AbstractVector{Int}, level_index::Int)
+    return findall(==(level_index), index)
+end
+
+function _dff_observations(index_a::AbstractVector{Int},
+        level_a::Int,
+        index_b::AbstractVector{Int},
+        level_b::Int)
+    return findall(row -> index_a[row] == level_a && index_b[row] == level_b,
+        eachindex(index_a))
+end
+
+function _dff_logit_shift_draws(residuals::AbstractVector{<:Real},
+        slopes::AbstractVector{<:Real})
+    length(residuals) == length(slopes) ||
+        throw(ArgumentError("residual and slope vectors must have the same length"))
+    out = Vector{Float64}(undef, length(residuals))
+    eps_slope = eps(Float64)
+    for index in eachindex(residuals)
+        slope = Float64(slopes[index])
+        residual = Float64(residuals[index])
+        out[index] = isfinite(slope) && abs(slope) > eps_slope ?
+            residual / slope : NaN
+    end
+    return out
+end
+
+function _dff_group_draws(expected::AbstractMatrix{<:Real},
+        residuals::AbstractMatrix{<:Real},
+        slopes::AbstractMatrix{<:Real},
+        observations::AbstractVector{Int})
+    expected_by_draw = _posterior_group_mean(expected, observations)
+    residual_by_draw = _posterior_group_mean(residuals, observations)
+    slope_by_draw = _posterior_group_mean(slopes, observations)
+    logit_shift_by_draw = _dff_logit_shift_draws(residual_by_draw, slope_by_draw)
+    return (;
+        expected = expected_by_draw,
+        residual = residual_by_draw,
+        slope = slope_by_draw,
+        logit_shift = logit_shift_by_draw,
+    )
+end
+
+function _dff_interval_excludes_zero(summary)
+    return isfinite(summary.lower) &&
+        isfinite(summary.upper) &&
+        (summary.lower > 0 || summary.upper < 0)
+end
+
+function _dff_cell_flag(n_observations::Int,
+        min_n::Int,
+        expected_score_dff_summary,
+        logit_dff_summary)
+    n_observations == 0 && return :empty_cell
+    n_observations < min_n && return :below_min_n
+    !isfinite(logit_dff_summary.mean) && return :logit_scale_unstable
+    (_dff_interval_excludes_zero(expected_score_dff_summary) ||
+        _dff_interval_excludes_zero(logit_dff_summary)) &&
+        return :dff_interval_excludes_zero
+    return :ok
+end
+
+function _dff_report_rows_for_term(design::FacetDesign,
+        expected::AbstractMatrix{<:Real},
+        residuals::AbstractMatrix{<:Real},
+        slopes::AbstractMatrix{<:Real},
+        term::Tuple{Symbol,Symbol};
+        interval::Real,
+        lower_probability::Float64,
+        upper_probability::Float64,
+        min_n::Int)
+    data = design.spec.data
+    focal_facet, comparison_facet = term
+    focal_index, focal_levels = _fit_stat_groups(data, focal_facet)
+    comparison_index, comparison_levels = _fit_stat_groups(data, comparison_facet)
+    validation_counts = get(design.spec.validation.dff_counts, term, nothing)
+    validation_status = term in design.spec.validation_bias_terms ?
+        :declared_validation_term : :ad_hoc_term
+    all_observations = collect(1:data.n)
+    grand = _dff_group_draws(expected, residuals, slopes, all_observations)
+    focal_draws = [
+        _dff_group_draws(
+            expected,
+            residuals,
+            slopes,
+            _dff_observations(focal_index, focal_level),
+        )
+        for focal_level in eachindex(focal_levels)
+    ]
+    comparison_draws = [
+        _dff_group_draws(
+            expected,
+            residuals,
+            slopes,
+            _dff_observations(comparison_index, comparison_level),
+        )
+        for comparison_level in eachindex(comparison_levels)
+    ]
+
+    rows = NamedTuple[]
+    for (focal_level_index, focal_level) in pairs(focal_levels),
+            (comparison_level_index, comparison_level) in pairs(comparison_levels)
+        observations = _dff_observations(
+            focal_index,
+            focal_level_index,
+            comparison_index,
+            comparison_level_index,
+        )
+        cell = _dff_group_draws(expected, residuals, slopes, observations)
+        focal = focal_draws[focal_level_index]
+        comparison = comparison_draws[comparison_level_index]
+        expected_score_dff = cell.residual .- focal.residual .-
+            comparison.residual .+ grand.residual
+        logit_dff = cell.logit_shift .- focal.logit_shift .-
+            comparison.logit_shift .+ grand.logit_shift
+
+        expected_summary = _finite_draw_summary(
+            cell.expected,
+            lower_probability,
+            upper_probability,
+        )
+        residual_summary = _finite_draw_summary(
+            cell.residual,
+            lower_probability,
+            upper_probability,
+        )
+        logit_summary = _finite_draw_summary(
+            cell.logit_shift,
+            lower_probability,
+            upper_probability,
+        )
+        expected_score_dff_summary = _finite_draw_summary(
+            expected_score_dff,
+            lower_probability,
+            upper_probability,
+        )
+        logit_dff_summary = _finite_draw_summary(
+            logit_dff,
+            lower_probability,
+            upper_probability,
+        )
+        n_observations = length(observations)
+        expected_score_dff_interval_excludes_zero =
+            _dff_interval_excludes_zero(expected_score_dff_summary)
+        logit_dff_interval_excludes_zero =
+            _dff_interval_excludes_zero(logit_dff_summary)
+        validation_cell_count = validation_counts === nothing ? missing :
+            get(validation_counts, (focal_level, comparison_level), missing)
+
+        push!(rows, (;
+            term,
+            focal_facet,
+            focal_level,
+            focal_level_index,
+            comparison_facet,
+            comparison_level,
+            comparison_level_index,
+            n_observations,
+            validation_cell_count,
+            n_draws = size(expected, 1),
+            method = :posterior_predictive_interaction_residual,
+            logit_method = :local_expected_score_residual_divided_by_predictive_variance,
+            scale = :expected_score_and_logit,
+            interval_probability = Float64(interval),
+            lower_probability,
+            upper_probability,
+            observed_mean = _mean_at_indices(data.score, observations),
+            expected_score_mean = expected_summary.mean,
+            expected_score_median = expected_summary.median,
+            expected_score_lower = expected_summary.lower,
+            expected_score_upper = expected_summary.upper,
+            expected_score_residual_mean = residual_summary.mean,
+            expected_score_residual_median = residual_summary.median,
+            expected_score_residual_lower = residual_summary.lower,
+            expected_score_residual_upper = residual_summary.upper,
+            logit_residual_mean = logit_summary.mean,
+            logit_residual_median = logit_summary.median,
+            logit_residual_lower = logit_summary.lower,
+            logit_residual_upper = logit_summary.upper,
+            expected_score_dff_mean = expected_score_dff_summary.mean,
+            expected_score_dff_median = expected_score_dff_summary.median,
+            expected_score_dff_lower = expected_score_dff_summary.lower,
+            expected_score_dff_upper = expected_score_dff_summary.upper,
+            logit_dff_mean = logit_dff_summary.mean,
+            logit_dff_median = logit_dff_summary.median,
+            logit_dff_lower = logit_dff_summary.lower,
+            logit_dff_upper = logit_dff_summary.upper,
+            expected_score_dff_interval_excludes_zero,
+            logit_dff_interval_excludes_zero,
+            validation_status,
+            caveat = :dff_screening_not_fitted_dff_effect,
+            flag = _dff_cell_flag(
+                n_observations,
+                min_n,
+                expected_score_dff_summary,
+                logit_dff_summary,
+            ),
+        ))
+    end
+    return rows
+end
+
+"""
+    dff_report(fit::MFRMFit; terms = :validation, interval = 0.95,
+        min_n = 1, ndraws = nothing, draw_indices = nothing,
+        rng = Random.default_rng())
+    dff_report(design::FacetDesign, draws; terms = :validation,
+        interval = 0.95, min_n = 1)
+
+Return screening rows for declared or ad hoc differential facet functioning
+(DFF) terms. The default `terms = :validation` uses DFF/bias terms retained in
+the `FacetSpec` by `mfrm_spec(...; bias = ...)` or a matching validation
+report. Each row is one cell of a two-facet term and reports observed mean
+score, posterior expected-score residuals, and a two-way interaction residual
+on both expected-score and local logit-approximation scales.
+
+These rows are not fitted DFF model effects. The logit scale is a local
+screening approximation that divides expected-score residuals by posterior
+predictive variance, so results should be used for fairness review triage and
+sensitivity planning rather than confirmatory unfairness claims.
+"""
+function dff_report(design::FacetDesign,
+        draws::AbstractMatrix;
+        terms = :validation,
+        interval::Real = 0.95,
+        min_n::Int = 1)
+    _check_fit_supported_mfrm(design, "dff_report")
+    min_n >= 1 || throw(ArgumentError("min_n must be positive"))
+    lower_probability, upper_probability = _interval_probabilities(interval)
+    requested_terms = _dff_report_terms(design, terms)
+    expected = expected_scores(design, draws)
+    residuals = predictive_residuals(design, draws)
+    slopes = predictive_variances(design, draws)
+    rows = NamedTuple[]
+    for term in requested_terms
+        append!(rows, _dff_report_rows_for_term(
+            design,
+            expected,
+            residuals,
+            slopes,
+            term;
+            interval,
+            lower_probability,
+            upper_probability,
+            min_n,
+        ))
+    end
+    return rows
+end
+
+function dff_report(fit::MFRMFit;
+        terms = :validation,
+        interval::Real = 0.95,
+        min_n::Int = 1,
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    return dff_report(fit.design, fit.draws[indices, :];
+        terms,
+        interval,
+        min_n)
+end
+
 function _check_rater_diagnostic_draws(design::FacetDesign,
         draws::AbstractMatrix,
         caller::AbstractString)

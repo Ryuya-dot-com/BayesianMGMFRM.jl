@@ -355,8 +355,8 @@ rater-discrimination candidate.
 
 The roadmap has two different progress notions:
 
-- **Checklist progress**: currently 109 of 120 tracked roadmap checkboxes are
-  complete, or roughly 90.8%. This is useful for implementation accounting.
+- **Checklist progress**: currently 110 of 120 tracked roadmap checkboxes are
+  complete, or roughly 91.7%. This is useful for implementation accounting.
 - **Claim progress**: broad v1 claims are closer to 40-45% complete because
   the remaining items include public generalized fitting, Stan comparisons,
   broader recovery simulations and a public-scope release decision.
@@ -840,7 +840,10 @@ TODO:
   backend.
   [`wright_map_data` returns plotting-backend-independent posterior facet
   measure and item-threshold position rows on the logit scale.]
-- [ ] Implement DFF reports on logit and expected-score scales.
+- [x] Implement DFF reports on logit and expected-score scales.
+  [`dff_report` returns declared or ad hoc DFF screening rows with
+  expected-score interaction residuals and local logit-scale approximations,
+  while retaining a fitted-effect caveat.]
 - [ ] Implement hard/soft anchors, anchor sensitivity, and robust linking
   diagnostics.
 

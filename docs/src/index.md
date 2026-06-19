@@ -54,6 +54,8 @@ The current public slice focuses on:
   [`predictive_variances`](@ref), and [`predictive_residuals`](@ref);
 - posterior fair-average expected-score intervals for person, rater, or item
   reports via [`fair_average_summary`](@ref);
+- declared or ad hoc DFF screening rows on expected-score and local logit
+  scales via [`dff_report`](@ref);
 - posterior separation and empirical reliability intervals for person, rater,
   and item measures via [`separation_reliability_summary`](@ref);
 - rater severity, category-use, range/centrality, residual, and available
@@ -67,7 +69,8 @@ The current public slice focuses on:
 - fit-independent reporting data via [`coverage_summary`](@ref),
   [`coverage_matrix`](@ref), [`rater_overlap`](@ref),
   [`design_row_table`](@ref), [`linear_predictor_table`](@ref), and
-  [`threshold_map_data`](@ref), and [`wright_map_data`](@ref);
+  [`threshold_map_data`](@ref), [`wright_map_data`](@ref), and
+  [`dff_report`](@ref);
 - test-suite validation against small/medium Julia/BridgeStan scalar fixtures
   and internal hand-computed source-aligned GMFRM/MGMFRM preview fixtures, including
   raw-coordinate transforms for source identification restrictions and

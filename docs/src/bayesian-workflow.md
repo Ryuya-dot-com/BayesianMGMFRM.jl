@@ -66,8 +66,8 @@ without changing the data layer.
    [`fair_average_summary`](@ref), separation/reliability rows with
    [`separation_reliability_summary`](@ref), posterior residual summaries with
    [`residual_summary`](@ref), rater diagnostics with
-   [`rater_diagnostics`](@ref), and facet-level infit/outfit with
-   [`fit_stats`](@ref).
+   [`rater_diagnostics`](@ref), DFF screening rows with [`dff_report`](@ref),
+   and facet-level infit/outfit with [`fit_stats`](@ref).
 15. Compare same-observation candidate models with [`waic`](@ref), raw
     importance-sampling [`loo`](@ref), and [`compare_models`](@ref); inspect
     influential WAIC rows with [`waic_diagnostics`](@ref) and unstable LOO rows
