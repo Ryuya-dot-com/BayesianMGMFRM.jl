@@ -247,5 +247,7 @@ balanced reference grid; `separation_reliability_summary` returns posterior
 separation and empirical reliability intervals for person, rater, and item
 measures; `residual_summary` returns observation- or facet-level expected-score
 and residual intervals with screening caveats for sparse groups and nonzero
-residual intervals. The `backend` keyword is explicit
+residual intervals; `rater_diagnostics` combines rater severity, category-use,
+range/centrality, residual, and available discrimination rows for reports. The
+`backend` keyword is explicit
 so additional engines can be added without changing the fitted-object shape.

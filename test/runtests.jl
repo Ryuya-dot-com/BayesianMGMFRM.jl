@@ -79,6 +79,7 @@ using BayesianMGMFRM:
     predictive_variances,
     prior_predict,
     prior_predictive_check,
+    rater_diagnostics,
     rater_overlap,
     residual_summary,
     load_fit_cache,
@@ -6192,7 +6193,7 @@ end
             :predictive_check_summary, :predictive_check_plot_data, :predictive_probabilities,
             :predictive_residuals, :predictive_variances,
             :prior_predict, :prior_predictive_check,
-            :load_fit_cache, :rater_overlap, :residual_summary,
+            :load_fit_cache, :rater_diagnostics, :rater_overlap, :residual_summary,
             :sampler_diagnostics, :save_fit_cache,
             :sensitivity_comparison, :separation_reliability_summary, :simulate_responses,
             :threshold_map_data, :validation_suggestions, :evidence_metadata,
@@ -8217,6 +8218,59 @@ end
     @test all(row -> row.caveat ===
         :posterior_predictive_residual_screening_not_confirmatory,
         gmfrm_residual_rows)
+    gmfrm_rater_diag = rater_diagnostics(gmfrm_experimental_fit;
+        draw_indices = [1, 2])
+    @test length(gmfrm_rater_diag) == length(identified_data.rater_levels)
+    @test [row.level for row in gmfrm_rater_diag] == identified_data.rater_levels
+    @test all(row -> row.facet === :rater, gmfrm_rater_diag)
+    @test all(row -> row.model_family === :gmfrm, gmfrm_rater_diag)
+    @test all(row -> row.method === :posterior_rater_diagnostics, gmfrm_rater_diag)
+    @test all(row -> row.n_draws == 2, gmfrm_rater_diag)
+    @test all(row -> row.discrimination_modeled == true, gmfrm_rater_diag)
+    @test all(row -> row.discrimination_parameter === :rater_consistency,
+        gmfrm_rater_diag)
+    @test all(row -> row.discrimination_scale === :positive_consistency_multiplier,
+        gmfrm_rater_diag)
+    @test all(row -> row.fit_statistics_available == false, gmfrm_rater_diag)
+    @test all(row -> row.infit_mean === missing && row.outfit_mean === missing,
+        gmfrm_rater_diag)
+    @test all(row -> row.fit_flag === missing, gmfrm_rater_diag)
+    @test all(row -> row.caveat ===
+        :rater_diagnostics_screening_not_confirmatory,
+        gmfrm_rater_diag)
+    for row in gmfrm_rater_diag
+        level_index = findfirst(==(row.level), identified_data.rater_levels)
+        obs = findall(==(level_index), identified_data.rater)
+        severity_index = gmfrm_experimental_fit.design.blocks[:rater][level_index]
+        consistency_index =
+            gmfrm_experimental_fit.design.blocks[:rater_consistency][level_index]
+        severity_by_draw = [
+            Float64(gmfrm_experimental_fit.direct_draws[draw, severity_index])
+            for draw in 1:2
+        ]
+        consistency_by_draw = [
+            Float64(gmfrm_experimental_fit.direct_draws[draw, consistency_index])
+            for draw in 1:2
+        ]
+        residual_row = only(filter(candidate -> candidate.level == row.level,
+            gmfrm_residual_rows))
+        @test row.rater == row.level
+        @test row.rater_index == level_index
+        @test row.n_observations == length(obs)
+        @test row.severity_parameter_name ==
+            gmfrm_experimental_fit.design.parameter_names[severity_index]
+        @test row.discrimination_parameter_name ==
+            gmfrm_experimental_fit.design.parameter_names[consistency_index]
+        @test row.severity_mean ≈ sum(severity_by_draw) / length(severity_by_draw)
+        @test row.discrimination_mean ≈
+            sum(consistency_by_draw) / length(consistency_by_draw)
+        @test row.discrimination_lower <=
+            row.discrimination_median <= row.discrimination_upper
+        @test row.residual_mean ≈ residual_row.residual_mean
+        @test row.absolute_residual_mean ≈ residual_row.absolute_residual_mean
+        @test row.rmse_mean ≈ residual_row.rmse_mean
+        @test row.residual_flag === residual_row.flag
+    end
     gmfrm_replicated = posterior_predict(gmfrm_experimental_fit;
         draw_indices = [1, 2],
         rng = MersenneTwister(20260628))
@@ -10815,6 +10869,101 @@ end
     @test all(row -> row.infit_lower <= row.infit_median <= row.infit_upper, rater_fit)
     @test all(row -> row.outfit_lower <= row.outfit_median <= row.outfit_upper, rater_fit)
     @test fit_stats(design, result.draws[1:2, :]; by = :rater, interval = 0.8) == rater_fit
+
+    rater_diag = rater_diagnostics(result; draw_indices = [1, 2], interval = 0.8)
+    @test length(rater_diag) == length(data.rater_levels)
+    @test [row.level for row in rater_diag] == data.rater_levels
+    @test all(row -> row.facet === :rater, rater_diag)
+    @test all(row -> row.model_family === :mfrm, rater_diag)
+    @test all(row -> row.method === :posterior_rater_diagnostics, rater_diag)
+    @test all(row -> row.n_draws == 2, rater_diag)
+    @test all(row -> row.interval_probability == 0.8, rater_diag)
+    @test all(row -> row.lower_probability ≈ 0.1, rater_diag)
+    @test all(row -> row.upper_probability ≈ 0.9, rater_diag)
+    @test all(row -> row.caveat ===
+        :rater_diagnostics_screening_not_confirmatory,
+        rater_diag)
+    @test isequal(
+        rater_diagnostics(design, result.draws[1:2, :]; interval = 0.8),
+        rater_diag,
+    )
+    category_midpoint =
+        (minimum(data.category_levels) + maximum(data.category_levels)) / 2
+    central_distances = [abs(level - category_midpoint) for level in data.category_levels]
+    central_categories =
+        data.category_levels[findall(==(minimum(central_distances)), central_distances)]
+    for row in rater_diag
+        level_index = findfirst(==(row.level), data.rater_levels)
+        obs = findall(==(level_index), data.rater)
+        scores = Float64[data.score[observation] for observation in obs]
+        score_mean = sum(scores) / length(scores)
+        score_sd = sqrt(sum((score - score_mean)^2 for score in scores) /
+            (length(scores) - 1))
+        counts = [
+            count(observation -> data.category[observation] == category_index, obs)
+            for category_index in eachindex(data.category_levels)
+        ]
+        proportions = counts ./ length(obs)
+        rater_residual = only(filter(candidate -> candidate.level == row.level,
+            rater_residuals))
+        rater_fit_row = only(filter(candidate -> candidate.level == row.level,
+            rater_fit))
+        severity_by_draw = level_index == 1 ? [0.0, 0.0] :
+            [Float64(result.draws[draw, design.blocks[:rater][level_index - 1]])
+                for draw in 1:2]
+        @test row.rater == row.level
+        @test row.rater_index == level_index
+        @test row.n_observations == length(obs)
+        @test row.n_categories == length(data.category_levels)
+        @test row.n_categories_used == count(>(0), counts)
+        @test [entry.category for entry in row.category_counts] == data.category_levels
+        @test [entry.count for entry in row.category_counts] == counts
+        @test [entry.category for entry in row.category_proportions] == data.category_levels
+        @test [entry.proportion for entry in row.category_proportions] ≈ proportions
+        @test row.unused_categories ==
+            [data.category_levels[index] for index in eachindex(counts) if counts[index] == 0]
+        @test row.mean_score ≈ score_mean
+        @test row.score_sd ≈ score_sd
+        @test row.min_score ≈ minimum(scores)
+        @test row.max_score ≈ maximum(scores)
+        @test row.score_range ≈ maximum(scores) - minimum(scores)
+        @test row.scale_midpoint ≈ category_midpoint
+        @test row.central_categories == central_categories
+        @test row.central_category_count ==
+            sum(counts[findfirst(==(category), data.category_levels)]
+                for category in central_categories)
+        @test row.central_category_proportion ≈
+            row.central_category_count / length(obs)
+        @test row.severity_reference == (level_index == 1)
+        @test row.severity_parameter_name ===
+            (level_index == 1 ? missing :
+             design.parameter_names[design.blocks[:rater][level_index - 1]])
+        @test row.severity_mean ≈ sum(severity_by_draw) / length(severity_by_draw)
+        @test row.severity_lower <= row.severity_median <= row.severity_upper
+        @test row.discrimination_modeled == false
+        @test row.discrimination_parameter === missing
+        @test row.discrimination_parameter_name === missing
+        @test row.discrimination_scale === :not_modeled
+        @test row.discrimination_mean === missing
+        @test row.residual_mean ≈ rater_residual.residual_mean
+        @test row.absolute_residual_mean ≈ rater_residual.absolute_residual_mean
+        @test row.rmse_mean ≈ rater_residual.rmse_mean
+        @test row.residual_flag === rater_residual.flag
+        @test row.fit_statistics_available == true
+        @test row.infit_mean ≈ rater_fit_row.infit_mean
+        @test row.outfit_mean ≈ rater_fit_row.outfit_mean
+        @test row.fit_flag === rater_fit_row.flag
+        @test row.flag === (rater_residual.flag !== :ok ? rater_residual.flag :
+            rater_fit_row.flag)
+    end
+    sparse_rater_diag = rater_diagnostics(result;
+        draw_indices = [1, 2],
+        min_n = data.n + 1)
+    @test all(row -> row.flag === :below_min_n, sparse_rater_diag)
+    @test_throws ArgumentError rater_diagnostics(result; interval = 1.0)
+    @test_throws ArgumentError rater_diagnostics(result; min_n = 0)
+    @test_throws ArgumentError rater_diagnostics(result; draw_indices = [0])
+    @test_throws ArgumentError rater_diagnostics(design, result.draws[1:2, 1:end-1])
 
     item_fit = fit_stats(result; by = :item, draw_indices = [1, 2])
     @test [row.level for row in item_fit] == data.item_levels
