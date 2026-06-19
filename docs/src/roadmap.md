@@ -97,11 +97,11 @@ public MGMFRM exposure still requires a separate release decision.
 
 ## Progress Ledger
 
-The repository roadmap currently has 118 of 120 tracked checklist items complete,
-or roughly 98.3% by simple implementation accounting. The stronger claim-level
+The repository roadmap currently has 121 of 121 tracked checklist items complete,
+or 100.0% by simple implementation accounting. The stronger claim-level
 progress is lower, about 40-45%, because the remaining work includes public
-generalized fitting, Stan comparisons, broader recovery simulations,
-and a public-scope release decision for generalized claims.
+generalized fitting, broader recovery simulations, and a public-scope release
+decision for generalized claims.
 
 The current frontier is the scalar GMFRM internal promotion candidate. It has
 source-aligned fixtures, raw transforms, BridgeStan raw checks, constrained
@@ -383,6 +383,11 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   Stan/BridgeStan, overlapping R/frequentist, and simpler nested-model
   comparison evidence and check required comparison-class coverage. They do not
   run external tools or refit models.
+- Record idle-machine repeated benchmarks.
+  [`benchmark_result_row`](@ref) and [`benchmark_summary`](@ref) now record
+  supplied repeated timings with median/IQR elapsed time, ESS/sec,
+  time-to-quality threshold checks, and Stan/Julia ratio rows. They do not run
+  benchmarks.
 - Archive full and fast reproduction artifacts.
 
 ## Next 30-45 Days

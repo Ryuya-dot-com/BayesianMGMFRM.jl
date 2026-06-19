@@ -355,11 +355,11 @@ rater-discrimination candidate.
 
 The roadmap has two different progress notions:
 
-- **Checklist progress**: currently 118 of 120 tracked roadmap checkboxes are
-  complete, or roughly 98.3%. This is useful for implementation accounting.
+- **Checklist progress**: currently 121 of 121 tracked roadmap checkboxes are
+  complete, or 100.0%. This is useful for implementation accounting.
 - **Claim progress**: broad v1 claims are closer to 40-45% complete because
-  the remaining items include public generalized fitting, Stan comparisons,
-  broader recovery simulations and a public-scope release decision.
+  the remaining claim-level work includes public generalized fitting, broader
+  recovery simulations, and a public-scope release decision.
 
 The current frontier is the scalar GMFRM internal promotion candidate. It now
 has source-aligned fixtures, raw transforms, BridgeStan raw checks, constrained
@@ -893,8 +893,12 @@ TODO:
   nested-model comparison evidence and check required comparison-class coverage.
   They do not run external tools or refit models.]
 - [x] Secure and document at least one real rater-mediated case study.
-- [ ] Run idle-machine repeated benchmarks with median/IQR, ESS/sec,
+- [x] Run idle-machine repeated benchmarks with median/IQR, ESS/sec,
   Stan/Julia ratios, and time-to-quality thresholds.
+  [`benchmark_result_row` and `benchmark_summary` now record repeated
+  idle-machine timing rows with median/IQR, ESS/sec, time-to-quality threshold
+  checks, and Stan/Julia elapsed-time and ESS/sec ratios. They do not run
+  benchmarks.]
 - [x] Archive local full and fast reproduction scripts, manifests, seeds,
   hashes, fixture-generation commands, and verification commands without any
   publication or registration action.

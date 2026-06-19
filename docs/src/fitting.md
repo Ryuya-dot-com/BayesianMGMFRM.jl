@@ -262,6 +262,11 @@ Stan/BridgeStan models, overlapping R/frequentist tools, or simpler nested
 models, and `comparison_evidence_summary` checks whether those required
 comparison classes are present and passing. These helpers do not run external
 tools or refit models.
+`benchmark_result_row` summarizes supplied repeated idle-machine timings with
+median/IQR elapsed time, ESS/sec, and time-to-quality thresholds, while
+`benchmark_summary` checks required Julia/Stan engine coverage and reports
+Stan/Julia elapsed-time and ESS/sec ratios. These helpers record benchmark
+evidence; they do not run benchmarks.
 Observation-level
 predictive probabilities, expected scores,
 variances, and residuals are exposed as the substrate for calibration,

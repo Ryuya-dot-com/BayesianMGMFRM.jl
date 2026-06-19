@@ -6570,6 +6570,325 @@ function comparison_evidence_summary(row::NamedTuple, rows::NamedTuple...;
     return comparison_evidence_summary([row; collect(rows)]; required_classes)
 end
 
+const _DEFAULT_BENCHMARK_REQUIRED_ENGINES = (
+    :julia,
+    :stan,
+)
+
+function _benchmark_engine(engine::Symbol)
+    engine in (:julia, :advancedhmc, :turing, :native_julia) && return :julia
+    engine in (:stan, :cmdstan, :bridge_stan, :bridgestan) && return :stan
+    return engine
+end
+
+function _benchmark_engine_tuple(engines)
+    out = Symbol[]
+    for engine in engines
+        engine isa Symbol ||
+            throw(ArgumentError("benchmark engines must be Symbols"))
+        canonical = _benchmark_engine(engine)
+        canonical in out || push!(out, canonical)
+    end
+    return Tuple(out)
+end
+
+_benchmark_engine_tuple(engine::Symbol) = (_benchmark_engine(engine),)
+
+function _benchmark_numeric_tuple(values, name::Symbol; minimum::Real = 0)
+    out = if values isa Number
+        (values,)
+    else
+        Tuple(values)
+    end
+    isempty(out) &&
+        throw(ArgumentError("$name must contain at least one value"))
+    checked = Float64[]
+    for value in out
+        numeric = Float64(value)
+        isfinite(numeric) ||
+            throw(ArgumentError("$name values must be finite"))
+        numeric >= Float64(minimum) ||
+            throw(ArgumentError("$name values must be >= $minimum"))
+        push!(checked, numeric)
+    end
+    return Tuple(checked)
+end
+
+function _benchmark_iqr(values::Tuple)
+    sorted = sort(collect(Float64, values))
+    return _quantile_sorted(sorted, 0.75) - _quantile_sorted(sorted, 0.25)
+end
+
+function _benchmark_median(values::Tuple)
+    return _quantile_sorted(sort(collect(Float64, values)), 0.5)
+end
+
+function _benchmark_optional_threshold(value)
+    value === nothing && return missing
+    return _benchmark_numeric_tuple(value, :time_to_quality_threshold_seconds)[1]
+end
+
+"""
+    benchmark_result_row(; benchmark, engine, model, elapsed_seconds,
+        effective_sample_sizes = nothing, time_to_quality_seconds = elapsed_seconds,
+        time_to_quality_threshold_seconds = nothing, idle_machine = true,
+        target_quality = :predeclared_quality_gate, hardware = nothing,
+        software = nothing, artifact = nothing)
+
+Summarize one repeated benchmark result row. `elapsed_seconds` must contain one
+or more repeated timings and is summarized with median and IQR. When
+`effective_sample_sizes` is supplied, the row also reports median/IQR ESS/sec.
+`time_to_quality_seconds` records repeated time-to-quality measurements, checked
+against `time_to_quality_threshold_seconds` when provided.
+
+This helper records benchmark evidence from an idle-machine run; it does not run
+the benchmark itself or enforce hardware isolation.
+"""
+function benchmark_result_row(;
+        benchmark::Symbol,
+        engine::Symbol,
+        model::Symbol,
+        elapsed_seconds,
+        effective_sample_sizes = nothing,
+        time_to_quality_seconds = elapsed_seconds,
+        time_to_quality_threshold_seconds = nothing,
+        idle_machine::Bool = true,
+        target_quality::Symbol = :predeclared_quality_gate,
+        hardware = nothing,
+        software = nothing,
+        artifact = nothing)
+    elapsed = _benchmark_numeric_tuple(elapsed_seconds, :elapsed_seconds; minimum = eps())
+    n_repetitions = length(elapsed)
+    time_to_quality = _benchmark_numeric_tuple(
+        time_to_quality_seconds,
+        :time_to_quality_seconds;
+        minimum = eps(),
+    )
+    length(time_to_quality) == n_repetitions ||
+        throw(ArgumentError("time_to_quality_seconds must have the same length as elapsed_seconds"))
+    threshold = _benchmark_optional_threshold(time_to_quality_threshold_seconds)
+
+    ess_values = effective_sample_sizes === nothing ?
+        nothing :
+        _benchmark_numeric_tuple(effective_sample_sizes, :effective_sample_sizes)
+    if ess_values !== nothing && length(ess_values) != n_repetitions
+        throw(ArgumentError("effective_sample_sizes must have the same length as elapsed_seconds"))
+    end
+    ess_per_second = ess_values === nothing ?
+        nothing :
+        Tuple(ess_values[index] / elapsed[index] for index in eachindex(elapsed))
+    time_to_quality_median = _benchmark_median(time_to_quality)
+    threshold_passed = threshold === missing ?
+        missing :
+        time_to_quality_median <= threshold
+    status = !idle_machine ? :not_idle :
+        threshold_passed === false ? :failed :
+        threshold_passed === true ? :passed :
+        :recorded
+
+    return (;
+        schema = "bayesianmgmfrm.benchmark_result_row.v1",
+        object = :benchmark_result_row,
+        benchmark,
+        engine = _benchmark_engine(engine),
+        reported_engine = engine,
+        model,
+        n_repetitions,
+        idle_machine,
+        target_quality,
+        elapsed_seconds = elapsed,
+        elapsed_median_seconds = _benchmark_median(elapsed),
+        elapsed_iqr_seconds = _benchmark_iqr(elapsed),
+        effective_sample_sizes = ess_values === nothing ? missing : ess_values,
+        ess_per_second = ess_per_second === nothing ? missing : ess_per_second,
+        ess_per_second_median =
+            ess_per_second === nothing ? missing : _benchmark_median(ess_per_second),
+        ess_per_second_iqr =
+            ess_per_second === nothing ? missing : _benchmark_iqr(ess_per_second),
+        time_to_quality_seconds = time_to_quality,
+        time_to_quality_median_seconds = time_to_quality_median,
+        time_to_quality_iqr_seconds = _benchmark_iqr(time_to_quality),
+        time_to_quality_threshold_seconds = threshold,
+        time_to_quality_passed = threshold_passed,
+        status,
+        hardware,
+        software,
+        artifact,
+        caveat = :local_idle_machine_benchmark_not_portable,
+    )
+end
+
+function _benchmark_summary_row_check(row::NamedTuple)
+    required = (
+        :benchmark,
+        :engine,
+        :model,
+        :n_repetitions,
+        :idle_machine,
+        :elapsed_median_seconds,
+        :elapsed_iqr_seconds,
+        :ess_per_second_median,
+        :time_to_quality_median_seconds,
+        :time_to_quality_passed,
+        :status,
+    )
+    fields = propertynames(row)
+    missing_fields = [field for field in required if !(field in fields)]
+    isempty(missing_fields) ||
+        throw(ArgumentError("benchmark row is missing fields: $(join(missing_fields, ", "))"))
+    return nothing
+end
+
+function _benchmark_median_field(rows::AbstractVector, field::Symbol)
+    values = Float64[]
+    for row in rows
+        value = getproperty(row, field)
+        value === missing && continue
+        push!(values, Float64(value))
+    end
+    isempty(values) && return missing
+    return _benchmark_median(Tuple(values))
+end
+
+function _benchmark_engine_rows(rows::AbstractVector, engine::Symbol)
+    return [row for row in rows if _benchmark_engine(row.engine) === engine]
+end
+
+function _benchmark_ratio_row(benchmark, rows::AbstractVector, required_engines::Tuple,
+        min_repetitions::Int)
+    observed_engines = _sensitivity_unique_tuple(_benchmark_engine(row.engine) for row in rows)
+    missing_required_engines = Tuple(engine for engine in required_engines
+        if !(engine in observed_engines))
+    julia_rows = _benchmark_engine_rows(rows, :julia)
+    stan_rows = _benchmark_engine_rows(rows, :stan)
+    julia_elapsed = isempty(julia_rows) ?
+        missing :
+        _benchmark_median_field(julia_rows, :elapsed_median_seconds)
+    stan_elapsed = isempty(stan_rows) ?
+        missing :
+        _benchmark_median_field(stan_rows, :elapsed_median_seconds)
+    julia_ess = isempty(julia_rows) ?
+        missing :
+        _benchmark_median_field(julia_rows, :ess_per_second_median)
+    stan_ess = isempty(stan_rows) ?
+        missing :
+        _benchmark_median_field(stan_rows, :ess_per_second_median)
+    stan_to_julia_elapsed_ratio =
+        julia_elapsed === missing || stan_elapsed === missing ?
+        missing :
+        stan_elapsed / julia_elapsed
+    julia_to_stan_ess_per_second_ratio =
+        julia_ess === missing || stan_ess === missing || iszero(stan_ess) ?
+        missing :
+        julia_ess / stan_ess
+    rows_with_few_repetitions =
+        count(row -> Int(row.n_repetitions) < min_repetitions, rows)
+    failed_time_to_quality =
+        count(row -> row.time_to_quality_passed === false, rows)
+    all_idle = all(row -> row.idle_machine === true, rows)
+    status = isempty(missing_required_engines) &&
+        rows_with_few_repetitions == 0 &&
+        failed_time_to_quality == 0 &&
+        all_idle ? :complete : :incomplete
+
+    return (;
+        benchmark,
+        status,
+        n_rows = length(rows),
+        observed_engines,
+        missing_required_engines,
+        rows_with_few_repetitions,
+        min_repetitions,
+        all_idle,
+        failed_time_to_quality,
+        julia_elapsed_median_seconds = julia_elapsed,
+        stan_elapsed_median_seconds = stan_elapsed,
+        stan_to_julia_elapsed_ratio,
+        julia_ess_per_second_median = julia_ess,
+        stan_ess_per_second_median = stan_ess,
+        julia_to_stan_ess_per_second_ratio,
+    )
+end
+
+"""
+    benchmark_summary(rows; required_engines = (:julia, :stan),
+        min_repetitions = 3)
+    benchmark_summary(row, rows...; required_engines = ..., min_repetitions = 3)
+
+Summarize repeated idle-machine benchmark rows. The summary checks required
+engine coverage, minimum repetitions, idle-machine flags, time-to-quality
+threshold failures, and per-benchmark Stan/Julia elapsed-time and ESS/sec ratios.
+It aggregates recorded benchmark rows; it does not run benchmarks.
+"""
+function benchmark_summary(rows::AbstractVector;
+        required_engines = _DEFAULT_BENCHMARK_REQUIRED_ENGINES,
+        min_repetitions::Integer = 3)
+    isempty(rows) &&
+        throw(ArgumentError("at least one benchmark row is required"))
+    checked_min_repetitions =
+        _simulation_positive_integer(min_repetitions, :min_repetitions)
+    for row in rows
+        row isa NamedTuple ||
+            throw(ArgumentError("benchmark summary expects NamedTuple rows"))
+        _benchmark_summary_row_check(row)
+    end
+    checked_required = _benchmark_engine_tuple(required_engines)
+    observed_engines = _sensitivity_unique_tuple(_benchmark_engine(row.engine) for row in rows)
+    missing_required_engines = Tuple(engine for engine in checked_required
+        if !(engine in observed_engines))
+    benchmarks = _sensitivity_unique_tuple(row.benchmark for row in rows)
+    benchmark_rows = NamedTuple[]
+    for benchmark in benchmarks
+        benchmark_specific = [row for row in rows if row.benchmark === benchmark]
+        push!(benchmark_rows, _benchmark_ratio_row(
+            benchmark,
+            benchmark_specific,
+            checked_required,
+            checked_min_repetitions,
+        ))
+    end
+    incomplete_benchmarks = Tuple(row.benchmark for row in benchmark_rows
+        if row.status !== :complete)
+    rows_with_few_repetitions =
+        count(row -> Int(row.n_repetitions) < checked_min_repetitions, rows)
+    failed_time_to_quality =
+        count(row -> row.time_to_quality_passed === false, rows)
+    all_idle = all(row -> row.idle_machine === true, rows)
+    passed = isempty(missing_required_engines) &&
+        isempty(incomplete_benchmarks) &&
+        rows_with_few_repetitions == 0 &&
+        failed_time_to_quality == 0 &&
+        all_idle
+
+    return (;
+        schema = "bayesianmgmfrm.benchmark_summary.v1",
+        object = :benchmark_summary,
+        benchmark_scope = :idle_machine_repeated_benchmarks,
+        coverage_contract = :required_engines_repeated_idle_and_quality_checked,
+        required_engines = checked_required,
+        observed_engines,
+        missing_required_engines,
+        n_rows = length(rows),
+        n_benchmarks = length(benchmarks),
+        min_repetitions = checked_min_repetitions,
+        rows_with_few_repetitions,
+        all_idle,
+        failed_time_to_quality,
+        incomplete_benchmarks,
+        benchmark_rows = Tuple(benchmark_rows),
+        passed,
+        status = passed ? :complete : :incomplete,
+        caveat = :local_benchmark_summary_not_portable_performance_claim,
+        next_gate = :external_release_decision,
+    )
+end
+
+function benchmark_summary(row::NamedTuple, rows::NamedTuple...;
+        required_engines = _DEFAULT_BENCHMARK_REQUIRED_ENGINES,
+        min_repetitions::Integer = 3)
+    return benchmark_summary([row; collect(rows)]; required_engines, min_repetitions)
+end
+
 function _draw_indices(fit, ndraws::Union{Nothing,Int}, rng::AbstractRNG)
     total = size(fit.draws, 1)
     if ndraws === nothing

@@ -73,7 +73,8 @@ The current public slice focuses on:
   [`sensitivity_comparison`](@ref), with declared-axis coverage audited by
   [`sensitivity_comparison_summary`](@ref), and cross-tool evidence coverage
   audited by [`comparison_evidence_row`](@ref) and
-  [`comparison_evidence_summary`](@ref);
+  [`comparison_evidence_summary`](@ref), plus repeated benchmark summaries via
+  [`benchmark_result_row`](@ref) and [`benchmark_summary`](@ref);
 - fit-independent reporting data via [`coverage_summary`](@ref),
   [`coverage_matrix`](@ref), [`rater_overlap`](@ref),
   [`anchor_linking_summary`](@ref), [`domain_compilation_summary`](@ref),
