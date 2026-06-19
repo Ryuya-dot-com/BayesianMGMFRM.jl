@@ -64,7 +64,8 @@ without changing the data layer.
 14. Inspect posterior fair-average expected-score rows with
    [`fair_average_summary`](@ref), separation/reliability rows with
    [`separation_reliability_summary`](@ref), posterior residual summaries with
-   [`residual_summary`](@ref), and facet-level infit/outfit with
+   [`residual_summary`](@ref), rater diagnostics with
+   [`rater_diagnostics`](@ref), and facet-level infit/outfit with
    [`fit_stats`](@ref).
 15. Compare same-observation candidate models with [`waic`](@ref), raw
     importance-sampling [`loo`](@ref), and [`compare_models`](@ref); inspect
@@ -122,9 +123,10 @@ not fitted likelihood terms.
 Until those pieces are added, treat [`waic`](@ref), [`waic_diagnostics`](@ref),
 [`loo`](@ref), [`loo_diagnostics`](@ref), [`kfold`](@ref),
 [`compare_models`](@ref), [`compare_kfold`](@ref),
-[`posterior_predictive_check`](@ref), [`calibration_table`](@ref), and
-[`fit_stats`](@ref) as small-model workflow scaffolding rather than a complete
-production Bayesian model-comparison stack. The `relative_weight` returned by
+[`posterior_predictive_check`](@ref), [`calibration_table`](@ref),
+[`fit_stats`](@ref), and [`rater_diagnostics`](@ref) as small-model workflow
+scaffolding rather than a complete production Bayesian model-comparison stack.
+The `relative_weight` returned by
 [`compare_models`](@ref) or [`compare_kfold`](@ref) is an Akaike-style weight
 for a declared prediction target, not a posterior model probability.
 `compare_models` checks the comparison contract up front: observation data and

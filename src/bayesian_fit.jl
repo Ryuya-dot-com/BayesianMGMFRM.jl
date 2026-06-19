@@ -7322,6 +7322,394 @@ function residual_summary(fit::GMFRMFit;
         min_n)
 end
 
+function _check_rater_diagnostic_draws(design::FacetDesign,
+        draws::AbstractMatrix,
+        caller::AbstractString)
+    size(draws, 1) >= 1 ||
+        throw(ArgumentError("$caller requires at least one posterior draw"))
+    size(draws, 2) == length(design.parameter_names) ||
+        throw(ArgumentError("draws has $(size(draws, 2)) column(s); expected $(length(design.parameter_names))"))
+    all(value -> isfinite(Float64(value)), draws) ||
+        throw(ArgumentError("draws contain non-finite values"))
+    return draws
+end
+
+function _category_use_rows(data::FacetData,
+        counts::AbstractVector{<:Integer},
+        n_observations::Int)
+    category_counts = [
+        (category = data.category_levels[index], count = Int(counts[index]))
+        for index in eachindex(data.category_levels)
+    ]
+    category_proportions = [
+        (category = data.category_levels[index],
+            proportion = n_observations == 0 ? NaN : counts[index] / n_observations)
+        for index in eachindex(data.category_levels)
+    ]
+    unused_categories = [
+        data.category_levels[index]
+        for index in eachindex(data.category_levels)
+        if counts[index] == 0
+    ]
+    return category_counts, category_proportions, unused_categories
+end
+
+function _central_category_summary(data::FacetData,
+        counts::AbstractVector{<:Integer},
+        n_observations::Int)
+    score_minimum = minimum(data.category_levels)
+    score_maximum = maximum(data.category_levels)
+    midpoint = (Float64(score_minimum) + Float64(score_maximum)) / 2
+    distances = [abs(Float64(level) - midpoint) for level in data.category_levels]
+    closest = minimum(distances)
+    central_indices = findall(==(closest), distances)
+    central_categories = [data.category_levels[index] for index in central_indices]
+    central_count = sum(counts[index] for index in central_indices)
+    return (;
+        scale_midpoint = midpoint,
+        central_categories,
+        central_category_count = Int(central_count),
+        central_category_proportion =
+            n_observations == 0 ? NaN : central_count / n_observations,
+    )
+end
+
+function _rater_observed_diagnostic_summary(data::FacetData, rater_index::Int)
+    observations = findall(==(rater_index), data.rater)
+    n_observations = length(observations)
+    counts = zeros(Int, length(data.category_levels))
+    for observation in observations
+        counts[data.category[observation]] += 1
+    end
+    category_counts, category_proportions, unused_categories =
+        _category_use_rows(data, counts, n_observations)
+    central = _central_category_summary(data, counts, n_observations)
+    score_values = [Float64(data.score[observation]) for observation in observations]
+    score_mean = _mean_at_indices(data.score, observations)
+    score_sd = length(score_values) >= 2 ?
+        sqrt(_sample_variance_or_nan(score_values)) : NaN
+    score_minimum = isempty(score_values) ? missing : minimum(score_values)
+    score_maximum = isempty(score_values) ? missing : maximum(score_values)
+    score_range = isempty(score_values) ? missing : score_maximum - score_minimum
+
+    return (;
+        n_observations,
+        n_categories = length(data.category_levels),
+        n_categories_used = count(>(0), counts),
+        category_counts,
+        category_proportions,
+        unused_categories,
+        mean_score = score_mean,
+        score_sd,
+        min_score = score_minimum,
+        max_score = score_maximum,
+        score_range,
+        central.scale_midpoint,
+        central.central_categories,
+        central.central_category_count,
+        central.central_category_proportion,
+    )
+end
+
+function _rater_mfrm_severity_draws(design::FacetDesign,
+        draws::AbstractMatrix,
+        rater_index::Int)
+    values = Vector{Float64}(undef, size(draws, 1))
+    for draw in axes(draws, 1)
+        values[draw] = Float64(_reference_value(
+            @view(draws[draw, :]),
+            design.blocks[:rater],
+            rater_index,
+        ))
+    end
+    return values
+end
+
+function _rater_direct_block_draws(design::FacetDesign,
+        direct_draws::AbstractMatrix,
+        block::Symbol,
+        rater_index::Int)
+    haskey(design.blocks, block) || return nothing
+    block_range = design.blocks[block]
+    1 <= rater_index <= length(block_range) || return nothing
+    values = Vector{Float64}(undef, size(direct_draws, 1))
+    column = block_range[rater_index]
+    for draw in axes(direct_draws, 1)
+        values[draw] = Float64(direct_draws[draw, column])
+    end
+    return values
+end
+
+function _maybe_finite_draw_summary(values,
+        lower_probability::Float64,
+        upper_probability::Float64)
+    values === nothing &&
+        return (mean = missing, median = missing, lower = missing, upper = missing)
+    return _finite_draw_summary(values, lower_probability, upper_probability)
+end
+
+function _rater_diagnostics_flag(n_observations::Int,
+        min_n::Int,
+        residual_flag,
+        fit_flag)
+    n_observations < min_n && return :below_min_n
+    residual_flag !== :ok && return residual_flag
+    fit_flag !== missing && fit_flag !== :ok && return fit_flag
+    return :ok
+end
+
+function _row_by_level(rows)
+    return Dict(row.level => row for row in rows)
+end
+
+function _rater_diagnostic_row(;
+        data::FacetData,
+        model_family::Symbol,
+        level_index::Int,
+        level,
+        n_draws::Int,
+        interval::Real,
+        lower_probability::Float64,
+        upper_probability::Float64,
+        severity_parameter_name,
+        severity_values,
+        discrimination_modeled::Bool,
+        discrimination_parameter,
+        discrimination_parameter_name,
+        discrimination_scale::Symbol,
+        discrimination_values,
+        residual_row,
+        fit_row,
+        fit_statistics_available::Bool,
+        min_n::Int)
+    observed = _rater_observed_diagnostic_summary(data, level_index)
+    severity_summary =
+        _finite_draw_summary(severity_values, lower_probability, upper_probability)
+    discrimination_summary =
+        _maybe_finite_draw_summary(
+            discrimination_values,
+            lower_probability,
+            upper_probability,
+        )
+    fit_flag = fit_statistics_available ? fit_row.flag : missing
+    flag = _rater_diagnostics_flag(
+        observed.n_observations,
+        min_n,
+        residual_row.flag,
+        fit_flag,
+    )
+
+    return (;
+        facet = :rater,
+        level,
+        rater = level,
+        rater_index = level_index,
+        model_family,
+        method = :posterior_rater_diagnostics,
+        n_draws,
+        interval_probability = Float64(interval),
+        lower_probability,
+        upper_probability,
+        observed.n_observations,
+        observed.n_categories,
+        observed.n_categories_used,
+        observed.category_counts,
+        observed.category_proportions,
+        observed.unused_categories,
+        observed.mean_score,
+        observed.score_sd,
+        observed.min_score,
+        observed.max_score,
+        observed.score_range,
+        observed.scale_midpoint,
+        observed.central_categories,
+        observed.central_category_count,
+        observed.central_category_proportion,
+        severity_parameter_name,
+        severity_reference = severity_parameter_name === missing,
+        severity_mean = severity_summary.mean,
+        severity_median = severity_summary.median,
+        severity_lower = severity_summary.lower,
+        severity_upper = severity_summary.upper,
+        discrimination_modeled,
+        discrimination_parameter,
+        discrimination_parameter_name,
+        discrimination_scale,
+        discrimination_mean = discrimination_summary.mean,
+        discrimination_median = discrimination_summary.median,
+        discrimination_lower = discrimination_summary.lower,
+        discrimination_upper = discrimination_summary.upper,
+        residual_mean = residual_row.residual_mean,
+        residual_median = residual_row.residual_median,
+        residual_lower = residual_row.residual_lower,
+        residual_upper = residual_row.residual_upper,
+        absolute_residual_mean = residual_row.absolute_residual_mean,
+        absolute_residual_median = residual_row.absolute_residual_median,
+        absolute_residual_lower = residual_row.absolute_residual_lower,
+        absolute_residual_upper = residual_row.absolute_residual_upper,
+        rmse_mean = residual_row.rmse_mean,
+        rmse_median = residual_row.rmse_median,
+        rmse_lower = residual_row.rmse_lower,
+        rmse_upper = residual_row.rmse_upper,
+        residual_interval_excludes_zero = residual_row.residual_interval_excludes_zero,
+        residual_flag = residual_row.flag,
+        fit_statistics_available,
+        infit_mean = fit_statistics_available ? fit_row.infit_mean : missing,
+        infit_median = fit_statistics_available ? fit_row.infit_median : missing,
+        infit_lower = fit_statistics_available ? fit_row.infit_lower : missing,
+        infit_upper = fit_statistics_available ? fit_row.infit_upper : missing,
+        outfit_mean = fit_statistics_available ? fit_row.outfit_mean : missing,
+        outfit_median = fit_statistics_available ? fit_row.outfit_median : missing,
+        outfit_lower = fit_statistics_available ? fit_row.outfit_lower : missing,
+        outfit_upper = fit_statistics_available ? fit_row.outfit_upper : missing,
+        fit_flag,
+        caveat = :rater_diagnostics_screening_not_confirmatory,
+        flag,
+    )
+end
+
+"""
+    rater_diagnostics(fit::MFRMFit; interval = 0.95, min_n = 1,
+        ndraws = nothing, draw_indices = nothing, rng = Random.default_rng())
+    rater_diagnostics(fit::GMFRMFit; interval = 0.95, min_n = 1,
+        ndraws = nothing, draw_indices = nothing, rng = Random.default_rng())
+    rater_diagnostics(design::FacetDesign, draws; interval = 0.95, min_n = 1)
+
+Return one posterior diagnostic row per rater. Rows combine observed category
+use, score range and central-category use, posterior rater severity intervals,
+posterior residual summaries, and MFRM infit/outfit summaries where available.
+For the fit-supported minimal MFRM, rater discrimination is not modeled and the
+discrimination fields are marked missing. For the guarded scalar GMFRM
+experimental fit object, the `rater_consistency` multiplier is summarized as
+the current positive rater-discrimination/consistency parameter; infit/outfit
+statistics are not yet available for that experimental path.
+"""
+function rater_diagnostics(design::FacetDesign,
+        draws::AbstractMatrix;
+        interval::Real = 0.95,
+        min_n::Int = 1)
+    _check_fit_supported_mfrm(design, "rater_diagnostics")
+    min_n >= 1 || throw(ArgumentError("min_n must be positive"))
+    _check_rater_diagnostic_draws(design, draws, "rater_diagnostics")
+    lower_probability, upper_probability = _interval_probabilities(interval)
+    data = design.spec.data
+    residual_by_level = _row_by_level(residual_summary(design, draws;
+        by = :rater,
+        interval,
+        min_n))
+    fit_by_level = _row_by_level(fit_stats(design, draws;
+        by = :rater,
+        interval,
+        min_n))
+    rows = NamedTuple[]
+
+    for (level_index, level) in pairs(data.rater_levels)
+        severity_values = _rater_mfrm_severity_draws(design, draws, level_index)
+        severity_parameter_name = level_index == 1 ? missing :
+            design.parameter_names[design.blocks[:rater][level_index - 1]]
+        push!(rows, _rater_diagnostic_row(;
+            data,
+            model_family = :mfrm,
+            level_index,
+            level,
+            n_draws = size(draws, 1),
+            interval,
+            lower_probability,
+            upper_probability,
+            severity_parameter_name,
+            severity_values,
+            discrimination_modeled = false,
+            discrimination_parameter = missing,
+            discrimination_parameter_name = missing,
+            discrimination_scale = :not_modeled,
+            discrimination_values = nothing,
+            residual_row = residual_by_level[level],
+            fit_row = fit_by_level[level],
+            fit_statistics_available = true,
+            min_n,
+        ))
+    end
+    return rows
+end
+
+function rater_diagnostics(fit::MFRMFit;
+        interval::Real = 0.95,
+        min_n::Int = 1,
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    return rater_diagnostics(fit.design, fit.draws[indices, :];
+        interval,
+        min_n)
+end
+
+function rater_diagnostics(fit::GMFRMFit;
+        interval::Real = 0.95,
+        min_n::Int = 1,
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    min_n >= 1 || throw(ArgumentError("min_n must be positive"))
+    lower_probability, upper_probability = _interval_probabilities(interval)
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    direct_draws = _gmfrm_direct_draws_for_prediction(
+        fit.design,
+        fit.direct_draws[indices, :],
+        "rater_diagnostics",
+    )
+    data = fit.design.spec.data
+    residual_by_level = _row_by_level(residual_summary(fit;
+        by = :rater,
+        interval,
+        min_n,
+        draw_indices = indices))
+    rows = NamedTuple[]
+
+    for (level_index, level) in pairs(data.rater_levels)
+        severity_values =
+            _rater_direct_block_draws(fit.design, direct_draws, :rater, level_index)
+        severity_values === nothing &&
+            throw(ArgumentError("rater_diagnostics requires a direct rater block"))
+        severity_index = fit.design.blocks[:rater][level_index]
+        discrimination_values = _rater_direct_block_draws(
+            fit.design,
+            direct_draws,
+            :rater_consistency,
+            level_index,
+        )
+        discrimination_modeled = discrimination_values !== nothing
+        discrimination_index = discrimination_modeled ?
+            fit.design.blocks[:rater_consistency][level_index] : missing
+
+        push!(rows, _rater_diagnostic_row(;
+            data,
+            model_family = :gmfrm,
+            level_index,
+            level,
+            n_draws = size(direct_draws, 1),
+            interval,
+            lower_probability,
+            upper_probability,
+            severity_parameter_name = fit.design.parameter_names[severity_index],
+            severity_values,
+            discrimination_modeled,
+            discrimination_parameter = discrimination_modeled ?
+                :rater_consistency : missing,
+            discrimination_parameter_name = discrimination_modeled ?
+                fit.design.parameter_names[discrimination_index] : missing,
+            discrimination_scale = discrimination_modeled ?
+                :positive_consistency_multiplier : :not_modeled,
+            discrimination_values,
+            residual_row = residual_by_level[level],
+            fit_row = missing,
+            fit_statistics_available = false,
+            min_n,
+        ))
+    end
+    return rows
+end
+
 function _sample_category_index(rng::AbstractRNG, probs::AbstractVector{Float64})
     u = rand(rng)
     cumulative = 0.0

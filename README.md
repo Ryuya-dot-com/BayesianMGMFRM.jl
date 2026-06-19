@@ -303,6 +303,8 @@ Current public API:
   person, rater, or item reports using a balanced reference grid.
 - `separation_reliability_summary`: posterior separation and empirical
   reliability intervals for person, rater, and item measures.
+- `rater_diagnostics`: report-ready rater severity, category-use,
+  range/centrality, residual, and available discrimination diagnostics.
 - `residual_summary`: observation- or facet-level posterior expected-score and
   residual summaries with residual-screening caveat flags.
 - `fit_stats`: posterior summaries of infit and outfit mean-square statistics
