@@ -92,8 +92,8 @@ MGMFRM fit entrypoint.
 
 ## Progress Ledger
 
-The repository roadmap currently has 93 of 120 tracked checklist items complete,
-or roughly 77.5% by simple implementation accounting. The stronger claim-level
+The repository roadmap currently has 94 of 120 tracked checklist items complete,
+or roughly 78.3% by simple implementation accounting. The stronger claim-level
 progress is lower, about 40-45%, because the remaining work includes public
 generalized fitting, Stan comparisons, broader recovery simulations,
 and guarded local MGMFRM fit entrypoint work.
@@ -281,7 +281,7 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
 - Add RDS-like serialized fit caches with initialization-vector hashes and
   explicit cache-key invalidation checks. [Done for current fit object]
 - Add artifact content hashes and long-term archive manifests for exported
-  cache bundles.
+  cache bundles. [Done for current fit artifact/cache records]
 - Expose log likelihood, log prior, and log posterior separately.
 - Add AD gradient checks and fixture-only HMC smoke tests for internal
   GMFRM/MGMFRM raw targets before broad generalized fitting. [ForwardDiff

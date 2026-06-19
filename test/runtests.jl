@@ -12,6 +12,7 @@ import BayesianMGMFRM
 import LogDensityProblemsAD
 using BayesianMGMFRM:
     FacetData,
+    artifact_content_hash,
     calibration_plot_data,
     cached_fit,
     compare_models,
@@ -22,6 +23,7 @@ using BayesianMGMFRM:
     design_row_table,
     expected_scores,
     fit,
+    fit_archive_manifest,
     fit_artifact,
     fit_cache_key,
     fit_stats,
@@ -6112,8 +6114,8 @@ end
 
 @testset "public docstrings" begin
     for name in (:FacetData, :ValidationIssue, :ValidationReport, :FacetSpec, :FacetDesign,
-            :MFRMPrior, :MFRMLogDensity, :MFRMFit, :GMFRMFit, :cached_fit, :calibration_plot_data,
-            :constraint_table, :expected_scores, :fit, :fit_artifact, :fit_cache_key, :fit_metadata, :fit_stats,
+            :MFRMPrior, :MFRMLogDensity, :MFRMFit, :GMFRMFit, :artifact_content_hash, :cached_fit, :calibration_plot_data,
+            :constraint_table, :expected_scores, :fit, :fit_archive_manifest, :fit_artifact, :fit_cache_key, :fit_metadata, :fit_stats,
             :initial_params, :loglikelihood, :logposterior, :logprior,
             :loo, :loo_diagnostics,
             :linear_predictor_table, :linear_predictor_values,
@@ -7974,6 +7976,10 @@ end
     @test !isempty(gmfrm_experimental_artifact.fixture_provenance)
     @test isnothing(gmfrm_experimental_artifact.raw_draws)
     @test isnothing(gmfrm_experimental_artifact.direct_draws)
+    @test gmfrm_experimental_artifact.content_hash.value ==
+        artifact_content_hash(gmfrm_experimental_artifact)
+    @test gmfrm_experimental_artifact.archive_manifest.content_hash ==
+        gmfrm_experimental_artifact.content_hash
     @test waic(gmfrm_experimental_fit).n_draws == 8
     @test loo(gmfrm_experimental_fit).n_draws == 8
     @test length(waic_diagnostics(gmfrm_experimental_fit)) == identified_data.n
@@ -8624,6 +8630,10 @@ end
     @test !isempty(mgmfrm_guarded_artifact.fixture_provenance)
     @test isnothing(mgmfrm_guarded_artifact.raw_draws)
     @test isnothing(mgmfrm_guarded_artifact.direct_draws)
+    @test mgmfrm_guarded_artifact.content_hash.value ==
+        artifact_content_hash(mgmfrm_guarded_artifact)
+    @test mgmfrm_guarded_artifact.archive_manifest.content_hash ==
+        mgmfrm_guarded_artifact.content_hash
     @test waic(mgmfrm_guarded_fit).n_draws == 2
     @test length(waic_diagnostics(mgmfrm_guarded_fit)) == identified_data.n
     @test_throws ArgumentError BayesianMGMFRM._fit_guarded_mgmfrm(
@@ -9108,6 +9118,26 @@ end
     @test isnothing(compact_artifact.log_posterior)
     @test isnothing(compact_artifact.sampler_stats)
     @test length(compact_artifact.posterior_summary) == length(design.parameter_names)
+    @test compact_artifact.content_hash.algorithm === :sha256
+    @test compact_artifact.content_hash.scope === :artifact_without_hash_metadata
+    @test length(compact_artifact.content_hash.value) == 64
+    @test compact_artifact.content_hash.value == artifact_content_hash(compact_artifact)
+    @test compact_artifact.archive_manifest.schema ==
+        "bayesianmgmfrm.fit_archive_manifest.v1"
+    @test compact_artifact.archive_manifest.object === :fit_archive_manifest
+    @test compact_artifact.archive_manifest.content_hash == compact_artifact.content_hash
+    @test compact_artifact.archive_manifest.artifact.schema == compact_artifact.schema
+    @test compact_artifact.archive_manifest.manifest.n_draws == size(result.draws, 1)
+    explicit_archive_manifest = fit_archive_manifest(
+        compact_artifact;
+        label = :unit_test_artifact,
+        source_path = "memory://compact_artifact",
+    )
+    @test explicit_archive_manifest.label === :unit_test_artifact
+    @test explicit_archive_manifest.source_path == "memory://compact_artifact"
+    @test explicit_archive_manifest.content_hash.value == artifact_content_hash(compact_artifact)
+    @test fit_archive_manifest(result; artifact = compact_artifact).content_hash.value ==
+        compact_artifact.content_hash.value
 
     full_artifact = fit_artifact(result;
         include_environment = false,
@@ -9125,6 +9155,8 @@ end
     @test full_artifact.draws == result.draws
     @test full_artifact.log_posterior == result.log_posterior
     @test isequal(full_artifact.sampler_stats, result.sampler_stats)
+    @test full_artifact.content_hash.value == artifact_content_hash(full_artifact)
+    @test full_artifact.content_hash.value != compact_artifact.content_hash.value
     @test_throws ArgumentError fit_artifact(result; rhat_threshold = 1.0)
     @test_throws ArgumentError fit_artifact(result; ess_threshold = 0)
 
@@ -9185,6 +9217,11 @@ end
     @test cache_record.fit.draws == result.draws
     @test cache_record.artifact.schema == "bayesianmgmfrm.fit_artifact.v1"
     @test cache_record.artifact.reproducibility.artifact_policy.draws === :omitted
+    @test cache_record.artifact_content_hash.value == artifact_content_hash(cache_record.artifact)
+    @test cache_record.archive_manifest.schema ==
+        "bayesianmgmfrm.fit_archive_manifest.v1"
+    @test cache_record.archive_manifest.source_path == cache_path
+    @test cache_record.archive_manifest.content_hash == cache_record.artifact_content_hash
     loaded_fit = load_fit_cache(cache_path; expected_cache_key = cache_key)
     @test loaded_fit isa MFRMFit
     @test loaded_fit.draws == result.draws
@@ -9192,6 +9229,7 @@ end
     loaded_record = load_fit_cache(cache_path; expected_cache_key = cache_key, return_record = true)
     @test loaded_record.cache_key == cache_key
     @test isequal(loaded_record.artifact.diagnostics.summary, cache_record.artifact.diagnostics.summary)
+    @test loaded_record.artifact_content_hash == cache_record.artifact_content_hash
     @test_throws ArgumentError save_fit_cache(cache_path, result; cache_key)
     @test_throws ArgumentError load_fit_cache(cache_path; expected_cache_key = "not-the-key")
     @test_throws ArgumentError load_fit_cache(joinpath(cache_dir, "missing.jls"))

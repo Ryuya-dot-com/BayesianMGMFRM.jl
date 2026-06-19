@@ -3274,7 +3274,7 @@ function fit_artifact(fit::MFRMFit;
     environment = include_environment ?
         evidence_metadata(; include_packages) :
         nothing
-    return (;
+    return _with_archive_metadata((;
         schema = "bayesianmgmfrm.fit_artifact.v1",
         object = :fit_artifact,
         created_at = string(now()),
@@ -3286,7 +3286,7 @@ function fit_artifact(fit::MFRMFit;
         draws = include_draws ? copy(fit.draws) : nothing,
         log_posterior = include_log_posterior ? copy(fit.log_posterior) : nothing,
         sampler_stats = include_sampler_stats ? copy(fit.sampler_stats) : nothing,
-    )
+    ); label = :fit_artifact)
 end
 
 function fit_artifact(fit::GMFRMFit;
@@ -3331,7 +3331,7 @@ function fit_artifact(fit::GMFRMFit;
     environment = include_environment ?
         evidence_metadata(; include_packages) :
         nothing
-    return (;
+    return _with_archive_metadata((;
         schema = "bayesianmgmfrm.gmfrm_experimental_fit_artifact.v1",
         object = :fit_artifact,
         family = :gmfrm,
@@ -3360,7 +3360,7 @@ function fit_artifact(fit::GMFRMFit;
         direct_draws = include_draws ? copy(fit.direct_draws) : nothing,
         log_posterior = include_log_posterior ? copy(fit.log_posterior) : nothing,
         sampler_stats = include_sampler_stats ? copy(fit.sampler_stats) : nothing,
-    )
+    ); label = :gmfrm_experimental_fit_artifact)
 end
 
 function fit_artifact(fit::MGMFRMFit;
@@ -3405,7 +3405,7 @@ function fit_artifact(fit::MGMFRMFit;
     environment = include_environment ?
         evidence_metadata(; include_packages) :
         nothing
-    return (;
+    return _with_archive_metadata((;
         schema = "bayesianmgmfrm.mgmfrm_guarded_local_fit_artifact.v1",
         object = :fit_artifact,
         family = :mgmfrm,
@@ -3439,7 +3439,7 @@ function fit_artifact(fit::MGMFRMFit;
         direct_draws = include_draws ? copy(fit.direct_draws) : nothing,
         log_posterior = include_log_posterior ? copy(fit.log_posterior) : nothing,
         sampler_stats = include_sampler_stats ? copy(fit.sampler_stats) : nothing,
-    )
+    ); label = :mgmfrm_guarded_local_fit_artifact)
 end
 
 function _cache_stable_write(io::IO, value)
@@ -3505,6 +3505,161 @@ end
 
 function _cache_hash(value)
     return bytes2hex(sha256(codeunits(_cache_stable_string(value))))
+end
+
+const _ARTIFACT_HASH_METADATA_FIELDS = (:content_hash, :archive_manifest)
+
+function _artifact_hash_payload(value)
+    if value isa NamedTuple
+        names = Symbol[]
+        values = Any[]
+        for name in keys(value)
+            name in _ARTIFACT_HASH_METADATA_FIELDS && continue
+            push!(names, name)
+            push!(values, _artifact_hash_payload(getproperty(value, name)))
+        end
+        return NamedTuple{Tuple(names)}(Tuple(values))
+    elseif value isa AbstractDict
+        out = Dict{Any,Any}()
+        for (key, item) in value
+            (key === :content_hash || key === :archive_manifest ||
+                key == "content_hash" || key == "archive_manifest") && continue
+            out[key] = _artifact_hash_payload(item)
+        end
+        return out
+    elseif value isa Tuple
+        return map(_artifact_hash_payload, value)
+    elseif value isa AbstractArray
+        return map(_artifact_hash_payload, value)
+    end
+    return value
+end
+
+"""
+    artifact_content_hash(artifact)
+
+Return a stable SHA-256 content hash for an exported fit artifact. The hash is
+computed from the package's cache-stable representation after removing
+`content_hash` and `archive_manifest` metadata fields, so the value can be
+stored inside the artifact and recomputed later for verification.
+"""
+function artifact_content_hash(artifact)
+    return _cache_hash(_artifact_hash_payload(artifact))
+end
+
+function _artifact_content_hash_record(artifact)
+    payload = _artifact_hash_payload(artifact)
+    canonical = _cache_stable_string(payload)
+    return (;
+        algorithm = :sha256,
+        value = bytes2hex(sha256(codeunits(canonical))),
+        scope = :artifact_without_hash_metadata,
+        canonicalization = :cache_stable_string,
+        n_canonical_bytes = sizeof(canonical),
+    )
+end
+
+function _artifact_summary(artifact)
+    return (;
+        schema = _nt_get(artifact, :schema, missing),
+        object = _nt_get(artifact, :object, missing),
+        family = _nt_get(artifact, :family, missing),
+        scope = _nt_get(artifact, :scope, missing),
+        status = _nt_get(artifact, :status, missing),
+        created_at = _nt_get(artifact, :created_at, missing),
+    )
+end
+
+function _manifest_archive_summary(artifact)
+    manifest = _nt_get(artifact, :manifest, nothing)
+    manifest isa NamedTuple || return nothing
+    fit_record = _nt_get(manifest, :fit, NamedTuple())
+    diagnostics = _nt_get(manifest, :diagnostics, NamedTuple())
+    return (;
+        schema = _nt_get(manifest, :schema, missing),
+        object = _nt_get(manifest, :object, missing),
+        family = _nt_get(manifest, :family, _nt_get(fit_record, :family, missing)),
+        scope = _nt_get(manifest, :scope, _nt_get(fit_record, :scope, missing)),
+        data_signature =
+            _nt_get(_nt_get(manifest, :validation, NamedTuple()), :data_signature,
+                _nt_get(fit_record, :data_signature, missing)),
+        n_draws = _nt_get(fit_record, :n_draws, missing),
+        n_chains = _nt_get(fit_record, :n_chains, missing),
+        backend = _nt_get(fit_record, :backend, missing),
+        sampler = _nt_get(fit_record, :sampler, missing),
+        diagnostic_flag = _nt_get(diagnostics, :flag,
+            _nt_get(_nt_get(_nt_get(artifact, :diagnostics, NamedTuple()), :summary, NamedTuple()),
+                :flag, missing)),
+    )
+end
+
+"""
+    fit_archive_manifest(artifact; label = nothing, source_path = nothing)
+    fit_archive_manifest(fit; kwargs...)
+
+Return a compact long-term archive manifest for a fit artifact. The manifest
+records the artifact schema, an embedded SHA-256 content hash, selected
+fit/diagnostic metadata, and optional archive labels or source paths. Passing a
+fit object first builds its `fit_artifact` with the supplied artifact keywords.
+"""
+function fit_archive_manifest(artifact::NamedTuple;
+        label = nothing,
+        source_path = nothing)
+    hash_record = _artifact_content_hash_record(artifact)
+    return (;
+        schema = "bayesianmgmfrm.fit_archive_manifest.v1",
+        object = :fit_archive_manifest,
+        created_at = string(now()),
+        label = label === nothing ? missing : label,
+        source_path = source_path === nothing ? missing : String(source_path),
+        content_hash = hash_record,
+        artifact = _artifact_summary(artifact),
+        manifest = _manifest_archive_summary(artifact),
+        reproducibility = _nt_get(artifact, :reproducibility, missing),
+        archive_policy = (;
+            intended_use = :long_term_export_manifest,
+            includes_draws =
+                _nt_get(_nt_get(artifact, :reproducibility, NamedTuple()),
+                    :artifact_policy, NamedTuple()),
+            cache_portability = :manifest_and_tables_preferred_cross_version,
+        ),
+    )
+end
+
+function _with_archive_metadata(artifact::NamedTuple;
+        label = nothing,
+        source_path = nothing)
+    archive = fit_archive_manifest(artifact; label, source_path)
+    return merge(artifact, (;
+        content_hash = archive.content_hash,
+        archive_manifest = archive,
+    ))
+end
+
+function fit_archive_manifest(fit;
+        label = nothing,
+        source_path = nothing,
+        artifact = nothing,
+        include_draws::Bool = false,
+        include_log_posterior::Bool = include_draws,
+        include_sampler_stats::Bool = false,
+        include_environment::Bool = true,
+        include_packages::Bool = false,
+        split_chains::Bool = true,
+        rhat_threshold::Real = 1.01,
+        ess_threshold::Real = 400)
+    fit_artifact_value = artifact === nothing ?
+        fit_artifact(fit;
+            include_draws,
+            include_log_posterior,
+            include_sampler_stats,
+            include_environment,
+            include_packages,
+            split_chains,
+            rhat_threshold,
+            ess_threshold) :
+        artifact
+    return fit_archive_manifest(fit_artifact_value; label, source_path)
 end
 
 function _prior_cache_record(prior::MFRMPrior)
@@ -3632,7 +3787,11 @@ fit_cache_key(spec::FacetSpec; kwargs...) =
 
 function _fit_cache_record(fit::MFRMFit;
         cache_key,
-        artifact)
+        artifact,
+        source_path = nothing)
+    archive_manifest = fit_archive_manifest(artifact;
+        label = :fit_cache_artifact,
+        source_path)
     return (;
         schema = "bayesianmgmfrm.fit_cache.v1",
         object = :fit_cache,
@@ -3643,6 +3802,8 @@ function _fit_cache_record(fit::MFRMFit;
             portability = :same_julia_major_minor_recommended,
         ),
         cache_key = cache_key === nothing ? missing : String(cache_key),
+        artifact_content_hash = archive_manifest.content_hash,
+        archive_manifest,
         fit,
         artifact,
     )
@@ -3704,7 +3865,10 @@ function save_fit_cache(path::AbstractString,
             artifact_rhat_threshold,
             artifact_ess_threshold) :
         artifact
-    record = _fit_cache_record(fit; cache_key, artifact = cache_artifact)
+    record = _fit_cache_record(fit;
+        cache_key,
+        artifact = cache_artifact,
+        source_path = path)
     mkpath(dirname(path))
     open(path, "w") do io
         serialize(io, record)

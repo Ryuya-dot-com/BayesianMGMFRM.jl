@@ -351,8 +351,8 @@ rater-discrimination candidate.
 
 The roadmap has two different progress notions:
 
-- **Checklist progress**: currently 93 of 120 tracked roadmap checkboxes are
-  complete, or roughly 77.5%. This is useful for implementation accounting.
+- **Checklist progress**: currently 94 of 120 tracked roadmap checkboxes are
+  complete, or roughly 78.3%. This is useful for implementation accounting.
 - **Claim progress**: broad v1 claims are closer to 40-45% complete because
   the remaining items include public generalized fitting, Stan comparisons,
   broader recovery simulations and manual public-scope review.
@@ -755,7 +755,7 @@ TODO:
   metadata, and draw-inclusion policy in a fit artifact.
 - [x] Add RDS-like serialized fit caches with initialization-vector hashes and
   explicit cache-key invalidation checks.
-- [ ] Add artifact content hashes and long-term archive manifests for exported
+- [x] Add artifact content hashes and long-term archive manifests for exported
   cache bundles.
 - [x] Implement `diagnostics(fit)` with parameter-block pass/fail flags for
   the current identified blocks.

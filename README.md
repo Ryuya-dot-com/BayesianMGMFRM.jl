@@ -203,11 +203,14 @@ Current public API:
   evidence and remains narrower than broad GMFRM/MGMFRM support.
 - `fit_artifact`: reproducibility artifacts that combine the model manifest,
   diagnostics, posterior summaries, sampler controls, RNG seed metadata, and
-  optional cached draws/environment metadata.
+  optional cached draws/environment metadata. Artifacts include a stable
+  `artifact_content_hash` value and an embedded `fit_archive_manifest` for
+  exported-review checks.
 - `cached_fit`, `fit_cache_key`, `save_fit_cache`, and `load_fit_cache`:
   RDS-like serialized fit caches for avoiding recomputation when the
   data/spec/design, prior, sampler controls, seed, Julia version, and
-  initialization hash still match. Automatic cache keys require an integer
+  initialization hash still match. Saved cache records include the artifact
+  content hash and archive manifest. Automatic cache keys require an integer
   `seed` so cached draws are tied to a replayable fit request.
 - `MFRMLogDensity`, `initial_params`, `linear_predictor_values`,
   `loglikelihood`, `logprior`, and `logposterior`: a
@@ -386,8 +389,8 @@ rather than the registered package root.
 
 Serialized fit caches from `cached_fit` are for same-environment recomputation
 avoidance. For long-term archival or cross-version review, keep the
-`model_manifest`, `fit_artifact`, exported summaries, and source data alongside
-the cache.
+`model_manifest`, `fit_artifact`, embedded archive manifest, exported summaries,
+and source data alongside the cache.
 
 ## License
 

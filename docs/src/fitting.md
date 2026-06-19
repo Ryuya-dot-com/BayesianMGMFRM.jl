@@ -154,15 +154,17 @@ validation status, deterministic parameter blocks, constraint tables,
 prior-block declarations, prior scales, and the compact diagnostic summary.
 `fit_artifact` extends that manifest into a cached-fit artifact with sampler
 controls, RNG seed metadata, posterior summaries, selected diagnostic
-thresholds, optional draws, and optional environment/package metadata.
+thresholds, optional draws, optional environment/package metadata, a stable
+[`artifact_content_hash`](@ref), and an embedded [`fit_archive_manifest`](@ref)
+for long-term export checks.
 `cached_fit` is the RDS-like recomputation guard: it serializes the fitted
 object with Julia's standard `Serialization` format and only reuses the file
 when [`fit_cache_key`](@ref) still matches the current data/spec/design, prior,
 sampler controls, seed, Julia version, and initialization hash. This is intended
 for same-environment analysis caches. Automatic cache keys require an integer
 `seed`; use `fit` plus manual [`save_fit_cache`](@ref) for unseeded exploratory
-fits. Use manifests and exported tables for long-term, cross-version archival
-records.
+fits. Saved cache records store the artifact content hash and archive manifest;
+use manifests and exported tables for long-term, cross-version archival records.
 `diagnostics` combines chain-level sampler summaries, parameter-level R-hat/ESS
 rows, and parameter-block pass/fail rows into a single machine-readable surface
 with AdvancedHMC/NUTS fields such as divergent-transition counts,

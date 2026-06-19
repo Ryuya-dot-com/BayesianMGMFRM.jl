@@ -13,6 +13,7 @@ MFRMPrior
 MFRMLogDensity
 MFRMFit
 GMFRMFit
+artifact_content_hash
 calibration_table
 calibration_plot_data
 cached_fit
@@ -33,6 +34,7 @@ parameter_recovery
 parameter_recovery_plot_data
 parameter_recovery_summary
 fit
+fit_archive_manifest
 fit_artifact
 fit_cache_key
 fit_metadata
