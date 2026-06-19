@@ -65,14 +65,52 @@ end
 """
     FacetSpec
 
-Minimal MFRM specification produced by `mfrm_spec`. This is a design scaffold,
-not a fitted Bayesian model.
+Machine-readable many-facet measurement specification produced by `mfrm_spec`.
+The current fitting compiler supports the minimal one-dimensional MFRM/RSM/PCM
+slice. The same object can also hold planned GMFRM/MGMFRM configuration intent
+so reviewers and downstream reports can inspect family, dimensionality,
+discrimination, Q-mask, validation-bias terms, anchors, constraints, and prior
+contracts before those terms are exposed for fitting.
 """
 struct FacetSpec
     data::FacetData
     thresholds::Symbol
     validation::ValidationReport
+    family::Symbol
+    dimensions::Int
+    discrimination::Symbol
+    q_matrix::Union{Nothing,Matrix{Bool}}
+    validation_bias_terms::Vector{Tuple{Symbol,Symbol}}
+    anchors::Vector{NamedTuple}
+    constraints::Vector{NamedTuple}
+    prior_blocks::Vector{NamedTuple}
+    estimation_status::Symbol
 end
+
+FacetSpec(data::FacetData, thresholds::Symbol, validation::ValidationReport) =
+    FacetSpec(
+        data,
+        thresholds,
+        validation,
+        :mfrm,
+        1,
+        :none,
+        nothing,
+        Tuple{Symbol,Symbol}[],
+        NamedTuple[],
+        _constraint_rows(;
+            family = :mfrm,
+            thresholds,
+            dimensions = 1,
+            discrimination = :none,
+            q_matrix = nothing,
+            validation_bias_terms = Tuple{Symbol,Symbol}[],
+            anchors = NamedTuple[],
+            estimation_status = :fit_supported,
+        ),
+        _prior_rows(:mfrm, 1, :none),
+        :fit_supported,
+    )
 
 """
     FacetDesign
@@ -639,6 +677,90 @@ function Base.show(io::IO, report::ValidationReport)
         ", ", n_error, " error(s), ", n_warning, " warning(s))")
 end
 
+function _suggestion_for_issue(issue::ValidationIssue)
+    code = issue.code
+    code === :empty_data && return (
+        action = :provide_ratings,
+        suggestion = "Provide at least one complete long-format rating row before constructing a model specification.",
+    )
+    code === :single_observed_category && return (
+        action = :collect_or_recode_categories,
+        suggestion = "Use at least two observed score categories, or recode/collapse the outcome before fitting an ordered-response model.",
+    )
+    code === :unused_interior_category && return (
+        action = :inspect_scale_use,
+        suggestion = "Inspect skipped interior categories; consider collapsing sparse categories or documenting that the unused category is structurally possible.",
+    )
+    code === :single_item_category && return (
+        action = :simplify_thresholds_or_collect_data,
+        suggestion = "Items using only one category weakly inform partial-credit thresholds; collect more ratings, collapse categories, or prefer a simpler threshold structure.",
+    )
+    code === :unobserved_item_category && return (
+        action = :check_threshold_support,
+        suggestion = "Unobserved item/category cells can make partial-credit thresholds weakly informed; inspect category coverage before fitting item-specific steps.",
+    )
+    code === :singleton_facet_level && return (
+        action = :collect_more_linking_data,
+        suggestion = "Facet levels with one rating are weakly linked; collect more ratings, merge levels, or keep the level out of modelled effects.",
+    )
+    code === :disconnected_design && return (
+        action = :add_links_or_split_design,
+        suggestion = "Add common raters/items/persons or anchors to connect the graph; otherwise analyze connected components separately.",
+    )
+    code === :rank_deficient_design && return (
+        action = :simplify_or_relink_design,
+        suggestion = "The current reference-constrained location design is rank deficient; add linking observations or remove aliased facet effects.",
+    )
+    code === :invalid_bias_term && return (
+        action = :fix_bias_syntax,
+        suggestion = "Use two-facet tuples such as (:rater, :group) for bias/DFF validation terms.",
+    )
+    code === :unknown_bias_facet && return (
+        action = :check_facet_roles,
+        suggestion = "Bias/DFF terms must reference required facets or optional roles supplied to FacetData.",
+    )
+    code === :empty_dff_cell && return (
+        action = :pool_or_remove_dff_term,
+        suggestion = "Empty DFF cells cannot support unpooled interaction estimates; collect data, collapse levels, use hierarchical pooling, or remove the term.",
+    )
+    code === :sparse_dff_cell && return (
+        action = :pool_or_collect_dff_data,
+        suggestion = "Sparse DFF cells require caution; collect more data, collapse levels, or use hierarchical shrinkage with sensitivity checks.",
+    )
+    code === :potential_dff_confounding && return (
+        action = :inspect_dff_confounding,
+        suggestion = "A facet level is observed with only one level of the paired DFF facet; improve crossing or avoid interpreting the DFF contrast.",
+    )
+    return (
+        action = :inspect_issue,
+        suggestion = "Inspect this validation issue before fitting a more complex model.",
+    )
+end
+
+"""
+    validation_suggestions(report::ValidationReport)
+    validation_suggestions(issue::ValidationIssue)
+
+Return machine-readable next-step suggestions for validation issues. Suggestions
+are intentionally conservative and are meant to guide design repair or model
+simplification before fitting more complex MFRM/GMFRM/MGMFRM specifications.
+"""
+function validation_suggestions(issue::ValidationIssue)
+    suggestion = _suggestion_for_issue(issue)
+    return (;
+        code = issue.code,
+        severity = issue.severity,
+        action = suggestion.action,
+        message = issue.message,
+        suggestion = suggestion.suggestion,
+        context = copy(issue.context),
+    )
+end
+
+function validation_suggestions(report::ValidationReport)
+    return [validation_suggestions(issue) for issue in report.issues]
+end
+
 function _median_count(values::Vector{Int})
     isempty(values) && return 0.0
     sorted = sort(values)
@@ -809,20 +931,520 @@ function rater_overlap(data_or_spec; unit::Symbol = :person_item)
 end
 
 """
-    mfrm_spec(data::FacetData; thresholds = :partial_credit, bias = Tuple{Symbol,Symbol}[],
-              min_cell_count = 2, validation_report = nothing)
+    model_ladder()
 
-Construct a minimal MFRM specification after validation errors are resolved.
-Pass `bias` or an existing `validation_report` to preserve DFF validation
-evidence in the spec.
+Return the package's machine-readable model ladder. Rows distinguish the
+implemented minimal MFRM/RSM/PCM fitting slice from specified-only GMFRM and
+MGMFRM configurations. The ladder is documentation data: it is used to keep
+claims about fitting support separate from claims about representable
+specification intent.
+"""
+function model_ladder()
+    return [
+        (;
+            family = :mfrm,
+            scope = :minimal_mfrm_rsm_pcm,
+            dimensions = "1",
+            discrimination = :none,
+            threshold_regimes = (:rating_scale, :partial_credit),
+            estimation_status = :fit_supported,
+            identification = (:reference_first_rater, :reference_first_item, :sum_to_zero_thresholds),
+            note = "implemented additive one-dimensional many-facet Rasch location model",
+        ),
+        (;
+            family = :gmfrm,
+            scope = :planned_generalized_mfrm,
+            dimensions = "1",
+            discrimination = (:global, :rater, :item, :rater_item),
+            threshold_regimes = (:rating_scale, :partial_credit),
+            estimation_status = :specified_only,
+            identification = (:item_discrimination_product_constraint, :rater_consistency_positive, :rater_step_constraints),
+            note = "source-aligned preview for manifests and constraint review; fitting is planned",
+        ),
+        (;
+            family = :mgmfrm,
+            scope = :planned_multidimensional_gmfrm,
+            dimensions = ">= 2",
+            discrimination = (:none, :global, :rater, :item, :rater_item),
+            threshold_regimes = (:rating_scale, :partial_credit),
+            estimation_status = :specified_only,
+            identification = (:confirmatory_q_mask, :rater_consistency_product_constraint, :item_step_constraints),
+            note = "source-aligned preview for manifests and multidimensional gauge review; fitting is planned",
+        ),
+    ]
+end
+
+function _check_family(family::Symbol)
+    family in (:mfrm, :gmfrm, :mgmfrm) ||
+        throw(ArgumentError("family must be :mfrm, :gmfrm, or :mgmfrm"))
+    return family
+end
+
+function _check_dimensions(family::Symbol, dimensions::Int)
+    dimensions >= 1 || throw(ArgumentError("dimensions must be positive"))
+    family === :mfrm && dimensions == 1 ||
+        family !== :mfrm ||
+        throw(ArgumentError("family = :mfrm currently requires dimensions = 1"))
+    family === :gmfrm && dimensions == 1 ||
+        family !== :gmfrm ||
+        throw(ArgumentError("family = :gmfrm currently represents one-dimensional generalized MFRM configurations"))
+    family === :mgmfrm && dimensions >= 2 ||
+        family !== :mgmfrm ||
+        throw(ArgumentError("family = :mgmfrm requires dimensions >= 2"))
+    return dimensions
+end
+
+function _check_discrimination(family::Symbol, discrimination::Symbol)
+    allowed = (:none, :global, :rater, :item, :rater_item)
+    discrimination in allowed ||
+        throw(ArgumentError("discrimination must be one of $(allowed)"))
+    family === :mfrm && discrimination === :none ||
+        family !== :mfrm ||
+        throw(ArgumentError("family = :mfrm currently requires discrimination = :none"))
+    family === :gmfrm && discrimination !== :none ||
+        family !== :gmfrm ||
+        throw(ArgumentError("family = :gmfrm requires an explicit discrimination structure"))
+    return discrimination
+end
+
+function _normalize_q_matrix(data::FacetData, family::Symbol, dimensions::Int, q_matrix)
+    if family !== :mgmfrm
+        q_matrix === nothing || throw(ArgumentError("q_matrix is only accepted for family = :mgmfrm"))
+        return nothing
+    end
+    q_matrix === nothing &&
+        throw(ArgumentError("family = :mgmfrm requires a confirmatory q_matrix"))
+    q_matrix isa AbstractMatrix ||
+        throw(ArgumentError("q_matrix must be a two-dimensional matrix"))
+    mat = Matrix{Bool}(q_matrix)
+    size(mat, 1) == length(data.item_levels) ||
+        throw(ArgumentError("q_matrix must have one row per item"))
+    size(mat, 2) == dimensions ||
+        throw(ArgumentError("q_matrix must have one column per dimension"))
+    for item in axes(mat, 1)
+        any(@view mat[item, :]) ||
+            throw(ArgumentError("each q_matrix row must load on at least one dimension"))
+    end
+    for dim in axes(mat, 2)
+        any(@view mat[:, dim]) ||
+            throw(ArgumentError("each q_matrix dimension must have at least one item"))
+    end
+    return mat
+end
+
+function _normalize_bias_terms(bias, report::ValidationReport)
+    if isempty(bias) && !isempty(report.dff_counts)
+        return sort(collect(keys(report.dff_counts)); by = string)
+    end
+    out = Tuple{Symbol,Symbol}[]
+    for term in bias
+        if term isa Tuple && length(term) == 2 && first(term) isa Symbol && last(term) isa Symbol
+            push!(out, (first(term), last(term)))
+        end
+    end
+    return out
+end
+
+function _normalize_anchors(anchors)
+    out = NamedTuple[]
+    for anchor in anchors
+        anchor isa NamedTuple ||
+            throw(ArgumentError("anchors must be named tuples"))
+        haskey(anchor, :block) ||
+            throw(ArgumentError("each anchor must include a :block field"))
+        haskey(anchor, :value) ||
+            throw(ArgumentError("each anchor must include a :value field"))
+        push!(out, anchor)
+    end
+    return out
+end
+
+function _estimation_status(family::Symbol,
+        dimensions::Int,
+        discrimination::Symbol,
+        q_matrix,
+        anchors)
+    family === :mfrm &&
+        dimensions == 1 &&
+        discrimination === :none &&
+        q_matrix === nothing &&
+        isempty(anchors) &&
+        return :fit_supported
+    return :specified_only
+end
+
+function _spec_scope(family::Symbol, status::Symbol)
+    family === :mfrm && status === :fit_supported && return :minimal_mfrm_rsm_pcm
+    family === :mfrm && return :planned_mfrm_variant
+    family === :gmfrm && return :planned_generalized_mfrm
+    family === :mgmfrm && return :planned_multidimensional_gmfrm
+    return :unknown
+end
+
+function _equation_sources(family::Symbol, thresholds::Symbol)
+    if family === :mfrm
+        source = thresholds === :rating_scale ?
+            "Uto and Ueno (2020), Eq. 6, with Andrich (1978) rating-scale lineage" :
+            "Masters (1982) partial-credit model with Uto and Ueno (2020), Eq. 3, GPCM/PCM decomposition"
+        return [source]
+    elseif family === :gmfrm
+        return ["Uto and Ueno (2020), Behaviormetrika 47, Eq. 9 and identification restrictions"]
+    elseif family === :mgmfrm
+        return ["Uto (2021), Behaviormetrika 48, Eq. 6 and identification restrictions"]
+    end
+    return String[]
+end
+
+function _equation_source_urls(family::Symbol, thresholds::Symbol)
+    if family === :mfrm
+        return thresholds === :partial_credit ?
+            ["https://doi.org/10.1007/BF02296272", "https://doi.org/10.1007/s41237-020-00115-7"] :
+            ["https://doi.org/10.1007/BF02293814", "https://doi.org/10.1007/s41237-020-00115-7"]
+    elseif family === :gmfrm
+        return ["https://doi.org/10.1007/s41237-020-00115-7"]
+    elseif family === :mgmfrm
+        return ["https://doi.org/10.1007/s41237-021-00144-w"]
+    end
+    return String[]
+end
+
+function _equation_kernel(spec::FacetSpec)
+    if spec.family === :mfrm
+        return spec.thresholds === :rating_scale ?
+            "eta[k] = (k - 1) * (theta[p] - beta_r[r] - beta_i[i]) - sum_{m=1}^{k-1} d[m]" :
+            "eta[k] = (k - 1) * (theta[p] - beta_r[r] - beta_i[i]) - sum_{m=1}^{k-1} d[i,m]"
+    elseif spec.family === :gmfrm
+        return "eta[k] = sum_{m=1}^{k} alpha_r[r] * alpha_i[i] * (theta[p] - beta_i[i] - beta_r[r] - d[r,m])"
+    elseif spec.family === :mgmfrm
+        return "eta[k] = sum_{m=1}^{k} 1.7 * alpha_r[r] * (sum_l alpha_i_l[i,l] * theta[p,l] - beta_i[i] - beta_r[r] - d[i,m])"
+    end
+    return ""
+end
+
+function _equation_required_blocks(spec::FacetSpec)
+    if spec.family === :mfrm
+        return (:person_location, :rater_severity, :item_difficulty, :threshold_steps)
+    elseif spec.family === :gmfrm
+        return (
+            :person_location,
+            :rater_severity,
+            :item_difficulty,
+            :item_discrimination,
+            :rater_consistency,
+            :rater_step,
+        )
+    elseif spec.family === :mgmfrm
+        return (
+            :person_location_by_dimension,
+            :rater_severity,
+            :item_difficulty,
+            :item_dimension_discrimination,
+            :rater_consistency,
+            :item_step,
+        )
+    end
+    return Symbol[]
+end
+
+function _equation_identification(spec::FacetSpec)
+    if spec.family === :mfrm
+        return (
+            :location_constraint_on_rater_and_item_blocks,
+            :threshold_sum_to_zero,
+            :ability_location_scale_set_by_parameterization_or_prior,
+        )
+    elseif spec.family === :gmfrm
+        return (
+            :prod_item_discrimination_equals_one,
+            :sum_item_difficulty_equals_zero,
+            :rater_first_step_fixed_zero,
+            :rater_step_sum_to_zero,
+            :ability_distribution_sets_location_and_scale,
+        )
+    elseif spec.family === :mgmfrm
+        return (
+            :prod_rater_consistency_equals_one,
+            :sum_rater_severity_equals_zero,
+            :item_first_step_fixed_zero,
+            :item_step_sum_to_zero,
+            :standard_normal_ability_prior_by_dimension,
+            :dimension_order_or_loading_gauge_required,
+        )
+    end
+    return Symbol[]
+end
+
+function _equation_implementation_gaps(spec::FacetSpec)
+    gaps = Symbol[]
+    spec.family === :mfrm && return gaps
+    if spec.family === :gmfrm
+        append!(gaps, (
+            :identified_transform_for_item_discrimination_product_constraint,
+            :identified_transform_for_rater_step_constraints,
+            :literature_gmfrm_likelihood_kernel,
+            :source_matched_fixture_tests,
+        ))
+    elseif spec.family === :mgmfrm
+        append!(gaps, (
+            :identified_transform_for_rater_consistency_product_constraint,
+            :identified_transform_for_item_step_constraints,
+            :multidimensional_ability_prior_and_gauge,
+            :literature_mgmfrm_likelihood_kernel,
+            :source_matched_fixture_tests,
+        ))
+    end
+    return gaps
+end
+
+"""
+    model_equation(spec_or_design)
+
+Return a source-traced mathematical contract for the specification. The result
+records the intended likelihood family, a compact adjacent-category logit
+kernel, primary-source references, required parameter blocks, identification
+restrictions, and implementation gaps.
+
+For specified-only GMFRM/MGMFRM specs this function deliberately reports the
+missing blocks needed to match the literature equations; it does not enable
+fitting.
+"""
+function model_equation(spec::FacetSpec)
+    return (;
+        schema = "bayesianmgmfrm.model_equation.v1",
+        family = spec.family,
+        scope = _spec_scope(spec.family, spec.estimation_status),
+        thresholds = spec.thresholds,
+        dimensions = spec.dimensions,
+        discrimination = spec.discrimination,
+        estimation_status = spec.estimation_status,
+        probability_form = :adjacent_category_softmax,
+        category_indexing = :internal_one_based_with_observed_integer_scores,
+        kernel = _equation_kernel(spec),
+        primary_sources = _equation_sources(spec.family, spec.thresholds),
+        source_urls = _equation_source_urls(spec.family, spec.thresholds),
+        required_blocks = _equation_required_blocks(spec),
+        identification = _equation_identification(spec),
+        implementation_gaps = _equation_implementation_gaps(spec),
+        fit_ready = spec.estimation_status === :fit_supported &&
+            isempty(_equation_implementation_gaps(spec)),
+    )
+end
+
+model_equation(design::FacetDesign) = model_equation(design.spec)
+
+function _constraint_rows(;
+        family::Symbol,
+        thresholds::Symbol,
+        dimensions::Int,
+        discrimination::Symbol,
+        q_matrix,
+        validation_bias_terms,
+        anchors,
+        estimation_status::Symbol)
+    implemented = estimation_status === :fit_supported ? :implemented : :specified_only
+    rows = NamedTuple[]
+    if family === :mfrm
+        append!(rows, NamedTuple[
+            (;
+                block = :person,
+                constraint = dimensions == 1 ? :free : :latent_location_by_dimension,
+                transform = :identity,
+                status = implemented,
+                note = "person latent location parameters",
+            ),
+            (;
+                block = :rater,
+                constraint = :reference_first,
+                transform = :identity,
+                status = implemented,
+                note = "first rater severity fixed to zero",
+            ),
+            (;
+                block = :item,
+                constraint = :reference_first,
+                transform = :identity,
+                status = implemented,
+                note = "first item difficulty fixed to zero",
+            ),
+            (;
+                block = :thresholds,
+                constraint = :sum_to_zero,
+                transform = thresholds === :rating_scale ? :shared_steps : :item_steps,
+                status = implemented,
+                note = "last threshold step derived by a sum-to-zero constraint",
+            ),
+        ])
+    elseif family === :gmfrm
+        append!(rows, NamedTuple[
+            (;
+                block = :person,
+                constraint = :ability_distribution_location_scale,
+                transform = :identity,
+                status = :specified_only,
+                note = "person latent locations; ability distribution supplies location and scale in the source model",
+            ),
+            (;
+                block = :rater,
+                constraint = :free_given_item_location_constraint,
+                transform = :identity,
+                status = :specified_only,
+                note = "rater severity beta_r in Uto and Ueno (2020), Eq. 9",
+            ),
+            (;
+                block = :item,
+                constraint = :sum_to_zero,
+                transform = :identity,
+                status = :specified_only,
+                note = "item/task difficulty beta_i with sum_i beta_i = 0",
+            ),
+            (;
+                block = :item_discrimination,
+                constraint = :geometric_mean_one,
+                transform = :log_link,
+                status = :specified_only,
+                note = "positive item/task discrimination alpha_i with product_i alpha_i = 1",
+            ),
+            (;
+                block = :rater_consistency,
+                constraint = :positive,
+                transform = :log_link,
+                status = :specified_only,
+                note = "positive rater consistency alpha_r",
+            ),
+            (;
+                block = :rater_steps,
+                constraint = :first_step_zero_sum_to_zero,
+                transform = :rater_category_steps,
+                status = :specified_only,
+                note = "rater-specific category-use steps d_rm with d_r1 = 0 and sum_{m=2}^K d_rm = 0",
+            ),
+        ])
+    elseif family === :mgmfrm
+        append!(rows, NamedTuple[
+            (;
+                block = :person,
+                constraint = :standard_normal_by_dimension,
+                transform = :identity,
+                status = :specified_only,
+                note = "multidimensional person locations theta_jl with source-model standard normal ability prior",
+            ),
+            (;
+                block = :rater,
+                constraint = :sum_to_zero,
+                transform = :identity,
+                status = :specified_only,
+                note = "rater severity beta_r with sum_r beta_r = 0",
+            ),
+            (;
+                block = :item,
+                constraint = :free_given_ability_and_rater_constraints,
+                transform = :identity,
+                status = :specified_only,
+                note = "item/evaluation difficulty beta_i in Uto (2021), Eq. 6",
+            ),
+            (;
+                block = :item_dimension_discrimination,
+                constraint = :confirmatory_q_mask,
+                transform = :log_link,
+                status = :specified_only,
+                note = "positive item-by-dimension discrimination alpha_il under the fixed Q-mask",
+            ),
+            (;
+                block = :rater_consistency,
+                constraint = :geometric_mean_one,
+                transform = :log_link,
+                status = :specified_only,
+                note = "positive rater consistency alpha_r with product_r alpha_r = 1",
+            ),
+            (;
+                block = :item_steps,
+                constraint = :first_step_zero_sum_to_zero,
+                transform = :item_category_steps,
+                status = :specified_only,
+                note = "item-specific category-use steps d_im with d_i1 = 0 and sum_{m=2}^K d_im = 0",
+            ),
+        ])
+    end
+    if family === :mgmfrm
+        q_matrix === nothing || push!(rows, (;
+            block = :q_matrix,
+            constraint = :fixed_mask,
+            transform = :none,
+            status = :specified_only,
+            note = "fixed $(size(q_matrix, 1)) by $(size(q_matrix, 2)) item-dimension mask",
+        ))
+    end
+    for term in validation_bias_terms
+        push!(rows, (;
+            block = Symbol("dff_", term[1], "_", term[2]),
+            constraint = :validation_only,
+            transform = :none,
+            status = :validation_only,
+            note = "DFF/bias term validated for sparse cells but not included in the fitted likelihood",
+        ))
+    end
+    for anchor in anchors
+        push!(rows, (;
+            block = anchor.block,
+            constraint = :anchor,
+            transform = :fixed_or_soft_anchor,
+            status = :specified_only,
+            note = "anchor declared in specification; fitting support is planned",
+        ))
+    end
+    return rows
+end
+
+function _prior_rows(family::Symbol, dimensions::Int, discrimination::Symbol)
+    rows = NamedTuple[
+        (block = :person, prior = :normal, parameters = (location = 0.0, scale = :person_sd), status = :implemented),
+        (block = :rater, prior = :normal, parameters = (location = 0.0, scale = :rater_sd), status = :implemented),
+        (block = :item, prior = :normal, parameters = (location = 0.0, scale = :item_sd), status = :implemented),
+        (block = :thresholds, prior = :normal, parameters = (location = 0.0, scale = :step_sd), status = :implemented),
+    ]
+    if family === :gmfrm
+        push!(rows,
+            (block = :item_discrimination, prior = :lognormal_or_hierarchical, parameters = (center = 1.0,), status = :specified_only),
+            (block = :rater_consistency, prior = :lognormal_or_hierarchical, parameters = (center = 1.0,), status = :specified_only),
+            (block = :rater_steps, prior = :normal, parameters = (location = 0.0, scale = :step_sd), status = :specified_only))
+    elseif family === :mgmfrm
+        push!(rows,
+            (block = :item_dimension_discrimination, prior = :lognormal_or_hierarchical, parameters = (center = 1.0,), status = :specified_only),
+            (block = :rater_consistency, prior = :lognormal_or_hierarchical, parameters = (center = 1.0,), status = :specified_only),
+            (block = :item_steps, prior = :normal, parameters = (location = 0.0, scale = :step_sd), status = :specified_only))
+    end
+    return rows
+end
+
+"""
+    mfrm_spec(data::FacetData; thresholds = :partial_credit,
+              family = :mfrm, dimensions = 1, discrimination = :none,
+              q_matrix = nothing, bias = Tuple{Symbol,Symbol}[],
+              anchors = NamedTuple[], min_cell_count = 2,
+              validation_report = nothing)
+
+Construct a many-facet measurement specification after validation errors are
+resolved. The default `family = :mfrm`, `dimensions = 1`, and
+`discrimination = :none` path is the minimal MFRM/RSM/PCM slice supported by
+`getdesign` and `fit`. GMFRM/MGMFRM configurations can be represented for
+manifest and constraint review, but have `estimation_status = :specified_only`
+until their likelihoods and identification checks are implemented.
 """
 function mfrm_spec(data::FacetData;
         thresholds::Symbol = :partial_credit,
+        family::Symbol = :mfrm,
+        dimensions::Int = 1,
+        discrimination::Symbol = :none,
+        q_matrix = nothing,
         bias = Tuple{Symbol,Symbol}[],
+        anchors = NamedTuple[],
         min_cell_count::Int = 2,
         validation_report::Union{Nothing,ValidationReport} = nothing)
     thresholds in (:rating_scale, :partial_credit) ||
         throw(ArgumentError("thresholds must be :rating_scale or :partial_credit"))
+    checked_family = _check_family(family)
+    checked_dimensions = _check_dimensions(checked_family, dimensions)
+    checked_discrimination = _check_discrimination(checked_family, discrimination)
     report = validation_report === nothing ?
         validate_design(data; bias, min_cell_count) :
         validation_report
@@ -838,11 +1460,49 @@ function mfrm_spec(data::FacetData;
         codes = [issue.code for issue in report.issues if issue.severity === :error]
         throw(ArgumentError("cannot construct MFRM spec until validation errors are resolved: $(codes)"))
     end
-    return FacetSpec(data, thresholds, report)
+    checked_q_matrix = _normalize_q_matrix(data, checked_family, checked_dimensions, q_matrix)
+    checked_bias_terms = _normalize_bias_terms(bias, report)
+    checked_anchors = _normalize_anchors(anchors)
+    estimation_status = _estimation_status(
+        checked_family,
+        checked_dimensions,
+        checked_discrimination,
+        checked_q_matrix,
+        checked_anchors,
+    )
+    constraints = _constraint_rows(;
+        family = checked_family,
+        thresholds,
+        dimensions = checked_dimensions,
+        discrimination = checked_discrimination,
+        q_matrix = checked_q_matrix,
+        validation_bias_terms = checked_bias_terms,
+        anchors = checked_anchors,
+        estimation_status,
+    )
+    prior_blocks = _prior_rows(checked_family, checked_dimensions, checked_discrimination)
+    return FacetSpec(
+        data,
+        thresholds,
+        report,
+        checked_family,
+        checked_dimensions,
+        checked_discrimination,
+        checked_q_matrix,
+        checked_bias_terms,
+        checked_anchors,
+        constraints,
+        prior_blocks,
+        estimation_status,
+    )
 end
 
 function Base.show(io::IO, spec::FacetSpec)
-    print(io, "FacetSpec(thresholds = :", spec.thresholds, ", ", spec.data, ")")
+    print(io, "FacetSpec(family = :", spec.family,
+        ", thresholds = :", spec.thresholds,
+        ", dimensions = ", spec.dimensions,
+        ", estimation_status = :", spec.estimation_status,
+        ", ", spec.data, ")")
 end
 
 function _push_block!(names::Vector{String}, blocks::Dict{Symbol,UnitRange{Int}}, block::Symbol, labels, prefix::String)
@@ -854,22 +1514,30 @@ function _push_block!(names::Vector{String}, blocks::Dict{Symbol,UnitRange{Int}}
     return nothing
 end
 
-"""
-    getdesign(spec::FacetSpec)
+function _push_named_block!(names::Vector{String},
+        blocks::Dict{Symbol,UnitRange{Int}},
+        block::Symbol,
+        parameter_names)
+    start = length(names) + 1
+    append!(names, parameter_names)
+    blocks[block] = start:length(names)
+    return nothing
+end
 
-Return the current minimal additive RSM/PCM design scaffold. The first rater
-and first item levels are fixed to zero as reference levels. Rating-scale and
-partial-credit threshold steps are represented with a sum-to-zero constraint.
-"""
-function getdesign(spec::FacetSpec)
+function _ensure_minimal_design_supported(spec::FacetSpec)
+    spec.estimation_status === :fit_supported ||
+        throw(ArgumentError(
+            "getdesign currently supports only the minimal fit-supported MFRM/RSM/PCM specification; " *
+            "this spec has family = :$(spec.family), dimensions = $(spec.dimensions), " *
+            "discrimination = :$(spec.discrimination), estimation_status = :$(spec.estimation_status). " *
+            "Use model_manifest or constraint_table to inspect specified-only GMFRM/MGMFRM configurations.",
+        ))
+    return nothing
+end
+
+function _threshold_parameter_names(spec::FacetSpec)
     data = spec.data
     names = String[]
-    blocks = Dict{Symbol,UnitRange{Int}}()
-    _push_block!(names, blocks, :person, data.person_levels, "person")
-    _push_block!(names, blocks, :rater, data.rater_levels[2:end], "rater")
-    _push_block!(names, blocks, :item, data.item_levels[2:end], "item")
-
-    start = length(names) + 1
     free_steps = max(length(data.category_levels) - 2, 0)
     if spec.thresholds === :rating_scale
         for step in 1:free_steps
@@ -880,7 +1548,18 @@ function getdesign(spec::FacetSpec)
             push!(names, "step[item=$(item),$step]")
         end
     end
-    blocks[:thresholds] = start:length(names)
+    return names
+end
+
+function _minimal_design(spec::FacetSpec)
+    _ensure_minimal_design_supported(spec)
+    data = spec.data
+    names = String[]
+    blocks = Dict{Symbol,UnitRange{Int}}()
+    _push_block!(names, blocks, :person, data.person_levels, "person")
+    _push_block!(names, blocks, :rater, data.rater_levels[2:end], "rater")
+    _push_block!(names, blocks, :item, data.item_levels[2:end], "item")
+    _push_named_block!(names, blocks, :thresholds, _threshold_parameter_names(spec))
 
     identification = Dict{Symbol,Symbol}(
         :person => :free,
@@ -891,19 +1570,2553 @@ function getdesign(spec::FacetSpec)
     return FacetDesign(spec, names, blocks, identification)
 end
 
+function _person_parameter_names(spec::FacetSpec)
+    spec.dimensions == 1 &&
+        return ["person[$(person)]" for person in spec.data.person_levels]
+    return [
+        "person[$(person),dim=$(dim)]"
+        for person in spec.data.person_levels
+        for dim in 1:spec.dimensions
+    ]
+end
+
+function _item_discrimination_parameter_names(spec::FacetSpec)
+    spec.family === :gmfrm || return String[]
+    return ["item_discrimination[item=$(item)]" for item in spec.data.item_levels]
+end
+
+function _rater_consistency_parameter_names(spec::FacetSpec)
+    spec.family in (:gmfrm, :mgmfrm) || return String[]
+    return ["rater_consistency[rater=$(rater)]" for rater in spec.data.rater_levels]
+end
+
+function _item_dimension_discrimination_parameter_names(spec::FacetSpec)
+    spec.family === :mgmfrm || return String[]
+    q = spec.q_matrix
+    q === nothing && return String[]
+    names = String[]
+    for item_index in axes(q, 1), dim in axes(q, 2)
+        q[item_index, dim] || continue
+        item = spec.data.item_levels[item_index]
+        push!(names, "item_dimension_discrimination[item=$(item),dim=$(dim)]")
+    end
+    return names
+end
+
+function _source_step_free_count(spec::FacetSpec)
+    return max(length(spec.data.category_levels) - 2, 0)
+end
+
+function _rater_step_parameter_names(spec::FacetSpec)
+    spec.family === :gmfrm || return String[]
+    names = String[]
+    free_steps = _source_step_free_count(spec)
+    for rater in spec.data.rater_levels, offset in 1:free_steps
+        m = offset + 1
+        push!(names, "rater_step[rater=$(rater),m=$(m)]")
+    end
+    return names
+end
+
+function _item_step_parameter_names(spec::FacetSpec)
+    spec.family === :mgmfrm || return String[]
+    names = String[]
+    free_steps = _source_step_free_count(spec)
+    for item in spec.data.item_levels, offset in 1:free_steps
+        m = offset + 1
+        push!(names, "item_step[item=$(item),m=$(m)]")
+    end
+    return names
+end
+
+function _discrimination_parameter_names(spec::FacetSpec)
+    spec.discrimination === :none && return String[]
+    spec.discrimination === :global && return ["discrimination[global]"]
+    spec.discrimination === :rater &&
+        return ["discrimination[rater=$(rater)]" for rater in spec.data.rater_levels]
+    spec.discrimination === :item &&
+        return ["discrimination[item=$(item)]" for item in spec.data.item_levels]
+    if spec.discrimination === :rater_item
+        return [
+            "discrimination[rater=$(rater),item=$(item)]"
+            for rater in spec.data.rater_levels
+            for item in spec.data.item_levels
+        ]
+    end
+    throw(ArgumentError("unsupported discrimination structure :$(spec.discrimination)"))
+end
+
+function _preview_design(spec::FacetSpec)
+    spec.estimation_status === :specified_only ||
+        throw(ArgumentError("preview design is only needed for specified-only configurations"))
+    data = spec.data
+    names = String[]
+    blocks = Dict{Symbol,UnitRange{Int}}()
+    _push_named_block!(names, blocks, :person, _person_parameter_names(spec))
+    if spec.family === :gmfrm
+        _push_block!(names, blocks, :rater, data.rater_levels, "rater")
+        _push_block!(names, blocks, :item, data.item_levels, "item")
+        _push_named_block!(names, blocks, :item_discrimination, _item_discrimination_parameter_names(spec))
+        _push_named_block!(names, blocks, :rater_consistency, _rater_consistency_parameter_names(spec))
+        _push_named_block!(names, blocks, :rater_steps, _rater_step_parameter_names(spec))
+    elseif spec.family === :mgmfrm
+        _push_block!(names, blocks, :rater, data.rater_levels, "rater")
+        _push_block!(names, blocks, :item, data.item_levels, "item")
+        _push_named_block!(names, blocks, :item_dimension_discrimination, _item_dimension_discrimination_parameter_names(spec))
+        _push_named_block!(names, blocks, :rater_consistency, _rater_consistency_parameter_names(spec))
+        _push_named_block!(names, blocks, :item_steps, _item_step_parameter_names(spec))
+    else
+        _push_block!(names, blocks, :rater, data.rater_levels[2:end], "rater")
+        _push_block!(names, blocks, :item, data.item_levels[2:end], "item")
+        _push_named_block!(names, blocks, :thresholds, _threshold_parameter_names(spec))
+        if spec.discrimination !== :none
+            _push_named_block!(names, blocks, :discrimination, _discrimination_parameter_names(spec))
+        end
+    end
+    identification = Dict{Symbol,Symbol}(
+        :person => spec.dimensions == 1 ? :free : :multidimensional_location_gauge,
+        :rater => spec.family === :mgmfrm ? :sum_to_zero :
+            (spec.family === :gmfrm ? :free_given_item_sum_to_zero : :reference_first),
+        :item => spec.family === :gmfrm ? :sum_to_zero :
+            (spec.family === :mgmfrm ? :free_given_rater_sum_to_zero : :reference_first),
+    )
+    if spec.family === :gmfrm
+        identification[:item_discrimination] = :geometric_mean_one
+        identification[:rater_consistency] = :positive
+        identification[:rater_steps] = :first_step_zero_sum_to_zero
+    elseif spec.family === :mgmfrm
+        identification[:item_dimension_discrimination] = :confirmatory_q_mask
+        identification[:rater_consistency] = :geometric_mean_one
+        identification[:item_steps] = :first_step_zero_sum_to_zero
+    else
+        identification[:thresholds] = :sum_to_zero
+        spec.discrimination !== :none && (identification[:discrimination] = :positive_with_scale_constraint)
+    end
+    return FacetDesign(spec, names, blocks, identification)
+end
+
+"""
+    getdesign(spec::FacetSpec; preview = false)
+
+Return the current minimal additive RSM/PCM design scaffold. The first rater
+and first item levels are fixed to zero as reference levels. Rating-scale and
+partial-credit threshold steps are represented with a sum-to-zero constraint.
+
+Specified-only GMFRM/MGMFRM configurations are rejected by default so fitting
+code cannot silently use an unsupported likelihood. Set `preview = true` to
+compile an inspectable, non-fit-ready parameter blueprint for specified-only
+configurations.
+"""
+function getdesign(spec::FacetSpec; preview::Bool = false)
+    if preview
+        spec.estimation_status === :fit_supported && return _minimal_design(spec)
+        return _preview_design(spec)
+    end
+    return _minimal_design(spec)
+end
+
 function Base.show(io::IO, design::FacetDesign)
     print(io, "FacetDesign(", length(design.parameter_names), " parameters, thresholds = :",
         design.spec.thresholds, ")")
 end
 
-function _logsumexp(vals::Vector{Float64})
+"""
+    constraint_table(spec_or_design)
+
+Return machine-readable identification and transform declarations for a
+`FacetSpec` or `FacetDesign`. For specified-only GMFRM/MGMFRM configurations,
+rows explain the planned constraint/gauge rather than pretending the likelihood
+is fit-ready. For a compiled `FacetDesign`, implemented rows also include
+parameter ranges and names.
+"""
+function constraint_table(spec::FacetSpec)
+    return copy(spec.constraints)
+end
+
+function constraint_table(design::FacetDesign)
+    base_rows = constraint_table(design.spec)
+    rows = NamedTuple[]
+    for row in base_rows
+        if haskey(design.blocks, row.block)
+            range = design.blocks[row.block]
+            indices = collect(range)
+            push!(rows, merge(row, (;
+                first_parameter = isempty(indices) ? missing : first(indices),
+                last_parameter = isempty(indices) ? missing : last(indices),
+                n_parameters = length(indices),
+                parameter_names = isempty(indices) ? String[] : copy(design.parameter_names[indices]),
+            )))
+        else
+            push!(rows, merge(row, (;
+                first_parameter = missing,
+                last_parameter = missing,
+                n_parameters = 0,
+                parameter_names = String[],
+            )))
+        end
+    end
+    return rows
+end
+
+function _parameter_index_map(design::FacetDesign)
+    return Dict(name => index for (index, name) in pairs(design.parameter_names))
+end
+
+function _parameter_names(design::FacetDesign, indices::AbstractVector{Int})
+    return [design.parameter_names[index] for index in indices]
+end
+
+function _reference_parameter_index(block::UnitRange{Int}, level_index::Int)
+    level_index == 1 && return missing
+    return block[level_index - 1]
+end
+
+function _facet_parameter_index(block::UnitRange{Int}, level_index::Int, nlevels::Int)
+    length(block) == nlevels && return block[level_index]
+    return _reference_parameter_index(block, level_index)
+end
+
+function _reference_parameter_name(design::FacetDesign, index)
+    index === missing && return missing
+    return design.parameter_names[index]
+end
+
+function _person_parameter_indices(design::FacetDesign, person_index::Int)
+    block = design.blocks[:person]
+    dimensions = design.spec.dimensions
+    dimensions == 1 && return [block[person_index]]
+    offset = (person_index - 1) * dimensions
+    return [block[offset + dim] for dim in 1:dimensions]
+end
+
+function _threshold_step_metadata(design::FacetDesign, item_index::Int, step::Int)
+    data = design.spec.data
+    K = length(data.category_levels)
+    nsteps = max(K - 1, 0)
+    1 <= step <= nsteps ||
+        throw(ArgumentError("threshold step $step is outside 1:$nsteps"))
+    free_steps = max(nsteps - 1, 0)
+    step_range = design.blocks[:thresholds]
+    is_free = step <= free_steps
+    parameter_index = if is_free
+        design.spec.thresholds === :rating_scale ?
+            step_range[step] :
+            step_range[(item_index - 1) * free_steps + step]
+    else
+        missing
+    end
+    parameter_name = is_free ? design.parameter_names[parameter_index] : missing
+    status = is_free ? :free : (nsteps == 1 ? :fixed_zero : :sum_to_zero_derived)
+    return (;
+        step,
+        from_category = data.category_levels[step],
+        to_category = data.category_levels[step + 1],
+        parameter_index,
+        parameter_name,
+        status,
+        block = :thresholds,
+    )
+end
+
+function _threshold_path_metadata(design::FacetDesign, item_index::Int, category_index::Int)
+    category_index <= 1 && return NamedTuple[]
+    return [_threshold_step_metadata(design, item_index, step) for step in 1:(category_index - 1)]
+end
+
+function _source_step_metadata(design::FacetDesign, block::Symbol, level_index::Int, m::Int)
+    data = design.spec.data
+    K = length(data.category_levels)
+    2 <= m <= K ||
+        throw(ArgumentError("source-model step m = $m is outside 2:$K"))
+    free_steps = max(K - 2, 0)
+    is_free = m <= K - 1
+    block_range = design.blocks[block]
+    parameter_index = if is_free && free_steps > 0
+        block_range[(level_index - 1) * free_steps + (m - 1)]
+    else
+        missing
+    end
+    parameter_name = is_free && free_steps > 0 ? design.parameter_names[parameter_index] : missing
+    status = is_free && free_steps > 0 ? :free : (K == 2 ? :fixed_zero : :sum_to_zero_derived)
+    return (;
+        step = m - 1,
+        source_step = m,
+        from_category = data.category_levels[m - 1],
+        to_category = data.category_levels[m],
+        parameter_index,
+        parameter_name,
+        status,
+        block,
+    )
+end
+
+function _source_step_path_metadata(design::FacetDesign,
+        item_index::Int,
+        rater_index::Int,
+        category_index::Int)
+    category_index <= 1 && return NamedTuple[]
+    if haskey(design.blocks, :rater_steps)
+        return [_source_step_metadata(design, :rater_steps, rater_index, m) for m in 2:category_index]
+    elseif haskey(design.blocks, :item_steps)
+        return [_source_step_metadata(design, :item_steps, item_index, m) for m in 2:category_index]
+    end
+    return _threshold_path_metadata(design, item_index, category_index)
+end
+
+function _loading_dimensions(spec::FacetSpec, item_index::Int)
+    spec.family === :mgmfrm || return Int[]
+    q = spec.q_matrix
+    q === nothing && return Int[]
+    return [dim for dim in 1:spec.dimensions if q[item_index, dim]]
+end
+
+function _loading_parameter_indices(design::FacetDesign, index_by_name, item_index::Int)
+    haskey(design.blocks, :item_dimension_discrimination) || return Int[]
+    spec = design.spec
+    indices = Int[]
+    item = spec.data.item_levels[item_index]
+    for dim in _loading_dimensions(spec, item_index)
+        push!(indices, index_by_name["item_dimension_discrimination[item=$(item),dim=$(dim)]"])
+    end
+    return indices
+end
+
+function _item_discrimination_parameter_index(design::FacetDesign, item_index::Int)
+    haskey(design.blocks, :item_discrimination) || return missing
+    return design.blocks[:item_discrimination][item_index]
+end
+
+function _rater_consistency_parameter_index(design::FacetDesign, rater_index::Int)
+    haskey(design.blocks, :rater_consistency) || return missing
+    return design.blocks[:rater_consistency][rater_index]
+end
+
+function _discrimination_parameter_indices(design::FacetDesign, index_by_name, rater_index::Int, item_index::Int)
+    haskey(design.blocks, :discrimination) || return Int[]
+    spec = design.spec
+    spec.discrimination === :global &&
+        return [index_by_name["discrimination[global]"]]
+    if spec.discrimination === :rater
+        rater = spec.data.rater_levels[rater_index]
+        return [index_by_name["discrimination[rater=$(rater)]"]]
+    elseif spec.discrimination === :item
+        item = spec.data.item_levels[item_index]
+        return [index_by_name["discrimination[item=$(item)]"]]
+    elseif spec.discrimination === :rater_item
+        rater = spec.data.rater_levels[rater_index]
+        item = spec.data.item_levels[item_index]
+        return [index_by_name["discrimination[rater=$(rater),item=$(item)]"]]
+    end
+    return Int[]
+end
+
+function _predictor_kernel(design::FacetDesign)
+    design.spec.family === :gmfrm && return :gmfrm_source_aligned
+    design.spec.family === :mgmfrm && return :mgmfrm_source_aligned
+    return :mfrm_additive
+end
+
+function _predictor_components(design::FacetDesign,
+        index_by_name,
+        row::Int,
+        category_index::Int)
+    data = design.spec.data
+    person_indices = _person_parameter_indices(design, data.person[row])
+    rater_parameter_index = _facet_parameter_index(design.blocks[:rater], data.rater[row], length(data.rater_levels))
+    item_parameter_index = _facet_parameter_index(design.blocks[:item], data.item[row], length(data.item_levels))
+    threshold_path = _source_step_path_metadata(design, data.item[row], data.rater[row], category_index)
+    item_discrimination_index = _item_discrimination_parameter_index(design, data.item[row])
+    rater_consistency_index = _rater_consistency_parameter_index(design, data.rater[row])
+    item_dimension_indices = _loading_parameter_indices(design, index_by_name, data.item[row])
+    discrimination_indices = _discrimination_parameter_indices(
+        design,
+        index_by_name,
+        data.rater[row],
+        data.item[row],
+    )
+    return (;
+        row,
+        category_index,
+        category = data.category_levels[category_index],
+        observed = category_index == data.category[row],
+        score = data.score[row],
+        kernel = _predictor_kernel(design),
+        location_multiplier = category_index - 1,
+        person_index = data.person[row],
+        person = data.person_levels[data.person[row]],
+        person_parameter_indices = person_indices,
+        person_parameter_names = _parameter_names(design, person_indices),
+        rater_index = data.rater[row],
+        rater = data.rater_levels[data.rater[row]],
+        rater_parameter_index,
+        rater_parameter_name = _reference_parameter_name(design, rater_parameter_index),
+        item_index = data.item[row],
+        item = data.item_levels[data.item[row]],
+        item_parameter_index,
+        item_parameter_name = _reference_parameter_name(design, item_parameter_index),
+        item_discrimination_parameter_index = item_discrimination_index,
+        item_discrimination_parameter_name = _reference_parameter_name(design, item_discrimination_index),
+        rater_consistency_parameter_index = rater_consistency_index,
+        rater_consistency_parameter_name = _reference_parameter_name(design, rater_consistency_index),
+        item_dimension_discrimination_parameter_indices = item_dimension_indices,
+        item_dimension_discrimination_parameter_names = _parameter_names(design, item_dimension_indices),
+        active_dimensions = _loading_dimensions(design.spec, data.item[row]),
+        step_path = threshold_path,
+        step_parameter_indices = [step.parameter_index for step in threshold_path],
+        step_parameter_names = [step.parameter_name for step in threshold_path],
+        step_statuses = [step.status for step in threshold_path],
+        step_blocks = [step.block for step in threshold_path],
+        discrimination_parameter_indices = discrimination_indices,
+        discrimination_parameter_names = _parameter_names(design, discrimination_indices),
+    )
+end
+
+function _check_fit_supported_mfrm(design::FacetDesign, caller::AbstractString)
+    design.spec.family === :mfrm && design.spec.estimation_status === :fit_supported ||
+        throw(ArgumentError("$caller is currently implemented only for the fit-supported minimal MFRM/RSM/PCM design"))
+    return nothing
+end
+
+function _check_parameter_vector_length(design::FacetDesign, params::AbstractVector)
+    expected = length(design.parameter_names)
+    length(params) == expected ||
+        throw(ArgumentError("parameter vector has length $(length(params)); expected $expected"))
+    return nothing
+end
+
+function _row_location(design::FacetDesign, params::AbstractVector, row::Int)
+    data = design.spec.data
+    person_block = design.blocks[:person]
+    rater_block = design.blocks[:rater]
+    item_block = design.blocks[:item]
+    person_value = params[person_block[data.person[row]]]
+    rater_value = _reference_value(params, rater_block, data.rater[row])
+    item_value = _reference_value(params, item_block, data.item[row])
+    return (;
+        person_value,
+        rater_value,
+        item_value,
+        location_value = person_value - rater_value - item_value,
+    )
+end
+
+function _step_values(design::FacetDesign, params::AbstractVector, item::Int, category_index::Int)
+    category_index <= 1 && return typeof(_param_zero(params) + 0.0)[]
+    return [_threshold_step(design, params, item, step) for step in 1:(category_index - 1)]
+end
+
+function _linear_predictor_value(design::FacetDesign,
+        params::AbstractVector,
+        row::Int,
+        category_index::Int)
+    data = design.spec.data
+    location = _row_location(design, params, row).location_value
+    step_sum = _param_zero(params)
+    for step in 1:(category_index - 1)
+        step_sum += _threshold_step(design, params, data.item[row], step)
+    end
+    return (category_index - 1) * location - step_sum
+end
+
+function _linear_predictors!(etas::AbstractVector,
+        design::FacetDesign,
+        params::AbstractVector,
+        row::Int)
+    length(etas) == length(design.spec.data.category_levels) ||
+        throw(ArgumentError("eta vector has length $(length(etas)); expected $(length(design.spec.data.category_levels))"))
+    data = design.spec.data
+    location = _row_location(design, params, row).location_value
+    step_sum = _param_zero(params)
+    for category_index in eachindex(etas)
+        if category_index > 1
+            step_sum += _threshold_step(design, params, data.item[row], category_index - 1)
+        end
+        etas[category_index] = (category_index - 1) * location - step_sum
+    end
+    return etas
+end
+
+"""
+    linear_predictor_table(spec_or_design; preview = false)
+
+Return one row per observed rating and response category describing the
+source-level linear-predictor components used by the current design compiler.
+Rows include the category-specific location multiplier, facet parameter
+indexes, source-step path, and generalized item/rater blocks when a
+specified-only GMFRM/MGMFRM design is compiled with `preview = true`.
+
+The table is a compiler-inspection artifact for checking denominator terms and
+source-equation alignment. It does not make specified-only GMFRM/MGMFRM
+likelihoods fit-ready.
+"""
+function linear_predictor_table(spec::FacetSpec; preview::Bool = false)
+    return linear_predictor_table(getdesign(spec; preview))
+end
+
+function linear_predictor_table(design::FacetDesign; preview::Bool = false)
+    preview &&
+        throw(ArgumentError("preview is only a FacetSpec compilation option; pass linear_predictor_table(spec; preview = true) for specified-only specs"))
+    data = design.spec.data
+    index_by_name = _parameter_index_map(design)
+    rows = NamedTuple[]
+    for row in 1:data.n, category_index in eachindex(data.category_levels)
+        push!(rows, _predictor_components(design, index_by_name, row, category_index))
+    end
+    return rows
+end
+
+"""
+    linear_predictor_values(spec_or_design, params; preview = false)
+
+Return one row per observed rating and response category with numeric
+linear-predictor values for the fit-supported minimal MFRM/RSM/PCM design.
+Rows include the same compiler metadata as [`linear_predictor_table`](@ref),
+plus identified person/rater/item values, the additive location value,
+threshold-step values, their sum, the category score `eta`, the row log
+denominator, and the category log probability.
+
+Numeric values are deliberately not implemented for specified-only
+GMFRM/MGMFRM previews. Those models still require fixture-backed identified
+transforms and a public generalized likelihood interface before fitting or
+numeric likelihood evaluation is exposed.
+"""
+function linear_predictor_values(spec::FacetSpec, params::AbstractVector; preview::Bool = false)
+    return linear_predictor_values(getdesign(spec; preview), params)
+end
+
+function linear_predictor_values(design::FacetDesign,
+        params::AbstractVector;
+        preview::Bool = false)
+    preview &&
+        throw(ArgumentError("preview is only a FacetSpec compilation option; pass linear_predictor_values(spec, params; preview = true) for specified-only specs"))
+    _check_fit_supported_mfrm(design, "linear_predictor_values")
+    _check_parameter_vector_length(design, params)
+    data = design.spec.data
+    K = length(data.category_levels)
+    T = typeof(_param_zero(params) + 0.0)
+    etas = Vector{T}(undef, K)
+    index_by_name = _parameter_index_map(design)
+    rows = NamedTuple[]
+    for row in 1:data.n
+        _linear_predictors!(etas, design, params, row)
+        log_denominator = _logsumexp(etas)
+        location = _row_location(design, params, row)
+        for category_index in eachindex(data.category_levels)
+            components = _predictor_components(design, index_by_name, row, category_index)
+            step_values = _step_values(design, params, data.item[row], category_index)
+            step_sum = sum(step_values; init = _param_zero(params))
+            eta = etas[category_index]
+            push!(rows, merge(components, (;
+                person_value = location.person_value,
+                rater_value = location.rater_value,
+                item_value = location.item_value,
+                location_value = location.location_value,
+                step_values,
+                step_sum,
+                eta,
+                log_denominator,
+                log_probability = eta - log_denominator,
+            )))
+        end
+    end
+    return rows
+end
+
+function _check_gmfrm_source_fixture_design(design::FacetDesign, caller::AbstractString)
+    design.spec.family === :gmfrm &&
+        design.spec.estimation_status === :specified_only ||
+        throw(ArgumentError("$caller is only for specified-only GMFRM preview designs"))
+    for block in (:person, :rater, :item, :item_discrimination, :rater_consistency, :rater_steps)
+        haskey(design.blocks, block) ||
+            throw(ArgumentError("$caller requires a GMFRM preview block :$block"))
+    end
+    return nothing
+end
+
+function _check_approx_constraint(name::AbstractString, value, target; atol = 1e-8)
+    abs(value - target) <= atol ||
+        throw(ArgumentError("$name must be approximately $target for the source fixture; got $value"))
+    return nothing
+end
+
+function _check_positive_constraint(name::AbstractString, values)
+    all(value -> isfinite(value) && value > 0, values) ||
+        throw(ArgumentError("$name must be finite and strictly positive for the source fixture"))
+    return nothing
+end
+
+function _gmfrm_source_fixture_constraints(design::FacetDesign, params::AbstractVector)
+    data = design.spec.data
+    item_values = params[design.blocks[:item]]
+    item_discriminations = params[design.blocks[:item_discrimination]]
+    rater_consistencies = params[design.blocks[:rater_consistency]]
+    _check_approx_constraint("sum(item difficulty)", sum(item_values), _param_zero(params))
+    _check_positive_constraint("item discrimination", item_discriminations)
+    _check_approx_constraint("prod(item discrimination)", prod(item_discriminations), one(prod(item_discriminations)))
+    _check_positive_constraint("rater consistency", rater_consistencies)
+    length(item_values) == length(data.item_levels) ||
+        throw(ArgumentError("GMFRM source fixture expected one item difficulty per item level"))
+    length(rater_consistencies) == length(data.rater_levels) ||
+        throw(ArgumentError("GMFRM source fixture expected one rater consistency per rater level"))
+    return nothing
+end
+
+function _source_step_value(design::FacetDesign,
+        params::AbstractVector,
+        block::Symbol,
+        level_index::Int,
+        source_step::Int)
+    data = design.spec.data
+    K = length(data.category_levels)
+    source_step == 1 && return _param_zero(params)
+    2 <= source_step <= K ||
+        throw(ArgumentError("source-model step m = $source_step is outside 2:$K"))
+    free_steps = max(K - 2, 0)
+    free_steps == 0 && return _param_zero(params)
+    block_range = design.blocks[block]
+    offset = (level_index - 1) * free_steps
+    if source_step <= K - 1
+        return params[block_range[offset + source_step - 1]]
+    end
+    total = _param_zero(params)
+    for m in 2:(K - 1)
+        total += params[block_range[offset + m - 1]]
+    end
+    return -total
+end
+
+function _source_step_values(design::FacetDesign,
+        params::AbstractVector,
+        block::Symbol,
+        level_index::Int,
+        category_index::Int)
+    category_index <= 1 && return typeof(_param_zero(params) + 0.0)[]
+    return [
+        _source_step_value(design, params, block, level_index, source_step)
+        for source_step in 2:category_index
+    ]
+end
+
+function _put_block_values!(out::AbstractVector, block::UnitRange{Int}, values)
+    length(block) == length(values) ||
+        throw(ArgumentError("cannot assign $(length(values)) value(s) to block of length $(length(block))"))
+    for (index, value) in zip(block, values)
+        out[index] = value
+    end
+    return out
+end
+
+function _sum_to_zero_from_raw(raw_values, n::Int)
+    n >= 1 || return typeof(_param_zero(raw_values) + 0.0)[]
+    expected = n - 1
+    length(raw_values) == expected ||
+        throw(ArgumentError("sum-to-zero transform expected $expected raw value(s); got $(length(raw_values))"))
+    T = typeof(_param_zero(raw_values) + 0.0)
+    values = Vector{T}(undef, n)
+    total = _param_zero(raw_values)
+    for index in 1:expected
+        values[index] = raw_values[index]
+        total += raw_values[index]
+    end
+    values[n] = -total
+    return values
+end
+
+function _geometric_mean_one_from_log_raw(log_raw_values, n::Int)
+    n >= 1 || return typeof(exp(_param_zero(log_raw_values)))[]
+    expected = n - 1
+    length(log_raw_values) == expected ||
+        throw(ArgumentError("geometric-mean-one transform expected $expected raw log value(s); got $(length(log_raw_values))"))
+    T = typeof(exp(_param_zero(log_raw_values)))
+    values = Vector{T}(undef, n)
+    total = _param_zero(log_raw_values)
+    for index in 1:expected
+        values[index] = exp(log_raw_values[index])
+        total += log_raw_values[index]
+    end
+    values[n] = exp(-total)
+    return values
+end
+
+function _positive_from_log_raw(log_raw_values)
+    return [exp(value) for value in log_raw_values]
+end
+
+function _free_except_last_names(levels, prefix::AbstractString)
+    return [prefix * "[" * string(level) * "]" for level in levels[1:max(end - 1, 0)]]
+end
+
+function _gmfrm_unconstrained_blueprint(design::FacetDesign;
+        caller::AbstractString,
+        scope::Symbol,
+        status::Symbol,
+        fit_ready::Bool,
+        fixture_only::Bool,
+        compiler_stage::Symbol)
+    _check_gmfrm_source_fixture_design(design, caller)
+    data = design.spec.data
+    names = String[]
+    blocks = Dict{Symbol,UnitRange{Int}}()
+    _push_named_block!(names, blocks, :person, copy(design.parameter_names[design.blocks[:person]]))
+    _push_named_block!(names, blocks, :rater, copy(design.parameter_names[design.blocks[:rater]]))
+    _push_named_block!(names, blocks, :item_free,
+        _free_except_last_names(data.item_levels, "raw_item"))
+    _push_named_block!(names, blocks, :log_item_discrimination_free,
+        _free_except_last_names(data.item_levels, "raw_log_item_discrimination"))
+    _push_named_block!(names, blocks, :log_rater_consistency,
+        ["raw_log_rater_consistency[rater=$(rater)]" for rater in data.rater_levels])
+    _push_named_block!(names, blocks, :rater_steps, copy(design.parameter_names[design.blocks[:rater_steps]]))
+    return (;
+        family = :gmfrm,
+        scope,
+        status,
+        compiler_stage,
+        parameter_names = names,
+        blocks,
+        n_parameters = length(names),
+        constrained_parameter_names = copy(design.parameter_names),
+        constrained_blocks = copy(design.blocks),
+        fit_ready,
+        fixture_only,
+    )
+end
+
+function _gmfrm_source_unconstrained_blueprint(design::FacetDesign)
+    return _gmfrm_unconstrained_blueprint(design;
+        caller = "_gmfrm_source_unconstrained_blueprint",
+        scope = :scalar_gmfrm_source_aligned,
+        status = :internal_source_fixture,
+        fit_ready = false,
+        fixture_only = true,
+        compiler_stage = :source_fixture,
+    )
+end
+
+function _gmfrm_fit_ready_candidate_blueprint(design::FacetDesign)
+    return _gmfrm_unconstrained_blueprint(design;
+        caller = "_gmfrm_fit_ready_candidate_blueprint",
+        scope = :scalar_gmfrm_fit_ready_candidate,
+        status = :internal_fit_ready_candidate,
+        fit_ready = false,
+        fixture_only = false,
+        compiler_stage = :fit_ready_candidate,
+    )
+end
+
+function _gmfrm_source_constrained_params_from_unconstrained(
+        design::FacetDesign,
+        raw_params::AbstractVector)
+    blueprint = _gmfrm_source_unconstrained_blueprint(design)
+    length(raw_params) == blueprint.n_parameters ||
+        throw(ArgumentError("GMFRM source transform expected $(blueprint.n_parameters) raw parameter(s); got $(length(raw_params))"))
+    T = typeof(_param_zero(raw_params) + 0.0)
+    params = Vector{T}(undef, length(design.parameter_names))
+    data = design.spec.data
+    raw_blocks = blueprint.blocks
+    _put_block_values!(params, design.blocks[:person], raw_params[raw_blocks[:person]])
+    _put_block_values!(params, design.blocks[:rater], raw_params[raw_blocks[:rater]])
+    _put_block_values!(params, design.blocks[:item],
+        _sum_to_zero_from_raw(raw_params[raw_blocks[:item_free]], length(data.item_levels)))
+    _put_block_values!(params, design.blocks[:item_discrimination],
+        _geometric_mean_one_from_log_raw(
+            raw_params[raw_blocks[:log_item_discrimination_free]],
+            length(data.item_levels),
+        ))
+    _put_block_values!(params, design.blocks[:rater_consistency],
+        _positive_from_log_raw(raw_params[raw_blocks[:log_rater_consistency]]))
+    _put_block_values!(params, design.blocks[:rater_steps], raw_params[raw_blocks[:rater_steps]])
+    _gmfrm_source_fixture_constraints(design, params)
+    return params
+end
+
+function _gmfrm_source_row_terms(design::FacetDesign, params::AbstractVector, row::Int)
+    data = design.spec.data
+    person_value = params[design.blocks[:person][data.person[row]]]
+    rater_value = params[design.blocks[:rater][data.rater[row]]]
+    item_value = params[design.blocks[:item][data.item[row]]]
+    item_discrimination_value = params[design.blocks[:item_discrimination][data.item[row]]]
+    rater_consistency_value = params[design.blocks[:rater_consistency][data.rater[row]]]
+    location_value = person_value - item_value - rater_value
+    scale_value = item_discrimination_value * rater_consistency_value
+    return (;
+        person_value,
+        rater_value,
+        item_value,
+        item_discrimination_value,
+        rater_consistency_value,
+        location_value,
+        scale_value,
+    )
+end
+
+function _gmfrm_source_linear_predictors!(etas::AbstractVector,
+        design::FacetDesign,
+        params::AbstractVector,
+        row::Int)
+    data = design.spec.data
+    K = length(data.category_levels)
+    length(etas) == K ||
+        throw(ArgumentError("eta vector has length $(length(etas)); expected $K"))
+    terms = _gmfrm_source_row_terms(design, params, row)
+    etas[1] = zero(terms.scale_value * terms.location_value)
+    cumulative = zero(etas[1])
+    rater_index = data.rater[row]
+    for category_index in 2:K
+        step_value = _source_step_value(design, params, :rater_steps, rater_index, category_index)
+        cumulative += terms.scale_value * (terms.location_value - step_value)
+        etas[category_index] = cumulative
+    end
+    return etas
+end
+
+function _gmfrm_source_pointwise_loglikelihood(design::FacetDesign, params::AbstractVector)
+    _check_gmfrm_source_fixture_design(design, "_gmfrm_source_pointwise_loglikelihood")
+    _check_parameter_vector_length(design, params)
+    _gmfrm_source_fixture_constraints(design, params)
+    data = design.spec.data
+    K = length(data.category_levels)
+    T = typeof(_param_zero(params) + 0.0)
+    etas = Vector{T}(undef, K)
+    out = Vector{T}(undef, data.n)
+    for row in 1:data.n
+        _gmfrm_source_linear_predictors!(etas, design, params, row)
+        out[row] = etas[data.category[row]] - _logsumexp(etas)
+    end
+    return out
+end
+
+function _gmfrm_source_pointwise_loglikelihood_from_unconstrained(
+        design::FacetDesign,
+        raw_params::AbstractVector)
+    params = _gmfrm_source_constrained_params_from_unconstrained(design, raw_params)
+    return _gmfrm_source_pointwise_loglikelihood(design, params)
+end
+
+function _gmfrm_source_loglikelihood_from_unconstrained(
+        design::FacetDesign,
+        raw_params::AbstractVector)
+    pointwise = _gmfrm_source_pointwise_loglikelihood_from_unconstrained(design, raw_params)
+    return sum(pointwise; init = _param_zero(pointwise))
+end
+
+function _gmfrm_source_fixture_values(design::FacetDesign, params::AbstractVector)
+    _check_gmfrm_source_fixture_design(design, "_gmfrm_source_fixture_values")
+    _check_parameter_vector_length(design, params)
+    _gmfrm_source_fixture_constraints(design, params)
+    data = design.spec.data
+    K = length(data.category_levels)
+    T = typeof(_param_zero(params) + 0.0)
+    etas = Vector{T}(undef, K)
+    index_by_name = _parameter_index_map(design)
+    rows = NamedTuple[]
+    for row in 1:data.n
+        _gmfrm_source_linear_predictors!(etas, design, params, row)
+        log_denominator = _logsumexp(etas)
+        terms = _gmfrm_source_row_terms(design, params, row)
+        for category_index in eachindex(data.category_levels)
+            components = _predictor_components(design, index_by_name, row, category_index)
+            step_values = _source_step_values(
+                design,
+                params,
+                :rater_steps,
+                data.rater[row],
+                category_index,
+            )
+            step_sum = sum(step_values; init = _param_zero(params))
+            eta = etas[category_index]
+            push!(rows, merge(components, terms, (;
+                step_values,
+                step_sum,
+                scaled_step_sum = terms.scale_value * step_sum,
+                eta,
+                log_denominator,
+                log_probability = eta - log_denominator,
+                fixture_only = true,
+                fit_ready = false,
+            )))
+        end
+    end
+    return rows
+end
+
+function _check_mgmfrm_source_fixture_design(design::FacetDesign, caller::AbstractString)
+    design.spec.family === :mgmfrm &&
+        design.spec.estimation_status === :specified_only ||
+        throw(ArgumentError("$caller is only for specified-only MGMFRM preview designs"))
+    for block in (:person, :rater, :item, :item_dimension_discrimination, :rater_consistency, :item_steps)
+        haskey(design.blocks, block) ||
+            throw(ArgumentError("$caller requires an MGMFRM preview block :$block"))
+    end
+    design.spec.q_matrix === nothing &&
+        throw(ArgumentError("$caller requires a fixed Q-matrix"))
+    return nothing
+end
+
+function _mgmfrm_unconstrained_blueprint(design::FacetDesign;
+        caller::AbstractString,
+        scope::Symbol,
+        status::Symbol,
+        fit_ready::Bool,
+        fixture_only::Bool,
+        compiler_stage::Symbol)
+    _check_mgmfrm_source_fixture_design(design, caller)
+    data = design.spec.data
+    names = String[]
+    blocks = Dict{Symbol,UnitRange{Int}}()
+    _push_named_block!(names, blocks, :person, copy(design.parameter_names[design.blocks[:person]]))
+    _push_named_block!(names, blocks, :rater_free,
+        _free_except_last_names(data.rater_levels, "raw_rater"))
+    _push_named_block!(names, blocks, :item, copy(design.parameter_names[design.blocks[:item]]))
+    _push_named_block!(names, blocks, :log_item_dimension_discrimination,
+        ["raw_log_" * name for name in design.parameter_names[design.blocks[:item_dimension_discrimination]]])
+    _push_named_block!(names, blocks, :log_rater_consistency_free,
+        _free_except_last_names(data.rater_levels, "raw_log_rater_consistency"))
+    _push_named_block!(names, blocks, :item_steps, copy(design.parameter_names[design.blocks[:item_steps]]))
+    return (;
+        family = :mgmfrm,
+        scope,
+        status,
+        compiler_stage,
+        parameter_names = names,
+        blocks,
+        n_parameters = length(names),
+        constrained_parameter_names = copy(design.parameter_names),
+        constrained_blocks = copy(design.blocks),
+        fit_ready,
+        fixture_only,
+    )
+end
+
+function _mgmfrm_source_unconstrained_blueprint(design::FacetDesign)
+    return _mgmfrm_unconstrained_blueprint(design;
+        caller = "_mgmfrm_source_unconstrained_blueprint",
+        scope = :mgmfrm_source_aligned,
+        status = :internal_source_fixture,
+        fit_ready = false,
+        fixture_only = true,
+        compiler_stage = :source_fixture,
+    )
+end
+
+function _mgmfrm_fit_ready_candidate_blueprint(design::FacetDesign)
+    return _mgmfrm_unconstrained_blueprint(design;
+        caller = "_mgmfrm_fit_ready_candidate_blueprint",
+        scope = :minimal_confirmatory_mgmfrm_candidate,
+        status = :internal_fit_ready_candidate,
+        fit_ready = false,
+        fixture_only = false,
+        compiler_stage = :fit_ready_candidate,
+    )
+end
+
+function _mgmfrm_source_constrained_params_from_unconstrained(
+        design::FacetDesign,
+        raw_params::AbstractVector)
+    blueprint = _mgmfrm_source_unconstrained_blueprint(design)
+    length(raw_params) == blueprint.n_parameters ||
+        throw(ArgumentError("MGMFRM source transform expected $(blueprint.n_parameters) raw parameter(s); got $(length(raw_params))"))
+    T = typeof(_param_zero(raw_params) + 0.0)
+    params = Vector{T}(undef, length(design.parameter_names))
+    data = design.spec.data
+    raw_blocks = blueprint.blocks
+    _put_block_values!(params, design.blocks[:person], raw_params[raw_blocks[:person]])
+    _put_block_values!(params, design.blocks[:rater],
+        _sum_to_zero_from_raw(raw_params[raw_blocks[:rater_free]], length(data.rater_levels)))
+    _put_block_values!(params, design.blocks[:item], raw_params[raw_blocks[:item]])
+    _put_block_values!(params, design.blocks[:item_dimension_discrimination],
+        _positive_from_log_raw(raw_params[raw_blocks[:log_item_dimension_discrimination]]))
+    _put_block_values!(params, design.blocks[:rater_consistency],
+        _geometric_mean_one_from_log_raw(
+            raw_params[raw_blocks[:log_rater_consistency_free]],
+            length(data.rater_levels),
+        ))
+    _put_block_values!(params, design.blocks[:item_steps], raw_params[raw_blocks[:item_steps]])
+    _mgmfrm_source_fixture_constraints(design, params)
+    return params
+end
+
+function _mgmfrm_source_fixture_constraints(design::FacetDesign, params::AbstractVector)
+    data = design.spec.data
+    rater_values = params[design.blocks[:rater]]
+    item_values = params[design.blocks[:item]]
+    item_dimension_discriminations = params[design.blocks[:item_dimension_discrimination]]
+    rater_consistencies = params[design.blocks[:rater_consistency]]
+    _check_approx_constraint("sum(rater severity)", sum(rater_values), _param_zero(params))
+    _check_positive_constraint("item-dimension discrimination", item_dimension_discriminations)
+    _check_positive_constraint("rater consistency", rater_consistencies)
+    _check_approx_constraint("prod(rater consistency)", prod(rater_consistencies), one(prod(rater_consistencies)))
+    length(rater_values) == length(data.rater_levels) ||
+        throw(ArgumentError("MGMFRM source fixture expected one rater severity per rater level"))
+    length(item_values) == length(data.item_levels) ||
+        throw(ArgumentError("MGMFRM source fixture expected one item difficulty per item level"))
+    length(rater_consistencies) == length(data.rater_levels) ||
+        throw(ArgumentError("MGMFRM source fixture expected one rater consistency per rater level"))
+    return nothing
+end
+
+function _mgmfrm_source_row_terms(design::FacetDesign,
+        index_by_name,
+        params::AbstractVector,
+        row::Int)
+    data = design.spec.data
+    dims = design.spec.dimensions
+    person_block = design.blocks[:person]
+    person_offset = (data.person[row] - 1) * dims
+    person_values = [params[person_block[person_offset + dim]] for dim in 1:dims]
+    active_dimensions = _loading_dimensions(design.spec, data.item[row])
+    discrimination_indices = _loading_parameter_indices(design, index_by_name, data.item[row])
+    item_dimension_discrimination_values = [params[index] for index in discrimination_indices]
+    ability_score = _param_zero(params)
+    for (dim, value) in zip(active_dimensions, item_dimension_discrimination_values)
+        ability_score += value * person_values[dim]
+    end
+    rater_value = params[design.blocks[:rater][data.rater[row]]]
+    item_value = params[design.blocks[:item][data.item[row]]]
+    rater_consistency_value = params[design.blocks[:rater_consistency][data.rater[row]]]
+    source_scale = 1.7
+    scale_value = source_scale * rater_consistency_value
+    location_value = ability_score - item_value - rater_value
+    return (;
+        person_values,
+        active_dimension_values = [person_values[dim] for dim in active_dimensions],
+        item_dimension_discrimination_values,
+        ability_score,
+        rater_value,
+        item_value,
+        rater_consistency_value,
+        source_scale,
+        scale_value,
+        location_value,
+    )
+end
+
+function _mgmfrm_source_linear_predictors!(etas::AbstractVector,
+        design::FacetDesign,
+        index_by_name,
+        params::AbstractVector,
+        row::Int)
+    data = design.spec.data
+    K = length(data.category_levels)
+    length(etas) == K ||
+        throw(ArgumentError("eta vector has length $(length(etas)); expected $K"))
+    terms = _mgmfrm_source_row_terms(design, index_by_name, params, row)
+    etas[1] = zero(terms.scale_value * terms.location_value)
+    cumulative = zero(etas[1])
+    item_index = data.item[row]
+    for category_index in 2:K
+        step_value = _source_step_value(design, params, :item_steps, item_index, category_index)
+        cumulative += terms.scale_value * (terms.location_value - step_value)
+        etas[category_index] = cumulative
+    end
+    return etas
+end
+
+function _mgmfrm_source_pointwise_loglikelihood(design::FacetDesign, params::AbstractVector)
+    _check_mgmfrm_source_fixture_design(design, "_mgmfrm_source_pointwise_loglikelihood")
+    _check_parameter_vector_length(design, params)
+    _mgmfrm_source_fixture_constraints(design, params)
+    data = design.spec.data
+    K = length(data.category_levels)
+    T = typeof(_param_zero(params) + 0.0)
+    etas = Vector{T}(undef, K)
+    out = Vector{T}(undef, data.n)
+    index_by_name = _parameter_index_map(design)
+    for row in 1:data.n
+        _mgmfrm_source_linear_predictors!(etas, design, index_by_name, params, row)
+        out[row] = etas[data.category[row]] - _logsumexp(etas)
+    end
+    return out
+end
+
+function _mgmfrm_source_pointwise_loglikelihood_from_unconstrained(
+        design::FacetDesign,
+        raw_params::AbstractVector)
+    params = _mgmfrm_source_constrained_params_from_unconstrained(design, raw_params)
+    return _mgmfrm_source_pointwise_loglikelihood(design, params)
+end
+
+function _mgmfrm_source_loglikelihood_from_unconstrained(
+        design::FacetDesign,
+        raw_params::AbstractVector)
+    pointwise = _mgmfrm_source_pointwise_loglikelihood_from_unconstrained(design, raw_params)
+    return sum(pointwise; init = _param_zero(pointwise))
+end
+
+function _mgmfrm_source_fixture_values(design::FacetDesign, params::AbstractVector)
+    _check_mgmfrm_source_fixture_design(design, "_mgmfrm_source_fixture_values")
+    _check_parameter_vector_length(design, params)
+    _mgmfrm_source_fixture_constraints(design, params)
+    data = design.spec.data
+    K = length(data.category_levels)
+    T = typeof(_param_zero(params) + 0.0)
+    etas = Vector{T}(undef, K)
+    index_by_name = _parameter_index_map(design)
+    rows = NamedTuple[]
+    for row in 1:data.n
+        _mgmfrm_source_linear_predictors!(etas, design, index_by_name, params, row)
+        log_denominator = _logsumexp(etas)
+        terms = _mgmfrm_source_row_terms(design, index_by_name, params, row)
+        for category_index in eachindex(data.category_levels)
+            components = _predictor_components(design, index_by_name, row, category_index)
+            step_values = _source_step_values(
+                design,
+                params,
+                :item_steps,
+                data.item[row],
+                category_index,
+            )
+            step_sum = sum(step_values; init = _param_zero(params))
+            eta = etas[category_index]
+            push!(rows, merge(components, terms, (;
+                step_values,
+                step_sum,
+                scaled_step_sum = terms.scale_value * step_sum,
+                eta,
+                log_denominator,
+                log_probability = eta - log_denominator,
+                fixture_only = true,
+                fit_ready = false,
+            )))
+        end
+    end
+    return rows
+end
+
+"""
+    design_row_table(spec_or_design; preview = false)
+
+Return one row of machine-readable design metadata per observed rating. The
+table records the facet level indexes and labels, identified parameter indexes
+and names touched by the row, the source-step path up to the observed category,
+and preview-only generalized blocks such as item discrimination,
+item-dimension discrimination, and rater consistency when a specified-only
+GMFRM/MGMFRM design is compiled with `preview = true`.
+
+For a `FacetSpec`, specified-only GMFRM/MGMFRM configurations are rejected
+unless `preview = true`, matching [`getdesign`](@ref). The returned table is a
+compiler inspection aid; it does not make specified-only likelihoods fit-ready.
+"""
+function design_row_table(spec::FacetSpec; preview::Bool = false)
+    return design_row_table(getdesign(spec; preview))
+end
+
+function design_row_table(design::FacetDesign; preview::Bool = false)
+    preview &&
+        throw(ArgumentError("preview is only a FacetSpec compilation option; pass design_row_table(spec; preview = true) for specified-only specs"))
+    data = design.spec.data
+    index_by_name = _parameter_index_map(design)
+    rows = NamedTuple[]
+    for row in 1:data.n
+        components = _predictor_components(design, index_by_name, row, data.category[row])
+        push!(rows, (;
+            row,
+            score = data.score[row],
+            category_index = data.category[row],
+            category = data.category_levels[data.category[row]],
+            person_index = data.person[row],
+            person = data.person_levels[data.person[row]],
+            person_parameter_indices = components.person_parameter_indices,
+            person_parameter_names = components.person_parameter_names,
+            rater_index = data.rater[row],
+            rater = data.rater_levels[data.rater[row]],
+            rater_parameter_index = components.rater_parameter_index,
+            rater_parameter_name = components.rater_parameter_name,
+            item_index = data.item[row],
+            item = data.item_levels[data.item[row]],
+            item_parameter_index = components.item_parameter_index,
+            item_parameter_name = components.item_parameter_name,
+            item_discrimination_parameter_index = components.item_discrimination_parameter_index,
+            item_discrimination_parameter_name = components.item_discrimination_parameter_name,
+            threshold_path = components.step_path,
+            threshold_parameter_indices = components.step_parameter_indices,
+            threshold_parameter_names = components.step_parameter_names,
+            threshold_statuses = components.step_statuses,
+            threshold_blocks = components.step_blocks,
+            loading_dimensions = _loading_dimensions(design.spec, data.item[row]),
+            loading_parameter_indices = components.item_dimension_discrimination_parameter_indices,
+            loading_parameter_names = components.item_dimension_discrimination_parameter_names,
+            item_dimension_discrimination_parameter_indices = components.item_dimension_discrimination_parameter_indices,
+            item_dimension_discrimination_parameter_names = components.item_dimension_discrimination_parameter_names,
+            rater_consistency_parameter_index = components.rater_consistency_parameter_index,
+            rater_consistency_parameter_name = components.rater_consistency_parameter_name,
+            discrimination_parameter_indices = components.discrimination_parameter_indices,
+            discrimination_parameter_names = components.discrimination_parameter_names,
+        ))
+    end
+    return rows
+end
+
+function _namedtuple_from_pairs(pairs)
+    isempty(pairs) && return NamedTuple{()}(())
+    names = Tuple(first(pair) for pair in pairs)
+    values = Tuple(last(pair) for pair in pairs)
+    return NamedTuple{names}(values)
+end
+
+function _optional_levels_manifest(data::FacetData)
+    pairs = Pair{Symbol,Any}[]
+    for role in sort(collect(keys(data.optional_levels)); by = string)
+        push!(pairs, role => copy(data.optional_levels[role]))
+    end
+    return _namedtuple_from_pairs(pairs)
+end
+
+function _optional_columns_manifest(data::FacetData)
+    pairs = Pair{Symbol,Any}[]
+    for role in sort(collect(keys(data.columns.optional)); by = string)
+        push!(pairs, role => data.columns.optional[role])
+    end
+    return _namedtuple_from_pairs(pairs)
+end
+
+function _data_manifest(data::FacetData)
+    return (;
+        n_observations = data.n,
+        n_persons = length(data.person_levels),
+        n_raters = length(data.rater_levels),
+        n_items = length(data.item_levels),
+        n_categories = length(data.category_levels),
+        columns = (;
+            person = data.columns.person,
+            rater = data.columns.rater,
+            item = data.columns.item,
+            score = data.columns.score,
+            optional = _optional_columns_manifest(data),
+            missing_policy = data.columns.missing_policy,
+        ),
+        levels = (;
+            person = copy(data.person_levels),
+            rater = copy(data.rater_levels),
+            item = copy(data.item_levels),
+            category = copy(data.category_levels),
+            optional = _optional_levels_manifest(data),
+        ),
+        optional_facets = sort(collect(keys(data.optional)); by = string),
+        data_signature = _data_signature(data),
+    )
+end
+
+function _issue_count_rows(report::ValidationReport)
+    codes = sort(unique(issue.code for issue in report.issues); by = string)
+    return [(; code, count = count(issue -> issue.code === code, report.issues)) for code in codes]
+end
+
+function _validation_manifest(report::ValidationReport)
+    return (;
+        passed = report.passed,
+        n_issues = length(report.issues),
+        n_errors = count(issue -> issue.severity === :error, report.issues),
+        n_warnings = count(issue -> issue.severity === :warning, report.issues),
+        issue_counts = _issue_count_rows(report),
+        issues = [(;
+            code = issue.code,
+            severity = issue.severity,
+            message = issue.message,
+            context = copy(issue.context),
+        ) for issue in report.issues],
+        suggestions = validation_suggestions(report),
+        data_signature = report.data_signature,
+        options_signature = report.options_signature,
+    )
+end
+
+function _q_matrix_manifest(q_matrix::Union{Nothing,Matrix{Bool}})
+    q_matrix === nothing && return nothing
+    return [q_matrix[row, col] for row in axes(q_matrix, 1), col in axes(q_matrix, 2)]
+end
+
+function _spec_manifest(spec::FacetSpec)
+    return (;
+        family = spec.family,
+        scope = _spec_scope(spec.family, spec.estimation_status),
+        thresholds = spec.thresholds,
+        dimensions = spec.dimensions,
+        discrimination = spec.discrimination,
+        q_matrix = _q_matrix_manifest(spec.q_matrix),
+        validation_bias_terms = copy(spec.validation_bias_terms),
+        anchors = copy(spec.anchors),
+        estimation_status = spec.estimation_status,
+        required_facets = (:person, :rater, :item),
+        optional_facets = sort(collect(keys(spec.data.optional)); by = string),
+        equation = model_equation(spec),
+        constraints = constraint_table(spec),
+        prior_blocks = copy(spec.prior_blocks),
+    )
+end
+
+function _design_block_rows(design::FacetDesign)
+    rows = NamedTuple[]
+    for block in sort(collect(keys(design.blocks)); by = string)
+        range = design.blocks[block]
+        indices = collect(range)
+        names = isempty(indices) ? String[] : design.parameter_names[indices]
+        push!(rows, (;
+            block,
+            first_parameter = isempty(indices) ? missing : first(indices),
+            last_parameter = isempty(indices) ? missing : last(indices),
+            n_parameters = length(indices),
+            parameter_names = copy(names),
+            identification = design.identification[block],
+        ))
+    end
+    return rows
+end
+
+function _block_manifest_rows(blocks::Dict{Symbol,UnitRange{Int}}, parameter_names::Vector{String})
+    rows = NamedTuple[]
+    for block in sort(collect(keys(blocks)); by = string)
+        range = blocks[block]
+        indices = collect(range)
+        push!(rows, (;
+            block,
+            first_parameter = isempty(indices) ? missing : first(indices),
+            last_parameter = isempty(indices) ? missing : last(indices),
+            n_parameters = length(indices),
+            parameter_names = isempty(indices) ? String[] : copy(parameter_names[indices]),
+        ))
+    end
+    return rows
+end
+
+function _source_transform_declarations(family::Symbol)
+    family === :gmfrm && return NamedTuple[
+        (raw_block = :person, constrained_block = :person, transform = :identity,
+            constraint = :free, prior_block = :person),
+        (raw_block = :rater, constrained_block = :rater, transform = :identity,
+            constraint = :free, prior_block = :rater),
+        (raw_block = :item_free, constrained_block = :item, transform = :sum_to_zero_last,
+            constraint = :sum_to_zero, prior_block = :item),
+        (raw_block = :log_item_discrimination_free, constrained_block = :item_discrimination,
+            transform = :geometric_mean_one_log_last, constraint = :geometric_mean_one,
+            prior_block = :log_item_discrimination),
+        (raw_block = :log_rater_consistency, constrained_block = :rater_consistency,
+            transform = :positive_log, constraint = :positive,
+            prior_block = :log_rater_consistency),
+        (raw_block = :rater_steps, constrained_block = :rater_steps, transform = :identity,
+            constraint = :first_step_zero_sum_to_zero, prior_block = :rater_steps),
+    ]
+    family === :mgmfrm && return NamedTuple[
+        (raw_block = :person, constrained_block = :person, transform = :identity,
+            constraint = :multidimensional_location_gauge, prior_block = :person),
+        (raw_block = :rater_free, constrained_block = :rater, transform = :sum_to_zero_last,
+            constraint = :sum_to_zero, prior_block = :rater),
+        (raw_block = :item, constrained_block = :item, transform = :identity,
+            constraint = :free, prior_block = :item),
+        (raw_block = :log_item_dimension_discrimination,
+            constrained_block = :item_dimension_discrimination,
+            transform = :positive_log_q_mask, constraint = :confirmatory_q_mask,
+            prior_block = :log_item_dimension_discrimination),
+        (raw_block = :log_rater_consistency_free, constrained_block = :rater_consistency,
+            transform = :geometric_mean_one_log_last, constraint = :geometric_mean_one,
+            prior_block = :log_rater_consistency),
+        (raw_block = :item_steps, constrained_block = :item_steps, transform = :identity,
+            constraint = :first_step_zero_sum_to_zero, prior_block = :item_steps),
+    ]
+    return NamedTuple[]
+end
+
+function _source_transform_manifest_rows(blueprint)
+    rows = NamedTuple[]
+    for declaration in _source_transform_declarations(blueprint.family)
+        raw_range = blueprint.blocks[declaration.raw_block]
+        constrained_range = blueprint.constrained_blocks[declaration.constrained_block]
+        raw_indices = collect(raw_range)
+        constrained_indices = collect(constrained_range)
+        push!(rows, merge(declaration, (;
+            raw_first_parameter = isempty(raw_indices) ? missing : first(raw_indices),
+            raw_last_parameter = isempty(raw_indices) ? missing : last(raw_indices),
+            raw_n_parameters = length(raw_indices),
+            raw_parameter_names = isempty(raw_indices) ? String[] : copy(blueprint.parameter_names[raw_indices]),
+            constrained_first_parameter = isempty(constrained_indices) ? missing : first(constrained_indices),
+            constrained_last_parameter = isempty(constrained_indices) ? missing : last(constrained_indices),
+            constrained_n_parameters = length(constrained_indices),
+            constrained_parameter_names = isempty(constrained_indices) ? String[] :
+                copy(blueprint.constrained_parameter_names[constrained_indices]),
+            jacobian_policy = :none_raw_coordinate_density,
+        )))
+    end
+    return rows
+end
+
+function _fit_ready_candidate_constraint_rows(blueprint)
+    rows = NamedTuple[]
+    for transform in _source_transform_manifest_rows(blueprint)
+        push!(rows, (;
+            raw_block = transform.raw_block,
+            constrained_block = transform.constrained_block,
+            constraint = transform.constraint,
+            transform = transform.transform,
+            status = :internal_fit_ready_candidate,
+            prior_block = transform.prior_block,
+            raw_n_parameters = transform.raw_n_parameters,
+            constrained_n_parameters = transform.constrained_n_parameters,
+            jacobian_policy = transform.jacobian_policy,
+        ))
+    end
+    return rows
+end
+
+function _gmfrm_fit_ready_compiler_candidate(blueprint)
+    return (;
+        schema = "bayesianmgmfrm.gmfrm_fit_ready_compiler_candidate.v1",
+        family = :gmfrm,
+        scope = :scalar_gmfrm_fit_ready_candidate,
+        status = :internal_fit_ready_candidate,
+        public_fit = false,
+        fit_ready = false,
+        fixture_only = false,
+        compiler_stage = :fit_ready_candidate,
+        source_oracle = :scalar_gmfrm_source_aligned,
+        density_space = :raw_unconstrained,
+        prior_policy = :independent_normal_raw_coordinates,
+        direct_prior_policy = :not_enabled_raw_coordinate_priors_only,
+        jacobian_policy = :none_raw_coordinate_density,
+        n_raw_parameters = blueprint.n_parameters,
+        raw_parameter_names = copy(blueprint.parameter_names),
+        constrained_parameter_names = copy(blueprint.constrained_parameter_names),
+        raw_blocks = _block_manifest_rows(blueprint.blocks, blueprint.parameter_names),
+        constrained_blocks = _block_manifest_rows(
+            blueprint.constrained_blocks,
+            blueprint.constrained_parameter_names,
+        ),
+        transforms = _source_transform_manifest_rows(blueprint),
+        constraints = _fit_ready_candidate_constraint_rows(blueprint),
+        unsupported_public_options = [
+            :direct_scale_priors,
+            :dff_effects,
+            :multidimensional_ability,
+            :free_latent_correlation,
+            :hierarchical_rater_thresholds,
+        ],
+    )
+end
+
+function _promotion_candidate_gate_rows(family::Symbol)
+    family === :gmfrm && return [
+        (gate = :raw_transform_manifest, status = :done,
+            evidence = :design_raw_parameterization),
+        (gate = :fit_ready_compiler_manifest, status = :done,
+            evidence = :gmfrm_fit_ready_compiler_candidate),
+        (gate = :direct_parameter_metadata, status = :done,
+            evidence = :constrained_block_manifest),
+        (gate = :raw_to_direct_transform, status = :done,
+            evidence = :promotion_candidate_transform_diagnostics),
+        (gate = :direct_pointwise_fixture, status = :done,
+            evidence = :promotion_candidate_pointwise_fixture),
+        (gate = :pointwise_likelihood_fixture, status = :done,
+            evidence = :source_aligned_julia_fixture),
+        (gate = :logdensity_gradient_check, status = :done,
+            evidence = :forwarddiff_finite_difference_test),
+        (gate = :bridge_oracle_check, status = :done,
+            evidence = :bridgestan_logdensity_gradient_fixture),
+        (gate = :bridge_direct_parameter_check, status = :done,
+            evidence = :bridgestan_constrained_parameter_fixture),
+        (gate = :hmc_smoke_check, status = :done,
+            evidence = :advancedhmc_fixture_smoke_test),
+        (gate = :public_fit_api, status = :blocked,
+            evidence = :fit_rejects_specified_only_gmfrm),
+        (gate = :production_diagnostics, status = :done,
+            evidence = :promotion_candidate_sampler_diagnostics),
+        (gate = :candidate_chain_study, status = :done,
+            evidence = :gmfrm_candidate_chain_study_fixture),
+        (gate = :stress_chain_grid, status = :done,
+            evidence = :gmfrm_stress_chain_grid_fixture),
+        (gate = :recovery_smoke_study, status = :done,
+            evidence = :gmfrm_recovery_smoke_fixture),
+        (gate = :baseline_comparison, status = :done,
+            evidence = :gmfrm_baseline_comparison_fixture),
+        (gate = :baseline_calibration_grid, status = :done,
+            evidence = :gmfrm_baseline_calibration_grid_fixture),
+        (gate = :interval_decision_grid, status = :done,
+            evidence = :gmfrm_interval_decision_grid_fixture),
+        (gate = :sparse_design_grid, status = :done,
+            evidence = :gmfrm_sparse_design_grid_fixture),
+        (gate = :waic_influence_review, status = :done,
+            evidence = :gmfrm_waic_influence_review_fixture),
+        (gate = :psis_loo_review, status = :done,
+            evidence = :gmfrm_psis_loo_review_fixture),
+        (gate = :exact_loo_or_kfold_review, status = :done,
+            evidence = :gmfrm_exact_loo_or_kfold_review_fixture),
+        (gate = :guarded_exposure_review, status = :done,
+            evidence = :gmfrm_guarded_exposure_review_fixture),
+        (gate = :guarded_fit_api_dry_run, status = :done,
+            evidence = :gmfrm_guarded_fit_api_dry_run_fixture),
+        (gate = :guarded_fit_method_wiring, status = :done,
+            evidence = :gmfrm_guarded_fit_method_wiring_fixture),
+        (gate = :experimental_fit_validation_grid, status = :done,
+            evidence = :gmfrm_experimental_fit_validation_grid_fixture),
+        (gate = :posterior_predictive_grid, status = :done,
+            evidence = :gmfrm_posterior_predictive_grid_fixture),
+        (gate = :sparse_pathology_recovery_grid, status = :done,
+            evidence = :gmfrm_sparse_pathology_recovery_grid_fixture),
+        (gate = :prior_likelihood_sensitivity_grid, status = :done,
+            evidence = :gmfrm_prior_likelihood_sensitivity_grid_fixture),
+        (gate = :real_data_case_study, status = :done,
+            evidence = :gmfrm_real_data_case_study_fixture),
+        (gate = :claim_recovery_reproduction_archive, status = :done,
+            evidence = :gmfrm_claim_recovery_reproduction_archive_fixture),
+        (gate = :broader_experimental_exposure_decision_review, status = :done,
+            evidence = :gmfrm_broader_experimental_exposure_decision_review_fixture),
+        (gate = :direct_scale_prior_jacobian_policy, status = :done,
+            evidence = :raw_prior_jacobian_policy_decision),
+        (gate = :experimental_public_api, status = :done,
+            evidence = :gmfrm_experimental_public_api_decision),
+    ]
+    return NamedTuple[]
+end
+
+function _gmfrm_experimental_candidate_option_rows()
+    return [
+        (option = :entrypoint, value = "fit(spec; experimental = true)",
+            status = :enabled_guarded,
+            note = :scalar_gmfrm_only),
+        (option = :family, value = :gmfrm,
+            status = :candidate_only,
+            note = :scalar_gmfrm_before_mgmfrm),
+        (option = :dimensions, value = 1,
+            status = :candidate_only,
+            note = :one_dimensional_only),
+        (option = :discrimination, value = :rater,
+            status = :candidate_only,
+            note = :source_aligned_scalar_gmfrm_fixture),
+        (option = :density_space, value = :raw_unconstrained,
+            status = :candidate_only,
+            note = :raw_coordinate_prior_contract_required),
+    ]
+end
+
+function _gmfrm_experimental_rejected_option_rows()
+    return [
+        (option = :family, value = :mgmfrm,
+            status = :blocked,
+            blocker = :mgmfrm_baseline_sparse_prior_policy_pending),
+        (option = :dimensions, value = :multidimensional,
+            status = :blocked,
+            blocker = :mgmfrm_public_scope_not_promoted),
+        (option = :direct_scale_priors, value = :constrained_direct,
+            status = :blocked,
+            blocker = :raw_prior_policy_selected_for_candidate),
+        (option = :bias_or_dff_terms, value = :model_effects,
+            status = :blocked,
+            blocker = :dff_model_effect_fit_policy_not_promoted),
+        (option = :hierarchical_rater_thresholds, value = :enabled,
+            status = :blocked,
+            blocker = :pooling_and_identification_policy_missing),
+        (option = :model_comparison_weights, value = :loo_or_stacking,
+            status = :blocked,
+            blocker = :psis_loo_pareto_k_target_missing),
+    ]
+end
+
+function _experimental_fit_artifact_contract_field_rows(family::Symbol)
+    rows = [
+        (field = :schema, status = :required,
+            note = :family_specific_experimental_fit_artifact_schema),
+        (field = :experimental_public, status = :required,
+            note = :true_only_when_guarded_entrypoint_is_enabled),
+        (field = :public_fit, status = :required,
+            note = :must_match_manifest_decision),
+        (field = :family, status = :required,
+            note = :generalized_family_name),
+        (field = :scope, status = :required,
+            note = :narrow_candidate_scope),
+        (field = :density_space, status = :required,
+            note = :raw_unconstrained_or_documented_direct_policy),
+        (field = :raw_parameter_names, status = :required,
+            note = :sampler_coordinate_order),
+        (field = :direct_parameter_names, status = :required,
+            note = :interpretable_constrained_order),
+        (field = :raw_to_direct_transform, status = :required,
+            note = :constraint_and_jacobian_policy_provenance),
+        (field = :sampler_controls, status = :required,
+            note = :backend_seed_warmup_draws_chains_and_metric),
+        (field = :diagnostics, status = :required,
+            note = :rhat_ess_divergence_treedepth_and_ebfmi_rows),
+        (field = :pointwise_loglikelihood, status = :required,
+            note = :observation_ordered_loglikelihood_matrix),
+        (field = :caveat_docs_artifact, status = :required,
+            note = :guarded_generalized_model_caveats),
+        (field = :fixture_provenance, status = :required,
+            note = :bridge_chain_recovery_artifact_paths_and_hashes),
+    ]
+    family === :mgmfrm || return rows
+    return [
+        rows...,
+        (field = :q_matrix, status = :required,
+            note = :fixed_confirmatory_mask),
+        (field = :latent_correlation, status = :required,
+            note = :identity_fixed_for_first_candidate),
+        (field = :ability_scale, status = :required,
+            note = :standard_normal_gauge),
+    ]
+end
+
+function _experimental_fit_artifact_contract_provenance_rows(;
+        bridge_artifact,
+        candidate_chain_study_artifact,
+        recovery_smoke_artifact,
+        caveat_docs_artifact)
+    return [
+        (artifact = :bridge_oracle, status = :required,
+            value = bridge_artifact,
+            hash_policy = :sha256_when_exported),
+        (artifact = :candidate_chain_study, status = :required,
+            value = candidate_chain_study_artifact,
+            hash_policy = :sha256_when_exported),
+        (artifact = :recovery_smoke_study, status = :required,
+            value = recovery_smoke_artifact,
+            hash_policy = :sha256_when_exported),
+        (artifact = :caveat_docs, status = :required,
+            value = caveat_docs_artifact,
+            hash_policy = :git_blob_or_sha256_when_exported),
+    ]
+end
+
+function _experimental_fit_artifact_contract(family::Symbol,
+        scope::Symbol;
+        bridge_artifact,
+        candidate_chain_study_artifact,
+        recovery_smoke_artifact,
+        caveat_docs_artifact,
+        public_fit::Bool = false,
+        experimental_public::Bool = public_fit,
+        artifact_kind::Symbol = public_fit ?
+            :experimental_generalized_fit_artifact :
+            :future_experimental_generalized_fit_artifact)
+    required_fields = _experimental_fit_artifact_contract_field_rows(family)
+    provenance_rows = _experimental_fit_artifact_contract_provenance_rows(;
+        bridge_artifact,
+        candidate_chain_study_artifact,
+        recovery_smoke_artifact,
+        caveat_docs_artifact)
+    return (;
+        schema = "bayesianmgmfrm.experimental_generalized_fit_artifact_contract.v1",
+        family,
+        scope,
+        status = :contract_recorded,
+        public_fit,
+        experimental_public,
+        artifact_kind,
+        required_fields,
+        provenance_rows,
+        summary = (;
+            n_required_fields = length(required_fields),
+            n_required_provenance_artifacts = length(provenance_rows),
+            enables_public_fit = public_fit,
+        ),
+    )
+end
+
+function _generalized_raw_prior_jacobian_policy(family::Symbol, scope::Symbol)
+    return (;
+        schema = "bayesianmgmfrm.generalized_raw_prior_jacobian_policy.v1",
+        family,
+        scope,
+        status = :policy_recorded,
+        density_space = :raw_unconstrained,
+        prior_policy = :independent_normal_raw_coordinates,
+        direct_scale_priors = false,
+        direct_prior_policy = :not_enabled_raw_coordinate_priors_only,
+        jacobian_policy = :none_raw_coordinate_density,
+        direct_parameter_summaries = :deterministic_transforms_of_raw_draws,
+        public_fit = false,
+        experimental_public = false,
+        notes = [
+            :no_log_jacobian_for_raw_coordinate_density,
+            :direct_scale_priors_require_future_jacobian_policy,
+            :direct_parameters_are_interpretable_transforms_not_prior_scales,
+        ],
+    )
+end
+
+function _gmfrm_experimental_public_evidence_rows()
+    return [
+        (evidence = :fit_ready_compiler_manifest, status = :done,
+            artifact = :gmfrm_fit_ready_compiler_candidate),
+        (evidence = :raw_to_direct_transform_diagnostics, status = :done,
+            artifact = :gmfrm_promotion_candidate_transform_diagnostics),
+        (evidence = :direct_pointwise_fixture, status = :done,
+            artifact = :gmfrm_promotion_candidate_pointwise_fixture),
+        (evidence = :bridgestan_fit_ready_oracle, status = :done,
+            artifact = :fit_ready_scalar_gmfrm_bridge_oracle),
+        (evidence = :candidate_chain_study, status = :done,
+            artifact = "test/fixtures/gmfrm_candidate_chain_study.json"),
+        (evidence = :recovery_smoke_study, status = :done,
+            artifact = "test/fixtures/gmfrm_recovery_smoke.json"),
+        (evidence = :fit_artifact_manifest_for_experimental_public, status = :done,
+            artifact = :experimental_public_fit_artifact_contract),
+        (evidence = :stress_chain_grid, status = :done,
+            artifact = "test/fixtures/gmfrm_stress_chain_grid.json"),
+        (evidence = :baseline_comparison, status = :done,
+            artifact = "test/fixtures/gmfrm_baseline_comparison.json"),
+        (evidence = :baseline_calibration_grid, status = :done,
+            artifact = "test/fixtures/gmfrm_baseline_calibration_grid.json"),
+        (evidence = :interval_decision_grid, status = :done,
+            artifact = "test/fixtures/gmfrm_interval_decision_grid.json"),
+        (evidence = :sparse_design_grid, status = :done,
+            artifact = "test/fixtures/gmfrm_sparse_design_grid.json"),
+        (evidence = :waic_influence_review, status = :done,
+            artifact = "test/fixtures/gmfrm_waic_influence_review.json"),
+        (evidence = :psis_loo_review, status = :done,
+            artifact = "test/fixtures/gmfrm_psis_loo_review.json"),
+        (evidence = :exact_loo_or_kfold_review, status = :done,
+            artifact = "test/fixtures/gmfrm_exact_loo_or_kfold_review.json"),
+        (evidence = :guarded_exposure_review, status = :done,
+            artifact = "test/fixtures/gmfrm_guarded_exposure_review.json"),
+        (evidence = :guarded_fit_api_dry_run, status = :done,
+            artifact = "test/fixtures/gmfrm_guarded_fit_api_dry_run.json"),
+        (evidence = :guarded_fit_method_wiring, status = :done,
+            artifact = "test/fixtures/gmfrm_guarded_fit_method_wiring.json"),
+        (evidence = :experimental_fit_validation_grid, status = :done,
+            artifact = "test/fixtures/gmfrm_experimental_fit_validation_grid.json"),
+        (evidence = :posterior_predictive_grid, status = :done,
+            artifact = "test/fixtures/gmfrm_posterior_predictive_grid.json"),
+        (evidence = :sparse_pathology_recovery_grid, status = :done,
+            artifact = "test/fixtures/gmfrm_sparse_pathology_recovery_grid.json"),
+        (evidence = :prior_likelihood_sensitivity_grid, status = :done,
+            artifact =
+                "test/fixtures/gmfrm_prior_likelihood_sensitivity_grid.json"),
+        (evidence = :real_data_case_study, status = :done,
+            artifact = "test/fixtures/gmfrm_real_data_case_study.json"),
+        (evidence = :claim_recovery_reproduction_archive, status = :done,
+            artifact =
+                "test/fixtures/gmfrm_claim_recovery_reproduction_archive.json"),
+        (evidence = :broader_experimental_exposure_decision_review,
+            status = :done,
+            artifact =
+                "test/fixtures/gmfrm_broader_experimental_exposure_decision_review.json"),
+        (evidence = :mgmfrm_baseline_comparison, status = :done,
+            artifact = "test/fixtures/mgmfrm_baseline_comparison.json"),
+        (evidence = :mgmfrm_sparse_recovery_grid, status = :done,
+            artifact = "test/fixtures/mgmfrm_sparse_recovery_grid.json"),
+        (evidence = :dff_estimand_validation_grid, status = :done,
+            artifact = "test/fixtures/gmfrm_dff_estimand_validation_grid.json"),
+        (evidence = :manuscript_scale_simulation_grid, status = :done,
+            artifact =
+                "test/fixtures/gmfrm_manuscript_scale_simulation_grid.json"),
+        (evidence = :full_paper_reproduction_archive, status = :done,
+            artifact =
+                "test/fixtures/gmfrm_full_paper_reproduction_archive.json"),
+        (evidence = :direct_prior_jacobian_policy, status = :done,
+            artifact = :generalized_raw_prior_jacobian_policy),
+        (evidence = :public_caveat_docs, status = :done,
+            artifact = "docs/src/fitting.md#guarded-generalized-model-caveats"),
+    ]
+end
+
+function _gmfrm_experimental_public_blocker_rows()
+    return NamedTuple[]
+end
+
+function _gmfrm_experimental_public_api_decision(blueprint)
+    evidence_rows = _gmfrm_experimental_public_evidence_rows()
+    blocker_rows = _gmfrm_experimental_public_blocker_rows()
+    return (;
+        schema = "bayesianmgmfrm.gmfrm_experimental_public_api_decision.v1",
+        family = :gmfrm,
+        scope = blueprint.scope,
+        status = :experimental_public,
+        decision = :enable_guarded_experimental,
+        public_fit = true,
+        experimental_public = true,
+        fit_ready = true,
+        proposed_entrypoint = "fit(spec; experimental = true)",
+        target_constructor = :_gmfrm_promotion_candidate_logdensity,
+        sampler_diagnostic_constructor =
+            :_gmfrm_promotion_candidate_sampler_diagnostics,
+        candidate_chain_study_artifact =
+            "test/fixtures/gmfrm_candidate_chain_study.json",
+        stress_chain_grid_artifact = "test/fixtures/gmfrm_stress_chain_grid.json",
+        recovery_smoke_artifact = "test/fixtures/gmfrm_recovery_smoke.json",
+        baseline_comparison_artifact =
+            "test/fixtures/gmfrm_baseline_comparison.json",
+        baseline_calibration_grid_artifact =
+            "test/fixtures/gmfrm_baseline_calibration_grid.json",
+        interval_decision_grid_artifact =
+            "test/fixtures/gmfrm_interval_decision_grid.json",
+        sparse_design_grid_artifact =
+            "test/fixtures/gmfrm_sparse_design_grid.json",
+        waic_influence_review_artifact =
+            "test/fixtures/gmfrm_waic_influence_review.json",
+        psis_loo_review_artifact =
+            "test/fixtures/gmfrm_psis_loo_review.json",
+        exact_loo_or_kfold_review_artifact =
+            "test/fixtures/gmfrm_exact_loo_or_kfold_review.json",
+        guarded_exposure_review_artifact =
+            "test/fixtures/gmfrm_guarded_exposure_review.json",
+        guarded_fit_api_dry_run_artifact =
+            "test/fixtures/gmfrm_guarded_fit_api_dry_run.json",
+        guarded_fit_method_wiring_artifact =
+            "test/fixtures/gmfrm_guarded_fit_method_wiring.json",
+        experimental_fit_validation_grid_artifact =
+            "test/fixtures/gmfrm_experimental_fit_validation_grid.json",
+        posterior_predictive_grid_artifact =
+            "test/fixtures/gmfrm_posterior_predictive_grid.json",
+        sparse_pathology_recovery_grid_artifact =
+            "test/fixtures/gmfrm_sparse_pathology_recovery_grid.json",
+        prior_likelihood_sensitivity_grid_artifact =
+            "test/fixtures/gmfrm_prior_likelihood_sensitivity_grid.json",
+        real_data_case_study_artifact =
+            "test/fixtures/gmfrm_real_data_case_study.json",
+        claim_recovery_reproduction_archive_artifact =
+            "test/fixtures/gmfrm_claim_recovery_reproduction_archive.json",
+        broader_experimental_exposure_decision_review_artifact =
+            "test/fixtures/gmfrm_broader_experimental_exposure_decision_review.json",
+        mgmfrm_baseline_comparison_artifact =
+            "test/fixtures/mgmfrm_baseline_comparison.json",
+        mgmfrm_sparse_recovery_grid_artifact =
+            "test/fixtures/mgmfrm_sparse_recovery_grid.json",
+        dff_estimand_validation_grid_artifact =
+            "test/fixtures/gmfrm_dff_estimand_validation_grid.json",
+        manuscript_scale_simulation_grid_artifact =
+            "test/fixtures/gmfrm_manuscript_scale_simulation_grid.json",
+        full_paper_reproduction_archive_artifact =
+            "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
+        baseline_comparison_interpretation = (;
+            status = :initial_smoke_done,
+            comparison_target = :same_observation_waic,
+            interpretation = :inconclusive_high_variance_smoke,
+            public_exposure_support = :insufficient_alone,
+            required_followup = :satisfied_by_baseline_calibration_grid_artifact,
+        ),
+        baseline_calibration_grid_interpretation = (;
+            status = :grid_recorded,
+            comparison_target = :same_observation_waic_and_expected_score_calibration,
+            interpretation = :all_scenarios_passed_with_high_variance_waic_warnings,
+            public_exposure_support = :reviewed_insufficient_for_public_fit,
+            required_followup = :satisfied_by_interval_decision_grid_artifact,
+        ),
+        interval_decision_grid_interpretation = (;
+            status = :grid_recorded,
+            comparison_target =
+                :direct_parameter_interval_coverage_and_keep_internal_stability,
+            interpretation = :intervals_finite_and_keep_internal_decision_stable,
+            public_exposure_support =
+                :satisfied_for_sparse_design_grid_followup,
+            required_followup = :satisfied_by_sparse_design_grid_artifact,
+        ),
+        sparse_design_grid_interpretation = (;
+            status = :grid_recorded,
+            comparison_target =
+                :sparse_connected_design_validation_interval_and_decision_stability,
+            interpretation =
+                :sparse_designs_passed_with_recorded_validation_warnings,
+            public_exposure_support =
+                :satisfied_for_waic_influence_followup,
+            required_followup = :satisfied_by_waic_influence_review_artifact,
+        ),
+        waic_influence_review_interpretation = (;
+            status = :review_recorded,
+            comparison_target =
+                :pointwise_waic_influence_and_flagged_observation_sensitivity,
+            interpretation =
+                :flagged_observation_removal_changes_some_model_ranks,
+            public_exposure_support =
+                :satisfied_for_psis_loo_followup,
+            required_followup = :satisfied_by_psis_loo_review_artifact,
+        ),
+        psis_loo_review_interpretation = (;
+            status = :review_recorded,
+            comparison_target = :raw_importance_loo_pareto_k_screen,
+            interpretation =
+                :high_pareto_k_requires_exact_loo_or_kfold,
+            public_exposure_support =
+                :satisfied_for_exact_loo_or_kfold_followup,
+            required_followup =
+                :satisfied_by_exact_loo_or_kfold_review_artifact,
+        ),
+        exact_loo_or_kfold_review_interpretation = (;
+            status = :review_recorded,
+            comparison_target = :heldout_observation_kfold_refit_log_score,
+            interpretation =
+                :kfold_refit_review_satisfied_exact_loo_followup,
+            public_exposure_support =
+                :satisfied_for_guarded_fit_api_dry_run_followup,
+            required_followup = :satisfied_by_guarded_fit_api_dry_run_artifact,
+        ),
+        guarded_exposure_review_interpretation = (;
+            status = :review_recorded,
+            review_target = :experimental_public_scalar_gmfrm,
+            interpretation =
+                :local_evidence_reviewed_full_archive_recorded_and_broader_exposure_decision_recorded,
+            public_exposure_support = :guarded_scalar_gmfrm_only,
+            required_followup = :manual_publication_or_registration_by_user_only,
+        ),
+        guarded_fit_api_dry_run_interpretation = (;
+            status = :dry_run_recorded,
+            review_target = :guarded_experimental_scalar_gmfrm_fit_entrypoint,
+            interpretation =
+                :guarded_entrypoint_contract_dry_run_passed_but_method_not_wired,
+            public_exposure_support =
+                :satisfied_by_guarded_fit_method_wiring,
+            required_followup = :satisfied_by_guarded_fit_method_wiring,
+        ),
+        guarded_fit_method_wiring_interpretation = (;
+            status = :method_wired,
+            review_target = :guarded_experimental_scalar_gmfrm_fit_entrypoint,
+            interpretation =
+                :scalar_gmfrm_guarded_experimental_fit_method_enabled,
+            public_exposure_support =
+                :satisfied_for_experimental_fit_validation_grid_followup,
+            required_followup = :experimental_fit_validation_grid,
+        ),
+        experimental_fit_validation_grid_interpretation = (;
+            status = :grid_recorded,
+            review_target = :guarded_experimental_scalar_gmfrm_fit_entrypoint,
+            interpretation =
+                :guarded_scalar_gmfrm_experimental_fit_validation_grid_passed_ppc_and_sparse_pathology_checked,
+            public_exposure_support =
+                :satisfied_by_sparse_pathology_recovery_grid,
+            required_followup = :scalar_gmfrm_prior_likelihood_sensitivity_grid,
+        ),
+        posterior_predictive_grid_interpretation = (;
+            status = :grid_recorded,
+            review_target = :guarded_experimental_scalar_gmfrm_fit_entrypoint,
+            interpretation =
+                :guarded_scalar_gmfrm_posterior_predictive_grid_passed,
+            public_exposure_support =
+                :satisfied_by_sparse_pathology_recovery_grid,
+            required_followup = :scalar_gmfrm_prior_likelihood_sensitivity_grid,
+        ),
+        sparse_pathology_recovery_grid_interpretation = (;
+            status = :grid_recorded,
+            review_target = :guarded_experimental_scalar_gmfrm_fit_entrypoint,
+            interpretation =
+                :guarded_scalar_gmfrm_sparse_pathology_recovery_grid_passed,
+            public_exposure_support =
+                :satisfied_by_prior_likelihood_sensitivity_grid,
+            required_followup = :scalar_gmfrm_real_data_case_study,
+        ),
+        prior_likelihood_sensitivity_grid_interpretation = (;
+            status = :grid_recorded,
+            review_target = :guarded_experimental_scalar_gmfrm_fit_entrypoint,
+            interpretation =
+                :guarded_scalar_gmfrm_prior_likelihood_sensitivity_grid_passed,
+            public_exposure_support =
+                :satisfied_by_real_data_case_study,
+            required_followup = :claim_level_recovery_and_reproduction_archive,
+        ),
+        real_data_case_study_interpretation = (;
+            status = :case_study_recorded,
+            review_target = :guarded_experimental_scalar_gmfrm_fit_entrypoint,
+            interpretation =
+                :guarded_scalar_gmfrm_real_data_case_study_passed,
+            public_exposure_support =
+                :satisfied_by_claim_recovery_reproduction_archive,
+            required_followup = :broader_experimental_exposure_decision_review,
+        ),
+        claim_recovery_reproduction_archive_interpretation = (;
+            status = :archive_recorded,
+            review_target = :guarded_experimental_scalar_gmfrm_claim_support,
+            interpretation =
+                :claim_level_recovery_reproduction_archive_recorded,
+            public_exposure_support =
+                :satisfied_by_broader_experimental_exposure_decision_review,
+            required_followup =
+                :satisfied_by_broader_experimental_exposure_decision_review,
+        ),
+        broader_experimental_exposure_decision_review_interpretation = (;
+            status = :decision_recorded,
+            review_target = :broader_generalized_model_exposure,
+            interpretation =
+                :broader_exposure_review_recorded_full_archive_available_keep_broader_claims_blocked,
+            public_exposure_support = :guarded_scalar_gmfrm_only,
+            required_followup = :manual_publication_or_registration_by_user_only,
+        ),
+        mgmfrm_baseline_comparison_interpretation = (;
+            status = :comparison_recorded,
+            comparison_target =
+                :confirmatory_mgmfrm_same_observation_waic_against_mfrm_baselines,
+            interpretation =
+                :baseline_comparison_recorded_keep_mgmfrm_internal,
+            public_exposure_support = :insufficient_for_mgmfrm_public_fit,
+            required_followup = :manual_public_scope_review_for_mgmfrm_fit,
+        ),
+        mgmfrm_sparse_recovery_grid_interpretation = (;
+            status = :grid_recorded,
+            review_target = :confirmatory_mgmfrm_sparse_connected_recovery,
+            interpretation =
+                :sparse_recovery_grid_recorded_keep_mgmfrm_internal,
+            public_exposure_support = :insufficient_for_broader_public_claims,
+            required_followup = :manual_public_scope_review_for_mgmfrm_fit,
+        ),
+        dff_estimand_validation_grid_interpretation = (;
+            status = :grid_recorded,
+            review_target = :dff_estimand_validation_evidence,
+            interpretation =
+                :dff_estimands_predeclared_keep_model_effects_validation_only,
+            public_exposure_support =
+                :satisfied_for_gate_e_followup_without_dff_model_effect_fit,
+            required_followup = :future_dff_model_effect_fit_policy,
+        ),
+        manuscript_scale_simulation_grid_interpretation = (;
+            status = :grid_recorded,
+            review_target = :gate_e_broader_generalized_claim_evidence,
+            interpretation =
+                :manuscript_scale_grid_recorded_full_archive_available,
+            public_exposure_support =
+                :full_archive_recorded_without_broader_fit,
+            required_followup = :manual_publication_or_registration_by_user_only,
+        ),
+        full_paper_reproduction_archive_interpretation = (;
+            status = :archive_recorded,
+            review_target = :full_local_reproduction_bundle,
+            interpretation =
+                :full_archive_recorded_without_publication_or_registration,
+            public_exposure_support =
+                :local_full_reproduction_archive_recorded,
+            required_followup = :manual_publication_or_registration_by_user_only,
+        ),
+        caveat_docs_artifact =
+            "docs/src/fitting.md#guarded-generalized-model-caveats",
+        prior_jacobian_policy =
+            _generalized_raw_prior_jacobian_policy(:gmfrm, blueprint.scope),
+        fit_artifact_contract = _experimental_fit_artifact_contract(
+            :gmfrm,
+            blueprint.scope;
+            bridge_artifact = :fit_ready_scalar_gmfrm_bridge_oracle,
+            candidate_chain_study_artifact =
+                "test/fixtures/gmfrm_candidate_chain_study.json",
+            recovery_smoke_artifact = "test/fixtures/gmfrm_recovery_smoke.json",
+            caveat_docs_artifact =
+                "docs/src/fitting.md#guarded-generalized-model-caveats",
+            public_fit = true,
+            experimental_public = true,
+            artifact_kind = :experimental_generalized_fit_artifact),
+        accepted_candidate_options = _gmfrm_experimental_candidate_option_rows(),
+        rejected_public_options = _gmfrm_experimental_rejected_option_rows(),
+        evidence_rows,
+        blocker_rows,
+        summary = (;
+            fit_allowed = true,
+            experimental_keyword_enabled = true,
+            n_evidence_done = count(row -> row.status === :done, evidence_rows),
+            n_evidence_pending = count(row -> row.status === :pending, evidence_rows),
+            n_evidence_blocked = count(row -> row.status === :blocked, evidence_rows),
+            n_blockers = length(blocker_rows),
+            next_gate = :manual_publication_or_registration_by_user_only,
+        ),
+    )
+end
+
+function _gmfrm_direct_parameterization_candidate(blueprint)
+    return (;
+        schema = "bayesianmgmfrm.gmfrm_direct_parameterization_candidate.v1",
+        family = :gmfrm,
+        scope = blueprint.scope,
+        status = :internal_promotion_candidate,
+        public_fit = false,
+        fit_ready = false,
+        fixture_only = blueprint.fixture_only,
+        density_space = :constrained_direct,
+        prior_policy = :derived_from_raw_candidate_no_direct_prior,
+        jacobian_policy = :not_applicable_for_direct_likelihood,
+        n_parameters = length(blueprint.constrained_parameter_names),
+        parameter_names = copy(blueprint.constrained_parameter_names),
+        blocks = _block_manifest_rows(
+            blueprint.constrained_blocks,
+            blueprint.constrained_parameter_names,
+        ),
+        source_transforms = _source_transform_manifest_rows(blueprint),
+    )
+end
+
+function _mgmfrm_confirmatory_candidate_gate_rows()
+    return [
+        (gate = :confirmatory_q_mask, status = :done,
+            evidence = :facet_spec_q_matrix),
+        (gate = :fixed_identity_latent_correlation, status = :done,
+            evidence = :mgmfrm_gauge_manifest),
+        (gate = :standard_normal_ability_scale, status = :done,
+            evidence = :mgmfrm_gauge_manifest),
+        (gate = :positive_interpreted_loadings, status = :done,
+            evidence = :log_link_q_masked_loadings),
+        (gate = :source_fixture_logdensity, status = :done,
+            evidence = :mgmfrm_source_fixture_logdensity),
+        (gate = :bridge_source_oracle, status = :done,
+            evidence = :source_mgmfrm_bridge_logdensity_fixture),
+        (gate = :fit_ready_raw_transform_manifest, status = :done,
+            evidence = :mgmfrm_fit_ready_candidate_transform_manifest),
+        (gate = :fit_ready_bridge_pointwise_oracle, status = :done,
+            evidence = :fit_ready_confirmatory_mgmfrm_bridge_oracle),
+        (gate = :sampler_diagnostic_study, status = :done,
+            evidence = :mgmfrm_candidate_chain_study_fixture),
+        (gate = :recovery_smoke_study, status = :done,
+            evidence = :mgmfrm_recovery_smoke_fixture),
+        (gate = :public_fit_api, status = :blocked,
+            evidence = :fit_rejects_specified_only_mgmfrm),
+    ]
+end
+
+function _mgmfrm_confirmatory_gauge_rows(design::FacetDesign)
+    return [
+        (gauge = :q_matrix, status = :fixed,
+            value = _q_matrix_manifest(design.spec.q_matrix),
+            note = :confirmatory_item_dimension_mask),
+        (gauge = :latent_correlation, status = :fixed,
+            value = :identity,
+            note = :no_free_latent_correlation_in_first_candidate),
+        (gauge = :ability_location, status = :fixed,
+            value = :zero_by_dimension,
+            note = :source_standard_normal_ability_distribution),
+        (gauge = :ability_scale, status = :fixed,
+            value = :unit_variance_by_dimension,
+            note = :source_standard_normal_ability_distribution),
+        (gauge = :loading_sign, status = :fixed,
+            value = :positive_q_masked_loadings,
+            note = :interpreted_loadings_use_log_link),
+        (gauge = :source_scale, status = :fixed,
+            value = 1.7,
+            note = :uto_ueno_logistic_scaling_constant),
+    ]
+end
+
+function _mgmfrm_confirmatory_sign_rows()
+    return [
+        (block = :item_dimension_discrimination,
+            rule = :positive_interpreted_q_masked_loadings,
+            transform = :log_link,
+            status = :fixed_for_candidate),
+        (block = :rater_consistency,
+            rule = :positive_geometric_mean_one,
+            transform = :geometric_mean_one_log_last,
+            status = :fixed_for_candidate),
+        (block = :rater,
+            rule = :sum_to_zero,
+            transform = :sum_to_zero_last,
+            status = :fixed_for_candidate),
+        (block = :item_steps,
+            rule = :first_step_zero_sum_to_zero,
+            transform = :identity_with_last_derived,
+            status = :source_fixture_only),
+    ]
+end
+
+function _mgmfrm_confirmatory_evidence_rows()
+    return [
+        (evidence = :q_matrix_manifest, status = :done,
+            artifact = :model_manifest_spec_q_matrix),
+        (evidence = :source_linear_predictor_fixture, status = :done,
+            artifact = :mgmfrm_source_fixture_values),
+        (evidence = :raw_transform_fixture, status = :done,
+            artifact = :mgmfrm_source_constrained_params_from_unconstrained),
+        (evidence = :bridgestan_source_oracle, status = :done,
+            artifact = "test/fixtures/source_mgmfrm_bridge_logdensity.json"),
+        (evidence = :fit_ready_transform_manifest, status = :done,
+            artifact = :mgmfrm_confirmatory_candidate_transform_manifest),
+        (evidence = :fit_ready_bridge_pointwise_oracle, status = :done,
+            artifact = "test/fixtures/source_mgmfrm_bridge_logdensity.json#confirmatory_candidate"),
+        (evidence = :sampler_diagnostic_study, status = :done,
+            artifact = "test/fixtures/mgmfrm_candidate_chain_study.json"),
+        (evidence = :recovery_smoke_study, status = :done,
+            artifact = "test/fixtures/mgmfrm_recovery_smoke.json"),
+    ]
+end
+
+function _mgmfrm_confirmatory_blocker_rows()
+    return [
+        (blocker = :mgmfrm_public_fit_api_blocked,
+            severity = :blocking,
+            required_action = :design_guarded_fit_artifact_and_validation_claims),
+    ]
+end
+
+function _mgmfrm_experimental_candidate_option_rows()
+    return [
+        (option = :entrypoint, value = "fit(spec; experimental = true)",
+            status = :proposed_not_enabled,
+            note = :guarded_entrypoint_shape_only),
+        (option = :family, value = :mgmfrm,
+            status = :candidate_only,
+            note = :confirmatory_mgmfrm_after_scalar_gmfrm),
+        (option = :dimensions, value = 2,
+            status = :candidate_only,
+            note = :two_dimensional_fixed_q_smoke_only),
+        (option = :q_matrix, value = :fixed_confirmatory,
+            status = :candidate_only,
+            note = :no_exploratory_loading_search),
+        (option = :latent_correlation, value = :identity_fixed,
+            status = :candidate_only,
+            note = :no_rotation_or_correlation_estimation),
+    ]
+end
+
+function _mgmfrm_experimental_rejected_option_rows()
+    return [
+        (option = :q_matrix, value = :estimated_or_free,
+            status = :blocked,
+            blocker = :q_matrix_selection_not_implemented),
+        (option = :latent_correlation, value = :free,
+            status = :blocked,
+            blocker = :rotation_and_correlation_policy_missing),
+        (option = :dimensions, value = :greater_than_two,
+            status = :blocked,
+            blocker = :gauge_and_recovery_scope_not_validated),
+        (option = :direct_scale_priors, value = :constrained_direct,
+            status = :blocked,
+            blocker = :raw_prior_policy_selected_for_candidate),
+        (option = :sparse_design_claims, value = :enabled,
+            status = :policy_recorded_keep_blocked,
+            blocker = :manual_public_scope_review_for_mgmfrm_fit_missing),
+        (option = :baseline_comparison, value = :mfrm_rsm_pcm_comparison,
+            status = :policy_recorded_keep_blocked,
+            blocker = :manual_public_scope_review_for_mgmfrm_fit_missing),
+    ]
+end
+
+function _mgmfrm_experimental_public_evidence_rows()
+    return [
+        (evidence = :confirmatory_gauge_manifest, status = :done,
+            artifact = :mgmfrm_confirmatory_candidate),
+        (evidence = :fit_ready_transform_manifest, status = :done,
+            artifact = :mgmfrm_confirmatory_candidate_transform_manifest),
+        (evidence = :bridgestan_fit_ready_oracle, status = :done,
+            artifact = "test/fixtures/source_mgmfrm_bridge_logdensity.json#confirmatory_candidate"),
+        (evidence = :candidate_chain_study, status = :done,
+            artifact = "test/fixtures/mgmfrm_candidate_chain_study.json"),
+        (evidence = :recovery_smoke_study, status = :done,
+            artifact = "test/fixtures/mgmfrm_recovery_smoke.json"),
+        (evidence = :public_caveat_docs, status = :done,
+            artifact = "docs/src/fitting.md#guarded-generalized-model-caveats"),
+        (evidence = :fit_artifact_manifest_for_experimental_public, status = :done,
+            artifact = :experimental_public_fit_artifact_contract),
+        (evidence = :baseline_comparison, status = :done,
+            artifact = "test/fixtures/mgmfrm_baseline_comparison.json"),
+        (evidence = :sparse_recovery_grid, status = :done,
+            artifact = "test/fixtures/mgmfrm_sparse_recovery_grid.json"),
+        (evidence = :guarded_fit_method_wiring, status = :done,
+            artifact = "test/fixtures/mgmfrm_guarded_fit_method_wiring.json"),
+        (evidence = :guarded_fit_validation_grid, status = :done,
+            artifact = "test/fixtures/mgmfrm_guarded_fit_validation_grid.json"),
+        (evidence = :guarded_fit_api_dry_run, status = :done,
+            artifact = "test/fixtures/mgmfrm_guarded_fit_api_dry_run.json"),
+        (evidence = :guarded_fit_public_exposure_review, status = :done,
+            artifact =
+                "test/fixtures/mgmfrm_guarded_fit_public_exposure_review.json"),
+        (evidence = :prediction_target_and_model_weight_policy, status = :done,
+            artifact =
+                "test/fixtures/gmfrm_prediction_target_and_model_weight_policy.json"),
+        (evidence = :dff_estimand_validation_grid, status = :done,
+            artifact = "test/fixtures/gmfrm_dff_estimand_validation_grid.json"),
+        (evidence = :manuscript_scale_simulation_grid, status = :done,
+            artifact =
+                "test/fixtures/gmfrm_manuscript_scale_simulation_grid.json"),
+        (evidence = :full_paper_reproduction_archive, status = :done,
+            artifact =
+                "test/fixtures/gmfrm_full_paper_reproduction_archive.json"),
+        (evidence = :direct_prior_jacobian_policy, status = :done,
+            artifact = :generalized_raw_prior_jacobian_policy),
+    ]
+end
+
+function _mgmfrm_experimental_public_blocker_rows()
+    return [
+        (blocker = :manual_public_scope_review_for_mgmfrm_fit_missing,
+            severity = :blocking,
+            required_action =
+                :record_local_manual_public_scope_review_before_mgmfrm_fit_claims),
+    ]
+end
+
+function _mgmfrm_experimental_public_api_decision(blueprint)
+    evidence_rows = _mgmfrm_experimental_public_evidence_rows()
+    blocker_rows = _mgmfrm_experimental_public_blocker_rows()
+    return (;
+        schema = "bayesianmgmfrm.mgmfrm_experimental_public_api_decision.v1",
+        family = :mgmfrm,
+        scope = blueprint.scope,
+        status = :blocked,
+        decision = :keep_internal,
+        public_fit = false,
+        experimental_public = false,
+        fit_ready = false,
+        proposed_entrypoint = "fit(spec; experimental = true)",
+        target_constructor = :_source_fixture_logdensity,
+        candidate_chain_study_artifact =
+            "test/fixtures/mgmfrm_candidate_chain_study.json",
+        recovery_smoke_artifact = "test/fixtures/mgmfrm_recovery_smoke.json",
+        baseline_comparison_artifact =
+            "test/fixtures/mgmfrm_baseline_comparison.json",
+        sparse_recovery_grid_artifact =
+            "test/fixtures/mgmfrm_sparse_recovery_grid.json",
+        guarded_fit_method_wiring_artifact =
+            "test/fixtures/mgmfrm_guarded_fit_method_wiring.json",
+        guarded_fit_validation_grid_artifact =
+            "test/fixtures/mgmfrm_guarded_fit_validation_grid.json",
+        guarded_fit_api_dry_run_artifact =
+            "test/fixtures/mgmfrm_guarded_fit_api_dry_run.json",
+        guarded_fit_public_exposure_review_artifact =
+            "test/fixtures/mgmfrm_guarded_fit_public_exposure_review.json",
+        prediction_target_and_model_weight_policy_artifact =
+            "test/fixtures/gmfrm_prediction_target_and_model_weight_policy.json",
+        dff_estimand_validation_grid_artifact =
+            "test/fixtures/gmfrm_dff_estimand_validation_grid.json",
+        manuscript_scale_simulation_grid_artifact =
+            "test/fixtures/gmfrm_manuscript_scale_simulation_grid.json",
+        full_paper_reproduction_archive_artifact =
+            "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
+        caveat_docs_artifact =
+            "docs/src/fitting.md#guarded-generalized-model-caveats",
+        prior_jacobian_policy =
+            _generalized_raw_prior_jacobian_policy(:mgmfrm, blueprint.scope),
+        fit_artifact_contract = _experimental_fit_artifact_contract(
+            :mgmfrm,
+            blueprint.scope;
+            bridge_artifact =
+                "test/fixtures/source_mgmfrm_bridge_logdensity.json#confirmatory_candidate",
+            candidate_chain_study_artifact =
+                "test/fixtures/mgmfrm_candidate_chain_study.json",
+            recovery_smoke_artifact = "test/fixtures/mgmfrm_recovery_smoke.json",
+            caveat_docs_artifact =
+                "docs/src/fitting.md#guarded-generalized-model-caveats"),
+        accepted_candidate_options = _mgmfrm_experimental_candidate_option_rows(),
+        rejected_public_options = _mgmfrm_experimental_rejected_option_rows(),
+        guarded_fit_public_exposure_review_interpretation = (;
+            status = :review_recorded,
+            review_target = :confirmatory_mgmfrm_guarded_fit_public_exposure,
+            interpretation =
+                :guarded_mgmfrm_public_exposure_review_recorded_keep_internal,
+            public_exposure_support =
+                :review_recorded_keep_internal_until_prediction_target_and_model_weight_policy,
+            required_followup =
+                :satisfied_by_prediction_target_and_model_weight_policy,
+        ),
+        prediction_target_and_model_weight_policy_interpretation = (;
+            status = :policy_recorded,
+            review_target =
+                :guarded_scalar_gmfrm_and_confirmatory_mgmfrm_claim_boundaries,
+            interpretation =
+                :heldout_kfold_selected_keep_mgmfrm_fit_claims_blocked,
+            public_exposure_support =
+                :scalar_local_weight_policy_recorded_keep_mgmfrm_claims_blocked,
+            required_followup = :manual_public_scope_review_for_mgmfrm_fit,
+        ),
+        evidence_rows,
+        blocker_rows,
+        summary = (;
+            fit_allowed = false,
+            experimental_keyword_enabled = false,
+            n_evidence_done = count(row -> row.status === :done, evidence_rows),
+            n_evidence_pending = count(row -> row.status === :pending, evidence_rows),
+            n_evidence_blocked = count(row -> row.status === :blocked, evidence_rows),
+            n_blockers = length(blocker_rows),
+            next_gate = :manual_public_scope_review_for_mgmfrm_fit,
+        ),
+    )
+end
+
+function _mgmfrm_confirmatory_candidate(blueprint, design::FacetDesign)
+    evidence_rows = _mgmfrm_confirmatory_evidence_rows()
+    blocker_rows = _mgmfrm_confirmatory_blocker_rows()
+    return (;
+        schema = "bayesianmgmfrm.mgmfrm_confirmatory_candidate.v1",
+        family = :mgmfrm,
+        scope = blueprint.scope,
+        status = blueprint.status,
+        public_fit = false,
+        fit_ready = false,
+        fixture_only = blueprint.fixture_only,
+        source_fixture_only = false,
+        compiler_stage = blueprint.compiler_stage,
+        source_oracle = :mgmfrm_source_aligned,
+        fit_ready_transform_ready = true,
+        fit_ready_pointwise_oracle_ready = true,
+        dimensions = design.spec.dimensions,
+        q_matrix = _q_matrix_manifest(design.spec.q_matrix),
+        latent_correlation = :identity_fixed,
+        ability_location = :zero_by_dimension,
+        ability_scale = :unit_variance_by_dimension,
+        source_scale = 1.7,
+        interpreted_loading_sign = :positive,
+        raw_parameter_names = copy(blueprint.parameter_names),
+        raw_blocks = _block_manifest_rows(blueprint.blocks, blueprint.parameter_names),
+        constrained_parameter_names = copy(blueprint.constrained_parameter_names),
+        constrained_blocks = _block_manifest_rows(
+            blueprint.constrained_blocks,
+            blueprint.constrained_parameter_names,
+        ),
+        gauge_rows = _mgmfrm_confirmatory_gauge_rows(design),
+        sign_positive_rules = _mgmfrm_confirmatory_sign_rows(),
+        evidence_rows,
+        blocker_rows,
+        candidate_gates = _mgmfrm_confirmatory_candidate_gate_rows(),
+        experimental_public_api_decision =
+            _mgmfrm_experimental_public_api_decision(blueprint),
+        summary = (;
+            candidate_frozen = true,
+            fit_allowed = false,
+            n_evidence_done = count(row -> row.status === :done, evidence_rows),
+            n_evidence_pending = count(row -> row.status === :pending, evidence_rows),
+            n_blockers = length(blocker_rows),
+            next_gate = :mgmfrm_public_fit_api_decision,
+        ),
+    )
+end
+
+function _raw_parameterization_promotion_candidate(blueprint)
+    blueprint.family === :gmfrm || return nothing
+    return (;
+        schema = "bayesianmgmfrm.gmfrm_promotion_candidate.v1",
+        family = :gmfrm,
+        scope = blueprint.scope,
+        status = :internal_promotion_candidate,
+        public_fit = false,
+        fit_ready = false,
+        fixture_only = blueprint.fixture_only,
+        compiler_stage = blueprint.compiler_stage,
+        source_oracle = :scalar_gmfrm_source_aligned,
+        transform_ready = true,
+        logdensity_ready = true,
+        bridge_oracle_ready = true,
+        bridge_direct_ready = true,
+        direct_pointwise_ready = true,
+        sampler_smoke_ready = true,
+        production_diagnostics_ready = true,
+        candidate_chain_study_ready = true,
+        stress_chain_grid_ready = true,
+        recovery_smoke_ready = true,
+        baseline_comparison_ready = true,
+        baseline_calibration_grid_ready = true,
+        interval_decision_grid_ready = true,
+        sparse_design_grid_ready = true,
+        waic_influence_review_ready = true,
+        psis_loo_review_ready = true,
+        exact_loo_or_kfold_review_ready = true,
+        guarded_exposure_review_ready = true,
+        guarded_fit_api_dry_run_ready = true,
+        guarded_fit_method_wiring_ready = true,
+        experimental_fit_validation_grid_ready = true,
+        posterior_predictive_grid_ready = true,
+        sparse_pathology_recovery_grid_ready = true,
+        prior_likelihood_sensitivity_grid_ready = true,
+        real_data_case_study_ready = true,
+        claim_recovery_reproduction_archive_ready = true,
+        broader_experimental_exposure_decision_review_ready = true,
+        fit_ready_compiler_ready = true,
+        experimental_public_ready = true,
+        target_constructor = :_gmfrm_promotion_candidate_logdensity,
+        diagnostic_constructor = :_gmfrm_promotion_candidate_diagnostics,
+        sampler_diagnostic_constructor =
+            :_gmfrm_promotion_candidate_sampler_diagnostics,
+        pointwise_fixture_constructor = :_gmfrm_promotion_candidate_pointwise_fixture,
+        compiler_blueprint_constructor = :_gmfrm_fit_ready_candidate_blueprint,
+        density_space = :raw_unconstrained,
+        prior_policy = :independent_normal_raw_coordinates,
+        jacobian_policy = :none_raw_coordinate_density,
+        n_raw_parameters = blueprint.n_parameters,
+        raw_parameter_names = copy(blueprint.parameter_names),
+        raw_blocks = _block_manifest_rows(blueprint.blocks, blueprint.parameter_names),
+        fit_ready_compiler = _gmfrm_fit_ready_compiler_candidate(blueprint),
+        direct_parameterization = _gmfrm_direct_parameterization_candidate(blueprint),
+        experimental_public_api =
+            _gmfrm_experimental_public_api_decision(blueprint),
+        candidate_gates = _promotion_candidate_gate_rows(:gmfrm),
+    )
+end
+
+function _raw_parameterization_manifest(design::FacetDesign)
+    if design.spec.family === :gmfrm
+        source_blueprint = _gmfrm_source_unconstrained_blueprint(design)
+        candidate_blueprint = _gmfrm_fit_ready_candidate_blueprint(design)
+        confirmatory_candidate = nothing
+    elseif design.spec.family === :mgmfrm
+        source_blueprint = _mgmfrm_source_unconstrained_blueprint(design)
+        candidate_blueprint = _mgmfrm_fit_ready_candidate_blueprint(design)
+        confirmatory_candidate = _mgmfrm_confirmatory_candidate(candidate_blueprint, design)
+    else
+        return nothing
+    end
+    return (;
+        schema = "bayesianmgmfrm.raw_parameterization.v1",
+        family = source_blueprint.family,
+        status = :internal_source_fixture,
+        public_fit = false,
+        fit_ready = source_blueprint.fit_ready,
+        fixture_only = source_blueprint.fixture_only,
+        density_space = :raw_unconstrained,
+        prior_policy = :independent_normal_raw_coordinates,
+        jacobian_policy = :none_raw_coordinate_density,
+        n_raw_parameters = source_blueprint.n_parameters,
+        raw_parameter_names = copy(source_blueprint.parameter_names),
+        constrained_parameter_names = copy(source_blueprint.constrained_parameter_names),
+        raw_blocks = _block_manifest_rows(source_blueprint.blocks, source_blueprint.parameter_names),
+        constrained_blocks = _block_manifest_rows(
+            source_blueprint.constrained_blocks,
+            source_blueprint.constrained_parameter_names,
+        ),
+        transforms = _source_transform_manifest_rows(source_blueprint),
+        promotion_candidate = _raw_parameterization_promotion_candidate(candidate_blueprint),
+        confirmatory_candidate,
+    )
+end
+
+function _design_manifest(design::FacetDesign)
+    return (;
+        n_parameters = length(design.parameter_names),
+        parameter_names = copy(design.parameter_names),
+        blocks = _design_block_rows(design),
+        constraints = constraint_table(design),
+        identification = _namedtuple_from_pairs([
+            block => design.identification[block]
+            for block in sort(collect(keys(design.identification)); by = string)
+        ]),
+        raw_parameterization = _raw_parameterization_manifest(design),
+    )
+end
+
+"""
+    model_manifest(data_or_spec_or_design)
+
+Return a serializable, report-ready manifest for `FacetData`, `FacetSpec`, or
+`FacetDesign`. The manifest records facet roles, level maps, category scale,
+validation status, threshold structure, deterministic parameter names, block
+ranges, identification rules, and data signatures. It is intended as the stable
+provenance contract for future cached fits, reports, and HMC/GMFRM/MGMFRM
+extensions.
+"""
+function model_manifest(data::FacetData)
+    return (;
+        schema = "bayesianmgmfrm.model_manifest.v1",
+        object = :data,
+        data = _data_manifest(data),
+    )
+end
+
+function model_manifest(spec::FacetSpec)
+    return (;
+        schema = "bayesianmgmfrm.model_manifest.v1",
+        object = :spec,
+        data = _data_manifest(spec.data),
+        validation = _validation_manifest(spec.validation),
+        spec = _spec_manifest(spec),
+    )
+end
+
+function model_manifest(design::FacetDesign)
+    spec = design.spec
+    return (;
+        schema = "bayesianmgmfrm.model_manifest.v1",
+        object = :design,
+        data = _data_manifest(spec.data),
+        validation = _validation_manifest(spec.validation),
+        spec = _spec_manifest(spec),
+        design = _design_manifest(design),
+    )
+end
+
+function _logsumexp(vals::AbstractVector)
     m = maximum(vals)
     return m + log(sum(exp(v - m) for v in vals))
 end
 
+function _param_zero(params::AbstractVector)
+    isempty(params) && return 0.0
+    return zero(first(params))
+end
+
 function _reference_value(params::AbstractVector, block::UnitRange{Int}, index::Int)
-    index == 1 && return 0.0
-    return Float64(params[block[index - 1]])
+    index == 1 && return _param_zero(params)
+    return params[block[index - 1]]
 end
 
 function _threshold_step(design::FacetDesign, params::AbstractVector, item::Int, step::Int)
@@ -911,19 +4124,27 @@ function _threshold_step(design::FacetDesign, params::AbstractVector, item::Int,
     kminus1 = length(design.spec.data.category_levels) - 1
     free_steps = max(kminus1 - 1, 0)
     if free_steps == 0
-        return 0.0
+        return _param_zero(params)
     end
     if design.spec.thresholds === :rating_scale
         if step <= free_steps
-            return Float64(params[step_range[step]])
+            return params[step_range[step]]
         end
-        return -sum(Float64(params[step_range[s]]) for s in 1:free_steps)
+        total = _param_zero(params)
+        for s in 1:free_steps
+            total += params[step_range[s]]
+        end
+        return -total
     else
         offset = (item - 1) * free_steps
         if step <= free_steps
-            return Float64(params[step_range[offset + step]])
+            return params[step_range[offset + step]]
         end
-        return -sum(Float64(params[step_range[offset + s]]) for s in 1:free_steps)
+        total = _param_zero(params)
+        for s in 1:free_steps
+            total += params[step_range[offset + s]]
+        end
+        return -total
     end
 end
 
@@ -947,29 +4168,20 @@ function threshold_map_data(design::FacetDesign; params = nothing)
     data = design.spec.data
     K = length(data.category_levels)
     nsteps = max(K - 1, 0)
-    free_steps = max(nsteps - 1, 0)
     rows = NamedTuple[]
-    step_range = design.blocks[:thresholds]
 
     function push_step!(item_index, item_label, step)
-        is_free = step <= free_steps
-        parameter_index = is_free ?
-            (design.spec.thresholds === :rating_scale ?
-                step_range[step] :
-                step_range[(item_index - 1) * free_steps + step]) :
-            missing
-        parameter_name = is_free ? design.parameter_names[parameter_index] : missing
-        status = is_free ? :free : (nsteps == 1 ? :fixed_zero : :sum_to_zero_derived)
+        metadata = _threshold_step_metadata(design, item_index, step)
         value = params === nothing ? missing : _threshold_step(design, params, item_index, step)
         push!(rows, (;
             thresholds = design.spec.thresholds,
             item = item_label,
-            step,
-            from_category = data.category_levels[step],
-            to_category = data.category_levels[step + 1],
-            parameter_index,
-            parameter_name,
-            status,
+            step = metadata.step,
+            from_category = metadata.from_category,
+            to_category = metadata.to_category,
+            parameter_index = metadata.parameter_index,
+            parameter_name = metadata.parameter_name,
+            status = metadata.status,
             value,
         ))
     end
@@ -987,8 +4199,12 @@ function threshold_map_data(design::FacetDesign; params = nothing)
 end
 
 function _step_sum(design::FacetDesign, params::AbstractVector, item::Int, category::Int)
-    category <= 1 && return 0.0
-    return sum(_threshold_step(design, params, item, step) for step in 1:(category - 1))
+    total = _param_zero(params)
+    category <= 1 && return total
+    for step in 1:(category - 1)
+        total += _threshold_step(design, params, item, step)
+    end
+    return total
 end
 
 """
@@ -999,24 +4215,15 @@ identified parameter vector returned by `getdesign`. This helper is for design
 validation and does not apply Bayesian priors.
 """
 function pointwise_loglikelihood(design::FacetDesign, params::AbstractVector)
-    length(params) == length(design.parameter_names) ||
-        throw(ArgumentError("parameter vector has length $(length(params)); expected $(length(design.parameter_names))"))
+    _check_fit_supported_mfrm(design, "pointwise_loglikelihood")
+    _check_parameter_vector_length(design, params)
     data = design.spec.data
-    out = Vector{Float64}(undef, data.n)
-    person_block = design.blocks[:person]
-    rater_block = design.blocks[:rater]
-    item_block = design.blocks[:item]
+    T = typeof(_param_zero(params) + 0.0)
+    out = Vector{T}(undef, data.n)
     K = length(data.category_levels)
-    etas = zeros(Float64, K)
+    etas = Vector{T}(undef, K)
     for n in 1:data.n
-        person_value = Float64(params[person_block[data.person[n]]])
-        rater_value = _reference_value(params, rater_block, data.rater[n])
-        item_value = _reference_value(params, item_block, data.item[n])
-        location = person_value - rater_value - item_value
-        for category in 1:K
-            etas[category] = (category - 1) * location -
-                _step_sum(design, params, data.item[n], category)
-        end
+        _linear_predictors!(etas, design, params, n)
         out[n] = etas[data.category[n]] - _logsumexp(etas)
     end
     return out

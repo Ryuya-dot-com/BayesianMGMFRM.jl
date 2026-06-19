@@ -1,34 +1,40 @@
 name = "BayesianMGMFRM"
 uuid = "1c3fdc16-45de-4463-900f-cd2a5999ffa5"
-authors = ["Ryuya Komuro"]
 version = "0.1.0"
+authors = ["Ryuya Komuro"]
 
 [deps]
+AdvancedHMC = "0bf59076-c3b1-5ca4-86bd-e02cd72cde3d"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 LogDensityProblems = "6fdf6af0-433a-55f7-b3ed-c6c6e0b8df7c"
+LogDensityProblemsAD = "996a588d-648d-4e1f-a8f0-a84b347e47b1"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
+Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 
 [compat]
+AdvancedHMC = "0.8"
 Dates = "1"
 ForwardDiff = "1"
 JSON3 = "1"
 LinearAlgebra = "1"
 LogDensityProblems = "2"
+LogDensityProblemsAD = "1"
 Pkg = "1"
 Random = "1"
 ReverseDiff = "1"
 SHA = "0.7"
+Serialization = "1"
 Test = "1"
 julia = "1.10"
 
 [extras]
-ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
 ReverseDiff = "37e2e3b7-166d-5795-8a7a-e32c996b4267"
-SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["ForwardDiff", "JSON3", "ReverseDiff", "SHA", "Test"]
+test = ["JSON3", "ReverseDiff", "Test"]

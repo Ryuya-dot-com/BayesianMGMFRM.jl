@@ -1,0 +1,104 @@
+# Bayesian Workflow
+
+The current package exposes the early pieces needed for a Bayesian many-facet
+Rasch workflow, including an initial AdvancedHMC/NUTS path for the minimal
+MFRM/RSM/PCM design. A guarded scalar GMFRM experimental path is also available
+for the one-dimensional rater-discrimination promotion candidate through
+`fit(spec; experimental = true)`. Broader GMFRM/MGMFRM fitting remains planned
+work, but specified-only GMFRM/MGMFRM configs can already be recorded in
+manifests and constraint tables. `getdesign(spec; preview = true)` can also
+compile a non-fit-ready parameter blueprint for those configurations, so future
+Bayesian checks can be added without changing the data layer.
+
+## Recommended Sequence
+
+1. Build long-format rating data with [`FacetData`](@ref).
+2. Run pre-fit checks with [`validate_design`](@ref), [`coverage_summary`](@ref),
+   and [`coverage_matrix`](@ref).
+3. Inspect supported and specified-only model families with [`model_ladder`](@ref).
+4. Declare a minimal MFRM/RSM/PCM specification with [`mfrm_spec`](@ref), then
+   inspect the source-traced mathematical contract with [`model_equation`](@ref),
+   constraints with [`constraint_table`](@ref), and the identified parameter
+   design with [`getdesign`](@ref).
+   For specified-only GMFRM/MGMFRM review, use `getdesign(spec; preview = true)`,
+   `design_row_table(spec; preview = true)`, and
+   `linear_predictor_table(spec; preview = true)`. Use
+   `fit(spec; experimental = true)` only for the guarded scalar GMFRM
+   rater-discrimination candidate.
+5. Choose weakly informative scales with [`MFRMPrior`](@ref).
+6. For external sampler or AD experiments, build an [`MFRMLogDensity`](@ref)
+   target and a deterministic start with [`initial_params`](@ref); use
+   [`linear_predictor_values`](@ref), [`loglikelihood`](@ref),
+   [`logprior`](@ref), and [`logposterior`](@ref) to inspect the category-score
+   and scalar target components.
+7. Run [`prior_predictive_check`](@ref) and summarize it with
+   [`predictive_check_summary`](@ref) before fitting.
+8. Fit the current minimal model with [`fit`](@ref), or use
+   [`cached_fit`](@ref) with a stable `cache_path` and integer `seed` to avoid
+   recomputation when [`fit_cache_key`](@ref) still matches. Use
+   `backend = :advancedhmc` for the initial NUTS path and `chains >= 2` when
+   convergence diagnostics are needed.
+9. Record fit-level metadata with [`fit_metadata`](@ref).
+10. Record data/spec/design/fit provenance with [`model_manifest`](@ref), then
+   create a cached-fit reproducibility artifact with [`fit_artifact`](@ref).
+11. Inspect the integrated diagnostic surface with [`diagnostics`](@ref), or use
+   [`sampler_diagnostics`](@ref), [`mcmc_diagnostics`](@ref), and
+   [`parameter_block_diagnostics`](@ref) separately when lower-level rows are
+   needed.
+12. Inspect parameters with [`posterior_summary`](@ref), then inspect
+   observation-level predictions with [`predictive_probabilities`](@ref),
+   [`expected_scores`](@ref), [`predictive_variances`](@ref), and
+   [`predictive_residuals`](@ref).
+13. Run [`posterior_predictive_check`](@ref), summarize it with
+   [`predictive_check_summary`](@ref), and inspect binned calibration with
+   [`calibration_table`](@ref).
+14. Inspect facet-level fit with [`fit_stats`](@ref).
+15. Compare same-observation candidate models with [`waic`](@ref), raw
+    importance-sampling [`loo`](@ref), and [`compare_models`](@ref); inspect
+    influential WAIC rows with [`waic_diagnostics`](@ref) and unstable LOO rows
+    with [`loo_diagnostics`](@ref).
+
+## Calibration
+
+[`calibration_table`](@ref) is the closest current analogue to a binned
+Bayesian calibration check. By default it bins observations by posterior
+expected score and compares the observed mean score in each bin with posterior
+predicted means. For binary or highest-category reporting, use
+`target = :category_probability`.
+
+```julia
+calibration_table(fit_result; bins = 5)
+calibration_table(fit_result; target = :category_probability, bins = 5)
+calibration_table(fit_result; target = :category_probability, category = 2, bins = 5)
+```
+
+## Current Limits
+
+The current `backend = :julia` sampler is a random-walk Metropolis path for
+small validation examples. `backend = :advancedhmc` provides the first
+AdvancedHMC/NUTS path for the minimal design using [`MFRMLogDensity`](@ref).
+[`sampler_diagnostics`](@ref) reports chain-level acceptance rates,
+log-posterior summaries, divergent-transition counts, max-tree-depth hits, and
+E-BFMI when available, and
+[`mcmc_diagnostics`](@ref) provides classical split R-hat and
+autocorrelation-based ESS when at least two chains are available.
+[`parameter_block_diagnostics`](@ref) aggregates those parameter rows by
+identified design block.
+[`diagnostics`](@ref) combines those rows into a single pass/fail summary and
+includes HMC/NUTS fields when the selected backend produces them. The package
+exposes raw importance-sampling [`loo`](@ref) and [`loo_diagnostics`](@ref)
+with Hill-estimated Pareto-k screening, but it does not yet perform PSIS
+smoothing or exact LOO refits. It also does not yet expose grouped
+cross-validation by person/item,
+power-scaling prior sensitivity, covariate terms, random slopes, generalized
+discrimination likelihoods, or multidimensional MGMFRM fitting. Specified-only
+GMFRM/MGMFRM rows in [`constraint_table`](@ref) are provenance and design-review
+data, not fitted likelihood terms.
+
+Until those pieces are added, treat [`waic`](@ref), [`waic_diagnostics`](@ref),
+[`loo`](@ref), [`loo_diagnostics`](@ref), [`compare_models`](@ref),
+[`posterior_predictive_check`](@ref), [`calibration_table`](@ref), and
+[`fit_stats`](@ref) as small-model workflow scaffolding rather than a complete
+production Bayesian model-comparison stack. The `relative_weight` returned by
+[`compare_models`](@ref) is an Akaike-style weight for candidate models fit to
+the same observation data, not a posterior model probability.

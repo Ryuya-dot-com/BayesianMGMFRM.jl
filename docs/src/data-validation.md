@@ -43,20 +43,78 @@ maximum observed score, and optional metadata roles.
 - empty, sparse, and potentially confounded DFF cells for requested `bias`
   terms.
 
+Use [`validation_suggestions`](@ref) to convert validation issues into
+machine-readable next-step suggestions:
+
+```julia
+validation_suggestions(validation)
+```
+
 `mfrm_spec` currently supports `thresholds = :rating_scale` and
-`thresholds = :partial_credit`. Pass the `validation_report` from
-`validate_design`, or pass the same `bias` terms to `mfrm_spec`, when you want
-the DFF cell evidence retained in the spec. Supplied validation reports are
-accepted only for the same `FacetData`; if `bias` or `min_cell_count` is passed
-again, the validation options must also match.
+`thresholds = :partial_credit`. The default `family = :mfrm`,
+`dimensions = 1`, and `discrimination = :none` configuration is the
+fit-supported minimal MFRM/RSM/PCM slice. `family = :gmfrm` and
+`family = :mgmfrm` can be declared for manifest and constraint review, but they
+have `estimation_status = :specified_only` and are rejected by `getdesign`
+unless `preview = true` is requested. Preview designs expose parameter names and
+block ranges for design review, but are not accepted by `fit` until their
+likelihoods and identification checks are implemented.
+
+Use [`model_ladder`](@ref) to inspect the package's fit-supported and
+specified-only model ladder, and [`constraint_table`](@ref) to inspect
+constraints, transforms, prior-block declarations, DFF validation-only rows,
+and multidimensional Q-mask gauge declarations.
+
+For a specified-only GMFRM/MGMFRM, use `getdesign(spec; preview = true)` to
+inspect the source-aligned generalized blocks without enabling fitting. GMFRM
+previews expose item-discrimination, rater-consistency, and rater-step blocks.
+MGMFRM previews expose person-by-dimension, item-dimension-discrimination,
+rater-consistency, and item-step blocks. The separate guarded scalar GMFRM fit
+path uses `fit(spec; experimental = true)` and is limited to the
+one-dimensional rater-discrimination candidate.
+
+Use [`design_row_table`](@ref) when you need row-level compiler evidence. The
+table shows the facet labels, identified parameter indexes, source-step path, and
+preview generalized parameter indexes touched by each observed rating. For
+specified-only GMFRM/MGMFRM specs, call
+`design_row_table(spec; preview = true)`; this remains an inspection path and
+does not make those likelihoods fit-ready.
+
+Use [`linear_predictor_table`](@ref) when you need the same compiler evidence
+for every response category, not only the observed category. This table is the
+denominator-level review surface for checking category-specific location
+multipliers, step paths, item-discrimination blocks, rater-consistency blocks,
+and item-dimension-discrimination blocks before broad GMFRM/MGMFRM likelihoods
+are enabled.
+
+For the current fit-supported MFRM/RSM/PCM slice, use
+[`linear_predictor_values`](@ref) with a parameter vector to add numeric
+`eta`, row log-denominator, and category log-probability values to the same
+row-by-category structure. Numeric values remain disabled for specified-only
+GMFRM/MGMFRM previews.
+
+Pass the `validation_report` from `validate_design`, or pass the same `bias`
+terms to `mfrm_spec`, when you want the DFF cell evidence retained in the spec.
+Supplied validation reports are accepted only for the same `FacetData`; if
+`bias` or `min_cell_count` is passed again, the validation options must also
+match.
 
 `getdesign(spec)` returns a minimal internal design object with stable parameter
 names and block ranges. The current minimal design fixes the first rater and
 item levels as references and represents threshold steps with a sum-to-zero
 constraint.
 
-This is the scaffold for the full MFRM/GMFRM/MGMFRM compiler; it is not yet a
-model-fitting API.
+Use [`model_manifest`](@ref) to capture the current data/spec/design provenance
+contract for reports and future cached fits:
+
+```julia
+model_manifest(data)
+model_manifest(spec)
+model_manifest(design)
+```
+
+This is the scaffold for the full MFRM/GMFRM/MGMFRM compiler. Only the minimal
+MFRM/RSM/PCM configuration is currently a model-fitting API.
 
 ## Reporting Data Before Fitting
 
