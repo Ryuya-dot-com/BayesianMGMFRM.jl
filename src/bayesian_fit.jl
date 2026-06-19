@@ -10157,6 +10157,338 @@ parameter_recovery_plot_data(fit::MGMFRMFit,
     parameter_recovery_plot_data(
         parameter_recovery(fit, truth; interval, parameter_space))
 
+const _DEFAULT_SIMULATION_GRID_REQUIRED_AXES = (
+    :density,
+    :anchor_size,
+    :ratings_per_target,
+    :category_pathology,
+    :rater_noise,
+    :dff,
+    :dimensionality,
+    :misspecification,
+)
+
+function _simulation_axis_tuple(values, name::Symbol)
+    out = if values isa Symbol || values isa AbstractString ||
+            values isa Number || values isa Bool
+        (values,)
+    else
+        Tuple(values)
+    end
+    isempty(out) &&
+        throw(ArgumentError("simulation grid axis :$name must contain at least one value"))
+    return out
+end
+
+function _simulation_integer_axis(values, name::Symbol; minimum::Int = 1)
+    axis = _simulation_axis_tuple(values, name)
+    out = Int[]
+    for value in axis
+        value isa Integer ||
+            throw(ArgumentError("simulation grid axis :$name must contain integers"))
+        Int(value) >= minimum ||
+            throw(ArgumentError("simulation grid axis :$name values must be >= $minimum"))
+        push!(out, Int(value))
+    end
+    return Tuple(out)
+end
+
+function _simulation_symbol_axis(values, name::Symbol)
+    axis = _simulation_axis_tuple(values, name)
+    out = Symbol[]
+    for value in axis
+        value isa Symbol ||
+            throw(ArgumentError("simulation grid axis :$name must contain Symbols"))
+        push!(out, value)
+    end
+    return Tuple(out)
+end
+
+function _simulation_positive_integer(value::Integer, name::Symbol; minimum::Int = 1)
+    Int(value) >= minimum ||
+        throw(ArgumentError("$name must be >= $minimum"))
+    return Int(value)
+end
+
+function _simulation_density_target(density)
+    density === :sparse && return 0.15
+    density === :moderate && return 0.50
+    density === :near_complete && return 0.90
+    if density isa Real
+        value = Float64(density)
+        isfinite(value) && 0 < value <= 1 ||
+            throw(ArgumentError("numeric density values must be finite and in (0, 1]"))
+        return value
+    end
+    throw(ArgumentError("density values must be :sparse, :moderate, :near_complete, or numeric proportions"))
+end
+
+function _simulation_rater_noise_sd(noise)
+    noise === :low && return 0.25
+    noise === :moderate && return 0.75
+    noise === :high && return 1.50
+    if noise isa Real
+        value = Float64(noise)
+        isfinite(value) && value >= 0 ||
+            throw(ArgumentError("numeric rater_noise values must be finite and nonnegative"))
+        return value
+    end
+    throw(ArgumentError("rater_noise values must be :low, :moderate, :high, or numeric standard deviations"))
+end
+
+_simulation_axis_active(value, inactive::Tuple) =
+    !(value in inactive)
+
+function _simulation_validation_focus(density, anchor_size::Int,
+        category_pathology, rater_noise, dff, dimensionality::Int,
+        misspecification)
+    focus = Symbol[]
+    density_target = _simulation_density_target(density)
+    density_target <= 0.25 && push!(focus, :connectedness_and_sparse_cells)
+    anchor_size > 0 && push!(focus, :anchor_linking)
+    _simulation_axis_active(category_pathology, (:none, :balanced)) &&
+        push!(focus, :category_pathology)
+    _simulation_rater_noise_sd(rater_noise) >= 1.0 && push!(focus, :rater_noise)
+    _simulation_axis_active(dff, (:none, :absent, false)) &&
+        push!(focus, :dff_decision_stability)
+    dimensionality > 1 && push!(focus, :multidimensional_gauge)
+    _simulation_axis_active(misspecification, (:none, :well_specified, false)) &&
+        push!(focus, :misspecification)
+    isempty(focus) && push!(focus, :baseline_recovery)
+    return Tuple(focus)
+end
+
+function _simulation_fit_surface(dimensionality::Int, misspecification)
+    if dimensionality > 1
+        return :guarded_mgmfrm_preview
+    elseif _simulation_axis_active(misspecification, (:none, :well_specified, false))
+        return :public_mfrm_baseline_or_guarded_gmfrm_comparison
+    end
+    return :public_mfrm_baseline
+end
+
+"""
+    simulation_grid(; densities = (:sparse, :moderate, :near_complete),
+        anchor_sizes = (0, 2, 5), ratings_per_target = (1, 2, 4),
+        category_pathologies = (:none, :skipped_middle, :top_set),
+        rater_noise = (:low, :moderate, :high), dff = (:none, :rater_by_group),
+        dimensionalities = (1, 2),
+        misspecifications = (:none, :wrong_thresholds, :omitted_dff),
+        repetitions = 1, base_seed = 20260620, grid_id = "default",
+        n_persons = 48, n_items = 12, n_raters = 6, n_categories = 4)
+
+Return predeclared simulation-study rows that cross sparse-to-near-complete
+design density, anchor size, ratings per target, category pathologies, rater
+noise, DFF patterns, dimensionality, and misspecification. Rows are planning
+metadata for reproducible simulation/recovery studies; this helper does not
+simulate responses, fit models, or evaluate claims. Use the rows with
+[`simulate_responses`](@ref), [`parameter_recovery`](@ref), calibration,
+predictive-check, and model-comparison helpers when executing a study.
+"""
+function simulation_grid(; densities = (:sparse, :moderate, :near_complete),
+        anchor_sizes = (0, 2, 5),
+        ratings_per_target = (1, 2, 4),
+        category_pathologies = (:none, :skipped_middle, :top_set),
+        rater_noise = (:low, :moderate, :high),
+        dff = (:none, :rater_by_group),
+        dimensionalities = (1, 2),
+        misspecifications = (:none, :wrong_thresholds, :omitted_dff),
+        repetitions::Integer = 1,
+        base_seed::Integer = 20260620,
+        grid_id::AbstractString = "default",
+        n_persons::Integer = 48,
+        n_items::Integer = 12,
+        n_raters::Integer = 6,
+        n_categories::Integer = 4)
+    density_axis = _simulation_axis_tuple(densities, :density)
+    anchor_axis = _simulation_integer_axis(anchor_sizes, :anchor_size; minimum = 0)
+    ratings_axis = _simulation_integer_axis(ratings_per_target, :ratings_per_target)
+    category_axis = _simulation_symbol_axis(category_pathologies, :category_pathology)
+    noise_axis = _simulation_axis_tuple(rater_noise, :rater_noise)
+    dff_axis = _simulation_axis_tuple(dff, :dff)
+    dimensionality_axis =
+        _simulation_integer_axis(dimensionalities, :dimensionality)
+    misspecification_axis =
+        _simulation_axis_tuple(misspecifications, :misspecification)
+    checked_repetitions =
+        _simulation_positive_integer(repetitions, :repetitions)
+    checked_persons = _simulation_positive_integer(n_persons, :n_persons)
+    checked_items = _simulation_positive_integer(n_items, :n_items)
+    checked_raters = _simulation_positive_integer(n_raters, :n_raters)
+    checked_categories = _simulation_positive_integer(n_categories, :n_categories; minimum = 2)
+    all(rating -> rating <= checked_raters, ratings_axis) ||
+        throw(ArgumentError("ratings_per_target values cannot exceed n_raters"))
+
+    target_units = checked_persons * checked_items
+    max_ratings = target_units * checked_raters
+    rows = NamedTuple[]
+    scenario_index = 0
+    for density in density_axis, anchor_size in anchor_axis,
+            ratings in ratings_axis, category_pathology in category_axis,
+            noise in noise_axis, dff_pattern in dff_axis,
+            dimensionality in dimensionality_axis,
+            misspecification in misspecification_axis
+        scenario_index += 1
+        density_target = _simulation_density_target(density)
+        planned_density = ratings / checked_raters
+        planned_n_ratings = target_units * ratings
+        validation_focus = _simulation_validation_focus(
+            density,
+            anchor_size,
+            category_pathology,
+            noise,
+            dff_pattern,
+            dimensionality,
+            misspecification,
+        )
+        for replication in 1:checked_repetitions
+            row_index = length(rows) + 1
+            push!(rows, (;
+                schema = "bayesianmgmfrm.simulation_grid.v1",
+                object = :simulation_grid_row,
+                grid_id = String(grid_id),
+                row_index,
+                scenario_index,
+                replication,
+                seed = Int(base_seed) + row_index - 1,
+                n_persons = checked_persons,
+                n_items = checked_items,
+                n_raters = checked_raters,
+                n_categories = checked_categories,
+                target_units,
+                max_ratings,
+                planned_n_ratings,
+                density,
+                density_target,
+                planned_density,
+                density_gap = planned_density - density_target,
+                anchor_size,
+                ratings_per_target = ratings,
+                category_pathology,
+                rater_noise = noise,
+                rater_noise_sd = _simulation_rater_noise_sd(noise),
+                dff = dff_pattern,
+                dff_active = _simulation_axis_active(dff_pattern, (:none, :absent, false)),
+                dimensionality,
+                misspecification,
+                misspecified =
+                    _simulation_axis_active(misspecification, (:none, :well_specified, false)),
+                validation_focus,
+                fit_surface = _simulation_fit_surface(dimensionality, misspecification),
+                simulation_status = :predeclared_not_run,
+                caveat = :simulation_grid_not_runner_or_evidence,
+                next_gate = :run_predeclared_grid_and_apply_falsification_rules,
+            ))
+        end
+    end
+    return rows
+end
+
+function _simulation_grid_axis(axis::Symbol)
+    axis in (:density, :design_density) && return :density
+    axis in (:anchor, :anchors, :anchor_size) && return :anchor_size
+    axis in (:ratings, :ratings_per_target, :ratings_per_target_unit) &&
+        return :ratings_per_target
+    axis in (:category, :category_pathology, :category_pathologies) &&
+        return :category_pathology
+    axis in (:noise, :rater_noise) && return :rater_noise
+    axis in (:dff, :dff_pattern, :dff_effects) && return :dff
+    axis in (:dimensions, :dimensionality) && return :dimensionality
+    axis in (:misspecification, :misspecifications, :model_misspecification) &&
+        return :misspecification
+    return axis
+end
+
+function _simulation_grid_axis_tuple(axes)
+    out = Symbol[]
+    for axis in axes
+        axis isa Symbol ||
+            throw(ArgumentError("simulation grid axes must be Symbols"))
+        canonical = _simulation_grid_axis(axis)
+        canonical in out || push!(out, canonical)
+    end
+    return Tuple(out)
+end
+
+_simulation_grid_axis_tuple(axis::Symbol) = (_simulation_grid_axis(axis),)
+
+function _simulation_grid_axis_summary(axis::Symbol, rows::AbstractVector)
+    values = Any[]
+    for row in rows
+        hasproperty(row, axis) || continue
+        push!(values, getproperty(row, axis))
+    end
+    unique_values = _sensitivity_unique_tuple(values)
+    present = !isempty(values)
+    status = !present ? :missing : length(unique_values) >= 2 ? :varied : :single_value
+    return (;
+        axis,
+        present,
+        status,
+        n_values = length(unique_values),
+        values = unique_values,
+    )
+end
+
+"""
+    simulation_grid_summary(rows; required_axes =
+        (:density, :anchor_size, :ratings_per_target, :category_pathology,
+         :rater_noise, :dff, :dimensionality, :misspecification))
+
+Summarize whether predeclared simulation-grid rows cover the default critical axes
+for sparse Bayesian MFRM/GMFRM/MGMFRM validation. The summary reports missing
+required axes, single-value axes, varied axes, row/scenario counts, and the
+repetition/seed envelope. It is a coverage check for a planned grid, not
+evidence that the grid has been run.
+"""
+function simulation_grid_summary(rows::AbstractVector;
+        required_axes = _DEFAULT_SIMULATION_GRID_REQUIRED_AXES)
+    isempty(rows) &&
+        throw(ArgumentError("at least one simulation grid row is required"))
+    for row in rows
+        row isa NamedTuple ||
+            throw(ArgumentError("simulation grid summary expects NamedTuple rows"))
+    end
+    checked_required = _simulation_grid_axis_tuple(required_axes)
+    axis_rows = [_simulation_grid_axis_summary(axis, rows)
+        for axis in checked_required]
+    missing_required_axes = Tuple(row.axis for row in axis_rows
+        if row.status === :missing)
+    single_value_required_axes = Tuple(row.axis for row in axis_rows
+        if row.status === :single_value)
+    varied_required_axes = Tuple(row.axis for row in axis_rows
+        if row.status === :varied)
+    scenario_values = _sensitivity_unique_tuple(
+        hasproperty(row, :scenario_index) ? row.scenario_index : missing
+        for row in rows)
+    repetition_values = _sensitivity_unique_tuple(
+        hasproperty(row, :replication) ? row.replication : missing
+        for row in rows)
+    seed_values = [Int(row.seed) for row in rows if hasproperty(row, :seed)]
+
+    return (;
+        schema = "bayesianmgmfrm.simulation_grid_summary.v1",
+        object = :simulation_grid_summary,
+        required_axes = checked_required,
+        n_rows = length(rows),
+        n_scenarios = length(scenario_values),
+        n_repetitions = length(repetition_values),
+        first_seed = isempty(seed_values) ? missing : minimum(seed_values),
+        last_seed = isempty(seed_values) ? missing : maximum(seed_values),
+        missing_required_axes,
+        single_value_required_axes,
+        varied_required_axes,
+        axis_rows = Tuple(axis_rows),
+        passed = isempty(missing_required_axes) &&
+            isempty(single_value_required_axes),
+        caveat = :simulation_grid_summary_not_run_evidence,
+        next_gate = :run_predeclared_grid_and_apply_falsification_rules,
+    )
+end
+
+simulation_grid_summary(row, rows...; kwargs...) =
+    simulation_grid_summary([row; rows...]; kwargs...)
+
 """
     calibration_plot_data(calibration_rows)
 

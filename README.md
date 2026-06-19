@@ -137,6 +137,8 @@ predictive_check_summary(ppc)
 predictive_check_summary(ppc; include_grouped = true)
 
 truth = initial_params(design; value = 0.0)
+grid = simulation_grid(; repetitions = 2)
+simulation_grid_summary(grid)
 simulated = simulate_responses(design, truth; rng = MersenneTwister(104))
 sim_spec = mfrm_spec(simulated; thresholds = :partial_credit)
 sim_fit = fit(sim_spec; prior, ndraws = 4, warmup = 4, chains = 2, seed = 105)
@@ -295,6 +297,10 @@ Current public API:
   distributions before fitting. Prior predictive checks include
   `implication_diagnostics` rows for category nonuse/sparsity and broad facet
   mean-score ranges.
+- `simulation_grid` and `simulation_grid_summary`: predeclared simulation-grid
+  rows and coverage checks for density, anchor size, ratings per target,
+  category pathology, rater noise, DFF, dimensionality, and misspecification
+  axes. They plan a grid; they do not run simulations or fit models.
 - `simulate_responses`, `parameter_recovery`, and
   `parameter_recovery_summary`: simulation-study helpers for generating one
   dataset from known minimal MFRM/RSM/PCM parameters and checking posterior

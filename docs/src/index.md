@@ -37,10 +37,11 @@ The current public slice focuses on:
 - prior and posterior predictive replication via [`prior_predict`](@ref),
   [`prior_predictive_check`](@ref), [`posterior_predict`](@ref), and
   [`posterior_predictive_check`](@ref);
-- simulation-study helpers via [`simulate_responses`](@ref),
+- simulation-study helpers via [`simulation_grid`](@ref),
+  [`simulation_grid_summary`](@ref), [`simulate_responses`](@ref),
   [`parameter_recovery`](@ref), and [`parameter_recovery_summary`](@ref),
-  including raw/direct-coordinate rows for guarded GMFRM/MGMFRM fit-ready
-  skeletons;
+  including predeclared grid rows and raw/direct-coordinate rows for guarded
+  GMFRM/MGMFRM fit-ready skeletons;
 - report-ready predictive-check summaries, including grouped PPC expansion
   rows, via [`predictive_check_summary`](@ref);
 - binned expected-score and ordinal-category calibration summaries via

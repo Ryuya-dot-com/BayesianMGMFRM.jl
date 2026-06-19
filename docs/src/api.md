@@ -38,6 +38,8 @@ parameter_block_diagnostics
 parameter_recovery
 parameter_recovery_plot_data
 parameter_recovery_summary
+simulation_grid
+simulation_grid_summary
 fit
 fit_archive_manifest
 fit_artifact

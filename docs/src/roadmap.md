@@ -97,8 +97,8 @@ public MGMFRM exposure still requires a separate release decision.
 
 ## Progress Ledger
 
-The repository roadmap currently has 115 of 120 tracked checklist items complete,
-or roughly 95.8% by simple implementation accounting. The stronger claim-level
+The repository roadmap currently has 116 of 120 tracked checklist items complete,
+or roughly 96.7% by simple implementation accounting. The stronger claim-level
 progress is lower, about 40-45%, because the remaining work includes public
 generalized fitting, Stan comparisons, broader recovery simulations,
 and a public-scope release decision for generalized claims.
@@ -368,7 +368,10 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
 
 - Build simulation grids and real-data case studies, including parameter
   recovery, interval coverage, calibration, predictive checks, and decision
-  stability.
+  stability. [`simulation_grid`](@ref) and
+  [`simulation_grid_summary`](@ref) now predeclare and check the density,
+  anchor-size, ratings-per-target, category-pathology, rater-noise, DFF,
+  dimensionality, and misspecification axes.
 - Predeclare falsification conditions for sparse Bayesian MGMFRM claims.
 - Compare against Stan and overlapping MFRM tools.
 - Archive full and fast reproduction artifacts.
