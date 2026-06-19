@@ -4369,41 +4369,143 @@ function _quantile_sorted(sorted::Vector{Float64}, p::Real)
     return (1 - w) * sorted[lo] + w * sorted[hi]
 end
 
-"""
-    posterior_summary(fit::MFRMFit; lower = 0.025, upper = 0.975)
-
-Summarize posterior draws for each identified design parameter. Returns a
-vector of named tuples with parameter name, mean, standard deviation, median,
-and lower/upper interval endpoints.
-"""
-function posterior_summary(fit::MFRMFit; lower::Real = 0.025, upper::Real = 0.975)
+function _check_posterior_summary_bounds(lower::Real, upper::Real)
     0 <= lower < 0.5 || throw(ArgumentError("lower must be in [0, 0.5)"))
     0.5 < upper <= 1 || throw(ArgumentError("upper must be in (0.5, 1]"))
+    return Float64(lower), Float64(upper)
+end
+
+function _posterior_interval_probabilities(intervals::Nothing)
+    return Float64[]
+end
+
+function _posterior_interval_probabilities(intervals::Real)
+    isfinite(intervals) && 0 < intervals < 1 ||
+        throw(ArgumentError("interval probabilities must be finite and in (0, 1)"))
+    return [Float64(intervals)]
+end
+
+function _posterior_interval_probabilities(intervals)
+    probabilities = Float64[]
+    for interval in intervals
+        isfinite(interval) && 0 < interval < 1 ||
+            throw(ArgumentError("interval probabilities must be finite and in (0, 1)"))
+        push!(probabilities, Float64(interval))
+    end
+    return probabilities
+end
+
+function _posterior_interval_rows(sorted::Vector{Float64},
+        probabilities::AbstractVector{Float64})
     rows = NamedTuple[]
-    for j in axes(fit.draws, 2)
-        vals = Float64.(fit.draws[:, j])
-        sorted = sort(vals)
-        m = _column_mean(vals)
+    for probability in probabilities
+        lower_probability = (1 - probability) / 2
+        upper_probability = 1 - lower_probability
+        lower = _quantile_sorted(sorted, lower_probability)
+        upper = _quantile_sorted(sorted, upper_probability)
         push!(rows, (;
-            parameter = fit.design.parameter_names[j],
-            mean = m,
-            sd = _column_sd(vals, m),
-            median = _quantile_sorted(sorted, 0.5),
-            lower = _quantile_sorted(sorted, lower),
-            upper = _quantile_sorted(sorted, upper),
-            lower_probability = Float64(lower),
-            upper_probability = Float64(upper),
+            probability,
+            lower,
+            upper,
+            lower_probability,
+            upper_probability,
+            width = upper - lower,
         ))
     end
-    return rows
+    return Tuple(rows)
+end
+
+function _posterior_direction_summary(values::AbstractVector{Float64},
+        reference::Float64)
+    n = length(values)
+    positive = count(>(reference), values) / n
+    negative = count(<(reference), values) / n
+    equal = 1 - positive - negative
+    direction = positive == negative ? :undetermined :
+        (positive > negative ? :positive : :negative)
+    return (;
+        reference,
+        probability_positive = positive,
+        probability_negative = negative,
+        probability_equal = equal,
+        probability_of_direction = max(positive, negative),
+        direction,
+    )
+end
+
+function _posterior_rope_bounds(rope::Nothing)
+    return nothing
+end
+
+function _posterior_rope_bounds(rope::Real)
+    isfinite(rope) && rope >= 0 ||
+        throw(ArgumentError("rope must be nothing, a finite non-negative radius, or a finite two-value interval"))
+    radius = Float64(rope)
+    return (-radius, radius)
+end
+
+function _posterior_rope_bounds(rope::Pair)
+    return _posterior_rope_bounds((rope.first, rope.second))
+end
+
+function _posterior_rope_bounds(rope)
+    length(rope) == 2 ||
+        throw(ArgumentError("rope interval must contain exactly two values"))
+    lower, upper = Float64(rope[1]), Float64(rope[2])
+    isfinite(lower) && isfinite(upper) && lower <= upper ||
+        throw(ArgumentError("rope interval must be finite with lower <= upper"))
+    return (lower, upper)
+end
+
+function _posterior_rope_summary(values::AbstractVector{Float64},
+        rope_bounds,
+        rope_probability_threshold::Float64)
+    rope_bounds === nothing && return (;
+        rope_lower = nothing,
+        rope_upper = nothing,
+        probability_in_rope = nothing,
+        probability_below_rope = nothing,
+        probability_above_rope = nothing,
+        practical_equivalence = :not_requested,
+    )
+
+    lower, upper = rope_bounds
+    n = length(values)
+    in_rope = count(value -> lower <= value <= upper, values) / n
+    below_rope = count(<(lower), values) / n
+    above_rope = count(>(upper), values) / n
+    practical_equivalence =
+        in_rope >= rope_probability_threshold ? :inside_rope :
+        max(below_rope, above_rope) >= rope_probability_threshold ? :outside_rope :
+        :mixed
+    return (;
+        rope_lower = lower,
+        rope_upper = upper,
+        probability_in_rope = in_rope,
+        probability_below_rope = below_rope,
+        probability_above_rope = above_rope,
+        practical_equivalence,
+    )
 end
 
 function _posterior_summary_rows(draws::AbstractMatrix{<:Real},
         parameter_names;
         lower::Real,
-        upper::Real)
-    0 <= lower < 0.5 || throw(ArgumentError("lower must be in [0, 0.5)"))
-    0.5 < upper <= 1 || throw(ArgumentError("upper must be in (0.5, 1]"))
+        upper::Real,
+        intervals,
+        reference::Real,
+        rope,
+        rope_probability_threshold::Real)
+    lower_probability, upper_probability =
+        _check_posterior_summary_bounds(lower, upper)
+    interval_probabilities = _posterior_interval_probabilities(intervals)
+    isfinite(reference) ||
+        throw(ArgumentError("reference must be finite"))
+    isfinite(rope_probability_threshold) && 0 < rope_probability_threshold <= 1 ||
+        throw(ArgumentError("rope_probability_threshold must be finite and in (0, 1]"))
+    reference_value = Float64(reference)
+    rope_bounds = _posterior_rope_bounds(rope)
+    checked_rope_probability_threshold = Float64(rope_probability_threshold)
     size(draws, 2) == length(parameter_names) ||
         throw(ArgumentError("parameter name count does not match draw columns"))
     rows = NamedTuple[]
@@ -4416,48 +4518,128 @@ function _posterior_summary_rows(draws::AbstractMatrix{<:Real},
             mean = m,
             sd = _column_sd(vals, m),
             median = _quantile_sorted(sorted, 0.5),
-            lower = _quantile_sorted(sorted, lower),
-            upper = _quantile_sorted(sorted, upper),
-            lower_probability = Float64(lower),
-            upper_probability = Float64(upper),
+            lower = _quantile_sorted(sorted, lower_probability),
+            upper = _quantile_sorted(sorted, upper_probability),
+            lower_probability,
+            upper_probability,
+            intervals = _posterior_interval_rows(sorted, interval_probabilities),
+            _posterior_direction_summary(vals, reference_value)...,
+            _posterior_rope_summary(
+                vals,
+                rope_bounds,
+                checked_rope_probability_threshold,
+            )...,
+            rope_probability_threshold =
+                rope_bounds === nothing ? nothing : checked_rope_probability_threshold,
+            n_draws = length(vals),
         ))
     end
     return rows
 end
 
-function posterior_summary(fit::GMFRMFit; lower::Real = 0.025, upper::Real = 0.975)
+"""
+    posterior_summary(fit; lower = 0.025, upper = 0.975,
+        intervals = (0.66, 0.9, 0.95), reference = 0.0,
+        rope = nothing, rope_probability_threshold = 0.95)
+
+Summarize posterior draws for each parameter. Rows retain the legacy
+`lower`/`upper` interval columns and also include central credible intervals,
+probability of direction relative to `reference`, and optional ROPE/practical
+equivalence probabilities. Pass `rope = r` for a symmetric `[-r, r]` ROPE or
+`rope = (lower, upper)` for an explicit interval.
+"""
+function posterior_summary(fit::MFRMFit;
+        lower::Real = 0.025,
+        upper::Real = 0.975,
+        intervals = (0.66, 0.9, 0.95),
+        reference::Real = 0.0,
+        rope = nothing,
+        rope_probability_threshold::Real = 0.95)
+    return _posterior_summary_rows(
+        fit.draws,
+        fit.design.parameter_names;
+        lower,
+        upper,
+        intervals,
+        reference,
+        rope,
+        rope_probability_threshold,
+    )
+end
+
+function posterior_summary(fit::GMFRMFit;
+        lower::Real = 0.025,
+        upper::Real = 0.975,
+        intervals = (0.66, 0.9, 0.95),
+        reference::Real = 0.0,
+        rope = nothing,
+        rope_probability_threshold::Real = 0.95)
     return _posterior_summary_rows(
         fit.draws,
         fit.diagnostic_surface.raw_parameter_names;
         lower,
         upper,
+        intervals,
+        reference,
+        rope,
+        rope_probability_threshold,
     )
 end
 
-function direct_posterior_summary(fit::GMFRMFit; lower::Real = 0.025, upper::Real = 0.975)
+function direct_posterior_summary(fit::GMFRMFit;
+        lower::Real = 0.025,
+        upper::Real = 0.975,
+        intervals = (0.66, 0.9, 0.95),
+        reference::Real = 0.0,
+        rope = nothing,
+        rope_probability_threshold::Real = 0.95)
     return _posterior_summary_rows(
         fit.direct_draws,
         fit.diagnostic_surface.direct_parameter_names;
         lower,
         upper,
+        intervals,
+        reference,
+        rope,
+        rope_probability_threshold,
     )
 end
 
-function posterior_summary(fit::MGMFRMFit; lower::Real = 0.025, upper::Real = 0.975)
+function posterior_summary(fit::MGMFRMFit;
+        lower::Real = 0.025,
+        upper::Real = 0.975,
+        intervals = (0.66, 0.9, 0.95),
+        reference::Real = 0.0,
+        rope = nothing,
+        rope_probability_threshold::Real = 0.95)
     return _posterior_summary_rows(
         fit.draws,
         fit.diagnostic_surface.raw_parameter_names;
         lower,
         upper,
+        intervals,
+        reference,
+        rope,
+        rope_probability_threshold,
     )
 end
 
-function direct_posterior_summary(fit::MGMFRMFit; lower::Real = 0.025, upper::Real = 0.975)
+function direct_posterior_summary(fit::MGMFRMFit;
+        lower::Real = 0.025,
+        upper::Real = 0.975,
+        intervals = (0.66, 0.9, 0.95),
+        reference::Real = 0.0,
+        rope = nothing,
+        rope_probability_threshold::Real = 0.95)
     return _posterior_summary_rows(
         fit.direct_draws,
         fit.diagnostic_surface.direct_parameter_names;
         lower,
         upper,
+        intervals,
+        reference,
+        rope,
+        rope_probability_threshold,
     )
 end
 

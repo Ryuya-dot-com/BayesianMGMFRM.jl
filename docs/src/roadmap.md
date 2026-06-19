@@ -94,8 +94,8 @@ public MGMFRM exposure still requires a separate release decision.
 
 ## Progress Ledger
 
-The repository roadmap currently has 99 of 120 tracked checklist items complete,
-or roughly 82.5% by simple implementation accounting. The stronger claim-level
+The repository roadmap currently has 100 of 120 tracked checklist items complete,
+or roughly 83.3% by simple implementation accounting. The stronger claim-level
 progress is lower, about 40-45%, because the remaining work includes public
 generalized fitting, Stan comparisons, broader recovery simulations,
 and a public-scope release decision for generalized claims.
@@ -307,6 +307,8 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   simulation, recovery summaries, and plotting-ready recovery/calibration/PPC
   rows added for the current fit-supported MFRM/RSM/PCM slice]
 - Add multiple credible intervals, probability of direction, and ROPE summaries.
+  [Done for `posterior_summary`; focal DFF reports still need estimand-specific
+  practical-magnitude rows]
 - Add PSIS-smoothed or exact/K-fold LOO and prior/likelihood sensitivity.
   [Raw importance-sampling LOO and Pareto-k diagnostics are available for the
   current minimal fit path]
