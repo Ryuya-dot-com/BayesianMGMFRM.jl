@@ -506,3 +506,267 @@ LogDensityProblems.dimension(p::ScalarValidationAnalyticLogDensity) = scalar_val
 LogDensityProblems.capabilities(::Type{ScalarValidationAnalyticLogDensity}) = LogDensityProblems.LogDensityOrder{1}()
 LogDensityProblems.logdensity_and_gradient(p::ScalarValidationAnalyticLogDensity, x) =
     scalar_validation_logposterior_and_gradient(x, p.data)
+
+function _scalar_validation_float_vector(name::AbstractString, values)
+    out = Float64.(collect(values))
+    all(isfinite, out) ||
+        throw(ArgumentError("$name must contain only finite values"))
+    return out
+end
+
+function _scalar_validation_float(name::AbstractString, value)
+    out = Float64(value)
+    isfinite(out) || throw(ArgumentError("$name must be finite"))
+    return out
+end
+
+function _scalar_validation_optional_symbol(value)
+    value === nothing && return nothing
+    value isa Symbol && return value
+    return Symbol(value)
+end
+
+function _scalar_validation_within_tolerance(actual::Real, expected::Real,
+        tolerance::Real)
+    return isapprox(Float64(actual), Float64(expected);
+        atol = Float64(tolerance), rtol = Float64(tolerance))
+end
+
+function _scalar_validation_gradient_difference(julia_gradient::AbstractVector{<:Real},
+        reference_gradient, name::AbstractString)
+    reference_gradient === nothing && return (;
+        checked = false,
+        max_abs_error = missing,
+        finite_reference = missing,
+        n_reference_parameters = 0,
+    )
+    reference = _scalar_validation_float_vector(name, reference_gradient)
+    length(reference) == length(julia_gradient) ||
+        throw(ArgumentError("$name has length $(length(reference)); expected $(length(julia_gradient))"))
+    return (;
+        checked = true,
+        max_abs_error = maximum(abs.(julia_gradient .- reference)),
+        finite_reference = all(isfinite, reference),
+        n_reference_parameters = length(reference),
+    )
+end
+
+"""
+    stan_validation_row(data::ScalarValidationData, x, stan_log_density;
+        stan_gradient = nothing, tolerance = 1e-9, label = nothing,
+        size = nothing, known_log_density = nothing, known_gradient = nothing,
+        known_tolerance = tolerance, fixture_path = nothing,
+        known_fixture_path = nothing, stan_model = nothing,
+        fixture_sha256 = nothing, known_fixture_sha256 = nothing,
+        stan_model_sha256 = nothing)
+
+Return one machine-readable validation row comparing the Julia scalar
+GMFRM-style validation log density and analytic gradient with a Stan or
+BridgeStan fixture evaluated at the same raw parameter vector.
+
+The function deliberately accepts already parsed numeric fixture values instead
+of reading JSON files, so the package does not depend on a JSON parser at
+runtime. Use [`stan_validation_summary`](@ref) to aggregate rows for the
+predeclared small/medium validation gate.
+"""
+function stan_validation_row(data::ScalarValidationData, x, stan_log_density;
+        stan_gradient = nothing,
+        tolerance::Real = 1e-9,
+        label = nothing,
+        size = nothing,
+        known_log_density = nothing,
+        known_gradient = nothing,
+        known_tolerance::Real = tolerance,
+        fixture_path = nothing,
+        known_fixture_path = nothing,
+        stan_model = nothing,
+        fixture_sha256 = nothing,
+        known_fixture_sha256 = nothing,
+        stan_model_sha256 = nothing)
+    x_values = _scalar_validation_float_vector("x", x)
+    length(x_values) == scalar_validation_num_params(data) ||
+        throw(ArgumentError("x has length $(length(x_values)); expected $(scalar_validation_num_params(data))"))
+    stan_lp = _scalar_validation_float("stan_log_density", stan_log_density)
+    checked_tolerance = _scalar_validation_float("tolerance", tolerance)
+    checked_tolerance >= 0 ||
+        throw(ArgumentError("tolerance must be non-negative"))
+    checked_known_tolerance = _scalar_validation_float("known_tolerance", known_tolerance)
+    checked_known_tolerance >= 0 ||
+        throw(ArgumentError("known_tolerance must be non-negative"))
+
+    julia_lp, julia_gradient = scalar_validation_logposterior_and_gradient(x_values, data)
+    all(isfinite, julia_gradient) ||
+        throw(ArgumentError("Julia analytic gradient contains non-finite values"))
+
+    stan_gradient_diff =
+        _scalar_validation_gradient_difference(julia_gradient, stan_gradient, "stan_gradient")
+    known_gradient_diff =
+        _scalar_validation_gradient_difference(julia_gradient, known_gradient, "known_gradient")
+
+    log_density_abs_error = abs(julia_lp - stan_lp)
+    log_density_passed =
+        _scalar_validation_within_tolerance(julia_lp, stan_lp, checked_tolerance)
+    gradient_tolerance = max(checked_tolerance, 1e-9)
+    gradient_passed = stan_gradient_diff.checked ?
+        stan_gradient_diff.max_abs_error <= gradient_tolerance : missing
+
+    known_checked = known_log_density !== nothing
+    known_lp = known_checked ?
+        _scalar_validation_float("known_log_density", known_log_density) : missing
+    known_log_density_abs_error = known_checked ? abs(julia_lp - known_lp) : missing
+    known_log_density_passed = known_checked ?
+        _scalar_validation_within_tolerance(
+            julia_lp, known_lp, checked_known_tolerance) : missing
+    known_gradient_tolerance = max(checked_known_tolerance, 1e-9)
+    known_gradient_passed = known_gradient_diff.checked ?
+        known_gradient_diff.max_abs_error <= known_gradient_tolerance : missing
+
+    passed = log_density_passed &&
+        (!stan_gradient_diff.checked || gradient_passed === true) &&
+        (!known_checked || known_log_density_passed === true) &&
+        (!known_gradient_diff.checked || known_gradient_passed === true)
+
+    size_value = _scalar_validation_optional_symbol(size)
+    label_value = label === nothing ?
+        (size_value === nothing ? :scalar_validation : Symbol("scalar_", size_value)) :
+        _scalar_validation_optional_symbol(label)
+
+    return (;
+        schema = "bayesianmgmfrm.scalar_stan_validation_row.v1",
+        object = :stan_validation_row,
+        model_family = :scalar_gmfrm,
+        validation_target = :scalar_logdensity_gradient,
+        label = label_value,
+        size = size_value,
+        fixture_path,
+        known_fixture_path,
+        stan_model,
+        fixture_sha256,
+        known_fixture_sha256,
+        stan_model_sha256,
+        n_persons = data.J,
+        n_raters = data.R,
+        n_categories = data.K,
+        n_observations = data.N,
+        n_parameters = length(x_values),
+        julia_log_density = julia_lp,
+        stan_log_density = stan_lp,
+        log_density_abs_error,
+        log_density_tolerance = checked_tolerance,
+        log_density_passed,
+        gradient_checked = stan_gradient_diff.checked,
+        gradient_max_abs_error = stan_gradient_diff.max_abs_error,
+        gradient_tolerance,
+        gradient_passed,
+        n_gradient_parameters = stan_gradient_diff.n_reference_parameters,
+        known_log_density_checked = known_checked,
+        known_log_density = known_lp,
+        known_log_density_abs_error,
+        known_log_density_tolerance = checked_known_tolerance,
+        known_log_density_passed,
+        known_gradient_checked = known_gradient_diff.checked,
+        known_gradient_max_abs_error = known_gradient_diff.max_abs_error,
+        known_gradient_tolerance,
+        known_gradient_passed,
+        finite_julia_log_density = isfinite(julia_lp),
+        finite_julia_gradient = all(isfinite, julia_gradient),
+        finite_stan_log_density = isfinite(stan_lp),
+        finite_stan_gradient = stan_gradient_diff.checked ?
+            stan_gradient_diff.finite_reference : missing,
+        passed,
+        caveat = :fixture_logdensity_gradient_not_full_sampler_comparison,
+    )
+end
+
+function _stan_validation_summary_row_check(row)
+    required = (
+        :passed,
+        :size,
+        :n_observations,
+        :n_parameters,
+        :log_density_abs_error,
+        :gradient_checked,
+        :gradient_max_abs_error,
+    )
+    missing_fields = [name for name in required if !(name in keys(row))]
+    isempty(missing_fields) ||
+        throw(ArgumentError("stan validation row is missing fields: $(join(missing_fields, ", "))"))
+    return nothing
+end
+
+function _stan_validation_error_values(rows, field::Symbol)
+    values = Float64[]
+    for row in rows
+        value = getproperty(row, field)
+        value === missing && continue
+        push!(values, Float64(value))
+    end
+    return values
+end
+
+"""
+    stan_validation_summary(rows; required_sizes = (:small, :medium))
+    stan_validation_summary(row, rows...; required_sizes = (:small, :medium))
+
+Aggregate `stan_validation_row` results into a gate-level summary. By default,
+the gate requires both `:small` and `:medium` scalar Stan/BridgeStan fixtures
+to be present and passing. The returned summary explicitly records that this
+evidence is a scalar log-density/gradient fixture check, not a broad Stan
+sampling or generalized-fit comparison.
+"""
+function stan_validation_summary(rows::AbstractVector;
+        required_sizes = (:small, :medium))
+    isempty(rows) && throw(ArgumentError("at least one stan validation row is required"))
+    for row in rows
+        row isa NamedTuple ||
+            throw(ArgumentError("stan validation summary expects NamedTuple rows"))
+        _stan_validation_summary_row_check(row)
+    end
+
+    observed_sizes = sort([
+            getproperty(row, :size)
+            for row in rows
+            if getproperty(row, :size) !== nothing
+        ]; by = string)
+    required = sort([
+            _scalar_validation_optional_symbol(size)
+            for size in collect(required_sizes)
+            if _scalar_validation_optional_symbol(size) !== nothing
+        ]; by = string)
+    missing_required = sort(setdiff(Set(required), Set(observed_sizes)) |> collect;
+        by = string)
+    passed_rows = count(row -> getproperty(row, :passed) === true, rows)
+    log_density_errors = _stan_validation_error_values(rows, :log_density_abs_error)
+    gradient_errors = _stan_validation_error_values(rows, :gradient_max_abs_error)
+
+    return (;
+        schema = "bayesianmgmfrm.stan_validation_summary.v1",
+        object = :stan_validation_summary,
+        validation_scope = :scalar_small_medium_bridge_logdensity_gradient,
+        n_rows = length(rows),
+        n_passed_rows = passed_rows,
+        all_rows_passed = passed_rows == length(rows),
+        required_sizes = Tuple(required),
+        observed_sizes = Tuple(observed_sizes),
+        missing_required_sizes = Tuple(missing_required),
+        all_required_sizes_present = isempty(missing_required),
+        n_observations_minimum = minimum(row.n_observations for row in rows),
+        n_observations_maximum = maximum(row.n_observations for row in rows),
+        n_parameters_minimum = minimum(row.n_parameters for row in rows),
+        n_parameters_maximum = maximum(row.n_parameters for row in rows),
+        max_log_density_abs_error = isempty(log_density_errors) ?
+            missing : maximum(log_density_errors),
+        max_gradient_abs_error = isempty(gradient_errors) ?
+            missing : maximum(gradient_errors),
+        all_gradient_checked = all(row -> getproperty(row, :gradient_checked), rows),
+        passed = passed_rows == length(rows) && isempty(missing_required),
+        caveat = :scalar_fixture_logdensity_gradient_not_generalized_fit_claim,
+        generalized_fit_comparison_status = :not_claimed,
+        next_gate = :generalized_small_medium_fit_comparison,
+    )
+end
+
+function stan_validation_summary(row::NamedTuple, rows::NamedTuple...;
+        required_sizes = (:small, :medium))
+    return stan_validation_summary([row; collect(rows)]; required_sizes)
+end

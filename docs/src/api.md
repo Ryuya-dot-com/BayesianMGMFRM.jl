@@ -78,6 +78,8 @@ residual_summary
 prior_predict
 prior_predictive_check
 simulate_responses
+stan_validation_row
+stan_validation_summary
 rater_overlap
 load_fit_cache
 save_fit_cache

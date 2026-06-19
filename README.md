@@ -273,6 +273,9 @@ Current public API:
 - `sensitivity_comparison`: report-ready sensitivity rows that wrap
   `compare_models` with a declared axis, per-model axis values, baseline
   labels, and baseline-relative ELPD/information-criterion differences.
+- `stan_validation_row` and `stan_validation_summary`: machine-readable
+  Julia-vs-Stan/BridgeStan scalar fixture checks for the committed small and
+  medium log-density/gradient validation gate.
 - `posterior_predict` and `posterior_predictive_check`: posterior replicated
   score generation plus compact observed-vs-replicated summaries for mean
   scores, category proportions, person means, rater means, item means, and
