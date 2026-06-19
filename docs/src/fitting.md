@@ -61,9 +61,10 @@ connected sparse-recovery grid do
 not support exploratory loadings, free latent correlations, more than two
 dimensions, sparse-design claims, or public recovery claims. A local
 same-observation baseline-comparison artifact is recorded, but a public MGMFRM
-fit path remains blocked until full reproduction artifacts are complete. The same
-raw-prior/Jacobian policy and internal fit-artifact contract would have to be
-populated by any future guarded MGMFRM fit.
+fit path remains blocked until full reproduction artifacts and a public-scope
+release decision are complete. A private guarded local fit entrypoint now
+populates the same raw-prior/Jacobian policy and internal fit-artifact contract
+for the fixed-Q confirmatory candidate; it is not a public MGMFRM fitting API.
 
 ```julia
 using BayesianMGMFRM

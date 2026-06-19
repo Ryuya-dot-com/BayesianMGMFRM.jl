@@ -286,6 +286,29 @@ struct GMFRMFit
     diagnostic_surface::NamedTuple
 end
 
+# Internal guarded MGMFRM fit result for the narrow confirmatory fixed-Q
+# candidate. This type is intentionally not exported and is returned only by the
+# private `_fit_guarded_mgmfrm` validation entrypoint.
+struct MGMFRMFit
+    design::FacetDesign
+    prior::_SourceFixturePrior
+    draws::Matrix{Float64}
+    log_posterior::Vector{Float64}
+    direct_draws::Matrix{Float64}
+    direct_loglikelihood::Vector{Float64}
+    direct_pointwise_loglikelihood::Matrix{Float64}
+    chain_ids::Vector{Int}
+    iterations::Vector{Int}
+    chain_acceptance_rate::Vector{Float64}
+    backend::Symbol
+    sampler::Symbol
+    warmup::Int
+    step_size::Float64
+    sampler_stats::Vector{NamedTuple}
+    sampler_controls::NamedTuple
+    diagnostic_surface::NamedTuple
+end
+
 function Base.show(io::IO, fit::GMFRMFit)
     print(io, "GMFRMFit(",
         size(fit.draws, 1), " raw draw(s), ",
@@ -295,6 +318,15 @@ function Base.show(io::IO, fit::GMFRMFit)
         ", experimental_public = true)")
 end
 
+function Base.show(io::IO, fit::MGMFRMFit)
+    print(io, "MGMFRMFit(",
+        size(fit.draws, 1), " raw draw(s), ",
+        size(fit.draws, 2), " raw parameter(s), backend = :",
+        fit.backend, ", sampler = :", fit.sampler,
+        ", chains = ", length(fit.chain_acceptance_rate),
+        ", public_fit = false)")
+end
+
 struct _SourceFixtureLogDensity
     design::FacetDesign
     blueprint::NamedTuple
@@ -302,6 +334,12 @@ struct _SourceFixtureLogDensity
 end
 
 struct _GMFRMPromotionCandidateLogDensity
+    design::FacetDesign
+    blueprint::NamedTuple
+    prior::_SourceFixturePrior
+end
+
+struct _MGMFRMGuardedLocalFitLogDensity
     design::FacetDesign
     blueprint::NamedTuple
     prior::_SourceFixturePrior
@@ -338,6 +376,12 @@ function Base.show(io::IO, target::_GMFRMPromotionCandidateLogDensity)
         " raw parameter(s), public_fit = false)")
 end
 
+function Base.show(io::IO, target::_MGMFRMGuardedLocalFitLogDensity)
+    print(io, "MGMFRMGuardedLocalFitLogDensity(",
+        target.blueprint.n_parameters,
+        " raw parameter(s), public_fit = false)")
+end
+
 function _gmfrm_promotion_candidate_logdensity(design::FacetDesign;
         prior::_SourceFixturePrior = _SourceFixturePrior())
     design.spec.family === :gmfrm &&
@@ -350,6 +394,24 @@ end
 function _gmfrm_promotion_candidate_logdensity(spec::FacetSpec;
         prior::_SourceFixturePrior = _SourceFixturePrior())
     return _gmfrm_promotion_candidate_logdensity(getdesign(spec; preview = true); prior)
+end
+
+function _mgmfrm_guarded_local_fit_logdensity(design::FacetDesign;
+        prior::_SourceFixturePrior = _SourceFixturePrior())
+    design.spec.family === :mgmfrm &&
+        design.spec.estimation_status === :specified_only ||
+        throw(ArgumentError("_mgmfrm_guarded_local_fit_logdensity is only for specified-only MGMFRM preview designs"))
+    design.spec.dimensions == 2 ||
+        throw(ArgumentError("_mgmfrm_guarded_local_fit_logdensity currently supports only dimensions = 2"))
+    design.spec.q_matrix !== nothing ||
+        throw(ArgumentError("_mgmfrm_guarded_local_fit_logdensity requires a fixed confirmatory q_matrix"))
+    blueprint = _mgmfrm_fit_ready_candidate_blueprint(design)
+    return _MGMFRMGuardedLocalFitLogDensity(design, blueprint, prior)
+end
+
+function _mgmfrm_guarded_local_fit_logdensity(spec::FacetSpec;
+        prior::_SourceFixturePrior = _SourceFixturePrior())
+    return _mgmfrm_guarded_local_fit_logdensity(getdesign(spec; preview = true); prior)
 end
 
 function _check_source_fixture_raw_vector(target, raw_params::AbstractVector)
@@ -418,16 +480,25 @@ LogDensityProblems.logdensity(target::_SourceFixtureLogDensity, raw_params) =
 LogDensityProblems.logdensity(target::_GMFRMPromotionCandidateLogDensity, raw_params) =
     _source_fixture_logposterior(target, raw_params)
 
+LogDensityProblems.logdensity(target::_MGMFRMGuardedLocalFitLogDensity, raw_params) =
+    _source_fixture_logposterior(target, raw_params)
+
 LogDensityProblems.dimension(target::_SourceFixtureLogDensity) =
     target.blueprint.n_parameters
 
 LogDensityProblems.dimension(target::_GMFRMPromotionCandidateLogDensity) =
     target.blueprint.n_parameters
 
+LogDensityProblems.dimension(target::_MGMFRMGuardedLocalFitLogDensity) =
+    target.blueprint.n_parameters
+
 LogDensityProblems.capabilities(::Type{_SourceFixtureLogDensity}) =
     LogDensityProblems.LogDensityOrder{0}()
 
 LogDensityProblems.capabilities(::Type{_GMFRMPromotionCandidateLogDensity}) =
+    LogDensityProblems.LogDensityOrder{0}()
+
+LogDensityProblems.capabilities(::Type{_MGMFRMGuardedLocalFitLogDensity}) =
     LogDensityProblems.LogDensityOrder{0}()
 
 function _central_difference_logdensity(target, raw_params::Vector{Float64}, index::Int, eps::Float64)
@@ -761,6 +832,11 @@ function initial_params(target::_SourceFixtureLogDensity; value::Real = 0.0)
 end
 
 function initial_params(target::_GMFRMPromotionCandidateLogDensity; value::Real = 0.0)
+    isfinite(value) || throw(ArgumentError("value must be finite"))
+    return fill(Float64(value), LogDensityProblems.dimension(target))
+end
+
+function initial_params(target::_MGMFRMGuardedLocalFitLogDensity; value::Real = 0.0)
     isfinite(value) || throw(ArgumentError("value must be finite"))
     return fill(Float64(value), LogDensityProblems.dimension(target))
 end
@@ -1147,6 +1223,25 @@ function _fit_draws_per_chain(fit::GMFRMFit)
     return draws_per_chain
 end
 
+function _fit_draws_per_chain(fit::MGMFRMFit)
+    nchains = length(fit.chain_acceptance_rate)
+    nchains >= 1 || throw(ArgumentError("fit has no chain metadata"))
+    total = size(fit.draws, 1)
+    total == length(fit.chain_ids) == length(fit.iterations) == length(fit.log_posterior) ||
+        throw(ArgumentError("fit draw metadata length does not match draws"))
+    total % nchains == 0 ||
+        throw(ArgumentError("fit has uneven chain draw counts"))
+    draws_per_chain = div(total, nchains)
+    for chain in 1:nchains
+        rows = ((chain - 1) * draws_per_chain + 1):(chain * draws_per_chain)
+        all(==(chain), @view fit.chain_ids[rows]) ||
+            throw(ArgumentError("fit draws are not grouped by chain"))
+        all(fit.iterations[row] == row - first(rows) + 1 for row in rows) ||
+            throw(ArgumentError("fit iterations are not consecutive within chain"))
+    end
+    return draws_per_chain
+end
+
 function _chain_draw_array(fit::MFRMFit)
     draws_per_chain = _fit_draws_per_chain(fit)
     nchains = length(fit.chain_acceptance_rate)
@@ -1408,6 +1503,113 @@ function _gmfrm_candidate_direct_draw_constraint_rows(
             rows[index].constraint === template[index].constraint &&
                 rows[index].block === template[index].block ||
                 throw(ArgumentError("direct constraint row identity changed across draws"))
+            push!(values[index], Float64(rows[index].value))
+            rows[index].passed || (n_failed[index] += 1)
+        end
+    end
+    rows = NamedTuple[]
+    for index in eachindex(template)
+        row_values = values[index]
+        target = Float64(template[index].target)
+        push!(rows, (;
+            constraint_index = index,
+            constraint = template[index].constraint,
+            block = template[index].block,
+            target,
+            tolerance = Float64(template[index].tolerance),
+            n_draws,
+            n_failed = n_failed[index],
+            minimum_value = minimum(row_values),
+            maximum_value = maximum(row_values),
+            max_abs_target_error =
+                maximum(abs(value - target) for value in row_values),
+            passed = n_failed[index] == 0,
+        ))
+    end
+    return rows
+end
+
+function _mgmfrm_direct_constraint_rows(design::FacetDesign, direct_params::AbstractVector)
+    data = design.spec.data
+    rater_values = direct_params[design.blocks[:rater]]
+    item_dimension_discrimination_values =
+        direct_params[design.blocks[:item_dimension_discrimination]]
+    rater_consistency_values = direct_params[design.blocks[:rater_consistency]]
+    item_step_values = direct_params[design.blocks[:item_steps]]
+    rows = [
+        (constraint = :rater_sum_to_zero, block = :rater,
+            value = Float64(sum(rater_values)), target = 0.0,
+            tolerance = 1e-8, passed = abs(sum(rater_values)) <= 1e-8),
+        (constraint = :item_dimension_discrimination_positive,
+            block = :item_dimension_discrimination,
+            value = Float64(minimum(item_dimension_discrimination_values)),
+            target = 0.0,
+            tolerance = 0.0,
+            passed = all(>(0), item_dimension_discrimination_values)),
+        (constraint = :rater_consistency_positive, block = :rater_consistency,
+            value = Float64(minimum(rater_consistency_values)), target = 0.0,
+            tolerance = 0.0, passed = all(>(0), rater_consistency_values)),
+        (constraint = :rater_consistency_product_one, block = :rater_consistency,
+            value = Float64(prod(rater_consistency_values)), target = 1.0,
+            tolerance = 1e-8,
+            passed = abs(prod(rater_consistency_values) - 1) <= 1e-8),
+    ]
+    if length(data.category_levels) >= 3 && !isempty(item_step_values)
+        free_steps = max(length(data.category_levels) - 2, 0)
+        for item_index in eachindex(data.item_levels)
+            step_sum = sum(item_step_values[((item_index - 1) * free_steps + 1):(item_index * free_steps)];
+                init = _param_zero(direct_params))
+            push!(rows, (constraint = :item_step_last_derived_sum_to_zero,
+                block = :item_steps,
+                value = Float64(step_sum + (-step_sum)),
+                target = 0.0,
+                tolerance = 1e-8,
+                passed = true))
+        end
+    end
+    return rows
+end
+
+function _mgmfrm_guarded_local_fit_direct_draw_values(
+        target::_MGMFRMGuardedLocalFitLogDensity,
+        raw_draws::AbstractMatrix{<:Real})
+    n_draws = size(raw_draws, 1)
+    n_direct = length(target.blueprint.constrained_parameter_names)
+    n_observations = target.design.spec.data.n
+    direct_draws = Matrix{Float64}(undef, n_draws, n_direct)
+    pointwise = Matrix{Float64}(undef, n_draws, n_observations)
+    loglikelihood = Vector{Float64}(undef, n_draws)
+    for draw in 1:n_draws
+        raw = collect(@view raw_draws[draw, :])
+        direct = _mgmfrm_source_constrained_params_from_unconstrained(target.design, raw)
+        direct_pointwise = _mgmfrm_source_pointwise_loglikelihood(target.design, direct)
+        direct_draws[draw, :] .= direct
+        pointwise[draw, :] .= direct_pointwise
+        loglikelihood[draw] = sum(direct_pointwise; init = 0.0)
+    end
+    return (;
+        direct_draws,
+        pointwise_loglikelihood = pointwise,
+        loglikelihood,
+    )
+end
+
+function _mgmfrm_guarded_local_fit_direct_draw_constraint_rows(
+        design::FacetDesign,
+        direct_draws::AbstractMatrix{<:Real})
+    n_draws = size(direct_draws, 1)
+    n_draws == 0 && return NamedTuple[]
+    template = _mgmfrm_direct_constraint_rows(design, @view direct_draws[1, :])
+    values = [Float64[] for _ in template]
+    n_failed = zeros(Int, length(template))
+    for draw in 1:n_draws
+        rows = _mgmfrm_direct_constraint_rows(design, @view direct_draws[draw, :])
+        length(rows) == length(template) ||
+            throw(ArgumentError("MGMFRM direct constraint row count changed across draws"))
+        for index in eachindex(rows)
+            rows[index].constraint === template[index].constraint &&
+                rows[index].block === template[index].block ||
+                throw(ArgumentError("MGMFRM direct constraint row identity changed across draws"))
             push!(values[index], Float64(rows[index].value))
             rows[index].passed || (n_failed[index] += 1)
         end
@@ -1768,6 +1970,331 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
     return _gmfrm_promotion_candidate_sampler_diagnostics(target, raw_initial; kwargs...)
 end
 
+function _mgmfrm_guarded_local_fit_sampler_diagnostics(
+        target::_MGMFRMGuardedLocalFitLogDensity,
+        raw_initial::AbstractVector = initial_params(target);
+        ndraws::Int = 100,
+        warmup::Int = 100,
+        chains::Int = 2,
+        step_size::Real = 0.03,
+        rng::AbstractRNG = Random.default_rng(),
+        seed = nothing,
+        target_accept::Real = 0.8,
+        max_depth::Int = 10,
+        max_energy_error::Real = 1000.0,
+        metric::Symbol = :diagonal,
+        ad_backend::Symbol = :ForwardDiff,
+        init_jitter::Real = 0.0,
+        split_chains::Bool = true,
+        rhat_threshold::Real = 1.01,
+        ess_threshold::Real = 400,
+        progress::Bool = false)
+    target.blueprint.family === :mgmfrm ||
+        throw(ArgumentError("_mgmfrm_guarded_local_fit_sampler_diagnostics requires an MGMFRM guarded target"))
+    ndraws >= 1 || throw(ArgumentError("ndraws must be positive"))
+    warmup >= 0 || throw(ArgumentError("warmup must be non-negative"))
+    chains >= 1 || throw(ArgumentError("chains must be positive"))
+    isfinite(step_size) && step_size > 0 ||
+        throw(ArgumentError("step_size must be finite and positive"))
+    0 < target_accept < 1 ||
+        throw(ArgumentError("target_accept must be in (0, 1)"))
+    max_depth >= 1 || throw(ArgumentError("max_depth must be positive"))
+    isfinite(max_energy_error) && max_energy_error > 0 ||
+        throw(ArgumentError("max_energy_error must be finite and positive"))
+    isfinite(init_jitter) && init_jitter >= 0 ||
+        throw(ArgumentError("init_jitter must be finite and non-negative"))
+    ad_backend === :ForwardDiff ||
+        throw(ArgumentError("only ad_backend = :ForwardDiff is currently supported"))
+    checked = _check_diagnostic_thresholds(rhat_threshold, ess_threshold)
+    _check_source_fixture_raw_vector(target, raw_initial)
+
+    nparams = LogDensityProblems.dimension(target)
+    nparams >= 1 || throw(ArgumentError("at least one parameter is required for AdvancedHMC diagnostics"))
+    initial = Float64.(collect(raw_initial))
+    initial_logdensity = LogDensityProblems.logdensity(target, initial)
+    isfinite(initial_logdensity) ||
+        throw(ArgumentError("initial raw parameter vector has non-finite log density"))
+    fit_rng, rng_control = _fit_rng(rng, seed)
+    total_draws = ndraws * chains
+    draws = Matrix{Float64}(undef, total_draws, nparams)
+    logdensities = Vector{Float64}(undef, total_draws)
+    chain_ids = Vector{Int}(undef, total_draws)
+    iterations = Vector{Int}(undef, total_draws)
+    chain_acceptance = Vector{Float64}(undef, chains)
+    sampler_stats = NamedTuple[]
+    controls = (;
+        ndraws,
+        warmup,
+        chains,
+        step_size = Float64(step_size),
+        target_accept = Float64(target_accept),
+        max_depth,
+        max_energy_error = Float64(max_energy_error),
+        metric,
+        ad_backend,
+        rng = rng_control,
+        init_jitter = Float64(init_jitter),
+    )
+
+    for chain in 1:chains
+        chain_initial = _advancedhmc_initial(initial, fit_rng, Float64(init_jitter))
+        chain_logdensity = LogDensityProblems.logdensity(target, chain_initial)
+        isfinite(chain_logdensity) ||
+            throw(ArgumentError("chain $chain initial raw parameter vector has non-finite log density"))
+        adtarget = LogDensityProblemsAD.ADgradient(ad_backend, target; x = chain_initial)
+        metric_object = _advancedhmc_metric(metric, nparams)
+        hamiltonian = AdvancedHMC.Hamiltonian(
+            metric_object,
+            x -> LogDensityProblems.logdensity(adtarget, x),
+            x -> LogDensityProblems.logdensity_and_gradient(adtarget, x),
+        )
+        integrator = AdvancedHMC.Leapfrog(Float64(step_size))
+        kernel = AdvancedHMC.HMCKernel(AdvancedHMC.Trajectory{AdvancedHMC.MultinomialTS}(
+            integrator,
+            AdvancedHMC.GeneralisedNoUTurn(max_depth, Float64(max_energy_error)),
+        ))
+        adaptor = warmup > 0 ?
+            AdvancedHMC.StanHMCAdaptor(
+                AdvancedHMC.MassMatrixAdaptor(metric_object),
+                AdvancedHMC.StepSizeAdaptor(Float64(target_accept), integrator),
+            ) :
+            AdvancedHMC.NoAdaptation()
+        samples, stats = AdvancedHMC.sample(
+            fit_rng,
+            hamiltonian,
+            kernel,
+            chain_initial,
+            warmup + ndraws,
+            adaptor,
+            warmup;
+            drop_warmup = warmup > 0,
+            verbose = false,
+            progress,
+        )
+        length(samples) == ndraws ||
+            throw(ArgumentError("AdvancedHMC returned $(length(samples)) draw(s); expected $ndraws"))
+        chain_stats = NamedTuple[]
+        for iteration in 1:ndraws
+            row = (chain - 1) * ndraws + iteration
+            draws[row, :] .= samples[iteration]
+            stat_row = _advancedhmc_stat_row(stats[iteration], chain, iteration)
+            logdensities[row] = stat_row.log_density
+            chain_ids[row] = chain
+            iterations[row] = iteration
+            push!(chain_stats, stat_row)
+            push!(sampler_stats, stat_row)
+        end
+        chain_acceptance[chain] = _stat_mean(chain_stats, :acceptance_rate)
+    end
+
+    sampler_rows = NamedTuple[]
+    for chain in 1:chains
+        draw_rows = ((chain - 1) * ndraws + 1):(chain * ndraws)
+        logps = @view logdensities[draw_rows]
+        logdensity_summary = _finite_log_posterior_summary(logps)
+        n_finite = count(isfinite, logps)
+        n_nonfinite = length(logps) - n_finite
+        chain_stats = [row for row in sampler_stats if row.chain == chain]
+        sampler_summary = _candidate_chain_sampler_summary(chain_stats, max_depth)
+        push!(sampler_rows, (;
+            chain,
+            backend = :advancedhmc,
+            sampler = :nuts,
+            n_draws = ndraws,
+            warmup,
+            step_size = Float64(step_size),
+            first_iteration = first(@view iterations[draw_rows]),
+            last_iteration = last(@view iterations[draw_rows]),
+            acceptance_rate = chain_acceptance[chain],
+            mean_logdensity = logdensity_summary.mean,
+            minimum_logdensity = logdensity_summary.minimum,
+            maximum_logdensity = logdensity_summary.maximum,
+            n_finite_logdensity = n_finite,
+            n_nonfinite_logdensity = n_nonfinite,
+            n_divergences = sampler_summary.n_divergences,
+            n_max_treedepth = sampler_summary.n_max_treedepth,
+            mean_n_steps = sampler_summary.mean_n_steps,
+            mean_tree_depth = sampler_summary.mean_tree_depth,
+            max_tree_depth = sampler_summary.max_tree_depth,
+            mean_step_size = sampler_summary.mean_step_size,
+            e_bfmi = sampler_summary.e_bfmi,
+            flag = _sampler_diagnostic_flag(chain_acceptance[chain],
+                n_nonfinite,
+                sampler_summary.n_divergences,
+                sampler_summary.n_max_treedepth),
+        ))
+    end
+
+    actual_split = split_chains && chains >= 2 && ndraws >= 4
+    parameter_rows = _candidate_mcmc_diagnostic_rows(
+        draws,
+        target.blueprint.parameter_names,
+        chains;
+        split_chains,
+        rhat_threshold = checked.rhat_threshold,
+        ess_threshold = checked.ess_threshold,
+    )
+    block_rows = _candidate_parameter_block_diagnostics(
+        target.blueprint.blocks,
+        target.blueprint.parameter_names,
+        parameter_rows;
+        chains,
+        draws_per_chain = ndraws,
+        total_draws,
+        split_chains = actual_split,
+        rhat_threshold = checked.rhat_threshold,
+        ess_threshold = checked.ess_threshold,
+    )
+    direct_values = _mgmfrm_guarded_local_fit_direct_draw_values(target, draws)
+    direct_constraint_rows =
+        _mgmfrm_guarded_local_fit_direct_draw_constraint_rows(
+            target.design,
+            direct_values.direct_draws,
+        )
+    direct_parameter_rows = _candidate_mcmc_diagnostic_rows(
+        direct_values.direct_draws,
+        target.blueprint.constrained_parameter_names,
+        chains;
+        split_chains,
+        rhat_threshold = checked.rhat_threshold,
+        ess_threshold = checked.ess_threshold,
+    )
+    direct_block_rows = _candidate_parameter_block_diagnostics(
+        target.blueprint.constrained_blocks,
+        target.blueprint.constrained_parameter_names,
+        direct_parameter_rows;
+        chains,
+        draws_per_chain = ndraws,
+        total_draws,
+        split_chains = actual_split,
+        rhat_threshold = checked.rhat_threshold,
+        ess_threshold = checked.ess_threshold,
+    )
+
+    n_sampler_warnings = count(row -> row.flag !== :ok, sampler_rows)
+    n_block_warnings = count(row -> row.flag in (:insufficient_chains, :degenerate_draws, :mcmc_warning), block_rows)
+    n_direct_block_warnings = count(row -> row.flag in (:insufficient_chains, :degenerate_draws, :mcmc_warning), direct_block_rows)
+    n_nonfinite_logdensity = sum(row.n_nonfinite_logdensity for row in sampler_rows)
+    n_nonfinite_direct_loglikelihood =
+        count(!isfinite, direct_values.loglikelihood) +
+        count(!isfinite, direct_values.pointwise_loglikelihood)
+    n_failed_direct_constraints = sum(row.n_failed for row in direct_constraint_rows)
+    n_divergences = _sum_nonmissing(row.n_divergences for row in sampler_rows)
+    n_max_treedepth = _sum_nonmissing(row.n_max_treedepth for row in sampler_rows)
+    e_bfmi = _min_nonmissing(row.e_bfmi for row in sampler_rows)
+    n_insufficient = count(row -> row.flag === :insufficient_chains, parameter_rows)
+    n_degenerate = count(row -> row.flag === :degenerate_draws, parameter_rows)
+    n_bad_rhat = count(row -> isfinite(row.rhat) && row.rhat > checked.rhat_threshold, parameter_rows)
+    n_low_ess = count(row -> isfinite(row.ess) && row.ess < checked.ess_threshold, parameter_rows)
+    max_rhat = _finite_extreme((row.rhat for row in parameter_rows), maximum)
+    min_ess = _finite_extreme((row.ess for row in parameter_rows), minimum)
+    flag = _gmfrm_promotion_candidate_summary_flag(
+        n_sampler_warnings,
+        n_nonfinite_logdensity,
+        n_failed_direct_constraints,
+        n_nonfinite_direct_loglikelihood,
+        n_insufficient,
+        n_degenerate,
+        n_bad_rhat,
+        n_low_ess,
+    )
+    initial_direct = _mgmfrm_source_constrained_params_from_unconstrained(
+        target.design,
+        initial,
+    )
+
+    return (;
+        schema = "bayesianmgmfrm.mgmfrm_guarded_local_fit_sampler_diagnostics.v1",
+        family = :mgmfrm,
+        scope = :minimal_confirmatory_mgmfrm_candidate,
+        status = :guarded_local_fit,
+        public_fit = false,
+        experimental_public = false,
+        fit_ready = false,
+        target = :_mgmfrm_guarded_local_fit_logdensity,
+        density_space = :raw_unconstrained,
+        backend = :advancedhmc,
+        sampler = :nuts,
+        raw_parameter_names = copy(target.blueprint.parameter_names),
+        raw_blocks = _candidate_block_value_rows(
+            target.blueprint.blocks,
+            target.blueprint.parameter_names,
+            initial,
+        ),
+        direct_parameter_names = copy(target.blueprint.constrained_parameter_names),
+        direct_blocks = _candidate_block_value_rows(
+            target.blueprint.constrained_blocks,
+            target.blueprint.constrained_parameter_names,
+            initial_direct,
+        ),
+        initial_raw_parameter_values = copy(initial),
+        initial_direct_parameter_values = copy(initial_direct),
+        initial_logdensity,
+        draws,
+        logdensity = logdensities,
+        direct_draws = direct_values.direct_draws,
+        direct_pointwise_loglikelihood = direct_values.pointwise_loglikelihood,
+        direct_loglikelihood = direct_values.loglikelihood,
+        chain_ids,
+        iterations,
+        chain_acceptance_rate = chain_acceptance,
+        sampler_controls = controls,
+        sampler_stats,
+        sampler_rows,
+        parameter_rows,
+        block_rows,
+        direct_constraint_rows,
+        direct_parameter_rows,
+        direct_block_rows,
+        summary = (;
+            flag,
+            passed = flag === :ok,
+            n_chains = chains,
+            draws_per_chain = ndraws,
+            total_draws,
+            n_parameters = nparams,
+            n_direct_parameters = size(direct_values.direct_draws, 2),
+            split_chains = actual_split,
+            rhat_threshold = checked.rhat_threshold,
+            ess_threshold = checked.ess_threshold,
+            max_rhat,
+            min_ess,
+            n_bad_rhat,
+            n_low_ess,
+            n_insufficient_chains = n_insufficient,
+            n_degenerate_parameters = n_degenerate,
+            n_block_warnings,
+            n_direct_block_warnings,
+            n_sampler_warnings,
+            n_nonfinite_logdensity,
+            n_nonfinite_direct_loglikelihood,
+            n_direct_constraints = length(direct_constraint_rows),
+            n_failed_direct_constraints,
+            n_divergences,
+            n_max_treedepth,
+            e_bfmi,
+        ),
+    )
+end
+
+function _mgmfrm_guarded_local_fit_sampler_diagnostics(
+        design::FacetDesign,
+        raw_initial::AbstractVector = initial_params(_mgmfrm_guarded_local_fit_logdensity(design));
+        prior::_SourceFixturePrior = _SourceFixturePrior(),
+        kwargs...)
+    target = _mgmfrm_guarded_local_fit_logdensity(design; prior)
+    return _mgmfrm_guarded_local_fit_sampler_diagnostics(target, raw_initial; kwargs...)
+end
+
+function _mgmfrm_guarded_local_fit_sampler_diagnostics(
+        spec::FacetSpec,
+        raw_initial::AbstractVector = initial_params(_mgmfrm_guarded_local_fit_logdensity(spec));
+        prior::_SourceFixturePrior = _SourceFixturePrior(),
+        kwargs...)
+    target = _mgmfrm_guarded_local_fit_logdensity(spec; prior)
+    return _mgmfrm_guarded_local_fit_sampler_diagnostics(target, raw_initial; kwargs...)
+end
+
 function _experimental_gmfrm_prior(prior)
     prior === nothing && return _SourceFixturePrior()
     prior isa _SourceFixturePrior && return prior
@@ -1844,6 +2371,84 @@ function _fit_experimental_gmfrm(spec::FacetSpec;
         kwargs...,
     )
     return _gmfrm_fit_from_sampler_diagnostics(design, gmfrm_prior, diagnostic_surface)
+end
+
+function _guarded_mgmfrm_prior(prior)
+    prior === nothing && return _SourceFixturePrior()
+    prior isa _SourceFixturePrior && return prior
+    throw(ArgumentError(
+        "guarded local MGMFRM fitting currently uses the internal " *
+        "raw-coordinate prior contract; omit `prior` or pass the internal " *
+        "_SourceFixturePrior for local validation",
+    ))
+end
+
+function _check_guarded_mgmfrm_spec(spec::FacetSpec)
+    spec.family === :mgmfrm ||
+        throw(ArgumentError("guarded local MGMFRM fitting supports only family = :mgmfrm"))
+    spec.dimensions == 2 ||
+        throw(ArgumentError("guarded local MGMFRM fitting currently supports only dimensions = 2"))
+    spec.q_matrix !== nothing ||
+        throw(ArgumentError("guarded local MGMFRM fitting requires a fixed confirmatory q_matrix"))
+    spec.estimation_status === :specified_only ||
+        throw(ArgumentError("guarded local MGMFRM fitting expects the specified-only MGMFRM manifest path"))
+    return nothing
+end
+
+function _guarded_mgmfrm_initial(target::_MGMFRMGuardedLocalFitLogDensity, init)
+    init === nothing && return initial_params(target)
+    length(init) == LogDensityProblems.dimension(target) ||
+        throw(ArgumentError("init has length $(length(init)); expected $(LogDensityProblems.dimension(target))"))
+    out = Float64.(collect(init))
+    all(isfinite, out) || throw(ArgumentError("init contains non-finite values"))
+    return out
+end
+
+function _mgmfrm_fit_from_sampler_diagnostics(
+        design::FacetDesign,
+        prior::_SourceFixturePrior,
+        diagnostic_surface)
+    step = _stat_mean(diagnostic_surface.sampler_stats, :step_size)
+    isfinite(step) || (step = Float64(diagnostic_surface.sampler_controls.step_size))
+    return MGMFRMFit(
+        design,
+        prior,
+        Matrix{Float64}(diagnostic_surface.draws),
+        Vector{Float64}(diagnostic_surface.logdensity),
+        Matrix{Float64}(diagnostic_surface.direct_draws),
+        Vector{Float64}(diagnostic_surface.direct_loglikelihood),
+        Matrix{Float64}(diagnostic_surface.direct_pointwise_loglikelihood),
+        Vector{Int}(diagnostic_surface.chain_ids),
+        Vector{Int}(diagnostic_surface.iterations),
+        Vector{Float64}(diagnostic_surface.chain_acceptance_rate),
+        diagnostic_surface.backend,
+        diagnostic_surface.sampler,
+        Int(diagnostic_surface.sampler_controls.warmup),
+        step,
+        Vector{NamedTuple}(diagnostic_surface.sampler_stats),
+        diagnostic_surface.sampler_controls,
+        diagnostic_surface,
+    )
+end
+
+function _fit_guarded_mgmfrm(spec::FacetSpec;
+        prior = nothing,
+        backend::Symbol = :advancedhmc,
+        init = nothing,
+        kwargs...)
+    _check_guarded_mgmfrm_spec(spec)
+    backend === :advancedhmc ||
+        throw(ArgumentError("guarded local MGMFRM fitting currently supports only backend = :advancedhmc"))
+    mgmfrm_prior = _guarded_mgmfrm_prior(prior)
+    design = getdesign(spec; preview = true)
+    target = _mgmfrm_guarded_local_fit_logdensity(design; prior = mgmfrm_prior)
+    raw_initial = _guarded_mgmfrm_initial(target, init)
+    diagnostic_surface = _mgmfrm_guarded_local_fit_sampler_diagnostics(
+        target,
+        raw_initial;
+        kwargs...,
+    )
+    return _mgmfrm_fit_from_sampler_diagnostics(design, mgmfrm_prior, diagnostic_surface)
 end
 
 function fit(spec::FacetSpec; experimental::Bool = false, kwargs...)
@@ -1935,6 +2540,57 @@ function fit_metadata(fit::GMFRMFit)
         chain_acceptance_rate = copy(fit.chain_acceptance_rate),
         sampler_controls = fit.sampler_controls,
         n_sampler_stats = length(fit.sampler_stats),
+        prior = (;
+            person_sd = fit.prior.person_sd,
+            rater_sd = fit.prior.rater_sd,
+            item_sd = fit.prior.item_sd,
+            log_discrimination_sd = fit.prior.log_discrimination_sd,
+            log_consistency_sd = fit.prior.log_consistency_sd,
+            step_sd = fit.prior.step_sd,
+        ),
+        data_signature = fit.design.spec.validation.data_signature,
+    )
+end
+
+function fit_metadata(fit::MGMFRMFit)
+    data = fit.design.spec.data
+    diagnostic = fit.diagnostic_surface
+    return (;
+        n_observations = data.n,
+        n_persons = length(data.person_levels),
+        n_raters = length(data.rater_levels),
+        n_items = length(data.item_levels),
+        n_categories = length(data.category_levels),
+        category_levels = copy(data.category_levels),
+        optional_facets = sort(collect(keys(data.optional)); by = string),
+        family = fit.design.spec.family,
+        dimensions = fit.design.spec.dimensions,
+        discrimination = fit.design.spec.discrimination,
+        thresholds = fit.design.spec.thresholds,
+        estimation_status = fit.design.spec.estimation_status,
+        scope = :minimal_confirmatory_mgmfrm_candidate,
+        public_fit = false,
+        experimental_public = false,
+        guarded_local_fit = true,
+        density_space = :raw_unconstrained,
+        n_parameters = size(fit.draws, 2),
+        n_direct_parameters = size(fit.direct_draws, 2),
+        raw_parameter_names = copy(diagnostic.raw_parameter_names),
+        direct_parameter_names = copy(diagnostic.direct_parameter_names),
+        n_draws = size(fit.draws, 1),
+        n_chains = length(fit.chain_acceptance_rate),
+        draws_per_chain = _fit_draws_per_chain(fit),
+        n_log_posterior = length(fit.log_posterior),
+        backend = fit.backend,
+        sampler = fit.sampler,
+        warmup = fit.warmup,
+        step_size = fit.step_size,
+        acceptance_rate = _column_mean(fit.chain_acceptance_rate),
+        chain_acceptance_rate = copy(fit.chain_acceptance_rate),
+        sampler_controls = fit.sampler_controls,
+        n_sampler_stats = length(fit.sampler_stats),
+        q_matrix = _q_matrix_manifest(fit.design.spec.q_matrix),
+        latent_correlation = :identity_fixed,
         prior = (;
             person_sd = fit.prior.person_sd,
             rater_sd = fit.prior.rater_sd,
@@ -2414,6 +3070,77 @@ function diagnostics(fit::GMFRMFit;
     )
 end
 
+sampler_diagnostics(fit::MGMFRMFit) = fit.diagnostic_surface.sampler_rows
+
+function _check_mgmfrm_fit_diagnostic_policy(fit::MGMFRMFit;
+        split_chains::Bool,
+        rhat_threshold::Real,
+        ess_threshold::Real)
+    checked = _check_diagnostic_thresholds(rhat_threshold, ess_threshold)
+    summary = fit.diagnostic_surface.summary
+    actual_split = split_chains &&
+        length(fit.chain_acceptance_rate) >= 2 &&
+        _fit_draws_per_chain(fit) >= 4
+    summary.split_chains == actual_split &&
+        summary.rhat_threshold == checked.rhat_threshold &&
+        summary.ess_threshold == checked.ess_threshold ||
+        throw(ArgumentError(
+            "guarded MGMFRM fit diagnostics are recorded at fit time; " *
+            "use the original split_chains, rhat_threshold, and ess_threshold",
+        ))
+    return checked
+end
+
+function mcmc_diagnostics(fit::MGMFRMFit;
+        split_chains::Bool = true,
+        rhat_threshold::Real = 1.01,
+        ess_threshold::Real = 400)
+    _check_mgmfrm_fit_diagnostic_policy(fit;
+        split_chains,
+        rhat_threshold,
+        ess_threshold)
+    return fit.diagnostic_surface.parameter_rows
+end
+
+function parameter_block_diagnostics(fit::MGMFRMFit;
+        split_chains::Bool = true,
+        rhat_threshold::Real = 1.01,
+        ess_threshold::Real = 400)
+    _check_mgmfrm_fit_diagnostic_policy(fit;
+        split_chains,
+        rhat_threshold,
+        ess_threshold)
+    return fit.diagnostic_surface.block_rows
+end
+
+function diagnostics(fit::MGMFRMFit;
+        split_chains::Bool = true,
+        rhat_threshold::Real = 1.01,
+        ess_threshold::Real = 400)
+    _check_mgmfrm_fit_diagnostic_policy(fit;
+        split_chains,
+        rhat_threshold,
+        ess_threshold)
+    surface = fit.diagnostic_surface
+    return (;
+        schema = "bayesianmgmfrm.mgmfrm_guarded_local_fit_diagnostics.v1",
+        family = :mgmfrm,
+        scope = :minimal_confirmatory_mgmfrm_candidate,
+        public_fit = false,
+        experimental_public = false,
+        guarded_local_fit = true,
+        backend = fit.backend,
+        sampler = fit.sampler,
+        summary = surface.summary,
+        sampler_rows = surface.sampler_rows,
+        parameter_rows = surface.parameter_rows,
+        block_rows = surface.block_rows,
+        direct_constraint_rows = surface.direct_constraint_rows,
+        direct_parameter_rows = surface.direct_parameter_rows,
+        direct_block_rows = surface.direct_block_rows,
+    )
+end
+
 function _model_manifest(fit::MFRMFit, diagnostic_summary)
     base = model_manifest(fit.design)
     return (;
@@ -2452,6 +3179,30 @@ function _model_manifest(fit::GMFRMFit, diagnostic_summary)
 end
 
 function model_manifest(fit::GMFRMFit)
+    return _model_manifest(fit, diagnostics(fit).summary)
+end
+
+function _model_manifest(fit::MGMFRMFit, diagnostic_summary)
+    base = model_manifest(fit.design)
+    return (;
+        schema = "bayesianmgmfrm.model_manifest.v1",
+        object = :fit,
+        family = :mgmfrm,
+        scope = :minimal_confirmatory_mgmfrm_candidate,
+        public_fit = false,
+        experimental_public = false,
+        guarded_local_fit = true,
+        fit_ready = false,
+        data = base.data,
+        validation = base.validation,
+        spec = base.spec,
+        design = base.design,
+        fit = fit_metadata(fit),
+        diagnostics = diagnostic_summary,
+    )
+end
+
+function model_manifest(fit::MGMFRMFit)
     return _model_manifest(fit, diagnostics(fit).summary)
 end
 
@@ -2591,6 +3342,85 @@ function fit_artifact(fit::GMFRMFit;
         fit_ready = true,
         created_at = string(now()),
         density_space = :raw_unconstrained,
+        raw_parameter_names = copy(fit.diagnostic_surface.raw_parameter_names),
+        direct_parameter_names =
+            copy(fit.diagnostic_surface.direct_parameter_names),
+        raw_to_direct_transform = raw_manifest.transforms,
+        sampler_controls = fit.sampler_controls,
+        diagnostics = diagnostic_surface,
+        pointwise_loglikelihood = copy(fit.direct_pointwise_loglikelihood),
+        caveat_docs_artifact = experimental_decision.caveat_docs_artifact,
+        fixture_provenance = experimental_decision.fit_artifact_contract.provenance_rows,
+        manifest,
+        posterior_summary = posterior_summary(fit),
+        direct_posterior_summary = direct_posterior_summary(fit),
+        reproducibility,
+        environment,
+        raw_draws = include_draws ? copy(fit.draws) : nothing,
+        direct_draws = include_draws ? copy(fit.direct_draws) : nothing,
+        log_posterior = include_log_posterior ? copy(fit.log_posterior) : nothing,
+        sampler_stats = include_sampler_stats ? copy(fit.sampler_stats) : nothing,
+    )
+end
+
+function fit_artifact(fit::MGMFRMFit;
+        include_draws::Bool = false,
+        include_log_posterior::Bool = include_draws,
+        include_sampler_stats::Bool = false,
+        include_environment::Bool = true,
+        include_packages::Bool = false,
+        split_chains::Bool = true,
+        rhat_threshold::Real = 1.01,
+        ess_threshold::Real = 400)
+    diagnostic_surface = diagnostics(fit;
+        split_chains,
+        rhat_threshold,
+        ess_threshold)
+    manifest = _model_manifest(fit, diagnostic_surface.summary)
+    base_manifest = model_manifest(fit.design)
+    raw_manifest = base_manifest.design.raw_parameterization
+    confirmatory = raw_manifest.confirmatory_candidate
+    experimental_decision = confirmatory.experimental_public_api_decision
+    rng = _fit_rng_control(fit)
+    artifact_policy = (;
+        raw_draws = _artifact_inclusion_flag(include_draws),
+        direct_draws = _artifact_inclusion_flag(include_draws),
+        log_posterior = _artifact_inclusion_flag(include_log_posterior),
+        sampler_stats = _artifact_inclusion_flag(include_sampler_stats),
+        environment = _artifact_inclusion_flag(include_environment),
+        package_status = include_environment && include_packages ? :included : :omitted,
+    )
+    reproducibility = (;
+        data_signature = fit.design.spec.validation.data_signature,
+        rng,
+        replayable_rng = _nt_get(rng, :replayable, false) === true,
+        sampler_controls = fit.sampler_controls,
+        diagnostic_policy = (;
+            split_chains = diagnostic_surface.summary.split_chains,
+            rhat_threshold = diagnostic_surface.summary.rhat_threshold,
+            ess_threshold = diagnostic_surface.summary.ess_threshold,
+        ),
+        artifact_policy,
+    )
+    environment = include_environment ?
+        evidence_metadata(; include_packages) :
+        nothing
+    return (;
+        schema = "bayesianmgmfrm.mgmfrm_guarded_local_fit_artifact.v1",
+        object = :fit_artifact,
+        family = :mgmfrm,
+        scope = :minimal_confirmatory_mgmfrm_candidate,
+        status = :guarded_local_fit_artifact,
+        public_fit = false,
+        experimental_public = false,
+        guarded_local_fit = true,
+        fit_ready = false,
+        created_at = string(now()),
+        density_space = :raw_unconstrained,
+        entrypoint = :_fit_guarded_mgmfrm,
+        target = :_mgmfrm_guarded_local_fit_logdensity,
+        q_matrix = _q_matrix_manifest(fit.design.spec.q_matrix),
+        latent_correlation = :identity_fixed,
         raw_parameter_names = copy(fit.diagnostic_surface.raw_parameter_names),
         direct_parameter_names =
             copy(fit.diagnostic_surface.direct_parameter_names),
@@ -3119,6 +3949,24 @@ function direct_posterior_summary(fit::GMFRMFit; lower::Real = 0.025, upper::Rea
     )
 end
 
+function posterior_summary(fit::MGMFRMFit; lower::Real = 0.025, upper::Real = 0.975)
+    return _posterior_summary_rows(
+        fit.draws,
+        fit.diagnostic_surface.raw_parameter_names;
+        lower,
+        upper,
+    )
+end
+
+function direct_posterior_summary(fit::MGMFRMFit; lower::Real = 0.025, upper::Real = 0.975)
+    return _posterior_summary_rows(
+        fit.direct_draws,
+        fit.diagnostic_surface.direct_parameter_names;
+        lower,
+        upper,
+    )
+end
+
 """
     pointwise_loglikelihood_matrix(fit::MFRMFit)
     pointwise_loglikelihood_matrix(design::FacetDesign, draws)
@@ -3140,6 +3988,9 @@ pointwise_loglikelihood_matrix(fit::MFRMFit) =
     pointwise_loglikelihood_matrix(fit.design, fit.draws)
 
 pointwise_loglikelihood_matrix(fit::GMFRMFit) =
+    copy(fit.direct_pointwise_loglikelihood)
+
+pointwise_loglikelihood_matrix(fit::MGMFRMFit) =
     copy(fit.direct_pointwise_loglikelihood)
 
 function _logmeanexp(values::AbstractVector{<:Real})
@@ -3238,6 +4089,14 @@ function waic(fit::MFRMFit;
 end
 
 function waic(fit::GMFRMFit;
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    return waic(fit.direct_pointwise_loglikelihood[indices, :])
+end
+
+function waic(fit::MGMFRMFit;
         ndraws::Union{Nothing,Int} = nothing,
         draw_indices = nothing,
         rng::AbstractRNG = Random.default_rng())
@@ -3403,6 +4262,15 @@ function loo(fit::MFRMFit;
 end
 
 function loo(fit::GMFRMFit;
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng(),
+        kwargs...)
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    return loo(fit.direct_pointwise_loglikelihood[indices, :]; kwargs...)
+end
+
+function loo(fit::MGMFRMFit;
         ndraws::Union{Nothing,Int} = nothing,
         draw_indices = nothing,
         rng::AbstractRNG = Random.default_rng(),
@@ -3606,6 +4474,21 @@ function waic_diagnostics(fit::GMFRMFit;
         only_flagged)
 end
 
+function waic_diagnostics(fit::MGMFRMFit;
+        threshold::Real = 0.4,
+        only_flagged::Bool = false,
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    checked_threshold = _check_waic_threshold(threshold)
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    return _waic_diagnostics_rows(
+        fit.design,
+        waic(fit.direct_pointwise_loglikelihood[indices, :]);
+        threshold = checked_threshold,
+        only_flagged)
+end
+
 """
     loo_diagnostics(fit::MFRMFit; threshold = 0.7, only_flagged = false,
         ndraws = nothing, draw_indices = nothing, rng = Random.default_rng(),
@@ -3675,6 +4558,26 @@ function loo_diagnostics(fit::MFRMFit;
 end
 
 function loo_diagnostics(fit::GMFRMFit;
+        threshold::Real = 0.7,
+        only_flagged::Bool = false,
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng(),
+        tail_fraction::Real = 0.2,
+        min_tail_draws::Int = 5)
+    checked_threshold = _check_loo_threshold(threshold)
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    return _loo_diagnostics_rows(
+        fit.design,
+        loo(fit.direct_pointwise_loglikelihood[indices, :];
+            pareto_k_threshold = checked_threshold,
+            tail_fraction,
+            min_tail_draws);
+        threshold = checked_threshold,
+        only_flagged)
+end
+
+function loo_diagnostics(fit::MGMFRMFit;
         threshold::Real = 0.7,
         only_flagged::Bool = false,
         ndraws::Union{Nothing,Int} = nothing,
