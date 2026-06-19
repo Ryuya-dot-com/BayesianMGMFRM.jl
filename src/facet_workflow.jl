@@ -3015,6 +3015,136 @@ function _block_manifest_rows(blocks::Dict{Symbol,UnitRange{Int}}, parameter_nam
     return rows
 end
 
+function _direct_identity_transform_rows(design::FacetDesign)
+    rows = NamedTuple[]
+    for block in sort(collect(keys(design.blocks)); by = string)
+        range = design.blocks[block]
+        indices = collect(range)
+        names = isempty(indices) ? String[] : copy(design.parameter_names[indices])
+        push!(rows, (;
+            raw_block = block,
+            constrained_block = block,
+            transform = :identity,
+            constraint = design.identification[block],
+            status = design.spec.estimation_status,
+            raw_first_parameter = isempty(indices) ? missing : first(indices),
+            raw_last_parameter = isempty(indices) ? missing : last(indices),
+            raw_n_parameters = length(indices),
+            raw_parameter_names = copy(names),
+            constrained_first_parameter = isempty(indices) ? missing : first(indices),
+            constrained_last_parameter = isempty(indices) ? missing : last(indices),
+            constrained_n_parameters = length(indices),
+            constrained_parameter_names = copy(names),
+            jacobian_policy = :identity,
+        ))
+    end
+    return rows
+end
+
+function _mfrm_fit_ready_parameter_layout(design::FacetDesign)
+    design.spec.family === :mfrm &&
+        design.spec.estimation_status === :fit_supported ||
+        throw(ArgumentError("fit-ready MFRM parameter layout requires a fit-supported MFRM/RSM/PCM design"))
+    block_rows = _block_manifest_rows(design.blocks, design.parameter_names)
+    return (;
+        schema = "bayesianmgmfrm.fit_ready_parameter_layout.v1",
+        family = :mfrm,
+        scope = _spec_scope(design.spec.family, design.spec.estimation_status),
+        status = :fit_supported,
+        compiler_stage = :fit_supported_design,
+        likelihood = :mfrm_rsm_pcm,
+        fit_ready = true,
+        public_fit = true,
+        experimental_public = false,
+        density_space = :constrained_direct,
+        parameterization = :direct,
+        n_parameters = length(design.parameter_names),
+        parameter_names = copy(design.parameter_names),
+        blocks = block_rows,
+        n_raw_parameters = length(design.parameter_names),
+        raw_parameter_names = copy(design.parameter_names),
+        raw_blocks = copy(block_rows),
+        n_constrained_parameters = length(design.parameter_names),
+        constrained_parameter_names = copy(design.parameter_names),
+        constrained_blocks = copy(block_rows),
+        transforms = _direct_identity_transform_rows(design),
+        constraints = constraint_table(design),
+        identification_declarations = identification_declarations(design),
+    )
+end
+
+function _generalized_fit_ready_parameter_layout(design::FacetDesign, blueprint)
+    transforms = _source_transform_manifest_rows(blueprint)
+    raw_blocks = _block_manifest_rows(blueprint.blocks, blueprint.parameter_names)
+    constrained_blocks = _block_manifest_rows(
+        blueprint.constrained_blocks,
+        blueprint.constrained_parameter_names,
+    )
+    likelihood = design.spec.family === :gmfrm ?
+        :scalar_gmfrm_source_aligned :
+        :confirmatory_mgmfrm_source_aligned
+    return (;
+        schema = "bayesianmgmfrm.fit_ready_parameter_layout.v1",
+        family = design.spec.family,
+        scope = blueprint.scope,
+        status = blueprint.status,
+        compiler_stage = blueprint.compiler_stage,
+        likelihood,
+        fit_ready = blueprint.fit_ready,
+        public_fit = false,
+        experimental_public = design.spec.family === :gmfrm,
+        density_space = :raw_unconstrained,
+        parameterization = :raw_to_constrained,
+        n_parameters = blueprint.n_parameters,
+        parameter_names = copy(blueprint.parameter_names),
+        blocks = raw_blocks,
+        n_raw_parameters = blueprint.n_parameters,
+        raw_parameter_names = copy(blueprint.parameter_names),
+        raw_blocks,
+        n_constrained_parameters = length(blueprint.constrained_parameter_names),
+        constrained_parameter_names = copy(blueprint.constrained_parameter_names),
+        constrained_blocks,
+        transforms,
+        constraints = _fit_ready_candidate_constraint_rows(blueprint),
+        identification_declarations = identification_declarations(design),
+    )
+end
+
+"""
+    fit_ready_parameter_layout(spec_or_design; preview = false)
+
+Return deterministic parameter names and block ranges for each compiled
+likelihood layout currently represented by the package. The fit-supported
+MFRM/RSM/PCM path reports direct parameter blocks. Specified-only GMFRM/MGMFRM
+preview designs report internal raw and constrained fit-ready candidate blocks,
+including raw-to-constrained transform rows, without enabling broad public
+generalized fitting.
+
+For specified-only `FacetSpec` values, pass `preview = true`, matching
+[`getdesign`](@ref).
+"""
+function fit_ready_parameter_layout(spec::FacetSpec; preview::Bool = false)
+    return fit_ready_parameter_layout(getdesign(spec; preview))
+end
+
+function fit_ready_parameter_layout(design::FacetDesign; preview::Bool = false)
+    preview &&
+        throw(ArgumentError("preview is only a FacetSpec compilation option; pass fit_ready_parameter_layout(spec; preview = true)"))
+    if design.spec.family === :mfrm && design.spec.estimation_status === :fit_supported
+        return _mfrm_fit_ready_parameter_layout(design)
+    elseif design.spec.family === :gmfrm && design.spec.estimation_status === :specified_only
+        blueprint = _gmfrm_fit_ready_candidate_blueprint(design)
+        return _generalized_fit_ready_parameter_layout(design, blueprint)
+    elseif design.spec.family === :mgmfrm && design.spec.estimation_status === :specified_only
+        blueprint = _mgmfrm_fit_ready_candidate_blueprint(design)
+        return _generalized_fit_ready_parameter_layout(design, blueprint)
+    end
+    throw(ArgumentError(
+        "fit_ready_parameter_layout currently supports fit-supported MFRM/RSM/PCM " *
+        "designs and specified-only GMFRM/MGMFRM preview designs",
+    ))
+end
+
 function _source_transform_declarations(family::Symbol)
     family === :gmfrm && return NamedTuple[
         (raw_block = :person, constrained_block = :person, transform = :identity,

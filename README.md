@@ -176,6 +176,9 @@ Current public API:
   rejects specified-only GMFRM/MGMFRM configurations instead of silently fitting
   the wrong likelihood; `getdesign(spec; preview = true)` returns a non-fit-ready
   parameter blueprint for design review.
+- `fit_ready_parameter_layout`: deterministic fit-ready parameter names, block
+  ranges, raw/constrained candidate blocks, and transform rows for the current
+  MFRM/RSM/PCM likelihood and guarded GMFRM/MGMFRM compiler candidates.
 - `design_row_table`: observation-level compiler metadata showing which
   identified person, rater, item, source-step, item-discrimination,
   item-dimension-discrimination, and rater-consistency parameters each rating

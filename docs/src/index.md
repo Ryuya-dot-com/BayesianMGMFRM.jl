@@ -14,6 +14,8 @@ The current public slice focuses on:
   designs via [`model_ladder`](@ref), [`constraint_table`](@ref),
   [`identification_declarations`](@ref), [`getdesign`](@ref), and
   [`model_manifest`](@ref);
+- fit-ready parameter layout metadata via
+  [`fit_ready_parameter_layout`](@ref);
 - initial Bayesian fitting for the minimal identified design via [`fit`](@ref),
   [`cached_fit`](@ref), [`MFRMPrior`](@ref), [`fit_metadata`](@ref),
   [`fit_artifact`](@ref), and [`posterior_summary`](@ref), including a small

@@ -26,6 +26,7 @@ using BayesianMGMFRM:
     fit_archive_manifest,
     fit_artifact,
     fit_cache_key,
+    fit_ready_parameter_layout,
     fit_stats,
     getdesign,
     identification_declarations,
@@ -6116,7 +6117,8 @@ end
 @testset "public docstrings" begin
     for name in (:FacetData, :ValidationIssue, :ValidationReport, :FacetSpec, :FacetDesign,
             :MFRMPrior, :MFRMLogDensity, :MFRMFit, :GMFRMFit, :artifact_content_hash, :cached_fit, :calibration_plot_data,
-            :constraint_table, :expected_scores, :fit, :fit_archive_manifest, :fit_artifact, :fit_cache_key, :fit_metadata, :fit_stats,
+            :constraint_table, :expected_scores, :fit, :fit_archive_manifest, :fit_artifact, :fit_cache_key, :fit_metadata,
+            :fit_ready_parameter_layout, :fit_stats,
             :identification_declarations,
             :initial_params, :loglikelihood, :logposterior, :logprior,
             :loo, :loo_diagnostics,
@@ -6355,6 +6357,20 @@ end
     @test any(row -> row.block === :rater && row.rule === :reference &&
         row.n_parameters == 0 &&
         isempty(row.parameter_names), design_identification)
+    binary_layout = fit_ready_parameter_layout(spec)
+    @test binary_layout.schema == "bayesianmgmfrm.fit_ready_parameter_layout.v1"
+    @test binary_layout.family === :mfrm
+    @test binary_layout.fit_ready
+    @test binary_layout.public_fit
+    @test binary_layout.parameterization === :direct
+    @test binary_layout.parameter_names == design.parameter_names
+    @test binary_layout.raw_parameter_names == design.parameter_names
+    @test binary_layout.constrained_parameter_names == design.parameter_names
+    @test any(row -> row.raw_block === :person &&
+        row.constrained_block === :person &&
+        row.transform === :identity &&
+        row.raw_parameter_names == ["person[E1]"],
+        binary_layout.transforms)
 
     data_manifest = model_manifest(data)
     @test data_manifest.schema == "bayesianmgmfrm.model_manifest.v1"
@@ -6469,6 +6485,17 @@ end
         "step[item=I1,1]",
         "step[item=I2,1]",
     ]
+    identified_layout = fit_ready_parameter_layout(identified_design)
+    @test identified_layout.n_parameters == length(identified_design.parameter_names)
+    @test [row.block for row in identified_layout.blocks] ==
+        sort([row.block for row in identified_layout.blocks]; by = string)
+    @test any(row -> row.block === :thresholds &&
+        row.parameter_names == ["step[item=I1,1]", "step[item=I2,1]"],
+        identified_layout.blocks)
+    @test any(row -> row.raw_block === :thresholds &&
+        row.constrained_block === :thresholds &&
+        row.constraint === :sum_to_zero,
+        identified_layout.transforms)
 
     identified_params = [0.4, -0.1, 0.2, -0.3, 0.5, -0.25]
     identified_pointwise = pointwise_loglikelihood(identified_design, identified_params)
@@ -6747,6 +6774,29 @@ end
         gmfrm_raw_blueprint.constrained_parameter_names
     @test gmfrm_fit_ready_blueprint.blocks == gmfrm_raw_blueprint.blocks
     @test gmfrm_fit_ready_blueprint.constrained_blocks == gmfrm_raw_blueprint.constrained_blocks
+    @test_throws ArgumentError fit_ready_parameter_layout(gmfrm_spec)
+    gmfrm_layout = fit_ready_parameter_layout(gmfrm_spec; preview = true)
+    @test gmfrm_layout.schema == "bayesianmgmfrm.fit_ready_parameter_layout.v1"
+    @test gmfrm_layout.family === :gmfrm
+    @test gmfrm_layout.scope === :scalar_gmfrm_fit_ready_candidate
+    @test gmfrm_layout.status === :internal_fit_ready_candidate
+    @test gmfrm_layout.parameterization === :raw_to_constrained
+    @test gmfrm_layout.experimental_public
+    @test !gmfrm_layout.public_fit
+    @test !gmfrm_layout.fit_ready
+    @test gmfrm_layout.raw_parameter_names == gmfrm_fit_ready_blueprint.parameter_names
+    @test gmfrm_layout.constrained_parameter_names ==
+        gmfrm_fit_ready_blueprint.constrained_parameter_names
+    @test any(row -> row.block === :item_free &&
+        row.parameter_names == ["raw_item[I1]"],
+        gmfrm_layout.raw_blocks)
+    @test any(row -> row.block === :item &&
+        row.parameter_names == ["item[I1]", "item[I2]"],
+        gmfrm_layout.constrained_blocks)
+    @test any(row -> row.raw_block === :log_item_discrimination_free &&
+        row.constrained_block === :item_discrimination &&
+        row.transform === :geometric_mean_one_log_last,
+        gmfrm_layout.transforms)
     gmfrm_preview_manifest = model_manifest(gmfrm_preview)
     gmfrm_raw_manifest = gmfrm_preview_manifest.design.raw_parameterization
     @test gmfrm_raw_manifest.schema == "bayesianmgmfrm.raw_parameterization.v1"
@@ -8273,6 +8323,35 @@ end
     @test mgmfrm_raw_blueprint.parameter_names[mgmfrm_raw_blueprint.blocks[:rater_free]] == ["raw_rater[R1]"]
     @test mgmfrm_raw_blueprint.parameter_names[mgmfrm_raw_blueprint.blocks[:log_rater_consistency_free]] ==
         ["raw_log_rater_consistency[R1]"]
+    @test_throws ArgumentError fit_ready_parameter_layout(mgmfrm_spec)
+    mgmfrm_layout = fit_ready_parameter_layout(mgmfrm_spec; preview = true)
+    @test mgmfrm_layout.schema == "bayesianmgmfrm.fit_ready_parameter_layout.v1"
+    @test mgmfrm_layout.family === :mgmfrm
+    @test mgmfrm_layout.scope === :minimal_confirmatory_mgmfrm_candidate
+    @test mgmfrm_layout.status === :internal_fit_ready_candidate
+    @test mgmfrm_layout.parameterization === :raw_to_constrained
+    @test !mgmfrm_layout.experimental_public
+    @test !mgmfrm_layout.public_fit
+    @test !mgmfrm_layout.fit_ready
+    @test mgmfrm_layout.raw_parameter_names == mgmfrm_fit_ready_blueprint.parameter_names
+    @test mgmfrm_layout.constrained_parameter_names ==
+        mgmfrm_fit_ready_blueprint.constrained_parameter_names
+    @test any(row -> row.block === :log_item_dimension_discrimination &&
+        row.parameter_names == [
+            "raw_log_item_dimension_discrimination[item=I1,dim=1]",
+            "raw_log_item_dimension_discrimination[item=I2,dim=2]",
+        ],
+        mgmfrm_layout.raw_blocks)
+    @test any(row -> row.block === :item_dimension_discrimination &&
+        row.parameter_names == [
+            "item_dimension_discrimination[item=I1,dim=1]",
+            "item_dimension_discrimination[item=I2,dim=2]",
+        ],
+        mgmfrm_layout.constrained_blocks)
+    @test any(row -> row.raw_block === :log_rater_consistency_free &&
+        row.constrained_block === :rater_consistency &&
+        row.constraint === :geometric_mean_one,
+        mgmfrm_layout.transforms)
     mgmfrm_raw_manifest = preview_manifest.design.raw_parameterization
     @test mgmfrm_raw_manifest.n_raw_parameters == mgmfrm_raw_blueprint.n_parameters
     @test mgmfrm_raw_manifest.raw_parameter_names == mgmfrm_raw_blueprint.parameter_names

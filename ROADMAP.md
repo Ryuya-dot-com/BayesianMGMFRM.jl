@@ -351,8 +351,8 @@ rater-discrimination candidate.
 
 The roadmap has two different progress notions:
 
-- **Checklist progress**: currently 95 of 120 tracked roadmap checkboxes are
-  complete, or roughly 79.2%. This is useful for implementation accounting.
+- **Checklist progress**: currently 96 of 120 tracked roadmap checkboxes are
+  complete, or roughly 80.0%. This is useful for implementation accounting.
 - **Claim progress**: broad v1 claims are closer to 40-45% complete because
   the remaining items include public generalized fitting, Stan comparisons,
   broader recovery simulations and a public-scope release decision.
@@ -693,7 +693,7 @@ TODO:
   generalized likelihood evaluation.
 - [x] Route the current MFRM/RSM/PCM pointwise likelihood and predictive
   probabilities through the same linear-predictor evaluator.
-- [ ] Generate fit-ready parameter names and block ranges for every compiled
+- [x] Generate fit-ready parameter names and block ranges for every compiled
   likelihood.
 - [ ] Add fixture tests showing compiled fit-ready specs reproduce
   hand-computed or hand-coded pointwise log likelihoods.

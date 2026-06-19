@@ -92,8 +92,8 @@ public MGMFRM exposure still requires a separate release decision.
 
 ## Progress Ledger
 
-The repository roadmap currently has 95 of 120 tracked checklist items complete,
-or roughly 79.2% by simple implementation accounting. The stronger claim-level
+The repository roadmap currently has 96 of 120 tracked checklist items complete,
+or roughly 80.0% by simple implementation accounting. The stronger claim-level
 progress is lower, about 40-45%, because the remaining work includes public
 generalized fitting, Stan comparisons, broader recovery simulations,
 and a public-scope release decision for generalized claims.
@@ -232,15 +232,17 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   transform rows, raw prior policy, and no-Jacobian raw-density policy;
   normalized identification declarations now cover sum-to-zero, reference,
   fixed, geometric-mean-one, hard/soft anchors, and multidimensional gauge
-  rows; scalar GMFRM internal promotion-candidate gates, a fit-ready
-  compiler-candidate manifest, gradient diagnostics, direct block metadata,
-  direct pointwise fixture API, raw-to-direct transform diagnostics, internal
-  raw/direct sampler diagnostic surface, a local candidate-chain study
-  artifact, an internal experimental-public decision manifest, a local
-  recovery-smoke artifact, BridgeStan constrained parameter checks, fit-ready
-  BridgeStan oracle checks, a minimal confirmatory MGMFRM gauge-candidate
-  manifest, and a separated fit-ready MGMFRM candidate transform manifest plus
-  confirmatory BridgeStan oracle checks added]
+  rows; fit-ready parameter layout metadata now records MFRM direct blocks and
+  GMFRM/MGMFRM raw/constrained candidate blocks; scalar GMFRM internal
+  promotion-candidate gates, a fit-ready compiler-candidate manifest, gradient
+  diagnostics, direct block metadata, direct pointwise fixture API,
+  raw-to-direct transform diagnostics, internal raw/direct sampler diagnostic
+  surface, a local candidate-chain study artifact, an internal
+  experimental-public decision manifest, a local recovery-smoke artifact,
+  BridgeStan constrained parameter checks, fit-ready BridgeStan oracle checks,
+  a minimal confirmatory MGMFRM gauge-candidate manifest, and a separated
+  fit-ready MGMFRM candidate transform manifest plus confirmatory BridgeStan
+  oracle checks added]
 - Add stable preview block names and parameter names for specified-only
   GMFRM/MGMFRM specs. [Done]
 - Align specified-only preview blocks with the primary-literature GMFRM and
@@ -254,17 +256,19 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   tests. [Initial GMFRM/MGMFRM preview fixtures and fixture-only raw likelihood
   / log-density target checks, ForwardDiff raw-target gradient checks, and raw
   transform boundary checks done; preview raw-parameterization manifest rows
-  added; scalar GMFRM promotion-candidate fit-ready compiler manifest,
-  gradient and raw-to-direct transform diagnostics, direct pointwise fixture
-  API, and BridgeStan direct-parameter checks added; internal raw/direct
-  sampler diagnostics, a local two-fixture candidate-chain study artifact, an
-  experimental-public decision manifest, a local recovery-smoke artifact,
-  guarded method-wiring evidence, and fit-ready scalar GMFRM BridgeStan oracle checks
-  added; minimal confirmatory MGMFRM gauge manifest and fit-ready candidate
-  transform manifest plus fit-ready confirmatory MGMFRM BridgeStan oracle
-  checks, a local confirmatory MGMFRM candidate-chain artifact, and a local
-  recovery-smoke artifact, and an internal keep-internal public API decision
-  manifest added; broader fit-ready generalized fixtures still planned]
+  added; public fit-ready parameter layout rows added for MFRM direct blocks
+  and GMFRM/MGMFRM raw/constrained compiler candidates; scalar GMFRM
+  promotion-candidate fit-ready compiler manifest, gradient and raw-to-direct
+  transform diagnostics, direct pointwise fixture API, and BridgeStan
+  direct-parameter checks added; internal raw/direct sampler diagnostics, a
+  local two-fixture candidate-chain study artifact, an experimental-public
+  decision manifest, a local recovery-smoke artifact, guarded method-wiring
+  evidence, and fit-ready scalar GMFRM BridgeStan oracle checks added; minimal
+  confirmatory MGMFRM gauge manifest and fit-ready candidate transform manifest
+  plus fit-ready confirmatory MGMFRM BridgeStan oracle checks, a local
+  confirmatory MGMFRM candidate-chain artifact, and a local recovery-smoke
+  artifact, and an internal keep-internal public API decision manifest added;
+  broader fit-ready generalized fixtures still planned]
 - Add BridgeStan fixture generation for scalar GMFRM and one minimal
   confirmatory MGMFRM before exposing generalized fitting. [Source-aligned raw
   GMFRM/MGMFRM Stan reference models, BridgeStan JSON fixtures, generation
