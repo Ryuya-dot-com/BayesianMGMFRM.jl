@@ -318,7 +318,10 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   current minimal fit path, and `compare_models` now records same-data,
   category-level, latent-dimension, and Q-matrix comparison contracts]
 - Add first-class sensitivity comparisons for threshold, discrimination, DFF,
-  anchor, dimensionality, and prior choices.
+  anchor, dimensionality, and prior choices. [`sensitivity_comparison`](@ref)
+  now provides same-data, fit-object sensitivity rows with declared axes,
+  custom axis values, and baseline-relative differences; unsupported
+  generalized, DFF, anchor, and dimensionality refit workflows remain planned.
 
 ### v0.5 Practitioner Outputs
 

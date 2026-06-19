@@ -801,7 +801,10 @@ TODO:
   equivalent package-native workflow.
 - [ ] Implement first-class sensitivity comparisons: RSM vs PCM/GPCM,
   discrimination on/off, pooled vs unpooled rater effects, DFF on/off, anchor
-  choices, dimensionality, and prior regimes.
+  choices, dimensionality, and prior regimes. [`sensitivity_comparison`] now
+  provides same-data, fit-object sensitivity rows with declared axes, custom
+  axis values, and baseline-relative differences; unsupported generalized,
+  DFF, anchor, and dimensionality refit workflows remain planned.
 
 Gate: a case-study report can be regenerated from fit objects without custom
 notebook logic for diagnostics, PPC, calibration, model comparison, or

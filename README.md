@@ -262,6 +262,9 @@ Current public API:
   including relative weights and model-contract fields, for fitted models that
   share the same observation data, row order, ordinal categories, latent
   dimensions, and fixed Q-matrix contract.
+- `sensitivity_comparison`: report-ready sensitivity rows that wrap
+  `compare_models` with a declared axis, per-model axis values, baseline
+  labels, and baseline-relative ELPD/information-criterion differences.
 - `posterior_predict` and `posterior_predictive_check`: posterior replicated
   score generation plus compact observed-vs-replicated summaries for mean
   scores, category proportions, person means, rater means, item means, and
@@ -306,7 +309,7 @@ than repeatedly prefixing function names with the package name.
 
 Not yet implemented in the public API:
 
-- Stan/CmdStan sampling, PSIS-smoothed LOO, exact/K-fold LOO, or richer
+- Stan/CmdStan sampling, PSIS-smoothed LOO, exact/K-fold LOO, or refit-managed
   model-comparison workflows. The AdvancedHMC/NUTS and Turing/NUTS backends are
   currently limited to the minimal MFRM/RSM/PCM design; the guarded
   experimental scalar GMFRM promotion candidate remains on the AdvancedHMC path.
