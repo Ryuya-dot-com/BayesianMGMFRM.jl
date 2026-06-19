@@ -40,7 +40,8 @@ The current public slice focuses on:
   [`parameter_recovery`](@ref), and [`parameter_recovery_summary`](@ref);
 - report-ready predictive-check summaries, including grouped PPC expansion
   rows, via [`predictive_check_summary`](@ref);
-- binned calibration summaries via [`calibration_table`](@ref);
+- binned expected-score and ordinal-category calibration summaries via
+  [`calibration_table`](@ref);
 - plotting-ready rows via [`parameter_recovery_plot_data`](@ref),
   [`calibration_plot_data`](@ref), and
   [`predictive_check_plot_data`](@ref);

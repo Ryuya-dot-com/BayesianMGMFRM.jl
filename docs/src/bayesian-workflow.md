@@ -73,12 +73,16 @@ without changing the data layer.
 Bayesian calibration check. By default it bins observations by posterior
 expected score and compares the observed mean score in each bin with posterior
 predicted means. For binary or highest-category reporting, use
-`target = :category_probability`.
+`target = :category_probability`; use `category = :all` for one block per
+ordinal score category, or `target = :all` for expected-score rows plus all
+category-probability rows.
 
 ```julia
 calibration_table(fit_result; bins = 5)
 calibration_table(fit_result; target = :category_probability, bins = 5)
 calibration_table(fit_result; target = :category_probability, category = 2, bins = 5)
+calibration_table(fit_result; target = :category_probability, category = :all, bins = 5)
+calibration_table(fit_result; target = :all, bins = 5)
 ```
 
 ## Current Limits
