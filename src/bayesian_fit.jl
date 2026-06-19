@@ -5753,7 +5753,35 @@ function _finite_draw_summary(values::AbstractVector{<:Real}, lower::Float64, up
     )
 end
 
-function _calibration_target_from_probabilities(data::FacetData,
+function _expected_score_calibration_target(data::FacetData,
+        probabilities::AbstractArray{<:Real,3})
+    return (;
+        target = :expected_score,
+        category = missing,
+        predicted = _expected_scores_from_probabilities(
+            probabilities,
+            data.category_levels,
+        ),
+        observed = Float64.(data.score),
+    )
+end
+
+function _category_probability_calibration_target(data::FacetData,
+        probabilities::AbstractArray{<:Real,3},
+        category)
+    category_index = findfirst(==(category), data.category_levels)
+    category_index === nothing &&
+        throw(ArgumentError("category $category is not an observed score category"))
+    level = data.category_levels[category_index]
+    return (;
+        target = :category_probability,
+        category = level,
+        predicted = @view(probabilities[:, :, category_index]),
+        observed = [score == level ? 1.0 : 0.0 for score in data.score],
+    )
+end
+
+function _calibration_targets_from_probabilities(data::FacetData,
         probabilities::AbstractArray{<:Real,3},
         target::Symbol,
         category)
@@ -5767,37 +5795,36 @@ function _calibration_target_from_probabilities(data::FacetData,
     if target === :expected_score
         category === nothing ||
             throw(ArgumentError("category is only supported with target = :category_probability"))
-        return (;
-            target,
-            category = missing,
-            predicted = _expected_scores_from_probabilities(
-                probabilities,
-                data.category_levels,
-            ),
-            observed = Float64.(data.score),
-        )
+        return [_expected_score_calibration_target(data, probabilities)]
     elseif target === :category_probability
+        if category === :all
+            return [
+                _category_probability_calibration_target(data, probabilities, level)
+                for level in data.category_levels
+            ]
+        end
         chosen_category = category === nothing ? last(data.category_levels) : category
-        category_index = findfirst(==(chosen_category), data.category_levels)
-        category_index === nothing &&
-            throw(ArgumentError("category $chosen_category is not an observed score category"))
-        return (;
-                target,
-                category = data.category_levels[category_index],
-                predicted = @view(probabilities[:, :, category_index]),
-                observed = [score == data.category_levels[category_index] ? 1.0 : 0.0 for score in data.score],
-        )
+        return [_category_probability_calibration_target(data, probabilities, chosen_category)]
+    elseif target === :all
+        (category === nothing || category === :all) ||
+            throw(ArgumentError("category is not supported with target = :all except category = :all"))
+        targets = NamedTuple[_expected_score_calibration_target(data, probabilities)]
+        append!(targets, [
+            _category_probability_calibration_target(data, probabilities, level)
+            for level in data.category_levels
+        ])
+        return targets
     end
 
-    throw(ArgumentError("target must be :expected_score or :category_probability"))
+    throw(ArgumentError("target must be :expected_score, :category_probability, or :all"))
 end
 
-function _calibration_target(design::FacetDesign,
+function _calibration_targets(design::FacetDesign,
         draws::AbstractMatrix,
         target::Symbol,
         category)
     probabilities = predictive_probabilities(design, draws)
-    return _calibration_target_from_probabilities(
+    return _calibration_targets_from_probabilities(
         design.spec.data,
         probabilities,
         target,
@@ -5844,7 +5871,10 @@ Return binned observed-vs-predicted calibration rows from posterior draws.
 The default `target = :expected_score` compares observed scores with posterior
 expected scores. With `target = :category_probability`, the table compares the
 observed proportion of `category` with the posterior probability of that
-category; when `category` is omitted, the highest score category is used.
+category; when `category` is omitted, the highest score category is used. Use
+`category = :all` to return one category-probability calibration block for each
+ordinal score category. Use `target = :all` to return expected-score rows plus
+all ordinal category-probability rows.
 """
 function calibration_table(design::FacetDesign,
         draws::AbstractMatrix;
@@ -5853,14 +5883,33 @@ function calibration_table(design::FacetDesign,
         bins::Int = 10,
         interval::Real = 0.9)
     lower_probability, upper_probability = _interval_probabilities(interval)
-    calibration_target = _calibration_target(design, draws, target, category)
-    return _calibration_table_from_target(
-        calibration_target;
+    calibration_targets = _calibration_targets(design, draws, target, category)
+    return _calibration_table_from_targets(
+        calibration_targets;
         bins,
         interval,
         lower_probability,
         upper_probability,
     )
+end
+
+function _calibration_table_from_targets(
+        calibration_targets;
+        bins::Int,
+        interval::Real,
+        lower_probability::Float64,
+        upper_probability::Float64)
+    rows = NamedTuple[]
+    for calibration_target in calibration_targets
+        append!(rows, _calibration_table_from_target(
+            calibration_target;
+            bins,
+            interval,
+            lower_probability,
+            upper_probability,
+        ))
+    end
+    return rows
 end
 
 function _calibration_table_from_target(
@@ -5936,14 +5985,14 @@ function calibration_table(fit::GMFRMFit;
         rng::AbstractRNG = Random.default_rng())
     lower_probability, upper_probability = _interval_probabilities(interval)
     probabilities = predictive_probabilities(fit; ndraws, draw_indices, rng)
-    calibration_target = _calibration_target_from_probabilities(
+    calibration_targets = _calibration_targets_from_probabilities(
         fit.design.spec.data,
         probabilities,
         target,
         category,
     )
-    return _calibration_table_from_target(
-        calibration_target;
+    return _calibration_table_from_targets(
+        calibration_targets;
         bins,
         interval,
         lower_probability,

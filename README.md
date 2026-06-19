@@ -131,6 +131,7 @@ posterior_summary(fit_result; intervals = (0.66, 0.9, 0.95), rope = 0.1)
 waic_diagnostics(fit_result)
 loo_diagnostics(fit_result)
 calibration_table(fit_result; bins = 2)
+calibration_table(fit_result; target = :all, bins = 2)
 predictive_check_summary(ppc)
 predictive_check_summary(ppc; include_grouped = true)
 
@@ -279,7 +280,8 @@ Current public API:
   person, rater, item, and optional facet mean-score rows, plus DFF-cell and
   sparse-design-block rows when called with `include_grouped = true`.
 - `calibration_table`: binned observed-vs-predicted calibration summaries from
-  posterior expected scores or category probabilities.
+  posterior expected scores, one selected category probability, all ordinal
+  category probabilities, or the combined `target = :all` report.
 - `parameter_recovery_plot_data`, `calibration_plot_data`, and
   `predictive_check_plot_data`: plotting-ready long-form rows for Makie,
   Plots.jl, AlgebraOfGraphics, R/ggplot, Quarto, or CSV workflows without

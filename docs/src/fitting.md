@@ -124,6 +124,7 @@ expected_scores(fit_result)
 predictive_variances(fit_result)
 predictive_residuals(fit_result)
 calibration_table(fit_result; bins = 5)
+calibration_table(fit_result; target = :all, bins = 5)
 fit_stats(fit_result; by = :rater)
 posterior_predict(fit_result; ndraws = 100)
 ppc = posterior_predictive_check(fit_result; ndraws = 100)
@@ -222,6 +223,8 @@ variances, and residuals are exposed as the substrate for calibration,
 infit/outfit, and further model-comparison helpers. `calibration_table` bins
 observations by posterior predictive expected score, or by a selected category
 probability, and returns observed-vs-predicted summaries with posterior
-intervals. `fit_stats` currently returns posterior summaries of infit and
+intervals. It can also return one block per ordinal score category with
+`category = :all`, or expected-score and all ordinal category rows together
+with `target = :all`. `fit_stats` currently returns posterior summaries of infit and
 outfit mean-square statistics by facet level. The `backend` keyword is explicit
 so additional engines can be added without changing the fitted-object shape.

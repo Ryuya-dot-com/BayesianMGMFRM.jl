@@ -8222,6 +8222,27 @@ end
     @test all(row -> row.target === :category_probability, gmfrm_category_calibration)
     @test all(row -> row.category == last(identified_data.category_levels),
         gmfrm_category_calibration)
+    gmfrm_all_category_calibration = calibration_table(gmfrm_experimental_fit;
+        target = :category_probability,
+        category = :all,
+        draw_indices = [1, 2],
+        bins = 2)
+    @test length(gmfrm_all_category_calibration) ==
+        2 * length(identified_data.category_levels)
+    @test Set(row.category for row in gmfrm_all_category_calibration) ==
+        Set(identified_data.category_levels)
+    @test all(row -> row.target === :category_probability,
+        gmfrm_all_category_calibration)
+    gmfrm_all_calibration = calibration_table(gmfrm_experimental_fit;
+        target = :all,
+        draw_indices = [1, 2],
+        bins = 2)
+    @test length(gmfrm_all_calibration) ==
+        2 * (1 + length(identified_data.category_levels))
+    @test all(row -> row.target === :expected_score,
+        gmfrm_all_calibration[1:2])
+    @test Set(row.category for row in gmfrm_all_calibration[3:end]) ==
+        Set(identified_data.category_levels)
     @test_throws ArgumentError posterior_predict(gmfrm_experimental_fit; ndraws = 0)
     @test_throws ArgumentError posterior_predictive_check(gmfrm_experimental_fit;
         ndraws = 2,
@@ -10203,12 +10224,37 @@ end
         bins = 2)
     @test [row.category for row in default_category_calibration] ==
         fill(last(data.category_levels), length(default_category_calibration))
+    all_category_calibration = calibration_table(result;
+        target = :category_probability,
+        category = :all,
+        draw_indices = [1, 2],
+        bins = 2,
+        interval = 0.8)
+    @test length(all_category_calibration) == 2 * length(data.category_levels)
+    @test [row.category for row in all_category_calibration[1:2]] ==
+        fill(first(data.category_levels), 2)
+    @test Set(row.category for row in all_category_calibration) == Set(data.category_levels)
+    @test all(row -> row.target === :category_probability, all_category_calibration)
+    @test all(row -> 0 <= row.observed_mean <= 1, all_category_calibration)
+    @test all(row -> 0 <= row.predicted_mean <= 1, all_category_calibration)
+    @test all(row -> row.lower_probability ≈ 0.1, all_category_calibration)
+    all_calibration = calibration_table(result;
+        target = :all,
+        draw_indices = [1, 2],
+        bins = 2,
+        interval = 0.8)
+    @test length(all_calibration) == 2 * (1 + length(data.category_levels))
+    @test all(row -> row.target === :expected_score, all_calibration[1:2])
+    @test all(row -> row.category === missing, all_calibration[1:2])
+    @test all(row -> row.target === :category_probability, all_calibration[3:end])
+    @test Set(row.category for row in all_calibration[3:end]) == Set(data.category_levels)
     @test length(calibration_table(result; draw_indices = [1, 2], bins = data.n + 10)) == data.n
     @test_throws ArgumentError calibration_table(result; bins = 0)
     @test_throws ArgumentError calibration_table(result; interval = 1.0)
     @test_throws ArgumentError calibration_table(result; draw_indices = [0])
     @test_throws ArgumentError calibration_table(result; target = :unknown)
     @test_throws ArgumentError calibration_table(result; target = :category_probability, category = :not_a_score)
+    @test_throws ArgumentError calibration_table(result; target = :all, category = last(data.category_levels))
     @test_throws ArgumentError calibration_table(result; category = first(data.category_levels))
     @test_throws ArgumentError calibration_table(design, result.draws[1:0, :])
 
