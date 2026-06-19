@@ -14,6 +14,8 @@ using BayesianMGMFRM:
     FacetData,
     anchor_linking_summary,
     artifact_content_hash,
+    benchmark_result_row,
+    benchmark_summary,
     calibration_plot_data,
     cached_fit,
     comparison_evidence_row,
@@ -6214,7 +6216,7 @@ end
     for name in (:FacetData, :ValidationIssue, :ValidationReport, :FacetSpec, :FacetDesign,
             :MFRMPrior, :MFRMLogDensity, :MFRMFit, :GMFRMFit,
             :anchor_linking_summary, :artifact_content_hash, :cached_fit,
-            :calibration_plot_data,
+            :benchmark_result_row, :benchmark_summary, :calibration_plot_data,
             :constraint_table, :dff_report, :domain_compilation_summary,
             :expected_scores, :fair_average_summary,
             :falsification_rule_summary, :falsification_rules,
@@ -10645,6 +10647,103 @@ end
         pass_if = :bad)
     @test_throws ArgumentError comparison_evidence_summary(NamedTuple[])
     @test_throws ArgumentError comparison_evidence_summary(Any[1])
+
+    julia_benchmark = benchmark_result_row(;
+        benchmark = :minimal_pcm_nuts,
+        engine = :advancedhmc,
+        model = :mfrm_pcm,
+        elapsed_seconds = (9.0, 10.0, 11.0),
+        effective_sample_sizes = (900.0, 1000.0, 1100.0),
+        time_to_quality_seconds = (10.0, 11.0, 12.0),
+        time_to_quality_threshold_seconds = 15.0,
+        idle_machine = true,
+        hardware = :local_idle_machine,
+        software = :julia_1)
+    stan_benchmark = benchmark_result_row(;
+        benchmark = :minimal_pcm_nuts,
+        engine = :cmdstan,
+        model = :stan_pcm,
+        elapsed_seconds = (18.0, 20.0, 22.0),
+        effective_sample_sizes = (720.0, 800.0, 880.0),
+        time_to_quality_seconds = (23.0, 24.0, 25.0),
+        time_to_quality_threshold_seconds = 30.0,
+        idle_machine = true,
+        hardware = :local_idle_machine,
+        software = :cmdstan)
+    @test julia_benchmark.schema == "bayesianmgmfrm.benchmark_result_row.v1"
+    @test julia_benchmark.object === :benchmark_result_row
+    @test julia_benchmark.engine === :julia
+    @test julia_benchmark.reported_engine === :advancedhmc
+    @test julia_benchmark.n_repetitions == 3
+    @test julia_benchmark.elapsed_median_seconds ≈ 10.0
+    @test julia_benchmark.ess_per_second_median ≈ 100.0
+    @test julia_benchmark.time_to_quality_median_seconds ≈ 11.0
+    @test julia_benchmark.time_to_quality_passed === true
+    @test julia_benchmark.status === :passed
+    @test stan_benchmark.engine === :stan
+    @test stan_benchmark.ess_per_second_median ≈ 40.0
+    benchmark_gate = benchmark_summary(julia_benchmark, stan_benchmark)
+    @test benchmark_gate.schema == "bayesianmgmfrm.benchmark_summary.v1"
+    @test benchmark_gate.passed
+    @test benchmark_gate.status === :complete
+    @test benchmark_gate.required_engines == (:julia, :stan)
+    @test benchmark_gate.observed_engines == (:julia, :stan)
+    @test benchmark_gate.n_rows == 2
+    @test benchmark_gate.n_benchmarks == 1
+    @test benchmark_gate.all_idle
+    @test benchmark_gate.failed_time_to_quality == 0
+    ratio_row = only(benchmark_gate.benchmark_rows)
+    @test ratio_row.benchmark === :minimal_pcm_nuts
+    @test ratio_row.status === :complete
+    @test ratio_row.stan_to_julia_elapsed_ratio ≈ 2.0
+    @test ratio_row.julia_to_stan_ess_per_second_ratio ≈ 2.5
+    missing_engine_gate = benchmark_summary([julia_benchmark])
+    @test !missing_engine_gate.passed
+    @test missing_engine_gate.status === :incomplete
+    @test missing_engine_gate.missing_required_engines == (:stan,)
+    custom_engine_gate = benchmark_summary(
+        julia_benchmark;
+        required_engines = (:advancedhmc,),
+        min_repetitions = 3)
+    @test custom_engine_gate.passed
+    @test custom_engine_gate.required_engines == (:julia,)
+    too_few_repeats = benchmark_summary(
+        julia_benchmark,
+        stan_benchmark;
+        min_repetitions = 4)
+    @test !too_few_repeats.passed
+    @test too_few_repeats.rows_with_few_repetitions == 2
+    failed_benchmark = benchmark_result_row(;
+        benchmark = :minimal_pcm_nuts,
+        engine = :advancedhmc,
+        model = :mfrm_pcm,
+        elapsed_seconds = (9.0, 10.0, 11.0),
+        time_to_quality_seconds = (10.0, 11.0, 12.0),
+        time_to_quality_threshold_seconds = 10.0)
+    @test failed_benchmark.status === :failed
+    failed_benchmark_gate = benchmark_summary(failed_benchmark, stan_benchmark)
+    @test !failed_benchmark_gate.passed
+    @test failed_benchmark_gate.failed_time_to_quality == 1
+    @test_throws ArgumentError benchmark_result_row(;
+        benchmark = :minimal_pcm_nuts,
+        engine = :advancedhmc,
+        model = :mfrm_pcm,
+        elapsed_seconds = ())
+    @test_throws ArgumentError benchmark_result_row(;
+        benchmark = :minimal_pcm_nuts,
+        engine = :advancedhmc,
+        model = :mfrm_pcm,
+        elapsed_seconds = (1.0, 2.0),
+        effective_sample_sizes = (100.0,))
+    @test_throws ArgumentError benchmark_result_row(;
+        benchmark = :minimal_pcm_nuts,
+        engine = :advancedhmc,
+        model = :mfrm_pcm,
+        elapsed_seconds = (1.0, 2.0),
+        time_to_quality_seconds = (1.0,))
+    @test_throws ArgumentError benchmark_summary(NamedTuple[])
+    @test_throws ArgumentError benchmark_summary(Any[1])
+    @test_throws ArgumentError benchmark_summary(julia_benchmark; min_repetitions = 0)
 
     truth = [row.mean for row in summary]
     recovery = parameter_recovery(result, truth; interval = 0.8)

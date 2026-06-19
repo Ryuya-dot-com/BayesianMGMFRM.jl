@@ -14,6 +14,8 @@ MFRMLogDensity
 MFRMFit
 GMFRMFit
 artifact_content_hash
+benchmark_result_row
+benchmark_summary
 calibration_table
 calibration_plot_data
 cached_fit

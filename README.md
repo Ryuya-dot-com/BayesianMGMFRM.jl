@@ -281,6 +281,10 @@ Current public API:
   comparison-evidence rows and coverage summaries for faithful Stan/BridgeStan,
   overlapping R/frequentist, and simpler nested-model checks. They record
   precomputed evidence; they do not run external tools or refit models.
+- `benchmark_result_row` and `benchmark_summary`: repeated idle-machine benchmark
+  rows and summaries with elapsed-time median/IQR, ESS/sec, time-to-quality
+  threshold checks, and Stan/Julia ratio rows. They record supplied timings; they
+  do not run benchmarks.
 - `sensitivity_comparison`: report-ready sensitivity rows using the same
   WAIC/LOO scoring path as `compare_models`, plus a declared axis, per-model
   axis values, baseline labels, and baseline-relative ELPD/information-criterion
