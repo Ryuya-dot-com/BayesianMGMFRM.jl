@@ -105,6 +105,7 @@ loglikelihood(design, initial_params(design))
 logprior(design, initial_params(design), prior)
 logposterior(design, initial_params(design), prior)
 prior_ppc = prior_predictive_check(spec; prior, ndraws = 4, rng = MersenneTwister(101))
+prior_ppc.implication_diagnostics
 cache_path = joinpath("cache", "minimal_fit.jls")
 fit_result = cached_fit(spec;
     cache_path,
@@ -264,7 +265,9 @@ Current public API:
   optional facet means.
 - `prior_predict` and `prior_predictive_check`: prior replicated score
   generation for checking whether the declared priors imply plausible score
-  distributions before fitting.
+  distributions before fitting. Prior predictive checks include
+  `implication_diagnostics` rows for category nonuse/sparsity and broad facet
+  mean-score ranges.
 - `simulate_responses`, `parameter_recovery`, and
   `parameter_recovery_summary`: simulation-study helpers for generating one
   dataset from known minimal MFRM/RSM/PCM parameters and checking posterior

@@ -10259,9 +10259,63 @@ end
     @test size(prior_ppc.replicated.person_mean) == (6, length(data.person_levels))
     @test all(rep -> sum(prior_ppc.replicated.category_proportions[rep, :]) ≈ 1.0,
         axes(prior_ppc.replicated.category_proportions, 1))
+    prior_implications = prior_ppc.implication_diagnostics
+    @test prior_implications.schema ==
+        "bayesianmgmfrm.prior_predictive_implication_diagnostics.v1"
+    @test prior_implications.flag in (:ok, :prior_implication_warning)
+    @test prior_implications.controls.min_category_probability == 0.01
+    @test prior_implications.controls.prior_warning_probability == 0.95
+    @test prior_implications.controls.wide_facet_range_fraction == 0.8
+    @test length(prior_implications.category_rows) == length(data.category_levels)
+    @test [row.category for row in prior_implications.category_rows] ==
+        data.category_levels
+    @test all(row -> row.n_replicates == 6, prior_implications.category_rows)
+    @test all(row -> row.flag in (:ok, :prior_category_nonuse, :prior_category_sparse),
+        prior_implications.category_rows)
+    first_category_props = prior_ppc.replicated.category_proportions[:, 1]
+    @test prior_implications.category_rows[1].probability_empty ≈
+        count(==(0.0), first_category_props) / 6
+    @test prior_implications.category_rows[1].probability_below_min_category_probability ≈
+        count(<(0.01), first_category_props) / 6
+    manual_used_categories = [
+        count(>(0.0), @view prior_ppc.replicated.category_proportions[rep, :])
+        for rep in axes(prior_ppc.replicated.category_proportions, 1)
+    ]
+    @test prior_implications.category_use.observed_n_categories_used ==
+        count(>(0.0), prior_ppc.observed.category_proportions)
+    @test prior_implications.category_use.n_categories == length(data.category_levels)
+    @test prior_implications.category_use.n_replicates == 6
+    @test prior_implications.category_use.probability_all_categories_used ≈
+        count(==(length(data.category_levels)), manual_used_categories) / 6
+    @test prior_implications.category_use.probability_missing_any_category ≈
+        1 - prior_implications.category_use.probability_all_categories_used
+    @test [row.facet for row in prior_implications.facet_range_rows] ==
+        [:person, :rater, :item]
+    @test all(row -> row.flag in (:ok, :prior_wide_facet_range),
+        prior_implications.facet_range_rows)
+    person_range_row = only(filter(row -> row.facet === :person,
+        prior_implications.facet_range_rows))
+    manual_person_ranges = [
+        maximum(@view prior_ppc.replicated.person_mean[rep, :]) -
+            minimum(@view prior_ppc.replicated.person_mean[rep, :])
+        for rep in axes(prior_ppc.replicated.person_mean, 1)
+    ]
+    @test person_range_row.observed_range ≈
+        maximum(prior_ppc.observed.person_mean) - minimum(prior_ppc.observed.person_mean)
+    @test person_range_row.score_range == maximum(data.category_levels) - minimum(data.category_levels)
+    @test person_range_row.wide_range_threshold ≈
+        person_range_row.score_range * prior_implications.controls.wide_facet_range_fraction
+    @test person_range_row.probability_wide_range ≈
+        count(>=(person_range_row.wide_range_threshold), manual_person_ranges) / 6
     prior_ppc_spec = prior_predictive_check(spec; prior, ndraws = 2, rng = MersenneTwister(6679))
     @test size(prior_ppc_spec.replicated_scores) == (2, data.n)
     @test_throws ArgumentError prior_predictive_check(design; prior, ndraws = 0)
+    @test_throws ArgumentError prior_predictive_check(design; prior, ndraws = 1,
+        min_category_probability = -0.1)
+    @test_throws ArgumentError prior_predictive_check(design; prior, ndraws = 1,
+        prior_warning_probability = 0.0)
+    @test_throws ArgumentError prior_predictive_check(design; prior, ndraws = 1,
+        wide_facet_range_fraction = -0.1)
 
     prior_ppc_summary = predictive_check_summary(prior_ppc; interval = 0.8)
     expected_n_summary_rows = 1 + length(data.category_levels) + length(data.person_levels) +
@@ -10309,6 +10363,8 @@ end
     grouped_ppc = prior_predictive_check(grouped_spec; prior, ndraws = 3, rng = MersenneTwister(6680))
     @test grouped_ppc.optional_levels[:group] == grouped_data.optional_levels[:group]
     @test size(grouped_ppc.replicated.optional_mean[:group]) == (3, length(grouped_data.optional_levels[:group]))
+    @test any(row -> row.facet === :group,
+        grouped_ppc.implication_diagnostics.facet_range_rows)
     grouped_summary = predictive_check_summary(grouped_ppc; interval = 0.8)
     @test any(row -> row.statistic === :group_mean && row.level == "A", grouped_summary)
     @test any(row -> row.statistic === :group_mean && row.level == "B", grouped_summary)
