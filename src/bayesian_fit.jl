@@ -6334,6 +6334,242 @@ function sensitivity_comparison_summary(row::NamedTuple, rows::NamedTuple...;
     return sensitivity_comparison_summary([row; collect(rows)]; required_axes)
 end
 
+const _DEFAULT_COMPARISON_EVIDENCE_CLASSES = (
+    :stan_faithful,
+    :r_frequentist,
+    :nested_model,
+)
+
+function _comparison_evidence_class(class::Symbol)
+    class in (:stan, :bridge_stan, :bridgestan, :stan_faithful, :faithful_stan) &&
+        return :stan_faithful
+    class in (:r, :frequentist, :r_frequentist, :overlapping_r,
+        :overlapping_frequentist, :facets, :tam, :sirt, :immer, :mirt) &&
+        return :r_frequentist
+    class in (:nested, :nested_model, :simpler_nested, :baseline,
+        :baseline_model, :mfrm_baseline, :pcm_baseline, :rsm_baseline) &&
+        return :nested_model
+    return class
+end
+
+function _comparison_class_tuple(classes)
+    out = Symbol[]
+    for class in classes
+        class isa Symbol ||
+            throw(ArgumentError("comparison evidence classes must be Symbols"))
+        canonical = _comparison_evidence_class(class)
+        canonical in out || push!(out, canonical)
+    end
+    return Tuple(out)
+end
+
+_comparison_class_tuple(class::Symbol) = (_comparison_evidence_class(class),)
+
+function _comparison_finite_float(value::Real, name::Symbol; minimum = nothing)
+    checked = Float64(value)
+    isfinite(checked) ||
+        throw(ArgumentError("$name must be finite"))
+    if minimum !== nothing
+        checked >= Float64(minimum) ||
+            throw(ArgumentError("$name must be >= $minimum"))
+    end
+    return checked
+end
+
+function _comparison_pass_if(pass_if::Symbol)
+    pass_if in (:within_tolerance, :greater_equal, :less_equal) ||
+        throw(ArgumentError(
+            "pass_if must be :within_tolerance, :greater_equal, or :less_equal",
+        ))
+    return pass_if
+end
+
+function _comparison_evidence_passed(difference::Float64,
+        tolerance::Float64,
+        pass_if::Symbol)
+    pass_if === :within_tolerance && return abs(difference) <= tolerance
+    pass_if === :greater_equal && return difference >= -tolerance
+    return difference <= tolerance
+end
+
+"""
+    comparison_evidence_row(; comparison_class, target_model, comparator,
+        metric, estimate, reference, tolerance = 0.0,
+        pass_if = :within_tolerance, evidence = :declared_comparison,
+        label = nothing, artifact = nothing, source = nothing)
+
+Return one machine-readable comparison-evidence row for a precomputed result
+against a faithful Stan/BridgeStan model, an overlapping R/frequentist tool, or a
+simpler nested model. `estimate` is the focal Julia/Bayesian value and
+`reference` is the comparator value. `pass_if = :within_tolerance` checks
+absolute agreement, while `:greater_equal` and `:less_equal` check directional
+comparisons such as heldout ELPD gains.
+
+This helper records already computed evidence; it does not run Stan, call R,
+fit nested models, or refit heldout folds.
+"""
+function comparison_evidence_row(;
+        comparison_class::Symbol,
+        target_model::Symbol,
+        comparator::Symbol,
+        metric::Symbol,
+        estimate::Real,
+        reference::Real,
+        tolerance::Real = 0.0,
+        pass_if::Symbol = :within_tolerance,
+        evidence::Symbol = :declared_comparison,
+        label = nothing,
+        artifact = nothing,
+        source = nothing)
+    checked_class = _comparison_evidence_class(comparison_class)
+    checked_estimate = _comparison_finite_float(estimate, :estimate)
+    checked_reference = _comparison_finite_float(reference, :reference)
+    checked_tolerance =
+        _comparison_finite_float(tolerance, :tolerance; minimum = 0)
+    checked_pass_if = _comparison_pass_if(pass_if)
+    difference = checked_estimate - checked_reference
+    passed = _comparison_evidence_passed(difference, checked_tolerance, checked_pass_if)
+    return (;
+        schema = "bayesianmgmfrm.comparison_evidence_row.v1",
+        object = :comparison_evidence_row,
+        label = label === nothing ? comparator : label,
+        comparison_class = checked_class,
+        target_model,
+        comparator,
+        metric,
+        estimate = checked_estimate,
+        reference = checked_reference,
+        difference,
+        absolute_difference = abs(difference),
+        tolerance = checked_tolerance,
+        pass_if = checked_pass_if,
+        passed,
+        status = passed ? :passed : :failed,
+        evidence,
+        artifact,
+        source,
+        caveat = :declared_comparison_evidence_not_runner,
+    )
+end
+
+function _comparison_evidence_summary_row_check(row::NamedTuple)
+    required = (
+        :comparison_class,
+        :target_model,
+        :comparator,
+        :metric,
+        :passed,
+        :status,
+        :evidence,
+    )
+    fields = propertynames(row)
+    missing_fields = [field for field in required if !(field in fields)]
+    isempty(missing_fields) ||
+        throw(ArgumentError("comparison evidence row is missing fields: $(join(missing_fields, ", "))"))
+    return nothing
+end
+
+function _comparison_evidence_class_summary(class::Symbol, rows::AbstractVector)
+    class_rows = [row for row in rows
+        if _comparison_evidence_class(row.comparison_class) === class]
+    if isempty(class_rows)
+        return (;
+            comparison_class = class,
+            present = false,
+            status = :missing,
+            n_rows = 0,
+            n_passed_rows = 0,
+            n_failed_rows = 0,
+            target_models = (),
+            comparators = (),
+            metrics = (),
+            evidence = (),
+            artifacts = (),
+        )
+    end
+    n_passed = count(row -> row.passed === true, class_rows)
+    n_failed = length(class_rows) - n_passed
+    artifacts = _sensitivity_unique_tuple(
+        row.artifact for row in class_rows
+        if hasproperty(row, :artifact) && row.artifact !== nothing)
+    return (;
+        comparison_class = class,
+        present = true,
+        status = n_failed == 0 ? :passed : :failed,
+        n_rows = length(class_rows),
+        n_passed_rows = n_passed,
+        n_failed_rows = n_failed,
+        target_models = _sensitivity_unique_tuple(row.target_model for row in class_rows),
+        comparators = _sensitivity_unique_tuple(row.comparator for row in class_rows),
+        metrics = _sensitivity_unique_tuple(row.metric for row in class_rows),
+        evidence = _sensitivity_unique_tuple(row.evidence for row in class_rows),
+        artifacts,
+    )
+end
+
+"""
+    comparison_evidence_summary(rows; required_classes =
+        (:stan_faithful, :r_frequentist, :nested_model))
+    comparison_evidence_summary(row, rows...; required_classes = ...)
+
+Summarize declared comparison-evidence rows and check whether the default
+critical-review comparison classes are present and passing: faithful
+Stan/BridgeStan models, overlapping R/frequentist tools, and simpler nested
+models. The summary is a coverage check over recorded comparison rows; it does
+not execute external tools or refit models.
+"""
+function comparison_evidence_summary(rows::AbstractVector;
+        required_classes = _DEFAULT_COMPARISON_EVIDENCE_CLASSES)
+    isempty(rows) &&
+        throw(ArgumentError("at least one comparison evidence row is required"))
+    for row in rows
+        row isa NamedTuple ||
+            throw(ArgumentError("comparison evidence summary expects NamedTuple rows"))
+        _comparison_evidence_summary_row_check(row)
+    end
+
+    checked_required = _comparison_class_tuple(required_classes)
+    observed_classes = _sensitivity_unique_tuple(
+        _comparison_evidence_class(row.comparison_class) for row in rows)
+    observed_set = Set(observed_classes)
+    missing_required_classes = Tuple(class for class in checked_required
+        if !(class in observed_set))
+    class_rows = [_comparison_evidence_class_summary(class, rows)
+        for class in checked_required]
+    failed_required_classes = Tuple(row.comparison_class for row in class_rows
+        if row.status === :failed)
+    passed_required_classes = Tuple(row.comparison_class for row in class_rows
+        if row.status === :passed)
+    n_passed_rows = count(row -> row.passed === true, rows)
+
+    return (;
+        schema = "bayesianmgmfrm.comparison_evidence_summary.v1",
+        object = :comparison_evidence_summary,
+        comparison_scope = :stan_r_frequentist_nested_evidence,
+        coverage_contract = :required_classes_present_and_passing,
+        required_classes = checked_required,
+        observed_classes,
+        missing_required_classes,
+        passed_required_classes,
+        failed_required_classes,
+        n_rows = length(rows),
+        n_passed_rows,
+        n_failed_rows = length(rows) - n_passed_rows,
+        n_classes = length(observed_classes),
+        class_rows = Tuple(class_rows),
+        passed = isempty(missing_required_classes) && isempty(failed_required_classes),
+        status = isempty(missing_required_classes) && isempty(failed_required_classes) ?
+            :complete : :incomplete,
+        caveat = :summary_of_declared_comparison_rows_not_external_runner,
+        next_gate = :idle_machine_repeated_benchmarks,
+    )
+end
+
+function comparison_evidence_summary(row::NamedTuple, rows::NamedTuple...;
+        required_classes = _DEFAULT_COMPARISON_EVIDENCE_CLASSES)
+    return comparison_evidence_summary([row; collect(rows)]; required_classes)
+end
+
 function _draw_indices(fit, ndraws::Union{Nothing,Int}, rng::AbstractRNG)
     total = size(fit.draws, 1)
     if ndraws === nothing

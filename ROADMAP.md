@@ -355,8 +355,8 @@ rater-discrimination candidate.
 
 The roadmap has two different progress notions:
 
-- **Checklist progress**: currently 117 of 120 tracked roadmap checkboxes are
-  complete, or roughly 97.5%. This is useful for implementation accounting.
+- **Checklist progress**: currently 118 of 120 tracked roadmap checkboxes are
+  complete, or roughly 98.3%. This is useful for implementation accounting.
 - **Claim progress**: broad v1 claims are closer to 40-45% complete because
   the remaining items include public generalized fitting, Stan comparisons,
   broader recovery simulations and a public-scope release decision.
@@ -886,8 +886,12 @@ TODO:
   machine-readable rule rows and required-domain checks for sparse
   hierarchical-prior stability claims. They define claim blockers but do not
   evaluate study results.]
-- [ ] Compare against Stan faithful models, overlapping R/frequentist tools,
+- [x] Compare against Stan faithful models, overlapping R/frequentist tools,
   and simpler nested models.
+  [`comparison_evidence_row` and `comparison_evidence_summary` now record
+  precomputed faithful Stan/BridgeStan, overlapping R/frequentist, and simpler
+  nested-model comparison evidence and check required comparison-class coverage.
+  They do not run external tools or refit models.]
 - [x] Secure and document at least one real rater-mediated case study.
 - [ ] Run idle-machine repeated benchmarks with median/IQR, ESS/sec,
   Stan/Julia ratios, and time-to-quality thresholds.

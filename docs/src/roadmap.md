@@ -97,8 +97,8 @@ public MGMFRM exposure still requires a separate release decision.
 
 ## Progress Ledger
 
-The repository roadmap currently has 117 of 120 tracked checklist items complete,
-or roughly 97.5% by simple implementation accounting. The stronger claim-level
+The repository roadmap currently has 118 of 120 tracked checklist items complete,
+or roughly 98.3% by simple implementation accounting. The stronger claim-level
 progress is lower, about 40-45%, because the remaining work includes public
 generalized fitting, Stan comparisons, broader recovery simulations,
 and a public-scope release decision for generalized claims.
@@ -378,6 +378,11 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   domains for sparse hierarchical-prior stability claims before those claims
   are interpreted.
 - Compare against Stan and overlapping MFRM tools.
+  [`comparison_evidence_row`](@ref) and
+  [`comparison_evidence_summary`](@ref) now record precomputed faithful
+  Stan/BridgeStan, overlapping R/frequentist, and simpler nested-model
+  comparison evidence and check required comparison-class coverage. They do not
+  run external tools or refit models.
 - Archive full and fast reproduction artifacts.
 
 ## Next 30-45 Days

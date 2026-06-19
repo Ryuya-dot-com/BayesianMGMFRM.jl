@@ -257,6 +257,11 @@ category levels match. `sensitivity_comparison_summary` audits whether the
 declared rows cover the expected threshold, discrimination, rater-pooling, DFF,
 anchor, dimensionality, and prior-regime axes; it does not create refits or
 fit unsupported generalized/DFF/anchor effects.
+`comparison_evidence_row` records already computed checks against faithful
+Stan/BridgeStan models, overlapping R/frequentist tools, or simpler nested
+models, and `comparison_evidence_summary` checks whether those required
+comparison classes are present and passing. These helpers do not run external
+tools or refit models.
 Observation-level
 predictive probabilities, expected scores,
 variances, and residuals are exposed as the substrate for calibration,
