@@ -7574,6 +7574,10 @@ end
     @test gmfrm_direct_pointwise_fixture.summary.passed
     @test gmfrm_direct_pointwise_fixture.summary.flag === :ok
     @test gmfrm_direct_pointwise_fixture.density_space === :constrained_direct
+    @test gmfrm_direct_pointwise_fixture.parameter_layout.scope ===
+        :scalar_gmfrm_fit_ready_candidate
+    @test gmfrm_direct_pointwise_fixture.parameter_layout.constrained_parameter_names ==
+        gmfrm_direct_pointwise_fixture.parameter_names
     @test gmfrm_direct_pointwise_fixture.parameter_names == gmfrm_preview.parameter_names
     @test gmfrm_direct_pointwise_fixture.parameter_values ≈ gmfrm_params
     @test gmfrm_direct_pointwise_fixture.summary.n_rows == length(gmfrm_predictors)
@@ -7653,6 +7657,8 @@ end
         )
     @test gmfrm_raw_pointwise_fixture.summary.passed
     @test gmfrm_raw_pointwise_fixture.raw_parameter_names == gmfrm_raw_blueprint.parameter_names
+    @test gmfrm_raw_pointwise_fixture.parameter_layout.raw_parameter_names ==
+        gmfrm_raw_pointwise_fixture.raw_parameter_names
     @test gmfrm_raw_pointwise_fixture.raw_parameter_values ≈ gmfrm_raw_params
     @test gmfrm_raw_pointwise_fixture.parameter_values ≈ gmfrm_params
     @test gmfrm_raw_pointwise_fixture.pointwise_loglikelihood ≈ gmfrm_source_pointwise
@@ -8411,6 +8417,10 @@ end
     @test any(row -> row.evidence === :fit_ready_transform_manifest &&
         row.status === :done,
         mgmfrm_confirmatory_candidate.evidence_rows)
+    @test any(row -> row.evidence === :fit_ready_pointwise_fixture &&
+        row.status === :done &&
+        row.artifact === :mgmfrm_confirmatory_candidate_pointwise_fixture,
+        mgmfrm_confirmatory_candidate.evidence_rows)
     @test !any(row -> row.blocker === :fit_ready_mgmfrm_bridge_oracle_missing,
         mgmfrm_confirmatory_candidate.blocker_rows)
     @test !any(row -> row.blocker === :mgmfrm_sampler_diagnostics_missing,
@@ -8425,6 +8435,10 @@ end
         mgmfrm_confirmatory_candidate.candidate_gates)
     @test any(row -> row.gate === :fit_ready_raw_transform_manifest &&
         row.status === :done,
+        mgmfrm_confirmatory_candidate.candidate_gates)
+    @test any(row -> row.gate === :fit_ready_pointwise_fixture &&
+        row.status === :done &&
+        row.evidence === :mgmfrm_confirmatory_candidate_pointwise_fixture,
         mgmfrm_confirmatory_candidate.candidate_gates)
     @test any(row -> row.gate === :fit_ready_bridge_pointwise_oracle &&
         row.status === :done,
@@ -8670,6 +8684,37 @@ end
     mgmfrm_source_values = BayesianMGMFRM._mgmfrm_source_fixture_values(mgmfrm_preview, mgmfrm_params)
     mgmfrm_source_pointwise =
         BayesianMGMFRM._mgmfrm_source_pointwise_loglikelihood(mgmfrm_preview, mgmfrm_params)
+    mgmfrm_direct_pointwise_fixture =
+        BayesianMGMFRM._mgmfrm_confirmatory_candidate_pointwise_fixture(
+            mgmfrm_preview,
+            mgmfrm_params,
+        )
+    @test mgmfrm_direct_pointwise_fixture.schema ==
+        "bayesianmgmfrm.mgmfrm_confirmatory_candidate_pointwise_fixture.v1"
+    @test mgmfrm_direct_pointwise_fixture.summary.passed
+    @test mgmfrm_direct_pointwise_fixture.summary.flag === :ok
+    @test mgmfrm_direct_pointwise_fixture.scope ===
+        :minimal_confirmatory_mgmfrm_candidate
+    @test mgmfrm_direct_pointwise_fixture.density_space === :constrained_direct
+    @test mgmfrm_direct_pointwise_fixture.q_matrix == q_matrix
+    @test mgmfrm_direct_pointwise_fixture.latent_correlation === :identity_fixed
+    @test mgmfrm_direct_pointwise_fixture.parameter_layout.scope ===
+        :minimal_confirmatory_mgmfrm_candidate
+    @test mgmfrm_direct_pointwise_fixture.parameter_layout.constrained_parameter_names ==
+        mgmfrm_direct_pointwise_fixture.parameter_names
+    @test mgmfrm_direct_pointwise_fixture.parameter_names ==
+        mgmfrm_preview.parameter_names
+    @test mgmfrm_direct_pointwise_fixture.parameter_values ≈ mgmfrm_params
+    @test mgmfrm_direct_pointwise_fixture.summary.n_rows == length(mgmfrm_predictors)
+    @test mgmfrm_direct_pointwise_fixture.summary.n_pointwise == identified_data.n
+    @test mgmfrm_direct_pointwise_fixture.pointwise_loglikelihood ≈
+        mgmfrm_source_pointwise
+    @test mgmfrm_direct_pointwise_fixture.loglikelihood ≈
+        sum(mgmfrm_source_pointwise)
+    @test isequal(mgmfrm_direct_pointwise_fixture.rows, mgmfrm_source_values)
+    @test all(row -> row.passed, mgmfrm_direct_pointwise_fixture.constraint_rows)
+    @test only(filter(row -> row.block === :rater_consistency,
+        mgmfrm_direct_pointwise_fixture.blocks)).values ≈ [1.25, 0.8]
     @test BayesianMGMFRM._mgmfrm_source_pointwise_loglikelihood_from_unconstrained(
         mgmfrm_preview,
         mgmfrm_raw_params,
@@ -8729,6 +8774,20 @@ end
         LogDensityProblems.logdensity(mgmfrm_target, mgmfrm_raw_params)
     @test occursin("MGMFRMGuardedLocalFitLogDensity",
         sprint(show, mgmfrm_guarded_target))
+    mgmfrm_raw_pointwise_fixture =
+        BayesianMGMFRM._mgmfrm_confirmatory_candidate_pointwise_fixture(
+            mgmfrm_guarded_target,
+            mgmfrm_raw_params,
+        )
+    @test mgmfrm_raw_pointwise_fixture.summary.passed
+    @test mgmfrm_raw_pointwise_fixture.raw_parameter_names ==
+        mgmfrm_raw_blueprint.parameter_names
+    @test mgmfrm_raw_pointwise_fixture.parameter_layout.raw_parameter_names ==
+        mgmfrm_raw_pointwise_fixture.raw_parameter_names
+    @test mgmfrm_raw_pointwise_fixture.raw_parameter_values ≈ mgmfrm_raw_params
+    @test mgmfrm_raw_pointwise_fixture.parameter_values ≈ mgmfrm_params
+    @test mgmfrm_raw_pointwise_fixture.pointwise_loglikelihood ≈
+        mgmfrm_source_pointwise
     mgmfrm_guarded_fit =
         BayesianMGMFRM._fit_guarded_mgmfrm(
             mgmfrm_spec;
