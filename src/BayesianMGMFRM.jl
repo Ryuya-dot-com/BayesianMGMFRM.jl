@@ -7,9 +7,10 @@ The current public API is intentionally limited to deterministic indexing,
 pre-fit data validation, MFRM/GMFRM/MGMFRM specification manifests, minimal
 RSM/PCM design scaffolding, and initial Bayesian fitting, predictive-check, and
 WAIC / raw importance-sampling LOO paths for small validation examples. The
-minimal MFRM/RSM/PCM design can be fit with a random-walk example backend or an
-initial AdvancedHMC/NUTS backend. A guarded experimental scalar GMFRM
-rater-discrimination path is available through `fit(spec; experimental = true)`.
+minimal MFRM/RSM/PCM design can be fit with a random-walk example backend, an
+initial AdvancedHMC/NUTS backend, or a Turing/NUTS backend. A guarded
+experimental scalar GMFRM rater-discrimination path is available through
+`fit(spec; experimental = true)`.
 Broader generalized discrimination likelihoods, group/DFF model effects, and
 Multidimensional Generalized Many-Facet Rasch Model (MGMFRM) fitting are planned
 work and are not exposed as public fitting APIs yet.

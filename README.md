@@ -7,7 +7,8 @@ The package is under active development. The current public slice focuses on
 long-format many-facet rating data, deterministic facet indexing, pre-fit design
 validation, and a minimal MFRM specification/design compiler. Bayesian
 fitting for the minimal MFRM/RSM/PCM design is now available through a
-random-walk example backend and an initial AdvancedHMC/NUTS backend.
+random-walk example backend, an initial AdvancedHMC/NUTS backend, and a
+Turing/NUTS backend.
 The spec object can now represent MFRM, planned GMFRM, and planned MGMFRM
 configurations for manifest and constraint review, while generalized
 discrimination terms, group/DFF model effects, and MGMFRM likelihoods remain
@@ -200,7 +201,9 @@ Current public API:
 - `fit`, `MFRMPrior`, `MFRMFit`, `fit_metadata`, and `posterior_summary`:
   initial Bayesian fitting paths for the minimal MFRM/RSM/PCM design using
   `backend = :julia` for small random-walk validation examples or
-  `backend = :advancedhmc` for an initial AdvancedHMC/NUTS path.
+  `backend = :advancedhmc` for the direct AdvancedHMC/NUTS path, or
+  `backend = :turing` for the Turing/NUTS wrapper around the same
+  `MFRMLogDensity` target.
 - `GMFRMFit`: a guarded experimental scalar GMFRM fit result returned only by
   `fit(spec; experimental = true)` for the source-aligned one-dimensional
   rater-discrimination promotion candidate. This path is local validation
@@ -225,8 +228,8 @@ Current public API:
   parameter-level R-hat/ESS rows, parameter-block pass/fail rows, pass/fail
   counts, and HMC/NUTS fields when the selected backend exposes them.
 - `sampler_diagnostics`: chain-level draw counts, acceptance rates, and
-  log-posterior summaries, including AdvancedHMC/NUTS divergence, tree-depth,
-  step-count, step-size, and E-BFMI fields when available.
+  log-posterior summaries, including NUTS divergence, tree-depth, step-count,
+  step-size, and E-BFMI fields when available.
 - `mcmc_diagnostics`: chain-aware R-hat and effective-sample-size summaries for
   fitted objects with two or more chains, with row-level `:mcmc_warning` flags
   when R-hat or ESS fails the supplied thresholds.
@@ -290,10 +293,10 @@ than repeatedly prefixing function names with the package name.
 
 Not yet implemented in the public API:
 
-- Stan/CmdStan or Turing sampling, PSIS-smoothed LOO, exact/K-fold LOO, or
-  richer model-comparison workflows. The AdvancedHMC/NUTS backend is currently
-  limited to the minimal MFRM/RSM/PCM design plus the guarded experimental
-  scalar GMFRM promotion candidate.
+- Stan/CmdStan sampling, PSIS-smoothed LOO, exact/K-fold LOO, or richer
+  model-comparison workflows. The AdvancedHMC/NUTS and Turing/NUTS backends are
+  currently limited to the minimal MFRM/RSM/PCM design; the guarded
+  experimental scalar GMFRM promotion candidate remains on the AdvancedHMC path.
 - Broad fitting for the specified-only GMFRM/MGMFRM blocks declared by
   `mfrm_spec`, beyond the guarded scalar GMFRM rater-discrimination path.
 - Generalized discrimination, group/DFF model effects, or MGMFRM likelihood

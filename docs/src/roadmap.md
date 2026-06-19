@@ -24,8 +24,9 @@ The current package supports:
   [`linear_predictor_values`](@ref);
 - small-example Bayesian fitting for the minimal identified design via
   [`fit`](@ref), [`MFRMPrior`](@ref), and [`MFRMFit`](@ref), including
-  random-walk Metropolis and an initial AdvancedHMC/NUTS backend with a shared
-  analytic/AD gradient adapter;
+  random-walk Metropolis, an AdvancedHMC/NUTS backend with a shared analytic/AD
+  gradient adapter, and a Turing/NUTS wrapper around the same
+  `MFRMLogDensity` target;
 - fit metadata, chain summaries, R-hat/ESS summaries, posterior summaries,
   prior/posterior predictive checks, calibration summaries, infit/outfit,
   WAIC, and same-observation WAIC comparisons;
@@ -34,8 +35,8 @@ The current package supports:
   source-constraint transforms, used by the test suite.
 
 The current `backend = :julia` sampler is a random-walk Metropolis path for
-small validation examples. `backend = :advancedhmc` is the first NUTS interface,
-limited to the current minimal MFRM/RSM/PCM design.
+small validation examples. `backend = :advancedhmc` and `backend = :turing` are
+NUTS interfaces limited to the current minimal MFRM/RSM/PCM design.
 
 ## Not Yet Public API
 
@@ -281,7 +282,7 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
 
 - Add AdvancedHMC/Turing sampling behind a shared fit object. [AdvancedHMC
   minimal backend added; shared analytic/AD gradient adapter added for current
-  HMC paths]
+  HMC paths; minimal Turing/NUTS backend added for the MFRMLogDensity fit path]
 - Add diagnostics with parameter-block pass/fail flags. [Done for current
   identified blocks]
 - Store sampler controls, optional seeds, thread/package environment metadata,

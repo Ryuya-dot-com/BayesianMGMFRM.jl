@@ -18,8 +18,9 @@ implemented public slice covers:
 - an initial specification ladder that can record fit-supported MFRM and
   specified-only GMFRM/MGMFRM configurations with machine-readable constraints;
 - small-example Bayesian fitting paths for the minimal identified design using
-  a Julia random-walk Metropolis sampler or an initial AdvancedHMC/NUTS backend
-  with a shared analytic/AD gradient adapter;
+  a Julia random-walk Metropolis sampler, an AdvancedHMC/NUTS backend with a
+  shared analytic/AD gradient adapter, or a Turing/NUTS wrapper around the same
+  `MFRMLogDensity` target;
 - cached-fit artifacts, sampler diagnostics, R-hat/ESS rows, parameter-block
   diagnostics, prior and posterior predictive replication, calibration
   summaries, observation-level predictive quantities, infit/outfit summaries,
@@ -751,7 +752,7 @@ TODO:
 - [x] Integrate the analytic-gradient path where available and keep AD backends
   swappable for unsupported specs.
 - [x] Implement an initial AdvancedHMC/NUTS backend with the shared fit object.
-- [ ] Implement Turing sampling with the shared fit object.
+- [x] Implement Turing sampling with the shared fit object.
 - [x] Expose a `LogDensityProblems.jl` target for the minimal MFRM posterior.
 - [x] Store sampler controls, optional seeds, thread/package environment
   metadata, and draw-inclusion policy in a fit artifact.

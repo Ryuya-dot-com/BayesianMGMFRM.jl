@@ -9391,6 +9391,81 @@ end
     @test hmc_surface.block_rows == hmc_block_rows
     @test sum(row.n_parameters for row in hmc_block_rows) == length(design.parameter_names)
     @test all(row -> row.n_chains == 2, hmc_block_rows)
+
+    turing_result = fit(design;
+        prior,
+        backend = :turing,
+        ndraws = 2,
+        warmup = 1,
+        chains = 2,
+        step_size = 0.03,
+        max_depth = 4,
+        target_accept = 0.8,
+        init,
+        seed = 20260623)
+    @test turing_result isa MFRMFit
+    @test turing_result.design === design
+    @test turing_result.prior === prior
+    @test turing_result.backend === :turing
+    @test turing_result.sampler === :nuts
+    @test size(turing_result.draws) == (4, length(design.parameter_names))
+    @test length(turing_result.log_posterior) == 4
+    @test all(isfinite, turing_result.log_posterior)
+    @test turing_result.chain_ids == vcat(fill(1, 2), fill(2, 2))
+    @test turing_result.iterations == vcat(1:2, 1:2)
+    @test turing_result.sampler_controls.target_accept == 0.8
+    @test turing_result.sampler_controls.max_depth == 4
+    @test turing_result.sampler_controls.metric === :diagonal
+    @test turing_result.sampler_controls.ad_backend === :ForwardDiff
+    @test turing_result.sampler_controls.gradient_backend === :ad
+    @test turing_result.sampler_controls.turing_model ===
+        :mfrm_logdensity_flat_parameter_model
+    @test turing_result.sampler_controls.chain_type === :raw_transitions
+    @test turing_result.sampler_controls.discard_initial == 1
+    @test turing_result.sampler_controls.rng.seed == 20260623
+    @test length(turing_result.sampler_stats) == 4
+    @test all(row -> row.chain in (1, 2), turing_result.sampler_stats)
+    @test all(row -> 1 <= row.iteration <= 2, turing_result.sampler_stats)
+    @test all(row -> isfinite(row.log_density), turing_result.sampler_stats)
+    @test all(row -> row.n_steps >= 1, turing_result.sampler_stats)
+    @test all(row -> 0 <= row.tree_depth <= 4, turing_result.sampler_stats)
+    @test all(row -> isfinite(row.step_size) && row.step_size > 0, turing_result.sampler_stats)
+    @test all(row -> isapprox(turing_result.log_posterior[row],
+            logposterior(design, vec(turing_result.draws[row, :]), prior);
+            atol = 1e-8,
+            rtol = 1e-8),
+        axes(turing_result.draws, 1))
+    turing_metadata = fit_metadata(turing_result)
+    @test turing_metadata.backend === :turing
+    @test turing_metadata.sampler === :nuts
+    @test turing_metadata.n_sampler_stats == 4
+    @test turing_metadata.sampler_controls.discard_initial == 1
+    turing_sampler_rows = sampler_diagnostics(turing_result)
+    @test length(turing_sampler_rows) == 2
+    @test all(row -> row.backend === :turing, turing_sampler_rows)
+    @test all(row -> row.sampler === :nuts, turing_sampler_rows)
+    @test all(row -> row.n_draws == 2, turing_sampler_rows)
+    @test all(row -> row.n_divergences >= 0, turing_sampler_rows)
+    @test all(row -> row.n_max_treedepth >= 0, turing_sampler_rows)
+    @test all(row -> row.mean_n_steps >= 1, turing_sampler_rows)
+    @test all(row -> 0 <= row.mean_tree_depth <= 4, turing_sampler_rows)
+    @test all(row -> 0 <= row.max_tree_depth <= 4, turing_sampler_rows)
+    @test all(row -> isfinite(row.mean_step_size) && row.mean_step_size > 0,
+        turing_sampler_rows)
+    turing_surface = BayesianMGMFRM.diagnostics(turing_result)
+    @test turing_surface.backend === :turing
+    @test turing_surface.sampler === :nuts
+    @test turing_surface.summary.n_chains == 2
+    @test turing_surface.summary.draws_per_chain == 2
+    @test turing_surface.summary.n_divergences >= 0
+    @test turing_surface.summary.n_max_treedepth >= 0
+    @test turing_surface.summary.flag in (:ok, :sampler_warning, :mcmc_warning, :insufficient_chains)
+    @test isequal(turing_surface.sampler_rows, turing_sampler_rows)
+    turing_block_rows = parameter_block_diagnostics(turing_result)
+    @test turing_surface.block_rows == turing_block_rows
+    @test sum(row.n_parameters for row in turing_block_rows) == length(design.parameter_names)
+    @test all(row -> row.n_chains == 2, turing_block_rows)
+
     reverse_hmc_result = fit(design;
         prior,
         backend = :advancedhmc,
@@ -9413,6 +9488,13 @@ end
     @test_throws ArgumentError fit(design; backend = :advancedhmc, metric = :unknown)
     @test_throws ArgumentError fit(design; backend = :advancedhmc, ad_backend = :analytic)
     @test_throws ArgumentError fit(design; backend = :advancedhmc, ad_backend = :UnknownAD)
+    @test_throws ArgumentError fit(design; backend = :turing, target_accept = 1.0)
+    @test_throws ArgumentError fit(design; backend = :turing, max_depth = 0)
+    @test_throws ArgumentError fit(design; backend = :turing, max_energy_error = 0.0)
+    @test_throws ArgumentError fit(design; backend = :turing, metric = :unknown)
+    @test_throws ArgumentError fit(design; backend = :turing, ad_backend = :ReverseDiff)
+    @test_throws ArgumentError fit(design; backend = :turing, ad_backend = :analytic)
+    @test_throws ArgumentError fit(design; backend = :turing, ad_backend = :UnknownAD)
 
     fit_manifest = model_manifest(result)
     @test fit_manifest.object === :fit
@@ -9520,6 +9602,51 @@ end
         step_size = 0.04,
         init,
         seed = 20260619)
+    turing_cache_key = fit_cache_key(design;
+        prior,
+        backend = :turing,
+        ndraws = 2,
+        warmup = 1,
+        chains = 2,
+        step_size = 0.03,
+        target_accept = 0.8,
+        max_depth = 4,
+        init,
+        seed = 20260623)
+    @test length(turing_cache_key) == 64
+    @test turing_cache_key != cache_key
+    @test turing_cache_key == fit_cache_key(spec;
+        prior,
+        backend = :turing,
+        ndraws = 2,
+        warmup = 1,
+        chains = 2,
+        step_size = 0.03,
+        target_accept = 0.8,
+        max_depth = 4,
+        init,
+        seed = 20260623)
+    @test turing_cache_key != fit_cache_key(design;
+        prior,
+        backend = :turing,
+        ndraws = 2,
+        warmup = 1,
+        chains = 2,
+        step_size = 0.03,
+        target_accept = 0.85,
+        max_depth = 4,
+        init,
+        seed = 20260623)
+    @test_throws ArgumentError fit_cache_key(design;
+        prior,
+        backend = :turing,
+        ndraws = 2,
+        warmup = 1,
+        chains = 2,
+        step_size = 0.03,
+        ad_backend = :ReverseDiff,
+        init,
+        seed = 20260623)
     @test_throws ArgumentError fit_cache_key(design;
         prior,
         backend = :julia,

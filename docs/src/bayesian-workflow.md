@@ -1,9 +1,9 @@
 # Bayesian Workflow
 
 The current package exposes the early pieces needed for a Bayesian many-facet
-Rasch workflow, including an initial AdvancedHMC/NUTS path for the minimal
-MFRM/RSM/PCM design. A guarded scalar GMFRM experimental path is also available
-for the one-dimensional rater-discrimination promotion candidate through
+Rasch workflow, including initial AdvancedHMC/NUTS and Turing/NUTS paths for
+the minimal MFRM/RSM/PCM design. A guarded scalar GMFRM experimental path is
+also available for the one-dimensional rater-discrimination promotion candidate through
 `fit(spec; experimental = true)`. Broader GMFRM/MGMFRM fitting remains planned
 work, but specified-only GMFRM/MGMFRM configs can already be recorded in
 manifests, constraint tables, and identification declarations.
@@ -40,11 +40,13 @@ without changing the data layer.
 8. Fit the current minimal model with [`fit`](@ref), or use
    [`cached_fit`](@ref) with a stable `cache_path` and integer `seed` to avoid
    recomputation when [`fit_cache_key`](@ref) still matches. Use
-   `backend = :advancedhmc` for the initial NUTS path and `chains >= 2` when
-   convergence diagnostics are needed. The default gradient path is
-   `ad_backend = :ForwardDiff`; `:ReverseDiff` can be selected when that AD
-   package is available, and `:analytic` is reserved for targets that expose a
-   native `LogDensityProblems.logdensity_and_gradient` method.
+   `backend = :advancedhmc` or `backend = :turing` for NUTS paths and
+   `chains >= 2` when convergence diagnostics are needed. The default gradient
+   path is `ad_backend = :ForwardDiff`; `:ReverseDiff` can be selected for the
+   direct AdvancedHMC backend when that AD package is available, and
+   `:analytic` is reserved for AdvancedHMC targets that expose a native
+   `LogDensityProblems.logdensity_and_gradient` method. The Turing backend
+   currently uses ForwardDiff only.
 9. Record fit-level metadata with [`fit_metadata`](@ref).
 10. Record data/spec/design/fit provenance with [`model_manifest`](@ref), then
    create a cached-fit reproducibility artifact with [`fit_artifact`](@ref).
@@ -82,11 +84,13 @@ calibration_table(fit_result; target = :category_probability, category = 2, bins
 ## Current Limits
 
 The current `backend = :julia` sampler is a random-walk Metropolis path for
-small validation examples. `backend = :advancedhmc` provides the first
-AdvancedHMC/NUTS path for the minimal design using [`MFRMLogDensity`](@ref).
-That HMC path now routes through a shared gradient target adapter, with
-target-provided analytic gradients used when explicitly selected and otherwise
-AD-backed gradients selected by `ad_backend`.
+small validation examples. `backend = :advancedhmc` provides a direct
+AdvancedHMC/NUTS path for the minimal design using [`MFRMLogDensity`](@ref),
+and `backend = :turing` wraps the same target in a Turing model with a flat
+vector parameter and `Turing.@addlogprob!`. The direct AdvancedHMC path routes
+through a shared gradient target adapter, with target-provided analytic
+gradients used when explicitly selected and otherwise AD-backed gradients
+selected by `ad_backend`; the Turing path currently uses ForwardDiff.
 [`sampler_diagnostics`](@ref) reports chain-level acceptance rates,
 log-posterior summaries, divergent-transition counts, max-tree-depth hits, and
 E-BFMI when available, and
