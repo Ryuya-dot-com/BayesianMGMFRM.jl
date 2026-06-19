@@ -24,7 +24,8 @@ The current package supports:
   [`linear_predictor_values`](@ref);
 - small-example Bayesian fitting for the minimal identified design via
   [`fit`](@ref), [`MFRMPrior`](@ref), and [`MFRMFit`](@ref), including
-  random-walk Metropolis and an initial AdvancedHMC/NUTS backend;
+  random-walk Metropolis and an initial AdvancedHMC/NUTS backend with a shared
+  analytic/AD gradient adapter;
 - fit metadata, chain summaries, R-hat/ESS summaries, posterior summaries,
   prior/posterior predictive checks, calibration summaries, infit/outfit,
   WAIC, and same-observation WAIC comparisons;
@@ -92,8 +93,8 @@ public MGMFRM exposure still requires a separate release decision.
 
 ## Progress Ledger
 
-The repository roadmap currently has 98 of 120 tracked checklist items complete,
-or roughly 81.7% by simple implementation accounting. The stronger claim-level
+The repository roadmap currently has 99 of 120 tracked checklist items complete,
+or roughly 82.5% by simple implementation accounting. The stronger claim-level
 progress is lower, about 40-45%, because the remaining work includes public
 generalized fitting, Stan comparisons, broader recovery simulations,
 and a public-scope release decision for generalized claims.
@@ -279,7 +280,8 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
 ### v0.3 HMC Estimation Core
 
 - Add AdvancedHMC/Turing sampling behind a shared fit object. [AdvancedHMC
-  minimal backend added]
+  minimal backend added; shared analytic/AD gradient adapter added for current
+  HMC paths]
 - Add diagnostics with parameter-block pass/fail flags. [Done for current
   identified blocks]
 - Store sampler controls, optional seeds, thread/package environment metadata,
@@ -291,8 +293,9 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
 - Expose log likelihood, log prior, and log posterior separately.
 - Add AD gradient checks and fixture-only HMC smoke tests for internal
   GMFRM/MGMFRM raw targets before broad generalized fitting. [ForwardDiff
-  raw-target gradient checks, fixture-only AdvancedHMC/NUTS smoke tests, and
-  guarded scalar GMFRM method wiring done]
+  raw-target gradient checks, fixture-only AdvancedHMC/NUTS smoke tests,
+  guarded scalar GMFRM method wiring, and swappable AdvancedHMC gradient
+  adapter checks done]
 - Validate against Stan on small and medium fixtures.
 
 ### v0.4 Bayesian Workflow Layer

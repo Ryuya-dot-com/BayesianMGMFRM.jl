@@ -206,6 +206,82 @@ LogDensityProblems.dimension(target::MFRMLogDensity) =
 LogDensityProblems.capabilities(::Type{MFRMLogDensity}) =
     LogDensityProblems.LogDensityOrder{0}()
 
+const _AD_GRADIENT_BACKENDS = (:ForwardDiff, :ReverseDiff)
+
+function _gradient_backend_kind(ad_backend::Symbol)
+    ad_backend === :analytic && return :analytic
+    ad_backend in _AD_GRADIENT_BACKENDS && return :ad
+    throw(ArgumentError(
+        "ad_backend must be :ForwardDiff, :ReverseDiff, or :analytic",
+    ))
+end
+
+function _check_logdensity_gradient_result(logdensity,
+        gradient,
+        nparams::Int,
+        ad_backend::Symbol)
+    isfinite(logdensity) ||
+        throw(ArgumentError("ad_backend = :$ad_backend returned a non-finite log density"))
+    length(gradient) == nparams ||
+        throw(ArgumentError(
+            "ad_backend = :$ad_backend returned a gradient of length $(length(gradient)); expected $nparams",
+        ))
+    all(isfinite, gradient) ||
+        throw(ArgumentError("ad_backend = :$ad_backend returned a non-finite gradient"))
+    return nothing
+end
+
+function _gradient_target_error(ad_backend::Symbol, err)
+    message = sprint(showerror, err)
+    if ad_backend === :analytic
+        return ArgumentError(
+            "ad_backend = :analytic requires a target with a valid " *
+            "LogDensityProblems.logdensity_and_gradient method; use an AD backend " *
+            "such as :ForwardDiff for order-0 targets. Original error: $message",
+        )
+    end
+    return ArgumentError(
+        "ad_backend = :$ad_backend could not initialize or evaluate " *
+        "LogDensityProblemsAD.ADgradient. Ensure the AD package is available " *
+        "and the target supports it. Original error: $message",
+    )
+end
+
+function _logdensity_gradient_target(target, initial::AbstractVector, ad_backend::Symbol)
+    nparams = LogDensityProblems.dimension(target)
+    length(initial) == nparams ||
+        throw(ArgumentError("initial parameter vector has length $(length(initial)); expected $nparams"))
+    kind = _gradient_backend_kind(ad_backend)
+    if kind === :analytic
+        try
+            logdensity, gradient = LogDensityProblems.logdensity_and_gradient(target, initial)
+            _check_logdensity_gradient_result(logdensity, gradient, nparams, ad_backend)
+            return (;
+                target,
+                ad_backend,
+                gradient_backend = :analytic,
+            )
+        catch err
+            err isa ArgumentError && rethrow()
+            throw(_gradient_target_error(ad_backend, err))
+        end
+    end
+
+    try
+        adtarget = LogDensityProblemsAD.ADgradient(ad_backend, target; x = initial)
+        logdensity, gradient = LogDensityProblems.logdensity_and_gradient(adtarget, initial)
+        _check_logdensity_gradient_result(logdensity, gradient, nparams, ad_backend)
+        return (;
+            target = adtarget,
+            ad_backend,
+            gradient_backend = :ad,
+        )
+    catch err
+        err isa ArgumentError && rethrow()
+        throw(_gradient_target_error(ad_backend, err))
+    end
+end
+
 struct _SourceFixturePrior
     person_sd::Float64
     rater_sd::Float64
@@ -890,6 +966,12 @@ backend. Supplying `seed` uses a local `MersenneTwister(seed)` and records the
 seed in `sampler_controls`; otherwise the supplied `rng` is used without a
 replayable seed record.
 
+The AdvancedHMC backend accepts `ad_backend = :ForwardDiff` by default.
+`ad_backend = :ReverseDiff` can be used when the corresponding AD package is
+available in the active environment, and `ad_backend = :analytic` uses a
+target-provided `LogDensityProblems.logdensity_and_gradient` method when one
+exists.
+
 The `experimental = true` keyword is intentionally narrow: it is accepted only
 for the scalar source-aligned GMFRM promotion candidate with `family = :gmfrm`,
 `dimensions = 1`, and `discrimination = :rater`, and returns [`GMFRMFit`](@ref).
@@ -1104,8 +1186,7 @@ function _fit_advancedhmc(design::FacetDesign,
         throw(ArgumentError("max_energy_error must be finite and positive"))
     isfinite(init_jitter) && init_jitter >= 0 ||
         throw(ArgumentError("init_jitter must be finite and non-negative"))
-    ad_backend === :ForwardDiff ||
-        throw(ArgumentError("only ad_backend = :ForwardDiff is currently supported"))
+    gradient_backend = _gradient_backend_kind(ad_backend)
 
     nparams = length(design.parameter_names)
     nparams >= 1 || throw(ArgumentError("at least one parameter is required for AdvancedHMC fitting"))
@@ -1127,6 +1208,7 @@ function _fit_advancedhmc(design::FacetDesign,
         max_energy_error = Float64(max_energy_error),
         metric,
         ad_backend,
+        gradient_backend,
         rng = rng_control,
         init_jitter = Float64(init_jitter),
     )
@@ -1135,12 +1217,12 @@ function _fit_advancedhmc(design::FacetDesign,
         chain_initial = _advancedhmc_initial(initial, rng, Float64(init_jitter))
         current_lp = logposterior(design, chain_initial, prior)
         isfinite(current_lp) || throw(ArgumentError("initial parameter vector has non-finite log posterior"))
-        adtarget = LogDensityProblemsAD.ADgradient(ad_backend, target; x = chain_initial)
+        gradient_target = _logdensity_gradient_target(target, chain_initial, ad_backend).target
         metric_object = _advancedhmc_metric(metric, nparams)
         hamiltonian = AdvancedHMC.Hamiltonian(
             metric_object,
-            x -> LogDensityProblems.logdensity(adtarget, x),
-            x -> LogDensityProblems.logdensity_and_gradient(adtarget, x),
+            x -> LogDensityProblems.logdensity(gradient_target, x),
+            x -> LogDensityProblems.logdensity_and_gradient(gradient_target, x),
         )
         integrator = AdvancedHMC.Leapfrog(step)
         kernel = AdvancedHMC.HMCKernel(AdvancedHMC.Trajectory{AdvancedHMC.MultinomialTS}(
@@ -1763,8 +1845,7 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
         throw(ArgumentError("max_energy_error must be finite and positive"))
     isfinite(init_jitter) && init_jitter >= 0 ||
         throw(ArgumentError("init_jitter must be finite and non-negative"))
-    ad_backend === :ForwardDiff ||
-        throw(ArgumentError("only ad_backend = :ForwardDiff is currently supported"))
+    gradient_backend = _gradient_backend_kind(ad_backend)
     checked = _check_diagnostic_thresholds(rhat_threshold, ess_threshold)
     _check_source_fixture_raw_vector(target, raw_initial)
 
@@ -1792,6 +1873,7 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
         max_energy_error = Float64(max_energy_error),
         metric,
         ad_backend,
+        gradient_backend,
         rng = rng_control,
         init_jitter = Float64(init_jitter),
     )
@@ -1801,12 +1883,12 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
         chain_logdensity = LogDensityProblems.logdensity(target, chain_initial)
         isfinite(chain_logdensity) ||
             throw(ArgumentError("chain $chain initial raw parameter vector has non-finite log density"))
-        adtarget = LogDensityProblemsAD.ADgradient(ad_backend, target; x = chain_initial)
+        gradient_target = _logdensity_gradient_target(target, chain_initial, ad_backend).target
         metric_object = _advancedhmc_metric(metric, nparams)
         hamiltonian = AdvancedHMC.Hamiltonian(
             metric_object,
-            x -> LogDensityProblems.logdensity(adtarget, x),
-            x -> LogDensityProblems.logdensity_and_gradient(adtarget, x),
+            x -> LogDensityProblems.logdensity(gradient_target, x),
+            x -> LogDensityProblems.logdensity_and_gradient(gradient_target, x),
         )
         integrator = AdvancedHMC.Leapfrog(Float64(step_size))
         kernel = AdvancedHMC.HMCKernel(AdvancedHMC.Trajectory{AdvancedHMC.MultinomialTS}(
@@ -2081,8 +2163,7 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
         throw(ArgumentError("max_energy_error must be finite and positive"))
     isfinite(init_jitter) && init_jitter >= 0 ||
         throw(ArgumentError("init_jitter must be finite and non-negative"))
-    ad_backend === :ForwardDiff ||
-        throw(ArgumentError("only ad_backend = :ForwardDiff is currently supported"))
+    gradient_backend = _gradient_backend_kind(ad_backend)
     checked = _check_diagnostic_thresholds(rhat_threshold, ess_threshold)
     _check_source_fixture_raw_vector(target, raw_initial)
 
@@ -2110,6 +2191,7 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
         max_energy_error = Float64(max_energy_error),
         metric,
         ad_backend,
+        gradient_backend,
         rng = rng_control,
         init_jitter = Float64(init_jitter),
     )
@@ -2119,12 +2201,12 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
         chain_logdensity = LogDensityProblems.logdensity(target, chain_initial)
         isfinite(chain_logdensity) ||
             throw(ArgumentError("chain $chain initial raw parameter vector has non-finite log density"))
-        adtarget = LogDensityProblemsAD.ADgradient(ad_backend, target; x = chain_initial)
+        gradient_target = _logdensity_gradient_target(target, chain_initial, ad_backend).target
         metric_object = _advancedhmc_metric(metric, nparams)
         hamiltonian = AdvancedHMC.Hamiltonian(
             metric_object,
-            x -> LogDensityProblems.logdensity(adtarget, x),
-            x -> LogDensityProblems.logdensity_and_gradient(adtarget, x),
+            x -> LogDensityProblems.logdensity(gradient_target, x),
+            x -> LogDensityProblems.logdensity_and_gradient(gradient_target, x),
         )
         integrator = AdvancedHMC.Leapfrog(Float64(step_size))
         kernel = AdvancedHMC.HMCKernel(AdvancedHMC.Trajectory{AdvancedHMC.MultinomialTS}(
@@ -3788,6 +3870,7 @@ function _fit_cache_controls(backend::Symbol,
             init_jitter = 0.0,
         )
     elseif backend === :advancedhmc
+        gradient_backend = _gradient_backend_kind(ad_backend)
         return (;
             backend,
             sampler = :nuts,
@@ -3800,6 +3883,7 @@ function _fit_cache_controls(backend::Symbol,
             max_energy_error = Float64(max_energy_error),
             metric,
             ad_backend,
+            gradient_backend,
             rng = rng_control,
             initialization,
             init_jitter = Float64(init_jitter),

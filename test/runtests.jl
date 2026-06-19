@@ -121,13 +121,15 @@ function check_advancedhmc_smoke(target, initial;
         seed::Int,
         ndraws::Int = 2,
         step_size::Float64 = 0.03,
-        max_depth::Int = 2)
+        max_depth::Int = 2,
+        ad_backend::Symbol = :ForwardDiff)
     nparams = LogDensityProblems.dimension(target)
     @test length(initial) == nparams
     @test isfinite(LogDensityProblems.logdensity(target, initial))
 
-    adtarget = LogDensityProblemsAD.ADgradient(:ForwardDiff, target; x = initial)
-    lp, gradient = LogDensityProblems.logdensity_and_gradient(adtarget, initial)
+    gradient_adapter = BayesianMGMFRM._logdensity_gradient_target(target, initial, ad_backend)
+    lp, gradient = LogDensityProblems.logdensity_and_gradient(gradient_adapter.target, initial)
+    @test gradient_adapter.ad_backend === ad_backend
     @test isfinite(lp)
     @test length(gradient) == nparams
     @test all(isfinite, gradient)
@@ -135,8 +137,8 @@ function check_advancedhmc_smoke(target, initial;
     metric = AdvancedHMC.UnitEuclideanMetric(nparams)
     hamiltonian = AdvancedHMC.Hamiltonian(
         metric,
-        x -> LogDensityProblems.logdensity(adtarget, x),
-        x -> LogDensityProblems.logdensity_and_gradient(adtarget, x),
+        x -> LogDensityProblems.logdensity(gradient_adapter.target, x),
+        x -> LogDensityProblems.logdensity_and_gradient(gradient_adapter.target, x),
     )
     integrator = AdvancedHMC.Leapfrog(step_size)
     kernel = AdvancedHMC.HMCKernel(AdvancedHMC.Trajectory{AdvancedHMC.MultinomialTS}(
@@ -9074,9 +9076,35 @@ end
     @test LogDensityProblems.logdensity(spec_target, init) ≈ logposterior(spec, init, prior)
     @test_throws ArgumentError LogDensityProblems.logdensity(target, [0.0])
     gradient_point = collect(range(-0.2, 0.2; length = length(init)))
-    target_gradient = ForwardDiff.gradient(x -> LogDensityProblems.logdensity(target, x), gradient_point)
+    gradient_adapter =
+        BayesianMGMFRM._logdensity_gradient_target(target, gradient_point, :ForwardDiff)
+    @test gradient_adapter.ad_backend === :ForwardDiff
+    @test gradient_adapter.gradient_backend === :ad
+    gradient_lp, target_gradient =
+        LogDensityProblems.logdensity_and_gradient(gradient_adapter.target, gradient_point)
+    @test gradient_lp ≈ LogDensityProblems.logdensity(target, gradient_point)
     @test length(target_gradient) == length(init)
     @test all(isfinite, target_gradient)
+    @test target_gradient ≈
+        ForwardDiff.gradient(x -> LogDensityProblems.logdensity(target, x), gradient_point)
+    reverse_adapter =
+        BayesianMGMFRM._logdensity_gradient_target(target, gradient_point, :ReverseDiff)
+    @test reverse_adapter.ad_backend === :ReverseDiff
+    @test reverse_adapter.gradient_backend === :ad
+    reverse_lp, reverse_gradient =
+        LogDensityProblems.logdensity_and_gradient(reverse_adapter.target, gradient_point)
+    @test reverse_lp ≈ gradient_lp atol = 1e-10 rtol = 1e-10
+    @test reverse_gradient ≈ target_gradient atol = 1e-8 rtol = 1e-8
+    @test_throws ArgumentError BayesianMGMFRM._logdensity_gradient_target(
+        target,
+        gradient_point,
+        :analytic,
+    )
+    @test_throws ArgumentError BayesianMGMFRM._logdensity_gradient_target(
+        target,
+        gradient_point,
+        :UnknownAD,
+    )
 
     result = fit(design;
         prior,
@@ -9274,6 +9302,7 @@ end
     @test hmc_result.sampler_controls.max_depth == 3
     @test hmc_result.sampler_controls.metric === :diagonal
     @test hmc_result.sampler_controls.ad_backend === :ForwardDiff
+    @test hmc_result.sampler_controls.gradient_backend === :ad
     @test length(hmc_result.sampler_stats) == 6
     @test all(row -> row.chain in (1, 2), hmc_result.sampler_stats)
     @test all(row -> 1 <= row.iteration <= 3, hmc_result.sampler_stats)
@@ -9310,11 +9339,28 @@ end
     @test hmc_surface.block_rows == hmc_block_rows
     @test sum(row.n_parameters for row in hmc_block_rows) == length(design.parameter_names)
     @test all(row -> row.n_chains == 2, hmc_block_rows)
+    reverse_hmc_result = fit(design;
+        prior,
+        backend = :advancedhmc,
+        ndraws = 1,
+        warmup = 0,
+        chains = 1,
+        step_size = 0.03,
+        max_depth = 2,
+        metric = :unit,
+        ad_backend = :ReverseDiff,
+        init,
+        rng = MersenneTwister(20260621))
+    @test reverse_hmc_result.sampler_controls.ad_backend === :ReverseDiff
+    @test reverse_hmc_result.sampler_controls.gradient_backend === :ad
+    @test size(reverse_hmc_result.draws) == (1, length(design.parameter_names))
+    @test all(isfinite, reverse_hmc_result.log_posterior)
     @test_throws ArgumentError fit(design; backend = :advancedhmc, target_accept = 1.0)
     @test_throws ArgumentError fit(design; backend = :advancedhmc, max_depth = 0)
     @test_throws ArgumentError fit(design; backend = :advancedhmc, max_energy_error = 0.0)
     @test_throws ArgumentError fit(design; backend = :advancedhmc, metric = :unknown)
-    @test_throws ArgumentError fit(design; backend = :advancedhmc, ad_backend = :ReverseDiff)
+    @test_throws ArgumentError fit(design; backend = :advancedhmc, ad_backend = :analytic)
+    @test_throws ArgumentError fit(design; backend = :advancedhmc, ad_backend = :UnknownAD)
 
     fit_manifest = model_manifest(result)
     @test fit_manifest.object === :fit
@@ -10215,6 +10261,17 @@ end
     g_forward = ForwardDiff.gradient(logp, x)
     @test maximum(abs.(g_analytic .- g_forward)) < 1e-8
 
+    analytic_target = ScalarValidationAnalyticLogDensity(fd)
+    analytic_adapter =
+        BayesianMGMFRM._logdensity_gradient_target(analytic_target, x, :analytic)
+    @test analytic_adapter.target === analytic_target
+    @test analytic_adapter.ad_backend === :analytic
+    @test analytic_adapter.gradient_backend === :analytic
+    lp_adapter, g_adapter =
+        LogDensityProblems.logdensity_and_gradient(analytic_adapter.target, x)
+    @test lp_adapter ≈ lp atol = 1e-10 rtol = 1e-10
+    @test g_adapter ≈ g_analytic atol = 1e-10 rtol = 1e-10
+
     coords = unique(round.(Int, range(1, length(x), length = min(length(x), 12))))
     for i in coords
         @test g_analytic[i] ≈ central_difference(logp, x, i) atol = 1e-4 rtol = 1e-4
@@ -10225,7 +10282,6 @@ end
     x_extreme[o.o_log_alpha_i] = 4.0
     lp_extreme = scalar_validation_logposterior(x_extreme, fd)
     lp_grad_extreme, _ = scalar_validation_logposterior_and_gradient(x_extreme, fd)
-    analytic_target = ScalarValidationAnalyticLogDensity(fd)
     @test isfinite(lp_extreme)
     @test lp_extreme ≈ lp_grad_extreme atol = 1e-8 rtol = 1e-8
     @test LogDensityProblems.logdensity(analytic_target, x_extreme) ≈
