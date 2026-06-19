@@ -130,6 +130,10 @@ _facet_data(data::FacetData) = data
 _facet_data(spec::FacetSpec) = spec.data
 _facet_data(design::FacetDesign) = design.spec.data
 
+_facet_spec(::FacetData) = nothing
+_facet_spec(spec::FacetSpec) = spec
+_facet_spec(design::FacetDesign) = design.spec
+
 _validation_report(::FacetData) = nothing
 _validation_report(spec::FacetSpec) = spec.validation
 _validation_report(design::FacetDesign) = design.spec.validation
@@ -928,6 +932,190 @@ function rater_overlap(data_or_spec; unit::Symbol = :person_item)
         ))
     end
     return rows
+end
+
+function _anchor_target(anchor)
+    target = _anchor_symbol(anchor, (:level, :facet_level, :target, :parameter))
+    return target === nothing ? missing : target
+end
+
+function _anchor_block_levels(data::FacetData, block::Symbol)
+    block in (:person, :person_location, :persons) && return data.person_levels
+    block in (:rater, :rater_severity, :raters) && return data.rater_levels
+    block in (:item, :item_difficulty, :items) && return data.item_levels
+    block in (:thresholds, :threshold_steps, :steps) && return data.category_levels
+    return Any[]
+end
+
+function _anchor_linking_anchor_rows(spec, data::FacetData)
+    spec === nothing && return NamedTuple[]
+    rows = NamedTuple[]
+    for (index, anchor) in pairs(spec.anchors)
+        target = _anchor_target(anchor)
+        levels = _anchor_block_levels(data, anchor.block)
+        target_found = ismissing(target) ? missing :
+            any(level -> isequal(level, target), levels)
+        passed = ismissing(target_found) || target_found
+        push!(rows, (;
+            anchor_index = index,
+            block = anchor.block,
+            target,
+            target_found,
+            anchor_type = anchor.anchor_type,
+            anchor_value = anchor.value,
+            anchor_scale = anchor.anchor_scale,
+            implementation_status = :specified_only,
+            passed,
+            status = passed ? :declared : :anchor_target_not_in_data,
+        ))
+    end
+    return rows
+end
+
+function _anchor_link_root!(parent::Vector{Int}, index::Int)
+    while parent[index] != index
+        parent[index] = parent[parent[index]]
+        index = parent[index]
+    end
+    return index
+end
+
+function _anchor_link_union!(parent::Vector{Int}, a::Int, b::Int)
+    root_a = _anchor_link_root!(parent, a)
+    root_b = _anchor_link_root!(parent, b)
+    root_a == root_b && return nothing
+    parent[root_b] = root_a
+    return nothing
+end
+
+function _rater_level_index(levels, level)
+    index = findfirst(candidate -> isequal(candidate, level), levels)
+    index === nothing &&
+        throw(ArgumentError("rater overlap row references an unknown rater level"))
+    return index
+end
+
+function _rater_link_components(data::FacetData, overlap_rows, min_shared_units::Int)
+    n_raters = length(data.rater_levels)
+    parent = collect(1:n_raters)
+    for row in overlap_rows
+        row.shared_units >= min_shared_units || continue
+        a = _rater_level_index(data.rater_levels, row.rater_a)
+        b = _rater_level_index(data.rater_levels, row.rater_b)
+        _anchor_link_union!(parent, a, b)
+    end
+
+    grouped = Dict{Int,Vector{Any}}()
+    for index in 1:n_raters
+        root = _anchor_link_root!(parent, index)
+        push!(get!(grouped, root, Any[]), data.rater_levels[index])
+    end
+    components = collect(values(grouped))
+    for component in components
+        sort!(component; by = string)
+    end
+    sort!(components; by = component -> isempty(component) ? "" : string(first(component)))
+    return Tuple(Tuple(component) for component in components)
+end
+
+function _anchor_sensitivity_status(sensitivity_rows)
+    sensitivity_rows === nothing && return (;
+        status = :not_supplied,
+        passed = missing,
+        n_rows = 0,
+        missing_required_axes = (:anchor,),
+        summary = nothing,
+    )
+    summary = sensitivity_comparison_summary(sensitivity_rows; required_axes = (:anchor,))
+    return (;
+        status = summary.passed ? :complete : :incomplete,
+        passed = summary.passed,
+        n_rows = summary.n_rows,
+        missing_required_axes = summary.missing_required_axes,
+        summary,
+    )
+end
+
+"""
+    anchor_linking_summary(data_or_spec; unit = :person_item,
+        min_shared_units = 1, sensitivity_rows = nothing)
+
+Return a compact anchoring and rater-linking diagnostic summary. The summary
+combines declared hard/soft anchor rows from a `FacetSpec` or `FacetDesign`,
+pairwise rater-overlap connectivity for the chosen linking `unit`, and an
+optional anchor-axis sensitivity coverage check from
+[`sensitivity_comparison_summary`](@ref).
+
+This is a report and design-review helper. It does not fit hard anchors, turn
+soft anchors into priors, estimate linking constants, or create sensitivity
+refits. Use it to document whether declared anchors are internally consistent
+and whether raters are connected strongly enough for a planned analysis.
+"""
+function anchor_linking_summary(data_or_spec; unit::Symbol = :person_item,
+        min_shared_units::Int = 1,
+        sensitivity_rows = nothing)
+    min_shared_units >= 1 ||
+        throw(ArgumentError("min_shared_units must be positive"))
+    data = _facet_data(data_or_spec)
+    spec = _facet_spec(data_or_spec)
+    validation = _validation_report(data_or_spec)
+    overlap_rows = rater_overlap(data; unit)
+    components = _rater_link_components(data, overlap_rows, min_shared_units)
+    n_raters = length(data.rater_levels)
+    n_components = length(components)
+    n_links = count(row -> row.shared_units >= min_shared_units, overlap_rows)
+    n_weak_links = count(row -> 0 < row.shared_units < min_shared_units, overlap_rows)
+    n_zero_overlap_pairs = count(row -> row.shared_units == 0, overlap_rows)
+    rater_linking_status = n_raters <= 1 ? :single_rater :
+        n_components == 1 ? :connected : :disconnected
+
+    anchor_rows = _anchor_linking_anchor_rows(spec, data)
+    n_hard_anchors = count(row -> row.anchor_type === :hard_anchor, anchor_rows)
+    n_soft_anchors = count(row -> row.anchor_type === :soft_anchor, anchor_rows)
+    n_anchor_target_failures = count(row -> !row.passed, anchor_rows)
+    anchor_status = isempty(anchor_rows) ? :not_declared :
+        n_anchor_target_failures == 0 ? :declared : :invalid_targets
+    sensitivity = _anchor_sensitivity_status(sensitivity_rows)
+    linking_passed = rater_linking_status !== :disconnected
+    sensitivity_passed = sensitivity_rows === nothing || sensitivity.passed === true
+
+    return (;
+        schema = "bayesianmgmfrm.anchor_linking_summary.v1",
+        object = :anchor_linking_summary,
+        family = spec === nothing ? missing : spec.family,
+        thresholds = spec === nothing ? missing : spec.thresholds,
+        estimation_status = spec === nothing ? missing : spec.estimation_status,
+        data_signature = validation === nothing ? _data_signature(data) :
+            validation.data_signature,
+        unit,
+        min_shared_units,
+        n_raters,
+        rater_linking_status,
+        n_rater_components = n_components,
+        rater_components = components,
+        largest_rater_component = isempty(components) ? 0 : maximum(length, components),
+        n_overlap_pairs = length(overlap_rows),
+        n_links_at_or_above_min = n_links,
+        n_weak_links,
+        n_zero_overlap_pairs,
+        minimum_shared_units = isempty(overlap_rows) ? missing :
+            minimum(row.shared_units for row in overlap_rows),
+        overlap_rows = Tuple(overlap_rows),
+        anchor_status,
+        n_anchors = length(anchor_rows),
+        n_hard_anchors,
+        n_soft_anchors,
+        n_anchor_target_failures,
+        anchor_rows = Tuple(anchor_rows),
+        anchor_sensitivity_status = sensitivity.status,
+        anchor_sensitivity_passed = sensitivity.passed,
+        anchor_sensitivity_n_rows = sensitivity.n_rows,
+        anchor_sensitivity_missing_required_axes = sensitivity.missing_required_axes,
+        anchor_sensitivity_summary = sensitivity.summary,
+        passed = linking_passed && n_anchor_target_failures == 0 && sensitivity_passed,
+        caveat = :diagnostic_summary_not_anchor_refit_or_linking_estimator,
+        next_gate = :predeclared_anchor_sensitivity_case_study,
+    )
 end
 
 """

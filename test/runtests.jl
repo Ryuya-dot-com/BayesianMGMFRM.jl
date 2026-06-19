@@ -12,6 +12,7 @@ import BayesianMGMFRM
 import LogDensityProblemsAD
 using BayesianMGMFRM:
     FacetData,
+    anchor_linking_summary,
     artifact_content_hash,
     calibration_plot_data,
     cached_fit,
@@ -6205,7 +6206,9 @@ end
 
 @testset "public docstrings" begin
     for name in (:FacetData, :ValidationIssue, :ValidationReport, :FacetSpec, :FacetDesign,
-            :MFRMPrior, :MFRMLogDensity, :MFRMFit, :GMFRMFit, :artifact_content_hash, :cached_fit, :calibration_plot_data,
+            :MFRMPrior, :MFRMLogDensity, :MFRMFit, :GMFRMFit,
+            :anchor_linking_summary, :artifact_content_hash, :cached_fit,
+            :calibration_plot_data,
             :constraint_table, :dff_report, :domain_compilation_summary, :expected_scores, :fair_average_summary, :fit, :fit_archive_manifest, :fit_artifact, :fit_cache_key, :fit_metadata,
             :fit_ready_parameter_layout, :fit_stats,
             :identification_declarations,
@@ -6812,6 +6815,49 @@ end
     @test soft_anchor_domain.block === :rater
     @test soft_anchor_domain.transform === :soft_anchor_prior
     @test soft_anchor_domain.validation_requirement === :anchor_declared
+    anchor_linking = anchor_linking_summary(anchored_spec; min_shared_units = 2)
+    @test anchor_linking.schema == "bayesianmgmfrm.anchor_linking_summary.v1"
+    @test anchor_linking.passed
+    @test anchor_linking.family === :mfrm
+    @test anchor_linking.estimation_status === :specified_only
+    @test anchor_linking.anchor_status === :declared
+    @test anchor_linking.n_anchors == 2
+    @test anchor_linking.n_hard_anchors == 1
+    @test anchor_linking.n_soft_anchors == 1
+    @test anchor_linking.n_anchor_target_failures == 0
+    @test all(row -> row.passed, anchor_linking.anchor_rows)
+    @test anchor_linking.rater_linking_status === :connected
+    @test anchor_linking.n_rater_components == 1
+    @test anchor_linking.rater_components == (("R1", "R2"),)
+    @test anchor_linking.largest_rater_component == 2
+    @test anchor_linking.n_links_at_or_above_min == 1
+    @test anchor_linking.minimum_shared_units == 2
+    @test anchor_linking.anchor_sensitivity_status === :not_supplied
+    weak_linking = anchor_linking_summary(identified_spec; min_shared_units = 3)
+    @test !weak_linking.passed
+    @test weak_linking.rater_linking_status === :disconnected
+    @test weak_linking.n_rater_components == 2
+    @test weak_linking.n_weak_links == 1
+    data_only_linking = anchor_linking_summary(identified_data)
+    @test ismissing(data_only_linking.family)
+    @test data_only_linking.anchor_status === :not_declared
+    @test data_only_linking.n_anchors == 0
+    targeted_anchor_spec = mfrm_spec(identified_data;
+        thresholds = :partial_credit,
+        anchors = [(block = :rater, level = "R1", value = 0.0, type = :hard)])
+    targeted_linking = anchor_linking_summary(targeted_anchor_spec)
+    @test targeted_linking.passed
+    @test only(targeted_linking.anchor_rows).target == "R1"
+    @test only(targeted_linking.anchor_rows).target_found === true
+    invalid_anchor_spec = mfrm_spec(identified_data;
+        thresholds = :partial_credit,
+        anchors = [(block = :rater, level = "R-missing", value = 0.0, type = :hard)])
+    invalid_linking = anchor_linking_summary(invalid_anchor_spec)
+    @test !invalid_linking.passed
+    @test invalid_linking.anchor_status === :invalid_targets
+    @test invalid_linking.n_anchor_target_failures == 1
+    @test only(invalid_linking.anchor_rows).status === :anchor_target_not_in_data
+    @test_throws ArgumentError anchor_linking_summary(identified_spec; min_shared_units = 0)
     @test_throws ArgumentError mfrm_spec(identified_data;
         thresholds = :partial_credit,
         anchors = [(block = :item, value = 0.0, type = :soft)])
@@ -10853,6 +10899,12 @@ end
         length(required_sensitivity_axes)
     @test full_sensitivity_summary.n_candidate_rows ==
         length(required_sensitivity_axes)
+    anchor_sensitivity_linking = anchor_linking_summary(result.design;
+        sensitivity_rows = all_axis_sensitivity_rows)
+    @test anchor_sensitivity_linking.passed
+    @test anchor_sensitivity_linking.anchor_sensitivity_status === :complete
+    @test anchor_sensitivity_linking.anchor_sensitivity_passed === true
+    @test anchor_sensitivity_linking.anchor_sensitivity_summary.required_axes == (:anchor,)
     loo_comparison = compare_models(result, hmc_result;
         names = [:main, :hmc],
         criterion = :loo,

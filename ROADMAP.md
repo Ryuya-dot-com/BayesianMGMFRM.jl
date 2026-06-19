@@ -355,8 +355,8 @@ rater-discrimination candidate.
 
 The roadmap has two different progress notions:
 
-- **Checklist progress**: currently 114 of 120 tracked roadmap checkboxes are
-  complete, or roughly 95.0%. This is useful for implementation accounting.
+- **Checklist progress**: currently 115 of 120 tracked roadmap checkboxes are
+  complete, or roughly 95.8%. This is useful for implementation accounting.
 - **Claim progress**: broad v1 claims are closer to 40-45% complete because
   the remaining items include public generalized fitting, Stan comparisons,
   broader recovery simulations and a public-scope release decision.
@@ -858,8 +858,12 @@ TODO:
   [`dff_report` returns declared or ad hoc DFF screening rows with
   expected-score interaction residuals and local logit-scale approximations,
   while retaining a fitted-effect caveat.]
-- [ ] Implement hard/soft anchors, anchor sensitivity, and robust linking
+- [x] Implement hard/soft anchors, anchor sensitivity, and robust linking
   diagnostics.
+  [`anchor_linking_summary` combines declared hard/soft anchor rows, anchor
+  target checks, rater-linking connectedness diagnostics, and optional
+  anchor-axis sensitivity coverage. It is a diagnostic summary and does not yet
+  refit anchor regimes or estimate linking constants.]
 
 Gate: a FACETS-trained user can recognize the report, and a Bayesian reviewer
 can inspect the uncertainty and diagnostics behind it.

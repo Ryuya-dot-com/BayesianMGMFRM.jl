@@ -125,12 +125,17 @@ figures without adding a plotting dependency:
 coverage = coverage_summary(spec)
 heatmap_data = coverage_matrix(data; rows = :rater, columns = :person)
 overlap = rater_overlap(data; unit = :person_item)
+linking = anchor_linking_summary(spec; unit = :person_item)
 thresholds = threshold_map_data(design; params = zeros(length(design.parameter_names)))
 ```
 
 `coverage_summary` returns long-form category counts, facet-level counts, and
 compact facet summaries. `coverage_matrix` returns a facet-by-facet count
 matrix for heat maps. `rater_overlap` returns pairwise rater linking counts and
-Jaccard overlap for the chosen rated unit. `threshold_map_data` returns
-rating-scale or partial-credit threshold-step metadata, including derived
-sum-to-zero steps when a parameter vector is supplied.
+Jaccard overlap for the chosen rated unit. `anchor_linking_summary` combines
+declared hard/soft anchor rows, anchor target checks, rater overlap
+connectedness, and optional anchor-axis sensitivity coverage; it is a
+diagnostic report, not an anchor refit or linking-constant estimator.
+`threshold_map_data` returns rating-scale or partial-credit threshold-step
+metadata, including derived sum-to-zero steps when a parameter vector is
+supplied.

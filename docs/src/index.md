@@ -72,9 +72,10 @@ The current public slice focuses on:
   [`sensitivity_comparison_summary`](@ref);
 - fit-independent reporting data via [`coverage_summary`](@ref),
   [`coverage_matrix`](@ref), [`rater_overlap`](@ref),
-  [`domain_compilation_summary`](@ref), [`design_row_table`](@ref),
-  [`linear_predictor_table`](@ref), [`threshold_map_data`](@ref),
-  [`wright_map_data`](@ref), and [`dff_report`](@ref);
+  [`anchor_linking_summary`](@ref), [`domain_compilation_summary`](@ref),
+  [`design_row_table`](@ref), [`linear_predictor_table`](@ref),
+  [`threshold_map_data`](@ref), [`wright_map_data`](@ref), and
+  [`dff_report`](@ref);
 - test-suite validation against small/medium Julia/BridgeStan scalar fixtures,
   exposed as [`stan_validation_row`](@ref) and
   [`stan_validation_summary`](@ref), and internal hand-computed

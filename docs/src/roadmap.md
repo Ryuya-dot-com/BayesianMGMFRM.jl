@@ -97,8 +97,8 @@ public MGMFRM exposure still requires a separate release decision.
 
 ## Progress Ledger
 
-The repository roadmap currently has 114 of 120 tracked checklist items complete,
-or roughly 95.0% by simple implementation accounting. The stronger claim-level
+The repository roadmap currently has 115 of 120 tracked checklist items complete,
+or roughly 95.8% by simple implementation accounting. The stronger claim-level
 progress is lower, about 40-45%, because the remaining work includes public
 generalized fitting, Stan comparisons, broader recovery simulations,
 and a public-scope release decision for generalized claims.
@@ -359,6 +359,10 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   [`fit_stats`](@ref) provides posterior infit/outfit rows, and
   [`residual_summary`](@ref) now provides observation- or facet-level
   expected-score and residual intervals with residual-screening caveat flags.
+  [`anchor_linking_summary`](@ref) adds declared hard/soft anchor review rows,
+  anchor target checks, rater-linking connectedness diagnostics, and optional
+  anchor-axis sensitivity coverage summaries, while retaining the caveat that
+  it is not an anchor refit or linking-constant estimator.
 
 ### v0.6 Validation Evidence
 
