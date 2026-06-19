@@ -295,6 +295,8 @@ Current public API:
   `predictive_check_plot_data`: plotting-ready long-form rows for Makie,
   Plots.jl, AlgebraOfGraphics, R/ggplot, Quarto, or CSV workflows without
   adding a plotting dependency.
+- `wright_map_data`: plotting-backend-independent Wright-map rows for posterior
+  facet measures and item-threshold positions on the logit scale.
 - `predictive_probabilities`, `expected_scores`, `predictive_variances`, and
   `predictive_residuals`: observation-level posterior predictive quantities for
   calibration tables, residual checks, infit/outfit, and model-comparison
@@ -310,9 +312,10 @@ Current public API:
 - `fit_stats`: posterior summaries of infit and outfit mean-square statistics
   by facet level.
 - `coverage_summary`, `coverage_matrix`, `rater_overlap`, `design_row_table`,
-  `linear_predictor_table`, and `threshold_map_data`: fit-independent
+  `linear_predictor_table`, `threshold_map_data`, and `wright_map_data`:
   reporting-data helpers for Quarto tables, coverage heat maps, rater-linking
-  plots, denominator reviews, and threshold-map prototypes. Use
+  plots, denominator reviews, threshold-map prototypes, and Wright-map displays.
+  Use
   `linear_predictor_values` when a parameter vector is available and numeric
   category-score inspection is needed.
 

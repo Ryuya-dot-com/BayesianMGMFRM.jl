@@ -355,8 +355,8 @@ rater-discrimination candidate.
 
 The roadmap has two different progress notions:
 
-- **Checklist progress**: currently 108 of 120 tracked roadmap checkboxes are
-  complete, or roughly 90.0%. This is useful for implementation accounting.
+- **Checklist progress**: currently 109 of 120 tracked roadmap checkboxes are
+  complete, or roughly 90.8%. This is useful for implementation accounting.
 - **Claim progress**: broad v1 claims are closer to 40-45% complete because
   the remaining items include public generalized fitting, Stan comparisons,
   broader recovery simulations and a public-scope release decision.
@@ -836,8 +836,10 @@ TODO:
   range/centrality, residual diagnostics, MFRM infit/outfit where available,
   and scalar GMFRM rater-consistency discrimination summaries with screening
   caveats.]
-- [ ] Implement Wright-map-style data APIs before committing to one plotting
+- [x] Implement Wright-map-style data APIs before committing to one plotting
   backend.
+  [`wright_map_data` returns plotting-backend-independent posterior facet
+  measure and item-threshold position rows on the logit scale.]
 - [ ] Implement DFF reports on logit and expected-score scales.
 - [ ] Implement hard/soft anchors, anchor sensitivity, and robust linking
   diagnostics.

@@ -45,6 +45,8 @@ The current public slice focuses on:
 - plotting-ready rows via [`parameter_recovery_plot_data`](@ref),
   [`calibration_plot_data`](@ref), and
   [`predictive_check_plot_data`](@ref);
+- Wright-map rows for posterior facet measures and item-threshold positions via
+  [`wright_map_data`](@ref);
 - row-by-category likelihood inspection via [`linear_predictor_table`](@ref)
   and [`linear_predictor_values`](@ref);
 - observation-level predictive probabilities, expected scores, variances, and
@@ -65,7 +67,7 @@ The current public slice focuses on:
 - fit-independent reporting data via [`coverage_summary`](@ref),
   [`coverage_matrix`](@ref), [`rater_overlap`](@ref),
   [`design_row_table`](@ref), [`linear_predictor_table`](@ref), and
-  [`threshold_map_data`](@ref);
+  [`threshold_map_data`](@ref), and [`wright_map_data`](@ref);
 - test-suite validation against small/medium Julia/BridgeStan scalar fixtures
   and internal hand-computed source-aligned GMFRM/MGMFRM preview fixtures, including
   raw-coordinate transforms for source identification restrictions and

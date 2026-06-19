@@ -54,8 +54,9 @@ without changing the data layer.
    [`sampler_diagnostics`](@ref), [`mcmc_diagnostics`](@ref), and
    [`parameter_block_diagnostics`](@ref) separately when lower-level rows are
    needed.
-12. Inspect parameters with [`posterior_summary`](@ref), then inspect
-   observation-level predictions with [`predictive_probabilities`](@ref),
+12. Inspect parameters with [`posterior_summary`](@ref), prepare Wright-map
+   rows with [`wright_map_data`](@ref), then inspect observation-level
+   predictions with [`predictive_probabilities`](@ref),
    [`expected_scores`](@ref), [`predictive_variances`](@ref), and
    [`predictive_residuals`](@ref).
 13. Run [`posterior_predictive_check`](@ref), summarize it with

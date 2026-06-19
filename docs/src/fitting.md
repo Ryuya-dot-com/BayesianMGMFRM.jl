@@ -143,6 +143,7 @@ parameter_recovery_summary(recovery)
 parameter_recovery_plot_data(recovery)
 calibration_plot_data(calibration_table(fit_result; bins = 5))
 predictive_check_plot_data(predictive_check_summary(ppc))
+wright_map_data(fit_result)
 ```
 
 The random-walk sampler is intended for small validation examples and API
@@ -213,9 +214,9 @@ intervals and tail probabilities.
 identified parameters under the current fit-supported MFRM/RSM/PCM likelihood.
 Use `parameter_recovery` and `parameter_recovery_summary` to inspect posterior
 bias, absolute error, RMSE, interval coverage, interval width, and block-level
-recovery. `parameter_recovery_plot_data`, `calibration_plot_data`, and
-`predictive_check_plot_data` return plotting-ready rows without depending on a
-specific plotting library.
+recovery. `parameter_recovery_plot_data`, `calibration_plot_data`,
+`predictive_check_plot_data`, and `wright_map_data` return plotting-ready rows
+without depending on a specific plotting library.
 `waic` computes WAIC from posterior pointwise log-likelihood draws, and
 `waic_diagnostics` reports the observation-level WAIC components and flags
 high-variance rows. `compare_models` ranks fitted models by WAIC-derived
