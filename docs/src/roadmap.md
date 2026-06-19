@@ -29,8 +29,9 @@ The current package supports:
   `MFRMLogDensity` target;
 - fit metadata, chain summaries, R-hat/ESS summaries, posterior summaries,
   prior/posterior predictive checks, calibration summaries, fair-average
-  summaries, infit/outfit, WAIC, raw importance-sampling LOO, supplied heldout
-  K-fold summaries, and same-observation or heldout comparisons;
+  summaries, separation/reliability summaries, infit/outfit, WAIC, raw
+  importance-sampling LOO, supplied heldout K-fold summaries, and
+  same-observation or heldout comparisons;
 - scalar Julia/BridgeStan validation fixtures and internal hand-computed
   source-aligned GMFRM/MGMFRM preview fixtures, including raw-coordinate
   source-constraint transforms, used by the test suite.
@@ -95,8 +96,8 @@ public MGMFRM exposure still requires a separate release decision.
 
 ## Progress Ledger
 
-The repository roadmap currently has 106 of 120 tracked checklist items complete,
-or roughly 88.3% by simple implementation accounting. The stronger claim-level
+The repository roadmap currently has 107 of 120 tracked checklist items complete,
+or roughly 89.2% by simple implementation accounting. The stronger claim-level
 progress is lower, about 40-45%, because the remaining work includes public
 generalized fitting, Stan comparisons, broader recovery simulations,
 and a public-scope release decision for generalized claims.
@@ -332,10 +333,12 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   separation/reliability, rater diagnostics, Wright-map data, DFF reports, and
   anchoring/linking diagnostics. [`fair_average_summary`](@ref) provides
   posterior fair-average expected-score intervals for person, rater, or item
-  reports using a balanced reference grid, [`fit_stats`](@ref) provides
-  posterior infit/outfit rows, and [`residual_summary`](@ref) now provides
-  observation- or facet-level expected-score and residual intervals with
-  residual-screening caveat flags.
+  reports using a balanced reference grid,
+  [`separation_reliability_summary`](@ref) provides posterior separation and
+  empirical reliability intervals for person, rater, and item measures,
+  [`fit_stats`](@ref) provides posterior infit/outfit rows, and
+  [`residual_summary`](@ref) now provides observation- or facet-level
+  expected-score and residual intervals with residual-screening caveat flags.
 
 ### v0.6 Validation Evidence
 

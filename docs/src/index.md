@@ -52,6 +52,8 @@ The current public slice focuses on:
   [`predictive_variances`](@ref), and [`predictive_residuals`](@ref);
 - posterior fair-average expected-score intervals for person, rater, or item
   reports via [`fair_average_summary`](@ref);
+- posterior separation and empirical reliability intervals for person, rater,
+  and item measures via [`separation_reliability_summary`](@ref);
 - posterior residual summaries and infit/outfit summaries by observation or
   facet level via [`residual_summary`](@ref) and [`fit_stats`](@ref);
 - WAIC, raw importance-sampling LOO, and supplied heldout K-fold

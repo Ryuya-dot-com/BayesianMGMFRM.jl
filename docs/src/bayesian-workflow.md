@@ -62,7 +62,8 @@ without changing the data layer.
    [`predictive_check_summary`](@ref), and inspect binned calibration with
    [`calibration_table`](@ref).
 14. Inspect posterior fair-average expected-score rows with
-   [`fair_average_summary`](@ref), posterior residual summaries with
+   [`fair_average_summary`](@ref), separation/reliability rows with
+   [`separation_reliability_summary`](@ref), posterior residual summaries with
    [`residual_summary`](@ref), and facet-level infit/outfit with
    [`fit_stats`](@ref).
 15. Compare same-observation candidate models with [`waic`](@ref), raw

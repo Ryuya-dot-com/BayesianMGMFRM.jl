@@ -301,6 +301,8 @@ Current public API:
   helpers.
 - `fair_average_summary`: posterior fair-average expected-score intervals for
   person, rater, or item reports using a balanced reference grid.
+- `separation_reliability_summary`: posterior separation and empirical
+  reliability intervals for person, rater, and item measures.
 - `residual_summary`: observation- or facet-level posterior expected-score and
   residual summaries with residual-screening caveat flags.
 - `fit_stats`: posterior summaries of infit and outfit mean-square statistics

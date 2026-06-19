@@ -243,7 +243,9 @@ intervals. It can also return one block per ordinal score category with
 with `target = :all`. `fit_stats` currently returns posterior summaries of infit and
 outfit mean-square statistics by facet level. `fair_average_summary` returns
 person-, rater-, or item-level fair-average expected-score intervals using a
-balanced reference grid; `residual_summary` returns observation- or facet-level
-expected-score and residual intervals with screening caveats for sparse groups
-and nonzero residual intervals. The `backend` keyword is explicit
+balanced reference grid; `separation_reliability_summary` returns posterior
+separation and empirical reliability intervals for person, rater, and item
+measures; `residual_summary` returns observation- or facet-level expected-score
+and residual intervals with screening caveats for sparse groups and nonzero
+residual intervals. The `backend` keyword is explicit
 so additional engines can be added without changing the fitted-object shape.
