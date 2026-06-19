@@ -91,6 +91,7 @@ using BayesianMGMFRM:
     stan_validation_row,
     stan_validation_summary,
     sensitivity_comparison,
+    sensitivity_comparison_summary,
     separation_reliability_summary,
     threshold_map_data,
     model_ladder,
@@ -6222,7 +6223,8 @@ end
             :prior_predict, :prior_predictive_check,
             :load_fit_cache, :rater_diagnostics, :rater_overlap, :residual_summary,
             :sampler_diagnostics, :save_fit_cache,
-            :sensitivity_comparison, :separation_reliability_summary, :simulate_responses,
+            :sensitivity_comparison, :sensitivity_comparison_summary,
+            :separation_reliability_summary, :simulate_responses,
             :stan_validation_row, :stan_validation_summary,
             :threshold_map_data, :validation_suggestions, :evidence_metadata,
             :waic, :waic_diagnostics, :wright_map_data)
@@ -10770,6 +10772,87 @@ end
         fill(:prior_regime, length(custom_sensitivity))
     @test Set(row.sensitivity_value for row in custom_sensitivity) ==
         Set([:seeded, :unseeded])
+    sensitivity_summary = sensitivity_comparison_summary(
+        NamedTuple[threshold_sensitivity...; custom_sensitivity...];
+        required_axes = (:threshold, :prior))
+    @test sensitivity_summary.schema ==
+        "bayesianmgmfrm.sensitivity_comparison_summary.v1"
+    @test sensitivity_summary.passed
+    @test sensitivity_summary.required_axes == (:thresholds, :prior_regime)
+    @test sensitivity_summary.observed_axes == (:prior_regime, :thresholds)
+    @test sensitivity_summary.missing_required_axes == ()
+    @test sensitivity_summary.complete_required_axes == (:thresholds, :prior_regime)
+    @test sensitivity_summary.n_rows ==
+        length(threshold_sensitivity) + length(custom_sensitivity)
+    @test sensitivity_summary.n_required_axes == 2
+    @test sensitivity_summary.n_complete_required_axes == 2
+    @test sensitivity_summary.criteria == (:waic,)
+    @test Set(sensitivity_summary.baseline_models) ==
+        Set(["main", "partial_credit"])
+    threshold_axis_summary = only(filter(row -> row.axis === :thresholds,
+        sensitivity_summary.axis_rows))
+    @test threshold_axis_summary.present
+    @test threshold_axis_summary.status === :complete
+    @test threshold_axis_summary.models == ("partial_credit", "rating_scale")
+    @test threshold_axis_summary.n_baseline_rows == 1
+    @test threshold_axis_summary.n_candidate_rows == 1
+    @test threshold_axis_summary.warnings == ()
+    prior_axis_summary = only(filter(row -> row.axis === :prior_regime,
+        sensitivity_summary.axis_rows))
+    @test prior_axis_summary.present
+    @test prior_axis_summary.baseline_models == ("main",)
+    @test prior_axis_summary.n_candidate_rows == 1
+    incomplete_sensitivity_summary = sensitivity_comparison_summary(
+        threshold_sensitivity;
+        required_axes = (:thresholds, :discrimination))
+    @test !incomplete_sensitivity_summary.passed
+    @test incomplete_sensitivity_summary.missing_required_axes == (:discrimination,)
+    @test incomplete_sensitivity_summary.incomplete_required_axes == (:discrimination,)
+    missing_axis_summary = only(filter(row -> row.axis === :discrimination,
+        incomplete_sensitivity_summary.axis_rows))
+    @test !missing_axis_summary.present
+    @test missing_axis_summary.status === :missing
+    vararg_sensitivity_summary = sensitivity_comparison_summary(
+        threshold_sensitivity[1], threshold_sensitivity[2];
+        required_axes = (:thresholds,))
+    @test vararg_sensitivity_summary.passed
+
+    required_sensitivity_axes = (
+        :thresholds,
+        :discrimination,
+        :rater_pooling,
+        :dff,
+        :anchor,
+        :dimensions,
+        :prior_regime,
+    )
+    all_axis_sensitivity_rows = NamedTuple[]
+    for axis in required_sensitivity_axes
+        for row in threshold_sensitivity
+            push!(all_axis_sensitivity_rows, merge(row, (;
+                sensitivity_axis = axis,
+                sensitivity_value = row.is_baseline ? :baseline : Symbol(axis, "_candidate"),
+                baseline_value = :baseline,
+                sensitivity_contrast = (;
+                    candidate = row.is_baseline ? :baseline : Symbol(axis, "_candidate"),
+                    baseline = :baseline),
+            )))
+        end
+    end
+    full_sensitivity_summary =
+        sensitivity_comparison_summary(all_axis_sensitivity_rows)
+    @test full_sensitivity_summary.passed
+    @test full_sensitivity_summary.required_axes == required_sensitivity_axes
+    @test [row.axis for row in full_sensitivity_summary.axis_rows] ==
+        collect(required_sensitivity_axes)
+    @test all(row -> row.status === :complete,
+        full_sensitivity_summary.axis_rows)
+    @test full_sensitivity_summary.n_complete_required_axes ==
+        length(required_sensitivity_axes)
+    @test full_sensitivity_summary.n_baseline_rows ==
+        length(required_sensitivity_axes)
+    @test full_sensitivity_summary.n_candidate_rows ==
+        length(required_sensitivity_axes)
     loo_comparison = compare_models(result, hmc_result;
         names = [:main, :hmc],
         criterion = :loo,
@@ -10866,6 +10949,12 @@ end
         values = [:hard],
         draw_indices = [1, 2])
     @test_throws ArgumentError sensitivity_comparison(:bad => design, :good => result)
+    @test_throws ArgumentError sensitivity_comparison_summary(NamedTuple[])
+    @test_throws ArgumentError sensitivity_comparison_summary(
+        NamedTuple[(; sensitivity_axis = :thresholds)])
+    @test_throws ArgumentError sensitivity_comparison_summary(
+        NamedTuple[merge(threshold_sensitivity[1], (; is_baseline = missing))];
+        required_axes = (:thresholds,))
 
     altered_table = (
         examinee = table.examinee,

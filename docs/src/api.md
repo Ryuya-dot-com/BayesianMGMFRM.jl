@@ -20,6 +20,7 @@ cached_fit
 compare_kfold
 compare_models
 sensitivity_comparison
+sensitivity_comparison_summary
 constraint_table
 coverage_matrix
 coverage_summary

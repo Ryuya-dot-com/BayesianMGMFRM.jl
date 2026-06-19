@@ -97,8 +97,8 @@ public MGMFRM exposure still requires a separate release decision.
 
 ## Progress Ledger
 
-The repository roadmap currently has 113 of 120 tracked checklist items complete,
-or roughly 94.2% by simple implementation accounting. The stronger claim-level
+The repository roadmap currently has 114 of 120 tracked checklist items complete,
+or roughly 95.0% by simple implementation accounting. The stronger claim-level
 progress is lower, about 40-45%, because the remaining work includes public
 generalized fitting, Stan comparisons, broader recovery simulations,
 and a public-scope release decision for generalized claims.
@@ -335,8 +335,11 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
 - Add first-class sensitivity comparisons for threshold, discrimination, DFF,
   anchor, dimensionality, and prior choices. [`sensitivity_comparison`](@ref)
   now provides same-data, fit-object sensitivity rows with declared axes,
-  custom axis values, and baseline-relative differences; unsupported
-  generalized, DFF, anchor, and dimensionality refit workflows remain planned.
+  custom axis values, baseline-relative differences, and declared
+  dimensionality/Q sensitivity safeguards. [`sensitivity_comparison_summary`](@ref)
+  audits required threshold, discrimination, rater-pooling, DFF, anchor,
+  dimensionality, and prior-regime row coverage; unsupported generalized, DFF,
+  anchor, and dimensionality refit orchestration remains planned.
 
 ### v0.5 Practitioner Outputs
 

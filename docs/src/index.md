@@ -68,7 +68,8 @@ The current public slice focuses on:
 - WAIC, raw importance-sampling LOO, and supplied heldout K-fold
   model-comparison and sensitivity rows via [`waic`](@ref), [`loo`](@ref),
   [`kfold`](@ref), [`compare_models`](@ref), [`compare_kfold`](@ref), and
-  [`sensitivity_comparison`](@ref);
+  [`sensitivity_comparison`](@ref), with declared-axis coverage audited by
+  [`sensitivity_comparison_summary`](@ref);
 - fit-independent reporting data via [`coverage_summary`](@ref),
   [`coverage_matrix`](@ref), [`rater_overlap`](@ref),
   [`domain_compilation_summary`](@ref), [`design_row_table`](@ref),

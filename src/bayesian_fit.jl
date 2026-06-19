@@ -5625,6 +5625,28 @@ function _require_model_comparison_compatibility(contracts::AbstractVector)
     return nothing
 end
 
+function _require_sensitivity_comparison_compatibility(contracts::AbstractVector,
+        axis::Symbol)
+    isempty(contracts) && return nothing
+    _require_same_contract_field(contracts, :data_signature,
+        "all sensitivity candidates must be fit to the same observation data and row order")
+    _require_same_contract_field(contracts, :n_observations,
+        "all sensitivity candidates must have the same number of observations")
+    _require_same_contract_field(contracts, :category_levels,
+        "all sensitivity candidates must use the same ordinal category levels")
+    _require_same_contract_field(contracts, :optional_facets,
+        "all sensitivity candidates must use the same optional facet roles")
+    if axis !== :dimensions
+        _require_same_contract_field(contracts, :dimensions,
+            "all sensitivity candidates must use the same latent dimensionality unless axis = :dimensions")
+    end
+    if !(axis in (:dimensions, :q_matrix))
+        _require_same_contract_field(contracts, :q_matrix,
+            "all sensitivity candidates must use the same fixed Q-matrix unless axis = :q_matrix or :dimensions")
+    end
+    return nothing
+end
+
 function _comparison_contract_fields(contract::NamedTuple)
     return (;
         comparison_contract = contract.comparison_contract,
@@ -5760,6 +5782,36 @@ function _compare_models_loo(fits::AbstractVector{<:_ModelComparisonFit},
         throw(ArgumentError("labels has length $(length(labels)); expected $(length(fits))"))
     contracts = [_model_comparison_contract(fit) for fit in fits]
     _require_model_comparison_compatibility(contracts)
+    stats = [loo(fit; ndraws, draw_indices, rng) for fit in fits]
+    return _loo_comparison_rows(labels, stats, contracts)
+end
+
+function _sensitivity_compare_models_waic(fits::AbstractVector{<:_ModelComparisonFit},
+        labels::AbstractVector{<:AbstractString},
+        axis::Symbol;
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    length(fits) >= 2 || throw(ArgumentError("at least two models are required"))
+    length(labels) == length(fits) ||
+        throw(ArgumentError("labels has length $(length(labels)); expected $(length(fits))"))
+    contracts = [_model_comparison_contract(fit) for fit in fits]
+    _require_sensitivity_comparison_compatibility(contracts, axis)
+    stats = [waic(fit; ndraws, draw_indices, rng) for fit in fits]
+    return _waic_comparison_rows(labels, stats, contracts)
+end
+
+function _sensitivity_compare_models_loo(fits::AbstractVector{<:_ModelComparisonFit},
+        labels::AbstractVector{<:AbstractString},
+        axis::Symbol;
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    length(fits) >= 2 || throw(ArgumentError("at least two models are required"))
+    length(labels) == length(fits) ||
+        throw(ArgumentError("labels has length $(length(labels)); expected $(length(fits))"))
+    contracts = [_model_comparison_contract(fit) for fit in fits]
+    _require_sensitivity_comparison_compatibility(contracts, axis)
     stats = [loo(fit; ndraws, draw_indices, rng) for fit in fits]
     return _loo_comparison_rows(labels, stats, contracts)
 end
@@ -5985,8 +6037,10 @@ function _sensitivity_comparison(fits::AbstractVector{<:_ModelComparisonFit},
     value_map = _sensitivity_value_map(fits, labels, checked_axis, values)
     baseline_label = _sensitivity_baseline_label(labels, baseline)
     comparison_rows = checked_criterion === :waic ?
-        _compare_models_waic(fits, labels; ndraws, draw_indices, rng) :
-        _compare_models_loo(fits, labels; ndraws, draw_indices, rng)
+        _sensitivity_compare_models_waic(fits, labels, checked_axis;
+            ndraws, draw_indices, rng) :
+        _sensitivity_compare_models_loo(fits, labels, checked_axis;
+            ndraws, draw_indices, rng)
     return _sensitivity_comparison_rows(
         comparison_rows,
         checked_axis,
@@ -6004,9 +6058,9 @@ end
         draw_indices = nothing, rng = Random.default_rng())
 
 Return report-ready sensitivity comparison rows for already fitted candidate
-models. The function delegates scoring to [`compare_models`](@ref), so the
-same observation-data, category-level, latent-dimension, and Q-matrix
-compatibility checks apply. Additional columns identify the requested
+models. The function uses the same WAIC and raw-importance LOO scoring rows as
+[`compare_models`](@ref), while applying sensitivity-specific compatibility
+checks. Additional columns identify the requested
 `sensitivity_axis`, the per-model `sensitivity_value`, the baseline model and
 value, and expected-log-predictive-density and information-criterion
 differences relative to that baseline.
@@ -6016,7 +6070,11 @@ When `values` is omitted, values are inferred for common axes: `:model`,
 `:estimation_status`, `:prior`, `:backend`, and `:sampler`. Pass a vector,
 tuple, dictionary, or named tuple to `values` for custom axes such as
 `:anchor`, `:dff`, or externally defined prior regimes. `baseline` names the
-baseline model label and defaults to the first supplied model.
+baseline model label and defaults to the first supplied model. Direct
+`compare_models` output still requires matching dimensions and Q-matrices;
+declared `sensitivity_comparison` rows allow dimensionality differences for
+`axis = :dimensions`, and fixed-Q differences for `axis = :q_matrix` or
+`:dimensions`, while retaining same-data and same-category checks.
 """
 function sensitivity_comparison(fits::_ModelComparisonFit...;
         names = nothing,
@@ -6064,6 +6122,216 @@ function sensitivity_comparison(models::Pair...;
         ndraws,
         draw_indices,
         rng)
+end
+
+const _DEFAULT_SENSITIVITY_REQUIRED_AXES = (
+    :thresholds,
+    :discrimination,
+    :rater_pooling,
+    :dff,
+    :anchor,
+    :dimensions,
+    :prior_regime,
+)
+
+function _sensitivity_summary_axis(axis::Symbol)
+    checked = _sensitivity_axis(axis)
+    checked === :prior && return :prior_regime
+    checked in (:anchors, :anchoring) && return :anchor
+    checked in (:pooling, :rater_effects, :rater_pooling) && return :rater_pooling
+    checked in (:dff_on_off, :dff_effects) && return :dff
+    return checked
+end
+
+function _sensitivity_summary_axis(axis)
+    axis isa Symbol ||
+        throw(ArgumentError("sensitivity axes must be Symbols"))
+    return _sensitivity_summary_axis(axis)
+end
+
+function _sensitivity_axis_tuple(axes)
+    out = Symbol[]
+    for axis in axes
+        canonical = _sensitivity_summary_axis(axis)
+        canonical in out || push!(out, canonical)
+    end
+    return Tuple(out)
+end
+
+function _sensitivity_axis_tuple(axis::Symbol)
+    return (_sensitivity_summary_axis(axis),)
+end
+
+function _sensitivity_unique_tuple(values)
+    collected = collect(Set(values))
+    sort!(collected; by = string)
+    return Tuple(collected)
+end
+
+function _sensitivity_summary_row_check(row::NamedTuple)
+    required = (
+        :sensitivity_axis,
+        :sensitivity_value,
+        :baseline_value,
+        :model,
+        :baseline_model,
+        :is_baseline,
+        :contrast,
+        :criterion,
+        :elpd_difference_from_baseline,
+        :information_criterion_difference_from_baseline,
+    )
+    fields = propertynames(row)
+    missing_fields = [field for field in required if !(field in fields)]
+    isempty(missing_fields) ||
+        throw(ArgumentError("sensitivity comparison row is missing fields: $(join(missing_fields, ", "))"))
+    row.sensitivity_axis isa Symbol ||
+        throw(ArgumentError("sensitivity_axis must be a Symbol"))
+    row.is_baseline isa Bool ||
+        throw(ArgumentError("is_baseline must be a Bool"))
+    row.criterion isa Symbol ||
+        throw(ArgumentError("criterion must be a Symbol"))
+    return nothing
+end
+
+function _sensitivity_axis_summary_row(axis::Symbol, rows::AbstractVector)
+    if isempty(rows)
+        return (;
+            axis,
+            present = false,
+            status = :missing,
+            n_rows = 0,
+            n_models = 0,
+            models = (),
+            n_values = 0,
+            sensitivity_values = (),
+            has_baseline = false,
+            n_baseline_rows = 0,
+            n_candidate_rows = 0,
+            baseline_models = (),
+            criteria = (),
+            warnings = (),
+        )
+    end
+
+    models = _sensitivity_unique_tuple(String(string(row.model)) for row in rows)
+    values = _sensitivity_unique_tuple(row.sensitivity_value for row in rows)
+    baseline_models =
+        _sensitivity_unique_tuple(String(string(row.baseline_model)) for row in rows)
+    criteria = _sensitivity_unique_tuple(row.criterion for row in rows)
+    n_baseline_rows = count(row -> row.is_baseline, rows)
+    n_candidate_rows = length(rows) - n_baseline_rows
+    has_baseline = n_baseline_rows > 0
+    has_candidate = n_candidate_rows > 0
+    warnings = Symbol[]
+    length(criteria) > 1 && push!(warnings, :mixed_criteria)
+    length(baseline_models) > 1 && push!(warnings, :multiple_baselines)
+    status = has_baseline && has_candidate ? :complete : :incomplete
+
+    return (;
+        axis,
+        present = true,
+        status,
+        n_rows = length(rows),
+        n_models = length(models),
+        models,
+        n_values = length(values),
+        sensitivity_values = values,
+        has_baseline,
+        n_baseline_rows,
+        n_candidate_rows,
+        baseline_models,
+        criteria,
+        warnings = Tuple(warnings),
+    )
+end
+
+"""
+    sensitivity_comparison_summary(rows; required_axes =
+        (:thresholds, :discrimination, :rater_pooling, :dff, :anchor,
+         :dimensions, :prior_regime))
+    sensitivity_comparison_summary(row, rows...; required_axes = ...)
+
+Summarize report-ready sensitivity comparison rows and check whether the
+declared sensitivity table covers the package's default critical-review axes:
+threshold family, discrimination on/off, pooled versus unpooled rater effects,
+DFF on/off, anchor choice, dimensionality, and prior regime. Rows are expected
+to come from [`sensitivity_comparison`](@ref) or an equivalent same-schema
+external comparison table.
+
+The summary records observed axes, missing required axes, per-axis model and
+baseline coverage, criteria used, and whether every required axis has both a
+baseline and at least one candidate row. It audits declared comparison rows; it
+does not create refits, fit unsupported generalized/DFF/anchor models, or
+replace predeclared simulation and case-study protocols.
+"""
+function sensitivity_comparison_summary(rows::AbstractVector;
+        required_axes = _DEFAULT_SENSITIVITY_REQUIRED_AXES)
+    isempty(rows) &&
+        throw(ArgumentError("at least one sensitivity comparison row is required"))
+    for row in rows
+        row isa NamedTuple ||
+            throw(ArgumentError("sensitivity comparison summary expects NamedTuple rows"))
+        _sensitivity_summary_row_check(row)
+    end
+
+    checked_required = _sensitivity_axis_tuple(required_axes)
+    observed_axes = _sensitivity_unique_tuple(
+        _sensitivity_summary_axis(row.sensitivity_axis) for row in rows)
+    observed_set = Set(observed_axes)
+    missing_required_axes =
+        Tuple(axis for axis in checked_required if !(axis in observed_set))
+    extra_axes = sort(
+        [axis for axis in observed_axes if !(axis in checked_required)];
+        by = string)
+    reported_axes = (checked_required..., extra_axes...)
+    axis_rows = NamedTuple[]
+    for axis in reported_axes
+        axis_specific_rows = NamedTuple[
+            row for row in rows
+            if _sensitivity_summary_axis(row.sensitivity_axis) === axis
+        ]
+        push!(axis_rows, _sensitivity_axis_summary_row(axis, axis_specific_rows))
+    end
+
+    required_axis_rows = filter(row -> row.axis in checked_required, axis_rows)
+    incomplete_required_axes = Tuple(row.axis for row in required_axis_rows
+        if row.status !== :complete)
+    complete_required_axes = Tuple(row.axis for row in required_axis_rows
+        if row.status === :complete)
+    criteria = _sensitivity_unique_tuple(row.criterion for row in rows)
+    baseline_models =
+        _sensitivity_unique_tuple(String(string(row.baseline_model)) for row in rows)
+    n_baseline_rows = count(row -> row.is_baseline, rows)
+
+    return (;
+        schema = "bayesianmgmfrm.sensitivity_comparison_summary.v1",
+        object = :sensitivity_comparison_summary,
+        comparison_scope = :declared_same_data_sensitivity_rows,
+        coverage_contract = :required_axes_need_baseline_and_candidate_rows,
+        required_axes = checked_required,
+        observed_axes,
+        missing_required_axes,
+        complete_required_axes,
+        incomplete_required_axes,
+        passed = isempty(missing_required_axes) && isempty(incomplete_required_axes),
+        n_rows = length(rows),
+        n_axes = length(observed_axes),
+        n_required_axes = length(checked_required),
+        n_complete_required_axes = length(complete_required_axes),
+        n_baseline_rows,
+        n_candidate_rows = length(rows) - n_baseline_rows,
+        criteria,
+        baseline_models,
+        axis_rows = Tuple(axis_rows),
+        caveat = :summary_of_declared_rows_not_refit_orchestration,
+        next_gate = :predeclared_case_study_sensitivity_grid,
+    )
+end
+
+function sensitivity_comparison_summary(row::NamedTuple, rows::NamedTuple...;
+        required_axes = _DEFAULT_SENSITIVITY_REQUIRED_AXES)
+    return sensitivity_comparison_summary([row; collect(rows)]; required_axes)
 end
 
 function _draw_indices(fit, ndraws::Union{Nothing,Int}, rng::AbstractRNG)
