@@ -23,6 +23,7 @@ using BayesianMGMFRM:
     diagnostics,
     design_row_table,
     expected_scores,
+    fair_average_summary,
     fit,
     fit_archive_manifest,
     fit_artifact,
@@ -6175,7 +6176,7 @@ end
 @testset "public docstrings" begin
     for name in (:FacetData, :ValidationIssue, :ValidationReport, :FacetSpec, :FacetDesign,
             :MFRMPrior, :MFRMLogDensity, :MFRMFit, :GMFRMFit, :artifact_content_hash, :cached_fit, :calibration_plot_data,
-            :constraint_table, :expected_scores, :fit, :fit_archive_manifest, :fit_artifact, :fit_cache_key, :fit_metadata,
+            :constraint_table, :expected_scores, :fair_average_summary, :fit, :fit_archive_manifest, :fit_artifact, :fit_cache_key, :fit_metadata,
             :fit_ready_parameter_layout, :fit_stats,
             :identification_declarations,
             :initial_params, :loglikelihood, :logposterior, :logprior,
@@ -10461,6 +10462,114 @@ end
     @test_throws ArgumentError expected_scores(result; ndraws = 0)
     @test_throws ArgumentError predictive_variances(result; ndraws = 0)
     @test_throws ArgumentError predictive_residuals(result; ndraws = 0)
+
+    manual_fair_expected = function (params, person_index, rater_index, item_index)
+        reference_value = (block, level_index) -> level_index == 1 ? 0.0 : params[block[level_index - 1]]
+        threshold_step = function (item, step)
+            kminus1 = length(data.category_levels) - 1
+            free_steps = max(kminus1 - 1, 0)
+            free_steps == 0 && return 0.0
+            step_range = design.blocks[:thresholds]
+            if design.spec.thresholds === :rating_scale
+                if step <= free_steps
+                    return params[step_range[step]]
+                end
+                return -sum(params[step_range[s]] for s in 1:free_steps)
+            end
+            offset = (item - 1) * free_steps
+            if step <= free_steps
+                return params[step_range[offset + step]]
+            end
+            return -sum(params[step_range[offset + s]] for s in 1:free_steps)
+        end
+        location = params[design.blocks[:person][person_index]] -
+            reference_value(design.blocks[:rater], rater_index) -
+            reference_value(design.blocks[:item], item_index)
+        etas = Float64[]
+        step_sum = 0.0
+        for category_index in eachindex(data.category_levels)
+            if category_index > 1
+                step_sum += threshold_step(item_index, category_index - 1)
+            end
+            push!(etas, (category_index - 1) * location - step_sum)
+        end
+        max_eta = maximum(etas)
+        weights = [exp(eta - max_eta) for eta in etas]
+        probabilities = weights ./ sum(weights)
+        return sum(data.category_levels[category] * probabilities[category]
+            for category in eachindex(data.category_levels))
+    end
+
+    person_fair = fair_average_summary(result;
+        by = :person,
+        draw_indices = [1, 2],
+        interval = 0.8)
+    @test length(person_fair) == length(data.person_levels)
+    @test all(row -> row.facet === :person, person_fair)
+    @test all(row -> row.method === :posterior_expected_score, person_fair)
+    @test all(row -> row.reference === :balanced_facet_grid, person_fair)
+    @test all(row -> row.n_draws == 2, person_fair)
+    @test all(row -> row.n_reference_rows ==
+        length(data.rater_levels) * length(data.item_levels), person_fair)
+    @test all(row -> row.interval_probability == 0.8, person_fair)
+    @test all(row -> row.lower_probability ≈ 0.1, person_fair)
+    @test all(row -> row.upper_probability ≈ 0.9, person_fair)
+    @test all(row -> row.caveat ===
+        :balanced_reference_grid_not_population_standardization,
+        person_fair)
+    @test fair_average_summary(design, result.draws[1:2, :];
+        by = :person,
+        interval = 0.8) == person_fair
+    for row in person_fair
+        level_index = findfirst(==(row.level), data.person_levels)
+        obs = findall(==(level_index), data.person)
+        reference_rows = [
+            (level_index, rater, item)
+            for rater in eachindex(data.rater_levels)
+            for item in eachindex(data.item_levels)
+        ]
+        fair_by_draw = [
+            sum(manual_fair_expected(
+                @view(result.draws[draw, :]),
+                person,
+                rater,
+                item,
+            ) for (person, rater, item) in reference_rows) / length(reference_rows)
+            for draw in 1:2
+        ]
+        observed_mean = sum(data.score[observation] for observation in obs) / length(obs)
+        adjustment_by_draw = fair_by_draw .- observed_mean
+        @test row.n_observations == length(obs)
+        @test row.observed_mean ≈ observed_mean
+        @test row.fair_average_mean ≈ sum(fair_by_draw) / length(fair_by_draw)
+        @test row.expected_score_mean ≈ row.fair_average_mean
+        @test row.expected_score_median ≈ row.fair_average_median
+        @test row.expected_score_lower ≈ row.fair_average_lower
+        @test row.expected_score_upper ≈ row.fair_average_upper
+        @test row.adjustment_mean ≈
+            sum(adjustment_by_draw) / length(adjustment_by_draw)
+        @test row.fair_average_lower <= row.fair_average_median <=
+            row.fair_average_upper
+        @test row.adjustment_lower <= row.adjustment_median <= row.adjustment_upper
+        @test row.flag === :ok
+    end
+    rater_fair = fair_average_summary(result; by = :rater, draw_indices = [1, 2])
+    @test length(rater_fair) == length(data.rater_levels)
+    @test all(row -> row.n_reference_rows ==
+        length(data.person_levels) * length(data.item_levels), rater_fair)
+    item_fair = fair_average_summary(result; by = :item, draw_indices = [1, 2])
+    @test length(item_fair) == length(data.item_levels)
+    @test all(row -> row.n_reference_rows ==
+        length(data.person_levels) * length(data.rater_levels), item_fair)
+    sparse_fair = fair_average_summary(result;
+        by = :person,
+        draw_indices = [1, 2],
+        min_n = data.n + 1)
+    @test all(row -> row.flag === :below_min_n, sparse_fair)
+    @test_throws ArgumentError fair_average_summary(result; by = :category)
+    @test_throws ArgumentError fair_average_summary(result; interval = 1.0)
+    @test_throws ArgumentError fair_average_summary(result; min_n = 0)
+    @test_throws ArgumentError fair_average_summary(design, result.draws[1:2, 1:end-1])
 
     rater_residuals = residual_summary(result;
         by = :rater,

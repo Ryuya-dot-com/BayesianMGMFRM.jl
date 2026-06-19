@@ -50,6 +50,8 @@ The current public slice focuses on:
 - observation-level predictive probabilities, expected scores, variances, and
   residuals via [`predictive_probabilities`](@ref), [`expected_scores`](@ref),
   [`predictive_variances`](@ref), and [`predictive_residuals`](@ref);
+- posterior fair-average expected-score intervals for person, rater, or item
+  reports via [`fair_average_summary`](@ref);
 - posterior residual summaries and infit/outfit summaries by observation or
   facet level via [`residual_summary`](@ref) and [`fit_stats`](@ref);
 - WAIC, raw importance-sampling LOO, and supplied heldout K-fold

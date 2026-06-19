@@ -23,9 +23,9 @@ implemented public slice covers:
   `MFRMLogDensity` target;
 - cached-fit artifacts, sampler diagnostics, R-hat/ESS rows, parameter-block
   diagnostics, prior and posterior predictive replication, calibration
-  summaries, observation-level predictive quantities, infit/outfit summaries,
-  WAIC, raw importance-sampling LOO, supplied heldout K-fold summaries, and
-  same-data or heldout comparison helpers;
+  summaries, observation-level predictive quantities, fair-average summaries,
+  infit/outfit summaries, WAIC, raw importance-sampling LOO, supplied heldout
+  K-fold summaries, and same-data or heldout comparison helpers;
 - scalar Julia/BridgeStan validation fixtures and internal hand-computed
   source-aligned GMFRM/MGMFRM preview fixtures, including raw-coordinate
   source-constraint transforms, used by the test suite.
@@ -354,8 +354,8 @@ rater-discrimination candidate.
 
 The roadmap has two different progress notions:
 
-- **Checklist progress**: currently 105 of 120 tracked roadmap checkboxes are
-  complete, or roughly 87.5%. This is useful for implementation accounting.
+- **Checklist progress**: currently 106 of 120 tracked roadmap checkboxes are
+  complete, or roughly 88.3%. This is useful for implementation accounting.
 - **Claim progress**: broad v1 claims are closer to 40-45% complete because
   the remaining items include public generalized fitting, Stan comparisons,
   broader recovery simulations and a public-scope release decision.
@@ -818,7 +818,9 @@ Goal: make the package useful to FACETS-trained MFRM users.
 
 TODO:
 
-- [ ] Implement fair averages and expected-score summaries with uncertainty.
+- [x] Implement fair averages and expected-score summaries with uncertainty.
+  [`fair_average_summary` provides posterior fair-average expected-score
+  intervals for person, rater, or item reports using a balanced reference grid.]
 - [x] Implement posterior infit/outfit and residual summaries with caveats.
   [`fit_stats` provides posterior infit/outfit rows, and `residual_summary`
   now provides observation- or facet-level expected-score and residual

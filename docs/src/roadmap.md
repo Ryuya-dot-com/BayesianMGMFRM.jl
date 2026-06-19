@@ -28,9 +28,9 @@ The current package supports:
   gradient adapter, and a Turing/NUTS wrapper around the same
   `MFRMLogDensity` target;
 - fit metadata, chain summaries, R-hat/ESS summaries, posterior summaries,
-  prior/posterior predictive checks, calibration summaries, infit/outfit,
-  WAIC, raw importance-sampling LOO, supplied heldout K-fold summaries, and
-  same-observation or heldout comparisons;
+  prior/posterior predictive checks, calibration summaries, fair-average
+  summaries, infit/outfit, WAIC, raw importance-sampling LOO, supplied heldout
+  K-fold summaries, and same-observation or heldout comparisons;
 - scalar Julia/BridgeStan validation fixtures and internal hand-computed
   source-aligned GMFRM/MGMFRM preview fixtures, including raw-coordinate
   source-constraint transforms, used by the test suite.
@@ -95,8 +95,8 @@ public MGMFRM exposure still requires a separate release decision.
 
 ## Progress Ledger
 
-The repository roadmap currently has 105 of 120 tracked checklist items complete,
-or roughly 87.5% by simple implementation accounting. The stronger claim-level
+The repository roadmap currently has 106 of 120 tracked checklist items complete,
+or roughly 88.3% by simple implementation accounting. The stronger claim-level
 progress is lower, about 40-45%, because the remaining work includes public
 generalized fitting, Stan comparisons, broader recovery simulations,
 and a public-scope release decision for generalized claims.
@@ -330,8 +330,10 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
 
 - Add fair averages, expected-score summaries, infit/outfit, residuals,
   separation/reliability, rater diagnostics, Wright-map data, DFF reports, and
-  anchoring/linking diagnostics. [`fit_stats`](@ref) provides posterior
-  infit/outfit rows, and [`residual_summary`](@ref) now provides
+  anchoring/linking diagnostics. [`fair_average_summary`](@ref) provides
+  posterior fair-average expected-score intervals for person, rater, or item
+  reports using a balanced reference grid, [`fit_stats`](@ref) provides
+  posterior infit/outfit rows, and [`residual_summary`](@ref) now provides
   observation- or facet-level expected-score and residual intervals with
   residual-screening caveat flags.
 
