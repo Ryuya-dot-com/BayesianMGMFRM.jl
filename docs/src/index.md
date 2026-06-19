@@ -71,7 +71,9 @@ The current public slice focuses on:
   model-comparison and sensitivity rows via [`waic`](@ref), [`loo`](@ref),
   [`kfold`](@ref), [`compare_models`](@ref), [`compare_kfold`](@ref), and
   [`sensitivity_comparison`](@ref), with declared-axis coverage audited by
-  [`sensitivity_comparison_summary`](@ref);
+  [`sensitivity_comparison_summary`](@ref), and cross-tool evidence coverage
+  audited by [`comparison_evidence_row`](@ref) and
+  [`comparison_evidence_summary`](@ref);
 - fit-independent reporting data via [`coverage_summary`](@ref),
   [`coverage_matrix`](@ref), [`rater_overlap`](@ref),
   [`anchor_linking_summary`](@ref), [`domain_compilation_summary`](@ref),

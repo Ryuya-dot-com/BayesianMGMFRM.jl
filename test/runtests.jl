@@ -16,6 +16,8 @@ using BayesianMGMFRM:
     artifact_content_hash,
     calibration_plot_data,
     cached_fit,
+    comparison_evidence_row,
+    comparison_evidence_summary,
     compare_kfold,
     compare_models,
     constraint_table,
@@ -6223,6 +6225,7 @@ end
             :kfold, :loo, :loo_diagnostics,
             :linear_predictor_table, :linear_predictor_values,
             :calibration_table, :diagnostics,
+            :comparison_evidence_row, :comparison_evidence_summary,
             :compare_kfold, :compare_models, :coverage_matrix, :coverage_summary, :design_row_table, :validate_design, :mcmc_diagnostics, :mfrm_spec, :getdesign,
             :model_equation, :model_ladder, :model_manifest, :parameter_block_diagnostics,
             :parameter_recovery, :parameter_recovery_plot_data, :parameter_recovery_summary,
@@ -10533,6 +10536,115 @@ end
     @test_throws ArgumentError falsification_rules(; min_interval_coverage = 1.1)
     @test_throws ArgumentError falsification_rule_summary(NamedTuple[])
     @test_throws ArgumentError falsification_rule_summary(Any[1])
+
+    comparison_rows = [
+        comparison_evidence_row(;
+            comparison_class = :stan,
+            target_model = :scalar_gmfrm,
+            comparator = :bridge_stan,
+            metric = :max_log_density_abs_error,
+            estimate = 1e-10,
+            reference = 0.0,
+            tolerance = 1e-8,
+            evidence = :stan_validation_summary,
+            artifact = "test/fixtures/scalar_validation_stan_logdensity.json"),
+        comparison_evidence_row(;
+            comparison_class = :facets,
+            target_model = :mfrm_pcm,
+            comparator = :facets_export,
+            metric = :severity_correlation,
+            estimate = 0.99,
+            reference = 1.0,
+            tolerance = 0.02,
+            evidence = :external_tool_table),
+        comparison_evidence_row(;
+            comparison_class = :nested,
+            target_model = :guarded_scalar_gmfrm,
+            comparator = :mfrm_pcm_rsm_baseline,
+            metric = :heldout_elpd_difference,
+            estimate = 2.5,
+            reference = 0.0,
+            pass_if = :greater_equal,
+            evidence = :compare_kfold),
+    ]
+    @test first(comparison_rows).schema == "bayesianmgmfrm.comparison_evidence_row.v1"
+    @test first(comparison_rows).object === :comparison_evidence_row
+    @test first(comparison_rows).comparison_class === :stan_faithful
+    @test first(comparison_rows).status === :passed
+    @test first(comparison_rows).absolute_difference ≈ 1e-10
+    @test comparison_rows[2].comparison_class === :r_frequentist
+    @test comparison_rows[3].comparison_class === :nested_model
+    @test comparison_rows[3].pass_if === :greater_equal
+    @test comparison_rows[3].difference ≈ 2.5
+    comparison_summary = comparison_evidence_summary(comparison_rows)
+    @test comparison_summary.schema ==
+        "bayesianmgmfrm.comparison_evidence_summary.v1"
+    @test comparison_summary.passed
+    @test comparison_summary.status === :complete
+    @test comparison_summary.required_classes ==
+        (:stan_faithful, :r_frequentist, :nested_model)
+    @test comparison_summary.observed_classes ==
+        (:nested_model, :r_frequentist, :stan_faithful)
+    @test isempty(comparison_summary.missing_required_classes)
+    @test isempty(comparison_summary.failed_required_classes)
+    @test comparison_summary.n_rows == 3
+    @test comparison_summary.n_passed_rows == 3
+    @test only(filter(row -> row.comparison_class === :stan_faithful,
+        comparison_summary.class_rows)).artifacts ==
+        ("test/fixtures/scalar_validation_stan_logdensity.json",)
+    incomplete_comparison_summary = comparison_evidence_summary(
+        filter(row -> row.comparison_class !== :r_frequentist, comparison_rows))
+    @test !incomplete_comparison_summary.passed
+    @test incomplete_comparison_summary.status === :incomplete
+    @test incomplete_comparison_summary.missing_required_classes == (:r_frequentist,)
+    custom_comparison_summary = comparison_evidence_summary(
+        comparison_rows[1],
+        comparison_rows[3];
+        required_classes = (:stan, :nested))
+    @test custom_comparison_summary.passed
+    @test custom_comparison_summary.required_classes == (:stan_faithful, :nested_model)
+    failed_comparison = comparison_evidence_row(;
+        comparison_class = :facets,
+        target_model = :mfrm_pcm,
+        comparator = :facets_export,
+        metric = :severity_correlation,
+        estimate = 0.80,
+        reference = 1.0,
+        tolerance = 0.02,
+        evidence = :external_tool_table)
+    @test !failed_comparison.passed
+    @test failed_comparison.status === :failed
+    failed_comparison_summary = comparison_evidence_summary(
+        comparison_rows[1],
+        failed_comparison,
+        comparison_rows[3])
+    @test !failed_comparison_summary.passed
+    @test failed_comparison_summary.failed_required_classes == (:r_frequentist,)
+    @test_throws ArgumentError comparison_evidence_row(;
+        comparison_class = :stan,
+        target_model = :scalar_gmfrm,
+        comparator = :bridge_stan,
+        metric = :log_density,
+        estimate = Inf,
+        reference = 0.0)
+    @test_throws ArgumentError comparison_evidence_row(;
+        comparison_class = :stan,
+        target_model = :scalar_gmfrm,
+        comparator = :bridge_stan,
+        metric = :log_density,
+        estimate = 0.0,
+        reference = 0.0,
+        tolerance = -1)
+    @test_throws ArgumentError comparison_evidence_row(;
+        comparison_class = :stan,
+        target_model = :scalar_gmfrm,
+        comparator = :bridge_stan,
+        metric = :log_density,
+        estimate = 0.0,
+        reference = 0.0,
+        pass_if = :bad)
+    @test_throws ArgumentError comparison_evidence_summary(NamedTuple[])
+    @test_throws ArgumentError comparison_evidence_summary(Any[1])
 
     truth = [row.mean for row in summary]
     recovery = parameter_recovery(result, truth; interval = 0.8)

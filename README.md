@@ -277,6 +277,10 @@ Current public API:
   dimensions, and fixed Q-matrix contract.
 - `compare_kfold`: K-fold comparison rows for `kfold` summaries that share the
   same heldout observation order and fold assignment order.
+- `comparison_evidence_row` and `comparison_evidence_summary`: declared
+  comparison-evidence rows and coverage summaries for faithful Stan/BridgeStan,
+  overlapping R/frequentist, and simpler nested-model checks. They record
+  precomputed evidence; they do not run external tools or refit models.
 - `sensitivity_comparison`: report-ready sensitivity rows using the same
   WAIC/LOO scoring path as `compare_models`, plus a declared axis, per-model
   axis values, baseline labels, and baseline-relative ELPD/information-criterion

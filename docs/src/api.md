@@ -19,6 +19,8 @@ calibration_plot_data
 cached_fit
 compare_kfold
 compare_models
+comparison_evidence_row
+comparison_evidence_summary
 sensitivity_comparison
 sensitivity_comparison_summary
 anchor_linking_summary
