@@ -351,8 +351,8 @@ rater-discrimination candidate.
 
 The roadmap has two different progress notions:
 
-- **Checklist progress**: currently 94 of 120 tracked roadmap checkboxes are
-  complete, or roughly 78.3%. This is useful for implementation accounting.
+- **Checklist progress**: currently 95 of 120 tracked roadmap checkboxes are
+  complete, or roughly 79.2%. This is useful for implementation accounting.
 - **Claim progress**: broad v1 claims are closer to 40-45% complete because
   the remaining items include public generalized fitting, Stan comparisons,
   broader recovery simulations and a public-scope release decision.
@@ -682,7 +682,7 @@ TODO:
     direct constraints, pointwise log likelihood, WAIC-ready log-likelihood
     matrices, and a guarded local fit artifact while keeping public MGMFRM fit
     disabled.
-- [ ] Implement identification declarations: sum-to-zero, reference, fixed,
+- [x] Implement identification declarations: sum-to-zero, reference, fixed,
   geometric-mean-one, hard anchors, soft anchors, and multidimensional gauge.
 - [x] Generate stable preview parameter names and block ranges for
   specified-only GMFRM/MGMFRM specs without enabling fitting.

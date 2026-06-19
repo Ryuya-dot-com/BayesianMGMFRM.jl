@@ -163,9 +163,10 @@ Current public API:
   categories, and weak item/category support.
 - `mfrm_spec`: a declarative specification object for the fit-supported
   minimal MFRM/RSM/PCM slice and specified-only GMFRM/MGMFRM configurations.
-- `model_ladder` and `constraint_table`: machine-readable scope, constraint,
-  transform, prior-block, and gauge declarations separating fit-supported
-  blocks from specified-only future blocks.
+- `model_ladder`, `constraint_table`, and `identification_declarations`:
+  machine-readable scope, constraint, transform, prior-block, hard/soft anchor,
+  and gauge declarations separating fit-supported blocks from specified-only
+  future blocks.
 - `model_equation`: source-traced mathematical contracts for the current MFRM
   slice and the planned GMFRM/MGMFRM targets, including primary-source links,
   required blocks, identification restrictions, and implementation gaps.
@@ -191,8 +192,8 @@ Current public API:
   previews.
 - `model_manifest`: serializable provenance metadata for data, specs, designs,
   and fits, including column roles, level maps, validation status, parameter
-  blocks, identification rules, constraint tables, prior-block declarations,
-  and fit diagnostics when available.
+  blocks, identification declarations, constraint tables, prior-block
+  declarations, and fit diagnostics when available.
 - `fit`, `MFRMPrior`, `MFRMFit`, `fit_metadata`, and `posterior_summary`:
   initial Bayesian fitting paths for the minimal MFRM/RSM/PCM design using
   `backend = :julia` for small random-walk validation examples or

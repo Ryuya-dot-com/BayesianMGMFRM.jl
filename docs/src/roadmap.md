@@ -92,8 +92,8 @@ public MGMFRM exposure still requires a separate release decision.
 
 ## Progress Ledger
 
-The repository roadmap currently has 94 of 120 tracked checklist items complete,
-or roughly 78.3% by simple implementation accounting. The stronger claim-level
+The repository roadmap currently has 95 of 120 tracked checklist items complete,
+or roughly 79.2% by simple implementation accounting. The stronger claim-level
 progress is lower, about 40-45%, because the remaining work includes public
 generalized fitting, Stan comparisons, broader recovery simulations,
 and a public-scope release decision for generalized claims.
@@ -229,16 +229,18 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   fixture, raw-coordinate transform checks, and fixture-only raw-coordinate
   log-likelihood / `LogDensityProblems.jl` target checks added; preview
   raw-parameterization manifest rows now expose raw/constrained block maps,
-  transform rows, raw prior policy, and no-Jacobian raw-density policy; scalar
-  GMFRM internal promotion-candidate gates, a fit-ready compiler-candidate
-  manifest, gradient diagnostics, direct block metadata, direct pointwise
-  fixture API, raw-to-direct transform diagnostics, internal raw/direct sampler
-  diagnostic surface, a local candidate-chain study artifact, an internal
-  experimental-public decision manifest, a local recovery-smoke artifact,
-  BridgeStan constrained parameter checks, fit-ready BridgeStan oracle checks,
-  a minimal confirmatory MGMFRM gauge-candidate manifest, and a separated
-  fit-ready MGMFRM candidate transform manifest plus confirmatory BridgeStan
-  oracle checks added]
+  transform rows, raw prior policy, and no-Jacobian raw-density policy;
+  normalized identification declarations now cover sum-to-zero, reference,
+  fixed, geometric-mean-one, hard/soft anchors, and multidimensional gauge
+  rows; scalar GMFRM internal promotion-candidate gates, a fit-ready
+  compiler-candidate manifest, gradient diagnostics, direct block metadata,
+  direct pointwise fixture API, raw-to-direct transform diagnostics, internal
+  raw/direct sampler diagnostic surface, a local candidate-chain study
+  artifact, an internal experimental-public decision manifest, a local
+  recovery-smoke artifact, BridgeStan constrained parameter checks, fit-ready
+  BridgeStan oracle checks, a minimal confirmatory MGMFRM gauge-candidate
+  manifest, and a separated fit-ready MGMFRM candidate transform manifest plus
+  confirmatory BridgeStan oracle checks added]
 - Add stable preview block names and parameter names for specified-only
   GMFRM/MGMFRM specs. [Done]
 - Align specified-only preview blocks with the primary-literature GMFRM and

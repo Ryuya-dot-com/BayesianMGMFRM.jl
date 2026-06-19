@@ -6,9 +6,10 @@ MFRM/RSM/PCM design. A guarded scalar GMFRM experimental path is also available
 for the one-dimensional rater-discrimination promotion candidate through
 `fit(spec; experimental = true)`. Broader GMFRM/MGMFRM fitting remains planned
 work, but specified-only GMFRM/MGMFRM configs can already be recorded in
-manifests and constraint tables. `getdesign(spec; preview = true)` can also
-compile a non-fit-ready parameter blueprint for those configurations, so future
-Bayesian checks can be added without changing the data layer.
+manifests, constraint tables, and identification declarations.
+`getdesign(spec; preview = true)` can also compile a non-fit-ready parameter
+blueprint for those configurations, so future Bayesian checks can be added
+without changing the data layer.
 
 ## Recommended Sequence
 
@@ -18,8 +19,9 @@ Bayesian checks can be added without changing the data layer.
 3. Inspect supported and specified-only model families with [`model_ladder`](@ref).
 4. Declare a minimal MFRM/RSM/PCM specification with [`mfrm_spec`](@ref), then
    inspect the source-traced mathematical contract with [`model_equation`](@ref),
-   constraints with [`constraint_table`](@ref), and the identified parameter
-   design with [`getdesign`](@ref).
+   constraints with [`constraint_table`](@ref), normalized identification
+   declarations with [`identification_declarations`](@ref), and the identified
+   parameter design with [`getdesign`](@ref).
    For specified-only GMFRM/MGMFRM review, use `getdesign(spec; preview = true)`,
    `design_row_table(spec; preview = true)`, and
    `linear_predictor_table(spec; preview = true)`. Use
@@ -92,8 +94,9 @@ smoothing or exact LOO refits. It also does not yet expose grouped
 cross-validation by person/item,
 power-scaling prior sensitivity, covariate terms, random slopes, generalized
 discrimination likelihoods, or multidimensional MGMFRM fitting. Specified-only
-GMFRM/MGMFRM rows in [`constraint_table`](@ref) are provenance and design-review
-data, not fitted likelihood terms.
+GMFRM/MGMFRM rows in [`constraint_table`](@ref) and
+[`identification_declarations`](@ref) are provenance and design-review data,
+not fitted likelihood terms.
 
 Until those pieces are added, treat [`waic`](@ref), [`waic_diagnostics`](@ref),
 [`loo`](@ref), [`loo_diagnostics`](@ref), [`compare_models`](@ref),

@@ -27,6 +27,7 @@ validate_design
 validation_suggestions
 mfrm_spec
 getdesign
+identification_declarations
 model_ladder
 model_manifest
 parameter_block_diagnostics

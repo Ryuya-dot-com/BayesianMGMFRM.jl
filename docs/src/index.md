@@ -12,7 +12,8 @@ The current public slice focuses on:
 - source-traced likelihood contracts via [`model_equation`](@ref);
 - specified-only GMFRM/MGMFRM configuration manifests and non-fit-ready preview
   designs via [`model_ladder`](@ref), [`constraint_table`](@ref),
-  [`getdesign`](@ref), and [`model_manifest`](@ref);
+  [`identification_declarations`](@ref), [`getdesign`](@ref), and
+  [`model_manifest`](@ref);
 - initial Bayesian fitting for the minimal identified design via [`fit`](@ref),
   [`cached_fit`](@ref), [`MFRMPrior`](@ref), [`fit_metadata`](@ref),
   [`fit_artifact`](@ref), and [`posterior_summary`](@ref), including a small
