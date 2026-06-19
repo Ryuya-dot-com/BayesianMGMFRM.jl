@@ -6254,6 +6254,194 @@ function expected_scores(fit::GMFRMFit;
     return _expected_scores_from_probabilities(probabilities, fit.design.spec.data.category_levels)
 end
 
+function _fair_average_groups(data::FacetData, by::Symbol)
+    by === :person && return data.person, data.person_levels
+    by === :rater && return data.rater, data.rater_levels
+    by === :item && return data.item, data.item_levels
+    throw(ArgumentError("fair_average_summary currently supports by = :person, :rater, or :item"))
+end
+
+function _fair_average_reference_rows(data::FacetData, by::Symbol, level_index::Int)
+    rows = NTuple{3,Int}[]
+    if by === :person
+        for rater in eachindex(data.rater_levels), item in eachindex(data.item_levels)
+            push!(rows, (level_index, rater, item))
+        end
+    elseif by === :rater
+        for person in eachindex(data.person_levels), item in eachindex(data.item_levels)
+            push!(rows, (person, level_index, item))
+        end
+    elseif by === :item
+        for person in eachindex(data.person_levels), rater in eachindex(data.rater_levels)
+            push!(rows, (person, rater, level_index))
+        end
+    else
+        throw(ArgumentError("fair_average_summary currently supports by = :person, :rater, or :item"))
+    end
+    return rows
+end
+
+function _hypothetical_mfrm_category_probabilities!(
+        probs::AbstractVector{Float64},
+        design::FacetDesign,
+        params::AbstractVector,
+        person::Int,
+        rater::Int,
+        item::Int)
+    length(probs) == length(design.spec.data.category_levels) ||
+        throw(ArgumentError("probability work vector has the wrong length"))
+    person_value = params[design.blocks[:person][person]]
+    rater_value = _reference_value(params, design.blocks[:rater], rater)
+    item_value = _reference_value(params, design.blocks[:item], item)
+    location = person_value - rater_value - item_value
+    step_sum = _param_zero(params)
+    for category_index in eachindex(probs)
+        if category_index > 1
+            step_sum += _threshold_step(design, params, item, category_index - 1)
+        end
+        probs[category_index] = Float64((category_index - 1) * location - step_sum)
+    end
+    return _softmax_eta!(probs)
+end
+
+function _hypothetical_mfrm_expected_score(
+        design::FacetDesign,
+        params::AbstractVector,
+        person::Int,
+        rater::Int,
+        item::Int,
+        probs::AbstractVector{Float64})
+    _hypothetical_mfrm_category_probabilities!(probs, design, params, person, rater, item)
+    expected = 0.0
+    for category_index in eachindex(probs)
+        expected += Float64(design.spec.data.category_levels[category_index]) *
+            probs[category_index]
+    end
+    return expected
+end
+
+function _fair_average_by_draw(
+        design::FacetDesign,
+        draws::AbstractMatrix,
+        reference_rows::AbstractVector{<:Tuple{Int,Int,Int}})
+    !isempty(reference_rows) ||
+        throw(ArgumentError("fair_average_summary reference grid is empty"))
+    out = Vector{Float64}(undef, size(draws, 1))
+    probs = zeros(Float64, length(design.spec.data.category_levels))
+    for draw in axes(draws, 1)
+        params = @view draws[draw, :]
+        total = 0.0
+        for (person, rater, item) in reference_rows
+            total += _hypothetical_mfrm_expected_score(
+                design,
+                params,
+                person,
+                rater,
+                item,
+                probs,
+            )
+        end
+        out[draw] = total / length(reference_rows)
+    end
+    return out
+end
+
+"""
+    fair_average_summary(fit::MFRMFit; by = :person, interval = 0.95,
+        min_n = 1, ndraws = nothing, draw_indices = nothing,
+        rng = Random.default_rng())
+    fair_average_summary(design::FacetDesign, draws; by = :person,
+        interval = 0.95, min_n = 1)
+
+Return posterior fair-average expected-score summaries for a focal MFRM facet.
+Rows use an equal-weight balanced reference grid over the non-focal core
+facets, so `by = :person` averages each person over all observed raters and
+items, `by = :rater` averages each rater over all persons and items, and
+`by = :item` averages each item over all persons and raters. Rows include the
+observed mean score for the focal level, fair-average and expected-score
+intervals, the fair-minus-observed adjustment, and a caveat that the balanced
+grid is a reporting standardization rather than a population-weighted target.
+"""
+function fair_average_summary(design::FacetDesign,
+        draws::AbstractMatrix;
+        by::Symbol = :person,
+        interval::Real = 0.95,
+        min_n::Int = 1)
+    _check_fit_supported_mfrm(design, "fair_average_summary")
+    min_n >= 1 || throw(ArgumentError("min_n must be positive"))
+    size(draws, 1) >= 1 ||
+        throw(ArgumentError("fair_average_summary requires at least one posterior draw"))
+    size(draws, 2) == length(design.parameter_names) ||
+        throw(ArgumentError("draws has $(size(draws, 2)) column(s); expected $(length(design.parameter_names))"))
+    all(value -> isfinite(Float64(value)), draws) ||
+        throw(ArgumentError("draws contain non-finite values"))
+
+    lower_probability, upper_probability = _interval_probabilities(interval)
+    data = design.spec.data
+    group_index, group_levels = _fair_average_groups(data, by)
+    rows = NamedTuple[]
+    for (level_index, level) in pairs(group_levels)
+        observations = findall(==(level_index), group_index)
+        observed_mean = _mean_at_indices(data.score, observations)
+        reference_rows = _fair_average_reference_rows(data, by, level_index)
+        fair_by_draw = _fair_average_by_draw(design, draws, reference_rows)
+        adjustment_by_draw = fair_by_draw .- observed_mean
+        fair_summary = _finite_draw_summary(
+            fair_by_draw,
+            lower_probability,
+            upper_probability,
+        )
+        adjustment_summary = _finite_draw_summary(
+            adjustment_by_draw,
+            lower_probability,
+            upper_probability,
+        )
+        n_observations = length(observations)
+        push!(rows, (;
+            facet = by,
+            level,
+            n_observations,
+            n_reference_rows = length(reference_rows),
+            n_draws = size(draws, 1),
+            method = :posterior_expected_score,
+            reference = :balanced_facet_grid,
+            interval_probability = Float64(interval),
+            lower_probability,
+            upper_probability,
+            observed_mean,
+            fair_average_mean = fair_summary.mean,
+            fair_average_median = fair_summary.median,
+            fair_average_lower = fair_summary.lower,
+            fair_average_upper = fair_summary.upper,
+            expected_score_mean = fair_summary.mean,
+            expected_score_median = fair_summary.median,
+            expected_score_lower = fair_summary.lower,
+            expected_score_upper = fair_summary.upper,
+            adjustment_mean = adjustment_summary.mean,
+            adjustment_median = adjustment_summary.median,
+            adjustment_lower = adjustment_summary.lower,
+            adjustment_upper = adjustment_summary.upper,
+            caveat = :balanced_reference_grid_not_population_standardization,
+            flag = n_observations < min_n ? :below_min_n : :ok,
+        ))
+    end
+    return rows
+end
+
+function fair_average_summary(fit::MFRMFit;
+        by::Symbol = :person,
+        interval::Real = 0.95,
+        min_n::Int = 1,
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    return fair_average_summary(fit.design, fit.draws[indices, :];
+        by,
+        interval,
+        min_n)
+end
+
 function _predictive_variances_from_probabilities(probabilities::AbstractArray{<:Real,3},
         levels::AbstractVector{<:Real})
     expected = _expected_scores_from_probabilities(probabilities, levels)
