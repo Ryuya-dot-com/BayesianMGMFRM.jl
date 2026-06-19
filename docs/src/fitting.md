@@ -128,6 +128,7 @@ fit_stats(fit_result; by = :rater)
 posterior_predict(fit_result; ndraws = 100)
 ppc = posterior_predictive_check(fit_result; ndraws = 100)
 predictive_check_summary(ppc)
+predictive_check_summary(ppc; include_grouped = true)
 
 truth = initial_params(getdesign(spec); value = 0.0)
 simulated = simulate_responses(spec, truth; rng = MersenneTwister(20260621))
@@ -195,7 +196,10 @@ aggregates R-hat/ESS rows for person, rater, item, and threshold blocks. The cur
 posterior predictive checks return compact observed-vs-replicated summaries for
 overall mean score, category proportions, person-level mean scores, rater-level
 mean scores, item-level mean scores, and optional facet mean scores;
-prior predictive checks also return implication diagnostics for category
+predictive-check objects also carry grouped DFF-cell and observed
+sparse-design-block summaries for report expansion with
+`predictive_check_summary(...; include_grouped = true)`. Prior predictive
+checks also return implication diagnostics for category
 nonuse/sparsity and broad facet mean-score ranges before fitting.
 `predictive_check_summary` turns those checks into rows with replicated
 intervals and tail probabilities.
