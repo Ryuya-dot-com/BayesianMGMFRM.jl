@@ -355,8 +355,8 @@ rater-discrimination candidate.
 
 The roadmap has two different progress notions:
 
-- **Checklist progress**: currently 112 of 120 tracked roadmap checkboxes are
-  complete, or roughly 93.3%. This is useful for implementation accounting.
+- **Checklist progress**: currently 113 of 120 tracked roadmap checkboxes are
+  complete, or roughly 94.2%. This is useful for implementation accounting.
 - **Claim progress**: broad v1 claims are closer to 40-45% complete because
   the remaining items include public generalized fitting, Stan comparisons,
   broader recovery simulations and a public-scope release decision.
@@ -368,7 +368,10 @@ diagnostics, an internal raw/direct AdvancedHMC sampler diagnostic surface, and
 an internal fit-ready compiler-candidate manifest. The scalar GMFRM candidate
 also has a BridgeStan fit-ready oracle block for raw, constrained, gradient,
 pointwise, and total-likelihood checks, plus a predeclared local candidate-chain
-study artifact over two fixed initial-value fixtures. It also records an
+study artifact over two fixed initial-value fixtures. The committed small and
+medium scalar Stan/BridgeStan log-density and gradient fixtures now have
+machine-readable validation rows and a gate summary via `stan_validation_row`
+and `stan_validation_summary`. It also records an
 experimental-public decision manifest whose current decision is
 `enable_guarded_experimental` for the scalar rater-discrimination path. It now
 has local recovery-smoke evidence by direct parameter
@@ -778,9 +781,11 @@ TODO:
   and recovery helpers now cover specified-only GMFRM/MGMFRM preview designs
   and guarded fit objects on constrained direct or raw candidate coordinates;
   broad public generalized fitting remains gated.]
-- [ ] Validate against Stan on small and medium fixtures before scaling.
-  [Small and medium scalar validation fixtures are committed; generalized
-  small/medium GMFRM/MGMFRM fit comparisons remain planned.]
+- [x] Validate against Stan on small and medium fixtures before scaling.
+  [Small and medium scalar Stan/BridgeStan log-density and gradient fixtures
+  are committed, checked by tests, and exposed through `stan_validation_row`
+  and `stan_validation_summary`; broader generalized Stan fit comparisons
+  remain a separate claim-level validation item.]
 
 Gate: scalar GMFRM and one minimal MGMFRM configuration pass convergence,
 recovery, and Stan-comparison checks on predeclared sparse designs.

@@ -74,14 +74,16 @@ The current public slice focuses on:
   [`domain_compilation_summary`](@ref), [`design_row_table`](@ref),
   [`linear_predictor_table`](@ref), [`threshold_map_data`](@ref),
   [`wright_map_data`](@ref), and [`dff_report`](@ref);
-- test-suite validation against small/medium Julia/BridgeStan scalar fixtures
-  and internal hand-computed source-aligned GMFRM/MGMFRM preview fixtures, including
-  raw-coordinate transforms for source identification restrictions and
-  fixture-only raw-coordinate log-likelihood / log-density target checks, plus
-  local scalar GMFRM BridgeStan-oracle, candidate-chain, stress-chain, and
-  recovery-smoke evidence for the private promotion candidate, and an internal
-  confirmatory MGMFRM gauge manifest with BridgeStan confirmatory-candidate and
-  local candidate-chain/recovery-smoke evidence.
+- test-suite validation against small/medium Julia/BridgeStan scalar fixtures,
+  exposed as [`stan_validation_row`](@ref) and
+  [`stan_validation_summary`](@ref), and internal hand-computed
+  source-aligned GMFRM/MGMFRM preview fixtures, including raw-coordinate
+  transforms for source identification restrictions and fixture-only
+  raw-coordinate log-likelihood / log-density target checks, plus local scalar
+  GMFRM BridgeStan-oracle, candidate-chain, stress-chain, and recovery-smoke
+  evidence for the private promotion candidate, and an internal confirmatory
+  MGMFRM gauge manifest with BridgeStan confirmatory-candidate and local
+  candidate-chain/recovery-smoke evidence.
 
 Stan/CmdStan sampling, PSIS-smoothed or exact LOO, generalized discrimination
 likelihoods, group/DFF model terms, and Multidimensional Generalized

@@ -97,8 +97,8 @@ public MGMFRM exposure still requires a separate release decision.
 
 ## Progress Ledger
 
-The repository roadmap currently has 112 of 120 tracked checklist items complete,
-or roughly 93.3% by simple implementation accounting. The stronger claim-level
+The repository roadmap currently has 113 of 120 tracked checklist items complete,
+or roughly 94.2% by simple implementation accounting. The stronger claim-level
 progress is lower, about 40-45%, because the remaining work includes public
 generalized fitting, Stan comparisons, broader recovery simulations,
 and a public-scope release decision for generalized claims.
@@ -110,7 +110,10 @@ diagnostics, an internal raw/direct AdvancedHMC sampler diagnostic surface, and
 an internal fit-ready compiler-candidate manifest. It also has a BridgeStan
 fit-ready oracle block for raw, constrained, gradient, pointwise, and
 total-likelihood checks, plus a local predeclared candidate-chain study artifact
-over two fixed initial-value fixtures. It also records an internal
+over two fixed initial-value fixtures. The committed small and medium scalar
+Stan/BridgeStan log-density and gradient fixtures now have machine-readable
+validation rows and a gate summary via [`stan_validation_row`](@ref) and
+[`stan_validation_summary`](@ref). It also records an internal
 experimental-public decision manifest whose current scalar decision is
 `enable_guarded_experimental`.
 It now has local recovery-smoke evidence by direct parameter block, a local
@@ -303,8 +306,10 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   guarded scalar GMFRM method wiring, and swappable AdvancedHMC gradient
   adapter checks done]
 - Validate against Stan on small and medium fixtures. [Small and medium scalar
-  validation fixtures are committed; generalized small/medium GMFRM/MGMFRM fit
-  comparisons remain planned]
+  Stan/BridgeStan log-density and gradient fixtures are committed, checked by
+  tests, and exposed through [`stan_validation_row`](@ref) and
+  [`stan_validation_summary`](@ref); broader generalized Stan fit comparisons
+  remain a separate claim-level validation item]
 
 ### v0.4 Bayesian Workflow Layer
 

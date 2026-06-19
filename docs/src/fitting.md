@@ -24,7 +24,11 @@ internal fixture evidence without silently fitting the wrong likelihood.
 The scalar GMFRM promotion candidate is internal. Its source-aligned Julia
 fixture, BridgeStan oracle, direct-parameter checks, candidate-chain artifact,
 and recovery-smoke artifact are evidence for the private candidate, not a public
-prior contract for arbitrary GMFRM variants. The local guarded-exposure review
+prior contract for arbitrary GMFRM variants. The committed small and medium
+scalar Stan/BridgeStan log-density and gradient fixtures can be summarized with
+[`stan_validation_row`](@ref) and [`stan_validation_summary`](@ref); that gate
+is scalar fixture evidence, not a public generalized Stan-fit comparison. The
+local guarded-exposure review
 now records the fit API dry-run contract, the guarded method-wiring artifact,
 the experimental fit validation grid, the posterior predictive grid, and the
 sparse-pathology recovery grid plus the prior/likelihood sensitivity grid; the

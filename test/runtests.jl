@@ -88,6 +88,8 @@ using BayesianMGMFRM:
     sampler_diagnostics,
     save_fit_cache,
     simulate_responses,
+    stan_validation_row,
+    stan_validation_summary,
     sensitivity_comparison,
     separation_reliability_summary,
     threshold_map_data,
@@ -6165,9 +6167,30 @@ function check_scalar_validation_stan_pair(known_fixture_path::AbstractString,
     @test Vector{Float64}(stan[:x]) == x
     @test length(Vector{String}(stan[:stan_parameter_order])) == length(x)
     stan_tol = Float64(stan[:tolerance])
+    stan_lp = Float64(stan[:stan_log_density])
+    stan_gradient = Vector{Float64}(stan[:stan_gradient])
     @test lp ≈ Float64(stan[:stan_log_density]) atol = stan_tol rtol = stan_tol
-    @test maximum(abs.(gradient .- Vector{Float64}(stan[:stan_gradient]))) <
-        max(stan_tol, 1e-9)
+    @test maximum(abs.(gradient .- stan_gradient)) < max(stan_tol, 1e-9)
+    validation_row = stan_validation_row(fd, x, stan_lp;
+        stan_gradient,
+        tolerance = stan_tol,
+        label = expected_size === nothing ? :scalar_validation : Symbol("scalar_", expected_size),
+        size = expected_size === nothing ? nothing : Symbol(expected_size),
+        known_log_density = Float64(known[:log_density]),
+        known_gradient = Vector{Float64}(known[:gradient]),
+        known_tolerance = known_tol,
+        fixture_path = relpath(stan_fixture_path, dirname(@__DIR__)),
+        known_fixture_path = relpath(known_fixture_path, dirname(@__DIR__)),
+        stan_model = String(stan[:stan_model]),
+        fixture_sha256 = file_sha256(stan_fixture_path),
+        known_fixture_sha256 = file_sha256(known_fixture_path),
+        stan_model_sha256 = String(stan[:stan_model_sha256]),
+    )
+    @test validation_row.passed
+    @test validation_row.gradient_checked
+    @test validation_row.known_gradient_checked
+    @test validation_row.n_observations == fd.N
+    @test validation_row.n_parameters == length(x)
     return (;
         known,
         stan,
@@ -6175,6 +6198,7 @@ function check_scalar_validation_stan_pair(known_fixture_path::AbstractString,
         x,
         log_density = lp,
         gradient,
+        validation_row,
     )
 end
 
@@ -6199,6 +6223,7 @@ end
             :load_fit_cache, :rater_diagnostics, :rater_overlap, :residual_summary,
             :sampler_diagnostics, :save_fit_cache,
             :sensitivity_comparison, :separation_reliability_summary, :simulate_responses,
+            :stan_validation_row, :stan_validation_summary,
             :threshold_map_data, :validation_suggestions, :evidence_metadata,
             :waic, :waic_diagnostics, :wright_map_data)
         @test has_doc(BayesianMGMFRM, name)
@@ -11777,6 +11802,24 @@ end
     @test lp ≈ stan_lp atol = stan_tol rtol = stan_tol
     @test maximum(abs.(g_analytic .- stan_gradient)) < stan_tol
     @test LogDensityProblems.logdensity(ScalarValidationLogDensity(fd), x) ≈ lp atol = 1e-10 rtol = 1e-10
+    small_stan_row = stan_validation_row(fd, x, stan_lp;
+        stan_gradient,
+        tolerance = stan_tol,
+        label = :scalar_small,
+        size = :small,
+        known_log_density = expected_lp,
+        known_gradient = expected_gradient,
+        known_tolerance = fixture_tol,
+        fixture_path = relpath(stan_fixture_path, dirname(@__DIR__)),
+        known_fixture_path = relpath(fixture_path, dirname(@__DIR__)),
+        stan_model = String(stan_fixture[:stan_model]),
+        fixture_sha256 = file_sha256(stan_fixture_path),
+        known_fixture_sha256 = file_sha256(fixture_path),
+        stan_model_sha256 = String(stan_fixture[:stan_model_sha256]),
+    )
+    @test small_stan_row.passed
+    @test small_stan_row.log_density_abs_error == 0.0
+    @test small_stan_row.gradient_max_abs_error < stan_tol
 
     medium_pair = check_scalar_validation_stan_pair(
         joinpath(@__DIR__, "fixtures", "scalar_validation_medium_known_value.json"),
@@ -11788,6 +11831,24 @@ end
     @test medium_pair.data.N > fd.N
     @test medium_pair.data.J > fd.J
     @test medium_pair.log_density < lp
+    stan_gate_summary = stan_validation_summary(small_stan_row, medium_pair.validation_row)
+    @test stan_gate_summary.passed
+    @test stan_gate_summary.n_rows == 2
+    @test stan_gate_summary.n_passed_rows == 2
+    @test stan_gate_summary.required_sizes == (:medium, :small)
+    @test stan_gate_summary.observed_sizes == (:medium, :small)
+    @test stan_gate_summary.missing_required_sizes == ()
+    @test stan_gate_summary.all_gradient_checked
+    @test stan_gate_summary.max_log_density_abs_error <= stan_tol
+    @test stan_gate_summary.max_gradient_abs_error < max(stan_tol, 1e-9)
+    @test stan_gate_summary.generalized_fit_comparison_status === :not_claimed
+    incomplete_stan_gate_summary = stan_validation_summary(small_stan_row)
+    @test !incomplete_stan_gate_summary.passed
+    @test incomplete_stan_gate_summary.missing_required_sizes == (:medium,)
+    @test_throws ArgumentError stan_validation_row(fd, x[1:end-1], stan_lp)
+    @test_throws ArgumentError stan_validation_row(fd, x, stan_lp;
+        stan_gradient = stan_gradient[1:end-1])
+    @test_throws ArgumentError stan_validation_summary(NamedTuple[])
 
     decoded = scalar_validation_decode(x, fd)
     @test size(decoded.theta) == (1, fd.J)
