@@ -259,8 +259,9 @@ Current public API:
   item, score, optional facet labels, raw-importance effective sample sizes,
   and Pareto-k flags when fitted objects are supplied.
 - `compare_models`: WAIC- or raw importance-sampling LOO-based comparison rows,
-  including relative weights, for fitted models fit to the same observation
-  data in the same row order.
+  including relative weights and model-contract fields, for fitted models that
+  share the same observation data, row order, ordinal categories, latent
+  dimensions, and fixed Q-matrix contract.
 - `posterior_predict` and `posterior_predictive_check`: posterior replicated
   score generation plus compact observed-vs-replicated summaries for mean
   scores, category proportions, person means, rater means, item means, and

@@ -217,7 +217,10 @@ high-variance rows. `compare_models` ranks fitted models by WAIC-derived
 expected log predictive density, including an Akaike-style `relative_weight`
 for same-data candidate models. Because the comparison uses pointwise
 differences, `compare_models` requires the same observation data in the same
-row order. Observation-level
+row order, ordinal category levels, latent dimensionality, and fixed Q-matrix
+contract; returned rows include the checked model family, thresholds,
+discrimination mode, dimensionality, Q-matrix, and data signature.
+Observation-level
 predictive probabilities, expected scores,
 variances, and residuals are exposed as the substrate for calibration,
 infit/outfit, and further model-comparison helpers. `calibration_table` bins

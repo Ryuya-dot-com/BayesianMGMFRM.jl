@@ -120,4 +120,7 @@ Until those pieces are added, treat [`waic`](@ref), [`waic_diagnostics`](@ref),
 [`fit_stats`](@ref) as small-model workflow scaffolding rather than a complete
 production Bayesian model-comparison stack. The `relative_weight` returned by
 [`compare_models`](@ref) is an Akaike-style weight for candidate models fit to
-the same observation data, not a posterior model probability.
+the same observation data, not a posterior model probability. `compare_models`
+also checks the comparison contract up front: observation data and row order,
+ordinal category levels, latent dimensionality, and any fixed Q-matrix must
+match, and the returned rows carry those contract fields for reporting.
