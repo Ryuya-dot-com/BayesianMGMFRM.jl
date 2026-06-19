@@ -51,8 +51,9 @@ The current public slice focuses on:
   residuals via [`predictive_probabilities`](@ref), [`expected_scores`](@ref),
   [`predictive_variances`](@ref), and [`predictive_residuals`](@ref);
 - posterior infit/outfit summaries by facet level via [`fit_stats`](@ref);
-- WAIC and raw importance-sampling LOO model-comparison and sensitivity rows
-  via [`waic`](@ref), [`loo`](@ref), [`compare_models`](@ref), and
+- WAIC, raw importance-sampling LOO, and supplied heldout K-fold
+  model-comparison and sensitivity rows via [`waic`](@ref), [`loo`](@ref),
+  [`kfold`](@ref), [`compare_models`](@ref), [`compare_kfold`](@ref), and
   [`sensitivity_comparison`](@ref);
 - fit-independent reporting data via [`coverage_summary`](@ref),
   [`coverage_matrix`](@ref), [`rater_overlap`](@ref),

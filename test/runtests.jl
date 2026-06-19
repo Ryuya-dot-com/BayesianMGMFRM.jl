@@ -15,6 +15,7 @@ using BayesianMGMFRM:
     artifact_content_hash,
     calibration_plot_data,
     cached_fit,
+    compare_kfold,
     compare_models,
     constraint_table,
     coverage_matrix,
@@ -31,6 +32,7 @@ using BayesianMGMFRM:
     getdesign,
     identification_declarations,
     initial_params,
+    kfold,
     ScalarValidationData,
     ScalarValidationAnalyticLogDensity,
     ScalarValidationContrastLogDensity,
@@ -6176,10 +6178,10 @@ end
             :fit_ready_parameter_layout, :fit_stats,
             :identification_declarations,
             :initial_params, :loglikelihood, :logposterior, :logprior,
-            :loo, :loo_diagnostics,
+            :kfold, :loo, :loo_diagnostics,
             :linear_predictor_table, :linear_predictor_values,
             :calibration_table, :diagnostics,
-            :compare_models, :coverage_matrix, :coverage_summary, :design_row_table, :validate_design, :mcmc_diagnostics, :mfrm_spec, :getdesign,
+            :compare_kfold, :compare_models, :coverage_matrix, :coverage_summary, :design_row_table, :validate_design, :mcmc_diagnostics, :mfrm_spec, :getdesign,
             :model_equation, :model_ladder, :model_manifest, :parameter_block_diagnostics,
             :parameter_recovery, :parameter_recovery_plot_data, :parameter_recovery_summary,
             :pointwise_loglikelihood, :pointwise_loglikelihood_matrix, :posterior_predict,
@@ -10006,6 +10008,130 @@ end
     @test_throws ArgumentError loo(loo_loglik; pareto_k_threshold = -0.1)
     @test_throws ArgumentError loo(loo_loglik; tail_fraction = 1.0)
     @test_throws ArgumentError loo(loo_loglik; min_tail_draws = 0)
+
+    kfold_folds = [llmat[1:3, 1:2], llmat[4:6, 3:data.n]]
+    kfold_observation_indices = [1:2, 3:data.n]
+    kfold_result = kfold(kfold_folds;
+        fold_ids = [:fold_a, :fold_b],
+        observation_indices = kfold_observation_indices)
+    manual_kfold_elpd = Float64[]
+    for fold_loglik in kfold_folds
+        for heldout_index in axes(fold_loglik, 2)
+            push!(manual_kfold_elpd,
+                test_logsumexp(@view fold_loglik[:, heldout_index]) -
+                log(size(fold_loglik, 1)))
+        end
+    end
+    manual_kfoldic = -2 .* manual_kfold_elpd
+    @test kfold_result.criterion === :kfold
+    @test kfold_result.method === :heldout_refit_log_score
+    @test kfold_result.prediction_target === :heldout_observation_log_score
+    @test kfold_result.n_folds == 2
+    @test kfold_result.n_observations == data.n
+    @test kfold_result.n_draws_by_fold == [3, 3]
+    @test kfold_result.n_heldout_by_fold == [2, data.n - 2]
+    @test kfold_result.folds == [:fold_a, :fold_b]
+    @test kfold_result.observation_indices == collect(1:data.n)
+    @test kfold_result.pointwise.elpd_heldout ≈ manual_kfold_elpd
+    @test kfold_result.pointwise.kfoldic ≈ manual_kfoldic
+    @test kfold_result.pointwise.fold ==
+        vcat(fill(:fold_a, 2), fill(:fold_b, data.n - 2))
+    @test kfold_result.pointwise.observation == collect(1:data.n)
+    @test kfold_result.elpd_kfold ≈ sum(manual_kfold_elpd)
+    @test kfold_result.kfoldic ≈ sum(manual_kfoldic)
+    @test kfold_result.kfoldic ≈ -2 * kfold_result.elpd_kfold
+    @test kfold_result.se_kfoldic ≈ 2 * kfold_result.se_elpd_kfold
+    @test kfold_result.warning === :ok
+    single_fold_kfold = kfold(llmat[1:3, 1:2];
+        fold_ids = [:only],
+        observation_indices = [:obs1, :obs2])
+    @test single_fold_kfold.n_folds == 1
+    @test single_fold_kfold.folds == [:only]
+    @test single_fold_kfold.observation_indices == [:obs1, :obs2]
+
+    shifted_kfold = kfold([fold_loglik .- 0.5 for fold_loglik in kfold_folds];
+        fold_ids = [:fold_a, :fold_b],
+        observation_indices = kfold_observation_indices)
+    kfold_comparison = compare_kfold(:main => kfold_result, :shifted => shifted_kfold)
+    @test length(kfold_comparison) == 2
+    @test [row.model for row in kfold_comparison] == ["main", "shifted"]
+    @test [row.rank for row in kfold_comparison] == [1, 2]
+    @test all(row -> row.criterion === :kfold, kfold_comparison)
+    @test all(row -> row.comparison_contract ===
+        :same_heldout_observation_folds, kfold_comparison)
+    @test all(row -> row.method === :heldout_refit_log_score, kfold_comparison)
+    @test all(row -> row.prediction_target === :heldout_observation_log_score,
+        kfold_comparison)
+    @test kfold_comparison[1].elpd_difference ≈ 0.0
+    @test kfold_comparison[1].kfoldic_difference ≈ 0.0
+    @test kfold_comparison[2].elpd_difference ≈ -0.5 * data.n
+    @test kfold_comparison[2].kfoldic_difference ≈ data.n
+    @test sum(row.relative_weight for row in kfold_comparison) ≈ 1.0
+    @test kfold_comparison[1].relative_weight >= kfold_comparison[2].relative_weight
+    @test all(row -> row.n_folds == 2, kfold_comparison)
+    @test all(row -> row.n_observations == data.n, kfold_comparison)
+    @test all(row -> row.n_draws_by_fold == [3, 3], kfold_comparison)
+    @test all(row -> row.n_heldout_by_fold == [2, data.n - 2], kfold_comparison)
+    @test all(row -> row.folds == [:fold_a, :fold_b], kfold_comparison)
+    @test all(row -> row.observation_indices == collect(1:data.n), kfold_comparison)
+    kfold_stats = Dict("main" => kfold_result, "shifted" => shifted_kfold)
+    best_kfold_stat = kfold_stats[kfold_comparison[1].model]
+    best_kfold_elpd = best_kfold_stat.elpd_kfold
+    manual_kfold_weights = Dict(
+        name => exp(stat.elpd_kfold - best_kfold_elpd)
+        for (name, stat) in kfold_stats
+    )
+    manual_kfold_weight_total = sum(values(manual_kfold_weights))
+    for row in kfold_comparison
+        stat = kfold_stats[row.model]
+        pointwise_difference = stat.pointwise.elpd_heldout .-
+            best_kfold_stat.pointwise.elpd_heldout
+        @test row.elpd_kfold ≈ stat.elpd_kfold
+        @test row.elpd_difference ≈ stat.elpd_kfold - best_kfold_stat.elpd_kfold
+        @test row.se_elpd_difference ≈
+            sqrt(length(pointwise_difference) *
+                test_sample_variance(pointwise_difference))
+        @test row.se_elpd_kfold ≈ stat.se_elpd_kfold
+        @test row.kfoldic ≈ stat.kfoldic
+        @test row.kfoldic_difference ≈ stat.kfoldic - best_kfold_stat.kfoldic
+        @test row.se_kfoldic ≈ stat.se_kfoldic
+        @test row.relative_weight ≈
+            manual_kfold_weights[row.model] / manual_kfold_weight_total
+        @test row.warning === stat.warning
+    end
+    named_kfold_comparison = compare_kfold(kfold_result, shifted_kfold;
+        names = [:main, :shifted])
+    @test [row.model for row in named_kfold_comparison] ==
+        [row.model for row in kfold_comparison]
+    @test [row.kfoldic for row in named_kfold_comparison] ≈
+        [row.kfoldic for row in kfold_comparison]
+    mismatched_kfold_observations = kfold(kfold_folds;
+        fold_ids = [:fold_a, :fold_b],
+        observation_indices = reverse(collect(1:data.n)))
+    mismatched_kfold_folds = kfold(kfold_folds;
+        fold_ids = [:fold_b, :fold_a],
+        observation_indices = kfold_observation_indices)
+    @test_throws ArgumentError kfold(Any[kfold_folds[1], [1, 2, 3]])
+    @test_throws ArgumentError kfold([zeros(0, 1)])
+    @test_throws ArgumentError kfold([0.0 Inf; 1.0 2.0])
+    @test_throws ArgumentError kfold(kfold_folds; fold_ids = [:only])
+    @test_throws ArgumentError kfold(kfold_folds; fold_ids = [:dup, :dup])
+    @test_throws ArgumentError kfold(kfold_folds; observation_indices = [1, 2])
+    @test_throws ArgumentError kfold(kfold_folds;
+        observation_indices = vcat(1:(data.n - 1), data.n - 1))
+    @test_throws ArgumentError kfold(kfold_folds; observation_indices = [1:1, 3:data.n])
+    @test_throws ArgumentError compare_kfold()
+    @test_throws ArgumentError compare_kfold(kfold_result)
+    @test_throws ArgumentError compare_kfold(kfold_result, shifted_kfold;
+        names = [:only])
+    @test_throws ArgumentError compare_kfold(kfold_result, shifted_kfold;
+        names = [:dup, :dup])
+    @test_throws ArgumentError compare_kfold(:main => kfold_result,
+        :bad => mismatched_kfold_observations)
+    @test_throws ArgumentError compare_kfold(:main => kfold_result,
+        :bad => mismatched_kfold_folds)
+    @test_throws ArgumentError compare_kfold(:bad => waic_result,
+        :good => kfold_result)
 
     waic_rows = waic_diagnostics(result; draw_indices = [1, 2, 3])
     @test length(waic_rows) == data.n

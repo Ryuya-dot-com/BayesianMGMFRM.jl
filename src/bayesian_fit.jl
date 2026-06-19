@@ -388,6 +388,7 @@ end
 
 const _ModelComparisonFit = Union{MFRMFit,GMFRMFit,MGMFRMFit}
 const _MODEL_COMPARISON_CONTRACT = :same_observation_data_same_latent_dimensions
+const _KFOLD_COMPARISON_CONTRACT = :same_heldout_observation_folds
 
 function Base.show(io::IO, fit::GMFRMFit)
     print(io, "GMFRMFit(",
@@ -4958,6 +4959,148 @@ function loo(fit::MGMFRMFit;
     return loo(fit.direct_pointwise_loglikelihood[indices, :]; kwargs...)
 end
 
+function _check_kfold_loglik(loglik::AbstractMatrix, fold_index::Int)
+    n_draws, n_heldout = size(loglik)
+    n_draws >= 1 ||
+        throw(ArgumentError("K-fold fold $fold_index requires at least one posterior draw"))
+    n_heldout >= 1 ||
+        throw(ArgumentError("K-fold fold $fold_index requires at least one heldout observation"))
+    all(value -> isfinite(Float64(value)), loglik) ||
+        throw(ArgumentError("K-fold fold $fold_index contains non-finite log-likelihood values"))
+    return n_draws, n_heldout
+end
+
+function _kfold_fold_ids(n_folds::Int, fold_ids)
+    if fold_ids === nothing
+        return collect(1:n_folds)
+    end
+    collected = collect(fold_ids)
+    length(collected) == n_folds ||
+        throw(ArgumentError("fold_ids has length $(length(collected)); expected $n_folds"))
+    length(unique(collected)) == length(collected) ||
+        throw(ArgumentError("fold_ids must be unique"))
+    return Any[collected...]
+end
+
+function _kfold_observation_indices(
+        n_heldout_by_fold::AbstractVector{Int},
+        observation_indices)
+    total_heldout = sum(n_heldout_by_fold)
+    if observation_indices === nothing
+        return collect(1:total_heldout)
+    end
+
+    collected = collect(observation_indices)
+    if length(collected) == length(n_heldout_by_fold) &&
+            all(index_set -> index_set isa AbstractVector, collected)
+        out = Any[]
+        for (fold_index, index_set) in pairs(collected)
+            fold_indices = collect(index_set)
+            expected = n_heldout_by_fold[fold_index]
+            length(fold_indices) == expected ||
+                throw(ArgumentError(
+                    "observation_indices for fold $fold_index has length " *
+                    "$(length(fold_indices)); expected $expected"))
+            append!(out, fold_indices)
+        end
+        length(unique(out)) == length(out) ||
+            throw(ArgumentError("observation_indices must be unique across folds"))
+        return out
+    end
+
+    length(collected) == total_heldout ||
+        throw(ArgumentError(
+            "observation_indices has length $(length(collected)); expected $total_heldout"))
+    length(unique(collected)) == length(collected) ||
+        throw(ArgumentError("observation_indices must be unique across folds"))
+    return Any[collected...]
+end
+
+"""
+    kfold(fold_logliks; fold_ids = nothing, observation_indices = nothing)
+    kfold(loglik::AbstractMatrix; fold_ids = nothing, observation_indices = nothing)
+
+Summarize heldout K-fold log predictive density from fold-specific refits. Each
+fold log-likelihood matrix must be draws-by-heldout-observations and contain
+posterior pointwise log-likelihood draws for observations that were not used to
+fit that fold. The returned named tuple includes `elpd_kfold`, `kfoldic`,
+standard errors, fold sizes, observation identifiers, and pointwise heldout
+components.
+
+This helper does not refit models or build folds. Use it to record exact
+heldout-refit or K-fold follow-up evidence after fitting each training fold.
+"""
+function kfold(fold_logliks::Union{Tuple,AbstractVector};
+        fold_ids = nothing,
+        observation_indices = nothing)
+    matrices = collect(fold_logliks)
+    n_folds = length(matrices)
+    n_folds >= 1 || throw(ArgumentError("K-fold requires at least one fold"))
+    all(matrix -> matrix isa AbstractMatrix, matrices) ||
+        throw(ArgumentError("K-fold inputs must be log-likelihood matrices"))
+
+    n_draws_by_fold = Int[]
+    n_heldout_by_fold = Int[]
+    for (fold_index, matrix) in pairs(matrices)
+        n_draws, n_heldout = _check_kfold_loglik(matrix, fold_index)
+        push!(n_draws_by_fold, n_draws)
+        push!(n_heldout_by_fold, n_heldout)
+    end
+
+    checked_fold_ids = _kfold_fold_ids(n_folds, fold_ids)
+    checked_observation_indices =
+        _kfold_observation_indices(n_heldout_by_fold, observation_indices)
+
+    point_elpd = Float64[]
+    point_kfoldic = Float64[]
+    point_fold = Any[]
+    point_observation = Any[]
+    observation_offset = 0
+    for (fold_index, matrix) in pairs(matrices)
+        fold_id = checked_fold_ids[fold_index]
+        n_heldout = n_heldout_by_fold[fold_index]
+        for heldout_index in 1:n_heldout
+            observation_offset += 1
+            heldout_elpd = _logmeanexp(@view matrix[:, heldout_index])
+            push!(point_elpd, heldout_elpd)
+            push!(point_kfoldic, -2 * heldout_elpd)
+            push!(point_fold, fold_id)
+            push!(point_observation, checked_observation_indices[observation_offset])
+        end
+    end
+
+    elpd_kfold = sum(point_elpd)
+    kfoldic_value = sum(point_kfoldic)
+    return (;
+        criterion = :kfold,
+        method = :heldout_refit_log_score,
+        prediction_target = :heldout_observation_log_score,
+        elpd_kfold,
+        kfoldic = kfoldic_value,
+        se_elpd_kfold = _pointwise_se(point_elpd),
+        se_kfoldic = _pointwise_se(point_kfoldic),
+        pointwise = (;
+            elpd_heldout = point_elpd,
+            kfoldic = point_kfoldic,
+            fold = point_fold,
+            observation = point_observation,
+        ),
+        n_folds,
+        n_observations = length(point_elpd),
+        n_draws_by_fold,
+        n_heldout_by_fold,
+        folds = copy(checked_fold_ids),
+        observation_indices = copy(point_observation),
+        warning = :ok,
+    )
+end
+
+function kfold(loglik::AbstractMatrix;
+        fold_ids = nothing,
+        observation_indices = nothing)
+    return kfold([loglik]; fold_ids, observation_indices)
+end
+
 function _check_waic_threshold(threshold::Real)
     isfinite(threshold) && threshold >= 0 ||
         throw(ArgumentError("threshold must be finite and non-negative"))
@@ -5285,6 +5428,145 @@ function _compare_model_names(names, n_models::Int)
     length(unique(labels)) == length(labels) ||
         throw(ArgumentError("model names must be unique"))
     return labels
+end
+
+function _check_kfold_stat(stat)
+    required_fields = (
+        :criterion,
+        :method,
+        :prediction_target,
+        :elpd_kfold,
+        :kfoldic,
+        :se_elpd_kfold,
+        :se_kfoldic,
+        :pointwise,
+        :n_folds,
+        :n_observations,
+        :n_draws_by_fold,
+        :n_heldout_by_fold,
+        :folds,
+        :observation_indices,
+        :warning,
+    )
+    for field in required_fields
+        hasproperty(stat, field) ||
+            throw(ArgumentError("K-fold statistic is missing field :$field"))
+    end
+    stat.criterion === :kfold ||
+        throw(ArgumentError("K-fold statistic must have criterion = :kfold"))
+    hasproperty(stat.pointwise, :elpd_heldout) ||
+        throw(ArgumentError("K-fold statistic pointwise data is missing :elpd_heldout"))
+    hasproperty(stat.pointwise, :fold) ||
+        throw(ArgumentError("K-fold statistic pointwise data is missing :fold"))
+    length(stat.pointwise.elpd_heldout) == stat.n_observations ||
+        throw(ArgumentError("K-fold pointwise length does not match n_observations"))
+    length(stat.pointwise.fold) == stat.n_observations ||
+        throw(ArgumentError("K-fold fold length does not match n_observations"))
+    length(stat.observation_indices) == stat.n_observations ||
+        throw(ArgumentError("K-fold observation_indices length does not match n_observations"))
+    isfinite(Float64(stat.elpd_kfold)) && isfinite(Float64(stat.kfoldic)) ||
+        throw(ArgumentError("K-fold aggregate values must be finite"))
+    all(value -> isfinite(Float64(value)), stat.pointwise.elpd_heldout) ||
+        throw(ArgumentError("K-fold pointwise ELPD values must be finite"))
+    return stat
+end
+
+function _require_kfold_comparison_compatibility(stats::AbstractVector)
+    isempty(stats) && return nothing
+    first_stat = stats[1]
+    first_n_observations = first_stat.n_observations
+    first_observation_indices = first_stat.observation_indices
+    first_folds = first_stat.pointwise.fold
+    first_prediction_target = first_stat.prediction_target
+    all(stat -> stat.n_observations == first_n_observations, stats) ||
+        throw(ArgumentError("all K-fold statistics must have the same number of heldout observations"))
+    all(stat -> isequal(stat.observation_indices, first_observation_indices), stats) ||
+        throw(ArgumentError("all K-fold statistics must use the same heldout observation order"))
+    all(stat -> isequal(stat.pointwise.fold, first_folds), stats) ||
+        throw(ArgumentError("all K-fold statistics must use the same fold assignment order"))
+    all(stat -> stat.prediction_target === first_prediction_target, stats) ||
+        throw(ArgumentError("all K-fold statistics must use the same prediction target"))
+    return nothing
+end
+
+function _kfold_comparison_rows(labels::AbstractVector{<:AbstractString},
+        stats::AbstractVector)
+    n_models = length(stats)
+    n_models >= 2 || throw(ArgumentError("at least two models are required"))
+    length(labels) == n_models ||
+        throw(ArgumentError("labels has length $(length(labels)); expected $n_models"))
+    checked_stats = [_check_kfold_stat(stat) for stat in stats]
+    _require_kfold_comparison_compatibility(checked_stats)
+
+    order = sortperm(1:n_models; by = i -> checked_stats[i].elpd_kfold, rev = true)
+    best = checked_stats[order[1]]
+    unnormalized_weights =
+        [exp(stat.elpd_kfold - best.elpd_kfold) for stat in checked_stats]
+    weight_total = sum(unnormalized_weights)
+    rows = NamedTuple[]
+    for (rank, index) in pairs(order)
+        stat = checked_stats[index]
+        pointwise_difference =
+            stat.pointwise.elpd_heldout .- best.pointwise.elpd_heldout
+        push!(rows, (;
+            model = labels[index],
+            rank,
+            criterion = :kfold,
+            comparison_contract = _KFOLD_COMPARISON_CONTRACT,
+            method = stat.method,
+            prediction_target = stat.prediction_target,
+            elpd_kfold = stat.elpd_kfold,
+            elpd_difference = stat.elpd_kfold - best.elpd_kfold,
+            se_elpd_difference = _pointwise_se(pointwise_difference),
+            se_elpd_kfold = stat.se_elpd_kfold,
+            kfoldic = stat.kfoldic,
+            kfoldic_difference = stat.kfoldic - best.kfoldic,
+            se_kfoldic = stat.se_kfoldic,
+            relative_weight = unnormalized_weights[index] / weight_total,
+            n_folds = stat.n_folds,
+            n_observations = stat.n_observations,
+            n_draws_by_fold = copy(stat.n_draws_by_fold),
+            n_heldout_by_fold = copy(stat.n_heldout_by_fold),
+            folds = copy(stat.folds),
+            observation_indices = copy(stat.observation_indices),
+            warning = stat.warning,
+        ))
+    end
+    return rows
+end
+
+"""
+    compare_kfold(stats...; names = nothing)
+    compare_kfold(models::Pair...)
+
+Compare heldout K-fold summaries returned by [`kfold`](@ref). Rows are sorted
+by `elpd_kfold` in descending order and include differences relative to the
+best model, K-fold information-criterion differences, normalized
+expected-log-predictive-density weights, and a comparison contract requiring
+the same heldout observation order and fold assignment order across models.
+
+This helper compares already computed K-fold summaries. It does not construct
+folds or refit models.
+"""
+function compare_kfold(; names = nothing)
+    labels = _compare_model_names(names, 0)
+    return _kfold_comparison_rows(labels, Any[])
+end
+
+function compare_kfold(stats::NamedTuple...; names = nothing)
+    labels = _compare_model_names(names, length(stats))
+    return _kfold_comparison_rows(labels, Any[stats...])
+end
+
+function compare_kfold(models::Pair...)
+    stats = Any[]
+    labels = String[]
+    for model in models
+        push!(labels, string(model.first))
+        push!(stats, model.second)
+    end
+    _compare_model_names(labels, length(labels))
+    return _kfold_comparison_rows(labels, stats)
 end
 
 function _compare_criterion(criterion::Symbol)

@@ -29,7 +29,8 @@ The current package supports:
   `MFRMLogDensity` target;
 - fit metadata, chain summaries, R-hat/ESS summaries, posterior summaries,
   prior/posterior predictive checks, calibration summaries, infit/outfit,
-  WAIC, and same-observation WAIC comparisons;
+  WAIC, raw importance-sampling LOO, supplied heldout K-fold summaries, and
+  same-observation or heldout comparisons;
 - scalar Julia/BridgeStan validation fixtures and internal hand-computed
   source-aligned GMFRM/MGMFRM preview fixtures, including raw-coordinate
   source-constraint transforms, used by the test suite.
@@ -49,7 +50,7 @@ The following are planned but not yet exposed:
 - generalized rater/item discrimination terms;
 - modeled DFF/bias effects;
 - multidimensional loading and rotation/gauge machinery;
-- PSIS-smoothed or exact/K-fold LOO follow-up;
+- PSIS-smoothed or exact LOO refit orchestration;
 - report generation and full paper artifact reproduction.
 
 ## Critical Path to Fit-Ready MGMFRM
@@ -94,8 +95,8 @@ public MGMFRM exposure still requires a separate release decision.
 
 ## Progress Ledger
 
-The repository roadmap currently has 103 of 120 tracked checklist items complete,
-or roughly 85.8% by simple implementation accounting. The stronger claim-level
+The repository roadmap currently has 104 of 120 tracked checklist items complete,
+or roughly 86.7% by simple implementation accounting. The stronger claim-level
 progress is lower, about 40-45%, because the remaining work includes public
 generalized fitting, Stan comparisons, broader recovery simulations,
 and a public-scope release decision for generalized claims.
@@ -315,8 +316,10 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   practical-magnitude rows]
 - Add PSIS-smoothed or exact/K-fold LOO and prior/likelihood sensitivity.
   [Raw importance-sampling LOO and Pareto-k diagnostics are available for the
-  current minimal fit path, and `compare_models` now records same-data,
-  category-level, latent-dimension, and Q-matrix comparison contracts]
+  current minimal fit path. `kfold` and [`compare_kfold`](@ref) now summarize
+  supplied heldout refit log-likelihood matrices with same heldout-observation
+  and fold-assignment comparison contracts. Exact LOO refit orchestration and
+  PSIS smoothing remain planned.]
 - Add first-class sensitivity comparisons for threshold, discrimination, DFF,
   anchor, dimensionality, and prior choices. [`sensitivity_comparison`](@ref)
   now provides same-data, fit-object sensitivity rows with declared axes,

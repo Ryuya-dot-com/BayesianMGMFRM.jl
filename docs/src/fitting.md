@@ -149,7 +149,10 @@ The random-walk sampler is intended for small validation examples and API
 stabilization. The AdvancedHMC/NUTS and Turing/NUTS backends are
 gradient-based sampler paths for the minimal design; they are not yet broad
 GMFRM/MGMFRM fitting backends. The package does not yet expose Stan/CmdStan
-sampling, PSIS-smoothed or exact LOO, or richer model-comparison workflows.
+sampling, PSIS-smoothed or exact LOO refits, grouped cross-validation, or
+refit-managed model-comparison workflows. [`kfold`](@ref) and
+[`compare_kfold`](@ref) summarize supplied heldout refit log-likelihood
+matrices, but they do not construct folds or refit models.
 `MFRMLogDensity` exposes the
 same minimal posterior through the `LogDensityProblems.jl` protocol for
 external sampler and automatic differentiation experiments. AdvancedHMC uses a
@@ -222,6 +225,10 @@ differences, `compare_models` requires the same observation data in the same
 row order, ordinal category levels, latent dimensionality, and fixed Q-matrix
 contract; returned rows include the checked model family, thresholds,
 discrimination mode, dimensionality, Q-matrix, and data signature.
+`kfold` summarizes supplied heldout log-likelihood matrices from fold-specific
+refits, and `compare_kfold` ranks those K-fold summaries when the heldout
+observation order and fold assignment order match across models. These helpers
+record K-fold evidence but do not create folds or refit models.
 `sensitivity_comparison` wraps those rows with a declared sensitivity axis,
 per-model axis values, a baseline model, and baseline-relative ELPD and
 information-criterion differences for report tables.
