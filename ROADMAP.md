@@ -18,7 +18,8 @@ implemented public slice covers:
 - an initial specification ladder that can record fit-supported MFRM and
   specified-only GMFRM/MGMFRM configurations with machine-readable constraints;
 - small-example Bayesian fitting paths for the minimal identified design using
-  a Julia random-walk Metropolis sampler or an initial AdvancedHMC/NUTS backend;
+  a Julia random-walk Metropolis sampler or an initial AdvancedHMC/NUTS backend
+  with a shared analytic/AD gradient adapter;
 - cached-fit artifacts, sampler diagnostics, R-hat/ESS rows, parameter-block
   diagnostics, prior and posterior predictive replication, calibration
   summaries, observation-level predictive quantities, infit/outfit summaries,
@@ -351,8 +352,8 @@ rater-discrimination candidate.
 
 The roadmap has two different progress notions:
 
-- **Checklist progress**: currently 98 of 120 tracked roadmap checkboxes are
-  complete, or roughly 81.7%. This is useful for implementation accounting.
+- **Checklist progress**: currently 99 of 120 tracked roadmap checkboxes are
+  complete, or roughly 82.5%. This is useful for implementation accounting.
 - **Claim progress**: broad v1 claims are closer to 40-45% complete because
   the remaining items include public generalized fitting, Stan comparisons,
   broader recovery simulations and a public-scope release decision.
@@ -747,7 +748,7 @@ Goal: make Bayesian fitting credible before adding broad reporting features.
 
 TODO:
 
-- [ ] Integrate the analytic-gradient path where available and keep AD backends
+- [x] Integrate the analytic-gradient path where available and keep AD backends
   swappable for unsupported specs.
 - [x] Implement an initial AdvancedHMC/NUTS backend with the shared fit object.
 - [ ] Implement Turing sampling with the shared fit object.

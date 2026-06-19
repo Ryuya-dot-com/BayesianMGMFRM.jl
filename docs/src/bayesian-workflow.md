@@ -41,7 +41,10 @@ without changing the data layer.
    [`cached_fit`](@ref) with a stable `cache_path` and integer `seed` to avoid
    recomputation when [`fit_cache_key`](@ref) still matches. Use
    `backend = :advancedhmc` for the initial NUTS path and `chains >= 2` when
-   convergence diagnostics are needed.
+   convergence diagnostics are needed. The default gradient path is
+   `ad_backend = :ForwardDiff`; `:ReverseDiff` can be selected when that AD
+   package is available, and `:analytic` is reserved for targets that expose a
+   native `LogDensityProblems.logdensity_and_gradient` method.
 9. Record fit-level metadata with [`fit_metadata`](@ref).
 10. Record data/spec/design/fit provenance with [`model_manifest`](@ref), then
    create a cached-fit reproducibility artifact with [`fit_artifact`](@ref).
@@ -81,6 +84,9 @@ calibration_table(fit_result; target = :category_probability, category = 2, bins
 The current `backend = :julia` sampler is a random-walk Metropolis path for
 small validation examples. `backend = :advancedhmc` provides the first
 AdvancedHMC/NUTS path for the minimal design using [`MFRMLogDensity`](@ref).
+That HMC path now routes through a shared gradient target adapter, with
+target-provided analytic gradients used when explicitly selected and otherwise
+AD-backed gradients selected by `ad_backend`.
 [`sampler_diagnostics`](@ref) reports chain-level acceptance rates,
 log-posterior summaries, divergent-transition counts, max-tree-depth hits, and
 E-BFMI when available, and

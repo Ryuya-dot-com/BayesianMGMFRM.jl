@@ -142,7 +142,12 @@ backend. The package does not yet expose Stan/CmdStan sampling, Turing sampling,
 PSIS-smoothed or exact LOO, or richer model-comparison workflows.
 `MFRMLogDensity` exposes the
 same minimal posterior through the `LogDensityProblems.jl` protocol for
-external sampler and automatic differentiation experiments.
+external sampler and automatic differentiation experiments. AdvancedHMC uses a
+shared gradient adapter: `ad_backend = :ForwardDiff` is the default,
+`:ReverseDiff` can be selected when that package is available in the active
+environment, and `:analytic` uses a target-provided
+`LogDensityProblems.logdensity_and_gradient` method for targets that implement
+one.
 `linear_predictor_values` exposes the row-by-category `eta`, log-denominator,
 and category log-probability values for the same minimal likelihood used by
 `pointwise_loglikelihood`. `loglikelihood`, `logprior`, and `logposterior`
