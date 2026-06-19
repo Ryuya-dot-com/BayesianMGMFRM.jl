@@ -1045,6 +1045,34 @@ function _normalize_bias_terms(bias, report::ValidationReport)
     return out
 end
 
+function _anchor_symbol(anchor, keys::Tuple{Vararg{Symbol}})
+    for key in keys
+        haskey(anchor, key) && return anchor[key]
+    end
+    return nothing
+end
+
+function _normalize_anchor_type(anchor)
+    declared = _anchor_symbol(anchor, (:anchor_type, :kind, :type))
+    if declared === nothing
+        return any(key -> haskey(anchor, key), (:scale, :sd, :prior_scale)) ?
+            :soft_anchor : :hard_anchor
+    end
+    declared isa Symbol ||
+        throw(ArgumentError("anchor type must be a Symbol when supplied"))
+    declared in (:hard, :fixed, :hard_anchor) && return :hard_anchor
+    declared in (:soft, :soft_anchor) && return :soft_anchor
+    throw(ArgumentError("anchor type must be :hard or :soft"))
+end
+
+function _anchor_scale(anchor)
+    scale = _anchor_symbol(anchor, (:scale, :sd, :prior_scale))
+    scale === nothing && return missing
+    scale isa Real && isfinite(scale) && scale > 0 ||
+        throw(ArgumentError("soft anchors require a positive finite scale, sd, or prior_scale"))
+    return Float64(scale)
+end
+
 function _normalize_anchors(anchors)
     out = NamedTuple[]
     for anchor in anchors
@@ -1052,9 +1080,19 @@ function _normalize_anchors(anchors)
             throw(ArgumentError("anchors must be named tuples"))
         haskey(anchor, :block) ||
             throw(ArgumentError("each anchor must include a :block field"))
+        anchor.block isa Symbol ||
+            throw(ArgumentError("anchor block must be a Symbol"))
         haskey(anchor, :value) ||
             throw(ArgumentError("each anchor must include a :value field"))
-        push!(out, anchor)
+        anchor_type = _normalize_anchor_type(anchor)
+        anchor_scale = _anchor_scale(anchor)
+        if anchor_type === :soft_anchor && ismissing(anchor_scale)
+            throw(ArgumentError("soft anchors require a positive scale, sd, or prior_scale"))
+        end
+        push!(out, merge(anchor, (;
+            anchor_type,
+            anchor_scale,
+        )))
     end
     return out
 end
@@ -1384,12 +1422,18 @@ function _constraint_rows(;
         ))
     end
     for anchor in anchors
+        anchor_type = haskey(anchor, :anchor_type) ? anchor.anchor_type : _normalize_anchor_type(anchor)
+        anchor_scale = haskey(anchor, :anchor_scale) ? anchor.anchor_scale : _anchor_scale(anchor)
         push!(rows, (;
             block = anchor.block,
-            constraint = :anchor,
-            transform = :fixed_or_soft_anchor,
+            constraint = anchor_type,
+            transform = anchor_type === :soft_anchor ? :soft_anchor_prior : :fixed_value,
             status = :specified_only,
-            note = "anchor declared in specification; fitting support is planned",
+            anchor_value = anchor.value,
+            anchor_scale,
+            note = anchor_type === :soft_anchor ?
+                "soft anchor declared in specification; fitting support is planned" :
+                "hard anchor declared in specification; fitting support is planned",
         ))
     end
     return rows
@@ -1756,6 +1800,98 @@ function constraint_table(design::FacetDesign)
         end
     end
     return rows
+end
+
+function _identification_components(row)
+    constraint = row.constraint
+    components = Symbol[]
+    constraint === :reference_first && push!(components, :reference)
+    constraint === :sum_to_zero && push!(components, :sum_to_zero)
+    constraint === :geometric_mean_one && push!(components, :geometric_mean_one)
+    constraint === :fixed_mask && append!(components, (:fixed, :multidimensional_gauge))
+    constraint === :hard_anchor && append!(components, (:hard_anchor, :fixed))
+    constraint === :soft_anchor && push!(components, :soft_anchor)
+    if constraint === :first_step_zero_sum_to_zero
+        append!(components, (:fixed, :sum_to_zero))
+    end
+    if constraint in (:standard_normal_by_dimension, :confirmatory_q_mask,
+            :multidimensional_location_gauge)
+        push!(components, :multidimensional_gauge)
+    end
+    constraint === :ability_distribution_location_scale &&
+        push!(components, :distribution_location_scale)
+    constraint === :positive && push!(components, :positive)
+    constraint === :free && push!(components, :free)
+    isempty(components) && push!(components, constraint)
+    return Tuple(unique(components))
+end
+
+function _identification_rule(row)
+    components = _identification_components(row)
+    return first(components)
+end
+
+function _identification_declaration_row(spec::FacetSpec, row)
+    base = (;
+        block = row.block,
+        rule = _identification_rule(row),
+        components = _identification_components(row),
+        constraint = row.constraint,
+        transform = row.transform,
+        status = row.status,
+        family = spec.family,
+        dimensions = spec.dimensions,
+        estimation_status = spec.estimation_status,
+        note = row.note,
+    )
+    if haskey(row, :anchor_value)
+        return merge(base, (;
+            anchor_type = row.constraint,
+            anchor_value = row.anchor_value,
+            anchor_scale = row.anchor_scale,
+        ))
+    end
+    return base
+end
+
+function _attach_design_parameter_metadata(row, design::FacetDesign)
+    if haskey(design.blocks, row.block)
+        range = design.blocks[row.block]
+        indices = collect(range)
+        return merge(row, (;
+            first_parameter = isempty(indices) ? missing : first(indices),
+            last_parameter = isempty(indices) ? missing : last(indices),
+            n_parameters = length(indices),
+            parameter_names = isempty(indices) ? String[] : copy(design.parameter_names[indices]),
+        ))
+    end
+    return merge(row, (;
+        first_parameter = missing,
+        last_parameter = missing,
+        n_parameters = 0,
+        parameter_names = String[],
+    ))
+end
+
+"""
+    identification_declarations(spec_or_design)
+
+Return machine-readable identification declarations for a `FacetSpec` or
+`FacetDesign`. Rows normalize constraint-table entries into reviewable
+components such as `:sum_to_zero`, `:reference`, `:fixed`,
+`:geometric_mean_one`, `:hard_anchor`, `:soft_anchor`, and
+`:multidimensional_gauge`.
+
+For a compiled `FacetDesign`, rows also include parameter ranges and names when
+the declaration maps to an explicit parameter block.
+"""
+function identification_declarations(spec::FacetSpec)
+    return [_identification_declaration_row(spec, row) for row in constraint_table(spec)]
+end
+
+function identification_declarations(design::FacetDesign)
+    rows = identification_declarations(design.spec)
+    return [_attach_design_parameter_metadata(row, design) for row in rows]
 end
 
 function _parameter_index_map(design::FacetDesign)
@@ -2839,6 +2975,7 @@ function _spec_manifest(spec::FacetSpec)
         required_facets = (:person, :rater, :item),
         optional_facets = sort(collect(keys(spec.data.optional)); by = string),
         equation = model_equation(spec),
+        identification_declarations = identification_declarations(spec),
         constraints = constraint_table(spec),
         prior_blocks = copy(spec.prior_blocks),
     )
@@ -4065,6 +4202,7 @@ function _design_manifest(design::FacetDesign)
         parameter_names = copy(design.parameter_names),
         blocks = _design_block_rows(design),
         constraints = constraint_table(design),
+        identification_declarations = identification_declarations(design),
         identification = _namedtuple_from_pairs([
             block => design.identification[block]
             for block in sort(collect(keys(design.identification)); by = string)

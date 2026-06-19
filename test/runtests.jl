@@ -28,6 +28,7 @@ using BayesianMGMFRM:
     fit_cache_key,
     fit_stats,
     getdesign,
+    identification_declarations,
     initial_params,
     ScalarValidationData,
     ScalarValidationAnalyticLogDensity,
@@ -6116,6 +6117,7 @@ end
     for name in (:FacetData, :ValidationIssue, :ValidationReport, :FacetSpec, :FacetDesign,
             :MFRMPrior, :MFRMLogDensity, :MFRMFit, :GMFRMFit, :artifact_content_hash, :cached_fit, :calibration_plot_data,
             :constraint_table, :expected_scores, :fit, :fit_archive_manifest, :fit_artifact, :fit_cache_key, :fit_metadata, :fit_stats,
+            :identification_declarations,
             :initial_params, :loglikelihood, :logposterior, :logprior,
             :loo, :loo_diagnostics,
             :linear_predictor_table, :linear_predictor_values,
@@ -6338,9 +6340,21 @@ end
     spec_constraints = constraint_table(spec)
     @test any(row -> row.block === :person && row.status === :implemented, spec_constraints)
     @test any(row -> row.block === :thresholds && row.constraint === :sum_to_zero, spec_constraints)
+    spec_identification = identification_declarations(spec)
+    @test any(row -> row.block === :rater && row.rule === :reference &&
+        row.components == (:reference,), spec_identification)
+    @test any(row -> row.block === :thresholds && row.rule === :sum_to_zero &&
+        row.components == (:sum_to_zero,), spec_identification)
     design_constraints = constraint_table(design)
     @test any(row -> row.block === :person && row.n_parameters == 1 &&
         row.parameter_names == ["person[E1]"], design_constraints)
+    design_identification = identification_declarations(design)
+    @test any(row -> row.block === :person && row.rule === :free &&
+        row.n_parameters == 1 &&
+        row.parameter_names == ["person[E1]"], design_identification)
+    @test any(row -> row.block === :rater && row.rule === :reference &&
+        row.n_parameters == 0 &&
+        isempty(row.parameter_names), design_identification)
 
     data_manifest = model_manifest(data)
     @test data_manifest.schema == "bayesianmgmfrm.model_manifest.v1"
@@ -6428,6 +6442,8 @@ end
     @test spec_manifest.spec.equation.kernel == model_equation(identified_spec).kernel
     @test any(row -> row.block === :thresholds && row.constraint === :sum_to_zero,
         spec_manifest.spec.constraints)
+    @test any(row -> row.block === :item && row.rule === :reference,
+        spec_manifest.spec.identification_declarations)
     @test spec_manifest.validation.passed
     @test spec_manifest.data.optional_facets == [:task]
     @test spec_manifest.data.levels.optional.task == identified_data.optional_levels[:task]
@@ -6439,6 +6455,10 @@ end
         design_manifest.design.blocks)
     @test any(row -> row.block === :rater && row.n_parameters == 1,
         design_manifest.design.constraints)
+    @test any(row -> row.block === :thresholds &&
+        :sum_to_zero in row.components &&
+        row.n_parameters == 2,
+        design_manifest.design.identification_declarations)
     @test design_manifest.design.identification.rater === :reference_first
     @test design_manifest.design.raw_parameterization === nothing
     @test identified_design.parameter_names == [
@@ -6588,6 +6608,31 @@ end
     @test rsm_thresholds[2].status === :sum_to_zero_derived
     @test rsm_thresholds[2].value == -0.5
 
+    anchored_spec = mfrm_spec(identified_data;
+        thresholds = :partial_credit,
+        anchors = [
+            (block = :item, value = 0.0, type = :hard),
+            (block = :rater, value = 0.0, type = :soft, scale = 0.25),
+        ])
+    @test anchored_spec.estimation_status === :specified_only
+    anchored_identification = identification_declarations(anchored_spec)
+    hard_anchor = only(filter(row -> row.rule === :hard_anchor, anchored_identification))
+    @test hard_anchor.block === :item
+    @test hard_anchor.components == (:hard_anchor, :fixed)
+    @test hard_anchor.anchor_type === :hard_anchor
+    @test hard_anchor.anchor_value == 0.0
+    @test ismissing(hard_anchor.anchor_scale)
+    soft_anchor = only(filter(row -> row.rule === :soft_anchor, anchored_identification))
+    @test soft_anchor.block === :rater
+    @test soft_anchor.anchor_type === :soft_anchor
+    @test soft_anchor.anchor_value == 0.0
+    @test soft_anchor.anchor_scale == 0.25
+    @test any(row -> row.constraint === :hard_anchor, constraint_table(anchored_spec))
+    @test any(row -> row.constraint === :soft_anchor, constraint_table(anchored_spec))
+    @test_throws ArgumentError mfrm_spec(identified_data;
+        thresholds = :partial_credit,
+        anchors = [(block = :item, value = 0.0, type = :soft)])
+
     gmfrm_spec = mfrm_spec(identified_data; family = :gmfrm, discrimination = :rater)
     @test gmfrm_spec.family === :gmfrm
     @test gmfrm_spec.dimensions == 1
@@ -6599,6 +6644,18 @@ end
         constraint_table(gmfrm_spec))
     @test any(row -> row.block === :rater_steps && row.constraint === :first_step_zero_sum_to_zero,
         constraint_table(gmfrm_spec))
+    gmfrm_identification = identification_declarations(gmfrm_spec)
+    @test any(row -> row.block === :item &&
+        row.rule === :sum_to_zero,
+        gmfrm_identification)
+    @test any(row -> row.block === :item_discrimination &&
+        row.rule === :geometric_mean_one &&
+        row.components == (:geometric_mean_one,),
+        gmfrm_identification)
+    @test any(row -> row.block === :rater_steps &&
+        row.rule === :fixed &&
+        row.components == (:fixed, :sum_to_zero),
+        gmfrm_identification)
     @test model_manifest(gmfrm_spec).spec.scope === :planned_generalized_mfrm
     gmfrm_equation = model_equation(gmfrm_spec)
     @test gmfrm_equation.family === :gmfrm
@@ -6615,6 +6672,12 @@ end
     @test gmfrm_preview.identification[:item_discrimination] === :geometric_mean_one
     @test gmfrm_preview.identification[:rater_consistency] === :positive
     @test gmfrm_preview.identification[:rater_steps] === :first_step_zero_sum_to_zero
+    gmfrm_preview_identification = identification_declarations(gmfrm_preview)
+    gmfrm_item_identification = only(filter(row ->
+        row.block === :item && row.rule === :sum_to_zero,
+        gmfrm_preview_identification))
+    @test gmfrm_item_identification.n_parameters == 2
+    @test gmfrm_item_identification.parameter_names == ["item[I1]", "item[I2]"]
     @test gmfrm_preview.parameter_names[gmfrm_preview.blocks[:item_discrimination]] == [
         "item_discrimination[item=I1]",
         "item_discrimination[item=I2]",
@@ -8084,9 +8147,22 @@ end
         constraint_table(mgmfrm_spec))
     @test any(row -> row.block === :item_steps && row.constraint === :first_step_zero_sum_to_zero,
         constraint_table(mgmfrm_spec))
+    mgmfrm_identification = identification_declarations(mgmfrm_spec)
+    @test any(row -> row.block === :person &&
+        :multidimensional_gauge in row.components,
+        mgmfrm_identification)
+    @test any(row -> row.block === :q_matrix &&
+        row.rule === :fixed &&
+        :multidimensional_gauge in row.components,
+        mgmfrm_identification)
+    @test any(row -> row.block === :rater_consistency &&
+        row.rule === :geometric_mean_one,
+        mgmfrm_identification)
     mgmfrm_manifest = model_manifest(mgmfrm_spec)
     @test mgmfrm_manifest.spec.scope === :planned_multidimensional_gmfrm
     @test mgmfrm_manifest.spec.q_matrix == q_matrix
+    @test any(row -> row.block === :q_matrix && row.rule === :fixed,
+        mgmfrm_manifest.spec.identification_declarations)
     @test mgmfrm_manifest.spec.equation.family === :mgmfrm
     @test occursin("1.7 * alpha_r", mgmfrm_manifest.spec.equation.kernel)
     @test :item_dimension_discrimination in mgmfrm_manifest.spec.equation.required_blocks
@@ -8099,6 +8175,17 @@ end
     @test mgmfrm_preview.identification[:item_dimension_discrimination] === :confirmatory_q_mask
     @test mgmfrm_preview.identification[:rater_consistency] === :geometric_mean_one
     @test mgmfrm_preview.identification[:item_steps] === :first_step_zero_sum_to_zero
+    mgmfrm_preview_identification = identification_declarations(mgmfrm_preview)
+    q_identification = only(filter(row -> row.block === :q_matrix,
+        mgmfrm_preview_identification))
+    @test q_identification.rule === :fixed
+    @test q_identification.n_parameters == 0
+    @test isempty(q_identification.parameter_names)
+    loading_identification = only(filter(row ->
+        row.block === :item_dimension_discrimination,
+        mgmfrm_preview_identification))
+    @test :multidimensional_gauge in loading_identification.components
+    @test loading_identification.n_parameters == count(q_matrix)
     @test mgmfrm_preview.parameter_names[mgmfrm_preview.blocks[:person]] == [
         "person[E1,dim=1]",
         "person[E1,dim=2]",
