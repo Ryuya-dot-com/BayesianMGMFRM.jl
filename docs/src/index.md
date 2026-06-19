@@ -9,28 +9,70 @@ The current public slice focuses on:
 - pre-fit design validation via [`validate_design`](@ref);
 - minimal MFRM specification and design inspection via [`mfrm_spec`](@ref) and
   [`getdesign`](@ref);
+- source-traced likelihood contracts via [`model_equation`](@ref);
+- specified-only GMFRM/MGMFRM configuration manifests and non-fit-ready preview
+  designs via [`model_ladder`](@ref), [`constraint_table`](@ref),
+  [`getdesign`](@ref), and [`model_manifest`](@ref);
 - initial Bayesian fitting for the minimal identified design via [`fit`](@ref),
-  [`MFRMPrior`](@ref), and [`posterior_summary`](@ref);
+  [`cached_fit`](@ref), [`MFRMPrior`](@ref), [`fit_metadata`](@ref),
+  [`fit_artifact`](@ref), and [`posterior_summary`](@ref), including a small
+  random-walk backend, an initial AdvancedHMC/NUTS backend, and RDS-like
+  serialized fit caches;
+- a guarded experimental scalar GMFRM path via `fit(spec; experimental = true)`
+  returning [`GMFRMFit`](@ref) for the one-dimensional rater-discrimination
+  promotion candidate only, with local validation, posterior predictive, and
+  sparse-pathology recovery evidence recorded;
+- serializable provenance manifests for fit-supported specs, specified-only
+  specs, designs, fits, and cached-fit artifacts via [`model_manifest`](@ref)
+  and [`fit_artifact`](@ref);
+- integrated diagnostic summaries via [`diagnostics`](@ref);
+- chain-level sampler summaries via [`sampler_diagnostics`](@ref);
+- chain-aware R-hat and ESS summaries via [`mcmc_diagnostics`](@ref);
+- parameter-block R-hat and ESS summaries via
+  [`parameter_block_diagnostics`](@ref);
 - prior and posterior predictive replication via [`prior_predict`](@ref),
   [`prior_predictive_check`](@ref), [`posterior_predict`](@ref), and
   [`posterior_predictive_check`](@ref);
+- simulation-study helpers via [`simulate_responses`](@ref),
+  [`parameter_recovery`](@ref), and [`parameter_recovery_summary`](@ref);
 - report-ready predictive-check summaries via [`predictive_check_summary`](@ref);
+- binned calibration summaries via [`calibration_table`](@ref);
+- plotting-ready rows via [`parameter_recovery_plot_data`](@ref),
+  [`calibration_plot_data`](@ref), and
+  [`predictive_check_plot_data`](@ref);
+- row-by-category likelihood inspection via [`linear_predictor_table`](@ref)
+  and [`linear_predictor_values`](@ref);
 - observation-level predictive probabilities, expected scores, variances, and
   residuals via [`predictive_probabilities`](@ref), [`expected_scores`](@ref),
   [`predictive_variances`](@ref), and [`predictive_residuals`](@ref);
 - posterior infit/outfit summaries by facet level via [`fit_stats`](@ref);
-- WAIC model-comparison summaries via [`waic`](@ref) and
-  [`compare_models`](@ref);
+- WAIC and raw importance-sampling LOO model-comparison summaries via
+  [`waic`](@ref), [`loo`](@ref), and [`compare_models`](@ref);
 - fit-independent reporting data via [`coverage_summary`](@ref),
-  [`coverage_matrix`](@ref), [`rater_overlap`](@ref), and
+  [`coverage_matrix`](@ref), [`rater_overlap`](@ref),
+  [`design_row_table`](@ref), [`linear_predictor_table`](@ref), and
   [`threshold_map_data`](@ref);
-- test-suite validation against Julia and BridgeStan scalar fixtures.
+- test-suite validation against Julia/BridgeStan scalar fixtures and internal
+  hand-computed source-aligned GMFRM/MGMFRM preview fixtures, including
+  raw-coordinate transforms for source identification restrictions and
+  fixture-only raw-coordinate log-likelihood / log-density target checks, plus
+  local scalar GMFRM BridgeStan-oracle, candidate-chain, stress-chain, and
+  recovery-smoke evidence for the private promotion candidate, and an internal
+  confirmatory MGMFRM gauge manifest with BridgeStan confirmatory-candidate and
+  local candidate-chain/recovery-smoke evidence.
 
-Production HMC/NUTS sampling, PSIS-LOO, generalized discrimination terms,
-group/DFF model terms, and Multidimensional Generalized Many-Facet Rasch Model
-(MGMFRM) fitting APIs are planned work and are not exposed yet.
+Stan/CmdStan and Turing sampling, PSIS-smoothed or exact LOO, generalized
+discrimination likelihoods, group/DFF model terms, and Multidimensional
+Generalized Many-Facet Rasch Model (MGMFRM) fitting APIs are planned work and
+are not exposed yet.
+Specified-only GMFRM/MGMFRM configs are available for constraint and manifest
+review, with estimation currently limited to the guarded scalar GMFRM
+rater-discrimination candidate. See the [Bayesian Workflow](bayesian-workflow.md)
+page for the current check sequence and limitations, and
+[Roadmap and Scope](roadmap.md) for the implementation gates for planned
+GMFRM/MGMFRM work.
 
 ```@contents
-Pages = ["data-validation.md", "fitting.md", "api.md"]
+Pages = ["data-validation.md", "model-equations.md", "bayesian-workflow.md", "fitting.md", "roadmap.md", "api.md"]
 Depth = 2
 ```

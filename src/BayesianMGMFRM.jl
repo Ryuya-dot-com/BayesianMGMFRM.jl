@@ -4,10 +4,14 @@
 Tools for preparing long-format many-facet Rasch rating data.
 
 The current public API is intentionally limited to deterministic indexing,
-pre-fit data validation, minimal RSM/PCM design scaffolding, and an initial
-Bayesian fitting, predictive-check, and WAIC path for small validation examples.
-Production HMC/NUTS, generalized discrimination terms, group/DFF effects, and
-Multidimensional Generalized Many-Facet Rasch Model (MGMFRM) terms are planned
+pre-fit data validation, MFRM/GMFRM/MGMFRM specification manifests, minimal
+RSM/PCM design scaffolding, and initial Bayesian fitting, predictive-check, and
+WAIC / raw importance-sampling LOO paths for small validation examples. The
+minimal MFRM/RSM/PCM design can be fit with a random-walk example backend or an
+initial AdvancedHMC/NUTS backend. A guarded experimental scalar GMFRM
+rater-discrimination path is available through `fit(spec; experimental = true)`.
+Broader generalized discrimination likelihoods, group/DFF model effects, and
+Multidimensional Generalized Many-Facet Rasch Model (MGMFRM) fitting are planned
 work and are not exposed as public fitting APIs yet.
 """
 module BayesianMGMFRM
@@ -15,20 +19,46 @@ module BayesianMGMFRM
 export FacetData,
     FacetDesign,
     FacetSpec,
+    GMFRMFit,
+    MFRMLogDensity,
     MFRMFit,
     MFRMPrior,
     ValidationIssue,
     ValidationReport,
+    calibration_table,
+    constraint_table,
     coverage_matrix,
     coverage_summary,
     compare_models,
+    cached_fit,
+    calibration_plot_data,
+    design_row_table,
     evidence_metadata,
     expected_scores,
     fit,
+    fit_artifact,
+    fit_cache_key,
+    fit_metadata,
     fit_stats,
     getdesign,
+    diagnostics,
+    initial_params,
+    loglikelihood,
+    loo,
+    loo_diagnostics,
     logposterior,
+    logprior,
+    linear_predictor_table,
+    linear_predictor_values,
+    model_equation,
+    mcmc_diagnostics,
+    model_manifest,
+    model_ladder,
     mfrm_spec,
+    parameter_block_diagnostics,
+    parameter_recovery,
+    parameter_recovery_plot_data,
+    parameter_recovery_summary,
     pointwise_loglikelihood,
     pointwise_loglikelihood_matrix,
     posterior_predict,
@@ -41,9 +71,16 @@ export FacetData,
     prior_predict,
     prior_predictive_check,
     rater_overlap,
+    load_fit_cache,
+    sampler_diagnostics,
+    save_fit_cache,
+    simulate_responses,
     threshold_map_data,
     validate_design,
-    waic
+    validation_suggestions,
+    predictive_check_plot_data,
+    waic,
+    waic_diagnostics
 
 include("evidence_metadata.jl")
 include("facet_workflow.jl")

@@ -34,3 +34,10 @@ The scalar Stan reference model used to generate such fixtures is
 `test/stan/scalar_gmfrm.stan`. Fixture values should be generated with
 `propto=false` and `jacobian=true` to match the Julia scalar log-density. The
 scalar reference includes the Uto-Ueno logistic scaling constant `1.7`.
+
+Large GMFRM/MGMFRM promotion, stress-chain, recovery, exposure-review, and
+BridgeStan oracle artifacts are treated as optional local evidence files. The
+default test suite checks them only when the corresponding file exists under
+`test/fixtures/` or when its documented `MFRM_*_FIXTURE` environment variable
+points to a file. If an environment variable is set to a missing path, the test
+suite errors so local evidence jobs cannot silently skip a requested fixture.
