@@ -24,7 +24,8 @@ implemented public slice covers:
 - cached-fit artifacts, sampler diagnostics, R-hat/ESS rows, parameter-block
   diagnostics, prior and posterior predictive replication, calibration
   summaries, observation-level predictive quantities, infit/outfit summaries,
-  WAIC, and WAIC-based same-data comparison helpers;
+  WAIC, raw importance-sampling LOO, supplied heldout K-fold summaries, and
+  same-data or heldout comparison helpers;
 - scalar Julia/BridgeStan validation fixtures and internal hand-computed
   source-aligned GMFRM/MGMFRM preview fixtures, including raw-coordinate
   source-constraint transforms, used by the test suite.
@@ -353,8 +354,8 @@ rater-discrimination candidate.
 
 The roadmap has two different progress notions:
 
-- **Checklist progress**: currently 103 of 120 tracked roadmap checkboxes are
-  complete, or roughly 85.8%. This is useful for implementation accounting.
+- **Checklist progress**: currently 104 of 120 tracked roadmap checkboxes are
+  complete, or roughly 86.7%. This is useful for implementation accounting.
 - **Claim progress**: broad v1 claims are closer to 40-45% complete because
   the remaining items include public generalized fitting, Stan comparisons,
   broader recovery simulations and a public-scope release decision.
@@ -792,11 +793,12 @@ TODO:
   direction, and ROPE/practical equivalence.
 - [x] Provide plotting-ready rows for current parameter-recovery, calibration,
   and predictive-check summaries without selecting a plotting backend.
-- [ ] Implement PSIS-smoothed or exact/K-fold LOO and dimension-matching
+- [x] Implement PSIS-smoothed or exact/K-fold LOO and dimension-matching
   safeguards. [Raw importance-sampling LOO and Pareto-k diagnostics are
-  available for the current minimal fit path, and `compare_models` now records
-  same-data, category-level, latent-dimension, and Q-matrix comparison
-  contracts]
+  available for the current minimal fit path. `kfold` and `compare_kfold`
+  now summarize supplied heldout refit log-likelihood matrices with same
+  heldout-observation and fold-assignment comparison contracts. Exact LOO
+  refit orchestration and PSIS smoothing remain planned.]
 - [x] Implement prior/likelihood sensitivity, including power-scaling or an
   equivalent package-native workflow.
 - [ ] Implement first-class sensitivity comparisons: RSM vs PCM/GPCM,

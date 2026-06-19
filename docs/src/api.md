@@ -17,6 +17,7 @@ artifact_content_hash
 calibration_table
 calibration_plot_data
 cached_fit
+compare_kfold
 compare_models
 sensitivity_comparison
 constraint_table
@@ -43,6 +44,7 @@ fit_metadata
 fit_ready_parameter_layout
 fit_stats
 initial_params
+kfold
 loglikelihood
 logposterior
 logprior

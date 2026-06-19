@@ -258,10 +258,15 @@ Current public API:
 - `loo_diagnostics`: observation-level LOO diagnostics with person, rater,
   item, score, optional facet labels, raw-importance effective sample sizes,
   and Pareto-k flags when fitted objects are supplied.
+- `kfold`: heldout K-fold log predictive density summaries from fold-specific
+  refit log-likelihood matrices. This helper records supplied heldout
+  evidence; it does not build folds or refit models.
 - `compare_models`: WAIC- or raw importance-sampling LOO-based comparison rows,
   including relative weights and model-contract fields, for fitted models that
   share the same observation data, row order, ordinal categories, latent
   dimensions, and fixed Q-matrix contract.
+- `compare_kfold`: K-fold comparison rows for `kfold` summaries that share the
+  same heldout observation order and fold assignment order.
 - `sensitivity_comparison`: report-ready sensitivity rows that wrap
   `compare_models` with a declared axis, per-model axis values, baseline
   labels, and baseline-relative ELPD/information-criterion differences.
@@ -309,10 +314,12 @@ than repeatedly prefixing function names with the package name.
 
 Not yet implemented in the public API:
 
-- Stan/CmdStan sampling, PSIS-smoothed LOO, exact/K-fold LOO, or refit-managed
-  model-comparison workflows. The AdvancedHMC/NUTS and Turing/NUTS backends are
-  currently limited to the minimal MFRM/RSM/PCM design; the guarded
-  experimental scalar GMFRM promotion candidate remains on the AdvancedHMC path.
+- Stan/CmdStan sampling, PSIS-smoothed LOO, exact LOO refit orchestration, or
+  refit-managed model-comparison workflows. The K-fold helpers summarize
+  supplied heldout log-likelihood matrices but do not build folds or refit
+  models. The AdvancedHMC/NUTS and Turing/NUTS backends are currently limited
+  to the minimal MFRM/RSM/PCM design; the guarded experimental scalar GMFRM
+  promotion candidate remains on the AdvancedHMC path.
 - Broad fitting for the specified-only GMFRM/MGMFRM blocks declared by
   `mfrm_spec`, beyond the guarded scalar GMFRM rater-discrimination path.
 - Generalized discrimination, group/DFF model effects, or MGMFRM likelihood

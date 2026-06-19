@@ -105,9 +105,10 @@ identified design block.
 [`diagnostics`](@ref) combines those rows into a single pass/fail summary and
 includes HMC/NUTS fields when the selected backend produces them. The package
 exposes raw importance-sampling [`loo`](@ref) and [`loo_diagnostics`](@ref)
-with Hill-estimated Pareto-k screening, but it does not yet perform PSIS
-smoothing or exact LOO refits. It also does not yet expose grouped
-cross-validation by person/item,
+with Hill-estimated Pareto-k screening plus supplied heldout-refit
+[`kfold`](@ref) and [`compare_kfold`](@ref) summaries, but it does not yet
+perform PSIS smoothing, exact LOO refits, or refit-managed cross-validation.
+It also does not yet expose grouped cross-validation by person/item,
 power-scaling prior sensitivity, covariate terms, random slopes, generalized
 discrimination likelihoods, or multidimensional MGMFRM fitting. Specified-only
 GMFRM/MGMFRM rows in [`constraint_table`](@ref) and
@@ -115,15 +116,18 @@ GMFRM/MGMFRM rows in [`constraint_table`](@ref) and
 not fitted likelihood terms.
 
 Until those pieces are added, treat [`waic`](@ref), [`waic_diagnostics`](@ref),
-[`loo`](@ref), [`loo_diagnostics`](@ref), [`compare_models`](@ref),
+[`loo`](@ref), [`loo_diagnostics`](@ref), [`kfold`](@ref),
+[`compare_models`](@ref), [`compare_kfold`](@ref),
 [`posterior_predictive_check`](@ref), [`calibration_table`](@ref), and
 [`fit_stats`](@ref) as small-model workflow scaffolding rather than a complete
 production Bayesian model-comparison stack. The `relative_weight` returned by
-[`compare_models`](@ref) is an Akaike-style weight for candidate models fit to
-the same observation data, not a posterior model probability. `compare_models`
-also checks the comparison contract up front: observation data and row order,
-ordinal category levels, latent dimensionality, and any fixed Q-matrix must
-match, and the returned rows carry those contract fields for reporting.
+[`compare_models`](@ref) or [`compare_kfold`](@ref) is an Akaike-style weight
+for a declared prediction target, not a posterior model probability.
+`compare_models` checks the comparison contract up front: observation data and
+row order, ordinal category levels, latent dimensionality, and any fixed
+Q-matrix must match, and the returned rows carry those contract fields for
+reporting. `compare_kfold` similarly requires the same heldout observation
+order and fold assignment order.
 [`sensitivity_comparison`](@ref) uses the same scoring path and adds declared
 axis values plus baseline-relative differences for fit-supported threshold,
 prior, backend, sampler, or custom externally labelled regimes.
