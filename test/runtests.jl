@@ -27,6 +27,8 @@ using BayesianMGMFRM:
     domain_compilation_summary,
     expected_scores,
     fair_average_summary,
+    falsification_rule_summary,
+    falsification_rules,
     fit,
     fit_archive_manifest,
     fit_artifact,
@@ -6211,7 +6213,10 @@ end
             :MFRMPrior, :MFRMLogDensity, :MFRMFit, :GMFRMFit,
             :anchor_linking_summary, :artifact_content_hash, :cached_fit,
             :calibration_plot_data,
-            :constraint_table, :dff_report, :domain_compilation_summary, :expected_scores, :fair_average_summary, :fit, :fit_archive_manifest, :fit_artifact, :fit_cache_key, :fit_metadata,
+            :constraint_table, :dff_report, :domain_compilation_summary,
+            :expected_scores, :fair_average_summary,
+            :falsification_rule_summary, :falsification_rules,
+            :fit, :fit_archive_manifest, :fit_artifact, :fit_cache_key, :fit_metadata,
             :fit_ready_parameter_layout, :fit_stats,
             :identification_declarations,
             :initial_params, :loglikelihood, :logposterior, :logprior,
@@ -10476,6 +10481,58 @@ end
     @test_throws ArgumentError simulation_grid(; repetitions = 0)
     @test_throws ArgumentError simulation_grid_summary(NamedTuple[])
     @test_throws ArgumentError simulation_grid_summary(Any[1])
+
+    rules = falsification_rules()
+    @test length(rules) == 13
+    @test first(rules).schema == "bayesianmgmfrm.falsification_rule.v1"
+    @test first(rules).object === :falsification_rule
+    @test first(rules).claim === :sparse_hierarchical_priors_stabilize_mgmfrm
+    @test first(rules).status === :predeclared_not_evaluated
+    @test all(row -> !row.manuscript_claim_allowed_if_triggered, rules)
+    @test all(row -> row.caveat === :rule_predeclared_not_evidence, rules)
+    @test only(filter(row -> row.rule_id === :grid_axes_incomplete,
+        rules)).threshold ==
+        (:density, :anchor_size, :ratings_per_target, :category_pathology,
+            :rater_noise, :dff, :dimensionality, :misspecification)
+    @test only(filter(row -> row.metric === :max_rhat, rules)).threshold == 1.01
+    @test only(filter(row -> row.metric === :min_bulk_ess, rules)).threshold == 400.0
+    @test only(filter(row -> row.rule_id === :divergences_or_treedepth,
+        rules)).threshold == (divergences = 0, max_treedepth_hits = 0)
+    @test only(filter(row -> row.domain === :baseline_comparison,
+        rules)).required_evidence === :compare_kfold
+    rule_summary = falsification_rule_summary(rules)
+    @test rule_summary.schema == "bayesianmgmfrm.falsification_rule_summary.v1"
+    @test rule_summary.passed
+    @test rule_summary.status === :complete
+    @test rule_summary.n_rules == length(rules)
+    @test rule_summary.n_domains == 10
+    @test isempty(rule_summary.missing_required_domains)
+    @test rule_summary.present_required_domains ==
+        (:simulation_grid, :design_validation, :computation, :recovery,
+            :calibration, :predictive_check, :decision_stability,
+            :sensitivity, :baseline_comparison, :reproducibility)
+    incomplete_rules = filter(row -> row.domain !== :calibration, rules)
+    incomplete_rule_summary = falsification_rule_summary(incomplete_rules)
+    @test !incomplete_rule_summary.passed
+    @test incomplete_rule_summary.status === :incomplete
+    @test incomplete_rule_summary.missing_required_domains == (:calibration,)
+    custom_rules = falsification_rules(;
+        max_rhat = 1.05,
+        min_bulk_ess = 200,
+        min_interval_coverage = 0.8,
+        required_grid_axes = (:density, :dff))
+    @test only(filter(row -> row.metric === :max_rhat,
+        custom_rules)).threshold == 1.05
+    @test only(filter(row -> row.metric === :min_bulk_ess,
+        custom_rules)).threshold == 200.0
+    @test only(filter(row -> row.metric === :interval_coverage_rate,
+        custom_rules)).threshold == 0.8
+    @test only(filter(row -> row.rule_id === :grid_axes_incomplete,
+        custom_rules)).threshold == (:density, :dff)
+    @test_throws ArgumentError falsification_rules(; max_rhat = 0.99)
+    @test_throws ArgumentError falsification_rules(; min_interval_coverage = 1.1)
+    @test_throws ArgumentError falsification_rule_summary(NamedTuple[])
+    @test_throws ArgumentError falsification_rule_summary(Any[1])
 
     truth = [row.mean for row in summary]
     recovery = parameter_recovery(result, truth; interval = 0.8)

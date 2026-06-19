@@ -10489,6 +10489,322 @@ end
 simulation_grid_summary(row, rows...; kwargs...) =
     simulation_grid_summary([row; rows...]; kwargs...)
 
+const _DEFAULT_FALSIFICATION_RULE_DOMAINS = (
+    :simulation_grid,
+    :design_validation,
+    :computation,
+    :recovery,
+    :calibration,
+    :predictive_check,
+    :decision_stability,
+    :sensitivity,
+    :baseline_comparison,
+    :reproducibility,
+)
+
+function _finite_rule_threshold(value::Real, name::Symbol;
+        minimum = nothing,
+        maximum = nothing)
+    checked = Float64(value)
+    isfinite(checked) ||
+        throw(ArgumentError("$name must be finite"))
+    if minimum !== nothing
+        checked >= Float64(minimum) ||
+            throw(ArgumentError("$name must be >= $minimum"))
+    end
+    if maximum !== nothing
+        checked <= Float64(maximum) ||
+            throw(ArgumentError("$name must be <= $maximum"))
+    end
+    return checked
+end
+
+function _falsification_rule(; claim::Symbol, rule_index::Int, rule_id::Symbol,
+        domain::Symbol, metric::Symbol, fail_if::Symbol, threshold,
+        required_evidence::Symbol, action_if_triggered::Symbol)
+    return (;
+        schema = "bayesianmgmfrm.falsification_rule.v1",
+        object = :falsification_rule,
+        claim,
+        rule_index,
+        rule_id,
+        domain,
+        metric,
+        fail_if,
+        threshold,
+        required_evidence,
+        status = :predeclared_not_evaluated,
+        action_if_triggered,
+        manuscript_claim_allowed_if_triggered = false,
+        caveat = :rule_predeclared_not_evidence,
+    )
+end
+
+"""
+    falsification_rules(; claim = :sparse_hierarchical_priors_stabilize_mgmfrm,
+        max_rhat = 1.01, min_bulk_ess = 400, max_divergences = 0,
+        max_max_treedepth_hits = 0, min_interval_coverage = 0.90,
+        max_block_mean_absolute_error = 0.35,
+        max_parameter_absolute_error = 0.75,
+        max_expected_score_calibration_error = 0.25,
+        max_category_probability_error = 0.10,
+        min_predictive_tail_probability = 0.05,
+        max_decision_flip_rate = 0.10,
+        max_prior_sensitivity_shift = 0.25,
+        min_heldout_elpd_gain = 0.0,
+        required_grid_axes = ...)
+
+Return predeclared falsification-rule rows for the claim that hierarchical
+priors stabilize sparse MGMFRM designs. Rules cover simulation-grid coverage,
+design validation, computation, recovery, calibration, predictive checks,
+decision stability, sensitivity, baseline comparison, and reproducibility.
+
+The rows are a claim contract, not run evidence. A triggered rule should narrow
+or block the corresponding sparse-stability claim until the study is revised
+or new evidence is generated.
+"""
+function falsification_rules(;
+        claim::Symbol = :sparse_hierarchical_priors_stabilize_mgmfrm,
+        max_rhat::Real = 1.01,
+        min_bulk_ess::Real = 400,
+        max_divergences::Integer = 0,
+        max_max_treedepth_hits::Integer = 0,
+        min_interval_coverage::Real = 0.90,
+        max_block_mean_absolute_error::Real = 0.35,
+        max_parameter_absolute_error::Real = 0.75,
+        max_expected_score_calibration_error::Real = 0.25,
+        max_category_probability_error::Real = 0.10,
+        min_predictive_tail_probability::Real = 0.05,
+        max_decision_flip_rate::Real = 0.10,
+        max_prior_sensitivity_shift::Real = 0.25,
+        min_heldout_elpd_gain::Real = 0.0,
+        required_grid_axes = _DEFAULT_SIMULATION_GRID_REQUIRED_AXES)
+    checked_max_rhat = _finite_rule_threshold(max_rhat, :max_rhat; minimum = 1)
+    checked_min_bulk_ess =
+        _finite_rule_threshold(min_bulk_ess, :min_bulk_ess; minimum = 1)
+    checked_min_interval_coverage =
+        _finite_rule_threshold(min_interval_coverage, :min_interval_coverage;
+            minimum = 0, maximum = 1)
+    checked_max_block_mae =
+        _finite_rule_threshold(max_block_mean_absolute_error,
+            :max_block_mean_absolute_error; minimum = 0)
+    checked_max_parameter_abs =
+        _finite_rule_threshold(max_parameter_absolute_error,
+            :max_parameter_absolute_error; minimum = 0)
+    checked_expected_score_error =
+        _finite_rule_threshold(max_expected_score_calibration_error,
+            :max_expected_score_calibration_error; minimum = 0)
+    checked_category_error =
+        _finite_rule_threshold(max_category_probability_error,
+            :max_category_probability_error; minimum = 0)
+    checked_tail_probability =
+        _finite_rule_threshold(min_predictive_tail_probability,
+            :min_predictive_tail_probability; minimum = 0, maximum = 1)
+    checked_decision_flip =
+        _finite_rule_threshold(max_decision_flip_rate, :max_decision_flip_rate;
+            minimum = 0, maximum = 1)
+    checked_prior_shift =
+        _finite_rule_threshold(max_prior_sensitivity_shift,
+            :max_prior_sensitivity_shift; minimum = 0)
+    checked_elpd_gain =
+        _finite_rule_threshold(min_heldout_elpd_gain, :min_heldout_elpd_gain)
+    checked_grid_axes = _simulation_grid_axis_tuple(required_grid_axes)
+    checked_divergences =
+        _simulation_positive_integer(max_divergences, :max_divergences; minimum = 0)
+    checked_treedepth =
+        _simulation_positive_integer(max_max_treedepth_hits,
+            :max_max_treedepth_hits; minimum = 0)
+
+    specs = (
+        (rule_id = :grid_axes_incomplete,
+            domain = :simulation_grid,
+            metric = :required_grid_axes_present,
+            fail_if = :missing_any,
+            threshold = checked_grid_axes,
+            required_evidence = :simulation_grid_summary,
+            action_if_triggered = :expand_predeclared_grid_before_claim),
+        (rule_id = :design_disconnected,
+            domain = :design_validation,
+            metric = :n_rater_components,
+            fail_if = :greater_than,
+            threshold = 1,
+            required_evidence = :validate_design_and_anchor_linking_summary,
+            action_if_triggered = :narrow_to_connected_designs_or_collect_links),
+        (rule_id = :rhat_too_high,
+            domain = :computation,
+            metric = :max_rhat,
+            fail_if = :greater_than,
+            threshold = checked_max_rhat,
+            required_evidence = :diagnostics,
+            action_if_triggered = :do_not_report_sparse_stability_claim),
+        (rule_id = :bulk_ess_too_low,
+            domain = :computation,
+            metric = :min_bulk_ess,
+            fail_if = :less_than,
+            threshold = checked_min_bulk_ess,
+            required_evidence = :diagnostics,
+            action_if_triggered = :increase_sampling_or_simplify_model),
+        (rule_id = :divergences_or_treedepth,
+            domain = :computation,
+            metric = :n_divergences_or_max_treedepth_hits,
+            fail_if = :greater_than,
+            threshold = (divergences = checked_divergences,
+                max_treedepth_hits = checked_treedepth),
+            required_evidence = :sampler_diagnostics,
+            action_if_triggered = :treat_posterior_geometry_as_unresolved),
+        (rule_id = :interval_coverage_low,
+            domain = :recovery,
+            metric = :interval_coverage_rate,
+            fail_if = :less_than,
+            threshold = checked_min_interval_coverage,
+            required_evidence = :parameter_recovery_summary,
+            action_if_triggered = :narrow_recovery_claim_or_revise_priors),
+        (rule_id = :recovery_error_large,
+            domain = :recovery,
+            metric = :recovery_error,
+            fail_if = :greater_than,
+            threshold = (block_mean_absolute_error = checked_max_block_mae,
+                parameter_absolute_error = checked_max_parameter_abs),
+            required_evidence = :parameter_recovery_summary,
+            action_if_triggered = :report_sparse_recovery_failure),
+        (rule_id = :calibration_error_large,
+            domain = :calibration,
+            metric = :calibration_error,
+            fail_if = :greater_than,
+            threshold = (expected_score = checked_expected_score_error,
+                category_probability = checked_category_error),
+            required_evidence = :calibration_table,
+            action_if_triggered = :block_predictive_stability_claim),
+        (rule_id = :predictive_tail_mismatch,
+            domain = :predictive_check,
+            metric = :minimum_two_sided_tail_probability,
+            fail_if = :less_than,
+            threshold = checked_tail_probability,
+            required_evidence = :predictive_check_summary,
+            action_if_triggered = :report_predictive_misfit_before_claim),
+        (rule_id = :decision_instability,
+            domain = :decision_stability,
+            metric = :max_decision_flip_rate,
+            fail_if = :greater_than,
+            threshold = checked_decision_flip,
+            required_evidence = :dff_and_sparse_decision_grid,
+            action_if_triggered = :frame_outputs_as_screening_only),
+        (rule_id = :prior_sensitivity_large,
+            domain = :sensitivity,
+            metric = :max_focal_shift_across_prior_regimes,
+            fail_if = :greater_than,
+            threshold = checked_prior_shift,
+            required_evidence = :sensitivity_comparison_summary,
+            action_if_triggered = :treat_sparse_claim_as_prior_dependent),
+        (rule_id = :heldout_baseline_not_improved,
+            domain = :baseline_comparison,
+            metric = :hierarchical_minus_baseline_heldout_elpd,
+            fail_if = :less_than,
+            threshold = checked_elpd_gain,
+            required_evidence = :compare_kfold,
+            action_if_triggered = :avoid_superiority_language),
+        (rule_id = :reproduction_bundle_incomplete,
+            domain = :reproducibility,
+            metric = :all_required_artifacts_present,
+            fail_if = :not_equal,
+            threshold = true,
+            required_evidence = :fit_archive_manifest,
+            action_if_triggered = :do_not_publish_claim_until_rerunnable),
+    )
+
+    return [_falsification_rule(;
+        claim,
+        rule_index = index,
+        spec...)
+        for (index, spec) in pairs(specs)]
+end
+
+function _falsification_rule_domain(axis::Symbol)
+    axis in (:grid, :simulation_grid) && return :simulation_grid
+    axis in (:validation, :design_validation) && return :design_validation
+    axis in (:sampler, :sampling, :computation) && return :computation
+    axis in (:recovery, :parameter_recovery) && return :recovery
+    axis in (:calibration, :predictive_calibration) && return :calibration
+    axis in (:ppc, :predictive_check) && return :predictive_check
+    axis in (:decision, :decision_stability) && return :decision_stability
+    axis in (:sensitivity, :prior_sensitivity) && return :sensitivity
+    axis in (:baseline, :baseline_comparison) && return :baseline_comparison
+    axis in (:reproduction, :reproducibility) && return :reproducibility
+    return axis
+end
+
+function _falsification_domain_tuple(domains)
+    out = Symbol[]
+    for domain in domains
+        domain isa Symbol ||
+            throw(ArgumentError("falsification rule domains must be Symbols"))
+        canonical = _falsification_rule_domain(domain)
+        canonical in out || push!(out, canonical)
+    end
+    return Tuple(out)
+end
+
+_falsification_domain_tuple(domain::Symbol) = (_falsification_rule_domain(domain),)
+
+function _falsification_domain_summary(domain::Symbol, rows::AbstractVector)
+    domain_rows = [row for row in rows if hasproperty(row, :domain) &&
+        _falsification_rule_domain(row.domain) === domain]
+    rule_ids = _sensitivity_unique_tuple(row.rule_id for row in domain_rows)
+    return (;
+        domain,
+        present = !isempty(domain_rows),
+        n_rules = length(domain_rows),
+        rule_ids,
+        status = isempty(domain_rows) ? :missing : :present,
+    )
+end
+
+"""
+    falsification_rule_summary(rows; required_domains =
+        (:simulation_grid, :design_validation, :computation, :recovery,
+         :calibration, :predictive_check, :decision_stability, :sensitivity,
+         :baseline_comparison, :reproducibility))
+
+Summarize predeclared falsification-rule rows and check whether every required
+claim domain is represented. This is a rule-coverage summary; it does not
+evaluate study results or decide whether a claim has passed.
+"""
+function falsification_rule_summary(rows::AbstractVector;
+        required_domains = _DEFAULT_FALSIFICATION_RULE_DOMAINS)
+    isempty(rows) &&
+        throw(ArgumentError("at least one falsification rule row is required"))
+    for row in rows
+        row isa NamedTuple ||
+            throw(ArgumentError("falsification rule summary expects NamedTuple rows"))
+    end
+    checked_required = _falsification_domain_tuple(required_domains)
+    domain_rows = [_falsification_domain_summary(domain, rows)
+        for domain in checked_required]
+    missing_required_domains = Tuple(row.domain for row in domain_rows
+        if row.status === :missing)
+    present_required_domains = Tuple(row.domain for row in domain_rows
+        if row.status === :present)
+    return (;
+        schema = "bayesianmgmfrm.falsification_rule_summary.v1",
+        object = :falsification_rule_summary,
+        required_domains = checked_required,
+        n_rules = length(rows),
+        n_domains = length(_sensitivity_unique_tuple(
+            _falsification_rule_domain(row.domain) for row in rows
+            if hasproperty(row, :domain))),
+        missing_required_domains,
+        present_required_domains,
+        domain_rows = Tuple(domain_rows),
+        passed = isempty(missing_required_domains),
+        status = isempty(missing_required_domains) ? :complete : :incomplete,
+        caveat = :rule_summary_not_study_result,
+        next_gate = :evaluate_rules_on_predeclared_simulation_grid,
+    )
+end
+
+falsification_rule_summary(row, rows...; kwargs...) =
+    falsification_rule_summary([row; rows...]; kwargs...)
+
 """
     calibration_plot_data(calibration_rows)
 
