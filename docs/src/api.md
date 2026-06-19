@@ -21,6 +21,7 @@ compare_kfold
 compare_models
 sensitivity_comparison
 sensitivity_comparison_summary
+anchor_linking_summary
 constraint_table
 coverage_matrix
 coverage_summary

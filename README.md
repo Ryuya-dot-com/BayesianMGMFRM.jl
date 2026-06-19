@@ -95,6 +95,7 @@ design.parameter_names
 coverage_summary(spec)
 coverage_matrix(data; rows = :rater, columns = :person)
 rater_overlap(data)
+anchor_linking_summary(spec)
 threshold_map_data(design; params = zeros(length(design.parameter_names)))
 
 prior = MFRMPrior()
@@ -187,6 +188,10 @@ Current public API:
 - `domain_compilation_summary`: review rows showing how family, thresholds,
   dimensions, discrimination, fixed Q-masks, bias terms, anchors, priors, and
   validation requirements compile into the current design contract.
+- `anchor_linking_summary`: fit-independent anchor and rater-linking review
+  rows for declared hard/soft anchors, anchor target checks, overlap
+  connectedness, and optional anchor-axis sensitivity coverage. It is a
+  diagnostic summary, not an anchor refit or linking-constant estimator.
 - `design_row_table`: observation-level compiler metadata showing which
   identified person, rater, item, source-step, item-discrimination,
   item-dimension-discrimination, and rater-consistency parameters each rating
@@ -326,11 +331,12 @@ Current public API:
 - `fit_stats`: posterior summaries of infit and outfit mean-square statistics
   by facet level.
 - `coverage_summary`, `coverage_matrix`, `rater_overlap`,
-  `domain_compilation_summary`, `design_row_table`, `linear_predictor_table`,
-  `threshold_map_data`, `wright_map_data`, and `dff_report`:
+  `anchor_linking_summary`, `domain_compilation_summary`, `design_row_table`,
+  `linear_predictor_table`, `threshold_map_data`, `wright_map_data`, and
+  `dff_report`:
   reporting-data helpers for Quarto tables, coverage heat maps, rater-linking
-  plots, domain compiler reviews, denominator reviews, threshold-map prototypes,
-  Wright-map displays, and DFF review tables. Use
+  plots, anchor/linking audits, domain compiler reviews, denominator reviews,
+  threshold-map prototypes, Wright-map displays, and DFF review tables. Use
   `linear_predictor_values` when a parameter vector is available and numeric
   category-score inspection is needed.
 
