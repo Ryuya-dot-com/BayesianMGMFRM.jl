@@ -213,9 +213,13 @@ nonuse/sparsity and broad facet mean-score ranges before fitting.
 intervals and tail probabilities.
 `simulate_responses` generates one simulated response dataset from known
 identified parameters under the current fit-supported MFRM/RSM/PCM likelihood.
-Use `parameter_recovery` and `parameter_recovery_summary` to inspect posterior
-bias, absolute error, RMSE, interval coverage, interval width, and block-level
-recovery. `parameter_recovery_plot_data`, `calibration_plot_data`,
+It also supports specified-only GMFRM/MGMFRM preview designs for guarded
+simulation scaffolding on constrained direct parameters, or raw candidate
+coordinates with `parameter_space = :raw`. Use `parameter_recovery` and
+`parameter_recovery_summary` to inspect posterior bias, absolute error, RMSE,
+interval coverage, interval width, and block-level recovery; GMFRM/MGMFRM fit
+objects can be summarized on either direct or raw coordinates.
+`parameter_recovery_plot_data`, `calibration_plot_data`,
 `predictive_check_plot_data`, and `wright_map_data` return plotting-ready rows
 without depending on a specific plotting library.
 `waic` computes WAIC from posterior pointwise log-likelihood draws, and

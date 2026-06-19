@@ -286,7 +286,9 @@ Current public API:
 - `simulate_responses`, `parameter_recovery`, and
   `parameter_recovery_summary`: simulation-study helpers for generating one
   dataset from known minimal MFRM/RSM/PCM parameters and checking posterior
-  bias, RMSE, interval coverage, and block-level recovery summaries.
+  bias, RMSE, interval coverage, and block-level recovery summaries. The same
+  helpers also cover guarded GMFRM/MGMFRM fit-ready skeletons on raw or
+  constrained direct coordinates without broadening public generalized fitting.
 - `predictive_check_summary`: report-ready summaries of prior or posterior
   predictive checks with replicated intervals and tail probabilities, including
   person, rater, item, and optional facet mean-score rows, plus DFF-cell and

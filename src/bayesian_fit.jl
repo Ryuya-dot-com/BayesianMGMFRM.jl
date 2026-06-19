@@ -6132,11 +6132,38 @@ function _gmfrm_direct_draws_for_prediction(
     return direct_draws
 end
 
+function _mgmfrm_direct_draws_for_prediction(
+        design::FacetDesign,
+        direct_draws::AbstractMatrix,
+        caller::AbstractString)
+    _check_mgmfrm_source_fixture_design(design, caller)
+    size(direct_draws, 1) >= 1 ||
+        throw(ArgumentError("$caller requires at least one draw"))
+    expected = length(design.parameter_names)
+    size(direct_draws, 2) == expected ||
+        throw(ArgumentError("direct_draws has $(size(direct_draws, 2)) column(s); expected $expected"))
+    all(value -> isfinite(Float64(value)), direct_draws) ||
+        throw(ArgumentError("direct_draws contain non-finite values"))
+    for draw in axes(direct_draws, 1)
+        _mgmfrm_source_fixture_constraints(design, @view direct_draws[draw, :])
+    end
+    return direct_draws
+end
+
 function _gmfrm_category_probabilities!(probs::AbstractVector{Float64},
         design::FacetDesign,
         direct_params::AbstractVector,
         row::Int)
     _gmfrm_source_linear_predictors!(probs, design, direct_params, row)
+    return _softmax_eta!(probs)
+end
+
+function _mgmfrm_category_probabilities!(probs::AbstractVector{Float64},
+        design::FacetDesign,
+        index_by_name,
+        direct_params::AbstractVector,
+        row::Int)
+    _mgmfrm_source_linear_predictors!(probs, design, index_by_name, direct_params, row)
     return _softmax_eta!(probs)
 end
 
@@ -6157,6 +6184,32 @@ function _gmfrm_predictive_probabilities_direct(
         direct_params = @view checked[draw, :]
         for row in 1:data.n
             _gmfrm_category_probabilities!(probs, design, direct_params, row)
+            for category in 1:K
+                out[draw, row, category] = probs[category]
+            end
+        end
+    end
+    return out
+end
+
+function _mgmfrm_predictive_probabilities_direct(
+        design::FacetDesign,
+        direct_draws::AbstractMatrix)
+    checked = _mgmfrm_direct_draws_for_prediction(
+        design,
+        direct_draws,
+        "predictive_probabilities",
+    )
+    data = design.spec.data
+    K = length(data.category_levels)
+    out = Array{Float64}(undef, size(checked, 1), data.n, K)
+    probs = zeros(Float64, K)
+    index_by_name = _parameter_index_map(design)
+
+    for draw in axes(checked, 1)
+        direct_params = @view checked[draw, :]
+        for row in 1:data.n
+            _mgmfrm_category_probabilities!(probs, design, index_by_name, direct_params, row)
             for category in 1:K
                 out[draw, row, category] = probs[category]
             end
@@ -6214,6 +6267,17 @@ function predictive_probabilities(fit::GMFRMFit;
     )
 end
 
+function predictive_probabilities(fit::MGMFRMFit;
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    return _mgmfrm_predictive_probabilities_direct(
+        fit.design,
+        fit.direct_draws[indices, :],
+    )
+end
+
 function _expected_scores_from_probabilities(probabilities::AbstractArray{<:Real,3},
         levels::AbstractVector{<:Real})
     size(probabilities, 3) == length(levels) ||
@@ -6247,6 +6311,14 @@ function expected_scores(fit::MFRMFit;
 end
 
 function expected_scores(fit::GMFRMFit;
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    probabilities = predictive_probabilities(fit; ndraws, draw_indices, rng)
+    return _expected_scores_from_probabilities(probabilities, fit.design.spec.data.category_levels)
+end
+
+function expected_scores(fit::MGMFRMFit;
         ndraws::Union{Nothing,Int} = nothing,
         draw_indices = nothing,
         rng::AbstractRNG = Random.default_rng())
@@ -7032,6 +7104,14 @@ function predictive_variances(fit::GMFRMFit;
     return _predictive_variances_from_probabilities(probabilities, fit.design.spec.data.category_levels)
 end
 
+function predictive_variances(fit::MGMFRMFit;
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    probabilities = predictive_probabilities(fit; ndraws, draw_indices, rng)
+    return _predictive_variances_from_probabilities(probabilities, fit.design.spec.data.category_levels)
+end
+
 """
     predictive_residuals(fit::MFRMFit; ndraws = nothing,
         draw_indices = nothing, rng = Random.default_rng())
@@ -7060,6 +7140,19 @@ function predictive_residuals(fit::MFRMFit;
 end
 
 function predictive_residuals(fit::GMFRMFit;
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    expected = expected_scores(fit; ndraws, draw_indices, rng)
+    data = fit.design.spec.data
+    residuals = similar(expected)
+    for draw in axes(expected, 1), row in axes(expected, 2)
+        residuals[draw, row] = data.score[row] - expected[draw, row]
+    end
+    return residuals
+end
+
+function predictive_residuals(fit::MGMFRMFit;
         ndraws::Union{Nothing,Int} = nothing,
         draw_indices = nothing,
         rng::AbstractRNG = Random.default_rng())
@@ -8353,11 +8446,12 @@ end
 function _replicate_scores_gmfrm_direct(
         design::FacetDesign,
         direct_draws::AbstractMatrix,
-        rng::AbstractRNG)
+        rng::AbstractRNG,
+        caller::AbstractString = "posterior_predict")
     checked = _gmfrm_direct_draws_for_prediction(
         design,
         direct_draws,
-        "posterior_predict",
+        caller,
     )
     data = design.spec.data
     K = length(data.category_levels)
@@ -8368,6 +8462,33 @@ function _replicate_scores_gmfrm_direct(
         direct_params = @view checked[replication, :]
         for row in 1:data.n
             _gmfrm_category_probabilities!(probs, design, direct_params, row)
+            category = _sample_category_index(rng, probs)
+            replicated[replication, row] = data.category_levels[category]
+        end
+    end
+    return replicated
+end
+
+function _replicate_scores_mgmfrm_direct(
+        design::FacetDesign,
+        direct_draws::AbstractMatrix,
+        rng::AbstractRNG,
+        caller::AbstractString = "posterior_predict")
+    checked = _mgmfrm_direct_draws_for_prediction(
+        design,
+        direct_draws,
+        caller,
+    )
+    data = design.spec.data
+    K = length(data.category_levels)
+    replicated = Matrix{Int}(undef, size(checked, 1), data.n)
+    probs = zeros(Float64, K)
+    index_by_name = _parameter_index_map(design)
+
+    for replication in axes(checked, 1)
+        direct_params = @view checked[replication, :]
+        for row in 1:data.n
+            _mgmfrm_category_probabilities!(probs, design, index_by_name, direct_params, row)
             category = _sample_category_index(rng, probs)
             replicated[replication, row] = data.category_levels[category]
         end
@@ -8428,6 +8549,18 @@ function posterior_predict(fit::GMFRMFit;
         rng::AbstractRNG = Random.default_rng())
     indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
     return _replicate_scores_gmfrm_direct(
+        fit.design,
+        fit.direct_draws[indices, :],
+        rng,
+    )
+end
+
+function posterior_predict(fit::MGMFRMFit;
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    return _replicate_scores_mgmfrm_direct(
         fit.design,
         fit.direct_draws[indices, :],
         rng,
@@ -9142,6 +9275,30 @@ function posterior_predictive_check(fit::GMFRMFit;
     )
 end
 
+function posterior_predictive_check(fit::MGMFRMFit;
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    replicated = posterior_predict(fit; draw_indices = indices, rng)
+    data = fit.design.spec.data
+    observed = _predictive_summary(data, data.score)
+    replicated_summary = _replicated_summaries(data, replicated)
+    grouped = _predictive_grouped_summary(fit.design.spec, replicated)
+    return (;
+        observed,
+        replicated = replicated_summary,
+        grouped,
+        replicated_scores = replicated,
+        draw_indices = indices,
+        category_levels = copy(data.category_levels),
+        person_levels = copy(data.person_levels),
+        rater_levels = copy(data.rater_levels),
+        item_levels = copy(data.item_levels),
+        optional_levels = Dict(facet => copy(levels) for (facet, levels) in data.optional_levels),
+    )
+end
+
 function _check_simulation_output(output::Symbol)
     output in (:data, :table, :scores) ||
         throw(ArgumentError("output must be :data, :table, or :scores"))
@@ -9186,40 +9343,119 @@ function _facet_data_with_scores(data::FacetData, scores::AbstractVector{<:Integ
     )
 end
 
+function _check_simulation_parameter_space(parameter_space::Symbol)
+    parameter_space in (:direct, :raw) ||
+        throw(ArgumentError("parameter_space must be :direct or :raw"))
+    return parameter_space
+end
+
+function _check_finite_parameter_values(params::AbstractVector, caller::AbstractString)
+    all(value -> isfinite(Float64(value)), params) ||
+        throw(ArgumentError("$caller parameter vector contains non-finite values"))
+    return params
+end
+
+function _generalized_simulation_direct_params(design::FacetDesign,
+        params::AbstractVector,
+        parameter_space::Symbol,
+        caller::AbstractString)
+    _check_finite_parameter_values(params, caller)
+    if design.spec.family === :gmfrm && design.spec.estimation_status === :specified_only
+        direct = parameter_space === :raw ?
+            _gmfrm_source_constrained_params_from_unconstrained(design, params) :
+            collect(Float64, params)
+        _gmfrm_direct_draws_for_prediction(design, reshape(direct, 1, :), caller)
+        return direct
+    elseif design.spec.family === :mgmfrm && design.spec.estimation_status === :specified_only
+        direct = parameter_space === :raw ?
+            _mgmfrm_source_constrained_params_from_unconstrained(design, params) :
+            collect(Float64, params)
+        _mgmfrm_direct_draws_for_prediction(design, reshape(direct, 1, :), caller)
+        return direct
+    end
+    throw(ArgumentError(
+        "$caller currently supports fit-supported MFRM/RSM/PCM designs and " *
+        "specified-only GMFRM/MGMFRM preview designs",
+    ))
+end
+
 """
     simulate_responses(spec_or_design, params; rng = Random.default_rng(),
-        output = :data)
+        output = :data, parameter_space = :direct, preview = false)
 
 Simulate one response dataset from the current fit-supported MFRM/RSM/PCM
-likelihood using the supplied identified parameter vector. `output = :data`
-returns a `FacetData` object with the same person/rater/item/optional facet
-structure and category levels as the original design. Use `output = :table`
-for a column-oriented named tuple, or `output = :scores` for just the simulated
-score vector.
+likelihood, or from a specified-only GMFRM/MGMFRM preview design for internal
+simulation/recovery scaffolding. MFRM/RSM/PCM designs use direct identified
+parameters. GMFRM/MGMFRM previews accept constrained direct parameters by
+default, or raw fit-ready candidate parameters with `parameter_space = :raw`.
+`output = :data` returns a `FacetData` object with the same
+person/rater/item/optional facet structure and category levels as the original
+design. Use `output = :table` for a column-oriented named tuple, or
+`output = :scores` for just the simulated score vector.
 """
 function simulate_responses(design::FacetDesign,
         params::AbstractVector;
         rng::AbstractRNG = Random.default_rng(),
-        output::Symbol = :data)
-    _check_fit_supported_mfrm(design, "simulate_responses")
-    _check_parameter_vector(design, params)
+        output::Symbol = :data,
+        parameter_space::Symbol = :direct)
     checked_output = _check_simulation_output(output)
-    draws = reshape(collect(Float64, params), 1, :)
-    scores = vec(_replicate_scores(design, draws, rng))
+    checked_space = _check_simulation_parameter_space(parameter_space)
+    if design.spec.family === :mfrm && design.spec.estimation_status === :fit_supported
+        checked_space === :direct ||
+            throw(ArgumentError("fit-supported MFRM/RSM/PCM simulation only accepts parameter_space = :direct"))
+        _check_parameter_vector(design, params)
+        draws = reshape(collect(Float64, params), 1, :)
+        scores = vec(_replicate_scores(design, draws, rng))
+    elseif design.spec.family === :gmfrm && design.spec.estimation_status === :specified_only
+        direct = _generalized_simulation_direct_params(
+            design,
+            params,
+            checked_space,
+            "simulate_responses",
+        )
+        scores = vec(_replicate_scores_gmfrm_direct(
+            design,
+            reshape(direct, 1, :),
+            rng,
+            "simulate_responses",
+        ))
+    elseif design.spec.family === :mgmfrm && design.spec.estimation_status === :specified_only
+        direct = _generalized_simulation_direct_params(
+            design,
+            params,
+            checked_space,
+            "simulate_responses",
+        )
+        scores = vec(_replicate_scores_mgmfrm_direct(
+            design,
+            reshape(direct, 1, :),
+            rng,
+            "simulate_responses",
+        ))
+    else
+        throw(ArgumentError(
+            "simulate_responses currently supports fit-supported MFRM/RSM/PCM " *
+            "designs and specified-only GMFRM/MGMFRM preview designs",
+        ))
+    end
     checked_output === :scores && return scores
     checked_output === :table && return _simulated_response_table(design.spec.data, scores)
     return _facet_data_with_scores(design.spec.data, scores)
 end
 
-simulate_responses(spec::FacetSpec, params::AbstractVector; kwargs...) =
-    simulate_responses(getdesign(spec), params; kwargs...)
+simulate_responses(spec::FacetSpec,
+        params::AbstractVector;
+        preview::Bool = false,
+        kwargs...) =
+    simulate_responses(getdesign(spec; preview), params; kwargs...)
 
-function _check_recovery_inputs(design::FacetDesign,
+function _check_recovery_inputs(parameter_names::AbstractVector{String},
         draws::AbstractMatrix,
-        truth::AbstractVector)
-    nparams = length(design.parameter_names)
+        truth::AbstractVector,
+        caller::AbstractString)
+    nparams = length(parameter_names)
     size(draws, 1) >= 1 ||
-        throw(ArgumentError("parameter recovery requires at least one draw"))
+        throw(ArgumentError("$caller requires at least one draw"))
     size(draws, 2) == nparams ||
         throw(ArgumentError("draws has $(size(draws, 2)) column(s); expected $nparams"))
     length(truth) == nparams ||
@@ -9231,31 +9467,69 @@ function _check_recovery_inputs(design::FacetDesign,
     return nothing
 end
 
-function _parameter_block_name(design::FacetDesign, index::Int)
-    for block in sort(collect(keys(design.blocks)); by = string)
-        _in_range(design.blocks[block], index) && return block
+function _check_recovery_inputs(design::FacetDesign,
+        draws::AbstractMatrix,
+        truth::AbstractVector,
+        caller::AbstractString = "parameter recovery")
+    return _check_recovery_inputs(design.parameter_names, draws, truth, caller)
+end
+
+function _parameter_block_name(blocks, index::Int)
+    for block in sort(collect(keys(blocks)); by = string)
+        _in_range(blocks[block], index) && return block
     end
     return :unknown
 end
 
-"""
-    parameter_recovery(fit::MFRMFit, truth; interval = 0.95)
-    parameter_recovery(design::FacetDesign, draws, truth; interval = 0.95)
+_parameter_block_name(design::FacetDesign, index::Int) =
+    _parameter_block_name(design.blocks, index)
 
-Compare posterior draws with known simulation truth. Rows include the true
-value, posterior mean/median/interval, bias, absolute bias, squared error,
-relative bias, interval width, and whether the posterior interval covers the
-true value. This is intended for simulation studies of the current
-fit-supported MFRM/RSM/PCM likelihood.
-"""
-function parameter_recovery(design::FacetDesign,
+function _block_ranges_from_value_rows(rows)
+    blocks = Dict{Symbol,UnitRange{Int}}()
+    for row in rows
+        Int(row.n_parameters) == 0 && continue
+        blocks[row.block] = Int(row.first_parameter):Int(row.last_parameter)
+    end
+    return blocks
+end
+
+function _check_recovery_parameter_space(parameter_space::Symbol)
+    parameter_space in (:direct, :raw) ||
+        throw(ArgumentError("parameter_space must be :direct or :raw"))
+    return parameter_space
+end
+
+function _recovery_metadata(;
+        model_family::Symbol,
+        parameter_space::Symbol,
+        density_space::Symbol,
+        scope,
+        fit_ready::Bool,
+        public_fit::Bool,
+        experimental_public::Bool,
+        guarded_local_fit::Bool)
+    return (;
+        model_family,
+        parameter_space,
+        density_space,
+        scope,
+        fit_ready,
+        public_fit,
+        experimental_public,
+        guarded_local_fit,
+    )
+end
+
+function _parameter_recovery_rows(parameter_names::AbstractVector{String},
+        blocks,
         draws::AbstractMatrix,
         truth::AbstractVector;
-        interval::Real = 0.95)
+        interval::Real,
+        metadata)
     lower_probability, upper_probability = _interval_probabilities(interval)
-    _check_recovery_inputs(design, draws, truth)
+    _check_recovery_inputs(parameter_names, draws, truth, "parameter_recovery")
     rows = NamedTuple[]
-    for index in 1:length(design.parameter_names)
+    for index in 1:length(parameter_names)
         vals = Float64.(draws[:, index])
         sorted = sort(vals)
         posterior_mean = _column_mean(vals)
@@ -9267,10 +9541,10 @@ function parameter_recovery(design::FacetDesign,
         bias = posterior_mean - true_value
         relative_bias = iszero(true_value) ? NaN : bias / abs(true_value)
         covered = posterior_lower <= true_value <= posterior_upper
-        push!(rows, (;
-            parameter = design.parameter_names[index],
+        push!(rows, merge((;
+            parameter = parameter_names[index],
             parameter_index = index,
-            block = _parameter_block_name(design, index),
+            block = _parameter_block_name(blocks, index),
             true_value,
             posterior_mean,
             posterior_sd,
@@ -9287,15 +9561,198 @@ function parameter_recovery(design::FacetDesign,
             interval_width = posterior_upper - posterior_lower,
             covered,
             flag = covered ? :covered : :missed_interval,
-        ))
+        ), metadata))
     end
     return rows
 end
 
+function _design_recovery_metadata(design::FacetDesign, parameter_space::Symbol)
+    if design.spec.family === :mfrm && design.spec.estimation_status === :fit_supported
+        parameter_space === :direct ||
+            throw(ArgumentError("fit-supported MFRM/RSM/PCM recovery only accepts parameter_space = :direct"))
+        return _recovery_metadata(;
+            model_family = :mfrm,
+            parameter_space = :direct,
+            density_space = :constrained_direct,
+            scope = _spec_scope(design.spec.family, design.spec.estimation_status),
+            fit_ready = true,
+            public_fit = true,
+            experimental_public = false,
+            guarded_local_fit = false,
+        )
+    elseif design.spec.family === :gmfrm && design.spec.estimation_status === :specified_only
+        return _recovery_metadata(;
+            model_family = :gmfrm,
+            parameter_space,
+            density_space = parameter_space === :direct ? :constrained_direct : :raw_unconstrained,
+            scope = :scalar_gmfrm_fit_ready_candidate,
+            fit_ready = false,
+            public_fit = false,
+            experimental_public = true,
+            guarded_local_fit = false,
+        )
+    elseif design.spec.family === :mgmfrm && design.spec.estimation_status === :specified_only
+        return _recovery_metadata(;
+            model_family = :mgmfrm,
+            parameter_space,
+            density_space = parameter_space === :direct ? :constrained_direct : :raw_unconstrained,
+            scope = :minimal_confirmatory_mgmfrm_candidate,
+            fit_ready = false,
+            public_fit = false,
+            experimental_public = false,
+            guarded_local_fit = true,
+        )
+    end
+    throw(ArgumentError(
+        "parameter_recovery currently supports fit-supported MFRM/RSM/PCM " *
+        "designs and specified-only GMFRM/MGMFRM preview designs",
+    ))
+end
+
+function _design_recovery_layout(design::FacetDesign, parameter_space::Symbol)
+    metadata = _design_recovery_metadata(design, parameter_space)
+    if design.spec.family === :mfrm
+        return (; parameter_names = design.parameter_names, blocks = design.blocks, metadata)
+    elseif parameter_space === :direct
+        return (; parameter_names = design.parameter_names, blocks = design.blocks, metadata)
+    elseif design.spec.family === :gmfrm
+        blueprint = _gmfrm_fit_ready_candidate_blueprint(design)
+        return (; parameter_names = blueprint.parameter_names, blocks = blueprint.blocks, metadata)
+    elseif design.spec.family === :mgmfrm
+        blueprint = _mgmfrm_fit_ready_candidate_blueprint(design)
+        return (; parameter_names = blueprint.parameter_names, blocks = blueprint.blocks, metadata)
+    end
+    throw(ArgumentError("unsupported recovery layout"))
+end
+
+function _fit_recovery_layout(fit::GMFRMFit, parameter_space::Symbol)
+    metadata = _recovery_metadata(;
+        model_family = :gmfrm,
+        parameter_space,
+        density_space = parameter_space === :direct ? :constrained_direct : :raw_unconstrained,
+        scope = :scalar_gmfrm_fit_ready_candidate,
+        fit_ready = true,
+        public_fit = true,
+        experimental_public = true,
+        guarded_local_fit = false,
+    )
+    if parameter_space === :direct
+        return (;
+            parameter_names = fit.diagnostic_surface.direct_parameter_names,
+            blocks = _block_ranges_from_value_rows(fit.diagnostic_surface.direct_blocks),
+            draws = fit.direct_draws,
+            metadata,
+        )
+    end
+    return (;
+        parameter_names = fit.diagnostic_surface.raw_parameter_names,
+        blocks = _block_ranges_from_value_rows(fit.diagnostic_surface.raw_blocks),
+        draws = fit.draws,
+        metadata,
+    )
+end
+
+function _fit_recovery_layout(fit::MGMFRMFit, parameter_space::Symbol)
+    metadata = _recovery_metadata(;
+        model_family = :mgmfrm,
+        parameter_space,
+        density_space = parameter_space === :direct ? :constrained_direct : :raw_unconstrained,
+        scope = :minimal_confirmatory_mgmfrm_candidate,
+        fit_ready = false,
+        public_fit = false,
+        experimental_public = false,
+        guarded_local_fit = true,
+    )
+    if parameter_space === :direct
+        return (;
+            parameter_names = fit.diagnostic_surface.direct_parameter_names,
+            blocks = _block_ranges_from_value_rows(fit.diagnostic_surface.direct_blocks),
+            draws = fit.direct_draws,
+            metadata,
+        )
+    end
+    return (;
+        parameter_names = fit.diagnostic_surface.raw_parameter_names,
+        blocks = _block_ranges_from_value_rows(fit.diagnostic_surface.raw_blocks),
+        draws = fit.draws,
+        metadata,
+    )
+end
+
+"""
+    parameter_recovery(fit::MFRMFit, truth; interval = 0.95)
+    parameter_recovery(fit::GMFRMFit, truth; interval = 0.95,
+        parameter_space = :direct)
+    parameter_recovery(design::FacetDesign, draws, truth; interval = 0.95,
+        parameter_space = :direct)
+
+Compare posterior draws with known simulation truth. Rows include the true
+value, posterior mean/median/interval, bias, absolute bias, squared error,
+relative bias, interval width, and whether the posterior interval covers the
+true value. MFRM/RSM/PCM rows use the fit-supported direct parameterization.
+GMFRM/MGMFRM fit objects and preview designs use direct constrained parameters
+by default; pass `parameter_space = :raw` to evaluate raw fit-ready candidate
+coordinates.
+"""
+function parameter_recovery(design::FacetDesign,
+        draws::AbstractMatrix,
+        truth::AbstractVector;
+        interval::Real = 0.95,
+        parameter_space::Symbol = :direct)
+    checked_space = _check_recovery_parameter_space(parameter_space)
+    layout = _design_recovery_layout(design, checked_space)
+    if design.spec.family === :gmfrm && checked_space === :direct
+        _gmfrm_direct_draws_for_prediction(design, draws, "parameter_recovery")
+    elseif design.spec.family === :mgmfrm && checked_space === :direct
+        _mgmfrm_direct_draws_for_prediction(design, draws, "parameter_recovery")
+    end
+    return _parameter_recovery_rows(
+        layout.parameter_names,
+        layout.blocks,
+        draws,
+        truth;
+        interval,
+        metadata = layout.metadata,
+    )
+end
+
 parameter_recovery(fit::MFRMFit,
         truth::AbstractVector;
-        interval::Real = 0.95) =
-    parameter_recovery(fit.design, fit.draws, truth; interval)
+        interval::Real = 0.95,
+        parameter_space::Symbol = :direct) =
+    parameter_recovery(fit.design, fit.draws, truth; interval, parameter_space)
+
+function parameter_recovery(fit::GMFRMFit,
+        truth::AbstractVector;
+        interval::Real = 0.95,
+        parameter_space::Symbol = :direct)
+    checked_space = _check_recovery_parameter_space(parameter_space)
+    layout = _fit_recovery_layout(fit, checked_space)
+    return _parameter_recovery_rows(
+        layout.parameter_names,
+        layout.blocks,
+        layout.draws,
+        truth;
+        interval,
+        metadata = layout.metadata,
+    )
+end
+
+function parameter_recovery(fit::MGMFRMFit,
+        truth::AbstractVector;
+        interval::Real = 0.95,
+        parameter_space::Symbol = :direct)
+    checked_space = _check_recovery_parameter_space(parameter_space)
+    layout = _fit_recovery_layout(fit, checked_space)
+    return _parameter_recovery_rows(
+        layout.parameter_names,
+        layout.blocks,
+        layout.draws,
+        truth;
+        interval,
+        metadata = layout.metadata,
+    )
+end
 
 function _recovery_group_key(row, by::Symbol)
     by === :all && return :all
@@ -9361,8 +9818,29 @@ end
 parameter_recovery_summary(fit::MFRMFit,
         truth::AbstractVector;
         interval::Real = 0.95,
-        by::Symbol = :block) =
-    parameter_recovery_summary(parameter_recovery(fit, truth; interval); by)
+        by::Symbol = :block,
+        parameter_space::Symbol = :direct) =
+    parameter_recovery_summary(
+        parameter_recovery(fit, truth; interval, parameter_space);
+        by)
+
+parameter_recovery_summary(fit::GMFRMFit,
+        truth::AbstractVector;
+        interval::Real = 0.95,
+        by::Symbol = :block,
+        parameter_space::Symbol = :direct) =
+    parameter_recovery_summary(
+        parameter_recovery(fit, truth; interval, parameter_space);
+        by)
+
+parameter_recovery_summary(fit::MGMFRMFit,
+        truth::AbstractVector;
+        interval::Real = 0.95,
+        by::Symbol = :block,
+        parameter_space::Symbol = :direct) =
+    parameter_recovery_summary(
+        parameter_recovery(fit, truth; interval, parameter_space);
+        by)
 
 """
     parameter_recovery_plot_data(recovery_rows)
@@ -9392,8 +9870,24 @@ end
 
 parameter_recovery_plot_data(fit::MFRMFit,
         truth::AbstractVector;
-        interval::Real = 0.95) =
-    parameter_recovery_plot_data(parameter_recovery(fit, truth; interval))
+        interval::Real = 0.95,
+        parameter_space::Symbol = :direct) =
+    parameter_recovery_plot_data(
+        parameter_recovery(fit, truth; interval, parameter_space))
+
+parameter_recovery_plot_data(fit::GMFRMFit,
+        truth::AbstractVector;
+        interval::Real = 0.95,
+        parameter_space::Symbol = :direct) =
+    parameter_recovery_plot_data(
+        parameter_recovery(fit, truth; interval, parameter_space))
+
+parameter_recovery_plot_data(fit::MGMFRMFit,
+        truth::AbstractVector;
+        interval::Real = 0.95,
+        parameter_space::Symbol = :direct) =
+    parameter_recovery_plot_data(
+        parameter_recovery(fit, truth; interval, parameter_space))
 
 """
     calibration_plot_data(calibration_rows)

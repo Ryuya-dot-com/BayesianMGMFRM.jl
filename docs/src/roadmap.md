@@ -97,8 +97,8 @@ public MGMFRM exposure still requires a separate release decision.
 
 ## Progress Ledger
 
-The repository roadmap currently has 111 of 120 tracked checklist items complete,
-or roughly 92.5% by simple implementation accounting. The stronger claim-level
+The repository roadmap currently has 112 of 120 tracked checklist items complete,
+or roughly 93.3% by simple implementation accounting. The stronger claim-level
 progress is lower, about 40-45%, because the remaining work includes public
 generalized fitting, Stan comparisons, broader recovery simulations,
 and a public-scope release decision for generalized claims.
@@ -314,7 +314,10 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   predictive implication diagnostics now cover category use and broad facet
   mean-score ranges; predictive-check summaries can expand grouped DFF-cell
   and observed sparse-design-block rows; calibration summaries now cover
-  expected-score rows and all ordinal category-probability rows in one report]
+  expected-score rows and all ordinal category-probability rows in one report;
+  GMFRM/MGMFRM preview and guarded-fit simulation/recovery helpers now cover
+  raw and constrained direct candidate coordinates without broad public
+  generalized fitting]
 - Add multiple credible intervals, probability of direction, and ROPE summaries.
   [Done for `posterior_summary`; focal DFF reports still need estimand-specific
   practical-magnitude rows]
