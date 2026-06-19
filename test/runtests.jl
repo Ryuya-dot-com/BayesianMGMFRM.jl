@@ -8155,6 +8155,22 @@ end
         gmfrm_experimental_artifact.content_hash
     @test waic(gmfrm_experimental_fit).n_draws == 8
     @test loo(gmfrm_experimental_fit).n_draws == 8
+    gmfrm_comparison = compare_models(
+        :gmfrm_a => gmfrm_experimental_fit,
+        :gmfrm_b => gmfrm_experimental_fit;
+        draw_indices = [1, 2])
+    @test length(gmfrm_comparison) == 2
+    @test all(row -> row.comparison_contract ===
+        :same_observation_data_same_latent_dimensions, gmfrm_comparison)
+    @test all(row -> row.model_family === :gmfrm, gmfrm_comparison)
+    @test all(row -> row.thresholds === gmfrm_spec.thresholds, gmfrm_comparison)
+    @test all(row -> row.dimensions == 1, gmfrm_comparison)
+    @test all(row -> row.discrimination === :rater, gmfrm_comparison)
+    @test all(row -> row.q_matrix === nothing, gmfrm_comparison)
+    @test all(row -> row.data_signature ==
+        gmfrm_spec.validation.data_signature, gmfrm_comparison)
+    @test all(row -> row.category_levels ==
+        identified_data.category_levels, gmfrm_comparison)
     @test length(waic_diagnostics(gmfrm_experimental_fit)) == identified_data.n
     @test length(loo_diagnostics(gmfrm_experimental_fit)) == identified_data.n
     gmfrm_probabilities =
@@ -8936,6 +8952,10 @@ end
         mgmfrm_guarded_artifact.content_hash
     @test waic(mgmfrm_guarded_fit).n_draws == 2
     @test length(waic_diagnostics(mgmfrm_guarded_fit)) == identified_data.n
+    @test_throws ArgumentError compare_models(
+        gmfrm_experimental_fit,
+        mgmfrm_guarded_fit;
+        draw_indices = [1, 2])
     @test_throws ArgumentError BayesianMGMFRM._fit_guarded_mgmfrm(
         gmfrm_spec;
         ndraws = 1,
@@ -10049,6 +10069,21 @@ end
     @test sum(row.relative_weight for row in comparison) ≈ 1.0
     @test comparison[1].relative_weight >= comparison[2].relative_weight
     @test all(row -> row.criterion === :waic, comparison)
+    @test all(row -> row.comparison_contract ===
+        :same_observation_data_same_latent_dimensions, comparison)
+    @test all(row -> row.model_family === :mfrm, comparison)
+    @test all(row -> row.thresholds === spec.thresholds, comparison)
+    @test all(row -> row.dimensions == spec.dimensions, comparison)
+    @test all(row -> row.discrimination === spec.discrimination, comparison)
+    @test all(row -> row.q_matrix === nothing, comparison)
+    @test all(row -> row.estimation_status === spec.estimation_status, comparison)
+    @test all(row -> row.data_signature == spec.validation.data_signature, comparison)
+    @test all(row -> row.n_categories == length(data.category_levels), comparison)
+    @test all(row -> row.category_levels == data.category_levels, comparison)
+    @test all(row -> row.n_persons == length(data.person_levels), comparison)
+    @test all(row -> row.n_raters == length(data.rater_levels), comparison)
+    @test all(row -> row.n_items == length(data.item_levels), comparison)
+    @test all(row -> row.optional_facets == Symbol[], comparison)
     @test all(row -> row.n_observations == data.n, comparison)
     best_elpd = best_stat.elpd_waic
     manual_weights = Dict(
@@ -10092,6 +10127,10 @@ end
     @test sum(row.relative_weight for row in loo_comparison) ≈ 1.0
     @test loo_comparison[1].relative_weight >= loo_comparison[2].relative_weight
     @test all(row -> row.criterion === :loo, loo_comparison)
+    @test all(row -> row.comparison_contract ===
+        :same_observation_data_same_latent_dimensions, loo_comparison)
+    @test all(row -> row.model_family === :mfrm, loo_comparison)
+    @test all(row -> row.dimensions == spec.dimensions, loo_comparison)
     @test all(row -> row.method === :raw_importance_sampling, loo_comparison)
     @test all(row -> row.psis_smoothing === false, loo_comparison)
     @test all(row -> row.n_observations == data.n, loo_comparison)

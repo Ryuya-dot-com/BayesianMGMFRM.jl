@@ -386,6 +386,9 @@ struct MGMFRMFit
     diagnostic_surface::NamedTuple
 end
 
+const _ModelComparisonFit = Union{MFRMFit,GMFRMFit,MGMFRMFit}
+const _MODEL_COMPARISON_CONTRACT = :same_observation_data_same_latent_dimensions
+
 function Base.show(io::IO, fit::GMFRMFit)
     print(io, "GMFRMFit(",
         size(fit.draws, 1), " raw draw(s), ",
@@ -5290,9 +5293,81 @@ function _compare_criterion(criterion::Symbol)
     return criterion
 end
 
-function _waic_comparison_rows(labels::AbstractVector{<:AbstractString}, stats)
+function _model_comparison_contract(fit::_ModelComparisonFit)
+    spec = fit.design.spec
+    data = spec.data
+    return (;
+        comparison_contract = _MODEL_COMPARISON_CONTRACT,
+        model_family = spec.family,
+        thresholds = spec.thresholds,
+        dimensions = spec.dimensions,
+        discrimination = spec.discrimination,
+        q_matrix = _q_matrix_manifest(spec.q_matrix),
+        estimation_status = spec.estimation_status,
+        data_signature = spec.validation.data_signature,
+        n_observations = data.n,
+        n_categories = length(data.category_levels),
+        category_levels = copy(data.category_levels),
+        n_persons = length(data.person_levels),
+        n_raters = length(data.rater_levels),
+        n_items = length(data.item_levels),
+        optional_facets = sort(collect(keys(data.optional)); by = string),
+    )
+end
+
+function _require_same_contract_field(
+        contracts::AbstractVector,
+        field::Symbol,
+        message::AbstractString)
+    isempty(contracts) && return nothing
+    first_value = getproperty(contracts[1], field)
+    all(contract -> isequal(getproperty(contract, field), first_value), contracts) ||
+        throw(ArgumentError(message))
+    return nothing
+end
+
+function _require_model_comparison_compatibility(contracts::AbstractVector)
+    isempty(contracts) && return nothing
+    _require_same_contract_field(contracts, :data_signature,
+        "all models must be fit to the same observation data and row order; call waic on each model separately for different data")
+    _require_same_contract_field(contracts, :n_observations,
+        "all models must have the same number of observations")
+    _require_same_contract_field(contracts, :category_levels,
+        "all models must use the same ordinal category levels")
+    _require_same_contract_field(contracts, :optional_facets,
+        "all models must use the same optional facet roles")
+    _require_same_contract_field(contracts, :dimensions,
+        "all models must use the same latent dimensionality; use a predeclared sensitivity workflow for dimensionality comparisons")
+    _require_same_contract_field(contracts, :q_matrix,
+        "all multidimensional models must use the same fixed Q-matrix for direct compare_models output")
+    return nothing
+end
+
+function _comparison_contract_fields(contract::NamedTuple)
+    return (;
+        comparison_contract = contract.comparison_contract,
+        model_family = contract.model_family,
+        thresholds = contract.thresholds,
+        dimensions = contract.dimensions,
+        discrimination = contract.discrimination,
+        q_matrix = contract.q_matrix,
+        estimation_status = contract.estimation_status,
+        data_signature = contract.data_signature,
+        n_categories = contract.n_categories,
+        category_levels = copy(contract.category_levels),
+        n_persons = contract.n_persons,
+        n_raters = contract.n_raters,
+        n_items = contract.n_items,
+        optional_facets = copy(contract.optional_facets),
+    )
+end
+
+function _waic_comparison_rows(labels::AbstractVector{<:AbstractString}, stats,
+        contracts::AbstractVector)
     n_models = length(stats)
     n_models >= 2 || throw(ArgumentError("at least two models are required"))
+    length(contracts) == n_models ||
+        throw(ArgumentError("contracts has length $(length(contracts)); expected $n_models"))
     n_observations = stats[1].n_observations
     all(stat -> stat.n_observations == n_observations, stats) ||
         throw(ArgumentError("all models must have the same number of observations"))
@@ -5305,32 +5380,38 @@ function _waic_comparison_rows(labels::AbstractVector{<:AbstractString}, stats)
     for (rank, index) in pairs(order)
         stat = stats[index]
         pointwise_difference = stat.pointwise.elpd_waic .- best.pointwise.elpd_waic
-        push!(rows, (;
-            model = labels[index],
-            rank,
-            criterion = :waic,
-            elpd_waic = stat.elpd_waic,
-            elpd_difference = stat.elpd_waic - best.elpd_waic,
-            se_elpd_difference = _pointwise_se(pointwise_difference),
-            se_elpd_waic = stat.se_elpd_waic,
-            waic = stat.waic,
-            waic_difference = stat.waic - best.waic,
-            se_waic = stat.se_waic,
-            relative_weight = unnormalized_weights[index] / weight_total,
-            p_waic = stat.p_waic,
-            lppd = stat.lppd,
-            n_draws = stat.n_draws,
-            n_observations = stat.n_observations,
-            high_variance_count = stat.high_variance_count,
-            warning = stat.warning,
-        ))
+        push!(rows, merge((;
+                model = labels[index],
+                rank,
+                criterion = :waic,
+            ),
+            _comparison_contract_fields(contracts[index]),
+            (;
+                elpd_waic = stat.elpd_waic,
+                elpd_difference = stat.elpd_waic - best.elpd_waic,
+                se_elpd_difference = _pointwise_se(pointwise_difference),
+                se_elpd_waic = stat.se_elpd_waic,
+                waic = stat.waic,
+                waic_difference = stat.waic - best.waic,
+                se_waic = stat.se_waic,
+                relative_weight = unnormalized_weights[index] / weight_total,
+                p_waic = stat.p_waic,
+                lppd = stat.lppd,
+                n_draws = stat.n_draws,
+                n_observations = stat.n_observations,
+                high_variance_count = stat.high_variance_count,
+                warning = stat.warning,
+            )))
     end
     return rows
 end
 
-function _loo_comparison_rows(labels::AbstractVector{<:AbstractString}, stats)
+function _loo_comparison_rows(labels::AbstractVector{<:AbstractString}, stats,
+        contracts::AbstractVector)
     n_models = length(stats)
     n_models >= 2 || throw(ArgumentError("at least two models are required"))
+    length(contracts) == n_models ||
+        throw(ArgumentError("contracts has length $(length(contracts)); expected $n_models"))
     n_observations = stats[1].n_observations
     all(stat -> stat.n_observations == n_observations, stats) ||
         throw(ArgumentError("all models must have the same number of observations"))
@@ -5343,42 +5424,37 @@ function _loo_comparison_rows(labels::AbstractVector{<:AbstractString}, stats)
     for (rank, index) in pairs(order)
         stat = stats[index]
         pointwise_difference = stat.pointwise.elpd_loo .- best.pointwise.elpd_loo
-        push!(rows, (;
-            model = labels[index],
-            rank,
-            criterion = :loo,
-            method = stat.method,
-            psis_smoothing = stat.psis_smoothing,
-            elpd_loo = stat.elpd_loo,
-            elpd_difference = stat.elpd_loo - best.elpd_loo,
-            se_elpd_difference = _pointwise_se(pointwise_difference),
-            se_elpd_loo = stat.se_elpd_loo,
-            looic = stat.looic,
-            looic_difference = stat.looic - best.looic,
-            se_looic = stat.se_looic,
-            relative_weight = unnormalized_weights[index] / weight_total,
-            p_loo = stat.p_loo,
-            lppd = stat.lppd,
-            n_draws = stat.n_draws,
-            n_observations = stat.n_observations,
-            max_pareto_k = stat.max_pareto_k,
-            bad_pareto_k_count = stat.bad_pareto_k_count,
-            min_effective_sample_size = stat.min_effective_sample_size,
-            warning = stat.warning,
-        ))
+        push!(rows, merge((;
+                model = labels[index],
+                rank,
+                criterion = :loo,
+            ),
+            _comparison_contract_fields(contracts[index]),
+            (;
+                method = stat.method,
+                psis_smoothing = stat.psis_smoothing,
+                elpd_loo = stat.elpd_loo,
+                elpd_difference = stat.elpd_loo - best.elpd_loo,
+                se_elpd_difference = _pointwise_se(pointwise_difference),
+                se_elpd_loo = stat.se_elpd_loo,
+                looic = stat.looic,
+                looic_difference = stat.looic - best.looic,
+                se_looic = stat.se_looic,
+                relative_weight = unnormalized_weights[index] / weight_total,
+                p_loo = stat.p_loo,
+                lppd = stat.lppd,
+                n_draws = stat.n_draws,
+                n_observations = stat.n_observations,
+                max_pareto_k = stat.max_pareto_k,
+                bad_pareto_k_count = stat.bad_pareto_k_count,
+                min_effective_sample_size = stat.min_effective_sample_size,
+                warning = stat.warning,
+            )))
     end
     return rows
 end
 
-function _require_same_observation_data(fits::AbstractVector{<:MFRMFit})
-    isempty(fits) && return nothing
-    first_signature = fits[1].design.spec.validation.data_signature
-    all(fit -> fit.design.spec.validation.data_signature == first_signature, fits) ||
-        throw(ArgumentError("all models must be fit to the same observation data and row order; call waic on each model separately for different data"))
-    return nothing
-end
-
-function _compare_models_waic(fits::AbstractVector{<:MFRMFit},
+function _compare_models_waic(fits::AbstractVector{<:_ModelComparisonFit},
         labels::AbstractVector{<:AbstractString};
         ndraws::Union{Nothing,Int} = nothing,
         draw_indices = nothing,
@@ -5386,12 +5462,13 @@ function _compare_models_waic(fits::AbstractVector{<:MFRMFit},
     length(fits) >= 2 || throw(ArgumentError("at least two models are required"))
     length(labels) == length(fits) ||
         throw(ArgumentError("labels has length $(length(labels)); expected $(length(fits))"))
-    _require_same_observation_data(fits)
+    contracts = [_model_comparison_contract(fit) for fit in fits]
+    _require_model_comparison_compatibility(contracts)
     stats = [waic(fit; ndraws, draw_indices, rng) for fit in fits]
-    return _waic_comparison_rows(labels, stats)
+    return _waic_comparison_rows(labels, stats, contracts)
 end
 
-function _compare_models_loo(fits::AbstractVector{<:MFRMFit},
+function _compare_models_loo(fits::AbstractVector{<:_ModelComparisonFit},
         labels::AbstractVector{<:AbstractString};
         ndraws::Union{Nothing,Int} = nothing,
         draw_indices = nothing,
@@ -5399,26 +5476,31 @@ function _compare_models_loo(fits::AbstractVector{<:MFRMFit},
     length(fits) >= 2 || throw(ArgumentError("at least two models are required"))
     length(labels) == length(fits) ||
         throw(ArgumentError("labels has length $(length(labels)); expected $(length(fits))"))
-    _require_same_observation_data(fits)
+    contracts = [_model_comparison_contract(fit) for fit in fits]
+    _require_model_comparison_compatibility(contracts)
     stats = [loo(fit; ndraws, draw_indices, rng) for fit in fits]
-    return _loo_comparison_rows(labels, stats)
+    return _loo_comparison_rows(labels, stats, contracts)
 end
 
 """
-    compare_models(fits::MFRMFit...; names = nothing, criterion = :waic,
+    compare_models(fits...; names = nothing, criterion = :waic,
         ndraws = nothing, draw_indices = nothing, rng = Random.default_rng())
     compare_models(models::Pair...; criterion = :waic, ndraws = nothing,
         draw_indices = nothing, rng = Random.default_rng())
 
 Compare fitted models with WAIC (`criterion = :waic`) or raw
-importance-sampling LOO (`criterion = :loo`). All models must be fit to the same
-observation data in the same row order. Rows are sorted by expected log
-predictive density in descending order. `elpd_difference` is relative to the
-best model and is therefore zero for the top row and non-positive for
-lower-ranked rows. `relative_weight` is a normalized Akaike-style weight
-computed from the selected expected log predictive density values.
+importance-sampling LOO (`criterion = :loo`). MFRM, scalar GMFRM, and internal
+guarded MGMFRM fit objects can be compared when they share the same observation
+data, row order, ordinal category levels, latent dimensionality, and fixed
+Q-matrix contract. Rows are sorted by expected log predictive density in
+descending order. `elpd_difference` is relative to the best model and is
+therefore zero for the top row and non-positive for lower-ranked rows.
+`relative_weight` is a normalized Akaike-style weight computed from the
+selected expected log predictive density values. Each row carries the model
+family, thresholds, discrimination mode, dimensionality, Q-matrix, and data
+signature used by the compatibility check.
 """
-function compare_models(fits::MFRMFit...;
+function compare_models(fits::_ModelComparisonFit...;
         names = nothing,
         criterion::Symbol = :waic,
         ndraws::Union{Nothing,Int} = nothing,
@@ -5426,7 +5508,7 @@ function compare_models(fits::MFRMFit...;
         rng::AbstractRNG = Random.default_rng())
     checked_criterion = _compare_criterion(criterion)
     labels = _compare_model_names(names, length(fits))
-    collected_fits = collect(fits)
+    collected_fits = _ModelComparisonFit[fits...]
     return checked_criterion === :waic ?
         _compare_models_waic(collected_fits, labels; ndraws, draw_indices, rng) :
         _compare_models_loo(collected_fits, labels; ndraws, draw_indices, rng)
@@ -5438,11 +5520,11 @@ function compare_models(models::Pair...;
         draw_indices = nothing,
         rng::AbstractRNG = Random.default_rng())
     checked_criterion = _compare_criterion(criterion)
-    fits = MFRMFit[]
+    fits = _ModelComparisonFit[]
     labels = String[]
     for model in models
-        model.second isa MFRMFit ||
-            throw(ArgumentError("model pair :$(model.first) does not contain an MFRMFit"))
+        model.second isa _ModelComparisonFit ||
+            throw(ArgumentError("model pair :$(model.first) does not contain a comparable fitted model"))
         push!(labels, string(model.first))
         push!(fits, model.second)
     end

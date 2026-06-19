@@ -794,7 +794,9 @@ TODO:
   and predictive-check summaries without selecting a plotting backend.
 - [ ] Implement PSIS-smoothed or exact/K-fold LOO and dimension-matching
   safeguards. [Raw importance-sampling LOO and Pareto-k diagnostics are
-  available for the current minimal fit path]
+  available for the current minimal fit path, and `compare_models` now records
+  same-data, category-level, latent-dimension, and Q-matrix comparison
+  contracts]
 - [x] Implement prior/likelihood sensitivity, including power-scaling or an
   equivalent package-native workflow.
 - [ ] Implement first-class sensitivity comparisons: RSM vs PCM/GPCM,

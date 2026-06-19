@@ -315,7 +315,8 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   practical-magnitude rows]
 - Add PSIS-smoothed or exact/K-fold LOO and prior/likelihood sensitivity.
   [Raw importance-sampling LOO and Pareto-k diagnostics are available for the
-  current minimal fit path]
+  current minimal fit path, and `compare_models` now records same-data,
+  category-level, latent-dimension, and Q-matrix comparison contracts]
 - Add first-class sensitivity comparisons for threshold, discrimination, DFF,
   anchor, dimensionality, and prior choices.
 
