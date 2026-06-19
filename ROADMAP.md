@@ -354,8 +354,8 @@ rater-discrimination candidate.
 
 The roadmap has two different progress notions:
 
-- **Checklist progress**: currently 104 of 120 tracked roadmap checkboxes are
-  complete, or roughly 86.7%. This is useful for implementation accounting.
+- **Checklist progress**: currently 105 of 120 tracked roadmap checkboxes are
+  complete, or roughly 87.5%. This is useful for implementation accounting.
 - **Claim progress**: broad v1 claims are closer to 40-45% complete because
   the remaining items include public generalized fitting, Stan comparisons,
   broader recovery simulations and a public-scope release decision.
@@ -819,7 +819,10 @@ Goal: make the package useful to FACETS-trained MFRM users.
 TODO:
 
 - [ ] Implement fair averages and expected-score summaries with uncertainty.
-- [ ] Implement posterior infit/outfit and residual summaries with caveats.
+- [x] Implement posterior infit/outfit and residual summaries with caveats.
+  [`fit_stats` provides posterior infit/outfit rows, and `residual_summary`
+  now provides observation- or facet-level expected-score and residual
+  intervals with residual-screening caveat flags.]
 - [ ] Implement separation and reliability summaries with Bayesian uncertainty.
 - [ ] Implement rater severity, discrimination, category-use, range/centrality,
   and residual diagnostics.

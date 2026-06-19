@@ -241,5 +241,8 @@ probability, and returns observed-vs-predicted summaries with posterior
 intervals. It can also return one block per ordinal score category with
 `category = :all`, or expected-score and all ordinal category rows together
 with `target = :all`. `fit_stats` currently returns posterior summaries of infit and
-outfit mean-square statistics by facet level. The `backend` keyword is explicit
+outfit mean-square statistics by facet level. `residual_summary` returns
+observation- or facet-level expected-score and residual intervals with
+screening caveats for sparse groups and nonzero residual intervals. The
+`backend` keyword is explicit
 so additional engines can be added without changing the fitted-object shape.

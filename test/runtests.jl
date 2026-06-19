@@ -79,6 +79,7 @@ using BayesianMGMFRM:
     prior_predict,
     prior_predictive_check,
     rater_overlap,
+    residual_summary,
     load_fit_cache,
     sampler_diagnostics,
     save_fit_cache,
@@ -6189,7 +6190,8 @@ end
             :predictive_check_summary, :predictive_check_plot_data, :predictive_probabilities,
             :predictive_residuals, :predictive_variances,
             :prior_predict, :prior_predictive_check,
-            :load_fit_cache, :rater_overlap, :sampler_diagnostics, :save_fit_cache,
+            :load_fit_cache, :rater_overlap, :residual_summary,
+            :sampler_diagnostics, :save_fit_cache,
             :sensitivity_comparison, :simulate_responses,
             :threshold_map_data, :validation_suggestions, :evidence_metadata,
             :waic, :waic_diagnostics)
@@ -8204,6 +8206,15 @@ end
         @test gmfrm_variances[draw, row] ≈ manual_second - manual_mean^2 atol = 1e-12
         @test gmfrm_residuals[draw, row] ≈ identified_data.score[row] - gmfrm_expected[draw, row]
     end
+    gmfrm_residual_rows = residual_summary(gmfrm_experimental_fit;
+        by = :rater,
+        draw_indices = [1, 2])
+    @test length(gmfrm_residual_rows) == length(identified_data.rater_levels)
+    @test all(row -> row.facet === :rater, gmfrm_residual_rows)
+    @test all(row -> row.n_draws == 2, gmfrm_residual_rows)
+    @test all(row -> row.caveat ===
+        :posterior_predictive_residual_screening_not_confirmatory,
+        gmfrm_residual_rows)
     gmfrm_replicated = posterior_predict(gmfrm_experimental_fit;
         draw_indices = [1, 2],
         rng = MersenneTwister(20260628))
@@ -10450,6 +10461,74 @@ end
     @test_throws ArgumentError expected_scores(result; ndraws = 0)
     @test_throws ArgumentError predictive_variances(result; ndraws = 0)
     @test_throws ArgumentError predictive_residuals(result; ndraws = 0)
+
+    rater_residuals = residual_summary(result;
+        by = :rater,
+        draw_indices = [1, 2],
+        interval = 0.8)
+    @test length(rater_residuals) == length(data.rater_levels)
+    @test all(row -> row.facet === :rater, rater_residuals)
+    @test all(row -> row.method === :posterior_expected_score, rater_residuals)
+    @test all(row -> row.n_draws == 2, rater_residuals)
+    @test all(row -> row.interval_probability == 0.8, rater_residuals)
+    @test all(row -> row.lower_probability ≈ 0.1, rater_residuals)
+    @test all(row -> row.upper_probability ≈ 0.9, rater_residuals)
+    @test all(row -> row.caveat ===
+        :posterior_predictive_residual_screening_not_confirmatory,
+        rater_residuals)
+    @test residual_summary(design, result.draws[1:2, :];
+        by = :rater,
+        interval = 0.8) == rater_residuals
+    for row in rater_residuals
+        level_index = findfirst(==(row.level), data.rater_levels)
+        obs = findall(==(level_index), data.rater)
+        expected_by_draw = [
+            sum(expected[draw, observation] for observation in obs) / length(obs)
+            for draw in axes(expected, 1)
+        ]
+        residual_by_draw = [
+            sum(residuals[draw, observation] for observation in obs) / length(obs)
+            for draw in axes(residuals, 1)
+        ]
+        absolute_residual_by_draw = [
+            sum(abs(residuals[draw, observation]) for observation in obs) / length(obs)
+            for draw in axes(residuals, 1)
+        ]
+        rmse_by_draw = [
+            sqrt(sum(residuals[draw, observation]^2 for observation in obs) / length(obs))
+            for draw in axes(residuals, 1)
+        ]
+        @test row.n_observations == length(obs)
+        @test row.observed_mean ≈
+            sum(data.score[observation] for observation in obs) / length(obs)
+        @test row.expected_mean ≈ sum(expected_by_draw) / length(expected_by_draw)
+        @test row.residual_mean ≈ sum(residual_by_draw) / length(residual_by_draw)
+        @test row.absolute_residual_mean ≈
+            sum(absolute_residual_by_draw) / length(absolute_residual_by_draw)
+        @test row.rmse_mean ≈ sum(rmse_by_draw) / length(rmse_by_draw)
+        @test row.expected_lower <= row.expected_median <= row.expected_upper
+        @test row.residual_lower <= row.residual_median <= row.residual_upper
+        @test row.absolute_residual_lower <=
+            row.absolute_residual_median <= row.absolute_residual_upper
+        @test row.rmse_lower <= row.rmse_median <= row.rmse_upper
+        @test row.residual_interval_excludes_zero ==
+            (row.residual_lower > 0 || row.residual_upper < 0)
+        @test row.flag === (row.residual_interval_excludes_zero ?
+            :residual_interval_excludes_zero : :ok)
+    end
+    observation_residuals = residual_summary(result; draw_indices = [1, 2])
+    @test length(observation_residuals) == data.n
+    @test [row.level for row in observation_residuals] == collect(1:data.n)
+    @test all(row -> row.facet === :observation, observation_residuals)
+    @test all(row -> row.n_observations == 1, observation_residuals)
+    sparse_residuals = residual_summary(result;
+        by = :rater,
+        draw_indices = [1, 2],
+        min_n = data.n + 1)
+    @test all(row -> row.flag === :below_min_n, sparse_residuals)
+    @test_throws ArgumentError residual_summary(result; by = :unknown)
+    @test_throws ArgumentError residual_summary(result; interval = 1.0)
+    @test_throws ArgumentError residual_summary(result; min_n = 0)
 
     calibration = calibration_table(result; draw_indices = [1, 2], bins = 3, interval = 0.8)
     @test length(calibration) == 3
