@@ -8379,6 +8379,70 @@ end
     @test length(gmfrm_ppc_summary) == expected_gmfrm_ppc_rows
     @test all(row -> row.n_replicates == 3, gmfrm_ppc_summary)
     @test all(row -> row.flag in (:ok, :outside_interval), gmfrm_ppc_summary)
+    gmfrm_simulated_direct = simulate_responses(gmfrm_spec, gmfrm_params;
+        preview = true,
+        rng = MersenneTwister(20260631),
+        output = :scores)
+    gmfrm_simulated_raw = simulate_responses(gmfrm_spec, gmfrm_raw_params;
+        preview = true,
+        parameter_space = :raw,
+        rng = MersenneTwister(20260631),
+        output = :scores)
+    @test gmfrm_simulated_direct == gmfrm_simulated_raw
+    @test length(gmfrm_simulated_direct) == identified_data.n
+    @test all(score -> score in identified_data.category_levels, gmfrm_simulated_direct)
+    @test_throws ArgumentError simulate_responses(gmfrm_spec, gmfrm_params;
+        output = :scores)
+    gmfrm_design_recovery_direct = parameter_recovery(
+        gmfrm_preview,
+        reshape(gmfrm_params, 1, :),
+        gmfrm_params)
+    @test length(gmfrm_design_recovery_direct) == length(gmfrm_params)
+    @test all(row -> row.model_family === :gmfrm, gmfrm_design_recovery_direct)
+    @test all(row -> row.parameter_space === :direct, gmfrm_design_recovery_direct)
+    @test all(row -> row.density_space === :constrained_direct,
+        gmfrm_design_recovery_direct)
+    @test [row.parameter for row in gmfrm_design_recovery_direct] ==
+        gmfrm_preview.parameter_names
+    gmfrm_design_recovery_raw = parameter_recovery(
+        gmfrm_preview,
+        reshape(gmfrm_raw_params, 1, :),
+        gmfrm_raw_params;
+        parameter_space = :raw)
+    @test [row.parameter for row in gmfrm_design_recovery_raw] ==
+        gmfrm_fit_ready_blueprint.parameter_names
+    @test all(row -> row.parameter_space === :raw, gmfrm_design_recovery_raw)
+    @test all(row -> row.density_space === :raw_unconstrained,
+        gmfrm_design_recovery_raw)
+    gmfrm_direct_truth = [
+        sum(gmfrm_experimental_fit.direct_draws[:, col]) /
+            size(gmfrm_experimental_fit.direct_draws, 1)
+        for col in axes(gmfrm_experimental_fit.direct_draws, 2)
+    ]
+    gmfrm_fit_recovery_direct =
+        parameter_recovery(gmfrm_experimental_fit, gmfrm_direct_truth)
+    @test length(gmfrm_fit_recovery_direct) == length(gmfrm_params)
+    @test all(row -> row.model_family === :gmfrm, gmfrm_fit_recovery_direct)
+    @test all(row -> row.parameter_space === :direct, gmfrm_fit_recovery_direct)
+    @test all(row -> row.fit_ready && row.public_fit && row.experimental_public,
+        gmfrm_fit_recovery_direct)
+    @test maximum(abs(row.bias) for row in gmfrm_fit_recovery_direct) < 1e-12
+    gmfrm_raw_truth = [
+        sum(gmfrm_experimental_fit.draws[:, col]) /
+            size(gmfrm_experimental_fit.draws, 1)
+        for col in axes(gmfrm_experimental_fit.draws, 2)
+    ]
+    gmfrm_fit_recovery_raw = parameter_recovery(gmfrm_experimental_fit,
+        gmfrm_raw_truth;
+        parameter_space = :raw)
+    @test length(gmfrm_fit_recovery_raw) == gmfrm_raw_blueprint.n_parameters
+    @test [row.parameter for row in gmfrm_fit_recovery_raw] ==
+        gmfrm_fit_ready_blueprint.parameter_names
+    @test all(row -> row.parameter_space === :raw, gmfrm_fit_recovery_raw)
+    @test parameter_recovery_summary(gmfrm_experimental_fit, gmfrm_direct_truth;
+        by = :all)[1].n_parameters == length(gmfrm_params)
+    @test length(parameter_recovery_plot_data(gmfrm_experimental_fit,
+        gmfrm_direct_truth)) == length(gmfrm_params)
     gmfrm_calibration = calibration_table(gmfrm_experimental_fit;
         draw_indices = [1, 2],
         bins = 3,
@@ -9093,6 +9157,102 @@ end
     @test all(isfinite, mgmfrm_guarded_fit.direct_draws)
     @test pointwise_loglikelihood_matrix(mgmfrm_guarded_fit) ==
         mgmfrm_guarded_fit.direct_pointwise_loglikelihood
+    mgmfrm_probabilities =
+        predictive_probabilities(mgmfrm_guarded_fit; draw_indices = [1, 2])
+    @test size(mgmfrm_probabilities) ==
+        (2, identified_data.n, length(identified_data.category_levels))
+    @test all(draw -> all(row -> sum(mgmfrm_probabilities[draw, row, :]) ≈ 1.0,
+        1:identified_data.n), 1:2)
+    @test all(row -> log(mgmfrm_probabilities[1, row, identified_data.category[row]]) ≈
+        mgmfrm_guarded_fit.direct_pointwise_loglikelihood[1, row],
+        1:identified_data.n)
+    mgmfrm_expected = expected_scores(mgmfrm_guarded_fit; draw_indices = [1, 2])
+    mgmfrm_variances = predictive_variances(mgmfrm_guarded_fit; draw_indices = [1, 2])
+    mgmfrm_residuals = predictive_residuals(mgmfrm_guarded_fit; draw_indices = [1, 2])
+    @test size(mgmfrm_expected) == (2, identified_data.n)
+    @test size(mgmfrm_variances) == (2, identified_data.n)
+    @test size(mgmfrm_residuals) == (2, identified_data.n)
+    @test all(>=(0.0), mgmfrm_variances)
+    for draw in 1:2, row in 1:identified_data.n
+        manual_mean = sum(identified_data.category_levels[k] *
+            mgmfrm_probabilities[draw, row, k]
+            for k in eachindex(identified_data.category_levels))
+        @test mgmfrm_expected[draw, row] ≈ manual_mean
+        @test mgmfrm_residuals[draw, row] ≈
+            identified_data.score[row] - mgmfrm_expected[draw, row]
+    end
+    mgmfrm_replicated = posterior_predict(mgmfrm_guarded_fit;
+        draw_indices = [1, 2],
+        rng = MersenneTwister(20260632))
+    @test size(mgmfrm_replicated) == (2, identified_data.n)
+    @test all(score -> score in identified_data.category_levels, mgmfrm_replicated)
+    mgmfrm_ppc = posterior_predictive_check(mgmfrm_guarded_fit;
+        draw_indices = [1, 2],
+        rng = MersenneTwister(20260633))
+    @test size(mgmfrm_ppc.replicated_scores) == (2, identified_data.n)
+    @test mgmfrm_ppc.category_levels == identified_data.category_levels
+    @test !isempty(predictive_check_summary(mgmfrm_ppc; include_grouped = true))
+    mgmfrm_simulated_direct = simulate_responses(mgmfrm_spec, mgmfrm_params;
+        preview = true,
+        rng = MersenneTwister(20260634),
+        output = :scores)
+    mgmfrm_simulated_raw = simulate_responses(mgmfrm_spec, mgmfrm_raw_params;
+        preview = true,
+        parameter_space = :raw,
+        rng = MersenneTwister(20260634),
+        output = :scores)
+    @test mgmfrm_simulated_direct == mgmfrm_simulated_raw
+    @test length(mgmfrm_simulated_direct) == identified_data.n
+    @test all(score -> score in identified_data.category_levels, mgmfrm_simulated_direct)
+    @test_throws ArgumentError simulate_responses(mgmfrm_spec, mgmfrm_params;
+        output = :scores)
+    mgmfrm_design_recovery_direct = parameter_recovery(
+        mgmfrm_preview,
+        reshape(mgmfrm_params, 1, :),
+        mgmfrm_params)
+    @test length(mgmfrm_design_recovery_direct) == length(mgmfrm_params)
+    @test all(row -> row.model_family === :mgmfrm, mgmfrm_design_recovery_direct)
+    @test all(row -> row.parameter_space === :direct, mgmfrm_design_recovery_direct)
+    @test all(row -> row.guarded_local_fit, mgmfrm_design_recovery_direct)
+    @test [row.parameter for row in mgmfrm_design_recovery_direct] ==
+        mgmfrm_preview.parameter_names
+    mgmfrm_design_recovery_raw = parameter_recovery(
+        mgmfrm_preview,
+        reshape(mgmfrm_raw_params, 1, :),
+        mgmfrm_raw_params;
+        parameter_space = :raw)
+    @test [row.parameter for row in mgmfrm_design_recovery_raw] ==
+        mgmfrm_fit_ready_blueprint.parameter_names
+    @test all(row -> row.density_space === :raw_unconstrained,
+        mgmfrm_design_recovery_raw)
+    mgmfrm_direct_truth = [
+        sum(mgmfrm_guarded_fit.direct_draws[:, col]) /
+            size(mgmfrm_guarded_fit.direct_draws, 1)
+        for col in axes(mgmfrm_guarded_fit.direct_draws, 2)
+    ]
+    mgmfrm_fit_recovery_direct =
+        parameter_recovery(mgmfrm_guarded_fit, mgmfrm_direct_truth)
+    @test length(mgmfrm_fit_recovery_direct) == length(mgmfrm_params)
+    @test all(row -> row.model_family === :mgmfrm, mgmfrm_fit_recovery_direct)
+    @test all(row -> row.parameter_space === :direct, mgmfrm_fit_recovery_direct)
+    @test all(row -> !row.public_fit && row.guarded_local_fit,
+        mgmfrm_fit_recovery_direct)
+    @test maximum(abs(row.bias) for row in mgmfrm_fit_recovery_direct) < 1e-12
+    mgmfrm_raw_truth = [
+        sum(mgmfrm_guarded_fit.draws[:, col]) /
+            size(mgmfrm_guarded_fit.draws, 1)
+        for col in axes(mgmfrm_guarded_fit.draws, 2)
+    ]
+    mgmfrm_fit_recovery_raw = parameter_recovery(mgmfrm_guarded_fit,
+        mgmfrm_raw_truth;
+        parameter_space = :raw)
+    @test length(mgmfrm_fit_recovery_raw) == mgmfrm_raw_blueprint.n_parameters
+    @test [row.parameter for row in mgmfrm_fit_recovery_raw] ==
+        mgmfrm_fit_ready_blueprint.parameter_names
+    @test parameter_recovery_summary(mgmfrm_guarded_fit, mgmfrm_direct_truth;
+        by = :all)[1].n_parameters == length(mgmfrm_params)
+    @test length(parameter_recovery_plot_data(mgmfrm_guarded_fit,
+        mgmfrm_direct_truth)) == length(mgmfrm_params)
     mgmfrm_guarded_surface = mgmfrm_guarded_fit.diagnostic_surface
     @test mgmfrm_guarded_surface.schema ==
         "bayesianmgmfrm.mgmfrm_guarded_local_fit_sampler_diagnostics.v1"

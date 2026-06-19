@@ -355,8 +355,8 @@ rater-discrimination candidate.
 
 The roadmap has two different progress notions:
 
-- **Checklist progress**: currently 111 of 120 tracked roadmap checkboxes are
-  complete, or roughly 92.5%. This is useful for implementation accounting.
+- **Checklist progress**: currently 112 of 120 tracked roadmap checkboxes are
+  complete, or roughly 93.3%. This is useful for implementation accounting.
 - **Claim progress**: broad v1 claims are closer to 40-45% complete because
   the remaining items include public generalized fitting, Stan comparisons,
   broader recovery simulations and a public-scope release decision.
@@ -773,8 +773,11 @@ TODO:
 - [x] Add single-dataset simulation, parameter-recovery rows, block-level
   recovery summaries, and plotting-ready recovery/calibration/PPC row helpers
   for the current fit-supported MFRM/RSM/PCM specs.
-- [ ] Extend simulation/recovery helpers to planned fit-ready GMFRM/MGMFRM
-  specs after their public likelihoods and gauges are implemented.
+- [x] Extend simulation/recovery helpers to planned fit-ready GMFRM/MGMFRM
+  target skeletons. [Simulation
+  and recovery helpers now cover specified-only GMFRM/MGMFRM preview designs
+  and guarded fit objects on constrained direct or raw candidate coordinates;
+  broad public generalized fitting remains gated.]
 - [ ] Validate against Stan on small and medium fixtures before scaling.
   [Small and medium scalar validation fixtures are committed; generalized
   small/medium GMFRM/MGMFRM fit comparisons remain planned.]
