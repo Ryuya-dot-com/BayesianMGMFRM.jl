@@ -215,6 +215,11 @@ checks also return implication diagnostics for category
 nonuse/sparsity and broad facet mean-score ranges before fitting.
 `predictive_check_summary` turns those checks into rows with replicated
 intervals and tail probabilities.
+`simulation_grid` returns predeclared scenario rows for density, anchor-size,
+ratings-per-target, category-pathology, rater-noise, DFF, dimensionality, and
+misspecification axes, and `simulation_grid_summary` checks whether those rows
+cover the required axes. These helpers plan validation grids; they do not run
+simulations or fit models.
 `simulate_responses` generates one simulated response dataset from known
 identified parameters under the current fit-supported MFRM/RSM/PCM likelihood.
 It also supports specified-only GMFRM/MGMFRM preview designs for guarded

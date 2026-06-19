@@ -88,6 +88,8 @@ using BayesianMGMFRM:
     load_fit_cache,
     sampler_diagnostics,
     save_fit_cache,
+    simulation_grid,
+    simulation_grid_summary,
     simulate_responses,
     stan_validation_row,
     stan_validation_summary,
@@ -6227,7 +6229,8 @@ end
             :load_fit_cache, :rater_diagnostics, :rater_overlap, :residual_summary,
             :sampler_diagnostics, :save_fit_cache,
             :sensitivity_comparison, :sensitivity_comparison_summary,
-            :separation_reliability_summary, :simulate_responses,
+            :separation_reliability_summary, :simulation_grid,
+            :simulation_grid_summary, :simulate_responses,
             :stan_validation_row, :stan_validation_summary,
             :threshold_map_data, :validation_suggestions, :evidence_metadata,
             :waic, :waic_diagnostics, :wright_map_data)
@@ -10395,6 +10398,84 @@ end
     @test simulated_table.score == simulated_scores
     @test_throws ArgumentError simulate_responses(design, init; output = :bad)
     @test_throws ArgumentError simulate_responses(design, init[1:end-1])
+
+    sim_grid = simulation_grid(;
+        densities = (:sparse, :near_complete),
+        anchor_sizes = (0, 2),
+        ratings_per_target = (1, 2),
+        category_pathologies = (:none, :top_set),
+        rater_noise = (:low, :high),
+        dff = (:none, :rater_by_group),
+        dimensionalities = (1, 2),
+        misspecifications = (:none, :omitted_dff),
+        repetitions = 2,
+        base_seed = 700,
+        grid_id = "unit",
+        n_persons = 8,
+        n_items = 3,
+        n_raters = 2,
+        n_categories = 3)
+    @test length(sim_grid) == 2^8 * 2
+    @test first(sim_grid).schema == "bayesianmgmfrm.simulation_grid.v1"
+    @test first(sim_grid).object === :simulation_grid_row
+    @test first(sim_grid).grid_id == "unit"
+    @test first(sim_grid).row_index == 1
+    @test first(sim_grid).scenario_index == 1
+    @test first(sim_grid).replication == 1
+    @test first(sim_grid).seed == 700
+    @test first(sim_grid).n_persons == 8
+    @test first(sim_grid).n_items == 3
+    @test first(sim_grid).n_raters == 2
+    @test first(sim_grid).target_units == 24
+    @test first(sim_grid).max_ratings == 48
+    @test first(sim_grid).planned_n_ratings == 24
+    @test first(sim_grid).density_target ≈ 0.15
+    @test first(sim_grid).planned_density ≈ 0.5
+    @test first(sim_grid).simulation_status === :predeclared_not_run
+    @test any(row -> row.anchor_size == 2 &&
+        :anchor_linking in row.validation_focus, sim_grid)
+    @test any(row -> row.category_pathology === :top_set &&
+        :category_pathology in row.validation_focus, sim_grid)
+    @test any(row -> row.rater_noise === :high &&
+        row.rater_noise_sd ≈ 1.5, sim_grid)
+    @test any(row -> row.dff === :rater_by_group && row.dff_active, sim_grid)
+    @test any(row -> row.dimensionality == 2 &&
+        row.fit_surface === :guarded_mgmfrm_preview, sim_grid)
+    @test any(row -> row.misspecification === :omitted_dff &&
+        row.misspecified, sim_grid)
+    grid_summary = simulation_grid_summary(sim_grid)
+    @test grid_summary.schema == "bayesianmgmfrm.simulation_grid_summary.v1"
+    @test grid_summary.passed
+    @test grid_summary.n_rows == length(sim_grid)
+    @test grid_summary.n_scenarios == 2^8
+    @test grid_summary.n_repetitions == 2
+    @test grid_summary.first_seed == 700
+    @test grid_summary.last_seed == 700 + length(sim_grid) - 1
+    @test isempty(grid_summary.missing_required_axes)
+    @test isempty(grid_summary.single_value_required_axes)
+    @test grid_summary.varied_required_axes ==
+        (:density, :anchor_size, :ratings_per_target, :category_pathology,
+            :rater_noise, :dff, :dimensionality, :misspecification)
+    compact_grid = simulation_grid(;
+        densities = (:sparse,),
+        anchor_sizes = (0,),
+        ratings_per_target = (1,),
+        category_pathologies = (:none,),
+        rater_noise = (:low,),
+        dff = (:none,),
+        dimensionalities = (1,),
+        misspecifications = (:none,),
+        n_raters = 2)
+    compact_summary = simulation_grid_summary(compact_grid)
+    @test !compact_summary.passed
+    @test compact_summary.single_value_required_axes ==
+        (:density, :anchor_size, :ratings_per_target, :category_pathology,
+            :rater_noise, :dff, :dimensionality, :misspecification)
+    @test_throws ArgumentError simulation_grid(; densities = ())
+    @test_throws ArgumentError simulation_grid(; ratings_per_target = (3,), n_raters = 2)
+    @test_throws ArgumentError simulation_grid(; repetitions = 0)
+    @test_throws ArgumentError simulation_grid_summary(NamedTuple[])
+    @test_throws ArgumentError simulation_grid_summary(Any[1])
 
     truth = [row.mean for row in summary]
     recovery = parameter_recovery(result, truth; interval = 0.8)

@@ -355,8 +355,8 @@ rater-discrimination candidate.
 
 The roadmap has two different progress notions:
 
-- **Checklist progress**: currently 115 of 120 tracked roadmap checkboxes are
-  complete, or roughly 95.8%. This is useful for implementation accounting.
+- **Checklist progress**: currently 116 of 120 tracked roadmap checkboxes are
+  complete, or roughly 96.7%. This is useful for implementation accounting.
 - **Claim progress**: broad v1 claims are closer to 40-45% complete because
   the remaining items include public generalized fitting, Stan comparisons,
   broader recovery simulations and a public-scope release decision.
@@ -874,9 +874,12 @@ Goal: make broad claims falsifiable and reproducible.
 
 TODO:
 
-- [ ] Build simulation grids for sparse-to-near-complete density, anchor size,
+- [x] Build simulation grids for sparse-to-near-complete density, anchor size,
   ratings per target, category pathologies, rater noise, DFF,
   multidimensionality, and misspecification.
+  [`simulation_grid` and `simulation_grid_summary` now predeclare and check
+  these axes as machine-readable validation-grid rows. The helper does not run
+  simulations, fit models, or establish claim-level evidence.]
 - [ ] Predeclare falsification conditions for the claim that hierarchical
   priors stabilize sparse MGMFRM designs.
 - [ ] Compare against Stan faithful models, overlapping R/frequentist tools,
