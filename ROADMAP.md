@@ -355,7 +355,7 @@ The roadmap has two different progress notions:
   complete, or roughly 78.3%. This is useful for implementation accounting.
 - **Claim progress**: broad v1 claims are closer to 40-45% complete because
   the remaining items include public generalized fitting, Stan comparisons,
-  broader recovery simulations and manual public-scope review.
+  broader recovery simulations and a public-scope release decision.
 
 The current frontier is the scalar GMFRM internal promotion candidate. It now
 has source-aligned fixtures, raw transforms, BridgeStan raw checks, constrained
@@ -670,12 +670,13 @@ TODO:
     policy exists.
   - [x] Add a local prediction-target/model-weight policy artifact that keeps
     same-observation WAIC and raw PSIS/LOO diagnostic-only, selects heldout
-    K-fold log score for local scalar model-weight reporting, and keeps MGMFRM
-    fit and sparse-superiority claims blocked until manual public-scope review.
+    K-fold log score for local scalar model-weight reporting, and kept MGMFRM
+    fit and sparse-superiority claims blocked pending manual public-scope
+    review and a later release decision.
   - [x] Add a local manual public-scope review artifact for confirmatory
     MGMFRM fit that records the fixed-Q scope, keeps public MGMFRM fit and
-    sparse-superiority claims blocked, and advances the next local gate to a
-    guarded local MGMFRM fit entrypoint.
+    sparse-superiority claims blocked, and advanced the next local gate to the
+    now-recorded guarded local MGMFRM fit entrypoint.
   - [x] Add a private guarded local MGMFRM fit entrypoint for the fixed-Q
     confirmatory candidate that records raw/direct draws, sampler diagnostics,
     direct constraints, pointwise log likelihood, WAIC-ready log-likelihood
@@ -935,8 +936,9 @@ overstating package scope.
    local claim-level recovery/reproduction archive plus broader exposure
    decision review, MGMFRM baseline-comparison evidence, and MGMFRM sparse
    recovery evidence plus local DFF estimand/validation evidence and Gate E
-   manuscript-scale evidence are recorded; the full paper reproduction archive
-   is the next blocker before broader exposure]
+   manuscript-scale evidence plus the full paper reproduction archive are
+   recorded; broader exposure still requires a separate public-scope release
+   decision]
 
 Done when the exposure decision can be defended by manifest evidence rather
 than by developer intent.
@@ -973,7 +975,7 @@ than by developer intent.
    public exposure review, prediction/model-weight policy, DFF
    estimand/validation evidence, Gate E manuscript-scale evidence, and local
    full-paper reproduction archive done; broader generalized claims still need
-   manual public-scope review]
+   a public-scope release decision]
 
 Initial smoke and sparse-pathology recovery conditions are met for the guarded
 scalar GMFRM candidate. Prior/likelihood sensitivity evidence, a compact

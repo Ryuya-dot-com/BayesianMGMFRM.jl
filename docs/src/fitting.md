@@ -31,8 +31,9 @@ compact real-data case study, local full-paper reproduction archive, local
 confirmatory MGMFRM guarded fit method-wiring artifact, and local confirmatory
 MGMFRM guarded fit validation-grid plus guarded fit API dry-run, guarded public
 exposure-review, and prediction/model-weight policy artifacts are also
-recorded. The remaining local blocker before broader generalized exposure is
-manual public-scope review.
+recorded. The guarded local MGMFRM fit entrypoint and archive metadata are now
+recorded, so broader generalized exposure remains blocked by the separate
+public-scope release decision and stronger validation evidence.
 A local claim-level recovery/reproduction archive manifest and a
 broader experimental exposure decision review now record fixture hashes,
 generator commands, source references, local verification commands, and the

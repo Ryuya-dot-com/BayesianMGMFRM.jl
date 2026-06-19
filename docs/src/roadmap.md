@@ -86,9 +86,9 @@ previews are public for inspection; a guarded scalar GMFRM
 rater-discrimination promotion candidate; broader GMFRM/MGMFRM fitting, DFF
 model effects, public model-weight claims, and manuscript claims about sparse
 MGMFRM superiority remain blocked. Local scalar model-weight reporting is
-restricted to the heldout K-fold prediction target, and the confirmatory MGMFRM
-manual public-scope review now advances the next local gate to a guarded local
-MGMFRM fit entrypoint.
+restricted to the heldout K-fold prediction target; the confirmatory MGMFRM
+manual public-scope review and guarded local fit entrypoint are recorded, but
+public MGMFRM exposure still requires a separate release decision.
 
 ## Progress Ledger
 
@@ -96,7 +96,7 @@ The repository roadmap currently has 94 of 120 tracked checklist items complete,
 or roughly 78.3% by simple implementation accounting. The stronger claim-level
 progress is lower, about 40-45%, because the remaining work includes public
 generalized fitting, Stan comparisons, broader recovery simulations,
-and guarded local MGMFRM fit entrypoint work.
+and a public-scope release decision for generalized claims.
 
 The current frontier is the scalar GMFRM internal promotion candidate. It has
 source-aligned fixtures, raw transforms, BridgeStan raw checks, constrained
