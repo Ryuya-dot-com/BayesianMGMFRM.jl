@@ -91,6 +91,7 @@ logprior(spec, initial_params(spec), prior)
 logposterior(spec, initial_params(spec), prior)
 prior_predict(spec; prior, ndraws = 100)
 prior_ppc = prior_predictive_check(spec; prior, ndraws = 100)
+prior_ppc.implication_diagnostics
 predictive_check_summary(prior_ppc)
 fit_result = cached_fit(spec; cache_path = "cache/pcm_fit.jls", prior,
     backend = :julia, ndraws = 500, warmup = 500, chains = 4, step_size = 0.04, seed = 20260618)
@@ -194,6 +195,8 @@ aggregates R-hat/ESS rows for person, rater, item, and threshold blocks. The cur
 posterior predictive checks return compact observed-vs-replicated summaries for
 overall mean score, category proportions, person-level mean scores, rater-level
 mean scores, item-level mean scores, and optional facet mean scores;
+prior predictive checks also return implication diagnostics for category
+nonuse/sparsity and broad facet mean-score ranges before fitting.
 `predictive_check_summary` turns those checks into rows with replicated
 intervals and tail probabilities.
 `simulate_responses` generates one simulated response dataset from known

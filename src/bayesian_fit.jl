@@ -6247,6 +6247,213 @@ function _replicated_summaries(data::FacetData, replicated::AbstractMatrix{<:Int
     )
 end
 
+function _check_prior_implication_controls(;
+        min_category_probability::Real,
+        prior_warning_probability::Real,
+        wide_facet_range_fraction::Real)
+    isfinite(min_category_probability) && 0 <= min_category_probability <= 1 ||
+        throw(ArgumentError("min_category_probability must be finite and in [0, 1]"))
+    isfinite(prior_warning_probability) && 0 < prior_warning_probability <= 1 ||
+        throw(ArgumentError("prior_warning_probability must be finite and in (0, 1]"))
+    isfinite(wide_facet_range_fraction) && wide_facet_range_fraction >= 0 ||
+        throw(ArgumentError("wide_facet_range_fraction must be finite and non-negative"))
+    return (;
+        min_category_probability = Float64(min_category_probability),
+        prior_warning_probability = Float64(prior_warning_probability),
+        wide_facet_range_fraction = Float64(wide_facet_range_fraction),
+    )
+end
+
+function _finite_range(values::AbstractVector{<:Real})
+    finite = [Float64(value) for value in values if isfinite(value)]
+    isempty(finite) && return NaN
+    length(finite) == 1 && return 0.0
+    return maximum(finite) - minimum(finite)
+end
+
+function _row_ranges(values::AbstractMatrix{<:Real})
+    ranges = Vector{Float64}(undef, size(values, 1))
+    for row in axes(values, 1)
+        ranges[row] = _finite_range(@view values[row, :])
+    end
+    return ranges
+end
+
+function _prior_category_implication_rows(data::FacetData,
+        replicated_summary,
+        controls)
+    rows = NamedTuple[]
+    lower_probability, upper_probability = _interval_probabilities(0.9)
+    for (index, category) in pairs(data.category_levels)
+        replicated = @view replicated_summary.category_proportions[:, index]
+        summary = _finite_draw_summary(replicated, lower_probability, upper_probability)
+        probability_empty = count(==(0.0), replicated) / length(replicated)
+        probability_below_min =
+            count(<(controls.min_category_probability), replicated) / length(replicated)
+        flag =
+            probability_empty >= controls.prior_warning_probability ? :prior_category_nonuse :
+            probability_below_min >= controls.prior_warning_probability ? :prior_category_sparse :
+            :ok
+        push!(rows, (;
+            category,
+            observed_proportion =
+                _category_proportions(data.score, data.category_levels)[index],
+            observed_empty =
+                _category_proportions(data.score, data.category_levels)[index] == 0.0,
+            replicated_mean_proportion = summary.mean,
+            replicated_median_proportion = summary.median,
+            replicated_lower_proportion = summary.lower,
+            replicated_upper_proportion = summary.upper,
+            interval_probability = 0.9,
+            lower_probability,
+            upper_probability,
+            min_category_probability = controls.min_category_probability,
+            probability_empty,
+            probability_below_min_category_probability = probability_below_min,
+            prior_warning_probability = controls.prior_warning_probability,
+            n_replicates = length(replicated),
+            flag,
+        ))
+    end
+    return rows
+end
+
+function _prior_facet_range_row(facet::Symbol,
+        levels,
+        observed_means::AbstractVector{<:Real},
+        replicated_means::AbstractMatrix{<:Real},
+        score_range::Float64,
+        controls)
+    lower_probability, upper_probability = _interval_probabilities(0.9)
+    ranges = _row_ranges(replicated_means)
+    summary = _finite_draw_summary(ranges, lower_probability, upper_probability)
+    wide_range_threshold = score_range * controls.wide_facet_range_fraction
+    probability_wide_range = count(>=(wide_range_threshold), ranges) / length(ranges)
+    return (;
+        facet,
+        n_levels = length(levels),
+        observed_range = _finite_range(observed_means),
+        replicated_mean_range = summary.mean,
+        replicated_median_range = summary.median,
+        replicated_lower_range = summary.lower,
+        replicated_upper_range = summary.upper,
+        interval_probability = 0.9,
+        lower_probability,
+        upper_probability,
+        score_range,
+        wide_facet_range_fraction = controls.wide_facet_range_fraction,
+        wide_range_threshold,
+        probability_wide_range,
+        prior_warning_probability = controls.prior_warning_probability,
+        n_replicates = length(ranges),
+        flag = probability_wide_range >= controls.prior_warning_probability ?
+            :prior_wide_facet_range : :ok,
+    )
+end
+
+function _prior_facet_range_rows(data::FacetData,
+        observed_summary,
+        replicated_summary,
+        controls)
+    score_range = Float64(maximum(data.category_levels) - minimum(data.category_levels))
+    rows = NamedTuple[]
+    push!(rows, _prior_facet_range_row(:person,
+        data.person_levels,
+        observed_summary.person_mean,
+        replicated_summary.person_mean,
+        score_range,
+        controls))
+    push!(rows, _prior_facet_range_row(:rater,
+        data.rater_levels,
+        observed_summary.rater_mean,
+        replicated_summary.rater_mean,
+        score_range,
+        controls))
+    push!(rows, _prior_facet_range_row(:item,
+        data.item_levels,
+        observed_summary.item_mean,
+        replicated_summary.item_mean,
+        score_range,
+        controls))
+    for facet in sort(collect(keys(data.optional)); by = string)
+        push!(rows, _prior_facet_range_row(facet,
+            data.optional_levels[facet],
+            observed_summary.optional_mean[facet],
+            replicated_summary.optional_mean[facet],
+            score_range,
+            controls))
+    end
+    return rows
+end
+
+function _prior_category_use_summary(data::FacetData,
+        replicated_summary,
+        controls)
+    used_by_replication = [
+        count(>(0.0), @view replicated_summary.category_proportions[replication, :])
+        for replication in axes(replicated_summary.category_proportions, 1)
+    ]
+    lower_probability, upper_probability = _interval_probabilities(0.9)
+    summary = _finite_draw_summary(used_by_replication, lower_probability, upper_probability)
+    n_categories = length(data.category_levels)
+    probability_all_categories_used = count(==(n_categories), used_by_replication) /
+        length(used_by_replication)
+    probability_missing_any_category = 1 - probability_all_categories_used
+    return (;
+        observed_n_categories_used =
+            count(>(0.0), _category_proportions(data.score, data.category_levels)),
+        replicated_mean_n_categories_used = summary.mean,
+        replicated_median_n_categories_used = summary.median,
+        replicated_lower_n_categories_used = summary.lower,
+        replicated_upper_n_categories_used = summary.upper,
+        interval_probability = 0.9,
+        lower_probability,
+        upper_probability,
+        n_categories,
+        probability_all_categories_used,
+        probability_missing_any_category,
+        prior_warning_probability = controls.prior_warning_probability,
+        n_replicates = length(used_by_replication),
+        flag = probability_missing_any_category >= controls.prior_warning_probability ?
+            :prior_category_collapse : :ok,
+    )
+end
+
+function _prior_predictive_implication_diagnostics(data::FacetData,
+        observed_summary,
+        replicated_summary;
+        min_category_probability::Real,
+        prior_warning_probability::Real,
+        wide_facet_range_fraction::Real)
+    controls = _check_prior_implication_controls(;
+        min_category_probability,
+        prior_warning_probability,
+        wide_facet_range_fraction)
+    category_rows = _prior_category_implication_rows(
+        data,
+        replicated_summary,
+        controls,
+    )
+    facet_range_rows = _prior_facet_range_rows(
+        data,
+        observed_summary,
+        replicated_summary,
+        controls,
+    )
+    category_use = _prior_category_use_summary(data, replicated_summary, controls)
+    flag = any(row -> row.flag !== :ok, category_rows) ||
+        any(row -> row.flag !== :ok, facet_range_rows) ||
+        category_use.flag !== :ok ? :prior_implication_warning : :ok
+    return (;
+        schema = "bayesianmgmfrm.prior_predictive_implication_diagnostics.v1",
+        flag,
+        controls,
+        category_use,
+        category_rows,
+        facet_range_rows,
+    )
+end
+
 function _tail_probabilities(values::AbstractVector{<:Real}, observed::Real)
     obs = Float64(observed)
     vals = [Float64(value) for value in values if isfinite(value)]
@@ -6378,24 +6585,40 @@ end
 
 """
     prior_predictive_check(spec_or_design; prior = MFRMPrior(), ndraws = 1000,
-        rng = Random.default_rng())
+        rng = Random.default_rng(), min_category_probability = 0.01,
+        prior_warning_probability = 0.95, wide_facet_range_fraction = 0.8)
 
 Generate prior predictive replicated scores and compact observed-vs-replicated
 summaries for the minimal MFRM design. The returned object includes the prior
-parameter draws used to generate `replicated_scores`.
+parameter draws used to generate `replicated_scores` and prior-implication
+diagnostics for category use and facet-score ranges.
 """
 function prior_predictive_check(design::FacetDesign;
         prior::MFRMPrior = MFRMPrior(),
         ndraws::Int = 1000,
-        rng::AbstractRNG = Random.default_rng())
+        rng::AbstractRNG = Random.default_rng(),
+        min_category_probability::Real = 0.01,
+        prior_warning_probability::Real = 0.95,
+        wide_facet_range_fraction::Real = 0.8)
     draws = _prior_parameter_draws(design, prior, ndraws, rng)
     replicated = _replicate_scores(design, draws, rng)
     data = design.spec.data
+    observed = _predictive_summary(data, data.score)
+    replicated_summary = _replicated_summaries(data, replicated)
+    implication_diagnostics = _prior_predictive_implication_diagnostics(
+        data,
+        observed,
+        replicated_summary;
+        min_category_probability,
+        prior_warning_probability,
+        wide_facet_range_fraction,
+    )
     return (;
-        observed = _predictive_summary(data, data.score),
-        replicated = _replicated_summaries(data, replicated),
+        observed,
+        replicated = replicated_summary,
         replicated_scores = replicated,
         parameter_draws = draws,
+        implication_diagnostics,
         category_levels = copy(data.category_levels),
         person_levels = copy(data.person_levels),
         rater_levels = copy(data.rater_levels),
