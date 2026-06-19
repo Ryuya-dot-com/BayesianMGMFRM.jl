@@ -15,7 +15,8 @@ The current public slice focuses on:
   [`identification_declarations`](@ref), [`getdesign`](@ref), and
   [`model_manifest`](@ref);
 - fit-ready parameter layout metadata via
-  [`fit_ready_parameter_layout`](@ref);
+  [`fit_ready_parameter_layout`](@ref) and domain compiler review rows via
+  [`domain_compilation_summary`](@ref);
 - initial Bayesian fitting for the minimal identified design via [`fit`](@ref),
   [`cached_fit`](@ref), [`MFRMPrior`](@ref), [`fit_metadata`](@ref),
   [`fit_artifact`](@ref), and [`posterior_summary`](@ref), including a small
@@ -68,9 +69,9 @@ The current public slice focuses on:
   [`sensitivity_comparison`](@ref);
 - fit-independent reporting data via [`coverage_summary`](@ref),
   [`coverage_matrix`](@ref), [`rater_overlap`](@ref),
-  [`design_row_table`](@ref), [`linear_predictor_table`](@ref), and
-  [`threshold_map_data`](@ref), [`wright_map_data`](@ref), and
-  [`dff_report`](@ref);
+  [`domain_compilation_summary`](@ref), [`design_row_table`](@ref),
+  [`linear_predictor_table`](@ref), [`threshold_map_data`](@ref),
+  [`wright_map_data`](@ref), and [`dff_report`](@ref);
 - test-suite validation against small/medium Julia/BridgeStan scalar fixtures
   and internal hand-computed source-aligned GMFRM/MGMFRM preview fixtures, including
   raw-coordinate transforms for source identification restrictions and

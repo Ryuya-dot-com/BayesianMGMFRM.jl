@@ -3145,6 +3145,346 @@ function fit_ready_parameter_layout(design::FacetDesign; preview::Bool = false)
     ))
 end
 
+function _specified_only_preview_parameter_layout(design::FacetDesign)
+    block_rows = _block_manifest_rows(design.blocks, design.parameter_names)
+    return (;
+        schema = "bayesianmgmfrm.fit_ready_parameter_layout.v1",
+        family = design.spec.family,
+        scope = _spec_scope(design.spec.family, design.spec.estimation_status),
+        status = design.spec.estimation_status,
+        compiler_stage = :specified_only_preview,
+        likelihood = :not_fit_ready,
+        fit_ready = false,
+        public_fit = false,
+        experimental_public = false,
+        density_space = :not_fit_ready,
+        parameterization = :direct_preview,
+        n_parameters = length(design.parameter_names),
+        parameter_names = copy(design.parameter_names),
+        blocks = block_rows,
+        n_raw_parameters = length(design.parameter_names),
+        raw_parameter_names = copy(design.parameter_names),
+        raw_blocks = copy(block_rows),
+        n_constrained_parameters = length(design.parameter_names),
+        constrained_parameter_names = copy(design.parameter_names),
+        constrained_blocks = copy(block_rows),
+        transforms = _direct_identity_transform_rows(design),
+        constraints = constraint_table(design),
+        identification_declarations = identification_declarations(design),
+    )
+end
+
+function _domain_compilation_layout(design::FacetDesign)
+    try
+        return fit_ready_parameter_layout(design)
+    catch err
+        err isa ArgumentError || rethrow()
+        design.spec.family === :mfrm &&
+            design.spec.estimation_status === :specified_only ||
+            rethrow()
+        return _specified_only_preview_parameter_layout(design)
+    end
+end
+
+_domain_nt_get(row::NamedTuple, key::Symbol, default) =
+    haskey(row, key) ? getproperty(row, key) : default
+
+function _domain_constraint_row(design::FacetDesign, block)
+    ismissing(block) && return nothing
+    for row in constraint_table(design)
+        row.block === block && return row
+    end
+    return nothing
+end
+
+function _domain_prior_row(spec::FacetSpec, block)
+    ismissing(block) && return nothing
+    for row in spec.prior_blocks
+        row.block === block && return row
+    end
+    return nothing
+end
+
+function _domain_transform_row(layout, block)
+    ismissing(block) && return nothing
+    for row in layout.transforms
+        row.constrained_block === block && return row
+    end
+    return nothing
+end
+
+function _domain_block_row(rows, block)
+    ismissing(block) && return nothing
+    for row in rows
+        row.block === block && return row
+    end
+    return nothing
+end
+
+function _domain_option_value(spec::FacetSpec, option::Symbol)
+    option === :family && return spec.family
+    option === :thresholds && return spec.thresholds
+    option === :dimensions && return spec.dimensions
+    option === :discrimination && return spec.discrimination
+    option === :q_matrix && return _q_matrix_manifest(spec.q_matrix)
+    option === :bias && return copy(spec.validation_bias_terms)
+    option === :anchors && return copy(spec.anchors)
+    option === :validation && return spec.validation.options_signature
+    return missing
+end
+
+function _domain_option_for_block(spec::FacetSpec, block::Symbol)
+    block === :person && return :dimensions
+    block in (:rater, :item) && return :family
+    block in (:thresholds, :rater_steps, :item_steps) && return :thresholds
+    block in (:discrimination, :item_discrimination, :rater_consistency) &&
+        return :discrimination
+    block === :item_dimension_discrimination && return :q_matrix
+    return :family
+end
+
+function _domain_role_for_block(block::Symbol)
+    block in (:person, :rater, :item) && return :additive_block
+    block in (:thresholds, :rater_steps, :item_steps) && return :scoring_block
+    block === :item_dimension_discrimination && return :loading_block
+    block in (:discrimination, :item_discrimination, :rater_consistency) &&
+        return :discrimination_block
+    return :parameter_block
+end
+
+function _domain_scoring_block(spec::FacetSpec)
+    spec.family === :gmfrm && return :rater_steps
+    spec.family === :mgmfrm && return :item_steps
+    return :thresholds
+end
+
+function _domain_row(spec::FacetSpec,
+        layout;
+        domain_option::Symbol,
+        option_value = _domain_option_value(spec, domain_option),
+        compiled_role::Symbol,
+        block = missing,
+        raw_block = missing,
+        constrained_block = block,
+        parameter_names = String[],
+        raw_parameter_names = String[],
+        constraint = missing,
+        transform = missing,
+        prior_block = missing,
+        prior = missing,
+        scoring_vector = Int[],
+        loading_mask = nothing,
+        validation_requirement = missing,
+        status = layout.status,
+        note = "")
+    return (;
+        family = spec.family,
+        scope = layout.scope,
+        estimation_status = spec.estimation_status,
+        compiler_stage = layout.compiler_stage,
+        density_space = layout.density_space,
+        parameterization = layout.parameterization,
+        fit_ready = layout.fit_ready,
+        public_fit = layout.public_fit,
+        experimental_public = layout.experimental_public,
+        domain_option,
+        option_value,
+        compiled_role,
+        block,
+        raw_block,
+        constrained_block,
+        parameter_names = copy(parameter_names),
+        raw_parameter_names = copy(raw_parameter_names),
+        constraint,
+        transform,
+        prior_block,
+        prior,
+        scoring_vector = copy(scoring_vector),
+        loading_mask,
+        validation_requirement,
+        status,
+        note,
+    )
+end
+
+function _domain_block_summary_row(spec::FacetSpec,
+        design::FacetDesign,
+        layout,
+        block::Symbol)
+    constrained = _domain_block_row(layout.constrained_blocks, block)
+    transform = _domain_transform_row(layout, block)
+    constraint = _domain_constraint_row(design, block)
+    prior = _domain_prior_row(spec, block)
+    domain_option = _domain_option_for_block(spec, block)
+    parameter_names = constrained === nothing ? String[] : constrained.parameter_names
+    raw_block = transform === nothing ? block : transform.raw_block
+    raw_names = transform === nothing ? String[] : transform.raw_parameter_names
+    return _domain_row(spec, layout;
+        domain_option,
+        compiled_role = _domain_role_for_block(block),
+        block,
+        raw_block,
+        constrained_block = block,
+        parameter_names,
+        raw_parameter_names = raw_names,
+        constraint = constraint === nothing ? missing : constraint.constraint,
+        transform = transform === nothing ? missing : transform.transform,
+        prior_block = transform === nothing ?
+            (prior === nothing ? missing : prior.block) :
+            _domain_nt_get(transform, :prior_block,
+                prior === nothing ? missing : prior.block),
+        prior = prior === nothing ? missing : prior.prior,
+        validation_requirement = :parameter_block_compiled,
+        status = constraint === nothing ? layout.status : constraint.status,
+        note = constraint === nothing ? "" : constraint.note,
+    )
+end
+
+function _domain_validation_requirement_rows(spec::FacetSpec, layout)
+    rows = NamedTuple[]
+    summary = _validation_summary(spec.validation)
+    push!(rows, _domain_row(spec, layout;
+        domain_option = :validation,
+        option_value = summary,
+        compiled_role = :validation_requirement,
+        validation_requirement = :validated_facet_design,
+        status = spec.validation.passed ? :passed : :failed,
+        note = "validation report attached to the compiled specification",
+    ))
+    for term in spec.validation_bias_terms
+        block = Symbol("dff_", term[1], "_", term[2])
+        push!(rows, _domain_row(spec, layout;
+            domain_option = :bias,
+            option_value = term,
+            compiled_role = :validation_requirement,
+            block,
+            constrained_block = block,
+            constraint = :validation_only,
+            transform = :none,
+            validation_requirement = :dff_cell_counts,
+            status = :validation_only,
+            note = "DFF/bias term validated for sparse cells but not included in the fitted likelihood",
+        ))
+    end
+    for anchor in spec.anchors
+        anchor_type = haskey(anchor, :anchor_type) ? anchor.anchor_type : _normalize_anchor_type(anchor)
+        anchor_scale = haskey(anchor, :anchor_scale) ? anchor.anchor_scale : _anchor_scale(anchor)
+        push!(rows, _domain_row(spec, layout;
+            domain_option = :anchors,
+            option_value = anchor,
+            compiled_role = :constraint,
+            block = anchor.block,
+            constrained_block = anchor.block,
+            constraint = anchor_type,
+            transform = anchor_type === :soft_anchor ? :soft_anchor_prior : :fixed_value,
+            validation_requirement = :anchor_declared,
+            status = :specified_only,
+            note = anchor_type === :soft_anchor ?
+                "soft anchor declared with scale $(anchor_scale)" :
+                "hard anchor declared with fixed value",
+        ))
+    end
+    return rows
+end
+
+"""
+    domain_compilation_summary(spec_or_design; preview = false)
+
+Return a review table showing how domain options were compiled into the current
+design contract. Rows cover likelihood family, additive/location blocks,
+discrimination or loading blocks, scoring vectors, constraints, priors, fixed
+Q-masks, validation requirements, DFF/bias validation terms, and anchors.
+
+Fit-supported MFRM/RSM/PCM designs report `fit_ready = true` and
+`public_fit = true`. Specified-only GMFRM/MGMFRM previews report the internal
+candidate parameterization without enabling broad public fitting. For
+specified-only `FacetSpec` values, pass `preview = true`, matching
+[`getdesign`](@ref).
+"""
+function domain_compilation_summary(spec::FacetSpec; preview::Bool = false)
+    return domain_compilation_summary(getdesign(spec; preview))
+end
+
+function domain_compilation_summary(design::FacetDesign; preview::Bool = false)
+    preview &&
+        throw(ArgumentError("preview is only a FacetSpec compilation option; pass domain_compilation_summary(spec; preview = true)"))
+    spec = design.spec
+    layout = _domain_compilation_layout(design)
+    rows = NamedTuple[]
+    push!(rows, _domain_row(spec, layout;
+        domain_option = :family,
+        compiled_role = :likelihood_kernel,
+        validation_requirement = :likelihood_family_checked,
+        status = layout.status,
+        note = model_equation(spec).kernel,
+    ))
+    for block_row in layout.constrained_blocks
+        push!(rows, _domain_block_summary_row(spec, design, layout, block_row.block))
+    end
+    scoring_block = _domain_scoring_block(spec)
+    scoring_constraint = _domain_constraint_row(design, scoring_block)
+    scoring_transform = _domain_transform_row(layout, scoring_block)
+    scoring_names = begin
+        row = _domain_block_row(layout.constrained_blocks, scoring_block)
+        row === nothing ? String[] : row.parameter_names
+    end
+    push!(rows, _domain_row(spec, layout;
+        domain_option = :thresholds,
+        compiled_role = :scoring_vector,
+        block = scoring_block,
+        raw_block = scoring_transform === nothing ? scoring_block : scoring_transform.raw_block,
+        constrained_block = scoring_block,
+        parameter_names = scoring_names,
+        raw_parameter_names = scoring_transform === nothing ? String[] :
+            scoring_transform.raw_parameter_names,
+        constraint = scoring_constraint === nothing ? missing : scoring_constraint.constraint,
+        transform = scoring_constraint === nothing ? missing : scoring_constraint.transform,
+        prior_block = scoring_transform === nothing ? scoring_block :
+            _domain_nt_get(scoring_transform, :prior_block, scoring_block),
+        prior = begin
+            prior = _domain_prior_row(spec, scoring_block)
+            prior === nothing ? missing : prior.prior
+        end,
+        scoring_vector = spec.data.category_levels,
+        validation_requirement = :ordinal_score_categories,
+        status = scoring_constraint === nothing ? layout.status : scoring_constraint.status,
+        note = "observed ordinal categories used by row-by-category predictors",
+    ))
+    if spec.q_matrix !== nothing
+        q_block = :item_dimension_discrimination
+        q_transform = _domain_transform_row(layout, q_block)
+        q_constraint = _domain_constraint_row(design, q_block)
+        q_names = begin
+            row = _domain_block_row(layout.constrained_blocks, q_block)
+            row === nothing ? String[] : row.parameter_names
+        end
+        push!(rows, _domain_row(spec, layout;
+            domain_option = :q_matrix,
+            compiled_role = :loading_mask,
+            block = q_block,
+            raw_block = q_transform === nothing ? q_block : q_transform.raw_block,
+            constrained_block = q_block,
+            parameter_names = q_names,
+            raw_parameter_names = q_transform === nothing ? String[] :
+                q_transform.raw_parameter_names,
+            constraint = q_constraint === nothing ? :fixed_mask : q_constraint.constraint,
+            transform = q_transform === nothing ? :fixed_mask : q_transform.transform,
+            prior_block = q_transform === nothing ? missing :
+                _domain_nt_get(q_transform, :prior_block, missing),
+            prior = begin
+                prior = _domain_prior_row(spec, q_block)
+                prior === nothing ? missing : prior.prior
+            end,
+            loading_mask = _q_matrix_manifest(spec.q_matrix),
+            validation_requirement = :fixed_q_matrix_validated,
+            status = q_constraint === nothing ? layout.status : q_constraint.status,
+            note = "fixed confirmatory item-by-dimension loading mask",
+        ))
+    end
+    append!(rows, _domain_validation_requirement_rows(spec, layout))
+    return rows
+end
+
 function _source_transform_declarations(family::Symbol)
     family === :gmfrm && return NamedTuple[
         (raw_block = :person, constrained_block = :person, transform = :identity,
