@@ -86,6 +86,7 @@ using BayesianMGMFRM:
     save_fit_cache,
     simulate_responses,
     sensitivity_comparison,
+    separation_reliability_summary,
     threshold_map_data,
     model_ladder,
     validate_design,
@@ -6193,7 +6194,7 @@ end
             :prior_predict, :prior_predictive_check,
             :load_fit_cache, :rater_overlap, :residual_summary,
             :sampler_diagnostics, :save_fit_cache,
-            :sensitivity_comparison, :simulate_responses,
+            :sensitivity_comparison, :separation_reliability_summary, :simulate_responses,
             :threshold_map_data, :validation_suggestions, :evidence_metadata,
             :waic, :waic_diagnostics)
         @test has_doc(BayesianMGMFRM, name)
@@ -10570,6 +10571,97 @@ end
     @test_throws ArgumentError fair_average_summary(result; interval = 1.0)
     @test_throws ArgumentError fair_average_summary(result; min_n = 0)
     @test_throws ArgumentError fair_average_summary(design, result.draws[1:2, 1:end-1])
+
+    facet_values = function (facet, draw)
+        params = @view result.draws[draw, :]
+        if facet === :person
+            return [Float64(params[design.blocks[:person][level]])
+                for level in eachindex(data.person_levels)]
+        elseif facet === :rater
+            return [level == 1 ? 0.0 : Float64(params[design.blocks[:rater][level - 1]])
+                for level in eachindex(data.rater_levels)]
+        elseif facet === :item
+            return [level == 1 ? 0.0 : Float64(params[design.blocks[:item][level - 1]])
+                for level in eachindex(data.item_levels)]
+        end
+        error("unexpected facet")
+    end
+    sample_variance = function (values)
+        m = sum(values) / length(values)
+        return sum((value - m)^2 for value in values) / (length(values) - 1)
+    end
+    reliability_rows = separation_reliability_summary(result;
+        draw_indices = [1, 2],
+        interval = 0.8)
+    @test [row.facet for row in reliability_rows] == [:person, :rater, :item]
+    @test all(row -> row.method === :posterior_empirical_reliability,
+        reliability_rows)
+    @test all(row -> row.scale === :logit, reliability_rows)
+    @test all(row -> row.n_draws == 2, reliability_rows)
+    @test all(row -> row.interval_probability == 0.8, reliability_rows)
+    @test all(row -> row.lower_probability ≈ 0.1, reliability_rows)
+    @test all(row -> row.upper_probability ≈ 0.9, reliability_rows)
+    @test all(row -> row.caveat ===
+        :posterior_empirical_reliability_screening_not_generalizability_coefficient,
+        reliability_rows)
+    @test separation_reliability_summary(design, result.draws[1:2, :];
+        interval = 0.8) == reliability_rows
+    person_reliability_rows = separation_reliability_summary(result;
+        facets = :person,
+        draw_indices = [1, 2])
+    @test length(person_reliability_rows) == 1
+    @test [row.facet for row in separation_reliability_summary(result;
+        facets = :all,
+        draw_indices = [1, 2])] == [:person, :rater, :item]
+    for row in reliability_rows
+        levels = row.facet === :person ? data.person_levels :
+            row.facet === :rater ? data.rater_levels : data.item_levels
+        values_by_draw = [facet_values(row.facet, draw) for draw in 1:2]
+        values_by_level = [
+            [values_by_draw[draw][level] for draw in 1:2]
+            for level in eachindex(levels)
+        ]
+        error_variance = sum(sample_variance(values) for values in values_by_level) /
+            length(values_by_level)
+        observed_variance_by_draw = [sample_variance(values) for values in values_by_draw]
+        observed_sd_by_draw = sqrt.(observed_variance_by_draw)
+        adjusted_variance_by_draw =
+            [max(value - error_variance, 0.0) for value in observed_variance_by_draw]
+        adjusted_sd_by_draw = sqrt.(adjusted_variance_by_draw)
+        separation_by_draw =
+            [sqrt(value / error_variance) for value in adjusted_variance_by_draw]
+        reliability_by_draw =
+            [value / (value + error_variance) for value in adjusted_variance_by_draw]
+        @test row.n_levels == length(levels)
+        @test row.observed_variance_mean ≈
+            sum(observed_variance_by_draw) / length(observed_variance_by_draw)
+        @test row.observed_sd_mean ≈
+            sum(observed_sd_by_draw) / length(observed_sd_by_draw)
+        @test row.error_variance_mean ≈ error_variance
+        @test row.error_variance_lower ≈ error_variance
+        @test row.error_variance_upper ≈ error_variance
+        @test row.adjusted_variance_mean ≈
+            sum(adjusted_variance_by_draw) / length(adjusted_variance_by_draw)
+        @test row.adjusted_sd_mean ≈
+            sum(adjusted_sd_by_draw) / length(adjusted_sd_by_draw)
+        @test row.separation_mean ≈
+            sum(separation_by_draw) / length(separation_by_draw)
+        @test row.reliability_mean ≈
+            sum(reliability_by_draw) / length(reliability_by_draw)
+        @test row.observed_variance_lower <= row.observed_variance_median <=
+            row.observed_variance_upper
+        @test row.adjusted_variance_lower <= row.adjusted_variance_median <=
+            row.adjusted_variance_upper
+        @test row.separation_lower <= row.separation_median <= row.separation_upper
+        @test row.reliability_lower <= row.reliability_median <= row.reliability_upper
+        @test row.flag in (:ok, :no_adjusted_separation)
+    end
+    @test_throws ArgumentError separation_reliability_summary(result;
+        facets = (:person, :person))
+    @test_throws ArgumentError separation_reliability_summary(result; facets = :category)
+    @test_throws ArgumentError separation_reliability_summary(result; interval = 1.0)
+    @test_throws ArgumentError separation_reliability_summary(result; draw_indices = [1])
+    @test_throws ArgumentError separation_reliability_summary(design, result.draws[1:2, 1:end-1])
 
     rater_residuals = residual_summary(result;
         by = :rater,

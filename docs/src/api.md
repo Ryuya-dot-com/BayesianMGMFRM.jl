@@ -67,6 +67,7 @@ predictive_check_plot_data
 predictive_probabilities
 expected_scores
 fair_average_summary
+separation_reliability_summary
 predictive_variances
 predictive_residuals
 residual_summary

@@ -6442,6 +6442,239 @@ function fair_average_summary(fit::MFRMFit;
         min_n)
 end
 
+function _separation_reliability_facets(facets::Symbol)
+    facets === :all && return (:person, :rater, :item)
+    return _separation_reliability_facets((facets,))
+end
+
+function _separation_reliability_facets(facets)
+    out = Symbol[]
+    for facet in facets
+        facet isa Symbol ||
+            throw(ArgumentError("facets must contain symbols"))
+        facet in (:person, :rater, :item) ||
+            throw(ArgumentError("separation_reliability_summary supports facets :person, :rater, and :item"))
+        facet in out &&
+            throw(ArgumentError("facets must not contain duplicates"))
+        push!(out, facet)
+    end
+    isempty(out) &&
+        throw(ArgumentError("facets must contain at least one facet"))
+    return Tuple(out)
+end
+
+function _separation_reliability_levels(data::FacetData, facet::Symbol)
+    facet === :person && return data.person_levels
+    facet === :rater && return data.rater_levels
+    facet === :item && return data.item_levels
+    throw(ArgumentError("separation_reliability_summary supports facets :person, :rater, and :item"))
+end
+
+function _mfrm_facet_value(design::FacetDesign,
+        params::AbstractVector,
+        facet::Symbol,
+        level_index::Int)
+    if facet === :person
+        return Float64(params[design.blocks[:person][level_index]])
+    elseif facet === :rater
+        return Float64(_reference_value(params, design.blocks[:rater], level_index))
+    elseif facet === :item
+        return Float64(_reference_value(params, design.blocks[:item], level_index))
+    end
+    throw(ArgumentError("separation_reliability_summary supports facets :person, :rater, and :item"))
+end
+
+function _mfrm_facet_value_matrix(design::FacetDesign,
+        draws::AbstractMatrix,
+        facet::Symbol)
+    levels = _separation_reliability_levels(design.spec.data, facet)
+    values = Matrix{Float64}(undef, size(draws, 1), length(levels))
+    for draw in axes(draws, 1)
+        params = @view draws[draw, :]
+        for level_index in eachindex(levels)
+            values[draw, level_index] =
+                _mfrm_facet_value(design, params, facet, level_index)
+        end
+    end
+    return values
+end
+
+function _sample_variance_or_nan(values::AbstractVector{<:Real})
+    length(values) >= 2 || return NaN
+    mean_value = _column_mean(values)
+    ss = 0.0
+    for value in values
+        d = Float64(value) - mean_value
+        ss += d * d
+    end
+    return ss / (length(values) - 1)
+end
+
+function _mean_level_posterior_variance(values::AbstractMatrix{Float64})
+    size(values, 1) >= 2 ||
+        throw(ArgumentError("separation_reliability_summary requires at least two posterior draws"))
+    size(values, 2) >= 1 ||
+        throw(ArgumentError("separation_reliability_summary requires at least one level"))
+    total = 0.0
+    for level in axes(values, 2)
+        total += _sample_variance_or_nan(@view values[:, level])
+    end
+    return total / size(values, 2)
+end
+
+function _separation_reliability_row(
+        design::FacetDesign,
+        draws::AbstractMatrix,
+        facet::Symbol,
+        interval::Real,
+        lower_probability::Float64,
+        upper_probability::Float64)
+    values = _mfrm_facet_value_matrix(design, draws, facet)
+    n_draws, n_levels = size(values)
+    observed_variance = Vector{Float64}(undef, n_draws)
+    observed_sd = Vector{Float64}(undef, n_draws)
+    adjusted_variance = Vector{Float64}(undef, n_draws)
+    adjusted_sd = Vector{Float64}(undef, n_draws)
+    separation = Vector{Float64}(undef, n_draws)
+    reliability = Vector{Float64}(undef, n_draws)
+
+    posterior_error_variance =
+        n_levels < 2 ? NaN : _mean_level_posterior_variance(values)
+    error_variance = fill(posterior_error_variance, n_draws)
+    eps_var = eps(Float64)
+    for draw in axes(values, 1)
+        level_values = @view values[draw, :]
+        raw_variance = _sample_variance_or_nan(level_values)
+        observed_variance[draw] = raw_variance
+        observed_sd[draw] = isfinite(raw_variance) ? sqrt(max(raw_variance, 0.0)) : NaN
+        adjusted = isfinite(raw_variance) && isfinite(posterior_error_variance) ?
+            max(raw_variance - posterior_error_variance, 0.0) : NaN
+        adjusted_variance[draw] = adjusted
+        adjusted_sd[draw] = isfinite(adjusted) ? sqrt(adjusted) : NaN
+        if isfinite(adjusted) && posterior_error_variance > eps_var
+            separation[draw] = sqrt(adjusted / posterior_error_variance)
+            reliability[draw] = adjusted / (adjusted + posterior_error_variance)
+        else
+            separation[draw] = NaN
+            reliability[draw] = NaN
+        end
+    end
+
+    observed_variance_summary =
+        _finite_draw_summary(observed_variance, lower_probability, upper_probability)
+    observed_sd_summary =
+        _finite_draw_summary(observed_sd, lower_probability, upper_probability)
+    error_variance_summary =
+        _finite_draw_summary(error_variance, lower_probability, upper_probability)
+    adjusted_variance_summary =
+        _finite_draw_summary(adjusted_variance, lower_probability, upper_probability)
+    adjusted_sd_summary =
+        _finite_draw_summary(adjusted_sd, lower_probability, upper_probability)
+    separation_summary =
+        _finite_draw_summary(separation, lower_probability, upper_probability)
+    reliability_summary =
+        _finite_draw_summary(reliability, lower_probability, upper_probability)
+
+    flag = n_levels < 2 ? :single_level :
+        !(posterior_error_variance > eps_var) ? :zero_posterior_error_variance :
+        all(value -> isfinite(value) && value == 0.0, adjusted_variance) ?
+        :no_adjusted_separation : :ok
+
+    return (;
+        facet,
+        n_levels,
+        n_draws,
+        method = :posterior_empirical_reliability,
+        scale = :logit,
+        interval_probability = Float64(interval),
+        lower_probability,
+        upper_probability,
+        observed_variance_mean = observed_variance_summary.mean,
+        observed_variance_median = observed_variance_summary.median,
+        observed_variance_lower = observed_variance_summary.lower,
+        observed_variance_upper = observed_variance_summary.upper,
+        observed_sd_mean = observed_sd_summary.mean,
+        observed_sd_median = observed_sd_summary.median,
+        observed_sd_lower = observed_sd_summary.lower,
+        observed_sd_upper = observed_sd_summary.upper,
+        error_variance_mean = error_variance_summary.mean,
+        error_variance_median = error_variance_summary.median,
+        error_variance_lower = error_variance_summary.lower,
+        error_variance_upper = error_variance_summary.upper,
+        adjusted_variance_mean = adjusted_variance_summary.mean,
+        adjusted_variance_median = adjusted_variance_summary.median,
+        adjusted_variance_lower = adjusted_variance_summary.lower,
+        adjusted_variance_upper = adjusted_variance_summary.upper,
+        adjusted_sd_mean = adjusted_sd_summary.mean,
+        adjusted_sd_median = adjusted_sd_summary.median,
+        adjusted_sd_lower = adjusted_sd_summary.lower,
+        adjusted_sd_upper = adjusted_sd_summary.upper,
+        separation_mean = separation_summary.mean,
+        separation_median = separation_summary.median,
+        separation_lower = separation_summary.lower,
+        separation_upper = separation_summary.upper,
+        reliability_mean = reliability_summary.mean,
+        reliability_median = reliability_summary.median,
+        reliability_lower = reliability_summary.lower,
+        reliability_upper = reliability_summary.upper,
+        caveat = :posterior_empirical_reliability_screening_not_generalizability_coefficient,
+        flag,
+    )
+end
+
+"""
+    separation_reliability_summary(fit::MFRMFit; facets = (:person, :rater, :item),
+        interval = 0.95, ndraws = nothing, draw_indices = nothing,
+        rng = Random.default_rng())
+    separation_reliability_summary(design::FacetDesign, draws;
+        facets = (:person, :rater, :item), interval = 0.95)
+
+Return posterior separation and empirical reliability summaries for MFRM
+person, rater, and item measures. For each requested facet, rows summarize the
+posterior distribution of level dispersion, mean posterior error variance,
+error-adjusted dispersion, separation, and reliability. Reliability is computed
+as adjusted variance divided by adjusted-plus-error variance; use the included
+caveat flag because these rows are practical screening summaries rather than
+full generalizability-study coefficients.
+"""
+function separation_reliability_summary(design::FacetDesign,
+        draws::AbstractMatrix;
+        facets = (:person, :rater, :item),
+        interval::Real = 0.95)
+    _check_fit_supported_mfrm(design, "separation_reliability_summary")
+    size(draws, 1) >= 2 ||
+        throw(ArgumentError("separation_reliability_summary requires at least two posterior draws"))
+    size(draws, 2) == length(design.parameter_names) ||
+        throw(ArgumentError("draws has $(size(draws, 2)) column(s); expected $(length(design.parameter_names))"))
+    all(value -> isfinite(Float64(value)), draws) ||
+        throw(ArgumentError("draws contain non-finite values"))
+    lower_probability, upper_probability = _interval_probabilities(interval)
+    requested_facets = _separation_reliability_facets(facets)
+    return [
+        _separation_reliability_row(
+            design,
+            draws,
+            facet,
+            interval,
+            lower_probability,
+            upper_probability,
+        )
+        for facet in requested_facets
+    ]
+end
+
+function separation_reliability_summary(fit::MFRMFit;
+        facets = (:person, :rater, :item),
+        interval::Real = 0.95,
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    return separation_reliability_summary(fit.design, fit.draws[indices, :];
+        facets,
+        interval)
+end
+
 function _predictive_variances_from_probabilities(probabilities::AbstractArray{<:Real,3},
         levels::AbstractVector{<:Real})
     expected = _expected_scores_from_probabilities(probabilities, levels)
