@@ -21,6 +21,9 @@ implemented public slice covers:
   a Julia random-walk Metropolis sampler, an AdvancedHMC/NUTS backend with a
   shared analytic/AD gradient adapter, or a Turing/NUTS wrapper around the same
   `MFRMLogDensity` target;
+- guarded experimental generalized fitting through
+  `fit(spec; experimental = true)` for the scalar rater-discrimination GMFRM
+  candidate and the fixed-Q two-dimensional confirmatory MGMFRM candidate;
 - cached-fit artifacts, sampler diagnostics, R-hat/ESS rows, parameter-block
   diagnostics, prior and posterior predictive replication, calibration
   summaries, observation-level predictive quantities, fair-average summaries,
@@ -32,9 +35,10 @@ implemented public slice covers:
   source-constraint transforms, used by the test suite.
 
 The package does not yet expose production HMC/NUTS workflows beyond the
-minimal identified MFRM/RSM/PCM slice, full GMFRM/MGMFRM compilation,
-generalized discrimination, modelled DFF effects, PSIS-smoothed/exact LOO, or MGMFRM
-loading/rotation machinery. Those features require the gates below.
+minimal identified MFRM/RSM/PCM slice and the guarded generalized candidates,
+full GMFRM/MGMFRM compilation, generalized discrimination, modelled DFF
+effects, PSIS-smoothed/exact LOO, or MGMFRM loading/rotation machinery. Those
+features require the gates below.
 
 ## Defensible v1 Thesis
 
@@ -264,8 +268,9 @@ gates.
 Current status: internal source-aligned compiler previews, raw-coordinate
 transforms, fixture-only likelihoods, and fixture-only `LogDensityProblems.jl`
 targets exist. BridgeStan JSON fixtures now check the internal source-aligned
-raw-coordinate GMFRM/MGMFRM targets; fit-ready public generalized fixtures are
-still required.
+raw-coordinate GMFRM/MGMFRM targets; broader fit-ready public generalized
+fixtures are still required beyond the guarded scalar GMFRM and fixed-Q
+confirmatory MGMFRM candidates.
 
 ### Gate B: identified raw parameterization
 
@@ -289,9 +294,9 @@ Current status: machine-readable declarations, raw transforms, and preview
 design raw-parameterization manifests exist for the internal source fixtures.
 Those manifest rows expose raw/constrained block maps, transform rows,
 independent normal raw-coordinate priors, and the no-Jacobian raw-density
-policy. Fit-ready public generalized transforms and any direct-scale
-prior/Jacobian policy remain outside the guarded candidate; the recorded policy
-keeps priors on raw coordinates.
+policy. Broader fit-ready public generalized transforms and any direct-scale
+prior/Jacobian policy remain outside the guarded candidates; the recorded
+policy keeps priors on raw coordinates.
 
 ### Gate C: AD and HMC target proof
 
@@ -308,9 +313,9 @@ Current status: raw-coordinate `LogDensityProblems.jl` targets exist for
 internal tests, and ForwardDiff gradients are checked against central finite
 differences at stable GMFRM/MGMFRM fixture points. Fixture-only AdvancedHMC/NUTS
 smoke tests now verify finite draws and sampler stats for the internal
-GMFRM/MGMFRM raw targets. The scalar GMFRM rater-discrimination target now has
-a guarded experimental `fit` method; broader generalized `fit` paths remain
-blocked.
+GMFRM/MGMFRM raw targets. The scalar GMFRM rater-discrimination target and the
+fixed-Q confirmatory MGMFRM target now have guarded experimental `fit` methods;
+broader generalized `fit` paths remain blocked.
 
 ### Gate D: public compiler promotion
 
@@ -324,7 +329,8 @@ blocked.
 
 Current status: public fitting is intentionally restricted to the current
 MFRM/RSM/PCM slice plus the guarded experimental scalar GMFRM
-rater-discrimination candidate.
+rater-discrimination candidate and fixed-Q two-dimensional confirmatory
+MGMFRM candidate.
 
 ### Gate E: evidence before claims
 
@@ -362,17 +368,17 @@ The roadmap has two different progress notions:
   recovery simulations, and a public-scope release decision beyond the guarded
   GMFRM/MGMFRM experiments.
 
-The current frontier is the scalar GMFRM internal promotion candidate. It now
-has source-aligned fixtures, raw transforms, BridgeStan raw checks, constrained
-direct parameter checks, direct pointwise likelihood checks, ForwardDiff
-diagnostics, an internal raw/direct AdvancedHMC sampler diagnostic surface, and
-an internal fit-ready compiler-candidate manifest. The scalar GMFRM candidate
-also has a BridgeStan fit-ready oracle block for raw, constrained, gradient,
-pointwise, and total-likelihood checks, plus a predeclared local candidate-chain
-study artifact over two fixed initial-value fixtures. The committed small and
-medium scalar Stan/BridgeStan log-density and gradient fixtures now have
-machine-readable validation rows and a gate summary via `stan_validation_row`
-and `stan_validation_summary`. It also records an
+The former scalar GMFRM internal promotion candidate is now a guarded
+experimental path. It has source-aligned fixtures, raw transforms, BridgeStan
+raw checks, constrained direct parameter checks, direct pointwise likelihood
+checks, ForwardDiff diagnostics, an internal raw/direct AdvancedHMC sampler
+diagnostic surface, and an internal fit-ready compiler-candidate manifest. The
+scalar GMFRM candidate also has a BridgeStan fit-ready oracle block for raw,
+constrained, gradient, pointwise, and total-likelihood checks, plus a
+predeclared local candidate-chain study artifact over two fixed initial-value
+fixtures. The committed small and medium scalar Stan/BridgeStan log-density and
+gradient fixtures now have machine-readable validation rows and a gate summary
+via `stan_validation_row` and `stan_validation_summary`. It also records an
 experimental-public decision manifest whose current decision is
 `enable_guarded_experimental` for the scalar rater-discrimination path. It now
 has local recovery-smoke evidence by direct parameter
@@ -663,27 +669,27 @@ TODO:
     an input to the local full-paper reproduction archive.
   - [x] Add a local confirmatory MGMFRM guarded fit method-wiring artifact that
     records the source-aligned target, raw-to-direct transform, sampler
-    protocol, artifact contract, fixture hashes, and current public-fit
-    rejection checks while keeping the MGMFRM entrypoint disabled for
+    protocol, artifact contract, fixture hashes, and then-current public-fit
+    rejection checks while the MGMFRM entrypoint was disabled for
     subsequent validation-grid and API dry-run evidence.
   - [x] Add a local confirmatory MGMFRM guarded fit validation grid that
     aggregates the bridge oracle, candidate-chain, recovery, baseline,
-    sparse-recovery, and method-wiring artifacts while keeping the MGMFRM
-    entrypoint disabled for subsequent API dry-run and exposure-review
+    sparse-recovery, and method-wiring artifacts while the MGMFRM entrypoint
+    was disabled for subsequent API dry-run and exposure-review
     evidence.
   - [x] Add a local confirmatory MGMFRM guarded fit API dry-run artifact that
-    records current public-fit rejections, the artifact contract, validation
+    records pre-exposure public-fit rejections, the artifact contract, validation
     grid evidence, and AD/finite-difference checks for the internal target
-    while keeping public exposure blocked until review.
+    while public exposure was blocked until review.
   - [x] Add a local confirmatory MGMFRM guarded fit public exposure review
     artifact that reviews the internal method-wiring, validation-grid, API
     dry-run, sparse-recovery, baseline, and DFF validation evidence before
     guarded MGMFRM fitting is exposed.
-  - [x] Add a local prediction-target/model-weight policy artifact that keeps
-    same-observation WAIC and raw PSIS/LOO diagnostic-only, selects heldout
-    K-fold log score for local scalar model-weight reporting, and kept MGMFRM
-    fit and sparse-superiority claims blocked pending manual public-scope
-    review and a later release decision.
+  - [x] Add a local prediction-target/model-weight policy artifact that
+    recorded same-observation WAIC and raw PSIS/LOO as diagnostic-only, selected
+    heldout K-fold log score for local scalar model-weight reporting, and kept
+    MGMFRM fit and sparse-superiority claims blocked pending manual
+    public-scope review and a later release decision.
   - [x] Add a local manual public-scope review artifact for confirmatory
     MGMFRM fit that records the fixed-Q scope, keeps sparse-superiority claims
     blocked, and advanced the next local gate to the guarded local MGMFRM fit
