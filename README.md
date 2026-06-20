@@ -244,6 +244,9 @@ Current public API:
   optional cached draws/environment metadata. Artifacts include a stable
   `artifact_content_hash` value and an embedded `fit_archive_manifest` for
   exported-review checks.
+- `fit_reproduction_manifest`: a machine-readable reproduction manifest that
+  audits full rerun evidence and fast cached-draw evidence as separate required
+  paths, with optional fit-report bundle metadata for review exports.
 - `fit_report`: a compact machine-readable fitted-object report bundle that
   collects metadata, manifests, diagnostics, posterior summaries, predictive
   checks, calibration rows, WAIC/LOO summaries, optional DFF rows, and compact
