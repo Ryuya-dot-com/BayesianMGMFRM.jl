@@ -310,7 +310,9 @@ Current public API:
   minimal identified design, using the same linear-predictor evaluator exposed
   by `linear_predictor_values`.
 - `pointwise_loglikelihood_matrix`: draws-by-observations log-likelihood output
-  for posterior checks and model-comparison helpers.
+  for posterior checks and model-comparison helpers, including guarded
+  GMFRM/MGMFRM preview designs on direct draws or raw candidate coordinates
+  with `parameter_space = :raw`.
 - `waic`: widely applicable information criterion summaries from posterior
   pointwise log-likelihood draws.
 - `waic_diagnostics`: observation-level WAIC diagnostics with person, rater,

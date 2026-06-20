@@ -367,6 +367,11 @@ coordinates with `parameter_space = :raw`. Use `parameter_recovery` and
 `parameter_recovery_summary` to inspect posterior bias, absolute error, RMSE,
 interval coverage, interval width, and block-level recovery; GMFRM/MGMFRM fit
 objects can be summarized on either direct or raw coordinates.
+`pointwise_loglikelihood_matrix` also accepts specified-only GMFRM/MGMFRM
+preview designs with constrained direct draws, or raw candidate-coordinate
+draws when `parameter_space = :raw`, so external generalized draws can be
+turned into the same WAIC/LOO log-likelihood matrix contract before strong
+comparison claims are made.
 `parameter_recovery_plot_data`, `calibration_plot_data`,
 `predictive_check_plot_data`, and `wright_map_data` return plotting-ready rows
 without depending on a specific plotting library.
