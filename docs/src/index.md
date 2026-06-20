@@ -94,13 +94,15 @@ The current public slice focuses on:
   candidate-chain/recovery-smoke evidence.
 
 Stan/CmdStan sampling, PSIS-smoothed or exact LOO, generalized discrimination
-likelihoods, group/DFF model terms, and Multidimensional Generalized
-Many-Facet Rasch Model (MGMFRM) fitting APIs are planned work and are not
-exposed yet. The Turing/NUTS backend is currently limited to the minimal
-MFRM/RSM/PCM `MFRMLogDensity` target.
+likelihoods beyond the guarded scalar rater-discrimination candidate, group/DFF
+model terms, and broad Multidimensional Generalized Many-Facet Rasch Model
+(MGMFRM) fitting APIs beyond the guarded fixed-Q confirmatory candidate are
+planned work and are not exposed yet. The Turing/NUTS backend is currently
+limited to the minimal MFRM/RSM/PCM `MFRMLogDensity` target.
 Specified-only GMFRM/MGMFRM configs are available for constraint and manifest
 review, with estimation currently limited to the guarded scalar GMFRM
-rater-discrimination candidate. See the [Bayesian Workflow](bayesian-workflow.md)
+rater-discrimination candidate and the fixed-Q confirmatory MGMFRM candidate.
+See the [Bayesian Workflow](bayesian-workflow.md)
 page for the current check sequence and limitations, and
 [Roadmap and Scope](roadmap.md) for the implementation gates for planned
 GMFRM/MGMFRM work.
