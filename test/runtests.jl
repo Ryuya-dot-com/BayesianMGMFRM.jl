@@ -70,6 +70,7 @@ using BayesianMGMFRM:
     loglikelihood,
     loo,
     loo_diagnostics,
+    loo_refit_plan,
     logposterior,
     logprior,
     linear_predictor_table,
@@ -11671,6 +11672,55 @@ end
     @test_throws ArgumentError loo(loo_loglik; pareto_k_threshold = -0.1)
     @test_throws ArgumentError loo(loo_loglik; tail_fraction = 1.0)
     @test_throws ArgumentError loo(loo_loglik; min_tail_draws = 0)
+
+    loo_plan = loo_refit_plan(data)
+    @test loo_plan.schema == "bayesianmgmfrm.loo_refit_plan.v1"
+    @test loo_plan.object === :loo_refit_plan
+    @test loo_plan.method === :deterministic_leave_one_observation_out_plan
+    @test loo_plan.comparison_contract === :same_heldout_observation_folds
+    @test loo_plan.group_by === :observation
+    @test loo_plan.n_observations == data.n
+    @test loo_plan.n_refits == data.n
+    @test loo_plan.n_folds == data.n
+    @test loo_plan.folds == collect(1:data.n)
+    @test loo_plan.n_heldout_by_fold == fill(1, data.n)
+    @test loo_plan.refits_per_model_required == data.n
+    @test loo_plan.warning === :ok
+    @test loo_plan.heldout_observation_indices == [[row] for row in 1:data.n]
+    @test loo_plan.observation_fold == collect(1:data.n)
+    @test length(loo_plan.fold_rows) == data.n
+    @test first(loo_plan.fold_rows).heldout_observations == [1]
+    @test first(loo_plan.fold_rows).training_observations == collect(2:data.n)
+    @test all(row -> row.n_heldout_observations == 1, loo_plan.fold_rows)
+    @test all(row -> row.n_training_observations == data.n - 1,
+        loo_plan.fold_rows)
+    planned_exact_loo = kfold([llmat[1:3, indices]
+            for indices in loo_plan.heldout_observation_indices];
+        fold_ids = loo_plan.folds,
+        observation_indices = loo_plan.heldout_observation_indices)
+    @test planned_exact_loo.n_folds == loo_plan.n_refits
+    @test planned_exact_loo.n_heldout_by_fold == loo_plan.n_heldout_by_fold
+    @test planned_exact_loo.observation_indices == collect(1:data.n)
+    subset_loo_plan = loo_refit_plan(spec;
+        observations = [2, 4],
+        fold_ids = [:obs2, :obs4])
+    @test subset_loo_plan.warning === :subset
+    @test subset_loo_plan.n_refits == 2
+    @test subset_loo_plan.folds == [:obs2, :obs4]
+    @test subset_loo_plan.heldout_observation_indices == [[2], [4]]
+    @test subset_loo_plan.observation_fold[1] === missing
+    @test subset_loo_plan.observation_fold[2] === :obs2
+    @test subset_loo_plan.observation_fold[4] === :obs4
+    @test kfold_plan_diagnostics(design, subset_loo_plan;
+        facets = :person).n_rows == subset_loo_plan.n_refits
+    @test_throws ArgumentError loo_refit_plan(data; observations = Int[])
+    @test_throws ArgumentError loo_refit_plan(data; observations = [1, 1])
+    @test_throws ArgumentError loo_refit_plan(data; observations = [0])
+    @test_throws ArgumentError loo_refit_plan(data; observations = [true])
+    @test_throws ArgumentError loo_refit_plan(data; observations = [1, 2],
+        fold_ids = [:only])
+    @test_throws ArgumentError loo_refit_plan(data; observations = [1, 2],
+        fold_ids = [:dup, :dup])
 
     kfold_folds = [llmat[1:3, 1:2], llmat[4:6, 3:data.n]]
     kfold_observation_indices = [1:2, 3:data.n]

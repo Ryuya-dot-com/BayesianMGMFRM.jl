@@ -227,11 +227,13 @@ stabilization. The AdvancedHMC/NUTS and Turing/NUTS backends are
 gradient-based sampler paths for the minimal design; AdvancedHMC also backs the
 guarded experimental GMFRM and fixed-Q MGMFRM candidates, but it is not yet a
 broad GMFRM/MGMFRM fitting backend. The package does not yet expose Stan/CmdStan
-sampling, PSIS-smoothed or exact LOO refits, or refit-managed
-model-comparison workflows. [`kfold_plan`](@ref) constructs deterministic
-observation-level or grouped heldout folds, and [`kfold`](@ref) plus
-[`compare_kfold`](@ref) summarize supplied heldout refit log-likelihood
-matrices, but the package does not refit models for those folds.
+sampling, PSIS-smoothed LOO, or refit-managed model-comparison workflows.
+[`loo_refit_plan`](@ref) constructs deterministic one-observation-heldout
+plans for exact LOO follow-up, optionally restricted to flagged observations.
+[`kfold_plan`](@ref) constructs deterministic observation-level or grouped
+heldout folds, and [`kfold`](@ref) plus [`compare_kfold`](@ref) summarize
+supplied heldout refit log-likelihood matrices, but the package does not refit
+models for those folds.
 `MFRMLogDensity` exposes the
 same minimal posterior through the `LogDensityProblems.jl` protocol for
 external sampler and automatic differentiation experiments. AdvancedHMC uses a
@@ -352,6 +354,8 @@ differences, `compare_models` requires the same observation data in the same
 row order, ordinal category levels, latent dimensionality, and fixed Q-matrix
 contract; returned rows include the checked model family, thresholds,
 discrimination mode, dimensionality, Q-matrix, and data signature.
+`loo_refit_plan` constructs deterministic one-observation-heldout plans for
+exact LOO follow-up, optionally restricted to flagged observations.
 `kfold_plan` constructs deterministic observation-level or grouped heldout fold
 assignments for planned refits. `kfold_plan_diagnostics` checks each fold and
 facet for heldout-only levels before external refits. `kfold` summarizes

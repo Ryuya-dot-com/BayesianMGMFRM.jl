@@ -7030,6 +7030,72 @@ end
 kfold_plan(spec::FacetSpec; kwargs...) = kfold_plan(spec.data; kwargs...)
 kfold_plan(design::FacetDesign; kwargs...) = kfold_plan(design.spec.data; kwargs...)
 
+"""
+    loo_refit_plan(data::FacetData; observations = nothing, fold_ids = nothing)
+    loo_refit_plan(spec::FacetSpec; kwargs...)
+    loo_refit_plan(design::FacetDesign; kwargs...)
+
+Construct a deterministic leave-one-observation-out refit plan. Each returned
+fold row holds out exactly one observation and lists the complementary training
+observations. Pass `observations` to plan exact-refit follow-up for a subset,
+such as flagged raw-importance LOO rows. This helper builds the refit plan only.
+It does not refit models.
+"""
+function loo_refit_plan(data::FacetData;
+        observations = nothing,
+        fold_ids = nothing)
+    heldout_observations =
+        _check_observation_indices(data, observations, "loo_refit_plan")
+    isempty(heldout_observations) &&
+        throw(ArgumentError("loo_refit_plan requires at least one heldout observation"))
+    n_refits = length(heldout_observations)
+    checked_fold_ids = fold_ids === nothing ?
+        Any[heldout_observations...] :
+        _kfold_fold_ids(n_refits, fold_ids)
+
+    all_observations = collect(1:data.n)
+    observation_fold = Vector{Any}(undef, data.n)
+    fill!(observation_fold, missing)
+    fold_rows = NamedTuple[]
+    for (index, observation) in pairs(heldout_observations)
+        fold_id = checked_fold_ids[index]
+        training_observations = [row for row in all_observations if row != observation]
+        observation_fold[observation] = fold_id
+        push!(fold_rows, (;
+            fold = fold_id,
+            n_heldout_observations = 1,
+            n_training_observations = length(training_observations),
+            heldout_observations = [observation],
+            training_observations,
+            heldout_units = [observation],
+            n_heldout_units = 1,
+        ))
+    end
+
+    return (;
+        schema = "bayesianmgmfrm.loo_refit_plan.v1",
+        object = :loo_refit_plan,
+        method = :deterministic_leave_one_observation_out_plan,
+        comparison_contract = :same_heldout_observation_folds,
+        group_by = :observation,
+        n_observations = data.n,
+        n_refits,
+        n_folds = n_refits,
+        folds = copy(checked_fold_ids),
+        observation_fold,
+        heldout_observation_indices =
+            [copy(row.heldout_observations) for row in fold_rows],
+        n_heldout_by_fold = fill(1, n_refits),
+        fold_rows,
+        refits_per_model_required = n_refits,
+        warning = observations === nothing ? :ok : :subset,
+    )
+end
+
+loo_refit_plan(spec::FacetSpec; kwargs...) = loo_refit_plan(spec.data; kwargs...)
+loo_refit_plan(design::FacetDesign; kwargs...) =
+    loo_refit_plan(design.spec.data; kwargs...)
+
 function _kfold_plan_diagnostic_facet_groups(data::FacetData, facet::Symbol)
     facet === :person && return data.person, data.person_levels
     facet === :rater && return data.rater, data.rater_levels
