@@ -74,34 +74,35 @@ the [model-equations page](model-equations.md) for the DOI-backed source list.
    Q-mask, ability-scale, and latent-correlation choices in
    `constraint_table(spec)` and `model_manifest(spec)` before sampling.
 4. **AD and HMC target proof**: add gradient checks and fixture-only HMC smoke
-   tests for generalized raw targets; promote only the narrow scalar GMFRM path
-   once its evidence is recorded.
+   tests for generalized raw targets; promote only the narrow scalar GMFRM and
+   fixed-Q confirmatory MGMFRM paths once their evidence is recorded.
 5. **Public promotion**: promote scalar GMFRM first, only after Julia and
    BridgeStan pointwise log likelihoods, transforms, AD, and sampler diagnostics
-   agree. Repeat for a minimal confirmatory MGMFRM with a fixed Q-mask and fixed
-   latent identity correlation before expanding options.
+   agree. Repeat that gate for a minimal confirmatory MGMFRM with a fixed Q-mask
+   and fixed latent identity correlation before expanding options.
 6. **Evidence before claims**: use predeclared simulation grids, recovery
    metrics, calibration, posterior predictive checks, Stan comparisons, and at
    least one real rater-mediated case study before making broad claims.
 
 Current exposure is deliberately conservative: MFRM/RSM/PCM fitting and
 simulation/recovery helpers are public; GMFRM/MGMFRM manifests and compiler
-previews are public for inspection; a guarded scalar GMFRM
-`fit(spec; experimental = true)` path is available only for the
-rater-discrimination promotion candidate; broader GMFRM/MGMFRM fitting, DFF
-model effects, public model-weight claims, and manuscript claims about sparse
-MGMFRM superiority remain blocked. Local scalar model-weight reporting is
-restricted to the heldout K-fold prediction target; the confirmatory MGMFRM
-manual public-scope review and guarded local fit entrypoint are recorded, but
-public MGMFRM exposure still requires a separate release decision.
+previews are public for inspection; guarded
+`fit(spec; experimental = true)` paths are available for the scalar
+rater-discrimination GMFRM candidate and the fixed-Q two-dimensional
+confirmatory MGMFRM candidate. Broader GMFRM/MGMFRM fitting, DFF model effects,
+public model-weight claims, and manuscript claims about sparse MGMFRM
+superiority remain blocked. Local scalar model-weight reporting is restricted to
+the heldout K-fold prediction target; confirmatory MGMFRM fitting is exposed
+only as a guarded experimental path without model-weight or sparse-superiority
+claims.
 
 ## Progress Ledger
 
 The repository roadmap currently has 121 of 121 tracked checklist items complete,
 or 100.0% by simple implementation accounting. The stronger claim-level
-progress is lower, about 40-45%, because the remaining work includes public
+progress is lower, about 45-50%, because the remaining work includes broader
 generalized fitting, broader recovery simulations, and a public-scope release
-decision for generalized claims.
+decision for generalized claims beyond the guarded GMFRM/MGMFRM experiments.
 
 The current frontier is the scalar GMFRM internal promotion candidate. It has
 source-aligned fixtures, raw transforms, BridgeStan raw checks, constrained
@@ -134,20 +135,21 @@ guarded fit API dry-run plus local confirmatory MGMFRM guarded public exposure
 review, a local prediction-target/model-weight policy, a local manual
 public-scope review, a local DFF
 estimand/validation grid, Gate E manuscript-scale evidence, and a local
-full-paper reproduction archive. A private guarded local MGMFRM fit entrypoint
-now records fixed-Q confirmatory raw/direct draws, sampler diagnostics, direct
-constraints, pointwise log likelihood, and a guarded local fit artifact while
-keeping public MGMFRM exposure blocked.
+full-paper reproduction archive. The fixed-Q confirmatory MGMFRM guarded sampler
+is now available through `fit(spec; experimental = true)` and records raw/direct
+draws, sampler diagnostics, direct constraints, pointwise log likelihood, and an
+experimental fit artifact while keeping broader MGMFRM exposure blocked.
 The minimal
 MGMFRM path now has an internal confirmatory gauge candidate manifest, a separated
 fit-ready candidate transform manifest, and a BridgeStan confirmatory-candidate
 oracle block for raw, direct, gradient, pointwise, and total-likelihood checks.
 It also has a local two-fixture candidate-chain diagnostic artifact, a local
 recovery-smoke artifact, a local baseline-comparison artifact, and a local
-sparse-recovery grid over connected sparse fixed-Q scenarios. Its internal public-API decision currently remains
-`keep_internal`. Guarded generalized-model caveat docs and an internal
-experimental generalized fit-artifact contract are now recorded locally, and
-DFF validation-only evidence is recorded. The generalized raw-prior
+sparse-recovery grid over connected sparse fixed-Q scenarios. Its public-API
+decision is now `enable_guarded_experimental` for the fixed-Q confirmatory
+candidate only. Guarded generalized-model caveat docs and an experimental
+generalized fit-artifact contract are now recorded locally, and DFF
+validation-only evidence is recorded. The generalized raw-prior
 and Jacobian policy is recorded as raw-coordinate priors with no transform
 Jacobian and no direct-scale priors.
 
@@ -170,10 +172,10 @@ candidate chains produce block-level diagnostics, baseline comparisons are
 available, the guarded exposure decision is defensible, and unsupported options
 are rejected with actionable errors.
 
-The first MGMFRM target should stay confirmatory: fixed Q-mask, fixed identity
-latent correlation, documented ability scale, explicit sign/positivity rules,
-manifested rater/item constraints, and BridgeStan pointwise checks before any
-HMC study.
+The first MGMFRM target stays confirmatory: fixed Q-mask, fixed identity latent
+correlation, documented ability scale, explicit sign/positivity rules,
+manifested rater/item constraints, BridgeStan pointwise checks, and guarded HMC
+diagnostics before any broader MGMFRM option is exposed.
 
 ## Reviewer Gates
 

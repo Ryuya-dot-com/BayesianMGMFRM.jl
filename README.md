@@ -10,9 +10,12 @@ fitting for the minimal MFRM/RSM/PCM design is now available through a
 random-walk example backend, an initial AdvancedHMC/NUTS backend, and a
 Turing/NUTS backend.
 The spec object can now represent MFRM, planned GMFRM, and planned MGMFRM
-configurations for manifest and constraint review, while generalized
-discrimination terms, group/DFF model effects, and MGMFRM likelihoods remain
-specified-only rather than fit-ready. Test-suite validation now includes
+configurations for manifest and constraint review. Guarded experimental
+generalized fitting is available only for the scalar rater-discrimination GMFRM
+candidate and the fixed-Q two-dimensional confirmatory MGMFRM candidate, while
+broader generalized discrimination terms, group/DFF model effects, and
+exploratory MGMFRM likelihoods remain specified-only rather than fit-ready.
+Test-suite validation now includes
 Julia/BridgeStan scalar fixtures and internal hand-computed source-aligned
 GMFRM/MGMFRM preview fixtures, including raw-coordinate transforms for their
 source identification restrictions and fixture-only raw-coordinate
@@ -26,9 +29,11 @@ A narrow `fit(spec; experimental = true)` scalar GMFRM path is now wired for
 local validation, and its experimental fit validation, posterior predictive,
 sparse-pathology recovery, and prior/likelihood sensitivity grids are
 recorded, a compact local real-data case study is recorded, and a local
-claim-level recovery/reproduction archive manifest is recorded. A local
-broader experimental exposure decision review now keeps the scalar GMFRM path
-guarded-only. The full-paper reproduction archive records the local
+claim-level recovery/reproduction archive manifest is recorded. A fixed-Q
+two-dimensional confirmatory MGMFRM path is also wired through
+`fit(spec; experimental = true)` as a guarded experiment. A local broader
+experimental exposure decision review keeps these generalized paths guarded.
+The full-paper reproduction archive records the local
 regeneration commands, fixture hashes, code/documentation hashes, and local
 verification commands without any publication or registration action.
 A local DFF estimand/validation grid, Gate E manuscript-scale evidence grid,
@@ -41,11 +46,10 @@ diagnostic artifact, recovery-smoke artifact, baseline-comparison artifact, and
 connected sparse-recovery grid plus a local guarded fit method-wiring artifact,
 local guarded fit validation grid, and local guarded fit API dry-run artifact,
 plus a local guarded public exposure review and prediction-target/model-weight
-policy. It now has a private guarded local fit entrypoint and artifact surface
-for the fixed-Q confirmatory candidate, but not a public fit-ready sampler path.
-Its next public blocker is a separate public-scope release decision; its
-internal exposure decision remains `keep_internal`, and any publication or
-registration step remains manual.
+policy. It now has a guarded experimental public fit entrypoint and artifact
+surface for the fixed-Q confirmatory candidate. Exploratory Q-matrices, free
+latent correlations, higher dimensions, sparse-superiority claims, model-weight
+claims, and any publication or registration step remain out of scope.
 
 ## Installation
 
@@ -221,10 +225,11 @@ Current public API:
   lower/upper interval columns plus central credible-interval rows,
   probability of direction, and optional ROPE/practical-equivalence
   probabilities.
-- `GMFRMFit`: a guarded experimental scalar GMFRM fit result returned only by
-  `fit(spec; experimental = true)` for the source-aligned one-dimensional
-  rater-discrimination promotion candidate. This path is local validation
-  evidence and remains narrower than broad GMFRM/MGMFRM support.
+- `GMFRMFit` and `MGMFRMFit`: guarded experimental generalized fit results
+  returned by `fit(spec; experimental = true)` for the source-aligned
+  one-dimensional rater-discrimination GMFRM candidate or the fixed-Q
+  two-dimensional confirmatory MGMFRM candidate. These paths are local
+  validation evidence and remain narrower than broad GMFRM/MGMFRM support.
 - `fit_artifact`: reproducibility artifacts that combine the model manifest,
   diagnostics, posterior summaries, sampler controls, RNG seed metadata, and
   optional cached draws/environment metadata. Artifacts include a stable
@@ -368,12 +373,14 @@ Not yet implemented in the public API:
   refit-managed model-comparison workflows. The K-fold helpers summarize
   supplied heldout log-likelihood matrices but do not build folds or refit
   models. The AdvancedHMC/NUTS and Turing/NUTS backends are currently limited
-  to the minimal MFRM/RSM/PCM design; the guarded experimental scalar GMFRM
-  promotion candidate remains on the AdvancedHMC path.
+  to the minimal MFRM/RSM/PCM design; the guarded experimental GMFRM and
+  fixed-Q MGMFRM candidates remain on the AdvancedHMC path.
 - Broad fitting for the specified-only GMFRM/MGMFRM blocks declared by
-  `mfrm_spec`, beyond the guarded scalar GMFRM rater-discrimination path.
-- Generalized discrimination, group/DFF model effects, or MGMFRM likelihood
-  terms.
+  `mfrm_spec`, beyond the guarded scalar GMFRM rater-discrimination path and
+  fixed-Q two-dimensional confirmatory MGMFRM path.
+- Generalized discrimination beyond the guarded candidates, group/DFF model
+  effects, exploratory MGMFRM loadings, free latent correlations, or higher
+  dimensional MGMFRM likelihood terms.
 - Automated regeneration of external Stan/BridgeStan validation fixtures in CI.
   Current scalar Stan/BridgeStan checks and the internal GMFRM/MGMFRM preview
   fixtures, raw transforms, and scalar GMFRM candidate-chain artifact are
@@ -427,12 +434,11 @@ Not yet implemented in the public API:
   MGMFRM baseline-comparison artifact is same-observation WAIC evidence against
   public MFRM/PCM/RSM baselines. The MGMFRM sparse-recovery grid records three
   connected sparse fixed-Q scenarios with validation, sampler, WAIC, and
-  recovery summaries while keeping MGMFRM fitting internal, not a public MGMFRM
-  fit claim. Guarded
-  generalized-model caveat docs are present locally, and an internal
-  experimental generalized fit-artifact contract records required provenance
-  fields for the guarded scalar GMFRM fit path and future generalized
-  extensions.
+  recovery summaries as evidence for the guarded fixed-Q experiment, not a
+  sparse-superiority or model-weight claim. Guarded generalized-model caveat
+  docs are present locally, and an experimental generalized fit-artifact
+  contract records required provenance fields for the guarded scalar GMFRM fit
+  path, the guarded fixed-Q MGMFRM fit path, and future generalized extensions.
 
 Current registration checklist:
 

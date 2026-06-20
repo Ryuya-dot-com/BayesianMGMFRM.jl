@@ -8,12 +8,12 @@ pre-fit data validation, MFRM/GMFRM/MGMFRM specification manifests, minimal
 RSM/PCM design scaffolding, and initial Bayesian fitting, predictive-check, and
 WAIC / raw importance-sampling LOO paths for small validation examples. The
 minimal MFRM/RSM/PCM design can be fit with a random-walk example backend, an
-initial AdvancedHMC/NUTS backend, or a Turing/NUTS backend. A guarded
-experimental scalar GMFRM rater-discrimination path is available through
-`fit(spec; experimental = true)`.
-Broader generalized discrimination likelihoods, group/DFF model effects, and
-Multidimensional Generalized Many-Facet Rasch Model (MGMFRM) fitting are planned
-work and are not exposed as public fitting APIs yet.
+    initial AdvancedHMC/NUTS backend, or a Turing/NUTS backend. Guarded
+    experimental generalized paths are available through
+    `fit(spec; experimental = true)` for the scalar rater-discrimination GMFRM
+    candidate and the fixed-Q two-dimensional confirmatory MGMFRM candidate.
+    Broader generalized discrimination likelihoods, group/DFF model effects, and
+    exploratory MGMFRM fitting remain planned work.
 """
 module BayesianMGMFRM
 
@@ -21,6 +21,7 @@ export FacetData,
     FacetDesign,
     FacetSpec,
     GMFRMFit,
+    MGMFRMFit,
     MFRMLogDensity,
     MFRMFit,
     MFRMPrior,
