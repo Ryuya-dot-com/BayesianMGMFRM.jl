@@ -119,9 +119,10 @@ with Hill-estimated Pareto-k screening plus supplied heldout-refit
 [`kfold`](@ref) and [`compare_kfold`](@ref) summaries, but it does not yet
 perform PSIS smoothing, exact LOO refits, or refit-managed cross-validation.
 It also does not yet expose grouped cross-validation by person/item,
-power-scaling prior sensitivity, covariate terms, random slopes, generalized
-discrimination likelihoods, or multidimensional MGMFRM fitting. Specified-only
-GMFRM/MGMFRM rows in [`constraint_table`](@ref) and
+power-scaling prior sensitivity, covariate terms, random slopes, broad
+generalized discrimination likelihoods, or MGMFRM fitting beyond the guarded
+fixed-Q confirmatory candidate. Specified-only GMFRM/MGMFRM rows in
+[`constraint_table`](@ref) and
 [`identification_declarations`](@ref) are provenance and design-review data,
 not fitted likelihood terms.
 

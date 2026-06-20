@@ -76,6 +76,7 @@ linear_predictor_table
 linear_predictor_values
 model_equation
 mcmc_diagnostics
+release_scope_summary
 sampler_diagnostics
 BayesianMGMFRM.pointwise_loglikelihood
 pointwise_loglikelihood_matrix

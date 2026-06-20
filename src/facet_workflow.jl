@@ -1122,10 +1122,11 @@ end
     model_ladder()
 
 Return the package's machine-readable model ladder. Rows distinguish the
-implemented minimal MFRM/RSM/PCM fitting slice from specified-only GMFRM and
-MGMFRM configurations. The ladder is documentation data: it is used to keep
-claims about fitting support separate from claims about representable
-specification intent.
+implemented minimal MFRM/RSM/PCM fitting slice, guarded experimental
+generalized fit surfaces, and broader specified-only GMFRM/MGMFRM
+configurations. The ladder is documentation data: it is used to keep claims
+about fitting support separate from claims about representable specification
+intent.
 """
 function model_ladder()
     return [
@@ -1136,8 +1137,34 @@ function model_ladder()
             discrimination = :none,
             threshold_regimes = (:rating_scale, :partial_credit),
             estimation_status = :fit_supported,
+            public_fit = true,
+            experimental_public = false,
             identification = (:reference_first_rater, :reference_first_item, :sum_to_zero_thresholds),
             note = "implemented additive one-dimensional many-facet Rasch location model",
+        ),
+        (;
+            family = :gmfrm,
+            scope = :scalar_gmfrm_guarded_experimental,
+            dimensions = "1",
+            discrimination = (:rater,),
+            threshold_regimes = (:rating_scale, :partial_credit),
+            estimation_status = :experimental_public,
+            public_fit = true,
+            experimental_public = true,
+            identification = (:item_discrimination_product_constraint, :rater_consistency_positive, :rater_step_constraints),
+            note = "guarded scalar rater-discrimination GMFRM through fit(spec; experimental = true)",
+        ),
+        (;
+            family = :mgmfrm,
+            scope = :fixed_q_confirmatory_mgmfrm_guarded_experimental,
+            dimensions = "2",
+            discrimination = (:item_dimension_discrimination, :rater_consistency),
+            threshold_regimes = (:partial_credit,),
+            estimation_status = :experimental_public,
+            public_fit = true,
+            experimental_public = true,
+            identification = (:fixed_confirmatory_q_mask, :identity_latent_correlation, :standard_normal_ability_scale, :positive_q_masked_loadings),
+            note = "guarded fixed-Q two-dimensional confirmatory MGMFRM through fit(spec; experimental = true)",
         ),
         (;
             family = :gmfrm,
@@ -1146,8 +1173,10 @@ function model_ladder()
             discrimination = (:global, :rater, :item, :rater_item),
             threshold_regimes = (:rating_scale, :partial_credit),
             estimation_status = :specified_only,
+            public_fit = false,
+            experimental_public = false,
             identification = (:item_discrimination_product_constraint, :rater_consistency_positive, :rater_step_constraints),
-            note = "source-aligned preview for manifests and constraint review; fitting is planned",
+            note = "source-aligned preview for broader manifests and constraint review; broad fitting remains planned",
         ),
         (;
             family = :mgmfrm,
@@ -1156,10 +1185,152 @@ function model_ladder()
             discrimination = (:none, :global, :rater, :item, :rater_item),
             threshold_regimes = (:rating_scale, :partial_credit),
             estimation_status = :specified_only,
+            public_fit = false,
+            experimental_public = false,
             identification = (:confirmatory_q_mask, :rater_consistency_product_constraint, :item_step_constraints),
-            note = "source-aligned preview for manifests and multidimensional gauge review; fitting is planned",
+            note = "source-aligned preview for broader manifests and multidimensional gauge review; broad fitting remains planned",
         ),
     ]
+end
+
+function _release_scope_fit_surface_rows()
+    return (
+        (;
+            surface = :minimal_mfrm_rsm_pcm,
+            family = :mfrm,
+            scope = :minimal_mfrm_rsm_pcm,
+            status = :public_fit_supported,
+            entrypoint = "fit(spec)",
+            experimental_public = false,
+            public_fit = true,
+            claim_scope = :small_model_workflow_scaffold,
+            note = "MFRM/RSM/PCM posterior fitting and report helpers for the minimal identified design",
+        ),
+        (;
+            surface = :scalar_gmfrm_guarded_experimental,
+            family = :gmfrm,
+            scope = :scalar_gmfrm_fit_ready_candidate,
+            status = :guarded_experimental_public,
+            entrypoint = "fit(spec; experimental = true)",
+            experimental_public = true,
+            public_fit = true,
+            claim_scope = :guarded_scalar_rater_discrimination_only,
+            note = "guarded scalar rater-discrimination GMFRM, without broader generalized claims",
+        ),
+        (;
+            surface = :fixed_q_confirmatory_mgmfrm_guarded_experimental,
+            family = :mgmfrm,
+            scope = :minimal_confirmatory_mgmfrm_candidate,
+            status = :guarded_experimental_public,
+            entrypoint = "fit(spec; experimental = true)",
+            experimental_public = true,
+            public_fit = true,
+            claim_scope = :fixed_q_two_dimensional_confirmatory_only,
+            note = "guarded fixed-Q confirmatory MGMFRM, without model-weight or sparse-superiority claims",
+        ),
+    )
+end
+
+function _release_scope_blocked_option_rows()
+    rows = NamedTuple[]
+    for row in _gmfrm_experimental_rejected_option_rows()
+        push!(rows, merge((family = :gmfrm, scope = :scalar_gmfrm_fit_ready_candidate), row))
+    end
+    for row in _mgmfrm_experimental_rejected_option_rows()
+        push!(rows, merge((family = :mgmfrm, scope = :minimal_confirmatory_mgmfrm_candidate), row))
+    end
+    return Tuple(rows)
+end
+
+function _release_scope_blocked_claim_rows()
+    return (
+        (;
+            claim = :broad_generalized_fit,
+            status = :blocked,
+            blocker = :manual_public_scope_release_decision_required,
+            note = "only the guarded scalar GMFRM and fixed-Q confirmatory MGMFRM surfaces are enabled",
+        ),
+        (;
+            claim = :dff_model_effects,
+            status = :blocked,
+            blocker = :future_dff_model_effect_fit_policy,
+            note = "DFF support is validation and screening only",
+        ),
+        (;
+            claim = :model_weight_or_superiority,
+            status = :blocked,
+            blocker = :model_weight_or_superiority_claim_not_promoted,
+            note = "WAIC, raw LOO, and K-fold helpers record diagnostics but do not authorize model-weight claims",
+        ),
+        (;
+            claim = :sparse_mgmfrm_superiority,
+            status = :blocked,
+            blocker = :broader_sparse_mgmfrm_claim_scope_not_promoted,
+            note = "local sparse evidence supports guarded experimentation only",
+        ),
+        (;
+            claim = :publication_or_registration,
+            status = :manual_only,
+            blocker = :manual_publication_or_registration_by_user_only,
+            note = "the package records local evidence but performs no publication or registration action",
+        ),
+    )
+end
+
+function _release_scope_evidence_rows()
+    rows = NamedTuple[]
+    for row in _gmfrm_experimental_public_evidence_rows()
+        push!(rows, merge((family = :gmfrm, scope = :scalar_gmfrm_fit_ready_candidate), row))
+    end
+    for row in _mgmfrm_experimental_public_evidence_rows()
+        push!(rows, merge((family = :mgmfrm, scope = :minimal_confirmatory_mgmfrm_candidate), row))
+    end
+    return Tuple(rows)
+end
+
+"""
+    release_scope_summary(; include_evidence = false)
+
+Return a machine-readable summary of the package's current release scope. The
+summary lists the public fit surfaces that are currently enabled, the
+unsupported generalized options that remain rejected, and the broad claims that
+remain blocked. Set `include_evidence = true` to include the local evidence rows
+recorded by the guarded GMFRM/MGMFRM exposure manifests.
+
+This is a release-scope guardrail, not a statistical validation result and not a
+publication or registration action.
+"""
+function release_scope_summary(; include_evidence::Bool = false)
+    fit_surfaces = _release_scope_fit_surface_rows()
+    blocked_options = _release_scope_blocked_option_rows()
+    blocked_claims = _release_scope_blocked_claim_rows()
+    evidence_rows = include_evidence ? _release_scope_evidence_rows() : NamedTuple[]
+    return (;
+        schema = "bayesianmgmfrm.release_scope_summary.v1",
+        object = :release_scope_summary,
+        status = :scope_recorded,
+        public_fit_surfaces = fit_surfaces,
+        blocked_public_options = blocked_options,
+        blocked_claims,
+        evidence_rows,
+        summary = (;
+            n_public_fit_surfaces = length(fit_surfaces),
+            n_guarded_experimental_surfaces =
+                count(row -> row.experimental_public, fit_surfaces),
+            n_blocked_public_options = length(blocked_options),
+            n_blocked_claims = length(blocked_claims),
+            n_evidence_rows = length(evidence_rows),
+            minimal_mfrm_fit_allowed = true,
+            scalar_gmfrm_guarded_fit_allowed = true,
+            fixed_q_mgmfrm_guarded_fit_allowed = true,
+            broader_generalized_fit_allowed = false,
+            dff_model_effects_allowed = false,
+            model_weight_claims_allowed = false,
+            sparse_superiority_claims_allowed = false,
+            publication_or_registration_action = false,
+            next_gate = :manual_publication_or_registration_by_user_only,
+        ),
+    )
 end
 
 function _check_family(family::Symbol)

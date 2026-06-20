@@ -98,6 +98,7 @@ using BayesianMGMFRM:
     rater_diagnostics,
     rater_overlap,
     residual_summary,
+    release_scope_summary,
     load_fit_cache,
     load_fit_report,
     load_fit_report_bundle,
@@ -6453,8 +6454,48 @@ end
 
     ladder = model_ladder()
     @test any(row -> row.family === :mfrm && row.estimation_status === :fit_supported, ladder)
+    @test any(row -> row.family === :gmfrm &&
+        row.estimation_status === :experimental_public &&
+        row.experimental_public,
+        ladder)
+    @test any(row -> row.family === :mgmfrm &&
+        row.estimation_status === :experimental_public &&
+        row.experimental_public,
+        ladder)
     @test any(row -> row.family === :gmfrm && row.estimation_status === :specified_only, ladder)
     @test any(row -> row.family === :mgmfrm && row.estimation_status === :specified_only, ladder)
+    release_scope = release_scope_summary()
+    @test release_scope.schema == "bayesianmgmfrm.release_scope_summary.v1"
+    @test release_scope.summary.n_public_fit_surfaces == 3
+    @test release_scope.summary.n_guarded_experimental_surfaces == 2
+    @test release_scope.summary.minimal_mfrm_fit_allowed
+    @test release_scope.summary.scalar_gmfrm_guarded_fit_allowed
+    @test release_scope.summary.fixed_q_mgmfrm_guarded_fit_allowed
+    @test !release_scope.summary.broader_generalized_fit_allowed
+    @test !release_scope.summary.dff_model_effects_allowed
+    @test !release_scope.summary.model_weight_claims_allowed
+    @test !release_scope.summary.publication_or_registration_action
+    @test isempty(release_scope.evidence_rows)
+    @test any(row -> row.surface === :scalar_gmfrm_guarded_experimental &&
+        row.entrypoint == "fit(spec; experimental = true)",
+        release_scope.public_fit_surfaces)
+    @test any(row -> row.family === :mgmfrm && row.option === :q_matrix &&
+        row.status === :blocked,
+        release_scope.blocked_public_options)
+    @test any(row -> row.claim === :model_weight_or_superiority &&
+        row.status === :blocked,
+        release_scope.blocked_claims)
+    release_scope_with_evidence = release_scope_summary(; include_evidence = true)
+    @test release_scope_with_evidence.summary.n_evidence_rows ==
+        length(release_scope_with_evidence.evidence_rows)
+    @test release_scope_with_evidence.summary.n_evidence_rows >
+        release_scope.summary.n_evidence_rows
+    @test any(row -> row.family === :gmfrm &&
+        row.evidence === :guarded_fit_method_wiring,
+        release_scope_with_evidence.evidence_rows)
+    @test any(row -> row.family === :mgmfrm &&
+        row.evidence === :guarded_fit_public_exposure_review,
+        release_scope_with_evidence.evidence_rows)
     @test spec.family === :mfrm
     @test spec.dimensions == 1
     @test spec.discrimination === :none
