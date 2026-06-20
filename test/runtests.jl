@@ -102,6 +102,7 @@ using BayesianMGMFRM:
     sampler_diagnostics,
     save_fit_cache,
     save_fit_report,
+    save_fit_report_bundle,
     save_fit_report_markdown,
     save_fit_report_tables,
     simulation_grid,
@@ -6250,7 +6251,8 @@ end
             :fit_report_rows,
             :load_fit_cache, :load_fit_report, :rater_diagnostics, :rater_overlap,
             :residual_summary, :sampler_diagnostics, :save_fit_cache, :save_fit_report,
-            :save_fit_report_markdown, :save_fit_report_tables,
+            :save_fit_report_bundle, :save_fit_report_markdown,
+            :save_fit_report_tables,
             :sensitivity_comparison, :sensitivity_comparison_summary,
             :separation_reliability_summary, :simulation_grid,
             :simulation_grid_summary, :simulate_responses,
@@ -10303,6 +10305,52 @@ end
     @test loaded_markdown_export.label == "loaded"
     @test loaded_markdown_export.report_object === :fit_report
     @test read(markdown_path, String) == loaded_markdown
+    resaved_report_path = joinpath(report_dir, "minimal_fit_report_resaved.json")
+    resaved_export = save_fit_report(resaved_report_path, loaded_report)
+    @test resaved_export.report_object === :fit_report
+    @test load_fit_report(resaved_report_path)["schema"] == report.schema
+    bundle_dir = joinpath(report_dir, "minimal_fit_report_bundle")
+    bundle_manifest = save_fit_report_bundle(bundle_dir, report;
+        title = "Minimal fit report",
+        max_rows = 2,
+        label = :bundle)
+    @test bundle_manifest.schema ==
+        "bayesianmgmfrm.fit_report_bundle_export.v1"
+    @test bundle_manifest.object === :fit_report_bundle_export
+    @test bundle_manifest.label === :bundle
+    @test bundle_manifest.report_content_hash.value == report_hash
+    @test bundle_manifest.n_tables == table_manifest.n_tables
+    @test bundle_manifest.n_rows == table_manifest.n_rows
+    @test isfile(joinpath(bundle_dir, "fit_report.json"))
+    @test isfile(joinpath(bundle_dir, "fit_report.md"))
+    @test isfile(joinpath(bundle_dir, "tables", "manifest.json"))
+    @test isfile(joinpath(bundle_dir, "manifest.json"))
+    bundle_record = JSON3.read(read(joinpath(bundle_dir, "fit_report.json"),
+        String), Dict{String,Any})
+    @test bundle_record["schema"] == report_export.schema
+    @test bundle_record["report"]["schema"] == report.schema
+    bundle_manifest_json = JSON3.read(read(joinpath(bundle_dir, "manifest.json"),
+        String), Dict{String,Any})
+    @test bundle_manifest_json["schema"] == bundle_manifest.schema
+    @test bundle_manifest_json["n_tables"] == table_manifest.n_tables
+    @test bundle_manifest_json["content_hash"]["value"] ==
+        bundle_manifest.content_hash.value
+    @test any(file -> file["path"] == "fit_report.json",
+        bundle_manifest_json["files"])
+    @test any(file -> file["path"] == "tables/manifest.json",
+        bundle_manifest_json["files"])
+    @test any(file -> file["path"] == "fit_report.md",
+        bundle_manifest_json["files"])
+    @test_throws ArgumentError save_fit_report_bundle(bundle_dir, report)
+    loaded_bundle_dir = joinpath(report_dir, "loaded_fit_report_bundle")
+    loaded_bundle = save_fit_report_bundle(loaded_bundle_dir, loaded_report;
+        title = "Loaded fit report",
+        max_rows = 1,
+        label = "loaded")
+    @test loaded_bundle.label == "loaded"
+    @test loaded_bundle.report_object === :fit_report
+    @test read(joinpath(loaded_bundle_dir, "fit_report.md"), String) ==
+        loaded_markdown
     loaded_record = load_fit_report(report_path; return_record = true)
     @test loaded_record["schema"] == report_export.schema
     @test loaded_record["json_content_hash"]["value"] == report_export.json_content_hash.value
@@ -10312,6 +10360,8 @@ end
         "invalid_tables"), loaded_record)
     @test_throws ArgumentError save_fit_report_markdown(joinpath(report_dir,
         "invalid.md"), loaded_record)
+    @test_throws ArgumentError save_fit_report_bundle(joinpath(report_dir,
+        "invalid_bundle"), loaded_record)
     @test_throws ArgumentError save_fit_report(report_path, report)
 
     convenience_path = joinpath(report_dir, "minimal_fit_report_from_fit.json")
@@ -10334,6 +10384,13 @@ end
         max_rows = 1)
     @test convenience_markdown_export.object === :fit_report_markdown_export
     @test convenience_markdown_export.max_rows == 1
+    convenience_bundle_manifest = save_fit_report_bundle(joinpath(report_dir,
+            "minimal_fit_report_bundle_from_fit"), result;
+        include_loo = false,
+        artifact_include_environment = false,
+        max_rows = 1)
+    @test convenience_bundle_manifest.object === :fit_report_bundle_export
+    @test convenience_bundle_manifest.n_tables > 0
 
     tampered_record = deepcopy(loaded_record)
     tampered_record["report"]["schema"] = "tampered.fit_report.v1"
