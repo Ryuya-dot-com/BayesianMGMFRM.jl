@@ -71,12 +71,13 @@ The current public slice focuses on:
   discrimination diagnostics via [`rater_diagnostics`](@ref);
 - posterior residual summaries and infit/outfit summaries by observation or
   facet level via [`residual_summary`](@ref) and [`fit_stats`](@ref);
-- WAIC, raw or PSIS-smoothed importance-sampling LOO, and supplied heldout
-  K-fold model-comparison and sensitivity rows via [`waic`](@ref),
-  [`loo`](@ref), [`psis_loo`](@ref), [`kfold`](@ref),
-  [`compare_models`](@ref), [`compare_kfold`](@ref), and
-  [`sensitivity_comparison`](@ref), with declared-axis coverage audited by
-  [`sensitivity_comparison_summary`](@ref), and cross-tool evidence coverage
+- WAIC, raw or PSIS-smoothed importance-sampling LOO, supplied heldout K-fold
+  model-comparison rows, and local prior/likelihood power-scaling grids via
+  [`waic`](@ref), [`loo`](@ref), [`psis_loo`](@ref), [`kfold`](@ref),
+  [`compare_models`](@ref), [`compare_kfold`](@ref),
+  [`sensitivity_comparison`](@ref), and
+  [`prior_likelihood_sensitivity`](@ref), with declared-axis coverage audited
+  by [`sensitivity_comparison_summary`](@ref), and cross-tool evidence coverage
   audited by [`comparison_evidence_row`](@ref) and
   [`comparison_evidence_summary`](@ref), plus repeated benchmark summaries via
   [`benchmark_result_row`](@ref) and [`benchmark_summary`](@ref);

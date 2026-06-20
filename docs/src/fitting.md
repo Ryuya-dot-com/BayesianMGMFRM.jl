@@ -381,9 +381,10 @@ fit-supported MFRM/RSM/PCM slice. Use
 [`facet_response_table`](@ref) with a plan row's `training_observations` or
 `heldout_observations` when a role-normalized table is needed for external
 fold-specific fitting scripts.
-`sensitivity_comparison` uses the same WAIC/LOO scoring path with a declared
-sensitivity axis, per-model axis values, a baseline model, and baseline-relative
-ELPD and information-criterion differences for report tables. Direct `compare_models`
+`sensitivity_comparison` uses the same WAIC/raw-LOO/PSIS-LOO scoring path with
+a declared sensitivity axis, per-model axis values, a baseline model, and
+baseline-relative ELPD and information-criterion differences for report tables.
+Direct `compare_models`
 output keeps same-dimension and same-Q-matrix safeguards, while declared
 `sensitivity_comparison` rows can compare dimensionality or fixed-Q choices
 when those are the stated sensitivity axes and the observation data and
@@ -391,6 +392,11 @@ category levels match. `sensitivity_comparison_summary` audits whether the
 declared rows cover the expected threshold, discrimination, rater-pooling, DFF,
 anchor, dimensionality, and prior-regime axes; it does not create refits or
 fit unsupported generalized/DFF/anchor effects.
+`prior_likelihood_sensitivity` instead holds one fitted draw set fixed and
+uses self-normalized importance reweighting to summarize local prior and
+likelihood power-scaling cells. Its effective-sample-size warnings identify
+cells where the local reweighting approximation is too weak and refit-based
+follow-up is needed.
 `comparison_evidence_row` records already computed checks against faithful
 Stan/BridgeStan models, overlapping R/frequentist tools, or simpler nested
 models, and `comparison_evidence_summary` checks whether those required

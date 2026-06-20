@@ -345,6 +345,9 @@ Current public API:
   same heldout observation order and fold assignment order.
 - `kfold_sensitivity_comparison`: baseline-relative sensitivity rows for
   supplied K-fold summaries with declared axis values.
+- `prior_likelihood_sensitivity`: local prior/likelihood power-scaling grids
+  from self-normalized importance reweighting of posterior draws, with
+  effective-sample-size diagnostics for cells that need refit follow-up.
 - `comparison_evidence_row` and `comparison_evidence_summary`: declared
   comparison-evidence rows and coverage summaries for faithful Stan/BridgeStan,
   overlapping R/frequentist, and simpler nested-model checks. They record

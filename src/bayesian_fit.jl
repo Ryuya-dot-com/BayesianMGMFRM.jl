@@ -9517,6 +9517,265 @@ function sensitivity_comparison_summary(row::NamedTuple, rows::NamedTuple...;
     return sensitivity_comparison_summary([row; collect(rows)]; required_axes)
 end
 
+function _sensitivity_power_values(values, name::Symbol)
+    collected = Float64.(collect(values))
+    isempty(collected) &&
+        throw(ArgumentError("$name must contain at least one power value"))
+    all(value -> isfinite(value) && value >= 0, collected) ||
+        throw(ArgumentError("$name values must be finite and non-negative"))
+    return collected
+end
+
+function _sensitivity_power_values(value::Real, name::Symbol)
+    checked = Float64(value)
+    isfinite(checked) && checked >= 0 ||
+        throw(ArgumentError("$name values must be finite and non-negative"))
+    return [checked]
+end
+
+function _sensitivity_min_ess(min_effective_sample_size, n_draws::Int)
+    min_effective_sample_size === nothing &&
+        return max(1.0, 0.1 * n_draws)
+    value = Float64(min_effective_sample_size)
+    isfinite(value) && value > 0 ||
+        throw(ArgumentError("min_effective_sample_size must be finite and positive"))
+    return value
+end
+
+function _check_sensitivity_log_terms(logprior_draws::AbstractVector,
+        loglikelihood_draws::AbstractVector)
+    n_draws = length(logprior_draws)
+    n_draws == length(loglikelihood_draws) ||
+        throw(ArgumentError("logprior_draws and loglikelihood_draws must have the same length"))
+    n_draws >= 2 ||
+        throw(ArgumentError("prior/likelihood sensitivity requires at least two draws"))
+    prior_values = Float64.(logprior_draws)
+    likelihood_values = Float64.(loglikelihood_draws)
+    all(isfinite, prior_values) ||
+        throw(ArgumentError("logprior_draws contain non-finite values"))
+    all(isfinite, likelihood_values) ||
+        throw(ArgumentError("loglikelihood_draws contain non-finite values"))
+    return prior_values, likelihood_values
+end
+
+function _weighted_mean(values::AbstractVector{Float64},
+        normalized_log_weights::AbstractVector{Float64})
+    total = 0.0
+    for index in eachindex(values)
+        total += exp(normalized_log_weights[index]) * values[index]
+    end
+    return total
+end
+
+function _normalized_weight_ess(normalized_log_weights::AbstractVector{Float64})
+    sum_squared = 0.0
+    for value in normalized_log_weights
+        weight = exp(value)
+        sum_squared += weight * weight
+    end
+    return 1 / sum_squared
+end
+
+function _prior_likelihood_sensitivity_metadata()
+    return (; input = :draw_level_log_terms)
+end
+
+function _prior_likelihood_sensitivity_metadata(fit::_ModelComparisonFit)
+    spec = fit.design.spec
+    data = spec.data
+    return (;
+        input = :fit_object,
+        model_family = spec.family,
+        thresholds = spec.thresholds,
+        dimensions = spec.dimensions,
+        discrimination = spec.discrimination,
+        q_matrix = _q_matrix_manifest(spec.q_matrix),
+        estimation_status = spec.estimation_status,
+        data_signature = spec.validation.data_signature,
+        n_observations = data.n,
+        n_total_draws = size(fit.draws, 1),
+        n_parameters = size(fit.draws, 2),
+        backend = fit.backend,
+        sampler = fit.sampler,
+    )
+end
+
+function _prior_likelihood_sensitivity(logprior_draws::AbstractVector,
+        loglikelihood_draws::AbstractVector;
+        prior_powers = (0.8, 1.0, 1.2),
+        likelihood_powers = (0.8, 1.0, 1.2),
+        min_effective_sample_size = nothing,
+        metadata = _prior_likelihood_sensitivity_metadata())
+    prior_values, likelihood_values =
+        _check_sensitivity_log_terms(logprior_draws, loglikelihood_draws)
+    checked_prior_powers = _sensitivity_power_values(prior_powers, :prior_powers)
+    checked_likelihood_powers =
+        _sensitivity_power_values(likelihood_powers, :likelihood_powers)
+    n_draws = length(prior_values)
+    ess_threshold = _sensitivity_min_ess(min_effective_sample_size, n_draws)
+    baseline_mean_logprior = _column_mean(prior_values)
+    baseline_mean_loglikelihood = _column_mean(likelihood_values)
+
+    rows = NamedTuple[]
+    log_weights = Vector{Float64}(undef, n_draws)
+    normalized_log_weights = Vector{Float64}(undef, n_draws)
+    for prior_power in checked_prior_powers
+        for likelihood_power in checked_likelihood_powers
+            prior_delta = prior_power - 1.0
+            likelihood_delta = likelihood_power - 1.0
+            for draw in 1:n_draws
+                log_weights[draw] =
+                    prior_delta * prior_values[draw] +
+                    likelihood_delta * likelihood_values[draw]
+            end
+            log_weight_total = _logsumexp(log_weights)
+            for draw in 1:n_draws
+                normalized_log_weights[draw] = log_weights[draw] - log_weight_total
+            end
+            effective_sample_size =
+                _normalized_weight_ess(normalized_log_weights)
+            weighted_mean_logprior =
+                _weighted_mean(prior_values, normalized_log_weights)
+            weighted_mean_loglikelihood =
+                _weighted_mean(likelihood_values, normalized_log_weights)
+            logprior_shift = weighted_mean_logprior - baseline_mean_logprior
+            loglikelihood_shift =
+                weighted_mean_loglikelihood - baseline_mean_loglikelihood
+            warning = effective_sample_size < ess_threshold ?
+                :low_effective_sample_size : :ok
+            push!(rows, (;
+                prior_power,
+                likelihood_power,
+                prior_power_delta = prior_delta,
+                likelihood_power_delta = likelihood_delta,
+                log_normalizing_ratio = log_weight_total - log(n_draws),
+                effective_sample_size,
+                effective_sample_size_ratio = effective_sample_size / n_draws,
+                max_normalized_weight = maximum(exp, normalized_log_weights),
+                baseline_mean_logprior,
+                weighted_mean_logprior,
+                logprior_mean_shift = logprior_shift,
+                abs_logprior_mean_shift = abs(logprior_shift),
+                baseline_mean_loglikelihood,
+                weighted_mean_loglikelihood,
+                loglikelihood_mean_shift = loglikelihood_shift,
+                abs_loglikelihood_mean_shift = abs(loglikelihood_shift),
+                warning,
+            ))
+        end
+    end
+
+    low_ess_count = count(row -> row.warning === :low_effective_sample_size, rows)
+    return merge((;
+            schema = "bayesianmgmfrm.prior_likelihood_sensitivity.v1",
+            object = :prior_likelihood_sensitivity,
+            method = :self_normalized_importance_reweighting,
+            comparison_scope = :local_power_scaling_grid,
+            baseline_prior_power = 1.0,
+            baseline_likelihood_power = 1.0,
+        ),
+        metadata,
+        (;
+            prior_powers = Tuple(checked_prior_powers),
+            likelihood_powers = Tuple(checked_likelihood_powers),
+            n_prior_powers = length(checked_prior_powers),
+            n_likelihood_powers = length(checked_likelihood_powers),
+            n_cells = length(rows),
+            n_draws,
+            min_effective_sample_size = ess_threshold,
+            baseline_mean_logprior,
+            baseline_mean_loglikelihood,
+            min_effective_sample_size_observed =
+                minimum(row.effective_sample_size for row in rows),
+            low_effective_sample_size_count = low_ess_count,
+            max_abs_logprior_mean_shift =
+                maximum(row.abs_logprior_mean_shift for row in rows),
+            max_abs_loglikelihood_mean_shift =
+                maximum(row.abs_loglikelihood_mean_shift for row in rows),
+            rows = Tuple(rows),
+            warning = low_ess_count == 0 ? :ok : :low_effective_sample_size,
+            caveat = :local_reweighting_not_refit,
+        ))
+end
+
+function _prior_likelihood_draw_terms(fit::MFRMFit, indices::AbstractVector{Int})
+    selected_draws = fit.draws[indices, :]
+    pointwise = pointwise_loglikelihood_matrix(fit.design, selected_draws)
+    n_draws = size(selected_draws, 1)
+    logprior_draws = Vector{Float64}(undef, n_draws)
+    loglikelihood_draws = Vector{Float64}(undef, n_draws)
+    for draw in 1:n_draws
+        logprior_draws[draw] =
+            logprior(fit.design, view(selected_draws, draw, :), fit.prior)
+        loglikelihood_draws[draw] = sum(view(pointwise, draw, :))
+    end
+    return logprior_draws, loglikelihood_draws
+end
+
+function _prior_likelihood_draw_terms(fit::GMFRMFit, indices::AbstractVector{Int})
+    target = _gmfrm_promotion_candidate_logdensity(fit.design; prior = fit.prior)
+    logprior_draws = Vector{Float64}(undef, length(indices))
+    loglikelihood_draws = Vector{Float64}(undef, length(indices))
+    for (position, index) in pairs(indices)
+        logprior_draws[position] =
+            _source_fixture_logprior(target, view(fit.draws, index, :))
+        loglikelihood_draws[position] = Float64(fit.direct_loglikelihood[index])
+    end
+    return logprior_draws, loglikelihood_draws
+end
+
+function _prior_likelihood_draw_terms(fit::MGMFRMFit, indices::AbstractVector{Int})
+    target = _mgmfrm_guarded_local_fit_logdensity(fit.design; prior = fit.prior)
+    logprior_draws = Vector{Float64}(undef, length(indices))
+    loglikelihood_draws = Vector{Float64}(undef, length(indices))
+    for (position, index) in pairs(indices)
+        logprior_draws[position] =
+            _source_fixture_logprior(target, view(fit.draws, index, :))
+        loglikelihood_draws[position] = Float64(fit.direct_loglikelihood[index])
+    end
+    return logprior_draws, loglikelihood_draws
+end
+
+"""
+    prior_likelihood_sensitivity(fit; prior_powers = (0.8, 1.0, 1.2),
+        likelihood_powers = (0.8, 1.0, 1.2), ndraws = nothing,
+        draw_indices = nothing, rng = Random.default_rng(),
+        min_effective_sample_size = nothing)
+    prior_likelihood_sensitivity(logprior_draws, loglikelihood_draws; kwargs...)
+
+Compute a local prior/likelihood power-scaling sensitivity grid by
+self-normalized importance reweighting of posterior draws. For each
+`prior_power` and `likelihood_power` cell, the helper estimates the shift in
+mean log prior and mean log likelihood relative to the baseline posterior
+(`prior_power = likelihood_power = 1`) and reports effective sample size
+diagnostics for the reweighted draws.
+
+This helper does not refit models and does not replace predeclared
+simulation, exact LOO, or K-fold sensitivity work. Treat cells with
+`:low_effective_sample_size` as local-reweighting failures that need refits or
+a narrower sensitivity claim.
+"""
+function prior_likelihood_sensitivity(logprior_draws::AbstractVector,
+        loglikelihood_draws::AbstractVector;
+        kwargs...)
+    return _prior_likelihood_sensitivity(logprior_draws, loglikelihood_draws;
+        metadata = _prior_likelihood_sensitivity_metadata(),
+        kwargs...)
+end
+
+function prior_likelihood_sensitivity(fit::_ModelComparisonFit;
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng(),
+        kwargs...)
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    logprior_draws, loglikelihood_draws =
+        _prior_likelihood_draw_terms(fit, indices)
+    return _prior_likelihood_sensitivity(logprior_draws, loglikelihood_draws;
+        metadata = _prior_likelihood_sensitivity_metadata(fit),
+        kwargs...)
+end
+
 const _DEFAULT_COMPARISON_EVIDENCE_CLASSES = (
     :stan_faithful,
     :r_frequentist,
