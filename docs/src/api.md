@@ -52,6 +52,7 @@ fit_archive_manifest
 fit_artifact
 fit_cache_key
 fit_metadata
+fit_report
 fit_ready_parameter_layout
 domain_compilation_summary
 fit_stats
