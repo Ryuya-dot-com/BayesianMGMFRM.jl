@@ -132,6 +132,13 @@ posterior_predictive_check(fit_result;
 The repository also includes the same workflow as a runnable script at
 [`examples/guarded_mgmfrm.jl`](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/blob/main/examples/guarded_mgmfrm.jl).
 
+## Minimal MFRM Workflow Example
+
+The ordinary public fitting path remains the minimal MFRM/RSM/PCM workflow.
+This example exercises the current cache, diagnostics, predictive-check,
+model-comparison, simulation, and reporting helpers for that fit-supported
+surface.
+
 ```julia
 using BayesianMGMFRM
 using Random

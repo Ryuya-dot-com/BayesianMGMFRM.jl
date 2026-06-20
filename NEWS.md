@@ -57,6 +57,8 @@
 - Add `examples/guarded_mgmfrm.jl`, a compact fixed-Q confirmatory MGMFRM
   guarded-fit example, and run it from the pre-registration gate.
 - Add a guarded fixed-Q MGMFRM example section to the Bayesian fitting docs.
+- Split the Bayesian fitting docs examples into separate guarded MGMFRM and
+  minimal MFRM workflow sections.
 - Add `scripts/generate_validation_plan.jl`, a deterministic validation-plan
   artifact generator that records simulation-grid controls, coverage summaries,
   falsification-rule coverage, and content hashes without running simulations or
