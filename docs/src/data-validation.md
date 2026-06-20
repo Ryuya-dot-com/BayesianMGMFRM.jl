@@ -57,8 +57,8 @@ fit-supported minimal MFRM/RSM/PCM slice. `family = :gmfrm` and
 `family = :mgmfrm` can be declared for manifest and constraint review, but they
 have `estimation_status = :specified_only` and are rejected by `getdesign`
 unless `preview = true` is requested. Preview designs expose parameter names and
-block ranges for design review, but are not accepted by `fit` until their
-likelihoods and identification checks are implemented.
+block ranges for design review, but are not accepted by `fit` unless they are
+one of the guarded experimental generalized candidates.
 
 Use [`model_ladder`](@ref) to inspect the package's fit-supported and
 specified-only model ladder, and [`constraint_table`](@ref) to inspect
@@ -69,9 +69,10 @@ For a specified-only GMFRM/MGMFRM, use `getdesign(spec; preview = true)` to
 inspect the source-aligned generalized blocks without enabling fitting. GMFRM
 previews expose item-discrimination, rater-consistency, and rater-step blocks.
 MGMFRM previews expose person-by-dimension, item-dimension-discrimination,
-rater-consistency, and item-step blocks. The separate guarded scalar GMFRM fit
-path uses `fit(spec; experimental = true)` and is limited to the
-one-dimensional rater-discrimination candidate.
+rater-consistency, and item-step blocks. The separate guarded generalized fit
+paths use `fit(spec; experimental = true)` and are limited to the
+one-dimensional rater-discrimination GMFRM candidate and the fixed-Q
+two-dimensional confirmatory MGMFRM candidate.
 
 Use [`design_row_table`](@ref) when you need row-level compiler evidence. The
 table shows the facet labels, identified parameter indexes, source-step path, and
