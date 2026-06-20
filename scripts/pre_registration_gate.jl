@@ -105,6 +105,8 @@ function metadata_check()
     isfile(joinpath(ROOT, "README.md")) || error("README.md is missing")
     isfile(joinpath(ROOT, "NEWS.md")) || error("NEWS.md is missing")
     isfile(joinpath(ROOT, "examples", "minimal.jl")) || error("examples/minimal.jl is missing")
+    isfile(joinpath(ROOT, "examples", "guarded_mgmfrm.jl")) ||
+        error("examples/guarded_mgmfrm.jl is missing")
     isfile(joinpath(ROOT, "docs", "make.jl")) || error("docs/make.jl is missing")
     isfile(joinpath(ROOT, "scripts", "generate_validation_plan.jl")) ||
         error("scripts/generate_validation_plan.jl is missing")
@@ -128,6 +130,11 @@ end
 
 function run_minimal_example()
     run_with_developed_package("""include($(repr(joinpath(ROOT, "examples", "minimal.jl"))))""")
+    return nothing
+end
+
+function run_guarded_mgmfrm_example()
+    run_with_developed_package("""include($(repr(joinpath(ROOT, "examples", "guarded_mgmfrm.jl"))))""")
     return nothing
 end
 
@@ -209,6 +216,7 @@ if !SKIP_TESTS
     step("Pkg.test()", run_package_tests)
 end
 step("Minimal example", run_minimal_example)
+step("Guarded MGMFRM example", run_guarded_mgmfrm_example)
 if !SKIP_DOCS
     step("Documenter build", build_docs)
 end
