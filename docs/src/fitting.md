@@ -295,8 +295,9 @@ sampler controls, seed, Julia version, and initialization hash. This is intended
 for same-environment analysis caches. Automatic cache keys require an integer
 `seed`; use `fit` plus manual [`save_fit_cache`](@ref) for unseeded exploratory
 fits. Saved cache records store the artifact content hash and archive manifest;
-[`load_fit_cache`](@ref) verifies those hashes by default. Use manifests and
-exported tables for long-term, cross-version archival records.
+[`load_fit_cache`](@ref) verifies those hashes and their hash metadata by
+default. Use manifests and exported tables for long-term, cross-version
+archival records.
 `diagnostics` combines chain-level sampler summaries, parameter-level R-hat/ESS
 rows, and parameter-block pass/fail rows into a single machine-readable surface
 with AdvancedHMC/NUTS fields such as divergent-transition counts,

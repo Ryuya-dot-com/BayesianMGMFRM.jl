@@ -5972,19 +5972,51 @@ function _check_fit_cache_record(record, path)
         throw(ArgumentError("fit cache at $path does not contain an MFRMFit"))
     _nt_get(record, :artifact, nothing) isa NamedTuple ||
         throw(ArgumentError("fit cache at $path does not contain a fit artifact"))
+    _cache_hash_value(record, :artifact_content_hash,
+        "fit cache at $path")
+    archive = _nt_get(record, :archive_manifest, nothing)
+    archive isa NamedTuple ||
+        throw(ArgumentError("fit cache at $path does not contain an archive manifest"))
+    _cache_hash_value(archive, :content_hash,
+        "fit cache archive manifest at $path")
+    _check_optional_cache_hash_value(record.artifact, :content_hash,
+        "fit cache artifact at $path")
+    artifact_archive = _nt_get(record.artifact, :archive_manifest, nothing)
+    if artifact_archive !== nothing
+        artifact_archive isa NamedTuple ||
+            throw(ArgumentError("fit cache artifact at $path has an invalid archive manifest"))
+        _cache_hash_value(artifact_archive, :content_hash,
+            "fit cache artifact archive manifest at $path")
+    end
     return record
 end
 
 function _cache_hash_value(record::NamedTuple,
         field::Symbol,
-        context::AbstractString)
+        context::AbstractString;
+        expected_scope::Symbol = :artifact_without_hash_metadata,
+        expected_canonicalization::Symbol = :cache_stable_string)
     hash_record = _nt_get(record, field, nothing)
     hash_record isa NamedTuple ||
         throw(ArgumentError("$context does not contain $(String(field))"))
+    _nt_get(hash_record, :algorithm, nothing) === :sha256 ||
+        throw(ArgumentError("$context has an unsupported $(String(field)) algorithm"))
     value = _nt_get(hash_record, :value, nothing)
-    value isa AbstractString ||
-        throw(ArgumentError("$context does not contain a $(String(field)) value"))
+    value isa AbstractString && occursin(r"^[0-9a-f]{64}$", value) ||
+        throw(ArgumentError("$context has an invalid $(String(field)) value"))
+    _nt_get(hash_record, :scope, nothing) === expected_scope ||
+        throw(ArgumentError("$context has an unsupported $(String(field)) scope"))
+    _nt_get(hash_record, :canonicalization, nothing) === expected_canonicalization ||
+        throw(ArgumentError("$context has an unsupported $(String(field)) canonicalization"))
     return value
+end
+
+function _check_optional_cache_hash_value(record::NamedTuple,
+        field::Symbol,
+        context::AbstractString)
+    _nt_get(record, field, nothing) === nothing && return nothing
+    _cache_hash_value(record, field, context)
+    return nothing
 end
 
 function _verify_fit_cache_record(record::NamedTuple, path::AbstractString)
@@ -6025,8 +6057,9 @@ Load a serialized fit cache. By default the cached `MFRMFit` is returned. Set
 `return_record = true` to inspect the cache metadata and artifact. When
 `expected_cache_key` is supplied, loading fails unless the stored key matches.
 By default loading also verifies the stored artifact content hash and archive
-manifest hashes; set `verify_hash = false` to inspect an older or exploratory
-cache record without that check.
+manifest hashes, while cache/hash metadata shape is always checked. Set
+`verify_hash = false` to inspect an older or exploratory cache record with an
+artifact payload hash mismatch.
 """
 function load_fit_cache(path::AbstractString;
         expected_cache_key = nothing,
