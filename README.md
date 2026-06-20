@@ -314,6 +314,9 @@ Current public API:
 - `kfold_plan`: deterministic observation-level or grouped heldout fold plans
   for later K-fold refits, with `:person`, `:rater`, `:item`, `:category`, and
   optional facet grouping support.
+- `kfold_plan_diagnostics`: fold/facet coverage checks for K-fold plans before
+  external refits, including heldout-only levels that would block heldout
+  scoring without a fixed level map or different split.
 - `kfold`: heldout K-fold log predictive density summaries from fold-specific
   refit log-likelihood matrices. Pair it with `kfold_plan` to reuse the same
   heldout observation IDs across models; neither helper refits models.

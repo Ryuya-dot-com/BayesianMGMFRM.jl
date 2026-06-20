@@ -70,6 +70,7 @@ fit_stats
 initial_params
 kfold
 kfold_plan
+kfold_plan_diagnostics
 loglikelihood
 logposterior
 logprior
