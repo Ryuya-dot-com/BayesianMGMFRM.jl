@@ -73,6 +73,7 @@ kfold_diagnostics
 kfold_plan
 kfold_plan_diagnostics
 kfold_refit
+kfold_refit_comparison
 kfold_sensitivity_comparison
 prior_likelihood_sensitivity
 loglikelihood
@@ -92,6 +93,7 @@ loo
 psis_loo
 loo_diagnostics
 loo_refit
+loo_refit_comparison
 loo_refit_plan
 posterior_predict
 posterior_predictive_check

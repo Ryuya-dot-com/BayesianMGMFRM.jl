@@ -54,6 +54,7 @@ using BayesianMGMFRM:
     kfold_plan,
     kfold_plan_diagnostics,
     kfold_refit,
+    kfold_refit_comparison,
     kfold_sensitivity_comparison,
     ScalarValidationData,
     ScalarValidationAnalyticLogDensity,
@@ -72,6 +73,7 @@ using BayesianMGMFRM:
     loo,
     loo_diagnostics,
     loo_refit,
+    loo_refit_comparison,
     loo_refit_plan,
     logposterior,
     logprior,
@@ -12178,6 +12180,110 @@ end
     @test executed_kfold_from_fit.object === :kfold_refit
     @test executed_kfold_from_fit.n_refits == kfold_refit_plan_for_execution.n_folds
     @test executed_kfold_from_fit.n_observations == kfold_refit_data.n
+
+    executed_kfold_comparison = kfold_refit_comparison(
+        :spec => kfold_refit_spec,
+        :design => kfold_refit_design;
+        plan = kfold_refit_plan_for_execution,
+        prior,
+        backend = :julia,
+        ndraws = 2,
+        warmup = 1,
+        chains = 1,
+        step_size = 0.02,
+        init = kfold_refit_init,
+        seed = 126,
+    )
+    @test executed_kfold_comparison.schema ==
+        "bayesianmgmfrm.kfold_refit_comparison.v1"
+    @test executed_kfold_comparison.object === :kfold_refit_comparison
+    @test executed_kfold_comparison.criterion === :kfold
+    @test executed_kfold_comparison.refit_method === :automatic_kfold_refit
+    @test executed_kfold_comparison.comparison_contract ===
+        :same_heldout_observation_folds
+    @test executed_kfold_comparison.plan_schema ==
+        kfold_refit_plan_for_execution.schema
+    @test executed_kfold_comparison.models == ("spec", "design")
+    @test executed_kfold_comparison.n_refits_per_model ==
+        fill(kfold_refit_plan_for_execution.n_folds, 2)
+    @test executed_kfold_comparison.n_total_refits ==
+        2 * kfold_refit_plan_for_execution.n_folds
+    @test executed_kfold_comparison.n_observations == kfold_refit_data.n
+    @test executed_kfold_comparison.n_total_observations == kfold_refit_data.n
+    @test executed_kfold_comparison.folds == kfold_refit_plan_for_execution.folds
+    @test executed_kfold_comparison.observation_indices ==
+        vcat(kfold_refit_plan_for_execution.heldout_observation_indices...)
+    @test length(executed_kfold_comparison.refit_rows) == 2
+    @test all(row -> row.plan_diagnostics_passed,
+        executed_kfold_comparison.refit_rows)
+    @test length(executed_kfold_comparison.comparison_rows) == 2
+    @test Set(row.model for row in executed_kfold_comparison.comparison_rows) ==
+        Set(["spec", "design"])
+    @test all(row -> row.criterion === :kfold,
+        executed_kfold_comparison.comparison_rows)
+    @test all(row -> row.n_draws_by_fold ==
+        fill(2, kfold_refit_plan_for_execution.n_folds),
+        executed_kfold_comparison.comparison_rows)
+    @test sum(row.relative_weight
+        for row in executed_kfold_comparison.comparison_rows) ≈ 1.0
+    @test length(executed_kfold_comparison.sensitivity_rows) == 2
+    @test all(row -> row.sensitivity_axis === :model,
+        executed_kfold_comparison.sensitivity_rows)
+    @test all(row -> row.baseline_model == "spec",
+        executed_kfold_comparison.sensitivity_rows)
+    @test isnothing(executed_kfold_comparison.refits)
+    @test executed_kfold_comparison.warning === :ok
+
+    loo_refit_comparison_plan = loo_refit_plan(kfold_refit_data; observations = [1])
+    executed_loo_comparison = loo_refit_comparison(
+        kfold_refit_spec,
+        kfold_refit_design;
+        names = [:spec, :design],
+        plan = loo_refit_comparison_plan,
+        prior,
+        return_refits = true,
+        backend = :julia,
+        ndraws = 2,
+        warmup = 1,
+        chains = 1,
+        step_size = 0.02,
+        init = kfold_refit_init,
+        seed = 127,
+    )
+    @test executed_loo_comparison.schema ==
+        "bayesianmgmfrm.loo_refit_comparison.v1"
+    @test executed_loo_comparison.object === :loo_refit_comparison
+    @test executed_loo_comparison.criterion === :kfold
+    @test executed_loo_comparison.refit_method ===
+        :exact_leave_one_observation_out_refit
+    @test executed_loo_comparison.models == ("spec", "design")
+    @test executed_loo_comparison.n_refits_per_model == [1, 1]
+    @test executed_loo_comparison.n_total_refits == 2
+    @test executed_loo_comparison.n_observations == 1
+    @test executed_loo_comparison.n_total_observations == kfold_refit_data.n
+    @test executed_loo_comparison.observation_indices == [1]
+    @test length(executed_loo_comparison.comparison_rows) == 2
+    @test all(row -> row.n_folds == 1, executed_loo_comparison.comparison_rows)
+    @test length(executed_loo_comparison.sensitivity_rows) == 2
+    @test length(executed_loo_comparison.refits) == 2
+    @test all(refit -> refit.object === :loo_refit, executed_loo_comparison.refits)
+    @test executed_loo_comparison.warning === :ok
+
+    @test_throws ArgumentError kfold_refit_comparison(
+        :only => kfold_refit_spec;
+        plan = kfold_refit_plan_for_execution)
+    @test_throws ArgumentError kfold_refit_comparison(
+        :bad => waic_result,
+        :good => kfold_refit_spec;
+        plan = kfold_refit_plan_for_execution)
+    @test_throws ArgumentError kfold_refit_comparison(
+        :spec => kfold_refit_spec,
+        :design => kfold_refit_design;
+        plan = kfold_refit_plan_for_execution,
+        k = 2)
+    @test_throws ArgumentError loo_refit_comparison(
+        :only => kfold_refit_spec;
+        plan = loo_refit_comparison_plan)
 
     person_fold_plan = kfold_plan(design; k = 3, group_by = :person,
         fold_ids = [:person_a, :person_b, :person_c])
