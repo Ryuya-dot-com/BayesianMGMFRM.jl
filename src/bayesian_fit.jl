@@ -5239,6 +5239,180 @@ function load_fit_report_bundle(directory::AbstractString;
     return load_fit_report(report_path; verify_hash)
 end
 
+function _fit_report_table_export_manifest_path(directory::AbstractString)
+    return joinpath(directory, "manifest.json")
+end
+
+function _fit_report_table_manifest_rows(manifest, context::AbstractString)
+    rows = _report_lookup(manifest, :tables, _FIT_REPORT_LOOKUP_MISSING)
+    rows isa AbstractVector ||
+        throw(ArgumentError("$context does not contain table rows"))
+    return rows
+end
+
+function _fit_report_table_manifest_filename(row, context::AbstractString)
+    filename = _report_lookup(row, :filename, _FIT_REPORT_LOOKUP_MISSING)
+    filename isa AbstractString ||
+        throw(ArgumentError("$context table row does not contain a filename"))
+    if isempty(filename) || isabspath(filename) || occursin("/", filename) ||
+            occursin("\\", filename) || occursin("\0", filename) ||
+            filename == "." || filename == ".."
+        throw(ArgumentError("$context table row contains an unsafe filename: $filename"))
+    end
+    return filename
+end
+
+function _check_fit_report_table_manifest(manifest, path)
+    manifest isa AbstractDict ||
+        throw(ArgumentError("fit report table manifest at $path does not contain a JSON object"))
+    get(manifest, "schema", nothing) ==
+        "bayesianmgmfrm.fit_report_table_export.v1" ||
+        throw(ArgumentError("fit report table manifest at $path has an unsupported schema"))
+    _report_symbol_value(get(manifest, "object", nothing)) ===
+        :fit_report_table_export ||
+        throw(ArgumentError("fit report table manifest at $path has an unsupported object"))
+    _fit_report_hash_value(manifest, :content_hash,
+        "fit report table manifest at $path")
+    rows = _fit_report_table_manifest_rows(manifest,
+        "fit report table manifest at $path")
+    n_tables = _report_lookup(manifest, :n_tables, _FIT_REPORT_LOOKUP_MISSING)
+    n_tables isa Integer && n_tables == length(rows) ||
+        throw(ArgumentError("fit report table manifest at $path has inconsistent n_tables"))
+    seen = Set{String}()
+    for row in rows
+        filename = _fit_report_table_manifest_filename(row,
+            "fit report table manifest at $path")
+        filename in seen &&
+            throw(ArgumentError("fit report table manifest at $path contains duplicate filename $filename"))
+        push!(seen, filename)
+    end
+    return manifest
+end
+
+function _check_fit_report_table_record(record, path)
+    record isa AbstractDict ||
+        throw(ArgumentError("fit report table at $path does not contain a JSON object"))
+    get(record, "schema", nothing) == "bayesianmgmfrm.fit_report_table.v1" ||
+        throw(ArgumentError("fit report table at $path has an unsupported schema"))
+    _report_symbol_value(get(record, "object", nothing)) === :fit_report_table ||
+        throw(ArgumentError("fit report table at $path has an unsupported object"))
+    section = _report_symbol_value(_report_lookup(record, :section,
+        _FIT_REPORT_LOOKUP_MISSING))
+    section isa Symbol ||
+        throw(ArgumentError("fit report table at $path does not contain a section"))
+    row_field = _report_symbol_value(_report_lookup(record, :row_field,
+        _FIT_REPORT_LOOKUP_MISSING))
+    row_field isa Symbol ||
+        throw(ArgumentError("fit report table at $path does not contain a row_field"))
+    rows = _report_lookup(record, :rows, _FIT_REPORT_LOOKUP_MISSING)
+    rows isa AbstractVector ||
+        throw(ArgumentError("fit report table at $path does not contain rows"))
+    n_rows = _report_lookup(record, :n_rows, _FIT_REPORT_LOOKUP_MISSING)
+    n_rows isa Integer && n_rows == length(rows) ||
+        throw(ArgumentError("fit report table at $path has inconsistent n_rows"))
+    _fit_report_hash_value(record, :content_hash,
+        "fit report table at $path")
+    return record
+end
+
+function _verify_fit_report_table_record(record, path)
+    expected = _fit_report_hash_value(record, :content_hash,
+        "fit report table at $path")
+    actual = _fit_report_table_hash_record(record;
+        scope = :fit_report_table_without_hash_metadata).value
+    isequal(expected, actual) ||
+        throw(ArgumentError("fit report table content hash mismatch for $path"))
+    return record
+end
+
+function _verify_fit_report_table_manifest(manifest, path)
+    expected = _fit_report_hash_value(manifest, :content_hash,
+        "fit report table manifest at $path")
+    actual = _fit_report_table_hash_record(manifest;
+        scope = :fit_report_table_export_without_hash_metadata).value
+    isequal(expected, actual) ||
+        throw(ArgumentError("fit report table manifest content hash mismatch for $path"))
+    return manifest
+end
+
+function _fit_report_table_matches_manifest_row(record, row,
+        table_path::AbstractString,
+        manifest_path::AbstractString)
+    for field in (:section, :row_field)
+        expected = _report_symbol_value(_report_lookup(row, field,
+            _FIT_REPORT_LOOKUP_MISSING))
+        actual = _report_symbol_value(_report_lookup(record, field,
+            _FIT_REPORT_LOOKUP_MISSING))
+        expected === actual ||
+            throw(ArgumentError("fit report table $table_path does not match $(String(field)) in manifest $manifest_path"))
+    end
+    expected_rows = _report_lookup(row, :n_rows, _FIT_REPORT_LOOKUP_MISSING)
+    actual_rows = _report_lookup(record, :n_rows, _FIT_REPORT_LOOKUP_MISSING)
+    expected_rows isa Integer && actual_rows isa Integer &&
+        expected_rows == actual_rows ||
+        throw(ArgumentError("fit report table $table_path does not match n_rows in manifest $manifest_path"))
+    expected_hash = _fit_report_hash_value(row, :content_hash,
+        "fit report table manifest row at $manifest_path")
+    actual_hash = _fit_report_hash_value(record, :content_hash,
+        "fit report table at $table_path")
+    isequal(expected_hash, actual_hash) ||
+        throw(ArgumentError("fit report table $table_path does not match content hash in manifest $manifest_path"))
+    return true
+end
+
+function _load_fit_report_table_records(directory::AbstractString, manifest,
+        manifest_path::AbstractString;
+        verify_hash::Bool)
+    records = Any[]
+    total_rows = 0
+    for row in _fit_report_table_manifest_rows(manifest,
+            "fit report table manifest at $manifest_path")
+        filename = _fit_report_table_manifest_filename(row,
+            "fit report table manifest at $manifest_path")
+        table_path = joinpath(directory, filename)
+        record = _read_json_dict(table_path, "fit report table")
+        record = _check_fit_report_table_record(record, table_path)
+        _fit_report_table_matches_manifest_row(record, row, table_path,
+            manifest_path)
+        verify_hash && _verify_fit_report_table_record(record, table_path)
+        total_rows += _report_lookup(record, :n_rows, 0)
+        push!(records, record)
+    end
+    expected_total_rows = _report_lookup(manifest, :n_rows,
+        _FIT_REPORT_LOOKUP_MISSING)
+    expected_total_rows isa Integer && expected_total_rows == total_rows ||
+        throw(ArgumentError("fit report table manifest at $manifest_path has inconsistent n_rows"))
+    return records
+end
+
+"""
+    load_fit_report_tables(directory; verify_hash = true,
+        return_manifest = false)
+
+Load a fit-report table export written by [`save_fit_report_tables`](@ref).
+By default this verifies the table manifest hash and each table file hash, then
+returns a vector of JSON-loaded table records. Set `return_manifest = true` to
+inspect the export manifest instead.
+"""
+function load_fit_report_tables(directory::AbstractString;
+        verify_hash::Bool = true,
+        return_manifest::Bool = false)
+    isdir(directory) ||
+        throw(ArgumentError("fit report table export directory does not exist at $directory"))
+    manifest_path = _fit_report_table_export_manifest_path(directory)
+    manifest = _read_json_dict(manifest_path, "fit report table manifest")
+    manifest = _check_fit_report_table_manifest(manifest, manifest_path)
+    verify_hash && _verify_fit_report_table_manifest(manifest, manifest_path)
+    records = if verify_hash || !return_manifest
+        _load_fit_report_table_records(directory, manifest, manifest_path;
+            verify_hash)
+    else
+        nothing
+    end
+    return_manifest && return manifest
+    return records
+end
+
 function _cache_stable_write(io::IO, value)
     if value isa NamedTuple
         print(io, "NamedTuple(")

@@ -100,6 +100,7 @@ using BayesianMGMFRM:
     load_fit_cache,
     load_fit_report,
     load_fit_report_bundle,
+    load_fit_report_tables,
     sampler_diagnostics,
     save_fit_cache,
     save_fit_report,
@@ -6251,7 +6252,7 @@ end
             :fit_report_markdown, :fit_report_section, :fit_report_sections,
             :fit_report_rows,
             :load_fit_cache, :load_fit_report, :load_fit_report_bundle,
-            :rater_diagnostics, :rater_overlap,
+            :load_fit_report_tables, :rater_diagnostics, :rater_overlap,
             :residual_summary, :sampler_diagnostics, :save_fit_cache, :save_fit_report,
             :save_fit_report_bundle, :save_fit_report_markdown,
             :save_fit_report_tables,
@@ -10231,7 +10232,51 @@ end
     @test manifest_json["schema"] == table_manifest.schema
     @test manifest_json["n_tables"] == table_manifest.n_tables
     @test manifest_json["n_rows"] == table_manifest.n_rows
+    loaded_tables = load_fit_report_tables(table_dir)
+    @test length(loaded_tables) == table_manifest.n_tables
+    loaded_posterior_table = only(filter(table ->
+            table["section"] == "posterior" && table["row_field"] == "rows",
+        loaded_tables))
+    @test loaded_posterior_table["n_rows"] == report.posterior.n_rows
+    @test length(loaded_posterior_table["rows"]) == report.posterior.n_rows
+    loaded_tables_manifest = load_fit_report_tables(table_dir;
+        return_manifest = true)
+    @test loaded_tables_manifest["schema"] == table_manifest.schema
+    @test loaded_tables_manifest["content_hash"]["value"] ==
+        table_manifest.content_hash.value
     @test_throws ArgumentError save_fit_report_tables(table_dir, report)
+    tampered_table_dir = joinpath(report_dir, "tampered_fit_report_tables")
+    tampered_table_manifest = save_fit_report_tables(tampered_table_dir, report)
+    tampered_table_row = only(filter(row ->
+            row.section === :posterior && row.row_field === :rows,
+        tampered_table_manifest.tables))
+    tampered_table_path = joinpath(tampered_table_dir,
+        tampered_table_row.filename)
+    tampered_table = JSON3.read(read(tampered_table_path, String),
+        Dict{String,Any})
+    tampered_table["rows"][1]["parameter"] = "tampered"
+    open(tampered_table_path, "w") do io
+        JSON3.write(io, tampered_table)
+        write(io, "\n")
+    end
+    @test_throws ArgumentError load_fit_report_tables(tampered_table_dir)
+    @test first(load_fit_report_tables(tampered_table_dir;
+        verify_hash = false))["schema"] == "bayesianmgmfrm.fit_report_table.v1"
+    unsafe_table_dir = joinpath(report_dir, "unsafe_fit_report_tables")
+    save_fit_report_tables(unsafe_table_dir, report)
+    unsafe_table_manifest_path = joinpath(unsafe_table_dir, "manifest.json")
+    unsafe_table_manifest = JSON3.read(read(unsafe_table_manifest_path, String),
+        Dict{String,Any})
+    unsafe_table_row = only(filter(row ->
+            row["section"] == "posterior" && row["row_field"] == "rows",
+        unsafe_table_manifest["tables"]))
+    unsafe_table_row["filename"] = "../posterior__rows.json"
+    open(unsafe_table_manifest_path, "w") do io
+        JSON3.write(io, unsafe_table_manifest)
+        write(io, "\n")
+    end
+    @test_throws ArgumentError load_fit_report_tables(unsafe_table_dir;
+        verify_hash = false)
     markdown = fit_report_markdown(report;
         title = "Minimal fit report",
         max_rows = 2)

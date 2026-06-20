@@ -275,7 +275,9 @@ default before returning ordinary `Dict{String,Any}` / `Vector{Any}` data. Use
 from either the in-memory report or the JSON-loaded payload. Use
 [`save_fit_report_tables`](@ref) when downstream review or Quarto workflows need
 one JSON file per report table plus a `manifest.json` with table filenames, row
-counts, and table content hashes. Use [`fit_report_markdown`](@ref) or
+counts, and table content hashes; [`load_fit_report_tables`](@ref) verifies the
+manifest and table-file hashes before returning the table records. Use
+[`fit_report_markdown`](@ref) or
 [`save_fit_report_markdown`](@ref) to generate a dependency-light Markdown
 review draft with report metadata, section summaries, and table previews before
 moving the tables into a manuscript-specific renderer. Use
