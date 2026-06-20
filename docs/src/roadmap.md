@@ -63,8 +63,9 @@ The following are planned but not yet exposed:
   identity-correlation candidate;
 - broader production exact/refit-management orchestration beyond the
   fit-supported shared-plan comparison slice;
-- turnkey manuscript report rendering and publication/registration workflows
-  beyond the current machine-readable reports and local full-paper archive.
+- publication-grade manuscript rendering and publication/registration workflows
+  beyond the current machine-readable reports, multi-report review dossiers,
+  and local full-paper archive.
 
 ## Critical Path to Fit-Ready MGMFRM
 

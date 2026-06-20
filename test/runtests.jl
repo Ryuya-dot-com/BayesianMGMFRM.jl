@@ -40,6 +40,8 @@ using BayesianMGMFRM:
     fit_artifact,
     fit_cache_key,
     fit_report,
+    fit_report_dossier,
+    fit_report_dossier_markdown,
     fit_report_markdown,
     fit_report_section,
     fit_report_sections,
@@ -113,11 +115,14 @@ using BayesianMGMFRM:
     release_scope_summary,
     load_fit_cache,
     load_fit_report,
+    load_fit_report_dossier,
     load_fit_report_bundle,
     load_fit_report_tables,
     sampler_diagnostics,
     save_fit_cache,
     save_fit_report,
+    save_fit_report_dossier,
+    save_fit_report_dossier_markdown,
     save_fit_report_bundle,
     save_fit_report_markdown,
     save_fit_report_tables,
@@ -6263,11 +6268,14 @@ end
             :predictive_check_summary, :predictive_check_plot_data, :predictive_probabilities,
             :predictive_residuals, :predictive_variances,
             :prior_likelihood_sensitivity, :prior_predict, :prior_predictive_check,
+            :fit_report_dossier, :fit_report_dossier_markdown,
             :fit_report_markdown, :fit_report_section, :fit_report_sections,
             :fit_report_rows,
-            :load_fit_cache, :load_fit_report, :load_fit_report_bundle,
+            :load_fit_cache, :load_fit_report, :load_fit_report_dossier,
+            :load_fit_report_bundle,
             :load_fit_report_tables, :rater_diagnostics, :rater_overlap,
             :residual_summary, :sampler_diagnostics, :save_fit_cache, :save_fit_report,
+            :save_fit_report_dossier, :save_fit_report_dossier_markdown,
             :save_fit_report_bundle, :save_fit_report_markdown,
             :save_fit_report_tables,
             :sensitivity_comparison, :sensitivity_comparison_summary,
@@ -10537,6 +10545,136 @@ end
     @test loaded_markdown_export.label == "loaded"
     @test loaded_markdown_export.report_object === :fit_report
     @test read(markdown_path, String) == loaded_markdown
+
+    dossier_comparison_rows = compare_models(
+        :minimal => result,
+        :repeat => result;
+        criterion = :waic,
+        draw_indices = [1, 2, 3])
+    dossier_sensitivity_rows = sensitivity_comparison(
+        :minimal => result,
+        :repeat => result;
+        criterion = :waic,
+        draw_indices = [1, 2, 3])
+    dossier_evidence_rows = [(;
+        evidence = :fit_report_review_bundle,
+        status = :recorded,
+        publication_or_registration_action = false,
+    )]
+    dossier = fit_report_dossier(
+        :minimal => report,
+        :loaded => loaded_report;
+        comparison_rows = dossier_comparison_rows,
+        sensitivity_rows = dossier_sensitivity_rows,
+        evidence_rows = dossier_evidence_rows,
+        label = :minimal_dossier)
+    @test dossier.schema == "bayesianmgmfrm.fit_report_dossier.v1"
+    @test dossier.object === :fit_report_dossier
+    @test dossier.label === :minimal_dossier
+    @test dossier.report_policy.rendering_scope === :review_dossier
+    @test !dossier.report_policy.publication_or_registration_action
+    @test !dossier.report_policy.manuscript_claims_allowed
+    @test dossier.report_policy.next_gate ===
+        :manual_publication_or_registration_by_user_only
+    @test dossier.n_reports == 2
+    @test dossier.models == ("minimal", "loaded")
+    @test dossier.n_report_rows == 2
+    @test dossier.n_section_rows == 2 * length(report_sections)
+    @test dossier.n_comparison_rows == length(dossier_comparison_rows)
+    @test dossier.n_sensitivity_rows == length(dossier_sensitivity_rows)
+    @test dossier.n_evidence_rows == 1
+    @test isnothing(dossier.reports)
+    @test length(dossier.report_rows) == 2
+    @test all(row -> length(row.report_content_hash.value) == 64,
+        dossier.report_rows)
+    @test first(dossier.report_rows).diagnostic_flag ==
+        report.diagnostics.summary.flag
+    @test any(row -> row.model == "minimal" && row.section === :posterior,
+        dossier.section_rows)
+    @test any(row -> row.model == "loaded" && row.section === :waic,
+        dossier.section_rows)
+    @test [row.model for row in dossier.comparison_rows] ==
+        [row.model for row in dossier_comparison_rows]
+    @test first(dossier.evidence_rows).publication_or_registration_action == false
+    embedded_dossier = fit_report_dossier(report;
+        names = [:minimal],
+        include_reports = true)
+    @test embedded_dossier.n_reports == 1
+    @test length(embedded_dossier.reports) == 1
+    @test_throws ArgumentError fit_report_dossier()
+    @test_throws ArgumentError fit_report_dossier(report, loaded_report;
+        names = [:dup, :dup])
+    @test_throws ArgumentError fit_report_dossier(:bad => report;
+        comparison_rows = [1])
+
+    dossier_markdown = fit_report_dossier_markdown(dossier;
+        title = "Minimal fit report dossier",
+        max_rows = 1)
+    @test startswith(dossier_markdown, "# Minimal fit report dossier")
+    @test occursin("## Dossier Metadata", dossier_markdown)
+    @test occursin("## Report Summary", dossier_markdown)
+    @test occursin("## Section Summary", dossier_markdown)
+    @test occursin("## Comparison Rows", dossier_markdown)
+    @test occursin("Publication or registration action: false", dossier_markdown)
+    @test_throws ArgumentError fit_report_dossier_markdown(dossier; max_rows = -1)
+
+    dossier_path = joinpath(report_dir, "minimal_fit_report_dossier.json")
+    dossier_export = save_fit_report_dossier(dossier_path, dossier;
+        label = :minimal_dossier)
+    @test isfile(dossier_path)
+    @test dossier_export.schema ==
+        "bayesianmgmfrm.fit_report_dossier_export.v1"
+    @test dossier_export.object === :fit_report_dossier_export
+    @test dossier_export.label === :minimal_dossier
+    @test dossier_export.dossier_schema == dossier.schema
+    @test dossier_export.dossier_object === :fit_report_dossier
+    @test length(dossier_export.dossier_content_hash.value) == 64
+    @test length(dossier_export.json_content_hash.value) == 64
+    loaded_dossier = load_fit_report_dossier(dossier_path)
+    @test loaded_dossier["schema"] == dossier.schema
+    @test loaded_dossier["object"] == "fit_report_dossier"
+    @test length(loaded_dossier["report_rows"]) == 2
+    loaded_dossier_markdown = fit_report_dossier_markdown(loaded_dossier;
+        title = "Loaded fit report dossier",
+        max_rows = 1)
+    @test startswith(loaded_dossier_markdown, "# Loaded fit report dossier")
+    loaded_dossier_record = load_fit_report_dossier(dossier_path;
+        return_record = true)
+    @test loaded_dossier_record["schema"] == dossier_export.schema
+    @test loaded_dossier_record["dossier_content_hash"]["value"] ==
+        dossier_export.dossier_content_hash.value
+    dossier_markdown_path = joinpath(report_dir, "minimal_fit_report_dossier.md")
+    dossier_markdown_export = save_fit_report_dossier_markdown(
+        dossier_markdown_path,
+        dossier;
+        title = "Minimal fit report dossier",
+        max_rows = 1,
+        label = :minimal_dossier)
+    @test read(dossier_markdown_path, String) == dossier_markdown
+    @test dossier_markdown_export.schema ==
+        "bayesianmgmfrm.fit_report_dossier_markdown_export.v1"
+    @test dossier_markdown_export.object === :fit_report_dossier_markdown_export
+    @test dossier_markdown_export.label === :minimal_dossier
+    @test dossier_markdown_export.markdown_content_hash.value ==
+        BayesianMGMFRM._fit_report_dossier_markdown_hash_record(
+            dossier_markdown).value
+    @test_throws ArgumentError save_fit_report_dossier(dossier_path, dossier)
+    @test_throws ArgumentError save_fit_report_dossier_markdown(
+        dossier_markdown_path,
+        dossier)
+
+    tampered_dossier_record = deepcopy(loaded_dossier_record)
+    tampered_dossier_record["dossier"]["report_rows"][1]["model"] = "tampered"
+    tampered_dossier_path = joinpath(report_dir,
+        "tampered_fit_report_dossier.json")
+    open(tampered_dossier_path, "w") do io
+        JSON3.write(io, tampered_dossier_record)
+        write(io, "\n")
+    end
+    @test_throws ArgumentError load_fit_report_dossier(tampered_dossier_path)
+    @test load_fit_report_dossier(tampered_dossier_path;
+        verify_hash = false)["schema"] == dossier.schema
+
     resaved_report_path = joinpath(report_dir, "minimal_fit_report_resaved.json")
     resaved_export = save_fit_report(resaved_report_path, loaded_report)
     @test resaved_export.report_object === :fit_report
