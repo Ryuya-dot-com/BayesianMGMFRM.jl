@@ -38,6 +38,7 @@ using BayesianMGMFRM:
     fit_artifact,
     fit_cache_key,
     fit_report,
+    fit_report_markdown,
     fit_report_section,
     fit_report_sections,
     fit_report_rows,
@@ -101,6 +102,7 @@ using BayesianMGMFRM:
     sampler_diagnostics,
     save_fit_cache,
     save_fit_report,
+    save_fit_report_markdown,
     save_fit_report_tables,
     simulation_grid,
     simulation_grid_summary,
@@ -6244,10 +6246,11 @@ end
             :predictive_check_summary, :predictive_check_plot_data, :predictive_probabilities,
             :predictive_residuals, :predictive_variances,
             :prior_predict, :prior_predictive_check,
-            :fit_report_section, :fit_report_sections, :fit_report_rows,
+            :fit_report_markdown, :fit_report_section, :fit_report_sections,
+            :fit_report_rows,
             :load_fit_cache, :load_fit_report, :rater_diagnostics, :rater_overlap,
             :residual_summary, :sampler_diagnostics, :save_fit_cache, :save_fit_report,
-            :save_fit_report_tables,
+            :save_fit_report_markdown, :save_fit_report_tables,
             :sensitivity_comparison, :sensitivity_comparison_summary,
             :separation_reliability_summary, :simulation_grid,
             :simulation_grid_summary, :simulate_responses,
@@ -10225,6 +10228,34 @@ end
     @test manifest_json["n_tables"] == table_manifest.n_tables
     @test manifest_json["n_rows"] == table_manifest.n_rows
     @test_throws ArgumentError save_fit_report_tables(table_dir, report)
+    markdown = fit_report_markdown(report;
+        title = "Minimal fit report",
+        max_rows = 2)
+    @test startswith(markdown, "# Minimal fit report")
+    @test occursin("## Report Metadata", markdown)
+    @test occursin("## Section Summary", markdown)
+    @test occursin("### posterior / rows", markdown)
+    @test occursin("person[E1]", markdown)
+    @test occursin("additional row(s) omitted", markdown)
+    markdown_path = joinpath(report_dir, "minimal_fit_report.md")
+    markdown_export = save_fit_report_markdown(markdown_path, report;
+        title = "Minimal fit report",
+        max_rows = 2,
+        label = :minimal)
+    @test isfile(markdown_path)
+    @test read(markdown_path, String) == markdown
+    @test markdown_export.schema ==
+        "bayesianmgmfrm.fit_report_markdown_export.v1"
+    @test markdown_export.object === :fit_report_markdown_export
+    @test markdown_export.label === :minimal
+    @test markdown_export.report_schema == report.schema
+    @test markdown_export.report_object === :fit_report
+    @test markdown_export.report_content_hash.value == report_hash
+    @test markdown_export.markdown_content_hash.value ==
+        BayesianMGMFRM._fit_report_markdown_hash_record(markdown).value
+    @test markdown_export.n_bytes == sizeof(markdown)
+    @test_throws ArgumentError save_fit_report_markdown(markdown_path, report)
+    @test_throws ArgumentError fit_report_markdown(report; max_rows = -1)
     report_path = joinpath(report_dir, "minimal_fit_report.json")
     report_export = save_fit_report(report_path, report)
     @test isfile(report_path)
@@ -10259,12 +10290,28 @@ end
     @test loaded_table_manifest.report_object === :fit_report
     @test loaded_table_manifest.n_tables == table_manifest.n_tables
     @test loaded_table_manifest.n_rows == table_manifest.n_rows
+    loaded_markdown = fit_report_markdown(loaded_report;
+        title = "Loaded fit report",
+        max_rows = 1)
+    @test startswith(loaded_markdown, "# Loaded fit report")
+    @test occursin("### waic / diagnostic_rows", loaded_markdown)
+    loaded_markdown_export = save_fit_report_markdown(markdown_path, loaded_report;
+        overwrite = true,
+        title = "Loaded fit report",
+        max_rows = 1,
+        label = "loaded")
+    @test loaded_markdown_export.label == "loaded"
+    @test loaded_markdown_export.report_object === :fit_report
+    @test read(markdown_path, String) == loaded_markdown
     loaded_record = load_fit_report(report_path; return_record = true)
     @test loaded_record["schema"] == report_export.schema
     @test loaded_record["json_content_hash"]["value"] == report_export.json_content_hash.value
     @test_throws ArgumentError fit_report_sections(loaded_record)
+    @test_throws ArgumentError fit_report_markdown(loaded_record)
     @test_throws ArgumentError save_fit_report_tables(joinpath(report_dir,
         "invalid_tables"), loaded_record)
+    @test_throws ArgumentError save_fit_report_markdown(joinpath(report_dir,
+        "invalid.md"), loaded_record)
     @test_throws ArgumentError save_fit_report(report_path, report)
 
     convenience_path = joinpath(report_dir, "minimal_fit_report_from_fit.json")
@@ -10280,6 +10327,13 @@ end
     @test convenience_table_manifest.object === :fit_report_table_export
     @test any(row -> row.section === :posterior && row.row_field === :rows,
         convenience_table_manifest.tables)
+    convenience_markdown_export = save_fit_report_markdown(joinpath(report_dir,
+            "minimal_fit_report_from_fit.md"), result;
+        include_loo = false,
+        artifact_include_environment = false,
+        max_rows = 1)
+    @test convenience_markdown_export.object === :fit_report_markdown_export
+    @test convenience_markdown_export.max_rows == 1
 
     tampered_record = deepcopy(loaded_record)
     tampered_record["report"]["schema"] = "tampered.fit_report.v1"

@@ -134,6 +134,11 @@ report_table_manifest = save_fit_report_tables(report_table_dir, loaded_report)
 println("Fit report tables: tables=", report_table_manifest.n_tables,
     ", rows=", report_table_manifest.n_rows,
     ", dir=", report_table_dir)
+report_markdown_path = joinpath(mktempdir(), "minimal_fit_report.md")
+report_markdown_export = save_fit_report_markdown(report_markdown_path, loaded_report;
+    max_rows = 3)
+println("Fit report markdown: bytes=", report_markdown_export.n_bytes,
+    ", path=", report_markdown_path)
 diagnostic_surface = diagnostics(fit_result)
 println("Diagnostic summary: ", compact_row(diagnostic_surface.summary,
     (:flag, :passed, :n_chains, :draws_per_chain, :max_rhat, :min_ess)))
