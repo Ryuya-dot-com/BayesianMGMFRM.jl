@@ -103,11 +103,12 @@ Specified-only GMFRM/MGMFRM configs are available for constraint and manifest
 review, with estimation currently limited to the guarded scalar GMFRM
 rater-discrimination candidate and the fixed-Q confirmatory MGMFRM candidate.
 See the [Bayesian Workflow](bayesian-workflow.md)
-page for the current check sequence and limitations, and
+page for the current check sequence and limitations, [Examples](examples.md)
+for runnable minimal and guarded MGMFRM scripts, and
 [Roadmap and Scope](roadmap.md) for the implementation gates for planned
 GMFRM/MGMFRM work.
 
 ```@contents
-Pages = ["data-validation.md", "model-equations.md", "bayesian-workflow.md", "fitting.md", "roadmap.md", "api.md"]
+Pages = ["data-validation.md", "model-equations.md", "bayesian-workflow.md", "fitting.md", "examples.md", "roadmap.md", "api.md"]
 Depth = 2
 ```

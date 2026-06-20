@@ -10,6 +10,7 @@ makedocs(;
         "Model Equations" => "model-equations.md",
         "Bayesian Workflow" => "bayesian-workflow.md",
         "Bayesian Fitting" => "fitting.md",
+        "Examples" => "examples.md",
         "Roadmap and Scope" => "roadmap.md",
         "API" => "api.md",
     ],
