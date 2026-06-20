@@ -131,6 +131,7 @@ parameter_block_diagnostics(fit_result)
 diagnostics(fit_result)
 fit_cache_key(spec; prior, ndraws = 4, warmup = 4, chains = 2, step_size = 0.1, seed = 102)
 fit_artifact(fit_result; include_draws = true, include_environment = false)
+fit_report(fit_result; include_prior_predictive = true, prior_predictive_ndraws = 4)
 posterior_summary(fit_result)
 posterior_summary(fit_result; intervals = (0.66, 0.9, 0.95), rope = 0.1)
 waic_diagnostics(fit_result)
@@ -161,7 +162,7 @@ fixed-Q two-dimensional confirmatory MGMFRM guarded experiment using
 
 See [`docs/`](docs/) for the Documenter source pages covering data validation
 and the public API.
-See [`ROADMAP.md`](ROADMAP.md) for the critical-reviewer implementation
+See [`docs/src/roadmap.md`](docs/src/roadmap.md) for the critical-reviewer implementation
 roadmap separating the current scaffold from planned HMC/GMFRM/MGMFRM work.
 
 ## Development Status
@@ -238,6 +239,11 @@ Current public API:
   optional cached draws/environment metadata. Artifacts include a stable
   `artifact_content_hash` value and an embedded `fit_archive_manifest` for
   exported-review checks.
+- `fit_report`: a compact machine-readable fitted-object report bundle that
+  collects metadata, manifests, diagnostics, posterior summaries, predictive
+  checks, calibration rows, WAIC/LOO summaries, optional DFF rows, and compact
+  artifact provenance. Section-level errors are captured by default so short
+  validation fits can still produce partial reports.
 - `cached_fit`, `fit_cache_key`, `save_fit_cache`, and `load_fit_cache`:
   RDS-like serialized fit caches for avoiding recomputation when the
   data/spec/design, prior, sampler controls, seed, Julia version, and

@@ -83,6 +83,14 @@ artifact = fit_artifact(fit_result; include_environment = false)
 println("Fit artifact: schema=", artifact.schema,
     ", q_matrix=", artifact.q_matrix,
     ", diagnostics=", artifact.diagnostics.summary.flag)
+report = fit_report(fit_result;
+    draw_indices = [1, 2],
+    include_loo = false,
+    artifact_include_environment = false)
+println("Fit report: schema=", report.schema,
+    ", direct_posterior_rows=", report.direct_posterior.n_rows,
+    ", calibration_rows=", report.calibration.n_rows,
+    ", loo_status=", report.loo.status)
 print_rows("Sampler diagnostics", sampler_diagnostics(fit_result);
     fields = (:chain, :acceptance_rate, :n_nonfinite_logdensity, :flag))
 print_rows("Posterior summary", posterior_summary(fit_result);

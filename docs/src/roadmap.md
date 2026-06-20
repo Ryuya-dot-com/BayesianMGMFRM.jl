@@ -5,7 +5,7 @@ reviewer's point of view. It is intentionally conservative: features move
 forward only when their identification, diagnostics, validation, and reporting
 contracts are clear.
 
-See the repository-level `ROADMAP.md` for the full implementation checklist.
+The progress ledger below is the repository's implementation checklist.
 
 ## Current Public Slice
 
@@ -62,7 +62,8 @@ The following are planned but not yet exposed:
 - multidimensional loading and rotation/gauge machinery beyond the fixed-Q
   identity-correlation candidate;
 - PSIS-smoothed or exact LOO refit orchestration;
-- report generation and full paper artifact reproduction.
+- turnkey manuscript report rendering and full paper artifact reproduction
+  beyond the current machine-readable [`fit_report`](@ref) bundle.
 
 ## Critical Path to Fit-Ready MGMFRM
 

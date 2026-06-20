@@ -14,7 +14,8 @@ runs the fit-supported MFRM/RSM/PCM path. It covers:
 - pre-fit validation via [`validate_design`](@ref);
 - specification and design inspection via [`mfrm_spec`](@ref) and
   [`getdesign`](@ref);
-- prior predictive checks, cached fitting, fit artifacts, and diagnostics;
+- prior predictive checks, cached fitting, fit artifacts, fit reports, and
+  diagnostics;
 - posterior summaries, WAIC rows, calibration rows, and posterior predictive
   summaries.
 
@@ -29,8 +30,9 @@ runs the guarded fixed-Q confirmatory MGMFRM path. It covers:
   `q_matrix`;
 - preview design and constraint inspection before fitting;
 - opt-in fitting through `fit(spec; experimental = true)`;
-- guarded [`MGMFRMFit`](@ref) metadata, fit artifacts, sampler diagnostics,
-  posterior summaries, WAIC rows, and posterior predictive summaries.
+- guarded [`MGMFRMFit`](@ref) metadata, fit artifacts, fit reports, sampler
+  diagnostics, posterior summaries, WAIC rows, and posterior predictive
+  summaries.
 
 Use this script when checking the narrow experimental MGMFRM entrypoint. It
 does not support exploratory loadings, free latent correlations, dimensions
