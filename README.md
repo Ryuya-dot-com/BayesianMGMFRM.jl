@@ -387,7 +387,8 @@ Current public API:
 - `fair_average_summary`: posterior fair-average expected-score intervals for
   person, rater, or item reports using a balanced reference grid.
 - `dff_report`: declared or ad hoc DFF screening rows with expected-score
-  interaction residuals and local logit-scale approximations.
+  interaction residuals, local logit-scale approximations, and optional
+  practical-magnitude probabilities for declared estimand thresholds.
 - `separation_reliability_summary`: posterior separation and empirical
   reliability intervals for person, rater, and item measures.
 - `rater_diagnostics`: report-ready rater severity, category-use,

@@ -63,7 +63,8 @@ The current public slice focuses on:
 - posterior fair-average expected-score intervals for person, rater, or item
   reports via [`fair_average_summary`](@ref);
 - declared or ad hoc DFF screening rows on expected-score and local logit
-  scales via [`dff_report`](@ref);
+  scales, with optional practical-magnitude probabilities, via
+  [`dff_report`](@ref);
 - posterior separation and empirical reliability intervals for person, rater,
   and item measures via [`separation_reliability_summary`](@ref);
 - rater severity, category-use, range/centrality, residual, and available

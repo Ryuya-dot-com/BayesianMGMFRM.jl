@@ -398,6 +398,7 @@ and residual intervals with screening caveats for sparse groups and nonzero
 residual intervals; `rater_diagnostics` combines rater severity, category-use,
 range/centrality, residual, and available discrimination rows for reports;
 `dff_report` returns DFF screening rows with expected-score interaction
-residuals and local logit-scale approximations. The
+residuals, local logit-scale approximations, and optional practical-magnitude
+probabilities when estimand thresholds are declared. The
 `backend` keyword is explicit
 so additional engines can be added without changing the fitted-object shape.

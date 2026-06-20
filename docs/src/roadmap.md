@@ -211,10 +211,10 @@ diagnostics, and prior/likelihood sensitivity workflows as first-class APIs.
 
 ### DFF and Fairness
 
-DFF should be treated as screening evidence for fairness review. Future DFF
-APIs should define estimands before fitting, separate rater main severity from
-DFF, report both logit and expected-score scales, and include practical
-magnitude and model-checking evidence.
+DFF should be treated as screening evidence for fairness review. DFF APIs
+should define estimands before fitting, separate rater main severity from DFF,
+report both logit and expected-score scales, include declared-threshold
+practical magnitude, and pair screening rows with model-checking evidence.
 
 ### Reproducibility
 
@@ -336,8 +336,9 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   raw and constrained direct candidate coordinates without broad public
   generalized fitting]
 - Add multiple credible intervals, probability of direction, and ROPE summaries.
-  [Done for `posterior_summary`; focal DFF reports still need estimand-specific
-  practical-magnitude rows]
+  [Done for `posterior_summary`; focal [`dff_report`](@ref) rows now include
+  optional estimand-specific practical-magnitude probabilities when expected-score
+  or logit thresholds are declared]
 - Add PSIS-smoothed or exact/K-fold LOO and prior/likelihood sensitivity.
   [Raw importance-sampling LOO and Pareto-k diagnostics are available for the
   current minimal fit path. [`kfold_plan`](@ref) now constructs deterministic
