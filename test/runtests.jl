@@ -18,6 +18,7 @@ using BayesianMGMFRM:
     benchmark_result_row,
     benchmark_summary,
     calibration_plot_data,
+    case_study_provenance_manifest,
     cached_fit,
     comparison_evidence_row,
     comparison_evidence_summary,
@@ -6263,6 +6264,7 @@ end
             :MFRMPrior, :MFRMLogDensity, :MFRMFit, :GMFRMFit, :MGMFRMFit,
             :anchor_linking_summary, :artifact_content_hash, :cached_fit,
             :benchmark_result_row, :benchmark_summary, :calibration_plot_data,
+            :case_study_provenance_manifest,
             :constraint_table, :dff_report, :domain_compilation_summary,
             :expected_scores, :fair_average_summary,
             :falsification_rule_summary, :falsification_rules,
@@ -6584,6 +6586,39 @@ end
     @test any(row -> row.family === :mgmfrm &&
         row.evidence === :guarded_fit_public_exposure_review,
         release_scope_with_evidence.evidence_rows)
+    case_provenance = case_study_provenance_manifest()
+    @test case_provenance.schema ==
+        "bayesianmgmfrm.case_study_provenance_manifest.v1"
+    @test case_provenance.object === :case_study_provenance_manifest
+    @test case_provenance.status === :synchronized
+    @test case_provenance.summary.passed
+    @test case_provenance.summary.n_source_records == 2
+    @test case_provenance.summary.n_archive_records == 4
+    @test case_provenance.summary.n_publication_facing_archives == 2
+    @test case_provenance.summary.all_source_records_anonymized
+    @test case_provenance.summary.all_license_records_declared
+    @test case_provenance.summary.publication_archives_synchronized
+    @test case_provenance.summary.no_public_source_release
+    @test case_provenance.summary.no_publication_actions
+    @test !case_provenance.summary.license_grant
+    @test !case_provenance.summary.irb_determination
+    @test !case_provenance.summary.publication_or_registration_action
+    @test !case_provenance.summary.manuscript_claims_allowed
+    @test any(row -> row.archive === :full_paper_reproduction_archive &&
+        row.publication_facing &&
+        row.provenance_sync_passed,
+        case_provenance.archive_records)
+    @test_throws ArgumentError case_study_provenance_manifest(
+        source_records = NamedTuple[])
+    incomplete_provenance = case_study_provenance_manifest(
+        source_records = (;
+            source_id = :local_case,
+            license_status = :missing,
+            anonymization_status = :pseudonymized,
+            direct_identifiers_removed = true,
+        ))
+    @test incomplete_provenance.status === :incomplete
+    @test !incomplete_provenance.summary.all_license_records_declared
     @test spec.family === :mfrm
     @test spec.dimensions == 1
     @test spec.discrimination === :none

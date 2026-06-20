@@ -90,6 +90,7 @@ linear_predictor_values
 model_equation
 mcmc_diagnostics
 release_scope_summary
+case_study_provenance_manifest
 sampler_diagnostics
 BayesianMGMFRM.pointwise_loglikelihood
 pointwise_loglikelihood_matrix
