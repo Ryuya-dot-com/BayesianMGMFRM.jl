@@ -5175,20 +5175,18 @@ function _verify_fit_report_bundle_manifest(manifest,
         "fit report bundle manifest at $manifest_path")
     table_path = _fit_report_bundle_file_path(directory, table_file,
         "fit report bundle manifest at $manifest_path")
-    table_manifest = _read_json_dict(table_path, "fit report table manifest")
-    get(table_manifest, "schema", nothing) ==
-        "bayesianmgmfrm.fit_report_table_export.v1" ||
-        throw(ArgumentError("fit report table manifest at $table_path has an unsupported schema"))
+    expected_table_path = _fit_report_table_export_manifest_path(dirname(table_path))
+    isequal(table_path, expected_table_path) ||
+        throw(ArgumentError("fit report bundle table manifest path must resolve to $expected_table_path"))
+    table_manifest = load_fit_report_tables(dirname(table_path);
+        verify_hash = true,
+        return_manifest = true)
     expected_table_hash = _fit_report_hash_value(table_file, :content_hash,
         "fit report bundle table_manifest row at $manifest_path")
     actual_table_hash = _fit_report_hash_value(table_manifest, :content_hash,
         "fit report table manifest at $table_path")
     isequal(expected_table_hash, actual_table_hash) ||
         throw(ArgumentError("fit report bundle table manifest hash mismatch for $table_path"))
-    recomputed_table_hash = _fit_report_table_hash_record(table_manifest;
-        scope = :fit_report_table_export_without_hash_metadata).value
-    isequal(actual_table_hash, recomputed_table_hash) ||
-        throw(ArgumentError("fit report table manifest content hash mismatch for $table_path"))
 
     markdown_file = _fit_report_bundle_file_record(manifest, :markdown,
         "fit report bundle manifest at $manifest_path")
@@ -5219,9 +5217,9 @@ end
 
 Load a fit-report bundle written by [`save_fit_report_bundle`](@ref). By
 default this verifies the bundle manifest hash, JSON report export hash, table
-manifest hash, and Markdown content hash before returning the loaded
-`fit_report` payload. Set `return_manifest = true` to inspect the bundle
-manifest instead.
+manifest and table-file hashes, and Markdown content hash before returning the
+loaded `fit_report` payload. Set `return_manifest = true` to inspect the
+bundle manifest instead.
 """
 function load_fit_report_bundle(directory::AbstractString;
         verify_hash::Bool = true,

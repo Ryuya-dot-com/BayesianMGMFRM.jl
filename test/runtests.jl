@@ -10417,6 +10417,29 @@ end
     @test_throws ArgumentError load_fit_report_bundle(tampered_bundle_dir)
     @test load_fit_report_bundle(tampered_bundle_dir;
         verify_hash = false)["schema"] == report.schema
+    tampered_bundle_table_dir = joinpath(report_dir,
+        "tampered_fit_report_bundle_table")
+    save_fit_report_bundle(tampered_bundle_table_dir, loaded_report;
+        title = "Loaded fit report",
+        max_rows = 1)
+    tampered_bundle_table_manifest = load_fit_report_tables(
+        joinpath(tampered_bundle_table_dir, "tables");
+        return_manifest = true)
+    tampered_bundle_table_row = only(filter(row ->
+            row["section"] == "posterior" && row["row_field"] == "rows",
+        tampered_bundle_table_manifest["tables"]))
+    tampered_bundle_table_path = joinpath(tampered_bundle_table_dir, "tables",
+        tampered_bundle_table_row["filename"])
+    tampered_bundle_table = JSON3.read(read(tampered_bundle_table_path, String),
+        Dict{String,Any})
+    tampered_bundle_table["rows"][1]["parameter"] = "tampered"
+    open(tampered_bundle_table_path, "w") do io
+        JSON3.write(io, tampered_bundle_table)
+        write(io, "\n")
+    end
+    @test_throws ArgumentError load_fit_report_bundle(tampered_bundle_table_dir)
+    @test load_fit_report_bundle(tampered_bundle_table_dir;
+        verify_hash = false)["schema"] == report.schema
     unsafe_bundle_dir = joinpath(report_dir, "unsafe_fit_report_bundle")
     save_fit_report_bundle(unsafe_bundle_dir, loaded_report;
         title = "Loaded fit report",
