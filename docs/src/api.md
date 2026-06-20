@@ -56,6 +56,7 @@ fit_report
 fit_report_markdown
 fit_report_dossier
 fit_report_dossier_markdown
+fit_reproduction_manifest
 fit_report_section
 fit_report_sections
 fit_report_rows

@@ -43,6 +43,7 @@ using BayesianMGMFRM:
     fit_report_dossier,
     fit_report_dossier_markdown,
     fit_report_markdown,
+    fit_reproduction_manifest,
     fit_report_section,
     fit_report_sections,
     fit_report_rows,
@@ -269,6 +270,19 @@ function optional_fixture_path(env_key::AbstractString, default_path::AbstractSt
     end
     resolved_default = joinpath(root, default_path)
     return isfile(resolved_default) ? default_path : ""
+end
+
+function optional_source_bridge_fixture_path(env_key::AbstractString,
+        default_path::AbstractString,
+        default_stan_model::AbstractString)
+    fixture_path = optional_fixture_path(env_key, default_path)
+    isempty(fixture_path) && return ""
+    root = dirname(@__DIR__)
+    if !haskey(ENV, env_key) &&
+            !isfile(joinpath(root, default_stan_model))
+        return ""
+    end
+    return fixture_path
 end
 
 function check_source_bridge_fixture(fixture_path::AbstractString,
@@ -6253,6 +6267,7 @@ end
             :expected_scores, :fair_average_summary,
             :falsification_rule_summary, :falsification_rules,
             :fit, :fit_archive_manifest, :fit_artifact, :fit_cache_key, :fit_metadata,
+            :fit_reproduction_manifest,
             :fit_ready_parameter_layout, :fit_stats,
             :identification_declarations,
             :initial_params, :loglikelihood, :logposterior, :logprior,
@@ -8321,7 +8336,10 @@ end
             gmfrm_guarded_exposure_review_fixture,
         )
     end
-    gmfrm_bridge_fixture = optional_fixture_path("MFRM_SOURCE_GMFRM_BRIDGESTAN_FIXTURE", joinpath("test", "fixtures", "source_gmfrm_bridge_logdensity.json"))
+    gmfrm_bridge_fixture = optional_source_bridge_fixture_path(
+        "MFRM_SOURCE_GMFRM_BRIDGESTAN_FIXTURE",
+        joinpath("test", "fixtures", "source_gmfrm_bridge_logdensity.json"),
+        joinpath("test", "stan", "source_gmfrm_fixture.stan"))
     if !isempty(gmfrm_bridge_fixture)
         check_source_bridge_fixture(
             gmfrm_bridge_fixture,
@@ -9600,7 +9618,10 @@ end
         ndraws = 1,
         warmup = 0,
     )
-    mgmfrm_bridge_fixture = optional_fixture_path("MFRM_SOURCE_MGMFRM_BRIDGESTAN_FIXTURE", joinpath("test", "fixtures", "source_mgmfrm_bridge_logdensity.json"))
+    mgmfrm_bridge_fixture = optional_source_bridge_fixture_path(
+        "MFRM_SOURCE_MGMFRM_BRIDGESTAN_FIXTURE",
+        joinpath("test", "fixtures", "source_mgmfrm_bridge_logdensity.json"),
+        joinpath("test", "stan", "source_mgmfrm_fixture.stan"))
     if !isempty(mgmfrm_bridge_fixture)
         check_source_bridge_fixture(
             mgmfrm_bridge_fixture,
@@ -10236,6 +10257,24 @@ end
     @test explicit_archive_manifest.content_hash.value == artifact_content_hash(compact_artifact)
     @test fit_archive_manifest(result; artifact = compact_artifact).content_hash.value ==
         compact_artifact.content_hash.value
+    partial_reproduction_manifest = fit_reproduction_manifest(result;
+        artifact = compact_artifact,
+        source_path = "memory://compact_artifact")
+    @test partial_reproduction_manifest.schema ==
+        "bayesianmgmfrm.fit_reproduction_manifest.v1"
+    @test partial_reproduction_manifest.object === :fit_reproduction_manifest
+    @test partial_reproduction_manifest.status === :incomplete
+    @test partial_reproduction_manifest.full_rerun.status === :ready
+    @test partial_reproduction_manifest.full_rerun.replayable_rng
+    @test partial_reproduction_manifest.fast_cached_draws.status === :not_provided
+    @test partial_reproduction_manifest.missing_required_paths ==
+        (:fast_cached_draws,)
+    @test !partial_reproduction_manifest.publication_or_registration_action
+    @test !partial_reproduction_manifest.manuscript_claims_allowed
+    @test partial_reproduction_manifest.next_gate ===
+        :manual_publication_or_registration_by_user_only
+    @test partial_reproduction_manifest.content_hash.value ==
+        artifact_content_hash(partial_reproduction_manifest)
 
     full_artifact = fit_artifact(result;
         include_environment = false,
@@ -11032,6 +11071,29 @@ end
         "bayesianmgmfrm.fit_archive_manifest.v1"
     @test cache_record.archive_manifest.source_path == cache_path
     @test cache_record.archive_manifest.content_hash == cache_record.artifact_content_hash
+    reproduction_manifest = fit_reproduction_manifest(result;
+        artifact = compact_artifact,
+        source_path = "memory://compact_artifact",
+        cache_record,
+        cache_path,
+        report_bundle_manifest = bundle_manifest,
+        report_bundle_path = bundle_dir)
+    @test reproduction_manifest.status === :ready
+    @test reproduction_manifest.n_ready_required_paths == 2
+    @test isempty(reproduction_manifest.missing_required_paths)
+    @test reproduction_manifest.full_rerun.status === :ready
+    @test reproduction_manifest.full_rerun.content_hash ==
+        compact_artifact.content_hash
+    @test reproduction_manifest.fast_cached_draws.status === :ready
+    @test reproduction_manifest.fast_cached_draws.cache_key == cache_key
+    @test reproduction_manifest.fast_cached_draws.content_hash ==
+        cache_record.artifact_content_hash
+    @test reproduction_manifest.fast_cached_draws.source_path == cache_path
+    @test reproduction_manifest.review_bundle.status === :ready
+    @test reproduction_manifest.review_bundle.content_hash ==
+        bundle_manifest.content_hash
+    @test reproduction_manifest.content_hash.value ==
+        artifact_content_hash(reproduction_manifest)
     loaded_fit = load_fit_cache(cache_path; expected_cache_key = cache_key)
     @test loaded_fit isa MFRMFit
     @test loaded_fit.draws == result.draws

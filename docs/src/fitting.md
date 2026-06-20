@@ -265,6 +265,12 @@ controls, RNG seed metadata, posterior summaries, selected diagnostic
 thresholds, optional draws, optional environment/package metadata, a stable
 [`artifact_content_hash`](@ref), and an embedded [`fit_archive_manifest`](@ref)
 for long-term export checks.
+[`fit_reproduction_manifest`](@ref) combines that full-rerun artifact with a
+hash-verified fit-cache record from [`save_fit_cache`](@ref) or
+[`cached_fit`](@ref), treating full rerun and fast cached-draw reproduction as
+separate required paths. It can also attach a fit-report bundle manifest for
+review exports, while explicitly recording that no publication or registration
+action is performed.
 `fit_report` is the lighter report-facing bundle: it combines metadata,
 manifest, diagnostics, posterior summaries, posterior predictive summaries,
 calibration rows, WAIC/LOO summaries and diagnostics, optional DFF rows, and

@@ -6241,6 +6241,245 @@ function fit_archive_manifest(fit;
     return fit_archive_manifest(fit_artifact_value; label, source_path)
 end
 
+function _reproduction_artifact_policy_value(policy, field::Symbol)
+    value = _report_lookup(policy, field, _FIT_REPORT_LOOKUP_MISSING)
+    value !== _FIT_REPORT_LOOKUP_MISSING[] && return _report_symbol_value(value)
+    return missing
+end
+
+function _fit_reproduction_full_rerun_path(artifact, archive_manifest)
+    reproducibility =
+        _report_lookup(artifact, :reproducibility, NamedTuple())
+    artifact_policy =
+        _report_lookup(reproducibility, :artifact_policy, NamedTuple())
+    rng_record = _report_lookup(reproducibility, :rng, NamedTuple())
+    replayable = _report_lookup(reproducibility, :replayable_rng, false)
+    manifest_summary = _report_lookup(archive_manifest, :manifest, NamedTuple())
+    content_hash = _report_lookup(archive_manifest, :content_hash, missing)
+    return (;
+        path = :full_rerun,
+        status = replayable === true ? :ready : :not_replayable,
+        evidence = :fit_artifact,
+        artifact_schema = _report_lookup(artifact, :schema, missing),
+        artifact_object = _report_symbol_value(_report_lookup(artifact, :object, missing)),
+        content_hash,
+        archive_manifest_schema = _report_lookup(archive_manifest, :schema, missing),
+        replayable_rng = replayable === true,
+        rng_algorithm = _report_symbol_value(_report_lookup(rng_record, :algorithm, missing)),
+        rng_seed = _report_lookup(rng_record, :seed, missing),
+        data_signature = _report_lookup(manifest_summary, :data_signature, missing),
+        n_draws = _report_lookup(manifest_summary, :n_draws, missing),
+        n_chains = _report_lookup(manifest_summary, :n_chains, missing),
+        backend = _report_symbol_value(_report_lookup(manifest_summary, :backend, missing)),
+        sampler = _report_symbol_value(_report_lookup(manifest_summary, :sampler, missing)),
+        diagnostic_flag =
+            _report_symbol_value(_report_lookup(manifest_summary, :diagnostic_flag, missing)),
+        draws = _reproduction_artifact_policy_value(artifact_policy, :draws),
+        raw_draws = _reproduction_artifact_policy_value(artifact_policy, :raw_draws),
+        direct_draws = _reproduction_artifact_policy_value(artifact_policy, :direct_draws),
+        log_posterior =
+            _reproduction_artifact_policy_value(artifact_policy, :log_posterior),
+        sampler_stats =
+            _reproduction_artifact_policy_value(artifact_policy, :sampler_stats),
+        environment =
+            _reproduction_artifact_policy_value(artifact_policy, :environment),
+        package_status =
+            _reproduction_artifact_policy_value(artifact_policy, :package_status),
+    )
+end
+
+function _fit_reproduction_cache_path(cache_record, cache_path, verify_cache_hash::Bool)
+    cache_record === nothing && return (;
+        path = :fast_cached_draws,
+        status = :not_provided,
+        evidence = :fit_cache,
+        source_path = cache_path === nothing ? missing : String(cache_path),
+        cache_key = missing,
+        content_hash = missing,
+        serialization = missing,
+        n_draws = missing,
+        backend = missing,
+        sampler = missing,
+    )
+    cache_record isa NamedTuple ||
+        throw(ArgumentError("cache_record must be a fit-cache NamedTuple returned by save_fit_cache, load_fit_cache(...; return_record = true), or cached_fit(...; return_record = true)"))
+    context = cache_path === nothing ? "provided fit cache record" : String(cache_path)
+    _check_fit_cache_record(cache_record, context)
+    verify_cache_hash && _verify_fit_cache_record(cache_record, context)
+    source_path = cache_path === nothing ?
+        _nt_get(_nt_get(cache_record, :archive_manifest, NamedTuple()),
+            :source_path, missing) :
+        String(cache_path)
+    artifact_summary =
+        _manifest_archive_summary(_nt_get(cache_record, :artifact, NamedTuple()))
+    return (;
+        path = :fast_cached_draws,
+        status = :ready,
+        evidence = :fit_cache,
+        source_path,
+        cache_schema = _nt_get(cache_record, :schema, missing),
+        cache_object = _nt_get(cache_record, :object, missing),
+        cache_key = _nt_get(cache_record, :cache_key, missing),
+        content_hash = _nt_get(cache_record, :artifact_content_hash, missing),
+        archive_manifest_schema =
+            _nt_get(_nt_get(cache_record, :archive_manifest, NamedTuple()),
+                :schema, missing),
+        serialization = _nt_get(cache_record, :serialization, missing),
+        n_draws = _nt_get(artifact_summary, :n_draws, missing),
+        n_chains = _nt_get(artifact_summary, :n_chains, missing),
+        backend = _nt_get(artifact_summary, :backend, missing),
+        sampler = _nt_get(artifact_summary, :sampler, missing),
+        diagnostic_flag = _nt_get(artifact_summary, :diagnostic_flag, missing),
+    )
+end
+
+function _fit_reproduction_report_bundle_path(report_bundle_manifest,
+        report_bundle_path)
+    report_bundle_manifest === nothing && return (;
+        path = :review_bundle,
+        status = :not_provided,
+        evidence = :fit_report_bundle,
+        source_path = report_bundle_path === nothing ? missing : String(report_bundle_path),
+        content_hash = missing,
+        n_tables = missing,
+        n_rows = missing,
+    )
+    return (;
+        path = :review_bundle,
+        status = :ready,
+        evidence = :fit_report_bundle,
+        source_path = report_bundle_path === nothing ? missing : String(report_bundle_path),
+        bundle_schema = _report_lookup(report_bundle_manifest, :schema, missing),
+        bundle_object =
+            _report_symbol_value(_report_lookup(report_bundle_manifest, :object, missing)),
+        content_hash = _report_lookup(report_bundle_manifest, :content_hash, missing),
+        n_tables = _report_lookup(report_bundle_manifest, :n_tables, missing),
+        n_rows = _report_lookup(report_bundle_manifest, :n_rows, missing),
+    )
+end
+
+function _fit_reproduction_missing_required_paths(paths)
+    missing_paths = Symbol[]
+    for path in paths
+        _report_lookup(path, :status, missing) === :ready && continue
+        push!(missing_paths, _report_lookup(path, :path, :unknown))
+    end
+    return Tuple(missing_paths)
+end
+
+function _fit_reproduction_manifest_payload(fit;
+        label,
+        artifact,
+        source_path,
+        cache_record,
+        cache_path,
+        report_bundle_manifest,
+        report_bundle_path,
+        verify_cache_hash::Bool,
+        include_draws::Bool,
+        include_log_posterior::Bool,
+        include_sampler_stats::Bool,
+        include_environment::Bool,
+        include_packages::Bool,
+        split_chains::Bool,
+        rhat_threshold::Real,
+        ess_threshold::Real)
+    fit_artifact_value = artifact === nothing ?
+        fit_artifact(fit;
+            include_draws,
+            include_log_posterior,
+            include_sampler_stats,
+            include_environment,
+            include_packages,
+            split_chains,
+            rhat_threshold,
+            ess_threshold) :
+        artifact
+    archive_manifest = fit_archive_manifest(fit_artifact_value;
+        label = label === nothing ? :fit_reproduction_full_rerun : label,
+        source_path)
+    full_rerun = _fit_reproduction_full_rerun_path(
+        fit_artifact_value, archive_manifest)
+    fast_cached_draws = _fit_reproduction_cache_path(
+        cache_record, cache_path, verify_cache_hash)
+    review_bundle = _fit_reproduction_report_bundle_path(
+        report_bundle_manifest, report_bundle_path)
+    missing_required_paths =
+        _fit_reproduction_missing_required_paths((full_rerun, fast_cached_draws))
+    status = isempty(missing_required_paths) ? :ready : :incomplete
+    return (;
+        schema = "bayesianmgmfrm.fit_reproduction_manifest.v1",
+        object = :fit_reproduction_manifest,
+        created_at = string(now()),
+        label = label === nothing ? missing : label,
+        status,
+        family = _report_symbol_value(_report_lookup(fit_metadata(fit), :family, missing)),
+        required_paths = (:full_rerun, :fast_cached_draws),
+        optional_paths = (:review_bundle,),
+        missing_required_paths,
+        n_ready_required_paths = 2 - length(missing_required_paths),
+        publication_or_registration_action = false,
+        manuscript_claims_allowed = false,
+        next_gate = :manual_publication_or_registration_by_user_only,
+        full_rerun,
+        fast_cached_draws,
+        review_bundle,
+        archive_manifest,
+    )
+end
+
+"""
+    fit_reproduction_manifest(fit; cache_record = nothing, cache_path = nothing,
+        report_bundle_manifest = nothing, report_bundle_path = nothing,
+        artifact = nothing, verify_cache_hash = true, kwargs...)
+
+Build a machine-readable reproduction manifest for a fitted object. The
+manifest treats full rerun evidence and fast cached-draw evidence as separate
+required paths: full rerun is ready only when the fit artifact records a
+replayable RNG seed and sampler controls, while fast cached draws are ready only
+when a hash-verified fit-cache record is supplied. Optional fit-report bundle
+metadata can be attached for review exports. The manifest does not perform
+publication or registration actions.
+"""
+function fit_reproduction_manifest(fit::_ModelComparisonFit;
+        label = nothing,
+        artifact = nothing,
+        source_path = nothing,
+        cache_record = nothing,
+        cache_path = nothing,
+        report_bundle_manifest = nothing,
+        report_bundle_path = nothing,
+        verify_cache_hash::Bool = true,
+        include_draws::Bool = false,
+        include_log_posterior::Bool = include_draws,
+        include_sampler_stats::Bool = false,
+        include_environment::Bool = true,
+        include_packages::Bool = false,
+        split_chains::Bool = true,
+        rhat_threshold::Real = 1.01,
+        ess_threshold::Real = 400)
+    payload = _fit_reproduction_manifest_payload(fit;
+        label,
+        artifact,
+        source_path,
+        cache_record,
+        cache_path,
+        report_bundle_manifest,
+        report_bundle_path,
+        verify_cache_hash,
+        include_draws,
+        include_log_posterior,
+        include_sampler_stats,
+        include_environment,
+        include_packages,
+        split_chains,
+        rhat_threshold,
+        ess_threshold)
+    return merge(payload, (;
+        content_hash = _artifact_content_hash_record(payload),
+    ))
+end
+
 function _prior_cache_record(prior::MFRMPrior)
     return (;
         person_sd = prior.person_sd,

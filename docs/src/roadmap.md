@@ -424,7 +424,9 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   supplied repeated timings with median/IQR elapsed time, ESS/sec,
   time-to-quality threshold checks, and Stan/Julia ratio rows. They do not run
   benchmarks.
-- Archive full and fast reproduction artifacts.
+- Archive full and fast reproduction artifacts. [`fit_reproduction_manifest`](@ref)
+  now audits full rerun and fast cached-draw paths together for the current fit
+  artifact/cache/report-bundle surface.
 
 ## Next 30-45 Days
 
