@@ -68,6 +68,8 @@
   docs, and runnable minimal/guarded MGMFRM examples.
 - Document and test `artifact_content_hash` verification for `fit_report`
   bundles as well as fit artifacts.
+- Add `save_fit_report` and `load_fit_report` for JSON fit-report export
+  records with verified JSON-payload hashes.
 - Add `scripts/generate_validation_plan.jl`, a deterministic validation-plan
   artifact generator that records simulation-grid controls, coverage summaries,
   falsification-rule coverage, and content hashes without running simulations or

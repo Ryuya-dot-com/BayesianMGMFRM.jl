@@ -245,6 +245,10 @@ Current public API:
   artifact provenance. Reports can be verified with `artifact_content_hash`.
   Section-level errors are captured by default so short validation fits can
   still produce partial reports.
+- `save_fit_report` and `load_fit_report`: JSON export and verified reload
+  helpers for fit-report bundles. Exports include the original report content
+  hash and a JSON-payload hash so downstream review files can be checked without
+  relying on Julia `Serialization`.
 - `cached_fit`, `fit_cache_key`, `save_fit_cache`, and `load_fit_cache`:
   RDS-like serialized fit caches for avoiding recomputation when the
   data/spec/design, prior, sampler controls, seed, Julia version, and

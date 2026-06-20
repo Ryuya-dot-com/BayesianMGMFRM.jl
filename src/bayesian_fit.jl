@@ -5,6 +5,7 @@ using SHA
 using Serialization
 import AdvancedHMC
 import ForwardDiff
+import JSON3
 import LogDensityProblems
 import LogDensityProblemsAD
 import Turing
@@ -4159,6 +4160,194 @@ function fit_report(fit::_ModelComparisonFit;
         dff,
         artifact,
     )
+end
+
+function _json_export_array(value::AbstractArray)
+    if ndims(value) == 1
+        return [_json_export_value(item) for item in value]
+    elseif ndims(value) == 2
+        return [[_json_export_value(value[i, j]) for j in axes(value, 2)]
+                for i in axes(value, 1)]
+    end
+    return Dict{String,Any}(
+        "shape" => collect(size(value)),
+        "values" => [_json_export_value(item) for item in vec(value)],
+    )
+end
+
+function _json_export_number(value::Number)
+    if value isa AbstractFloat
+        return isfinite(value) ? Float64(value) : string(value)
+    elseif value isa Integer
+        return value
+    elseif value isa Real
+        return isfinite(value) ? Float64(value) : string(value)
+    end
+    return string(value)
+end
+
+function _json_export_value(value)
+    if value isa NamedTuple
+        return Dict{String,Any}(
+            String(name) => _json_export_value(getproperty(value, name))
+            for name in keys(value)
+        )
+    elseif value isa AbstractDict
+        return Dict{String,Any}(
+            string(key) => _json_export_value(item)
+            for (key, item) in value
+        )
+    elseif value isa Tuple
+        return [_json_export_value(item) for item in value]
+    elseif value isa AbstractArray
+        return _json_export_array(value)
+    elseif value isa Symbol
+        return String(value)
+    elseif value isa AbstractString
+        return String(value)
+    elseif value === missing || value === nothing
+        return nothing
+    elseif value isa Bool
+        return value
+    elseif value isa Number
+        return _json_export_number(value)
+    end
+    return string(value)
+end
+
+function _json_hash_value(value)
+    if value isa NamedTuple
+        return NamedTuple{keys(value)}(
+            Tuple(_json_hash_value(getproperty(value, name)) for name in keys(value)),
+        )
+    elseif value isa AbstractDict
+        return Dict{Any,Any}(
+            key => _json_hash_value(item)
+            for (key, item) in value
+        )
+    elseif value isa Tuple
+        return map(_json_hash_value, value)
+    elseif value isa AbstractArray
+        return [_json_hash_value(item) for item in value]
+    elseif value isa Bool
+        return value
+    elseif value isa Real
+        return isfinite(value) ? Float64(value) : string(value)
+    elseif value isa Number
+        return string(value)
+    end
+    return value
+end
+
+function _fit_report_json_hash_record(payload)
+    hash_payload = _json_hash_value(_artifact_hash_payload(payload))
+    canonical = _cache_stable_string(hash_payload)
+    return (;
+        algorithm = :sha256,
+        value = bytes2hex(sha256(codeunits(canonical))),
+        scope = :json_report_without_hash_metadata,
+        canonicalization = :cache_stable_string,
+        n_canonical_bytes = sizeof(canonical),
+    )
+end
+
+function _fit_report_export_record(report::NamedTuple;
+        label = nothing,
+        source_path = nothing)
+    json_report = _json_export_value(report)
+    return (;
+        schema = "bayesianmgmfrm.fit_report_export.v1",
+        object = :fit_report_export,
+        created_at = string(now()),
+        label = label === nothing ? missing : label,
+        source_path = source_path === nothing ? missing : String(source_path),
+        serialization = (;
+            format = :json,
+            writer = :JSON3,
+            portability = :cross_tool_json_payload,
+            missing_values = :json_null,
+            nonfinite_numbers = :string,
+        ),
+        report_schema = _nt_get(report, :schema, missing),
+        report_object = _nt_get(report, :object, missing),
+        report_content_hash = _artifact_content_hash_record(report),
+        json_content_hash = _fit_report_json_hash_record(json_report),
+        report = json_report,
+    )
+end
+
+"""
+    save_fit_report(path, report; overwrite = false, label = nothing)
+    save_fit_report(path, fit; overwrite = false, label = nothing, kwargs...)
+
+Write a `fit_report` bundle to a JSON export record at `path`. Passing a fit
+object first builds `fit_report(fit; kwargs...)`. The saved record includes the
+original report content hash and a JSON-payload hash that [`load_fit_report`](@ref)
+verifies by default.
+"""
+function save_fit_report(path::AbstractString,
+        report::NamedTuple;
+        overwrite::Bool = false,
+        label = nothing)
+    isfile(path) && !overwrite &&
+        throw(ArgumentError("fit report export already exists at $path; pass overwrite = true to replace it"))
+    record = _fit_report_export_record(report;
+        label,
+        source_path = path)
+    mkpath(dirname(path))
+    open(path, "w") do io
+        JSON3.write(io, _json_export_value(record))
+        write(io, "\n")
+    end
+    return record
+end
+
+function save_fit_report(path::AbstractString,
+        fit::_ModelComparisonFit;
+        overwrite::Bool = false,
+        label = nothing,
+        kwargs...)
+    report = fit_report(fit; kwargs...)
+    return save_fit_report(path, report; overwrite = overwrite, label = label)
+end
+
+function _check_fit_report_export_record(record, path)
+    record isa AbstractDict ||
+        throw(ArgumentError("fit report export at $path does not contain a JSON object"))
+    get(record, "schema", nothing) == "bayesianmgmfrm.fit_report_export.v1" ||
+        throw(ArgumentError("fit report export at $path has an unsupported schema"))
+    get(record, "report", nothing) isa AbstractDict ||
+        throw(ArgumentError("fit report export at $path does not contain a report object"))
+    get(record, "json_content_hash", nothing) isa AbstractDict ||
+        throw(ArgumentError("fit report export at $path does not contain a JSON content hash"))
+    return record
+end
+
+function _verify_fit_report_export_record(record, path)
+    expected = get(record["json_content_hash"], "value", nothing)
+    actual = _fit_report_json_hash_record(record["report"]).value
+    isequal(expected, actual) ||
+        throw(ArgumentError("fit report export content hash mismatch for $path"))
+    return record
+end
+
+"""
+    load_fit_report(path; verify_hash = true, return_record = false)
+
+Load a JSON fit-report export written by [`save_fit_report`](@ref). The JSON
+payload hash is verified by default. The report payload is returned as
+`Dict{String,Any}` / `Vector{Any}` data; set `return_record = true` to inspect
+the export metadata and hash records as well.
+"""
+function load_fit_report(path::AbstractString;
+        verify_hash::Bool = true,
+        return_record::Bool = false)
+    isfile(path) ||
+        throw(ArgumentError("fit report export does not exist at $path"))
+    record = JSON3.read(read(path, String), Dict{String,Any})
+    record = _check_fit_report_export_record(record, path)
+    verify_hash && _verify_fit_report_export_record(record, path)
+    return return_record ? record : record["report"]
 end
 
 function _cache_stable_write(io::IO, value)

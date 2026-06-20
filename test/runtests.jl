@@ -94,8 +94,10 @@ using BayesianMGMFRM:
     rater_overlap,
     residual_summary,
     load_fit_cache,
+    load_fit_report,
     sampler_diagnostics,
     save_fit_cache,
+    save_fit_report,
     simulation_grid,
     simulation_grid_summary,
     simulate_responses,
@@ -6238,8 +6240,8 @@ end
             :predictive_check_summary, :predictive_check_plot_data, :predictive_probabilities,
             :predictive_residuals, :predictive_variances,
             :prior_predict, :prior_predictive_check,
-            :load_fit_cache, :rater_diagnostics, :rater_overlap, :residual_summary,
-            :sampler_diagnostics, :save_fit_cache,
+            :load_fit_cache, :load_fit_report, :rater_diagnostics, :rater_overlap,
+            :residual_summary, :sampler_diagnostics, :save_fit_cache, :save_fit_report,
             :sensitivity_comparison, :sensitivity_comparison_summary,
             :separation_reliability_summary, :simulation_grid,
             :simulation_grid_summary, :simulate_responses,
@@ -10157,6 +10159,43 @@ end
     @test report.posterior_predictive.draw_indices ==
         report.report_policy.resolved_draw_indices
     @test report.report_policy.include_artifact
+    report_dir = mktempdir()
+    report_path = joinpath(report_dir, "minimal_fit_report.json")
+    report_export = save_fit_report(report_path, report)
+    @test isfile(report_path)
+    @test report_export.schema == "bayesianmgmfrm.fit_report_export.v1"
+    @test report_export.object === :fit_report_export
+    @test report_export.report_schema == report.schema
+    @test report_export.report_object === :fit_report
+    @test report_export.report_content_hash.value == report_hash
+    @test report_export.json_content_hash.value ==
+        BayesianMGMFRM._fit_report_json_hash_record(report_export.report).value
+    loaded_report = load_fit_report(report_path)
+    @test loaded_report["schema"] == report.schema
+    @test loaded_report["object"] == "fit_report"
+    @test loaded_report["posterior"]["n_rows"] == report.posterior.n_rows
+    loaded_record = load_fit_report(report_path; return_record = true)
+    @test loaded_record["schema"] == report_export.schema
+    @test loaded_record["json_content_hash"]["value"] == report_export.json_content_hash.value
+    @test_throws ArgumentError save_fit_report(report_path, report)
+
+    convenience_path = joinpath(report_dir, "minimal_fit_report_from_fit.json")
+    convenience_export = save_fit_report(convenience_path, result;
+        include_loo = false,
+        artifact_include_environment = false)
+    @test convenience_export.report["loo"]["status"] == "not_requested"
+    @test load_fit_report(convenience_path)["loo"]["status"] == "not_requested"
+
+    tampered_record = deepcopy(loaded_record)
+    tampered_record["report"]["schema"] = "tampered.fit_report.v1"
+    tampered_path = joinpath(report_dir, "tampered_fit_report.json")
+    open(tampered_path, "w") do io
+        JSON3.write(io, tampered_record)
+        write(io, "\n")
+    end
+    @test_throws ArgumentError load_fit_report(tampered_path)
+    @test load_fit_report(tampered_path; verify_hash = false)["schema"] ==
+        "tampered.fit_report.v1"
 
     too_short_report = fit_report(spec_result;
         artifact_include_environment = false)

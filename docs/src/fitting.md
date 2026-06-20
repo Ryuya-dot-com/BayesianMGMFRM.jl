@@ -266,6 +266,10 @@ so short validation fits can still return a partial report with
 `status = :error` for unavailable sections such as LOO. Pass
 `include_full_artifact = true` only when the embedded compact artifact itself is
 needed.
+Use [`save_fit_report`](@ref) to write a JSON export record for cross-tool
+review. The export stores the original report content hash and a separate
+JSON-payload hash; [`load_fit_report`](@ref) verifies that JSON payload hash by
+default before returning ordinary `Dict{String,Any}` / `Vector{Any}` data.
 `cached_fit` is the RDS-like recomputation guard: it serializes the fitted
 object with Julia's standard `Serialization` format and only reuses the file
 when [`fit_cache_key`](@ref) still matches the current data/spec/design, prior,
