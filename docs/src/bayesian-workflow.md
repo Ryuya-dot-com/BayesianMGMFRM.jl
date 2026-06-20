@@ -2,10 +2,12 @@
 
 The current package exposes the early pieces needed for a Bayesian many-facet
 Rasch workflow, including initial AdvancedHMC/NUTS and Turing/NUTS paths for
-the minimal MFRM/RSM/PCM design. A guarded scalar GMFRM experimental path is
-also available for the one-dimensional rater-discrimination promotion candidate through
-`fit(spec; experimental = true)`. Broader GMFRM/MGMFRM fitting remains planned
-work, but specified-only GMFRM/MGMFRM configs can already be recorded in
+the minimal MFRM/RSM/PCM design. Guarded generalized experimental paths are
+also available through `fit(spec; experimental = true)` for the
+one-dimensional rater-discrimination GMFRM candidate and the fixed-Q
+two-dimensional confirmatory MGMFRM candidate. Broader GMFRM/MGMFRM fitting
+beyond those guarded candidates remains planned work, but specified-only
+GMFRM/MGMFRM configs can already be recorded in
 manifests, constraint tables, and identification declarations.
 `getdesign(spec; preview = true)` can also compile a non-fit-ready parameter
 blueprint for those configurations, so future Bayesian checks can be added
@@ -28,7 +30,8 @@ without changing the data layer.
    `design_row_table(spec; preview = true)`, and
    `linear_predictor_table(spec; preview = true)`. Use
    `fit(spec; experimental = true)` only for the guarded scalar GMFRM
-   rater-discrimination candidate.
+   rater-discrimination candidate or the guarded fixed-Q confirmatory MGMFRM
+   candidate.
 5. Choose weakly informative scales with [`MFRMPrior`](@ref).
 6. For external sampler or AD experiments, build an [`MFRMLogDensity`](@ref)
    target and a deterministic start with [`initial_params`](@ref); use
