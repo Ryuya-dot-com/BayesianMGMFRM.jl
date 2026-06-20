@@ -255,9 +255,9 @@ Current public API:
 - `fit_report_markdown` and `save_fit_report_markdown`: dependency-light
   Markdown review drafts with report metadata, section summaries, table
   previews, and Markdown content hashes.
-- `save_fit_report_bundle`: a one-call directory export that writes the JSON
-  report, JSON table files, Markdown draft, and a bundle manifest with nested
-  content hashes.
+- `save_fit_report_bundle` and `load_fit_report_bundle`: one-call directory
+  exports that write and verify the JSON report, JSON table files, Markdown
+  draft, and a bundle manifest with nested content hashes.
 - `save_fit_report_tables`: a directory export helper that writes each
   `fit_report` row field as a portable JSON table file plus a manifest with
   table filenames, row counts, and content hashes.

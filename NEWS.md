@@ -81,6 +81,8 @@
 - Add `save_fit_report_bundle` for one-call fit-report directories containing
   JSON report exports, table files, Markdown drafts, and a bundle manifest with
   nested content hashes.
+- Add `load_fit_report_bundle` to verify bundle manifests and nested JSON,
+  table-manifest, and Markdown hashes before returning the report payload.
 - Add `scripts/generate_validation_plan.jl`, a deterministic validation-plan
   artifact generator that records simulation-grid controls, coverage summaries,
   falsification-rule coverage, and content hashes without running simulations or

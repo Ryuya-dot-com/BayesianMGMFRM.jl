@@ -145,6 +145,8 @@ report_bundle_manifest = save_fit_report_bundle(report_bundle_dir, loaded_report
 println("Fit report bundle: tables=", report_bundle_manifest.n_tables,
     ", rows=", report_bundle_manifest.n_rows,
     ", dir=", report_bundle_dir)
+loaded_bundle_report = load_fit_report_bundle(report_bundle_dir)
+println("Loaded bundle report: sections=", length(fit_report_sections(loaded_bundle_report)))
 diagnostic_surface = diagnostics(fit_result)
 println("Diagnostic summary: ", compact_row(diagnostic_surface.summary,
     (:flag, :passed, :n_chains, :draws_per_chain, :max_rhat, :min_ess)))
