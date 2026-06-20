@@ -3876,6 +3876,9 @@ function _fit_report_dff(fit::MFRMFit;
         dff_terms,
         dff_interval::Real,
         dff_min_n::Int,
+        dff_expected_score_practical_threshold,
+        dff_logit_practical_threshold,
+        dff_practical_probability_threshold::Real,
         ndraws,
         draw_indices,
         rng::AbstractRNG,
@@ -3886,6 +3889,10 @@ function _fit_report_dff(fit::MFRMFit;
             terms = dff_terms,
             interval = dff_interval,
             min_n = dff_min_n,
+            expected_score_practical_threshold =
+                dff_expected_score_practical_threshold,
+            logit_practical_threshold = dff_logit_practical_threshold,
+            practical_probability_threshold = dff_practical_probability_threshold,
             ndraws,
             draw_indices,
             rng)
@@ -3951,6 +3958,9 @@ function fit_report(fit::_ModelComparisonFit;
         dff_terms = :validation,
         dff_interval::Real = 0.95,
         dff_min_n::Int = 1,
+        dff_expected_score_practical_threshold = nothing,
+        dff_logit_practical_threshold = nothing,
+        dff_practical_probability_threshold::Real = 0.8,
         include_artifact::Bool = true,
         include_full_artifact::Bool = false,
         artifact_include_draws::Bool = false,
@@ -3971,6 +3981,16 @@ function fit_report(fit::_ModelComparisonFit;
     metadata = fit_metadata(fit)
     report_draw_indices = ndraws === nothing && draw_indices === nothing ?
         nothing : _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    checked_dff_expected_score_practical_threshold = _dff_practical_threshold(
+        dff_expected_score_practical_threshold,
+        "dff_expected_score_practical_threshold",
+    )
+    checked_dff_logit_practical_threshold = _dff_practical_threshold(
+        dff_logit_practical_threshold,
+        "dff_logit_practical_threshold",
+    )
+    checked_dff_practical_probability_threshold =
+        _dff_practical_probability_threshold(dff_practical_probability_threshold)
 
     posterior = _fit_report_section(checked_on_error) do
         rows = posterior_summary(fit;
@@ -4087,6 +4107,12 @@ function fit_report(fit::_ModelComparisonFit;
         dff_terms,
         dff_interval,
         dff_min_n,
+        dff_expected_score_practical_threshold =
+            checked_dff_expected_score_practical_threshold,
+        dff_logit_practical_threshold =
+            checked_dff_logit_practical_threshold,
+        dff_practical_probability_threshold =
+            checked_dff_practical_probability_threshold,
         ndraws = nothing,
         draw_indices = report_draw_indices,
         rng,
@@ -4143,6 +4169,15 @@ function fit_report(fit::_ModelComparisonFit;
             loo_tail_fraction = Float64(loo_tail_fraction),
             loo_min_tail_draws,
             include_dff,
+            dff_terms,
+            dff_interval = Float64(dff_interval),
+            dff_min_n,
+            dff_expected_score_practical_threshold =
+                checked_dff_expected_score_practical_threshold,
+            dff_logit_practical_threshold =
+                checked_dff_logit_practical_threshold,
+            dff_practical_probability_threshold =
+                checked_dff_practical_probability_threshold,
             include_artifact,
             include_full_artifact,
             on_section_error = checked_on_error,
@@ -10639,6 +10674,67 @@ function _dff_interval_excludes_zero(summary)
         (summary.lower > 0 || summary.upper < 0)
 end
 
+function _dff_practical_threshold(value, name::AbstractString)
+    value === nothing && return nothing
+    value isa Real ||
+        throw(ArgumentError("$name must be nothing or a finite non-negative number"))
+    checked = Float64(value)
+    isfinite(checked) && checked >= 0 ||
+        throw(ArgumentError("$name must be nothing or a finite non-negative number"))
+    return checked
+end
+
+function _dff_practical_probability_threshold(value::Real)
+    checked = Float64(value)
+    isfinite(checked) && 0 < checked <= 1 ||
+        throw(ArgumentError("practical_probability_threshold must be finite and in (0, 1]"))
+    return checked
+end
+
+function _dff_practical_magnitude_summary(values::AbstractVector{<:Real},
+        threshold,
+        probability_threshold::Float64)
+    threshold === nothing && return (;
+        practical_threshold = nothing,
+        probability_practically_positive = nothing,
+        probability_practically_negative = nothing,
+        probability_practically_negligible = nothing,
+        probability_practically_large = nothing,
+        practical_magnitude = :not_requested,
+    )
+
+    finite = [Float64(value) for value in values if isfinite(value)]
+    if isempty(finite)
+        return (;
+            practical_threshold = threshold,
+            probability_practically_positive = NaN,
+            probability_practically_negative = NaN,
+            probability_practically_negligible = NaN,
+            probability_practically_large = NaN,
+            practical_magnitude = :not_estimable,
+        )
+    end
+
+    n = length(finite)
+    positive = count(>(threshold), finite) / n
+    negative = count(<(-threshold), finite) / n
+    negligible = count(value -> -threshold <= value <= threshold, finite) / n
+    large = positive + negative
+    practical_magnitude =
+        positive >= probability_threshold ? :practically_positive :
+        negative >= probability_threshold ? :practically_negative :
+        negligible >= probability_threshold ? :practically_negligible :
+        :mixed
+    return (;
+        practical_threshold = threshold,
+        probability_practically_positive = positive,
+        probability_practically_negative = negative,
+        probability_practically_negligible = negligible,
+        probability_practically_large = large,
+        practical_magnitude,
+    )
+end
+
 function _dff_cell_flag(n_observations::Int,
         min_n::Int,
         expected_score_dff_summary,
@@ -10660,7 +10756,10 @@ function _dff_report_rows_for_term(design::FacetDesign,
         interval::Real,
         lower_probability::Float64,
         upper_probability::Float64,
-        min_n::Int)
+        min_n::Int,
+        expected_score_practical_threshold,
+        logit_practical_threshold,
+        practical_probability_threshold::Float64)
     data = design.spec.data
     focal_facet, comparison_facet = term
     focal_index, focal_levels = _fit_stat_groups(data, focal_facet)
@@ -10731,6 +10830,16 @@ function _dff_report_rows_for_term(design::FacetDesign,
             lower_probability,
             upper_probability,
         )
+        expected_score_practical_summary = _dff_practical_magnitude_summary(
+            expected_score_dff,
+            expected_score_practical_threshold,
+            practical_probability_threshold,
+        )
+        logit_practical_summary = _dff_practical_magnitude_summary(
+            logit_dff,
+            logit_practical_threshold,
+            practical_probability_threshold,
+        )
         n_observations = length(observations)
         expected_score_dff_interval_excludes_zero =
             _dff_interval_excludes_zero(expected_score_dff_summary)
@@ -10779,6 +10888,31 @@ function _dff_report_rows_for_term(design::FacetDesign,
             logit_dff_upper = logit_dff_summary.upper,
             expected_score_dff_interval_excludes_zero,
             logit_dff_interval_excludes_zero,
+            practical_probability_threshold,
+            expected_score_dff_practical_threshold =
+                expected_score_practical_summary.practical_threshold,
+            expected_score_dff_probability_practically_positive =
+                expected_score_practical_summary.probability_practically_positive,
+            expected_score_dff_probability_practically_negative =
+                expected_score_practical_summary.probability_practically_negative,
+            expected_score_dff_probability_practically_negligible =
+                expected_score_practical_summary.probability_practically_negligible,
+            expected_score_dff_probability_practically_large =
+                expected_score_practical_summary.probability_practically_large,
+            expected_score_dff_practical_magnitude =
+                expected_score_practical_summary.practical_magnitude,
+            logit_dff_practical_threshold =
+                logit_practical_summary.practical_threshold,
+            logit_dff_probability_practically_positive =
+                logit_practical_summary.probability_practically_positive,
+            logit_dff_probability_practically_negative =
+                logit_practical_summary.probability_practically_negative,
+            logit_dff_probability_practically_negligible =
+                logit_practical_summary.probability_practically_negligible,
+            logit_dff_probability_practically_large =
+                logit_practical_summary.probability_practically_large,
+            logit_dff_practical_magnitude =
+                logit_practical_summary.practical_magnitude,
             validation_status,
             caveat = :dff_screening_not_fitted_dff_effect,
             flag = _dff_cell_flag(
@@ -10794,10 +10928,15 @@ end
 
 """
     dff_report(fit::MFRMFit; terms = :validation, interval = 0.95,
-        min_n = 1, ndraws = nothing, draw_indices = nothing,
-        rng = Random.default_rng())
+        min_n = 1, expected_score_practical_threshold = nothing,
+        logit_practical_threshold = nothing,
+        practical_probability_threshold = 0.8, ndraws = nothing,
+        draw_indices = nothing, rng = Random.default_rng())
     dff_report(design::FacetDesign, draws; terms = :validation,
-        interval = 0.95, min_n = 1)
+        interval = 0.95, min_n = 1,
+        expected_score_practical_threshold = nothing,
+        logit_practical_threshold = nothing,
+        practical_probability_threshold = 0.8)
 
 Return screening rows for declared or ad hoc differential facet functioning
 (DFF) terms. The default `terms = :validation` uses DFF/bias terms retained in
@@ -10805,6 +10944,14 @@ the `FacetSpec` by `mfrm_spec(...; bias = ...)` or a matching validation
 report. Each row is one cell of a two-facet term and reports observed mean
 score, posterior expected-score residuals, and a two-way interaction residual
 on both expected-score and local logit-approximation scales.
+
+Pass `expected_score_practical_threshold` and/or `logit_practical_threshold`
+to add estimand-specific practical-magnitude probabilities and classification.
+Rows classify a DFF contrast as `:practically_positive`,
+`:practically_negative`, `:practically_negligible`, or `:mixed` when the
+corresponding posterior probability is at least
+`practical_probability_threshold`; otherwise the practical-magnitude status is
+`:not_requested`.
 
 These rows are not fitted DFF model effects. The logit scale is a local
 screening approximation that divides expected-score residuals by posterior
@@ -10815,10 +10962,23 @@ function dff_report(design::FacetDesign,
         draws::AbstractMatrix;
         terms = :validation,
         interval::Real = 0.95,
-        min_n::Int = 1)
+        min_n::Int = 1,
+        expected_score_practical_threshold = nothing,
+        logit_practical_threshold = nothing,
+        practical_probability_threshold::Real = 0.8)
     _check_fit_supported_mfrm(design, "dff_report")
     min_n >= 1 || throw(ArgumentError("min_n must be positive"))
     lower_probability, upper_probability = _interval_probabilities(interval)
+    checked_expected_score_threshold = _dff_practical_threshold(
+        expected_score_practical_threshold,
+        "expected_score_practical_threshold",
+    )
+    checked_logit_threshold = _dff_practical_threshold(
+        logit_practical_threshold,
+        "logit_practical_threshold",
+    )
+    checked_practical_probability_threshold =
+        _dff_practical_probability_threshold(practical_probability_threshold)
     requested_terms = _dff_report_terms(design, terms)
     expected = expected_scores(design, draws)
     residuals = predictive_residuals(design, draws)
@@ -10835,6 +10995,11 @@ function dff_report(design::FacetDesign,
             lower_probability,
             upper_probability,
             min_n,
+            expected_score_practical_threshold =
+                checked_expected_score_threshold,
+            logit_practical_threshold = checked_logit_threshold,
+            practical_probability_threshold =
+                checked_practical_probability_threshold,
         ))
     end
     return rows
@@ -10844,6 +11009,9 @@ function dff_report(fit::MFRMFit;
         terms = :validation,
         interval::Real = 0.95,
         min_n::Int = 1,
+        expected_score_practical_threshold = nothing,
+        logit_practical_threshold = nothing,
+        practical_probability_threshold::Real = 0.8,
         ndraws::Union{Nothing,Int} = nothing,
         draw_indices = nothing,
         rng::AbstractRNG = Random.default_rng())
@@ -10851,7 +11019,10 @@ function dff_report(fit::MFRMFit;
     return dff_report(fit.design, fit.draws[indices, :];
         terms,
         interval,
-        min_n)
+        min_n,
+        expected_score_practical_threshold,
+        logit_practical_threshold,
+        practical_probability_threshold)
 end
 
 function _check_rater_diagnostic_draws(design::FacetDesign,

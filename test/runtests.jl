@@ -10248,6 +10248,29 @@ end
     @test report.loo.status === :computed
     @test report.loo.stat.criterion === :loo
     @test report.dff.status === :not_requested
+    report_with_dff = fit_report(result;
+        include_posterior_predictive = false,
+        include_calibration = false,
+        include_waic = false,
+        include_loo = false,
+        include_dff = true,
+        dff_terms = (:rater, :item),
+        dff_expected_score_practical_threshold = 0.0,
+        dff_logit_practical_threshold = 0.0,
+        dff_practical_probability_threshold = 0.5,
+        draw_indices = [1, 2],
+        artifact_include_environment = false)
+    @test report_with_dff.dff.status === :computed
+    @test report_with_dff.dff.n_rows ==
+        length(data.rater_levels) * length(data.item_levels)
+    @test report_with_dff.report_policy.dff_terms === (:rater, :item)
+    @test report_with_dff.report_policy.dff_expected_score_practical_threshold == 0.0
+    @test report_with_dff.report_policy.dff_logit_practical_threshold == 0.0
+    @test report_with_dff.report_policy.dff_practical_probability_threshold == 0.5
+    @test all(row -> row.expected_score_dff_practical_threshold == 0.0,
+        report_with_dff.dff.rows)
+    @test all(row -> row.logit_dff_practical_threshold == 0.0,
+        report_with_dff.dff.rows)
     @test report.artifact.status === :computed
     @test report.artifact.schema == compact_artifact.schema
     @test report.artifact.artifact === nothing
@@ -12993,7 +13016,58 @@ end
         (r1_a.expected_score_dff_lower > 0 || r1_a.expected_score_dff_upper < 0)
     @test r1_a.logit_dff_interval_excludes_zero ==
         (r1_a.logit_dff_lower > 0 || r1_a.logit_dff_upper < 0)
+    @test isnothing(r1_a.expected_score_dff_practical_threshold)
+    @test isnothing(r1_a.logit_dff_practical_threshold)
+    @test isnothing(r1_a.expected_score_dff_probability_practically_positive)
+    @test isnothing(r1_a.logit_dff_probability_practically_large)
+    @test r1_a.expected_score_dff_practical_magnitude === :not_requested
+    @test r1_a.logit_dff_practical_magnitude === :not_requested
     @test r1_a.flag in (:ok, :dff_interval_excludes_zero)
+
+    practical_dff = dff_report(grouped_design, result.draws[1:2, :];
+        interval = 0.8,
+        expected_score_practical_threshold = 0.0,
+        logit_practical_threshold = 0.0,
+        practical_probability_threshold = 0.5)
+    practical_r1_a = only(row for row in practical_dff
+        if row.focal_level == "R1" && row.comparison_level == "A")
+    practical_status = function (values, threshold, probability_threshold)
+        positive = count(>(threshold), values) / length(values)
+        negative = count(<(-threshold), values) / length(values)
+        negligible = count(value -> -threshold <= value <= threshold, values) /
+            length(values)
+        status =
+            positive >= probability_threshold ? :practically_positive :
+            negative >= probability_threshold ? :practically_negative :
+            negligible >= probability_threshold ? :practically_negligible :
+            :mixed
+        return (; positive, negative, negligible, large = positive + negative,
+            status)
+    end
+    expected_practical = practical_status(expected_score_dff, 0.0, 0.5)
+    logit_practical = practical_status(logit_dff, 0.0, 0.5)
+    @test practical_r1_a.practical_probability_threshold == 0.5
+    @test practical_r1_a.expected_score_dff_practical_threshold == 0.0
+    @test practical_r1_a.logit_dff_practical_threshold == 0.0
+    @test practical_r1_a.expected_score_dff_probability_practically_positive ≈
+        expected_practical.positive
+    @test practical_r1_a.expected_score_dff_probability_practically_negative ≈
+        expected_practical.negative
+    @test practical_r1_a.expected_score_dff_probability_practically_negligible ≈
+        expected_practical.negligible
+    @test practical_r1_a.expected_score_dff_probability_practically_large ≈
+        expected_practical.large
+    @test practical_r1_a.expected_score_dff_practical_magnitude ===
+        expected_practical.status
+    @test practical_r1_a.logit_dff_probability_practically_positive ≈
+        logit_practical.positive
+    @test practical_r1_a.logit_dff_probability_practically_negative ≈
+        logit_practical.negative
+    @test practical_r1_a.logit_dff_probability_practically_negligible ≈
+        logit_practical.negligible
+    @test practical_r1_a.logit_dff_probability_practically_large ≈
+        logit_practical.large
+    @test practical_r1_a.logit_dff_practical_magnitude === logit_practical.status
 
     sparse_dff = dff_report(grouped_design, result.draws[1:2, :];
         min_n = grouped_data.n + 1)
@@ -13011,6 +13085,12 @@ end
         interval = 1.0)
     @test_throws ArgumentError dff_report(grouped_design, result.draws[1:2, :];
         min_n = 0)
+    @test_throws ArgumentError dff_report(grouped_design, result.draws[1:2, :];
+        expected_score_practical_threshold = -0.1)
+    @test_throws ArgumentError dff_report(grouped_design, result.draws[1:2, :];
+        logit_practical_threshold = Inf)
+    @test_throws ArgumentError dff_report(grouped_design, result.draws[1:2, :];
+        practical_probability_threshold = 1.1)
     @test_throws ArgumentError dff_report(grouped_design, result.draws[1:2, 1:end-1])
 
     replicated = posterior_predict(result; ndraws = 5, rng = MersenneTwister(1234))
