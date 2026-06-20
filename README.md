@@ -328,6 +328,8 @@ Current public API:
   dimensions, and fixed Q-matrix contract.
 - `compare_kfold`: K-fold comparison rows for `kfold` summaries that share the
   same heldout observation order and fold assignment order.
+- `kfold_sensitivity_comparison`: baseline-relative sensitivity rows for
+  supplied K-fold summaries with declared axis values.
 - `comparison_evidence_row` and `comparison_evidence_summary`: declared
   comparison-evidence rows and coverage summaries for faithful Stan/BridgeStan,
   overlapping R/frequentist, and simpler nested-model checks. They record

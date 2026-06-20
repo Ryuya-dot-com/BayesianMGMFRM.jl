@@ -72,6 +72,7 @@ kfold
 kfold_diagnostics
 kfold_plan
 kfold_plan_diagnostics
+kfold_sensitivity_comparison
 loglikelihood
 logposterior
 logprior

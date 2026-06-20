@@ -53,6 +53,7 @@ using BayesianMGMFRM:
     kfold_diagnostics,
     kfold_plan,
     kfold_plan_diagnostics,
+    kfold_sensitivity_comparison,
     ScalarValidationData,
     ScalarValidationAnalyticLogDensity,
     ScalarValidationContrastLogDensity,
@@ -11928,6 +11929,42 @@ end
         [row.model for row in kfold_comparison]
     @test [row.kfoldic for row in named_kfold_comparison] ≈
         [row.kfoldic for row in kfold_comparison]
+    kfold_sensitivity = kfold_sensitivity_comparison(
+        :main => kfold_result,
+        :shifted => shifted_kfold;
+        axis = :thresholds,
+        values = (main = :partial_credit, shifted = :rating_scale),
+        baseline = :main)
+    @test length(kfold_sensitivity) == 2
+    @test [row.model for row in kfold_sensitivity] ==
+        [row.model for row in kfold_comparison]
+    @test all(row -> row.criterion === :kfold, kfold_sensitivity)
+    @test all(row -> row.sensitivity_axis === :thresholds,
+        kfold_sensitivity)
+    @test Set(row.sensitivity_value for row in kfold_sensitivity) ==
+        Set([:partial_credit, :rating_scale])
+    kfold_sensitivity_baseline = only(row for row in kfold_sensitivity
+        if row.model == "main")
+    kfold_sensitivity_candidate = only(row for row in kfold_sensitivity
+        if row.model == "shifted")
+    @test kfold_sensitivity_baseline.is_baseline
+    @test !kfold_sensitivity_candidate.is_baseline
+    @test kfold_sensitivity_candidate.sensitivity_contrast ==
+        (candidate = :rating_scale, baseline = :partial_credit)
+    @test kfold_sensitivity_baseline.elpd_difference_from_baseline ≈ 0.0
+    @test kfold_sensitivity_baseline.information_criterion_difference_from_baseline ≈ 0.0
+    @test kfold_sensitivity_candidate.elpd_difference_from_baseline ≈
+        kfold_sensitivity_candidate.elpd_kfold - kfold_sensitivity_baseline.elpd_kfold
+    @test kfold_sensitivity_candidate.information_criterion_difference_from_baseline ≈
+        kfold_sensitivity_candidate.kfoldic - kfold_sensitivity_baseline.kfoldic
+    model_axis_kfold_sensitivity =
+        kfold_sensitivity_comparison(kfold_result, shifted_kfold;
+            names = [:main, :shifted])
+    @test [row.sensitivity_value for row in model_axis_kfold_sensitivity] ==
+        ["main", "shifted"]
+    @test sensitivity_comparison_summary(
+        NamedTuple[kfold_sensitivity...];
+        required_axes = (:thresholds,)).passed
     mismatched_kfold_observations = kfold(kfold_folds;
         fold_ids = [:fold_a, :fold_b],
         observation_indices = reverse(collect(1:data.n)))
@@ -11954,6 +11991,13 @@ end
     @test_throws ArgumentError compare_kfold(:main => kfold_result,
         :bad => mismatched_kfold_folds)
     @test_throws ArgumentError compare_kfold(:bad => waic_result,
+        :good => kfold_result)
+    @test_throws ArgumentError kfold_sensitivity_comparison(kfold_result)
+    @test_throws ArgumentError kfold_sensitivity_comparison(kfold_result,
+        shifted_kfold; names = [:only])
+    @test_throws ArgumentError kfold_sensitivity_comparison(kfold_result,
+        shifted_kfold; names = [:main, :shifted], axis = :thresholds)
+    @test_throws ArgumentError kfold_sensitivity_comparison(:bad => waic_result,
         :good => kfold_result)
 
     waic_rows = waic_diagnostics(result; draw_indices = [1, 2, 3])
