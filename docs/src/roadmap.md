@@ -340,9 +340,11 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   practical-magnitude rows]
 - Add PSIS-smoothed or exact/K-fold LOO and prior/likelihood sensitivity.
   [Raw importance-sampling LOO and Pareto-k diagnostics are available for the
-  current minimal fit path. `kfold` and [`compare_kfold`](@ref) now summarize
-  supplied heldout refit log-likelihood matrices with same heldout-observation
-  and fold-assignment comparison contracts. Exact LOO refit orchestration and
+  current minimal fit path. [`kfold_plan`](@ref) now constructs deterministic
+  observation-level or grouped heldout fold plans, and `kfold` plus
+  [`compare_kfold`](@ref) summarize supplied heldout refit log-likelihood
+  matrices with same heldout-observation and fold-assignment comparison
+  contracts. Exact LOO refit orchestration, automatic K-fold refitting, and
   PSIS smoothing remain planned.]
 - Add first-class sensitivity comparisons for threshold, discrimination, DFF,
   anchor, dimensionality, and prior choices. [`sensitivity_comparison`](@ref)

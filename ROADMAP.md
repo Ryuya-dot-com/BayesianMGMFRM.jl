@@ -818,10 +818,12 @@ TODO:
   and predictive-check summaries without selecting a plotting backend.
 - [x] Implement PSIS-smoothed or exact/K-fold LOO and dimension-matching
   safeguards. [Raw importance-sampling LOO and Pareto-k diagnostics are
-  available for the current minimal fit path. `kfold` and `compare_kfold`
-  now summarize supplied heldout refit log-likelihood matrices with same
-  heldout-observation and fold-assignment comparison contracts. Exact LOO
-  refit orchestration and PSIS smoothing remain planned.]
+  available for the current minimal fit path. `kfold_plan` now constructs
+  deterministic observation-level or grouped heldout fold plans, and `kfold`
+  plus `compare_kfold` summarize supplied heldout refit log-likelihood
+  matrices with same heldout-observation and fold-assignment comparison
+  contracts. Exact LOO refit orchestration, automatic K-fold refitting, and
+  PSIS smoothing remain planned.]
 - [x] Implement prior/likelihood sensitivity, including power-scaling or an
   equivalent package-native workflow.
 - [x] Implement first-class sensitivity comparisons: RSM vs PCM/GPCM,

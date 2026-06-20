@@ -69,6 +69,7 @@ domain_compilation_summary
 fit_stats
 initial_params
 kfold
+kfold_plan
 loglikelihood
 logposterior
 logprior

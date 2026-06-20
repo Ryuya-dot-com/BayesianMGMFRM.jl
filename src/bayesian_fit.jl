@@ -6852,6 +6852,149 @@ function _kfold_observation_indices(
     return Any[collected...]
 end
 
+function _kfold_plan_group_indices(data::FacetData, group_by::Union{Nothing,Symbol})
+    group_by === nothing && return :observation, collect(1:data.n), collect(1:data.n)
+    group_by === :observation && return :observation, collect(1:data.n), collect(1:data.n)
+    group_by === :person && return :person, data.person, data.person_levels
+    group_by === :rater && return :rater, data.rater, data.rater_levels
+    group_by === :item && return :item, data.item, data.item_levels
+    group_by === :category && return :category, data.category, data.category_levels
+    if haskey(data.optional, group_by)
+        return group_by, data.optional[group_by], data.optional_levels[group_by]
+    end
+    throw(ArgumentError(
+        "group_by = :$group_by is not :observation, a required facet, or an optional facet"))
+end
+
+function _kfold_plan_units(data::FacetData, group_by::Union{Nothing,Symbol})
+    role, unit_indices, levels = _kfold_plan_group_indices(data, group_by)
+    unit_rows = [Int[] for _ in eachindex(levels)]
+    for (observation, unit_index) in pairs(unit_indices)
+        1 <= unit_index <= length(unit_rows) ||
+            throw(ArgumentError(
+                "group_by = :$role produced invalid unit index $unit_index at observation $observation"))
+        push!(unit_rows[unit_index], observation)
+    end
+
+    nonempty = findall(!isempty, unit_rows)
+    isempty(nonempty) &&
+        throw(ArgumentError("K-fold planning requires at least one observation"))
+    return (;
+        group_by = role,
+        rows = [unit_rows[index] for index in nonempty],
+        levels = Any[levels[index] for index in nonempty],
+    )
+end
+
+function _least_loaded_fold_index(fold_observation_counts::AbstractVector{Int})
+    best_index = firstindex(fold_observation_counts)
+    best_count = fold_observation_counts[best_index]
+    for index in Iterators.drop(eachindex(fold_observation_counts), 1)
+        count = fold_observation_counts[index]
+        if count < best_count
+            best_index = index
+            best_count = count
+        end
+    end
+    return best_index
+end
+
+"""
+    kfold_plan(data::FacetData; k, group_by = nothing, shuffle = false,
+        rng = Random.default_rng(), fold_ids = nothing)
+    kfold_plan(spec::FacetSpec; kwargs...)
+    kfold_plan(design::FacetDesign; kwargs...)
+
+Construct deterministic heldout-fold assignments for later K-fold refits. By
+default observations are assigned directly to balanced folds. With
+`group_by = :person`, `:rater`, `:item`, `:category`, or an optional facet such
+as `:group`, all observations for each level are kept in the same heldout fold.
+
+The returned named tuple includes `fold_rows`, `folds`, and
+`heldout_observation_indices`; pass the latter two to [`kfold`](@ref) after
+fitting each training fold and collecting fold-specific heldout log-likelihood
+matrices. This helper builds the fold plan only. It does not refit models.
+"""
+function kfold_plan(data::FacetData;
+        k::Integer,
+        group_by::Union{Nothing,Symbol} = nothing,
+        shuffle::Bool = false,
+        rng::AbstractRNG = Random.default_rng(),
+        fold_ids = nothing)
+    data.n >= 1 || throw(ArgumentError("K-fold planning requires at least one observation"))
+    k_int = Int(k)
+    k_int >= 2 || throw(ArgumentError("K-fold planning requires k >= 2"))
+
+    units = _kfold_plan_units(data, group_by)
+    n_units = length(units.rows)
+    k_int <= n_units ||
+        throw(ArgumentError(
+            "K-fold planning with group_by = :$(units.group_by) has $n_units heldout units; " *
+            "expected at least k = $k_int"))
+
+    checked_fold_ids = _kfold_fold_ids(k_int, fold_ids)
+    unit_order = collect(1:n_units)
+    shuffle && Random.shuffle!(rng, unit_order)
+
+    fold_observation_counts = zeros(Int, k_int)
+    heldout_by_fold = [Int[] for _ in 1:k_int]
+    units_by_fold = [Any[] for _ in 1:k_int]
+    for unit_index in unit_order
+        fold_index = _least_loaded_fold_index(fold_observation_counts)
+        rows = units.rows[unit_index]
+        append!(heldout_by_fold[fold_index], rows)
+        push!(units_by_fold[fold_index], units.levels[unit_index])
+        fold_observation_counts[fold_index] += length(rows)
+    end
+
+    observation_fold = Vector{Any}(undef, data.n)
+    fold_rows = NamedTuple[]
+    all_observations = collect(1:data.n)
+    for fold_index in 1:k_int
+        heldout_observations = sort(heldout_by_fold[fold_index])
+        heldout_set = Set(heldout_observations)
+        training_observations =
+            [observation for observation in all_observations if !(observation in heldout_set)]
+        fold_id = checked_fold_ids[fold_index]
+        for observation in heldout_observations
+            observation_fold[observation] = fold_id
+        end
+        heldout_units = copy(units_by_fold[fold_index])
+        push!(fold_rows, (;
+            fold = fold_id,
+            n_heldout_observations = length(heldout_observations),
+            n_training_observations = length(training_observations),
+            heldout_observations,
+            training_observations,
+            heldout_units,
+            n_heldout_units = length(heldout_units),
+        ))
+    end
+
+    return (;
+        schema = "bayesianmgmfrm.kfold_plan.v1",
+        object = :kfold_plan,
+        method = shuffle ? :randomized_balanced_fold_plan : :deterministic_balanced_fold_plan,
+        comparison_contract = :same_heldout_observation_folds,
+        group_by = units.group_by,
+        k = k_int,
+        n_observations = data.n,
+        n_units,
+        n_folds = k_int,
+        folds = copy(checked_fold_ids),
+        observation_fold,
+        heldout_observation_indices =
+            [copy(row.heldout_observations) for row in fold_rows],
+        n_heldout_by_fold = copy(fold_observation_counts),
+        fold_rows,
+        refits_per_model_required = k_int,
+        warning = :ok,
+    )
+end
+
+kfold_plan(spec::FacetSpec; kwargs...) = kfold_plan(spec.data; kwargs...)
+kfold_plan(design::FacetDesign; kwargs...) = kfold_plan(design.spec.data; kwargs...)
+
 """
     kfold(fold_logliks; fold_ids = nothing, observation_indices = nothing)
     kfold(loglik::AbstractMatrix; fold_ids = nothing, observation_indices = nothing)
@@ -6863,7 +7006,8 @@ fit that fold. The returned named tuple includes `elpd_kfold`, `kfoldic`,
 standard errors, fold sizes, observation identifiers, and pointwise heldout
 components.
 
-This helper does not refit models or build folds. Use it to record exact
+This helper does not refit models. Use [`kfold_plan`](@ref) to construct
+observation or grouped heldout folds, then use `kfold` to record exact
 heldout-refit or K-fold follow-up evidence after fitting each training fold.
 """
 function kfold(fold_logliks::Union{Tuple,AbstractVector};

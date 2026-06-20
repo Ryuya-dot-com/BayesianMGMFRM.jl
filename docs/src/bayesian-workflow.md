@@ -115,11 +115,11 @@ identified design block.
 [`diagnostics`](@ref) combines those rows into a single pass/fail summary and
 includes HMC/NUTS fields when the selected backend produces them. The package
 exposes raw importance-sampling [`loo`](@ref) and [`loo_diagnostics`](@ref)
-with Hill-estimated Pareto-k screening plus supplied heldout-refit
-[`kfold`](@ref) and [`compare_kfold`](@ref) summaries, but it does not yet
-perform PSIS smoothing, exact LOO refits, or refit-managed cross-validation.
-It also does not yet expose grouped cross-validation by person/item,
-power-scaling prior sensitivity, covariate terms, random slopes, broad
+with Hill-estimated Pareto-k screening plus deterministic heldout fold plans
+from [`kfold_plan`](@ref) and supplied heldout-refit [`kfold`](@ref) /
+[`compare_kfold`](@ref) summaries, but it does not yet perform PSIS smoothing,
+exact LOO refits, or refit-managed cross-validation. It also does not yet
+expose power-scaling prior sensitivity, covariate terms, random slopes, broad
 generalized discrimination likelihoods, or MGMFRM fitting beyond the guarded
 fixed-Q confirmatory candidate. Specified-only GMFRM/MGMFRM rows in
 [`constraint_table`](@ref) and
@@ -128,7 +128,7 @@ not fitted likelihood terms.
 
 Until those pieces are added, treat [`waic`](@ref), [`waic_diagnostics`](@ref),
 [`loo`](@ref), [`loo_diagnostics`](@ref), [`kfold`](@ref),
-[`compare_models`](@ref), [`compare_kfold`](@ref),
+[`kfold_plan`](@ref), [`compare_models`](@ref), [`compare_kfold`](@ref),
 [`posterior_predictive_check`](@ref), [`calibration_table`](@ref),
 [`fit_stats`](@ref), and [`rater_diagnostics`](@ref) as small-model workflow
 scaffolding rather than a complete production Bayesian model-comparison stack.
