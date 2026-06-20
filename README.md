@@ -320,6 +320,8 @@ Current public API:
 - `kfold`: heldout K-fold log predictive density summaries from fold-specific
   refit log-likelihood matrices. Pair it with `kfold_plan` to reuse the same
   heldout observation IDs across models; neither helper refits models.
+- `kfold_diagnostics`: observation-level heldout K-fold rows with fold IDs,
+  heldout ELPD/K-fold IC contributions, and facet labels when data are supplied.
 - `compare_models`: WAIC- or raw importance-sampling LOO-based comparison rows,
   including relative weights and model-contract fields, for fitted models that
   share the same observation data, row order, ordinal categories, latent

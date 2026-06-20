@@ -356,11 +356,13 @@ discrimination mode, dimensionality, Q-matrix, and data signature.
 assignments for planned refits. `kfold_plan_diagnostics` checks each fold and
 facet for heldout-only levels before external refits. `kfold` summarizes
 supplied heldout log-likelihood matrices from fold-specific refits, and
-`compare_kfold` ranks those K-fold summaries when the heldout observation order
-and fold assignment order match across models. These helpers record K-fold
-evidence but do not refit models. Use [`facet_response_table`](@ref) with a
-plan row's `training_observations` or `heldout_observations` when a
-role-normalized table is needed for external fold-specific fitting scripts.
+`kfold_diagnostics` returns observation-level heldout rows with fold IDs and
+facet labels when data are supplied. `compare_kfold` ranks those K-fold
+summaries when the heldout observation order and fold assignment order match
+across models. These helpers record K-fold evidence but do not refit models.
+Use [`facet_response_table`](@ref) with a plan row's `training_observations` or
+`heldout_observations` when a role-normalized table is needed for external
+fold-specific fitting scripts.
 `sensitivity_comparison` uses the same WAIC/LOO scoring path with a declared
 sensitivity axis, per-model axis values, a baseline model, and baseline-relative
 ELPD and information-criterion differences for report tables. Direct `compare_models`
