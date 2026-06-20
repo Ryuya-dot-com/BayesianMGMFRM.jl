@@ -51,3 +51,14 @@ default test suite checks them only when the corresponding file exists under
 `test/fixtures/` or when its documented `MFRM_*_FIXTURE` environment variable
 points to a file. If an environment variable is set to a missing path, the test
 suite errors so local evidence jobs cannot silently skip a requested fixture.
+
+The deterministic validation-plan generator:
+
+```bash
+julia --project=. scripts/generate_validation_plan.jl --preset smoke \
+  --output test/fixtures/validation_plan_smoke.json
+```
+
+records simulation-grid controls, coverage summaries, falsification-rule
+coverage, and an artifact content hash. It does not run simulations, fit models,
+or evaluate manuscript claims.

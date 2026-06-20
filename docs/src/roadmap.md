@@ -373,7 +373,10 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   stability. [`simulation_grid`](@ref) and
   [`simulation_grid_summary`](@ref) now predeclare and check the density,
   anchor-size, ratings-per-target, category-pathology, rater-noise, DFF,
-  dimensionality, and misspecification axes.
+  dimensionality, and misspecification axes. `scripts/generate_validation_plan.jl`
+  now turns those controls and the falsification-rule contract into a
+  deterministic JSON plan artifact; it still does not run simulations or fit
+  models.
 - Predeclare falsification conditions for sparse Bayesian MGMFRM claims.
   [`falsification_rules`](@ref) and
   [`falsification_rule_summary`](@ref) now define and check required rule
