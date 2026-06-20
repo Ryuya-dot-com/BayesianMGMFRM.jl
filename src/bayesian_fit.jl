@@ -5074,6 +5074,171 @@ function save_fit_report_bundle(directory::AbstractString,
         include_empty)
 end
 
+function _fit_report_bundle_manifest_path(directory::AbstractString)
+    return joinpath(directory, "manifest.json")
+end
+
+function _read_json_dict(path::AbstractString, label::AbstractString)
+    isfile(path) ||
+        throw(ArgumentError("$label does not exist at $path"))
+    value = JSON3.read(read(path, String), Dict{String,Any})
+    value isa AbstractDict ||
+        throw(ArgumentError("$label at $path does not contain a JSON object"))
+    return value
+end
+
+function _fit_report_hash_value(record, field::Symbol, context::AbstractString)
+    hash_record = _report_lookup(record, field, _FIT_REPORT_LOOKUP_MISSING)
+    hash_record isa AbstractDict ||
+        throw(ArgumentError("$context does not contain $(String(field))"))
+    value = _report_lookup(hash_record, :value, _FIT_REPORT_LOOKUP_MISSING)
+    value isa AbstractString ||
+        throw(ArgumentError("$context does not contain a $(String(field)) value"))
+    return value
+end
+
+function _fit_report_bundle_file_record(manifest, role::Symbol,
+        context::AbstractString)
+    files = _report_lookup(manifest, :files, _FIT_REPORT_LOOKUP_MISSING)
+    files isa AbstractVector ||
+        throw(ArgumentError("$context does not contain bundle file rows"))
+    for file in files
+        file_role = _report_symbol_value(_report_lookup(file, :role, missing))
+        file_role === role && return file
+    end
+    throw(ArgumentError("$context does not contain a $(String(role)) file row"))
+end
+
+function _fit_report_bundle_file_path(directory::AbstractString, file_record,
+        context::AbstractString)
+    path = _report_lookup(file_record, :path, _FIT_REPORT_LOOKUP_MISSING)
+    path isa AbstractString ||
+        throw(ArgumentError("$context file row does not contain a path"))
+    if isabspath(path) || occursin('\\', path) || occursin("\0", path)
+        throw(ArgumentError("$context file row contains an unsafe path: $path"))
+    end
+    parts = split(path, '/')
+    if isempty(parts) || any(part -> isempty(part) || part == "." || part == "..", parts)
+        throw(ArgumentError("$context file row contains an unsafe path: $path"))
+    end
+    return joinpath(directory, parts...)
+end
+
+function _check_fit_report_bundle_manifest(manifest, path)
+    manifest isa AbstractDict ||
+        throw(ArgumentError("fit report bundle manifest at $path does not contain a JSON object"))
+    get(manifest, "schema", nothing) ==
+        "bayesianmgmfrm.fit_report_bundle_export.v1" ||
+        throw(ArgumentError("fit report bundle manifest at $path has an unsupported schema"))
+    _report_symbol_value(get(manifest, "object", nothing)) ===
+        :fit_report_bundle_export ||
+        throw(ArgumentError("fit report bundle manifest at $path has an unsupported object"))
+    _fit_report_hash_value(manifest, :content_hash,
+        "fit report bundle manifest at $path")
+    for role in (:report_json, :table_manifest, :markdown)
+        _fit_report_bundle_file_record(manifest, role,
+            "fit report bundle manifest at $path")
+    end
+    return manifest
+end
+
+function _verify_fit_report_bundle_manifest(manifest,
+        directory::AbstractString,
+        manifest_path::AbstractString)
+    expected_manifest_hash = _fit_report_hash_value(manifest, :content_hash,
+        "fit report bundle manifest at $manifest_path")
+    actual_manifest_hash = _fit_report_bundle_hash_record(manifest).value
+    isequal(expected_manifest_hash, actual_manifest_hash) ||
+        throw(ArgumentError("fit report bundle manifest content hash mismatch for $manifest_path"))
+
+    report_file = _fit_report_bundle_file_record(manifest, :report_json,
+        "fit report bundle manifest at $manifest_path")
+    report_path = _fit_report_bundle_file_path(directory, report_file,
+        "fit report bundle manifest at $manifest_path")
+    report_record = load_fit_report(report_path;
+        verify_hash = true,
+        return_record = true)
+    expected_report_json_hash = _fit_report_hash_value(report_file,
+        :content_hash, "fit report bundle report_json row at $manifest_path")
+    actual_report_json_hash = _fit_report_hash_value(report_record,
+        :json_content_hash, "fit report export at $report_path")
+    isequal(expected_report_json_hash, actual_report_json_hash) ||
+        throw(ArgumentError("fit report bundle report JSON hash mismatch for $report_path"))
+    expected_report_hash = _fit_report_hash_value(manifest,
+        :report_content_hash, "fit report bundle manifest at $manifest_path")
+    actual_report_hash = _fit_report_hash_value(report_record,
+        :report_content_hash, "fit report export at $report_path")
+    isequal(expected_report_hash, actual_report_hash) ||
+        throw(ArgumentError("fit report bundle report content hash mismatch for $report_path"))
+
+    table_file = _fit_report_bundle_file_record(manifest, :table_manifest,
+        "fit report bundle manifest at $manifest_path")
+    table_path = _fit_report_bundle_file_path(directory, table_file,
+        "fit report bundle manifest at $manifest_path")
+    table_manifest = _read_json_dict(table_path, "fit report table manifest")
+    get(table_manifest, "schema", nothing) ==
+        "bayesianmgmfrm.fit_report_table_export.v1" ||
+        throw(ArgumentError("fit report table manifest at $table_path has an unsupported schema"))
+    expected_table_hash = _fit_report_hash_value(table_file, :content_hash,
+        "fit report bundle table_manifest row at $manifest_path")
+    actual_table_hash = _fit_report_hash_value(table_manifest, :content_hash,
+        "fit report table manifest at $table_path")
+    isequal(expected_table_hash, actual_table_hash) ||
+        throw(ArgumentError("fit report bundle table manifest hash mismatch for $table_path"))
+    recomputed_table_hash = _fit_report_table_hash_record(table_manifest;
+        scope = :fit_report_table_export_without_hash_metadata).value
+    isequal(actual_table_hash, recomputed_table_hash) ||
+        throw(ArgumentError("fit report table manifest content hash mismatch for $table_path"))
+
+    markdown_file = _fit_report_bundle_file_record(manifest, :markdown,
+        "fit report bundle manifest at $manifest_path")
+    markdown_path = _fit_report_bundle_file_path(directory, markdown_file,
+        "fit report bundle manifest at $manifest_path")
+    isfile(markdown_path) ||
+        throw(ArgumentError("fit report markdown file does not exist at $markdown_path"))
+    expected_markdown_hash = _fit_report_hash_value(markdown_file,
+        :content_hash, "fit report bundle markdown row at $manifest_path")
+    actual_markdown_hash =
+        _fit_report_markdown_hash_record(read(markdown_path, String)).value
+    isequal(expected_markdown_hash, actual_markdown_hash) ||
+        throw(ArgumentError("fit report bundle markdown hash mismatch for $markdown_path"))
+    return manifest
+end
+
+function _fit_report_bundle_report_path(directory::AbstractString, manifest,
+        manifest_path::AbstractString)
+    report_file = _fit_report_bundle_file_record(manifest, :report_json,
+        "fit report bundle manifest at $manifest_path")
+    return _fit_report_bundle_file_path(directory, report_file,
+        "fit report bundle manifest at $manifest_path")
+end
+
+"""
+    load_fit_report_bundle(directory; verify_hash = true,
+        return_manifest = false)
+
+Load a fit-report bundle written by [`save_fit_report_bundle`](@ref). By
+default this verifies the bundle manifest hash, JSON report export hash, table
+manifest hash, and Markdown content hash before returning the loaded
+`fit_report` payload. Set `return_manifest = true` to inspect the bundle
+manifest instead.
+"""
+function load_fit_report_bundle(directory::AbstractString;
+        verify_hash::Bool = true,
+        return_manifest::Bool = false)
+    isdir(directory) ||
+        throw(ArgumentError("fit report bundle directory does not exist at $directory"))
+    manifest_path = _fit_report_bundle_manifest_path(directory)
+    manifest = _read_json_dict(manifest_path, "fit report bundle manifest")
+    manifest = _check_fit_report_bundle_manifest(manifest, manifest_path)
+    verify_hash &&
+        _verify_fit_report_bundle_manifest(manifest, directory, manifest_path)
+    return_manifest && return manifest
+    report_path = _fit_report_bundle_report_path(directory, manifest,
+        manifest_path)
+    return load_fit_report(report_path; verify_hash)
+end
+
 function _cache_stable_write(io::IO, value)
     if value isa NamedTuple
         print(io, "NamedTuple(")

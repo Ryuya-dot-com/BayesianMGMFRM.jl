@@ -99,6 +99,7 @@ using BayesianMGMFRM:
     residual_summary,
     load_fit_cache,
     load_fit_report,
+    load_fit_report_bundle,
     sampler_diagnostics,
     save_fit_cache,
     save_fit_report,
@@ -6249,7 +6250,8 @@ end
             :prior_predict, :prior_predictive_check,
             :fit_report_markdown, :fit_report_section, :fit_report_sections,
             :fit_report_rows,
-            :load_fit_cache, :load_fit_report, :rater_diagnostics, :rater_overlap,
+            :load_fit_cache, :load_fit_report, :load_fit_report_bundle,
+            :rater_diagnostics, :rater_overlap,
             :residual_summary, :sampler_diagnostics, :save_fit_cache, :save_fit_report,
             :save_fit_report_bundle, :save_fit_report_markdown,
             :save_fit_report_tables,
@@ -10341,6 +10343,14 @@ end
         bundle_manifest_json["files"])
     @test any(file -> file["path"] == "fit_report.md",
         bundle_manifest_json["files"])
+    loaded_bundle_report = load_fit_report_bundle(bundle_dir)
+    @test loaded_bundle_report["schema"] == report.schema
+    @test loaded_bundle_report["posterior"]["n_rows"] == report.posterior.n_rows
+    loaded_bundle_manifest = load_fit_report_bundle(bundle_dir;
+        return_manifest = true)
+    @test loaded_bundle_manifest["schema"] == bundle_manifest.schema
+    @test loaded_bundle_manifest["content_hash"]["value"] ==
+        bundle_manifest.content_hash.value
     @test_throws ArgumentError save_fit_report_bundle(bundle_dir, report)
     loaded_bundle_dir = joinpath(report_dir, "loaded_fit_report_bundle")
     loaded_bundle = save_fit_report_bundle(loaded_bundle_dir, loaded_report;
@@ -10351,6 +10361,33 @@ end
     @test loaded_bundle.report_object === :fit_report
     @test read(joinpath(loaded_bundle_dir, "fit_report.md"), String) ==
         loaded_markdown
+    @test load_fit_report_bundle(loaded_bundle_dir)["schema"] == report.schema
+    tampered_bundle_dir = joinpath(report_dir, "tampered_fit_report_bundle")
+    save_fit_report_bundle(tampered_bundle_dir, loaded_report;
+        title = "Loaded fit report",
+        max_rows = 1)
+    open(joinpath(tampered_bundle_dir, "fit_report.md"), "a") do io
+        write(io, "\nTampered.\n")
+    end
+    @test_throws ArgumentError load_fit_report_bundle(tampered_bundle_dir)
+    @test load_fit_report_bundle(tampered_bundle_dir;
+        verify_hash = false)["schema"] == report.schema
+    unsafe_bundle_dir = joinpath(report_dir, "unsafe_fit_report_bundle")
+    save_fit_report_bundle(unsafe_bundle_dir, loaded_report;
+        title = "Loaded fit report",
+        max_rows = 1)
+    unsafe_manifest_path = joinpath(unsafe_bundle_dir, "manifest.json")
+    unsafe_manifest = JSON3.read(read(unsafe_manifest_path, String),
+        Dict{String,Any})
+    unsafe_report_file = only(filter(file -> file["role"] == "report_json",
+        unsafe_manifest["files"]))
+    unsafe_report_file["path"] = "../fit_report.json"
+    open(unsafe_manifest_path, "w") do io
+        JSON3.write(io, unsafe_manifest)
+        write(io, "\n")
+    end
+    @test_throws ArgumentError load_fit_report_bundle(unsafe_bundle_dir;
+        verify_hash = false)
     loaded_record = load_fit_report(report_path; return_record = true)
     @test loaded_record["schema"] == report_export.schema
     @test loaded_record["json_content_hash"]["value"] == report_export.json_content_hash.value

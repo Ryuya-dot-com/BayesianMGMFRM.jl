@@ -59,6 +59,7 @@ fit_report_sections
 fit_report_rows
 fit_ready_parameter_layout
 load_fit_report
+load_fit_report_bundle
 save_fit_report
 save_fit_report_bundle
 save_fit_report_markdown
