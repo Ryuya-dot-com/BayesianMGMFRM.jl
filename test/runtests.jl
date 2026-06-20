@@ -49,6 +49,7 @@ using BayesianMGMFRM:
     identification_declarations,
     initial_params,
     kfold,
+    kfold_plan,
     ScalarValidationData,
     ScalarValidationAnalyticLogDensity,
     ScalarValidationContrastLogDensity,
@@ -11624,6 +11625,83 @@ end
     @test kfold_result.kfoldic ≈ -2 * kfold_result.elpd_kfold
     @test kfold_result.se_kfoldic ≈ 2 * kfold_result.se_elpd_kfold
     @test kfold_result.warning === :ok
+
+    fold_plan = kfold_plan(data; k = 3)
+    @test fold_plan.schema == "bayesianmgmfrm.kfold_plan.v1"
+    @test fold_plan.object === :kfold_plan
+    @test fold_plan.method === :deterministic_balanced_fold_plan
+    @test fold_plan.comparison_contract === :same_heldout_observation_folds
+    @test fold_plan.group_by === :observation
+    @test fold_plan.k == 3
+    @test fold_plan.n_folds == 3
+    @test fold_plan.n_observations == data.n
+    @test fold_plan.n_units == data.n
+    @test fold_plan.folds == [1, 2, 3]
+    @test fold_plan.n_heldout_by_fold == [3, 3, 3]
+    @test fold_plan.refits_per_model_required == 3
+    @test fold_plan.warning === :ok
+    @test length(fold_plan.fold_rows) == 3
+    @test fold_plan.heldout_observation_indices ==
+        [row.heldout_observations for row in fold_plan.fold_rows]
+    @test sort(vcat(fold_plan.heldout_observation_indices...)) == collect(1:data.n)
+    @test sort(vcat([row.training_observations for row in fold_plan.fold_rows]...)) ==
+        vcat(fill.(collect(1:data.n), 2)...)
+    @test all(row -> row.n_heldout_observations == 3, fold_plan.fold_rows)
+    @test all(row -> row.n_training_observations == data.n - 3, fold_plan.fold_rows)
+    @test all(row -> row.n_heldout_units == 3, fold_plan.fold_rows)
+    planned_kfold_folds =
+        [llmat[1:3, indices] for indices in fold_plan.heldout_observation_indices]
+    planned_kfold = kfold(planned_kfold_folds;
+        fold_ids = fold_plan.folds,
+        observation_indices = fold_plan.heldout_observation_indices)
+    @test planned_kfold.n_folds == fold_plan.n_folds
+    @test planned_kfold.n_heldout_by_fold == fold_plan.n_heldout_by_fold
+    @test planned_kfold.observation_indices == vcat(fold_plan.heldout_observation_indices...)
+
+    person_fold_plan = kfold_plan(design; k = 3, group_by = :person,
+        fold_ids = [:person_a, :person_b, :person_c])
+    @test person_fold_plan.group_by === :person
+    @test person_fold_plan.folds == [:person_a, :person_b, :person_c]
+    @test person_fold_plan.n_units == length(data.person_levels)
+    @test person_fold_plan.n_heldout_by_fold == [3, 3, 3]
+    @test sort(vcat(person_fold_plan.heldout_observation_indices...)) == collect(1:data.n)
+    for person_index in eachindex(data.person_levels)
+        observations = findall(==(person_index), data.person)
+        @test length(unique(person_fold_plan.observation_fold[observations])) == 1
+    end
+    @test all(row -> row.n_heldout_units == 1, person_fold_plan.fold_rows)
+    @test kfold_plan(spec; k = 3).heldout_observation_indices ==
+        fold_plan.heldout_observation_indices
+
+    optional_cv_data = FacetData((
+            examinee = ["E1", "E1", "E2", "E2"],
+            rater = ["R1", "R2", "R1", "R2"],
+            item = ["I1", "I2", "I1", "I2"],
+            score = [0, 1, 1, 2],
+            group = ["G1", "G1", "G2", "G2"],
+        );
+        person = :examinee,
+        rater = :rater,
+        item = :item,
+        score = :score,
+        group = :group)
+    optional_fold_plan = kfold_plan(optional_cv_data; k = 2, group_by = :group)
+    @test optional_fold_plan.group_by === :group
+    @test optional_fold_plan.n_units == 2
+    @test optional_fold_plan.n_heldout_by_fold == [2, 2]
+    for group_index in eachindex(optional_cv_data.optional_levels[:group])
+        observations = findall(==(group_index), optional_cv_data.optional[:group])
+        @test length(unique(optional_fold_plan.observation_fold[observations])) == 1
+    end
+    shuffled_fold_plan = kfold_plan(data; k = 3, shuffle = true, rng = MersenneTwister(2026))
+    @test shuffled_fold_plan.method === :randomized_balanced_fold_plan
+    @test sort(vcat(shuffled_fold_plan.heldout_observation_indices...)) == collect(1:data.n)
+    @test_throws ArgumentError kfold_plan(data; k = 1)
+    @test_throws ArgumentError kfold_plan(data; k = data.n + 1)
+    @test_throws ArgumentError kfold_plan(data; k = 3, group_by = :item)
+    @test_throws ArgumentError kfold_plan(data; k = 2, group_by = :missing_role)
+    @test_throws ArgumentError kfold_plan(data; k = 2, fold_ids = [:dup, :dup])
+
     single_fold_kfold = kfold(llmat[1:3, 1:2];
         fold_ids = [:only],
         observation_indices = [:obs1, :obs2])

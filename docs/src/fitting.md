@@ -227,10 +227,11 @@ stabilization. The AdvancedHMC/NUTS and Turing/NUTS backends are
 gradient-based sampler paths for the minimal design; AdvancedHMC also backs the
 guarded experimental GMFRM and fixed-Q MGMFRM candidates, but it is not yet a
 broad GMFRM/MGMFRM fitting backend. The package does not yet expose Stan/CmdStan
-sampling, PSIS-smoothed or exact LOO refits, grouped cross-validation, or
-refit-managed model-comparison workflows. [`kfold`](@ref) and
+sampling, PSIS-smoothed or exact LOO refits, or refit-managed
+model-comparison workflows. [`kfold_plan`](@ref) constructs deterministic
+observation-level or grouped heldout folds, and [`kfold`](@ref) plus
 [`compare_kfold`](@ref) summarize supplied heldout refit log-likelihood
-matrices, but they do not construct folds or refit models.
+matrices, but the package does not refit models for those folds.
 `MFRMLogDensity` exposes the
 same minimal posterior through the `LogDensityProblems.jl` protocol for
 external sampler and automatic differentiation experiments. AdvancedHMC uses a
@@ -351,10 +352,12 @@ differences, `compare_models` requires the same observation data in the same
 row order, ordinal category levels, latent dimensionality, and fixed Q-matrix
 contract; returned rows include the checked model family, thresholds,
 discrimination mode, dimensionality, Q-matrix, and data signature.
-`kfold` summarizes supplied heldout log-likelihood matrices from fold-specific
-refits, and `compare_kfold` ranks those K-fold summaries when the heldout
-observation order and fold assignment order match across models. These helpers
-record K-fold evidence but do not create folds or refit models.
+`kfold_plan` constructs deterministic observation-level or grouped heldout fold
+assignments for planned refits. `kfold` summarizes supplied heldout
+log-likelihood matrices from fold-specific refits, and `compare_kfold` ranks
+those K-fold summaries when the heldout observation order and fold assignment
+order match across models. These helpers record K-fold evidence but do not
+refit models.
 `sensitivity_comparison` uses the same WAIC/LOO scoring path with a declared
 sensitivity axis, per-model axis values, a baseline model, and baseline-relative
 ELPD and information-criterion differences for report tables. Direct `compare_models`
