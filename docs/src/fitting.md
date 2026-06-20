@@ -74,6 +74,64 @@ it is not a model-selection claim. The guarded experimental MGMFRM fit path
 populates the same raw-prior/Jacobian policy and fit-artifact contract for the
 fixed-Q confirmatory candidate.
 
+## Guarded Fixed-Q MGMFRM Example
+
+The guarded MGMFRM path is opt-in and deliberately small. A spec must use
+`family = :mgmfrm`, `dimensions = 2`, and a fixed item-by-dimension `q_matrix`;
+then `fit(spec; experimental = true)` returns an [`MGMFRMFit`](@ref). The
+example below uses tiny sampler settings so the API path is quick to inspect,
+not so the posterior diagnostics are publication-ready.
+
+```julia
+using BayesianMGMFRM
+using Random
+
+ratings = (
+    examinee = ["E1", "E1", "E1", "E2", "E2", "E2"],
+    rater = ["R1", "R2", "R1", "R1", "R2", "R1"],
+    item = ["I1", "I1", "I2", "I1", "I2", "I2"],
+    score = [0, 1, 2, 1, 0, 2],
+)
+
+data = FacetData(ratings;
+    person = :examinee,
+    rater = :rater,
+    item = :item,
+    score = :score,
+)
+
+q_matrix = Bool[1 0; 0 1]
+spec = mfrm_spec(data;
+    thresholds = :partial_credit,
+    family = :mgmfrm,
+    dimensions = 2,
+    q_matrix,
+)
+
+fit_result = fit(spec;
+    experimental = true,
+    seed = 20260630,
+    ndraws = 2,
+    warmup = 0,
+    chains = 1,
+    step_size = 0.02,
+    max_depth = 8,
+    metric = :unit,
+)
+
+fit_metadata(fit_result)
+fit_artifact(fit_result; include_environment = false)
+sampler_diagnostics(fit_result)
+posterior_summary(fit_result)
+posterior_predictive_check(fit_result;
+    draw_indices = [1, 2],
+    rng = MersenneTwister(20260633),
+)
+```
+
+The repository also includes the same workflow as a runnable script at
+[`examples/guarded_mgmfrm.jl`](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/blob/main/examples/guarded_mgmfrm.jl).
+
 ```julia
 using BayesianMGMFRM
 using Random
