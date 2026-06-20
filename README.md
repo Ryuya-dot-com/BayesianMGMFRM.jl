@@ -265,8 +265,9 @@ Current public API:
   RDS-like serialized fit caches for avoiding recomputation when the
   data/spec/design, prior, sampler controls, seed, Julia version, and
   initialization hash still match. Saved cache records include the artifact
-  content hash and archive manifest. Automatic cache keys require an integer
-  `seed` so cached draws are tied to a replayable fit request.
+  content hash and archive manifest, and loads verify those hashes by default.
+  Automatic cache keys require an integer `seed` so cached draws are tied to a
+  replayable fit request.
 - `MFRMLogDensity`, `initial_params`, `linear_predictor_values`,
   `loglikelihood`, `logprior`, and `logposterior`: a
   `LogDensityProblems.jl`-compatible posterior target, row-by-category
