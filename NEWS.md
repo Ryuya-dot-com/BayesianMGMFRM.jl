@@ -56,6 +56,7 @@
   sparse-superiority claims blocked.
 - Add `examples/guarded_mgmfrm.jl`, a compact fixed-Q confirmatory MGMFRM
   guarded-fit example, and run it from the pre-registration gate.
+- Add a guarded fixed-Q MGMFRM example section to the Bayesian fitting docs.
 - Add `scripts/generate_validation_plan.jl`, a deterministic validation-plan
   artifact generator that records simulation-grid controls, coverage summaries,
   falsification-rule coverage, and content hashes without running simulations or
