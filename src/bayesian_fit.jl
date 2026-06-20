@@ -338,7 +338,8 @@ _SourceFixturePrior(; person_sd::Real = 1.0,
     GMFRMFit
 
 Experimental scalar GMFRM fit result returned only by
-`fit(spec; experimental = true)` for the narrow internal promotion candidate.
+`fit(spec; experimental = true)` for the one-dimensional rater-discrimination
+promotion candidate.
 Raw draws are stored in `draws`, constrained direct draws in `direct_draws`, and
 observation-ordered direct pointwise log likelihoods in
 `direct_pointwise_loglikelihood`.
@@ -989,11 +990,15 @@ analytic target gradients are not consumed by Turing's model trace, and the
 ReverseDiff path is left to a future adapter after the Turing AD interface can
 support this wrapped target reliably.
 
-The `experimental = true` keyword is intentionally narrow: it is accepted only
-for the scalar source-aligned GMFRM promotion candidate with `family = :gmfrm`,
-`dimensions = 1`, and `discrimination = :rater`, and returns [`GMFRMFit`](@ref).
-MGMFRM, multidimensional GMFRM, non-rater discrimination, and public
-`MFRMPrior` priors are rejected on that guarded path.
+The `experimental = true` keyword is intentionally narrow. It is accepted for
+the scalar source-aligned GMFRM promotion candidate with `family = :gmfrm`,
+`dimensions = 1`, and `discrimination = :rater`, returning [`GMFRMFit`](@ref),
+and for the fixed-Q two-dimensional confirmatory MGMFRM candidate with
+`family = :mgmfrm`, `dimensions = 2`, and a fixed `q_matrix`, returning
+[`MGMFRMFit`](@ref). Multidimensional GMFRM, exploratory MGMFRM loadings,
+free latent correlations, non-rater GMFRM discrimination, dimensions beyond
+two for MGMFRM, and public `MFRMPrior` priors for generalized raw-coordinate
+fits are rejected on those guarded paths.
 """
 function fit(design::FacetDesign;
         prior::MFRMPrior = MFRMPrior(),
