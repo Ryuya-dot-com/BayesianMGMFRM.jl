@@ -163,7 +163,8 @@ fixed-Q two-dimensional confirmatory MGMFRM guarded experiment using
 See [`docs/`](docs/) for the Documenter source pages covering data validation
 and the public API.
 See [`docs/src/roadmap.md`](docs/src/roadmap.md) for the critical-reviewer implementation
-roadmap separating the current scaffold from planned HMC/GMFRM/MGMFRM work.
+roadmap separating the current minimal and guarded generalized scaffold from
+broader planned HMC/GMFRM/MGMFRM work.
 
 ## Development Status
 
@@ -181,14 +182,15 @@ Current public API:
   minimal MFRM/RSM/PCM slice and specified-only GMFRM/MGMFRM configurations.
 - `model_ladder`, `constraint_table`, and `identification_declarations`:
   machine-readable scope, constraint, transform, prior-block, hard/soft anchor,
-  and gauge declarations separating fit-supported blocks from specified-only
-  future blocks.
+  and gauge declarations separating fit-supported and guarded experimental
+  blocks from specified-only future blocks.
 - `release_scope_summary`: a machine-readable release-scope guardrail listing
   currently enabled fit surfaces, rejected generalized options, and broad claims
   that remain blocked.
 - `model_equation`: source-traced mathematical contracts for the current MFRM
-  slice and the planned GMFRM/MGMFRM targets, including primary-source links,
-  required blocks, identification restrictions, and implementation gaps.
+  slice, guarded generalized candidates, and planned broader GMFRM/MGMFRM
+  targets, including primary-source links, required blocks, identification
+  restrictions, and implementation gaps.
 - `getdesign`: an inspectable internal design object with deterministic
   parameter-block ordering. The current minimal design fixes the first rater and
   item levels as references and uses sum-to-zero threshold steps. By default it
