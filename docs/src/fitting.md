@@ -253,9 +253,10 @@ one. Turing wraps the same target with a flat vector parameter and
 and category log-probability values for the same minimal likelihood used by
 `pointwise_loglikelihood`. `loglikelihood`, `logprior`, and `logposterior`
 expose the corresponding scalar target components for inspection and
-validation. `fit_metadata` returns report-ready data dimensions, draw
-dimensions, model family, dimensions, estimation status, backend, sampler, and
-prior scales for a fitted object.
+validation, and also return draw-level log component vectors from fitted
+MFRM/GMFRM/MGMFRM objects. `fit_metadata` returns report-ready data dimensions,
+draw dimensions, model family, dimensions, estimation status, backend, sampler,
+and prior scales for a fitted object.
 `model_manifest` records the data/spec/design/fit provenance contract, including
 validation status, deterministic parameter blocks, constraint tables,
 prior-block declarations, prior scales, and the compact diagnostic summary.
