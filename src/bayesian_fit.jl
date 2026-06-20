@@ -126,9 +126,15 @@ end
 """
     logprior(design::FacetDesign, params, prior = MFRMPrior())
     logprior(spec::FacetSpec, params, prior = MFRMPrior())
+    logprior(fit::MFRMFit; ndraws = nothing, draw_indices = nothing,
+        rng = Random.default_rng())
+    logprior(fit::Union{GMFRMFit,MGMFRMFit}; ndraws = nothing,
+        draw_indices = nothing, rng = Random.default_rng())
 
 Evaluate the independent normal log prior for the identified minimal MFRM
-parameter vector returned by `getdesign`.
+parameter vector returned by `getdesign`. For fit objects, return one log-prior
+value per selected posterior draw. Guarded generalized fits report the raw-prior
+contribution implied by their stored log posterior minus direct log likelihood.
 """
 function logprior(design::FacetDesign, params::AbstractVector, prior::MFRMPrior = MFRMPrior())
     _check_parameter_vector(design, params)
@@ -145,9 +151,16 @@ logprior(spec::FacetSpec, params::AbstractVector, prior::MFRMPrior = MFRMPrior()
 """
     loglikelihood(design::FacetDesign, params)
     loglikelihood(spec::FacetSpec, params)
+    loglikelihood(fit::MFRMFit; ndraws = nothing, draw_indices = nothing,
+        rng = Random.default_rng())
+    loglikelihood(fit::Union{GMFRMFit,MGMFRMFit}; ndraws = nothing,
+        draw_indices = nothing, rng = Random.default_rng())
 
 Evaluate the total minimal additive MFRM/RSM/PCM log likelihood for the
 identified parameter vector returned by `getdesign`, without Bayesian priors.
+For fit objects, return one total log-likelihood value per selected posterior
+draw. Guarded generalized fits use their stored constrained direct
+log-likelihood values.
 """
 function loglikelihood(design::FacetDesign, params::AbstractVector)
     _check_parameter_vector(design, params)
@@ -160,10 +173,13 @@ loglikelihood(spec::FacetSpec, params::AbstractVector) =
 """
     logposterior(design::FacetDesign, params, prior = MFRMPrior())
     logposterior(spec::FacetSpec, params, prior = MFRMPrior())
+    logposterior(fit::Union{MFRMFit,GMFRMFit,MGMFRMFit}; ndraws = nothing,
+        draw_indices = nothing, rng = Random.default_rng())
 
 Evaluate the log posterior for the minimal additive MFRM/RSM/PCM design:
 the sum of `loglikelihood(design, params)` plus `logprior(design, params,
-prior)` on the identified parameter vector.
+prior)` on the identified parameter vector. For fit objects, return the stored
+log posterior for each selected posterior draw.
 """
 function logposterior(design::FacetDesign, params::AbstractVector, prior::MFRMPrior = MFRMPrior())
     return loglikelihood(design, params) + logprior(design, params, prior)
@@ -7011,6 +7027,54 @@ pointwise_loglikelihood_matrix(fit::GMFRMFit) =
 
 pointwise_loglikelihood_matrix(fit::MGMFRMFit) =
     copy(fit.direct_pointwise_loglikelihood)
+
+function loglikelihood(fit::MFRMFit;
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    values = Vector{Float64}(undef, length(indices))
+    for (out, draw) in enumerate(indices)
+        values[out] = loglikelihood(fit.design, @view(fit.draws[draw, :]))
+    end
+    return values
+end
+
+function loglikelihood(fit::Union{GMFRMFit,MGMFRMFit};
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    return copy(fit.direct_loglikelihood[indices])
+end
+
+function logprior(fit::MFRMFit;
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    values = Vector{Float64}(undef, length(indices))
+    for (out, draw) in enumerate(indices)
+        values[out] = logprior(fit.design, @view(fit.draws[draw, :]), fit.prior)
+    end
+    return values
+end
+
+function logprior(fit::Union{GMFRMFit,MGMFRMFit};
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    return copy(fit.log_posterior[indices] .- fit.direct_loglikelihood[indices])
+end
+
+function logposterior(fit::_ModelComparisonFit;
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    return copy(fit.log_posterior[indices])
+end
 
 function _logmeanexp(values::AbstractVector{<:Real})
     isempty(values) && throw(ArgumentError("values must not be empty"))

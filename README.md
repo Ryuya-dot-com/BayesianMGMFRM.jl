@@ -286,7 +286,8 @@ Current public API:
   `loglikelihood`, `logprior`, and `logposterior`: a
   `LogDensityProblems.jl`-compatible posterior target, row-by-category
   likelihood inspection, and separated likelihood/prior/posterior evaluators
-  for external sampler and AD experiments.
+  for external sampler and AD experiments. The same evaluators also return
+  draw-level log component vectors from fitted MFRM/GMFRM/MGMFRM objects.
 - `diagnostics`: a single diagnostic surface combining chain-level sampler rows,
   parameter-level R-hat/ESS rows, parameter-block pass/fail rows, pass/fail
   counts, and HMC/NUTS fields when the selected backend exposes them.

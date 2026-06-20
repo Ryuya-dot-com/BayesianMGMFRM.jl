@@ -313,7 +313,8 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   explicit cache-key invalidation checks. [Done for current fit object]
 - Add artifact content hashes and long-term archive manifests for exported
   cache bundles. [Done for current fit artifact/cache records]
-- Expose log likelihood, log prior, and log posterior separately.
+- Expose log likelihood, log prior, and log posterior separately. [Done for
+  scalar target evaluation and draw-level fit-object component vectors]
 - Add AD gradient checks and fixture-only HMC smoke tests for internal
   GMFRM/MGMFRM raw targets before broad generalized fitting. [ForwardDiff
   raw-target gradient checks, fixture-only AdvancedHMC/NUTS smoke tests,

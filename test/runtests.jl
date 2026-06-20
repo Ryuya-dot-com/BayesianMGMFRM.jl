@@ -8430,6 +8430,18 @@ end
     @test all(isfinite, gmfrm_experimental_fit.log_posterior)
     @test pointwise_loglikelihood_matrix(gmfrm_experimental_fit) ==
         gmfrm_experimental_fit.direct_pointwise_loglikelihood
+    @test loglikelihood(gmfrm_experimental_fit) ==
+        gmfrm_experimental_fit.direct_loglikelihood
+    @test logprior(gmfrm_experimental_fit) ≈
+        gmfrm_experimental_fit.log_posterior .-
+        gmfrm_experimental_fit.direct_loglikelihood
+    @test logposterior(gmfrm_experimental_fit) ==
+        gmfrm_experimental_fit.log_posterior
+    @test loglikelihood(gmfrm_experimental_fit; draw_indices = [2, 1]) ==
+        gmfrm_experimental_fit.direct_loglikelihood[[2, 1]]
+    @test length(logprior(gmfrm_experimental_fit;
+        ndraws = 2,
+        rng = MersenneTwister(20260629))) == 2
     gmfrm_experimental_metadata = fit_metadata(gmfrm_experimental_fit)
     @test gmfrm_experimental_metadata.public_fit
     @test gmfrm_experimental_metadata.experimental_public
@@ -9386,6 +9398,15 @@ end
     @test all(isfinite, mgmfrm_guarded_fit.direct_draws)
     @test pointwise_loglikelihood_matrix(mgmfrm_guarded_fit) ==
         mgmfrm_guarded_fit.direct_pointwise_loglikelihood
+    @test loglikelihood(mgmfrm_guarded_fit) ==
+        mgmfrm_guarded_fit.direct_loglikelihood
+    @test logprior(mgmfrm_guarded_fit) ≈
+        mgmfrm_guarded_fit.log_posterior .-
+        mgmfrm_guarded_fit.direct_loglikelihood
+    @test logposterior(mgmfrm_guarded_fit) ==
+        mgmfrm_guarded_fit.log_posterior
+    @test logposterior(mgmfrm_guarded_fit; draw_indices = [2, 1]) ==
+        mgmfrm_guarded_fit.log_posterior[[2, 1]]
     mgmfrm_probabilities =
         predictive_probabilities(mgmfrm_guarded_fit; draw_indices = [1, 2])
     @test size(mgmfrm_probabilities) ==
@@ -11732,6 +11753,21 @@ end
     @test llmat[1, :] ≈ pointwise_loglikelihood(design, result.draws[1, :])
     @test pointwise_loglikelihood_matrix(design, result.draws) ≈ llmat
     @test_throws ArgumentError pointwise_loglikelihood_matrix(design, result.draws[:, 1:end-1])
+    draw_loglik = loglikelihood(result)
+    draw_logprior = logprior(result)
+    draw_logposterior = logposterior(result)
+    @test draw_loglik ≈ [sum(llmat[draw, :]) for draw in axes(llmat, 1)]
+    @test draw_logprior ≈
+        [logprior(design, @view(result.draws[draw, :]), prior) for draw in axes(result.draws, 1)]
+    @test draw_logposterior == result.log_posterior
+    @test draw_loglik .+ draw_logprior ≈ draw_logposterior
+    @test loglikelihood(result; draw_indices = [3, 1]) ≈ draw_loglik[[3, 1]]
+    @test logprior(result; draw_indices = [3, 1]) ≈ draw_logprior[[3, 1]]
+    @test logposterior(result; draw_indices = [3, 1]) == result.log_posterior[[3, 1]]
+    @test length(loglikelihood(result; ndraws = 2, rng = MersenneTwister(20260621))) == 2
+    @test_throws ArgumentError loglikelihood(result; ndraws = 0)
+    @test_throws ArgumentError logprior(result; draw_indices = Int[])
+    @test_throws ArgumentError logposterior(result; ndraws = 1, draw_indices = [1])
 
     waic_result = waic(result; draw_indices = [1, 2, 3])
     manual_lppd = [test_logsumexp(@view llmat[1:3, row]) - log(3) for row in 1:data.n]
