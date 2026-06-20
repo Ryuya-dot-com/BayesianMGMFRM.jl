@@ -479,6 +479,10 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
    experiment]
 7. Keep the selected compact real rater-mediated case-study licensing or
    anonymization record synchronized with any publication-facing archive.
+   [Done: [`case_study_provenance_manifest`](@ref) now records source
+   licensing/anonymization status and syncs it to local claim-level,
+   manuscript-scale, and full-paper archive rows without granting a license or
+   performing publication/registration actions.]
 
 ## Current Risks
 

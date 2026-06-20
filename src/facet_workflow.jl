@@ -1389,6 +1389,224 @@ function release_scope_summary(; include_evidence::Bool = false)
     )
 end
 
+function _default_case_study_source_records()
+    return (
+        (;
+            source_id = :writing_rater_mediated_slice,
+            source_role = :real_data_case_study_input,
+            family = :gmfrm,
+            scope = :scalar_gmfrm_fit_ready_candidate,
+            data_release = :not_public,
+            license_status = :local_review_recorded_not_public_license,
+            anonymization_status = :pseudonymized,
+            direct_identifiers_removed = true,
+            person_ids_pseudonymized = true,
+            rater_ids_pseudonymized = true,
+            archive_sync_required = true,
+        ),
+        (;
+            source_id = :speaking_rater_mediated_slice,
+            source_role = :real_data_case_study_input,
+            family = :gmfrm,
+            scope = :scalar_gmfrm_fit_ready_candidate,
+            data_release = :not_public,
+            license_status = :local_review_recorded_not_public_license,
+            anonymization_status = :pseudonymized,
+            direct_identifiers_removed = true,
+            person_ids_pseudonymized = true,
+            rater_ids_pseudonymized = true,
+            archive_sync_required = true,
+        ),
+    )
+end
+
+function _default_case_study_archive_records()
+    return (
+        (;
+            archive = :real_data_case_study,
+            path = "test/fixtures/gmfrm_real_data_case_study.json",
+            role = :case_study_evidence,
+            publication_facing = false,
+            requires_source_license_record = true,
+            requires_anonymization_record = true,
+            sync_status = :synchronized_by_manifest,
+            publication_or_registration_action = false,
+        ),
+        (;
+            archive = :claim_recovery_reproduction_archive,
+            path = "test/fixtures/gmfrm_claim_recovery_reproduction_archive.json",
+            role = :claim_recovery_archive,
+            publication_facing = false,
+            requires_source_license_record = true,
+            requires_anonymization_record = true,
+            sync_status = :synchronized_by_manifest,
+            publication_or_registration_action = false,
+        ),
+        (;
+            archive = :manuscript_scale_simulation_grid,
+            path = "test/fixtures/gmfrm_manuscript_scale_simulation_grid.json",
+            role = :gate_e_evidence_grid,
+            publication_facing = true,
+            requires_source_license_record = true,
+            requires_anonymization_record = true,
+            sync_status = :synchronized_by_manifest,
+            publication_or_registration_action = false,
+        ),
+        (;
+            archive = :full_paper_reproduction_archive,
+            path = "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
+            role = :full_local_reproduction_archive,
+            publication_facing = true,
+            requires_source_license_record = true,
+            requires_anonymization_record = true,
+            sync_status = :synchronized_by_manifest,
+            publication_or_registration_action = false,
+        ),
+    )
+end
+
+function _case_study_record_tuple(records, name::Symbol)
+    records isa NamedTuple && return (records,)
+    records isa Tuple && (tupled = records)
+    records isa AbstractVector && (tupled = Tuple(records))
+    @isdefined(tupled) ||
+        throw(ArgumentError("$name must be a NamedTuple, Tuple, or vector of NamedTuples"))
+    isempty(tupled) && throw(ArgumentError("$name cannot be empty"))
+    all(row -> row isa NamedTuple, tupled) ||
+        throw(ArgumentError("$name must contain only NamedTuple rows"))
+    return tupled
+end
+
+_case_study_nt_get(row::NamedTuple, key::Symbol, default) =
+    haskey(row, key) ? getproperty(row, key) : default
+
+function _case_study_required(row::NamedTuple, key::Symbol, name::Symbol)
+    haskey(row, key) || throw(ArgumentError("$name row is missing required field $key"))
+    return getproperty(row, key)
+end
+
+function _case_study_normalize_source(row::NamedTuple)
+    source_id = _case_study_required(row, :source_id, :source_records)
+    anonymization_status =
+        _case_study_nt_get(row, :anonymization_status, :missing)
+    license_status = _case_study_nt_get(row, :license_status, :missing)
+    direct_identifiers_removed =
+        _case_study_nt_get(row, :direct_identifiers_removed, false) === true
+    anonymization_record_passed =
+        direct_identifiers_removed &&
+        anonymization_status in (:anonymized, :pseudonymized, :deidentified)
+    license_record_declared =
+        !(ismissing(license_status) || license_status === :missing)
+    return merge(row, (;
+        schema = "bayesianmgmfrm.case_study_source_provenance.v1",
+        object = :case_study_source_provenance,
+        source_id,
+        anonymization_record_passed,
+        license_record_declared,
+        external_public_release_allowed =
+            _case_study_nt_get(row, :external_public_release_allowed, false) === true,
+        archive_sync_required =
+            _case_study_nt_get(row, :archive_sync_required, true) === true,
+    ))
+end
+
+function _case_study_normalize_archive(row::NamedTuple)
+    archive = _case_study_required(row, :archive, :archive_records)
+    sync_status = _case_study_nt_get(row, :sync_status, :missing)
+    requires_source_license_record =
+        _case_study_nt_get(row, :requires_source_license_record, true) === true
+    requires_anonymization_record =
+        _case_study_nt_get(row, :requires_anonymization_record, true) === true
+    publication_facing =
+        _case_study_nt_get(row, :publication_facing, false) === true
+    publication_or_registration_action =
+        _case_study_nt_get(row, :publication_or_registration_action, false) === true
+    provenance_sync_passed =
+        sync_status in (:synchronized, :synchronized_by_manifest) &&
+        requires_source_license_record &&
+        requires_anonymization_record &&
+        !publication_or_registration_action
+    return merge(row, (;
+        schema = "bayesianmgmfrm.case_study_archive_sync.v1",
+        object = :case_study_archive_sync,
+        archive,
+        publication_facing,
+        requires_source_license_record,
+        requires_anonymization_record,
+        publication_or_registration_action,
+        provenance_sync_passed,
+    ))
+end
+
+"""
+    case_study_provenance_manifest(; source_records = ..., archive_records = ...)
+
+Return a machine-readable provenance manifest tying the compact real-data case
+study source records to claim-level and publication-facing reproduction
+archives. The default records cover the local guarded scalar GMFRM writing and
+speaking rater-mediated slices and the current real-data, claim-recovery,
+manuscript-scale, and full-paper archive artifacts.
+
+The manifest checks only that licensing status and anonymization status are
+declared and synchronized with archive records. It is not a data license grant,
+IRB determination, publication action, registration action, or manuscript claim
+approval.
+"""
+function case_study_provenance_manifest(;
+        source_records = _default_case_study_source_records(),
+        archive_records = _default_case_study_archive_records())
+    sources = Tuple(_case_study_normalize_source(row)
+        for row in _case_study_record_tuple(source_records, :source_records))
+    archives = Tuple(_case_study_normalize_archive(row)
+        for row in _case_study_record_tuple(archive_records, :archive_records))
+    all_source_records_anonymized =
+        all(row -> row.anonymization_record_passed, sources)
+    all_license_records_declared =
+        all(row -> row.license_record_declared, sources)
+    all_archive_records_synchronized =
+        all(row -> row.provenance_sync_passed, archives)
+    publication_archives_synchronized =
+        all(row -> !row.publication_facing || row.provenance_sync_passed, archives)
+    no_public_source_release =
+        all(row -> !row.external_public_release_allowed, sources)
+    no_publication_actions =
+        all(row -> !row.publication_or_registration_action, archives)
+    passed = all_source_records_anonymized &&
+        all_license_records_declared &&
+        all_archive_records_synchronized &&
+        publication_archives_synchronized &&
+        no_publication_actions
+
+    return (;
+        schema = "bayesianmgmfrm.case_study_provenance_manifest.v1",
+        object = :case_study_provenance_manifest,
+        status = passed ? :synchronized : :incomplete,
+        family = :gmfrm,
+        scope = :scalar_gmfrm_fit_ready_candidate,
+        source_records = sources,
+        archive_records = archives,
+        summary = (;
+            passed,
+            n_source_records = length(sources),
+            n_archive_records = length(archives),
+            n_publication_facing_archives =
+                count(row -> row.publication_facing, archives),
+            all_source_records_anonymized,
+            all_license_records_declared,
+            all_archive_records_synchronized,
+            publication_archives_synchronized,
+            no_public_source_release,
+            no_publication_actions,
+            license_grant = false,
+            irb_determination = false,
+            publication_or_registration_action = false,
+            manuscript_claims_allowed = false,
+            caveat = :provenance_manifest_not_license_irb_or_publication_approval,
+            next_gate = :manual_publication_or_registration_by_user_only,
+        ),
+    )
+end
+
 function _check_family(family::Symbol)
     family in (:mfrm, :gmfrm, :mgmfrm) ||
         throw(ArgumentError("family must be :mfrm, :gmfrm, or :mgmfrm"))

@@ -271,6 +271,11 @@ hash-verified fit-cache record from [`save_fit_cache`](@ref) or
 separate required paths. It can also attach a fit-report bundle manifest for
 review exports, while explicitly recording that no publication or registration
 action is performed.
+[`case_study_provenance_manifest`](@ref) records the local real-data
+case-study source licensing/anonymization status and synchronizes that record
+with the claim-level, manuscript-scale, and full-paper archive rows. It is a
+provenance guardrail only, not a data-license grant, IRB determination,
+publication action, registration action, or manuscript-claim approval.
 `fit_report` is the lighter report-facing bundle: it combines metadata,
 manifest, diagnostics, posterior summaries, posterior predictive summaries,
 calibration rows, WAIC/LOO summaries and diagnostics, optional DFF rows, and
