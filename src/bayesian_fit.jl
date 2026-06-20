@@ -7388,6 +7388,85 @@ function _loo_diagnostics_rows(design::FacetDesign, stat;
     return rows
 end
 
+function _check_kfold_diagnostic_stat(stat)
+    checked = _check_kfold_stat(stat)
+    if hasproperty(checked.pointwise, :observation)
+        length(checked.pointwise.observation) == checked.n_observations ||
+            throw(ArgumentError(
+                "K-fold pointwise observation length does not match n_observations"))
+    end
+    if hasproperty(checked.pointwise, :kfoldic)
+        length(checked.pointwise.kfoldic) == checked.n_observations ||
+            throw(ArgumentError(
+                "K-fold pointwise K-fold IC length does not match n_observations"))
+        all(value -> isfinite(Float64(value)), checked.pointwise.kfoldic) ||
+            throw(ArgumentError("K-fold pointwise K-fold IC values must be finite"))
+    end
+    return checked
+end
+
+function _kfold_diagnostic_observation(stat, index::Int)
+    return hasproperty(stat.pointwise, :observation) ?
+        stat.pointwise.observation[index] :
+        stat.observation_indices[index]
+end
+
+function _kfold_diagnostic_kfoldic(stat, index::Int)
+    return hasproperty(stat.pointwise, :kfoldic) ?
+        Float64(stat.pointwise.kfoldic[index]) :
+        -2 * Float64(stat.pointwise.elpd_heldout[index])
+end
+
+function _kfold_diagnostics_rows(stat)
+    checked = _check_kfold_diagnostic_stat(stat)
+    rows = NamedTuple[]
+    for index in 1:checked.n_observations
+        push!(rows, (;
+            heldout_index = index,
+            observation = _kfold_diagnostic_observation(checked, index),
+            fold = checked.pointwise.fold[index],
+            criterion = :kfold,
+            method = checked.method,
+            prediction_target = checked.prediction_target,
+            elpd_heldout = Float64(checked.pointwise.elpd_heldout[index]),
+            kfoldic = _kfold_diagnostic_kfoldic(checked, index),
+            flag = checked.warning,
+        ))
+    end
+    return rows
+end
+
+function _kfold_diagnostics_rows(data::FacetData, stat)
+    checked = _check_kfold_diagnostic_stat(stat)
+    observations = _check_observation_indices(
+        data,
+        checked.observation_indices,
+        "kfold_diagnostics observation_indices",
+    )
+    rows = NamedTuple[]
+    for index in 1:checked.n_observations
+        observation = observations[index]
+        push!(rows, (;
+            heldout_index = index,
+            observation,
+            person = data.person_levels[data.person[observation]],
+            rater = data.rater_levels[data.rater[observation]],
+            item = data.item_levels[data.item[observation]],
+            score = data.score[observation],
+            category = data.category_levels[data.category[observation]],
+            optional = _optional_observation_labels(data, observation),
+            fold = checked.pointwise.fold[index],
+            criterion = :kfold,
+            method = checked.method,
+            prediction_target = checked.prediction_target,
+            elpd_heldout = Float64(checked.pointwise.elpd_heldout[index]),
+            kfoldic = _kfold_diagnostic_kfoldic(checked, index),
+            flag = checked.warning,
+        ))
+    end
+    return rows
+end
+
 """
     waic_diagnostics(fit::MFRMFit; threshold = 0.4, only_flagged = false,
         ndraws = nothing, draw_indices = nothing, rng = Random.default_rng())
@@ -7572,6 +7651,32 @@ function loo_diagnostics(fit::MGMFRMFit;
         threshold = checked_threshold,
         only_flagged)
 end
+
+"""
+    kfold_diagnostics(stat)
+    kfold_diagnostics(data::FacetData, stat)
+    kfold_diagnostics(spec::FacetSpec, stat)
+    kfold_diagnostics(design::FacetDesign, stat)
+
+Return observation-level heldout K-fold rows from a [`kfold`](@ref) result.
+Rows include heldout index, observation identifier, fold, heldout ELPD, K-fold
+information-criterion contribution, method, prediction target, and flag. When
+`FacetData`, `FacetSpec`, or `FacetDesign` is supplied, observation identifiers
+must be valid data row indices and rows also include person, rater, item, score,
+category, and optional facet labels.
+"""
+function kfold_diagnostics(stat)
+    return _kfold_diagnostics_rows(stat)
+end
+
+function kfold_diagnostics(data::FacetData, stat)
+    return _kfold_diagnostics_rows(data, stat)
+end
+
+kfold_diagnostics(spec::FacetSpec, stat) =
+    kfold_diagnostics(spec.data, stat)
+kfold_diagnostics(design::FacetDesign, stat) =
+    kfold_diagnostics(design.spec.data, stat)
 
 function _compare_model_names(names, n_models::Int)
     labels = names === nothing ?

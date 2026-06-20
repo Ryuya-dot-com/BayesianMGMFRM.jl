@@ -50,6 +50,7 @@ using BayesianMGMFRM:
     identification_declarations,
     initial_params,
     kfold,
+    kfold_diagnostics,
     kfold_plan,
     kfold_plan_diagnostics,
     ScalarValidationData,
@@ -11703,6 +11704,33 @@ end
     @test kfold_result.kfoldic ≈ -2 * kfold_result.elpd_kfold
     @test kfold_result.se_kfoldic ≈ 2 * kfold_result.se_elpd_kfold
     @test kfold_result.warning === :ok
+    kfold_rows = kfold_diagnostics(kfold_result)
+    @test length(kfold_rows) == data.n
+    @test [row.heldout_index for row in kfold_rows] == collect(1:data.n)
+    @test [row.observation for row in kfold_rows] == collect(1:data.n)
+    @test [row.fold for row in kfold_rows] ==
+        vcat(fill(:fold_a, 2), fill(:fold_b, data.n - 2))
+    @test [row.elpd_heldout for row in kfold_rows] ≈ manual_kfold_elpd
+    @test [row.kfoldic for row in kfold_rows] ≈ manual_kfoldic
+    @test all(row -> row.criterion === :kfold, kfold_rows)
+    @test all(row -> row.method === :heldout_refit_log_score, kfold_rows)
+    @test all(row -> row.prediction_target === :heldout_observation_log_score,
+        kfold_rows)
+    @test all(row -> row.flag === :ok, kfold_rows)
+    kfold_data_rows = kfold_diagnostics(design, kfold_result)
+    @test [row.observation for row in kfold_data_rows] == collect(1:data.n)
+    @test [row.person for row in kfold_data_rows] ==
+        [data.person_levels[data.person[row]] for row in 1:data.n]
+    @test [row.rater for row in kfold_data_rows] ==
+        [data.rater_levels[data.rater[row]] for row in 1:data.n]
+    @test [row.item for row in kfold_data_rows] ==
+        [data.item_levels[data.item[row]] for row in 1:data.n]
+    @test [row.score for row in kfold_data_rows] == data.score
+    @test [row.category for row in kfold_data_rows] ==
+        [data.category_levels[data.category[row]] for row in 1:data.n]
+    @test all(row -> row.optional == NamedTuple(), kfold_data_rows)
+    @test [row.elpd_heldout for row in kfold_diagnostics(spec, kfold_result)] ≈
+        manual_kfold_elpd
 
     fold_plan = kfold_plan(data; k = 3)
     @test fold_plan.schema == "bayesianmgmfrm.kfold_plan.v1"
@@ -11841,6 +11869,8 @@ end
     @test single_fold_kfold.n_folds == 1
     @test single_fold_kfold.folds == [:only]
     @test single_fold_kfold.observation_indices == [:obs1, :obs2]
+    @test_throws ArgumentError kfold_diagnostics(data, single_fold_kfold)
+    @test_throws ArgumentError kfold_diagnostics(waic_result)
 
     shifted_kfold = kfold([fold_loglik .- 0.5 for fold_loglik in kfold_folds];
         fold_ids = [:fold_a, :fold_b],

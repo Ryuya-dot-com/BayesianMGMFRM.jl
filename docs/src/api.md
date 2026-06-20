@@ -69,6 +69,7 @@ domain_compilation_summary
 fit_stats
 initial_params
 kfold
+kfold_diagnostics
 kfold_plan
 kfold_plan_diagnostics
 loglikelihood
