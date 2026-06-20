@@ -1,9 +1,9 @@
 # Long-Format Data and Pre-Fit Validation
 
 `BayesianMGMFRM.jl` starts from long-format rating data: one row per rating
-event. The v0.1 data/spec slice is intentionally estimation-free. Its purpose is
-to make common weak or non-estimable many-facet design patterns visible before
-a sampler is called.
+event. The data and validation layer is intentionally sampler-free. Its purpose
+is to make common weak or non-estimable many-facet design patterns visible
+before a sampler is called.
 
 ```julia
 using BayesianMGMFRM
@@ -114,8 +114,11 @@ model_manifest(spec)
 model_manifest(design)
 ```
 
-This is the scaffold for the full MFRM/GMFRM/MGMFRM compiler. Only the minimal
-MFRM/RSM/PCM configuration is currently a model-fitting API.
+This is the scaffold for the full MFRM/GMFRM/MGMFRM compiler. The ordinary
+model-fitting API remains the minimal MFRM/RSM/PCM configuration; guarded
+experimental generalized fits are opt-in through `fit(spec; experimental = true)`
+for the narrow scalar GMFRM and fixed-Q confirmatory MGMFRM candidates described
+above.
 
 ## Reporting Data Before Fitting
 
