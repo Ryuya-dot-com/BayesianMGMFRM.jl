@@ -37,6 +37,7 @@ using BayesianMGMFRM:
     fit_archive_manifest,
     fit_artifact,
     fit_cache_key,
+    fit_report,
     fit_ready_parameter_layout,
     fit_stats,
     getdesign,
@@ -9289,6 +9290,39 @@ end
     @test size(mgmfrm_ppc.replicated_scores) == (2, identified_data.n)
     @test mgmfrm_ppc.category_levels == identified_data.category_levels
     @test !isempty(predictive_check_summary(mgmfrm_ppc; include_grouped = true))
+    mgmfrm_calibration = calibration_table(mgmfrm_guarded_fit;
+        draw_indices = [1, 2],
+        bins = 2)
+    @test length(mgmfrm_calibration) == 2
+    @test all(row -> row.target === :expected_score, mgmfrm_calibration)
+    @test all(row -> row.n_draws == 2, mgmfrm_calibration)
+    mgmfrm_all_calibration = calibration_table(mgmfrm_guarded_fit;
+        target = :all,
+        draw_indices = [1, 2],
+        bins = 2)
+    @test any(row -> row.target === :category_probability,
+        mgmfrm_all_calibration)
+    mgmfrm_report = fit_report(mgmfrm_guarded_fit;
+        draw_indices = [1, 2],
+        include_loo = false,
+        artifact_include_environment = false)
+    @test mgmfrm_report.schema == "bayesianmgmfrm.fit_report.v1"
+    @test mgmfrm_report.family === :mgmfrm
+    @test mgmfrm_report.metadata.guarded_local_fit
+    @test mgmfrm_report.report_policy.resolved_draw_indices == [1, 2]
+    @test mgmfrm_report.prior_predictive.status === :not_requested
+    @test mgmfrm_report.posterior.status === :computed
+    @test mgmfrm_report.direct_posterior.status === :computed
+    @test mgmfrm_report.calibration.status === :computed
+    @test mgmfrm_report.calibration.n_rows == identified_data.n
+    @test mgmfrm_report.waic.status === :computed
+    @test mgmfrm_report.loo.status === :not_requested
+    @test mgmfrm_report.dff.status === :not_requested
+    @test mgmfrm_report.artifact.status === :computed
+    @test mgmfrm_report.artifact.schema ==
+        "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1"
+    @test mgmfrm_report.artifact.artifact === nothing
+    @test length(mgmfrm_report.artifact.content_hash.value) == 64
     mgmfrm_simulated_direct = simulate_responses(mgmfrm_spec, mgmfrm_params;
         preview = true,
         rng = MersenneTwister(20260634),
@@ -10071,6 +10105,56 @@ end
     @test full_artifact.content_hash.value != compact_artifact.content_hash.value
     @test_throws ArgumentError fit_artifact(result; rhat_threshold = 1.0)
     @test_throws ArgumentError fit_artifact(result; ess_threshold = 0)
+
+    report = fit_report(result;
+        include_prior_predictive = true,
+        prior_predictive_ndraws = 2,
+        prior_predictive_rng = MersenneTwister(20260624),
+        ndraws = 3,
+        rng = MersenneTwister(20260625),
+        calibration_bins = 2,
+        artifact_include_environment = false)
+    @test report.schema == "bayesianmgmfrm.fit_report.v1"
+    @test report.object === :fit_report
+    @test report.family === :mfrm
+    @test report.metadata.n_draws == size(result.draws, 1)
+    @test report.manifest.object === :fit
+    @test report.diagnostics.summary.n_chains == 3
+    @test report.prior_predictive.status === :computed
+    @test report.prior_predictive.ndraws == 2
+    @test report.prior_predictive.n_rows > 0
+    @test report.posterior.status === :computed
+    @test report.posterior.n_rows == length(design.parameter_names)
+    @test report.direct_posterior.status === :not_requested
+    @test report.posterior_predictive.status === :computed
+    @test report.posterior_predictive.n_rows > 0
+    @test report.calibration.status === :computed
+    @test report.calibration.n_rows == 2
+    @test report.waic.status === :computed
+    @test report.waic.stat.criterion === :waic
+    @test report.loo.status === :computed
+    @test report.loo.stat.criterion === :loo
+    @test report.dff.status === :not_requested
+    @test report.artifact.status === :computed
+    @test report.artifact.schema == compact_artifact.schema
+    @test report.artifact.artifact === nothing
+    @test length(report.artifact.content_hash.value) == 64
+    @test report.report_policy.ndraws == 3
+    @test length(report.report_policy.resolved_draw_indices) == 3
+    @test report.posterior_predictive.draw_indices ==
+        report.report_policy.resolved_draw_indices
+    @test report.report_policy.include_artifact
+
+    too_short_report = fit_report(spec_result;
+        artifact_include_environment = false)
+    @test too_short_report.loo.status === :error
+    @test too_short_report.loo.exception === :ArgumentError
+    @test occursin("LOO requires at least three posterior draws",
+        too_short_report.loo.message)
+    @test_throws ArgumentError fit_report(result; on_section_error = :invalid)
+    @test_throws ArgumentError fit_report(spec_result;
+        artifact_include_environment = false,
+        on_section_error = :throw)
 
     cache_key = fit_cache_key(design;
         prior,

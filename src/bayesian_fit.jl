@@ -3775,6 +3775,392 @@ function fit_artifact(fit::MGMFRMFit;
     ); label = :mgmfrm_experimental_fit_artifact)
 end
 
+function _fit_report_on_section_error(on_section_error::Symbol)
+    on_section_error in (:capture, :throw) ||
+        throw(ArgumentError("on_section_error must be :capture or :throw"))
+    return on_section_error
+end
+
+function _fit_report_section(thunk, on_section_error::Symbol)
+    try
+        return merge((; status = :computed), thunk())
+    catch err
+        on_section_error === :throw && rethrow()
+        return (;
+            status = :error,
+            exception = Symbol(nameof(typeof(err))),
+            message = sprint(showerror, err),
+        )
+    end
+end
+
+_fit_report_not_requested() = (; status = :not_requested)
+
+function _fit_report_unsupported(reason::AbstractString)
+    return (;
+        status = :unsupported,
+        reason = String(reason),
+    )
+end
+
+function _fit_report_prior_predictive(fit::MFRMFit;
+        include_prior_predictive::Bool,
+        prior_predictive_ndraws::Int,
+        prior_predictive_rng::AbstractRNG,
+        predictive_interval::Real,
+        include_grouped_predictive::Bool,
+        on_section_error::Symbol)
+    include_prior_predictive || return _fit_report_not_requested()
+    return _fit_report_section(on_section_error) do
+        check = prior_predictive_check(fit.design;
+            prior = fit.prior,
+            ndraws = prior_predictive_ndraws,
+            rng = prior_predictive_rng)
+        rows = predictive_check_summary(check;
+            interval = predictive_interval,
+            include_grouped = include_grouped_predictive)
+        (;
+            ndraws = prior_predictive_ndraws,
+            rows,
+            n_rows = length(rows),
+            implication_diagnostics = check.implication_diagnostics,
+        )
+    end
+end
+
+function _fit_report_prior_predictive(fit::_ModelComparisonFit;
+        include_prior_predictive::Bool,
+        kwargs...)
+    include_prior_predictive || return _fit_report_not_requested()
+    return _fit_report_unsupported(
+        "prior predictive reporting is currently implemented for MFRMFit only",
+    )
+end
+
+function _fit_report_direct_posterior(fit::MFRMFit; include_direct_posterior::Bool,
+        kwargs...)
+    include_direct_posterior || return _fit_report_not_requested()
+    return _fit_report_unsupported(
+        "direct constrained posterior rows are only available for guarded generalized fits",
+    )
+end
+
+function _fit_report_direct_posterior(fit::Union{GMFRMFit,MGMFRMFit};
+        include_direct_posterior::Bool,
+        posterior_lower::Real,
+        posterior_upper::Real,
+        posterior_intervals,
+        posterior_reference::Real,
+        posterior_rope,
+        posterior_rope_probability_threshold::Real,
+        on_section_error::Symbol)
+    include_direct_posterior || return _fit_report_not_requested()
+    return _fit_report_section(on_section_error) do
+        rows = direct_posterior_summary(fit;
+            lower = posterior_lower,
+            upper = posterior_upper,
+            intervals = posterior_intervals,
+            reference = posterior_reference,
+            rope = posterior_rope,
+            rope_probability_threshold = posterior_rope_probability_threshold)
+        (;
+            rows,
+            n_rows = length(rows),
+        )
+    end
+end
+
+function _fit_report_dff(fit::MFRMFit;
+        include_dff::Bool,
+        dff_terms,
+        dff_interval::Real,
+        dff_min_n::Int,
+        ndraws,
+        draw_indices,
+        rng::AbstractRNG,
+        on_section_error::Symbol)
+    include_dff || return _fit_report_not_requested()
+    return _fit_report_section(on_section_error) do
+        rows = dff_report(fit;
+            terms = dff_terms,
+            interval = dff_interval,
+            min_n = dff_min_n,
+            ndraws,
+            draw_indices,
+            rng)
+        (;
+            rows,
+            n_rows = length(rows),
+        )
+    end
+end
+
+function _fit_report_dff(fit::_ModelComparisonFit; include_dff::Bool, kwargs...)
+    include_dff || return _fit_report_not_requested()
+    return _fit_report_unsupported(
+        "DFF screening report rows are currently implemented for MFRMFit only",
+    )
+end
+
+"""
+    fit_report(fit; kwargs...)
+
+Build a compact, machine-readable report bundle for a fitted MFRM, guarded
+GMFRM, or guarded MGMFRM object. The report combines fit metadata, provenance,
+diagnostics, posterior summaries, posterior predictive summaries, calibration
+rows, WAIC/LOO summaries and diagnostics, optional DFF rows, and a compact
+archive manifest. Section-level failures are captured by default with
+`status = :error`; use `on_section_error = :throw` to make the first failing
+section raise.
+
+Set `include_prior_predictive = true` for MFRM fits to include prior predictive
+summary rows. Use `include_full_artifact = true` to embed the full compact
+`fit_artifact`; otherwise only the artifact schema, content hash, and archive
+manifest are included in the report.
+"""
+function fit_report(fit::_ModelComparisonFit;
+        include_prior_predictive::Bool = false,
+        prior_predictive_ndraws::Int = 100,
+        prior_predictive_rng::AbstractRNG = Random.default_rng(),
+        include_posterior_predictive::Bool = true,
+        include_grouped_predictive::Bool = true,
+        predictive_interval::Real = 0.9,
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng(),
+        posterior_lower::Real = 0.025,
+        posterior_upper::Real = 0.975,
+        posterior_intervals = (0.66, 0.9, 0.95),
+        posterior_reference::Real = 0.0,
+        posterior_rope = nothing,
+        posterior_rope_probability_threshold::Real = 0.95,
+        include_direct_posterior::Bool = fit isa Union{GMFRMFit,MGMFRMFit},
+        include_calibration::Bool = true,
+        calibration_target::Symbol = :expected_score,
+        calibration_category = nothing,
+        calibration_bins::Int = 10,
+        calibration_interval::Real = 0.9,
+        include_waic::Bool = true,
+        waic_threshold::Real = 0.4,
+        include_loo::Bool = true,
+        loo_threshold::Real = 0.7,
+        loo_tail_fraction::Real = 0.2,
+        loo_min_tail_draws::Int = 5,
+        include_dff::Bool = false,
+        dff_terms = :validation,
+        dff_interval::Real = 0.95,
+        dff_min_n::Int = 1,
+        include_artifact::Bool = true,
+        include_full_artifact::Bool = false,
+        artifact_include_draws::Bool = false,
+        artifact_include_log_posterior::Bool = artifact_include_draws,
+        artifact_include_sampler_stats::Bool = false,
+        artifact_include_environment::Bool = false,
+        artifact_include_packages::Bool = false,
+        split_chains::Bool = true,
+        rhat_threshold::Real = 1.01,
+        ess_threshold::Real = 400,
+        on_section_error::Symbol = :capture)
+    checked_on_error = _fit_report_on_section_error(on_section_error)
+    diagnostic_surface = diagnostics(fit;
+        split_chains,
+        rhat_threshold,
+        ess_threshold)
+    manifest = _model_manifest(fit, diagnostic_surface.summary)
+    metadata = fit_metadata(fit)
+    report_draw_indices = ndraws === nothing && draw_indices === nothing ?
+        nothing : _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+
+    posterior = _fit_report_section(checked_on_error) do
+        rows = posterior_summary(fit;
+            lower = posterior_lower,
+            upper = posterior_upper,
+            intervals = posterior_intervals,
+            reference = posterior_reference,
+            rope = posterior_rope,
+            rope_probability_threshold = posterior_rope_probability_threshold)
+        (;
+            rows,
+            n_rows = length(rows),
+        )
+    end
+
+    direct_posterior = _fit_report_direct_posterior(fit;
+        include_direct_posterior,
+        posterior_lower,
+        posterior_upper,
+        posterior_intervals,
+        posterior_reference,
+        posterior_rope,
+        posterior_rope_probability_threshold,
+        on_section_error = checked_on_error)
+
+    prior_predictive = _fit_report_prior_predictive(fit;
+        include_prior_predictive,
+        prior_predictive_ndraws,
+        prior_predictive_rng,
+        predictive_interval,
+        include_grouped_predictive,
+        on_section_error = checked_on_error)
+
+    posterior_predictive = include_posterior_predictive ?
+        _fit_report_section(checked_on_error) do
+            check = posterior_predictive_check(fit;
+                ndraws = nothing,
+                draw_indices = report_draw_indices,
+                rng)
+            rows = predictive_check_summary(check;
+                interval = predictive_interval,
+                include_grouped = include_grouped_predictive)
+            (;
+                rows,
+                n_rows = length(rows),
+                draw_indices = hasproperty(check, :draw_indices) ?
+                    copy(check.draw_indices) : nothing,
+            )
+        end :
+        _fit_report_not_requested()
+
+    calibration = include_calibration ?
+        _fit_report_section(checked_on_error) do
+            rows = calibration_table(fit;
+                target = calibration_target,
+                category = calibration_category,
+                bins = calibration_bins,
+                interval = calibration_interval,
+                ndraws = nothing,
+                draw_indices = report_draw_indices,
+                rng)
+            (;
+                rows,
+                n_rows = length(rows),
+            )
+        end :
+        _fit_report_not_requested()
+
+    waic_section = include_waic ?
+        _fit_report_section(checked_on_error) do
+            stat = waic(fit;
+                ndraws = nothing,
+                draw_indices = report_draw_indices,
+                rng)
+            diagnostic_rows = waic_diagnostics(fit;
+                threshold = waic_threshold,
+                ndraws = nothing,
+                draw_indices = report_draw_indices,
+                rng)
+            (;
+                stat,
+                diagnostic_rows,
+                n_diagnostic_rows = length(diagnostic_rows),
+            )
+        end :
+        _fit_report_not_requested()
+
+    loo_section = include_loo ?
+        _fit_report_section(checked_on_error) do
+            stat = loo(fit;
+                ndraws = nothing,
+                draw_indices = report_draw_indices,
+                rng,
+                pareto_k_threshold = loo_threshold,
+                tail_fraction = loo_tail_fraction,
+                min_tail_draws = loo_min_tail_draws)
+            diagnostic_rows = loo_diagnostics(fit;
+                threshold = loo_threshold,
+                ndraws = nothing,
+                draw_indices = report_draw_indices,
+                rng,
+                tail_fraction = loo_tail_fraction,
+                min_tail_draws = loo_min_tail_draws)
+            (;
+                stat,
+                diagnostic_rows,
+                n_diagnostic_rows = length(diagnostic_rows),
+            )
+        end :
+        _fit_report_not_requested()
+
+    dff = _fit_report_dff(fit;
+        include_dff,
+        dff_terms,
+        dff_interval,
+        dff_min_n,
+        ndraws = nothing,
+        draw_indices = report_draw_indices,
+        rng,
+        on_section_error = checked_on_error)
+
+    artifact = include_artifact ?
+        _fit_report_section(checked_on_error) do
+            value = fit_artifact(fit;
+                include_draws = artifact_include_draws,
+                include_log_posterior = artifact_include_log_posterior,
+                include_sampler_stats = artifact_include_sampler_stats,
+                include_environment = artifact_include_environment,
+                include_packages = artifact_include_packages,
+                split_chains,
+                rhat_threshold,
+                ess_threshold)
+            (;
+                schema = value.schema,
+                content_hash = value.content_hash,
+                archive_manifest = value.archive_manifest,
+                artifact = include_full_artifact ? value : nothing,
+            )
+        end :
+        _fit_report_not_requested()
+
+    return (;
+        schema = "bayesianmgmfrm.fit_report.v1",
+        object = :fit_report,
+        created_at = string(now()),
+        family = fit.design.spec.family,
+        thresholds = fit.design.spec.thresholds,
+        dimensions = fit.design.spec.dimensions,
+        estimation_status = fit.design.spec.estimation_status,
+        report_policy = (;
+            include_prior_predictive,
+            include_posterior_predictive,
+            include_grouped_predictive,
+            predictive_interval = Float64(predictive_interval),
+            ndraws,
+            draw_indices = draw_indices === nothing ? nothing : collect(draw_indices),
+            resolved_draw_indices = report_draw_indices === nothing ?
+                nothing : collect(report_draw_indices),
+            posterior_intervals,
+            include_direct_posterior,
+            include_calibration,
+            calibration_target,
+            calibration_category,
+            calibration_bins,
+            calibration_interval = Float64(calibration_interval),
+            include_waic,
+            waic_threshold = Float64(waic_threshold),
+            include_loo,
+            loo_threshold = Float64(loo_threshold),
+            loo_tail_fraction = Float64(loo_tail_fraction),
+            loo_min_tail_draws,
+            include_dff,
+            include_artifact,
+            include_full_artifact,
+            on_section_error = checked_on_error,
+        ),
+        metadata,
+        manifest,
+        diagnostics = diagnostic_surface,
+        prior_predictive,
+        posterior,
+        direct_posterior,
+        posterior_predictive,
+        calibration,
+        waic = waic_section,
+        loo = loo_section,
+        dff,
+        artifact,
+    )
+end
+
 function _cache_stable_write(io::IO, value)
     if value isa NamedTuple
         print(io, "NamedTuple(")
@@ -8266,6 +8652,31 @@ function calibration_table(fit::MFRMFit;
 end
 
 function calibration_table(fit::GMFRMFit;
+        target::Symbol = :expected_score,
+        category = nothing,
+        bins::Int = 10,
+        interval::Real = 0.9,
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    lower_probability, upper_probability = _interval_probabilities(interval)
+    probabilities = predictive_probabilities(fit; ndraws, draw_indices, rng)
+    calibration_targets = _calibration_targets_from_probabilities(
+        fit.design.spec.data,
+        probabilities,
+        target,
+        category,
+    )
+    return _calibration_table_from_targets(
+        calibration_targets;
+        bins,
+        interval,
+        lower_probability,
+        upper_probability,
+    )
+end
+
+function calibration_table(fit::MGMFRMFit;
         target::Symbol = :expected_score,
         category = nothing,
         bins::Int = 10,
