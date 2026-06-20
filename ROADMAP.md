@@ -882,8 +882,11 @@ TODO:
   ratings per target, category pathologies, rater noise, DFF,
   multidimensionality, and misspecification.
   [`simulation_grid` and `simulation_grid_summary` now predeclare and check
-  these axes as machine-readable validation-grid rows. The helper does not run
-  simulations, fit models, or establish claim-level evidence.]
+  these axes as machine-readable validation-grid rows.
+  `scripts/generate_validation_plan.jl` now records deterministic smoke and
+  manuscript validation-plan JSON artifacts from those controls plus the
+  falsification-rule contract. The helper and script do not run simulations,
+  fit models, or establish claim-level evidence.]
 - [x] Predeclare falsification conditions for the claim that hierarchical
   priors stabilize sparse MGMFRM designs.
   [`falsification_rules` and `falsification_rule_summary` now provide
@@ -1095,6 +1098,9 @@ reported dimensions are interpretable.
    anonymization status.
 3. Convert the simulation grid and falsification rules into versioned scripts
    before running manuscript-scale experiments.
+   [`scripts/generate_validation_plan.jl` now records deterministic smoke and
+   manuscript validation-plan JSON artifacts; it does not run simulations or
+   evaluate claims.]
 4. Keep cached-fit artifacts reproducible: data hash, spec hash, prior policy,
    sampler controls, initialization hash, diagnostics, package versions, and
    source/Stan fixture hashes.

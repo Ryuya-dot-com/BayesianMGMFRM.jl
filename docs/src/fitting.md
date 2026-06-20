@@ -222,7 +222,9 @@ intervals and tail probabilities.
 ratings-per-target, category-pathology, rater-noise, DFF, dimensionality, and
 misspecification axes, and `simulation_grid_summary` checks whether those rows
 cover the required axes. These helpers plan validation grids; they do not run
-simulations or fit models.
+simulations or fit models. `scripts/generate_validation_plan.jl` records those
+rows' deterministic controls, coverage summary, and falsification-rule contract
+as a JSON validation-plan artifact before any manuscript-scale evidence run.
 `falsification_rules` predeclares rule rows for sparse hierarchical-prior
 MGMFRM stability claims, and `falsification_rule_summary` checks that all
 required claim domains are represented before a study is interpreted.

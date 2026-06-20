@@ -106,6 +106,8 @@ function metadata_check()
     isfile(joinpath(ROOT, "NEWS.md")) || error("NEWS.md is missing")
     isfile(joinpath(ROOT, "examples", "minimal.jl")) || error("examples/minimal.jl is missing")
     isfile(joinpath(ROOT, "docs", "make.jl")) || error("docs/make.jl is missing")
+    isfile(joinpath(ROOT, "scripts", "generate_validation_plan.jl")) ||
+        error("scripts/generate_validation_plan.jl is missing")
     return nothing
 end
 

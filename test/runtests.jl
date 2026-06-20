@@ -10557,6 +10557,41 @@ end
     @test_throws ArgumentError falsification_rule_summary(NamedTuple[])
     @test_throws ArgumentError falsification_rule_summary(Any[1])
 
+    validation_plan_script =
+        joinpath(dirname(@__DIR__), "scripts", "generate_validation_plan.jl")
+    @test isfile(validation_plan_script)
+    validation_plan_path = tempname() * ".json"
+    run(`$(Base.julia_cmd()) --startup-file=no --project=$(dirname(@__DIR__))
+        $validation_plan_script --preset smoke --grid-id unit-plan
+        --base-seed 8100 --output $validation_plan_path`)
+    validation_plan = JSON3.read(read(validation_plan_path, String))
+    @test String(validation_plan[:schema]) ==
+        "bayesianmgmfrm.validation_plan_artifact.v1"
+    @test String(validation_plan[:generator][:script]) ==
+        "scripts/generate_validation_plan.jl"
+    @test String(validation_plan[:controls][:preset]) == "smoke"
+    @test String(validation_plan[:controls][:grid_id]) == "unit-plan"
+    @test Int(validation_plan[:simulation_grid][:summary][:n_rows]) == 2^8
+    @test Int(validation_plan[:simulation_grid][:summary][:first_seed]) == 8100
+    @test Int(validation_plan[:simulation_grid][:summary][:last_seed]) ==
+        8100 + 2^8 - 1
+    @test Bool(validation_plan[:simulation_grid][:summary][:passed])
+    @test String(validation_plan[:simulation_grid][:row_policy]) ==
+        "omitted_regenerable_from_controls"
+    @test isnothing(validation_plan[:simulation_grid][:rows])
+    @test length(validation_plan[:simulation_grid][:row_samples]) == 4
+    @test Bool(validation_plan[:falsification][:summary][:passed])
+    @test Int(validation_plan[:falsification][:summary][:n_rules]) == 13
+    @test length(validation_plan[:falsification][:rules]) == 13
+    @test Bool(validation_plan[:execution_policy][:runs_simulations]) == false
+    @test Bool(validation_plan[:execution_policy][:fits_models]) == false
+    @test Bool(validation_plan[:execution_policy][:evaluates_claims]) == false
+    @test String(validation_plan[:execution_policy][:next_gate]) ==
+        "run_predeclared_grid_and_apply_falsification_rules"
+    @test String(validation_plan[:content_hash][:algorithm]) == "sha256"
+    @test length(String(validation_plan[:content_hash][:value])) == 64
+    rm(validation_plan_path; force = true)
+
     comparison_rows = [
         comparison_evidence_row(;
             comparison_class = :stan,

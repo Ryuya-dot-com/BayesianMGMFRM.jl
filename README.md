@@ -314,6 +314,8 @@ Current public API:
   rows and coverage checks for density, anchor size, ratings per target,
   category pathology, rater noise, DFF, dimensionality, and misspecification
   axes. They plan a grid; they do not run simulations or fit models.
+  `scripts/generate_validation_plan.jl` turns the grid and falsification rules
+  into a deterministic JSON validation-plan artifact for later evidence runs.
 - `falsification_rules` and `falsification_rule_summary`: predeclared
   rule rows and domain-coverage summaries for sparse hierarchical-prior MGMFRM
   stability claims. They define when a claim must be narrowed or blocked; they

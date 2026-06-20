@@ -47,6 +47,10 @@
   selects heldout K-fold log score for local scalar model-weight reporting, and
   keeps MGMFRM fit and sparse-superiority claims blocked until manual
   public-scope review.
+- Add `scripts/generate_validation_plan.jl`, a deterministic validation-plan
+  artifact generator that records simulation-grid controls, coverage summaries,
+  falsification-rule coverage, and content hashes without running simulations or
+  fitting models.
 - Reject boolean score columns instead of silently treating them as `0/1`.
 - Report empty data with a dedicated `:empty_data` validation error.
 - Use numeric ordering for numeric facet labels.
