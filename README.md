@@ -260,6 +260,12 @@ Current public API:
 - `fit_report_markdown` and `save_fit_report_markdown`: dependency-light
   Markdown review drafts with report metadata, section summaries, table
   previews, and Markdown content hashes.
+- `fit_report_dossier`, `fit_report_dossier_markdown`,
+  `save_fit_report_dossier`, `load_fit_report_dossier`, and
+  `save_fit_report_dossier_markdown`: multi-report review dossiers that combine
+  fit-report metadata, section summaries, supplied model-comparison rows,
+  sensitivity rows, and evidence rows into hash-checked JSON and Markdown
+  review artifacts without performing publication or registration actions.
 - `save_fit_report_bundle` and `load_fit_report_bundle`: one-call directory
   exports that write and verify the JSON report, JSON table files, Markdown
   draft, and a bundle manifest with nested content hashes and checked hash

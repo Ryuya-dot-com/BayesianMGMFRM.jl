@@ -48,6 +48,9 @@ The current public slice focuses on:
   guarded GMFRM/MGMFRM fit-ready skeletons;
 - report-ready predictive-check summaries, including grouped PPC expansion
   rows, via [`predictive_check_summary`](@ref);
+- hash-checked single-fit reports and multi-report review dossiers for local
+  analysis review via [`fit_report`](@ref) and
+  [`fit_report_dossier`](@ref);
 - binned expected-score and ordinal-category calibration summaries via
   [`calibration_table`](@ref);
 - plotting-ready rows via [`parameter_recovery_plot_data`](@ref),

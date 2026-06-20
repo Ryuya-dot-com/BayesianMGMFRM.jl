@@ -5346,6 +5346,474 @@ function load_fit_report_bundle(directory::AbstractString;
     return load_fit_report(report_path; verify_hash)
 end
 
+function _check_fit_report_dossier_payload(dossier)
+    (dossier isa NamedTuple || dossier isa AbstractDict) ||
+        throw(ArgumentError("expected a fit_report_dossier payload as a NamedTuple or Dict"))
+    schema = _report_lookup(dossier, :schema, _FIT_REPORT_LOOKUP_MISSING)
+    schema == "bayesianmgmfrm.fit_report_dossier.v1" ||
+        throw(ArgumentError("expected a bayesianmgmfrm.fit_report_dossier.v1 payload"))
+    return dossier
+end
+
+function _fit_report_dossier_rows(rows, field::Symbol)
+    rows === nothing && return Any[]
+    row_vector = rows isa Tuple ? Any[rows...] :
+        rows isa AbstractVector ? Any[rows...] :
+        throw(ArgumentError("$(String(field)) must be a vector or tuple of row objects"))
+    for row in row_vector
+        (row isa NamedTuple || row isa AbstractDict) ||
+            throw(ArgumentError("$(String(field)) rows must be NamedTuple or Dict values"))
+    end
+    return row_vector
+end
+
+function _fit_report_dossier_pairs(reports::Tuple)
+    !isempty(reports) ||
+        throw(ArgumentError("fit_report_dossier requires at least one report"))
+    labels = String[]
+    payloads = Any[]
+    for report in reports
+        push!(labels, string(report.first))
+        push!(payloads, _check_fit_report_payload(report.second))
+    end
+    _compare_model_names(labels, length(labels))
+    return labels, payloads
+end
+
+function _fit_report_dossier_named_reports(reports::Tuple, names)
+    !isempty(reports) ||
+        throw(ArgumentError("fit_report_dossier requires at least one report"))
+    labels = _compare_model_names(names, length(reports))
+    payloads = Any[_check_fit_report_payload(report) for report in reports]
+    return labels, payloads
+end
+
+function _fit_report_dossier_diagnostic_flag(report)
+    diagnostics_section = _report_lookup(report, :diagnostics, _FIT_REPORT_LOOKUP_MISSING)
+    diagnostics_section === _FIT_REPORT_LOOKUP_MISSING && return missing
+    summary = _report_lookup(diagnostics_section, :summary, _FIT_REPORT_LOOKUP_MISSING)
+    summary === _FIT_REPORT_LOOKUP_MISSING && return missing
+    return _report_symbol_value(_report_lookup(summary, :flag, missing))
+end
+
+function _fit_report_dossier_report_and_section_rows(
+        labels::AbstractVector{<:AbstractString},
+        reports::AbstractVector)
+    report_rows = NamedTuple[]
+    section_rows = NamedTuple[]
+    for (label, report) in zip(labels, reports)
+        sections = fit_report_sections(report)
+        report_hash = _artifact_content_hash_record(report)
+        n_error_sections = count(row -> row.status === :error, sections)
+        n_computed_sections = count(row -> row.status === :computed, sections)
+        n_not_requested_sections = count(row -> row.status === :not_requested, sections)
+        n_rows = sum(row.n_rows for row in sections)
+        push!(report_rows, (;
+            model = String(label),
+            report_schema = _report_lookup(report, :schema, missing),
+            report_object = _report_symbol_value(_report_lookup(report, :object, missing)),
+            report_created_at = _report_lookup(report, :created_at, missing),
+            family = _report_symbol_value(_report_lookup(report, :family, missing)),
+            thresholds = _report_symbol_value(_report_lookup(report, :thresholds, missing)),
+            dimensions = _report_lookup(report, :dimensions, missing),
+            estimation_status =
+                _report_symbol_value(_report_lookup(report, :estimation_status, missing)),
+            diagnostic_flag = _fit_report_dossier_diagnostic_flag(report),
+            n_sections = length(sections),
+            n_computed_sections,
+            n_not_requested_sections,
+            n_error_sections,
+            n_rows,
+            report_content_hash = report_hash,
+        ))
+        for section in sections
+            push!(section_rows, (;
+                model = String(label),
+                section = section.section,
+                status = section.status,
+                row_fields = copy(section.row_fields),
+                n_rows = section.n_rows,
+            ))
+        end
+    end
+    return report_rows, section_rows
+end
+
+"""
+    fit_report_dossier(reports::Pair...; comparison_rows = (),
+        sensitivity_rows = (), evidence_rows = (), include_reports = false,
+        label = nothing)
+    fit_report_dossier(report1, report2, ...; names = nothing, kwargs...)
+
+Build a review dossier from one or more [`fit_report`](@ref) payloads. The
+dossier records per-report metadata, section summaries, supplied model
+comparison rows, supplied sensitivity rows, and optional evidence rows in one
+portable object for downstream review or manuscript-draft rendering. It does
+not run publication or registration actions, and embedded full reports are
+omitted unless `include_reports = true`.
+"""
+function fit_report_dossier(reports::Pair...;
+        comparison_rows = (),
+        sensitivity_rows = (),
+        evidence_rows = (),
+        include_reports::Bool = false,
+        label = nothing)
+    labels, payloads = _fit_report_dossier_pairs(reports)
+    return _fit_report_dossier(labels, payloads;
+        comparison_rows,
+        sensitivity_rows,
+        evidence_rows,
+        include_reports,
+        label)
+end
+
+function fit_report_dossier(
+        first,
+        rest...;
+        names = nothing,
+        comparison_rows = (),
+        sensitivity_rows = (),
+        evidence_rows = (),
+        include_reports::Bool = false,
+        label = nothing)
+    labels, payloads = _fit_report_dossier_named_reports((first, rest...), names)
+    return _fit_report_dossier(labels, payloads;
+        comparison_rows,
+        sensitivity_rows,
+        evidence_rows,
+        include_reports,
+        label)
+end
+
+function fit_report_dossier(; kwargs...)
+    throw(ArgumentError("fit_report_dossier requires at least one report"))
+end
+
+function _fit_report_dossier(labels::AbstractVector{<:AbstractString},
+        reports::AbstractVector;
+        comparison_rows,
+        sensitivity_rows,
+        evidence_rows,
+        include_reports::Bool,
+        label)
+    report_rows, section_rows =
+        _fit_report_dossier_report_and_section_rows(labels, reports)
+    checked_comparison_rows =
+        _fit_report_dossier_rows(comparison_rows, :comparison_rows)
+    checked_sensitivity_rows =
+        _fit_report_dossier_rows(sensitivity_rows, :sensitivity_rows)
+    checked_evidence_rows =
+        _fit_report_dossier_rows(evidence_rows, :evidence_rows)
+    return (;
+        schema = "bayesianmgmfrm.fit_report_dossier.v1",
+        object = :fit_report_dossier,
+        created_at = string(now()),
+        label = label === nothing ? missing : label,
+        report_policy = (;
+            include_reports,
+            rendering_scope = :review_dossier,
+            publication_or_registration_action = false,
+            manuscript_claims_allowed = false,
+            next_gate = :manual_publication_or_registration_by_user_only,
+        ),
+        n_reports = length(reports),
+        models = Tuple(labels),
+        n_report_rows = length(report_rows),
+        n_section_rows = length(section_rows),
+        n_comparison_rows = length(checked_comparison_rows),
+        n_sensitivity_rows = length(checked_sensitivity_rows),
+        n_evidence_rows = length(checked_evidence_rows),
+        report_rows,
+        section_rows,
+        comparison_rows = checked_comparison_rows,
+        sensitivity_rows = checked_sensitivity_rows,
+        evidence_rows = checked_evidence_rows,
+        reports = include_reports ? Tuple(reports) : nothing,
+    )
+end
+
+function _fit_report_dossier_metadata_rows(dossier)
+    fields = (:schema, :object, :created_at, :label, :n_reports,
+        :n_report_rows, :n_section_rows, :n_comparison_rows,
+        :n_sensitivity_rows, :n_evidence_rows)
+    rows = NamedTuple[]
+    for field in fields
+        value = _report_lookup(dossier, field, _FIT_REPORT_LOOKUP_MISSING)
+        value === _FIT_REPORT_LOOKUP_MISSING && continue
+        push!(rows, (; field, value = _report_symbol_value(value)))
+    end
+    policy = _report_lookup(dossier, :report_policy, _FIT_REPORT_LOOKUP_MISSING)
+    if policy !== _FIT_REPORT_LOOKUP_MISSING
+        for field in (:rendering_scope, :publication_or_registration_action,
+                :manuscript_claims_allowed, :next_gate)
+            value = _report_lookup(policy, field, _FIT_REPORT_LOOKUP_MISSING)
+            value === _FIT_REPORT_LOOKUP_MISSING && continue
+            push!(rows, (; field, value = _report_symbol_value(value)))
+        end
+    end
+    return rows
+end
+
+function _fit_report_dossier_row_vector(dossier, field::Symbol)
+    rows = _report_lookup(dossier, field, _FIT_REPORT_LOOKUP_MISSING)
+    rows isa AbstractVector || return Any[]
+    return rows
+end
+
+function _write_fit_report_dossier_markdown_section(io::IO,
+        title::AbstractString,
+        rows;
+        max_rows::Int,
+        include_empty::Bool)
+    if isempty(rows) && !include_empty
+        return false
+    end
+    println(io)
+    println(io, "## ", title)
+    println(io)
+    println(io, "- Rows: ", length(rows))
+    println(io, "- Preview rows: ", min(length(rows), max_rows))
+    println(io)
+    _write_markdown_table(io, rows;
+        max_rows,
+        max_cell_chars = 120)
+    return true
+end
+
+"""
+    fit_report_dossier_markdown(dossier;
+        title = "BayesianMGMFRM fit report dossier", max_rows = 6,
+        include_empty = false)
+
+Render a portable Markdown review dossier from a [`fit_report_dossier`](@ref)
+payload. The output includes dossier metadata, per-report summaries, per-section
+summaries, and previews of supplied comparison, sensitivity, and evidence rows.
+"""
+function fit_report_dossier_markdown(dossier;
+        title::AbstractString = "BayesianMGMFRM fit report dossier",
+        max_rows::Integer = 6,
+        include_empty::Bool = false)
+    max_rows >= 0 ||
+        throw(ArgumentError("max_rows must be non-negative"))
+    _check_fit_report_dossier_payload(dossier)
+    io = IOBuffer()
+    println(io, "# ", title)
+    println(io)
+    println(io, "Generated from `bayesianmgmfrm.fit_report_dossier.v1`.")
+    println(io)
+    dossier_hash = _artifact_content_hash_record(dossier)
+    println(io, "- Dossier content hash: `", dossier_hash.value, "`")
+    println(io, "- Markdown preview rows per table: ", max_rows)
+    println(io, "- Publication or registration action: false")
+    println(io, "- Manuscript claims allowed: false")
+    println(io)
+    println(io, "## Dossier Metadata")
+    println(io)
+    _write_markdown_table(io, _fit_report_dossier_metadata_rows(dossier);
+        fields = (:field, :value),
+        max_rows = typemax(Int),
+        max_cell_chars = 160)
+    _write_fit_report_dossier_markdown_section(io,
+        "Report Summary",
+        _fit_report_dossier_row_vector(dossier, :report_rows);
+        max_rows = Int(max_rows),
+        include_empty = true)
+    _write_fit_report_dossier_markdown_section(io,
+        "Section Summary",
+        _fit_report_dossier_row_vector(dossier, :section_rows);
+        max_rows = Int(max_rows),
+        include_empty = true)
+    wrote_optional = false
+    for (title, field) in (
+            ("Comparison Rows", :comparison_rows),
+            ("Sensitivity Rows", :sensitivity_rows),
+            ("Evidence Rows", :evidence_rows))
+        wrote_optional |= _write_fit_report_dossier_markdown_section(io,
+            title,
+            _fit_report_dossier_row_vector(dossier, field);
+            max_rows = Int(max_rows),
+            include_empty)
+    end
+    if !wrote_optional && include_empty
+        println(io)
+        println(io, "_No comparison, sensitivity, or evidence rows are available._")
+    end
+    return String(take!(io))
+end
+
+function _fit_report_dossier_json_hash_record(payload)
+    hash_payload = _json_hash_value(_artifact_hash_payload(payload))
+    canonical = _cache_stable_string(hash_payload)
+    return (;
+        algorithm = :sha256,
+        value = bytes2hex(sha256(codeunits(canonical))),
+        scope = :fit_report_dossier_json_without_hash_metadata,
+        canonicalization = :cache_stable_string,
+        n_canonical_bytes = sizeof(canonical),
+    )
+end
+
+function _fit_report_dossier_markdown_hash_record(markdown::AbstractString)
+    return (;
+        algorithm = :sha256,
+        value = bytes2hex(sha256(codeunits(markdown))),
+        scope = :fit_report_dossier_markdown,
+        canonicalization = :raw_markdown_string,
+        n_canonical_bytes = sizeof(markdown),
+    )
+end
+
+function _fit_report_dossier_export_record(path::AbstractString,
+        dossier;
+        label = nothing)
+    _check_fit_report_dossier_payload(dossier)
+    json_dossier = _json_export_value(dossier)
+    return (;
+        schema = "bayesianmgmfrm.fit_report_dossier_export.v1",
+        object = :fit_report_dossier_export,
+        created_at = string(now()),
+        label = label === nothing ? missing : label,
+        source_path = String(path),
+        serialization = (;
+            format = :json,
+            writer = :JSON3,
+            portability = :cross_tool_json_payload,
+            missing_values = :json_null,
+            nonfinite_numbers = :string,
+        ),
+        dossier_schema = _report_lookup(dossier, :schema, missing),
+        dossier_object = _report_symbol_value(_report_lookup(dossier, :object, missing)),
+        dossier_content_hash = _artifact_content_hash_record(dossier),
+        json_content_hash = _fit_report_dossier_json_hash_record(json_dossier),
+        dossier = json_dossier,
+    )
+end
+
+"""
+    save_fit_report_dossier(path, dossier; overwrite = false, label = nothing)
+
+Write a [`fit_report_dossier`](@ref) to a JSON export record. The export stores
+both the dossier content hash and a JSON-payload hash so
+[`load_fit_report_dossier`](@ref) can verify the saved payload.
+"""
+function save_fit_report_dossier(path::AbstractString,
+        dossier;
+        overwrite::Bool = false,
+        label = nothing)
+    isfile(path) && !overwrite &&
+        throw(ArgumentError("fit report dossier export already exists at $path; pass overwrite = true to replace it"))
+    record = _fit_report_dossier_export_record(path, dossier; label)
+    mkpath(dirname(path))
+    _write_json_record(path, record)
+    return record
+end
+
+function _check_fit_report_dossier_export_record(record, path)
+    record isa AbstractDict ||
+        throw(ArgumentError("fit report dossier export at $path does not contain a JSON object"))
+    get(record, "schema", nothing) ==
+        "bayesianmgmfrm.fit_report_dossier_export.v1" ||
+        throw(ArgumentError("fit report dossier export at $path has an unsupported schema"))
+    get(record, "object", nothing) == "fit_report_dossier_export" ||
+        throw(ArgumentError("fit report dossier export at $path has an unsupported object"))
+    get(record, "dossier", nothing) isa AbstractDict ||
+        throw(ArgumentError("fit report dossier export at $path does not contain a dossier object"))
+    _check_fit_report_hash_record(record, :dossier_content_hash,
+        "fit report dossier export at $path";
+        expected_scope = :artifact_without_hash_metadata,
+        expected_canonicalization = :cache_stable_string)
+    _check_fit_report_hash_record(record, :json_content_hash,
+        "fit report dossier export at $path";
+        expected_scope = :fit_report_dossier_json_without_hash_metadata,
+        expected_canonicalization = :cache_stable_string)
+    return record
+end
+
+function _verify_fit_report_dossier_export_record(record, path)
+    expected_json = _fit_report_hash_value(record, :json_content_hash,
+        "fit report dossier export at $path";
+        expected_scope = :fit_report_dossier_json_without_hash_metadata,
+        expected_canonicalization = :cache_stable_string)
+    actual_json = _fit_report_dossier_json_hash_record(record["dossier"]).value
+    isequal(expected_json, actual_json) ||
+        throw(ArgumentError("fit report dossier export JSON hash mismatch for $path"))
+    return record
+end
+
+"""
+    load_fit_report_dossier(path; verify_hash = true, return_record = false)
+
+Load a JSON fit-report dossier export written by
+[`save_fit_report_dossier`](@ref). Hash metadata is checked, the JSON payload is
+verified by default, and the loaded dossier payload is returned as ordinary
+`Dict{String,Any}` / `Vector{Any}` data unless `return_record = true`.
+"""
+function load_fit_report_dossier(path::AbstractString;
+        verify_hash::Bool = true,
+        return_record::Bool = false)
+    record = _read_json_dict(path, "fit report dossier export")
+    record = _check_fit_report_dossier_export_record(record, path)
+    verify_hash && _verify_fit_report_dossier_export_record(record, path)
+    return return_record ? record : record["dossier"]
+end
+
+function _fit_report_dossier_markdown_export_record(path::AbstractString,
+        dossier,
+        markdown::AbstractString;
+        label = nothing,
+        title::AbstractString,
+        max_rows::Integer,
+        include_empty::Bool)
+    return (;
+        schema = "bayesianmgmfrm.fit_report_dossier_markdown_export.v1",
+        object = :fit_report_dossier_markdown_export,
+        created_at = string(now()),
+        label = label === nothing ? missing : label,
+        source_path = String(path),
+        dossier_schema = _report_lookup(dossier, :schema, missing),
+        dossier_object = _report_symbol_value(_report_lookup(dossier, :object, missing)),
+        dossier_content_hash = _artifact_content_hash_record(dossier),
+        markdown_content_hash = _fit_report_dossier_markdown_hash_record(markdown),
+        format = :markdown,
+        title = String(title),
+        max_rows = Int(max_rows),
+        include_empty,
+        n_bytes = sizeof(markdown),
+    )
+end
+
+"""
+    save_fit_report_dossier_markdown(path, dossier; overwrite = false,
+        title = "BayesianMGMFRM fit report dossier", max_rows = 6,
+        include_empty = false, label = nothing)
+
+Write a Markdown review draft for a [`fit_report_dossier`](@ref) payload and
+return an export record with dossier and Markdown content hashes.
+"""
+function save_fit_report_dossier_markdown(path::AbstractString,
+        dossier;
+        overwrite::Bool = false,
+        title::AbstractString = "BayesianMGMFRM fit report dossier",
+        max_rows::Integer = 6,
+        include_empty::Bool = false,
+        label = nothing)
+    isfile(path) && !overwrite &&
+        throw(ArgumentError("fit report dossier markdown already exists at $path; pass overwrite = true to replace it"))
+    markdown = fit_report_dossier_markdown(dossier;
+        title,
+        max_rows,
+        include_empty)
+    mkpath(dirname(path))
+    open(path, "w") do io
+        write(io, markdown)
+    end
+    return _fit_report_dossier_markdown_export_record(path, dossier, markdown;
+        label,
+        title,
+        max_rows,
+        include_empty)
+end
+
 function _fit_report_table_export_manifest_path(directory::AbstractString)
     return joinpath(directory, "manifest.json")
 end

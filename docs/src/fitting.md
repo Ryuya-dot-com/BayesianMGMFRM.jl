@@ -296,6 +296,13 @@ report, table directory, Markdown draft, and bundle manifest together under one
 export directory; [`load_fit_report_bundle`](@ref) verifies the nested report,
 table manifest/table file, and Markdown hashes plus their hash-record metadata
 before returning the report payload.
+Use [`fit_report_dossier`](@ref) to combine one or more fit-report payloads
+with supplied comparison, sensitivity, or evidence rows into a multi-report
+review dossier. [`fit_report_dossier_markdown`](@ref),
+[`save_fit_report_dossier`](@ref), [`load_fit_report_dossier`](@ref), and
+[`save_fit_report_dossier_markdown`](@ref) provide hash-checked JSON and
+Markdown review artifacts while explicitly recording that no publication or
+registration action is performed.
 `cached_fit` is the RDS-like recomputation guard: it serializes the fitted
 object with Julia's standard `Serialization` format and only reuses the file
 when [`fit_cache_key`](@ref) still matches the current data/spec/design, prior,
