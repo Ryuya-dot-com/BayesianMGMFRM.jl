@@ -10767,6 +10767,49 @@ end
     @test load_fit_cache(tampered_cache_path;
         expected_cache_key = cache_key,
         verify_hash = false).draws == result.draws
+    tampered_cache_hash_metadata_path = joinpath(cache_dir,
+        "tampered_minimal_fit_hash_metadata.jls")
+    tampered_cache_hash_metadata = merge(cache_record, (;
+        artifact_content_hash = merge(cache_record.artifact_content_hash, (;
+            scope = :wrong_scope,
+        )),
+    ))
+    open(tampered_cache_hash_metadata_path, "w") do io
+        serialize(io, tampered_cache_hash_metadata)
+    end
+    @test_throws ArgumentError load_fit_cache(tampered_cache_hash_metadata_path;
+        expected_cache_key = cache_key,
+        verify_hash = false)
+    tampered_cache_archive_metadata_path = joinpath(cache_dir,
+        "tampered_minimal_fit_archive_metadata.jls")
+    tampered_cache_archive_metadata = merge(cache_record, (;
+        archive_manifest = merge(cache_record.archive_manifest, (;
+            content_hash = merge(cache_record.archive_manifest.content_hash, (;
+                algorithm = :sha1,
+            )),
+        )),
+    ))
+    open(tampered_cache_archive_metadata_path, "w") do io
+        serialize(io, tampered_cache_archive_metadata)
+    end
+    @test_throws ArgumentError load_fit_cache(tampered_cache_archive_metadata_path;
+        expected_cache_key = cache_key,
+        verify_hash = false)
+    tampered_cache_artifact_metadata_path = joinpath(cache_dir,
+        "tampered_minimal_fit_artifact_metadata.jls")
+    tampered_cache_artifact_metadata = merge(cache_record, (;
+        artifact = merge(cache_record.artifact, (;
+            content_hash = merge(cache_record.artifact.content_hash, (;
+                canonicalization = :wrong_canonicalization,
+            )),
+        )),
+    ))
+    open(tampered_cache_artifact_metadata_path, "w") do io
+        serialize(io, tampered_cache_artifact_metadata)
+    end
+    @test_throws ArgumentError load_fit_cache(tampered_cache_artifact_metadata_path;
+        expected_cache_key = cache_key,
+        verify_hash = false)
     @test_throws ArgumentError save_fit_cache(cache_path, result; cache_key)
     @test_throws ArgumentError load_fit_cache(cache_path; expected_cache_key = "not-the-key")
     @test_throws ArgumentError load_fit_cache(joinpath(cache_dir, "missing.jls"))

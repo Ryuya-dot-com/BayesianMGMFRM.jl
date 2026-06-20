@@ -355,7 +355,7 @@
   `MersenneTwister` seed in sampler controls.
 - Add `cached_fit`, `fit_cache_key`, `save_fit_cache`, and `load_fit_cache` for
   RDS-like serialized fit caches with key-based stale-cache protection and
-  load-time artifact-hash verification.
+  load-time artifact-hash and hash-record metadata verification.
 - Require an integer `seed` for automatic `cached_fit` / `fit_cache_key` reuse so
   cache keys cannot silently ignore non-replayable RNG state.
 - Add `validation_suggestions` for machine-readable next-step guidance from
