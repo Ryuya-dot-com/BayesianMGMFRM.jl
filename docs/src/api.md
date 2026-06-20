@@ -54,6 +54,8 @@ fit_cache_key
 fit_metadata
 fit_report
 fit_ready_parameter_layout
+load_fit_report
+save_fit_report
 domain_compilation_summary
 fit_stats
 initial_params

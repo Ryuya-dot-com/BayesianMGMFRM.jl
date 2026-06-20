@@ -120,6 +120,11 @@ println("Fit report: schema=", report.schema,
     ", posterior_rows=", report.posterior.n_rows,
     ", calibration_rows=", report.calibration.n_rows,
     ", loo_status=", report.loo.status)
+report_path = joinpath(mktempdir(), "minimal_fit_report.json")
+report_export = save_fit_report(report_path, report)
+println("Fit report export: schema=", report_export.schema,
+    ", json_hash=", report_export.json_content_hash.value,
+    ", path=", report_path)
 diagnostic_surface = diagnostics(fit_result)
 println("Diagnostic summary: ", compact_row(diagnostic_surface.summary,
     (:flag, :passed, :n_chains, :draws_per_chain, :max_rhat, :min_ess)))
