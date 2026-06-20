@@ -64,6 +64,8 @@
 - Add `fit_report`, a compact machine-readable report bundle for fitted MFRM,
   guarded GMFRM, and guarded fixed-Q MGMFRM objects, and enable calibration
   rows for guarded MGMFRM fits.
+- Show `fit_report` in the README, Bayesian fitting docs, and runnable
+  minimal/guarded MGMFRM examples.
 - Add `scripts/generate_validation_plan.jl`, a deterministic validation-plan
   artifact generator that records simulation-grid controls, coverage summaries,
   falsification-rule coverage, and content hashes without running simulations or

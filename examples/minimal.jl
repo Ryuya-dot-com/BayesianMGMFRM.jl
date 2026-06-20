@@ -110,6 +110,16 @@ artifact = fit_artifact(fit_result; include_environment = false)
 println("Fit artifact: schema=", artifact.schema,
     ", draws=", artifact.reproducibility.artifact_policy.draws,
     ", diagnostics=", artifact.diagnostics.summary.flag)
+report = fit_report(fit_result;
+    include_prior_predictive = true,
+    prior_predictive_ndraws = 4,
+    ndraws = 4,
+    rng = MersenneTwister(106),
+    artifact_include_environment = false)
+println("Fit report: schema=", report.schema,
+    ", posterior_rows=", report.posterior.n_rows,
+    ", calibration_rows=", report.calibration.n_rows,
+    ", loo_status=", report.loo.status)
 diagnostic_surface = diagnostics(fit_result)
 println("Diagnostic summary: ", compact_row(diagnostic_surface.summary,
     (:flag, :passed, :n_chains, :draws_per_chain, :max_rhat, :min_ess)))

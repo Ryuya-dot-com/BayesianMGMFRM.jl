@@ -121,6 +121,7 @@ fit_result = fit(spec;
 
 fit_metadata(fit_result)
 fit_artifact(fit_result; include_environment = false)
+fit_report(fit_result; include_loo = false, artifact_include_environment = false)
 sampler_diagnostics(fit_result)
 posterior_summary(fit_result)
 posterior_predictive_check(fit_result;
@@ -180,6 +181,9 @@ model_manifest(fit_result)
 fit_cache_key(spec; prior, backend = :julia, ndraws = 500, warmup = 500,
     chains = 4, step_size = 0.04, seed = 20260618)
 fit_artifact(fit_result; include_draws = true, include_environment = false)
+fit_report(fit_result; include_prior_predictive = true,
+    prior_predictive_ndraws = 4,
+    artifact_include_environment = false)
 diagnostics(fit_result)
 sampler_diagnostics(fit_result)
 mcmc_diagnostics(fit_result)
@@ -252,6 +256,13 @@ controls, RNG seed metadata, posterior summaries, selected diagnostic
 thresholds, optional draws, optional environment/package metadata, a stable
 [`artifact_content_hash`](@ref), and an embedded [`fit_archive_manifest`](@ref)
 for long-term export checks.
+`fit_report` is the lighter report-facing bundle: it combines metadata,
+manifest, diagnostics, posterior summaries, posterior predictive summaries,
+calibration rows, WAIC/LOO summaries and diagnostics, optional DFF rows, and
+compact artifact provenance. It captures section-level errors by default, so
+short validation fits can still return a partial report with `status = :error`
+for unavailable sections such as LOO. Pass `include_full_artifact = true` only
+when the embedded compact artifact itself is needed.
 `cached_fit` is the RDS-like recomputation guard: it serializes the fitted
 object with Julia's standard `Serialization` format and only reuses the file
 when [`fit_cache_key`](@ref) still matches the current data/spec/design, prior,
