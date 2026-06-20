@@ -7329,13 +7329,15 @@ function _loo_refit_empty_result(data::FacetData, plan, plan_diagnostics)
     )
 end
 
-function _check_loo_refit_spec(spec::FacetSpec)
+function _check_refit_supported_spec(spec::FacetSpec, caller::AbstractString)
     spec.family === :mfrm ||
-        throw(ArgumentError("loo_refit currently supports only fit-supported MFRM specs"))
+        throw(ArgumentError("$caller currently supports only fit-supported MFRM specs"))
     spec.estimation_status === :fit_supported ||
-        throw(ArgumentError("loo_refit requires a fit-supported spec"))
+        throw(ArgumentError("$caller requires a fit-supported spec"))
     return spec
 end
+
+_check_loo_refit_spec(spec::FacetSpec) = _check_refit_supported_spec(spec, "loo_refit")
 
 """
     loo_refit(data::FacetData, plan = loo_refit_plan(data);
@@ -7360,7 +7362,7 @@ function loo_refit(spec::FacetSpec, plan = loo_refit_plan(spec);
         prior::MFRMPrior = MFRMPrior(),
         return_fits::Bool = false,
         kwargs...)
-    checked_spec = _check_loo_refit_spec(spec)
+    checked_spec = _check_refit_supported_spec(spec, "kfold_refit")
     data = checked_spec.data
     plan_diagnostics = _check_loo_refit_plan_for_execution(data, plan)
     isempty(plan.fold_rows) &&
@@ -7439,6 +7441,175 @@ function loo_refit(fit::MFRMFit, plan = loo_refit_plan(fit.design);
         prior::MFRMPrior = fit.prior,
         kwargs...)
     return loo_refit(fit.design.spec, plan; prior, kwargs...)
+end
+
+function _check_kfold_refit_plan_for_execution(data::FacetData, plan)
+    hasproperty(plan, :object) && plan.object === :kfold_plan ||
+        throw(ArgumentError("kfold_refit requires a kfold_plan result"))
+    hasproperty(plan, :fold_rows) ||
+        throw(ArgumentError("kfold_refit plan must contain fold_rows"))
+    hasproperty(plan, :n_observations) && Int(plan.n_observations) == data.n ||
+        throw(ArgumentError("kfold_refit plan n_observations does not match the supplied data"))
+    isempty(plan.fold_rows) &&
+        throw(ArgumentError("kfold_refit requires at least one fold row"))
+    diagnostics = kfold_plan_diagnostics(data, plan; facets = :all)
+    diagnostics.passed ||
+        throw(ArgumentError(
+            "kfold_refit plan has heldout-only facet levels; inspect kfold_plan_diagnostics"))
+    return diagnostics
+end
+
+"""
+    kfold_refit(data::FacetData, plan; thresholds = :partial_credit,
+        prior = MFRMPrior(), return_fits = false, kwargs...)
+    kfold_refit(data::FacetData; k, group_by = nothing, shuffle = false,
+        rng = Random.default_rng(), fold_ids = nothing, thresholds = :partial_credit,
+        kwargs...)
+    kfold_refit(spec::FacetSpec, plan; prior = MFRMPrior(),
+        return_fits = false, kwargs...)
+    kfold_refit(spec::FacetSpec; k, group_by = nothing, shuffle = false,
+        rng = Random.default_rng(), fold_ids = nothing, kwargs...)
+    kfold_refit(design::FacetDesign, plan; kwargs...)
+    kfold_refit(fit::MFRMFit, plan; kwargs...)
+
+Execute heldout K-fold refits for a [`kfold_plan`](@ref) under the current
+fit-supported MFRM/RSM/PCM likelihood. Each fold is refit on its training
+observations, scored on all heldout observations in that fold, and summarized
+with the same heldout log-score contract as [`kfold`](@ref).
+
+Plans are checked with [`kfold_plan_diagnostics`](@ref) before fitting; rows
+with heldout-only person, rater, item, score-category, or optional-facet levels
+are rejected because the heldout observations cannot be scored against the
+training-fold parameter map.
+"""
+function kfold_refit(spec::FacetSpec, plan;
+        prior::MFRMPrior = MFRMPrior(),
+        return_fits::Bool = false,
+        kwargs...)
+    checked_spec = _check_loo_refit_spec(spec)
+    data = checked_spec.data
+    plan_diagnostics = _check_kfold_refit_plan_for_execution(data, plan)
+
+    fold_logliks = Matrix{Float64}[]
+    fold_fits = MFRMFit[]
+    fit_rows = NamedTuple[]
+    for fold_row in plan.fold_rows
+        heldout_observations = _kfold_plan_checked_observations(
+            data,
+            fold_row.heldout_observations,
+            "kfold_refit heldout_observations",
+        )
+        isempty(heldout_observations) &&
+            throw(ArgumentError("kfold_refit fold rows must hold out at least one observation"))
+        training_observations = _kfold_plan_checked_observations(
+            data,
+            fold_row.training_observations,
+            "kfold_refit training_observations",
+        )
+        training_data = _loo_refit_training_data(data, training_observations)
+        training_spec = mfrm_spec(training_data; thresholds = checked_spec.thresholds)
+        training_fit = fit(training_spec; prior, kwargs...)
+        score_design =
+            _loo_refit_score_design(data, training_fit.design, heldout_observations)
+        push!(fold_logliks,
+            Matrix{Float64}(pointwise_loglikelihood_matrix(score_design, training_fit.draws)))
+        return_fits && push!(fold_fits, training_fit)
+        fit_summary = diagnostics(training_fit).summary
+        push!(fit_rows, (;
+            fold = fold_row.fold,
+            heldout_observations = copy(heldout_observations),
+            n_training_observations = length(training_observations),
+            n_heldout_observations = length(heldout_observations),
+            backend = training_fit.backend,
+            sampler = training_fit.sampler,
+            n_draws = size(training_fit.draws, 1),
+            diagnostic_flag = fit_summary.flag,
+        ))
+    end
+
+    kfold_summary = kfold(
+        fold_logliks;
+        fold_ids = plan.folds,
+        observation_indices = plan.heldout_observation_indices,
+    )
+    return (;
+        kfold_summary...,
+        schema = "bayesianmgmfrm.kfold_refit.v1",
+        object = :kfold_refit,
+        refit_method = :automatic_kfold_refit,
+        plan_schema = hasproperty(plan, :schema) ? plan.schema : missing,
+        group_by = hasproperty(plan, :group_by) ? plan.group_by : missing,
+        n_refits = length(plan.fold_rows),
+        n_total_observations = data.n,
+        fold_rows = copy(plan.fold_rows),
+        fit_rows,
+        fold_logliks,
+        fold_fits = return_fits ? fold_fits : nothing,
+        kfold_summary,
+        plan_diagnostics,
+    )
+end
+
+function kfold_refit(spec::FacetSpec;
+        k::Integer,
+        group_by::Union{Nothing,Symbol} = nothing,
+        shuffle::Bool = false,
+        rng::AbstractRNG = Random.default_rng(),
+        fold_ids = nothing,
+        kwargs...)
+    plan = kfold_plan(spec; k, group_by, shuffle, rng, fold_ids)
+    return kfold_refit(spec, plan; kwargs...)
+end
+
+function kfold_refit(data::FacetData, plan;
+        thresholds::Symbol = :partial_credit,
+        kwargs...)
+    return kfold_refit(mfrm_spec(data; thresholds), plan; kwargs...)
+end
+
+function kfold_refit(data::FacetData;
+        k::Integer,
+        group_by::Union{Nothing,Symbol} = nothing,
+        shuffle::Bool = false,
+        rng::AbstractRNG = Random.default_rng(),
+        fold_ids = nothing,
+        thresholds::Symbol = :partial_credit,
+        kwargs...)
+    spec = mfrm_spec(data; thresholds)
+    plan = kfold_plan(data; k, group_by, shuffle, rng, fold_ids)
+    return kfold_refit(spec, plan; kwargs...)
+end
+
+kfold_refit(design::FacetDesign, plan; kwargs...) =
+    kfold_refit(design.spec, plan; kwargs...)
+
+function kfold_refit(design::FacetDesign;
+        k::Integer,
+        group_by::Union{Nothing,Symbol} = nothing,
+        shuffle::Bool = false,
+        rng::AbstractRNG = Random.default_rng(),
+        fold_ids = nothing,
+        kwargs...)
+    plan = kfold_plan(design; k, group_by, shuffle, rng, fold_ids)
+    return kfold_refit(design.spec, plan; kwargs...)
+end
+
+function kfold_refit(fit::MFRMFit, plan;
+        prior::MFRMPrior = fit.prior,
+        kwargs...)
+    return kfold_refit(fit.design.spec, plan; prior, kwargs...)
+end
+
+function kfold_refit(fit::MFRMFit;
+        k::Integer,
+        group_by::Union{Nothing,Symbol} = nothing,
+        shuffle::Bool = false,
+        rng::AbstractRNG = Random.default_rng(),
+        fold_ids = nothing,
+        prior::MFRMPrior = fit.prior,
+        kwargs...)
+    plan = kfold_plan(fit.design; k, group_by, shuffle, rng, fold_ids)
+    return kfold_refit(fit.design.spec, plan; prior, kwargs...)
 end
 
 function _kfold_plan_diagnostic_facet_groups(data::FacetData, facet::Symbol)

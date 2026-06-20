@@ -323,9 +323,13 @@ Current public API:
 - `kfold_plan_diagnostics`: fold/facet coverage checks for K-fold plans before
   external refits, including heldout-only levels that would block heldout
   scoring without a fixed level map or different split.
+- `kfold_refit`: automatic heldout K-fold refit execution for fit-supported
+  MFRM/RSM/PCM specs from `kfold_plan`, with the same coverage diagnostics and
+  heldout log-score summary contract as `kfold`.
 - `kfold`: heldout K-fold log predictive density summaries from fold-specific
-  refit log-likelihood matrices. Pair it with `kfold_plan` to reuse the same
-  heldout observation IDs across models; neither helper refits models.
+  refit log-likelihood matrices. Pair it with `kfold_plan` for supplied
+  external fold fits, or use `kfold_refit` for the current fit-supported
+  automatic refit slice.
 - `kfold_diagnostics`: observation-level heldout K-fold rows with fold IDs,
   heldout ELPD/K-fold IC contributions, and facet labels when data are supplied.
 - `compare_models`: WAIC- or raw importance-sampling LOO-based comparison rows,
@@ -427,11 +431,10 @@ than repeatedly prefixing function names with the package name.
 Not yet implemented in the public API:
 
 - Stan/CmdStan sampling, PSIS-smoothed LOO, generalized exact LOO refit
-  orchestration, or refit-managed model-comparison workflows. The K-fold
-  helpers build deterministic observation/grouped heldout plans and summarize
-  supplied heldout log-likelihood matrices, but they do not refit models. The
-  AdvancedHMC/NUTS and Turing/NUTS backends are currently limited
-  to the minimal MFRM/RSM/PCM design; the guarded experimental GMFRM and
+  orchestration, or broad refit-managed model-comparison workflows. Automatic
+  K-fold refits are currently limited to the fit-supported MFRM/RSM/PCM slice.
+  The AdvancedHMC/NUTS and Turing/NUTS backends are currently limited to the
+  minimal MFRM/RSM/PCM design; the guarded experimental GMFRM and
   fixed-Q MGMFRM candidates remain on the AdvancedHMC path.
 - Broad fitting for the specified-only GMFRM/MGMFRM blocks declared by
   `mfrm_spec`, beyond the guarded scalar GMFRM rater-discrimination path and

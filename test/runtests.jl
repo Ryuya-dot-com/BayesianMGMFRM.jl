@@ -53,6 +53,7 @@ using BayesianMGMFRM:
     kfold_diagnostics,
     kfold_plan,
     kfold_plan_diagnostics,
+    kfold_refit,
     kfold_sensitivity_comparison,
     ScalarValidationData,
     ScalarValidationAnalyticLogDensity,
@@ -12002,6 +12003,126 @@ end
     @test kfold_plan_diagnostics(spec, fold_plan; facets = :person).n_rows ==
         fold_plan.n_folds
 
+    kfold_refit_person = String[]
+    kfold_refit_rater = String[]
+    kfold_refit_item = String[]
+    kfold_refit_score = Int[]
+    for block in 1:3, person_index in 1:3, rater_index in 1:2, item_index in 1:2
+        push!(kfold_refit_person, "P$person_index")
+        push!(kfold_refit_rater, "R$rater_index")
+        push!(kfold_refit_item, "I$item_index")
+        push!(kfold_refit_score, mod(block + person_index + rater_index + item_index, 2))
+    end
+    kfold_refit_data = FacetData(
+        (;
+            person = kfold_refit_person,
+            rater = kfold_refit_rater,
+            item = kfold_refit_item,
+            score = kfold_refit_score,
+        );
+        person = :person,
+        rater = :rater,
+        item = :item,
+        score = :score,
+    )
+    kfold_refit_spec = mfrm_spec(kfold_refit_data)
+    kfold_refit_design = getdesign(kfold_refit_spec)
+    kfold_refit_init = zeros(length(kfold_refit_design.parameter_names))
+    kfold_refit_plan_for_execution = kfold_plan(kfold_refit_data; k = 3)
+    @test kfold_plan_diagnostics(
+        kfold_refit_data,
+        kfold_refit_plan_for_execution,
+    ).passed
+
+    executed_kfold = kfold_refit(
+        kfold_refit_spec,
+        kfold_refit_plan_for_execution;
+        prior,
+        backend = :julia,
+        ndraws = 3,
+        warmup = 2,
+        chains = 1,
+        step_size = 0.02,
+        init = kfold_refit_init,
+        seed = 121,
+    )
+    @test executed_kfold.schema == "bayesianmgmfrm.kfold_refit.v1"
+    @test executed_kfold.object === :kfold_refit
+    @test executed_kfold.criterion === :kfold
+    @test executed_kfold.method === :heldout_refit_log_score
+    @test executed_kfold.refit_method === :automatic_kfold_refit
+    @test executed_kfold.plan_schema == "bayesianmgmfrm.kfold_plan.v1"
+    @test executed_kfold.group_by === :observation
+    @test executed_kfold.n_refits == kfold_refit_plan_for_execution.n_folds
+    @test executed_kfold.n_folds == kfold_refit_plan_for_execution.n_folds
+    @test executed_kfold.n_observations == kfold_refit_data.n
+    @test executed_kfold.n_total_observations == kfold_refit_data.n
+    @test executed_kfold.folds == kfold_refit_plan_for_execution.folds
+    @test executed_kfold.observation_indices ==
+        vcat(kfold_refit_plan_for_execution.heldout_observation_indices...)
+    @test executed_kfold.n_draws_by_fold ==
+        fill(3, kfold_refit_plan_for_execution.n_folds)
+    @test executed_kfold.n_heldout_by_fold ==
+        kfold_refit_plan_for_execution.n_heldout_by_fold
+    @test length(executed_kfold.fold_logliks) ==
+        kfold_refit_plan_for_execution.n_folds
+    @test [size(matrix, 1) for matrix in executed_kfold.fold_logliks] ==
+        fill(3, kfold_refit_plan_for_execution.n_folds)
+    @test [size(matrix, 2) for matrix in executed_kfold.fold_logliks] ==
+        kfold_refit_plan_for_execution.n_heldout_by_fold
+    @test all(matrix -> all(isfinite, matrix), executed_kfold.fold_logliks)
+    @test length(executed_kfold.fit_rows) == kfold_refit_plan_for_execution.n_folds
+    @test [row.n_training_observations for row in executed_kfold.fit_rows] ==
+        [row.n_training_observations for row in kfold_refit_plan_for_execution.fold_rows]
+    @test [row.n_heldout_observations for row in executed_kfold.fit_rows] ==
+        [row.n_heldout_observations for row in kfold_refit_plan_for_execution.fold_rows]
+    @test executed_kfold.plan_diagnostics.passed
+    @test isnothing(executed_kfold.fold_fits)
+    @test executed_kfold.kfold_summary.criterion === :kfold
+
+    executed_kfold_with_fits = kfold_refit(
+        kfold_refit_design,
+        kfold_refit_plan_for_execution;
+        prior,
+        return_fits = true,
+        backend = :julia,
+        ndraws = 2,
+        warmup = 1,
+        chains = 1,
+        step_size = 0.02,
+        init = kfold_refit_init,
+        seed = 122,
+    )
+    @test length(executed_kfold_with_fits.fold_fits) ==
+        kfold_refit_plan_for_execution.n_folds
+    @test all(fold_fit -> fold_fit isa MFRMFit, executed_kfold_with_fits.fold_fits)
+
+    kfold_refit_seed_fit = fit(
+        kfold_refit_spec;
+        prior,
+        backend = :julia,
+        ndraws = 2,
+        warmup = 1,
+        chains = 1,
+        step_size = 0.02,
+        init = kfold_refit_init,
+        seed = 123,
+    )
+    executed_kfold_from_fit = kfold_refit(
+        kfold_refit_seed_fit,
+        kfold_refit_plan_for_execution;
+        backend = :julia,
+        ndraws = 2,
+        warmup = 1,
+        chains = 1,
+        step_size = 0.02,
+        init = kfold_refit_init,
+        seed = 124,
+    )
+    @test executed_kfold_from_fit.object === :kfold_refit
+    @test executed_kfold_from_fit.n_refits == kfold_refit_plan_for_execution.n_folds
+    @test executed_kfold_from_fit.n_observations == kfold_refit_data.n
+
     person_fold_plan = kfold_plan(design; k = 3, group_by = :person,
         fold_ids = [:person_a, :person_b, :person_c])
     @test person_fold_plan.group_by === :person
@@ -12029,6 +12150,17 @@ end
     @test person_a_person_row.training_levels ==
         Tuple(data.person_levels[2:end])
     @test person_a_person_row.heldout_levels == (data.person_levels[1],)
+    @test_throws ArgumentError kfold_refit(
+        blocked_loo_spec,
+        kfold_plan(blocked_loo_data; k = 2, group_by = :person);
+        prior,
+        backend = :julia,
+        ndraws = 2,
+        warmup = 1,
+        chains = 1,
+        step_size = 0.02,
+        seed = 125,
+    )
 
     optional_cv_data = FacetData((
             examinee = ["E1", "E1", "E2", "E2"],

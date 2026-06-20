@@ -349,12 +349,13 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   [`kfold_plan`](@ref) now constructs deterministic observation-level or grouped
   heldout fold plans,
   [`kfold_plan_diagnostics`](@ref) checks heldout-only fold levels before
-  external refits, `kfold` plus [`kfold_diagnostics`](@ref) record supplied
+  refits, [`kfold_refit`](@ref) executes fit-supported MFRM/RSM/PCM heldout
+  folds automatically, `kfold` plus [`kfold_diagnostics`](@ref) record supplied
   heldout refit log-likelihood rows, [`compare_kfold`](@ref) summarizes same
   heldout-observation and fold-assignment comparison contracts, and
   [`kfold_sensitivity_comparison`](@ref) records baseline-relative K-fold
   sensitivity rows for supplied external summaries. Broader exact/refit-managed
-  workflows, automatic K-fold refitting, and PSIS smoothing remain planned.]
+  workflows and PSIS smoothing remain planned.]
 - Add first-class sensitivity comparisons for threshold, discrimination, DFF,
   anchor, dimensionality, and prior choices. [`sensitivity_comparison`](@ref)
   now provides same-data, fit-object sensitivity rows with declared axes,

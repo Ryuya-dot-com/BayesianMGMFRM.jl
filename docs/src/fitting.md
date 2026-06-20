@@ -235,8 +235,9 @@ executes those exact one-row refits for fit-supported MFRM/RSM/PCM specs after
 checking heldout-level coverage.
 [`kfold_plan`](@ref) constructs deterministic observation-level or grouped
 heldout folds, and [`kfold`](@ref) plus [`compare_kfold`](@ref) summarize
-supplied heldout refit log-likelihood matrices, but the package does not refit
-models for those folds.
+supplied heldout refit log-likelihood matrices. [`kfold_refit`](@ref) executes
+those folds automatically for fit-supported MFRM/RSM/PCM specs after checking
+heldout-level coverage.
 `MFRMLogDensity` exposes the
 same minimal posterior through the `LogDensityProblems.jl` protocol for
 external sampler and automatic differentiation experiments. AdvancedHMC uses a
@@ -372,8 +373,8 @@ facet labels when data are supplied. `compare_kfold` ranks those K-fold
 summaries when the heldout observation order and fold assignment order match
 across models. `kfold_sensitivity_comparison` adds declared sensitivity axis
 values and baseline-relative K-fold differences to those supplied summaries.
-The generic K-fold helpers record supplied K-fold evidence but do not yet refit
-models automatically. Use
+`kfold_refit` executes the planned folds automatically for the current
+fit-supported MFRM/RSM/PCM slice. Use
 [`facet_response_table`](@ref) with a plan row's `training_observations` or
 `heldout_observations` when a role-normalized table is needed for external
 fold-specific fitting scripts.
