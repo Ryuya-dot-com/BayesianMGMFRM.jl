@@ -4699,6 +4699,242 @@ function save_fit_report_tables(directory::AbstractString,
     return save_fit_report_tables(directory, report; overwrite = overwrite, label = label)
 end
 
+function _fit_report_markdown_hash_record(markdown::AbstractString)
+    return (;
+        algorithm = :sha256,
+        value = bytes2hex(sha256(codeunits(markdown))),
+        scope = :fit_report_markdown,
+        canonicalization = :raw_markdown_string,
+        n_canonical_bytes = sizeof(markdown),
+    )
+end
+
+function _markdown_plain_value(value)
+    value === missing && return ""
+    value === nothing && return ""
+    value isa Symbol && return String(value)
+    value isa AbstractString && return String(value)
+    value isa Bool && return string(value)
+    value isa Number && return string(value)
+    json_value = _json_export_value(value)
+    if json_value isa AbstractString
+        return String(json_value)
+    end
+    return JSON3.write(json_value)
+end
+
+function _markdown_cell(value; max_cell_chars::Int = 96)
+    text = replace(_markdown_plain_value(value), '\n' => " ")
+    text = replace(text, '\r' => " ")
+    text = replace(text, "|" => "\\|")
+    if max_cell_chars > 0 && lastindex(text) > max_cell_chars
+        return string(first(text, max_cell_chars), "...")
+    end
+    return text
+end
+
+function _markdown_row_fields(rows, max_rows::Int)
+    fields = Symbol[]
+    seen = Set{Symbol}()
+    for row in Iterators.take(rows, max_rows)
+        for field in _report_keys(row)
+            field in seen && continue
+            push!(fields, field)
+            push!(seen, field)
+        end
+    end
+    return fields
+end
+
+function _write_markdown_table(io::IO, rows;
+        fields = nothing,
+        max_rows::Int = 6,
+        max_cell_chars::Int = 96)
+    row_vector = collect(rows)
+    display_rows = collect(Iterators.take(row_vector, max_rows))
+    resolved_fields = fields === nothing ?
+        _markdown_row_fields(display_rows, max(1, length(display_rows))) :
+        collect(fields)
+    if isempty(resolved_fields)
+        println(io, "_No rows to preview._")
+        return
+    end
+    header_cells = [String(field) for field in resolved_fields]
+    println(io, "| ", join(header_cells, " | "), " |")
+    println(io, "| ", join(fill("---", length(resolved_fields)), " | "), " |")
+    for row in display_rows
+        cells = [
+            _markdown_cell(_report_lookup(row, field, missing);
+                max_cell_chars = max_cell_chars)
+            for field in resolved_fields
+        ]
+        println(io, "| ", join(cells, " | "), " |")
+    end
+    if length(row_vector) > length(display_rows)
+        println(io)
+        println(io, "_", length(row_vector) - length(display_rows),
+            " additional row(s) omitted._")
+    end
+    return
+end
+
+function _fit_report_metadata_rows(report)
+    fields = (:schema, :object, :created_at, :family, :thresholds,
+        :dimensions, :estimation_status)
+    rows = NamedTuple[]
+    for field in fields
+        value = _report_lookup(report, field, _FIT_REPORT_LOOKUP_MISSING)
+        value === _FIT_REPORT_LOOKUP_MISSING && continue
+        push!(rows, (; field, value = _report_symbol_value(value)))
+    end
+    return rows
+end
+
+"""
+    fit_report_markdown(report; title = "BayesianMGMFRM fit report",
+        max_rows = 6, include_empty = false)
+
+Render a portable Markdown review draft from a `fit_report` payload. The output
+includes report metadata, section status/row counts, and table previews for
+each tabular row field. `report` may be the in-memory `NamedTuple` returned by
+[`fit_report`](@ref) or a JSON-loaded payload from [`load_fit_report`](@ref).
+"""
+function fit_report_markdown(report;
+        title::AbstractString = "BayesianMGMFRM fit report",
+        max_rows::Integer = 6,
+        include_empty::Bool = false)
+    max_rows >= 0 ||
+        throw(ArgumentError("max_rows must be non-negative"))
+    _check_fit_report_payload(report)
+    io = IOBuffer()
+    println(io, "# ", title)
+    println(io)
+    println(io, "Generated from `bayesianmgmfrm.fit_report.v1`.")
+    println(io)
+    report_hash = _artifact_content_hash_record(report)
+    println(io, "- Report content hash: `", report_hash.value, "`")
+    println(io, "- Markdown preview rows per table: ", max_rows)
+    println(io)
+    println(io, "## Report Metadata")
+    println(io)
+    _write_markdown_table(io, _fit_report_metadata_rows(report);
+        fields = (:field, :value),
+        max_rows = typemax(Int),
+        max_cell_chars = 160)
+    println(io)
+    println(io, "## Section Summary")
+    println(io)
+    _write_markdown_table(io, fit_report_sections(report);
+        fields = (:section, :status, :row_fields, :n_rows),
+        max_rows = typemax(Int),
+        max_cell_chars = 160)
+    println(io)
+    println(io, "## Table Previews")
+    sections = fit_report_sections(report)
+    wrote_preview = false
+    for section in sections
+        for row_field in section.row_fields
+            rows = fit_report_rows(report, section.section; row_field)
+            if isempty(rows) && !include_empty
+                continue
+            end
+            wrote_preview = true
+            println(io)
+            println(io, "### ", String(section.section), " / ", String(row_field))
+            println(io)
+            println(io, "- Rows: ", length(rows))
+            println(io, "- Preview rows: ", min(length(rows), Int(max_rows)))
+            println(io)
+            _write_markdown_table(io, rows;
+                max_rows = Int(max_rows),
+                max_cell_chars = 120)
+        end
+    end
+    if !wrote_preview
+        println(io)
+        println(io, "_No tabular report rows are available._")
+    end
+    return String(take!(io))
+end
+
+function _fit_report_markdown_export_record(path::AbstractString,
+        report,
+        markdown::AbstractString;
+        label = nothing,
+        title::AbstractString,
+        max_rows::Integer,
+        include_empty::Bool)
+    return (;
+        schema = "bayesianmgmfrm.fit_report_markdown_export.v1",
+        object = :fit_report_markdown_export,
+        created_at = string(now()),
+        label = label === nothing ? missing : label,
+        source_path = String(path),
+        report_schema = _report_lookup(report, :schema, missing),
+        report_object = _report_symbol_value(_report_lookup(report, :object, missing)),
+        report_content_hash = _artifact_content_hash_record(report),
+        markdown_content_hash = _fit_report_markdown_hash_record(markdown),
+        format = :markdown,
+        title = String(title),
+        max_rows = Int(max_rows),
+        include_empty,
+        n_bytes = sizeof(markdown),
+    )
+end
+
+"""
+    save_fit_report_markdown(path, report; overwrite = false,
+        title = "BayesianMGMFRM fit report", max_rows = 6,
+        include_empty = false, label = nothing)
+    save_fit_report_markdown(path, fit; overwrite = false,
+        title = "BayesianMGMFRM fit report", max_rows = 6,
+        include_empty = false, label = nothing, kwargs...)
+
+Write a Markdown review draft for a `fit_report` payload and return an export
+record with report and Markdown content hashes. Passing a fit object first
+builds `fit_report(fit; kwargs...)`.
+"""
+function save_fit_report_markdown(path::AbstractString,
+        report;
+        overwrite::Bool = false,
+        title::AbstractString = "BayesianMGMFRM fit report",
+        max_rows::Integer = 6,
+        include_empty::Bool = false,
+        label = nothing)
+    isfile(path) && !overwrite &&
+        throw(ArgumentError("fit report markdown already exists at $path; pass overwrite = true to replace it"))
+    markdown = fit_report_markdown(report;
+        title,
+        max_rows,
+        include_empty)
+    mkpath(dirname(path))
+    open(path, "w") do io
+        write(io, markdown)
+    end
+    return _fit_report_markdown_export_record(path, report, markdown;
+        label,
+        title,
+        max_rows,
+        include_empty)
+end
+
+function save_fit_report_markdown(path::AbstractString,
+        fit::_ModelComparisonFit;
+        overwrite::Bool = false,
+        title::AbstractString = "BayesianMGMFRM fit report",
+        max_rows::Integer = 6,
+        include_empty::Bool = false,
+        label = nothing,
+        kwargs...)
+    report = fit_report(fit; kwargs...)
+    return save_fit_report_markdown(path, report;
+        overwrite,
+        title,
+        max_rows,
+        include_empty,
+        label)
+end
+
 function _cache_stable_write(io::IO, value)
     if value isa NamedTuple
         print(io, "NamedTuple(")

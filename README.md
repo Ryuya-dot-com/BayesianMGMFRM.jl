@@ -252,6 +252,9 @@ Current public API:
 - `fit_report_sections`, `fit_report_section`, and `fit_report_rows`: small
   accessors for listing report sections and extracting tabular rows from either
   in-memory reports or JSON-loaded report payloads.
+- `fit_report_markdown` and `save_fit_report_markdown`: dependency-light
+  Markdown review drafts with report metadata, section summaries, table
+  previews, and Markdown content hashes.
 - `save_fit_report_tables`: a directory export helper that writes each
   `fit_report` row field as a portable JSON table file plus a manifest with
   table filenames, row counts, and content hashes.
