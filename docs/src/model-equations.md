@@ -6,10 +6,12 @@ category kernel, primary-source references, required parameter blocks,
 identification restrictions, implementation gaps, and whether a specification is
 fit-ready.
 
-The current public fitting surface is the minimal MFRM/RSM/PCM slice. GMFRM and
-MGMFRM specifications expose source-aligned manifests and preview compiler rows
-for review, while broad generalized fitting remains guarded or internal as
-described in [Roadmap and Scope](roadmap.md).
+The current public fitting surface is the minimal MFRM/RSM/PCM slice plus
+guarded experimental generalized candidates: the scalar rater-discrimination
+GMFRM path and the fixed-Q two-dimensional confirmatory MGMFRM path. Broader
+GMFRM/MGMFRM specifications expose source-aligned manifests and preview
+compiler rows for review, while broad generalized fitting remains guarded or
+internal as described in [Roadmap and Scope](roadmap.md).
 
 ## Source Map
 
