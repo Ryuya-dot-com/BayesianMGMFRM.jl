@@ -242,8 +242,9 @@ Current public API:
 - `fit_report`: a compact machine-readable fitted-object report bundle that
   collects metadata, manifests, diagnostics, posterior summaries, predictive
   checks, calibration rows, WAIC/LOO summaries, optional DFF rows, and compact
-  artifact provenance. Section-level errors are captured by default so short
-  validation fits can still produce partial reports.
+  artifact provenance. Reports can be verified with `artifact_content_hash`.
+  Section-level errors are captured by default so short validation fits can
+  still produce partial reports.
 - `cached_fit`, `fit_cache_key`, `save_fit_cache`, and `load_fit_cache`:
   RDS-like serialized fit caches for avoiding recomputation when the
   data/spec/design, prior, sampler controls, seed, Julia version, and

@@ -4257,10 +4257,11 @@ end
 """
     artifact_content_hash(artifact)
 
-Return a stable SHA-256 content hash for an exported fit artifact. The hash is
-computed from the package's cache-stable representation after removing
-`content_hash` and `archive_manifest` metadata fields, so the value can be
-stored inside the artifact and recomputed later for verification.
+Return a stable SHA-256 content hash for an exported fit artifact or report
+bundle. The hash is computed from the package's cache-stable representation
+after recursively removing `content_hash` and `archive_manifest` metadata
+fields, so the value can be stored with an export and recomputed later for
+verification.
 """
 function artifact_content_hash(artifact)
     return _cache_hash(_artifact_hash_payload(artifact))

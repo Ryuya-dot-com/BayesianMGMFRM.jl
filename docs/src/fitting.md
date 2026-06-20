@@ -259,10 +259,13 @@ for long-term export checks.
 `fit_report` is the lighter report-facing bundle: it combines metadata,
 manifest, diagnostics, posterior summaries, posterior predictive summaries,
 calibration rows, WAIC/LOO summaries and diagnostics, optional DFF rows, and
-compact artifact provenance. It captures section-level errors by default, so
-short validation fits can still return a partial report with `status = :error`
-for unavailable sections such as LOO. Pass `include_full_artifact = true` only
-when the embedded compact artifact itself is needed.
+compact artifact provenance. Reports can be verified with
+[`artifact_content_hash`](@ref), which ignores embedded hash/archive metadata
+when recomputing the content hash. It captures section-level errors by default,
+so short validation fits can still return a partial report with
+`status = :error` for unavailable sections such as LOO. Pass
+`include_full_artifact = true` only when the embedded compact artifact itself is
+needed.
 `cached_fit` is the RDS-like recomputation guard: it serializes the fitted
 object with Julia's standard `Serialization` format and only reuses the file
 when [`fit_cache_key`](@ref) still matches the current data/spec/design, prior,
