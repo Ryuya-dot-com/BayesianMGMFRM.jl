@@ -7030,6 +7030,145 @@ end
 kfold_plan(spec::FacetSpec; kwargs...) = kfold_plan(spec.data; kwargs...)
 kfold_plan(design::FacetDesign; kwargs...) = kfold_plan(design.spec.data; kwargs...)
 
+function _kfold_plan_diagnostic_facet_groups(data::FacetData, facet::Symbol)
+    facet === :person && return data.person, data.person_levels
+    facet === :rater && return data.rater, data.rater_levels
+    facet === :item && return data.item, data.item_levels
+    facet === :category && return data.category, data.category_levels
+    if haskey(data.optional, facet)
+        return data.optional[facet], data.optional_levels[facet]
+    end
+    throw(ArgumentError(
+        "facets contains :$facet, which is not a required or optional facet"))
+end
+
+function _kfold_plan_diagnostic_facets(data::FacetData, facets)
+    requested = if facets === :all
+        Symbol[:person, :rater, :item, :category,
+            sort(collect(keys(data.optional)); by = string)...]
+    elseif facets isa Symbol
+        Symbol[facets]
+    else
+        Symbol[facet for facet in facets]
+    end
+    isempty(requested) &&
+        throw(ArgumentError("facets must contain at least one facet"))
+    length(unique(requested)) == length(requested) ||
+        throw(ArgumentError("facets must not contain duplicates"))
+    for facet in requested
+        _kfold_plan_diagnostic_facet_groups(data, facet)
+    end
+    return Tuple(requested)
+end
+
+function _kfold_plan_checked_observations(data::FacetData, observations, context)
+    return _check_observation_indices(data, observations, context)
+end
+
+function _kfold_plan_present_levels(index::AbstractVector{Int},
+        levels::AbstractVector,
+        observations::AbstractVector{Int})
+    present = falses(length(levels))
+    for observation in observations
+        present[index[observation]] = true
+    end
+    return Tuple(levels[level_index] for level_index in eachindex(levels)
+        if present[level_index])
+end
+
+function _check_kfold_plan_for_diagnostics(data::FacetData, plan)
+    hasproperty(plan, :fold_rows) ||
+        throw(ArgumentError("kfold_plan_diagnostics requires a kfold_plan result with fold_rows"))
+    hasproperty(plan, :n_observations) &&
+        Int(plan.n_observations) == data.n ||
+        throw(ArgumentError("kfold_plan n_observations does not match the supplied data"))
+    return plan
+end
+
+"""
+    kfold_plan_diagnostics(data::FacetData, plan; facets = :all)
+    kfold_plan_diagnostics(spec::FacetSpec, plan; kwargs...)
+    kfold_plan_diagnostics(design::FacetDesign, plan; kwargs...)
+
+Check whether each training fold in a [`kfold_plan`](@ref) retains the levels
+needed to score its heldout observations. Rows are reported by fold and facet
+for person, rater, item, score category, and optional facets by default. A row
+with `refit_blocker = true` has heldout-only levels for that facet, so an
+external refit using only that training fold would need a fixed level map,
+pooled treatment, or a different fold assignment before heldout scoring.
+"""
+function kfold_plan_diagnostics(data::FacetData, plan; facets = :all)
+    checked_plan = _check_kfold_plan_for_diagnostics(data, plan)
+    checked_facets = _kfold_plan_diagnostic_facets(data, facets)
+    rows = NamedTuple[]
+    for fold_row in checked_plan.fold_rows
+        hasproperty(fold_row, :fold) ||
+            throw(ArgumentError("kfold_plan fold_rows must contain :fold"))
+        training_observations = _kfold_plan_checked_observations(
+            data,
+            fold_row.training_observations,
+            "kfold_plan_diagnostics training_observations",
+        )
+        heldout_observations = _kfold_plan_checked_observations(
+            data,
+            fold_row.heldout_observations,
+            "kfold_plan_diagnostics heldout_observations",
+        )
+        for facet in checked_facets
+            index, levels = _kfold_plan_diagnostic_facet_groups(data, facet)
+            training_levels = _kfold_plan_present_levels(
+                index,
+                levels,
+                training_observations,
+            )
+            heldout_levels = _kfold_plan_present_levels(
+                index,
+                levels,
+                heldout_observations,
+            )
+            training_set = Set(training_levels)
+            heldout_only_levels =
+                Tuple(level for level in heldout_levels if !(level in training_set))
+            status = isempty(heldout_only_levels) ? :ok : :heldout_only_levels
+            push!(rows, (;
+                fold = fold_row.fold,
+                facet,
+                n_levels = length(levels),
+                n_training_observations = length(training_observations),
+                n_heldout_observations = length(heldout_observations),
+                n_training_levels = length(training_levels),
+                n_heldout_levels = length(heldout_levels),
+                n_heldout_only_levels = length(heldout_only_levels),
+                heldout_only_levels,
+                training_levels,
+                heldout_levels,
+                refit_blocker = !isempty(heldout_only_levels),
+                status,
+            ))
+        end
+    end
+    n_blocking_rows = count(row -> row.refit_blocker, rows)
+    return (;
+        schema = "bayesianmgmfrm.kfold_plan_diagnostics.v1",
+        object = :kfold_plan_diagnostics,
+        plan_schema = hasproperty(checked_plan, :schema) ? checked_plan.schema : missing,
+        group_by = hasproperty(checked_plan, :group_by) ? checked_plan.group_by : missing,
+        n_folds = length(checked_plan.fold_rows),
+        n_observations = data.n,
+        facets = checked_facets,
+        rows,
+        n_rows = length(rows),
+        n_blocking_rows,
+        passed = n_blocking_rows == 0,
+        warning = n_blocking_rows == 0 ? :ok : :heldout_only_levels,
+    )
+end
+
+kfold_plan_diagnostics(spec::FacetSpec, plan; kwargs...) =
+    kfold_plan_diagnostics(spec.data, plan; kwargs...)
+kfold_plan_diagnostics(design::FacetDesign, plan; kwargs...) =
+    kfold_plan_diagnostics(design.spec.data, plan; kwargs...)
+
 """
     kfold(fold_logliks; fold_ids = nothing, observation_indices = nothing)
     kfold(loglik::AbstractMatrix; fold_ids = nothing, observation_indices = nothing)

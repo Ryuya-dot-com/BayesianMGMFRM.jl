@@ -51,6 +51,7 @@ using BayesianMGMFRM:
     initial_params,
     kfold,
     kfold_plan,
+    kfold_plan_diagnostics,
     ScalarValidationData,
     ScalarValidationAnalyticLogDensity,
     ScalarValidationContrastLogDensity,
@@ -11745,6 +11746,23 @@ end
     @test planned_kfold.n_folds == fold_plan.n_folds
     @test planned_kfold.n_heldout_by_fold == fold_plan.n_heldout_by_fold
     @test planned_kfold.observation_indices == vcat(fold_plan.heldout_observation_indices...)
+    fold_plan_diagnostics = kfold_plan_diagnostics(data, fold_plan)
+    @test fold_plan_diagnostics.schema ==
+        "bayesianmgmfrm.kfold_plan_diagnostics.v1"
+    @test fold_plan_diagnostics.object === :kfold_plan_diagnostics
+    @test fold_plan_diagnostics.plan_schema == fold_plan.schema
+    @test fold_plan_diagnostics.group_by === :observation
+    @test fold_plan_diagnostics.facets == (:person, :rater, :item, :category)
+    @test fold_plan_diagnostics.n_rows ==
+        fold_plan.n_folds * length(fold_plan_diagnostics.facets)
+    @test fold_plan_diagnostics.n_blocking_rows ==
+        count(row -> row.refit_blocker, fold_plan_diagnostics.rows)
+    @test fold_plan_diagnostics.passed ==
+        (fold_plan_diagnostics.n_blocking_rows == 0)
+    @test all(row -> row.status in (:ok, :heldout_only_levels),
+        fold_plan_diagnostics.rows)
+    @test kfold_plan_diagnostics(spec, fold_plan; facets = :person).n_rows ==
+        fold_plan.n_folds
 
     person_fold_plan = kfold_plan(design; k = 3, group_by = :person,
         fold_ids = [:person_a, :person_b, :person_c])
@@ -11760,6 +11778,19 @@ end
     @test all(row -> row.n_heldout_units == 1, person_fold_plan.fold_rows)
     @test kfold_plan(spec; k = 3).heldout_observation_indices ==
         fold_plan.heldout_observation_indices
+    person_fold_diagnostics = kfold_plan_diagnostics(design, person_fold_plan)
+    @test person_fold_diagnostics.warning === :heldout_only_levels
+    @test !person_fold_diagnostics.passed
+    person_a_person_row = only(row for row in person_fold_diagnostics.rows
+        if row.fold === :person_a && row.facet === :person)
+    @test person_a_person_row.refit_blocker
+    @test person_a_person_row.status === :heldout_only_levels
+    @test person_a_person_row.heldout_only_levels == (data.person_levels[1],)
+    @test person_a_person_row.n_training_levels == length(data.person_levels) - 1
+    @test person_a_person_row.n_heldout_levels == 1
+    @test person_a_person_row.training_levels ==
+        Tuple(data.person_levels[2:end])
+    @test person_a_person_row.heldout_levels == (data.person_levels[1],)
 
     optional_cv_data = FacetData((
             examinee = ["E1", "E1", "E2", "E2"],
@@ -11777,6 +11808,15 @@ end
     @test optional_fold_plan.group_by === :group
     @test optional_fold_plan.n_units == 2
     @test optional_fold_plan.n_heldout_by_fold == [2, 2]
+    optional_fold_diagnostics =
+        kfold_plan_diagnostics(optional_cv_data, optional_fold_plan)
+    @test optional_fold_diagnostics.facets ==
+        (:person, :rater, :item, :category, :group)
+    group_diagnostic_rows = filter(row -> row.facet === :group,
+        optional_fold_diagnostics.rows)
+    @test length(group_diagnostic_rows) == optional_fold_plan.n_folds
+    @test all(row -> row.refit_blocker, group_diagnostic_rows)
+    @test all(row -> row.n_heldout_only_levels == 1, group_diagnostic_rows)
     for group_index in eachindex(optional_cv_data.optional_levels[:group])
         observations = findall(==(group_index), optional_cv_data.optional[:group])
         @test length(unique(optional_fold_plan.observation_fold[observations])) == 1
@@ -11789,6 +11829,11 @@ end
     @test_throws ArgumentError kfold_plan(data; k = 3, group_by = :item)
     @test_throws ArgumentError kfold_plan(data; k = 2, group_by = :missing_role)
     @test_throws ArgumentError kfold_plan(data; k = 2, fold_ids = [:dup, :dup])
+    @test_throws ArgumentError kfold_plan_diagnostics(data, fold_plan;
+        facets = (:person, :person))
+    @test_throws ArgumentError kfold_plan_diagnostics(data, fold_plan;
+        facets = :missing_role)
+    @test_throws ArgumentError kfold_plan_diagnostics(optional_cv_data, fold_plan)
 
     single_fold_kfold = kfold(llmat[1:3, 1:2];
         fold_ids = [:only],
