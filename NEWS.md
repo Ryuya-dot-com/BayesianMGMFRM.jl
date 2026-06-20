@@ -66,6 +66,8 @@
   rows for guarded MGMFRM fits.
 - Show `fit_report` in the README, overview/workflow docs, Bayesian fitting
   docs, and runnable minimal/guarded MGMFRM examples.
+- Document and test `artifact_content_hash` verification for `fit_report`
+  bundles as well as fit artifacts.
 - Add `scripts/generate_validation_plan.jl`, a deterministic validation-plan
   artifact generator that records simulation-grid controls, coverage summaries,
   falsification-rule coverage, and content hashes without running simulations or

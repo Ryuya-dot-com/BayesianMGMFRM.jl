@@ -10139,6 +10139,19 @@ end
     @test report.artifact.schema == compact_artifact.schema
     @test report.artifact.artifact === nothing
     @test length(report.artifact.content_hash.value) == 64
+    report_hash = artifact_content_hash(report)
+    @test length(report_hash) == 64
+    @test report_hash == artifact_content_hash(merge(report, (;
+        content_hash = (;
+            algorithm = :sha256,
+            value = report_hash,
+            scope = :report_without_hash_metadata,
+        ),
+        archive_manifest = (;
+            schema = "bayesianmgmfrm.fit_report_archive_manifest.v1",
+            content_hash = (; value = "ignored"),
+        ),
+    )))
     @test report.report_policy.ndraws == 3
     @test length(report.report_policy.resolved_draw_indices) == 3
     @test report.posterior_predictive.draw_indices ==
