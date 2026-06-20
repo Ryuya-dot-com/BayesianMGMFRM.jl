@@ -324,6 +324,62 @@ function Base.show(io::IO, data::FacetData)
         length(data.category_levels), " categories)")
 end
 
+function _check_observation_indices(data::FacetData, observations, context::AbstractString)
+    observations === nothing && return collect(1:data.n)
+
+    collected = collect(observations)
+    out = Int[]
+    for observation in collected
+        observation isa Integer && !(observation isa Bool) ||
+            throw(ArgumentError("$context observations must be integer row indices"))
+        index = Int(observation)
+        1 <= index <= data.n ||
+            throw(ArgumentError(
+                "$context observation index $index is outside 1:$(data.n)"))
+        push!(out, index)
+    end
+    length(unique(out)) == length(out) ||
+        throw(ArgumentError("$context observations must be unique"))
+    return out
+end
+
+"""
+    facet_response_table(data::FacetData; observations = nothing)
+    facet_response_table(spec::FacetSpec; kwargs...)
+    facet_response_table(design::FacetDesign; kwargs...)
+
+Return a role-normalized long-format response table from encoded `FacetData`.
+The table is a named tuple with `person`, `rater`, `item`, and `score` vectors,
+plus optional facet vectors such as `group`, `task`, `form`, or `occasion` when
+present. Pass `observations` to materialize a selected row order, for example a
+training or heldout row set from [`kfold_plan`](@ref).
+
+The returned table uses role names rather than the original input column names,
+so it can be passed back to `FacetData(table; person = :person, rater = :rater,
+item = :item, score = :score, ...)` when a role-normalized split is desired.
+"""
+function facet_response_table(data::FacetData; observations = nothing)
+    rows = _check_observation_indices(data, observations, "facet_response_table")
+    names = Symbol[:person, :rater, :item, :score]
+    values = Any[
+        [data.person_levels[data.person[row]] for row in rows],
+        [data.rater_levels[data.rater[row]] for row in rows],
+        [data.item_levels[data.item[row]] for row in rows],
+        [data.score[row] for row in rows],
+    ]
+    for facet in sort(collect(keys(data.optional)); by = string)
+        push!(names, facet)
+        push!(values, [data.optional_levels[facet][data.optional[facet][row]]
+            for row in rows])
+    end
+    return NamedTuple{Tuple(names)}(Tuple(values))
+end
+
+facet_response_table(spec::FacetSpec; kwargs...) =
+    facet_response_table(spec.data; kwargs...)
+facet_response_table(design::FacetDesign; kwargs...) =
+    facet_response_table(design.spec.data; kwargs...)
+
 function _counts(index::Vector{Int}, levels)
     counts = Dict{Any,Int}(level => 0 for level in levels)
     for i in index

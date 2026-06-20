@@ -308,6 +308,9 @@ Current public API:
 - `loo_diagnostics`: observation-level LOO diagnostics with person, rater,
   item, score, optional facet labels, raw-importance effective sample sizes,
   and Pareto-k flags when fitted objects are supplied.
+- `facet_response_table`: role-normalized long-format response tables from
+  `FacetData`, optionally restricted to selected observation rows such as K-fold
+  training or heldout row sets.
 - `kfold_plan`: deterministic observation-level or grouped heldout fold plans
   for later K-fold refits, with `:person`, `:rater`, `:item`, `:category`, and
   optional facet grouping support.
