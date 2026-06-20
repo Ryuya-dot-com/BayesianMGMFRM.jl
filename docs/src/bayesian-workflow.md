@@ -52,7 +52,8 @@ without changing the data layer.
    currently uses ForwardDiff only.
 9. Record fit-level metadata with [`fit_metadata`](@ref).
 10. Record data/spec/design/fit provenance with [`model_manifest`](@ref), then
-   create a cached-fit reproducibility artifact with [`fit_artifact`](@ref).
+   create a cached-fit reproducibility artifact with [`fit_artifact`](@ref) and
+   a compact report-facing bundle with [`fit_report`](@ref).
 11. Inspect the integrated diagnostic surface with [`diagnostics`](@ref), or use
    [`sampler_diagnostics`](@ref), [`mcmc_diagnostics`](@ref), and
    [`parameter_block_diagnostics`](@ref) separately when lower-level rows are

@@ -19,17 +19,19 @@ The current public slice focuses on:
   [`domain_compilation_summary`](@ref);
 - initial Bayesian fitting for the minimal identified design via [`fit`](@ref),
   [`cached_fit`](@ref), [`MFRMPrior`](@ref), [`fit_metadata`](@ref),
-  [`fit_artifact`](@ref), and [`posterior_summary`](@ref), including a small
-  random-walk backend, initial AdvancedHMC/NUTS and Turing/NUTS backends, and
-  RDS-like serialized fit caches;
+  [`fit_artifact`](@ref), [`fit_report`](@ref), and
+  [`posterior_summary`](@ref), including a small random-walk backend, initial
+  AdvancedHMC/NUTS and Turing/NUTS backends, and RDS-like serialized fit
+  caches;
 - guarded experimental generalized paths via `fit(spec; experimental = true)`
   returning [`GMFRMFit`](@ref) for the one-dimensional rater-discrimination
   GMFRM candidate or [`MGMFRMFit`](@ref) for the fixed-Q two-dimensional
   confirmatory MGMFRM candidate, with local validation and caveat evidence
   recorded;
-- serializable provenance manifests for fit-supported specs, specified-only
-  specs, designs, fits, and cached-fit artifacts via [`model_manifest`](@ref)
-  and [`fit_artifact`](@ref);
+- serializable provenance manifests and report bundles for fit-supported specs,
+  specified-only specs, designs, fits, cached-fit artifacts, and report-facing
+  summaries via [`model_manifest`](@ref), [`fit_artifact`](@ref), and
+  [`fit_report`](@ref);
 - integrated diagnostic summaries via [`diagnostics`](@ref);
 - chain-level sampler summaries via [`sampler_diagnostics`](@ref);
 - chain-aware R-hat and ESS summaries via [`mcmc_diagnostics`](@ref);
