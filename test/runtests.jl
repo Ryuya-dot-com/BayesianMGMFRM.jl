@@ -6,6 +6,7 @@ using LogDensityProblems
 using Random
 using ReverseDiff
 using SHA
+using Serialization
 
 import AdvancedHMC
 import BayesianMGMFRM
@@ -10634,6 +10635,21 @@ end
     @test loaded_record.cache_key == cache_key
     @test isequal(loaded_record.artifact.diagnostics.summary, cache_record.artifact.diagnostics.summary)
     @test loaded_record.artifact_content_hash == cache_record.artifact_content_hash
+    tampered_cache_path = joinpath(cache_dir, "tampered_minimal_fit.jls")
+    tampered_cache_artifact = merge(cache_record.artifact, (;
+        created_at = "tampered",
+    ))
+    tampered_cache_record = merge(cache_record, (;
+        artifact = tampered_cache_artifact,
+    ))
+    open(tampered_cache_path, "w") do io
+        serialize(io, tampered_cache_record)
+    end
+    @test_throws ArgumentError load_fit_cache(tampered_cache_path;
+        expected_cache_key = cache_key)
+    @test load_fit_cache(tampered_cache_path;
+        expected_cache_key = cache_key,
+        verify_hash = false).draws == result.draws
     @test_throws ArgumentError save_fit_cache(cache_path, result; cache_key)
     @test_throws ArgumentError load_fit_cache(cache_path; expected_cache_key = "not-the-key")
     @test_throws ArgumentError load_fit_cache(joinpath(cache_dir, "missing.jls"))

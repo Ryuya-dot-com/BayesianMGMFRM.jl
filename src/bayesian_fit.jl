@@ -5876,20 +5876,71 @@ function _check_fit_cache_record(record, path)
         throw(ArgumentError("fit cache at $path does not contain a NamedTuple record"))
     _nt_get(record, :schema, nothing) == "bayesianmgmfrm.fit_cache.v1" ||
         throw(ArgumentError("fit cache at $path has an unsupported schema"))
+    _nt_get(record, :object, nothing) === :fit_cache ||
+        throw(ArgumentError("fit cache at $path has an unsupported object"))
     _nt_get(record, :fit, nothing) isa MFRMFit ||
         throw(ArgumentError("fit cache at $path does not contain an MFRMFit"))
+    _nt_get(record, :artifact, nothing) isa NamedTuple ||
+        throw(ArgumentError("fit cache at $path does not contain a fit artifact"))
+    return record
+end
+
+function _cache_hash_value(record::NamedTuple,
+        field::Symbol,
+        context::AbstractString)
+    hash_record = _nt_get(record, field, nothing)
+    hash_record isa NamedTuple ||
+        throw(ArgumentError("$context does not contain $(String(field))"))
+    value = _nt_get(hash_record, :value, nothing)
+    value isa AbstractString ||
+        throw(ArgumentError("$context does not contain a $(String(field)) value"))
+    return value
+end
+
+function _verify_fit_cache_record(record::NamedTuple, path::AbstractString)
+    expected = _cache_hash_value(record, :artifact_content_hash,
+        "fit cache at $path")
+    actual = artifact_content_hash(record.artifact)
+    isequal(expected, actual) ||
+        throw(ArgumentError("fit cache artifact content hash mismatch for $path"))
+    embedded_hash = _nt_get(record.artifact, :content_hash, nothing)
+    if embedded_hash isa NamedTuple
+        embedded = _cache_hash_value(record.artifact, :content_hash,
+            "fit cache artifact at $path")
+        isequal(embedded, actual) ||
+            throw(ArgumentError("fit cache embedded artifact hash mismatch for $path"))
+    end
+    archive = _nt_get(record, :archive_manifest, nothing)
+    archive isa NamedTuple ||
+        throw(ArgumentError("fit cache at $path does not contain an archive manifest"))
+    archive_hash = _cache_hash_value(archive, :content_hash,
+        "fit cache archive manifest at $path")
+    isequal(archive_hash, actual) ||
+        throw(ArgumentError("fit cache archive manifest hash mismatch for $path"))
+    artifact_archive = _nt_get(record.artifact, :archive_manifest, nothing)
+    if artifact_archive isa NamedTuple
+        artifact_archive_hash = _cache_hash_value(artifact_archive,
+            :content_hash, "fit cache artifact archive manifest at $path")
+        isequal(artifact_archive_hash, actual) ||
+            throw(ArgumentError("fit cache artifact archive manifest hash mismatch for $path"))
+    end
     return record
 end
 
 """
-    load_fit_cache(path; expected_cache_key = nothing, return_record = false)
+    load_fit_cache(path; expected_cache_key = nothing, verify_hash = true,
+                   return_record = false)
 
 Load a serialized fit cache. By default the cached `MFRMFit` is returned. Set
 `return_record = true` to inspect the cache metadata and artifact. When
 `expected_cache_key` is supplied, loading fails unless the stored key matches.
+By default loading also verifies the stored artifact content hash and archive
+manifest hashes; set `verify_hash = false` to inspect an older or exploratory
+cache record without that check.
 """
 function load_fit_cache(path::AbstractString;
         expected_cache_key = nothing,
+        verify_hash::Bool = true,
         return_record::Bool = false)
     isfile(path) ||
         throw(ArgumentError("fit cache does not exist at $path"))
@@ -5900,6 +5951,7 @@ function load_fit_cache(path::AbstractString;
     if expected_cache_key !== nothing && !isequal(record.cache_key, String(expected_cache_key))
         throw(ArgumentError("fit cache key mismatch for $path; pass refresh = true to recompute and replace it"))
     end
+    verify_hash && _verify_fit_cache_record(record, path)
     return return_record ? record : record.fit
 end
 
