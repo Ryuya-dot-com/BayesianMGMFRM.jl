@@ -8250,6 +8250,13 @@ function _sensitivity_baseline_difference(row::NamedTuple, baseline_row::NamedTu
         elpd_difference_from_baseline = row.elpd_loo - baseline_row.elpd_loo,
         information_criterion_difference_from_baseline = row.looic - baseline_row.looic,
     )
+    row.criterion === :kfold && return (;
+        baseline_elpd = baseline_row.elpd_kfold,
+        baseline_information_criterion = baseline_row.kfoldic,
+        elpd_difference_from_baseline = row.elpd_kfold - baseline_row.elpd_kfold,
+        information_criterion_difference_from_baseline =
+            row.kfoldic - baseline_row.kfoldic,
+    )
     throw(ArgumentError("unsupported comparison criterion $(row.criterion)"))
 end
 
@@ -8381,6 +8388,93 @@ function sensitivity_comparison(models::Pair...;
         ndraws,
         draw_indices,
         rng)
+end
+
+function _kfold_sensitivity_value_map(labels::AbstractVector{<:AbstractString},
+        axis::Symbol,
+        values)
+    resolved_values = if values === nothing
+        axis === :model ||
+            throw(ArgumentError(
+                "axis = :$axis requires explicit values for K-fold sensitivity rows"))
+        Any[String(label) for label in labels]
+    else
+        _explicit_sensitivity_values(labels, values)
+    end
+    return Dict{String,Any}(labels[index] => resolved_values[index]
+        for index in eachindex(labels))
+end
+
+function _kfold_sensitivity_comparison(stats::AbstractVector,
+        labels::AbstractVector{<:AbstractString};
+        axis::Symbol = :model,
+        values = nothing,
+        baseline = nothing)
+    checked_axis = _sensitivity_axis(axis)
+    _compare_model_names(labels, length(labels))
+    value_map = _kfold_sensitivity_value_map(labels, checked_axis, values)
+    baseline_label = _sensitivity_baseline_label(labels, baseline)
+    comparison_rows = _kfold_comparison_rows(labels, stats)
+    return _sensitivity_comparison_rows(
+        comparison_rows,
+        checked_axis,
+        value_map,
+        baseline_label,
+    )
+end
+
+"""
+    kfold_sensitivity_comparison(stats...; names = nothing, axis = :model,
+        values = nothing, baseline = nothing)
+    kfold_sensitivity_comparison(models::Pair...; axis = :model,
+        values = nothing, baseline = nothing)
+
+Return report-ready sensitivity rows for supplied heldout K-fold summaries.
+This helper uses [`compare_kfold`](@ref) compatibility checks, then adds the
+declared sensitivity axis, per-model values, baseline label, baseline value,
+and baseline-relative heldout ELPD and K-fold information-criterion
+differences. It does not construct folds or refit models. For axes other than
+`:model`, pass explicit `values`.
+"""
+function kfold_sensitivity_comparison(stats::NamedTuple...;
+        names = nothing,
+        axis::Symbol = :model,
+        values = nothing,
+        baseline = nothing)
+    labels = _compare_model_names(names, length(stats))
+    return _kfold_sensitivity_comparison(Any[stats...], labels;
+        axis,
+        values,
+        baseline)
+end
+
+function kfold_sensitivity_comparison(;
+        names = nothing,
+        axis::Symbol = :model,
+        values = nothing,
+        baseline = nothing)
+    labels = _compare_model_names(names, 0)
+    return _kfold_sensitivity_comparison(Any[], labels;
+        axis,
+        values,
+        baseline)
+end
+
+function kfold_sensitivity_comparison(models::Pair...;
+        axis::Symbol = :model,
+        values = nothing,
+        baseline = nothing)
+    stats = Any[]
+    labels = String[]
+    for model in models
+        push!(labels, string(model.first))
+        push!(stats, model.second)
+    end
+    _compare_model_names(labels, length(labels))
+    return _kfold_sensitivity_comparison(stats, labels;
+        axis,
+        values,
+        baseline)
 end
 
 const _DEFAULT_SENSITIVITY_REQUIRED_AXES = (

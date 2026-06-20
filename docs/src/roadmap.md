@@ -345,15 +345,18 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   observation-level or grouped heldout fold plans,
   [`kfold_plan_diagnostics`](@ref) checks heldout-only fold levels before
   external refits, `kfold` plus [`kfold_diagnostics`](@ref) record supplied
-  heldout refit log-likelihood rows, and [`compare_kfold`](@ref) summarizes
-  same heldout-observation and fold-assignment comparison contracts. Exact LOO
-  refit orchestration, automatic K-fold refitting, and PSIS smoothing remain
-  planned.]
+  heldout refit log-likelihood rows, [`compare_kfold`](@ref) summarizes same
+  heldout-observation and fold-assignment comparison contracts, and
+  [`kfold_sensitivity_comparison`](@ref) records baseline-relative K-fold
+  sensitivity rows for supplied external summaries. Exact LOO refit
+  orchestration, automatic K-fold refitting, and PSIS smoothing remain planned.]
 - Add first-class sensitivity comparisons for threshold, discrimination, DFF,
   anchor, dimensionality, and prior choices. [`sensitivity_comparison`](@ref)
   now provides same-data, fit-object sensitivity rows with declared axes,
   custom axis values, baseline-relative differences, and declared
-  dimensionality/Q sensitivity safeguards. [`sensitivity_comparison_summary`](@ref)
+  dimensionality/Q sensitivity safeguards; [`kfold_sensitivity_comparison`](@ref)
+  provides the same sensitivity-row shape for supplied heldout K-fold summaries.
+  [`sensitivity_comparison_summary`](@ref)
   audits required threshold, discrimination, rater-pooling, DFF, anchor,
   dimensionality, and prior-regime row coverage; unsupported generalized, DFF,
   anchor, and dimensionality refit orchestration remains planned.
