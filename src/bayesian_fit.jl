@@ -7030,24 +7030,11 @@ end
 kfold_plan(spec::FacetSpec; kwargs...) = kfold_plan(spec.data; kwargs...)
 kfold_plan(design::FacetDesign; kwargs...) = kfold_plan(design.spec.data; kwargs...)
 
-"""
-    loo_refit_plan(data::FacetData; observations = nothing, fold_ids = nothing)
-    loo_refit_plan(spec::FacetSpec; kwargs...)
-    loo_refit_plan(design::FacetDesign; kwargs...)
-
-Construct a deterministic leave-one-observation-out refit plan. Each returned
-fold row holds out exactly one observation and lists the complementary training
-observations. Pass `observations` to plan exact-refit follow-up for a subset,
-such as flagged raw-importance LOO rows. This helper builds the refit plan only.
-It does not refit models.
-"""
-function loo_refit_plan(data::FacetData;
-        observations = nothing,
-        fold_ids = nothing)
-    heldout_observations =
-        _check_observation_indices(data, observations, "loo_refit_plan")
-    isempty(heldout_observations) &&
-        throw(ArgumentError("loo_refit_plan requires at least one heldout observation"))
+function _loo_refit_plan_from_observations(
+        data::FacetData,
+        heldout_observations::Vector{Int},
+        fold_ids,
+        warning::Symbol)
     n_refits = length(heldout_observations)
     checked_fold_ids = fold_ids === nothing ?
         Any[heldout_observations...] :
@@ -7088,13 +7075,94 @@ function loo_refit_plan(data::FacetData;
         n_heldout_by_fold = fill(1, n_refits),
         fold_rows,
         refits_per_model_required = n_refits,
-        warning = observations === nothing ? :ok : :subset,
+        warning,
+    )
+end
+
+"""
+    loo_refit_plan(data::FacetData; observations = nothing, fold_ids = nothing)
+    loo_refit_plan(data::FacetData, stat; threshold = nothing,
+        only_flagged = true, fold_ids = nothing)
+    loo_refit_plan(spec::FacetSpec; kwargs...)
+    loo_refit_plan(design::FacetDesign; kwargs...)
+
+Construct a deterministic leave-one-observation-out refit plan. Each returned
+fold row holds out exactly one observation and lists the complementary training
+observations. Pass `observations` to plan exact-refit follow-up for a subset,
+such as flagged raw-importance LOO rows. When a raw LOO summary is supplied,
+`only_flagged = true` selects observations whose Pareto-k exceeds `threshold`;
+by default the threshold is read from the summary. This helper builds the refit
+plan only. It does not refit models.
+"""
+function loo_refit_plan(data::FacetData;
+        observations = nothing,
+        fold_ids = nothing)
+    heldout_observations =
+        _check_observation_indices(data, observations, "loo_refit_plan")
+    isempty(heldout_observations) &&
+        throw(ArgumentError("loo_refit_plan requires at least one heldout observation"))
+    return _loo_refit_plan_from_observations(
+        data,
+        heldout_observations,
+        fold_ids,
+        observations === nothing ? :ok : :subset,
     )
 end
 
 loo_refit_plan(spec::FacetSpec; kwargs...) = loo_refit_plan(spec.data; kwargs...)
 loo_refit_plan(design::FacetDesign; kwargs...) =
     loo_refit_plan(design.spec.data; kwargs...)
+
+function _loo_refit_plan_stat_observations(data::FacetData, stat;
+        threshold,
+        only_flagged::Bool)
+    hasproperty(stat, :criterion) && stat.criterion === :loo ||
+        throw(ArgumentError("loo_refit_plan requires a raw LOO summary"))
+    hasproperty(stat, :n_observations) && stat.n_observations isa Integer ||
+        throw(ArgumentError("LOO summary must contain integer n_observations"))
+    n_observations = Int(stat.n_observations)
+    n_observations == data.n ||
+        throw(ArgumentError("LOO summary n_observations does not match the supplied data"))
+    hasproperty(stat, :pointwise) && hasproperty(stat.pointwise, :pareto_k) ||
+        throw(ArgumentError("LOO summary must contain pointwise Pareto-k diagnostics"))
+    length(stat.pointwise.pareto_k) == n_observations ||
+        throw(ArgumentError("LOO summary pointwise Pareto-k length does not match n_observations"))
+    checked_threshold = threshold === nothing ?
+        _check_loo_threshold(
+            hasproperty(stat, :pareto_k_threshold) ? stat.pareto_k_threshold : 0.7) :
+        _check_loo_threshold(threshold)
+
+    observations = Int[]
+    for observation in 1:n_observations
+        pareto_k = Float64(stat.pointwise.pareto_k[observation])
+        isfinite(pareto_k) ||
+            throw(ArgumentError("LOO summary pointwise Pareto-k values must be finite"))
+        flag = _loo_diagnostic_flag(pareto_k, checked_threshold)
+        (!only_flagged || flag !== :ok) && push!(observations, observation)
+    end
+    return observations
+end
+
+function loo_refit_plan(data::FacetData, stat;
+        threshold = nothing,
+        only_flagged::Bool = true,
+        fold_ids = nothing)
+    observations = _loo_refit_plan_stat_observations(
+        data,
+        stat;
+        threshold,
+        only_flagged,
+    )
+    warning = only_flagged ?
+        (isempty(observations) ? :no_refits_required : :subset) :
+        :ok
+    return _loo_refit_plan_from_observations(data, observations, fold_ids, warning)
+end
+
+loo_refit_plan(spec::FacetSpec, stat; kwargs...) =
+    loo_refit_plan(spec.data, stat; kwargs...)
+loo_refit_plan(design::FacetDesign, stat; kwargs...) =
+    loo_refit_plan(design.spec.data, stat; kwargs...)
 
 function _kfold_plan_diagnostic_facet_groups(data::FacetData, facet::Symbol)
     facet === :person && return data.person, data.person_levels

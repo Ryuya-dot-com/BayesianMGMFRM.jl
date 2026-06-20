@@ -309,7 +309,8 @@ Current public API:
   item, score, optional facet labels, raw-importance effective sample sizes,
   and Pareto-k flags when fitted objects are supplied.
 - `loo_refit_plan`: deterministic leave-one-observation-out refit plans for
-  exact LOO follow-up, optionally restricted to flagged observations.
+  exact LOO follow-up, optionally restricted to selected observations or
+  Pareto-k flagged rows from raw LOO summaries.
 - `facet_response_table`: role-normalized long-format response tables from
   `FacetData`, optionally restricted to selected observation rows such as K-fold
   training or heldout row sets.

@@ -342,7 +342,8 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
 - Add PSIS-smoothed or exact/K-fold LOO and prior/likelihood sensitivity.
   [Raw importance-sampling LOO and Pareto-k diagnostics are available for the
   current minimal fit path. [`loo_refit_plan`](@ref) constructs deterministic
-  one-observation-heldout plans for exact LOO follow-up, and
+  one-observation-heldout plans for exact LOO follow-up from selected
+  observations or Pareto-k flagged raw LOO rows, and
   [`kfold_plan`](@ref) now constructs deterministic observation-level or grouped
   heldout fold plans,
   [`kfold_plan_diagnostics`](@ref) checks heldout-only fold levels before
