@@ -69,7 +69,7 @@
 - Document and test `artifact_content_hash` verification for `fit_report`
   bundles as well as fit artifacts.
 - Add `save_fit_report` and `load_fit_report` for JSON fit-report export
-  records with verified JSON-payload hashes.
+  records with verified JSON-payload hashes and checked hash-record metadata.
 - Add `fit_report_sections`, `fit_report_section`, and `fit_report_rows` for
   extracting report sections and rows from in-memory or JSON-loaded fit reports.
 - Add `save_fit_report_tables` for exporting each `fit_report` row field as a
