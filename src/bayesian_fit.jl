@@ -4251,9 +4251,10 @@ function _fit_report_json_hash_record(payload)
     )
 end
 
-function _fit_report_export_record(report::NamedTuple;
+function _fit_report_export_record(report;
         label = nothing,
         source_path = nothing)
+    _check_fit_report_payload(report)
     json_report = _json_export_value(report)
     return (;
         schema = "bayesianmgmfrm.fit_report_export.v1",
@@ -4268,8 +4269,8 @@ function _fit_report_export_record(report::NamedTuple;
             missing_values = :json_null,
             nonfinite_numbers = :string,
         ),
-        report_schema = _nt_get(report, :schema, missing),
-        report_object = _nt_get(report, :object, missing),
+        report_schema = _report_lookup(report, :schema, missing),
+        report_object = _report_symbol_value(_report_lookup(report, :object, missing)),
         report_content_hash = _artifact_content_hash_record(report),
         json_content_hash = _fit_report_json_hash_record(json_report),
         report = json_report,
@@ -4286,7 +4287,7 @@ original report content hash and a JSON-payload hash that [`load_fit_report`](@r
 verifies by default.
 """
 function save_fit_report(path::AbstractString,
-        report::NamedTuple;
+        report;
         overwrite::Bool = false,
         label = nothing)
     isfile(path) && !overwrite &&
@@ -4933,6 +4934,144 @@ function save_fit_report_markdown(path::AbstractString,
         max_rows,
         include_empty,
         label)
+end
+
+function _check_fit_report_bundle_directory(directory::AbstractString;
+        overwrite::Bool)
+    if ispath(directory) && !isdir(directory)
+        throw(ArgumentError("fit report bundle path exists and is not a directory: $directory"))
+    end
+    if isdir(directory) && !overwrite && !isempty(readdir(directory))
+        throw(ArgumentError("fit report bundle directory is not empty at $directory; pass overwrite = true to replace export files"))
+    end
+    return true
+end
+
+function _fit_report_bundle_hash_record(payload)
+    return _fit_report_table_hash_record(payload;
+        scope = :fit_report_bundle_export_without_hash_metadata)
+end
+
+function _fit_report_bundle_file_rows(report_export, table_manifest,
+        markdown_export)
+    return [
+        (;
+            role = :report_json,
+            path = "fit_report.json",
+            schema = report_export.schema,
+            object = report_export.object,
+            content_hash = report_export.json_content_hash,
+        ),
+        (;
+            role = :table_manifest,
+            path = "tables/manifest.json",
+            schema = table_manifest.schema,
+            object = table_manifest.object,
+            content_hash = table_manifest.content_hash,
+            n_tables = table_manifest.n_tables,
+            n_rows = table_manifest.n_rows,
+        ),
+        (;
+            role = :markdown,
+            path = "fit_report.md",
+            schema = markdown_export.schema,
+            object = markdown_export.object,
+            content_hash = markdown_export.markdown_content_hash,
+            n_bytes = markdown_export.n_bytes,
+        ),
+    ]
+end
+
+function _fit_report_bundle_manifest(directory::AbstractString,
+        report_export,
+        table_manifest,
+        markdown_export;
+        label = nothing)
+    payload = (;
+        schema = "bayesianmgmfrm.fit_report_bundle_export.v1",
+        object = :fit_report_bundle_export,
+        created_at = string(now()),
+        label = label === nothing ? missing : label,
+        source_path = String(directory),
+        report_schema = report_export.report_schema,
+        report_object = report_export.report_object,
+        report_content_hash = report_export.report_content_hash,
+        formats = (:json_report, :json_tables, :markdown),
+        report_filename = "fit_report.json",
+        table_directory = "tables",
+        markdown_filename = "fit_report.md",
+        manifest_filename = "manifest.json",
+        n_tables = table_manifest.n_tables,
+        n_rows = table_manifest.n_rows,
+        files = _fit_report_bundle_file_rows(report_export, table_manifest,
+            markdown_export),
+    )
+    return merge(payload, (;
+        content_hash = _fit_report_bundle_hash_record(payload),
+    ))
+end
+
+"""
+    save_fit_report_bundle(directory, report; overwrite = false,
+        label = nothing, title = "BayesianMGMFRM fit report",
+        max_rows = 6, include_empty = false)
+    save_fit_report_bundle(directory, fit; overwrite = false,
+        label = nothing, title = "BayesianMGMFRM fit report",
+        max_rows = 6, include_empty = false, kwargs...)
+
+Write a portable fit-report bundle directory containing a JSON report export,
+JSON table files, a Markdown review draft, and a bundle `manifest.json` with
+the nested content hashes. `report` may be the in-memory [`fit_report`](@ref)
+payload or a JSON-loaded payload from [`load_fit_report`](@ref). Passing a fit
+object first builds `fit_report(fit; kwargs...)`.
+"""
+function save_fit_report_bundle(directory::AbstractString,
+        report;
+        overwrite::Bool = false,
+        label = nothing,
+        title::AbstractString = "BayesianMGMFRM fit report",
+        max_rows::Integer = 6,
+        include_empty::Bool = false)
+    _check_fit_report_payload(report)
+    _check_fit_report_bundle_directory(directory; overwrite)
+    mkpath(directory)
+    report_path = joinpath(directory, "fit_report.json")
+    table_directory = joinpath(directory, "tables")
+    markdown_path = joinpath(directory, "fit_report.md")
+    report_export = save_fit_report(report_path, report;
+        overwrite = true,
+        label)
+    table_manifest = save_fit_report_tables(table_directory, report;
+        overwrite = true,
+        label)
+    markdown_export = save_fit_report_markdown(markdown_path, report;
+        overwrite = true,
+        title,
+        max_rows,
+        include_empty,
+        label)
+    manifest = _fit_report_bundle_manifest(directory, report_export,
+        table_manifest, markdown_export;
+        label)
+    _write_json_record(joinpath(directory, "manifest.json"), manifest)
+    return manifest
+end
+
+function save_fit_report_bundle(directory::AbstractString,
+        fit::_ModelComparisonFit;
+        overwrite::Bool = false,
+        label = nothing,
+        title::AbstractString = "BayesianMGMFRM fit report",
+        max_rows::Integer = 6,
+        include_empty::Bool = false,
+        kwargs...)
+    report = fit_report(fit; kwargs...)
+    return save_fit_report_bundle(directory, report;
+        overwrite,
+        label,
+        title,
+        max_rows,
+        include_empty)
 end
 
 function _cache_stable_write(io::IO, value)

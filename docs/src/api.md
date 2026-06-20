@@ -60,6 +60,7 @@ fit_report_rows
 fit_ready_parameter_layout
 load_fit_report
 save_fit_report
+save_fit_report_bundle
 save_fit_report_markdown
 save_fit_report_tables
 domain_compilation_summary

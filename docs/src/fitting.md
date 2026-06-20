@@ -278,7 +278,10 @@ one JSON file per report table plus a `manifest.json` with table filenames, row
 counts, and table content hashes. Use [`fit_report_markdown`](@ref) or
 [`save_fit_report_markdown`](@ref) to generate a dependency-light Markdown
 review draft with report metadata, section summaries, and table previews before
-moving the tables into a manuscript-specific renderer.
+moving the tables into a manuscript-specific renderer. Use
+[`save_fit_report_bundle`](@ref) when a review bundle should keep the JSON
+report, table directory, Markdown draft, and bundle manifest together under one
+export directory.
 `cached_fit` is the RDS-like recomputation guard: it serializes the fitted
 object with Julia's standard `Serialization` format and only reuses the file
 when [`fit_cache_key`](@ref) still matches the current data/spec/design, prior,
