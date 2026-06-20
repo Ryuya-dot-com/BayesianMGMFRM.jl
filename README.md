@@ -331,6 +331,12 @@ Current public API:
 - `kfold_refit`: automatic heldout K-fold refit execution for fit-supported
   MFRM/RSM/PCM specs from `kfold_plan`, with the same coverage diagnostics and
   heldout log-score summary contract as `kfold`.
+- `kfold_refit_comparison`: shared-plan automatic K-fold refit execution across
+  multiple fit-supported MFRM/RSM/PCM candidates, returning both `compare_kfold`
+  rows and declared-axis baseline-relative K-fold sensitivity rows.
+- `loo_refit_comparison`: shared-plan exact LOO refit execution across multiple
+  fit-supported MFRM/RSM/PCM candidates, including selected-observation or
+  raw-LOO flagged-row follow-up plans and K-fold-compatible comparison rows.
 - `kfold`: heldout K-fold log predictive density summaries from fold-specific
   refit log-likelihood matrices. Pair it with `kfold_plan` for supplied
   external fold fits, or use `kfold_refit` for the current fit-supported
@@ -438,9 +444,10 @@ than repeatedly prefixing function names with the package name.
 
 Not yet implemented in the public API:
 
-- Stan/CmdStan sampling, generalized exact LOO refit orchestration, or broad
-  refit-managed model-comparison workflows. Automatic
-  K-fold refits are currently limited to the fit-supported MFRM/RSM/PCM slice.
+- Stan/CmdStan sampling or broad refit-managed model-comparison workflows
+  outside the current fit-supported same-plan K-fold/exact-LOO comparison
+  slice. Automatic K-fold and exact LOO refits are currently limited to the
+  fit-supported MFRM/RSM/PCM slice.
   The AdvancedHMC/NUTS and Turing/NUTS backends are currently limited to the
   minimal MFRM/RSM/PCM design; the guarded experimental GMFRM and
   fixed-Q MGMFRM candidates remain on the AdvancedHMC path.

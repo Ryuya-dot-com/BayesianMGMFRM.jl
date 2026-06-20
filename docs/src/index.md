@@ -72,9 +72,11 @@ The current public slice focuses on:
 - posterior residual summaries and infit/outfit summaries by observation or
   facet level via [`residual_summary`](@ref) and [`fit_stats`](@ref);
 - WAIC, raw or PSIS-smoothed importance-sampling LOO, supplied heldout K-fold
-  model-comparison rows, and local prior/likelihood power-scaling grids via
+  model-comparison rows, shared-plan exact/K-fold refit comparisons, and local
+  prior/likelihood power-scaling grids via
   [`waic`](@ref), [`loo`](@ref), [`psis_loo`](@ref), [`kfold`](@ref),
   [`compare_models`](@ref), [`compare_kfold`](@ref),
+  [`loo_refit_comparison`](@ref), [`kfold_refit_comparison`](@ref),
   [`sensitivity_comparison`](@ref), and
   [`prior_likelihood_sensitivity`](@ref), with declared-axis coverage audited
   by [`sensitivity_comparison_summary`](@ref), and cross-tool evidence coverage
@@ -98,7 +100,8 @@ The current public slice focuses on:
   MGMFRM gauge manifest with BridgeStan confirmatory-candidate and local
   candidate-chain/recovery-smoke evidence.
 
-Stan/CmdStan sampling, broad exact/refit-managed LOO, generalized discrimination
+Stan/CmdStan sampling, broad production refit-management outside the
+fit-supported shared-plan comparison slice, generalized discrimination
 likelihoods beyond the guarded scalar rater-discrimination candidate, group/DFF
 model terms, and broad Multidimensional Generalized Many-Facet Rasch Model
 (MGMFRM) fitting APIs beyond the guarded fixed-Q confirmatory candidate are

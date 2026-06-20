@@ -9307,6 +9307,394 @@ function kfold_sensitivity_comparison(models::Pair...;
         baseline)
 end
 
+const _RefitComparisonModel = Union{FacetData,FacetSpec,FacetDesign,MFRMFit}
+
+_refit_comparison_data(data::FacetData) = data
+_refit_comparison_data(spec::FacetSpec) = spec.data
+_refit_comparison_data(design::FacetDesign) = design.spec.data
+_refit_comparison_data(fit::MFRMFit) = fit.design.spec.data
+
+_refit_comparison_data_signature(data::FacetData) = _data_signature(data)
+_refit_comparison_data_signature(spec::FacetSpec) = spec.validation.data_signature
+_refit_comparison_data_signature(design::FacetDesign) =
+    design.spec.validation.data_signature
+_refit_comparison_data_signature(fit::MFRMFit) =
+    fit.design.spec.validation.data_signature
+
+function _refit_comparison_contract(model::_RefitComparisonModel)
+    data = _refit_comparison_data(model)
+    return (;
+        data_signature = _refit_comparison_data_signature(model),
+        n_observations = data.n,
+        category_levels = copy(data.category_levels),
+        optional_facets = sort(collect(keys(data.optional)); by = string),
+    )
+end
+
+function _require_refit_comparison_compatibility(models::AbstractVector)
+    contracts = [_refit_comparison_contract(model) for model in models]
+    _require_same_contract_field(contracts, :data_signature,
+        "all refit comparison models must use the same observation data and row order")
+    _require_same_contract_field(contracts, :n_observations,
+        "all refit comparison models must have the same number of observations")
+    _require_same_contract_field(contracts, :category_levels,
+        "all refit comparison models must use the same ordinal category levels")
+    _require_same_contract_field(contracts, :optional_facets,
+        "all refit comparison models must use the same optional facet roles")
+    return nothing
+end
+
+function _refit_comparison_pairs(models::Tuple, caller::AbstractString)
+    length(models) >= 2 || throw(ArgumentError("at least two models are required"))
+    labels = String[]
+    refit_models = _RefitComparisonModel[]
+    for model in models
+        model.second isa _RefitComparisonModel ||
+            throw(ArgumentError(
+                "$caller model pair :$(model.first) does not contain a supported " *
+                "refit comparison model"))
+        push!(labels, string(model.first))
+        push!(refit_models, model.second)
+    end
+    _compare_model_names(labels, length(labels))
+    return labels, refit_models
+end
+
+function _refit_comparison_named_models(models::Tuple, names, caller::AbstractString)
+    length(models) >= 2 || throw(ArgumentError("at least two models are required"))
+    labels = _compare_model_names(names, length(models))
+    refit_models = _RefitComparisonModel[models...]
+    length(refit_models) == length(models) ||
+        throw(ArgumentError("$caller received an unsupported refit comparison model"))
+    return labels, refit_models
+end
+
+function _refit_plan_observation_indices(plan)
+    hasproperty(plan, :heldout_observation_indices) || return Any[]
+    isempty(plan.heldout_observation_indices) && return Any[]
+    return vcat(plan.heldout_observation_indices...)
+end
+
+function _kfold_refit_comparison_plan(models::AbstractVector, plan;
+        k,
+        group_by::Union{Nothing,Symbol},
+        shuffle::Bool,
+        rng::AbstractRNG,
+        fold_ids)
+    if plan === nothing
+        k === nothing &&
+            throw(ArgumentError("kfold_refit_comparison requires either plan or k"))
+        return kfold_plan(_refit_comparison_data(first(models));
+            k,
+            group_by,
+            shuffle,
+            rng,
+            fold_ids)
+    end
+    k === nothing ||
+        throw(ArgumentError("kfold_refit_comparison accepts either plan or k, not both"))
+    return plan
+end
+
+function _loo_refit_comparison_plan(models::AbstractVector, plan;
+        stat,
+        observations,
+        threshold,
+        only_flagged::Bool,
+        fold_ids)
+    if plan !== nothing
+        stat === nothing ||
+            throw(ArgumentError("loo_refit_comparison accepts either plan or stat, not both"))
+        observations === nothing ||
+            throw(ArgumentError("loo_refit_comparison accepts either plan or observations, not both"))
+        fold_ids === nothing ||
+            throw(ArgumentError("loo_refit_comparison accepts either plan or fold_ids, not both"))
+        return plan
+    end
+
+    data = _refit_comparison_data(first(models))
+    if stat === nothing
+        return loo_refit_plan(data; observations, fold_ids)
+    end
+    observations === nothing ||
+        throw(ArgumentError("loo_refit_comparison accepts either stat or observations, not both"))
+    return loo_refit_plan(data, stat; threshold, only_flagged, fold_ids)
+end
+
+function _kfold_refit_comparison_model(model, plan;
+        prior,
+        return_fits::Bool,
+        kwargs...)
+    prior === nothing &&
+        return kfold_refit(model, plan; return_fits, kwargs...)
+    return kfold_refit(model, plan; prior, return_fits, kwargs...)
+end
+
+function _loo_refit_comparison_model(model, plan;
+        prior,
+        return_fits::Bool,
+        kwargs...)
+    prior === nothing &&
+        return loo_refit(model, plan; return_fits, kwargs...)
+    return loo_refit(model, plan; prior, return_fits, kwargs...)
+end
+
+function _refit_comparison_rows(labels::AbstractVector{<:AbstractString},
+        refits::AbstractVector;
+        axis::Symbol,
+        values,
+        baseline)
+    stats = Any[]
+    for refit in refits
+        hasproperty(refit, :kfold_summary) ||
+            throw(ArgumentError("refit result is missing kfold_summary"))
+        refit.kfold_summary === nothing && push!(stats, nothing)
+        refit.kfold_summary === nothing || push!(stats, refit.kfold_summary)
+    end
+    if any(isnothing, stats)
+        all(isnothing, stats) ||
+            throw(ArgumentError("either all or no refit results must include kfold_summary"))
+        return NamedTuple[], NamedTuple[]
+    end
+    pairs = [labels[index] => stats[index] for index in eachindex(labels)]
+    return compare_kfold(pairs...),
+        kfold_sensitivity_comparison(pairs...; axis, values, baseline)
+end
+
+function _refit_comparison_refit_rows(labels::AbstractVector{<:AbstractString},
+        refits::AbstractVector)
+    rows = NamedTuple[]
+    for (label, refit) in zip(labels, refits)
+        push!(rows, (;
+            model = String(label),
+            object = refit.object,
+            schema = refit.schema,
+            criterion = refit.criterion,
+            method = refit.method,
+            refit_method = hasproperty(refit, :refit_method) ?
+                refit.refit_method : missing,
+            n_refits = refit.n_refits,
+            n_folds = refit.n_folds,
+            n_observations = refit.n_observations,
+            n_total_observations = refit.n_total_observations,
+            n_draws_by_fold = copy(refit.n_draws_by_fold),
+            n_heldout_by_fold = copy(refit.n_heldout_by_fold),
+            folds = copy(refit.folds),
+            warning = refit.warning,
+            plan_diagnostics_passed = hasproperty(refit, :plan_diagnostics) ?
+                refit.plan_diagnostics.passed : missing,
+        ))
+    end
+    return rows
+end
+
+function _refit_comparison_warning(refits::AbstractVector,
+        comparison_rows::AbstractVector)
+    warnings = [refit.warning for refit in refits if hasproperty(refit, :warning)]
+    isempty(comparison_rows) && return :no_refits_required
+    all(warning -> warning === :ok, warnings) && return :ok
+    all(warning -> warning === :no_refits_required, warnings) &&
+        return :no_refits_required
+    return :refit_warning
+end
+
+function _refit_comparison_result(schema::AbstractString,
+        object::Symbol,
+        refit_method::Symbol,
+        data::FacetData,
+        plan,
+        labels::AbstractVector{<:AbstractString},
+        refits::AbstractVector,
+        comparison_rows::AbstractVector,
+        sensitivity_rows::AbstractVector;
+        include_refits::Bool)
+    refit_rows = _refit_comparison_refit_rows(labels, refits)
+    n_refits_per_model = [row.n_refits for row in refit_rows]
+    return (;
+        schema,
+        object,
+        criterion = isempty(comparison_rows) ? :loo_refit : :kfold,
+        method = :shared_plan_refit_comparison,
+        refit_method,
+        comparison_contract = _KFOLD_COMPARISON_CONTRACT,
+        plan_schema = hasproperty(plan, :schema) ? plan.schema : missing,
+        group_by = hasproperty(plan, :group_by) ? plan.group_by : missing,
+        n_models = length(labels),
+        models = Tuple(labels),
+        n_refits_per_model,
+        n_total_refits = sum(n_refits_per_model),
+        n_folds = hasproperty(plan, :n_folds) ? plan.n_folds : missing,
+        n_observations = isempty(refit_rows) ? 0 : refit_rows[1].n_observations,
+        n_total_observations = data.n,
+        folds = hasproperty(plan, :folds) ? copy(plan.folds) : Any[],
+        observation_indices = _refit_plan_observation_indices(plan),
+        refit_rows,
+        comparison_rows,
+        sensitivity_rows,
+        refits = include_refits ? Tuple(refits) : nothing,
+        warning = _refit_comparison_warning(refits, comparison_rows),
+    )
+end
+
+function _kfold_refit_comparison(models::AbstractVector,
+        labels::AbstractVector{<:AbstractString};
+        plan = nothing,
+        k = nothing,
+        group_by::Union{Nothing,Symbol} = nothing,
+        shuffle::Bool = false,
+        rng::AbstractRNG = Random.default_rng(),
+        fold_ids = nothing,
+        prior = nothing,
+        return_refits::Bool = false,
+        return_fits::Bool = false,
+        axis::Symbol = :model,
+        values = nothing,
+        baseline = nothing,
+        kwargs...)
+    _require_refit_comparison_compatibility(models)
+    checked_plan = _kfold_refit_comparison_plan(models, plan;
+        k,
+        group_by,
+        shuffle,
+        rng,
+        fold_ids)
+    refits = Any[
+        _kfold_refit_comparison_model(model, checked_plan;
+            prior,
+            return_fits,
+            kwargs...)
+        for model in models
+    ]
+    comparison_rows, sensitivity_rows =
+        _refit_comparison_rows(labels, refits; axis, values, baseline)
+    return _refit_comparison_result(
+        "bayesianmgmfrm.kfold_refit_comparison.v1",
+        :kfold_refit_comparison,
+        :automatic_kfold_refit,
+        _refit_comparison_data(first(models)),
+        checked_plan,
+        labels,
+        refits,
+        comparison_rows,
+        sensitivity_rows;
+        include_refits = return_refits || return_fits,
+    )
+end
+
+"""
+    kfold_refit_comparison(models::Pair...; plan = nothing, k = nothing,
+        group_by = nothing, shuffle = false, rng = Random.default_rng(),
+        fold_ids = nothing, prior = nothing, return_refits = false,
+        return_fits = false, axis = :model, values = nothing, baseline = nothing,
+        kwargs...)
+    kfold_refit_comparison(model1, model2, ...; names = nothing, kwargs...)
+
+Execute automatic heldout K-fold refits for multiple fit-supported
+MFRM/RSM/PCM candidates under a shared [`kfold_plan`](@ref), then return both
+[`compare_kfold`](@ref) rows and baseline-relative
+[`kfold_sensitivity_comparison`](@ref) rows. Labels are supplied by pair keys
+or by `names`; unlabeled positional models use `model_1`, `model_2`, ....
+All models must use the same observation data and row order. Pass an explicit
+`plan`, or pass `k` plus the usual fold-planning keywords to build a shared
+plan from the first model.
+"""
+function kfold_refit_comparison(models::Pair...; kwargs...)
+    labels, refit_models =
+        _refit_comparison_pairs(models, "kfold_refit_comparison")
+    return _kfold_refit_comparison(refit_models, labels; kwargs...)
+end
+
+function kfold_refit_comparison(
+        first::_RefitComparisonModel,
+        second::_RefitComparisonModel,
+        rest::_RefitComparisonModel...;
+        names = nothing,
+        kwargs...)
+    models = (first, second, rest...)
+    labels, refit_models =
+        _refit_comparison_named_models(models, names, "kfold_refit_comparison")
+    return _kfold_refit_comparison(refit_models, labels; kwargs...)
+end
+
+function _loo_refit_comparison(models::AbstractVector,
+        labels::AbstractVector{<:AbstractString};
+        plan = nothing,
+        stat = nothing,
+        observations = nothing,
+        threshold = nothing,
+        only_flagged::Bool = true,
+        fold_ids = nothing,
+        prior = nothing,
+        return_refits::Bool = false,
+        return_fits::Bool = false,
+        axis::Symbol = :model,
+        values = nothing,
+        baseline = nothing,
+        kwargs...)
+    _require_refit_comparison_compatibility(models)
+    checked_plan = _loo_refit_comparison_plan(models, plan;
+        stat,
+        observations,
+        threshold,
+        only_flagged,
+        fold_ids)
+    refits = Any[
+        _loo_refit_comparison_model(model, checked_plan;
+            prior,
+            return_fits,
+            kwargs...)
+        for model in models
+    ]
+    comparison_rows, sensitivity_rows =
+        _refit_comparison_rows(labels, refits; axis, values, baseline)
+    return _refit_comparison_result(
+        "bayesianmgmfrm.loo_refit_comparison.v1",
+        :loo_refit_comparison,
+        :exact_leave_one_observation_out_refit,
+        _refit_comparison_data(first(models)),
+        checked_plan,
+        labels,
+        refits,
+        comparison_rows,
+        sensitivity_rows;
+        include_refits = return_refits || return_fits,
+    )
+end
+
+"""
+    loo_refit_comparison(models::Pair...; plan = nothing, stat = nothing,
+        observations = nothing, threshold = nothing, only_flagged = true,
+        fold_ids = nothing, prior = nothing, return_refits = false,
+        return_fits = false, axis = :model, values = nothing, baseline = nothing,
+        kwargs...)
+    loo_refit_comparison(model1, model2, ...; names = nothing, kwargs...)
+
+Execute exact leave-one-observation-out refits for multiple fit-supported
+MFRM/RSM/PCM candidates under a shared [`loo_refit_plan`](@ref), then return
+K-fold-compatible comparison and sensitivity rows for the heldout exact-refit
+log scores. Pass an explicit `plan`, select `observations`, or pass a raw LOO
+`stat` to construct the shared follow-up plan from the first model. If a
+flagged-row plan contains no refits, comparison rows are empty and the returned
+warning is `:no_refits_required`.
+"""
+function loo_refit_comparison(models::Pair...; kwargs...)
+    labels, refit_models =
+        _refit_comparison_pairs(models, "loo_refit_comparison")
+    return _loo_refit_comparison(refit_models, labels; kwargs...)
+end
+
+function loo_refit_comparison(
+        first::_RefitComparisonModel,
+        second::_RefitComparisonModel,
+        rest::_RefitComparisonModel...;
+        names = nothing,
+        kwargs...)
+    models = (first, second, rest...)
+    labels, refit_models =
+        _refit_comparison_named_models(models, names, "loo_refit_comparison")
+    return _loo_refit_comparison(refit_models, labels; kwargs...)
+end
+
 const _DEFAULT_SENSITIVITY_REQUIRED_AXES = (
     :thresholds,
     :discrimination,

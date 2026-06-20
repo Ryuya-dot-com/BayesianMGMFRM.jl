@@ -61,7 +61,8 @@ The following are planned but not yet exposed:
 - modeled DFF/bias effects;
 - multidimensional loading and rotation/gauge machinery beyond the fixed-Q
   identity-correlation candidate;
-- broader exact LOO refit orchestration;
+- broader production exact/refit-management orchestration beyond the
+  fit-supported shared-plan comparison slice;
 - turnkey manuscript report rendering and publication/registration workflows
   beyond the current machine-readable reports and local full-paper archive.
 
@@ -350,14 +351,16 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   heldout fold plans,
   [`kfold_plan_diagnostics`](@ref) checks heldout-only fold levels before
   refits, [`kfold_refit`](@ref) executes fit-supported MFRM/RSM/PCM heldout
-  folds automatically, `kfold` plus [`kfold_diagnostics`](@ref) record supplied
-  heldout refit log-likelihood rows, [`compare_kfold`](@ref) summarizes same
+  folds automatically, [`loo_refit_comparison`](@ref) and
+  [`kfold_refit_comparison`](@ref) run shared exact/K-fold refit plans across
+  multiple fit-supported candidates, `kfold` plus [`kfold_diagnostics`](@ref)
+  record supplied heldout refit log-likelihood rows, [`compare_kfold`](@ref) summarizes same
   heldout-observation and fold-assignment comparison contracts, and
   [`kfold_sensitivity_comparison`](@ref) records baseline-relative K-fold
   sensitivity rows for supplied external summaries.
   [`prior_likelihood_sensitivity`](@ref) records local self-normalized
   importance-reweighting grids over prior and likelihood powers. Broader
-  exact/refit-managed workflows remain planned.]
+  production refit-management workflows remain planned.]
 - Add first-class sensitivity comparisons for threshold, discrimination, DFF,
   anchor, dimensionality, and prior choices. [`sensitivity_comparison`](@ref)
   now provides same-data, fit-object sensitivity rows with declared axes,
