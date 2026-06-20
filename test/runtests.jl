@@ -64,6 +64,7 @@ using BayesianMGMFRM:
     linear_predictor_table,
     linear_predictor_values,
     GMFRMFit,
+    MGMFRMFit,
     MFRMFit,
     MFRMLogDensity,
     MFRMPrior,
@@ -6214,7 +6215,7 @@ end
 
 @testset "public docstrings" begin
     for name in (:FacetData, :ValidationIssue, :ValidationReport, :FacetSpec, :FacetDesign,
-            :MFRMPrior, :MFRMLogDensity, :MFRMFit, :GMFRMFit,
+            :MFRMPrior, :MFRMLogDensity, :MFRMFit, :GMFRMFit, :MGMFRMFit,
             :anchor_linking_summary, :artifact_content_hash, :cached_fit,
             :benchmark_result_row, :benchmark_summary, :calibration_plot_data,
             :constraint_table, :dff_report, :domain_compilation_summary,
@@ -8594,6 +8595,7 @@ end
     @test mgmfrm_spec.q_matrix == q_matrix
     @test_throws ArgumentError fit(mgmfrm_spec;
         experimental = true,
+        backend = :julia,
         ndraws = 1,
         warmup = 0)
     @test any(row -> row.block === :item_dimension_discrimination && row.constraint === :confirmatory_q_mask,
@@ -8735,7 +8737,7 @@ end
     @test mgmfrm_layout.scope === :minimal_confirmatory_mgmfrm_candidate
     @test mgmfrm_layout.status === :internal_fit_ready_candidate
     @test mgmfrm_layout.parameterization === :raw_to_constrained
-    @test !mgmfrm_layout.experimental_public
+    @test mgmfrm_layout.experimental_public
     @test !mgmfrm_layout.public_fit
     @test !mgmfrm_layout.fit_ready
     @test mgmfrm_layout.raw_parameter_names == mgmfrm_fit_ready_blueprint.parameter_names
@@ -8809,8 +8811,9 @@ end
     @test mgmfrm_confirmatory_candidate.family === :mgmfrm
     @test mgmfrm_confirmatory_candidate.scope === :minimal_confirmatory_mgmfrm_candidate
     @test mgmfrm_confirmatory_candidate.status === :internal_fit_ready_candidate
-    @test !mgmfrm_confirmatory_candidate.public_fit
-    @test !mgmfrm_confirmatory_candidate.fit_ready
+    @test mgmfrm_confirmatory_candidate.public_fit
+    @test mgmfrm_confirmatory_candidate.experimental_public
+    @test mgmfrm_confirmatory_candidate.fit_ready
     @test !mgmfrm_confirmatory_candidate.fixture_only
     @test !mgmfrm_confirmatory_candidate.source_fixture_only
     @test mgmfrm_confirmatory_candidate.compiler_stage === :fit_ready_candidate
@@ -8857,9 +8860,7 @@ end
         mgmfrm_confirmatory_candidate.blocker_rows)
     @test !any(row -> row.blocker === :mgmfrm_recovery_smoke_missing,
         mgmfrm_confirmatory_candidate.blocker_rows)
-    @test any(row -> row.blocker === :mgmfrm_public_fit_api_blocked &&
-        row.severity === :blocking,
-        mgmfrm_confirmatory_candidate.blocker_rows)
+    @test isempty(mgmfrm_confirmatory_candidate.blocker_rows)
     @test any(row -> row.gate === :confirmatory_q_mask &&
         row.status === :done,
         mgmfrm_confirmatory_candidate.candidate_gates)
@@ -8880,24 +8881,26 @@ end
         row.status === :done,
         mgmfrm_confirmatory_candidate.candidate_gates)
     @test any(row -> row.gate === :public_fit_api &&
-        row.status === :blocked,
+        row.status === :done &&
+        row.evidence === :mgmfrm_experimental_public_api_decision,
         mgmfrm_confirmatory_candidate.candidate_gates)
     @test mgmfrm_confirmatory_candidate.summary.candidate_frozen
-    @test !mgmfrm_confirmatory_candidate.summary.fit_allowed
+    @test mgmfrm_confirmatory_candidate.summary.fit_allowed
     @test mgmfrm_confirmatory_candidate.summary.n_evidence_done >= 7
     @test mgmfrm_confirmatory_candidate.summary.n_evidence_pending == 0
     @test mgmfrm_confirmatory_candidate.summary.next_gate ===
-        :mgmfrm_public_fit_api_decision
+        :manual_publication_or_registration_by_user_only
     mgmfrm_experimental_decision =
         mgmfrm_confirmatory_candidate.experimental_public_api_decision
     @test mgmfrm_experimental_decision.schema ==
         "bayesianmgmfrm.mgmfrm_experimental_public_api_decision.v1"
     @test mgmfrm_experimental_decision.family === :mgmfrm
     @test mgmfrm_experimental_decision.scope === :minimal_confirmatory_mgmfrm_candidate
-    @test mgmfrm_experimental_decision.status === :blocked
-    @test mgmfrm_experimental_decision.decision === :keep_internal
-    @test !mgmfrm_experimental_decision.public_fit
-    @test !mgmfrm_experimental_decision.experimental_public
+    @test mgmfrm_experimental_decision.status === :experimental_public
+    @test mgmfrm_experimental_decision.decision === :enable_guarded_experimental
+    @test mgmfrm_experimental_decision.public_fit
+    @test mgmfrm_experimental_decision.experimental_public
+    @test mgmfrm_experimental_decision.fit_ready
     @test mgmfrm_experimental_decision.proposed_entrypoint ==
         "fit(spec; experimental = true)"
     @test mgmfrm_experimental_decision.guarded_local_entrypoint ===
@@ -8907,7 +8910,9 @@ end
     @test mgmfrm_experimental_decision.guarded_local_fit_sampler_diagnostic_constructor ===
         :_mgmfrm_guarded_local_fit_sampler_diagnostics
     @test mgmfrm_experimental_decision.guarded_local_fit_artifact_schema ==
-        "bayesianmgmfrm.mgmfrm_guarded_local_fit_artifact.v1"
+        "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1"
+    @test mgmfrm_experimental_decision.experimental_fit_artifact_schema ==
+        "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1"
     @test mgmfrm_experimental_decision.candidate_chain_study_artifact ==
         "test/fixtures/mgmfrm_candidate_chain_study.json"
     @test mgmfrm_experimental_decision.recovery_smoke_artifact ==
@@ -8948,7 +8953,11 @@ end
     @test mgmfrm_fit_artifact_contract.family === :mgmfrm
     @test mgmfrm_fit_artifact_contract.scope === :minimal_confirmatory_mgmfrm_candidate
     @test mgmfrm_fit_artifact_contract.status === :contract_recorded
-    @test !mgmfrm_fit_artifact_contract.public_fit
+    @test mgmfrm_fit_artifact_contract.public_fit
+    @test mgmfrm_fit_artifact_contract.experimental_public
+    @test mgmfrm_fit_artifact_contract.artifact_kind ===
+        :experimental_generalized_fit_artifact
+    @test mgmfrm_fit_artifact_contract.summary.enables_public_fit
     @test any(row -> row.field === :q_matrix &&
         row.status === :required,
         mgmfrm_fit_artifact_contract.required_fields)
@@ -8967,20 +8976,20 @@ end
         mgmfrm_experimental_decision.rejected_public_options)
     @test any(row -> row.option === :sparse_design_claims &&
         row.value === :enabled &&
-        row.status === :policy_recorded_keep_blocked &&
-        row.blocker === :manual_public_scope_review_for_mgmfrm_fit_missing,
+        row.status === :blocked_broader_claim &&
+        row.blocker === :broader_sparse_mgmfrm_claim_scope_not_promoted,
         mgmfrm_experimental_decision.rejected_public_options)
     @test any(row -> row.option === :baseline_comparison &&
         row.value === :mfrm_rsm_pcm_comparison &&
-        row.status === :policy_recorded_keep_blocked &&
-        row.blocker === :manual_public_scope_review_for_mgmfrm_fit_missing,
+        row.status === :evidence_only_for_guarded_fit &&
+        row.blocker === :model_weight_or_superiority_claim_not_promoted,
         mgmfrm_experimental_decision.rejected_public_options)
     @test mgmfrm_experimental_decision.guarded_fit_public_exposure_review_interpretation.status ===
         :review_recorded
     @test mgmfrm_experimental_decision.guarded_fit_public_exposure_review_interpretation.review_target ===
         :confirmatory_mgmfrm_guarded_fit_public_exposure
     @test mgmfrm_experimental_decision.guarded_fit_public_exposure_review_interpretation.public_exposure_support ===
-        :review_recorded_keep_internal_until_prediction_target_and_model_weight_policy
+        :supports_fixed_q_confirmatory_mgmfrm_experimental_fit
     @test mgmfrm_experimental_decision.guarded_fit_public_exposure_review_interpretation.required_followup ===
         :satisfied_by_prediction_target_and_model_weight_policy
     @test mgmfrm_experimental_decision.prediction_target_and_model_weight_policy_artifact ==
@@ -8988,9 +8997,9 @@ end
     @test mgmfrm_experimental_decision.prediction_target_and_model_weight_policy_interpretation.status ===
         :policy_recorded
     @test mgmfrm_experimental_decision.prediction_target_and_model_weight_policy_interpretation.public_exposure_support ===
-        :scalar_local_weight_policy_recorded_keep_mgmfrm_claims_blocked
+        :guarded_confirmatory_mgmfrm_fit_enabled_no_weight_claims
     @test mgmfrm_experimental_decision.prediction_target_and_model_weight_policy_interpretation.required_followup ===
-        :manual_public_scope_review_for_mgmfrm_fit
+        :manual_publication_or_registration_by_user_only
     @test any(row -> row.evidence === :bridgestan_fit_ready_oracle &&
         row.status === :done,
         mgmfrm_experimental_decision.evidence_rows)
@@ -9076,15 +9085,16 @@ end
         mgmfrm_experimental_decision.blocker_rows)
     @test !any(row -> row.blocker === :full_paper_reproduction_archive_missing,
         mgmfrm_experimental_decision.blocker_rows)
-    @test any(row -> row.blocker === :manual_public_scope_review_for_mgmfrm_fit_missing &&
-        row.severity === :blocking,
+    @test !any(row -> row.blocker === :manual_public_scope_review_for_mgmfrm_fit_missing,
         mgmfrm_experimental_decision.blocker_rows)
     @test mgmfrm_experimental_decision.summary.n_evidence_done >= 17
     @test mgmfrm_experimental_decision.summary.n_evidence_pending == 0
     @test mgmfrm_experimental_decision.summary.n_evidence_blocked == 0
-    @test mgmfrm_experimental_decision.summary.n_blockers == 1
+    @test mgmfrm_experimental_decision.summary.fit_allowed
+    @test mgmfrm_experimental_decision.summary.experimental_keyword_enabled
+    @test mgmfrm_experimental_decision.summary.n_blockers == 0
     @test mgmfrm_experimental_decision.summary.next_gate ===
-        :manual_public_scope_review_for_mgmfrm_fit
+        :manual_publication_or_registration_by_user_only
     mgmfrm_raw_params = [
         0.2, -0.1,
         -0.3, 0.4,
@@ -9219,8 +9229,9 @@ end
     @test mgmfrm_raw_pointwise_fixture.pointwise_loglikelihood ≈
         mgmfrm_source_pointwise
     mgmfrm_guarded_fit =
-        BayesianMGMFRM._fit_guarded_mgmfrm(
+        fit(
             mgmfrm_spec;
+            experimental = true,
             init = mgmfrm_raw_params,
             seed = 20260630,
             ndraws = 2,
@@ -9230,7 +9241,7 @@ end
             max_depth = 2,
             metric = :unit,
         )
-    @test mgmfrm_guarded_fit isa BayesianMGMFRM.MGMFRMFit
+    @test mgmfrm_guarded_fit isa MGMFRMFit
     @test mgmfrm_guarded_fit.design.spec.family === :mgmfrm
     @test mgmfrm_guarded_fit.backend === :advancedhmc
     @test mgmfrm_guarded_fit.sampler === :nuts
@@ -9321,7 +9332,8 @@ end
     @test length(mgmfrm_fit_recovery_direct) == length(mgmfrm_params)
     @test all(row -> row.model_family === :mgmfrm, mgmfrm_fit_recovery_direct)
     @test all(row -> row.parameter_space === :direct, mgmfrm_fit_recovery_direct)
-    @test all(row -> !row.public_fit && row.guarded_local_fit,
+    @test all(row -> row.fit_ready && row.public_fit &&
+        row.experimental_public && row.guarded_local_fit,
         mgmfrm_fit_recovery_direct)
     @test maximum(abs(row.bias) for row in mgmfrm_fit_recovery_direct) < 1e-12
     mgmfrm_raw_truth = [
@@ -9343,8 +9355,9 @@ end
     @test mgmfrm_guarded_surface.schema ==
         "bayesianmgmfrm.mgmfrm_guarded_local_fit_sampler_diagnostics.v1"
     @test mgmfrm_guarded_surface.status === :guarded_local_fit
-    @test !mgmfrm_guarded_surface.public_fit
-    @test !mgmfrm_guarded_surface.experimental_public
+    @test mgmfrm_guarded_surface.public_fit
+    @test mgmfrm_guarded_surface.experimental_public
+    @test mgmfrm_guarded_surface.fit_ready
     @test mgmfrm_guarded_surface.target === :_mgmfrm_guarded_local_fit_logdensity
     @test mgmfrm_guarded_surface.summary.total_draws == 2
     @test mgmfrm_guarded_surface.summary.n_direct_parameters == length(mgmfrm_params)
@@ -9353,14 +9366,17 @@ end
     @test [row.parameter for row in mgmfrm_guarded_surface.direct_parameter_rows] ==
         mgmfrm_preview.parameter_names
     mgmfrm_guarded_metadata = fit_metadata(mgmfrm_guarded_fit)
-    @test !mgmfrm_guarded_metadata.public_fit
-    @test !mgmfrm_guarded_metadata.experimental_public
+    @test mgmfrm_guarded_metadata.public_fit
+    @test mgmfrm_guarded_metadata.experimental_public
+    @test mgmfrm_guarded_metadata.fit_ready
     @test mgmfrm_guarded_metadata.guarded_local_fit
     @test mgmfrm_guarded_metadata.scope === :minimal_confirmatory_mgmfrm_candidate
     mgmfrm_guarded_diagnostics = diagnostics(mgmfrm_guarded_fit)
     @test mgmfrm_guarded_diagnostics.schema ==
         "bayesianmgmfrm.mgmfrm_guarded_local_fit_diagnostics.v1"
-    @test !mgmfrm_guarded_diagnostics.public_fit
+    @test mgmfrm_guarded_diagnostics.public_fit
+    @test mgmfrm_guarded_diagnostics.experimental_public
+    @test mgmfrm_guarded_diagnostics.fit_ready
     @test mgmfrm_guarded_diagnostics.guarded_local_fit
     @test length(sampler_diagnostics(mgmfrm_guarded_fit)) == 1
     @test length(mcmc_diagnostics(mgmfrm_guarded_fit)) ==
@@ -9369,11 +9385,13 @@ end
     mgmfrm_guarded_artifact =
         fit_artifact(mgmfrm_guarded_fit; include_environment = false)
     @test mgmfrm_guarded_artifact.schema ==
-        "bayesianmgmfrm.mgmfrm_guarded_local_fit_artifact.v1"
-    @test !mgmfrm_guarded_artifact.public_fit
-    @test !mgmfrm_guarded_artifact.experimental_public
+        "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1"
+    @test mgmfrm_guarded_artifact.public_fit
+    @test mgmfrm_guarded_artifact.experimental_public
     @test mgmfrm_guarded_artifact.guarded_local_fit
-    @test mgmfrm_guarded_artifact.entrypoint === :_fit_guarded_mgmfrm
+    @test mgmfrm_guarded_artifact.fit_ready
+    @test mgmfrm_guarded_artifact.entrypoint == "fit(spec; experimental = true)"
+    @test mgmfrm_guarded_artifact.guarded_local_entrypoint === :_fit_guarded_mgmfrm
     @test mgmfrm_guarded_artifact.target === :_mgmfrm_guarded_local_fit_logdensity
     @test size(mgmfrm_guarded_artifact.pointwise_loglikelihood) ==
         (2, identified_data.n)

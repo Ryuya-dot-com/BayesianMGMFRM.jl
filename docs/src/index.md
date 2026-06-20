@@ -22,10 +22,11 @@ The current public slice focuses on:
   [`fit_artifact`](@ref), and [`posterior_summary`](@ref), including a small
   random-walk backend, initial AdvancedHMC/NUTS and Turing/NUTS backends, and
   RDS-like serialized fit caches;
-- a guarded experimental scalar GMFRM path via `fit(spec; experimental = true)`
+- guarded experimental generalized paths via `fit(spec; experimental = true)`
   returning [`GMFRMFit`](@ref) for the one-dimensional rater-discrimination
-  promotion candidate only, with local validation, posterior predictive, and
-  sparse-pathology recovery evidence recorded;
+  GMFRM candidate or [`MGMFRMFit`](@ref) for the fixed-Q two-dimensional
+  confirmatory MGMFRM candidate, with local validation and caveat evidence
+  recorded;
 - serializable provenance manifests for fit-supported specs, specified-only
   specs, designs, fits, and cached-fit artifacts via [`model_manifest`](@ref)
   and [`fit_artifact`](@ref);

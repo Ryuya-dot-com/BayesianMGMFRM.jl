@@ -13,6 +13,7 @@ MFRMPrior
 MFRMLogDensity
 MFRMFit
 GMFRMFit
+MGMFRMFit
 artifact_content_hash
 benchmark_result_row
 benchmark_summary

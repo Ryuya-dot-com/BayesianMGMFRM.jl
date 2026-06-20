@@ -11,20 +11,23 @@ Turing/NUTS model.
 ## Guarded Generalized Model Caveats
 
 The public `fit` path is currently limited to fit-supported MFRM/RSM/PCM
-specifications by default. A narrow guarded experimental exception exists for
-the scalar source-aligned GMFRM promotion candidate: `fit(spec; experimental =
-true)` returns [`GMFRMFit`](@ref) only when the spec is one-dimensional,
-`family = :gmfrm`, `discrimination = :rater`, and still on the specified-only
-manifest path. Unsupported generalized options, public `MFRMPrior` priors,
-MGMFRM specs, multidimensional specs, and non-rater discrimination specs are
-rejected. Specified-only GMFRM and MGMFRM specs otherwise remain inspection
-surfaces: they can expose manifests, constraint tables, preview rows, and
-internal fixture evidence without silently fitting the wrong likelihood.
+specifications by default. Narrow guarded experimental exceptions exist for
+source-aligned generalized candidates: `fit(spec; experimental = true)` returns
+[`GMFRMFit`](@ref) when the spec is one-dimensional, `family = :gmfrm`,
+`discrimination = :rater`, and still on the specified-only manifest path; it
+returns [`MGMFRMFit`](@ref) for the fixed-Q, two-dimensional confirmatory
+`family = :mgmfrm` candidate. Unsupported generalized options, public
+`MFRMPrior` priors for generalized raw-coordinate fits, exploratory MGMFRM
+loadings, free latent correlations, dimensions beyond two, and non-rater GMFRM
+discrimination specs are rejected. Other specified-only GMFRM and MGMFRM specs
+remain inspection surfaces: they can expose manifests, constraint tables,
+preview rows, and fixture evidence without silently fitting the wrong
+likelihood.
 
-The scalar GMFRM promotion candidate is internal. Its source-aligned Julia
+The scalar GMFRM promotion candidate remains guarded. Its source-aligned Julia
 fixture, BridgeStan oracle, direct-parameter checks, candidate-chain artifact,
-and recovery-smoke artifact are evidence for the private candidate, not a public
-prior contract for arbitrary GMFRM variants. The committed small and medium
+and recovery-smoke artifact are evidence for the narrow public experiment, not a
+public prior contract for arbitrary GMFRM variants. The committed small and medium
 scalar Stan/BridgeStan log-density and gradient fixtures can be summarized with
 [`stan_validation_row`](@ref) and [`stan_validation_summary`](@ref); that gate
 is scalar fixture evidence, not a public generalized Stan-fit comparison. The
@@ -36,9 +39,9 @@ compact real-data case study, local full-paper reproduction archive, local
 confirmatory MGMFRM guarded fit method-wiring artifact, and local confirmatory
 MGMFRM guarded fit validation-grid plus guarded fit API dry-run, guarded public
 exposure-review, and prediction/model-weight policy artifacts are also
-recorded. The guarded local MGMFRM fit entrypoint and archive metadata are now
-recorded, so broader generalized exposure remains blocked by the separate
-public-scope release decision and stronger validation evidence.
+recorded. The fixed-Q confirmatory MGMFRM guarded sampler is now wired through
+`fit(spec; experimental = true)`, while broader generalized exposure remains
+blocked by stronger validation evidence and manual publication or registration.
 A local claim-level recovery/reproduction archive manifest and a
 broader experimental exposure decision review now record fixture hashes,
 generator commands, source references, local verification commands, and the
@@ -54,23 +57,22 @@ interval/decision and sparse-design grids, a WAIC influence review, the
 raw importance-sampling LOO/Pareto-k review, a deterministic 3-fold refit
 review, a guarded fit API dry-run artifact, the raw-prior Jacobian policy, and
 the experimental generalized fit-artifact contract are recorded internally. The
-guarded scalar GMFRM method now populates that contract locally and passes the
-local validation, posterior predictive, sparse-pathology recovery, and
-prior/likelihood sensitivity grids
-while broader GMFRM/MGMFRM surfaces remain blocked.
+guarded scalar GMFRM and fixed-Q confirmatory MGMFRM methods now populate that
+contract locally. The scalar GMFRM path also passes the local validation,
+posterior predictive, sparse-pathology recovery, and prior/likelihood
+sensitivity grids, while broader GMFRM/MGMFRM surfaces remain blocked.
 
 The first MGMFRM candidate is even narrower: a confirmatory two-dimensional
 candidate with a fixed Q-mask, fixed identity latent correlation, standard-normal
 ability scale, positive interpreted Q-masked loadings, and source scale `1.7`.
 Its BridgeStan oracle, candidate-chain artifact, recovery-smoke artifact, and
-connected sparse-recovery grid do
-not support exploratory loadings, free latent correlations, more than two
-dimensions, sparse-design claims, or public recovery claims. A local
-same-observation baseline-comparison artifact is recorded, but a public MGMFRM
-fit path remains blocked until full reproduction artifacts and a public-scope
-release decision are complete. A private guarded local fit entrypoint now
-populates the same raw-prior/Jacobian policy and internal fit-artifact contract
-for the fixed-Q confirmatory candidate; it is not a public MGMFRM fitting API.
+connected sparse-recovery grid support only the guarded fixed-Q experiment. They
+do not support exploratory loadings, free latent correlations, more than two
+dimensions, sparse-design superiority claims, or public model-weight claims. A
+local same-observation baseline-comparison artifact is recorded as evidence, but
+it is not a model-selection claim. The guarded experimental MGMFRM fit path
+populates the same raw-prior/Jacobian policy and fit-artifact contract for the
+fixed-Q confirmatory candidate.
 
 ```julia
 using BayesianMGMFRM
@@ -153,8 +155,9 @@ dff_report(fit_result; terms = (:rater, :item))
 
 The random-walk sampler is intended for small validation examples and API
 stabilization. The AdvancedHMC/NUTS and Turing/NUTS backends are
-gradient-based sampler paths for the minimal design; they are not yet broad
-GMFRM/MGMFRM fitting backends. The package does not yet expose Stan/CmdStan
+gradient-based sampler paths for the minimal design; AdvancedHMC also backs the
+guarded experimental GMFRM and fixed-Q MGMFRM candidates, but it is not yet a
+broad GMFRM/MGMFRM fitting backend. The package does not yet expose Stan/CmdStan
 sampling, PSIS-smoothed or exact LOO refits, grouped cross-validation, or
 refit-managed model-comparison workflows. [`kfold`](@ref) and
 [`compare_kfold`](@ref) summarize supplied heldout refit log-likelihood

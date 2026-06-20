@@ -363,9 +363,15 @@ struct GMFRMFit
     diagnostic_surface::NamedTuple
 end
 
-# Internal guarded MGMFRM fit result for the narrow confirmatory fixed-Q
-# candidate. This type is intentionally not exported and is returned only by the
-# private `_fit_guarded_mgmfrm` validation entrypoint.
+"""
+    MGMFRMFit
+
+Guarded experimental MGMFRM fit result returned by
+`fit(spec; experimental = true)` for the fixed-Q, two-dimensional confirmatory
+candidate. Raw draws are stored in `draws`, constrained direct draws in
+`direct_draws`, and observation-ordered direct pointwise log likelihoods in
+`direct_pointwise_loglikelihood`.
+"""
 struct MGMFRMFit
     design::FacetDesign
     prior::_SourceFixturePrior
@@ -405,7 +411,7 @@ function Base.show(io::IO, fit::MGMFRMFit)
         size(fit.draws, 2), " raw parameter(s), backend = :",
         fit.backend, ", sampler = :", fit.sampler,
         ", chains = ", length(fit.chain_acceptance_rate),
-        ", public_fit = false)")
+        ", experimental_public = true, guarded_local_fit = true)")
 end
 
 struct _SourceFixtureLogDensity
@@ -2517,9 +2523,9 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
         family = :mgmfrm,
         scope = :minimal_confirmatory_mgmfrm_candidate,
         status = :guarded_local_fit,
-        public_fit = false,
-        experimental_public = false,
-        fit_ready = false,
+        public_fit = true,
+        experimental_public = true,
+        fit_ready = true,
         target = :_mgmfrm_guarded_local_fit_logdensity,
         density_space = :raw_unconstrained,
         backend = :advancedhmc,
@@ -2760,8 +2766,18 @@ function _fit_guarded_mgmfrm(spec::FacetSpec;
     return _mgmfrm_fit_from_sampler_diagnostics(design, mgmfrm_prior, diagnostic_surface)
 end
 
+function _fit_experimental_mgmfrm(spec::FacetSpec; kwargs...)
+    return _fit_guarded_mgmfrm(spec; kwargs...)
+end
+
 function fit(spec::FacetSpec; experimental::Bool = false, kwargs...)
-    experimental && return _fit_experimental_gmfrm(spec; kwargs...)
+    if experimental
+        spec.family === :gmfrm && return _fit_experimental_gmfrm(spec; kwargs...)
+        spec.family === :mgmfrm && return _fit_experimental_mgmfrm(spec; kwargs...)
+        throw(ArgumentError(
+            "experimental fitting currently supports only family = :gmfrm or :mgmfrm",
+        ))
+    end
     return fit(getdesign(spec); kwargs...)
 end
 
@@ -2878,8 +2894,9 @@ function fit_metadata(fit::MGMFRMFit)
         thresholds = fit.design.spec.thresholds,
         estimation_status = fit.design.spec.estimation_status,
         scope = :minimal_confirmatory_mgmfrm_candidate,
-        public_fit = false,
-        experimental_public = false,
+        public_fit = true,
+        experimental_public = true,
+        fit_ready = true,
         guarded_local_fit = true,
         density_space = :raw_unconstrained,
         n_parameters = size(fit.draws, 2),
@@ -3435,8 +3452,9 @@ function diagnostics(fit::MGMFRMFit;
         schema = "bayesianmgmfrm.mgmfrm_guarded_local_fit_diagnostics.v1",
         family = :mgmfrm,
         scope = :minimal_confirmatory_mgmfrm_candidate,
-        public_fit = false,
-        experimental_public = false,
+        public_fit = true,
+        experimental_public = true,
+        fit_ready = true,
         guarded_local_fit = true,
         backend = fit.backend,
         sampler = fit.sampler,
@@ -3498,10 +3516,10 @@ function _model_manifest(fit::MGMFRMFit, diagnostic_summary)
         object = :fit,
         family = :mgmfrm,
         scope = :minimal_confirmatory_mgmfrm_candidate,
-        public_fit = false,
-        experimental_public = false,
+        public_fit = true,
+        experimental_public = true,
         guarded_local_fit = true,
-        fit_ready = false,
+        fit_ready = true,
         data = base.data,
         validation = base.validation,
         spec = base.spec,
@@ -3715,18 +3733,19 @@ function fit_artifact(fit::MGMFRMFit;
         evidence_metadata(; include_packages) :
         nothing
     return _with_archive_metadata((;
-        schema = "bayesianmgmfrm.mgmfrm_guarded_local_fit_artifact.v1",
+        schema = "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1",
         object = :fit_artifact,
         family = :mgmfrm,
         scope = :minimal_confirmatory_mgmfrm_candidate,
-        status = :guarded_local_fit_artifact,
-        public_fit = false,
-        experimental_public = false,
+        status = :experimental_public_fit_artifact,
+        public_fit = true,
+        experimental_public = true,
         guarded_local_fit = true,
-        fit_ready = false,
+        fit_ready = true,
         created_at = string(now()),
         density_space = :raw_unconstrained,
-        entrypoint = :_fit_guarded_mgmfrm,
+        entrypoint = "fit(spec; experimental = true)",
+        guarded_local_entrypoint = :_fit_guarded_mgmfrm,
         target = :_mgmfrm_guarded_local_fit_logdensity,
         q_matrix = _q_matrix_manifest(fit.design.spec.q_matrix),
         latent_correlation = :identity_fixed,
@@ -3748,7 +3767,7 @@ function fit_artifact(fit::MGMFRMFit;
         direct_draws = include_draws ? copy(fit.direct_draws) : nothing,
         log_posterior = include_log_posterior ? copy(fit.log_posterior) : nothing,
         sampler_stats = include_sampler_stats ? copy(fit.sampler_stats) : nothing,
-    ); label = :mgmfrm_guarded_local_fit_artifact)
+    ); label = :mgmfrm_experimental_fit_artifact)
 end
 
 function _cache_stable_write(io::IO, value)
@@ -10420,9 +10439,9 @@ function _design_recovery_metadata(design::FacetDesign, parameter_space::Symbol)
             parameter_space,
             density_space = parameter_space === :direct ? :constrained_direct : :raw_unconstrained,
             scope = :minimal_confirmatory_mgmfrm_candidate,
-            fit_ready = false,
-            public_fit = false,
-            experimental_public = false,
+            fit_ready = true,
+            public_fit = true,
+            experimental_public = true,
             guarded_local_fit = true,
         )
     end
@@ -10481,9 +10500,9 @@ function _fit_recovery_layout(fit::MGMFRMFit, parameter_space::Symbol)
         parameter_space,
         density_space = parameter_space === :direct ? :constrained_direct : :raw_unconstrained,
         scope = :minimal_confirmatory_mgmfrm_candidate,
-        fit_ready = false,
-        public_fit = false,
-        experimental_public = false,
+        fit_ready = true,
+        public_fit = true,
+        experimental_public = true,
         guarded_local_fit = true,
     )
     if parameter_space === :direct

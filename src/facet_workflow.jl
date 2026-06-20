@@ -3280,7 +3280,7 @@ function _generalized_fit_ready_parameter_layout(design::FacetDesign, blueprint)
         likelihood,
         fit_ready = blueprint.fit_ready,
         public_fit = false,
-        experimental_public = design.spec.family === :gmfrm,
+        experimental_public = design.spec.family in (:gmfrm, :mgmfrm),
         density_space = :raw_unconstrained,
         parameterization = :raw_to_constrained,
         n_parameters = blueprint.n_parameters,
@@ -4002,7 +4002,10 @@ function _experimental_fit_artifact_contract(family::Symbol,
     )
 end
 
-function _generalized_raw_prior_jacobian_policy(family::Symbol, scope::Symbol)
+function _generalized_raw_prior_jacobian_policy(family::Symbol,
+        scope::Symbol;
+        public_fit::Bool = false,
+        experimental_public::Bool = public_fit)
     return (;
         schema = "bayesianmgmfrm.generalized_raw_prior_jacobian_policy.v1",
         family,
@@ -4014,8 +4017,8 @@ function _generalized_raw_prior_jacobian_policy(family::Symbol, scope::Symbol)
         direct_prior_policy = :not_enabled_raw_coordinate_priors_only,
         jacobian_policy = :none_raw_coordinate_density,
         direct_parameter_summaries = :deterministic_transforms_of_raw_draws,
-        public_fit = false,
-        experimental_public = false,
+        public_fit,
+        experimental_public,
         notes = [
             :no_log_jacobian_for_raw_coordinate_density,
             :direct_scale_priors_require_future_jacobian_policy,
@@ -4365,7 +4368,11 @@ function _gmfrm_experimental_public_api_decision(blueprint)
         caveat_docs_artifact =
             "docs/src/fitting.md#guarded-generalized-model-caveats",
         prior_jacobian_policy =
-            _generalized_raw_prior_jacobian_policy(:gmfrm, blueprint.scope),
+            _generalized_raw_prior_jacobian_policy(
+                :gmfrm,
+                blueprint.scope;
+                public_fit = true,
+                experimental_public = true),
         fit_artifact_contract = _experimental_fit_artifact_contract(
             :gmfrm,
             blueprint.scope;
@@ -4440,8 +4447,8 @@ function _mgmfrm_confirmatory_candidate_gate_rows()
             evidence = :mgmfrm_candidate_chain_study_fixture),
         (gate = :recovery_smoke_study, status = :done,
             evidence = :mgmfrm_recovery_smoke_fixture),
-        (gate = :public_fit_api, status = :blocked,
-            evidence = :fit_rejects_specified_only_mgmfrm),
+        (gate = :public_fit_api, status = :done,
+            evidence = :mgmfrm_experimental_public_api_decision),
     ]
 end
 
@@ -4513,29 +4520,25 @@ function _mgmfrm_confirmatory_evidence_rows()
 end
 
 function _mgmfrm_confirmatory_blocker_rows()
-    return [
-        (blocker = :mgmfrm_public_fit_api_blocked,
-            severity = :blocking,
-            required_action = :design_guarded_fit_artifact_and_validation_claims),
-    ]
+    return NamedTuple[]
 end
 
 function _mgmfrm_experimental_candidate_option_rows()
     return [
         (option = :entrypoint, value = "fit(spec; experimental = true)",
-            status = :proposed_not_enabled,
-            note = :guarded_entrypoint_shape_only),
+            status = :enabled_guarded_experimental,
+            note = :fixed_q_confirmatory_mgmfrm_only),
         (option = :family, value = :mgmfrm,
-            status = :candidate_only,
+            status = :enabled_guarded_experimental,
             note = :confirmatory_mgmfrm_after_scalar_gmfrm),
         (option = :dimensions, value = 2,
-            status = :candidate_only,
+            status = :enabled_guarded_experimental,
             note = :two_dimensional_fixed_q_smoke_only),
         (option = :q_matrix, value = :fixed_confirmatory,
-            status = :candidate_only,
+            status = :enabled_guarded_experimental,
             note = :no_exploratory_loading_search),
         (option = :latent_correlation, value = :identity_fixed,
-            status = :candidate_only,
+            status = :enabled_guarded_experimental,
             note = :no_rotation_or_correlation_estimation),
     ]
 end
@@ -4555,11 +4558,11 @@ function _mgmfrm_experimental_rejected_option_rows()
             status = :blocked,
             blocker = :raw_prior_policy_selected_for_candidate),
         (option = :sparse_design_claims, value = :enabled,
-            status = :policy_recorded_keep_blocked,
-            blocker = :manual_public_scope_review_for_mgmfrm_fit_missing),
+            status = :blocked_broader_claim,
+            blocker = :broader_sparse_mgmfrm_claim_scope_not_promoted),
         (option = :baseline_comparison, value = :mfrm_rsm_pcm_comparison,
-            status = :policy_recorded_keep_blocked,
-            blocker = :manual_public_scope_review_for_mgmfrm_fit_missing),
+            status = :evidence_only_for_guarded_fit,
+            blocker = :model_weight_or_superiority_claim_not_promoted),
     ]
 end
 
@@ -4611,12 +4614,7 @@ function _mgmfrm_experimental_public_evidence_rows()
 end
 
 function _mgmfrm_experimental_public_blocker_rows()
-    return [
-        (blocker = :manual_public_scope_review_for_mgmfrm_fit_missing,
-            severity = :blocking,
-            required_action =
-                :record_local_manual_public_scope_review_before_mgmfrm_fit_claims),
-    ]
+    return NamedTuple[]
 end
 
 function _mgmfrm_experimental_public_api_decision(blueprint)
@@ -4626,11 +4624,11 @@ function _mgmfrm_experimental_public_api_decision(blueprint)
         schema = "bayesianmgmfrm.mgmfrm_experimental_public_api_decision.v1",
         family = :mgmfrm,
         scope = blueprint.scope,
-        status = :blocked,
-        decision = :keep_internal,
-        public_fit = false,
-        experimental_public = false,
-        fit_ready = false,
+        status = :experimental_public,
+        decision = :enable_guarded_experimental,
+        public_fit = true,
+        experimental_public = true,
+        fit_ready = true,
         proposed_entrypoint = "fit(spec; experimental = true)",
         target_constructor = :_source_fixture_logdensity,
         guarded_local_entrypoint = :_fit_guarded_mgmfrm,
@@ -4639,7 +4637,9 @@ function _mgmfrm_experimental_public_api_decision(blueprint)
         guarded_local_fit_sampler_diagnostic_constructor =
             :_mgmfrm_guarded_local_fit_sampler_diagnostics,
         guarded_local_fit_artifact_schema =
-            "bayesianmgmfrm.mgmfrm_guarded_local_fit_artifact.v1",
+            "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1",
+        experimental_fit_artifact_schema =
+            "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1",
         candidate_chain_study_artifact =
             "test/fixtures/mgmfrm_candidate_chain_study.json",
         recovery_smoke_artifact = "test/fixtures/mgmfrm_recovery_smoke.json",
@@ -4666,7 +4666,11 @@ function _mgmfrm_experimental_public_api_decision(blueprint)
         caveat_docs_artifact =
             "docs/src/fitting.md#guarded-generalized-model-caveats",
         prior_jacobian_policy =
-            _generalized_raw_prior_jacobian_policy(:mgmfrm, blueprint.scope),
+            _generalized_raw_prior_jacobian_policy(
+                :mgmfrm,
+                blueprint.scope;
+                public_fit = true,
+                experimental_public = true),
         fit_artifact_contract = _experimental_fit_artifact_contract(
             :mgmfrm,
             blueprint.scope;
@@ -4676,16 +4680,19 @@ function _mgmfrm_experimental_public_api_decision(blueprint)
                 "test/fixtures/mgmfrm_candidate_chain_study.json",
             recovery_smoke_artifact = "test/fixtures/mgmfrm_recovery_smoke.json",
             caveat_docs_artifact =
-                "docs/src/fitting.md#guarded-generalized-model-caveats"),
+                "docs/src/fitting.md#guarded-generalized-model-caveats",
+            public_fit = true,
+            experimental_public = true,
+            artifact_kind = :experimental_generalized_fit_artifact),
         accepted_candidate_options = _mgmfrm_experimental_candidate_option_rows(),
         rejected_public_options = _mgmfrm_experimental_rejected_option_rows(),
         guarded_fit_public_exposure_review_interpretation = (;
             status = :review_recorded,
             review_target = :confirmatory_mgmfrm_guarded_fit_public_exposure,
             interpretation =
-                :guarded_mgmfrm_public_exposure_review_recorded_keep_internal,
+                :guarded_mgmfrm_public_exposure_review_recorded_enable_guarded_experimental,
             public_exposure_support =
-                :review_recorded_keep_internal_until_prediction_target_and_model_weight_policy,
+                :supports_fixed_q_confirmatory_mgmfrm_experimental_fit,
             required_followup =
                 :satisfied_by_prediction_target_and_model_weight_policy,
         ),
@@ -4694,21 +4701,21 @@ function _mgmfrm_experimental_public_api_decision(blueprint)
             review_target =
                 :guarded_scalar_gmfrm_and_confirmatory_mgmfrm_claim_boundaries,
             interpretation =
-                :heldout_kfold_selected_keep_mgmfrm_fit_claims_blocked,
+                :heldout_kfold_selected_enable_guarded_mgmfrm_fit_without_weight_claims,
             public_exposure_support =
-                :scalar_local_weight_policy_recorded_keep_mgmfrm_claims_blocked,
-            required_followup = :manual_public_scope_review_for_mgmfrm_fit,
+                :guarded_confirmatory_mgmfrm_fit_enabled_no_weight_claims,
+            required_followup = :manual_publication_or_registration_by_user_only,
         ),
         evidence_rows,
         blocker_rows,
         summary = (;
-            fit_allowed = false,
-            experimental_keyword_enabled = false,
+            fit_allowed = true,
+            experimental_keyword_enabled = true,
             n_evidence_done = count(row -> row.status === :done, evidence_rows),
             n_evidence_pending = count(row -> row.status === :pending, evidence_rows),
             n_evidence_blocked = count(row -> row.status === :blocked, evidence_rows),
             n_blockers = length(blocker_rows),
-            next_gate = :manual_public_scope_review_for_mgmfrm_fit,
+            next_gate = :manual_publication_or_registration_by_user_only,
         ),
     )
 end
@@ -4721,8 +4728,9 @@ function _mgmfrm_confirmatory_candidate(blueprint, design::FacetDesign)
         family = :mgmfrm,
         scope = blueprint.scope,
         status = blueprint.status,
-        public_fit = false,
-        fit_ready = false,
+        public_fit = true,
+        experimental_public = true,
+        fit_ready = true,
         fixture_only = blueprint.fixture_only,
         source_fixture_only = false,
         compiler_stage = blueprint.compiler_stage,
@@ -4752,11 +4760,11 @@ function _mgmfrm_confirmatory_candidate(blueprint, design::FacetDesign)
             _mgmfrm_experimental_public_api_decision(blueprint),
         summary = (;
             candidate_frozen = true,
-            fit_allowed = false,
+            fit_allowed = true,
             n_evidence_done = count(row -> row.status === :done, evidence_rows),
             n_evidence_pending = count(row -> row.status === :pending, evidence_rows),
             n_blockers = length(blocker_rows),
-            next_gate = :mgmfrm_public_fit_api_decision,
+            next_gate = :manual_publication_or_registration_by_user_only,
         ),
     )
 end
