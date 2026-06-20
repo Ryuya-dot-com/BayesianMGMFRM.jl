@@ -308,6 +308,9 @@ Current public API:
 - `loo_diagnostics`: observation-level LOO diagnostics with person, rater,
   item, score, optional facet labels, raw-importance effective sample sizes,
   and Pareto-k flags when fitted objects are supplied.
+- `loo_refit`: exact leave-one-observation-out refit execution for
+  fit-supported MFRM/RSM/PCM specs, using `loo_refit_plan` and
+  `kfold_plan_diagnostics` before scoring heldout observations.
 - `loo_refit_plan`: deterministic leave-one-observation-out refit plans for
   exact LOO follow-up, optionally restricted to selected observations or
   Pareto-k flagged rows from raw LOO summaries.
@@ -423,10 +426,10 @@ than repeatedly prefixing function names with the package name.
 
 Not yet implemented in the public API:
 
-- Stan/CmdStan sampling, PSIS-smoothed LOO, exact LOO refit orchestration, or
-  refit-managed model-comparison workflows. The K-fold helpers build
-  deterministic observation/grouped heldout plans and summarize supplied
-  heldout log-likelihood matrices, but they do not refit models. The
+- Stan/CmdStan sampling, PSIS-smoothed LOO, generalized exact LOO refit
+  orchestration, or refit-managed model-comparison workflows. The K-fold
+  helpers build deterministic observation/grouped heldout plans and summarize
+  supplied heldout log-likelihood matrices, but they do not refit models. The
   AdvancedHMC/NUTS and Turing/NUTS backends are currently limited
   to the minimal MFRM/RSM/PCM design; the guarded experimental GMFRM and
   fixed-Q MGMFRM candidates remain on the AdvancedHMC path.

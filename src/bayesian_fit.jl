@@ -7164,6 +7164,283 @@ loo_refit_plan(spec::FacetSpec, stat; kwargs...) =
 loo_refit_plan(design::FacetDesign, stat; kwargs...) =
     loo_refit_plan(design.spec.data, stat; kwargs...)
 
+function _check_loo_refit_plan_for_execution(data::FacetData, plan)
+    hasproperty(plan, :object) && plan.object === :loo_refit_plan ||
+        throw(ArgumentError("loo_refit requires a loo_refit_plan result"))
+    hasproperty(plan, :fold_rows) ||
+        throw(ArgumentError("loo_refit plan must contain fold_rows"))
+    hasproperty(plan, :n_observations) && Int(plan.n_observations) == data.n ||
+        throw(ArgumentError("loo_refit plan n_observations does not match the supplied data"))
+    diagnostics = kfold_plan_diagnostics(data, plan; facets = :all)
+    diagnostics.passed ||
+        throw(ArgumentError(
+            "loo_refit plan has heldout-only facet levels; inspect kfold_plan_diagnostics"))
+    return diagnostics
+end
+
+function _facet_data_optional_kwargs(data::FacetData)
+    return (;
+        group = haskey(data.optional, :group) ? :group : nothing,
+        task = haskey(data.optional, :task) ? :task : nothing,
+        form = haskey(data.optional, :form) ? :form : nothing,
+        occasion = haskey(data.optional, :occasion) ? :occasion : nothing,
+    )
+end
+
+function _loo_refit_training_data(data::FacetData, observations::AbstractVector{Int})
+    table = facet_response_table(data; observations)
+    optional_kwargs = _facet_data_optional_kwargs(data)
+    return FacetData(
+        table;
+        person = :person,
+        rater = :rater,
+        item = :item,
+        score = :score,
+        optional_kwargs...,
+    )
+end
+
+function _loo_refit_level_index(levels::AbstractVector, label, facet::Symbol)
+    index = findfirst(level -> isequal(level, label), levels)
+    index === nothing &&
+        throw(ArgumentError(
+            "loo_refit cannot score heldout :$facet level $(repr(label)) " *
+            "because it is absent from the training fold"))
+    return Int(index)
+end
+
+function _loo_refit_score_data(source::FacetData,
+        training::FacetData,
+        observations::AbstractVector{Int})
+    rows = _check_observation_indices(source, observations, "loo_refit heldout_observations")
+    person = Int[]
+    rater = Int[]
+    item = Int[]
+    score = Int[]
+    category = Int[]
+    for row in rows
+        push!(person, _loo_refit_level_index(
+            training.person_levels,
+            source.person_levels[source.person[row]],
+            :person,
+        ))
+        push!(rater, _loo_refit_level_index(
+            training.rater_levels,
+            source.rater_levels[source.rater[row]],
+            :rater,
+        ))
+        push!(item, _loo_refit_level_index(
+            training.item_levels,
+            source.item_levels[source.item[row]],
+            :item,
+        ))
+        score_value = source.score[row]
+        push!(score, score_value)
+        push!(category, _loo_refit_level_index(training.category_levels, score_value, :category))
+    end
+
+    optional = Dict{Symbol,Vector{Int}}()
+    optional_levels = Dict{Symbol,Vector{Any}}()
+    for facet in sort(collect(keys(source.optional)); by = string)
+        haskey(training.optional, facet) ||
+            throw(ArgumentError(
+                "loo_refit cannot score heldout optional facet :$facet " *
+                "because it is absent from the training fold"))
+        optional_index = Int[]
+        for row in rows
+            label = source.optional_levels[facet][source.optional[facet][row]]
+            push!(optional_index,
+                _loo_refit_level_index(training.optional_levels[facet], label, facet))
+        end
+        optional[facet] = optional_index
+        optional_levels[facet] = copy(training.optional_levels[facet])
+    end
+
+    return FacetData(
+        length(rows),
+        person,
+        rater,
+        item,
+        score,
+        category,
+        copy(training.person_levels),
+        copy(training.rater_levels),
+        copy(training.item_levels),
+        copy(training.category_levels),
+        optional,
+        optional_levels,
+        training.columns,
+    )
+end
+
+function _replace_spec_data(spec::FacetSpec, data::FacetData)
+    return FacetSpec(
+        data,
+        spec.thresholds,
+        spec.validation,
+        spec.family,
+        spec.dimensions,
+        spec.discrimination,
+        spec.q_matrix,
+        spec.validation_bias_terms,
+        spec.anchors,
+        spec.constraints,
+        spec.prior_blocks,
+        spec.estimation_status,
+    )
+end
+
+function _loo_refit_score_design(source::FacetData,
+        training_design::FacetDesign,
+        observations::AbstractVector{Int})
+    score_data = _loo_refit_score_data(source, training_design.spec.data, observations)
+    score_spec = _replace_spec_data(training_design.spec, score_data)
+    return FacetDesign(
+        score_spec,
+        copy(training_design.parameter_names),
+        Dict(key => value for (key, value) in training_design.blocks),
+        Dict(key => value for (key, value) in training_design.identification),
+    )
+end
+
+function _loo_refit_empty_result(data::FacetData, plan, plan_diagnostics)
+    return (;
+        schema = "bayesianmgmfrm.loo_refit.v1",
+        object = :loo_refit,
+        criterion = :loo_refit,
+        method = :no_refits_required,
+        prediction_target = :heldout_observation_log_score,
+        plan_schema = hasproperty(plan, :schema) ? plan.schema : missing,
+        n_refits = 0,
+        n_folds = 0,
+        n_observations = 0,
+        n_total_observations = data.n,
+        folds = Any[],
+        observation_indices = Any[],
+        n_draws_by_fold = Int[],
+        n_heldout_by_fold = Int[],
+        fold_rows = NamedTuple[],
+        fit_rows = NamedTuple[],
+        fold_logliks = Matrix{Float64}[],
+        fold_fits = nothing,
+        kfold_summary = nothing,
+        plan_diagnostics,
+        warning = :no_refits_required,
+    )
+end
+
+function _check_loo_refit_spec(spec::FacetSpec)
+    spec.family === :mfrm ||
+        throw(ArgumentError("loo_refit currently supports only fit-supported MFRM specs"))
+    spec.estimation_status === :fit_supported ||
+        throw(ArgumentError("loo_refit requires a fit-supported spec"))
+    return spec
+end
+
+"""
+    loo_refit(data::FacetData, plan = loo_refit_plan(data);
+        thresholds = :partial_credit, prior = MFRMPrior(), kwargs...)
+    loo_refit(spec::FacetSpec, plan = loo_refit_plan(spec);
+        prior = MFRMPrior(), return_fits = false, kwargs...)
+    loo_refit(design::FacetDesign, plan = loo_refit_plan(design); kwargs...)
+    loo_refit(fit::MFRMFit, plan = loo_refit_plan(fit.design); kwargs...)
+
+Execute exact leave-one-observation-out refits for a [`loo_refit_plan`](@ref)
+under the current fit-supported MFRM/RSM/PCM likelihood. Each plan row is
+refit on the complementary training observations, scored on its single heldout
+observation, and summarized with the same heldout log-score contract as
+[`kfold`](@ref).
+
+Plans are checked with [`kfold_plan_diagnostics`](@ref) before fitting; rows
+with heldout-only person, rater, item, score-category, or optional-facet levels
+are rejected because the heldout observation cannot be scored against the
+training-fold parameter map.
+"""
+function loo_refit(spec::FacetSpec, plan = loo_refit_plan(spec);
+        prior::MFRMPrior = MFRMPrior(),
+        return_fits::Bool = false,
+        kwargs...)
+    checked_spec = _check_loo_refit_spec(spec)
+    data = checked_spec.data
+    plan_diagnostics = _check_loo_refit_plan_for_execution(data, plan)
+    isempty(plan.fold_rows) &&
+        return _loo_refit_empty_result(data, plan, plan_diagnostics)
+
+    fold_logliks = Matrix{Float64}[]
+    fold_fits = MFRMFit[]
+    fit_rows = NamedTuple[]
+    for fold_row in plan.fold_rows
+        heldout_observations = _kfold_plan_checked_observations(
+            data,
+            fold_row.heldout_observations,
+            "loo_refit heldout_observations",
+        )
+        length(heldout_observations) == 1 ||
+            throw(ArgumentError(
+                "loo_refit expects each fold row to hold out exactly one observation"))
+        training_observations = _kfold_plan_checked_observations(
+            data,
+            fold_row.training_observations,
+            "loo_refit training_observations",
+        )
+        training_data = _loo_refit_training_data(data, training_observations)
+        training_spec = mfrm_spec(training_data; thresholds = checked_spec.thresholds)
+        training_fit = fit(training_spec; prior, kwargs...)
+        score_design =
+            _loo_refit_score_design(data, training_fit.design, heldout_observations)
+        push!(fold_logliks,
+            Matrix{Float64}(pointwise_loglikelihood_matrix(score_design, training_fit.draws)))
+        return_fits && push!(fold_fits, training_fit)
+        fit_summary = diagnostics(training_fit).summary
+        push!(fit_rows, (;
+            fold = fold_row.fold,
+            heldout_observations = copy(heldout_observations),
+            n_training_observations = length(training_observations),
+            n_heldout_observations = length(heldout_observations),
+            backend = training_fit.backend,
+            sampler = training_fit.sampler,
+            n_draws = size(training_fit.draws, 1),
+            diagnostic_flag = fit_summary.flag,
+        ))
+    end
+
+    kfold_summary = kfold(
+        fold_logliks;
+        fold_ids = plan.folds,
+        observation_indices = plan.heldout_observation_indices,
+    )
+    return (;
+        kfold_summary...,
+        schema = "bayesianmgmfrm.loo_refit.v1",
+        object = :loo_refit,
+        refit_method = :exact_leave_one_observation_out_refit,
+        plan_schema = hasproperty(plan, :schema) ? plan.schema : missing,
+        n_refits = length(plan.fold_rows),
+        n_total_observations = data.n,
+        fold_rows = copy(plan.fold_rows),
+        fit_rows,
+        fold_logliks,
+        fold_fits = return_fits ? fold_fits : nothing,
+        kfold_summary,
+        plan_diagnostics,
+    )
+end
+
+function loo_refit(data::FacetData, plan = loo_refit_plan(data);
+        thresholds::Symbol = :partial_credit,
+        kwargs...)
+    return loo_refit(mfrm_spec(data; thresholds), plan; kwargs...)
+end
+
+loo_refit(design::FacetDesign, plan = loo_refit_plan(design); kwargs...) =
+    loo_refit(design.spec, plan; kwargs...)
+
+function loo_refit(fit::MFRMFit, plan = loo_refit_plan(fit.design);
+        prior::MFRMPrior = fit.prior,
+        kwargs...)
+    return loo_refit(fit.design.spec, plan; prior, kwargs...)
+end
+
 function _kfold_plan_diagnostic_facet_groups(data::FacetData, facet::Symbol)
     facet === :person && return data.person, data.person_levels
     facet === :rater && return data.rater, data.rater_levels

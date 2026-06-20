@@ -88,6 +88,7 @@ waic
 waic_diagnostics
 loo
 loo_diagnostics
+loo_refit
 loo_refit_plan
 posterior_predict
 posterior_predictive_check

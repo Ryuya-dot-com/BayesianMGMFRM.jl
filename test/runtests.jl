@@ -70,6 +70,7 @@ using BayesianMGMFRM:
     loglikelihood,
     loo,
     loo_diagnostics,
+    loo_refit,
     loo_refit_plan,
     logposterior,
     logprior,
@@ -11757,6 +11758,106 @@ end
     @test no_flag_loo_plan.n_heldout_by_fold == Int[]
     @test isempty(no_flag_loo_plan.fold_rows)
     @test all(ismissing, no_flag_loo_plan.observation_fold)
+
+    executed_loo_plan = loo_refit_plan(data; observations = [1, 2])
+    executed_loo = loo_refit(
+        spec,
+        executed_loo_plan;
+        prior,
+        backend = :julia,
+        ndraws = 3,
+        warmup = 2,
+        chains = 1,
+        step_size = 0.02,
+        init,
+        seed = 111,
+    )
+    @test executed_loo.schema == "bayesianmgmfrm.loo_refit.v1"
+    @test executed_loo.object === :loo_refit
+    @test executed_loo.criterion === :kfold
+    @test executed_loo.method === :heldout_refit_log_score
+    @test executed_loo.refit_method === :exact_leave_one_observation_out_refit
+    @test executed_loo.plan_schema == "bayesianmgmfrm.loo_refit_plan.v1"
+    @test executed_loo.n_refits == 2
+    @test executed_loo.n_folds == 2
+    @test executed_loo.n_observations == 2
+    @test executed_loo.n_total_observations == data.n
+    @test executed_loo.folds == [1, 2]
+    @test executed_loo.observation_indices == [1, 2]
+    @test executed_loo.n_draws_by_fold == [3, 3]
+    @test executed_loo.n_heldout_by_fold == [1, 1]
+    @test length(executed_loo.fold_logliks) == 2
+    @test all(matrix -> size(matrix) == (3, 1), executed_loo.fold_logliks)
+    @test all(matrix -> all(isfinite, matrix), executed_loo.fold_logliks)
+    @test length(executed_loo.fit_rows) == 2
+    @test all(row -> row.n_training_observations == data.n - 1, executed_loo.fit_rows)
+    @test all(row -> row.n_heldout_observations == 1, executed_loo.fit_rows)
+    @test executed_loo.plan_diagnostics.passed
+    @test isnothing(executed_loo.fold_fits)
+    @test executed_loo.kfold_summary.criterion === :kfold
+
+    executed_loo_with_fits = loo_refit(
+        design,
+        loo_refit_plan(data; observations = [1]);
+        prior,
+        return_fits = true,
+        backend = :julia,
+        ndraws = 2,
+        warmup = 1,
+        chains = 1,
+        step_size = 0.02,
+        init,
+        seed = 112,
+    )
+    @test length(executed_loo_with_fits.fold_fits) == 1
+    @test executed_loo_with_fits.fold_fits[1] isa MFRMFit
+
+    no_refits_executed = loo_refit(
+        data,
+        no_flag_loo_plan;
+        prior,
+        backend = :julia,
+        ndraws = 2,
+        warmup = 1,
+        chains = 1,
+        step_size = 0.02,
+        init,
+        seed = 113,
+    )
+    @test no_refits_executed.object === :loo_refit
+    @test no_refits_executed.criterion === :loo_refit
+    @test no_refits_executed.method === :no_refits_required
+    @test no_refits_executed.warning === :no_refits_required
+    @test no_refits_executed.n_refits == 0
+    @test isnothing(no_refits_executed.kfold_summary)
+
+    blocked_loo_data = FacetData(
+        (;
+            person = ["P1", "P2"],
+            rater = ["R1", "R1"],
+            item = ["I1", "I1"],
+            score = [0, 1],
+        );
+        person = :person,
+        rater = :rater,
+        item = :item,
+        score = :score,
+    )
+    blocked_loo_spec = mfrm_spec(blocked_loo_data)
+    blocked_loo_plan = loo_refit_plan(blocked_loo_data; observations = [1])
+    @test !kfold_plan_diagnostics(blocked_loo_data, blocked_loo_plan).passed
+    @test_throws ArgumentError loo_refit(
+        blocked_loo_spec,
+        blocked_loo_plan;
+        prior,
+        backend = :julia,
+        ndraws = 2,
+        warmup = 1,
+        chains = 1,
+        step_size = 0.02,
+        seed = 114,
+    )
+
     @test_throws ArgumentError loo_refit_plan(data; observations = Int[])
     @test_throws ArgumentError loo_refit_plan(data; observations = [1, 1])
     @test_throws ArgumentError loo_refit_plan(data; observations = [0])
