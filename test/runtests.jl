@@ -31,6 +31,7 @@ using BayesianMGMFRM:
     dff_report,
     domain_compilation_summary,
     expected_scores,
+    facet_response_table,
     fair_average_summary,
     falsification_rule_summary,
     falsification_rules,
@@ -6287,6 +6288,33 @@ end
     @test data.item_levels == Any["I1", "I2"]
     @test data.category_levels == [0, 1, 2]
     @test data.person == [2, 1, 1, 2, 1, 2, 2, 1]
+    response_table = facet_response_table(data)
+    @test response_table == (;
+        person = table.examinee,
+        rater = table.rater,
+        item = table.item,
+        score = table.score,
+    )
+    selected_response_table = facet_response_table(data; observations = [2, 5, 1])
+    @test selected_response_table == (;
+        person = ["E1", "E1", "E2"],
+        rater = ["R1", "R1", "R2"],
+        item = ["I1", "I2", "I2"],
+        score = [0, 2, 2],
+    )
+    selected_roundtrip = FacetData(selected_response_table;
+        person = :person,
+        rater = :rater,
+        item = :item,
+        score = :score)
+    @test selected_roundtrip.person_levels == Any["E1", "E2"]
+    @test selected_roundtrip.rater_levels == Any["R1", "R2"]
+    @test selected_roundtrip.item_levels == Any["I1", "I2"]
+    @test facet_response_table(data; observations = Int[]).score == Int[]
+    @test_throws ArgumentError facet_response_table(data; observations = [1, 1])
+    @test_throws ArgumentError facet_response_table(data; observations = [0])
+    @test_throws ArgumentError facet_response_table(data; observations = [data.n + 1])
+    @test_throws ArgumentError facet_response_table(data; observations = [true])
 
     reordered = (
         examinee = reverse(table.examinee),
@@ -6308,6 +6336,32 @@ end
     )
     data3 = FacetData(numeric_labels; person = :examinee, rater = :rater, item = :item, score = :score)
     @test data3.person_levels == Any[1, 2, 10]
+
+    optional_table = (
+        examinee = ["E1", "E1", "E2", "E2"],
+        rater = ["R1", "R2", "R1", "R2"],
+        item = ["I1", "I2", "I1", "I2"],
+        score = [0, 1, 1, 2],
+        treatment = ["A", "A", "B", "B"],
+        task_name = ["T1", "T2", "T1", "T2"],
+    )
+    optional_data = FacetData(optional_table;
+        person = :examinee,
+        rater = :rater,
+        item = :item,
+        score = :score,
+        group = :treatment,
+        task = :task_name)
+    optional_response_table =
+        facet_response_table(optional_data; observations = [4, 2])
+    @test propertynames(optional_response_table) ==
+        (:person, :rater, :item, :score, :group, :task)
+    @test optional_response_table.person == ["E2", "E1"]
+    @test optional_response_table.rater == ["R2", "R2"]
+    @test optional_response_table.item == ["I2", "I2"]
+    @test optional_response_table.score == [2, 1]
+    @test optional_response_table.group == ["B", "A"]
+    @test optional_response_table.task == ["T2", "T2"]
 
     bool_scores = (
         examinee = ["E1", "E1"],
@@ -11649,6 +11703,17 @@ end
     @test all(row -> row.n_heldout_observations == 3, fold_plan.fold_rows)
     @test all(row -> row.n_training_observations == data.n - 3, fold_plan.fold_rows)
     @test all(row -> row.n_heldout_units == 3, fold_plan.fold_rows)
+    first_fold_training_table = facet_response_table(data;
+        observations = fold_plan.fold_rows[1].training_observations)
+    first_fold_heldout_table = facet_response_table(data;
+        observations = fold_plan.fold_rows[1].heldout_observations)
+    @test length(first_fold_training_table.score) ==
+        fold_plan.fold_rows[1].n_training_observations
+    @test length(first_fold_heldout_table.score) ==
+        fold_plan.fold_rows[1].n_heldout_observations
+    @test first_fold_heldout_table.person ==
+        [data.person_levels[data.person[row]]
+            for row in fold_plan.fold_rows[1].heldout_observations]
     planned_kfold_folds =
         [llmat[1:3, indices] for indices in fold_plan.heldout_observation_indices]
     planned_kfold = kfold(planned_kfold_folds;
