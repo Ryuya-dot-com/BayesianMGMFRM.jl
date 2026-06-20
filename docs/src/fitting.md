@@ -229,7 +229,8 @@ guarded experimental GMFRM and fixed-Q MGMFRM candidates, but it is not yet a
 broad GMFRM/MGMFRM fitting backend. The package does not yet expose Stan/CmdStan
 sampling, PSIS-smoothed LOO, or refit-managed model-comparison workflows.
 [`loo_refit_plan`](@ref) constructs deterministic one-observation-heldout
-plans for exact LOO follow-up, optionally restricted to flagged observations.
+plans for exact LOO follow-up, optionally restricted to selected observations
+or Pareto-k flagged rows from raw LOO summaries.
 [`kfold_plan`](@ref) constructs deterministic observation-level or grouped
 heldout folds, and [`kfold`](@ref) plus [`compare_kfold`](@ref) summarize
 supplied heldout refit log-likelihood matrices, but the package does not refit
@@ -355,7 +356,8 @@ row order, ordinal category levels, latent dimensionality, and fixed Q-matrix
 contract; returned rows include the checked model family, thresholds,
 discrimination mode, dimensionality, Q-matrix, and data signature.
 `loo_refit_plan` constructs deterministic one-observation-heldout plans for
-exact LOO follow-up, optionally restricted to flagged observations.
+exact LOO follow-up, optionally restricted to selected observations or Pareto-k
+flagged rows from raw LOO summaries.
 `kfold_plan` constructs deterministic observation-level or grouped heldout fold
 assignments for planned refits. `kfold_plan_diagnostics` checks each fold and
 facet for heldout-only levels before external refits. `kfold` summarizes

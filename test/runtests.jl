@@ -11713,6 +11713,50 @@ end
     @test subset_loo_plan.observation_fold[4] === :obs4
     @test kfold_plan_diagnostics(design, subset_loo_plan;
         facets = :person).n_rows == subset_loo_plan.n_refits
+    flagged_loo_result = (;
+        loo_result...,
+        pointwise = (;
+            loo_result.pointwise...,
+            pareto_k = [0.1, 0.8, 0.2, 1.1, fill(0.0, data.n - 4)...],
+        ),
+        pareto_k_threshold = 0.7,
+        bad_pareto_k_count = 2,
+        warning = :high_pareto_k,
+    )
+    flagged_loo_plan = loo_refit_plan(data, flagged_loo_result)
+    @test flagged_loo_plan.warning === :subset
+    @test flagged_loo_plan.n_refits == 2
+    @test flagged_loo_plan.folds == [2, 4]
+    @test flagged_loo_plan.heldout_observation_indices == [[2], [4]]
+    @test flagged_loo_plan.observation_fold[1] === missing
+    @test flagged_loo_plan.observation_fold[2] == 2
+    @test flagged_loo_plan.observation_fold[4] == 4
+    relaxed_loo_plan = loo_refit_plan(design, flagged_loo_result;
+        threshold = 1.0,
+        fold_ids = [:obs4])
+    @test relaxed_loo_plan.folds == [:obs4]
+    @test relaxed_loo_plan.heldout_observation_indices == [[4]]
+    all_loo_plan = loo_refit_plan(spec, flagged_loo_result;
+        only_flagged = false)
+    @test all_loo_plan.warning === :ok
+    @test all_loo_plan.n_refits == data.n
+    no_flag_loo_result = (;
+        flagged_loo_result...,
+        pointwise = (;
+            flagged_loo_result.pointwise...,
+            pareto_k = fill(0.1, data.n),
+        ),
+        bad_pareto_k_count = 0,
+        warning = :ok,
+    )
+    no_flag_loo_plan = loo_refit_plan(data, no_flag_loo_result)
+    @test no_flag_loo_plan.warning === :no_refits_required
+    @test no_flag_loo_plan.n_refits == 0
+    @test no_flag_loo_plan.folds == Any[]
+    @test no_flag_loo_plan.heldout_observation_indices == []
+    @test no_flag_loo_plan.n_heldout_by_fold == Int[]
+    @test isempty(no_flag_loo_plan.fold_rows)
+    @test all(ismissing, no_flag_loo_plan.observation_fold)
     @test_throws ArgumentError loo_refit_plan(data; observations = Int[])
     @test_throws ArgumentError loo_refit_plan(data; observations = [1, 1])
     @test_throws ArgumentError loo_refit_plan(data; observations = [0])
@@ -11721,6 +11765,20 @@ end
         fold_ids = [:only])
     @test_throws ArgumentError loo_refit_plan(data; observations = [1, 2],
         fold_ids = [:dup, :dup])
+    @test_throws ArgumentError loo_refit_plan(data, waic_result)
+    @test_throws ArgumentError loo_refit_plan(data, flagged_loo_result;
+        threshold = -0.1)
+    @test_throws ArgumentError loo_refit_plan(data, (;
+        flagged_loo_result...,
+        n_observations = data.n - 1,
+    ))
+    @test_throws ArgumentError loo_refit_plan(data, (;
+        flagged_loo_result...,
+        pointwise = (;
+            flagged_loo_result.pointwise...,
+            pareto_k = [fill(0.1, data.n - 1)...],
+        ),
+    ))
 
     kfold_folds = [llmat[1:3, 1:2], llmat[4:6, 3:data.n]]
     kfold_observation_indices = [1:2, 3:data.n]
