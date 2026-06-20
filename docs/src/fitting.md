@@ -228,17 +228,18 @@ gradient-based sampler paths for the minimal design; AdvancedHMC also backs the
 guarded experimental GMFRM and fixed-Q MGMFRM candidates, but it is not yet a
 broad GMFRM/MGMFRM fitting backend. The package does not yet expose Stan/CmdStan
 sampling or broad refit-managed model-comparison workflows outside the
-fit-supported shared-plan comparison slice.
+fit-supported shared-plan comparison slice and guarded generalized refits that
+are explicitly requested with `experimental = true`.
 [`loo_refit_plan`](@ref) constructs deterministic one-observation-heldout
 plans for exact LOO follow-up, optionally restricted to selected observations
 or Pareto-k flagged rows from raw LOO summaries, and [`loo_refit`](@ref)
-executes those exact one-row refits for fit-supported MFRM/RSM/PCM specs after
-checking heldout-level coverage.
+executes those exact one-row refits for fit-supported MFRM/RSM/PCM specs and
+guarded experimental GMFRM/MGMFRM specs after checking heldout-level coverage.
 [`kfold_plan`](@ref) constructs deterministic observation-level or grouped
 heldout folds, and [`kfold`](@ref) plus [`compare_kfold`](@ref) summarize
 supplied heldout refit log-likelihood matrices. [`kfold_refit`](@ref) executes
-those folds automatically for fit-supported MFRM/RSM/PCM specs after checking
-heldout-level coverage.
+those folds automatically for fit-supported MFRM/RSM/PCM specs and guarded
+experimental GMFRM/MGMFRM specs after checking heldout-level coverage.
 `MFRMLogDensity` exposes the
 same minimal posterior through the `LogDensityProblems.jl` protocol for
 external sampler and automatic differentiation experiments. AdvancedHMC uses a
@@ -384,12 +385,13 @@ Q-matrix, and data signature.
 `loo_refit_plan` constructs deterministic one-observation-heldout plans for
 exact LOO follow-up, optionally restricted to selected observations or Pareto-k
 flagged rows from raw LOO summaries.
-`loo_refit` executes such plans for fit-supported MFRM/RSM/PCM specs by
-refitting each complementary training split, scoring the single heldout row,
-and returning a K-fold-compatible heldout log-score summary.
+`loo_refit` executes such plans for fit-supported MFRM/RSM/PCM specs and
+guarded experimental GMFRM/MGMFRM specs by refitting each complementary
+training split, scoring the single heldout row, and returning a
+K-fold-compatible heldout log-score summary.
 `loo_refit_comparison` applies one shared exact-refit plan across multiple
-fit-supported candidates, then returns K-fold-compatible comparison and
-sensitivity rows.
+fit-supported or explicitly guarded experimental candidates, then returns
+K-fold-compatible comparison and sensitivity rows.
 `kfold_plan` constructs deterministic observation-level or grouped heldout fold
 assignments for planned refits. `kfold_plan_diagnostics` checks each fold and
 facet for heldout-only levels before external refits. `kfold` summarizes
@@ -400,9 +402,10 @@ summaries when the heldout observation order and fold assignment order match
 across models. `kfold_sensitivity_comparison` adds declared sensitivity axis
 values and baseline-relative K-fold differences to those supplied summaries.
 `kfold_refit` executes the planned folds automatically for the current
-fit-supported MFRM/RSM/PCM slice, and `kfold_refit_comparison` runs the same
+fit-supported MFRM/RSM/PCM slice and the guarded experimental GMFRM/MGMFRM
+slice when `experimental = true`, and `kfold_refit_comparison` runs the same
 shared plan across labeled candidate specs, designs, data objects, or existing
-MFRM fits before returning comparison-ready rows. Use
+MFRM/GMFRM/MGMFRM fits before returning comparison-ready rows. Use
 [`facet_response_table`](@ref) with a plan row's `training_observations` or
 `heldout_observations` when a role-normalized table is needed for external
 fold-specific fitting scripts.
