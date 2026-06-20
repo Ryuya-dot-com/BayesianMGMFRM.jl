@@ -328,7 +328,8 @@ Current public API:
   sizes, and Pareto-k flags when fitted objects are supplied. Set
   `psis_smoothing = true` to diagnose `psis_loo`-style rows.
 - `loo_refit`: exact leave-one-observation-out refit execution for
-  fit-supported MFRM/RSM/PCM specs, using `loo_refit_plan` and
+  fit-supported MFRM/RSM/PCM specs and guarded experimental GMFRM/MGMFRM specs
+  when `experimental = true`, using `loo_refit_plan` and
   `kfold_plan_diagnostics` before scoring heldout observations.
 - `loo_refit_plan`: deterministic leave-one-observation-out refit plans for
   exact LOO follow-up, optionally restricted to selected observations or
@@ -343,14 +344,17 @@ Current public API:
   external refits, including heldout-only levels that would block heldout
   scoring without a fixed level map or different split.
 - `kfold_refit`: automatic heldout K-fold refit execution for fit-supported
-  MFRM/RSM/PCM specs from `kfold_plan`, with the same coverage diagnostics and
-  heldout log-score summary contract as `kfold`.
+  MFRM/RSM/PCM specs and guarded experimental GMFRM/MGMFRM specs from
+  `kfold_plan` when `experimental = true`, with the same coverage diagnostics
+  and heldout log-score summary contract as `kfold`.
 - `kfold_refit_comparison`: shared-plan automatic K-fold refit execution across
-  multiple fit-supported MFRM/RSM/PCM candidates, returning both `compare_kfold`
-  rows and declared-axis baseline-relative K-fold sensitivity rows.
+  multiple fit-supported or explicitly guarded experimental candidates,
+  returning both `compare_kfold` rows and declared-axis baseline-relative
+  K-fold sensitivity rows.
 - `loo_refit_comparison`: shared-plan exact LOO refit execution across multiple
-  fit-supported MFRM/RSM/PCM candidates, including selected-observation or
-  raw-LOO flagged-row follow-up plans and K-fold-compatible comparison rows.
+  fit-supported or explicitly guarded experimental candidates, including
+  selected-observation or raw-LOO flagged-row follow-up plans and
+  K-fold-compatible comparison rows.
 - `kfold`: heldout K-fold log predictive density summaries from fold-specific
   refit log-likelihood matrices. Pair it with `kfold_plan` for supplied
   external fold fits, or use `kfold_refit` for the current fit-supported
@@ -460,8 +464,8 @@ Not yet implemented in the public API:
 
 - Stan/CmdStan sampling or broad refit-managed model-comparison workflows
   outside the current fit-supported same-plan K-fold/exact-LOO comparison
-  slice. Automatic K-fold and exact LOO refits are currently limited to the
-  fit-supported MFRM/RSM/PCM slice.
+  slice plus guarded experimental GMFRM/MGMFRM refit execution under
+  `experimental = true`.
   The AdvancedHMC/NUTS and Turing/NUTS backends are currently limited to the
   minimal MFRM/RSM/PCM design; the guarded experimental GMFRM and
   fixed-Q MGMFRM candidates remain on the AdvancedHMC path.

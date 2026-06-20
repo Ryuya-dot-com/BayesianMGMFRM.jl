@@ -8160,6 +8160,44 @@ function _loo_refit_training_data(data::FacetData, observations::AbstractVector{
     )
 end
 
+_refit_default_prior(spec::FacetSpec) =
+    spec.family === :mfrm ? MFRMPrior() : nothing
+
+_refit_training_experimental(spec::FacetSpec, requested::Bool) =
+    spec.family === :mfrm ? false : requested
+
+_refit_fit_experimental_default(fit::_ModelComparisonFit) = !(fit isa MFRMFit)
+
+function _refit_q_matrix_for_training(spec::FacetSpec, training_data::FacetData)
+    spec.q_matrix === nothing && return nothing
+    q_matrix = Matrix{Bool}(undef, length(training_data.item_levels), size(spec.q_matrix, 2))
+    for (row, item_label) in pairs(training_data.item_levels)
+        source_index = findfirst(
+            level -> isequal(level, item_label),
+            spec.data.item_levels,
+        )
+        source_index === nothing &&
+            throw(ArgumentError(
+                "refit training fold item level $(repr(item_label)) is absent " *
+                "from the source q_matrix item map"))
+        q_matrix[row, :] .= spec.q_matrix[source_index, :]
+    end
+    return q_matrix
+end
+
+function _refit_training_spec(spec::FacetSpec, training_data::FacetData)
+    return mfrm_spec(
+        training_data;
+        thresholds = spec.thresholds,
+        family = spec.family,
+        dimensions = spec.dimensions,
+        discrimination = spec.discrimination,
+        q_matrix = _refit_q_matrix_for_training(spec, training_data),
+        bias = spec.validation_bias_terms,
+        anchors = spec.anchors,
+    )
+end
+
 function _loo_refit_level_index(levels::AbstractVector, label, facet::Symbol)
     index = findfirst(level -> isequal(level, label), levels)
     index === nothing &&
@@ -8263,6 +8301,57 @@ function _loo_refit_score_design(source::FacetData,
     )
 end
 
+function _refit_score_loglikelihood(score_design::FacetDesign, training_fit::MFRMFit)
+    return Matrix{Float64}(pointwise_loglikelihood_matrix(score_design, training_fit.draws))
+end
+
+function _refit_score_loglikelihood(score_design::FacetDesign, training_fit::GMFRMFit)
+    draws = training_fit.draws
+    out = Matrix{Float64}(undef, size(draws, 1), score_design.spec.data.n)
+    for draw in axes(draws, 1)
+        out[draw, :] .=
+            _gmfrm_source_pointwise_loglikelihood_from_unconstrained(
+                score_design,
+                (@view draws[draw, :]),
+            )
+    end
+    return out
+end
+
+function _refit_score_loglikelihood(score_design::FacetDesign, training_fit::MGMFRMFit)
+    draws = training_fit.draws
+    out = Matrix{Float64}(undef, size(draws, 1), score_design.spec.data.n)
+    for draw in axes(draws, 1)
+        out[draw, :] .=
+            _mgmfrm_source_pointwise_loglikelihood_from_unconstrained(
+                score_design,
+                (@view draws[draw, :]),
+            )
+    end
+    return out
+end
+
+function _refit_fit_row(fold_row, heldout_observations, training_observations,
+        training_fit::_ModelComparisonFit, experimental::Bool)
+    fit_summary = diagnostics(training_fit).summary
+    spec = training_fit.design.spec
+    return (;
+        fold = fold_row.fold,
+        heldout_observations = copy(heldout_observations),
+        n_training_observations = length(training_observations),
+        n_heldout_observations = length(heldout_observations),
+        family = spec.family,
+        dimensions = spec.dimensions,
+        discrimination = spec.discrimination,
+        estimation_status = spec.estimation_status,
+        experimental,
+        backend = training_fit.backend,
+        sampler = training_fit.sampler,
+        n_draws = size(training_fit.draws, 1),
+        diagnostic_flag = fit_summary.flag,
+    )
+end
+
 function _loo_refit_empty_result(data::FacetData, plan, plan_diagnostics)
     return (;
         schema = "bayesianmgmfrm.loo_refit.v1",
@@ -8289,29 +8378,45 @@ function _loo_refit_empty_result(data::FacetData, plan, plan_diagnostics)
     )
 end
 
-function _check_refit_supported_spec(spec::FacetSpec, caller::AbstractString)
-    spec.family === :mfrm ||
-        throw(ArgumentError("$caller currently supports only fit-supported MFRM specs"))
-    spec.estimation_status === :fit_supported ||
-        throw(ArgumentError("$caller requires a fit-supported spec"))
+function _check_refit_supported_spec(spec::FacetSpec, caller::AbstractString;
+        experimental::Bool = false)
+    if spec.family === :mfrm
+        spec.estimation_status === :fit_supported ||
+            throw(ArgumentError("$caller requires a fit-supported spec"))
+        return spec
+    end
+    spec.family in (:gmfrm, :mgmfrm) ||
+        throw(ArgumentError(
+            "$caller currently supports fit-supported MFRM specs and guarded " *
+            "experimental GMFRM/MGMFRM specs"))
+    experimental ||
+        throw(ArgumentError(
+            "$caller requires experimental = true for guarded generalized refits"))
+    spec.estimation_status === :specified_only ||
+        throw(ArgumentError(
+            "$caller guarded generalized refits currently require specified-only " *
+            "GMFRM/MGMFRM specs"))
     return spec
 end
 
-_check_loo_refit_spec(spec::FacetSpec) = _check_refit_supported_spec(spec, "loo_refit")
+_check_loo_refit_spec(spec::FacetSpec; experimental::Bool = false) =
+    _check_refit_supported_spec(spec, "loo_refit"; experimental)
 
 """
     loo_refit(data::FacetData, plan = loo_refit_plan(data);
         thresholds = :partial_credit, prior = MFRMPrior(), kwargs...)
     loo_refit(spec::FacetSpec, plan = loo_refit_plan(spec);
-        prior = MFRMPrior(), return_fits = false, kwargs...)
+        prior = model default, experimental = false, return_fits = false, kwargs...)
     loo_refit(design::FacetDesign, plan = loo_refit_plan(design); kwargs...)
-    loo_refit(fit::MFRMFit, plan = loo_refit_plan(fit.design); kwargs...)
+    loo_refit(fit::Union{MFRMFit,GMFRMFit,MGMFRMFit},
+        plan = loo_refit_plan(fit.design); kwargs...)
 
 Execute exact leave-one-observation-out refits for a [`loo_refit_plan`](@ref)
-under the current fit-supported MFRM/RSM/PCM likelihood. Each plan row is
-refit on the complementary training observations, scored on its single heldout
-observation, and summarized with the same heldout log-score contract as
-[`kfold`](@ref).
+under the current fit-supported MFRM/RSM/PCM likelihood, or under the guarded
+experimental GMFRM/MGMFRM likelihood when `experimental = true` is supplied.
+Each plan row is refit on the complementary training observations, scored on
+its single heldout observation, and summarized with the same heldout log-score
+contract as [`kfold`](@ref).
 
 Plans are checked with [`kfold_plan_diagnostics`](@ref) before fitting; rows
 with heldout-only person, rater, item, score-category, or optional-facet levels
@@ -8319,18 +8424,20 @@ are rejected because the heldout observation cannot be scored against the
 training-fold parameter map.
 """
 function loo_refit(spec::FacetSpec, plan = loo_refit_plan(spec);
-        prior::MFRMPrior = MFRMPrior(),
+        prior = _refit_default_prior(spec),
+        experimental::Bool = false,
         return_fits::Bool = false,
         kwargs...)
-    checked_spec = _check_refit_supported_spec(spec, "kfold_refit")
+    checked_spec = _check_refit_supported_spec(spec, "loo_refit"; experimental)
     data = checked_spec.data
     plan_diagnostics = _check_loo_refit_plan_for_execution(data, plan)
     isempty(plan.fold_rows) &&
         return _loo_refit_empty_result(data, plan, plan_diagnostics)
 
     fold_logliks = Matrix{Float64}[]
-    fold_fits = MFRMFit[]
+    fold_fits = _ModelComparisonFit[]
     fit_rows = NamedTuple[]
+    training_experimental = _refit_training_experimental(checked_spec, experimental)
     for fold_row in plan.fold_rows
         heldout_observations = _kfold_plan_checked_observations(
             data,
@@ -8346,24 +8453,20 @@ function loo_refit(spec::FacetSpec, plan = loo_refit_plan(spec);
             "loo_refit training_observations",
         )
         training_data = _loo_refit_training_data(data, training_observations)
-        training_spec = mfrm_spec(training_data; thresholds = checked_spec.thresholds)
-        training_fit = fit(training_spec; prior, kwargs...)
+        training_spec = _refit_training_spec(checked_spec, training_data)
+        training_fit = fit(training_spec; prior, experimental = training_experimental, kwargs...)
         score_design =
             _loo_refit_score_design(data, training_fit.design, heldout_observations)
-        push!(fold_logliks,
-            Matrix{Float64}(pointwise_loglikelihood_matrix(score_design, training_fit.draws)))
+        push!(fold_logliks, _refit_score_loglikelihood(score_design, training_fit))
         return_fits && push!(fold_fits, training_fit)
-        fit_summary = diagnostics(training_fit).summary
-        push!(fit_rows, (;
-            fold = fold_row.fold,
-            heldout_observations = copy(heldout_observations),
-            n_training_observations = length(training_observations),
-            n_heldout_observations = length(heldout_observations),
-            backend = training_fit.backend,
-            sampler = training_fit.sampler,
-            n_draws = size(training_fit.draws, 1),
-            diagnostic_flag = fit_summary.flag,
-        ))
+        push!(fit_rows,
+            _refit_fit_row(
+                fold_row,
+                heldout_observations,
+                training_observations,
+                training_fit,
+                training_experimental,
+            ))
     end
 
     kfold_summary = kfold(
@@ -8397,10 +8500,11 @@ end
 loo_refit(design::FacetDesign, plan = loo_refit_plan(design); kwargs...) =
     loo_refit(design.spec, plan; kwargs...)
 
-function loo_refit(fit::MFRMFit, plan = loo_refit_plan(fit.design);
-        prior::MFRMPrior = fit.prior,
+function loo_refit(fit::_ModelComparisonFit, plan = loo_refit_plan(fit.design);
+        prior = fit.prior,
+        experimental::Bool = _refit_fit_experimental_default(fit),
         kwargs...)
-    return loo_refit(fit.design.spec, plan; prior, kwargs...)
+    return loo_refit(fit.design.spec, plan; prior, experimental, kwargs...)
 end
 
 function _check_kfold_refit_plan_for_execution(data::FacetData, plan)
@@ -8425,17 +8529,18 @@ end
     kfold_refit(data::FacetData; k, group_by = nothing, shuffle = false,
         rng = Random.default_rng(), fold_ids = nothing, thresholds = :partial_credit,
         kwargs...)
-    kfold_refit(spec::FacetSpec, plan; prior = MFRMPrior(),
-        return_fits = false, kwargs...)
+    kfold_refit(spec::FacetSpec, plan; prior = model default,
+        experimental = false, return_fits = false, kwargs...)
     kfold_refit(spec::FacetSpec; k, group_by = nothing, shuffle = false,
         rng = Random.default_rng(), fold_ids = nothing, kwargs...)
     kfold_refit(design::FacetDesign, plan; kwargs...)
-    kfold_refit(fit::MFRMFit, plan; kwargs...)
+    kfold_refit(fit::Union{MFRMFit,GMFRMFit,MGMFRMFit}, plan; kwargs...)
 
 Execute heldout K-fold refits for a [`kfold_plan`](@ref) under the current
-fit-supported MFRM/RSM/PCM likelihood. Each fold is refit on its training
-observations, scored on all heldout observations in that fold, and summarized
-with the same heldout log-score contract as [`kfold`](@ref).
+fit-supported MFRM/RSM/PCM likelihood, or under the guarded experimental
+GMFRM/MGMFRM likelihood when `experimental = true` is supplied. Each fold is
+refit on its training observations, scored on all heldout observations in that
+fold, and summarized with the same heldout log-score contract as [`kfold`](@ref).
 
 Plans are checked with [`kfold_plan_diagnostics`](@ref) before fitting; rows
 with heldout-only person, rater, item, score-category, or optional-facet levels
@@ -8443,16 +8548,18 @@ are rejected because the heldout observations cannot be scored against the
 training-fold parameter map.
 """
 function kfold_refit(spec::FacetSpec, plan;
-        prior::MFRMPrior = MFRMPrior(),
+        prior = _refit_default_prior(spec),
+        experimental::Bool = false,
         return_fits::Bool = false,
         kwargs...)
-    checked_spec = _check_loo_refit_spec(spec)
+    checked_spec = _check_loo_refit_spec(spec; experimental)
     data = checked_spec.data
     plan_diagnostics = _check_kfold_refit_plan_for_execution(data, plan)
 
     fold_logliks = Matrix{Float64}[]
-    fold_fits = MFRMFit[]
+    fold_fits = _ModelComparisonFit[]
     fit_rows = NamedTuple[]
+    training_experimental = _refit_training_experimental(checked_spec, experimental)
     for fold_row in plan.fold_rows
         heldout_observations = _kfold_plan_checked_observations(
             data,
@@ -8467,24 +8574,20 @@ function kfold_refit(spec::FacetSpec, plan;
             "kfold_refit training_observations",
         )
         training_data = _loo_refit_training_data(data, training_observations)
-        training_spec = mfrm_spec(training_data; thresholds = checked_spec.thresholds)
-        training_fit = fit(training_spec; prior, kwargs...)
+        training_spec = _refit_training_spec(checked_spec, training_data)
+        training_fit = fit(training_spec; prior, experimental = training_experimental, kwargs...)
         score_design =
             _loo_refit_score_design(data, training_fit.design, heldout_observations)
-        push!(fold_logliks,
-            Matrix{Float64}(pointwise_loglikelihood_matrix(score_design, training_fit.draws)))
+        push!(fold_logliks, _refit_score_loglikelihood(score_design, training_fit))
         return_fits && push!(fold_fits, training_fit)
-        fit_summary = diagnostics(training_fit).summary
-        push!(fit_rows, (;
-            fold = fold_row.fold,
-            heldout_observations = copy(heldout_observations),
-            n_training_observations = length(training_observations),
-            n_heldout_observations = length(heldout_observations),
-            backend = training_fit.backend,
-            sampler = training_fit.sampler,
-            n_draws = size(training_fit.draws, 1),
-            diagnostic_flag = fit_summary.flag,
-        ))
+        push!(fit_rows,
+            _refit_fit_row(
+                fold_row,
+                heldout_observations,
+                training_observations,
+                training_fit,
+                training_experimental,
+            ))
     end
 
     kfold_summary = kfold(
@@ -8554,22 +8657,24 @@ function kfold_refit(design::FacetDesign;
     return kfold_refit(design.spec, plan; kwargs...)
 end
 
-function kfold_refit(fit::MFRMFit, plan;
-        prior::MFRMPrior = fit.prior,
+function kfold_refit(fit::_ModelComparisonFit, plan;
+        prior = fit.prior,
+        experimental::Bool = _refit_fit_experimental_default(fit),
         kwargs...)
-    return kfold_refit(fit.design.spec, plan; prior, kwargs...)
+    return kfold_refit(fit.design.spec, plan; prior, experimental, kwargs...)
 end
 
-function kfold_refit(fit::MFRMFit;
+function kfold_refit(fit::_ModelComparisonFit;
         k::Integer,
         group_by::Union{Nothing,Symbol} = nothing,
         shuffle::Bool = false,
         rng::AbstractRNG = Random.default_rng(),
         fold_ids = nothing,
-        prior::MFRMPrior = fit.prior,
+        prior = fit.prior,
+        experimental::Bool = _refit_fit_experimental_default(fit),
         kwargs...)
     plan = kfold_plan(fit.design; k, group_by, shuffle, rng, fold_ids)
-    return kfold_refit(fit.design.spec, plan; prior, kwargs...)
+    return kfold_refit(fit.design.spec, plan; prior, experimental, kwargs...)
 end
 
 function _kfold_plan_diagnostic_facet_groups(data::FacetData, facet::Symbol)
@@ -10078,18 +10183,18 @@ function kfold_sensitivity_comparison(models::Pair...;
         baseline)
 end
 
-const _RefitComparisonModel = Union{FacetData,FacetSpec,FacetDesign,MFRMFit}
+const _RefitComparisonModel = Union{FacetData,FacetSpec,FacetDesign,_ModelComparisonFit}
 
 _refit_comparison_data(data::FacetData) = data
 _refit_comparison_data(spec::FacetSpec) = spec.data
 _refit_comparison_data(design::FacetDesign) = design.spec.data
-_refit_comparison_data(fit::MFRMFit) = fit.design.spec.data
+_refit_comparison_data(fit::_ModelComparisonFit) = fit.design.spec.data
 
 _refit_comparison_data_signature(data::FacetData) = _data_signature(data)
 _refit_comparison_data_signature(spec::FacetSpec) = spec.validation.data_signature
 _refit_comparison_data_signature(design::FacetDesign) =
     design.spec.validation.data_signature
-_refit_comparison_data_signature(fit::MFRMFit) =
+_refit_comparison_data_signature(fit::_ModelComparisonFit) =
     fit.design.spec.validation.data_signature
 
 function _refit_comparison_contract(model::_RefitComparisonModel)

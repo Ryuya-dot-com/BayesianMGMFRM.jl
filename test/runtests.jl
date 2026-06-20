@@ -12452,6 +12452,91 @@ end
     @test executed_kfold_from_fit.n_refits == kfold_refit_plan_for_execution.n_folds
     @test executed_kfold_from_fit.n_observations == kfold_refit_data.n
 
+    gmfrm_refit_spec = mfrm_spec(
+        kfold_refit_data;
+        family = :gmfrm,
+        discrimination = :rater,
+    )
+    @test_throws ArgumentError kfold_refit(
+        gmfrm_refit_spec,
+        kfold_refit_plan_for_execution;
+        backend = :advancedhmc,
+        ndraws = 1,
+        warmup = 0,
+        chains = 1,
+        step_size = 0.02,
+        max_depth = 1,
+        metric = :unit,
+        seed = 128,
+    )
+    executed_gmfrm_kfold = kfold_refit(
+        gmfrm_refit_spec,
+        kfold_refit_plan_for_execution;
+        experimental = true,
+        return_fits = true,
+        backend = :advancedhmc,
+        ndraws = 1,
+        warmup = 0,
+        chains = 1,
+        step_size = 0.02,
+        max_depth = 1,
+        metric = :unit,
+        seed = 129,
+    )
+    @test executed_gmfrm_kfold.object === :kfold_refit
+    @test executed_gmfrm_kfold.n_refits == kfold_refit_plan_for_execution.n_folds
+    @test executed_gmfrm_kfold.n_observations == kfold_refit_data.n
+    @test all(row -> row.family === :gmfrm, executed_gmfrm_kfold.fit_rows)
+    @test all(row -> row.experimental, executed_gmfrm_kfold.fit_rows)
+    @test [size(matrix, 1) for matrix in executed_gmfrm_kfold.fold_logliks] ==
+        fill(1, kfold_refit_plan_for_execution.n_folds)
+    @test [size(matrix, 2) for matrix in executed_gmfrm_kfold.fold_logliks] ==
+        kfold_refit_plan_for_execution.n_heldout_by_fold
+    @test all(matrix -> all(isfinite, matrix), executed_gmfrm_kfold.fold_logliks)
+    @test all(fold_fit -> fold_fit isa GMFRMFit, executed_gmfrm_kfold.fold_fits)
+
+    mgmfrm_refit_spec = mfrm_spec(
+        kfold_refit_data;
+        family = :mgmfrm,
+        dimensions = 2,
+        q_matrix = Bool[1 0; 0 1],
+    )
+    mgmfrm_refit_loo_plan = loo_refit_plan(kfold_refit_data; observations = [1])
+    @test_throws ArgumentError loo_refit(
+        mgmfrm_refit_spec,
+        mgmfrm_refit_loo_plan;
+        backend = :advancedhmc,
+        ndraws = 1,
+        warmup = 0,
+        chains = 1,
+        step_size = 0.02,
+        max_depth = 1,
+        metric = :unit,
+        seed = 130,
+    )
+    executed_mgmfrm_loo = loo_refit(
+        mgmfrm_refit_spec,
+        mgmfrm_refit_loo_plan;
+        experimental = true,
+        return_fits = true,
+        backend = :advancedhmc,
+        ndraws = 1,
+        warmup = 0,
+        chains = 1,
+        step_size = 0.02,
+        max_depth = 1,
+        metric = :unit,
+        seed = 131,
+    )
+    @test executed_mgmfrm_loo.object === :loo_refit
+    @test executed_mgmfrm_loo.n_refits == 1
+    @test executed_mgmfrm_loo.n_observations == 1
+    @test only(executed_mgmfrm_loo.fit_rows).family === :mgmfrm
+    @test only(executed_mgmfrm_loo.fit_rows).experimental
+    @test all(matrix -> size(matrix) == (1, 1), executed_mgmfrm_loo.fold_logliks)
+    @test all(matrix -> all(isfinite, matrix), executed_mgmfrm_loo.fold_logliks)
+    @test only(executed_mgmfrm_loo.fold_fits) isa MGMFRMFit
+
     executed_kfold_comparison = kfold_refit_comparison(
         :spec => kfold_refit_spec,
         :design => kfold_refit_design;

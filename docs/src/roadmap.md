@@ -62,7 +62,8 @@ The following are planned but not yet exposed:
 - multidimensional loading and rotation/gauge machinery beyond the fixed-Q
   identity-correlation candidate;
 - broader production exact/refit-management orchestration beyond the
-  fit-supported shared-plan comparison slice;
+  fit-supported shared-plan comparison slice and explicit guarded generalized
+  refit execution;
 - publication-grade manuscript rendering and publication/registration workflows
   beyond the current machine-readable reports, multi-report review dossiers,
   and local full-paper archive.
@@ -347,15 +348,17 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   available for the current minimal fit path. [`loo_refit_plan`](@ref) constructs deterministic
   one-observation-heldout plans for exact LOO follow-up from selected
   observations or Pareto-k flagged raw LOO rows, [`loo_refit`](@ref) executes
-  those exact one-row refits for fit-supported MFRM/RSM/PCM specs after
-  coverage diagnostics pass, and
+  those exact one-row refits for fit-supported MFRM/RSM/PCM specs and guarded
+  experimental GMFRM/MGMFRM specs after coverage diagnostics pass, and
   [`kfold_plan`](@ref) now constructs deterministic observation-level or grouped
   heldout fold plans,
   [`kfold_plan_diagnostics`](@ref) checks heldout-only fold levels before
   refits, [`kfold_refit`](@ref) executes fit-supported MFRM/RSM/PCM heldout
-  folds automatically, [`loo_refit_comparison`](@ref) and
+  folds and explicit guarded GMFRM/MGMFRM folds automatically,
+  [`loo_refit_comparison`](@ref) and
   [`kfold_refit_comparison`](@ref) run shared exact/K-fold refit plans across
-  multiple fit-supported candidates, `kfold` plus [`kfold_diagnostics`](@ref)
+  multiple fit-supported or explicitly guarded experimental candidates,
+  `kfold` plus [`kfold_diagnostics`](@ref)
   record supplied heldout refit log-likelihood rows, [`compare_kfold`](@ref) summarizes same
   heldout-observation and fold-assignment comparison contracts, and
   [`kfold_sensitivity_comparison`](@ref) records baseline-relative K-fold
