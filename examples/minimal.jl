@@ -125,6 +125,10 @@ report_export = save_fit_report(report_path, report)
 println("Fit report export: schema=", report_export.schema,
     ", json_hash=", report_export.json_content_hash.value,
     ", path=", report_path)
+loaded_report = load_fit_report(report_path)
+posterior_rows = fit_report_rows(loaded_report, :posterior)
+println("Loaded fit report: sections=", length(fit_report_sections(loaded_report)),
+    ", posterior_rows=", length(posterior_rows))
 diagnostic_surface = diagnostics(fit_result)
 println("Diagnostic summary: ", compact_row(diagnostic_surface.summary,
     (:flag, :passed, :n_chains, :draws_per_chain, :max_rhat, :min_ess)))

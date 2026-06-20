@@ -70,6 +70,8 @@
   bundles as well as fit artifacts.
 - Add `save_fit_report` and `load_fit_report` for JSON fit-report export
   records with verified JSON-payload hashes.
+- Add `fit_report_sections`, `fit_report_section`, and `fit_report_rows` for
+  extracting report sections and rows from in-memory or JSON-loaded fit reports.
 - Add `scripts/generate_validation_plan.jl`, a deterministic validation-plan
   artifact generator that records simulation-grid controls, coverage summaries,
   falsification-rule coverage, and content hashes without running simulations or

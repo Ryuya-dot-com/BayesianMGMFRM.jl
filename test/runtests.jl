@@ -38,6 +38,9 @@ using BayesianMGMFRM:
     fit_artifact,
     fit_cache_key,
     fit_report,
+    fit_report_section,
+    fit_report_sections,
+    fit_report_rows,
     fit_ready_parameter_layout,
     fit_stats,
     getdesign,
@@ -6240,6 +6243,7 @@ end
             :predictive_check_summary, :predictive_check_plot_data, :predictive_probabilities,
             :predictive_residuals, :predictive_variances,
             :prior_predict, :prior_predictive_check,
+            :fit_report_section, :fit_report_sections, :fit_report_rows,
             :load_fit_cache, :load_fit_report, :rater_diagnostics, :rater_overlap,
             :residual_summary, :sampler_diagnostics, :save_fit_cache, :save_fit_report,
             :sensitivity_comparison, :sensitivity_comparison_summary,
@@ -10159,6 +10163,32 @@ end
     @test report.posterior_predictive.draw_indices ==
         report.report_policy.resolved_draw_indices
     @test report.report_policy.include_artifact
+    report_sections = fit_report_sections(report)
+    report_section_names = [row.section for row in report_sections]
+    @test :diagnostics in report_section_names
+    @test :posterior in report_section_names
+    @test :waic in report_section_names
+    posterior_section = only(filter(row -> row.section === :posterior, report_sections))
+    @test posterior_section.status === :computed
+    @test posterior_section.row_fields == [:rows]
+    @test posterior_section.n_rows == report.posterior.n_rows
+    waic_section = only(filter(row -> row.section === :waic, report_sections))
+    @test waic_section.status === :computed
+    @test waic_section.row_fields == [:diagnostic_rows]
+    @test waic_section.n_rows == report.waic.n_diagnostic_rows
+    diagnostics_section = only(filter(row -> row.section === :diagnostics, report_sections))
+    @test diagnostics_section.status === missing
+    @test :parameter_rows in diagnostics_section.row_fields
+    @test fit_report_section(report, :posterior) === report.posterior
+    @test fit_report_section(report, "calibration") === report.calibration
+    @test fit_report_rows(report, :posterior) === report.posterior.rows
+    @test fit_report_rows(report, :waic) === report.waic.diagnostic_rows
+    @test fit_report_rows(report, :diagnostics; row_field = :parameter_rows) ===
+        report.diagnostics.parameter_rows
+    @test_throws ArgumentError fit_report_section(report, :missing_section)
+    @test_throws ArgumentError fit_report_rows(report, :artifact)
+    @test_throws ArgumentError fit_report_rows(report, :posterior;
+        row_field = :diagnostic_rows)
     report_dir = mktempdir()
     report_path = joinpath(report_dir, "minimal_fit_report.json")
     report_export = save_fit_report(report_path, report)
@@ -10174,9 +10204,23 @@ end
     @test loaded_report["schema"] == report.schema
     @test loaded_report["object"] == "fit_report"
     @test loaded_report["posterior"]["n_rows"] == report.posterior.n_rows
+    loaded_sections = fit_report_sections(loaded_report)
+    loaded_posterior_section = only(filter(row -> row.section === :posterior,
+        loaded_sections))
+    @test loaded_posterior_section.status === :computed
+    @test loaded_posterior_section.row_fields == [:rows]
+    @test loaded_posterior_section.n_rows == report.posterior.n_rows
+    @test fit_report_section(loaded_report, :posterior)["status"] == "computed"
+    loaded_posterior_rows = fit_report_rows(loaded_report, "posterior")
+    @test length(loaded_posterior_rows) == report.posterior.n_rows
+    @test first(loaded_posterior_rows) isa AbstractDict
+    @test length(fit_report_rows(loaded_report, :waic)) == report.waic.n_diagnostic_rows
+    @test fit_report_rows(loaded_report, :waic) ==
+        fit_report_rows(loaded_report, :waic; row_field = "diagnostic_rows")
     loaded_record = load_fit_report(report_path; return_record = true)
     @test loaded_record["schema"] == report_export.schema
     @test loaded_record["json_content_hash"]["value"] == report_export.json_content_hash.value
+    @test_throws ArgumentError fit_report_sections(loaded_record)
     @test_throws ArgumentError save_fit_report(report_path, report)
 
     convenience_path = joinpath(report_dir, "minimal_fit_report_from_fit.json")

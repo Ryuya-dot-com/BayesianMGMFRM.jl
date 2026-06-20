@@ -4350,6 +4350,196 @@ function load_fit_report(path::AbstractString;
     return return_record ? record : record["report"]
 end
 
+const _FIT_REPORT_LOOKUP_MISSING = Ref(:fit_report_lookup_missing)
+const _FIT_REPORT_SECTION_ORDER = (
+    :diagnostics,
+    :prior_predictive,
+    :posterior,
+    :direct_posterior,
+    :posterior_predictive,
+    :calibration,
+    :waic,
+    :loo,
+    :dff,
+    :artifact,
+)
+const _FIT_REPORT_ROW_FIELD_ORDER = (
+    :rows,
+    :diagnostic_rows,
+    :sampler_rows,
+    :parameter_rows,
+    :block_rows,
+)
+
+function _report_key_symbol(key::Symbol)
+    return key
+end
+
+function _report_key_symbol(key::AbstractString)
+    return Symbol(key)
+end
+
+function _report_key_symbol(key)
+    throw(ArgumentError("fit report keys must be Symbols or strings; got $(typeof(key))"))
+end
+
+function _report_lookup(container::NamedTuple, key::Symbol, default)
+    return key in keys(container) ? getproperty(container, key) : default
+end
+
+function _report_lookup(container::AbstractDict, key::Symbol, default)
+    if haskey(container, key)
+        return container[key]
+    end
+    string_key = String(key)
+    return haskey(container, string_key) ? container[string_key] : default
+end
+
+function _report_lookup(container, key::Symbol, default)
+    return default
+end
+
+function _report_lookup(container, key, default)
+    return _report_lookup(container, _report_key_symbol(key), default)
+end
+
+function _report_keys(container::NamedTuple)
+    return collect(keys(container))
+end
+
+function _report_keys(container::AbstractDict)
+    return unique!([_report_key_symbol(key) for key in keys(container)])
+end
+
+function _report_keys(container)
+    return Symbol[]
+end
+
+function _check_fit_report_payload(report)
+    (report isa NamedTuple || report isa AbstractDict) ||
+        throw(ArgumentError("expected a fit_report payload as a NamedTuple or Dict"))
+    schema = _report_lookup(report, :schema, _FIT_REPORT_LOOKUP_MISSING)
+    schema == "bayesianmgmfrm.fit_report.v1" ||
+        throw(ArgumentError("expected a bayesianmgmfrm.fit_report.v1 payload"))
+    return report
+end
+
+function _report_status(section)
+    status = _report_lookup(section, :status, missing)
+    status === missing && return missing
+    status isa Symbol && return status
+    status isa AbstractString && return Symbol(status)
+    return status
+end
+
+function _report_row_fields(section)
+    fields = Symbol[]
+    for field in _FIT_REPORT_ROW_FIELD_ORDER
+        rows = _report_lookup(section, field, _FIT_REPORT_LOOKUP_MISSING)
+        rows isa AbstractVector && push!(fields, field)
+    end
+    known = Set(fields)
+    extra = Symbol[]
+    for field in _report_keys(section)
+        field in known && continue
+        endswith(String(field), "_rows") || continue
+        rows = _report_lookup(section, field, _FIT_REPORT_LOOKUP_MISSING)
+        rows isa AbstractVector && push!(extra, field)
+    end
+    append!(fields, sort(extra; by = String))
+    return fields
+end
+
+function _report_row_count(section, row_field::Symbol, rows)
+    count_key = row_field == :rows ? :n_rows : Symbol("n_", String(row_field))
+    count = _report_lookup(section, count_key, _FIT_REPORT_LOOKUP_MISSING)
+    count isa Integer && count >= 0 && return Int(count)
+    return length(rows)
+end
+
+function _report_total_row_count(section, row_fields)
+    total = 0
+    for row_field in row_fields
+        rows = _report_lookup(section, row_field, _FIT_REPORT_LOOKUP_MISSING)
+        rows isa AbstractVector || continue
+        total += _report_row_count(section, row_field, rows)
+    end
+    return total
+end
+
+function _auto_report_row_field(section, section_name::Symbol)
+    row_fields = _report_row_fields(section)
+    isempty(row_fields) &&
+        throw(ArgumentError("fit report section $(String(section_name)) does not contain row fields"))
+    :rows in row_fields && return :rows
+    :diagnostic_rows in row_fields && return :diagnostic_rows
+    return first(row_fields)
+end
+
+"""
+    fit_report_sections(report)
+
+Return a compact summary of the tabular/status-bearing sections in a
+`fit_report` payload. `report` may be the original `NamedTuple` returned by
+[`fit_report`](@ref) or the `Dict{String,Any}` payload returned by
+[`load_fit_report`](@ref).
+
+Each returned row includes `section`, `status`, `row_fields`, and `n_rows`.
+JSON-loaded status strings are normalized to symbols.
+"""
+function fit_report_sections(report)
+    _check_fit_report_payload(report)
+    summaries = NamedTuple[]
+    for section_name in _FIT_REPORT_SECTION_ORDER
+        section = _report_lookup(report, section_name, _FIT_REPORT_LOOKUP_MISSING)
+        section === _FIT_REPORT_LOOKUP_MISSING && continue
+        row_fields = _report_row_fields(section)
+        push!(summaries, (;
+            section = section_name,
+            status = _report_status(section),
+            row_fields,
+            n_rows = _report_total_row_count(section, row_fields),
+        ))
+    end
+    return summaries
+end
+
+"""
+    fit_report_section(report, section)
+
+Return one section from a `fit_report` payload. `section` may be a `Symbol` or
+string, and `report` may be either the in-memory report `NamedTuple` or a
+JSON-loaded `Dict{String,Any}`.
+"""
+function fit_report_section(report, section)
+    _check_fit_report_payload(report)
+    section_name = _report_key_symbol(section)
+    value = _report_lookup(report, section_name, _FIT_REPORT_LOOKUP_MISSING)
+    value === _FIT_REPORT_LOOKUP_MISSING &&
+        throw(ArgumentError("fit report section $(String(section_name)) was not found"))
+    return value
+end
+
+"""
+    fit_report_rows(report, section; row_field = :auto)
+
+Return rows from one `fit_report` section. By default, `:auto` selects `:rows`
+when present and otherwise selects `:diagnostic_rows`; pass `row_field` to
+request a specific row field such as `:parameter_rows` from the diagnostics
+section.
+"""
+function fit_report_rows(report, section; row_field = :auto)
+    section_name = _report_key_symbol(section)
+    section_value = fit_report_section(report, section_name)
+    requested = _report_key_symbol(row_field)
+    resolved = requested == :auto ?
+        _auto_report_row_field(section_value, section_name) : requested
+    rows = _report_lookup(section_value, resolved, _FIT_REPORT_LOOKUP_MISSING)
+    rows isa AbstractVector ||
+        throw(ArgumentError("fit report section $(String(section_name)) does not contain row field $(String(resolved))"))
+    return rows
+end
+
 function _cache_stable_write(io::IO, value)
     if value isa NamedTuple
         print(io, "NamedTuple(")

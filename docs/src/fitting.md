@@ -269,7 +269,10 @@ needed.
 Use [`save_fit_report`](@ref) to write a JSON export record for cross-tool
 review. The export stores the original report content hash and a separate
 JSON-payload hash; [`load_fit_report`](@ref) verifies that JSON payload hash by
-default before returning ordinary `Dict{String,Any}` / `Vector{Any}` data.
+default before returning ordinary `Dict{String,Any}` / `Vector{Any}` data. Use
+[`fit_report_sections`](@ref), [`fit_report_section`](@ref), and
+[`fit_report_rows`](@ref) to list available report sections and extract rows
+from either the in-memory report or the JSON-loaded payload.
 `cached_fit` is the RDS-like recomputation guard: it serializes the fitted
 object with Julia's standard `Serialization` format and only reuses the file
 when [`fit_cache_key`](@ref) still matches the current data/spec/design, prior,
