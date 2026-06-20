@@ -6,8 +6,9 @@ Tools for preparing long-format many-facet Rasch rating data.
 The current public API is intentionally limited to deterministic indexing,
 pre-fit data validation, MFRM/GMFRM/MGMFRM specification manifests, minimal
 RSM/PCM design scaffolding, and initial Bayesian fitting, predictive-check, and
-WAIC / raw importance-sampling LOO paths for small validation examples. The
-minimal MFRM/RSM/PCM design can be fit with a random-walk example backend, an
+WAIC / raw or PSIS-smoothed importance-sampling LOO paths for small validation
+examples. The minimal MFRM/RSM/PCM design can be fit with a random-walk example
+backend, an
     initial AdvancedHMC/NUTS backend, or a Turing/NUTS backend. Guarded
     experimental generalized paths are available through
     `fit(spec; experimental = true)` for the scalar rater-discrimination GMFRM
@@ -95,6 +96,7 @@ export FacetData,
     posterior_predict,
     posterior_predictive_check,
     posterior_summary,
+    psis_loo,
     predictive_check_summary,
     predictive_probabilities,
     predictive_residuals,

@@ -71,9 +71,10 @@ The current public slice focuses on:
   discrimination diagnostics via [`rater_diagnostics`](@ref);
 - posterior residual summaries and infit/outfit summaries by observation or
   facet level via [`residual_summary`](@ref) and [`fit_stats`](@ref);
-- WAIC, raw importance-sampling LOO, and supplied heldout K-fold
-  model-comparison and sensitivity rows via [`waic`](@ref), [`loo`](@ref),
-  [`kfold`](@ref), [`compare_models`](@ref), [`compare_kfold`](@ref), and
+- WAIC, raw or PSIS-smoothed importance-sampling LOO, and supplied heldout
+  K-fold model-comparison and sensitivity rows via [`waic`](@ref),
+  [`loo`](@ref), [`psis_loo`](@ref), [`kfold`](@ref),
+  [`compare_models`](@ref), [`compare_kfold`](@ref), and
   [`sensitivity_comparison`](@ref), with declared-axis coverage audited by
   [`sensitivity_comparison_summary`](@ref), and cross-tool evidence coverage
   audited by [`comparison_evidence_row`](@ref) and
@@ -96,7 +97,7 @@ The current public slice focuses on:
   MGMFRM gauge manifest with BridgeStan confirmatory-candidate and local
   candidate-chain/recovery-smoke evidence.
 
-Stan/CmdStan sampling, PSIS-smoothed or exact LOO, generalized discrimination
+Stan/CmdStan sampling, broad exact/refit-managed LOO, generalized discrimination
 likelihoods beyond the guarded scalar rater-discrimination candidate, group/DFF
 model terms, and broad Multidimensional Generalized Many-Facet Rasch Model
 (MGMFRM) fitting APIs beyond the guarded fixed-Q confirmatory candidate are

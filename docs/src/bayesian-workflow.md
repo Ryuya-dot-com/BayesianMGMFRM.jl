@@ -73,9 +73,10 @@ without changing the data layer.
    [`rater_diagnostics`](@ref), DFF screening rows with [`dff_report`](@ref),
    and facet-level infit/outfit with [`fit_stats`](@ref).
 15. Compare same-observation candidate models with [`waic`](@ref), raw
-    importance-sampling [`loo`](@ref), and [`compare_models`](@ref); inspect
-    influential WAIC rows with [`waic_diagnostics`](@ref) and unstable LOO rows
-    with [`loo_diagnostics`](@ref).
+    importance-sampling [`loo`](@ref), PSIS-smoothed [`psis_loo`](@ref), and
+    [`compare_models`](@ref); inspect influential WAIC rows with
+    [`waic_diagnostics`](@ref) and unstable LOO rows with
+    [`loo_diagnostics`](@ref).
 
 ## Calibration
 
@@ -114,12 +115,13 @@ autocorrelation-based ESS when at least two chains are available.
 identified design block.
 [`diagnostics`](@ref) combines those rows into a single pass/fail summary and
 includes HMC/NUTS fields when the selected backend produces them. The package
-exposes raw importance-sampling [`loo`](@ref) and [`loo_diagnostics`](@ref)
-with Hill-estimated Pareto-k screening plus deterministic heldout fold plans
-from [`kfold_plan`](@ref), fit-supported automatic [`kfold_refit`](@ref), and
-supplied heldout-refit [`kfold`](@ref) / [`compare_kfold`](@ref) summaries, but
-it does not yet perform PSIS smoothing, broad exact-refit management, or broad
-refit-managed cross-validation. It also does not yet
+exposes raw importance-sampling [`loo`](@ref), PSIS-smoothed
+[`psis_loo`](@ref), and [`loo_diagnostics`](@ref) with Hill-estimated Pareto-k
+screening plus deterministic heldout fold plans from [`kfold_plan`](@ref),
+fit-supported automatic [`kfold_refit`](@ref), and supplied heldout-refit
+[`kfold`](@ref) / [`compare_kfold`](@ref) summaries, but it does not yet
+perform broad exact-refit management or broad refit-managed cross-validation.
+It also does not yet
 expose power-scaling prior sensitivity, covariate terms, random slopes, broad
 generalized discrimination likelihoods, or MGMFRM fitting beyond the guarded
 fixed-Q confirmatory candidate. Specified-only GMFRM/MGMFRM rows in
@@ -128,7 +130,7 @@ fixed-Q confirmatory candidate. Specified-only GMFRM/MGMFRM rows in
 not fitted likelihood terms.
 
 Until those pieces are added, treat [`waic`](@ref), [`waic_diagnostics`](@ref),
-[`loo`](@ref), [`loo_diagnostics`](@ref), [`kfold`](@ref),
+[`loo`](@ref), [`psis_loo`](@ref), [`loo_diagnostics`](@ref), [`kfold`](@ref),
 [`kfold_plan`](@ref), [`kfold_refit`](@ref), [`compare_models`](@ref),
 [`compare_kfold`](@ref), [`posterior_predictive_check`](@ref),
 [`calibration_table`](@ref),
