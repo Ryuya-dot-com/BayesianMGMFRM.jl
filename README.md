@@ -155,6 +155,9 @@ predictive_check_plot_data(predictive_check_summary(ppc))
 
 See [`examples/minimal.jl`](examples/minimal.jl) for the same minimal example as
 a script.
+See [`examples/guarded_mgmfrm.jl`](examples/guarded_mgmfrm.jl) for a compact
+fixed-Q two-dimensional confirmatory MGMFRM guarded experiment using
+`fit(spec; experimental = true)`.
 
 See [`docs/`](docs/) for the Documenter source pages covering data validation
 and the public API.
