@@ -10278,6 +10278,61 @@ end
     end
     @test_throws ArgumentError load_fit_report_tables(unsafe_table_dir;
         verify_hash = false)
+    tampered_table_manifest_metadata_dir = joinpath(report_dir,
+        "tampered_fit_report_table_manifest_metadata")
+    save_fit_report_tables(tampered_table_manifest_metadata_dir, report)
+    tampered_table_manifest_metadata_path = joinpath(
+        tampered_table_manifest_metadata_dir, "manifest.json")
+    tampered_table_manifest_metadata = JSON3.read(
+        read(tampered_table_manifest_metadata_path, String), Dict{String,Any})
+    tampered_table_manifest_metadata["content_hash"]["scope"] = "wrong_scope"
+    open(tampered_table_manifest_metadata_path, "w") do io
+        JSON3.write(io, tampered_table_manifest_metadata)
+        write(io, "\n")
+    end
+    @test_throws ArgumentError load_fit_report_tables(
+        tampered_table_manifest_metadata_dir;
+        verify_hash = false,
+        return_manifest = true)
+    tampered_table_row_metadata_dir = joinpath(report_dir,
+        "tampered_fit_report_table_row_metadata")
+    save_fit_report_tables(tampered_table_row_metadata_dir, report)
+    tampered_table_row_manifest_path = joinpath(tampered_table_row_metadata_dir,
+        "manifest.json")
+    tampered_table_row_manifest = JSON3.read(
+        read(tampered_table_row_manifest_path, String), Dict{String,Any})
+    tampered_table_row_metadata = only(filter(row ->
+            row["section"] == "posterior" && row["row_field"] == "rows",
+        tampered_table_row_manifest["tables"]))
+    tampered_table_row_metadata["content_hash"]["algorithm"] = "sha1"
+    open(tampered_table_row_manifest_path, "w") do io
+        JSON3.write(io, tampered_table_row_manifest)
+        write(io, "\n")
+    end
+    @test_throws ArgumentError load_fit_report_tables(
+        tampered_table_row_metadata_dir;
+        verify_hash = false,
+        return_manifest = true)
+    tampered_table_record_metadata_dir = joinpath(report_dir,
+        "tampered_fit_report_table_record_metadata")
+    tampered_table_record_manifest = save_fit_report_tables(
+        tampered_table_record_metadata_dir, report)
+    tampered_table_record_row = only(filter(row ->
+            row.section === :posterior && row.row_field === :rows,
+        tampered_table_record_manifest.tables))
+    tampered_table_record_path = joinpath(tampered_table_record_metadata_dir,
+        tampered_table_record_row.filename)
+    tampered_table_record_metadata = JSON3.read(
+        read(tampered_table_record_path, String), Dict{String,Any})
+    tampered_table_record_metadata["content_hash"]["canonicalization"] =
+        "wrong_canonicalization"
+    open(tampered_table_record_path, "w") do io
+        JSON3.write(io, tampered_table_record_metadata)
+        write(io, "\n")
+    end
+    @test_throws ArgumentError load_fit_report_tables(
+        tampered_table_record_metadata_dir;
+        verify_hash = false)
     markdown = fit_report_markdown(report;
         title = "Minimal fit report",
         max_rows = 2)
@@ -10457,6 +10512,45 @@ end
     end
     @test_throws ArgumentError load_fit_report_bundle(unsafe_bundle_dir;
         verify_hash = false)
+    tampered_bundle_manifest_metadata_dir = joinpath(report_dir,
+        "tampered_fit_report_bundle_manifest_metadata")
+    save_fit_report_bundle(tampered_bundle_manifest_metadata_dir, loaded_report;
+        title = "Loaded fit report",
+        max_rows = 1)
+    tampered_bundle_manifest_metadata_path = joinpath(
+        tampered_bundle_manifest_metadata_dir, "manifest.json")
+    tampered_bundle_manifest_metadata = JSON3.read(
+        read(tampered_bundle_manifest_metadata_path, String), Dict{String,Any})
+    tampered_bundle_manifest_metadata["content_hash"]["scope"] = "wrong_scope"
+    open(tampered_bundle_manifest_metadata_path, "w") do io
+        JSON3.write(io, tampered_bundle_manifest_metadata)
+        write(io, "\n")
+    end
+    @test_throws ArgumentError load_fit_report_bundle(
+        tampered_bundle_manifest_metadata_dir;
+        verify_hash = false,
+        return_manifest = true)
+    tampered_bundle_file_metadata_dir = joinpath(report_dir,
+        "tampered_fit_report_bundle_file_metadata")
+    save_fit_report_bundle(tampered_bundle_file_metadata_dir, loaded_report;
+        title = "Loaded fit report",
+        max_rows = 1)
+    tampered_bundle_file_metadata_path = joinpath(
+        tampered_bundle_file_metadata_dir, "manifest.json")
+    tampered_bundle_file_metadata = JSON3.read(
+        read(tampered_bundle_file_metadata_path, String), Dict{String,Any})
+    tampered_markdown_file = only(filter(file -> file["role"] == "markdown",
+        tampered_bundle_file_metadata["files"]))
+    tampered_markdown_file["content_hash"]["canonicalization"] =
+        "cache_stable_string"
+    open(tampered_bundle_file_metadata_path, "w") do io
+        JSON3.write(io, tampered_bundle_file_metadata)
+        write(io, "\n")
+    end
+    @test_throws ArgumentError load_fit_report_bundle(
+        tampered_bundle_file_metadata_dir;
+        verify_hash = false,
+        return_manifest = true)
     loaded_record = load_fit_report(report_path; return_record = true)
     @test loaded_record["schema"] == report_export.schema
     @test loaded_record["object"] == "fit_report_export"

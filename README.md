@@ -257,10 +257,12 @@ Current public API:
   previews, and Markdown content hashes.
 - `save_fit_report_bundle` and `load_fit_report_bundle`: one-call directory
   exports that write and verify the JSON report, JSON table files, Markdown
-  draft, and a bundle manifest with nested content hashes.
+  draft, and a bundle manifest with nested content hashes and checked hash
+  metadata.
 - `save_fit_report_tables` and `load_fit_report_tables`: directory helpers
   that write and verify each `fit_report` row field as a portable JSON table
-  file plus a manifest with table filenames, row counts, and content hashes.
+  file plus a manifest with table filenames, row counts, content hashes, and
+  checked hash metadata.
 - `cached_fit`, `fit_cache_key`, `save_fit_cache`, and `load_fit_cache`:
   RDS-like serialized fit caches for avoiding recomputation when the
   data/spec/design, prior, sampler controls, seed, Julia version, and

@@ -4316,19 +4316,10 @@ function _check_fit_report_export_hash_record(record,
         field::AbstractString,
         path::AbstractString,
         expected_scope::AbstractString)
-    hash_record = get(record, field, nothing)
-    hash_record isa AbstractDict ||
-        throw(ArgumentError("fit report export at $path does not contain a $field hash"))
-    get(hash_record, "algorithm", nothing) == "sha256" ||
-        throw(ArgumentError("fit report export at $path has an unsupported $field algorithm"))
-    value = get(hash_record, "value", nothing)
-    value isa AbstractString && occursin(r"^[0-9a-f]{64}$", value) ||
-        throw(ArgumentError("fit report export at $path has an invalid $field value"))
-    get(hash_record, "scope", nothing) == expected_scope ||
-        throw(ArgumentError("fit report export at $path has an unsupported $field scope"))
-    get(hash_record, "canonicalization", nothing) == "cache_stable_string" ||
-        throw(ArgumentError("fit report export at $path has an unsupported $field canonicalization"))
-    return hash_record
+    return _check_fit_report_hash_record(record, Symbol(field),
+        "fit report export at $path";
+        expected_scope = Symbol(expected_scope),
+        expected_canonicalization = :cache_stable_string)
 end
 
 function _check_fit_report_export_record(record, path)
@@ -5111,13 +5102,41 @@ function _read_json_dict(path::AbstractString, label::AbstractString)
     return value
 end
 
-function _fit_report_hash_value(record, field::Symbol, context::AbstractString)
+function _check_fit_report_hash_record(record, field::Symbol, context::AbstractString;
+        expected_scope = nothing,
+        expected_canonicalization = nothing)
     hash_record = _report_lookup(record, field, _FIT_REPORT_LOOKUP_MISSING)
-    hash_record isa AbstractDict ||
+    (hash_record isa NamedTuple || hash_record isa AbstractDict) ||
         throw(ArgumentError("$context does not contain $(String(field))"))
+    algorithm = _report_symbol_value(_report_lookup(hash_record, :algorithm,
+        _FIT_REPORT_LOOKUP_MISSING))
+    algorithm === :sha256 ||
+        throw(ArgumentError("$context has an unsupported $(String(field)) algorithm"))
     value = _report_lookup(hash_record, :value, _FIT_REPORT_LOOKUP_MISSING)
-    value isa AbstractString ||
-        throw(ArgumentError("$context does not contain a $(String(field)) value"))
+    value isa AbstractString && occursin(r"^[0-9a-f]{64}$", value) ||
+        throw(ArgumentError("$context has an invalid $(String(field)) value"))
+    if expected_scope !== nothing
+        scope = _report_symbol_value(_report_lookup(hash_record, :scope,
+            _FIT_REPORT_LOOKUP_MISSING))
+        scope === expected_scope ||
+            throw(ArgumentError("$context has an unsupported $(String(field)) scope"))
+    end
+    if expected_canonicalization !== nothing
+        canonicalization = _report_symbol_value(_report_lookup(hash_record,
+            :canonicalization, _FIT_REPORT_LOOKUP_MISSING))
+        canonicalization === expected_canonicalization ||
+            throw(ArgumentError("$context has an unsupported $(String(field)) canonicalization"))
+    end
+    return hash_record
+end
+
+function _fit_report_hash_value(record, field::Symbol, context::AbstractString;
+        expected_scope = nothing,
+        expected_canonicalization = nothing)
+    hash_record = _check_fit_report_hash_record(record, field, context;
+        expected_scope,
+        expected_canonicalization)
+    value = _report_lookup(hash_record, :value, _FIT_REPORT_LOOKUP_MISSING)
     return value
 end
 
@@ -5158,10 +5177,25 @@ function _check_fit_report_bundle_manifest(manifest, path)
         :fit_report_bundle_export ||
         throw(ArgumentError("fit report bundle manifest at $path has an unsupported object"))
     _fit_report_hash_value(manifest, :content_hash,
-        "fit report bundle manifest at $path")
-    for role in (:report_json, :table_manifest, :markdown)
-        _fit_report_bundle_file_record(manifest, role,
+        "fit report bundle manifest at $path";
+        expected_scope = :fit_report_bundle_export_without_hash_metadata,
+        expected_canonicalization = :cache_stable_string)
+    _fit_report_hash_value(manifest, :report_content_hash,
+        "fit report bundle manifest at $path";
+        expected_scope = :artifact_without_hash_metadata,
+        expected_canonicalization = :cache_stable_string)
+    for (role, scope, canonicalization) in (
+        (:report_json, :json_report_without_hash_metadata, :cache_stable_string),
+        (:table_manifest, :fit_report_table_export_without_hash_metadata,
+            :cache_stable_string),
+        (:markdown, :fit_report_markdown, :raw_markdown_string),
+    )
+        file_record = _fit_report_bundle_file_record(manifest, role,
             "fit report bundle manifest at $path")
+        _fit_report_hash_value(file_record, :content_hash,
+            "fit report bundle $(String(role)) row at $path";
+            expected_scope = scope,
+            expected_canonicalization = canonicalization)
     end
     return manifest
 end
@@ -5170,7 +5204,9 @@ function _verify_fit_report_bundle_manifest(manifest,
         directory::AbstractString,
         manifest_path::AbstractString)
     expected_manifest_hash = _fit_report_hash_value(manifest, :content_hash,
-        "fit report bundle manifest at $manifest_path")
+        "fit report bundle manifest at $manifest_path";
+        expected_scope = :fit_report_bundle_export_without_hash_metadata,
+        expected_canonicalization = :cache_stable_string)
     actual_manifest_hash = _fit_report_bundle_hash_record(manifest).value
     isequal(expected_manifest_hash, actual_manifest_hash) ||
         throw(ArgumentError("fit report bundle manifest content hash mismatch for $manifest_path"))
@@ -5183,15 +5219,23 @@ function _verify_fit_report_bundle_manifest(manifest,
         verify_hash = true,
         return_record = true)
     expected_report_json_hash = _fit_report_hash_value(report_file,
-        :content_hash, "fit report bundle report_json row at $manifest_path")
+        :content_hash, "fit report bundle report_json row at $manifest_path";
+        expected_scope = :json_report_without_hash_metadata,
+        expected_canonicalization = :cache_stable_string)
     actual_report_json_hash = _fit_report_hash_value(report_record,
-        :json_content_hash, "fit report export at $report_path")
+        :json_content_hash, "fit report export at $report_path";
+        expected_scope = :json_report_without_hash_metadata,
+        expected_canonicalization = :cache_stable_string)
     isequal(expected_report_json_hash, actual_report_json_hash) ||
         throw(ArgumentError("fit report bundle report JSON hash mismatch for $report_path"))
     expected_report_hash = _fit_report_hash_value(manifest,
-        :report_content_hash, "fit report bundle manifest at $manifest_path")
+        :report_content_hash, "fit report bundle manifest at $manifest_path";
+        expected_scope = :artifact_without_hash_metadata,
+        expected_canonicalization = :cache_stable_string)
     actual_report_hash = _fit_report_hash_value(report_record,
-        :report_content_hash, "fit report export at $report_path")
+        :report_content_hash, "fit report export at $report_path";
+        expected_scope = :artifact_without_hash_metadata,
+        expected_canonicalization = :cache_stable_string)
     isequal(expected_report_hash, actual_report_hash) ||
         throw(ArgumentError("fit report bundle report content hash mismatch for $report_path"))
 
@@ -5206,9 +5250,13 @@ function _verify_fit_report_bundle_manifest(manifest,
         verify_hash = true,
         return_manifest = true)
     expected_table_hash = _fit_report_hash_value(table_file, :content_hash,
-        "fit report bundle table_manifest row at $manifest_path")
+        "fit report bundle table_manifest row at $manifest_path";
+        expected_scope = :fit_report_table_export_without_hash_metadata,
+        expected_canonicalization = :cache_stable_string)
     actual_table_hash = _fit_report_hash_value(table_manifest, :content_hash,
-        "fit report table manifest at $table_path")
+        "fit report table manifest at $table_path";
+        expected_scope = :fit_report_table_export_without_hash_metadata,
+        expected_canonicalization = :cache_stable_string)
     isequal(expected_table_hash, actual_table_hash) ||
         throw(ArgumentError("fit report bundle table manifest hash mismatch for $table_path"))
 
@@ -5219,7 +5267,9 @@ function _verify_fit_report_bundle_manifest(manifest,
     isfile(markdown_path) ||
         throw(ArgumentError("fit report markdown file does not exist at $markdown_path"))
     expected_markdown_hash = _fit_report_hash_value(markdown_file,
-        :content_hash, "fit report bundle markdown row at $manifest_path")
+        :content_hash, "fit report bundle markdown row at $manifest_path";
+        expected_scope = :fit_report_markdown,
+        expected_canonicalization = :raw_markdown_string)
     actual_markdown_hash =
         _fit_report_markdown_hash_record(read(markdown_path, String)).value
     isequal(expected_markdown_hash, actual_markdown_hash) ||
@@ -5294,7 +5344,9 @@ function _check_fit_report_table_manifest(manifest, path)
         :fit_report_table_export ||
         throw(ArgumentError("fit report table manifest at $path has an unsupported object"))
     _fit_report_hash_value(manifest, :content_hash,
-        "fit report table manifest at $path")
+        "fit report table manifest at $path";
+        expected_scope = :fit_report_table_export_without_hash_metadata,
+        expected_canonicalization = :cache_stable_string)
     rows = _fit_report_table_manifest_rows(manifest,
         "fit report table manifest at $path")
     n_tables = _report_lookup(manifest, :n_tables, _FIT_REPORT_LOOKUP_MISSING)
@@ -5306,6 +5358,10 @@ function _check_fit_report_table_manifest(manifest, path)
             "fit report table manifest at $path")
         filename in seen &&
             throw(ArgumentError("fit report table manifest at $path contains duplicate filename $filename"))
+        _fit_report_hash_value(row, :content_hash,
+            "fit report table manifest row at $path";
+            expected_scope = :fit_report_table_without_hash_metadata,
+            expected_canonicalization = :cache_stable_string)
         push!(seen, filename)
     end
     return manifest
@@ -5333,13 +5389,17 @@ function _check_fit_report_table_record(record, path)
     n_rows isa Integer && n_rows == length(rows) ||
         throw(ArgumentError("fit report table at $path has inconsistent n_rows"))
     _fit_report_hash_value(record, :content_hash,
-        "fit report table at $path")
+        "fit report table at $path";
+        expected_scope = :fit_report_table_without_hash_metadata,
+        expected_canonicalization = :cache_stable_string)
     return record
 end
 
 function _verify_fit_report_table_record(record, path)
     expected = _fit_report_hash_value(record, :content_hash,
-        "fit report table at $path")
+        "fit report table at $path";
+        expected_scope = :fit_report_table_without_hash_metadata,
+        expected_canonicalization = :cache_stable_string)
     actual = _fit_report_table_hash_record(record;
         scope = :fit_report_table_without_hash_metadata).value
     isequal(expected, actual) ||
@@ -5349,7 +5409,9 @@ end
 
 function _verify_fit_report_table_manifest(manifest, path)
     expected = _fit_report_hash_value(manifest, :content_hash,
-        "fit report table manifest at $path")
+        "fit report table manifest at $path";
+        expected_scope = :fit_report_table_export_without_hash_metadata,
+        expected_canonicalization = :cache_stable_string)
     actual = _fit_report_table_hash_record(manifest;
         scope = :fit_report_table_export_without_hash_metadata).value
     isequal(expected, actual) ||
@@ -5374,9 +5436,13 @@ function _fit_report_table_matches_manifest_row(record, row,
         expected_rows == actual_rows ||
         throw(ArgumentError("fit report table $table_path does not match n_rows in manifest $manifest_path"))
     expected_hash = _fit_report_hash_value(row, :content_hash,
-        "fit report table manifest row at $manifest_path")
+        "fit report table manifest row at $manifest_path";
+        expected_scope = :fit_report_table_without_hash_metadata,
+        expected_canonicalization = :cache_stable_string)
     actual_hash = _fit_report_hash_value(record, :content_hash,
-        "fit report table at $table_path")
+        "fit report table at $table_path";
+        expected_scope = :fit_report_table_without_hash_metadata,
+        expected_canonicalization = :cache_stable_string)
     isequal(expected_hash, actual_hash) ||
         throw(ArgumentError("fit report table $table_path does not match content hash in manifest $manifest_path"))
     return true
