@@ -101,6 +101,7 @@ using BayesianMGMFRM:
     sampler_diagnostics,
     save_fit_cache,
     save_fit_report,
+    save_fit_report_tables,
     simulation_grid,
     simulation_grid_summary,
     simulate_responses,
@@ -6246,6 +6247,7 @@ end
             :fit_report_section, :fit_report_sections, :fit_report_rows,
             :load_fit_cache, :load_fit_report, :rater_diagnostics, :rater_overlap,
             :residual_summary, :sampler_diagnostics, :save_fit_cache, :save_fit_report,
+            :save_fit_report_tables,
             :sensitivity_comparison, :sensitivity_comparison_summary,
             :separation_reliability_summary, :simulation_grid,
             :simulation_grid_summary, :simulate_responses,
@@ -10190,6 +10192,39 @@ end
     @test_throws ArgumentError fit_report_rows(report, :posterior;
         row_field = :diagnostic_rows)
     report_dir = mktempdir()
+    table_dir = joinpath(report_dir, "minimal_fit_report_tables")
+    table_manifest = save_fit_report_tables(table_dir, report; label = :minimal)
+    expected_table_count = sum(length(row.row_fields) for row in report_sections)
+    @test table_manifest.schema == "bayesianmgmfrm.fit_report_table_export.v1"
+    @test table_manifest.object === :fit_report_table_export
+    @test table_manifest.label === :minimal
+    @test table_manifest.report_schema == report.schema
+    @test table_manifest.report_object === :fit_report
+    @test table_manifest.report_content_hash.value == report_hash
+    @test table_manifest.n_tables == expected_table_count
+    @test table_manifest.n_rows >= report.posterior.n_rows
+    @test length(table_manifest.content_hash.value) == 64
+    @test isfile(joinpath(table_dir, "manifest.json"))
+    posterior_table_row = only(filter(row ->
+            row.section === :posterior && row.row_field === :rows,
+        table_manifest.tables))
+    @test posterior_table_row.filename == "posterior__rows.json"
+    posterior_table = JSON3.read(read(joinpath(table_dir,
+        posterior_table_row.filename), String), Dict{String,Any})
+    @test posterior_table["schema"] == "bayesianmgmfrm.fit_report_table.v1"
+    @test posterior_table["object"] == "fit_report_table"
+    @test posterior_table["section"] == "posterior"
+    @test posterior_table["row_field"] == "rows"
+    @test posterior_table["n_rows"] == report.posterior.n_rows
+    @test posterior_table["content_hash"]["value"] ==
+        posterior_table_row.content_hash.value
+    @test length(posterior_table["rows"]) == report.posterior.n_rows
+    manifest_json = JSON3.read(read(joinpath(table_dir, "manifest.json"), String),
+        Dict{String,Any})
+    @test manifest_json["schema"] == table_manifest.schema
+    @test manifest_json["n_tables"] == table_manifest.n_tables
+    @test manifest_json["n_rows"] == table_manifest.n_rows
+    @test_throws ArgumentError save_fit_report_tables(table_dir, report)
     report_path = joinpath(report_dir, "minimal_fit_report.json")
     report_export = save_fit_report(report_path, report)
     @test isfile(report_path)
@@ -10217,10 +10252,19 @@ end
     @test length(fit_report_rows(loaded_report, :waic)) == report.waic.n_diagnostic_rows
     @test fit_report_rows(loaded_report, :waic) ==
         fit_report_rows(loaded_report, :waic; row_field = "diagnostic_rows")
+    loaded_table_manifest = save_fit_report_tables(table_dir, loaded_report;
+        overwrite = true,
+        label = "loaded")
+    @test loaded_table_manifest.label == "loaded"
+    @test loaded_table_manifest.report_object === :fit_report
+    @test loaded_table_manifest.n_tables == table_manifest.n_tables
+    @test loaded_table_manifest.n_rows == table_manifest.n_rows
     loaded_record = load_fit_report(report_path; return_record = true)
     @test loaded_record["schema"] == report_export.schema
     @test loaded_record["json_content_hash"]["value"] == report_export.json_content_hash.value
     @test_throws ArgumentError fit_report_sections(loaded_record)
+    @test_throws ArgumentError save_fit_report_tables(joinpath(report_dir,
+        "invalid_tables"), loaded_record)
     @test_throws ArgumentError save_fit_report(report_path, report)
 
     convenience_path = joinpath(report_dir, "minimal_fit_report_from_fit.json")
@@ -10229,6 +10273,13 @@ end
         artifact_include_environment = false)
     @test convenience_export.report["loo"]["status"] == "not_requested"
     @test load_fit_report(convenience_path)["loo"]["status"] == "not_requested"
+    convenience_table_manifest = save_fit_report_tables(joinpath(report_dir,
+            "minimal_fit_report_tables_from_fit"), result;
+        include_loo = false,
+        artifact_include_environment = false)
+    @test convenience_table_manifest.object === :fit_report_table_export
+    @test any(row -> row.section === :posterior && row.row_field === :rows,
+        convenience_table_manifest.tables)
 
     tampered_record = deepcopy(loaded_record)
     tampered_record["report"]["schema"] = "tampered.fit_report.v1"

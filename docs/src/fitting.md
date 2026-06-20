@@ -272,7 +272,10 @@ JSON-payload hash; [`load_fit_report`](@ref) verifies that JSON payload hash by
 default before returning ordinary `Dict{String,Any}` / `Vector{Any}` data. Use
 [`fit_report_sections`](@ref), [`fit_report_section`](@ref), and
 [`fit_report_rows`](@ref) to list available report sections and extract rows
-from either the in-memory report or the JSON-loaded payload.
+from either the in-memory report or the JSON-loaded payload. Use
+[`save_fit_report_tables`](@ref) when downstream review or Quarto workflows need
+one JSON file per report table plus a `manifest.json` with table filenames, row
+counts, and table content hashes.
 `cached_fit` is the RDS-like recomputation guard: it serializes the fitted
 object with Julia's standard `Serialization` format and only reuses the file
 when [`fit_cache_key`](@ref) still matches the current data/spec/design, prior,

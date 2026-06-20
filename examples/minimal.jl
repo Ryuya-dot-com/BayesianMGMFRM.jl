@@ -129,6 +129,11 @@ loaded_report = load_fit_report(report_path)
 posterior_rows = fit_report_rows(loaded_report, :posterior)
 println("Loaded fit report: sections=", length(fit_report_sections(loaded_report)),
     ", posterior_rows=", length(posterior_rows))
+report_table_dir = joinpath(mktempdir(), "minimal_fit_report_tables")
+report_table_manifest = save_fit_report_tables(report_table_dir, loaded_report)
+println("Fit report tables: tables=", report_table_manifest.n_tables,
+    ", rows=", report_table_manifest.n_rows,
+    ", dir=", report_table_dir)
 diagnostic_surface = diagnostics(fit_result)
 println("Diagnostic summary: ", compact_row(diagnostic_surface.summary,
     (:flag, :passed, :n_chains, :draws_per_chain, :max_rhat, :min_ess)))

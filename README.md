@@ -252,6 +252,9 @@ Current public API:
 - `fit_report_sections`, `fit_report_section`, and `fit_report_rows`: small
   accessors for listing report sections and extracting tabular rows from either
   in-memory reports or JSON-loaded report payloads.
+- `save_fit_report_tables`: a directory export helper that writes each
+  `fit_report` row field as a portable JSON table file plus a manifest with
+  table filenames, row counts, and content hashes.
 - `cached_fit`, `fit_cache_key`, `save_fit_cache`, and `load_fit_cache`:
   RDS-like serialized fit caches for avoiding recomputation when the
   data/spec/design, prior, sampler controls, seed, Julia version, and

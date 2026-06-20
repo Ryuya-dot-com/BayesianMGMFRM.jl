@@ -4540,6 +4540,165 @@ function fit_report_rows(report, section; row_field = :auto)
     return rows
 end
 
+function _report_symbol_value(value)
+    value isa Symbol && return value
+    value isa AbstractString && return Symbol(value)
+    return value
+end
+
+function _fit_report_file_component(name::Symbol)
+    component = replace(String(name), r"[^A-Za-z0-9_]+" => "_")
+    return isempty(component) ? "field" : component
+end
+
+function _fit_report_table_filename(section::Symbol, row_field::Symbol)
+    return string(_fit_report_file_component(section), "__",
+        _fit_report_file_component(row_field), ".json")
+end
+
+function _fit_report_table_hash_record(payload; scope::Symbol)
+    hash_payload = _json_hash_value(_artifact_hash_payload(_json_export_value(payload)))
+    canonical = _cache_stable_string(hash_payload)
+    return (;
+        algorithm = :sha256,
+        value = bytes2hex(sha256(codeunits(canonical))),
+        scope,
+        canonicalization = :cache_stable_string,
+        n_canonical_bytes = sizeof(canonical),
+    )
+end
+
+function _fit_report_table_record(report, section_name::Symbol, row_field::Symbol)
+    rows = fit_report_rows(report, section_name; row_field)
+    payload = (;
+        schema = "bayesianmgmfrm.fit_report_table.v1",
+        object = :fit_report_table,
+        section = section_name,
+        row_field,
+        n_rows = length(rows),
+        rows,
+    )
+    return merge(payload, (;
+        content_hash = _fit_report_table_hash_record(payload;
+            scope = :fit_report_table_without_hash_metadata),
+    ))
+end
+
+function _fit_report_table_records(report)
+    _check_fit_report_payload(report)
+    records = NamedTuple[]
+    for section in fit_report_sections(report)
+        for row_field in section.row_fields
+            push!(records, _fit_report_table_record(report, section.section, row_field))
+        end
+    end
+    return records
+end
+
+function _fit_report_table_manifest(report, table_records;
+        label = nothing,
+        source_path = nothing)
+    table_rows = NamedTuple[]
+    total_rows = 0
+    for record in table_records
+        total_rows += record.n_rows
+        push!(table_rows, (;
+            section = record.section,
+            row_field = record.row_field,
+            filename = _fit_report_table_filename(record.section, record.row_field),
+            n_rows = record.n_rows,
+            content_hash = record.content_hash,
+        ))
+    end
+    payload = (;
+        schema = "bayesianmgmfrm.fit_report_table_export.v1",
+        object = :fit_report_table_export,
+        created_at = string(now()),
+        label = label === nothing ? missing : label,
+        source_path = source_path === nothing ? missing : String(source_path),
+        report_schema = _report_lookup(report, :schema, missing),
+        report_object = _report_symbol_value(_report_lookup(report, :object, missing)),
+        report_content_hash = _artifact_content_hash_record(report),
+        table_format = :json,
+        manifest_filename = "manifest.json",
+        n_tables = length(table_rows),
+        n_rows = total_rows,
+        tables = table_rows,
+    )
+    return merge(payload, (;
+        content_hash = _fit_report_table_hash_record(payload;
+            scope = :fit_report_table_export_without_hash_metadata),
+    ))
+end
+
+function _check_fit_report_table_export_directory(directory::AbstractString,
+        table_records;
+        overwrite::Bool)
+    if ispath(directory) && !isdir(directory)
+        throw(ArgumentError("fit report table export path exists and is not a directory: $directory"))
+    end
+    if isdir(directory) && !overwrite && !isempty(readdir(directory))
+        throw(ArgumentError("fit report table export directory is not empty at $directory; pass overwrite = true to replace export files"))
+    end
+    seen = Set{String}()
+    for record in table_records
+        filename = _fit_report_table_filename(record.section, record.row_field)
+        filename in seen &&
+            throw(ArgumentError("fit report table export filename collision for $filename"))
+        push!(seen, filename)
+    end
+    return true
+end
+
+function _write_json_record(path::AbstractString, record)
+    open(path, "w") do io
+        JSON3.write(io, _json_export_value(record))
+        write(io, "\n")
+    end
+    return path
+end
+
+"""
+    save_fit_report_tables(directory, report; overwrite = false, label = nothing)
+    save_fit_report_tables(directory, fit; overwrite = false, label = nothing, kwargs...)
+
+Write every tabular row field from a `fit_report` payload into a directory of
+portable JSON table files plus `manifest.json`. The returned manifest records
+the exported table filenames, row counts, and table content hashes. `report` may
+be an in-memory `fit_report` `NamedTuple` or a JSON-loaded report payload from
+[`load_fit_report`](@ref). Passing a fit object first builds
+`fit_report(fit; kwargs...)`.
+"""
+function save_fit_report_tables(directory::AbstractString,
+        report;
+        overwrite::Bool = false,
+        label = nothing)
+    _check_fit_report_payload(report)
+    table_records = _fit_report_table_records(report)
+    _check_fit_report_table_export_directory(directory, table_records;
+        overwrite)
+    mkpath(directory)
+    for record in table_records
+        path = joinpath(directory,
+            _fit_report_table_filename(record.section, record.row_field))
+        _write_json_record(path, record)
+    end
+    manifest = _fit_report_table_manifest(report, table_records;
+        label,
+        source_path = directory)
+    _write_json_record(joinpath(directory, "manifest.json"), manifest)
+    return manifest
+end
+
+function save_fit_report_tables(directory::AbstractString,
+        fit::_ModelComparisonFit;
+        overwrite::Bool = false,
+        label = nothing,
+        kwargs...)
+    report = fit_report(fit; kwargs...)
+    return save_fit_report_tables(directory, report; overwrite = overwrite, label = label)
+end
+
 function _cache_stable_write(io::IO, value)
     if value isa NamedTuple
         print(io, "NamedTuple(")

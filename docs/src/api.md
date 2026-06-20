@@ -59,6 +59,7 @@ fit_report_rows
 fit_ready_parameter_layout
 load_fit_report
 save_fit_report
+save_fit_report_tables
 domain_compilation_summary
 fit_stats
 initial_params
