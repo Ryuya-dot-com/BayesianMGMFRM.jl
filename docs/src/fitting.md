@@ -268,8 +268,9 @@ so short validation fits can still return a partial report with
 needed.
 Use [`save_fit_report`](@ref) to write a JSON export record for cross-tool
 review. The export stores the original report content hash and a separate
-JSON-payload hash; [`load_fit_report`](@ref) verifies that JSON payload hash by
-default before returning ordinary `Dict{String,Any}` / `Vector{Any}` data. Use
+JSON-payload hash; [`load_fit_report`](@ref) validates the export/hash metadata
+and verifies that JSON payload hash by default before returning ordinary
+`Dict{String,Any}` / `Vector{Any}` data. Use
 [`fit_report_sections`](@ref), [`fit_report_section`](@ref), and
 [`fit_report_rows`](@ref) to list available report sections and extract rows
 from either the in-memory report or the JSON-loaded payload. Use

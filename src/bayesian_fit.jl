@@ -4312,15 +4312,38 @@ function save_fit_report(path::AbstractString,
     return save_fit_report(path, report; overwrite = overwrite, label = label)
 end
 
+function _check_fit_report_export_hash_record(record,
+        field::AbstractString,
+        path::AbstractString,
+        expected_scope::AbstractString)
+    hash_record = get(record, field, nothing)
+    hash_record isa AbstractDict ||
+        throw(ArgumentError("fit report export at $path does not contain a $field hash"))
+    get(hash_record, "algorithm", nothing) == "sha256" ||
+        throw(ArgumentError("fit report export at $path has an unsupported $field algorithm"))
+    value = get(hash_record, "value", nothing)
+    value isa AbstractString && occursin(r"^[0-9a-f]{64}$", value) ||
+        throw(ArgumentError("fit report export at $path has an invalid $field value"))
+    get(hash_record, "scope", nothing) == expected_scope ||
+        throw(ArgumentError("fit report export at $path has an unsupported $field scope"))
+    get(hash_record, "canonicalization", nothing) == "cache_stable_string" ||
+        throw(ArgumentError("fit report export at $path has an unsupported $field canonicalization"))
+    return hash_record
+end
+
 function _check_fit_report_export_record(record, path)
     record isa AbstractDict ||
         throw(ArgumentError("fit report export at $path does not contain a JSON object"))
     get(record, "schema", nothing) == "bayesianmgmfrm.fit_report_export.v1" ||
         throw(ArgumentError("fit report export at $path has an unsupported schema"))
+    get(record, "object", nothing) == "fit_report_export" ||
+        throw(ArgumentError("fit report export at $path has an unsupported object"))
     get(record, "report", nothing) isa AbstractDict ||
         throw(ArgumentError("fit report export at $path does not contain a report object"))
-    get(record, "json_content_hash", nothing) isa AbstractDict ||
-        throw(ArgumentError("fit report export at $path does not contain a JSON content hash"))
+    _check_fit_report_export_hash_record(record, "report_content_hash", path,
+        "artifact_without_hash_metadata")
+    _check_fit_report_export_hash_record(record, "json_content_hash", path,
+        "json_report_without_hash_metadata")
     return record
 end
 
@@ -4336,9 +4359,10 @@ end
     load_fit_report(path; verify_hash = true, return_record = false)
 
 Load a JSON fit-report export written by [`save_fit_report`](@ref). The JSON
-payload hash is verified by default. The report payload is returned as
-`Dict{String,Any}` / `Vector{Any}` data; set `return_record = true` to inspect
-the export metadata and hash records as well.
+payload hash is verified by default, and the export/hash metadata shape is
+always checked. The report payload is returned as `Dict{String,Any}` /
+`Vector{Any}` data; set `return_record = true` to inspect the export metadata
+and hash records as well.
 """
 function load_fit_report(path::AbstractString;
         verify_hash::Bool = true,

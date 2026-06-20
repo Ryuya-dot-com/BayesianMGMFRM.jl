@@ -10459,7 +10459,30 @@ end
         verify_hash = false)
     loaded_record = load_fit_report(report_path; return_record = true)
     @test loaded_record["schema"] == report_export.schema
+    @test loaded_record["object"] == "fit_report_export"
+    @test loaded_record["report_content_hash"]["value"] ==
+        report_export.report_content_hash.value
     @test loaded_record["json_content_hash"]["value"] == report_export.json_content_hash.value
+    tampered_record_metadata = deepcopy(loaded_record)
+    tampered_record_metadata["report_content_hash"]["value"] = "not-a-sha256"
+    tampered_metadata_path = joinpath(report_dir,
+        "tampered_fit_report_metadata.json")
+    open(tampered_metadata_path, "w") do io
+        JSON3.write(io, tampered_record_metadata)
+        write(io, "\n")
+    end
+    @test_throws ArgumentError load_fit_report(tampered_metadata_path;
+        verify_hash = false)
+    tampered_scope_record = deepcopy(loaded_record)
+    tampered_scope_record["json_content_hash"]["scope"] = "wrong_scope"
+    tampered_scope_path = joinpath(report_dir,
+        "tampered_fit_report_hash_scope.json")
+    open(tampered_scope_path, "w") do io
+        JSON3.write(io, tampered_scope_record)
+        write(io, "\n")
+    end
+    @test_throws ArgumentError load_fit_report(tampered_scope_path;
+        verify_hash = false)
     @test_throws ArgumentError fit_report_sections(loaded_record)
     @test_throws ArgumentError fit_report_markdown(loaded_record)
     @test_throws ArgumentError save_fit_report_tables(joinpath(report_dir,

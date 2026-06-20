@@ -247,8 +247,8 @@ Current public API:
   still produce partial reports.
 - `save_fit_report` and `load_fit_report`: JSON export and verified reload
   helpers for fit-report bundles. Exports include the original report content
-  hash and a JSON-payload hash so downstream review files can be checked without
-  relying on Julia `Serialization`.
+  hash and a JSON-payload hash; loads validate the export/hash metadata and
+  verify the JSON-payload hash without relying on Julia `Serialization`.
 - `fit_report_sections`, `fit_report_section`, and `fit_report_rows`: small
   accessors for listing report sections and extracting tabular rows from either
   in-memory reports or JSON-loaded report payloads.
