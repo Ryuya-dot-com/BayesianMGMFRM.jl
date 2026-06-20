@@ -249,6 +249,9 @@ Current public API:
   helpers for fit-report bundles. Exports include the original report content
   hash and a JSON-payload hash so downstream review files can be checked without
   relying on Julia `Serialization`.
+- `fit_report_sections`, `fit_report_section`, and `fit_report_rows`: small
+  accessors for listing report sections and extracting tabular rows from either
+  in-memory reports or JSON-loaded report payloads.
 - `cached_fit`, `fit_cache_key`, `save_fit_cache`, and `load_fit_cache`:
   RDS-like serialized fit caches for avoiding recomputation when the
   data/spec/design, prior, sampler controls, seed, Julia version, and

@@ -53,6 +53,9 @@ fit_artifact
 fit_cache_key
 fit_metadata
 fit_report
+fit_report_section
+fit_report_sections
+fit_report_rows
 fit_ready_parameter_layout
 load_fit_report
 save_fit_report
