@@ -83,9 +83,10 @@
   nested content hashes.
 - Add `load_fit_report_bundle` to verify bundle manifests and nested JSON,
   table-manifest, table-file, and Markdown hashes before returning the report
-  payload.
+  payload, including hash-record metadata for bundle file rows.
 - Add `load_fit_report_tables` to verify table-export manifests and table-file
-  hashes before returning JSON-loaded table records.
+  hashes before returning JSON-loaded table records, including hash-record
+  metadata for manifests, manifest rows, and table files.
 - Add `scripts/generate_validation_plan.jl`, a deterministic validation-plan
   artifact generator that records simulation-grid controls, coverage summaries,
   falsification-rule coverage, and content hashes without running simulations or
