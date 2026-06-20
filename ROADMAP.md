@@ -15,8 +15,9 @@ implemented public slice covers:
   weak item/category support, DFF cell counts, and rank of the current minimal
   reference-constrained location design;
 - a minimal MFRM/RSM/PCM specification and inspectable design object;
-- an initial specification ladder that can record fit-supported MFRM and
-  specified-only GMFRM/MGMFRM configurations with machine-readable constraints;
+- an initial specification ladder that can record fit-supported MFRM, guarded
+  experimental GMFRM/MGMFRM candidates, and broader specified-only
+  GMFRM/MGMFRM configurations with machine-readable constraints;
 - small-example Bayesian fitting paths for the minimal identified design using
   a Julia random-walk Metropolis sampler, an AdvancedHMC/NUTS backend with a
   shared analytic/AD gradient adapter, or a Turing/NUTS wrapper around the same
@@ -1100,8 +1101,8 @@ reported dimensions are interpretable.
 1. Keep `docs/src/model-equations.md`, `ROADMAP.md`, and the README scope
    language synchronized whenever a generalized target moves between blocked,
    internal, experimental, and public status.
-2. Select the real rater-mediated case-study candidate and record licensing or
-   anonymization status.
+2. Keep the selected compact real rater-mediated case-study licensing or
+   anonymization record synchronized with any publication-facing archive.
 3. Convert the simulation grid and falsification rules into versioned scripts
    before running manuscript-scale experiments.
    [`scripts/generate_validation_plan.jl` now records deterministic smoke and
@@ -1120,7 +1121,9 @@ reported dimensions are interpretable.
 - Do not call a DFF contrast unfairness without practical magnitude and model
   checking.
 - Do not use single-run timings as manuscript evidence.
-- Do not claim "MGMFRM implemented" until fit-ready multidimensional fixtures,
-  identification/gauge documentation, and sampler diagnostics all pass.
+- Do not claim broad or exploratory MGMFRM support, model-weight superiority,
+  or sparse-design superiority from the guarded fixed-Q path until the broader
+  multidimensional fixtures, recovery/sensitivity evidence, and public-scope
+  release review pass.
 - Do not advertise a broad Bayesian MGMFRM API before docs clearly separate
   implemented and planned functionality.

@@ -62,8 +62,8 @@ The following are planned but not yet exposed:
 - multidimensional loading and rotation/gauge machinery beyond the fixed-Q
   identity-correlation candidate;
 - PSIS-smoothed or exact LOO refit orchestration;
-- turnkey manuscript report rendering and full paper artifact reproduction
-  beyond the current machine-readable [`fit_report`](@ref) bundle.
+- turnkey manuscript report rendering and publication/registration workflows
+  beyond the current machine-readable reports and local full-paper archive.
 
 ## Critical Path to Fit-Ready MGMFRM
 
@@ -429,8 +429,9 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
    evidence plus sparse-pathology recovery and prior/likelihood sensitivity
    evidence plus a compact real-data case study, local claim-level archive,
    broader exposure decision review, and MGMFRM sparse recovery evidence
-   plus DFF estimand/validation and Gate E manuscript-scale evidence recorded,
-   with full paper reproduction evidence now blocking broader exposure]
+   plus DFF estimand/validation, Gate E manuscript-scale evidence, and local
+   full-paper reproduction archive recorded; broader exposure remains blocked
+   by public-scope release review]
 5. Predeclare the first scalar GMFRM simulation grid and recovery criteria.
    [Initial full-crossed recovery smoke artifact, same-observation baseline
    comparison, three-scenario baseline/calibration grid, interval/decision
@@ -439,18 +440,22 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
    dry run, guarded method wiring, experimental fit validation grid, and
    posterior predictive grid, sparse-pathology recovery grid, and
    prior/likelihood sensitivity grid plus compact real-data case-study, local
-   claim-level archive, broader exposure decision-review evidence, and local
-   confirmatory MGMFRM sparse-recovery evidence plus DFF estimand/validation
-   evidence and Gate E manuscript-scale evidence done; full paper reproduction
-   evidence remains pending]
+   claim-level archive, broader exposure decision-review evidence, local
+   confirmatory MGMFRM sparse-recovery evidence, MGMFRM guarded fit
+   method-wiring, validation-grid, API dry-run, public-exposure review,
+   prediction/model-weight policy, DFF estimand/validation evidence, Gate E
+   manuscript-scale evidence, and local full-paper reproduction archive done;
+   broader generalized claims still need a public-scope release decision]
 6. Freeze the first MGMFRM candidate as confirmatory: fixed Q-mask, fixed
    latent identity correlation, documented ability scale, and explicit
    sign/positivity rules. [Initial internal gauge manifest and fit-ready
-   candidate transform manifest done; confirmatory BridgeStan oracle and
-   local candidate-chain/recovery-smoke studies plus keep-internal public API
-   decision, caveat docs, and fit-artifact contract done]
-7. Select the real rater-mediated case-study candidate and record licensing or
-   anonymization status.
+   candidate transform manifest done; confirmatory BridgeStan oracle, local
+   candidate-chain/recovery-smoke studies, guarded fit method-wiring,
+   validation-grid, API dry-run, public-exposure review, prediction/model-weight
+   policy, caveat docs, and fit-artifact contract done for the guarded fixed-Q
+   experiment]
+7. Keep the selected compact real rater-mediated case-study licensing or
+   anonymization record synchronized with any publication-facing archive.
 
 ## Current Risks
 
@@ -467,11 +472,12 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
 
 - Do not add per-rater thresholds without hierarchical pooling and explicit
   warnings.
-- Do not report model weights without influence diagnostics and a prediction
+- Do not report LOO model weights without Pareto-k diagnostics and a prediction
   target statement.
 - Do not call a DFF contrast unfairness without practical magnitude and model
   checking.
 - Do not use single-run timings as manuscript evidence.
-- Do not claim MGMFRM is implemented until fit-ready multidimensional
-  fixtures, identification/gauge documentation, and sampler diagnostics all
-  pass.
+- Do not claim broad or exploratory MGMFRM support, model-weight superiority,
+  or sparse-design superiority from the guarded fixed-Q path until broader
+  multidimensional fixtures, recovery/sensitivity evidence, and public-scope
+  release review pass.
