@@ -97,6 +97,7 @@ using BayesianMGMFRM:
     posterior_predictive_check,
     posterior_summary,
     psis_loo,
+    prior_likelihood_sensitivity,
     predictive_check_summary,
     predictive_check_plot_data,
     predictive_probabilities,
@@ -6259,7 +6260,7 @@ end
             :posterior_predictive_check, :posterior_summary,
             :predictive_check_summary, :predictive_check_plot_data, :predictive_probabilities,
             :predictive_residuals, :predictive_variances,
-            :prior_predict, :prior_predictive_check,
+            :prior_likelihood_sensitivity, :prior_predict, :prior_predictive_check,
             :fit_report_markdown, :fit_report_section, :fit_report_sections,
             :fit_report_rows,
             :load_fit_cache, :load_fit_report, :load_fit_report_bundle,
@@ -12573,6 +12574,112 @@ end
     @test all(row -> row.baseline_model == "main", prior_sensitivity)
     @test all(row -> row.sensitivity_value.person_sd == prior.person_sd,
         prior_sensitivity)
+    manual_logprior_draws = [
+        logprior(design, view(result.draws, index, :), prior)
+        for index in loo_indices
+    ]
+    manual_loglikelihood_draws = [
+        sum(@view llmat[index, :])
+        for index in loo_indices
+    ]
+    power_sensitivity = prior_likelihood_sensitivity(result;
+        prior_powers = [1.0, 0.8],
+        likelihood_powers = [1.0, 1.2],
+        draw_indices = loo_indices)
+    vector_power_sensitivity = prior_likelihood_sensitivity(
+        manual_logprior_draws,
+        manual_loglikelihood_draws;
+        prior_powers = [1.0, 0.8],
+        likelihood_powers = [1.0, 1.2])
+    @test power_sensitivity.schema ==
+        "bayesianmgmfrm.prior_likelihood_sensitivity.v1"
+    @test power_sensitivity.object === :prior_likelihood_sensitivity
+    @test power_sensitivity.method === :self_normalized_importance_reweighting
+    @test power_sensitivity.comparison_scope === :local_power_scaling_grid
+    @test power_sensitivity.input === :fit_object
+    @test power_sensitivity.model_family === :mfrm
+    @test power_sensitivity.n_draws == length(loo_indices)
+    @test power_sensitivity.n_total_draws == size(result.draws, 1)
+    @test power_sensitivity.n_cells == 4
+    @test power_sensitivity.prior_powers == (1.0, 0.8)
+    @test power_sensitivity.likelihood_powers == (1.0, 1.2)
+    @test power_sensitivity.baseline_mean_logprior ≈
+        sum(manual_logprior_draws) / length(manual_logprior_draws)
+    @test power_sensitivity.baseline_mean_loglikelihood ≈
+        sum(manual_loglikelihood_draws) / length(manual_loglikelihood_draws)
+    @test power_sensitivity.min_effective_sample_size == 1.0
+    @test vector_power_sensitivity.input === :draw_level_log_terms
+    @test vector_power_sensitivity.n_cells == power_sensitivity.n_cells
+    @test vector_power_sensitivity.baseline_mean_logprior ≈
+        power_sensitivity.baseline_mean_logprior
+    @test vector_power_sensitivity.baseline_mean_loglikelihood ≈
+        power_sensitivity.baseline_mean_loglikelihood
+    scalar_power_sensitivity = prior_likelihood_sensitivity(
+        manual_logprior_draws,
+        manual_loglikelihood_draws;
+        prior_powers = 1.0,
+        likelihood_powers = 1.0)
+    @test scalar_power_sensitivity.n_cells == 1
+    @test scalar_power_sensitivity.prior_powers == (1.0,)
+    @test scalar_power_sensitivity.likelihood_powers == (1.0,)
+    baseline_power_cell = only(row for row in power_sensitivity.rows
+        if row.prior_power == 1.0 && row.likelihood_power == 1.0)
+    @test baseline_power_cell.log_normalizing_ratio ≈ 0.0
+    @test baseline_power_cell.effective_sample_size ≈ length(loo_indices)
+    @test baseline_power_cell.effective_sample_size_ratio ≈ 1.0
+    @test baseline_power_cell.weighted_mean_logprior ≈
+        power_sensitivity.baseline_mean_logprior
+    @test baseline_power_cell.weighted_mean_loglikelihood ≈
+        power_sensitivity.baseline_mean_loglikelihood
+    @test baseline_power_cell.logprior_mean_shift ≈ 0.0 atol = 1e-12
+    @test baseline_power_cell.loglikelihood_mean_shift ≈ 0.0 atol = 1e-12
+    target_power_cell = only(row for row in power_sensitivity.rows
+        if row.prior_power == 0.8 && row.likelihood_power == 1.2)
+    manual_log_weights = [
+        (target_power_cell.prior_power - 1.0) * manual_logprior_draws[index] +
+        (target_power_cell.likelihood_power - 1.0) * manual_loglikelihood_draws[index]
+        for index in eachindex(manual_logprior_draws)
+    ]
+    manual_log_weight_total = test_logsumexp(manual_log_weights)
+    manual_weights = exp.(manual_log_weights .- manual_log_weight_total)
+    manual_weighted_logprior = sum(manual_weights .* manual_logprior_draws)
+    manual_weighted_loglikelihood =
+        sum(manual_weights .* manual_loglikelihood_draws)
+    manual_ess = 1 / sum(weight^2 for weight in manual_weights)
+    @test target_power_cell.log_normalizing_ratio ≈
+        manual_log_weight_total - log(length(loo_indices))
+    @test target_power_cell.effective_sample_size ≈ manual_ess
+    @test target_power_cell.weighted_mean_logprior ≈ manual_weighted_logprior
+    @test target_power_cell.weighted_mean_loglikelihood ≈
+        manual_weighted_loglikelihood
+    @test target_power_cell.logprior_mean_shift ≈
+        manual_weighted_logprior - power_sensitivity.baseline_mean_logprior
+    @test target_power_cell.loglikelihood_mean_shift ≈
+        manual_weighted_loglikelihood -
+        power_sensitivity.baseline_mean_loglikelihood
+    @test power_sensitivity.min_effective_sample_size_observed ≈
+        minimum(row.effective_sample_size for row in power_sensitivity.rows)
+    @test power_sensitivity.max_abs_logprior_mean_shift ≈
+        maximum(row.abs_logprior_mean_shift for row in power_sensitivity.rows)
+    @test power_sensitivity.max_abs_loglikelihood_mean_shift ≈
+        maximum(row.abs_loglikelihood_mean_shift for row in power_sensitivity.rows)
+    high_threshold_power_sensitivity = prior_likelihood_sensitivity(
+        manual_logprior_draws,
+        manual_loglikelihood_draws;
+        prior_powers = [1.0],
+        likelihood_powers = [1.0],
+        min_effective_sample_size = length(loo_indices) + 1)
+    @test high_threshold_power_sensitivity.warning === :low_effective_sample_size
+    @test high_threshold_power_sensitivity.low_effective_sample_size_count == 1
+    @test_throws ArgumentError prior_likelihood_sensitivity([0.0], [0.0])
+    @test_throws ArgumentError prior_likelihood_sensitivity([0.0, 1.0], [0.0])
+    @test_throws ArgumentError prior_likelihood_sensitivity([0.0, Inf], [0.0, 1.0])
+    @test_throws ArgumentError prior_likelihood_sensitivity([0.0, 1.0], [0.0, 1.0];
+        prior_powers = [-0.1])
+    @test_throws ArgumentError prior_likelihood_sensitivity([0.0, 1.0], [0.0, 1.0];
+        likelihood_powers = Float64[])
+    @test_throws ArgumentError prior_likelihood_sensitivity([0.0, 1.0], [0.0, 1.0];
+        min_effective_sample_size = 0)
     custom_sensitivity = sensitivity_comparison(
         :main => result,
         :short => spec_result;

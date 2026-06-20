@@ -354,8 +354,10 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   heldout refit log-likelihood rows, [`compare_kfold`](@ref) summarizes same
   heldout-observation and fold-assignment comparison contracts, and
   [`kfold_sensitivity_comparison`](@ref) records baseline-relative K-fold
-  sensitivity rows for supplied external summaries. Broader exact/refit-managed
-  workflows remain planned.]
+  sensitivity rows for supplied external summaries.
+  [`prior_likelihood_sensitivity`](@ref) records local self-normalized
+  importance-reweighting grids over prior and likelihood powers. Broader
+  exact/refit-managed workflows remain planned.]
 - Add first-class sensitivity comparisons for threshold, discrimination, DFF,
   anchor, dimensionality, and prior choices. [`sensitivity_comparison`](@ref)
   now provides same-data, fit-object sensitivity rows with declared axes,

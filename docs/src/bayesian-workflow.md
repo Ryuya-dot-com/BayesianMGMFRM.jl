@@ -119,12 +119,13 @@ exposes raw importance-sampling [`loo`](@ref), PSIS-smoothed
 [`psis_loo`](@ref), and [`loo_diagnostics`](@ref) with Hill-estimated Pareto-k
 screening plus deterministic heldout fold plans from [`kfold_plan`](@ref),
 fit-supported automatic [`kfold_refit`](@ref), and supplied heldout-refit
-[`kfold`](@ref) / [`compare_kfold`](@ref) summaries, but it does not yet
-perform broad exact-refit management or broad refit-managed cross-validation.
-It also does not yet
-expose power-scaling prior sensitivity, covariate terms, random slopes, broad
-generalized discrimination likelihoods, or MGMFRM fitting beyond the guarded
-fixed-Q confirmatory candidate. Specified-only GMFRM/MGMFRM rows in
+[`kfold`](@ref) / [`compare_kfold`](@ref) summaries, plus local
+prior/likelihood power-scaling grids from
+[`prior_likelihood_sensitivity`](@ref), but it does not yet perform broad
+exact-refit management or broad refit-managed cross-validation. It also does
+not yet expose covariate terms, random slopes, broad generalized
+discrimination likelihoods, or MGMFRM fitting beyond the guarded fixed-Q
+confirmatory candidate. Specified-only GMFRM/MGMFRM rows in
 [`constraint_table`](@ref) and
 [`identification_declarations`](@ref) are provenance and design-review data,
 not fitted likelihood terms.
@@ -133,7 +134,7 @@ Until those pieces are added, treat [`waic`](@ref), [`waic_diagnostics`](@ref),
 [`loo`](@ref), [`psis_loo`](@ref), [`loo_diagnostics`](@ref), [`kfold`](@ref),
 [`kfold_plan`](@ref), [`kfold_refit`](@ref), [`compare_models`](@ref),
 [`compare_kfold`](@ref), [`posterior_predictive_check`](@ref),
-[`calibration_table`](@ref),
+[`calibration_table`](@ref), [`prior_likelihood_sensitivity`](@ref),
 [`fit_stats`](@ref), and [`rater_diagnostics`](@ref) as small-model workflow
 scaffolding rather than a complete production Bayesian model-comparison stack.
 The `relative_weight` returned by
@@ -147,3 +148,6 @@ order and fold assignment order.
 [`sensitivity_comparison`](@ref) uses the same scoring path and adds declared
 axis values plus baseline-relative differences for fit-supported threshold,
 prior, backend, sampler, or custom externally labelled regimes.
+[`prior_likelihood_sensitivity`](@ref) is different: it reweights one fitted
+draw set across prior and likelihood powers and reports effective sample size
+for each local sensitivity cell.
