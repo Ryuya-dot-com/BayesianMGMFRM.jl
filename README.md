@@ -183,6 +183,9 @@ Current public API:
   machine-readable scope, constraint, transform, prior-block, hard/soft anchor,
   and gauge declarations separating fit-supported blocks from specified-only
   future blocks.
+- `release_scope_summary`: a machine-readable release-scope guardrail listing
+  currently enabled fit surfaces, rejected generalized options, and broad claims
+  that remain blocked.
 - `model_equation`: source-traced mathematical contracts for the current MFRM
   slice and the planned GMFRM/MGMFRM targets, including primary-source links,
   required blocks, identification restrictions, and implementation gaps.
