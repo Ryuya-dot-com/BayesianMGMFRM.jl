@@ -308,6 +308,8 @@ Current public API:
 - `loo_diagnostics`: observation-level LOO diagnostics with person, rater,
   item, score, optional facet labels, raw-importance effective sample sizes,
   and Pareto-k flags when fitted objects are supplied.
+- `loo_refit_plan`: deterministic leave-one-observation-out refit plans for
+  exact LOO follow-up, optionally restricted to flagged observations.
 - `facet_response_table`: role-normalized long-format response tables from
   `FacetData`, optionally restricted to selected observation rows such as K-fold
   training or heldout row sets.
