@@ -61,7 +61,7 @@ The following are planned but not yet exposed:
 - modeled DFF/bias effects;
 - multidimensional loading and rotation/gauge machinery beyond the fixed-Q
   identity-correlation candidate;
-- PSIS-smoothed or exact LOO refit orchestration;
+- broader exact LOO refit orchestration;
 - turnkey manuscript report rendering and publication/registration workflows
   beyond the current machine-readable reports and local full-paper archive.
 
@@ -340,8 +340,8 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   optional estimand-specific practical-magnitude probabilities when expected-score
   or logit thresholds are declared]
 - Add PSIS-smoothed or exact/K-fold LOO and prior/likelihood sensitivity.
-  [Raw importance-sampling LOO and Pareto-k diagnostics are available for the
-  current minimal fit path. [`loo_refit_plan`](@ref) constructs deterministic
+  [Raw importance-sampling LOO, PSIS-smoothed LOO, and Pareto-k diagnostics are
+  available for the current minimal fit path. [`loo_refit_plan`](@ref) constructs deterministic
   one-observation-heldout plans for exact LOO follow-up from selected
   observations or Pareto-k flagged raw LOO rows, [`loo_refit`](@ref) executes
   those exact one-row refits for fit-supported MFRM/RSM/PCM specs after
@@ -355,7 +355,7 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   heldout-observation and fold-assignment comparison contracts, and
   [`kfold_sensitivity_comparison`](@ref) records baseline-relative K-fold
   sensitivity rows for supplied external summaries. Broader exact/refit-managed
-  workflows and PSIS smoothing remain planned.]
+  workflows remain planned.]
 - Add first-class sensitivity comparisons for threshold, discrimination, DFF,
   anchor, dimensionality, and prior choices. [`sensitivity_comparison`](@ref)
   now provides same-data, fit-object sensitivity rows with declared axes,

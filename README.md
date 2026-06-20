@@ -305,9 +305,14 @@ Current public API:
   screening diagnostics. This path does not perform PSIS smoothing; high
   Pareto-k rows require exact LOO, K-fold, or other model-specific follow-up
   before strong comparison claims.
+- `psis_loo`: Pareto-smoothed importance-sampling leave-one-out summaries using
+  the package's Hill-estimated tail shape and stabilized importance-ratio
+  truncation. High Pareto-k rows still require exact LOO, K-fold, or other
+  model-specific follow-up before strong comparison claims.
 - `loo_diagnostics`: observation-level LOO diagnostics with person, rater,
-  item, score, optional facet labels, raw-importance effective sample sizes,
-  and Pareto-k flags when fitted objects are supplied.
+  item, score, optional facet labels, importance-sampling effective sample
+  sizes, and Pareto-k flags when fitted objects are supplied. Set
+  `psis_smoothing = true` to diagnose `psis_loo`-style rows.
 - `loo_refit`: exact leave-one-observation-out refit execution for
   fit-supported MFRM/RSM/PCM specs, using `loo_refit_plan` and
   `kfold_plan_diagnostics` before scoring heldout observations.
@@ -332,9 +337,9 @@ Current public API:
   automatic refit slice.
 - `kfold_diagnostics`: observation-level heldout K-fold rows with fold IDs,
   heldout ELPD/K-fold IC contributions, and facet labels when data are supplied.
-- `compare_models`: WAIC- or raw importance-sampling LOO-based comparison rows,
-  including relative weights and model-contract fields, for fitted models that
-  share the same observation data, row order, ordinal categories, latent
+- `compare_models`: WAIC-, raw LOO-, or PSIS-smoothed LOO-based comparison
+  rows, including relative weights and model-contract fields, for fitted models
+  that share the same observation data, row order, ordinal categories, latent
   dimensions, and fixed Q-matrix contract.
 - `compare_kfold`: K-fold comparison rows for `kfold` summaries that share the
   same heldout observation order and fold assignment order.
@@ -349,9 +354,9 @@ Current public API:
   threshold checks, and Stan/Julia ratio rows. They record supplied timings; they
   do not run benchmarks.
 - `sensitivity_comparison`: report-ready sensitivity rows using the same
-  WAIC/LOO scoring path as `compare_models`, plus a declared axis, per-model
-  axis values, baseline labels, and baseline-relative ELPD/information-criterion
-  differences.
+  WAIC/raw-LOO/PSIS-LOO scoring path as `compare_models`, plus a declared axis,
+  per-model axis values, baseline labels, and baseline-relative
+  ELPD/information-criterion differences.
 - `sensitivity_comparison_summary`: coverage summaries for declared
   sensitivity rows across threshold, discrimination, rater-pooling, DFF,
   anchor, dimensionality, and prior-regime axes.
@@ -430,8 +435,8 @@ than repeatedly prefixing function names with the package name.
 
 Not yet implemented in the public API:
 
-- Stan/CmdStan sampling, PSIS-smoothed LOO, generalized exact LOO refit
-  orchestration, or broad refit-managed model-comparison workflows. Automatic
+- Stan/CmdStan sampling, generalized exact LOO refit orchestration, or broad
+  refit-managed model-comparison workflows. Automatic
   K-fold refits are currently limited to the fit-supported MFRM/RSM/PCM slice.
   The AdvancedHMC/NUTS and Turing/NUTS backends are currently limited to the
   minimal MFRM/RSM/PCM design; the guarded experimental GMFRM and

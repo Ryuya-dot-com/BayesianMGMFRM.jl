@@ -88,6 +88,7 @@ pointwise_loglikelihood_matrix
 waic
 waic_diagnostics
 loo
+psis_loo
 loo_diagnostics
 loo_refit
 loo_refit_plan

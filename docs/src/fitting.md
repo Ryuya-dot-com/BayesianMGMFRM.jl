@@ -227,7 +227,7 @@ stabilization. The AdvancedHMC/NUTS and Turing/NUTS backends are
 gradient-based sampler paths for the minimal design; AdvancedHMC also backs the
 guarded experimental GMFRM and fixed-Q MGMFRM candidates, but it is not yet a
 broad GMFRM/MGMFRM fitting backend. The package does not yet expose Stan/CmdStan
-sampling, PSIS-smoothed LOO, or broad refit-managed model-comparison workflows.
+sampling or broad refit-managed model-comparison workflows.
 [`loo_refit_plan`](@ref) constructs deterministic one-observation-heldout
 plans for exact LOO follow-up, optionally restricted to selected observations
 or Pareto-k flagged rows from raw LOO summaries, and [`loo_refit`](@ref)
@@ -351,13 +351,16 @@ objects can be summarized on either direct or raw coordinates.
 without depending on a specific plotting library.
 `waic` computes WAIC from posterior pointwise log-likelihood draws, and
 `waic_diagnostics` reports the observation-level WAIC components and flags
-high-variance rows. `compare_models` ranks fitted models by WAIC-derived
-expected log predictive density, including an Akaike-style `relative_weight`
-for same-data candidate models. Because the comparison uses pointwise
-differences, `compare_models` requires the same observation data in the same
-row order, ordinal category levels, latent dimensionality, and fixed Q-matrix
-contract; returned rows include the checked model family, thresholds,
-discrimination mode, dimensionality, Q-matrix, and data signature.
+high-variance rows. `loo` computes raw importance-sampling LOO, while
+`psis_loo` applies Pareto smoothing to the largest importance ratios before
+computing the self-normalized LOO log score. `compare_models` ranks fitted
+models by WAIC-, raw-LOO-, or PSIS-LOO-derived expected log predictive density,
+including an Akaike-style `relative_weight` for same-data candidate models.
+Because the comparison uses pointwise differences, `compare_models` requires
+the same observation data in the same row order, ordinal category levels,
+latent dimensionality, and fixed Q-matrix contract; returned rows include the
+checked model family, thresholds, discrimination mode, dimensionality,
+Q-matrix, and data signature.
 `loo_refit_plan` constructs deterministic one-observation-heldout plans for
 exact LOO follow-up, optionally restricted to selected observations or Pareto-k
 flagged rows from raw LOO summaries.

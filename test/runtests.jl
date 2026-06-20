@@ -96,6 +96,7 @@ using BayesianMGMFRM:
     posterior_predict,
     posterior_predictive_check,
     posterior_summary,
+    psis_loo,
     predictive_check_summary,
     predictive_check_plot_data,
     predictive_probabilities,
@@ -6247,7 +6248,7 @@ end
             :fit_ready_parameter_layout, :fit_stats,
             :identification_declarations,
             :initial_params, :loglikelihood, :logposterior, :logprior,
-            :kfold, :loo, :loo_diagnostics,
+            :kfold, :loo, :psis_loo, :loo_diagnostics,
             :linear_predictor_table, :linear_predictor_values,
             :calibration_table, :diagnostics,
             :comparison_evidence_row, :comparison_evidence_summary,
@@ -11675,6 +11676,60 @@ end
     @test_throws ArgumentError loo(loo_loglik; tail_fraction = 1.0)
     @test_throws ArgumentError loo(loo_loglik; min_tail_draws = 0)
 
+    psis_result = psis_loo(result; draw_indices = loo_indices)
+    @test psis_result.criterion === :loo
+    @test psis_result.method === :pareto_smoothed_importance_sampling
+    @test psis_result.psis_smoothing === true
+    @test psis_result.pareto_k_estimator === :hill_log_tail
+    @test psis_result.n_draws == length(loo_indices)
+    @test psis_result.n_observations == data.n
+    @test psis_result.pareto_k_threshold == 0.7
+    @test psis_result.tail_fraction == 0.2
+    @test psis_result.min_tail_draws == 5
+    @test psis_result.pointwise.lppd ≈ manual_loo_lppd
+    @test psis_result.pointwise.p_loo ≈
+        psis_result.pointwise.lppd .- psis_result.pointwise.elpd_loo
+    @test psis_result.pointwise.looic ≈ -2 .* psis_result.pointwise.elpd_loo
+    @test psis_result.lppd ≈ sum(manual_loo_lppd)
+    @test psis_result.p_loo ≈ sum(psis_result.pointwise.p_loo)
+    @test psis_result.elpd_loo ≈ sum(psis_result.pointwise.elpd_loo)
+    @test psis_result.looic ≈ sum(psis_result.pointwise.looic)
+    @test psis_result.looic ≈ -2 * psis_result.elpd_loo
+    @test psis_result.se_looic ≈ 2 * psis_result.se_elpd_loo
+    @test psis_result.pointwise.pareto_k ≈ loo_result.pointwise.pareto_k
+    @test all(isfinite, psis_result.pointwise.elpd_loo)
+    @test all(isfinite, psis_result.pointwise.pareto_k)
+    @test all(k -> k >= 0, psis_result.pointwise.pareto_k)
+    @test all(ess -> 1 <= ess <= psis_result.n_draws,
+        psis_result.pointwise.effective_sample_size)
+    @test all(draws -> 1 <= draws <= psis_result.n_draws - 1,
+        psis_result.pointwise.tail_draws)
+    @test psis_result.bad_pareto_k_count ==
+        count(>(psis_result.pareto_k_threshold), psis_result.pointwise.pareto_k)
+    @test psis_result.max_pareto_k == maximum(psis_result.pointwise.pareto_k)
+    @test psis_result.min_effective_sample_size ==
+        minimum(psis_result.pointwise.effective_sample_size)
+    @test psis_result.warning in (:ok, :high_pareto_k)
+    @test psis_loo(design, result.draws[loo_indices, :]).looic ≈
+        psis_result.looic
+    @test psis_loo(loo_loglik).looic ≈ psis_result.looic
+    constant_loglik = fill(-1.2, length(loo_indices), 2)
+    constant_raw_loo = loo(constant_loglik)
+    constant_psis_loo = psis_loo(constant_loglik)
+    @test constant_psis_loo.pointwise.elpd_loo ≈
+        constant_raw_loo.pointwise.elpd_loo
+    @test all(isapprox.(constant_psis_loo.pointwise.p_loo,
+        constant_raw_loo.pointwise.p_loo; atol = eps()))
+    @test all(iszero, constant_psis_loo.pointwise.pareto_k)
+    @test_throws ArgumentError psis_loo(result; ndraws = 2)
+    @test_throws ArgumentError psis_loo(result; ndraws = 3, draw_indices = [1])
+    @test_throws ArgumentError psis_loo(design, result.draws[loo_indices, 1:end-1])
+    @test_throws ArgumentError psis_loo(llmat[1:2, :])
+    @test_throws ArgumentError psis_loo([0.0 Inf; 1.0 2.0; 1.0 2.0])
+    @test_throws ArgumentError psis_loo(loo_loglik; pareto_k_threshold = -0.1)
+    @test_throws ArgumentError psis_loo(loo_loglik; tail_fraction = 1.0)
+    @test_throws ArgumentError psis_loo(loo_loglik; min_tail_draws = 0)
+
     loo_plan = loo_refit_plan(data)
     @test loo_plan.schema == "bayesianmgmfrm.loo_refit_plan.v1"
     @test loo_plan.object === :loo_refit_plan
@@ -12399,6 +12454,25 @@ end
     @test [row.pareto_k for row in loglik_loo_rows] ≈
         loo_result.pointwise.pareto_k
     @test !hasproperty(loglik_loo_rows[1], :person)
+    psis_loo_rows = loo_diagnostics(result;
+        draw_indices = loo_indices,
+        psis_smoothing = true)
+    @test length(psis_loo_rows) == data.n
+    @test all(row -> row.criterion === :loo, psis_loo_rows)
+    @test all(row -> row.method === :pareto_smoothed_importance_sampling,
+        psis_loo_rows)
+    @test all(row -> row.psis_smoothing === true, psis_loo_rows)
+    @test [row.lppd for row in psis_loo_rows] ≈ psis_result.pointwise.lppd
+    @test [row.p_loo for row in psis_loo_rows] ≈ psis_result.pointwise.p_loo
+    @test [row.elpd_loo for row in psis_loo_rows] ≈
+        psis_result.pointwise.elpd_loo
+    @test [row.looic for row in psis_loo_rows] ≈ psis_result.pointwise.looic
+    @test [row.pareto_k for row in psis_loo_rows] ≈
+        psis_result.pointwise.pareto_k
+    @test [row.effective_sample_size for row in psis_loo_rows] ≈
+        psis_result.pointwise.effective_sample_size
+    @test all(row -> row.flag ===
+        (row.pareto_k > 0.7 ? :high_pareto_k : :ok), psis_loo_rows)
     @test_throws ArgumentError loo_diagnostics(result; threshold = -0.1)
     @test_throws ArgumentError loo_diagnostics(llmat[1:2, :])
 
@@ -12656,6 +12730,33 @@ end
         [row.model for row in loo_comparison]
     @test [row.looic for row in pair_loo_comparison] ≈
         [row.looic for row in loo_comparison]
+    psis_comparison = compare_models(result, hmc_result;
+        names = [:main, :hmc],
+        criterion = :psis_loo,
+        draw_indices = loo_indices)
+    psis_comparison_stats = Dict(
+        "main" => psis_loo(result; draw_indices = loo_indices),
+        "hmc" => psis_loo(hmc_result; draw_indices = loo_indices),
+    )
+    @test length(psis_comparison) == 2
+    @test [row.rank for row in psis_comparison] == [1, 2]
+    @test all(row -> row.criterion === :loo, psis_comparison)
+    @test all(row -> row.method === :pareto_smoothed_importance_sampling,
+        psis_comparison)
+    @test all(row -> row.psis_smoothing === true, psis_comparison)
+    @test sum(row.relative_weight for row in psis_comparison) ≈ 1.0
+    best_psis_stat = psis_comparison_stats[psis_comparison[1].model]
+    for row in psis_comparison
+        stat = psis_comparison_stats[row.model]
+        @test row.elpd_loo ≈ stat.elpd_loo
+        @test row.elpd_difference ≈ stat.elpd_loo - best_psis_stat.elpd_loo
+        @test row.looic ≈ stat.looic
+        @test row.looic_difference ≈ stat.looic - best_psis_stat.looic
+        @test row.p_loo ≈ stat.p_loo
+        @test row.max_pareto_k ≈ stat.max_pareto_k
+        @test row.bad_pareto_k_count == stat.bad_pareto_k_count
+        @test row.min_effective_sample_size ≈ stat.min_effective_sample_size
+    end
     loo_sensitivity = sensitivity_comparison(:main => result, :hmc => hmc_result;
         axis = :sampler,
         baseline = :main,
@@ -12671,6 +12772,22 @@ end
         loo_sensitivity_candidate.elpd_loo - loo_sensitivity_baseline.elpd_loo
     @test loo_sensitivity_candidate.information_criterion_difference_from_baseline ≈
         loo_sensitivity_candidate.looic - loo_sensitivity_baseline.looic
+    psis_sensitivity = sensitivity_comparison(:main => result, :hmc => hmc_result;
+        axis = :sampler,
+        baseline = :main,
+        criterion = :psis_loo,
+        draw_indices = loo_indices)
+    psis_sensitivity_baseline = only(filter(row -> row.model == "main",
+        psis_sensitivity))
+    psis_sensitivity_candidate = only(filter(row -> row.model == "hmc",
+        psis_sensitivity))
+    @test all(row -> row.method === :pareto_smoothed_importance_sampling,
+        psis_sensitivity)
+    @test all(row -> row.psis_smoothing === true, psis_sensitivity)
+    @test psis_sensitivity_candidate.elpd_difference_from_baseline ≈
+        psis_sensitivity_candidate.elpd_loo - psis_sensitivity_baseline.elpd_loo
+    @test psis_sensitivity_candidate.information_criterion_difference_from_baseline ≈
+        psis_sensitivity_candidate.looic - psis_sensitivity_baseline.looic
     @test_throws ArgumentError compare_models(result; names = [:single])
     @test_throws ArgumentError compare_models(result, spec_result; names = [:only])
     @test_throws ArgumentError compare_models(result, spec_result; names = [:dup, :dup])

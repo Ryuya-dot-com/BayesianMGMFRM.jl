@@ -6696,6 +6696,60 @@ function _raw_importance_effective_sample_size(log_ratios::AbstractVector{Float6
     return 1 / sum_squared
 end
 
+function _self_normalized_importance_log_score(
+        loglik_values::AbstractVector,
+        log_ratios::AbstractVector{Float64})
+    length(loglik_values) == length(log_ratios) ||
+        throw(ArgumentError("loglik_values and log_ratios must have the same length"))
+    log_weight_total = _logsumexp(log_ratios)
+    weighted_terms = Vector{Float64}(undef, length(log_ratios))
+    for draw in eachindex(log_ratios)
+        weighted_terms[draw] =
+            Float64(loglik_values[draw]) + log_ratios[draw] - log_weight_total
+    end
+    return _logsumexp(weighted_terms)
+end
+
+function _truncate_importance_log_ratios!(log_ratios::Vector{Float64})
+    n = length(log_ratios)
+    cap = 0.75 * log(n) + _logmeanexp(log_ratios)
+    for draw in eachindex(log_ratios)
+        log_ratios[draw] = min(log_ratios[draw], cap)
+    end
+    return log_ratios
+end
+
+function _pareto_smoothed_log_ratios(log_ratios::AbstractVector{Float64},
+        tail_draws::Int)
+    n = length(log_ratios)
+    1 <= tail_draws < n ||
+        throw(ArgumentError("tail_draws must be between 1 and length(log_ratios) - 1"))
+    order = sortperm(log_ratios)
+    sorted = Vector{Float64}(undef, n)
+    for rank in 1:n
+        sorted[rank] = log_ratios[order[rank]]
+    end
+
+    threshold_index = n - tail_draws
+    threshold = sorted[threshold_index]
+    pareto_k = _hill_log_tail_pareto_k(log_ratios, tail_draws)
+    smoothed_sorted = copy(sorted)
+    for tail_rank in 1:tail_draws
+        probability = (tail_rank - 0.5) / tail_draws
+        smoothed_sorted[threshold_index + tail_rank] =
+            pareto_k == 0 ? threshold : threshold - pareto_k * log1p(-probability)
+    end
+    for rank in (threshold_index + 1):n
+        smoothed_sorted[rank] = max(smoothed_sorted[rank], smoothed_sorted[rank - 1])
+    end
+
+    smoothed = Vector{Float64}(undef, n)
+    for rank in 1:n
+        smoothed[order[rank]] = smoothed_sorted[rank]
+    end
+    return _truncate_importance_log_ratios!(smoothed), pareto_k
+end
+
 function _loo_diagnostic_flag(pareto_k::Float64, threshold::Float64)
     return pareto_k > threshold ? :high_pareto_k : :ok
 end
@@ -6828,6 +6882,141 @@ function loo(fit::MGMFRMFit;
         kwargs...)
     indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
     return loo(fit.direct_pointwise_loglikelihood[indices, :]; kwargs...)
+end
+
+"""
+    psis_loo(fit::MFRMFit; ndraws = nothing, draw_indices = nothing,
+        rng = Random.default_rng(), pareto_k_threshold = 0.7,
+        tail_fraction = 0.2, min_tail_draws = 5)
+    psis_loo(design::FacetDesign, draws; kwargs...)
+    psis_loo(loglik::AbstractMatrix; kwargs...)
+
+Compute a Pareto-smoothed importance-sampling leave-one-out (PSIS-LOO)
+estimate from posterior pointwise log-likelihood draws. The log-likelihood
+matrix must have dimensions draws-by-observations. The returned named tuple
+uses the same LOO schema as [`loo`](@ref), with `method =
+:pareto_smoothed_importance_sampling` and `psis_smoothing = true`.
+
+The smoother replaces the largest raw importance ratios with Pareto expected
+order statistics using the package's Hill-estimated tail shape, then applies
+the usual finite-draw importance-ratio truncation. Observations whose
+`pareto_k` exceeds `pareto_k_threshold` should still be treated as unstable and
+followed by exact LOO, K-fold cross-validation, or model-specific review before
+strong comparison claims.
+"""
+function psis_loo(loglik::AbstractMatrix;
+        pareto_k_threshold::Real = 0.7,
+        tail_fraction::Real = 0.2,
+        min_tail_draws::Int = 5)
+    controls = _check_loo_controls(;
+        pareto_k_threshold,
+        tail_fraction,
+        min_tail_draws)
+    n_draws, n_observations = size(loglik)
+    n_draws >= 3 || throw(ArgumentError("LOO requires at least three posterior draws"))
+    n_observations >= 1 || throw(ArgumentError("LOO requires at least one observation"))
+    all(value -> isfinite(Float64(value)), loglik) ||
+        throw(ArgumentError("loglik contains non-finite values"))
+    tail_draws = _loo_tail_draws(
+        n_draws,
+        controls.tail_fraction,
+        controls.min_tail_draws,
+    )
+
+    point_lppd = Vector{Float64}(undef, n_observations)
+    point_elpd = Vector{Float64}(undef, n_observations)
+    point_p_loo = Vector{Float64}(undef, n_observations)
+    point_looic = Vector{Float64}(undef, n_observations)
+    point_pareto_k = Vector{Float64}(undef, n_observations)
+    point_ess = Vector{Float64}(undef, n_observations)
+    point_tail_draws = fill(tail_draws, n_observations)
+
+    log_ratios = Vector{Float64}(undef, n_draws)
+    for observation in 1:n_observations
+        values = @view loglik[:, observation]
+        point_lppd[observation] = _logmeanexp(values)
+        for draw in 1:n_draws
+            log_ratios[draw] = -Float64(loglik[draw, observation])
+        end
+        smoothed_log_ratios, pareto_k =
+            _pareto_smoothed_log_ratios(log_ratios, tail_draws)
+        point_elpd[observation] =
+            _self_normalized_importance_log_score(values, smoothed_log_ratios)
+        point_p_loo[observation] =
+            point_lppd[observation] - point_elpd[observation]
+        point_looic[observation] = -2 * point_elpd[observation]
+        point_pareto_k[observation] = pareto_k
+        point_ess[observation] =
+            _raw_importance_effective_sample_size(smoothed_log_ratios)
+    end
+
+    elpd_loo = sum(point_elpd)
+    p_loo = sum(point_p_loo)
+    lppd = sum(point_lppd)
+    looic_value = sum(point_looic)
+    bad_pareto_k_count = count(>(controls.pareto_k_threshold), point_pareto_k)
+    min_effective_sample_size = minimum(point_ess)
+    return (;
+        criterion = :loo,
+        method = :pareto_smoothed_importance_sampling,
+        psis_smoothing = true,
+        pareto_k_estimator = :hill_log_tail,
+        elpd_loo,
+        p_loo,
+        lppd,
+        looic = looic_value,
+        se_elpd_loo = _pointwise_se(point_elpd),
+        se_looic = _pointwise_se(point_looic),
+        pointwise = (;
+            elpd_loo = point_elpd,
+            p_loo = point_p_loo,
+            lppd = point_lppd,
+            looic = point_looic,
+            pareto_k = point_pareto_k,
+            effective_sample_size = point_ess,
+            tail_draws = point_tail_draws,
+        ),
+        n_draws,
+        n_observations,
+        pareto_k_threshold = controls.pareto_k_threshold,
+        tail_fraction = controls.tail_fraction,
+        min_tail_draws = controls.min_tail_draws,
+        bad_pareto_k_count,
+        max_pareto_k = maximum(point_pareto_k),
+        min_effective_sample_size,
+        warning = bad_pareto_k_count == 0 ? :ok : :high_pareto_k,
+    )
+end
+
+function psis_loo(design::FacetDesign, draws::AbstractMatrix; kwargs...)
+    return psis_loo(pointwise_loglikelihood_matrix(design, draws); kwargs...)
+end
+
+function psis_loo(fit::MFRMFit;
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng(),
+        kwargs...)
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    return psis_loo(fit.design, fit.draws[indices, :]; kwargs...)
+end
+
+function psis_loo(fit::GMFRMFit;
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng(),
+        kwargs...)
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    return psis_loo(fit.direct_pointwise_loglikelihood[indices, :]; kwargs...)
+end
+
+function psis_loo(fit::MGMFRMFit;
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng(),
+        kwargs...)
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    return psis_loo(fit.direct_pointwise_loglikelihood[indices, :]; kwargs...)
 end
 
 function _check_kfold_loglik(loglik::AbstractMatrix, fold_index::Int)
@@ -8129,30 +8318,41 @@ end
 """
     loo_diagnostics(fit::MFRMFit; threshold = 0.7, only_flagged = false,
         ndraws = nothing, draw_indices = nothing, rng = Random.default_rng(),
-        tail_fraction = 0.2, min_tail_draws = 5)
+        tail_fraction = 0.2, min_tail_draws = 5, psis_smoothing = false)
     loo_diagnostics(design::FacetDesign, draws; threshold = 0.7,
-        only_flagged = false, tail_fraction = 0.2, min_tail_draws = 5)
+        only_flagged = false, tail_fraction = 0.2, min_tail_draws = 5,
+        psis_smoothing = false)
     loo_diagnostics(loglik::AbstractMatrix; threshold = 0.7,
-        only_flagged = false, tail_fraction = 0.2, min_tail_draws = 5)
+        only_flagged = false, tail_fraction = 0.2, min_tail_draws = 5,
+        psis_smoothing = false)
 
-Return observation-level raw importance-sampling LOO diagnostics. Rows include
-pointwise `lppd`, `p_loo`, `elpd_loo`, LOOIC contribution, raw-importance
-effective sample size, a Hill-estimated `pareto_k`, and a flag for observations
-whose `pareto_k` exceeds `threshold`. When a `FacetDesign` or `MFRMFit` is
-supplied, rows also include person, rater, item, score, category, and optional
-facet labels.
+Return observation-level LOO diagnostics. Rows include
+pointwise `lppd`, `p_loo`, `elpd_loo`, LOOIC contribution,
+importance-sampling effective sample size, a Hill-estimated `pareto_k`, and a
+flag for observations whose `pareto_k` exceeds `threshold`. When a
+`FacetDesign` or `MFRMFit` is supplied, rows also include person, rater, item,
+score, category, and optional facet labels. Set `psis_smoothing = true` to
+report diagnostics from [`psis_loo`](@ref) instead of raw importance-sampling
+[`loo`](@ref).
 """
 function loo_diagnostics(loglik::AbstractMatrix;
         threshold::Real = 0.7,
         only_flagged::Bool = false,
         tail_fraction::Real = 0.2,
-        min_tail_draws::Int = 5)
+        min_tail_draws::Int = 5,
+        psis_smoothing::Bool = false)
     checked_threshold = _check_loo_threshold(threshold)
-    return _loo_diagnostics_rows(
+    stat = psis_smoothing ?
+        psis_loo(loglik;
+            pareto_k_threshold = checked_threshold,
+            tail_fraction,
+            min_tail_draws) :
         loo(loglik;
             pareto_k_threshold = checked_threshold,
             tail_fraction,
-            min_tail_draws);
+            min_tail_draws)
+    return _loo_diagnostics_rows(
+        stat;
         threshold = checked_threshold,
         only_flagged)
 end
@@ -8162,14 +8362,21 @@ function loo_diagnostics(design::FacetDesign,
         threshold::Real = 0.7,
         only_flagged::Bool = false,
         tail_fraction::Real = 0.2,
-        min_tail_draws::Int = 5)
+        min_tail_draws::Int = 5,
+        psis_smoothing::Bool = false)
     checked_threshold = _check_loo_threshold(threshold)
-    return _loo_diagnostics_rows(
-        design,
+    stat = psis_smoothing ?
+        psis_loo(design, draws;
+            pareto_k_threshold = checked_threshold,
+            tail_fraction,
+            min_tail_draws) :
         loo(design, draws;
             pareto_k_threshold = checked_threshold,
             tail_fraction,
-            min_tail_draws);
+            min_tail_draws)
+    return _loo_diagnostics_rows(
+        design,
+        stat;
         threshold = checked_threshold,
         only_flagged)
 end
@@ -8181,15 +8388,22 @@ function loo_diagnostics(fit::MFRMFit;
         draw_indices = nothing,
         rng::AbstractRNG = Random.default_rng(),
         tail_fraction::Real = 0.2,
-        min_tail_draws::Int = 5)
+        min_tail_draws::Int = 5,
+        psis_smoothing::Bool = false)
     checked_threshold = _check_loo_threshold(threshold)
     indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
-    return _loo_diagnostics_rows(
-        fit.design,
+    stat = psis_smoothing ?
+        psis_loo(fit.design, fit.draws[indices, :];
+            pareto_k_threshold = checked_threshold,
+            tail_fraction,
+            min_tail_draws) :
         loo(fit.design, fit.draws[indices, :];
             pareto_k_threshold = checked_threshold,
             tail_fraction,
-            min_tail_draws);
+            min_tail_draws)
+    return _loo_diagnostics_rows(
+        fit.design,
+        stat;
         threshold = checked_threshold,
         only_flagged)
 end
@@ -8201,15 +8415,22 @@ function loo_diagnostics(fit::GMFRMFit;
         draw_indices = nothing,
         rng::AbstractRNG = Random.default_rng(),
         tail_fraction::Real = 0.2,
-        min_tail_draws::Int = 5)
+        min_tail_draws::Int = 5,
+        psis_smoothing::Bool = false)
     checked_threshold = _check_loo_threshold(threshold)
     indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
-    return _loo_diagnostics_rows(
-        fit.design,
+    stat = psis_smoothing ?
+        psis_loo(fit.direct_pointwise_loglikelihood[indices, :];
+            pareto_k_threshold = checked_threshold,
+            tail_fraction,
+            min_tail_draws) :
         loo(fit.direct_pointwise_loglikelihood[indices, :];
             pareto_k_threshold = checked_threshold,
             tail_fraction,
-            min_tail_draws);
+            min_tail_draws)
+    return _loo_diagnostics_rows(
+        fit.design,
+        stat;
         threshold = checked_threshold,
         only_flagged)
 end
@@ -8221,15 +8442,22 @@ function loo_diagnostics(fit::MGMFRMFit;
         draw_indices = nothing,
         rng::AbstractRNG = Random.default_rng(),
         tail_fraction::Real = 0.2,
-        min_tail_draws::Int = 5)
+        min_tail_draws::Int = 5,
+        psis_smoothing::Bool = false)
     checked_threshold = _check_loo_threshold(threshold)
     indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
-    return _loo_diagnostics_rows(
-        fit.design,
+    stat = psis_smoothing ?
+        psis_loo(fit.direct_pointwise_loglikelihood[indices, :];
+            pareto_k_threshold = checked_threshold,
+            tail_fraction,
+            min_tail_draws) :
         loo(fit.direct_pointwise_loglikelihood[indices, :];
             pareto_k_threshold = checked_threshold,
             tail_fraction,
-            min_tail_draws);
+            min_tail_draws)
+    return _loo_diagnostics_rows(
+        fit.design,
+        stat;
         threshold = checked_threshold,
         only_flagged)
 end
@@ -8411,8 +8639,8 @@ function compare_kfold(models::Pair...)
 end
 
 function _compare_criterion(criterion::Symbol)
-    criterion in (:waic, :loo) ||
-        throw(ArgumentError("criterion must be :waic or :loo"))
+    criterion in (:waic, :loo, :psis_loo) ||
+        throw(ArgumentError("criterion must be :waic, :loo, or :psis_loo"))
     return criterion
 end
 
@@ -8617,13 +8845,16 @@ function _compare_models_loo(fits::AbstractVector{<:_ModelComparisonFit},
         labels::AbstractVector{<:AbstractString};
         ndraws::Union{Nothing,Int} = nothing,
         draw_indices = nothing,
-        rng::AbstractRNG = Random.default_rng())
+        rng::AbstractRNG = Random.default_rng(),
+        psis_smoothing::Bool = false)
     length(fits) >= 2 || throw(ArgumentError("at least two models are required"))
     length(labels) == length(fits) ||
         throw(ArgumentError("labels has length $(length(labels)); expected $(length(fits))"))
     contracts = [_model_comparison_contract(fit) for fit in fits]
     _require_model_comparison_compatibility(contracts)
-    stats = [loo(fit; ndraws, draw_indices, rng) for fit in fits]
+    stats = psis_smoothing ?
+        [psis_loo(fit; ndraws, draw_indices, rng) for fit in fits] :
+        [loo(fit; ndraws, draw_indices, rng) for fit in fits]
     return _loo_comparison_rows(labels, stats, contracts)
 end
 
@@ -8647,13 +8878,16 @@ function _sensitivity_compare_models_loo(fits::AbstractVector{<:_ModelComparison
         axis::Symbol;
         ndraws::Union{Nothing,Int} = nothing,
         draw_indices = nothing,
-        rng::AbstractRNG = Random.default_rng())
+        rng::AbstractRNG = Random.default_rng(),
+        psis_smoothing::Bool = false)
     length(fits) >= 2 || throw(ArgumentError("at least two models are required"))
     length(labels) == length(fits) ||
         throw(ArgumentError("labels has length $(length(labels)); expected $(length(fits))"))
     contracts = [_model_comparison_contract(fit) for fit in fits]
     _require_sensitivity_comparison_compatibility(contracts, axis)
-    stats = [loo(fit; ndraws, draw_indices, rng) for fit in fits]
+    stats = psis_smoothing ?
+        [psis_loo(fit; ndraws, draw_indices, rng) for fit in fits] :
+        [loo(fit; ndraws, draw_indices, rng) for fit in fits]
     return _loo_comparison_rows(labels, stats, contracts)
 end
 
@@ -8663,17 +8897,20 @@ end
     compare_models(models::Pair...; criterion = :waic, ndraws = nothing,
         draw_indices = nothing, rng = Random.default_rng())
 
-Compare fitted models with WAIC (`criterion = :waic`) or raw
-importance-sampling LOO (`criterion = :loo`). MFRM, scalar GMFRM, and internal
-guarded MGMFRM fit objects can be compared when they share the same observation
-data, row order, ordinal category levels, latent dimensionality, and fixed
-Q-matrix contract. Rows are sorted by expected log predictive density in
-descending order. `elpd_difference` is relative to the best model and is
-therefore zero for the top row and non-positive for lower-ranked rows.
-`relative_weight` is a normalized Akaike-style weight computed from the
-selected expected log predictive density values. Each row carries the model
-family, thresholds, discrimination mode, dimensionality, Q-matrix, and data
-signature used by the compatibility check.
+Compare fitted models with WAIC (`criterion = :waic`), raw
+importance-sampling LOO (`criterion = :loo`), or PSIS-smoothed LOO
+(`criterion = :psis_loo`). MFRM, scalar GMFRM, and internal guarded MGMFRM fit
+objects can be compared when they share the same observation data, row order,
+ordinal category levels, latent dimensionality, and fixed Q-matrix contract.
+PSIS-smoothed comparison rows keep `criterion = :loo` and are identified by
+`method = :pareto_smoothed_importance_sampling` and `psis_smoothing = true`.
+Rows are sorted by expected log predictive density in descending order.
+`elpd_difference` is relative to the best model and is therefore zero for the
+top row and non-positive for lower-ranked rows. `relative_weight` is a
+normalized Akaike-style weight computed from the selected expected log
+predictive density values. Each row carries the model family, thresholds,
+discrimination mode, dimensionality, Q-matrix, and data signature used by the
+compatibility check.
 """
 function compare_models(fits::_ModelComparisonFit...;
         names = nothing,
@@ -8686,7 +8923,11 @@ function compare_models(fits::_ModelComparisonFit...;
     collected_fits = _ModelComparisonFit[fits...]
     return checked_criterion === :waic ?
         _compare_models_waic(collected_fits, labels; ndraws, draw_indices, rng) :
-        _compare_models_loo(collected_fits, labels; ndraws, draw_indices, rng)
+        _compare_models_loo(collected_fits, labels;
+            ndraws,
+            draw_indices,
+            rng,
+            psis_smoothing = checked_criterion === :psis_loo)
 end
 
 function compare_models(models::Pair...;
@@ -8706,7 +8947,11 @@ function compare_models(models::Pair...;
     _compare_model_names(labels, length(labels))
     return checked_criterion === :waic ?
         _compare_models_waic(fits, labels; ndraws, draw_indices, rng) :
-        _compare_models_loo(fits, labels; ndraws, draw_indices, rng)
+        _compare_models_loo(fits, labels;
+            ndraws,
+            draw_indices,
+            rng,
+            psis_smoothing = checked_criterion === :psis_loo)
 end
 
 function _sensitivity_axis(axis::Symbol)
@@ -8888,7 +9133,10 @@ function _sensitivity_comparison(fits::AbstractVector{<:_ModelComparisonFit},
         _sensitivity_compare_models_waic(fits, labels, checked_axis;
             ndraws, draw_indices, rng) :
         _sensitivity_compare_models_loo(fits, labels, checked_axis;
-            ndraws, draw_indices, rng)
+            ndraws,
+            draw_indices,
+            rng,
+            psis_smoothing = checked_criterion === :psis_loo)
     return _sensitivity_comparison_rows(
         comparison_rows,
         checked_axis,
@@ -8906,9 +9154,9 @@ end
         draw_indices = nothing, rng = Random.default_rng())
 
 Return report-ready sensitivity comparison rows for already fitted candidate
-models. The function uses the same WAIC and raw-importance LOO scoring rows as
-[`compare_models`](@ref), while applying sensitivity-specific compatibility
-checks. Additional columns identify the requested
+models. The function uses the same WAIC, raw-importance LOO, or PSIS-smoothed
+LOO scoring rows as [`compare_models`](@ref), while applying
+sensitivity-specific compatibility checks. Additional columns identify the requested
 `sensitivity_axis`, the per-model `sensitivity_value`, the baseline model and
 value, and expected-log-predictive-density and information-criterion
 differences relative to that baseline.
