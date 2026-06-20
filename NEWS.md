@@ -3,7 +3,8 @@
 ## Unreleased
 
 - Clarify that the current public package is a data validation, design, and
-  minimal MFRM fitting scaffold, not a full GMFRM/MGMFRM fitting API.
+  minimal MFRM fitting scaffold with guarded scalar GMFRM and fixed-Q
+  confirmatory MGMFRM experiments, not a full GMFRM/MGMFRM fitting API.
 - Introduce `validate_design` / `ValidationReport` as the public terminology for
   pre-fit design checks.
 - Preserve requested DFF/bias validation evidence in `mfrm_spec`.
@@ -25,28 +26,34 @@
 - Add a local confirmatory MGMFRM guarded fit method-wiring generator and
   committed JSON artifact that records the source-aligned target,
   raw-to-direct transform, sampler protocol, artifact-contract preview, fixture
-  hashes, and current public-fit rejection checks while keeping the MGMFRM
-  entrypoint disabled.
+  hashes, and then-current public-fit rejection checks while the MGMFRM
+  entrypoint was still disabled.
 - Add a local confirmatory MGMFRM guarded fit validation-grid generator and
   committed JSON artifact that aggregates bridge-oracle, candidate-chain,
   recovery-smoke, baseline-comparison, sparse-recovery, and method-wiring
-  evidence while keeping the MGMFRM entrypoint disabled and advancing the next
-  local blocker to a guarded fit API dry-run.
+  evidence from the pre-exposure state and advances the next local blocker to
+  a guarded fit API dry-run.
 - Add a local confirmatory MGMFRM guarded fit API dry-run generator and
-  committed JSON artifact that records current public-fit rejections, the
+  committed JSON artifact that records pre-exposure public-fit rejections, the
   artifact contract, validation-grid evidence, and AD/finite-difference checks
-  for the internal source-aligned target while keeping public exposure blocked
-  until review.
+  for the internal source-aligned target before public exposure review.
 - Add a local confirmatory MGMFRM guarded fit public exposure-review generator
   and committed JSON artifact that reviews the internal MGMFRM guarded-fit
-  evidence, keeps the MGMFRM entrypoint disabled, and advances the remaining
-  blocker to prediction-target/model-weight policy without publication or
-  registration action.
+  evidence, kept the MGMFRM entrypoint disabled at that gate, and advanced the
+  remaining blocker to prediction-target/model-weight policy without
+  publication or registration action.
 - Add a local prediction-target/model-weight policy generator and committed JSON
-  artifact that keeps same-observation WAIC and raw PSIS/LOO diagnostic-only,
-  selects heldout K-fold log score for local scalar model-weight reporting, and
-  keeps MGMFRM fit and sparse-superiority claims blocked until manual
-  public-scope review.
+  artifact that recorded same-observation WAIC and raw PSIS/LOO as
+  diagnostic-only, selected heldout K-fold log score for local scalar
+  model-weight reporting, and kept MGMFRM fit, model-weight, and
+  sparse-superiority claims blocked at that gate until manual public-scope
+  review.
+- Add `MGMFRMFit` and expose the fixed-Q two-dimensional confirmatory MGMFRM
+  candidate through `fit(spec; experimental = true)` as a guarded experimental
+  public path with metadata, diagnostics, fit artifacts, WAIC/LOO inputs, and
+  unsupported-option rejection checks while keeping exploratory loadings, free
+  latent correlations, higher dimensions, model-weight claims, and
+  sparse-superiority claims blocked.
 - Add `scripts/generate_validation_plan.jl`, a deterministic validation-plan
   artifact generator that records simulation-grid controls, coverage summaries,
   falsification-rule coverage, and content hashes without running simulations or
@@ -266,11 +273,11 @@
 - Add a local confirmatory MGMFRM recovery-smoke generator and committed JSON
   artifact that simulates a full-crossed fixed-Q dataset, samples the internal
   raw target, transforms draws to the direct scale, and reports recovery by
-  parameter block while keeping MGMFRM fitting private.
+  parameter block while MGMFRM fitting was private.
 - Add a local confirmatory MGMFRM baseline-comparison generator and committed
   JSON artifact that compares the internal fixed-Q candidate with public
   MFRM/PCM/RSM baselines on the same recovery-smoke observations, records WAIC
-  ranks, weights, and warnings, and keeps MGMFRM fitting private pending sparse
+  ranks, weights, and warnings, and kept MGMFRM fitting private pending sparse
   recovery evidence.
 - Add an internal confirmatory MGMFRM experimental-public API decision manifest
   that records accepted and rejected option surfaces, cites BridgeStan,

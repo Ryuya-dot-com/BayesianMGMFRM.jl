@@ -27,6 +27,10 @@ The current package supports:
   random-walk Metropolis, an AdvancedHMC/NUTS backend with a shared analytic/AD
   gradient adapter, and a Turing/NUTS wrapper around the same
   `MFRMLogDensity` target;
+- guarded experimental generalized fitting via
+  `fit(spec; experimental = true)`, returning [`GMFRMFit`](@ref) for the scalar
+  rater-discrimination GMFRM candidate or [`MGMFRMFit`](@ref) for the fixed-Q
+  two-dimensional confirmatory MGMFRM candidate;
 - fit metadata, chain summaries, R-hat/ESS summaries, posterior summaries,
   prior/posterior predictive checks, calibration summaries, fair-average
   summaries, separation/reliability summaries, rater diagnostics, Wright-map
@@ -38,20 +42,25 @@ The current package supports:
   source-constraint transforms, used by the test suite.
 
 The current `backend = :julia` sampler is a random-walk Metropolis path for
-small validation examples. `backend = :advancedhmc` and `backend = :turing` are
-NUTS interfaces limited to the current minimal MFRM/RSM/PCM design.
+small validation examples. `backend = :turing` is a NUTS interface limited to
+the current minimal MFRM/RSM/PCM design. `backend = :advancedhmc` also backs the
+guarded scalar GMFRM and fixed-Q confirmatory MGMFRM candidates when
+`experimental = true`.
 
 ## Not Yet Public API
 
 The following are planned but not yet exposed:
 
-- broader production HMC/NUTS workflows beyond the minimal design;
+- broader production HMC/NUTS workflows beyond the minimal design and guarded
+  generalized candidates;
 - fit-ready GMFRM/MGMFRM likelihood compilation beyond the current
-  specified-only manifests, row-by-category compiler previews, and internal
-  hand-computed GMFRM/MGMFRM source fixtures;
-- generalized rater/item discrimination terms;
+  specified-only manifests, row-by-category compiler previews, internal
+  hand-computed GMFRM/MGMFRM source fixtures, and guarded scalar/fixed-Q
+  experimental paths;
+- generalized rater/item discrimination terms beyond the guarded candidates;
 - modeled DFF/bias effects;
-- multidimensional loading and rotation/gauge machinery;
+- multidimensional loading and rotation/gauge machinery beyond the fixed-Q
+  identity-correlation candidate;
 - PSIS-smoothed or exact LOO refit orchestration;
 - report generation and full paper artifact reproduction.
 
@@ -104,7 +113,7 @@ progress is lower, about 45-50%, because the remaining work includes broader
 generalized fitting, broader recovery simulations, and a public-scope release
 decision for generalized claims beyond the guarded GMFRM/MGMFRM experiments.
 
-The current frontier is the scalar GMFRM internal promotion candidate. It has
+The former scalar GMFRM frontier is now a guarded experimental path. It has
 source-aligned fixtures, raw transforms, BridgeStan raw checks, constrained
 direct parameter checks, direct pointwise likelihood checks, ForwardDiff
 diagnostics, an internal raw/direct AdvancedHMC sampler diagnostic surface, and
