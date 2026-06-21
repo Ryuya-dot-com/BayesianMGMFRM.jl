@@ -7242,20 +7242,74 @@ function direct_posterior_summary(fit::MGMFRMFit;
 end
 
 """
-    pointwise_loglikelihood_matrix(fit::MFRMFit)
-    pointwise_loglikelihood_matrix(design::FacetDesign, draws)
+    pointwise_loglikelihood_matrix(fit::Union{MFRMFit,GMFRMFit,MGMFRMFit})
+    pointwise_loglikelihood_matrix(design::FacetDesign, draws;
+        parameter_space = :direct)
 
 Evaluate a draws-by-observations pointwise log-likelihood matrix for posterior
 summaries, posterior predictive checks, and future model-comparison helpers.
+For specified-only GMFRM/MGMFRM preview designs, pass `parameter_space = :raw`
+when `draws` are raw unconstrained candidate coordinates.
 """
-function pointwise_loglikelihood_matrix(design::FacetDesign, draws::AbstractMatrix)
-    size(draws, 2) == length(design.parameter_names) ||
-        throw(ArgumentError("draws has $(size(draws, 2)) column(s); expected $(length(design.parameter_names))"))
+function pointwise_loglikelihood_matrix(design::FacetDesign,
+        draws::AbstractMatrix;
+        parameter_space::Symbol = :direct)
+    parameter_space in (:direct, :raw) ||
+        throw(ArgumentError("parameter_space must be :direct or :raw"))
     out = Matrix{Float64}(undef, size(draws, 1), design.spec.data.n)
-    for i in axes(draws, 1)
-        out[i, :] .= pointwise_loglikelihood(design, @view draws[i, :])
+    if design.spec.family === :mfrm &&
+            design.spec.estimation_status === :fit_supported
+        parameter_space === :direct ||
+            throw(ArgumentError("fit-supported MFRM/RSM/PCM pointwise loglikelihood only accepts parameter_space = :direct"))
+        size(draws, 2) == length(design.parameter_names) ||
+            throw(ArgumentError("draws has $(size(draws, 2)) column(s); expected $(length(design.parameter_names))"))
+        for draw in axes(draws, 1)
+            out[draw, :] .= pointwise_loglikelihood(design, @view draws[draw, :])
+        end
+        return out
+    elseif design.spec.family === :gmfrm &&
+            design.spec.estimation_status === :specified_only
+        expected = parameter_space === :raw ?
+            _gmfrm_source_unconstrained_blueprint(design).n_parameters :
+            length(design.parameter_names)
+        size(draws, 2) == expected ||
+            throw(ArgumentError("draws has $(size(draws, 2)) column(s); expected $expected"))
+        for draw in axes(draws, 1)
+            out[draw, :] .= parameter_space === :raw ?
+                _gmfrm_source_pointwise_loglikelihood_from_unconstrained(
+                    design,
+                    (@view draws[draw, :]),
+                ) :
+                _gmfrm_source_pointwise_loglikelihood(
+                    design,
+                    (@view draws[draw, :]),
+                )
+        end
+        return out
+    elseif design.spec.family === :mgmfrm &&
+            design.spec.estimation_status === :specified_only
+        expected = parameter_space === :raw ?
+            _mgmfrm_source_unconstrained_blueprint(design).n_parameters :
+            length(design.parameter_names)
+        size(draws, 2) == expected ||
+            throw(ArgumentError("draws has $(size(draws, 2)) column(s); expected $expected"))
+        for draw in axes(draws, 1)
+            out[draw, :] .= parameter_space === :raw ?
+                _mgmfrm_source_pointwise_loglikelihood_from_unconstrained(
+                    design,
+                    (@view draws[draw, :]),
+                ) :
+                _mgmfrm_source_pointwise_loglikelihood(
+                    design,
+                    (@view draws[draw, :]),
+                )
+        end
+        return out
     end
-    return out
+    throw(ArgumentError(
+        "pointwise_loglikelihood_matrix currently supports fit-supported " *
+        "MFRM/RSM/PCM designs and specified-only GMFRM/MGMFRM preview designs",
+    ))
 end
 
 pointwise_loglikelihood_matrix(fit::MFRMFit) =
@@ -7398,8 +7452,10 @@ function waic(loglik::AbstractMatrix)
     )
 end
 
-function waic(design::FacetDesign, draws::AbstractMatrix)
-    return waic(pointwise_loglikelihood_matrix(design, draws))
+function waic(design::FacetDesign,
+        draws::AbstractMatrix;
+        parameter_space::Symbol = :direct)
+    return waic(pointwise_loglikelihood_matrix(design, draws; parameter_space))
 end
 
 function waic(fit::MFRMFit;
@@ -7624,8 +7680,11 @@ function loo(loglik::AbstractMatrix;
     )
 end
 
-function loo(design::FacetDesign, draws::AbstractMatrix; kwargs...)
-    return loo(pointwise_loglikelihood_matrix(design, draws); kwargs...)
+function loo(design::FacetDesign,
+        draws::AbstractMatrix;
+        parameter_space::Symbol = :direct,
+        kwargs...)
+    return loo(pointwise_loglikelihood_matrix(design, draws; parameter_space); kwargs...)
 end
 
 function loo(fit::MFRMFit;
@@ -7759,8 +7818,11 @@ function psis_loo(loglik::AbstractMatrix;
     )
 end
 
-function psis_loo(design::FacetDesign, draws::AbstractMatrix; kwargs...)
-    return psis_loo(pointwise_loglikelihood_matrix(design, draws); kwargs...)
+function psis_loo(design::FacetDesign,
+        draws::AbstractMatrix;
+        parameter_space::Symbol = :direct,
+        kwargs...)
+    return psis_loo(pointwise_loglikelihood_matrix(design, draws; parameter_space); kwargs...)
 end
 
 function psis_loo(fit::MFRMFit;
@@ -9118,15 +9180,16 @@ end
     waic_diagnostics(fit::MFRMFit; threshold = 0.4, only_flagged = false,
         ndraws = nothing, draw_indices = nothing, rng = Random.default_rng())
     waic_diagnostics(design::FacetDesign, draws; threshold = 0.4,
-        only_flagged = false)
+        only_flagged = false, parameter_space = :direct)
     waic_diagnostics(loglik::AbstractMatrix; threshold = 0.4,
         only_flagged = false)
 
 Return observation-level WAIC diagnostics. Rows include pointwise `lppd`,
 `p_waic`, `elpd_waic`, WAIC contribution, and a flag for observations whose
-`p_waic` exceeds `threshold`. When a `FacetDesign` or `MFRMFit` is supplied,
+`p_waic` exceeds `threshold`. When a `FacetDesign` or fit object is supplied,
 rows also include person, rater, item, score, category, and optional facet
-labels. Use this helper to locate observations behind a WAIC
+labels. Use `parameter_space = :raw` for raw GMFRM/MGMFRM preview-design
+draws. Use this helper to locate observations behind a WAIC
 `:high_loglik_variance` warning before interpreting model-comparison rows.
 """
 function waic_diagnostics(loglik::AbstractMatrix;
@@ -9141,9 +9204,10 @@ end
 function waic_diagnostics(design::FacetDesign,
         draws::AbstractMatrix;
         threshold::Real = 0.4,
-        only_flagged::Bool = false)
+        only_flagged::Bool = false,
+        parameter_space::Symbol = :direct)
     checked_threshold = _check_waic_threshold(threshold)
-    return _waic_diagnostics_rows(design, waic(design, draws);
+    return _waic_diagnostics_rows(design, waic(design, draws; parameter_space);
         threshold = checked_threshold,
         only_flagged)
 end
@@ -9197,7 +9261,7 @@ end
         tail_fraction = 0.2, min_tail_draws = 5, psis_smoothing = false)
     loo_diagnostics(design::FacetDesign, draws; threshold = 0.7,
         only_flagged = false, tail_fraction = 0.2, min_tail_draws = 5,
-        psis_smoothing = false)
+        psis_smoothing = false, parameter_space = :direct)
     loo_diagnostics(loglik::AbstractMatrix; threshold = 0.7,
         only_flagged = false, tail_fraction = 0.2, min_tail_draws = 5,
         psis_smoothing = false)
@@ -9206,10 +9270,10 @@ Return observation-level LOO diagnostics. Rows include
 pointwise `lppd`, `p_loo`, `elpd_loo`, LOOIC contribution,
 importance-sampling effective sample size, a Hill-estimated `pareto_k`, and a
 flag for observations whose `pareto_k` exceeds `threshold`. When a
-`FacetDesign` or `MFRMFit` is supplied, rows also include person, rater, item,
-score, category, and optional facet labels. Set `psis_smoothing = true` to
-report diagnostics from [`psis_loo`](@ref) instead of raw importance-sampling
-[`loo`](@ref).
+`FacetDesign` or fit object is supplied, rows also include person, rater, item,
+score, category, and optional facet labels. Use `parameter_space = :raw` for
+raw GMFRM/MGMFRM preview-design draws. Set `psis_smoothing = true` to report
+diagnostics from [`psis_loo`](@ref) instead of raw importance-sampling [`loo`](@ref).
 """
 function loo_diagnostics(loglik::AbstractMatrix;
         threshold::Real = 0.7,
@@ -9239,17 +9303,20 @@ function loo_diagnostics(design::FacetDesign,
         only_flagged::Bool = false,
         tail_fraction::Real = 0.2,
         min_tail_draws::Int = 5,
-        psis_smoothing::Bool = false)
+        psis_smoothing::Bool = false,
+        parameter_space::Symbol = :direct)
     checked_threshold = _check_loo_threshold(threshold)
     stat = psis_smoothing ?
         psis_loo(design, draws;
             pareto_k_threshold = checked_threshold,
             tail_fraction,
-            min_tail_draws) :
+            min_tail_draws,
+            parameter_space) :
         loo(design, draws;
             pareto_k_threshold = checked_threshold,
             tail_fraction,
-            min_tail_draws)
+            min_tail_draws,
+            parameter_space)
     return _loo_diagnostics_rows(
         design,
         stat;

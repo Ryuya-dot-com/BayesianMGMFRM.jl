@@ -55,8 +55,8 @@ The following are planned but not yet exposed:
   generalized candidates;
 - fit-ready GMFRM/MGMFRM likelihood compilation beyond the current
   specified-only manifests, row-by-category compiler previews, internal
-  hand-computed GMFRM/MGMFRM source fixtures, and guarded scalar/fixed-Q
-  experimental paths;
+  hand-computed GMFRM/MGMFRM source fixtures, preview-design raw/direct
+  pointwise likelihood matrices, and guarded scalar/fixed-Q experimental paths;
 - generalized rater/item discrimination terms beyond the guarded candidates;
 - modeled DFF/bias effects;
 - multidimensional loading and rotation/gauge machinery beyond the fixed-Q
@@ -345,7 +345,9 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   or logit thresholds are declared]
 - Add PSIS-smoothed or exact/K-fold LOO and prior/likelihood sensitivity.
   [Raw importance-sampling LOO, PSIS-smoothed LOO, and Pareto-k diagnostics are
-  available for the current minimal fit path. [`loo_refit_plan`](@ref) constructs deterministic
+  available for the current minimal fit path, guarded generalized fit objects,
+  and guarded generalized preview-design raw/direct pointwise likelihood
+  matrices. [`loo_refit_plan`](@ref) constructs deterministic
   one-observation-heldout plans for exact LOO follow-up from selected
   observations or Pareto-k flagged raw LOO rows, [`loo_refit`](@ref) executes
   those exact one-row refits for fit-supported MFRM/RSM/PCM specs and guarded

@@ -8483,6 +8483,24 @@ end
     @test all(isfinite, gmfrm_experimental_fit.log_posterior)
     @test pointwise_loglikelihood_matrix(gmfrm_experimental_fit) ==
         gmfrm_experimental_fit.direct_pointwise_loglikelihood
+    gmfrm_direct_llmat = pointwise_loglikelihood_matrix(
+        gmfrm_experimental_fit.design,
+        gmfrm_experimental_fit.direct_draws)
+    gmfrm_raw_llmat = pointwise_loglikelihood_matrix(
+        gmfrm_experimental_fit.design,
+        gmfrm_experimental_fit.draws;
+        parameter_space = :raw)
+    @test gmfrm_direct_llmat ≈
+        gmfrm_experimental_fit.direct_pointwise_loglikelihood
+    @test gmfrm_raw_llmat ≈
+        gmfrm_experimental_fit.direct_pointwise_loglikelihood
+    @test_throws ArgumentError pointwise_loglikelihood_matrix(
+        gmfrm_experimental_fit.design,
+        gmfrm_experimental_fit.draws)
+    @test_throws ArgumentError pointwise_loglikelihood_matrix(
+        gmfrm_experimental_fit.design,
+        gmfrm_experimental_fit.direct_draws;
+        parameter_space = :raw)
     @test loglikelihood(gmfrm_experimental_fit) ==
         gmfrm_experimental_fit.direct_loglikelihood
     @test logprior(gmfrm_experimental_fit) ≈
@@ -8534,7 +8552,22 @@ end
     @test gmfrm_experimental_artifact.archive_manifest.content_hash ==
         gmfrm_experimental_artifact.content_hash
     @test waic(gmfrm_experimental_fit).n_draws == 8
+    @test waic(gmfrm_experimental_fit.design,
+        gmfrm_experimental_fit.direct_draws).waic ≈
+        waic(gmfrm_experimental_fit).waic
+    @test waic(gmfrm_experimental_fit.design,
+        gmfrm_experimental_fit.draws;
+        parameter_space = :raw).waic ≈
+        waic(gmfrm_experimental_fit).waic
     @test loo(gmfrm_experimental_fit).n_draws == 8
+    @test loo(gmfrm_experimental_fit.design,
+        gmfrm_experimental_fit.draws;
+        parameter_space = :raw).looic ≈
+        loo(gmfrm_experimental_fit).looic
+    @test psis_loo(gmfrm_experimental_fit.design,
+        gmfrm_experimental_fit.draws;
+        parameter_space = :raw).looic ≈
+        psis_loo(gmfrm_experimental_fit).looic
     gmfrm_comparison = compare_models(
         :gmfrm_a => gmfrm_experimental_fit,
         :gmfrm_b => gmfrm_experimental_fit;
@@ -8552,7 +8585,13 @@ end
     @test all(row -> row.category_levels ==
         identified_data.category_levels, gmfrm_comparison)
     @test length(waic_diagnostics(gmfrm_experimental_fit)) == identified_data.n
+    @test length(waic_diagnostics(gmfrm_experimental_fit.design,
+        gmfrm_experimental_fit.draws;
+        parameter_space = :raw)) == identified_data.n
     @test length(loo_diagnostics(gmfrm_experimental_fit)) == identified_data.n
+    @test length(loo_diagnostics(gmfrm_experimental_fit.design,
+        gmfrm_experimental_fit.draws;
+        parameter_space = :raw)) == identified_data.n
     gmfrm_probabilities =
         predictive_probabilities(gmfrm_experimental_fit; draw_indices = [1, 2])
     @test size(gmfrm_probabilities) ==
@@ -9451,6 +9490,30 @@ end
     @test all(isfinite, mgmfrm_guarded_fit.direct_draws)
     @test pointwise_loglikelihood_matrix(mgmfrm_guarded_fit) ==
         mgmfrm_guarded_fit.direct_pointwise_loglikelihood
+    mgmfrm_direct_llmat = pointwise_loglikelihood_matrix(
+        mgmfrm_guarded_fit.design,
+        mgmfrm_guarded_fit.direct_draws)
+    mgmfrm_raw_llmat = pointwise_loglikelihood_matrix(
+        mgmfrm_guarded_fit.design,
+        mgmfrm_guarded_fit.draws;
+        parameter_space = :raw)
+    @test mgmfrm_direct_llmat ≈
+        mgmfrm_guarded_fit.direct_pointwise_loglikelihood
+    @test mgmfrm_raw_llmat ≈
+        mgmfrm_guarded_fit.direct_pointwise_loglikelihood
+    @test_throws ArgumentError pointwise_loglikelihood_matrix(
+        mgmfrm_guarded_fit.design,
+        mgmfrm_guarded_fit.draws)
+    @test waic(mgmfrm_guarded_fit.design,
+        mgmfrm_guarded_fit.direct_draws).waic ≈
+        waic(mgmfrm_guarded_fit).waic
+    @test waic(mgmfrm_guarded_fit.design,
+        mgmfrm_guarded_fit.draws;
+        parameter_space = :raw).waic ≈
+        waic(mgmfrm_guarded_fit).waic
+    @test length(waic_diagnostics(mgmfrm_guarded_fit.design,
+        mgmfrm_guarded_fit.draws;
+        parameter_space = :raw)) == identified_data.n
     @test loglikelihood(mgmfrm_guarded_fit) ==
         mgmfrm_guarded_fit.direct_loglikelihood
     @test logprior(mgmfrm_guarded_fit) ≈
@@ -11850,6 +11913,14 @@ end
     @test llmat[1, :] ≈ pointwise_loglikelihood(design, result.draws[1, :])
     @test pointwise_loglikelihood_matrix(design, result.draws) ≈ llmat
     @test_throws ArgumentError pointwise_loglikelihood_matrix(design, result.draws[:, 1:end-1])
+    @test_throws ArgumentError pointwise_loglikelihood_matrix(
+        design,
+        result.draws;
+        parameter_space = :raw)
+    @test_throws ArgumentError pointwise_loglikelihood_matrix(
+        design,
+        result.draws;
+        parameter_space = :missing)
     draw_loglik = loglikelihood(result)
     draw_logprior = logprior(result)
     draw_logposterior = logposterior(result)
