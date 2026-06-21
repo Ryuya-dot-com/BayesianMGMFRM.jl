@@ -322,7 +322,11 @@ when [`fit_cache_key`](@ref) still matches the current data/spec/design, prior,
 sampler controls, seed, Julia version, and initialization hash. This is intended
 for same-environment analysis caches. Automatic cache keys require an integer
 `seed`; use `fit` plus manual [`save_fit_cache`](@ref) for unseeded exploratory
-fits. Saved cache records store the artifact content hash and archive manifest;
+fits. The cache helpers also accept guarded experimental [`GMFRMFit`](@ref) and
+[`MGMFRMFit`](@ref) objects. Automatic generalized caches are available only
+with `experimental = true` on the guarded AdvancedHMC raw-coordinate fit path,
+and the cache key records that experimental contract and raw initialization
+hash. Saved cache records store the artifact content hash and archive manifest;
 [`load_fit_cache`](@ref) verifies those hashes and their hash metadata by
 default. Use manifests and exported tables for long-term, cross-version
 archival records.

@@ -288,7 +288,9 @@ Current public API:
   content hash and archive manifest, and loads verify those hashes and their
   hash metadata by default.
   Automatic cache keys require an integer `seed` so cached draws are tied to a
-  replayable fit request.
+  replayable fit request. The same helpers accept guarded experimental
+  `GMFRMFit`/`MGMFRMFit` objects; automatic generalized caches require
+  `experimental = true` and the guarded AdvancedHMC raw-coordinate fit path.
 - `MFRMLogDensity`, `initial_params`, `linear_predictor_values`,
   `loglikelihood`, `logprior`, and `logposterior`: a
   `LogDensityProblems.jl`-compatible posterior target, row-by-category
@@ -572,7 +574,9 @@ rather than the registered package root.
 Serialized fit caches from `cached_fit` are for same-environment recomputation
 avoidance. For long-term archival or cross-version review, keep the
 `model_manifest`, `fit_artifact`, embedded archive manifest, exported summaries,
-and source data alongside the cache.
+and source data alongside the cache. Guarded generalized fit caches are
+explicitly opt-in with `experimental = true` and should be treated as
+same-environment evidence for the narrow GMFRM/MGMFRM experiments only.
 
 ## License
 
