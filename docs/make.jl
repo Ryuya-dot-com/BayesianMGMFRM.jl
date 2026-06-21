@@ -4,6 +4,10 @@ using BayesianMGMFRM
 makedocs(;
     sitename = "BayesianMGMFRM.jl",
     modules = [BayesianMGMFRM],
+    format = Documenter.HTML(;
+        size_threshold = 100 * 2^10,
+        size_threshold_warn = nothing,
+    ),
     pages = [
         "Home" => "index.md",
         "Data Validation" => "data-validation.md",

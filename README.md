@@ -187,7 +187,8 @@ Current public API:
 - `release_scope_summary`: a machine-readable release-scope guardrail listing
   currently enabled fit surfaces, rejected generalized options, and broad claims
   that remain blocked, with optional local evidence rows for guarded exposure,
-  fit-cache, reproduction-manifest, and pre-registration gate guardrails.
+  fit-cache, reproduction-manifest, documentation-size, and pre-registration gate
+  guardrails.
 - `case_study_provenance_manifest`: a machine-readable record tying the compact
   real-data case-study source provenance to claim-level and publication-facing
   reproduction archives without granting a data license or performing
@@ -564,10 +565,10 @@ julia --startup-file=no scripts/pre_registration_gate.jl
 ```
 
 The gate checks clean temporary-environment import, `Pkg.test()`, the minimal
-example, Documenter build, Aqua package hygiene, project metadata, `git diff
---check`, and public wording/skipped-test scans. CI runs the same gate in a
-lighter mode because test and docs jobs already cover `Pkg.test()` and
-Documenter.
+example, a Documenter build with a 100 KiB hard limit for each rendered HTML
+page, Aqua package hygiene, project metadata, `git diff --check`, and public
+wording/skipped-test scans. CI runs the same gate in a lighter mode because test
+and docs jobs already cover `Pkg.test()` and Documenter.
 
 Manifest policy: package `Manifest.toml` files are intentionally ignored for
 General registration. The local gate develops the package in fresh temporary

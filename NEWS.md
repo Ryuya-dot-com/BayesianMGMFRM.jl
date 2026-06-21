@@ -4,6 +4,9 @@
 
 - Split the rendered API reference into smaller workflow pages to avoid the
   oversized single-page Documenter warning.
+- Turn the Documenter 100 KiB rendered-page warning threshold into a hard docs
+  build gate and expose that documentation-size guardrail in
+  `release_scope_summary`.
 - Expose pre-registration gate availability in `release_scope_summary` and
   clarify that Julia General registration is a manual action after the local
   gate passes.

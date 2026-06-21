@@ -1347,6 +1347,11 @@ function _release_scope_evidence_rows()
             evidence = :pre_registration_gate_available,
             status = :done,
             artifact = :scripts_pre_registration_gate),
+        (family = :all_package_surfaces,
+            scope = :documentation_readiness,
+            evidence = :documenter_html_page_size_gate,
+            status = :done,
+            artifact = :docs_make),
         (family = :gmfrm,
             scope = :scalar_gmfrm_fit_ready_candidate,
             evidence = :guarded_generalized_fit_cache,
@@ -1374,7 +1379,8 @@ summary lists the public fit surfaces that are currently enabled, the
 unsupported generalized options that remain rejected, and the broad claims that
 remain blocked. Set `include_evidence = true` to include the local evidence rows
 recorded by the guarded GMFRM/MGMFRM exposure manifests plus the current
-fit-cache, reproduction-manifest, and pre-registration gate guardrails.
+fit-cache, reproduction-manifest, documentation-size, and pre-registration gate
+guardrails.
 
 This is a release-scope guardrail, not a statistical validation result and not a
 publication or registration action.
@@ -1404,6 +1410,7 @@ function release_scope_summary(; include_evidence::Bool = false)
             fixed_q_mgmfrm_guarded_fit_allowed = true,
             guarded_generalized_fit_cache_ready = true,
             fit_reproduction_cache_identity_checked = true,
+            documenter_html_page_size_gate = true,
             pre_registration_gate_available = true,
             general_registration_manual_only = true,
             broader_generalized_fit_allowed = false,
