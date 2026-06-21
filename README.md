@@ -250,7 +250,9 @@ Current public API:
   exported-review checks.
 - `fit_reproduction_manifest`: a machine-readable reproduction manifest that
   audits full rerun evidence and fast cached-draw evidence as separate required
-  paths, with optional fit-report bundle metadata for review exports.
+  paths, rejects fit-cache records whose embedded fit identity does not match
+  the manifest target fit, and can attach optional fit-report bundle metadata
+  for review exports.
 - `fit_report`: a compact machine-readable fitted-object report bundle that
   collects metadata, manifests, diagnostics, posterior summaries, predictive
   checks, calibration rows, WAIC/LOO summaries, optional DFF rows, and compact

@@ -6247,6 +6247,65 @@ function _reproduction_artifact_policy_value(policy, field::Symbol)
     return missing
 end
 
+function _fit_reproduction_optional_property_hash(fit, property::Symbol)
+    hasproperty(fit, property) || return missing
+    return _cache_hash(getproperty(fit, property))
+end
+
+function _fit_reproduction_identity(fit::_ModelComparisonFit)
+    metadata = fit_metadata(fit)
+    return (;
+        fit_type = Symbol(nameof(typeof(fit))),
+        data_signature = _report_lookup(metadata, :data_signature, missing),
+        family = _report_symbol_value(_report_lookup(metadata, :family, missing)),
+        dimensions = _report_lookup(metadata, :dimensions, missing),
+        discrimination =
+            _report_symbol_value(_report_lookup(metadata, :discrimination, missing)),
+        thresholds = _report_symbol_value(_report_lookup(metadata, :thresholds, missing)),
+        estimation_status =
+            _report_symbol_value(_report_lookup(metadata, :estimation_status, missing)),
+        density_space =
+            _report_symbol_value(_report_lookup(metadata, :density_space, missing)),
+        n_parameters = _report_lookup(metadata, :n_parameters, missing),
+        n_direct_parameters = _report_lookup(metadata, :n_direct_parameters, missing),
+        n_draws = _report_lookup(metadata, :n_draws, missing),
+        n_chains = _report_lookup(metadata, :n_chains, missing),
+        draws_per_chain = _report_lookup(metadata, :draws_per_chain, missing),
+        backend = _report_symbol_value(_report_lookup(metadata, :backend, missing)),
+        sampler = _report_symbol_value(_report_lookup(metadata, :sampler, missing)),
+        warmup = _report_lookup(metadata, :warmup, missing),
+        step_size = _report_lookup(metadata, :step_size, missing),
+        raw_parameter_names = _report_lookup(metadata, :raw_parameter_names, missing),
+        direct_parameter_names =
+            _report_lookup(metadata, :direct_parameter_names, missing),
+        draws_hash = _cache_hash(fit.draws),
+        log_posterior_hash = _cache_hash(fit.log_posterior),
+        direct_draws_hash =
+            _fit_reproduction_optional_property_hash(fit, :direct_draws),
+        direct_loglikelihood_hash =
+            _fit_reproduction_optional_property_hash(fit, :direct_loglikelihood),
+        direct_pointwise_loglikelihood_hash =
+            _fit_reproduction_optional_property_hash(
+                fit, :direct_pointwise_loglikelihood),
+    )
+end
+
+function _check_fit_reproduction_cache_matches_fit(cache_record::NamedTuple,
+        fit::_ModelComparisonFit,
+        context::AbstractString)
+    cache_fit = _nt_get(cache_record, :fit, nothing)
+    cache_fit isa _ModelComparisonFit ||
+        throw(ArgumentError("$context does not contain a fitted cache object"))
+    cache_identity = _fit_reproduction_identity(cache_fit)
+    fit_identity = _fit_reproduction_identity(fit)
+    isequal(cache_identity, fit_identity) ||
+        throw(ArgumentError(
+            "fit cache record at $context does not match the fit supplied to " *
+            "fit_reproduction_manifest",
+        ))
+    return nothing
+end
+
 function _fit_reproduction_full_rerun_path(artifact, archive_manifest)
     reproducibility =
         _report_lookup(artifact, :reproducibility, NamedTuple())
@@ -6288,7 +6347,10 @@ function _fit_reproduction_full_rerun_path(artifact, archive_manifest)
     )
 end
 
-function _fit_reproduction_cache_path(cache_record, cache_path, verify_cache_hash::Bool)
+function _fit_reproduction_cache_path(cache_record,
+        cache_path,
+        verify_cache_hash::Bool,
+        fit::_ModelComparisonFit)
     cache_record === nothing && return (;
         path = :fast_cached_draws,
         status = :not_provided,
@@ -6306,6 +6368,7 @@ function _fit_reproduction_cache_path(cache_record, cache_path, verify_cache_has
     context = cache_path === nothing ? "provided fit cache record" : String(cache_path)
     _check_fit_cache_record(cache_record, context)
     verify_cache_hash && _verify_fit_cache_record(cache_record, context)
+    _check_fit_reproduction_cache_matches_fit(cache_record, fit, context)
     source_path = cache_path === nothing ?
         _nt_get(_nt_get(cache_record, :archive_manifest, NamedTuple()),
             :source_path, missing) :
@@ -6401,7 +6464,7 @@ function _fit_reproduction_manifest_payload(fit;
     full_rerun = _fit_reproduction_full_rerun_path(
         fit_artifact_value, archive_manifest)
     fast_cached_draws = _fit_reproduction_cache_path(
-        cache_record, cache_path, verify_cache_hash)
+        cache_record, cache_path, verify_cache_hash, fit)
     review_bundle = _fit_reproduction_report_bundle_path(
         report_bundle_manifest, report_bundle_path)
     missing_required_paths =
