@@ -6564,6 +6564,7 @@ end
     @test release_scope.summary.fixed_q_mgmfrm_guarded_fit_allowed
     @test release_scope.summary.guarded_generalized_fit_cache_ready
     @test release_scope.summary.fit_reproduction_cache_identity_checked
+    @test release_scope.summary.documenter_html_page_size_gate
     @test release_scope.summary.pre_registration_gate_available
     @test release_scope.summary.general_registration_manual_only
     @test !release_scope.summary.broader_generalized_fit_allowed
@@ -6603,6 +6604,10 @@ end
     @test any(row -> row.family === :all_package_surfaces &&
         row.evidence === :pre_registration_gate_available &&
         row.artifact === :scripts_pre_registration_gate,
+        release_scope_with_evidence.evidence_rows)
+    @test any(row -> row.family === :all_package_surfaces &&
+        row.evidence === :documenter_html_page_size_gate &&
+        row.artifact === :docs_make,
         release_scope_with_evidence.evidence_rows)
     case_provenance = case_study_provenance_manifest()
     @test case_provenance.schema ==
