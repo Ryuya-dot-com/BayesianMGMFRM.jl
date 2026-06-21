@@ -12,6 +12,8 @@
   than a stale immediate-task label.
 - Relabel completed release-roadmap task blocks as completed checklists so the
   100% checklist ledger does not retain stale task-heading language.
+- Add a Documenter registration handoff page that mirrors the manual
+  pre-registration boundary and links it from the docs navigation.
 - Expose pre-registration gate availability in `release_scope_summary` and
   clarify that Julia General registration is a manual action after the local
   gate passes.
