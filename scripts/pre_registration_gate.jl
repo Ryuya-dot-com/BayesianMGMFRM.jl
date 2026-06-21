@@ -126,6 +126,8 @@ function metadata_check()
     isfile(joinpath(ROOT, "docs", "make.jl")) || error("docs/make.jl is missing")
     isfile(joinpath(ROOT, "scripts", "generate_validation_plan.jl")) ||
         error("scripts/generate_validation_plan.jl is missing")
+    isfile(joinpath(ROOT, "scripts", "registration_handoff.jl")) ||
+        error("scripts/registration_handoff.jl is missing")
     return nothing
 end
 
@@ -151,6 +153,11 @@ end
 
 function run_guarded_mgmfrm_example()
     run_with_developed_package("""include($(repr(joinpath(ROOT, "examples", "guarded_mgmfrm.jl"))))""")
+    return nothing
+end
+
+function run_registration_handoff()
+    run_cmd(`$JULIA --startup-file=no --project=$ROOT scripts/registration_handoff.jl`)
     return nothing
 end
 
@@ -228,6 +235,7 @@ end
 step("Project metadata and registration shape", metadata_check)
 step("Clean temporary-environment import", clean_import_check)
 step("Instantiate package in temporary environment", instantiate_project)
+step("Registration handoff message", run_registration_handoff)
 if !SKIP_TESTS
     step("Pkg.test()", run_package_tests)
 end
