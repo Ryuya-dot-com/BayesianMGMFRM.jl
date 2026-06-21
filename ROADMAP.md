@@ -922,7 +922,12 @@ TODO:
 Gate: a reviewer can rerun or inspect every paper claim from a versioned
 artifact bundle.
 
-## Immediate TODO: next 30-45 days
+## Completed 30-45 Day Sprint Record
+
+This section is retained as the completed sprint record for guarded scalar
+GMFRM and fixed-Q confirmatory MGMFRM exposure work. Broader stable-public claims
+and release actions remain governed by the release-scope and manual public-scope
+gates above.
 
 ### Sprint 1: fit-ready scalar GMFRM compiler split
 
