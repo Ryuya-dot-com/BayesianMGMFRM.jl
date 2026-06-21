@@ -6291,7 +6291,8 @@ end
             :load_fit_cache, :load_fit_report, :load_fit_report_dossier,
             :load_fit_report_bundle,
             :load_fit_report_tables, :rater_diagnostics, :rater_overlap,
-            :residual_summary, :sampler_diagnostics, :save_fit_cache, :save_fit_report,
+            :release_scope_summary, :residual_summary, :sampler_diagnostics,
+            :save_fit_cache, :save_fit_report,
             :save_fit_report_dossier, :save_fit_report_dossier_markdown,
             :save_fit_report_bundle, :save_fit_report_markdown,
             :save_fit_report_tables,
@@ -6561,6 +6562,8 @@ end
     @test release_scope.summary.minimal_mfrm_fit_allowed
     @test release_scope.summary.scalar_gmfrm_guarded_fit_allowed
     @test release_scope.summary.fixed_q_mgmfrm_guarded_fit_allowed
+    @test release_scope.summary.guarded_generalized_fit_cache_ready
+    @test release_scope.summary.fit_reproduction_cache_identity_checked
     @test !release_scope.summary.broader_generalized_fit_allowed
     @test !release_scope.summary.dff_model_effects_allowed
     @test !release_scope.summary.model_weight_claims_allowed
@@ -6585,6 +6588,15 @@ end
         release_scope_with_evidence.evidence_rows)
     @test any(row -> row.family === :mgmfrm &&
         row.evidence === :guarded_fit_public_exposure_review,
+        release_scope_with_evidence.evidence_rows)
+    @test any(row -> row.family === :gmfrm &&
+        row.evidence === :guarded_generalized_fit_cache,
+        release_scope_with_evidence.evidence_rows)
+    @test any(row -> row.family === :mgmfrm &&
+        row.evidence === :guarded_generalized_fit_cache,
+        release_scope_with_evidence.evidence_rows)
+    @test any(row -> row.family === :all_fit_objects &&
+        row.evidence === :fit_reproduction_cache_identity_check,
         release_scope_with_evidence.evidence_rows)
     case_provenance = case_study_provenance_manifest()
     @test case_provenance.schema ==

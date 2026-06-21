@@ -186,7 +186,8 @@ Current public API:
   blocks from specified-only future blocks.
 - `release_scope_summary`: a machine-readable release-scope guardrail listing
   currently enabled fit surfaces, rejected generalized options, and broad claims
-  that remain blocked.
+  that remain blocked, with optional local evidence rows for guarded exposure,
+  fit-cache, and reproduction-manifest guardrails.
 - `case_study_provenance_manifest`: a machine-readable record tying the compact
   real-data case-study source provenance to claim-level and publication-facing
   reproduction archives without granting a data license or performing
