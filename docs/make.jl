@@ -12,7 +12,13 @@ makedocs(;
         "Bayesian Fitting" => "fitting.md",
         "Examples" => "examples.md",
         "Roadmap and Scope" => "roadmap.md",
-        "API" => "api.md",
+        "API" => [
+            "Overview" => "api.md",
+            "Data and Design" => "api-data-design.md",
+            "Fitting and Artifacts" => "api-fitting-artifacts.md",
+            "Workflow and Diagnostics" => "api-workflow-diagnostics.md",
+            "Validation and Evidence" => "api-validation-evidence.md",
+        ],
     ],
     warnonly = [:missing_docs],
 )

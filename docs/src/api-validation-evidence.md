@@ -1,0 +1,18 @@
+# Validation and Evidence API
+
+```@docs
+simulation_grid
+simulation_grid_summary
+falsification_rules
+falsification_rule_summary
+simulate_responses
+parameter_recovery
+parameter_recovery_plot_data
+parameter_recovery_summary
+stan_validation_row
+stan_validation_summary
+comparison_evidence_row
+comparison_evidence_summary
+benchmark_result_row
+benchmark_summary
+```
