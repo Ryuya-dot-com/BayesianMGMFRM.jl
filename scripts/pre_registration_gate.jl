@@ -24,6 +24,10 @@ function run_cmd(cmd::Cmd)
     run(Cmd(cmd; dir = ROOT))
 end
 
+function read_cmd(cmd::Cmd)
+    return readchomp(Cmd(cmd; dir = ROOT))
+end
+
 function run_julia(code::AbstractString; project = nothing)
     if project === nothing
         run_cmd(`$JULIA --startup-file=no -e $code`)
@@ -68,15 +72,27 @@ function metadata_check()
     authors = assert_present(project, "authors")
     version = VersionNumber(assert_present(project, "version"))
     root_name = last(splitpath(ROOT))
+    origin_url = try
+        read_cmd(`git config --get remote.origin.url`)
+    catch err
+        error("could not read git remote.origin.url: $err")
+    end
+    origin_repo_path = replace(strip(origin_url), r"\.git$" => "")
 
     name == "BayesianMGMFRM" || error("unexpected package name: $name")
     root_name == "BayesianMGMFRM.jl" ||
         error("repository directory should be BayesianMGMFRM.jl, got $root_name")
-    occursin(r"^[A-Za-z][A-Za-z0-9_]+$", name) ||
-        error("package name is not a valid ASCII Julia identifier: $name")
+    Base.isidentifier(name) || error("package name is not a valid Julia identifier: $name")
+    occursin(r"^[A-Z][A-Za-z0-9]+$", name) ||
+        error("package name should start with uppercase and contain only ASCII alphanumeric characters: $name")
+    any(islowercase, name) || error("package name should contain at least one lowercase character")
     length(name) >= 5 || error("package name is too short for General registry expectations")
     occursin("julia", lowercase(name)) && error("package name must not contain `julia`")
+    startswith(name, "Ju") && error("package name must not start with `Ju`")
     endswith(lowercase(name), "jl") && error("package name must not end with `jl`")
+    (endswith(origin_repo_path, "/BayesianMGMFRM.jl") ||
+        endswith(origin_repo_path, ":BayesianMGMFRM.jl")) ||
+        error("origin URL should resolve to repository path BayesianMGMFRM.jl, got $origin_url")
     uuid == "1c3fdc16-45de-4463-900f-cd2a5999ffa5" || error("unexpected uuid: $uuid")
     version == v"0.1.0" || error("unexpected initial version: $version")
     all(!isempty(strip(String(author))) for author in authors) ||

@@ -11,12 +11,12 @@ root:
 julia --startup-file=no scripts/pre_registration_gate.jl
 ```
 
-The gate checks project metadata, clean temporary-environment import,
-`Pkg.test()`, the minimal example, the guarded MGMFRM example, Documenter with a
-100 KiB rendered-page hard limit, Aqua package hygiene, `git diff --check`, and
-the public wording / skipped-test scan. CI runs the same gate in a lighter mode
-because the matrix test and documentation jobs cover `Pkg.test()` and the docs
-build separately.
+The gate checks project metadata, General AutoMerge-facing package and origin
+URL shape, clean temporary-environment import, `Pkg.test()`, the minimal
+example, the guarded MGMFRM example, Documenter with a 100 KiB rendered-page
+hard limit, Aqua package hygiene, `git diff --check`, and the public wording /
+skipped-test scan. CI runs the same gate in a lighter mode because the matrix
+test and documentation jobs cover `Pkg.test()` and the docs build separately.
 
 The machine-readable release boundary is available from
 [`release_scope_summary`](@ref):
@@ -38,6 +38,8 @@ availability, while keeping `publication_or_registration_action = false`.
 
 - Package name: `BayesianMGMFRM`
 - Repository name for General: `BayesianMGMFRM.jl`
+- Origin URL shape: resolves to `BayesianMGMFRM.jl` with or without a `.git`
+  suffix
 - Initial version: `0.1.0`
 - License: MIT
 - Local gate: `julia --startup-file=no scripts/pre_registration_gate.jl`

@@ -14,6 +14,8 @@
   100% checklist ledger does not retain stale task-heading language.
 - Add a Documenter registration handoff page that mirrors the manual
   pre-registration boundary and links it from the docs navigation.
+- Tighten the pre-registration gate to check the General AutoMerge-facing
+  package-name rules and origin URL shape before handoff.
 - Expose pre-registration gate availability in `release_scope_summary` and
   clarify that Julia General registration is a manual action after the local
   gate passes.
