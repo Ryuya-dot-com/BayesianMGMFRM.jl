@@ -187,7 +187,7 @@ Current public API:
 - `release_scope_summary`: a machine-readable release-scope guardrail listing
   currently enabled fit surfaces, rejected generalized options, and broad claims
   that remain blocked, with optional local evidence rows for guarded exposure,
-  fit-cache, and reproduction-manifest guardrails.
+  fit-cache, reproduction-manifest, and pre-registration gate guardrails.
 - `case_study_provenance_manifest`: a machine-readable record tying the compact
   real-data case-study source provenance to claim-level and publication-facing
   reproduction archives without granting a data license or performing
@@ -549,9 +549,10 @@ Current registration checklist:
 - Initial version: `0.1.0`
 - Tests: `Pkg.test()` passes locally
 - Load check: `import BayesianMGMFRM` passes locally
-- General registration is pending until the constrained data/spec API is fully
-  documented and backed by non-optional validation fixtures. External
-  Stan/BridgeStan validation claims are currently limited to the scalar fixture
+- Pre-registration gate: `julia --startup-file=no scripts/pre_registration_gate.jl`
+  is the local release-readiness gate for General registration.
+- General registration remains a manual Registrator/user action. External
+  Stan/BridgeStan validation claims remain limited to the scalar fixtures
   checked in `Pkg.test()`.
 
 ## Pre-Registration Gate

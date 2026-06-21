@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Expose pre-registration gate availability in `release_scope_summary` and
+  clarify that Julia General registration is a manual action after the local
+  gate passes.
 - Clarify that the current public package is a data validation, design, and
   minimal MFRM fitting scaffold with guarded scalar GMFRM and fixed-Q
   confirmatory MGMFRM experiments, not a full GMFRM/MGMFRM fitting API.

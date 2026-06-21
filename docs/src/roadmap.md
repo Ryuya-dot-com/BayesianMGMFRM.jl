@@ -436,7 +436,8 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   artifact/cache/report-bundle surface and rejects mismatched fit-cache records
   before marking fast cached-draw reproduction ready. [`release_scope_summary`](@ref)
   now exposes those fit-cache and reproduction guardrails as local evidence rows
-  without broadening public generalized claims.
+  without broadening public generalized claims, and records the local
+  pre-registration gate as the manual General-registration readiness boundary.
 
 ## Next 30-45 Days
 
