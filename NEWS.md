@@ -9,7 +9,9 @@
   `release_scope_summary`.
 - Relabel the completed 30-45 day roadmap section as a sprint record so the
   current remaining boundary is the manual public-scope/registration gate rather
-  than a stale immediate TODO.
+  than a stale immediate-task label.
+- Relabel completed release-roadmap task blocks as completed checklists so the
+  100% checklist ledger does not retain stale task-heading language.
 - Expose pre-registration gate availability in `release_scope_summary` and
   clarify that Julia General registration is a manual action after the local
   gate passes.
