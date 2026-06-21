@@ -440,7 +440,12 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   and records the local pre-registration gate as the manual General-registration
   readiness boundary.
 
-## Next 30-45 Days
+## Completed 30-45 Day Sprint Record
+
+This section is retained as the completed sprint record for guarded scalar
+GMFRM and fixed-Q confirmatory MGMFRM exposure work. Broader stable-public claims
+and release actions remain governed by the release-scope and manual public-scope
+gates above.
 
 1. Split the scalar GMFRM promotion candidate from source-fixture helper logic
    into an internal fit-ready compiler path with generated raw blocks,

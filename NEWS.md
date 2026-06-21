@@ -7,6 +7,9 @@
 - Turn the Documenter 100 KiB rendered-page warning threshold into a hard docs
   build gate and expose that documentation-size guardrail in
   `release_scope_summary`.
+- Relabel the completed 30-45 day roadmap section as a sprint record so the
+  current remaining boundary is the manual public-scope/registration gate rather
+  than a stale immediate TODO.
 - Expose pre-registration gate availability in `release_scope_summary` and
   clarify that Julia General registration is a manual action after the local
   gate passes.
