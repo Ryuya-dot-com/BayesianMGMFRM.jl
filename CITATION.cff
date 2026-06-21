@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use BayesianMGMFRM.jl, please cite it using the metadata from this file."
+type: software
+title: "BayesianMGMFRM.jl: Bayesian many-facet Rasch measurement in Julia"
+authors:
+  - family-names: "Komuro"
+    given-names: "Ryuya"
+version: "0.1.0"
+date-released: "2026-06-21"
+license: "MIT"
+repository-code: "https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl"
+url: "https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl"
+keywords:
+  - "Bayesian measurement"
+  - "many-facet Rasch model"
+  - "Julia"
+abstract: >-
+  BayesianMGMFRM.jl provides Bayesian many-facet Rasch measurement workflows in
+  Julia, including long-format rating-data validation, design inspection,
+  minimal MFRM/RSM/PCM fitting, diagnostics, posterior predictive checks, and
+  guarded GMFRM/MGMFRM experimental paths.

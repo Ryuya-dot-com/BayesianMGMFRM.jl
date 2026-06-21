@@ -232,6 +232,16 @@ avoidance. For durable review, keep the `model_manifest`, `fit_artifact`,
 exported summaries, report bundles, source data, and exact code version with
 the analysis.
 
+## Citation
+
+If you use `BayesianMGMFRM.jl`, please cite the package metadata in
+[`CITATION.cff`](CITATION.cff):
+
+```text
+Ryuya Komuro. BayesianMGMFRM.jl: Bayesian many-facet Rasch measurement in
+Julia, version 0.1.0. https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl
+```
+
 ## License
 
 MIT License. See [`LICENSE`](LICENSE).
