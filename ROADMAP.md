@@ -478,7 +478,7 @@ stable.
 Goal: keep the current package useful while preventing users from mistaking it
 for a full Bayesian MGMFRM engine.
 
-TODO:
+Completed checklist:
 
 - [x] Add public roadmap/scope documentation.
 - [x] Add a machine-readable validation-to-suggestion map.
@@ -498,7 +498,7 @@ implemented scope.
 
 Goal: compile domain options into one canonical identified design.
 
-TODO:
+Completed checklist:
 
 - [x] Extend `mfrm_spec` into an initial ladder that can represent MFRM, GMFRM,
   and MGMFRM as configurations of one `FacetSpec` while marking unsupported
@@ -766,7 +766,7 @@ hand-computed and BridgeStan fixtures.
 
 Goal: make Bayesian fitting credible before adding broad reporting features.
 
-TODO:
+Completed checklist:
 
 - [x] Integrate the analytic-gradient path where available and keep AD backends
   swappable for unsupported specs.
@@ -805,7 +805,7 @@ recovery, and Stan-comparison checks on predeclared sparse designs.
 
 Goal: make diagnostics and sensitivity analysis first-class APIs.
 
-TODO:
+Completed checklist:
 
 - [x] Implement prior predictive checks for category use, facet ranges, and
   implausible prior implications.
@@ -844,7 +844,7 @@ sensitivity tables.
 
 Goal: make the package useful to FACETS-trained MFRM users.
 
-TODO:
+Completed checklist:
 
 - [x] Implement fair averages and expected-score summaries with uncertainty.
   [`fair_average_summary` provides posterior fair-average expected-score
@@ -885,7 +885,7 @@ can inspect the uncertainty and diagnostics behind it.
 
 Goal: make broad claims falsifiable and reproducible.
 
-TODO:
+Completed checklist:
 
 - [x] Build simulation grids for sparse-to-near-complete density, anchor size,
   ratings per target, category pathologies, rater noise, DFF,
