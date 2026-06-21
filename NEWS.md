@@ -16,6 +16,9 @@
   pre-registration boundary and links it from the docs navigation.
 - Tighten the pre-registration gate to check the General AutoMerge-facing
   package-name rules and origin URL shape before handoff.
+- Add a local registration handoff script that verifies the manual release
+  boundary and prints the Registrator trigger comment without performing any
+  registration action.
 - Expose pre-registration gate availability in `release_scope_summary` and
   clarify that Julia General registration is a manual action after the local
   gate passes.
