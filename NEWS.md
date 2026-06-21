@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Split the rendered API reference into smaller workflow pages to avoid the
+  oversized single-page Documenter warning.
 - Expose pre-registration gate availability in `release_scope_summary` and
   clarify that Julia General registration is a manual action after the local
   gate passes.

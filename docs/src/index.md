@@ -120,6 +120,18 @@ for runnable minimal and guarded MGMFRM scripts, and
 GMFRM/MGMFRM work.
 
 ```@contents
-Pages = ["data-validation.md", "model-equations.md", "bayesian-workflow.md", "fitting.md", "examples.md", "roadmap.md", "api.md"]
+Pages = [
+    "data-validation.md",
+    "model-equations.md",
+    "bayesian-workflow.md",
+    "fitting.md",
+    "examples.md",
+    "roadmap.md",
+    "api.md",
+    "api-data-design.md",
+    "api-fitting-artifacts.md",
+    "api-workflow-diagnostics.md",
+    "api-validation-evidence.md",
+]
 Depth = 2
 ```
