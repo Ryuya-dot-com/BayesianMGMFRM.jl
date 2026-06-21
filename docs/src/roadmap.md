@@ -433,7 +433,8 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   benchmarks.
 - Archive full and fast reproduction artifacts. [`fit_reproduction_manifest`](@ref)
   now audits full rerun and fast cached-draw paths together for the current fit
-  artifact/cache/report-bundle surface.
+  artifact/cache/report-bundle surface and rejects mismatched fit-cache records
+  before marking fast cached-draw reproduction ready.
 
 ## Next 30-45 Days
 

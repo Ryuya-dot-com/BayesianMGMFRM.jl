@@ -269,9 +269,11 @@ for long-term export checks.
 [`fit_reproduction_manifest`](@ref) combines that full-rerun artifact with a
 hash-verified fit-cache record from [`save_fit_cache`](@ref) or
 [`cached_fit`](@ref), treating full rerun and fast cached-draw reproduction as
-separate required paths. It can also attach a fit-report bundle manifest for
-review exports, while explicitly recording that no publication or registration
-action is performed.
+separate required paths. When a cache record is supplied, the manifest checks
+that the record's embedded fit identity matches the target fit before marking
+the fast cached-draw path ready. It can also attach a fit-report bundle manifest
+for review exports, while explicitly recording that no publication or
+registration action is performed.
 [`case_study_provenance_manifest`](@ref) records the local real-data
 case-study source licensing/anonymization status and synchronizes that record
 with the claim-level, manuscript-scale, and full-paper archive rows. It is a

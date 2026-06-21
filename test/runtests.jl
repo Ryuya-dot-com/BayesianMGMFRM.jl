@@ -8603,6 +8603,18 @@ end
         expected_cache_key = gmfrm_cache_key) isa GMFRMFit
     @test load_fit_cache(gmfrm_cache_path;
         expected_cache_key = gmfrm_cache_key).draws == gmfrm_experimental_fit.draws
+    gmfrm_reproduction_manifest = fit_reproduction_manifest(gmfrm_experimental_fit;
+        artifact = gmfrm_experimental_artifact,
+        source_path = "memory://gmfrm_experimental_artifact",
+        cache_record = gmfrm_cache_record,
+        cache_path = gmfrm_cache_path)
+    @test gmfrm_reproduction_manifest.status === :ready
+    @test gmfrm_reproduction_manifest.family === :gmfrm
+    @test gmfrm_reproduction_manifest.fast_cached_draws.status === :ready
+    @test gmfrm_reproduction_manifest.fast_cached_draws.n_draws == 8
+    @test gmfrm_reproduction_manifest.fast_cached_draws.backend === :advancedhmc
+    @test gmfrm_reproduction_manifest.fast_cached_draws.content_hash ==
+        gmfrm_cache_record.artifact_content_hash
     gmfrm_cached_path = joinpath(gmfrm_cache_dir, "gmfrm_cached_fit.jls")
     gmfrm_cached_record = cached_fit(gmfrm_spec;
         cache_path = gmfrm_cached_path,
@@ -9717,6 +9729,20 @@ end
         expected_cache_key = mgmfrm_cache_key)
     @test loaded_mgmfrm_cache isa MGMFRMFit
     @test loaded_mgmfrm_cache.draws == mgmfrm_guarded_fit.draws
+    mgmfrm_reproduction_manifest = fit_reproduction_manifest(mgmfrm_guarded_fit;
+        cache_record = mgmfrm_cache_record,
+        cache_path = mgmfrm_cache_path,
+        include_environment = false)
+    @test mgmfrm_reproduction_manifest.status === :ready
+    @test mgmfrm_reproduction_manifest.family === :mgmfrm
+    @test mgmfrm_reproduction_manifest.fast_cached_draws.status === :ready
+    @test mgmfrm_reproduction_manifest.fast_cached_draws.n_draws == 2
+    @test mgmfrm_reproduction_manifest.fast_cached_draws.content_hash ==
+        mgmfrm_cache_record.artifact_content_hash
+    @test_throws ArgumentError fit_reproduction_manifest(gmfrm_experimental_fit;
+        cache_record = mgmfrm_cache_record,
+        cache_path = mgmfrm_cache_path,
+        include_environment = false)
     mgmfrm_simulated_direct = simulate_responses(mgmfrm_spec, mgmfrm_params;
         preview = true,
         rng = MersenneTwister(20260634),
@@ -11318,6 +11344,10 @@ end
         bundle_manifest.content_hash
     @test reproduction_manifest.content_hash.value ==
         artifact_content_hash(reproduction_manifest)
+    @test_throws ArgumentError fit_reproduction_manifest(spec_result;
+        cache_record,
+        cache_path,
+        include_environment = false)
     loaded_fit = load_fit_cache(cache_path; expected_cache_key = cache_key)
     @test loaded_fit isa MFRMFit
     @test loaded_fit.draws == result.draws
