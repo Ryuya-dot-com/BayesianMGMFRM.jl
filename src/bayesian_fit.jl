@@ -6482,9 +6482,22 @@ end
 
 function _prior_cache_record(prior::MFRMPrior)
     return (;
+        prior_contract = :mfrm_independent_normal,
         person_sd = prior.person_sd,
         rater_sd = prior.rater_sd,
         item_sd = prior.item_sd,
+        step_sd = prior.step_sd,
+    )
+end
+
+function _prior_cache_record(prior::_SourceFixturePrior)
+    return (;
+        prior_contract = :source_fixture_raw_coordinate_normal,
+        person_sd = prior.person_sd,
+        rater_sd = prior.rater_sd,
+        item_sd = prior.item_sd,
+        log_discrimination_sd = prior.log_discrimination_sd,
+        log_consistency_sd = prior.log_consistency_sd,
         step_sd = prior.step_sd,
     )
 end
@@ -6573,8 +6586,44 @@ function _fit_cache_controls(backend::Symbol,
     throw(ArgumentError("backend must be :julia, :advancedhmc, or :turing"))
 end
 
+_fit_cache_default_prior(::FacetDesign, experimental::Bool) =
+    experimental ? nothing : MFRMPrior()
+
+function _fit_cache_prior(design::FacetDesign, prior, experimental::Bool)
+    if experimental
+        design.spec.family === :gmfrm && return _experimental_gmfrm_prior(prior)
+        design.spec.family === :mgmfrm && return _guarded_mgmfrm_prior(prior)
+        throw(ArgumentError(
+            "experimental fit caches currently support only family = :gmfrm or :mgmfrm"))
+    end
+    prior isa MFRMPrior ||
+        throw(ArgumentError("non-experimental fit caches require an MFRMPrior"))
+    return prior
+end
+
+function _fit_cache_initial(design::FacetDesign, init, prior, experimental::Bool)
+    if experimental
+        design.spec.family === :gmfrm && return _experimental_gmfrm_initial(
+            _gmfrm_promotion_candidate_logdensity(design; prior),
+            init,
+        )
+        design.spec.family === :mgmfrm && return _guarded_mgmfrm_initial(
+            _mgmfrm_guarded_local_fit_logdensity(design; prior),
+            init,
+        )
+        throw(ArgumentError(
+            "experimental fit caches currently support only family = :gmfrm or :mgmfrm"))
+    end
+    return _fit_initial_params(design, init)
+end
+
+function _fit_cache_design(spec::FacetSpec, experimental::Bool)
+    return experimental ? getdesign(spec; preview = true) : getdesign(spec)
+end
+
 function _fit_cache_request(design::FacetDesign;
-        prior::MFRMPrior = MFRMPrior(),
+        experimental::Bool = false,
+        prior = _fit_cache_default_prior(design, experimental),
         backend::Symbol = :julia,
         ndraws::Int = 1000,
         warmup::Int = 1000,
@@ -6590,7 +6639,11 @@ function _fit_cache_request(design::FacetDesign;
         ad_backend::Symbol = :ForwardDiff,
         init_jitter::Real = 0.0,
         progress::Bool = false)
-    initial = _fit_initial_params(design, init)
+    experimental && backend !== :advancedhmc &&
+        throw(ArgumentError(
+            "experimental fit caches currently support only backend = :advancedhmc"))
+    checked_prior = _fit_cache_prior(design, prior, experimental)
+    initial = _fit_cache_initial(design, init, checked_prior, experimental)
     _, rng_control = _fit_rng(rng, seed)
     _require_cache_replayable_rng(rng_control)
     controls = _fit_cache_controls(backend, ndraws, warmup, chains, step_size,
@@ -6606,7 +6659,9 @@ function _fit_cache_request(design::FacetDesign;
         julia_version = string(VERSION),
         data_signature = design.spec.validation.data_signature,
         manifest = model_manifest(design),
-        prior = _prior_cache_record(prior),
+        experimental,
+        parameter_space = experimental ? :raw_unconstrained : :direct_identified,
+        prior = _prior_cache_record(checked_prior),
         controls,
     )
 end
@@ -6625,10 +6680,15 @@ function fit_cache_key(design::FacetDesign; kwargs...)
     return _cache_hash(_fit_cache_request(design; kwargs...))
 end
 
-fit_cache_key(spec::FacetSpec; kwargs...) =
-    fit_cache_key(getdesign(spec); kwargs...)
+function fit_cache_key(spec::FacetSpec; experimental::Bool = false, kwargs...)
+    return fit_cache_key(
+        _fit_cache_design(spec, experimental);
+        experimental,
+        kwargs...,
+    )
+end
 
-function _fit_cache_record(fit::MFRMFit;
+function _fit_cache_record(fit::_ModelComparisonFit;
         cache_key,
         artifact,
         source_path = nothing)
@@ -6652,7 +6712,7 @@ function _fit_cache_record(fit::MFRMFit;
     )
 end
 
-function _fit_cache_artifact(fit::MFRMFit;
+function _fit_cache_artifact(fit::_ModelComparisonFit;
         artifact_include_draws::Bool,
         artifact_include_log_posterior::Bool,
         artifact_include_sampler_stats::Bool,
@@ -6673,17 +6733,18 @@ function _fit_cache_artifact(fit::MFRMFit;
 end
 
 """
-    save_fit_cache(path, fit::MFRMFit; cache_key = nothing, overwrite = false,
+    save_fit_cache(path, fit::Union{MFRMFit,GMFRMFit,MGMFRMFit};
+                   cache_key = nothing, overwrite = false,
                    artifact = nothing, ...)
 
 Serialize a fitted object and a reproducibility artifact to `path` using
 Julia's standard `Serialization` format. This is intended as an RDS-like cache
 for avoiding recomputation in the same Julia analysis environment. The cache
-contains the full `MFRMFit` object; artifact draw duplication is omitted by
-default unless requested with the `artifact_include_*` keywords.
+contains the full fitted object; artifact draw duplication is omitted by default
+unless requested with the `artifact_include_*` keywords.
 """
 function save_fit_cache(path::AbstractString,
-        fit::MFRMFit;
+        fit::_ModelComparisonFit;
         cache_key = nothing,
         overwrite::Bool = false,
         artifact = nothing,
@@ -6726,8 +6787,9 @@ function _check_fit_cache_record(record, path)
         throw(ArgumentError("fit cache at $path has an unsupported schema"))
     _nt_get(record, :object, nothing) === :fit_cache ||
         throw(ArgumentError("fit cache at $path has an unsupported object"))
-    _nt_get(record, :fit, nothing) isa MFRMFit ||
-        throw(ArgumentError("fit cache at $path does not contain an MFRMFit"))
+    _nt_get(record, :fit, nothing) isa _ModelComparisonFit ||
+        throw(ArgumentError(
+            "fit cache at $path does not contain an MFRMFit, GMFRMFit, or MGMFRMFit"))
     _nt_get(record, :artifact, nothing) isa NamedTuple ||
         throw(ArgumentError("fit cache at $path does not contain a fit artifact"))
     _cache_hash_value(record, :artifact_content_hash,
@@ -6811,7 +6873,7 @@ end
     load_fit_cache(path; expected_cache_key = nothing, verify_hash = true,
                    return_record = false)
 
-Load a serialized fit cache. By default the cached `MFRMFit` is returned. Set
+Load a serialized fit cache. By default the cached fit object is returned. Set
 `return_record = true` to inspect the cache metadata and artifact. When
 `expected_cache_key` is supplied, loading fails unless the stored key matches.
 By default loading also verifies the stored artifact content hash and archive
@@ -6858,7 +6920,8 @@ function cached_fit(design::FacetDesign;
         cache_path = nothing,
         refresh::Bool = false,
         return_record::Bool = false,
-        prior::MFRMPrior = MFRMPrior(),
+        experimental::Bool = false,
+        prior = _fit_cache_default_prior(design, experimental),
         backend::Symbol = :julia,
         ndraws::Int = 1000,
         warmup::Int = 1000,
@@ -6883,8 +6946,10 @@ function cached_fit(design::FacetDesign;
         artifact_rhat_threshold::Real = 1.01,
         artifact_ess_threshold::Real = 400)
     path = _check_cache_path(cache_path)
+    checked_prior = _fit_cache_prior(design, prior, experimental)
     key = fit_cache_key(design;
-        prior,
+        experimental,
+        prior = checked_prior,
         backend,
         ndraws,
         warmup,
@@ -6904,23 +6969,44 @@ function cached_fit(design::FacetDesign;
         record = load_fit_cache(path; expected_cache_key = key, return_record = true)
         return return_record ? record : record.fit
     end
-    fit_result = fit(design;
-        prior,
-        backend,
-        ndraws,
-        warmup,
-        chains,
-        step_size,
-        init,
-        rng,
-        seed,
-        target_accept,
-        max_depth,
-        max_energy_error,
-        metric,
-        ad_backend,
-        init_jitter,
-        progress)
+    fit_result = if experimental
+        fit(design.spec;
+            experimental = true,
+            prior = checked_prior,
+            backend,
+            ndraws,
+            warmup,
+            chains,
+            step_size,
+            init,
+            rng,
+            seed,
+            target_accept,
+            max_depth,
+            max_energy_error,
+            metric,
+            ad_backend,
+            init_jitter,
+            progress)
+    else
+        fit(design;
+            prior = checked_prior,
+            backend,
+            ndraws,
+            warmup,
+            chains,
+            step_size,
+            init,
+            rng,
+            seed,
+            target_accept,
+            max_depth,
+            max_energy_error,
+            metric,
+            ad_backend,
+            init_jitter,
+            progress)
+    end
     record = save_fit_cache(path, fit_result;
         cache_key = key,
         overwrite = true,
@@ -6935,8 +7021,13 @@ function cached_fit(design::FacetDesign;
     return return_record ? record : fit_result
 end
 
-cached_fit(spec::FacetSpec; kwargs...) =
-    cached_fit(getdesign(spec); kwargs...)
+function cached_fit(spec::FacetSpec; experimental::Bool = false, kwargs...)
+    return cached_fit(
+        _fit_cache_design(spec, experimental);
+        experimental,
+        kwargs...,
+    )
+end
 
 function _column_mean(xs::AbstractVector{<:Real})
     isempty(xs) && return NaN

@@ -8551,6 +8551,96 @@ end
         artifact_content_hash(gmfrm_experimental_artifact)
     @test gmfrm_experimental_artifact.archive_manifest.content_hash ==
         gmfrm_experimental_artifact.content_hash
+    gmfrm_cache_key = fit_cache_key(gmfrm_spec;
+        experimental = true,
+        backend = :advancedhmc,
+        ndraws = 4,
+        warmup = 4,
+        chains = 2,
+        step_size = 0.03,
+        seed = 20260627,
+        max_depth = 3,
+        metric = :unit)
+    @test length(gmfrm_cache_key) == 64
+    @test gmfrm_cache_key == fit_cache_key(gmfrm_experimental_fit.design;
+        experimental = true,
+        backend = :advancedhmc,
+        ndraws = 4,
+        warmup = 4,
+        chains = 2,
+        step_size = 0.03,
+        seed = 20260627,
+        max_depth = 3,
+        metric = :unit)
+    @test gmfrm_cache_key != fit_cache_key(gmfrm_spec;
+        experimental = true,
+        backend = :advancedhmc,
+        ndraws = 4,
+        warmup = 4,
+        chains = 2,
+        step_size = 0.03,
+        seed = 20260628,
+        max_depth = 3,
+        metric = :unit)
+    @test_throws ArgumentError fit_cache_key(gmfrm_spec;
+        experimental = true,
+        backend = :julia,
+        ndraws = 2,
+        warmup = 0,
+        chains = 1,
+        step_size = 0.03,
+        seed = 20260628)
+    gmfrm_cache_dir = mktempdir()
+    gmfrm_cache_path = joinpath(gmfrm_cache_dir, "gmfrm_experimental_fit.jls")
+    gmfrm_cache_record = save_fit_cache(gmfrm_cache_path, gmfrm_experimental_fit;
+        cache_key = gmfrm_cache_key)
+    @test gmfrm_cache_record.object === :fit_cache
+    @test gmfrm_cache_record.fit isa GMFRMFit
+    @test gmfrm_cache_record.cache_key == gmfrm_cache_key
+    @test gmfrm_cache_record.artifact.schema ==
+        "bayesianmgmfrm.gmfrm_experimental_fit_artifact.v1"
+    @test load_fit_cache(gmfrm_cache_path;
+        expected_cache_key = gmfrm_cache_key) isa GMFRMFit
+    @test load_fit_cache(gmfrm_cache_path;
+        expected_cache_key = gmfrm_cache_key).draws == gmfrm_experimental_fit.draws
+    gmfrm_cached_path = joinpath(gmfrm_cache_dir, "gmfrm_cached_fit.jls")
+    gmfrm_cached_record = cached_fit(gmfrm_spec;
+        cache_path = gmfrm_cached_path,
+        experimental = true,
+        return_record = true,
+        backend = :advancedhmc,
+        ndraws = 2,
+        warmup = 0,
+        chains = 1,
+        step_size = 0.03,
+        seed = 20260635,
+        max_depth = 1,
+        metric = :unit)
+    @test gmfrm_cached_record.object === :fit_cache
+    @test gmfrm_cached_record.fit isa GMFRMFit
+    gmfrm_cached_hit = cached_fit(gmfrm_spec;
+        cache_path = gmfrm_cached_path,
+        experimental = true,
+        backend = :advancedhmc,
+        ndraws = 2,
+        warmup = 0,
+        chains = 1,
+        step_size = 0.03,
+        seed = 20260635,
+        max_depth = 1,
+        metric = :unit)
+    @test gmfrm_cached_hit.draws == gmfrm_cached_record.fit.draws
+    @test_throws ArgumentError cached_fit(gmfrm_spec;
+        cache_path = gmfrm_cached_path,
+        experimental = true,
+        backend = :advancedhmc,
+        ndraws = 2,
+        warmup = 0,
+        chains = 1,
+        step_size = 0.03,
+        seed = 20260636,
+        max_depth = 1,
+        metric = :unit)
     @test waic(gmfrm_experimental_fit).n_draws == 8
     @test waic(gmfrm_experimental_fit.design,
         gmfrm_experimental_fit.direct_draws).waic ≈
@@ -9591,6 +9681,42 @@ end
         "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1"
     @test mgmfrm_report.artifact.artifact === nothing
     @test length(mgmfrm_report.artifact.content_hash.value) == 64
+    mgmfrm_cache_key = fit_cache_key(mgmfrm_spec;
+        experimental = true,
+        backend = :advancedhmc,
+        ndraws = 2,
+        warmup = 0,
+        chains = 1,
+        step_size = 0.02,
+        init = mgmfrm_raw_params,
+        seed = 20260630,
+        max_depth = 2,
+        metric = :unit)
+    @test length(mgmfrm_cache_key) == 64
+    @test mgmfrm_cache_key == fit_cache_key(mgmfrm_guarded_fit.design;
+        experimental = true,
+        backend = :advancedhmc,
+        ndraws = 2,
+        warmup = 0,
+        chains = 1,
+        step_size = 0.02,
+        init = mgmfrm_raw_params,
+        seed = 20260630,
+        max_depth = 2,
+        metric = :unit)
+    mgmfrm_cache_dir = mktempdir()
+    mgmfrm_cache_path = joinpath(mgmfrm_cache_dir, "mgmfrm_guarded_fit.jls")
+    mgmfrm_cache_record = save_fit_cache(mgmfrm_cache_path, mgmfrm_guarded_fit;
+        cache_key = mgmfrm_cache_key)
+    @test mgmfrm_cache_record.object === :fit_cache
+    @test mgmfrm_cache_record.fit isa MGMFRMFit
+    @test mgmfrm_cache_record.cache_key == mgmfrm_cache_key
+    @test mgmfrm_cache_record.artifact.schema ==
+        "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1"
+    loaded_mgmfrm_cache = load_fit_cache(mgmfrm_cache_path;
+        expected_cache_key = mgmfrm_cache_key)
+    @test loaded_mgmfrm_cache isa MGMFRMFit
+    @test loaded_mgmfrm_cache.draws == mgmfrm_guarded_fit.draws
     mgmfrm_simulated_direct = simulate_responses(mgmfrm_spec, mgmfrm_params;
         preview = true,
         rng = MersenneTwister(20260634),

@@ -309,9 +309,11 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
 - Add diagnostics with parameter-block pass/fail flags. [Done for current
   identified blocks]
 - Store sampler controls, optional seeds, thread/package environment metadata,
-  and draw-inclusion policy in a fit artifact. [Done for current fit object]
+  and draw-inclusion policy in a fit artifact. [Done for MFRM and guarded
+  generalized fit objects]
 - Add RDS-like serialized fit caches with initialization-vector hashes and
-  explicit cache-key invalidation checks. [Done for current fit object]
+  explicit cache-key invalidation checks. [Done for MFRM and guarded
+  experimental GMFRM/MGMFRM fit objects]
 - Add artifact content hashes and long-term archive manifests for exported
   cache bundles. [Done for current fit artifact/cache records]
 - Expose log likelihood, log prior, and log posterior separately. [Done for
