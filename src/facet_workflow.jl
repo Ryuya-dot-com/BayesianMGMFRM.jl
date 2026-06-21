@@ -1341,6 +1341,23 @@ function _release_scope_evidence_rows()
     for row in _mgmfrm_experimental_public_evidence_rows()
         push!(rows, merge((family = :mgmfrm, scope = :minimal_confirmatory_mgmfrm_candidate), row))
     end
+    append!(rows, [
+        (family = :gmfrm,
+            scope = :scalar_gmfrm_fit_ready_candidate,
+            evidence = :guarded_generalized_fit_cache,
+            status = :done,
+            artifact = :cached_fit_experimental_gmfrm),
+        (family = :mgmfrm,
+            scope = :minimal_confirmatory_mgmfrm_candidate,
+            evidence = :guarded_generalized_fit_cache,
+            status = :done,
+            artifact = :cached_fit_experimental_mgmfrm),
+        (family = :all_fit_objects,
+            scope = :fit_reproduction_manifest,
+            evidence = :fit_reproduction_cache_identity_check,
+            status = :done,
+            artifact = :fit_reproduction_manifest),
+    ])
     return Tuple(rows)
 end
 
@@ -1351,7 +1368,8 @@ Return a machine-readable summary of the package's current release scope. The
 summary lists the public fit surfaces that are currently enabled, the
 unsupported generalized options that remain rejected, and the broad claims that
 remain blocked. Set `include_evidence = true` to include the local evidence rows
-recorded by the guarded GMFRM/MGMFRM exposure manifests.
+recorded by the guarded GMFRM/MGMFRM exposure manifests plus the current
+fit-cache and reproduction-manifest guardrails.
 
 This is a release-scope guardrail, not a statistical validation result and not a
 publication or registration action.
@@ -1379,6 +1397,8 @@ function release_scope_summary(; include_evidence::Bool = false)
             minimal_mfrm_fit_allowed = true,
             scalar_gmfrm_guarded_fit_allowed = true,
             fixed_q_mgmfrm_guarded_fit_allowed = true,
+            guarded_generalized_fit_cache_ready = true,
+            fit_reproduction_cache_identity_checked = true,
             broader_generalized_fit_allowed = false,
             dff_model_effects_allowed = false,
             model_weight_claims_allowed = false,
