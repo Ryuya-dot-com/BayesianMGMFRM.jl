@@ -15,6 +15,7 @@ makedocs(;
         "Bayesian Workflow" => "bayesian-workflow.md",
         "Bayesian Fitting" => "fitting.md",
         "Examples" => "examples.md",
+        "Registration Handoff" => "registration.md",
         "Roadmap and Scope" => "roadmap.md",
         "API" => [
             "Overview" => "api.md",

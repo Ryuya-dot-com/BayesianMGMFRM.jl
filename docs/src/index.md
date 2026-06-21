@@ -115,8 +115,9 @@ review, with estimation currently limited to the guarded scalar GMFRM
 rater-discrimination candidate and the fixed-Q confirmatory MGMFRM candidate.
 See the [Bayesian Workflow](bayesian-workflow.md)
 page for the current check sequence and limitations, [Examples](examples.md)
-for runnable minimal and guarded MGMFRM scripts, and
-[Roadmap and Scope](roadmap.md) for the implementation gates for planned
+for runnable minimal and guarded MGMFRM scripts,
+[Registration Handoff](registration.md) for the manual Julia General boundary,
+and [Roadmap and Scope](roadmap.md) for the implementation gates for planned
 GMFRM/MGMFRM work.
 
 ```@contents
@@ -126,6 +127,7 @@ Pages = [
     "bayesian-workflow.md",
     "fitting.md",
     "examples.md",
+    "registration.md",
     "roadmap.md",
     "api.md",
     "api-data-design.md",
