@@ -245,6 +245,17 @@ const REPRODUCTION_FIXTURES = [
         env_var = "MFRM_MGMFRM_EMPIRICAL_Q_MATRIX_RECOVERY_POLICY_FIXTURE",
         pass_policy = :summary_passed,
         hash_policy = :sha256),
+    (name = :mgmfrm_empirical_q_matrix_recovery_simulation_grid,
+        path =
+            "test/fixtures/mgmfrm_empirical_q_matrix_recovery_simulation_grid.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_empirical_q_matrix_recovery_simulation_grid.v1",
+        generator =
+            "scripts/generate_mgmfrm_empirical_q_matrix_recovery_simulation_grid.jl",
+        env_var =
+            "MFRM_MGMFRM_EMPIRICAL_Q_MATRIX_RECOVERY_SIMULATION_GRID_FIXTURE",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
     (name = :mgmfrm_guarded_fit_method_wiring,
         path = "test/fixtures/mgmfrm_guarded_fit_method_wiring.json",
         expected_schema =
@@ -327,6 +338,7 @@ const CODE_AND_DOC_PATHS = [
     "scripts/generate_mgmfrm_report_shape_simulation_grid.jl",
     "scripts/generate_mgmfrm_q_matrix_validation_expansion.jl",
     "scripts/generate_mgmfrm_empirical_q_matrix_recovery_policy.jl",
+    "scripts/generate_mgmfrm_empirical_q_matrix_recovery_simulation_grid.jl",
     "scripts/generate_mgmfrm_guarded_fit_method_wiring.jl",
     "scripts/generate_mgmfrm_guarded_fit_validation_grid.jl",
     "scripts/generate_mgmfrm_guarded_fit_api_dry_run.jl",
@@ -398,6 +410,9 @@ const FULL_REGENERATION_COMMANDS = [
     (artifact = :mgmfrm_empirical_q_matrix_recovery_policy,
         command =
             "julia --project=. scripts/generate_mgmfrm_empirical_q_matrix_recovery_policy.jl"),
+    (artifact = :mgmfrm_empirical_q_matrix_recovery_simulation_grid,
+        command =
+            "julia --project=. scripts/generate_mgmfrm_empirical_q_matrix_recovery_simulation_grid.jl"),
     (artifact = :mgmfrm_guarded_fit_method_wiring,
         command = "julia --project=. scripts/generate_mgmfrm_guarded_fit_method_wiring.jl"),
     (artifact = :mgmfrm_guarded_fit_validation_grid,
@@ -467,6 +482,8 @@ const PROTOCOL = (;
         require_mgmfrm_report_shape_simulation_grid_passed = true,
         require_mgmfrm_q_matrix_validation_expansion_passed = true,
         require_mgmfrm_empirical_q_matrix_recovery_policy_passed = true,
+        require_mgmfrm_empirical_q_matrix_recovery_simulation_grid_passed =
+            true,
         require_mgmfrm_guarded_fit_method_wiring_passed = true,
         require_mgmfrm_guarded_fit_validation_grid_passed = true,
         require_mgmfrm_guarded_fit_api_dry_run_passed = true,
@@ -739,6 +756,9 @@ function build_artifact()
     mgmfrm_q_recovery_policy =
         record_by_name(fixture_records,
             :mgmfrm_empirical_q_matrix_recovery_policy)
+    mgmfrm_q_recovery_simulation =
+        record_by_name(fixture_records,
+            :mgmfrm_empirical_q_matrix_recovery_simulation_grid)
     mgmfrm_method =
         record_by_name(fixture_records, :mgmfrm_guarded_fit_method_wiring)
     mgmfrm_validation =
@@ -788,6 +808,7 @@ function build_artifact()
         mgmfrm_report_shape.summary_passed &&
         mgmfrm_q_expansion.summary_passed &&
         mgmfrm_q_recovery_policy.summary_passed &&
+        mgmfrm_q_recovery_simulation.summary_passed &&
         mgmfrm_method.summary_passed &&
         mgmfrm_validation.summary_passed &&
         mgmfrm_api_dry_run.summary_passed &&
@@ -877,6 +898,8 @@ function build_artifact()
                 mgmfrm_q_expansion.summary_passed,
             mgmfrm_empirical_q_matrix_recovery_policy_passed =
                 mgmfrm_q_recovery_policy.summary_passed,
+            mgmfrm_empirical_q_matrix_recovery_simulation_grid_passed =
+                mgmfrm_q_recovery_simulation.summary_passed,
             mgmfrm_guarded_fit_method_wiring_passed =
                 mgmfrm_method.summary_passed,
             mgmfrm_guarded_fit_validation_grid_passed =

@@ -68,6 +68,12 @@ const INPUT_ARTIFACTS = [
         path = "test/fixtures/mgmfrm_sparse_recovery_grid.json",
         expected_schema = "bayesianmgmfrm.mgmfrm_sparse_recovery_grid.v1",
         hash_policy = :sha256),
+    (name = :mgmfrm_empirical_q_matrix_recovery_simulation_grid,
+        path =
+            "test/fixtures/mgmfrm_empirical_q_matrix_recovery_simulation_grid.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_empirical_q_matrix_recovery_simulation_grid.v1",
+        hash_policy = :sha256),
     (name = :full_paper_reproduction_archive,
         path = "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
         expected_schema =
@@ -102,6 +108,8 @@ const PROTOCOL = (;
         require_mgmfrm_manual_public_scope_review_for_fit_passed = true,
         require_dff_validation_grid_passed = true,
         require_mgmfrm_sparse_recovery_grid_passed = true,
+        require_mgmfrm_empirical_q_matrix_recovery_simulation_grid_passed =
+            true,
         require_full_paper_reproduction_archive_passed = true,
         require_minimum_total_evidence_cells = 60,
         require_no_publication_commands = true,
@@ -396,6 +404,17 @@ function artifact_summary(name::Symbol, summary::AbstractString)
             json_bool(summary, "all_sampler_passed") &&
             !json_bool(summary, "public_fit_allowed"),
     )
+    name === :mgmfrm_empirical_q_matrix_recovery_simulation_grid && return (;
+        passed = json_bool(summary, "passed"),
+        n_evidence_cells = json_int(summary, "n_scenarios"),
+        key_check = :mgmfrm_empirical_q_matrix_recovery_simulation,
+        all_primary_checks =
+            json_bool(summary, "all_scenarios_passed") &&
+            json_bool(summary, "all_candidate_validations_checked") &&
+            json_bool(summary, "false_public_promotion_rate_zero") &&
+            json_bool(summary, "zotero_q_matrix_records_recorded") &&
+            !json_bool(summary, "empirical_q_recovery_allowed"),
+    )
     name === :full_paper_reproduction_archive && return (;
         passed = json_bool(summary, "passed"),
         n_evidence_cells = json_int(summary, "n_fixture_artifacts"),
@@ -576,6 +595,10 @@ function build_artifact()
             mgmfrm_sparse_recovery_grid_passed =
                 record_by_name(input_records,
                     :mgmfrm_sparse_recovery_grid).summary_passed,
+            mgmfrm_empirical_q_matrix_recovery_simulation_grid_passed =
+                record_by_name(input_records,
+                    :mgmfrm_empirical_q_matrix_recovery_simulation_grid).
+                    summary_passed,
             full_paper_reproduction_archive_passed =
                 record_by_name(input_records,
                     :full_paper_reproduction_archive).summary_passed,
