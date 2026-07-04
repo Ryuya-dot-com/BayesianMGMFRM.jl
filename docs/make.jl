@@ -17,6 +17,8 @@ makedocs(;
         "Examples" => "examples.md",
         "Registration Handoff" => "registration.md",
         "Roadmap and Scope" => "roadmap.md",
+        "MGMFRM Research Roadmap" => "mgmfrm-research-roadmap.md",
+        "v0.1.1 Implementation Checklist" => "v0.1.1-implementation-checklist.md",
         "API" => [
             "Overview" => "api.md",
             "Data and Design" => "api-data-design.md",

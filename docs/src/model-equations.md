@@ -7,7 +7,7 @@ identification restrictions, implementation gaps, and whether a specification is
 fit-ready.
 
 The current public fitting surface is the minimal MFRM/RSM/PCM slice plus
-guarded experimental generalized candidates: the scalar rater-discrimination
+guarded experimental generalized candidates: the scalar rater-consistency
 GMFRM path and the fixed-Q two-dimensional confirmatory MGMFRM path. Broader
 GMFRM/MGMFRM specifications expose source-aligned manifests and preview
 compiler rows for review, while broad generalized fitting remains guarded or

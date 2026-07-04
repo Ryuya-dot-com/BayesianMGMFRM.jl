@@ -11,8 +11,9 @@ examples. The minimal MFRM/RSM/PCM design can be fit with a random-walk example
 backend, an
     initial AdvancedHMC/NUTS backend, or a Turing/NUTS backend. Guarded
     experimental generalized paths are available through
-    `fit(spec; experimental = true)` for the scalar rater-discrimination GMFRM
-    candidate and the fixed-Q two-dimensional confirmatory MGMFRM candidate.
+    `fit(spec; experimental = true)` for the scalar rater-consistency GMFRM
+    candidate, configured with `discrimination = :rater`, and the fixed-Q
+    two-dimensional confirmatory MGMFRM candidate.
     Broader generalized discrimination likelihoods, group/DFF model effects, and
     exploratory MGMFRM fitting remain planned work.
 """
@@ -47,6 +48,7 @@ export FacetData,
     dff_report,
     domain_compilation_summary,
     evidence_metadata,
+    evidence_artifact_schema_policy,
     expected_scores,
     facet_response_table,
     fair_average_summary,
@@ -92,6 +94,7 @@ export FacetData,
     mcmc_diagnostics,
     model_manifest,
     model_ladder,
+    model_surface_audit,
     mfrm_spec,
     parameter_block_diagnostics,
     parameter_recovery,
@@ -110,9 +113,13 @@ export FacetData,
     predictive_variances,
     prior_predict,
     prior_predictive_check,
+    q_matrix_validation,
     rater_diagnostics,
     rater_overlap,
+    rating_design_audit,
+    related_software_capability_matrix,
     residual_summary,
+    release_gate_check,
     release_scope_summary,
     load_fit_cache,
     load_fit_report_dossier,

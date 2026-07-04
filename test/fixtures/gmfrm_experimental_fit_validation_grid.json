@@ -1,0 +1,1367 @@
+{
+  "schema": "bayesianmgmfrm.gmfrm_experimental_fit_validation_grid.v1",
+  "family": "gmfrm",
+  "scope": "scalar_gmfrm_fit_ready_candidate",
+  "status": "guarded_experimental_fit_validation_grid_recorded",
+  "decision": "keep_guarded_experimental",
+  "public_fit": true,
+  "experimental_public": true,
+  "fit_ready": true,
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "protocol": {
+    "protocol_id": "scalar_gmfrm_experimental_fit_validation_grid_v1",
+    "review_kind": "local_guarded_experimental_fit_validation_grid",
+    "publication_or_registration_action": false,
+    "entrypoint_under_validation": "fit(spec; experimental = true)",
+    "superseded_by_posterior_predictive_grid": true,
+    "superseded_by_sparse_pathology_recovery_grid": true,
+    "simulation_source": "scalar_gmfrm_baseline_calibration_grid_scenarios",
+    "data_grid": {
+      "persons": 4,
+      "items": 3,
+      "raters": 3,
+      "categories": 3,
+      "rating_density": "full_crossed",
+      "observations": 36,
+      "rater_consistency_variation": "moderate",
+      "item_discrimination_variation": "moderate",
+      "category_step_spread": "moderate",
+      "sparse_cell_pathologies": "none_in_smoke"
+    },
+    "sampler": {
+      "backend": "advancedhmc",
+      "sampler": "nuts",
+      "chains": 2,
+      "warmup": 12,
+      "draws": 12,
+      "step_size": 0.03,
+      "target_accept": 0.85,
+      "max_depth": 8,
+      "max_energy_error": 1000.0,
+      "metric": "unit",
+      "ad_backend": "ForwardDiff",
+      "init_jitter": 0.0,
+      "split_chains": true
+    },
+    "diagnostics": {
+      "rhat_threshold": 100.0,
+      "ess_threshold": 1.0,
+      "loo_min_tail_draws": 5
+    },
+    "thresholds": {
+      "n_scenarios": 3,
+      "n_observations": 36,
+      "require_guarded_fit_returned": true,
+      "require_public_fit_metadata": true,
+      "require_artifact_contract_satisfied": true,
+      "require_pointwise_shape": true,
+      "require_information_criteria_finite": true,
+      "require_no_divergences": true,
+      "require_no_max_treedepth": true,
+      "require_no_failed_direct_constraints": true,
+      "require_no_nonfinite_logdensity": true,
+      "require_no_nonfinite_direct_loglikelihood": true,
+      "max_direct_parameter_mean_absolute_error": 5.0,
+      "max_direct_block_mean_absolute_error": 3.0
+    }
+  },
+  "scenarios": [
+    {
+      "scenario": "near_rasch",
+      "simulation_seed": 20260751,
+      "fit_seed": 20260851,
+      "raw_truth_sha256": "ffda015bc4918122fc22e14b8aba9b63273929479324078de39b0bee861869f7",
+      "simulated_data": {
+        "n_observations": 36,
+        "score_counts": [
+          {
+            "score": 0,
+            "n": 11
+          },
+          {
+            "score": 1,
+            "n": 10
+          },
+          {
+            "score": 2,
+            "n": 15
+          }
+        ],
+        "person_levels": [
+          "E1",
+          "E2",
+          "E3",
+          "E4"
+        ],
+        "rater_levels": [
+          "R1",
+          "R2",
+          "R3"
+        ],
+        "item_levels": [
+          "I1",
+          "I2",
+          "I3"
+        ],
+        "category_levels": [
+          0,
+          1,
+          2
+        ]
+      },
+      "fit_record": {
+        "type": "GMFRMFit",
+        "backend": "advancedhmc",
+        "sampler": "nuts",
+        "raw_draws_shape": [
+          24,
+          17
+        ],
+        "direct_draws_shape": [
+          24,
+          19
+        ],
+        "pointwise_loglikelihood_shape": [
+          24,
+          36
+        ]
+      },
+      "metadata_review": {
+        "public_fit": true,
+        "experimental_public": true,
+        "family": "gmfrm",
+        "dimensions": 1,
+        "discrimination": "rater",
+        "n_draws": 24,
+        "n_chains": 2,
+        "draws_per_chain": 12,
+        "n_parameters": 17,
+        "n_direct_parameters": 19
+      },
+      "diagnostics_review": {
+        "schema": "bayesianmgmfrm.gmfrm_experimental_fit_diagnostics.v1",
+        "public_fit": true,
+        "experimental_public": true,
+        "summary": {
+          "flag": "ok",
+          "passed": true,
+          "n_chains": 2,
+          "draws_per_chain": 12,
+          "total_draws": 24,
+          "n_parameters": 17,
+          "n_direct_parameters": 19,
+          "split_chains": true,
+          "rhat_threshold": 100.0,
+          "ess_threshold": 1.0,
+          "max_rhat": 1.2420830915544967,
+          "min_ess": 19.57219715987674,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "n_block_warnings": 0,
+          "n_direct_block_warnings": 0,
+          "n_sampler_warnings": 0,
+          "n_nonfinite_logdensity": 0,
+          "n_nonfinite_direct_loglikelihood": 0,
+          "n_direct_constraints": 7,
+          "n_failed_direct_constraints": 0,
+          "n_divergences": 0,
+          "n_max_treedepth": 0,
+          "e_bfmi": 0.6946758294414093
+        }
+      },
+      "artifact_review": {
+        "schema": "bayesianmgmfrm.gmfrm_experimental_fit_artifact.v1",
+        "public_fit": true,
+        "experimental_public": true,
+        "fit_ready": true,
+        "density_space": "raw_unconstrained",
+        "raw_prior_control_schema": "bayesianmgmfrm.generalized_raw_prior_control_manifest.v1",
+        "n_raw_prior_control_rows": 7,
+        "raw_prior_control_all_active_scales_resolved": true,
+        "raw_prior_control_direct_scale_priors_enabled": false,
+        "pointwise_loglikelihood_shape": [
+          24,
+          36
+        ],
+        "n_fixture_provenance_rows": 4
+      },
+      "artifact_contract_review": {
+        "schema": "bayesianmgmfrm.experimental_generalized_fit_artifact_contract.v1",
+        "status": "contract_recorded",
+        "public_fit": true,
+        "experimental_public": true,
+        "artifact_kind": "experimental_generalized_fit_artifact",
+        "n_required_fields": 20,
+        "n_required_provenance_artifacts": 4,
+        "all_required_fields_present": true,
+        "missing_required_fields": [],
+        "all_required_provenance_recorded": true,
+        "enables_public_fit": true
+      },
+      "waic_review": {
+        "criterion": "waic",
+        "n_draws": 24,
+        "n_observations": 36,
+        "warning": "high_loglik_variance",
+        "all_top_level_numeric_finite": true
+      },
+      "loo_review": {
+        "criterion": "loo",
+        "n_draws": 24,
+        "n_observations": 36,
+        "warning": "high_pareto_k",
+        "all_top_level_numeric_finite": true
+      },
+      "information_criterion_rows": {
+        "n_waic_rows": 36,
+        "n_loo_rows": 36
+      },
+      "direct_recovery_rows": [
+        {
+          "parameter": "person[E1]",
+          "parameter_index": 1,
+          "block": "person",
+          "true_value": -0.4,
+          "posterior_mean": 0.0937652414363403,
+          "posterior_sd": 0.5571358304793789,
+          "bias": 0.4937652414363403,
+          "absolute_bias": 0.4937652414363403,
+          "finite": true
+        },
+        {
+          "parameter": "person[E2]",
+          "parameter_index": 2,
+          "block": "person",
+          "true_value": -0.1,
+          "posterior_mean": 0.5727860558853143,
+          "posterior_sd": 0.7088714438192374,
+          "bias": 0.6727860558853143,
+          "absolute_bias": 0.6727860558853143,
+          "finite": true
+        },
+        {
+          "parameter": "person[E3]",
+          "parameter_index": 3,
+          "block": "person",
+          "true_value": 0.1,
+          "posterior_mean": -0.7287986535144694,
+          "posterior_sd": 0.7715146426758848,
+          "bias": -0.8287986535144694,
+          "absolute_bias": 0.8287986535144694,
+          "finite": true
+        },
+        {
+          "parameter": "person[E4]",
+          "parameter_index": 4,
+          "block": "person",
+          "true_value": 0.4,
+          "posterior_mean": 0.6617677563069041,
+          "posterior_sd": 0.8500309881627222,
+          "bias": 0.2617677563069041,
+          "absolute_bias": 0.2617677563069041,
+          "finite": true
+        },
+        {
+          "parameter": "rater[R1]",
+          "parameter_index": 5,
+          "block": "rater",
+          "true_value": -0.2,
+          "posterior_mean": -0.6367652131017876,
+          "posterior_sd": 0.727534567074602,
+          "bias": -0.43676521310178756,
+          "absolute_bias": 0.43676521310178756,
+          "finite": true
+        },
+        {
+          "parameter": "rater[R2]",
+          "parameter_index": 6,
+          "block": "rater",
+          "true_value": 0.0,
+          "posterior_mean": -0.04513691314740628,
+          "posterior_sd": 0.697634826366765,
+          "bias": -0.04513691314740628,
+          "absolute_bias": 0.04513691314740628,
+          "finite": true
+        },
+        {
+          "parameter": "rater[R3]",
+          "parameter_index": 7,
+          "block": "rater",
+          "true_value": 0.2,
+          "posterior_mean": 0.7205061534124941,
+          "posterior_sd": 0.5641178706070925,
+          "bias": 0.5205061534124942,
+          "absolute_bias": 0.5205061534124942,
+          "finite": true
+        },
+        {
+          "parameter": "item[I1]",
+          "parameter_index": 8,
+          "block": "item",
+          "true_value": -0.15,
+          "posterior_mean": -0.24215313358375198,
+          "posterior_sd": 0.4571146595148661,
+          "bias": -0.09215313358375199,
+          "absolute_bias": 0.09215313358375199,
+          "finite": true
+        },
+        {
+          "parameter": "item[I2]",
+          "parameter_index": 9,
+          "block": "item",
+          "true_value": 0.15,
+          "posterior_mean": -0.13854515027229705,
+          "posterior_sd": 0.33159781331866645,
+          "bias": -0.28854515027229705,
+          "absolute_bias": 0.28854515027229705,
+          "finite": true
+        },
+        {
+          "parameter": "item[I3]",
+          "parameter_index": 10,
+          "block": "item",
+          "true_value": -0.0,
+          "posterior_mean": 0.3806982838560491,
+          "posterior_sd": 0.6185815350671617,
+          "bias": 0.3806982838560491,
+          "absolute_bias": 0.3806982838560491,
+          "finite": true
+        },
+        {
+          "parameter": "item_discrimination[item=I1]",
+          "parameter_index": 11,
+          "block": "item_discrimination",
+          "true_value": 1.05,
+          "posterior_mean": 1.491716478759577,
+          "posterior_sd": 0.9985451044654269,
+          "bias": 0.44171647875957687,
+          "absolute_bias": 0.44171647875957687,
+          "finite": true
+        },
+        {
+          "parameter": "item_discrimination[item=I2]",
+          "parameter_index": 12,
+          "block": "item_discrimination",
+          "true_value": 0.95,
+          "posterior_mean": 1.0804309159562884,
+          "posterior_sd": 0.3552834798722923,
+          "bias": 0.13043091595628842,
+          "absolute_bias": 0.13043091595628842,
+          "finite": true
+        },
+        {
+          "parameter": "item_discrimination[item=I3]",
+          "parameter_index": 13,
+          "block": "item_discrimination",
+          "true_value": 1.0025062656641603,
+          "posterior_mean": 0.9403657467314498,
+          "posterior_sd": 0.6122002404515198,
+          "bias": -0.06214051893271055,
+          "absolute_bias": 0.06214051893271055,
+          "finite": true
+        },
+        {
+          "parameter": "rater_consistency[rater=R1]",
+          "parameter_index": 14,
+          "block": "rater_consistency",
+          "true_value": 1.05,
+          "posterior_mean": 0.9128937067584494,
+          "posterior_sd": 0.47918011875393485,
+          "bias": -0.13710629324155066,
+          "absolute_bias": 0.13710629324155066,
+          "finite": true
+        },
+        {
+          "parameter": "rater_consistency[rater=R2]",
+          "parameter_index": 15,
+          "block": "rater_consistency",
+          "true_value": 0.95,
+          "posterior_mean": 0.6336167845670639,
+          "posterior_sd": 0.2611659223033876,
+          "bias": -0.316383215432936,
+          "absolute_bias": 0.316383215432936,
+          "finite": true
+        },
+        {
+          "parameter": "rater_consistency[rater=R3]",
+          "parameter_index": 16,
+          "block": "rater_consistency",
+          "true_value": 1.0,
+          "posterior_mean": 0.7048026797572445,
+          "posterior_sd": 0.27200791393095686,
+          "bias": -0.29519732024275547,
+          "absolute_bias": 0.29519732024275547,
+          "finite": true
+        },
+        {
+          "parameter": "rater_step[rater=R1,m=2]",
+          "parameter_index": 17,
+          "block": "rater_steps",
+          "true_value": 0.1,
+          "posterior_mean": 0.1966271499163331,
+          "posterior_sd": 1.109959961824959,
+          "bias": 0.09662714991633309,
+          "absolute_bias": 0.09662714991633309,
+          "finite": true
+        },
+        {
+          "parameter": "rater_step[rater=R2,m=2]",
+          "parameter_index": 18,
+          "block": "rater_steps",
+          "true_value": -0.05,
+          "posterior_mean": 0.10339027619500603,
+          "posterior_sd": 0.8318221167188697,
+          "bias": 0.15339027619500603,
+          "absolute_bias": 0.15339027619500603,
+          "finite": true
+        },
+        {
+          "parameter": "rater_step[rater=R3,m=2]",
+          "parameter_index": 19,
+          "block": "rater_steps",
+          "true_value": 0.0,
+          "posterior_mean": -0.6371301255230245,
+          "posterior_sd": 0.5750720507869841,
+          "bias": -0.6371301255230245,
+          "absolute_bias": 0.6371301255230245,
+          "finite": true
+        }
+      ],
+      "direct_recovery_by_block": [
+        {
+          "block": "item",
+          "n_parameters": 3,
+          "mean_absolute_error": 0.2537988559040327,
+          "max_absolute_error": 0.3806982838560491,
+          "all_finite": true
+        },
+        {
+          "block": "item_discrimination",
+          "n_parameters": 3,
+          "mean_absolute_error": 0.21142930454952527,
+          "max_absolute_error": 0.44171647875957687,
+          "all_finite": true
+        },
+        {
+          "block": "person",
+          "n_parameters": 4,
+          "mean_absolute_error": 0.5642794267857569,
+          "max_absolute_error": 0.8287986535144694,
+          "all_finite": true
+        },
+        {
+          "block": "rater",
+          "n_parameters": 3,
+          "mean_absolute_error": 0.33413609322056265,
+          "max_absolute_error": 0.5205061534124942,
+          "all_finite": true
+        },
+        {
+          "block": "rater_consistency",
+          "n_parameters": 3,
+          "mean_absolute_error": 0.24956227630574737,
+          "max_absolute_error": 0.316383215432936,
+          "all_finite": true
+        },
+        {
+          "block": "rater_steps",
+          "n_parameters": 3,
+          "mean_absolute_error": 0.2957158505447879,
+          "max_absolute_error": 0.6371301255230245,
+          "all_finite": true
+        }
+      ],
+      "summary": {
+        "passed": true,
+        "pointwise_shape_valid": true,
+        "artifact_contract_satisfied": true,
+        "information_criteria_finite": true,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "n_failed_direct_constraints": 0,
+        "n_nonfinite_logdensity": 0,
+        "n_nonfinite_direct_loglikelihood": 0,
+        "max_direct_parameter_mean_absolute_error": 0.8287986535144694,
+        "max_direct_block_mean_absolute_error": 0.5642794267857569
+      }
+    },
+    {
+      "scenario": "moderate_generalized",
+      "simulation_seed": 20260701,
+      "fit_seed": 20260852,
+      "raw_truth_sha256": "c5b69c55720397dda6296c49cb5f7217a792e0589daf30c4141f3496a7f9b464",
+      "simulated_data": {
+        "n_observations": 36,
+        "score_counts": [
+          {
+            "score": 0,
+            "n": 13
+          },
+          {
+            "score": 1,
+            "n": 7
+          },
+          {
+            "score": 2,
+            "n": 16
+          }
+        ],
+        "person_levels": [
+          "E1",
+          "E2",
+          "E3",
+          "E4"
+        ],
+        "rater_levels": [
+          "R1",
+          "R2",
+          "R3"
+        ],
+        "item_levels": [
+          "I1",
+          "I2",
+          "I3"
+        ],
+        "category_levels": [
+          0,
+          1,
+          2
+        ]
+      },
+      "fit_record": {
+        "type": "GMFRMFit",
+        "backend": "advancedhmc",
+        "sampler": "nuts",
+        "raw_draws_shape": [
+          24,
+          17
+        ],
+        "direct_draws_shape": [
+          24,
+          19
+        ],
+        "pointwise_loglikelihood_shape": [
+          24,
+          36
+        ]
+      },
+      "metadata_review": {
+        "public_fit": true,
+        "experimental_public": true,
+        "family": "gmfrm",
+        "dimensions": 1,
+        "discrimination": "rater",
+        "n_draws": 24,
+        "n_chains": 2,
+        "draws_per_chain": 12,
+        "n_parameters": 17,
+        "n_direct_parameters": 19
+      },
+      "diagnostics_review": {
+        "schema": "bayesianmgmfrm.gmfrm_experimental_fit_diagnostics.v1",
+        "public_fit": true,
+        "experimental_public": true,
+        "summary": {
+          "flag": "ok",
+          "passed": true,
+          "n_chains": 2,
+          "draws_per_chain": 12,
+          "total_draws": 24,
+          "n_parameters": 17,
+          "n_direct_parameters": 19,
+          "split_chains": true,
+          "rhat_threshold": 100.0,
+          "ess_threshold": 1.0,
+          "max_rhat": 1.4152674536691765,
+          "min_ess": 17.582893020908823,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "n_block_warnings": 0,
+          "n_direct_block_warnings": 0,
+          "n_sampler_warnings": 0,
+          "n_nonfinite_logdensity": 0,
+          "n_nonfinite_direct_loglikelihood": 0,
+          "n_direct_constraints": 7,
+          "n_failed_direct_constraints": 0,
+          "n_divergences": 0,
+          "n_max_treedepth": 0,
+          "e_bfmi": 1.2014440545528648
+        }
+      },
+      "artifact_review": {
+        "schema": "bayesianmgmfrm.gmfrm_experimental_fit_artifact.v1",
+        "public_fit": true,
+        "experimental_public": true,
+        "fit_ready": true,
+        "density_space": "raw_unconstrained",
+        "raw_prior_control_schema": "bayesianmgmfrm.generalized_raw_prior_control_manifest.v1",
+        "n_raw_prior_control_rows": 7,
+        "raw_prior_control_all_active_scales_resolved": true,
+        "raw_prior_control_direct_scale_priors_enabled": false,
+        "pointwise_loglikelihood_shape": [
+          24,
+          36
+        ],
+        "n_fixture_provenance_rows": 4
+      },
+      "artifact_contract_review": {
+        "schema": "bayesianmgmfrm.experimental_generalized_fit_artifact_contract.v1",
+        "status": "contract_recorded",
+        "public_fit": true,
+        "experimental_public": true,
+        "artifact_kind": "experimental_generalized_fit_artifact",
+        "n_required_fields": 20,
+        "n_required_provenance_artifacts": 4,
+        "all_required_fields_present": true,
+        "missing_required_fields": [],
+        "all_required_provenance_recorded": true,
+        "enables_public_fit": true
+      },
+      "waic_review": {
+        "criterion": "waic",
+        "n_draws": 24,
+        "n_observations": 36,
+        "warning": "high_loglik_variance",
+        "all_top_level_numeric_finite": true
+      },
+      "loo_review": {
+        "criterion": "loo",
+        "n_draws": 24,
+        "n_observations": 36,
+        "warning": "high_pareto_k",
+        "all_top_level_numeric_finite": true
+      },
+      "information_criterion_rows": {
+        "n_waic_rows": 36,
+        "n_loo_rows": 36
+      },
+      "direct_recovery_rows": [
+        {
+          "parameter": "person[E1]",
+          "parameter_index": 1,
+          "block": "person",
+          "true_value": -0.6,
+          "posterior_mean": -0.6871629044139577,
+          "posterior_sd": 0.5329664690108391,
+          "bias": -0.08716290441395769,
+          "absolute_bias": 0.08716290441395769,
+          "finite": true
+        },
+        {
+          "parameter": "person[E2]",
+          "parameter_index": 2,
+          "block": "person",
+          "true_value": -0.2,
+          "posterior_mean": -0.3660763900160799,
+          "posterior_sd": 0.637923165731985,
+          "bias": -0.16607639001607988,
+          "absolute_bias": 0.16607639001607988,
+          "finite": true
+        },
+        {
+          "parameter": "person[E3]",
+          "parameter_index": 3,
+          "block": "person",
+          "true_value": 0.2,
+          "posterior_mean": 0.9873653287532927,
+          "posterior_sd": 0.57685674356546,
+          "bias": 0.7873653287532927,
+          "absolute_bias": 0.7873653287532927,
+          "finite": true
+        },
+        {
+          "parameter": "person[E4]",
+          "parameter_index": 4,
+          "block": "person",
+          "true_value": 0.6,
+          "posterior_mean": 0.5196384753435092,
+          "posterior_sd": 0.49710758149051076,
+          "bias": -0.08036152465649082,
+          "absolute_bias": 0.08036152465649082,
+          "finite": true
+        },
+        {
+          "parameter": "rater[R1]",
+          "parameter_index": 5,
+          "block": "rater",
+          "true_value": -0.3,
+          "posterior_mean": -0.5142415249439213,
+          "posterior_sd": 0.5365102009133818,
+          "bias": -0.2142415249439213,
+          "absolute_bias": 0.2142415249439213,
+          "finite": true
+        },
+        {
+          "parameter": "rater[R2]",
+          "parameter_index": 6,
+          "block": "rater",
+          "true_value": 0.0,
+          "posterior_mean": -0.24725775098784772,
+          "posterior_sd": 0.766495688420681,
+          "bias": -0.24725775098784772,
+          "absolute_bias": 0.24725775098784772,
+          "finite": true
+        },
+        {
+          "parameter": "rater[R3]",
+          "parameter_index": 7,
+          "block": "rater",
+          "true_value": 0.3,
+          "posterior_mean": 0.8606363001819606,
+          "posterior_sd": 0.5425220660993596,
+          "bias": 0.5606363001819605,
+          "absolute_bias": 0.5606363001819605,
+          "finite": true
+        },
+        {
+          "parameter": "item[I1]",
+          "parameter_index": 8,
+          "block": "item",
+          "true_value": -0.25,
+          "posterior_mean": -0.6804047011314895,
+          "posterior_sd": 0.4181699066137383,
+          "bias": -0.43040470113148954,
+          "absolute_bias": 0.43040470113148954,
+          "finite": true
+        },
+        {
+          "parameter": "item[I2]",
+          "parameter_index": 9,
+          "block": "item",
+          "true_value": 0.1,
+          "posterior_mean": 0.08744665335602336,
+          "posterior_sd": 0.5406367175931953,
+          "bias": -0.012553346643976643,
+          "absolute_bias": 0.012553346643976643,
+          "finite": true
+        },
+        {
+          "parameter": "item[I3]",
+          "parameter_index": 10,
+          "block": "item",
+          "true_value": 0.15,
+          "posterior_mean": 0.592958047775466,
+          "posterior_sd": 0.5056311495007946,
+          "bias": 0.442958047775466,
+          "absolute_bias": 0.442958047775466,
+          "finite": true
+        },
+        {
+          "parameter": "item_discrimination[item=I1]",
+          "parameter_index": 11,
+          "block": "item_discrimination",
+          "true_value": 1.25,
+          "posterior_mean": 1.417933714484166,
+          "posterior_sd": 0.5128605214470103,
+          "bias": 0.16793371448416594,
+          "absolute_bias": 0.16793371448416594,
+          "finite": true
+        },
+        {
+          "parameter": "item_discrimination[item=I2]",
+          "parameter_index": 12,
+          "block": "item_discrimination",
+          "true_value": 0.9,
+          "posterior_mean": 0.8677797317612727,
+          "posterior_sd": 0.3712074821351036,
+          "bias": -0.03222026823872737,
+          "absolute_bias": 0.03222026823872737,
+          "finite": true
+        },
+        {
+          "parameter": "item_discrimination[item=I3]",
+          "parameter_index": 13,
+          "block": "item_discrimination",
+          "true_value": 0.8888888888888888,
+          "posterior_mean": 1.04013991233701,
+          "posterior_sd": 0.4729339558470044,
+          "bias": 0.15125102344812125,
+          "absolute_bias": 0.15125102344812125,
+          "finite": true
+        },
+        {
+          "parameter": "rater_consistency[rater=R1]",
+          "parameter_index": 14,
+          "block": "rater_consistency",
+          "true_value": 1.1,
+          "posterior_mean": 0.8185308076803217,
+          "posterior_sd": 0.30409382433744503,
+          "bias": -0.2814691923196784,
+          "absolute_bias": 0.2814691923196784,
+          "finite": true
+        },
+        {
+          "parameter": "rater_consistency[rater=R2]",
+          "parameter_index": 15,
+          "block": "rater_consistency",
+          "true_value": 0.9,
+          "posterior_mean": 0.6587136656952286,
+          "posterior_sd": 0.25874821028420536,
+          "bias": -0.24128633430477142,
+          "absolute_bias": 0.24128633430477142,
+          "finite": true
+        },
+        {
+          "parameter": "rater_consistency[rater=R3]",
+          "parameter_index": 16,
+          "block": "rater_consistency",
+          "true_value": 1.0,
+          "posterior_mean": 0.9230589778936262,
+          "posterior_sd": 0.49888783216871246,
+          "bias": -0.07694102210637377,
+          "absolute_bias": 0.07694102210637377,
+          "finite": true
+        },
+        {
+          "parameter": "rater_step[rater=R1,m=2]",
+          "parameter_index": 17,
+          "block": "rater_steps",
+          "true_value": 0.2,
+          "posterior_mean": 0.24563276519190905,
+          "posterior_sd": 0.7348073148743353,
+          "bias": 0.045632765191909036,
+          "absolute_bias": 0.045632765191909036,
+          "finite": true
+        },
+        {
+          "parameter": "rater_step[rater=R2,m=2]",
+          "parameter_index": 18,
+          "block": "rater_steps",
+          "true_value": -0.15,
+          "posterior_mean": 0.6265258283730247,
+          "posterior_sd": 0.9156267496655551,
+          "bias": 0.7765258283730248,
+          "absolute_bias": 0.7765258283730248,
+          "finite": true
+        },
+        {
+          "parameter": "rater_step[rater=R3,m=2]",
+          "parameter_index": 19,
+          "block": "rater_steps",
+          "true_value": 0.05,
+          "posterior_mean": -0.07127930907461576,
+          "posterior_sd": 0.3674051224116379,
+          "bias": -0.12127930907461576,
+          "absolute_bias": 0.12127930907461576,
+          "finite": true
+        }
+      ],
+      "direct_recovery_by_block": [
+        {
+          "block": "item",
+          "n_parameters": 3,
+          "mean_absolute_error": 0.2953053651836441,
+          "max_absolute_error": 0.442958047775466,
+          "all_finite": true
+        },
+        {
+          "block": "item_discrimination",
+          "n_parameters": 3,
+          "mean_absolute_error": 0.11713500205700485,
+          "max_absolute_error": 0.16793371448416594,
+          "all_finite": true
+        },
+        {
+          "block": "person",
+          "n_parameters": 4,
+          "mean_absolute_error": 0.2802415369599553,
+          "max_absolute_error": 0.7873653287532927,
+          "all_finite": true
+        },
+        {
+          "block": "rater",
+          "n_parameters": 3,
+          "mean_absolute_error": 0.34071185870457654,
+          "max_absolute_error": 0.5606363001819605,
+          "all_finite": true
+        },
+        {
+          "block": "rater_consistency",
+          "n_parameters": 3,
+          "mean_absolute_error": 0.19989884957694118,
+          "max_absolute_error": 0.2814691923196784,
+          "all_finite": true
+        },
+        {
+          "block": "rater_steps",
+          "n_parameters": 3,
+          "mean_absolute_error": 0.3144793008798499,
+          "max_absolute_error": 0.7765258283730248,
+          "all_finite": true
+        }
+      ],
+      "summary": {
+        "passed": true,
+        "pointwise_shape_valid": true,
+        "artifact_contract_satisfied": true,
+        "information_criteria_finite": true,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "n_failed_direct_constraints": 0,
+        "n_nonfinite_logdensity": 0,
+        "n_nonfinite_direct_loglikelihood": 0,
+        "max_direct_parameter_mean_absolute_error": 0.7873653287532927,
+        "max_direct_block_mean_absolute_error": 0.34071185870457654
+      }
+    },
+    {
+      "scenario": "stronger_generalized",
+      "simulation_seed": 20260758,
+      "fit_seed": 20260853,
+      "raw_truth_sha256": "fb2dcb6d7a7773f5ec2bf39fc0dd60d740158ffb7b9d538baf0930aa3edbe3f4",
+      "simulated_data": {
+        "n_observations": 36,
+        "score_counts": [
+          {
+            "score": 0,
+            "n": 13
+          },
+          {
+            "score": 1,
+            "n": 7
+          },
+          {
+            "score": 2,
+            "n": 16
+          }
+        ],
+        "person_levels": [
+          "E1",
+          "E2",
+          "E3",
+          "E4"
+        ],
+        "rater_levels": [
+          "R1",
+          "R2",
+          "R3"
+        ],
+        "item_levels": [
+          "I1",
+          "I2",
+          "I3"
+        ],
+        "category_levels": [
+          0,
+          1,
+          2
+        ]
+      },
+      "fit_record": {
+        "type": "GMFRMFit",
+        "backend": "advancedhmc",
+        "sampler": "nuts",
+        "raw_draws_shape": [
+          24,
+          17
+        ],
+        "direct_draws_shape": [
+          24,
+          19
+        ],
+        "pointwise_loglikelihood_shape": [
+          24,
+          36
+        ]
+      },
+      "metadata_review": {
+        "public_fit": true,
+        "experimental_public": true,
+        "family": "gmfrm",
+        "dimensions": 1,
+        "discrimination": "rater",
+        "n_draws": 24,
+        "n_chains": 2,
+        "draws_per_chain": 12,
+        "n_parameters": 17,
+        "n_direct_parameters": 19
+      },
+      "diagnostics_review": {
+        "schema": "bayesianmgmfrm.gmfrm_experimental_fit_diagnostics.v1",
+        "public_fit": true,
+        "experimental_public": true,
+        "summary": {
+          "flag": "ok",
+          "passed": true,
+          "n_chains": 2,
+          "draws_per_chain": 12,
+          "total_draws": 24,
+          "n_parameters": 17,
+          "n_direct_parameters": 19,
+          "split_chains": true,
+          "rhat_threshold": 100.0,
+          "ess_threshold": 1.0,
+          "max_rhat": 1.302228283618664,
+          "min_ess": 23.271547188358937,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "n_block_warnings": 0,
+          "n_direct_block_warnings": 0,
+          "n_sampler_warnings": 0,
+          "n_nonfinite_logdensity": 0,
+          "n_nonfinite_direct_loglikelihood": 0,
+          "n_direct_constraints": 7,
+          "n_failed_direct_constraints": 0,
+          "n_divergences": 0,
+          "n_max_treedepth": 0,
+          "e_bfmi": 1.1972013504105972
+        }
+      },
+      "artifact_review": {
+        "schema": "bayesianmgmfrm.gmfrm_experimental_fit_artifact.v1",
+        "public_fit": true,
+        "experimental_public": true,
+        "fit_ready": true,
+        "density_space": "raw_unconstrained",
+        "raw_prior_control_schema": "bayesianmgmfrm.generalized_raw_prior_control_manifest.v1",
+        "n_raw_prior_control_rows": 7,
+        "raw_prior_control_all_active_scales_resolved": true,
+        "raw_prior_control_direct_scale_priors_enabled": false,
+        "pointwise_loglikelihood_shape": [
+          24,
+          36
+        ],
+        "n_fixture_provenance_rows": 4
+      },
+      "artifact_contract_review": {
+        "schema": "bayesianmgmfrm.experimental_generalized_fit_artifact_contract.v1",
+        "status": "contract_recorded",
+        "public_fit": true,
+        "experimental_public": true,
+        "artifact_kind": "experimental_generalized_fit_artifact",
+        "n_required_fields": 20,
+        "n_required_provenance_artifacts": 4,
+        "all_required_fields_present": true,
+        "missing_required_fields": [],
+        "all_required_provenance_recorded": true,
+        "enables_public_fit": true
+      },
+      "waic_review": {
+        "criterion": "waic",
+        "n_draws": 24,
+        "n_observations": 36,
+        "warning": "high_loglik_variance",
+        "all_top_level_numeric_finite": true
+      },
+      "loo_review": {
+        "criterion": "loo",
+        "n_draws": 24,
+        "n_observations": 36,
+        "warning": "high_pareto_k",
+        "all_top_level_numeric_finite": true
+      },
+      "information_criterion_rows": {
+        "n_waic_rows": 36,
+        "n_loo_rows": 36
+      },
+      "direct_recovery_rows": [
+        {
+          "parameter": "person[E1]",
+          "parameter_index": 1,
+          "block": "person",
+          "true_value": -0.8,
+          "posterior_mean": -1.0729868655380717,
+          "posterior_sd": 0.738729751411566,
+          "bias": -0.2729868655380716,
+          "absolute_bias": 0.2729868655380716,
+          "finite": true
+        },
+        {
+          "parameter": "person[E2]",
+          "parameter_index": 2,
+          "block": "person",
+          "true_value": -0.25,
+          "posterior_mean": -0.06335248148482046,
+          "posterior_sd": 0.4891931725621969,
+          "bias": 0.18664751851517952,
+          "absolute_bias": 0.18664751851517952,
+          "finite": true
+        },
+        {
+          "parameter": "person[E3]",
+          "parameter_index": 3,
+          "block": "person",
+          "true_value": 0.25,
+          "posterior_mean": 1.5068862217529781,
+          "posterior_sd": 0.8202866058955818,
+          "bias": 1.2568862217529781,
+          "absolute_bias": 1.2568862217529781,
+          "finite": true
+        },
+        {
+          "parameter": "person[E4]",
+          "parameter_index": 4,
+          "block": "person",
+          "true_value": 0.8,
+          "posterior_mean": 0.428232189245723,
+          "posterior_sd": 0.5705649987626052,
+          "bias": -0.37176781075427706,
+          "absolute_bias": 0.37176781075427706,
+          "finite": true
+        },
+        {
+          "parameter": "rater[R1]",
+          "parameter_index": 5,
+          "block": "rater",
+          "true_value": -0.45,
+          "posterior_mean": -0.5669299130472863,
+          "posterior_sd": 0.6916580802785075,
+          "bias": -0.11692991304728634,
+          "absolute_bias": 0.11692991304728634,
+          "finite": true
+        },
+        {
+          "parameter": "rater[R2]",
+          "parameter_index": 6,
+          "block": "rater",
+          "true_value": 0.05,
+          "posterior_mean": -0.2784046209009144,
+          "posterior_sd": 0.8731953107361577,
+          "bias": -0.3284046209009144,
+          "absolute_bias": 0.3284046209009144,
+          "finite": true
+        },
+        {
+          "parameter": "rater[R3]",
+          "parameter_index": 7,
+          "block": "rater",
+          "true_value": 0.4,
+          "posterior_mean": 0.8495810897011787,
+          "posterior_sd": 0.6383818123302177,
+          "bias": 0.4495810897011787,
+          "absolute_bias": 0.4495810897011787,
+          "finite": true
+        },
+        {
+          "parameter": "item[I1]",
+          "parameter_index": 8,
+          "block": "item",
+          "true_value": -0.4,
+          "posterior_mean": -0.24961541076182955,
+          "posterior_sd": 0.3299554590659294,
+          "bias": 0.15038458923817047,
+          "absolute_bias": 0.15038458923817047,
+          "finite": true
+        },
+        {
+          "parameter": "item[I2]",
+          "parameter_index": 9,
+          "block": "item",
+          "true_value": 0.2,
+          "posterior_mean": 0.32087421758932355,
+          "posterior_sd": 0.42279488958965417,
+          "bias": 0.12087421758932354,
+          "absolute_bias": 0.12087421758932354,
+          "finite": true
+        },
+        {
+          "parameter": "item[I3]",
+          "parameter_index": 10,
+          "block": "item",
+          "true_value": 0.2,
+          "posterior_mean": -0.07125880682749403,
+          "posterior_sd": 0.3888954609828744,
+          "bias": -0.27125880682749404,
+          "absolute_bias": 0.27125880682749404,
+          "finite": true
+        },
+        {
+          "parameter": "item_discrimination[item=I1]",
+          "parameter_index": 11,
+          "block": "item_discrimination",
+          "true_value": 1.6,
+          "posterior_mean": 0.9344482728610215,
+          "posterior_sd": 0.28325853161521747,
+          "bias": -0.6655517271389786,
+          "absolute_bias": 0.6655517271389786,
+          "finite": true
+        },
+        {
+          "parameter": "item_discrimination[item=I2]",
+          "parameter_index": 12,
+          "block": "item_discrimination",
+          "true_value": 0.7,
+          "posterior_mean": 0.6439396832031242,
+          "posterior_sd": 0.18664295473281098,
+          "bias": -0.05606031679687573,
+          "absolute_bias": 0.05606031679687573,
+          "finite": true
+        },
+        {
+          "parameter": "item_discrimination[item=I3]",
+          "parameter_index": 13,
+          "block": "item_discrimination",
+          "true_value": 0.8928571428571428,
+          "posterior_mean": 2.05203397149065,
+          "posterior_sd": 1.0531061168313558,
+          "bias": 1.1591768286335071,
+          "absolute_bias": 1.1591768286335071,
+          "finite": true
+        },
+        {
+          "parameter": "rater_consistency[rater=R1]",
+          "parameter_index": 14,
+          "block": "rater_consistency",
+          "true_value": 1.4,
+          "posterior_mean": 0.942869659151152,
+          "posterior_sd": 0.3359101669630733,
+          "bias": -0.45713034084884796,
+          "absolute_bias": 0.45713034084884796,
+          "finite": true
+        },
+        {
+          "parameter": "rater_consistency[rater=R2]",
+          "parameter_index": 15,
+          "block": "rater_consistency",
+          "true_value": 0.75,
+          "posterior_mean": 0.5979552060490412,
+          "posterior_sd": 0.2531396749136763,
+          "bias": -0.15204479395095882,
+          "absolute_bias": 0.15204479395095882,
+          "finite": true
+        },
+        {
+          "parameter": "rater_consistency[rater=R3]",
+          "parameter_index": 16,
+          "block": "rater_consistency",
+          "true_value": 1.1,
+          "posterior_mean": 1.1467466834729658,
+          "posterior_sd": 0.4615496193865459,
+          "bias": 0.04674668347296573,
+          "absolute_bias": 0.04674668347296573,
+          "finite": true
+        },
+        {
+          "parameter": "rater_step[rater=R1,m=2]",
+          "parameter_index": 17,
+          "block": "rater_steps",
+          "true_value": 0.35,
+          "posterior_mean": 0.8210829984500556,
+          "posterior_sd": 0.5701540757853004,
+          "bias": 0.47108299845005563,
+          "absolute_bias": 0.47108299845005563,
+          "finite": true
+        },
+        {
+          "parameter": "rater_step[rater=R2,m=2]",
+          "parameter_index": 18,
+          "block": "rater_steps",
+          "true_value": -0.25,
+          "posterior_mean": 0.31694488496957196,
+          "posterior_sd": 0.9082298257862215,
+          "bias": 0.566944884969572,
+          "absolute_bias": 0.566944884969572,
+          "finite": true
+        },
+        {
+          "parameter": "rater_step[rater=R3,m=2]",
+          "parameter_index": 19,
+          "block": "rater_steps",
+          "true_value": 0.1,
+          "posterior_mean": 0.2988693336594858,
+          "posterior_sd": 0.5379476191108878,
+          "bias": 0.1988693336594858,
+          "absolute_bias": 0.1988693336594858,
+          "finite": true
+        }
+      ],
+      "direct_recovery_by_block": [
+        {
+          "block": "item",
+          "n_parameters": 3,
+          "mean_absolute_error": 0.1808392045516627,
+          "max_absolute_error": 0.27125880682749404,
+          "all_finite": true
+        },
+        {
+          "block": "item_discrimination",
+          "n_parameters": 3,
+          "mean_absolute_error": 0.6269296241897871,
+          "max_absolute_error": 1.1591768286335071,
+          "all_finite": true
+        },
+        {
+          "block": "person",
+          "n_parameters": 4,
+          "mean_absolute_error": 0.5220721041401266,
+          "max_absolute_error": 1.2568862217529781,
+          "all_finite": true
+        },
+        {
+          "block": "rater",
+          "n_parameters": 3,
+          "mean_absolute_error": 0.2983052078831265,
+          "max_absolute_error": 0.4495810897011787,
+          "all_finite": true
+        },
+        {
+          "block": "rater_consistency",
+          "n_parameters": 3,
+          "mean_absolute_error": 0.21864060609092417,
+          "max_absolute_error": 0.45713034084884796,
+          "all_finite": true
+        },
+        {
+          "block": "rater_steps",
+          "n_parameters": 3,
+          "mean_absolute_error": 0.4122990723597045,
+          "max_absolute_error": 0.566944884969572,
+          "all_finite": true
+        }
+      ],
+      "summary": {
+        "passed": true,
+        "pointwise_shape_valid": true,
+        "artifact_contract_satisfied": true,
+        "information_criteria_finite": true,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "n_failed_direct_constraints": 0,
+        "n_nonfinite_logdensity": 0,
+        "n_nonfinite_direct_loglikelihood": 0,
+        "max_direct_parameter_mean_absolute_error": 1.2568862217529781,
+        "max_direct_block_mean_absolute_error": 0.6269296241897871
+      }
+    }
+  ],
+  "decision_record": {
+    "public_fit_allowed": true,
+    "experimental_keyword_enabled": true,
+    "public_exposure_support": "satisfied_by_sparse_pathology_recovery_grid",
+    "interpretation": "guarded_scalar_gmfrm_experimental_fit_validation_grid_passed_ppc_and_sparse_pathology_checked",
+    "required_followup": "scalar_gmfrm_prior_likelihood_sensitivity_grid"
+  },
+  "summary": {
+    "passed": true,
+    "publication_or_registration_action": false,
+    "n_scenarios": 3,
+    "n_passed_scenarios": 3,
+    "n_total_draws_per_scenario": 24,
+    "all_guarded_fit_returned": true,
+    "all_artifact_contracts_satisfied": true,
+    "all_pointwise_shapes_valid": true,
+    "all_information_criteria_finite": true,
+    "all_no_divergences": true,
+    "all_no_max_treedepth": true,
+    "all_no_failed_direct_constraints": true,
+    "max_direct_parameter_mean_absolute_error": 1.2568862217529781,
+    "max_direct_block_mean_absolute_error": 0.6269296241897871,
+    "superseded_by_posterior_predictive_grid": true,
+    "superseded_by_sparse_pathology_recovery_grid": true,
+    "remaining_public_blockers": [
+      "scalar_gmfrm_prior_likelihood_sensitivity_grid_missing"
+    ],
+    "recommendation": "keep_guarded_experimental_until_prior_likelihood_sensitivity_grid",
+    "next_gate": "scalar_gmfrm_prior_likelihood_sensitivity_grid"
+  }
+}

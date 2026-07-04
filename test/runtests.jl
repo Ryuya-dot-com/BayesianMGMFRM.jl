@@ -31,6 +31,8 @@ using BayesianMGMFRM:
     design_row_table,
     dff_report,
     domain_compilation_summary,
+    evidence_artifact_schema_policy,
+    evidence_metadata,
     expected_scores,
     facet_response_table,
     fair_average_summary,
@@ -91,6 +93,7 @@ using BayesianMGMFRM:
     mfrm_spec,
     model_equation,
     model_manifest,
+    model_surface_audit,
     fit_metadata,
     mcmc_diagnostics,
     parameter_block_diagnostics,
@@ -111,9 +114,13 @@ using BayesianMGMFRM:
     predictive_variances,
     prior_predict,
     prior_predictive_check,
+    q_matrix_validation,
     rater_diagnostics,
     rater_overlap,
+    rating_design_audit,
+    related_software_capability_matrix,
     residual_summary,
+    release_gate_check,
     release_scope_summary,
     load_fit_cache,
     load_fit_report,
@@ -144,6 +151,17 @@ using BayesianMGMFRM:
     waic_diagnostics,
     wright_map_data,
     zerosum_basis_fast
+
+function argument_error_message(callable)
+    try
+        callable()
+    catch err
+        @test err isa ArgumentError
+        return sprint(showerror, err)
+    end
+    @test false
+    return ""
+end
 
 struct ExplodingTable end
 Base.getindex(::ExplodingTable, args...) = error("backend exploded")
@@ -1934,6 +1952,14 @@ function check_gmfrm_guarded_fit_api_dry_run_fixture(fixture_path::AbstractStrin
     @test Bool(protocol[:superseded_by_real_data_case_study])
     @test Bool(protocol[:superseded_by_claim_recovery_reproduction_archive])
     @test Bool(protocol[:superseded_by_broader_experimental_exposure_decision_review])
+    @test String(protocol[:public_target_label]) ==
+        "guarded_scalar_gmfrm_logdensity"
+    @test String(protocol[:public_target_description]) ==
+        "guarded scalar GMFRM log density"
+    @test String(protocol[:internal_target_constructor]) ==
+        "_gmfrm_promotion_candidate_logdensity"
+    @test String(protocol[:internal_diagnostics_constructor]) ==
+        "_gmfrm_promotion_candidate_diagnostics"
     @test String(protocol[:target_constructor]) ==
         "_gmfrm_promotion_candidate_logdensity"
     @test String(protocol[:diagnostics_constructor]) ==
@@ -1970,7 +1996,7 @@ function check_gmfrm_guarded_fit_api_dry_run_fixture(fixture_path::AbstractStrin
     @test Bool(contract[:experimental_public])
     @test String(contract[:artifact_kind]) ==
         "experimental_generalized_fit_artifact"
-    @test Int(contract[:n_required_fields]) == 14
+    @test Int(contract[:n_required_fields]) == 20
     @test Int(contract[:n_required_provenance_artifacts]) == 4
     @test Bool(contract[:all_required_fields_recorded])
     @test Bool(contract[:all_required_provenance_recorded])
@@ -1980,7 +2006,11 @@ function check_gmfrm_guarded_fit_api_dry_run_fixture(fixture_path::AbstractStrin
         "public_fit",
         "family",
         "scope",
+        "public_target_label",
+        "internal_target_constructor",
         "density_space",
+        "raw_prior_control_manifest",
+        "parameter_layout",
         "raw_parameter_names",
         "direct_parameter_names",
         "raw_to_direct_transform",
@@ -1989,6 +2019,8 @@ function check_gmfrm_guarded_fit_api_dry_run_fixture(fixture_path::AbstractStrin
         "pointwise_loglikelihood",
         "caveat_docs_artifact",
         "fixture_provenance",
+        "raw_posterior_row_schema",
+        "direct_posterior_row_schema",
     ])
 
     evidence_rows = fixture[:evidence_reference_rows]
@@ -2021,6 +2053,14 @@ function check_gmfrm_guarded_fit_api_dry_run_fixture(fixture_path::AbstractStrin
     end
 
     target = fixture[:target_dry_run]
+    @test String(target[:public_target_label]) ==
+        "guarded_scalar_gmfrm_logdensity"
+    @test String(target[:public_target_description]) ==
+        "guarded scalar GMFRM log density"
+    @test String(target[:internal_target_constructor]) ==
+        "_gmfrm_promotion_candidate_logdensity"
+    @test String(target[:internal_diagnostics_constructor]) ==
+        "_gmfrm_promotion_candidate_diagnostics"
     @test String(target[:target]) == "_gmfrm_promotion_candidate_logdensity"
     @test String(target[:diagnostics]) == "_gmfrm_promotion_candidate_diagnostics"
     @test Int(target[:n_raw_parameters]) == length(target[:raw_parameter_names])
@@ -2035,7 +2075,53 @@ function check_gmfrm_guarded_fit_api_dry_run_fixture(fixture_path::AbstractStrin
     manifest = fixture[:manifest_snapshot]
     @test String(manifest[:candidate_status]) == "internal_promotion_candidate"
     @test String(manifest[:compiler_stage]) == "fit_ready_candidate"
+    @test String(manifest[:public_target_label]) ==
+        "guarded_scalar_gmfrm_logdensity"
+    @test String(manifest[:public_target_description]) ==
+        "guarded scalar GMFRM log density"
+    @test String(manifest[:internal_target_constructor]) ==
+        "_gmfrm_promotion_candidate_logdensity"
+    @test String(manifest[:internal_diagnostic_constructor]) ==
+        "_gmfrm_promotion_candidate_diagnostics"
+    @test String(manifest[:internal_sampler_diagnostic_constructor]) ==
+        "_gmfrm_promotion_candidate_sampler_diagnostics"
+    policy = manifest[:rater_step_public_option_policy]
+    @test String(policy[:schema]) ==
+        "bayesianmgmfrm.gmfrm_rater_step_public_option_policy.v1"
+    @test String(policy[:source_block]) == "rater_steps"
+    @test String(policy[:source_block_status]) == "internal_source_model_block"
+    @test Bool(policy[:internal_block_enabled])
+    @test String(policy[:public_option]) == "rater_steps"
+    @test Bool(policy[:public_keyword_enabled]) == false
+    @test String(policy[:public_option_status]) == "blocked_until_policy_gate"
+    @test String(policy[:blocker]) ==
+        "rater_step_public_option_policy_not_promoted"
+    @test String(policy[:next_gate]) == "rater_step_public_option_policy"
+    item_decision = manifest[:item_discrimination_promotion_decision]
+    @test String(item_decision[:schema]) ==
+        "bayesianmgmfrm.gmfrm_item_discrimination_promotion_decision.v1"
+    @test String(item_decision[:decision]) == "keep_preview_only_for_v0_1_1"
+    @test String(item_decision[:source_block]) == "item_discrimination"
+    @test Bool(item_decision[:public_fit_enabled]) == false
+    @test Bool(item_decision[:internal_promotion_target_enabled]) == false
+    @test String(item_decision[:next_gate]) ==
+        "item_discrimination_promotion_decision"
     @test Bool(manifest[:experimental_public_ready])
+    @test String(manifest[:decision_public_target_label]) ==
+        "guarded_scalar_gmfrm_logdensity"
+    @test String(manifest[:decision_internal_target_constructor]) ==
+        "_gmfrm_promotion_candidate_logdensity"
+    decision_policy = manifest[:decision_rater_step_public_option_policy]
+    @test String(decision_policy[:public_option]) == "rater_steps"
+    @test Bool(decision_policy[:public_keyword_enabled]) == false
+    @test String(decision_policy[:next_gate]) ==
+        "rater_step_public_option_policy"
+    decision_item = manifest[:decision_item_discrimination_promotion_decision]
+    @test String(decision_item[:decision]) == "keep_preview_only_for_v0_1_1"
+    @test String(decision_item[:blocked_option]) == "discrimination"
+    @test String(decision_item[:blocked_value]) == "item"
+    @test String(decision_item[:next_gate]) ==
+        "item_discrimination_promotion_decision"
     @test String(manifest[:experimental_decision_status]) == "experimental_public"
     @test String(manifest[:experimental_decision]) == "enable_guarded_experimental"
     @test Bool(manifest[:experimental_summary][:fit_allowed])
@@ -2080,6 +2166,8 @@ function check_gmfrm_guarded_fit_api_dry_run_fixture(fixture_path::AbstractStrin
     @test Bool(summary[:all_required_artifact_fields_recorded])
     @test Bool(summary[:all_required_provenance_artifacts_recorded])
     @test Bool(summary[:all_file_evidence_present])
+    @test Bool(summary[:rater_step_public_option_policy_recorded])
+    @test Bool(summary[:item_discrimination_promotion_decision_recorded])
     @test Bool(summary[:target_logdensity_finite])
     @test Bool(summary[:target_diagnostics_passed])
     @test isempty(summary[:remaining_public_blockers])
@@ -2115,6 +2203,14 @@ function check_gmfrm_guarded_fit_method_wiring_fixture(fixture_path::AbstractStr
     @test Bool(protocol[:publication_or_registration_action]) == false
     @test String(protocol[:proposed_entrypoint]) == "fit(spec; experimental = true)"
     @test Bool(protocol[:entrypoint_enabled])
+    @test String(protocol[:public_target_label]) ==
+        "guarded_scalar_gmfrm_logdensity"
+    @test String(protocol[:public_target_description]) ==
+        "guarded scalar GMFRM log density"
+    @test String(protocol[:internal_target_constructor]) ==
+        "_gmfrm_promotion_candidate_logdensity"
+    @test String(protocol[:internal_diagnostics_constructor]) ==
+        "_gmfrm_promotion_candidate_sampler_diagnostics"
     @test String(sampler[:backend]) == "advancedhmc"
     @test String(sampler[:sampler]) == "nuts"
     @test Int(sampler[:chains]) == 2
@@ -2132,14 +2228,60 @@ function check_gmfrm_guarded_fit_method_wiring_fixture(fixture_path::AbstractStr
     manifest = fixture[:manifest_snapshot]
     @test String(manifest[:candidate_status]) == "internal_promotion_candidate"
     @test String(manifest[:compiler_stage]) == "fit_ready_candidate"
+    @test String(manifest[:public_target_label]) ==
+        "guarded_scalar_gmfrm_logdensity"
+    @test String(manifest[:public_target_description]) ==
+        "guarded scalar GMFRM log density"
+    @test String(manifest[:internal_target_constructor]) ==
+        "_gmfrm_promotion_candidate_logdensity"
+    @test String(manifest[:internal_diagnostic_constructor]) ==
+        "_gmfrm_promotion_candidate_diagnostics"
+    @test String(manifest[:internal_sampler_diagnostic_constructor]) ==
+        "_gmfrm_promotion_candidate_sampler_diagnostics"
+    policy = manifest[:rater_step_public_option_policy]
+    @test String(policy[:schema]) ==
+        "bayesianmgmfrm.gmfrm_rater_step_public_option_policy.v1"
+    @test String(policy[:source_block]) == "rater_steps"
+    @test String(policy[:source_block_status]) == "internal_source_model_block"
+    @test Bool(policy[:internal_block_enabled])
+    @test String(policy[:public_option]) == "rater_steps"
+    @test Bool(policy[:public_keyword_enabled]) == false
+    @test String(policy[:public_option_status]) == "blocked_until_policy_gate"
+    @test String(policy[:blocker]) ==
+        "rater_step_public_option_policy_not_promoted"
+    @test String(policy[:next_gate]) == "rater_step_public_option_policy"
+    item_decision = manifest[:item_discrimination_promotion_decision]
+    @test String(item_decision[:schema]) ==
+        "bayesianmgmfrm.gmfrm_item_discrimination_promotion_decision.v1"
+    @test String(item_decision[:decision]) == "keep_preview_only_for_v0_1_1"
+    @test String(item_decision[:source_block]) == "item_discrimination"
+    @test Bool(item_decision[:public_fit_enabled]) == false
+    @test Bool(item_decision[:internal_promotion_target_enabled]) == false
+    @test String(item_decision[:next_gate]) ==
+        "item_discrimination_promotion_decision"
     @test Bool(manifest[:experimental_public_ready])
+    @test String(manifest[:decision_public_target_label]) ==
+        "guarded_scalar_gmfrm_logdensity"
+    @test String(manifest[:decision_internal_target_constructor]) ==
+        "_gmfrm_promotion_candidate_logdensity"
+    decision_policy = manifest[:decision_rater_step_public_option_policy]
+    @test String(decision_policy[:public_option]) == "rater_steps"
+    @test Bool(decision_policy[:public_keyword_enabled]) == false
+    @test String(decision_policy[:next_gate]) ==
+        "rater_step_public_option_policy"
+    decision_item = manifest[:decision_item_discrimination_promotion_decision]
+    @test String(decision_item[:decision]) == "keep_preview_only_for_v0_1_1"
+    @test String(decision_item[:blocked_option]) == "discrimination"
+    @test String(decision_item[:blocked_value]) == "item"
+    @test String(decision_item[:next_gate]) ==
+        "item_discrimination_promotion_decision"
     @test String(manifest[:experimental_decision_status]) == "experimental_public"
     @test String(manifest[:experimental_decision]) == "enable_guarded_experimental"
     @test Bool(manifest[:experimental_summary][:fit_allowed])
     @test Bool(manifest[:experimental_summary][:experimental_keyword_enabled])
     @test Int(manifest[:experimental_summary][:n_evidence_done]) >= 23
     @test String(manifest[:experimental_summary][:next_gate]) ==
-        "scalar_gmfrm_prior_likelihood_sensitivity_grid"
+        "manual_publication_or_registration_by_user_only"
 
     fit_record = fixture[:fit_record]
     @test String(fit_record[:type]) == "GMFRMFit"
@@ -2182,7 +2324,7 @@ function check_gmfrm_guarded_fit_method_wiring_fixture(fixture_path::AbstractStr
     @test Bool(contract[:experimental_public])
     @test String(contract[:artifact_kind]) ==
         "experimental_generalized_fit_artifact"
-    @test Int(contract[:n_required_fields]) == 14
+    @test Int(contract[:n_required_fields]) == 20
     @test Int(contract[:n_required_provenance_artifacts]) == 4
     @test Bool(contract[:all_required_fields_present])
     @test Bool(contract[:all_required_provenance_recorded])
@@ -2195,7 +2337,20 @@ function check_gmfrm_guarded_fit_method_wiring_fixture(fixture_path::AbstractStr
     @test Bool(artifact[:public_fit])
     @test Bool(artifact[:experimental_public])
     @test Bool(artifact[:fit_ready])
+    @test String(artifact[:public_target_label]) ==
+        "guarded_scalar_gmfrm_logdensity"
+    @test String(artifact[:public_target_description]) ==
+        "guarded scalar GMFRM log density"
+    @test String(artifact[:internal_target_constructor]) ==
+        "_gmfrm_promotion_candidate_logdensity"
+    @test String(artifact[:internal_sampler_diagnostic_constructor]) ==
+        "_gmfrm_promotion_candidate_sampler_diagnostics"
     @test String(artifact[:density_space]) == "raw_unconstrained"
+    @test String(artifact[:raw_prior_control_schema]) ==
+        "bayesianmgmfrm.generalized_raw_prior_control_manifest.v1"
+    @test Int(artifact[:n_raw_prior_control_rows]) == 7
+    @test Bool(artifact[:raw_prior_control_all_active_scales_resolved])
+    @test !Bool(artifact[:raw_prior_control_direct_scale_priors_enabled])
     @test Vector{Int}(artifact[:pointwise_loglikelihood_shape]) == [8, 36]
     @test String(artifact[:caveat_docs_artifact]) ==
         "docs/src/fitting.md#guarded-generalized-model-caveats"
@@ -2214,9 +2369,32 @@ function check_gmfrm_guarded_fit_method_wiring_fixture(fixture_path::AbstractStr
         "fit_preview_design_with_experimental_keyword",
         "fit_experimental_unsupported_backend",
         "fit_experimental_public_mfrm_prior",
-        "fit_experimental_mgmfrm",
+        "fit_experimental_dff_effects",
         "fit_experimental_non_rater_discrimination",
     ])
+    rejection_by_check =
+        Dict(Symbol(check[:check]) => check for check in rejection_checks)
+    @test String(
+        rejection_by_check[:fit_experimental_unsupported_backend][:blocked_option],
+    ) == "backend"
+    @test String(rejection_by_check[:fit_experimental_unsupported_backend][:next_gate]) ==
+        "advancedhmc_guarded_sampler_policy"
+    @test String(
+        rejection_by_check[:fit_experimental_public_mfrm_prior][:blocked_option],
+    ) == "prior"
+    @test String(rejection_by_check[:fit_experimental_public_mfrm_prior][:next_gate]) ==
+        "scalar_gmfrm_prior_likelihood_sensitivity_grid"
+    @test String(
+        rejection_by_check[:fit_experimental_dff_effects][:blocked_option],
+    ) == "dff_effects"
+    @test String(rejection_by_check[:fit_experimental_dff_effects][:next_gate]) ==
+        "gmfrm_dff_estimand_validation_grid"
+    @test String(
+        rejection_by_check[:fit_experimental_non_rater_discrimination][:blocked_option],
+    ) == "discrimination"
+    @test String(
+        rejection_by_check[:fit_experimental_non_rater_discrimination][:next_gate],
+    ) == "item_discrimination_promotion_decision"
 
     decision = fixture[:decision_record]
     @test Bool(decision[:public_fit_allowed])
@@ -2239,6 +2417,10 @@ function check_gmfrm_guarded_fit_method_wiring_fixture(fixture_path::AbstractStr
     @test Bool(summary[:pointwise_loglikelihood_shape_valid])
     @test Bool(summary[:waic_and_loo_finite])
     @test Bool(summary[:all_unsupported_public_options_rejected])
+    @test Bool(summary[:actionable_gate_messages_passed])
+    @test Int(summary[:n_actionable_gate_messages]) >= 4
+    @test Bool(summary[:rater_step_public_option_policy_recorded])
+    @test Bool(summary[:item_discrimination_promotion_decision_recorded])
     @test Bool(summary[:superseded_by_experimental_fit_validation_grid])
     @test Bool(summary[:superseded_by_posterior_predictive_grid])
     @test Bool(summary[:superseded_by_sparse_pathology_recovery_grid])
@@ -2359,6 +2541,11 @@ function check_gmfrm_experimental_fit_validation_grid_fixture(
         @test Bool(artifact[:experimental_public])
         @test Bool(artifact[:fit_ready])
         @test String(artifact[:density_space]) == "raw_unconstrained"
+        @test String(artifact[:raw_prior_control_schema]) ==
+            "bayesianmgmfrm.generalized_raw_prior_control_manifest.v1"
+        @test Int(artifact[:n_raw_prior_control_rows]) == 7
+        @test Bool(artifact[:raw_prior_control_all_active_scales_resolved])
+        @test !Bool(artifact[:raw_prior_control_direct_scale_priors_enabled])
         @test Vector{Int}(artifact[:pointwise_loglikelihood_shape]) == [24, 36]
         @test Int(artifact[:n_fixture_provenance_rows]) == 4
 
@@ -2369,7 +2556,7 @@ function check_gmfrm_experimental_fit_validation_grid_fixture(
         @test Bool(contract[:experimental_public])
         @test String(contract[:artifact_kind]) ==
             "experimental_generalized_fit_artifact"
-        @test Int(contract[:n_required_fields]) == 14
+        @test Int(contract[:n_required_fields]) == 20
         @test Int(contract[:n_required_provenance_artifacts]) == 4
         @test Bool(contract[:all_required_fields_present])
         @test Bool(contract[:all_required_provenance_recorded])
@@ -3747,6 +3934,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
             "test/fixtures/mgmfrm_guarded_fit_public_exposure_review.json",
         "prediction_target_and_model_weight_policy" =>
             "test/fixtures/gmfrm_prediction_target_and_model_weight_policy.json",
+        "mgmfrm_manual_public_scope_review_for_fit" =>
+            "test/fixtures/mgmfrm_manual_public_scope_review_for_fit.json",
     )
     @test length(fixture_records) == length(expected_paths)
     @test Set(String(row[:artifact]) for row in fixture_records) ==
@@ -3775,7 +3964,7 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     end
 
     code_doc_records = fixture[:code_doc_records]
-    @test length(code_doc_records) == 27
+    @test length(code_doc_records) == 28
     @test all(row -> Bool(row[:exists]), code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_gmfrm_full_paper_reproduction_archive.jl",
@@ -3795,6 +3984,9 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     @test any(row -> String(row[:path]) ==
         "scripts/generate_gmfrm_prediction_target_and_model_weight_policy.jl",
         code_doc_records)
+    @test any(row -> String(row[:path]) ==
+        "scripts/generate_mgmfrm_manual_public_scope_review_for_fit.jl",
+        code_doc_records)
     @test all(row -> String(row[:sha256]) ==
         file_sha256(joinpath(root, String(row[:path]))), code_doc_records)
 
@@ -3810,8 +4002,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         source_records)
 
     full_commands = fixture[:full_regeneration_commands]
-    @test length(full_commands) == 33
-    @test [Int(row[:step]) for row in full_commands] == collect(1:33)
+    @test length(full_commands) == 34
+    @test [Int(row[:step]) for row in full_commands] == collect(1:34)
     @test all(row -> Bool(row[:local_only]), full_commands)
     @test any(row -> String(row[:artifact]) ==
         "prediction_target_and_model_weight_policy", full_commands)
@@ -3843,7 +4035,7 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         "full_paper_reproduction_archive_recorded_local_only"
     @test Bool(decision[:scalar_guarded_fit_allowed])
     @test Bool(decision[:broader_generalized_fit_allowed]) == false
-    @test Bool(decision[:mgmfrm_fit_allowed]) == false
+    @test Bool(decision[:mgmfrm_fit_allowed])
     @test Bool(decision[:manuscript_reproducibility_claims_supported])
     @test Bool(decision[:publication_or_registration_action]) == false
     @test String(decision[:required_followup]) ==
@@ -3878,6 +4070,7 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     @test Bool(summary[:mgmfrm_guarded_fit_api_dry_run_passed])
     @test Bool(summary[:mgmfrm_guarded_fit_public_exposure_review_passed])
     @test Bool(summary[:prediction_target_and_model_weight_policy_passed])
+    @test Bool(summary[:mgmfrm_manual_public_scope_review_for_fit_passed])
     @test Bool(summary[:manuscript_reproducibility_claims_supported])
     @test Int(summary[:n_blockers]) == 0
     @test isempty(summary[:remaining_public_blockers])
@@ -4079,7 +4272,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     @test String(fixture[:status]) ==
         "manuscript_scale_simulation_grid_recorded"
     @test String(fixture[:decision]) ==
-        "full_archive_recorded_keep_guarded_scalar_gmfrm_only"
+        "full_archive_recorded_keep_guarded_scalar_and_confirmatory_mgmfrm_only"
     @test Bool(fixture[:public_fit])
     @test Bool(fixture[:experimental_public])
     @test Bool(fixture[:fit_ready])
@@ -4132,6 +4325,8 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
             "test/fixtures/gmfrm_broader_experimental_exposure_decision_review.json",
         "prediction_target_and_model_weight_policy" =>
             "test/fixtures/gmfrm_prediction_target_and_model_weight_policy.json",
+        "mgmfrm_manual_public_scope_review_for_fit" =>
+            "test/fixtures/mgmfrm_manual_public_scope_review_for_fit.json",
         "dff_estimand_validation_grid" =>
             "test/fixtures/gmfrm_dff_estimand_validation_grid.json",
         "mgmfrm_sparse_recovery_grid" =>
@@ -4163,7 +4358,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     evidence_rows = fixture[:evidence_rows]
     @test length(evidence_rows) == length(input_artifacts)
     @test all(row -> String(row[:status]) == "passed", evidence_rows)
-    @test Int(sum(Int(row[:n_evidence_cells]) for row in evidence_rows)) == 136
+    @test Int(sum(Int(row[:n_evidence_cells]) for row in evidence_rows)) == 148
     @test any(row -> String(row[:gate]) == "prior_likelihood_sensitivity_grid" &&
         Int(row[:n_evidence_cells]) == 45, evidence_rows)
     @test any(row -> String(row[:gate]) ==
@@ -4177,9 +4372,9 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     @test any(row -> String(row[:claim]) ==
         "model_weights_or_sparse_mgmfrm_superiority" &&
         String(row[:decision]) ==
-            "policy_recorded_keep_blocked_until_public_scope_review" &&
+            "scope_review_recorded_keep_blocked_until_guarded_fit" &&
         String(row[:required_followup]) ==
-            "manual_public_scope_review_for_mgmfrm_fit", decisions)
+            "guarded_local_mgmfrm_fit_entrypoint", decisions)
     @test all(row -> String(row[:claim]) == "guarded_scalar_gmfrm_fit" ||
         Bool(row[:public_claim_allowed]) == false, decisions)
 
@@ -4188,12 +4383,12 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
 
     decision = fixture[:decision_record]
     @test String(decision[:selected_decision]) ==
-        "full_archive_recorded_keep_guarded_scalar_gmfrm_only"
+        "full_archive_recorded_keep_guarded_scalar_and_confirmatory_mgmfrm_only"
     @test Bool(decision[:scalar_guarded_fit_allowed])
     @test Bool(decision[:broader_generalized_fit_allowed]) == false
     @test Bool(decision[:manuscript_claims_allowed]) == false
     @test String(decision[:required_followup]) ==
-        "manual_publication_or_registration_by_user_only"
+        "guarded_local_mgmfrm_fit_entrypoint"
 
     summary = fixture[:summary]
     @test Bool(summary[:passed])
@@ -4205,7 +4400,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     @test Bool(summary[:all_primary_checks_passed])
     @test Int(summary[:n_input_artifacts]) == length(input_artifacts)
     @test Int(summary[:n_evidence_rows]) == length(evidence_rows)
-    @test Int(summary[:total_evidence_cells]) == 136
+    @test Int(summary[:total_evidence_cells]) == 148
     @test Int(summary[:minimum_required_evidence_cells]) == 60
     @test Bool(summary[:scalar_fit_validation_grid_passed])
     @test Bool(summary[:posterior_predictive_grid_passed])
@@ -4215,6 +4410,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     @test Bool(summary[:claim_recovery_reproduction_archive_passed])
     @test Bool(summary[:broader_experimental_exposure_decision_review_passed])
     @test Bool(summary[:prediction_target_and_model_weight_policy_passed])
+    @test Bool(summary[:mgmfrm_manual_public_scope_review_for_fit_passed])
     @test Bool(summary[:dff_estimand_validation_grid_passed])
     @test Bool(summary[:mgmfrm_sparse_recovery_grid_passed])
     @test Bool(summary[:full_paper_reproduction_archive_passed])
@@ -4223,9 +4419,8 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     @test Int(summary[:n_blockers]) == 0
     @test isempty(summary[:remaining_public_blockers])
     @test String(summary[:recommendation]) ==
-        "full_archive_recorded_keep_broader_claims_manual_review"
-    @test String(summary[:next_gate]) ==
-        "manual_publication_or_registration_by_user_only"
+        "manual_scope_review_recorded_keep_broader_claims_blocked"
+    @test String(summary[:next_gate]) == "guarded_local_mgmfrm_fit_entrypoint"
 end
 
 function check_gmfrm_broader_experimental_exposure_decision_review_fixture(
@@ -4239,7 +4434,8 @@ function check_gmfrm_broader_experimental_exposure_decision_review_fixture(
     @test String(fixture[:scope]) == "broader_generalized_exposure_decision"
     @test String(fixture[:status]) ==
         "broader_experimental_exposure_decision_review_recorded"
-    @test String(fixture[:decision]) == "keep_guarded_scalar_gmfrm_only"
+    @test String(fixture[:decision]) ==
+        "keep_guarded_scalar_gmfrm_and_confirmatory_mgmfrm_only"
     @test Bool(fixture[:public_fit])
     @test Bool(fixture[:experimental_public])
     @test Bool(fixture[:fit_ready])
@@ -4280,7 +4476,7 @@ function check_gmfrm_broader_experimental_exposure_decision_review_fixture(
     @test Bool(thresholds[:require_no_publication_commands])
 
     input_artifacts = fixture[:input_artifacts]
-    @test length(input_artifacts) == 16
+    @test length(input_artifacts) == 17
     expected_paths = Dict(
         "guarded_exposure_review" =>
             "test/fixtures/gmfrm_guarded_exposure_review.json",
@@ -4306,6 +4502,8 @@ function check_gmfrm_broader_experimental_exposure_decision_review_fixture(
             "test/fixtures/mgmfrm_guarded_fit_public_exposure_review.json",
         "prediction_target_and_model_weight_policy" =>
             "test/fixtures/gmfrm_prediction_target_and_model_weight_policy.json",
+        "mgmfrm_manual_public_scope_review_for_fit" =>
+            "test/fixtures/mgmfrm_manual_public_scope_review_for_fit.json",
         "dff_estimand_validation_grid" =>
             "test/fixtures/gmfrm_dff_estimand_validation_grid.json",
         "manuscript_scale_simulation_grid" =>
@@ -4343,11 +4541,11 @@ function check_gmfrm_broader_experimental_exposure_decision_review_fixture(
     @test Bool(scalar[:public_fit])
     mgmfrm = only(row for row in decisions
         if String(row[:surface]) == "confirmatory_mgmfrm_fit")
-    @test String(mgmfrm[:decision]) == "keep_internal"
+    @test String(mgmfrm[:decision]) == "enable_guarded_experimental"
     @test Bool(mgmfrm[:evidence])
-    @test Bool(mgmfrm[:public_fit]) == false
+    @test Bool(mgmfrm[:public_fit])
     @test String(mgmfrm[:next_required_evidence]) ==
-        "manual_public_scope_review_for_mgmfrm_fit"
+        "guarded_local_mgmfrm_fit_entrypoint"
     dff_surface = only(row for row in decisions
         if String(row[:surface]) == "dff_model_effects")
     @test String(dff_surface[:decision]) == "keep_blocked"
@@ -4372,13 +4570,14 @@ function check_gmfrm_broader_experimental_exposure_decision_review_fixture(
 
     decision = fixture[:decision_record]
     @test Bool(decision[:scalar_guarded_fit_allowed])
+    @test Bool(decision[:mgmfrm_fit_allowed])
     @test Bool(decision[:broader_generalized_fit_allowed]) == false
     @test String(decision[:public_exposure_support]) ==
-        "guarded_scalar_gmfrm_only"
+        "guarded_scalar_gmfrm_and_fixed_q_mgmfrm_only"
     @test String(decision[:interpretation]) ==
-        "broader_exposure_review_recorded_full_archive_available_keep_broader_claims_blocked"
+        "broader_exposure_review_recorded_guarded_confirmatory_mgmfrm_enabled_keep_broader_claims_blocked"
     @test String(decision[:required_followup]) ==
-        "manual_publication_or_registration_by_user_only"
+        "guarded_local_mgmfrm_fit_entrypoint"
 
     summary = fixture[:summary]
     @test Bool(summary[:passed])
@@ -4400,6 +4599,7 @@ function check_gmfrm_broader_experimental_exposure_decision_review_fixture(
     @test Bool(summary[:mgmfrm_guarded_fit_api_dry_run_passed])
     @test Bool(summary[:mgmfrm_guarded_fit_public_exposure_review_passed])
     @test Bool(summary[:prediction_target_and_model_weight_policy_passed])
+    @test Bool(summary[:mgmfrm_manual_public_scope_review_for_fit_passed])
     @test Bool(summary[:dff_estimand_validation_grid_passed])
     @test Bool(summary[:manuscript_scale_simulation_grid_passed])
     @test Bool(summary[:full_paper_reproduction_archive_passed])
@@ -4409,16 +4609,15 @@ function check_gmfrm_broader_experimental_exposure_decision_review_fixture(
     @test Int(summary[:n_blockers]) == length(blockers)
     @test Bool(summary[:scalar_guarded_fit_allowed])
     @test Bool(summary[:broader_generalized_fit_allowed]) == false
-    @test Bool(summary[:mgmfrm_fit_allowed]) == false
+    @test Bool(summary[:mgmfrm_fit_allowed])
     @test Bool(summary[:dff_model_effects_allowed]) == false
     @test Bool(summary[:model_weights_allowed]) == false
     @test Bool(summary[:manuscript_claims_allowed]) == false
     @test Bool(summary[:no_publication_commands])
     @test isempty(summary[:remaining_public_blockers])
     @test String(summary[:recommendation]) ==
-        "full_archive_recorded_keep_guarded_scalar_gmfrm_only"
-    @test String(summary[:next_gate]) ==
-        "manual_publication_or_registration_by_user_only"
+        "manual_scope_review_recorded_keep_guarded_scalar_and_confirmatory_mgmfrm_only"
+    @test String(summary[:next_gate]) == "guarded_local_mgmfrm_fit_entrypoint"
 end
 
 function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractString)
@@ -4481,7 +4680,7 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(thresholds[:broader_experimental_exposure_decision_review_required_before_exposure])
 
     reviewed = fixture[:reviewed_artifacts]
-    @test length(reviewed) == 28
+    @test length(reviewed) == 29
     expected_artifacts = Dict(
         "candidate_chain_study" =>
             "test/fixtures/gmfrm_candidate_chain_study.json",
@@ -4533,6 +4732,8 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
             "test/fixtures/mgmfrm_guarded_fit_public_exposure_review.json",
         "prediction_target_and_model_weight_policy" =>
             "test/fixtures/gmfrm_prediction_target_and_model_weight_policy.json",
+        "mgmfrm_manual_public_scope_review_for_fit" =>
+            "test/fixtures/mgmfrm_manual_public_scope_review_for_fit.json",
         "dff_estimand_validation_grid" =>
             "test/fixtures/gmfrm_dff_estimand_validation_grid.json",
         "manuscript_scale_simulation_grid" =>
@@ -4551,7 +4752,8 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
                 "mgmfrm_guarded_fit_method_wiring",
                 "mgmfrm_guarded_fit_validation_grid",
                 "mgmfrm_guarded_fit_api_dry_run",
-                "mgmfrm_guarded_fit_public_exposure_review")
+                "mgmfrm_guarded_fit_public_exposure_review",
+                "mgmfrm_manual_public_scope_review_for_fit")
             @test String(row[:family]) == "mgmfrm"
             @test String(row[:scope]) ==
                 "minimal_confirmatory_mgmfrm_candidate"
@@ -4586,6 +4788,11 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
                 "claim_recovery_reproduction_archive",
                 "broader_experimental_exposure_decision_review",
                 "prediction_target_and_model_weight_policy",
+                "mgmfrm_guarded_fit_method_wiring",
+                "mgmfrm_guarded_fit_validation_grid",
+                "mgmfrm_guarded_fit_api_dry_run",
+                "mgmfrm_guarded_fit_public_exposure_review",
+                "mgmfrm_manual_public_scope_review_for_fit",
                 "manuscript_scale_simulation_grid",
                 "full_paper_reproduction_archive")
             @test Bool(row[:public_fit])
@@ -4856,22 +5063,23 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(broader_review[:summary][:mgmfrm_guarded_fit_api_dry_run_passed])
     @test Bool(broader_review[:summary][:mgmfrm_guarded_fit_public_exposure_review_passed])
     @test Bool(broader_review[:summary][:prediction_target_and_model_weight_policy_passed])
+    @test Bool(broader_review[:summary][:mgmfrm_manual_public_scope_review_for_fit_passed])
     @test Bool(broader_review[:summary][:dff_estimand_validation_grid_passed])
     @test Bool(broader_review[:summary][:manuscript_scale_simulation_grid_passed])
     @test Bool(broader_review[:summary][:full_paper_reproduction_archive_passed])
-    @test Int(broader_review[:summary][:n_input_artifacts]) == 16
+    @test Int(broader_review[:summary][:n_input_artifacts]) == 17
     @test Int(broader_review[:summary][:n_scope_decisions]) == 6
     @test Int(broader_review[:summary][:n_risk_rows]) == 5
     @test Int(broader_review[:summary][:n_blockers]) == 0
     @test Bool(broader_review[:summary][:scalar_guarded_fit_allowed])
     @test Bool(broader_review[:summary][:broader_generalized_fit_allowed]) == false
-    @test Bool(broader_review[:summary][:mgmfrm_fit_allowed]) == false
+    @test Bool(broader_review[:summary][:mgmfrm_fit_allowed])
     @test Bool(broader_review[:summary][:dff_model_effects_allowed]) == false
     @test Bool(broader_review[:summary][:model_weights_allowed]) == false
     @test Bool(broader_review[:summary][:manuscript_claims_allowed]) == false
     @test Bool(broader_review[:summary][:no_publication_commands])
     @test String(broader_review[:summary][:next_gate]) ==
-        "manual_publication_or_registration_by_user_only"
+        "guarded_local_mgmfrm_fit_entrypoint"
     dff_grid = only(row for row in reviewed
         if String(row[:artifact]) == "dff_estimand_validation_grid")
     @test Bool(dff_grid[:summary][:passed])
@@ -4897,14 +5105,14 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(manuscript_grid[:summary][:all_expected_schemas])
     @test Bool(manuscript_grid[:summary][:all_input_summaries_passed])
     @test Bool(manuscript_grid[:summary][:all_primary_checks_passed])
-    @test Int(manuscript_grid[:summary][:n_input_artifacts]) == 11
-    @test Int(manuscript_grid[:summary][:total_evidence_cells]) == 136
+    @test Int(manuscript_grid[:summary][:n_input_artifacts]) == 12
+    @test Int(manuscript_grid[:summary][:total_evidence_cells]) == 148
     @test Int(manuscript_grid[:summary][:minimum_required_evidence_cells]) == 60
     @test Bool(manuscript_grid[:summary][:prediction_target_and_model_weight_policy_passed])
     @test Bool(manuscript_grid[:summary][:full_paper_reproduction_archive_passed])
     @test Bool(manuscript_grid[:summary][:manuscript_claims_allowed]) == false
     @test String(manuscript_grid[:summary][:next_gate]) ==
-        "manual_publication_or_registration_by_user_only"
+        "guarded_local_mgmfrm_fit_entrypoint"
     full_archive = only(row for row in reviewed
         if String(row[:artifact]) == "full_paper_reproduction_archive")
     @test Bool(full_archive[:summary][:passed])
@@ -4917,9 +5125,9 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(full_archive[:summary][:all_external_sources_present])
     @test Bool(full_archive[:summary][:all_commands_local_only])
     @test Bool(full_archive[:summary][:no_publication_commands])
-    @test Int(full_archive[:summary][:n_fixture_artifacts]) == 33
-    @test Int(full_archive[:summary][:n_code_doc_records]) == 27
-    @test Int(full_archive[:summary][:n_full_regeneration_commands]) == 33
+    @test Int(full_archive[:summary][:n_fixture_artifacts]) == 34
+    @test Int(full_archive[:summary][:n_code_doc_records]) == 28
+    @test Int(full_archive[:summary][:n_full_regeneration_commands]) == 34
     @test Int(full_archive[:summary][:n_verification_commands]) == 4
     @test Bool(full_archive[:summary][:prediction_target_and_model_weight_policy_passed])
     @test Bool(full_archive[:summary][:manuscript_reproducibility_claims_supported])
@@ -4942,33 +5150,36 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     mgmfrm_method = only(row for row in reviewed
         if String(row[:artifact]) == "mgmfrm_guarded_fit_method_wiring")
     @test Bool(mgmfrm_method[:summary][:passed])
-    @test Bool(mgmfrm_method[:summary][:entrypoint_enabled]) == false
-    @test Bool(mgmfrm_method[:summary][:public_fit_allowed]) == false
+    @test Bool(mgmfrm_method[:summary][:entrypoint_enabled])
+    @test Bool(mgmfrm_method[:summary][:public_fit_allowed])
     @test Bool(mgmfrm_method[:summary][:sampler_protocol_passed])
     @test Bool(mgmfrm_method[:summary][:artifact_contract_satisfied])
-    @test Bool(mgmfrm_method[:summary][:all_current_public_fit_attempts_rejected])
+    @test Bool(mgmfrm_method[:summary][:all_fit_boundary_checks_passed])
+    @test Bool(mgmfrm_method[:summary][:experimental_spec_fit_succeeded])
     @test String(mgmfrm_method[:summary][:next_gate]) ==
         "mgmfrm_guarded_fit_validation_grid"
     mgmfrm_validation = only(row for row in reviewed
         if String(row[:artifact]) == "mgmfrm_guarded_fit_validation_grid")
     @test Bool(mgmfrm_validation[:summary][:passed])
-    @test Bool(mgmfrm_validation[:summary][:entrypoint_enabled]) == false
-    @test Bool(mgmfrm_validation[:summary][:public_fit_allowed]) == false
+    @test Bool(mgmfrm_validation[:summary][:entrypoint_enabled])
+    @test Bool(mgmfrm_validation[:summary][:public_fit_allowed])
     @test Bool(mgmfrm_validation[:summary][:all_validation_rows_passed])
     @test Bool(mgmfrm_validation[:summary][:guarded_fit_method_wiring_passed])
     @test Bool(mgmfrm_validation[:summary][:method_sampler_protocol_passed])
     @test Bool(mgmfrm_validation[:summary][:method_artifact_contract_satisfied])
-    @test Bool(mgmfrm_validation[:summary][:method_current_public_fit_attempts_rejected])
+    @test Bool(mgmfrm_validation[:summary][:method_fit_boundary_checks_passed])
+    @test Bool(mgmfrm_validation[:summary][:method_experimental_spec_fit_succeeded])
     @test String(mgmfrm_validation[:summary][:next_gate]) ==
         "mgmfrm_guarded_fit_api_dry_run"
     mgmfrm_api_dry_run = only(row for row in reviewed
         if String(row[:artifact]) == "mgmfrm_guarded_fit_api_dry_run")
     @test Bool(mgmfrm_api_dry_run[:summary][:passed])
     @test Bool(mgmfrm_api_dry_run[:summary][:dry_run_only])
-    @test Bool(mgmfrm_api_dry_run[:summary][:entrypoint_enabled]) == false
+    @test Bool(mgmfrm_api_dry_run[:summary][:entrypoint_enabled])
     @test Bool(mgmfrm_api_dry_run[:summary][:guarded_fit_validation_grid_passed])
     @test Bool(mgmfrm_api_dry_run[:summary][:validation_grid_all_rows_passed])
-    @test Bool(mgmfrm_api_dry_run[:summary][:all_current_public_fit_attempts_rejected])
+    @test Bool(mgmfrm_api_dry_run[:summary][:all_fit_boundary_checks_passed])
+    @test Bool(mgmfrm_api_dry_run[:summary][:experimental_spec_fit_succeeded])
     @test Bool(mgmfrm_api_dry_run[:summary][:artifact_contract_satisfied])
     @test Bool(mgmfrm_api_dry_run[:summary][:target_gradient_diagnostics_passed])
     @test String(mgmfrm_api_dry_run[:summary][:next_gate]) ==
@@ -4979,13 +5190,13 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(mgmfrm_public_review[:summary][:reviewed])
     @test Bool(mgmfrm_public_review[:summary][:publication_or_registration_action]) == false
     @test Bool(mgmfrm_public_review[:summary][:local_only])
-    @test Bool(mgmfrm_public_review[:summary][:public_fit_allowed]) == false
-    @test Bool(mgmfrm_public_review[:summary][:experimental_keyword_enabled]) == false
+    @test Bool(mgmfrm_public_review[:summary][:public_fit_allowed])
+    @test Bool(mgmfrm_public_review[:summary][:experimental_keyword_enabled])
     @test Bool(mgmfrm_public_review[:summary][:all_input_artifacts_present])
     @test Bool(mgmfrm_public_review[:summary][:all_expected_schemas])
     @test Bool(mgmfrm_public_review[:summary][:all_input_summaries_passed])
-    @test Bool(mgmfrm_public_review[:summary][:all_current_public_fit_attempts_rejected])
-    @test Bool(mgmfrm_public_review[:summary][:current_manifest_keeps_internal])
+    @test Bool(mgmfrm_public_review[:summary][:all_fit_boundary_checks_passed])
+    @test Bool(mgmfrm_public_review[:summary][:current_manifest_guarded_fit_enabled])
     @test Bool(mgmfrm_public_review[:summary][:no_publication_commands])
     @test Bool(mgmfrm_public_review[:summary][:mgmfrm_guarded_fit_api_dry_run_passed])
     @test Bool(mgmfrm_public_review[:summary][:dff_estimand_validation_grid_passed])
@@ -5002,7 +5213,7 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(prediction_policy[:summary][:raw_psis_loo_blocked])
     @test Bool(prediction_policy[:summary][:heldout_kfold_selected])
     @test Bool(prediction_policy[:summary][:scalar_local_model_weight_reporting_allowed])
-    @test Bool(prediction_policy[:summary][:mgmfrm_fit_allowed]) == false
+    @test Bool(prediction_policy[:summary][:mgmfrm_fit_allowed])
     @test Bool(prediction_policy[:summary][:mgmfrm_weight_claims_allowed]) == false
     @test String(prediction_policy[:summary][:next_gate]) ==
         "manual_public_scope_review_for_mgmfrm_fit"
@@ -5086,9 +5297,9 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test String(decision_record[:public_exposure_support]) ==
         "guarded_scalar_gmfrm_only"
     @test String(decision_record[:interpretation]) ==
-        "local_evidence_reviewed_full_archive_recorded_and_broader_exposure_decision_recorded"
+        "local_evidence_reviewed_manual_scope_review_recorded_and_broader_exposure_decision_recorded"
     @test String(decision_record[:required_followup]) ==
-        "manual_publication_or_registration_by_user_only"
+        "guarded_local_mgmfrm_fit_entrypoint"
 
     summary = fixture[:summary]
     @test Bool(summary[:reviewed])
@@ -5117,16 +5328,16 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(summary[:full_paper_reproduction_archive_passed])
     @test Bool(summary[:scalar_guarded_fit_allowed])
     @test Bool(summary[:broader_generalized_fit_allowed]) == false
-    @test Bool(summary[:mgmfrm_fit_allowed]) == false
+    @test Bool(summary[:mgmfrm_fit_allowed])
     @test Int(summary[:n_reviewed_artifacts]) == length(reviewed)
     @test Int(summary[:n_review_rows]) == length(review_rows)
     @test Int(summary[:n_blockers]) == length(blocker_rows)
     @test Bool(summary[:fit_allowed])
     @test Bool(summary[:experimental_keyword_enabled])
     @test String(summary[:recommendation]) ==
-        "full_archive_recorded_keep_guarded_scalar_gmfrm_only"
+        "manual_scope_review_recorded_keep_guarded_scalar_and_confirmatory_mgmfrm_only"
     @test String(summary[:next_gate]) ==
-        "manual_publication_or_registration_by_user_only"
+        "guarded_local_mgmfrm_fit_entrypoint"
 end
 
 function check_mgmfrm_recovery_smoke_fixture(fixture_path::AbstractString)
@@ -5506,12 +5717,12 @@ function check_mgmfrm_guarded_fit_method_wiring_fixture(fixture_path::AbstractSt
     @test String(fixture[:family]) == "mgmfrm"
     @test String(fixture[:scope]) == "minimal_confirmatory_mgmfrm_candidate"
     @test String(fixture[:status]) == "guarded_fit_method_wiring_recorded"
-    @test String(fixture[:decision]) == "keep_internal"
-    @test Bool(fixture[:public_fit]) == false
-    @test Bool(fixture[:experimental_public]) == false
-    @test Bool(fixture[:fit_ready]) == false
+    @test String(fixture[:decision]) == "enable_guarded_experimental"
+    @test Bool(fixture[:public_fit])
+    @test Bool(fixture[:experimental_public])
+    @test Bool(fixture[:fit_ready])
     @test Bool(fixture[:publication_or_registration_action]) == false
-    @test Bool(fixture[:entrypoint_enabled]) == false
+    @test Bool(fixture[:entrypoint_enabled])
 
     protocol = fixture[:protocol]
     @test String(protocol[:protocol_id]) ==
@@ -5519,10 +5730,17 @@ function check_mgmfrm_guarded_fit_method_wiring_fixture(fixture_path::AbstractSt
     @test String(protocol[:review_kind]) ==
         "local_confirmatory_mgmfrm_guarded_fit_method_wiring"
     @test Bool(protocol[:publication_or_registration_action]) == false
-    @test Bool(protocol[:entrypoint_enabled]) == false
+    @test Bool(protocol[:entrypoint_enabled])
+    @test String(protocol[:public_target_label]) ==
+        "guarded_confirmatory_mgmfrm_logdensity"
+    @test String(protocol[:public_target_description]) ==
+        "guarded fixed-Q confirmatory MGMFRM log density"
+    @test String(protocol[:internal_target_constructor]) ==
+        "_mgmfrm_guarded_local_fit_logdensity"
     rules = protocol[:decision_rules]
-    @test Bool(rules[:require_entrypoint_stays_disabled])
-    @test Bool(rules[:require_current_public_fit_rejection])
+    @test Bool(rules[:require_entrypoint_enabled])
+    @test Bool(rules[:require_non_experimental_fit_rejection])
+    @test Bool(rules[:require_experimental_spec_fit_success])
     @test Bool(rules[:require_artifact_contract_satisfied])
     @test Bool(rules[:validation_grid_required_before_public_entrypoint])
 
@@ -5546,23 +5764,76 @@ function check_mgmfrm_guarded_fit_method_wiring_fixture(fixture_path::AbstractSt
     contract = fixture[:artifact_contract_review]
     @test String(contract[:schema]) ==
         "bayesianmgmfrm.experimental_generalized_fit_artifact_contract.v1"
-    @test Bool(contract[:public_fit]) == false
-    @test Bool(contract[:experimental_public]) == false
+    @test Bool(contract[:public_fit])
+    @test Bool(contract[:experimental_public])
+    @test Int(contract[:n_required_fields]) == 26
+    @test "initialization_policy" in String.(contract[:required_field_names])
+    @test "initialization_rows" in String.(contract[:required_field_names])
+    @test "fixed_q_invariance_rows" in
+        String.(contract[:required_field_names])
     @test Bool(contract[:all_required_fields_present])
     @test Bool(contract[:all_required_provenance_recorded])
 
     preview = fixture[:fit_artifact_preview]
     @test String(preview[:schema]) ==
         "bayesianmgmfrm.mgmfrm_guarded_fit_artifact_preview.v1"
-    @test Bool(preview[:public_fit]) == false
-    @test Bool(preview[:experimental_public]) == false
+    @test Bool(preview[:public_fit])
+    @test Bool(preview[:experimental_public])
+    @test String(preview[:public_target_label]) ==
+        "guarded_confirmatory_mgmfrm_logdensity"
+    @test String(preview[:public_target_description]) ==
+        "guarded fixed-Q confirmatory MGMFRM log density"
+    @test String(preview[:internal_target_constructor]) ==
+        "_mgmfrm_guarded_local_fit_logdensity"
+    @test String(preview[:internal_sampler_diagnostic_constructor]) ==
+        "_mgmfrm_guarded_local_fit_sampler_diagnostics"
+    @test String(preview[:raw_prior_control_schema]) ==
+        "bayesianmgmfrm.generalized_raw_prior_control_manifest.v1"
+    @test Int(preview[:n_raw_prior_control_rows]) == 7
+    @test Bool(preview[:raw_prior_control_all_active_scales_resolved])
+    @test !Bool(preview[:raw_prior_control_direct_scale_priors_enabled])
+    @test String(preview[:parameter_layout_schema]) ==
+        "bayesianmgmfrm.fit_ready_parameter_layout.v1"
+    @test String(preview[:parameter_layout_scope]) ==
+        "minimal_confirmatory_mgmfrm_candidate"
+    @test Int(preview[:raw_to_direct_transform_count]) >= 1
     @test Int(preview[:raw_parameter_count]) == 12
     @test Int(preview[:direct_parameter_count]) == 14
+    @test String(preview[:raw_posterior_row_schema]) ==
+        "bayesianmgmfrm.posterior_summary_row_schema.v1"
+    @test String(preview[:direct_posterior_row_schema]) ==
+        "bayesianmgmfrm.posterior_summary_row_schema.v1"
+    @test "parameter" in String.(preview[:direct_posterior_row_fields])
+    @test "probability_of_direction" in
+        String.(preview[:direct_posterior_row_fields])
     @test Vector{Int}(preview[:pointwise_loglikelihood_shape]) == [64, 6]
     @test [Bool.(row) for row in preview[:q_matrix]] ==
         [[true, false], [false, true]]
     @test String(preview[:latent_correlation]) == "identity_fixed"
-    @test String(preview[:ability_scale]) == "unit_variance_by_dimension"
+    @test String(preview[:ability_scale]) == "standard_normal_by_dimension"
+    @test String(preview[:initialization_policy][:schema]) ==
+        "bayesianmgmfrm.mgmfrm_initialization_policy.v1"
+    @test String(preview[:initialization_policy][:initial_source]) ==
+        "user_supplied_raw"
+    @test Bool(preview[:initialization_policy][:finite_initial_logdensity])
+    @test !Bool(preview[:initialization_policy][:fallback_used])
+    @test Int(preview[:n_initialization_rows]) == 4
+    @test any(row -> String(row[:policy]) == "initial_logdensity" &&
+        String(row[:status]) == "finite" &&
+        Bool(row[:passed]),
+        preview[:initialization_rows])
+    @test Int(preview[:n_fixed_q_invariance_rows]) == 9
+    @test any(row -> String(row[:policy]) == "latent_correlation" &&
+        String(row[:status]) == "fixed_identity" &&
+        Bool(row[:passed]),
+        preview[:fixed_q_invariance_rows])
+    @test any(row -> String(row[:policy]) == "direct_constraints" &&
+        String(row[:status]) == "passed" &&
+        Int(row[:value]) == 0,
+        preview[:fixed_q_invariance_rows])
+    @test any(row -> String(row[:policy]) == "exploratory_loading" &&
+        String(row[:status]) == "blocked",
+        preview[:fixed_q_invariance_rows])
 
     fixture_refs = fixture[:fixture_references]
     @test length(fixture_refs) == 5
@@ -5570,33 +5841,37 @@ function check_mgmfrm_guarded_fit_method_wiring_fixture(fixture_path::AbstractSt
     @test all(row -> String(row[:sha256]) ==
         file_sha256(joinpath(root, String(row[:path]))), fixture_refs)
 
-    rejection_checks = fixture[:fit_rejection_checks]
-    @test length(rejection_checks) == 4
-    @test all(row -> Bool(row[:rejected]), rejection_checks)
+    boundary_checks = fixture[:fit_boundary_checks]
+    @test length(boundary_checks) == 4
+    @test all(row -> Bool(row[:passed]), boundary_checks)
+    @test any(row -> String(row[:check]) ==
+        "fit_experimental_mgmfrm_guarded_enabled" &&
+        String(row[:actual_status]) == "succeeded", boundary_checks)
 
     decision = fixture[:decision_record]
-    @test Bool(decision[:public_fit_allowed]) == false
-    @test Bool(decision[:experimental_keyword_enabled]) == false
+    @test Bool(decision[:public_fit_allowed])
+    @test Bool(decision[:experimental_keyword_enabled])
     @test String(decision[:required_followup]) ==
         "mgmfrm_guarded_fit_validation_grid"
 
     summary = fixture[:summary]
     @test Bool(summary[:passed])
     @test Bool(summary[:publication_or_registration_action]) == false
-    @test Bool(summary[:entrypoint_enabled]) == false
-    @test Bool(summary[:public_fit_allowed]) == false
-    @test Bool(summary[:experimental_keyword_enabled]) == false
+    @test Bool(summary[:entrypoint_enabled])
+    @test Bool(summary[:public_fit_allowed])
+    @test Bool(summary[:experimental_keyword_enabled])
     @test Bool(summary[:target_constructor_available])
     @test Bool(summary[:raw_to_direct_transform_available])
     @test Bool(summary[:sampler_protocol_passed])
     @test Bool(summary[:artifact_contract_satisfied])
     @test Bool(summary[:pointwise_loglikelihood_shape_valid])
-    @test Bool(summary[:all_current_public_fit_attempts_rejected])
+    @test Bool(summary[:all_fit_boundary_checks_passed])
+    @test Bool(summary[:experimental_spec_fit_succeeded])
     @test Bool(summary[:all_fixture_references_present])
     @test Set(String(blocker) for blocker in summary[:remaining_public_blockers]) ==
         Set(["mgmfrm_guarded_fit_validation_grid_missing"])
     @test String(summary[:recommendation]) ==
-        "keep_internal_until_mgmfrm_guarded_fit_validation_grid"
+        "guarded_entrypoint_enabled_validate_grid_next"
     @test String(summary[:next_gate]) == "mgmfrm_guarded_fit_validation_grid"
 end
 
@@ -5610,10 +5885,10 @@ function check_mgmfrm_guarded_fit_validation_grid_fixture(fixture_path::Abstract
     @test String(fixture[:family]) == "mgmfrm"
     @test String(fixture[:scope]) == "minimal_confirmatory_mgmfrm_candidate"
     @test String(fixture[:status]) == "guarded_fit_validation_grid_recorded"
-    @test String(fixture[:decision]) == "keep_internal"
-    @test Bool(fixture[:public_fit]) == false
-    @test Bool(fixture[:experimental_public]) == false
-    @test Bool(fixture[:fit_ready]) == false
+    @test String(fixture[:decision]) == "enable_guarded_experimental"
+    @test Bool(fixture[:public_fit])
+    @test Bool(fixture[:experimental_public])
+    @test Bool(fixture[:fit_ready])
     @test Bool(fixture[:publication_or_registration_action]) == false
 
     protocol = fixture[:protocol]
@@ -5622,7 +5897,7 @@ function check_mgmfrm_guarded_fit_validation_grid_fixture(fixture_path::Abstract
     @test String(protocol[:review_kind]) ==
         "local_confirmatory_mgmfrm_guarded_fit_validation_grid"
     @test Bool(protocol[:publication_or_registration_action]) == false
-    @test Bool(protocol[:entrypoint_enabled]) == false
+    @test Bool(protocol[:entrypoint_enabled])
     thresholds = protocol[:thresholds]
     @test Bool(thresholds[:require_bridge_oracle_present])
     @test Bool(thresholds[:require_candidate_chain_passed])
@@ -5632,8 +5907,9 @@ function check_mgmfrm_guarded_fit_validation_grid_fixture(fixture_path::Abstract
     @test Bool(thresholds[:require_guarded_fit_method_wiring_passed])
     @test Bool(thresholds[:require_sampler_protocol_passed])
     @test Bool(thresholds[:require_artifact_contract_satisfied])
-    @test Bool(thresholds[:require_current_public_fit_rejections])
-    @test Bool(thresholds[:require_entrypoint_stays_disabled])
+    @test Bool(thresholds[:require_fit_boundary_checks_passed])
+    @test Bool(thresholds[:require_experimental_spec_fit_success])
+    @test Bool(thresholds[:require_entrypoint_enabled])
     @test Bool(thresholds[:require_no_publication_or_registration_action])
 
     input_artifacts = fixture[:input_artifacts]
@@ -5672,26 +5948,26 @@ function check_mgmfrm_guarded_fit_validation_grid_fixture(fixture_path::Abstract
         "baseline_model_comparison",
         "sparse_connected_recovery_grid",
         "guarded_method_contract",
-        "current_public_fit_boundary",
+        "current_guarded_fit_boundary",
     ])
     @test all(row -> Bool(row[:evidence]), validation_rows)
 
     decision = fixture[:decision_record]
-    @test Bool(decision[:public_fit_allowed]) == false
-    @test Bool(decision[:experimental_keyword_enabled]) == false
+    @test Bool(decision[:public_fit_allowed])
+    @test Bool(decision[:experimental_keyword_enabled])
     @test String(decision[:public_exposure_support]) ==
-        "insufficient_until_mgmfrm_guarded_fit_api_dry_run"
+        "validation_grid_satisfies_guarded_entrypoint_boundary"
     @test String(decision[:interpretation]) ==
-        "confirmatory_mgmfrm_guarded_fit_validation_grid_recorded_entrypoint_disabled"
+        "confirmatory_mgmfrm_guarded_fit_validation_grid_recorded_entrypoint_enabled"
     @test String(decision[:required_followup]) ==
         "mgmfrm_guarded_fit_api_dry_run"
 
     summary = fixture[:summary]
     @test Bool(summary[:passed])
     @test Bool(summary[:publication_or_registration_action]) == false
-    @test Bool(summary[:entrypoint_enabled]) == false
-    @test Bool(summary[:public_fit_allowed]) == false
-    @test Bool(summary[:experimental_keyword_enabled]) == false
+    @test Bool(summary[:entrypoint_enabled])
+    @test Bool(summary[:public_fit_allowed])
+    @test Bool(summary[:experimental_keyword_enabled])
     @test Bool(summary[:all_input_artifacts_present])
     @test Bool(summary[:all_expected_schemas])
     @test Bool(summary[:all_input_summaries_passed])
@@ -5707,14 +5983,15 @@ function check_mgmfrm_guarded_fit_validation_grid_fixture(fixture_path::Abstract
     @test Bool(summary[:sparse_grid_all_sampler_passed])
     @test Bool(summary[:method_sampler_protocol_passed])
     @test Bool(summary[:method_artifact_contract_satisfied])
-    @test Bool(summary[:method_current_public_fit_attempts_rejected])
+    @test Bool(summary[:method_fit_boundary_checks_passed])
+    @test Bool(summary[:method_experimental_spec_fit_succeeded])
     @test Int(summary[:n_input_artifacts]) == length(input_artifacts)
     @test Int(summary[:n_validation_rows]) == length(validation_rows)
     @test Int(summary[:n_passed_validation_rows]) == length(validation_rows)
     @test Set(String(blocker) for blocker in summary[:remaining_public_blockers]) ==
         Set(["mgmfrm_guarded_fit_api_dry_run_missing"])
     @test String(summary[:recommendation]) ==
-        "keep_internal_until_mgmfrm_guarded_fit_api_dry_run"
+        "guarded_entrypoint_validated_run_api_dry_run_next"
     @test String(summary[:next_gate]) == "mgmfrm_guarded_fit_api_dry_run"
 end
 
@@ -5728,12 +6005,12 @@ function check_mgmfrm_guarded_fit_api_dry_run_fixture(fixture_path::AbstractStri
     @test String(fixture[:family]) == "mgmfrm"
     @test String(fixture[:scope]) == "minimal_confirmatory_mgmfrm_candidate"
     @test String(fixture[:status]) == "guarded_fit_api_dry_run_recorded"
-    @test String(fixture[:decision]) == "keep_internal"
-    @test Bool(fixture[:public_fit]) == false
-    @test Bool(fixture[:experimental_public]) == false
-    @test Bool(fixture[:fit_ready]) == false
+    @test String(fixture[:decision]) == "enable_guarded_experimental"
+    @test Bool(fixture[:public_fit])
+    @test Bool(fixture[:experimental_public])
+    @test Bool(fixture[:fit_ready])
     @test Bool(fixture[:publication_or_registration_action]) == false
-    @test Bool(fixture[:entrypoint_enabled]) == false
+    @test Bool(fixture[:entrypoint_enabled])
 
     protocol = fixture[:protocol]
     @test String(protocol[:protocol_id]) ==
@@ -5741,11 +6018,17 @@ function check_mgmfrm_guarded_fit_api_dry_run_fixture(fixture_path::AbstractStri
     @test String(protocol[:review_kind]) ==
         "local_confirmatory_mgmfrm_guarded_fit_api_contract_dry_run"
     @test Bool(protocol[:dry_run_only])
-    @test Bool(protocol[:entrypoint_enabled]) == false
+    @test Bool(protocol[:entrypoint_enabled])
+    @test String(protocol[:public_target_label]) ==
+        "guarded_confirmatory_mgmfrm_logdensity"
+    @test String(protocol[:public_target_description]) ==
+        "guarded fixed-Q confirmatory MGMFRM log density"
+    @test String(protocol[:internal_target_constructor]) ==
+        "_mgmfrm_guarded_local_fit_logdensity"
     rules = protocol[:decision_rules]
     @test Bool(rules[:require_validation_grid_passed])
     @test Bool(rules[:require_gradient_diagnostics_passed])
-    @test Bool(rules[:public_exposure_review_required_before_public_entrypoint])
+    @test Bool(rules[:public_exposure_review_required_before_broader_claims])
 
     input_artifacts = fixture[:input_artifacts]
     expected_paths = Dict(
@@ -5769,19 +6052,33 @@ function check_mgmfrm_guarded_fit_api_dry_run_fixture(fixture_path::AbstractStri
             file_sha256(joinpath(root, String(row[:path])))
     end
 
-    rejection_checks = fixture[:fit_rejection_checks]
-    @test length(rejection_checks) == 4
-    @test all(row -> Bool(row[:rejected]), rejection_checks)
+    boundary_checks = fixture[:fit_boundary_checks]
+    @test length(boundary_checks) == 4
+    @test all(row -> Bool(row[:passed]), boundary_checks)
+    @test any(row -> String(row[:check]) ==
+        "fit_experimental_mgmfrm_guarded_enabled" &&
+        String(row[:actual_status]) == "succeeded", boundary_checks)
 
     contract = fixture[:artifact_contract_review]
     @test String(contract[:schema]) ==
         "bayesianmgmfrm.experimental_generalized_fit_artifact_contract.v1"
-    @test Bool(contract[:public_fit]) == false
-    @test Bool(contract[:experimental_public]) == false
+    @test Bool(contract[:public_fit])
+    @test Bool(contract[:experimental_public])
+    @test Int(contract[:n_required_fields]) == 26
+    @test "initialization_policy" in String.(contract[:required_field_names])
+    @test "initialization_rows" in String.(contract[:required_field_names])
+    @test "fixed_q_invariance_rows" in
+        String.(contract[:required_field_names])
     @test Bool(contract[:all_required_fields_recorded])
     @test Bool(contract[:all_required_provenance_recorded])
 
     target = fixture[:target_dry_run]
+    @test String(target[:public_target_label]) ==
+        "guarded_confirmatory_mgmfrm_logdensity"
+    @test String(target[:public_target_description]) ==
+        "guarded fixed-Q confirmatory MGMFRM log density"
+    @test String(target[:internal_target_constructor]) ==
+        "_mgmfrm_guarded_local_fit_logdensity"
     @test String(target[:target]) == "_source_fixture_logdensity"
     @test Int(target[:n_raw_parameters]) == 12
     @test Int(target[:n_direct_parameters]) == 14
@@ -5797,8 +6094,8 @@ function check_mgmfrm_guarded_fit_api_dry_run_fixture(fixture_path::AbstractStri
         Float64(gradient[:max_tolerance])
 
     decision = fixture[:decision_record]
-    @test Bool(decision[:public_fit_allowed]) == false
-    @test Bool(decision[:experimental_keyword_enabled]) == false
+    @test Bool(decision[:public_fit_allowed])
+    @test Bool(decision[:experimental_keyword_enabled])
     @test String(decision[:required_followup]) ==
         "mgmfrm_guarded_fit_public_exposure_review"
 
@@ -5806,19 +6103,20 @@ function check_mgmfrm_guarded_fit_api_dry_run_fixture(fixture_path::AbstractStri
     @test Bool(summary[:passed])
     @test Bool(summary[:dry_run_only])
     @test Bool(summary[:publication_or_registration_action]) == false
-    @test Bool(summary[:entrypoint_enabled]) == false
+    @test Bool(summary[:entrypoint_enabled])
     @test Bool(summary[:guarded_fit_validation_grid_passed])
     @test Bool(summary[:validation_grid_all_rows_passed])
-    @test Bool(summary[:all_current_public_fit_attempts_rejected])
+    @test Bool(summary[:all_fit_boundary_checks_passed])
+    @test Bool(summary[:experimental_spec_fit_succeeded])
     @test Bool(summary[:artifact_contract_satisfied])
     @test Bool(summary[:target_logdensity_finite])
     @test Bool(summary[:target_gradient_diagnostics_passed])
     @test Int(summary[:n_input_artifacts]) == length(input_artifacts)
-    @test Int(summary[:n_rejection_checks]) == length(rejection_checks)
+    @test Int(summary[:n_fit_boundary_checks]) == length(boundary_checks)
     @test Set(String(blocker) for blocker in summary[:remaining_public_blockers]) ==
         Set(["mgmfrm_guarded_fit_public_exposure_review_missing"])
     @test String(summary[:recommendation]) ==
-        "keep_internal_until_mgmfrm_guarded_fit_public_exposure_review"
+        "guarded_entrypoint_api_dry_run_recorded_review_public_exposure_next"
     @test String(summary[:next_gate]) ==
         "mgmfrm_guarded_fit_public_exposure_review"
 end
@@ -5835,10 +6133,10 @@ function check_mgmfrm_guarded_fit_public_exposure_review_fixture(
     @test String(fixture[:scope]) == "minimal_confirmatory_mgmfrm_candidate"
     @test String(fixture[:status]) ==
         "guarded_fit_public_exposure_review_recorded"
-    @test String(fixture[:decision]) == "keep_internal"
-    @test Bool(fixture[:public_fit]) == false
-    @test Bool(fixture[:experimental_public]) == false
-    @test Bool(fixture[:fit_ready]) == false
+    @test String(fixture[:decision]) == "enable_guarded_experimental"
+    @test Bool(fixture[:public_fit])
+    @test Bool(fixture[:experimental_public])
+    @test Bool(fixture[:fit_ready])
     @test Bool(fixture[:publication_or_registration_action]) == false
 
     protocol = fixture[:protocol]
@@ -5860,8 +6158,8 @@ function check_mgmfrm_guarded_fit_public_exposure_review_fixture(
     @test Bool(thresholds[:require_guarded_fit_validation_grid_passed])
     @test Bool(thresholds[:require_guarded_fit_api_dry_run_passed])
     @test Bool(thresholds[:require_dff_estimand_validation_grid_passed])
-    @test Bool(thresholds[:require_current_public_fit_rejections])
-    @test Bool(thresholds[:require_manifest_keeps_mgmfrm_internal])
+    @test Bool(thresholds[:require_fit_boundary_checks_passed])
+    @test Bool(thresholds[:require_manifest_enables_guarded_mgmfrm_fit])
     @test Bool(thresholds[:require_prediction_target_and_model_weight_blocker])
     @test Bool(thresholds[:require_no_publication_or_registration_action])
 
@@ -5899,23 +6197,23 @@ function check_mgmfrm_guarded_fit_public_exposure_review_fixture(
             file_sha256(joinpath(root, String(row[:path])))
     end
 
-    rejection_checks = fixture[:fit_rejection_checks]
-    @test length(rejection_checks) == 4
-    @test all(row -> Bool(row[:rejected]), rejection_checks)
+    boundary_checks = fixture[:fit_boundary_checks]
+    @test length(boundary_checks) == 4
+    @test all(row -> Bool(row[:passed]), boundary_checks)
 
     manifest = fixture[:manifest_snapshot]
     @test String(manifest[:candidate_status]) == "internal_fit_ready_candidate"
-    @test String(manifest[:experimental_decision_status]) == "blocked"
-    @test String(manifest[:experimental_decision]) == "keep_internal"
-    @test Bool(manifest[:experimental_summary][:fit_allowed]) == false
-    @test Bool(manifest[:experimental_summary][:experimental_keyword_enabled]) == false
+    @test String(manifest[:experimental_decision_status]) == "experimental_public"
+    @test String(manifest[:experimental_decision]) == "enable_guarded_experimental"
+    @test Bool(manifest[:experimental_summary][:fit_allowed])
+    @test Bool(manifest[:experimental_summary][:experimental_keyword_enabled])
 
     review_rows = fixture[:review_rows]
     @test length(review_rows) == 11
     @test any(row -> String(row[:gate]) == "guarded_fit_api_dry_run" &&
         String(row[:status]) == "passed" &&
         Bool(row[:evidence]), review_rows)
-    @test any(row -> String(row[:gate]) == "current_public_fit_boundary" &&
+    @test any(row -> String(row[:gate]) == "current_guarded_fit_boundary" &&
         String(row[:status]) == "passed" &&
         Bool(row[:evidence]), review_rows)
     @test any(row -> String(row[:gate]) ==
@@ -5930,12 +6228,12 @@ function check_mgmfrm_guarded_fit_public_exposure_review_fixture(
     @test String(blocker_rows[1][:severity]) == "blocking"
 
     decision = fixture[:decision_record]
-    @test Bool(decision[:public_fit_allowed]) == false
-    @test Bool(decision[:experimental_keyword_enabled]) == false
-    @test Bool(decision[:current_manifest_fit_allowed]) == false
-    @test Bool(decision[:current_manifest_experimental_keyword_enabled]) == false
+    @test Bool(decision[:public_fit_allowed])
+    @test Bool(decision[:experimental_keyword_enabled])
+    @test Bool(decision[:current_manifest_fit_allowed])
+    @test Bool(decision[:current_manifest_experimental_keyword_enabled])
     @test String(decision[:public_exposure_support]) ==
-        "review_recorded_keep_internal_until_prediction_target_and_model_weight_policy"
+        "review_recorded_guarded_fit_enabled_until_prediction_target_and_model_weight_policy"
     @test String(decision[:required_followup]) ==
         "prediction_target_and_model_weight_policy"
 
@@ -5944,15 +6242,15 @@ function check_mgmfrm_guarded_fit_public_exposure_review_fixture(
     @test Bool(summary[:reviewed])
     @test Bool(summary[:publication_or_registration_action]) == false
     @test Bool(summary[:local_only])
-    @test Bool(summary[:public_fit_allowed]) == false
-    @test Bool(summary[:experimental_keyword_enabled]) == false
-    @test Bool(summary[:current_manifest_fit_allowed]) == false
-    @test Bool(summary[:current_manifest_experimental_keyword_enabled]) == false
+    @test Bool(summary[:public_fit_allowed])
+    @test Bool(summary[:experimental_keyword_enabled])
+    @test Bool(summary[:current_manifest_fit_allowed])
+    @test Bool(summary[:current_manifest_experimental_keyword_enabled])
     @test Bool(summary[:all_input_artifacts_present])
     @test Bool(summary[:all_expected_schemas])
     @test Bool(summary[:all_input_summaries_passed])
-    @test Bool(summary[:all_current_public_fit_attempts_rejected])
-    @test Bool(summary[:current_manifest_keeps_internal])
+    @test Bool(summary[:all_fit_boundary_checks_passed])
+    @test Bool(summary[:current_manifest_guarded_fit_enabled])
     @test Bool(summary[:no_publication_commands])
     @test Bool(summary[:bridge_oracle_present])
     @test Bool(summary[:mgmfrm_candidate_chain_study_passed])
@@ -5963,18 +6261,21 @@ function check_mgmfrm_guarded_fit_public_exposure_review_fixture(
     @test Bool(summary[:mgmfrm_guarded_fit_validation_grid_passed])
     @test Bool(summary[:mgmfrm_guarded_fit_api_dry_run_passed])
     @test Bool(summary[:dff_estimand_validation_grid_passed])
-    @test Bool(summary[:method_current_public_fit_attempts_rejected])
+    @test Bool(summary[:method_fit_boundary_checks_passed])
+    @test Bool(summary[:method_experimental_spec_fit_succeeded])
     @test Bool(summary[:validation_all_rows_passed])
+    @test Bool(summary[:api_dry_run_fit_boundary_checks_passed])
+    @test Bool(summary[:api_dry_run_experimental_spec_fit_succeeded])
     @test Bool(summary[:api_dry_run_gradient_diagnostics_passed])
     @test Bool(summary[:dff_model_effects_allowed]) == false
     @test Int(summary[:n_input_artifacts]) == length(input_artifacts)
-    @test Int(summary[:n_rejection_checks]) == length(rejection_checks)
+    @test Int(summary[:n_fit_boundary_checks]) == length(boundary_checks)
     @test Int(summary[:n_review_rows]) == length(review_rows)
     @test Int(summary[:n_blockers]) == length(blocker_rows)
     @test Set(String(blocker) for blocker in summary[:remaining_public_blockers]) ==
         Set(["prediction_target_and_model_weight_policy_missing"])
     @test String(summary[:recommendation]) ==
-        "keep_internal_until_prediction_target_and_model_weight_policy"
+        "guarded_mgmfrm_fit_enabled_keep_weight_claims_blocked_until_policy"
     @test String(summary[:next_gate]) ==
         "prediction_target_and_model_weight_policy"
 end
@@ -6082,10 +6383,10 @@ function check_gmfrm_prediction_target_and_model_weight_policy_fixture(
         Bool(row[:allowed_for_local_model_weight_reporting]) &&
         Bool(row[:evidence]), policy_rows)
     @test any(row -> String(row[:surface]) == "confirmatory_mgmfrm_fit" &&
-        String(row[:status]) == "policy_recorded_keep_internal" &&
+        String(row[:status]) == "policy_recorded_fit_allowed_weights_blocked" &&
         Bool(row[:allowed_for_local_model_weight_reporting]) == false &&
         String(row[:required_followup]) ==
-            "manual_public_scope_review_for_mgmfrm_fit", policy_rows)
+            "guarded_local_mgmfrm_fit_entrypoint", policy_rows)
     @test any(row -> String(row[:surface]) == "dff_model_effects" &&
         String(row[:status]) == "validation_only" &&
         Bool(row[:allowed_for_local_model_weight_reporting]) == false,
@@ -6105,7 +6406,7 @@ function check_gmfrm_prediction_target_and_model_weight_policy_fixture(
     @test Bool(decision[:scalar_local_model_weight_reporting_allowed])
     @test Bool(decision[:mgmfrm_weight_claims_allowed]) == false
     @test Bool(decision[:manuscript_sparse_mgmfrm_claims_allowed]) == false
-    @test Bool(decision[:mgmfrm_fit_allowed]) == false
+    @test Bool(decision[:mgmfrm_fit_allowed])
     @test String(decision[:required_followup]) ==
         "manual_public_scope_review_for_mgmfrm_fit"
 
@@ -6124,10 +6425,11 @@ function check_gmfrm_prediction_target_and_model_weight_policy_fixture(
         "heldout_observation_log_score"
     @test Bool(summary[:scalar_local_model_weight_reporting_allowed])
     @test Bool(summary[:public_model_weight_claims_allowed]) == false
-    @test Bool(summary[:mgmfrm_fit_allowed]) == false
+    @test Bool(summary[:mgmfrm_fit_allowed])
     @test Bool(summary[:mgmfrm_weight_claims_allowed]) == false
     @test Bool(summary[:manuscript_sparse_mgmfrm_claims_allowed]) == false
-    @test Bool(summary[:current_mgmfrm_manifest_keeps_internal])
+    @test Bool(summary[:current_mgmfrm_manifest_guarded_fit_enabled])
+    @test Bool(summary[:mgmfrm_fit_boundary_checks_passed])
     @test Bool(summary[:no_publication_commands])
     @test Int(summary[:n_input_artifacts]) == length(input_artifacts)
     @test Int(summary[:n_prediction_target_rows]) == length(target_rows)
@@ -6278,19 +6580,23 @@ end
             :calibration_table, :diagnostics,
             :comparison_evidence_row, :comparison_evidence_summary,
             :compare_kfold, :compare_models, :coverage_matrix, :coverage_summary, :design_row_table, :validate_design, :mcmc_diagnostics, :mfrm_spec, :getdesign,
-            :model_equation, :model_ladder, :model_manifest, :parameter_block_diagnostics,
+            :model_equation, :model_ladder, :model_manifest, :model_surface_audit,
+            :parameter_block_diagnostics,
             :parameter_recovery, :parameter_recovery_plot_data, :parameter_recovery_summary,
             :pointwise_loglikelihood, :pointwise_loglikelihood_matrix, :posterior_predict,
             :posterior_predictive_check, :posterior_summary,
             :predictive_check_summary, :predictive_check_plot_data, :predictive_probabilities,
             :predictive_residuals, :predictive_variances,
             :prior_likelihood_sensitivity, :prior_predict, :prior_predictive_check,
+            :q_matrix_validation,
             :fit_report_dossier, :fit_report_dossier_markdown,
             :fit_report_markdown, :fit_report_section, :fit_report_sections,
             :fit_report_rows,
             :load_fit_cache, :load_fit_report, :load_fit_report_dossier,
             :load_fit_report_bundle,
             :load_fit_report_tables, :rater_diagnostics, :rater_overlap,
+            :rating_design_audit,
+            :related_software_capability_matrix, :release_gate_check,
             :release_scope_summary, :residual_summary, :sampler_diagnostics,
             :save_fit_cache, :save_fit_report,
             :save_fit_report_dossier, :save_fit_report_dossier_markdown,
@@ -6301,6 +6607,7 @@ end
             :simulation_grid_summary, :simulate_responses,
             :stan_validation_row, :stan_validation_summary,
             :threshold_map_data, :validation_suggestions, :evidence_metadata,
+            :evidence_artifact_schema_policy,
             :waic, :waic_diagnostics, :wright_map_data)
         @test has_doc(BayesianMGMFRM, name)
     end
@@ -6557,6 +6864,95 @@ end
     @test any(row -> row.family === :mgmfrm && row.estimation_status === :specified_only, ladder)
     release_scope = release_scope_summary()
     @test release_scope.schema == "bayesianmgmfrm.release_scope_summary.v1"
+    @test any(row -> row.status === :supported &&
+        :fit_supported in row.current_aliases,
+        release_scope.status_vocabulary)
+    @test any(row -> row.status === :experimental_public &&
+        row.public_fit &&
+        row.experimental_public &&
+        :guarded_experimental in row.current_aliases,
+        release_scope.status_vocabulary)
+    @test any(row -> row.status === :blocked &&
+        :out_of_scope in row.current_aliases &&
+        :not_a_public_fit_api in row.current_aliases,
+        release_scope.status_vocabulary)
+    @test any(row -> row.status === :external_validated &&
+        row.stable_public &&
+        row.external_validated,
+        release_scope.status_vocabulary)
+    @test release_scope.summary.n_status_vocabulary_rows ==
+        length(release_scope.status_vocabulary)
+    external_policy = BayesianMGMFRM._status_policy_manifest(
+        :mgmfrm,
+        :fit_supported;
+        public_fit = true,
+        stable_public = true,
+        external_validated = true,
+        claim_scope = :post_v0_2_external_validation,
+    )
+    @test external_policy.status_label === :external_validated
+    @test external_policy.stable_public
+    @test !(:external_validation in external_policy.blocked_claims)
+    @test !(:r_package_overlap_comparison in external_policy.blocked_claims)
+    @test !(:real_data_validation in external_policy.blocked_claims)
+    evidence_policy = evidence_artifact_schema_policy(:unit_test;
+        include_environment = false,
+        raw_data_status = :not_included)
+    @test evidence_policy.schema ==
+        "bayesianmgmfrm.evidence_artifact_schema_policy.v1"
+    @test evidence_policy.object === :evidence_artifact_schema_policy
+    @test evidence_policy.artifact_kind === :unit_test
+    @test evidence_policy.hash_policy.algorithm === :sha256
+    @test any(row -> row.field === :schema && row.status === :required,
+        evidence_policy.required_fields)
+    @test any(row -> row.field === :unsupported_claims,
+        evidence_policy.required_fields)
+    @test evidence_policy.execution_policy.require_cache_provenance_or_not_applicable
+    @test !evidence_policy.claim_policy.public_model_weight_claims_allowed
+    @test evidence_policy.raw_data_policy.status === :not_included
+    metadata = evidence_metadata(; include_packages = false)
+    @test haskey(metadata, "git")
+    @test haskey(metadata, "hashes")
+    @test haskey(metadata["hashes"], "active_project_sha256")
+    @test haskey(metadata["hashes"], "manifest_sha256")
+    @test isnothing(metadata["hashes"]["active_project_sha256"]) ||
+        length(metadata["hashes"]["active_project_sha256"]) == 64
+    @test release_scope.evidence_artifact_schema_policy.schema ==
+        evidence_policy.schema
+    @test release_scope.evidence_artifact_schema_policy.artifact_kind ===
+        :release_scope_evidence
+    @test release_scope.summary.evidence_artifact_schema_policy_recorded
+    @test release_scope.summary.related_software_capability_matrix_recorded
+    capability_matrix = related_software_capability_matrix()
+    @test capability_matrix.schema ==
+        "bayesianmgmfrm.related_software_capability_matrix.v1"
+    @test capability_matrix.object === :related_software_capability_matrix
+    @test capability_matrix.status === :scope_positioning_recorded
+    @test capability_matrix.summary.n_tools == 7
+    @test capability_matrix.summary.no_superiority_claims
+    @test !capability_matrix.summary.generic_irt_replacement_claims_allowed
+    @test !capability_matrix.summary.r_package_overlap_comparison_allowed
+    @test capability_matrix.summary.comparison_gate ===
+        :post_v0_2_known_truth_simulation_where_overlap_exists
+    @test all(tool -> tool in capability_matrix.summary.tools,
+        (:facets, :tam, :mirt, :sirt, :immer, :brms_stan, :bayesianmgmfrm))
+    tam_row = only(row for row in capability_matrix.rows if row.tool === :tam)
+    @test :multi_faceted_rasch_models in tam_row.model_coverage
+    @test tam_row.v0_1_1_position === :breadth_baseline_not_feature_checklist
+    mirt_row = only(row for row in capability_matrix.rows if row.tool === :mirt)
+    @test :multidimensional_irt in mirt_row.model_coverage
+    @test mirt_row.rater_facet_support === :not_a_dedicated_mfrm_facets_workflow
+    facets_row = only(row for row in capability_matrix.rows if row.tool === :facets)
+    @test facets_row.rater_facet_support === :first_class_many_facet_rater_support
+    immer_row = only(row for row in capability_matrix.rows if row.tool === :immer)
+    @test immer_row.current_role === :models_for_multiple_ratings
+    brms_row = only(row for row in capability_matrix.rows if row.tool === :brms_stan)
+    @test brms_row.bayesian_support === :first_class_bayesian_inference
+    package_row = only(row for row in capability_matrix.rows if row.tool === :bayesianmgmfrm)
+    @test package_row.multidimensional_support ===
+        :fixed_q_two_dimensional_experimental_only
+    @test package_row.v0_1_1_position ===
+        :narrow_auditable_workflow_not_generic_irt_replacement
     @test release_scope.summary.n_public_fit_surfaces == 3
     @test release_scope.summary.n_guarded_experimental_surfaces == 2
     @test release_scope.summary.minimal_mfrm_fit_allowed
@@ -6571,6 +6967,7 @@ end
     @test !release_scope.summary.dff_model_effects_allowed
     @test !release_scope.summary.model_weight_claims_allowed
     @test !release_scope.summary.publication_or_registration_action
+    @test release_scope.summary.v0_1_1_generalized_refinement_planned
     @test isempty(release_scope.evidence_rows)
     @test any(row -> row.surface === :scalar_gmfrm_guarded_experimental &&
         row.entrypoint == "fit(spec; experimental = true)",
@@ -6579,6 +6976,15 @@ end
         row.status === :blocked,
         release_scope.blocked_public_options)
     @test any(row -> row.claim === :model_weight_or_superiority &&
+        row.status === :blocked,
+        release_scope.blocked_claims)
+    @test any(row -> row.claim === :r_package_overlap_comparison &&
+        row.status === :blocked,
+        release_scope.blocked_claims)
+    @test any(row -> row.claim === :real_data_validation &&
+        row.status === :blocked,
+        release_scope.blocked_claims)
+    @test any(row -> row.claim === :external_validation &&
         row.status === :blocked,
         release_scope.blocked_claims)
     release_scope_with_evidence = release_scope_summary(; include_evidence = true)
@@ -6609,6 +7015,59 @@ end
         row.evidence === :documenter_html_page_size_gate &&
         row.artifact === :docs_make,
         release_scope_with_evidence.evidence_rows)
+    @test any(row -> row.family === :gmfrm_mgmfrm &&
+        row.scope === :v0_1_1_generalized_refinement &&
+        row.evidence === :implementation_checklist_created &&
+        row.status === :planned,
+        release_scope_with_evidence.evidence_rows)
+    @test any(row -> row.family === :all_evidence_artifacts &&
+        row.scope === :evidence_schema_policy &&
+        row.evidence === :evidence_artifact_schema_policy &&
+        row.status === :done,
+        release_scope_with_evidence.evidence_rows)
+    @test any(row -> row.family === :all_package_surfaces &&
+        row.scope === :status_synchronization &&
+        row.evidence === :release_gate_check &&
+        row.status === :done,
+        release_scope_with_evidence.evidence_rows)
+    @test any(row -> row.family === :all_related_software &&
+        row.scope === :positioning_and_non_superiority &&
+        row.evidence === :related_software_capability_matrix &&
+        row.status === :done,
+        release_scope_with_evidence.evidence_rows)
+    release_gate = release_gate_check()
+    @test release_gate.schema == "bayesianmgmfrm.release_gate_check.v1"
+    @test release_gate.object === :release_gate_check
+    @test release_gate.status === :passed
+    @test release_gate.summary.passed
+    @test release_gate.summary.n_failed_rows == 0
+    @test !release_gate.summary.broad_generalized_fit_allowed
+    @test !release_gate.summary.model_weight_claims_allowed
+    @test any(row -> row.source === :documentation &&
+        row.target === :readme_public_surface &&
+        row.check === :required_text &&
+        row.expected == "`experimental_public`" &&
+        row.status === :passed,
+        release_gate.rows)
+    @test any(row -> row.source === :manifest &&
+        row.target === :post_v0_2_external_validation_blocked &&
+        row.status === :passed,
+        release_gate.rows)
+    @test any(row -> row.source === :manifest &&
+        row.target === :related_software_capability_matrix_evidence_row &&
+        row.status === :passed,
+        release_gate.rows)
+    missing_doc_root = mktempdir()
+    missing_doc_gate = release_gate_check(; root = missing_doc_root)
+    @test missing_doc_gate.status === :failed
+    @test !missing_doc_gate.summary.passed
+    @test missing_doc_gate.summary.n_failed_rows > 0
+    @test any(row -> row.check === :document_present &&
+        row.status === :failed,
+        missing_doc_gate.rows)
+    @test_throws ArgumentError release_gate_check(;
+        root = missing_doc_root,
+        throw_on_failure = true)
     case_provenance = case_study_provenance_manifest()
     @test case_provenance.schema ==
         "bayesianmgmfrm.case_study_provenance_manifest.v1"
@@ -6657,6 +7116,24 @@ end
     spec_constraints = constraint_table(spec)
     @test any(row -> row.block === :person && row.status === :implemented, spec_constraints)
     @test any(row -> row.block === :thresholds && row.constraint === :sum_to_zero, spec_constraints)
+    spec_audit = model_surface_audit(spec)
+    @test length(spec_audit) >= length(spec_constraints)
+    @test all(row -> row.schema == "bayesianmgmfrm.model_surface_audit_row.v1",
+        spec_audit)
+    @test all(row -> row.current_status === :supported, spec_audit)
+    @test any(row -> row.block === :person &&
+        row.source_symbol == "theta_p" &&
+        row.raw_coordinate === :person &&
+        row.constraint === :free &&
+        row.prior_scale === :person_sd &&
+        row.report_label === :person_measure,
+        spec_audit)
+    @test any(row -> row.block === :thresholds &&
+        row.source_symbol == "d_m or d_im" &&
+        row.constraint === :sum_to_zero &&
+        row.prior_scale === :step_sd &&
+        row.report_label === :category_threshold,
+        spec_audit)
     spec_identification = identification_declarations(spec)
     @test any(row -> row.block === :rater && row.rule === :reference &&
         row.components == (:reference,), spec_identification)
@@ -6710,6 +7187,10 @@ end
     @test data_manifest.data.n_observations == data.n
     @test data_manifest.data.columns.person === :examinee
     @test data_manifest.data.levels.category == data.category_levels
+    @test data_manifest.rating_design.schema ==
+        "bayesianmgmfrm.rating_design_audit.v1"
+    @test data_manifest.rating_design.object === :rating_design_audit
+    @test data_manifest.rating_design.summary.nonignorable_assignment_flagged
 
     @test design.parameter_names == ["person[E1]"]
     @test design.blocks[:person] == 1:1
@@ -6780,12 +7261,19 @@ end
     identified_design = getdesign(identified_spec)
     spec_manifest = model_manifest(identified_spec)
     @test spec_manifest.object === :spec
+    @test spec_manifest.status_policy == spec_manifest.spec.status_policy
+    @test spec_manifest.spec.model_surface_audit == model_surface_audit(identified_spec)
     @test spec_manifest.spec.family === :mfrm
     @test spec_manifest.spec.scope === :minimal_mfrm_rsm_pcm
     @test spec_manifest.spec.thresholds === :partial_credit
     @test spec_manifest.spec.dimensions == 1
     @test spec_manifest.spec.discrimination === :none
     @test spec_manifest.spec.estimation_status === :fit_supported
+    @test spec_manifest.spec.status_policy.schema == "bayesianmgmfrm.status_policy.v1"
+    @test spec_manifest.spec.status_policy.status_label === :supported
+    @test spec_manifest.spec.status_policy.public_fit
+    @test !spec_manifest.spec.status_policy.experimental_public
+    @test :model_weight_or_superiority in spec_manifest.spec.status_policy.blocked_claims
     @test spec_manifest.spec.equation.fit_ready
     @test spec_manifest.spec.equation.kernel == model_equation(identified_spec).kernel
     @test any(row -> row.block === :thresholds && row.constraint === :sum_to_zero,
@@ -6795,8 +7283,14 @@ end
     @test spec_manifest.validation.passed
     @test spec_manifest.data.optional_facets == [:task]
     @test spec_manifest.data.levels.optional.task == identified_data.optional_levels[:task]
+    @test isequal(spec_manifest.rating_design, rating_design_audit(identified_spec))
+    @test spec_manifest.rating_design.family === :mfrm
+    @test spec_manifest.rating_design.summary.rating_graph_status === :connected
     design_manifest = model_manifest(identified_design)
     @test design_manifest.object === :design
+    @test design_manifest.status_policy == design_manifest.spec.status_policy
+    @test design_manifest.model_surface_audit == model_surface_audit(identified_design)
+    @test isequal(design_manifest.rating_design, spec_manifest.rating_design)
     @test design_manifest.design.n_parameters == length(identified_design.parameter_names)
     @test design_manifest.design.parameter_names == identified_design.parameter_names
     @test any(row -> row.block === :thresholds && row.identification === :sum_to_zero,
@@ -6893,6 +7387,85 @@ end
     task_overlap = rater_overlap(identified_spec; unit = :person_task)
     @test only(task_overlap).shared_units == 2
     @test_throws ArgumentError rater_overlap(data; unit = :person_task)
+
+    design_audit = rating_design_audit(identified_spec; min_shared_units = 2)
+    @test design_audit.schema == "bayesianmgmfrm.rating_design_audit.v1"
+    @test design_audit.object === :rating_design_audit
+    @test design_audit.passed
+    @test design_audit.family === :mfrm
+    @test design_audit.estimation_status === :fit_supported
+    @test design_audit.summary.n_rating_graph_components == 1
+    @test design_audit.summary.rater_linking_status === :connected
+    @test design_audit.summary.anchor_status === :not_declared
+    @test !design_audit.summary.structural_missingness_distinguishable
+    @test design_audit.summary.nonignorable_assignment_flagged
+    @test any(row -> row.audit === :observed_cell_coverage &&
+        row.facets == (:person, :rater, :item) &&
+        row.n_expected == 8 &&
+        row.n_observed == 6 &&
+        row.n_missing == 2 &&
+        row.note ===
+            :structural_vs_accidental_missingness_not_identified_by_observed_long_data,
+        design_audit.rows)
+    @test any(row -> row.audit === :sparse_person_rater_item_blocks &&
+        row.status === :sparse_observed_cells_detected &&
+        row.n_sparse == 6,
+        design_audit.rows)
+    @test any(row -> row.audit === :repeated_person_rater_item_ratings &&
+        row.status === :none_detected &&
+        row.n_repeated == 0,
+        design_audit.rows)
+    @test any(row -> row.audit === :optional_time_order_fields &&
+        row.status === :not_declared &&
+        row.details.optional_facets == (:task,),
+        design_audit.rows)
+    @test any(row -> row.audit === :nonignorable_assignment &&
+        row.status === :limitation &&
+        row.severity === :warning,
+        design_audit.rows)
+    weak_design_audit = rating_design_audit(identified_spec; min_shared_units = 3)
+    @test !weak_design_audit.passed
+    @test weak_design_audit.summary.rater_linking_status === :disconnected
+    @test any(row -> row.audit === :rater_linking &&
+        row.status === :disconnected &&
+        row.n_sparse == 1,
+        weak_design_audit.rows)
+    repeated = (;
+        examinee = vcat(identified.examinee, ["E1"]),
+        rater = vcat(identified.rater, ["R1"]),
+        item = vcat(identified.item, ["I1"]),
+        task = vcat(identified.task, ["T1"]),
+        score = vcat(identified.score, [1]),
+    )
+    repeated_data = FacetData(repeated;
+        person = :examinee,
+        rater = :rater,
+        item = :item,
+        score = :score,
+        task = :task)
+    repeated_audit = rating_design_audit(repeated_data)
+    @test repeated_audit.summary.n_repeated_person_rater_item_cells == 1
+    @test any(row -> row.audit === :repeated_person_rater_item_ratings &&
+        row.status === :repeated_ratings_detected &&
+        row.n_repeated == 1,
+        repeated_audit.rows)
+    ordered = (; identified..., occasion = [1, 2, 3, 4, 5, 6])
+    ordered_data = FacetData(ordered;
+        person = :examinee,
+        rater = :rater,
+        item = :item,
+        score = :score,
+        task = :task,
+        occasion = :occasion)
+    ordered_audit = rating_design_audit(ordered_data)
+    @test any(row -> row.audit === :optional_time_order_fields &&
+        row.status === :recorded_not_modeled &&
+        row.details.time_order_facets == (:occasion,),
+        ordered_audit.rows)
+    @test_throws ArgumentError rating_design_audit(identified_spec;
+        min_shared_units = 0)
+    @test_throws ArgumentError rating_design_audit(identified_spec;
+        min_sparse_cell_count = 0)
 
     pcm_thresholds = threshold_map_data(identified_design; params = identified_params)
     @test length(pcm_thresholds) == 4
@@ -7076,6 +7649,13 @@ end
     @test invalid_linking.anchor_status === :invalid_targets
     @test invalid_linking.n_anchor_target_failures == 1
     @test only(invalid_linking.anchor_rows).status === :anchor_target_not_in_data
+    invalid_anchor_audit = rating_design_audit(invalid_anchor_spec)
+    @test !invalid_anchor_audit.passed
+    @test invalid_anchor_audit.summary.anchor_status === :invalid_targets
+    @test any(row -> row.audit === :anchor_coverage &&
+        row.status === :invalid_targets &&
+        row.severity === :error,
+        invalid_anchor_audit.rows)
     @test_throws ArgumentError anchor_linking_summary(identified_spec; min_shared_units = 0)
     @test_throws ArgumentError mfrm_spec(identified_data;
         thresholds = :partial_credit,
@@ -7105,6 +7685,78 @@ end
         row.components == (:fixed, :sum_to_zero),
         gmfrm_identification)
     @test model_manifest(gmfrm_spec).spec.scope === :planned_generalized_mfrm
+    @test model_manifest(gmfrm_spec).spec.status_policy.status_label === :specified_only
+    @test :public_fit in model_manifest(gmfrm_spec).spec.status_policy.blocked_claims
+    @test :broad_generalized_fit in model_manifest(gmfrm_spec).spec.status_policy.blocked_claims
+    gmfrm_multidimensional_error = argument_error_message() do
+        mfrm_spec(
+            identified_data;
+            family = :gmfrm,
+            dimensions = 2,
+            discrimination = :rater,
+        )
+    end
+    @test occursin("blocked_option=:multidimensional_ability",
+        gmfrm_multidimensional_error)
+    @test occursin("next_gate=:mgmfrm_guarded_fit_validation_grid",
+        gmfrm_multidimensional_error)
+
+    gmfrm_item_discrimination_spec =
+        mfrm_spec(identified_data; family = :gmfrm, discrimination = :item)
+    gmfrm_item_fit_error = argument_error_message() do
+        fit(
+            gmfrm_item_discrimination_spec;
+            experimental = true,
+            ndraws = 1,
+            warmup = 0,
+            chains = 1,
+        )
+    end
+    @test occursin("blocked_option=:discrimination", gmfrm_item_fit_error)
+    @test occursin("value=:item", gmfrm_item_fit_error)
+    @test occursin("next_gate=:item_discrimination_promotion_decision",
+        gmfrm_item_fit_error)
+
+    gmfrm_backend_error = argument_error_message() do
+        fit(gmfrm_spec; experimental = true, backend = :julia, ndraws = 1, warmup = 0)
+    end
+    @test occursin("blocked_option=:backend", gmfrm_backend_error)
+    @test occursin("next_gate=:advancedhmc_guarded_sampler_policy",
+        gmfrm_backend_error)
+
+    gmfrm_prior_error = argument_error_message() do
+        fit(gmfrm_spec; experimental = true, prior = MFRMPrior(), ndraws = 1, warmup = 0)
+    end
+    @test occursin("blocked_option=:prior", gmfrm_prior_error)
+    @test occursin("next_gate=:scalar_gmfrm_prior_likelihood_sensitivity_grid",
+        gmfrm_prior_error)
+
+    gmfrm_dff_data = FacetData(
+        (;
+            examinee = ["E1", "E1", "E1", "E2", "E2", "E2"],
+            rater = ["R1", "R2", "R1", "R1", "R2", "R1"],
+            item = ["I1", "I1", "I2", "I1", "I2", "I2"],
+            group = ["A", "A", "A", "A", "B", "A"],
+            score = [0, 1, 2, 1, 0, 2],
+        );
+        person = :examinee,
+        rater = :rater,
+        item = :item,
+        score = :score,
+        group = :group,
+    )
+    gmfrm_dff_spec = mfrm_spec(
+        gmfrm_dff_data;
+        family = :gmfrm,
+        discrimination = :rater,
+        bias = [(:rater, :group)],
+    )
+    gmfrm_dff_fit_error = argument_error_message() do
+        fit(gmfrm_dff_spec; experimental = true, ndraws = 1, warmup = 0)
+    end
+    @test occursin("blocked_option=:dff_effects", gmfrm_dff_fit_error)
+    @test occursin("next_gate=:gmfrm_dff_estimand_validation_grid",
+        gmfrm_dff_fit_error)
     gmfrm_equation = model_equation(gmfrm_spec)
     @test gmfrm_equation.family === :gmfrm
     @test !gmfrm_equation.fit_ready
@@ -7230,6 +7882,22 @@ end
     @test gmfrm_item_discrimination_domain.prior === :lognormal_or_hierarchical
     @test !gmfrm_item_discrimination_domain.fit_ready
     @test gmfrm_item_discrimination_domain.experimental_public
+    gmfrm_audit = model_surface_audit(gmfrm_spec)
+    @test model_manifest(gmfrm_spec).spec.model_surface_audit == gmfrm_audit
+    gmfrm_consistency_audit = only(filter(row ->
+        row.block === :rater_consistency &&
+        row.compiled_role === :discrimination_block,
+        gmfrm_audit))
+    @test gmfrm_consistency_audit.current_status === :specified_only
+    @test !gmfrm_consistency_audit.public_fit
+    @test gmfrm_consistency_audit.source_symbol == "alpha_r"
+    @test gmfrm_consistency_audit.direct_interpretation ==
+        "positive rater consistency multiplier"
+    @test gmfrm_consistency_audit.raw_coordinate === :log_rater_consistency
+    @test gmfrm_consistency_audit.constraint === :positive
+    @test gmfrm_consistency_audit.prior_scale === :log_consistency_sd
+    @test gmfrm_consistency_audit.report_label === :rater_consistency
+    @test :public_fit in gmfrm_consistency_audit.blocked_claims
     gmfrm_scoring_domain = only(filter(row ->
         row.compiled_role === :scoring_vector,
         gmfrm_domain))
@@ -7301,6 +7969,81 @@ end
     @test gmfrm_candidate_manifest.real_data_case_study_ready
     @test gmfrm_candidate_manifest.claim_recovery_reproduction_archive_ready
     @test gmfrm_candidate_manifest.broader_experimental_exposure_decision_review_ready
+    @test gmfrm_candidate_manifest.public_target_label ===
+        :guarded_scalar_gmfrm_logdensity
+    @test gmfrm_candidate_manifest.public_target_description ==
+        "guarded scalar GMFRM log density"
+    @test gmfrm_candidate_manifest.internal_target_constructor ===
+        :_gmfrm_promotion_candidate_logdensity
+    @test gmfrm_candidate_manifest.internal_diagnostic_constructor ===
+        :_gmfrm_promotion_candidate_diagnostics
+    @test gmfrm_candidate_manifest.internal_sampler_diagnostic_constructor ===
+        :_gmfrm_promotion_candidate_sampler_diagnostics
+    gmfrm_rater_step_policy =
+        gmfrm_candidate_manifest.rater_step_public_option_policy
+    @test gmfrm_rater_step_policy.schema ==
+        "bayesianmgmfrm.gmfrm_rater_step_public_option_policy.v1"
+    @test gmfrm_rater_step_policy.source_block === :rater_steps
+    @test gmfrm_rater_step_policy.source_block_status ===
+        :internal_source_model_block
+    @test gmfrm_rater_step_policy.internal_block_enabled
+    @test gmfrm_rater_step_policy.public_option === :rater_steps
+    @test !gmfrm_rater_step_policy.public_keyword_enabled
+    @test gmfrm_rater_step_policy.public_option_status ===
+        :blocked_until_policy_gate
+    @test gmfrm_rater_step_policy.blocker ===
+        :rater_step_public_option_policy_not_promoted
+    @test gmfrm_rater_step_policy.next_gate ===
+        :rater_step_public_option_policy
+    gmfrm_item_discrimination_decision =
+        gmfrm_candidate_manifest.item_discrimination_promotion_decision
+    @test gmfrm_item_discrimination_decision.schema ==
+        "bayesianmgmfrm.gmfrm_item_discrimination_promotion_decision.v1"
+    @test gmfrm_item_discrimination_decision.decision ===
+        :keep_preview_only_for_v0_1_1
+    @test gmfrm_item_discrimination_decision.source_block ===
+        :item_discrimination
+    @test gmfrm_item_discrimination_decision.source_block_status ===
+        :enabled_within_guarded_rater_consistency_surface
+    @test !gmfrm_item_discrimination_decision.public_fit_enabled
+    @test !gmfrm_item_discrimination_decision.internal_promotion_target_enabled
+    @test gmfrm_item_discrimination_decision.blocked_option ===
+        :discrimination
+    @test gmfrm_item_discrimination_decision.blocked_value === :item
+    @test gmfrm_item_discrimination_decision.next_gate ===
+        :item_discrimination_promotion_decision
+    gmfrm_raw_prior_controls =
+        gmfrm_candidate_manifest.raw_prior_control_manifest
+    @test gmfrm_raw_prior_controls.schema ==
+        "bayesianmgmfrm.generalized_raw_prior_control_manifest.v1"
+    @test gmfrm_raw_prior_controls.family === :gmfrm
+    @test gmfrm_raw_prior_controls.scope === :scalar_gmfrm_fit_ready_candidate
+    @test gmfrm_raw_prior_controls.prior_policy ===
+        :independent_normal_raw_coordinates
+    @test !gmfrm_raw_prior_controls.direct_scale_priors
+    @test gmfrm_raw_prior_controls.jacobian_policy ===
+        :none_raw_coordinate_density
+    @test gmfrm_raw_prior_controls.n_rows == 7
+    @test gmfrm_raw_prior_controls.summary.raw_rater_consistency_control_recorded
+    @test gmfrm_raw_prior_controls.summary.item_discrimination_source_control_recorded
+    @test !gmfrm_raw_prior_controls.summary.direct_scale_generalized_priors_enabled
+    @test any(row -> row.raw_block === :log_rater_consistency &&
+        row.constrained_block === :rater_consistency &&
+        row.scale_parameter === :log_consistency_sd &&
+        ismissing(row.scale) &&
+        row.public_surface_role === :guarded_scalar_gmfrm_core,
+        gmfrm_raw_prior_controls.rows)
+    @test any(row -> row.raw_block === :log_item_discrimination_free &&
+        row.constrained_block === :item_discrimination &&
+        row.scale_parameter === :log_discrimination_sd &&
+        row.public_surface_role ===
+            :source_block_active_public_item_target_preview_only,
+        gmfrm_raw_prior_controls.rows)
+    @test any(row -> row.constrained_block ===
+            :direct_scale_generalized_priors &&
+        row.status === :blocked &&
+        row.jacobian_policy === :requires_future_log_jacobian_policy,
+        gmfrm_raw_prior_controls.rows)
     @test gmfrm_candidate_manifest.target_constructor === :_gmfrm_promotion_candidate_logdensity
     @test gmfrm_candidate_manifest.diagnostic_constructor === :_gmfrm_promotion_candidate_diagnostics
     @test gmfrm_candidate_manifest.sampler_diagnostic_constructor ===
@@ -7322,8 +8065,29 @@ end
     @test !gmfrm_fit_ready_manifest.fixture_only
     @test gmfrm_fit_ready_manifest.compiler_stage === :fit_ready_candidate
     @test gmfrm_fit_ready_manifest.source_oracle === :scalar_gmfrm_source_aligned
+    @test gmfrm_fit_ready_manifest.public_target_label ===
+        :guarded_scalar_gmfrm_logdensity
+    @test gmfrm_fit_ready_manifest.public_target_description ==
+        "guarded scalar GMFRM log density"
+    @test gmfrm_fit_ready_manifest.internal_target_constructor ===
+        :_gmfrm_promotion_candidate_logdensity
+    @test gmfrm_fit_ready_manifest.rater_step_public_option_policy.next_gate ===
+        :rater_step_public_option_policy
+    @test gmfrm_fit_ready_manifest.item_discrimination_promotion_decision.decision ===
+        :keep_preview_only_for_v0_1_1
+    @test gmfrm_fit_ready_manifest.item_discrimination_promotion_decision.next_gate ===
+        :item_discrimination_promotion_decision
+    @test :public_rater_steps in
+        gmfrm_fit_ready_manifest.unsupported_public_options
+    @test :item_discrimination_public_target in
+        gmfrm_fit_ready_manifest.unsupported_public_options
     @test gmfrm_fit_ready_manifest.direct_prior_policy ===
         :not_enabled_raw_coordinate_priors_only
+    @test gmfrm_fit_ready_manifest.raw_prior_control_manifest.schema ==
+        "bayesianmgmfrm.generalized_raw_prior_control_manifest.v1"
+    @test any(row -> row.raw_block === :log_rater_consistency &&
+        row.scale_parameter === :log_consistency_sd,
+        gmfrm_fit_ready_manifest.raw_prior_control_manifest.rows)
     @test gmfrm_fit_ready_manifest.raw_parameter_names == gmfrm_raw_blueprint.parameter_names
     @test gmfrm_fit_ready_manifest.constrained_parameter_names == gmfrm_preview.parameter_names
     @test any(row -> row.raw_block === :log_item_discrimination_free &&
@@ -7465,6 +8229,31 @@ end
     @test gmfrm_experimental_decision.fit_ready
     @test gmfrm_experimental_decision.proposed_entrypoint ==
         "fit(spec; experimental = true)"
+    @test gmfrm_experimental_decision.public_target_label ===
+        :guarded_scalar_gmfrm_logdensity
+    @test gmfrm_experimental_decision.public_target_description ==
+        "guarded scalar GMFRM log density"
+    @test gmfrm_experimental_decision.internal_target_constructor ===
+        :_gmfrm_promotion_candidate_logdensity
+    @test gmfrm_experimental_decision.internal_sampler_diagnostic_constructor ===
+        :_gmfrm_promotion_candidate_sampler_diagnostics
+    @test gmfrm_experimental_decision.rater_step_public_option_policy.schema ==
+        "bayesianmgmfrm.gmfrm_rater_step_public_option_policy.v1"
+    @test gmfrm_experimental_decision.rater_step_public_option_policy.public_option ===
+        :rater_steps
+    @test !gmfrm_experimental_decision.rater_step_public_option_policy.public_keyword_enabled
+    @test gmfrm_experimental_decision.rater_step_public_option_policy.next_gate ===
+        :rater_step_public_option_policy
+    @test gmfrm_experimental_decision.item_discrimination_promotion_decision.schema ==
+        "bayesianmgmfrm.gmfrm_item_discrimination_promotion_decision.v1"
+    @test gmfrm_experimental_decision.item_discrimination_promotion_decision.decision ===
+        :keep_preview_only_for_v0_1_1
+    @test gmfrm_experimental_decision.item_discrimination_promotion_decision.next_gate ===
+        :item_discrimination_promotion_decision
+    @test gmfrm_experimental_decision.target_constructor ===
+        :_gmfrm_promotion_candidate_logdensity
+    @test gmfrm_experimental_decision.sampler_diagnostic_constructor ===
+        :_gmfrm_promotion_candidate_sampler_diagnostics
     @test gmfrm_experimental_decision.candidate_chain_study_artifact ==
         "test/fixtures/gmfrm_candidate_chain_study.json"
     @test gmfrm_experimental_decision.stress_chain_grid_artifact ==
@@ -7744,6 +8533,18 @@ end
     @test gmfrm_prior_policy.prior_policy === :independent_normal_raw_coordinates
     @test !gmfrm_prior_policy.direct_scale_priors
     @test gmfrm_prior_policy.jacobian_policy === :none_raw_coordinate_density
+    gmfrm_decision_raw_prior_controls =
+        gmfrm_experimental_decision.raw_prior_control_manifest
+    @test gmfrm_decision_raw_prior_controls.schema ==
+        "bayesianmgmfrm.generalized_raw_prior_control_manifest.v1"
+    @test gmfrm_decision_raw_prior_controls.public_fit
+    @test gmfrm_decision_raw_prior_controls.experimental_public
+    @test any(row -> row.raw_block === :log_rater_consistency &&
+        row.scale_parameter === :log_consistency_sd,
+        gmfrm_decision_raw_prior_controls.rows)
+    @test any(row -> row.raw_block === :log_item_discrimination_free &&
+        row.scale_parameter === :log_discrimination_sd,
+        gmfrm_decision_raw_prior_controls.rows)
     gmfrm_fit_artifact_contract =
         gmfrm_experimental_decision.fit_artifact_contract
     @test gmfrm_fit_artifact_contract.schema ==
@@ -7757,6 +8558,21 @@ end
         :experimental_generalized_fit_artifact
     @test gmfrm_fit_artifact_contract.summary.enables_public_fit
     @test any(row -> row.field === :experimental_public &&
+        row.status === :required,
+        gmfrm_fit_artifact_contract.required_fields)
+    @test any(row -> row.field === :public_target_label &&
+        row.status === :required,
+        gmfrm_fit_artifact_contract.required_fields)
+    @test any(row -> row.field === :internal_target_constructor &&
+        row.status === :required,
+        gmfrm_fit_artifact_contract.required_fields)
+    @test any(row -> row.field === :parameter_layout &&
+        row.status === :required,
+        gmfrm_fit_artifact_contract.required_fields)
+    @test any(row -> row.field === :raw_prior_control_manifest &&
+        row.status === :required,
+        gmfrm_fit_artifact_contract.required_fields)
+    @test any(row -> row.field === :direct_posterior_row_schema &&
         row.status === :required,
         gmfrm_fit_artifact_contract.required_fields)
     @test any(row -> row.field === :fixture_provenance &&
@@ -7773,9 +8589,24 @@ end
         row.value == "fit(spec; experimental = true)" &&
         row.status === :enabled_guarded,
         gmfrm_experimental_decision.accepted_candidate_options)
+    @test any(row -> row.option === :rater_steps &&
+        row.value === :internal_source_block &&
+        row.status === :candidate_only &&
+        row.note === :not_a_public_fit_option,
+        gmfrm_experimental_decision.accepted_candidate_options)
     @test any(row -> row.option === :family &&
         row.value === :mgmfrm &&
         row.status === :blocked,
+        gmfrm_experimental_decision.rejected_public_options)
+    @test any(row -> row.option === :discrimination &&
+        row.value === :item &&
+        row.status === :blocked &&
+        row.blocker === :item_discrimination_promotion_target_not_selected,
+        gmfrm_experimental_decision.rejected_public_options)
+    @test any(row -> row.option === :rater_steps &&
+        row.value === :public_option &&
+        row.status === :blocked &&
+        row.blocker === :rater_step_public_option_policy_not_promoted,
         gmfrm_experimental_decision.rejected_public_options)
     @test any(row -> row.option === :bias_or_dff_terms &&
         row.value === :model_effects &&
@@ -7791,6 +8622,10 @@ end
     @test any(row -> row.evidence === :fit_artifact_manifest_for_experimental_public &&
         row.status === :done &&
         row.artifact === :experimental_public_fit_artifact_contract,
+        gmfrm_experimental_decision.evidence_rows)
+    @test any(row -> row.evidence === :item_discrimination_promotion_decision &&
+        row.status === :done &&
+        row.artifact === :gmfrm_item_discrimination_promotion_decision,
         gmfrm_experimental_decision.evidence_rows)
     @test any(row -> row.evidence === :stress_chain_grid &&
         row.status === :done &&
@@ -7891,6 +8726,10 @@ end
     @test any(row -> row.evidence === :direct_prior_jacobian_policy &&
         row.status === :done &&
         row.artifact === :generalized_raw_prior_jacobian_policy,
+        gmfrm_experimental_decision.evidence_rows)
+    @test any(row -> row.evidence === :raw_prior_control_manifest &&
+        row.status === :done &&
+        row.artifact === :generalized_raw_prior_control_manifest,
         gmfrm_experimental_decision.evidence_rows)
     @test any(row -> row.evidence === :public_caveat_docs &&
         row.status === :done &&
@@ -8539,34 +9378,125 @@ end
     gmfrm_experimental_metadata = fit_metadata(gmfrm_experimental_fit)
     @test gmfrm_experimental_metadata.public_fit
     @test gmfrm_experimental_metadata.experimental_public
+    @test gmfrm_experimental_metadata.status_policy.status_label ===
+        :experimental_public
+    @test :broad_generalized_fit in
+        gmfrm_experimental_metadata.status_policy.blocked_claims
     @test gmfrm_experimental_metadata.scope === :scalar_gmfrm_fit_ready_candidate
     @test gmfrm_experimental_metadata.density_space === :raw_unconstrained
     @test gmfrm_experimental_metadata.n_direct_parameters ==
         size(gmfrm_experimental_fit.direct_draws, 2)
+    gmfrm_fit_audit = model_surface_audit(gmfrm_experimental_fit)
+    @test all(row -> row.current_status === :experimental_public,
+        gmfrm_fit_audit)
+    @test all(row -> row.public_fit && row.experimental_public && row.fit_ready,
+        gmfrm_fit_audit)
+    @test any(row -> row.block === :rater_consistency &&
+        row.raw_coordinate === :log_rater_consistency &&
+        row.prior_scale === :log_consistency_sd &&
+        :broad_generalized_fit in row.blocked_claims,
+        gmfrm_fit_audit)
     gmfrm_experimental_diagnostics = diagnostics(gmfrm_experimental_fit)
     @test gmfrm_experimental_diagnostics.schema ==
         "bayesianmgmfrm.gmfrm_experimental_fit_diagnostics.v1"
     @test gmfrm_experimental_diagnostics.public_fit
     @test gmfrm_experimental_diagnostics.experimental_public
+    @test gmfrm_experimental_diagnostics.parameter_layout.schema ==
+        "bayesianmgmfrm.fit_ready_parameter_layout.v1"
+    @test gmfrm_experimental_diagnostics.parameter_layout.raw_parameter_names ==
+        gmfrm_experimental_fit.diagnostic_surface.raw_parameter_names
+    @test gmfrm_experimental_diagnostics.parameter_layout.constrained_parameter_names ==
+        gmfrm_experimental_fit.diagnostic_surface.direct_parameter_names
+    @test gmfrm_experimental_diagnostics.diagnostic_row_policy.family === :gmfrm
+    @test gmfrm_experimental_diagnostics.diagnostic_row_policy.parameter_spaces ==
+        (:raw_unconstrained, :direct_constrained)
+    @test gmfrm_experimental_diagnostics.diagnostic_row_policy.rhat_ess_status ===
+        :provisional_classical
     @test gmfrm_experimental_diagnostics.summary.total_draws == 8
     @test length(sampler_diagnostics(gmfrm_experimental_fit)) == 2
+    @test all(row -> row.diagnostic_row === :sampler_chain &&
+        row.parameter_space === :raw_unconstrained &&
+        row.diagnostic_method === :sampler_chain_summary,
+        sampler_diagnostics(gmfrm_experimental_fit))
     @test length(mcmc_diagnostics(gmfrm_experimental_fit)) ==
         size(gmfrm_experimental_fit.draws, 2)
+    @test all(row -> row.diagnostic_row === :parameter &&
+        row.parameter_space === :raw_unconstrained &&
+        row.diagnostic_status === :provisional_classical,
+        mcmc_diagnostics(gmfrm_experimental_fit))
     @test length(parameter_block_diagnostics(gmfrm_experimental_fit)) >= 1
+    @test all(row -> row.diagnostic_row === :parameter_block &&
+        row.parameter_space === :raw_unconstrained &&
+        row.diagnostic_status === :provisional_classical,
+        parameter_block_diagnostics(gmfrm_experimental_fit))
+    @test all(row -> row.parameter_space === :direct_constrained &&
+        row.diagnostic_status === :provisional_classical,
+        gmfrm_experimental_diagnostics.direct_parameter_rows)
+    @test all(row -> row.diagnostic_row === :parameter_block &&
+        row.parameter_space === :direct_constrained &&
+        row.diagnostic_status === :provisional_classical,
+        gmfrm_experimental_diagnostics.direct_block_rows)
     gmfrm_experimental_artifact =
         fit_artifact(gmfrm_experimental_fit; include_environment = false)
     @test gmfrm_experimental_artifact.schema ==
         "bayesianmgmfrm.gmfrm_experimental_fit_artifact.v1"
     @test gmfrm_experimental_artifact.public_fit
     @test gmfrm_experimental_artifact.experimental_public
+    @test gmfrm_experimental_artifact.public_target_label ===
+        :guarded_scalar_gmfrm_logdensity
+    @test gmfrm_experimental_artifact.public_target_description ==
+        "guarded scalar GMFRM log density"
+    @test gmfrm_experimental_artifact.internal_target_constructor ===
+        :_gmfrm_promotion_candidate_logdensity
+    @test gmfrm_experimental_artifact.internal_sampler_diagnostic_constructor ===
+        :_gmfrm_promotion_candidate_sampler_diagnostics
+    @test gmfrm_experimental_artifact.evidence_artifact_schema_policy.artifact_kind ===
+        :gmfrm_experimental_fit_artifact
+    @test :broad_generalized_fit in
+        gmfrm_experimental_artifact.evidence_artifact_schema_policy.claim_policy.unsupported_claims
+    @test gmfrm_experimental_artifact.evidence_artifact_schema_policy.environment_policy.include_environment ===
+        false
     @test gmfrm_experimental_artifact.density_space === :raw_unconstrained
+    @test gmfrm_experimental_artifact.raw_prior_control_manifest.schema ==
+        "bayesianmgmfrm.generalized_raw_prior_control_manifest.v1"
+    @test gmfrm_experimental_artifact.raw_prior_control_manifest.resolved
+    @test gmfrm_experimental_artifact.raw_prior_control_manifest.summary.all_active_scales_resolved
+    @test any(row -> row.raw_block === :log_rater_consistency &&
+        row.scale_parameter === :log_consistency_sd &&
+        row.scale == gmfrm_experimental_fit.prior.log_consistency_sd &&
+        row.scale_status === :resolved_from_source_fixture_prior,
+        gmfrm_experimental_artifact.raw_prior_control_manifest.rows)
+    @test any(row -> row.raw_block === :log_item_discrimination_free &&
+        row.scale_parameter === :log_discrimination_sd &&
+        row.scale == gmfrm_experimental_fit.prior.log_discrimination_sd,
+        gmfrm_experimental_artifact.raw_prior_control_manifest.rows)
+    @test isequal(gmfrm_experimental_artifact.parameter_layout,
+        gmfrm_experimental_diagnostics.parameter_layout)
     @test gmfrm_experimental_artifact.raw_parameter_names ==
         gmfrm_experimental_fit.diagnostic_surface.raw_parameter_names
     @test gmfrm_experimental_artifact.direct_parameter_names ==
         gmfrm_experimental_fit.diagnostic_surface.direct_parameter_names
     @test size(gmfrm_experimental_artifact.pointwise_loglikelihood) ==
         (8, identified_data.n)
+    @test gmfrm_experimental_artifact.raw_to_direct_transform ==
+        gmfrm_experimental_artifact.parameter_layout.transforms
     @test !isempty(gmfrm_experimental_artifact.raw_to_direct_transform)
+    @test gmfrm_experimental_artifact.raw_posterior_row_schema.schema ==
+        "bayesianmgmfrm.posterior_summary_row_schema.v1"
+    @test gmfrm_experimental_artifact.raw_posterior_row_schema.parameter_space ===
+        :raw_unconstrained
+    @test gmfrm_experimental_artifact.raw_posterior_row_schema.parameter_names ==
+        gmfrm_experimental_artifact.raw_parameter_names
+    @test gmfrm_experimental_artifact.raw_posterior_row_schema.row_fields ==
+        propertynames(first(gmfrm_experimental_artifact.posterior_summary))
+    @test gmfrm_experimental_artifact.direct_posterior_row_schema.schema ==
+        "bayesianmgmfrm.posterior_summary_row_schema.v1"
+    @test gmfrm_experimental_artifact.direct_posterior_row_schema.parameter_space ===
+        :constrained_direct
+    @test gmfrm_experimental_artifact.direct_posterior_row_schema.parameter_names ==
+        gmfrm_experimental_artifact.direct_parameter_names
+    @test gmfrm_experimental_artifact.direct_posterior_row_schema.row_fields ==
+        propertynames(first(gmfrm_experimental_artifact.direct_posterior_summary))
     @test !isempty(gmfrm_experimental_artifact.fixture_provenance)
     @test isnothing(gmfrm_experimental_artifact.raw_draws)
     @test isnothing(gmfrm_experimental_artifact.direct_draws)
@@ -8574,6 +9504,38 @@ end
         artifact_content_hash(gmfrm_experimental_artifact)
     @test gmfrm_experimental_artifact.archive_manifest.content_hash ==
         gmfrm_experimental_artifact.content_hash
+    gmfrm_report = fit_report(gmfrm_experimental_fit;
+        draw_indices = [1, 2],
+        include_loo = false,
+        artifact_include_environment = false)
+    @test gmfrm_report.prior_policy.status === :computed
+    @test gmfrm_report.prior_policy.summary.raw_coordinate_generalized_priors
+    @test !gmfrm_report.prior_policy.summary.direct_scale_generalized_priors_enabled
+    @test gmfrm_report.prior_policy.summary.jacobian_policy ===
+        :none_raw_coordinate_density
+    @test gmfrm_report.prior_policy.summary.raw_prior_control_manifest_recorded
+    @test gmfrm_report.prior_policy.summary.raw_prior_control_all_active_scales_resolved
+    @test gmfrm_report.prior_policy.raw_prior_control_manifest.schema ==
+        "bayesianmgmfrm.generalized_raw_prior_control_manifest.v1"
+    @test any(row -> row.raw_block === :log_rater_consistency &&
+        row.scale == gmfrm_experimental_fit.prior.log_consistency_sd,
+        gmfrm_report.prior_policy.raw_prior_control_manifest.rows)
+    @test any(row -> row.block === :log_rater_consistency &&
+        row.parameter_space === :raw_log_positive_coordinate &&
+        row.scale_parameter === :log_consistency_sd &&
+        row.status === :active,
+        gmfrm_report.prior_policy.rows)
+    @test any(row -> row.block === :direct_scale_generalized_priors &&
+        row.status === :blocked &&
+        row.jacobian_policy === :requires_future_log_jacobian_policy,
+        gmfrm_report.prior_policy.rows)
+    @test gmfrm_report.pooling_policy.status === :computed
+    @test gmfrm_report.pooling_policy.summary.independent_priors_default
+    @test !gmfrm_report.pooling_policy.summary.hierarchical_pooling_active
+    @test !gmfrm_report.pooling_policy.summary.partial_pooling_claims_allowed
+    @test any(row -> row.pooling === :hierarchical_rater_consistency_pooling &&
+        row.status === :blocked,
+        gmfrm_report.pooling_policy.rows)
     gmfrm_cache_key = fit_cache_key(gmfrm_spec;
         experimental = true,
         backend = :advancedhmc,
@@ -8952,8 +9914,61 @@ end
         q_matrix)
     @test mgmfrm_spec.family === :mgmfrm
     @test mgmfrm_spec.dimensions == 2
+    @test mgmfrm_spec.dimension_labels == ["dim=1", "dim=2"]
     @test mgmfrm_spec.estimation_status === :specified_only
     @test mgmfrm_spec.q_matrix == q_matrix
+    mgmfrm_q_validation = q_matrix_validation(mgmfrm_spec)
+    @test mgmfrm_q_validation.schema ==
+        "bayesianmgmfrm.q_matrix_validation.v1"
+    @test mgmfrm_q_validation.passed
+    @test mgmfrm_q_validation.dimension_labels == ["dim=1", "dim=2"]
+    @test mgmfrm_q_validation.summary.fixed_q_confirmatory
+    @test mgmfrm_q_validation.summary.n_cross_loading_items == 0
+    @test any(row -> row.check === :duplicate_dimension_columns &&
+        row.status === :passed,
+        mgmfrm_q_validation.rows)
+    @test any(row -> row.check === :cross_loading_policy &&
+        row.status === :simple_structure,
+        mgmfrm_q_validation.rows)
+    @test any(row -> row.check === :dimension_facet_subgraph_coverage &&
+        row.dimension_label == "dim=1" &&
+        row.status === :connected_dimension_subgraph,
+        mgmfrm_q_validation.rows)
+    invalid_q_validation = q_matrix_validation(identified_data;
+        dimensions = 2,
+        q_matrix = Bool[1 1; 1 1])
+    @test !invalid_q_validation.passed
+    @test any(row -> row.check === :duplicate_dimension_columns &&
+        row.status === :aliased_columns &&
+        row.severity === :error,
+        invalid_q_validation.rows)
+    @test any(row -> row.check === :positive_loading_identification &&
+        row.status === :no_single_loading_anchor &&
+        row.severity === :warning,
+        invalid_q_validation.rows)
+    blocked_cross_loading_validation = q_matrix_validation(identified_data;
+        dimensions = 2,
+        q_matrix = Bool[1 1; 0 1],
+        cross_loading_policy = :blocked_simple_structure)
+    @test !blocked_cross_loading_validation.passed
+    @test any(row -> row.check === :cross_loading_policy &&
+        row.status === :blocked_cross_loading &&
+        row.severity === :error,
+        blocked_cross_loading_validation.rows)
+    invalid_q_error = argument_error_message(() -> mfrm_spec(identified_data;
+        family = :mgmfrm,
+        dimensions = 2,
+        q_matrix = Bool[1 1; 1 1]))
+    @test occursin("invalid fixed-Q MGMFRM q_matrix", invalid_q_error)
+    @test occursin("failing_checks", invalid_q_error)
+    labeled_mgmfrm_spec = mfrm_spec(identified_data;
+        family = :mgmfrm,
+        dimensions = 2,
+        q_matrix,
+        dimension_labels = ["writing", "analysis"])
+    @test labeled_mgmfrm_spec.dimension_labels == ["writing", "analysis"]
+    @test q_matrix_validation(labeled_mgmfrm_spec).dimension_labels ==
+        ["writing", "analysis"]
     @test_throws ArgumentError fit(mgmfrm_spec;
         experimental = true,
         backend = :julia,
@@ -8978,10 +9993,14 @@ end
         mgmfrm_identification)
     mgmfrm_manifest = model_manifest(mgmfrm_spec)
     @test mgmfrm_manifest.spec.scope === :planned_multidimensional_gmfrm
+    @test mgmfrm_manifest.spec.dimension_labels == ["dim=1", "dim=2"]
     @test mgmfrm_manifest.spec.q_matrix == q_matrix
+    @test mgmfrm_manifest.spec.q_matrix_validation.passed
+    @test mgmfrm_manifest.spec.q_matrix_validation.summary.fixed_q_confirmatory
     @test any(row -> row.block === :q_matrix && row.rule === :fixed,
         mgmfrm_manifest.spec.identification_declarations)
     @test mgmfrm_manifest.spec.equation.family === :mgmfrm
+    @test mgmfrm_manifest.spec.equation.dimension_labels == ["dim=1", "dim=2"]
     @test occursin("1.7 * alpha_r", mgmfrm_manifest.spec.equation.kernel)
     @test :item_dimension_discrimination in mgmfrm_manifest.spec.equation.required_blocks
     @test :multidimensional_ability_prior_and_gauge in
@@ -9014,6 +10033,18 @@ end
         "item_dimension_discrimination[item=I1,dim=1]",
         "item_dimension_discrimination[item=I2,dim=2]",
     ]
+    labeled_mgmfrm_preview = getdesign(labeled_mgmfrm_spec; preview = true)
+    @test labeled_mgmfrm_preview.parameter_names[labeled_mgmfrm_preview.blocks[:person]] == [
+        "person[E1,writing]",
+        "person[E1,analysis]",
+        "person[E2,writing]",
+        "person[E2,analysis]",
+    ]
+    @test labeled_mgmfrm_preview.parameter_names[
+        labeled_mgmfrm_preview.blocks[:item_dimension_discrimination]] == [
+        "item_dimension_discrimination[item=I1,writing]",
+        "item_dimension_discrimination[item=I2,analysis]",
+    ]
     @test mgmfrm_preview.parameter_names[mgmfrm_preview.blocks[:rater_consistency]] == [
         "rater_consistency[rater=R1]",
         "rater_consistency[rater=R2]",
@@ -9025,9 +10056,11 @@ end
     @test length(mgmfrm_preview.parameter_names) == 14
     mgmfrm_preview_constraints = constraint_table(mgmfrm_preview)
     item_dim_row = only(filter(row -> row.block === :item_dimension_discrimination, mgmfrm_preview_constraints))
+    @test item_dim_row.dimension_labels == ("dim=1", "dim=2")
     @test item_dim_row.n_parameters == count(q_matrix)
     @test item_dim_row.parameter_names == mgmfrm_preview.parameter_names[mgmfrm_preview.blocks[:item_dimension_discrimination]]
     q_row = only(filter(row -> row.block === :q_matrix, mgmfrm_preview_constraints))
+    @test q_row.dimension_labels == ("dim=1", "dim=2")
     @test q_row.n_parameters == 0
     preview_manifest = model_manifest(mgmfrm_preview)
     @test preview_manifest.object === :design
@@ -9133,6 +10166,19 @@ end
         "item_dimension_discrimination[item=I1,dim=1]",
         "item_dimension_discrimination[item=I2,dim=2]",
     ]
+    mgmfrm_audit = model_surface_audit(mgmfrm_spec)
+    @test model_manifest(mgmfrm_spec).spec.model_surface_audit == mgmfrm_audit
+    mgmfrm_loading_audit = only(filter(row ->
+        row.block === :item_dimension_discrimination &&
+        row.compiled_role === :loading_block,
+        mgmfrm_audit))
+    @test mgmfrm_loading_audit.current_status === :specified_only
+    @test mgmfrm_loading_audit.source_symbol == "alpha_il"
+    @test mgmfrm_loading_audit.raw_coordinate === :log_item_dimension_discrimination
+    @test mgmfrm_loading_audit.constraint === :confirmatory_q_mask
+    @test mgmfrm_loading_audit.prior_scale === :log_discrimination_sd
+    @test mgmfrm_loading_audit.report_label === :dimension_loading
+    @test :broad_generalized_fit in mgmfrm_loading_audit.blocked_claims
     mgmfrm_loading_mask = only(filter(row ->
         row.compiled_role === :loading_mask,
         mgmfrm_domain))
@@ -9192,6 +10238,31 @@ end
         mgmfrm_raw_blueprint.parameter_names
     @test mgmfrm_confirmatory_candidate.constrained_parameter_names ==
         mgmfrm_preview.parameter_names
+    mgmfrm_raw_prior_controls =
+        mgmfrm_confirmatory_candidate.raw_prior_control_manifest
+    @test mgmfrm_raw_prior_controls.schema ==
+        "bayesianmgmfrm.generalized_raw_prior_control_manifest.v1"
+    @test mgmfrm_raw_prior_controls.family === :mgmfrm
+    @test mgmfrm_raw_prior_controls.scope === :minimal_confirmatory_mgmfrm_candidate
+    @test mgmfrm_raw_prior_controls.n_rows == 7
+    @test mgmfrm_raw_prior_controls.summary.raw_rater_consistency_control_recorded
+    @test mgmfrm_raw_prior_controls.summary.item_discrimination_source_control_recorded
+    @test !mgmfrm_raw_prior_controls.summary.direct_scale_generalized_priors_enabled
+    @test any(row -> row.raw_block === :log_item_dimension_discrimination &&
+        row.constrained_block === :item_dimension_discrimination &&
+        row.scale_parameter === :log_discrimination_sd &&
+        row.public_surface_role === :fixed_q_loading_core,
+        mgmfrm_raw_prior_controls.rows)
+    @test any(row -> row.raw_block === :log_rater_consistency_free &&
+        row.constrained_block === :rater_consistency &&
+        row.scale_parameter === :log_consistency_sd &&
+        row.public_surface_role === :fixed_q_rater_consistency_core,
+        mgmfrm_raw_prior_controls.rows)
+    @test any(row -> row.constrained_block ===
+            :direct_scale_generalized_priors &&
+        row.status === :blocked &&
+        row.jacobian_policy === :requires_future_log_jacobian_policy,
+        mgmfrm_raw_prior_controls.rows)
     @test any(row -> row.gauge === :q_matrix &&
         row.status === :fixed &&
         row.value == q_matrix,
@@ -9264,6 +10335,14 @@ end
     @test mgmfrm_experimental_decision.fit_ready
     @test mgmfrm_experimental_decision.proposed_entrypoint ==
         "fit(spec; experimental = true)"
+    @test mgmfrm_experimental_decision.public_target_label ===
+        :guarded_confirmatory_mgmfrm_logdensity
+    @test mgmfrm_experimental_decision.public_target_description ==
+        "guarded fixed-Q confirmatory MGMFRM log density"
+    @test mgmfrm_experimental_decision.internal_target_constructor ===
+        :_mgmfrm_guarded_local_fit_logdensity
+    @test mgmfrm_experimental_decision.internal_sampler_diagnostic_constructor ===
+        :_mgmfrm_guarded_local_fit_sampler_diagnostics
     @test mgmfrm_experimental_decision.guarded_local_entrypoint ===
         :_fit_guarded_mgmfrm
     @test mgmfrm_experimental_decision.guarded_local_fit_target_constructor ===
@@ -9307,6 +10386,18 @@ end
     @test mgmfrm_prior_policy.prior_policy === :independent_normal_raw_coordinates
     @test !mgmfrm_prior_policy.direct_scale_priors
     @test mgmfrm_prior_policy.jacobian_policy === :none_raw_coordinate_density
+    mgmfrm_decision_raw_prior_controls =
+        mgmfrm_experimental_decision.raw_prior_control_manifest
+    @test mgmfrm_decision_raw_prior_controls.schema ==
+        "bayesianmgmfrm.generalized_raw_prior_control_manifest.v1"
+    @test mgmfrm_decision_raw_prior_controls.public_fit
+    @test mgmfrm_decision_raw_prior_controls.experimental_public
+    @test any(row -> row.raw_block === :log_item_dimension_discrimination &&
+        row.scale_parameter === :log_discrimination_sd,
+        mgmfrm_decision_raw_prior_controls.rows)
+    @test any(row -> row.raw_block === :log_rater_consistency_free &&
+        row.scale_parameter === :log_consistency_sd,
+        mgmfrm_decision_raw_prior_controls.rows)
     mgmfrm_fit_artifact_contract =
         mgmfrm_experimental_decision.fit_artifact_contract
     @test mgmfrm_fit_artifact_contract.schema ==
@@ -9322,7 +10413,34 @@ end
     @test any(row -> row.field === :q_matrix &&
         row.status === :required,
         mgmfrm_fit_artifact_contract.required_fields)
+    @test any(row -> row.field === :public_target_label &&
+        row.status === :required,
+        mgmfrm_fit_artifact_contract.required_fields)
+    @test any(row -> row.field === :internal_target_constructor &&
+        row.status === :required,
+        mgmfrm_fit_artifact_contract.required_fields)
+    @test any(row -> row.field === :parameter_layout &&
+        row.status === :required,
+        mgmfrm_fit_artifact_contract.required_fields)
+    @test any(row -> row.field === :raw_prior_control_manifest &&
+        row.status === :required,
+        mgmfrm_fit_artifact_contract.required_fields)
+    @test any(row -> row.field === :raw_posterior_row_schema &&
+        row.status === :required,
+        mgmfrm_fit_artifact_contract.required_fields)
+    @test any(row -> row.field === :direct_posterior_row_schema &&
+        row.status === :required,
+        mgmfrm_fit_artifact_contract.required_fields)
     @test any(row -> row.field === :latent_correlation &&
+        row.status === :required,
+        mgmfrm_fit_artifact_contract.required_fields)
+    @test any(row -> row.field === :initialization_policy &&
+        row.status === :required,
+        mgmfrm_fit_artifact_contract.required_fields)
+    @test any(row -> row.field === :initialization_rows &&
+        row.status === :required,
+        mgmfrm_fit_artifact_contract.required_fields)
+    @test any(row -> row.field === :fixed_q_invariance_rows &&
         row.status === :required,
         mgmfrm_fit_artifact_contract.required_fields)
     @test any(row -> row.artifact === :bridge_oracle &&
@@ -9429,6 +10547,10 @@ end
     @test any(row -> row.evidence === :direct_prior_jacobian_policy &&
         row.status === :done &&
         row.artifact === :generalized_raw_prior_jacobian_policy,
+        mgmfrm_experimental_decision.evidence_rows)
+    @test any(row -> row.evidence === :raw_prior_control_manifest &&
+        row.status === :done &&
+        row.artifact === :generalized_raw_prior_control_manifest,
         mgmfrm_experimental_decision.evidence_rows)
     @test !any(row -> row.blocker === :public_fit_artifact_contract_missing,
         mgmfrm_experimental_decision.blocker_rows)
@@ -9589,6 +10711,102 @@ end
     @test mgmfrm_raw_pointwise_fixture.parameter_values ≈ mgmfrm_params
     @test mgmfrm_raw_pointwise_fixture.pointwise_loglikelihood ≈
         mgmfrm_source_pointwise
+    mgmfrm_default_initial =
+        BayesianMGMFRM._guarded_mgmfrm_initial(mgmfrm_guarded_target, nothing)
+    @test mgmfrm_default_initial == initial_params(mgmfrm_guarded_target)
+    mgmfrm_default_initial_direct =
+        BayesianMGMFRM._mgmfrm_source_constrained_params_from_unconstrained(
+            mgmfrm_preview,
+            mgmfrm_default_initial,
+        )
+    mgmfrm_default_initial_policy =
+        BayesianMGMFRM._mgmfrm_initialization_policy(
+            mgmfrm_guarded_target,
+            mgmfrm_default_initial,
+            mgmfrm_default_initial_direct,
+            LogDensityProblems.logdensity(
+                mgmfrm_guarded_target,
+                mgmfrm_default_initial,
+            ),
+            (; init_jitter = 0.0);
+            initial_source = :default_zero_raw,
+        )
+    @test mgmfrm_default_initial_policy.fallback_used
+    @test mgmfrm_default_initial_policy.status === :default_zero_fallback
+    @test mgmfrm_default_initial_policy.finite_initial_logdensity
+    @test isempty(BayesianMGMFRM._mgmfrm_initialization_rows(nothing))
+    mgmfrm_nonfinite_initial_policy =
+        BayesianMGMFRM._mgmfrm_initialization_policy(
+            mgmfrm_guarded_target,
+            fill(Inf, length(mgmfrm_default_initial)),
+            fill(Inf, length(mgmfrm_default_initial_direct)),
+            Inf,
+            (; init_jitter = 0.01);
+            initial_source = :sampler_raw_initial_argument,
+        )
+    mgmfrm_nonfinite_initial_rows =
+        BayesianMGMFRM._mgmfrm_initialization_rows(
+            mgmfrm_nonfinite_initial_policy,
+        )
+    @test !mgmfrm_nonfinite_initial_policy.finite_initial_raw_values
+    @test !mgmfrm_nonfinite_initial_policy.finite_initial_direct_values
+    @test !mgmfrm_nonfinite_initial_policy.finite_initial_logdensity
+    @test any(row -> row.policy === :initial_raw_vector &&
+        row.status === :raw_initial_argument &&
+        !row.passed,
+        mgmfrm_nonfinite_initial_rows)
+    @test any(row -> row.policy === :initial_logdensity &&
+        row.status === :nonfinite &&
+        !row.passed,
+        mgmfrm_nonfinite_initial_rows)
+    @test any(row -> row.policy === :initial_direct_transform &&
+        row.status === :nonfinite &&
+        !row.passed,
+        mgmfrm_nonfinite_initial_rows)
+    @test any(row -> row.policy === :per_chain_initialization &&
+        row.status === :jittered &&
+        row.passed,
+        mgmfrm_nonfinite_initial_rows)
+    mgmfrm_unrecorded_invariance_rows =
+        BayesianMGMFRM._mgmfrm_fixed_q_invariance_rows(mgmfrm_preview)
+    @test any(row -> row.policy === :interpreted_loading_values &&
+        row.status === :not_recorded &&
+        ismissing(row.value) &&
+        ismissing(row.passed),
+        mgmfrm_unrecorded_invariance_rows)
+    @test any(row -> row.policy === :direct_constraints &&
+        row.status === :not_recorded &&
+        ismissing(row.value) &&
+        ismissing(row.passed),
+        mgmfrm_unrecorded_invariance_rows)
+    mgmfrm_failed_surface = (;
+        direct_constraint_rows = [
+            (constraint = :item_dimension_discrimination_positive,
+                block = :item_dimension_discrimination,
+                n_failed = 2,
+                passed = false),
+            (constraint = :rater_consistency_positive,
+                block = :rater_consistency,
+                n_failed = 1,
+                passed = false),
+        ],
+        summary = (; n_failed_direct_constraints = 3),
+    )
+    mgmfrm_failed_invariance_rows =
+        BayesianMGMFRM._mgmfrm_fixed_q_invariance_rows(
+            mgmfrm_preview,
+            mgmfrm_failed_surface,
+        )
+    @test any(row -> row.policy === :interpreted_loading_values &&
+        row.status === :failed &&
+        row.value == 2 &&
+        row.passed == false,
+        mgmfrm_failed_invariance_rows)
+    @test any(row -> row.policy === :direct_constraints &&
+        row.status === :failed &&
+        row.value == 3 &&
+        row.passed == false,
+        mgmfrm_failed_invariance_rows)
     mgmfrm_guarded_fit =
         fit(
             mgmfrm_spec;
@@ -9701,8 +10919,102 @@ end
         artifact_include_environment = false)
     @test mgmfrm_report.schema == "bayesianmgmfrm.fit_report.v1"
     @test mgmfrm_report.family === :mgmfrm
+    @test mgmfrm_report.status_policy.status_label === :experimental_public
+    @test mgmfrm_report.status_policy.experimental_public
+    @test :broad_generalized_fit in mgmfrm_report.status_policy.blocked_claims
+    @test :sparse_mgmfrm_superiority in mgmfrm_report.status_policy.blocked_claims
+    @test mgmfrm_report.evidence_artifact_schema_policy.artifact_kind ===
+        :fit_report
+    @test :sparse_mgmfrm_superiority in
+        mgmfrm_report.evidence_artifact_schema_policy.claim_policy.unsupported_claims
+    @test mgmfrm_report.metadata.status_policy == mgmfrm_report.status_policy
+    @test mgmfrm_report.metadata.dimension_labels == ["dim=1", "dim=2"]
+    @test mgmfrm_report.model_surface_audit ==
+        model_surface_audit(mgmfrm_guarded_fit)
+    @test any(row -> row.block === :item_dimension_discrimination &&
+        row.current_status === :experimental_public &&
+        row.public_fit &&
+        row.experimental_public &&
+        row.fit_ready &&
+        row.raw_coordinate === :log_item_dimension_discrimination &&
+        row.report_label === :dimension_loading,
+        mgmfrm_report.model_surface_audit)
     @test mgmfrm_report.metadata.guarded_local_fit
     @test mgmfrm_report.report_policy.resolved_draw_indices == [1, 2]
+    @test mgmfrm_report.q_matrix.status === :computed
+    @test mgmfrm_report.q_matrix.q_matrix == q_matrix
+    @test mgmfrm_report.q_matrix.dimension_labels == ["dim=1", "dim=2"]
+    @test mgmfrm_report.q_matrix.summary.passed
+    @test any(row -> row.check === :cross_loading_policy &&
+        row.status === :simple_structure,
+        mgmfrm_report.q_matrix.rows)
+    @test any(row -> row.gauge === :latent_correlation &&
+        row.status === :fixed &&
+        row.value === :identity,
+        mgmfrm_report.q_matrix.gauge_rows)
+    @test any(row -> row.gauge === :ability_scale &&
+        row.value === :unit_variance_by_dimension,
+        mgmfrm_report.q_matrix.gauge_rows)
+    @test any(row -> row.option === :latent_correlation &&
+        row.status === :blocked,
+        mgmfrm_report.q_matrix.blocked_alternatives)
+    @test mgmfrm_report.q_matrix.initialization_policy.initial_source ===
+        :user_supplied_raw
+    @test !mgmfrm_report.q_matrix.initialization_policy.fallback_used
+    @test any(row -> row.policy === :initial_raw_vector &&
+        row.status === :user_supplied_raw &&
+        !row.fallback_used &&
+        row.passed,
+        mgmfrm_report.q_matrix.initialization_rows)
+    @test any(row -> row.policy === :latent_correlation &&
+        row.status === :fixed_identity &&
+        row.value === :identity &&
+        row.passed,
+        mgmfrm_report.q_matrix.fixed_q_invariance_rows)
+    @test any(row -> row.policy === :interpreted_loading_values &&
+        row.status === :passed &&
+        row.value == 0 &&
+        row.passed,
+        mgmfrm_report.q_matrix.fixed_q_invariance_rows)
+    @test any(row -> row.policy === :direct_constraints &&
+        row.status === :passed &&
+        row.value == 0 &&
+        row.passed,
+        mgmfrm_report.q_matrix.fixed_q_invariance_rows)
+    @test any(row -> row.policy === :rotation &&
+        row.status === :not_applicable_fixed_q &&
+        row.value === :blocked,
+        mgmfrm_report.q_matrix.fixed_q_invariance_rows)
+    @test any(row -> row.policy === :exploratory_loading &&
+        row.status === :blocked,
+        mgmfrm_report.q_matrix.fixed_q_invariance_rows)
+    @test mgmfrm_report.prior_policy.status === :computed
+    @test mgmfrm_report.prior_policy.summary.raw_coordinate_generalized_priors
+    @test !mgmfrm_report.prior_policy.summary.direct_scale_generalized_priors_enabled
+    @test mgmfrm_report.prior_policy.summary.jacobian_policy ===
+        :none_raw_coordinate_density
+    @test mgmfrm_report.prior_policy.summary.raw_prior_control_manifest_recorded
+    @test mgmfrm_report.prior_policy.summary.raw_prior_control_all_active_scales_resolved
+    @test mgmfrm_report.prior_policy.raw_prior_control_manifest.schema ==
+        "bayesianmgmfrm.generalized_raw_prior_control_manifest.v1"
+    @test any(row -> row.raw_block === :log_item_dimension_discrimination &&
+        row.scale == mgmfrm_guarded_fit.prior.log_discrimination_sd,
+        mgmfrm_report.prior_policy.raw_prior_control_manifest.rows)
+    @test any(row -> row.block === :log_item_dimension_discrimination &&
+        row.parameter_space === :raw_log_positive_coordinate &&
+        row.scale_parameter === :log_discrimination_sd &&
+        row.status === :active,
+        mgmfrm_report.prior_policy.rows)
+    @test any(row -> row.block === :direct_scale_generalized_priors &&
+        row.status === :blocked &&
+        row.jacobian_policy === :requires_future_log_jacobian_policy,
+        mgmfrm_report.prior_policy.rows)
+    @test mgmfrm_report.pooling_policy.status === :computed
+    @test mgmfrm_report.pooling_policy.summary.independent_priors_default
+    @test !mgmfrm_report.pooling_policy.summary.hierarchical_pooling_active
+    @test any(row -> row.pooling === :hierarchical_rater_consistency_pooling &&
+        row.status === :blocked,
+        mgmfrm_report.pooling_policy.rows)
     @test mgmfrm_report.prior_predictive.status === :not_requested
     @test mgmfrm_report.posterior.status === :computed
     @test mgmfrm_report.direct_posterior.status === :computed
@@ -9840,6 +11152,22 @@ end
     @test mgmfrm_guarded_surface.summary.n_direct_parameters == length(mgmfrm_params)
     @test mgmfrm_guarded_surface.summary.n_failed_direct_constraints == 0
     @test all(row -> row.passed, mgmfrm_guarded_surface.direct_constraint_rows)
+    @test mgmfrm_guarded_surface.initialization_policy.initial_source ===
+        :user_supplied_raw
+    @test !mgmfrm_guarded_surface.initialization_policy.fallback_used
+    @test mgmfrm_guarded_surface.initialization_policy.finite_initial_logdensity
+    @test any(row -> row.policy === :initial_logdensity &&
+        row.status === :finite &&
+        row.passed,
+        mgmfrm_guarded_surface.initialization_rows)
+    @test any(row -> row.policy === :loading_sign &&
+        row.status === :fixed_positive &&
+        row.value == count(identity, q_matrix),
+        mgmfrm_guarded_surface.fixed_q_invariance_rows)
+    @test any(row -> row.policy === :direct_constraints &&
+        row.status === :passed &&
+        row.value == 0,
+        mgmfrm_guarded_surface.fixed_q_invariance_rows)
     @test [row.parameter for row in mgmfrm_guarded_surface.direct_parameter_rows] ==
         mgmfrm_preview.parameter_names
     mgmfrm_guarded_metadata = fit_metadata(mgmfrm_guarded_fit)
@@ -9847,7 +11175,18 @@ end
     @test mgmfrm_guarded_metadata.experimental_public
     @test mgmfrm_guarded_metadata.fit_ready
     @test mgmfrm_guarded_metadata.guarded_local_fit
+    @test mgmfrm_guarded_metadata.status_policy.status_label ===
+        :experimental_public
+    @test :sparse_mgmfrm_superiority in
+        mgmfrm_guarded_metadata.status_policy.blocked_claims
     @test mgmfrm_guarded_metadata.scope === :minimal_confirmatory_mgmfrm_candidate
+    mgmfrm_fit_audit = model_surface_audit(mgmfrm_guarded_fit)
+    @test all(row -> row.current_status === :experimental_public,
+        mgmfrm_fit_audit)
+    @test any(row -> row.block === :rater_consistency &&
+        row.prior_scale === :log_consistency_sd &&
+        row.report_label === :rater_consistency,
+        mgmfrm_fit_audit)
     mgmfrm_guarded_diagnostics = diagnostics(mgmfrm_guarded_fit)
     @test mgmfrm_guarded_diagnostics.schema ==
         "bayesianmgmfrm.mgmfrm_guarded_local_fit_diagnostics.v1"
@@ -9855,10 +11194,49 @@ end
     @test mgmfrm_guarded_diagnostics.experimental_public
     @test mgmfrm_guarded_diagnostics.fit_ready
     @test mgmfrm_guarded_diagnostics.guarded_local_fit
+    @test mgmfrm_guarded_diagnostics.parameter_layout.schema ==
+        "bayesianmgmfrm.fit_ready_parameter_layout.v1"
+    @test mgmfrm_guarded_diagnostics.parameter_layout.raw_parameter_names ==
+        mgmfrm_guarded_fit.diagnostic_surface.raw_parameter_names
+    @test mgmfrm_guarded_diagnostics.parameter_layout.constrained_parameter_names ==
+        mgmfrm_guarded_fit.diagnostic_surface.direct_parameter_names
+    @test mgmfrm_guarded_diagnostics.diagnostic_row_policy.family === :mgmfrm
+    @test mgmfrm_guarded_diagnostics.diagnostic_row_policy.parameter_spaces ==
+        (:raw_unconstrained, :direct_constrained)
+    @test mgmfrm_guarded_diagnostics.diagnostic_row_policy.rhat_ess_status ===
+        :provisional_classical
+    @test mgmfrm_guarded_diagnostics.initialization_policy.initial_source ===
+        :user_supplied_raw
+    @test any(row -> row.policy === :initial_direct_transform &&
+        row.parameter_space === :direct_constrained &&
+        row.passed,
+        mgmfrm_guarded_diagnostics.initialization_rows)
+    @test any(row -> row.policy === :dimension_permutation &&
+        row.status === :anchored_by_fixed_q_dimension_labels,
+        mgmfrm_guarded_diagnostics.fixed_q_invariance_rows)
     @test length(sampler_diagnostics(mgmfrm_guarded_fit)) == 1
+    @test all(row -> row.diagnostic_row === :sampler_chain &&
+        row.parameter_space === :raw_unconstrained &&
+        row.diagnostic_method === :sampler_chain_summary,
+        sampler_diagnostics(mgmfrm_guarded_fit))
     @test length(mcmc_diagnostics(mgmfrm_guarded_fit)) ==
         size(mgmfrm_guarded_fit.draws, 2)
+    @test all(row -> row.diagnostic_row === :parameter &&
+        row.parameter_space === :raw_unconstrained &&
+        row.diagnostic_status === :provisional_classical,
+        mcmc_diagnostics(mgmfrm_guarded_fit))
     @test length(parameter_block_diagnostics(mgmfrm_guarded_fit)) >= 1
+    @test all(row -> row.diagnostic_row === :parameter_block &&
+        row.parameter_space === :raw_unconstrained &&
+        row.diagnostic_status === :provisional_classical,
+        parameter_block_diagnostics(mgmfrm_guarded_fit))
+    @test all(row -> row.parameter_space === :direct_constrained &&
+        row.diagnostic_status === :provisional_classical,
+        mgmfrm_guarded_diagnostics.direct_parameter_rows)
+    @test all(row -> row.diagnostic_row === :parameter_block &&
+        row.parameter_space === :direct_constrained &&
+        row.diagnostic_status === :provisional_classical,
+        mgmfrm_guarded_diagnostics.direct_block_rows)
     mgmfrm_guarded_artifact =
         fit_artifact(mgmfrm_guarded_fit; include_environment = false)
     @test mgmfrm_guarded_artifact.schema ==
@@ -9867,12 +11245,74 @@ end
     @test mgmfrm_guarded_artifact.experimental_public
     @test mgmfrm_guarded_artifact.guarded_local_fit
     @test mgmfrm_guarded_artifact.fit_ready
+    @test mgmfrm_guarded_artifact.public_target_label ===
+        :guarded_confirmatory_mgmfrm_logdensity
+    @test mgmfrm_guarded_artifact.public_target_description ==
+        "guarded fixed-Q confirmatory MGMFRM log density"
+    @test mgmfrm_guarded_artifact.internal_target_constructor ===
+        :_mgmfrm_guarded_local_fit_logdensity
+    @test mgmfrm_guarded_artifact.internal_sampler_diagnostic_constructor ===
+        :_mgmfrm_guarded_local_fit_sampler_diagnostics
+    @test mgmfrm_guarded_artifact.evidence_artifact_schema_policy.artifact_kind ===
+        :mgmfrm_experimental_fit_artifact
+    @test :sparse_mgmfrm_superiority in
+        mgmfrm_guarded_artifact.evidence_artifact_schema_policy.claim_policy.unsupported_claims
+    @test mgmfrm_guarded_artifact.evidence_artifact_schema_policy.environment_policy.include_environment ===
+        false
     @test mgmfrm_guarded_artifact.entrypoint == "fit(spec; experimental = true)"
     @test mgmfrm_guarded_artifact.guarded_local_entrypoint === :_fit_guarded_mgmfrm
     @test mgmfrm_guarded_artifact.target === :_mgmfrm_guarded_local_fit_logdensity
+    @test mgmfrm_guarded_artifact.ability_scale ===
+        :standard_normal_by_dimension
+    @test mgmfrm_guarded_artifact.initialization_policy ==
+        mgmfrm_guarded_fit.diagnostic_surface.initialization_policy
+    @test any(row -> row.policy === :initial_raw_vector &&
+        row.status === :user_supplied_raw &&
+        row.passed,
+        mgmfrm_guarded_artifact.initialization_rows)
+    @test any(row -> row.policy === :interpreted_loading_values &&
+        row.status === :passed &&
+        row.passed,
+        mgmfrm_guarded_artifact.fixed_q_invariance_rows)
+    @test any(row -> row.policy === :exploratory_loading &&
+        row.status === :blocked,
+        mgmfrm_guarded_artifact.fixed_q_invariance_rows)
+    @test mgmfrm_guarded_artifact.raw_prior_control_manifest.schema ==
+        "bayesianmgmfrm.generalized_raw_prior_control_manifest.v1"
+    @test mgmfrm_guarded_artifact.raw_prior_control_manifest.resolved
+    @test mgmfrm_guarded_artifact.raw_prior_control_manifest.summary.all_active_scales_resolved
+    @test any(row -> row.raw_block === :log_item_dimension_discrimination &&
+        row.scale_parameter === :log_discrimination_sd &&
+        row.scale == mgmfrm_guarded_fit.prior.log_discrimination_sd &&
+        row.scale_status === :resolved_from_source_fixture_prior,
+        mgmfrm_guarded_artifact.raw_prior_control_manifest.rows)
+    @test any(row -> row.raw_block === :log_rater_consistency_free &&
+        row.scale_parameter === :log_consistency_sd &&
+        row.scale == mgmfrm_guarded_fit.prior.log_consistency_sd,
+        mgmfrm_guarded_artifact.raw_prior_control_manifest.rows)
+    @test isequal(mgmfrm_guarded_artifact.parameter_layout,
+        mgmfrm_guarded_diagnostics.parameter_layout)
     @test size(mgmfrm_guarded_artifact.pointwise_loglikelihood) ==
         (2, identified_data.n)
+    @test mgmfrm_guarded_artifact.raw_to_direct_transform ==
+        mgmfrm_guarded_artifact.parameter_layout.transforms
     @test !isempty(mgmfrm_guarded_artifact.raw_to_direct_transform)
+    @test mgmfrm_guarded_artifact.raw_posterior_row_schema.schema ==
+        "bayesianmgmfrm.posterior_summary_row_schema.v1"
+    @test mgmfrm_guarded_artifact.raw_posterior_row_schema.parameter_space ===
+        :raw_unconstrained
+    @test mgmfrm_guarded_artifact.raw_posterior_row_schema.parameter_names ==
+        mgmfrm_guarded_artifact.raw_parameter_names
+    @test mgmfrm_guarded_artifact.raw_posterior_row_schema.row_fields ==
+        propertynames(first(mgmfrm_guarded_artifact.posterior_summary))
+    @test mgmfrm_guarded_artifact.direct_posterior_row_schema.schema ==
+        "bayesianmgmfrm.posterior_summary_row_schema.v1"
+    @test mgmfrm_guarded_artifact.direct_posterior_row_schema.parameter_space ===
+        :constrained_direct
+    @test mgmfrm_guarded_artifact.direct_posterior_row_schema.parameter_names ==
+        mgmfrm_guarded_artifact.direct_parameter_names
+    @test mgmfrm_guarded_artifact.direct_posterior_row_schema.row_fields ==
+        propertynames(first(mgmfrm_guarded_artifact.direct_posterior_summary))
     @test !isempty(mgmfrm_guarded_artifact.fixture_provenance)
     @test isnothing(mgmfrm_guarded_artifact.raw_draws)
     @test isnothing(mgmfrm_guarded_artifact.direct_draws)
@@ -10170,6 +11610,8 @@ end
     @test metadata.discrimination === :none
     @test metadata.thresholds === spec.thresholds
     @test metadata.estimation_status === :fit_supported
+    @test metadata.status_policy.status_label === :supported
+    @test metadata.status_policy.public_fit
     @test metadata.n_parameters == length(design.parameter_names)
     @test metadata.n_draws == size(result.draws, 1)
     @test metadata.n_chains == 3
@@ -10211,6 +11653,11 @@ end
     @test all(row -> row.minimum_log_posterior <= row.mean_log_posterior <=
         row.maximum_log_posterior, sampler_rows)
     @test all(row -> row.flag in (:ok, :zero_acceptance, :all_accepted), sampler_rows)
+    @test all(row -> row.diagnostic_row === :sampler_chain &&
+        row.parameter_space === :identified &&
+        row.diagnostic_method === :sampler_chain_summary &&
+        row.diagnostic_status === :recorded,
+        sampler_rows)
 
     diagnostics = mcmc_diagnostics(result)
     @test length(diagnostics) == length(design.parameter_names)
@@ -10222,6 +11669,11 @@ end
     @test all(row -> row.total_draws == 24, diagnostics)
     @test all(row -> row.split_chains, diagnostics)
     @test all(row -> row.flag in (:ok, :mcmc_warning, :degenerate_draws), diagnostics)
+    @test all(row -> row.diagnostic_row === :parameter &&
+        row.parameter_space === :identified &&
+        row.diagnostic_method === :classical_split_rhat_autocorrelation_ess &&
+        row.diagnostic_status === :provisional_classical,
+        diagnostics)
     @test all(row -> row.flag === :ok ?
         isfinite(row.rhat) && row.rhat <= 1.01 && isfinite(row.ess) && row.ess >= 400.0 :
         true, diagnostics)
@@ -10246,6 +11698,11 @@ end
     @test all(row -> row.rhat_threshold == 1.01, block_rows)
     @test all(row -> row.ess_threshold == 400.0, block_rows)
     @test all(row -> row.flag in (:ok, :mcmc_warning, :insufficient_chains, :degenerate_draws, :empty_block), block_rows)
+    @test all(row -> row.diagnostic_row === :parameter_block &&
+        row.parameter_space === :identified &&
+        row.diagnostic_method === :classical_split_rhat_autocorrelation_ess &&
+        row.diagnostic_status === :provisional_classical,
+        block_rows)
     person_block_row = only(filter(row -> row.block === :person, block_rows))
     @test person_block_row.n_parameters == length(data.person_levels)
     @test person_block_row.parameter_names == design.parameter_names[design.blocks[:person]]
@@ -10259,6 +11716,12 @@ end
 
     diagnostic_surface = BayesianMGMFRM.diagnostics(result)
     @test diagnostic_surface.schema == "bayesianmgmfrm.diagnostics.v1"
+    @test diagnostic_surface.diagnostic_row_policy.family === :mfrm
+    @test diagnostic_surface.diagnostic_row_policy.parameter_spaces == (:identified,)
+    @test diagnostic_surface.diagnostic_row_policy.rhat_method === :classical_split
+    @test diagnostic_surface.diagnostic_row_policy.ess_method === :autocorrelation
+    @test !diagnostic_surface.diagnostic_row_policy.rank_normalized_rhat_available
+    @test !diagnostic_surface.diagnostic_row_policy.bulk_tail_ess_available
     @test diagnostic_surface.backend === result.backend
     @test diagnostic_surface.sampler === result.sampler
     @test diagnostic_surface.summary.n_chains == 3
@@ -10485,6 +11948,9 @@ end
 
     fit_manifest = model_manifest(result)
     @test fit_manifest.object === :fit
+    @test fit_manifest.status_policy.status_label === :supported
+    @test fit_manifest.status_policy.public_fit
+    @test :real_data_validation in fit_manifest.status_policy.blocked_claims
     @test fit_manifest.fit.n_draws == size(result.draws, 1)
     @test fit_manifest.fit.prior.person_sd == prior.person_sd
     @test fit_manifest.diagnostics.flag == diagnostic_surface.summary.flag
@@ -10493,6 +11959,10 @@ end
     compact_artifact = fit_artifact(result; include_environment = false)
     @test compact_artifact.schema == "bayesianmgmfrm.fit_artifact.v1"
     @test compact_artifact.object === :fit_artifact
+    @test compact_artifact.evidence_artifact_schema_policy.artifact_kind ===
+        :fit_artifact
+    @test compact_artifact.evidence_artifact_schema_policy.environment_policy.include_environment ===
+        false
     @test compact_artifact.manifest.object === :fit
     @test compact_artifact.manifest.fit.n_draws == size(result.draws, 1)
     @test isequal(compact_artifact.manifest.diagnostics, compact_artifact.diagnostics.summary)
@@ -10581,8 +12051,41 @@ end
     @test report.schema == "bayesianmgmfrm.fit_report.v1"
     @test report.object === :fit_report
     @test report.family === :mfrm
+    @test report.status_policy.status_label === :supported
+    @test report.status_policy === report.manifest.status_policy
+    @test report.evidence_artifact_schema_policy.artifact_kind === :fit_report
+    @test :model_weight_or_superiority in
+        report.evidence_artifact_schema_policy.claim_policy.unsupported_claims
+    @test report.metadata.status_policy == report.status_policy
     @test report.metadata.n_draws == size(result.draws, 1)
+    @test report.prior_policy.status === :computed
+    @test !report.prior_policy.summary.raw_coordinate_generalized_priors
+    @test !report.prior_policy.summary.raw_prior_control_manifest_recorded
+    @test ismissing(report.prior_policy.summary.raw_prior_control_all_active_scales_resolved)
+    @test isnothing(report.prior_policy.raw_prior_control_manifest)
+    @test report.prior_policy.summary.jacobian_policy === :identity
+    @test all(row -> row.parameter_space === :identified_constrained_parameter,
+        report.prior_policy.rows)
+    @test any(row -> row.block === :person &&
+        row.scale_parameter === :person_sd &&
+        row.scale == prior.person_sd &&
+        row.direct_scale_prior,
+        report.prior_policy.rows)
+    @test report.pooling_policy.status === :computed
+    @test report.pooling_policy.summary.independent_priors_default
+    @test !report.pooling_policy.summary.hierarchical_pooling_active
+    @test any(row -> row.block === :rater_consistency &&
+        row.status === :not_applicable,
+        report.pooling_policy.rows)
+    @test report.rating_design.status === :computed
+    @test report.rating_design.schema == "bayesianmgmfrm.rating_design_audit.v1"
+    @test report.rating_design.summary.nonignorable_assignment_flagged
+    @test isequal(report.rating_design.audit, report.manifest.rating_design)
+    @test any(row -> row.audit === :nonignorable_assignment &&
+        row.status === :limitation,
+        report.rating_design.rows)
     @test report.manifest.object === :fit
+    @test isequal(report.manifest.rating_design, report.rating_design.audit)
     @test report.diagnostics.summary.n_chains == 3
     @test report.prior_predictive.status === :computed
     @test report.prior_predictive.ndraws == 2
@@ -10647,8 +12150,21 @@ end
     report_sections = fit_report_sections(report)
     report_section_names = [row.section for row in report_sections]
     @test :diagnostics in report_section_names
+    @test :rating_design in report_section_names
+    @test :prior_policy in report_section_names
+    @test :pooling_policy in report_section_names
     @test :posterior in report_section_names
     @test :waic in report_section_names
+    prior_policy_section = only(filter(row -> row.section === :prior_policy,
+        report_sections))
+    @test prior_policy_section.status === :computed
+    @test prior_policy_section.row_fields == [:rows]
+    @test prior_policy_section.n_rows == report.prior_policy.n_rows
+    pooling_policy_section = only(filter(row -> row.section === :pooling_policy,
+        report_sections))
+    @test pooling_policy_section.status === :computed
+    @test pooling_policy_section.row_fields == [:rows]
+    @test pooling_policy_section.n_rows == report.pooling_policy.n_rows
     posterior_section = only(filter(row -> row.section === :posterior, report_sections))
     @test posterior_section.status === :computed
     @test posterior_section.row_fields == [:rows]
@@ -10660,9 +12176,18 @@ end
     diagnostics_section = only(filter(row -> row.section === :diagnostics, report_sections))
     @test diagnostics_section.status === missing
     @test :parameter_rows in diagnostics_section.row_fields
+    rating_design_section = only(filter(row -> row.section === :rating_design,
+        report_sections))
+    @test rating_design_section.status === :computed
+    @test rating_design_section.row_fields == [:rows]
+    @test rating_design_section.n_rows == report.rating_design.n_rows
     @test fit_report_section(report, :posterior) === report.posterior
+    @test fit_report_section(report, :rating_design) === report.rating_design
     @test fit_report_section(report, "calibration") === report.calibration
     @test fit_report_rows(report, :posterior) === report.posterior.rows
+    @test fit_report_rows(report, :rating_design) === report.rating_design.rows
+    @test fit_report_rows(report, :prior_policy) === report.prior_policy.rows
+    @test fit_report_rows(report, :pooling_policy) === report.pooling_policy.rows
     @test fit_report_rows(report, :waic) === report.waic.diagnostic_rows
     @test fit_report_rows(report, :diagnostics; row_field = :parameter_rows) ===
         report.diagnostics.parameter_rows

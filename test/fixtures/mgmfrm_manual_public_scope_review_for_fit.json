@@ -1,0 +1,556 @@
+{
+  "schema": "bayesianmgmfrm.mgmfrm_manual_public_scope_review_for_fit.v1",
+  "family": "mgmfrm",
+  "scope": "minimal_confirmatory_mgmfrm_candidate",
+  "status": "manual_public_scope_review_recorded",
+  "decision": "scope_review_recorded_enable_guarded_experimental_fit",
+  "public_fit": true,
+  "experimental_public": true,
+  "fit_ready": true,
+  "publication_or_registration_action": false,
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "protocol": {
+    "protocol_id": "confirmatory_mgmfrm_manual_public_scope_review_for_fit_v1",
+    "review_kind": "local_manual_public_scope_review_for_mgmfrm_fit",
+    "publication_or_registration_action": false,
+    "local_only": true,
+    "reviewed_surface": "confirmatory_mgmfrm_fit",
+    "reviewed_entrypoint": "fit(spec; experimental = true)",
+    "thresholds": {
+      "require_bridge_oracle_present": true,
+      "require_candidate_chain_study_passed": true,
+      "require_recovery_smoke_passed": true,
+      "require_baseline_comparison_passed": true,
+      "require_sparse_recovery_grid_passed": true,
+      "require_guarded_fit_method_wiring_passed": true,
+      "require_guarded_fit_validation_grid_passed": true,
+      "require_guarded_fit_api_dry_run_passed": true,
+      "require_guarded_fit_public_exposure_review_passed": true,
+      "require_prediction_target_and_model_weight_policy_passed": true,
+      "require_dff_estimand_validation_grid_passed": true,
+      "require_fit_boundary_checks_passed": true,
+      "require_manifest_enables_guarded_mgmfrm_fit": true,
+      "require_scope_limited_to_confirmatory_fixed_q": true,
+      "require_no_sparse_superiority_claims": true,
+      "require_no_public_model_weight_claims": true,
+      "require_no_publication_or_registration_action": true
+    }
+  },
+  "input_artifacts": [
+    {
+      "artifact": "bridge_oracle",
+      "path": "test/fixtures/source_mgmfrm_bridge_logdensity.json",
+      "exists": true,
+      "sha256": "5003d46cc0012d6d55a5dec47a84c00cd6eaa83865a5da3db78a13f91f1c50c0",
+      "expected_schema": "bayesianmgmfrm.source_mgmfrm_bridge_logdensity.v1",
+      "schema": "bayesianmgmfrm.source_mgmfrm_bridge_logdensity.v1",
+      "schema_matches": true,
+      "pass_policy": "schema_only",
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "key_check": "schema_present",
+        "public_fit_allowed": false
+      }
+    },
+    {
+      "artifact": "candidate_chain_study",
+      "path": "test/fixtures/mgmfrm_candidate_chain_study.json",
+      "exists": true,
+      "sha256": "81247f2c40355652a7fb2a9931ce0bcb4f349e09ad51d20a6453c0c4ac04f2dd",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_candidate_chain_study.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_candidate_chain_study.v1",
+      "schema_matches": true,
+      "pass_policy": "summary_passed",
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "key_check": "sampler_diagnostics",
+        "n_divergences": 0,
+        "n_failed_direct_constraints": 0,
+        "public_fit_allowed": false
+      }
+    },
+    {
+      "artifact": "recovery_smoke",
+      "path": "test/fixtures/mgmfrm_recovery_smoke.json",
+      "exists": true,
+      "sha256": "a2082c97b595f8336e3a0a6ad5042e5a899305de515fdf9b3ce0bcb6d46e25b9",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_recovery_smoke.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_recovery_smoke.v1",
+      "schema_matches": true,
+      "pass_policy": "summary_passed",
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "key_check": "recovery_smoke",
+        "n_parameters": 20,
+        "public_fit_allowed": false
+      }
+    },
+    {
+      "artifact": "baseline_comparison",
+      "path": "test/fixtures/mgmfrm_baseline_comparison.json",
+      "exists": true,
+      "sha256": "00f050e1714b500afa696032c4330e87b3de2a2f233f456f069a8c07e3d597ae",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_baseline_comparison.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_baseline_comparison.v1",
+      "schema_matches": true,
+      "pass_policy": "summary_passed",
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "key_check": "baseline_comparison",
+        "comparison_executed": true,
+        "public_fit_allowed": false
+      }
+    },
+    {
+      "artifact": "sparse_recovery_grid",
+      "path": "test/fixtures/mgmfrm_sparse_recovery_grid.json",
+      "exists": true,
+      "sha256": "66f93609547525a7fb4d3556bab7b7e47f9863cfa283209e9416749a0059b628",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_sparse_recovery_grid.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_sparse_recovery_grid.v1",
+      "schema_matches": true,
+      "pass_policy": "summary_passed",
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "key_check": "sparse_recovery",
+        "n_scenarios": 3,
+        "all_validations_passed": true,
+        "all_sampler_passed": true,
+        "public_fit_allowed": false
+      }
+    },
+    {
+      "artifact": "guarded_fit_method_wiring",
+      "path": "test/fixtures/mgmfrm_guarded_fit_method_wiring.json",
+      "exists": true,
+      "sha256": "de1484c2e6f380f8b1322115944edc4814c029d4aeeb09afad773b25a7ba609f",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_method_wiring.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_method_wiring.v1",
+      "schema_matches": true,
+      "pass_policy": "summary_passed",
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "key_check": "guarded_method_wiring",
+        "entrypoint_enabled": true,
+        "public_fit_allowed": true,
+        "all_fit_boundary_checks_passed": true,
+        "experimental_spec_fit_succeeded": true
+      }
+    },
+    {
+      "artifact": "guarded_fit_validation_grid",
+      "path": "test/fixtures/mgmfrm_guarded_fit_validation_grid.json",
+      "exists": true,
+      "sha256": "e2e02836d75becb4bacf46cf01e386f4db7cd5107c17e75ce6cbc6ca7d542c90",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_validation_grid.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_validation_grid.v1",
+      "schema_matches": true,
+      "pass_policy": "summary_passed",
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "key_check": "guarded_validation_grid",
+        "entrypoint_enabled": true,
+        "public_fit_allowed": true,
+        "all_validation_rows_passed": true
+      }
+    },
+    {
+      "artifact": "guarded_fit_api_dry_run",
+      "path": "test/fixtures/mgmfrm_guarded_fit_api_dry_run.json",
+      "exists": true,
+      "sha256": "afa94ce094c615c4350f511df90f332407ea5fd3dcdd64725b99bca3aa6e7622",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_api_dry_run.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_api_dry_run.v1",
+      "schema_matches": true,
+      "pass_policy": "summary_passed",
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "key_check": "guarded_api_dry_run",
+        "dry_run_only": true,
+        "entrypoint_enabled": true,
+        "public_fit_allowed": true,
+        "all_fit_boundary_checks_passed": true,
+        "experimental_spec_fit_succeeded": true,
+        "target_gradient_diagnostics_passed": true
+      }
+    },
+    {
+      "artifact": "guarded_fit_public_exposure_review",
+      "path": "test/fixtures/mgmfrm_guarded_fit_public_exposure_review.json",
+      "exists": true,
+      "sha256": "83fa50f0112082f803a4cc69920b45941d3a81bcf8e72edb88f370b1add09fcb",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_public_exposure_review.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_public_exposure_review.v1",
+      "schema_matches": true,
+      "pass_policy": "summary_passed",
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "key_check": "public_exposure_review",
+        "reviewed": true,
+        "current_manifest_guarded_fit_enabled": true,
+        "public_fit_allowed": true
+      }
+    },
+    {
+      "artifact": "prediction_target_and_model_weight_policy",
+      "path": "test/fixtures/gmfrm_prediction_target_and_model_weight_policy.json",
+      "exists": true,
+      "sha256": "2ff7b8e6f32fc30bc8dc7e45e3e6806599b68907fd7244b411039e682f73d505",
+      "expected_schema": "bayesianmgmfrm.gmfrm_prediction_target_and_model_weight_policy.v1",
+      "schema": "bayesianmgmfrm.gmfrm_prediction_target_and_model_weight_policy.v1",
+      "schema_matches": true,
+      "pass_policy": "summary_passed",
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "key_check": "prediction_target_policy",
+        "policy_recorded": true,
+        "mgmfrm_fit_allowed": true,
+        "mgmfrm_weight_claims_allowed": false,
+        "manuscript_sparse_mgmfrm_claims_allowed": false
+      }
+    },
+    {
+      "artifact": "dff_estimand_validation_grid",
+      "path": "test/fixtures/gmfrm_dff_estimand_validation_grid.json",
+      "exists": true,
+      "sha256": "3114ba9b6d76e8741265127c9543c6d8a09a99cfb0e2355030607bd5d55b7b9e",
+      "expected_schema": "bayesianmgmfrm.gmfrm_dff_estimand_validation_grid.v1",
+      "schema": "bayesianmgmfrm.gmfrm_dff_estimand_validation_grid.v1",
+      "schema_matches": true,
+      "pass_policy": "summary_passed",
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "key_check": "dff_validation_only",
+        "dff_model_effects_allowed": false,
+        "public_fit_allowed": false
+      }
+    }
+  ],
+  "fit_boundary_checks": [
+    {
+      "check": "fit_mgmfrm_without_experimental",
+      "expected_status": "rejected",
+      "actual_status": "rejected",
+      "rejected": true,
+      "error_type": "ArgumentError",
+      "message": "ArgumentError: getdesign currently supports only the minimal fit-supported MFRM/RSM/PCM specification; this spec has family = :mgmfrm, dimensions = 2, discrimination = :none, estimation_status = :specified_only. Use model_manifest or constraint_table to inspect specified-only GMFRM/MGMFRM configurations.",
+      "passed": true
+    },
+    {
+      "check": "fit_experimental_mgmfrm_guarded_enabled",
+      "expected_status": "succeeded",
+      "actual_status": "succeeded",
+      "rejected": false,
+      "error_type": null,
+      "message": null,
+      "passed": true
+    },
+    {
+      "check": "fit_preview_design_with_experimental_keyword",
+      "expected_status": "rejected",
+      "actual_status": "rejected",
+      "rejected": true,
+      "error_type": "MethodError",
+      "message": "MethodError: no method matching fit(::BayesianMGMFRM.FacetDesign; experimental::Bool, ndraws::Int64, warmup::Int64)\nThis method does not support all of the given keyword arguments (and may not support any).\n\nClosest candidates are:\n  fit(::BayesianMGMFRM.FacetDesign; prior, backend, ndraws, warmup, chains, step_size, init, rng, seed, target_accept, max_depth, max_energy_error, metric, ad_backend, init_jitter, progress) got unsupported keyword argument \"experimental\"\n   @ BayesianMGMFRM ~/Library/CloudStorage/Dropbox/MFRM_Application/BayesianMGMFRM.jl/src/bayesian_fit.jl:1062\n  fit(!Matched::BayesianMGMFRM.FacetSpec; experimental, kwargs...)\n   @ BayesianMGMFRM ~/Library/CloudStorage/Dropbox/MFRM_Application/BayesianMGMFRM.jl/src/bayesian_fit.jl:3128\n",
+      "passed": true
+    },
+    {
+      "check": "fit_experimental_mgmfrm_julia_backend",
+      "expected_status": "rejected",
+      "actual_status": "rejected",
+      "rejected": true,
+      "error_type": "ArgumentError",
+      "message": "ArgumentError: guarded local MGMFRM fitting currently supports only backend = :advancedhmc",
+      "passed": true
+    }
+  ],
+  "fit_rejection_checks": [
+    {
+      "check": "fit_mgmfrm_without_experimental",
+      "expected_status": "rejected",
+      "actual_status": "rejected",
+      "rejected": true,
+      "error_type": "ArgumentError",
+      "message": "ArgumentError: getdesign currently supports only the minimal fit-supported MFRM/RSM/PCM specification; this spec has family = :mgmfrm, dimensions = 2, discrimination = :none, estimation_status = :specified_only. Use model_manifest or constraint_table to inspect specified-only GMFRM/MGMFRM configurations.",
+      "passed": true
+    },
+    {
+      "check": "fit_experimental_mgmfrm_guarded_enabled",
+      "expected_status": "succeeded",
+      "actual_status": "succeeded",
+      "rejected": false,
+      "error_type": null,
+      "message": null,
+      "passed": true
+    },
+    {
+      "check": "fit_preview_design_with_experimental_keyword",
+      "expected_status": "rejected",
+      "actual_status": "rejected",
+      "rejected": true,
+      "error_type": "MethodError",
+      "message": "MethodError: no method matching fit(::BayesianMGMFRM.FacetDesign; experimental::Bool, ndraws::Int64, warmup::Int64)\nThis method does not support all of the given keyword arguments (and may not support any).\n\nClosest candidates are:\n  fit(::BayesianMGMFRM.FacetDesign; prior, backend, ndraws, warmup, chains, step_size, init, rng, seed, target_accept, max_depth, max_energy_error, metric, ad_backend, init_jitter, progress) got unsupported keyword argument \"experimental\"\n   @ BayesianMGMFRM ~/Library/CloudStorage/Dropbox/MFRM_Application/BayesianMGMFRM.jl/src/bayesian_fit.jl:1062\n  fit(!Matched::BayesianMGMFRM.FacetSpec; experimental, kwargs...)\n   @ BayesianMGMFRM ~/Library/CloudStorage/Dropbox/MFRM_Application/BayesianMGMFRM.jl/src/bayesian_fit.jl:3128\n",
+      "passed": true
+    },
+    {
+      "check": "fit_experimental_mgmfrm_julia_backend",
+      "expected_status": "rejected",
+      "actual_status": "rejected",
+      "rejected": true,
+      "error_type": "ArgumentError",
+      "message": "ArgumentError: guarded local MGMFRM fitting currently supports only backend = :advancedhmc",
+      "passed": true
+    }
+  ],
+  "manifest_snapshot": {
+    "candidate_status": "internal_fit_ready_candidate",
+    "compiler_stage": "fit_ready_candidate",
+    "experimental_decision_status": "experimental_public",
+    "experimental_decision": "enable_guarded_experimental",
+    "experimental_summary": {
+      "fit_allowed": true,
+      "experimental_keyword_enabled": true,
+      "n_evidence_done": 20,
+      "n_evidence_pending": 0,
+      "n_evidence_blocked": 0,
+      "n_blockers": 0,
+      "next_gate": "manual_publication_or_registration_by_user_only"
+    }
+  },
+  "scope_decision_rows": [
+    {
+      "surface": "confirmatory_mgmfrm_public_fit_api",
+      "decision": "enable_guarded_experimental",
+      "evidence": true,
+      "public_fit": true,
+      "allowed_for_local_implementation": true,
+      "required_followup": "guarded_local_mgmfrm_fit_entrypoint"
+    },
+    {
+      "surface": "confirmatory_mgmfrm_local_guarded_fit_development",
+      "decision": "scope_review_recorded_allow_next_local_gate",
+      "evidence": true,
+      "public_fit": true,
+      "allowed_for_local_implementation": true,
+      "required_followup": "guarded_local_mgmfrm_fit_entrypoint"
+    },
+    {
+      "surface": "sparse_mgmfrm_superiority_claims",
+      "decision": "keep_blocked",
+      "evidence": true,
+      "public_fit": false,
+      "allowed_for_local_implementation": false,
+      "required_followup": "guarded_local_mgmfrm_fit_entrypoint"
+    },
+    {
+      "surface": "public_model_weight_claims",
+      "decision": "keep_blocked",
+      "evidence": true,
+      "public_fit": false,
+      "allowed_for_local_implementation": false,
+      "required_followup": "future_public_model_weight_claim_review"
+    },
+    {
+      "surface": "dff_model_effects",
+      "decision": "keep_validation_only",
+      "evidence": true,
+      "public_fit": false,
+      "allowed_for_local_implementation": false,
+      "required_followup": "future_dff_model_effect_fit_policy"
+    }
+  ],
+  "risk_rows": [
+    {
+      "risk": "mgmfrm_scope_confusion",
+      "decision": "local_scope_review_only",
+      "mitigation": "label_as_guarded_experimental_fixed_q_only"
+    },
+    {
+      "risk": "gauge_overclaim",
+      "decision": "restrict_to_fixed_q_identity_latent_correlation",
+      "mitigation": "block_exploratory_loadings_and_free_correlations"
+    },
+    {
+      "risk": "sparse_superiority_overclaim",
+      "decision": "keep_sparse_mgmfrm_superiority_claims_blocked",
+      "mitigation": "require_guarded_fit_and_claim_level_review"
+    },
+    {
+      "risk": "model_weight_overclaim",
+      "decision": "keep_public_model_weight_claims_blocked",
+      "mitigation": "retain_heldout_kfold_as_local_scalar_policy_only"
+    },
+    {
+      "risk": "dff_overclaim",
+      "decision": "keep_dff_model_effects_validation_only",
+      "mitigation": "require_separate_dff_model_effect_fit_policy"
+    }
+  ],
+  "review_rows": [
+    {
+      "gate": "bridge_oracle",
+      "status": "passed",
+      "evidence": true,
+      "key_check": "schema_present",
+      "artifact": "test/fixtures/source_mgmfrm_bridge_logdensity.json"
+    },
+    {
+      "gate": "candidate_chain_study",
+      "status": "passed",
+      "evidence": true,
+      "key_check": "sampler_diagnostics",
+      "artifact": "test/fixtures/mgmfrm_candidate_chain_study.json"
+    },
+    {
+      "gate": "recovery_smoke",
+      "status": "passed",
+      "evidence": true,
+      "key_check": "recovery_smoke",
+      "artifact": "test/fixtures/mgmfrm_recovery_smoke.json"
+    },
+    {
+      "gate": "baseline_comparison",
+      "status": "passed",
+      "evidence": true,
+      "key_check": "baseline_comparison",
+      "artifact": "test/fixtures/mgmfrm_baseline_comparison.json"
+    },
+    {
+      "gate": "sparse_recovery_grid",
+      "status": "passed",
+      "evidence": true,
+      "key_check": "sparse_recovery",
+      "artifact": "test/fixtures/mgmfrm_sparse_recovery_grid.json"
+    },
+    {
+      "gate": "guarded_fit_method_wiring",
+      "status": "passed",
+      "evidence": true,
+      "key_check": "guarded_method_wiring",
+      "artifact": "test/fixtures/mgmfrm_guarded_fit_method_wiring.json"
+    },
+    {
+      "gate": "guarded_fit_validation_grid",
+      "status": "passed",
+      "evidence": true,
+      "key_check": "guarded_validation_grid",
+      "artifact": "test/fixtures/mgmfrm_guarded_fit_validation_grid.json"
+    },
+    {
+      "gate": "guarded_fit_api_dry_run",
+      "status": "passed",
+      "evidence": true,
+      "key_check": "guarded_api_dry_run",
+      "artifact": "test/fixtures/mgmfrm_guarded_fit_api_dry_run.json"
+    },
+    {
+      "gate": "guarded_fit_public_exposure_review",
+      "status": "passed",
+      "evidence": true,
+      "key_check": "public_exposure_review",
+      "artifact": "test/fixtures/mgmfrm_guarded_fit_public_exposure_review.json"
+    },
+    {
+      "gate": "prediction_target_and_model_weight_policy",
+      "status": "passed",
+      "evidence": true,
+      "key_check": "prediction_target_policy",
+      "artifact": "test/fixtures/gmfrm_prediction_target_and_model_weight_policy.json"
+    },
+    {
+      "gate": "dff_estimand_validation_grid",
+      "status": "passed",
+      "evidence": true,
+      "key_check": "dff_validation_only",
+      "artifact": "test/fixtures/gmfrm_dff_estimand_validation_grid.json"
+    },
+    {
+      "gate": "current_mgmfrm_fit_boundary",
+      "status": "passed",
+      "evidence": true,
+      "key_check": "guarded_fit_boundary_checks_passed",
+      "artifact": "fit_boundary_checks"
+    },
+    {
+      "gate": "manual_public_scope_review_for_mgmfrm_fit",
+      "status": "passed",
+      "evidence": true,
+      "key_check": "local_scope_review_recorded",
+      "artifact": "test/fixtures/mgmfrm_manual_public_scope_review_for_fit.json"
+    }
+  ],
+  "blocker_rows": [],
+  "decision_record": {
+    "selected_decision": "manual_scope_review_recorded_enable_guarded_mgmfrm_fit",
+    "public_fit_allowed": true,
+    "experimental_keyword_enabled": true,
+    "current_manifest_fit_allowed": true,
+    "current_manifest_experimental_keyword_enabled": true,
+    "local_guarded_fit_development_allowed": true,
+    "public_model_weight_claims_allowed": false,
+    "sparse_superiority_claims_allowed": false,
+    "mgmfrm_fit_claims_allowed": true,
+    "publication_or_registration_action": false,
+    "public_exposure_support": "manual_scope_review_recorded_guarded_fit_enabled_claims_blocked",
+    "interpretation": "confirmatory_mgmfrm_scope_review_recorded_with_guarded_fit_enablement",
+    "required_followup": "guarded_local_mgmfrm_fit_entrypoint"
+  },
+  "summary": {
+    "passed": true,
+    "reviewed": true,
+    "manual_public_scope_review_recorded": true,
+    "manual_public_scope_review_satisfied": true,
+    "publication_or_registration_action": false,
+    "local_only": true,
+    "public_fit_allowed": true,
+    "experimental_keyword_enabled": true,
+    "current_manifest_fit_allowed": true,
+    "current_manifest_experimental_keyword_enabled": true,
+    "all_input_artifacts_present": true,
+    "all_expected_schemas": true,
+    "all_input_summaries_passed": true,
+    "all_fit_boundary_checks_passed": true,
+    "current_manifest_guarded_fit_enabled": true,
+    "no_publication_commands": true,
+    "scope_limited_to_confirmatory_fixed_q": true,
+    "local_guarded_fit_development_allowed": true,
+    "public_model_weight_claims_allowed": false,
+    "sparse_superiority_claims_allowed": false,
+    "mgmfrm_fit_allowed": true,
+    "bridge_oracle_present": true,
+    "mgmfrm_candidate_chain_study_passed": true,
+    "mgmfrm_recovery_smoke_passed": true,
+    "mgmfrm_baseline_comparison_passed": true,
+    "mgmfrm_sparse_recovery_grid_passed": true,
+    "mgmfrm_guarded_fit_method_wiring_passed": true,
+    "mgmfrm_guarded_fit_validation_grid_passed": true,
+    "mgmfrm_guarded_fit_api_dry_run_passed": true,
+    "mgmfrm_guarded_fit_public_exposure_review_passed": true,
+    "prediction_target_and_model_weight_policy_passed": true,
+    "dff_estimand_validation_grid_passed": true,
+    "n_input_artifacts": 11,
+    "n_fit_boundary_checks": 4,
+    "n_scope_decisions": 5,
+    "n_risk_rows": 5,
+    "n_review_rows": 13,
+    "n_blockers": 0,
+    "remaining_public_blockers": [],
+    "recommendation": "manual_scope_review_recorded_implement_guarded_local_mgmfrm_fit_next",
+    "next_gate": "guarded_local_mgmfrm_fit_entrypoint"
+  }
+}

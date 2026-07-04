@@ -23,8 +23,10 @@ implemented public slice covers:
   shared analytic/AD gradient adapter, or a Turing/NUTS wrapper around the same
   `MFRMLogDensity` target;
 - guarded experimental generalized fitting through
-  `fit(spec; experimental = true)` for the scalar rater-discrimination GMFRM
-  candidate and the fixed-Q two-dimensional confirmatory MGMFRM candidate;
+  `fit(spec; experimental = true)` for the scalar rater-consistency GMFRM
+  candidate, configured with the compatibility keyword
+  `discrimination = :rater`, and the fixed-Q two-dimensional confirmatory
+  MGMFRM candidate;
 - cached-fit artifacts, sampler diagnostics, R-hat/ESS rows, parameter-block
   diagnostics, prior and posterior predictive replication, calibration
   summaries, observation-level predictive quantities, fair-average summaries,
@@ -56,6 +58,132 @@ Avoid claiming a new measurement theory. Avoid claiming "Bayesian IRT in
 Julia" as the novelty. The defensible contribution is the integration of many
 facets, generalized rater effects, multidimensional loadings, sparse-design
 validation, Bayesian workflow diagnostics, and reproducible reporting.
+
+## Roadmap Operating Rules
+
+The roadmap should be judged by claim control, not by the number of exported
+functions. Each release must separate five claim tiers:
+
+1. **Runs locally**: the code loads, examples run, and narrow tests pass.
+2. **Mathematically aligned**: compiler rows, constraints, transforms, and
+   pointwise likelihoods match source equations and BridgeStan fixtures.
+3. **Computationally credible**: chains meet block-level diagnostics under
+   predeclared controls, and failures are visible in report rows.
+4. **Substantively interpretable**: parameters, contrasts, DFF screens, and
+   rater summaries have practical-magnitude and design-support context.
+5. **Externally validated**: post-`v0.2.0` comparisons against overlapping R
+   package targets or real-data workflows support broader public claims.
+
+Only the lowest satisfied tier should be advertised. A feature that runs but
+does not pass source-alignment or sampler gates remains experimental or
+internal, even if its API is convenient.
+
+### Stop, Narrow, or Proceed Rules
+
+| Evidence outcome | Roadmap action |
+| --- | --- |
+| Source-equation or BridgeStan mismatch | Stop promotion; keep the surface `internal_fixture` and fix compiler/transform rows before sampler work. |
+| Non-identified or weakly linked design support | Narrow the accepted spec, add validation warnings or hard rejections, and avoid recovery or fairness claims. |
+| Divergences, max-depth hits, low E-BFMI, or unstable R-hat/ESS in focal blocks | Keep the path `experimental_public` at most; improve parameterization, priors, initialization, or diagnostics before expanding examples. |
+| Prior/likelihood sensitivity changes focal decisions | Report the decision as prior-sensitive, require refits or stronger design evidence, and block ranking/superiority language. |
+| WAIC/LOO/K-fold rank changes with influential rows or prediction targets | Treat comparison as diagnostic only; do not report model weights or sparse-superiority claims. |
+| R-package overlap target is not parameterization-compatible | Label the comparison as non-overlap; do not use disagreement as validation failure or success. |
+| Privacy/anonymization status is unclear | Block public evidence artifacts that expose row-level labels or identifiable data. |
+
+### Evidence Priority
+
+Evidence should be accumulated in this order: source fixtures, raw/direct
+transform checks, AD gradients, HMC smoke checks, block-level chain diagnostics,
+known-truth simulations, sensitivity grids, compact workflow demonstrations,
+post-`v0.2.0` R-package simulation comparisons, and only then real-data
+validation claims. Real data are useful for workflow ergonomics, but they should
+not compensate for failed identification, source-equation, or sampler gates.
+
+## Claim-to-Evidence Ledger
+
+The roadmap should track claims as evidence obligations. The package can expose
+helpers earlier than it can make claims about them.
+
+| Claim surface | Minimum evidence before public wording | If evidence is missing |
+| --- | --- | --- |
+| Minimal MFRM/RSM/PCM workflow is usable | Load check, deterministic design rows, identified constraints, narrow examples, diagnostics, PPC/calibration rows, and report metadata. | Call it a small-example workflow, not a production workflow. |
+| Scalar rater-consistency GMFRM is fit-supported | Source-aligned log density, raw/direct transform checks, AD gradient checks, block diagnostics, prior-policy rows, and sensitivity rows for rater consistency. | Keep `fit(...; experimental = true)` guarded and label outputs experimental. |
+| Fixed-Q confirmatory MGMFRM is interpretable | Q validation, fixed gauge, positive interpreted loading checks, initialization fallback reporting, dimension labels, direct-constraint checks, block diagnostics, and recovery evidence. | Keep it as a fixed-Q smoke/preview path; do not broaden dimensions or examples. |
+| DFF/fairness rows support decisions | Nonempty and weak-cell flags, group/rater/item support, grouped PPC, confounding warnings, practical-magnitude thresholds, and prior/likelihood sensitivity. | Report screening evidence only; block unfairness, bias, or causal language. |
+| Model comparison can guide selection | Shared prediction target, row matching, pointwise diagnostics, Pareto-k/refit or K-fold follow-up, and sensitivity of ranks to influential rows. | Present WAIC/LOO/K-fold as diagnostics; block model weights and superiority claims. |
+| External software validates the package | Comparable parameterization, known-truth simulation target, aligned scoring output, and documented non-overlap cases. | Use related-software positioning only; do not call disagreements validation failures or successes. |
+| Performance is a package strength | ESS/sec by substantive block, compile/runtime and memory costs, sampler diagnostics, and accuracy checks against BridgeStan or comparable targets. | Publish no speed claims; report timings only as local environment metadata. |
+| Case studies support broader claims | Provenance, anonymization status, reproduction manifest, exact package/environment hashes, and a statement of what the case does not validate. | Treat the case as an ergonomics demonstration, not validation evidence. |
+
+## Roadmap Maintenance Loop
+
+Before each release candidate, run the roadmap as a consistency audit rather
+than as a feature wish list:
+
+1. Compare every public claim in README, docs, examples, reports, and release
+   notes against `release_scope_summary`, `model_surface_audit`, and the
+   claim-to-evidence ledger.
+2. Downgrade wording when the weakest evidence tier is lower than the proposed
+   claim. A polished report table does not promote a model surface by itself.
+3. Recheck the newest work against the stop/narrow/proceed rules. A late
+   diagnostics or sensitivity failure should narrow the release, not become a
+   caveat hidden in prose.
+4. Record unresolved blockers as named follow-up issues with a failed gate and
+   an owner surface: source equation, design support, sampler diagnostics,
+   report wording, evidence bundle, privacy, or external overlap.
+5. Keep historical completed work separate from active release blockers so that
+   high checklist completion does not obscure low claim maturity.
+
+## Public Claim Language Guardrails
+
+Use narrow language until the evidence tier changes. The same restriction
+applies to README text, docs, examples, report labels, release notes, and paper
+drafts.
+
+| Surface | Allowed wording now | Blocked wording now |
+| --- | --- | --- |
+| MFRM/RSM/PCM | "small-example Bayesian many-facet Rasch workflow" and "identified minimal design" | "production-grade MFRM replacement" or "fully validated MFRM platform" |
+| Scalar GMFRM | "guarded experimental rater-consistency path" | "general GMFRM support" or "rater discrimination fully validated" |
+| Fixed-Q MGMFRM | "guarded fixed-Q two-dimensional confirmatory experiment" | "exploratory MGMFRM", "free multidimensional structure", or "general MGMFRM support" |
+| DFF/fairness | "screening rows", "design-support warnings", and "posterior predictive checks" | "bias detection", "unfairness proof", or "causal DFF effect" |
+| Model comparison | "diagnostic comparison for a named prediction target" | "model weights", "best model", or "sparse-design superiority" |
+| External software | "capability positioning" and "post-v0.2.0 overlap target" | "validated against R packages" before compatible known-truth comparisons exist |
+| Performance | "local runtime metadata" | "faster than Stan/R" before ESS/sec, diagnostics, memory, and accuracy evidence exist |
+| Case studies | "workflow demonstration" | "real-data validation" unless provenance, reproduction, sensitivity, and external-overlap evidence support it |
+
+## Minimum Gate Thresholds
+
+These are default gates for promotion discussions. They can be overridden only
+when the release decision record explains why the weaker threshold is still
+defensible.
+
+| Gate | Default threshold | Action when missed |
+| --- | --- | --- |
+| Source alignment | Hand-computed, Julia, and BridgeStan pointwise log likelihoods agree within predeclared tolerance for the promoted target. | Stop promotion and fix equations, indexing, constraints, or transforms. |
+| Gradients | AD gradients match finite-difference or external reference checks at stable fixture points. | Keep the target internal; do not run promotion HMC as evidence. |
+| HMC pathologies | Zero unreported divergences, no unreported max-depth saturation, finite log density, and E-BFMI reported where available. | Keep the path experimental and improve parameterization, priors, or initialization. |
+| Chain diagnostics | Manuscript-facing blocks use max R-hat <= 1.01 and bulk/tail ESS >= 400 for focal contrasts; weaker smoke thresholds must be labelled as smoke tests. | Remove interpretation examples or label conclusions diagnostic-only. |
+| Direct constraints | Direct draws satisfy positivity, gauge, location, product/scale, and Q-mask constraints with zero silent failures. | Stop interpretation and repair raw/direct transforms or report checks. |
+| Predictive comparison | WAIC/LOO/K-fold rows name the prediction target, row matching, candidate set, and influential-row or Pareto-k follow-up policy. | Block model weights, ranking, and superiority wording. |
+| Sensitivity | Prior/likelihood perturbations do not change focal decisions, or the decision is explicitly labelled sensitive with refit guidance. | Block ranking, fairness, or practical-decision language. |
+| Design support | Rating graph, anchors, category use, Q matrix, and DFF cells support the requested contrast. | Report design triage only; do not interpret the contrast. |
+| Reproducibility | Seed, sampler controls, package versions, project hashes, artifact schema, and raw-data policy are present. | Keep artifacts local or provisional. |
+
+## Failure Triage Playbook
+
+Gate failures should produce a specific next action. Avoid treating every
+failure as a generic "needs more validation" item.
+
+| Failure class | First check | Preferred response |
+| --- | --- | --- |
+| Source mismatch | Confirm row ordering, category coding, constraints, offsets, and raw/direct transforms before touching sampler code. | Fix the compiler or fixture; keep the fit path internal until the equation row passes. |
+| Gradient mismatch | Check transform differentiability, constrained parameter boundaries, and finite-difference step size. | Repair the target before HMC tuning; do not use successful short chains as counter-evidence. |
+| HMC pathology | Inspect the failing parameter block, initialization, prior scale, and raw/direct geometry. | Narrow examples, add stronger priors or reparameterization, and keep outputs experimental. |
+| Direct-constraint failure | Identify whether the failure is transform, naming, draw extraction, or report-row logic. | Stop interpretation; add invariant tests before rerunning examples. |
+| Sensitivity failure | Determine whether the focal conclusion, only nuisance blocks, or the prediction target changes. | Relabel the conclusion sensitive, require refits where needed, and block decision language. |
+| Design-support failure | Inspect connectedness, anchors, sparse cells, skipped categories, Q support, and confounding. | Report design triage; avoid fairness, recovery, and ranking claims for that contrast. |
+| Docs/manifest drift | Compare README, docs, examples, reports, `release_scope_summary`, and `model_surface_audit`. | Narrow public wording first; only then decide whether code promotion is still appropriate. |
+| Artifact privacy failure | Inspect exported identifiers, row-level data, case-study labels, hashes, and provenance rows. | Remove or anonymize raw fields and require explicit opt-in before public artifact claims. |
 
 ## Reviewer Objections and Required Answers
 
@@ -117,6 +245,22 @@ Required package behavior:
 - Align conceptually with JuliaPsychometrics where possible.
 - Do not claim that no Julia Rasch or Bayesian IRT package exists.
 
+Weakness response plan:
+
+- Treat TAM/mirt/sirt/immer breadth as a baseline, not as a feature checklist.
+  The package should not try to duplicate every generic IRT, MIRT, DIF,
+  latent-class, plausible-value, and HRM function.
+- Maintain a side-by-side capability matrix that separates `supported`,
+  `guarded_experimental`, `specified_only`, and `out_of_scope` surfaces.
+- Defer overlap validation against Facets/TAM/mirt/sirt/immer until after
+  `v0.2.0`, and run it first as a known-truth simulation comparison for
+  genuinely comparable model targets.
+- Use the package's distinctive claims carefully: Bayesian MGMFRM workflow,
+  source-audited equations, sparse-design validation, prior sensitivity,
+  posterior predictive checking, and reproducible reporting.
+- Avoid performance claims until ESS/sec, compile/runtime cost, memory use, and
+  accuracy are benchmarked against BridgeStan and overlapping software.
+
 ### 4. Evidence Is Simulation-Only
 
 Risk: simulation can show recovery but not real workflow usability.
@@ -125,11 +269,11 @@ Required package behavior:
 
 - Use simulation for controlled recovery, misspecification, sparse-density,
   top-set, and DFF-decision outcomes.
-- Add at least one compact real rater-mediated dataset with clear licensing or
-  reproducible anonymization before broad v1 claims.
-- The real-data example must run the full workflow: data -> validation -> spec
-  -> fit -> diagnostics -> PPC/calibration -> DFF or practitioner output ->
-  report artifact.
+- Before `v0.2.0`, use compact data only as workflow demonstrations, not as
+  validation evidence.
+- After `v0.2.0`, run known-truth simulation comparisons against overlapping R
+  package targets before deciding whether real-data validation is mature enough
+  for broad claims.
 
 ### 5. Bayesian Workflow Is Only Posterior Summaries
 
@@ -314,7 +458,7 @@ Current status: raw-coordinate `LogDensityProblems.jl` targets exist for
 internal tests, and ForwardDiff gradients are checked against central finite
 differences at stable GMFRM/MGMFRM fixture points. Fixture-only AdvancedHMC/NUTS
 smoke tests now verify finite draws and sampler stats for the internal
-GMFRM/MGMFRM raw targets. The scalar GMFRM rater-discrimination target and the
+GMFRM/MGMFRM raw targets. The scalar GMFRM rater-consistency target and the
 fixed-Q confirmatory MGMFRM target now have guarded experimental `fit` methods;
 broader generalized `fit` paths remain blocked.
 
@@ -330,7 +474,7 @@ broader generalized `fit` paths remain blocked.
 
 Current status: public fitting is intentionally restricted to the current
 MFRM/RSM/PCM slice plus the guarded experimental scalar GMFRM
-rater-discrimination candidate and fixed-Q two-dimensional confirmatory
+rater-consistency candidate and fixed-Q two-dimensional confirmatory
 MGMFRM candidate.
 
 ### Gate E: evidence before claims
@@ -351,9 +495,9 @@ MGMFRM candidate.
 | Surface | Current exposure | Reason |
 | --- | --- | --- |
 | MFRM/RSM/PCM fitting | Public scaffold | Identified minimal design, tested likelihood path, diagnostics, simulation/recovery, and plotting-ready rows exist. |
-| GMFRM/MGMFRM manifests and compiler previews | Public preview/specification plus guarded generalized experiments | Useful for mathematical review and design inspection; only the scalar rater-discrimination GMFRM candidate and fixed-Q two-dimensional confirmatory MGMFRM candidate have guarded experimental fit methods. |
+| GMFRM/MGMFRM manifests and compiler previews | Public preview/specification plus guarded generalized experiments | Useful for mathematical review and design inspection; only the scalar rater-consistency GMFRM candidate, configured with `discrimination = :rater`, and fixed-Q two-dimensional confirmatory MGMFRM candidate have guarded experimental fit methods. |
 | GMFRM/MGMFRM raw likelihood targets | Internal tests plus guarded experimental targets | Source-aligned fixtures, AD checks, HMC smoke tests, BridgeStan checks, and guarded GMFRM/MGMFRM fit paths exist; broader gauge contracts and exploratory promotion remain incomplete. |
-| GMFRM/MGMFRM `fit` | Guarded experimental public paths | `fit(spec; experimental = true)` returns `GMFRMFit` for the scalar rater-discrimination GMFRM candidate or `MGMFRMFit` for the fixed-Q two-dimensional confirmatory MGMFRM candidate. Exploratory Q-matrices, free latent correlations, higher dimensions, and broad generalized claims remain blocked. |
+| GMFRM/MGMFRM `fit` | Guarded experimental public paths | `fit(spec; experimental = true)` returns `GMFRMFit` for the scalar rater-consistency GMFRM candidate or `MGMFRMFit` for the fixed-Q two-dimensional confirmatory MGMFRM candidate. Exploratory Q-matrices, free latent correlations, higher dimensions, and broad generalized claims remain blocked. |
 | DFF model effects | Blocked | Current DFF support is validation/specification evidence, not fitted effects. |
 | PSIS/exact LOO and model weights | Local scalar policy only | Same-observation WAIC and raw importance LOO remain diagnostic-only; deterministic 3-fold heldout log-score evidence is the selected local scalar model-weight target. Public model-weight claims remain blocked until a future public model-weight claim review. |
 | Manuscript claims about sparse MGMFRM superiority | Blocked | Prediction-target/model-weight policy, manual public-scope review, and a guarded local MGMFRM fit artifact path are recorded, but sparse-superiority claims still require broader reproducible validation and a separate public-scope release decision. |
@@ -362,8 +506,8 @@ MGMFRM candidate.
 
 The roadmap has two different progress notions:
 
-- **Checklist progress**: currently 121 of 121 tracked roadmap checkboxes are
-  complete, or 100.0%. This is useful for implementation accounting.
+- **Checklist progress**: currently 143 of 179 tracked roadmap checkboxes are
+  complete, or 79.9%. This is useful for implementation accounting.
 - **Claim progress**: broad v1 claims are closer to 45-50% complete because
   the remaining claim-level work includes broader generalized fitting, broader
   recovery simulations, and a public-scope release decision beyond the guarded
@@ -381,7 +525,7 @@ fixtures. The committed small and medium scalar Stan/BridgeStan log-density and
 gradient fixtures now have machine-readable validation rows and a gate summary
 via `stan_validation_row` and `stan_validation_summary`. It also records an
 experimental-public decision manifest whose current decision is
-`enable_guarded_experimental` for the scalar rater-discrimination path. It now
+`enable_guarded_experimental` for the scalar rater-consistency path. It now
 has local recovery-smoke evidence by direct parameter
 block, a local stress-chain grid over three fixed scenarios, and an initial
 local baseline-comparison artifact plus a three-scenario baseline/calibration
@@ -429,7 +573,8 @@ Every major model surface should move through the same status levels:
 | `internal_fixture` | The likelihood or transform exists only for tests. | Hand-computed fixture, stable parameter names, pointwise likelihood checks. |
 | `internal_promotion_candidate` | The target is close to fit-ready but private. | Raw/constrained manifest, AD gradient checks, HMC diagnostics, BridgeStan checks. |
 | `experimental_public` | Users may fit a narrow model with explicit warnings. | Public docs, fit artifact support, diagnostics, recovery smoke study, fallback rejection for unsupported options. |
-| `stable_public` | The surface supports ordinary package examples and paper claims. | Predeclared simulation grid, real-data example, sensitivity checks, reproducibility archive. |
+| `stable_public` | The surface supports ordinary package examples and package claims. | Predeclared internal simulation grid, sensitivity checks, reproducibility archive. |
+| `external_validated` | Post-`v0.2.0` external validation claims are supported. | Known-truth comparisons against overlapping R-package targets and, only after those comparisons are understood, real-data validation evidence. |
 
 Promotion should be explicit in `model_manifest`, `constraint_table`, docs, and
 tests. A target may not skip levels because each level answers a different
@@ -472,6 +617,321 @@ MGMFRM examples remain out of scope until this minimal confirmatory target is
 stable.
 
 ## Release Roadmap
+
+### Active post-v0.1.0 MGMFRM release sequence
+
+This active sequence keeps the package claim narrow while the generalized and
+multidimensional surface is hardened. See
+[`docs/src/mgmfrm-research-roadmap.md`](docs/src/mgmfrm-research-roadmap.md)
+for the literature-grounded rationale and detailed gates.
+
+| Version | Scope | Release gate |
+| --- | --- | --- |
+| `v0.1.1` | Fixed-Q confirmatory MGMFRM refinement. Strengthen execution, diagnostics, reporting, and validation for the existing guarded path. | Guarded scalar GMFRM and fixed-Q MGMFRM are easier to audit and harder to overinterpret. |
+| `v0.1.2` | Fixed-Q dimensionality and Q validation expansion. Still confirmatory. | Higher-dimensional fixed-Q examples pass source, AD, HMC, recovery, and report-shape tests. |
+| `v0.1.3` | Free latent correlation decision. | Free correlation is either kept blocked, promoted internally, or exposed narrowly with diagnostics and prior policy. |
+| `v0.1.4` | Exploratory loading and rotation policy design. | Rotation, sign, permutation, and reporting rules are documented and validated before exposure. |
+| `v0.2.0` | Generic MGMFRM stable-public candidate. | Source, transform, prior, internal simulation/recovery, reporting, and rejection gates pass for every exposed surface; R-package simulation comparison is post-`v0.2.0`. |
+
+### v0.1.1: generalized and multidimensional refinement
+
+Goal: turn the `v0.1.0` guarded generalized paths from "available for narrow
+experiments" into auditable experimental workflows whose equations,
+parameterization, diagnostics, and reports are precise enough for serious
+review. This release should improve the generalized MFRM and fixed-Q
+confirmatory MGMFRM surfaces without changing the package claim to broad
+GMFRM/MGMFRM support.
+
+Issue-sized implementation drafts are maintained in
+[`docs/src/v0.1.1-implementation-checklist.md`](docs/src/v0.1.1-implementation-checklist.md).
+
+Non-goals for `v0.1.1`:
+
+- no exploratory MGMFRM loadings, rotations, or post-hoc dimension discovery;
+- no free latent correlation matrix for MGMFRM;
+- no dimensions beyond the current fixed-Q two-dimensional candidate;
+- no public DFF model-effect fitting;
+- no model-weight, sparse-superiority, or manuscript-level claims;
+- no direct-scale generalized priors unless the log-Jacobian policy is fully
+  documented, tested, and exposed in reports.
+
+#### v0.1.1 Workstream A: equation, naming, and status audit
+
+- [x] Reconcile public terminology for the generalized path: use
+  "rater consistency" where that is the source-equation parameter, reserve
+  "discrimination" for item or dimension discrimination, and keep any legacy
+  aliases documented as compatibility wording.
+- [x] Add a model-surface audit table that records, for every GMFRM/MGMFRM
+  block, the source symbol, direct interpretation, raw coordinate, constraint,
+  prior scale, report label, and current status level.
+- [x] Ensure `model_manifest`, `constraint_table`, `fit_metadata`, report
+  sections, README text, and docs use the same status vocabulary:
+  `experimental_public` for the guarded scalar GMFRM and fixed-Q MGMFRM paths,
+  `blocked` for broader generalized surfaces.
+- [x] Add an evidence-artifact schema policy: schema version, package/git/
+  environment hashes, seed and sampler controls, cache provenance,
+  unsupported-claim flags, and raw-data/anonymization status.
+- [x] Add a related-software capability matrix that compares Facets, TAM,
+  mirt, sirt, immer, brms/Stan-style workflows, and `BayesianMGMFRM.jl` across
+  model coverage, estimation method, rater effects, multidimensional support,
+  Bayesian diagnostics, sensitivity analysis, and report artifacts.
+- [x] Add a release-gate check that fails when README, docs, roadmap, and
+  manifest status rows disagree about generalized support.
+
+Exit criterion: a reviewer can trace every public generalized label back to a
+source-equation role and a machine-readable manifest row.
+
+#### v0.1.1 Workstream B: generalized MFRM compiler refinement
+
+- [x] Separate the guarded GMFRM fit target from "promotion candidate"
+  internal naming in user-facing artifacts while preserving private helper names
+  where needed for compatibility.
+  - [x] Add stable public target labels to GMFRM/MGMFRM experimental decision
+    manifests and fit artifacts:
+    `guarded_scalar_gmfrm_logdensity` and
+    `guarded_confirmatory_mgmfrm_logdensity`.
+  - [x] Keep `_gmfrm_promotion_candidate_*` and guarded local MGMFRM helper
+    names as internal compatibility metadata via `internal_*_constructor`
+    fields.
+  - [x] Require `public_target_label` and `internal_target_constructor` in
+    generalized experimental fit artifact contracts.
+- [x] Generate the scalar GMFRM raw/direct block layout, transforms,
+  constraints, and direct posterior row schema from the same compiler path used
+  by `model_manifest` and `getdesign`.
+- [ ] Tighten validation for the guarded scalar GMFRM path: reject unsupported
+  item-discrimination, rater-step, DFF-effect, and multidimensional variants
+  with errors that name the next required gate instead of generic unsupported
+  messages.
+  - [x] Add actionable `blocked_option` and `next_gate` messages for
+    item-discrimination, DFF-effect, unsupported backend/prior choices, and
+    multidimensional GMFRM spec construction.
+  - [x] Add an explicit user-facing rater-step option/policy gate before
+    rater-step variants can be rejected as public options rather than internal
+    source-model blocks.
+- [x] Decide the first item-discrimination GMFRM promotion target: either keep
+  item discrimination preview-only in `v0.1.1`, or add an internal
+  fit-candidate manifest with BridgeStan and recovery gates before any exposure.
+- [x] Add block-level prior controls for raw rater-consistency and any internal
+  item-discrimination candidate, while keeping the default raw-prior/no-Jacobian
+  policy explicit in artifacts and reports.
+- [x] Add a user-facing prior contract row for every generalized fit: public
+  MFRM priors are weakly informative independent normals on identified
+  parameters, guarded generalized priors are independent normals on raw
+  unconstrained coordinates, and direct-scale generalized priors remain disabled
+  until a log-Jacobian policy is implemented.
+- [x] Add a pooling-policy row for generalized fits: v0.1.x uses independent
+  priors by default; hierarchical facet priors or partial pooling remain
+  blocked unless estimands, hyperpriors, shrinkage diagnostics, and sensitivity
+  are documented.
+
+Exit criterion: the scalar GMFRM experimental path is generated, diagnosed, and
+reported as a coherent generalized MFRM surface, and unsupported broader GMFRM
+options fail with actionable gate names.
+
+#### v0.1.1 Workstream C: fixed-Q MGMFRM gauge hardening
+
+- [x] Add Q-matrix validation rows for empty dimensions, empty items, duplicate
+  or aliased dimension columns, disconnected dimension/facet subgraphs, and
+  item blocks that cannot identify positive interpreted loadings.
+- [x] Add rating-design audit rows for structural versus accidental
+  missingness, disconnected components, anchor coverage, repeated ratings,
+  optional time/order fields, sparse person-rater-item blocks, and nonignorable
+  assignment warnings.
+- [x] Expose dimension labels throughout `model_manifest`, `constraint_table`,
+  direct posterior summaries, `fit_report`, and exported table files.
+- [x] Add explicit report rows for the fixed gauge: fixed identity latent
+  correlation, standard-normal ability scale, positive interpreted loadings,
+  fixed `1.7` scaling, rater consistency constraints, rater severity location
+  constraints, and item-step constraints.
+- [ ] Improve guarded MGMFRM initialization strategies for sparse fixed-Q
+  designs and report when initialization falls back to conservative
+  zero-centered raw coordinates.
+- [ ] Add invariant checks showing that the fixed-Q reports do not rely on
+  rotation, sign switching, or free latent correlation interpretation.
+
+Exit criterion: the fixed-Q MGMFRM fit object can explain why the dimensions are
+identified, how they are labeled, and which broader multidimensional choices
+remain blocked.
+
+#### v0.1.1 Workstream D: diagnostics and posterior workflow
+
+- [ ] Standardize `diagnostics`, `parameter_block_diagnostics`, and
+  `sampler_diagnostics` across `MFRMFit`, `GMFRMFit`, and `MGMFRMFit`,
+  including divergences, max-depth hits, E-BFMI availability, rank-normalized
+  R-hat, bulk/tail ESS, and direct-constraint failures.
+- [ ] Until rank-normalized diagnostics are implemented, label the current
+  classical split R-hat and autocorrelation ESS as provisional in reports and
+  artifacts, and keep the thresholds explicit.
+- [ ] Add prior-policy and prior-predictive report rows for guarded generalized
+  fits: raw prior scales, direct-scale prior status, no-Jacobian policy,
+  prior-predictive category/facet implications, and any prior implication
+  warnings.
+- [ ] Add generalized posterior predictive summaries that are explicit about
+  whether expected scores are computed from direct GMFRM/MGMFRM draws or from
+  the minimal MFRM predictive path.
+- [ ] Add calibration summaries for guarded generalized fits by rater, item,
+  category, group/DFF cell, and sparse-design block.
+- [ ] Add category-functioning report rows: observed category use by rater,
+  item, and dimension; skipped or sparse categories; posterior step/threshold
+  uncertainty; predictive category replication; and diagnostic-only category
+  collapsing flags.
+- [ ] Add direct-parameter posterior summary rows for generalized blocks with
+  probability of direction and practical-magnitude fields where interpretation
+  is defensible.
+- [ ] Add a binary-response interpretation note to docs and reports: the
+  two-category MFRM is a many-facet Rasch/1PL IRT model, while binary
+  GMFRM/MGMFRM variants with item discrimination, rater consistency, or
+  multidimensional Q-masked loadings are generalized IRT models rather than
+  strict Rasch models.
+- [ ] Keep WAIC, raw LOO, and K-fold comparison outputs available as diagnostic
+  rows only; block model-weight language in generalized reports.
+- [ ] Add benchmark-report fields for ESS/sec, compile time, runtime, memory,
+  and backend used, while preventing speed claims when sampler quality gates
+  fail.
+
+Exit criterion: a guarded generalized report can be reviewed without reading
+private notebook logic or inferring which predictive path was used.
+
+#### v0.1.1 Workstream E: interpretation, comparison, and visualization policy
+
+- [ ] Add a model-comparison policy section to `fit_report` and evidence
+  artifacts: prediction target, scoring rule, candidate set, same-data or
+  heldout contract, WAIC/LOO/K-fold status, influential-row diagnostics, and
+  whether refit or K-fold follow-up is required.
+- [ ] Keep model comparison diagnostic in `v0.1.1`: no posterior model
+  probabilities, no generalized model weights in public reports, and no
+  superiority language for MGMFRM over MFRM/GMFRM baselines.
+- [ ] Stabilize plotting-data schemas before adding backend-specific recipes:
+  diagnostic heatmaps, trace/rank-ready rows, PPC/calibration panels, rater
+  severity/consistency maps, Q-matrix/loading heatmaps, DFF screening panels,
+  and model-comparison uncertainty rows.
+- [ ] Add a FACETS-fit compatibility policy for `fit_stats`: posterior
+  infit/outfit intervals remain the default Bayesian diagnostic, while optional
+  FACETS-style rows must record the residual formula, `outfit_df = n_obs`,
+  `infit_information`, Wilson-Hilferty/ZSTD approximation status, and whether
+  the row is point-estimate, draw-wise, or posterior-predictive.
+- [ ] Do not treat FACETS degrees of freedom as exact for posterior-summarized
+  GMFRM/MGMFRM fit statistics; require explicit approximation labels and
+  simulation calibration before generalized ZSTD interpretation.
+- [ ] Add migration and compatibility examples for users coming from Facets,
+  TAM, mirt, sirt, or immer: column mapping, equivalent or non-equivalent model
+  choices, comparable output rows, and explicit unsupported surfaces.
+- [ ] Add rater homogeneity summaries for severity and rater consistency:
+  pairwise posterior contrasts, ROPE probabilities, HDI or explicitly labelled
+  central intervals, probability of direction, and practical-equivalence flags.
+- [ ] Treat Bayes factors as optional research artifacts, not a default
+  workflow. If added, they must be limited to preregistered contrasts and paired
+  with prior sensitivity, power-scaling evidence, and clear warnings that point
+  equality is not the default measurement decision target.
+- [ ] Keep DFF/bias effects validation-only: retain sparse/empty/confounded
+  cell checks, grouped PPC rows, and posterior predictive interaction residual
+  screening, but do not fit DFF model effects or report unfairness claims.
+
+Exit criterion: the guarded generalized report separates posterior summaries,
+practical decisions, visualizable evidence, and blocked claims in a way that a
+measurement reviewer can audit without inferring policy from code.
+
+#### v0.1.1 Workstream F: validation evidence
+
+- [ ] Add small and medium BridgeStan comparison fixtures for the guarded
+  scalar GMFRM and fixed-Q MGMFRM fit targets, not only source-aligned
+  log-density fixtures.
+- [ ] Run a predeclared simulation grid focused on the `v0.1.1` question:
+  rater consistency recovery, item/dimension loading recovery, sparse fixed-Q
+  failure modes, calibration, PPC, interval coverage, and block-level
+  diagnostics.
+- [ ] Include rating-design and category pathologies in the validation grid:
+  planned missingness, accidental sparse cells, disconnected or weakly linked
+  components, skipped categories, and rater-specific category compression.
+- [ ] Keep compact data examples as workflow demonstrations only; do not use
+  real-data validation as a `v0.1.1` release gate.
+- [ ] Defer overlap validation against Facets/TAM/mirt/sirt/immer until after
+  `v0.2.0`, when known-truth simulation comparisons can be run against
+  comparable R-package model targets.
+- [ ] Add a sensitivity grid for raw-prior scales on generalized parameters and
+  record when posterior decisions are prior-dominated.
+- [ ] Promote `prior_likelihood_sensitivity` into a release artifact using
+  power-scaling perturbations of the prior and likelihood around one. Record
+  direct-parameter shifts, log-prior/log-likelihood shifts, weight effective
+  sample size, and a `refit_required` or Pareto-k follow-up flag when
+  importance reweighting is unstable.
+- [ ] Add a compact interpretation evidence bundle that exercises model
+  comparison policy rows, plotting-data exports, DFF screening, and rater
+  homogeneity summaries on the minimal MFRM, scalar GMFRM, and fixed-Q MGMFRM
+  examples.
+- [ ] Archive the evidence as versioned JSON/report bundles with seeds,
+  sampler controls, package version, git tree, source fixture hashes, and
+  falsification outcomes.
+
+Exit criterion: `v0.1.1` can claim stronger experimental workflow evidence for
+the guarded generalized paths, but still cannot claim stable broad GMFRM/MGMFRM
+support.
+
+#### v0.1.1 Runtime-Aware Implementation Sequence
+
+The remaining `v0.1.1` changes should be implemented in an order that minimizes
+schema churn and avoids unnecessary long Julia runs:
+
+- finish the remaining fixed-Q MGMFRM initialization and invariance checks;
+- standardize generalized diagnostics before adding more report sections;
+- add predictive-path, calibration, and category-functioning rows after the
+  diagnostic shape is stable;
+- add FACETS compatibility, model-comparison policy, and rater homogeneity rows
+  after the report shape is stable;
+- finish evidence-artifact governance and evidence bundles after report schemas
+  settle;
+- leave final README/docs/release wording and tag preparation to the last
+  release-review slice.
+
+Verification should be staged. Use load checks and targeted fixture scripts for
+small edits; regenerate low-level fixtures before review/archive fixtures; run
+the fixture SHA scan before the full suite; and reserve full `Pkg.test()` runs
+for milestone slices and release candidates. Final release still requires
+`Pkg.test()` on supported Julia versions, docs build with the page-size gate,
+example scripts, and release-scope checks.
+
+#### v0.1.1 Release Gate
+
+- [ ] `Pkg.test()` passes on the supported Julia versions.
+- [ ] Documentation builds with the page-size gate enabled.
+- [ ] The minimal example, guarded scalar GMFRM example, and guarded fixed-Q
+  MGMFRM example run with intentionally small sampler controls.
+- [ ] `release_scope_summary(; include_evidence = true)` includes a
+  `v0.1.1_generalized_refinement` row and still marks broad generalized claims
+  as blocked.
+- [ ] README installation and model-support text reflects the registered
+  package state and the exact `v0.1.1` experimental boundaries.
+
+Release decision: ship `v0.1.1` only if the guarded GMFRM/MGMFRM paths become
+easier to audit and harder to overinterpret. If the work exposes unresolved
+identification or sampler pathologies, ship narrower documentation and
+validation improvements instead of broadening the fit API.
+
+### Post-v0.2.0: R simulation comparison and external validation
+
+After `v0.2.0` completes the generic MGMFRM stable-public candidate, run a
+separate external-validation phase against mature R software. This is not a
+`v0.1.x` or `v0.2.0` release gate.
+
+- Compare only genuinely overlapping model targets: Facets/TAM-style MFRM,
+  TAM-compatible GPCM or multi-facet Rasch cases, mirt-style fixed-Q MIRT
+  cases, and sirt/immer rater-effect cases where the parameterization can be
+  matched.
+- Use known-truth simulation before real data. Simulation should evaluate
+  recovery, bias, RMSE, interval coverage, calibration, ranking stability,
+  rater-effect recovery, DFF-screening behavior, convergence/failure rates,
+  runtime, memory, and ESS/sec where applicable.
+- Label non-overlap explicitly: priors, estimators, link functions,
+  constraints, prediction targets, and reporting scales can make packages
+  answer different questions.
+- Decide real-data validation only after the R simulation comparison explains
+  where the Julia and R workflows agree, differ, or are not comparable.
+
+### Historical completed implementation tracks
+
+The following sections are retained as the original implementation ledger. They
+describe completed or earlier-scoped work and do not supersede the active
+post-`v0.1.0` MGMFRM release sequence above.
 
 ### v0.1: scaffold hardening
 
@@ -1128,6 +1588,14 @@ reported dimensions are interpretable.
 - Do not call a DFF contrast unfairness without practical magnitude and model
   checking.
 - Do not use single-run timings as manuscript evidence.
+- Do not interpret the observed rating graph as random rater assignment unless
+  the design or assignment model justifies that claim.
+- Do not automatically collapse sparse or disordered categories without a
+  recorded analysis decision.
+- Do not report partially pooled facet effects as unpooled facet locations;
+  label shrinkage estimands and hyperpriors explicitly.
+- Do not export raw identifiers or row-level rating data in public artifacts by
+  default.
 - Do not claim broad or exploratory MGMFRM support, model-weight superiority,
   or sparse-design superiority from the guarded fixed-Q path until the broader
   multidimensional fixtures, recovery/sensitivity evidence, and public-scope

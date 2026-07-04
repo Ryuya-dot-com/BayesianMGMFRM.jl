@@ -16,6 +16,8 @@ identification_declarations
 model_ladder
 model_manifest
 model_equation
+model_surface_audit
+q_matrix_validation
 fit_ready_parameter_layout
 domain_compilation_summary
 design_row_table
@@ -31,4 +33,5 @@ coverage_summary
 coverage_matrix
 rater_overlap
 anchor_linking_summary
+rating_design_audit
 ```

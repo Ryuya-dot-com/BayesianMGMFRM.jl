@@ -4,7 +4,7 @@ The current package exposes the early pieces needed for a Bayesian many-facet
 Rasch workflow, including initial AdvancedHMC/NUTS and Turing/NUTS paths for
 the minimal MFRM/RSM/PCM design. Guarded generalized experimental paths are
 also available through `fit(spec; experimental = true)` for the
-one-dimensional rater-discrimination GMFRM candidate and the fixed-Q
+one-dimensional rater-consistency GMFRM candidate and the fixed-Q
 two-dimensional confirmatory MGMFRM candidate. Broader GMFRM/MGMFRM fitting
 beyond those guarded candidates remains planned work, but specified-only
 GMFRM/MGMFRM configs can already be recorded in
@@ -17,7 +17,7 @@ without changing the data layer.
 
 1. Build long-format rating data with [`FacetData`](@ref).
 2. Run pre-fit checks with [`validate_design`](@ref), [`coverage_summary`](@ref),
-   and [`coverage_matrix`](@ref).
+   [`coverage_matrix`](@ref), and [`rating_design_audit`](@ref).
 3. Inspect supported and specified-only model families with [`model_ladder`](@ref).
 4. Declare a minimal MFRM/RSM/PCM specification with [`mfrm_spec`](@ref), then
    inspect the source-traced mathematical contract with [`model_equation`](@ref),
@@ -30,7 +30,7 @@ without changing the data layer.
    `design_row_table(spec; preview = true)`, and
    `linear_predictor_table(spec; preview = true)`. Use
    `fit(spec; experimental = true)` only for the guarded scalar GMFRM
-   rater-discrimination candidate or the guarded fixed-Q confirmatory MGMFRM
+   rater-consistency candidate or the guarded fixed-Q confirmatory MGMFRM
    candidate.
 5. Choose weakly informative scales with [`MFRMPrior`](@ref).
 6. For external sampler or AD experiments, build an [`MFRMLogDensity`](@ref)

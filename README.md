@@ -21,7 +21,8 @@ The current public release focuses on a reliable first workflow:
   claims beyond their validation evidence.
 
 The package is intentionally explicit about scope. Minimal MFRM/RSM/PCM fitting
-is the fit-supported surface. Scalar rater-discrimination GMFRM and fixed-Q
+is the fit-supported surface. Scalar rater-consistency GMFRM, configured through
+the compatibility keyword `discrimination = :rater`, and fixed-Q
 two-dimensional confirmatory MGMFRM are available only through guarded
 experimental paths. Broader generalized discrimination, exploratory MGMFRM,
 modeled DFF effects, sparse-superiority claims, and public model-weight claims
@@ -126,9 +127,9 @@ usually wants to see.
 - `mfrm_spec`, `getdesign`, `constraint_table`, `model_manifest`,
   `design_row_table`, `linear_predictor_table`, and `threshold_map_data` make
   the design contract inspectable.
-- `coverage_summary`, `coverage_matrix`, `rater_overlap`, and
-  `anchor_linking_summary` help review whether the data can support the
-  intended comparison.
+- `coverage_summary`, `coverage_matrix`, `rater_overlap`,
+  `anchor_linking_summary`, and `rating_design_audit` help review whether the
+  data can support the intended comparison.
 
 **Bayesian fitting**
 
@@ -155,6 +156,9 @@ usually wants to see.
 - `fit_artifact`, `fit_report`, `save_fit_report`, `save_fit_report_tables`,
   `save_fit_report_markdown`, `save_fit_report_bundle`, and
   `fit_report_dossier` create hash-checked artifacts for local review.
+- `evidence_artifact_schema_policy` records the required provenance fields for
+  schema versioning, content hashes, package/git/environment hashes, seed and
+  sampler controls, cache provenance, blocked claims, and raw-data status.
 
 **Validation and reproducibility**
 
@@ -164,15 +168,20 @@ usually wants to see.
   Julia/BridgeStan scalar fixture checks.
 - `release_scope_summary` records the current public surface, guarded
   experimental surfaces, blocked claims, and release-readiness guardrails.
+- `related_software_capability_matrix` positions Facets, TAM, mirt, sirt,
+  immer, brms/Stan workflows, and this package without making replacement or
+  superiority claims.
+- `release_gate_check` checks that README, roadmap, docs, and manifest status
+  rows agree before a release is cut.
 
 ## Model Support
 
 | Surface | Status | Entry point | Notes |
 | --- | --- | --- | --- |
-| Minimal MFRM/RSM/PCM | Fit-supported | `mfrm_spec`, `getdesign`, `fit` | Main public workflow for current analyses. |
-| Scalar rater-discrimination GMFRM | Guarded experimental | `mfrm_spec(...; family = :gmfrm, discrimination = :rater)`, then `fit(spec; experimental = true)` | Narrow source-aligned candidate with local validation evidence. |
-| Fixed-Q two-dimensional confirmatory MGMFRM | Guarded experimental | `mfrm_spec(...; family = :mgmfrm, dimensions = 2, q_matrix = Q)`, then `fit(spec; experimental = true)` | Fixed Q-mask, identity latent correlation candidate only. |
-| Broader GMFRM/MGMFRM, DFF model effects, exploratory Q-matrices | Not a public fit API | Manifest and preview inspection only where available | Blocked until identification, diagnostics, validation, and reporting contracts are stronger. |
+| Minimal MFRM/RSM/PCM | `supported` | `mfrm_spec`, `getdesign`, `fit` | Main public workflow for current analyses. |
+| Scalar rater-consistency GMFRM | `experimental_public` | `mfrm_spec(...; family = :gmfrm, discrimination = :rater)`, then `fit(spec; experimental = true)` | Narrow guarded source-aligned candidate; `discrimination = :rater` is the compatibility keyword for the positive rater-consistency multiplier. |
+| Fixed-Q two-dimensional confirmatory MGMFRM | `experimental_public` | `mfrm_spec(...; family = :mgmfrm, dimensions = 2, q_matrix = Q)`, then `fit(spec; experimental = true)` | Fixed Q-mask, identity latent correlation candidate only. |
+| Broader GMFRM/MGMFRM, DFF model effects, exploratory Q-matrices | `blocked` | Manifest and preview inspection only where available | Not a public fit API until identification, diagnostics, validation, and reporting contracts are stronger. |
 
 The guarded MGMFRM example is runnable at
 [`examples/guarded_mgmfrm.jl`](examples/guarded_mgmfrm.jl).

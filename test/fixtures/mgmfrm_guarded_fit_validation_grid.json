@@ -1,0 +1,203 @@
+{
+  "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_validation_grid.v1",
+  "family": "mgmfrm",
+  "scope": "minimal_confirmatory_mgmfrm_candidate",
+  "status": "guarded_fit_validation_grid_recorded",
+  "decision": "enable_guarded_experimental",
+  "public_fit": true,
+  "experimental_public": true,
+  "fit_ready": true,
+  "publication_or_registration_action": false,
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "protocol": {
+    "protocol_id": "confirmatory_mgmfrm_guarded_fit_validation_grid_v1",
+    "review_kind": "local_confirmatory_mgmfrm_guarded_fit_validation_grid",
+    "publication_or_registration_action": false,
+    "proposed_entrypoint": "fit(spec; experimental = true)",
+    "entrypoint_enabled": true,
+    "target": "minimal_confirmatory_mgmfrm_candidate",
+    "thresholds": {
+      "require_bridge_oracle_present": true,
+      "require_candidate_chain_passed": true,
+      "require_recovery_smoke_passed": true,
+      "require_baseline_comparison_passed": true,
+      "require_sparse_recovery_grid_passed": true,
+      "require_guarded_fit_method_wiring_passed": true,
+      "require_sampler_protocol_passed": true,
+      "require_artifact_contract_satisfied": true,
+      "require_fit_boundary_checks_passed": true,
+      "require_experimental_spec_fit_success": true,
+      "require_entrypoint_enabled": true,
+      "require_no_publication_or_registration_action": true
+    }
+  },
+  "input_artifacts": [
+    {
+      "artifact": "bridge_oracle",
+      "path": "test/fixtures/source_mgmfrm_bridge_logdensity.json",
+      "exists": true,
+      "sha256": "5003d46cc0012d6d55a5dec47a84c00cd6eaa83865a5da3db78a13f91f1c50c0",
+      "expected_schema": "bayesianmgmfrm.source_mgmfrm_bridge_logdensity.v1",
+      "schema": "bayesianmgmfrm.source_mgmfrm_bridge_logdensity.v1",
+      "schema_matches": true,
+      "pass_policy": "schema_only",
+      "summary_passed": true,
+      "summary": {
+        "passed": false
+      }
+    },
+    {
+      "artifact": "candidate_chain_study",
+      "path": "test/fixtures/mgmfrm_candidate_chain_study.json",
+      "exists": true,
+      "sha256": "81247f2c40355652a7fb2a9931ce0bcb4f349e09ad51d20a6453c0c4ac04f2dd",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_candidate_chain_study.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_candidate_chain_study.v1",
+      "schema_matches": true,
+      "pass_policy": "summary_overall_passed",
+      "summary_passed": true,
+      "summary": {
+        "overall_passed": true
+      }
+    },
+    {
+      "artifact": "recovery_smoke",
+      "path": "test/fixtures/mgmfrm_recovery_smoke.json",
+      "exists": true,
+      "sha256": "a2082c97b595f8336e3a0a6ad5042e5a899305de515fdf9b3ce0bcb6d46e25b9",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_recovery_smoke.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_recovery_smoke.v1",
+      "schema_matches": true,
+      "pass_policy": "summary_passed",
+      "summary_passed": true,
+      "summary": {
+        "passed": true
+      }
+    },
+    {
+      "artifact": "baseline_comparison",
+      "path": "test/fixtures/mgmfrm_baseline_comparison.json",
+      "exists": true,
+      "sha256": "00f050e1714b500afa696032c4330e87b3de2a2f233f456f069a8c07e3d597ae",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_baseline_comparison.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_baseline_comparison.v1",
+      "schema_matches": true,
+      "pass_policy": "summary_passed",
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "comparison_executed": true
+      }
+    },
+    {
+      "artifact": "sparse_recovery_grid",
+      "path": "test/fixtures/mgmfrm_sparse_recovery_grid.json",
+      "exists": true,
+      "sha256": "66f93609547525a7fb4d3556bab7b7e47f9863cfa283209e9416749a0059b628",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_sparse_recovery_grid.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_sparse_recovery_grid.v1",
+      "schema_matches": true,
+      "pass_policy": "summary_passed",
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "all_validations_passed": true,
+        "all_sampler_passed": true
+      }
+    },
+    {
+      "artifact": "guarded_fit_method_wiring",
+      "path": "test/fixtures/mgmfrm_guarded_fit_method_wiring.json",
+      "exists": true,
+      "sha256": "de1484c2e6f380f8b1322115944edc4814c029d4aeeb09afad773b25a7ba609f",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_method_wiring.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_method_wiring.v1",
+      "schema_matches": true,
+      "pass_policy": "summary_passed",
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "entrypoint_enabled": true,
+        "sampler_protocol_passed": true,
+        "artifact_contract_satisfied": true,
+        "all_fit_boundary_checks_passed": true,
+        "experimental_spec_fit_succeeded": true
+      }
+    }
+  ],
+  "validation_rows": [
+    {
+      "scenario": "bridge_and_chain_oracles",
+      "evidence": true,
+      "finding": "bridge_oracle_and_candidate_chain_recorded"
+    },
+    {
+      "scenario": "full_crossed_recovery_smoke",
+      "evidence": true,
+      "finding": "recovery_smoke_recorded"
+    },
+    {
+      "scenario": "baseline_model_comparison",
+      "evidence": true,
+      "finding": "baseline_comparison_recorded"
+    },
+    {
+      "scenario": "sparse_connected_recovery_grid",
+      "evidence": true,
+      "finding": "sparse_connected_grid_recorded"
+    },
+    {
+      "scenario": "guarded_method_contract",
+      "evidence": true,
+      "finding": "guarded_method_contract_satisfied"
+    },
+    {
+      "scenario": "current_guarded_fit_boundary",
+      "evidence": true,
+      "finding": "guarded_experimental_entrypoint_wired"
+    }
+  ],
+  "decision_record": {
+    "public_fit_allowed": true,
+    "experimental_keyword_enabled": true,
+    "public_exposure_support": "validation_grid_satisfies_guarded_entrypoint_boundary",
+    "interpretation": "confirmatory_mgmfrm_guarded_fit_validation_grid_recorded_entrypoint_enabled",
+    "required_followup": "mgmfrm_guarded_fit_api_dry_run"
+  },
+  "summary": {
+    "passed": true,
+    "publication_or_registration_action": false,
+    "entrypoint_enabled": true,
+    "public_fit_allowed": true,
+    "experimental_keyword_enabled": true,
+    "all_input_artifacts_present": true,
+    "all_expected_schemas": true,
+    "all_input_summaries_passed": true,
+    "all_validation_rows_passed": true,
+    "no_publication_commands": true,
+    "bridge_oracle_present": true,
+    "candidate_chain_study_passed": true,
+    "recovery_smoke_passed": true,
+    "baseline_comparison_passed": true,
+    "sparse_recovery_grid_passed": true,
+    "guarded_fit_method_wiring_passed": true,
+    "sparse_grid_all_validations_passed": true,
+    "sparse_grid_all_sampler_passed": true,
+    "method_sampler_protocol_passed": true,
+    "method_artifact_contract_satisfied": true,
+    "method_fit_boundary_checks_passed": true,
+    "method_experimental_spec_fit_succeeded": true,
+    "n_input_artifacts": 6,
+    "n_validation_rows": 6,
+    "n_passed_validation_rows": 6,
+    "remaining_public_blockers": [
+      "mgmfrm_guarded_fit_api_dry_run_missing"
+    ],
+    "recommendation": "guarded_entrypoint_validated_run_api_dry_run_next",
+    "next_gate": "mgmfrm_guarded_fit_api_dry_run"
+  }
+}

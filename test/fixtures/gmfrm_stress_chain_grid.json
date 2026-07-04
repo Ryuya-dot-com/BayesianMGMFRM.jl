@@ -1,0 +1,964 @@
+{
+  "schema": "bayesianmgmfrm.gmfrm_stress_chain_grid.v1",
+  "family": "gmfrm",
+  "scope": "scalar_gmfrm_fit_ready_candidate",
+  "status": "internal_promotion_candidate",
+  "public_fit": false,
+  "fit_ready": false,
+  "target": "_gmfrm_promotion_candidate_logdensity",
+  "density_space": "raw_unconstrained",
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "protocol": {
+    "protocol_id": "scalar_gmfrm_stress_chain_grid_v1",
+    "backend": "advancedhmc",
+    "sampler": "nuts",
+    "chains": 2,
+    "warmup": 96,
+    "draws": 96,
+    "max_energy_error": 1000.0,
+    "metric": "unit",
+    "ad_backend": "ForwardDiff",
+    "split_chains": true,
+    "thresholds": {
+      "max_rhat": 1.2,
+      "min_ess": 16.0,
+      "min_ebfmi": 0.3,
+      "n_divergences": 0,
+      "n_max_treedepth": 0,
+      "n_failed_direct_constraints": 0,
+      "n_nonfinite_logdensity": 0,
+      "n_nonfinite_direct_loglikelihood": 0
+    }
+  },
+  "data": {
+    "n_observations": 6,
+    "person_levels": [
+      "E1",
+      "E2"
+    ],
+    "rater_levels": [
+      "R1",
+      "R2"
+    ],
+    "item_levels": [
+      "I1",
+      "I2"
+    ],
+    "category_levels": [
+      0,
+      1,
+      2
+    ],
+    "optional_facets": [
+      "task"
+    ]
+  },
+  "raw_parameter_order": [
+    "person[E1]",
+    "person[E2]",
+    "rater[R1]",
+    "rater[R2]",
+    "raw_item[I1]",
+    "raw_log_item_discrimination[I1]",
+    "raw_log_rater_consistency[rater=R1]",
+    "raw_log_rater_consistency[rater=R2]",
+    "rater_step[rater=R1,m=2]",
+    "rater_step[rater=R2,m=2]"
+  ],
+  "raw_parameter_order_sha256": "ed5b8aabb7d440fcd7aca32dd96aef7ef82f5908d6044db6709351fa124acc3f",
+  "direct_parameter_order": [
+    "person[E1]",
+    "person[E2]",
+    "rater[R1]",
+    "rater[R2]",
+    "item[I1]",
+    "item[I2]",
+    "item_discrimination[item=I1]",
+    "item_discrimination[item=I2]",
+    "rater_consistency[rater=R1]",
+    "rater_consistency[rater=R2]",
+    "rater_step[rater=R1,m=2]",
+    "rater_step[rater=R2,m=2]"
+  ],
+  "direct_parameter_order_sha256": "f8b84eef63cd20d18c4f1b2c086d600c826310268a4e7f9635d8cceeefc36c2e",
+  "scenarios": [
+    {
+      "scenario": "near_oracle_long",
+      "seed": 20260711,
+      "controls": {
+        "step_size": 0.02,
+        "target_accept": 0.85,
+        "max_depth": 6,
+        "init_jitter": 0.0
+      },
+      "initial_raw_parameter_values": [
+        0.3,
+        -0.2,
+        0.1,
+        -0.05,
+        -0.2,
+        0.6931471805599453,
+        0.1823215567939546,
+        -0.2231435513142097,
+        0.25,
+        -0.1
+      ],
+      "initial_direct_parameter_values": [
+        0.3,
+        -0.2,
+        0.1,
+        -0.05,
+        -0.2,
+        0.2,
+        2.0,
+        0.5,
+        1.2,
+        0.8,
+        0.25,
+        -0.1
+      ],
+      "summary": {
+        "internal_flag": "ok",
+        "internal_passed": true,
+        "passed_protocol": true,
+        "n_chains": 2,
+        "draws_per_chain": 96,
+        "total_draws": 192,
+        "max_rhat": 1.027060113859785,
+        "min_ess": 89.2854892479805,
+        "n_bad_rhat": 0,
+        "n_low_ess": 0,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "e_bfmi": 0.8771671459715952,
+        "n_sampler_warnings": 0,
+        "n_block_warnings": 0,
+        "n_direct_block_warnings": 0,
+        "n_nonfinite_logdensity": 0,
+        "n_nonfinite_direct_loglikelihood": 0,
+        "n_failed_direct_constraints": 0
+      },
+      "sampler_rows": [
+        {
+          "chain": 1,
+          "acceptance_rate": 0.9354739997742881,
+          "n_divergences": 0,
+          "n_max_treedepth": 0,
+          "e_bfmi": 1.1605979661215586,
+          "mean_n_steps": 13.625,
+          "mean_tree_depth": 3.625,
+          "max_tree_depth": 4,
+          "mean_step_size": 0.21183741223431485,
+          "n_nonfinite_logdensity": 0,
+          "flag": "ok"
+        },
+        {
+          "chain": 2,
+          "acceptance_rate": 0.8953564973286391,
+          "n_divergences": 0,
+          "n_max_treedepth": 0,
+          "e_bfmi": 0.8771671459715952,
+          "mean_n_steps": 12.125,
+          "mean_tree_depth": 3.4270833333333335,
+          "max_tree_depth": 4,
+          "mean_step_size": 0.24544996457271004,
+          "n_nonfinite_logdensity": 0,
+          "flag": "ok"
+        }
+      ],
+      "raw_block_rows": [
+        {
+          "block": "item_free",
+          "n_parameters": 1,
+          "max_rhat": 1.0007823574330847,
+          "min_ess": 148.87414095175313,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "log_item_discrimination_free",
+          "n_parameters": 1,
+          "max_rhat": 1.0084801270477992,
+          "min_ess": 112.49560304810318,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "log_rater_consistency",
+          "n_parameters": 2,
+          "max_rhat": 1.0063980365615555,
+          "min_ess": 192.0,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "person",
+          "n_parameters": 2,
+          "max_rhat": 1.0044258599665858,
+          "min_ess": 165.74369944423876,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "rater",
+          "n_parameters": 2,
+          "max_rhat": 1.027060113859785,
+          "min_ess": 104.8889665197815,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "rater_steps",
+          "n_parameters": 2,
+          "max_rhat": 1.0028931741310145,
+          "min_ess": 89.2854892479805,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        }
+      ],
+      "direct_block_rows": [
+        {
+          "block": "item",
+          "n_parameters": 2,
+          "max_rhat": 1.0007823574330847,
+          "min_ess": 148.87414095175313,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "item_discrimination",
+          "n_parameters": 2,
+          "max_rhat": 1.019247966546511,
+          "min_ess": 109.78118898778938,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "person",
+          "n_parameters": 2,
+          "max_rhat": 1.0044258599665858,
+          "min_ess": 165.74369944423876,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "rater",
+          "n_parameters": 2,
+          "max_rhat": 1.027060113859785,
+          "min_ess": 104.8889665197815,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "rater_consistency",
+          "n_parameters": 2,
+          "max_rhat": 1.0196364654606398,
+          "min_ess": 192.0,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "rater_steps",
+          "n_parameters": 2,
+          "max_rhat": 1.0028931741310145,
+          "min_ess": 89.2854892479805,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        }
+      ],
+      "direct_constraint_rows": [
+        {
+          "constraint": "item_sum_to_zero",
+          "block": "item",
+          "n_failed": 0,
+          "minimum_value": 0.0,
+          "maximum_value": 0.0,
+          "max_abs_target_error": 0.0,
+          "passed": true
+        },
+        {
+          "constraint": "item_discrimination_positive",
+          "block": "item_discrimination",
+          "n_failed": 0,
+          "minimum_value": 0.21009753224849437,
+          "maximum_value": 0.9959111613527909,
+          "max_abs_target_error": 0.9959111613527909,
+          "passed": true
+        },
+        {
+          "constraint": "item_discrimination_product_one",
+          "block": "item_discrimination",
+          "n_failed": 0,
+          "minimum_value": 0.9999999999999999,
+          "maximum_value": 1.0000000000000002,
+          "max_abs_target_error": 2.220446049250313e-16,
+          "passed": true
+        },
+        {
+          "constraint": "rater_consistency_positive",
+          "block": "rater_consistency",
+          "n_failed": 0,
+          "minimum_value": 0.2156904625177721,
+          "maximum_value": 1.597729026167979,
+          "max_abs_target_error": 1.597729026167979,
+          "passed": true
+        },
+        {
+          "constraint": "rater_step_last_derived_sum_to_zero",
+          "block": "rater_steps",
+          "n_failed": 0,
+          "minimum_value": 0.0,
+          "maximum_value": 0.0,
+          "max_abs_target_error": 0.0,
+          "passed": true
+        },
+        {
+          "constraint": "rater_step_last_derived_sum_to_zero",
+          "block": "rater_steps",
+          "n_failed": 0,
+          "minimum_value": 0.0,
+          "maximum_value": 0.0,
+          "max_abs_target_error": 0.0,
+          "passed": true
+        }
+      ],
+      "pointwise": {
+        "n_observations": 6,
+        "n_draws": 192,
+        "n_nonfinite_pointwise": 0,
+        "n_nonfinite_loglikelihood": 0,
+        "minimum_pointwise_loglikelihood": -6.125138813477665,
+        "maximum_pointwise_loglikelihood": -4.412470389070222e-12,
+        "minimum_loglikelihood": -10.85335057455995,
+        "maximum_loglikelihood": -3.659466182037775
+      }
+    },
+    {
+      "scenario": "zero_centered_long",
+      "seed": 20260712,
+      "controls": {
+        "step_size": 0.02,
+        "target_accept": 0.85,
+        "max_depth": 6,
+        "init_jitter": 0.0
+      },
+      "initial_raw_parameter_values": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "initial_direct_parameter_values": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "summary": {
+        "internal_flag": "ok",
+        "internal_passed": true,
+        "passed_protocol": true,
+        "n_chains": 2,
+        "draws_per_chain": 96,
+        "total_draws": 192,
+        "max_rhat": 1.0247646291615284,
+        "min_ess": 90.39530098601682,
+        "n_bad_rhat": 0,
+        "n_low_ess": 0,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "e_bfmi": 1.0000438895079946,
+        "n_sampler_warnings": 0,
+        "n_block_warnings": 0,
+        "n_direct_block_warnings": 0,
+        "n_nonfinite_logdensity": 0,
+        "n_nonfinite_direct_loglikelihood": 0,
+        "n_failed_direct_constraints": 0
+      },
+      "sampler_rows": [
+        {
+          "chain": 1,
+          "acceptance_rate": 0.9102023636516292,
+          "n_divergences": 0,
+          "n_max_treedepth": 0,
+          "e_bfmi": 1.0000438895079946,
+          "mean_n_steps": 12.666666666666666,
+          "mean_tree_depth": 3.5625,
+          "max_tree_depth": 4,
+          "mean_step_size": 0.23513839673005857,
+          "n_nonfinite_logdensity": 0,
+          "flag": "ok"
+        },
+        {
+          "chain": 2,
+          "acceptance_rate": 0.8952575995720293,
+          "n_divergences": 0,
+          "n_max_treedepth": 0,
+          "e_bfmi": 1.168200353597498,
+          "mean_n_steps": 11.75,
+          "mean_tree_depth": 3.4270833333333335,
+          "max_tree_depth": 4,
+          "mean_step_size": 0.24456079307748566,
+          "n_nonfinite_logdensity": 0,
+          "flag": "ok"
+        }
+      ],
+      "raw_block_rows": [
+        {
+          "block": "item_free",
+          "n_parameters": 1,
+          "max_rhat": 0.9939544804496958,
+          "min_ess": 138.64180934675647,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "log_item_discrimination_free",
+          "n_parameters": 1,
+          "max_rhat": 1.0093189276243917,
+          "min_ess": 169.4048233586074,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "log_rater_consistency",
+          "n_parameters": 2,
+          "max_rhat": 1.0116259369290208,
+          "min_ess": 192.0,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "person",
+          "n_parameters": 2,
+          "max_rhat": 1.007154345474467,
+          "min_ess": 90.39530098601682,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "rater",
+          "n_parameters": 2,
+          "max_rhat": 1.0068218380961762,
+          "min_ess": 125.33956085951085,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "rater_steps",
+          "n_parameters": 2,
+          "max_rhat": 1.0247646291615284,
+          "min_ess": 150.2740840460749,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        }
+      ],
+      "direct_block_rows": [
+        {
+          "block": "item",
+          "n_parameters": 2,
+          "max_rhat": 0.9939544804496958,
+          "min_ess": 138.64180934675647,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "item_discrimination",
+          "n_parameters": 2,
+          "max_rhat": 1.014343406474475,
+          "min_ess": 136.94549597741297,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "person",
+          "n_parameters": 2,
+          "max_rhat": 1.007154345474467,
+          "min_ess": 90.39530098601682,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "rater",
+          "n_parameters": 2,
+          "max_rhat": 1.0068218380961762,
+          "min_ess": 125.33956085951085,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "rater_consistency",
+          "n_parameters": 2,
+          "max_rhat": 1.0123490863357354,
+          "min_ess": 192.0,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "rater_steps",
+          "n_parameters": 2,
+          "max_rhat": 1.0247646291615284,
+          "min_ess": 150.2740840460749,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        }
+      ],
+      "direct_constraint_rows": [
+        {
+          "constraint": "item_sum_to_zero",
+          "block": "item",
+          "n_failed": 0,
+          "minimum_value": 0.0,
+          "maximum_value": 0.0,
+          "max_abs_target_error": 0.0,
+          "passed": true
+        },
+        {
+          "constraint": "item_discrimination_positive",
+          "block": "item_discrimination",
+          "n_failed": 0,
+          "minimum_value": 0.16999677757113416,
+          "maximum_value": 0.9988136619731396,
+          "max_abs_target_error": 0.9988136619731396,
+          "passed": true
+        },
+        {
+          "constraint": "item_discrimination_product_one",
+          "block": "item_discrimination",
+          "n_failed": 0,
+          "minimum_value": 0.9999999999999999,
+          "maximum_value": 1.0000000000000002,
+          "max_abs_target_error": 2.220446049250313e-16,
+          "passed": true
+        },
+        {
+          "constraint": "rater_consistency_positive",
+          "block": "rater_consistency",
+          "n_failed": 0,
+          "minimum_value": 0.16301314076364787,
+          "maximum_value": 2.3258542721129176,
+          "max_abs_target_error": 2.3258542721129176,
+          "passed": true
+        },
+        {
+          "constraint": "rater_step_last_derived_sum_to_zero",
+          "block": "rater_steps",
+          "n_failed": 0,
+          "minimum_value": 0.0,
+          "maximum_value": 0.0,
+          "max_abs_target_error": 0.0,
+          "passed": true
+        },
+        {
+          "constraint": "rater_step_last_derived_sum_to_zero",
+          "block": "rater_steps",
+          "n_failed": 0,
+          "minimum_value": 0.0,
+          "maximum_value": 0.0,
+          "max_abs_target_error": 0.0,
+          "passed": true
+        }
+      ],
+      "pointwise": {
+        "n_observations": 6,
+        "n_draws": 192,
+        "n_nonfinite_pointwise": 0,
+        "n_nonfinite_loglikelihood": 0,
+        "minimum_pointwise_loglikelihood": -6.383971698386407,
+        "maximum_pointwise_loglikelihood": -3.895093136160016e-10,
+        "minimum_loglikelihood": -10.314360579398286,
+        "maximum_loglikelihood": -3.4723159899926075
+      }
+    },
+    {
+      "scenario": "near_oracle_high_acceptance",
+      "seed": 20260713,
+      "controls": {
+        "step_size": 0.015,
+        "target_accept": 0.9,
+        "max_depth": 7,
+        "init_jitter": 0.02
+      },
+      "initial_raw_parameter_values": [
+        0.3,
+        -0.2,
+        0.1,
+        -0.05,
+        -0.2,
+        0.6931471805599453,
+        0.1823215567939546,
+        -0.2231435513142097,
+        0.25,
+        -0.1
+      ],
+      "initial_direct_parameter_values": [
+        0.3,
+        -0.2,
+        0.1,
+        -0.05,
+        -0.2,
+        0.2,
+        2.0,
+        0.5,
+        1.2,
+        0.8,
+        0.25,
+        -0.1
+      ],
+      "summary": {
+        "internal_flag": "ok",
+        "internal_passed": true,
+        "passed_protocol": true,
+        "n_chains": 2,
+        "draws_per_chain": 96,
+        "total_draws": 192,
+        "max_rhat": 1.0135676697843614,
+        "min_ess": 129.20736996905373,
+        "n_bad_rhat": 0,
+        "n_low_ess": 0,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "e_bfmi": 1.1178828103282865,
+        "n_sampler_warnings": 0,
+        "n_block_warnings": 0,
+        "n_direct_block_warnings": 0,
+        "n_nonfinite_logdensity": 0,
+        "n_nonfinite_direct_loglikelihood": 0,
+        "n_failed_direct_constraints": 0
+      },
+      "sampler_rows": [
+        {
+          "chain": 1,
+          "acceptance_rate": 0.9281336264950991,
+          "n_divergences": 0,
+          "n_max_treedepth": 0,
+          "e_bfmi": 1.1178828103282865,
+          "mean_n_steps": 13.916666666666666,
+          "mean_tree_depth": 3.5729166666666665,
+          "max_tree_depth": 4,
+          "mean_step_size": 0.229178509136021,
+          "n_nonfinite_logdensity": 0,
+          "flag": "ok"
+        },
+        {
+          "chain": 2,
+          "acceptance_rate": 0.9577616150426302,
+          "n_divergences": 0,
+          "n_max_treedepth": 0,
+          "e_bfmi": 1.1777671198849047,
+          "mean_n_steps": 16.375,
+          "mean_tree_depth": 3.7291666666666665,
+          "max_tree_depth": 5,
+          "mean_step_size": 0.17915685135402745,
+          "n_nonfinite_logdensity": 0,
+          "flag": "ok"
+        }
+      ],
+      "raw_block_rows": [
+        {
+          "block": "item_free",
+          "n_parameters": 1,
+          "max_rhat": 1.0065153538868878,
+          "min_ess": 192.0,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "log_item_discrimination_free",
+          "n_parameters": 1,
+          "max_rhat": 1.0001904546848333,
+          "min_ess": 192.0,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "log_rater_consistency",
+          "n_parameters": 2,
+          "max_rhat": 1.00631210346357,
+          "min_ess": 192.0,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "person",
+          "n_parameters": 2,
+          "max_rhat": 0.9916316017974445,
+          "min_ess": 192.0,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "rater",
+          "n_parameters": 2,
+          "max_rhat": 1.0135676697843614,
+          "min_ess": 129.20736996905373,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "rater_steps",
+          "n_parameters": 2,
+          "max_rhat": 0.990101570108574,
+          "min_ess": 167.16992500372885,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        }
+      ],
+      "direct_block_rows": [
+        {
+          "block": "item",
+          "n_parameters": 2,
+          "max_rhat": 1.0065153538868878,
+          "min_ess": 192.0,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "item_discrimination",
+          "n_parameters": 2,
+          "max_rhat": 1.0056011958130338,
+          "min_ess": 192.0,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "person",
+          "n_parameters": 2,
+          "max_rhat": 0.9916316017974445,
+          "min_ess": 192.0,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "rater",
+          "n_parameters": 2,
+          "max_rhat": 1.0135676697843614,
+          "min_ess": 129.20736996905373,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "rater_consistency",
+          "n_parameters": 2,
+          "max_rhat": 1.0036531716412305,
+          "min_ess": 192.0,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        },
+        {
+          "block": "rater_steps",
+          "n_parameters": 2,
+          "max_rhat": 0.990101570108574,
+          "min_ess": 167.16992500372885,
+          "n_bad_rhat": 0,
+          "n_low_ess": 0,
+          "n_insufficient_chains": 0,
+          "n_degenerate_parameters": 0,
+          "flag": "ok"
+        }
+      ],
+      "direct_constraint_rows": [
+        {
+          "constraint": "item_sum_to_zero",
+          "block": "item",
+          "n_failed": 0,
+          "minimum_value": 0.0,
+          "maximum_value": 0.0,
+          "max_abs_target_error": 0.0,
+          "passed": true
+        },
+        {
+          "constraint": "item_discrimination_positive",
+          "block": "item_discrimination",
+          "n_failed": 0,
+          "minimum_value": 0.20613920730231855,
+          "maximum_value": 0.9987535210685377,
+          "max_abs_target_error": 0.9987535210685377,
+          "passed": true
+        },
+        {
+          "constraint": "item_discrimination_product_one",
+          "block": "item_discrimination",
+          "n_failed": 0,
+          "minimum_value": 0.9999999999999999,
+          "maximum_value": 1.0000000000000002,
+          "max_abs_target_error": 2.220446049250313e-16,
+          "passed": true
+        },
+        {
+          "constraint": "rater_consistency_positive",
+          "block": "rater_consistency",
+          "n_failed": 0,
+          "minimum_value": 0.1830478683495121,
+          "maximum_value": 1.5823656461739626,
+          "max_abs_target_error": 1.5823656461739626,
+          "passed": true
+        },
+        {
+          "constraint": "rater_step_last_derived_sum_to_zero",
+          "block": "rater_steps",
+          "n_failed": 0,
+          "minimum_value": 0.0,
+          "maximum_value": 0.0,
+          "max_abs_target_error": 0.0,
+          "passed": true
+        },
+        {
+          "constraint": "rater_step_last_derived_sum_to_zero",
+          "block": "rater_steps",
+          "n_failed": 0,
+          "minimum_value": 0.0,
+          "maximum_value": 0.0,
+          "max_abs_target_error": 0.0,
+          "passed": true
+        }
+      ],
+      "pointwise": {
+        "n_observations": 6,
+        "n_draws": 192,
+        "n_nonfinite_pointwise": 0,
+        "n_nonfinite_loglikelihood": 0,
+        "minimum_pointwise_loglikelihood": -5.056690967653301,
+        "maximum_pointwise_loglikelihood": -6.449809504260884e-7,
+        "minimum_loglikelihood": -9.835300524744966,
+        "maximum_loglikelihood": -3.3277980256090425
+      }
+    }
+  ],
+  "summary": {
+    "n_scenarios": 3,
+    "n_passed_protocol": 3,
+    "overall_passed": true,
+    "max_rhat": 1.027060113859785,
+    "min_ess": 89.2854892479805,
+    "min_ebfmi": 0.8771671459715952,
+    "n_divergences": 0,
+    "n_max_treedepth": 0,
+    "n_failed_direct_constraints": 0,
+    "n_nonfinite_logdensity": 0,
+    "n_nonfinite_direct_loglikelihood": 0
+  }
+}

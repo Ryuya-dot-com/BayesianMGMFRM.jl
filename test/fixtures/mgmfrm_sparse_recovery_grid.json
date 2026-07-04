@@ -1,0 +1,2877 @@
+{
+  "schema": "bayesianmgmfrm.mgmfrm_sparse_recovery_grid.v1",
+  "family": "mgmfrm",
+  "scope": "minimal_confirmatory_mgmfrm_candidate",
+  "status": "internal_sparse_recovery_grid",
+  "decision": "keep_internal",
+  "public_fit": false,
+  "experimental_public": false,
+  "fit_ready": false,
+  "dimensions": 2,
+  "q_matrix": [
+    [
+      true,
+      false
+    ],
+    [
+      false,
+      true
+    ]
+  ],
+  "latent_correlation": "identity_fixed",
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "protocol": {
+    "protocol_id": "confirmatory_mgmfrm_sparse_recovery_grid_v1",
+    "review_kind": "local_confirmatory_mgmfrm_sparse_recovery_grid",
+    "publication_or_registration_action": false,
+    "simulation_source": "confirmatory_mgmfrm_recovery_smoke_grid_variant",
+    "full_crossed_observations": 24,
+    "sparse_designs": {
+      "persons": 4,
+      "items": 2,
+      "raters": 3,
+      "categories": 3,
+      "dimensions": 2,
+      "q_matrix": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ]
+      ],
+      "rating_density": "sparse_connected",
+      "patterns": [
+        "rater_item_bridge",
+        "alternating_dimension_bridge",
+        "leave_one_pair_out"
+      ]
+    },
+    "validation": {
+      "bias_terms": [
+        [
+          "rater",
+          "item"
+        ]
+      ],
+      "min_cell_count": 2,
+      "require_no_validation_errors": true,
+      "require_connected_design": true,
+      "require_full_location_rank": true
+    },
+    "sampler": {
+      "backend": "advancedhmc",
+      "sampler": "nuts",
+      "chains": 2,
+      "warmup": 32,
+      "draws": 32,
+      "step_size": 0.02,
+      "target_accept": 0.8,
+      "max_depth": 8,
+      "max_energy_error": 1000.0,
+      "metric": "unit",
+      "ad_backend": "ForwardDiff",
+      "init_jitter": 0.0,
+      "split_chains": true
+    },
+    "diagnostics": {
+      "max_rhat": 1.6,
+      "min_ess": 4.0,
+      "min_ebfmi": 0.3,
+      "n_divergences": 0,
+      "n_max_treedepth": 0,
+      "n_failed_direct_constraints": 0,
+      "n_nonfinite_logdensity": 0,
+      "n_nonfinite_direct_loglikelihood": 0
+    },
+    "recovery": {
+      "interval": 0.8,
+      "max_block_mean_absolute_error": 2.5,
+      "max_parameter_absolute_error": 4.0,
+      "min_block_coverage_rate": 0.0
+    },
+    "thresholds": {
+      "n_scenarios": 3,
+      "min_observations": 16,
+      "max_observations": 20,
+      "require_all_scenarios_passed": true,
+      "require_validation_passed": true,
+      "require_connected_design": true,
+      "require_full_location_rank": true,
+      "require_same_parameter_order": true,
+      "require_sampler_passed": true,
+      "require_finite_logdensity": true,
+      "require_finite_pointwise_loglikelihood": true,
+      "require_finite_waic": true,
+      "require_recovery_within_thresholds": true,
+      "public_exposure_decision": "keep_internal"
+    }
+  },
+  "reviewed_artifacts": [
+    {
+      "artifact": "test/fixtures/mgmfrm_recovery_smoke.json",
+      "exists": true,
+      "sha256": "a2082c97b595f8336e3a0a6ad5042e5a899305de515fdf9b3ce0bcb6d46e25b9"
+    },
+    {
+      "artifact": "test/fixtures/mgmfrm_baseline_comparison.json",
+      "exists": true,
+      "sha256": "00f050e1714b500afa696032c4330e87b3de2a2f233f456f069a8c07e3d597ae"
+    }
+  ],
+  "raw_parameter_order_sha256": "477f5241b427d73af4a16c205e06f0bec660b1b11f07eec4a4923d234f78fe24",
+  "direct_parameter_order_sha256": "78608f091fa28094d326a0e5e14e045d130b5c4736b106e65b044b815a6d55ee",
+  "scenarios": [
+    {
+      "scenario": "rater_item_bridge_sparse",
+      "sparse_pattern": "rater_item_bridge",
+      "simulation_seed": 20260781,
+      "actual_simulation_seed": 20260781,
+      "sampler_seed": 20260782,
+      "raw_truth_sha256": "d55d902e06fd705f37a208dff141b2ad6361971cb08c83d9c6360c24e4e65499",
+      "selected_row_indices": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        7,
+        8,
+        9,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        19,
+        20,
+        21,
+        23,
+        24
+      ],
+      "selected_cells": [
+        {
+          "row": 1,
+          "person": "E1",
+          "rater": "R1",
+          "item": "I1",
+          "score": 0
+        },
+        {
+          "row": 2,
+          "person": "E1",
+          "rater": "R1",
+          "item": "I2",
+          "score": 1
+        },
+        {
+          "row": 3,
+          "person": "E1",
+          "rater": "R2",
+          "item": "I1",
+          "score": 0
+        },
+        {
+          "row": 4,
+          "person": "E1",
+          "rater": "R2",
+          "item": "I2",
+          "score": 2
+        },
+        {
+          "row": 5,
+          "person": "E1",
+          "rater": "R3",
+          "item": "I1",
+          "score": 2
+        },
+        {
+          "row": 6,
+          "person": "E2",
+          "rater": "R1",
+          "item": "I1",
+          "score": 2
+        },
+        {
+          "row": 7,
+          "person": "E2",
+          "rater": "R1",
+          "item": "I2",
+          "score": 2
+        },
+        {
+          "row": 8,
+          "person": "E2",
+          "rater": "R2",
+          "item": "I1",
+          "score": 0
+        },
+        {
+          "row": 9,
+          "person": "E2",
+          "rater": "R3",
+          "item": "I1",
+          "score": 2
+        },
+        {
+          "row": 10,
+          "person": "E2",
+          "rater": "R3",
+          "item": "I2",
+          "score": 0
+        },
+        {
+          "row": 11,
+          "person": "E3",
+          "rater": "R1",
+          "item": "I1",
+          "score": 2
+        },
+        {
+          "row": 12,
+          "person": "E3",
+          "rater": "R1",
+          "item": "I2",
+          "score": 2
+        },
+        {
+          "row": 13,
+          "person": "E3",
+          "rater": "R2",
+          "item": "I1",
+          "score": 0
+        },
+        {
+          "row": 14,
+          "person": "E3",
+          "rater": "R2",
+          "item": "I2",
+          "score": 0
+        },
+        {
+          "row": 15,
+          "person": "E3",
+          "rater": "R3",
+          "item": "I1",
+          "score": 2
+        },
+        {
+          "row": 16,
+          "person": "E4",
+          "rater": "R1",
+          "item": "I1",
+          "score": 2
+        },
+        {
+          "row": 17,
+          "person": "E4",
+          "rater": "R1",
+          "item": "I2",
+          "score": 1
+        },
+        {
+          "row": 18,
+          "person": "E4",
+          "rater": "R2",
+          "item": "I1",
+          "score": 2
+        },
+        {
+          "row": 19,
+          "person": "E4",
+          "rater": "R3",
+          "item": "I1",
+          "score": 2
+        },
+        {
+          "row": 20,
+          "person": "E4",
+          "rater": "R3",
+          "item": "I2",
+          "score": 0
+        }
+      ],
+      "design_density": {
+        "rating_density": "sparse_connected",
+        "n_observations": 20,
+        "full_crossed_observations": 24,
+        "observed_fraction": 0.8333333333333334,
+        "missing_observations": 4
+      },
+      "simulated_data": {
+        "n_observations": 20,
+        "score_counts": [
+          {
+            "score": 0,
+            "n": 7
+          },
+          {
+            "score": 1,
+            "n": 2
+          },
+          {
+            "score": 2,
+            "n": 11
+          }
+        ],
+        "person_levels": [
+          "E1",
+          "E2",
+          "E3",
+          "E4"
+        ],
+        "rater_levels": [
+          "R1",
+          "R2",
+          "R3"
+        ],
+        "item_levels": [
+          "I1",
+          "I2"
+        ],
+        "category_levels": [
+          0,
+          1,
+          2
+        ]
+      },
+      "validation": {
+        "n_observations": 20,
+        "passed": true,
+        "n_errors": 0,
+        "n_warnings": 1,
+        "issue_rows": [
+          {
+            "code": "unobserved_item_category",
+            "severity": "warning",
+            "message": "1 item/category cell(s) are unobserved; partial-credit thresholds may be weakly informed",
+            "context_keys": [
+              "cells"
+            ]
+          }
+        ],
+        "issue_codes": [
+          "unobserved_item_category"
+        ],
+        "category_counts": [
+          {
+            "category": 0,
+            "n": 7
+          },
+          {
+            "category": 1,
+            "n": 2
+          },
+          {
+            "category": 2,
+            "n": 11
+          }
+        ],
+        "facet_counts": [
+          {
+            "facet": "person",
+            "level": "E1",
+            "n": 5
+          },
+          {
+            "facet": "person",
+            "level": "E2",
+            "n": 5
+          },
+          {
+            "facet": "person",
+            "level": "E3",
+            "n": 5
+          },
+          {
+            "facet": "person",
+            "level": "E4",
+            "n": 5
+          },
+          {
+            "facet": "rater",
+            "level": "R1",
+            "n": 8
+          },
+          {
+            "facet": "rater",
+            "level": "R2",
+            "n": 6
+          },
+          {
+            "facet": "rater",
+            "level": "R3",
+            "n": 6
+          },
+          {
+            "facet": "item",
+            "level": "I1",
+            "n": 12
+          },
+          {
+            "facet": "item",
+            "level": "I2",
+            "n": 8
+          }
+        ],
+        "components": [
+          {
+            "component": 1,
+            "n_nodes": 9,
+            "nodes": [
+              {
+                "facet": "item",
+                "level": "I1"
+              },
+              {
+                "facet": "person",
+                "level": "E1"
+              },
+              {
+                "facet": "rater",
+                "level": "R1"
+              },
+              {
+                "facet": "rater",
+                "level": "R2"
+              },
+              {
+                "facet": "rater",
+                "level": "R3"
+              },
+              {
+                "facet": "person",
+                "level": "E2"
+              },
+              {
+                "facet": "person",
+                "level": "E3"
+              },
+              {
+                "facet": "person",
+                "level": "E4"
+              },
+              {
+                "facet": "item",
+                "level": "I2"
+              }
+            ]
+          }
+        ],
+        "n_components": 1,
+        "component_sizes": [
+          9
+        ],
+        "location_design_rank": 7,
+        "n_location_parameters": 7,
+        "location_design_full_rank": true,
+        "dff_cell_counts": [
+          {
+            "left_facet": "rater",
+            "right_facet": "item",
+            "left_level": "R1",
+            "right_level": "I1",
+            "n": 4
+          },
+          {
+            "left_facet": "rater",
+            "right_facet": "item",
+            "left_level": "R1",
+            "right_level": "I2",
+            "n": 4
+          },
+          {
+            "left_facet": "rater",
+            "right_facet": "item",
+            "left_level": "R2",
+            "right_level": "I1",
+            "n": 4
+          },
+          {
+            "left_facet": "rater",
+            "right_facet": "item",
+            "left_level": "R2",
+            "right_level": "I2",
+            "n": 2
+          },
+          {
+            "left_facet": "rater",
+            "right_facet": "item",
+            "left_level": "R3",
+            "right_level": "I1",
+            "n": 4
+          },
+          {
+            "left_facet": "rater",
+            "right_facet": "item",
+            "left_level": "R3",
+            "right_level": "I2",
+            "n": 2
+          }
+        ]
+      },
+      "raw_parameter_order_sha256": "477f5241b427d73af4a16c205e06f0bec660b1b11f07eec4a4923d234f78fe24",
+      "direct_parameter_order_sha256": "78608f091fa28094d326a0e5e14e045d130b5c4736b106e65b044b815a6d55ee",
+      "parameter_order_matches_reference": true,
+      "sampler_summary": {
+        "internal_flag": "ok",
+        "internal_passed": true,
+        "n_chains": 2,
+        "draws_per_chain": 32,
+        "total_draws": 64,
+        "max_rhat": 1.0326519176331508,
+        "min_ess": 32.16271876342854,
+        "n_bad_rhat": 0,
+        "n_low_ess": 0,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "e_bfmi": 1.1151784420288429,
+        "n_sampler_warnings": 0,
+        "n_block_warnings": 0,
+        "n_direct_block_warnings": 0,
+        "n_nonfinite_logdensity": 0,
+        "n_nonfinite_direct_loglikelihood": 0,
+        "n_failed_direct_constraints": 0
+      },
+      "pointwise_loglikelihood_review": {
+        "shape": [
+          64,
+          20
+        ],
+        "n_nonfinite": 0,
+        "minimum": -5.952797521924647,
+        "maximum": 0.0
+      },
+      "waic": {
+        "criterion": "waic",
+        "elpd_waic": -21.05745181732527,
+        "p_waic": 9.991860838604566,
+        "lppd": -11.065590978720703,
+        "waic": 42.11490363465054,
+        "se_elpd_waic": 3.605166348127256,
+        "se_waic": 7.210332696254512,
+        "n_draws": 64,
+        "n_observations": 20,
+        "high_variance_count": 8,
+        "warning": "high_loglik_variance"
+      },
+      "recovery_rows": [
+        {
+          "parameter": "person[E1,dim=1]",
+          "parameter_index": 1,
+          "block": "person",
+          "true_value": -0.45,
+          "posterior_mean": -0.709403262650731,
+          "posterior_sd": 0.9965599240579215,
+          "posterior_median": -0.6896076733504173,
+          "posterior_lower": -1.964106664544075,
+          "posterior_upper": 0.5986927406305623,
+          "interval_probability": 0.8,
+          "bias": -0.25940326265073094,
+          "absolute_bias": 0.25940326265073094,
+          "relative_bias": -0.5764516947794021,
+          "interval_width": 2.5627994051746374,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "person[E1,dim=2]",
+          "parameter_index": 2,
+          "block": "person",
+          "true_value": 0.2,
+          "posterior_mean": 0.8198536376039675,
+          "posterior_sd": 0.7098382512513202,
+          "posterior_median": 0.7865852721494667,
+          "posterior_lower": 0.0003144708031018938,
+          "posterior_upper": 1.6538515375209517,
+          "interval_probability": 0.8,
+          "bias": 0.6198536376039674,
+          "absolute_bias": 0.6198536376039674,
+          "relative_bias": 3.099268188019837,
+          "interval_width": 1.6535370667178497,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "person[E2,dim=1]",
+          "parameter_index": 3,
+          "block": "person",
+          "true_value": -0.15,
+          "posterior_mean": -0.11377351256731649,
+          "posterior_sd": 0.7307800496397555,
+          "posterior_median": -0.20528230347444873,
+          "posterior_lower": -0.9695917999690222,
+          "posterior_upper": 0.8578332759948946,
+          "interval_probability": 0.8,
+          "bias": 0.0362264874326835,
+          "absolute_bias": 0.0362264874326835,
+          "relative_bias": 0.24150991621789003,
+          "interval_width": 1.8274250759639168,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "person[E2,dim=2]",
+          "parameter_index": 4,
+          "block": "person",
+          "true_value": -0.25,
+          "posterior_mean": -0.5781724115435373,
+          "posterior_sd": 0.6581598296095299,
+          "posterior_median": -0.6364716682798233,
+          "posterior_lower": -1.4599931474951815,
+          "posterior_upper": 0.2530470733258513,
+          "interval_probability": 0.8,
+          "bias": -0.32817241154353727,
+          "absolute_bias": 0.32817241154353727,
+          "relative_bias": -1.312689646174149,
+          "interval_width": 1.713040220821033,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "person[E3,dim=1]",
+          "parameter_index": 5,
+          "block": "person",
+          "true_value": 0.15,
+          "posterior_mean": -0.16786712209046162,
+          "posterior_sd": 0.7269998528367663,
+          "posterior_median": -0.2299861040059062,
+          "posterior_lower": -1.1251793896451645,
+          "posterior_upper": 0.6544292579834193,
+          "interval_probability": 0.8,
+          "bias": -0.31786712209046164,
+          "absolute_bias": 0.31786712209046164,
+          "relative_bias": -2.1191141472697446,
+          "interval_width": 1.7796086476285837,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "person[E3,dim=2]",
+          "parameter_index": 6,
+          "block": "person",
+          "true_value": 0.3,
+          "posterior_mean": -0.08837623189256452,
+          "posterior_sd": 0.7787514062402534,
+          "posterior_median": -0.2318859312464419,
+          "posterior_lower": -1.0139868494602602,
+          "posterior_upper": 1.0037328277012623,
+          "interval_probability": 0.8,
+          "bias": -0.38837623189256454,
+          "absolute_bias": 0.38837623189256454,
+          "relative_bias": -1.294587439641882,
+          "interval_width": 2.0177196771615225,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "person[E4,dim=1]",
+          "parameter_index": 7,
+          "block": "person",
+          "true_value": 0.45,
+          "posterior_mean": 0.8896806355522444,
+          "posterior_sd": 0.9466822058802408,
+          "posterior_median": 0.9267614670976652,
+          "posterior_lower": -0.13445977506234974,
+          "posterior_upper": 1.9254034681654424,
+          "interval_probability": 0.8,
+          "bias": 0.4396806355522444,
+          "absolute_bias": 0.4396806355522444,
+          "relative_bias": 0.9770680790049875,
+          "interval_width": 2.059863243227792,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "person[E4,dim=2]",
+          "parameter_index": 8,
+          "block": "person",
+          "true_value": -0.1,
+          "posterior_mean": -0.8040637785570786,
+          "posterior_sd": 0.746377404578407,
+          "posterior_median": -0.7996090391219404,
+          "posterior_lower": -1.7751882356617505,
+          "posterior_upper": 0.12928064759351743,
+          "interval_probability": 0.8,
+          "bias": -0.7040637785570786,
+          "absolute_bias": 0.7040637785570786,
+          "relative_bias": -7.040637785570786,
+          "interval_width": 1.904468883255268,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "rater[R1]",
+          "parameter_index": 9,
+          "block": "rater",
+          "true_value": -0.2,
+          "posterior_mean": -0.5752456446141871,
+          "posterior_sd": 0.3633168390727795,
+          "posterior_median": -0.5704624881629339,
+          "posterior_lower": -1.0175509498328328,
+          "posterior_upper": -0.14941056285806611,
+          "interval_probability": 0.8,
+          "bias": -0.37524564461418713,
+          "absolute_bias": 0.37524564461418713,
+          "relative_bias": -1.8762282230709355,
+          "interval_width": 0.8681403869747667,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "rater[R2]",
+          "parameter_index": 10,
+          "block": "rater",
+          "true_value": 0.05,
+          "posterior_mean": 0.877313887581604,
+          "posterior_sd": 0.400318920615631,
+          "posterior_median": 0.8317432909257376,
+          "posterior_lower": 0.3694195944837517,
+          "posterior_upper": 1.4061283143118768,
+          "interval_probability": 0.8,
+          "bias": 0.827313887581604,
+          "absolute_bias": 0.827313887581604,
+          "relative_bias": 16.54627775163208,
+          "interval_width": 1.036708719828125,
+          "covered": false,
+          "flag": "missed_interval"
+        },
+        {
+          "parameter": "rater[R3]",
+          "parameter_index": 11,
+          "block": "rater",
+          "true_value": 0.15000000000000002,
+          "posterior_mean": -0.3020682429674167,
+          "posterior_sd": 0.3779087403397377,
+          "posterior_median": -0.28093352147981543,
+          "posterior_lower": -0.8425572728125224,
+          "posterior_upper": 0.17153700865003343,
+          "interval_probability": 0.8,
+          "bias": -0.4520682429674167,
+          "absolute_bias": 0.4520682429674167,
+          "relative_bias": -3.013788286449444,
+          "interval_width": 1.0140942814625558,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "item[I1]",
+          "parameter_index": 12,
+          "block": "item",
+          "true_value": -0.1,
+          "posterior_mean": -0.6038619063923051,
+          "posterior_sd": 0.6745988654950539,
+          "posterior_median": -0.6090110681003957,
+          "posterior_lower": -1.440666183777216,
+          "posterior_upper": 0.08081460136360225,
+          "interval_probability": 0.8,
+          "bias": -0.5038619063923051,
+          "absolute_bias": 0.5038619063923051,
+          "relative_bias": -5.038619063923051,
+          "interval_width": 1.521480785140818,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "item[I2]",
+          "parameter_index": 13,
+          "block": "item",
+          "true_value": 0.15,
+          "posterior_mean": 0.06371361396824304,
+          "posterior_sd": 0.4628243439700893,
+          "posterior_median": 0.0950295786846157,
+          "posterior_lower": -0.5299156290290162,
+          "posterior_upper": 0.5608207119173394,
+          "interval_probability": 0.8,
+          "bias": -0.08628638603175695,
+          "absolute_bias": 0.08628638603175695,
+          "relative_bias": -0.5752425735450464,
+          "interval_width": 1.0907363409463557,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "item_dimension_discrimination[item=I1,dim=1]",
+          "parameter_index": 14,
+          "block": "item_dimension_discrimination",
+          "true_value": 1.3,
+          "posterior_mean": 0.8942229385897693,
+          "posterior_sd": 0.42666012102795314,
+          "posterior_median": 0.7893897974833437,
+          "posterior_lower": 0.455951608321602,
+          "posterior_upper": 1.5978608559293943,
+          "interval_probability": 0.8,
+          "bias": -0.40577706141023073,
+          "absolute_bias": 0.40577706141023073,
+          "relative_bias": -0.31213620108479284,
+          "interval_width": 1.1419092476077923,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "item_dimension_discrimination[item=I2,dim=2]",
+          "parameter_index": 15,
+          "block": "item_dimension_discrimination",
+          "true_value": 0.8,
+          "posterior_mean": 1.0976787544738733,
+          "posterior_sd": 0.5027504011598097,
+          "posterior_median": 1.0226703191206508,
+          "posterior_lower": 0.5118258738112624,
+          "posterior_upper": 1.7498510174066078,
+          "interval_probability": 0.8,
+          "bias": 0.29767875447387326,
+          "absolute_bias": 0.29767875447387326,
+          "relative_bias": 0.3720984430923416,
+          "interval_width": 1.2380251435953453,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "rater_consistency[rater=R1]",
+          "parameter_index": 16,
+          "block": "rater_consistency",
+          "true_value": 1.15,
+          "posterior_mean": 0.6257022466872141,
+          "posterior_sd": 0.35782707930867186,
+          "posterior_median": 0.5192545228704784,
+          "posterior_lower": 0.308415719400769,
+          "posterior_upper": 1.0146708644889417,
+          "interval_probability": 0.8,
+          "bias": -0.5242977533127858,
+          "absolute_bias": 0.5242977533127858,
+          "relative_bias": -0.45591108983720513,
+          "interval_width": 0.7062551450881727,
+          "covered": false,
+          "flag": "missed_interval"
+        },
+        {
+          "parameter": "rater_consistency[rater=R2]",
+          "parameter_index": 17,
+          "block": "rater_consistency",
+          "true_value": 0.9,
+          "posterior_mean": 1.1669739082123662,
+          "posterior_sd": 0.7721422603670447,
+          "posterior_median": 0.8877250939836817,
+          "posterior_lower": 0.487983245754838,
+          "posterior_upper": 2.5721325415899314,
+          "interval_probability": 0.8,
+          "bias": 0.2669739082123662,
+          "absolute_bias": 0.2669739082123662,
+          "relative_bias": 0.296637675791518,
+          "interval_width": 2.0841492958350933,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "rater_consistency[rater=R3]",
+          "parameter_index": 18,
+          "block": "rater_consistency",
+          "true_value": 0.9661835748792271,
+          "posterior_mean": 2.413537659745402,
+          "posterior_sd": 1.5336228635096658,
+          "posterior_median": 2.136388895301332,
+          "posterior_lower": 0.7019530376650407,
+          "posterior_upper": 4.561473407803861,
+          "interval_probability": 0.8,
+          "bias": 1.447354084866175,
+          "absolute_bias": 1.447354084866175,
+          "relative_bias": 1.498011477836491,
+          "interval_width": 3.8595203701388208,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "item_step[item=I1,m=2]",
+          "parameter_index": 19,
+          "block": "item_steps",
+          "true_value": 0.2,
+          "posterior_mean": 0.9469273847566226,
+          "posterior_sd": 0.6922682059556909,
+          "posterior_median": 0.9330417041622698,
+          "posterior_lower": 0.1371125213002753,
+          "posterior_upper": 1.875389040681884,
+          "interval_probability": 0.8,
+          "bias": 0.7469273847566227,
+          "absolute_bias": 0.7469273847566227,
+          "relative_bias": 3.734636923783113,
+          "interval_width": 1.7382765193816088,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "item_step[item=I2,m=2]",
+          "parameter_index": 20,
+          "block": "item_steps",
+          "true_value": -0.15,
+          "posterior_mean": 0.2616147648657435,
+          "posterior_sd": 0.6288238865652407,
+          "posterior_median": 0.23959353787007304,
+          "posterior_lower": -0.43309154936058525,
+          "posterior_upper": 1.178775266753743,
+          "interval_probability": 0.8,
+          "bias": 0.41161476486574344,
+          "absolute_bias": 0.41161476486574344,
+          "relative_bias": 2.7440984324382898,
+          "interval_width": 1.6118668161143281,
+          "covered": true,
+          "flag": "covered"
+        }
+      ],
+      "recovery_by_block": [
+        {
+          "by": "block",
+          "group": "person",
+          "n_parameters": 8,
+          "mean_bias": -0.11276525576818472,
+          "mean_absolute_error": 0.3867054459154085,
+          "rmse": 0.43321740286713467,
+          "median_absolute_error": 0.3582743217180509,
+          "max_absolute_error": 0.7040637785570786,
+          "coverage_rate": 1.0,
+          "nominal_coverage": 0.8,
+          "coverage_gap": 0.19999999999999996,
+          "mean_interval_width": 1.9398077774938254,
+          "n_covered": 8,
+          "flag": "ok"
+        },
+        {
+          "by": "block",
+          "group": "rater",
+          "n_parameters": 3,
+          "mean_bias": 3.700743415417188e-17,
+          "mean_absolute_error": 0.5515425917210693,
+          "rmse": 0.5858393575850382,
+          "median_absolute_error": 0.4520682429674167,
+          "max_absolute_error": 0.827313887581604,
+          "coverage_rate": 0.6666666666666666,
+          "nominal_coverage": 0.8,
+          "coverage_gap": -0.13333333333333341,
+          "mean_interval_width": 0.9729811294218159,
+          "n_covered": 2,
+          "flag": "coverage_below_nominal"
+        },
+        {
+          "by": "block",
+          "group": "item",
+          "n_parameters": 2,
+          "mean_bias": -0.29507414621203104,
+          "mean_absolute_error": 0.29507414621203104,
+          "rmse": 0.3614707188194567,
+          "median_absolute_error": 0.29507414621203104,
+          "max_absolute_error": 0.5038619063923051,
+          "coverage_rate": 1.0,
+          "nominal_coverage": 0.8,
+          "coverage_gap": 0.19999999999999996,
+          "mean_interval_width": 1.306108563043587,
+          "n_covered": 2,
+          "flag": "ok"
+        },
+        {
+          "by": "block",
+          "group": "item_dimension_discrimination",
+          "n_parameters": 2,
+          "mean_bias": -0.054049153468178734,
+          "mean_absolute_error": 0.351727907942052,
+          "rmse": 0.35585647699025985,
+          "median_absolute_error": 0.351727907942052,
+          "max_absolute_error": 0.40577706141023073,
+          "coverage_rate": 1.0,
+          "nominal_coverage": 0.8,
+          "coverage_gap": 0.19999999999999996,
+          "mean_interval_width": 1.189967195601569,
+          "n_covered": 2,
+          "flag": "ok"
+        },
+        {
+          "by": "block",
+          "group": "rater_consistency",
+          "n_parameters": 3,
+          "mean_bias": 0.39667674658858515,
+          "mean_absolute_error": 0.7462085821304424,
+          "rmse": 0.9020341916604977,
+          "median_absolute_error": 0.5242977533127858,
+          "max_absolute_error": 1.447354084866175,
+          "coverage_rate": 0.6666666666666666,
+          "nominal_coverage": 0.8,
+          "coverage_gap": -0.13333333333333341,
+          "mean_interval_width": 2.2166416036873624,
+          "n_covered": 2,
+          "flag": "coverage_below_nominal"
+        },
+        {
+          "by": "block",
+          "group": "item_steps",
+          "n_parameters": 2,
+          "mean_bias": 0.5792710748111831,
+          "mean_absolute_error": 0.5792710748111831,
+          "rmse": 0.6030452855113159,
+          "median_absolute_error": 0.5792710748111831,
+          "max_absolute_error": 0.7469273847566227,
+          "coverage_rate": 1.0,
+          "nominal_coverage": 0.8,
+          "coverage_gap": 0.19999999999999996,
+          "mean_interval_width": 1.6750716677479685,
+          "n_covered": 2,
+          "flag": "ok"
+        }
+      ],
+      "summary": {
+        "passed": true,
+        "n_observations": 20,
+        "validation_passed": true,
+        "validation_warnings": 1,
+        "location_design_full_rank": true,
+        "parameter_order_matches_reference": true,
+        "sampler_flag": "ok",
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "n_failed_direct_constraints": 0,
+        "n_nonfinite_logdensity": 0,
+        "n_nonfinite_direct_loglikelihood": 0,
+        "max_rhat": 1.0326519176331508,
+        "min_ess": 32.16271876342854,
+        "e_bfmi": 1.1151784420288429,
+        "waic_finite": true,
+        "waic_warning": "high_loglik_variance",
+        "max_block_mean_absolute_error": 0.7462085821304424,
+        "max_parameter_absolute_error": 1.447354084866175,
+        "min_block_coverage_rate": 0.6666666666666666
+      }
+    },
+    {
+      "scenario": "alternating_dimension_bridge_sparse",
+      "sparse_pattern": "alternating_dimension_bridge",
+      "simulation_seed": 20260783,
+      "actual_simulation_seed": 20260783,
+      "sampler_seed": 20260784,
+      "raw_truth_sha256": "0332b0119d82bbac9bc8ecdae54e29acfb09dfe44608b1e0d21200e0f281ccb4",
+      "selected_row_indices": [
+        1,
+        2,
+        4,
+        5,
+        7,
+        8,
+        9,
+        12,
+        13,
+        14,
+        16,
+        17,
+        19,
+        20,
+        21,
+        24
+      ],
+      "selected_cells": [
+        {
+          "row": 1,
+          "person": "E1",
+          "rater": "R1",
+          "item": "I1",
+          "score": 2
+        },
+        {
+          "row": 2,
+          "person": "E1",
+          "rater": "R1",
+          "item": "I2",
+          "score": 1
+        },
+        {
+          "row": 3,
+          "person": "E1",
+          "rater": "R2",
+          "item": "I2",
+          "score": 1
+        },
+        {
+          "row": 4,
+          "person": "E1",
+          "rater": "R3",
+          "item": "I1",
+          "score": 1
+        },
+        {
+          "row": 5,
+          "person": "E2",
+          "rater": "R1",
+          "item": "I1",
+          "score": 2
+        },
+        {
+          "row": 6,
+          "person": "E2",
+          "rater": "R1",
+          "item": "I2",
+          "score": 0
+        },
+        {
+          "row": 7,
+          "person": "E2",
+          "rater": "R2",
+          "item": "I1",
+          "score": 2
+        },
+        {
+          "row": 8,
+          "person": "E2",
+          "rater": "R3",
+          "item": "I2",
+          "score": 2
+        },
+        {
+          "row": 9,
+          "person": "E3",
+          "rater": "R1",
+          "item": "I1",
+          "score": 2
+        },
+        {
+          "row": 10,
+          "person": "E3",
+          "rater": "R1",
+          "item": "I2",
+          "score": 1
+        },
+        {
+          "row": 11,
+          "person": "E3",
+          "rater": "R2",
+          "item": "I2",
+          "score": 1
+        },
+        {
+          "row": 12,
+          "person": "E3",
+          "rater": "R3",
+          "item": "I1",
+          "score": 2
+        },
+        {
+          "row": 13,
+          "person": "E4",
+          "rater": "R1",
+          "item": "I1",
+          "score": 2
+        },
+        {
+          "row": 14,
+          "person": "E4",
+          "rater": "R1",
+          "item": "I2",
+          "score": 2
+        },
+        {
+          "row": 15,
+          "person": "E4",
+          "rater": "R2",
+          "item": "I1",
+          "score": 1
+        },
+        {
+          "row": 16,
+          "person": "E4",
+          "rater": "R3",
+          "item": "I2",
+          "score": 1
+        }
+      ],
+      "design_density": {
+        "rating_density": "sparse_connected",
+        "n_observations": 16,
+        "full_crossed_observations": 24,
+        "observed_fraction": 0.6666666666666666,
+        "missing_observations": 8
+      },
+      "simulated_data": {
+        "n_observations": 16,
+        "score_counts": [
+          {
+            "score": 0,
+            "n": 1
+          },
+          {
+            "score": 1,
+            "n": 7
+          },
+          {
+            "score": 2,
+            "n": 8
+          }
+        ],
+        "person_levels": [
+          "E1",
+          "E2",
+          "E3",
+          "E4"
+        ],
+        "rater_levels": [
+          "R1",
+          "R2",
+          "R3"
+        ],
+        "item_levels": [
+          "I1",
+          "I2"
+        ],
+        "category_levels": [
+          0,
+          1,
+          2
+        ]
+      },
+      "validation": {
+        "n_observations": 16,
+        "passed": true,
+        "n_errors": 0,
+        "n_warnings": 1,
+        "issue_rows": [
+          {
+            "code": "unobserved_item_category",
+            "severity": "warning",
+            "message": "1 item/category cell(s) are unobserved; partial-credit thresholds may be weakly informed",
+            "context_keys": [
+              "cells"
+            ]
+          }
+        ],
+        "issue_codes": [
+          "unobserved_item_category"
+        ],
+        "category_counts": [
+          {
+            "category": 0,
+            "n": 1
+          },
+          {
+            "category": 1,
+            "n": 7
+          },
+          {
+            "category": 2,
+            "n": 8
+          }
+        ],
+        "facet_counts": [
+          {
+            "facet": "person",
+            "level": "E1",
+            "n": 4
+          },
+          {
+            "facet": "person",
+            "level": "E2",
+            "n": 4
+          },
+          {
+            "facet": "person",
+            "level": "E3",
+            "n": 4
+          },
+          {
+            "facet": "person",
+            "level": "E4",
+            "n": 4
+          },
+          {
+            "facet": "rater",
+            "level": "R1",
+            "n": 8
+          },
+          {
+            "facet": "rater",
+            "level": "R2",
+            "n": 4
+          },
+          {
+            "facet": "rater",
+            "level": "R3",
+            "n": 4
+          },
+          {
+            "facet": "item",
+            "level": "I1",
+            "n": 8
+          },
+          {
+            "facet": "item",
+            "level": "I2",
+            "n": 8
+          }
+        ],
+        "components": [
+          {
+            "component": 1,
+            "n_nodes": 9,
+            "nodes": [
+              {
+                "facet": "item",
+                "level": "I1"
+              },
+              {
+                "facet": "person",
+                "level": "E1"
+              },
+              {
+                "facet": "rater",
+                "level": "R1"
+              },
+              {
+                "facet": "rater",
+                "level": "R3"
+              },
+              {
+                "facet": "person",
+                "level": "E2"
+              },
+              {
+                "facet": "rater",
+                "level": "R2"
+              },
+              {
+                "facet": "person",
+                "level": "E3"
+              },
+              {
+                "facet": "person",
+                "level": "E4"
+              },
+              {
+                "facet": "item",
+                "level": "I2"
+              }
+            ]
+          }
+        ],
+        "n_components": 1,
+        "component_sizes": [
+          9
+        ],
+        "location_design_rank": 7,
+        "n_location_parameters": 7,
+        "location_design_full_rank": true,
+        "dff_cell_counts": [
+          {
+            "left_facet": "rater",
+            "right_facet": "item",
+            "left_level": "R1",
+            "right_level": "I1",
+            "n": 4
+          },
+          {
+            "left_facet": "rater",
+            "right_facet": "item",
+            "left_level": "R1",
+            "right_level": "I2",
+            "n": 4
+          },
+          {
+            "left_facet": "rater",
+            "right_facet": "item",
+            "left_level": "R2",
+            "right_level": "I1",
+            "n": 2
+          },
+          {
+            "left_facet": "rater",
+            "right_facet": "item",
+            "left_level": "R2",
+            "right_level": "I2",
+            "n": 2
+          },
+          {
+            "left_facet": "rater",
+            "right_facet": "item",
+            "left_level": "R3",
+            "right_level": "I1",
+            "n": 2
+          },
+          {
+            "left_facet": "rater",
+            "right_facet": "item",
+            "left_level": "R3",
+            "right_level": "I2",
+            "n": 2
+          }
+        ]
+      },
+      "raw_parameter_order_sha256": "477f5241b427d73af4a16c205e06f0bec660b1b11f07eec4a4923d234f78fe24",
+      "direct_parameter_order_sha256": "78608f091fa28094d326a0e5e14e045d130b5c4736b106e65b044b815a6d55ee",
+      "parameter_order_matches_reference": true,
+      "sampler_summary": {
+        "internal_flag": "ok",
+        "internal_passed": true,
+        "n_chains": 2,
+        "draws_per_chain": 32,
+        "total_draws": 64,
+        "max_rhat": 1.0441182148950983,
+        "min_ess": 38.74505963469265,
+        "n_bad_rhat": 0,
+        "n_low_ess": 0,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "e_bfmi": 0.8351871165523996,
+        "n_sampler_warnings": 0,
+        "n_block_warnings": 0,
+        "n_direct_block_warnings": 0,
+        "n_nonfinite_logdensity": 0,
+        "n_nonfinite_direct_loglikelihood": 0,
+        "n_failed_direct_constraints": 0
+      },
+      "pointwise_loglikelihood_review": {
+        "shape": [
+          64,
+          16
+        ],
+        "n_nonfinite": 0,
+        "minimum": -5.920066144340961,
+        "maximum": -6.536993168992922e-13
+      },
+      "waic": {
+        "criterion": "waic",
+        "elpd_waic": -17.586183487399776,
+        "p_waic": 8.37569646118933,
+        "lppd": -9.210487026210446,
+        "waic": 35.17236697479955,
+        "se_elpd_waic": 4.026078691279082,
+        "se_waic": 8.052157382558164,
+        "n_draws": 64,
+        "n_observations": 16,
+        "high_variance_count": 6,
+        "warning": "high_loglik_variance"
+      },
+      "recovery_rows": [
+        {
+          "parameter": "person[E1,dim=1]",
+          "parameter_index": 1,
+          "block": "person",
+          "true_value": -0.35,
+          "posterior_mean": -0.1529168573848743,
+          "posterior_sd": 0.9152671004898831,
+          "posterior_median": -0.1633035676338297,
+          "posterior_lower": -1.3152594934334285,
+          "posterior_upper": 1.0591308462631261,
+          "interval_probability": 0.8,
+          "bias": 0.1970831426151257,
+          "absolute_bias": 0.1970831426151257,
+          "relative_bias": 0.5630946931860734,
+          "interval_width": 2.3743903396965544,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "person[E1,dim=2]",
+          "parameter_index": 2,
+          "block": "person",
+          "true_value": 0.15,
+          "posterior_mean": -0.10172156471512671,
+          "posterior_sd": 0.8337736334254028,
+          "posterior_median": -0.1104060406689139,
+          "posterior_lower": -1.0519765260776106,
+          "posterior_upper": 0.8664960097734639,
+          "interval_probability": 0.8,
+          "bias": -0.2517215647151267,
+          "absolute_bias": 0.2517215647151267,
+          "relative_bias": -1.6781437647675113,
+          "interval_width": 1.9184725358510746,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "person[E2,dim=1]",
+          "parameter_index": 3,
+          "block": "person",
+          "true_value": -0.1,
+          "posterior_mean": 0.5707697101591597,
+          "posterior_sd": 0.8252726150777083,
+          "posterior_median": 0.6353322242005748,
+          "posterior_lower": -0.37292417299518543,
+          "posterior_upper": 1.4451666944279598,
+          "interval_probability": 0.8,
+          "bias": 0.6707697101591596,
+          "absolute_bias": 0.6707697101591596,
+          "relative_bias": 6.707697101591596,
+          "interval_width": 1.818090867423145,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "person[E2,dim=2]",
+          "parameter_index": 4,
+          "block": "person",
+          "true_value": -0.2,
+          "posterior_mean": -0.46680583791629726,
+          "posterior_sd": 0.8977185225314335,
+          "posterior_median": -0.4990481884046106,
+          "posterior_lower": -1.4251530350512345,
+          "posterior_upper": 0.6776563638420432,
+          "interval_probability": 0.8,
+          "bias": -0.26680583791629725,
+          "absolute_bias": 0.26680583791629725,
+          "relative_bias": -1.3340291895814862,
+          "interval_width": 2.1028093988932777,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "person[E3,dim=1]",
+          "parameter_index": 5,
+          "block": "person",
+          "true_value": 0.1,
+          "posterior_mean": 0.5578162035020162,
+          "posterior_sd": 0.885862206028702,
+          "posterior_median": 0.5452764296426267,
+          "posterior_lower": -0.6843211526353401,
+          "posterior_upper": 1.8802677983443827,
+          "interval_probability": 0.8,
+          "bias": 0.45781620350201624,
+          "absolute_bias": 0.45781620350201624,
+          "relative_bias": 4.578162035020162,
+          "interval_width": 2.564588950979723,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "person[E3,dim=2]",
+          "parameter_index": 6,
+          "block": "person",
+          "true_value": 0.25,
+          "posterior_mean": -0.057302390860775036,
+          "posterior_sd": 0.7036896342122154,
+          "posterior_median": -0.08260857336074295,
+          "posterior_lower": -0.8858842028773191,
+          "posterior_upper": 0.824162017494484,
+          "interval_probability": 0.8,
+          "bias": -0.30730239086077504,
+          "absolute_bias": 0.30730239086077504,
+          "relative_bias": -1.2292095634431002,
+          "interval_width": 1.7100462203718032,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "person[E4,dim=1]",
+          "parameter_index": 7,
+          "block": "person",
+          "true_value": 0.35,
+          "posterior_mean": -0.3164519039273064,
+          "posterior_sd": 0.6630996066644118,
+          "posterior_median": -0.2686644475655401,
+          "posterior_lower": -1.1075467145065319,
+          "posterior_upper": 0.4472023977839519,
+          "interval_probability": 0.8,
+          "bias": -0.6664519039273064,
+          "absolute_bias": 0.6664519039273064,
+          "relative_bias": -1.904148296935161,
+          "interval_width": 1.5547491122904837,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "person[E4,dim=2]",
+          "parameter_index": 8,
+          "block": "person",
+          "true_value": -0.05,
+          "posterior_mean": 0.6004530858287352,
+          "posterior_sd": 0.9171218492177216,
+          "posterior_median": 0.6265376742543466,
+          "posterior_lower": -0.5256545695533976,
+          "posterior_upper": 1.7580281300609526,
+          "interval_probability": 0.8,
+          "bias": 0.6504530858287353,
+          "absolute_bias": 0.6504530858287353,
+          "relative_bias": 13.009061716574704,
+          "interval_width": 2.28368269961435,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "rater[R1]",
+          "parameter_index": 9,
+          "block": "rater",
+          "true_value": -0.15,
+          "posterior_mean": -0.1813536940450971,
+          "posterior_sd": 0.48766243169684537,
+          "posterior_median": -0.22399683663124548,
+          "posterior_lower": -0.8260054663130703,
+          "posterior_upper": 0.5179138606834087,
+          "interval_probability": 0.8,
+          "bias": -0.03135369404509711,
+          "absolute_bias": 0.03135369404509711,
+          "relative_bias": -0.20902462696731405,
+          "interval_width": 1.3439193269964789,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "rater[R2]",
+          "parameter_index": 10,
+          "block": "rater",
+          "true_value": 0.05,
+          "posterior_mean": 0.308162998844002,
+          "posterior_sd": 0.5643024846633972,
+          "posterior_median": 0.2787171120834796,
+          "posterior_lower": -0.36885486525954836,
+          "posterior_upper": 1.0369729172250262,
+          "interval_probability": 0.8,
+          "bias": 0.258162998844002,
+          "absolute_bias": 0.258162998844002,
+          "relative_bias": 5.16325997688004,
+          "interval_width": 1.4058277824845744,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "rater[R3]",
+          "parameter_index": 11,
+          "block": "rater",
+          "true_value": 0.09999999999999999,
+          "posterior_mean": -0.12680930479890495,
+          "posterior_sd": 0.7467965859696019,
+          "posterior_median": -0.12478457263660708,
+          "posterior_lower": -1.1214140231003316,
+          "posterior_upper": 0.9329819308961513,
+          "interval_probability": 0.8,
+          "bias": -0.22680930479890493,
+          "absolute_bias": 0.22680930479890493,
+          "relative_bias": -2.2680930479890495,
+          "interval_width": 2.054395953996483,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "item[I1]",
+          "parameter_index": 12,
+          "block": "item",
+          "true_value": -0.08,
+          "posterior_mean": -1.2190614838540053,
+          "posterior_sd": 0.7046374760439036,
+          "posterior_median": -1.2030298218306077,
+          "posterior_lower": -2.0242548762471473,
+          "posterior_upper": -0.33066287273628475,
+          "interval_probability": 0.8,
+          "bias": -1.1390614838540052,
+          "absolute_bias": 1.1390614838540052,
+          "relative_bias": -14.238268548175064,
+          "interval_width": 1.6935920035108625,
+          "covered": false,
+          "flag": "missed_interval"
+        },
+        {
+          "parameter": "item[I2]",
+          "parameter_index": 13,
+          "block": "item",
+          "true_value": 0.12,
+          "posterior_mean": -0.2054864458811628,
+          "posterior_sd": 0.6496581313183719,
+          "posterior_median": -0.2522367034741926,
+          "posterior_lower": -0.8627380757983727,
+          "posterior_upper": 0.7470247534377179,
+          "interval_probability": 0.8,
+          "bias": -0.3254864458811628,
+          "absolute_bias": 0.3254864458811628,
+          "relative_bias": -2.71238704900969,
+          "interval_width": 1.6097628292360906,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "item_dimension_discrimination[item=I1,dim=1]",
+          "parameter_index": 14,
+          "block": "item_dimension_discrimination",
+          "true_value": 1.15,
+          "posterior_mean": 1.0511513612240975,
+          "posterior_sd": 0.5790343988769422,
+          "posterior_median": 0.9584806643138317,
+          "posterior_lower": 0.5219924009474392,
+          "posterior_upper": 1.5147990483540446,
+          "interval_probability": 0.8,
+          "bias": -0.09884863877590244,
+          "absolute_bias": 0.09884863877590244,
+          "relative_bias": -0.08595533806600213,
+          "interval_width": 0.9928066474066054,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "item_dimension_discrimination[item=I2,dim=2]",
+          "parameter_index": 15,
+          "block": "item_dimension_discrimination",
+          "true_value": 0.9,
+          "posterior_mean": 0.9854489218379356,
+          "posterior_sd": 0.44070704016058626,
+          "posterior_median": 0.9445750657315324,
+          "posterior_lower": 0.41046210305762365,
+          "posterior_upper": 1.6162048784469465,
+          "interval_probability": 0.8,
+          "bias": 0.08544892183793562,
+          "absolute_bias": 0.08544892183793562,
+          "relative_bias": 0.09494324648659513,
+          "interval_width": 1.2057427753893228,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "rater_consistency[rater=R1]",
+          "parameter_index": 16,
+          "block": "rater_consistency",
+          "true_value": 1.05,
+          "posterior_mean": 1.3650722520463094,
+          "posterior_sd": 0.750959052334967,
+          "posterior_median": 1.185818230789661,
+          "posterior_lower": 0.6139824245285126,
+          "posterior_upper": 2.4170860308548794,
+          "interval_probability": 0.8,
+          "bias": 0.3150722520463094,
+          "absolute_bias": 0.3150722520463094,
+          "relative_bias": 0.3000688114726756,
+          "interval_width": 1.8031036063263668,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "rater_consistency[rater=R2]",
+          "parameter_index": 17,
+          "block": "rater_consistency",
+          "true_value": 0.95,
+          "posterior_mean": 1.7704057677492133,
+          "posterior_sd": 0.9246644399366758,
+          "posterior_median": 1.5657342796362361,
+          "posterior_lower": 0.8963858948976458,
+          "posterior_upper": 3.040015287332967,
+          "interval_probability": 0.8,
+          "bias": 0.8204057677492134,
+          "absolute_bias": 0.8204057677492134,
+          "relative_bias": 0.8635850186833826,
+          "interval_width": 2.1436293924353214,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "rater_consistency[rater=R3]",
+          "parameter_index": 18,
+          "block": "rater_consistency",
+          "true_value": 1.0025062656641603,
+          "posterior_mean": 0.7050427256732488,
+          "posterior_sd": 0.6879934147466472,
+          "posterior_median": 0.5093683183687421,
+          "posterior_lower": 0.24832060148723611,
+          "posterior_upper": 1.5115868832505939,
+          "interval_probability": 0.8,
+          "bias": -0.2974635399909116,
+          "absolute_bias": 0.2974635399909116,
+          "relative_bias": -0.29671988114093434,
+          "interval_width": 1.2632662817633578,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "item_step[item=I1,m=2]",
+          "parameter_index": 19,
+          "block": "item_steps",
+          "true_value": 0.12,
+          "posterior_mean": -0.46073201972947764,
+          "posterior_sd": 0.6273461562196533,
+          "posterior_median": -0.3880608174271948,
+          "posterior_lower": -1.4141713833500473,
+          "posterior_upper": 0.20616010013704633,
+          "interval_probability": 0.8,
+          "bias": -0.5807320197294776,
+          "absolute_bias": 0.5807320197294776,
+          "relative_bias": -4.839433497745647,
+          "interval_width": 1.6203314834870937,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "item_step[item=I2,m=2]",
+          "parameter_index": 20,
+          "block": "item_steps",
+          "true_value": -0.1,
+          "posterior_mean": -1.0408500366514977,
+          "posterior_sd": 0.406717499295177,
+          "posterior_median": -1.0395910088633973,
+          "posterior_lower": -1.5021203206342097,
+          "posterior_upper": -0.47339958108118096,
+          "interval_probability": 0.8,
+          "bias": -0.9408500366514977,
+          "absolute_bias": 0.9408500366514977,
+          "relative_bias": -9.408500366514977,
+          "interval_width": 1.028720739553029,
+          "covered": false,
+          "flag": "missed_interval"
+        }
+      ],
+      "recovery_by_block": [
+        {
+          "by": "block",
+          "group": "person",
+          "n_parameters": 8,
+          "mean_bias": 0.060480055585691445,
+          "mean_absolute_error": 0.4335504799405677,
+          "rmse": 0.47362968962960794,
+          "median_absolute_error": 0.38255929718139564,
+          "max_absolute_error": 0.6707697101591596,
+          "coverage_rate": 1.0,
+          "nominal_coverage": 0.8,
+          "coverage_gap": 0.19999999999999996,
+          "mean_interval_width": 2.0408537656400516,
+          "n_covered": 8,
+          "flag": "ok"
+        },
+        {
+          "by": "block",
+          "group": "rater",
+          "n_parameters": 3,
+          "mean_bias": -9.25185853854297e-18,
+          "mean_absolute_error": 0.17210866589600135,
+          "rmse": 0.19922654512368937,
+          "median_absolute_error": 0.22680930479890493,
+          "max_absolute_error": 0.258162998844002,
+          "coverage_rate": 1.0,
+          "nominal_coverage": 0.8,
+          "coverage_gap": 0.19999999999999996,
+          "mean_interval_width": 1.6013810211591786,
+          "n_covered": 3,
+          "flag": "ok"
+        },
+        {
+          "by": "block",
+          "group": "item",
+          "n_parameters": 2,
+          "mean_bias": -0.732273964867584,
+          "mean_absolute_error": 0.732273964867584,
+          "rmse": 0.8376760980391046,
+          "median_absolute_error": 0.732273964867584,
+          "max_absolute_error": 1.1390614838540052,
+          "coverage_rate": 0.5,
+          "nominal_coverage": 0.8,
+          "coverage_gap": -0.30000000000000004,
+          "mean_interval_width": 1.6516774163734764,
+          "n_covered": 1,
+          "flag": "coverage_below_nominal"
+        },
+        {
+          "by": "block",
+          "group": "item_dimension_discrimination",
+          "n_parameters": 2,
+          "mean_bias": -0.006699858468983411,
+          "mean_absolute_error": 0.09214878030691903,
+          "rmse": 0.09239202246707903,
+          "median_absolute_error": 0.09214878030691903,
+          "max_absolute_error": 0.09884863877590244,
+          "coverage_rate": 1.0,
+          "nominal_coverage": 0.8,
+          "coverage_gap": 0.19999999999999996,
+          "mean_interval_width": 1.0992747113979642,
+          "n_covered": 2,
+          "flag": "ok"
+        },
+        {
+          "by": "block",
+          "group": "rater_consistency",
+          "n_parameters": 3,
+          "mean_bias": 0.2793381599348704,
+          "mean_absolute_error": 0.4776471865954781,
+          "rmse": 0.5356680269811499,
+          "median_absolute_error": 0.3150722520463094,
+          "max_absolute_error": 0.8204057677492134,
+          "coverage_rate": 1.0,
+          "nominal_coverage": 0.8,
+          "coverage_gap": 0.19999999999999996,
+          "mean_interval_width": 1.7366664268416823,
+          "n_covered": 3,
+          "flag": "ok"
+        },
+        {
+          "by": "block",
+          "group": "item_steps",
+          "n_parameters": 2,
+          "mean_bias": -0.7607910281904877,
+          "mean_absolute_error": 0.7607910281904877,
+          "rmse": 0.7818083109708552,
+          "median_absolute_error": 0.7607910281904877,
+          "max_absolute_error": 0.9408500366514977,
+          "coverage_rate": 0.5,
+          "nominal_coverage": 0.8,
+          "coverage_gap": -0.30000000000000004,
+          "mean_interval_width": 1.3245261115200613,
+          "n_covered": 1,
+          "flag": "coverage_below_nominal"
+        }
+      ],
+      "summary": {
+        "passed": true,
+        "n_observations": 16,
+        "validation_passed": true,
+        "validation_warnings": 1,
+        "location_design_full_rank": true,
+        "parameter_order_matches_reference": true,
+        "sampler_flag": "ok",
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "n_failed_direct_constraints": 0,
+        "n_nonfinite_logdensity": 0,
+        "n_nonfinite_direct_loglikelihood": 0,
+        "max_rhat": 1.0441182148950983,
+        "min_ess": 38.74505963469265,
+        "e_bfmi": 0.8351871165523996,
+        "waic_finite": true,
+        "waic_warning": "high_loglik_variance",
+        "max_block_mean_absolute_error": 0.7607910281904877,
+        "max_parameter_absolute_error": 1.1390614838540052,
+        "min_block_coverage_rate": 0.5
+      }
+    },
+    {
+      "scenario": "leave_one_pair_out_sparse",
+      "sparse_pattern": "leave_one_pair_out",
+      "simulation_seed": 20260785,
+      "actual_simulation_seed": 20260785,
+      "sampler_seed": 20260786,
+      "raw_truth_sha256": "65f3d1230619bfdef90fda59ac7469b35939f466b1131214e009047532d45706",
+      "selected_row_indices": [
+        1,
+        4,
+        5,
+        6,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        19,
+        20,
+        21,
+        24
+      ],
+      "selected_cells": [
+        {
+          "row": 1,
+          "person": "E1",
+          "rater": "R1",
+          "item": "I1",
+          "score": 0
+        },
+        {
+          "row": 2,
+          "person": "E1",
+          "rater": "R2",
+          "item": "I2",
+          "score": 2
+        },
+        {
+          "row": 3,
+          "person": "E1",
+          "rater": "R3",
+          "item": "I1",
+          "score": 0
+        },
+        {
+          "row": 4,
+          "person": "E1",
+          "rater": "R3",
+          "item": "I2",
+          "score": 1
+        },
+        {
+          "row": 5,
+          "person": "E2",
+          "rater": "R1",
+          "item": "I2",
+          "score": 1
+        },
+        {
+          "row": 6,
+          "person": "E2",
+          "rater": "R2",
+          "item": "I1",
+          "score": 0
+        },
+        {
+          "row": 7,
+          "person": "E2",
+          "rater": "R2",
+          "item": "I2",
+          "score": 2
+        },
+        {
+          "row": 8,
+          "person": "E2",
+          "rater": "R3",
+          "item": "I1",
+          "score": 2
+        },
+        {
+          "row": 9,
+          "person": "E2",
+          "rater": "R3",
+          "item": "I2",
+          "score": 0
+        },
+        {
+          "row": 10,
+          "person": "E3",
+          "rater": "R1",
+          "item": "I1",
+          "score": 2
+        },
+        {
+          "row": 11,
+          "person": "E3",
+          "rater": "R1",
+          "item": "I2",
+          "score": 2
+        },
+        {
+          "row": 12,
+          "person": "E3",
+          "rater": "R2",
+          "item": "I1",
+          "score": 0
+        },
+        {
+          "row": 13,
+          "person": "E3",
+          "rater": "R2",
+          "item": "I2",
+          "score": 0
+        },
+        {
+          "row": 14,
+          "person": "E3",
+          "rater": "R3",
+          "item": "I1",
+          "score": 2
+        },
+        {
+          "row": 15,
+          "person": "E4",
+          "rater": "R1",
+          "item": "I1",
+          "score": 2
+        },
+        {
+          "row": 16,
+          "person": "E4",
+          "rater": "R1",
+          "item": "I2",
+          "score": 0
+        },
+        {
+          "row": 17,
+          "person": "E4",
+          "rater": "R2",
+          "item": "I1",
+          "score": 2
+        },
+        {
+          "row": 18,
+          "person": "E4",
+          "rater": "R3",
+          "item": "I2",
+          "score": 1
+        }
+      ],
+      "design_density": {
+        "rating_density": "sparse_connected",
+        "n_observations": 18,
+        "full_crossed_observations": 24,
+        "observed_fraction": 0.75,
+        "missing_observations": 6
+      },
+      "simulated_data": {
+        "n_observations": 18,
+        "score_counts": [
+          {
+            "score": 0,
+            "n": 7
+          },
+          {
+            "score": 1,
+            "n": 3
+          },
+          {
+            "score": 2,
+            "n": 8
+          }
+        ],
+        "person_levels": [
+          "E1",
+          "E2",
+          "E3",
+          "E4"
+        ],
+        "rater_levels": [
+          "R1",
+          "R2",
+          "R3"
+        ],
+        "item_levels": [
+          "I1",
+          "I2"
+        ],
+        "category_levels": [
+          0,
+          1,
+          2
+        ]
+      },
+      "validation": {
+        "n_observations": 18,
+        "passed": true,
+        "n_errors": 0,
+        "n_warnings": 1,
+        "issue_rows": [
+          {
+            "code": "unobserved_item_category",
+            "severity": "warning",
+            "message": "1 item/category cell(s) are unobserved; partial-credit thresholds may be weakly informed",
+            "context_keys": [
+              "cells"
+            ]
+          }
+        ],
+        "issue_codes": [
+          "unobserved_item_category"
+        ],
+        "category_counts": [
+          {
+            "category": 0,
+            "n": 7
+          },
+          {
+            "category": 1,
+            "n": 3
+          },
+          {
+            "category": 2,
+            "n": 8
+          }
+        ],
+        "facet_counts": [
+          {
+            "facet": "person",
+            "level": "E1",
+            "n": 4
+          },
+          {
+            "facet": "person",
+            "level": "E2",
+            "n": 5
+          },
+          {
+            "facet": "person",
+            "level": "E3",
+            "n": 5
+          },
+          {
+            "facet": "person",
+            "level": "E4",
+            "n": 4
+          },
+          {
+            "facet": "rater",
+            "level": "R1",
+            "n": 6
+          },
+          {
+            "facet": "rater",
+            "level": "R2",
+            "n": 6
+          },
+          {
+            "facet": "rater",
+            "level": "R3",
+            "n": 6
+          },
+          {
+            "facet": "item",
+            "level": "I1",
+            "n": 9
+          },
+          {
+            "facet": "item",
+            "level": "I2",
+            "n": 9
+          }
+        ],
+        "components": [
+          {
+            "component": 1,
+            "n_nodes": 9,
+            "nodes": [
+              {
+                "facet": "item",
+                "level": "I1"
+              },
+              {
+                "facet": "person",
+                "level": "E1"
+              },
+              {
+                "facet": "rater",
+                "level": "R1"
+              },
+              {
+                "facet": "rater",
+                "level": "R3"
+              },
+              {
+                "facet": "person",
+                "level": "E2"
+              },
+              {
+                "facet": "rater",
+                "level": "R2"
+              },
+              {
+                "facet": "person",
+                "level": "E3"
+              },
+              {
+                "facet": "person",
+                "level": "E4"
+              },
+              {
+                "facet": "item",
+                "level": "I2"
+              }
+            ]
+          }
+        ],
+        "n_components": 1,
+        "component_sizes": [
+          9
+        ],
+        "location_design_rank": 7,
+        "n_location_parameters": 7,
+        "location_design_full_rank": true,
+        "dff_cell_counts": [
+          {
+            "left_facet": "rater",
+            "right_facet": "item",
+            "left_level": "R1",
+            "right_level": "I1",
+            "n": 3
+          },
+          {
+            "left_facet": "rater",
+            "right_facet": "item",
+            "left_level": "R1",
+            "right_level": "I2",
+            "n": 3
+          },
+          {
+            "left_facet": "rater",
+            "right_facet": "item",
+            "left_level": "R2",
+            "right_level": "I1",
+            "n": 3
+          },
+          {
+            "left_facet": "rater",
+            "right_facet": "item",
+            "left_level": "R2",
+            "right_level": "I2",
+            "n": 3
+          },
+          {
+            "left_facet": "rater",
+            "right_facet": "item",
+            "left_level": "R3",
+            "right_level": "I1",
+            "n": 3
+          },
+          {
+            "left_facet": "rater",
+            "right_facet": "item",
+            "left_level": "R3",
+            "right_level": "I2",
+            "n": 3
+          }
+        ]
+      },
+      "raw_parameter_order_sha256": "477f5241b427d73af4a16c205e06f0bec660b1b11f07eec4a4923d234f78fe24",
+      "direct_parameter_order_sha256": "78608f091fa28094d326a0e5e14e045d130b5c4736b106e65b044b815a6d55ee",
+      "parameter_order_matches_reference": true,
+      "sampler_summary": {
+        "internal_flag": "ok",
+        "internal_passed": true,
+        "n_chains": 2,
+        "draws_per_chain": 32,
+        "total_draws": 64,
+        "max_rhat": 1.1311439890727966,
+        "min_ess": 32.47558455770428,
+        "n_bad_rhat": 0,
+        "n_low_ess": 0,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "e_bfmi": 1.2607956893156327,
+        "n_sampler_warnings": 0,
+        "n_block_warnings": 0,
+        "n_direct_block_warnings": 0,
+        "n_nonfinite_logdensity": 0,
+        "n_nonfinite_direct_loglikelihood": 0,
+        "n_failed_direct_constraints": 0
+      },
+      "pointwise_loglikelihood_review": {
+        "shape": [
+          64,
+          18
+        ],
+        "n_nonfinite": 0,
+        "minimum": -4.726790747811542,
+        "maximum": 0.0
+      },
+      "waic": {
+        "criterion": "waic",
+        "elpd_waic": -21.386841950041543,
+        "p_waic": 9.403080645317186,
+        "lppd": -11.983761304724357,
+        "waic": 42.773683900083086,
+        "se_elpd_waic": 2.891698500050214,
+        "se_waic": 5.783397000100428,
+        "n_draws": 64,
+        "n_observations": 18,
+        "high_variance_count": 11,
+        "warning": "high_loglik_variance"
+      },
+      "recovery_rows": [
+        {
+          "parameter": "person[E1,dim=1]",
+          "parameter_index": 1,
+          "block": "person",
+          "true_value": -0.55,
+          "posterior_mean": -1.198231410100604,
+          "posterior_sd": 0.6654543460138076,
+          "posterior_median": -1.1965179297037944,
+          "posterior_lower": -2.1997139739811304,
+          "posterior_upper": -0.4238704973590681,
+          "interval_probability": 0.8,
+          "bias": -0.6482314101006039,
+          "absolute_bias": 0.6482314101006039,
+          "relative_bias": -1.1786025638192799,
+          "interval_width": 1.7758434766220623,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "person[E1,dim=2]",
+          "parameter_index": 2,
+          "block": "person",
+          "true_value": 0.25,
+          "posterior_mean": 0.5570829923905145,
+          "posterior_sd": 0.8362646662420817,
+          "posterior_median": 0.4715282948513094,
+          "posterior_lower": -0.29399282495846213,
+          "posterior_upper": 1.6317559431567206,
+          "interval_probability": 0.8,
+          "bias": 0.3070829923905145,
+          "absolute_bias": 0.3070829923905145,
+          "relative_bias": 1.228331969562058,
+          "interval_width": 1.9257487681151826,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "person[E2,dim=1]",
+          "parameter_index": 3,
+          "block": "person",
+          "true_value": -0.18,
+          "posterior_mean": -0.015302059869950925,
+          "posterior_sd": 0.5108101948668579,
+          "posterior_median": 0.039242483345854035,
+          "posterior_lower": -0.5707239977660634,
+          "posterior_upper": 0.6788681947985292,
+          "interval_probability": 0.8,
+          "bias": 0.16469794013004907,
+          "absolute_bias": 0.16469794013004907,
+          "relative_bias": 0.9149885562780504,
+          "interval_width": 1.2495921925645925,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "person[E2,dim=2]",
+          "parameter_index": 4,
+          "block": "person",
+          "true_value": -0.3,
+          "posterior_mean": -0.24400725014513744,
+          "posterior_sd": 0.8436533183747096,
+          "posterior_median": -0.21381853194243633,
+          "posterior_lower": -1.232043902611712,
+          "posterior_upper": 0.8407972002106758,
+          "interval_probability": 0.8,
+          "bias": 0.05599274985486255,
+          "absolute_bias": 0.05599274985486255,
+          "relative_bias": 0.1866424995162085,
+          "interval_width": 2.072841102822388,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "person[E3,dim=1]",
+          "parameter_index": 5,
+          "block": "person",
+          "true_value": 0.18,
+          "posterior_mean": 0.18235342263089588,
+          "posterior_sd": 0.5133846391133365,
+          "posterior_median": 0.15668924439253507,
+          "posterior_lower": -0.4514880940991818,
+          "posterior_upper": 0.8051208614963774,
+          "interval_probability": 0.8,
+          "bias": 0.002353422630895885,
+          "absolute_bias": 0.002353422630895885,
+          "relative_bias": 0.013074570171643806,
+          "interval_width": 1.256608955595559,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "person[E3,dim=2]",
+          "parameter_index": 6,
+          "block": "person",
+          "true_value": 0.35,
+          "posterior_mean": 0.2872364283421115,
+          "posterior_sd": 0.9265633438710762,
+          "posterior_median": 0.1546803550203745,
+          "posterior_lower": -0.8028809967961255,
+          "posterior_upper": 1.6078214706762175,
+          "interval_probability": 0.8,
+          "bias": -0.06276357165788848,
+          "absolute_bias": 0.06276357165788848,
+          "relative_bias": -0.17932449045110996,
+          "interval_width": 2.410702467472343,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "person[E4,dim=1]",
+          "parameter_index": 7,
+          "block": "person",
+          "true_value": 0.55,
+          "posterior_mean": 0.8778794487844551,
+          "posterior_sd": 0.7504930972355279,
+          "posterior_median": 0.7625779193098251,
+          "posterior_lower": -0.02187533040307861,
+          "posterior_upper": 1.9469803565501855,
+          "interval_probability": 0.8,
+          "bias": 0.3278794487844551,
+          "absolute_bias": 0.3278794487844551,
+          "relative_bias": 0.5961444523353728,
+          "interval_width": 1.968855686953264,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "person[E4,dim=2]",
+          "parameter_index": 8,
+          "block": "person",
+          "true_value": -0.18,
+          "posterior_mean": -0.4423504630872144,
+          "posterior_sd": 0.5647307684142621,
+          "posterior_median": -0.5302050596834005,
+          "posterior_lower": -1.0584787938748026,
+          "posterior_upper": 0.3547829160819984,
+          "interval_probability": 0.8,
+          "bias": -0.2623504630872144,
+          "absolute_bias": 0.2623504630872144,
+          "relative_bias": -1.4575025727067465,
+          "interval_width": 1.413261709956801,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "rater[R1]",
+          "parameter_index": 9,
+          "block": "rater",
+          "true_value": -0.25,
+          "posterior_mean": -0.17641233811376683,
+          "posterior_sd": 0.34854948244495815,
+          "posterior_median": -0.16957688543381141,
+          "posterior_lower": -0.560241151381173,
+          "posterior_upper": 0.21650962288266512,
+          "interval_probability": 0.8,
+          "bias": 0.07358766188623317,
+          "absolute_bias": 0.07358766188623317,
+          "relative_bias": 0.2943506475449327,
+          "interval_width": 0.7767507742638382,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "rater[R2]",
+          "parameter_index": 10,
+          "block": "rater",
+          "true_value": 0.08,
+          "posterior_mean": 0.2926483183341038,
+          "posterior_sd": 0.3759558434408633,
+          "posterior_median": 0.2072842713833755,
+          "posterior_lower": -0.10166558008551296,
+          "posterior_upper": 0.8155215278684469,
+          "interval_probability": 0.8,
+          "bias": 0.2126483183341038,
+          "absolute_bias": 0.2126483183341038,
+          "relative_bias": 2.6581039791762975,
+          "interval_width": 0.9171871079539599,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "rater[R3]",
+          "parameter_index": 11,
+          "block": "rater",
+          "true_value": 0.16999999999999998,
+          "posterior_mean": -0.11623598022033696,
+          "posterior_sd": 0.33715979556885645,
+          "posterior_median": -0.17409841545135712,
+          "posterior_lower": -0.5196564082798855,
+          "posterior_upper": 0.2956372507489081,
+          "interval_probability": 0.8,
+          "bias": -0.2862359802203369,
+          "absolute_bias": 0.2862359802203369,
+          "relative_bias": -1.683741060119629,
+          "interval_width": 0.8152936590287936,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "item[I1]",
+          "parameter_index": 12,
+          "block": "item",
+          "true_value": -0.12,
+          "posterior_mean": -0.1638095396849259,
+          "posterior_sd": 0.5885161615399442,
+          "posterior_median": -0.11351231766309364,
+          "posterior_lower": -0.8893957964777781,
+          "posterior_upper": 0.5750841193771853,
+          "interval_probability": 0.8,
+          "bias": -0.0438095396849259,
+          "absolute_bias": 0.0438095396849259,
+          "relative_bias": -0.36507949737438256,
+          "interval_width": 1.4644799158549633,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "item[I2]",
+          "parameter_index": 13,
+          "block": "item",
+          "true_value": 0.18,
+          "posterior_mean": 0.07692343916325312,
+          "posterior_sd": 0.4842429479743981,
+          "posterior_median": 0.11979741535094704,
+          "posterior_lower": -0.5344763322559014,
+          "posterior_upper": 0.7148415604263632,
+          "interval_probability": 0.8,
+          "bias": -0.10307656083674688,
+          "absolute_bias": 0.10307656083674688,
+          "relative_bias": -0.5726475602041493,
+          "interval_width": 1.2493178926822646,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "item_dimension_discrimination[item=I1,dim=1]",
+          "parameter_index": 14,
+          "block": "item_dimension_discrimination",
+          "true_value": 1.4,
+          "posterior_mean": 1.22332084753989,
+          "posterior_sd": 0.6140081097209673,
+          "posterior_median": 1.047106563255753,
+          "posterior_lower": 0.6406237833920647,
+          "posterior_upper": 1.9918104614400995,
+          "interval_probability": 0.8,
+          "bias": -0.1766791524601099,
+          "absolute_bias": 0.1766791524601099,
+          "relative_bias": -0.12619939461436422,
+          "interval_width": 1.3511866780480348,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "item_dimension_discrimination[item=I2,dim=2]",
+          "parameter_index": 15,
+          "block": "item_dimension_discrimination",
+          "true_value": 0.75,
+          "posterior_mean": 0.8671313111905022,
+          "posterior_sd": 0.49737524009053874,
+          "posterior_median": 0.7427768297120795,
+          "posterior_lower": 0.44105205890141563,
+          "posterior_upper": 1.5210575328263793,
+          "interval_probability": 0.8,
+          "bias": 0.11713131119050224,
+          "absolute_bias": 0.11713131119050224,
+          "relative_bias": 0.1561750815873363,
+          "interval_width": 1.0800054739249636,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "rater_consistency[rater=R1]",
+          "parameter_index": 16,
+          "block": "rater_consistency",
+          "true_value": 1.2,
+          "posterior_mean": 1.1076785630568564,
+          "posterior_sd": 0.5232109850488638,
+          "posterior_median": 1.0684143234235501,
+          "posterior_lower": 0.5692415308039463,
+          "posterior_upper": 1.8278350264901841,
+          "interval_probability": 0.8,
+          "bias": -0.09232143694314354,
+          "absolute_bias": 0.09232143694314354,
+          "relative_bias": -0.07693453078595296,
+          "interval_width": 1.2585934956862377,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "rater_consistency[rater=R2]",
+          "parameter_index": 17,
+          "block": "rater_consistency",
+          "true_value": 0.85,
+          "posterior_mean": 0.9095672713926626,
+          "posterior_sd": 0.6120676688508622,
+          "posterior_median": 0.6733926454044781,
+          "posterior_lower": 0.31362334267150044,
+          "posterior_upper": 1.855126246637953,
+          "interval_probability": 0.8,
+          "bias": 0.0595672713926626,
+          "absolute_bias": 0.0595672713926626,
+          "relative_bias": 0.07007914281489717,
+          "interval_width": 1.5415029039664525,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "rater_consistency[rater=R3]",
+          "parameter_index": 18,
+          "block": "rater_consistency",
+          "true_value": 0.9803921568627452,
+          "posterior_mean": 1.9437635219955847,
+          "posterior_sd": 1.7067970092695939,
+          "posterior_median": 1.2693519028524745,
+          "posterior_lower": 0.4235542104778616,
+          "posterior_upper": 4.379653684803688,
+          "interval_probability": 0.8,
+          "bias": 0.9633713651328395,
+          "absolute_bias": 0.9633713651328395,
+          "relative_bias": 0.9826387924354962,
+          "interval_width": 3.956099474325826,
+          "covered": true,
+          "flag": "covered"
+        },
+        {
+          "parameter": "item_step[item=I1,m=2]",
+          "parameter_index": 19,
+          "block": "item_steps",
+          "true_value": 0.28,
+          "posterior_mean": 1.0061843069000354,
+          "posterior_sd": 0.6292885885128437,
+          "posterior_median": 0.8883980321836108,
+          "posterior_lower": 0.29421786508917364,
+          "posterior_upper": 1.8029707392181102,
+          "interval_probability": 0.8,
+          "bias": 0.7261843069000353,
+          "absolute_bias": 0.7261843069000353,
+          "relative_bias": 2.5935153817858403,
+          "interval_width": 1.5087528741289367,
+          "covered": false,
+          "flag": "missed_interval"
+        },
+        {
+          "parameter": "item_step[item=I2,m=2]",
+          "parameter_index": 20,
+          "block": "item_steps",
+          "true_value": -0.18,
+          "posterior_mean": -0.2600875087990193,
+          "posterior_sd": 0.4210295620687283,
+          "posterior_median": -0.23040237158433924,
+          "posterior_lower": -0.8176600025508978,
+          "posterior_upper": 0.19673723583698588,
+          "interval_probability": 0.8,
+          "bias": -0.08008750879901932,
+          "absolute_bias": 0.08008750879901932,
+          "relative_bias": -0.4449306044389963,
+          "interval_width": 1.0143972383878836,
+          "covered": true,
+          "flag": "covered"
+        }
+      ],
+      "recovery_by_block": [
+        {
+          "by": "block",
+          "group": "person",
+          "n_parameters": 8,
+          "mean_bias": -0.014417361381866212,
+          "mean_absolute_error": 0.2289189998295605,
+          "rmse": 0.3010485898734889,
+          "median_absolute_error": 0.21352420160863173,
+          "max_absolute_error": 0.6482314101006039,
+          "coverage_rate": 1.0,
+          "nominal_coverage": 0.8,
+          "coverage_gap": 0.19999999999999996,
+          "mean_interval_width": 1.7591817950127742,
+          "n_covered": 8,
+          "flag": "ok"
+        },
+        {
+          "by": "block",
+          "group": "rater",
+          "n_parameters": 3,
+          "mean_bias": 1.850371707708594e-17,
+          "mean_absolute_error": 0.19082398681355794,
+          "rmse": 0.21021059888034668,
+          "median_absolute_error": 0.2126483183341038,
+          "max_absolute_error": 0.2862359802203369,
+          "coverage_rate": 1.0,
+          "nominal_coverage": 0.8,
+          "coverage_gap": 0.19999999999999996,
+          "mean_interval_width": 0.8364105137488638,
+          "n_covered": 3,
+          "flag": "ok"
+        },
+        {
+          "by": "block",
+          "group": "item",
+          "n_parameters": 2,
+          "mean_bias": -0.07344305026083639,
+          "mean_absolute_error": 0.07344305026083639,
+          "rmse": 0.07919612730852651,
+          "median_absolute_error": 0.07344305026083639,
+          "max_absolute_error": 0.10307656083674688,
+          "coverage_rate": 1.0,
+          "nominal_coverage": 0.8,
+          "coverage_gap": 0.19999999999999996,
+          "mean_interval_width": 1.356898904268614,
+          "n_covered": 2,
+          "flag": "ok"
+        },
+        {
+          "by": "block",
+          "group": "item_dimension_discrimination",
+          "n_parameters": 2,
+          "mean_bias": -0.02977392063480383,
+          "mean_absolute_error": 0.14690523182530607,
+          "rmse": 0.14989207279777847,
+          "median_absolute_error": 0.14690523182530607,
+          "max_absolute_error": 0.1766791524601099,
+          "coverage_rate": 1.0,
+          "nominal_coverage": 0.8,
+          "coverage_gap": 0.19999999999999996,
+          "mean_interval_width": 1.2155960759864992,
+          "n_covered": 2,
+          "flag": "ok"
+        },
+        {
+          "by": "block",
+          "group": "rater_consistency",
+          "n_parameters": 3,
+          "mean_bias": 0.31020573319411954,
+          "mean_absolute_error": 0.3717533578228818,
+          "rmse": 0.559808269171486,
+          "median_absolute_error": 0.09232143694314354,
+          "max_absolute_error": 0.9633713651328395,
+          "coverage_rate": 1.0,
+          "nominal_coverage": 0.8,
+          "coverage_gap": 0.19999999999999996,
+          "mean_interval_width": 2.252065291326172,
+          "n_covered": 3,
+          "flag": "ok"
+        },
+        {
+          "by": "block",
+          "group": "item_steps",
+          "n_parameters": 2,
+          "mean_bias": 0.323048399050508,
+          "mean_absolute_error": 0.40313590784952735,
+          "rmse": 0.5166031632953468,
+          "median_absolute_error": 0.40313590784952735,
+          "max_absolute_error": 0.7261843069000353,
+          "coverage_rate": 0.5,
+          "nominal_coverage": 0.8,
+          "coverage_gap": -0.30000000000000004,
+          "mean_interval_width": 1.26157505625841,
+          "n_covered": 1,
+          "flag": "coverage_below_nominal"
+        }
+      ],
+      "summary": {
+        "passed": true,
+        "n_observations": 18,
+        "validation_passed": true,
+        "validation_warnings": 1,
+        "location_design_full_rank": true,
+        "parameter_order_matches_reference": true,
+        "sampler_flag": "ok",
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "n_failed_direct_constraints": 0,
+        "n_nonfinite_logdensity": 0,
+        "n_nonfinite_direct_loglikelihood": 0,
+        "max_rhat": 1.1311439890727966,
+        "min_ess": 32.47558455770428,
+        "e_bfmi": 1.2607956893156327,
+        "waic_finite": true,
+        "waic_warning": "high_loglik_variance",
+        "max_block_mean_absolute_error": 0.40313590784952735,
+        "max_parameter_absolute_error": 0.9633713651328395,
+        "min_block_coverage_rate": 0.5
+      }
+    }
+  ],
+  "decision_record": {
+    "selected_decision": "keep_internal",
+    "public_fit_allowed": false,
+    "experimental_keyword_enabled": false,
+    "public_exposure_support": "insufficient_for_mgmfrm_public_fit",
+    "interpretation": "confirmatory_mgmfrm_sparse_recovery_grid_recorded_keep_internal",
+    "required_followup": "dff_estimand_and_validation_grid"
+  },
+  "summary": {
+    "passed": true,
+    "publication_or_registration_action": false,
+    "n_scenarios": 3,
+    "n_passed_scenarios": 3,
+    "n_observations_minimum": 16,
+    "n_observations_maximum": 20,
+    "all_validations_passed": true,
+    "all_location_designs_full_rank": true,
+    "all_parameter_orders_match_reference": true,
+    "all_sampler_passed": true,
+    "all_no_divergences": true,
+    "all_no_max_treedepth": true,
+    "all_no_failed_direct_constraints": true,
+    "all_no_nonfinite_logdensity": true,
+    "all_no_nonfinite_direct_loglikelihood": true,
+    "all_waic_finite": true,
+    "any_high_variance_waic": true,
+    "max_block_mean_absolute_error": 0.7607910281904877,
+    "max_parameter_absolute_error": 1.447354084866175,
+    "min_block_coverage_rate": 0.5,
+    "public_fit_allowed": false,
+    "experimental_keyword_enabled": false,
+    "remaining_public_blockers": [
+      "dff_estimand_and_validation_evidence_missing",
+      "manuscript_scale_simulation_grid_missing",
+      "full_paper_reproduction_archive_missing"
+    ],
+    "recommendation": "keep_mgmfrm_internal_until_dff_and_gate_e_evidence",
+    "next_gate": "dff_estimand_and_validation_grid"
+  }
+}

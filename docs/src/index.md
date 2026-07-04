@@ -24,7 +24,7 @@ The current public slice focuses on:
   AdvancedHMC/NUTS and Turing/NUTS backends, and RDS-like serialized fit
   caches;
 - guarded experimental generalized paths via `fit(spec; experimental = true)`
-  returning [`GMFRMFit`](@ref) for the one-dimensional rater-discrimination
+  returning [`GMFRMFit`](@ref) for the one-dimensional rater-consistency
   GMFRM candidate or [`MGMFRMFit`](@ref) for the fixed-Q two-dimensional
   confirmatory MGMFRM candidate, with local validation and caveat evidence
   recorded;
@@ -88,7 +88,8 @@ The current public slice focuses on:
   [`benchmark_result_row`](@ref) and [`benchmark_summary`](@ref);
 - fit-independent reporting data via [`coverage_summary`](@ref),
   [`coverage_matrix`](@ref), [`rater_overlap`](@ref),
-  [`anchor_linking_summary`](@ref), [`domain_compilation_summary`](@ref),
+  [`anchor_linking_summary`](@ref), [`rating_design_audit`](@ref),
+  [`domain_compilation_summary`](@ref),
   [`design_row_table`](@ref), [`linear_predictor_table`](@ref),
   [`threshold_map_data`](@ref), [`wright_map_data`](@ref), and
   [`dff_report`](@ref);
@@ -105,14 +106,14 @@ The current public slice focuses on:
 
 Stan/CmdStan sampling, broad production refit-management outside the
 fit-supported shared-plan comparison slice, generalized discrimination
-likelihoods beyond the guarded scalar rater-discrimination candidate, group/DFF
+likelihoods beyond the guarded scalar rater-consistency candidate, group/DFF
 model terms, and broad Multidimensional Generalized Many-Facet Rasch Model
 (MGMFRM) fitting APIs beyond the guarded fixed-Q confirmatory candidate are
 planned work and are not exposed yet. The Turing/NUTS backend is currently
 limited to the minimal MFRM/RSM/PCM `MFRMLogDensity` target.
 Specified-only GMFRM/MGMFRM configs are available for constraint and manifest
 review, with estimation currently limited to the guarded scalar GMFRM
-rater-discrimination candidate and the fixed-Q confirmatory MGMFRM candidate.
+rater-consistency candidate and the fixed-Q confirmatory MGMFRM candidate.
 See the [Bayesian Workflow](bayesian-workflow.md)
 page for the current check sequence and limitations, [Examples](examples.md)
 for runnable minimal and guarded MGMFRM scripts,

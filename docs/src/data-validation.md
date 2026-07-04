@@ -65,13 +65,20 @@ specified-only model ladder, and [`constraint_table`](@ref) to inspect
 constraints, transforms, prior-block declarations, DFF validation-only rows,
 and multidimensional Q-mask gauge declarations.
 
+For fixed-Q MGMFRM work, call [`q_matrix_validation`](@ref) before or after
+`mfrm_spec`. It reports binary-mask schema checks, empty item rows, empty
+dimensions, duplicate or aliased dimension columns, fixed cross-loading policy,
+positive-loading anchor warnings, and dimension-specific person-rater-item
+subgraph coverage. Invalid fixed-Q specs throw an actionable error that points
+back to this manifest.
+
 For a specified-only GMFRM/MGMFRM, use `getdesign(spec; preview = true)` to
 inspect the source-aligned generalized blocks without enabling fitting. GMFRM
 previews expose item-discrimination, rater-consistency, and rater-step blocks.
 MGMFRM previews expose person-by-dimension, item-dimension-discrimination,
 rater-consistency, and item-step blocks. The separate guarded generalized fit
 paths use `fit(spec; experimental = true)` and are limited to the
-one-dimensional rater-discrimination GMFRM candidate and the fixed-Q
+one-dimensional rater-consistency GMFRM candidate and the fixed-Q
 two-dimensional confirmatory MGMFRM candidate.
 
 Use [`design_row_table`](@ref) when you need row-level compiler evidence. The
@@ -130,6 +137,7 @@ coverage = coverage_summary(spec)
 heatmap_data = coverage_matrix(data; rows = :rater, columns = :person)
 overlap = rater_overlap(data; unit = :person_item)
 linking = anchor_linking_summary(spec; unit = :person_item)
+rating_design = rating_design_audit(spec; unit = :person_item)
 thresholds = threshold_map_data(design; params = zeros(length(design.parameter_names)))
 ```
 
@@ -140,6 +148,14 @@ Jaccard overlap for the chosen rated unit. `anchor_linking_summary` combines
 declared hard/soft anchor rows, anchor target checks, rater overlap
 connectedness, and optional anchor-axis sensitivity coverage; it is a
 diagnostic report, not an anchor refit or linking-constant estimator.
+`rating_design_audit` packages the observed rating-graph components, weak
+rater links, anchor coverage, complete-grid coverage, repeated ratings, sparse
+person-rater-item cells, optional time/order metadata, and nonignorable rater
+assignment limitation into report rows. Because the current `FacetData`
+contract stores observed complete long-format rows rather than an external
+planned-design table, structural versus accidental missingness is reported as
+not identifiable from the observed data alone. The same audit is threaded into
+`model_manifest` and `fit_report`.
 `threshold_map_data` returns rating-scale or partial-credit threshold-step
 metadata, including derived sum-to-zero steps when a parameter vector is
 supplied.

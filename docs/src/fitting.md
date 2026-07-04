@@ -101,6 +101,7 @@ data = FacetData(ratings;
 )
 
 q_matrix = Bool[1 0; 0 1]
+q_matrix_validation(data; dimensions = 2, q_matrix)
 spec = mfrm_spec(data;
     thresholds = :partial_credit,
     family = :mgmfrm,
@@ -266,6 +267,10 @@ controls, RNG seed metadata, posterior summaries, selected diagnostic
 thresholds, optional draws, optional environment/package metadata, a stable
 [`artifact_content_hash`](@ref), and an embedded [`fit_archive_manifest`](@ref)
 for long-term export checks.
+For guarded GMFRM/MGMFRM fits, the artifact also records a
+`raw_prior_control_manifest`: each raw block lists its normal-prior scale
+parameter, the resolved `_SourceFixturePrior` scale, and the raw-density
+no-Jacobian policy, while direct-scale generalized priors remain blocked.
 [`fit_reproduction_manifest`](@ref) combines that full-rerun artifact with a
 hash-verified fit-cache record from [`save_fit_cache`](@ref) or
 [`cached_fit`](@ref), treating full rerun and fast cached-draw reproduction as
@@ -280,9 +285,11 @@ with the claim-level, manuscript-scale, and full-paper archive rows. It is a
 provenance guardrail only, not a data-license grant, IRB determination,
 publication action, registration action, or manuscript-claim approval.
 `fit_report` is the lighter report-facing bundle: it combines metadata,
-manifest, diagnostics, posterior summaries, posterior predictive summaries,
-calibration rows, WAIC/LOO summaries and diagnostics, optional DFF rows, and
-compact artifact provenance. Reports can be verified with
+manifest, diagnostics, rating-design audit rows, MGMFRM fixed-Q validation and
+gauge rows when applicable, prior-policy rows, pooling-policy rows, posterior
+summaries, posterior predictive summaries, calibration rows, WAIC/LOO summaries
+and diagnostics, optional DFF rows, and compact artifact provenance. Reports can
+be verified with
 [`artifact_content_hash`](@ref), which ignores embedded hash/archive metadata
 when recomputing the content hash. It captures section-level errors by default,
 so short validation fits can still return a partial report with

@@ -33,7 +33,10 @@ save_fit_report_dossier_markdown
 save_fit_report_bundle
 save_fit_report_markdown
 save_fit_report_tables
+related_software_capability_matrix
+release_gate_check
 release_scope_summary
 case_study_provenance_manifest
 evidence_metadata
+evidence_artifact_schema_policy
 ```

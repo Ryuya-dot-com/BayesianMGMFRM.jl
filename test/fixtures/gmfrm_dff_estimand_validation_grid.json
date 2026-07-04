@@ -1,0 +1,1402 @@
+{
+  "schema": "bayesianmgmfrm.gmfrm_dff_estimand_validation_grid.v1",
+  "family": "gmfrm",
+  "scope": "dff_estimand_and_validation_grid",
+  "status": "dff_estimand_validation_grid_recorded",
+  "decision": "keep_dff_validation_only",
+  "public_fit": false,
+  "experimental_public": false,
+  "fit_ready": false,
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "protocol": {
+    "protocol_id": "gmfrm_dff_estimand_validation_grid_v1",
+    "review_kind": "local_dff_estimand_and_validation_grid",
+    "publication_or_registration_action": false,
+    "local_only": true,
+    "decision_target": "dff_estimand_validation_evidence",
+    "entrypoint_under_review": "validate_design(data; bias = terms)",
+    "supported_validation_facets": [
+      "person",
+      "rater",
+      "item",
+      "group"
+    ],
+    "min_cell_count": 3,
+    "practical_thresholds": {
+      "logit_absolute_difference": 0.25,
+      "expected_score_absolute_difference": 0.1,
+      "minimum_cell_count_for_unpooled_screening": 3
+    },
+    "thresholds": {
+      "require_estimands_predeclared": true,
+      "require_reporting_scales_predeclared": true,
+      "require_positive_control_passes_without_warnings": true,
+      "require_sparse_warning_detected": true,
+      "require_empty_and_confounded_warning_detected": true,
+      "require_unknown_facet_error_detected": true,
+      "require_valid_dff_terms_retained_as_validation_only": true,
+      "require_no_public_fit_or_model_effect_promotion": true,
+      "public_exposure_decision": "keep_validation_only"
+    }
+  },
+  "reviewed_artifacts": [
+    {
+      "artifact": "test/fixtures/gmfrm_guarded_exposure_review.json",
+      "exists": true,
+      "hash_policy": "existence_only_avoids_guarded_review_dff_cycle",
+      "sha256": null
+    },
+    {
+      "artifact": "test/fixtures/gmfrm_broader_experimental_exposure_decision_review.json",
+      "exists": true,
+      "hash_policy": "existence_only_avoids_broader_review_dff_cycle",
+      "sha256": null
+    },
+    {
+      "artifact": "test/fixtures/mgmfrm_sparse_recovery_grid.json",
+      "exists": true,
+      "hash_policy": "sha256",
+      "sha256": "66f93609547525a7fb4d3556bab7b7e47f9863cfa283209e9416749a0059b628"
+    }
+  ],
+  "estimand_rows": [
+    {
+      "estimand": "rater_by_group_dff",
+      "term": [
+        "rater",
+        "group"
+      ],
+      "target": "rater_severity_difference_by_group",
+      "primary_scale": "logit",
+      "reporting_scales": [
+        "logit",
+        "expected_score"
+      ],
+      "current_status": "validation_only"
+    },
+    {
+      "estimand": "item_by_group_dff",
+      "term": [
+        "item",
+        "group"
+      ],
+      "target": "item_difficulty_difference_by_group",
+      "primary_scale": "logit",
+      "reporting_scales": [
+        "logit",
+        "expected_score"
+      ],
+      "current_status": "validation_only"
+    },
+    {
+      "estimand": "rater_by_item_interaction",
+      "term": [
+        "rater",
+        "item"
+      ],
+      "target": "rater_item_bias_or_local_severity_shift",
+      "primary_scale": "logit",
+      "reporting_scales": [
+        "logit",
+        "expected_score"
+      ],
+      "current_status": "validation_only"
+    },
+    {
+      "estimand": "threshold_by_group_dff",
+      "term": [
+        "thresholds",
+        "group"
+      ],
+      "target": "category_threshold_shift_by_group",
+      "primary_scale": "logit",
+      "reporting_scales": [
+        "logit",
+        "expected_score"
+      ],
+      "current_status": "predeclared_not_validated_by_current_bias_api"
+    },
+    {
+      "estimand": "discrimination_by_group_dff",
+      "term": [
+        "discrimination",
+        "group"
+      ],
+      "target": "generalized_discrimination_shift_by_group",
+      "primary_scale": "logit",
+      "reporting_scales": [
+        "logit",
+        "expected_score"
+      ],
+      "current_status": "predeclared_requires_future_generalized_fit_policy"
+    }
+  ],
+  "scenario_rows": [
+    {
+      "scenario": "balanced_group_crossed",
+      "pattern": "balanced",
+      "with_group": true,
+      "bias_terms": [
+        [
+          "rater",
+          "group"
+        ],
+        [
+          "item",
+          "group"
+        ],
+        [
+          "rater",
+          "item"
+        ]
+      ],
+      "expected_passed": true,
+      "expected_issue_codes": [],
+      "expected_support": "screening_supported",
+      "data_summary": {
+        "n_observations": 24,
+        "n_persons": 4,
+        "n_raters": 3,
+        "n_items": 2,
+        "n_categories": 3,
+        "optional_facets": [
+          "group"
+        ],
+        "category_counts": [
+          {
+            "category": 0,
+            "n": 8
+          },
+          {
+            "category": 1,
+            "n": 8
+          },
+          {
+            "category": 2,
+            "n": 8
+          }
+        ],
+        "facet_counts": [
+          {
+            "facet": "group",
+            "level": "A",
+            "n": 12
+          },
+          {
+            "facet": "group",
+            "level": "B",
+            "n": 12
+          },
+          {
+            "facet": "item",
+            "level": "I1",
+            "n": 12
+          },
+          {
+            "facet": "item",
+            "level": "I2",
+            "n": 12
+          },
+          {
+            "facet": "person",
+            "level": "E1",
+            "n": 6
+          },
+          {
+            "facet": "person",
+            "level": "E2",
+            "n": 6
+          },
+          {
+            "facet": "person",
+            "level": "E3",
+            "n": 6
+          },
+          {
+            "facet": "person",
+            "level": "E4",
+            "n": 6
+          },
+          {
+            "facet": "rater",
+            "level": "R1",
+            "n": 8
+          },
+          {
+            "facet": "rater",
+            "level": "R2",
+            "n": 8
+          },
+          {
+            "facet": "rater",
+            "level": "R3",
+            "n": 8
+          }
+        ]
+      },
+      "validation": {
+        "passed": true,
+        "n_issues": 0,
+        "n_errors": 0,
+        "n_warnings": 0,
+        "issue_counts": [],
+        "issues": [],
+        "suggestions": []
+      },
+      "dff_cell_counts": [
+        {
+          "left_facet": "item",
+          "right_facet": "group",
+          "left_level": "I1",
+          "right_level": "A",
+          "n": 6
+        },
+        {
+          "left_facet": "item",
+          "right_facet": "group",
+          "left_level": "I1",
+          "right_level": "B",
+          "n": 6
+        },
+        {
+          "left_facet": "item",
+          "right_facet": "group",
+          "left_level": "I2",
+          "right_level": "A",
+          "n": 6
+        },
+        {
+          "left_facet": "item",
+          "right_facet": "group",
+          "left_level": "I2",
+          "right_level": "B",
+          "n": 6
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "group",
+          "left_level": "R1",
+          "right_level": "A",
+          "n": 4
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "group",
+          "left_level": "R1",
+          "right_level": "B",
+          "n": 4
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "group",
+          "left_level": "R2",
+          "right_level": "A",
+          "n": 4
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "group",
+          "left_level": "R2",
+          "right_level": "B",
+          "n": 4
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "group",
+          "left_level": "R3",
+          "right_level": "A",
+          "n": 4
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "group",
+          "left_level": "R3",
+          "right_level": "B",
+          "n": 4
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "item",
+          "left_level": "R1",
+          "right_level": "I1",
+          "n": 4
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "item",
+          "left_level": "R1",
+          "right_level": "I2",
+          "n": 4
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "item",
+          "left_level": "R2",
+          "right_level": "I1",
+          "n": 4
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "item",
+          "left_level": "R2",
+          "right_level": "I2",
+          "n": 4
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "item",
+          "left_level": "R3",
+          "right_level": "I1",
+          "n": 4
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "item",
+          "left_level": "R3",
+          "right_level": "I2",
+          "n": 4
+        }
+      ],
+      "term_support": [
+        {
+          "term": [
+            "item",
+            "group"
+          ],
+          "n_cells": 4,
+          "n_empty_cells": 0,
+          "n_sparse_cells": 0,
+          "minimum_cell_count": 6,
+          "minimum_positive_cell_count": 6,
+          "maximum_cell_count": 6,
+          "support": "screening_supported"
+        },
+        {
+          "term": [
+            "rater",
+            "group"
+          ],
+          "n_cells": 6,
+          "n_empty_cells": 0,
+          "n_sparse_cells": 0,
+          "minimum_cell_count": 4,
+          "minimum_positive_cell_count": 4,
+          "maximum_cell_count": 4,
+          "support": "screening_supported"
+        },
+        {
+          "term": [
+            "rater",
+            "item"
+          ],
+          "n_cells": 6,
+          "n_empty_cells": 0,
+          "n_sparse_cells": 0,
+          "minimum_cell_count": 4,
+          "minimum_positive_cell_count": 4,
+          "maximum_cell_count": 4,
+          "support": "screening_supported"
+        }
+      ],
+      "spec_constraints": {
+        "spec_constructed": true,
+        "validation_only_blocks": [
+          "dff_item_group",
+          "dff_rater_group",
+          "dff_rater_item"
+        ],
+        "retained_bias_terms": [
+          [
+            "item",
+            "group"
+          ],
+          [
+            "rater",
+            "group"
+          ],
+          [
+            "rater",
+            "item"
+          ]
+        ],
+        "all_dff_terms_validation_only": true
+      },
+      "summary": {
+        "passed": true,
+        "outcome_matches": true,
+        "validation_only_ok": true,
+        "validation_passed": true,
+        "n_errors": 0,
+        "n_warnings": 0,
+        "n_dff_terms": 3,
+        "n_empty_terms": 0,
+        "n_sparse_terms": 0,
+        "spec_constructed": true,
+        "all_dff_terms_validation_only": true
+      }
+    },
+    {
+      "scenario": "sparse_rater_group_cells",
+      "pattern": "sparse",
+      "with_group": true,
+      "bias_terms": [
+        [
+          "rater",
+          "group"
+        ],
+        [
+          "item",
+          "group"
+        ],
+        [
+          "rater",
+          "item"
+        ]
+      ],
+      "expected_passed": true,
+      "expected_issue_codes": [
+        "sparse_dff_cell"
+      ],
+      "expected_support": "sparse_screening_only",
+      "data_summary": {
+        "n_observations": 19,
+        "n_persons": 4,
+        "n_raters": 3,
+        "n_items": 2,
+        "n_categories": 3,
+        "optional_facets": [
+          "group"
+        ],
+        "category_counts": [
+          {
+            "category": 0,
+            "n": 6
+          },
+          {
+            "category": 1,
+            "n": 7
+          },
+          {
+            "category": 2,
+            "n": 6
+          }
+        ],
+        "facet_counts": [
+          {
+            "facet": "group",
+            "level": "A",
+            "n": 12
+          },
+          {
+            "facet": "group",
+            "level": "B",
+            "n": 7
+          },
+          {
+            "facet": "item",
+            "level": "I1",
+            "n": 11
+          },
+          {
+            "facet": "item",
+            "level": "I2",
+            "n": 8
+          },
+          {
+            "facet": "person",
+            "level": "E1",
+            "n": 6
+          },
+          {
+            "facet": "person",
+            "level": "E2",
+            "n": 6
+          },
+          {
+            "facet": "person",
+            "level": "E3",
+            "n": 4
+          },
+          {
+            "facet": "person",
+            "level": "E4",
+            "n": 3
+          },
+          {
+            "facet": "rater",
+            "level": "R1",
+            "n": 8
+          },
+          {
+            "facet": "rater",
+            "level": "R2",
+            "n": 6
+          },
+          {
+            "facet": "rater",
+            "level": "R3",
+            "n": 5
+          }
+        ]
+      },
+      "validation": {
+        "passed": true,
+        "n_issues": 3,
+        "n_errors": 0,
+        "n_warnings": 3,
+        "issue_counts": [
+          {
+            "code": "sparse_dff_cell",
+            "n": 3,
+            "severity": "warning"
+          }
+        ],
+        "issues": [
+          {
+            "code": "sparse_dff_cell",
+            "severity": "warning",
+            "message": "bias term (:rater, :group) has 2 cell(s) below min_cell_count = 3",
+            "context_keys": [
+              "cells",
+              "term"
+            ]
+          },
+          {
+            "code": "sparse_dff_cell",
+            "severity": "warning",
+            "message": "bias term (:item, :group) has 1 cell(s) below min_cell_count = 3",
+            "context_keys": [
+              "cells",
+              "term"
+            ]
+          },
+          {
+            "code": "sparse_dff_cell",
+            "severity": "warning",
+            "message": "bias term (:rater, :item) has 2 cell(s) below min_cell_count = 3",
+            "context_keys": [
+              "cells",
+              "term"
+            ]
+          }
+        ],
+        "suggestions": [
+          {
+            "code": "sparse_dff_cell",
+            "severity": "warning",
+            "action": "pool_or_collect_dff_data",
+            "message": "bias term (:rater, :group) has 2 cell(s) below min_cell_count = 3",
+            "suggestion": "Sparse DFF cells require caution; collect more data, collapse levels, or use hierarchical shrinkage with sensitivity checks.",
+            "context_keys": [
+              "cells",
+              "term"
+            ]
+          },
+          {
+            "code": "sparse_dff_cell",
+            "severity": "warning",
+            "action": "pool_or_collect_dff_data",
+            "message": "bias term (:item, :group) has 1 cell(s) below min_cell_count = 3",
+            "suggestion": "Sparse DFF cells require caution; collect more data, collapse levels, or use hierarchical shrinkage with sensitivity checks.",
+            "context_keys": [
+              "cells",
+              "term"
+            ]
+          },
+          {
+            "code": "sparse_dff_cell",
+            "severity": "warning",
+            "action": "pool_or_collect_dff_data",
+            "message": "bias term (:rater, :item) has 2 cell(s) below min_cell_count = 3",
+            "suggestion": "Sparse DFF cells require caution; collect more data, collapse levels, or use hierarchical shrinkage with sensitivity checks.",
+            "context_keys": [
+              "cells",
+              "term"
+            ]
+          }
+        ]
+      },
+      "dff_cell_counts": [
+        {
+          "left_facet": "item",
+          "right_facet": "group",
+          "left_level": "I1",
+          "right_level": "A",
+          "n": 6
+        },
+        {
+          "left_facet": "item",
+          "right_facet": "group",
+          "left_level": "I1",
+          "right_level": "B",
+          "n": 5
+        },
+        {
+          "left_facet": "item",
+          "right_facet": "group",
+          "left_level": "I2",
+          "right_level": "A",
+          "n": 6
+        },
+        {
+          "left_facet": "item",
+          "right_facet": "group",
+          "left_level": "I2",
+          "right_level": "B",
+          "n": 2
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "group",
+          "left_level": "R1",
+          "right_level": "A",
+          "n": 4
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "group",
+          "left_level": "R1",
+          "right_level": "B",
+          "n": 4
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "group",
+          "left_level": "R2",
+          "right_level": "A",
+          "n": 4
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "group",
+          "left_level": "R2",
+          "right_level": "B",
+          "n": 2
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "group",
+          "left_level": "R3",
+          "right_level": "A",
+          "n": 4
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "group",
+          "left_level": "R3",
+          "right_level": "B",
+          "n": 1
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "item",
+          "left_level": "R1",
+          "right_level": "I1",
+          "n": 4
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "item",
+          "left_level": "R1",
+          "right_level": "I2",
+          "n": 4
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "item",
+          "left_level": "R2",
+          "right_level": "I1",
+          "n": 4
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "item",
+          "left_level": "R2",
+          "right_level": "I2",
+          "n": 2
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "item",
+          "left_level": "R3",
+          "right_level": "I1",
+          "n": 3
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "item",
+          "left_level": "R3",
+          "right_level": "I2",
+          "n": 2
+        }
+      ],
+      "term_support": [
+        {
+          "term": [
+            "item",
+            "group"
+          ],
+          "n_cells": 4,
+          "n_empty_cells": 0,
+          "n_sparse_cells": 1,
+          "minimum_cell_count": 2,
+          "minimum_positive_cell_count": 2,
+          "maximum_cell_count": 6,
+          "support": "sparse_screening_only"
+        },
+        {
+          "term": [
+            "rater",
+            "group"
+          ],
+          "n_cells": 6,
+          "n_empty_cells": 0,
+          "n_sparse_cells": 2,
+          "minimum_cell_count": 1,
+          "minimum_positive_cell_count": 1,
+          "maximum_cell_count": 4,
+          "support": "sparse_screening_only"
+        },
+        {
+          "term": [
+            "rater",
+            "item"
+          ],
+          "n_cells": 6,
+          "n_empty_cells": 0,
+          "n_sparse_cells": 2,
+          "minimum_cell_count": 2,
+          "minimum_positive_cell_count": 2,
+          "maximum_cell_count": 4,
+          "support": "sparse_screening_only"
+        }
+      ],
+      "spec_constraints": {
+        "spec_constructed": true,
+        "validation_only_blocks": [
+          "dff_item_group",
+          "dff_rater_group",
+          "dff_rater_item"
+        ],
+        "retained_bias_terms": [
+          [
+            "item",
+            "group"
+          ],
+          [
+            "rater",
+            "group"
+          ],
+          [
+            "rater",
+            "item"
+          ]
+        ],
+        "all_dff_terms_validation_only": true
+      },
+      "summary": {
+        "passed": true,
+        "outcome_matches": true,
+        "validation_only_ok": true,
+        "validation_passed": true,
+        "n_errors": 0,
+        "n_warnings": 3,
+        "n_dff_terms": 3,
+        "n_empty_terms": 0,
+        "n_sparse_terms": 3,
+        "spec_constructed": true,
+        "all_dff_terms_validation_only": true
+      }
+    },
+    {
+      "scenario": "empty_and_confounded_group_cells",
+      "pattern": "empty_confounded",
+      "with_group": true,
+      "bias_terms": [
+        [
+          "rater",
+          "group"
+        ],
+        [
+          "item",
+          "group"
+        ],
+        [
+          "rater",
+          "item"
+        ]
+      ],
+      "expected_passed": true,
+      "expected_issue_codes": [
+        "empty_dff_cell",
+        "potential_dff_confounding",
+        "sparse_dff_cell"
+      ],
+      "expected_support": "not_unpooled_estimable",
+      "data_summary": {
+        "n_observations": 16,
+        "n_persons": 4,
+        "n_raters": 3,
+        "n_items": 2,
+        "n_categories": 3,
+        "optional_facets": [
+          "group"
+        ],
+        "category_counts": [
+          {
+            "category": 0,
+            "n": 4
+          },
+          {
+            "category": 1,
+            "n": 6
+          },
+          {
+            "category": 2,
+            "n": 6
+          }
+        ],
+        "facet_counts": [
+          {
+            "facet": "group",
+            "level": "A",
+            "n": 8
+          },
+          {
+            "facet": "group",
+            "level": "B",
+            "n": 8
+          },
+          {
+            "facet": "item",
+            "level": "I1",
+            "n": 8
+          },
+          {
+            "facet": "item",
+            "level": "I2",
+            "n": 8
+          },
+          {
+            "facet": "person",
+            "level": "E1",
+            "n": 4
+          },
+          {
+            "facet": "person",
+            "level": "E2",
+            "n": 4
+          },
+          {
+            "facet": "person",
+            "level": "E3",
+            "n": 4
+          },
+          {
+            "facet": "person",
+            "level": "E4",
+            "n": 4
+          },
+          {
+            "facet": "rater",
+            "level": "R1",
+            "n": 4
+          },
+          {
+            "facet": "rater",
+            "level": "R2",
+            "n": 4
+          },
+          {
+            "facet": "rater",
+            "level": "R3",
+            "n": 8
+          }
+        ]
+      },
+      "validation": {
+        "passed": true,
+        "n_issues": 4,
+        "n_errors": 0,
+        "n_warnings": 4,
+        "issue_counts": [
+          {
+            "code": "empty_dff_cell",
+            "n": 1,
+            "severity": "warning"
+          },
+          {
+            "code": "potential_dff_confounding",
+            "n": 2,
+            "severity": "warning"
+          },
+          {
+            "code": "sparse_dff_cell",
+            "n": 1,
+            "severity": "warning"
+          }
+        ],
+        "issues": [
+          {
+            "code": "empty_dff_cell",
+            "severity": "warning",
+            "message": "bias term (:rater, :group) has 2 empty cell(s)",
+            "context_keys": [
+              "cells",
+              "term"
+            ]
+          },
+          {
+            "code": "potential_dff_confounding",
+            "severity": "warning",
+            "message": "rater level \"R1\" is observed with only one group level",
+            "context_keys": [
+              "facet",
+              "level",
+              "term"
+            ]
+          },
+          {
+            "code": "potential_dff_confounding",
+            "severity": "warning",
+            "message": "rater level \"R2\" is observed with only one group level",
+            "context_keys": [
+              "facet",
+              "level",
+              "term"
+            ]
+          },
+          {
+            "code": "sparse_dff_cell",
+            "severity": "warning",
+            "message": "bias term (:rater, :item) has 4 cell(s) below min_cell_count = 3",
+            "context_keys": [
+              "cells",
+              "term"
+            ]
+          }
+        ],
+        "suggestions": [
+          {
+            "code": "empty_dff_cell",
+            "severity": "warning",
+            "action": "pool_or_remove_dff_term",
+            "message": "bias term (:rater, :group) has 2 empty cell(s)",
+            "suggestion": "Empty DFF cells cannot support unpooled interaction estimates; collect data, collapse levels, use hierarchical pooling, or remove the term.",
+            "context_keys": [
+              "cells",
+              "term"
+            ]
+          },
+          {
+            "code": "potential_dff_confounding",
+            "severity": "warning",
+            "action": "inspect_dff_confounding",
+            "message": "rater level \"R1\" is observed with only one group level",
+            "suggestion": "A facet level is observed with only one level of the paired DFF facet; improve crossing or avoid interpreting the DFF contrast.",
+            "context_keys": [
+              "facet",
+              "level",
+              "term"
+            ]
+          },
+          {
+            "code": "potential_dff_confounding",
+            "severity": "warning",
+            "action": "inspect_dff_confounding",
+            "message": "rater level \"R2\" is observed with only one group level",
+            "suggestion": "A facet level is observed with only one level of the paired DFF facet; improve crossing or avoid interpreting the DFF contrast.",
+            "context_keys": [
+              "facet",
+              "level",
+              "term"
+            ]
+          },
+          {
+            "code": "sparse_dff_cell",
+            "severity": "warning",
+            "action": "pool_or_collect_dff_data",
+            "message": "bias term (:rater, :item) has 4 cell(s) below min_cell_count = 3",
+            "suggestion": "Sparse DFF cells require caution; collect more data, collapse levels, or use hierarchical shrinkage with sensitivity checks.",
+            "context_keys": [
+              "cells",
+              "term"
+            ]
+          }
+        ]
+      },
+      "dff_cell_counts": [
+        {
+          "left_facet": "item",
+          "right_facet": "group",
+          "left_level": "I1",
+          "right_level": "A",
+          "n": 4
+        },
+        {
+          "left_facet": "item",
+          "right_facet": "group",
+          "left_level": "I1",
+          "right_level": "B",
+          "n": 4
+        },
+        {
+          "left_facet": "item",
+          "right_facet": "group",
+          "left_level": "I2",
+          "right_level": "A",
+          "n": 4
+        },
+        {
+          "left_facet": "item",
+          "right_facet": "group",
+          "left_level": "I2",
+          "right_level": "B",
+          "n": 4
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "group",
+          "left_level": "R1",
+          "right_level": "A",
+          "n": 4
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "group",
+          "left_level": "R1",
+          "right_level": "B",
+          "n": 0
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "group",
+          "left_level": "R2",
+          "right_level": "A",
+          "n": 0
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "group",
+          "left_level": "R2",
+          "right_level": "B",
+          "n": 4
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "group",
+          "left_level": "R3",
+          "right_level": "A",
+          "n": 4
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "group",
+          "left_level": "R3",
+          "right_level": "B",
+          "n": 4
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "item",
+          "left_level": "R1",
+          "right_level": "I1",
+          "n": 2
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "item",
+          "left_level": "R1",
+          "right_level": "I2",
+          "n": 2
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "item",
+          "left_level": "R2",
+          "right_level": "I1",
+          "n": 2
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "item",
+          "left_level": "R2",
+          "right_level": "I2",
+          "n": 2
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "item",
+          "left_level": "R3",
+          "right_level": "I1",
+          "n": 4
+        },
+        {
+          "left_facet": "rater",
+          "right_facet": "item",
+          "left_level": "R3",
+          "right_level": "I2",
+          "n": 4
+        }
+      ],
+      "term_support": [
+        {
+          "term": [
+            "item",
+            "group"
+          ],
+          "n_cells": 4,
+          "n_empty_cells": 0,
+          "n_sparse_cells": 0,
+          "minimum_cell_count": 4,
+          "minimum_positive_cell_count": 4,
+          "maximum_cell_count": 4,
+          "support": "screening_supported"
+        },
+        {
+          "term": [
+            "rater",
+            "group"
+          ],
+          "n_cells": 6,
+          "n_empty_cells": 2,
+          "n_sparse_cells": 0,
+          "minimum_cell_count": 0,
+          "minimum_positive_cell_count": 4,
+          "maximum_cell_count": 4,
+          "support": "not_unpooled_estimable"
+        },
+        {
+          "term": [
+            "rater",
+            "item"
+          ],
+          "n_cells": 6,
+          "n_empty_cells": 0,
+          "n_sparse_cells": 4,
+          "minimum_cell_count": 2,
+          "minimum_positive_cell_count": 2,
+          "maximum_cell_count": 4,
+          "support": "sparse_screening_only"
+        }
+      ],
+      "spec_constraints": {
+        "spec_constructed": true,
+        "validation_only_blocks": [
+          "dff_item_group",
+          "dff_rater_group",
+          "dff_rater_item"
+        ],
+        "retained_bias_terms": [
+          [
+            "item",
+            "group"
+          ],
+          [
+            "rater",
+            "group"
+          ],
+          [
+            "rater",
+            "item"
+          ]
+        ],
+        "all_dff_terms_validation_only": true
+      },
+      "summary": {
+        "passed": true,
+        "outcome_matches": true,
+        "validation_only_ok": true,
+        "validation_passed": true,
+        "n_errors": 0,
+        "n_warnings": 4,
+        "n_dff_terms": 3,
+        "n_empty_terms": 1,
+        "n_sparse_terms": 1,
+        "spec_constructed": true,
+        "all_dff_terms_validation_only": true
+      }
+    },
+    {
+      "scenario": "unknown_group_facet_rejected",
+      "pattern": "balanced",
+      "with_group": false,
+      "bias_terms": [
+        [
+          "rater",
+          "group"
+        ]
+      ],
+      "expected_passed": false,
+      "expected_issue_codes": [
+        "unknown_bias_facet"
+      ],
+      "expected_support": "invalid_request_rejected",
+      "data_summary": {
+        "n_observations": 24,
+        "n_persons": 4,
+        "n_raters": 3,
+        "n_items": 2,
+        "n_categories": 3,
+        "optional_facets": [],
+        "category_counts": [
+          {
+            "category": 0,
+            "n": 8
+          },
+          {
+            "category": 1,
+            "n": 8
+          },
+          {
+            "category": 2,
+            "n": 8
+          }
+        ],
+        "facet_counts": [
+          {
+            "facet": "item",
+            "level": "I1",
+            "n": 12
+          },
+          {
+            "facet": "item",
+            "level": "I2",
+            "n": 12
+          },
+          {
+            "facet": "person",
+            "level": "E1",
+            "n": 6
+          },
+          {
+            "facet": "person",
+            "level": "E2",
+            "n": 6
+          },
+          {
+            "facet": "person",
+            "level": "E3",
+            "n": 6
+          },
+          {
+            "facet": "person",
+            "level": "E4",
+            "n": 6
+          },
+          {
+            "facet": "rater",
+            "level": "R1",
+            "n": 8
+          },
+          {
+            "facet": "rater",
+            "level": "R2",
+            "n": 8
+          },
+          {
+            "facet": "rater",
+            "level": "R3",
+            "n": 8
+          }
+        ]
+      },
+      "validation": {
+        "passed": false,
+        "n_issues": 1,
+        "n_errors": 1,
+        "n_warnings": 0,
+        "issue_counts": [
+          {
+            "code": "unknown_bias_facet",
+            "n": 1,
+            "severity": "error"
+          }
+        ],
+        "issues": [
+          {
+            "code": "unknown_bias_facet",
+            "severity": "error",
+            "message": "bias term (:rater, :group) references a facet that is not present in FacetData",
+            "context_keys": [
+              "term"
+            ]
+          }
+        ],
+        "suggestions": [
+          {
+            "code": "unknown_bias_facet",
+            "severity": "error",
+            "action": "check_facet_roles",
+            "message": "bias term (:rater, :group) references a facet that is not present in FacetData",
+            "suggestion": "Bias/DFF terms must reference required facets or optional roles supplied to FacetData.",
+            "context_keys": [
+              "term"
+            ]
+          }
+        ]
+      },
+      "dff_cell_counts": [],
+      "term_support": [],
+      "spec_constraints": {
+        "spec_constructed": false,
+        "validation_only_blocks": [],
+        "retained_bias_terms": [],
+        "all_dff_terms_validation_only": false
+      },
+      "summary": {
+        "passed": true,
+        "outcome_matches": true,
+        "validation_only_ok": true,
+        "validation_passed": false,
+        "n_errors": 1,
+        "n_warnings": 0,
+        "n_dff_terms": 0,
+        "n_empty_terms": 0,
+        "n_sparse_terms": 0,
+        "spec_constructed": false,
+        "all_dff_terms_validation_only": false
+      }
+    }
+  ],
+  "decision_record": {
+    "selected_decision": "keep_validation_only",
+    "dff_model_effects_allowed": false,
+    "public_fit_allowed": false,
+    "experimental_keyword_enabled": false,
+    "public_exposure_support": "dff_estimands_predeclared_validation_only",
+    "interpretation": "dff_estimand_validation_grid_recorded_keep_model_effects_blocked",
+    "required_followup": "manuscript_scale_simulation_grid"
+  },
+  "summary": {
+    "passed": true,
+    "publication_or_registration_action": false,
+    "local_only": true,
+    "n_estimands": 5,
+    "n_predeclared_reporting_scales": 2,
+    "n_scenarios": 4,
+    "n_passed_scenarios": 4,
+    "n_validation_passed_scenarios": 3,
+    "n_validation_error_scenarios": 1,
+    "n_sparse_warning_scenarios": 2,
+    "n_empty_warning_scenarios": 1,
+    "n_confounding_warning_scenarios": 1,
+    "all_expected_outcomes_matched": true,
+    "all_valid_dff_terms_retained_as_validation_only": true,
+    "all_estimands_predeclared": true,
+    "all_reporting_scales_predeclared": true,
+    "dff_model_effects_allowed": false,
+    "public_fit_allowed": false,
+    "experimental_keyword_enabled": false,
+    "remaining_public_blockers": [
+      "manuscript_scale_simulation_grid_missing",
+      "full_paper_reproduction_archive_missing"
+    ],
+    "recommendation": "keep_dff_validation_only_until_gate_e_and_archive_evidence",
+    "next_gate": "manuscript_scale_simulation_grid"
+  }
+}

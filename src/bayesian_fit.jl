@@ -351,12 +351,54 @@ _SourceFixturePrior(; person_sd::Real = 1.0,
         step_sd,
     )
 
+function _source_fixture_prior_values(prior::_SourceFixturePrior)
+    return (;
+        person_sd = prior.person_sd,
+        rater_sd = prior.rater_sd,
+        item_sd = prior.item_sd,
+        log_discrimination_sd = prior.log_discrimination_sd,
+        log_consistency_sd = prior.log_consistency_sd,
+        step_sd = prior.step_sd,
+    )
+end
+
+function _source_fixture_prior_scale_value(prior::_SourceFixturePrior,
+        scale_parameter)
+    values = _source_fixture_prior_values(prior)
+    scale_parameter isa Symbol || return missing
+    scale_parameter in keys(values) || return missing
+    return getproperty(values, scale_parameter)
+end
+
+function _resolved_generalized_raw_prior_control_manifest(control_manifest,
+        prior::_SourceFixturePrior)
+    rows = [
+        merge(row, (;
+            scale = _source_fixture_prior_scale_value(prior, row.scale_parameter),
+            scale_status = row.status === :active &&
+                !ismissing(_source_fixture_prior_scale_value(prior, row.scale_parameter)) ?
+                :resolved_from_source_fixture_prior :
+                row.scale_status,
+        ))
+        for row in control_manifest.rows
+    ]
+    return merge(control_manifest, (;
+        resolved = true,
+        prior_values = _source_fixture_prior_values(prior),
+        rows,
+        summary = merge(control_manifest.summary, (;
+            all_active_scales_resolved =
+                all(row -> row.status !== :active || !ismissing(row.scale), rows),
+        )),
+    ))
+end
+
 """
     GMFRMFit
 
 Experimental scalar GMFRM fit result returned only by
-`fit(spec; experimental = true)` for the one-dimensional rater-discrimination
-promotion candidate.
+`fit(spec; experimental = true)` for the one-dimensional rater-consistency
+promotion candidate configured with `discrimination = :rater`.
 Raw draws are stored in `draws`, constrained direct draws in `direct_draws`, and
 observation-ordered direct pointwise log likelihoods in
 `direct_pointwise_loglikelihood`.
@@ -1622,6 +1664,7 @@ end
 function _candidate_mcmc_diagnostic_rows(draws::AbstractMatrix{<:Real},
         parameter_names::Vector{String},
         chains::Int;
+        parameter_space::Symbol = :raw_unconstrained,
         split_chains::Bool,
         rhat_threshold::Float64,
         ess_threshold::Float64)
@@ -1638,6 +1681,10 @@ function _candidate_mcmc_diagnostic_rows(draws::AbstractMatrix{<:Real},
     for param in 1:nparams
         diagnostic = _rhat_and_ess(diagnostic_values, param)
         push!(rows, (;
+            diagnostic_row = :parameter,
+            parameter_space,
+            diagnostic_method = :classical_split_rhat_autocorrelation_ess,
+            diagnostic_status = :provisional_classical,
             parameter = parameter_names[param],
             rhat = diagnostic.rhat,
             ess = diagnostic.ess,
@@ -1660,6 +1707,7 @@ end
 function _candidate_parameter_block_diagnostics(blocks::Dict{Symbol,UnitRange{Int}},
         parameter_names::Vector{String},
         parameter_rows;
+        parameter_space::Symbol = :raw_unconstrained,
         chains::Int,
         draws_per_chain::Int,
         total_draws::Int,
@@ -1679,6 +1727,10 @@ function _candidate_parameter_block_diagnostics(blocks::Dict{Symbol,UnitRange{In
         n_bad_rhat = count(row -> isfinite(row.rhat) && row.rhat > rhat_threshold, block_rows)
         n_low_ess = count(row -> isfinite(row.ess) && row.ess < ess_threshold, block_rows)
         push!(rows, (;
+            diagnostic_row = :parameter_block,
+            parameter_space,
+            diagnostic_method = :classical_split_rhat_autocorrelation_ess,
+            diagnostic_status = :provisional_classical,
             block,
             first_parameter = isempty(indices) ? missing : first(indices),
             last_parameter = isempty(indices) ? missing : last(indices),
@@ -1973,6 +2025,204 @@ function _mgmfrm_guarded_local_fit_direct_draw_constraint_rows(
     return rows
 end
 
+function _mgmfrm_initialization_status(initial_source::Symbol)
+    initial_source === :default_zero_raw && return :default_zero_fallback
+    initial_source === :user_supplied_raw && return :user_supplied_raw
+    return :raw_initial_argument
+end
+
+function _mgmfrm_initialization_policy(
+        target::_MGMFRMGuardedLocalFitLogDensity,
+        initial::AbstractVector,
+        initial_direct::AbstractVector,
+        initial_logdensity::Real,
+        controls::NamedTuple;
+        initial_source::Symbol = :sampler_raw_initial_argument)
+    init_jitter = Float64(_nt_get(controls, :init_jitter, 0.0))
+    fallback_used = initial_source === :default_zero_raw
+    return (;
+        schema = "bayesianmgmfrm.mgmfrm_initialization_policy.v1",
+        family = :mgmfrm,
+        scope = :minimal_confirmatory_mgmfrm_candidate,
+        target = :_mgmfrm_guarded_local_fit_logdensity,
+        parameter_space = :raw_unconstrained,
+        direct_parameter_space = :direct_constrained,
+        initial_source,
+        status = _mgmfrm_initialization_status(initial_source),
+        fallback_used,
+        fallback_policy = :zero_raw_vector_when_init_is_omitted,
+        n_parameters = length(initial),
+        n_direct_parameters = length(initial_direct),
+        initial_raw_hash = _cache_hash(initial),
+        initial_direct_hash = _cache_hash(initial_direct),
+        zero_raw_initial = all(iszero, initial),
+        finite_initial_raw_values = all(isfinite, initial),
+        finite_initial_direct_values = all(isfinite, initial_direct),
+        initial_logdensity = Float64(initial_logdensity),
+        finite_initial_logdensity = isfinite(initial_logdensity),
+        init_jitter,
+        chain_initialization =
+            init_jitter > 0 ?
+            :raw_initial_plus_per_chain_jitter :
+            :same_raw_initial_each_chain,
+    )
+end
+
+function _mgmfrm_initialization_rows(policy::NamedTuple)
+    return [
+        (policy = :initial_raw_vector,
+            check = :finite_raw_initial,
+            parameter_space = :raw_unconstrained,
+            status = policy.status,
+            value = policy.initial_raw_hash,
+            passed = policy.finite_initial_raw_values,
+            fallback_used = policy.fallback_used,
+            note = policy.fallback_policy),
+        (policy = :initial_logdensity,
+            check = :finite_initial_logdensity,
+            parameter_space = :raw_unconstrained,
+            status = policy.finite_initial_logdensity ? :finite : :nonfinite,
+            value = policy.initial_logdensity,
+            passed = policy.finite_initial_logdensity,
+            fallback_used = policy.fallback_used,
+            note = :initial_raw_vector_must_have_finite_target_density),
+        (policy = :initial_direct_transform,
+            check = :finite_direct_initial,
+            parameter_space = :direct_constrained,
+            status = policy.finite_initial_direct_values ? :finite : :nonfinite,
+            value = policy.initial_direct_hash,
+            passed = policy.finite_initial_direct_values,
+            fallback_used = policy.fallback_used,
+            note = :raw_initial_transformed_through_fixed_q_direct_map),
+        (policy = :per_chain_initialization,
+            check = :init_jitter,
+            parameter_space = :raw_unconstrained,
+            status = policy.init_jitter > 0 ? :jittered : :not_jittered,
+            value = policy.init_jitter,
+            passed = true,
+            fallback_used = policy.fallback_used,
+            note = policy.chain_initialization),
+    ]
+end
+
+function _mgmfrm_initialization_rows(policy)
+    return NamedTuple[]
+end
+
+function _mgmfrm_surface_direct_constraint_rows(surface)
+    surface isa NamedTuple || return NamedTuple[]
+    hasproperty(surface, :direct_constraint_rows) || return NamedTuple[]
+    return surface.direct_constraint_rows
+end
+
+function _mgmfrm_surface_summary_value(surface, field::Symbol, default)
+    surface isa NamedTuple || return default
+    hasproperty(surface, :summary) || return default
+    return _nt_get(surface.summary, field, default)
+end
+
+function _mgmfrm_direct_constraint_failures(surface, constraint::Symbol)
+    rows = _mgmfrm_surface_direct_constraint_rows(surface)
+    isempty(rows) && return missing
+    for row in rows
+        _nt_get(row, :constraint, missing) === constraint || continue
+        return _nt_get(row, :n_failed,
+            _nt_get(row, :passed, false) === true ? 0 : 1)
+    end
+    return missing
+end
+
+function _mgmfrm_constraint_passed(n_failed)
+    ismissing(n_failed) && return missing
+    return n_failed == 0
+end
+
+function _mgmfrm_constraint_status(n_failed)
+    ismissing(n_failed) && return :not_recorded
+    return n_failed == 0 ? :passed : :failed
+end
+
+function _mgmfrm_fixed_q_invariance_rows(
+        design::FacetDesign,
+        surface = nothing)
+    q_matrix = design.spec.q_matrix
+    n_active_loadings = q_matrix === nothing ? missing : count(identity, q_matrix)
+    loading_failures = _mgmfrm_direct_constraint_failures(
+        surface,
+        :item_dimension_discrimination_positive,
+    )
+    direct_failures = _mgmfrm_surface_summary_value(
+        surface,
+        :n_failed_direct_constraints,
+        missing,
+    )
+    return [
+        (policy = :q_matrix,
+            check = :fixed_confirmatory_mask,
+            status = q_matrix === nothing ? :missing : :fixed,
+            parameter_space = :design,
+            value = q_matrix === nothing ? missing : _q_matrix_manifest(q_matrix),
+            passed = q_matrix !== nothing,
+            note = :no_exploratory_loading_search),
+        (policy = :latent_correlation,
+            check = :identity_latent_correlation,
+            status = :fixed_identity,
+            parameter_space = :latent_ability,
+            value = :identity,
+            passed = true,
+            note = :free_latent_correlation_blocked_for_guarded_candidate),
+        (policy = :ability_scale,
+            check = :standard_normal_by_dimension,
+            status = :fixed_standard_normal_by_dimension,
+            parameter_space = :latent_ability,
+            value = :standard_normal_by_dimension,
+            passed = true,
+            note = :rotation_gauge_not_estimated),
+        (policy = :loading_sign,
+            check = :positive_q_masked_loadings,
+            status = :fixed_positive,
+            parameter_space = :direct_constrained,
+            value = n_active_loadings,
+            passed = true,
+            note = :interpreted_loadings_use_log_link),
+        (policy = :interpreted_loading_values,
+            check = :item_dimension_discrimination_positive,
+            status = _mgmfrm_constraint_status(loading_failures),
+            parameter_space = :direct_constrained,
+            value = loading_failures,
+            passed = _mgmfrm_constraint_passed(loading_failures),
+            note = :checked_in_direct_constraint_rows),
+        (policy = :direct_constraints,
+            check = :direct_constraint_failures,
+            status = _mgmfrm_constraint_status(direct_failures),
+            parameter_space = :direct_constrained,
+            value = direct_failures,
+            passed = _mgmfrm_constraint_passed(direct_failures),
+            note = :all_direct_constraints_must_pass_before_interpretation),
+        (policy = :rotation,
+            check = :rotation_or_posthoc_alignment,
+            status = :not_applicable_fixed_q,
+            parameter_space = :latent_ability,
+            value = :blocked,
+            passed = true,
+            note = :fixed_q_identity_correlation_defines_candidate_gauge),
+        (policy = :dimension_permutation,
+            check = :dimension_label_stability,
+            status = :anchored_by_fixed_q_dimension_labels,
+            parameter_space = :design,
+            value = Tuple(design.spec.dimension_labels),
+            passed = true,
+            note = :dimension_labels_follow_fixed_q_columns),
+        (policy = :exploratory_loading,
+            check = :free_loading_search,
+            status = :blocked,
+            parameter_space = :design,
+            value = :estimated_or_free_q_matrix,
+            passed = true,
+            note = :outside_guarded_local_mgmfrm_scope),
+    ]
+end
+
 function _gmfrm_promotion_candidate_summary_flag(n_sampler_warnings::Int,
         n_nonfinite_logdensity::Int,
         n_failed_direct_constraints::Int,
@@ -2116,6 +2366,10 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
         chain_stats = [row for row in sampler_stats if row.chain == chain]
         sampler_summary = _candidate_chain_sampler_summary(chain_stats, max_depth)
         push!(sampler_rows, (;
+            diagnostic_row = :sampler_chain,
+            parameter_space = :raw_unconstrained,
+            diagnostic_method = :sampler_chain_summary,
+            diagnostic_status = :recorded,
             chain,
             backend = :advancedhmc,
             sampler = :nuts,
@@ -2149,6 +2403,7 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
         draws,
         target.blueprint.parameter_names,
         chains;
+        parameter_space = :raw_unconstrained,
         split_chains,
         rhat_threshold = checked.rhat_threshold,
         ess_threshold = checked.ess_threshold,
@@ -2157,6 +2412,7 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
         target.blueprint.blocks,
         target.blueprint.parameter_names,
         parameter_rows;
+        parameter_space = :raw_unconstrained,
         chains,
         draws_per_chain = ndraws,
         total_draws,
@@ -2171,6 +2427,7 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
         direct_values.direct_draws,
         target.blueprint.constrained_parameter_names,
         chains;
+        parameter_space = :direct_constrained,
         split_chains,
         rhat_threshold = checked.rhat_threshold,
         ess_threshold = checked.ess_threshold,
@@ -2179,6 +2436,7 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
         target.blueprint.constrained_blocks,
         target.blueprint.constrained_parameter_names,
         direct_parameter_rows;
+        parameter_space = :direct_constrained,
         chains,
         draws_per_chain = ndraws,
         total_draws,
@@ -2225,6 +2483,7 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
         fit_ready = false,
         target = :_gmfrm_promotion_candidate_logdensity,
         density_space = :raw_unconstrained,
+        parameter_layout = fit_ready_parameter_layout(target.design),
         backend = :advancedhmc,
         sampler = :nuts,
         raw_parameter_names = copy(target.blueprint.parameter_names),
@@ -2325,7 +2584,8 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
         split_chains::Bool = true,
         rhat_threshold::Real = 1.01,
         ess_threshold::Real = 400,
-        progress::Bool = false)
+        progress::Bool = false,
+        initial_source::Symbol = :sampler_raw_initial_argument)
     target.blueprint.family === :mgmfrm ||
         throw(ArgumentError("_mgmfrm_guarded_local_fit_sampler_diagnostics requires an MGMFRM guarded target"))
     ndraws >= 1 || throw(ArgumentError("ndraws must be positive"))
@@ -2434,6 +2694,10 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
         chain_stats = [row for row in sampler_stats if row.chain == chain]
         sampler_summary = _candidate_chain_sampler_summary(chain_stats, max_depth)
         push!(sampler_rows, (;
+            diagnostic_row = :sampler_chain,
+            parameter_space = :raw_unconstrained,
+            diagnostic_method = :sampler_chain_summary,
+            diagnostic_status = :recorded,
             chain,
             backend = :advancedhmc,
             sampler = :nuts,
@@ -2467,6 +2731,7 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
         draws,
         target.blueprint.parameter_names,
         chains;
+        parameter_space = :raw_unconstrained,
         split_chains,
         rhat_threshold = checked.rhat_threshold,
         ess_threshold = checked.ess_threshold,
@@ -2475,6 +2740,7 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
         target.blueprint.blocks,
         target.blueprint.parameter_names,
         parameter_rows;
+        parameter_space = :raw_unconstrained,
         chains,
         draws_per_chain = ndraws,
         total_draws,
@@ -2492,6 +2758,7 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
         direct_values.direct_draws,
         target.blueprint.constrained_parameter_names,
         chains;
+        parameter_space = :direct_constrained,
         split_chains,
         rhat_threshold = checked.rhat_threshold,
         ess_threshold = checked.ess_threshold,
@@ -2500,6 +2767,7 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
         target.blueprint.constrained_blocks,
         target.blueprint.constrained_parameter_names,
         direct_parameter_rows;
+        parameter_space = :direct_constrained,
         chains,
         draws_per_chain = ndraws,
         total_draws,
@@ -2539,6 +2807,18 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
         target.design,
         initial,
     )
+    initialization_policy = _mgmfrm_initialization_policy(
+        target,
+        initial,
+        initial_direct,
+        initial_logdensity,
+        controls;
+        initial_source,
+    )
+    fixed_q_invariance_rows = _mgmfrm_fixed_q_invariance_rows(
+        target.design,
+        (; direct_constraint_rows, summary = (; n_failed_direct_constraints)),
+    )
 
     return (;
         schema = "bayesianmgmfrm.mgmfrm_guarded_local_fit_sampler_diagnostics.v1",
@@ -2550,6 +2830,7 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
         fit_ready = true,
         target = :_mgmfrm_guarded_local_fit_logdensity,
         density_space = :raw_unconstrained,
+        parameter_layout = fit_ready_parameter_layout(target.design),
         backend = :advancedhmc,
         sampler = :nuts,
         raw_parameter_names = copy(target.blueprint.parameter_names),
@@ -2564,6 +2845,9 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
             target.blueprint.constrained_parameter_names,
             initial_direct,
         ),
+        initialization_policy,
+        initialization_rows = _mgmfrm_initialization_rows(initialization_policy),
+        fixed_q_invariance_rows,
         initial_raw_parameter_values = copy(initial),
         initial_direct_parameter_values = copy(initial_direct),
         initial_logdensity,
@@ -2635,22 +2919,65 @@ end
 function _experimental_gmfrm_prior(prior)
     prior === nothing && return _SourceFixturePrior()
     prior isa _SourceFixturePrior && return prior
-    throw(ArgumentError(
-        "experimental scalar GMFRM fitting currently uses the internal " *
-        "raw-coordinate prior contract; omit `prior` or pass the internal " *
-        "_SourceFixturePrior for local validation",
+    throw(_guarded_gmfrm_unsupported_error(
+        :prior,
+        Symbol(nameof(typeof(prior))),
+        :scalar_gmfrm_prior_likelihood_sensitivity_grid,
+        "guarded scalar GMFRM fitting uses the internal raw-coordinate prior contract; omit `prior` or pass the internal _SourceFixturePrior for local validation",
     ))
+end
+
+function _guarded_gmfrm_unsupported_error(
+        option::Symbol,
+        value,
+        next_gate::Symbol,
+        reason::AbstractString)
+    return ArgumentError(
+        "guarded scalar GMFRM experimental fit rejected " *
+        "blocked_option=:$(option), value=$(repr(value)); " *
+        "supported_surface=(family=:gmfrm, dimensions=1, discrimination=:rater, validation_bias_terms=()); " *
+        "next_gate=:$(next_gate); reason=$(reason)",
+    )
 end
 
 function _check_experimental_gmfrm_spec(spec::FacetSpec)
     spec.family === :gmfrm ||
-        throw(ArgumentError("experimental fitting currently supports only family = :gmfrm"))
+        throw(_guarded_gmfrm_unsupported_error(
+            :family,
+            spec.family,
+            :guarded_scalar_gmfrm_fit_entrypoint,
+            "this guarded entrypoint is only for the scalar GMFRM surface",
+        ))
     spec.dimensions == 1 ||
-        throw(ArgumentError("experimental GMFRM fitting currently supports only dimensions = 1"))
+        throw(_guarded_gmfrm_unsupported_error(
+            :dimensions,
+            spec.dimensions,
+            :mgmfrm_guarded_fit_validation_grid,
+            "multidimensional generalized fits require the fixed-Q MGMFRM validation gate",
+        ))
     spec.discrimination === :rater ||
-        throw(ArgumentError("experimental GMFRM fitting currently supports only discrimination = :rater"))
+        throw(_guarded_gmfrm_unsupported_error(
+            :discrimination,
+            spec.discrimination,
+            spec.discrimination === :item ?
+                :item_discrimination_promotion_decision :
+                :guarded_scalar_gmfrm_fit_entrypoint,
+            "the public guarded scalar GMFRM fit is the rater-consistency surface only",
+        ))
+    isempty(spec.validation_bias_terms) ||
+        throw(_guarded_gmfrm_unsupported_error(
+            :dff_effects,
+            spec.validation_bias_terms,
+            :gmfrm_dff_estimand_validation_grid,
+            "DFF/bias terms are validation and reporting rows only; they are not fitted model effects in v0.1.x",
+        ))
     spec.estimation_status === :specified_only ||
-        throw(ArgumentError("experimental GMFRM fitting expects the specified-only scalar GMFRM manifest path"))
+        throw(_guarded_gmfrm_unsupported_error(
+            :estimation_status,
+            spec.estimation_status,
+            :guarded_scalar_gmfrm_manifest_review,
+            "guarded scalar GMFRM fitting expects the specified-only scalar GMFRM manifest path",
+        ))
     return nothing
 end
 
@@ -2697,7 +3024,12 @@ function _fit_experimental_gmfrm(spec::FacetSpec;
         kwargs...)
     _check_experimental_gmfrm_spec(spec)
     backend === :advancedhmc ||
-        throw(ArgumentError("experimental scalar GMFRM fitting currently supports only backend = :advancedhmc"))
+        throw(_guarded_gmfrm_unsupported_error(
+            :backend,
+            backend,
+            :advancedhmc_guarded_sampler_policy,
+            "guarded scalar GMFRM fitting currently supports only backend = :advancedhmc",
+        ))
     gmfrm_prior = _experimental_gmfrm_prior(prior)
     design = getdesign(spec; preview = true)
     target = _gmfrm_promotion_candidate_logdensity(design; prior = gmfrm_prior)
@@ -2783,6 +3115,7 @@ function _fit_guarded_mgmfrm(spec::FacetSpec;
     diagnostic_surface = _mgmfrm_guarded_local_fit_sampler_diagnostics(
         target,
         raw_initial;
+        initial_source = init === nothing ? :default_zero_raw : :user_supplied_raw,
         kwargs...,
     )
     return _mgmfrm_fit_from_sampler_diagnostics(design, mgmfrm_prior, diagnostic_surface)
@@ -2802,6 +3135,48 @@ function fit(spec::FacetSpec; experimental::Bool = false, kwargs...)
     end
     return fit(getdesign(spec); kwargs...)
 end
+
+function _fit_status_policy(fit::MFRMFit)
+    return _status_policy_manifest(
+        fit.design.spec.family,
+        fit.design.spec.estimation_status;
+        public_fit = true,
+        experimental_public = false,
+        fit_ready = true,
+        claim_scope = :minimal_mfrm_rsm_pcm,
+    )
+end
+
+function _fit_status_policy(fit::GMFRMFit)
+    return _status_policy_manifest(
+        :gmfrm,
+        fit.design.spec.estimation_status;
+        public_fit = true,
+        experimental_public = true,
+        fit_ready = true,
+        claim_scope = :guarded_scalar_rater_consistency_only,
+    )
+end
+
+function _fit_status_policy(fit::MGMFRMFit)
+    return _status_policy_manifest(
+        :mgmfrm,
+        fit.design.spec.estimation_status;
+        public_fit = true,
+        experimental_public = true,
+        fit_ready = true,
+        claim_scope = :fixed_q_two_dimensional_confirmatory_only,
+    )
+end
+
+model_surface_audit(fit::MFRMFit) =
+    _model_surface_audit(fit.design; status_policy = _fit_status_policy(fit))
+
+model_surface_audit(fit::GMFRMFit) =
+    _model_surface_audit(fit.design; status_policy = _fit_status_policy(fit))
+
+model_surface_audit(fit::MGMFRMFit) =
+    _model_surface_audit(fit.design; status_policy = _fit_status_policy(fit))
 
 """
     fit_metadata(fit::MFRMFit)
@@ -2825,9 +3200,15 @@ function fit_metadata(fit::MFRMFit)
         optional_facets = sort(collect(keys(data.optional)); by = string),
         family = fit.design.spec.family,
         dimensions = fit.design.spec.dimensions,
+        dimension_labels = copy(fit.design.spec.dimension_labels),
         discrimination = fit.design.spec.discrimination,
         thresholds = fit.design.spec.thresholds,
         estimation_status = fit.design.spec.estimation_status,
+        scope = :minimal_mfrm_rsm_pcm,
+        public_fit = true,
+        experimental_public = false,
+        fit_ready = true,
+        status_policy = _fit_status_policy(fit),
         n_parameters = length(fit.design.parameter_names),
         n_draws = size(fit.draws, 1),
         n_chains = length(fit.chain_acceptance_rate),
@@ -2864,12 +3245,14 @@ function fit_metadata(fit::GMFRMFit)
         optional_facets = sort(collect(keys(data.optional)); by = string),
         family = fit.design.spec.family,
         dimensions = fit.design.spec.dimensions,
+        dimension_labels = copy(fit.design.spec.dimension_labels),
         discrimination = fit.design.spec.discrimination,
         thresholds = fit.design.spec.thresholds,
         estimation_status = fit.design.spec.estimation_status,
         scope = :scalar_gmfrm_fit_ready_candidate,
         public_fit = true,
         experimental_public = true,
+        status_policy = _fit_status_policy(fit),
         density_space = :raw_unconstrained,
         n_parameters = size(fit.draws, 2),
         n_direct_parameters = size(fit.direct_draws, 2),
@@ -2912,6 +3295,7 @@ function fit_metadata(fit::MGMFRMFit)
         optional_facets = sort(collect(keys(data.optional)); by = string),
         family = fit.design.spec.family,
         dimensions = fit.design.spec.dimensions,
+        dimension_labels = copy(fit.design.spec.dimension_labels),
         discrimination = fit.design.spec.discrimination,
         thresholds = fit.design.spec.thresholds,
         estimation_status = fit.design.spec.estimation_status,
@@ -2920,6 +3304,7 @@ function fit_metadata(fit::MGMFRMFit)
         experimental_public = true,
         fit_ready = true,
         guarded_local_fit = true,
+        status_policy = _fit_status_policy(fit),
         density_space = :raw_unconstrained,
         n_parameters = size(fit.draws, 2),
         n_direct_parameters = size(fit.direct_draws, 2),
@@ -3057,6 +3442,10 @@ function sampler_diagnostics(fit::MFRMFit)
         n_nonfinite = length(logps) - n_finite
         sampler_summary = _chain_sampler_summary(fit, chain)
         push!(rows, (;
+            diagnostic_row = :sampler_chain,
+            parameter_space = :identified,
+            diagnostic_method = :sampler_chain_summary,
+            diagnostic_status = :recorded,
             chain,
             backend = fit.backend,
             sampler = fit.sampler,
@@ -3125,6 +3514,10 @@ function mcmc_diagnostics(fit::MFRMFit;
     for param in 1:nparams
         diagnostic = _rhat_and_ess(diagnostic_values, param)
         push!(rows, (;
+            diagnostic_row = :parameter,
+            parameter_space = :identified,
+            diagnostic_method = :classical_split_rhat_autocorrelation_ess,
+            diagnostic_status = :provisional_classical,
             parameter = fit.design.parameter_names[param],
             rhat = diagnostic.rhat,
             ess = diagnostic.ess,
@@ -3187,6 +3580,10 @@ function _parameter_block_diagnostics(fit::MFRMFit,
         n_bad_rhat = count(row -> isfinite(row.rhat) && row.rhat > rhat_threshold, block_rows)
         n_low_ess = count(row -> isfinite(row.ess) && row.ess < ess_threshold, block_rows)
         push!(rows, (;
+            diagnostic_row = :parameter_block,
+            parameter_space = :identified,
+            diagnostic_method = :classical_split_rhat_autocorrelation_ess,
+            diagnostic_status = :provisional_classical,
             block,
             first_parameter = isempty(indices) ? missing : first(indices),
             last_parameter = isempty(indices) ? missing : last(indices),
@@ -3263,6 +3660,31 @@ function _min_nonmissing(values)
     return minimum(finite_values)
 end
 
+function _diagnostic_row_policy(; family::Symbol, parameter_spaces)
+    return (;
+        schema = "bayesianmgmfrm.diagnostic_row_policy.v1",
+        family,
+        sampler_row = :sampler_chain,
+        parameter_row = :parameter,
+        block_row = :parameter_block,
+        parameter_spaces = Tuple(parameter_spaces),
+        rhat_method = :classical_split,
+        ess_method = :autocorrelation,
+        rhat_ess_status = :provisional_classical,
+        rank_normalized_rhat_available = false,
+        bulk_tail_ess_available = false,
+        failure_flags = (
+            :ok,
+            :sampler_warning,
+            :mcmc_warning,
+            :insufficient_chains,
+            :degenerate_draws,
+            :empty_block,
+        ),
+        next_gate = :rank_normalized_rhat_bulk_tail_ess,
+    )
+end
+
 """
     diagnostics(fit::MFRMFit; split_chains = true, rhat_threshold = 1.01,
                 ess_threshold = 400)
@@ -3318,6 +3740,9 @@ function diagnostics(fit::MFRMFit;
         schema = "bayesianmgmfrm.diagnostics.v1",
         backend = fit.backend,
         sampler = fit.sampler,
+        diagnostic_row_policy = _diagnostic_row_policy(;
+            family = :mfrm,
+            parameter_spaces = (:identified,)),
         summary = (;
             flag,
             passed = flag === :ok,
@@ -3408,6 +3833,10 @@ function diagnostics(fit::GMFRMFit;
         experimental_public = true,
         backend = fit.backend,
         sampler = fit.sampler,
+        diagnostic_row_policy = _diagnostic_row_policy(;
+            family = :gmfrm,
+            parameter_spaces = (:raw_unconstrained, :direct_constrained)),
+        parameter_layout = surface.parameter_layout,
         summary = surface.summary,
         sampler_rows = surface.sampler_rows,
         parameter_rows = surface.parameter_rows,
@@ -3480,6 +3909,16 @@ function diagnostics(fit::MGMFRMFit;
         guarded_local_fit = true,
         backend = fit.backend,
         sampler = fit.sampler,
+        diagnostic_row_policy = _diagnostic_row_policy(;
+            family = :mgmfrm,
+            parameter_spaces = (:raw_unconstrained, :direct_constrained)),
+        parameter_layout = surface.parameter_layout,
+        initialization_policy = surface.initialization_policy,
+        initialization_rows = surface.initialization_rows,
+        fixed_q_invariance_rows = _mgmfrm_fixed_q_invariance_rows(
+            fit.design,
+            surface,
+        ),
         summary = surface.summary,
         sampler_rows = surface.sampler_rows,
         parameter_rows = surface.parameter_rows,
@@ -3495,11 +3934,14 @@ function _model_manifest(fit::MFRMFit, diagnostic_summary)
     return (;
         schema = "bayesianmgmfrm.model_manifest.v1",
         object = :fit,
+        status_policy = _fit_status_policy(fit),
         data = base.data,
         validation = base.validation,
         spec = base.spec,
         design = base.design,
         fit = fit_metadata(fit),
+        model_surface_audit = model_surface_audit(fit),
+        rating_design = base.rating_design,
         diagnostics = diagnostic_summary,
     )
 end
@@ -3518,11 +3960,14 @@ function _model_manifest(fit::GMFRMFit, diagnostic_summary)
         public_fit = true,
         experimental_public = true,
         fit_ready = true,
+        status_policy = _fit_status_policy(fit),
         data = base.data,
         validation = base.validation,
         spec = base.spec,
         design = base.design,
         fit = fit_metadata(fit),
+        model_surface_audit = model_surface_audit(fit),
+        rating_design = base.rating_design,
         diagnostics = diagnostic_summary,
     )
 end
@@ -3542,11 +3987,14 @@ function _model_manifest(fit::MGMFRMFit, diagnostic_summary)
         experimental_public = true,
         guarded_local_fit = true,
         fit_ready = true,
+        status_policy = _fit_status_policy(fit),
         data = base.data,
         validation = base.validation,
         spec = base.spec,
         design = base.design,
         fit = fit_metadata(fit),
+        model_surface_audit = model_surface_audit(fit),
+        rating_design = base.rating_design,
         diagnostics = diagnostic_summary,
     )
 end
@@ -3567,6 +4015,17 @@ end
 
 function _artifact_inclusion_flag(include::Bool)
     return include ? :included : :omitted
+end
+
+function _fit_evidence_artifact_schema_policy(artifact_kind::Symbol,
+        status_policy;
+        include_environment::Bool,
+        include_cache_provenance::Bool = false)
+    return evidence_artifact_schema_policy(artifact_kind;
+        include_environment,
+        include_cache_provenance,
+        raw_data_status = :not_included,
+        unsupported_claims = status_policy.blocked_claims)
 end
 
 """
@@ -3600,6 +4059,10 @@ function fit_artifact(fit::MFRMFit;
         rhat_threshold,
         ess_threshold)
     manifest = _model_manifest(fit, diagnostic_surface.summary)
+    evidence_policy = _fit_evidence_artifact_schema_policy(
+        :fit_artifact,
+        manifest.status_policy;
+        include_environment)
     rng = _fit_rng_control(fit)
     artifact_policy = (;
         draws = _artifact_inclusion_flag(include_draws),
@@ -3627,6 +4090,7 @@ function fit_artifact(fit::MFRMFit;
         schema = "bayesianmgmfrm.fit_artifact.v1",
         object = :fit_artifact,
         created_at = string(now()),
+        evidence_artifact_schema_policy = evidence_policy,
         manifest,
         diagnostics = diagnostic_surface,
         posterior_summary = posterior_summary(fit),
@@ -3652,6 +4116,10 @@ function fit_artifact(fit::GMFRMFit;
         rhat_threshold,
         ess_threshold)
     manifest = _model_manifest(fit, diagnostic_surface.summary)
+    evidence_policy = _fit_evidence_artifact_schema_policy(
+        :gmfrm_experimental_fit_artifact,
+        manifest.status_policy;
+        include_environment)
     base_manifest = model_manifest(fit.design)
     raw_manifest = base_manifest.design.raw_parameterization
     promotion = raw_manifest.promotion_candidate
@@ -3680,6 +4148,14 @@ function fit_artifact(fit::GMFRMFit;
     environment = include_environment ?
         evidence_metadata(; include_packages) :
         nothing
+    parameter_layout = diagnostic_surface.parameter_layout
+    raw_posterior_rows = posterior_summary(fit)
+    direct_posterior_rows = direct_posterior_summary(fit)
+    raw_prior_control_manifest =
+        _resolved_generalized_raw_prior_control_manifest(
+            experimental_decision.raw_prior_control_manifest,
+            fit.prior,
+        )
     return _with_archive_metadata((;
         schema = "bayesianmgmfrm.gmfrm_experimental_fit_artifact.v1",
         object = :fit_artifact,
@@ -3690,19 +4166,47 @@ function fit_artifact(fit::GMFRMFit;
         experimental_public = true,
         fit_ready = true,
         created_at = string(now()),
+        evidence_artifact_schema_policy = evidence_policy,
+        public_target_label = experimental_decision.public_target_label,
+        public_target_description = experimental_decision.public_target_description,
+        internal_target_constructor = experimental_decision.internal_target_constructor,
+        internal_sampler_diagnostic_constructor =
+            experimental_decision.internal_sampler_diagnostic_constructor,
         density_space = :raw_unconstrained,
+        raw_prior_control_manifest,
+        parameter_layout,
         raw_parameter_names = copy(fit.diagnostic_surface.raw_parameter_names),
         direct_parameter_names =
             copy(fit.diagnostic_surface.direct_parameter_names),
-        raw_to_direct_transform = raw_manifest.transforms,
+        raw_to_direct_transform = parameter_layout.transforms,
         sampler_controls = fit.sampler_controls,
         diagnostics = diagnostic_surface,
         pointwise_loglikelihood = copy(fit.direct_pointwise_loglikelihood),
         caveat_docs_artifact = experimental_decision.caveat_docs_artifact,
         fixture_provenance = experimental_decision.fit_artifact_contract.provenance_rows,
         manifest,
-        posterior_summary = posterior_summary(fit),
-        direct_posterior_summary = direct_posterior_summary(fit),
+        posterior_summary = raw_posterior_rows,
+        direct_posterior_summary = direct_posterior_rows,
+        raw_posterior_row_schema = _posterior_summary_row_schema(
+            raw_posterior_rows;
+            family = :gmfrm,
+            scope = :scalar_gmfrm_fit_ready_candidate,
+            parameter_space = :raw_unconstrained,
+            summary_function = :posterior_summary,
+            parameter_names = parameter_layout.raw_parameter_names,
+            blocks = parameter_layout.raw_blocks,
+            layout = parameter_layout,
+        ),
+        direct_posterior_row_schema = _posterior_summary_row_schema(
+            direct_posterior_rows;
+            family = :gmfrm,
+            scope = :scalar_gmfrm_fit_ready_candidate,
+            parameter_space = :constrained_direct,
+            summary_function = :direct_posterior_summary,
+            parameter_names = parameter_layout.constrained_parameter_names,
+            blocks = parameter_layout.constrained_blocks,
+            layout = parameter_layout,
+        ),
         reproducibility,
         environment,
         raw_draws = include_draws ? copy(fit.draws) : nothing,
@@ -3726,6 +4230,10 @@ function fit_artifact(fit::MGMFRMFit;
         rhat_threshold,
         ess_threshold)
     manifest = _model_manifest(fit, diagnostic_surface.summary)
+    evidence_policy = _fit_evidence_artifact_schema_policy(
+        :mgmfrm_experimental_fit_artifact,
+        manifest.status_policy;
+        include_environment)
     base_manifest = model_manifest(fit.design)
     raw_manifest = base_manifest.design.raw_parameterization
     confirmatory = raw_manifest.confirmatory_candidate
@@ -3754,6 +4262,14 @@ function fit_artifact(fit::MGMFRMFit;
     environment = include_environment ?
         evidence_metadata(; include_packages) :
         nothing
+    parameter_layout = diagnostic_surface.parameter_layout
+    raw_posterior_rows = posterior_summary(fit)
+    direct_posterior_rows = direct_posterior_summary(fit)
+    raw_prior_control_manifest =
+        _resolved_generalized_raw_prior_control_manifest(
+            experimental_decision.raw_prior_control_manifest,
+            fit.prior,
+        )
     return _with_archive_metadata((;
         schema = "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1",
         object = :fit_artifact,
@@ -3765,24 +4281,59 @@ function fit_artifact(fit::MGMFRMFit;
         guarded_local_fit = true,
         fit_ready = true,
         created_at = string(now()),
+        evidence_artifact_schema_policy = evidence_policy,
         density_space = :raw_unconstrained,
         entrypoint = "fit(spec; experimental = true)",
         guarded_local_entrypoint = :_fit_guarded_mgmfrm,
+        public_target_label = experimental_decision.public_target_label,
+        public_target_description = experimental_decision.public_target_description,
+        internal_target_constructor = experimental_decision.internal_target_constructor,
+        internal_sampler_diagnostic_constructor =
+            experimental_decision.internal_sampler_diagnostic_constructor,
         target = :_mgmfrm_guarded_local_fit_logdensity,
         q_matrix = _q_matrix_manifest(fit.design.spec.q_matrix),
         latent_correlation = :identity_fixed,
+        ability_scale = :standard_normal_by_dimension,
+        initialization_policy = diagnostic_surface.initialization_policy,
+        initialization_rows = diagnostic_surface.initialization_rows,
+        fixed_q_invariance_rows = _mgmfrm_fixed_q_invariance_rows(
+            fit.design,
+            diagnostic_surface,
+        ),
+        raw_prior_control_manifest,
+        parameter_layout,
         raw_parameter_names = copy(fit.diagnostic_surface.raw_parameter_names),
         direct_parameter_names =
             copy(fit.diagnostic_surface.direct_parameter_names),
-        raw_to_direct_transform = raw_manifest.transforms,
+        raw_to_direct_transform = parameter_layout.transforms,
         sampler_controls = fit.sampler_controls,
         diagnostics = diagnostic_surface,
         pointwise_loglikelihood = copy(fit.direct_pointwise_loglikelihood),
         caveat_docs_artifact = experimental_decision.caveat_docs_artifact,
         fixture_provenance = experimental_decision.fit_artifact_contract.provenance_rows,
         manifest,
-        posterior_summary = posterior_summary(fit),
-        direct_posterior_summary = direct_posterior_summary(fit),
+        posterior_summary = raw_posterior_rows,
+        direct_posterior_summary = direct_posterior_rows,
+        raw_posterior_row_schema = _posterior_summary_row_schema(
+            raw_posterior_rows;
+            family = :mgmfrm,
+            scope = :minimal_confirmatory_mgmfrm_candidate,
+            parameter_space = :raw_unconstrained,
+            summary_function = :posterior_summary,
+            parameter_names = parameter_layout.raw_parameter_names,
+            blocks = parameter_layout.raw_blocks,
+            layout = parameter_layout,
+        ),
+        direct_posterior_row_schema = _posterior_summary_row_schema(
+            direct_posterior_rows;
+            family = :mgmfrm,
+            scope = :minimal_confirmatory_mgmfrm_candidate,
+            parameter_space = :constrained_direct,
+            summary_function = :direct_posterior_summary,
+            parameter_names = parameter_layout.constrained_parameter_names,
+            blocks = parameter_layout.constrained_blocks,
+            layout = parameter_layout,
+        ),
         reproducibility,
         environment,
         raw_draws = include_draws ? copy(fit.draws) : nothing,
@@ -3926,14 +4477,328 @@ function _fit_report_dff(fit::_ModelComparisonFit; include_dff::Bool, kwargs...)
     )
 end
 
+function _fit_report_prior_policy_row(; family::Symbol, block::Symbol,
+        parameter_space::Symbol, prior_family::Symbol, location::Real,
+        scale_parameter::Symbol, scale::Real, active::Bool,
+        direct_scale_prior::Bool, jacobian_policy::Symbol, status::Symbol,
+        note::AbstractString)
+    return (;
+        schema = "bayesianmgmfrm.fit_report_prior_policy_row.v1",
+        family,
+        block,
+        parameter_space,
+        prior_family,
+        location = Float64(location),
+        scale_parameter,
+        scale = Float64(scale),
+        independent_by_parameter = true,
+        active,
+        direct_scale_prior,
+        jacobian_policy,
+        status,
+        note,
+    )
+end
+
+function _fit_report_prior_policy_rows(fit::MFRMFit)
+    prior = fit.prior
+    return [
+        _fit_report_prior_policy_row(
+            family = :mfrm,
+            block = :person,
+            parameter_space = :identified_constrained_parameter,
+            prior_family = :normal,
+            location = 0.0,
+            scale_parameter = :person_sd,
+            scale = prior.person_sd,
+            active = true,
+            direct_scale_prior = true,
+            jacobian_policy = :identity,
+            status = :active,
+            note = "weakly informative independent normal prior on identified person measures",
+        ),
+        _fit_report_prior_policy_row(
+            family = :mfrm,
+            block = :rater,
+            parameter_space = :identified_constrained_parameter,
+            prior_family = :normal,
+            location = 0.0,
+            scale_parameter = :rater_sd,
+            scale = prior.rater_sd,
+            active = true,
+            direct_scale_prior = true,
+            jacobian_policy = :identity,
+            status = :active,
+            note = "weakly informative independent normal prior on identified rater severities",
+        ),
+        _fit_report_prior_policy_row(
+            family = :mfrm,
+            block = :item,
+            parameter_space = :identified_constrained_parameter,
+            prior_family = :normal,
+            location = 0.0,
+            scale_parameter = :item_sd,
+            scale = prior.item_sd,
+            active = true,
+            direct_scale_prior = true,
+            jacobian_policy = :identity,
+            status = :active,
+            note = "weakly informative independent normal prior on identified item difficulties",
+        ),
+        _fit_report_prior_policy_row(
+            family = :mfrm,
+            block = :thresholds,
+            parameter_space = :identified_constrained_parameter,
+            prior_family = :normal,
+            location = 0.0,
+            scale_parameter = :step_sd,
+            scale = prior.step_sd,
+            active = true,
+            direct_scale_prior = true,
+            jacobian_policy = :identity,
+            status = :active,
+            note = "weakly informative independent normal prior on identified threshold or step parameters",
+        ),
+    ]
+end
+
+function _fit_report_prior_policy_rows(fit::Union{GMFRMFit,MGMFRMFit})
+    prior = fit.prior
+    family = fit.design.spec.family
+    loading_block = family === :mgmfrm ?
+        :log_item_dimension_discrimination :
+        :log_item_discrimination
+    return [
+        _fit_report_prior_policy_row(
+            family = family,
+            block = :person,
+            parameter_space = :raw_unconstrained_coordinate,
+            prior_family = :normal,
+            location = 0.0,
+            scale_parameter = :person_sd,
+            scale = prior.person_sd,
+            active = true,
+            direct_scale_prior = false,
+            jacobian_policy = :none_raw_coordinate_density,
+            status = :active,
+            note = "guarded generalized fit uses an independent normal raw-coordinate prior for person locations",
+        ),
+        _fit_report_prior_policy_row(
+            family = family,
+            block = :rater,
+            parameter_space = :raw_unconstrained_coordinate,
+            prior_family = :normal,
+            location = 0.0,
+            scale_parameter = :rater_sd,
+            scale = prior.rater_sd,
+            active = true,
+            direct_scale_prior = false,
+            jacobian_policy = :none_raw_coordinate_density,
+            status = :active,
+            note = "guarded generalized fit uses an independent normal raw-coordinate prior for rater severities",
+        ),
+        _fit_report_prior_policy_row(
+            family = family,
+            block = :item,
+            parameter_space = :raw_unconstrained_coordinate,
+            prior_family = :normal,
+            location = 0.0,
+            scale_parameter = :item_sd,
+            scale = prior.item_sd,
+            active = true,
+            direct_scale_prior = false,
+            jacobian_policy = :none_raw_coordinate_density,
+            status = :active,
+            note = "guarded generalized fit uses an independent normal raw-coordinate prior for item difficulties",
+        ),
+        _fit_report_prior_policy_row(
+            family = family,
+            block = loading_block,
+            parameter_space = :raw_log_positive_coordinate,
+            prior_family = :normal,
+            location = 0.0,
+            scale_parameter = :log_discrimination_sd,
+            scale = prior.log_discrimination_sd,
+            active = true,
+            direct_scale_prior = false,
+            jacobian_policy = :none_raw_coordinate_density,
+            status = :active,
+            note = "positive discrimination or loading parameters are represented by raw log coordinates",
+        ),
+        _fit_report_prior_policy_row(
+            family = family,
+            block = :log_rater_consistency,
+            parameter_space = :raw_log_positive_coordinate,
+            prior_family = :normal,
+            location = 0.0,
+            scale_parameter = :log_consistency_sd,
+            scale = prior.log_consistency_sd,
+            active = true,
+            direct_scale_prior = false,
+            jacobian_policy = :none_raw_coordinate_density,
+            status = :active,
+            note = "positive rater consistency parameters are represented by raw log coordinates",
+        ),
+        _fit_report_prior_policy_row(
+            family = family,
+            block = :steps,
+            parameter_space = :raw_constrained_step_coordinate,
+            prior_family = :normal,
+            location = 0.0,
+            scale_parameter = :step_sd,
+            scale = prior.step_sd,
+            active = true,
+            direct_scale_prior = false,
+            jacobian_policy = :none_raw_coordinate_density,
+            status = :active,
+            note = "category step parameters use the guarded generalized raw-coordinate prior scale",
+        ),
+        _fit_report_prior_policy_row(
+            family = family,
+            block = :direct_scale_generalized_priors,
+            parameter_space = :direct_constrained_parameter,
+            prior_family = :not_enabled,
+            location = 0.0,
+            scale_parameter = :not_applicable,
+            scale = 0.0,
+            active = false,
+            direct_scale_prior = true,
+            jacobian_policy = :requires_future_log_jacobian_policy,
+            status = :blocked,
+            note = "direct-scale generalized priors remain disabled until a log-Jacobian policy is implemented",
+        ),
+    ]
+end
+
+function _fit_report_raw_prior_control_manifest(fit::MFRMFit)
+    return nothing
+end
+
+function _fit_report_raw_prior_control_manifest(fit::GMFRMFit)
+    base_manifest = model_manifest(fit.design)
+    promotion = base_manifest.design.raw_parameterization.promotion_candidate
+    return _resolved_generalized_raw_prior_control_manifest(
+        promotion.experimental_public_api.raw_prior_control_manifest,
+        fit.prior,
+    )
+end
+
+function _fit_report_raw_prior_control_manifest(fit::MGMFRMFit)
+    base_manifest = model_manifest(fit.design)
+    confirmatory = base_manifest.design.raw_parameterization.confirmatory_candidate
+    return _resolved_generalized_raw_prior_control_manifest(
+        confirmatory.experimental_public_api_decision.raw_prior_control_manifest,
+        fit.prior,
+    )
+end
+
+function _fit_report_prior_policy(fit::_ModelComparisonFit)
+    rows = _fit_report_prior_policy_rows(fit)
+    raw_prior_control_manifest = _fit_report_raw_prior_control_manifest(fit)
+    return (;
+        status = :computed,
+        schema = "bayesianmgmfrm.fit_report_prior_policy.v1",
+        rows,
+        n_rows = length(rows),
+        raw_prior_control_manifest,
+        summary = (;
+            n_active_rows = count(row -> row.active, rows),
+            n_blocked_rows = count(row -> row.status === :blocked, rows),
+            all_active_priors_independent = all(row -> row.independent_by_parameter,
+                filter(row -> row.active, rows)),
+            direct_scale_generalized_priors_enabled =
+                any(row -> row.active && row.direct_scale_prior &&
+                    row.family in (:gmfrm, :mgmfrm),
+                    rows),
+            raw_coordinate_generalized_priors =
+                fit isa Union{GMFRMFit,MGMFRMFit},
+            raw_prior_control_manifest_recorded =
+                raw_prior_control_manifest !== nothing,
+            raw_prior_control_all_active_scales_resolved =
+                raw_prior_control_manifest === nothing ? missing :
+                raw_prior_control_manifest.summary.all_active_scales_resolved,
+            jacobian_policy = fit isa MFRMFit ?
+                :identity :
+                :none_raw_coordinate_density,
+        ),
+    )
+end
+
+function _fit_report_pooling_policy_row(; family::Symbol, block::Symbol,
+        pooling::Symbol, active::Bool, status::Symbol, blocker::Symbol,
+        note::AbstractString)
+    return (;
+        schema = "bayesianmgmfrm.fit_report_pooling_policy_row.v1",
+        family,
+        block,
+        pooling,
+        active,
+        status,
+        blocker,
+        note,
+    )
+end
+
+function _fit_report_pooling_policy(fit::_ModelComparisonFit)
+    family = fit.design.spec.family
+    rows = [
+        _fit_report_pooling_policy_row(
+            family = family,
+            block = :facet_parameters,
+            pooling = :independent_priors,
+            active = true,
+            status = :active,
+            blocker = :not_applicable,
+            note = "v0.1.x fits use independent priors for exposed facet parameter blocks",
+        ),
+        _fit_report_pooling_policy_row(
+            family = family,
+            block = :facet_hyperparameters,
+            pooling = :hierarchical_partial_pooling,
+            active = false,
+            status = :blocked,
+            blocker = :hierarchical_estimands_hyperpriors_shrinkage_diagnostics_sensitivity_missing,
+            note = "hierarchical facet priors require explicit estimands, hyperpriors, shrinkage diagnostics, and sensitivity evidence",
+        ),
+        _fit_report_pooling_policy_row(
+            family = family,
+            block = :rater_consistency,
+            pooling = :hierarchical_rater_consistency_pooling,
+            active = false,
+            status = family === :mfrm ? :not_applicable : :blocked,
+            blocker = family === :mfrm ? :not_a_generalized_fit :
+                :generalized_pooling_policy_not_promoted,
+            note = family === :mfrm ?
+                "minimal MFRM has no rater-consistency parameter" :
+                "guarded generalized fits do not partially pool rater consistency in v0.1.x",
+        ),
+    ]
+    return (;
+        status = :computed,
+        schema = "bayesianmgmfrm.fit_report_pooling_policy.v1",
+        rows,
+        n_rows = length(rows),
+        summary = (;
+            independent_priors_default = true,
+            hierarchical_pooling_active = any(row -> row.active &&
+                row.pooling !== :independent_priors,
+                rows),
+            n_blocked_rows = count(row -> row.status === :blocked, rows),
+            partial_pooling_claims_allowed = false,
+            next_gate = :hierarchical_estimands_hyperpriors_shrinkage_diagnostics_sensitivity,
+        ),
+    )
+end
+
 """
     fit_report(fit; kwargs...)
 
 Build a compact, machine-readable report bundle for a fitted MFRM, guarded
 GMFRM, or guarded MGMFRM object. The report combines fit metadata, provenance,
-diagnostics, posterior summaries, posterior predictive summaries, calibration
-rows, WAIC/LOO summaries and diagnostics, optional DFF rows, and a compact
-archive manifest. Section-level failures are captured by default with
+diagnostics, prior and pooling policy rows, posterior summaries, posterior
+predictive summaries, calibration rows, WAIC/LOO summaries and diagnostics,
+optional DFF rows, and a compact archive manifest. Section-level failures are
+captured by default with
 `status = :error`; use `on_section_error = :throw` to make the first failing
 section raise.
 
@@ -3994,6 +4859,10 @@ function fit_report(fit::_ModelComparisonFit;
         rhat_threshold,
         ess_threshold)
     manifest = _model_manifest(fit, diagnostic_surface.summary)
+    evidence_policy = _fit_evidence_artifact_schema_policy(
+        :fit_report,
+        manifest.status_policy;
+        include_environment = artifact_include_environment)
     metadata = fit_metadata(fit)
     report_draw_indices = ndraws === nothing && draw_indices === nothing ?
         nothing : _posterior_draw_indices(fit, ndraws, draw_indices, rng)
@@ -4134,6 +5003,75 @@ function fit_report(fit::_ModelComparisonFit;
         rng,
         on_section_error = checked_on_error)
 
+    prior_policy = _fit_report_prior_policy(fit)
+    pooling_policy = _fit_report_pooling_policy(fit)
+    rating_design = _fit_report_section(checked_on_error) do
+        audit = manifest.rating_design
+        rows = collect(audit.rows)
+        (;
+            schema = audit.schema,
+            rows,
+            n_rows = length(rows),
+            summary = audit.summary,
+            audit,
+        )
+    end
+
+    q_matrix = fit.design.spec.family === :mgmfrm ?
+        _fit_report_section(checked_on_error) do
+            validation = manifest.spec.q_matrix_validation
+            rows = collect(validation.rows)
+            raw_parameterization =
+                hasproperty(manifest.design, :raw_parameterization) ?
+                manifest.design.raw_parameterization :
+                nothing
+            confirmatory_candidate =
+                raw_parameterization !== nothing &&
+                    hasproperty(raw_parameterization, :confirmatory_candidate) ?
+                raw_parameterization.confirmatory_candidate :
+                nothing
+            gauge_rows = confirmatory_candidate !== nothing ?
+                collect(confirmatory_candidate.gauge_rows) :
+                NamedTuple[]
+            sign_positive_rules = confirmatory_candidate !== nothing ?
+                collect(confirmatory_candidate.sign_positive_rules) :
+                NamedTuple[]
+            blocked_alternatives =
+                confirmatory_candidate !== nothing &&
+                    hasproperty(confirmatory_candidate, :experimental_public_api_decision) ?
+                collect(confirmatory_candidate.experimental_public_api_decision.rejected_public_options) :
+                NamedTuple[]
+            initialization_policy =
+                hasproperty(fit.diagnostic_surface, :initialization_policy) ?
+                fit.diagnostic_surface.initialization_policy :
+                nothing
+            initialization_rows = _mgmfrm_initialization_rows(initialization_policy)
+            fixed_q_invariance_rows =
+                _mgmfrm_fixed_q_invariance_rows(fit.design, fit.diagnostic_surface)
+            (;
+                schema = validation.schema,
+                q_matrix = validation.q_matrix,
+                dimension_labels = validation.dimension_labels,
+                cross_loading_policy = validation.cross_loading_policy,
+                rows,
+                n_rows = length(rows),
+                gauge_rows,
+                n_gauge_rows = length(gauge_rows),
+                sign_positive_rules,
+                n_sign_positive_rules = length(sign_positive_rules),
+                blocked_alternatives,
+                n_blocked_alternatives = length(blocked_alternatives),
+                initialization_policy,
+                initialization_rows,
+                n_initialization_rows = length(initialization_rows),
+                fixed_q_invariance_rows,
+                n_fixed_q_invariance_rows = length(fixed_q_invariance_rows),
+                summary = validation.summary,
+                validation,
+            )
+        end :
+        _fit_report_not_requested()
+
     artifact = include_artifact ?
         _fit_report_section(checked_on_error) do
             value = fit_artifact(fit;
@@ -4161,7 +5099,10 @@ function fit_report(fit::_ModelComparisonFit;
         family = fit.design.spec.family,
         thresholds = fit.design.spec.thresholds,
         dimensions = fit.design.spec.dimensions,
+        dimension_labels = copy(fit.design.spec.dimension_labels),
         estimation_status = fit.design.spec.estimation_status,
+        status_policy = manifest.status_policy,
+        evidence_artifact_schema_policy = evidence_policy,
         report_policy = (;
             include_prior_predictive,
             include_posterior_predictive,
@@ -4200,7 +5141,12 @@ function fit_report(fit::_ModelComparisonFit;
         ),
         metadata,
         manifest,
+        model_surface_audit = manifest.model_surface_audit,
+        rating_design,
+        q_matrix,
         diagnostics = diagnostic_surface,
+        prior_policy,
+        pooling_policy,
         prior_predictive,
         posterior,
         direct_posterior,
@@ -4420,6 +5366,10 @@ end
 const _FIT_REPORT_LOOKUP_MISSING = Ref(:fit_report_lookup_missing)
 const _FIT_REPORT_SECTION_ORDER = (
     :diagnostics,
+    :rating_design,
+    :q_matrix,
+    :prior_policy,
+    :pooling_policy,
     :prior_predictive,
     :posterior,
     :direct_posterior,
@@ -4436,6 +5386,11 @@ const _FIT_REPORT_ROW_FIELD_ORDER = (
     :sampler_rows,
     :parameter_rows,
     :block_rows,
+    :gauge_rows,
+    :sign_positive_rules,
+    :blocked_alternatives,
+    :initialization_rows,
+    :fixed_q_invariance_rows,
 )
 
 function _report_key_symbol(key::Symbol)
@@ -7289,6 +8244,33 @@ function _posterior_summary_rows(draws::AbstractMatrix{<:Real},
     return rows
 end
 
+function _posterior_summary_row_schema(rows;
+        family::Symbol,
+        scope::Symbol,
+        parameter_space::Symbol,
+        summary_function::Symbol,
+        parameter_names,
+        blocks,
+        layout)
+    row_fields = isempty(rows) ? Symbol[] : collect(propertynames(first(rows)))
+    return (;
+        schema = "bayesianmgmfrm.posterior_summary_row_schema.v1",
+        family,
+        scope,
+        parameter_space,
+        summary_function,
+        source_layout_schema = layout.schema,
+        source_layout_scope = layout.scope,
+        source_layout_status = layout.status,
+        density_space = layout.density_space,
+        parameterization = layout.parameterization,
+        n_parameters = length(parameter_names),
+        parameter_names = copy(parameter_names),
+        blocks = copy(blocks),
+        row_fields = Tuple(row_fields),
+    )
+end
+
 """
     posterior_summary(fit; lower = 0.025, upper = 0.975,
         intervals = (0.66, 0.9, 0.95), reference = 0.0,
@@ -8494,6 +9476,7 @@ function _replace_spec_data(spec::FacetSpec, data::FacetData)
         spec.validation,
         spec.family,
         spec.dimensions,
+        spec.dimension_labels,
         spec.discrimination,
         spec.q_matrix,
         spec.validation_bias_terms,
@@ -14193,11 +15176,11 @@ end
 Return one posterior diagnostic row per rater. Rows combine observed category
 use, score range and central-category use, posterior rater severity intervals,
 posterior residual summaries, and MFRM infit/outfit summaries where available.
-For the fit-supported minimal MFRM, rater discrimination is not modeled and the
-discrimination fields are marked missing. For the guarded scalar GMFRM
-experimental fit object, the `rater_consistency` multiplier is summarized as
-the current positive rater-discrimination/consistency parameter; infit/outfit
-statistics are not yet available for that experimental path.
+For the fit-supported minimal MFRM, a rater-consistency multiplier is not
+modeled and the generalized consistency fields are marked missing. For the
+guarded scalar GMFRM experimental fit object, the `rater_consistency`
+multiplier is summarized as the current positive source-equation parameter;
+infit/outfit statistics are not yet available for that experimental path.
 """
 function rater_diagnostics(design::FacetDesign,
         draws::AbstractMatrix;

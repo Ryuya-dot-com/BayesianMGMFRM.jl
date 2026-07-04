@@ -1,0 +1,571 @@
+{
+  "schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
+  "family": "gmfrm",
+  "scope": "scalar_gmfrm_fit_ready_candidate",
+  "status": "claim_recovery_reproduction_archive_recorded",
+  "decision": "keep_guarded_experimental",
+  "public_fit": true,
+  "experimental_public": true,
+  "fit_ready": true,
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "protocol": {
+    "protocol_id": "scalar_gmfrm_claim_recovery_reproduction_archive_v1",
+    "review_kind": "local_claim_recovery_reproduction_archive",
+    "publication_or_registration_action": false,
+    "local_only": true,
+    "target": "guarded_experimental_scalar_gmfrm_claim_support",
+    "archive_scope": "fast_and_full_local_reproduction_manifest",
+    "thresholds": {
+      "require_all_fixture_artifacts_present": true,
+      "require_all_expected_schemas": true,
+      "require_all_fixture_summaries_passed": true,
+      "require_all_generator_scripts_present": true,
+      "require_all_code_doc_references_present": true,
+      "require_all_external_sources_present": true,
+      "require_all_commands_local_only": true,
+      "require_no_publication_commands": true,
+      "require_guarded_exposure_review_passed": true,
+      "require_real_data_case_study_passed": true
+    }
+  },
+  "fixture_records": [
+    {
+      "artifact": "candidate_chain_study",
+      "path": "test/fixtures/gmfrm_candidate_chain_study.json",
+      "exists": true,
+      "hash_policy": "sha256",
+      "sha256": "c4985c9822fe6b0e9f680184830e3a4836b4527429dd4a19f3bcc07e5d8b35cb",
+      "expected_schema": "bayesianmgmfrm.gmfrm_candidate_chain_study.v1",
+      "schema": "bayesianmgmfrm.gmfrm_candidate_chain_study.v1",
+      "schema_matches": true,
+      "generator": "scripts/generate_gmfrm_candidate_chain_study.jl",
+      "generation_command": "julia --project=. scripts/generate_gmfrm_candidate_chain_study.jl",
+      "env_var": "MFRM_GMFRM_CANDIDATE_CHAIN_STUDY_FIXTURE",
+      "generator_exists": true,
+      "summary_passed": true
+    },
+    {
+      "artifact": "stress_chain_grid",
+      "path": "test/fixtures/gmfrm_stress_chain_grid.json",
+      "exists": true,
+      "hash_policy": "sha256",
+      "sha256": "60f73c2e7876161d658a71d4e513b2da672f105860571fe789a5cd46d93f8a81",
+      "expected_schema": "bayesianmgmfrm.gmfrm_stress_chain_grid.v1",
+      "schema": "bayesianmgmfrm.gmfrm_stress_chain_grid.v1",
+      "schema_matches": true,
+      "generator": "scripts/generate_gmfrm_stress_chain_grid.jl",
+      "generation_command": "julia --project=. scripts/generate_gmfrm_stress_chain_grid.jl",
+      "env_var": "MFRM_GMFRM_STRESS_CHAIN_GRID_FIXTURE",
+      "generator_exists": true,
+      "summary_passed": true
+    },
+    {
+      "artifact": "recovery_smoke_study",
+      "path": "test/fixtures/gmfrm_recovery_smoke.json",
+      "exists": true,
+      "hash_policy": "sha256",
+      "sha256": "66200b5babec205ac89946b4441c2cbf456f12429fcb8ad192c5732148b93d86",
+      "expected_schema": "bayesianmgmfrm.gmfrm_recovery_smoke.v1",
+      "schema": "bayesianmgmfrm.gmfrm_recovery_smoke.v1",
+      "schema_matches": true,
+      "generator": "scripts/generate_gmfrm_recovery_smoke.jl",
+      "generation_command": "julia --project=. scripts/generate_gmfrm_recovery_smoke.jl",
+      "env_var": "MFRM_GMFRM_RECOVERY_SMOKE_FIXTURE",
+      "generator_exists": true,
+      "summary_passed": true
+    },
+    {
+      "artifact": "baseline_comparison",
+      "path": "test/fixtures/gmfrm_baseline_comparison.json",
+      "exists": true,
+      "hash_policy": "sha256",
+      "sha256": "03c2975cef9250b8775584fd5d47e9d69d18e975087f78be53d69060a88216d5",
+      "expected_schema": "bayesianmgmfrm.gmfrm_baseline_comparison.v1",
+      "schema": "bayesianmgmfrm.gmfrm_baseline_comparison.v1",
+      "schema_matches": true,
+      "generator": "scripts/generate_gmfrm_baseline_comparison.jl",
+      "generation_command": "julia --project=. scripts/generate_gmfrm_baseline_comparison.jl",
+      "env_var": "MFRM_GMFRM_BASELINE_COMPARISON_FIXTURE",
+      "generator_exists": true,
+      "summary_passed": true
+    },
+    {
+      "artifact": "baseline_calibration_grid",
+      "path": "test/fixtures/gmfrm_baseline_calibration_grid.json",
+      "exists": true,
+      "hash_policy": "sha256",
+      "sha256": "d1171e5afd2ac7250d48ffa60a758bc1c567ab8eb5fa994425daf406b4888e7f",
+      "expected_schema": "bayesianmgmfrm.gmfrm_baseline_calibration_grid.v1",
+      "schema": "bayesianmgmfrm.gmfrm_baseline_calibration_grid.v1",
+      "schema_matches": true,
+      "generator": "scripts/generate_gmfrm_baseline_calibration_grid.jl",
+      "generation_command": "julia --project=. scripts/generate_gmfrm_baseline_calibration_grid.jl",
+      "env_var": "MFRM_GMFRM_BASELINE_CALIBRATION_GRID_FIXTURE",
+      "generator_exists": true,
+      "summary_passed": true
+    },
+    {
+      "artifact": "interval_decision_grid",
+      "path": "test/fixtures/gmfrm_interval_decision_grid.json",
+      "exists": true,
+      "hash_policy": "sha256",
+      "sha256": "59c9aa4dba2e06b8fc14f18826e04e3686aa5b6581b885988e344776d5e4f87b",
+      "expected_schema": "bayesianmgmfrm.gmfrm_interval_decision_grid.v1",
+      "schema": "bayesianmgmfrm.gmfrm_interval_decision_grid.v1",
+      "schema_matches": true,
+      "generator": "scripts/generate_gmfrm_interval_decision_grid.jl",
+      "generation_command": "julia --project=. scripts/generate_gmfrm_interval_decision_grid.jl",
+      "env_var": "MFRM_GMFRM_INTERVAL_DECISION_GRID_FIXTURE",
+      "generator_exists": true,
+      "summary_passed": true
+    },
+    {
+      "artifact": "sparse_design_grid",
+      "path": "test/fixtures/gmfrm_sparse_design_grid.json",
+      "exists": true,
+      "hash_policy": "sha256",
+      "sha256": "8302c301121551afd7d7ab07915818a7974383827bc2cbdfcad552136d5f5eeb",
+      "expected_schema": "bayesianmgmfrm.gmfrm_sparse_design_grid.v1",
+      "schema": "bayesianmgmfrm.gmfrm_sparse_design_grid.v1",
+      "schema_matches": true,
+      "generator": "scripts/generate_gmfrm_sparse_design_grid.jl",
+      "generation_command": "julia --project=. scripts/generate_gmfrm_sparse_design_grid.jl",
+      "env_var": "MFRM_GMFRM_SPARSE_DESIGN_GRID_FIXTURE",
+      "generator_exists": true,
+      "summary_passed": true
+    },
+    {
+      "artifact": "waic_influence_review",
+      "path": "test/fixtures/gmfrm_waic_influence_review.json",
+      "exists": true,
+      "hash_policy": "sha256",
+      "sha256": "1df48439c1e8ce23f128a6adbf1497ab6c38ba1c0db322d740b94bbda08fe760",
+      "expected_schema": "bayesianmgmfrm.gmfrm_waic_influence_review.v1",
+      "schema": "bayesianmgmfrm.gmfrm_waic_influence_review.v1",
+      "schema_matches": true,
+      "generator": "scripts/generate_gmfrm_waic_influence_review.jl",
+      "generation_command": "julia --project=. scripts/generate_gmfrm_waic_influence_review.jl",
+      "env_var": "MFRM_GMFRM_WAIC_INFLUENCE_REVIEW_FIXTURE",
+      "generator_exists": true,
+      "summary_passed": true
+    },
+    {
+      "artifact": "psis_loo_review",
+      "path": "test/fixtures/gmfrm_psis_loo_review.json",
+      "exists": true,
+      "hash_policy": "sha256",
+      "sha256": "70da88965db09e8f5174909b643194ebeedbee2cadafdf4a8a004ca63d37d59e",
+      "expected_schema": "bayesianmgmfrm.gmfrm_psis_loo_review.v1",
+      "schema": "bayesianmgmfrm.gmfrm_psis_loo_review.v1",
+      "schema_matches": true,
+      "generator": "scripts/generate_gmfrm_psis_loo_review.jl",
+      "generation_command": "julia --project=. scripts/generate_gmfrm_psis_loo_review.jl",
+      "env_var": "MFRM_GMFRM_PSIS_LOO_REVIEW_FIXTURE",
+      "generator_exists": true,
+      "summary_passed": true
+    },
+    {
+      "artifact": "exact_loo_or_kfold_review",
+      "path": "test/fixtures/gmfrm_exact_loo_or_kfold_review.json",
+      "exists": true,
+      "hash_policy": "sha256",
+      "sha256": "f46d6d4143af4600e9eaa70310a29c416f34de342a631dfe4b09e07b5d5ec835",
+      "expected_schema": "bayesianmgmfrm.gmfrm_exact_loo_or_kfold_review.v1",
+      "schema": "bayesianmgmfrm.gmfrm_exact_loo_or_kfold_review.v1",
+      "schema_matches": true,
+      "generator": "scripts/generate_gmfrm_exact_loo_or_kfold_review.jl",
+      "generation_command": "julia --project=. scripts/generate_gmfrm_exact_loo_or_kfold_review.jl",
+      "env_var": "MFRM_GMFRM_EXACT_LOO_OR_KFOLD_REVIEW_FIXTURE",
+      "generator_exists": true,
+      "summary_passed": true
+    },
+    {
+      "artifact": "guarded_fit_method_wiring",
+      "path": "test/fixtures/gmfrm_guarded_fit_method_wiring.json",
+      "exists": true,
+      "hash_policy": "sha256",
+      "sha256": "acba1d6449b00bb9d30e6f9f4eda5f540490b918471fb910786ee536f2a67a79",
+      "expected_schema": "bayesianmgmfrm.gmfrm_guarded_fit_method_wiring.v1",
+      "schema": "bayesianmgmfrm.gmfrm_guarded_fit_method_wiring.v1",
+      "schema_matches": true,
+      "generator": "scripts/generate_gmfrm_guarded_fit_method_wiring.jl",
+      "generation_command": "julia --project=. scripts/generate_gmfrm_guarded_fit_method_wiring.jl",
+      "env_var": "MFRM_GMFRM_GUARDED_FIT_METHOD_WIRING_FIXTURE",
+      "generator_exists": true,
+      "summary_passed": true
+    },
+    {
+      "artifact": "experimental_fit_validation_grid",
+      "path": "test/fixtures/gmfrm_experimental_fit_validation_grid.json",
+      "exists": true,
+      "hash_policy": "sha256",
+      "sha256": "f748c1789f430438a12ebd7f6b8c1f6b170066c2ac79a1a0fee11a38d80fdb7d",
+      "expected_schema": "bayesianmgmfrm.gmfrm_experimental_fit_validation_grid.v1",
+      "schema": "bayesianmgmfrm.gmfrm_experimental_fit_validation_grid.v1",
+      "schema_matches": true,
+      "generator": "scripts/generate_gmfrm_experimental_fit_validation_grid.jl",
+      "generation_command": "julia --project=. scripts/generate_gmfrm_experimental_fit_validation_grid.jl",
+      "env_var": "MFRM_GMFRM_EXPERIMENTAL_FIT_VALIDATION_GRID_FIXTURE",
+      "generator_exists": true,
+      "summary_passed": true
+    },
+    {
+      "artifact": "posterior_predictive_grid",
+      "path": "test/fixtures/gmfrm_posterior_predictive_grid.json",
+      "exists": true,
+      "hash_policy": "sha256",
+      "sha256": "6a65d9de506e97611277b527567dda913e95e45638067eaa097186ea1bb68866",
+      "expected_schema": "bayesianmgmfrm.gmfrm_posterior_predictive_grid.v1",
+      "schema": "bayesianmgmfrm.gmfrm_posterior_predictive_grid.v1",
+      "schema_matches": true,
+      "generator": "scripts/generate_gmfrm_posterior_predictive_grid.jl",
+      "generation_command": "julia --project=. scripts/generate_gmfrm_posterior_predictive_grid.jl",
+      "env_var": "MFRM_GMFRM_POSTERIOR_PREDICTIVE_GRID_FIXTURE",
+      "generator_exists": true,
+      "summary_passed": true
+    },
+    {
+      "artifact": "sparse_pathology_recovery_grid",
+      "path": "test/fixtures/gmfrm_sparse_pathology_recovery_grid.json",
+      "exists": true,
+      "hash_policy": "sha256",
+      "sha256": "5420b21c1f116ef0fe1e4a1d88fdcab04297d375937415e25f2e6768cdcd012b",
+      "expected_schema": "bayesianmgmfrm.gmfrm_sparse_pathology_recovery_grid.v1",
+      "schema": "bayesianmgmfrm.gmfrm_sparse_pathology_recovery_grid.v1",
+      "schema_matches": true,
+      "generator": "scripts/generate_gmfrm_sparse_pathology_recovery_grid.jl",
+      "generation_command": "julia --project=. scripts/generate_gmfrm_sparse_pathology_recovery_grid.jl",
+      "env_var": "MFRM_GMFRM_SPARSE_PATHOLOGY_RECOVERY_GRID_FIXTURE",
+      "generator_exists": true,
+      "summary_passed": true
+    },
+    {
+      "artifact": "prior_likelihood_sensitivity_grid",
+      "path": "test/fixtures/gmfrm_prior_likelihood_sensitivity_grid.json",
+      "exists": true,
+      "hash_policy": "sha256",
+      "sha256": "b120b55f6d915b5c1eba87da88d41fba618f4d4a67699efdebd603c65d91fbdf",
+      "expected_schema": "bayesianmgmfrm.gmfrm_prior_likelihood_sensitivity_grid.v1",
+      "schema": "bayesianmgmfrm.gmfrm_prior_likelihood_sensitivity_grid.v1",
+      "schema_matches": true,
+      "generator": "scripts/generate_gmfrm_prior_likelihood_sensitivity_grid.jl",
+      "generation_command": "julia --project=. scripts/generate_gmfrm_prior_likelihood_sensitivity_grid.jl",
+      "env_var": "MFRM_GMFRM_PRIOR_LIKELIHOOD_SENSITIVITY_GRID_FIXTURE",
+      "generator_exists": true,
+      "summary_passed": true
+    },
+    {
+      "artifact": "real_data_case_study",
+      "path": "test/fixtures/gmfrm_real_data_case_study.json",
+      "exists": true,
+      "hash_policy": "sha256",
+      "sha256": "f72415c0d5ff55d4f4fe1cadf553845250669cb0065286afd2887cba82167d29",
+      "expected_schema": "bayesianmgmfrm.gmfrm_real_data_case_study.v1",
+      "schema": "bayesianmgmfrm.gmfrm_real_data_case_study.v1",
+      "schema_matches": true,
+      "generator": "scripts/generate_gmfrm_real_data_case_study.jl",
+      "generation_command": "julia --project=. scripts/generate_gmfrm_real_data_case_study.jl",
+      "env_var": "MFRM_GMFRM_REAL_DATA_CASE_STUDY_FIXTURE",
+      "generator_exists": true,
+      "summary_passed": true
+    },
+    {
+      "artifact": "guarded_fit_api_dry_run",
+      "path": "test/fixtures/gmfrm_guarded_fit_api_dry_run.json",
+      "exists": true,
+      "hash_policy": "sha256",
+      "sha256": "20d632d450a6e8e7f833817c002a65d5b78e4dc3582fc477f14933e39b2c2d98",
+      "expected_schema": "bayesianmgmfrm.gmfrm_guarded_fit_api_dry_run.v1",
+      "schema": "bayesianmgmfrm.gmfrm_guarded_fit_api_dry_run.v1",
+      "schema_matches": true,
+      "generator": "scripts/generate_gmfrm_guarded_fit_api_dry_run.jl",
+      "generation_command": "julia --project=. scripts/generate_gmfrm_guarded_fit_api_dry_run.jl",
+      "env_var": "MFRM_GMFRM_GUARDED_FIT_API_DRY_RUN_FIXTURE",
+      "generator_exists": true,
+      "summary_passed": true
+    },
+    {
+      "artifact": "guarded_exposure_review",
+      "path": "test/fixtures/gmfrm_guarded_exposure_review.json",
+      "exists": true,
+      "hash_policy": "existence_only_avoids_archive_review_hash_cycle",
+      "sha256": null,
+      "expected_schema": "bayesianmgmfrm.gmfrm_guarded_exposure_review.v1",
+      "schema": "bayesianmgmfrm.gmfrm_guarded_exposure_review.v1",
+      "schema_matches": true,
+      "generator": "scripts/generate_gmfrm_guarded_exposure_review.jl",
+      "generation_command": "julia --project=. scripts/generate_gmfrm_guarded_exposure_review.jl",
+      "env_var": "MFRM_GMFRM_GUARDED_EXPOSURE_REVIEW_FIXTURE",
+      "generator_exists": true,
+      "summary_passed": true
+    }
+  ],
+  "source_records": [
+    {
+      "path": "../Simulation/data/writing_long.csv",
+      "exists": true,
+      "sha256": "0c6588859752913a99385d37fc13da6d6365e086d8dbf7a30b6d90e56c0585a1",
+      "hash_policy": "sha256_when_available",
+      "line_count": 111996
+    },
+    {
+      "path": "../Simulation/data/speaking_long.csv",
+      "exists": true,
+      "sha256": "fbd5dba093b2f8edc43c704c662f1bae0a5abb5d260aeff62d00b96487856975",
+      "hash_policy": "sha256_when_available",
+      "line_count": 111994
+    }
+  ],
+  "code_doc_records": [
+    {
+      "path": "Project.toml",
+      "exists": true,
+      "sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b"
+    },
+    {
+      "path": "README.md",
+      "exists": true,
+      "sha256": "2827e1cbae24a1874fc10f01aa933d3d8d3b222a2a427275d88ae9efd8abccbd"
+    },
+    {
+      "path": "NEWS.md",
+      "exists": true,
+      "sha256": "f65eaca882ddab788af990153ff8cb8cbde39af281429631395430232a26ce11"
+    },
+    {
+      "path": "ROADMAP.md",
+      "exists": true,
+      "sha256": "330c1c4407b262594d76885f9f5584c644973d929dca32d351135caed88923a5"
+    },
+    {
+      "path": "src/facet_workflow.jl",
+      "exists": true,
+      "sha256": "c0927c2c36f82c1bdf76e29a2de73938714a02693161852c37265c4c3df6d128"
+    },
+    {
+      "path": "src/bayesian_fit.jl",
+      "exists": true,
+      "sha256": "647c5c3a0865b0cb30ed6484ce354ba669cc2147a0b28a57dc5a1b0578b856a9"
+    },
+    {
+      "path": "test/runtests.jl",
+      "exists": true,
+      "sha256": "cad89103549ee66f16a241f5aecd28a03d7bc64048fa288b6a714fbd4d21fda3"
+    },
+    {
+      "path": "test/fixtures/README.md",
+      "exists": true,
+      "sha256": "06979c4e95c5715f4162745e4f0eaa4e81796a3f1342748aef9d423faa2dcd26"
+    },
+    {
+      "path": "docs/src/fitting.md",
+      "exists": true,
+      "sha256": "816defb49198a54e2cb0b5e9eb8722555f26a58403211431b0b122b85cca9825"
+    },
+    {
+      "path": "docs/src/model-equations.md",
+      "exists": true,
+      "sha256": "a5d747dd44bbed02474ea699863a7418ff0438570fb322e5ac788b8c30479766"
+    },
+    {
+      "path": "docs/src/roadmap.md",
+      "exists": true,
+      "sha256": "97b63920ed0fe4d6103c091c7c57d9a86013ce5c7a493357befd0615749dd8ed"
+    },
+    {
+      "path": "scripts/pre_registration_gate.jl",
+      "exists": true,
+      "sha256": "94d9a10cd7a5d059afba7809de38a3fffc23c665ec7e12a6628010fc6fafb276"
+    },
+    {
+      "path": "scripts/generate_gmfrm_claim_recovery_reproduction_archive.jl",
+      "exists": true,
+      "sha256": "ace76c2ed44996517f680af4e505ccc5e7deb7a969d241837aa7215ca006f08c"
+    }
+  ],
+  "full_regeneration_commands": [
+    {
+      "step": 1,
+      "artifact": "candidate_chain_study",
+      "command": "julia --project=. scripts/generate_gmfrm_candidate_chain_study.jl",
+      "local_only": true
+    },
+    {
+      "step": 2,
+      "artifact": "stress_chain_grid",
+      "command": "julia --project=. scripts/generate_gmfrm_stress_chain_grid.jl",
+      "local_only": true
+    },
+    {
+      "step": 3,
+      "artifact": "recovery_smoke_study",
+      "command": "julia --project=. scripts/generate_gmfrm_recovery_smoke.jl",
+      "local_only": true
+    },
+    {
+      "step": 4,
+      "artifact": "baseline_comparison",
+      "command": "julia --project=. scripts/generate_gmfrm_baseline_comparison.jl",
+      "local_only": true
+    },
+    {
+      "step": 5,
+      "artifact": "baseline_calibration_grid",
+      "command": "julia --project=. scripts/generate_gmfrm_baseline_calibration_grid.jl",
+      "local_only": true
+    },
+    {
+      "step": 6,
+      "artifact": "interval_decision_grid",
+      "command": "julia --project=. scripts/generate_gmfrm_interval_decision_grid.jl",
+      "local_only": true
+    },
+    {
+      "step": 7,
+      "artifact": "sparse_design_grid",
+      "command": "julia --project=. scripts/generate_gmfrm_sparse_design_grid.jl",
+      "local_only": true
+    },
+    {
+      "step": 8,
+      "artifact": "waic_influence_review",
+      "command": "julia --project=. scripts/generate_gmfrm_waic_influence_review.jl",
+      "local_only": true
+    },
+    {
+      "step": 9,
+      "artifact": "psis_loo_review",
+      "command": "julia --project=. scripts/generate_gmfrm_psis_loo_review.jl",
+      "local_only": true
+    },
+    {
+      "step": 10,
+      "artifact": "exact_loo_or_kfold_review",
+      "command": "julia --project=. scripts/generate_gmfrm_exact_loo_or_kfold_review.jl",
+      "local_only": true
+    },
+    {
+      "step": 11,
+      "artifact": "guarded_fit_method_wiring",
+      "command": "julia --project=. scripts/generate_gmfrm_guarded_fit_method_wiring.jl",
+      "local_only": true
+    },
+    {
+      "step": 12,
+      "artifact": "experimental_fit_validation_grid",
+      "command": "julia --project=. scripts/generate_gmfrm_experimental_fit_validation_grid.jl",
+      "local_only": true
+    },
+    {
+      "step": 13,
+      "artifact": "posterior_predictive_grid",
+      "command": "julia --project=. scripts/generate_gmfrm_posterior_predictive_grid.jl",
+      "local_only": true
+    },
+    {
+      "step": 14,
+      "artifact": "sparse_pathology_recovery_grid",
+      "command": "julia --project=. scripts/generate_gmfrm_sparse_pathology_recovery_grid.jl",
+      "local_only": true
+    },
+    {
+      "step": 15,
+      "artifact": "prior_likelihood_sensitivity_grid",
+      "command": "julia --project=. scripts/generate_gmfrm_prior_likelihood_sensitivity_grid.jl",
+      "local_only": true
+    },
+    {
+      "step": 16,
+      "artifact": "real_data_case_study",
+      "command": "julia --project=. scripts/generate_gmfrm_real_data_case_study.jl",
+      "local_only": true
+    },
+    {
+      "step": 17,
+      "artifact": "guarded_fit_api_dry_run",
+      "command": "julia --project=. scripts/generate_gmfrm_guarded_fit_api_dry_run.jl",
+      "local_only": true
+    },
+    {
+      "step": 18,
+      "artifact": "claim_recovery_reproduction_archive",
+      "command": "julia --project=. scripts/generate_gmfrm_claim_recovery_reproduction_archive.jl",
+      "local_only": true
+    },
+    {
+      "step": 19,
+      "artifact": "guarded_exposure_review",
+      "command": "julia --project=. scripts/generate_gmfrm_guarded_exposure_review.jl",
+      "local_only": true
+    }
+  ],
+  "verification_commands": [
+    {
+      "name": "package_tests",
+      "command": "julia --project=. -e 'import Pkg; Pkg.test()'",
+      "execution": "required_before_claim_use",
+      "local_only": true
+    },
+    {
+      "name": "documentation_build",
+      "command": "julia --project=docs docs/make.jl",
+      "execution": "required_before_claim_use",
+      "local_only": true
+    },
+    {
+      "name": "local_pre_registration_gate",
+      "command": "julia --startup-file=no scripts/pre_registration_gate.jl --skip-tests --skip-docs",
+      "execution": "required_before_claim_use",
+      "local_only": true
+    },
+    {
+      "name": "whitespace_check",
+      "command": "git diff --check",
+      "execution": "required_before_claim_use",
+      "local_only": true
+    }
+  ],
+  "cycle_break_references": [
+    {
+      "artifact": "test/fixtures/gmfrm_guarded_exposure_review.json",
+      "reason": "avoid_guarded_review_archive_hash_cycle",
+      "hash_policy": "existence_only"
+    }
+  ],
+  "decision_record": {
+    "public_fit_allowed": true,
+    "experimental_keyword_enabled": true,
+    "public_exposure_support": "satisfied_for_broader_experimental_exposure_decision_followup",
+    "interpretation": "claim_level_recovery_reproduction_archive_recorded",
+    "required_followup": "broader_experimental_exposure_decision_review"
+  },
+  "summary": {
+    "passed": true,
+    "publication_or_registration_action": false,
+    "local_only": true,
+    "n_fixture_artifacts": 18,
+    "n_source_records": 2,
+    "n_code_doc_records": 13,
+    "n_full_regeneration_commands": 19,
+    "n_verification_commands": 4,
+    "all_fixture_artifacts_present": true,
+    "all_expected_schemas": true,
+    "all_fixture_summaries_passed": true,
+    "all_generator_scripts_present": true,
+    "all_code_doc_references_present": true,
+    "all_external_sources_present": true,
+    "all_commands_local_only": true,
+    "no_publication_commands": true,
+    "guarded_exposure_review_passed": true,
+    "real_data_case_study_passed": true,
+    "remaining_public_blockers": [
+      "broader_experimental_exposure_decision_review_missing"
+    ],
+    "recommendation": "keep_guarded_experimental_until_broader_exposure_decision_review",
+    "next_gate": "broader_experimental_exposure_decision_review"
+  }
+}

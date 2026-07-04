@@ -1,0 +1,294 @@
+{
+  "schema": "bayesianmgmfrm.mgmfrm_baseline_comparison.v1",
+  "family": "mgmfrm",
+  "scope": "minimal_confirmatory_mgmfrm_candidate",
+  "status": "internal_baseline_comparison",
+  "public_fit": false,
+  "experimental_public": false,
+  "fit_ready": false,
+  "dimensions": 2,
+  "q_matrix": [
+    [
+      true,
+      false
+    ],
+    [
+      false,
+      true
+    ]
+  ],
+  "latent_correlation": "identity_fixed",
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "protocol": {
+    "protocol_id": "confirmatory_mgmfrm_baseline_comparison_v1",
+    "simulation_source": "confirmatory_mgmfrm_recovery_smoke_v1",
+    "simulation_seed": 20260721,
+    "data_grid": {
+      "persons": 4,
+      "items": 2,
+      "raters": 3,
+      "categories": 3,
+      "dimensions": 2,
+      "q_matrix": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ]
+      ],
+      "rating_density": "full_crossed",
+      "observations": 24,
+      "latent_correlation": "identity_fixed",
+      "rater_consistency_variation": "moderate",
+      "item_dimension_discrimination_variation": "moderate",
+      "category_step_spread": "moderate",
+      "sparse_cell_pathologies": "none_in_smoke"
+    },
+    "mgmfrm_sampler": {
+      "backend": "advancedhmc",
+      "sampler": "nuts",
+      "seed": 20260722,
+      "chains": 2,
+      "warmup": 32,
+      "draws": 32,
+      "step_size": 0.02,
+      "target_accept": 0.8,
+      "max_depth": 8,
+      "max_energy_error": 1000.0,
+      "metric": "unit",
+      "ad_backend": "ForwardDiff",
+      "init_jitter": 0.0,
+      "split_chains": true
+    },
+    "baseline_sampler": {
+      "backend": "advancedhmc",
+      "sampler": "nuts",
+      "chains": 2,
+      "warmup": 32,
+      "draws": 32,
+      "step_size": 0.03,
+      "target_accept": 0.8,
+      "max_depth": 6,
+      "max_energy_error": 1000.0,
+      "metric": "unit",
+      "ad_backend": "ForwardDiff",
+      "init_jitter": 0.0,
+      "split_chains": true,
+      "seeds": {
+        "partial_credit": 20260762,
+        "rating_scale": 20260763
+      }
+    },
+    "diagnostics": {
+      "rhat_threshold": 1.5,
+      "ess_threshold": 4.0
+    },
+    "thresholds": {
+      "minimum_models": 3,
+      "n_observations": 24,
+      "require_same_observations": true,
+      "require_finite_elpd": true,
+      "require_finite_weights": true
+    }
+  },
+  "simulated_data": {
+    "n_observations": 24,
+    "score_counts": [
+      {
+        "score": 0,
+        "n": 8
+      },
+      {
+        "score": 1,
+        "n": 6
+      },
+      {
+        "score": 2,
+        "n": 10
+      }
+    ],
+    "person_levels": [
+      "E1",
+      "E2",
+      "E3",
+      "E4"
+    ],
+    "rater_levels": [
+      "R1",
+      "R2",
+      "R3"
+    ],
+    "item_levels": [
+      "I1",
+      "I2"
+    ],
+    "category_levels": [
+      0,
+      1,
+      2
+    ],
+    "truth_source": "mgmfrm_recovery_smoke_truth",
+    "raw_parameter_order_sha256": "477f5241b427d73af4a16c205e06f0bec660b1b11f07eec4a4923d234f78fe24",
+    "direct_parameter_order_sha256": "78608f091fa28094d326a0e5e14e045d130b5c4736b106e65b044b815a6d55ee"
+  },
+  "model_rows": [
+    {
+      "model": "mfrm_rating_scale",
+      "family": "mfrm",
+      "source": "public_minimal_fit",
+      "threshold_regime": "rating_scale",
+      "estimation_status": "fit_supported",
+      "public_fit": true,
+      "n_parameters": 8,
+      "parameter_order_sha256": "e88df2e4614fa74c6db5f664b9bae64065cc0c43f38535b243ebeee902102449",
+      "direct_parameter_order_sha256": null,
+      "sampler_summary": {
+        "internal_flag": "ok",
+        "internal_passed": true,
+        "n_chains": 2,
+        "draws_per_chain": 32,
+        "total_draws": 64,
+        "n_parameters": 8,
+        "max_rhat": 1.1795202089651478,
+        "min_ess": 32.970922097367655,
+        "n_bad_rhat": 0,
+        "n_low_ess": 0,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "e_bfmi": 0.6568468471472594,
+        "n_sampler_warnings": 0,
+        "n_block_warnings": 0,
+        "n_nonfinite_log_posterior": 0
+      },
+      "rank": 1,
+      "criterion": "waic",
+      "elpd_waic": -27.91283358387932,
+      "elpd_difference": 0.0,
+      "se_elpd_difference": 0.0,
+      "se_elpd_waic": 2.9979914374197287,
+      "waic": 55.82566716775864,
+      "waic_difference": 0.0,
+      "se_waic": 5.9959828748394575,
+      "relative_weight": 0.6699641298301184,
+      "p_waic": 6.4763926433434795,
+      "lppd": -21.436440940535842,
+      "n_draws": 64,
+      "n_observations": 24,
+      "high_variance_count": 4,
+      "warning": "high_loglik_variance"
+    },
+    {
+      "model": "mfrm_partial_credit",
+      "family": "mfrm",
+      "source": "public_minimal_fit",
+      "threshold_regime": "partial_credit",
+      "estimation_status": "fit_supported",
+      "public_fit": true,
+      "n_parameters": 9,
+      "parameter_order_sha256": "211528d70a5ea898862e06320d03a291de213b6471b39fc1f72f6652c7fda8d2",
+      "direct_parameter_order_sha256": null,
+      "sampler_summary": {
+        "internal_flag": "ok",
+        "internal_passed": true,
+        "n_chains": 2,
+        "draws_per_chain": 32,
+        "total_draws": 64,
+        "n_parameters": 9,
+        "max_rhat": 1.0733253370246423,
+        "min_ess": 48.17115810049767,
+        "n_bad_rhat": 0,
+        "n_low_ess": 0,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "e_bfmi": 0.8646309980961755,
+        "n_sampler_warnings": 0,
+        "n_block_warnings": 0,
+        "n_nonfinite_log_posterior": 0
+      },
+      "rank": 2,
+      "criterion": "waic",
+      "elpd_waic": -28.936438125420864,
+      "elpd_difference": -1.0236045415415447,
+      "se_elpd_difference": 1.4590383398766258,
+      "se_elpd_waic": 3.563586517826576,
+      "waic": 57.87287625084173,
+      "waic_difference": 2.0472090830830894,
+      "se_waic": 7.127173035653152,
+      "relative_weight": 0.2407164372551815,
+      "p_waic": 9.005420150026685,
+      "lppd": -19.931017975394173,
+      "n_draws": 64,
+      "n_observations": 24,
+      "high_variance_count": 8,
+      "warning": "high_loglik_variance"
+    },
+    {
+      "model": "mgmfrm_internal_candidate",
+      "family": "mgmfrm",
+      "source": "internal_source_fixture_candidate",
+      "threshold_regime": "confirmatory_fixed_q_multidimensional_partial_credit",
+      "estimation_status": "internal_fit_ready_candidate",
+      "public_fit": false,
+      "n_parameters": 18,
+      "parameter_order_sha256": "477f5241b427d73af4a16c205e06f0bec660b1b11f07eec4a4923d234f78fe24",
+      "direct_parameter_order_sha256": "78608f091fa28094d326a0e5e14e045d130b5c4736b106e65b044b815a6d55ee",
+      "sampler_summary": {
+        "internal_flag": "ok",
+        "internal_passed": true,
+        "n_chains": 2,
+        "draws_per_chain": 32,
+        "total_draws": 64,
+        "max_rhat": 1.0694343400729784,
+        "min_ess": 27.724928030126396,
+        "n_bad_rhat": 0,
+        "n_low_ess": 0,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "e_bfmi": 0.6157251837997259,
+        "n_sampler_warnings": 0,
+        "n_block_warnings": 0,
+        "n_direct_block_warnings": 0,
+        "n_nonfinite_logdensity": 0,
+        "n_nonfinite_direct_loglikelihood": 0,
+        "n_failed_direct_constraints": 0
+      },
+      "rank": 3,
+      "criterion": "waic",
+      "elpd_waic": -29.92783867922973,
+      "elpd_difference": -2.0150050953504106,
+      "se_elpd_difference": 3.606252189233324,
+      "se_elpd_waic": 4.041183362318819,
+      "waic": 59.85567735845946,
+      "waic_difference": 4.030010190700821,
+      "se_waic": 8.082366724637637,
+      "relative_weight": 0.0893194329147,
+      "p_waic": 12.797887183370674,
+      "lppd": -17.129951495859057,
+      "n_draws": 64,
+      "n_observations": 24,
+      "high_variance_count": 15,
+      "warning": "high_loglik_variance"
+    }
+  ],
+  "summary": {
+    "passed": true,
+    "comparison_executed": true,
+    "n_models": 3,
+    "best_model": "mfrm_rating_scale",
+    "mgmfrm_rank": 3,
+    "mgmfrm_elpd_difference": -2.0150050953504106,
+    "mgmfrm_relative_weight": 0.0893194329147,
+    "any_high_variance_waic": true,
+    "public_fit_allowed": false,
+    "experimental_keyword_enabled": false,
+    "recommendation": "keep_internal_until_sparse_recovery_grid",
+    "next_gate": "mgmfrm_sparse_recovery_grid"
+  }
+}

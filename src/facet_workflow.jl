@@ -78,6 +78,7 @@ struct FacetSpec
     validation::ValidationReport
     family::Symbol
     dimensions::Int
+    dimension_labels::Vector{String}
     discrimination::Symbol
     q_matrix::Union{Nothing,Matrix{Bool}}
     validation_bias_terms::Vector{Tuple{Symbol,Symbol}}
@@ -94,6 +95,7 @@ FacetSpec(data::FacetData, thresholds::Symbol, validation::ValidationReport) =
         validation,
         :mfrm,
         1,
+        _default_dimension_labels(1),
         :none,
         nothing,
         Tuple{Symbol,Symbol}[],
@@ -1174,6 +1176,370 @@ function anchor_linking_summary(data_or_spec; unit::Symbol = :person_item,
     )
 end
 
+function _rating_design_audit_row(; audit::Symbol,
+        status::Symbol,
+        severity::Symbol = :info,
+        facets = Symbol[],
+        unit = missing,
+        n_expected = missing,
+        n_observed = missing,
+        n_missing = missing,
+        n_sparse = missing,
+        n_repeated = missing,
+        n_components = missing,
+        min_count = missing,
+        max_count = missing,
+        note::Symbol = :none,
+        details = (;))
+    return (;
+        schema = "bayesianmgmfrm.rating_design_audit_row.v1",
+        audit,
+        status,
+        severity,
+        facets = Tuple(facets),
+        unit,
+        n_expected,
+        n_observed,
+        n_missing,
+        n_sparse,
+        n_repeated,
+        n_components,
+        min_count,
+        max_count,
+        note,
+        details,
+    )
+end
+
+function _rating_design_facet_value(data::FacetData, facet::Symbol, row::Int)
+    indexed = _facet(data, facet)
+    indexed === nothing &&
+        throw(ArgumentError("facet :$facet is not present in FacetData"))
+    index, levels = indexed
+    return levels[index[row]]
+end
+
+function _rating_design_pair_examples(pairs; limit::Int = 10)
+    n = min(length(pairs), limit)
+    return Tuple((; cell = first(pairs[index]), count = last(pairs[index]))
+        for index in 1:n)
+end
+
+function _rating_design_cell_count_summary(data::FacetData, facets,
+        min_sparse_cell_count::Int)
+    isempty(facets) &&
+        throw(ArgumentError("at least one facet is required"))
+    level_counts = Int[]
+    for facet in facets
+        indexed = _facet(data, facet)
+        indexed === nothing &&
+            throw(ArgumentError("facet :$facet is not present in FacetData"))
+        push!(level_counts, length(indexed[2]))
+    end
+
+    counts = Dict{Tuple,Int}()
+    for row in 1:data.n
+        key = Tuple(_rating_design_facet_value(data, facet, row) for facet in facets)
+        counts[key] = get(counts, key, 0) + 1
+    end
+    pairs = sort(collect(counts); by = pair -> string(first(pair)))
+    observed_counts = [last(pair) for pair in pairs]
+    sparse_pairs = [pair for pair in pairs if last(pair) < min_sparse_cell_count]
+    repeated_pairs = [pair for pair in pairs if last(pair) > 1]
+    n_expected = prod(level_counts)
+    n_observed = length(pairs)
+    return (;
+        facets = Tuple(facets),
+        n_expected,
+        n_observed,
+        n_missing = max(n_expected - n_observed, 0),
+        n_sparse = length(sparse_pairs),
+        n_repeated = length(repeated_pairs),
+        min_count = isempty(observed_counts) ? missing : minimum(observed_counts),
+        max_count = isempty(observed_counts) ? missing : maximum(observed_counts),
+        sparse_examples = _rating_design_pair_examples(sparse_pairs),
+        repeated_examples = _rating_design_pair_examples(repeated_pairs),
+        missingness_class = :unobserved_grid_cells,
+        distinguishability =
+            :structural_vs_accidental_not_distinguishable_from_observed_long_data,
+    )
+end
+
+function _rating_design_components(data::FacetData, validation)
+    raw_components = validation === nothing ?
+        [[_label_node(data, node) for node in component]
+         for component in _connected_components(data)] :
+        validation.components
+    components = [
+        Tuple((; facet = facet, level) for (facet, level) in component)
+        for component in raw_components
+    ]
+    return Tuple(components)
+end
+
+function _rating_design_optional_summary(data::FacetData)
+    optional_facets = sort(collect(keys(data.optional)); by = string)
+    time_order_facets = [facet for facet in optional_facets if facet === :occasion]
+    descriptive_assignment_facets = [
+        facet for facet in optional_facets
+        if facet in (:group, :task, :form, :occasion)
+    ]
+    return (;
+        optional_facets = Tuple(optional_facets),
+        time_order_facets = Tuple(time_order_facets),
+        descriptive_assignment_facets = Tuple(descriptive_assignment_facets),
+        occasion_recorded = haskey(data.optional, :occasion),
+    )
+end
+
+"""
+    rating_design_audit(data_or_spec_or_design; unit = :person_item,
+        min_shared_units = 1, min_sparse_cell_count = 2)
+
+Return a report-ready audit of the observed rating design before fitting. Rows
+summarize person-rater-item graph components, rater overlap strength, anchor
+coverage, complete-grid coverage for required facet combinations, repeated
+ratings, sparse observed person-rater-item blocks, optional time/order fields,
+and the interpretation limitation caused by unmodeled rater assignment.
+
+The current `FacetData` contract stores complete observed long-format rows but
+does not store an external planned-design table. Consequently the audit counts
+unobserved complete-grid cells and explicitly marks structural versus
+accidental missingness as not identified from the observed data alone.
+"""
+function rating_design_audit(data_or_spec_or_design;
+        unit::Symbol = :person_item,
+        min_shared_units::Int = 1,
+        min_sparse_cell_count::Int = 2)
+    min_shared_units >= 1 ||
+        throw(ArgumentError("min_shared_units must be positive"))
+    min_sparse_cell_count >= 1 ||
+        throw(ArgumentError("min_sparse_cell_count must be positive"))
+
+    data = _facet_data(data_or_spec_or_design)
+    spec = _facet_spec(data_or_spec_or_design)
+    validation = _validation_report(data_or_spec_or_design)
+    anchor_summary = anchor_linking_summary(
+        data_or_spec_or_design;
+        unit,
+        min_shared_units)
+    overlap_rows = anchor_summary.overlap_rows
+    components = _rating_design_components(data, validation)
+    n_graph_components = length(components)
+    graph_status = n_graph_components <= 1 ? :connected : :disconnected
+
+    optional = _rating_design_optional_summary(data)
+    coverage_specs = (
+        (:person, :rater),
+        (:person, :item),
+        (:rater, :item),
+        (:person, :rater, :item),
+    )
+    coverage_summaries = [
+        _rating_design_cell_count_summary(data, facets, min_sparse_cell_count)
+        for facets in coverage_specs
+    ]
+    person_rater_item = coverage_summaries[end]
+
+    rows = NamedTuple[]
+    push!(rows, _rating_design_audit_row(;
+        audit = :rating_graph_components,
+        status = graph_status,
+        severity = graph_status === :connected ? :info : :error,
+        facets = (:person, :rater, :item),
+        n_components = n_graph_components,
+        min_count = isempty(components) ? missing : minimum(length, components),
+        max_count = isempty(components) ? missing : maximum(length, components),
+        note = graph_status === :connected ?
+            :person_rater_item_graph_connected :
+            :person_rater_item_graph_disconnected,
+        details = (;
+            component_sizes = Tuple(length(component) for component in components),
+            components,
+        ),
+    ))
+
+    rater_linking_status = anchor_summary.rater_linking_status
+    push!(rows, _rating_design_audit_row(;
+        audit = :rater_linking,
+        status = rater_linking_status,
+        severity = rater_linking_status === :disconnected ? :error : :info,
+        facets = (:rater,),
+        unit,
+        n_observed = anchor_summary.n_links_at_or_above_min,
+        n_missing = anchor_summary.n_zero_overlap_pairs,
+        n_sparse = anchor_summary.n_weak_links,
+        n_components = anchor_summary.n_rater_components,
+        min_count = anchor_summary.minimum_shared_units,
+        max_count = isempty(overlap_rows) ? missing :
+            maximum(row.shared_units for row in overlap_rows),
+        note = rater_linking_status === :disconnected ?
+            :rater_overlap_below_minimum_disconnects_graph :
+            :rater_overlap_links_graph_at_minimum_threshold,
+        details = (;
+            min_shared_units,
+            rater_components = anchor_summary.rater_components,
+            n_overlap_pairs = anchor_summary.n_overlap_pairs,
+            overlap_rows,
+        ),
+    ))
+
+    anchor_status = anchor_summary.anchor_status
+    anchor_severity = anchor_summary.n_anchor_target_failures == 0 ? :info : :error
+    push!(rows, _rating_design_audit_row(;
+        audit = :anchor_coverage,
+        status = anchor_status,
+        severity = anchor_severity,
+        facets = (:person, :rater, :item, :thresholds),
+        n_observed = anchor_summary.n_anchors,
+        n_missing = anchor_summary.n_anchor_target_failures,
+        note = anchor_status === :not_declared ?
+            :anchors_not_declared :
+            anchor_status === :declared ?
+                :declared_anchor_targets_found :
+                :declared_anchor_targets_missing,
+        details = (;
+            n_hard_anchors = anchor_summary.n_hard_anchors,
+            n_soft_anchors = anchor_summary.n_soft_anchors,
+            anchor_rows = anchor_summary.anchor_rows,
+            anchor_sensitivity_status = anchor_summary.anchor_sensitivity_status,
+            anchor_sensitivity_passed = anchor_summary.anchor_sensitivity_passed,
+        ),
+    ))
+
+    coverage_rows = NamedTuple[]
+    for summary in coverage_summaries
+        status = summary.n_missing == 0 ? :complete_observed_grid :
+            :unobserved_grid_cells
+        row = _rating_design_audit_row(;
+            audit = :observed_cell_coverage,
+            status,
+            severity = summary.n_missing == 0 ? :info : :warning,
+            facets = summary.facets,
+            n_expected = summary.n_expected,
+            n_observed = summary.n_observed,
+            n_missing = summary.n_missing,
+            min_count = summary.min_count,
+            max_count = summary.max_count,
+            note =
+                :structural_vs_accidental_missingness_not_identified_by_observed_long_data,
+            details = (;
+                missingness_class = summary.missingness_class,
+                distinguishability = summary.distinguishability,
+            ),
+        )
+        push!(coverage_rows, row)
+        push!(rows, row)
+    end
+
+    repeated_status = person_rater_item.n_repeated == 0 ? :none_detected :
+        :repeated_ratings_detected
+    push!(rows, _rating_design_audit_row(;
+        audit = :repeated_person_rater_item_ratings,
+        status = repeated_status,
+        severity = person_rater_item.n_repeated == 0 ? :info : :warning,
+        facets = (:person, :rater, :item),
+        n_observed = person_rater_item.n_observed,
+        n_repeated = person_rater_item.n_repeated,
+        min_count = person_rater_item.min_count,
+        max_count = person_rater_item.max_count,
+        note = person_rater_item.n_repeated == 0 ?
+            :no_repeated_person_rater_item_cells :
+            :repeated_person_rater_item_cells_require_interpretation_policy,
+        details = (;
+            repeated_examples = person_rater_item.repeated_examples,
+        ),
+    ))
+
+    sparse_status = person_rater_item.n_sparse == 0 ? :none_detected :
+        :sparse_observed_cells_detected
+    push!(rows, _rating_design_audit_row(;
+        audit = :sparse_person_rater_item_blocks,
+        status = sparse_status,
+        severity = person_rater_item.n_sparse == 0 ? :info : :warning,
+        facets = (:person, :rater, :item),
+        n_observed = person_rater_item.n_observed,
+        n_sparse = person_rater_item.n_sparse,
+        min_count = person_rater_item.min_count,
+        max_count = person_rater_item.max_count,
+        note = person_rater_item.n_sparse == 0 ?
+            :observed_person_rater_item_cells_meet_sparse_threshold :
+            :observed_person_rater_item_cells_below_sparse_threshold,
+        details = (;
+            min_sparse_cell_count,
+            sparse_examples = person_rater_item.sparse_examples,
+        ),
+    ))
+
+    push!(rows, _rating_design_audit_row(;
+        audit = :optional_time_order_fields,
+        status = optional.occasion_recorded ? :recorded_not_modeled : :not_declared,
+        severity = :info,
+        facets = optional.optional_facets,
+        n_observed = length(optional.time_order_facets),
+        note = optional.occasion_recorded ?
+            :occasion_recorded_as_metadata_not_likelihood_term :
+            :time_or_order_field_not_declared,
+        details = optional,
+    ))
+
+    push!(rows, _rating_design_audit_row(;
+        audit = :nonignorable_assignment,
+        status = :limitation,
+        severity = :warning,
+        facets = optional.descriptive_assignment_facets,
+        note = :current_likelihood_does_not_model_rater_assignment,
+        details = (;
+            assignment_model = :not_included,
+            descriptive_assignment_facets = optional.descriptive_assignment_facets,
+            interpretation =
+                :nonrandom_or_nonignorable_rater_assignment_requires_external_design_or_assignment_model,
+        ),
+    ))
+
+    total_unobserved_grid_cells = sum(row.n_missing for row in coverage_rows)
+    passed = graph_status !== :disconnected &&
+        rater_linking_status !== :disconnected &&
+        anchor_summary.passed === true
+    return (;
+        schema = "bayesianmgmfrm.rating_design_audit.v1",
+        object = :rating_design_audit,
+        family = spec === nothing ? missing : spec.family,
+        thresholds = spec === nothing ? missing : spec.thresholds,
+        estimation_status = spec === nothing ? missing : spec.estimation_status,
+        data_signature = validation === nothing ? _data_signature(data) :
+            validation.data_signature,
+        unit,
+        min_shared_units,
+        min_sparse_cell_count,
+        status = passed ? :reviewed : :warning,
+        passed,
+        rows = Tuple(rows),
+        n_rows = length(rows),
+        overlap_rows,
+        anchor_linking = anchor_summary,
+        summary = (;
+            passed,
+            n_rows = length(rows),
+            rating_graph_status = graph_status,
+            n_rating_graph_components = n_graph_components,
+            rater_linking_status,
+            n_rater_components = anchor_summary.n_rater_components,
+            anchor_status,
+            n_anchors = anchor_summary.n_anchors,
+            n_anchor_target_failures = anchor_summary.n_anchor_target_failures,
+            n_unobserved_grid_cells = total_unobserved_grid_cells,
+            n_repeated_person_rater_item_cells = person_rater_item.n_repeated,
+            n_sparse_person_rater_item_cells = person_rater_item.n_sparse,
+            structural_missingness_distinguishable = false,
+            missingness_note =
+                :structural_vs_accidental_missingness_not_identified_by_observed_long_data,
+            optional_time_order_recorded = optional.occasion_recorded,
+            nonignorable_assignment_flagged = true,
+        ),
+    )
+end
+
 """
     model_ladder()
 
@@ -1208,7 +1574,7 @@ function model_ladder()
             public_fit = true,
             experimental_public = true,
             identification = (:item_discrimination_product_constraint, :rater_consistency_positive, :rater_step_constraints),
-            note = "guarded scalar rater-discrimination GMFRM through fit(spec; experimental = true)",
+            note = "guarded scalar rater-consistency GMFRM through fit(spec; experimental = true)",
         ),
         (;
             family = :mgmfrm,
@@ -1270,8 +1636,8 @@ function _release_scope_fit_surface_rows()
             entrypoint = "fit(spec; experimental = true)",
             experimental_public = true,
             public_fit = true,
-            claim_scope = :guarded_scalar_rater_discrimination_only,
-            note = "guarded scalar rater-discrimination GMFRM, without broader generalized claims",
+            claim_scope = :guarded_scalar_rater_consistency_only,
+            note = "guarded scalar rater-consistency GMFRM, without broader generalized claims",
         ),
         (;
             surface = :fixed_q_confirmatory_mgmfrm_guarded_experimental,
@@ -1284,6 +1650,154 @@ function _release_scope_fit_surface_rows()
             claim_scope = :fixed_q_two_dimensional_confirmatory_only,
             note = "guarded fixed-Q confirmatory MGMFRM, without model-weight or sparse-superiority claims",
         ),
+    )
+end
+
+function _release_scope_status_vocabulary_rows()
+    return (
+        (;
+            status = :supported,
+            current_aliases = (:fit_supported, :public_fit_supported),
+            public_fit = true,
+            experimental_public = false,
+            stable_public = false,
+            external_validated = false,
+            meaning = "ordinary fit-supported public workflow for the current release scope",
+        ),
+        (;
+            status = :experimental_public,
+            current_aliases = (
+                :experimental_public,
+                :guarded_experimental,
+                :guarded_experimental_public,
+            ),
+            public_fit = true,
+            experimental_public = true,
+            stable_public = false,
+            external_validated = false,
+            meaning = "narrow guarded fit path with explicit caveats and blocked broad claims",
+        ),
+        (;
+            status = :specified_only,
+            current_aliases = (:specified_only,),
+            public_fit = false,
+            experimental_public = false,
+            stable_public = false,
+            external_validated = false,
+            meaning = "manifest and preview surface only; ordinary fitting is rejected",
+        ),
+        (;
+            status = :blocked,
+            current_aliases = (
+                :blocked,
+                :out_of_scope,
+                :not_public_fit_api,
+                :not_a_public_fit_api,
+                :manual_only,
+            ),
+            public_fit = false,
+            experimental_public = false,
+            stable_public = false,
+            external_validated = false,
+            meaning = "unsupported or claim-blocked surface",
+        ),
+        (;
+            status = :stable_public,
+            current_aliases = (:stable_public,),
+            public_fit = true,
+            experimental_public = false,
+            stable_public = true,
+            external_validated = false,
+            meaning = "ordinary package claims backed by internal simulation, sensitivity, and reproducibility evidence",
+        ),
+        (;
+            status = :external_validated,
+            current_aliases = (:external_validated,),
+            public_fit = true,
+            experimental_public = false,
+            stable_public = true,
+            external_validated = true,
+            meaning = "post-v0.2.0 external validation claims backed by known-truth R-package simulations and later real-data evidence",
+        ),
+    )
+end
+
+function _status_policy_label(estimation_status::Symbol;
+        public_fit::Bool = estimation_status === :fit_supported,
+        experimental_public::Bool = false,
+        stable_public::Bool = false,
+        external_validated::Bool = false)
+    external_validated && return :external_validated
+    stable_public && return :stable_public
+    experimental_public && return :experimental_public
+    public_fit && return :supported
+    estimation_status === :specified_only && return :specified_only
+    return :blocked
+end
+
+function _status_policy_blocked_claims(family::Symbol, status_label::Symbol)
+    blocked = Symbol[
+        :dff_model_effects,
+        :model_weight_or_superiority,
+    ]
+    status_label !== :external_validated && append!(blocked, (
+        :r_package_overlap_comparison,
+        :real_data_validation,
+        :external_validation,
+    ))
+    family in (:gmfrm, :mgmfrm) &&
+        status_label in (:experimental_public, :specified_only, :blocked) &&
+        push!(blocked, :broad_generalized_fit)
+    family === :mgmfrm && push!(blocked, :sparse_mgmfrm_superiority)
+    status_label in (:specified_only, :blocked) && push!(blocked, :public_fit)
+    !(status_label in (:stable_public, :external_validated)) &&
+        push!(blocked, :stable_public_claim)
+    return Tuple(blocked)
+end
+
+function _status_policy_manifest(family::Symbol,
+        estimation_status::Symbol;
+        public_fit::Bool = estimation_status === :fit_supported,
+        experimental_public::Bool = false,
+        fit_ready::Bool = public_fit,
+        stable_public::Bool = false,
+        external_validated::Bool = false,
+        claim_scope = missing)
+    normalized_stable_public = stable_public || external_validated
+    normalized_experimental_public = experimental_public && !normalized_stable_public
+    normalized_public_fit =
+        public_fit || normalized_experimental_public || normalized_stable_public
+    normalized_fit_ready = fit_ready || normalized_public_fit
+    status_label = _status_policy_label(
+        estimation_status;
+        public_fit = normalized_public_fit,
+        experimental_public = normalized_experimental_public,
+        stable_public = normalized_stable_public,
+        external_validated,
+    )
+    return (;
+        schema = "bayesianmgmfrm.status_policy.v1",
+        family,
+        estimation_status,
+        status_label,
+        public_fit = normalized_public_fit,
+        experimental_public = normalized_experimental_public,
+        fit_ready = normalized_fit_ready,
+        stable_public = normalized_stable_public,
+        external_validated,
+        claim_scope,
+        blocked_claims = _status_policy_blocked_claims(family, status_label),
+        next_gate = status_label === :experimental_public ?
+            :v0_1_1_generalized_refinement :
+            status_label === :specified_only ?
+            :promotion_review :
+            status_label === :supported ?
+            :ordinary_supported_workflow :
+            status_label === :stable_public ?
+            :post_v0_2_external_validation :
+            status_label === :external_validated ?
+            :maintain_external_validation_evidence :
+            :scope_or_design_repair,
     )
 end
 
@@ -1323,6 +1837,24 @@ function _release_scope_blocked_claim_rows()
             status = :blocked,
             blocker = :broader_sparse_mgmfrm_claim_scope_not_promoted,
             note = "local sparse evidence supports guarded experimentation only",
+        ),
+        (;
+            claim = :r_package_overlap_comparison,
+            status = :blocked,
+            blocker = :post_v0_2_known_truth_simulation_comparison_required,
+            note = "overlap comparisons with R packages are post-v0.2.0 validation evidence",
+        ),
+        (;
+            claim = :real_data_validation,
+            status = :blocked,
+            blocker = :post_v0_2_external_validation_sequence_required,
+            note = "real-data validation is not a v0.1.x or v0.2.0 release gate",
+        ),
+        (;
+            claim = :external_validation,
+            status = :blocked,
+            blocker = :post_v0_2_external_validation_sequence_required,
+            note = "external validation claims require later known-truth comparisons before real-data claims",
         ),
         (;
             claim = :publication_or_registration,
@@ -1367,6 +1899,26 @@ function _release_scope_evidence_rows()
             evidence = :fit_reproduction_cache_identity_check,
             status = :done,
             artifact = :fit_reproduction_manifest),
+        (family = :gmfrm_mgmfrm,
+            scope = :v0_1_1_generalized_refinement,
+            evidence = :implementation_checklist_created,
+            status = :planned,
+            artifact = :docs_src_v0_1_1_implementation_checklist),
+        (family = :all_evidence_artifacts,
+            scope = :evidence_schema_policy,
+            evidence = :evidence_artifact_schema_policy,
+            status = :done,
+            artifact = :evidence_artifact_schema_policy),
+        (family = :all_package_surfaces,
+            scope = :status_synchronization,
+            evidence = :release_gate_check,
+            status = :done,
+            artifact = :release_gate_check),
+        (family = :all_related_software,
+            scope = :positioning_and_non_superiority,
+            evidence = :related_software_capability_matrix,
+            status = :done,
+            artifact = :related_software_capability_matrix),
     ])
     return Tuple(rows)
 end
@@ -1389,16 +1941,25 @@ function release_scope_summary(; include_evidence::Bool = false)
     fit_surfaces = _release_scope_fit_surface_rows()
     blocked_options = _release_scope_blocked_option_rows()
     blocked_claims = _release_scope_blocked_claim_rows()
+    status_vocabulary = _release_scope_status_vocabulary_rows()
+    evidence_policy = evidence_artifact_schema_policy(:release_scope_evidence;
+        include_environment = false,
+        include_cache_provenance = true,
+        raw_data_status = :not_included,
+        unsupported_claims = Tuple(row.claim for row in blocked_claims))
     evidence_rows = include_evidence ? _release_scope_evidence_rows() : NamedTuple[]
     return (;
         schema = "bayesianmgmfrm.release_scope_summary.v1",
         object = :release_scope_summary,
         status = :scope_recorded,
+        status_vocabulary,
+        evidence_artifact_schema_policy = evidence_policy,
         public_fit_surfaces = fit_surfaces,
         blocked_public_options = blocked_options,
         blocked_claims,
         evidence_rows,
         summary = (;
+            n_status_vocabulary_rows = length(status_vocabulary),
             n_public_fit_surfaces = length(fit_surfaces),
             n_guarded_experimental_surfaces =
                 count(row -> row.experimental_public, fit_surfaces),
@@ -1412,15 +1973,662 @@ function release_scope_summary(; include_evidence::Bool = false)
             fit_reproduction_cache_identity_checked = true,
             documenter_html_page_size_gate = true,
             pre_registration_gate_available = true,
+            evidence_artifact_schema_policy_recorded = true,
+            related_software_capability_matrix_recorded = true,
             general_registration_manual_only = true,
             broader_generalized_fit_allowed = false,
             dff_model_effects_allowed = false,
             model_weight_claims_allowed = false,
             sparse_superiority_claims_allowed = false,
             publication_or_registration_action = false,
+            v0_1_1_generalized_refinement_planned = true,
             next_gate = :manual_publication_or_registration_by_user_only,
         ),
     )
+end
+
+function _related_software_source_rows()
+    return (
+        (;
+            tool = :facets,
+            source_kind = :official_product_documentation,
+            url = "https://www.winsteps.com/facets.htm",
+            role = :many_facet_rasch_measurement,
+        ),
+        (;
+            tool = :facets,
+            source_kind = :official_theory_documentation,
+            url = "https://www.winsteps.com/facetman/theory.htm",
+            role = :many_facet_model_theory,
+        ),
+        (;
+            tool = :tam,
+            source_kind = :official_cran_reference,
+            url = "https://cran.r-project.org/web/packages/TAM/refman/TAM.html",
+            role = :irt_mfrm_multidimensional_models,
+        ),
+        (;
+            tool = :mirt,
+            source_kind = :journal_article,
+            url = "https://www.jstatsoft.org/article/view/v048i06",
+            role = :exploratory_and_confirmatory_mirt,
+        ),
+        (;
+            tool = :sirt,
+            source_kind = :official_cran_reference,
+            url = "https://cran.r-project.org/web/packages/sirt/sirt.pdf",
+            role = :supplementary_irt_models_and_rater_effects,
+        ),
+        (;
+            tool = :immer,
+            source_kind = :official_cran_reference,
+            url = "https://cran.r-project.org/web/packages/immer/immer.pdf",
+            role = :item_response_models_for_multiple_ratings,
+        ),
+        (;
+            tool = :brms_stan,
+            source_kind = :official_cran_reference,
+            url = "https://cran.r-project.org/web/packages/brms/brms.pdf",
+            role = :bayesian_multilevel_models_via_stan,
+        ),
+        (;
+            tool = :stan,
+            source_kind = :official_user_guide,
+            url = "https://mc-stan.org/docs/stan-users-guide/item-response-models.html",
+            role = :custom_bayesian_irt_modeling,
+        ),
+        (;
+            tool = :bayesianmgmfrm,
+            source_kind = :package_manifest,
+            url = "local://BayesianMGMFRM.jl/release_scope_summary",
+            role = :source_audited_bayesian_mgmfrm_workflow,
+        ),
+    )
+end
+
+function _related_software_row(; tool::Symbol,
+        display_name::AbstractString,
+        ecosystem::Symbol,
+        current_role::Symbol,
+        model_coverage,
+        estimation_methods,
+        rater_facet_support::Symbol,
+        multidimensional_support::Symbol,
+        bayesian_support::Symbol,
+        diagnostics_and_sensitivity,
+        report_artifact_support::Symbol,
+        bayesianmgmfrm_overlap,
+        v0_1_1_position::Symbol,
+        comparison_gate::Symbol,
+        source_urls)
+    return (;
+        schema = "bayesianmgmfrm.related_software_capability_row.v1",
+        tool,
+        display_name = String(display_name),
+        ecosystem,
+        current_role,
+        model_coverage = Tuple(Symbol(item) for item in model_coverage),
+        estimation_methods = Tuple(Symbol(item) for item in estimation_methods),
+        rater_facet_support,
+        multidimensional_support,
+        bayesian_support,
+        diagnostics_and_sensitivity =
+            Tuple(Symbol(item) for item in diagnostics_and_sensitivity),
+        report_artifact_support,
+        bayesianmgmfrm_overlap =
+            Tuple(Symbol(item) for item in bayesianmgmfrm_overlap),
+        v0_1_1_position,
+        comparison_gate,
+        source_urls = Tuple(String(url) for url in source_urls),
+    )
+end
+
+function _related_software_capability_rows()
+    return (
+        _related_software_row(
+            tool = :facets,
+            display_name = "Facets",
+            ecosystem = :standalone_rasch,
+            current_role = :mature_many_facet_rasch_measurement,
+            model_coverage = (:unidimensional_mfrm, :ordinal_rasch,
+                :many_facet_rating_designs),
+            estimation_methods = (:rasch_measurement_workflow,),
+            rater_facet_support = :first_class_many_facet_rater_support,
+            multidimensional_support = :not_the_primary_public_claim,
+            bayesian_support = :not_a_bayesian_workflow,
+            diagnostics_and_sensitivity = (:fit_statistics, :facet_maps,
+                :separation_reliability, :practitioner_tables),
+            report_artifact_support = :interactive_and_report_oriented_outputs,
+            bayesianmgmfrm_overlap = (:mfrm_practitioner_outputs,
+                :facet_maps, :fit_statistics),
+            v0_1_1_position = :migration_reference_not_replacement_claim,
+            comparison_gate = :post_v0_2_known_truth_simulation_where_overlap_exists,
+            source_urls = (
+                "https://www.winsteps.com/facets.htm",
+                "https://www.winsteps.com/facetman/theory.htm",
+            )),
+        _related_software_row(
+            tool = :tam,
+            display_name = "TAM",
+            ecosystem = :r_package,
+            current_role = :broad_irt_and_mfr_modeling,
+            model_coverage = (:rasch, :pcm, :gpcm, :multidimensional_irt,
+                :multi_faceted_rasch_models),
+            estimation_methods = (:marginal_maximum_likelihood,
+                :joint_maximum_likelihood, :expected_a_posteriori),
+            rater_facet_support = :multi_faceted_rasch_available,
+            multidimensional_support = :broad_multidimensional_irt_available,
+            bayesian_support = :not_the_primary_public_workflow,
+            diagnostics_and_sensitivity = (:irt_model_tables,
+                :fit_and_item_diagnostics, :plausible_values),
+            report_artifact_support = :r_objects_and_tables,
+            bayesianmgmfrm_overlap = (:mfrm_pcm_gpcm_overlap,
+                :fixed_q_multidimensional_overlap_candidates),
+            v0_1_1_position = :breadth_baseline_not_feature_checklist,
+            comparison_gate = :post_v0_2_known_truth_simulation_where_overlap_exists,
+            source_urls = (
+                "https://cran.r-project.org/web/packages/TAM/refman/TAM.html",)),
+        _related_software_row(
+            tool = :mirt,
+            display_name = "mirt",
+            ecosystem = :r_package,
+            current_role = :exploratory_and_confirmatory_mirt,
+            model_coverage = (:unidimensional_irt, :multidimensional_irt,
+                :exploratory_mirt, :confirmatory_mirt),
+            estimation_methods = (:em, :mhrm, :multiple_group_estimation),
+            rater_facet_support = :not_a_dedicated_mfrm_facets_workflow,
+            multidimensional_support = :first_class_mirt_support,
+            bayesian_support = :not_the_primary_public_workflow,
+            diagnostics_and_sensitivity = (:item_fit, :model_fit,
+                :technical_mirt_outputs),
+            report_artifact_support = :r_objects_and_tables,
+            bayesianmgmfrm_overlap = (:fixed_q_mirt_expectations,
+                :dimension_loading_interpretation),
+            v0_1_1_position = :multidimensional_baseline_not_mfr_replacement,
+            comparison_gate = :post_v0_2_known_truth_simulation_where_overlap_exists,
+            source_urls = (
+                "https://www.jstatsoft.org/article/view/v048i06",)),
+        _related_software_row(
+            tool = :sirt,
+            display_name = "sirt",
+            ecosystem = :r_package,
+            current_role = :supplementary_irt_methods,
+            model_coverage = (:rasch_extensions, :differential_item_functioning,
+                :rater_effects, :diagnostic_models),
+            estimation_methods = (:specialized_irt_estimators,
+                :simulation_and_diagnostics),
+            rater_facet_support = :rater_effect_related_methods,
+            multidimensional_support = :selected_multidimensional_and_diagnostic_models,
+            bayesian_support = :not_the_primary_public_workflow,
+            diagnostics_and_sensitivity = (:supplementary_irt_diagnostics,
+                :simulation_helpers),
+            report_artifact_support = :r_objects_and_tables,
+            bayesianmgmfrm_overlap = (:rater_effect_screening,
+                :bias_and_dff_context),
+            v0_1_1_position = :specialized_method_reference,
+            comparison_gate = :post_v0_2_known_truth_simulation_where_overlap_exists,
+            source_urls = (
+                "https://cran.r-project.org/web/packages/sirt/sirt.pdf",)),
+        _related_software_row(
+            tool = :immer,
+            display_name = "immer",
+            ecosystem = :r_package,
+            current_role = :models_for_multiple_ratings,
+            model_coverage = (:multiple_ratings, :rater_models,
+                :item_response_models),
+            estimation_methods = (:specialized_rater_model_estimators,),
+            rater_facet_support = :first_class_multiple_rating_support,
+            multidimensional_support = :not_the_primary_public_claim,
+            bayesian_support = :not_the_primary_public_workflow,
+            diagnostics_and_sensitivity = (:rater_model_outputs,),
+            report_artifact_support = :r_objects_and_tables,
+            bayesianmgmfrm_overlap = (:rater_effect_context,
+                :multiple_rating_designs),
+            v0_1_1_position = :rater_model_reference,
+            comparison_gate = :post_v0_2_known_truth_simulation_where_overlap_exists,
+            source_urls = (
+                "https://cran.r-project.org/web/packages/immer/immer.pdf",)),
+        _related_software_row(
+            tool = :brms_stan,
+            display_name = "brms/Stan workflows",
+            ecosystem = :r_and_stan,
+            current_role = :custom_bayesian_multilevel_modeling,
+            model_coverage = (:ordinal_models, :multilevel_models,
+                :custom_irt_possible_in_stan),
+            estimation_methods = (:hmc_nuts, :bayesian_posterior_inference),
+            rater_facet_support = :possible_with_custom_multilevel_formulas_or_stan,
+            multidimensional_support = :possible_with_custom_modeling,
+            bayesian_support = :first_class_bayesian_inference,
+            diagnostics_and_sensitivity = (:mcmc_diagnostics,
+                :posterior_predictive_checks, :loo_workflows),
+            report_artifact_support = :r_stan_objects_and_user_built_reports,
+            bayesianmgmfrm_overlap = (:bayesian_diagnostics,
+                :custom_irt_targets, :posterior_predictive_checks),
+            v0_1_1_position = :bayesian_workflow_baseline_not_packaged_mgmfrm,
+            comparison_gate = :post_v0_2_known_truth_simulation_where_overlap_exists,
+            source_urls = (
+                "https://cran.r-project.org/web/packages/brms/brms.pdf",
+                "https://mc-stan.org/docs/stan-users-guide/item-response-models.html",
+            )),
+        _related_software_row(
+            tool = :bayesianmgmfrm,
+            display_name = "BayesianMGMFRM.jl",
+            ecosystem = :julia_package,
+            current_role = :source_audited_bayesian_mgmfrm_workflow,
+            model_coverage = (:supported_mfrm_rsm_pcm,
+                :experimental_scalar_rater_consistency_gmfrm,
+                :experimental_fixed_q_confirmatory_mgmfrm,
+                :blocked_broad_generalized_mgmfrm),
+            estimation_methods = (:random_walk_metropolis, :advancedhmc_nuts,
+                :turing_nuts, :guarded_raw_coordinate_hmc),
+            rater_facet_support = :mfrm_and_guarded_rater_consistency_workflow,
+            multidimensional_support = :fixed_q_two_dimensional_experimental_only,
+            bayesian_support = :package_core_workflow,
+            diagnostics_and_sensitivity = (:mcmc_diagnostics,
+                :posterior_predictive_checks, :calibration,
+                :prior_likelihood_sensitivity, :release_gate_check),
+            report_artifact_support = :versioned_hash_checked_artifacts,
+            bayesianmgmfrm_overlap = (:package_under_development,),
+            v0_1_1_position = :narrow_auditable_workflow_not_generic_irt_replacement,
+            comparison_gate = :post_v0_2_known_truth_simulation_where_overlap_exists,
+            source_urls = ("local://BayesianMGMFRM.jl/release_scope_summary",)),
+    )
+end
+
+"""
+    related_software_capability_matrix()
+
+Return the v0.1.1 related-software positioning matrix. The matrix compares
+Facets, TAM, mirt, sirt, immer, brms/Stan-style workflows, and
+`BayesianMGMFRM.jl` across model coverage, estimation style, rater/facet
+support, multidimensional support, Bayesian workflow support, diagnostics and
+sensitivity coverage, and report-artifact support.
+
+This is a scope-governance artifact, not validation evidence and not a
+superiority claim. Overlap comparisons against R packages or Facets remain a
+post-v0.2.0 known-truth simulation task where model targets genuinely overlap.
+"""
+function related_software_capability_matrix()
+    rows = _related_software_capability_rows()
+    sources = _related_software_source_rows()
+    axes = (
+        :model_coverage,
+        :estimation_methods,
+        :rater_facet_support,
+        :multidimensional_support,
+        :bayesian_support,
+        :diagnostics_and_sensitivity,
+        :report_artifact_support,
+    )
+    return (;
+        schema = "bayesianmgmfrm.related_software_capability_matrix.v1",
+        object = :related_software_capability_matrix,
+        status = :scope_positioning_recorded,
+        axes,
+        rows,
+        sources,
+        summary = (;
+            n_tools = length(rows),
+            n_axes = length(axes),
+            tools = Tuple(row.tool for row in rows),
+            includes_facets = any(row -> row.tool === :facets, rows),
+            includes_tam = any(row -> row.tool === :tam, rows),
+            includes_mirt = any(row -> row.tool === :mirt, rows),
+            includes_sirt = any(row -> row.tool === :sirt, rows),
+            includes_immer = any(row -> row.tool === :immer, rows),
+            includes_brms_stan = any(row -> row.tool === :brms_stan, rows),
+            includes_bayesianmgmfrm =
+                any(row -> row.tool === :bayesianmgmfrm, rows),
+            no_superiority_claims = true,
+            generic_irt_replacement_claims_allowed = false,
+            r_package_overlap_comparison_allowed = false,
+            comparison_gate =
+                :post_v0_2_known_truth_simulation_where_overlap_exists,
+            package_niche =
+                :source_audited_bayesian_rater_mediated_mgmfrm_workflow,
+        ),
+    )
+end
+
+_release_gate_default_root() = normpath(joinpath(@__DIR__, ".."))
+
+function _release_gate_document_specs()
+    return (
+        (;
+            target = :readme_public_surface,
+            path = "README.md",
+            required = (
+                "`supported`",
+                "`experimental_public`",
+                "`blocked`",
+                "rater-consistency GMFRM",
+                "Fixed-Q two-dimensional confirmatory MGMFRM",
+                "fit(spec; experimental = true)",
+                "DFF model effects",
+                "model-weight",
+            ),
+            forbidden = (
+                "Scalar rater-discrimination GMFRM",
+                "rater-discrimination candidate",
+            ),
+        ),
+        (;
+            target = :roadmap_status_policy,
+            path = "ROADMAP.md",
+            required = (
+                "`experimental_public`",
+                "`blocked`",
+                "rater-consistency GMFRM",
+                "fixed-Q two-dimensional confirmatory MGMFRM",
+                "fit(spec; experimental = true)",
+                "post-`v0.2.0`",
+                "broader generalized",
+            ),
+            forbidden = (
+                "Scalar rater-discrimination GMFRM",
+                "rater-discrimination candidate",
+            ),
+        ),
+        (;
+            target = :docs_index_public_surface,
+            path = joinpath("docs", "src", "index.md"),
+            required = (
+                "fit(spec; experimental = true)",
+                "rater-consistency",
+                "fixed-Q two-dimensional",
+                "not exposed yet",
+            ),
+            forbidden = (
+                "Scalar rater-discrimination GMFRM",
+                "rater-discrimination candidate",
+            ),
+        ),
+        (;
+            target = :docs_roadmap_scope,
+            path = joinpath("docs", "src", "roadmap.md"),
+            required = (
+                "`experimental_public`",
+                "`blocked`",
+                "rater-consistency GMFRM",
+                "fixed-Q two-dimensional",
+                "remain blocked",
+                "post-`v0.2.0`",
+            ),
+            forbidden = (
+                "Scalar rater-discrimination GMFRM",
+                "rater-discrimination candidate",
+            ),
+        ),
+        (;
+            target = :docs_model_equations_scope,
+            path = joinpath("docs", "src", "model-equations.md"),
+            required = (
+                "rater-consistency",
+                "fixed-Q two-dimensional confirmatory",
+                "broad generalized fitting remains guarded",
+            ),
+            forbidden = (
+                "Scalar rater-discrimination GMFRM",
+                "rater-discrimination candidate",
+            ),
+        ),
+        (;
+            target = :docs_bayesian_workflow_scope,
+            path = joinpath("docs", "src", "bayesian-workflow.md"),
+            required = (
+                "fit(spec; experimental = true)",
+                "rater-consistency",
+                "fixed-Q",
+                "Broader GMFRM/MGMFRM fitting",
+                "planned work",
+            ),
+            forbidden = (
+                "Scalar rater-discrimination GMFRM",
+                "rater-discrimination candidate",
+            ),
+        ),
+        (;
+            target = :docs_v0_1_1_checklist_scope,
+            path = joinpath("docs", "src", "v0.1.1-implementation-checklist.md"),
+            required = (
+                "Broad GMFRM/MGMFRM remains blocked",
+                "R-package overlap comparison is post-v0.2.0",
+                "release-gate check",
+            ),
+            forbidden = (
+                "Scalar rater-discrimination GMFRM",
+                "rater-discrimination candidate",
+            ),
+        ),
+        (;
+            target = :docs_mgmfrm_research_roadmap_scope,
+            path = joinpath("docs", "src", "mgmfrm-research-roadmap.md"),
+            required = (
+                "`experimental_public`",
+                "`blocked`",
+                "rater consistency",
+                "fixed-Q",
+                "post-`v0.2.0`",
+            ),
+            forbidden = (
+                "Scalar rater-discrimination GMFRM",
+                "rater-discrimination candidate",
+            ),
+        ),
+    )
+end
+
+function _release_gate_row(; source::Symbol, target::Symbol, path = missing,
+        check::Symbol, expected, observed, passed::Bool, note::AbstractString = "")
+    return (;
+        schema = "bayesianmgmfrm.release_gate_check_row.v1",
+        source,
+        target,
+        path,
+        check,
+        expected,
+        observed,
+        status = passed ? :passed : :failed,
+        note,
+    )
+end
+
+_release_gate_contains(text::AbstractString, needle::AbstractString) =
+    occursin(lowercase(needle), lowercase(text))
+
+function _release_gate_document_rows(root::AbstractString)
+    rows = NamedTuple[]
+    for spec in _release_gate_document_specs()
+        path = joinpath(root, spec.path)
+        present = isfile(path)
+        push!(rows, _release_gate_row(
+            source = :documentation,
+            target = spec.target,
+            path = spec.path,
+            check = :document_present,
+            expected = :present,
+            observed = present ? :present : :missing,
+            passed = present,
+            note = "critical release-scope document is present",
+        ))
+        present || continue
+        text = read(path, String)
+        for token in spec.required
+            found = _release_gate_contains(text, token)
+            push!(rows, _release_gate_row(
+                source = :documentation,
+                target = spec.target,
+                path = spec.path,
+                check = :required_text,
+                expected = token,
+                observed = found ? :present : :missing,
+                passed = found,
+                note = "required generalized-support wording is present",
+            ))
+        end
+        for token in spec.forbidden
+            found = _release_gate_contains(text, token)
+            push!(rows, _release_gate_row(
+                source = :documentation,
+                target = spec.target,
+                path = spec.path,
+                check = :forbidden_text_absent,
+                expected = :absent,
+                observed = found ? token : :absent,
+                passed = !found,
+                note = "outdated generalized-support wording is absent",
+            ))
+        end
+    end
+    return Tuple(rows)
+end
+
+function _release_gate_manifest_rows(scope)
+    rows = NamedTuple[]
+    statuses = Tuple(row.status for row in scope.status_vocabulary)
+    for status in (:supported, :experimental_public, :specified_only, :blocked,
+            :stable_public, :external_validated)
+        passed = status in statuses
+        push!(rows, _release_gate_row(
+            source = :manifest,
+            target = :status_vocabulary,
+            check = :status_defined,
+            expected = status,
+            observed = passed ? status : statuses,
+            passed = passed,
+            note = "release status vocabulary includes the expected status",
+        ))
+    end
+
+    surfaces = scope.public_fit_surfaces
+    blocked_claims = Tuple(row.claim for row in scope.blocked_claims)
+    evidence_rows = scope.evidence_rows
+    manifest_checks = (
+        (target = :minimal_mfrm_supported,
+            expected = :supported_public_fit,
+            observed = any(row -> row.surface === :minimal_mfrm_rsm_pcm &&
+                row.public_fit && !row.experimental_public,
+                surfaces)),
+        (target = :scalar_gmfrm_experimental_public,
+            expected = :experimental_public_guarded_fit,
+            observed = any(row -> row.surface === :scalar_gmfrm_guarded_experimental &&
+                row.public_fit && row.experimental_public &&
+                row.entrypoint == "fit(spec; experimental = true)" &&
+                row.claim_scope === :guarded_scalar_rater_consistency_only,
+                surfaces)),
+        (target = :fixed_q_mgmfrm_experimental_public,
+            expected = :experimental_public_guarded_fit,
+            observed = any(row -> row.surface ===
+                :fixed_q_confirmatory_mgmfrm_guarded_experimental &&
+                row.public_fit && row.experimental_public &&
+                row.entrypoint == "fit(spec; experimental = true)" &&
+                row.claim_scope === :fixed_q_two_dimensional_confirmatory_only,
+                surfaces)),
+        (target = :broad_generalized_claims_blocked,
+            expected = :blocked,
+            observed = :broad_generalized_fit in blocked_claims &&
+                !scope.summary.broader_generalized_fit_allowed),
+        (target = :dff_model_effects_blocked,
+            expected = :blocked,
+            observed = :dff_model_effects in blocked_claims &&
+                !scope.summary.dff_model_effects_allowed),
+        (target = :model_weight_claims_blocked,
+            expected = :blocked,
+            observed = :model_weight_or_superiority in blocked_claims &&
+                !scope.summary.model_weight_claims_allowed),
+        (target = :sparse_superiority_claims_blocked,
+            expected = :blocked,
+            observed = :sparse_mgmfrm_superiority in blocked_claims &&
+                !scope.summary.sparse_superiority_claims_allowed),
+        (target = :post_v0_2_external_validation_blocked,
+            expected = :blocked_until_external_validation,
+            observed = all(claim -> claim in blocked_claims,
+                (:r_package_overlap_comparison, :real_data_validation,
+                    :external_validation))),
+        (target = :v0_1_1_refinement_evidence_row,
+            expected = :recorded,
+            observed = any(row -> row.scope === :v0_1_1_generalized_refinement &&
+                row.evidence === :implementation_checklist_created,
+                evidence_rows)),
+        (target = :release_gate_check_evidence_row,
+            expected = :recorded,
+            observed = any(row -> row.scope === :status_synchronization &&
+                row.evidence === :release_gate_check,
+                evidence_rows)),
+        (target = :related_software_capability_matrix_evidence_row,
+            expected = :recorded,
+            observed = any(row -> row.scope === :positioning_and_non_superiority &&
+                row.evidence === :related_software_capability_matrix,
+                evidence_rows)),
+    )
+    for check in manifest_checks
+        passed = check.observed === true
+        push!(rows, _release_gate_row(
+            source = :manifest,
+            target = check.target,
+            check = :manifest_consistency,
+            expected = check.expected,
+            observed = check.observed,
+            passed = passed,
+            note = "release-scope manifest agrees with the v0.1.1 public-surface policy",
+        ))
+    end
+    return Tuple(rows)
+end
+
+"""
+    release_gate_check(; root = package root, throw_on_failure = false)
+
+Check that README, roadmap, docs, and release-scope manifest rows agree about
+the current generalized support policy. The gate expects minimal MFRM/RSM/PCM
+to remain `supported`, the scalar rater-consistency GMFRM and fixed-Q
+confirmatory MGMFRM paths to remain `experimental_public`, and broad
+generalized fitting, DFF model effects, model-weight claims, sparse-superiority
+claims, and post-v0.2.0 external-validation claims to remain blocked.
+
+Set `throw_on_failure = true` for release scripts or CI steps that should fail
+as soon as documentation and manifest status rows drift.
+"""
+function release_gate_check(; root::AbstractString = _release_gate_default_root(),
+        throw_on_failure::Bool = false)
+    normalized_root = normpath(root)
+    scope = release_scope_summary(; include_evidence = true)
+    document_rows = _release_gate_document_rows(normalized_root)
+    manifest_rows = _release_gate_manifest_rows(scope)
+    rows = (document_rows..., manifest_rows...)
+    failed_rows = Tuple(row for row in rows if row.status !== :passed)
+    passed = isempty(failed_rows)
+    summary = (;
+        passed,
+        n_rows = length(rows),
+        n_document_rows = length(document_rows),
+        n_manifest_rows = length(manifest_rows),
+        n_failed_rows = length(failed_rows),
+        failed_targets = Tuple(row.target for row in failed_rows),
+        broad_generalized_fit_allowed = scope.summary.broader_generalized_fit_allowed,
+        dff_model_effects_allowed = scope.summary.dff_model_effects_allowed,
+        model_weight_claims_allowed = scope.summary.model_weight_claims_allowed,
+        sparse_superiority_claims_allowed =
+            scope.summary.sparse_superiority_claims_allowed,
+        publication_or_registration_action = false,
+        next_gate = passed ? :v0_1_1_workstream_b_design_audit :
+            :repair_release_scope_documentation_or_manifest_drift,
+    )
+    result = (;
+        schema = "bayesianmgmfrm.release_gate_check.v1",
+        object = :release_gate_check,
+        status = passed ? :passed : :failed,
+        root = normalized_root,
+        release_scope = scope,
+        rows,
+        summary,
+    )
+    if throw_on_failure && !passed
+        throw(ArgumentError(
+            "release gate failed with $(summary.n_failed_rows) failed row(s): " *
+            join(string.(summary.failed_targets), ", ")))
+    end
+    return result
 end
 
 function _default_case_study_source_records()
@@ -1647,6 +2855,29 @@ function _check_family(family::Symbol)
     return family
 end
 
+function _default_dimension_labels(dimensions::Int)
+    return ["dim=$(dim)" for dim in 1:dimensions]
+end
+
+function _normalize_dimension_labels(dimensions::Int, dimension_labels)
+    dimension_labels === nothing && return _default_dimension_labels(dimensions)
+    labels = collect(dimension_labels)
+    length(labels) == dimensions ||
+        throw(ArgumentError("dimension_labels must have one label per dimension"))
+    out = String[]
+    for (index, label) in pairs(labels)
+        ismissing(label) &&
+            throw(ArgumentError("dimension label $index is missing"))
+        text = string(label)
+        !isempty(text) ||
+            throw(ArgumentError("dimension label $index is empty"))
+        push!(out, text)
+    end
+    length(unique(out)) == length(out) ||
+        throw(ArgumentError("dimension_labels must be unique"))
+    return out
+end
+
 function _check_dimensions(family::Symbol, dimensions::Int)
     dimensions >= 1 || throw(ArgumentError("dimensions must be positive"))
     family === :mfrm && dimensions == 1 ||
@@ -1654,7 +2885,10 @@ function _check_dimensions(family::Symbol, dimensions::Int)
         throw(ArgumentError("family = :mfrm currently requires dimensions = 1"))
     family === :gmfrm && dimensions == 1 ||
         family !== :gmfrm ||
-        throw(ArgumentError("family = :gmfrm currently represents one-dimensional generalized MFRM configurations"))
+        throw(ArgumentError(
+            "family = :gmfrm currently represents one-dimensional guarded scalar GMFRM configurations; " *
+            "blocked_option=:multidimensional_ability; next_gate=:mgmfrm_guarded_fit_validation_grid",
+        ))
     family === :mgmfrm && dimensions >= 2 ||
         family !== :mgmfrm ||
         throw(ArgumentError("family = :mgmfrm requires dimensions >= 2"))
@@ -1674,29 +2908,642 @@ function _check_discrimination(family::Symbol, discrimination::Symbol)
     return discrimination
 end
 
-function _normalize_q_matrix(data::FacetData, family::Symbol, dimensions::Int, q_matrix)
+function _q_matrix_validation_row(; check::Symbol,
+        status::Symbol,
+        severity::Symbol = :info,
+        item = missing,
+        dimension = missing,
+        dimension_label = missing,
+        n_items = missing,
+        n_dimensions = missing,
+        n_active = missing,
+        n_components = missing,
+        note::Symbol = :none,
+        details = (;))
+    return (;
+        schema = "bayesianmgmfrm.q_matrix_validation_row.v1",
+        check,
+        status,
+        severity,
+        item,
+        dimension,
+        dimension_label,
+        n_items,
+        n_dimensions,
+        n_active,
+        n_components,
+        note,
+        details,
+    )
+end
+
+function _q_matrix_bool_matrix(q_matrix)
+    q_matrix isa AbstractMatrix ||
+        return nothing, ((row = missing, column = missing, value = repr(q_matrix)),)
+    mat = Matrix{Bool}(undef, size(q_matrix))
+    invalid = NamedTuple[]
+    for row in axes(q_matrix, 1), col in axes(q_matrix, 2)
+        value = q_matrix[row, col]
+        if value isa Bool
+            mat[row, col] = value
+        elseif value isa Integer && !(value isa Bool) && value in (0, 1)
+            mat[row, col] = Bool(value)
+        else
+            push!(invalid, (; row, column = col, value = repr(value)))
+        end
+    end
+    return mat, Tuple(invalid)
+end
+
+function _q_matrix_duplicate_column_groups(mat::Matrix{Bool})
+    groups = Dict{Tuple{Vararg{Bool}},Vector{Int}}()
+    for dim in axes(mat, 2)
+        key = Tuple(mat[:, dim])
+        push!(get!(groups, key, Int[]), dim)
+    end
+    out = [Tuple(group) for group in values(groups) if length(group) > 1]
+    sort!(out; by = group -> first(group))
+    return Tuple(out)
+end
+
+function _q_matrix_component_rows(data::FacetData,
+        mat::Matrix{Bool},
+        dimension_labels::Vector{String})
+    nodes = Tuple{Symbol,Int}[]
+    for item in axes(mat, 1)
+        push!(nodes, (:item, item))
+    end
+    for dim in axes(mat, 2)
+        push!(nodes, (:dimension, dim))
+    end
+    adj = Dict(node => Tuple{Symbol,Int}[] for node in nodes)
+    for item in axes(mat, 1), dim in axes(mat, 2)
+        mat[item, dim] || continue
+        push!(adj[(:item, item)], (:dimension, dim))
+        push!(adj[(:dimension, dim)], (:item, item))
+    end
+
+    seen = Set{Tuple{Symbol,Int}}()
+    components = Vector{Vector{Tuple{Symbol,Int}}}()
+    for node in nodes
+        node in seen && continue
+        queue = [node]
+        push!(seen, node)
+        component = Tuple{Symbol,Int}[]
+        while !isempty(queue)
+            current = popfirst!(queue)
+            push!(component, current)
+            for nxt in adj[current]
+                nxt in seen && continue
+                push!(seen, nxt)
+                push!(queue, nxt)
+            end
+        end
+        push!(components, component)
+    end
+    sort!(components; by = component -> (-length(component), string(first(component))))
+    return Tuple(
+        Tuple(
+            node[1] === :item ?
+                (node = :item, index = node[2], label = data.item_levels[node[2]]) :
+                (node = :dimension, index = node[2],
+                    label = dimension_labels[node[2]])
+            for node in component
+        )
+        for component in components
+    )
+end
+
+function _q_matrix_dimension_facet_components(data::FacetData, active_items::Set{Int})
+    nodes = Tuple{Symbol,Int}[]
+    for person in eachindex(data.person_levels)
+        push!(nodes, (:person, person))
+    end
+    for rater in eachindex(data.rater_levels)
+        push!(nodes, (:rater, rater))
+    end
+    for item in sort(collect(active_items))
+        push!(nodes, (:item, item))
+    end
+    adj = Dict(node => Tuple{Symbol,Int}[] for node in nodes)
+    observed = Set{Tuple{Symbol,Int}}()
+    for row in 1:data.n
+        item = data.item[row]
+        item in active_items || continue
+        p = (:person, data.person[row])
+        r = (:rater, data.rater[row])
+        i = (:item, item)
+        push!(observed, p)
+        push!(observed, r)
+        push!(observed, i)
+        _add_edge!(adj, p, r)
+        _add_edge!(adj, p, i)
+        _add_edge!(adj, r, i)
+    end
+
+    active_nodes = [node for node in nodes if node in observed]
+    seen = Set{Tuple{Symbol,Int}}()
+    components = Vector{Vector{Tuple{Symbol,Int}}}()
+    for node in active_nodes
+        node in seen && continue
+        queue = [node]
+        push!(seen, node)
+        component = Tuple{Symbol,Int}[]
+        while !isempty(queue)
+            current = popfirst!(queue)
+            push!(component, current)
+            for nxt in adj[current]
+                nxt in seen && continue
+                push!(seen, nxt)
+                push!(queue, nxt)
+            end
+        end
+        push!(components, component)
+    end
+    sort!(components; by = component -> (-length(component), string(first(component))))
+    return Tuple(
+        Tuple(
+            node[1] === :person ?
+                (facet = :person, index = node[2], label = data.person_levels[node[2]]) :
+            node[1] === :rater ?
+                (facet = :rater, index = node[2], label = data.rater_levels[node[2]]) :
+                (facet = :item, index = node[2], label = data.item_levels[node[2]])
+            for node in component
+        )
+        for component in components
+    )
+end
+
+function _q_matrix_validation_manifest(data::FacetData,
+        family::Symbol,
+        dimensions::Int,
+        q_matrix,
+        dimension_labels::Vector{String};
+        cross_loading_policy::Symbol = :confirmatory_fixed,
+        include_matrix::Bool = false)
+    rows = NamedTuple[]
+    mat = nothing
+
+    family_applicability_status =
+        family === :mgmfrm ? :applicable : :not_applicable
+    family_applicability_severity =
+        family === :mgmfrm || q_matrix === nothing ? :info : :error
+    push!(rows, _q_matrix_validation_row(;
+        check = :family_applicability,
+        status = family_applicability_status,
+        severity = family_applicability_severity,
+        n_items = length(data.item_levels),
+        n_dimensions = dimensions,
+        note = family === :mgmfrm ?
+            :q_matrix_required_for_mgmfrm :
+            :q_matrix_only_applies_to_mgmfrm,
+    ))
+    if family !== :mgmfrm
+        q_matrix === nothing || push!(rows, _q_matrix_validation_row(;
+            check = :family_applicability,
+            status = :rejected_for_family,
+            severity = :error,
+            n_items = length(data.item_levels),
+            n_dimensions = dimensions,
+            note = :q_matrix_only_accepted_for_mgmfrm,
+        ))
+        passed = !any(row -> row.severity === :error, rows)
+        return (;
+            schema = "bayesianmgmfrm.q_matrix_validation.v1",
+            object = :q_matrix_validation,
+            family,
+            dimensions,
+            dimension_labels = copy(dimension_labels),
+            cross_loading_policy,
+            q_matrix = nothing,
+            matrix = include_matrix ? mat : nothing,
+            passed,
+            rows = Tuple(rows),
+            summary = (;
+                passed,
+                n_items = length(data.item_levels),
+                n_dimensions = dimensions,
+                n_error_rows = count(row -> row.severity === :error, rows),
+                n_warning_rows = count(row -> row.severity === :warning, rows),
+                fixed_q_confirmatory = false,
+                n_cross_loading_items = 0,
+                n_duplicate_dimension_groups = 0,
+                n_dimension_facet_subgraphs_disconnected = 0,
+            ),
+        )
+    end
+
+    if q_matrix === nothing
+        push!(rows, _q_matrix_validation_row(;
+            check = :required_q_matrix,
+            status = :missing,
+            severity = :error,
+            n_items = length(data.item_levels),
+            n_dimensions = dimensions,
+            note = :family_mgmfrm_requires_fixed_confirmatory_q_matrix,
+        ))
+        passed = false
+        return (;
+            schema = "bayesianmgmfrm.q_matrix_validation.v1",
+            object = :q_matrix_validation,
+            family,
+            dimensions,
+            dimension_labels = copy(dimension_labels),
+            cross_loading_policy,
+            q_matrix = nothing,
+            matrix = include_matrix ? mat : nothing,
+            passed,
+            rows = Tuple(rows),
+            summary = (;
+                passed,
+                n_items = length(data.item_levels),
+                n_dimensions = dimensions,
+                n_error_rows = count(row -> row.severity === :error, rows),
+                n_warning_rows = count(row -> row.severity === :warning, rows),
+                fixed_q_confirmatory = false,
+                n_cross_loading_items = 0,
+                n_duplicate_dimension_groups = 0,
+                n_dimension_facet_subgraphs_disconnected = 0,
+            ),
+        )
+    end
+
+    if !(q_matrix isa AbstractMatrix)
+        push!(rows, _q_matrix_validation_row(;
+            check = :matrix_schema,
+            status = :not_matrix,
+            severity = :error,
+            n_items = length(data.item_levels),
+            n_dimensions = dimensions,
+            note = :q_matrix_must_be_two_dimensional_matrix,
+            details = (; value = repr(q_matrix)),
+        ))
+        passed = false
+        return (;
+            schema = "bayesianmgmfrm.q_matrix_validation.v1",
+            object = :q_matrix_validation,
+            family,
+            dimensions,
+            dimension_labels = copy(dimension_labels),
+            cross_loading_policy,
+            q_matrix = nothing,
+            matrix = include_matrix ? mat : nothing,
+            passed,
+            rows = Tuple(rows),
+            summary = (;
+                passed,
+                n_items = length(data.item_levels),
+                n_dimensions = dimensions,
+                n_error_rows = count(row -> row.severity === :error, rows),
+                n_warning_rows = count(row -> row.severity === :warning, rows),
+                fixed_q_confirmatory = false,
+                n_cross_loading_items = 0,
+                n_duplicate_dimension_groups = 0,
+                n_dimension_facet_subgraphs_disconnected = 0,
+            ),
+        )
+    end
+
+    push!(rows, _q_matrix_validation_row(;
+        check = :matrix_schema,
+        status = :matrix,
+        n_items = size(q_matrix, 1),
+        n_dimensions = size(q_matrix, 2),
+        note = :two_dimensional_matrix_supplied,
+    ))
+
+    mat, invalid_values = _q_matrix_bool_matrix(q_matrix)
+    if isempty(invalid_values)
+        push!(rows, _q_matrix_validation_row(;
+            check = :binary_mask_schema,
+            status = :binary_bool_or_zero_one,
+            n_items = size(q_matrix, 1),
+            n_dimensions = size(q_matrix, 2),
+            note = :q_matrix_entries_are_binary_mask_values,
+        ))
+    else
+        push!(rows, _q_matrix_validation_row(;
+            check = :binary_mask_schema,
+            status = :non_binary_entries,
+            severity = :error,
+            n_items = size(q_matrix, 1),
+            n_dimensions = size(q_matrix, 2),
+            note = :q_matrix_entries_must_be_bool_or_zero_one_integer,
+            details = (; invalid_entries = invalid_values),
+        ))
+    end
+
+    expected_shape = (length(data.item_levels), dimensions)
+    shape_ok = size(q_matrix) == expected_shape
+    push!(rows, _q_matrix_validation_row(;
+        check = :shape,
+        status = shape_ok ? :matches_items_by_dimensions : :shape_mismatch,
+        severity = shape_ok ? :info : :error,
+        n_items = size(q_matrix, 1),
+        n_dimensions = size(q_matrix, 2),
+        note = shape_ok ? :one_row_per_item_one_column_per_dimension :
+            :q_matrix_shape_must_match_items_by_dimensions,
+        details = (; expected = expected_shape, observed = size(q_matrix)),
+    ))
+
+    if mat === nothing || !isempty(invalid_values) || !shape_ok
+        passed = !any(row -> row.severity === :error, rows)
+        return (;
+            schema = "bayesianmgmfrm.q_matrix_validation.v1",
+            object = :q_matrix_validation,
+            family,
+            dimensions,
+            dimension_labels = copy(dimension_labels),
+            cross_loading_policy,
+            q_matrix = nothing,
+            matrix = include_matrix ? mat : nothing,
+            passed,
+            rows = Tuple(rows),
+            summary = (;
+                passed,
+                n_items = length(data.item_levels),
+                n_dimensions = dimensions,
+                n_error_rows = count(row -> row.severity === :error, rows),
+                n_warning_rows = count(row -> row.severity === :warning, rows),
+                fixed_q_confirmatory = false,
+                n_cross_loading_items = 0,
+                n_duplicate_dimension_groups = 0,
+                n_dimension_facet_subgraphs_disconnected = 0,
+            ),
+        )
+    end
+
+    empty_items = [item for item in axes(mat, 1) if !any(@view mat[item, :])]
+    push!(rows, _q_matrix_validation_row(;
+        check = :empty_item_rows,
+        status = isempty(empty_items) ? :passed : :empty_rows,
+        severity = isempty(empty_items) ? :info : :error,
+        n_items = size(mat, 1),
+        n_dimensions = size(mat, 2),
+        n_active = size(mat, 1) - length(empty_items),
+        note = isempty(empty_items) ?
+            :each_item_loads_on_at_least_one_dimension :
+            :each_item_must_load_on_at_least_one_dimension,
+        details = (;
+            item_indices = Tuple(empty_items),
+            item_labels = Tuple(data.item_levels[item] for item in empty_items),
+        ),
+    ))
+
+    empty_dimensions = [dim for dim in axes(mat, 2) if !any(@view mat[:, dim])]
+    push!(rows, _q_matrix_validation_row(;
+        check = :empty_dimensions,
+        status = isempty(empty_dimensions) ? :passed : :empty_dimensions,
+        severity = isempty(empty_dimensions) ? :info : :error,
+        n_items = size(mat, 1),
+        n_dimensions = size(mat, 2),
+        n_active = size(mat, 2) - length(empty_dimensions),
+        note = isempty(empty_dimensions) ?
+            :each_dimension_has_at_least_one_item :
+            :each_dimension_must_have_at_least_one_item,
+        details = (;
+            dimension_indices = Tuple(empty_dimensions),
+            dimension_labels = Tuple(dimension_labels[dim] for dim in empty_dimensions),
+        ),
+    ))
+
+    duplicate_groups = _q_matrix_duplicate_column_groups(mat)
+    push!(rows, _q_matrix_validation_row(;
+        check = :duplicate_dimension_columns,
+        status = isempty(duplicate_groups) ? :passed : :aliased_columns,
+        severity = isempty(duplicate_groups) ? :info : :error,
+        n_items = size(mat, 1),
+        n_dimensions = size(mat, 2),
+        n_active = size(mat, 2) -
+            sum((max(length(group) - 1, 0) for group in duplicate_groups); init = 0),
+        note = isempty(duplicate_groups) ?
+            :dimension_columns_have_distinct_item_masks :
+            :duplicate_q_columns_alias_dimensions,
+        details = (;
+            duplicate_dimension_groups = duplicate_groups,
+            duplicate_dimension_label_groups = Tuple(
+                Tuple(dimension_labels[dim] for dim in group)
+                for group in duplicate_groups
+            ),
+        ),
+    ))
+
+    cross_loading_items = [item for item in axes(mat, 1) if count(@view mat[item, :]) > 1]
+    cross_loading_status =
+        isempty(cross_loading_items) ? :simple_structure : :fixed_confirmatory_cross_loadings
+    cross_loading_severity =
+        isempty(cross_loading_items) ? :info : :warning
+    if cross_loading_policy === :blocked_simple_structure && !isempty(cross_loading_items)
+        cross_loading_status = :blocked_cross_loading
+        cross_loading_severity = :error
+    elseif cross_loading_policy !== :confirmatory_fixed &&
+            cross_loading_policy !== :blocked_simple_structure
+        cross_loading_status = :unsupported_cross_loading_policy
+        cross_loading_severity = :error
+    end
+    push!(rows, _q_matrix_validation_row(;
+        check = :cross_loading_policy,
+        status = cross_loading_status,
+        severity = cross_loading_severity,
+        n_items = size(mat, 1),
+        n_dimensions = size(mat, 2),
+        n_active = length(cross_loading_items),
+        note = cross_loading_severity === :error ?
+            :cross_loading_policy_not_supported_for_current_q_matrix :
+        isempty(cross_loading_items) ?
+            :simple_structure_q_matrix :
+            :cross_loadings_are_fixed_confirmatory_not_exploratory,
+        details = (;
+            policy = cross_loading_policy,
+            item_indices = Tuple(cross_loading_items),
+            item_labels = Tuple(data.item_levels[item] for item in cross_loading_items),
+        ),
+    ))
+
+    single_loading_missing = Int[]
+    for dim in axes(mat, 2)
+        has_single_loading_anchor =
+            any(item -> mat[item, dim] && count(@view mat[item, :]) == 1, axes(mat, 1))
+        has_single_loading_anchor || push!(single_loading_missing, dim)
+    end
+    push!(rows, _q_matrix_validation_row(;
+        check = :positive_loading_identification,
+        status = isempty(single_loading_missing) ? :single_loading_anchor_present :
+            :no_single_loading_anchor,
+        severity = isempty(single_loading_missing) ? :info : :warning,
+        n_items = size(mat, 1),
+        n_dimensions = size(mat, 2),
+        n_active = size(mat, 2) - length(single_loading_missing),
+        note = isempty(single_loading_missing) ?
+            :positive_loadings_have_simple_anchor_items :
+            :dimension_has_only_cross_loading_items_review_interpretation,
+        details = (;
+            dimension_indices = Tuple(single_loading_missing),
+            dimension_labels = Tuple(dimension_labels[dim] for dim in single_loading_missing),
+        ),
+    ))
+
+    q_components = _q_matrix_component_rows(data, mat, dimension_labels)
+    push!(rows, _q_matrix_validation_row(;
+        check = :dimension_item_graph_components,
+        status = :recorded,
+        n_items = size(mat, 1),
+        n_dimensions = size(mat, 2),
+        n_components = length(q_components),
+        note = :q_item_dimension_graph_recorded_for_review,
+        details = (; components = q_components),
+    ))
+
+    n_disconnected_dimension_subgraphs = 0
+    for dim in axes(mat, 2)
+        active_items = Set(item for item in axes(mat, 1) if mat[item, dim])
+        rows_for_dimension = [row for row in 1:data.n if data.item[row] in active_items]
+        persons = Set(data.person[row] for row in rows_for_dimension)
+        raters = Set(data.rater[row] for row in rows_for_dimension)
+        components = _q_matrix_dimension_facet_components(data, active_items)
+        disconnected = length(components) > 1
+        n_disconnected_dimension_subgraphs += disconnected ? 1 : 0
+        severity =
+            isempty(rows_for_dimension) ? :error :
+            disconnected ? :warning :
+            :info
+        push!(rows, _q_matrix_validation_row(;
+            check = :dimension_facet_subgraph_coverage,
+            status = isempty(rows_for_dimension) ? :no_observed_ratings :
+                disconnected ? :disconnected_dimension_subgraph :
+                :connected_dimension_subgraph,
+            severity,
+            dimension = dim,
+            dimension_label = dimension_labels[dim],
+            n_items = length(active_items),
+            n_dimensions = dimensions,
+            n_active = length(rows_for_dimension),
+            n_components = length(components),
+            note = isempty(rows_for_dimension) ?
+                :dimension_has_no_observed_ratings_for_active_items :
+            disconnected ?
+                :dimension_specific_person_rater_item_subgraph_disconnected :
+                :dimension_specific_person_rater_item_subgraph_connected,
+            details = (;
+                n_persons = length(persons),
+                n_raters = length(raters),
+                item_indices = Tuple(sort(collect(active_items))),
+                item_labels = Tuple(data.item_levels[item] for item in sort(collect(active_items))),
+                component_sizes = Tuple(length(component) for component in components),
+                components,
+            ),
+        ))
+    end
+
+    passed = !any(row -> row.severity === :error, rows)
+    return (;
+        schema = "bayesianmgmfrm.q_matrix_validation.v1",
+        object = :q_matrix_validation,
+        family,
+        dimensions,
+        dimension_labels = copy(dimension_labels),
+        cross_loading_policy,
+        q_matrix = _q_matrix_manifest(mat),
+        matrix = include_matrix ? mat : nothing,
+        passed,
+        rows = Tuple(rows),
+        summary = (;
+            passed,
+            n_items = size(mat, 1),
+            n_dimensions = size(mat, 2),
+            n_error_rows = count(row -> row.severity === :error, rows),
+            n_warning_rows = count(row -> row.severity === :warning, rows),
+            fixed_q_confirmatory = true,
+            n_cross_loading_items = length(cross_loading_items),
+            n_duplicate_dimension_groups = length(duplicate_groups),
+            n_dimension_facet_subgraphs_disconnected =
+                n_disconnected_dimension_subgraphs,
+        ),
+    )
+end
+
+"""
+    q_matrix_validation(data::FacetData; family = :mgmfrm, dimensions = nothing,
+                        q_matrix = nothing, dimension_labels = nothing,
+                        cross_loading_policy = :confirmatory_fixed)
+    q_matrix_validation(spec::FacetSpec; cross_loading_policy = :confirmatory_fixed)
+    q_matrix_validation(design::FacetDesign; cross_loading_policy = :confirmatory_fixed)
+
+Validate the fixed confirmatory Q-matrix contract used by guarded MGMFRM
+specifications. The returned manifest records binary mask schema checks,
+item/dimension coverage, duplicate or aliased dimension columns, fixed
+cross-loading policy, simple loading anchors, and dimension-specific
+person-rater-item subgraph coverage. Error rows make `passed = false`; warning
+rows remain actionable review evidence without rejecting the fixed-Q spec.
+"""
+function q_matrix_validation(data::FacetData;
+        family::Symbol = :mgmfrm,
+        dimensions = nothing,
+        q_matrix = nothing,
+        dimension_labels = nothing,
+        cross_loading_policy::Symbol = :confirmatory_fixed)
+    checked_family = _check_family(family)
+    checked_dimensions = if dimensions === nothing
+        checked_family === :mgmfrm ? 2 : 1
+    elseif dimensions isa Integer && !(dimensions isa Bool)
+        _check_dimensions(checked_family, Int(dimensions))
+    else
+        throw(ArgumentError("dimensions must be an integer"))
+    end
+    checked_dimension_labels =
+        _normalize_dimension_labels(checked_dimensions, dimension_labels)
+    return _q_matrix_validation_manifest(
+        data,
+        checked_family,
+        checked_dimensions,
+        q_matrix,
+        checked_dimension_labels;
+        cross_loading_policy,
+    )
+end
+
+q_matrix_validation(spec::FacetSpec; cross_loading_policy::Symbol = :confirmatory_fixed) =
+    _q_matrix_validation_manifest(
+        spec.data,
+        spec.family,
+        spec.dimensions,
+        spec.q_matrix,
+        spec.dimension_labels;
+        cross_loading_policy,
+    )
+
+q_matrix_validation(design::FacetDesign; kwargs...) =
+    q_matrix_validation(design.spec; kwargs...)
+
+function _normalize_q_matrix(data::FacetData,
+        family::Symbol,
+        dimensions::Int,
+        q_matrix,
+        dimension_labels::Vector{String})
     if family !== :mgmfrm
         q_matrix === nothing || throw(ArgumentError("q_matrix is only accepted for family = :mgmfrm"))
         return nothing
     end
-    q_matrix === nothing &&
-        throw(ArgumentError("family = :mgmfrm requires a confirmatory q_matrix"))
-    q_matrix isa AbstractMatrix ||
-        throw(ArgumentError("q_matrix must be a two-dimensional matrix"))
-    mat = Matrix{Bool}(q_matrix)
-    size(mat, 1) == length(data.item_levels) ||
-        throw(ArgumentError("q_matrix must have one row per item"))
-    size(mat, 2) == dimensions ||
-        throw(ArgumentError("q_matrix must have one column per dimension"))
-    for item in axes(mat, 1)
-        any(@view mat[item, :]) ||
-            throw(ArgumentError("each q_matrix row must load on at least one dimension"))
+    validation = _q_matrix_validation_manifest(
+        data,
+        family,
+        dimensions,
+        q_matrix,
+        dimension_labels;
+        include_matrix = true,
+    )
+    if !validation.passed
+        failing_checks = Tuple(
+            (check = row.check, status = row.status, note = row.note)
+            for row in validation.rows
+            if row.severity === :error
+        )
+        throw(ArgumentError(
+            "invalid fixed-Q MGMFRM q_matrix; failing_checks=$(failing_checks); " *
+            "inspect q_matrix_validation(...) for actionable rows",
+        ))
     end
-    for dim in axes(mat, 2)
-        any(@view mat[:, dim]) ||
-            throw(ArgumentError("each q_matrix dimension must have at least one item"))
-    end
-    return mat
+    return validation.matrix
 end
 
 function _normalize_bias_terms(bias, report::ValidationReport)
@@ -1920,6 +3767,7 @@ function model_equation(spec::FacetSpec)
         scope = _spec_scope(spec.family, spec.estimation_status),
         thresholds = spec.thresholds,
         dimensions = spec.dimensions,
+        dimension_labels = copy(spec.dimension_labels),
         discrimination = spec.discrimination,
         estimation_status = spec.estimation_status,
         probability_form = :adjacent_category_softmax,
@@ -1941,6 +3789,7 @@ function _constraint_rows(;
         family::Symbol,
         thresholds::Symbol,
         dimensions::Int,
+        dimension_labels = _default_dimension_labels(dimensions),
         discrimination::Symbol,
         q_matrix,
         validation_bias_terms,
@@ -2031,6 +3880,7 @@ function _constraint_rows(;
                 constraint = :standard_normal_by_dimension,
                 transform = :identity,
                 status = :specified_only,
+                dimension_labels = Tuple(dimension_labels),
                 note = "multidimensional person locations theta_jl with source-model standard normal ability prior",
             ),
             (;
@@ -2052,6 +3902,7 @@ function _constraint_rows(;
                 constraint = :confirmatory_q_mask,
                 transform = :log_link,
                 status = :specified_only,
+                dimension_labels = Tuple(dimension_labels),
                 note = "positive item-by-dimension discrimination alpha_il under the fixed Q-mask",
             ),
             (;
@@ -2076,6 +3927,7 @@ function _constraint_rows(;
             constraint = :fixed_mask,
             transform = :none,
             status = :specified_only,
+            dimension_labels = Tuple(dimension_labels),
             note = "fixed $(size(q_matrix, 1)) by $(size(q_matrix, 2)) item-dimension mask",
         ))
     end
@@ -2130,8 +3982,8 @@ end
 """
     mfrm_spec(data::FacetData; thresholds = :partial_credit,
               family = :mfrm, dimensions = 1, discrimination = :none,
-              q_matrix = nothing, bias = Tuple{Symbol,Symbol}[],
-              anchors = NamedTuple[], min_cell_count = 2,
+              q_matrix = nothing, dimension_labels = nothing,
+              bias = Tuple{Symbol,Symbol}[], anchors = NamedTuple[], min_cell_count = 2,
               validation_report = nothing)
 
 Construct a many-facet measurement specification after validation errors are
@@ -2147,6 +3999,7 @@ function mfrm_spec(data::FacetData;
         dimensions::Int = 1,
         discrimination::Symbol = :none,
         q_matrix = nothing,
+        dimension_labels = nothing,
         bias = Tuple{Symbol,Symbol}[],
         anchors = NamedTuple[],
         min_cell_count::Int = 2,
@@ -2155,6 +4008,8 @@ function mfrm_spec(data::FacetData;
         throw(ArgumentError("thresholds must be :rating_scale or :partial_credit"))
     checked_family = _check_family(family)
     checked_dimensions = _check_dimensions(checked_family, dimensions)
+    checked_dimension_labels =
+        _normalize_dimension_labels(checked_dimensions, dimension_labels)
     checked_discrimination = _check_discrimination(checked_family, discrimination)
     report = validation_report === nothing ?
         validate_design(data; bias, min_cell_count) :
@@ -2171,7 +4026,13 @@ function mfrm_spec(data::FacetData;
         codes = [issue.code for issue in report.issues if issue.severity === :error]
         throw(ArgumentError("cannot construct MFRM spec until validation errors are resolved: $(codes)"))
     end
-    checked_q_matrix = _normalize_q_matrix(data, checked_family, checked_dimensions, q_matrix)
+    checked_q_matrix = _normalize_q_matrix(
+        data,
+        checked_family,
+        checked_dimensions,
+        q_matrix,
+        checked_dimension_labels,
+    )
     checked_bias_terms = _normalize_bias_terms(bias, report)
     checked_anchors = _normalize_anchors(anchors)
     estimation_status = _estimation_status(
@@ -2185,6 +4046,7 @@ function mfrm_spec(data::FacetData;
         family = checked_family,
         thresholds,
         dimensions = checked_dimensions,
+        dimension_labels = checked_dimension_labels,
         discrimination = checked_discrimination,
         q_matrix = checked_q_matrix,
         validation_bias_terms = checked_bias_terms,
@@ -2198,6 +4060,7 @@ function mfrm_spec(data::FacetData;
         report,
         checked_family,
         checked_dimensions,
+        checked_dimension_labels,
         checked_discrimination,
         checked_q_matrix,
         checked_bias_terms,
@@ -2285,7 +4148,7 @@ function _person_parameter_names(spec::FacetSpec)
     spec.dimensions == 1 &&
         return ["person[$(person)]" for person in spec.data.person_levels]
     return [
-        "person[$(person),dim=$(dim)]"
+        "person[$(person),$(spec.dimension_labels[dim])]"
         for person in spec.data.person_levels
         for dim in 1:spec.dimensions
     ]
@@ -2309,7 +4172,8 @@ function _item_dimension_discrimination_parameter_names(spec::FacetSpec)
     for item_index in axes(q, 1), dim in axes(q, 2)
         q[item_index, dim] || continue
         item = spec.data.item_levels[item_index]
-        push!(names, "item_dimension_discrimination[item=$(item),dim=$(dim)]")
+        push!(names,
+            "item_dimension_discrimination[item=$(item),$(spec.dimension_labels[dim])]")
     end
     return names
 end
@@ -2679,7 +4543,8 @@ function _loading_parameter_indices(design::FacetDesign, index_by_name, item_ind
     indices = Int[]
     item = spec.data.item_levels[item_index]
     for dim in _loading_dimensions(spec, item_index)
-        push!(indices, index_by_name["item_dimension_discrimination[item=$(item),dim=$(dim)]"])
+        name = "item_dimension_discrimination[item=$(item),$(spec.dimension_labels[dim])]"
+        push!(indices, index_by_name[name])
     end
     return indices
 end
@@ -3634,16 +5499,27 @@ function _spec_manifest(spec::FacetSpec)
         scope = _spec_scope(spec.family, spec.estimation_status),
         thresholds = spec.thresholds,
         dimensions = spec.dimensions,
+        dimension_labels = copy(spec.dimension_labels),
         discrimination = spec.discrimination,
         q_matrix = _q_matrix_manifest(spec.q_matrix),
+        q_matrix_validation = q_matrix_validation(spec),
         validation_bias_terms = copy(spec.validation_bias_terms),
         anchors = copy(spec.anchors),
         estimation_status = spec.estimation_status,
+        status_policy = _status_policy_manifest(
+            spec.family,
+            spec.estimation_status;
+            public_fit = spec.estimation_status === :fit_supported,
+            experimental_public = false,
+            fit_ready = spec.estimation_status === :fit_supported,
+            claim_scope = _spec_scope(spec.family, spec.estimation_status),
+        ),
         required_facets = (:person, :rater, :item),
         optional_facets = sort(collect(keys(spec.data.optional)); by = string),
         equation = model_equation(spec),
         identification_declarations = identification_declarations(spec),
         constraints = constraint_table(spec),
+        model_surface_audit = model_surface_audit(spec),
         prior_blocks = copy(spec.prior_blocks),
     )
 end
@@ -4152,6 +6028,169 @@ function domain_compilation_summary(design::FacetDesign; preview::Bool = false)
     return rows
 end
 
+function _surface_status_policy_for_spec(spec::FacetSpec)
+    return _status_policy_manifest(
+        spec.family,
+        spec.estimation_status;
+        public_fit = spec.estimation_status === :fit_supported,
+        experimental_public = false,
+        fit_ready = spec.estimation_status === :fit_supported,
+        claim_scope = _spec_scope(spec.family, spec.estimation_status),
+    )
+end
+
+function _surface_source_symbol(family::Symbol, block)
+    ismissing(block) && return missing
+    family === :mfrm && block === :person && return "theta_p"
+    family === :mfrm && block === :rater && return "beta_r"
+    family === :mfrm && block === :item && return "beta_i"
+    family === :mfrm && block === :thresholds && return "d_m or d_im"
+    family === :gmfrm && block === :person && return "theta_j"
+    family === :gmfrm && block === :rater && return "beta_r"
+    family === :gmfrm && block === :item && return "beta_i"
+    family === :gmfrm && block === :item_discrimination && return "alpha_i"
+    family === :gmfrm && block === :rater_consistency && return "alpha_r"
+    family === :gmfrm && block === :rater_steps && return "d_rm"
+    family === :mgmfrm && block === :person && return "theta_jl"
+    family === :mgmfrm && block === :rater && return "beta_r"
+    family === :mgmfrm && block === :item && return "beta_i"
+    family === :mgmfrm && block === :item_dimension_discrimination && return "alpha_il"
+    family === :mgmfrm && block === :rater_consistency && return "alpha_r"
+    family === :mgmfrm && block === :item_steps && return "d_im"
+    family === :mgmfrm && block === :q_matrix && return "Q_il"
+    startswith(String(block), "dff_") && return "validation cell"
+    return String(block)
+end
+
+function _surface_direct_interpretation(family::Symbol, block)
+    ismissing(block) && return missing
+    block === :person && return family === :mgmfrm ?
+        "person ability/location by dimension" :
+        "person ability/location"
+    block === :rater && return "rater severity"
+    block === :item && return "item/task difficulty"
+    block === :thresholds && return "ordinal category threshold or step"
+    block === :item_discrimination && return "positive item/task discrimination"
+    block === :rater_consistency && return "positive rater consistency multiplier"
+    block === :rater_steps && return "rater-specific category-use step"
+    block === :item_dimension_discrimination &&
+        return "positive fixed-Q item-by-dimension loading/discrimination"
+    block === :item_steps && return "item-specific category-use step"
+    block === :q_matrix && return "fixed confirmatory item-by-dimension mask"
+    startswith(String(block), "dff_") &&
+        return "DFF/bias validation cell, not a fitted model effect"
+    return "model block"
+end
+
+function _surface_report_label(block)
+    ismissing(block) && return missing
+    block === :person && return :person_measure
+    block === :rater && return :rater_severity
+    block === :item && return :item_difficulty
+    block === :thresholds && return :category_threshold
+    block === :item_discrimination && return :item_discrimination
+    block === :rater_consistency && return :rater_consistency
+    block === :rater_steps && return :rater_category_step
+    block === :item_dimension_discrimination && return :dimension_loading
+    block === :item_steps && return :item_category_step
+    block === :q_matrix && return :q_matrix
+    startswith(String(block), "dff_") && return :dff_screening
+    return block
+end
+
+function _surface_prior_scale(prior_block, block)
+    ismissing(prior_block) && ismissing(block) && return missing
+    prior_key = ismissing(prior_block) ? block : prior_block
+    prior_key === :person && return :person_sd
+    prior_key === :rater && return :rater_sd
+    prior_key === :item && return :item_sd
+    prior_key in (:thresholds, :rater_steps, :item_steps) && return :step_sd
+    prior_key in (:item_discrimination, :log_item_discrimination,
+        :log_item_dimension_discrimination) && return :log_discrimination_sd
+    prior_key in (:rater_consistency, :log_rater_consistency) &&
+        return :log_consistency_sd
+    return missing
+end
+
+function _surface_prior_parameters(spec::FacetSpec, block, prior_block)
+    if !ismissing(block)
+        prior_row = _domain_prior_row(spec, block)
+        prior_row === nothing || return prior_row.parameters
+    end
+    prior_scale = _surface_prior_scale(prior_block, block)
+    ismissing(prior_scale) && return missing
+    return (location = 0.0, scale = prior_scale)
+end
+
+function _model_surface_audit(design::FacetDesign; status_policy = _surface_status_policy_for_spec(design.spec))
+    spec = design.spec
+    rows = NamedTuple[]
+    for row in domain_compilation_summary(design)
+        haskey(row, :block) || continue
+        block = row.block
+        ismissing(block) && continue
+        prior_scale = _surface_prior_scale(row.prior_block, block)
+        push!(rows, (;
+            schema = "bayesianmgmfrm.model_surface_audit_row.v1",
+            family = spec.family,
+            scope = status_policy.claim_scope,
+            estimation_status = spec.estimation_status,
+            current_status = status_policy.status_label,
+            public_fit = status_policy.public_fit,
+            experimental_public = status_policy.experimental_public,
+            fit_ready = status_policy.fit_ready,
+            stable_public = status_policy.stable_public,
+            external_validated = status_policy.external_validated,
+            block,
+            compiled_role = row.compiled_role,
+            source_symbol = _surface_source_symbol(spec.family, block),
+            direct_interpretation = _surface_direct_interpretation(spec.family, block),
+            raw_coordinate = row.raw_block,
+            constrained_block = row.constrained_block,
+            constraint = row.constraint,
+            transform = row.transform,
+            prior_block = row.prior_block,
+            prior = row.prior,
+            prior_scale,
+            prior_parameters = _surface_prior_parameters(spec, block, row.prior_block),
+            report_label = _surface_report_label(block),
+            parameter_names = copy(row.parameter_names),
+            raw_parameter_names = copy(row.raw_parameter_names),
+            block_status = row.status,
+            blocked_claims = status_policy.blocked_claims,
+            next_gate = status_policy.next_gate,
+            note = row.note,
+        ))
+    end
+    return rows
+end
+
+"""
+    model_surface_audit(spec_or_design; preview = nothing)
+
+Return a machine-readable audit table for the current model surface. Rows trace
+each parameter or validation block from the source-equation symbol to the direct
+interpretation, raw coordinate, constraint, prior scale, report label, and
+current status policy.
+
+For specified-only GMFRM/MGMFRM specs, `preview` defaults to `true` so the audit
+can inspect the represented source-aligned blocks without enabling broad public
+fitting. Passing a compiled `FacetDesign` audits that design directly.
+"""
+function model_surface_audit(spec::FacetSpec; preview::Union{Nothing,Bool} = nothing)
+    compile_preview = preview === nothing ?
+        spec.estimation_status !== :fit_supported :
+        preview
+    design = getdesign(spec; preview = compile_preview)
+    return _model_surface_audit(design; status_policy = _surface_status_policy_for_spec(spec))
+end
+
+function model_surface_audit(design::FacetDesign; preview::Bool = false)
+    preview &&
+        throw(ArgumentError("preview is only a FacetSpec compilation option; pass model_surface_audit(spec; preview = true)"))
+    return _model_surface_audit(design; status_policy = _surface_status_policy_for_spec(design.spec))
+end
+
 function _source_transform_declarations(family::Symbol)
     family === :gmfrm && return NamedTuple[
         (raw_block = :person, constrained_block = :person, transform = :identity,
@@ -4212,6 +6251,131 @@ function _source_transform_manifest_rows(blueprint)
     return rows
 end
 
+function _raw_prior_parameter_space(raw_block::Symbol)
+    raw_block in (:log_item_discrimination_free,
+        :log_item_dimension_discrimination,
+        :log_rater_consistency,
+        :log_rater_consistency_free) &&
+        return :raw_log_positive_coordinate
+    raw_block in (:rater_steps, :item_steps) &&
+        return :raw_constrained_step_coordinate
+    return :raw_unconstrained_coordinate
+end
+
+function _raw_prior_public_surface_role(family::Symbol, raw_block::Symbol)
+    family === :gmfrm && raw_block === :log_rater_consistency &&
+        return :guarded_scalar_gmfrm_core
+    family === :gmfrm && raw_block === :log_item_discrimination_free &&
+        return :source_block_active_public_item_target_preview_only
+    family === :mgmfrm && raw_block === :log_item_dimension_discrimination &&
+        return :fixed_q_loading_core
+    family === :mgmfrm && raw_block === :log_rater_consistency_free &&
+        return :fixed_q_rater_consistency_core
+    raw_block in (:rater_steps, :item_steps) &&
+        return :source_step_block_not_public_option
+    return :guarded_generalized_support_block
+end
+
+function _generalized_raw_prior_control_rows(blueprint)
+    rows = NamedTuple[]
+    for transform in _source_transform_manifest_rows(blueprint)
+        scale_parameter = _surface_prior_scale(
+            transform.prior_block,
+            transform.constrained_block,
+        )
+        push!(rows, (;
+            schema = "bayesianmgmfrm.generalized_raw_prior_control_row.v1",
+            family = blueprint.family,
+            scope = blueprint.scope,
+            status = :active,
+            density_space = :raw_unconstrained,
+            raw_block = transform.raw_block,
+            constrained_block = transform.constrained_block,
+            prior_block = transform.prior_block,
+            parameter_space = _raw_prior_parameter_space(transform.raw_block),
+            prior_family = :normal,
+            location = 0.0,
+            scale_parameter,
+            scale = missing,
+            scale_status = :symbolic_control,
+            direct_scale_prior = false,
+            jacobian_policy = transform.jacobian_policy,
+            transform = transform.transform,
+            constraint = transform.constraint,
+            raw_n_parameters = transform.raw_n_parameters,
+            raw_parameter_names = copy(transform.raw_parameter_names),
+            constrained_n_parameters = transform.constrained_n_parameters,
+            constrained_parameter_names = copy(transform.constrained_parameter_names),
+            independent_by_parameter = true,
+            public_surface_role =
+                _raw_prior_public_surface_role(blueprint.family, transform.raw_block),
+        ))
+    end
+    push!(rows, (;
+        schema = "bayesianmgmfrm.generalized_raw_prior_control_row.v1",
+        family = blueprint.family,
+        scope = blueprint.scope,
+        status = :blocked,
+        density_space = :raw_unconstrained,
+        raw_block = missing,
+        constrained_block = :direct_scale_generalized_priors,
+        prior_block = missing,
+        parameter_space = :direct_constrained_parameter,
+        prior_family = :not_enabled,
+        location = 0.0,
+        scale_parameter = :not_applicable,
+        scale = missing,
+        scale_status = :not_applicable,
+        direct_scale_prior = true,
+        jacobian_policy = :requires_future_log_jacobian_policy,
+        transform = :not_enabled,
+        constraint = :not_enabled,
+        raw_n_parameters = 0,
+        raw_parameter_names = String[],
+        constrained_n_parameters = 0,
+        constrained_parameter_names = String[],
+        independent_by_parameter = false,
+        public_surface_role = :blocked_direct_scale_prior_policy,
+    ))
+    return rows
+end
+
+function _generalized_raw_prior_control_manifest(blueprint;
+        public_fit::Bool = false,
+        experimental_public::Bool = public_fit)
+    rows = _generalized_raw_prior_control_rows(blueprint)
+    return (;
+        schema = "bayesianmgmfrm.generalized_raw_prior_control_manifest.v1",
+        family = blueprint.family,
+        scope = blueprint.scope,
+        status = :policy_recorded,
+        density_space = :raw_unconstrained,
+        prior_policy = :independent_normal_raw_coordinates,
+        direct_scale_priors = false,
+        direct_prior_policy = :not_enabled_raw_coordinate_priors_only,
+        jacobian_policy = :none_raw_coordinate_density,
+        public_fit,
+        experimental_public,
+        rows,
+        n_rows = length(rows),
+        summary = (;
+            n_active_rows = count(row -> row.status === :active, rows),
+            n_blocked_rows = count(row -> row.status === :blocked, rows),
+            raw_rater_consistency_control_recorded =
+                any(row -> row.raw_block in
+                    (:log_rater_consistency, :log_rater_consistency_free), rows),
+            item_discrimination_source_control_recorded =
+                any(row -> row.raw_block in
+                    (:log_item_discrimination_free,
+                        :log_item_dimension_discrimination), rows),
+            direct_scale_generalized_priors_enabled = false,
+            all_active_rows_no_jacobian =
+                all(row -> row.status !== :active ||
+                    row.jacobian_policy === :none_raw_coordinate_density, rows),
+        ),
+    )
+end
+
 function _fit_ready_candidate_constraint_rows(blueprint)
     rows = NamedTuple[]
     for transform in _source_transform_manifest_rows(blueprint)
@@ -4230,6 +6394,72 @@ function _fit_ready_candidate_constraint_rows(blueprint)
     return rows
 end
 
+const _GMFRM_PUBLIC_TARGET_LABEL = :guarded_scalar_gmfrm_logdensity
+const _GMFRM_PUBLIC_TARGET_DESCRIPTION = "guarded scalar GMFRM log density"
+const _GMFRM_INTERNAL_TARGET_CONSTRUCTOR = :_gmfrm_promotion_candidate_logdensity
+const _GMFRM_INTERNAL_GRADIENT_DIAGNOSTIC_CONSTRUCTOR =
+    :_gmfrm_promotion_candidate_diagnostics
+const _GMFRM_INTERNAL_SAMPLER_DIAGNOSTIC_CONSTRUCTOR =
+    :_gmfrm_promotion_candidate_sampler_diagnostics
+const _MGMFRM_PUBLIC_TARGET_LABEL = :guarded_confirmatory_mgmfrm_logdensity
+const _MGMFRM_PUBLIC_TARGET_DESCRIPTION =
+    "guarded fixed-Q confirmatory MGMFRM log density"
+const _MGMFRM_INTERNAL_TARGET_CONSTRUCTOR =
+    :_mgmfrm_guarded_local_fit_logdensity
+const _MGMFRM_INTERNAL_SAMPLER_DIAGNOSTIC_CONSTRUCTOR =
+    :_mgmfrm_guarded_local_fit_sampler_diagnostics
+
+function _gmfrm_rater_step_public_option_policy(blueprint)
+    return (;
+        schema = "bayesianmgmfrm.gmfrm_rater_step_public_option_policy.v1",
+        family = :gmfrm,
+        scope = blueprint.scope,
+        status = :policy_recorded,
+        source_block = :rater_steps,
+        source_block_status = :internal_source_model_block,
+        internal_block_enabled = true,
+        public_option = :rater_steps,
+        public_keyword_enabled = false,
+        public_option_status = :blocked_until_policy_gate,
+        blocker = :rater_step_public_option_policy_not_promoted,
+        next_gate = :rater_step_public_option_policy,
+        required_before_public_rejection = true,
+        rationale = :rater_steps_are_source_equation_terms_not_public_fit_options,
+    )
+end
+
+function _gmfrm_item_discrimination_promotion_decision(blueprint)
+    return (;
+        schema = "bayesianmgmfrm.gmfrm_item_discrimination_promotion_decision.v1",
+        family = :gmfrm,
+        scope = blueprint.scope,
+        status = :decision_recorded,
+        decision = :keep_preview_only_for_v0_1_1,
+        public_option = :discrimination,
+        requested_public_value = :item,
+        guarded_public_value = :rater,
+        source_block = :item_discrimination,
+        source_block_status = :enabled_within_guarded_rater_consistency_surface,
+        preview_design_available = true,
+        public_fit_enabled = false,
+        internal_promotion_target_enabled = false,
+        blocked_option = :discrimination,
+        blocked_value = :item,
+        blocker = :item_discrimination_promotion_target_not_selected,
+        next_gate = :item_discrimination_promotion_decision,
+        required_before_promotion = (
+            :separate_item_discrimination_estimand,
+            :bridge_oracle,
+            :candidate_chain_study,
+            :recovery_smoke,
+            :prior_sensitivity,
+            :artifact_contract_review,
+        ),
+        rationale =
+            :v0_1_1_keeps_only_guarded_rater_consistency_scalar_gmfrm_fit,
+    )
+end
+
 function _gmfrm_fit_ready_compiler_candidate(blueprint)
     return (;
         schema = "bayesianmgmfrm.gmfrm_fit_ready_compiler_candidate.v1",
@@ -4245,6 +6475,15 @@ function _gmfrm_fit_ready_compiler_candidate(blueprint)
         prior_policy = :independent_normal_raw_coordinates,
         direct_prior_policy = :not_enabled_raw_coordinate_priors_only,
         jacobian_policy = :none_raw_coordinate_density,
+        raw_prior_control_manifest =
+            _generalized_raw_prior_control_manifest(blueprint),
+        public_target_label = _GMFRM_PUBLIC_TARGET_LABEL,
+        public_target_description = _GMFRM_PUBLIC_TARGET_DESCRIPTION,
+        internal_target_constructor = _GMFRM_INTERNAL_TARGET_CONSTRUCTOR,
+        rater_step_public_option_policy =
+            _gmfrm_rater_step_public_option_policy(blueprint),
+        item_discrimination_promotion_decision =
+            _gmfrm_item_discrimination_promotion_decision(blueprint),
         n_raw_parameters = blueprint.n_parameters,
         raw_parameter_names = copy(blueprint.parameter_names),
         constrained_parameter_names = copy(blueprint.constrained_parameter_names),
@@ -4260,6 +6499,8 @@ function _gmfrm_fit_ready_compiler_candidate(blueprint)
             :dff_effects,
             :multidimensional_ability,
             :free_latent_correlation,
+            :item_discrimination_public_target,
+            :public_rater_steps,
             :hierarchical_rater_thresholds,
         ],
     )
@@ -4356,6 +6597,9 @@ function _gmfrm_experimental_candidate_option_rows()
         (option = :density_space, value = :raw_unconstrained,
             status = :candidate_only,
             note = :raw_coordinate_prior_contract_required),
+        (option = :rater_steps, value = :internal_source_block,
+            status = :candidate_only,
+            note = :not_a_public_fit_option),
     ]
 end
 
@@ -4367,6 +6611,9 @@ function _gmfrm_experimental_rejected_option_rows()
         (option = :dimensions, value = :multidimensional,
             status = :blocked,
             blocker = :mgmfrm_public_scope_not_promoted),
+        (option = :discrimination, value = :item,
+            status = :blocked,
+            blocker = :item_discrimination_promotion_target_not_selected),
         (option = :direct_scale_priors, value = :constrained_direct,
             status = :blocked,
             blocker = :raw_prior_policy_selected_for_candidate),
@@ -4376,6 +6623,9 @@ function _gmfrm_experimental_rejected_option_rows()
         (option = :hierarchical_rater_thresholds, value = :enabled,
             status = :blocked,
             blocker = :pooling_and_identification_policy_missing),
+        (option = :rater_steps, value = :public_option,
+            status = :blocked,
+            blocker = :rater_step_public_option_policy_not_promoted),
         (option = :model_comparison_weights, value = :loo_or_stacking,
             status = :blocked,
             blocker = :psis_loo_pareto_k_target_missing),
@@ -4394,8 +6644,16 @@ function _experimental_fit_artifact_contract_field_rows(family::Symbol)
             note = :generalized_family_name),
         (field = :scope, status = :required,
             note = :narrow_candidate_scope),
+        (field = :public_target_label, status = :required,
+            note = :stable_user_facing_guarded_fit_target_name),
+        (field = :internal_target_constructor, status = :required,
+            note = :private_helper_name_kept_as_compatibility_metadata),
         (field = :density_space, status = :required,
             note = :raw_unconstrained_or_documented_direct_policy),
+        (field = :raw_prior_control_manifest, status = :required,
+            note = :block_level_raw_prior_controls_and_no_jacobian_policy),
+        (field = :parameter_layout, status = :required,
+            note = :compiler_generated_raw_direct_blocks_transforms_and_constraints),
         (field = :raw_parameter_names, status = :required,
             note = :sampler_coordinate_order),
         (field = :direct_parameter_names, status = :required,
@@ -4412,6 +6670,10 @@ function _experimental_fit_artifact_contract_field_rows(family::Symbol)
             note = :guarded_generalized_model_caveats),
         (field = :fixture_provenance, status = :required,
             note = :bridge_chain_recovery_artifact_paths_and_hashes),
+        (field = :raw_posterior_row_schema, status = :required,
+            note = :raw_posterior_summary_fields_and_compiler_block_provenance),
+        (field = :direct_posterior_row_schema, status = :required,
+            note = :direct_posterior_summary_fields_and_compiler_block_provenance),
     ]
     family === :mgmfrm || return rows
     return [
@@ -4422,6 +6684,12 @@ function _experimental_fit_artifact_contract_field_rows(family::Symbol)
             note = :identity_fixed_for_first_candidate),
         (field = :ability_scale, status = :required,
             note = :standard_normal_gauge),
+        (field = :initialization_policy, status = :required,
+            note = :raw_initial_source_fallback_and_finite_logdensity_policy),
+        (field = :initialization_rows, status = :required,
+            note = :row_level_initial_raw_direct_and_chain_jitter_checks),
+        (field = :fixed_q_invariance_rows, status = :required,
+            note = :fixed_q_sign_identity_correlation_and_blocked_rotation_checks),
     ]
 end
 
@@ -4522,6 +6790,10 @@ function _gmfrm_experimental_public_evidence_rows()
             artifact = "test/fixtures/gmfrm_recovery_smoke.json"),
         (evidence = :fit_artifact_manifest_for_experimental_public, status = :done,
             artifact = :experimental_public_fit_artifact_contract),
+        (evidence = :rater_step_public_option_policy, status = :done,
+            artifact = :gmfrm_rater_step_public_option_policy),
+        (evidence = :item_discrimination_promotion_decision, status = :done,
+            artifact = :gmfrm_item_discrimination_promotion_decision),
         (evidence = :stress_chain_grid, status = :done,
             artifact = "test/fixtures/gmfrm_stress_chain_grid.json"),
         (evidence = :baseline_comparison, status = :done,
@@ -4576,6 +6848,8 @@ function _gmfrm_experimental_public_evidence_rows()
                 "test/fixtures/gmfrm_full_paper_reproduction_archive.json"),
         (evidence = :direct_prior_jacobian_policy, status = :done,
             artifact = :generalized_raw_prior_jacobian_policy),
+        (evidence = :raw_prior_control_manifest, status = :done,
+            artifact = :generalized_raw_prior_control_manifest),
         (evidence = :public_caveat_docs, status = :done,
             artifact = "docs/src/fitting.md#guarded-generalized-model-caveats"),
     ]
@@ -4598,9 +6872,18 @@ function _gmfrm_experimental_public_api_decision(blueprint)
         experimental_public = true,
         fit_ready = true,
         proposed_entrypoint = "fit(spec; experimental = true)",
-        target_constructor = :_gmfrm_promotion_candidate_logdensity,
+        public_target_label = _GMFRM_PUBLIC_TARGET_LABEL,
+        public_target_description = _GMFRM_PUBLIC_TARGET_DESCRIPTION,
+        internal_target_constructor = _GMFRM_INTERNAL_TARGET_CONSTRUCTOR,
+        internal_sampler_diagnostic_constructor =
+            _GMFRM_INTERNAL_SAMPLER_DIAGNOSTIC_CONSTRUCTOR,
+        rater_step_public_option_policy =
+            _gmfrm_rater_step_public_option_policy(blueprint),
+        item_discrimination_promotion_decision =
+            _gmfrm_item_discrimination_promotion_decision(blueprint),
+        target_constructor = _GMFRM_INTERNAL_TARGET_CONSTRUCTOR,
         sampler_diagnostic_constructor =
-            :_gmfrm_promotion_candidate_sampler_diagnostics,
+            _GMFRM_INTERNAL_SAMPLER_DIAGNOSTIC_CONSTRUCTOR,
         candidate_chain_study_artifact =
             "test/fixtures/gmfrm_candidate_chain_study.json",
         stress_chain_grid_artifact = "test/fixtures/gmfrm_stress_chain_grid.json",
@@ -4852,6 +7135,11 @@ function _gmfrm_experimental_public_api_decision(blueprint)
                 blueprint.scope;
                 public_fit = true,
                 experimental_public = true),
+        raw_prior_control_manifest =
+            _generalized_raw_prior_control_manifest(
+                blueprint;
+                public_fit = true,
+                experimental_public = true),
         fit_artifact_contract = _experimental_fit_artifact_contract(
             :gmfrm,
             blueprint.scope;
@@ -4991,6 +7279,8 @@ function _mgmfrm_confirmatory_evidence_rows()
             artifact = :mgmfrm_confirmatory_candidate_pointwise_fixture),
         (evidence = :fit_ready_bridge_pointwise_oracle, status = :done,
             artifact = "test/fixtures/source_mgmfrm_bridge_logdensity.json#confirmatory_candidate"),
+        (evidence = :raw_prior_control_manifest, status = :done,
+            artifact = :generalized_raw_prior_control_manifest),
         (evidence = :sampler_diagnostic_study, status = :done,
             artifact = "test/fixtures/mgmfrm_candidate_chain_study.json"),
         (evidence = :recovery_smoke_study, status = :done,
@@ -5089,6 +7379,8 @@ function _mgmfrm_experimental_public_evidence_rows()
                 "test/fixtures/gmfrm_full_paper_reproduction_archive.json"),
         (evidence = :direct_prior_jacobian_policy, status = :done,
             artifact = :generalized_raw_prior_jacobian_policy),
+        (evidence = :raw_prior_control_manifest, status = :done,
+            artifact = :generalized_raw_prior_control_manifest),
     ]
 end
 
@@ -5109,12 +7401,17 @@ function _mgmfrm_experimental_public_api_decision(blueprint)
         experimental_public = true,
         fit_ready = true,
         proposed_entrypoint = "fit(spec; experimental = true)",
+        public_target_label = _MGMFRM_PUBLIC_TARGET_LABEL,
+        public_target_description = _MGMFRM_PUBLIC_TARGET_DESCRIPTION,
+        internal_target_constructor = _MGMFRM_INTERNAL_TARGET_CONSTRUCTOR,
+        internal_sampler_diagnostic_constructor =
+            _MGMFRM_INTERNAL_SAMPLER_DIAGNOSTIC_CONSTRUCTOR,
         target_constructor = :_source_fixture_logdensity,
         guarded_local_entrypoint = :_fit_guarded_mgmfrm,
         guarded_local_fit_target_constructor =
-            :_mgmfrm_guarded_local_fit_logdensity,
+            _MGMFRM_INTERNAL_TARGET_CONSTRUCTOR,
         guarded_local_fit_sampler_diagnostic_constructor =
-            :_mgmfrm_guarded_local_fit_sampler_diagnostics,
+            _MGMFRM_INTERNAL_SAMPLER_DIAGNOSTIC_CONSTRUCTOR,
         guarded_local_fit_artifact_schema =
             "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1",
         experimental_fit_artifact_schema =
@@ -5148,6 +7445,11 @@ function _mgmfrm_experimental_public_api_decision(blueprint)
             _generalized_raw_prior_jacobian_policy(
                 :mgmfrm,
                 blueprint.scope;
+                public_fit = true,
+                experimental_public = true),
+        raw_prior_control_manifest =
+            _generalized_raw_prior_control_manifest(
+                blueprint;
                 public_fit = true,
                 experimental_public = true),
         fit_artifact_contract = _experimental_fit_artifact_contract(
@@ -5230,6 +7532,11 @@ function _mgmfrm_confirmatory_candidate(blueprint, design::FacetDesign)
             blueprint.constrained_blocks,
             blueprint.constrained_parameter_names,
         ),
+        raw_prior_control_manifest =
+            _generalized_raw_prior_control_manifest(
+                blueprint;
+                public_fit = true,
+                experimental_public = true),
         gauge_rows = _mgmfrm_confirmatory_gauge_rows(design),
         sign_positive_rules = _mgmfrm_confirmatory_sign_rows(),
         evidence_rows,
@@ -5289,15 +7596,28 @@ function _raw_parameterization_promotion_candidate(blueprint)
         broader_experimental_exposure_decision_review_ready = true,
         fit_ready_compiler_ready = true,
         experimental_public_ready = true,
-        target_constructor = :_gmfrm_promotion_candidate_logdensity,
-        diagnostic_constructor = :_gmfrm_promotion_candidate_diagnostics,
+        public_target_label = _GMFRM_PUBLIC_TARGET_LABEL,
+        public_target_description = _GMFRM_PUBLIC_TARGET_DESCRIPTION,
+        internal_target_constructor = _GMFRM_INTERNAL_TARGET_CONSTRUCTOR,
+        internal_diagnostic_constructor =
+            _GMFRM_INTERNAL_GRADIENT_DIAGNOSTIC_CONSTRUCTOR,
+        internal_sampler_diagnostic_constructor =
+            _GMFRM_INTERNAL_SAMPLER_DIAGNOSTIC_CONSTRUCTOR,
+        rater_step_public_option_policy =
+            _gmfrm_rater_step_public_option_policy(blueprint),
+        item_discrimination_promotion_decision =
+            _gmfrm_item_discrimination_promotion_decision(blueprint),
+        target_constructor = _GMFRM_INTERNAL_TARGET_CONSTRUCTOR,
+        diagnostic_constructor = _GMFRM_INTERNAL_GRADIENT_DIAGNOSTIC_CONSTRUCTOR,
         sampler_diagnostic_constructor =
-            :_gmfrm_promotion_candidate_sampler_diagnostics,
+            _GMFRM_INTERNAL_SAMPLER_DIAGNOSTIC_CONSTRUCTOR,
         pointwise_fixture_constructor = :_gmfrm_promotion_candidate_pointwise_fixture,
         compiler_blueprint_constructor = :_gmfrm_fit_ready_candidate_blueprint,
         density_space = :raw_unconstrained,
         prior_policy = :independent_normal_raw_coordinates,
         jacobian_policy = :none_raw_coordinate_density,
+        raw_prior_control_manifest =
+            _generalized_raw_prior_control_manifest(blueprint),
         n_raw_parameters = blueprint.n_parameters,
         raw_parameter_names = copy(blueprint.parameter_names),
         raw_blocks = _block_manifest_rows(blueprint.blocks, blueprint.parameter_names),
@@ -5375,28 +7695,36 @@ function model_manifest(data::FacetData)
         schema = "bayesianmgmfrm.model_manifest.v1",
         object = :data,
         data = _data_manifest(data),
+        rating_design = rating_design_audit(data),
     )
 end
 
 function model_manifest(spec::FacetSpec)
+    spec_manifest = _spec_manifest(spec)
     return (;
         schema = "bayesianmgmfrm.model_manifest.v1",
         object = :spec,
+        status_policy = spec_manifest.status_policy,
         data = _data_manifest(spec.data),
         validation = _validation_manifest(spec.validation),
-        spec = _spec_manifest(spec),
+        spec = spec_manifest,
+        rating_design = rating_design_audit(spec),
     )
 end
 
 function model_manifest(design::FacetDesign)
     spec = design.spec
+    spec_manifest = _spec_manifest(spec)
     return (;
         schema = "bayesianmgmfrm.model_manifest.v1",
         object = :design,
+        status_policy = spec_manifest.status_policy,
         data = _data_manifest(spec.data),
         validation = _validation_manifest(spec.validation),
-        spec = _spec_manifest(spec),
+        spec = spec_manifest,
         design = _design_manifest(design),
+        model_surface_audit = model_surface_audit(design),
+        rating_design = rating_design_audit(design),
     )
 end
 
