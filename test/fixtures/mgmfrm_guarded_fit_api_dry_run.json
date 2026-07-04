@@ -93,7 +93,7 @@
       "artifact": "guarded_fit_validation_grid",
       "path": "test/fixtures/mgmfrm_guarded_fit_validation_grid.json",
       "exists": true,
-      "sha256": "cfedb95ccc98e406658680f756169d2465684d8058d55d2a2a5d1dadacc815cf",
+      "sha256": "4f35205e591ef838fe862eb5d69663ec64267ec9e27c3d0dacdfa6172c466a53",
       "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_validation_grid.v1",
       "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_validation_grid.v1",
       "schema_matches": true,

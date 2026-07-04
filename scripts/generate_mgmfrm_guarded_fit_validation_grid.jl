@@ -41,6 +41,11 @@ const INPUT_ARTIFACTS = [
         expected_schema =
             "bayesianmgmfrm.mgmfrm_report_shape_simulation_grid.v1",
         pass_policy = :summary_passed),
+    (name = :q_matrix_validation_expansion,
+        path = "test/fixtures/mgmfrm_q_matrix_validation_expansion.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_q_matrix_validation_expansion.v1",
+        pass_policy = :summary_passed),
     (name = :guarded_fit_method_wiring,
         path = "test/fixtures/mgmfrm_guarded_fit_method_wiring.json",
         expected_schema = "bayesianmgmfrm.mgmfrm_guarded_fit_method_wiring.v1",
@@ -61,6 +66,7 @@ const PROTOCOL = (;
         require_baseline_comparison_passed = true,
         require_sparse_recovery_grid_passed = true,
         require_report_shape_simulation_grid_passed = true,
+        require_q_matrix_validation_expansion_passed = true,
         require_guarded_fit_method_wiring_passed = true,
         require_sampler_protocol_passed = true,
         require_artifact_contract_satisfied = true,
@@ -152,6 +158,24 @@ function artifact_summary(name::Symbol, summary::Union{Nothing,AbstractString})
         all_posterior_predictive_shapes_passed =
             summary_bool(summary, "all_posterior_predictive_shapes_passed"),
     )
+    name === :q_matrix_validation_expansion && return (;
+        passed = summary_bool(summary, "passed"),
+        all_expected_validation_outcomes =
+            summary_bool(summary, "all_expected_validation_outcomes"),
+        all_expected_spec_outcomes =
+            summary_bool(summary, "all_expected_spec_outcomes"),
+        all_invalid_default_q_scenarios_blocked_before_fit =
+            summary_bool(summary,
+                "all_invalid_default_q_scenarios_blocked_before_fit"),
+        policy_validation_scenarios_recorded =
+            summary_bool(summary, "policy_validation_scenarios_recorded"),
+        warning_scenarios_not_rejected =
+            summary_bool(summary, "warning_scenarios_not_rejected"),
+        valid_scenarios_preview_design =
+            summary_bool(summary, "valid_scenarios_preview_design"),
+        research_basis_recorded =
+            summary_bool(summary, "research_basis_recorded"),
+    )
     name === :guarded_fit_method_wiring && return (;
         passed = summary_bool(summary, "passed"),
         entrypoint_enabled = summary_bool(summary, "entrypoint_enabled", true),
@@ -203,10 +227,12 @@ function validation_rows(records)
     baseline = record_by_name(records, :baseline_comparison)
     sparse = record_by_name(records, :sparse_recovery_grid)
     report_shape = record_by_name(records, :report_shape_simulation_grid)
+    q_expansion = record_by_name(records, :q_matrix_validation_expansion)
     method = record_by_name(records, :guarded_fit_method_wiring)
     method_summary = method.summary
     sparse_summary = sparse.summary
     report_shape_summary = report_shape.summary
+    q_expansion_summary = q_expansion.summary
     baseline_summary = baseline.summary
     return [
         (scenario = :bridge_and_chain_oracles,
@@ -233,6 +259,17 @@ function validation_rows(records)
                 Bool(report_shape_summary.all_waic_shapes_passed) &&
                 Bool(report_shape_summary.all_posterior_predictive_shapes_passed),
             finding = :report_diagnostics_artifact_shapes_recorded),
+        (scenario = :q_matrix_validation_expansion,
+            evidence = Bool(q_expansion.summary_passed) &&
+                Bool(q_expansion_summary.all_expected_validation_outcomes) &&
+                Bool(q_expansion_summary.all_expected_spec_outcomes) &&
+                Bool(q_expansion_summary.
+                    all_invalid_default_q_scenarios_blocked_before_fit) &&
+                Bool(q_expansion_summary.policy_validation_scenarios_recorded) &&
+                Bool(q_expansion_summary.warning_scenarios_not_rejected) &&
+                Bool(q_expansion_summary.valid_scenarios_preview_design) &&
+                Bool(q_expansion_summary.research_basis_recorded),
+            finding = :q_matrix_failure_modes_prefit_policy_recorded),
         (scenario = :guarded_method_contract,
             evidence = Bool(method.summary_passed) &&
                 Bool(method_summary.sampler_protocol_passed) &&
@@ -261,6 +298,7 @@ function build_artifact()
     method = record_by_name(records, :guarded_fit_method_wiring)
     sparse = record_by_name(records, :sparse_recovery_grid)
     report_shape = record_by_name(records, :report_shape_simulation_grid)
+    q_expansion = record_by_name(records, :q_matrix_validation_expansion)
     all_artifacts_present = all(record -> record.exists, records)
     all_expected_schemas = all(record -> record.schema_matches, records)
     all_inputs_passed = all(record -> record.summary_passed, records)
@@ -321,6 +359,7 @@ function build_artifact()
                 record_by_name(records, :baseline_comparison).summary_passed,
             sparse_recovery_grid_passed = sparse.summary_passed,
             report_shape_simulation_grid_passed = report_shape.summary_passed,
+            q_matrix_validation_expansion_passed = q_expansion.summary_passed,
             guarded_fit_method_wiring_passed = method.summary_passed,
             sparse_grid_all_validations_passed =
                 Bool(sparse.summary.all_validations_passed),
@@ -336,6 +375,21 @@ function build_artifact()
                 Bool(report_shape.summary.all_waic_shapes_passed),
             report_shape_all_posterior_predictive_shapes_passed =
                 Bool(report_shape.summary.all_posterior_predictive_shapes_passed),
+            q_matrix_all_expected_validation_outcomes =
+                Bool(q_expansion.summary.all_expected_validation_outcomes),
+            q_matrix_all_expected_spec_outcomes =
+                Bool(q_expansion.summary.all_expected_spec_outcomes),
+            q_matrix_all_invalid_default_q_scenarios_blocked_before_fit =
+                Bool(q_expansion.summary.
+                    all_invalid_default_q_scenarios_blocked_before_fit),
+            q_matrix_policy_validation_scenarios_recorded =
+                Bool(q_expansion.summary.policy_validation_scenarios_recorded),
+            q_matrix_warning_scenarios_not_rejected =
+                Bool(q_expansion.summary.warning_scenarios_not_rejected),
+            q_matrix_valid_scenarios_preview_design =
+                Bool(q_expansion.summary.valid_scenarios_preview_design),
+            q_matrix_research_basis_recorded =
+                Bool(q_expansion.summary.research_basis_recorded),
             method_sampler_protocol_passed =
                 Bool(method.summary.sampler_protocol_passed),
             method_artifact_contract_satisfied =

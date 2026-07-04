@@ -175,7 +175,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "444c77d2dfcdf585cd6839e14d505c487bb5419d7f9efbb56bb113d0a4bf1fe1",
+      "sha256": "cc01a85b252778f8df5eb03aac593f95ee733488ebfc10e908654f9630a6bdcb",
       "summary": {
         "passed": true,
         "n_evidence_cells": 6,
@@ -192,7 +192,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "0bdfa067a59d1c3b92a6a7482bfa3a8e886403157918f8f28fa3966d252837d4",
+      "sha256": "c06d5e9d07363aa3e952dfd8ca27edc9c2eba9499147d9f46afac28f1057b04f",
       "summary": {
         "passed": true,
         "n_evidence_cells": 10,
@@ -243,10 +243,10 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "c1c57a793617c79e43102ca22124469fe9edd4e6ebd0453afb7ee3ab5a670a01",
+      "sha256": "ed15113a95ca785558b1a3486f5796d1d7f71f9b8d5bdc1744248889fd906d21",
       "summary": {
         "passed": true,
-        "n_evidence_cells": 35,
+        "n_evidence_cells": 36,
         "key_check": "full_paper_reproduction_archive",
         "all_primary_checks": true
       }
@@ -333,7 +333,7 @@
     {
       "gate": "full_paper_reproduction_archive",
       "status": "passed",
-      "n_evidence_cells": 35,
+      "n_evidence_cells": 36,
       "key_check": "full_paper_reproduction_archive",
       "artifact": "test/fixtures/gmfrm_full_paper_reproduction_archive.json"
     }
@@ -384,7 +384,7 @@
     "all_primary_checks_passed": true,
     "n_input_artifacts": 12,
     "n_evidence_rows": 12,
-    "total_evidence_cells": 149,
+    "total_evidence_cells": 150,
     "minimum_required_evidence_cells": 60,
     "scalar_fit_validation_grid_passed": true,
     "posterior_predictive_grid_passed": true,

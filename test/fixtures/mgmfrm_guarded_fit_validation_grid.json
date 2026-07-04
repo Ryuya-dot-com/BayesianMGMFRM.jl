@@ -27,6 +27,7 @@
       "require_baseline_comparison_passed": true,
       "require_sparse_recovery_grid_passed": true,
       "require_report_shape_simulation_grid_passed": true,
+      "require_q_matrix_validation_expansion_passed": true,
       "require_guarded_fit_method_wiring_passed": true,
       "require_sampler_protocol_passed": true,
       "require_artifact_contract_satisfied": true,
@@ -130,6 +131,27 @@
       }
     },
     {
+      "artifact": "q_matrix_validation_expansion",
+      "path": "test/fixtures/mgmfrm_q_matrix_validation_expansion.json",
+      "exists": true,
+      "sha256": "bc2f0a6ca44b4d6546170df4722169b5fd4e366abda1fd02b6cce18b1864b1b7",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_q_matrix_validation_expansion.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_q_matrix_validation_expansion.v1",
+      "schema_matches": true,
+      "pass_policy": "summary_passed",
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "all_expected_validation_outcomes": true,
+        "all_expected_spec_outcomes": true,
+        "all_invalid_default_q_scenarios_blocked_before_fit": true,
+        "policy_validation_scenarios_recorded": true,
+        "warning_scenarios_not_rejected": true,
+        "valid_scenarios_preview_design": true,
+        "research_basis_recorded": true
+      }
+    },
+    {
       "artifact": "guarded_fit_method_wiring",
       "path": "test/fixtures/mgmfrm_guarded_fit_method_wiring.json",
       "exists": true,
@@ -176,6 +198,11 @@
       "finding": "report_diagnostics_artifact_shapes_recorded"
     },
     {
+      "scenario": "q_matrix_validation_expansion",
+      "evidence": true,
+      "finding": "q_matrix_failure_modes_prefit_policy_recorded"
+    },
+    {
       "scenario": "guarded_method_contract",
       "evidence": true,
       "finding": "guarded_method_contract_satisfied"
@@ -210,6 +237,7 @@
     "baseline_comparison_passed": true,
     "sparse_recovery_grid_passed": true,
     "report_shape_simulation_grid_passed": true,
+    "q_matrix_validation_expansion_passed": true,
     "guarded_fit_method_wiring_passed": true,
     "sparse_grid_all_validations_passed": true,
     "sparse_grid_all_sampler_passed": true,
@@ -218,13 +246,20 @@
     "report_shape_all_artifact_shapes_passed": true,
     "report_shape_all_waic_shapes_passed": true,
     "report_shape_all_posterior_predictive_shapes_passed": true,
+    "q_matrix_all_expected_validation_outcomes": true,
+    "q_matrix_all_expected_spec_outcomes": true,
+    "q_matrix_all_invalid_default_q_scenarios_blocked_before_fit": true,
+    "q_matrix_policy_validation_scenarios_recorded": true,
+    "q_matrix_warning_scenarios_not_rejected": true,
+    "q_matrix_valid_scenarios_preview_design": true,
+    "q_matrix_research_basis_recorded": true,
     "method_sampler_protocol_passed": true,
     "method_artifact_contract_satisfied": true,
     "method_fit_boundary_checks_passed": true,
     "method_experimental_spec_fit_succeeded": true,
-    "n_input_artifacts": 7,
-    "n_validation_rows": 7,
-    "n_passed_validation_rows": 7,
+    "n_input_artifacts": 8,
+    "n_validation_rows": 8,
+    "n_passed_validation_rows": 8,
     "remaining_public_blockers": [
       "mgmfrm_guarded_fit_api_dry_run_missing"
     ],
