@@ -52,6 +52,12 @@ default test suite checks them only when the corresponding file exists under
 points to a file. If an environment variable is set to a missing path, the test
 suite errors so local evidence jobs cannot silently skip a requested fixture.
 
+`mgmfrm_q_candidate_real_fit_diagnostic_linkage.json` is a local evidence
+artifact for the fixed-Q confirmatory MGMFRM path. It links candidate Q masks
+from the empirical recovery grid to guarded short-fit diagnostics, records
+finite fit/artifact/WAIC surfaces for valid candidates, blocks invalid Q masks
+before fit, and does not make automatic Q-revision or convergence claims.
+
 The deterministic validation-plan generator:
 
 ```bash

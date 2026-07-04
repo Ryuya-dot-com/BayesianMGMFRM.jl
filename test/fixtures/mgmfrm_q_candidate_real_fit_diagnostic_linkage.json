@@ -1,0 +1,1988 @@
+{
+  "schema": "bayesianmgmfrm.mgmfrm_q_candidate_real_fit_diagnostic_linkage.v1",
+  "family": "mgmfrm",
+  "scope": "q_candidate_real_fit_diagnostic_linkage",
+  "status": "q_candidate_real_fit_diagnostic_linkage_recorded",
+  "decision": "keep_candidate_q_fit_linkage_diagnostic_only",
+  "public_fit": true,
+  "experimental_public": true,
+  "fit_ready": true,
+  "empirical_q_recovery_public": false,
+  "publication_or_registration_action": false,
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "protocol": {
+    "protocol_id": "mgmfrm_q_candidate_real_fit_diagnostic_linkage_v1",
+    "review_kind": "local_q_candidate_real_fit_diagnostic_linkage",
+    "publication_or_registration_action": false,
+    "local_only": true,
+    "fit_kind": "guarded_confirmatory_mgmfrm_short_fit",
+    "entrypoint": "fit(spec; experimental = true)",
+    "diagnostic_surfaces": [
+      "q_matrix_validation",
+      "fit_metadata",
+      "diagnostics",
+      "fit_artifact",
+      "waic"
+    ],
+    "sampler": {
+      "backend": "advancedhmc",
+      "sampler": "nuts",
+      "chains": 1,
+      "warmup": 0,
+      "draws": 2,
+      "step_size": 0.02,
+      "max_depth": 2,
+      "metric": "unit"
+    },
+    "thresholds": {
+      "require_empirical_q_matrix_recovery_simulation_grid_passed": true,
+      "require_all_linkage_scenarios_checked": true,
+      "require_candidate_q_validation_checked": true,
+      "require_all_fit_attempts_succeeded": true,
+      "require_all_fit_terms_finite": true,
+      "require_all_direct_constraints_passed": true,
+      "require_fixed_q_diagnostic_rows_recorded": true,
+      "require_invalid_candidates_blocked_before_fit": true,
+      "require_no_automatic_q_revision": true,
+      "require_no_public_q_revision_claim": true,
+      "require_no_mcmc_convergence_claim": true,
+      "require_no_publication_or_registration_action": true
+    }
+  },
+  "input_artifacts": [
+    {
+      "artifact": "empirical_q_matrix_recovery_simulation_grid",
+      "path": "test/fixtures/mgmfrm_empirical_q_matrix_recovery_simulation_grid.json",
+      "exists": true,
+      "sha256": "ba819f492cd103d5a6340b60826c70088d75f3889e91720105699a13d04b5a14",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_empirical_q_matrix_recovery_simulation_grid.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_empirical_q_matrix_recovery_simulation_grid.v1",
+      "schema_matches": true,
+      "pass_policy": "summary_passed",
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "candidate_suggestions_allowed": true,
+        "no_automatic_q_revision": true,
+        "no_public_recovery_claim": true,
+        "next_gate": "real_fit_diagnostic_linkage_for_q_candidates"
+      }
+    }
+  ],
+  "scenario_rows": [
+    {
+      "scenario": "retained_declared_q_fit_linked",
+      "source_grid_scenario": "well_separated_true_q_retained",
+      "source_action": "retain_declared_q",
+      "dimensions": 2,
+      "n_items": 2,
+      "n_observations": 24,
+      "declared_fit": {
+        "role": "declared_q",
+        "q_matrix": [
+          [
+            true,
+            false
+          ],
+          [
+            false,
+            true
+          ]
+        ],
+        "q_matrix_validation": {
+          "passed": true,
+          "n_rows": 12,
+          "error_checks": [],
+          "warning_checks": [],
+          "rows": [
+            {
+              "check": "family_applicability",
+              "status": "applicable",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "q_matrix_required_for_mgmfrm"
+            },
+            {
+              "check": "matrix_schema",
+              "status": "matrix",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "two_dimensional_matrix_supplied"
+            },
+            {
+              "check": "binary_mask_schema",
+              "status": "binary_bool_or_zero_one",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "q_matrix_entries_are_binary_mask_values"
+            },
+            {
+              "check": "shape",
+              "status": "matches_items_by_dimensions",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "one_row_per_item_one_column_per_dimension"
+            },
+            {
+              "check": "empty_item_rows",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "each_item_loads_on_at_least_one_dimension"
+            },
+            {
+              "check": "empty_dimensions",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "each_dimension_has_at_least_one_item"
+            },
+            {
+              "check": "duplicate_dimension_columns",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "dimension_columns_have_distinct_item_masks"
+            },
+            {
+              "check": "cross_loading_policy",
+              "status": "simple_structure",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 0,
+              "n_components": null,
+              "note": "simple_structure_q_matrix"
+            },
+            {
+              "check": "positive_loading_identification",
+              "status": "single_loading_anchor_present",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "positive_loadings_have_simple_anchor_items"
+            },
+            {
+              "check": "dimension_item_graph_components",
+              "status": "recorded",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": 2,
+              "note": "q_item_dimension_graph_recorded_for_review"
+            },
+            {
+              "check": "dimension_facet_subgraph_coverage",
+              "status": "connected_dimension_subgraph",
+              "severity": "info",
+              "item": null,
+              "dimension": 1,
+              "n_active": 12,
+              "n_components": 1,
+              "note": "dimension_specific_person_rater_item_subgraph_connected"
+            },
+            {
+              "check": "dimension_facet_subgraph_coverage",
+              "status": "connected_dimension_subgraph",
+              "severity": "info",
+              "item": null,
+              "dimension": 2,
+              "n_active": 12,
+              "n_components": 1,
+              "note": "dimension_specific_person_rater_item_subgraph_connected"
+            }
+          ]
+        },
+        "fit_attempted": true,
+        "fit_succeeded": true,
+        "fit_object": "MGMFRMFit",
+        "public_fit": true,
+        "experimental_public": true,
+        "fit_ready": true,
+        "n_observations": 24,
+        "n_raw_parameters": 18,
+        "n_direct_parameters": 20,
+        "n_chains": 1,
+        "draws_per_chain": 2,
+        "total_draws": 2,
+        "finite_logposterior": true,
+        "finite_direct_loglikelihood": true,
+        "finite_pointwise_loglikelihood": true,
+        "direct_constraints_passed": true,
+        "n_failed_direct_constraints": 0,
+        "fixed_q_diagnostic_rows_recorded": true,
+        "diagnostic_schema": "bayesianmgmfrm.mgmfrm_guarded_local_fit_diagnostics.v1",
+        "sampler_diagnostic_schema": "bayesianmgmfrm.mgmfrm_guarded_local_fit_sampler_diagnostics.v1",
+        "artifact_schema": "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1",
+        "artifact_content_hash_recorded": true,
+        "waic_recorded": true,
+        "waic_elpd": -26.713112019425363,
+        "sampler_flag": "sampler_warning",
+        "diagnostic_flag": "sampler_warning",
+        "convergence_claim_made": false,
+        "interpretation": "fit_diagnostics_shape_and_finiteness_recorded"
+      },
+      "candidate_fit": {
+        "role": "candidate_q",
+        "q_matrix": [
+          [
+            true,
+            false
+          ],
+          [
+            false,
+            true
+          ]
+        ],
+        "q_matrix_validation": {
+          "passed": true,
+          "n_rows": 12,
+          "error_checks": [],
+          "warning_checks": [],
+          "rows": [
+            {
+              "check": "family_applicability",
+              "status": "applicable",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "q_matrix_required_for_mgmfrm"
+            },
+            {
+              "check": "matrix_schema",
+              "status": "matrix",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "two_dimensional_matrix_supplied"
+            },
+            {
+              "check": "binary_mask_schema",
+              "status": "binary_bool_or_zero_one",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "q_matrix_entries_are_binary_mask_values"
+            },
+            {
+              "check": "shape",
+              "status": "matches_items_by_dimensions",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "one_row_per_item_one_column_per_dimension"
+            },
+            {
+              "check": "empty_item_rows",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "each_item_loads_on_at_least_one_dimension"
+            },
+            {
+              "check": "empty_dimensions",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "each_dimension_has_at_least_one_item"
+            },
+            {
+              "check": "duplicate_dimension_columns",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "dimension_columns_have_distinct_item_masks"
+            },
+            {
+              "check": "cross_loading_policy",
+              "status": "simple_structure",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 0,
+              "n_components": null,
+              "note": "simple_structure_q_matrix"
+            },
+            {
+              "check": "positive_loading_identification",
+              "status": "single_loading_anchor_present",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "positive_loadings_have_simple_anchor_items"
+            },
+            {
+              "check": "dimension_item_graph_components",
+              "status": "recorded",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": 2,
+              "note": "q_item_dimension_graph_recorded_for_review"
+            },
+            {
+              "check": "dimension_facet_subgraph_coverage",
+              "status": "connected_dimension_subgraph",
+              "severity": "info",
+              "item": null,
+              "dimension": 1,
+              "n_active": 12,
+              "n_components": 1,
+              "note": "dimension_specific_person_rater_item_subgraph_connected"
+            },
+            {
+              "check": "dimension_facet_subgraph_coverage",
+              "status": "connected_dimension_subgraph",
+              "severity": "info",
+              "item": null,
+              "dimension": 2,
+              "n_active": 12,
+              "n_components": 1,
+              "note": "dimension_specific_person_rater_item_subgraph_connected"
+            }
+          ]
+        },
+        "fit_attempted": true,
+        "fit_succeeded": true,
+        "fit_object": "MGMFRMFit",
+        "public_fit": true,
+        "experimental_public": true,
+        "fit_ready": true,
+        "n_observations": 24,
+        "n_raw_parameters": 18,
+        "n_direct_parameters": 20,
+        "n_chains": 1,
+        "draws_per_chain": 2,
+        "total_draws": 2,
+        "finite_logposterior": true,
+        "finite_direct_loglikelihood": true,
+        "finite_pointwise_loglikelihood": true,
+        "direct_constraints_passed": true,
+        "n_failed_direct_constraints": 0,
+        "fixed_q_diagnostic_rows_recorded": true,
+        "diagnostic_schema": "bayesianmgmfrm.mgmfrm_guarded_local_fit_diagnostics.v1",
+        "sampler_diagnostic_schema": "bayesianmgmfrm.mgmfrm_guarded_local_fit_sampler_diagnostics.v1",
+        "artifact_schema": "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1",
+        "artifact_content_hash_recorded": true,
+        "waic_recorded": true,
+        "waic_elpd": -27.142116629738478,
+        "sampler_flag": "sampler_warning",
+        "diagnostic_flag": "sampler_warning",
+        "convergence_claim_made": false,
+        "interpretation": "fit_diagnostics_shape_and_finiteness_recorded"
+      },
+      "public_revision_allowed": false,
+      "automatic_revision_allowed": false,
+      "public_claim_allowed": false,
+      "summary": {
+        "passed": true,
+        "candidate_validation_matches": true,
+        "fit_attempt_matches": true,
+        "fit_terms_finite": true,
+        "direct_constraints_passed": true,
+        "fixed_q_rows_recorded": true,
+        "invalid_candidate_blocked_before_fit": false,
+        "candidate_fit_attempted": true,
+        "candidate_fit_succeeded": true,
+        "declared_fit_succeeded": true,
+        "candidate_convergence_claim_made": false,
+        "interpretation": "diagnostic_linkage_only_no_public_q_revision"
+      }
+    },
+    {
+      "scenario": "missing_loading_candidate_fit_linked",
+      "source_grid_scenario": "missing_loading_recovered_as_candidate",
+      "source_action": "flag_missing_loading_candidate",
+      "dimensions": 2,
+      "n_items": 3,
+      "n_observations": 36,
+      "declared_fit": {
+        "role": "declared_q",
+        "q_matrix": [
+          [
+            true,
+            false
+          ],
+          [
+            false,
+            true
+          ],
+          [
+            true,
+            false
+          ]
+        ],
+        "q_matrix_validation": {
+          "passed": true,
+          "n_rows": 12,
+          "error_checks": [],
+          "warning_checks": [],
+          "rows": [
+            {
+              "check": "family_applicability",
+              "status": "applicable",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "q_matrix_required_for_mgmfrm"
+            },
+            {
+              "check": "matrix_schema",
+              "status": "matrix",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "two_dimensional_matrix_supplied"
+            },
+            {
+              "check": "binary_mask_schema",
+              "status": "binary_bool_or_zero_one",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "q_matrix_entries_are_binary_mask_values"
+            },
+            {
+              "check": "shape",
+              "status": "matches_items_by_dimensions",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "one_row_per_item_one_column_per_dimension"
+            },
+            {
+              "check": "empty_item_rows",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 3,
+              "n_components": null,
+              "note": "each_item_loads_on_at_least_one_dimension"
+            },
+            {
+              "check": "empty_dimensions",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "each_dimension_has_at_least_one_item"
+            },
+            {
+              "check": "duplicate_dimension_columns",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "dimension_columns_have_distinct_item_masks"
+            },
+            {
+              "check": "cross_loading_policy",
+              "status": "simple_structure",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 0,
+              "n_components": null,
+              "note": "simple_structure_q_matrix"
+            },
+            {
+              "check": "positive_loading_identification",
+              "status": "single_loading_anchor_present",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "positive_loadings_have_simple_anchor_items"
+            },
+            {
+              "check": "dimension_item_graph_components",
+              "status": "recorded",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": 2,
+              "note": "q_item_dimension_graph_recorded_for_review"
+            },
+            {
+              "check": "dimension_facet_subgraph_coverage",
+              "status": "connected_dimension_subgraph",
+              "severity": "info",
+              "item": null,
+              "dimension": 1,
+              "n_active": 24,
+              "n_components": 1,
+              "note": "dimension_specific_person_rater_item_subgraph_connected"
+            },
+            {
+              "check": "dimension_facet_subgraph_coverage",
+              "status": "connected_dimension_subgraph",
+              "severity": "info",
+              "item": null,
+              "dimension": 2,
+              "n_active": 12,
+              "n_components": 1,
+              "note": "dimension_specific_person_rater_item_subgraph_connected"
+            }
+          ]
+        },
+        "fit_attempted": true,
+        "fit_succeeded": true,
+        "fit_object": "MGMFRMFit",
+        "public_fit": true,
+        "experimental_public": true,
+        "fit_ready": true,
+        "n_observations": 36,
+        "n_raw_parameters": 21,
+        "n_direct_parameters": 23,
+        "n_chains": 1,
+        "draws_per_chain": 2,
+        "total_draws": 2,
+        "finite_logposterior": true,
+        "finite_direct_loglikelihood": true,
+        "finite_pointwise_loglikelihood": true,
+        "direct_constraints_passed": true,
+        "n_failed_direct_constraints": 0,
+        "fixed_q_diagnostic_rows_recorded": true,
+        "diagnostic_schema": "bayesianmgmfrm.mgmfrm_guarded_local_fit_diagnostics.v1",
+        "sampler_diagnostic_schema": "bayesianmgmfrm.mgmfrm_guarded_local_fit_sampler_diagnostics.v1",
+        "artifact_schema": "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1",
+        "artifact_content_hash_recorded": true,
+        "waic_recorded": true,
+        "waic_elpd": -40.17963404725931,
+        "sampler_flag": "sampler_warning",
+        "diagnostic_flag": "sampler_warning",
+        "convergence_claim_made": false,
+        "interpretation": "fit_diagnostics_shape_and_finiteness_recorded"
+      },
+      "candidate_fit": {
+        "role": "candidate_q",
+        "q_matrix": [
+          [
+            true,
+            false
+          ],
+          [
+            false,
+            true
+          ],
+          [
+            true,
+            true
+          ]
+        ],
+        "q_matrix_validation": {
+          "passed": true,
+          "n_rows": 12,
+          "error_checks": [],
+          "warning_checks": [
+            "cross_loading_policy"
+          ],
+          "rows": [
+            {
+              "check": "family_applicability",
+              "status": "applicable",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "q_matrix_required_for_mgmfrm"
+            },
+            {
+              "check": "matrix_schema",
+              "status": "matrix",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "two_dimensional_matrix_supplied"
+            },
+            {
+              "check": "binary_mask_schema",
+              "status": "binary_bool_or_zero_one",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "q_matrix_entries_are_binary_mask_values"
+            },
+            {
+              "check": "shape",
+              "status": "matches_items_by_dimensions",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "one_row_per_item_one_column_per_dimension"
+            },
+            {
+              "check": "empty_item_rows",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 3,
+              "n_components": null,
+              "note": "each_item_loads_on_at_least_one_dimension"
+            },
+            {
+              "check": "empty_dimensions",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "each_dimension_has_at_least_one_item"
+            },
+            {
+              "check": "duplicate_dimension_columns",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "dimension_columns_have_distinct_item_masks"
+            },
+            {
+              "check": "cross_loading_policy",
+              "status": "fixed_confirmatory_cross_loadings",
+              "severity": "warning",
+              "item": null,
+              "dimension": null,
+              "n_active": 1,
+              "n_components": null,
+              "note": "cross_loadings_are_fixed_confirmatory_not_exploratory"
+            },
+            {
+              "check": "positive_loading_identification",
+              "status": "single_loading_anchor_present",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "positive_loadings_have_simple_anchor_items"
+            },
+            {
+              "check": "dimension_item_graph_components",
+              "status": "recorded",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": 1,
+              "note": "q_item_dimension_graph_recorded_for_review"
+            },
+            {
+              "check": "dimension_facet_subgraph_coverage",
+              "status": "connected_dimension_subgraph",
+              "severity": "info",
+              "item": null,
+              "dimension": 1,
+              "n_active": 24,
+              "n_components": 1,
+              "note": "dimension_specific_person_rater_item_subgraph_connected"
+            },
+            {
+              "check": "dimension_facet_subgraph_coverage",
+              "status": "connected_dimension_subgraph",
+              "severity": "info",
+              "item": null,
+              "dimension": 2,
+              "n_active": 24,
+              "n_components": 1,
+              "note": "dimension_specific_person_rater_item_subgraph_connected"
+            }
+          ]
+        },
+        "fit_attempted": true,
+        "fit_succeeded": true,
+        "fit_object": "MGMFRMFit",
+        "public_fit": true,
+        "experimental_public": true,
+        "fit_ready": true,
+        "n_observations": 36,
+        "n_raw_parameters": 22,
+        "n_direct_parameters": 24,
+        "n_chains": 1,
+        "draws_per_chain": 2,
+        "total_draws": 2,
+        "finite_logposterior": true,
+        "finite_direct_loglikelihood": true,
+        "finite_pointwise_loglikelihood": true,
+        "direct_constraints_passed": true,
+        "n_failed_direct_constraints": 0,
+        "fixed_q_diagnostic_rows_recorded": true,
+        "diagnostic_schema": "bayesianmgmfrm.mgmfrm_guarded_local_fit_diagnostics.v1",
+        "sampler_diagnostic_schema": "bayesianmgmfrm.mgmfrm_guarded_local_fit_sampler_diagnostics.v1",
+        "artifact_schema": "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1",
+        "artifact_content_hash_recorded": true,
+        "waic_recorded": true,
+        "waic_elpd": -39.759348693256015,
+        "sampler_flag": "sampler_warning",
+        "diagnostic_flag": "sampler_warning",
+        "convergence_claim_made": false,
+        "interpretation": "fit_diagnostics_shape_and_finiteness_recorded"
+      },
+      "public_revision_allowed": false,
+      "automatic_revision_allowed": false,
+      "public_claim_allowed": false,
+      "summary": {
+        "passed": true,
+        "candidate_validation_matches": true,
+        "fit_attempt_matches": true,
+        "fit_terms_finite": true,
+        "direct_constraints_passed": true,
+        "fixed_q_rows_recorded": true,
+        "invalid_candidate_blocked_before_fit": false,
+        "candidate_fit_attempted": true,
+        "candidate_fit_succeeded": true,
+        "declared_fit_succeeded": true,
+        "candidate_convergence_claim_made": false,
+        "interpretation": "diagnostic_linkage_only_no_public_q_revision"
+      }
+    },
+    {
+      "scenario": "extra_loading_candidate_fit_linked",
+      "source_grid_scenario": "extra_loading_removed_as_candidate",
+      "source_action": "flag_extra_loading_candidate",
+      "dimensions": 2,
+      "n_items": 3,
+      "n_observations": 36,
+      "declared_fit": {
+        "role": "declared_q",
+        "q_matrix": [
+          [
+            true,
+            false
+          ],
+          [
+            false,
+            true
+          ],
+          [
+            true,
+            true
+          ]
+        ],
+        "q_matrix_validation": {
+          "passed": true,
+          "n_rows": 12,
+          "error_checks": [],
+          "warning_checks": [
+            "cross_loading_policy"
+          ],
+          "rows": [
+            {
+              "check": "family_applicability",
+              "status": "applicable",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "q_matrix_required_for_mgmfrm"
+            },
+            {
+              "check": "matrix_schema",
+              "status": "matrix",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "two_dimensional_matrix_supplied"
+            },
+            {
+              "check": "binary_mask_schema",
+              "status": "binary_bool_or_zero_one",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "q_matrix_entries_are_binary_mask_values"
+            },
+            {
+              "check": "shape",
+              "status": "matches_items_by_dimensions",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "one_row_per_item_one_column_per_dimension"
+            },
+            {
+              "check": "empty_item_rows",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 3,
+              "n_components": null,
+              "note": "each_item_loads_on_at_least_one_dimension"
+            },
+            {
+              "check": "empty_dimensions",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "each_dimension_has_at_least_one_item"
+            },
+            {
+              "check": "duplicate_dimension_columns",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "dimension_columns_have_distinct_item_masks"
+            },
+            {
+              "check": "cross_loading_policy",
+              "status": "fixed_confirmatory_cross_loadings",
+              "severity": "warning",
+              "item": null,
+              "dimension": null,
+              "n_active": 1,
+              "n_components": null,
+              "note": "cross_loadings_are_fixed_confirmatory_not_exploratory"
+            },
+            {
+              "check": "positive_loading_identification",
+              "status": "single_loading_anchor_present",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "positive_loadings_have_simple_anchor_items"
+            },
+            {
+              "check": "dimension_item_graph_components",
+              "status": "recorded",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": 1,
+              "note": "q_item_dimension_graph_recorded_for_review"
+            },
+            {
+              "check": "dimension_facet_subgraph_coverage",
+              "status": "connected_dimension_subgraph",
+              "severity": "info",
+              "item": null,
+              "dimension": 1,
+              "n_active": 24,
+              "n_components": 1,
+              "note": "dimension_specific_person_rater_item_subgraph_connected"
+            },
+            {
+              "check": "dimension_facet_subgraph_coverage",
+              "status": "connected_dimension_subgraph",
+              "severity": "info",
+              "item": null,
+              "dimension": 2,
+              "n_active": 24,
+              "n_components": 1,
+              "note": "dimension_specific_person_rater_item_subgraph_connected"
+            }
+          ]
+        },
+        "fit_attempted": true,
+        "fit_succeeded": true,
+        "fit_object": "MGMFRMFit",
+        "public_fit": true,
+        "experimental_public": true,
+        "fit_ready": true,
+        "n_observations": 36,
+        "n_raw_parameters": 22,
+        "n_direct_parameters": 24,
+        "n_chains": 1,
+        "draws_per_chain": 2,
+        "total_draws": 2,
+        "finite_logposterior": true,
+        "finite_direct_loglikelihood": true,
+        "finite_pointwise_loglikelihood": true,
+        "direct_constraints_passed": true,
+        "n_failed_direct_constraints": 0,
+        "fixed_q_diagnostic_rows_recorded": true,
+        "diagnostic_schema": "bayesianmgmfrm.mgmfrm_guarded_local_fit_diagnostics.v1",
+        "sampler_diagnostic_schema": "bayesianmgmfrm.mgmfrm_guarded_local_fit_sampler_diagnostics.v1",
+        "artifact_schema": "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1",
+        "artifact_content_hash_recorded": true,
+        "waic_recorded": true,
+        "waic_elpd": -39.76301268873055,
+        "sampler_flag": "sampler_warning",
+        "diagnostic_flag": "sampler_warning",
+        "convergence_claim_made": false,
+        "interpretation": "fit_diagnostics_shape_and_finiteness_recorded"
+      },
+      "candidate_fit": {
+        "role": "candidate_q",
+        "q_matrix": [
+          [
+            true,
+            false
+          ],
+          [
+            false,
+            true
+          ],
+          [
+            true,
+            false
+          ]
+        ],
+        "q_matrix_validation": {
+          "passed": true,
+          "n_rows": 12,
+          "error_checks": [],
+          "warning_checks": [],
+          "rows": [
+            {
+              "check": "family_applicability",
+              "status": "applicable",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "q_matrix_required_for_mgmfrm"
+            },
+            {
+              "check": "matrix_schema",
+              "status": "matrix",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "two_dimensional_matrix_supplied"
+            },
+            {
+              "check": "binary_mask_schema",
+              "status": "binary_bool_or_zero_one",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "q_matrix_entries_are_binary_mask_values"
+            },
+            {
+              "check": "shape",
+              "status": "matches_items_by_dimensions",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "one_row_per_item_one_column_per_dimension"
+            },
+            {
+              "check": "empty_item_rows",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 3,
+              "n_components": null,
+              "note": "each_item_loads_on_at_least_one_dimension"
+            },
+            {
+              "check": "empty_dimensions",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "each_dimension_has_at_least_one_item"
+            },
+            {
+              "check": "duplicate_dimension_columns",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "dimension_columns_have_distinct_item_masks"
+            },
+            {
+              "check": "cross_loading_policy",
+              "status": "simple_structure",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 0,
+              "n_components": null,
+              "note": "simple_structure_q_matrix"
+            },
+            {
+              "check": "positive_loading_identification",
+              "status": "single_loading_anchor_present",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "positive_loadings_have_simple_anchor_items"
+            },
+            {
+              "check": "dimension_item_graph_components",
+              "status": "recorded",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": 2,
+              "note": "q_item_dimension_graph_recorded_for_review"
+            },
+            {
+              "check": "dimension_facet_subgraph_coverage",
+              "status": "connected_dimension_subgraph",
+              "severity": "info",
+              "item": null,
+              "dimension": 1,
+              "n_active": 24,
+              "n_components": 1,
+              "note": "dimension_specific_person_rater_item_subgraph_connected"
+            },
+            {
+              "check": "dimension_facet_subgraph_coverage",
+              "status": "connected_dimension_subgraph",
+              "severity": "info",
+              "item": null,
+              "dimension": 2,
+              "n_active": 12,
+              "n_components": 1,
+              "note": "dimension_specific_person_rater_item_subgraph_connected"
+            }
+          ]
+        },
+        "fit_attempted": true,
+        "fit_succeeded": true,
+        "fit_object": "MGMFRMFit",
+        "public_fit": true,
+        "experimental_public": true,
+        "fit_ready": true,
+        "n_observations": 36,
+        "n_raw_parameters": 21,
+        "n_direct_parameters": 23,
+        "n_chains": 1,
+        "draws_per_chain": 2,
+        "total_draws": 2,
+        "finite_logposterior": true,
+        "finite_direct_loglikelihood": true,
+        "finite_pointwise_loglikelihood": true,
+        "direct_constraints_passed": true,
+        "n_failed_direct_constraints": 0,
+        "fixed_q_diagnostic_rows_recorded": true,
+        "diagnostic_schema": "bayesianmgmfrm.mgmfrm_guarded_local_fit_diagnostics.v1",
+        "sampler_diagnostic_schema": "bayesianmgmfrm.mgmfrm_guarded_local_fit_sampler_diagnostics.v1",
+        "artifact_schema": "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1",
+        "artifact_content_hash_recorded": true,
+        "waic_recorded": true,
+        "waic_elpd": -39.80311270073948,
+        "sampler_flag": "sampler_warning",
+        "diagnostic_flag": "sampler_warning",
+        "convergence_claim_made": false,
+        "interpretation": "fit_diagnostics_shape_and_finiteness_recorded"
+      },
+      "public_revision_allowed": false,
+      "automatic_revision_allowed": false,
+      "public_claim_allowed": false,
+      "summary": {
+        "passed": true,
+        "candidate_validation_matches": true,
+        "fit_attempt_matches": true,
+        "fit_terms_finite": true,
+        "direct_constraints_passed": true,
+        "fixed_q_rows_recorded": true,
+        "invalid_candidate_blocked_before_fit": false,
+        "candidate_fit_attempted": true,
+        "candidate_fit_succeeded": true,
+        "declared_fit_succeeded": true,
+        "candidate_convergence_claim_made": false,
+        "interpretation": "diagnostic_linkage_only_no_public_q_revision"
+      }
+    },
+    {
+      "scenario": "false_positive_candidate_fit_diagnostic_only",
+      "source_grid_scenario": "high_noise_false_add_not_promoted",
+      "source_action": "flag_noisy_candidate_manual_review",
+      "dimensions": 2,
+      "n_items": 3,
+      "n_observations": 36,
+      "declared_fit": {
+        "role": "declared_q",
+        "q_matrix": [
+          [
+            true,
+            false
+          ],
+          [
+            false,
+            true
+          ],
+          [
+            true,
+            false
+          ]
+        ],
+        "q_matrix_validation": {
+          "passed": true,
+          "n_rows": 12,
+          "error_checks": [],
+          "warning_checks": [],
+          "rows": [
+            {
+              "check": "family_applicability",
+              "status": "applicable",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "q_matrix_required_for_mgmfrm"
+            },
+            {
+              "check": "matrix_schema",
+              "status": "matrix",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "two_dimensional_matrix_supplied"
+            },
+            {
+              "check": "binary_mask_schema",
+              "status": "binary_bool_or_zero_one",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "q_matrix_entries_are_binary_mask_values"
+            },
+            {
+              "check": "shape",
+              "status": "matches_items_by_dimensions",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "one_row_per_item_one_column_per_dimension"
+            },
+            {
+              "check": "empty_item_rows",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 3,
+              "n_components": null,
+              "note": "each_item_loads_on_at_least_one_dimension"
+            },
+            {
+              "check": "empty_dimensions",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "each_dimension_has_at_least_one_item"
+            },
+            {
+              "check": "duplicate_dimension_columns",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "dimension_columns_have_distinct_item_masks"
+            },
+            {
+              "check": "cross_loading_policy",
+              "status": "simple_structure",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 0,
+              "n_components": null,
+              "note": "simple_structure_q_matrix"
+            },
+            {
+              "check": "positive_loading_identification",
+              "status": "single_loading_anchor_present",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "positive_loadings_have_simple_anchor_items"
+            },
+            {
+              "check": "dimension_item_graph_components",
+              "status": "recorded",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": 2,
+              "note": "q_item_dimension_graph_recorded_for_review"
+            },
+            {
+              "check": "dimension_facet_subgraph_coverage",
+              "status": "connected_dimension_subgraph",
+              "severity": "info",
+              "item": null,
+              "dimension": 1,
+              "n_active": 24,
+              "n_components": 1,
+              "note": "dimension_specific_person_rater_item_subgraph_connected"
+            },
+            {
+              "check": "dimension_facet_subgraph_coverage",
+              "status": "connected_dimension_subgraph",
+              "severity": "info",
+              "item": null,
+              "dimension": 2,
+              "n_active": 12,
+              "n_components": 1,
+              "note": "dimension_specific_person_rater_item_subgraph_connected"
+            }
+          ]
+        },
+        "fit_attempted": true,
+        "fit_succeeded": true,
+        "fit_object": "MGMFRMFit",
+        "public_fit": true,
+        "experimental_public": true,
+        "fit_ready": true,
+        "n_observations": 36,
+        "n_raw_parameters": 21,
+        "n_direct_parameters": 23,
+        "n_chains": 1,
+        "draws_per_chain": 2,
+        "total_draws": 2,
+        "finite_logposterior": true,
+        "finite_direct_loglikelihood": true,
+        "finite_pointwise_loglikelihood": true,
+        "direct_constraints_passed": true,
+        "n_failed_direct_constraints": 0,
+        "fixed_q_diagnostic_rows_recorded": true,
+        "diagnostic_schema": "bayesianmgmfrm.mgmfrm_guarded_local_fit_diagnostics.v1",
+        "sampler_diagnostic_schema": "bayesianmgmfrm.mgmfrm_guarded_local_fit_sampler_diagnostics.v1",
+        "artifact_schema": "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1",
+        "artifact_content_hash_recorded": true,
+        "waic_recorded": true,
+        "waic_elpd": -40.13135251260661,
+        "sampler_flag": "sampler_warning",
+        "diagnostic_flag": "sampler_warning",
+        "convergence_claim_made": false,
+        "interpretation": "fit_diagnostics_shape_and_finiteness_recorded"
+      },
+      "candidate_fit": {
+        "role": "candidate_q",
+        "q_matrix": [
+          [
+            true,
+            false
+          ],
+          [
+            false,
+            true
+          ],
+          [
+            true,
+            true
+          ]
+        ],
+        "q_matrix_validation": {
+          "passed": true,
+          "n_rows": 12,
+          "error_checks": [],
+          "warning_checks": [
+            "cross_loading_policy"
+          ],
+          "rows": [
+            {
+              "check": "family_applicability",
+              "status": "applicable",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "q_matrix_required_for_mgmfrm"
+            },
+            {
+              "check": "matrix_schema",
+              "status": "matrix",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "two_dimensional_matrix_supplied"
+            },
+            {
+              "check": "binary_mask_schema",
+              "status": "binary_bool_or_zero_one",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "q_matrix_entries_are_binary_mask_values"
+            },
+            {
+              "check": "shape",
+              "status": "matches_items_by_dimensions",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "one_row_per_item_one_column_per_dimension"
+            },
+            {
+              "check": "empty_item_rows",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 3,
+              "n_components": null,
+              "note": "each_item_loads_on_at_least_one_dimension"
+            },
+            {
+              "check": "empty_dimensions",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "each_dimension_has_at_least_one_item"
+            },
+            {
+              "check": "duplicate_dimension_columns",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "dimension_columns_have_distinct_item_masks"
+            },
+            {
+              "check": "cross_loading_policy",
+              "status": "fixed_confirmatory_cross_loadings",
+              "severity": "warning",
+              "item": null,
+              "dimension": null,
+              "n_active": 1,
+              "n_components": null,
+              "note": "cross_loadings_are_fixed_confirmatory_not_exploratory"
+            },
+            {
+              "check": "positive_loading_identification",
+              "status": "single_loading_anchor_present",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "positive_loadings_have_simple_anchor_items"
+            },
+            {
+              "check": "dimension_item_graph_components",
+              "status": "recorded",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": 1,
+              "note": "q_item_dimension_graph_recorded_for_review"
+            },
+            {
+              "check": "dimension_facet_subgraph_coverage",
+              "status": "connected_dimension_subgraph",
+              "severity": "info",
+              "item": null,
+              "dimension": 1,
+              "n_active": 24,
+              "n_components": 1,
+              "note": "dimension_specific_person_rater_item_subgraph_connected"
+            },
+            {
+              "check": "dimension_facet_subgraph_coverage",
+              "status": "connected_dimension_subgraph",
+              "severity": "info",
+              "item": null,
+              "dimension": 2,
+              "n_active": 24,
+              "n_components": 1,
+              "note": "dimension_specific_person_rater_item_subgraph_connected"
+            }
+          ]
+        },
+        "fit_attempted": true,
+        "fit_succeeded": true,
+        "fit_object": "MGMFRMFit",
+        "public_fit": true,
+        "experimental_public": true,
+        "fit_ready": true,
+        "n_observations": 36,
+        "n_raw_parameters": 22,
+        "n_direct_parameters": 24,
+        "n_chains": 1,
+        "draws_per_chain": 2,
+        "total_draws": 2,
+        "finite_logposterior": true,
+        "finite_direct_loglikelihood": true,
+        "finite_pointwise_loglikelihood": true,
+        "direct_constraints_passed": true,
+        "n_failed_direct_constraints": 0,
+        "fixed_q_diagnostic_rows_recorded": true,
+        "diagnostic_schema": "bayesianmgmfrm.mgmfrm_guarded_local_fit_diagnostics.v1",
+        "sampler_diagnostic_schema": "bayesianmgmfrm.mgmfrm_guarded_local_fit_sampler_diagnostics.v1",
+        "artifact_schema": "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1",
+        "artifact_content_hash_recorded": true,
+        "waic_recorded": true,
+        "waic_elpd": -40.89901529465382,
+        "sampler_flag": "sampler_warning",
+        "diagnostic_flag": "sampler_warning",
+        "convergence_claim_made": false,
+        "interpretation": "fit_diagnostics_shape_and_finiteness_recorded"
+      },
+      "public_revision_allowed": false,
+      "automatic_revision_allowed": false,
+      "public_claim_allowed": false,
+      "summary": {
+        "passed": true,
+        "candidate_validation_matches": true,
+        "fit_attempt_matches": true,
+        "fit_terms_finite": true,
+        "direct_constraints_passed": true,
+        "fixed_q_rows_recorded": true,
+        "invalid_candidate_blocked_before_fit": false,
+        "candidate_fit_attempted": true,
+        "candidate_fit_succeeded": true,
+        "declared_fit_succeeded": true,
+        "candidate_convergence_claim_made": false,
+        "interpretation": "diagnostic_linkage_only_no_public_q_revision"
+      }
+    },
+    {
+      "scenario": "invalid_duplicate_dimension_candidate_blocked_before_fit",
+      "source_grid_scenario": "duplicate_dimension_false_add_blocked",
+      "source_action": "block_invalid_candidate_revision",
+      "dimensions": 2,
+      "n_items": 2,
+      "n_observations": 24,
+      "declared_fit": {
+        "role": "declared_q",
+        "q_matrix": [
+          [
+            true,
+            false
+          ],
+          [
+            false,
+            true
+          ]
+        ],
+        "q_matrix_validation": {
+          "passed": true,
+          "n_rows": 12,
+          "error_checks": [],
+          "warning_checks": [],
+          "rows": [
+            {
+              "check": "family_applicability",
+              "status": "applicable",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "q_matrix_required_for_mgmfrm"
+            },
+            {
+              "check": "matrix_schema",
+              "status": "matrix",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "two_dimensional_matrix_supplied"
+            },
+            {
+              "check": "binary_mask_schema",
+              "status": "binary_bool_or_zero_one",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "q_matrix_entries_are_binary_mask_values"
+            },
+            {
+              "check": "shape",
+              "status": "matches_items_by_dimensions",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "one_row_per_item_one_column_per_dimension"
+            },
+            {
+              "check": "empty_item_rows",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "each_item_loads_on_at_least_one_dimension"
+            },
+            {
+              "check": "empty_dimensions",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "each_dimension_has_at_least_one_item"
+            },
+            {
+              "check": "duplicate_dimension_columns",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "dimension_columns_have_distinct_item_masks"
+            },
+            {
+              "check": "cross_loading_policy",
+              "status": "simple_structure",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 0,
+              "n_components": null,
+              "note": "simple_structure_q_matrix"
+            },
+            {
+              "check": "positive_loading_identification",
+              "status": "single_loading_anchor_present",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "positive_loadings_have_simple_anchor_items"
+            },
+            {
+              "check": "dimension_item_graph_components",
+              "status": "recorded",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": 2,
+              "note": "q_item_dimension_graph_recorded_for_review"
+            },
+            {
+              "check": "dimension_facet_subgraph_coverage",
+              "status": "connected_dimension_subgraph",
+              "severity": "info",
+              "item": null,
+              "dimension": 1,
+              "n_active": 12,
+              "n_components": 1,
+              "note": "dimension_specific_person_rater_item_subgraph_connected"
+            },
+            {
+              "check": "dimension_facet_subgraph_coverage",
+              "status": "connected_dimension_subgraph",
+              "severity": "info",
+              "item": null,
+              "dimension": 2,
+              "n_active": 12,
+              "n_components": 1,
+              "note": "dimension_specific_person_rater_item_subgraph_connected"
+            }
+          ]
+        },
+        "fit_attempted": true,
+        "fit_succeeded": true,
+        "fit_object": "MGMFRMFit",
+        "public_fit": true,
+        "experimental_public": true,
+        "fit_ready": true,
+        "n_observations": 24,
+        "n_raw_parameters": 18,
+        "n_direct_parameters": 20,
+        "n_chains": 1,
+        "draws_per_chain": 2,
+        "total_draws": 2,
+        "finite_logposterior": true,
+        "finite_direct_loglikelihood": true,
+        "finite_pointwise_loglikelihood": true,
+        "direct_constraints_passed": true,
+        "n_failed_direct_constraints": 0,
+        "fixed_q_diagnostic_rows_recorded": true,
+        "diagnostic_schema": "bayesianmgmfrm.mgmfrm_guarded_local_fit_diagnostics.v1",
+        "sampler_diagnostic_schema": "bayesianmgmfrm.mgmfrm_guarded_local_fit_sampler_diagnostics.v1",
+        "artifact_schema": "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1",
+        "artifact_content_hash_recorded": true,
+        "waic_recorded": true,
+        "waic_elpd": -27.00591789862625,
+        "sampler_flag": "sampler_warning",
+        "diagnostic_flag": "sampler_warning",
+        "convergence_claim_made": false,
+        "interpretation": "fit_diagnostics_shape_and_finiteness_recorded"
+      },
+      "candidate_fit": {
+        "role": "candidate_q",
+        "q_matrix": [
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            true
+          ]
+        ],
+        "q_matrix_validation": {
+          "passed": false,
+          "n_rows": 12,
+          "error_checks": [
+            "duplicate_dimension_columns"
+          ],
+          "warning_checks": [
+            "cross_loading_policy",
+            "positive_loading_identification"
+          ],
+          "rows": [
+            {
+              "check": "family_applicability",
+              "status": "applicable",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "q_matrix_required_for_mgmfrm"
+            },
+            {
+              "check": "matrix_schema",
+              "status": "matrix",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "two_dimensional_matrix_supplied"
+            },
+            {
+              "check": "binary_mask_schema",
+              "status": "binary_bool_or_zero_one",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "q_matrix_entries_are_binary_mask_values"
+            },
+            {
+              "check": "shape",
+              "status": "matches_items_by_dimensions",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": null,
+              "note": "one_row_per_item_one_column_per_dimension"
+            },
+            {
+              "check": "empty_item_rows",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "each_item_loads_on_at_least_one_dimension"
+            },
+            {
+              "check": "empty_dimensions",
+              "status": "passed",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "each_dimension_has_at_least_one_item"
+            },
+            {
+              "check": "duplicate_dimension_columns",
+              "status": "aliased_columns",
+              "severity": "error",
+              "item": null,
+              "dimension": null,
+              "n_active": 1,
+              "n_components": null,
+              "note": "duplicate_q_columns_alias_dimensions"
+            },
+            {
+              "check": "cross_loading_policy",
+              "status": "fixed_confirmatory_cross_loadings",
+              "severity": "warning",
+              "item": null,
+              "dimension": null,
+              "n_active": 2,
+              "n_components": null,
+              "note": "cross_loadings_are_fixed_confirmatory_not_exploratory"
+            },
+            {
+              "check": "positive_loading_identification",
+              "status": "no_single_loading_anchor",
+              "severity": "warning",
+              "item": null,
+              "dimension": null,
+              "n_active": 0,
+              "n_components": null,
+              "note": "dimension_has_only_cross_loading_items_review_interpretation"
+            },
+            {
+              "check": "dimension_item_graph_components",
+              "status": "recorded",
+              "severity": "info",
+              "item": null,
+              "dimension": null,
+              "n_active": null,
+              "n_components": 1,
+              "note": "q_item_dimension_graph_recorded_for_review"
+            },
+            {
+              "check": "dimension_facet_subgraph_coverage",
+              "status": "connected_dimension_subgraph",
+              "severity": "info",
+              "item": null,
+              "dimension": 1,
+              "n_active": 24,
+              "n_components": 1,
+              "note": "dimension_specific_person_rater_item_subgraph_connected"
+            },
+            {
+              "check": "dimension_facet_subgraph_coverage",
+              "status": "connected_dimension_subgraph",
+              "severity": "info",
+              "item": null,
+              "dimension": 2,
+              "n_active": 24,
+              "n_components": 1,
+              "note": "dimension_specific_person_rater_item_subgraph_connected"
+            }
+          ]
+        },
+        "fit_attempted": false,
+        "fit_succeeded": false,
+        "fit_object": null,
+        "public_fit": false,
+        "experimental_public": false,
+        "fit_ready": false,
+        "n_observations": 24,
+        "n_raw_parameters": 0,
+        "n_direct_parameters": 0,
+        "finite_logposterior": false,
+        "finite_direct_loglikelihood": false,
+        "finite_pointwise_loglikelihood": false,
+        "direct_constraints_passed": false,
+        "fixed_q_diagnostic_rows_recorded": false,
+        "diagnostic_schema": null,
+        "sampler_diagnostic_schema": null,
+        "artifact_schema": null,
+        "artifact_content_hash_recorded": false,
+        "waic_recorded": false,
+        "waic_elpd": null,
+        "sampler_flag": null,
+        "diagnostic_flag": null,
+        "convergence_claim_made": false,
+        "interpretation": "candidate_blocked_before_fit_by_q_validation"
+      },
+      "public_revision_allowed": false,
+      "automatic_revision_allowed": false,
+      "public_claim_allowed": false,
+      "summary": {
+        "passed": true,
+        "candidate_validation_matches": true,
+        "fit_attempt_matches": true,
+        "fit_terms_finite": true,
+        "direct_constraints_passed": true,
+        "fixed_q_rows_recorded": true,
+        "invalid_candidate_blocked_before_fit": true,
+        "candidate_fit_attempted": false,
+        "candidate_fit_succeeded": false,
+        "declared_fit_succeeded": true,
+        "candidate_convergence_claim_made": false,
+        "interpretation": "diagnostic_linkage_only_no_public_q_revision"
+      }
+    }
+  ],
+  "decision_rows": [
+    {
+      "decision": "link_valid_candidate_q_to_guarded_fit_diagnostics",
+      "status": "recorded",
+      "public_claim_allowed": false,
+      "rationale": "valid_candidate_masks_can_reach_fit_diagnostics_without_becoming_revision_claims"
+    },
+    {
+      "decision": "block_invalid_candidate_q_before_fit",
+      "status": "enforced",
+      "public_claim_allowed": false,
+      "rationale": "candidate_masks_must_pass_fixed_q_validation_before_any_fit"
+    },
+    {
+      "decision": "block_q_revision_from_short_fit_diagnostics",
+      "status": "enforced",
+      "public_claim_allowed": false,
+      "rationale": "short_local_fit_finiteness_does_not_establish_construct_validity_or_cross_validated_revision"
+    }
+  ],
+  "decision_record": {
+    "real_fit_diagnostic_linkage_recorded": true,
+    "candidate_suggestions_allowed": true,
+    "automatic_q_revision_allowed": false,
+    "public_q_revision_claim_allowed": false,
+    "convergence_claim_allowed": false,
+    "public_exposure_support": "q_candidate_real_fit_diagnostic_linkage_recorded",
+    "interpretation": "valid_candidate_q_masks_link_to_fit_diagnostics_but_revision_claims_remain_blocked",
+    "required_followup": "cross_validated_q_revision_policy_for_q_candidates"
+  },
+  "summary": {
+    "passed": true,
+    "publication_or_registration_action": false,
+    "local_only": true,
+    "all_input_artifacts_present": true,
+    "all_expected_schemas": true,
+    "all_input_summaries_passed": true,
+    "empirical_q_matrix_recovery_simulation_grid_passed": true,
+    "all_linkage_scenarios_checked": true,
+    "candidate_q_validation_checked": true,
+    "all_fit_attempts_succeeded": true,
+    "all_fit_terms_finite": true,
+    "all_direct_constraints_passed": true,
+    "fixed_q_diagnostic_rows_recorded": true,
+    "invalid_candidates_blocked_before_fit": true,
+    "no_automatic_q_revision": true,
+    "no_public_q_revision_claim": true,
+    "no_mcmc_convergence_claim": true,
+    "n_input_artifacts": 1,
+    "n_scenarios": 5,
+    "n_passed_scenarios": 5,
+    "n_candidate_fit_attempts": 4,
+    "n_candidate_fit_successes": 4,
+    "n_declared_fit_successes": 5,
+    "n_invalid_candidates_blocked_before_fit": 1,
+    "n_public_revisions_allowed": 0,
+    "n_automatic_revisions_allowed": 0,
+    "remaining_public_blockers": [
+      "cross_validated_q_revision_policy_missing",
+      "construct_validity_manual_review_missing"
+    ],
+    "recommendation": "use_candidate_q_real_fit_linkage_for_local_diagnostics_only",
+    "next_gate": "cross_validated_q_revision_policy_for_q_candidates"
+  }
+}

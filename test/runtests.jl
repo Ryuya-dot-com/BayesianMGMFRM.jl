@@ -3879,6 +3879,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         :require_mgmfrm_empirical_q_matrix_recovery_policy_passed])
     @test Bool(thresholds[
         :require_mgmfrm_empirical_q_matrix_recovery_simulation_grid_passed])
+    @test Bool(thresholds[
+        :require_mgmfrm_q_candidate_real_fit_diagnostic_linkage_passed])
     @test Bool(thresholds[:require_mgmfrm_guarded_fit_method_wiring_passed])
     @test Bool(thresholds[:require_mgmfrm_guarded_fit_validation_grid_passed])
     @test Bool(thresholds[:require_mgmfrm_guarded_fit_api_dry_run_passed])
@@ -3951,6 +3953,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
             "test/fixtures/mgmfrm_empirical_q_matrix_recovery_policy.json",
         "mgmfrm_empirical_q_matrix_recovery_simulation_grid" =>
             "test/fixtures/mgmfrm_empirical_q_matrix_recovery_simulation_grid.json",
+        "mgmfrm_q_candidate_real_fit_diagnostic_linkage" =>
+            "test/fixtures/mgmfrm_q_candidate_real_fit_diagnostic_linkage.json",
         "mgmfrm_guarded_fit_method_wiring" =>
             "test/fixtures/mgmfrm_guarded_fit_method_wiring.json",
         "mgmfrm_guarded_fit_validation_grid" =>
@@ -3991,7 +3995,7 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     end
 
     code_doc_records = fixture[:code_doc_records]
-    @test length(code_doc_records) == 32
+    @test length(code_doc_records) == 33
     @test all(row -> Bool(row[:exists]), code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_gmfrm_full_paper_reproduction_archive.jl",
@@ -4007,6 +4011,9 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_mgmfrm_empirical_q_matrix_recovery_simulation_grid.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) ==
+        "scripts/generate_mgmfrm_q_candidate_real_fit_diagnostic_linkage.jl",
         code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_mgmfrm_guarded_fit_method_wiring.jl",
@@ -4043,8 +4050,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     end
 
     full_commands = fixture[:full_regeneration_commands]
-    @test length(full_commands) == 38
-    @test [Int(row[:step]) for row in full_commands] == collect(1:38)
+    @test length(full_commands) == 39
+    @test [Int(row[:step]) for row in full_commands] == collect(1:39)
     @test all(row -> Bool(row[:local_only]), full_commands)
     @test any(row -> String(row[:artifact]) ==
         "mgmfrm_report_shape_simulation_grid", full_commands)
@@ -4054,6 +4061,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         "mgmfrm_empirical_q_matrix_recovery_policy", full_commands)
     @test any(row -> String(row[:artifact]) ==
         "mgmfrm_empirical_q_matrix_recovery_simulation_grid", full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "mgmfrm_q_candidate_real_fit_diagnostic_linkage", full_commands)
     @test any(row -> String(row[:artifact]) ==
         "prediction_target_and_model_weight_policy", full_commands)
     @test String(full_commands[end - 3][:artifact]) ==
@@ -4119,6 +4128,7 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     @test Bool(summary[:mgmfrm_empirical_q_matrix_recovery_policy_passed])
     @test Bool(summary[
         :mgmfrm_empirical_q_matrix_recovery_simulation_grid_passed])
+    @test Bool(summary[:mgmfrm_q_candidate_real_fit_diagnostic_linkage_passed])
     @test Bool(summary[:mgmfrm_guarded_fit_method_wiring_passed])
     @test Bool(summary[:mgmfrm_guarded_fit_validation_grid_passed])
     @test Bool(summary[:mgmfrm_guarded_fit_api_dry_run_passed])
@@ -4358,6 +4368,8 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     @test Bool(thresholds[:require_mgmfrm_sparse_recovery_grid_passed])
     @test Bool(thresholds[
         :require_mgmfrm_empirical_q_matrix_recovery_simulation_grid_passed])
+    @test Bool(thresholds[
+        :require_mgmfrm_q_candidate_real_fit_diagnostic_linkage_passed])
     @test Bool(thresholds[:require_full_paper_reproduction_archive_passed])
     @test Int(thresholds[:require_minimum_total_evidence_cells]) == 60
     @test Bool(thresholds[:require_no_publication_commands])
@@ -4389,6 +4401,8 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
             "test/fixtures/mgmfrm_sparse_recovery_grid.json",
         "mgmfrm_empirical_q_matrix_recovery_simulation_grid" =>
             "test/fixtures/mgmfrm_empirical_q_matrix_recovery_simulation_grid.json",
+        "mgmfrm_q_candidate_real_fit_diagnostic_linkage" =>
+            "test/fixtures/mgmfrm_q_candidate_real_fit_diagnostic_linkage.json",
         "full_paper_reproduction_archive" =>
             "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
     )
@@ -4416,7 +4430,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     evidence_rows = fixture[:evidence_rows]
     @test length(evidence_rows) == length(input_artifacts)
     @test all(row -> String(row[:status]) == "passed", evidence_rows)
-    @test Int(sum(Int(row[:n_evidence_cells]) for row in evidence_rows)) == 164
+    @test Int(sum(Int(row[:n_evidence_cells]) for row in evidence_rows)) == 170
     @test any(row -> String(row[:gate]) == "prior_likelihood_sensitivity_grid" &&
         Int(row[:n_evidence_cells]) == 45, evidence_rows)
     @test any(row -> String(row[:gate]) ==
@@ -4427,6 +4441,11 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
         Int(row[:n_evidence_cells]) == 12 &&
         String(row[:key_check]) ==
             "mgmfrm_empirical_q_matrix_recovery_simulation", evidence_rows)
+    @test any(row -> String(row[:gate]) ==
+        "mgmfrm_q_candidate_real_fit_diagnostic_linkage" &&
+        Int(row[:n_evidence_cells]) == 5 &&
+        String(row[:key_check]) ==
+            "mgmfrm_q_candidate_real_fit_diagnostic_linkage", evidence_rows)
 
     decisions = fixture[:claim_decision_rows]
     @test length(decisions) == 4
@@ -4463,7 +4482,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     @test Bool(summary[:all_primary_checks_passed])
     @test Int(summary[:n_input_artifacts]) == length(input_artifacts)
     @test Int(summary[:n_evidence_rows]) == length(evidence_rows)
-    @test Int(summary[:total_evidence_cells]) == 164
+    @test Int(summary[:total_evidence_cells]) == 170
     @test Int(summary[:minimum_required_evidence_cells]) == 60
     @test Bool(summary[:scalar_fit_validation_grid_passed])
     @test Bool(summary[:posterior_predictive_grid_passed])
@@ -4478,6 +4497,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     @test Bool(summary[:mgmfrm_sparse_recovery_grid_passed])
     @test Bool(summary[
         :mgmfrm_empirical_q_matrix_recovery_simulation_grid_passed])
+    @test Bool(summary[:mgmfrm_q_candidate_real_fit_diagnostic_linkage_passed])
     @test Bool(summary[:full_paper_reproduction_archive_passed])
     @test Bool(summary[:manuscript_claims_allowed]) == false
     @test Bool(summary[:no_publication_commands])
@@ -5170,8 +5190,8 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(manuscript_grid[:summary][:all_expected_schemas])
     @test Bool(manuscript_grid[:summary][:all_input_summaries_passed])
     @test Bool(manuscript_grid[:summary][:all_primary_checks_passed])
-    @test Int(manuscript_grid[:summary][:n_input_artifacts]) == 13
-    @test Int(manuscript_grid[:summary][:total_evidence_cells]) == 164
+    @test Int(manuscript_grid[:summary][:n_input_artifacts]) == 14
+    @test Int(manuscript_grid[:summary][:total_evidence_cells]) == 170
     @test Int(manuscript_grid[:summary][:minimum_required_evidence_cells]) == 60
     @test Bool(manuscript_grid[:summary][:prediction_target_and_model_weight_policy_passed])
     @test Bool(manuscript_grid[:summary][:full_paper_reproduction_archive_passed])
@@ -5190,9 +5210,9 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(full_archive[:summary][:all_external_sources_present])
     @test Bool(full_archive[:summary][:all_commands_local_only])
     @test Bool(full_archive[:summary][:no_publication_commands])
-    @test Int(full_archive[:summary][:n_fixture_artifacts]) == 38
-    @test Int(full_archive[:summary][:n_code_doc_records]) == 32
-    @test Int(full_archive[:summary][:n_full_regeneration_commands]) == 38
+    @test Int(full_archive[:summary][:n_fixture_artifacts]) == 39
+    @test Int(full_archive[:summary][:n_code_doc_records]) == 33
+    @test Int(full_archive[:summary][:n_full_regeneration_commands]) == 39
     @test Int(full_archive[:summary][:n_verification_commands]) == 4
     @test Bool(full_archive[:summary][:mgmfrm_report_shape_simulation_grid_passed])
     @test Bool(full_archive[:summary][:mgmfrm_q_matrix_validation_expansion_passed])
@@ -5200,6 +5220,8 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
         :mgmfrm_empirical_q_matrix_recovery_policy_passed])
     @test Bool(full_archive[:summary][
         :mgmfrm_empirical_q_matrix_recovery_simulation_grid_passed])
+    @test Bool(full_archive[:summary][
+        :mgmfrm_q_candidate_real_fit_diagnostic_linkage_passed])
     @test Bool(full_archive[:summary][:prediction_target_and_model_weight_policy_passed])
     @test Bool(full_archive[:summary][:manuscript_reproducibility_claims_supported])
     @test Int(full_archive[:summary][:n_blockers]) == 0
@@ -5397,6 +5419,7 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(summary[:mgmfrm_empirical_q_matrix_recovery_policy_passed])
     @test Bool(summary[
         :mgmfrm_empirical_q_matrix_recovery_simulation_grid_passed])
+    @test Bool(summary[:mgmfrm_q_candidate_real_fit_diagnostic_linkage_passed])
     @test Bool(summary[:prediction_target_and_model_weight_policy_passed])
     @test Bool(summary[:dff_estimand_validation_grid_passed])
     @test Bool(summary[:manuscript_scale_simulation_grid_passed])
@@ -6388,6 +6411,163 @@ function check_mgmfrm_empirical_q_matrix_recovery_simulation_grid_fixture(
         "use_q_recovery_simulation_grid_for_local_candidate_diagnostics_only"
     @test String(summary[:next_gate]) ==
         "real_fit_diagnostic_linkage_for_q_candidates"
+end
+
+function check_mgmfrm_q_candidate_real_fit_diagnostic_linkage_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_q_candidate_real_fit_diagnostic_linkage.v1"
+    @test String(fixture[:family]) == "mgmfrm"
+    @test String(fixture[:scope]) == "q_candidate_real_fit_diagnostic_linkage"
+    @test String(fixture[:status]) ==
+        "q_candidate_real_fit_diagnostic_linkage_recorded"
+    @test String(fixture[:decision]) ==
+        "keep_candidate_q_fit_linkage_diagnostic_only"
+    @test Bool(fixture[:public_fit])
+    @test Bool(fixture[:experimental_public])
+    @test Bool(fixture[:fit_ready])
+    @test Bool(fixture[:empirical_q_recovery_public]) == false
+    @test Bool(fixture[:publication_or_registration_action]) == false
+
+    protocol = fixture[:protocol]
+    thresholds = protocol[:thresholds]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_q_candidate_real_fit_diagnostic_linkage_v1"
+    @test String(protocol[:review_kind]) ==
+        "local_q_candidate_real_fit_diagnostic_linkage"
+    @test Bool(protocol[:publication_or_registration_action]) == false
+    @test Bool(protocol[:local_only])
+    @test String(protocol[:entrypoint]) == "fit(spec; experimental = true)"
+    @test String(protocol[:fit_kind]) ==
+        "guarded_confirmatory_mgmfrm_short_fit"
+    @test Bool(thresholds[:require_empirical_q_matrix_recovery_simulation_grid_passed])
+    @test Bool(thresholds[:require_all_linkage_scenarios_checked])
+    @test Bool(thresholds[:require_candidate_q_validation_checked])
+    @test Bool(thresholds[:require_all_fit_attempts_succeeded])
+    @test Bool(thresholds[:require_all_fit_terms_finite])
+    @test Bool(thresholds[:require_all_direct_constraints_passed])
+    @test Bool(thresholds[:require_fixed_q_diagnostic_rows_recorded])
+    @test Bool(thresholds[:require_invalid_candidates_blocked_before_fit])
+    @test Bool(thresholds[:require_no_automatic_q_revision])
+    @test Bool(thresholds[:require_no_public_q_revision_claim])
+    @test Bool(thresholds[:require_no_mcmc_convergence_claim])
+    @test Bool(thresholds[:require_no_publication_or_registration_action])
+
+    input_artifacts = fixture[:input_artifacts]
+    @test length(input_artifacts) == 1
+    input = only(input_artifacts)
+    @test String(input[:artifact]) ==
+        "empirical_q_matrix_recovery_simulation_grid"
+    @test String(input[:path]) ==
+        "test/fixtures/mgmfrm_empirical_q_matrix_recovery_simulation_grid.json"
+    @test Bool(input[:exists])
+    @test Bool(input[:schema_matches])
+    @test Bool(input[:summary_passed])
+    @test String(input[:sha256]) ==
+        file_sha256(joinpath(root, String(input[:path])))
+
+    rows = fixture[:scenario_rows]
+    @test length(rows) == 5
+    @test Set(String(row[:scenario]) for row in rows) == Set([
+        "retained_declared_q_fit_linked",
+        "missing_loading_candidate_fit_linked",
+        "extra_loading_candidate_fit_linked",
+        "false_positive_candidate_fit_diagnostic_only",
+        "invalid_duplicate_dimension_candidate_blocked_before_fit",
+    ])
+    @test all(row -> Bool(row[:summary][:passed]), rows)
+    @test all(row -> Bool(row[:public_revision_allowed]) == false, rows)
+    @test all(row -> Bool(row[:automatic_revision_allowed]) == false, rows)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, rows)
+    @test all(row -> Bool(row[:declared_fit][:fit_succeeded]), rows)
+    @test all(row -> Bool(row[:declared_fit][:finite_logposterior]) &&
+        Bool(row[:declared_fit][:finite_direct_loglikelihood]) &&
+        Bool(row[:declared_fit][:finite_pointwise_loglikelihood]) &&
+        Bool(row[:declared_fit][:direct_constraints_passed]) &&
+        Bool(row[:declared_fit][:fixed_q_diagnostic_rows_recorded]) &&
+        Bool(row[:declared_fit][:artifact_content_hash_recorded]) &&
+        Bool(row[:declared_fit][:waic_recorded]),
+        rows)
+    attempted = filter(row -> Bool(row[:candidate_fit][:fit_attempted]), rows)
+    @test length(attempted) == 4
+    @test all(row -> Bool(row[:candidate_fit][:fit_succeeded]) &&
+        Bool(row[:candidate_fit][:public_fit]) &&
+        Bool(row[:candidate_fit][:experimental_public]) &&
+        Bool(row[:candidate_fit][:fit_ready]) &&
+        Bool(row[:candidate_fit][:finite_logposterior]) &&
+        Bool(row[:candidate_fit][:finite_direct_loglikelihood]) &&
+        Bool(row[:candidate_fit][:finite_pointwise_loglikelihood]) &&
+        Bool(row[:candidate_fit][:direct_constraints_passed]) &&
+        Bool(row[:candidate_fit][:fixed_q_diagnostic_rows_recorded]) &&
+        Bool(row[:candidate_fit][:artifact_content_hash_recorded]) &&
+        Bool(row[:candidate_fit][:waic_recorded]) &&
+        String(row[:candidate_fit][:fit_object]) == "MGMFRMFit" &&
+        String(row[:candidate_fit][:diagnostic_schema]) ==
+            "bayesianmgmfrm.mgmfrm_guarded_local_fit_diagnostics.v1" &&
+        String(row[:candidate_fit][:sampler_diagnostic_schema]) ==
+            "bayesianmgmfrm.mgmfrm_guarded_local_fit_sampler_diagnostics.v1" &&
+        String(row[:candidate_fit][:artifact_schema]) ==
+            "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1",
+        attempted)
+    @test any(row -> String(row[:scenario]) ==
+        "false_positive_candidate_fit_diagnostic_only" &&
+        String(row[:source_action]) == "flag_noisy_candidate_manual_review" &&
+        Bool(row[:candidate_fit][:fit_succeeded]) &&
+        String(row[:summary][:interpretation]) ==
+            "diagnostic_linkage_only_no_public_q_revision",
+        rows)
+    blocked = only(row for row in rows if
+        String(row[:scenario]) ==
+            "invalid_duplicate_dimension_candidate_blocked_before_fit")
+    @test Bool(blocked[:candidate_fit][:q_matrix_validation][:passed]) == false
+    @test Bool(blocked[:candidate_fit][:fit_attempted]) == false
+    @test Bool(blocked[:summary][:invalid_candidate_blocked_before_fit])
+    @test "duplicate_dimension_columns" in
+        String.(blocked[:candidate_fit][:q_matrix_validation][:error_checks])
+
+    decision = fixture[:decision_record]
+    @test Bool(decision[:real_fit_diagnostic_linkage_recorded])
+    @test Bool(decision[:candidate_suggestions_allowed])
+    @test Bool(decision[:automatic_q_revision_allowed]) == false
+    @test Bool(decision[:public_q_revision_claim_allowed]) == false
+    @test Bool(decision[:convergence_claim_allowed]) == false
+    @test String(decision[:required_followup]) ==
+        "cross_validated_q_revision_policy_for_q_candidates"
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:empirical_q_matrix_recovery_simulation_grid_passed])
+    @test Bool(summary[:all_linkage_scenarios_checked])
+    @test Bool(summary[:candidate_q_validation_checked])
+    @test Bool(summary[:all_fit_attempts_succeeded])
+    @test Bool(summary[:all_fit_terms_finite])
+    @test Bool(summary[:all_direct_constraints_passed])
+    @test Bool(summary[:fixed_q_diagnostic_rows_recorded])
+    @test Bool(summary[:invalid_candidates_blocked_before_fit])
+    @test Bool(summary[:no_automatic_q_revision])
+    @test Bool(summary[:no_public_q_revision_claim])
+    @test Bool(summary[:no_mcmc_convergence_claim])
+    @test Int(summary[:n_scenarios]) == length(rows)
+    @test Int(summary[:n_passed_scenarios]) == length(rows)
+    @test Int(summary[:n_candidate_fit_attempts]) == 4
+    @test Int(summary[:n_candidate_fit_successes]) == 4
+    @test Int(summary[:n_declared_fit_successes]) == 5
+    @test Int(summary[:n_invalid_candidates_blocked_before_fit]) == 1
+    @test Int(summary[:n_public_revisions_allowed]) == 0
+    @test Int(summary[:n_automatic_revisions_allowed]) == 0
+    @test Set(String(blocker) for blocker in summary[:remaining_public_blockers]) ==
+        Set([
+            "cross_validated_q_revision_policy_missing",
+            "construct_validity_manual_review_missing",
+        ])
+    @test String(summary[:recommendation]) ==
+        "use_candidate_q_real_fit_linkage_for_local_diagnostics_only"
+    @test String(summary[:next_gate]) ==
+        "cross_validated_q_revision_policy_for_q_candidates"
 end
 
 function check_mgmfrm_guarded_fit_method_wiring_fixture(fixture_path::AbstractString)
@@ -12183,6 +12363,12 @@ end
     if !isempty(mgmfrm_empirical_q_matrix_recovery_simulation_grid_fixture)
         check_mgmfrm_empirical_q_matrix_recovery_simulation_grid_fixture(
             mgmfrm_empirical_q_matrix_recovery_simulation_grid_fixture,
+        )
+    end
+    mgmfrm_q_candidate_real_fit_diagnostic_linkage_fixture = optional_fixture_path("MFRM_MGMFRM_Q_CANDIDATE_REAL_FIT_DIAGNOSTIC_LINKAGE_FIXTURE", joinpath("test", "fixtures", "mgmfrm_q_candidate_real_fit_diagnostic_linkage.json"))
+    if !isempty(mgmfrm_q_candidate_real_fit_diagnostic_linkage_fixture)
+        check_mgmfrm_q_candidate_real_fit_diagnostic_linkage_fixture(
+            mgmfrm_q_candidate_real_fit_diagnostic_linkage_fixture,
         )
     end
     mgmfrm_guarded_fit_method_wiring_fixture = optional_fixture_path("MFRM_MGMFRM_GUARDED_FIT_METHOD_WIRING_FIXTURE", joinpath("test", "fixtures", "mgmfrm_guarded_fit_method_wiring.json"))

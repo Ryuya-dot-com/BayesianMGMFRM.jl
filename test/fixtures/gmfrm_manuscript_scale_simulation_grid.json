@@ -41,6 +41,7 @@
       "require_dff_validation_grid_passed": true,
       "require_mgmfrm_sparse_recovery_grid_passed": true,
       "require_mgmfrm_empirical_q_matrix_recovery_simulation_grid_passed": true,
+      "require_mgmfrm_q_candidate_real_fit_diagnostic_linkage_passed": true,
       "require_full_paper_reproduction_archive_passed": true,
       "require_minimum_total_evidence_cells": 60,
       "require_no_publication_commands": true,
@@ -253,6 +254,23 @@
       }
     },
     {
+      "artifact": "mgmfrm_q_candidate_real_fit_diagnostic_linkage",
+      "path": "test/fixtures/mgmfrm_q_candidate_real_fit_diagnostic_linkage.json",
+      "exists": true,
+      "schema": "bayesianmgmfrm.mgmfrm_q_candidate_real_fit_diagnostic_linkage.v1",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_q_candidate_real_fit_diagnostic_linkage.v1",
+      "schema_matches": true,
+      "summary_passed": true,
+      "hash_policy": "sha256",
+      "sha256": "7e16d61b78d96ec2a86c4bc0f487a6b989883d24ef5565a05694d05034f42b46",
+      "summary": {
+        "passed": true,
+        "n_evidence_cells": 5,
+        "key_check": "mgmfrm_q_candidate_real_fit_diagnostic_linkage",
+        "all_primary_checks": true
+      }
+    },
+    {
       "artifact": "full_paper_reproduction_archive",
       "path": "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
       "exists": true,
@@ -261,10 +279,10 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "f9fd003c06434f4324a74c06a249c162b069e0bd18d17a1c7d2fd1c4b04e5825",
+      "sha256": "9d14a2d7bd79a842559a3b408d76356376f5eccad33ffd66904c1f217724409b",
       "summary": {
         "passed": true,
-        "n_evidence_cells": 38,
+        "n_evidence_cells": 39,
         "key_check": "full_paper_reproduction_archive",
         "all_primary_checks": true
       }
@@ -356,9 +374,16 @@
       "artifact": "test/fixtures/mgmfrm_empirical_q_matrix_recovery_simulation_grid.json"
     },
     {
+      "gate": "mgmfrm_q_candidate_real_fit_diagnostic_linkage",
+      "status": "passed",
+      "n_evidence_cells": 5,
+      "key_check": "mgmfrm_q_candidate_real_fit_diagnostic_linkage",
+      "artifact": "test/fixtures/mgmfrm_q_candidate_real_fit_diagnostic_linkage.json"
+    },
+    {
       "gate": "full_paper_reproduction_archive",
       "status": "passed",
-      "n_evidence_cells": 38,
+      "n_evidence_cells": 39,
       "key_check": "full_paper_reproduction_archive",
       "artifact": "test/fixtures/gmfrm_full_paper_reproduction_archive.json"
     }
@@ -407,9 +432,9 @@
     "all_expected_schemas": true,
     "all_input_summaries_passed": true,
     "all_primary_checks_passed": true,
-    "n_input_artifacts": 13,
-    "n_evidence_rows": 13,
-    "total_evidence_cells": 164,
+    "n_input_artifacts": 14,
+    "n_evidence_rows": 14,
+    "total_evidence_cells": 170,
     "minimum_required_evidence_cells": 60,
     "scalar_fit_validation_grid_passed": true,
     "posterior_predictive_grid_passed": true,
@@ -423,6 +448,7 @@
     "dff_estimand_validation_grid_passed": true,
     "mgmfrm_sparse_recovery_grid_passed": true,
     "mgmfrm_empirical_q_matrix_recovery_simulation_grid_passed": true,
+    "mgmfrm_q_candidate_real_fit_diagnostic_linkage_passed": true,
     "full_paper_reproduction_archive_passed": true,
     "scalar_guarded_fit_allowed": true,
     "broader_generalized_fit_allowed": false,

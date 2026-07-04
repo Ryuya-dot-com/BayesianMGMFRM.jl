@@ -29,6 +29,10 @@
 - Remove local reference-manager item keys from MGMFRM empirical Q-matrix
   recovery artifacts so package fixtures rely on public DOI metadata and stable
   citation keys.
+- Add a local MGMFRM Q-candidate real-fit diagnostic-linkage generator and
+  committed JSON artifact that sends valid candidate Q masks through the
+  guarded fixed-Q `fit(spec; experimental = true)` diagnostics while blocking
+  invalid candidates before fit and keeping Q revision claims diagnostic-only.
 - Expose pre-registration gate availability in `release_scope_summary` and
   clarify that Julia General registration is a manual action after the local
   gate passes.

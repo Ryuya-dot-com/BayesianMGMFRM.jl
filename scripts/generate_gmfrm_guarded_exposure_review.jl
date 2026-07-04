@@ -1304,6 +1304,9 @@ function artifact_summary(name::Symbol, text::AbstractString)
         mgmfrm_empirical_q_matrix_recovery_simulation_grid_passed =
             json_bool(summary,
                 "mgmfrm_empirical_q_matrix_recovery_simulation_grid_passed"),
+        mgmfrm_q_candidate_real_fit_diagnostic_linkage_passed =
+            json_bool(summary,
+                "mgmfrm_q_candidate_real_fit_diagnostic_linkage_passed"),
         prediction_target_and_model_weight_policy_passed =
             json_bool(summary,
                 "prediction_target_and_model_weight_policy_passed"),
@@ -1717,6 +1720,9 @@ function build_artifact()
             mgmfrm_empirical_q_matrix_recovery_simulation_grid_passed =
                 Bool(getproperty(full_archive.summary,
                     :mgmfrm_empirical_q_matrix_recovery_simulation_grid_passed)),
+            mgmfrm_q_candidate_real_fit_diagnostic_linkage_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_q_candidate_real_fit_diagnostic_linkage_passed)),
             prediction_target_and_model_weight_policy_passed =
                 Bool(prediction_policy.summary.passed),
             mgmfrm_manual_public_scope_review_for_fit_passed =
