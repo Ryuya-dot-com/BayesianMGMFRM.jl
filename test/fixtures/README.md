@@ -64,6 +64,12 @@ positive rejection, and invalid-candidate exclusion. Supported candidates remain
 inputs to manual construct-validity review only; the fixture does not make public
 Q-revision claims.
 
+`mgmfrm_q_revision_construct_validity_review.json` records the follow-up local
+manual-review gate for CV-supported Q candidates. It checks synthetic rubric
+trace evidence and reviewer-role agreement, leaves non-supported candidates out
+of revision review, and keeps construct-supported candidates manual-local-only
+without public Q-revision claims.
+
 The deterministic validation-plan generator:
 
 ```bash

@@ -1,0 +1,474 @@
+{
+  "schema": "bayesianmgmfrm.mgmfrm_q_revision_construct_validity_review.v1",
+  "family": "mgmfrm",
+  "scope": "q_revision_construct_validity_review",
+  "status": "q_revision_construct_validity_review_recorded",
+  "decision": "keep_construct_validated_q_revisions_manual_local_only",
+  "public_fit": true,
+  "experimental_public": true,
+  "fit_ready": true,
+  "empirical_q_recovery_public": false,
+  "q_revision_public": false,
+  "publication_or_registration_action": false,
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "protocol": {
+    "protocol_id": "mgmfrm_q_revision_construct_validity_review_v1",
+    "review_kind": "local_q_revision_construct_validity_review",
+    "publication_or_registration_action": false,
+    "local_only": true,
+    "review_scope": "cv_supported_q_revision_candidates",
+    "review_materials": "synthetic_rubric_trace_fixture",
+    "thresholds": {
+      "require_q_revision_cross_validation_policy_passed": true,
+      "require_supported_candidates_available": true,
+      "require_all_supported_candidates_reviewed": true,
+      "require_non_supported_candidates_not_reviewed_as_revisions": true,
+      "require_all_construct_map_evidence_recorded": true,
+      "require_all_item_rubric_alignment_recorded": true,
+      "require_all_dimension_label_consistency_recorded": true,
+      "require_all_expected_response_process_recorded": true,
+      "require_all_local_dependence_risk_checked": true,
+      "require_reviewer_agreement_recorded": true,
+      "require_supported_candidates_remain_manual_local_only": true,
+      "require_no_automatic_q_revision": true,
+      "require_no_public_q_revision_claim": true,
+      "require_no_publication_or_registration_action": true
+    }
+  },
+  "reference_records": [
+    {
+      "key": "uto_2021_mgmfrm",
+      "source": "doi",
+      "title": "A multidimensional generalized many-facet Rasch model for rubric-based performance assessment",
+      "author": "Uto, Masaki",
+      "date": "07/2021",
+      "journal": "Behaviormetrika",
+      "doi": "10.1007/s41237-021-00144-w",
+      "relevance": "rubric_dimensions_and_q_masks_must_remain_construct_interpretable"
+    },
+    {
+      "key": "de_la_torre_chiu_2016_gdi",
+      "source": "doi",
+      "title": "A general method of empirical Q-matrix validation",
+      "author": "De La Torre, Jimmy; Chiu, Chia-Yi",
+      "date": "06/2016",
+      "journal": "Psychometrika",
+      "doi": "10.1007/s11336-015-9467-8",
+      "relevance": "empirical_q_evidence_requires_domain_review_before_q_modification"
+    },
+    {
+      "key": "terzi_de_la_torre_2018_iterative",
+      "source": "doi",
+      "title": "An iterative method for empirically-based Q-matrix validation",
+      "author": "Terzi, Ragip; De La Torre, Jimmy",
+      "date": "2018-05-19",
+      "journal": "International Journal of Assessment Tools in Education",
+      "doi": "10.21449/ijate.407193",
+      "relevance": "q_revision_candidates_are_iterative_manual_review_inputs"
+    },
+    {
+      "key": "da_silva_2019_mirt_q_matrix",
+      "source": "doi",
+      "title": "Incorporating the Q-Matrix Into Multidimensional Item Response Theory Models",
+      "author": "Da Silva, Marcelo A.; Liu, Ren; Huggins-Manley, Anne C.; Bazan, Jorge L.",
+      "date": "08/2019",
+      "journal": "Educational and Psychological Measurement",
+      "doi": "10.1177/0013164418814898",
+      "relevance": "q_matrices_are_confirmatory_loading_masks_not_exploratory_axis_labels"
+    },
+    {
+      "key": "najera_2020_iterative_dynamic_gdi",
+      "source": "doi",
+      "title": "Improving robustness in Q-matrix validation using an iterative and dynamic procedure",
+      "author": "Najera, Pablo; Sorrel, Miguel A.; De La Torre, Jimmy; Abad, Francisco Jose",
+      "date": "09/2020",
+      "journal": "Applied Psychological Measurement",
+      "doi": "10.1177/0146621620909904",
+      "relevance": "dynamic_empirical_cutoffs_do_not_replace_construct_validity_review"
+    }
+  ],
+  "review_criteria": [
+    {
+      "criterion": "construct_map_trace",
+      "required": true,
+      "rationale": "candidate_loading_must_trace_to_declared_rubric_construct"
+    },
+    {
+      "criterion": "item_rubric_alignment",
+      "required": true,
+      "rationale": "candidate_loading_must_match_item_prompt_and_scoring_rubric"
+    },
+    {
+      "criterion": "dimension_label_consistency",
+      "required": true,
+      "rationale": "candidate_loading_must_preserve_interpretable_dimensions"
+    },
+    {
+      "criterion": "expected_response_process",
+      "required": true,
+      "rationale": "candidate_loading_must_match_plausible_response_process"
+    },
+    {
+      "criterion": "local_dependence_or_method_risk",
+      "required": true,
+      "rationale": "candidate_loading_must_not_be_a_method_artifact"
+    },
+    {
+      "criterion": "reviewer_agreement",
+      "required": true,
+      "rationale": "candidate_loading_requires_independent_reviewer_support"
+    }
+  ],
+  "input_artifacts": [
+    {
+      "artifact": "q_revision_cross_validation_policy",
+      "path": "test/fixtures/mgmfrm_q_revision_cross_validation_policy.json",
+      "exists": true,
+      "sha256": "50118f93c71506d3f0186e7b06c650dbf7a1b7a787fc30263ce67ebd970b1f04",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_q_revision_cross_validation_policy.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_q_revision_cross_validation_policy.v1",
+      "schema_matches": true,
+      "pass_policy": "summary_passed",
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "n_cv_supported_candidates": 2,
+        "n_supported_manual_review_candidates": 2,
+        "supported_candidates_remain_manual_review_only": true,
+        "construct_validity_manual_review_required": true,
+        "no_automatic_q_revision": true,
+        "no_public_q_revision_claim": true,
+        "next_gate": "construct_validity_manual_review_for_q_revision_candidates"
+      }
+    }
+  ],
+  "construct_review_rows": [
+    {
+      "scenario": "missing_loading_candidate_cv_supported_manual_gate",
+      "source_decision": "manual_review_candidate_supported_by_cv",
+      "operation": "add_loading",
+      "item": "synthetic_item_3",
+      "dimension": "dimension_2",
+      "declared_q": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ],
+        [
+          true,
+          false
+        ]
+      ],
+      "candidate_q": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ],
+        [
+          true,
+          true
+        ]
+      ],
+      "source_cv": {
+        "cv_supported": true,
+        "mean_delta_candidate_minus_declared": 0.8433333333333332,
+        "fold_win_rate": 1.0,
+        "complexity_delta": 1,
+        "construct_review_required": true
+      },
+      "criterion_results": [
+        {
+          "criterion": "construct_map_trace",
+          "status": "passed",
+          "evidence": "item_3_requires_integrated_dimension_1_and_dimension_2_rubric_evidence"
+        },
+        {
+          "criterion": "item_rubric_alignment",
+          "status": "passed",
+          "evidence": "secondary_dimension_descriptor_is_explicit_in_scoring_rubric"
+        },
+        {
+          "criterion": "dimension_label_consistency",
+          "status": "passed",
+          "evidence": "dimension_2_label_remains_interpretable_after_cross_loading"
+        },
+        {
+          "criterion": "expected_response_process",
+          "status": "passed",
+          "evidence": "successful_response_requires_dimension_2_reasoning_component"
+        },
+        {
+          "criterion": "local_dependence_or_method_risk",
+          "status": "passed",
+          "evidence": "no_method_only_or_rater_specific_artifact_detected_in_review_trace"
+        },
+        {
+          "criterion": "reviewer_agreement",
+          "status": "passed",
+          "evidence": "two_independent_reviewer_roles_support_manual_local_candidate"
+        }
+      ],
+      "reviewer_rows": [
+        {
+          "candidate_scenario": "missing_loading_candidate_cv_supported_manual_gate",
+          "reviewer_role": "rubric_content_reviewer",
+          "review_material": "synthetic_rubric_trace_fixture",
+          "decision": "support_manual_local_candidate",
+          "unresolved_concerns": 0
+        },
+        {
+          "candidate_scenario": "missing_loading_candidate_cv_supported_manual_gate",
+          "reviewer_role": "measurement_model_reviewer",
+          "review_material": "synthetic_rubric_trace_fixture",
+          "decision": "support_manual_local_candidate",
+          "unresolved_concerns": 0
+        }
+      ],
+      "construct_review_completed": true,
+      "construct_review_supported": true,
+      "decision": "construct_validity_supported_manual_local_candidate",
+      "manual_local_q_revision_candidate_allowed": true,
+      "public_revision_allowed": false,
+      "automatic_revision_allowed": false,
+      "public_claim_allowed": false,
+      "summary": {
+        "passed": true,
+        "source_cv_supported": true,
+        "all_review_criteria_passed": true,
+        "reviewer_agreement_recorded": true,
+        "manual_local_only": true,
+        "no_automatic_q_revision": true,
+        "no_public_q_revision_claim": true
+      }
+    },
+    {
+      "scenario": "extra_loading_candidate_cv_supported_manual_gate",
+      "source_decision": "manual_review_candidate_supported_by_cv",
+      "operation": "drop_loading",
+      "item": "synthetic_item_3",
+      "dimension": "dimension_2",
+      "declared_q": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ],
+        [
+          true,
+          true
+        ]
+      ],
+      "candidate_q": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ],
+        [
+          true,
+          false
+        ]
+      ],
+      "source_cv": {
+        "cv_supported": true,
+        "mean_delta_candidate_minus_declared": 0.4299999999999997,
+        "fold_win_rate": 1.0,
+        "complexity_delta": -1,
+        "construct_review_required": true
+      },
+      "criterion_results": [
+        {
+          "criterion": "construct_map_trace",
+          "status": "passed",
+          "evidence": "item_3_primary_evidence_maps_to_dimension_1_not_dimension_2"
+        },
+        {
+          "criterion": "item_rubric_alignment",
+          "status": "passed",
+          "evidence": "dimension_2_descriptor_absent_from_item_3_scoring_rubric"
+        },
+        {
+          "criterion": "dimension_label_consistency",
+          "status": "passed",
+          "evidence": "dropping_dimension_2_loading_preserves_simple_construct_labeling"
+        },
+        {
+          "criterion": "expected_response_process",
+          "status": "passed",
+          "evidence": "expected_solution_path_does_not_require_dimension_2_reasoning"
+        },
+        {
+          "criterion": "local_dependence_or_method_risk",
+          "status": "passed",
+          "evidence": "cv_signal_not_explained_by_rater_or_prompt_method_artifact"
+        },
+        {
+          "criterion": "reviewer_agreement",
+          "status": "passed",
+          "evidence": "two_independent_reviewer_roles_support_manual_local_candidate"
+        }
+      ],
+      "reviewer_rows": [
+        {
+          "candidate_scenario": "extra_loading_candidate_cv_supported_manual_gate",
+          "reviewer_role": "rubric_content_reviewer",
+          "review_material": "synthetic_rubric_trace_fixture",
+          "decision": "support_manual_local_candidate",
+          "unresolved_concerns": 0
+        },
+        {
+          "candidate_scenario": "extra_loading_candidate_cv_supported_manual_gate",
+          "reviewer_role": "measurement_model_reviewer",
+          "review_material": "synthetic_rubric_trace_fixture",
+          "decision": "support_manual_local_candidate",
+          "unresolved_concerns": 0
+        }
+      ],
+      "construct_review_completed": true,
+      "construct_review_supported": true,
+      "decision": "construct_validity_supported_manual_local_candidate",
+      "manual_local_q_revision_candidate_allowed": true,
+      "public_revision_allowed": false,
+      "automatic_revision_allowed": false,
+      "public_claim_allowed": false,
+      "summary": {
+        "passed": true,
+        "source_cv_supported": true,
+        "all_review_criteria_passed": true,
+        "reviewer_agreement_recorded": true,
+        "manual_local_only": true,
+        "no_automatic_q_revision": true,
+        "no_public_q_revision_claim": true
+      }
+    }
+  ],
+  "excluded_candidate_rows": [
+    {
+      "scenario": "retained_declared_q_cv_no_change",
+      "source_decision": "retain_declared_q",
+      "cv_supported": false,
+      "construct_review_completed": false,
+      "exclusion_reason": "declared_q_retained_no_revision_candidate",
+      "public_revision_allowed": false,
+      "automatic_revision_allowed": false,
+      "public_claim_allowed": false
+    },
+    {
+      "scenario": "false_positive_candidate_rejected_by_cv",
+      "source_decision": "reject_candidate_not_cross_validated",
+      "cv_supported": false,
+      "construct_review_completed": false,
+      "exclusion_reason": "candidate_rejected_by_cross_validation",
+      "public_revision_allowed": false,
+      "automatic_revision_allowed": false,
+      "public_claim_allowed": false
+    },
+    {
+      "scenario": "invalid_duplicate_dimension_candidate_excluded_from_cv",
+      "source_decision": "exclude_invalid_candidate_before_cv",
+      "cv_supported": false,
+      "construct_review_completed": false,
+      "exclusion_reason": "invalid_candidate_excluded_before_cv",
+      "public_revision_allowed": false,
+      "automatic_revision_allowed": false,
+      "public_claim_allowed": false
+    }
+  ],
+  "reviewer_rows": [
+    {
+      "candidate_scenario": "missing_loading_candidate_cv_supported_manual_gate",
+      "reviewer_role": "rubric_content_reviewer",
+      "review_material": "synthetic_rubric_trace_fixture",
+      "decision": "support_manual_local_candidate",
+      "unresolved_concerns": 0
+    },
+    {
+      "candidate_scenario": "missing_loading_candidate_cv_supported_manual_gate",
+      "reviewer_role": "measurement_model_reviewer",
+      "review_material": "synthetic_rubric_trace_fixture",
+      "decision": "support_manual_local_candidate",
+      "unresolved_concerns": 0
+    },
+    {
+      "candidate_scenario": "extra_loading_candidate_cv_supported_manual_gate",
+      "reviewer_role": "rubric_content_reviewer",
+      "review_material": "synthetic_rubric_trace_fixture",
+      "decision": "support_manual_local_candidate",
+      "unresolved_concerns": 0
+    },
+    {
+      "candidate_scenario": "extra_loading_candidate_cv_supported_manual_gate",
+      "reviewer_role": "measurement_model_reviewer",
+      "review_material": "synthetic_rubric_trace_fixture",
+      "decision": "support_manual_local_candidate",
+      "unresolved_concerns": 0
+    }
+  ],
+  "decision_record": {
+    "construct_validity_manual_review_recorded": true,
+    "construct_validity_manual_review_completed": true,
+    "candidate_suggestions_allowed": true,
+    "manual_local_q_revision_candidates_allowed": true,
+    "automatic_q_revision_allowed": false,
+    "public_q_revision_claim_allowed": false,
+    "public_q_revision_allowed": false,
+    "public_exposure_support": "construct_review_recorded_manual_local_only",
+    "interpretation": "construct_review_supports_local_manual_q_candidates_not_package_revisions",
+    "required_followup": "guarded_local_mgmfrm_fit_entrypoint"
+  },
+  "summary": {
+    "passed": true,
+    "publication_or_registration_action": false,
+    "local_only": true,
+    "all_input_artifacts_present": true,
+    "all_expected_schemas": true,
+    "all_input_summaries_passed": true,
+    "q_revision_cross_validation_policy_passed": true,
+    "supported_candidates_available": true,
+    "all_supported_candidates_reviewed": true,
+    "non_supported_candidates_not_reviewed_as_revisions": true,
+    "all_construct_map_evidence_recorded": true,
+    "all_item_rubric_alignment_recorded": true,
+    "all_dimension_label_consistency_recorded": true,
+    "all_expected_response_process_recorded": true,
+    "all_local_dependence_risk_checked": true,
+    "reviewer_agreement_recorded": true,
+    "construct_validity_manual_review_completed": true,
+    "construct_validity_supported_for_all_reviewed": true,
+    "supported_candidates_remain_manual_local_only": true,
+    "no_automatic_q_revision": true,
+    "no_public_q_revision_claim": true,
+    "n_input_artifacts": 1,
+    "n_reference_records": 5,
+    "n_review_criteria": 6,
+    "n_cv_supported_candidates": 2,
+    "n_construct_review_rows": 2,
+    "n_construct_supported_candidates": 2,
+    "n_excluded_candidate_rows": 3,
+    "n_reviewer_rows": 4,
+    "n_public_revisions_allowed": 0,
+    "n_automatic_revisions_allowed": 0,
+    "n_blockers": 0,
+    "remaining_public_blockers": [],
+    "recommendation": "use_construct_reviewed_q_candidates_as_local_manual_inputs_only",
+    "next_gate": "guarded_local_mgmfrm_fit_entrypoint"
+  }
+}

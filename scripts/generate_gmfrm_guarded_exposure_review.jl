@@ -1254,6 +1254,9 @@ function artifact_summary(name::Symbol, text::AbstractString)
         mgmfrm_q_revision_cross_validation_policy_passed =
             json_bool(summary,
                 "mgmfrm_q_revision_cross_validation_policy_passed"),
+        mgmfrm_q_revision_construct_validity_review_passed =
+            json_bool(summary,
+                "mgmfrm_q_revision_construct_validity_review_passed"),
         full_paper_reproduction_archive_passed =
             json_bool(summary, "full_paper_reproduction_archive_passed"),
         manuscript_claims_allowed =
@@ -1313,6 +1316,9 @@ function artifact_summary(name::Symbol, text::AbstractString)
         mgmfrm_q_revision_cross_validation_policy_passed =
             json_bool(summary,
                 "mgmfrm_q_revision_cross_validation_policy_passed"),
+        mgmfrm_q_revision_construct_validity_review_passed =
+            json_bool(summary,
+                "mgmfrm_q_revision_construct_validity_review_passed"),
         prediction_target_and_model_weight_policy_passed =
             json_bool(summary,
                 "prediction_target_and_model_weight_policy_passed"),
@@ -1732,6 +1738,9 @@ function build_artifact()
             mgmfrm_q_revision_cross_validation_policy_passed =
                 Bool(getproperty(full_archive.summary,
                     :mgmfrm_q_revision_cross_validation_policy_passed)),
+            mgmfrm_q_revision_construct_validity_review_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_q_revision_construct_validity_review_passed)),
             prediction_target_and_model_weight_policy_passed =
                 Bool(prediction_policy.summary.passed),
             mgmfrm_manual_public_scope_review_for_fit_passed =

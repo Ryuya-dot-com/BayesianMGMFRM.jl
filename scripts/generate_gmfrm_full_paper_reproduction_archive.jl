@@ -278,6 +278,17 @@ const REPRODUCTION_FIXTURES = [
             "MFRM_MGMFRM_Q_REVISION_CROSS_VALIDATION_POLICY_FIXTURE",
         pass_policy = :summary_passed,
         hash_policy = :sha256),
+    (name = :mgmfrm_q_revision_construct_validity_review,
+        path =
+            "test/fixtures/mgmfrm_q_revision_construct_validity_review.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_q_revision_construct_validity_review.v1",
+        generator =
+            "scripts/generate_mgmfrm_q_revision_construct_validity_review.jl",
+        env_var =
+            "MFRM_MGMFRM_Q_REVISION_CONSTRUCT_VALIDITY_REVIEW_FIXTURE",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
     (name = :mgmfrm_guarded_fit_method_wiring,
         path = "test/fixtures/mgmfrm_guarded_fit_method_wiring.json",
         expected_schema =
@@ -363,6 +374,7 @@ const CODE_AND_DOC_PATHS = [
     "scripts/generate_mgmfrm_empirical_q_matrix_recovery_simulation_grid.jl",
     "scripts/generate_mgmfrm_q_candidate_real_fit_diagnostic_linkage.jl",
     "scripts/generate_mgmfrm_q_revision_cross_validation_policy.jl",
+    "scripts/generate_mgmfrm_q_revision_construct_validity_review.jl",
     "scripts/generate_mgmfrm_guarded_fit_method_wiring.jl",
     "scripts/generate_mgmfrm_guarded_fit_validation_grid.jl",
     "scripts/generate_mgmfrm_guarded_fit_api_dry_run.jl",
@@ -443,6 +455,9 @@ const FULL_REGENERATION_COMMANDS = [
     (artifact = :mgmfrm_q_revision_cross_validation_policy,
         command =
             "julia --project=. scripts/generate_mgmfrm_q_revision_cross_validation_policy.jl"),
+    (artifact = :mgmfrm_q_revision_construct_validity_review,
+        command =
+            "julia --project=. scripts/generate_mgmfrm_q_revision_construct_validity_review.jl"),
     (artifact = :mgmfrm_guarded_fit_method_wiring,
         command = "julia --project=. scripts/generate_mgmfrm_guarded_fit_method_wiring.jl"),
     (artifact = :mgmfrm_guarded_fit_validation_grid,
@@ -516,6 +531,7 @@ const PROTOCOL = (;
             true,
         require_mgmfrm_q_candidate_real_fit_diagnostic_linkage_passed = true,
         require_mgmfrm_q_revision_cross_validation_policy_passed = true,
+        require_mgmfrm_q_revision_construct_validity_review_passed = true,
         require_mgmfrm_guarded_fit_method_wiring_passed = true,
         require_mgmfrm_guarded_fit_validation_grid_passed = true,
         require_mgmfrm_guarded_fit_api_dry_run_passed = true,
@@ -797,6 +813,9 @@ function build_artifact()
     mgmfrm_q_cv_policy =
         record_by_name(fixture_records,
             :mgmfrm_q_revision_cross_validation_policy)
+    mgmfrm_q_construct_review =
+        record_by_name(fixture_records,
+            :mgmfrm_q_revision_construct_validity_review)
     mgmfrm_method =
         record_by_name(fixture_records, :mgmfrm_guarded_fit_method_wiring)
     mgmfrm_validation =
@@ -849,6 +868,7 @@ function build_artifact()
         mgmfrm_q_recovery_simulation.summary_passed &&
         mgmfrm_q_fit_linkage.summary_passed &&
         mgmfrm_q_cv_policy.summary_passed &&
+        mgmfrm_q_construct_review.summary_passed &&
         mgmfrm_method.summary_passed &&
         mgmfrm_validation.summary_passed &&
         mgmfrm_api_dry_run.summary_passed &&
@@ -944,6 +964,8 @@ function build_artifact()
                 mgmfrm_q_fit_linkage.summary_passed,
             mgmfrm_q_revision_cross_validation_policy_passed =
                 mgmfrm_q_cv_policy.summary_passed,
+            mgmfrm_q_revision_construct_validity_review_passed =
+                mgmfrm_q_construct_review.summary_passed,
             mgmfrm_guarded_fit_method_wiring_passed =
                 mgmfrm_method.summary_passed,
             mgmfrm_guarded_fit_validation_grid_passed =

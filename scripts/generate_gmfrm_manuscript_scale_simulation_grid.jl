@@ -86,6 +86,12 @@ const INPUT_ARTIFACTS = [
         expected_schema =
             "bayesianmgmfrm.mgmfrm_q_revision_cross_validation_policy.v1",
         hash_policy = :sha256),
+    (name = :mgmfrm_q_revision_construct_validity_review,
+        path =
+            "test/fixtures/mgmfrm_q_revision_construct_validity_review.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_q_revision_construct_validity_review.v1",
+        hash_policy = :sha256),
     (name = :full_paper_reproduction_archive,
         path = "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
         expected_schema =
@@ -124,6 +130,7 @@ const PROTOCOL = (;
             true,
         require_mgmfrm_q_candidate_real_fit_diagnostic_linkage_passed = true,
         require_mgmfrm_q_revision_cross_validation_policy_passed = true,
+        require_mgmfrm_q_revision_construct_validity_review_passed = true,
         require_full_paper_reproduction_archive_passed = true,
         require_minimum_total_evidence_cells = 60,
         require_no_publication_commands = true,
@@ -451,6 +458,17 @@ function artifact_summary(name::Symbol, summary::AbstractString)
             json_bool(summary, "supported_candidates_remain_manual_review_only") &&
             json_bool(summary, "no_public_q_revision_claim"),
     )
+    name === :mgmfrm_q_revision_construct_validity_review && return (;
+        passed = json_bool(summary, "passed"),
+        n_evidence_cells = json_int(summary, "n_construct_review_rows"),
+        key_check = :mgmfrm_q_revision_construct_validity_review,
+        all_primary_checks =
+            json_bool(summary, "all_supported_candidates_reviewed") &&
+            json_bool(summary, "all_construct_map_evidence_recorded") &&
+            json_bool(summary, "reviewer_agreement_recorded") &&
+            json_bool(summary, "supported_candidates_remain_manual_local_only") &&
+            json_bool(summary, "no_public_q_revision_claim"),
+    )
     name === :full_paper_reproduction_archive && return (;
         passed = json_bool(summary, "passed"),
         n_evidence_cells = json_int(summary, "n_fixture_artifacts"),
@@ -642,6 +660,9 @@ function build_artifact()
             mgmfrm_q_revision_cross_validation_policy_passed =
                 record_by_name(input_records,
                     :mgmfrm_q_revision_cross_validation_policy).summary_passed,
+            mgmfrm_q_revision_construct_validity_review_passed =
+                record_by_name(input_records,
+                    :mgmfrm_q_revision_construct_validity_review).summary_passed,
             full_paper_reproduction_archive_passed =
                 record_by_name(input_records,
                     :full_paper_reproduction_archive).summary_passed,

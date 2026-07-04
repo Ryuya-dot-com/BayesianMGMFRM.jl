@@ -37,6 +37,11 @@
   JSON artifact that screens candidate Q masks with fold-level heldout evidence,
   rejects noisy false positives, excludes invalid candidates before CV, and keeps
   CV-supported revisions manual-review-only pending construct-validity review.
+- Add a local MGMFRM Q-revision construct-validity review generator and
+  committed JSON artifact that reviews CV-supported Q candidates against a
+  synthetic rubric trace, records reviewer-role agreement, keeps supported
+  candidates manual-local-only, and clears the construct-review blocker without
+  making public Q-revision claims.
 - Expose pre-registration gate availability in `release_scope_summary` and
   clarify that Julia General registration is a manual action after the local
   gate passes.
