@@ -1257,6 +1257,9 @@ function artifact_summary(name::Symbol, text::AbstractString)
         mgmfrm_q_revision_construct_validity_review_passed =
             json_bool(summary,
                 "mgmfrm_q_revision_construct_validity_review_passed"),
+        mgmfrm_guarded_local_fit_entrypoint_passed =
+            json_bool(summary,
+                "mgmfrm_guarded_local_fit_entrypoint_passed"),
         full_paper_reproduction_archive_passed =
             json_bool(summary, "full_paper_reproduction_archive_passed"),
         manuscript_claims_allowed =
@@ -1319,6 +1322,9 @@ function artifact_summary(name::Symbol, text::AbstractString)
         mgmfrm_q_revision_construct_validity_review_passed =
             json_bool(summary,
                 "mgmfrm_q_revision_construct_validity_review_passed"),
+        mgmfrm_guarded_local_fit_entrypoint_passed =
+            json_bool(summary,
+                "mgmfrm_guarded_local_fit_entrypoint_passed"),
         prediction_target_and_model_weight_policy_passed =
             json_bool(summary,
                 "prediction_target_and_model_weight_policy_passed"),
@@ -1684,7 +1690,7 @@ function build_artifact()
                 :guarded_scalar_gmfrm_only,
             interpretation =
                 :local_evidence_reviewed_manual_scope_review_recorded_and_broader_exposure_decision_recorded,
-            required_followup = :guarded_local_mgmfrm_fit_entrypoint,
+            required_followup = :construct_reviewed_q_fit_reporting_policy,
         ),
         summary = (;
             reviewed = true,
@@ -1741,6 +1747,9 @@ function build_artifact()
             mgmfrm_q_revision_construct_validity_review_passed =
                 Bool(getproperty(full_archive.summary,
                     :mgmfrm_q_revision_construct_validity_review_passed)),
+            mgmfrm_guarded_local_fit_entrypoint_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_guarded_local_fit_entrypoint_passed)),
             prediction_target_and_model_weight_policy_passed =
                 Bool(prediction_policy.summary.passed),
             mgmfrm_manual_public_scope_review_for_fit_passed =
@@ -1764,7 +1773,7 @@ function build_artifact()
             experimental_keyword_enabled = true,
             recommendation =
                 :manual_scope_review_recorded_keep_guarded_scalar_and_confirmatory_mgmfrm_only,
-            next_gate = :guarded_local_mgmfrm_fit_entrypoint,
+            next_gate = :construct_reviewed_q_fit_reporting_policy,
         ),
     )
 end

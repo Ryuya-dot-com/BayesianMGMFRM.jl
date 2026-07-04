@@ -92,6 +92,12 @@ const INPUT_ARTIFACTS = [
         expected_schema =
             "bayesianmgmfrm.mgmfrm_q_revision_construct_validity_review.v1",
         hash_policy = :sha256),
+    (name = :mgmfrm_guarded_local_fit_entrypoint,
+        path =
+            "test/fixtures/mgmfrm_guarded_local_fit_entrypoint.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_guarded_local_fit_entrypoint.v1",
+        hash_policy = :sha256),
     (name = :full_paper_reproduction_archive,
         path = "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
         expected_schema =
@@ -131,6 +137,7 @@ const PROTOCOL = (;
         require_mgmfrm_q_candidate_real_fit_diagnostic_linkage_passed = true,
         require_mgmfrm_q_revision_cross_validation_policy_passed = true,
         require_mgmfrm_q_revision_construct_validity_review_passed = true,
+        require_mgmfrm_guarded_local_fit_entrypoint_passed = true,
         require_full_paper_reproduction_archive_passed = true,
         require_minimum_total_evidence_cells = 60,
         require_no_publication_commands = true,
@@ -469,6 +476,17 @@ function artifact_summary(name::Symbol, summary::AbstractString)
             json_bool(summary, "supported_candidates_remain_manual_local_only") &&
             json_bool(summary, "no_public_q_revision_claim"),
     )
+    name === :mgmfrm_guarded_local_fit_entrypoint && return (;
+        passed = json_bool(summary, "passed"),
+        n_evidence_cells = json_int(summary, "n_fit_entrypoint_rows"),
+        key_check = :mgmfrm_guarded_local_fit_entrypoint,
+        all_primary_checks =
+            json_bool(summary, "all_candidate_q_validations_passed") &&
+            json_bool(summary, "all_guarded_fit_attempts_succeeded") &&
+            json_bool(summary, "fit_outputs_finite") &&
+            json_bool(summary, "all_candidates_remain_manual_local_only") &&
+            json_bool(summary, "no_public_q_revision_claim"),
+    )
     name === :full_paper_reproduction_archive && return (;
         passed = json_bool(summary, "passed"),
         n_evidence_cells = json_int(summary, "n_fixture_artifacts"),
@@ -538,9 +556,10 @@ function claim_decision_rows()
             public_claim_allowed = false,
             required_followup = :future_dff_model_effect_fit_policy),
         (claim = :model_weights_or_sparse_mgmfrm_superiority,
-            decision = :scope_review_recorded_keep_blocked_until_guarded_fit,
+            decision =
+                :guarded_fit_recorded_keep_blocked_until_reporting_policy,
             public_claim_allowed = false,
-            required_followup = :guarded_local_mgmfrm_fit_entrypoint),
+            required_followup = :construct_reviewed_q_fit_reporting_policy),
     ]
 end
 
@@ -602,7 +621,7 @@ function build_artifact()
                 :gate_e_and_full_archive_recorded_no_publication_action,
             interpretation =
                 :manuscript_scale_grid_recorded_full_archive_available,
-            required_followup = :guarded_local_mgmfrm_fit_entrypoint,
+            required_followup = :construct_reviewed_q_fit_reporting_policy,
         ),
         summary = (;
             passed,
@@ -663,6 +682,9 @@ function build_artifact()
             mgmfrm_q_revision_construct_validity_review_passed =
                 record_by_name(input_records,
                     :mgmfrm_q_revision_construct_validity_review).summary_passed,
+            mgmfrm_guarded_local_fit_entrypoint_passed =
+                record_by_name(input_records,
+                    :mgmfrm_guarded_local_fit_entrypoint).summary_passed,
             full_paper_reproduction_archive_passed =
                 record_by_name(input_records,
                     :full_paper_reproduction_archive).summary_passed,
@@ -677,7 +699,7 @@ function build_artifact()
                 [row.blocker for row in BLOCKER_ROWS],
             recommendation =
                 :manual_scope_review_recorded_keep_broader_claims_blocked,
-            next_gate = :guarded_local_mgmfrm_fit_entrypoint,
+            next_gate = :construct_reviewed_q_fit_reporting_policy,
         ),
     )
 end

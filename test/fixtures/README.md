@@ -70,6 +70,12 @@ trace evidence and reviewer-role agreement, leaves non-supported candidates out
 of revision review, and keeps construct-supported candidates manual-local-only
 without public Q-revision claims.
 
+`mgmfrm_guarded_local_fit_entrypoint.json` records the next local dry-run gate
+for construct-reviewed Q candidates. It validates each candidate Q mask, checks
+that non-experimental and unsupported-backend fits remain rejected, and confirms
+that the guarded `fit(spec; experimental = true)` MGMFRM path returns finite
+local fit outputs without automatic Q revision or public Q-revision claims.
+
 The deterministic validation-plan generator:
 
 ```bash

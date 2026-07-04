@@ -1,0 +1,387 @@
+{
+  "schema": "bayesianmgmfrm.mgmfrm_guarded_local_fit_entrypoint.v1",
+  "family": "mgmfrm",
+  "scope": "construct_reviewed_q_guarded_local_fit_entrypoint",
+  "status": "guarded_local_fit_entrypoint_recorded",
+  "decision": "enable_construct_reviewed_q_candidates_for_manual_local_guarded_fit",
+  "public_fit": true,
+  "experimental_public": true,
+  "fit_ready": true,
+  "local_only": true,
+  "dry_run_only": true,
+  "q_revision_public": false,
+  "automatic_q_revision": false,
+  "broader_mgmfrm_claim": false,
+  "publication_or_registration_action": false,
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "protocol": {
+    "protocol_id": "mgmfrm_guarded_local_fit_entrypoint_v1",
+    "review_kind": "local_construct_reviewed_q_candidate_fit_entrypoint",
+    "publication_or_registration_action": false,
+    "local_only": true,
+    "dry_run_only": true,
+    "entrypoint": "fit(spec; experimental = true)",
+    "candidate_source": "construct_reviewed_q_revision_candidates",
+    "fit_controls": {
+      "backend": "advancedhmc",
+      "sampler": "nuts",
+      "chains": 1,
+      "warmup": 0,
+      "draws": 1,
+      "seed_base": 20260721
+    },
+    "thresholds": {
+      "require_q_revision_construct_validity_review_passed": true,
+      "require_guarded_fit_api_dry_run_passed": true,
+      "require_construct_reviewed_candidates_available": true,
+      "require_all_construct_reviewed_candidates_checked": true,
+      "require_all_candidate_q_validations_passed": true,
+      "require_all_candidate_specs_previewed": true,
+      "require_non_experimental_fit_rejection": true,
+      "require_unsupported_backend_rejection": true,
+      "require_all_guarded_fit_attempts_succeeded": true,
+      "require_fit_outputs_finite": true,
+      "require_all_candidates_remain_manual_local_only": true,
+      "require_no_automatic_q_revision": true,
+      "require_no_public_q_revision_claim": true,
+      "require_no_broader_mgmfrm_claim": true,
+      "require_no_publication_or_registration_action": true
+    }
+  },
+  "input_artifacts": [
+    {
+      "artifact": "q_revision_construct_validity_review",
+      "path": "test/fixtures/mgmfrm_q_revision_construct_validity_review.json",
+      "exists": true,
+      "sha256": "543c8f7ce2e79d69512c883d858e69c243ae5840b122dc2d215bbf00d86068a8",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_q_revision_construct_validity_review.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_q_revision_construct_validity_review.v1",
+      "schema_matches": true,
+      "pass_policy": "summary_passed",
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "n_construct_review_rows": 2,
+        "n_construct_supported_candidates": 2,
+        "construct_validity_supported_for_all_reviewed": true,
+        "supported_candidates_remain_manual_local_only": true,
+        "no_automatic_q_revision": true,
+        "no_public_q_revision_claim": true,
+        "next_gate": "guarded_local_mgmfrm_fit_entrypoint"
+      }
+    },
+    {
+      "artifact": "guarded_fit_api_dry_run",
+      "path": "test/fixtures/mgmfrm_guarded_fit_api_dry_run.json",
+      "exists": true,
+      "sha256": "f77e6664f6c2273262c94f6dfc44f94f5a85f74c3a3d41a9fe7cbedb8f5c603a",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_api_dry_run.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_api_dry_run.v1",
+      "schema_matches": true,
+      "pass_policy": "summary_passed",
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "entrypoint_enabled": true,
+        "experimental_spec_fit_succeeded": true,
+        "all_fit_boundary_checks_passed": true,
+        "artifact_contract_satisfied": true,
+        "target_gradient_diagnostics_passed": true,
+        "next_gate": "mgmfrm_guarded_fit_public_exposure_review"
+      }
+    }
+  ],
+  "fit_entrypoint_rows": [
+    {
+      "scenario": "missing_loading_candidate_cv_supported_manual_gate",
+      "source_decision": "construct_validity_supported_manual_local_candidate",
+      "operation": "add_loading",
+      "item": "synthetic_item_3",
+      "dimension": "dimension_2",
+      "construct_review_supported": true,
+      "manual_local_q_revision_candidate_allowed": true,
+      "public_revision_allowed": false,
+      "automatic_revision_allowed": false,
+      "public_claim_allowed": false,
+      "candidate_q": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ],
+        [
+          true,
+          true
+        ]
+      ],
+      "q_validation": {
+        "passed": true,
+        "n_error_rows": 0,
+        "n_warning_rows": 1,
+        "fixed_q_confirmatory": true,
+        "n_cross_loading_items": 1,
+        "n_duplicate_dimension_groups": 0,
+        "n_dimension_facet_subgraphs_disconnected": 0,
+        "warning_checks": [
+          "cross_loading_policy"
+        ]
+      },
+      "preview_summary": {
+        "spec_estimation_status": "specified_only",
+        "design_preview_succeeded": true,
+        "n_preview_parameters": 20,
+        "fit_ready_layout_available": true,
+        "q_matrix": [
+          [
+            true,
+            false
+          ],
+          [
+            false,
+            true
+          ],
+          [
+            true,
+            true
+          ]
+        ]
+      },
+      "boundary_checks": [
+        {
+          "check": "fit_construct_reviewed_q_without_experimental",
+          "expected_status": "rejected",
+          "actual_status": "rejected",
+          "rejected": true,
+          "error_type": "ArgumentError",
+          "message": "ArgumentError: getdesign currently supports only the minimal fit-supported MFRM/RSM/PCM specification; this spec has family = :mgmfrm, dimensions = 2, discrimination = :none, estimation_status = :specified_only. Use model_manifest or constraint_table to inspect specified-only GMFRM/MGMFRM configurations.",
+          "passed": true
+        },
+        {
+          "check": "fit_construct_reviewed_q_unsupported_backend",
+          "expected_status": "rejected",
+          "actual_status": "rejected",
+          "rejected": true,
+          "error_type": "ArgumentError",
+          "message": "ArgumentError: guarded local MGMFRM fitting currently supports only backend = :advancedhmc",
+          "passed": true
+        }
+      ],
+      "guarded_fit": {
+        "succeeded": true,
+        "error_type": null,
+        "message": null,
+        "summary": {
+          "returned_type": "MGMFRMFit",
+          "scenario": "missing_loading_candidate_cv_supported_manual_gate",
+          "seed": 20260722,
+          "backend": "advancedhmc",
+          "sampler": "nuts",
+          "n_observations": 18,
+          "n_items": 3,
+          "n_dimensions": 2,
+          "n_draws": 1,
+          "n_raw_parameters": 18,
+          "n_direct_parameters": 20,
+          "n_pointwise_rows": 1,
+          "n_pointwise_observations": 18,
+          "finite_log_posterior": true,
+          "finite_raw_draws": true,
+          "finite_direct_draws": true,
+          "finite_direct_loglikelihood": true,
+          "finite_pointwise_loglikelihood": true,
+          "diagnostic_flag": "insufficient_chains",
+          "n_nonfinite_logdensity": 0,
+          "n_nonfinite_direct_loglikelihood": 0,
+          "n_failed_direct_constraints": 0,
+          "n_divergences": 0,
+          "n_max_treedepth": 0,
+          "output_finite": true
+        }
+      },
+      "summary": {
+        "passed": true,
+        "q_validation_passed": true,
+        "spec_previewed": true,
+        "non_experimental_fit_rejected": true,
+        "unsupported_backend_rejected": true,
+        "guarded_fit_attempt_succeeded": true,
+        "fit_outputs_finite": true,
+        "manual_local_only": true
+      }
+    },
+    {
+      "scenario": "extra_loading_candidate_cv_supported_manual_gate",
+      "source_decision": "construct_validity_supported_manual_local_candidate",
+      "operation": "drop_loading",
+      "item": "synthetic_item_3",
+      "dimension": "dimension_2",
+      "construct_review_supported": true,
+      "manual_local_q_revision_candidate_allowed": true,
+      "public_revision_allowed": false,
+      "automatic_revision_allowed": false,
+      "public_claim_allowed": false,
+      "candidate_q": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ],
+        [
+          true,
+          false
+        ]
+      ],
+      "q_validation": {
+        "passed": true,
+        "n_error_rows": 0,
+        "n_warning_rows": 0,
+        "fixed_q_confirmatory": true,
+        "n_cross_loading_items": 0,
+        "n_duplicate_dimension_groups": 0,
+        "n_dimension_facet_subgraphs_disconnected": 0,
+        "warning_checks": []
+      },
+      "preview_summary": {
+        "spec_estimation_status": "specified_only",
+        "design_preview_succeeded": true,
+        "n_preview_parameters": 19,
+        "fit_ready_layout_available": true,
+        "q_matrix": [
+          [
+            true,
+            false
+          ],
+          [
+            false,
+            true
+          ],
+          [
+            true,
+            false
+          ]
+        ]
+      },
+      "boundary_checks": [
+        {
+          "check": "fit_construct_reviewed_q_without_experimental",
+          "expected_status": "rejected",
+          "actual_status": "rejected",
+          "rejected": true,
+          "error_type": "ArgumentError",
+          "message": "ArgumentError: getdesign currently supports only the minimal fit-supported MFRM/RSM/PCM specification; this spec has family = :mgmfrm, dimensions = 2, discrimination = :none, estimation_status = :specified_only. Use model_manifest or constraint_table to inspect specified-only GMFRM/MGMFRM configurations.",
+          "passed": true
+        },
+        {
+          "check": "fit_construct_reviewed_q_unsupported_backend",
+          "expected_status": "rejected",
+          "actual_status": "rejected",
+          "rejected": true,
+          "error_type": "ArgumentError",
+          "message": "ArgumentError: guarded local MGMFRM fitting currently supports only backend = :advancedhmc",
+          "passed": true
+        }
+      ],
+      "guarded_fit": {
+        "succeeded": true,
+        "error_type": null,
+        "message": null,
+        "summary": {
+          "returned_type": "MGMFRMFit",
+          "scenario": "extra_loading_candidate_cv_supported_manual_gate",
+          "seed": 20260723,
+          "backend": "advancedhmc",
+          "sampler": "nuts",
+          "n_observations": 18,
+          "n_items": 3,
+          "n_dimensions": 2,
+          "n_draws": 1,
+          "n_raw_parameters": 17,
+          "n_direct_parameters": 19,
+          "n_pointwise_rows": 1,
+          "n_pointwise_observations": 18,
+          "finite_log_posterior": true,
+          "finite_raw_draws": true,
+          "finite_direct_draws": true,
+          "finite_direct_loglikelihood": true,
+          "finite_pointwise_loglikelihood": true,
+          "diagnostic_flag": "insufficient_chains",
+          "n_nonfinite_logdensity": 0,
+          "n_nonfinite_direct_loglikelihood": 0,
+          "n_failed_direct_constraints": 0,
+          "n_divergences": 0,
+          "n_max_treedepth": 0,
+          "output_finite": true
+        }
+      },
+      "summary": {
+        "passed": true,
+        "q_validation_passed": true,
+        "spec_previewed": true,
+        "non_experimental_fit_rejected": true,
+        "unsupported_backend_rejected": true,
+        "guarded_fit_attempt_succeeded": true,
+        "fit_outputs_finite": true,
+        "manual_local_only": true
+      }
+    }
+  ],
+  "decision_record": {
+    "local_guarded_fit_entrypoint_recorded": true,
+    "construct_reviewed_q_candidates_can_be_fit_locally": true,
+    "candidate_suggestions_allowed": true,
+    "manual_local_q_revision_candidates_allowed": true,
+    "automatic_q_revision_allowed": false,
+    "public_q_revision_claim_allowed": false,
+    "broader_mgmfrm_claim_allowed": false,
+    "public_exposure_support": "construct_reviewed_q_candidates_fit_as_manual_local_inputs",
+    "interpretation": "local_guarded_fit_entrypoint_supports_manual_q_candidate_analysis_not_public_revision",
+    "required_followup": "construct_reviewed_q_fit_reporting_policy"
+  },
+  "summary": {
+    "passed": true,
+    "publication_or_registration_action": false,
+    "local_only": true,
+    "dry_run_only": true,
+    "all_input_artifacts_present": true,
+    "all_expected_schemas": true,
+    "all_input_summaries_passed": true,
+    "q_revision_construct_validity_review_passed": true,
+    "guarded_fit_api_dry_run_passed": true,
+    "construct_reviewed_candidates_available": true,
+    "all_construct_reviewed_candidates_checked": true,
+    "all_candidate_q_validations_passed": true,
+    "all_candidate_specs_previewed": true,
+    "non_experimental_fit_rejected": true,
+    "unsupported_backend_rejected": true,
+    "all_guarded_fit_attempts_succeeded": true,
+    "fit_outputs_finite": true,
+    "all_candidates_remain_manual_local_only": true,
+    "no_automatic_q_revision": true,
+    "no_public_q_revision_claim": true,
+    "no_broader_mgmfrm_claim": true,
+    "n_input_artifacts": 2,
+    "n_construct_reviewed_candidates": 2,
+    "n_fit_entrypoint_rows": 2,
+    "n_guarded_fit_attempts": 2,
+    "n_successful_guarded_fit_attempts": 2,
+    "n_fit_rejection_checks": 4,
+    "n_candidate_q_validation_warnings": 1,
+    "n_public_revisions_allowed": 0,
+    "n_automatic_revisions_allowed": 0,
+    "n_public_claims_allowed": 0,
+    "n_blockers": 0,
+    "remaining_public_blockers": [],
+    "recommendation": "use_construct_reviewed_q_candidates_for_manual_local_guarded_fit_only",
+    "next_gate": "construct_reviewed_q_fit_reporting_policy"
+  }
+}

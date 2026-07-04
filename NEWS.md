@@ -42,6 +42,10 @@
   synthetic rubric trace, records reviewer-role agreement, keeps supported
   candidates manual-local-only, and clears the construct-review blocker without
   making public Q-revision claims.
+- Add a local MGMFRM guarded fit entrypoint generator and committed JSON
+  artifact that dry-runs construct-reviewed Q candidates through
+  `fit(spec; experimental = true)`, confirms finite guarded local fit outputs,
+  and keeps Q revision and broader MGMFRM claims blocked.
 - Expose pre-registration gate availability in `release_scope_summary` and
   clarify that Julia General registration is a manual action after the local
   gate passes.
