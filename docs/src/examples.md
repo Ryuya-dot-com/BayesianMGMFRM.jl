@@ -26,8 +26,8 @@ Use this script when checking the ordinary public fitting workflow.
 [`examples/guarded_mgmfrm.jl`](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/blob/main/examples/guarded_mgmfrm.jl)
 runs the guarded fixed-Q confirmatory MGMFRM path. It covers:
 
-- a two-dimensional `family = :mgmfrm` spec with a fixed item-by-dimension
-  `q_matrix`;
+- a compact two-dimensional example of the `family = :mgmfrm` guarded path,
+  using a fixed item-by-dimension `q_matrix`;
 - preview design and constraint inspection before fitting;
 - opt-in fitting through `fit(spec; experimental = true)`;
 - guarded [`MGMFRMFit`](@ref) metadata, fit artifacts, fit reports, sampler
@@ -35,5 +35,5 @@ runs the guarded fixed-Q confirmatory MGMFRM path. It covers:
   summaries.
 
 Use this script when checking the narrow experimental MGMFRM entrypoint. It
-does not support exploratory loadings, free latent correlations, dimensions
-beyond two, model-weight claims, or sparse-superiority claims.
+does not support exploratory loadings, free latent correlations, model-weight
+claims, or sparse-superiority claims.

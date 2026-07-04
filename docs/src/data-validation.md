@@ -79,7 +79,7 @@ MGMFRM previews expose person-by-dimension, item-dimension-discrimination,
 rater-consistency, and item-step blocks. The separate guarded generalized fit
 paths use `fit(spec; experimental = true)` and are limited to the
 one-dimensional rater-consistency GMFRM candidate and the fixed-Q
-two-dimensional confirmatory MGMFRM candidate.
+confirmatory MGMFRM candidate with `dimensions >= 2`.
 
 Use [`design_row_table`](@ref) when you need row-level compiler evidence. The
 table shows the facet labels, identified parameter indexes, source-step path, and

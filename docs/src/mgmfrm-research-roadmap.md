@@ -14,7 +14,7 @@ The active post-`v0.1.0` sequence is:
 - `v0.1.1`: refine fixed-Q confirmatory MGMFRM. Strengthen execution,
   diagnostics, reporting, and validation for the existing guarded path.
 - `v0.1.2`: stay fixed-Q and confirmatory, but expand dimensionality and Q
-  validation beyond the current two-dimensional smoke surface.
+  validation beyond the original compact smoke surface.
 - `v0.1.3`: decide whether free latent correlations are ready for guarded
   exposure.
 - `v0.1.4`: design the exploratory loading and rotation policy without yet
@@ -90,7 +90,7 @@ silently carrying risk into the next release.
 | Release | Positive gate | Fallback if the gate fails |
 | --- | --- | --- |
 | `v0.1.1` | Existing guarded scalar GMFRM and fixed-Q MGMFRM fits have auditable diagnostics, report sections, prior policy, predictive path labels, and blocked-claim rows. | Ship documentation, manifest, and report-governance improvements only. Keep guarded examples minimal and mark unresolved diagnostics as blockers. |
-| `v0.1.2` | Higher-dimensional fixed-Q designs pass Q validation, source/BridgeStan checks, initialization checks, simulation recovery, and report-shape tests. | Keep the public fixed-Q surface two-dimensional; allow higher dimensions only as specified-only previews or internal fixtures. |
+| `v0.1.2` | Higher-dimensional fixed-Q designs pass Q validation, source/BridgeStan checks, initialization checks, simulation recovery, and report-shape tests. | Keep the public fixed-Q surface guarded and confirmatory; allow only the evidence-backed subset to remain `experimental_public`. |
 | `v0.1.3` | Free latent correlations have a stable parameterization, prior policy, sampler diagnostics, and interpretation rules that do not change focal conclusions under sensitivity checks. | Keep identity correlation as the stable policy and record free-correlation evidence as internal research only. |
 | `v0.1.4` | Exploratory loading proposals have rotation, sign, permutation, and reporting rules that make posterior summaries interpretable. | Keep exploratory loadings blocked; provide only design-review tools and confirmatory Q workflows. |
 | `v0.2.0` | Generic MGMFRM surfaces pass source, transform, prior, computation, simulation, sensitivity, and reporting gates for every exposed option. | Release a narrower stable public surface and carry unsupported options forward as `specified_only` or `experimental_public`. |
@@ -147,7 +147,7 @@ implementation progress.
 | Debt | Why it matters | Resolution path | Release impact |
 | --- | --- | --- | --- |
 | Rank-normalized diagnostics are not yet the stable generalized default | Classical split R-hat and autocorrelation ESS can miss tail or rank pathologies in generalized blocks. | Add rank-normalized R-hat, bulk ESS, tail ESS, and block-level pass/fail rows. | Blocks interpretation-supported generalized claims. |
-| Fixed-Q invariance checks are incomplete | Dimension labels and loading signs can look stable when the gauge is actually doing the work. | Add fixed-sign, fixed-identity-correlation, positive-loading, and direct-constraint invariance checks. | Blocks broader fixed-Q examples and higher dimensions. |
+| Fixed-Q invariance checks are incomplete | Dimension labels and loading signs can look stable when the gauge is actually doing the work. | Add fixed-sign, fixed-identity-correlation, positive-loading, and direct-constraint invariance checks. | Blocks broader fixed-Q claims and non-confirmatory expansion. |
 | Prior sensitivity is not yet tied to focal decisions | Weak priors can determine rater consistency, loading, or sparse DFF-adjacent conclusions. | Connect prior predictive rows, prior-scale grids, and power-scaling shifts to report decision labels. | Blocks ranking and practical-decision language. |
 | Predictive targets are not yet uniformly attached to comparison rows | WAIC, LOO, and K-fold can answer different questions if row matching or targets differ. | Require prediction-target, row-matching, candidate-set, and influential-row fields before interpretation. | Blocks model weights and superiority claims. |
 | DFF remains screening-only | Sparse or confounded cells can produce compelling contrasts that are not fairness evidence. | Keep fitted DFF effects blocked; add design-support, grouped PPC, practical-magnitude, and sensitivity rows. | Blocks bias/unfairness language. |
@@ -241,7 +241,7 @@ artifact, not a validation result or superiority claim.
 
 ### v0.1.1: Fixed-Q Confirmatory MGMFRM Refinement
 
-**Goal:** make the existing fixed-Q two-dimensional guarded MGMFRM path
+**Goal:** make the existing fixed-Q guarded MGMFRM path
 auditable and hard to overinterpret.
 
 **Research basis:** Uto's MGMFRM is confirmatory in spirit for rubric
@@ -250,7 +250,7 @@ predictive checks, and validation evidence before claims.
 
 **Implementation work:**
 
-- `q_matrix_validation` now strengthens the current two-dimensional fixed-Q
+- `q_matrix_validation` now strengthens the current fixed-Q
   path: binary-mask schema checks, empty dimensions, empty item rows, duplicate
   or aliased columns, fixed cross-loading policy, dimension/facet subgraph
   coverage, and item blocks that cannot identify positive interpreted loadings.
@@ -359,7 +359,7 @@ predictive checks, and validation evidence before claims.
 ### v0.1.2: Fixed-Q Dimensionality and Q Validation Expansion
 
 **Goal:** remain confirmatory and fixed-Q, but support a broader fixed-Q design
-contract than the current two-dimensional candidate.
+contract than the original compact candidate.
 
 **Research basis:** MRCML and multidimensional partial-credit work show that
 multidimensional polytomous models are viable, but dimensional structure and
@@ -472,7 +472,7 @@ workflow validation.
 
 **Candidate scope:**
 
-- fixed-Q confirmatory MGMFRM with dimension count greater than two;
+- fixed-Q confirmatory MGMFRM with expanded dimension counts and Q structures;
 - optional free latent correlation only if `v0.1.3` passed;
 - exploratory loading only if `v0.1.4` produced a defensible gauge or
   post-processing contract;

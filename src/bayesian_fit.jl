@@ -427,8 +427,8 @@ end
     MGMFRMFit
 
 Guarded experimental MGMFRM fit result returned by
-`fit(spec; experimental = true)` for the fixed-Q, two-dimensional confirmatory
-candidate. Raw draws are stored in `draws`, constrained direct draws in
+`fit(spec; experimental = true)` for the fixed-Q confirmatory candidate with
+`dimensions >= 2`. Raw draws are stored in `draws`, constrained direct draws in
 `direct_draws`, and observation-ordered direct pointwise log likelihoods in
 `direct_pointwise_loglikelihood`.
 """
@@ -548,8 +548,8 @@ function _mgmfrm_guarded_local_fit_logdensity(design::FacetDesign;
     design.spec.family === :mgmfrm &&
         design.spec.estimation_status === :specified_only ||
         throw(ArgumentError("_mgmfrm_guarded_local_fit_logdensity is only for specified-only MGMFRM preview designs"))
-    design.spec.dimensions == 2 ||
-        throw(ArgumentError("_mgmfrm_guarded_local_fit_logdensity currently supports only dimensions = 2"))
+    design.spec.dimensions >= 2 ||
+        throw(ArgumentError("_mgmfrm_guarded_local_fit_logdensity requires dimensions >= 2"))
     design.spec.q_matrix !== nothing ||
         throw(ArgumentError("_mgmfrm_guarded_local_fit_logdensity requires a fixed confirmatory q_matrix"))
     blueprint = _mgmfrm_fit_ready_candidate_blueprint(design)
@@ -1052,12 +1052,12 @@ support this wrapped target reliably.
 The `experimental = true` keyword is intentionally narrow. It is accepted for
 the scalar source-aligned GMFRM promotion candidate with `family = :gmfrm`,
 `dimensions = 1`, and `discrimination = :rater`, returning [`GMFRMFit`](@ref),
-and for the fixed-Q two-dimensional confirmatory MGMFRM candidate with
-`family = :mgmfrm`, `dimensions = 2`, and a fixed `q_matrix`, returning
+and for the fixed-Q confirmatory MGMFRM candidate with `family = :mgmfrm`,
+`dimensions >= 2`, and a fixed `q_matrix`, returning
 [`MGMFRMFit`](@ref). Multidimensional GMFRM, exploratory MGMFRM loadings,
-free latent correlations, non-rater GMFRM discrimination, dimensions beyond
-two for MGMFRM, and public `MFRMPrior` priors for generalized raw-coordinate
-fits are rejected on those guarded paths.
+free latent correlations, non-rater GMFRM discrimination, and public
+`MFRMPrior` priors for generalized raw-coordinate fits are rejected on those
+guarded paths.
 """
 function fit(design::FacetDesign;
         prior::MFRMPrior = MFRMPrior(),
@@ -1886,8 +1886,8 @@ function _mgmfrm_confirmatory_candidate_pointwise_fixture(
         design::FacetDesign,
         direct_params::AbstractVector)
     _check_mgmfrm_source_fixture_design(design, "_mgmfrm_confirmatory_candidate_pointwise_fixture")
-    design.spec.dimensions == 2 ||
-        throw(ArgumentError("_mgmfrm_confirmatory_candidate_pointwise_fixture currently supports dimensions = 2"))
+    design.spec.dimensions >= 2 ||
+        throw(ArgumentError("_mgmfrm_confirmatory_candidate_pointwise_fixture requires dimensions >= 2"))
     _check_parameter_vector_length(design, direct_params)
     _mgmfrm_source_fixture_constraints(design, direct_params)
     direct = Float64.(collect(direct_params))
@@ -3055,8 +3055,8 @@ end
 function _check_guarded_mgmfrm_spec(spec::FacetSpec)
     spec.family === :mgmfrm ||
         throw(ArgumentError("guarded local MGMFRM fitting supports only family = :mgmfrm"))
-    spec.dimensions == 2 ||
-        throw(ArgumentError("guarded local MGMFRM fitting currently supports only dimensions = 2"))
+    spec.dimensions >= 2 ||
+        throw(ArgumentError("guarded local MGMFRM fitting requires dimensions >= 2"))
     spec.q_matrix !== nothing ||
         throw(ArgumentError("guarded local MGMFRM fitting requires a fixed confirmatory q_matrix"))
     spec.estimation_status === :specified_only ||
@@ -3165,7 +3165,7 @@ function _fit_status_policy(fit::MGMFRMFit)
         public_fit = true,
         experimental_public = true,
         fit_ready = true,
-        claim_scope = :fixed_q_two_dimensional_confirmatory_only,
+        claim_scope = :fixed_q_confirmatory_only,
     )
 end
 

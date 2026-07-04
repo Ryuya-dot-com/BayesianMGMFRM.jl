@@ -25,8 +25,8 @@ The current public slice focuses on:
   caches;
 - guarded experimental generalized paths via `fit(spec; experimental = true)`
   returning [`GMFRMFit`](@ref) for the one-dimensional rater-consistency
-  GMFRM candidate or [`MGMFRMFit`](@ref) for the fixed-Q two-dimensional
-  confirmatory MGMFRM candidate, with local validation and caveat evidence
+  GMFRM candidate or [`MGMFRMFit`](@ref) for the fixed-Q confirmatory MGMFRM
+  candidate with `dimensions >= 2`, with local validation and caveat evidence
   recorded;
 - serializable provenance manifests and report bundles for fit-supported specs,
   specified-only specs, designs, fits, cached-fit artifacts, and report-facing

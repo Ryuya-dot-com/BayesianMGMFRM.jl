@@ -6950,7 +6950,7 @@ end
     @test brms_row.bayesian_support === :first_class_bayesian_inference
     package_row = only(row for row in capability_matrix.rows if row.tool === :bayesianmgmfrm)
     @test package_row.multidimensional_support ===
-        :fixed_q_two_dimensional_experimental_only
+        :fixed_q_confirmatory_experimental_only
     @test package_row.v0_1_1_position ===
         :narrow_auditable_workflow_not_generic_irt_replacement
     @test release_scope.summary.n_public_fit_surfaces == 3
@@ -11326,6 +11326,93 @@ end
         gmfrm_experimental_fit,
         mgmfrm_guarded_fit;
         draw_indices = [1, 2])
+
+    mgmfrm3_table = (
+        examinee = ["E1", "E1", "E1", "E2", "E2", "E2"],
+        rater = ["R1", "R2", "R1", "R2", "R1", "R2"],
+        item = ["I1", "I2", "I3", "I1", "I2", "I3"],
+        score = [0, 1, 2, 1, 0, 2],
+    )
+    mgmfrm3_data = FacetData(mgmfrm3_table;
+        person = :examinee,
+        rater = :rater,
+        item = :item,
+        score = :score)
+    q_matrix3 = Bool[
+        1 0 0
+        0 1 0
+        0 0 1
+    ]
+    mgmfrm3_spec = mfrm_spec(mgmfrm3_data;
+        thresholds = :partial_credit,
+        family = :mgmfrm,
+        dimensions = 3,
+        q_matrix = q_matrix3)
+    @test mgmfrm3_spec.dimensions == 3
+    @test mgmfrm3_spec.q_matrix == q_matrix3
+    @test q_matrix_validation(mgmfrm3_spec).passed
+    mgmfrm3_preview = getdesign(mgmfrm3_spec; preview = true)
+    @test mgmfrm3_preview.parameter_names[mgmfrm3_preview.blocks[:person]] == [
+        "person[E1,dim=1]",
+        "person[E1,dim=2]",
+        "person[E1,dim=3]",
+        "person[E2,dim=1]",
+        "person[E2,dim=2]",
+        "person[E2,dim=3]",
+    ]
+    @test length(mgmfrm3_preview.parameter_names[
+        mgmfrm3_preview.blocks[:item_dimension_discrimination]]) == count(q_matrix3)
+    mgmfrm3_layout = fit_ready_parameter_layout(mgmfrm3_spec; preview = true)
+    @test mgmfrm3_layout.scope === :minimal_confirmatory_mgmfrm_candidate
+    @test mgmfrm3_layout.experimental_public
+    mgmfrm3_target =
+        BayesianMGMFRM._mgmfrm_guarded_local_fit_logdensity(
+            mgmfrm3_preview;
+            prior = source_prior,
+        )
+    mgmfrm3_raw_initial = initial_params(mgmfrm3_target)
+    @test LogDensityProblems.dimension(mgmfrm3_target) ==
+        length(mgmfrm3_layout.raw_parameter_names)
+    @test isfinite(LogDensityProblems.logdensity(
+        mgmfrm3_target,
+        mgmfrm3_raw_initial,
+    ))
+    mgmfrm3_direct_initial =
+        BayesianMGMFRM._mgmfrm_source_constrained_params_from_unconstrained(
+            mgmfrm3_preview,
+            mgmfrm3_raw_initial,
+        )
+    mgmfrm3_pointwise_fixture =
+        BayesianMGMFRM._mgmfrm_confirmatory_candidate_pointwise_fixture(
+            mgmfrm3_preview,
+            mgmfrm3_direct_initial,
+    )
+    @test mgmfrm3_pointwise_fixture.summary.passed
+    @test mgmfrm3_pointwise_fixture.q_matrix == q_matrix3
+    @test length(mgmfrm3_pointwise_fixture.pointwise_loglikelihood) ==
+        mgmfrm3_data.n
+    mgmfrm3_fit = fit(
+        mgmfrm3_spec;
+        experimental = true,
+        init = mgmfrm3_raw_initial,
+        seed = 20260704,
+        ndraws = 1,
+        warmup = 0,
+        chains = 1,
+        step_size = 0.02,
+        max_depth = 2,
+        metric = :unit,
+    )
+    @test mgmfrm3_fit isa MGMFRMFit
+    @test mgmfrm3_fit.design.spec.dimensions == 3
+    @test size(mgmfrm3_fit.draws) ==
+        (1, LogDensityProblems.dimension(mgmfrm3_target))
+    @test size(mgmfrm3_fit.direct_pointwise_loglikelihood) ==
+        (1, mgmfrm3_data.n)
+    @test all(isfinite, mgmfrm3_fit.log_posterior)
+    @test all(isfinite, mgmfrm3_fit.direct_pointwise_loglikelihood)
+    @test mgmfrm3_fit.diagnostic_surface.summary.n_failed_direct_constraints == 0
+
     @test_throws ArgumentError BayesianMGMFRM._fit_guarded_mgmfrm(
         gmfrm_spec;
         ndraws = 1,

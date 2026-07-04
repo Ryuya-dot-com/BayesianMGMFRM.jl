@@ -13,7 +13,7 @@ backend, an
     experimental generalized paths are available through
     `fit(spec; experimental = true)` for the scalar rater-consistency GMFRM
     candidate, configured with `discrimination = :rater`, and the fixed-Q
-    two-dimensional confirmatory MGMFRM candidate.
+    confirmatory MGMFRM candidate with `dimensions >= 2`.
     Broader generalized discrimination likelihoods, group/DFF model effects, and
     exploratory MGMFRM fitting remain planned work.
 """

@@ -58,7 +58,7 @@
       "check": "fit_preview_design_with_experimental_keyword",
       "rejected": true,
       "error_type": "MethodError",
-      "message": "MethodError: no method matching fit(::BayesianMGMFRM.FacetDesign; experimental::Bool, ndraws::Int64, warmup::Int64)\nThis method does not support all of the given keyword arguments (and may not support any).\n\nClosest candidates are:\n  fit(::BayesianMGMFRM.FacetDesign; prior, backend, ndraws, warmup, chains, step_size, init, rng, seed, target_accept, max_depth, max_energy_error, metric, ad_backend, init_jitter, progress) got unsupported keyword argument \"experimental\"\n   @ BayesianMGMFRM ~/Library/CloudStorage/Dropbox/MFRM_Application/BayesianMGMFRM.jl/src/bayesian_fit.jl:1062\n  fit(!Matched::BayesianMGMFRM.FacetSpec; experimental, kwargs...)\n   @ BayesianMGMFRM ~/Library/CloudStorage/Dropbox/MFRM_Application/BayesianMGMFRM.jl/src/bayesian_fit.jl:2913\n"
+      "message": "MethodError: no method matching fit(::BayesianMGMFRM.FacetDesign; experimental::Bool, ndraws::Int64, warmup::Int64)\nThis method does not support all of the given keyword arguments (and may not support any).\n\nClosest candidates are:\n  fit(::BayesianMGMFRM.FacetDesign; prior, backend, ndraws, warmup, chains, step_size, init, rng, seed, target_accept, max_depth, max_energy_error, metric, ad_backend, init_jitter, progress) got unsupported keyword argument \"experimental\"\n   @ BayesianMGMFRM ~/Dropbox/MFRM_Application/BayesianMGMFRM.jl/src/bayesian_fit.jl:1062\n  fit(!Matched::BayesianMGMFRM.FacetSpec; experimental, kwargs...)\n   @ BayesianMGMFRM ~/Dropbox/MFRM_Application/BayesianMGMFRM.jl/src/bayesian_fit.jl:3128\n"
     }
   ],
   "artifact_contract_review": {
@@ -507,7 +507,7 @@
       "artifact": "docs/src/fitting.md#guarded-generalized-model-caveats",
       "reference_kind": "local_file",
       "exists": true,
-      "sha256": "816defb49198a54e2cb0b5e9eb8722555f26a58403211431b0b122b85cca9825"
+      "sha256": "1ca4b19b3ef8cdb87f8b16005e12aecbc44acc0c2af660206a8c4e6548424523"
     }
   ],
   "target_dry_run": {

@@ -22,11 +22,11 @@ The current public release focuses on a reliable first workflow:
 
 The package is intentionally explicit about scope. Minimal MFRM/RSM/PCM fitting
 is the fit-supported surface. Scalar rater-consistency GMFRM, configured through
-the compatibility keyword `discrimination = :rater`, and fixed-Q
-two-dimensional confirmatory MGMFRM are available only through guarded
-experimental paths. Broader generalized discrimination, exploratory MGMFRM,
-modeled DFF effects, sparse-superiority claims, and public model-weight claims
-remain out of scope.
+the compatibility keyword `discrimination = :rater`, and fixed-Q confirmatory
+MGMFRM with `dimensions >= 2` are available only through guarded experimental
+paths. Broader generalized discrimination, exploratory MGMFRM, free latent
+correlations, modeled DFF effects, sparse-superiority claims, and public
+model-weight claims remain out of scope.
 
 ## Installation
 
@@ -180,7 +180,7 @@ usually wants to see.
 | --- | --- | --- | --- |
 | Minimal MFRM/RSM/PCM | `supported` | `mfrm_spec`, `getdesign`, `fit` | Main public workflow for current analyses. |
 | Scalar rater-consistency GMFRM | `experimental_public` | `mfrm_spec(...; family = :gmfrm, discrimination = :rater)`, then `fit(spec; experimental = true)` | Narrow guarded source-aligned candidate; `discrimination = :rater` is the compatibility keyword for the positive rater-consistency multiplier. |
-| Fixed-Q two-dimensional confirmatory MGMFRM | `experimental_public` | `mfrm_spec(...; family = :mgmfrm, dimensions = 2, q_matrix = Q)`, then `fit(spec; experimental = true)` | Fixed Q-mask, identity latent correlation candidate only. |
+| Fixed-Q confirmatory MGMFRM | `experimental_public` | `mfrm_spec(...; family = :mgmfrm, dimensions = D, q_matrix = Q)`, then `fit(spec; experimental = true)` | Guarded fixed Q-mask candidate for `D >= 2`; identity latent correlation only. |
 | Broader GMFRM/MGMFRM, DFF model effects, exploratory Q-matrices | `blocked` | Manifest and preview inspection only where available | Not a public fit API until identification, diagnostics, validation, and reporting contracts are stronger. |
 
 The guarded MGMFRM example is runnable at

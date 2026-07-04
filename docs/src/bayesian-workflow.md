@@ -4,9 +4,9 @@ The current package exposes the early pieces needed for a Bayesian many-facet
 Rasch workflow, including initial AdvancedHMC/NUTS and Turing/NUTS paths for
 the minimal MFRM/RSM/PCM design. Guarded generalized experimental paths are
 also available through `fit(spec; experimental = true)` for the
-one-dimensional rater-consistency GMFRM candidate and the fixed-Q
-two-dimensional confirmatory MGMFRM candidate. Broader GMFRM/MGMFRM fitting
-beyond those guarded candidates remains planned work, but specified-only
+one-dimensional rater-consistency GMFRM candidate and the fixed-Q confirmatory
+MGMFRM candidate with `dimensions >= 2`. Broader GMFRM/MGMFRM fitting beyond
+those guarded candidates remains planned work, but specified-only
 GMFRM/MGMFRM configs can already be recorded in
 manifests, constraint tables, and identification declarations.
 `getdesign(spec; preview = true)` can also compile a non-fit-ready parameter

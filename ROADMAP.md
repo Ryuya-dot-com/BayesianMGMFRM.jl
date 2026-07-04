@@ -25,8 +25,8 @@ implemented public slice covers:
 - guarded experimental generalized fitting through
   `fit(spec; experimental = true)` for the scalar rater-consistency GMFRM
   candidate, configured with the compatibility keyword
-  `discrimination = :rater`, and the fixed-Q two-dimensional confirmatory
-  MGMFRM candidate;
+  `discrimination = :rater`, and the fixed-Q confirmatory MGMFRM candidate
+  with `dimensions >= 2`;
 - cached-fit artifacts, sampler diagnostics, R-hat/ESS rows, parameter-block
   diagnostics, prior and posterior predictive replication, calibration
   summaries, observation-level predictive quantities, fair-average summaries,
@@ -108,7 +108,7 @@ helpers earlier than it can make claims about them.
 | --- | --- | --- |
 | Minimal MFRM/RSM/PCM workflow is usable | Load check, deterministic design rows, identified constraints, narrow examples, diagnostics, PPC/calibration rows, and report metadata. | Call it a small-example workflow, not a production workflow. |
 | Scalar rater-consistency GMFRM is fit-supported | Source-aligned log density, raw/direct transform checks, AD gradient checks, block diagnostics, prior-policy rows, and sensitivity rows for rater consistency. | Keep `fit(...; experimental = true)` guarded and label outputs experimental. |
-| Fixed-Q confirmatory MGMFRM is interpretable | Q validation, fixed gauge, positive interpreted loading checks, initialization fallback reporting, dimension labels, direct-constraint checks, block diagnostics, and recovery evidence. | Keep it as a fixed-Q smoke/preview path; do not broaden dimensions or examples. |
+| Fixed-Q confirmatory MGMFRM is interpretable | Q validation, fixed gauge, positive interpreted loading checks, initialization fallback reporting, dimension labels, direct-constraint checks, block diagnostics, and recovery evidence. | Keep it as a fixed-Q guarded path; do not broaden into exploratory loading, free correlation, or generic MGMFRM claims. |
 | DFF/fairness rows support decisions | Nonempty and weak-cell flags, group/rater/item support, grouped PPC, confounding warnings, practical-magnitude thresholds, and prior/likelihood sensitivity. | Report screening evidence only; block unfairness, bias, or causal language. |
 | Model comparison can guide selection | Shared prediction target, row matching, pointwise diagnostics, Pareto-k/refit or K-fold follow-up, and sensitivity of ranks to influential rows. | Present WAIC/LOO/K-fold as diagnostics; block model weights and superiority claims. |
 | External software validates the package | Comparable parameterization, known-truth simulation target, aligned scoring output, and documented non-overlap cases. | Use related-software positioning only; do not call disagreements validation failures or successes. |
@@ -144,7 +144,7 @@ drafts.
 | --- | --- | --- |
 | MFRM/RSM/PCM | "small-example Bayesian many-facet Rasch workflow" and "identified minimal design" | "production-grade MFRM replacement" or "fully validated MFRM platform" |
 | Scalar GMFRM | "guarded experimental rater-consistency path" | "general GMFRM support" or "rater discrimination fully validated" |
-| Fixed-Q MGMFRM | "guarded fixed-Q two-dimensional confirmatory experiment" | "exploratory MGMFRM", "free multidimensional structure", or "general MGMFRM support" |
+| Fixed-Q MGMFRM | "guarded fixed-Q confirmatory experiment" | "exploratory MGMFRM", "free multidimensional structure", or "general MGMFRM support" |
 | DFF/fairness | "screening rows", "design-support warnings", and "posterior predictive checks" | "bias detection", "unfairness proof", or "causal DFF effect" |
 | Model comparison | "diagnostic comparison for a named prediction target" | "model weights", "best model", or "sparse-design superiority" |
 | External software | "capability positioning" and "post-v0.2.0 overlap target" | "validated against R packages" before compatible known-truth comparisons exist |
@@ -474,8 +474,8 @@ broader generalized `fit` paths remain blocked.
 
 Current status: public fitting is intentionally restricted to the current
 MFRM/RSM/PCM slice plus the guarded experimental scalar GMFRM
-rater-consistency candidate and fixed-Q two-dimensional confirmatory
-MGMFRM candidate.
+rater-consistency candidate and fixed-Q confirmatory MGMFRM candidate with
+`dimensions >= 2`.
 
 ### Gate E: evidence before claims
 
@@ -495,9 +495,9 @@ MGMFRM candidate.
 | Surface | Current exposure | Reason |
 | --- | --- | --- |
 | MFRM/RSM/PCM fitting | Public scaffold | Identified minimal design, tested likelihood path, diagnostics, simulation/recovery, and plotting-ready rows exist. |
-| GMFRM/MGMFRM manifests and compiler previews | Public preview/specification plus guarded generalized experiments | Useful for mathematical review and design inspection; only the scalar rater-consistency GMFRM candidate, configured with `discrimination = :rater`, and fixed-Q two-dimensional confirmatory MGMFRM candidate have guarded experimental fit methods. |
+| GMFRM/MGMFRM manifests and compiler previews | Public preview/specification plus guarded generalized experiments | Useful for mathematical review and design inspection; only the scalar rater-consistency GMFRM candidate, configured with `discrimination = :rater`, and fixed-Q confirmatory MGMFRM candidate with `dimensions >= 2` have guarded experimental fit methods. |
 | GMFRM/MGMFRM raw likelihood targets | Internal tests plus guarded experimental targets | Source-aligned fixtures, AD checks, HMC smoke tests, BridgeStan checks, and guarded GMFRM/MGMFRM fit paths exist; broader gauge contracts and exploratory promotion remain incomplete. |
-| GMFRM/MGMFRM `fit` | Guarded experimental public paths | `fit(spec; experimental = true)` returns `GMFRMFit` for the scalar rater-consistency GMFRM candidate or `MGMFRMFit` for the fixed-Q two-dimensional confirmatory MGMFRM candidate. Exploratory Q-matrices, free latent correlations, higher dimensions, and broad generalized claims remain blocked. |
+| GMFRM/MGMFRM `fit` | Guarded experimental public paths | `fit(spec; experimental = true)` returns `GMFRMFit` for the scalar rater-consistency GMFRM candidate or `MGMFRMFit` for the fixed-Q confirmatory MGMFRM candidate with `dimensions >= 2`. Exploratory Q-matrices, free latent correlations, and broad generalized claims remain blocked. |
 | DFF model effects | Blocked | Current DFF support is validation/specification evidence, not fitted effects. |
 | PSIS/exact LOO and model weights | Local scalar policy only | Same-observation WAIC and raw importance LOO remain diagnostic-only; deterministic 3-fold heldout log-score evidence is the selected local scalar model-weight target. Public model-weight claims remain blocked until a future public model-weight claim review. |
 | Manuscript claims about sparse MGMFRM superiority | Blocked | Prediction-target/model-weight policy, manual public-scope review, and a guarded local MGMFRM fit artifact path are recorded, but sparse-superiority claims still require broader reproducible validation and a separate public-scope release decision. |
@@ -649,7 +649,7 @@ Non-goals for `v0.1.1`:
 
 - no exploratory MGMFRM loadings, rotations, or post-hoc dimension discovery;
 - no free latent correlation matrix for MGMFRM;
-- no dimensions beyond the current fixed-Q two-dimensional candidate;
+- no dimensionality discovery beyond a fixed confirmatory Q-matrix;
 - no public DFF model-effect fitting;
 - no model-weight, sparse-superiority, or manuscript-level claims;
 - no direct-scale generalized priors unless the log-Jacobian policy is fully
@@ -1161,7 +1161,7 @@ Completed checklist:
     matrices, and a guarded fit artifact.
   - [x] Expose the fixed-Q confirmatory MGMFRM path through
     `fit(spec; experimental = true)` while keeping exploratory Q-matrices, free
-    latent correlations, higher dimensions, model-weight claims, and
+    latent correlations, model-weight claims, and
     sparse-superiority claims blocked.
 - [x] Implement identification declarations: sum-to-zero, reference, fixed,
   geometric-mean-one, hard anchors, soft anchors, and multidimensional gauge.

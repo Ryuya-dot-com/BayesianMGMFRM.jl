@@ -15,14 +15,13 @@ specifications by default. Narrow guarded experimental exceptions exist for
 source-aligned generalized candidates: `fit(spec; experimental = true)` returns
 [`GMFRMFit`](@ref) when the spec is one-dimensional, `family = :gmfrm`,
 `discrimination = :rater`, and still on the specified-only manifest path; it
-returns [`MGMFRMFit`](@ref) for the fixed-Q, two-dimensional confirmatory
-`family = :mgmfrm` candidate. Unsupported generalized options, public
+returns [`MGMFRMFit`](@ref) for the fixed-Q confirmatory `family = :mgmfrm`
+candidate with `dimensions >= 2`. Unsupported generalized options, public
 `MFRMPrior` priors for generalized raw-coordinate fits, exploratory MGMFRM
-loadings, free latent correlations, dimensions beyond two, and non-rater GMFRM
-discrimination specs are rejected. Other specified-only GMFRM and MGMFRM specs
-remain inspection surfaces: they can expose manifests, constraint tables,
-preview rows, and fixture evidence without silently fitting the wrong
-likelihood.
+loadings, free latent correlations, and non-rater GMFRM discrimination specs
+are rejected. Other specified-only GMFRM and MGMFRM specs remain inspection
+surfaces: they can expose manifests, constraint tables, preview rows, and
+fixture evidence without silently fitting the wrong likelihood.
 
 The scalar GMFRM promotion candidate remains guarded. Its source-aligned Julia
 fixture, BridgeStan oracle, direct-parameter checks, candidate-chain artifact,
@@ -62,22 +61,23 @@ contract locally. The scalar GMFRM path also passes the local validation,
 posterior predictive, sparse-pathology recovery, and prior/likelihood
 sensitivity grids, while broader GMFRM/MGMFRM surfaces remain blocked.
 
-The first MGMFRM candidate is even narrower: a confirmatory two-dimensional
-candidate with a fixed Q-mask, fixed identity latent correlation, standard-normal
-ability scale, positive interpreted Q-masked loadings, and source scale `1.7`.
-Its BridgeStan oracle, candidate-chain artifact, recovery-smoke artifact, and
-connected sparse-recovery grid support only the guarded fixed-Q experiment. They
-do not support exploratory loadings, free latent correlations, more than two
-dimensions, sparse-design superiority claims, or public model-weight claims. A
-local same-observation baseline-comparison artifact is recorded as evidence, but
-it is not a model-selection claim. The guarded experimental MGMFRM fit path
-populates the same raw-prior/Jacobian policy and fit-artifact contract for the
-fixed-Q confirmatory candidate.
+The first MGMFRM candidate remains narrow: a confirmatory fixed-Q candidate with
+fixed identity latent correlation, standard-normal ability scale, positive
+interpreted Q-masked loadings, and source scale `1.7`. Its BridgeStan oracle,
+candidate-chain artifact, recovery-smoke artifact, and connected sparse-recovery
+grid are still centered on compact guarded evidence; higher-dimensional fixed-Q
+support is covered by local Julia smoke tests before broader validation is
+claimed. They do not support exploratory loadings, free latent correlations,
+sparse-design superiority claims, or public model-weight claims. A local
+same-observation baseline-comparison artifact is recorded as evidence, but it is
+not a model-selection claim. The guarded experimental MGMFRM fit path populates
+the same raw-prior/Jacobian policy and fit-artifact contract for the fixed-Q
+confirmatory candidate.
 
 ## Guarded Fixed-Q MGMFRM Example
 
 The guarded MGMFRM path is opt-in and deliberately small. A spec must use
-`family = :mgmfrm`, `dimensions = 2`, and a fixed item-by-dimension `q_matrix`;
+`family = :mgmfrm`, `dimensions >= 2`, and a fixed item-by-dimension `q_matrix`;
 then `fit(spec; experimental = true)` returns an [`MGMFRMFit`](@ref). The
 example below uses tiny sampler settings so the API path is quick to inspect,
 not so the posterior diagnostics are publication-ready.

@@ -113,7 +113,7 @@
       "artifact": "guarded_fit_method_wiring",
       "path": "test/fixtures/mgmfrm_guarded_fit_method_wiring.json",
       "exists": true,
-      "sha256": "de1484c2e6f380f8b1322115944edc4814c029d4aeeb09afad773b25a7ba609f",
+      "sha256": "e97088e414e3347cab4eaea6c30f1bb4c5c0c40918aecdf804240670ef603996",
       "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_method_wiring.v1",
       "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_method_wiring.v1",
       "schema_matches": true,

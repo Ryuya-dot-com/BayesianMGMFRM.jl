@@ -31,7 +31,7 @@ The current package supports:
   `fit(spec; experimental = true)`, returning [`GMFRMFit`](@ref) for the scalar
   rater-consistency GMFRM candidate, configured with the compatibility keyword
   `discrimination = :rater`, or [`MGMFRMFit`](@ref) for the fixed-Q
-  two-dimensional confirmatory MGMFRM candidate;
+  confirmatory MGMFRM candidate with `dimensions >= 2`;
 - fit metadata, chain summaries, R-hat/ESS summaries, posterior summaries,
   prior/posterior predictive checks, calibration summaries, fair-average
   summaries, separation/reliability summaries, rater diagnostics, Wright-map
@@ -101,7 +101,7 @@ enough for serious review.
 `v0.1.1` should keep these boundaries:
 
 - no exploratory MGMFRM loadings, rotations, or free latent correlations;
-- no dimensions beyond the guarded fixed-Q two-dimensional candidate;
+- no dimensionality discovery beyond a fixed confirmatory Q-matrix;
 - no fitted DFF model effects;
 - no public model-weight, sparse-superiority, or manuscript-level claims;
 - no direct-scale generalized priors unless the log-Jacobian policy is fully
@@ -246,7 +246,7 @@ statements.
 
 | Release | Claim budget | Explicitly not in budget |
 | --- | --- | --- |
-| `v0.1.1` | Existing guarded scalar GMFRM and fixed-Q MGMFRM paths are more auditable: status, priors, diagnostics, Q/gauge, rating-design, report, and artifact wording become harder to overinterpret. | Broader generalized fitting, higher dimensions, fitted DFF effects, model weights, external validation, performance claims. |
+| `v0.1.1` | Existing guarded scalar GMFRM and fixed-Q MGMFRM paths are more auditable: status, priors, diagnostics, Q/gauge, rating-design, report, and artifact wording become harder to overinterpret. | Broader generalized fitting, exploratory loading, free latent correlations, fitted DFF effects, model weights, external validation, performance claims. |
 | `v0.1.2` | Fixed-Q confirmatory dimensionality expands only if Q validation, source checks, initialization, diagnostics, recovery, and report schemas scale cleanly. | Free latent correlations, exploratory loading, broad MGMFRM, real-data validation claims. |
 | `v0.1.3` | Free latent correlation receives a proceed/narrow/stop decision with parameterization, prior, diagnostics, and sensitivity evidence. | Automatic promotion of free correlations or exploratory loadings. |
 | `v0.1.4` | Exploratory loading and rotation policy is designed and stress-tested as a reporting problem before exposure. | Stable exploratory MGMFRM claims without rotation/sign/permutation evidence. |
@@ -333,8 +333,8 @@ Current exposure is deliberately conservative: MFRM/RSM/PCM fitting and
 simulation/recovery helpers are public; GMFRM/MGMFRM manifests and compiler
 previews are public for inspection; guarded
 `fit(spec; experimental = true)` paths are available for the scalar
-rater-consistency GMFRM candidate and the fixed-Q two-dimensional
-confirmatory MGMFRM candidate. Broader GMFRM/MGMFRM fitting, DFF model effects,
+rater-consistency GMFRM candidate and the fixed-Q confirmatory MGMFRM
+candidate with `dimensions >= 2`. Broader GMFRM/MGMFRM fitting, DFF model effects,
 public model-weight claims, and manuscript claims about sparse MGMFRM
 superiority remain blocked. Local scalar model-weight reporting is restricted to
 the heldout K-fold prediction target; confirmatory MGMFRM fitting is exposed
