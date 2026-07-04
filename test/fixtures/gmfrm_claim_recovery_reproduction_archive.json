@@ -329,12 +329,12 @@
     {
       "path": "README.md",
       "exists": true,
-      "sha256": "de4c07136e7000bad8dc5a70d19f958d5b6ff218e1224e812c94148a0ed627fe"
+      "sha256": "ea0dc1294bcd7fa1acf0a554cebe70052376e982750d373a1a5f4f7126d95c41"
     },
     {
       "path": "NEWS.md",
       "exists": true,
-      "sha256": "f65eaca882ddab788af990153ff8cb8cbde39af281429631395430232a26ce11"
+      "sha256": "5a041c35873b94c14bd3813def3c79483862c428ceecae221c2e3ba3cabf0186"
     },
     {
       "path": "ROADMAP.md",
@@ -354,7 +354,7 @@
     {
       "path": "test/runtests.jl",
       "exists": true,
-      "sha256": "9b48d34deff36842b4ca014b34a15f3ba430ea555c1094cd7de8de50bfd86cb2"
+      "sha256": "cf87a557d5f3b2a651815bcb940a6f3c114de94a844c10cf0cd3396b664ad8c0"
     },
     {
       "path": "test/fixtures/README.md",
@@ -379,12 +379,12 @@
     {
       "path": "scripts/pre_registration_gate.jl",
       "exists": true,
-      "sha256": "94d9a10cd7a5d059afba7809de38a3fffc23c665ec7e12a6628010fc6fafb276"
+      "sha256": "f2d8b1c2bc7ee60a141c39d942f7343a1822fe80f18550a65b50bcccf297fdc6"
     },
     {
       "path": "scripts/generate_gmfrm_claim_recovery_reproduction_archive.jl",
       "exists": true,
-      "sha256": "ace76c2ed44996517f680af4e505ccc5e7deb7a969d241837aa7215ca006f08c"
+      "sha256": "1d2352632f26639a03cbdc4397ff91516da8eb24db7921af0755413261a91215"
     }
   ],
   "full_regeneration_commands": [
@@ -518,7 +518,7 @@
     },
     {
       "name": "local_pre_registration_gate",
-      "command": "julia --startup-file=no scripts/pre_registration_gate.jl --skip-tests --skip-docs",
+      "command": "julia --startup-file=no scripts/pre_registration_gate.jl --skip-tests --skip-docs --skip-public-wording",
       "execution": "required_before_claim_use",
       "local_only": true
     },

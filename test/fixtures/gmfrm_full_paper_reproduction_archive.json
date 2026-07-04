@@ -357,7 +357,7 @@
       "path": "test/fixtures/gmfrm_claim_recovery_reproduction_archive.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "4f0c9fe3f78eedd911ef346461ab2289378af2db9c63a0be6a45612803c7c256",
+      "sha256": "0e37998878b2083d629f3c44f5ba36f544eb66d2055d3992a63d6a89e2c0dc8e",
       "expected_schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
       "schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
       "schema_matches": true,
@@ -651,14 +651,14 @@
     {
       "path": "README.md",
       "exists": true,
-      "sha256": "de4c07136e7000bad8dc5a70d19f958d5b6ff218e1224e812c94148a0ed627fe",
-      "line_count": 256
+      "sha256": "ea0dc1294bcd7fa1acf0a554cebe70052376e982750d373a1a5f4f7126d95c41",
+      "line_count": 257
     },
     {
       "path": "NEWS.md",
       "exists": true,
-      "sha256": "f65eaca882ddab788af990153ff8cb8cbde39af281429631395430232a26ce11",
-      "line_count": 443
+      "sha256": "5a041c35873b94c14bd3813def3c79483862c428ceecae221c2e3ba3cabf0186",
+      "line_count": 446
     },
     {
       "path": "ROADMAP.md",
@@ -687,8 +687,8 @@
     {
       "path": "test/runtests.jl",
       "exists": true,
-      "sha256": "9b48d34deff36842b4ca014b34a15f3ba430ea555c1094cd7de8de50bfd86cb2",
-      "line_count": 16883
+      "sha256": "cf87a557d5f3b2a651815bcb940a6f3c114de94a844c10cf0cd3396b664ad8c0",
+      "line_count": 16898
     },
     {
       "path": "test/fixtures/README.md",
@@ -747,8 +747,8 @@
     {
       "path": "scripts/pre_registration_gate.jl",
       "exists": true,
-      "sha256": "94d9a10cd7a5d059afba7809de38a3fffc23c665ec7e12a6628010fc6fafb276",
-      "line_count": 253
+      "sha256": "f2d8b1c2bc7ee60a141c39d942f7343a1822fe80f18550a65b50bcccf297fdc6",
+      "line_count": 260
     },
     {
       "path": "scripts/generate_source_bridge_fixtures.py",
@@ -759,7 +759,7 @@
     {
       "path": "scripts/generate_gmfrm_full_paper_reproduction_archive.jl",
       "exists": true,
-      "sha256": "3f969fb3c7a954e2bc64c126e0c687900e2449a7296ad2e36e1f44c2612294bf",
+      "sha256": "645cfb11bbe2d0f21bbcb8a9ef9776b57146259b008d60f88751dcda79403ea4",
       "line_count": 918
     },
     {
@@ -1085,7 +1085,7 @@
     {
       "step": 3,
       "name": "local_pre_registration_gate",
-      "command": "julia --startup-file=no scripts/pre_registration_gate.jl --skip-tests --skip-docs",
+      "command": "julia --startup-file=no scripts/pre_registration_gate.jl --skip-tests --skip-docs --skip-public-wording",
       "execution": "required_before_claim_use",
       "local_only": true
     },

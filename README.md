@@ -218,8 +218,9 @@ julia --startup-file=no scripts/pre_registration_gate.jl
 
 The gate checks temporary-environment import, package tests, examples,
 documentation rendering, Aqua package hygiene, project metadata, whitespace,
-public wording, and skipped-test scans. CI runs the same gate in a lighter mode
-because package tests and docs are separate jobs.
+public wording, and skipped-test scans. CI runs the hygiene subset in a lighter
+mode because package tests and docs are separate jobs, and the stricter public
+wording scan remains a manual pre-registration check.
 
 The repository also includes a manual handoff helper:
 

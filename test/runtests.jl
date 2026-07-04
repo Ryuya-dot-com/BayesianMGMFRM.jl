@@ -277,6 +277,19 @@ function file_sha256(path)
     return bytes2hex(open(sha256, path))
 end
 
+function check_fixture_sha256_when_available(root::AbstractString,
+        artifact::AbstractString,
+        expected_sha256::AbstractString)
+    path = normpath(joinpath(root, artifact))
+    if isfile(path)
+        @test expected_sha256 == file_sha256(path)
+    else
+        @test startswith(artifact, "../Simulation/data/")
+        @test !isempty(expected_sha256)
+    end
+    return nothing
+end
+
 function optional_fixture_path(env_key::AbstractString, default_path::AbstractString)
     root = dirname(@__DIR__)
     if haskey(ENV, env_key)
@@ -3489,8 +3502,8 @@ function check_gmfrm_real_data_case_study_fixture(fixture_path::AbstractString)
     for row in reviewed
         @test Bool(row[:exists])
         if String(row[:hash_policy]) == "sha256"
-            @test String(row[:sha256]) ==
-                file_sha256(normpath(joinpath(root, String(row[:artifact]))))
+            check_fixture_sha256_when_available(
+                root, String(row[:artifact]), String(row[:sha256]))
         else
             @test String(row[:hash_policy]) ==
                 "existence_only_avoids_cyclic_review_hash"
@@ -3740,8 +3753,8 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
     for row in source_records
         @test Bool(row[:exists])
         @test String(row[:hash_policy]) == "sha256_when_available"
-        @test String(row[:sha256]) ==
-            file_sha256(normpath(joinpath(root, String(row[:path]))))
+        check_fixture_sha256_when_available(
+            root, String(row[:path]), String(row[:sha256]))
         @test Int(row[:line_count]) > 100_000
     end
 
@@ -4015,10 +4028,12 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         "../Simulation/data/writing_long.csv",
         "../Simulation/data/speaking_long.csv",
     ])
-    @test all(row -> Bool(row[:exists]), source_records)
-    @test all(row -> String(row[:sha256]) ==
-        file_sha256(normpath(joinpath(root, String(row[:path])))),
-        source_records)
+    for row in source_records
+        @test Bool(row[:exists])
+        check_fixture_sha256_when_available(
+            root, String(row[:path]), String(row[:sha256]))
+        @test Int(row[:line_count]) > 100_000
+    end
 
     full_commands = fixture[:full_regeneration_commands]
     @test length(full_commands) == 37

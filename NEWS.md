@@ -16,6 +16,9 @@
   pre-registration boundary and links it from the docs navigation.
 - Tighten the pre-registration gate to check the General AutoMerge-facing
   package-name rules and origin URL shape before handoff.
+- Split the CI hygiene mode from the full manual pre-registration wording scan,
+  so ordinary pushes still check package shape without claiming registration
+  readiness.
 - Add a local registration handoff script that verifies the manual release
   boundary and prints the Registrator trigger comment without performing any
   registration action.

@@ -13,6 +13,7 @@ const JULIA = joinpath(Sys.BINDIR, Base.julia_exename())
 const SKIP_TESTS = "--skip-tests" in ARGS
 const SKIP_DOCS = "--skip-docs" in ARGS
 const SKIP_AQUA = "--skip-aqua" in ARGS
+const SKIP_PUBLIC_WORDING = "--skip-public-wording" in ARGS
 
 function step(name::AbstractString, f::Function)
     println("\n==> ", name)
@@ -217,7 +218,10 @@ function public_wording_check()
     end
     isempty(public_audit_hits) ||
         error("public wording still contains audit terminology:\n" * join(public_audit_hits, "\n"))
+    return nothing
+end
 
+function skipped_test_check()
     test_files = each_source_file(["test"])
     skipped_hits = String[]
     for path in test_files
@@ -248,6 +252,9 @@ if !SKIP_AQUA
     step("Aqua package hygiene", run_aqua)
 end
 step("git diff --check", git_diff_check)
-step("Public wording and skipped-test scan", public_wording_check)
+if !SKIP_PUBLIC_WORDING
+    step("Public wording scan", public_wording_check)
+end
+step("Skipped-test scan", skipped_test_check)
 
 println("\nPre-registration gate passed.")

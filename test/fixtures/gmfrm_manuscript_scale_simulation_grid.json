@@ -243,7 +243,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "bffbd2d600158b8787837d72ee7d42afada5f8be5b5b5a32b84ac4c750002cf4",
+      "sha256": "c5e32e5756014ef2554bcf6a7f093371476fad7e0974e996f298c1b48f764058",
       "summary": {
         "passed": true,
         "n_evidence_cells": 37,
