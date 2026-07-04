@@ -84,6 +84,12 @@ deterministic regimes and literature-motivated threshold profiles. The fixture
 keeps the evidence local and does not make convergence, public fit-metric, or
 Q-revision claims.
 
+`mgmfrm_construct_reviewed_q_fit_reporting_policy.json` converts that local
+threshold-sensitivity surface into a reporting policy. It records threshold
+profile dependence, candidate/declared indicator conflicts, MFRM reference
+comparisons, and common-parameter-shift impact bands while keeping fit metrics
+as local appendix diagnostics only.
+
 The deterministic validation-plan generator:
 
 ```bash

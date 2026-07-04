@@ -104,6 +104,12 @@ const INPUT_ARTIFACTS = [
         expected_schema =
             "bayesianmgmfrm.mgmfrm_fit_metric_threshold_sensitivity.v1",
         hash_policy = :sha256),
+    (name = :mgmfrm_construct_reviewed_q_fit_reporting_policy,
+        path =
+            "test/fixtures/mgmfrm_construct_reviewed_q_fit_reporting_policy.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_construct_reviewed_q_fit_reporting_policy.v1",
+        hash_policy = :sha256),
     (name = :full_paper_reproduction_archive,
         path = "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
         expected_schema =
@@ -145,6 +151,7 @@ const PROTOCOL = (;
         require_mgmfrm_q_revision_construct_validity_review_passed = true,
         require_mgmfrm_guarded_local_fit_entrypoint_passed = true,
         require_mgmfrm_fit_metric_threshold_sensitivity_passed = true,
+        require_mgmfrm_construct_reviewed_q_fit_reporting_policy_passed = true,
         require_full_paper_reproduction_archive_passed = true,
         require_minimum_total_evidence_cells = 60,
         require_no_publication_commands = true,
@@ -507,6 +514,19 @@ function artifact_summary(name::Symbol, summary::AbstractString)
             json_bool(summary, "no_public_fit_metric_claim") &&
             json_bool(summary, "no_public_q_revision_claim"),
     )
+    name === :mgmfrm_construct_reviewed_q_fit_reporting_policy && return (;
+        passed = json_bool(summary, "passed"),
+        n_evidence_cells = json_int(summary, "n_reporting_evidence_cells"),
+        key_check = :mgmfrm_construct_reviewed_q_fit_reporting_policy,
+        all_primary_checks =
+            json_bool(summary, "threshold_profile_surface_recorded") &&
+            json_bool(summary, "indicator_conflicts_recorded") &&
+            json_bool(summary, "existing_model_reference_recorded") &&
+            json_bool(summary, "parameter_shift_impact_recorded") &&
+            json_bool(summary, "all_policy_rows_block_public_claims") &&
+            json_bool(summary, "no_public_fit_metric_claim") &&
+            json_bool(summary, "no_public_q_revision_claim"),
+    )
     name === :full_paper_reproduction_archive && return (;
         passed = json_bool(summary, "passed"),
         n_evidence_cells = json_int(summary, "n_fixture_artifacts"),
@@ -708,6 +728,10 @@ function build_artifact()
             mgmfrm_fit_metric_threshold_sensitivity_passed =
                 record_by_name(input_records,
                     :mgmfrm_fit_metric_threshold_sensitivity).summary_passed,
+            mgmfrm_construct_reviewed_q_fit_reporting_policy_passed =
+                record_by_name(input_records,
+                    :mgmfrm_construct_reviewed_q_fit_reporting_policy).
+                    summary_passed,
             full_paper_reproduction_archive_passed =
                 record_by_name(input_records,
                     :full_paper_reproduction_archive).summary_passed,

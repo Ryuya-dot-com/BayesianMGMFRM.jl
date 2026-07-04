@@ -3889,6 +3889,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         :require_mgmfrm_guarded_local_fit_entrypoint_passed])
     @test Bool(thresholds[
         :require_mgmfrm_fit_metric_threshold_sensitivity_passed])
+    @test Bool(thresholds[
+        :require_mgmfrm_construct_reviewed_q_fit_reporting_policy_passed])
     @test Bool(thresholds[:require_mgmfrm_guarded_fit_method_wiring_passed])
     @test Bool(thresholds[:require_mgmfrm_guarded_fit_validation_grid_passed])
     @test Bool(thresholds[:require_mgmfrm_guarded_fit_api_dry_run_passed])
@@ -3971,6 +3973,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
             "test/fixtures/mgmfrm_guarded_local_fit_entrypoint.json",
         "mgmfrm_fit_metric_threshold_sensitivity" =>
             "test/fixtures/mgmfrm_fit_metric_threshold_sensitivity.json",
+        "mgmfrm_construct_reviewed_q_fit_reporting_policy" =>
+            "test/fixtures/mgmfrm_construct_reviewed_q_fit_reporting_policy.json",
         "mgmfrm_guarded_fit_method_wiring" =>
             "test/fixtures/mgmfrm_guarded_fit_method_wiring.json",
         "mgmfrm_guarded_fit_validation_grid" =>
@@ -4011,7 +4015,7 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     end
 
     code_doc_records = fixture[:code_doc_records]
-    @test length(code_doc_records) == 37
+    @test length(code_doc_records) == 38
     @test all(row -> Bool(row[:exists]), code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_gmfrm_full_paper_reproduction_archive.jl",
@@ -4042,6 +4046,9 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_mgmfrm_fit_metric_threshold_sensitivity.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) ==
+        "scripts/generate_mgmfrm_construct_reviewed_q_fit_reporting_policy.jl",
         code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_mgmfrm_guarded_fit_method_wiring.jl",
@@ -4078,8 +4085,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     end
 
     full_commands = fixture[:full_regeneration_commands]
-    @test length(full_commands) == 43
-    @test [Int(row[:step]) for row in full_commands] == collect(1:43)
+    @test length(full_commands) == 44
+    @test [Int(row[:step]) for row in full_commands] == collect(1:44)
     @test all(row -> Bool(row[:local_only]), full_commands)
     @test any(row -> String(row[:artifact]) ==
         "mgmfrm_report_shape_simulation_grid", full_commands)
@@ -4099,6 +4106,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         "mgmfrm_guarded_local_fit_entrypoint", full_commands)
     @test any(row -> String(row[:artifact]) ==
         "mgmfrm_fit_metric_threshold_sensitivity", full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "mgmfrm_construct_reviewed_q_fit_reporting_policy", full_commands)
     @test any(row -> String(row[:artifact]) ==
         "prediction_target_and_model_weight_policy", full_commands)
     @test String(full_commands[end - 3][:artifact]) ==
@@ -4170,6 +4179,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         :mgmfrm_q_revision_construct_validity_review_passed])
     @test Bool(summary[:mgmfrm_guarded_local_fit_entrypoint_passed])
     @test Bool(summary[:mgmfrm_fit_metric_threshold_sensitivity_passed])
+    @test Bool(summary[
+        :mgmfrm_construct_reviewed_q_fit_reporting_policy_passed])
     @test Bool(summary[:mgmfrm_guarded_fit_method_wiring_passed])
     @test Bool(summary[:mgmfrm_guarded_fit_validation_grid_passed])
     @test Bool(summary[:mgmfrm_guarded_fit_api_dry_run_passed])
@@ -4419,6 +4430,8 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
         :require_mgmfrm_guarded_local_fit_entrypoint_passed])
     @test Bool(thresholds[
         :require_mgmfrm_fit_metric_threshold_sensitivity_passed])
+    @test Bool(thresholds[
+        :require_mgmfrm_construct_reviewed_q_fit_reporting_policy_passed])
     @test Bool(thresholds[:require_full_paper_reproduction_archive_passed])
     @test Int(thresholds[:require_minimum_total_evidence_cells]) == 60
     @test Bool(thresholds[:require_no_publication_commands])
@@ -4460,6 +4473,8 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
             "test/fixtures/mgmfrm_guarded_local_fit_entrypoint.json",
         "mgmfrm_fit_metric_threshold_sensitivity" =>
             "test/fixtures/mgmfrm_fit_metric_threshold_sensitivity.json",
+        "mgmfrm_construct_reviewed_q_fit_reporting_policy" =>
+            "test/fixtures/mgmfrm_construct_reviewed_q_fit_reporting_policy.json",
         "full_paper_reproduction_archive" =>
             "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
     )
@@ -4487,7 +4502,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     evidence_rows = fixture[:evidence_rows]
     @test length(evidence_rows) == length(input_artifacts)
     @test all(row -> String(row[:status]) == "passed", evidence_rows)
-    @test Int(sum(Int(row[:n_evidence_cells]) for row in evidence_rows)) == 261
+    @test Int(sum(Int(row[:n_evidence_cells]) for row in evidence_rows)) == 296
     @test any(row -> String(row[:gate]) == "prior_likelihood_sensitivity_grid" &&
         Int(row[:n_evidence_cells]) == 45, evidence_rows)
     @test any(row -> String(row[:gate]) ==
@@ -4523,6 +4538,11 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
         Int(row[:n_evidence_cells]) == 78 &&
         String(row[:key_check]) ==
             "mgmfrm_fit_metric_threshold_sensitivity", evidence_rows)
+    @test any(row -> String(row[:gate]) ==
+        "mgmfrm_construct_reviewed_q_fit_reporting_policy" &&
+        Int(row[:n_evidence_cells]) == 34 &&
+        String(row[:key_check]) ==
+            "mgmfrm_construct_reviewed_q_fit_reporting_policy", evidence_rows)
 
     decisions = fixture[:claim_decision_rows]
     @test length(decisions) == 4
@@ -4559,7 +4579,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     @test Bool(summary[:all_primary_checks_passed])
     @test Int(summary[:n_input_artifacts]) == length(input_artifacts)
     @test Int(summary[:n_evidence_rows]) == length(evidence_rows)
-    @test Int(summary[:total_evidence_cells]) == 261
+    @test Int(summary[:total_evidence_cells]) == 296
     @test Int(summary[:minimum_required_evidence_cells]) == 60
     @test Bool(summary[:scalar_fit_validation_grid_passed])
     @test Bool(summary[:posterior_predictive_grid_passed])
@@ -4580,6 +4600,8 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
         :mgmfrm_q_revision_construct_validity_review_passed])
     @test Bool(summary[:mgmfrm_guarded_local_fit_entrypoint_passed])
     @test Bool(summary[:mgmfrm_fit_metric_threshold_sensitivity_passed])
+    @test Bool(summary[
+        :mgmfrm_construct_reviewed_q_fit_reporting_policy_passed])
     @test Bool(summary[:full_paper_reproduction_archive_passed])
     @test Bool(summary[:manuscript_claims_allowed]) == false
     @test Bool(summary[:no_publication_commands])
@@ -5273,8 +5295,8 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(manuscript_grid[:summary][:all_expected_schemas])
     @test Bool(manuscript_grid[:summary][:all_input_summaries_passed])
     @test Bool(manuscript_grid[:summary][:all_primary_checks_passed])
-    @test Int(manuscript_grid[:summary][:n_input_artifacts]) == 18
-    @test Int(manuscript_grid[:summary][:total_evidence_cells]) == 261
+    @test Int(manuscript_grid[:summary][:n_input_artifacts]) == 19
+    @test Int(manuscript_grid[:summary][:total_evidence_cells]) == 296
     @test Int(manuscript_grid[:summary][:minimum_required_evidence_cells]) == 60
     @test Bool(manuscript_grid[:summary][:prediction_target_and_model_weight_policy_passed])
     @test Bool(manuscript_grid[:summary][
@@ -5285,6 +5307,8 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
         :mgmfrm_guarded_local_fit_entrypoint_passed])
     @test Bool(manuscript_grid[:summary][
         :mgmfrm_fit_metric_threshold_sensitivity_passed])
+    @test Bool(manuscript_grid[:summary][
+        :mgmfrm_construct_reviewed_q_fit_reporting_policy_passed])
     @test Bool(manuscript_grid[:summary][:full_paper_reproduction_archive_passed])
     @test Bool(manuscript_grid[:summary][:manuscript_claims_allowed]) == false
     @test String(manuscript_grid[:summary][:next_gate]) ==
@@ -5301,9 +5325,9 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(full_archive[:summary][:all_external_sources_present])
     @test Bool(full_archive[:summary][:all_commands_local_only])
     @test Bool(full_archive[:summary][:no_publication_commands])
-    @test Int(full_archive[:summary][:n_fixture_artifacts]) == 43
-    @test Int(full_archive[:summary][:n_code_doc_records]) == 37
-    @test Int(full_archive[:summary][:n_full_regeneration_commands]) == 43
+    @test Int(full_archive[:summary][:n_fixture_artifacts]) == 44
+    @test Int(full_archive[:summary][:n_code_doc_records]) == 38
+    @test Int(full_archive[:summary][:n_full_regeneration_commands]) == 44
     @test Int(full_archive[:summary][:n_verification_commands]) == 4
     @test Bool(full_archive[:summary][:mgmfrm_report_shape_simulation_grid_passed])
     @test Bool(full_archive[:summary][:mgmfrm_q_matrix_validation_expansion_passed])
@@ -5321,6 +5345,8 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
         :mgmfrm_guarded_local_fit_entrypoint_passed])
     @test Bool(full_archive[:summary][
         :mgmfrm_fit_metric_threshold_sensitivity_passed])
+    @test Bool(full_archive[:summary][
+        :mgmfrm_construct_reviewed_q_fit_reporting_policy_passed])
     @test Bool(full_archive[:summary][:prediction_target_and_model_weight_policy_passed])
     @test Bool(full_archive[:summary][:manuscript_reproducibility_claims_supported])
     @test Int(full_archive[:summary][:n_blockers]) == 0
@@ -5476,6 +5502,10 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
         "confirmatory_mgmfrm_fit_metric_threshold_sensitivity" &&
         String(row[:status]) == "passed_with_policy_blocker" &&
         Bool(row[:evidence]), review_rows)
+    @test any(row -> String(row[:gate]) ==
+        "confirmatory_mgmfrm_construct_reviewed_q_fit_reporting_policy" &&
+        String(row[:status]) == "passed_with_policy_blocker" &&
+        Bool(row[:evidence]), review_rows)
     @test any(row -> String(row[:gate]) == "dff_estimand_and_validation_grid" &&
         String(row[:status]) == "passed" &&
         Bool(row[:evidence]), review_rows)
@@ -5527,6 +5557,8 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(summary[:mgmfrm_q_revision_construct_validity_review_passed])
     @test Bool(summary[:mgmfrm_guarded_local_fit_entrypoint_passed])
     @test Bool(summary[:mgmfrm_fit_metric_threshold_sensitivity_passed])
+    @test Bool(summary[
+        :mgmfrm_construct_reviewed_q_fit_reporting_policy_passed])
     @test Bool(summary[:prediction_target_and_model_weight_policy_passed])
     @test Bool(summary[:dff_estimand_validation_grid_passed])
     @test Bool(summary[:manuscript_scale_simulation_grid_passed])
@@ -7457,6 +7489,185 @@ function check_mgmfrm_fit_metric_threshold_sensitivity_fixture(
         "report_metric_sensitivity_as_local_diagnostic_appendix_only"
     @test String(summary[:next_gate]) ==
         "construct_reviewed_q_fit_reporting_policy"
+end
+
+function check_mgmfrm_construct_reviewed_q_fit_reporting_policy_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_construct_reviewed_q_fit_reporting_policy.v1"
+    @test String(fixture[:family]) == "mgmfrm"
+    @test String(fixture[:scope]) ==
+        "construct_reviewed_q_fit_reporting_policy"
+    @test String(fixture[:status]) ==
+        "construct_reviewed_q_fit_reporting_policy_recorded"
+    @test String(fixture[:decision]) ==
+        "keep_fit_metrics_local_report_threshold_sensitivity_only"
+    @test Bool(fixture[:public_fit])
+    @test Bool(fixture[:experimental_public])
+    @test Bool(fixture[:fit_ready])
+    @test Bool(fixture[:local_only])
+    @test Bool(fixture[:public_fit_metric_claim]) == false
+    @test Bool(fixture[:public_q_revision_claim]) == false
+    @test Bool(fixture[:automatic_q_revision]) == false
+    @test Bool(fixture[:publication_or_registration_action]) == false
+
+    protocol = fixture[:protocol]
+    thresholds = protocol[:thresholds]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_construct_reviewed_q_fit_reporting_policy_v1"
+    @test String(protocol[:review_kind]) ==
+        "local_construct_reviewed_q_fit_reporting_policy"
+    @test Bool(protocol[:publication_or_registration_action]) == false
+    @test Bool(protocol[:local_only])
+    @test String(protocol[:decision_target]) ==
+        "construct_reviewed_q_fit_reporting_policy"
+    @test String(protocol[:policy_scope]) == "local_diagnostic_appendix_only"
+    @test Bool(thresholds[:require_fit_metric_threshold_sensitivity_passed])
+    @test Bool(thresholds[:require_threshold_profile_decision_surface])
+    @test Bool(thresholds[
+        :require_candidate_declared_indicator_conflicts_recorded])
+    @test Bool(thresholds[:require_existing_mfrm_reference_comparison_recorded])
+    @test Bool(thresholds[:require_parameter_shift_impact_recorded])
+    @test Bool(thresholds[:require_no_single_threshold_profile_promoted])
+    @test Bool(thresholds[:require_no_automatic_q_revision])
+    @test Bool(thresholds[:require_no_public_q_revision_claim])
+    @test Bool(thresholds[:require_no_public_fit_metric_claim])
+
+    inputs = fixture[:input_artifacts]
+    @test length(inputs) == 1
+    input = only(inputs)
+    @test String(input[:artifact]) == "mgmfrm_fit_metric_threshold_sensitivity"
+    @test String(input[:path]) ==
+        "test/fixtures/mgmfrm_fit_metric_threshold_sensitivity.json"
+    @test Bool(input[:exists])
+    @test Bool(input[:schema_matches])
+    @test Bool(input[:summary_passed])
+    @test String(input[:next_gate]) ==
+        "construct_reviewed_q_fit_reporting_policy"
+    @test String(input[:sha256]) ==
+        file_sha256(joinpath(root, String(input[:path])))
+
+    profile_rows = fixture[:threshold_profile_decision_rows]
+    @test length(profile_rows) == 4
+    @test Set(String(row[:profile]) for row in profile_rows) == Set([
+        "strict_bayesian_workflow",
+        "screening_workflow",
+        "exploratory_rasch_lenient",
+        "sample_size_mean_square",
+    ])
+    @test all(row -> Int(row[:n_mfrm_threshold_rows]) == 3,
+        profile_rows)
+    @test all(row -> Int(row[:n_mgmfrm_threshold_rows]) == 12,
+        profile_rows)
+    @test all(row -> Bool(row[:mgmfrm_decision_is_threshold_sensitive]),
+        profile_rows)
+    @test any(row -> String(row[:profile]) == "strict_bayesian_workflow" &&
+        Int(row[:n_mfrm_profile_failures]) == 3 &&
+        Int(row[:min_mgmfrm_metric_flags]) >= 7, profile_rows)
+    @test any(row -> String(row[:profile]) == "exploratory_rasch_lenient" &&
+        Int(row[:n_mgmfrm_metric_profile_passes_without_mcmc]) == 3,
+        profile_rows)
+
+    scenario_rows = fixture[:scenario_impact_rows]
+    @test length(scenario_rows) == 6
+    @test all(row -> Int(row[:n_common_direct_parameters]) == 19,
+        scenario_rows)
+    @test all(row -> String(row[:parameter_shift_band]) ==
+        "moderate_local_shift", scenario_rows)
+    @test any(row -> String(row[:predictive_direction]) ==
+        "candidate_lower_waic_and_looic", scenario_rows)
+    @test any(row -> String(row[:predictive_direction]) ==
+        "declared_lower_waic_and_looic", scenario_rows)
+    @test all(row -> Int(row[:n_common_direct_parameters_shifted_gt_0_25]) == 0,
+        scenario_rows)
+    @test all(row -> String(row[:q_revision_implication]) ==
+        "manual_construct_review_only_not_automatic_q_revision", scenario_rows)
+
+    conflict_rows = fixture[:indicator_conflict_rows]
+    @test length(conflict_rows) == length(scenario_rows)
+    @test count(row -> Int(row[:n_indicator_pair_conflicts]) > 0,
+        conflict_rows) == 5
+    @test any(row -> String(row[:conflict_level]) == "none", conflict_rows)
+    @test all(row -> String(row[:reporting_decision]) ==
+        "report_conflict_matrix_not_single_fit_decision", conflict_rows)
+
+    existing_rows = fixture[:existing_model_reference_rows]
+    @test length(existing_rows) == 12
+    @test Set(String(row[:current_model]) for row in existing_rows) == Set([
+        "declared_q",
+        "construct_reviewed_candidate_q",
+    ])
+    @test all(row -> String(row[:reference_role]) ==
+        "existing_mfrm_reference_only_not_model_superiority_claim",
+        existing_rows)
+
+    policy_rows = fixture[:reporting_policy_rows]
+    @test length(policy_rows) == 6
+    @test Set(String(row[:surface]) for row in policy_rows) == Set([
+        "mfrm_infit_outfit",
+        "mgmfrm_waic_loo",
+        "mgmfrm_ppc_calibration",
+        "direct_parameter_shift",
+        "q_revision",
+        "single_fit_threshold",
+    ])
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, policy_rows)
+    @test any(row -> String(row[:surface]) == "single_fit_threshold" &&
+        String(row[:reporting_role]) == "not_promoted", policy_rows)
+
+    decision = fixture[:decision_record]
+    @test String(decision[:selected_decision]) ==
+        "keep_fit_metrics_local_report_threshold_sensitivity_only"
+    @test Bool(decision[:existing_mfrm_fit_stats_used_as_reference])
+    @test Bool(decision[:candidate_declared_indicator_conflicts_recorded])
+    @test Bool(decision[:parameter_shift_impact_recorded])
+    @test Bool(decision[:mcmc_convergence_claim_allowed]) == false
+    @test Bool(decision[:automatic_q_revision_allowed]) == false
+    @test Bool(decision[:public_q_revision_claim_allowed]) == false
+    @test Bool(decision[:public_fit_metric_claim_allowed]) == false
+    @test String(decision[:required_followup]) ==
+        "heldout_prediction_or_external_validation_before_claims"
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:publication_or_registration_action]) == false
+    @test Bool(summary[:local_only])
+    @test Bool(summary[:all_input_artifacts_present])
+    @test Bool(summary[:all_expected_schemas])
+    @test Bool(summary[:all_input_summaries_passed])
+    @test Bool(summary[:fit_metric_threshold_sensitivity_passed])
+    @test Bool(summary[:input_next_gate_matched])
+    @test Bool(summary[:threshold_profile_surface_recorded])
+    @test Bool(summary[:indicator_conflicts_recorded])
+    @test Bool(summary[:existing_model_reference_recorded])
+    @test Bool(summary[:parameter_shift_impact_recorded])
+    @test Bool(summary[:all_policy_rows_block_public_claims])
+    @test Bool(summary[:no_single_threshold_profile_promoted])
+    @test Bool(summary[:no_automatic_q_revision])
+    @test Bool(summary[:no_public_q_revision_claim])
+    @test Bool(summary[:no_public_fit_metric_claim])
+    @test Bool(summary[:public_fit_metric_claim_allowed]) == false
+    @test Bool(summary[:public_q_revision_claim_allowed]) == false
+    @test Int(summary[:n_input_artifacts]) == length(inputs)
+    @test Int(summary[:n_threshold_profile_decision_rows]) ==
+        length(profile_rows)
+    @test Int(summary[:n_scenario_impact_rows]) == length(scenario_rows)
+    @test Int(summary[:n_indicator_conflict_rows]) == length(conflict_rows)
+    @test Int(summary[:n_existing_model_reference_rows]) == length(existing_rows)
+    @test Int(summary[:n_reporting_policy_rows]) == length(policy_rows)
+    @test Int(summary[:n_reporting_evidence_cells]) == 34
+    @test Int(summary[:n_conflict_rows_with_conflicts]) == 5
+    @test Int(summary[:n_moderate_or_larger_parameter_shift_rows]) == 6
+    @test Int(summary[:n_blockers]) == 0
+    @test isempty(summary[:remaining_public_blockers])
+    @test String(summary[:recommendation]) ==
+        "report_construct_reviewed_q_fit_metrics_as_local_appendix_only"
+    @test String(summary[:next_gate]) ==
+        "heldout_prediction_or_external_validation_before_claims"
 end
 
 function check_mgmfrm_guarded_fit_method_wiring_fixture(fixture_path::AbstractString)
@@ -13282,6 +13493,12 @@ end
     if !isempty(mgmfrm_fit_metric_threshold_sensitivity_fixture)
         check_mgmfrm_fit_metric_threshold_sensitivity_fixture(
             mgmfrm_fit_metric_threshold_sensitivity_fixture,
+        )
+    end
+    mgmfrm_construct_reviewed_q_fit_reporting_policy_fixture = optional_fixture_path("MFRM_MGMFRM_CONSTRUCT_REVIEWED_Q_FIT_REPORTING_POLICY_FIXTURE", joinpath("test", "fixtures", "mgmfrm_construct_reviewed_q_fit_reporting_policy.json"))
+    if !isempty(mgmfrm_construct_reviewed_q_fit_reporting_policy_fixture)
+        check_mgmfrm_construct_reviewed_q_fit_reporting_policy_fixture(
+            mgmfrm_construct_reviewed_q_fit_reporting_policy_fixture,
         )
     end
     mgmfrm_guarded_fit_method_wiring_fixture = optional_fixture_path("MFRM_MGMFRM_GUARDED_FIT_METHOD_WIRING_FIXTURE", joinpath("test", "fixtures", "mgmfrm_guarded_fit_method_wiring.json"))

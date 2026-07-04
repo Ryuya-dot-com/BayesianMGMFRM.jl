@@ -51,6 +51,11 @@
   fixed-Q MGMFRM WAIC, LOO, posterior predictive, calibration, and
   common-parameter-shift summaries across literature-motivated threshold
   profiles while keeping convergence, fit-metric, and Q-revision claims local.
+- Add a local MGMFRM construct-reviewed Q fit reporting-policy generator and
+  committed JSON artifact that summarizes threshold-profile dependence,
+  candidate/declared indicator conflicts, existing MFRM reference comparisons,
+  and common-parameter-shift impact bands while keeping fit metrics as local
+  appendix diagnostics only.
 - Expose pre-registration gate availability in `release_scope_summary` and
   clarify that Julia General registration is a manual action after the local
   gate passes.
