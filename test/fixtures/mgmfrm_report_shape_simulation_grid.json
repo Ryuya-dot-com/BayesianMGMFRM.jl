@@ -1,0 +1,622 @@
+{
+  "schema": "bayesianmgmfrm.mgmfrm_report_shape_simulation_grid.v1",
+  "family": "mgmfrm",
+  "scope": "minimal_confirmatory_mgmfrm_candidate",
+  "status": "report_shape_simulation_grid_recorded",
+  "decision": "keep_guarded_fixed_q_only",
+  "public_fit": true,
+  "experimental_public": true,
+  "fit_ready": true,
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "protocol": {
+    "protocol_id": "confirmatory_mgmfrm_report_shape_simulation_grid_v1",
+    "review_kind": "local_confirmatory_mgmfrm_report_shape_simulation_grid",
+    "publication_or_registration_action": false,
+    "scenario_count": 3,
+    "sampler": {
+      "backend": "advancedhmc",
+      "sampler": "nuts",
+      "chains": 1,
+      "warmup": 0,
+      "draws": 2,
+      "step_size": 0.02,
+      "max_depth": 2,
+      "metric": "unit"
+    },
+    "thresholds": {
+      "require_all_scenarios_passed": true,
+      "require_q_validation_passed": true,
+      "require_fit_succeeded": true,
+      "require_report_shape_passed": true,
+      "require_diagnostics_shape_passed": true,
+      "require_artifact_shape_passed": true,
+      "require_waic_shape_passed": true,
+      "require_posterior_predictive_shape_passed": true,
+      "require_finite_logdensity": true,
+      "require_finite_pointwise_loglikelihood": true,
+      "require_no_failed_direct_constraints": true,
+      "public_exposure_decision": "guarded_fixed_q_only"
+    }
+  },
+  "scenarios": [
+    {
+      "scenario": "simple_2d_full_crossed",
+      "dimensions": 2,
+      "q_shape": "simple_structure",
+      "q_matrix": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ]
+      ],
+      "simulation_seed": 20260741,
+      "actual_simulation_seed": 20260741,
+      "sampler_seed": 20260742,
+      "n_persons": 3,
+      "n_raters": 2,
+      "n_items": 2,
+      "n_observations": 12,
+      "score_counts": [
+        {
+          "score": 0,
+          "n": 3
+        },
+        {
+          "score": 1,
+          "n": 6
+        },
+        {
+          "score": 2,
+          "n": 3
+        }
+      ],
+      "q_validation": {
+        "passed": true,
+        "n_error_rows": 0,
+        "n_warning_rows": 0,
+        "n_cross_loading_items": 0,
+        "n_duplicate_dimension_groups": 0,
+        "n_dimension_facet_subgraphs_disconnected": 0,
+        "cross_loading_status": "simple_structure"
+      },
+      "n_raw_parameters": 14,
+      "n_direct_parameters": 16,
+      "n_draws": 2,
+      "raw_draw_shape": [
+        2,
+        14
+      ],
+      "direct_draw_shape": [
+        2,
+        16
+      ],
+      "pointwise_loglikelihood_shape": [
+        2,
+        12
+      ],
+      "initial_logdensity": -24.653033120628713,
+      "finite": {
+        "log_posterior_finite": true,
+        "direct_draws_finite": true,
+        "pointwise_finite": true,
+        "pointwise_shape": [
+          2,
+          12
+        ],
+        "n_nonfinite_pointwise": 0,
+        "n_failed_direct_constraints": 0
+      },
+      "report_shape": {
+        "passed": true,
+        "family": "mgmfrm",
+        "dimensions": 2,
+        "dimension_labels": [
+          "dim=1",
+          "dim=2"
+        ],
+        "posterior_status": "computed",
+        "posterior_rows": 14,
+        "direct_posterior_status": "computed",
+        "direct_posterior_rows": 16,
+        "calibration_status": "computed",
+        "calibration_rows": 10,
+        "q_matrix_status": "computed",
+        "q_matrix_passed": true,
+        "waic_status": "computed",
+        "waic_n_draws": 2,
+        "waic_n_observations": 12,
+        "artifact_status": "computed",
+        "artifact_schema": "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1"
+      },
+      "diagnostics_shape": {
+        "passed": true,
+        "raw_parameter_rows": 14,
+        "direct_parameter_rows": 16,
+        "raw_block_rows": 6,
+        "direct_block_rows": 6,
+        "sampler_rows": 1,
+        "direct_constraint_rows": 6,
+        "direct_constraints_passed": true,
+        "fixed_q_invariance_rows": 9
+      },
+      "artifact_shape": {
+        "passed": true,
+        "schema": "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1",
+        "raw_parameter_names": 14,
+        "direct_parameter_names": 16,
+        "posterior_rows": 14,
+        "direct_posterior_rows": 16,
+        "pointwise_shape": [
+          2,
+          12
+        ],
+        "q_matrix": [
+          [
+            true,
+            false
+          ],
+          [
+            false,
+            true
+          ]
+        ],
+        "latent_correlation": "identity_fixed",
+        "content_hash_length": 64
+      },
+      "waic_shape": {
+        "passed": true,
+        "n_draws": 2,
+        "n_observations": 12,
+        "waic": 26.374336853007435,
+        "elpd_waic": -13.187168426503717,
+        "high_variance_count": 0,
+        "warning": "ok"
+      },
+      "posterior_predictive_shape": {
+        "passed": true,
+        "replicated_shape": [
+          2,
+          12
+        ],
+        "expected_shape": [
+          2,
+          12
+        ],
+        "n_categories": 3,
+        "n_summary_rows": 23
+      },
+      "summary": {
+        "passed": true,
+        "q_validation_passed": true,
+        "finite_initial_logdensity": true,
+        "finite_log_posterior": true,
+        "finite_direct_draws": true,
+        "finite_pointwise_loglikelihood": true,
+        "no_failed_direct_constraints": true,
+        "report_shape_passed": true,
+        "diagnostics_shape_passed": true,
+        "artifact_shape_passed": true,
+        "waic_shape_passed": true,
+        "posterior_predictive_shape_passed": true
+      }
+    },
+    {
+      "scenario": "simple_3d_full_crossed",
+      "dimensions": 3,
+      "q_shape": "simple_structure",
+      "q_matrix": [
+        [
+          true,
+          false,
+          false
+        ],
+        [
+          false,
+          true,
+          false
+        ],
+        [
+          false,
+          false,
+          true
+        ]
+      ],
+      "simulation_seed": 20260743,
+      "actual_simulation_seed": 20260743,
+      "sampler_seed": 20260744,
+      "n_persons": 3,
+      "n_raters": 2,
+      "n_items": 3,
+      "n_observations": 18,
+      "score_counts": [
+        {
+          "score": 0,
+          "n": 6
+        },
+        {
+          "score": 1,
+          "n": 8
+        },
+        {
+          "score": 2,
+          "n": 4
+        }
+      ],
+      "q_validation": {
+        "passed": true,
+        "n_error_rows": 0,
+        "n_warning_rows": 0,
+        "n_cross_loading_items": 0,
+        "n_duplicate_dimension_groups": 0,
+        "n_dimension_facet_subgraphs_disconnected": 0,
+        "cross_loading_status": "simple_structure"
+      },
+      "n_raw_parameters": 20,
+      "n_direct_parameters": 22,
+      "n_draws": 2,
+      "raw_draw_shape": [
+        2,
+        20
+      ],
+      "direct_draw_shape": [
+        2,
+        22
+      ],
+      "pointwise_loglikelihood_shape": [
+        2,
+        18
+      ],
+      "initial_logdensity": -32.67629262549094,
+      "finite": {
+        "log_posterior_finite": true,
+        "direct_draws_finite": true,
+        "pointwise_finite": true,
+        "pointwise_shape": [
+          2,
+          18
+        ],
+        "n_nonfinite_pointwise": 0,
+        "n_failed_direct_constraints": 0
+      },
+      "report_shape": {
+        "passed": true,
+        "family": "mgmfrm",
+        "dimensions": 3,
+        "dimension_labels": [
+          "dim=1",
+          "dim=2",
+          "dim=3"
+        ],
+        "posterior_status": "computed",
+        "posterior_rows": 20,
+        "direct_posterior_status": "computed",
+        "direct_posterior_rows": 22,
+        "calibration_status": "computed",
+        "calibration_rows": 10,
+        "q_matrix_status": "computed",
+        "q_matrix_passed": true,
+        "waic_status": "computed",
+        "waic_n_draws": 2,
+        "waic_n_observations": 18,
+        "artifact_status": "computed",
+        "artifact_schema": "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1"
+      },
+      "diagnostics_shape": {
+        "passed": true,
+        "raw_parameter_rows": 20,
+        "direct_parameter_rows": 22,
+        "raw_block_rows": 6,
+        "direct_block_rows": 6,
+        "sampler_rows": 1,
+        "direct_constraint_rows": 7,
+        "direct_constraints_passed": true,
+        "fixed_q_invariance_rows": 9
+      },
+      "artifact_shape": {
+        "passed": true,
+        "schema": "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1",
+        "raw_parameter_names": 20,
+        "direct_parameter_names": 22,
+        "posterior_rows": 20,
+        "direct_posterior_rows": 22,
+        "pointwise_shape": [
+          2,
+          18
+        ],
+        "q_matrix": [
+          [
+            true,
+            false,
+            false
+          ],
+          [
+            false,
+            true,
+            false
+          ],
+          [
+            false,
+            false,
+            true
+          ]
+        ],
+        "latent_correlation": "identity_fixed",
+        "content_hash_length": 64
+      },
+      "waic_shape": {
+        "passed": true,
+        "n_draws": 2,
+        "n_observations": 18,
+        "waic": 31.4094439211707,
+        "elpd_waic": -15.70472196058535,
+        "high_variance_count": 0,
+        "warning": "ok"
+      },
+      "posterior_predictive_shape": {
+        "passed": true,
+        "replicated_shape": [
+          2,
+          18
+        ],
+        "expected_shape": [
+          2,
+          18
+        ],
+        "n_categories": 3,
+        "n_summary_rows": 30
+      },
+      "summary": {
+        "passed": true,
+        "q_validation_passed": true,
+        "finite_initial_logdensity": true,
+        "finite_log_posterior": true,
+        "finite_direct_draws": true,
+        "finite_pointwise_loglikelihood": true,
+        "no_failed_direct_constraints": true,
+        "report_shape_passed": true,
+        "diagnostics_shape_passed": true,
+        "artifact_shape_passed": true,
+        "waic_shape_passed": true,
+        "posterior_predictive_shape_passed": true
+      }
+    },
+    {
+      "scenario": "cross_loading_3d_full_crossed",
+      "dimensions": 3,
+      "q_shape": "fixed_confirmatory_cross_loading",
+      "q_matrix": [
+        [
+          true,
+          false,
+          false
+        ],
+        [
+          false,
+          true,
+          false
+        ],
+        [
+          false,
+          false,
+          true
+        ],
+        [
+          true,
+          true,
+          false
+        ]
+      ],
+      "simulation_seed": 20260745,
+      "actual_simulation_seed": 20260745,
+      "sampler_seed": 20260746,
+      "n_persons": 3,
+      "n_raters": 2,
+      "n_items": 4,
+      "n_observations": 24,
+      "score_counts": [
+        {
+          "score": 0,
+          "n": 8
+        },
+        {
+          "score": 1,
+          "n": 8
+        },
+        {
+          "score": 2,
+          "n": 8
+        }
+      ],
+      "q_validation": {
+        "passed": true,
+        "n_error_rows": 0,
+        "n_warning_rows": 1,
+        "n_cross_loading_items": 1,
+        "n_duplicate_dimension_groups": 0,
+        "n_dimension_facet_subgraphs_disconnected": 0,
+        "cross_loading_status": "fixed_confirmatory_cross_loadings"
+      },
+      "n_raw_parameters": 24,
+      "n_direct_parameters": 26,
+      "n_draws": 2,
+      "raw_draw_shape": [
+        2,
+        24
+      ],
+      "direct_draw_shape": [
+        2,
+        26
+      ],
+      "pointwise_loglikelihood_shape": [
+        2,
+        24
+      ],
+      "initial_logdensity": -40.767257000331625,
+      "finite": {
+        "log_posterior_finite": true,
+        "direct_draws_finite": true,
+        "pointwise_finite": true,
+        "pointwise_shape": [
+          2,
+          24
+        ],
+        "n_nonfinite_pointwise": 0,
+        "n_failed_direct_constraints": 0
+      },
+      "report_shape": {
+        "passed": true,
+        "family": "mgmfrm",
+        "dimensions": 3,
+        "dimension_labels": [
+          "dim=1",
+          "dim=2",
+          "dim=3"
+        ],
+        "posterior_status": "computed",
+        "posterior_rows": 24,
+        "direct_posterior_status": "computed",
+        "direct_posterior_rows": 26,
+        "calibration_status": "computed",
+        "calibration_rows": 10,
+        "q_matrix_status": "computed",
+        "q_matrix_passed": true,
+        "waic_status": "computed",
+        "waic_n_draws": 2,
+        "waic_n_observations": 24,
+        "artifact_status": "computed",
+        "artifact_schema": "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1"
+      },
+      "diagnostics_shape": {
+        "passed": true,
+        "raw_parameter_rows": 24,
+        "direct_parameter_rows": 26,
+        "raw_block_rows": 6,
+        "direct_block_rows": 6,
+        "sampler_rows": 1,
+        "direct_constraint_rows": 8,
+        "direct_constraints_passed": true,
+        "fixed_q_invariance_rows": 9
+      },
+      "artifact_shape": {
+        "passed": true,
+        "schema": "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1",
+        "raw_parameter_names": 24,
+        "direct_parameter_names": 26,
+        "posterior_rows": 24,
+        "direct_posterior_rows": 26,
+        "pointwise_shape": [
+          2,
+          24
+        ],
+        "q_matrix": [
+          [
+            true,
+            false,
+            false
+          ],
+          [
+            false,
+            true,
+            false
+          ],
+          [
+            false,
+            false,
+            true
+          ],
+          [
+            true,
+            true,
+            false
+          ]
+        ],
+        "latent_correlation": "identity_fixed",
+        "content_hash_length": 64
+      },
+      "waic_shape": {
+        "passed": true,
+        "n_draws": 2,
+        "n_observations": 24,
+        "waic": 44.81640672128735,
+        "elpd_waic": -22.408203360643675,
+        "high_variance_count": 0,
+        "warning": "ok"
+      },
+      "posterior_predictive_shape": {
+        "passed": true,
+        "replicated_shape": [
+          2,
+          24
+        ],
+        "expected_shape": [
+          2,
+          24
+        ],
+        "n_categories": 3,
+        "n_summary_rows": 37
+      },
+      "summary": {
+        "passed": true,
+        "q_validation_passed": true,
+        "finite_initial_logdensity": true,
+        "finite_log_posterior": true,
+        "finite_direct_draws": true,
+        "finite_pointwise_loglikelihood": true,
+        "no_failed_direct_constraints": true,
+        "report_shape_passed": true,
+        "diagnostics_shape_passed": true,
+        "artifact_shape_passed": true,
+        "waic_shape_passed": true,
+        "posterior_predictive_shape_passed": true
+      }
+    }
+  ],
+  "decision_record": {
+    "public_fit_allowed": true,
+    "experimental_keyword_enabled": true,
+    "public_exposure_support": "supports_guarded_fixed_q_report_shape_coverage",
+    "interpretation": "report_diagnostics_artifact_shapes_recorded_for_fixed_q_scenarios",
+    "required_followup": "q_matrix_validation_expansion"
+  },
+  "summary": {
+    "passed": true,
+    "publication_or_registration_action": false,
+    "n_scenarios": 3,
+    "n_passed_scenarios": 3,
+    "dimensions_covered": [
+      2,
+      3
+    ],
+    "q_shapes_covered": [
+      "fixed_confirmatory_cross_loading",
+      "simple_structure"
+    ],
+    "all_q_validation_passed": true,
+    "all_report_shapes_passed": true,
+    "all_diagnostics_shapes_passed": true,
+    "all_artifact_shapes_passed": true,
+    "all_waic_shapes_passed": true,
+    "all_posterior_predictive_shapes_passed": true,
+    "all_no_failed_direct_constraints": true,
+    "all_finite_pointwise_loglikelihood": true,
+    "max_raw_parameters": 24,
+    "max_direct_parameters": 26,
+    "public_fit_allowed": true,
+    "experimental_keyword_enabled": true,
+    "remaining_public_blockers": [
+      "free_latent_correlation_policy_missing",
+      "exploratory_loading_policy_missing",
+      "broad_generalized_mgmfrm_validation_missing"
+    ],
+    "recommendation": "keep_fixed_q_confirmatory_guarded_continue_q_validation_expansion",
+    "next_gate": "q_matrix_validation_expansion"
+  }
+}

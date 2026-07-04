@@ -214,7 +214,7 @@
       "artifact": "mgmfrm_guarded_fit_public_exposure_review",
       "path": "test/fixtures/mgmfrm_guarded_fit_public_exposure_review.json",
       "exists": true,
-      "sha256": "693d5b58c7c7e40ea519941c96e22073304ee6ed3597080fda8a752f2b0ef462",
+      "sha256": "582cef156ab29278bdbf0a55f108acb78912e2ee3d6aed1611f021f1450faf5f",
       "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_public_exposure_review.v1",
       "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_public_exposure_review.v1",
       "schema_matches": true,

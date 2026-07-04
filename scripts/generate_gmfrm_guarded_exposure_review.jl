@@ -1292,6 +1292,9 @@ function artifact_summary(name::Symbol, text::AbstractString)
                 "broader_experimental_exposure_decision_review_passed"),
         manuscript_scale_simulation_grid_passed =
             json_bool(summary, "manuscript_scale_simulation_grid_passed"),
+        mgmfrm_report_shape_simulation_grid_passed =
+            json_bool(summary,
+                "mgmfrm_report_shape_simulation_grid_passed"),
         prediction_target_and_model_weight_policy_passed =
             json_bool(summary,
                 "prediction_target_and_model_weight_policy_passed"),
@@ -1693,6 +1696,9 @@ function build_artifact()
                 Bool(mgmfrm_api_dry_run.summary.passed),
             mgmfrm_guarded_fit_public_exposure_review_passed =
                 Bool(mgmfrm_public_review.summary.passed),
+            mgmfrm_report_shape_simulation_grid_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_report_shape_simulation_grid_passed)),
             prediction_target_and_model_weight_policy_passed =
                 Bool(prediction_policy.summary.passed),
             mgmfrm_manual_public_scope_review_for_fit_passed =

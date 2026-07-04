@@ -220,6 +220,14 @@ const REPRODUCTION_FIXTURES = [
         env_var = "MFRM_MGMFRM_SPARSE_RECOVERY_GRID_FIXTURE",
         pass_policy = :summary_passed,
         hash_policy = :sha256),
+    (name = :mgmfrm_report_shape_simulation_grid,
+        path = "test/fixtures/mgmfrm_report_shape_simulation_grid.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_report_shape_simulation_grid.v1",
+        generator = "scripts/generate_mgmfrm_report_shape_simulation_grid.jl",
+        env_var = "MFRM_MGMFRM_REPORT_SHAPE_SIMULATION_GRID_FIXTURE",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
     (name = :mgmfrm_guarded_fit_method_wiring,
         path = "test/fixtures/mgmfrm_guarded_fit_method_wiring.json",
         expected_schema =
@@ -299,6 +307,7 @@ const CODE_AND_DOC_PATHS = [
     "scripts/pre_registration_gate.jl",
     "scripts/generate_source_bridge_fixtures.py",
     "scripts/generate_gmfrm_full_paper_reproduction_archive.jl",
+    "scripts/generate_mgmfrm_report_shape_simulation_grid.jl",
     "scripts/generate_mgmfrm_guarded_fit_method_wiring.jl",
     "scripts/generate_mgmfrm_guarded_fit_validation_grid.jl",
     "scripts/generate_mgmfrm_guarded_fit_api_dry_run.jl",
@@ -361,6 +370,9 @@ const FULL_REGENERATION_COMMANDS = [
         command = "julia --project=. scripts/generate_mgmfrm_baseline_comparison.jl"),
     (artifact = :mgmfrm_sparse_recovery_grid,
         command = "julia --project=. scripts/generate_mgmfrm_sparse_recovery_grid.jl"),
+    (artifact = :mgmfrm_report_shape_simulation_grid,
+        command =
+            "julia --project=. scripts/generate_mgmfrm_report_shape_simulation_grid.jl"),
     (artifact = :mgmfrm_guarded_fit_method_wiring,
         command = "julia --project=. scripts/generate_mgmfrm_guarded_fit_method_wiring.jl"),
     (artifact = :mgmfrm_guarded_fit_validation_grid,
@@ -427,6 +439,7 @@ const PROTOCOL = (;
         require_broader_exposure_review_passed = true,
         require_manuscript_scale_simulation_grid_passed = true,
         require_mgmfrm_sparse_recovery_grid_passed = true,
+        require_mgmfrm_report_shape_simulation_grid_passed = true,
         require_mgmfrm_guarded_fit_method_wiring_passed = true,
         require_mgmfrm_guarded_fit_validation_grid_passed = true,
         require_mgmfrm_guarded_fit_api_dry_run_passed = true,
@@ -692,6 +705,8 @@ function build_artifact()
     manuscript = record_by_name(fixture_records, :manuscript_scale_simulation_grid)
     claim = record_by_name(fixture_records, :claim_recovery_reproduction_archive)
     mgmfrm_sparse = record_by_name(fixture_records, :mgmfrm_sparse_recovery_grid)
+    mgmfrm_report_shape =
+        record_by_name(fixture_records, :mgmfrm_report_shape_simulation_grid)
     mgmfrm_method =
         record_by_name(fixture_records, :mgmfrm_guarded_fit_method_wiring)
     mgmfrm_validation =
@@ -738,6 +753,7 @@ function build_artifact()
         broader.summary_passed &&
         manuscript.summary_passed &&
         mgmfrm_sparse.summary_passed &&
+        mgmfrm_report_shape.summary_passed &&
         mgmfrm_method.summary_passed &&
         mgmfrm_validation.summary_passed &&
         mgmfrm_api_dry_run.summary_passed &&
@@ -821,6 +837,8 @@ function build_artifact()
                 broader.summary_passed,
             manuscript_scale_simulation_grid_passed = manuscript.summary_passed,
             mgmfrm_sparse_recovery_grid_passed = mgmfrm_sparse.summary_passed,
+            mgmfrm_report_shape_simulation_grid_passed =
+                mgmfrm_report_shape.summary_passed,
             mgmfrm_guarded_fit_method_wiring_passed =
                 mgmfrm_method.summary_passed,
             mgmfrm_guarded_fit_validation_grid_passed =

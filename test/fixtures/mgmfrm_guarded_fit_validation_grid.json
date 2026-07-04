@@ -26,6 +26,7 @@
       "require_recovery_smoke_passed": true,
       "require_baseline_comparison_passed": true,
       "require_sparse_recovery_grid_passed": true,
+      "require_report_shape_simulation_grid_passed": true,
       "require_guarded_fit_method_wiring_passed": true,
       "require_sampler_protocol_passed": true,
       "require_artifact_contract_satisfied": true,
@@ -110,6 +111,25 @@
       }
     },
     {
+      "artifact": "report_shape_simulation_grid",
+      "path": "test/fixtures/mgmfrm_report_shape_simulation_grid.json",
+      "exists": true,
+      "sha256": "e0a346e41ed58f6e4695760b127a220e9863f794d5097aa1bcaaf6470ebe0215",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_report_shape_simulation_grid.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_report_shape_simulation_grid.v1",
+      "schema_matches": true,
+      "pass_policy": "summary_passed",
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "all_report_shapes_passed": true,
+        "all_diagnostics_shapes_passed": true,
+        "all_artifact_shapes_passed": true,
+        "all_waic_shapes_passed": true,
+        "all_posterior_predictive_shapes_passed": true
+      }
+    },
+    {
       "artifact": "guarded_fit_method_wiring",
       "path": "test/fixtures/mgmfrm_guarded_fit_method_wiring.json",
       "exists": true,
@@ -151,6 +171,11 @@
       "finding": "sparse_connected_grid_recorded"
     },
     {
+      "scenario": "report_shape_simulation_grid",
+      "evidence": true,
+      "finding": "report_diagnostics_artifact_shapes_recorded"
+    },
+    {
       "scenario": "guarded_method_contract",
       "evidence": true,
       "finding": "guarded_method_contract_satisfied"
@@ -184,16 +209,22 @@
     "recovery_smoke_passed": true,
     "baseline_comparison_passed": true,
     "sparse_recovery_grid_passed": true,
+    "report_shape_simulation_grid_passed": true,
     "guarded_fit_method_wiring_passed": true,
     "sparse_grid_all_validations_passed": true,
     "sparse_grid_all_sampler_passed": true,
+    "report_shape_all_report_shapes_passed": true,
+    "report_shape_all_diagnostics_shapes_passed": true,
+    "report_shape_all_artifact_shapes_passed": true,
+    "report_shape_all_waic_shapes_passed": true,
+    "report_shape_all_posterior_predictive_shapes_passed": true,
     "method_sampler_protocol_passed": true,
     "method_artifact_contract_satisfied": true,
     "method_fit_boundary_checks_passed": true,
     "method_experimental_spec_fit_succeeded": true,
-    "n_input_artifacts": 6,
-    "n_validation_rows": 6,
-    "n_passed_validation_rows": 6,
+    "n_input_artifacts": 7,
+    "n_validation_rows": 7,
+    "n_passed_validation_rows": 7,
     "remaining_public_blockers": [
       "mgmfrm_guarded_fit_api_dry_run_missing"
     ],

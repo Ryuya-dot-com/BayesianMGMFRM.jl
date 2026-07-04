@@ -36,6 +36,11 @@ const INPUT_ARTIFACTS = [
         path = "test/fixtures/mgmfrm_sparse_recovery_grid.json",
         expected_schema = "bayesianmgmfrm.mgmfrm_sparse_recovery_grid.v1",
         pass_policy = :summary_passed),
+    (name = :report_shape_simulation_grid,
+        path = "test/fixtures/mgmfrm_report_shape_simulation_grid.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_report_shape_simulation_grid.v1",
+        pass_policy = :summary_passed),
     (name = :guarded_fit_method_wiring,
         path = "test/fixtures/mgmfrm_guarded_fit_method_wiring.json",
         expected_schema = "bayesianmgmfrm.mgmfrm_guarded_fit_method_wiring.v1",
@@ -55,6 +60,7 @@ const PROTOCOL = (;
         require_recovery_smoke_passed = true,
         require_baseline_comparison_passed = true,
         require_sparse_recovery_grid_passed = true,
+        require_report_shape_simulation_grid_passed = true,
         require_guarded_fit_method_wiring_passed = true,
         require_sampler_protocol_passed = true,
         require_artifact_contract_satisfied = true,
@@ -133,6 +139,19 @@ function artifact_summary(name::Symbol, summary::Union{Nothing,AbstractString})
         all_validations_passed = summary_bool(summary, "all_validations_passed"),
         all_sampler_passed = summary_bool(summary, "all_sampler_passed"),
     )
+    name === :report_shape_simulation_grid && return (;
+        passed = summary_bool(summary, "passed"),
+        all_report_shapes_passed =
+            summary_bool(summary, "all_report_shapes_passed"),
+        all_diagnostics_shapes_passed =
+            summary_bool(summary, "all_diagnostics_shapes_passed"),
+        all_artifact_shapes_passed =
+            summary_bool(summary, "all_artifact_shapes_passed"),
+        all_waic_shapes_passed =
+            summary_bool(summary, "all_waic_shapes_passed"),
+        all_posterior_predictive_shapes_passed =
+            summary_bool(summary, "all_posterior_predictive_shapes_passed"),
+    )
     name === :guarded_fit_method_wiring && return (;
         passed = summary_bool(summary, "passed"),
         entrypoint_enabled = summary_bool(summary, "entrypoint_enabled", true),
@@ -183,9 +202,11 @@ function validation_rows(records)
     recovery = record_by_name(records, :recovery_smoke)
     baseline = record_by_name(records, :baseline_comparison)
     sparse = record_by_name(records, :sparse_recovery_grid)
+    report_shape = record_by_name(records, :report_shape_simulation_grid)
     method = record_by_name(records, :guarded_fit_method_wiring)
     method_summary = method.summary
     sparse_summary = sparse.summary
+    report_shape_summary = report_shape.summary
     baseline_summary = baseline.summary
     return [
         (scenario = :bridge_and_chain_oracles,
@@ -204,6 +225,14 @@ function validation_rows(records)
                 Bool(sparse_summary.all_validations_passed) &&
                 Bool(sparse_summary.all_sampler_passed),
             finding = :sparse_connected_grid_recorded),
+        (scenario = :report_shape_simulation_grid,
+            evidence = Bool(report_shape.summary_passed) &&
+                Bool(report_shape_summary.all_report_shapes_passed) &&
+                Bool(report_shape_summary.all_diagnostics_shapes_passed) &&
+                Bool(report_shape_summary.all_artifact_shapes_passed) &&
+                Bool(report_shape_summary.all_waic_shapes_passed) &&
+                Bool(report_shape_summary.all_posterior_predictive_shapes_passed),
+            finding = :report_diagnostics_artifact_shapes_recorded),
         (scenario = :guarded_method_contract,
             evidence = Bool(method.summary_passed) &&
                 Bool(method_summary.sampler_protocol_passed) &&
@@ -231,6 +260,7 @@ function build_artifact()
     rows = validation_rows(records)
     method = record_by_name(records, :guarded_fit_method_wiring)
     sparse = record_by_name(records, :sparse_recovery_grid)
+    report_shape = record_by_name(records, :report_shape_simulation_grid)
     all_artifacts_present = all(record -> record.exists, records)
     all_expected_schemas = all(record -> record.schema_matches, records)
     all_inputs_passed = all(record -> record.summary_passed, records)
@@ -290,11 +320,22 @@ function build_artifact()
             baseline_comparison_passed =
                 record_by_name(records, :baseline_comparison).summary_passed,
             sparse_recovery_grid_passed = sparse.summary_passed,
+            report_shape_simulation_grid_passed = report_shape.summary_passed,
             guarded_fit_method_wiring_passed = method.summary_passed,
             sparse_grid_all_validations_passed =
                 Bool(sparse.summary.all_validations_passed),
             sparse_grid_all_sampler_passed =
                 Bool(sparse.summary.all_sampler_passed),
+            report_shape_all_report_shapes_passed =
+                Bool(report_shape.summary.all_report_shapes_passed),
+            report_shape_all_diagnostics_shapes_passed =
+                Bool(report_shape.summary.all_diagnostics_shapes_passed),
+            report_shape_all_artifact_shapes_passed =
+                Bool(report_shape.summary.all_artifact_shapes_passed),
+            report_shape_all_waic_shapes_passed =
+                Bool(report_shape.summary.all_waic_shapes_passed),
+            report_shape_all_posterior_predictive_shapes_passed =
+                Bool(report_shape.summary.all_posterior_predictive_shapes_passed),
             method_sampler_protocol_passed =
                 Bool(method.summary.sampler_protocol_passed),
             method_artifact_contract_satisfied =
