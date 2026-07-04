@@ -412,7 +412,7 @@ function artifact_summary(name::Symbol, summary::AbstractString)
             json_bool(summary, "all_scenarios_passed") &&
             json_bool(summary, "all_candidate_validations_checked") &&
             json_bool(summary, "false_public_promotion_rate_zero") &&
-            json_bool(summary, "zotero_q_matrix_records_recorded") &&
+            json_bool(summary, "q_matrix_reference_records_recorded") &&
             !json_bool(summary, "empirical_q_recovery_allowed"),
     )
     name === :full_paper_reproduction_archive && return (;

@@ -22,7 +22,7 @@
     "policy_scope": "fixed_q_confirmatory_mgmfrm_candidate_revision_policy",
     "thresholds": {
       "require_q_matrix_validation_expansion_passed": true,
-      "require_zotero_uto_record": true,
+      "require_uto_reference_record": true,
       "require_research_basis_recorded": true,
       "require_all_candidate_policy_scenarios_passed": true,
       "require_invalid_suggested_q_blocked": true,
@@ -32,14 +32,10 @@
       "require_no_publication_or_registration_action": true
     }
   },
-  "zotero_records": [
+  "reference_records": [
     {
       "key": "uto_2021_mgmfrm",
-      "zotero_item_key": "WSQ6QZ4T",
-      "duplicate_zotero_item_keys": [
-        "38TX837G"
-      ],
-      "source": "zotero_local_library",
+      "source": "doi",
       "title": "A multidimensional generalized many-facet Rasch model for rubric-based performance assessment",
       "item_type": "journalArticle",
       "author": "Uto, Masaki",
@@ -50,7 +46,6 @@
       "pages": "425-457",
       "doi": "10.1007/s41237-021-00144-w",
       "url": "https://link.springer.com/10.1007/s41237-021-00144-w",
-      "annotations_found": false,
       "scite_snapshot": {
         "retrieved_on": "2026-07-04",
         "supporting": 0,
@@ -64,8 +59,7 @@
   "research_basis": [
     {
       "key": "uto_2021_mgmfrm",
-      "source": "zotero_and_doi",
-      "zotero_item_key": "WSQ6QZ4T",
+      "source": "doi",
       "citation": "Uto (2021), A multidimensional generalized many-facet Rasch model for rubric-based performance assessment",
       "url": "https://link.springer.com/10.1007/s41237-021-00144-w",
       "doi": "10.1007/s41237-021-00144-w",
@@ -1921,7 +1915,7 @@
     "automatic_q_revision_allowed": false,
     "candidate_suggestions_allowed": true,
     "public_exposure_support": "diagnostic_candidate_q_policy_recorded_recovery_claims_blocked",
-    "interpretation": "zotero_supported_uto_reference_and_q_candidate_policy_recorded_no_public_revision",
+    "interpretation": "uto_reference_and_q_candidate_policy_recorded_no_public_revision",
     "required_followup": "empirical_q_matrix_recovery_simulation_grid"
   },
   "summary": {
@@ -1932,7 +1926,7 @@
     "all_expected_schemas": true,
     "all_input_summaries_passed": true,
     "q_matrix_validation_expansion_passed": true,
-    "zotero_uto_recorded": true,
+    "uto_reference_recorded": true,
     "research_basis_recorded": true,
     "all_candidate_policy_scenarios_passed": true,
     "invalid_suggested_q_blocked": true,
@@ -1943,7 +1937,7 @@
     "candidate_suggestions_allowed": true,
     "n_input_artifacts": 1,
     "n_research_basis": 5,
-    "n_zotero_records": 1,
+    "n_reference_records": 1,
     "n_candidate_policy_scenarios": 9,
     "n_passed_candidate_policy_scenarios": 9,
     "n_invalid_candidate_scenarios": 4,

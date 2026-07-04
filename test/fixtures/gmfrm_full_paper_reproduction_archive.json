@@ -358,7 +358,7 @@
       "path": "test/fixtures/gmfrm_claim_recovery_reproduction_archive.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "451e9b58efae97dcc6b6b86d704b1fd6a721793b92c9a311878622f592cd2760",
+      "sha256": "9d20ea2fe6b4f00e3b089891cc45c9376c280ee7ca912db831d693f414e72719",
       "expected_schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
       "schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
       "schema_matches": true,
@@ -534,7 +534,7 @@
       "path": "test/fixtures/mgmfrm_empirical_q_matrix_recovery_policy.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "782f82b0cef91511db46b3e990488351e4b80cd4b21e22c91a89fb5616a1f25a",
+      "sha256": "0ac666d979a999e18d49ab36b9977ca7d1884192275ed626135c5d145a12faeb",
       "expected_schema": "bayesianmgmfrm.mgmfrm_empirical_q_matrix_recovery_policy.v1",
       "schema": "bayesianmgmfrm.mgmfrm_empirical_q_matrix_recovery_policy.v1",
       "schema_matches": true,
@@ -550,7 +550,7 @@
       "path": "test/fixtures/mgmfrm_empirical_q_matrix_recovery_simulation_grid.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "0d43bb821f696a8aeb5b8f40e8a365dbe8e8fee543209cb30b0961357fca0ae6",
+      "sha256": "ba819f492cd103d5a6340b60826c70088d75f3889e91720105699a13d04b5a14",
       "expected_schema": "bayesianmgmfrm.mgmfrm_empirical_q_matrix_recovery_simulation_grid.v1",
       "schema": "bayesianmgmfrm.mgmfrm_empirical_q_matrix_recovery_simulation_grid.v1",
       "schema_matches": true,
@@ -674,8 +674,8 @@
     {
       "path": "NEWS.md",
       "exists": true,
-      "sha256": "02147cab4f87b512b64405334bfedf8187040468a145204c4d4baa1cc6030c76",
-      "line_count": 450
+      "sha256": "5917e23d90d01f67c4f436ad72295afd12be6e01867046af410b3cae049fde06",
+      "line_count": 453
     },
     {
       "path": "ROADMAP.md",
@@ -704,8 +704,8 @@
     {
       "path": "test/runtests.jl",
       "exists": true,
-      "sha256": "69aa66fbe624a1fb7f7717afefb18dd8e39003ee34c3bee3db6cd205298c3325",
-      "line_count": 17111
+      "sha256": "1632a56f7dbb790183dba8501e45025ee90ea26767fd7b7c94bf734cb070d17a",
+      "line_count": 17108
     },
     {
       "path": "test/fixtures/README.md",
@@ -794,14 +794,14 @@
     {
       "path": "scripts/generate_mgmfrm_empirical_q_matrix_recovery_policy.jl",
       "exists": true,
-      "sha256": "acbd44b86ed18bc2dbcdc5f1e0230af6566f702c70abc988e33b306b78093816",
-      "line_count": 812
+      "sha256": "ba71306a5cac0c8b4e4832e2d1481f23ddd0e16b545c7e0e53e980b3a219bcd2",
+      "line_count": 808
     },
     {
       "path": "scripts/generate_mgmfrm_empirical_q_matrix_recovery_simulation_grid.jl",
       "exists": true,
-      "sha256": "441a6214424dce86c5894b3cbb8f9bfa6f052cc8b675682f402617c02f936fbb",
-      "line_count": 1175
+      "sha256": "e7b2be5999e58606b84b1dfac9085e24e9e1611e9ba564b5a96dfd55c1a15df5",
+      "line_count": 1173
     },
     {
       "path": "scripts/generate_mgmfrm_guarded_fit_method_wiring.jl",

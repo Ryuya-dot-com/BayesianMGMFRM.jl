@@ -6082,7 +6082,7 @@ function check_mgmfrm_empirical_q_matrix_recovery_policy_fixture(
     @test Bool(protocol[:publication_or_registration_action]) == false
     @test Bool(protocol[:local_only])
     @test Bool(thresholds[:require_q_matrix_validation_expansion_passed])
-    @test Bool(thresholds[:require_zotero_uto_record])
+    @test Bool(thresholds[:require_uto_reference_record])
     @test Bool(thresholds[:require_research_basis_recorded])
     @test Bool(thresholds[:require_all_candidate_policy_scenarios_passed])
     @test Bool(thresholds[:require_invalid_suggested_q_blocked])
@@ -6091,21 +6091,22 @@ function check_mgmfrm_empirical_q_matrix_recovery_policy_fixture(
     @test Bool(thresholds[:require_no_public_automatic_q_revision])
     @test Bool(thresholds[:require_no_publication_or_registration_action])
 
-    zotero_records = fixture[:zotero_records]
-    @test length(zotero_records) == 1
-    uto = only(zotero_records)
-    @test String(uto[:zotero_item_key]) == "WSQ6QZ4T"
-    @test "38TX837G" in String.(uto[:duplicate_zotero_item_keys])
+    reference_records = fixture[:reference_records]
+    @test length(reference_records) == 1
+    uto = only(reference_records)
+    @test all(key -> !occursin("item_key", String(key)), keys(uto))
+    @test all(key -> !occursin("duplicate", String(key)), keys(uto))
+    @test String(uto[:source]) == "doi"
     @test String(uto[:doi]) == "10.1007/s41237-021-00144-w"
     @test String(uto[:journal]) == "Behaviormetrika"
-    @test Bool(uto[:annotations_found]) == false
     @test Int(uto[:scite_snapshot][:total_citing_publications]) >= 0
 
     research_basis = fixture[:research_basis]
     @test length(research_basis) >= 5
     @test any(row -> String(row[:key]) == "uto_2021_mgmfrm" &&
-        String(row[:source]) == "zotero_and_doi" &&
-        String(row[:zotero_item_key]) == "WSQ6QZ4T", research_basis)
+        String(row[:source]) == "doi" &&
+        all(key -> !occursin("item_key", String(key)), keys(row)),
+        research_basis)
     @test Set(String(row[:key]) for row in research_basis) == Set([
         "uto_2021_mgmfrm",
         "da_silva_2019_mirt_q_matrix",
@@ -6184,7 +6185,7 @@ function check_mgmfrm_empirical_q_matrix_recovery_policy_fixture(
     summary = fixture[:summary]
     @test Bool(summary[:passed])
     @test Bool(summary[:q_matrix_validation_expansion_passed])
-    @test Bool(summary[:zotero_uto_recorded])
+    @test Bool(summary[:uto_reference_recorded])
     @test Bool(summary[:research_basis_recorded])
     @test Bool(summary[:all_candidate_policy_scenarios_passed])
     @test Bool(summary[:invalid_suggested_q_blocked])
@@ -6193,7 +6194,7 @@ function check_mgmfrm_empirical_q_matrix_recovery_policy_fixture(
     @test Bool(summary[:no_public_automatic_q_revision])
     @test Bool(summary[:empirical_q_recovery_allowed]) == false
     @test Bool(summary[:candidate_suggestions_allowed])
-    @test Int(summary[:n_zotero_records]) == 1
+    @test Int(summary[:n_reference_records]) == 1
     @test Int(summary[:n_candidate_policy_scenarios]) == length(rows)
     @test Int(summary[:n_passed_candidate_policy_scenarios]) == length(rows)
     @test Int(summary[:n_invalid_candidate_scenarios]) == 4
@@ -6242,7 +6243,7 @@ function check_mgmfrm_empirical_q_matrix_recovery_simulation_grid_fixture(
     @test Bool(protocol[:publication_or_registration_action]) == false
     @test Bool(protocol[:local_only])
     @test Bool(thresholds[:require_empirical_q_matrix_recovery_policy_passed])
-    @test Bool(thresholds[:require_zotero_q_matrix_records_recorded])
+    @test Bool(thresholds[:require_q_matrix_reference_records_recorded])
     @test Bool(thresholds[:require_research_basis_recorded])
     @test Bool(thresholds[:require_all_scenarios_passed])
     @test Bool(thresholds[:require_all_candidate_validations_checked])
@@ -6252,19 +6253,12 @@ function check_mgmfrm_empirical_q_matrix_recovery_simulation_grid_fixture(
     @test Bool(thresholds[:require_no_public_recovery_claim])
     @test Bool(thresholds[:require_no_publication_or_registration_action])
 
-    zotero_records = fixture[:zotero_q_matrix_records]
-    @test length(zotero_records) == 7
-    @test Set(String(row[:zotero_item_key]) for row in zotero_records) ==
-        Set([
-            "D76E3YVQ",
-            "VNW5H4IA",
-            "2HI5XY34",
-            "CAG2ZWBM",
-            "Y45RPEN7",
-            "9HTHF4QT",
-            "UBX8FAQD",
-        ])
-    @test Set(String(row[:doi]) for row in zotero_records) ==
+    reference_records = fixture[:q_matrix_reference_records]
+    @test length(reference_records) == 7
+    @test all(row -> all(key -> !occursin("item_key", String(key)),
+        keys(row)), reference_records)
+    @test all(row -> String(row[:source]) == "doi", reference_records)
+    @test Set(String(row[:doi]) for row in reference_records) ==
         Set([
             "10.1007/s11336-015-9467-8",
             "10.1177/0013164418814898",
@@ -6275,6 +6269,9 @@ function check_mgmfrm_empirical_q_matrix_recovery_simulation_grid_fixture(
             "10.1177/0013164414539162",
         ])
     @test length(fixture[:scite_q_matrix_snapshot]) == 7
+    @test all(row -> all(key -> !occursin("item_key", String(key)),
+        keys(row)),
+        fixture[:scite_q_matrix_snapshot])
     @test length(fixture[:research_basis]) == 7
 
     input_artifacts = fixture[:input_artifacts]
@@ -6361,7 +6358,7 @@ function check_mgmfrm_empirical_q_matrix_recovery_simulation_grid_fixture(
     summary = fixture[:summary]
     @test Bool(summary[:passed])
     @test Bool(summary[:empirical_q_matrix_recovery_policy_passed])
-    @test Bool(summary[:zotero_q_matrix_records_recorded])
+    @test Bool(summary[:q_matrix_reference_records_recorded])
     @test Bool(summary[:research_basis_recorded])
     @test Bool(summary[:all_scenarios_passed])
     @test Bool(summary[:all_candidate_validations_checked])
@@ -6370,7 +6367,7 @@ function check_mgmfrm_empirical_q_matrix_recovery_simulation_grid_fixture(
     @test Bool(summary[:no_automatic_q_revision])
     @test Bool(summary[:no_public_recovery_claim])
     @test Bool(summary[:empirical_q_recovery_allowed]) == false
-    @test Int(summary[:n_zotero_q_matrix_records]) == 7
+    @test Int(summary[:n_q_matrix_reference_records]) == 7
     @test Int(summary[:n_scenarios]) == length(rows)
     @test Int(summary[:n_passed_scenarios]) == length(rows)
     @test Int(summary[:n_candidate_exact_recoveries]) == 8

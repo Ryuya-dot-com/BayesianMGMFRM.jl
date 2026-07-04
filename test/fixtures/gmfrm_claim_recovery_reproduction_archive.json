@@ -334,7 +334,7 @@
     {
       "path": "NEWS.md",
       "exists": true,
-      "sha256": "02147cab4f87b512b64405334bfedf8187040468a145204c4d4baa1cc6030c76"
+      "sha256": "5917e23d90d01f67c4f436ad72295afd12be6e01867046af410b3cae049fde06"
     },
     {
       "path": "ROADMAP.md",
@@ -354,7 +354,7 @@
     {
       "path": "test/runtests.jl",
       "exists": true,
-      "sha256": "69aa66fbe624a1fb7f7717afefb18dd8e39003ee34c3bee3db6cd205298c3325"
+      "sha256": "1632a56f7dbb790183dba8501e45025ee90ea26767fd7b7c94bf734cb070d17a"
     },
     {
       "path": "test/fixtures/README.md",

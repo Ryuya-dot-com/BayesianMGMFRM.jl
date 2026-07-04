@@ -22,10 +22,13 @@
 - Add a local registration handoff script that verifies the manual release
   boundary and prints the Registrator trigger comment without performing any
   registration action.
-- Add a Zotero-backed local MGMFRM empirical Q-matrix recovery simulation-grid
+- Add a DOI-backed local MGMFRM empirical Q-matrix recovery simulation-grid
   generator and committed JSON artifact that records Q-matrix validation
   literature, known-truth add/drop/noise scenarios, candidate-Q validation, and
   zero public automatic Q-revision promotion.
+- Remove local reference-manager item keys from MGMFRM empirical Q-matrix
+  recovery artifacts so package fixtures rely on public DOI metadata and stable
+  citation keys.
 - Expose pre-registration gate availability in `release_scope_summary` and
   clarify that Julia General registration is a manual action after the local
   gate passes.

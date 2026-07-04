@@ -26,11 +26,10 @@ const INPUT_ARTIFACTS = [
         pass_policy = :summary_passed),
 ]
 
-const ZOTERO_Q_MATRIX_RECORDS = [
+const Q_MATRIX_REFERENCE_RECORDS = [
     (;
         key = :chiu_2013_q_matrix_refinement,
-        zotero_item_key = "Y45RPEN7",
-        source = :zotero_local_library,
+        source = :doi,
         title = "Statistical refinement of the q-matrix in cognitive diagnosis",
         item_type = :journalArticle,
         author = "Chiu, Chia-Yi",
@@ -46,8 +45,7 @@ const ZOTERO_Q_MATRIX_RECORDS = [
     ),
     (;
         key = :madison_bradshaw_2015_q_design,
-        zotero_item_key = "UBX8FAQD",
-        source = :zotero_local_library,
+        source = :doi,
         title =
             "The effects of Q-matrix design on classification accuracy in the log-linear cognitive diagnosis model",
         item_type = :journalArticle,
@@ -64,8 +62,7 @@ const ZOTERO_Q_MATRIX_RECORDS = [
     ),
     (;
         key = :de_la_torre_chiu_2016_gdi,
-        zotero_item_key = "D76E3YVQ",
-        source = :zotero_local_library,
+        source = :doi,
         title = "A general method of empirical Q-matrix validation",
         item_type = :journalArticle,
         author = "De La Torre, Jimmy; Chiu, Chia-Yi",
@@ -82,8 +79,7 @@ const ZOTERO_Q_MATRIX_RECORDS = [
     ),
     (;
         key = :chen_2017_residual_q_validation,
-        zotero_item_key = "9HTHF4QT",
-        source = :zotero_local_library,
+        source = :doi,
         title = "A residual-based approach to validate q-matrix specifications",
         item_type = :journalArticle,
         author = "Chen, Jinsong",
@@ -99,8 +95,7 @@ const ZOTERO_Q_MATRIX_RECORDS = [
     ),
     (;
         key = :terzi_de_la_torre_2018_iterative,
-        zotero_item_key = "2HI5XY34",
-        source = :zotero_local_library,
+        source = :doi,
         title = "An iterative method for empirically-based Q-matrix validation",
         item_type = :journalArticle,
         author = "Terzi, Ragip; De La Torre, Jimmy",
@@ -116,8 +111,7 @@ const ZOTERO_Q_MATRIX_RECORDS = [
     ),
     (;
         key = :da_silva_2019_mirt_q_matrix,
-        zotero_item_key = "VNW5H4IA",
-        source = :zotero_local_library,
+        source = :doi,
         title =
             "Incorporating the Q-Matrix Into Multidimensional Item Response Theory Models",
         item_type = :journalArticle,
@@ -135,8 +129,7 @@ const ZOTERO_Q_MATRIX_RECORDS = [
     ),
     (;
         key = :najera_2020_iterative_dynamic_gdi,
-        zotero_item_key = "CAG2ZWBM",
-        source = :zotero_local_library,
+        source = :doi,
         title =
             "Improving robustness in Q-matrix validation using an iterative and dynamic procedure",
         item_type = :journalArticle,
@@ -155,25 +148,25 @@ const ZOTERO_Q_MATRIX_RECORDS = [
 ]
 
 const SCITE_Q_MATRIX_SNAPSHOT = [
-    (zotero_item_key = "D76E3YVQ", retrieved_on = "2026-07-04",
+    (key = :de_la_torre_chiu_2016_gdi, retrieved_on = "2026-07-04",
         supporting = 2, contrasting = 1, mentioning = 222,
         total_citing_publications = 245),
-    (zotero_item_key = "2HI5XY34", retrieved_on = "2026-07-04",
+    (key = :terzi_de_la_torre_2018_iterative, retrieved_on = "2026-07-04",
         supporting = 0, contrasting = 0, mentioning = 10,
         total_citing_publications = 11),
-    (zotero_item_key = "CAG2ZWBM", retrieved_on = "2026-07-04",
+    (key = :najera_2020_iterative_dynamic_gdi, retrieved_on = "2026-07-04",
         supporting = 1, contrasting = 0, mentioning = 15,
         total_citing_publications = 25),
-    (zotero_item_key = "VNW5H4IA", retrieved_on = "2026-07-04",
+    (key = :da_silva_2019_mirt_q_matrix, retrieved_on = "2026-07-04",
         supporting = 0, contrasting = 0, mentioning = 6,
         total_citing_publications = 18),
-    (zotero_item_key = "Y45RPEN7", retrieved_on = "2026-07-04",
+    (key = :chiu_2013_q_matrix_refinement, retrieved_on = "2026-07-04",
         supporting = 4, contrasting = 0, mentioning = 139,
         total_citing_publications = 132),
-    (zotero_item_key = "9HTHF4QT", retrieved_on = "2026-07-04",
+    (key = :chen_2017_residual_q_validation, retrieved_on = "2026-07-04",
         supporting = 0, contrasting = 0, mentioning = 28,
         total_citing_publications = 39),
-    (zotero_item_key = "UBX8FAQD", retrieved_on = "2026-07-04",
+    (key = :madison_bradshaw_2015_q_design, retrieved_on = "2026-07-04",
         supporting = 5, contrasting = 0, mentioning = 52,
         total_citing_publications = 59),
 ]
@@ -231,7 +224,7 @@ const PROTOCOL = (;
     policy_scope = :fixed_q_confirmatory_mgmfrm_candidate_recovery_simulation,
     thresholds = (;
         require_empirical_q_matrix_recovery_policy_passed = true,
-        require_zotero_q_matrix_records_recorded = true,
+        require_q_matrix_reference_records_recorded = true,
         require_research_basis_recorded = true,
         require_all_scenarios_passed = true,
         require_all_candidate_validations_checked = true,
@@ -577,7 +570,7 @@ function usage()
     Generate the local MGMFRM empirical Q-matrix recovery simulation grid.
 
     The artifact records deterministic candidate-Q recovery scenarios anchored
-    in Zotero Q-matrix validation literature. It is a local diagnostic grid: it
+    in DOI-indexed Q-matrix validation literature. It is a local diagnostic grid: it
     validates candidate suggestions, estimates known-truth cell recovery, and
     explicitly blocks automatic or public Q-matrix revision claims.
 
@@ -1029,21 +1022,26 @@ function build_artifact()
     no_public_recovery_claim =
         all(scenario -> !scenario.public_recovery_allowed &&
             !scenario.public_claim_allowed, scenarios)
-    zotero_keys = Set(row.zotero_item_key for row in ZOTERO_Q_MATRIX_RECORDS)
-    zotero_q_matrix_records_recorded =
-        length(ZOTERO_Q_MATRIX_RECORDS) >= 7 &&
-        all(key -> key in zotero_keys,
-            ["D76E3YVQ", "VNW5H4IA", "2HI5XY34", "CAG2ZWBM",
-                "Y45RPEN7", "9HTHF4QT", "UBX8FAQD"])
+    reference_dois = Set(row.doi for row in Q_MATRIX_REFERENCE_RECORDS)
+    q_matrix_reference_records_recorded =
+        length(Q_MATRIX_REFERENCE_RECORDS) >= 7 &&
+        all(doi -> doi in reference_dois,
+            ["10.1007/s11336-015-9467-8",
+                "10.1177/0013164418814898",
+                "10.21449/ijate.407193",
+                "10.1177/0146621620909904",
+                "10.1177/0146621613488436",
+                "10.1177/0146621616686021",
+                "10.1177/0013164414539162"])
     research_basis_recorded =
-        length(RESEARCH_BASIS) == length(ZOTERO_Q_MATRIX_RECORDS)
+        length(RESEARCH_BASIS) == length(Q_MATRIX_REFERENCE_RECORDS)
     passed = all_input_artifacts_present &&
         all_expected_schemas &&
         all_input_summaries_passed &&
         Bool(policy.summary.all_candidate_policy_scenarios_passed) &&
         Bool(policy.summary.no_public_automatic_q_revision) &&
         !Bool(policy.summary.empirical_q_recovery_allowed) &&
-        zotero_q_matrix_records_recorded &&
+        q_matrix_reference_records_recorded &&
         research_basis_recorded &&
         all_scenarios_passed &&
         all_candidate_validations_checked &&
@@ -1076,7 +1074,7 @@ function build_artifact()
             julia_version = string(VERSION),
         ),
         protocol = PROTOCOL,
-        zotero_q_matrix_records = ZOTERO_Q_MATRIX_RECORDS,
+        q_matrix_reference_records = Q_MATRIX_REFERENCE_RECORDS,
         scite_q_matrix_snapshot = SCITE_Q_MATRIX_SNAPSHOT,
         research_basis = RESEARCH_BASIS,
         input_artifacts = input_records,
@@ -1094,7 +1092,7 @@ function build_artifact()
             candidate_suggestions_allowed = true,
             public_recovery_claim_allowed = false,
             public_exposure_support =
-                :local_zotero_backed_q_candidate_simulation_grid_recorded,
+                :doi_backed_q_candidate_simulation_grid_recorded,
             interpretation =
                 :q_candidate_recovery_scenarios_passed_but_public_q_revision_remains_blocked,
             required_followup = :real_fit_diagnostic_linkage_for_q_candidates,
@@ -1107,7 +1105,7 @@ function build_artifact()
             all_expected_schemas,
             all_input_summaries_passed,
             empirical_q_matrix_recovery_policy_passed = policy.summary_passed,
-            zotero_q_matrix_records_recorded,
+            q_matrix_reference_records_recorded,
             research_basis_recorded,
             all_scenarios_passed,
             all_candidate_validations_checked,
@@ -1118,7 +1116,7 @@ function build_artifact()
             empirical_q_recovery_allowed = false,
             candidate_suggestions_allowed = true,
             n_input_artifacts = length(input_records),
-            n_zotero_q_matrix_records = length(ZOTERO_Q_MATRIX_RECORDS),
+            n_q_matrix_reference_records = length(Q_MATRIX_REFERENCE_RECORDS),
             n_scite_q_matrix_snapshots = length(SCITE_Q_MATRIX_SNAPSHOT),
             n_research_basis = length(RESEARCH_BASIS),
             n_scenarios = length(scenarios),

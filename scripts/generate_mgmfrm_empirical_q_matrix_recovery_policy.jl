@@ -26,11 +26,9 @@ const INPUT_ARTIFACTS = [
         pass_policy = :summary_passed),
 ]
 
-const ZOTERO_UTO_RECORD = (;
+const UTO_REFERENCE_RECORD = (;
     key = :uto_2021_mgmfrm,
-    zotero_item_key = "WSQ6QZ4T",
-    duplicate_zotero_item_keys = ["38TX837G"],
-    source = :zotero_local_library,
+    source = :doi,
     title =
         "A multidimensional generalized many-facet Rasch model for rubric-based performance assessment",
     item_type = :journalArticle,
@@ -42,7 +40,6 @@ const ZOTERO_UTO_RECORD = (;
     pages = "425-457",
     doi = "10.1007/s41237-021-00144-w",
     url = "https://link.springer.com/10.1007/s41237-021-00144-w",
-    annotations_found = false,
     scite_snapshot = (;
         retrieved_on = "2026-07-04",
         supporting = 0,
@@ -57,12 +54,11 @@ const ZOTERO_UTO_RECORD = (;
 const RESEARCH_BASIS = [
     (;
         key = :uto_2021_mgmfrm,
-        source = :zotero_and_doi,
-        zotero_item_key = ZOTERO_UTO_RECORD.zotero_item_key,
+        source = :doi,
         citation =
             "Uto (2021), A multidimensional generalized many-facet Rasch model for rubric-based performance assessment",
-        url = ZOTERO_UTO_RECORD.url,
-        doi = ZOTERO_UTO_RECORD.doi,
+        url = UTO_REFERENCE_RECORD.url,
+        doi = UTO_REFERENCE_RECORD.doi,
         relevance =
             :mgmfrm_dimension_loading_policy_must_protect_rubric_construct_validity,
     ),
@@ -116,7 +112,7 @@ const PROTOCOL = (;
     policy_scope = :fixed_q_confirmatory_mgmfrm_candidate_revision_policy,
     thresholds = (;
         require_q_matrix_validation_expansion_passed = true,
-        require_zotero_uto_record = true,
+        require_uto_reference_record = true,
         require_research_basis_recorded = true,
         require_all_candidate_policy_scenarios_passed = true,
         require_invalid_suggested_q_blocked = true,
@@ -690,13 +686,13 @@ function build_artifact()
     no_public_automatic_q_revision =
         all(scenario -> !scenario.automatic_revision_allowed &&
             !scenario.public_recovery_allowed, scenarios)
-    zotero_uto_recorded =
-        !isempty(ZOTERO_UTO_RECORD.zotero_item_key) &&
-        ZOTERO_UTO_RECORD.doi == "10.1007/s41237-021-00144-w"
+    uto_reference_recorded =
+        UTO_REFERENCE_RECORD.doi == "10.1007/s41237-021-00144-w" &&
+        UTO_REFERENCE_RECORD.key === :uto_2021_mgmfrm
     research_basis_recorded =
         length(RESEARCH_BASIS) >= 5 &&
         any(row -> row.key === :uto_2021_mgmfrm &&
-            row.source === :zotero_and_doi, RESEARCH_BASIS)
+            row.source === :doi, RESEARCH_BASIS)
     passed = all_input_artifacts_present &&
         all_expected_schemas &&
         all_input_summaries_passed &&
@@ -704,7 +700,7 @@ function build_artifact()
         Bool(q_expansion.summary.
             all_invalid_default_q_scenarios_blocked_before_fit) &&
         Bool(q_expansion.summary.policy_validation_scenarios_recorded) &&
-        zotero_uto_recorded &&
+        uto_reference_recorded &&
         research_basis_recorded &&
         all_scenarios_passed &&
         invalid_candidates_blocked &&
@@ -731,7 +727,7 @@ function build_artifact()
             julia_version = string(VERSION),
         ),
         protocol = PROTOCOL,
-        zotero_records = [ZOTERO_UTO_RECORD],
+        reference_records = [UTO_REFERENCE_RECORD],
         research_basis = RESEARCH_BASIS,
         input_artifacts = input_records,
         candidate_thresholds = (;
@@ -749,7 +745,7 @@ function build_artifact()
             public_exposure_support =
                 :diagnostic_candidate_q_policy_recorded_recovery_claims_blocked,
             interpretation =
-                :zotero_supported_uto_reference_and_q_candidate_policy_recorded_no_public_revision,
+                :uto_reference_and_q_candidate_policy_recorded_no_public_revision,
             required_followup = :empirical_q_matrix_recovery_simulation_grid,
         ),
         summary = (;
@@ -760,7 +756,7 @@ function build_artifact()
             all_expected_schemas,
             all_input_summaries_passed,
             q_matrix_validation_expansion_passed = q_expansion.summary_passed,
-            zotero_uto_recorded,
+            uto_reference_recorded,
             research_basis_recorded,
             all_candidate_policy_scenarios_passed = all_scenarios_passed,
             invalid_suggested_q_blocked = invalid_candidates_blocked,
@@ -772,7 +768,7 @@ function build_artifact()
             candidate_suggestions_allowed = true,
             n_input_artifacts = length(input_records),
             n_research_basis = length(RESEARCH_BASIS),
-            n_zotero_records = 1,
+            n_reference_records = 1,
             n_candidate_policy_scenarios = length(scenarios),
             n_passed_candidate_policy_scenarios =
                 count(scenario -> scenario.summary.passed, scenarios),
