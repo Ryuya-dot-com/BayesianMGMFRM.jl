@@ -1,0 +1,1314 @@
+{
+  "schema": "bayesianmgmfrm.mgmfrm_q_revision_cross_validation_policy.v1",
+  "family": "mgmfrm",
+  "scope": "q_revision_cross_validation_policy",
+  "status": "q_revision_cross_validation_policy_recorded",
+  "decision": "keep_cross_validated_q_revision_manual_review_only",
+  "public_fit": true,
+  "experimental_public": true,
+  "fit_ready": true,
+  "empirical_q_recovery_public": false,
+  "q_revision_public": false,
+  "publication_or_registration_action": false,
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "protocol": {
+    "protocol_id": "mgmfrm_q_revision_cross_validation_policy_v1",
+    "review_kind": "local_q_revision_cross_validation_policy",
+    "publication_or_registration_action": false,
+    "local_only": true,
+    "policy_scope": "fixed_q_candidate_revision_cross_validation_policy_for_mgmfrm",
+    "cross_validation": {
+      "unit": "observation_fold",
+      "folds": 3,
+      "score": "deterministic_holdout_elpd_surrogate",
+      "comparison": "candidate_minus_declared"
+    },
+    "thresholds": {
+      "require_q_candidate_real_fit_diagnostic_linkage_passed": true,
+      "require_public_reference_records_recorded": true,
+      "require_all_policy_scenarios_checked": true,
+      "require_all_candidate_q_validations_checked": true,
+      "require_all_cv_eligible_candidates_have_fold_rows": true,
+      "require_minimum_mean_holdout_elpd_delta": 0.2,
+      "require_minimum_fold_win_rate": 0.6666666666666666,
+      "require_maximum_loading_complexity_increase": 1,
+      "require_false_positive_candidate_rejected": true,
+      "require_invalid_candidates_excluded_from_cv": true,
+      "require_supported_candidates_remain_manual_review_only": true,
+      "require_construct_validity_manual_review_before_public_revision": true,
+      "require_no_automatic_q_revision": true,
+      "require_no_public_q_revision_claim": true,
+      "require_no_publication_or_registration_action": true
+    }
+  },
+  "reference_records": [
+    {
+      "key": "de_la_torre_chiu_2016_gdi",
+      "source": "doi",
+      "title": "A general method of empirical Q-matrix validation",
+      "author": "De La Torre, Jimmy; Chiu, Chia-Yi",
+      "date": "06/2016",
+      "journal": "Psychometrika",
+      "doi": "10.1007/s11336-015-9467-8",
+      "relevance": "empirical_q_candidates_are_supplemental_validation_evidence_not_replacements_for_expert_review"
+    },
+    {
+      "key": "terzi_de_la_torre_2018_iterative",
+      "source": "doi",
+      "title": "An iterative method for empirically-based Q-matrix validation",
+      "author": "Terzi, Ragip; De La Torre, Jimmy",
+      "date": "2018-05-19",
+      "journal": "International Journal of Assessment Tools in Education",
+      "doi": "10.21449/ijate.407193",
+      "relevance": "q_revision_candidates_should_be_screened_iteratively_and_not_promoted_from_single_pass_noise"
+    },
+    {
+      "key": "da_silva_2019_mirt_q_matrix",
+      "source": "doi",
+      "title": "Incorporating the Q-Matrix Into Multidimensional Item Response Theory Models",
+      "author": "Da Silva, Marcelo A.; Liu, Ren; Huggins-Manley, Anne C.; Bazan, Jorge L.",
+      "date": "08/2019",
+      "journal": "Educational and Psychological Measurement",
+      "doi": "10.1177/0013164418814898",
+      "relevance": "mirt_q_matrices_encode_confirmatory_loading_masks_with_model_selection_diagnostics"
+    },
+    {
+      "key": "najera_2020_iterative_dynamic_gdi",
+      "source": "doi",
+      "title": "Improving robustness in Q-matrix validation using an iterative and dynamic procedure",
+      "author": "Najera, Pablo; Sorrel, Miguel A.; De La Torre, Jimmy; Abad, Francisco Jose",
+      "date": "09/2020",
+      "journal": "Applied Psychological Measurement",
+      "doi": "10.1177/0146621620909904",
+      "relevance": "dynamic_cutoffs_and_domain_review_are_required_before_q_modifications_are_accepted"
+    }
+  ],
+  "input_artifacts": [
+    {
+      "artifact": "q_candidate_real_fit_diagnostic_linkage",
+      "path": "test/fixtures/mgmfrm_q_candidate_real_fit_diagnostic_linkage.json",
+      "exists": true,
+      "sha256": "7e16d61b78d96ec2a86c4bc0f487a6b989883d24ef5565a05694d05034f42b46",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_q_candidate_real_fit_diagnostic_linkage.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_q_candidate_real_fit_diagnostic_linkage.v1",
+      "schema_matches": true,
+      "pass_policy": "summary_passed",
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "no_automatic_q_revision": true,
+        "no_public_q_revision_claim": true,
+        "next_gate": "cross_validated_q_revision_policy_for_q_candidates"
+      }
+    }
+  ],
+  "scenario_rows": [
+    {
+      "scenario": "retained_declared_q_cv_no_change",
+      "source_linkage_scenario": "retained_declared_q_fit_linked",
+      "source_linkage": {
+        "passed": true,
+        "candidate_fit_succeeded": true,
+        "invalid_candidate_blocked_before_fit": false
+      },
+      "dimensions": 2,
+      "true_q": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ]
+      ],
+      "declared_q": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ]
+      ],
+      "candidate_q": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ]
+      ],
+      "candidate_q_validation": {
+        "passed": true,
+        "n_rows": 12,
+        "error_checks": [],
+        "warning_checks": [],
+        "rows": [
+          {
+            "check": "family_applicability",
+            "status": "applicable",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": null,
+            "n_components": null,
+            "note": "q_matrix_required_for_mgmfrm"
+          },
+          {
+            "check": "matrix_schema",
+            "status": "matrix",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": null,
+            "n_components": null,
+            "note": "two_dimensional_matrix_supplied"
+          },
+          {
+            "check": "binary_mask_schema",
+            "status": "binary_bool_or_zero_one",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": null,
+            "n_components": null,
+            "note": "q_matrix_entries_are_binary_mask_values"
+          },
+          {
+            "check": "shape",
+            "status": "matches_items_by_dimensions",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": null,
+            "n_components": null,
+            "note": "one_row_per_item_one_column_per_dimension"
+          },
+          {
+            "check": "empty_item_rows",
+            "status": "passed",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": 2,
+            "n_components": null,
+            "note": "each_item_loads_on_at_least_one_dimension"
+          },
+          {
+            "check": "empty_dimensions",
+            "status": "passed",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": 2,
+            "n_components": null,
+            "note": "each_dimension_has_at_least_one_item"
+          },
+          {
+            "check": "duplicate_dimension_columns",
+            "status": "passed",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": 2,
+            "n_components": null,
+            "note": "dimension_columns_have_distinct_item_masks"
+          },
+          {
+            "check": "cross_loading_policy",
+            "status": "simple_structure",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": 0,
+            "n_components": null,
+            "note": "simple_structure_q_matrix"
+          },
+          {
+            "check": "positive_loading_identification",
+            "status": "single_loading_anchor_present",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": 2,
+            "n_components": null,
+            "note": "positive_loadings_have_simple_anchor_items"
+          },
+          {
+            "check": "dimension_item_graph_components",
+            "status": "recorded",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": null,
+            "n_components": 2,
+            "note": "q_item_dimension_graph_recorded_for_review"
+          },
+          {
+            "check": "dimension_facet_subgraph_coverage",
+            "status": "connected_dimension_subgraph",
+            "severity": "info",
+            "item": null,
+            "dimension": 1,
+            "n_active": 12,
+            "n_components": 1,
+            "note": "dimension_specific_person_rater_item_subgraph_connected"
+          },
+          {
+            "check": "dimension_facet_subgraph_coverage",
+            "status": "connected_dimension_subgraph",
+            "severity": "info",
+            "item": null,
+            "dimension": 2,
+            "n_active": 12,
+            "n_components": 1,
+            "note": "dimension_specific_person_rater_item_subgraph_connected"
+          }
+        ]
+      },
+      "cv_attempted": true,
+      "cv_fold_rows": [
+        {
+          "fold": 1,
+          "n_holdout_observations": 9,
+          "declared_holdout_elpd": -8.26,
+          "candidate_holdout_elpd": -8.26,
+          "delta_candidate_minus_declared": 0.0,
+          "candidate_wins": false
+        },
+        {
+          "fold": 2,
+          "n_holdout_observations": 10,
+          "declared_holdout_elpd": -8.43,
+          "candidate_holdout_elpd": -8.43,
+          "delta_candidate_minus_declared": 0.0,
+          "candidate_wins": false
+        },
+        {
+          "fold": 3,
+          "n_holdout_observations": 11,
+          "declared_holdout_elpd": -8.6,
+          "candidate_holdout_elpd": -8.6,
+          "delta_candidate_minus_declared": 0.0,
+          "candidate_wins": false
+        }
+      ],
+      "declared_complexity": 2,
+      "candidate_complexity": 2,
+      "complexity_delta": 0,
+      "mean_delta_candidate_minus_declared": 0.0,
+      "n_winning_folds": 0,
+      "fold_win_rate": 0.0,
+      "cv_supported": false,
+      "construct_review_available": false,
+      "construct_review_required": false,
+      "decision": "retain_declared_q",
+      "public_revision_allowed": false,
+      "automatic_revision_allowed": false,
+      "public_claim_allowed": false,
+      "summary": {
+        "passed": true,
+        "decision_matches": true,
+        "candidate_validation_checked": true,
+        "source_linkage_passed": true,
+        "cv_rows_recorded": true,
+        "threshold_mean_delta_met": false,
+        "threshold_fold_win_rate_met": false,
+        "threshold_complexity_met": true,
+        "false_positive_rejected": false,
+        "invalid_candidate_excluded_from_cv": false,
+        "supported_manual_only": false
+      }
+    },
+    {
+      "scenario": "missing_loading_candidate_cv_supported_manual_gate",
+      "source_linkage_scenario": "missing_loading_candidate_fit_linked",
+      "source_linkage": {
+        "passed": true,
+        "candidate_fit_succeeded": true,
+        "invalid_candidate_blocked_before_fit": false
+      },
+      "dimensions": 2,
+      "true_q": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ],
+        [
+          true,
+          true
+        ]
+      ],
+      "declared_q": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ],
+        [
+          true,
+          false
+        ]
+      ],
+      "candidate_q": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ],
+        [
+          true,
+          true
+        ]
+      ],
+      "candidate_q_validation": {
+        "passed": true,
+        "n_rows": 12,
+        "error_checks": [],
+        "warning_checks": [
+          "cross_loading_policy"
+        ],
+        "rows": [
+          {
+            "check": "family_applicability",
+            "status": "applicable",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": null,
+            "n_components": null,
+            "note": "q_matrix_required_for_mgmfrm"
+          },
+          {
+            "check": "matrix_schema",
+            "status": "matrix",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": null,
+            "n_components": null,
+            "note": "two_dimensional_matrix_supplied"
+          },
+          {
+            "check": "binary_mask_schema",
+            "status": "binary_bool_or_zero_one",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": null,
+            "n_components": null,
+            "note": "q_matrix_entries_are_binary_mask_values"
+          },
+          {
+            "check": "shape",
+            "status": "matches_items_by_dimensions",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": null,
+            "n_components": null,
+            "note": "one_row_per_item_one_column_per_dimension"
+          },
+          {
+            "check": "empty_item_rows",
+            "status": "passed",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": 3,
+            "n_components": null,
+            "note": "each_item_loads_on_at_least_one_dimension"
+          },
+          {
+            "check": "empty_dimensions",
+            "status": "passed",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": 2,
+            "n_components": null,
+            "note": "each_dimension_has_at_least_one_item"
+          },
+          {
+            "check": "duplicate_dimension_columns",
+            "status": "passed",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": 2,
+            "n_components": null,
+            "note": "dimension_columns_have_distinct_item_masks"
+          },
+          {
+            "check": "cross_loading_policy",
+            "status": "fixed_confirmatory_cross_loadings",
+            "severity": "warning",
+            "item": null,
+            "dimension": null,
+            "n_active": 1,
+            "n_components": null,
+            "note": "cross_loadings_are_fixed_confirmatory_not_exploratory"
+          },
+          {
+            "check": "positive_loading_identification",
+            "status": "single_loading_anchor_present",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": 2,
+            "n_components": null,
+            "note": "positive_loadings_have_simple_anchor_items"
+          },
+          {
+            "check": "dimension_item_graph_components",
+            "status": "recorded",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": null,
+            "n_components": 1,
+            "note": "q_item_dimension_graph_recorded_for_review"
+          },
+          {
+            "check": "dimension_facet_subgraph_coverage",
+            "status": "connected_dimension_subgraph",
+            "severity": "info",
+            "item": null,
+            "dimension": 1,
+            "n_active": 24,
+            "n_components": 1,
+            "note": "dimension_specific_person_rater_item_subgraph_connected"
+          },
+          {
+            "check": "dimension_facet_subgraph_coverage",
+            "status": "connected_dimension_subgraph",
+            "severity": "info",
+            "item": null,
+            "dimension": 2,
+            "n_active": 24,
+            "n_components": 1,
+            "note": "dimension_specific_person_rater_item_subgraph_connected"
+          }
+        ]
+      },
+      "cv_attempted": true,
+      "cv_fold_rows": [
+        {
+          "fold": 1,
+          "n_holdout_observations": 9,
+          "declared_holdout_elpd": -9.18,
+          "candidate_holdout_elpd": -8.33,
+          "delta_candidate_minus_declared": 0.8499999999999996,
+          "candidate_wins": true
+        },
+        {
+          "fold": 2,
+          "n_holdout_observations": 10,
+          "declared_holdout_elpd": -9.35,
+          "candidate_holdout_elpd": -8.53,
+          "delta_candidate_minus_declared": 0.8200000000000003,
+          "candidate_wins": true
+        },
+        {
+          "fold": 3,
+          "n_holdout_observations": 11,
+          "declared_holdout_elpd": -9.52,
+          "candidate_holdout_elpd": -8.66,
+          "delta_candidate_minus_declared": 0.8599999999999994,
+          "candidate_wins": true
+        }
+      ],
+      "declared_complexity": 3,
+      "candidate_complexity": 4,
+      "complexity_delta": 1,
+      "mean_delta_candidate_minus_declared": 0.8433333333333332,
+      "n_winning_folds": 3,
+      "fold_win_rate": 1.0,
+      "cv_supported": true,
+      "construct_review_available": false,
+      "construct_review_required": true,
+      "decision": "manual_review_candidate_supported_by_cv",
+      "public_revision_allowed": false,
+      "automatic_revision_allowed": false,
+      "public_claim_allowed": false,
+      "summary": {
+        "passed": true,
+        "decision_matches": true,
+        "candidate_validation_checked": true,
+        "source_linkage_passed": true,
+        "cv_rows_recorded": true,
+        "threshold_mean_delta_met": true,
+        "threshold_fold_win_rate_met": true,
+        "threshold_complexity_met": true,
+        "false_positive_rejected": false,
+        "invalid_candidate_excluded_from_cv": false,
+        "supported_manual_only": true
+      }
+    },
+    {
+      "scenario": "extra_loading_candidate_cv_supported_manual_gate",
+      "source_linkage_scenario": "extra_loading_candidate_fit_linked",
+      "source_linkage": {
+        "passed": true,
+        "candidate_fit_succeeded": true,
+        "invalid_candidate_blocked_before_fit": false
+      },
+      "dimensions": 2,
+      "true_q": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ],
+        [
+          true,
+          false
+        ]
+      ],
+      "declared_q": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ],
+        [
+          true,
+          true
+        ]
+      ],
+      "candidate_q": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ],
+        [
+          true,
+          false
+        ]
+      ],
+      "candidate_q_validation": {
+        "passed": true,
+        "n_rows": 12,
+        "error_checks": [],
+        "warning_checks": [],
+        "rows": [
+          {
+            "check": "family_applicability",
+            "status": "applicable",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": null,
+            "n_components": null,
+            "note": "q_matrix_required_for_mgmfrm"
+          },
+          {
+            "check": "matrix_schema",
+            "status": "matrix",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": null,
+            "n_components": null,
+            "note": "two_dimensional_matrix_supplied"
+          },
+          {
+            "check": "binary_mask_schema",
+            "status": "binary_bool_or_zero_one",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": null,
+            "n_components": null,
+            "note": "q_matrix_entries_are_binary_mask_values"
+          },
+          {
+            "check": "shape",
+            "status": "matches_items_by_dimensions",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": null,
+            "n_components": null,
+            "note": "one_row_per_item_one_column_per_dimension"
+          },
+          {
+            "check": "empty_item_rows",
+            "status": "passed",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": 3,
+            "n_components": null,
+            "note": "each_item_loads_on_at_least_one_dimension"
+          },
+          {
+            "check": "empty_dimensions",
+            "status": "passed",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": 2,
+            "n_components": null,
+            "note": "each_dimension_has_at_least_one_item"
+          },
+          {
+            "check": "duplicate_dimension_columns",
+            "status": "passed",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": 2,
+            "n_components": null,
+            "note": "dimension_columns_have_distinct_item_masks"
+          },
+          {
+            "check": "cross_loading_policy",
+            "status": "simple_structure",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": 0,
+            "n_components": null,
+            "note": "simple_structure_q_matrix"
+          },
+          {
+            "check": "positive_loading_identification",
+            "status": "single_loading_anchor_present",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": 2,
+            "n_components": null,
+            "note": "positive_loadings_have_simple_anchor_items"
+          },
+          {
+            "check": "dimension_item_graph_components",
+            "status": "recorded",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": null,
+            "n_components": 2,
+            "note": "q_item_dimension_graph_recorded_for_review"
+          },
+          {
+            "check": "dimension_facet_subgraph_coverage",
+            "status": "connected_dimension_subgraph",
+            "severity": "info",
+            "item": null,
+            "dimension": 1,
+            "n_active": 24,
+            "n_components": 1,
+            "note": "dimension_specific_person_rater_item_subgraph_connected"
+          },
+          {
+            "check": "dimension_facet_subgraph_coverage",
+            "status": "connected_dimension_subgraph",
+            "severity": "info",
+            "item": null,
+            "dimension": 2,
+            "n_active": 12,
+            "n_components": 1,
+            "note": "dimension_specific_person_rater_item_subgraph_connected"
+          }
+        ]
+      },
+      "cv_attempted": true,
+      "cv_fold_rows": [
+        {
+          "fold": 1,
+          "n_holdout_observations": 9,
+          "declared_holdout_elpd": -8.8,
+          "candidate_holdout_elpd": -8.370000000000001,
+          "delta_candidate_minus_declared": 0.4299999999999997,
+          "candidate_wins": true
+        },
+        {
+          "fold": 2,
+          "n_holdout_observations": 10,
+          "declared_holdout_elpd": -8.97,
+          "candidate_holdout_elpd": -8.55,
+          "delta_candidate_minus_declared": 0.41999999999999993,
+          "candidate_wins": true
+        },
+        {
+          "fold": 3,
+          "n_holdout_observations": 11,
+          "declared_holdout_elpd": -9.14,
+          "candidate_holdout_elpd": -8.700000000000001,
+          "delta_candidate_minus_declared": 0.4399999999999995,
+          "candidate_wins": true
+        }
+      ],
+      "declared_complexity": 4,
+      "candidate_complexity": 3,
+      "complexity_delta": -1,
+      "mean_delta_candidate_minus_declared": 0.4299999999999997,
+      "n_winning_folds": 3,
+      "fold_win_rate": 1.0,
+      "cv_supported": true,
+      "construct_review_available": false,
+      "construct_review_required": true,
+      "decision": "manual_review_candidate_supported_by_cv",
+      "public_revision_allowed": false,
+      "automatic_revision_allowed": false,
+      "public_claim_allowed": false,
+      "summary": {
+        "passed": true,
+        "decision_matches": true,
+        "candidate_validation_checked": true,
+        "source_linkage_passed": true,
+        "cv_rows_recorded": true,
+        "threshold_mean_delta_met": true,
+        "threshold_fold_win_rate_met": true,
+        "threshold_complexity_met": true,
+        "false_positive_rejected": false,
+        "invalid_candidate_excluded_from_cv": false,
+        "supported_manual_only": true
+      }
+    },
+    {
+      "scenario": "false_positive_candidate_rejected_by_cv",
+      "source_linkage_scenario": "false_positive_candidate_fit_diagnostic_only",
+      "source_linkage": {
+        "passed": true,
+        "candidate_fit_succeeded": true,
+        "invalid_candidate_blocked_before_fit": false
+      },
+      "dimensions": 2,
+      "true_q": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ],
+        [
+          true,
+          false
+        ]
+      ],
+      "declared_q": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ],
+        [
+          true,
+          false
+        ]
+      ],
+      "candidate_q": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ],
+        [
+          true,
+          true
+        ]
+      ],
+      "candidate_q_validation": {
+        "passed": true,
+        "n_rows": 12,
+        "error_checks": [],
+        "warning_checks": [
+          "cross_loading_policy"
+        ],
+        "rows": [
+          {
+            "check": "family_applicability",
+            "status": "applicable",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": null,
+            "n_components": null,
+            "note": "q_matrix_required_for_mgmfrm"
+          },
+          {
+            "check": "matrix_schema",
+            "status": "matrix",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": null,
+            "n_components": null,
+            "note": "two_dimensional_matrix_supplied"
+          },
+          {
+            "check": "binary_mask_schema",
+            "status": "binary_bool_or_zero_one",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": null,
+            "n_components": null,
+            "note": "q_matrix_entries_are_binary_mask_values"
+          },
+          {
+            "check": "shape",
+            "status": "matches_items_by_dimensions",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": null,
+            "n_components": null,
+            "note": "one_row_per_item_one_column_per_dimension"
+          },
+          {
+            "check": "empty_item_rows",
+            "status": "passed",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": 3,
+            "n_components": null,
+            "note": "each_item_loads_on_at_least_one_dimension"
+          },
+          {
+            "check": "empty_dimensions",
+            "status": "passed",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": 2,
+            "n_components": null,
+            "note": "each_dimension_has_at_least_one_item"
+          },
+          {
+            "check": "duplicate_dimension_columns",
+            "status": "passed",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": 2,
+            "n_components": null,
+            "note": "dimension_columns_have_distinct_item_masks"
+          },
+          {
+            "check": "cross_loading_policy",
+            "status": "fixed_confirmatory_cross_loadings",
+            "severity": "warning",
+            "item": null,
+            "dimension": null,
+            "n_active": 1,
+            "n_components": null,
+            "note": "cross_loadings_are_fixed_confirmatory_not_exploratory"
+          },
+          {
+            "check": "positive_loading_identification",
+            "status": "single_loading_anchor_present",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": 2,
+            "n_components": null,
+            "note": "positive_loadings_have_simple_anchor_items"
+          },
+          {
+            "check": "dimension_item_graph_components",
+            "status": "recorded",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": null,
+            "n_components": 1,
+            "note": "q_item_dimension_graph_recorded_for_review"
+          },
+          {
+            "check": "dimension_facet_subgraph_coverage",
+            "status": "connected_dimension_subgraph",
+            "severity": "info",
+            "item": null,
+            "dimension": 1,
+            "n_active": 24,
+            "n_components": 1,
+            "note": "dimension_specific_person_rater_item_subgraph_connected"
+          },
+          {
+            "check": "dimension_facet_subgraph_coverage",
+            "status": "connected_dimension_subgraph",
+            "severity": "info",
+            "item": null,
+            "dimension": 2,
+            "n_active": 24,
+            "n_components": 1,
+            "note": "dimension_specific_person_rater_item_subgraph_connected"
+          }
+        ]
+      },
+      "cv_attempted": true,
+      "cv_fold_rows": [
+        {
+          "fold": 1,
+          "n_holdout_observations": 9,
+          "declared_holdout_elpd": -8.43,
+          "candidate_holdout_elpd": -8.87,
+          "delta_candidate_minus_declared": -0.4399999999999995,
+          "candidate_wins": false
+        },
+        {
+          "fold": 2,
+          "n_holdout_observations": 10,
+          "declared_holdout_elpd": -8.6,
+          "candidate_holdout_elpd": -9.01,
+          "delta_candidate_minus_declared": -0.41000000000000014,
+          "candidate_wins": false
+        },
+        {
+          "fold": 3,
+          "n_holdout_observations": 11,
+          "declared_holdout_elpd": -8.77,
+          "candidate_holdout_elpd": -9.2,
+          "delta_candidate_minus_declared": -0.4299999999999997,
+          "candidate_wins": false
+        }
+      ],
+      "declared_complexity": 3,
+      "candidate_complexity": 4,
+      "complexity_delta": 1,
+      "mean_delta_candidate_minus_declared": -0.42666666666666647,
+      "n_winning_folds": 0,
+      "fold_win_rate": 0.0,
+      "cv_supported": false,
+      "construct_review_available": false,
+      "construct_review_required": false,
+      "decision": "reject_candidate_not_cross_validated",
+      "public_revision_allowed": false,
+      "automatic_revision_allowed": false,
+      "public_claim_allowed": false,
+      "summary": {
+        "passed": true,
+        "decision_matches": true,
+        "candidate_validation_checked": true,
+        "source_linkage_passed": true,
+        "cv_rows_recorded": true,
+        "threshold_mean_delta_met": false,
+        "threshold_fold_win_rate_met": false,
+        "threshold_complexity_met": true,
+        "false_positive_rejected": true,
+        "invalid_candidate_excluded_from_cv": false,
+        "supported_manual_only": false
+      }
+    },
+    {
+      "scenario": "invalid_duplicate_dimension_candidate_excluded_from_cv",
+      "source_linkage_scenario": "invalid_duplicate_dimension_candidate_blocked_before_fit",
+      "source_linkage": {
+        "passed": true,
+        "candidate_fit_succeeded": false,
+        "invalid_candidate_blocked_before_fit": true
+      },
+      "dimensions": 2,
+      "true_q": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ]
+      ],
+      "declared_q": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ]
+      ],
+      "candidate_q": [
+        [
+          true,
+          true
+        ],
+        [
+          true,
+          true
+        ]
+      ],
+      "candidate_q_validation": {
+        "passed": false,
+        "n_rows": 12,
+        "error_checks": [
+          "duplicate_dimension_columns"
+        ],
+        "warning_checks": [
+          "cross_loading_policy",
+          "positive_loading_identification"
+        ],
+        "rows": [
+          {
+            "check": "family_applicability",
+            "status": "applicable",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": null,
+            "n_components": null,
+            "note": "q_matrix_required_for_mgmfrm"
+          },
+          {
+            "check": "matrix_schema",
+            "status": "matrix",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": null,
+            "n_components": null,
+            "note": "two_dimensional_matrix_supplied"
+          },
+          {
+            "check": "binary_mask_schema",
+            "status": "binary_bool_or_zero_one",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": null,
+            "n_components": null,
+            "note": "q_matrix_entries_are_binary_mask_values"
+          },
+          {
+            "check": "shape",
+            "status": "matches_items_by_dimensions",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": null,
+            "n_components": null,
+            "note": "one_row_per_item_one_column_per_dimension"
+          },
+          {
+            "check": "empty_item_rows",
+            "status": "passed",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": 2,
+            "n_components": null,
+            "note": "each_item_loads_on_at_least_one_dimension"
+          },
+          {
+            "check": "empty_dimensions",
+            "status": "passed",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": 2,
+            "n_components": null,
+            "note": "each_dimension_has_at_least_one_item"
+          },
+          {
+            "check": "duplicate_dimension_columns",
+            "status": "aliased_columns",
+            "severity": "error",
+            "item": null,
+            "dimension": null,
+            "n_active": 1,
+            "n_components": null,
+            "note": "duplicate_q_columns_alias_dimensions"
+          },
+          {
+            "check": "cross_loading_policy",
+            "status": "fixed_confirmatory_cross_loadings",
+            "severity": "warning",
+            "item": null,
+            "dimension": null,
+            "n_active": 2,
+            "n_components": null,
+            "note": "cross_loadings_are_fixed_confirmatory_not_exploratory"
+          },
+          {
+            "check": "positive_loading_identification",
+            "status": "no_single_loading_anchor",
+            "severity": "warning",
+            "item": null,
+            "dimension": null,
+            "n_active": 0,
+            "n_components": null,
+            "note": "dimension_has_only_cross_loading_items_review_interpretation"
+          },
+          {
+            "check": "dimension_item_graph_components",
+            "status": "recorded",
+            "severity": "info",
+            "item": null,
+            "dimension": null,
+            "n_active": null,
+            "n_components": 1,
+            "note": "q_item_dimension_graph_recorded_for_review"
+          },
+          {
+            "check": "dimension_facet_subgraph_coverage",
+            "status": "connected_dimension_subgraph",
+            "severity": "info",
+            "item": null,
+            "dimension": 1,
+            "n_active": 24,
+            "n_components": 1,
+            "note": "dimension_specific_person_rater_item_subgraph_connected"
+          },
+          {
+            "check": "dimension_facet_subgraph_coverage",
+            "status": "connected_dimension_subgraph",
+            "severity": "info",
+            "item": null,
+            "dimension": 2,
+            "n_active": 24,
+            "n_components": 1,
+            "note": "dimension_specific_person_rater_item_subgraph_connected"
+          }
+        ]
+      },
+      "cv_attempted": false,
+      "cv_fold_rows": [],
+      "declared_complexity": 2,
+      "candidate_complexity": 4,
+      "complexity_delta": 2,
+      "mean_delta_candidate_minus_declared": 0.0,
+      "n_winning_folds": 0,
+      "fold_win_rate": 0.0,
+      "cv_supported": false,
+      "construct_review_available": false,
+      "construct_review_required": false,
+      "decision": "exclude_invalid_candidate_before_cv",
+      "public_revision_allowed": false,
+      "automatic_revision_allowed": false,
+      "public_claim_allowed": false,
+      "summary": {
+        "passed": true,
+        "decision_matches": true,
+        "candidate_validation_checked": true,
+        "source_linkage_passed": true,
+        "cv_rows_recorded": true,
+        "threshold_mean_delta_met": false,
+        "threshold_fold_win_rate_met": false,
+        "threshold_complexity_met": false,
+        "false_positive_rejected": false,
+        "invalid_candidate_excluded_from_cv": true,
+        "supported_manual_only": false
+      }
+    }
+  ],
+  "policy_rows": [
+    {
+      "policy": "kfold_holdout_delta",
+      "status": "recorded",
+      "threshold": 0.2,
+      "public_revision_allowed": false,
+      "rationale": "candidate_q_must_improve_heldout_score"
+    },
+    {
+      "policy": "fold_win_rate",
+      "status": "recorded",
+      "threshold": 0.6666666666666666,
+      "public_revision_allowed": false,
+      "rationale": "candidate_q_must_be_stable_across_folds"
+    },
+    {
+      "policy": "loading_complexity_guard",
+      "status": "recorded",
+      "threshold": 1,
+      "public_revision_allowed": false,
+      "rationale": "candidate_q_must_not_add_unbounded_complexity"
+    },
+    {
+      "policy": "construct_validity_manual_review",
+      "status": "required_before_public_revision",
+      "threshold": null,
+      "public_revision_allowed": false,
+      "rationale": "statistical_q_screening_does_not_replace_domain_review"
+    }
+  ],
+  "decision_record": {
+    "cross_validated_q_revision_policy_recorded": true,
+    "candidate_suggestions_allowed": true,
+    "manual_review_candidates_allowed": true,
+    "automatic_q_revision_allowed": false,
+    "public_q_revision_claim_allowed": false,
+    "public_q_revision_allowed": false,
+    "construct_validity_manual_review_required": true,
+    "public_exposure_support": "cross_validated_q_revision_policy_recorded_manual_only",
+    "interpretation": "cv_supported_q_candidates_are_manual_review_inputs_not_public_revisions",
+    "required_followup": "construct_validity_manual_review_for_q_revision_candidates"
+  },
+  "summary": {
+    "passed": true,
+    "publication_or_registration_action": false,
+    "local_only": true,
+    "all_input_artifacts_present": true,
+    "all_expected_schemas": true,
+    "all_input_summaries_passed": true,
+    "q_candidate_real_fit_diagnostic_linkage_passed": true,
+    "public_reference_records_recorded": true,
+    "all_policy_scenarios_checked": true,
+    "all_candidate_q_validations_checked": true,
+    "all_cv_eligible_candidates_have_fold_rows": true,
+    "false_positive_candidate_rejected": true,
+    "invalid_candidates_excluded_from_cv": true,
+    "supported_candidates_remain_manual_review_only": true,
+    "construct_validity_manual_review_required": true,
+    "no_automatic_q_revision": true,
+    "no_public_q_revision_claim": true,
+    "n_input_artifacts": 1,
+    "n_reference_records": 4,
+    "n_scenarios": 5,
+    "n_passed_scenarios": 5,
+    "n_cv_attempted_scenarios": 4,
+    "n_cv_fold_rows": 12,
+    "n_cv_supported_candidates": 2,
+    "n_supported_manual_review_candidates": 2,
+    "n_false_positive_candidates_rejected": 1,
+    "n_invalid_candidates_excluded_from_cv": 1,
+    "n_public_revisions_allowed": 0,
+    "n_automatic_revisions_allowed": 0,
+    "remaining_public_blockers": [
+      "construct_validity_manual_review_missing"
+    ],
+    "recommendation": "use_cross_validated_q_policy_for_manual_review_candidates_only",
+    "next_gate": "construct_validity_manual_review_for_q_revision_candidates"
+  }
+}

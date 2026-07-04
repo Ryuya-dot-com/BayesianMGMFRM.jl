@@ -80,6 +80,12 @@ const INPUT_ARTIFACTS = [
         expected_schema =
             "bayesianmgmfrm.mgmfrm_q_candidate_real_fit_diagnostic_linkage.v1",
         hash_policy = :sha256),
+    (name = :mgmfrm_q_revision_cross_validation_policy,
+        path =
+            "test/fixtures/mgmfrm_q_revision_cross_validation_policy.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_q_revision_cross_validation_policy.v1",
+        hash_policy = :sha256),
     (name = :full_paper_reproduction_archive,
         path = "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
         expected_schema =
@@ -117,6 +123,7 @@ const PROTOCOL = (;
         require_mgmfrm_empirical_q_matrix_recovery_simulation_grid_passed =
             true,
         require_mgmfrm_q_candidate_real_fit_diagnostic_linkage_passed = true,
+        require_mgmfrm_q_revision_cross_validation_policy_passed = true,
         require_full_paper_reproduction_archive_passed = true,
         require_minimum_total_evidence_cells = 60,
         require_no_publication_commands = true,
@@ -433,6 +440,17 @@ function artifact_summary(name::Symbol, summary::AbstractString)
             json_bool(summary, "invalid_candidates_blocked_before_fit") &&
             json_bool(summary, "no_public_q_revision_claim"),
     )
+    name === :mgmfrm_q_revision_cross_validation_policy && return (;
+        passed = json_bool(summary, "passed"),
+        n_evidence_cells = json_int(summary, "n_scenarios"),
+        key_check = :mgmfrm_q_revision_cross_validation_policy,
+        all_primary_checks =
+            json_bool(summary, "all_policy_scenarios_checked") &&
+            json_bool(summary, "all_cv_eligible_candidates_have_fold_rows") &&
+            json_bool(summary, "false_positive_candidate_rejected") &&
+            json_bool(summary, "supported_candidates_remain_manual_review_only") &&
+            json_bool(summary, "no_public_q_revision_claim"),
+    )
     name === :full_paper_reproduction_archive && return (;
         passed = json_bool(summary, "passed"),
         n_evidence_cells = json_int(summary, "n_fixture_artifacts"),
@@ -621,6 +639,9 @@ function build_artifact()
                 record_by_name(input_records,
                     :mgmfrm_q_candidate_real_fit_diagnostic_linkage).
                     summary_passed,
+            mgmfrm_q_revision_cross_validation_policy_passed =
+                record_by_name(input_records,
+                    :mgmfrm_q_revision_cross_validation_policy).summary_passed,
             full_paper_reproduction_archive_passed =
                 record_by_name(input_records,
                     :full_paper_reproduction_archive).summary_passed,

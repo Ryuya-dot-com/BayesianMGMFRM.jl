@@ -33,6 +33,10 @@
   committed JSON artifact that sends valid candidate Q masks through the
   guarded fixed-Q `fit(spec; experimental = true)` diagnostics while blocking
   invalid candidates before fit and keeping Q revision claims diagnostic-only.
+- Add a local MGMFRM Q-revision cross-validation policy generator and committed
+  JSON artifact that screens candidate Q masks with fold-level heldout evidence,
+  rejects noisy false positives, excludes invalid candidates before CV, and keeps
+  CV-supported revisions manual-review-only pending construct-validity review.
 - Expose pre-registration gate availability in `release_scope_summary` and
   clarify that Julia General registration is a manual action after the local
   gate passes.

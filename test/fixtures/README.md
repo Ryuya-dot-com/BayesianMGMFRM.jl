@@ -58,6 +58,12 @@ from the empirical recovery grid to guarded short-fit diagnostics, records
 finite fit/artifact/WAIC surfaces for valid candidates, blocks invalid Q masks
 before fit, and does not make automatic Q-revision or convergence claims.
 
+`mgmfrm_q_revision_cross_validation_policy.json` records the next local gate for
+candidate Q masks: fold-level heldout support, loading-complexity checks, false
+positive rejection, and invalid-candidate exclusion. Supported candidates remain
+inputs to manual construct-validity review only; the fixture does not make public
+Q-revision claims.
+
 The deterministic validation-plan generator:
 
 ```bash
