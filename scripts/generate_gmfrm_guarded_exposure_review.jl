@@ -1298,6 +1298,9 @@ function artifact_summary(name::Symbol, text::AbstractString)
         mgmfrm_q_matrix_validation_expansion_passed =
             json_bool(summary,
                 "mgmfrm_q_matrix_validation_expansion_passed"),
+        mgmfrm_empirical_q_matrix_recovery_policy_passed =
+            json_bool(summary,
+                "mgmfrm_empirical_q_matrix_recovery_policy_passed"),
         prediction_target_and_model_weight_policy_passed =
             json_bool(summary,
                 "prediction_target_and_model_weight_policy_passed"),
@@ -1705,6 +1708,9 @@ function build_artifact()
             mgmfrm_q_matrix_validation_expansion_passed =
                 Bool(getproperty(full_archive.summary,
                     :mgmfrm_q_matrix_validation_expansion_passed)),
+            mgmfrm_empirical_q_matrix_recovery_policy_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_empirical_q_matrix_recovery_policy_passed)),
             prediction_target_and_model_weight_policy_passed =
                 Bool(prediction_policy.summary.passed),
             mgmfrm_manual_public_scope_review_for_fit_passed =

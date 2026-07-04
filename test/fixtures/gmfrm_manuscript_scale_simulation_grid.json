@@ -243,10 +243,10 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "ed15113a95ca785558b1a3486f5796d1d7f71f9b8d5bdc1744248889fd906d21",
+      "sha256": "bffbd2d600158b8787837d72ee7d42afada5f8be5b5b5a32b84ac4c750002cf4",
       "summary": {
         "passed": true,
-        "n_evidence_cells": 36,
+        "n_evidence_cells": 37,
         "key_check": "full_paper_reproduction_archive",
         "all_primary_checks": true
       }
@@ -333,7 +333,7 @@
     {
       "gate": "full_paper_reproduction_archive",
       "status": "passed",
-      "n_evidence_cells": 36,
+      "n_evidence_cells": 37,
       "key_check": "full_paper_reproduction_archive",
       "artifact": "test/fixtures/gmfrm_full_paper_reproduction_archive.json"
     }
@@ -384,7 +384,7 @@
     "all_primary_checks_passed": true,
     "n_input_artifacts": 12,
     "n_evidence_rows": 12,
-    "total_evidence_cells": 150,
+    "total_evidence_cells": 151,
     "minimum_required_evidence_cells": 60,
     "scalar_fit_validation_grid_passed": true,
     "posterior_predictive_grid_passed": true,
