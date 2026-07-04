@@ -45,6 +45,7 @@
       "require_mgmfrm_q_revision_cross_validation_policy_passed": true,
       "require_mgmfrm_q_revision_construct_validity_review_passed": true,
       "require_mgmfrm_guarded_local_fit_entrypoint_passed": true,
+      "require_mgmfrm_fit_metric_threshold_sensitivity_passed": true,
       "require_full_paper_reproduction_archive_passed": true,
       "require_minimum_total_evidence_cells": 60,
       "require_no_publication_commands": true,
@@ -325,6 +326,23 @@
       }
     },
     {
+      "artifact": "mgmfrm_fit_metric_threshold_sensitivity",
+      "path": "test/fixtures/mgmfrm_fit_metric_threshold_sensitivity.json",
+      "exists": true,
+      "schema": "bayesianmgmfrm.mgmfrm_fit_metric_threshold_sensitivity.v1",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_fit_metric_threshold_sensitivity.v1",
+      "schema_matches": true,
+      "summary_passed": true,
+      "hash_policy": "sha256",
+      "sha256": "a72f1e2879cc158e6a0294af57b7866cb6e39d2465c9b8cfd0049dc1adf4596e",
+      "summary": {
+        "passed": true,
+        "n_evidence_cells": 78,
+        "key_check": "mgmfrm_fit_metric_threshold_sensitivity",
+        "all_primary_checks": true
+      }
+    },
+    {
       "artifact": "full_paper_reproduction_archive",
       "path": "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
       "exists": true,
@@ -333,10 +351,10 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "4870bad7f4671118698c661af5ed807069ab6d94083a6e9c26eb1fde0924a3bc",
+      "sha256": "3f20fc2e8b33c5dc53afaa3f89f1c2244b580fd5ae252635dbfde6c9e4b3c507",
       "summary": {
         "passed": true,
-        "n_evidence_cells": 42,
+        "n_evidence_cells": 43,
         "key_check": "full_paper_reproduction_archive",
         "all_primary_checks": true
       }
@@ -456,9 +474,16 @@
       "artifact": "test/fixtures/mgmfrm_guarded_local_fit_entrypoint.json"
     },
     {
+      "gate": "mgmfrm_fit_metric_threshold_sensitivity",
+      "status": "passed",
+      "n_evidence_cells": 78,
+      "key_check": "mgmfrm_fit_metric_threshold_sensitivity",
+      "artifact": "test/fixtures/mgmfrm_fit_metric_threshold_sensitivity.json"
+    },
+    {
       "gate": "full_paper_reproduction_archive",
       "status": "passed",
-      "n_evidence_cells": 42,
+      "n_evidence_cells": 43,
       "key_check": "full_paper_reproduction_archive",
       "artifact": "test/fixtures/gmfrm_full_paper_reproduction_archive.json"
     }
@@ -507,9 +532,9 @@
     "all_expected_schemas": true,
     "all_input_summaries_passed": true,
     "all_primary_checks_passed": true,
-    "n_input_artifacts": 17,
-    "n_evidence_rows": 17,
-    "total_evidence_cells": 182,
+    "n_input_artifacts": 18,
+    "n_evidence_rows": 18,
+    "total_evidence_cells": 261,
     "minimum_required_evidence_cells": 60,
     "scalar_fit_validation_grid_passed": true,
     "posterior_predictive_grid_passed": true,
@@ -527,6 +552,7 @@
     "mgmfrm_q_revision_cross_validation_policy_passed": true,
     "mgmfrm_q_revision_construct_validity_review_passed": true,
     "mgmfrm_guarded_local_fit_entrypoint_passed": true,
+    "mgmfrm_fit_metric_threshold_sensitivity_passed": true,
     "full_paper_reproduction_archive_passed": true,
     "scalar_guarded_fit_allowed": true,
     "broader_generalized_fit_allowed": false,

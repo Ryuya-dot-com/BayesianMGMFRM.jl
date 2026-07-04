@@ -1260,6 +1260,9 @@ function artifact_summary(name::Symbol, text::AbstractString)
         mgmfrm_guarded_local_fit_entrypoint_passed =
             json_bool(summary,
                 "mgmfrm_guarded_local_fit_entrypoint_passed"),
+        mgmfrm_fit_metric_threshold_sensitivity_passed =
+            json_bool(summary,
+                "mgmfrm_fit_metric_threshold_sensitivity_passed"),
         full_paper_reproduction_archive_passed =
             json_bool(summary, "full_paper_reproduction_archive_passed"),
         manuscript_claims_allowed =
@@ -1325,6 +1328,9 @@ function artifact_summary(name::Symbol, text::AbstractString)
         mgmfrm_guarded_local_fit_entrypoint_passed =
             json_bool(summary,
                 "mgmfrm_guarded_local_fit_entrypoint_passed"),
+        mgmfrm_fit_metric_threshold_sensitivity_passed =
+            json_bool(summary,
+                "mgmfrm_fit_metric_threshold_sensitivity_passed"),
         prediction_target_and_model_weight_policy_passed =
             json_bool(summary,
                 "prediction_target_and_model_weight_policy_passed"),
@@ -1582,6 +1588,12 @@ function review_rows(records)
                 Bool(mgmfrm_scope_review.summary.mgmfrm_fit_allowed),
             finding =
                 :manual_mgmfrm_scope_review_recorded_guarded_fit_enabled),
+        (gate = :confirmatory_mgmfrm_fit_metric_threshold_sensitivity,
+            status = :passed_with_policy_blocker,
+            evidence = Bool(getproperty(full_archive.summary,
+                :mgmfrm_fit_metric_threshold_sensitivity_passed)),
+            finding =
+                :fit_metric_threshold_sensitivity_recorded_local_diagnostic_only),
         (gate = :dff_estimand_and_validation_grid, status = :passed,
             evidence = Bool(dff_grid.summary.passed) &&
                 Bool(dff_grid.summary.all_estimands_predeclared) &&
@@ -1750,6 +1762,9 @@ function build_artifact()
             mgmfrm_guarded_local_fit_entrypoint_passed =
                 Bool(getproperty(full_archive.summary,
                     :mgmfrm_guarded_local_fit_entrypoint_passed)),
+            mgmfrm_fit_metric_threshold_sensitivity_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_fit_metric_threshold_sensitivity_passed)),
             prediction_target_and_model_weight_policy_passed =
                 Bool(prediction_policy.summary.passed),
             mgmfrm_manual_public_scope_review_for_fit_passed =

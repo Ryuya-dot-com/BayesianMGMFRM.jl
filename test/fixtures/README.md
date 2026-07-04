@@ -76,6 +76,14 @@ that non-experimental and unsupported-backend fits remain rejected, and confirms
 that the guarded `fit(spec; experimental = true)` MGMFRM path returns finite
 local fit outputs without automatic Q revision or public Q-revision claims.
 
+`mgmfrm_fit_metric_threshold_sensitivity.json` records the follow-up local
+fit-diagnostic gate for construct-reviewed Q candidates. It compares existing
+MFRM infit/outfit summaries with fixed-Q MGMFRM WAIC, LOO, posterior
+predictive, calibration, and common-parameter-shift summaries across several
+deterministic regimes and literature-motivated threshold profiles. The fixture
+keeps the evidence local and does not make convergence, public fit-metric, or
+Q-revision claims.
+
 The deterministic validation-plan generator:
 
 ```bash

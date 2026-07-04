@@ -46,6 +46,11 @@
   artifact that dry-runs construct-reviewed Q candidates through
   `fit(spec; experimental = true)`, confirms finite guarded local fit outputs,
   and keeps Q revision and broader MGMFRM claims blocked.
+- Add a local MGMFRM fit-metric threshold-sensitivity generator and committed
+  JSON artifact that compares existing MFRM infit/outfit diagnostics with
+  fixed-Q MGMFRM WAIC, LOO, posterior predictive, calibration, and
+  common-parameter-shift summaries across literature-motivated threshold
+  profiles while keeping convergence, fit-metric, and Q-revision claims local.
 - Expose pre-registration gate availability in `release_scope_summary` and
   clarify that Julia General registration is a manual action after the local
   gate passes.
