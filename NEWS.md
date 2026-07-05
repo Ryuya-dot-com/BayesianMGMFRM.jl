@@ -66,6 +66,11 @@
   sensitivity splits, leakage guards, comparison model set, and heldout metrics
   for the next MGMFRM prediction simulation while keeping public fit-metric,
   Q-revision, model-weight, and sparse-superiority claims blocked.
+- Add a local MGMFRM heldout-prediction simulation-grid generator and committed
+  JSON artifact that fixes five scenario families, comparison models, heldout
+  metrics, threshold-profile impacts, and leakage guards before execution while
+  keeping observed-result, model-weight, sparse-superiority, fit-metric, and
+  Q-revision claims blocked.
 - Expose pre-registration gate availability in `release_scope_summary` and
   clarify that Julia General registration is a manual action after the local
   gate passes.

@@ -103,6 +103,13 @@ comparison models, and heldout metrics before any MGMFRM prediction simulation
 is run, while keeping public fit-metric, Q-revision, model-weight, and
 sparse-superiority claims blocked.
 
+`mgmfrm_heldout_prediction_simulation_grid.json` records the next local
+pre-execution grid for that protocol. It fixes five heldout prediction
+scenarios, the five comparison models, five metrics, threshold-profile
+sensitivity rows, and leakage guards before actual heldout execution, while
+keeping observed-result, model-weight, sparse-superiority, fit-metric, and
+Q-revision claims blocked.
+
 The deterministic validation-plan generator:
 
 ```bash

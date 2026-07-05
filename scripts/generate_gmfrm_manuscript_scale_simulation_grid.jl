@@ -122,6 +122,12 @@ const INPUT_ARTIFACTS = [
         expected_schema =
             "bayesianmgmfrm.mgmfrm_validation_split_model_comparison_policy.v1",
         hash_policy = :sha256),
+    (name = :mgmfrm_heldout_prediction_simulation_grid,
+        path =
+            "test/fixtures/mgmfrm_heldout_prediction_simulation_grid.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_heldout_prediction_simulation_grid.v1",
+        hash_policy = :sha256),
     (name = :full_paper_reproduction_archive,
         path = "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
         expected_schema =
@@ -167,6 +173,7 @@ const PROTOCOL = (;
         require_mgmfrm_heldout_prediction_validation_policy_passed = true,
         require_mgmfrm_validation_split_model_comparison_policy_passed =
             true,
+        require_mgmfrm_heldout_prediction_simulation_grid_passed = true,
         require_full_paper_reproduction_archive_passed = true,
         require_minimum_total_evidence_cells = 60,
         require_no_publication_commands = true,
@@ -577,6 +584,23 @@ function artifact_summary(name::Symbol, summary::AbstractString)
             json_bool(summary,
                 "no_model_weight_or_sparse_superiority_claim"),
     )
+    name === :mgmfrm_heldout_prediction_simulation_grid && return (;
+        passed = json_bool(summary, "passed"),
+        n_evidence_cells = json_int(summary, "n_heldout_simulation_grid_cells"),
+        key_check = :mgmfrm_heldout_prediction_simulation_grid,
+        all_primary_checks =
+            json_bool(summary, "predeclared_splits_carried_forward") &&
+            json_bool(summary, "all_comparison_models_planned") &&
+            json_bool(summary, "all_scenarios_predeclared") &&
+            json_bool(summary, "all_metric_surface_values_finite") &&
+            json_bool(summary, "threshold_impact_rows_recorded") &&
+            json_bool(summary, "leakage_guards_carried_forward") &&
+            json_bool(summary, "all_claim_rules_block_public_claims") &&
+            json_bool(summary, "no_public_fit_metric_claim") &&
+            json_bool(summary, "no_public_model_weight_claim") &&
+            json_bool(summary, "no_sparse_superiority_claim") &&
+            !json_bool(summary, "heldout_prediction_execution_completed"),
+    )
     name === :full_paper_reproduction_archive && return (;
         passed = json_bool(summary, "passed"),
         n_evidence_cells = json_int(summary, "n_fixture_artifacts"),
@@ -647,9 +671,9 @@ function claim_decision_rows()
             required_followup = :future_dff_model_effect_fit_policy),
         (claim = :model_weights_or_sparse_mgmfrm_superiority,
             decision =
-                :guarded_fit_recorded_keep_blocked_until_heldout_simulation,
+                :heldout_simulation_grid_recorded_keep_blocked_until_execution,
             public_claim_allowed = false,
-            required_followup = :heldout_mgmfrm_prediction_simulation_grid),
+            required_followup = :heldout_mgmfrm_prediction_execution),
     ]
 end
 
@@ -711,7 +735,7 @@ function build_artifact()
                 :gate_e_and_full_archive_recorded_no_publication_action,
             interpretation =
                 :manuscript_scale_grid_recorded_full_archive_available,
-            required_followup = :heldout_mgmfrm_prediction_simulation_grid,
+            required_followup = :heldout_mgmfrm_prediction_execution,
         ),
         summary = (;
             passed,
@@ -789,6 +813,10 @@ function build_artifact()
                 record_by_name(input_records,
                     :mgmfrm_validation_split_model_comparison_policy).
                     summary_passed,
+            mgmfrm_heldout_prediction_simulation_grid_passed =
+                record_by_name(input_records,
+                    :mgmfrm_heldout_prediction_simulation_grid).
+                    summary_passed,
             full_paper_reproduction_archive_passed =
                 record_by_name(input_records,
                     :full_paper_reproduction_archive).summary_passed,
@@ -803,7 +831,7 @@ function build_artifact()
                 [row.blocker for row in BLOCKER_ROWS],
             recommendation =
                 :manual_scope_review_recorded_keep_broader_claims_blocked,
-            next_gate = :heldout_mgmfrm_prediction_simulation_grid,
+            next_gate = :heldout_mgmfrm_prediction_execution,
         ),
     )
 end
