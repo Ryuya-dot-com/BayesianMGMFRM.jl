@@ -1,0 +1,400 @@
+{
+  "schema": "bayesianmgmfrm.mgmfrm_validation_split_model_comparison_policy.v1",
+  "family": "mgmfrm",
+  "scope": "validation_split_model_comparison_policy",
+  "status": "validation_split_model_comparison_policy_recorded",
+  "decision": "predeclare_heldout_split_and_model_comparison_before_validation_study",
+  "public_fit": true,
+  "experimental_public": true,
+  "fit_ready": true,
+  "local_only": true,
+  "heldout_validation_study_completed": false,
+  "external_construct_validation_completed": false,
+  "publication_or_registration_action": false,
+  "public_fit_metric_claim": false,
+  "public_q_revision_claim": false,
+  "public_model_weight_claim": false,
+  "sparse_mgmfrm_superiority_claim": false,
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "protocol": {
+    "protocol_id": "mgmfrm_validation_split_model_comparison_policy_v1",
+    "review_kind": "local_validation_split_and_model_comparison_policy",
+    "publication_or_registration_action": false,
+    "local_only": true,
+    "policy_scope": "pre_execution_protocol_for_heldout_mgmfrm_prediction_validation",
+    "decision_target": "predeclare_split_units_leakage_guards_and_comparison_models",
+    "thresholds": {
+      "require_heldout_prediction_validation_policy_passed": true,
+      "require_prediction_target_and_model_weight_policy_passed": true,
+      "require_q_revision_cross_validation_policy_passed": true,
+      "require_construct_reviewed_q_fit_reporting_policy_passed": true,
+      "require_heldout_policy_next_gate_matched": true,
+      "require_primary_holdout_target_selected": true,
+      "require_split_policy_recorded": true,
+      "require_comparison_model_set_recorded": true,
+      "require_all_leakage_guards_recorded": true,
+      "require_all_claim_rules_block_public_claims_before_execution": true,
+      "require_same_data_fit_metrics_diagnostic_only": true,
+      "require_no_public_fit_metric_claim": true,
+      "require_no_public_q_revision_claim": true,
+      "require_no_model_weight_or_sparse_superiority_claim": true,
+      "require_no_publication_or_registration_action": true
+    }
+  },
+  "input_artifacts": [
+    {
+      "artifact": "mgmfrm_heldout_prediction_validation_policy",
+      "path": "test/fixtures/mgmfrm_heldout_prediction_validation_policy.json",
+      "exists": true,
+      "sha256": "7f0c323849cf28e1c6e758cbddacf7e0e04f2e3c008c07da09afd45f1be27fda",
+      "schema": "bayesianmgmfrm.mgmfrm_heldout_prediction_validation_policy.v1",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_heldout_prediction_validation_policy.v1",
+      "schema_matches": true,
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "heldout_or_external_validation_required": true,
+        "heldout_kfold_selected_from_scalar_policy": true,
+        "same_data_waic_claim_blocked": true,
+        "raw_psis_loo_claim_blocked": true,
+        "no_public_fit_metric_claim": true,
+        "no_public_q_revision_claim": true,
+        "no_automatic_q_revision": true,
+        "no_model_weight_or_sparse_superiority_claim": true,
+        "n_validation_policy_cells": 14,
+        "next_gate": "heldout_mgmfrm_prediction_or_external_validation_study"
+      }
+    },
+    {
+      "artifact": "prediction_target_and_model_weight_policy",
+      "path": "test/fixtures/gmfrm_prediction_target_and_model_weight_policy.json",
+      "exists": true,
+      "sha256": "cc01a85b252778f8df5eb03aac593f95ee733488ebfc10e908654f9630a6bdcb",
+      "schema": "bayesianmgmfrm.gmfrm_prediction_target_and_model_weight_policy.v1",
+      "expected_schema": "bayesianmgmfrm.gmfrm_prediction_target_and_model_weight_policy.v1",
+      "schema_matches": true,
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "heldout_kfold_selected": true,
+        "same_data_waic_blocked": true,
+        "raw_psis_loo_blocked": true,
+        "public_model_weight_claims_allowed": false,
+        "mgmfrm_fit_allowed": true,
+        "mgmfrm_weight_claims_allowed": false,
+        "manuscript_sparse_mgmfrm_claims_allowed": false,
+        "primary_prediction_target": "heldout_observation_log_score"
+      }
+    },
+    {
+      "artifact": "mgmfrm_q_revision_cross_validation_policy",
+      "path": "test/fixtures/mgmfrm_q_revision_cross_validation_policy.json",
+      "exists": true,
+      "sha256": "50118f93c71506d3f0186e7b06c650dbf7a1b7a787fc30263ce67ebd970b1f04",
+      "schema": "bayesianmgmfrm.mgmfrm_q_revision_cross_validation_policy.v1",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_q_revision_cross_validation_policy.v1",
+      "schema_matches": true,
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "construct_validity_manual_review_required": true,
+        "supported_candidates_remain_manual_review_only": true,
+        "no_public_q_revision_claim": true,
+        "no_automatic_q_revision": true,
+        "n_cv_supported_candidates": 2
+      }
+    },
+    {
+      "artifact": "mgmfrm_construct_reviewed_q_fit_reporting_policy",
+      "path": "test/fixtures/mgmfrm_construct_reviewed_q_fit_reporting_policy.json",
+      "exists": true,
+      "sha256": "0cbd36b636261316be11e138f7fa8fd0f9df8e262b50f8fd44f839aa45116e86",
+      "schema": "bayesianmgmfrm.mgmfrm_construct_reviewed_q_fit_reporting_policy.v1",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_construct_reviewed_q_fit_reporting_policy.v1",
+      "schema_matches": true,
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "threshold_profile_surface_recorded": true,
+        "indicator_conflicts_recorded": true,
+        "existing_model_reference_recorded": true,
+        "parameter_shift_impact_recorded": true,
+        "no_single_threshold_profile_promoted": true,
+        "no_public_fit_metric_claim": true,
+        "no_public_q_revision_claim": true,
+        "no_automatic_q_revision": true
+      }
+    }
+  ],
+  "split_policy_rows": [
+    {
+      "split": "observation_kfold",
+      "role": "primary_heldout_prediction_target",
+      "fold_assignment": "pre_fit_seeded_deterministic",
+      "heldout_unit": "rating_observation",
+      "minimum_train_fraction": 0.8,
+      "selected_for_first_execution": true,
+      "leakage_guard_required": true
+    },
+    {
+      "split": "respondent_holdout",
+      "role": "person_generalization_sensitivity",
+      "fold_assignment": "pre_fit_seeded_deterministic",
+      "heldout_unit": "respondent",
+      "minimum_train_fraction": 0.8,
+      "selected_for_first_execution": false,
+      "leakage_guard_required": true
+    },
+    {
+      "split": "item_holdout",
+      "role": "item_generalization_sensitivity",
+      "fold_assignment": "pre_fit_seeded_deterministic",
+      "heldout_unit": "item",
+      "minimum_train_fraction": 0.8,
+      "selected_for_first_execution": false,
+      "leakage_guard_required": true
+    },
+    {
+      "split": "scenario_replicate_holdout",
+      "role": "simulation_replication_sensitivity",
+      "fold_assignment": "pre_fit_seeded_deterministic",
+      "heldout_unit": "simulation_replicate",
+      "minimum_train_fraction": 0.8,
+      "selected_for_first_execution": false,
+      "leakage_guard_required": true
+    }
+  ],
+  "comparison_model_rows": [
+    {
+      "model": "scalar_gmfrm_baseline",
+      "family": "gmfrm",
+      "role": "existing_baseline",
+      "included": true,
+      "q_matrix_source": "not_applicable",
+      "claim_scope": "reference_only"
+    },
+    {
+      "model": "confirmatory_mgmfrm_current_q",
+      "family": "mgmfrm",
+      "role": "primary_candidate",
+      "included": true,
+      "q_matrix_source": "current_construct_reviewed_q",
+      "claim_scope": "local_diagnostic_until_heldout_execution"
+    },
+    {
+      "model": "sparse_mgmfrm_current_q",
+      "family": "mgmfrm",
+      "role": "sparsity_candidate",
+      "included": true,
+      "q_matrix_source": "current_construct_reviewed_q",
+      "claim_scope": "local_diagnostic_until_heldout_execution"
+    },
+    {
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "family": "mgmfrm",
+      "role": "q_revision_candidate",
+      "included": true,
+      "q_matrix_source": "train_only_candidate_plus_construct_review",
+      "claim_scope": "blocked_until_external_construct_validation"
+    },
+    {
+      "model": "null_or_intercept_reference",
+      "family": "reference",
+      "role": "calibration_anchor",
+      "included": true,
+      "q_matrix_source": "not_applicable",
+      "claim_scope": "reference_only"
+    }
+  ],
+  "metric_rows": [
+    {
+      "metric": "heldout_log_predictive_density",
+      "role": "primary_predictive_metric",
+      "direction": "higher_is_better",
+      "public_claim_requires_execution": true
+    },
+    {
+      "metric": "heldout_response_accuracy_or_rank_score",
+      "role": "secondary_response_prediction_metric",
+      "direction": "higher_is_better",
+      "public_claim_requires_execution": true
+    },
+    {
+      "metric": "heldout_calibration_error",
+      "role": "secondary_calibration_metric",
+      "direction": "lower_is_better",
+      "public_claim_requires_execution": true
+    },
+    {
+      "metric": "posterior_predictive_discrepancy",
+      "role": "diagnostic_replication_metric",
+      "direction": "closer_to_reference_is_better",
+      "public_claim_requires_execution": true
+    },
+    {
+      "metric": "simulation_parameter_recovery_shift",
+      "role": "simulation_only_impact_metric",
+      "direction": "lower_is_better",
+      "public_claim_requires_execution": true
+    }
+  ],
+  "leakage_guard_rows": [
+    {
+      "guard": "fold_assignment_before_fit",
+      "requirement": "all_holdout_indices_fixed_before_model_fitting",
+      "requirement_recorded": true,
+      "public_claim_blocked_if_unsatisfied": true
+    },
+    {
+      "guard": "q_revision_train_only",
+      "requirement": "q_revision_candidates_must_not_use_heldout_responses",
+      "requirement_recorded": true,
+      "public_claim_blocked_if_unsatisfied": true
+    },
+    {
+      "guard": "threshold_profiles_locked_before_fit",
+      "requirement": "fit_indicator_threshold_profiles_must_be_predeclared",
+      "requirement_recorded": true,
+      "public_claim_blocked_if_unsatisfied": true
+    },
+    {
+      "guard": "model_weight_claim_heldout_only",
+      "requirement": "model_weight_or_sparse_superiority_claims_use_heldout_metrics",
+      "requirement_recorded": true,
+      "public_claim_blocked_if_unsatisfied": true
+    },
+    {
+      "guard": "same_data_diagnostics_not_claim_targets",
+      "requirement": "waic_loo_and_threshold_pass_fail_remain_diagnostic_only",
+      "requirement_recorded": true,
+      "public_claim_blocked_if_unsatisfied": true
+    },
+    {
+      "guard": "external_validation_not_used_for_tuning",
+      "requirement": "external_construct_validation_cannot_tune_heldout_split",
+      "requirement_recorded": true,
+      "public_claim_blocked_if_unsatisfied": true
+    }
+  ],
+  "claim_rule_rows": [
+    {
+      "claim": "heldout_prediction_improvement",
+      "required_evidence": "executed_heldout_model_comparison",
+      "execution_completed": false,
+      "public_claim_allowed": false
+    },
+    {
+      "claim": "fit_metric_threshold_superiority",
+      "required_evidence": "heldout_metric_consistency_not_threshold_only",
+      "execution_completed": false,
+      "public_claim_allowed": false
+    },
+    {
+      "claim": "q_revision_improvement",
+      "required_evidence": "train_only_q_revision_plus_external_construct_validation",
+      "execution_completed": false,
+      "public_claim_allowed": false
+    },
+    {
+      "claim": "model_weight_or_sparse_mgmfrm_superiority",
+      "required_evidence": "heldout_prediction_study_with_stable_ranking",
+      "execution_completed": false,
+      "public_claim_allowed": false
+    },
+    {
+      "claim": "local_protocol_description",
+      "required_evidence": "this_policy_artifact",
+      "execution_completed": true,
+      "public_claim_allowed": false
+    }
+  ],
+  "evidence_link_rows": [
+    {
+      "artifact": "mgmfrm_heldout_prediction_validation_policy",
+      "path": "test/fixtures/mgmfrm_heldout_prediction_validation_policy.json",
+      "link_satisfied": true,
+      "evidence_role": "supplies_unmet_validation_gate"
+    },
+    {
+      "artifact": "prediction_target_and_model_weight_policy",
+      "path": "test/fixtures/gmfrm_prediction_target_and_model_weight_policy.json",
+      "link_satisfied": true,
+      "evidence_role": "supplies_primary_prediction_target"
+    },
+    {
+      "artifact": "mgmfrm_q_revision_cross_validation_policy",
+      "path": "test/fixtures/mgmfrm_q_revision_cross_validation_policy.json",
+      "link_satisfied": true,
+      "evidence_role": "supplies_train_only_q_revision_constraint"
+    },
+    {
+      "artifact": "mgmfrm_construct_reviewed_q_fit_reporting_policy",
+      "path": "test/fixtures/mgmfrm_construct_reviewed_q_fit_reporting_policy.json",
+      "link_satisfied": true,
+      "evidence_role": "supplies_threshold_profile_diagnostic_constraint"
+    }
+  ],
+  "decision_record": {
+    "selected_decision": "predeclare_heldout_split_and_model_comparison_before_validation_study",
+    "split_policy_recorded": true,
+    "comparison_model_set_recorded": true,
+    "primary_split": "observation_kfold",
+    "primary_prediction_target": "heldout_observation_log_score",
+    "heldout_validation_study_completed": false,
+    "external_construct_validation_completed": false,
+    "same_data_fit_metrics_diagnostic_only": true,
+    "public_fit_metric_claim_allowed": false,
+    "public_q_revision_claim_allowed": false,
+    "model_weight_or_sparse_superiority_claim_allowed": false,
+    "required_followup": "heldout_mgmfrm_prediction_simulation_grid"
+  },
+  "summary": {
+    "passed": true,
+    "publication_or_registration_action": false,
+    "local_only": true,
+    "all_input_artifacts_present": true,
+    "all_expected_schemas": true,
+    "all_input_summaries_passed": true,
+    "heldout_policy_next_gate_matched": true,
+    "heldout_prediction_validation_policy_passed": true,
+    "prediction_target_and_model_weight_policy_passed": true,
+    "mgmfrm_q_revision_cross_validation_policy_passed": true,
+    "mgmfrm_construct_reviewed_q_fit_reporting_policy_passed": true,
+    "primary_holdout_target_selected": true,
+    "split_policy_recorded": true,
+    "comparison_model_set_recorded": true,
+    "all_metrics_predeclared": true,
+    "all_leakage_guards_recorded": true,
+    "all_evidence_links_satisfied": true,
+    "all_claim_rules_block_public_claims": true,
+    "same_data_fit_metrics_diagnostic_only": true,
+    "no_public_fit_metric_claim": true,
+    "no_public_q_revision_claim": true,
+    "no_automatic_q_revision": true,
+    "no_model_weight_or_sparse_superiority_claim": true,
+    "heldout_validation_study_completed": false,
+    "external_construct_validation_completed": false,
+    "validation_execution_required": true,
+    "n_input_artifacts": 4,
+    "n_split_policy_rows": 4,
+    "n_comparison_model_rows": 5,
+    "n_metric_rows": 5,
+    "n_leakage_guard_rows": 6,
+    "n_claim_rule_rows": 5,
+    "n_evidence_link_rows": 4,
+    "n_validation_split_policy_cells": 29,
+    "n_unmet_public_claim_requirements": 3,
+    "n_blockers": 3,
+    "remaining_public_blockers": [
+      "heldout_split_execution_missing",
+      "heldout_model_comparison_results_missing",
+      "external_construct_validation_missing"
+    ],
+    "recommendation": "run_predeclared_heldout_prediction_simulation_or_external_validation",
+    "next_gate": "heldout_mgmfrm_prediction_simulation_grid"
+  }
+}

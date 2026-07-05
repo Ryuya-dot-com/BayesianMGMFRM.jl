@@ -96,6 +96,13 @@ or external construct validation before any fit-metric, Q-revision,
 model-weight, or sparse-superiority claims; same-data WAIC/LOO and threshold
 profiles remain diagnostic-only.
 
+`mgmfrm_validation_split_model_comparison_policy.json` predeclares the first
+small-step protocol for that gate. It fixes the primary observation-level
+heldout split, respondent/item/simulation sensitivity splits, leakage guards,
+comparison models, and heldout metrics before any MGMFRM prediction simulation
+is run, while keeping public fit-metric, Q-revision, model-weight, and
+sparse-superiority claims blocked.
+
 The deterministic validation-plan generator:
 
 ```bash

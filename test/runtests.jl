@@ -3893,6 +3893,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         :require_mgmfrm_construct_reviewed_q_fit_reporting_policy_passed])
     @test Bool(thresholds[
         :require_mgmfrm_heldout_prediction_validation_policy_passed])
+    @test Bool(thresholds[
+        :require_mgmfrm_validation_split_model_comparison_policy_passed])
     @test Bool(thresholds[:require_mgmfrm_guarded_fit_method_wiring_passed])
     @test Bool(thresholds[:require_mgmfrm_guarded_fit_validation_grid_passed])
     @test Bool(thresholds[:require_mgmfrm_guarded_fit_api_dry_run_passed])
@@ -3979,6 +3981,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
             "test/fixtures/mgmfrm_construct_reviewed_q_fit_reporting_policy.json",
         "mgmfrm_heldout_prediction_validation_policy" =>
             "test/fixtures/mgmfrm_heldout_prediction_validation_policy.json",
+        "mgmfrm_validation_split_model_comparison_policy" =>
+            "test/fixtures/mgmfrm_validation_split_model_comparison_policy.json",
         "mgmfrm_guarded_fit_method_wiring" =>
             "test/fixtures/mgmfrm_guarded_fit_method_wiring.json",
         "mgmfrm_guarded_fit_validation_grid" =>
@@ -4019,7 +4023,7 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     end
 
     code_doc_records = fixture[:code_doc_records]
-    @test length(code_doc_records) == 39
+    @test length(code_doc_records) == 40
     @test all(row -> Bool(row[:exists]), code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_gmfrm_full_paper_reproduction_archive.jl",
@@ -4058,6 +4062,9 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         "scripts/generate_mgmfrm_heldout_prediction_validation_policy.jl",
         code_doc_records)
     @test any(row -> String(row[:path]) ==
+        "scripts/generate_mgmfrm_validation_split_model_comparison_policy.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) ==
         "scripts/generate_mgmfrm_guarded_fit_method_wiring.jl",
         code_doc_records)
     @test any(row -> String(row[:path]) ==
@@ -4092,8 +4099,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     end
 
     full_commands = fixture[:full_regeneration_commands]
-    @test length(full_commands) == 45
-    @test [Int(row[:step]) for row in full_commands] == collect(1:45)
+    @test length(full_commands) == 46
+    @test [Int(row[:step]) for row in full_commands] == collect(1:46)
     @test all(row -> Bool(row[:local_only]), full_commands)
     @test any(row -> String(row[:artifact]) ==
         "mgmfrm_report_shape_simulation_grid", full_commands)
@@ -4117,6 +4124,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         "mgmfrm_construct_reviewed_q_fit_reporting_policy", full_commands)
     @test any(row -> String(row[:artifact]) ==
         "mgmfrm_heldout_prediction_validation_policy", full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "mgmfrm_validation_split_model_comparison_policy", full_commands)
     @test any(row -> String(row[:artifact]) ==
         "prediction_target_and_model_weight_policy", full_commands)
     @test String(full_commands[end - 3][:artifact]) ==
@@ -4192,6 +4201,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         :mgmfrm_construct_reviewed_q_fit_reporting_policy_passed])
     @test Bool(summary[
         :mgmfrm_heldout_prediction_validation_policy_passed])
+    @test Bool(summary[
+        :mgmfrm_validation_split_model_comparison_policy_passed])
     @test Bool(summary[:mgmfrm_guarded_fit_method_wiring_passed])
     @test Bool(summary[:mgmfrm_guarded_fit_validation_grid_passed])
     @test Bool(summary[:mgmfrm_guarded_fit_api_dry_run_passed])
@@ -4445,6 +4456,8 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
         :require_mgmfrm_construct_reviewed_q_fit_reporting_policy_passed])
     @test Bool(thresholds[
         :require_mgmfrm_heldout_prediction_validation_policy_passed])
+    @test Bool(thresholds[
+        :require_mgmfrm_validation_split_model_comparison_policy_passed])
     @test Bool(thresholds[:require_full_paper_reproduction_archive_passed])
     @test Int(thresholds[:require_minimum_total_evidence_cells]) == 60
     @test Bool(thresholds[:require_no_publication_commands])
@@ -4490,6 +4503,8 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
             "test/fixtures/mgmfrm_construct_reviewed_q_fit_reporting_policy.json",
         "mgmfrm_heldout_prediction_validation_policy" =>
             "test/fixtures/mgmfrm_heldout_prediction_validation_policy.json",
+        "mgmfrm_validation_split_model_comparison_policy" =>
+            "test/fixtures/mgmfrm_validation_split_model_comparison_policy.json",
         "full_paper_reproduction_archive" =>
             "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
     )
@@ -4517,7 +4532,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     evidence_rows = fixture[:evidence_rows]
     @test length(evidence_rows) == length(input_artifacts)
     @test all(row -> String(row[:status]) == "passed", evidence_rows)
-    @test Int(sum(Int(row[:n_evidence_cells]) for row in evidence_rows)) == 311
+    @test Int(sum(Int(row[:n_evidence_cells]) for row in evidence_rows)) == 341
     @test any(row -> String(row[:gate]) == "prior_likelihood_sensitivity_grid" &&
         Int(row[:n_evidence_cells]) == 45, evidence_rows)
     @test any(row -> String(row[:gate]) ==
@@ -4563,6 +4578,11 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
         Int(row[:n_evidence_cells]) == 14 &&
         String(row[:key_check]) ==
             "mgmfrm_heldout_prediction_validation_policy", evidence_rows)
+    @test any(row -> String(row[:gate]) ==
+        "mgmfrm_validation_split_model_comparison_policy" &&
+        Int(row[:n_evidence_cells]) == 29 &&
+        String(row[:key_check]) ==
+            "mgmfrm_validation_split_model_comparison_policy", evidence_rows)
 
     decisions = fixture[:claim_decision_rows]
     @test length(decisions) == 4
@@ -4571,9 +4591,9 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     @test any(row -> String(row[:claim]) ==
         "model_weights_or_sparse_mgmfrm_superiority" &&
         String(row[:decision]) ==
-            "guarded_fit_recorded_keep_blocked_until_heldout_validation" &&
+            "guarded_fit_recorded_keep_blocked_until_heldout_simulation" &&
         String(row[:required_followup]) ==
-            "heldout_mgmfrm_prediction_or_external_validation_study",
+            "heldout_mgmfrm_prediction_simulation_grid",
         decisions)
     @test all(row -> String(row[:claim]) == "guarded_scalar_gmfrm_fit" ||
         Bool(row[:public_claim_allowed]) == false, decisions)
@@ -4588,7 +4608,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     @test Bool(decision[:broader_generalized_fit_allowed]) == false
     @test Bool(decision[:manuscript_claims_allowed]) == false
     @test String(decision[:required_followup]) ==
-        "heldout_mgmfrm_prediction_or_external_validation_study"
+        "heldout_mgmfrm_prediction_simulation_grid"
 
     summary = fixture[:summary]
     @test Bool(summary[:passed])
@@ -4600,7 +4620,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     @test Bool(summary[:all_primary_checks_passed])
     @test Int(summary[:n_input_artifacts]) == length(input_artifacts)
     @test Int(summary[:n_evidence_rows]) == length(evidence_rows)
-    @test Int(summary[:total_evidence_cells]) == 311
+    @test Int(summary[:total_evidence_cells]) == 341
     @test Int(summary[:minimum_required_evidence_cells]) == 60
     @test Bool(summary[:scalar_fit_validation_grid_passed])
     @test Bool(summary[:posterior_predictive_grid_passed])
@@ -4625,6 +4645,8 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
         :mgmfrm_construct_reviewed_q_fit_reporting_policy_passed])
     @test Bool(summary[
         :mgmfrm_heldout_prediction_validation_policy_passed])
+    @test Bool(summary[
+        :mgmfrm_validation_split_model_comparison_policy_passed])
     @test Bool(summary[:full_paper_reproduction_archive_passed])
     @test Bool(summary[:manuscript_claims_allowed]) == false
     @test Bool(summary[:no_publication_commands])
@@ -4633,7 +4655,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     @test String(summary[:recommendation]) ==
         "manual_scope_review_recorded_keep_broader_claims_blocked"
     @test String(summary[:next_gate]) ==
-        "heldout_mgmfrm_prediction_or_external_validation_study"
+        "heldout_mgmfrm_prediction_simulation_grid"
 end
 
 function check_gmfrm_broader_experimental_exposure_decision_review_fixture(
@@ -5320,8 +5342,8 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(manuscript_grid[:summary][:all_expected_schemas])
     @test Bool(manuscript_grid[:summary][:all_input_summaries_passed])
     @test Bool(manuscript_grid[:summary][:all_primary_checks_passed])
-    @test Int(manuscript_grid[:summary][:n_input_artifacts]) == 20
-    @test Int(manuscript_grid[:summary][:total_evidence_cells]) == 311
+    @test Int(manuscript_grid[:summary][:n_input_artifacts]) == 21
+    @test Int(manuscript_grid[:summary][:total_evidence_cells]) == 341
     @test Int(manuscript_grid[:summary][:minimum_required_evidence_cells]) == 60
     @test Bool(manuscript_grid[:summary][:prediction_target_and_model_weight_policy_passed])
     @test Bool(manuscript_grid[:summary][
@@ -5336,10 +5358,12 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
         :mgmfrm_construct_reviewed_q_fit_reporting_policy_passed])
     @test Bool(manuscript_grid[:summary][
         :mgmfrm_heldout_prediction_validation_policy_passed])
+    @test Bool(manuscript_grid[:summary][
+        :mgmfrm_validation_split_model_comparison_policy_passed])
     @test Bool(manuscript_grid[:summary][:full_paper_reproduction_archive_passed])
     @test Bool(manuscript_grid[:summary][:manuscript_claims_allowed]) == false
     @test String(manuscript_grid[:summary][:next_gate]) ==
-        "heldout_mgmfrm_prediction_or_external_validation_study"
+        "heldout_mgmfrm_prediction_simulation_grid"
     full_archive = only(row for row in reviewed
         if String(row[:artifact]) == "full_paper_reproduction_archive")
     @test Bool(full_archive[:summary][:passed])
@@ -5352,9 +5376,9 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(full_archive[:summary][:all_external_sources_present])
     @test Bool(full_archive[:summary][:all_commands_local_only])
     @test Bool(full_archive[:summary][:no_publication_commands])
-    @test Int(full_archive[:summary][:n_fixture_artifacts]) == 45
-    @test Int(full_archive[:summary][:n_code_doc_records]) == 39
-    @test Int(full_archive[:summary][:n_full_regeneration_commands]) == 45
+    @test Int(full_archive[:summary][:n_fixture_artifacts]) == 46
+    @test Int(full_archive[:summary][:n_code_doc_records]) == 40
+    @test Int(full_archive[:summary][:n_full_regeneration_commands]) == 46
     @test Int(full_archive[:summary][:n_verification_commands]) == 4
     @test Bool(full_archive[:summary][:mgmfrm_report_shape_simulation_grid_passed])
     @test Bool(full_archive[:summary][:mgmfrm_q_matrix_validation_expansion_passed])
@@ -5376,6 +5400,8 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
         :mgmfrm_construct_reviewed_q_fit_reporting_policy_passed])
     @test Bool(full_archive[:summary][
         :mgmfrm_heldout_prediction_validation_policy_passed])
+    @test Bool(full_archive[:summary][
+        :mgmfrm_validation_split_model_comparison_policy_passed])
     @test Bool(full_archive[:summary][:prediction_target_and_model_weight_policy_passed])
     @test Bool(full_archive[:summary][:manuscript_reproducibility_claims_supported])
     @test Int(full_archive[:summary][:n_blockers]) == 0
@@ -5539,6 +5565,10 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
         "confirmatory_mgmfrm_heldout_prediction_validation_policy" &&
         String(row[:status]) == "passed_with_policy_blocker" &&
         Bool(row[:evidence]), review_rows)
+    @test any(row -> String(row[:gate]) ==
+        "confirmatory_mgmfrm_validation_split_model_comparison_policy" &&
+        String(row[:status]) == "passed_with_policy_blocker" &&
+        Bool(row[:evidence]), review_rows)
     @test any(row -> String(row[:gate]) == "dff_estimand_and_validation_grid" &&
         String(row[:status]) == "passed" &&
         Bool(row[:evidence]), review_rows)
@@ -5558,7 +5588,7 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test String(decision_record[:interpretation]) ==
         "local_evidence_reviewed_manual_scope_review_recorded_and_broader_exposure_decision_recorded"
     @test String(decision_record[:required_followup]) ==
-        "heldout_mgmfrm_prediction_or_external_validation_study"
+        "heldout_mgmfrm_prediction_simulation_grid"
 
     summary = fixture[:summary]
     @test Bool(summary[:reviewed])
@@ -5594,6 +5624,8 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
         :mgmfrm_construct_reviewed_q_fit_reporting_policy_passed])
     @test Bool(summary[
         :mgmfrm_heldout_prediction_validation_policy_passed])
+    @test Bool(summary[
+        :mgmfrm_validation_split_model_comparison_policy_passed])
     @test Bool(summary[:prediction_target_and_model_weight_policy_passed])
     @test Bool(summary[:dff_estimand_validation_grid_passed])
     @test Bool(summary[:manuscript_scale_simulation_grid_passed])
@@ -5609,7 +5641,7 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test String(summary[:recommendation]) ==
         "manual_scope_review_recorded_keep_guarded_scalar_and_confirmatory_mgmfrm_only"
     @test String(summary[:next_gate]) ==
-        "heldout_mgmfrm_prediction_or_external_validation_study"
+        "heldout_mgmfrm_prediction_simulation_grid"
 end
 
 function check_mgmfrm_recovery_smoke_fixture(fixture_path::AbstractString)
@@ -7888,6 +7920,223 @@ function check_mgmfrm_heldout_prediction_validation_policy_fixture(
         "run_heldout_mgmfrm_prediction_or_external_validation_before_claims"
     @test String(summary[:next_gate]) ==
         "heldout_mgmfrm_prediction_or_external_validation_study"
+end
+
+function check_mgmfrm_validation_split_model_comparison_policy_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_validation_split_model_comparison_policy.v1"
+    @test String(fixture[:family]) == "mgmfrm"
+    @test String(fixture[:scope]) ==
+        "validation_split_model_comparison_policy"
+    @test String(fixture[:status]) ==
+        "validation_split_model_comparison_policy_recorded"
+    @test String(fixture[:decision]) ==
+        "predeclare_heldout_split_and_model_comparison_before_validation_study"
+    @test Bool(fixture[:public_fit])
+    @test Bool(fixture[:experimental_public])
+    @test Bool(fixture[:fit_ready])
+    @test Bool(fixture[:local_only])
+    @test Bool(fixture[:heldout_validation_study_completed]) == false
+    @test Bool(fixture[:external_construct_validation_completed]) == false
+    @test Bool(fixture[:publication_or_registration_action]) == false
+    @test Bool(fixture[:public_fit_metric_claim]) == false
+    @test Bool(fixture[:public_q_revision_claim]) == false
+    @test Bool(fixture[:public_model_weight_claim]) == false
+    @test Bool(fixture[:sparse_mgmfrm_superiority_claim]) == false
+
+    protocol = fixture[:protocol]
+    thresholds = protocol[:thresholds]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_validation_split_model_comparison_policy_v1"
+    @test String(protocol[:review_kind]) ==
+        "local_validation_split_and_model_comparison_policy"
+    @test Bool(protocol[:publication_or_registration_action]) == false
+    @test Bool(protocol[:local_only])
+    @test String(protocol[:policy_scope]) ==
+        "pre_execution_protocol_for_heldout_mgmfrm_prediction_validation"
+    @test String(protocol[:decision_target]) ==
+        "predeclare_split_units_leakage_guards_and_comparison_models"
+    @test Bool(thresholds[
+        :require_heldout_prediction_validation_policy_passed])
+    @test Bool(thresholds[
+        :require_prediction_target_and_model_weight_policy_passed])
+    @test Bool(thresholds[
+        :require_q_revision_cross_validation_policy_passed])
+    @test Bool(thresholds[
+        :require_construct_reviewed_q_fit_reporting_policy_passed])
+    @test Bool(thresholds[:require_heldout_policy_next_gate_matched])
+    @test Bool(thresholds[:require_primary_holdout_target_selected])
+    @test Bool(thresholds[:require_split_policy_recorded])
+    @test Bool(thresholds[:require_comparison_model_set_recorded])
+    @test Bool(thresholds[:require_all_leakage_guards_recorded])
+    @test Bool(thresholds[
+        :require_all_claim_rules_block_public_claims_before_execution])
+    @test Bool(thresholds[:require_same_data_fit_metrics_diagnostic_only])
+    @test Bool(thresholds[:require_no_public_fit_metric_claim])
+    @test Bool(thresholds[:require_no_public_q_revision_claim])
+    @test Bool(thresholds[
+        :require_no_model_weight_or_sparse_superiority_claim])
+    @test Bool(thresholds[:require_no_publication_or_registration_action])
+
+    inputs = fixture[:input_artifacts]
+    expected_paths = Dict(
+        "mgmfrm_heldout_prediction_validation_policy" =>
+            "test/fixtures/mgmfrm_heldout_prediction_validation_policy.json",
+        "prediction_target_and_model_weight_policy" =>
+            "test/fixtures/gmfrm_prediction_target_and_model_weight_policy.json",
+        "mgmfrm_q_revision_cross_validation_policy" =>
+            "test/fixtures/mgmfrm_q_revision_cross_validation_policy.json",
+        "mgmfrm_construct_reviewed_q_fit_reporting_policy" =>
+            "test/fixtures/mgmfrm_construct_reviewed_q_fit_reporting_policy.json",
+    )
+    @test length(inputs) == length(expected_paths)
+    @test Set(String(row[:artifact]) for row in inputs) ==
+        Set(keys(expected_paths))
+    for row in inputs
+        artifact = String(row[:artifact])
+        @test expected_paths[artifact] == String(row[:path])
+        @test Bool(row[:exists])
+        @test Bool(row[:schema_matches])
+        @test Bool(row[:summary_passed])
+        @test String(row[:sha256]) ==
+            file_sha256(joinpath(root, String(row[:path])))
+    end
+
+    splits = fixture[:split_policy_rows]
+    @test length(splits) == 4
+    @test Set(String(row[:split]) for row in splits) == Set([
+        "observation_kfold",
+        "respondent_holdout",
+        "item_holdout",
+        "scenario_replicate_holdout",
+    ])
+    @test count(row -> Bool(row[:selected_for_first_execution]), splits) == 1
+    @test any(row -> String(row[:split]) == "observation_kfold" &&
+        String(row[:role]) == "primary_heldout_prediction_target" &&
+        Bool(row[:selected_for_first_execution]), splits)
+    @test all(row -> Bool(row[:leakage_guard_required]), splits)
+
+    models = fixture[:comparison_model_rows]
+    @test length(models) == 5
+    @test Set(String(row[:model]) for row in models) == Set([
+        "scalar_gmfrm_baseline",
+        "confirmatory_mgmfrm_current_q",
+        "sparse_mgmfrm_current_q",
+        "construct_reviewed_revised_q_mgmfrm",
+        "null_or_intercept_reference",
+    ])
+    @test all(row -> Bool(row[:included]), models)
+    @test any(row -> String(row[:model]) ==
+        "construct_reviewed_revised_q_mgmfrm" &&
+        String(row[:claim_scope]) ==
+            "blocked_until_external_construct_validation", models)
+
+    metrics = fixture[:metric_rows]
+    @test length(metrics) == 5
+    @test any(row -> String(row[:metric]) ==
+        "heldout_log_predictive_density" &&
+        String(row[:role]) == "primary_predictive_metric", metrics)
+    @test all(row -> Bool(row[:public_claim_requires_execution]), metrics)
+
+    leakage_guards = fixture[:leakage_guard_rows]
+    @test length(leakage_guards) == 6
+    @test Set(String(row[:guard]) for row in leakage_guards) == Set([
+        "fold_assignment_before_fit",
+        "q_revision_train_only",
+        "threshold_profiles_locked_before_fit",
+        "model_weight_claim_heldout_only",
+        "same_data_diagnostics_not_claim_targets",
+        "external_validation_not_used_for_tuning",
+    ])
+    @test all(row -> Bool(row[:requirement_recorded]), leakage_guards)
+    @test all(row -> Bool(row[:public_claim_blocked_if_unsatisfied]),
+        leakage_guards)
+
+    claim_rules = fixture[:claim_rule_rows]
+    @test length(claim_rules) == 5
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, claim_rules)
+    @test any(row -> String(row[:claim]) ==
+        "heldout_prediction_improvement" &&
+        Bool(row[:execution_completed]) == false, claim_rules)
+    @test any(row -> String(row[:claim]) == "local_protocol_description" &&
+        Bool(row[:execution_completed]), claim_rules)
+
+    links = fixture[:evidence_link_rows]
+    @test length(links) == 4
+    @test all(row -> Bool(row[:link_satisfied]), links)
+    @test Set(String(row[:artifact]) for row in links) == Set(keys(expected_paths))
+
+    decision = fixture[:decision_record]
+    @test String(decision[:selected_decision]) ==
+        "predeclare_heldout_split_and_model_comparison_before_validation_study"
+    @test Bool(decision[:split_policy_recorded])
+    @test Bool(decision[:comparison_model_set_recorded])
+    @test String(decision[:primary_split]) == "observation_kfold"
+    @test String(decision[:primary_prediction_target]) ==
+        "heldout_observation_log_score"
+    @test Bool(decision[:heldout_validation_study_completed]) == false
+    @test Bool(decision[:external_construct_validation_completed]) == false
+    @test Bool(decision[:same_data_fit_metrics_diagnostic_only])
+    @test Bool(decision[:public_fit_metric_claim_allowed]) == false
+    @test Bool(decision[:public_q_revision_claim_allowed]) == false
+    @test Bool(decision[
+        :model_weight_or_sparse_superiority_claim_allowed]) == false
+    @test String(decision[:required_followup]) ==
+        "heldout_mgmfrm_prediction_simulation_grid"
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:publication_or_registration_action]) == false
+    @test Bool(summary[:local_only])
+    @test Bool(summary[:all_input_artifacts_present])
+    @test Bool(summary[:all_expected_schemas])
+    @test Bool(summary[:all_input_summaries_passed])
+    @test Bool(summary[:heldout_policy_next_gate_matched])
+    @test Bool(summary[:heldout_prediction_validation_policy_passed])
+    @test Bool(summary[:prediction_target_and_model_weight_policy_passed])
+    @test Bool(summary[:mgmfrm_q_revision_cross_validation_policy_passed])
+    @test Bool(summary[
+        :mgmfrm_construct_reviewed_q_fit_reporting_policy_passed])
+    @test Bool(summary[:primary_holdout_target_selected])
+    @test Bool(summary[:split_policy_recorded])
+    @test Bool(summary[:comparison_model_set_recorded])
+    @test Bool(summary[:all_metrics_predeclared])
+    @test Bool(summary[:all_leakage_guards_recorded])
+    @test Bool(summary[:all_evidence_links_satisfied])
+    @test Bool(summary[:all_claim_rules_block_public_claims])
+    @test Bool(summary[:same_data_fit_metrics_diagnostic_only])
+    @test Bool(summary[:no_public_fit_metric_claim])
+    @test Bool(summary[:no_public_q_revision_claim])
+    @test Bool(summary[:no_automatic_q_revision])
+    @test Bool(summary[:no_model_weight_or_sparse_superiority_claim])
+    @test Bool(summary[:heldout_validation_study_completed]) == false
+    @test Bool(summary[:external_construct_validation_completed]) == false
+    @test Bool(summary[:validation_execution_required])
+    @test Int(summary[:n_input_artifacts]) == length(inputs)
+    @test Int(summary[:n_split_policy_rows]) == length(splits)
+    @test Int(summary[:n_comparison_model_rows]) == length(models)
+    @test Int(summary[:n_metric_rows]) == length(metrics)
+    @test Int(summary[:n_leakage_guard_rows]) == length(leakage_guards)
+    @test Int(summary[:n_claim_rule_rows]) == length(claim_rules)
+    @test Int(summary[:n_evidence_link_rows]) == length(links)
+    @test Int(summary[:n_validation_split_policy_cells]) == 29
+    @test Int(summary[:n_unmet_public_claim_requirements]) == 3
+    @test Int(summary[:n_blockers]) == 3
+    @test Set(String(blocker) for blocker in
+        summary[:remaining_public_blockers]) == Set([
+            "heldout_split_execution_missing",
+            "heldout_model_comparison_results_missing",
+            "external_construct_validation_missing",
+        ])
+    @test String(summary[:recommendation]) ==
+        "run_predeclared_heldout_prediction_simulation_or_external_validation"
+    @test String(summary[:next_gate]) ==
+        "heldout_mgmfrm_prediction_simulation_grid"
 end
 
 function check_mgmfrm_guarded_fit_method_wiring_fixture(fixture_path::AbstractString)
@@ -13725,6 +13974,12 @@ end
     if !isempty(mgmfrm_heldout_prediction_validation_policy_fixture)
         check_mgmfrm_heldout_prediction_validation_policy_fixture(
             mgmfrm_heldout_prediction_validation_policy_fixture,
+        )
+    end
+    mgmfrm_validation_split_model_comparison_policy_fixture = optional_fixture_path("MFRM_MGMFRM_VALIDATION_SPLIT_MODEL_COMPARISON_POLICY_FIXTURE", joinpath("test", "fixtures", "mgmfrm_validation_split_model_comparison_policy.json"))
+    if !isempty(mgmfrm_validation_split_model_comparison_policy_fixture)
+        check_mgmfrm_validation_split_model_comparison_policy_fixture(
+            mgmfrm_validation_split_model_comparison_policy_fixture,
         )
     end
     mgmfrm_guarded_fit_method_wiring_fixture = optional_fixture_path("MFRM_MGMFRM_GUARDED_FIT_METHOD_WIRING_FIXTURE", joinpath("test", "fixtures", "mgmfrm_guarded_fit_method_wiring.json"))

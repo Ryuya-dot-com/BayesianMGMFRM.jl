@@ -61,6 +61,11 @@
   validation as required before fit-metric, Q-revision, model-weight, or
   sparse-superiority claims while keeping same-data WAIC/LOO and threshold
   profiles diagnostic-only.
+- Add a local MGMFRM validation split/model-comparison policy generator and
+  committed JSON artifact that predeclares the primary heldout split,
+  sensitivity splits, leakage guards, comparison model set, and heldout metrics
+  for the next MGMFRM prediction simulation while keeping public fit-metric,
+  Q-revision, model-weight, and sparse-superiority claims blocked.
 - Expose pre-registration gate availability in `release_scope_summary` and
   clarify that Julia General registration is a manual action after the local
   gate passes.
