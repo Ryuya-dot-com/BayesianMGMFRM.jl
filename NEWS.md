@@ -94,6 +94,11 @@
   outputs and expected smoke-only insufficient-chain diagnostics, and keeps the
   full 125-unit batch, heldout scoring, external construct dataset attachment,
   and public MGMFRM claims blocked.
+- Add a local MGMFRM fold-1 heldout MCMC refit pilot generator and JSON
+  artifact that runs all fold-1 fixed-Q MGMFRM candidate cells, records
+  scalar/null comparison anchors as not fitted in that fixed-Q pilot, and keeps
+  full-batch, publication-grade diagnostic, heldout-predictive,
+  external-construct, and public model-comparison claims blocked.
 - Expose pre-registration gate availability in `release_scope_summary` and
   clarify that Julia General registration is a manual action after the local
   gate passes.

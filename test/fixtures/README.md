@@ -139,6 +139,13 @@ and expected insufficient-chain diagnostics, and keeps the full 125-unit batch,
 heldout predictive scoring, external construct dataset attachment, and all
 public claims blocked.
 
+`mgmfrm_full_heldout_mcmc_refit_fold1_pilot.json` expands that runner check to
+all fold-1 scenario/model cells. It fits the fixed-Q MGMFRM candidates with the
+same one-chain, one-draw local pilot controls, records scalar/null comparison
+anchors as not fitted in the fixed-Q pilot, and keeps full-batch,
+publication-grade diagnostic, heldout-predictive, external-construct, and
+public model-comparison claims blocked.
+
 The deterministic validation-plan generator:
 
 ```bash
