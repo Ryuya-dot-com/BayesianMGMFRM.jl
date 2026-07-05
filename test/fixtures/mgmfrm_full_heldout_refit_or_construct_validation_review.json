@@ -1,0 +1,431 @@
+{
+  "schema": "bayesianmgmfrm.mgmfrm_full_heldout_refit_or_construct_validation_review.v1",
+  "family": "mgmfrm",
+  "scope": "full_heldout_refit_or_construct_validation_review",
+  "status": "full_refit_and_construct_validation_review_recorded",
+  "decision": "record_full_refit_and_construct_validation_requirements",
+  "public_fit": true,
+  "experimental_public": true,
+  "fit_ready": true,
+  "local_only": true,
+  "heldout_prediction_execution_completed": true,
+  "full_mcmc_refit_execution_completed": false,
+  "external_construct_validation_completed": false,
+  "publication_or_registration_action": false,
+  "public_fit_metric_claim": false,
+  "public_q_revision_claim": false,
+  "public_model_weight_claim": false,
+  "sparse_mgmfrm_superiority_claim": false,
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "protocol": {
+    "protocol_id": "mgmfrm_full_heldout_refit_or_construct_validation_review_v1",
+    "review_kind": "local_full_heldout_refit_or_construct_validation_review",
+    "publication_or_registration_action": false,
+    "local_only": true,
+    "decision_scope": "requirements_before_public_mgmfrm_heldout_or_q_claims",
+    "next_execution_target": "full_heldout_mgmfrm_mcmc_refit_execution_or_external_construct_dataset_review",
+    "thresholds": {
+      "require_heldout_prediction_execution_passed": true,
+      "require_heldout_execution_next_gate_matched": true,
+      "require_full_mcmc_refit_required": true,
+      "require_observed_metric_cells_recorded": true,
+      "require_rank_instability_carried_forward": true,
+      "require_external_construct_validation_requirements_recorded": true,
+      "require_refit_execution_plan_recorded": true,
+      "require_model_claims_blocked_until_refit_and_validation": true,
+      "require_no_public_fit_metric_claim": true,
+      "require_no_public_q_revision_claim": true,
+      "require_no_public_model_weight_claim": true,
+      "require_no_sparse_superiority_claim": true,
+      "require_no_publication_or_registration_action": true
+    }
+  },
+  "input_artifacts": [
+    {
+      "artifact": "mgmfrm_heldout_prediction_execution",
+      "path": "test/fixtures/mgmfrm_heldout_prediction_execution.json",
+      "exists": true,
+      "sha256": "d892d74f18da33e3999bfa7aebacd687460e3bf241a283bbc8f5b96747199b25",
+      "schema": "bayesianmgmfrm.mgmfrm_heldout_prediction_execution.v1",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_heldout_prediction_execution.v1",
+      "schema_matches": true,
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "heldout_prediction_execution_completed": true,
+        "observed_heldout_results_recorded": true,
+        "mcmc_refit_execution_completed": false,
+        "deterministic_synthetic_execution": true,
+        "full_refit_execution_required": true,
+        "n_observed_metric_cells": 625,
+        "n_rank_unstable_scenarios": 1,
+        "n_external_construct_validation_scenarios": 2,
+        "no_public_fit_metric_claim": true,
+        "no_public_q_revision_claim": true,
+        "no_public_model_weight_claim": true,
+        "no_sparse_superiority_claim": true,
+        "next_gate": "full_heldout_mgmfrm_refit_or_external_construct_validation_review"
+      }
+    },
+    {
+      "artifact": "mgmfrm_q_revision_construct_validity_review",
+      "path": "test/fixtures/mgmfrm_q_revision_construct_validity_review.json",
+      "exists": true,
+      "sha256": "543c8f7ce2e79d69512c883d858e69c243ae5840b122dc2d215bbf00d86068a8",
+      "schema": "bayesianmgmfrm.mgmfrm_q_revision_construct_validity_review.v1",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_q_revision_construct_validity_review.v1",
+      "schema_matches": true,
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "construct_validity_manual_review_completed": true,
+        "construct_validity_supported_for_all_reviewed": true,
+        "supported_candidates_remain_manual_local_only": true,
+        "no_automatic_q_revision": true,
+        "no_public_q_revision_claim": true,
+        "next_gate": "guarded_local_mgmfrm_fit_entrypoint"
+      }
+    },
+    {
+      "artifact": "mgmfrm_validation_split_model_comparison_policy",
+      "path": "test/fixtures/mgmfrm_validation_split_model_comparison_policy.json",
+      "exists": true,
+      "sha256": "a6b25b50877a8e5b5a40e2c7d167069ad5ba407ecbd78e1b7fcfd8ed4e618a79",
+      "schema": "bayesianmgmfrm.mgmfrm_validation_split_model_comparison_policy.v1",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_validation_split_model_comparison_policy.v1",
+      "schema_matches": true,
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "primary_holdout_target_selected": true,
+        "split_policy_recorded": true,
+        "comparison_model_set_recorded": true,
+        "all_metrics_predeclared": true,
+        "all_leakage_guards_recorded": true,
+        "no_public_fit_metric_claim": true,
+        "no_public_q_revision_claim": true,
+        "no_model_weight_or_sparse_superiority_claim": true
+      }
+    }
+  ],
+  "refit_requirement_rows": [
+    {
+      "scenario": "well_specified_current_q",
+      "observed_best_model": "confirmatory_mgmfrm_current_q",
+      "primary_metric": "heldout_log_predictive_density",
+      "observed_rank_stable": true,
+      "n_unique_best_models": 1,
+      "external_construct_validation_required": false,
+      "full_mcmc_refit_required": true,
+      "full_mcmc_refit_completed": false,
+      "refit_scope": "scenario_model_refit_confirmation",
+      "priority": "standard",
+      "public_claim_allowed": false
+    },
+    {
+      "scenario": "missing_loading_revised_q",
+      "observed_best_model": "construct_reviewed_revised_q_mgmfrm",
+      "primary_metric": "heldout_log_predictive_density",
+      "observed_rank_stable": true,
+      "n_unique_best_models": 1,
+      "external_construct_validation_required": true,
+      "full_mcmc_refit_required": true,
+      "full_mcmc_refit_completed": false,
+      "refit_scope": "construct_linked_refit_confirmation",
+      "priority": "high",
+      "public_claim_allowed": false
+    },
+    {
+      "scenario": "sparse_signal_current_q",
+      "observed_best_model": "sparse_mgmfrm_current_q",
+      "primary_metric": "heldout_log_predictive_density",
+      "observed_rank_stable": true,
+      "n_unique_best_models": 1,
+      "external_construct_validation_required": false,
+      "full_mcmc_refit_required": true,
+      "full_mcmc_refit_completed": false,
+      "refit_scope": "scenario_model_refit_confirmation",
+      "priority": "standard",
+      "public_claim_allowed": false
+    },
+    {
+      "scenario": "rater_method_noise",
+      "observed_best_model": "scalar_gmfrm_baseline",
+      "primary_metric": "heldout_log_predictive_density",
+      "observed_rank_stable": true,
+      "n_unique_best_models": 1,
+      "external_construct_validation_required": false,
+      "full_mcmc_refit_required": true,
+      "full_mcmc_refit_completed": false,
+      "refit_scope": "scenario_model_refit_confirmation",
+      "priority": "standard",
+      "public_claim_allowed": false
+    },
+    {
+      "scenario": "weak_dimension_ambiguous",
+      "observed_best_model": "confirmatory_mgmfrm_current_q",
+      "primary_metric": "heldout_log_predictive_density",
+      "observed_rank_stable": false,
+      "n_unique_best_models": 3,
+      "external_construct_validation_required": true,
+      "full_mcmc_refit_required": true,
+      "full_mcmc_refit_completed": false,
+      "refit_scope": "rank_ambiguity_resolution_refit",
+      "priority": "highest",
+      "public_claim_allowed": false
+    }
+  ],
+  "model_refit_plan_rows": [
+    {
+      "model": "confirmatory_mgmfrm_current_q",
+      "role": "current_q_confirmatory",
+      "included_in_full_refit": true,
+      "refit_target": "heldout_observation_log_score",
+      "mcmc_refit_required": true,
+      "mcmc_refit_completed": false,
+      "minimum_chains": 4,
+      "minimum_draws_per_chain": 1000,
+      "required_diagnostics": [
+        "rhat",
+        "ess",
+        "divergence_count",
+        "posterior_predictive_check"
+      ],
+      "deterministic_metric_reuse_for_public_claim": false,
+      "public_model_weight_claim_allowed": false
+    },
+    {
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "role": "construct_reviewed_q_candidate",
+      "included_in_full_refit": true,
+      "refit_target": "heldout_observation_log_score",
+      "mcmc_refit_required": true,
+      "mcmc_refit_completed": false,
+      "minimum_chains": 4,
+      "minimum_draws_per_chain": 1000,
+      "required_diagnostics": [
+        "rhat",
+        "ess",
+        "divergence_count",
+        "posterior_predictive_check"
+      ],
+      "deterministic_metric_reuse_for_public_claim": false,
+      "public_model_weight_claim_allowed": false
+    },
+    {
+      "model": "null_or_intercept_reference",
+      "role": "null_reference",
+      "included_in_full_refit": true,
+      "refit_target": "heldout_observation_log_score",
+      "mcmc_refit_required": true,
+      "mcmc_refit_completed": false,
+      "minimum_chains": 4,
+      "minimum_draws_per_chain": 1000,
+      "required_diagnostics": [
+        "rhat",
+        "ess",
+        "divergence_count",
+        "posterior_predictive_check"
+      ],
+      "deterministic_metric_reuse_for_public_claim": false,
+      "public_model_weight_claim_allowed": false
+    },
+    {
+      "model": "scalar_gmfrm_baseline",
+      "role": "scalar_baseline",
+      "included_in_full_refit": true,
+      "refit_target": "heldout_observation_log_score",
+      "mcmc_refit_required": true,
+      "mcmc_refit_completed": false,
+      "minimum_chains": 4,
+      "minimum_draws_per_chain": 1000,
+      "required_diagnostics": [
+        "rhat",
+        "ess",
+        "divergence_count",
+        "posterior_predictive_check"
+      ],
+      "deterministic_metric_reuse_for_public_claim": false,
+      "public_model_weight_claim_allowed": false
+    },
+    {
+      "model": "sparse_mgmfrm_current_q",
+      "role": "sparse_current_q",
+      "included_in_full_refit": true,
+      "refit_target": "heldout_observation_log_score",
+      "mcmc_refit_required": true,
+      "mcmc_refit_completed": false,
+      "minimum_chains": 4,
+      "minimum_draws_per_chain": 1000,
+      "required_diagnostics": [
+        "rhat",
+        "ess",
+        "divergence_count",
+        "posterior_predictive_check"
+      ],
+      "deterministic_metric_reuse_for_public_claim": false,
+      "public_model_weight_claim_allowed": false
+    }
+  ],
+  "external_construct_validation_rows": [
+    {
+      "scenario": "missing_loading_revised_q",
+      "validation_target": "external_alignment_of_construct_reviewed_loading",
+      "trigger": "construct_reviewed_q_claim_dependency",
+      "evidence_required": "external_construct_measure_or_independent_rubric_review",
+      "external_construct_validation_completed": false,
+      "public_q_revision_claim_allowed": false,
+      "public_model_superiority_claim_allowed": false
+    },
+    {
+      "scenario": "weak_dimension_ambiguous",
+      "validation_target": "weak_dimension_discriminant_construct_check",
+      "trigger": "rank_instability_and_construct_ambiguity",
+      "evidence_required": "external_construct_measure_or_independent_rubric_review",
+      "external_construct_validation_completed": false,
+      "public_q_revision_claim_allowed": false,
+      "public_model_superiority_claim_allowed": false
+    }
+  ],
+  "claim_rule_rows": [
+    {
+      "claim": "heldout_prediction_improvement",
+      "required_before_public_claim": "full_mcmc_refit_with_stable_heldout_rank",
+      "full_mcmc_refit_completed": false,
+      "external_construct_validation_completed": false,
+      "public_claim_allowed": false
+    },
+    {
+      "claim": "fit_metric_threshold_superiority",
+      "required_before_public_claim": "full_refit_threshold_sensitivity_and_scope_review",
+      "full_mcmc_refit_completed": false,
+      "external_construct_validation_completed": false,
+      "public_claim_allowed": false
+    },
+    {
+      "claim": "q_revision_improvement",
+      "required_before_public_claim": "full_refit_plus_external_construct_validation",
+      "full_mcmc_refit_completed": false,
+      "external_construct_validation_completed": false,
+      "public_claim_allowed": false
+    },
+    {
+      "claim": "model_weight_reporting",
+      "required_before_public_claim": "full_refit_rank_stability_and_weight_sensitivity_review",
+      "full_mcmc_refit_completed": false,
+      "external_construct_validation_completed": false,
+      "public_claim_allowed": false
+    },
+    {
+      "claim": "sparse_mgmfrm_superiority",
+      "required_before_public_claim": "full_refit_sparse_win_replication_and_scope_review",
+      "full_mcmc_refit_completed": false,
+      "external_construct_validation_completed": false,
+      "public_claim_allowed": false
+    }
+  ],
+  "blocker_rows": [
+    {
+      "blocker": "full_mcmc_refit_execution_missing",
+      "blocks": "public_heldout_prediction_claims",
+      "resolved": false
+    },
+    {
+      "blocker": "external_construct_validation_missing",
+      "blocks": "public_q_revision_claims",
+      "resolved": false
+    },
+    {
+      "blocker": "rank_ambiguity_resolution_refit_missing",
+      "blocks": "model_weight_or_sparse_superiority_claims",
+      "resolved": false
+    },
+    {
+      "blocker": "independent_public_scope_review_missing",
+      "blocks": "all_public_mgmfrm_claims",
+      "resolved": false
+    }
+  ],
+  "evidence_link_rows": [
+    {
+      "artifact": "mgmfrm_heldout_prediction_execution",
+      "path": "test/fixtures/mgmfrm_heldout_prediction_execution.json",
+      "link_satisfied": true,
+      "evidence_role": "supplies_observed_heldout_smoke_and_full_refit_blockers"
+    },
+    {
+      "artifact": "mgmfrm_q_revision_construct_validity_review",
+      "path": "test/fixtures/mgmfrm_q_revision_construct_validity_review.json",
+      "link_satisfied": true,
+      "evidence_role": "supplies_manual_construct_review_context_for_external_validation"
+    },
+    {
+      "artifact": "mgmfrm_validation_split_model_comparison_policy",
+      "path": "test/fixtures/mgmfrm_validation_split_model_comparison_policy.json",
+      "link_satisfied": true,
+      "evidence_role": "supplies_heldout_split_and_model_set_policy"
+    }
+  ],
+  "decision_record": {
+    "selected_decision": "record_full_refit_and_construct_validation_requirements",
+    "heldout_prediction_execution_completed": true,
+    "full_mcmc_refit_execution_completed": false,
+    "external_construct_validation_completed": false,
+    "refit_or_external_validation_review_completed": true,
+    "public_fit_metric_claim_allowed": false,
+    "public_q_revision_claim_allowed": false,
+    "model_weight_or_sparse_superiority_claim_allowed": false,
+    "required_followup": "full_heldout_mgmfrm_mcmc_refit_execution_or_external_construct_dataset_review"
+  },
+  "summary": {
+    "passed": true,
+    "publication_or_registration_action": false,
+    "local_only": true,
+    "all_input_artifacts_present": true,
+    "all_expected_schemas": true,
+    "all_input_summaries_passed": true,
+    "heldout_prediction_execution_passed": true,
+    "heldout_execution_next_gate_matched": true,
+    "construct_validity_review_passed": true,
+    "validation_split_model_comparison_policy_passed": true,
+    "full_mcmc_refit_required": true,
+    "observed_metric_cells_recorded": true,
+    "rank_instability_carried_forward": true,
+    "external_construct_validation_requirements_recorded": true,
+    "refit_execution_plan_recorded": true,
+    "all_claim_rules_block_public_claims": true,
+    "all_evidence_links_satisfied": true,
+    "no_public_fit_metric_claim": true,
+    "no_public_q_revision_claim": true,
+    "no_public_model_weight_claim": true,
+    "no_sparse_superiority_claim": true,
+    "heldout_prediction_execution_completed": true,
+    "full_mcmc_refit_execution_completed": false,
+    "external_construct_validation_completed": false,
+    "refit_or_external_validation_review_completed": true,
+    "n_input_artifacts": 3,
+    "n_refit_requirement_rows": 5,
+    "n_model_refit_plan_rows": 5,
+    "n_external_construct_validation_rows": 2,
+    "n_claim_rule_rows": 5,
+    "n_blocker_rows": 4,
+    "n_evidence_link_rows": 3,
+    "n_review_cells": 17,
+    "n_observed_metric_cells": 625,
+    "n_rank_unstable_scenarios": 1,
+    "n_external_construct_validation_scenarios": 2,
+    "n_blockers": 4,
+    "remaining_public_blockers": [
+      "full_mcmc_refit_execution_missing",
+      "external_construct_validation_missing",
+      "rank_ambiguity_resolution_refit_missing",
+      "independent_public_scope_review_missing"
+    ],
+    "recommendation": "execute_full_heldout_refit_or_attach_external_construct_validation_before_claims",
+    "next_gate": "full_heldout_mgmfrm_mcmc_refit_execution_or_external_construct_dataset_review"
+  }
+}

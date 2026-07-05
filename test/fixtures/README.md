@@ -117,6 +117,14 @@ rows, threshold-profile observed rows, and diagnostic model-weight rows while
 keeping full MCMC refit, external construct validation, public fit-metric,
 Q-revision, model-weight, and sparse-superiority claims blocked.
 
+`mgmfrm_full_heldout_refit_or_construct_validation_review.json` records the
+next local review gate after deterministic heldout execution. It carries
+forward the 625 observed metric cells, rank instability, and two external
+construct-validation requirements; records full MCMC refit requirements, model
+refit plans, and claim blockers; and keeps full refit, external validation,
+public fit-metric, Q-revision, model-weight, and sparse-superiority claims
+blocked.
+
 The deterministic validation-plan generator:
 
 ```bash

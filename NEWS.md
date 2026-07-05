@@ -77,6 +77,12 @@
   threshold, and diagnostic model-weight rows, and keeps public fit-metric,
   Q-revision, model-weight, and sparse-superiority claims blocked until full
   MCMC refit and external construct validation review.
+- Add a local MGMFRM full-heldout-refit / construct-validation review generator
+  and committed JSON artifact that carries the deterministic heldout execution
+  into explicit full MCMC refit and external construct-validation requirements,
+  records model refit plans and blockers, and keeps public heldout,
+  Q-revision, model-weight, and sparse-superiority claims blocked until those
+  requirements are executed.
 - Expose pre-registration gate availability in `release_scope_summary` and
   clarify that Julia General registration is a manual action after the local
   gate passes.

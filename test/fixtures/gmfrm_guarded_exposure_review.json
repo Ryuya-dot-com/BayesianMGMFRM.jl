@@ -53,6 +53,7 @@
       "require_mgmfrm_validation_split_model_comparison_policy_passed": true,
       "require_mgmfrm_heldout_prediction_simulation_grid_passed": true,
       "require_mgmfrm_heldout_prediction_execution_passed": true,
+      "require_mgmfrm_full_heldout_refit_or_construct_validation_review_passed": true,
       "high_variance_waic_blocks_public_exposure": true,
       "psis_loo_or_exact_loo_required_before_exposure": true,
       "high_pareto_k_blocks_public_exposure": true,
@@ -596,7 +597,7 @@
     {
       "artifact": "claim_recovery_reproduction_archive",
       "path": "test/fixtures/gmfrm_claim_recovery_reproduction_archive.json",
-      "sha256": "6fe9784064a65a9fc4d9d74aeaa5a16f5d28ece68d63fc961b54c370a88129f8",
+      "sha256": "ed915b2c7c966a99d79a1c74fd15cd32faa81ddae5c7e6b4d7423b9021aa2308",
       "schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
       "family": "gmfrm",
       "scope": "scalar_gmfrm_fit_ready_candidate",
@@ -630,7 +631,7 @@
     {
       "artifact": "broader_experimental_exposure_decision_review",
       "path": "test/fixtures/gmfrm_broader_experimental_exposure_decision_review.json",
-      "sha256": "624f389e76cd20ba474619c5ac7c5f86b4ad710a417a975e2392252afe9c935d",
+      "sha256": "ed0074e2905ea1502c7fa73a72bc2004a62aa3e1fffdf74eced4373cc8aa232c",
       "schema": "bayesianmgmfrm.gmfrm_broader_experimental_exposure_decision_review.v1",
       "family": "gmfrm",
       "scope": "broader_generalized_exposure_decision",
@@ -965,7 +966,7 @@
     {
       "artifact": "manuscript_scale_simulation_grid",
       "path": "test/fixtures/gmfrm_manuscript_scale_simulation_grid.json",
-      "sha256": "d52f09b7f16fb78fe0f033dbf75f0639bc3aa4c445634e8c12f15e176ecb0414",
+      "sha256": "088160c151a5685ebd495bae6d302eb86b3c2de56916b5bcd2088c2e12d346c6",
       "schema": "bayesianmgmfrm.gmfrm_manuscript_scale_simulation_grid.v1",
       "family": "gmfrm",
       "scope": "manuscript_scale_simulation_grid",
@@ -981,9 +982,9 @@
         "all_expected_schemas": true,
         "all_input_summaries_passed": true,
         "all_primary_checks_passed": true,
-        "n_input_artifacts": 23,
-        "n_evidence_rows": 23,
-        "total_evidence_cells": 1093,
+        "n_input_artifacts": 24,
+        "n_evidence_rows": 24,
+        "total_evidence_cells": 1111,
         "minimum_required_evidence_cells": 60,
         "scalar_fit_validation_grid_passed": true,
         "posterior_predictive_grid_passed": true,
@@ -1003,17 +1004,18 @@
         "mgmfrm_validation_split_model_comparison_policy_passed": true,
         "mgmfrm_heldout_prediction_simulation_grid_passed": true,
         "mgmfrm_heldout_prediction_execution_passed": true,
+        "mgmfrm_full_heldout_refit_or_construct_validation_review_passed": true,
         "full_paper_reproduction_archive_passed": true,
         "manuscript_claims_allowed": false,
         "n_blockers": 0,
         "recommendation": "manual_scope_review_recorded_keep_broader_claims_blocked",
-        "next_gate": "full_heldout_mgmfrm_refit_or_external_construct_validation_review"
+        "next_gate": "full_heldout_mgmfrm_mcmc_refit_execution_or_external_construct_dataset_review"
       }
     },
     {
       "artifact": "full_paper_reproduction_archive",
       "path": "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
-      "sha256": "3b0f9e1e2a9dd3d4aeb8998e4f0bab8de272ae082d29e101261919305254d2b5",
+      "sha256": "18433a1dca410c24a84e8f9c644d6e5a7a7f8e68216542602a0c4365a3a813e7",
       "schema": "bayesianmgmfrm.gmfrm_full_paper_reproduction_archive.v1",
       "family": "gmfrm",
       "scope": "full_paper_reproduction_archive",
@@ -1033,10 +1035,10 @@
         "all_external_sources_present": true,
         "all_commands_local_only": true,
         "no_publication_commands": true,
-        "n_fixture_artifacts": 48,
-        "n_code_doc_records": 42,
+        "n_fixture_artifacts": 49,
+        "n_code_doc_records": 43,
         "n_source_records": 2,
-        "n_full_regeneration_commands": 48,
+        "n_full_regeneration_commands": 49,
         "n_verification_commands": 4,
         "guarded_exposure_review_passed": true,
         "broader_experimental_exposure_decision_review_passed": true,
@@ -1055,6 +1057,7 @@
         "mgmfrm_validation_split_model_comparison_policy_passed": true,
         "mgmfrm_heldout_prediction_simulation_grid_passed": true,
         "mgmfrm_heldout_prediction_execution_passed": true,
+        "mgmfrm_full_heldout_refit_or_construct_validation_review_passed": true,
         "prediction_target_and_model_weight_policy_passed": true,
         "mgmfrm_manual_public_scope_review_for_fit_passed": true,
         "manuscript_reproducibility_claims_supported": true,
@@ -1272,6 +1275,12 @@
       "finding": "heldout_prediction_execution_recorded_full_refit_and_external_validation_pending"
     },
     {
+      "gate": "confirmatory_mgmfrm_full_heldout_refit_or_construct_validation_review",
+      "status": "passed_with_policy_blocker",
+      "evidence": true,
+      "finding": "full_refit_and_external_validation_requirements_recorded_execution_pending"
+    },
+    {
       "gate": "dff_estimand_and_validation_grid",
       "status": "passed",
       "evidence": true,
@@ -1295,7 +1304,7 @@
     "proposed_entrypoint": "fit(spec; experimental = true)",
     "public_exposure_support": "guarded_scalar_gmfrm_only",
     "interpretation": "local_evidence_reviewed_manual_scope_review_recorded_and_broader_exposure_decision_recorded",
-    "required_followup": "full_heldout_mgmfrm_refit_or_external_construct_validation_review"
+    "required_followup": "full_heldout_mgmfrm_mcmc_refit_execution_or_external_construct_dataset_review"
   },
   "summary": {
     "reviewed": true,
@@ -1332,6 +1341,7 @@
     "mgmfrm_validation_split_model_comparison_policy_passed": true,
     "mgmfrm_heldout_prediction_simulation_grid_passed": true,
     "mgmfrm_heldout_prediction_execution_passed": true,
+    "mgmfrm_full_heldout_refit_or_construct_validation_review_passed": true,
     "prediction_target_and_model_weight_policy_passed": true,
     "mgmfrm_manual_public_scope_review_for_fit_passed": true,
     "dff_estimand_validation_grid_passed": true,
@@ -1341,11 +1351,11 @@
     "broader_generalized_fit_allowed": false,
     "mgmfrm_fit_allowed": true,
     "n_reviewed_artifacts": 29,
-    "n_review_rows": 35,
+    "n_review_rows": 36,
     "n_blockers": 0,
     "fit_allowed": true,
     "experimental_keyword_enabled": true,
     "recommendation": "manual_scope_review_recorded_keep_guarded_scalar_and_confirmatory_mgmfrm_only",
-    "next_gate": "full_heldout_mgmfrm_refit_or_external_construct_validation_review"
+    "next_gate": "full_heldout_mgmfrm_mcmc_refit_execution_or_external_construct_dataset_review"
   }
 }
