@@ -146,6 +146,13 @@ anchors as not fitted in the fixed-Q pilot, and keeps full-batch,
 publication-grade diagnostic, heldout-predictive, external-construct, and
 public model-comparison claims blocked.
 
+`mgmfrm_full_heldout_mcmc_refit_fold1_scoring.json` adds heldout predictive
+scoring to that fold-1 pilot. It scores the fixed-Q MGMFRM candidate fits on
+their heldout observations, records pointwise log predictive density and
+expected-score residual rows, leaves scalar/null comparison anchors unscored in
+the fixed-Q pilot, and keeps full-batch, publication-grade diagnostic, external
+construct-validation, and public model-comparison claims blocked.
+
 The deterministic validation-plan generator:
 
 ```bash

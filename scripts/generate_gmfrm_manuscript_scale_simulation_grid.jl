@@ -158,6 +158,12 @@ const INPUT_ARTIFACTS = [
         expected_schema =
             "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_fold1_pilot.v1",
         hash_policy = :sha256),
+    (name = :mgmfrm_full_heldout_mcmc_refit_fold1_scoring,
+        path =
+            "test/fixtures/mgmfrm_full_heldout_mcmc_refit_fold1_scoring.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_fold1_scoring.v1",
+        hash_policy = :sha256),
     (name = :full_paper_reproduction_archive,
         path = "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
         expected_schema =
@@ -212,6 +218,8 @@ const PROTOCOL = (;
         require_mgmfrm_full_heldout_mcmc_refit_batch_smoke_passed =
             true,
         require_mgmfrm_full_heldout_mcmc_refit_fold1_pilot_passed =
+            true,
+        require_mgmfrm_full_heldout_mcmc_refit_fold1_scoring_passed =
             true,
         require_full_paper_reproduction_archive_passed = true,
         require_minimum_total_evidence_cells = 60,
@@ -759,6 +767,38 @@ function artifact_summary(name::Symbol, summary::AbstractString)
             !json_bool(summary, "external_construct_dataset_attached") &&
             !json_bool(summary, "external_construct_validation_completed"),
     )
+    name === :mgmfrm_full_heldout_mcmc_refit_fold1_scoring && return (;
+        passed = json_bool(summary, "passed"),
+        n_evidence_cells = json_int(summary, "n_review_cells"),
+        key_check = :mgmfrm_full_heldout_mcmc_refit_fold1_scoring,
+        all_primary_checks =
+            json_bool(summary, "fold1_pilot_completed") &&
+            json_bool(summary,
+                "fold1_heldout_predictive_scores_computed") &&
+            json_bool(summary, "all_candidate_scores_recorded") &&
+            json_bool(summary, "all_pointwise_scores_recorded") &&
+            json_bool(summary, "all_score_values_finite") &&
+            json_bool(summary, "expected_score_residuals_recorded") &&
+            json_bool(summary,
+                "training_heldout_alignment_rows_recorded") &&
+            json_bool(summary, "candidate_rank_rows_recorded") &&
+            json_bool(summary, "comparison_anchors_not_scored") &&
+            json_bool(summary, "full_125_unit_batch_not_completed") &&
+            json_bool(summary, "publication_grade_diagnostics_blocked") &&
+            json_bool(summary,
+                "full_heldout_scores_blocked_until_full_batch") &&
+            json_bool(summary, "no_public_fit_metric_claim") &&
+            json_bool(summary, "no_public_q_revision_claim") &&
+            json_bool(summary, "no_public_model_weight_claim") &&
+            json_bool(summary, "no_sparse_superiority_claim") &&
+            json_bool(summary, "heldout_predictive_scores_computed") &&
+            !json_bool(summary, "full_mcmc_refit_execution_completed") &&
+            !json_bool(summary, "full_125_unit_batch_completed") &&
+            !json_bool(summary, "full_heldout_predictive_scores_computed") &&
+            !json_bool(summary, "comparison_anchor_scores_computed") &&
+            !json_bool(summary, "external_construct_dataset_attached") &&
+            !json_bool(summary, "external_construct_validation_completed"),
+    )
     name === :full_paper_reproduction_archive && return (;
         passed = json_bool(summary, "passed"),
         n_evidence_cells = json_int(summary, "n_fixture_artifacts"),
@@ -829,7 +869,7 @@ function claim_decision_rows()
             required_followup = :future_dff_model_effect_fit_policy),
         (claim = :model_weights_or_sparse_mgmfrm_superiority,
             decision =
-                :fold1_refit_pilot_recorded_keep_blocked_until_full_batch_or_external_dataset_review,
+                :fold1_scoring_recorded_keep_blocked_until_full_batch_or_external_dataset_review,
             public_claim_allowed = false,
             required_followup =
                 :full_heldout_mgmfrm_mcmc_refit_full_batch_execution_or_external_construct_dataset_attachment),
@@ -995,6 +1035,10 @@ function build_artifact()
             mgmfrm_full_heldout_mcmc_refit_fold1_pilot_passed =
                 record_by_name(input_records,
                     :mgmfrm_full_heldout_mcmc_refit_fold1_pilot).
+                    summary_passed,
+            mgmfrm_full_heldout_mcmc_refit_fold1_scoring_passed =
+                record_by_name(input_records,
+                    :mgmfrm_full_heldout_mcmc_refit_fold1_scoring).
                     summary_passed,
             full_paper_reproduction_archive_passed =
                 record_by_name(input_records,

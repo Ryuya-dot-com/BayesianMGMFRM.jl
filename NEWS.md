@@ -99,6 +99,12 @@
   scalar/null comparison anchors as not fitted in that fixed-Q pilot, and keeps
   full-batch, publication-grade diagnostic, heldout-predictive,
   external-construct, and public model-comparison claims blocked.
+- Add a local MGMFRM fold-1 heldout predictive-scoring generator and JSON
+  artifact that scores those fixed-Q pilot refits on heldout observations,
+  records pointwise log predictive density and expected-score residual rows,
+  leaves scalar/null comparison anchors unscored in the fixed-Q pilot, and keeps
+  full-batch, publication-grade diagnostic, external-construct, and public
+  model-comparison claims blocked.
 - Expose pre-registration gate availability in `release_scope_summary` and
   clarify that Julia General registration is a manual action after the local
   gate passes.
