@@ -322,6 +322,17 @@ const REPRODUCTION_FIXTURES = [
             "MFRM_MGMFRM_CONSTRUCT_REVIEWED_Q_FIT_REPORTING_POLICY_FIXTURE",
         pass_policy = :summary_passed,
         hash_policy = :sha256),
+    (name = :mgmfrm_heldout_prediction_validation_policy,
+        path =
+            "test/fixtures/mgmfrm_heldout_prediction_validation_policy.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_heldout_prediction_validation_policy.v1",
+        generator =
+            "scripts/generate_mgmfrm_heldout_prediction_validation_policy.jl",
+        env_var =
+            "MFRM_MGMFRM_HELDOUT_PREDICTION_VALIDATION_POLICY_FIXTURE",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
     (name = :mgmfrm_guarded_fit_method_wiring,
         path = "test/fixtures/mgmfrm_guarded_fit_method_wiring.json",
         expected_schema =
@@ -411,6 +422,7 @@ const CODE_AND_DOC_PATHS = [
     "scripts/generate_mgmfrm_guarded_local_fit_entrypoint.jl",
     "scripts/generate_mgmfrm_fit_metric_threshold_sensitivity.jl",
     "scripts/generate_mgmfrm_construct_reviewed_q_fit_reporting_policy.jl",
+    "scripts/generate_mgmfrm_heldout_prediction_validation_policy.jl",
     "scripts/generate_mgmfrm_guarded_fit_method_wiring.jl",
     "scripts/generate_mgmfrm_guarded_fit_validation_grid.jl",
     "scripts/generate_mgmfrm_guarded_fit_api_dry_run.jl",
@@ -503,6 +515,9 @@ const FULL_REGENERATION_COMMANDS = [
     (artifact = :mgmfrm_construct_reviewed_q_fit_reporting_policy,
         command =
             "julia --project=. scripts/generate_mgmfrm_construct_reviewed_q_fit_reporting_policy.jl"),
+    (artifact = :mgmfrm_heldout_prediction_validation_policy,
+        command =
+            "julia --project=. scripts/generate_mgmfrm_heldout_prediction_validation_policy.jl"),
     (artifact = :mgmfrm_guarded_fit_method_wiring,
         command = "julia --project=. scripts/generate_mgmfrm_guarded_fit_method_wiring.jl"),
     (artifact = :mgmfrm_guarded_fit_validation_grid,
@@ -580,6 +595,7 @@ const PROTOCOL = (;
         require_mgmfrm_guarded_local_fit_entrypoint_passed = true,
         require_mgmfrm_fit_metric_threshold_sensitivity_passed = true,
         require_mgmfrm_construct_reviewed_q_fit_reporting_policy_passed = true,
+        require_mgmfrm_heldout_prediction_validation_policy_passed = true,
         require_mgmfrm_guarded_fit_method_wiring_passed = true,
         require_mgmfrm_guarded_fit_validation_grid_passed = true,
         require_mgmfrm_guarded_fit_api_dry_run_passed = true,
@@ -872,6 +888,9 @@ function build_artifact()
     mgmfrm_q_fit_reporting_policy =
         record_by_name(fixture_records,
             :mgmfrm_construct_reviewed_q_fit_reporting_policy)
+    mgmfrm_heldout_validation_policy =
+        record_by_name(fixture_records,
+            :mgmfrm_heldout_prediction_validation_policy)
     mgmfrm_method =
         record_by_name(fixture_records, :mgmfrm_guarded_fit_method_wiring)
     mgmfrm_validation =
@@ -928,6 +947,7 @@ function build_artifact()
         mgmfrm_local_fit_entrypoint.summary_passed &&
         mgmfrm_fit_metric_threshold.summary_passed &&
         mgmfrm_q_fit_reporting_policy.summary_passed &&
+        mgmfrm_heldout_validation_policy.summary_passed &&
         mgmfrm_method.summary_passed &&
         mgmfrm_validation.summary_passed &&
         mgmfrm_api_dry_run.summary_passed &&
@@ -1031,6 +1051,8 @@ function build_artifact()
                 mgmfrm_fit_metric_threshold.summary_passed,
             mgmfrm_construct_reviewed_q_fit_reporting_policy_passed =
                 mgmfrm_q_fit_reporting_policy.summary_passed,
+            mgmfrm_heldout_prediction_validation_policy_passed =
+                mgmfrm_heldout_validation_policy.summary_passed,
             mgmfrm_guarded_fit_method_wiring_passed =
                 mgmfrm_method.summary_passed,
             mgmfrm_guarded_fit_validation_grid_passed =

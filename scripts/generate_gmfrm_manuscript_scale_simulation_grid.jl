@@ -110,6 +110,12 @@ const INPUT_ARTIFACTS = [
         expected_schema =
             "bayesianmgmfrm.mgmfrm_construct_reviewed_q_fit_reporting_policy.v1",
         hash_policy = :sha256),
+    (name = :mgmfrm_heldout_prediction_validation_policy,
+        path =
+            "test/fixtures/mgmfrm_heldout_prediction_validation_policy.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_heldout_prediction_validation_policy.v1",
+        hash_policy = :sha256),
     (name = :full_paper_reproduction_archive,
         path = "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
         expected_schema =
@@ -152,6 +158,7 @@ const PROTOCOL = (;
         require_mgmfrm_guarded_local_fit_entrypoint_passed = true,
         require_mgmfrm_fit_metric_threshold_sensitivity_passed = true,
         require_mgmfrm_construct_reviewed_q_fit_reporting_policy_passed = true,
+        require_mgmfrm_heldout_prediction_validation_policy_passed = true,
         require_full_paper_reproduction_archive_passed = true,
         require_minimum_total_evidence_cells = 60,
         require_no_publication_commands = true,
@@ -527,6 +534,23 @@ function artifact_summary(name::Symbol, summary::AbstractString)
             json_bool(summary, "no_public_fit_metric_claim") &&
             json_bool(summary, "no_public_q_revision_claim"),
     )
+    name === :mgmfrm_heldout_prediction_validation_policy && return (;
+        passed = json_bool(summary, "passed"),
+        n_evidence_cells = json_int(summary, "n_validation_policy_cells"),
+        key_check = :mgmfrm_heldout_prediction_validation_policy,
+        all_primary_checks =
+            json_bool(summary, "heldout_or_external_validation_required") &&
+            json_bool(summary,
+                "heldout_kfold_selected_from_scalar_policy") &&
+            json_bool(summary,
+                "external_construct_validation_required_for_q_claims") &&
+            json_bool(summary, "same_data_waic_claim_blocked") &&
+            json_bool(summary, "raw_psis_loo_claim_blocked") &&
+            json_bool(summary, "all_claim_gate_rows_block_public_claims") &&
+            json_bool(summary, "no_public_fit_metric_claim") &&
+            json_bool(summary, "no_public_q_revision_claim") &&
+            json_bool(summary, "no_automatic_q_revision"),
+    )
     name === :full_paper_reproduction_archive && return (;
         passed = json_bool(summary, "passed"),
         n_evidence_cells = json_int(summary, "n_fixture_artifacts"),
@@ -597,9 +621,10 @@ function claim_decision_rows()
             required_followup = :future_dff_model_effect_fit_policy),
         (claim = :model_weights_or_sparse_mgmfrm_superiority,
             decision =
-                :guarded_fit_recorded_keep_blocked_until_reporting_policy,
+                :guarded_fit_recorded_keep_blocked_until_heldout_validation,
             public_claim_allowed = false,
-            required_followup = :construct_reviewed_q_fit_reporting_policy),
+            required_followup =
+                :heldout_mgmfrm_prediction_or_external_validation_study),
     ]
 end
 
@@ -661,7 +686,8 @@ function build_artifact()
                 :gate_e_and_full_archive_recorded_no_publication_action,
             interpretation =
                 :manuscript_scale_grid_recorded_full_archive_available,
-            required_followup = :construct_reviewed_q_fit_reporting_policy,
+            required_followup =
+                :heldout_mgmfrm_prediction_or_external_validation_study,
         ),
         summary = (;
             passed,
@@ -732,6 +758,9 @@ function build_artifact()
                 record_by_name(input_records,
                     :mgmfrm_construct_reviewed_q_fit_reporting_policy).
                     summary_passed,
+            mgmfrm_heldout_prediction_validation_policy_passed =
+                record_by_name(input_records,
+                    :mgmfrm_heldout_prediction_validation_policy).summary_passed,
             full_paper_reproduction_archive_passed =
                 record_by_name(input_records,
                     :full_paper_reproduction_archive).summary_passed,
@@ -746,7 +775,8 @@ function build_artifact()
                 [row.blocker for row in BLOCKER_ROWS],
             recommendation =
                 :manual_scope_review_recorded_keep_broader_claims_blocked,
-            next_gate = :construct_reviewed_q_fit_reporting_policy,
+            next_gate =
+                :heldout_mgmfrm_prediction_or_external_validation_study,
         ),
     )
 end

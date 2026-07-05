@@ -56,6 +56,11 @@
   candidate/declared indicator conflicts, existing MFRM reference comparisons,
   and common-parameter-shift impact bands while keeping fit metrics as local
   appendix diagnostics only.
+- Add a local MGMFRM heldout-prediction validation-policy generator and
+  committed JSON artifact that records heldout K-fold or external construct
+  validation as required before fit-metric, Q-revision, model-weight, or
+  sparse-superiority claims while keeping same-data WAIC/LOO and threshold
+  profiles diagnostic-only.
 - Expose pre-registration gate availability in `release_scope_summary` and
   clarify that Julia General registration is a manual action after the local
   gate passes.

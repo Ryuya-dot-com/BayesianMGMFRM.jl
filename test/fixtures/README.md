@@ -90,6 +90,12 @@ profile dependence, candidate/declared indicator conflicts, MFRM reference
 comparisons, and common-parameter-shift impact bands while keeping fit metrics
 as local appendix diagnostics only.
 
+`mgmfrm_heldout_prediction_validation_policy.json` records the next local claim
+gate after the reporting policy. It requires heldout MGMFRM prediction evidence
+or external construct validation before any fit-metric, Q-revision,
+model-weight, or sparse-superiority claims; same-data WAIC/LOO and threshold
+profiles remain diagnostic-only.
+
 The deterministic validation-plan generator:
 
 ```bash

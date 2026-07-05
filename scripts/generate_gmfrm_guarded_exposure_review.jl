@@ -154,6 +154,7 @@ const PROTOCOL = (;
         require_manuscript_scale_simulation_grid_passed = true,
         require_full_paper_reproduction_archive_passed = true,
         require_mgmfrm_construct_reviewed_q_fit_reporting_policy_passed = true,
+        require_mgmfrm_heldout_prediction_validation_policy_passed = true,
         high_variance_waic_blocks_public_exposure = true,
         psis_loo_or_exact_loo_required_before_exposure = true,
         high_pareto_k_blocks_public_exposure = true,
@@ -1267,6 +1268,9 @@ function artifact_summary(name::Symbol, text::AbstractString)
         mgmfrm_construct_reviewed_q_fit_reporting_policy_passed =
             json_bool(summary,
                 "mgmfrm_construct_reviewed_q_fit_reporting_policy_passed"),
+        mgmfrm_heldout_prediction_validation_policy_passed =
+            json_bool(summary,
+                "mgmfrm_heldout_prediction_validation_policy_passed"),
         full_paper_reproduction_archive_passed =
             json_bool(summary, "full_paper_reproduction_archive_passed"),
         manuscript_claims_allowed =
@@ -1338,6 +1342,9 @@ function artifact_summary(name::Symbol, text::AbstractString)
         mgmfrm_construct_reviewed_q_fit_reporting_policy_passed =
             json_bool(summary,
                 "mgmfrm_construct_reviewed_q_fit_reporting_policy_passed"),
+        mgmfrm_heldout_prediction_validation_policy_passed =
+            json_bool(summary,
+                "mgmfrm_heldout_prediction_validation_policy_passed"),
         prediction_target_and_model_weight_policy_passed =
             json_bool(summary,
                 "prediction_target_and_model_weight_policy_passed"),
@@ -1607,6 +1614,12 @@ function review_rows(records)
                 :mgmfrm_construct_reviewed_q_fit_reporting_policy_passed)),
             finding =
                 :construct_reviewed_q_fit_reporting_policy_recorded_local_appendix_only),
+        (gate = :confirmatory_mgmfrm_heldout_prediction_validation_policy,
+            status = :passed_with_policy_blocker,
+            evidence = Bool(getproperty(full_archive.summary,
+                :mgmfrm_heldout_prediction_validation_policy_passed)),
+            finding =
+                :heldout_prediction_validation_policy_recorded_claims_blocked),
         (gate = :dff_estimand_and_validation_grid, status = :passed,
             evidence = Bool(dff_grid.summary.passed) &&
                 Bool(dff_grid.summary.all_estimands_predeclared) &&
@@ -1715,7 +1728,8 @@ function build_artifact()
                 :guarded_scalar_gmfrm_only,
             interpretation =
                 :local_evidence_reviewed_manual_scope_review_recorded_and_broader_exposure_decision_recorded,
-            required_followup = :construct_reviewed_q_fit_reporting_policy,
+            required_followup =
+                :heldout_mgmfrm_prediction_or_external_validation_study,
         ),
         summary = (;
             reviewed = true,
@@ -1781,6 +1795,9 @@ function build_artifact()
             mgmfrm_construct_reviewed_q_fit_reporting_policy_passed =
                 Bool(getproperty(full_archive.summary,
                     :mgmfrm_construct_reviewed_q_fit_reporting_policy_passed)),
+            mgmfrm_heldout_prediction_validation_policy_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_heldout_prediction_validation_policy_passed)),
             prediction_target_and_model_weight_policy_passed =
                 Bool(prediction_policy.summary.passed),
             mgmfrm_manual_public_scope_review_for_fit_passed =
@@ -1804,7 +1821,8 @@ function build_artifact()
             experimental_keyword_enabled = true,
             recommendation =
                 :manual_scope_review_recorded_keep_guarded_scalar_and_confirmatory_mgmfrm_only,
-            next_gate = :construct_reviewed_q_fit_reporting_policy,
+            next_gate =
+                :heldout_mgmfrm_prediction_or_external_validation_study,
         ),
     )
 end
