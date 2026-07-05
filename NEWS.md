@@ -71,6 +71,12 @@
   metrics, threshold-profile impacts, and leakage guards before execution while
   keeping observed-result, model-weight, sparse-superiority, fit-metric, and
   Q-revision claims blocked.
+- Add a local MGMFRM heldout-prediction execution generator and committed JSON
+  artifact that materializes deterministic observation K-fold assignments and
+  625 observed metric cells from the predeclared grid, records rank-stability,
+  threshold, and diagnostic model-weight rows, and keeps public fit-metric,
+  Q-revision, model-weight, and sparse-superiority claims blocked until full
+  MCMC refit and external construct validation review.
 - Expose pre-registration gate availability in `release_scope_summary` and
   clarify that Julia General registration is a manual action after the local
   gate passes.

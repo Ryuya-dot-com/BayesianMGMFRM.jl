@@ -110,6 +110,13 @@ sensitivity rows, and leakage guards before actual heldout execution, while
 keeping observed-result, model-weight, sparse-superiority, fit-metric, and
 Q-revision claims blocked.
 
+`mgmfrm_heldout_prediction_execution.json` records the first deterministic
+local execution artifact for that grid. It materializes observation-level
+K-fold heldout assignments, records 625 observed metric cells, rank-stability
+rows, threshold-profile observed rows, and diagnostic model-weight rows while
+keeping full MCMC refit, external construct validation, public fit-metric,
+Q-revision, model-weight, and sparse-superiority claims blocked.
+
 The deterministic validation-plan generator:
 
 ```bash

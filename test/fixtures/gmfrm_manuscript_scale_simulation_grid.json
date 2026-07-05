@@ -50,6 +50,7 @@
       "require_mgmfrm_heldout_prediction_validation_policy_passed": true,
       "require_mgmfrm_validation_split_model_comparison_policy_passed": true,
       "require_mgmfrm_heldout_prediction_simulation_grid_passed": true,
+      "require_mgmfrm_heldout_prediction_execution_passed": true,
       "require_full_paper_reproduction_archive_passed": true,
       "require_minimum_total_evidence_cells": 60,
       "require_no_publication_commands": true,
@@ -415,6 +416,23 @@
       }
     },
     {
+      "artifact": "mgmfrm_heldout_prediction_execution",
+      "path": "test/fixtures/mgmfrm_heldout_prediction_execution.json",
+      "exists": true,
+      "schema": "bayesianmgmfrm.mgmfrm_heldout_prediction_execution.v1",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_heldout_prediction_execution.v1",
+      "schema_matches": true,
+      "summary_passed": true,
+      "hash_policy": "sha256",
+      "sha256": "d892d74f18da33e3999bfa7aebacd687460e3bf241a283bbc8f5b96747199b25",
+      "summary": {
+        "passed": true,
+        "n_evidence_cells": 625,
+        "key_check": "mgmfrm_heldout_prediction_execution",
+        "all_primary_checks": true
+      }
+    },
+    {
       "artifact": "full_paper_reproduction_archive",
       "path": "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
       "exists": true,
@@ -423,10 +441,10 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "f921a9b8d8ffdabcd2b1ff98bce8c1530f88ee697d04ab4f2a711b14b433c1f5",
+      "sha256": "3b0f9e1e2a9dd3d4aeb8998e4f0bab8de272ae082d29e101261919305254d2b5",
       "summary": {
         "passed": true,
-        "n_evidence_cells": 47,
+        "n_evidence_cells": 48,
         "key_check": "full_paper_reproduction_archive",
         "all_primary_checks": true
       }
@@ -581,9 +599,16 @@
       "artifact": "test/fixtures/mgmfrm_heldout_prediction_simulation_grid.json"
     },
     {
+      "gate": "mgmfrm_heldout_prediction_execution",
+      "status": "passed",
+      "n_evidence_cells": 625,
+      "key_check": "mgmfrm_heldout_prediction_execution",
+      "artifact": "test/fixtures/mgmfrm_heldout_prediction_execution.json"
+    },
+    {
       "gate": "full_paper_reproduction_archive",
       "status": "passed",
-      "n_evidence_cells": 47,
+      "n_evidence_cells": 48,
       "key_check": "full_paper_reproduction_archive",
       "artifact": "test/fixtures/gmfrm_full_paper_reproduction_archive.json"
     }
@@ -609,9 +634,9 @@
     },
     {
       "claim": "model_weights_or_sparse_mgmfrm_superiority",
-      "decision": "heldout_simulation_grid_recorded_keep_blocked_until_execution",
+      "decision": "heldout_execution_recorded_keep_blocked_until_full_refit_and_external_validation",
       "public_claim_allowed": false,
-      "required_followup": "heldout_mgmfrm_prediction_execution"
+      "required_followup": "full_heldout_mgmfrm_refit_or_external_construct_validation_review"
     }
   ],
   "blocker_rows": [],
@@ -622,7 +647,7 @@
     "manuscript_claims_allowed": false,
     "public_exposure_support": "gate_e_and_full_archive_recorded_no_publication_action",
     "interpretation": "manuscript_scale_grid_recorded_full_archive_available",
-    "required_followup": "heldout_mgmfrm_prediction_execution"
+    "required_followup": "full_heldout_mgmfrm_refit_or_external_construct_validation_review"
   },
   "summary": {
     "passed": true,
@@ -632,9 +657,9 @@
     "all_expected_schemas": true,
     "all_input_summaries_passed": true,
     "all_primary_checks_passed": true,
-    "n_input_artifacts": 22,
-    "n_evidence_rows": 22,
-    "total_evidence_cells": 467,
+    "n_input_artifacts": 23,
+    "n_evidence_rows": 23,
+    "total_evidence_cells": 1093,
     "minimum_required_evidence_cells": 60,
     "scalar_fit_validation_grid_passed": true,
     "posterior_predictive_grid_passed": true,
@@ -657,6 +682,7 @@
     "mgmfrm_heldout_prediction_validation_policy_passed": true,
     "mgmfrm_validation_split_model_comparison_policy_passed": true,
     "mgmfrm_heldout_prediction_simulation_grid_passed": true,
+    "mgmfrm_heldout_prediction_execution_passed": true,
     "full_paper_reproduction_archive_passed": true,
     "scalar_guarded_fit_allowed": true,
     "broader_generalized_fit_allowed": false,
@@ -667,6 +693,6 @@
     "n_blockers": 0,
     "remaining_public_blockers": [],
     "recommendation": "manual_scope_review_recorded_keep_broader_claims_blocked",
-    "next_gate": "heldout_mgmfrm_prediction_execution"
+    "next_gate": "full_heldout_mgmfrm_refit_or_external_construct_validation_review"
   }
 }
