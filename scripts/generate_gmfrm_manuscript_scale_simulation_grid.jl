@@ -140,6 +140,12 @@ const INPUT_ARTIFACTS = [
         expected_schema =
             "bayesianmgmfrm.mgmfrm_full_heldout_refit_or_construct_validation_review.v1",
         hash_policy = :sha256),
+    (name = :mgmfrm_full_heldout_mcmc_refit_execution_plan,
+        path =
+            "test/fixtures/mgmfrm_full_heldout_mcmc_refit_execution_plan.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_execution_plan.v1",
+        hash_policy = :sha256),
     (name = :full_paper_reproduction_archive,
         path = "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
         expected_schema =
@@ -188,6 +194,8 @@ const PROTOCOL = (;
         require_mgmfrm_heldout_prediction_simulation_grid_passed = true,
         require_mgmfrm_heldout_prediction_execution_passed = true,
         require_mgmfrm_full_heldout_refit_or_construct_validation_review_passed =
+            true,
+        require_mgmfrm_full_heldout_mcmc_refit_execution_plan_passed =
             true,
         require_full_paper_reproduction_archive_passed = true,
         require_minimum_total_evidence_cells = 60,
@@ -659,6 +667,26 @@ function artifact_summary(name::Symbol, summary::AbstractString)
             !json_bool(summary, "full_mcmc_refit_execution_completed") &&
             !json_bool(summary, "external_construct_validation_completed"),
     )
+    name === :mgmfrm_full_heldout_mcmc_refit_execution_plan && return (;
+        passed = json_bool(summary, "passed"),
+        n_evidence_cells = json_int(summary, "n_review_cells"),
+        key_check = :mgmfrm_full_heldout_mcmc_refit_execution_plan,
+        all_primary_checks =
+            json_bool(summary, "full_mcmc_refit_execution_plan_recorded") &&
+            json_bool(summary, "full_mcmc_refit_required") &&
+            json_bool(summary,
+                "all_scenario_model_fold_units_materialized") &&
+            json_bool(summary, "diagnostic_thresholds_recorded") &&
+            json_bool(summary, "execution_budget_recorded") &&
+            json_bool(summary,
+                "external_construct_dataset_review_recorded") &&
+            json_bool(summary, "all_claim_rules_block_public_claims") &&
+            json_bool(summary, "no_public_fit_metric_claim") &&
+            json_bool(summary, "no_public_model_weight_claim") &&
+            json_bool(summary, "no_sparse_superiority_claim") &&
+            !json_bool(summary, "full_mcmc_refit_execution_completed") &&
+            !json_bool(summary, "external_construct_dataset_attached"),
+    )
     name === :full_paper_reproduction_archive && return (;
         passed = json_bool(summary, "passed"),
         n_evidence_cells = json_int(summary, "n_fixture_artifacts"),
@@ -729,10 +757,10 @@ function claim_decision_rows()
             required_followup = :future_dff_model_effect_fit_policy),
         (claim = :model_weights_or_sparse_mgmfrm_superiority,
             decision =
-                :full_refit_review_recorded_keep_blocked_until_refit_or_external_validation_execution,
+                :full_refit_execution_plan_recorded_keep_blocked_until_batch_execution_or_external_dataset_review,
             public_claim_allowed = false,
             required_followup =
-                :full_heldout_mgmfrm_mcmc_refit_execution_or_external_construct_dataset_review),
+                :full_heldout_mgmfrm_mcmc_refit_batch_execution_or_external_construct_dataset_attachment),
     ]
 end
 
@@ -795,7 +823,7 @@ function build_artifact()
             interpretation =
                 :manuscript_scale_grid_recorded_full_archive_available,
             required_followup =
-                :full_heldout_mgmfrm_mcmc_refit_execution_or_external_construct_dataset_review,
+                :full_heldout_mgmfrm_mcmc_refit_batch_execution_or_external_construct_dataset_attachment,
         ),
         summary = (;
             passed,
@@ -884,6 +912,10 @@ function build_artifact()
                 record_by_name(input_records,
                     :mgmfrm_full_heldout_refit_or_construct_validation_review).
                     summary_passed,
+            mgmfrm_full_heldout_mcmc_refit_execution_plan_passed =
+                record_by_name(input_records,
+                    :mgmfrm_full_heldout_mcmc_refit_execution_plan).
+                    summary_passed,
             full_paper_reproduction_archive_passed =
                 record_by_name(input_records,
                     :full_paper_reproduction_archive).summary_passed,
@@ -899,7 +931,7 @@ function build_artifact()
             recommendation =
                 :manual_scope_review_recorded_keep_broader_claims_blocked,
             next_gate =
-                :full_heldout_mgmfrm_mcmc_refit_execution_or_external_construct_dataset_review,
+                :full_heldout_mgmfrm_mcmc_refit_batch_execution_or_external_construct_dataset_attachment,
         ),
     )
 end

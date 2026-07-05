@@ -125,6 +125,12 @@ refit plans, and claim blockers; and keeps full refit, external validation,
 public fit-metric, Q-revision, model-weight, and sparse-superiority claims
 blocked.
 
+`mgmfrm_full_heldout_mcmc_refit_execution_plan.json` records the next local
+execution-plan gate. It materializes 125 scenario-model-fold refit units, seven
+diagnostic thresholds, model-level execution budgets, and two external
+construct dataset reviews while keeping MCMC execution, external dataset
+attachment, and all public fit, Q, model-weight, and sparse claims blocked.
+
 The deterministic validation-plan generator:
 
 ```bash

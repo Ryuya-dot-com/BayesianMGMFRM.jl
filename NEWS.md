@@ -83,6 +83,11 @@
   records model refit plans and blockers, and keeps public heldout,
   Q-revision, model-weight, and sparse-superiority claims blocked until those
   requirements are executed.
+- Add a local MGMFRM full-heldout MCMC refit execution-plan generator and
+  committed JSON artifact that materializes the 125 scenario-model-fold refit
+  workload, diagnostic thresholds, model-level execution budgets, and external
+  construct dataset review placeholders while leaving full MCMC execution,
+  external data attachment, and public MGMFRM claims blocked.
 - Expose pre-registration gate availability in `release_scope_summary` and
   clarify that Julia General registration is a manual action after the local
   gate passes.

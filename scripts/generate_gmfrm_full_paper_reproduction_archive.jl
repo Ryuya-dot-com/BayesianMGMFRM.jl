@@ -377,6 +377,17 @@ const REPRODUCTION_FIXTURES = [
             "MFRM_MGMFRM_FULL_HELDOUT_REFIT_OR_CONSTRUCT_VALIDATION_REVIEW_FIXTURE",
         pass_policy = :summary_passed,
         hash_policy = :sha256),
+    (name = :mgmfrm_full_heldout_mcmc_refit_execution_plan,
+        path =
+            "test/fixtures/mgmfrm_full_heldout_mcmc_refit_execution_plan.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_execution_plan.v1",
+        generator =
+            "scripts/generate_mgmfrm_full_heldout_mcmc_refit_execution_plan.jl",
+        env_var =
+            "MFRM_MGMFRM_FULL_HELDOUT_MCMC_REFIT_EXECUTION_PLAN_FIXTURE",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
     (name = :mgmfrm_guarded_fit_method_wiring,
         path = "test/fixtures/mgmfrm_guarded_fit_method_wiring.json",
         expected_schema =
@@ -471,6 +482,7 @@ const CODE_AND_DOC_PATHS = [
     "scripts/generate_mgmfrm_heldout_prediction_simulation_grid.jl",
     "scripts/generate_mgmfrm_heldout_prediction_execution.jl",
     "scripts/generate_mgmfrm_full_heldout_refit_or_construct_validation_review.jl",
+    "scripts/generate_mgmfrm_full_heldout_mcmc_refit_execution_plan.jl",
     "scripts/generate_mgmfrm_guarded_fit_method_wiring.jl",
     "scripts/generate_mgmfrm_guarded_fit_validation_grid.jl",
     "scripts/generate_mgmfrm_guarded_fit_api_dry_run.jl",
@@ -578,6 +590,9 @@ const FULL_REGENERATION_COMMANDS = [
     (artifact = :mgmfrm_full_heldout_refit_or_construct_validation_review,
         command =
             "julia --project=. scripts/generate_mgmfrm_full_heldout_refit_or_construct_validation_review.jl"),
+    (artifact = :mgmfrm_full_heldout_mcmc_refit_execution_plan,
+        command =
+            "julia --project=. scripts/generate_mgmfrm_full_heldout_mcmc_refit_execution_plan.jl"),
     (artifact = :mgmfrm_guarded_fit_method_wiring,
         command = "julia --project=. scripts/generate_mgmfrm_guarded_fit_method_wiring.jl"),
     (artifact = :mgmfrm_guarded_fit_validation_grid,
@@ -661,6 +676,8 @@ const PROTOCOL = (;
         require_mgmfrm_heldout_prediction_simulation_grid_passed = true,
         require_mgmfrm_heldout_prediction_execution_passed = true,
         require_mgmfrm_full_heldout_refit_or_construct_validation_review_passed =
+            true,
+        require_mgmfrm_full_heldout_mcmc_refit_execution_plan_passed =
             true,
         require_mgmfrm_guarded_fit_method_wiring_passed = true,
         require_mgmfrm_guarded_fit_validation_grid_passed = true,
@@ -969,6 +986,9 @@ function build_artifact()
     mgmfrm_full_heldout_refit_review =
         record_by_name(fixture_records,
             :mgmfrm_full_heldout_refit_or_construct_validation_review)
+    mgmfrm_full_heldout_refit_plan =
+        record_by_name(fixture_records,
+            :mgmfrm_full_heldout_mcmc_refit_execution_plan)
     mgmfrm_method =
         record_by_name(fixture_records, :mgmfrm_guarded_fit_method_wiring)
     mgmfrm_validation =
@@ -1030,6 +1050,7 @@ function build_artifact()
         mgmfrm_heldout_prediction_simulation.summary_passed &&
         mgmfrm_heldout_prediction_execution.summary_passed &&
         mgmfrm_full_heldout_refit_review.summary_passed &&
+        mgmfrm_full_heldout_refit_plan.summary_passed &&
         mgmfrm_method.summary_passed &&
         mgmfrm_validation.summary_passed &&
         mgmfrm_api_dry_run.summary_passed &&
@@ -1143,6 +1164,8 @@ function build_artifact()
                 mgmfrm_heldout_prediction_execution.summary_passed,
             mgmfrm_full_heldout_refit_or_construct_validation_review_passed =
                 mgmfrm_full_heldout_refit_review.summary_passed,
+            mgmfrm_full_heldout_mcmc_refit_execution_plan_passed =
+                mgmfrm_full_heldout_refit_plan.summary_passed,
             mgmfrm_guarded_fit_method_wiring_passed =
                 mgmfrm_method.summary_passed,
             mgmfrm_guarded_fit_validation_grid_passed =
