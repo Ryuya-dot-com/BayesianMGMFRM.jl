@@ -131,6 +131,14 @@ diagnostic thresholds, model-level execution budgets, and two external
 construct dataset reviews while keeping MCMC execution, external dataset
 attachment, and all public fit, Q, model-weight, and sparse claims blocked.
 
+`mgmfrm_full_heldout_mcmc_refit_batch_smoke.json` records the first
+representative batch-smoke execution after the full-heldout refit plan. It runs
+three scenario-model-fold units through the guarded MGMFRM fit path with one
+chain and one draw, records finite training pointwise log-likelihood outputs
+and expected insufficient-chain diagnostics, and keeps the full 125-unit batch,
+heldout predictive scoring, external construct dataset attachment, and all
+public claims blocked.
+
 The deterministic validation-plan generator:
 
 ```bash

@@ -163,6 +163,8 @@ const PROTOCOL = (;
             true,
         require_mgmfrm_full_heldout_mcmc_refit_execution_plan_passed =
             true,
+        require_mgmfrm_full_heldout_mcmc_refit_batch_smoke_passed =
+            true,
         high_variance_waic_blocks_public_exposure = true,
         psis_loo_or_exact_loo_required_before_exposure = true,
         high_pareto_k_blocks_public_exposure = true,
@@ -1294,6 +1296,9 @@ function artifact_summary(name::Symbol, text::AbstractString)
         mgmfrm_full_heldout_mcmc_refit_execution_plan_passed =
             json_bool(summary,
                 "mgmfrm_full_heldout_mcmc_refit_execution_plan_passed"),
+        mgmfrm_full_heldout_mcmc_refit_batch_smoke_passed =
+            json_bool(summary,
+                "mgmfrm_full_heldout_mcmc_refit_batch_smoke_passed"),
         full_paper_reproduction_archive_passed =
             json_bool(summary, "full_paper_reproduction_archive_passed"),
         manuscript_claims_allowed =
@@ -1383,6 +1388,9 @@ function artifact_summary(name::Symbol, text::AbstractString)
         mgmfrm_full_heldout_mcmc_refit_execution_plan_passed =
             json_bool(summary,
                 "mgmfrm_full_heldout_mcmc_refit_execution_plan_passed"),
+        mgmfrm_full_heldout_mcmc_refit_batch_smoke_passed =
+            json_bool(summary,
+                "mgmfrm_full_heldout_mcmc_refit_batch_smoke_passed"),
         prediction_target_and_model_weight_policy_passed =
             json_bool(summary,
                 "prediction_target_and_model_weight_policy_passed"),
@@ -1688,6 +1696,12 @@ function review_rows(records)
                 :mgmfrm_full_heldout_mcmc_refit_execution_plan_passed)),
             finding =
                 :full_refit_execution_workload_materialized_batch_execution_pending),
+        (gate = :confirmatory_mgmfrm_full_heldout_mcmc_refit_batch_smoke,
+            status = :passed_with_policy_blocker,
+            evidence = Bool(getproperty(full_archive.summary,
+                :mgmfrm_full_heldout_mcmc_refit_batch_smoke_passed)),
+            finding =
+                :representative_refit_batch_smoke_completed_full_batch_pending),
         (gate = :dff_estimand_and_validation_grid, status = :passed,
             evidence = Bool(dff_grid.summary.passed) &&
                 Bool(dff_grid.summary.all_estimands_predeclared) &&
@@ -1797,7 +1811,7 @@ function build_artifact()
             interpretation =
                 :local_evidence_reviewed_manual_scope_review_recorded_and_broader_exposure_decision_recorded,
             required_followup =
-                :full_heldout_mgmfrm_mcmc_refit_batch_execution_or_external_construct_dataset_attachment,
+                :full_heldout_mgmfrm_mcmc_refit_full_batch_execution_or_external_construct_dataset_attachment,
         ),
         summary = (;
             reviewed = true,
@@ -1881,6 +1895,9 @@ function build_artifact()
             mgmfrm_full_heldout_mcmc_refit_execution_plan_passed =
                 Bool(getproperty(full_archive.summary,
                     :mgmfrm_full_heldout_mcmc_refit_execution_plan_passed)),
+            mgmfrm_full_heldout_mcmc_refit_batch_smoke_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_full_heldout_mcmc_refit_batch_smoke_passed)),
             prediction_target_and_model_weight_policy_passed =
                 Bool(prediction_policy.summary.passed),
             mgmfrm_manual_public_scope_review_for_fit_passed =
@@ -1905,7 +1922,7 @@ function build_artifact()
             recommendation =
                 :manual_scope_review_recorded_keep_guarded_scalar_and_confirmatory_mgmfrm_only,
             next_gate =
-                :full_heldout_mgmfrm_mcmc_refit_batch_execution_or_external_construct_dataset_attachment,
+                :full_heldout_mgmfrm_mcmc_refit_full_batch_execution_or_external_construct_dataset_attachment,
         ),
     )
 end

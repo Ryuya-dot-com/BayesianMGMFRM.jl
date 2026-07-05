@@ -88,6 +88,12 @@
   workload, diagnostic thresholds, model-level execution budgets, and external
   construct dataset review placeholders while leaving full MCMC execution,
   external data attachment, and public MGMFRM claims blocked.
+- Add a local MGMFRM full-heldout MCMC refit batch-smoke generator and JSON
+  artifact that runs three representative scenario-model-fold units through the
+  guarded MGMFRM fit path, records finite training pointwise log-likelihood
+  outputs and expected smoke-only insufficient-chain diagnostics, and keeps the
+  full 125-unit batch, heldout scoring, external construct dataset attachment,
+  and public MGMFRM claims blocked.
 - Expose pre-registration gate availability in `release_scope_summary` and
   clarify that Julia General registration is a manual action after the local
   gate passes.

@@ -1,0 +1,775 @@
+{
+  "schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_batch_smoke.v1",
+  "family": "mgmfrm",
+  "scope": "full_heldout_mcmc_refit_batch_smoke",
+  "status": "representative_batch_smoke_refits_completed",
+  "decision": "record_representative_refit_batch_smoke_keep_claims_blocked",
+  "public_fit": true,
+  "experimental_public": true,
+  "fit_ready": true,
+  "local_only": true,
+  "smoke_only": true,
+  "full_mcmc_refit_execution_plan_recorded": true,
+  "representative_batch_smoke_completed": true,
+  "full_mcmc_refit_execution_completed": false,
+  "full_125_unit_batch_completed": false,
+  "heldout_predictive_scores_computed": false,
+  "external_construct_dataset_attached": false,
+  "external_construct_validation_completed": false,
+  "publication_or_registration_action": false,
+  "public_fit_metric_claim": false,
+  "public_q_revision_claim": false,
+  "public_model_weight_claim": false,
+  "sparse_mgmfrm_superiority_claim": false,
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "protocol": {
+    "protocol_id": "mgmfrm_full_heldout_mcmc_refit_batch_smoke_v1",
+    "review_kind": "local_full_heldout_mcmc_refit_batch_smoke",
+    "publication_or_registration_action": false,
+    "local_only": true,
+    "smoke_only": true,
+    "execution_scope": "representative_scenario_model_fold_smoke",
+    "source_execution_plan": "mgmfrm_full_heldout_mcmc_refit_execution_plan",
+    "target_execution_unit": "scenario_model_fold",
+    "fit_controls": {
+      "backend": "advancedhmc",
+      "sampler": "nuts",
+      "chains": 1,
+      "warmup": 0,
+      "draws": 1,
+      "seed_base": 20260731
+    },
+    "thresholds": {
+      "require_execution_plan_passed": true,
+      "require_guarded_local_fit_entrypoint_passed": true,
+      "require_q_revision_construct_validity_review_passed": true,
+      "require_representative_units_selected": true,
+      "require_smoke_fit_attempts_succeeded": true,
+      "require_smoke_outputs_finite": true,
+      "require_training_pointwise_loglikelihood_recorded": true,
+      "require_publication_grade_diagnostics_blocked": true,
+      "require_full_125_unit_batch_not_claimed": true,
+      "require_heldout_predictive_scores_blocked_until_full_batch": true,
+      "require_external_construct_dataset_still_required": true,
+      "require_no_public_fit_metric_claim": true,
+      "require_no_public_q_revision_claim": true,
+      "require_no_public_model_weight_claim": true,
+      "require_no_sparse_superiority_claim": true,
+      "require_no_publication_or_registration_action": true
+    }
+  },
+  "input_artifacts": [
+    {
+      "artifact": "mgmfrm_full_heldout_mcmc_refit_execution_plan",
+      "path": "test/fixtures/mgmfrm_full_heldout_mcmc_refit_execution_plan.json",
+      "exists": true,
+      "sha256": "dd8373f2ef64b925e789c9e02f054b7b53590a46b5a70121eb51a8523820b425",
+      "schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_execution_plan.v1",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_execution_plan.v1",
+      "schema_matches": true,
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "full_mcmc_refit_execution_plan_recorded": true,
+        "full_mcmc_refit_required": true,
+        "full_mcmc_refit_execution_completed": false,
+        "all_scenario_model_fold_units_materialized": true,
+        "diagnostic_thresholds_recorded": true,
+        "execution_budget_recorded": true,
+        "all_claim_rules_block_public_claims": true,
+        "n_execution_unit_rows": 125,
+        "n_planned_chains": 500,
+        "n_planned_posterior_draws": 500000,
+        "n_planned_warmup_iterations": 250000,
+        "next_gate": "full_heldout_mgmfrm_mcmc_refit_batch_execution_or_external_construct_dataset_attachment"
+      }
+    },
+    {
+      "artifact": "mgmfrm_guarded_local_fit_entrypoint",
+      "path": "test/fixtures/mgmfrm_guarded_local_fit_entrypoint.json",
+      "exists": true,
+      "sha256": "de782bbbeea7150c79d673274b515f880e09a77463c829da4722a4bb0a0dfeb0",
+      "schema": "bayesianmgmfrm.mgmfrm_guarded_local_fit_entrypoint.v1",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_local_fit_entrypoint.v1",
+      "schema_matches": true,
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "all_guarded_fit_attempts_succeeded": true,
+        "fit_outputs_finite": true,
+        "no_public_q_revision_claim": true,
+        "no_broader_mgmfrm_claim": true
+      }
+    },
+    {
+      "artifact": "mgmfrm_q_revision_construct_validity_review",
+      "path": "test/fixtures/mgmfrm_q_revision_construct_validity_review.json",
+      "exists": true,
+      "sha256": "543c8f7ce2e79d69512c883d858e69c243ae5840b122dc2d215bbf00d86068a8",
+      "schema": "bayesianmgmfrm.mgmfrm_q_revision_construct_validity_review.v1",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_q_revision_construct_validity_review.v1",
+      "schema_matches": true,
+      "summary_passed": true,
+      "summary": {
+        "passed": true,
+        "construct_validity_manual_review_completed": true,
+        "construct_validity_supported_for_all_reviewed": true,
+        "no_public_q_revision_claim": true
+      }
+    }
+  ],
+  "selected_execution_unit_rows": [
+    {
+      "execution_unit_id": "well_specified_current_q__confirmatory_mgmfrm_current_q__fold1",
+      "selection_reason": "current_q_confirmatory_smoke",
+      "q_profile": "current_q_6_item_2d",
+      "scenario": "well_specified_current_q",
+      "model": "confirmatory_mgmfrm_current_q",
+      "fold": 1,
+      "split": "observation_kfold",
+      "n_train_observations": 32,
+      "n_heldout_observations": 8,
+      "heldout_observations": [
+        1,
+        6,
+        11,
+        16,
+        21,
+        26,
+        31,
+        36
+      ],
+      "planned_minimum_chains": 4,
+      "planned_minimum_draws_per_chain": 1000,
+      "planned_minimum_warmup_per_chain": 500,
+      "smoke_chains": 1,
+      "smoke_draws_per_chain": 1,
+      "smoke_warmup_per_chain": 0,
+      "rank_ambiguity_resolution_required": false,
+      "external_construct_validation_required": false,
+      "full_unit_execution_status": "planned_not_executed",
+      "public_claim_allowed": false
+    },
+    {
+      "execution_unit_id": "missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold1",
+      "selection_reason": "construct_reviewed_revised_q_smoke",
+      "q_profile": "construct_reviewed_candidate_q_3_item_2d",
+      "scenario": "missing_loading_revised_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "fold": 1,
+      "split": "observation_kfold",
+      "n_train_observations": 32,
+      "n_heldout_observations": 8,
+      "heldout_observations": [
+        5,
+        10,
+        15,
+        20,
+        25,
+        30,
+        35,
+        40
+      ],
+      "planned_minimum_chains": 4,
+      "planned_minimum_draws_per_chain": 1000,
+      "planned_minimum_warmup_per_chain": 500,
+      "smoke_chains": 1,
+      "smoke_draws_per_chain": 1,
+      "smoke_warmup_per_chain": 0,
+      "rank_ambiguity_resolution_required": false,
+      "external_construct_validation_required": true,
+      "full_unit_execution_status": "planned_not_executed",
+      "public_claim_allowed": false
+    },
+    {
+      "execution_unit_id": "weak_dimension_ambiguous__sparse_mgmfrm_current_q__fold1",
+      "selection_reason": "rank_ambiguity_sparse_q_smoke",
+      "q_profile": "sparse_current_q_5_item_3d",
+      "scenario": "weak_dimension_ambiguous",
+      "model": "sparse_mgmfrm_current_q",
+      "fold": 1,
+      "split": "observation_kfold",
+      "n_train_observations": 32,
+      "n_heldout_observations": 8,
+      "heldout_observations": [
+        2,
+        7,
+        12,
+        17,
+        22,
+        27,
+        32,
+        37
+      ],
+      "planned_minimum_chains": 4,
+      "planned_minimum_draws_per_chain": 1000,
+      "planned_minimum_warmup_per_chain": 500,
+      "smoke_chains": 1,
+      "smoke_draws_per_chain": 1,
+      "smoke_warmup_per_chain": 0,
+      "rank_ambiguity_resolution_required": true,
+      "external_construct_validation_required": true,
+      "full_unit_execution_status": "planned_not_executed",
+      "public_claim_allowed": false
+    }
+  ],
+  "smoke_fit_rows": [
+    {
+      "execution_unit_id": "well_specified_current_q__confirmatory_mgmfrm_current_q__fold1",
+      "scenario": "well_specified_current_q",
+      "model": "confirmatory_mgmfrm_current_q",
+      "fold": 1,
+      "selection_reason": "current_q_confirmatory_smoke",
+      "q_profile": "current_q_6_item_2d",
+      "q_matrix": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ],
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ],
+        [
+          true,
+          true
+        ],
+        [
+          true,
+          false
+        ]
+      ],
+      "fit_seed": 20260732,
+      "fit_succeeded": true,
+      "returned_type": "MGMFRMFit",
+      "smoke_only": true,
+      "training_data_source": "deterministic_local_smoke_table",
+      "n_plan_observations": 40,
+      "n_train_observations": 32,
+      "n_heldout_observations": 8,
+      "n_persons": 4,
+      "n_raters": 2,
+      "n_items": 6,
+      "n_categories": 3,
+      "n_dimensions": 2,
+      "validation_passed": true,
+      "q_validation_passed": true,
+      "backend": "advancedhmc",
+      "sampler": "nuts",
+      "chains": 1,
+      "draws_per_chain": 1,
+      "warmup": 0,
+      "n_raw_parameters": 29,
+      "n_direct_parameters": 31,
+      "n_training_pointwise_loglikelihood_rows": 1,
+      "n_training_pointwise_observations": 32,
+      "heldout_predictive_score_computed": false,
+      "posterior_predictive_check_recorded": false,
+      "finite_log_posterior": true,
+      "finite_raw_draws": true,
+      "finite_direct_draws": true,
+      "finite_direct_loglikelihood": true,
+      "finite_training_pointwise_loglikelihood": true,
+      "diagnostic_flag": "insufficient_chains",
+      "diagnostic_passed": false,
+      "n_nonfinite_logdensity": 0,
+      "n_nonfinite_direct_loglikelihood": 0,
+      "n_failed_direct_constraints": 0,
+      "n_divergences": 0,
+      "n_max_treedepth": 0,
+      "rhat_evaluable": false,
+      "ess_evaluable": false,
+      "public_claim_allowed": false
+    },
+    {
+      "execution_unit_id": "missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold1",
+      "scenario": "missing_loading_revised_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "fold": 1,
+      "selection_reason": "construct_reviewed_revised_q_smoke",
+      "q_profile": "construct_reviewed_candidate_q_3_item_2d",
+      "q_matrix": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ],
+        [
+          true,
+          true
+        ]
+      ],
+      "fit_seed": 20260733,
+      "fit_succeeded": true,
+      "returned_type": "MGMFRMFit",
+      "smoke_only": true,
+      "training_data_source": "deterministic_local_smoke_table",
+      "n_plan_observations": 40,
+      "n_train_observations": 32,
+      "n_heldout_observations": 8,
+      "n_persons": 4,
+      "n_raters": 2,
+      "n_items": 3,
+      "n_categories": 3,
+      "n_dimensions": 2,
+      "validation_passed": true,
+      "q_validation_passed": true,
+      "backend": "advancedhmc",
+      "sampler": "nuts",
+      "chains": 1,
+      "draws_per_chain": 1,
+      "warmup": 0,
+      "n_raw_parameters": 20,
+      "n_direct_parameters": 22,
+      "n_training_pointwise_loglikelihood_rows": 1,
+      "n_training_pointwise_observations": 32,
+      "heldout_predictive_score_computed": false,
+      "posterior_predictive_check_recorded": false,
+      "finite_log_posterior": true,
+      "finite_raw_draws": true,
+      "finite_direct_draws": true,
+      "finite_direct_loglikelihood": true,
+      "finite_training_pointwise_loglikelihood": true,
+      "diagnostic_flag": "insufficient_chains",
+      "diagnostic_passed": false,
+      "n_nonfinite_logdensity": 0,
+      "n_nonfinite_direct_loglikelihood": 0,
+      "n_failed_direct_constraints": 0,
+      "n_divergences": 0,
+      "n_max_treedepth": 0,
+      "rhat_evaluable": false,
+      "ess_evaluable": false,
+      "public_claim_allowed": false
+    },
+    {
+      "execution_unit_id": "weak_dimension_ambiguous__sparse_mgmfrm_current_q__fold1",
+      "scenario": "weak_dimension_ambiguous",
+      "model": "sparse_mgmfrm_current_q",
+      "fold": 1,
+      "selection_reason": "rank_ambiguity_sparse_q_smoke",
+      "q_profile": "sparse_current_q_5_item_3d",
+      "q_matrix": [
+        [
+          true,
+          false,
+          false
+        ],
+        [
+          false,
+          true,
+          false
+        ],
+        [
+          false,
+          false,
+          true
+        ],
+        [
+          true,
+          false,
+          false
+        ],
+        [
+          false,
+          true,
+          true
+        ]
+      ],
+      "fit_seed": 20260734,
+      "fit_succeeded": true,
+      "returned_type": "MGMFRMFit",
+      "smoke_only": true,
+      "training_data_source": "deterministic_local_smoke_table",
+      "n_plan_observations": 40,
+      "n_train_observations": 32,
+      "n_heldout_observations": 8,
+      "n_persons": 4,
+      "n_raters": 2,
+      "n_items": 5,
+      "n_categories": 3,
+      "n_dimensions": 3,
+      "validation_passed": true,
+      "q_validation_passed": true,
+      "backend": "advancedhmc",
+      "sampler": "nuts",
+      "chains": 1,
+      "draws_per_chain": 1,
+      "warmup": 0,
+      "n_raw_parameters": 30,
+      "n_direct_parameters": 32,
+      "n_training_pointwise_loglikelihood_rows": 1,
+      "n_training_pointwise_observations": 32,
+      "heldout_predictive_score_computed": false,
+      "posterior_predictive_check_recorded": false,
+      "finite_log_posterior": true,
+      "finite_raw_draws": true,
+      "finite_direct_draws": true,
+      "finite_direct_loglikelihood": true,
+      "finite_training_pointwise_loglikelihood": true,
+      "diagnostic_flag": "insufficient_chains",
+      "diagnostic_passed": false,
+      "n_nonfinite_logdensity": 0,
+      "n_nonfinite_direct_loglikelihood": 0,
+      "n_failed_direct_constraints": 0,
+      "n_divergences": 0,
+      "n_max_treedepth": 0,
+      "rhat_evaluable": false,
+      "ess_evaluable": false,
+      "public_claim_allowed": false
+    }
+  ],
+  "diagnostic_check_rows": [
+    {
+      "execution_unit_id": "well_specified_current_q__confirmatory_mgmfrm_current_q__fold1",
+      "scenario": "well_specified_current_q",
+      "model": "confirmatory_mgmfrm_current_q",
+      "fold": 1,
+      "check": "smoke_fit_succeeded",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "well_specified_current_q__confirmatory_mgmfrm_current_q__fold1",
+      "scenario": "well_specified_current_q",
+      "model": "confirmatory_mgmfrm_current_q",
+      "fold": 1,
+      "check": "finite_log_posterior",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "well_specified_current_q__confirmatory_mgmfrm_current_q__fold1",
+      "scenario": "well_specified_current_q",
+      "model": "confirmatory_mgmfrm_current_q",
+      "fold": 1,
+      "check": "finite_raw_and_direct_draws",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "well_specified_current_q__confirmatory_mgmfrm_current_q__fold1",
+      "scenario": "well_specified_current_q",
+      "model": "confirmatory_mgmfrm_current_q",
+      "fold": 1,
+      "check": "finite_training_pointwise_loglikelihood",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "well_specified_current_q__confirmatory_mgmfrm_current_q__fold1",
+      "scenario": "well_specified_current_q",
+      "model": "confirmatory_mgmfrm_current_q",
+      "fold": 1,
+      "check": "zero_divergences",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "well_specified_current_q__confirmatory_mgmfrm_current_q__fold1",
+      "scenario": "well_specified_current_q",
+      "model": "confirmatory_mgmfrm_current_q",
+      "fold": 1,
+      "check": "zero_max_treedepth_hits",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "well_specified_current_q__confirmatory_mgmfrm_current_q__fold1",
+      "scenario": "well_specified_current_q",
+      "model": "confirmatory_mgmfrm_current_q",
+      "fold": 1,
+      "check": "publication_grade_rhat_not_evaluable_in_smoke",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "well_specified_current_q__confirmatory_mgmfrm_current_q__fold1",
+      "scenario": "well_specified_current_q",
+      "model": "confirmatory_mgmfrm_current_q",
+      "fold": 1,
+      "check": "publication_grade_ess_not_evaluable_in_smoke",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "well_specified_current_q__confirmatory_mgmfrm_current_q__fold1",
+      "scenario": "well_specified_current_q",
+      "model": "confirmatory_mgmfrm_current_q",
+      "fold": 1,
+      "check": "heldout_predictive_score_not_computed_in_smoke",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold1",
+      "scenario": "missing_loading_revised_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "fold": 1,
+      "check": "smoke_fit_succeeded",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold1",
+      "scenario": "missing_loading_revised_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "fold": 1,
+      "check": "finite_log_posterior",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold1",
+      "scenario": "missing_loading_revised_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "fold": 1,
+      "check": "finite_raw_and_direct_draws",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold1",
+      "scenario": "missing_loading_revised_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "fold": 1,
+      "check": "finite_training_pointwise_loglikelihood",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold1",
+      "scenario": "missing_loading_revised_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "fold": 1,
+      "check": "zero_divergences",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold1",
+      "scenario": "missing_loading_revised_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "fold": 1,
+      "check": "zero_max_treedepth_hits",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold1",
+      "scenario": "missing_loading_revised_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "fold": 1,
+      "check": "publication_grade_rhat_not_evaluable_in_smoke",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold1",
+      "scenario": "missing_loading_revised_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "fold": 1,
+      "check": "publication_grade_ess_not_evaluable_in_smoke",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold1",
+      "scenario": "missing_loading_revised_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "fold": 1,
+      "check": "heldout_predictive_score_not_computed_in_smoke",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "weak_dimension_ambiguous__sparse_mgmfrm_current_q__fold1",
+      "scenario": "weak_dimension_ambiguous",
+      "model": "sparse_mgmfrm_current_q",
+      "fold": 1,
+      "check": "smoke_fit_succeeded",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "weak_dimension_ambiguous__sparse_mgmfrm_current_q__fold1",
+      "scenario": "weak_dimension_ambiguous",
+      "model": "sparse_mgmfrm_current_q",
+      "fold": 1,
+      "check": "finite_log_posterior",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "weak_dimension_ambiguous__sparse_mgmfrm_current_q__fold1",
+      "scenario": "weak_dimension_ambiguous",
+      "model": "sparse_mgmfrm_current_q",
+      "fold": 1,
+      "check": "finite_raw_and_direct_draws",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "weak_dimension_ambiguous__sparse_mgmfrm_current_q__fold1",
+      "scenario": "weak_dimension_ambiguous",
+      "model": "sparse_mgmfrm_current_q",
+      "fold": 1,
+      "check": "finite_training_pointwise_loglikelihood",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "weak_dimension_ambiguous__sparse_mgmfrm_current_q__fold1",
+      "scenario": "weak_dimension_ambiguous",
+      "model": "sparse_mgmfrm_current_q",
+      "fold": 1,
+      "check": "zero_divergences",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "weak_dimension_ambiguous__sparse_mgmfrm_current_q__fold1",
+      "scenario": "weak_dimension_ambiguous",
+      "model": "sparse_mgmfrm_current_q",
+      "fold": 1,
+      "check": "zero_max_treedepth_hits",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "weak_dimension_ambiguous__sparse_mgmfrm_current_q__fold1",
+      "scenario": "weak_dimension_ambiguous",
+      "model": "sparse_mgmfrm_current_q",
+      "fold": 1,
+      "check": "publication_grade_rhat_not_evaluable_in_smoke",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "weak_dimension_ambiguous__sparse_mgmfrm_current_q__fold1",
+      "scenario": "weak_dimension_ambiguous",
+      "model": "sparse_mgmfrm_current_q",
+      "fold": 1,
+      "check": "publication_grade_ess_not_evaluable_in_smoke",
+      "passed": true,
+      "blocks_public_claim": true
+    },
+    {
+      "execution_unit_id": "weak_dimension_ambiguous__sparse_mgmfrm_current_q__fold1",
+      "scenario": "weak_dimension_ambiguous",
+      "model": "sparse_mgmfrm_current_q",
+      "fold": 1,
+      "check": "heldout_predictive_score_not_computed_in_smoke",
+      "passed": true,
+      "blocks_public_claim": true
+    }
+  ],
+  "blocker_rows": [
+    {
+      "blocker": "full_125_unit_refit_batch_not_completed",
+      "blocks": "public_heldout_prediction_claims",
+      "resolved": false
+    },
+    {
+      "blocker": "publication_grade_chains_and_draws_not_run",
+      "blocks": "public_fit_metric_and_model_weight_claims",
+      "resolved": false
+    },
+    {
+      "blocker": "heldout_predictive_scores_not_computed",
+      "blocks": "public_model_comparison_claims",
+      "resolved": false
+    },
+    {
+      "blocker": "external_construct_dataset_missing",
+      "blocks": "public_q_revision_claims",
+      "resolved": false
+    },
+    {
+      "blocker": "independent_public_scope_review_missing",
+      "blocks": "all_public_mgmfrm_claims",
+      "resolved": false
+    }
+  ],
+  "decision_record": {
+    "selected_decision": "record_representative_refit_batch_smoke_keep_claims_blocked",
+    "representative_batch_smoke_completed": true,
+    "full_mcmc_refit_execution_completed": false,
+    "full_125_unit_batch_completed": false,
+    "heldout_predictive_scores_computed": false,
+    "external_construct_dataset_attached": false,
+    "external_construct_validation_completed": false,
+    "public_fit_metric_claim_allowed": false,
+    "public_q_revision_claim_allowed": false,
+    "model_weight_or_sparse_superiority_claim_allowed": false,
+    "required_followup": "full_heldout_mgmfrm_mcmc_refit_full_batch_execution_or_external_construct_dataset_attachment"
+  },
+  "summary": {
+    "passed": true,
+    "publication_or_registration_action": false,
+    "local_only": true,
+    "smoke_only": true,
+    "all_input_artifacts_present": true,
+    "all_expected_schemas": true,
+    "all_input_summaries_passed": true,
+    "execution_plan_passed": true,
+    "guarded_local_fit_entrypoint_passed": true,
+    "q_revision_construct_validity_review_passed": true,
+    "representative_units_selected": true,
+    "smoke_fit_attempts_succeeded": true,
+    "smoke_outputs_finite": true,
+    "training_pointwise_loglikelihood_recorded": true,
+    "publication_grade_diagnostics_blocked": true,
+    "full_125_unit_batch_not_claimed": true,
+    "heldout_predictive_scores_blocked_until_full_batch": true,
+    "external_construct_dataset_still_required": true,
+    "all_diagnostic_checks_passed": true,
+    "no_public_fit_metric_claim": true,
+    "no_public_q_revision_claim": true,
+    "no_public_model_weight_claim": true,
+    "no_sparse_superiority_claim": true,
+    "full_mcmc_refit_execution_plan_recorded": true,
+    "representative_batch_smoke_completed": true,
+    "full_mcmc_refit_execution_completed": false,
+    "full_125_unit_batch_completed": false,
+    "heldout_predictive_scores_computed": false,
+    "external_construct_dataset_attached": false,
+    "external_construct_validation_completed": false,
+    "n_input_artifacts": 3,
+    "n_planned_execution_units": 125,
+    "n_selected_execution_unit_rows": 3,
+    "n_smoke_fit_rows": 3,
+    "n_diagnostic_check_rows": 27,
+    "n_blocker_rows": 5,
+    "n_review_cells": 33,
+    "n_smoke_training_observations": 96,
+    "n_smoke_heldout_observations": 24,
+    "n_training_pointwise_loglikelihood_cells": 96,
+    "n_publication_grade_fit_rows": 0,
+    "n_full_execution_units_completed": 0,
+    "n_blockers": 5,
+    "remaining_public_blockers": [
+      "full_125_unit_refit_batch_not_completed",
+      "publication_grade_chains_and_draws_not_run",
+      "heldout_predictive_scores_not_computed",
+      "external_construct_dataset_missing",
+      "independent_public_scope_review_missing"
+    ],
+    "recommendation": "use_smoke_as_runner_check_execute_full_batch_or_attach_external_dataset_next",
+    "next_gate": "full_heldout_mgmfrm_mcmc_refit_full_batch_execution_or_external_construct_dataset_attachment"
+  }
+}
