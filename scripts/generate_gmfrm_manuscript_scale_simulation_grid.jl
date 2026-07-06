@@ -164,6 +164,12 @@ const INPUT_ARTIFACTS = [
         expected_schema =
             "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_fold1_scoring.v1",
         hash_policy = :sha256),
+    (name = :mgmfrm_fit_threshold_q_heldout_linkage,
+        path =
+            "test/fixtures/mgmfrm_fit_threshold_q_heldout_linkage.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_fit_threshold_q_heldout_linkage.v1",
+        hash_policy = :sha256),
     (name = :full_paper_reproduction_archive,
         path = "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
         expected_schema =
@@ -221,6 +227,7 @@ const PROTOCOL = (;
             true,
         require_mgmfrm_full_heldout_mcmc_refit_fold1_scoring_passed =
             true,
+        require_mgmfrm_fit_threshold_q_heldout_linkage_passed = true,
         require_full_paper_reproduction_archive_passed = true,
         require_minimum_total_evidence_cells = 60,
         require_no_publication_commands = true,
@@ -799,6 +806,30 @@ function artifact_summary(name::Symbol, summary::AbstractString)
             !json_bool(summary, "external_construct_dataset_attached") &&
             !json_bool(summary, "external_construct_validation_completed"),
     )
+    name === :mgmfrm_fit_threshold_q_heldout_linkage && return (;
+        passed = json_bool(summary, "passed"),
+        n_evidence_cells =
+            json_int(summary, "n_scenario_link_rows") +
+            json_int(summary, "n_threshold_profile_link_rows") +
+            json_int(summary, "n_q_recovery_link_rows") +
+            json_int(summary, "n_parameter_absorption_rows"),
+        key_check = :mgmfrm_fit_threshold_q_heldout_linkage,
+        all_primary_checks =
+            json_bool(summary, "all_scenario_link_rows_recorded") &&
+            json_bool(summary, "threshold_profile_link_rows_recorded") &&
+            json_bool(summary, "q_recovery_link_rows_recorded") &&
+            json_bool(summary, "parameter_absorption_rows_recorded") &&
+            json_bool(summary, "fold1_observed_rank_recorded") &&
+            json_bool(summary, "observed_vs_expected_rank_match_recorded") &&
+            json_bool(summary, "any_observed_expected_mismatch_flagged") &&
+            json_bool(summary, "anchor_limitations_recorded") &&
+            json_bool(summary, "no_single_threshold_profile_promoted") &&
+            json_bool(summary, "no_automatic_q_revision") &&
+            json_bool(summary, "no_public_fit_metric_claim") &&
+            json_bool(summary, "no_public_q_revision_claim") &&
+            json_bool(summary, "no_public_model_weight_claim") &&
+            json_bool(summary, "no_sparse_superiority_claim"),
+    )
     name === :full_paper_reproduction_archive && return (;
         passed = json_bool(summary, "passed"),
         n_evidence_cells = json_int(summary, "n_fixture_artifacts"),
@@ -1039,6 +1070,10 @@ function build_artifact()
             mgmfrm_full_heldout_mcmc_refit_fold1_scoring_passed =
                 record_by_name(input_records,
                     :mgmfrm_full_heldout_mcmc_refit_fold1_scoring).
+                    summary_passed,
+            mgmfrm_fit_threshold_q_heldout_linkage_passed =
+                record_by_name(input_records,
+                    :mgmfrm_fit_threshold_q_heldout_linkage).
                     summary_passed,
             full_paper_reproduction_archive_passed =
                 record_by_name(input_records,

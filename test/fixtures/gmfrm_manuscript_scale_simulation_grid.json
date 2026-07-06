@@ -56,6 +56,7 @@
       "require_mgmfrm_full_heldout_mcmc_refit_batch_smoke_passed": true,
       "require_mgmfrm_full_heldout_mcmc_refit_fold1_pilot_passed": true,
       "require_mgmfrm_full_heldout_mcmc_refit_fold1_scoring_passed": true,
+      "require_mgmfrm_fit_threshold_q_heldout_linkage_passed": true,
       "require_full_paper_reproduction_archive_passed": true,
       "require_minimum_total_evidence_cells": 60,
       "require_no_publication_commands": true,
@@ -523,6 +524,23 @@
       }
     },
     {
+      "artifact": "mgmfrm_fit_threshold_q_heldout_linkage",
+      "path": "test/fixtures/mgmfrm_fit_threshold_q_heldout_linkage.json",
+      "exists": true,
+      "schema": "bayesianmgmfrm.mgmfrm_fit_threshold_q_heldout_linkage.v1",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_fit_threshold_q_heldout_linkage.v1",
+      "schema_matches": true,
+      "summary_passed": true,
+      "hash_policy": "sha256",
+      "sha256": "daa333995ea1fa205d3917e6abffcbbf563e90ad07130f74bc749378b77b61fe",
+      "summary": {
+        "passed": true,
+        "n_evidence_cells": 35,
+        "key_check": "mgmfrm_fit_threshold_q_heldout_linkage",
+        "all_primary_checks": true
+      }
+    },
+    {
       "artifact": "full_paper_reproduction_archive",
       "path": "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
       "exists": true,
@@ -531,10 +549,10 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "c4102fef7074e31b6528576b9687d9164229c9957158f1dfd44a3af8aa8feae7",
+      "sha256": "47cd8a681837e0ab2609cc8f0921ab878a1fc6bb7098673fa83a25a617c2c31f",
       "summary": {
         "passed": true,
-        "n_evidence_cells": 53,
+        "n_evidence_cells": 54,
         "key_check": "full_paper_reproduction_archive",
         "all_primary_checks": true
       }
@@ -731,9 +749,16 @@
       "artifact": "test/fixtures/mgmfrm_full_heldout_mcmc_refit_fold1_scoring.json"
     },
     {
+      "gate": "mgmfrm_fit_threshold_q_heldout_linkage",
+      "status": "passed",
+      "n_evidence_cells": 35,
+      "key_check": "mgmfrm_fit_threshold_q_heldout_linkage",
+      "artifact": "test/fixtures/mgmfrm_fit_threshold_q_heldout_linkage.json"
+    },
+    {
       "gate": "full_paper_reproduction_archive",
       "status": "passed",
-      "n_evidence_cells": 53,
+      "n_evidence_cells": 54,
       "key_check": "full_paper_reproduction_archive",
       "artifact": "test/fixtures/gmfrm_full_paper_reproduction_archive.json"
     }
@@ -782,9 +807,9 @@
     "all_expected_schemas": true,
     "all_input_summaries_passed": true,
     "all_primary_checks_passed": true,
-    "n_input_artifacts": 28,
-    "n_evidence_rows": 28,
-    "total_evidence_cells": 1692,
+    "n_input_artifacts": 29,
+    "n_evidence_rows": 29,
+    "total_evidence_cells": 1728,
     "minimum_required_evidence_cells": 60,
     "scalar_fit_validation_grid_passed": true,
     "posterior_predictive_grid_passed": true,
@@ -813,6 +838,7 @@
     "mgmfrm_full_heldout_mcmc_refit_batch_smoke_passed": true,
     "mgmfrm_full_heldout_mcmc_refit_fold1_pilot_passed": true,
     "mgmfrm_full_heldout_mcmc_refit_fold1_scoring_passed": true,
+    "mgmfrm_fit_threshold_q_heldout_linkage_passed": true,
     "full_paper_reproduction_archive_passed": true,
     "scalar_guarded_fit_allowed": true,
     "broader_generalized_fit_allowed": false,

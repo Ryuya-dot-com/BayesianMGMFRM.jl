@@ -133,11 +133,15 @@ generating conditions before using them in public wording.
 | Weak or sparse dimension support | Mirrors realistic rubric designs with limited items or anchors per dimension. | Dimension-specific ESS/R-hat, coverage, interval width, Q graph support, heldout rank stability. | Require warning or rejection when dimension claims are prior-dominated. |
 | Rater-method noise and DFF-adjacent confounding | Separates rater behavior from multidimensional construct structure. | Rater consistency/severity shifts, grouped PPC, DFF screening rows, Q-revision false positives, heldout score changes. | Keep DFF and Q revisions diagnostic unless design support and sensitivity pass. |
 
-The immediate implementation target is a small fixture that links
+The small linkage fixture is now implemented as
+`mgmfrm_fit_threshold_q_heldout_linkage`. It links
 `mgmfrm_fit_metric_threshold_sensitivity`, the empirical Q-matrix recovery
-simulation grid, and fold-1 heldout scoring outputs into one roadmap artifact.
-It should report which threshold profiles would change conclusions and which
-parameter blocks absorb the change.
+simulation grid, heldout-prediction simulation expectations, and fold-1 heldout
+scoring outputs into one roadmap artifact. Its role is diagnostic: it records
+threshold-profile sensitivity, Q-recovery risk, parameter-shift absorption, and
+observed-versus-expected fold-1 rank matches while keeping public fit,
+Q-revision, model-weight, and sparse-superiority claims blocked. The next gate
+is full-batch heldout MCMC refit or an external construct-validation dataset.
 
 ## Decision Gates and Fallback Paths
 

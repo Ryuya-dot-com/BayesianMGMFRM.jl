@@ -105,6 +105,12 @@
   leaves scalar/null comparison anchors unscored in the fixed-Q pilot, and keeps
   full-batch, publication-grade diagnostic, external-construct, and public
   model-comparison claims blocked.
+- Add a local MGMFRM fit-threshold/Q/heldout linkage generator and JSON
+  artifact that connects threshold-profile sensitivity, Q-matrix recovery
+  diagnostics, predeclared heldout simulation expectations, and observed fold-1
+  heldout rankings while keeping fit-threshold, Q-revision, model-weight, and
+  sparse-superiority claims blocked pending full-batch or external construct
+  validation.
 - Expose pre-registration gate availability in `release_scope_summary` and
   clarify that Julia General registration is a manual action after the local
   gate passes.

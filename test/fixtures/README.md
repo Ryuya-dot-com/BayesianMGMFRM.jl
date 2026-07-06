@@ -153,6 +153,14 @@ expected-score residual rows, leaves scalar/null comparison anchors unscored in
 the fixed-Q pilot, and keeps full-batch, publication-grade diagnostic, external
 construct-validation, and public model-comparison claims blocked.
 
+`mgmfrm_fit_threshold_q_heldout_linkage.json` links the literature-motivated
+fit-threshold sensitivity grid, empirical Q-matrix recovery simulation, heldout
+prediction simulation expectations, and observed fold-1 heldout scores. It
+records where the fold-1 pilot ranking matches or differs from the predeclared
+simulation expectation, carries Q-recovery and parameter-shift diagnostics, and
+keeps fit-threshold, Q-revision, model-weight, and sparse-superiority claims
+blocked until full-batch or external construct validation is available.
+
 The deterministic validation-plan generator:
 
 ```bash
