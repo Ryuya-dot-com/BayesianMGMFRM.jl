@@ -531,7 +531,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "4f7c3e78f138487aef78eb2393f7f4c853ba9b93a1c9de7af04018079d232479",
+      "sha256": "c4102fef7074e31b6528576b9687d9164229c9957158f1dfd44a3af8aa8feae7",
       "summary": {
         "passed": true,
         "n_evidence_cells": 53,

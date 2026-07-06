@@ -99,6 +99,27 @@ post-`v0.2.0` R-package simulation comparisons, and only then real-data
 validation claims. Real data are useful for workflow ergonomics, but they should
 not compensate for failed identification, source-equation, or sampler gates.
 
+### Current Literature-Grounded Priority Stack
+
+The current Zotero-backed roadmap update sharpens the next work rather than
+expanding the public API immediately:
+
+1. Use MRCML, ConQuest, and multidimensional Rasch/MIRT sources to keep the
+   next MGMFRM step fixed-Q and confirmatory.
+2. Use Uto-style GMFRM/MGMFRM as the direct source target for rater severity,
+   rater consistency, item/dimension discrimination, ordered categories, and
+   Bayesian HMC diagnostics.
+3. Treat Q matrices as fallible construct design objects. Q-revision evidence
+   remains local and diagnostic until false-add, false-drop, sparse-dimension,
+   weak-anchor, and rater-method-noise simulations are calibrated.
+4. Treat fit thresholds as profiles, not constants. Existing MFRM infit/outfit
+   indicators must be compared with MGMFRM PPC, calibration, WAIC/LOO, heldout
+   ELPD, parameter-shift, and decision-reversal behavior under known-truth
+   simulations before threshold language becomes public.
+5. Keep external software comparisons as post-`v0.2.0` known-truth simulation
+   work unless the target model, estimator, constraints, and prediction target
+   genuinely overlap.
+
 ## Claim-to-Evidence Ledger
 
 The roadmap should track claims as evidence obligations. The package can expose

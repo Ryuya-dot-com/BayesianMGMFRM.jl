@@ -13,8 +13,9 @@ The active post-`v0.1.0` sequence is:
 
 - `v0.1.1`: refine fixed-Q confirmatory MGMFRM. Strengthen execution,
   diagnostics, reporting, and validation for the existing guarded path.
-- `v0.1.2`: stay fixed-Q and confirmatory, but expand dimensionality and Q
-  validation beyond the original compact smoke surface.
+- `v0.1.2`: stay fixed-Q and confirmatory, but expand dimensionality,
+  Q validation, and fit-threshold calibration beyond the original compact
+  smoke surface.
 - `v0.1.3`: decide whether free latent correlations are ready for guarded
   exposure.
 - `v0.1.4`: design the exploratory loading and rotation policy without yet
@@ -80,6 +81,63 @@ At the local level, each topic has a specific near-term decision.
 | DFF and bias | DFF is validation and screening only: sparse/empty/confounded cells, grouped PPC rows, and posterior predictive interaction residuals. | Keep fitted DFF effects blocked through `v0.1.1`; use DFF rows for triage, design repair, and sensitivity planning, not unfairness or causal claims. |
 | Rater homogeneity | Posterior summaries support probability of direction and ROPE for individual parameters; pairwise rater contrasts are not yet first-class. | Add rater contrast summaries for severity and log-consistency using ROPE and HDI/credible intervals. Treat Bayes factors as optional and blocked from the default workflow until prior sensitivity is documented. |
 | Artifact schemas and data governance | Report bundles exist, but broad use requires stable schemas and clear handling of raw rating data. | Version report-table schemas, include manifest compatibility checks, and make raw-data inclusion opt-in. Public artifacts should prefer anonymized or hashed identifiers unless the user explicitly exports raw labels. |
+
+## Literature-Informed Priority Update
+
+The July 2026 Zotero additions sharpen the roadmap rather than broadening the
+public API immediately. Duplicate Zotero records are acceptable as library
+state; package artifacts should record public bibliographic identifiers and
+source URLs, not internal item keys.
+
+| Literature cluster | What is now better supported | Roadmap consequence |
+| --- | --- | --- |
+| Multidimensional Rasch and MRCML foundations | Adams, Wilson, and Wang's MRCML paper, ConQuest documentation, Reckase's MIRT text, and multidimensional partial-credit work make the fixed-Q dimensional contract the natural bridge from Rasch models to MGMFRM. | Treat `v0.1.2` as a confirmatory multidimensional Rasch/MGPCM expansion, not as exploratory discovery. Dimension labels, constraints, and Q masks must be inspectable before broader fitting claims. |
+| Uto-style GMFRM/MGMFRM | Uto and Ueno's GMFRM and Uto's MGMFRM provide the direct rater-mediated target: severity, consistency, item/task discrimination, ordered categories, fixed scaling, and Bayesian HMC estimation. | Keep the current scalar GMFRM and fixed-Q MGMFRM paths guarded until report rows can explain each source-equation block, prior, transform, and diagnostic failure. |
+| Q-matrix validation | de la Torre and Chiu, Chiu, Chen, Terzi and de la Torre, Najera et al., Madison and Bradshaw, and da Silva et al. show that Q matrices are fallible design objects, but empirical revisions need error control. | Keep empirical Q revision local and diagnostic. Simulations must include false-add, false-drop, weak-dimension, duplicate-column, and sparse-anchor cases before any public Q-revision helper is promoted. |
+| Fit statistics and threshold uncertainty | Wright/Linacre-style mean-square ranges are useful screening heuristics, but Smith/Schumacker/Bush and Mueller-style critiques make fixed universal cutoffs unsafe. Bayesian LOO/WAIC and R-hat/ESS literature adds a separate computation and prediction layer. | Treat thresholds as named profiles, not defaults. Compare existing MFRM infit/outfit with MGMFRM PPC, calibration, WAIC/LOO, heldout ELPD, and parameter-shift rows under simulation before allowing threshold-based claims. |
+| Existing software and practice | Facets, ConQuest, TAM, mirt, sirt, immer, and Stan/brms already cover important adjacent surfaces. | The package's niche remains source-audited Bayesian many-facet/MGMFRM workflow, not generic IRT breadth. External comparisons should start with known-truth simulations only after the stable-public candidate exists. |
+
+### Refined Critical Path
+
+1. Finish `v0.1.1` as a reporting and evidence-governance release for guarded
+   scalar GMFRM and fixed-Q MGMFRM. Do not expand the API until diagnostics,
+   fit-threshold provenance, prediction targets, and blocked-claim rows are
+   consistently visible in reports and archives.
+2. Make `v0.1.2` the fixed-Q validation and threshold-calibration release.
+   The key deliverable is not "more dimensions"; it is evidence that the
+   package can distinguish well-specified fixed-Q MGMFRM, Q misspecification,
+   rater-method noise, sparse dimension support, and ordinary MFRM misfit.
+3. Keep `v0.1.3` focused on whether free latent correlations are defensible
+   under a Cholesky/LKJ-style policy. A free-correlation path that changes
+   focal decisions under prior or likelihood sensitivity remains internal.
+4. Keep `v0.1.4` as an exploratory-loading design gate. Exploratory MGMFRM
+   should remain blocked unless rotation, sign, permutation, and reporting
+   invariance are handled before users see posterior loading tables.
+5. Promote `v0.2.0` only if fixed-Q, optional free correlation, and any
+   exploratory surface that survived earlier gates all have source fixtures,
+   diagnostics, simulation recovery, sensitivity, reporting, and rejection
+   tests. If not, release the narrower supported surface.
+
+### Fit-Threshold Simulation Linkage
+
+Fit thresholds should now be treated as simulation-calibrated decision profiles.
+The roadmap should connect literature-motivated thresholds to known-truth data
+generating conditions before using them in public wording.
+
+| Simulation axis | Why it is needed | Metrics to compare | Release consequence |
+| --- | --- | --- | --- |
+| Well-specified MFRM/RSM/PCM baseline | Controls false alarms from Rasch MNSQ, PPC, calibration, WAIC/LOO, and heldout scoring. | Infit/outfit profile pass rates, PPC discrepancy rates, calibration error, WAIC/LOO instability, heldout ELPD, parameter bias and coverage. | Thresholds that falsely flag the baseline too often become screening-only. |
+| True fixed-Q MGMFRM | Checks whether multidimensional signal is recovered without inventing Q revisions. | Loading recovery, dimension ability recovery, rater consistency recovery, heldout ELPD improvement, posterior predictive category replication. | Supports fixed-Q interpretation only if diagnostics and recovery pass by block. |
+| Missing required Q loading | Tests power to detect under-specified dimensions or item masks. | Candidate-cell detection, ELPD loss, item/dimension residuals, calibration shifts, changes in rater consistency and severity. | A detected issue can trigger local review, not automatic public Q editing. |
+| False-positive Q loading or cross-loading | Tests overfitting and construct drift. | Loading shrinkage or instability, predictive gain/loss, decision reversal, false public-promotion rate. | Block promotion if extra loadings look plausible only because priors or sparse data support them. |
+| Weak or sparse dimension support | Mirrors realistic rubric designs with limited items or anchors per dimension. | Dimension-specific ESS/R-hat, coverage, interval width, Q graph support, heldout rank stability. | Require warning or rejection when dimension claims are prior-dominated. |
+| Rater-method noise and DFF-adjacent confounding | Separates rater behavior from multidimensional construct structure. | Rater consistency/severity shifts, grouped PPC, DFF screening rows, Q-revision false positives, heldout score changes. | Keep DFF and Q revisions diagnostic unless design support and sensitivity pass. |
+
+The immediate implementation target is a small fixture that links
+`mgmfrm_fit_metric_threshold_sensitivity`, the empirical Q-matrix recovery
+simulation grid, and fold-1 heldout scoring outputs into one roadmap artifact.
+It should report which threshold profiles would change conclusions and which
+parameter blocks absorb the change.
 
 ## Decision Gates and Fallback Paths
 
@@ -226,11 +284,12 @@ artifact, not a validation result or superiority claim.
 | Rasch rating and partial-credit foundations | Andrich's rating-scale formulation defines ordered-category rating structure and threshold interpretation; Masters' partial-credit model generalizes ordered response alternatives item by item; Muraki's generalized partial-credit model adds varying slope/discrimination to PCM. Sources: [Andrich 1978](https://doi.org/10.1007/BF02293814), [Masters 1982](https://doi.org/10.1007/BF02296272), [Muraki 1992](https://eric.ed.gov/?id=EJ452375). | Keep RSM/PCM/MFRM parameterization and threshold constraints separate from generalized discrimination. Do not blur step parameters, thresholds, and discrimination in report labels. |
 | Many-facet Rasch measurement | Linacre's MFRM extends Rasch measurement to rater-mediated settings with multiple facets; Facets documentation frames each rating as an interaction of examinee, item/task, rater, and other elements, modeled additively. Sources: [Linacre MFRM book page](https://www.rasch.org/facet.htm), [Facets theory](https://www.winsteps.com/facetman/theory.htm). | The package should remain intelligible to MFRM users: facet maps, severity, fair averages, fit statistics, connectedness, and sparse design warnings remain first-class even as MGMFRM grows. |
 | Dichotomous many-facet IRT bridge | Facets documentation presents the dichotomous Rasch model as `log(P/(1-P)) = ability - difficulty`, then extends the same additive structure to many-facet ordinal observations by adding rater severity and other facet elements. Sources: [Facets theory](https://www.winsteps.com/facetman/theory.htm), [Rasch dichotomous fit statistics](https://www.rasch.org/rmt/rmt82a.htm). | For binary outcomes, document MFRM as a many-facet 1PL/Rasch IRT model. For generalized binary MGMFRM, document exactly which terms create a generalized IRT model: Q-masked multidimensional ability, item/dimension discrimination, rater consistency, severity, and any step/intercept terms. |
-| Infit/outfit and FACETS fit tables | Rasch fit statistics are conventionally reported as mean-squares with expected value one. Outfit is the average squared standardized residual; infit is information-weighted. Winsteps/FACETS documentation treats outfit degrees of freedom as the observation count and infit degrees of freedom as the information in the observations, with Wilson-Hilferty-style ZSTD approximations. Sources: [Winsteps misfit diagnosis](https://www.winsteps.com/winman/misfitdiagnosis.htm), [Facets WHEXACT](https://www.winsteps.com/facetman/whexact.htm), [Rasch MNSQ/ZSTD interpretation](https://www.rasch.org/rmt/rmt162f.htm). | Separate three outputs: posterior MNSQ intervals for Bayesian diagnostics, optional FACETS-compatible point-estimate MNSQ/ZSTD rows for MFRM user familiarity, and simulation-calibrated posterior predictive checks. Do not apply FACETS ZSTD or degrees-of-freedom formulas to posterior-summarized GMFRM/MGMFRM fit statistics without explicit approximation labels. |
+| Infit/outfit and FACETS fit tables | Rasch fit statistics are conventionally reported as mean-squares with expected value one. Outfit is the average squared standardized residual; infit is information-weighted. Winsteps/FACETS documentation treats outfit degrees of freedom as the observation count and infit degrees of freedom as the information in the observations, with Wilson-Hilferty-style ZSTD approximations. Mean-square cutoffs vary by purpose, sample size, and reviewer convention. Sources: [Winsteps misfit diagnosis](https://www.winsteps.com/winman/misfitdiagnosis.htm), [Facets WHEXACT](https://www.winsteps.com/facetman/whexact.htm), [Rasch MNSQ/ZSTD interpretation](https://www.rasch.org/rmt/rmt162f.htm), [reasonable mean-square ranges](https://www.rasch.org/rmt/rmt83b.htm), [Smith, Schumacker, and Bush 1998](https://pubmed.ncbi.nlm.nih.gov/9661732/), [Mueller 2020](https://link.springer.com/article/10.1186/s40488-020-00108-7). | Separate three outputs: posterior MNSQ intervals for Bayesian diagnostics, optional FACETS-compatible point-estimate MNSQ/ZSTD rows for MFRM user familiarity, and simulation-calibrated posterior predictive checks. Do not apply FACETS ZSTD or degrees-of-freedom formulas to posterior-summarized GMFRM/MGMFRM fit statistics without explicit approximation labels. Treat cutoffs as threshold profiles whose false-positive rate and power must be checked by simulation before they support claims. |
 | Rater effects | The MFRM literature distinguishes severity/leniency, centrality/extremity, inconsistency, range restriction, halo, and differential rater functioning. HRM and newer facets models show that rater severity and rater consistency/centrality are separable model targets. Sources: [Patz et al. 2002](https://journals.sagepub.com/doi/10.3102/10769986027004341), [Jin and Wang 2018](https://doi.org/10.1111/JEDM.12191), [Myford and Wolfe references](https://jampress.org/pubs.htm). | Use "rater consistency" for Uto-style `alpha_r`; reserve "discrimination" for item/dimension discrimination unless the docs explicitly name compatibility aliases. Keep DFF as screening evidence until fitted DFF effects have their own model and validation policy. |
 | Generalized MFRM | Uto and Ueno propose a generalized MFRM that jointly represents rater severity, rater consistency, rater-specific range restriction/step behavior, and task/item discrimination, estimated with NUT-HMC. Source: [Uto and Ueno 2020](https://link.springer.com/article/10.1007/s41237-020-00115-7). | The GMFRM compiler must expose item discrimination, rater consistency, rater severity, and step/range-restriction blocks with source-equation roles, constraints, priors, and report labels. |
 | Multidimensional generalized MFRM | Uto extends generalized MFRM to multidimensional rubric assessment, using a multidimensional GPCM-style ability term, rater consistency, rater severity, item-step effects, fixed `1.7` scaling, and NUT-HMC. Source: [Uto 2021](https://link.springer.com/article/10.1007/s41237-021-00144-w). | Start with confirmatory fixed-Q MGMFRM. Do not expose exploratory dimensions or free rotations until dimension labels, gauge constraints, and posterior summaries are invariant enough for users to interpret. |
 | Multidimensional Rasch and polytomous IRT | The MRCML framework generalizes a wide class of Rasch models to multidimensional settings; multidimensional partial-credit/GPCM work gives item/test statistics and MCMC estimation for mixed item formats. Sources: [Adams, Wilson, and Wang 1997](https://journals.sagepub.com/doi/10.1177/0146621697211001), [Yao and Schwarz 2006](https://journals.sagepub.com/doi/10.1177/0146621605284537), [Reckase 2009](https://link.springer.com/book/10.1007/978-0-387-89976-3). | `v0.1.2` can extend fixed-Q dimensionality, but the compiler must treat dimension structure as a design contract, not a loose matrix argument. |
+| Q-matrix validation and revision | CDM and MIRT Q-matrix literature treats the Q matrix as a substantive design object whose misspecification can be empirically diagnosed but not safely edited by a single automatic rule. Sources: [Chiu 2013](https://journals.sagepub.com/doi/10.1177/0146621613488436), [de la Torre and Chiu 2016](https://doi.org/10.1007/s11336-015-9467-8), [Chen 2017](https://journals.sagepub.com/doi/10.1177/0146621616686021), [Terzi and de la Torre 2018](https://doi.org/10.21449/ijate.407193), [da Silva et al. 2019](https://doi.org/10.1177/0013164418814898), [Najera et al. 2020](https://journals.sagepub.com/doi/10.1177/0146621620909904). | Keep Q revision as construct review plus simulation evidence. The package can propose local diagnostic candidates, but public automatic Q editing remains blocked until false-add/false-drop rates, sparse-dimension behavior, and impact on focal parameters are calibrated. |
 | Existing software | Facets covers unidimensional MFRM; TAM covers unidimensional and multidimensional IRT, GPCM, and multi-faceted Rasch models; mirt covers exploratory and confirmatory MIRT with EM/MHRM-style estimation. Sources: [Facets](https://www.winsteps.com/facets.htm), [TAM CRAN docs](https://cran.r-project.org/web/packages/TAM/refman/TAM.html), [Chalmers 2012 mirt](https://www.jstatsoft.org/article/view/v048i06). | The package's defensible niche is Bayesian, source-audited, rater-mediated MGMFRM workflow in Julia, with reproducible diagnostics and reporting. Do not claim the ecosystem lacks MFRM or MIRT tools. |
 | Bayesian computation | NUTS reduces hand tuning relative to HMC but does not remove the need for diagnostics; rank-normalized R-hat/ESS improve convergence assessment; SBC is useful for validating Bayesian implementations. Sources: [Hoffman and Gelman 2014](https://jmlr.org/papers/v15/hoffman14a.html), [Vehtari et al. 2021](https://doi.org/10.1214/20-BA1221), [Talts et al. 2018](https://arxiv.org/abs/1804.06788). | Every promotion must record divergences, max-depth hits, E-BFMI, R-hat, bulk/tail ESS, direct-constraint failures, SBC/recovery evidence, and failure modes by parameter block. |
 | Bayesian model checking and comparison | Posterior/prior predictive checks test data features under replicated data; PSIS-LOO and WAIC estimate pointwise predictive accuracy, with PSIS-LOO more robust than WAIC in finite weak-prior/influential-observation settings. Sources: [Stan predictive checks](https://mc-stan.org/docs/stan-users-guide/posterior-predictive-checks.html), [Vehtari, Gelman, and Gabry 2017](https://link.springer.com/article/10.1007/s11222-016-9696-4). | Generalized reports should emphasize predictive checks, calibration, and prediction target statements. Model weights and superiority claims remain blocked until Pareto-k/refit evidence and prediction-target policy are explicit. |
@@ -373,11 +432,23 @@ and exploratory models.
 - Add Q-matrix schema checks: binary/nonnegative mask, named dimensions,
   minimum items per dimension, optional cross-loading policy, rank diagnostics,
   dimension connectedness, and sparse cell warnings.
+- Extend empirical Q-matrix simulation fixtures with known-truth false-add,
+  false-drop, weak-dimension, duplicate-column, sparse-anchor, and rater-method
+  noise scenarios. Record false public-promotion rate separately from local
+  candidate-detection rate.
 - Extend rating-design audits to higher-dimensional fixed-Q designs, including
   dimension-specific anchor coverage, planned missingness, repeated ratings,
   and time/order metadata where present.
 - Add dimension-wise ability summaries, loading summaries, expected-score
   summaries, calibration rows, and PPC rows.
+- Compare fit-threshold profiles rather than promoting a single cutoff:
+  strict Bayesian workflow, screening workflow, lenient Rasch exploration,
+  sample-size-sensitive mean-square screening, and heldout-predictive-first
+  profiles.
+- Compare existing-model indicators with MGMFRM indicators in every threshold
+  scenario: MFRM infit/outfit, posterior predictive discrepancies,
+  calibration error, WAIC/LOO or heldout ELPD, direct parameter shifts, and
+  decision reversals.
 - Extend power-scaling sensitivity to higher-dimensional fixed-Q designs, with
   block-wise prior/likelihood sensitivity for abilities, rater consistency,
   item/dimension discrimination, and item-step effects.
@@ -398,6 +469,11 @@ and exploratory models.
 
 - Fixed-Q higher-dimensional examples pass source, AD, HMC, recovery, and
   report-shape tests.
+- Fit-threshold profiles are calibrated by simulation and remain labelled as
+  profiles; no single universal cutoff is promoted.
+- Existing MFRM fit indicators and MGMFRM predictive/report indicators are
+  compared under matched simulation conditions before threshold claims are
+  used in public wording.
 - Broad exploratory MGMFRM remains blocked.
 
 ### v0.1.3: Free Latent Correlation Decision
@@ -546,6 +622,9 @@ different reviewer objection.
   prior predictive checks, and correlation-specific diagnostics.
 - Do not expose exploratory loadings until rotation, sign, and permutation
   invariance are handled in reports.
+- Do not promote one universal infit/outfit, PPC, calibration, WAIC/LOO, or
+  heldout-ELPD threshold without simulation evidence for false alarms, power,
+  parameter distortion, and decision reversals.
 - Do not report model weights without a prediction target, Pareto-k or refit
   diagnostics, and sensitivity to influential rows.
 - Do not treat weakly informative priors as validated until prior predictive
