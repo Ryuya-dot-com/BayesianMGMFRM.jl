@@ -140,8 +140,17 @@ simulation grid, heldout-prediction simulation expectations, and fold-1 heldout
 scoring outputs into one roadmap artifact. Its role is diagnostic: it records
 threshold-profile sensitivity, Q-recovery risk, parameter-shift absorption, and
 observed-versus-expected fold-1 rank matches while keeping public fit,
-Q-revision, model-weight, and sparse-superiority claims blocked. The next gate
-is full-batch heldout MCMC refit or an external construct-validation dataset.
+Q-revision, model-weight, and sparse-superiority claims blocked.
+
+The next small-step fixture is now
+`mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring`. It expands the fixed-Q
+MGMFRM candidate scoring from fold 1 to all five folds, records 75 candidate
+score rows and 600 pointwise heldout rows, and marks the fixed-Q candidate
+batch complete. It is still not a public model-selection result: scalar/null
+anchor refits, publication-grade chains and draws, and external construct
+validation remain unresolved. The next gate is therefore scalar/reference
+anchor refits or an external construct-validation dataset, not a model-weight
+or sparse-superiority claim.
 
 ## Decision Gates and Fallback Paths
 

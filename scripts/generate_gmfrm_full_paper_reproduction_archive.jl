@@ -421,6 +421,17 @@ const REPRODUCTION_FIXTURES = [
             "MFRM_MGMFRM_FULL_HELDOUT_MCMC_REFIT_FOLD1_SCORING_FIXTURE",
         pass_policy = :summary_passed,
         hash_policy = :sha256),
+    (name = :mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring,
+        path =
+            "test/fixtures/mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring.v1",
+        generator =
+            "scripts/generate_mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring.jl",
+        env_var =
+            "MFRM_MGMFRM_FULL_HELDOUT_MCMC_REFIT_CANDIDATE_BATCH_SCORING_FIXTURE",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
     (name = :mgmfrm_fit_threshold_q_heldout_linkage,
         path =
             "test/fixtures/mgmfrm_fit_threshold_q_heldout_linkage.json",
@@ -530,6 +541,7 @@ const CODE_AND_DOC_PATHS = [
     "scripts/generate_mgmfrm_full_heldout_mcmc_refit_batch_smoke.jl",
     "scripts/generate_mgmfrm_full_heldout_mcmc_refit_fold1_pilot.jl",
     "scripts/generate_mgmfrm_full_heldout_mcmc_refit_fold1_scoring.jl",
+    "scripts/generate_mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring.jl",
     "scripts/generate_mgmfrm_fit_threshold_q_heldout_linkage.jl",
     "scripts/generate_mgmfrm_guarded_fit_method_wiring.jl",
     "scripts/generate_mgmfrm_guarded_fit_validation_grid.jl",
@@ -650,6 +662,9 @@ const FULL_REGENERATION_COMMANDS = [
     (artifact = :mgmfrm_full_heldout_mcmc_refit_fold1_scoring,
         command =
             "julia --project=. scripts/generate_mgmfrm_full_heldout_mcmc_refit_fold1_scoring.jl"),
+    (artifact = :mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring,
+        command =
+            "julia --project=. scripts/generate_mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring.jl"),
     (artifact = :mgmfrm_fit_threshold_q_heldout_linkage,
         command =
             "julia --project=. scripts/generate_mgmfrm_fit_threshold_q_heldout_linkage.jl"),
@@ -744,6 +759,8 @@ const PROTOCOL = (;
         require_mgmfrm_full_heldout_mcmc_refit_fold1_pilot_passed =
             true,
         require_mgmfrm_full_heldout_mcmc_refit_fold1_scoring_passed =
+            true,
+        require_mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed =
             true,
         require_mgmfrm_fit_threshold_q_heldout_linkage_passed = true,
         require_mgmfrm_guarded_fit_method_wiring_passed = true,
@@ -1065,6 +1082,9 @@ function build_artifact()
     mgmfrm_full_heldout_refit_fold1_scoring =
         record_by_name(fixture_records,
             :mgmfrm_full_heldout_mcmc_refit_fold1_scoring)
+    mgmfrm_full_heldout_refit_candidate_batch_scoring =
+        record_by_name(fixture_records,
+            :mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring)
     mgmfrm_fit_threshold_q_heldout_linkage =
         record_by_name(fixture_records,
             :mgmfrm_fit_threshold_q_heldout_linkage)
@@ -1133,6 +1153,7 @@ function build_artifact()
         mgmfrm_full_heldout_refit_batch_smoke.summary_passed &&
         mgmfrm_full_heldout_refit_fold1_pilot.summary_passed &&
         mgmfrm_full_heldout_refit_fold1_scoring.summary_passed &&
+        mgmfrm_full_heldout_refit_candidate_batch_scoring.summary_passed &&
         mgmfrm_fit_threshold_q_heldout_linkage.summary_passed &&
         mgmfrm_method.summary_passed &&
         mgmfrm_validation.summary_passed &&
@@ -1255,6 +1276,8 @@ function build_artifact()
                 mgmfrm_full_heldout_refit_fold1_pilot.summary_passed,
             mgmfrm_full_heldout_mcmc_refit_fold1_scoring_passed =
                 mgmfrm_full_heldout_refit_fold1_scoring.summary_passed,
+            mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed =
+                mgmfrm_full_heldout_refit_candidate_batch_scoring.summary_passed,
             mgmfrm_fit_threshold_q_heldout_linkage_passed =
                 mgmfrm_fit_threshold_q_heldout_linkage.summary_passed,
             mgmfrm_guarded_fit_method_wiring_passed =

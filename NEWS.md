@@ -105,6 +105,12 @@
   leaves scalar/null comparison anchors unscored in the fixed-Q pilot, and keeps
   full-batch, publication-grade diagnostic, external-construct, and public
   model-comparison claims blocked.
+- Add a local MGMFRM all-fold fixed-Q candidate heldout predictive-scoring
+  generator and JSON artifact that expands fold-1 scoring to all five folds for
+  the three fixed-Q MGMFRM candidates, records 75 candidate refit scores and 600
+  heldout pointwise rows, leaves scalar/null anchors unscored, and keeps
+  model-weight, sparse-superiority, fit-threshold, and Q-revision claims blocked
+  pending anchor refits or external construct validation.
 - Add a local MGMFRM fit-threshold/Q/heldout linkage generator and JSON
   artifact that connects threshold-profile sensitivity, Q-matrix recovery
   diagnostics, predeclared heldout simulation expectations, and observed fold-1

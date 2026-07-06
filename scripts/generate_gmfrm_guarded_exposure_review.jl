@@ -169,6 +169,8 @@ const PROTOCOL = (;
             true,
         require_mgmfrm_full_heldout_mcmc_refit_fold1_scoring_passed =
             true,
+        require_mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed =
+            true,
         require_mgmfrm_fit_threshold_q_heldout_linkage_passed = true,
         high_variance_waic_blocks_public_exposure = true,
         psis_loo_or_exact_loo_required_before_exposure = true,
@@ -1310,6 +1312,9 @@ function artifact_summary(name::Symbol, text::AbstractString)
         mgmfrm_full_heldout_mcmc_refit_fold1_scoring_passed =
             json_bool(summary,
                 "mgmfrm_full_heldout_mcmc_refit_fold1_scoring_passed"),
+        mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed =
+            json_bool(summary,
+                "mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed"),
         mgmfrm_fit_threshold_q_heldout_linkage_passed =
             json_bool(summary,
                 "mgmfrm_fit_threshold_q_heldout_linkage_passed"),
@@ -1411,6 +1416,9 @@ function artifact_summary(name::Symbol, text::AbstractString)
         mgmfrm_full_heldout_mcmc_refit_fold1_scoring_passed =
             json_bool(summary,
                 "mgmfrm_full_heldout_mcmc_refit_fold1_scoring_passed"),
+        mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed =
+            json_bool(summary,
+                "mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed"),
         mgmfrm_fit_threshold_q_heldout_linkage_passed =
             json_bool(summary,
                 "mgmfrm_fit_threshold_q_heldout_linkage_passed"),
@@ -1737,6 +1745,12 @@ function review_rows(records)
                 :mgmfrm_full_heldout_mcmc_refit_fold1_scoring_passed)),
             finding =
                 :fold1_heldout_scoring_completed_full_batch_pending),
+        (gate = :confirmatory_mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring,
+            status = :passed_with_policy_blocker,
+            evidence = Bool(getproperty(full_archive.summary,
+                :mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed)),
+            finding =
+                :fixed_q_candidate_all_fold_scoring_completed_anchor_refits_pending),
         (gate = :confirmatory_mgmfrm_fit_threshold_q_heldout_linkage,
             status = :passed_with_policy_blocker,
             evidence = Bool(getproperty(full_archive.summary,
@@ -1852,7 +1866,7 @@ function build_artifact()
             interpretation =
                 :local_evidence_reviewed_manual_scope_review_recorded_and_broader_exposure_decision_recorded,
             required_followup =
-                :full_heldout_mgmfrm_mcmc_refit_full_batch_execution_or_external_construct_dataset_attachment,
+                :run_scalar_and_reference_anchor_refits_or_external_construct_dataset_review,
         ),
         summary = (;
             reviewed = true,
@@ -1945,6 +1959,9 @@ function build_artifact()
             mgmfrm_full_heldout_mcmc_refit_fold1_scoring_passed =
                 Bool(getproperty(full_archive.summary,
                     :mgmfrm_full_heldout_mcmc_refit_fold1_scoring_passed)),
+            mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed)),
             mgmfrm_fit_threshold_q_heldout_linkage_passed =
                 Bool(getproperty(full_archive.summary,
                     :mgmfrm_fit_threshold_q_heldout_linkage_passed)),
@@ -1972,7 +1989,7 @@ function build_artifact()
             recommendation =
                 :manual_scope_review_recorded_keep_guarded_scalar_and_confirmatory_mgmfrm_only,
             next_gate =
-                :full_heldout_mgmfrm_mcmc_refit_full_batch_execution_or_external_construct_dataset_attachment,
+                :run_scalar_and_reference_anchor_refits_or_external_construct_dataset_review,
         ),
     )
 end

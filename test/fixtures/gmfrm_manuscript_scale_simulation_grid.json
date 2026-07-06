@@ -56,6 +56,7 @@
       "require_mgmfrm_full_heldout_mcmc_refit_batch_smoke_passed": true,
       "require_mgmfrm_full_heldout_mcmc_refit_fold1_pilot_passed": true,
       "require_mgmfrm_full_heldout_mcmc_refit_fold1_scoring_passed": true,
+      "require_mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed": true,
       "require_mgmfrm_fit_threshold_q_heldout_linkage_passed": true,
       "require_full_paper_reproduction_archive_passed": true,
       "require_minimum_total_evidence_cells": 60,
@@ -524,6 +525,23 @@
       }
     },
     {
+      "artifact": "mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring",
+      "path": "test/fixtures/mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring.json",
+      "exists": true,
+      "schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring.v1",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring.v1",
+      "schema_matches": true,
+      "summary_passed": true,
+      "hash_policy": "sha256",
+      "sha256": "823dce841d781b8d56c25f234205999efc6c46d7ab8b659fb730840e28659d9d",
+      "summary": {
+        "passed": true,
+        "n_evidence_cells": 855,
+        "key_check": "mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring",
+        "all_primary_checks": true
+      }
+    },
+    {
       "artifact": "mgmfrm_fit_threshold_q_heldout_linkage",
       "path": "test/fixtures/mgmfrm_fit_threshold_q_heldout_linkage.json",
       "exists": true,
@@ -549,10 +567,10 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "47cd8a681837e0ab2609cc8f0921ab878a1fc6bb7098673fa83a25a617c2c31f",
+      "sha256": "aea680c75a67be0c9509a54052cbd6059481425b18ea02bc628db35da6122f15",
       "summary": {
         "passed": true,
-        "n_evidence_cells": 54,
+        "n_evidence_cells": 55,
         "key_check": "full_paper_reproduction_archive",
         "all_primary_checks": true
       }
@@ -749,6 +767,13 @@
       "artifact": "test/fixtures/mgmfrm_full_heldout_mcmc_refit_fold1_scoring.json"
     },
     {
+      "gate": "mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring",
+      "status": "passed",
+      "n_evidence_cells": 855,
+      "key_check": "mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring",
+      "artifact": "test/fixtures/mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring.json"
+    },
+    {
       "gate": "mgmfrm_fit_threshold_q_heldout_linkage",
       "status": "passed",
       "n_evidence_cells": 35,
@@ -758,7 +783,7 @@
     {
       "gate": "full_paper_reproduction_archive",
       "status": "passed",
-      "n_evidence_cells": 54,
+      "n_evidence_cells": 55,
       "key_check": "full_paper_reproduction_archive",
       "artifact": "test/fixtures/gmfrm_full_paper_reproduction_archive.json"
     }
@@ -784,9 +809,9 @@
     },
     {
       "claim": "model_weights_or_sparse_mgmfrm_superiority",
-      "decision": "fold1_scoring_recorded_keep_blocked_until_full_batch_or_external_dataset_review",
+      "decision": "candidate_batch_scoring_recorded_keep_blocked_until_anchor_refits_or_external_dataset_review",
       "public_claim_allowed": false,
-      "required_followup": "full_heldout_mgmfrm_mcmc_refit_full_batch_execution_or_external_construct_dataset_attachment"
+      "required_followup": "run_scalar_and_reference_anchor_refits_or_external_construct_dataset_review"
     }
   ],
   "blocker_rows": [],
@@ -797,7 +822,7 @@
     "manuscript_claims_allowed": false,
     "public_exposure_support": "gate_e_and_full_archive_recorded_no_publication_action",
     "interpretation": "manuscript_scale_grid_recorded_full_archive_available",
-    "required_followup": "full_heldout_mgmfrm_mcmc_refit_full_batch_execution_or_external_construct_dataset_attachment"
+    "required_followup": "run_scalar_and_reference_anchor_refits_or_external_construct_dataset_review"
   },
   "summary": {
     "passed": true,
@@ -807,9 +832,9 @@
     "all_expected_schemas": true,
     "all_input_summaries_passed": true,
     "all_primary_checks_passed": true,
-    "n_input_artifacts": 29,
-    "n_evidence_rows": 29,
-    "total_evidence_cells": 1728,
+    "n_input_artifacts": 30,
+    "n_evidence_rows": 30,
+    "total_evidence_cells": 2584,
     "minimum_required_evidence_cells": 60,
     "scalar_fit_validation_grid_passed": true,
     "posterior_predictive_grid_passed": true,
@@ -838,6 +863,7 @@
     "mgmfrm_full_heldout_mcmc_refit_batch_smoke_passed": true,
     "mgmfrm_full_heldout_mcmc_refit_fold1_pilot_passed": true,
     "mgmfrm_full_heldout_mcmc_refit_fold1_scoring_passed": true,
+    "mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed": true,
     "mgmfrm_fit_threshold_q_heldout_linkage_passed": true,
     "full_paper_reproduction_archive_passed": true,
     "scalar_guarded_fit_allowed": true,
@@ -849,6 +875,6 @@
     "n_blockers": 0,
     "remaining_public_blockers": [],
     "recommendation": "manual_scope_review_recorded_keep_broader_claims_blocked",
-    "next_gate": "full_heldout_mgmfrm_mcmc_refit_full_batch_execution_or_external_construct_dataset_attachment"
+    "next_gate": "run_scalar_and_reference_anchor_refits_or_external_construct_dataset_review"
   }
 }
