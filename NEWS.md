@@ -13,6 +13,11 @@
   `well_specified_current_q` fold-1 publication-grade units, recording that
   3/4 MCMC gates passed, scalar GMFRM had two divergences, the analytic null
   reference ranked first on heldout ELPD, and public claims remain blocked.
+- Add a local brms-like scalar remediation review fixture showing that
+  increasing scalar GMFRM `target_acceptance` from `0.8` to `0.9` under the
+  same `4/1000/1000` budget removed divergences (`2 -> 0`) without a material
+  heldout-ELPD shift, while preserving the primary pilot row and blocking public
+  model-comparison claims.
 - Split the rendered API reference into smaller workflow pages to avoid the
   oversized single-page Documenter warning.
 - Turn the Documenter 100 KiB rendered-page warning threshold into a hard docs

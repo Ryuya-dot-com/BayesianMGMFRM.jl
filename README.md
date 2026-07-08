@@ -429,6 +429,13 @@ recovered after MCMC across replicated seeds and internal prior profiles:
   best diagnostic-passed MCMC model (`-11.674`). This strengthens the need to
   diagnose signal strength, category calibration, and threshold behavior before
   any model-weight or sparse-superiority claim.
+- A brms-like scalar remediation rerun with the same `4` chains, `1000` warmup,
+  and `1000` retained-draw budget but `target_acceptance = 0.9` removed the
+  scalar GMFRM divergences (`2 -> 0`) while leaving heldout ELPD essentially
+  unchanged (`-10.164 -> -10.160`, dELPD `+0.0043`). The primary pilot result is
+  not replaced; the local batch policy can use `target_acceptance = 0.9` for
+  scalar GMFRM jobs while public sampler-stability, fit-threshold, and
+  model-comparison claims remain blocked.
 - The current compact Null-win batch still shows large structured-model losses
   (for example Current Q dELPD vs Null `-33.027`), so current failures should be
   diagnosed through signal strength, category calibration, Q support, prior

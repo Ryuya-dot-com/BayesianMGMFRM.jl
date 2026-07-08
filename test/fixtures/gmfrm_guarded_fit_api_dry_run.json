@@ -507,7 +507,7 @@
       "artifact": "docs/src/fitting.md#guarded-generalized-model-caveats",
       "reference_kind": "local_file",
       "exists": true,
-      "sha256": "cf6eb5e8c46e572f3932e842fc187012124ea2c095ba047fdc62ffd221c33bb4"
+      "sha256": "e804bd910dc61fc80811efb4cfd7425ab8c623a719b620d960b08331d5c5fa28"
     }
   ],
   "target_dry_run": {

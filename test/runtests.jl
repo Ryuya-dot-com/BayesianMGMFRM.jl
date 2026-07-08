@@ -12744,6 +12744,246 @@ function check_mgmfrm_publication_grade_refit_sampler_remediation_review_fixture
         "execute_sampler_remediation_if_scalar_divergence_observed"
 end
 
+function check_mgmfrm_publication_grade_refit_brms_like_scalar_remediation_review_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_publication_grade_refit_brms_like_scalar_remediation_review.v1"
+    @test String(fixture[:family]) == "mgmfrm"
+    @test String(fixture[:scope]) ==
+        "publication_grade_refit_brms_like_scalar_remediation_review"
+    @test String(fixture[:status]) ==
+        "publication_grade_refit_brms_like_scalar_remediation_review_recorded"
+    @test String(fixture[:decision]) ==
+        "record_brms_like_scalar_target_acceptance_remediation"
+    @test Bool(fixture[:public_fit])
+    @test Bool(fixture[:experimental_public])
+    @test Bool(fixture[:local_only])
+    @test Bool(fixture[:pilot_only])
+    @test Bool(fixture[:remediation_only])
+    @test Bool(fixture[:local_artifacts_required_for_generation])
+    @test Bool(fixture[:publication_or_registration_action]) == false
+    @test Bool(fixture[:publication_grade_brms_like_pilot_executed])
+    @test Bool(fixture[:full_125_unit_publication_grade_batch_completed]) ==
+        false
+    @test Bool(fixture[:public_fit_metric_claim]) == false
+    @test Bool(fixture[:public_q_revision_claim]) == false
+    @test Bool(fixture[:public_model_weight_claim]) == false
+    @test Bool(fixture[:sparse_mgmfrm_superiority_claim]) == false
+
+    protocol = fixture[:protocol]
+    thresholds = protocol[:thresholds]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_publication_grade_refit_brms_like_scalar_remediation_review_v1"
+    @test String(protocol[:review_kind]) ==
+        "local_brms_like_scalar_sampler_remediation_review"
+    @test String(protocol[:source_runner]) ==
+        "run_mgmfrm_publication_grade_refit_job"
+    @test String(protocol[:source_pilot_review]) ==
+        "mgmfrm_publication_grade_refit_brms_like_pilot_execution_review"
+    @test String(protocol[:execution_unit_id]) ==
+        "well_specified_current_q__scalar_gmfrm_baseline__fold1"
+    @test String(protocol[:primary_artifact_suffix]) == "_4_1000_1000_ta080"
+    @test String(protocol[:remediation_artifact_suffix]) ==
+        "_4_1000_1000_ta090"
+    @test Int(thresholds[:require_chains]) == 4
+    @test Int(thresholds[:require_warmup_per_chain]) == 1000
+    @test Int(thresholds[:require_draws_per_chain]) == 1000
+    @test Int(thresholds[:require_total_retained_draws]) == 4000
+    @test Float64(thresholds[:require_primary_target_acceptance]) == 0.8
+    @test Float64(thresholds[:require_remediation_target_acceptance]) == 0.9
+    @test Int(thresholds[:require_divergence_count_max]) == 0
+    @test Float64(thresholds[:material_heldout_elpd_shift_threshold]) ==
+        0.05
+    @test Bool(thresholds[:require_primary_result_preserved])
+    @test Bool(thresholds[:require_public_claims_blocked])
+
+    review = fixture[:input_review_artifact]
+    @test String(review[:artifact]) ==
+        "mgmfrm_publication_grade_refit_brms_like_pilot_execution_review"
+    @test String(review[:path]) ==
+        "test/fixtures/mgmfrm_publication_grade_refit_brms_like_pilot_execution_review.json"
+    @test Bool(review[:exists])
+    @test Bool(review[:schema_matches])
+    @test Bool(review[:summary_passed])
+    @test Bool(review[:sampler_diagnostic_failure_detected])
+    @test String(review[:sha256]) ==
+        file_sha256(joinpath(root, String(review[:path])))
+
+    inputs = fixture[:input_artifacts]
+    @test length(inputs) == 6
+    @test Set(String(row[:kind]) for row in inputs) == Set([
+        "primary_result",
+        "primary_diagnostics",
+        "primary_heldout",
+        "remediation_result",
+        "remediation_diagnostics",
+        "remediation_heldout",
+    ])
+    @test all(row -> Bool(row[:exists]), inputs)
+    @test all(row -> Bool(row[:schema_matches]), inputs)
+    @test all(row -> Bool(row[:summary_passed]), inputs)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, inputs)
+    @test all(row -> startswith(String(row[:path]),
+        "artifacts/publication_grade_refit_pilot_brms_like/"), inputs)
+
+    primary = fixture[:primary_scalar_summary]
+    @test String(primary[:run_label]) == "primary_ta080"
+    @test String(primary[:model]) == "scalar_gmfrm_baseline"
+    @test Float64(primary[:target_acceptance]) == 0.8
+    @test Int(primary[:chains]) == 4
+    @test Int(primary[:warmup_per_chain]) == 1000
+    @test Int(primary[:draws_per_chain]) == 1000
+    @test Int(primary[:total_retained_draws]) == 4000
+    @test Bool(primary[:diagnostic_gate_passed]) == false
+    @test String(primary[:sampler_flag]) == "sampler_warning"
+    @test Int(primary[:n_divergences]) == 2
+    @test Float64(primary[:max_rhat]) <= 1.01
+    @test Float64(primary[:min_ess]) >= 400.0
+    @test Float64(primary[:e_bfmi]) >= 0.3
+    @test Float64(primary[:heldout_elpd]) ≈ -10.163856267085027
+    @test Bool(primary[:public_claim_allowed]) == false
+
+    remediation = fixture[:remediated_scalar_summary]
+    @test String(remediation[:run_label]) == "remediated_ta090"
+    @test Float64(remediation[:target_acceptance]) == 0.9
+    @test Int(remediation[:chains]) == 4
+    @test Int(remediation[:warmup_per_chain]) == 1000
+    @test Int(remediation[:draws_per_chain]) == 1000
+    @test Int(remediation[:total_retained_draws]) == 4000
+    @test Bool(remediation[:diagnostic_gate_passed])
+    @test String(remediation[:sampler_flag]) == "ok"
+    @test Int(remediation[:n_divergences]) == 0
+    @test Float64(remediation[:max_rhat]) <= 1.01
+    @test Float64(remediation[:min_ess]) >= 400.0
+    @test Float64(remediation[:e_bfmi]) >= 0.3
+    @test Float64(remediation[:heldout_elpd]) ≈ -10.15953696736171
+    @test Bool(remediation[:public_claim_allowed]) == false
+
+    comparison = fixture[:scalar_remediation_comparison_row]
+    @test String(comparison[:comparison]) ==
+        "primary_ta080_vs_remediated_ta090_scalar_gmfrm"
+    @test Bool(comparison[:same_mcmc_budget])
+    @test Bool(comparison[:primary_diagnostic_gate_passed]) == false
+    @test Bool(comparison[:remediation_diagnostic_gate_passed])
+    @test Int(comparison[:primary_n_divergences]) == 2
+    @test Int(comparison[:remediation_n_divergences]) == 0
+    @test Int(comparison[:delta_n_divergences_remediation_minus_primary]) ==
+        -2
+    @test Float64(comparison[:delta_heldout_elpd_remediation_minus_primary]) ≈
+        0.004319299723317016
+    @test Bool(comparison[:remediation_resolves_primary_divergence])
+    @test Bool(comparison[:heldout_elpd_materially_changed]) == false
+    @test Bool(comparison[:remediation_improves_heldout_elpd])
+    @test Bool(comparison[:primary_result_replaced]) == false
+    @test Bool(comparison[:descriptive_only])
+    @test Bool(comparison[:public_claim_allowed]) == false
+
+    policy = fixture[:batch_sampler_policy_row]
+    @test String(policy[:policy]) ==
+        "brms_like_publication_grade_scalar_sampler_setting"
+    @test String(policy[:affected_model]) == "scalar_gmfrm_baseline"
+    @test Float64(policy[:primary_target_acceptance]) == 0.8
+    @test Float64(policy[:selected_batch_target_acceptance]) == 0.9
+    @test Float64(policy[:default_non_scalar_target_acceptance]) == 0.8
+    @test Int(policy[:selected_warmup_per_chain]) == 1000
+    @test Int(policy[:selected_draws_per_chain]) == 1000
+    @test String(policy[:selection_basis]) ==
+        "local_brms_like_rerun_removed_scalar_divergences"
+    @test Bool(policy[:primary_pilot_result_replaced]) == false
+    @test Bool(policy[:batch_expansion_allowed_for_scalar_local_only])
+    @test Bool(policy[:batch_expansion_allowed_for_public_claim]) == false
+    @test Bool(policy[:requires_replication_across_folds])
+    @test Bool(policy[:public_claim_allowed]) == false
+
+    rows = fixture[:diagnostic_review_rows]
+    @test length(rows) == 24
+    @test count(row -> String(row[:run_label]) == "primary_ta080", rows) == 12
+    @test count(row -> String(row[:run_label]) == "remediated_ta090", rows) ==
+        12
+    @test count(row -> Bool(row[:passed]) == false, rows) == 1
+    failed = only(fixture[:failed_diagnostic_review_rows])
+    @test String(failed[:run_label]) == "primary_ta080"
+    @test String(failed[:diagnostic]) == "divergence_count_max"
+    @test Int(failed[:value]) == 2
+    @test Int(failed[:threshold]) == 0
+    @test Bool(failed[:public_claim_allowed]) == false
+
+    blockers = fixture[:blocker_rows]
+    @test length(blockers) == 7
+    @test count(row -> Bool(row[:resolved]), blockers) == 1
+    @test String(only(row for row in blockers if Bool(row[:resolved]))[
+        :blocker]) == "scalar_divergence_not_remediated"
+    @test Set(String(row[:blocker]) for row in blockers
+        if !Bool(row[:resolved])) == Set([
+        "target_acceptance_policy_not_replicated_across_folds",
+        "fit_metric_thresholds_not_reestimated_under_publication_grade_draws",
+        "null_reference_best_heldout_score",
+        "full_125_unit_publication_grade_batch_not_executed",
+        "external_construct_dataset_missing",
+        "independent_public_scope_review_missing",
+    ])
+
+    decision = fixture[:decision_record]
+    @test String(decision[:selected_decision]) ==
+        "use_target_acceptance_0p90_for_scalar_batch_local_only"
+    @test Bool(decision[:primary_scalar_failure_reviewed])
+    @test Bool(decision[:remediation_success_observed])
+    @test Bool(decision[:same_mcmc_budget])
+    @test Bool(decision[:primary_result_replaced]) == false
+    @test Float64(decision[:scalar_batch_target_acceptance]) == 0.9
+    @test Bool(decision[:scalar_batch_expansion_allowed_local_only])
+    @test Bool(decision[:public_fit_metric_claim_allowed]) == false
+    @test Bool(decision[:public_q_revision_claim_allowed]) == false
+    @test Bool(decision[:public_model_weight_claim_allowed]) == false
+    @test Bool(decision[:sparse_mgmfrm_superiority_claim_allowed]) == false
+    @test String(decision[:required_followup]) ==
+        "update_publication_grade_batch_plan_with_brms_like_scalar_target_acceptance_0p90"
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:publication_or_registration_action]) == false
+    @test Bool(summary[:local_only])
+    @test Bool(summary[:pilot_only])
+    @test Bool(summary[:remediation_only])
+    @test Bool(summary[:all_input_artifacts_valid])
+    @test Bool(summary[:publication_grade_brms_like_pilot_executed])
+    @test Bool(summary[:full_125_unit_publication_grade_batch_completed]) ==
+        false
+    @test Bool(summary[:primary_scalar_diagnostic_gate_passed]) == false
+    @test Bool(summary[:remediated_scalar_diagnostic_gate_passed])
+    @test Bool(summary[:primary_scalar_divergence_failure_recorded])
+    @test Bool(summary[:remediation_success_observed])
+    @test Bool(summary[:remediation_resolves_primary_divergence])
+    @test Bool(summary[:same_mcmc_budget])
+    @test Bool(summary[:heldout_elpd_materially_changed]) == false
+    @test Bool(summary[:remediation_improves_heldout_elpd])
+    @test Bool(summary[:primary_result_preserved])
+    @test Float64(summary[:scalar_batch_target_acceptance]) == 0.9
+    @test Bool(summary[:scalar_batch_expansion_allowed_local_only])
+    @test Bool(summary[:scalar_batch_expansion_allowed_for_public_claim]) ==
+        false
+    @test Bool(summary[:no_public_claim_allowed])
+    @test Int(summary[:primary_n_divergences]) == 2
+    @test Int(summary[:remediation_n_divergences]) == 0
+    @test Int(summary[:delta_n_divergences_remediation_minus_primary]) == -2
+    @test Float64(summary[:delta_heldout_elpd_remediation_minus_primary]) ≈
+        0.004319299723317016
+    @test Int(summary[:n_input_artifacts]) == 6
+    @test Int(summary[:n_diagnostic_review_rows]) == 24
+    @test Int(summary[:n_failed_diagnostic_review_rows]) == 1
+    @test Int(summary[:n_blocker_rows]) == 7
+    @test Int(summary[:n_resolved_blockers]) == 1
+    @test Int(summary[:n_blockers]) == 6
+    @test String(summary[:recommendation]) ==
+        "update_scalar_batch_policy_to_target_acceptance_0p90_keep_claims_blocked"
+    @test String(summary[:next_gate]) ==
+        "update_publication_grade_batch_plan_with_brms_like_scalar_target_acceptance_0p90"
+end
+
 function check_mgmfrm_publication_grade_refit_scalar_remediation_comparison_fixture(
         fixture_path::AbstractString)
     root = dirname(@__DIR__)
@@ -20509,6 +20749,12 @@ end
     if !isempty(mgmfrm_publication_grade_refit_brms_like_pilot_execution_review_fixture)
         check_mgmfrm_publication_grade_refit_brms_like_pilot_execution_review_fixture(
             mgmfrm_publication_grade_refit_brms_like_pilot_execution_review_fixture,
+        )
+    end
+    mgmfrm_publication_grade_refit_brms_like_scalar_remediation_review_fixture = optional_fixture_path("MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_BRMS_LIKE_SCALAR_REMEDIATION_REVIEW_FIXTURE", joinpath("test", "fixtures", "mgmfrm_publication_grade_refit_brms_like_scalar_remediation_review.json"))
+    if !isempty(mgmfrm_publication_grade_refit_brms_like_scalar_remediation_review_fixture)
+        check_mgmfrm_publication_grade_refit_brms_like_scalar_remediation_review_fixture(
+            mgmfrm_publication_grade_refit_brms_like_scalar_remediation_review_fixture,
         )
     end
     mgmfrm_publication_grade_refit_sampler_remediation_review_fixture = optional_fixture_path("MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_SAMPLER_REMEDIATION_REVIEW_FIXTURE", joinpath("test", "fixtures", "mgmfrm_publication_grade_refit_sampler_remediation_review.json"))

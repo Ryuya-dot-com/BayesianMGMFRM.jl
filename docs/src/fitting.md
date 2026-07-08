@@ -370,6 +370,14 @@ model (`-11.674`). These ranks are descriptive local diagnostics only; they
 motivate signal-strength, category-calibration, and threshold-sensitivity
 checks rather than any public model-weight claim.
 
+The scalar remediation gate has a brms-like rerun at the same `4` chains,
+`1000` warmup draws per chain, and `1000` retained draws per chain. Raising only
+`target_acceptance` from `0.8` to `0.9` removed the scalar GMFRM divergences
+(`2 -> 0`), kept R-hat/ESS/E-BFMI inside the local gate, and left heldout ELPD
+essentially unchanged (`-10.164 -> -10.160`, dELPD `+0.0043`). This is local
+sampler-policy evidence, not a replacement of the primary pilot row or a public
+model-selection claim.
+
 These numbers are local diagnostic evidence only. They should not be cited as
 public fit thresholds, model weights, Q-revision evidence, sparse-superiority
 evidence, or a stable-public MGMFRM validation claim.

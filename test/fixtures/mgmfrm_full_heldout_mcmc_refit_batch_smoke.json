@@ -67,7 +67,7 @@
       "artifact": "mgmfrm_full_heldout_mcmc_refit_execution_plan",
       "path": "test/fixtures/mgmfrm_full_heldout_mcmc_refit_execution_plan.json",
       "exists": true,
-      "sha256": "b41b3613a73e6a5b442522174a4459ff193fdf7b89df3c87c86d982dc4d8160a",
+      "sha256": "8001d872dfb9753887ac572d89d184a4c81492757f23a987f957be0796f554da",
       "schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_execution_plan.v1",
       "expected_schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_execution_plan.v1",
       "schema_matches": true,

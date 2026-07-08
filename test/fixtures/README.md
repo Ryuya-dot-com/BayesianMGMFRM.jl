@@ -264,6 +264,14 @@ passing the full local gate, isolates the scalar GMFRM divergence failure,
 ranks heldout ELPD descriptively, and keeps fit-metric, Q-revision,
 model-weight, sparse-superiority, full-batch, and public-scope claims blocked.
 
+`mgmfrm_publication_grade_refit_brms_like_scalar_remediation_review.json`
+records the brms-like scalar sampler-remediation evidence. It compares the
+primary scalar GMFRM `target_acceptance = 0.8` run with a same-budget
+`target_acceptance = 0.9` rerun, records that divergences dropped from `2` to
+`0` with no material heldout-ELPD shift, and selects scalar-only
+`target_acceptance = 0.9` as a local batch policy while leaving public claims
+blocked.
+
 `mgmfrm_publication_grade_refit_sampler_remediation_review.json` records the
 local scalar-GMFRM sampler remediation layer. It tracks the target-acceptance
 0.9 rerun for the scalar pilot divergence warning, keeps committed fixtures
