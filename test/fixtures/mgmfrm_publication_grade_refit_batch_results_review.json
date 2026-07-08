@@ -57,7 +57,7 @@
       "artifact": "mgmfrm_publication_grade_refit_batch_expansion_plan",
       "path": "test/fixtures/mgmfrm_publication_grade_refit_batch_expansion_plan.json",
       "exists": true,
-      "sha256": "43cd9307cd5abc41381e09da370e93dfa63a6bd8329b3e029ae15d9a4b2c351c",
+      "sha256": "11c32903bd6c52c837d0c99e1bd3102a2d7375b85be938c43370265476da4d24",
       "schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_batch_expansion_plan.v1",
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_batch_expansion_plan.v1",
       "schema_matches": true,

@@ -166,6 +166,11 @@
   keeps fixed-Q MGMFRM candidates at 0.8, upgrades the batch warmup budget to
   `1000` per chain, and marks the local runner path ready while public claims
   remain blocked until batch results are reviewed.
+- Add a local publication-grade batch smoke execution review fixture for the
+  five `well_specified_current_q` fold-1 jobs, recording that all four MCMC
+  gates passed through the batch runner path, scalar target acceptance 0.9 kept
+  divergences at zero, the analytic null/reference still ranked first on
+  heldout ELPD, and remaining batch/public claims stay blocked.
 - Extend the publication-grade refit runner so it can read either the pilot
   plan or the full batch-expansion plan via `--plan`, preserving pilot
   compatibility while enabling batch dry-runs and analytic reference jobs.

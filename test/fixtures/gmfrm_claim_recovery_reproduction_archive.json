@@ -278,7 +278,7 @@
       "path": "test/fixtures/gmfrm_guarded_fit_api_dry_run.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "4c2919746dc988a375b40b6df581a0f5072f896c042adef72e1d2734ea04d6b6",
+      "sha256": "83e88f565c450d133949138bdd1e7f320e40936e48a937b5e9e913eeeed54620",
       "expected_schema": "bayesianmgmfrm.gmfrm_guarded_fit_api_dry_run.v1",
       "schema": "bayesianmgmfrm.gmfrm_guarded_fit_api_dry_run.v1",
       "schema_matches": true,
@@ -329,12 +329,12 @@
     {
       "path": "README.md",
       "exists": true,
-      "sha256": "79fc9f65d7932b1a972396678da3d83e55aa05d703c03aa374aaaf67ee492109"
+      "sha256": "a5547bdf50093988ad0710593828757ab7b4b418ddbc0c8e077e865f0a224ef1"
     },
     {
       "path": "NEWS.md",
       "exists": true,
-      "sha256": "87eea982d1362c79fbe761e48249b9811c7e8ef0cc807b51f0af4b733b691539"
+      "sha256": "da02dcc29f4240a1905aef48dacc0dc47750278f627781bd0d3321fe01ecdb35"
     },
     {
       "path": "ROADMAP.md",
@@ -354,17 +354,17 @@
     {
       "path": "test/runtests.jl",
       "exists": true,
-      "sha256": "6b062879421565252e77a67dcbc06d5a1ff0ad8f9e605eef46b7d68361a41f46"
+      "sha256": "06b8bdb8891aec2cbf11039c1205970dea70d1a60b7ab2985482e8b7060764d6"
     },
     {
       "path": "test/fixtures/README.md",
       "exists": true,
-      "sha256": "8a069b4a4df1a7330dc567e1a7a78e4d53416ca6e16376ab43c1612a739189ba"
+      "sha256": "d24bbc153413cd7d1b45f42440ceb208bf4188a019d8f6a146e22097921f70c5"
     },
     {
       "path": "docs/src/fitting.md",
       "exists": true,
-      "sha256": "d8b5182eb18a7a19aa92cc712386482241454d4a9b48b3bdb2f34090e4a3e9d2"
+      "sha256": "beb4bf1a8009cb5f99803d4803764d3c158e6309db14683df15bca2ef621920e"
     },
     {
       "path": "docs/src/model-equations.md",

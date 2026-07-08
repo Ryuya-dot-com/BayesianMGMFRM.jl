@@ -385,6 +385,14 @@ with `4` chains, `1000` warmup draws, and `1000` retained draws per chain. The
 runner adapter is ready for local execution, but the full-batch result review,
 external construct evidence, and public-scope review remain unresolved.
 
+The first batch smoke execution ran the five `well_specified_current_q` fold-1
+jobs through the full batch runner path. All four MCMC jobs passed the local
+diagnostic gate, the scalar GMFRM job used `target_acceptance = 0.9` with zero
+divergences, and scalar remained the best diagnostic-passed MCMC model. The
+analytic null/reference still ranked first on heldout ELPD, so the evidence
+continues to support batch expansion for diagnosis rather than any public
+structured-model superiority claim.
+
 These numbers are local diagnostic evidence only. They should not be cited as
 public fit thresholds, model weights, Q-revision evidence, sparse-superiority
 evidence, or a stable-public MGMFRM validation claim.

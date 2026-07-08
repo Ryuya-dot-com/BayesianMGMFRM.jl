@@ -13449,6 +13449,226 @@ function check_mgmfrm_publication_grade_refit_batch_expansion_plan_fixture(
         "execute_publication_grade_refit_batch_locally"
 end
 
+function check_mgmfrm_publication_grade_refit_batch_smoke_execution_review_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_publication_grade_refit_batch_smoke_execution_review.v1"
+    @test String(fixture[:family]) == "mgmfrm"
+    @test String(fixture[:scope]) ==
+        "publication_grade_refit_batch_smoke_execution_review"
+    @test String(fixture[:status]) ==
+        "publication_grade_refit_batch_smoke_execution_review_recorded"
+    @test String(fixture[:decision]) ==
+        "record_well_specified_fold1_batch_smoke_execution"
+    @test Bool(fixture[:public_fit])
+    @test Bool(fixture[:experimental_public])
+    @test Bool(fixture[:local_only])
+    @test Bool(fixture[:smoke_only])
+    @test Bool(fixture[:publication_or_registration_action]) == false
+    @test Bool(fixture[:publication_grade_batch_plan_recorded])
+    @test Bool(fixture[:publication_grade_batch_smoke_executed])
+    @test Bool(fixture[:full_125_unit_publication_grade_batch_completed]) ==
+        false
+    @test Bool(fixture[:public_fit_metric_claim]) == false
+    @test Bool(fixture[:public_q_revision_claim]) == false
+    @test Bool(fixture[:public_model_weight_claim]) == false
+    @test Bool(fixture[:sparse_mgmfrm_superiority_claim]) == false
+
+    protocol = fixture[:protocol]
+    thresholds = protocol[:thresholds]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_publication_grade_refit_batch_smoke_execution_review_v1"
+    @test String(protocol[:review_kind]) ==
+        "local_publication_grade_batch_smoke_execution_review"
+    @test String(protocol[:source_orchestrator]) ==
+        "run_mgmfrm_publication_grade_refit_batch"
+    @test String(protocol[:source_runner]) ==
+        "run_mgmfrm_publication_grade_refit_job"
+    @test String(protocol[:source_plan]) ==
+        "mgmfrm_publication_grade_refit_batch_expansion_plan"
+    @test String(protocol[:scenario]) == "well_specified_current_q"
+    @test Int(protocol[:fold]) == 1
+    @test Int(protocol[:expected_execution_units]) == 5
+    @test Int(protocol[:expected_mcmc_execution_units]) == 4
+    @test Int(protocol[:expected_analytic_reference_units]) == 1
+    @test Int(thresholds[:require_manifest_attempted_jobs]) == 5
+    @test Int(thresholds[:require_failed_jobs]) == 0
+    @test Int(thresholds[:require_chains]) == 4
+    @test Int(thresholds[:require_warmup_per_chain]) == 1000
+    @test Int(thresholds[:require_draws_per_chain]) == 1000
+    @test Float64(thresholds[:require_scalar_target_acceptance]) == 0.9
+    @test Float64(thresholds[:require_fixed_q_target_acceptance]) == 0.8
+    @test Int(thresholds[:require_divergence_count_max]) == 0
+    @test Bool(thresholds[:require_public_claims_blocked])
+
+    inputs = fixture[:input_artifacts]
+    @test length(inputs) == 2
+    input_by_artifact = Dict(String(row[:artifact]) => row for row in inputs)
+    plan = input_by_artifact[
+        "mgmfrm_publication_grade_refit_batch_expansion_plan"]
+    @test String(plan[:path]) ==
+        "test/fixtures/mgmfrm_publication_grade_refit_batch_expansion_plan.json"
+    @test Bool(plan[:exists])
+    @test Bool(plan[:schema_matches])
+    @test Bool(plan[:summary_passed])
+    @test Bool(plan[:batch_execution_ready_local_only])
+    @test Float64(plan[:scalar_target_acceptance]) == 0.9
+    @test Int(plan[:planned_warmup_iterations]) == 400000
+    @test String(plan[:sha256]) ==
+        file_sha256(joinpath(root, String(plan[:path])))
+    manifest =
+        input_by_artifact["mgmfrm_publication_grade_refit_batch_orchestrator_run"]
+    @test String(manifest[:path]) ==
+        "artifacts/publication_grade_refit_batch/orchestrator_well_specified_fold1_smoke_brms_like.json"
+    @test Bool(manifest[:exists])
+    @test Bool(manifest[:schema_matches])
+    @test Bool(manifest[:summary_passed])
+    @test String(manifest[:action]) == "execute"
+    @test Int(manifest[:n_matching_jobs]) == 5
+    @test Int(manifest[:n_attempted_jobs]) == 5
+    @test Int(manifest[:n_failed_jobs]) == 0
+    @test Int(manifest[:n_successful_action_jobs]) == 5
+    @test Int(manifest[:n_complete_after]) >= 5
+    @test String(manifest[:next_gate]) ==
+        "run_remaining_publication_grade_refit_batch_jobs"
+
+    job_inputs = fixture[:job_input_artifacts]
+    @test length(job_inputs) == 15
+    @test count(row -> String(row[:kind]) == "result", job_inputs) == 5
+    @test count(row -> String(row[:kind]) == "diagnostics", job_inputs) == 5
+    @test count(row -> String(row[:kind]) == "heldout", job_inputs) == 5
+    @test all(row -> Bool(row[:exists]), job_inputs)
+    @test all(row -> Bool(row[:schema_matches]), job_inputs)
+    @test all(row -> Bool(row[:summary_passed]), job_inputs)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, job_inputs)
+
+    selected = fixture[:manifest_selected_job_rows]
+    @test length(selected) == 5
+    @test all(row -> Bool(row[:selected_for_action]), selected)
+    @test all(row -> String(row[:action_status]) == "executed", selected)
+    @test all(row -> String(row[:status_after]) == "complete_executed",
+        selected)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, selected)
+
+    rows = fixture[:job_review_rows]
+    @test length(rows) == 5
+    @test Set(String(row[:model]) for row in rows) == Set([
+        "scalar_gmfrm_baseline",
+        "confirmatory_mgmfrm_current_q",
+        "sparse_mgmfrm_current_q",
+        "construct_reviewed_revised_q_mgmfrm",
+        "null_or_intercept_reference",
+    ])
+    @test all(row -> Bool(row[:executed]), rows)
+    @test all(row -> Bool(row[:dry_run]) == false, rows)
+    @test all(row -> Bool(row[:artifacts_complete]), rows)
+    @test all(row -> Bool(row[:diagnostic_gate_passed]), rows)
+    @test all(row -> Int(row[:n_divergences]) == 0, rows)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, rows)
+
+    mcmc_rows = [row for row in rows if Bool(row[:mcmc_refit_required])]
+    @test length(mcmc_rows) == 4
+    @test all(row -> Int(row[:chains]) == 4, mcmc_rows)
+    @test all(row -> Int(row[:warmup_per_chain]) == 1000, mcmc_rows)
+    @test all(row -> Int(row[:draws_per_chain]) == 1000, mcmc_rows)
+    @test all(row -> Int(row[:total_retained_draws]) == 4000, mcmc_rows)
+    @test all(row -> Float64(row[:max_rhat]) <= 1.01, mcmc_rows)
+    @test all(row -> Float64(row[:min_ess]) >= 400.0, mcmc_rows)
+    @test all(row -> Float64(row[:e_bfmi]) >= 0.3, mcmc_rows)
+    scalar = only(row for row in rows
+        if String(row[:model]) == "scalar_gmfrm_baseline")
+    @test Float64(scalar[:target_acceptance]) == 0.9
+    @test String(scalar[:sampler_flag]) == "ok"
+    @test Float64(scalar[:heldout_elpd]) ≈ -10.15953696736171
+    fixed_q_rows = [row for row in mcmc_rows
+        if String(row[:model]) != "scalar_gmfrm_baseline"]
+    @test all(row -> Float64(row[:target_acceptance]) == 0.8,
+        fixed_q_rows)
+
+    ranks = fixture[:heldout_model_rank_rows]
+    @test length(ranks) == 5
+    @test String(first(ranks)[:model]) == "null_or_intercept_reference"
+    @test Int(first(ranks)[:rank]) == 1
+    @test Bool(first(ranks)[:analytic_reference_scored])
+    @test String(ranks[2][:model]) == "scalar_gmfrm_baseline"
+    @test Bool(ranks[2][:diagnostic_gate_passed])
+    @test Float64(ranks[2][:heldout_elpd]) ≈ -10.15953696736171
+    @test String(ranks[3][:model]) == "sparse_mgmfrm_current_q"
+    @test all(row -> Bool(row[:descriptive_only]), ranks)
+    @test all(row -> Bool(row[:public_model_weight_claim_allowed]) == false,
+        ranks)
+    @test isempty(fixture[:diagnostic_failure_rows])
+
+    blockers = fixture[:blocker_rows]
+    @test length(blockers) == 8
+    @test count(row -> Bool(row[:resolved]), blockers) == 3
+    @test Set(String(row[:blocker]) for row in blockers
+        if !Bool(row[:resolved])) == Set([
+        "null_reference_best_heldout_score",
+        "fit_metric_thresholds_not_reestimated_under_publication_grade_batch",
+        "full_125_unit_publication_grade_batch_not_executed",
+        "external_construct_dataset_missing",
+        "independent_public_scope_review_missing",
+    ])
+
+    decision = fixture[:decision_record]
+    @test String(decision[:selected_decision]) ==
+        "continue_batch_execution_after_successful_smoke"
+    @test Bool(decision[:batch_smoke_executed])
+    @test Bool(decision[:all_mcmc_diagnostic_gates_passed])
+    @test Bool(decision[:scalar_target_acceptance_policy_confirmed])
+    @test Bool(decision[:reference_best_heldout_score])
+    @test Bool(decision[:public_fit_metric_claim_allowed]) == false
+    @test Bool(decision[:public_model_weight_claim_allowed]) == false
+    @test Bool(decision[:sparse_superiority_claim_allowed]) == false
+    @test String(decision[:required_followup]) ==
+        "run_remaining_publication_grade_refit_batch_jobs"
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:publication_or_registration_action]) == false
+    @test Bool(summary[:local_only])
+    @test Bool(summary[:smoke_only])
+    @test Bool(summary[:all_artifacts_valid])
+    @test Bool(summary[:publication_grade_batch_smoke_executed])
+    @test Bool(summary[:full_125_unit_publication_grade_batch_completed]) ==
+        false
+    @test Bool(summary[:all_mcmc_diagnostic_gates_passed])
+    @test Bool(summary[:scalar_target_acceptance_policy_confirmed])
+    @test Bool(summary[:reference_best_heldout_score])
+    @test Bool(summary[:no_public_claim_allowed])
+    @test Int(summary[:n_input_artifacts]) == 2
+    @test Int(summary[:n_job_input_artifacts]) == 15
+    @test Int(summary[:n_manifest_selected_job_rows]) == 5
+    @test Int(summary[:n_job_review_rows]) == 5
+    @test Int(summary[:n_mcmc_execution_units]) == 4
+    @test Int(summary[:n_analytic_reference_units]) == 1
+    @test Int(summary[:n_diagnostic_failure_rows]) == 0
+    @test Int(summary[:n_manifest_attempted_jobs]) == 5
+    @test Int(summary[:n_manifest_failed_jobs]) == 0
+    @test Int(summary[:n_manifest_successful_action_jobs]) == 5
+    @test Int(summary[:n_batch_complete_after_manifest]) >= 5
+    @test String(summary[:best_heldout_model]) ==
+        "null_or_intercept_reference"
+    @test String(summary[:best_mcmc_heldout_model]) ==
+        "scalar_gmfrm_baseline"
+    @test String(summary[:best_diagnostic_passed_mcmc_model]) ==
+        "scalar_gmfrm_baseline"
+    @test Float64(summary[:scalar_heldout_elpd]) ≈ -10.15953696736171
+    @test Int(summary[:scalar_n_divergences]) == 0
+    @test Int(summary[:n_blocker_rows]) == 8
+    @test Int(summary[:n_resolved_blockers]) == 3
+    @test Int(summary[:n_blockers]) == 5
+    @test String(summary[:recommendation]) ==
+        "run_remaining_publication_grade_refit_batch_jobs_keep_claims_blocked"
+    @test String(summary[:next_gate]) ==
+        "run_remaining_publication_grade_refit_batch_jobs"
+end
+
 function check_mgmfrm_publication_grade_refit_batch_results_review_fixture(
         fixture_path::AbstractString)
     root = dirname(@__DIR__)
@@ -20777,6 +20997,12 @@ end
     if !isempty(mgmfrm_publication_grade_refit_batch_expansion_plan_fixture)
         check_mgmfrm_publication_grade_refit_batch_expansion_plan_fixture(
             mgmfrm_publication_grade_refit_batch_expansion_plan_fixture,
+        )
+    end
+    mgmfrm_publication_grade_refit_batch_smoke_execution_review_fixture = optional_fixture_path("MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_BATCH_SMOKE_EXECUTION_REVIEW_FIXTURE", joinpath("test", "fixtures", "mgmfrm_publication_grade_refit_batch_smoke_execution_review.json"))
+    if !isempty(mgmfrm_publication_grade_refit_batch_smoke_execution_review_fixture)
+        check_mgmfrm_publication_grade_refit_batch_smoke_execution_review_fixture(
+            mgmfrm_publication_grade_refit_batch_smoke_execution_review_fixture,
         )
     end
     mgmfrm_publication_grade_refit_batch_results_review_fixture = optional_fixture_path("MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_BATCH_RESULTS_REVIEW_FIXTURE", joinpath("test", "fixtures", "mgmfrm_publication_grade_refit_batch_results_review.json"))

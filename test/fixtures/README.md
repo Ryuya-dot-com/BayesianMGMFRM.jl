@@ -294,6 +294,13 @@ runner reads this plan via `--plan`, and the committed plan is now local
 execution-ready while public claims remain blocked until batch results are
 observed and reviewed.
 
+`mgmfrm_publication_grade_refit_batch_smoke_execution_review.json` records the
+first local batch-runner smoke execution. It summarizes the five
+`well_specified_current_q` fold-1 jobs, verifies that the scalar
+`target_acceptance = 0.9` batch path kept divergences at `0`, records all four
+MCMC diagnostic gates as passing, preserves the analytic null/reference heldout
+win as a blocker, and advances the next gate to the remaining batch jobs.
+
 `scripts/run_mgmfrm_publication_grade_refit_batch.jl` is the local-only batch
 orchestrator for that next gate. It reads the batch plan, skips already
 completed job artifacts by default, writes a manifest, and only calls the

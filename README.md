@@ -442,6 +442,12 @@ recovered after MCMC across replicated seeds and internal prior profiles:
   `4` chains with `1000` warmup and `1000` retained draws per chain, and the
   local runner adapter is ready. The next gate is executing the batch locally;
   full-batch, external-construct, and public-scope blockers remain.
+- A first batch smoke execution has run the five `well_specified_current_q`
+  fold-1 jobs through the full batch runner path. All four MCMC jobs passed the
+  local diagnostic gate, scalar GMFRM kept `target_acceptance = 0.9` with zero
+  divergences, and the analytic null/reference still ranked first on heldout
+  ELPD. The next gate is running the remaining publication-grade batch jobs
+  while keeping model-weight, sparse-superiority, and public fit claims blocked.
 - The current compact Null-win batch still shows large structured-model losses
   (for example Current Q dELPD vs Null `-33.027`), so current failures should be
   diagnosed through signal strength, category calibration, Q support, prior
