@@ -161,6 +161,134 @@ scalar/null anchors unscored and blocking public fit-threshold, Q-revision,
 model-weight, and sparse-superiority claims until anchor refits or external
 construct validation are available.
 
+`mgmfrm_full_heldout_mcmc_refit_anchor_scoring.json` records the follow-up
+local anchor-scoring gate after the all-fold fixed-Q candidate batch. It scores
+the scalar GMFRM anchor with the guarded one-chain/one-draw path, scores the
+intercept/reference anchor analytically from training-fold category rates with
+Dirichlet smoothing, joins those 50 anchor score rows to the 75 candidate score
+rows, and keeps public model-weight, sparse-superiority, fit-threshold, and
+Q-revision claims blocked pending publication-grade refits or external
+construct validation.
+
+`mgmfrm_uto_style_retained_draw_budget_guidance.json` records the no-new-MCMC
+local synthesis of the Uto-style retained-draw budget gates. It fixes the
+report-facing guidance that similar guarded MGMFRM diagnostics should use at
+least four chains, 128 warmup draws, and 512 retained draws per chain before
+treating rank warnings as substantive evidence, while keeping thinning-first
+fixes, package-default changes, and public fit/Q/model-weight/sparse claims
+blocked.
+
+`mgmfrm_recommended_budget_empirical_gate.json` records the first local
+empirical check of that recommended budget against the heavier publication-grade
+pilot comparator. Three MGMFRM fold-1 jobs were rerun at 4 chains, 128 warmup
+draws, and 512 retained draws per chain. Confirmatory current-Q and sparse
+current-Q cleared the local diagnostic gate, but construct-reviewed revised-Q
+showed a borderline rank-normalized R-hat warning (`1.0109` vs the `1.01`
+threshold). The fixture therefore keeps the guidance local, blocks public
+claims, and sets the next gate to a targeted construct-reviewed revised-Q
+extended-budget follow-up.
+
+`mgmfrm_construct_reviewed_revised_q_extended_budget_followup.json` records
+that targeted follow-up. The baseline `4/128/512` profile failed only the local
+rank gate, while all four follow-up profiles cleared: draws-only
+`4/128/1000`, warmup-only `4/256/512`, combined `4/256/1000`, and combined
+`4/256/1000` with `target_accept = 0.9`. Because `4/128/1000` cleared with
+strong ESS and no geometry warnings, the fixture recommends construct-reviewed
+revised-Q `1000`-draw scenario/fold replication before any default or public
+wording change.
+
+`mgmfrm_construct_reviewed_revised_q_1000_draw_scenario_replication.json`
+records the first replication smoke for that recommendation. The default
+`4/128/1000` profiles all cleared the rank gate, but one
+`well_specified_current_q` fold-2 run had a single divergence. Both
+`target_accept = 0.9` and warmup extension to `256` cleared that geometry
+warning, so the fixture preserves the 1000-draw rank guidance while requiring a
+separate geometry-remediation branch before defaults or public wording change.
+
+`mgmfrm_construct_reviewed_revised_q_1000_draw_geometry_branch_expansion.json`
+records the expanded 25-cell version of that branch. All default `4/128/1000`
+construct-reviewed revised-Q cells cleared rank, 23/25 cleared the full local
+gate, and the only geometry failures were one-divergence
+`well_specified_current_q` folds 2 and 4. The fixture records that all six
+target-acceptance/warmup remediation profiles for those two cells cleared, and
+sets the next gate to joining budget diagnostics with model-comparison and
+category-calibration evidence.
+
+The current `fit_report(...).mcmc_budget_guidance` row is brms-like for guarded
+MGMFRM diagnostics: `4` chains, `1000` warmup draws per chain, and `1000`
+retained draws per chain. This is a report-facing guidance setting, not a
+package-wide `fit` default change.
+
+`mgmfrm_publication_grade_refit_gate.json` records the next local
+publication-grade refit gate after descriptive 125-unit scoring. It freezes the
+NUTS chain/draw/warmup controls, R-hat/ESS/HMC diagnostic thresholds,
+posterior-predictive and expected-score calibration requirements, metric
+profile rows, pilot-scope rows, and claim blockers before any heavy refit is
+run.
+
+`mgmfrm_publication_grade_refit_pilot_plan.json` records the first
+publication-grade pilot plan. It selects the `well_specified_current_q` fold-1
+cell across all five comparison models, records 4-chain NUTS controls for the
+four MCMC refit units, keeps the intercept/reference unit analytic, creates
+diagnostic placeholders, and leaves public MGMFRM claims blocked until the
+pilot is executed or external construct evidence is attached.
+
+`mgmfrm_publication_grade_refit_pilot_execution_harness.json` records the
+local execution harness for that pilot. It materializes five execution jobs,
+planned local command templates, result-artifact targets, diagnostic-capture
+rows, and comparison hooks against the fold-1, anchor, and fit-threshold
+artifacts. The runner script is now materialized for dry-run,
+analytic-reference, and refit-job execution; heavy pilot completion and public
+MGMFRM claims remain blocked.
+
+`mgmfrm_publication_grade_refit_pilot_results_review.json` records the local
+result-review layer for that pilot. It reads the harness plus any local runner
+artifacts, detects missing, partial, or complete execution, counts observed
+diagnostics and heldout-score artifacts, and keeps fit-metric, Q-revision,
+model-weight, and sparse-superiority claims blocked until all selected jobs are
+executed and reviewed.
+
+`mgmfrm_publication_grade_refit_sampler_remediation_review.json` records the
+local scalar-GMFRM sampler remediation layer. It tracks the target-acceptance
+0.9 rerun for the scalar pilot divergence warning, keeps committed fixtures
+isolated from ignored local runner artifacts, and never replaces the primary
+pilot result.
+
+`mgmfrm_publication_grade_refit_scalar_remediation_comparison.json` compares
+the primary scalar pilot row with that target-acceptance remediation before
+batch expansion. Local observed runs can select target acceptance 0.9 for the
+next scalar batch, but the committed fixture remains local-only and keeps all
+public fit-metric and model-comparison claims blocked.
+
+`mgmfrm_publication_grade_refit_batch_expansion_plan.json` expands the
+publication-grade pilot into the full 125 scenario-model-fold batch. It records
+conditional scalar target acceptance 0.9, the default 0.8 setting for the
+fixed-Q MGMFRM candidates, analytic reference jobs, command templates, result
+targets, and diagnostic-capture rows. The shared runner now reads this plan via
+`--plan`, so committed fixtures keep execution blocked only until local
+remediation evidence is attached; ignored local remediation artifacts can
+advance the next gate to local batch execution.
+
+`scripts/run_mgmfrm_publication_grade_refit_batch.jl` is the local-only batch
+orchestrator for that next gate. It reads the batch plan, skips already
+completed job artifacts by default, writes a manifest, and only calls the
+single-job runner when `--execute` or `--materialize-dry-run-artifacts` is
+explicitly supplied. Execution modes require `--max-jobs`, `--all`, or
+explicit `--execution-unit` selection so the 125-unit batch is not launched
+accidentally.
+
+`mgmfrm_publication_grade_refit_batch_results_review.json` records the
+corresponding batch result-review layer. The committed fixture ignores local
+runner artifacts, so it remains a lightweight 125-unit review scaffold with
+model-level and scenario-model summaries. It also carries the four
+fit-threshold profiles from `mgmfrm_fit_metric_threshold_sensitivity.json` into
+job-level, model-level, and scenario-model threshold surfaces so strict,
+screening, lenient, and sample-size-sensitive interpretations can be compared
+without promoting a single cutoff. Local review artifacts can opt in to reading
+`artifacts/publication_grade_refit_batch/` and will count executed, dry-run,
+diagnostic, heldout-score, and threshold-profile evaluation rows while keeping
+all public claims blocked.
+
 `mgmfrm_fit_threshold_q_heldout_linkage.json` links the literature-motivated
 fit-threshold sensitivity grid, empirical Q-matrix recovery simulation, heldout
 prediction simulation expectations, and observed fold-1 heldout scores. It

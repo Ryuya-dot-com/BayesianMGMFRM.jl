@@ -107,12 +107,12 @@
     {
       "artifact": "test/fixtures/gmfrm_sparse_design_grid.json",
       "exists": true,
-      "sha256": "8302c301121551afd7d7ab07915818a7974383827bc2cbdfcad552136d5f5eeb"
+      "sha256": "1bd6662fdf3cdab18442eda3683d5e47706534d94fab3811d8382d91c3188651"
     },
     {
       "artifact": "test/fixtures/gmfrm_posterior_predictive_grid.json",
       "exists": true,
-      "sha256": "6a65d9de506e97611277b527567dda913e95e45638067eaa097186ea1bb68866"
+      "sha256": "e5d4075ccfd7c321f6549875e7758a20177907bfefebf0bdfbd68f9472e37953"
     }
   ],
   "scenarios": [
@@ -1888,7 +1888,7 @@
             28
           ],
           "all_finite": true,
-          "minimum": 2.3205246524327094e-7,
+          "minimum": 2.3205246524327094e-07,
           "maximum": 0.9551424840550521,
           "mean": 0.4385944484663372
         },

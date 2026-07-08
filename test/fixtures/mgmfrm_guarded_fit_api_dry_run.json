@@ -34,7 +34,7 @@
         5,
         6
       ],
-      "finite_difference_step": 1.0e-5,
+      "finite_difference_step": 1.0e-05,
       "max_gradient_abs_error": 0.0001
     },
     "decision_rules": {
@@ -60,7 +60,7 @@
       "artifact": "bridge_oracle",
       "path": "test/fixtures/source_mgmfrm_bridge_logdensity.json",
       "exists": true,
-      "sha256": "5003d46cc0012d6d55a5dec47a84c00cd6eaa83865a5da3db78a13f91f1c50c0",
+      "sha256": "c2dd83dc0cad629c8b7b1ed45fe7151c3939e7e675719735a8c1b094da177c95",
       "expected_schema": "bayesianmgmfrm.source_mgmfrm_bridge_logdensity.v1",
       "schema": "bayesianmgmfrm.source_mgmfrm_bridge_logdensity.v1",
       "schema_matches": true,
@@ -74,7 +74,7 @@
       "artifact": "guarded_fit_method_wiring",
       "path": "test/fixtures/mgmfrm_guarded_fit_method_wiring.json",
       "exists": true,
-      "sha256": "e97088e414e3347cab4eaea6c30f1bb4c5c0c40918aecdf804240670ef603996",
+      "sha256": "361b0be4a0216a2e732b190ad5da2fbfecebe2956378309d883df4501a9221be",
       "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_method_wiring.v1",
       "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_method_wiring.v1",
       "schema_matches": true,
@@ -93,7 +93,7 @@
       "artifact": "guarded_fit_validation_grid",
       "path": "test/fixtures/mgmfrm_guarded_fit_validation_grid.json",
       "exists": true,
-      "sha256": "4f35205e591ef838fe862eb5d69663ec64267ec9e27c3d0dacdfa6172c466a53",
+      "sha256": "8140cc24bb397dcd22b92515365656dff7f7dec9822e08a62b30d6ad15ea6fdb",
       "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_validation_grid.v1",
       "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_validation_grid.v1",
       "schema_matches": true,

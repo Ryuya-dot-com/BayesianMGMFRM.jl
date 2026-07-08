@@ -3913,7 +3913,25 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     @test Bool(thresholds[
         :require_mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed])
     @test Bool(thresholds[
+        :require_mgmfrm_full_heldout_mcmc_refit_anchor_scoring_passed])
+    @test Bool(thresholds[
+        :require_mgmfrm_publication_grade_refit_gate_passed])
+    @test Bool(thresholds[
+        :require_mgmfrm_publication_grade_refit_pilot_plan_passed])
+    @test Bool(thresholds[
         :require_mgmfrm_fit_threshold_q_heldout_linkage_passed])
+    @test Bool(thresholds[
+        :require_mgmfrm_publication_grade_refit_pilot_execution_harness_passed])
+    @test Bool(thresholds[
+        :require_mgmfrm_publication_grade_refit_pilot_results_review_passed])
+    @test Bool(thresholds[
+        :require_mgmfrm_publication_grade_refit_sampler_remediation_review_passed])
+    @test Bool(thresholds[
+        :require_mgmfrm_publication_grade_refit_scalar_remediation_comparison_passed])
+    @test Bool(thresholds[
+        :require_mgmfrm_publication_grade_refit_batch_expansion_plan_passed])
+    @test Bool(thresholds[
+        :require_mgmfrm_publication_grade_refit_batch_results_review_passed])
     @test Bool(thresholds[:require_mgmfrm_guarded_fit_method_wiring_passed])
     @test Bool(thresholds[:require_mgmfrm_guarded_fit_validation_grid_passed])
     @test Bool(thresholds[:require_mgmfrm_guarded_fit_api_dry_run_passed])
@@ -4018,8 +4036,26 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
             "test/fixtures/mgmfrm_full_heldout_mcmc_refit_fold1_scoring.json",
         "mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring" =>
             "test/fixtures/mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring.json",
+        "mgmfrm_full_heldout_mcmc_refit_anchor_scoring" =>
+            "test/fixtures/mgmfrm_full_heldout_mcmc_refit_anchor_scoring.json",
+        "mgmfrm_publication_grade_refit_gate" =>
+            "test/fixtures/mgmfrm_publication_grade_refit_gate.json",
+        "mgmfrm_publication_grade_refit_pilot_plan" =>
+            "test/fixtures/mgmfrm_publication_grade_refit_pilot_plan.json",
         "mgmfrm_fit_threshold_q_heldout_linkage" =>
             "test/fixtures/mgmfrm_fit_threshold_q_heldout_linkage.json",
+        "mgmfrm_publication_grade_refit_pilot_execution_harness" =>
+            "test/fixtures/mgmfrm_publication_grade_refit_pilot_execution_harness.json",
+        "mgmfrm_publication_grade_refit_pilot_results_review" =>
+            "test/fixtures/mgmfrm_publication_grade_refit_pilot_results_review.json",
+        "mgmfrm_publication_grade_refit_sampler_remediation_review" =>
+            "test/fixtures/mgmfrm_publication_grade_refit_sampler_remediation_review.json",
+        "mgmfrm_publication_grade_refit_scalar_remediation_comparison" =>
+            "test/fixtures/mgmfrm_publication_grade_refit_scalar_remediation_comparison.json",
+        "mgmfrm_publication_grade_refit_batch_expansion_plan" =>
+            "test/fixtures/mgmfrm_publication_grade_refit_batch_expansion_plan.json",
+        "mgmfrm_publication_grade_refit_batch_results_review" =>
+            "test/fixtures/mgmfrm_publication_grade_refit_batch_results_review.json",
         "mgmfrm_guarded_fit_method_wiring" =>
             "test/fixtures/mgmfrm_guarded_fit_method_wiring.json",
         "mgmfrm_guarded_fit_validation_grid" =>
@@ -4060,7 +4096,7 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     end
 
     code_doc_records = fixture[:code_doc_records]
-    @test length(code_doc_records) == 49
+    @test length(code_doc_records) == 60
     @test all(row -> Bool(row[:exists]), code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_gmfrm_full_paper_reproduction_archive.jl",
@@ -4126,7 +4162,40 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         "scripts/generate_mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring.jl",
         code_doc_records)
     @test any(row -> String(row[:path]) ==
+        "scripts/generate_mgmfrm_full_heldout_mcmc_refit_anchor_scoring.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) ==
+        "scripts/generate_mgmfrm_publication_grade_refit_gate.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) ==
+        "scripts/generate_mgmfrm_publication_grade_refit_pilot_plan.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) ==
         "scripts/generate_mgmfrm_fit_threshold_q_heldout_linkage.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) ==
+        "scripts/generate_mgmfrm_publication_grade_refit_pilot_execution_harness.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) ==
+        "scripts/run_mgmfrm_publication_grade_refit_job.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) ==
+        "scripts/run_mgmfrm_publication_grade_refit_batch.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) ==
+        "scripts/generate_mgmfrm_publication_grade_refit_pilot_results_review.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) ==
+        "scripts/generate_mgmfrm_publication_grade_refit_sampler_remediation_review.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) ==
+        "scripts/generate_mgmfrm_publication_grade_refit_scalar_remediation_comparison.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) ==
+        "scripts/generate_mgmfrm_publication_grade_refit_batch_expansion_plan.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) ==
+        "scripts/generate_mgmfrm_publication_grade_refit_batch_results_review.jl",
         code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_mgmfrm_guarded_fit_method_wiring.jl",
@@ -4163,8 +4232,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     end
 
     full_commands = fixture[:full_regeneration_commands]
-    @test length(full_commands) == 55
-    @test [Int(row[:step]) for row in full_commands] == collect(1:55)
+    @test length(full_commands) == 64
+    @test [Int(row[:step]) for row in full_commands] == collect(1:64)
     @test all(row -> Bool(row[:local_only]), full_commands)
     @test any(row -> String(row[:artifact]) ==
         "mgmfrm_report_shape_simulation_grid", full_commands)
@@ -4213,7 +4282,34 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         "mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring",
         full_commands)
     @test any(row -> String(row[:artifact]) ==
+        "mgmfrm_full_heldout_mcmc_refit_anchor_scoring",
+        full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "mgmfrm_publication_grade_refit_gate",
+        full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "mgmfrm_publication_grade_refit_pilot_plan",
+        full_commands)
+    @test any(row -> String(row[:artifact]) ==
         "mgmfrm_fit_threshold_q_heldout_linkage",
+        full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "mgmfrm_publication_grade_refit_pilot_execution_harness",
+        full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "mgmfrm_publication_grade_refit_pilot_results_review",
+        full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "mgmfrm_publication_grade_refit_sampler_remediation_review",
+        full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "mgmfrm_publication_grade_refit_scalar_remediation_comparison",
+        full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "mgmfrm_publication_grade_refit_batch_expansion_plan",
+        full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "mgmfrm_publication_grade_refit_batch_results_review",
         full_commands)
     @test any(row -> String(row[:artifact]) ==
         "prediction_target_and_model_weight_policy", full_commands)
@@ -4306,7 +4402,23 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         :mgmfrm_full_heldout_mcmc_refit_fold1_scoring_passed])
     @test Bool(summary[
         :mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed])
+    @test Bool(summary[
+        :mgmfrm_full_heldout_mcmc_refit_anchor_scoring_passed])
+    @test Bool(summary[:mgmfrm_publication_grade_refit_gate_passed])
+    @test Bool(summary[:mgmfrm_publication_grade_refit_pilot_plan_passed])
     @test Bool(summary[:mgmfrm_fit_threshold_q_heldout_linkage_passed])
+    @test Bool(summary[
+        :mgmfrm_publication_grade_refit_pilot_execution_harness_passed])
+    @test Bool(summary[
+        :mgmfrm_publication_grade_refit_pilot_results_review_passed])
+    @test Bool(summary[
+        :mgmfrm_publication_grade_refit_sampler_remediation_review_passed])
+    @test Bool(summary[
+        :mgmfrm_publication_grade_refit_scalar_remediation_comparison_passed])
+    @test Bool(summary[
+        :mgmfrm_publication_grade_refit_batch_expansion_plan_passed])
+    @test Bool(summary[
+        :mgmfrm_publication_grade_refit_batch_results_review_passed])
     @test Bool(summary[:mgmfrm_guarded_fit_method_wiring_passed])
     @test Bool(summary[:mgmfrm_guarded_fit_validation_grid_passed])
     @test Bool(summary[:mgmfrm_guarded_fit_api_dry_run_passed])
@@ -4579,7 +4691,15 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     @test Bool(thresholds[
         :require_mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed])
     @test Bool(thresholds[
+        :require_mgmfrm_full_heldout_mcmc_refit_anchor_scoring_passed])
+    @test Bool(thresholds[
+        :require_mgmfrm_publication_grade_refit_gate_passed])
+    @test Bool(thresholds[
+        :require_mgmfrm_publication_grade_refit_pilot_plan_passed])
+    @test Bool(thresholds[
         :require_mgmfrm_fit_threshold_q_heldout_linkage_passed])
+    @test Bool(thresholds[
+        :require_mgmfrm_publication_grade_refit_pilot_execution_harness_passed])
     @test Bool(thresholds[:require_full_paper_reproduction_archive_passed])
     @test Int(thresholds[:require_minimum_total_evidence_cells]) == 60
     @test Bool(thresholds[:require_no_publication_commands])
@@ -4643,8 +4763,18 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
             "test/fixtures/mgmfrm_full_heldout_mcmc_refit_fold1_scoring.json",
         "mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring" =>
             "test/fixtures/mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring.json",
+        "mgmfrm_full_heldout_mcmc_refit_anchor_scoring" =>
+            "test/fixtures/mgmfrm_full_heldout_mcmc_refit_anchor_scoring.json",
+        "mgmfrm_publication_grade_refit_gate" =>
+            "test/fixtures/mgmfrm_publication_grade_refit_gate.json",
+        "mgmfrm_publication_grade_refit_pilot_plan" =>
+            "test/fixtures/mgmfrm_publication_grade_refit_pilot_plan.json",
         "mgmfrm_fit_threshold_q_heldout_linkage" =>
             "test/fixtures/mgmfrm_fit_threshold_q_heldout_linkage.json",
+        "mgmfrm_publication_grade_refit_pilot_execution_harness" =>
+            "test/fixtures/mgmfrm_publication_grade_refit_pilot_execution_harness.json",
+        "mgmfrm_publication_grade_refit_batch_expansion_plan" =>
+            "test/fixtures/mgmfrm_publication_grade_refit_batch_expansion_plan.json",
         "full_paper_reproduction_archive" =>
             "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
     )
@@ -4664,7 +4794,8 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
         else
             @test String(row[:hash_policy]) in (
                 "existence_only_avoids_dry_run_claim_manuscript_grid_cycle",
-                "existence_only_avoids_broader_review_manuscript_grid_cycle")
+                "existence_only_avoids_broader_review_manuscript_grid_cycle",
+                "existence_only_avoids_full_archive_manuscript_grid_cycle")
             @test isnothing(row[:sha256])
         end
     end
@@ -4672,7 +4803,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     evidence_rows = fixture[:evidence_rows]
     @test length(evidence_rows) == length(input_artifacts)
     @test all(row -> String(row[:status]) == "passed", evidence_rows)
-    @test Int(sum(Int(row[:n_evidence_cells]) for row in evidence_rows)) == 2584
+    @test Int(sum(Int(row[:n_evidence_cells]) for row in evidence_rows)) == 5581
     @test any(row -> String(row[:gate]) == "prior_likelihood_sensitivity_grid" &&
         Int(row[:n_evidence_cells]) == 45, evidence_rows)
     @test any(row -> String(row[:gate]) ==
@@ -4770,10 +4901,40 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
             "mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring",
         evidence_rows)
     @test any(row -> String(row[:gate]) ==
+        "mgmfrm_full_heldout_mcmc_refit_anchor_scoring" &&
+        Int(row[:n_evidence_cells]) == 668 &&
+        String(row[:key_check]) ==
+            "mgmfrm_full_heldout_mcmc_refit_anchor_scoring",
+        evidence_rows)
+    @test any(row -> String(row[:gate]) ==
+        "mgmfrm_publication_grade_refit_gate" &&
+        Int(row[:n_evidence_cells]) == 26 &&
+        String(row[:key_check]) ==
+            "mgmfrm_publication_grade_refit_gate",
+        evidence_rows)
+    @test any(row -> String(row[:gate]) ==
+        "mgmfrm_publication_grade_refit_pilot_plan" &&
+        Int(row[:n_evidence_cells]) == 70 &&
+        String(row[:key_check]) ==
+            "mgmfrm_publication_grade_refit_pilot_plan",
+        evidence_rows)
+    @test any(row -> String(row[:gate]) ==
         "mgmfrm_fit_threshold_q_heldout_linkage" &&
         Int(row[:n_evidence_cells]) == 35 &&
         String(row[:key_check]) ==
             "mgmfrm_fit_threshold_q_heldout_linkage",
+        evidence_rows)
+    @test any(row -> String(row[:gate]) ==
+        "mgmfrm_publication_grade_refit_pilot_execution_harness" &&
+        Int(row[:n_evidence_cells]) == 90 &&
+        String(row[:key_check]) ==
+            "mgmfrm_publication_grade_refit_pilot_execution_harness",
+        evidence_rows)
+    @test any(row -> String(row[:gate]) ==
+        "mgmfrm_publication_grade_refit_batch_expansion_plan" &&
+        Int(row[:n_evidence_cells]) == 2134 &&
+        String(row[:key_check]) ==
+            "mgmfrm_publication_grade_refit_batch_expansion_plan",
         evidence_rows)
 
     decisions = fixture[:claim_decision_rows]
@@ -4783,9 +4944,9 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     @test any(row -> String(row[:claim]) ==
         "model_weights_or_sparse_mgmfrm_superiority" &&
         String(row[:decision]) ==
-            "candidate_batch_scoring_recorded_keep_blocked_until_anchor_refits_or_external_dataset_review" &&
+            "publication_grade_execution_harness_ready_keep_blocked_until_pilot_or_external_dataset_review" &&
         String(row[:required_followup]) ==
-            "run_scalar_and_reference_anchor_refits_or_external_construct_dataset_review",
+            "execute_publication_grade_refit_pilot_or_attach_external_construct_dataset",
         decisions)
     @test all(row -> String(row[:claim]) == "guarded_scalar_gmfrm_fit" ||
         Bool(row[:public_claim_allowed]) == false, decisions)
@@ -4800,7 +4961,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     @test Bool(decision[:broader_generalized_fit_allowed]) == false
     @test Bool(decision[:manuscript_claims_allowed]) == false
     @test String(decision[:required_followup]) ==
-        "run_scalar_and_reference_anchor_refits_or_external_construct_dataset_review"
+        "execute_publication_grade_refit_pilot_or_attach_external_construct_dataset"
 
     summary = fixture[:summary]
     @test Bool(summary[:passed])
@@ -4812,7 +4973,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     @test Bool(summary[:all_primary_checks_passed])
     @test Int(summary[:n_input_artifacts]) == length(input_artifacts)
     @test Int(summary[:n_evidence_rows]) == length(evidence_rows)
-    @test Int(summary[:total_evidence_cells]) == 2584
+    @test Int(summary[:total_evidence_cells]) == 5581
     @test Int(summary[:minimum_required_evidence_cells]) == 60
     @test Bool(summary[:scalar_fit_validation_grid_passed])
     @test Bool(summary[:posterior_predictive_grid_passed])
@@ -4853,16 +5014,23 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
         :mgmfrm_full_heldout_mcmc_refit_fold1_scoring_passed])
     @test Bool(summary[
         :mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed])
+    @test Bool(summary[
+        :mgmfrm_full_heldout_mcmc_refit_anchor_scoring_passed])
+    @test Bool(summary[:mgmfrm_publication_grade_refit_gate_passed])
+    @test Bool(summary[:mgmfrm_publication_grade_refit_pilot_plan_passed])
     @test Bool(summary[:mgmfrm_fit_threshold_q_heldout_linkage_passed])
+    @test Bool(summary[
+        :mgmfrm_publication_grade_refit_pilot_execution_harness_passed])
+    @test Bool(summary[:publication_grade_pilot_runner_materialized])
     @test Bool(summary[:full_paper_reproduction_archive_passed])
     @test Bool(summary[:manuscript_claims_allowed]) == false
     @test Bool(summary[:no_publication_commands])
     @test Int(summary[:n_blockers]) == 0
     @test isempty(summary[:remaining_public_blockers])
     @test String(summary[:recommendation]) ==
-        "manual_scope_review_recorded_keep_broader_claims_blocked"
+        "execute_single_cell_publication_grade_pilot_or_attach_external_dataset"
     @test String(summary[:next_gate]) ==
-        "run_scalar_and_reference_anchor_refits_or_external_construct_dataset_review"
+        "execute_publication_grade_refit_pilot_or_attach_external_construct_dataset"
 end
 
 function check_gmfrm_broader_experimental_exposure_decision_review_fixture(
@@ -4966,6 +5134,10 @@ function check_gmfrm_broader_experimental_exposure_decision_review_fixture(
         if artifact == "guarded_exposure_review"
             @test String(row[:hash_policy]) ==
                 "existence_only_avoids_broader_review_guarded_exposure_cycle"
+            @test isnothing(row[:sha256])
+        elseif artifact == "full_paper_reproduction_archive"
+            @test String(row[:hash_policy]) ==
+                "existence_only_avoids_full_archive_broader_review_cycle"
             @test isnothing(row[:sha256])
         else
             @test String(row[:hash_policy]) == "sha256"
@@ -5125,6 +5297,12 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
         :require_mgmfrm_full_heldout_mcmc_refit_fold1_scoring_passed])
     @test Bool(thresholds[
         :require_mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed])
+    @test Bool(thresholds[
+        :require_mgmfrm_full_heldout_mcmc_refit_anchor_scoring_passed])
+    @test Bool(thresholds[
+        :require_mgmfrm_publication_grade_refit_gate_passed])
+    @test Bool(thresholds[
+        :require_mgmfrm_publication_grade_refit_pilot_plan_passed])
     @test Bool(thresholds[
         :require_mgmfrm_fit_threshold_q_heldout_linkage_passed])
     @test Bool(thresholds[:high_variance_waic_blocks_public_exposure])
@@ -5567,8 +5745,8 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(manuscript_grid[:summary][:all_expected_schemas])
     @test Bool(manuscript_grid[:summary][:all_input_summaries_passed])
     @test Bool(manuscript_grid[:summary][:all_primary_checks_passed])
-    @test Int(manuscript_grid[:summary][:n_input_artifacts]) == 30
-    @test Int(manuscript_grid[:summary][:total_evidence_cells]) == 2584
+    @test Int(manuscript_grid[:summary][:n_input_artifacts]) == 35
+    @test Int(manuscript_grid[:summary][:total_evidence_cells]) == 5581
     @test Int(manuscript_grid[:summary][:minimum_required_evidence_cells]) == 60
     @test Bool(manuscript_grid[:summary][:prediction_target_and_model_weight_policy_passed])
     @test Bool(manuscript_grid[:summary][
@@ -5602,11 +5780,19 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(manuscript_grid[:summary][
         :mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed])
     @test Bool(manuscript_grid[:summary][
+        :mgmfrm_full_heldout_mcmc_refit_anchor_scoring_passed])
+    @test Bool(manuscript_grid[:summary][
+        :mgmfrm_publication_grade_refit_gate_passed])
+    @test Bool(manuscript_grid[:summary][
+        :mgmfrm_publication_grade_refit_pilot_plan_passed])
+    @test Bool(manuscript_grid[:summary][
         :mgmfrm_fit_threshold_q_heldout_linkage_passed])
+    @test Bool(manuscript_grid[:summary][
+        :mgmfrm_publication_grade_refit_pilot_execution_harness_passed])
     @test Bool(manuscript_grid[:summary][:full_paper_reproduction_archive_passed])
     @test Bool(manuscript_grid[:summary][:manuscript_claims_allowed]) == false
     @test String(manuscript_grid[:summary][:next_gate]) ==
-        "run_scalar_and_reference_anchor_refits_or_external_construct_dataset_review"
+        "execute_publication_grade_refit_pilot_or_attach_external_construct_dataset"
     full_archive = only(row for row in reviewed
         if String(row[:artifact]) == "full_paper_reproduction_archive")
     @test Bool(full_archive[:summary][:passed])
@@ -5619,9 +5805,9 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(full_archive[:summary][:all_external_sources_present])
     @test Bool(full_archive[:summary][:all_commands_local_only])
     @test Bool(full_archive[:summary][:no_publication_commands])
-    @test Int(full_archive[:summary][:n_fixture_artifacts]) == 55
-    @test Int(full_archive[:summary][:n_code_doc_records]) == 49
-    @test Int(full_archive[:summary][:n_full_regeneration_commands]) == 55
+    @test Int(full_archive[:summary][:n_fixture_artifacts]) == 64
+    @test Int(full_archive[:summary][:n_code_doc_records]) == 60
+    @test Int(full_archive[:summary][:n_full_regeneration_commands]) == 64
     @test Int(full_archive[:summary][:n_verification_commands]) == 4
     @test Bool(full_archive[:summary][:mgmfrm_report_shape_simulation_grid_passed])
     @test Bool(full_archive[:summary][:mgmfrm_q_matrix_validation_expansion_passed])
@@ -5662,7 +5848,17 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(full_archive[:summary][
         :mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed])
     @test Bool(full_archive[:summary][
+        :mgmfrm_full_heldout_mcmc_refit_anchor_scoring_passed])
+    @test Bool(full_archive[:summary][
+        :mgmfrm_publication_grade_refit_gate_passed])
+    @test Bool(full_archive[:summary][
+        :mgmfrm_publication_grade_refit_pilot_plan_passed])
+    @test Bool(full_archive[:summary][
         :mgmfrm_fit_threshold_q_heldout_linkage_passed])
+    @test Bool(full_archive[:summary][
+        :mgmfrm_publication_grade_refit_pilot_execution_harness_passed])
+    @test Bool(full_archive[:summary][
+        :mgmfrm_publication_grade_refit_pilot_results_review_passed])
     @test Bool(full_archive[:summary][:prediction_target_and_model_weight_policy_passed])
     @test Bool(full_archive[:summary][:manuscript_reproducibility_claims_supported])
     @test Int(full_archive[:summary][:n_blockers]) == 0
@@ -5863,7 +6059,23 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
         String(row[:status]) == "passed_with_policy_blocker" &&
         Bool(row[:evidence]), review_rows)
     @test any(row -> String(row[:gate]) ==
+        "confirmatory_mgmfrm_full_heldout_mcmc_refit_anchor_scoring" &&
+        String(row[:status]) == "passed_with_policy_blocker" &&
+        Bool(row[:evidence]), review_rows)
+    @test any(row -> String(row[:gate]) ==
+        "confirmatory_mgmfrm_publication_grade_refit_gate" &&
+        String(row[:status]) == "passed_with_policy_blocker" &&
+        Bool(row[:evidence]), review_rows)
+    @test any(row -> String(row[:gate]) ==
+        "confirmatory_mgmfrm_publication_grade_refit_pilot_plan" &&
+        String(row[:status]) == "passed_with_policy_blocker" &&
+        Bool(row[:evidence]), review_rows)
+    @test any(row -> String(row[:gate]) ==
         "confirmatory_mgmfrm_fit_threshold_q_heldout_linkage" &&
+        String(row[:status]) == "passed_with_policy_blocker" &&
+        Bool(row[:evidence]), review_rows)
+    @test any(row -> String(row[:gate]) ==
+        "confirmatory_mgmfrm_publication_grade_refit_pilot_execution_harness" &&
         String(row[:status]) == "passed_with_policy_blocker" &&
         Bool(row[:evidence]), review_rows)
     @test any(row -> String(row[:gate]) == "dff_estimand_and_validation_grid" &&
@@ -5884,8 +6096,9 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
         "guarded_scalar_gmfrm_only"
     @test String(decision_record[:interpretation]) ==
         "local_evidence_reviewed_manual_scope_review_recorded_and_broader_exposure_decision_recorded"
+    @test Bool(decision_record[:publication_grade_pilot_runner_materialized])
     @test String(decision_record[:required_followup]) ==
-        "run_scalar_and_reference_anchor_refits_or_external_construct_dataset_review"
+        "execute_publication_grade_refit_pilot_or_attach_external_construct_dataset"
 
     summary = fixture[:summary]
     @test Bool(summary[:reviewed])
@@ -5937,7 +6150,13 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
         :mgmfrm_full_heldout_mcmc_refit_fold1_scoring_passed])
     @test Bool(summary[
         :mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed])
+    @test Bool(summary[
+        :mgmfrm_full_heldout_mcmc_refit_anchor_scoring_passed])
+    @test Bool(summary[:mgmfrm_publication_grade_refit_gate_passed])
+    @test Bool(summary[:mgmfrm_publication_grade_refit_pilot_plan_passed])
     @test Bool(summary[:mgmfrm_fit_threshold_q_heldout_linkage_passed])
+    @test Bool(summary[
+        :mgmfrm_publication_grade_refit_pilot_execution_harness_passed])
     @test Bool(summary[:prediction_target_and_model_weight_policy_passed])
     @test Bool(summary[:dff_estimand_validation_grid_passed])
     @test Bool(summary[:manuscript_scale_simulation_grid_passed])
@@ -5950,10 +6169,11 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Int(summary[:n_blockers]) == length(blocker_rows)
     @test Bool(summary[:fit_allowed])
     @test Bool(summary[:experimental_keyword_enabled])
+    @test Bool(summary[:publication_grade_pilot_runner_materialized])
     @test String(summary[:recommendation]) ==
-        "manual_scope_review_recorded_keep_guarded_scalar_and_confirmatory_mgmfrm_only"
+        "manual_scope_review_recorded_execute_publication_grade_refit_pilot_next"
     @test String(summary[:next_gate]) ==
-        "run_scalar_and_reference_anchor_refits_or_external_construct_dataset_review"
+        "execute_publication_grade_refit_pilot_or_attach_external_construct_dataset"
 end
 
 function check_mgmfrm_recovery_smoke_fixture(fixture_path::AbstractString)
@@ -10831,6 +11051,2038 @@ function check_mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_fixture(
         "run_scalar_and_reference_anchor_refits_or_external_construct_dataset_review"
 end
 
+function check_mgmfrm_full_heldout_mcmc_refit_anchor_scoring_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_anchor_scoring.v1"
+    @test String(fixture[:family]) == "mgmfrm"
+    @test String(fixture[:scope]) ==
+        "full_heldout_mcmc_refit_anchor_scoring"
+    @test String(fixture[:status]) ==
+        "scalar_and_reference_anchor_scores_recorded"
+    @test String(fixture[:decision]) ==
+        "record_anchor_scores_join_candidate_comparison_keep_public_claims_blocked"
+    @test Bool(fixture[:public_fit])
+    @test Bool(fixture[:experimental_public])
+    @test Bool(fixture[:fit_ready])
+    @test Bool(fixture[:local_only])
+    @test Bool(fixture[:pilot_only])
+    @test Bool(fixture[:smoke_only])
+    @test Bool(fixture[:scalar_anchor_scores_computed])
+    @test Bool(fixture[:reference_anchor_scores_computed])
+    @test Bool(fixture[:comparison_anchor_scores_computed])
+    @test Bool(fixture[:full_125_unit_scoring_completed])
+    @test Bool(fixture[:full_heldout_predictive_scores_computed])
+    @test Bool(fixture[:full_mcmc_refit_execution_completed]) == false
+    @test Bool(fixture[:full_125_unit_mcmc_refit_batch_completed]) == false
+    @test Bool(fixture[:publication_or_registration_action]) == false
+    @test Bool(fixture[:public_fit_metric_claim]) == false
+    @test Bool(fixture[:public_q_revision_claim]) == false
+    @test Bool(fixture[:public_model_weight_claim]) == false
+    @test Bool(fixture[:sparse_mgmfrm_superiority_claim]) == false
+
+    protocol = fixture[:protocol]
+    thresholds = protocol[:thresholds]
+    controls = protocol[:fit_controls]
+    reference_controls = protocol[:reference_controls]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_full_heldout_mcmc_refit_anchor_scoring_v1"
+    @test String(protocol[:review_kind]) ==
+        "local_full_heldout_anchor_scoring"
+    @test String(protocol[:execution_scope]) ==
+        "all_fold_scalar_and_reference_anchor_scoring"
+    @test [Int(value) for value in protocol[:selected_folds]] == [1, 2, 3, 4, 5]
+    @test Set(String(value) for value in protocol[:anchor_models]) == Set([
+        "scalar_gmfrm_baseline",
+        "null_or_intercept_reference",
+    ])
+    @test String(protocol[:comparison_scope]) ==
+        "fixed_q_mgmfrm_candidates_with_scalar_and_reference_anchors"
+    @test String(controls[:backend]) == "advancedhmc"
+    @test String(controls[:sampler]) == "nuts"
+    @test Int(controls[:chains]) == 1
+    @test Int(controls[:draws]) == 1
+    @test Int(controls[:warmup]) == 0
+    @test String(reference_controls[:smoothing]) == "symmetric_dirichlet"
+    @test Float64(reference_controls[:alpha]) == 1.0
+    @test [Int(value) for value in reference_controls[:categories]] == [0, 1, 2]
+    @test Bool(thresholds[:require_anchor_units_selected])
+    @test Bool(thresholds[:require_scalar_anchor_refits_succeeded])
+    @test Bool(thresholds[:require_reference_anchor_scores_recorded])
+    @test Bool(thresholds[:require_combined_model_kfold_rows_recorded])
+    @test Bool(thresholds[:require_combined_rank_rows_recorded])
+    @test Bool(thresholds[:require_candidate_and_anchor_scores_cover_125_units])
+    @test Bool(thresholds[:require_no_publication_or_registration_action])
+
+    inputs = fixture[:input_artifacts]
+    expected_inputs = Dict(
+        "mgmfrm_full_heldout_mcmc_refit_execution_plan" =>
+            "test/fixtures/mgmfrm_full_heldout_mcmc_refit_execution_plan.json",
+        "mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring" =>
+            "test/fixtures/mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring.json",
+        "mgmfrm_heldout_prediction_execution" =>
+            "test/fixtures/mgmfrm_heldout_prediction_execution.json",
+        "mgmfrm_validation_split_model_comparison_policy" =>
+            "test/fixtures/mgmfrm_validation_split_model_comparison_policy.json",
+    )
+    @test length(inputs) == length(expected_inputs)
+    @test Set(String(row[:artifact]) for row in inputs) ==
+        Set(keys(expected_inputs))
+    for row in inputs
+        artifact = String(row[:artifact])
+        @test String(row[:path]) == expected_inputs[artifact]
+        @test Bool(row[:exists])
+        @test Bool(row[:schema_matches])
+        @test Bool(row[:summary_passed])
+        @test String(row[:sha256]) ==
+            file_sha256(joinpath(root, String(row[:path])))
+    end
+
+    scenarios = Set([
+        "well_specified_current_q",
+        "missing_loading_revised_q",
+        "sparse_signal_current_q",
+        "rater_method_noise",
+        "weak_dimension_ambiguous",
+    ])
+    anchor_models = Set([
+        "scalar_gmfrm_baseline",
+        "null_or_intercept_reference",
+    ])
+
+    units = fixture[:anchor_execution_unit_rows]
+    @test length(units) == 50
+    @test Set(String(row[:scenario]) for row in units) == scenarios
+    @test Set(String(row[:model]) for row in units) == anchor_models
+    @test Set(Int(row[:fold]) for row in units) == Set(1:5)
+    @test all(row -> Int(row[:n_train_observations]) == 32, units)
+    @test all(row -> Int(row[:n_heldout_observations]) == 8, units)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, units)
+
+    scores = fixture[:anchor_score_rows]
+    @test length(scores) == 50
+    @test Set(String(row[:scenario]) for row in scores) == scenarios
+    @test Set(String(row[:model]) for row in scores) == anchor_models
+    @test Set(Int(row[:fold]) for row in scores) == Set(1:5)
+    @test count(row -> String(row[:model]) == "scalar_gmfrm_baseline",
+        scores) == 25
+    @test count(row -> String(row[:model]) == "null_or_intercept_reference",
+        scores) == 25
+    @test all(row -> Bool(row[:fit_succeeded]), scores)
+    @test all(row -> Bool(row[:scoring_succeeded]), scores)
+    @test all(row -> Int(row[:n_train_observations]) == 32, scores)
+    @test all(row -> Int(row[:n_heldout_observations]) == 8, scores)
+    @test all(row -> Bool(row[:all_pointwise_scores_finite]), scores)
+    @test all(row -> Bool(row[:expected_score_residuals_finite]), scores)
+    @test all(row -> Bool(row[:finite_training_pointwise_loglikelihood]),
+        scores)
+    @test all(row -> Bool(row[:finite_heldout_pointwise_loglikelihood]),
+        scores)
+    @test all(row -> Bool(row[:publication_grade_diagnostics_blocked]),
+        scores)
+    @test all(row -> Bool(row[:heldout_predictive_score_computed]), scores)
+    @test all(row -> Bool(row[:public_fit_metric_claim_allowed]) == false,
+        scores)
+    @test all(row -> Bool(row[:public_model_weight_claim_allowed]) == false,
+        scores)
+    @test all(row -> Bool(row[:sparse_superiority_claim_allowed]) == false,
+        scores)
+    @test all(row -> isfinite(Float64(row[:heldout_elpd])) &&
+            isfinite(Float64(row[:heldout_mean_log_predictive_density])) &&
+            isfinite(Float64(row[:heldout_expected_score_mae])) &&
+            isfinite(Float64(row[:heldout_expected_score_rmse])),
+        scores)
+    @test all(row -> String(row[:model]) != "scalar_gmfrm_baseline" ||
+            (Bool(row[:mcmc_refit_attempted]) &&
+             !Bool(row[:analytic_reference_scored]) &&
+             String(row[:returned_type]) == "GMFRMFit"),
+        scores)
+    @test all(row -> String(row[:model]) != "null_or_intercept_reference" ||
+            (!Bool(row[:mcmc_refit_attempted]) &&
+             Bool(row[:analytic_reference_scored]) &&
+             String(row[:returned_type]) == "AnalyticInterceptReference"),
+        scores)
+    for scenario in scenarios, model in anchor_models
+        @test count(row -> String(row[:scenario]) == scenario &&
+                         String(row[:model]) == model, scores) == 5
+    end
+
+    pointwise = fixture[:heldout_pointwise_rows]
+    @test length(pointwise) == 400
+    @test all(row -> Bool(row[:finite_score]), pointwise)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, pointwise)
+    @test all(row -> Int(row[:fold]) in 1:5, pointwise)
+    @test all(row -> Int(row[:heldout_position]) in 1:8, pointwise)
+    @test all(row -> 0 <= Int(row[:observed_score]) <= 2, pointwise)
+    @test all(row -> isfinite(Float64(row[:pointwise_log_predictive_density])) &&
+            isfinite(Float64(row[:expected_score_mean])) &&
+            isfinite(Float64(row[:observed_minus_expected_score])) &&
+            isfinite(Float64(row[:absolute_expected_score_error])) &&
+            isfinite(Float64(row[:squared_expected_score_error])),
+        pointwise)
+    for row in scores
+        id = String(row[:execution_unit_id])
+        @test count(point -> String(point[:execution_unit_id]) == id,
+            pointwise) == 8
+    end
+
+    reference_probabilities = fixture[:reference_probability_rows]
+    @test length(reference_probabilities) == 75
+    @test Set(Int(row[:category]) for row in reference_probabilities) ==
+        Set([0, 1, 2])
+    for score in scores
+        String(score[:model]) == "null_or_intercept_reference" || continue
+        probability_rows = [row for row in reference_probabilities
+            if String(row[:execution_unit_id]) ==
+               String(score[:execution_unit_id])]
+        @test length(probability_rows) == 3
+        @test sum(Float64(row[:smoothed_probability])
+            for row in probability_rows) ≈ 1.0
+    end
+
+    fold_completion = fixture[:anchor_fold_completion_rows]
+    @test length(fold_completion) == 25
+    @test all(row -> Bool(row[:anchor_fold_complete]), fold_completion)
+    @test all(row -> Int(row[:n_anchor_models_scored]) == 2,
+        fold_completion)
+    @test all(row -> Int(row[:n_heldout_pointwise_rows]) == 16,
+        fold_completion)
+
+    anchor_kfold = fixture[:anchor_scenario_model_kfold_rows]
+    @test length(anchor_kfold) == 10
+    @test all(row -> Int(row[:n_folds]) == 5, anchor_kfold)
+    @test all(row -> Int(row[:n_heldout_observations]) == 40,
+        anchor_kfold)
+    @test all(row -> Bool(row[:all_folds_scored]), anchor_kfold)
+    @test all(row -> Bool(row[:all_scores_finite]), anchor_kfold)
+    @test all(row -> String(row[:comparison_scope]) ==
+        "anchor_models_all_folds_only", anchor_kfold)
+
+    combined = fixture[:combined_scenario_model_kfold_rows]
+    @test length(combined) == 25
+    @test Set(String(row[:model]) for row in combined) == Set([
+        "confirmatory_mgmfrm_current_q",
+        "sparse_mgmfrm_current_q",
+        "construct_reviewed_revised_q_mgmfrm",
+        "scalar_gmfrm_baseline",
+        "null_or_intercept_reference",
+    ])
+    @test all(row -> Int(row[:n_folds]) == 5, combined)
+    @test all(row -> Int(row[:n_heldout_observations]) == 40, combined)
+    @test all(row -> String(row[:comparison_scope]) ==
+        "fixed_q_mgmfrm_candidates_with_scalar_and_reference_anchors",
+        combined)
+    @test all(row -> Bool(row[:public_model_weight_claim_allowed]) == false,
+        combined)
+    @test all(row -> Bool(row[:sparse_superiority_claim_allowed]) == false,
+        combined)
+
+    ranks = fixture[:combined_rank_rows]
+    @test length(ranks) == 25
+    @test all(row -> String(row[:interpretation]) ==
+        "descriptive_full_scoring_rank_no_public_superiority_claim", ranks)
+    @test all(row -> Bool(row[:public_model_weight_claim_allowed]) == false,
+        ranks)
+    @test all(row -> Bool(row[:sparse_superiority_claim_allowed]) == false,
+        ranks)
+    for scenario in scenarios
+        scenario_ranks = [row for row in ranks
+            if String(row[:scenario]) == scenario]
+        @test sort([Int(row[:rank]) for row in scenario_ranks]) ==
+            [1, 2, 3, 4, 5]
+        @test count(row -> Bool(row[
+            :best_model_in_descriptive_125_unit_comparison]),
+            scenario_ranks) == 1
+        @test all(row -> Float64(row[:delta_elpd_from_best]) <= 0.0,
+            scenario_ranks)
+    end
+
+    resolved = fixture[:resolved_gate_rows]
+    @test length(resolved) == 3
+    @test all(row -> Bool(row[:resolved]), resolved)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, resolved)
+
+    blockers = fixture[:blocker_rows]
+    @test length(blockers) == 5
+    @test Set(String(row[:blocker]) for row in blockers) == Set([
+        "publication_grade_chains_and_draws_not_run",
+        "reference_anchor_is_analytic_not_mcmc_refit",
+        "external_construct_dataset_missing",
+        "public_model_weight_calibration_not_authorized",
+        "independent_public_scope_review_missing",
+    ])
+    @test all(row -> Bool(row[:resolved]) == false, blockers)
+
+    decision = fixture[:decision_record]
+    @test String(decision[:selected_decision]) ==
+        "record_anchor_scores_join_candidate_comparison_keep_public_claims_blocked"
+    @test Bool(decision[:scalar_anchor_scores_computed])
+    @test Bool(decision[:reference_anchor_scores_computed])
+    @test Bool(decision[:comparison_anchor_scores_computed])
+    @test Bool(decision[:full_125_unit_scoring_completed])
+    @test Bool(decision[:full_mcmc_refit_execution_completed]) == false
+    @test Bool(decision[:full_125_unit_mcmc_refit_batch_completed]) == false
+    @test Bool(decision[:public_fit_metric_claim_allowed]) == false
+    @test Bool(decision[:public_q_revision_claim_allowed]) == false
+    @test Bool(decision[
+        :model_weight_or_sparse_superiority_claim_allowed]) == false
+    @test String(decision[:required_followup]) ==
+        "publication_grade_refit_diagnostics_or_external_construct_dataset_review"
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:all_input_artifacts_present])
+    @test Bool(summary[:all_expected_schemas])
+    @test Bool(summary[:all_input_summaries_passed])
+    @test Bool(summary[:anchor_units_selected])
+    @test Bool(summary[:scalar_anchor_refits_succeeded])
+    @test Bool(summary[:reference_anchor_scores_recorded])
+    @test Bool(summary[:all_anchor_scores_recorded])
+    @test Bool(summary[:all_anchor_pointwise_scores_recorded])
+    @test Bool(summary[:all_anchor_score_values_finite])
+    @test Bool(summary[:anchor_fold_completion_rows_recorded])
+    @test Bool(summary[:anchor_kfold_rows_recorded])
+    @test Bool(summary[:combined_model_kfold_rows_recorded])
+    @test Bool(summary[:combined_rank_rows_recorded])
+    @test Bool(summary[:candidate_and_anchor_scores_cover_125_units])
+    @test Bool(summary[:comparison_anchor_scores_computed])
+    @test Bool(summary[:publication_grade_diagnostics_blocked])
+    @test Bool(summary[:external_construct_dataset_still_required])
+    @test Bool(summary[:no_public_fit_metric_claim])
+    @test Bool(summary[:no_public_q_revision_claim])
+    @test Bool(summary[:no_public_model_weight_claim])
+    @test Bool(summary[:no_sparse_superiority_claim])
+    @test Bool(summary[:full_125_unit_scoring_completed])
+    @test Bool(summary[:full_heldout_predictive_scores_computed])
+    @test Bool(summary[:full_mcmc_refit_execution_completed]) == false
+    @test Bool(summary[:full_125_unit_mcmc_refit_batch_completed]) == false
+    @test Int(summary[:n_planned_execution_units]) == 125
+    @test Int(summary[:n_candidate_score_rows]) == 75
+    @test Int(summary[:n_candidate_pointwise_rows]) == 600
+    @test Int(summary[:n_anchor_execution_unit_rows]) == 50
+    @test Int(summary[:n_anchor_score_rows]) == 50
+    @test Int(summary[:n_scalar_anchor_score_rows]) == 25
+    @test Int(summary[:n_reference_anchor_score_rows]) == 25
+    @test Int(summary[:n_anchor_heldout_pointwise_rows]) == 400
+    @test Int(summary[:n_reference_probability_rows]) == 75
+    @test Int(summary[:n_anchor_fold_completion_rows]) == 25
+    @test Int(summary[:n_anchor_scenario_model_kfold_rows]) == 10
+    @test Int(summary[:n_combined_scenario_model_kfold_rows]) == 25
+    @test Int(summary[:n_combined_rank_rows]) == 25
+    @test Int(summary[:n_full_execution_units_scored]) == 125
+    @test Int(summary[:n_full_execution_units_remaining_for_scoring]) == 0
+    @test Int(summary[:n_candidate_and_anchor_pointwise_rows]) == 1000
+    @test isfinite(Float64(summary[:total_anchor_heldout_elpd]))
+    @test isfinite(Float64(summary[:mean_anchor_heldout_log_predictive_density]))
+    @test isfinite(Float64(summary[:mean_anchor_heldout_expected_score_mae]))
+    @test Int(summary[:n_publication_grade_anchor_fit_rows]) == 0
+    @test Set(String(blocker) for blocker in
+        summary[:remaining_public_blockers]) == Set([
+            "publication_grade_chains_and_draws_not_run",
+            "reference_anchor_is_analytic_not_mcmc_refit",
+            "external_construct_dataset_missing",
+            "public_model_weight_calibration_not_authorized",
+            "independent_public_scope_review_missing",
+        ])
+    @test String(summary[:recommendation]) ==
+        "use_descriptive_125_unit_comparison_to_plan_publication_grade_refits_or_external_construct_dataset_review"
+    @test String(summary[:next_gate]) ==
+        "publication_grade_refit_diagnostics_or_external_construct_dataset_review"
+end
+
+function check_mgmfrm_publication_grade_refit_gate_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_publication_grade_refit_gate.v1"
+    @test String(fixture[:family]) == "mgmfrm"
+    @test String(fixture[:scope]) == "publication_grade_refit_gate"
+    @test String(fixture[:status]) == "publication_grade_refit_gate_defined"
+    @test String(fixture[:decision]) ==
+        "record_publication_grade_refit_diagnostics_and_pilot_scope"
+    @test Bool(fixture[:public_fit])
+    @test Bool(fixture[:experimental_public])
+    @test Bool(fixture[:fit_ready])
+    @test Bool(fixture[:local_only])
+    @test Bool(fixture[:publication_grade_gate_defined])
+    @test Bool(fixture[:publication_grade_pilot_executed]) == false
+    @test Bool(fixture[:full_125_unit_publication_grade_batch_completed]) == false
+    @test Bool(fixture[:publication_or_registration_action]) == false
+    @test Bool(fixture[:public_fit_metric_claim]) == false
+    @test Bool(fixture[:public_q_revision_claim]) == false
+    @test Bool(fixture[:public_model_weight_claim]) == false
+    @test Bool(fixture[:sparse_mgmfrm_superiority_claim]) == false
+
+    protocol = fixture[:protocol]
+    thresholds = protocol[:thresholds]
+    controls = protocol[:fit_controls]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_publication_grade_refit_gate_v1"
+    @test String(protocol[:review_kind]) ==
+        "local_publication_grade_refit_gate_definition"
+    @test String(protocol[:gate_scope]) ==
+        "publication_grade_refit_diagnostics_or_external_construct_dataset_review"
+    @test String(protocol[:pilot_scope]) ==
+        "one_scenario_one_fold_all_comparison_models"
+    @test String(protocol[:pilot_scenario]) == "well_specified_current_q"
+    @test Int(protocol[:pilot_fold]) == 1
+    @test String(controls[:backend]) == "advancedhmc"
+    @test String(controls[:sampler]) == "nuts"
+    @test Int(controls[:chains]) == 4
+    @test Int(controls[:warmup_per_chain]) == 500
+    @test Int(controls[:draws_per_chain]) == 1000
+    @test Float64(controls[:target_acceptance]) == 0.8
+    @test Bool(thresholds[:require_input_artifacts_passed])
+    @test Bool(thresholds[:require_anchor_scoring_completed])
+    @test Bool(thresholds[:require_diagnostic_gate_rows_recorded])
+    @test Bool(thresholds[:require_metric_profile_rows_recorded])
+    @test Bool(thresholds[:require_pilot_scope_recorded])
+    @test Bool(thresholds[:require_claim_rules_block_public_claims])
+    @test Bool(thresholds[:require_publication_grade_pilot_not_yet_executed])
+    @test Bool(thresholds[:require_full_batch_not_yet_executed])
+    @test Bool(thresholds[:require_no_public_fit_metric_claim])
+    @test Bool(thresholds[:require_no_public_q_revision_claim])
+    @test Bool(thresholds[:require_no_public_model_weight_claim])
+    @test Bool(thresholds[:require_no_sparse_superiority_claim])
+
+    inputs = fixture[:input_artifacts]
+    expected_inputs = Dict(
+        "mgmfrm_full_heldout_mcmc_refit_execution_plan" =>
+            "test/fixtures/mgmfrm_full_heldout_mcmc_refit_execution_plan.json",
+        "mgmfrm_full_heldout_mcmc_refit_anchor_scoring" =>
+            "test/fixtures/mgmfrm_full_heldout_mcmc_refit_anchor_scoring.json",
+        "mgmfrm_validation_split_model_comparison_policy" =>
+            "test/fixtures/mgmfrm_validation_split_model_comparison_policy.json",
+        "mgmfrm_fit_threshold_q_heldout_linkage" =>
+            "test/fixtures/mgmfrm_fit_threshold_q_heldout_linkage.json",
+    )
+    @test length(inputs) == length(expected_inputs)
+    @test Set(String(row[:artifact]) for row in inputs) ==
+        Set(keys(expected_inputs))
+    for row in inputs
+        artifact = String(row[:artifact])
+        @test String(row[:path]) == expected_inputs[artifact]
+        @test Bool(row[:exists])
+        @test Bool(row[:schema_matches])
+        @test Bool(row[:summary_passed])
+        @test String(row[:sha256]) ==
+            file_sha256(joinpath(root, String(row[:path])))
+    end
+
+    diagnostics = fixture[:diagnostic_gate_rows]
+    @test length(diagnostics) == 12
+    @test Set(String(row[:diagnostic]) for row in diagnostics) == Set([
+        "chains_min",
+        "warmup_per_chain_min",
+        "draws_per_chain_min",
+        "rank_normalized_rhat_max",
+        "ess_bulk_min",
+        "ess_tail_min",
+        "divergence_count_max",
+        "max_treedepth_count_max",
+        "ebfmi_min",
+        "pointwise_loglikelihood_finite",
+        "posterior_predictive_check_recorded",
+        "expected_score_calibration_recorded",
+    ])
+    @test all(row -> Bool(row[:required_for_pilot]), diagnostics)
+    @test all(row -> Bool(row[:required_for_full_batch]), diagnostics)
+    @test all(row -> Bool(row[:public_claim_blocked_if_missing]),
+        diagnostics)
+
+    metrics = fixture[:metric_profile_rows]
+    @test length(metrics) == 6
+    @test Set(String(row[:metric]) for row in metrics) == Set([
+        "heldout_elpd",
+        "kfoldic",
+        "posterior_infit_outfit",
+        "posterior_predictive_category_use",
+        "expected_score_mae_rmse_bias",
+        "q_recovery_or_mismatch_flag",
+    ])
+    @test all(row -> Bool(row[:public_claim_allowed_from_pilot_alone]) == false,
+        metrics)
+
+    pilot_scope = fixture[:pilot_scope_rows]
+    @test length(pilot_scope) == 3
+    @test Set(String(row[:pilot_stage]) for row in pilot_scope) == Set([
+        "single_cell_publication_grade_pilot",
+        "scenario_coverage_expansion",
+        "full_kfold_batch",
+    ])
+    @test String(pilot_scope[1][:scenario]) == "well_specified_current_q"
+    @test Int(pilot_scope[1][:fold]) == 1
+    @test Set(String(value) for value in pilot_scope[1][:models]) == Set([
+        "scalar_gmfrm_baseline",
+        "confirmatory_mgmfrm_current_q",
+        "sparse_mgmfrm_current_q",
+        "construct_reviewed_revised_q_mgmfrm",
+        "null_or_intercept_reference",
+    ])
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, pilot_scope)
+
+    claims = fixture[:claim_rule_rows]
+    @test length(claims) == 5
+    @test all(row -> Bool(row[:pilot_sufficient]) == false, claims)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, claims)
+
+    blockers = fixture[:blocker_rows]
+    @test length(blockers) == 4
+    @test all(row -> Bool(row[:resolved]) == false, blockers)
+
+    decision = fixture[:decision_record]
+    @test String(decision[:selected_decision]) ==
+        "record_publication_grade_refit_gate_before_running_heavy_pilot"
+    @test Bool(decision[:gate_definition_recorded])
+    @test Bool(decision[:anchor_scoring_completed])
+    @test Bool(decision[:publication_grade_pilot_executed]) == false
+    @test String(decision[:required_followup]) ==
+        "publication_grade_refit_pilot_plan"
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:all_input_artifacts_present])
+    @test Bool(summary[:all_expected_schemas])
+    @test Bool(summary[:all_input_summaries_passed])
+    @test Bool(summary[:publication_grade_gate_defined])
+    @test Bool(summary[:anchor_scoring_completed])
+    @test Bool(summary[:diagnostic_gate_rows_recorded])
+    @test Bool(summary[:metric_profile_rows_recorded])
+    @test Bool(summary[:pilot_scope_recorded])
+    @test Bool(summary[:claim_rules_block_public_claims])
+    @test Bool(summary[:publication_grade_pilot_required])
+    @test Bool(summary[:publication_grade_pilot_executed]) == false
+    @test Bool(summary[:full_125_unit_publication_grade_batch_completed]) == false
+    @test Bool(summary[:external_construct_dataset_still_required])
+    @test Bool(summary[:no_public_fit_metric_claim])
+    @test Bool(summary[:no_public_q_revision_claim])
+    @test Bool(summary[:no_public_model_weight_claim])
+    @test Bool(summary[:no_sparse_superiority_claim])
+    @test Int(summary[:n_input_artifacts]) == 4
+    @test Int(summary[:n_diagnostic_gate_rows]) == 12
+    @test Int(summary[:n_metric_profile_rows]) == 6
+    @test Int(summary[:n_pilot_scope_rows]) == 3
+    @test Int(summary[:n_claim_rule_rows]) == 5
+    @test Int(summary[:n_blocker_rows]) == 4
+    @test Int(summary[:n_review_cells]) == 26
+    @test Int(summary[:n_planned_full_execution_units]) == 125
+    @test Int(summary[:n_anchor_scored_execution_units]) == 125
+    @test Int(summary[:planned_chains_per_unit]) == 4
+    @test Int(summary[:planned_draws_per_chain]) == 1000
+    @test Int(summary[:planned_warmup_per_chain]) == 500
+    @test String(summary[:recommendation]) ==
+        "freeze_gate_and_prepare_single_cell_publication_grade_pilot"
+    @test String(summary[:next_gate]) ==
+        "publication_grade_refit_pilot_plan"
+end
+
+function check_mgmfrm_publication_grade_refit_pilot_plan_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_publication_grade_refit_pilot_plan.v1"
+    @test String(fixture[:family]) == "mgmfrm"
+    @test String(fixture[:scope]) == "publication_grade_refit_pilot_plan"
+    @test String(fixture[:status]) ==
+        "publication_grade_refit_pilot_planned_not_executed"
+    @test String(fixture[:decision]) ==
+        "record_single_cell_publication_grade_refit_pilot_plan"
+    @test Bool(fixture[:public_fit])
+    @test Bool(fixture[:experimental_public])
+    @test Bool(fixture[:fit_ready])
+    @test Bool(fixture[:local_only])
+    @test Bool(fixture[:pilot_only])
+    @test Bool(fixture[:publication_grade_gate_defined])
+    @test Bool(fixture[:publication_grade_pilot_plan_recorded])
+    @test Bool(fixture[:publication_grade_pilot_executed]) == false
+    @test Bool(fixture[:full_125_unit_publication_grade_batch_completed]) == false
+    @test Bool(fixture[:publication_or_registration_action]) == false
+    @test Bool(fixture[:public_fit_metric_claim]) == false
+    @test Bool(fixture[:public_q_revision_claim]) == false
+    @test Bool(fixture[:public_model_weight_claim]) == false
+    @test Bool(fixture[:sparse_mgmfrm_superiority_claim]) == false
+
+    protocol = fixture[:protocol]
+    thresholds = protocol[:thresholds]
+    controls = protocol[:fit_controls]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_publication_grade_refit_pilot_plan_v1"
+    @test String(protocol[:review_kind]) ==
+        "local_publication_grade_refit_pilot_plan"
+    @test String(protocol[:execution_scope]) ==
+        "single_scenario_single_fold_all_comparison_models"
+    @test String(protocol[:selected_scenario]) == "well_specified_current_q"
+    @test Int(protocol[:selected_fold]) == 1
+    @test Set(String(value) for value in protocol[:selected_models]) == Set([
+        "scalar_gmfrm_baseline",
+        "confirmatory_mgmfrm_current_q",
+        "sparse_mgmfrm_current_q",
+        "construct_reviewed_revised_q_mgmfrm",
+        "null_or_intercept_reference",
+    ])
+    @test String(controls[:backend]) == "advancedhmc"
+    @test String(controls[:sampler]) == "nuts"
+    @test Int(controls[:chains]) == 4
+    @test Int(controls[:warmup_per_chain]) == 500
+    @test Int(controls[:draws_per_chain]) == 1000
+    @test Int(controls[:seed_offset]) == 300000
+    @test Bool(thresholds[:require_gate_passed])
+    @test Bool(thresholds[:require_execution_plan_passed])
+    @test Bool(thresholds[:require_anchor_scoring_passed])
+    @test Bool(thresholds[:require_selected_units_recorded])
+    @test Bool(thresholds[:require_all_five_models_selected])
+    @test Bool(thresholds[:require_publication_grade_controls_match_gate])
+    @test Bool(thresholds[:require_diagnostic_placeholders_recorded])
+    @test Bool(thresholds[:require_pilot_execution_not_yet_run])
+    @test Bool(thresholds[:require_full_batch_not_yet_run])
+    @test Bool(thresholds[:require_no_public_fit_metric_claim])
+    @test Bool(thresholds[:require_no_public_q_revision_claim])
+    @test Bool(thresholds[:require_no_public_model_weight_claim])
+    @test Bool(thresholds[:require_no_sparse_superiority_claim])
+
+    inputs = fixture[:input_artifacts]
+    expected_inputs = Dict(
+        "mgmfrm_publication_grade_refit_gate" =>
+            "test/fixtures/mgmfrm_publication_grade_refit_gate.json",
+        "mgmfrm_full_heldout_mcmc_refit_execution_plan" =>
+            "test/fixtures/mgmfrm_full_heldout_mcmc_refit_execution_plan.json",
+        "mgmfrm_full_heldout_mcmc_refit_anchor_scoring" =>
+            "test/fixtures/mgmfrm_full_heldout_mcmc_refit_anchor_scoring.json",
+    )
+    @test length(inputs) == length(expected_inputs)
+    @test Set(String(row[:artifact]) for row in inputs) ==
+        Set(keys(expected_inputs))
+    for row in inputs
+        artifact = String(row[:artifact])
+        @test String(row[:path]) == expected_inputs[artifact]
+        @test Bool(row[:exists])
+        @test Bool(row[:schema_matches])
+        @test Bool(row[:summary_passed])
+        @test String(row[:sha256]) ==
+            file_sha256(joinpath(root, String(row[:path])))
+    end
+
+    selected = fixture[:selected_pilot_unit_rows]
+    @test length(selected) == 5
+    @test Set(String(row[:model]) for row in selected) == Set([
+        "scalar_gmfrm_baseline",
+        "confirmatory_mgmfrm_current_q",
+        "sparse_mgmfrm_current_q",
+        "construct_reviewed_revised_q_mgmfrm",
+        "null_or_intercept_reference",
+    ])
+    @test all(row -> String(row[:scenario]) == "well_specified_current_q",
+        selected)
+    @test all(row -> Int(row[:fold]) == 1, selected)
+    @test count(row -> Bool(row[:mcmc_refit_required]), selected) == 4
+    @test count(row -> Bool(row[:analytic_reference_scored]), selected) == 1
+    @test all(row -> Bool(row[:publication_grade_pilot_executed]) == false,
+        selected)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, selected)
+    @test all(row -> Int(row[:n_train_observations]) == 32, selected)
+    @test all(row -> Int(row[:n_heldout_observations]) == 8, selected)
+
+    controls_rows = fixture[:execution_control_rows]
+    @test length(controls_rows) == 5
+    @test count(row -> Bool(row[:mcmc_refit_required]), controls_rows) == 4
+    @test all(row -> !Bool(row[:mcmc_refit_required]) ||
+            (String(row[:backend]) == "advancedhmc" &&
+             String(row[:sampler]) == "nuts" &&
+             Int(row[:chains]) == 4 &&
+             Int(row[:warmup_per_chain]) == 500 &&
+             Int(row[:draws_per_chain]) == 1000),
+        controls_rows)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, controls_rows)
+
+    diagnostics = fixture[:diagnostic_placeholder_rows]
+    @test length(diagnostics) == 60
+    @test all(row -> Bool(row[:observed]) == false, diagnostics)
+    @test all(row -> Bool(row[:passed]) == false, diagnostics)
+    @test all(row -> Bool(row[:blocks_public_claim]), diagnostics)
+    for row in selected
+        id = String(row[:execution_unit_id])
+        @test count(diag -> String(diag[:execution_unit_id]) == id,
+            diagnostics) == 12
+    end
+
+    blockers = fixture[:blocker_rows]
+    @test length(blockers) == 5
+    @test all(row -> Bool(row[:resolved]) == false, blockers)
+
+    decision = fixture[:decision_record]
+    @test String(decision[:selected_decision]) ==
+        "record_publication_grade_single_cell_pilot_before_heavy_refit"
+    @test Bool(decision[:publication_grade_gate_defined])
+    @test Bool(decision[:publication_grade_pilot_plan_recorded])
+    @test Bool(decision[:publication_grade_pilot_executed]) == false
+    @test String(decision[:required_followup]) ==
+        "execute_publication_grade_refit_pilot_or_attach_external_construct_dataset"
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:all_input_artifacts_present])
+    @test Bool(summary[:all_expected_schemas])
+    @test Bool(summary[:all_input_summaries_passed])
+    @test Bool(summary[:gate_passed])
+    @test Bool(summary[:execution_plan_passed])
+    @test Bool(summary[:anchor_scoring_passed])
+    @test Bool(summary[:publication_grade_gate_defined])
+    @test Bool(summary[:publication_grade_pilot_plan_recorded])
+    @test Bool(summary[:selected_units_recorded])
+    @test Bool(summary[:all_five_models_selected])
+    @test String(summary[:selected_scenario]) == "well_specified_current_q"
+    @test Int(summary[:selected_fold]) == 1
+    @test Bool(summary[:publication_grade_controls_match_gate])
+    @test Bool(summary[:diagnostic_placeholders_recorded])
+    @test Bool(summary[:publication_grade_pilot_executed]) == false
+    @test Bool(summary[:full_125_unit_publication_grade_batch_completed]) == false
+    @test Bool(summary[:external_construct_dataset_still_required])
+    @test Bool(summary[:no_public_fit_metric_claim])
+    @test Bool(summary[:no_public_q_revision_claim])
+    @test Bool(summary[:no_public_model_weight_claim])
+    @test Bool(summary[:no_sparse_superiority_claim])
+    @test Int(summary[:n_input_artifacts]) == 3
+    @test Int(summary[:n_selected_pilot_unit_rows]) == 5
+    @test Int(summary[:n_mcmc_pilot_units]) == 4
+    @test Int(summary[:n_analytic_reference_units]) == 1
+    @test Int(summary[:n_execution_control_rows]) == 5
+    @test Int(summary[:n_diagnostic_placeholder_rows]) == 60
+    @test Int(summary[:n_blocker_rows]) == 5
+    @test Int(summary[:n_review_cells]) == 70
+    @test Int(summary[:planned_chains]) == 16
+    @test Int(summary[:planned_posterior_draws]) == 16000
+    @test Int(summary[:planned_warmup_iterations]) == 8000
+    @test String(summary[:recommendation]) ==
+        "run_single_cell_publication_grade_pilot_then_compare_to_smoke_anchor_scoring"
+    @test String(summary[:next_gate]) ==
+        "execute_publication_grade_refit_pilot_or_attach_external_construct_dataset"
+end
+
+function check_mgmfrm_publication_grade_refit_pilot_execution_harness_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_publication_grade_refit_pilot_execution_harness.v1"
+    @test String(fixture[:family]) == "mgmfrm"
+    @test String(fixture[:scope]) ==
+        "publication_grade_refit_pilot_execution_harness"
+    @test String(fixture[:status]) ==
+        "publication_grade_refit_pilot_execution_harness_recorded"
+    @test String(fixture[:decision]) ==
+        "record_publication_grade_refit_pilot_execution_harness"
+    @test Bool(fixture[:public_fit])
+    @test Bool(fixture[:experimental_public])
+    @test Bool(fixture[:fit_ready])
+    @test Bool(fixture[:harness_ready])
+    @test Bool(fixture[:execution_ready])
+    @test Bool(fixture[:local_only])
+    @test Bool(fixture[:pilot_only])
+    @test Bool(fixture[:publication_or_registration_action]) == false
+    @test Bool(fixture[:publication_grade_gate_defined])
+    @test Bool(fixture[:publication_grade_pilot_plan_recorded])
+    @test Bool(fixture[:publication_grade_pilot_execution_harness_recorded])
+    @test Bool(fixture[:publication_grade_pilot_runner_materialized])
+    @test Bool(fixture[:publication_grade_pilot_executed]) == false
+    @test Bool(fixture[:full_125_unit_publication_grade_batch_completed]) ==
+        false
+    @test Bool(fixture[:public_fit_metric_claim]) == false
+    @test Bool(fixture[:public_q_revision_claim]) == false
+    @test Bool(fixture[:public_model_weight_claim]) == false
+    @test Bool(fixture[:sparse_mgmfrm_superiority_claim]) == false
+
+    protocol = fixture[:protocol]
+    thresholds = protocol[:thresholds]
+    controls = protocol[:fit_controls]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_publication_grade_refit_pilot_execution_harness_v1"
+    @test String(protocol[:review_kind]) ==
+        "local_publication_grade_refit_pilot_execution_harness"
+    @test String(protocol[:execution_scope]) ==
+        "single_scenario_single_fold_publication_grade_execution_harness"
+    @test String(protocol[:selected_scenario]) == "well_specified_current_q"
+    @test Int(protocol[:selected_fold]) == 1
+    @test String(protocol[:runner_script]) ==
+        "scripts/run_mgmfrm_publication_grade_refit_job.jl"
+    @test String(controls[:backend]) == "advancedhmc"
+    @test String(controls[:sampler]) == "nuts"
+    @test Int(controls[:chains]) == 4
+    @test Int(controls[:warmup_per_chain]) == 500
+    @test Int(controls[:draws_per_chain]) == 1000
+    @test Float64(controls[:target_acceptance]) == 0.8
+    @test Bool(thresholds[:require_pilot_plan_passed])
+    @test Bool(thresholds[:require_gate_passed])
+    @test Bool(thresholds[:require_fold1_scoring_passed])
+    @test Bool(thresholds[:require_anchor_scoring_passed])
+    @test Bool(thresholds[:require_fit_threshold_linkage_passed])
+    @test Bool(thresholds[:require_execution_jobs_materialized])
+    @test Bool(thresholds[:require_execution_commands_recorded])
+    @test Bool(thresholds[:require_runner_state_recorded])
+    @test Bool(thresholds[:require_result_artifact_targets_recorded])
+    @test Bool(thresholds[:require_diagnostic_capture_manifest_recorded])
+    @test Bool(thresholds[:require_comparison_hooks_recorded])
+    @test Bool(thresholds[:require_publication_grade_pilot_not_yet_executed])
+    @test Bool(thresholds[:require_full_batch_not_yet_executed])
+    @test Bool(thresholds[:require_no_public_fit_metric_claim])
+    @test Bool(thresholds[:require_no_public_q_revision_claim])
+    @test Bool(thresholds[:require_no_public_model_weight_claim])
+    @test Bool(thresholds[:require_no_sparse_superiority_claim])
+
+    inputs = fixture[:input_artifacts]
+    expected_inputs = Dict(
+        "mgmfrm_publication_grade_refit_pilot_plan" =>
+            "test/fixtures/mgmfrm_publication_grade_refit_pilot_plan.json",
+        "mgmfrm_publication_grade_refit_gate" =>
+            "test/fixtures/mgmfrm_publication_grade_refit_gate.json",
+        "mgmfrm_full_heldout_mcmc_refit_fold1_scoring" =>
+            "test/fixtures/mgmfrm_full_heldout_mcmc_refit_fold1_scoring.json",
+        "mgmfrm_full_heldout_mcmc_refit_anchor_scoring" =>
+            "test/fixtures/mgmfrm_full_heldout_mcmc_refit_anchor_scoring.json",
+        "mgmfrm_fit_threshold_q_heldout_linkage" =>
+            "test/fixtures/mgmfrm_fit_threshold_q_heldout_linkage.json",
+    )
+    @test length(inputs) == length(expected_inputs)
+    @test Set(String(row[:artifact]) for row in inputs) ==
+        Set(keys(expected_inputs))
+    for row in inputs
+        artifact = String(row[:artifact])
+        @test String(row[:path]) == expected_inputs[artifact]
+        @test Bool(row[:exists])
+        @test Bool(row[:schema_matches])
+        @test Bool(row[:summary_passed])
+        @test String(row[:sha256]) ==
+            file_sha256(joinpath(root, String(row[:path])))
+    end
+
+    jobs = fixture[:execution_job_rows]
+    @test length(jobs) == 5
+    @test count(row -> Bool(row[:mcmc_refit_required]), jobs) == 4
+    @test count(row -> Bool(row[:analytic_reference_scored]), jobs) == 1
+    @test all(row -> String(row[:scenario]) == "well_specified_current_q",
+        jobs)
+    @test all(row -> Int(row[:fold]) == 1, jobs)
+    @test all(row -> String(row[:execution_status]) == "ready_not_executed",
+        jobs)
+    @test all(row -> Bool(row[:publication_grade_pilot_executed]) == false,
+        jobs)
+    @test all(row -> Bool(row[:diagnostics_observed]) == false, jobs)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, jobs)
+    @test all(row -> !Bool(row[:mcmc_refit_required]) ||
+            (String(row[:backend]) == "advancedhmc" &&
+             String(row[:sampler]) == "nuts" &&
+             Int(row[:chains]) == 4 &&
+             Int(row[:warmup_per_chain]) == 500 &&
+             Int(row[:draws_per_chain]) == 1000),
+        jobs)
+
+    commands = fixture[:execution_command_rows]
+    @test length(commands) == 5
+    @test all(row -> Bool(row[:runner_script_required]), commands)
+    @test all(row -> Bool(row[:runner_script_exists]), commands)
+    @test all(row -> String(row[:command_status]) == "ready_not_executed",
+        commands)
+    @test all(row -> Bool(row[:execute_now]) == false, commands)
+    @test all(row -> Bool(row[:local_only]), commands)
+    @test all(row -> Bool(row[:publication_or_registration_action]) == false,
+        commands)
+    @test all(row -> !occursin("git push", String(row[:command])), commands)
+
+    targets = fixture[:result_artifact_target_rows]
+    @test length(targets) == 15
+    @test Set(String(row[:artifact_target]) for row in targets) == Set([
+        "fit_result",
+        "diagnostic_summary",
+        "heldout_score_summary",
+    ])
+    @test all(row -> Bool(row[:exists]) == false, targets)
+    @test all(row -> Bool(row[:required_before_public_claim]), targets)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, targets)
+
+    diagnostics = fixture[:diagnostic_capture_rows]
+    @test length(diagnostics) == 60
+    @test all(row -> Bool(row[:observed]) == false, diagnostics)
+    @test all(row -> Bool(row[:passed]) == false, diagnostics)
+    @test all(row -> Bool(row[:blocks_public_claim]), diagnostics)
+    for row in jobs
+        id = String(row[:execution_unit_id])
+        @test count(diag -> String(diag[:execution_unit_id]) == id,
+            diagnostics) == 12
+    end
+
+    comparisons = fixture[:comparison_hook_rows]
+    @test length(comparisons) == 5
+    @test Set(String(row[:hook]) for row in comparisons) == Set([
+        "publication_grade_vs_fold1_smoke_heldout_elpd",
+        "publication_grade_vs_anchor_scores",
+        "diagnostic_gate_pass_fail_snapshot",
+        "fit_threshold_q_heldout_linkage_review",
+        "parameter_absorption_and_q_mismatch_review",
+    ])
+    @test all(row -> String(row[:comparison_status]) == "planned_not_executed",
+        comparisons)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, comparisons)
+
+    blockers = fixture[:blocker_rows]
+    @test length(blockers) == 7
+    @test count(row -> Bool(row[:resolved]), blockers) == 1
+    runner_blocker = only(row for row in blockers
+        if String(row[:blocker]) == "publication_grade_runner_not_materialized")
+    @test Bool(runner_blocker[:resolved])
+
+    decision = fixture[:decision_record]
+    @test String(decision[:selected_decision]) ==
+        "record_execution_harness_runner_materialized_before_heavy_refit"
+    @test Bool(decision[:publication_grade_gate_defined])
+    @test Bool(decision[:publication_grade_pilot_plan_recorded])
+    @test Bool(decision[:publication_grade_pilot_execution_harness_recorded])
+    @test Bool(decision[:publication_grade_pilot_runner_materialized])
+    @test Bool(decision[:publication_grade_pilot_executed]) == false
+    @test String(decision[:required_followup]) ==
+        "execute_publication_grade_refit_pilot_or_attach_external_construct_dataset"
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:all_input_artifacts_present])
+    @test Bool(summary[:all_expected_schemas])
+    @test Bool(summary[:all_input_summaries_passed])
+    @test Bool(summary[:pilot_plan_passed])
+    @test Bool(summary[:gate_passed])
+    @test Bool(summary[:fold1_scoring_passed])
+    @test Bool(summary[:anchor_scoring_passed])
+    @test Bool(summary[:fit_threshold_linkage_passed])
+    @test Bool(summary[:publication_grade_pilot_execution_harness_recorded])
+    @test Bool(summary[:publication_grade_pilot_runner_materialized])
+    @test Bool(summary[:execution_jobs_materialized])
+    @test Bool(summary[:execution_commands_recorded])
+    @test Bool(summary[:runner_state_recorded])
+    @test Bool(summary[:result_artifact_targets_recorded])
+    @test Bool(summary[:diagnostic_capture_manifest_recorded])
+    @test Bool(summary[:comparison_hooks_recorded])
+    @test Bool(summary[:publication_grade_pilot_executed]) == false
+    @test Bool(summary[:full_125_unit_publication_grade_batch_completed]) ==
+        false
+    @test Bool(summary[:external_construct_dataset_still_required])
+    @test Bool(summary[:no_public_fit_metric_claim])
+    @test Bool(summary[:no_public_q_revision_claim])
+    @test Bool(summary[:no_public_model_weight_claim])
+    @test Bool(summary[:no_sparse_superiority_claim])
+    @test Int(summary[:n_input_artifacts]) == 5
+    @test Int(summary[:n_execution_job_rows]) == 5
+    @test Int(summary[:n_mcmc_execution_jobs]) == 4
+    @test Int(summary[:n_analytic_reference_jobs]) == 1
+    @test Int(summary[:n_execution_command_rows]) == 5
+    @test Int(summary[:n_result_artifact_target_rows]) == 15
+    @test Int(summary[:n_diagnostic_capture_rows]) == 60
+    @test Int(summary[:n_comparison_hook_rows]) == 5
+    @test Int(summary[:n_blocker_rows]) == 7
+    @test Int(summary[:n_review_cells]) == 90
+    @test Int(summary[:planned_chains]) == 16
+    @test Int(summary[:planned_posterior_draws]) == 16000
+    @test Int(summary[:planned_warmup_iterations]) == 8000
+    @test Set(String(blocker) for blocker in
+        summary[:remaining_public_blockers]) == Set([
+            "publication_grade_pilot_not_executed",
+            "diagnostics_not_observed",
+            "fit_metric_thresholds_not_reestimated_under_publication_grade_draws",
+            "full_125_unit_publication_grade_batch_not_executed",
+            "external_construct_dataset_missing",
+            "independent_public_scope_review_missing",
+        ])
+    @test String(summary[:recommendation]) ==
+        "execute_single_cell_publication_grade_pilot_or_attach_external_dataset"
+    @test String(summary[:next_gate]) ==
+        "execute_publication_grade_refit_pilot_or_attach_external_construct_dataset"
+end
+
+function check_mgmfrm_publication_grade_refit_pilot_results_review_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_publication_grade_refit_pilot_results_review.v1"
+    @test String(fixture[:family]) == "mgmfrm"
+    @test String(fixture[:scope]) ==
+        "publication_grade_refit_pilot_results_review"
+    @test String(fixture[:status]) ==
+        "publication_grade_refit_pilot_results_review_recorded"
+    @test String(fixture[:decision]) ==
+        "record_publication_grade_refit_pilot_results_state"
+    @test Bool(fixture[:public_fit])
+    @test Bool(fixture[:experimental_public])
+    @test Bool(fixture[:fit_ready])
+    @test Bool(fixture[:local_only])
+    @test Bool(fixture[:pilot_only])
+    @test Bool(fixture[:local_artifacts_ignored_for_fixture])
+    @test Bool(fixture[:publication_or_registration_action]) == false
+    @test Bool(fixture[:publication_grade_gate_defined])
+    @test Bool(fixture[:publication_grade_pilot_plan_recorded])
+    @test Bool(fixture[:publication_grade_pilot_execution_harness_recorded])
+    @test Bool(fixture[:publication_grade_pilot_results_review_recorded])
+    @test Bool(fixture[:publication_grade_pilot_executed]) == false
+    @test Bool(fixture[:full_125_unit_publication_grade_batch_completed]) ==
+        false
+    @test Bool(fixture[:public_fit_metric_claim]) == false
+    @test Bool(fixture[:public_q_revision_claim]) == false
+    @test Bool(fixture[:public_model_weight_claim]) == false
+    @test Bool(fixture[:sparse_mgmfrm_superiority_claim]) == false
+
+    protocol = fixture[:protocol]
+    thresholds = protocol[:thresholds]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_publication_grade_refit_pilot_results_review_v1"
+    @test String(protocol[:review_kind]) ==
+        "local_publication_grade_refit_pilot_results_review"
+    @test String(protocol[:source_harness]) ==
+        "mgmfrm_publication_grade_refit_pilot_execution_harness"
+    @test Int(protocol[:expected_execution_units]) == 5
+    @test Int(protocol[:expected_mcmc_execution_units]) == 4
+    @test Int(protocol[:expected_analytic_reference_units]) == 1
+    @test Int(protocol[:expected_artifacts_per_unit]) == 3
+    @test Bool(thresholds[:require_harness_passed])
+    @test Bool(thresholds[:require_result_artifact_rows_recorded])
+    @test Bool(thresholds[:require_missing_or_valid_job_artifacts])
+    @test Bool(thresholds[:require_heldout_rank_rows_when_scores_complete])
+    @test Bool(thresholds[:require_diagnostic_failure_rows_when_observed])
+    @test Bool(thresholds[:require_descriptive_only_model_rankings])
+    @test Bool(thresholds[:require_all_public_claims_blocked])
+    @test Bool(thresholds[:require_no_publication_or_registration_action])
+
+    inputs = fixture[:input_artifacts]
+    @test length(inputs) == 1
+    harness = only(inputs)
+    @test String(harness[:artifact]) ==
+        "mgmfrm_publication_grade_refit_pilot_execution_harness"
+    @test String(harness[:path]) ==
+        "test/fixtures/mgmfrm_publication_grade_refit_pilot_execution_harness.json"
+    @test Bool(harness[:exists])
+    @test Bool(harness[:schema_matches])
+    @test Bool(harness[:summary_passed])
+    @test String(harness[:sha256]) ==
+        file_sha256(joinpath(root, String(harness[:path])))
+
+    rows = fixture[:job_result_review_rows]
+    @test length(rows) == 5
+    @test Set(String(row[:model]) for row in rows) == Set([
+        "scalar_gmfrm_baseline",
+        "confirmatory_mgmfrm_current_q",
+        "sparse_mgmfrm_current_q",
+        "construct_reviewed_revised_q_mgmfrm",
+        "null_or_intercept_reference",
+    ])
+    @test all(row -> String(row[:scenario]) == "well_specified_current_q",
+        rows)
+    @test all(row -> Int(row[:fold]) == 1, rows)
+    @test count(row -> Bool(row[:mcmc_refit_required]), rows) == 4
+    @test count(row -> Bool(row[:analytic_reference_scored]), rows) == 1
+    @test all(row -> Bool(row[:artifacts_complete]) == false, rows)
+    @test all(row -> Bool(row[:execution_observed]) == false, rows)
+    @test all(row -> Bool(row[:diagnostics_observed]) == false, rows)
+    @test all(row -> Bool(row[:diagnostic_gate_passed]) == false, rows)
+    @test all(row -> Bool(row[:heldout_predictive_score_computed]) == false,
+        rows)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, rows)
+    for row in rows
+        for key in (:result_artifact, :diagnostic_artifact, :heldout_artifact)
+            artifact = row[key]
+            @test Bool(artifact[:exists]) == false
+            @test String(artifact[:status]) == "missing"
+            @test Bool(artifact[:schema_matches]) == false
+            @test Bool(artifact[:summary_passed]) == false
+        end
+        @test endswith(String(row[:result_artifact][:path]), "_result.json")
+        @test endswith(String(row[:diagnostic_artifact][:path]),
+            "_diagnostics.json")
+        @test endswith(String(row[:heldout_artifact][:path]),
+            "_heldout_score.json")
+    end
+    @test length(fixture[:heldout_model_rank_rows]) == 0
+    @test length(fixture[:diagnostic_failure_rows]) == 0
+
+    blockers = fixture[:blocker_rows]
+    @test length(blockers) == 7
+    @test all(row -> Bool(row[:resolved]) == false, blockers)
+
+    decision = fixture[:decision_record]
+    @test String(decision[:selected_decision]) ==
+        "record_publication_grade_pilot_results_review"
+    @test Bool(decision[
+        :publication_grade_pilot_execution_harness_recorded])
+    @test Bool(decision[:publication_grade_pilot_executed]) == false
+    @test Bool(decision[:diagnostics_observed]) == false
+    @test Bool(decision[:heldout_scores_cover_selected_units]) == false
+    @test Bool(decision[:sampler_diagnostic_failure_detected]) == false
+    @test Bool(decision[:heldout_rank_review_recorded])
+    @test Bool(decision[:diagnostic_failure_review_recorded])
+    @test String(decision[:required_followup]) ==
+        "execute_remaining_publication_grade_refit_pilot_jobs_or_attach_external_construct_dataset"
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:publication_or_registration_action]) == false
+    @test Bool(summary[:local_only])
+    @test Bool(summary[:pilot_only])
+    @test Bool(summary[:local_artifacts_ignored_for_fixture])
+    @test Bool(summary[:harness_present])
+    @test Bool(summary[:harness_schema_matches])
+    @test Bool(summary[:harness_passed])
+    @test Bool(summary[:result_review_rows_recorded])
+    @test Bool(summary[:missing_or_valid_job_artifacts])
+    @test Bool(summary[:partial_execution_detected]) == false
+    @test Bool(summary[:publication_grade_pilot_executed]) == false
+    @test Bool(summary[:all_five_pilot_jobs_executed]) == false
+    @test Bool(summary[:all_expected_job_artifacts_present]) == false
+    @test Bool(summary[:all_executed_diagnostics_observed]) == false
+    @test Bool(summary[:all_mcmc_diagnostic_gates_passed]) == false
+    @test Bool(summary[:sampler_diagnostic_failure_detected]) == false
+    @test Bool(summary[:heldout_scores_cover_selected_units]) == false
+    @test Bool(summary[:heldout_rank_review_recorded])
+    @test Bool(summary[:diagnostic_failure_review_recorded])
+    @test Bool(summary[:external_construct_dataset_still_required])
+    @test Bool(summary[:no_public_fit_metric_claim])
+    @test Bool(summary[:no_public_q_revision_claim])
+    @test Bool(summary[:no_public_model_weight_claim])
+    @test Bool(summary[:no_sparse_superiority_claim])
+    @test Int(summary[:n_input_artifacts]) == 1
+    @test Int(summary[:n_expected_execution_units]) == 5
+    @test Int(summary[:n_mcmc_execution_units]) == 4
+    @test Int(summary[:n_analytic_reference_units]) == 1
+    @test Int(summary[:n_job_result_review_rows]) == 5
+    @test Int(summary[:n_heldout_model_rank_rows]) == 0
+    @test Int(summary[:n_diagnostic_failure_rows]) == 0
+    @test Int(summary[:n_mcmc_diagnostic_failure_rows]) == 0
+    @test Int(summary[:n_expected_job_artifacts]) == 15
+    @test Int(summary[:n_present_job_artifacts]) == 0
+    @test Int(summary[:n_valid_job_artifacts]) == 0
+    @test Int(summary[:n_complete_execution_units]) == 0
+    @test Int(summary[:n_executed_execution_units]) == 0
+    @test Int(summary[:n_diagnostics_observed_units]) == 0
+    @test Int(summary[:n_diagnostic_gate_passed_units]) == 0
+    @test Int(summary[:n_heldout_score_units]) == 0
+    @test Int(summary[:n_blocker_rows]) == 7
+    @test Int(summary[:n_blockers]) == 7
+    @test summary[:best_heldout_model] === nothing
+    @test summary[:best_mcmc_heldout_model] === nothing
+    @test summary[:best_diagnostic_passed_mcmc_model] === nothing
+    @test Bool(summary[:reference_best_heldout_score]) == false
+    @test summary[:mcmc_model_beat_reference_on_heldout_elpd] === nothing
+    @test Set(String(blocker) for blocker in
+        summary[:remaining_public_blockers]) == Set([
+            "publication_grade_pilot_not_executed",
+            "publication_grade_results_artifacts_missing",
+            "diagnostics_not_observed",
+            "fit_metric_thresholds_not_reestimated_under_publication_grade_draws",
+            "full_125_unit_publication_grade_batch_not_executed",
+            "external_construct_dataset_missing",
+            "independent_public_scope_review_missing",
+        ])
+    @test String(summary[:recommendation]) ==
+        "execute_missing_publication_grade_pilot_jobs_keep_claims_blocked"
+    @test String(summary[:next_gate]) ==
+        "execute_remaining_publication_grade_refit_pilot_jobs_or_attach_external_construct_dataset"
+end
+
+function check_mgmfrm_publication_grade_refit_sampler_remediation_review_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_publication_grade_refit_sampler_remediation_review.v1"
+    @test String(fixture[:family]) == "mgmfrm"
+    @test String(fixture[:scope]) ==
+        "publication_grade_refit_sampler_remediation_review"
+    @test String(fixture[:status]) ==
+        "publication_grade_refit_sampler_remediation_review_recorded"
+    @test String(fixture[:decision]) ==
+        "record_sampler_remediation_without_replacing_primary_pilot_result"
+    @test Bool(fixture[:public_fit])
+    @test Bool(fixture[:experimental_public])
+    @test Bool(fixture[:fit_ready])
+    @test Bool(fixture[:local_only])
+    @test Bool(fixture[:pilot_only])
+    @test Bool(fixture[:remediation_only])
+    @test Bool(fixture[:local_artifacts_ignored_for_fixture])
+    @test Bool(fixture[:publication_or_registration_action]) == false
+    @test Bool(fixture[:public_fit_metric_claim]) == false
+    @test Bool(fixture[:public_q_revision_claim]) == false
+    @test Bool(fixture[:public_model_weight_claim]) == false
+    @test Bool(fixture[:sparse_mgmfrm_superiority_claim]) == false
+
+    protocol = fixture[:protocol]
+    thresholds = protocol[:thresholds]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_publication_grade_refit_sampler_remediation_review_v1"
+    @test String(protocol[:review_kind]) ==
+        "local_publication_grade_refit_sampler_remediation_review"
+    @test String(protocol[:source_primary_review]) ==
+        "mgmfrm_publication_grade_refit_pilot_results_review"
+    @test String(protocol[:trigger_gate]) ==
+        "review_sampler_diagnostic_failures_before_expand_batch"
+    @test String(protocol[:remediation_scope]) ==
+        "scalar_gmfrm_divergence_target_acceptance_escalation"
+    @test Bool(thresholds[:require_primary_review_present])
+    @test Bool(thresholds[:require_primary_review_passed])
+    @test Bool(thresholds[:require_remediation_target_rows_recorded])
+    @test Bool(thresholds[:require_missing_or_valid_remediation_artifacts])
+    @test Bool(thresholds[:require_primary_pilot_results_preserved])
+    @test Bool(thresholds[:require_remediation_descriptive_only])
+    @test Bool(thresholds[:require_all_public_claims_blocked])
+    @test Bool(thresholds[:require_no_publication_or_registration_action])
+
+    inputs = fixture[:input_artifacts]
+    @test length(inputs) == 1
+    primary = only(inputs)
+    @test String(primary[:artifact]) ==
+        "mgmfrm_publication_grade_refit_pilot_results_review"
+    @test String(primary[:path]) ==
+        "test/fixtures/mgmfrm_publication_grade_refit_pilot_results_review.json"
+    @test Bool(primary[:exists])
+    @test Bool(primary[:schema_matches])
+    @test Bool(primary[:summary_passed])
+    @test String(primary[:sha256]) ==
+        file_sha256(joinpath(root, String(primary[:path])))
+
+    targets = fixture[:remediation_target_rows]
+    @test length(targets) == 1
+    target = only(targets)
+    @test String(target[:remediation_id]) ==
+        "well_specified_current_q__scalar_gmfrm_baseline__fold1__target_accept_0p90"
+    @test String(target[:source_execution_unit_id]) ==
+        "well_specified_current_q__scalar_gmfrm_baseline__fold1"
+    @test String(target[:model]) == "scalar_gmfrm_baseline"
+    @test String(target[:trigger_diagnostic]) == "divergence_count_max"
+    @test Float64(target[:primary_target_acceptance]) == 0.8
+    @test Float64(target[:remediation_target_acceptance]) == 0.9
+    @test Int(target[:chains]) == 4
+    @test Int(target[:warmup_per_chain]) == 500
+    @test Int(target[:draws_per_chain]) == 1000
+    @test Int(target[:seed]) == 2026375901
+    @test occursin("--target-acceptance 0.9", String(target[:command]))
+    @test endswith(String(target[:result_artifact_path]), "_result.json")
+    @test Bool(target[:primary_result_replaced]) == false
+    @test Bool(target[:public_claim_allowed]) == false
+
+    rows = fixture[:remediation_review_rows]
+    @test length(rows) == 1
+    row = only(rows)
+    @test String(row[:remediation_id]) == String(target[:remediation_id])
+    @test Bool(row[:artifacts_complete]) == false
+    @test Bool(row[:remediation_observed]) == false
+    @test Bool(row[:diagnostic_gate_passed]) == false
+    @test Bool(row[:primary_result_replaced]) == false
+    @test Bool(row[:descriptive_only])
+    @test Bool(row[:public_claim_allowed]) == false
+    for key in (:result_artifact, :diagnostic_artifact, :heldout_artifact)
+        artifact = row[key]
+        @test Bool(artifact[:exists]) == false
+        @test String(artifact[:status]) == "missing"
+        @test Bool(artifact[:schema_matches]) == false
+        @test Bool(artifact[:summary_passed]) == false
+    end
+
+    blockers = fixture[:blocker_rows]
+    @test length(blockers) == 5
+    @test all(blocker -> Bool(blocker[:resolved]) == false, blockers)
+
+    decision = fixture[:decision_record]
+    @test String(decision[:selected_decision]) ==
+        "record_sampler_remediation_review_keep_primary_result"
+    @test Bool(decision[:primary_pilot_results_reviewed])
+    @test Bool(decision[:primary_sampler_diagnostic_failure_detected]) ==
+        false
+    @test Bool(decision[:remediation_success_observed]) == false
+    @test Bool(decision[:primary_result_replaced]) == false
+    @test Bool(decision[:public_fit_metric_claim_allowed]) == false
+    @test Bool(decision[:public_model_weight_claim_allowed]) == false
+    @test String(decision[:required_followup]) ==
+        "execute_sampler_remediation_if_scalar_divergence_observed"
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:publication_or_registration_action]) == false
+    @test Bool(summary[:local_only])
+    @test Bool(summary[:pilot_only])
+    @test Bool(summary[:remediation_only])
+    @test Bool(summary[:local_artifacts_ignored_for_fixture])
+    @test Bool(summary[:primary_review_present])
+    @test Bool(summary[:primary_review_schema_matches])
+    @test Bool(summary[:primary_review_passed])
+    @test Bool(summary[:primary_sampler_diagnostic_failure_detected]) ==
+        false
+    @test Bool(summary[:remediation_target_rows_recorded])
+    @test Bool(summary[:missing_or_valid_remediation_artifacts])
+    @test Bool(summary[:all_expected_remediation_artifacts_present]) == false
+    @test Bool(summary[:remediation_success_observed]) == false
+    @test Bool(summary[:primary_result_preserved])
+    @test Bool(summary[:no_public_fit_metric_claim])
+    @test Bool(summary[:no_public_q_revision_claim])
+    @test Bool(summary[:no_public_model_weight_claim])
+    @test Bool(summary[:no_sparse_superiority_claim])
+    @test Int(summary[:n_input_artifacts]) == 1
+    @test Int(summary[:n_remediation_target_rows]) == 1
+    @test Int(summary[:n_remediation_review_rows]) == 1
+    @test Int(summary[:n_expected_remediation_artifacts]) == 3
+    @test Int(summary[:n_present_remediation_artifacts]) == 0
+    @test Int(summary[:n_valid_remediation_artifacts]) == 0
+    @test Int(summary[:n_observed_remediation_units]) == 0
+    @test Int(summary[:n_diagnostic_gate_passed_remediation_units]) == 0
+    @test Int(summary[:n_blocker_rows]) == 5
+    @test Int(summary[:n_blockers]) == 5
+    @test String(summary[:recommendation]) ==
+        "run_remediation_after_primary_sampler_failure_keep_claims_blocked"
+    @test String(summary[:next_gate]) ==
+        "execute_sampler_remediation_if_scalar_divergence_observed"
+end
+
+function check_mgmfrm_publication_grade_refit_scalar_remediation_comparison_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_publication_grade_refit_scalar_remediation_comparison.v1"
+    @test String(fixture[:family]) == "mgmfrm"
+    @test String(fixture[:scope]) ==
+        "publication_grade_refit_scalar_remediation_comparison"
+    @test String(fixture[:status]) ==
+        "publication_grade_refit_scalar_remediation_comparison_recorded"
+    @test String(fixture[:decision]) ==
+        "record_scalar_remediation_comparison_before_batch_expansion"
+    @test Bool(fixture[:public_fit])
+    @test Bool(fixture[:experimental_public])
+    @test Bool(fixture[:fit_ready])
+    @test Bool(fixture[:local_only])
+    @test Bool(fixture[:pilot_only])
+    @test Bool(fixture[:remediation_only])
+    @test Bool(fixture[:publication_or_registration_action]) == false
+    @test Bool(fixture[:public_fit_metric_claim]) == false
+    @test Bool(fixture[:public_q_revision_claim]) == false
+    @test Bool(fixture[:public_model_weight_claim]) == false
+    @test Bool(fixture[:sparse_mgmfrm_superiority_claim]) == false
+
+    protocol = fixture[:protocol]
+    thresholds = protocol[:thresholds]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_publication_grade_refit_scalar_remediation_comparison_v1"
+    @test String(protocol[:review_kind]) ==
+        "local_publication_grade_scalar_remediation_comparison"
+    @test String(protocol[:trigger_gate]) ==
+        "review_remediated_scalar_against_primary_before_batch_expansion"
+    @test String(protocol[:comparison_scope]) ==
+        "primary_scalar_target_accept_0p80_vs_remediated_target_accept_0p90"
+    @test String(protocol[:primary_execution_unit]) ==
+        "well_specified_current_q__scalar_gmfrm_baseline__fold1"
+    @test String(protocol[:remediation_id]) ==
+        "well_specified_current_q__scalar_gmfrm_baseline__fold1__target_accept_0p90"
+    @test Bool(thresholds[:require_primary_review_present])
+    @test Bool(thresholds[:require_remediation_review_present])
+    @test Bool(thresholds[:require_primary_scalar_row_recorded])
+    @test Bool(thresholds[:require_remediation_scalar_row_recorded])
+    @test Bool(thresholds[:require_primary_failure_or_pending_recorded])
+    @test Bool(thresholds[:require_remediation_success_or_pending_recorded])
+    @test Bool(thresholds[:require_primary_result_preserved])
+    @test Bool(thresholds[:require_batch_sampler_policy_recorded])
+    @test Bool(thresholds[:require_all_public_claims_blocked])
+    @test Bool(thresholds[:require_no_publication_or_registration_action])
+
+    inputs = fixture[:input_artifacts]
+    expected_inputs = Dict(
+        "mgmfrm_publication_grade_refit_pilot_results_review" =>
+            "test/fixtures/mgmfrm_publication_grade_refit_pilot_results_review.json",
+        "mgmfrm_publication_grade_refit_sampler_remediation_review" =>
+            "test/fixtures/mgmfrm_publication_grade_refit_sampler_remediation_review.json",
+    )
+    @test length(inputs) == length(expected_inputs)
+    @test Set(String(row[:artifact]) for row in inputs) ==
+        Set(keys(expected_inputs))
+    for row in inputs
+        artifact = String(row[:artifact])
+        @test String(row[:path]) == expected_inputs[artifact]
+        @test Bool(row[:exists])
+        @test Bool(row[:schema_matches])
+        @test Bool(row[:summary_passed])
+        @test String(row[:sha256]) ==
+            file_sha256(joinpath(root, String(row[:path])))
+    end
+
+    primary = fixture[:scalar_primary_row]
+    @test String(primary[:row_kind]) == "primary_scalar"
+    @test String(primary[:execution_unit_id]) ==
+        "well_specified_current_q__scalar_gmfrm_baseline__fold1"
+    @test String(primary[:model]) == "scalar_gmfrm_baseline"
+    @test Float64(primary[:target_acceptance]) == 0.8
+    @test Bool(primary[:execution_observed]) == false
+    @test Bool(primary[:diagnostic_gate_passed]) == false
+    @test Bool(primary[:divergence_failure_recorded]) == false
+    @test isnothing(primary[:n_divergences])
+    @test Bool(primary[:primary_result_replaced]) == false
+    @test Bool(primary[:descriptive_only])
+    @test Bool(primary[:public_claim_allowed]) == false
+
+    remediation = fixture[:scalar_remediation_row]
+    @test String(remediation[:row_kind]) == "remediated_scalar"
+    @test String(remediation[:remediation_id]) ==
+        "well_specified_current_q__scalar_gmfrm_baseline__fold1__target_accept_0p90"
+    @test String(remediation[:source_execution_unit_id]) ==
+        "well_specified_current_q__scalar_gmfrm_baseline__fold1"
+    @test Float64(remediation[:target_acceptance]) == 0.9
+    @test Bool(remediation[:remediation_observed]) == false
+    @test Bool(remediation[:diagnostic_gate_passed]) == false
+    @test isnothing(remediation[:n_divergences])
+    @test Bool(remediation[:primary_result_replaced]) == false
+    @test Bool(remediation[:descriptive_only])
+    @test Bool(remediation[:public_claim_allowed]) == false
+
+    comparison = fixture[:scalar_comparison_row]
+    @test String(comparison[:comparison]) ==
+        "primary_scalar_vs_target_acceptance_remediation"
+    @test Float64(comparison[:primary_target_acceptance]) == 0.8
+    @test Float64(comparison[:remediation_target_acceptance]) == 0.9
+    @test Bool(comparison[:primary_diagnostic_gate_passed]) == false
+    @test Bool(comparison[:remediation_diagnostic_gate_passed]) == false
+    @test Bool(comparison[:heldout_comparison_observed]) == false
+    @test isnothing(comparison[:delta_heldout_elpd_remediation_minus_primary])
+    @test Bool(comparison[:remediation_resolves_primary_divergence]) == false
+    @test Bool(comparison[:remediation_improves_heldout_elpd]) == false
+    @test Bool(comparison[:public_claim_allowed]) == false
+    @test String(comparison[:interpretation]) ==
+        "comparison_pending_local_artifacts"
+
+    policy = fixture[:batch_sampler_policy_row]
+    @test String(policy[:policy]) ==
+        "publication_grade_batch_sampler_setting"
+    @test String(policy[:affected_model]) == "scalar_gmfrm_baseline"
+    @test Float64(policy[:primary_target_acceptance]) == 0.8
+    @test isnothing(policy[:selected_batch_target_acceptance])
+    @test Float64(policy[:fallback_batch_target_acceptance]) == 0.9
+    @test String(policy[:selection_basis]) ==
+        "await_local_remediation_before_batch_expansion"
+    @test Bool(policy[:primary_pilot_result_replaced]) == false
+    @test Bool(policy[:batch_expansion_allowed_for_scalar]) == false
+    @test Bool(policy[:batch_expansion_allowed_for_public_claim]) == false
+    @test Bool(policy[:requires_independent_replication])
+    @test Bool(policy[:public_claim_allowed]) == false
+
+    blockers = fixture[:blocker_rows]
+    @test length(blockers) == 5
+    @test all(blocker -> Bool(blocker[:resolved]) == false, blockers)
+
+    decision = fixture[:decision_record]
+    @test String(decision[:selected_decision]) ==
+        "record_remediated_scalar_against_primary"
+    @test Bool(decision[:primary_scalar_failure_reviewed]) == false
+    @test Bool(decision[:remediation_success_observed]) == false
+    @test Bool(decision[:primary_result_replaced]) == false
+    @test isnothing(decision[:scalar_batch_target_acceptance])
+    @test Bool(decision[:scalar_batch_expansion_allowed_local_only]) ==
+        false
+    @test Bool(decision[:public_fit_metric_claim_allowed]) == false
+    @test Bool(decision[:public_model_weight_claim_allowed]) == false
+    @test String(decision[:required_followup]) ==
+        "execute_or_attach_scalar_remediation_comparison_before_batch_expansion"
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:publication_or_registration_action]) == false
+    @test Bool(summary[:local_only])
+    @test Bool(summary[:pilot_only])
+    @test Bool(summary[:remediation_only])
+    @test Bool(summary[:primary_review_present])
+    @test Bool(summary[:primary_review_schema_matches])
+    @test Bool(summary[:primary_review_passed])
+    @test Bool(summary[:remediation_review_present])
+    @test Bool(summary[:remediation_review_schema_matches])
+    @test Bool(summary[:remediation_review_passed])
+    @test Bool(summary[:primary_scalar_row_recorded]) == false
+    @test Bool(summary[:primary_scalar_divergence_failure_recorded]) ==
+        false
+    @test Bool(summary[:remediation_scalar_row_recorded]) == false
+    @test Bool(summary[:remediation_success_observed]) == false
+    @test Bool(summary[:comparison_observed]) == false
+    @test Bool(summary[:heldout_comparison_observed]) == false
+    @test Bool(summary[:remediation_resolves_primary_divergence]) == false
+    @test Bool(summary[:remediation_improves_heldout_elpd]) == false
+    @test Bool(summary[:primary_result_preserved])
+    @test Bool(summary[:scalar_batch_target_acceptance_policy_recorded])
+    @test isnothing(summary[:scalar_batch_target_acceptance])
+    @test Bool(summary[:scalar_batch_expansion_allowed_local_only]) ==
+        false
+    @test Bool(summary[:scalar_batch_expansion_allowed_for_public_claim]) ==
+        false
+    @test Bool(summary[:no_public_fit_metric_claim])
+    @test Bool(summary[:no_public_q_revision_claim])
+    @test Bool(summary[:no_public_model_weight_claim])
+    @test Bool(summary[:no_sparse_superiority_claim])
+    @test Int(summary[:n_input_artifacts]) == 2
+    @test Int(summary[:n_blocker_rows]) == 5
+    @test Int(summary[:n_blockers]) == 5
+    @test String(summary[:recommendation]) ==
+        "complete_scalar_remediation_comparison_keep_batch_expansion_blocked"
+    @test String(summary[:next_gate]) ==
+        "execute_or_attach_scalar_remediation_comparison_before_batch_expansion"
+end
+
+function check_mgmfrm_publication_grade_refit_batch_expansion_plan_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_publication_grade_refit_batch_expansion_plan.v1"
+    @test String(fixture[:family]) == "mgmfrm"
+    @test String(fixture[:scope]) ==
+        "publication_grade_refit_batch_expansion_plan"
+    @test String(fixture[:status]) ==
+        "publication_grade_refit_batch_expansion_plan_recorded"
+    @test String(fixture[:decision]) ==
+        "record_publication_grade_refit_batch_expansion_plan"
+    @test Bool(fixture[:public_fit])
+    @test Bool(fixture[:experimental_public])
+    @test Bool(fixture[:fit_ready]) == false
+    @test Bool(fixture[:harness_ready])
+    @test Bool(fixture[:execution_ready]) == false
+    @test Bool(fixture[:local_only])
+    @test Bool(fixture[:publication_or_registration_action]) == false
+    @test Bool(fixture[:publication_grade_batch_plan_recorded])
+    @test Bool(fixture[:full_125_unit_publication_grade_batch_completed]) ==
+        false
+    @test Bool(fixture[:public_fit_metric_claim]) == false
+    @test Bool(fixture[:public_q_revision_claim]) == false
+    @test Bool(fixture[:public_model_weight_claim]) == false
+    @test Bool(fixture[:sparse_mgmfrm_superiority_claim]) == false
+
+    protocol = fixture[:protocol]
+    thresholds = protocol[:thresholds]
+    controls = protocol[:fit_controls]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_publication_grade_refit_batch_expansion_plan_v1"
+    @test String(protocol[:review_kind]) ==
+        "local_publication_grade_refit_batch_expansion_plan"
+    @test String(protocol[:execution_scope]) ==
+        "full_scenario_model_fold_publication_grade_batch"
+    @test String(protocol[:trigger_gate]) ==
+        "expand_publication_grade_batch_with_scalar_target_acceptance_0p90_local_only"
+    @test String(protocol[:runner_script]) ==
+        "scripts/run_mgmfrm_publication_grade_refit_job.jl"
+    @test Int(controls[:chains]) == 4
+    @test Int(controls[:warmup_per_chain]) == 500
+    @test Int(controls[:draws_per_chain]) == 1000
+    @test Float64(controls[:default_target_acceptance]) == 0.8
+    @test Float64(controls[:scalar_remediated_target_acceptance]) == 0.9
+    @test Int(controls[:seed_offset]) == 300000
+    @test Bool(thresholds[:require_execution_plan_passed])
+    @test Bool(thresholds[:require_gate_passed])
+    @test Bool(thresholds[:require_scalar_remediation_comparison_passed])
+    @test Bool(thresholds[:require_all_125_units_materialized])
+    @test Bool(thresholds[:require_scalar_target_acceptance_policy_recorded])
+    @test Bool(thresholds[:require_command_templates_recorded])
+    @test Bool(thresholds[:require_result_artifact_targets_recorded])
+    @test Bool(thresholds[:require_diagnostic_capture_manifest_recorded])
+    @test Bool(thresholds[:require_runner_adapter_state_recorded])
+    @test Bool(thresholds[:require_batch_execution_not_yet_run])
+    @test Bool(thresholds[:require_no_publication_or_registration_action])
+
+    inputs = fixture[:input_artifacts]
+    expected_inputs = Dict(
+        "mgmfrm_full_heldout_mcmc_refit_execution_plan" =>
+            "test/fixtures/mgmfrm_full_heldout_mcmc_refit_execution_plan.json",
+        "mgmfrm_publication_grade_refit_gate" =>
+            "test/fixtures/mgmfrm_publication_grade_refit_gate.json",
+        "mgmfrm_publication_grade_refit_scalar_remediation_comparison" =>
+            "test/fixtures/mgmfrm_publication_grade_refit_scalar_remediation_comparison.json",
+    )
+    @test length(inputs) == length(expected_inputs)
+    @test Set(String(row[:artifact]) for row in inputs) ==
+        Set(keys(expected_inputs))
+    for row in inputs
+        artifact = String(row[:artifact])
+        @test String(row[:path]) == expected_inputs[artifact]
+        @test Bool(row[:exists])
+        @test Bool(row[:schema_matches])
+        @test Bool(row[:summary_passed])
+        @test String(row[:sha256]) ==
+            file_sha256(joinpath(root, String(row[:path])))
+    end
+
+    policies = fixture[:target_acceptance_policy_rows]
+    @test length(policies) == 3
+    scalar_policy = only(row for row in policies
+        if String(row[:model_group]) == "scalar_gmfrm_baseline")
+    @test Float64(scalar_policy[:target_acceptance]) == 0.9
+    @test String(scalar_policy[:source]) ==
+        "scalar_remediation_fallback_pending_observation"
+    @test Bool(scalar_policy[:policy_ready_local_only]) == false
+    mgmfrm_policy = only(row for row in policies
+        if String(row[:model_group]) == "mgmfrm_mcmc_candidates")
+    @test Float64(mgmfrm_policy[:target_acceptance]) == 0.8
+    @test Bool(mgmfrm_policy[:policy_ready_local_only])
+    reference_policy = only(row for row in policies
+        if String(row[:model_group]) == "null_or_intercept_reference")
+    @test isnothing(reference_policy[:target_acceptance])
+    @test Bool(reference_policy[:policy_ready_local_only])
+
+    jobs = fixture[:batch_execution_job_rows]
+    @test length(jobs) == 125
+    @test count(row -> String(row[:model]) == "scalar_gmfrm_baseline",
+        jobs) == 25
+    @test count(row -> String(row[:model]) == "null_or_intercept_reference",
+        jobs) == 25
+    @test count(row -> Bool(row[:mcmc_refit_required]), jobs) == 100
+    @test count(row -> Bool(row[:analytic_reference_scored]), jobs) == 25
+    @test all(row -> Bool(row[:execute_now]) == false, jobs)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, jobs)
+    scalar_jobs = [row for row in jobs
+        if String(row[:model]) == "scalar_gmfrm_baseline"]
+    @test all(row -> Float64(row[:target_acceptance]) == 0.9, scalar_jobs)
+    @test all(row -> String(row[:target_acceptance_source]) ==
+        "scalar_remediation_fallback_pending_observation", scalar_jobs)
+    mgmfrm_jobs = [row for row in jobs
+        if String(row[:model]) in (
+            "confirmatory_mgmfrm_current_q",
+            "sparse_mgmfrm_current_q",
+            "construct_reviewed_revised_q_mgmfrm")]
+    @test length(mgmfrm_jobs) == 75
+    @test all(row -> Float64(row[:target_acceptance]) == 0.8, mgmfrm_jobs)
+    @test all(row -> String(row[:target_acceptance_source]) ==
+        "publication_grade_gate_default", mgmfrm_jobs)
+    reference_jobs = [row for row in jobs
+        if String(row[:model]) == "null_or_intercept_reference"]
+    @test all(row -> isnothing(row[:target_acceptance]), reference_jobs)
+
+    commands = fixture[:command_template_rows]
+    @test length(commands) == 125
+    @test all(row -> Bool(row[:runner_script_exists]), commands)
+    @test all(row -> Bool(row[:runner_batch_plan_adapter_materialized]),
+        commands)
+    @test all(row -> String(row[:command_status]) ==
+        "ready_not_executed", commands)
+    @test all(row -> Bool(row[:execute_now]) == false, commands)
+    @test all(row -> Bool(row[:local_only]), commands)
+    @test all(row -> !occursin("git push", String(row[:command_template])),
+        commands)
+    @test any(row -> String(row[:model]) == "scalar_gmfrm_baseline" &&
+        occursin("--target-acceptance 0.9",
+            String(row[:command_template])), commands)
+    @test any(row -> String(row[:model]) ==
+        "confirmatory_mgmfrm_current_q" &&
+        occursin("--target-acceptance 0.8",
+            String(row[:command_template])), commands)
+    @test any(row -> String(row[:model]) == "null_or_intercept_reference" &&
+        occursin("--analytic-reference", String(row[:command_template])),
+        commands)
+
+    targets = fixture[:result_artifact_target_rows]
+    @test length(targets) == 375
+    @test all(row -> Bool(row[:exists]) == false, targets)
+    @test all(row -> Bool(row[:required_before_public_claim]), targets)
+
+    diagnostics = fixture[:diagnostic_capture_rows]
+    @test length(diagnostics) == 1500
+    @test all(row -> Bool(row[:observed]) == false, diagnostics)
+    @test all(row -> Bool(row[:blocks_public_claim]), diagnostics)
+
+    budgets = fixture[:model_budget_rows]
+    @test length(budgets) == 5
+    @test sum(Int(row[:n_execution_units]) for row in budgets) == 125
+    @test sum(Int(row[:n_mcmc_execution_units]) for row in budgets) == 100
+    @test sum(Int(row[:planned_chains]) for row in budgets) == 400
+    scalar_budget = only(row for row in budgets
+        if String(row[:model]) == "scalar_gmfrm_baseline")
+    @test Float64(scalar_budget[:target_acceptance]) == 0.9
+    @test Int(scalar_budget[:planned_posterior_draws]) == 100000
+
+    comparisons = fixture[:comparison_hook_rows]
+    @test length(comparisons) == 4
+    @test all(row -> String(row[:comparison_status]) ==
+        "planned_not_executed", comparisons)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false,
+        comparisons)
+
+    blockers = fixture[:blocker_rows]
+    @test length(blockers) == 5
+    @test count(row -> Bool(row[:resolved]), blockers) == 1
+    runner_blocker = only(row for row in blockers
+        if String(row[:blocker]) ==
+           "publication_grade_batch_runner_adapter_not_materialized")
+    @test Bool(runner_blocker[:resolved])
+    @test Set(String(row[:blocker]) for row in blockers) == Set([
+        "scalar_remediation_comparison_not_observed",
+        "publication_grade_batch_runner_adapter_not_materialized",
+        "full_125_unit_publication_grade_batch_not_executed",
+        "external_construct_dataset_missing",
+        "independent_public_scope_review_missing",
+    ])
+
+    decision = fixture[:decision_record]
+    @test String(decision[:selected_decision]) ==
+        "record_full_batch_expansion_plan_before_heavy_execution"
+    @test Bool(decision[:publication_grade_batch_plan_recorded])
+    @test Bool(decision[:scalar_remediation_comparison_observed]) == false
+    @test Float64(decision[:scalar_target_acceptance]) == 0.9
+    @test Bool(decision[:scalar_batch_sampler_policy_ready_local_only]) ==
+        false
+    @test Bool(decision[:batch_runner_adapter_materialized])
+    @test Bool(decision[:batch_execution_ready_local_only]) == false
+    @test Bool(decision[:full_125_unit_publication_grade_batch_completed]) ==
+        false
+    @test Bool(decision[:public_fit_metric_claim_allowed]) == false
+    @test Bool(decision[:public_q_revision_claim_allowed]) == false
+    @test Bool(decision[
+        :model_weight_or_sparse_superiority_claim_allowed]) == false
+    @test String(decision[:required_followup]) ==
+        "attach_local_scalar_remediation_comparison_before_batch_execution"
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:publication_or_registration_action]) == false
+    @test Bool(summary[:local_only])
+    @test Bool(summary[:all_input_artifacts_present])
+    @test Bool(summary[:all_expected_schemas])
+    @test Bool(summary[:all_input_summaries_passed])
+    @test Bool(summary[:execution_plan_passed])
+    @test Bool(summary[:gate_passed])
+    @test Bool(summary[:scalar_remediation_comparison_passed])
+    @test Bool(summary[:scalar_remediation_comparison_observed]) == false
+    @test Bool(summary[:scalar_remediation_success_observed]) == false
+    @test Bool(summary[:scalar_target_acceptance_policy_recorded])
+    @test Float64(summary[:scalar_target_acceptance]) == 0.9
+    @test Bool(summary[:scalar_batch_sampler_policy_ready_local_only]) ==
+        false
+    @test Bool(summary[:batch_unit_rows_recorded])
+    @test Bool(summary[:all_125_units_materialized])
+    @test Bool(summary[:command_templates_recorded])
+    @test Bool(summary[:result_artifact_targets_recorded])
+    @test Bool(summary[:diagnostic_capture_manifest_recorded])
+    @test Bool(summary[:runner_adapter_state_recorded])
+    @test Bool(summary[:batch_runner_adapter_materialized])
+    @test Bool(summary[:batch_execution_ready_local_only]) == false
+    @test Bool(summary[:full_125_unit_publication_grade_batch_completed]) ==
+        false
+    @test Bool(summary[:no_public_fit_metric_claim])
+    @test Bool(summary[:no_public_q_revision_claim])
+    @test Bool(summary[:no_public_model_weight_claim])
+    @test Bool(summary[:no_sparse_superiority_claim])
+    @test Int(summary[:n_input_artifacts]) == 3
+    @test Int(summary[:n_batch_execution_job_rows]) == 125
+    @test Int(summary[:n_mcmc_execution_jobs]) == 100
+    @test Int(summary[:n_scalar_execution_jobs]) == 25
+    @test Int(summary[:n_scalar_target_acceptance_0p90_jobs]) == 25
+    @test Int(summary[:n_mgmfrm_target_acceptance_0p80_jobs]) == 75
+    @test Int(summary[:n_analytic_reference_jobs]) == 25
+    @test Int(summary[:n_command_template_rows]) == 125
+    @test Int(summary[:n_result_artifact_target_rows]) == 375
+    @test Int(summary[:n_diagnostic_capture_rows]) == 1500
+    @test Int(summary[:n_model_budget_rows]) == 5
+    @test Int(summary[:n_comparison_hook_rows]) == 4
+    @test Int(summary[:n_blocker_rows]) == 5
+    @test Int(summary[:n_review_cells]) == 2134
+    @test Int(summary[:planned_chains]) == 400
+    @test Int(summary[:planned_posterior_draws]) == 400000
+    @test Int(summary[:planned_warmup_iterations]) == 200000
+    @test Int(summary[:n_blockers]) == 4
+    @test Set(String(blocker) for blocker in
+        summary[:remaining_public_blockers]) == Set([
+            "scalar_remediation_comparison_not_observed",
+            "full_125_unit_publication_grade_batch_not_executed",
+            "external_construct_dataset_missing",
+            "independent_public_scope_review_missing",
+        ])
+    @test String(summary[:recommendation]) ==
+        "attach_local_scalar_remediation_comparison_before_batch_execution"
+    @test String(summary[:next_gate]) ==
+        "attach_local_scalar_remediation_comparison_before_batch_execution"
+end
+
+function check_mgmfrm_publication_grade_refit_batch_results_review_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_publication_grade_refit_batch_results_review.v1"
+    @test String(fixture[:family]) == "mgmfrm"
+    @test String(fixture[:scope]) ==
+        "publication_grade_refit_batch_results_review"
+    @test String(fixture[:status]) ==
+        "publication_grade_refit_batch_results_review_recorded"
+    @test String(fixture[:decision]) ==
+        "record_publication_grade_refit_batch_results_state"
+    @test Bool(fixture[:public_fit])
+    @test Bool(fixture[:experimental_public])
+    @test Bool(fixture[:fit_ready])
+    @test Bool(fixture[:local_only])
+    @test Bool(fixture[:batch_only])
+    @test Bool(fixture[:local_artifacts_ignored_for_fixture])
+    @test Bool(fixture[:publication_or_registration_action]) == false
+    @test Bool(fixture[:publication_grade_batch_results_review_recorded])
+    @test Bool(fixture[:full_125_unit_publication_grade_batch_completed]) ==
+        false
+    @test Bool(fixture[:public_fit_metric_claim]) == false
+    @test Bool(fixture[:public_q_revision_claim]) == false
+    @test Bool(fixture[:public_model_weight_claim]) == false
+    @test Bool(fixture[:sparse_mgmfrm_superiority_claim]) == false
+
+    protocol = fixture[:protocol]
+    thresholds = protocol[:thresholds]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_publication_grade_refit_batch_results_review_v1"
+    @test String(protocol[:review_kind]) ==
+        "local_publication_grade_refit_batch_results_review"
+    @test String(protocol[:source_plan]) ==
+        "mgmfrm_publication_grade_refit_batch_expansion_plan"
+    @test Int(protocol[:expected_execution_units]) == 125
+    @test Int(protocol[:expected_mcmc_execution_units]) == 100
+    @test Int(protocol[:expected_analytic_reference_units]) == 25
+    @test Bool(thresholds[:require_batch_plan_passed])
+    @test Bool(thresholds[:require_result_review_rows_recorded])
+    @test Bool(thresholds[:require_missing_or_valid_job_artifacts])
+    @test Bool(thresholds[:require_fit_metric_threshold_sensitivity_passed])
+    @test Bool(thresholds[:require_threshold_profiles_recorded])
+    @test Bool(thresholds[:require_threshold_profile_job_rows_recorded])
+    @test Bool(thresholds[:require_threshold_profile_model_summary_rows_recorded])
+    @test Bool(thresholds[:require_threshold_profile_scenario_model_summary_rows_recorded])
+    @test Bool(thresholds[:require_model_summary_rows_recorded])
+    @test Bool(thresholds[:require_scenario_model_summary_rows_recorded])
+    @test Bool(thresholds[:require_descriptive_only_rankings])
+    @test Bool(thresholds[:require_no_single_threshold_profile_promoted])
+    @test Bool(thresholds[:require_all_public_claims_blocked])
+    @test Bool(thresholds[:require_no_publication_or_registration_action])
+
+    inputs = fixture[:input_artifacts]
+    @test length(inputs) == 2
+    input_by_artifact = Dict(String(row[:artifact]) => row for row in inputs)
+    plan = input_by_artifact[
+        "mgmfrm_publication_grade_refit_batch_expansion_plan"]
+    @test String(plan[:artifact]) ==
+        "mgmfrm_publication_grade_refit_batch_expansion_plan"
+    @test String(plan[:path]) ==
+        "test/fixtures/mgmfrm_publication_grade_refit_batch_expansion_plan.json"
+    @test Bool(plan[:exists])
+    @test Bool(plan[:schema_matches])
+    @test Bool(plan[:summary_passed])
+    @test String(plan[:sha256]) ==
+        file_sha256(joinpath(root, String(plan[:path])))
+    threshold_input =
+        input_by_artifact["mgmfrm_fit_metric_threshold_sensitivity"]
+    @test String(threshold_input[:path]) ==
+        "test/fixtures/mgmfrm_fit_metric_threshold_sensitivity.json"
+    @test Bool(threshold_input[:exists])
+    @test Bool(threshold_input[:schema_matches])
+    @test Bool(threshold_input[:summary_passed])
+    @test String(threshold_input[:sha256]) ==
+        file_sha256(joinpath(root, String(threshold_input[:path])))
+    @test Int(threshold_input[:summary][:n_threshold_profiles]) == 4
+    @test Bool(threshold_input[:summary][
+        :threshold_profiles_change_at_least_one_flag])
+    @test Bool(threshold_input[:summary][
+        :no_single_threshold_profile_promoted])
+
+    rows = fixture[:job_result_review_rows]
+    @test length(rows) == 125
+    @test count(row -> Bool(row[:mcmc_refit_required]), rows) == 100
+    @test count(row -> Bool(row[:analytic_reference_scored]), rows) == 25
+    @test all(row -> Bool(row[:artifacts_complete]) == false, rows)
+    @test all(row -> Bool(row[:execution_observed]) == false, rows)
+    @test all(row -> Bool(row[:dry_run_observed]) == false, rows)
+    @test all(row -> Bool(row[:diagnostics_observed]) == false, rows)
+    @test all(row -> Bool(row[:diagnostic_gate_passed]) == false, rows)
+    @test all(row -> Bool(row[:heldout_predictive_score_computed]) == false,
+        rows)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, rows)
+    for row in rows
+        for key in (:result_artifact, :diagnostic_artifact,
+                :heldout_artifact)
+            artifact = row[key]
+            @test Bool(artifact[:exists]) == false
+            @test String(artifact[:status]) == "missing"
+            @test Bool(artifact[:schema_matches]) == false
+            @test Bool(artifact[:summary_passed]) == false
+        end
+    end
+
+    model_rows = fixture[:model_summary_rows]
+    @test length(model_rows) == 5
+    @test sum(Int(row[:n_execution_units]) for row in model_rows) == 125
+    @test sum(Int(row[:n_mcmc_execution_units]) for row in model_rows) == 100
+    @test sum(Int(row[:n_analytic_reference_units]) for row in model_rows) ==
+        25
+    @test all(row -> Int(row[:n_executed_units]) == 0, model_rows)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, model_rows)
+
+    scenario_model_rows = fixture[:scenario_model_summary_rows]
+    @test length(scenario_model_rows) == 25
+    @test sum(Int(row[:n_execution_units]) for row in scenario_model_rows) ==
+        125
+    @test all(row -> Int(row[:n_executed_units]) == 0,
+        scenario_model_rows)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false,
+        scenario_model_rows)
+
+    profile_rows = fixture[:threshold_profile_rows]
+    @test length(profile_rows) == 4
+    @test Set(String(row[:profile]) for row in profile_rows) == Set([
+        "strict_bayesian_workflow",
+        "screening_workflow",
+        "exploratory_rasch_lenient",
+        "sample_size_mean_square",
+    ])
+    @test all(row -> String(row[:heldout_threshold_binding]) ==
+        "calibration_abs_threshold_times_score_range_proxy", profile_rows)
+    @test all(row -> Float64(row[:score_range_proxy]) == 2.0,
+        profile_rows)
+    @test all(row -> Bool(row[:public_fit_metric_claim_allowed]) == false,
+        profile_rows)
+
+    threshold_job_rows = fixture[:threshold_profile_job_rows]
+    @test length(threshold_job_rows) == 500
+    @test count(row -> Bool(row[:mcmc_refit_required]),
+        threshold_job_rows) == 400
+    @test all(row -> Bool(row[:execution_observed]) == false,
+        threshold_job_rows)
+    @test all(row -> Bool(row[:threshold_profile_evaluable]) == false,
+        threshold_job_rows)
+    @test all(row -> Bool(row[:threshold_profile_passed]) == false,
+        threshold_job_rows)
+    @test all(row -> Int(row[:n_threshold_flags]) == 0,
+        threshold_job_rows)
+    @test all(row -> Int(row[:n_missing_profile_inputs]) > 0,
+        threshold_job_rows)
+    @test all(row -> Bool(row[:threshold_profile_promoted]) == false,
+        threshold_job_rows)
+    @test all(row -> Bool(row[:public_fit_metric_claim_allowed]) == false,
+        threshold_job_rows)
+
+    threshold_model_rows = fixture[:threshold_profile_model_summary_rows]
+    @test length(threshold_model_rows) == 20
+    @test sum(Int(row[:n_threshold_profile_rows])
+        for row in threshold_model_rows) == 500
+    @test all(row -> Int(row[:n_evaluable_rows]) == 0,
+        threshold_model_rows)
+    @test all(row -> Bool(row[:threshold_profile_promoted]) == false,
+        threshold_model_rows)
+
+    threshold_scenario_model_rows =
+        fixture[:threshold_profile_scenario_model_summary_rows]
+    @test length(threshold_scenario_model_rows) == 100
+    @test sum(Int(row[:n_threshold_profile_rows])
+        for row in threshold_scenario_model_rows) == 500
+    @test all(row -> Int(row[:n_evaluable_rows]) == 0,
+        threshold_scenario_model_rows)
+    @test all(row -> Bool(row[:threshold_profile_promoted]) == false,
+        threshold_scenario_model_rows)
+
+    @test isempty(fixture[:heldout_model_rank_rows])
+    @test isempty(fixture[:diagnostic_failure_rows])
+
+    blockers = fixture[:blocker_rows]
+    @test length(blockers) == 5
+    @test all(row -> Bool(row[:resolved]) == false, blockers)
+
+    decision = fixture[:decision_record]
+    @test String(decision[:selected_decision]) ==
+        "record_publication_grade_batch_results_review"
+    @test Bool(decision[:batch_plan_recorded])
+    @test Bool(decision[:all_125_units_executed]) == false
+    @test Bool(decision[:all_expected_job_artifacts_present]) == false
+    @test Bool(decision[:all_expected_job_artifacts_valid]) == false
+    @test Bool(decision[:diagnostics_observed]) == false
+    @test Bool(decision[:all_mcmc_diagnostic_gates_passed]) == false
+    @test Bool(decision[:threshold_profiles_recorded])
+    @test Bool(decision[
+        :threshold_profiles_inherited_change_at_least_one_flag])
+    @test Bool(decision[:threshold_profiles_change_observed_batch_flag]) ==
+        false
+    @test Bool(decision[:threshold_profiles_promoted]) == false
+    @test Bool(decision[:public_fit_metric_claim_allowed]) == false
+    @test Bool(decision[:public_model_weight_claim_allowed]) == false
+    @test Bool(decision[:sparse_superiority_claim_allowed]) == false
+    @test String(decision[:required_followup]) ==
+        "execute_publication_grade_refit_batch_locally"
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:publication_or_registration_action]) == false
+    @test Bool(summary[:local_only])
+    @test Bool(summary[:batch_only])
+    @test Bool(summary[:local_artifacts_ignored_for_fixture])
+    @test Bool(summary[:batch_plan_present])
+    @test Bool(summary[:batch_plan_schema_matches])
+    @test Bool(summary[:batch_plan_passed])
+    @test Bool(summary[:fit_metric_threshold_sensitivity_present])
+    @test Bool(summary[:fit_metric_threshold_sensitivity_schema_matches])
+    @test Bool(summary[:fit_metric_threshold_sensitivity_passed])
+    @test Bool(summary[:result_review_rows_recorded])
+    @test Bool(summary[:all_125_units_materialized])
+    @test Bool(summary[:all_125_units_executed]) == false
+    @test Bool(summary[:missing_or_valid_job_artifacts])
+    @test Bool(summary[:threshold_profiles_recorded])
+    @test Bool(summary[:threshold_profile_job_rows_recorded])
+    @test Bool(summary[:threshold_profile_model_summary_rows_recorded])
+    @test Bool(summary[
+        :threshold_profile_scenario_model_summary_rows_recorded])
+    @test Bool(summary[
+        :threshold_profiles_inherited_change_at_least_one_flag])
+    @test Bool(summary[:threshold_profiles_change_observed_batch_flag]) ==
+        false
+    @test Bool(summary[:no_single_threshold_profile_promoted])
+    @test Bool(summary[:all_expected_job_artifacts_present]) == false
+    @test Bool(summary[:all_expected_job_artifacts_valid]) == false
+    @test Bool(summary[:all_executed_diagnostics_observed]) == false
+    @test Bool(summary[:all_mcmc_diagnostic_gates_passed]) == false
+    @test Bool(summary[:no_public_fit_metric_claim])
+    @test Bool(summary[:no_public_q_revision_claim])
+    @test Bool(summary[:no_public_model_weight_claim])
+    @test Bool(summary[:no_sparse_superiority_claim])
+    @test Int(summary[:n_input_artifacts]) == 2
+    @test Int(summary[:n_threshold_profiles]) == 4
+    @test Int(summary[:n_threshold_profile_job_rows]) == 500
+    @test Int(summary[:n_threshold_profile_model_summary_rows]) == 20
+    @test Int(summary[:n_threshold_profile_scenario_model_summary_rows]) == 100
+    @test Int(summary[:n_threshold_profile_evaluable_rows]) == 0
+    @test Int(summary[:n_threshold_profile_passed_rows]) == 0
+    @test Int(summary[:n_threshold_profile_flagged_rows]) == 0
+    @test Int(summary[:n_batch_execution_job_rows]) == 125
+    @test Int(summary[:n_mcmc_execution_jobs]) == 100
+    @test Int(summary[:n_analytic_reference_jobs]) == 25
+    @test Int(summary[:n_expected_job_artifacts]) == 375
+    @test Int(summary[:n_present_job_artifacts]) == 0
+    @test Int(summary[:n_valid_job_artifacts]) == 0
+    @test Int(summary[:n_complete_artifact_units]) == 0
+    @test Int(summary[:n_executed_units]) == 0
+    @test Int(summary[:n_dry_run_units]) == 0
+    @test Int(summary[:n_diagnostics_observed_units]) == 0
+    @test Int(summary[:n_diagnostic_gate_passed_units]) == 0
+    @test Int(summary[:n_heldout_scored_units]) == 0
+    @test Int(summary[:n_model_summary_rows]) == 5
+    @test Int(summary[:n_scenario_model_summary_rows]) == 25
+    @test Int(summary[:n_heldout_model_rank_rows]) == 0
+    @test Int(summary[:n_diagnostic_failure_rows]) == 0
+    @test Int(summary[:n_blocker_rows]) == 5
+    @test Int(summary[:n_blockers]) == 5
+    @test String(summary[:recommendation]) ==
+        "execute_missing_publication_grade_batch_jobs_keep_claims_blocked"
+    @test String(summary[:next_gate]) ==
+        "execute_publication_grade_refit_batch_locally"
+end
+
 function check_mgmfrm_fit_threshold_q_heldout_linkage_fixture(
         fixture_path::AbstractString)
     root = dirname(@__DIR__)
@@ -11047,6 +13299,860 @@ function check_mgmfrm_fit_threshold_q_heldout_linkage_fixture(
         "use_linkage_to_prioritize_full_batch_and_construct_validation_not_public_claims"
     @test String(summary[:next_gate]) ==
         "full_heldout_mgmfrm_mcmc_refit_full_batch_or_external_construct_dataset"
+end
+
+function check_mgmfrm_uto_style_retained_draw_budget_guidance_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_uto_style_retained_draw_budget_guidance.v1"
+    @test String(fixture[:family]) == "mgmfrm"
+    @test String(fixture[:scope]) ==
+        "uto_style_retained_draw_budget_guidance"
+    @test String(fixture[:status]) == "local_budget_guidance_documented"
+    @test Bool(fixture[:local_only])
+    @test Bool(fixture[:publication_or_registration_action]) == false
+    @test Bool(fixture[:package_default_change]) == false
+    @test Bool(fixture[:fit_api_change]) == false
+    @test Bool(fixture[:sampler_level_thinning_api]) == false
+    @test Bool(fixture[:public_fit_metric_claim]) == false
+    @test Bool(fixture[:public_q_revision_claim]) == false
+    @test Bool(fixture[:automatic_q_revision]) == false
+    @test Bool(fixture[:public_model_weight_claim]) == false
+    @test Bool(fixture[:sparse_mgmfrm_superiority_claim]) == false
+
+    policy = fixture[:guidance_policy]
+    @test Int(policy[:recommended_min_chains]) == 4
+    @test Int(policy[:recommended_min_warmup_per_chain]) == 128
+    @test Int(policy[:recommended_min_draws_per_chain]) == 512
+    @test Int(policy[:warmup_sensitivity_checked_at]) == 256
+    @test Bool(policy[:thinning_primary_fix]) == false
+    @test Bool(policy[:broader_scenario_replication_required_for_defaults])
+    @test Bool(policy[:public_claim_allowed]) == false
+
+    source_rows = fixture[:source_gate_rows]
+    @test length(source_rows) == 4
+    @test Set(String(row[:gate]) for row in source_rows) == Set([
+        "rank_normalized_draws_x4",
+        "retained_draw_budget_extension",
+        "independent_seed_replication",
+        "warmup_thinning_sensitivity",
+    ])
+    rank_gate = only(row for row in source_rows
+        if String(row[:gate]) == "rank_normalized_draws_x4")
+    @test Int(rank_gate[:warmup_per_chain]) == 128
+    @test Int(rank_gate[:draws_per_chain]) == 256
+    @test Int(rank_gate[:rank_warning_rows]) == 3
+    @test Int(rank_gate[:geometry_warning_rows]) == 0
+    extension = only(row for row in source_rows
+        if String(row[:gate]) == "retained_draw_budget_extension")
+    @test Int(extension[:draws_per_chain]) == 512
+    @test Int(extension[:rank_warning_rows]) == 0
+    @test Int(extension[:clearance_rows]) == 3
+    warmup = only(row for row in source_rows
+        if String(row[:gate]) == "warmup_thinning_sensitivity")
+    @test Int(warmup[:warmup_per_chain]) == 256
+    @test Int(warmup[:draws_per_chain]) == 512
+    @test Int(warmup[:rank_warning_rows]) == 0
+    @test Int(warmup[:thinning_warning_rows]) == 5
+
+    recommendations = fixture[:recommendation_rows]
+    @test length(recommendations) == 5
+    @test any(row -> String(row[:recommendation]) ==
+        "local_mgmfrm_diagnostic_budget" &&
+        occursin("4 chains", String(row[:guidance])) &&
+        occursin("512 retained draws", String(row[:guidance])) &&
+        Bool(row[:public_claim_allowed]) == false,
+        recommendations)
+    @test any(row -> String(row[:recommendation]) == "thinning_policy" &&
+        String(row[:status]) == "ready_for_documentation" &&
+        occursin("5/6", String(row[:guidance])) &&
+        Bool(row[:public_claim_allowed]) == false,
+        recommendations)
+    @test any(row -> String(row[:recommendation]) == "package_default_policy" &&
+        String(row[:status]) == "blocked_for_default_change" &&
+        Bool(row[:public_claim_allowed]) == false,
+        recommendations)
+
+    prompts = fixture[:prompt_rows]
+    @test any(row -> String(row[:prompt]) == "can_package_defaults_change_now" &&
+        String(row[:answer]) == "no" &&
+        Bool(row[:public_claim_allowed]) == false,
+        prompts)
+    @test any(row -> String(row[:prompt]) ==
+        "should_thinning_be_added_as_primary_api_fix" &&
+        String(row[:answer]) == "no",
+        prompts)
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Int(summary[:n_source_gates]) == 4
+    @test Int(summary[:n_recommendations]) == 5
+    @test Int(summary[:recommended_min_chains]) == 4
+    @test Int(summary[:recommended_min_warmup_per_chain]) == 128
+    @test Int(summary[:recommended_min_draws_per_chain]) == 512
+    @test Int(summary[:n_rank_warnings_at_256_draws]) == 3
+    @test Int(summary[:n_rank_warnings_at_512_draws]) == 0
+    @test Int(summary[:n_full_rank_warnings_after_warmup_doubling]) == 0
+    @test Int(summary[:n_thinning_rank_warnings]) == 5
+    @test Bool(summary[:package_default_change]) == false
+    @test Bool(summary[:thinning_primary_fix]) == false
+    @test Bool(summary[:no_public_fit_metric_claim])
+    @test Bool(summary[:no_public_q_revision_claim])
+    @test Bool(summary[:no_automatic_q_revision])
+    @test Bool(summary[:no_public_model_weight_claim])
+    @test Bool(summary[:no_sparse_superiority_claim])
+    @test String(summary[:next_gate]) ==
+        "surface_budget_guidance_in_user_facing_reports"
+end
+
+function check_mgmfrm_recommended_budget_empirical_gate_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_recommended_budget_empirical_gate.v1"
+    @test String(fixture[:family]) == "mgmfrm"
+    @test String(fixture[:scope]) == "recommended_budget_empirical_gate"
+    @test String(fixture[:status]) ==
+        "recommended_budget_empirical_gate_recorded"
+    @test Bool(fixture[:local_only])
+    @test Bool(fixture[:publication_or_registration_action]) == false
+    @test Bool(fixture[:package_default_change]) == false
+    @test Bool(fixture[:fit_api_change]) == false
+    @test Bool(fixture[:public_fit_metric_claim]) == false
+    @test Bool(fixture[:public_q_revision_claim]) == false
+    @test Bool(fixture[:automatic_q_revision]) == false
+    @test Bool(fixture[:public_model_weight_claim]) == false
+    @test Bool(fixture[:sparse_mgmfrm_superiority_claim]) == false
+
+    local_policy = fixture[:local_threshold_policy]
+    @test Int(local_policy[:chains]) == 4
+    @test Int(local_policy[:warmup_per_chain]) == 128
+    @test Int(local_policy[:draws_per_chain]) == 512
+    @test Float64(local_policy[:max_rhat]) == 1.01
+    @test Float64(local_policy[:min_ess]) == 400.0
+    @test Int(local_policy[:max_divergences]) == 0
+    @test Int(local_policy[:max_treedepth]) == 0
+    @test Float64(local_policy[:min_ebfmi]) == 0.3
+
+    publication_policy = fixture[:publication_comparator_policy]
+    @test Int(publication_policy[:chains]) == 4
+    @test Int(publication_policy[:warmup_per_chain]) == 500
+    @test Int(publication_policy[:draws_per_chain]) == 1000
+    @test Float64(publication_policy[:max_rhat]) == 1.01
+
+    input_artifacts = fixture[:input_artifacts]
+    @test length(input_artifacts) == 19
+    @test any(row -> String(row[:artifact]) ==
+        "retained_draw_budget_guidance" &&
+        String(row[:path]) ==
+            "test/fixtures/mgmfrm_uto_style_retained_draw_budget_guidance.json",
+        input_artifacts)
+    @test count(row -> occursin("_recommended_result",
+        String(row[:artifact])), input_artifacts) == 3
+    @test count(row -> occursin("_publication_result",
+        String(row[:artifact])), input_artifacts) == 3
+
+    rows = fixture[:model_comparison_rows]
+    @test length(rows) == 3
+    @test Set(String(row[:model]) for row in rows) == Set([
+        "confirmatory_mgmfrm_current_q",
+        "construct_reviewed_revised_q_mgmfrm",
+        "sparse_mgmfrm_current_q",
+    ])
+    @test all(row -> Int(row[:recommended_controls][:chains]) == 4 &&
+            Int(row[:recommended_controls][:warmup_per_chain]) == 128 &&
+            Int(row[:recommended_controls][:draws_per_chain]) == 512,
+        rows)
+    @test all(row -> Int(row[:publication_controls][:chains]) == 4 &&
+            Int(row[:publication_controls][:warmup_per_chain]) == 500 &&
+            Int(row[:publication_controls][:draws_per_chain]) == 1000,
+        rows)
+    @test all(row -> Bool(row[:local_control_passed]), rows)
+    @test all(row -> Bool(row[:local_geometry_passed]), rows)
+    @test all(row -> Bool(row[:local_ess_passed]), rows)
+    @test all(row -> Bool(row[:local_finite_passed]), rows)
+    @test all(row -> Bool(row[:local_ppc_passed]), rows)
+    @test all(row -> Bool(row[:publication_reference_gate_passed]), rows)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, rows)
+
+    confirmatory = only(row for row in rows
+        if String(row[:model]) == "confirmatory_mgmfrm_current_q")
+    @test Bool(confirmatory[:local_gate_passed])
+    @test Bool(confirmatory[:local_rank_passed])
+    @test Float64(confirmatory[:recommended_metrics][:max_rhat]) < 1.01
+    @test Float64(confirmatory[:recommended_metrics][:heldout_elpd]) ≈
+        -11.680301348336437 atol = 1e-10
+
+    construct = only(row for row in rows
+        if String(row[:model]) == "construct_reviewed_revised_q_mgmfrm")
+    @test Bool(construct[:local_gate_passed]) == false
+    @test Bool(construct[:local_rank_passed]) == false
+    @test Float64(construct[:recommended_metrics][:max_rhat]) > 1.01
+    @test Float64(construct[:recommended_metrics][:max_rhat]) < 1.011
+    @test Float64(construct[:deltas][:heldout_elpd]) ≈
+        -0.09757312491638537 atol = 1e-10
+
+    sparse = only(row for row in rows
+        if String(row[:model]) == "sparse_mgmfrm_current_q")
+    @test Bool(sparse[:local_gate_passed])
+    @test Bool(sparse[:local_rank_passed])
+    @test Float64(sparse[:recommended_metrics][:max_rhat]) < 1.01
+
+    failures = fixture[:recommended_publication_gate_failure_rows]
+    @test length(failures) == 7
+    @test count(row -> String(row[:failure_class]) ==
+        "publication_grade_budget_threshold_not_targeted", failures) == 6
+    @test count(row -> String(row[:failure_class]) ==
+        "sampler_or_rank_warning", failures) == 1
+    rank_failure = only(row for row in failures
+        if String(row[:failure_class]) == "sampler_or_rank_warning")
+    @test String(rank_failure[:model]) ==
+        "construct_reviewed_revised_q_mgmfrm"
+    @test String(rank_failure[:diagnostic]) == "rank_normalized_rhat_max"
+    @test Float64(rank_failure[:value]) > 1.01
+    @test Float64(rank_failure[:threshold]) == 1.01
+
+    findings = fixture[:finding_rows]
+    @test length(findings) == 5
+    @test any(row -> String(row[:finding]) ==
+        "recommended_budget_empirical_gate_partially_passed" &&
+        String(row[:severity]) == "warning" &&
+        occursin("2/3", String(row[:evidence])),
+        findings)
+    @test any(row -> String(row[:finding]) ==
+        "publication_grade_budget_thresholds_not_targeted" &&
+        String(row[:severity]) == "blocker",
+        findings)
+    @test any(row -> String(row[:finding]) ==
+        "borderline_rank_warning_detected" &&
+        String(row[:severity]) == "warning",
+        findings)
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:empirical_gate_passed]) == false
+    @test Int(summary[:n_models]) == 3
+    @test Int(summary[:n_recommended_budget_runs]) == 3
+    @test Int(summary[:n_local_gate_passed]) == 2
+    @test Int(summary[:n_publication_reference_gate_passed]) == 3
+    @test Int(summary[:n_local_geometry_passed]) == 3
+    @test Int(summary[:n_recommended_publication_gate_failures]) == 7
+    @test Int(summary[:n_publication_budget_threshold_failures]) == 6
+    @test Int(summary[:n_sampler_or_rank_failures]) == 1
+    @test Float64(summary[:max_abs_heldout_elpd_delta_vs_publication]) ≈
+        0.10987342163689284 atol = 1e-10
+    @test Float64(summary[
+        :max_abs_heldout_expected_score_mae_delta_vs_publication]) ≈
+        0.003981681516425306 atol = 1e-12
+    @test Bool(summary[:no_public_fit_metric_claim])
+    @test Bool(summary[:no_public_q_revision_claim])
+    @test Bool(summary[:no_automatic_q_revision])
+    @test Bool(summary[:no_public_model_weight_claim])
+    @test Bool(summary[:no_sparse_superiority_claim])
+    @test String(summary[:recommendation]) ==
+        "target_construct_reviewed_revised_q_rank_warning_before_broadening"
+    @test String(summary[:next_gate]) ==
+        "construct_reviewed_revised_q_extended_budget_followup"
+end
+
+function check_mgmfrm_construct_reviewed_revised_q_extended_budget_followup_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_construct_reviewed_revised_q_extended_budget_followup.v1"
+    @test String(fixture[:family]) == "mgmfrm"
+    @test String(fixture[:scope]) ==
+        "construct_reviewed_revised_q_extended_budget_followup"
+    @test String(fixture[:status]) ==
+        "construct_reviewed_revised_q_extended_budget_followup_recorded"
+    @test Bool(fixture[:local_only])
+    @test Bool(fixture[:publication_or_registration_action]) == false
+    @test Bool(fixture[:package_default_change]) == false
+    @test Bool(fixture[:fit_api_change]) == false
+    @test Bool(fixture[:public_fit_metric_claim]) == false
+    @test Bool(fixture[:public_q_revision_claim]) == false
+    @test Bool(fixture[:automatic_q_revision]) == false
+    @test Bool(fixture[:public_model_weight_claim]) == false
+    @test Bool(fixture[:sparse_mgmfrm_superiority_claim]) == false
+    @test String(fixture[:model]) == "construct_reviewed_revised_q_mgmfrm"
+    @test String(fixture[:execution_unit_id]) ==
+        "well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold1"
+
+    policy = fixture[:local_threshold_policy]
+    @test Int(policy[:chains]) == 4
+    @test Int(policy[:warmup_per_chain]) == 128
+    @test Int(policy[:draws_per_chain]) == 512
+    @test Float64(policy[:max_rhat]) == 1.01
+    @test Float64(policy[:min_ess]) == 400.0
+    @test Int(policy[:max_divergences]) == 0
+    @test Int(policy[:max_treedepth]) == 0
+    @test Float64(policy[:min_ebfmi]) == 0.3
+
+    input_artifacts = fixture[:input_artifacts]
+    @test length(input_artifacts) == 19
+    @test any(row -> String(row[:artifact]) ==
+        "recommended_budget_empirical_gate" &&
+        String(row[:path]) ==
+            "test/fixtures/mgmfrm_recommended_budget_empirical_gate.json",
+        input_artifacts)
+    @test count(row -> endswith(String(row[:artifact]), "_result"),
+        input_artifacts) == 6
+    @test count(row -> endswith(String(row[:artifact]), "_diagnostics"),
+        input_artifacts) == 6
+    @test count(row -> endswith(String(row[:artifact]), "_heldout"),
+        input_artifacts) == 6
+
+    rows = fixture[:profile_rows]
+    @test length(rows) == 6
+    @test Set(String(row[:profile]) for row in rows) == Set([
+        "recommended_4_128_512_ta080",
+        "draws_only_4_128_1000_ta080",
+        "warmup_only_4_256_512_ta080",
+        "warmup_draws_4_256_1000_ta080",
+        "warmup_draws_4_256_1000_ta090",
+        "publication_4_500_1000_ta080",
+    ])
+    @test all(row -> String(row[:model]) ==
+        "construct_reviewed_revised_q_mgmfrm", rows)
+    @test all(row -> Bool(row[:local_control_passed]), rows)
+    @test all(row -> Bool(row[:local_geometry_passed]), rows)
+    @test all(row -> Bool(row[:local_ess_passed]), rows)
+    @test all(row -> Bool(row[:local_finite_passed]), rows)
+    @test all(row -> Bool(row[:local_ppc_passed]), rows)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, rows)
+
+    baseline = only(row for row in rows
+        if String(row[:profile]) == "recommended_4_128_512_ta080")
+    @test Bool(baseline[:local_gate_passed]) == false
+    @test Bool(baseline[:local_rank_passed]) == false
+    @test String(baseline[:diagnostic_flag]) == "mcmc_warning"
+    @test Float64(baseline[:metrics][:max_rhat]) ≈
+        1.0108927615632282 atol = 1e-12
+
+    draws_only = only(row for row in rows
+        if String(row[:profile]) == "draws_only_4_128_1000_ta080")
+    @test Bool(draws_only[:local_gate_passed])
+    @test Bool(draws_only[:local_rank_passed])
+    @test Int(draws_only[:controls][:warmup_per_chain]) == 128
+    @test Int(draws_only[:controls][:draws_per_chain]) == 1000
+    @test Float64(draws_only[:metrics][:max_rhat]) ≈
+        1.003008359484065 atol = 1e-12
+    @test Float64(draws_only[:metrics][:min_ess]) >
+        Float64(baseline[:metrics][:min_ess])
+
+    warmup_only = only(row for row in rows
+        if String(row[:profile]) == "warmup_only_4_256_512_ta080")
+    @test Bool(warmup_only[:local_gate_passed])
+    @test Bool(warmup_only[:local_rank_passed])
+    @test Int(warmup_only[:controls][:warmup_per_chain]) == 256
+    @test Int(warmup_only[:controls][:draws_per_chain]) == 512
+    @test Float64(warmup_only[:metrics][:max_rhat]) ≈
+        1.0051275094304761 atol = 1e-12
+
+    warmup_draws = only(row for row in rows
+        if String(row[:profile]) == "warmup_draws_4_256_1000_ta080")
+    @test Bool(warmup_draws[:local_gate_passed])
+    @test Float64(warmup_draws[:controls][:target_acceptance]) == 0.8
+    @test Float64(warmup_draws[:metrics][:max_rhat]) ≈
+        1.002046203833123 atol = 1e-12
+
+    target_accept = only(row for row in rows
+        if String(row[:profile]) == "warmup_draws_4_256_1000_ta090")
+    @test Bool(target_accept[:local_gate_passed])
+    @test Float64(target_accept[:controls][:target_acceptance]) == 0.9
+    @test Float64(target_accept[:metrics][:heldout_elpd]) ≈
+        -11.69225866610247 atol = 1e-10
+
+    publication = only(row for row in rows
+        if String(row[:profile]) == "publication_4_500_1000_ta080")
+    @test Bool(publication[:local_gate_passed])
+    @test Bool(publication[:publication_gate_passed])
+    @test Int(publication[:controls][:warmup_per_chain]) == 500
+    @test Int(publication[:controls][:draws_per_chain]) == 1000
+    @test Float64(publication[:metrics][:max_rhat]) ≈
+        1.0017699327380145 atol = 1e-12
+
+    failures = fixture[:publication_gate_failure_rows]
+    @test length(failures) == 8
+    @test count(row -> String(row[:failure_class]) ==
+        "publication_grade_budget_threshold_not_targeted", failures) == 7
+    @test count(row -> String(row[:failure_class]) ==
+        "sampler_or_rank_warning", failures) == 1
+    rank_failure = only(row for row in failures
+        if String(row[:failure_class]) == "sampler_or_rank_warning")
+    @test String(rank_failure[:profile]) == "recommended_4_128_512_ta080"
+    @test String(rank_failure[:diagnostic]) == "rank_normalized_rhat_max"
+    @test Float64(rank_failure[:value]) ≈
+        1.0108927615632282 atol = 1e-12
+
+    findings = fixture[:finding_rows]
+    @test length(findings) == 6
+    @test any(row -> String(row[:finding]) ==
+        "retained_draw_extension_cleared_warning" &&
+        String(row[:severity]) == "info" &&
+        occursin("4/128/1000", String(row[:evidence])),
+        findings)
+    @test any(row -> String(row[:finding]) ==
+        "warmup_extension_also_cleared_warning" &&
+        String(row[:severity]) == "info" &&
+        occursin("4/256/512", String(row[:evidence])),
+        findings)
+    @test any(row -> String(row[:finding]) ==
+        "target_acceptance_not_required_for_clearance" &&
+        occursin("0.8 and 0.9", String(row[:evidence])),
+        findings)
+    @test any(row -> String(row[:finding]) == "public_claims_remain_blocked" &&
+        String(row[:severity]) == "blocker",
+        findings)
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:baseline_recommended_budget_passed]) == false
+    @test Bool(summary[:baseline_rank_passed]) == false
+    @test Float64(summary[:baseline_max_rhat]) ≈
+        1.0108927615632282 atol = 1e-12
+    @test Int(summary[:n_followup_profiles]) == 4
+    @test Int(summary[:n_followup_profiles_passed]) == 4
+    @test Bool(summary[:all_followup_profiles_passed])
+    @test Bool(summary[:draws_only_cleared])
+    @test Bool(summary[:warmup_only_cleared])
+    @test Bool(summary[:warmup_draws_cleared])
+    @test Bool(summary[:target_acceptance_0p9_cleared])
+    @test Bool(summary[:target_acceptance_0p9_required]) == false
+    @test Bool(summary[:retained_draw_extension_sufficient])
+    @test Bool(summary[:warmup_extension_also_sufficient])
+    @test Bool(summary[:publication_comparator_passed])
+    @test Int(summary[:n_profiles]) == 6
+    @test Int(summary[:n_local_gate_passed]) == 5
+    @test Int(summary[:n_geometry_passed]) == 6
+    @test Int(summary[:n_publication_gate_failures]) == 8
+    @test Int(summary[:n_publication_budget_threshold_failures]) == 7
+    @test Int(summary[:n_sampler_or_rank_failures]) == 1
+    @test String(summary[:best_rhat_profile]) ==
+        "publication_4_500_1000_ta080"
+    @test Float64(summary[:best_rhat]) ≈
+        1.0017699327380145 atol = 1e-12
+    @test String(summary[:best_heldout_elpd_profile]) ==
+        "warmup_draws_4_256_1000_ta090"
+    @test Float64(summary[:best_heldout_elpd]) ≈
+        -11.69225866610247 atol = 1e-10
+    @test Float64(summary[:max_abs_heldout_elpd_delta_vs_publication]) ≈
+        0.10530375193166996 atol = 1e-10
+    @test Bool(summary[:no_public_fit_metric_claim])
+    @test Bool(summary[:no_public_q_revision_claim])
+    @test Bool(summary[:no_automatic_q_revision])
+    @test Bool(summary[:no_public_model_weight_claim])
+    @test Bool(summary[:no_sparse_mgmfrm_superiority_claim])
+    @test String(summary[:recommendation]) ==
+        "use_retained_draw_extension_for_construct_reviewed_revised_q_replication"
+    @test String(summary[:next_gate]) ==
+        "construct_reviewed_revised_q_1000_draw_scenario_replication"
+end
+
+function check_mgmfrm_construct_reviewed_revised_q_1000_draw_scenario_replication_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_construct_reviewed_revised_q_1000_draw_scenario_replication.v1"
+    @test String(fixture[:family]) == "mgmfrm"
+    @test String(fixture[:scope]) ==
+        "construct_reviewed_revised_q_1000_draw_scenario_replication"
+    @test String(fixture[:status]) ==
+        "construct_reviewed_revised_q_1000_draw_scenario_replication_recorded"
+    @test Bool(fixture[:local_only])
+    @test Bool(fixture[:publication_or_registration_action]) == false
+    @test Bool(fixture[:package_default_change]) == false
+    @test Bool(fixture[:fit_api_change]) == false
+    @test Bool(fixture[:public_fit_metric_claim]) == false
+    @test Bool(fixture[:public_q_revision_claim]) == false
+    @test Bool(fixture[:automatic_q_revision]) == false
+    @test Bool(fixture[:public_model_weight_claim]) == false
+    @test Bool(fixture[:sparse_mgmfrm_superiority_claim]) == false
+    @test String(fixture[:model]) == "construct_reviewed_revised_q_mgmfrm"
+
+    policy = fixture[:local_threshold_policy]
+    @test Int(policy[:chains]) == 4
+    @test Int(policy[:warmup_per_chain]) == 128
+    @test Int(policy[:draws_per_chain]) == 1000
+    @test Float64(policy[:max_rhat]) == 1.01
+    @test Float64(policy[:min_ess]) == 400.0
+    @test Int(policy[:max_divergences]) == 0
+    @test Int(policy[:max_treedepth]) == 0
+    @test Float64(policy[:min_ebfmi]) == 0.3
+
+    input_artifacts = fixture[:input_artifacts]
+    @test length(input_artifacts) == 25
+    @test any(row -> String(row[:artifact]) ==
+        "previous_extended_budget_followup_fixture" &&
+        String(row[:path]) ==
+            "test/fixtures/mgmfrm_construct_reviewed_revised_q_extended_budget_followup.json",
+        input_artifacts)
+    @test count(row -> endswith(String(row[:artifact]), "_result"),
+        input_artifacts) == 8
+    @test count(row -> endswith(String(row[:artifact]), "_diagnostics"),
+        input_artifacts) == 8
+    @test count(row -> endswith(String(row[:artifact]), "_heldout"),
+        input_artifacts) == 8
+
+    rows = fixture[:profile_rows]
+    @test length(rows) == 8
+    @test Set(String(row[:profile]) for row in rows) == Set([
+        "well_specified_fold1_4_128_1000_ta080",
+        "well_specified_fold2_4_128_1000_ta080",
+        "well_specified_fold2_4_128_1000_ta090",
+        "well_specified_fold2_4_256_1000_ta080",
+        "well_specified_fold2_4_256_1000_ta090",
+        "well_specified_fold3_4_128_1000_ta080",
+        "missing_loading_fold1_4_128_1000_ta080",
+        "missing_loading_fold1_4_500_1000_ta080",
+    ])
+    @test all(row -> String(row[:model]) ==
+        "construct_reviewed_revised_q_mgmfrm", rows)
+    @test all(row -> Bool(row[:local_rank_passed]), rows)
+    @test all(row -> Bool(row[:local_ess_passed]), rows)
+    @test all(row -> Bool(row[:local_finite_passed]), rows)
+    @test all(row -> Bool(row[:local_ppc_passed]), rows)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, rows)
+    @test count(row -> Bool(row[:local_gate_passed]), rows) == 7
+    @test count(row -> Bool(row[:local_geometry_passed]), rows) == 7
+
+    fold2_default = only(row for row in rows
+        if String(row[:profile]) == "well_specified_fold2_4_128_1000_ta080")
+    @test Bool(fold2_default[:local_gate_passed]) == false
+    @test Bool(fold2_default[:local_rank_passed])
+    @test Bool(fold2_default[:local_geometry_passed]) == false
+    @test String(fold2_default[:diagnostic_flag]) == "sampler_warning"
+    @test Float64(fold2_default[:metrics][:max_rhat]) ≈
+        1.0034817809997079 atol = 1e-12
+    @test Float64(fold2_default[:metrics][:min_ess]) ≈
+        2496.3162502948094 atol = 1e-9
+    @test Int(fold2_default[:metrics][:n_divergences]) == 1
+
+    fold2_target_accept = only(row for row in rows
+        if String(row[:profile]) == "well_specified_fold2_4_128_1000_ta090")
+    @test Bool(fold2_target_accept[:local_gate_passed])
+    @test Int(fold2_target_accept[:controls][:warmup_per_chain]) == 128
+    @test Int(fold2_target_accept[:controls][:draws_per_chain]) == 1000
+    @test Float64(fold2_target_accept[:controls][:target_acceptance]) == 0.9
+    @test Int(fold2_target_accept[:metrics][:n_divergences]) == 0
+    @test Float64(fold2_target_accept[:metrics][:max_rhat]) ≈
+        1.0033941138892781 atol = 1e-12
+
+    fold2_warmup = only(row for row in rows
+        if String(row[:profile]) == "well_specified_fold2_4_256_1000_ta080")
+    @test Bool(fold2_warmup[:local_gate_passed])
+    @test Int(fold2_warmup[:controls][:warmup_per_chain]) == 256
+    @test Float64(fold2_warmup[:controls][:target_acceptance]) == 0.8
+    @test Int(fold2_warmup[:metrics][:n_divergences]) == 0
+    @test Float64(fold2_warmup[:metrics][:max_rhat]) ≈
+        1.0013516979545556 atol = 1e-12
+
+    missing_light = only(row for row in rows
+        if String(row[:profile]) == "missing_loading_fold1_4_128_1000_ta080")
+    missing_heavy = only(row for row in rows
+        if String(row[:profile]) == "missing_loading_fold1_4_500_1000_ta080")
+    @test Bool(missing_light[:local_gate_passed])
+    @test Bool(missing_heavy[:local_gate_passed])
+    @test Bool(missing_heavy[:publication_gate_passed])
+    @test Float64(missing_light[:metrics][:heldout_elpd]) ≈
+        -13.90650417151769 atol = 1e-10
+    @test Float64(missing_heavy[:metrics][:heldout_elpd]) ≈
+        -13.890467429280312 atol = 1e-10
+
+    failures = fixture[:publication_gate_failure_rows]
+    @test length(failures) == 8
+    @test count(row -> String(row[:failure_class]) ==
+        "publication_grade_budget_threshold_not_targeted", failures) == 7
+    @test count(row -> String(row[:failure_class]) ==
+        "sampler_or_geometry_warning", failures) == 1
+    divergence_failure = only(row for row in failures
+        if String(row[:failure_class]) == "sampler_or_geometry_warning")
+    @test String(divergence_failure[:profile]) ==
+        "well_specified_fold2_4_128_1000_ta080"
+    @test String(divergence_failure[:diagnostic]) == "divergence_count_max"
+    @test Int(divergence_failure[:value]) == 1
+
+    findings = fixture[:finding_rows]
+    @test length(findings) == 6
+    @test any(row -> String(row[:finding]) ==
+        "default_1000_draw_profiles_clear_rank" &&
+        String(row[:severity]) == "info" &&
+        occursin("4/4", String(row[:evidence])),
+        findings)
+    @test any(row -> String(row[:finding]) ==
+        "default_profile_geometry_failure_observed" &&
+        String(row[:severity]) == "warning" &&
+        occursin("fold2 divergences = 1", String(row[:evidence])),
+        findings)
+    @test any(row -> String(row[:finding]) ==
+        "target_acceptance_cleared_fold2_geometry" &&
+        String(row[:severity]) == "info",
+        findings)
+    @test any(row -> String(row[:finding]) ==
+        "public_claims_remain_blocked" &&
+        String(row[:severity]) == "blocker",
+        findings)
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Int(summary[:n_profiles]) == 8
+    @test Int(summary[:n_default_4_128_1000_profiles]) == 4
+    @test Int(summary[:n_default_4_128_1000_local_passed]) == 3
+    @test Int(summary[:n_default_4_128_1000_rank_passed]) == 4
+    @test Int(summary[:n_default_4_128_1000_geometry_passed]) == 3
+    @test Bool(summary[:default_4_128_1000_rank_replicated])
+    @test Bool(summary[:default_4_128_1000_geometry_clean]) == false
+    @test Int(summary[:n_remedial_fold2_profiles]) == 3
+    @test Int(summary[:n_remedial_fold2_profiles_passed]) == 3
+    @test Bool(summary[:target_acceptance_0p9_cleared_fold2_geometry])
+    @test Bool(summary[:warmup_256_cleared_fold2_geometry])
+    @test Int(summary[:n_local_gate_passed]) == 7
+    @test Int(summary[:n_rank_passed]) == 8
+    @test Int(summary[:n_geometry_passed]) == 7
+    @test Int(summary[:n_publication_gate_passed]) == 1
+    @test Int(summary[:n_publication_gate_failures]) == 8
+    @test Int(summary[:n_publication_budget_threshold_failures]) == 7
+    @test Int(summary[:n_sampler_or_geometry_failures]) == 1
+    @test Float64(summary[:max_rhat]) ≈
+        1.0034817809997079 atol = 1e-12
+    @test Float64(summary[:min_ess]) ≈
+        1549.514017564035 atol = 1e-9
+    @test Int(summary[:total_divergences]) == 1
+    @test Float64(summary[
+        :missing_loading_light_vs_heavy_heldout_elpd_delta]) ≈
+        -0.01603674223737883 atol = 1e-12
+    @test Float64(summary[:missing_loading_light_vs_heavy_mae_delta]) ≈
+        0.0028393560509898386 atol = 1e-12
+    @test String(summary[:best_rhat_profile]) ==
+        "well_specified_fold2_4_256_1000_ta080"
+    @test Float64(summary[:best_rhat]) ≈
+        1.0013516979545556 atol = 1e-12
+    @test String(summary[:best_heldout_elpd_profile]) ==
+        "well_specified_fold1_4_128_1000_ta080"
+    @test Float64(summary[:best_heldout_elpd]) ≈
+        -11.774989736873781 atol = 1e-10
+    @test Bool(summary[:no_public_fit_metric_claim])
+    @test Bool(summary[:no_public_q_revision_claim])
+    @test Bool(summary[:no_automatic_q_revision])
+    @test Bool(summary[:no_public_model_weight_claim])
+    @test Bool(summary[:no_sparse_mgmfrm_superiority_claim])
+    @test String(summary[:recommendation]) ==
+        "retain_1000_draw_rank_guidance_but_add_geometry_remediation_branch"
+    @test String(summary[:next_gate]) ==
+        "expand_1000_draw_geometry_branch_across_remaining_construct_reviewed_revised_q_cells"
+end
+
+function check_mgmfrm_construct_reviewed_revised_q_1000_draw_geometry_branch_expansion_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_construct_reviewed_revised_q_1000_draw_geometry_branch_expansion.v1"
+    @test String(fixture[:family]) == "mgmfrm"
+    @test String(fixture[:scope]) ==
+        "construct_reviewed_revised_q_1000_draw_geometry_branch_expansion"
+    @test String(fixture[:status]) ==
+        "construct_reviewed_revised_q_1000_draw_geometry_branch_expansion_recorded"
+    @test Bool(fixture[:local_only])
+    @test Bool(fixture[:publication_or_registration_action]) == false
+    @test Bool(fixture[:package_default_change]) == false
+    @test Bool(fixture[:fit_api_change]) == false
+    @test Bool(fixture[:public_fit_metric_claim]) == false
+    @test Bool(fixture[:public_q_revision_claim]) == false
+    @test Bool(fixture[:automatic_q_revision]) == false
+    @test Bool(fixture[:public_model_weight_claim]) == false
+    @test Bool(fixture[:sparse_mgmfrm_superiority_claim]) == false
+    @test String(fixture[:model]) == "construct_reviewed_revised_q_mgmfrm"
+
+    policy = fixture[:local_threshold_policy]
+    @test Int(policy[:chains]) == 4
+    @test Int(policy[:warmup_per_chain]) == 128
+    @test Int(policy[:draws_per_chain]) == 1000
+    @test Float64(policy[:max_rhat]) == 1.01
+    @test Float64(policy[:min_ess]) == 400.0
+    @test Int(policy[:max_divergences]) == 0
+    @test Int(policy[:max_treedepth]) == 0
+    @test Float64(policy[:min_ebfmi]) == 0.3
+
+    input_artifacts = fixture[:input_artifacts]
+    @test length(input_artifacts) == 109
+    @test any(row -> String(row[:artifact]) ==
+        "previous_1000_draw_scenario_replication_fixture" &&
+        String(row[:path]) ==
+            "test/fixtures/mgmfrm_construct_reviewed_revised_q_1000_draw_scenario_replication.json",
+        input_artifacts)
+
+    rows = fixture[:default_profile_rows]
+    @test length(rows) == 25
+    @test Set(String(row[:scenario]) for row in rows) == Set([
+        "missing_loading_revised_q",
+        "rater_method_noise",
+        "sparse_signal_current_q",
+        "weak_dimension_ambiguous",
+        "well_specified_current_q",
+    ])
+    @test all(row -> String(row[:model]) ==
+        "construct_reviewed_revised_q_mgmfrm", rows)
+    @test all(row -> Int(row[:controls][:chains]) == 4, rows)
+    @test all(row -> Int(row[:controls][:warmup_per_chain]) == 128, rows)
+    @test all(row -> Int(row[:controls][:draws_per_chain]) == 1000, rows)
+    @test all(row -> Float64(row[:controls][:target_acceptance]) == 0.8, rows)
+    @test all(row -> Bool(row[:local_rank_passed]), rows)
+    @test all(row -> Bool(row[:local_ess_passed]), rows)
+    @test all(row -> Bool(row[:local_finite_passed]), rows)
+    @test all(row -> Bool(row[:local_ppc_passed]), rows)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, rows)
+    @test count(row -> Bool(row[:local_gate_passed]), rows) == 23
+    @test count(row -> Bool(row[:local_geometry_passed]), rows) == 23
+
+    geometry_failures = fixture[:default_geometry_failure_rows]
+    @test length(geometry_failures) == 2
+    @test Set(String(row[:execution_unit_id]) for row in geometry_failures) ==
+        Set([
+            "well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold2",
+            "well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold4",
+        ])
+    @test all(row -> String(row[:scenario]) == "well_specified_current_q",
+        geometry_failures)
+    @test all(row -> Bool(row[:local_rank_passed]), geometry_failures)
+    @test all(row -> Bool(row[:local_geometry_passed]) == false,
+        geometry_failures)
+    @test all(row -> Int(row[:metrics][:n_divergences]) == 1,
+        geometry_failures)
+    fold2_failure = only(row for row in geometry_failures
+        if Int(row[:fold]) == 2)
+    @test Float64(fold2_failure[:metrics][:max_rhat]) ≈
+        1.0034817809997079 atol = 1e-12
+    fold4_failure = only(row for row in geometry_failures
+        if Int(row[:fold]) == 4)
+    @test Float64(fold4_failure[:metrics][:max_rhat]) ≈
+        1.002306871488902 atol = 1e-12
+
+    remediation = fixture[:remediation_rows]
+    @test length(remediation) == 6
+    @test all(row -> String(row[:scenario]) == "well_specified_current_q",
+        remediation)
+    @test Set(Int(row[:fold]) for row in remediation) == Set([2, 4])
+    @test count(row -> Int(row[:fold]) == 2, remediation) == 3
+    @test count(row -> Int(row[:fold]) == 4, remediation) == 3
+    @test all(row -> Bool(row[:local_gate_passed]), remediation)
+    @test all(row -> Bool(row[:local_geometry_passed]), remediation)
+    @test all(row -> Int(row[:metrics][:n_divergences]) == 0, remediation)
+    @test count(row -> String(row[:role]) ==
+        "target_acceptance_geometry_remediation", remediation) == 2
+    @test count(row -> String(row[:role]) ==
+        "warmup_geometry_remediation", remediation) == 2
+    @test count(row -> String(row[:role]) ==
+        "combined_geometry_remediation", remediation) == 2
+
+    comparators = fixture[:missing_loading_publication_comparator_rows]
+    @test length(comparators) == 5
+    @test all(row -> String(row[:scenario]) == "missing_loading_revised_q",
+        comparators)
+    @test all(row -> Bool(row[:light_local_gate_passed]), comparators)
+    @test all(row -> Bool(row[:heavy_local_gate_passed]), comparators)
+    @test all(row -> Bool(row[:heavy_publication_gate_passed]), comparators)
+    @test maximum(abs(Float64(row[:heldout_elpd_delta]))
+        for row in comparators) ≈ 0.303148708829017 atol = 1e-12
+    @test maximum(abs(Float64(row[:heldout_expected_score_mae_delta]))
+        for row in comparators) ≈ 0.006586446310166805 atol = 1e-12
+
+    scenario_rows = fixture[:scenario_summary_rows]
+    @test length(scenario_rows) == 5
+    well_specified = only(row for row in scenario_rows
+        if String(row[:scenario]) == "well_specified_current_q")
+    @test Int(well_specified[:n_default_profiles]) == 5
+    @test Int(well_specified[:n_default_local_gate_passed]) == 3
+    @test Int(well_specified[:n_default_rank_passed]) == 5
+    @test Int(well_specified[:n_default_geometry_passed]) == 3
+    @test Int(well_specified[:total_divergences]) == 2
+    @test all(row -> String(row[:scenario]) == "well_specified_current_q" ||
+        (Int(row[:n_default_local_gate_passed]) == 5 &&
+         Int(row[:n_default_geometry_passed]) == 5 &&
+         Int(row[:total_divergences]) == 0),
+        scenario_rows)
+
+    findings = fixture[:finding_rows]
+    @test length(findings) == 5
+    @test any(row -> String(row[:finding]) ==
+        "full_default_1000_draw_rank_replicated" &&
+        String(row[:severity]) == "info" &&
+        occursin("25/25", String(row[:evidence])),
+        findings)
+    @test any(row -> String(row[:finding]) ==
+        "default_geometry_failures_localized" &&
+        String(row[:severity]) == "warning" &&
+        occursin("2 default geometry failures", String(row[:evidence])),
+        findings)
+    @test any(row -> String(row[:finding]) ==
+        "geometry_remediation_branch_cleared_failures" &&
+        String(row[:severity]) == "info" &&
+        occursin("6/6", String(row[:evidence])),
+        findings)
+    @test any(row -> String(row[:finding]) ==
+        "public_claims_remain_blocked" &&
+        String(row[:severity]) == "blocker",
+        findings)
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Int(summary[:n_default_profiles]) == 25
+    @test Int(summary[:n_default_local_gate_passed]) == 23
+    @test Int(summary[:n_default_rank_passed]) == 25
+    @test Int(summary[:n_default_ess_passed]) == 25
+    @test Int(summary[:n_default_geometry_passed]) == 23
+    @test Bool(summary[:default_1000_draw_rank_replicated])
+    @test Bool(summary[:default_1000_draw_geometry_clean]) == false
+    @test Int(summary[:n_default_local_failures]) == 2
+    @test Int(summary[:n_default_geometry_failure_cells]) == 2
+    @test Bool(summary[:all_default_geometry_failures_in_well_specified_current_q])
+    @test Float64(summary[:max_default_rhat]) ≈
+        1.0091157507458468 atol = 1e-12
+    @test Float64(summary[:min_default_ess]) ≈
+        605.1565245673509 atol = 1e-9
+    @test Float64(summary[:min_default_ebfmi]) ≈
+        0.8281855851576145 atol = 1e-12
+    @test Int(summary[:total_default_divergences]) == 2
+    @test Int(summary[:n_remediation_profiles]) == 6
+    @test Int(summary[:n_remediation_profiles_passed]) == 6
+    @test Bool(summary[:all_remediation_profiles_passed])
+    @test Bool(summary[:target_acceptance_0p9_cleared_all_geometry_failures])
+    @test Bool(summary[:warmup_256_cleared_all_geometry_failures])
+    @test Bool(summary[:combined_256_0p9_cleared_all_geometry_failures])
+    @test Int(summary[:n_missing_loading_publication_comparisons]) == 5
+    @test Float64(summary[
+        :max_abs_missing_loading_light_vs_heavy_heldout_elpd_delta]) ≈
+        0.303148708829017 atol = 1e-12
+    @test Float64(summary[
+        :mean_missing_loading_light_vs_heavy_heldout_elpd_delta]) ≈
+        -0.0016608810196526492 atol = 1e-12
+    @test Float64(summary[
+        :max_abs_missing_loading_light_vs_heavy_mae_delta]) ≈
+        0.006586446310166805 atol = 1e-12
+    @test Bool(summary[:no_public_fit_metric_claim])
+    @test Bool(summary[:no_public_q_revision_claim])
+    @test Bool(summary[:no_automatic_q_revision])
+    @test Bool(summary[:no_public_model_weight_claim])
+    @test Bool(summary[:no_sparse_mgmfrm_superiority_claim])
+    @test String(summary[:recommendation]) ==
+        "retain_1000_draw_rank_guidance_with_geometry_remediation_branch"
+    @test String(summary[:next_gate]) ==
+        "join_construct_reviewed_revised_q_budget_diagnostics_to_model_comparison_and_calibration"
 end
 
 function check_mgmfrm_guarded_fit_method_wiring_fixture(fixture_path::AbstractString)
@@ -16968,10 +20074,94 @@ end
             mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_fixture,
         )
     end
+    mgmfrm_full_heldout_mcmc_refit_anchor_scoring_fixture = optional_fixture_path("MFRM_MGMFRM_FULL_HELDOUT_MCMC_REFIT_ANCHOR_SCORING_FIXTURE", joinpath("test", "fixtures", "mgmfrm_full_heldout_mcmc_refit_anchor_scoring.json"))
+    if !isempty(mgmfrm_full_heldout_mcmc_refit_anchor_scoring_fixture)
+        check_mgmfrm_full_heldout_mcmc_refit_anchor_scoring_fixture(
+            mgmfrm_full_heldout_mcmc_refit_anchor_scoring_fixture,
+        )
+    end
+    mgmfrm_publication_grade_refit_gate_fixture = optional_fixture_path("MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_GATE_FIXTURE", joinpath("test", "fixtures", "mgmfrm_publication_grade_refit_gate.json"))
+    if !isempty(mgmfrm_publication_grade_refit_gate_fixture)
+        check_mgmfrm_publication_grade_refit_gate_fixture(
+            mgmfrm_publication_grade_refit_gate_fixture,
+        )
+    end
+    mgmfrm_publication_grade_refit_pilot_plan_fixture = optional_fixture_path("MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_PILOT_PLAN_FIXTURE", joinpath("test", "fixtures", "mgmfrm_publication_grade_refit_pilot_plan.json"))
+    if !isempty(mgmfrm_publication_grade_refit_pilot_plan_fixture)
+        check_mgmfrm_publication_grade_refit_pilot_plan_fixture(
+            mgmfrm_publication_grade_refit_pilot_plan_fixture,
+        )
+    end
+    mgmfrm_publication_grade_refit_pilot_execution_harness_fixture = optional_fixture_path("MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_PILOT_EXECUTION_HARNESS_FIXTURE", joinpath("test", "fixtures", "mgmfrm_publication_grade_refit_pilot_execution_harness.json"))
+    if !isempty(mgmfrm_publication_grade_refit_pilot_execution_harness_fixture)
+        check_mgmfrm_publication_grade_refit_pilot_execution_harness_fixture(
+            mgmfrm_publication_grade_refit_pilot_execution_harness_fixture,
+        )
+    end
+    mgmfrm_publication_grade_refit_pilot_results_review_fixture = optional_fixture_path("MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_PILOT_RESULTS_REVIEW_FIXTURE", joinpath("test", "fixtures", "mgmfrm_publication_grade_refit_pilot_results_review.json"))
+    if !isempty(mgmfrm_publication_grade_refit_pilot_results_review_fixture)
+        check_mgmfrm_publication_grade_refit_pilot_results_review_fixture(
+            mgmfrm_publication_grade_refit_pilot_results_review_fixture,
+        )
+    end
+    mgmfrm_publication_grade_refit_sampler_remediation_review_fixture = optional_fixture_path("MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_SAMPLER_REMEDIATION_REVIEW_FIXTURE", joinpath("test", "fixtures", "mgmfrm_publication_grade_refit_sampler_remediation_review.json"))
+    if !isempty(mgmfrm_publication_grade_refit_sampler_remediation_review_fixture)
+        check_mgmfrm_publication_grade_refit_sampler_remediation_review_fixture(
+            mgmfrm_publication_grade_refit_sampler_remediation_review_fixture,
+        )
+    end
+    mgmfrm_publication_grade_refit_scalar_remediation_comparison_fixture = optional_fixture_path("MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_SCALAR_REMEDIATION_COMPARISON_FIXTURE", joinpath("test", "fixtures", "mgmfrm_publication_grade_refit_scalar_remediation_comparison.json"))
+    if !isempty(mgmfrm_publication_grade_refit_scalar_remediation_comparison_fixture)
+        check_mgmfrm_publication_grade_refit_scalar_remediation_comparison_fixture(
+            mgmfrm_publication_grade_refit_scalar_remediation_comparison_fixture,
+        )
+    end
+    mgmfrm_publication_grade_refit_batch_expansion_plan_fixture = optional_fixture_path("MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_BATCH_EXPANSION_PLAN_FIXTURE", joinpath("test", "fixtures", "mgmfrm_publication_grade_refit_batch_expansion_plan.json"))
+    if !isempty(mgmfrm_publication_grade_refit_batch_expansion_plan_fixture)
+        check_mgmfrm_publication_grade_refit_batch_expansion_plan_fixture(
+            mgmfrm_publication_grade_refit_batch_expansion_plan_fixture,
+        )
+    end
+    mgmfrm_publication_grade_refit_batch_results_review_fixture = optional_fixture_path("MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_BATCH_RESULTS_REVIEW_FIXTURE", joinpath("test", "fixtures", "mgmfrm_publication_grade_refit_batch_results_review.json"))
+    if !isempty(mgmfrm_publication_grade_refit_batch_results_review_fixture)
+        check_mgmfrm_publication_grade_refit_batch_results_review_fixture(
+            mgmfrm_publication_grade_refit_batch_results_review_fixture,
+        )
+    end
     mgmfrm_fit_threshold_q_heldout_linkage_fixture = optional_fixture_path("MFRM_MGMFRM_FIT_THRESHOLD_Q_HELDOUT_LINKAGE_FIXTURE", joinpath("test", "fixtures", "mgmfrm_fit_threshold_q_heldout_linkage.json"))
     if !isempty(mgmfrm_fit_threshold_q_heldout_linkage_fixture)
         check_mgmfrm_fit_threshold_q_heldout_linkage_fixture(
             mgmfrm_fit_threshold_q_heldout_linkage_fixture,
+        )
+    end
+    mgmfrm_uto_style_retained_draw_budget_guidance_fixture = optional_fixture_path("MFRM_MGMFRM_UTO_STYLE_RETAINED_DRAW_BUDGET_GUIDANCE_FIXTURE", joinpath("test", "fixtures", "mgmfrm_uto_style_retained_draw_budget_guidance.json"))
+    if !isempty(mgmfrm_uto_style_retained_draw_budget_guidance_fixture)
+        check_mgmfrm_uto_style_retained_draw_budget_guidance_fixture(
+            mgmfrm_uto_style_retained_draw_budget_guidance_fixture,
+        )
+    end
+    mgmfrm_recommended_budget_empirical_gate_fixture = optional_fixture_path("MFRM_MGMFRM_RECOMMENDED_BUDGET_EMPIRICAL_GATE_FIXTURE", joinpath("test", "fixtures", "mgmfrm_recommended_budget_empirical_gate.json"))
+    if !isempty(mgmfrm_recommended_budget_empirical_gate_fixture)
+        check_mgmfrm_recommended_budget_empirical_gate_fixture(
+            mgmfrm_recommended_budget_empirical_gate_fixture,
+        )
+    end
+    mgmfrm_construct_reviewed_revised_q_extended_budget_followup_fixture = optional_fixture_path("MFRM_MGMFRM_CONSTRUCT_REVIEWED_REVISED_Q_EXTENDED_BUDGET_FOLLOWUP_FIXTURE", joinpath("test", "fixtures", "mgmfrm_construct_reviewed_revised_q_extended_budget_followup.json"))
+    if !isempty(mgmfrm_construct_reviewed_revised_q_extended_budget_followup_fixture)
+        check_mgmfrm_construct_reviewed_revised_q_extended_budget_followup_fixture(
+            mgmfrm_construct_reviewed_revised_q_extended_budget_followup_fixture,
+        )
+    end
+    mgmfrm_construct_reviewed_revised_q_1000_draw_scenario_replication_fixture = optional_fixture_path("MFRM_MGMFRM_CONSTRUCT_REVIEWED_REVISED_Q_1000_DRAW_SCENARIO_REPLICATION_FIXTURE", joinpath("test", "fixtures", "mgmfrm_construct_reviewed_revised_q_1000_draw_scenario_replication.json"))
+    if !isempty(mgmfrm_construct_reviewed_revised_q_1000_draw_scenario_replication_fixture)
+        check_mgmfrm_construct_reviewed_revised_q_1000_draw_scenario_replication_fixture(
+            mgmfrm_construct_reviewed_revised_q_1000_draw_scenario_replication_fixture,
+        )
+    end
+    mgmfrm_construct_reviewed_revised_q_1000_draw_geometry_branch_expansion_fixture = optional_fixture_path("MFRM_MGMFRM_CONSTRUCT_REVIEWED_REVISED_Q_1000_DRAW_GEOMETRY_BRANCH_EXPANSION_FIXTURE", joinpath("test", "fixtures", "mgmfrm_construct_reviewed_revised_q_1000_draw_geometry_branch_expansion.json"))
+    if !isempty(mgmfrm_construct_reviewed_revised_q_1000_draw_geometry_branch_expansion_fixture)
+        check_mgmfrm_construct_reviewed_revised_q_1000_draw_geometry_branch_expansion_fixture(
+            mgmfrm_construct_reviewed_revised_q_1000_draw_geometry_branch_expansion_fixture,
         )
     end
     mgmfrm_guarded_fit_method_wiring_fixture = optional_fixture_path("MFRM_MGMFRM_GUARDED_FIT_METHOD_WIRING_FIXTURE", joinpath("test", "fixtures", "mgmfrm_guarded_fit_method_wiring.json"))

@@ -74,6 +74,285 @@ not a model-selection claim. The guarded experimental MGMFRM fit path populates
 the same raw-prior/Jacobian policy and fit-artifact contract for the fixed-Q
 confirmatory candidate.
 
+### Uto-Style Direction Check
+
+A local Uto-style diagnostic now separates three questions that should not be
+collapsed:
+
+1. whether a correctly specified multidimensional source model has an oracle
+   advantage over a Null/intercept reference;
+2. whether the guarded fixed-Q MGMFRM fit can recover that direction after
+   MCMC under source-aligned strong-signal data;
+3. why the current compact publication-grade batch can still favor the Null
+   reference.
+
+The local reports answer the first two questions positively under the tested
+conditions. A 3-seed replicated small-MCMC grid recovered the true-Q MGMFRM
+direction in all seeds, with mean dELPD vs Null `+8.862` and minimum margin
+`+4.087`. An internal source-fixture prior sensitivity grid over `default`,
+`tight`, and `diffuse` profiles also recovered the direction in all tested
+seed/profile cells, with mean dELPD vs Null `+6.789` and minimum margin
+`+3.798`.
+
+The same diagnosis explains why this does not license a broad MGMFRM
+superiority claim. The current compact Null-win batch has much larger
+structured-model losses, including Current Q dELPD vs Null `-33.027`, Revised Q
+`-32.808`, and Sparse Q `-36.889`. That pattern points to signal strength,
+category calibration, Q support, prior sensitivity, and posterior recovery loss
+as the next diagnostic targets. It does not show that fixed-Q MGMFRM is
+inherently unable to reproduce Uto-style conclusions.
+
+A local calibration bridge now makes the threshold issue explicit. In the
+strong source-aligned condition, true-Q MCMC remained positive (`+9.420` dELPD
+vs Null). In a moderate transition condition, the oracle margin was only
+`+0.201` and the MCMC refit flipped to `-4.855`. In a weak compressed-category
+condition, true-Q MCMC was positive but small (`+2.783`), clearing `0` and `2`
+dELPD thresholds but not `4` or `8`. This is evidence that fit-threshold choices
+must be treated as a profile before they are promoted to package-facing
+guidance.
+
+The replicated bridge keeps that interpretation under 2 seeds and 3 internal
+prior profiles. The strong source-aligned condition recovered in every cell
+(minimum true-Q MCMC dELPD vs Null `+3.798`), the moderate transition condition
+recovered in no cell (mean `-6.022`), and the weak compressed-category condition
+recovered in every cell but never cleared the `4` dELPD threshold after MCMC.
+The internal prior profiles had the same overall scenario-recovery rate
+(`0.6667`), so profile choice is not the main explanation in this small
+diagnostic.
+
+A local MCMC-budget bridge now checks whether the bridge result is mostly a
+short-chain artifact. It reruns the same generated rows and splits under
+`20/20`, `80/20`, `20/80`, and `80/80` warmup/draw budgets. No non-baseline
+budget changed the recovered/not-recovered direction. The strong condition
+remained positive across all retained-draw budgets (minimum `+9.420`), the
+moderate condition remained negative (maximum `-4.580`), and the weak
+compressed-category condition still failed the all-retained dELPD `4` threshold.
+Post-hoc retained-draw thinning changed one near-cutoff threshold cell, so
+thinning can affect boundary threshold calls. It should not be interpreted as
+sampler-level thinning because the current `fit` API exposes warmup, retained
+draws, and chains, but not a sampler thinning argument.
+
+A category-calibration bridge now links those threshold calls to heldout
+category-probability calibration. In the strong source-aligned condition,
+true-Q MCMC improved log score, Brier score, category distribution distance,
+and cumulative threshold distance versus Null. In the weak compressed-category
+condition, true-Q MCMC also improved the category-calibration metrics versus
+Null, but its log-score gain remained below the `4` threshold (`+2.783` under
+the baseline budget and `+3.323` under the increased budget). In the moderate
+transition condition, true-Q MCMC was worse than Null both predictively and in
+category calibration. Thus the weak threshold-`4` failure is a magnitude and
+cutoff issue in this local check, not a category-calibration reversal.
+
+A threshold false-alarm/power profile now treats the candidate cutoffs as
+simulation profiles rather than defaults. In the replicated bridge, threshold
+`2` had signal power `1.0` and negative-control false promotion `0.0`, but its
+maximum competing scalar/wrong-Q pass rate was `0.6111`; therefore it can only
+be read as a screening profile, not as Q-validation evidence. Threshold `4`
+had weak-signal power `0.0`, so it creates a false-negative risk for
+compressed-category conditions even though it reduces competing-model passes.
+
+A threshold/Q-misspecification expansion now connects that profile to the
+empirical Q-matrix recovery grid and adds an explicit null requirement. It
+records `13` scenarios across `11` expansion axes. Threshold `2` creates `4`
+false-add specificity cells that need explicit Q/noise simulations; threshold
+`4` creates `5` false-negative risk cells for false-drop and weak-dimension
+cases. This is a pre-execution map: it says which simulations must be run next,
+not which cutoff should be used.
+
+A first small Q-misspecification MCMC batch now runs the representative
+explicit-null, false-add, false-drop, weak-dimension, and rater-noise proxy
+cases. Threshold `2` produced `1` candidate false-promotion cell and threshold
+`4` produced `1` false-negative cell. All `20` MCMC model rows have short-chain
+diagnostic warnings, so this remains a screening result; it needs replication,
+larger MCMC budgets, and category-calibration joins before threshold policy.
+
+A replicated Q-misspecification/category bridge now makes that join explicit.
+Across 2 seeds and 5 scenarios with 2-chain `16/16` warmup/draw settings,
+threshold `2` had candidate false-promotion rate `0.2`, threshold `4` had
+false-negative rate `0.2`, and `2` seed-scenario cells had predictive gain with
+a category-calibration caveat. All `40` MCMC rows still had sampler warnings,
+so the practical rule should remain predictive-plus-category screening, not a
+public cutoff.
+
+A Q/category budget-stability check then reruns the same replicated Q scenarios
+under `16/16` and `32/32` warmup/draw profiles. Threshold `2` false-promotion
+rate moved from `0.2` to `0.3`, threshold `4` false-negative rate stayed
+`0.2`, `4` threshold risk labels changed, and the `32/32` profile still had
+`40` warning rows. The threshold rule is therefore not budget-stable enough for
+public wording.
+
+A multi-axis instability diagnosis now ranks alternative explanations instead
+of assigning the problem to a single cause. The highest-priority mechanisms are
+sampler/budget instability, threshold-cutoff sensitivity, and false-add Q
+specificity. Category calibration mismatch, false-drop seed variability,
+rater-noise/competing structure, and heldout category sparsity also remain
+high-priority. Prior profile alone and a broad "MGMFRM is impossible"
+interpretation are low-plausibility under the local evidence.
+
+A critical-cell follow-up grid now reconstructs the base seeds for the 4
+budget-sensitive cells and maps them to 12 targeted follow-up runs. The heldout
+category-support screen is adequate in every baseline critical cell (minimum
+heldout category count at least `3`), so the next technical gate is split-seed
+control plus sampler-remediation, not another broad unfocused simulation.
+
+A split-controlled critical grid now decouples generation seeds from holdout
+split seeds on those 4 cells. Across 2 split offsets, `4` threshold risk labels
+changed and all `32` MCMC model rows still had sampler warnings. In this
+restricted pilot, threshold `2` false-promotion rate was `0.125` and threshold
+`4` false-negative rate was `0.0`; the important result is that split
+variability itself remains active.
+
+A sampler-remediation critical pilot then reruns the split-stable critical cell
+with a larger local MCMC budget (`4` chains, `64/64` warmup/draws, target
+acceptance `0.85`). Threshold risk labels stayed stable and threshold `2`
+false-promotion fell to `0.0`, but all `8` selected MCMC model rows still had
+`mcmc_warning` flags. The next gate should diagnose the warning surface itself
+rather than simply adding more retained draws.
+
+A warning-surface diagnosis now records that same split-stable cell with block
+and chain diagnostics. All `8` warning rows are raw R-hat/ESS warnings, while
+sampler warnings, nonfinite log-density, divergences, max-tree-depth hits, and
+direct-transform failures are `0`. This makes thinning a poor first-line
+remediation; block-targeted draws, chains, or parameterization checks are the
+next local gate.
+
+A block-targeted follow-up plan ranks the warning-heavy raw blocks before
+launching a larger grid. The top targets are `person`, `item`,
+`log_item_dimension_discrimination`, and `item_steps`; the first executable
+profile is `draws_x2_smoke`. That smoke run reran 3 priority model/split cells
+with `4` chains, `64` warmup draws, and `128` retained draws per chain. Minimum
+ESS and maximum R-hat improved in all 3 jobs and warning counts fell, but all 3
+jobs still had `mcmc_warning`. The next gate is therefore a `draws_x4` or
+chain-count check, not public threshold wording.
+
+The `draws_x4` gate then reran the same 3 cells with `4` chains, `128` warmup
+draws, and `256` retained draws per chain. Minimum ESS and maximum R-hat again
+improved in all 3 jobs beyond `draws_x2`, with bad-Rhat and low-ESS counts
+falling sharply. None of the 3 jobs fully cleared `mcmc_warning`, but the
+remaining failures are near threshold: one row has max R-hat `1.0147` and min
+ESS `328.2402`, one has max R-hat `1.0096` and min ESS `353.5260`, and one has
+max R-hat `1.0109` with min ESS `403.0495`. The next gate should separate chain
+count from parameterization rather than simply endorse thresholds.
+
+A chain-count gate then reran the same 3 cells with `6` chains, `64` warmup
+draws, and `128` retained draws per chain. Compared with `draws_x4`, 0/3 jobs
+improved maximum R-hat, 0/3 improved minimum ESS, and 0/3 cleared warnings. A
+Stan-guided review therefore records the next gate as rank-normalized R-hat,
+bulk/tail ESS, and parameterization audit. The decision follows Stan diagnostic
+practice: high R-hat/low ESS are validity warnings, thinning is not the primary
+remediation, and difficult hierarchical geometry should be checked through
+parameterization. Relevant sources include Stan's diagnostics page, the
+`posterior::ess_bulk` documentation, Stan User's Guide efficiency tuning, and
+Stan Discourse discussions on thinning and ESS reporting.
+
+A local rank-normalized diagnostic gate has now executed that next check for
+the same 3 priority cells under the `draws_x4` profile. All 3 cells still
+flagged rank warnings and geometry warnings remained `0`. The residual pattern
+is not one metric: declared-Q split `101` is limited by rank R-hat and bulk
+ESS, rotated-wrong-Q split `17` is limited by bulk ESS, and rotated-wrong-Q
+split `101` is limited by rank R-hat and tail ESS. The warning blocks are
+concentrated in `person`, `item`, and `item_steps`, so the next local gate is
+`parameterization_audit_for_rank_warning_blocks`, not thinning, a chain-count
+only run, or public threshold wording.
+
+That parameterization audit has now joined the 10 raw warning parameters back
+to the train splits without new MCMC. The warning parameters had moderate or
+adequate local row support, so the pattern is not just empty support. A small
+`init_jitter = 0.05` smoke rerun then cleared 0/3 rank-warning cells and
+improved only 1/3, with geometry warnings still `0`. The next gate is therefore
+a person/item/item-step coupling parameterization pilot.
+
+The coupling pilot then reran the same `draws_x4` cells and measured posterior
+draw correlations for the warning parameters. It found 0 strong couplings at
+the `0.70` threshold, 42 moderate couplings at `0.40`, maximum absolute
+correlation `0.6473`, and geometry warnings still `0`. The observed pattern is
+mostly person-item location coupling rather than item-step-dominated coupling,
+so a package-level reparameterization should wait for replication or a larger
+draw-budget coupling check.
+
+That larger retained-draw check then kept warmup at `128` per chain and raised
+retained draws from `256` to `512` per chain. It cleared all 3 rank-warning
+cells, improved the rank surface in all 3, kept geometry warnings at `0`, and
+still showed no strong couplings at the `0.70` threshold. The current local
+evidence therefore points first to retained-draw budget, not an immediate
+parameterization change.
+
+An independent-seed replication then reran the same `128/512` warmup/draw
+profile with seed offset `1009`. It again cleared all 3 rank-warning cells,
+kept geometry warnings at `0`, found 0 strong couplings at the `0.70`
+threshold, and had 0 coupling-delta review rows. The retained-draw explanation
+is therefore stronger than a single-seed artifact, but the next local gate is
+warmup/thinning sensitivity before changing package defaults or public wording.
+
+That warmup/thinning gate then doubled warmup to `256` while keeping `512`
+retained draws per chain. The full retained draws still cleared all 3
+rank-warning cells and kept geometry warnings at `0`, but only 1/3 rows
+improved relative to the `128/512` replication. Post-hoc thinning was not a
+fix: `thin = 2` reintroduced rank warnings in 2/3 rows and `thin = 4`
+reintroduced rank warnings in 3/3 rows. Locally, the practical issue is
+retained draw support, not burn-in alone or thinning.
+
+A no-new-MCMC retained-draw guidance synthesis turns these gates into a local
+workflow rule. For similar guarded MGMFRM diagnostics, use at least `4` chains,
+`128` warmup draws per chain, and `512` retained draws per chain before
+treating rank warnings as substantive model evidence. If a `256`-draw run has
+rank-normalized R-hat, bulk ESS, or tail ESS warnings with no geometry
+warnings, increase retained draws to `512` per chain and rerun diagnostics
+before reparameterizing or thinning. This is local guidance, not a package-wide
+default change.
+
+The first empirical check of that rule reran the `well_specified_current_q`
+fold-1 MGMFRM candidates at `4/128/512` and compared them with the heavier
+`4/500/1000` publication-grade pilot artifacts. Confirmatory current-Q and
+sparse current-Q passed the local diagnostic gate. Construct-reviewed revised-Q
+kept geometry warnings at `0` but showed a borderline rank-normalized R-hat
+warning (`1.0109` vs the `1.01` threshold). Heldout ELPD shifts versus the
+heavier comparator were descriptively small in this single fold (maximum
+absolute delta `0.1099`), but that does not license public fit or model-weight
+claims. The next gate is a targeted extended-budget follow-up for
+construct-reviewed revised-Q.
+
+That follow-up indicates a budget-sensitive warning. The construct-reviewed
+revised-Q profile cleared with retained draws increased to `1000` while keeping
+warmup at `128` (`R-hat = 1.0030`, minimum ESS `1903.8`), and it also cleared
+with warmup increased to `256` while keeping `512` retained draws
+(`R-hat = 1.0051`). The `4/256/1000` profile passed at both
+`target_accept = 0.8` and `0.9`, so target acceptance is not the first-line
+explanation. The next gate is scenario/fold replication of the
+construct-reviewed revised-Q `1000`-draw profile.
+
+The first replication smoke keeps the rank conclusion but adds a geometry
+caveat. Four default `4/128/1000` profiles all passed the rank gate (maximum
+R-hat `1.0035`), but `well_specified_current_q` fold 2 produced one divergence.
+That fold-2 geometry warning cleared both with `target_accept = 0.9` at
+`4/128/1000` and with warmup increased to `256` at `target_accept = 0.8`. In the
+cross-scenario missing-loading fold-1 cell, the lightweight `4/128/1000` profile
+was close to the heavy `4/500/1000` comparator (dELPD `-0.0160`). The next gate
+therefore keeps 1000 retained draws as the rank-guidance candidate while
+expanding a separate geometry-remediation branch.
+
+The expanded 25-cell check keeps the same interpretation. All default
+`4/128/1000` construct-reviewed revised-Q profiles passed the rank gate
+(maximum R-hat `1.0091`, minimum ESS `605.2`), while 23/25 passed the full local
+gate. The two failures were both one-divergence `well_specified_current_q`
+cells, folds 2 and 4. All six geometry-remediation profiles for those cells
+passed: `target_accept = 0.9`, warmup `256`, and the combined profile. In the
+missing-loading scenario, lightweight `4/128/1000` stayed descriptively close to
+the heavy `4/500/1000` comparator across folds (maximum absolute dELPD
+`0.3031`). The next gate is to connect these budget diagnostics to model
+comparison and category-calibration evidence.
+
+The report-facing MGMFRM budget guidance is therefore brms-like: `4` chains,
+`1000` warmup draws per chain, and `1000` retained draws per chain. This matches
+the brms convention of `iter = 2000` including warmup with default warmup
+`iter/2`, yielding `4000` retained posterior draws across four chains. This is a
+guarded MGMFRM report-guidance setting, not a package-wide `fit` default change
+or a public fit-threshold claim.
+
+These numbers are local diagnostic evidence only. They should not be cited as
+public fit thresholds, model weights, Q-revision evidence, sparse-superiority
+evidence, or a stable-public MGMFRM validation claim.
+
 ## Guarded Fixed-Q MGMFRM Example
 
 The guarded MGMFRM path is opt-in and deliberately small. A spec must use
@@ -285,11 +564,14 @@ with the claim-level, manuscript-scale, and full-paper archive rows. It is a
 provenance guardrail only, not a data-license grant, IRB determination,
 publication action, registration action, or manuscript-claim approval.
 `fit_report` is the lighter report-facing bundle: it combines metadata,
-manifest, diagnostics, rating-design audit rows, MGMFRM fixed-Q validation and
-gauge rows when applicable, prior-policy rows, pooling-policy rows, posterior
-summaries, posterior predictive summaries, calibration rows, WAIC/LOO summaries
-and diagnostics, optional DFF rows, and compact artifact provenance. Reports can
-be verified with
+manifest, diagnostics, rating-design review rows, MGMFRM fixed-Q validation and
+gauge rows when applicable, MGMFRM local MCMC-budget guidance rows,
+prior-policy rows, pooling-policy rows, posterior summaries, posterior
+predictive summaries, calibration rows, WAIC/LOO summaries and diagnostics,
+optional DFF rows, and compact artifact provenance. The MGMFRM
+`mcmc_budget_guidance` section surfaces brms-like local guidance (`4` chains,
+`1000` warmup draws, and `1000` retained draws per chain) in report rows without
+changing package defaults or adding thinning as a primary fit control. Reports can be verified with
 [`artifact_content_hash`](@ref), which ignores embedded hash/archive metadata
 when recomputing the content hash. It captures section-level errors by default,
 so short validation fits can still return a partial report with

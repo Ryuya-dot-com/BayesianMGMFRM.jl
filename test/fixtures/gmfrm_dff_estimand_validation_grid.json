@@ -155,7 +155,9 @@
         ]
       ],
       "expected_passed": true,
-      "expected_issue_codes": [],
+      "expected_issue_codes": [
+
+      ],
       "expected_support": "screening_supported",
       "data_summary": {
         "n_observations": 24,
@@ -243,9 +245,15 @@
         "n_issues": 0,
         "n_errors": 0,
         "n_warnings": 0,
-        "issue_counts": [],
-        "issues": [],
-        "suggestions": []
+        "issue_counts": [
+
+        ],
+        "issues": [
+
+        ],
+        "suggestions": [
+
+        ]
       },
       "dff_cell_counts": [
         {
@@ -1242,7 +1250,9 @@
         "n_raters": 3,
         "n_items": 2,
         "n_categories": 3,
-        "optional_facets": [],
+        "optional_facets": [
+
+        ],
         "category_counts": [
           {
             "category": 0,
@@ -1340,12 +1350,20 @@
           }
         ]
       },
-      "dff_cell_counts": [],
-      "term_support": [],
+      "dff_cell_counts": [
+
+      ],
+      "term_support": [
+
+      ],
       "spec_constraints": {
         "spec_constructed": false,
-        "validation_only_blocks": [],
-        "retained_bias_terms": [],
+        "validation_only_blocks": [
+
+        ],
+        "retained_bias_terms": [
+
+        ],
         "all_dff_terms_validation_only": false
       },
       "summary": {

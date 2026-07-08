@@ -432,6 +432,39 @@ const REPRODUCTION_FIXTURES = [
             "MFRM_MGMFRM_FULL_HELDOUT_MCMC_REFIT_CANDIDATE_BATCH_SCORING_FIXTURE",
         pass_policy = :summary_passed,
         hash_policy = :sha256),
+    (name = :mgmfrm_full_heldout_mcmc_refit_anchor_scoring,
+        path =
+            "test/fixtures/mgmfrm_full_heldout_mcmc_refit_anchor_scoring.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_anchor_scoring.v1",
+        generator =
+            "scripts/generate_mgmfrm_full_heldout_mcmc_refit_anchor_scoring.jl",
+        env_var =
+            "MFRM_MGMFRM_FULL_HELDOUT_MCMC_REFIT_ANCHOR_SCORING_FIXTURE",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
+    (name = :mgmfrm_publication_grade_refit_gate,
+        path =
+            "test/fixtures/mgmfrm_publication_grade_refit_gate.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_publication_grade_refit_gate.v1",
+        generator =
+            "scripts/generate_mgmfrm_publication_grade_refit_gate.jl",
+        env_var =
+            "MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_GATE_FIXTURE",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
+    (name = :mgmfrm_publication_grade_refit_pilot_plan,
+        path =
+            "test/fixtures/mgmfrm_publication_grade_refit_pilot_plan.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_publication_grade_refit_pilot_plan.v1",
+        generator =
+            "scripts/generate_mgmfrm_publication_grade_refit_pilot_plan.jl",
+        env_var =
+            "MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_PILOT_PLAN_FIXTURE",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
     (name = :mgmfrm_fit_threshold_q_heldout_linkage,
         path =
             "test/fixtures/mgmfrm_fit_threshold_q_heldout_linkage.json",
@@ -441,6 +474,72 @@ const REPRODUCTION_FIXTURES = [
             "scripts/generate_mgmfrm_fit_threshold_q_heldout_linkage.jl",
         env_var =
             "MFRM_MGMFRM_FIT_THRESHOLD_Q_HELDOUT_LINKAGE_FIXTURE",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
+    (name = :mgmfrm_publication_grade_refit_pilot_execution_harness,
+        path =
+            "test/fixtures/mgmfrm_publication_grade_refit_pilot_execution_harness.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_publication_grade_refit_pilot_execution_harness.v1",
+        generator =
+            "scripts/generate_mgmfrm_publication_grade_refit_pilot_execution_harness.jl",
+        env_var =
+            "MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_PILOT_EXECUTION_HARNESS_FIXTURE",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
+    (name = :mgmfrm_publication_grade_refit_pilot_results_review,
+        path =
+            "test/fixtures/mgmfrm_publication_grade_refit_pilot_results_review.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_publication_grade_refit_pilot_results_review.v1",
+        generator =
+            "scripts/generate_mgmfrm_publication_grade_refit_pilot_results_review.jl",
+        env_var =
+            "MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_PILOT_RESULTS_REVIEW_FIXTURE",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
+    (name = :mgmfrm_publication_grade_refit_sampler_remediation_review,
+        path =
+            "test/fixtures/mgmfrm_publication_grade_refit_sampler_remediation_review.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_publication_grade_refit_sampler_remediation_review.v1",
+        generator =
+            "scripts/generate_mgmfrm_publication_grade_refit_sampler_remediation_review.jl",
+        env_var =
+            "MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_SAMPLER_REMEDIATION_REVIEW_FIXTURE",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
+    (name = :mgmfrm_publication_grade_refit_scalar_remediation_comparison,
+        path =
+            "test/fixtures/mgmfrm_publication_grade_refit_scalar_remediation_comparison.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_publication_grade_refit_scalar_remediation_comparison.v1",
+        generator =
+            "scripts/generate_mgmfrm_publication_grade_refit_scalar_remediation_comparison.jl",
+        env_var =
+            "MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_SCALAR_REMEDIATION_COMPARISON_FIXTURE",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
+    (name = :mgmfrm_publication_grade_refit_batch_expansion_plan,
+        path =
+            "test/fixtures/mgmfrm_publication_grade_refit_batch_expansion_plan.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_publication_grade_refit_batch_expansion_plan.v1",
+        generator =
+            "scripts/generate_mgmfrm_publication_grade_refit_batch_expansion_plan.jl",
+        env_var =
+            "MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_BATCH_EXPANSION_PLAN_FIXTURE",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
+    (name = :mgmfrm_publication_grade_refit_batch_results_review,
+        path =
+            "test/fixtures/mgmfrm_publication_grade_refit_batch_results_review.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_publication_grade_refit_batch_results_review.v1",
+        generator =
+            "scripts/generate_mgmfrm_publication_grade_refit_batch_results_review.jl",
+        env_var =
+            "MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_BATCH_RESULTS_REVIEW_FIXTURE",
         pass_policy = :summary_passed,
         hash_policy = :sha256),
     (name = :mgmfrm_guarded_fit_method_wiring,
@@ -542,7 +641,18 @@ const CODE_AND_DOC_PATHS = [
     "scripts/generate_mgmfrm_full_heldout_mcmc_refit_fold1_pilot.jl",
     "scripts/generate_mgmfrm_full_heldout_mcmc_refit_fold1_scoring.jl",
     "scripts/generate_mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring.jl",
+    "scripts/generate_mgmfrm_full_heldout_mcmc_refit_anchor_scoring.jl",
+    "scripts/generate_mgmfrm_publication_grade_refit_gate.jl",
+    "scripts/generate_mgmfrm_publication_grade_refit_pilot_plan.jl",
     "scripts/generate_mgmfrm_fit_threshold_q_heldout_linkage.jl",
+    "scripts/generate_mgmfrm_publication_grade_refit_pilot_execution_harness.jl",
+    "scripts/run_mgmfrm_publication_grade_refit_job.jl",
+    "scripts/run_mgmfrm_publication_grade_refit_batch.jl",
+    "scripts/generate_mgmfrm_publication_grade_refit_pilot_results_review.jl",
+    "scripts/generate_mgmfrm_publication_grade_refit_sampler_remediation_review.jl",
+    "scripts/generate_mgmfrm_publication_grade_refit_scalar_remediation_comparison.jl",
+    "scripts/generate_mgmfrm_publication_grade_refit_batch_expansion_plan.jl",
+    "scripts/generate_mgmfrm_publication_grade_refit_batch_results_review.jl",
     "scripts/generate_mgmfrm_guarded_fit_method_wiring.jl",
     "scripts/generate_mgmfrm_guarded_fit_validation_grid.jl",
     "scripts/generate_mgmfrm_guarded_fit_api_dry_run.jl",
@@ -665,9 +775,36 @@ const FULL_REGENERATION_COMMANDS = [
     (artifact = :mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring,
         command =
             "julia --project=. scripts/generate_mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring.jl"),
+    (artifact = :mgmfrm_full_heldout_mcmc_refit_anchor_scoring,
+        command =
+            "julia --project=. scripts/generate_mgmfrm_full_heldout_mcmc_refit_anchor_scoring.jl"),
+    (artifact = :mgmfrm_publication_grade_refit_gate,
+        command =
+            "julia --project=. scripts/generate_mgmfrm_publication_grade_refit_gate.jl"),
+    (artifact = :mgmfrm_publication_grade_refit_pilot_plan,
+        command =
+            "julia --project=. scripts/generate_mgmfrm_publication_grade_refit_pilot_plan.jl"),
     (artifact = :mgmfrm_fit_threshold_q_heldout_linkage,
         command =
             "julia --project=. scripts/generate_mgmfrm_fit_threshold_q_heldout_linkage.jl"),
+    (artifact = :mgmfrm_publication_grade_refit_pilot_execution_harness,
+        command =
+            "julia --project=. scripts/generate_mgmfrm_publication_grade_refit_pilot_execution_harness.jl"),
+    (artifact = :mgmfrm_publication_grade_refit_pilot_results_review,
+        command =
+            "julia --project=. scripts/generate_mgmfrm_publication_grade_refit_pilot_results_review.jl"),
+    (artifact = :mgmfrm_publication_grade_refit_sampler_remediation_review,
+        command =
+            "julia --project=. scripts/generate_mgmfrm_publication_grade_refit_sampler_remediation_review.jl"),
+    (artifact = :mgmfrm_publication_grade_refit_scalar_remediation_comparison,
+        command =
+            "julia --project=. scripts/generate_mgmfrm_publication_grade_refit_scalar_remediation_comparison.jl"),
+    (artifact = :mgmfrm_publication_grade_refit_batch_expansion_plan,
+        command =
+            "julia --project=. scripts/generate_mgmfrm_publication_grade_refit_batch_expansion_plan.jl"),
+    (artifact = :mgmfrm_publication_grade_refit_batch_results_review,
+        command =
+            "julia --project=. scripts/generate_mgmfrm_publication_grade_refit_batch_results_review.jl"),
     (artifact = :mgmfrm_guarded_fit_method_wiring,
         command = "julia --project=. scripts/generate_mgmfrm_guarded_fit_method_wiring.jl"),
     (artifact = :mgmfrm_guarded_fit_validation_grid,
@@ -762,7 +899,22 @@ const PROTOCOL = (;
             true,
         require_mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed =
             true,
+        require_mgmfrm_full_heldout_mcmc_refit_anchor_scoring_passed = true,
+        require_mgmfrm_publication_grade_refit_gate_passed = true,
+        require_mgmfrm_publication_grade_refit_pilot_plan_passed = true,
         require_mgmfrm_fit_threshold_q_heldout_linkage_passed = true,
+        require_mgmfrm_publication_grade_refit_pilot_execution_harness_passed =
+            true,
+        require_mgmfrm_publication_grade_refit_pilot_results_review_passed =
+            true,
+        require_mgmfrm_publication_grade_refit_sampler_remediation_review_passed =
+            true,
+        require_mgmfrm_publication_grade_refit_scalar_remediation_comparison_passed =
+            true,
+        require_mgmfrm_publication_grade_refit_batch_expansion_plan_passed =
+            true,
+        require_mgmfrm_publication_grade_refit_batch_results_review_passed =
+            true,
         require_mgmfrm_guarded_fit_method_wiring_passed = true,
         require_mgmfrm_guarded_fit_validation_grid_passed = true,
         require_mgmfrm_guarded_fit_api_dry_run_passed = true,
@@ -1085,9 +1237,36 @@ function build_artifact()
     mgmfrm_full_heldout_refit_candidate_batch_scoring =
         record_by_name(fixture_records,
             :mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring)
+    mgmfrm_full_heldout_refit_anchor_scoring =
+        record_by_name(fixture_records,
+            :mgmfrm_full_heldout_mcmc_refit_anchor_scoring)
+    mgmfrm_publication_grade_refit_gate =
+        record_by_name(fixture_records,
+            :mgmfrm_publication_grade_refit_gate)
+    mgmfrm_publication_grade_refit_pilot_plan =
+        record_by_name(fixture_records,
+            :mgmfrm_publication_grade_refit_pilot_plan)
     mgmfrm_fit_threshold_q_heldout_linkage =
         record_by_name(fixture_records,
             :mgmfrm_fit_threshold_q_heldout_linkage)
+    mgmfrm_publication_grade_refit_pilot_execution_harness =
+        record_by_name(fixture_records,
+            :mgmfrm_publication_grade_refit_pilot_execution_harness)
+    mgmfrm_publication_grade_refit_pilot_results_review =
+        record_by_name(fixture_records,
+            :mgmfrm_publication_grade_refit_pilot_results_review)
+    mgmfrm_publication_grade_refit_sampler_remediation_review =
+        record_by_name(fixture_records,
+            :mgmfrm_publication_grade_refit_sampler_remediation_review)
+    mgmfrm_publication_grade_refit_scalar_remediation_comparison =
+        record_by_name(fixture_records,
+            :mgmfrm_publication_grade_refit_scalar_remediation_comparison)
+    mgmfrm_publication_grade_refit_batch_expansion_plan =
+        record_by_name(fixture_records,
+            :mgmfrm_publication_grade_refit_batch_expansion_plan)
+    mgmfrm_publication_grade_refit_batch_results_review =
+        record_by_name(fixture_records,
+            :mgmfrm_publication_grade_refit_batch_results_review)
     mgmfrm_method =
         record_by_name(fixture_records, :mgmfrm_guarded_fit_method_wiring)
     mgmfrm_validation =
@@ -1154,7 +1333,16 @@ function build_artifact()
         mgmfrm_full_heldout_refit_fold1_pilot.summary_passed &&
         mgmfrm_full_heldout_refit_fold1_scoring.summary_passed &&
         mgmfrm_full_heldout_refit_candidate_batch_scoring.summary_passed &&
+        mgmfrm_full_heldout_refit_anchor_scoring.summary_passed &&
+        mgmfrm_publication_grade_refit_gate.summary_passed &&
+        mgmfrm_publication_grade_refit_pilot_plan.summary_passed &&
         mgmfrm_fit_threshold_q_heldout_linkage.summary_passed &&
+        mgmfrm_publication_grade_refit_pilot_execution_harness.summary_passed &&
+        mgmfrm_publication_grade_refit_pilot_results_review.summary_passed &&
+        mgmfrm_publication_grade_refit_sampler_remediation_review.summary_passed &&
+        mgmfrm_publication_grade_refit_scalar_remediation_comparison.summary_passed &&
+        mgmfrm_publication_grade_refit_batch_expansion_plan.summary_passed &&
+        mgmfrm_publication_grade_refit_batch_results_review.summary_passed &&
         mgmfrm_method.summary_passed &&
         mgmfrm_validation.summary_passed &&
         mgmfrm_api_dry_run.summary_passed &&
@@ -1278,8 +1466,26 @@ function build_artifact()
                 mgmfrm_full_heldout_refit_fold1_scoring.summary_passed,
             mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed =
                 mgmfrm_full_heldout_refit_candidate_batch_scoring.summary_passed,
+            mgmfrm_full_heldout_mcmc_refit_anchor_scoring_passed =
+                mgmfrm_full_heldout_refit_anchor_scoring.summary_passed,
+            mgmfrm_publication_grade_refit_gate_passed =
+                mgmfrm_publication_grade_refit_gate.summary_passed,
+            mgmfrm_publication_grade_refit_pilot_plan_passed =
+                mgmfrm_publication_grade_refit_pilot_plan.summary_passed,
             mgmfrm_fit_threshold_q_heldout_linkage_passed =
                 mgmfrm_fit_threshold_q_heldout_linkage.summary_passed,
+            mgmfrm_publication_grade_refit_pilot_execution_harness_passed =
+                mgmfrm_publication_grade_refit_pilot_execution_harness.summary_passed,
+            mgmfrm_publication_grade_refit_pilot_results_review_passed =
+                mgmfrm_publication_grade_refit_pilot_results_review.summary_passed,
+            mgmfrm_publication_grade_refit_sampler_remediation_review_passed =
+                mgmfrm_publication_grade_refit_sampler_remediation_review.summary_passed,
+            mgmfrm_publication_grade_refit_scalar_remediation_comparison_passed =
+                mgmfrm_publication_grade_refit_scalar_remediation_comparison.summary_passed,
+            mgmfrm_publication_grade_refit_batch_expansion_plan_passed =
+                mgmfrm_publication_grade_refit_batch_expansion_plan.summary_passed,
+            mgmfrm_publication_grade_refit_batch_results_review_passed =
+                mgmfrm_publication_grade_refit_batch_results_review.summary_passed,
             mgmfrm_guarded_fit_method_wiring_passed =
                 mgmfrm_method.summary_passed,
             mgmfrm_guarded_fit_validation_grid_passed =

@@ -171,7 +171,12 @@ const PROTOCOL = (;
             true,
         require_mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed =
             true,
+        require_mgmfrm_full_heldout_mcmc_refit_anchor_scoring_passed = true,
+        require_mgmfrm_publication_grade_refit_gate_passed = true,
+        require_mgmfrm_publication_grade_refit_pilot_plan_passed = true,
         require_mgmfrm_fit_threshold_q_heldout_linkage_passed = true,
+        require_mgmfrm_publication_grade_refit_pilot_execution_harness_passed =
+            true,
         high_variance_waic_blocks_public_exposure = true,
         psis_loo_or_exact_loo_required_before_exposure = true,
         high_pareto_k_blocks_public_exposure = true,
@@ -307,6 +312,7 @@ end
 function json_value_for_key(text::AbstractString, key::AbstractString)
     chars = collect(text)
     index = skip_ws(chars, 1)
+    index <= length(chars) || error("expected JSON object, got empty input")
     chars[index] == '{' || error("expected JSON object")
     index += 1
     while index <= length(chars)
@@ -1315,9 +1321,23 @@ function artifact_summary(name::Symbol, text::AbstractString)
         mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed =
             json_bool(summary,
                 "mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed"),
+        mgmfrm_full_heldout_mcmc_refit_anchor_scoring_passed =
+            json_bool(summary,
+                "mgmfrm_full_heldout_mcmc_refit_anchor_scoring_passed"),
+        mgmfrm_publication_grade_refit_gate_passed =
+            json_bool(summary,
+                "mgmfrm_publication_grade_refit_gate_passed"),
+        mgmfrm_publication_grade_refit_pilot_plan_passed =
+            json_bool(summary,
+                "mgmfrm_publication_grade_refit_pilot_plan_passed"),
         mgmfrm_fit_threshold_q_heldout_linkage_passed =
             json_bool(summary,
                 "mgmfrm_fit_threshold_q_heldout_linkage_passed"),
+        mgmfrm_publication_grade_refit_pilot_execution_harness_passed =
+            json_bool(summary,
+                "mgmfrm_publication_grade_refit_pilot_execution_harness_passed"),
+        publication_grade_pilot_runner_materialized =
+            json_bool(summary, "publication_grade_pilot_runner_materialized"),
         full_paper_reproduction_archive_passed =
             json_bool(summary, "full_paper_reproduction_archive_passed"),
         manuscript_claims_allowed =
@@ -1419,9 +1439,24 @@ function artifact_summary(name::Symbol, text::AbstractString)
         mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed =
             json_bool(summary,
                 "mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed"),
+        mgmfrm_full_heldout_mcmc_refit_anchor_scoring_passed =
+            json_bool(summary,
+                "mgmfrm_full_heldout_mcmc_refit_anchor_scoring_passed"),
+        mgmfrm_publication_grade_refit_gate_passed =
+            json_bool(summary,
+                "mgmfrm_publication_grade_refit_gate_passed"),
+        mgmfrm_publication_grade_refit_pilot_plan_passed =
+            json_bool(summary,
+                "mgmfrm_publication_grade_refit_pilot_plan_passed"),
         mgmfrm_fit_threshold_q_heldout_linkage_passed =
             json_bool(summary,
                 "mgmfrm_fit_threshold_q_heldout_linkage_passed"),
+        mgmfrm_publication_grade_refit_pilot_execution_harness_passed =
+            json_bool(summary,
+                "mgmfrm_publication_grade_refit_pilot_execution_harness_passed"),
+        mgmfrm_publication_grade_refit_pilot_results_review_passed =
+            json_bool(summary,
+                "mgmfrm_publication_grade_refit_pilot_results_review_passed"),
         prediction_target_and_model_weight_policy_passed =
             json_bool(summary,
                 "prediction_target_and_model_weight_policy_passed"),
@@ -1750,13 +1785,37 @@ function review_rows(records)
             evidence = Bool(getproperty(full_archive.summary,
                 :mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed)),
             finding =
-                :fixed_q_candidate_all_fold_scoring_completed_anchor_refits_pending),
+                :fixed_q_candidate_all_fold_scoring_completed_anchor_comparison_separated),
+        (gate = :confirmatory_mgmfrm_full_heldout_mcmc_refit_anchor_scoring,
+            status = :passed_with_policy_blocker,
+            evidence = Bool(getproperty(full_archive.summary,
+                :mgmfrm_full_heldout_mcmc_refit_anchor_scoring_passed)),
+            finding =
+                :scalar_and_reference_anchor_scoring_completed_publication_grade_refits_pending),
+        (gate = :confirmatory_mgmfrm_publication_grade_refit_gate,
+            status = :passed_with_policy_blocker,
+            evidence = Bool(getproperty(full_archive.summary,
+                :mgmfrm_publication_grade_refit_gate_passed)),
+            finding =
+                :publication_grade_refit_gate_recorded_diagnostics_and_claim_rules_frozen),
+        (gate = :confirmatory_mgmfrm_publication_grade_refit_pilot_plan,
+            status = :passed_with_policy_blocker,
+            evidence = Bool(getproperty(full_archive.summary,
+                :mgmfrm_publication_grade_refit_pilot_plan_passed)),
+            finding =
+                :single_cell_publication_grade_refit_pilot_plan_recorded_execution_pending),
         (gate = :confirmatory_mgmfrm_fit_threshold_q_heldout_linkage,
             status = :passed_with_policy_blocker,
             evidence = Bool(getproperty(full_archive.summary,
                 :mgmfrm_fit_threshold_q_heldout_linkage_passed)),
             finding =
                 :fit_threshold_q_heldout_linkage_recorded_mismatches_require_followup),
+        (gate = :confirmatory_mgmfrm_publication_grade_refit_pilot_execution_harness,
+            status = :passed_with_policy_blocker,
+            evidence = Bool(getproperty(full_archive.summary,
+                :mgmfrm_publication_grade_refit_pilot_execution_harness_passed)),
+            finding =
+                :publication_grade_refit_execution_harness_recorded_runner_pending),
         (gate = :dff_estimand_and_validation_grid, status = :passed,
             evidence = Bool(dff_grid.summary.passed) &&
                 Bool(dff_grid.summary.all_estimands_predeclared) &&
@@ -1840,6 +1899,11 @@ function build_artifact()
         Bool(sparse_grid.summary.any_high_variance_waic) ||
         Bool(waic_review.summary.any_high_variance_waic)
     any_high_pareto_k = Bool(psis_review.summary.any_high_pareto_k)
+    publication_grade_followup = Symbol(manuscript_grid.summary.next_gate)
+    publication_grade_recommendation =
+        Bool(manuscript_grid.summary.publication_grade_pilot_runner_materialized) ?
+        :manual_scope_review_recorded_execute_publication_grade_refit_pilot_next :
+        :manual_scope_review_recorded_materialize_publication_grade_runner_next
     return (;
         schema = "bayesianmgmfrm.gmfrm_guarded_exposure_review.v1",
         family = :gmfrm,
@@ -1865,8 +1929,9 @@ function build_artifact()
                 :guarded_scalar_gmfrm_only,
             interpretation =
                 :local_evidence_reviewed_manual_scope_review_recorded_and_broader_exposure_decision_recorded,
-            required_followup =
-                :run_scalar_and_reference_anchor_refits_or_external_construct_dataset_review,
+            publication_grade_pilot_runner_materialized =
+                Bool(manuscript_grid.summary.publication_grade_pilot_runner_materialized),
+            required_followup = publication_grade_followup,
         ),
         summary = (;
             reviewed = true,
@@ -1962,9 +2027,21 @@ function build_artifact()
             mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed =
                 Bool(getproperty(full_archive.summary,
                     :mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed)),
+            mgmfrm_full_heldout_mcmc_refit_anchor_scoring_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_full_heldout_mcmc_refit_anchor_scoring_passed)),
+            mgmfrm_publication_grade_refit_gate_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_publication_grade_refit_gate_passed)),
+            mgmfrm_publication_grade_refit_pilot_plan_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_publication_grade_refit_pilot_plan_passed)),
             mgmfrm_fit_threshold_q_heldout_linkage_passed =
                 Bool(getproperty(full_archive.summary,
                     :mgmfrm_fit_threshold_q_heldout_linkage_passed)),
+            mgmfrm_publication_grade_refit_pilot_execution_harness_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_publication_grade_refit_pilot_execution_harness_passed)),
             prediction_target_and_model_weight_policy_passed =
                 Bool(prediction_policy.summary.passed),
             mgmfrm_manual_public_scope_review_for_fit_passed =
@@ -1986,10 +2063,10 @@ function build_artifact()
             n_blockers = length(blockers),
             fit_allowed = true,
             experimental_keyword_enabled = true,
-            recommendation =
-                :manual_scope_review_recorded_keep_guarded_scalar_and_confirmatory_mgmfrm_only,
-            next_gate =
-                :run_scalar_and_reference_anchor_refits_or_external_construct_dataset_review,
+            publication_grade_pilot_runner_materialized =
+                Bool(manuscript_grid.summary.publication_grade_pilot_runner_materialized),
+            recommendation = publication_grade_recommendation,
+            next_gate = publication_grade_followup,
         ),
     )
 end

@@ -1,0 +1,461 @@
+{
+  "schema": "bayesianmgmfrm.mgmfrm_recommended_budget_empirical_gate.v1",
+  "family": "mgmfrm",
+  "scope": "recommended_budget_empirical_gate",
+  "status": "recommended_budget_empirical_gate_recorded",
+  "generated_at": "2026-07-07T17:37:30.214",
+  "local_only": true,
+  "publication_or_registration_action": false,
+  "package_default_change": false,
+  "fit_api_change": false,
+  "public_fit_metric_claim": false,
+  "public_q_revision_claim": false,
+  "automatic_q_revision": false,
+  "public_model_weight_claim": false,
+  "sparse_mgmfrm_superiority_claim": false,
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "local_threshold_policy": {
+    "chains": 4,
+    "warmup_per_chain": 128,
+    "draws_per_chain": 512,
+    "max_rhat": 1.01,
+    "min_ess": 400.0,
+    "max_divergences": 0,
+    "max_treedepth": 0,
+    "min_ebfmi": 0.3
+  },
+  "publication_comparator_policy": {
+    "chains": 4,
+    "warmup_per_chain": 500,
+    "draws_per_chain": 1000,
+    "max_rhat": 1.01,
+    "min_ess": 400.0,
+    "max_divergences": 0,
+    "max_treedepth": 0,
+    "min_ebfmi": 0.3
+  },
+  "input_artifacts": [
+    {
+      "artifact": "retained_draw_budget_guidance",
+      "path": "test/fixtures/mgmfrm_uto_style_retained_draw_budget_guidance.json",
+      "exists": true,
+      "sha256": "317b804f8955c87a781dcb3b825152892c0cc5dbe87a4385b3f6f3d417d016f8"
+    },
+    {
+      "artifact": "confirmatory_mgmfrm_current_q_recommended_result",
+      "path": "artifacts/recommended_budget_empirical_gate/well_specified_current_q__confirmatory_mgmfrm_current_q__fold1_result.json",
+      "exists": true,
+      "sha256": "35815f1deef0e732d7f2f08e3d646e45b230675c93d081f9af7e86b16960ac8b"
+    },
+    {
+      "artifact": "confirmatory_mgmfrm_current_q_recommended_diagnostics",
+      "path": "artifacts/recommended_budget_empirical_gate/well_specified_current_q__confirmatory_mgmfrm_current_q__fold1_diagnostics.json",
+      "exists": true,
+      "sha256": "0df11b1259048a50b8176db4bfb76ef7d520d860d3a5b08077e7b5c1dcd4f072"
+    },
+    {
+      "artifact": "confirmatory_mgmfrm_current_q_recommended_heldout",
+      "path": "artifacts/recommended_budget_empirical_gate/well_specified_current_q__confirmatory_mgmfrm_current_q__fold1_heldout_score.json",
+      "exists": true,
+      "sha256": "0fbe3ef614beff6b4fe0065c9cb01662858f376348a5e6a68cd3cf8455ccfca9"
+    },
+    {
+      "artifact": "confirmatory_mgmfrm_current_q_publication_result",
+      "path": "artifacts/publication_grade_refit_pilot/well_specified_current_q__confirmatory_mgmfrm_current_q__fold1_result.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "artifact": "confirmatory_mgmfrm_current_q_publication_diagnostics",
+      "path": "artifacts/publication_grade_refit_pilot/well_specified_current_q__confirmatory_mgmfrm_current_q__fold1_diagnostics.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "artifact": "confirmatory_mgmfrm_current_q_publication_heldout",
+      "path": "artifacts/publication_grade_refit_pilot/well_specified_current_q__confirmatory_mgmfrm_current_q__fold1_heldout_score.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "artifact": "construct_reviewed_revised_q_mgmfrm_recommended_result",
+      "path": "artifacts/recommended_budget_empirical_gate/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold1_result.json",
+      "exists": true,
+      "sha256": "5442c299bf5ff91ef4503901e4235c368d0f46f291283c47f395660de2707df6"
+    },
+    {
+      "artifact": "construct_reviewed_revised_q_mgmfrm_recommended_diagnostics",
+      "path": "artifacts/recommended_budget_empirical_gate/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold1_diagnostics.json",
+      "exists": true,
+      "sha256": "570cdc446d2ac613cd1e05553743cc827ea08c3b38f5b85e28ad4a3807fd1163"
+    },
+    {
+      "artifact": "construct_reviewed_revised_q_mgmfrm_recommended_heldout",
+      "path": "artifacts/recommended_budget_empirical_gate/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold1_heldout_score.json",
+      "exists": true,
+      "sha256": "c7707e43f44ea5eed00e32b8598b9f4b02c93c509e441f03702082963486fb19"
+    },
+    {
+      "artifact": "construct_reviewed_revised_q_mgmfrm_publication_result",
+      "path": "artifacts/publication_grade_refit_pilot/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold1_result.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "artifact": "construct_reviewed_revised_q_mgmfrm_publication_diagnostics",
+      "path": "artifacts/publication_grade_refit_pilot/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold1_diagnostics.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "artifact": "construct_reviewed_revised_q_mgmfrm_publication_heldout",
+      "path": "artifacts/publication_grade_refit_pilot/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold1_heldout_score.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "artifact": "sparse_mgmfrm_current_q_recommended_result",
+      "path": "artifacts/recommended_budget_empirical_gate/well_specified_current_q__sparse_mgmfrm_current_q__fold1_result.json",
+      "exists": true,
+      "sha256": "6720b98f67ceb946069322fde665ff6788f12a2491b9ea3c014b7e389574176a"
+    },
+    {
+      "artifact": "sparse_mgmfrm_current_q_recommended_diagnostics",
+      "path": "artifacts/recommended_budget_empirical_gate/well_specified_current_q__sparse_mgmfrm_current_q__fold1_diagnostics.json",
+      "exists": true,
+      "sha256": "e66c885cb27927b6785f565b6f98431e35ffc8187d9e001e365a2fbb249621bc"
+    },
+    {
+      "artifact": "sparse_mgmfrm_current_q_recommended_heldout",
+      "path": "artifacts/recommended_budget_empirical_gate/well_specified_current_q__sparse_mgmfrm_current_q__fold1_heldout_score.json",
+      "exists": true,
+      "sha256": "7b0bdc3b38102f3754359c98e9e794e60a69bab991e4b1f38c2951a17df7ea89"
+    },
+    {
+      "artifact": "sparse_mgmfrm_current_q_publication_result",
+      "path": "artifacts/publication_grade_refit_pilot/well_specified_current_q__sparse_mgmfrm_current_q__fold1_result.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "artifact": "sparse_mgmfrm_current_q_publication_diagnostics",
+      "path": "artifacts/publication_grade_refit_pilot/well_specified_current_q__sparse_mgmfrm_current_q__fold1_diagnostics.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "artifact": "sparse_mgmfrm_current_q_publication_heldout",
+      "path": "artifacts/publication_grade_refit_pilot/well_specified_current_q__sparse_mgmfrm_current_q__fold1_heldout_score.json",
+      "exists": false,
+      "sha256": null
+    }
+  ],
+  "model_comparison_rows": [
+    {
+      "model": "confirmatory_mgmfrm_current_q",
+      "execution_unit_id": "well_specified_current_q__confirmatory_mgmfrm_current_q__fold1",
+      "recommended_controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 512,
+        "target_acceptance": 0.8,
+        "seed": 2026375601
+      },
+      "publication_controls": {
+        "chains": 4,
+        "warmup_per_chain": 500,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026375601
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "recommended_diagnostic_flag": "ok",
+      "recommended_fit_diagnostic_passed": true,
+      "recommended_publication_gate_passed": false,
+      "publication_reference_gate_passed": true,
+      "recommended_metrics": {
+        "max_rhat": 1.0031576632821098,
+        "min_ess": 880.3315030058834,
+        "e_bfmi": 0.8661513147406901,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -11.680301348336437,
+        "heldout_mean_log_predictive_density": -1.4600376685420546,
+        "heldout_expected_score_mae": 0.6591229748233625,
+        "heldout_expected_score_rmse": 0.9166970519349935,
+        "train_heldout_mean_log_predictive_gap": 0.5739865361079483
+      },
+      "publication_metrics": {
+        "max_rhat": 1.003091434393644,
+        "min_ess": 1856.764229076995,
+        "e_bfmi": 0.9439871800000333,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -11.79017476997333,
+        "heldout_mean_log_predictive_density": -1.4737718462466662,
+        "heldout_expected_score_mae": 0.6612584355697539,
+        "heldout_expected_score_rmse": 0.9203525339057799,
+        "train_heldout_mean_log_predictive_gap": 0.5887159477630208
+      },
+      "deltas": {
+        "heldout_elpd": 0.10987342163689284,
+        "heldout_mean_log_predictive_density": 0.013734177704611605,
+        "heldout_expected_score_mae": -0.002135460746391482,
+        "heldout_expected_score_rmse": -0.003655481970786356,
+        "max_rhat": 6.622888846585795e-05,
+        "min_ess": -976.4327260711116
+      },
+      "public_claim_allowed": false
+    },
+    {
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold1",
+      "recommended_controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 512,
+        "target_acceptance": 0.8,
+        "seed": 2026375701
+      },
+      "publication_controls": {
+        "chains": 4,
+        "warmup_per_chain": 500,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026375701
+      },
+      "local_gate_passed": false,
+      "local_control_passed": true,
+      "local_rank_passed": false,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "recommended_diagnostic_flag": "mcmc_warning",
+      "recommended_fit_diagnostic_passed": false,
+      "recommended_publication_gate_passed": false,
+      "publication_reference_gate_passed": true,
+      "recommended_metrics": {
+        "max_rhat": 1.0108927615632282,
+        "min_ess": 739.074590660675,
+        "e_bfmi": 0.8733619585785107,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -11.797328829950912,
+        "heldout_mean_log_predictive_density": -1.474666103743864,
+        "heldout_expected_score_mae": 0.6643860457304369,
+        "heldout_expected_score_rmse": 0.9229134088866295,
+        "train_heldout_mean_log_predictive_gap": 0.5899407118994128
+      },
+      "publication_metrics": {
+        "max_rhat": 1.0017699327380145,
+        "min_ess": 1864.488915172759,
+        "e_bfmi": 0.9225101718632449,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -11.699755705034526,
+        "heldout_mean_log_predictive_density": -1.4624694631293158,
+        "heldout_expected_score_mae": 0.6604043642140116,
+        "heldout_expected_score_rmse": 0.9179130466833285,
+        "train_heldout_mean_log_predictive_gap": 0.5801038198173563
+      },
+      "deltas": {
+        "heldout_elpd": -0.09757312491638537,
+        "heldout_mean_log_predictive_density": -0.012196640614548171,
+        "heldout_expected_score_mae": 0.003981681516425306,
+        "heldout_expected_score_rmse": 0.005000362203301023,
+        "max_rhat": 0.009122828825213647,
+        "min_ess": -1125.414324512084
+      },
+      "public_claim_allowed": false
+    },
+    {
+      "model": "sparse_mgmfrm_current_q",
+      "execution_unit_id": "well_specified_current_q__sparse_mgmfrm_current_q__fold1",
+      "recommended_controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 512,
+        "target_acceptance": 0.8,
+        "seed": 2026376001
+      },
+      "publication_controls": {
+        "chains": 4,
+        "warmup_per_chain": 500,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026376001
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "recommended_diagnostic_flag": "ok",
+      "recommended_fit_diagnostic_passed": true,
+      "recommended_publication_gate_passed": false,
+      "publication_reference_gate_passed": true,
+      "recommended_metrics": {
+        "max_rhat": 1.003195329315179,
+        "min_ess": 774.4538979786618,
+        "e_bfmi": 0.9098981879642354,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -11.663919573754585,
+        "heldout_mean_log_predictive_density": -1.4579899467193231,
+        "heldout_expected_score_mae": 0.7204069535703451,
+        "heldout_expected_score_rmse": 0.9429087993325818,
+        "train_heldout_mean_log_predictive_gap": 0.5522102045001804
+      },
+      "publication_metrics": {
+        "max_rhat": 1.0035793881376502,
+        "min_ess": 1785.8078601255745,
+        "e_bfmi": 0.9447199050448147,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -11.717740465818318,
+        "heldout_mean_log_predictive_density": -1.4647175582272898,
+        "heldout_expected_score_mae": 0.722440092449884,
+        "heldout_expected_score_rmse": 0.9444386592472447,
+        "train_heldout_mean_log_predictive_gap": 0.5602215949175171
+      },
+      "deltas": {
+        "heldout_elpd": 0.05382089206373308,
+        "heldout_mean_log_predictive_density": 0.006727611507966635,
+        "heldout_expected_score_mae": -0.0020331388795389316,
+        "heldout_expected_score_rmse": -0.0015298599146629233,
+        "max_rhat": -0.0003840588224712782,
+        "min_ess": -1011.3539621469127
+      },
+      "public_claim_allowed": false
+    }
+  ],
+  "recommended_publication_gate_failure_rows": [
+    {
+      "model": "confirmatory_mgmfrm_current_q",
+      "diagnostic": "warmup_per_chain_min",
+      "value": 128,
+      "threshold": 500,
+      "failure_class": "publication_grade_budget_threshold_not_targeted",
+      "public_claim_allowed": false
+    },
+    {
+      "model": "confirmatory_mgmfrm_current_q",
+      "diagnostic": "draws_per_chain_min",
+      "value": 512,
+      "threshold": 1000,
+      "failure_class": "publication_grade_budget_threshold_not_targeted",
+      "public_claim_allowed": false
+    },
+    {
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "diagnostic": "warmup_per_chain_min",
+      "value": 128,
+      "threshold": 500,
+      "failure_class": "publication_grade_budget_threshold_not_targeted",
+      "public_claim_allowed": false
+    },
+    {
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "diagnostic": "draws_per_chain_min",
+      "value": 512,
+      "threshold": 1000,
+      "failure_class": "publication_grade_budget_threshold_not_targeted",
+      "public_claim_allowed": false
+    },
+    {
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "diagnostic": "rank_normalized_rhat_max",
+      "value": 1.0108927615632282,
+      "threshold": 1.01,
+      "failure_class": "sampler_or_rank_warning",
+      "public_claim_allowed": false
+    },
+    {
+      "model": "sparse_mgmfrm_current_q",
+      "diagnostic": "warmup_per_chain_min",
+      "value": 128,
+      "threshold": 500,
+      "failure_class": "publication_grade_budget_threshold_not_targeted",
+      "public_claim_allowed": false
+    },
+    {
+      "model": "sparse_mgmfrm_current_q",
+      "diagnostic": "draws_per_chain_min",
+      "value": 512,
+      "threshold": 1000,
+      "failure_class": "publication_grade_budget_threshold_not_targeted",
+      "public_claim_allowed": false
+    }
+  ],
+  "finding_rows": [
+    {
+      "finding": "recommended_budget_empirical_gate_partially_passed",
+      "severity": "warning",
+      "evidence": "2/3 MGMFRM models passed local 4/128/512 diagnostics",
+      "implication": "target_failed_model_before_broader_claims",
+      "public_claim_allowed": false
+    },
+    {
+      "finding": "publication_grade_budget_thresholds_not_targeted",
+      "severity": "blocker",
+      "evidence": "4/128/512 intentionally does not meet the 500/1000 publication-grade budget rows",
+      "implication": "do_not_treat_recommended_budget_as_publication_grade_default",
+      "public_claim_allowed": false
+    },
+    {
+      "finding": "borderline_rank_warning_detected",
+      "severity": "warning",
+      "evidence": "1 non-budget publication-gate failure(s), led by construct_reviewed_revised_q_mgmfrm rank_normalized_rhat_max",
+      "implication": "rerun_failed_model_with_extended_budget_or_parameterization_review",
+      "public_claim_allowed": false
+    },
+    {
+      "finding": "heldout_metrics_descriptively_close_to_publication_budget",
+      "severity": "info",
+      "evidence": "max absolute heldout elpd delta = 0.1099",
+      "implication": "compare_more_models_and_folds_before_interpreting_fit_metrics",
+      "public_claim_allowed": false
+    },
+    {
+      "finding": "public_claims_remain_blocked",
+      "severity": "blocker",
+      "evidence": "single_fold_local_empirical_budget_gate_only",
+      "implication": "keep_fit_threshold_q_revision_model_weight_and_sparse_superiority_claims_blocked",
+      "public_claim_allowed": false
+    }
+  ],
+  "summary": {
+    "passed": true,
+    "empirical_gate_passed": false,
+    "n_models": 3,
+    "n_recommended_budget_runs": 3,
+    "n_local_gate_passed": 2,
+    "n_publication_reference_gate_passed": 3,
+    "n_local_geometry_passed": 3,
+    "n_recommended_publication_gate_failures": 7,
+    "n_publication_budget_threshold_failures": 6,
+    "n_sampler_or_rank_failures": 1,
+    "max_abs_heldout_elpd_delta_vs_publication": 0.10987342163689284,
+    "max_abs_heldout_expected_score_mae_delta_vs_publication": 0.003981681516425306,
+    "no_public_fit_metric_claim": true,
+    "no_public_q_revision_claim": true,
+    "no_automatic_q_revision": true,
+    "no_public_model_weight_claim": true,
+    "no_sparse_superiority_claim": true,
+    "recommendation": "target_construct_reviewed_revised_q_rank_warning_before_broadening",
+    "next_gate": "construct_reviewed_revised_q_extended_budget_followup"
+  }
+}

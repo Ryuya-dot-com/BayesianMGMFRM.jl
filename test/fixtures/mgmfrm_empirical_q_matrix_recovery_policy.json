@@ -103,7 +103,7 @@
       "artifact": "q_matrix_validation_expansion",
       "path": "test/fixtures/mgmfrm_q_matrix_validation_expansion.json",
       "exists": true,
-      "sha256": "bc2f0a6ca44b4d6546170df4722169b5fd4e366abda1fd02b6cce18b1864b1b7",
+      "sha256": "414b69842a9364102af1270f8e4fee793d40c46f189aff17e537648803c20346",
       "expected_schema": "bayesianmgmfrm.mgmfrm_q_matrix_validation_expansion.v1",
       "schema": "bayesianmgmfrm.mgmfrm_q_matrix_validation_expansion.v1",
       "schema_matches": true,
@@ -151,8 +151,12 @@
           0.9
         ]
       ],
-      "operations": [],
-      "ambiguous_operations": [],
+      "operations": [
+
+      ],
+      "ambiguous_operations": [
+
+      ],
       "suggested_q_matrix": [
         [
           true,
@@ -286,8 +290,12 @@
           "note": "dimension_specific_person_rater_item_subgraph_connected"
         }
       ],
-      "error_checks": [],
-      "warning_checks": [],
+      "error_checks": [
+
+      ],
+      "warning_checks": [
+
+      ],
       "action": "retain_declared_q",
       "expected_action": "retain_declared_q",
       "automatic_revision_allowed": false,
@@ -346,7 +354,9 @@
           "signal": 0.83
         }
       ],
-      "ambiguous_operations": [],
+      "ambiguous_operations": [
+
+      ],
       "suggested_q_matrix": [
         [
           true,
@@ -484,7 +494,9 @@
           "note": "dimension_specific_person_rater_item_subgraph_connected"
         }
       ],
-      "error_checks": [],
+      "error_checks": [
+
+      ],
       "warning_checks": [
         "cross_loading_policy"
       ],
@@ -546,7 +558,9 @@
           "signal": 0.11
         }
       ],
-      "ambiguous_operations": [],
+      "ambiguous_operations": [
+
+      ],
       "suggested_q_matrix": [
         [
           true,
@@ -684,8 +698,12 @@
           "note": "dimension_specific_person_rater_item_subgraph_connected"
         }
       ],
-      "error_checks": [],
-      "warning_checks": [],
+      "error_checks": [
+
+      ],
+      "warning_checks": [
+
+      ],
       "action": "flag_extra_loading_candidate",
       "expected_action": "flag_extra_loading_candidate",
       "automatic_revision_allowed": false,
@@ -736,7 +754,9 @@
           0.51
         ]
       ],
-      "operations": [],
+      "operations": [
+
+      ],
       "ambiguous_operations": [
         {
           "operation": "ambiguous_loading_evidence",
@@ -882,8 +902,12 @@
           "note": "dimension_specific_person_rater_item_subgraph_connected"
         }
       ],
-      "error_checks": [],
-      "warning_checks": [],
+      "error_checks": [
+
+      ],
+      "warning_checks": [
+
+      ],
       "action": "defer_ambiguous_loading_evidence",
       "expected_action": "defer_ambiguous_loading_evidence",
       "automatic_revision_allowed": false,
@@ -942,7 +966,9 @@
           "signal": 0.08
         }
       ],
-      "ambiguous_operations": [],
+      "ambiguous_operations": [
+
+      ],
       "suggested_q_matrix": [
         [
           true,
@@ -1083,7 +1109,9 @@
       "error_checks": [
         "empty_item_rows"
       ],
-      "warning_checks": [],
+      "warning_checks": [
+
+      ],
       "action": "block_invalid_candidate_revision",
       "expected_action": "block_invalid_candidate_revision",
       "automatic_revision_allowed": false,
@@ -1134,7 +1162,9 @@
           "signal": 0.12
         }
       ],
-      "ambiguous_operations": [],
+      "ambiguous_operations": [
+
+      ],
       "suggested_q_matrix": [
         [
           true,
@@ -1332,7 +1362,9 @@
           "signal": 0.86
         }
       ],
-      "ambiguous_operations": [],
+      "ambiguous_operations": [
+
+      ],
       "suggested_q_matrix": [
         [
           true,
@@ -1531,7 +1563,9 @@
           "signal": 0.83
         }
       ],
-      "ambiguous_operations": [],
+      "ambiguous_operations": [
+
+      ],
       "suggested_q_matrix": [
         [
           true,
@@ -1672,7 +1706,9 @@
       "error_checks": [
         "cross_loading_policy"
       ],
-      "warning_checks": [],
+      "warning_checks": [
+
+      ],
       "action": "block_policy_candidate_revision",
       "expected_action": "block_policy_candidate_revision",
       "automatic_revision_allowed": false,
@@ -1723,8 +1759,12 @@
           0.91
         ]
       ],
-      "operations": [],
-      "ambiguous_operations": [],
+      "operations": [
+
+      ],
+      "ambiguous_operations": [
+
+      ],
       "suggested_q_matrix": [
         [
           true,
@@ -1862,7 +1902,9 @@
           "note": "dimension_specific_person_rater_item_subgraph_connected"
         }
       ],
-      "error_checks": [],
+      "error_checks": [
+
+      ],
       "warning_checks": [
         "dimension_facet_subgraph_coverage"
       ],

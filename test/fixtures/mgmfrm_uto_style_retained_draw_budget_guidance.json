@@ -1,0 +1,216 @@
+{
+  "schema": "bayesianmgmfrm.mgmfrm_uto_style_retained_draw_budget_guidance.v1",
+  "family": "mgmfrm",
+  "scope": "uto_style_retained_draw_budget_guidance",
+  "status": "local_budget_guidance_documented",
+  "generated_at": "2026-07-07T16:29:13.869",
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "local_only": true,
+  "publication_or_registration_action": false,
+  "package_default_change": false,
+  "fit_api_change": false,
+  "sampler_level_thinning_api": false,
+  "public_fit_metric_claim": false,
+  "public_q_revision_claim": false,
+  "automatic_q_revision": false,
+  "public_model_weight_claim": false,
+  "sparse_mgmfrm_superiority_claim": false,
+  "input_artifacts": [
+    {
+      "artifact": "rank_normalized_diagnostic_gate",
+      "path": "artifacts/uto_style_rank_normalized_diagnostic_gate/uto_style_rank_normalized_diagnostic_gate.json",
+      "sha256": "8feed1ca10e9145eae580c1315587c0469be3bc9964260d68caf749a2c5a8ba9"
+    },
+    {
+      "artifact": "coupling_budget_extension",
+      "path": "artifacts/uto_style_coupling_budget_extension/uto_style_coupling_budget_extension.json",
+      "sha256": "bb40b8cfe8ea95d5e5d3a4829aa1e6a68fe31ddfd8d0b7133994ba7330fcb097"
+    },
+    {
+      "artifact": "extended_budget_replication_gate",
+      "path": "artifacts/uto_style_extended_budget_replication_gate/uto_style_extended_budget_replication_gate.json",
+      "sha256": "eb776aa7d61c3d767048cd8ae2d75e7a789327ae1653fec105fdb7b8742bf2e4"
+    },
+    {
+      "artifact": "warmup_thinning_sensitivity_gate",
+      "path": "artifacts/uto_style_warmup_thinning_sensitivity_gate/uto_style_warmup_thinning_sensitivity_gate.json",
+      "sha256": "e86c802551e2cc3a43cf5e36adb3dade79cf4ce865aa109cf49639d93ac63280"
+    }
+  ],
+  "guidance_policy": {
+    "recommended_min_chains": 4,
+    "recommended_min_warmup_per_chain": 128,
+    "recommended_min_draws_per_chain": 512,
+    "warmup_sensitivity_checked_at": 256,
+    "thinning_primary_fix": false,
+    "broader_scenario_replication_required_for_defaults": true,
+    "public_claim_allowed": false
+  },
+  "source_gate_rows": [
+    {
+      "gate": "rank_normalized_draws_x4",
+      "warmup_per_chain": 128,
+      "draws_per_chain": 256,
+      "chains": 4,
+      "rank_warning_rows": 3,
+      "clearance_rows": 0,
+      "geometry_warning_rows": 0,
+      "thinning_warning_rows": null,
+      "interpretation": "rank_warnings_remained_at_256_retained_draws",
+      "public_claim_allowed": false
+    },
+    {
+      "gate": "retained_draw_budget_extension",
+      "warmup_per_chain": 128,
+      "draws_per_chain": 512,
+      "chains": 4,
+      "rank_warning_rows": 0,
+      "clearance_rows": 3,
+      "geometry_warning_rows": 0,
+      "thinning_warning_rows": null,
+      "interpretation": "rank_warnings_cleared_at_512_retained_draws",
+      "public_claim_allowed": false
+    },
+    {
+      "gate": "independent_seed_replication",
+      "warmup_per_chain": 128,
+      "draws_per_chain": 512,
+      "chains": 4,
+      "rank_warning_rows": 0,
+      "clearance_rows": 3,
+      "geometry_warning_rows": 0,
+      "thinning_warning_rows": null,
+      "interpretation": "clearance_replicated_under_seed_offset",
+      "public_claim_allowed": false
+    },
+    {
+      "gate": "warmup_thinning_sensitivity",
+      "warmup_per_chain": 256,
+      "draws_per_chain": 512,
+      "chains": 4,
+      "rank_warning_rows": 0,
+      "clearance_rows": 3,
+      "geometry_warning_rows": 0,
+      "thinning_warning_rows": 5,
+      "interpretation": "warmup_doubling_preserved_clearance_thinning_reintroduced_warnings",
+      "public_claim_allowed": false
+    }
+  ],
+  "recommendation_rows": [
+    {
+      "recommendation": "local_mgmfrm_diagnostic_budget",
+      "status": "ready_for_documentation",
+      "guidance": "For similar guarded local MGMFRM diagnostics, use at least 4 chains, 128 warmup draws per chain, and 512 retained draws per chain before treating rank warnings as substantive model evidence.",
+      "evidence": "rank_warning_clearance_replicated_at_512_draws",
+      "public_claim_allowed": false
+    },
+    {
+      "recommendation": "rank_warning_escalation_order",
+      "status": "ready_for_documentation",
+      "guidance": "If rank-normalized R-hat, bulk ESS, or tail ESS warns at 256 retained draws with no geometry warnings, first increase retained draws to 512 per chain and rerun diagnostics.",
+      "evidence": "draws_x4_warned_extension_and_replication_cleared",
+      "public_claim_allowed": false
+    },
+    {
+      "recommendation": "warmup_policy",
+      "status": "local_robustness_check",
+      "guidance": "Increasing warmup to 256 per chain did not remove the 512-draw clearance, but it improved only 1/3 rows; treat warmup as a robustness check, not the main fix.",
+      "evidence": "warmup_doubling_preserved_clearance",
+      "public_claim_allowed": false
+    },
+    {
+      "recommendation": "thinning_policy",
+      "status": "ready_for_documentation",
+      "guidance": "Do not use post-hoc thinning as the primary fix: 5/6 thinned diagnostic rows reintroduced rank warnings.",
+      "evidence": "thinning_reduced_diagnostic_support",
+      "public_claim_allowed": false
+    },
+    {
+      "recommendation": "package_default_policy",
+      "status": "blocked_for_default_change",
+      "guidance": "Do not change package-wide defaults from this local three-cell gate alone.",
+      "evidence": "local_priority_cell_evidence_only",
+      "public_claim_allowed": false
+    }
+  ],
+  "prompt_rows": [
+    {
+      "prompt": "can_this_be_documented",
+      "answer": "yes_as_local_diagnostic_guidance",
+      "reason": "clearance_replicated_and_warmup_sensitivity_checked",
+      "public_claim_allowed": false
+    },
+    {
+      "prompt": "can_package_defaults_change_now",
+      "answer": "no",
+      "reason": "local_three_cell_gate_only",
+      "public_claim_allowed": false
+    },
+    {
+      "prompt": "should_thinning_be_added_as_primary_api_fix",
+      "answer": "no",
+      "reason": "5/6 thinned rows warned",
+      "public_claim_allowed": false
+    },
+    {
+      "prompt": "what_is_the_next_gate",
+      "answer": "surface_budget_guidance_in_user_facing_reports",
+      "reason": "guidance_ready_but_claims_blocked",
+      "public_claim_allowed": false
+    }
+  ],
+  "finding_rows": [
+    {
+      "finding": "retained_draw_budget_guidance_ready",
+      "severity": "info",
+      "evidence": "512 retained draws cleared 3/3 and replicated 3/3",
+      "implication": "document_local_diagnostic_budget_guidance",
+      "public_claim_allowed": false
+    },
+    {
+      "finding": "warmup_not_primary_local_blocker",
+      "severity": "info",
+      "evidence": "256 warmup retained clearance; improved 1/3 rows vs replication",
+      "implication": "do_not_explain_clearance_as_burnin_only",
+      "public_claim_allowed": false
+    },
+    {
+      "finding": "thinning_not_primary_fix",
+      "severity": "warning",
+      "evidence": "5/6 thinned rows warned",
+      "implication": "avoid_thinning_first_guidance",
+      "public_claim_allowed": false
+    },
+    {
+      "finding": "default_change_blocked",
+      "severity": "blocker",
+      "evidence": "local_priority_cell_evidence_only",
+      "implication": "broaden_scenarios_before_package_default_or_public_claim",
+      "public_claim_allowed": false
+    }
+  ],
+  "summary": {
+    "passed": true,
+    "n_source_gates": 4,
+    "n_recommendations": 5,
+    "recommended_min_chains": 4,
+    "recommended_min_warmup_per_chain": 128,
+    "recommended_min_draws_per_chain": 512,
+    "n_rank_warnings_at_256_draws": 3,
+    "n_rank_warnings_at_512_draws": 0,
+    "n_full_rank_warnings_after_warmup_doubling": 0,
+    "n_thinning_rank_warnings": 5,
+    "package_default_change": false,
+    "thinning_primary_fix": false,
+    "no_public_fit_metric_claim": true,
+    "no_public_q_revision_claim": true,
+    "no_automatic_q_revision": true,
+    "no_public_model_weight_claim": true,
+    "no_sparse_superiority_claim": true,
+    "next_gate": "surface_budget_guidance_in_user_facing_reports"
+  }
+}

@@ -58,7 +58,7 @@
       "artifact": "empirical_q_matrix_recovery_simulation_grid",
       "path": "test/fixtures/mgmfrm_empirical_q_matrix_recovery_simulation_grid.json",
       "exists": true,
-      "sha256": "ba819f492cd103d5a6340b60826c70088d75f3889e91720105699a13d04b5a14",
+      "sha256": "cb6fe2ff2ee31d9ea87f4c0f593853e4282aaef81539f4d724db029af0bca760",
       "expected_schema": "bayesianmgmfrm.mgmfrm_empirical_q_matrix_recovery_simulation_grid.v1",
       "schema": "bayesianmgmfrm.mgmfrm_empirical_q_matrix_recovery_simulation_grid.v1",
       "schema_matches": true,
@@ -96,8 +96,12 @@
         "q_matrix_validation": {
           "passed": true,
           "n_rows": 12,
-          "error_checks": [],
-          "warning_checks": [],
+          "error_checks": [
+
+          ],
+          "warning_checks": [
+
+          ],
           "rows": [
             {
               "check": "family_applicability",
@@ -265,8 +269,12 @@
         "q_matrix_validation": {
           "passed": true,
           "n_rows": 12,
-          "error_checks": [],
-          "warning_checks": [],
+          "error_checks": [
+
+          ],
+          "warning_checks": [
+
+          ],
           "rows": [
             {
               "check": "family_applicability",
@@ -463,8 +471,12 @@
         "q_matrix_validation": {
           "passed": true,
           "n_rows": 12,
-          "error_checks": [],
-          "warning_checks": [],
+          "error_checks": [
+
+          ],
+          "warning_checks": [
+
+          ],
           "rows": [
             {
               "check": "family_applicability",
@@ -636,7 +648,9 @@
         "q_matrix_validation": {
           "passed": true,
           "n_rows": 12,
-          "error_checks": [],
+          "error_checks": [
+
+          ],
           "warning_checks": [
             "cross_loading_policy"
           ],
@@ -836,7 +850,9 @@
         "q_matrix_validation": {
           "passed": true,
           "n_rows": 12,
-          "error_checks": [],
+          "error_checks": [
+
+          ],
           "warning_checks": [
             "cross_loading_policy"
           ],
@@ -1011,8 +1027,12 @@
         "q_matrix_validation": {
           "passed": true,
           "n_rows": 12,
-          "error_checks": [],
-          "warning_checks": [],
+          "error_checks": [
+
+          ],
+          "warning_checks": [
+
+          ],
           "rows": [
             {
               "check": "family_applicability",
@@ -1209,8 +1229,12 @@
         "q_matrix_validation": {
           "passed": true,
           "n_rows": 12,
-          "error_checks": [],
-          "warning_checks": [],
+          "error_checks": [
+
+          ],
+          "warning_checks": [
+
+          ],
           "rows": [
             {
               "check": "family_applicability",
@@ -1382,7 +1406,9 @@
         "q_matrix_validation": {
           "passed": true,
           "n_rows": 12,
-          "error_checks": [],
+          "error_checks": [
+
+          ],
           "warning_checks": [
             "cross_loading_policy"
           ],
@@ -1578,8 +1604,12 @@
         "q_matrix_validation": {
           "passed": true,
           "n_rows": 12,
-          "error_checks": [],
-          "warning_checks": [],
+          "error_checks": [
+
+          ],
+          "warning_checks": [
+
+          ],
           "rows": [
             {
               "check": "family_applicability",

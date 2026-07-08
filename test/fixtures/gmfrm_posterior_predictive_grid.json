@@ -79,7 +79,7 @@
     {
       "artifact": "test/fixtures/gmfrm_experimental_fit_validation_grid.json",
       "exists": true,
-      "sha256": "f748c1789f430438a12ebd7f6b8c1f6b170066c2ac79a1a0fee11a38d80fdb7d"
+      "sha256": "4bda1eec968993887b2497a34be0277d6d8bdc76e99b145f4a3dd78d2214ce97"
     }
   ],
   "scenarios": [
@@ -168,7 +168,7 @@
             36
           ],
           "all_finite": true,
-          "minimum": 7.95380135087953e-8,
+          "minimum": 7.95380135087953e-08,
           "maximum": 0.9080401049201778,
           "mean": 0.4984386543277
         },
@@ -1316,7 +1316,7 @@
             36
           ],
           "all_finite": true,
-          "minimum": 4.853335422023032e-8,
+          "minimum": 4.853335422023032e-08,
           "maximum": 1.9999999822683767,
           "mean": 1.0754579417287413
         },
@@ -1326,7 +1326,7 @@
             36
           ],
           "all_finite": true,
-          "minimum": 1.788821180070954e-8,
+          "minimum": 1.788821180070954e-08,
           "maximum": 0.9945977722331159,
           "mean": 0.46858524107679583
         },

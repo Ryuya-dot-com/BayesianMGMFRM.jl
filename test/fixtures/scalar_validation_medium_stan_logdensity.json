@@ -6,7 +6,7 @@
   "stan_model": "test/stan/scalar_gmfrm.stan",
   "stan_model_sha256": "cfdae879b1b3248497f2ce562586777c00417e7559590cb22148545a62a630fb",
   "known_fixture": "test/fixtures/scalar_validation_medium_known_value.json",
-  "known_fixture_sha256": "2110fcebe5ebfd274beaa40f5f1b4749d4d14ec28a976801b978ab89086f8aa2",
+  "known_fixture_sha256": "cef5fba1499e5e68f145940df1d57f8b639a4c79c76ce134a44c24020d5ae7d0",
   "stan_data": {
     "J": 12,
     "I": 1,
@@ -435,6 +435,6 @@
   ],
   "propto": false,
   "jacobian": true,
-  "tolerance": 1e-09,
+  "tolerance": 1.0e-09,
   "size": "medium"
 }

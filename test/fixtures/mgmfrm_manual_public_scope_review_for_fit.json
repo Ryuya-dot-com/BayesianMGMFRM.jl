@@ -45,7 +45,7 @@
       "artifact": "bridge_oracle",
       "path": "test/fixtures/source_mgmfrm_bridge_logdensity.json",
       "exists": true,
-      "sha256": "5003d46cc0012d6d55a5dec47a84c00cd6eaa83865a5da3db78a13f91f1c50c0",
+      "sha256": "c2dd83dc0cad629c8b7b1ed45fe7151c3939e7e675719735a8c1b094da177c95",
       "expected_schema": "bayesianmgmfrm.source_mgmfrm_bridge_logdensity.v1",
       "schema": "bayesianmgmfrm.source_mgmfrm_bridge_logdensity.v1",
       "schema_matches": true,
@@ -61,7 +61,7 @@
       "artifact": "candidate_chain_study",
       "path": "test/fixtures/mgmfrm_candidate_chain_study.json",
       "exists": true,
-      "sha256": "81247f2c40355652a7fb2a9931ce0bcb4f349e09ad51d20a6453c0c4ac04f2dd",
+      "sha256": "cf60f2a76cba42a4c1f43ca51dfa38c079142c336d489b45264bd37187a4bcdb",
       "expected_schema": "bayesianmgmfrm.mgmfrm_candidate_chain_study.v1",
       "schema": "bayesianmgmfrm.mgmfrm_candidate_chain_study.v1",
       "schema_matches": true,
@@ -132,7 +132,7 @@
       "artifact": "guarded_fit_method_wiring",
       "path": "test/fixtures/mgmfrm_guarded_fit_method_wiring.json",
       "exists": true,
-      "sha256": "e97088e414e3347cab4eaea6c30f1bb4c5c0c40918aecdf804240670ef603996",
+      "sha256": "361b0be4a0216a2e732b190ad5da2fbfecebe2956378309d883df4501a9221be",
       "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_method_wiring.v1",
       "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_method_wiring.v1",
       "schema_matches": true,
@@ -151,7 +151,7 @@
       "artifact": "guarded_fit_validation_grid",
       "path": "test/fixtures/mgmfrm_guarded_fit_validation_grid.json",
       "exists": true,
-      "sha256": "4f35205e591ef838fe862eb5d69663ec64267ec9e27c3d0dacdfa6172c466a53",
+      "sha256": "8140cc24bb397dcd22b92515365656dff7f7dec9822e08a62b30d6ad15ea6fdb",
       "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_validation_grid.v1",
       "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_validation_grid.v1",
       "schema_matches": true,
@@ -169,7 +169,7 @@
       "artifact": "guarded_fit_api_dry_run",
       "path": "test/fixtures/mgmfrm_guarded_fit_api_dry_run.json",
       "exists": true,
-      "sha256": "f77e6664f6c2273262c94f6dfc44f94f5a85f74c3a3d41a9fe7cbedb8f5c603a",
+      "sha256": "fe557754ac556fbf7a19e36d515a762f0b5acc3174c0cf16ca53a574c37db85e",
       "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_api_dry_run.v1",
       "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_api_dry_run.v1",
       "schema_matches": true,
@@ -190,7 +190,7 @@
       "artifact": "guarded_fit_public_exposure_review",
       "path": "test/fixtures/mgmfrm_guarded_fit_public_exposure_review.json",
       "exists": true,
-      "sha256": "fbeb49596b4fd314b0c5d2286a96c50ab59b8272abdca9d940e001329983bda5",
+      "sha256": "26fc5892606f415acabc5f7c5c19143b644745436bfc6d4f02bf92cffe522249",
       "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_public_exposure_review.v1",
       "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_public_exposure_review.v1",
       "schema_matches": true,
@@ -208,7 +208,7 @@
       "artifact": "prediction_target_and_model_weight_policy",
       "path": "test/fixtures/gmfrm_prediction_target_and_model_weight_policy.json",
       "exists": true,
-      "sha256": "42bd72e347876c0bc6df78140dbb85a91e36ab38224b1c6703d5e56c6eaadfe6",
+      "sha256": "d3e3b52c8cb11ceb31ac21a196327923849d8e16b4e58bc3ea8958597864e08f",
       "expected_schema": "bayesianmgmfrm.gmfrm_prediction_target_and_model_weight_policy.v1",
       "schema": "bayesianmgmfrm.gmfrm_prediction_target_and_model_weight_policy.v1",
       "schema_matches": true,
@@ -227,7 +227,7 @@
       "artifact": "dff_estimand_validation_grid",
       "path": "test/fixtures/gmfrm_dff_estimand_validation_grid.json",
       "exists": true,
-      "sha256": "3114ba9b6d76e8741265127c9543c6d8a09a99cfb0e2355030607bd5d55b7b9e",
+      "sha256": "279d2600dfa1a0697e84b08bde6410533dc1aed0ee61cfa9e2849a0e9a420be7",
       "expected_schema": "bayesianmgmfrm.gmfrm_dff_estimand_validation_grid.v1",
       "schema": "bayesianmgmfrm.gmfrm_dff_estimand_validation_grid.v1",
       "schema_matches": true,
@@ -494,7 +494,9 @@
       "artifact": "test/fixtures/mgmfrm_manual_public_scope_review_for_fit.json"
     }
   ],
-  "blocker_rows": [],
+  "blocker_rows": [
+
+  ],
   "decision_record": {
     "selected_decision": "manual_scope_review_recorded_enable_guarded_mgmfrm_fit",
     "public_fit_allowed": true,
@@ -549,7 +551,9 @@
     "n_risk_rows": 5,
     "n_review_rows": 13,
     "n_blockers": 0,
-    "remaining_public_blockers": [],
+    "remaining_public_blockers": [
+
+    ],
     "recommendation": "manual_scope_review_recorded_implement_guarded_local_mgmfrm_fit_next",
     "next_gate": "guarded_local_mgmfrm_fit_entrypoint"
   }

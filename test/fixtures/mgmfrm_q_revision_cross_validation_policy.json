@@ -92,7 +92,7 @@
       "artifact": "q_candidate_real_fit_diagnostic_linkage",
       "path": "test/fixtures/mgmfrm_q_candidate_real_fit_diagnostic_linkage.json",
       "exists": true,
-      "sha256": "7e16d61b78d96ec2a86c4bc0f487a6b989883d24ef5565a05694d05034f42b46",
+      "sha256": "0bbf915df6a9d5b133b4e7d9da15a7e264e00d789abe4a669a0723bc2866fd8a",
       "expected_schema": "bayesianmgmfrm.mgmfrm_q_candidate_real_fit_diagnostic_linkage.v1",
       "schema": "bayesianmgmfrm.mgmfrm_q_candidate_real_fit_diagnostic_linkage.v1",
       "schema_matches": true,
@@ -149,8 +149,12 @@
       "candidate_q_validation": {
         "passed": true,
         "n_rows": 12,
-        "error_checks": [],
-        "warning_checks": [],
+        "error_checks": [
+
+        ],
+        "warning_checks": [
+
+        ],
         "rows": [
           {
             "check": "family_applicability",
@@ -382,7 +386,9 @@
       "candidate_q_validation": {
         "passed": true,
         "n_rows": 12,
-        "error_checks": [],
+        "error_checks": [
+
+        ],
         "warning_checks": [
           "cross_loading_policy"
         ],
@@ -617,8 +623,12 @@
       "candidate_q_validation": {
         "passed": true,
         "n_rows": 12,
-        "error_checks": [],
-        "warning_checks": [],
+        "error_checks": [
+
+        ],
+        "warning_checks": [
+
+        ],
         "rows": [
           {
             "check": "family_applicability",
@@ -850,7 +860,9 @@
       "candidate_q_validation": {
         "passed": true,
         "n_rows": 12,
-        "error_checks": [],
+        "error_checks": [
+
+        ],
         "warning_checks": [
           "cross_loading_policy"
         ],
@@ -1204,7 +1216,9 @@
         ]
       },
       "cv_attempted": false,
-      "cv_fold_rows": [],
+      "cv_fold_rows": [
+
+      ],
       "declared_complexity": 2,
       "candidate_complexity": 4,
       "complexity_delta": 2,

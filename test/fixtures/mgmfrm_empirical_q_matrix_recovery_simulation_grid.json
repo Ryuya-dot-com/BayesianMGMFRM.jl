@@ -240,7 +240,7 @@
       "artifact": "empirical_q_matrix_recovery_policy",
       "path": "test/fixtures/mgmfrm_empirical_q_matrix_recovery_policy.json",
       "exists": true,
-      "sha256": "0ac666d979a999e18d49ab36b9977ca7d1884192275ed626135c5d145a12faeb",
+      "sha256": "40c8974eefb13c22505a62d55f4b804a75db28dc241149b4806191278331556f",
       "expected_schema": "bayesianmgmfrm.mgmfrm_empirical_q_matrix_recovery_policy.v1",
       "schema": "bayesianmgmfrm.mgmfrm_empirical_q_matrix_recovery_policy.v1",
       "schema_matches": true,
@@ -300,8 +300,12 @@
           0.9
         ]
       ],
-      "operations": [],
-      "ambiguous_operations": [],
+      "operations": [
+
+      ],
+      "ambiguous_operations": [
+
+      ],
       "candidate_q_matrix": [
         [
           true,
@@ -464,8 +468,12 @@
           "note": "dimension_specific_person_rater_item_subgraph_connected"
         }
       ],
-      "error_checks": [],
-      "warning_checks": [],
+      "error_checks": [
+
+      ],
+      "warning_checks": [
+
+      ],
       "action": "retain_declared_q",
       "expected_action": "retain_declared_q",
       "expected_candidate_exact": true,
@@ -545,7 +553,9 @@
           "signal": 0.83
         }
       ],
-      "ambiguous_operations": [],
+      "ambiguous_operations": [
+
+      ],
       "candidate_q_matrix": [
         [
           true,
@@ -712,7 +722,9 @@
           "note": "dimension_specific_person_rater_item_subgraph_connected"
         }
       ],
-      "error_checks": [],
+      "error_checks": [
+
+      ],
       "warning_checks": [
         "cross_loading_policy"
       ],
@@ -795,7 +807,9 @@
           "signal": 0.11
         }
       ],
-      "ambiguous_operations": [],
+      "ambiguous_operations": [
+
+      ],
       "candidate_q_matrix": [
         [
           true,
@@ -962,8 +976,12 @@
           "note": "dimension_specific_person_rater_item_subgraph_connected"
         }
       ],
-      "error_checks": [],
-      "warning_checks": [],
+      "error_checks": [
+
+      ],
+      "warning_checks": [
+
+      ],
       "action": "flag_extra_loading_candidate",
       "expected_action": "flag_extra_loading_candidate",
       "expected_candidate_exact": true,
@@ -1035,7 +1053,9 @@
           0.51
         ]
       ],
-      "operations": [],
+      "operations": [
+
+      ],
       "ambiguous_operations": [
         {
           "operation": "ambiguous_loading_evidence",
@@ -1210,8 +1230,12 @@
           "note": "dimension_specific_person_rater_item_subgraph_connected"
         }
       ],
-      "error_checks": [],
-      "warning_checks": [],
+      "error_checks": [
+
+      ],
+      "warning_checks": [
+
+      ],
       "action": "defer_ambiguous_loading_evidence",
       "expected_action": "defer_ambiguous_loading_evidence",
       "expected_candidate_exact": true,
@@ -1291,7 +1315,9 @@
           "signal": 0.82
         }
       ],
-      "ambiguous_operations": [],
+      "ambiguous_operations": [
+
+      ],
       "candidate_q_matrix": [
         [
           true,
@@ -1458,7 +1484,9 @@
           "note": "dimension_specific_person_rater_item_subgraph_connected"
         }
       ],
-      "error_checks": [],
+      "error_checks": [
+
+      ],
       "warning_checks": [
         "cross_loading_policy"
       ],
@@ -1541,7 +1569,9 @@
           "signal": 0.18
         }
       ],
-      "ambiguous_operations": [],
+      "ambiguous_operations": [
+
+      ],
       "candidate_q_matrix": [
         [
           true,
@@ -1708,8 +1738,12 @@
           "note": "dimension_specific_person_rater_item_subgraph_connected"
         }
       ],
-      "error_checks": [],
-      "warning_checks": [],
+      "error_checks": [
+
+      ],
+      "warning_checks": [
+
+      ],
       "action": "flag_noisy_candidate_manual_review",
       "expected_action": "flag_noisy_candidate_manual_review",
       "expected_candidate_exact": false,
@@ -1783,7 +1817,9 @@
           "signal": 0.86
         }
       ],
-      "ambiguous_operations": [],
+      "ambiguous_operations": [
+
+      ],
       "candidate_q_matrix": [
         [
           true,
@@ -2024,8 +2060,12 @@
           0.91
         ]
       ],
-      "operations": [],
-      "ambiguous_operations": [],
+      "operations": [
+
+      ],
+      "ambiguous_operations": [
+
+      ],
       "candidate_q_matrix": [
         [
           true,
@@ -2192,7 +2232,9 @@
           "note": "dimension_specific_person_rater_item_subgraph_connected"
         }
       ],
-      "error_checks": [],
+      "error_checks": [
+
+      ],
       "warning_checks": [
         "dimension_facet_subgraph_coverage"
       ],
@@ -2299,7 +2341,9 @@
           "signal": 0.81
         }
       ],
-      "ambiguous_operations": [],
+      "ambiguous_operations": [
+
+      ],
       "candidate_q_matrix": [
         [
           true,
@@ -2484,7 +2528,9 @@
           "note": "dimension_specific_person_rater_item_subgraph_connected"
         }
       ],
-      "error_checks": [],
+      "error_checks": [
+
+      ],
       "warning_checks": [
         "cross_loading_policy"
       ],
@@ -2591,7 +2637,9 @@
           "signal": 0.8
         }
       ],
-      "ambiguous_operations": [],
+      "ambiguous_operations": [
+
+      ],
       "candidate_q_matrix": [
         [
           true,
@@ -2776,7 +2824,9 @@
           "note": "dimension_specific_person_rater_item_subgraph_connected"
         }
       ],
-      "error_checks": [],
+      "error_checks": [
+
+      ],
       "warning_checks": [
         "cross_loading_policy"
       ],
@@ -2890,8 +2940,12 @@
           0.84
         ]
       ],
-      "operations": [],
-      "ambiguous_operations": [],
+      "operations": [
+
+      ],
+      "ambiguous_operations": [
+
+      ],
       "candidate_q_matrix": [
         [
           true,
@@ -3081,7 +3135,9 @@
           "note": "dimension_specific_person_rater_item_subgraph_connected"
         }
       ],
-      "error_checks": [],
+      "error_checks": [
+
+      ],
       "warning_checks": [
         "cross_loading_policy"
       ],
@@ -3180,8 +3236,12 @@
           0.8
         ]
       ],
-      "operations": [],
-      "ambiguous_operations": [],
+      "operations": [
+
+      ],
+      "ambiguous_operations": [
+
+      ],
       "candidate_q_matrix": [
         [
           true,
@@ -3366,7 +3426,9 @@
           "note": "dimension_specific_person_rater_item_subgraph_connected"
         }
       ],
-      "error_checks": [],
+      "error_checks": [
+
+      ],
       "warning_checks": [
         "cross_loading_policy"
       ],

@@ -38,7 +38,7 @@
       "path": "test/fixtures/gmfrm_candidate_chain_study.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "c4985c9822fe6b0e9f680184830e3a4836b4527429dd4a19f3bcc07e5d8b35cb",
+      "sha256": "432dc1b82bb91cfd8e5ea788701feba370b45c31d2522c2037e93264a3b7219c",
       "expected_schema": "bayesianmgmfrm.gmfrm_candidate_chain_study.v1",
       "schema": "bayesianmgmfrm.gmfrm_candidate_chain_study.v1",
       "schema_matches": true,
@@ -53,7 +53,7 @@
       "path": "test/fixtures/gmfrm_stress_chain_grid.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "60f73c2e7876161d658a71d4e513b2da672f105860571fe789a5cd46d93f8a81",
+      "sha256": "2a717e4735f57740174de12308594153b0546c13bd3e070ae11d182a746e7865",
       "expected_schema": "bayesianmgmfrm.gmfrm_stress_chain_grid.v1",
       "schema": "bayesianmgmfrm.gmfrm_stress_chain_grid.v1",
       "schema_matches": true,
@@ -113,7 +113,7 @@
       "path": "test/fixtures/gmfrm_interval_decision_grid.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "59c9aa4dba2e06b8fc14f18826e04e3686aa5b6581b885988e344776d5e4f87b",
+      "sha256": "3b7cfde575c915d85fab1588323eafe8087ac7864d948c7a6039466281c108f7",
       "expected_schema": "bayesianmgmfrm.gmfrm_interval_decision_grid.v1",
       "schema": "bayesianmgmfrm.gmfrm_interval_decision_grid.v1",
       "schema_matches": true,
@@ -128,7 +128,7 @@
       "path": "test/fixtures/gmfrm_sparse_design_grid.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "8302c301121551afd7d7ab07915818a7974383827bc2cbdfcad552136d5f5eeb",
+      "sha256": "1bd6662fdf3cdab18442eda3683d5e47706534d94fab3811d8382d91c3188651",
       "expected_schema": "bayesianmgmfrm.gmfrm_sparse_design_grid.v1",
       "schema": "bayesianmgmfrm.gmfrm_sparse_design_grid.v1",
       "schema_matches": true,
@@ -188,7 +188,7 @@
       "path": "test/fixtures/gmfrm_guarded_fit_method_wiring.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "acba1d6449b00bb9d30e6f9f4eda5f540490b918471fb910786ee536f2a67a79",
+      "sha256": "0c5c7cef938e244980adbfff4c25e9ce96bf9c858d1eda289b8e3d6a44af5276",
       "expected_schema": "bayesianmgmfrm.gmfrm_guarded_fit_method_wiring.v1",
       "schema": "bayesianmgmfrm.gmfrm_guarded_fit_method_wiring.v1",
       "schema_matches": true,
@@ -203,7 +203,7 @@
       "path": "test/fixtures/gmfrm_experimental_fit_validation_grid.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "f748c1789f430438a12ebd7f6b8c1f6b170066c2ac79a1a0fee11a38d80fdb7d",
+      "sha256": "4bda1eec968993887b2497a34be0277d6d8bdc76e99b145f4a3dd78d2214ce97",
       "expected_schema": "bayesianmgmfrm.gmfrm_experimental_fit_validation_grid.v1",
       "schema": "bayesianmgmfrm.gmfrm_experimental_fit_validation_grid.v1",
       "schema_matches": true,
@@ -218,7 +218,7 @@
       "path": "test/fixtures/gmfrm_posterior_predictive_grid.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "6a65d9de506e97611277b527567dda913e95e45638067eaa097186ea1bb68866",
+      "sha256": "e5d4075ccfd7c321f6549875e7758a20177907bfefebf0bdfbd68f9472e37953",
       "expected_schema": "bayesianmgmfrm.gmfrm_posterior_predictive_grid.v1",
       "schema": "bayesianmgmfrm.gmfrm_posterior_predictive_grid.v1",
       "schema_matches": true,
@@ -233,7 +233,7 @@
       "path": "test/fixtures/gmfrm_sparse_pathology_recovery_grid.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "5420b21c1f116ef0fe1e4a1d88fdcab04297d375937415e25f2e6768cdcd012b",
+      "sha256": "912072c18980a96b9037c4ca0028a429f8e78d9e2decfebbb869bf9984932d94",
       "expected_schema": "bayesianmgmfrm.gmfrm_sparse_pathology_recovery_grid.v1",
       "schema": "bayesianmgmfrm.gmfrm_sparse_pathology_recovery_grid.v1",
       "schema_matches": true,
@@ -248,7 +248,7 @@
       "path": "test/fixtures/gmfrm_prior_likelihood_sensitivity_grid.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "b120b55f6d915b5c1eba87da88d41fba618f4d4a67699efdebd603c65d91fbdf",
+      "sha256": "167a262230a2f6f879fce598e674d544812107fb0d0fedb4415c287e04af6c41",
       "expected_schema": "bayesianmgmfrm.gmfrm_prior_likelihood_sensitivity_grid.v1",
       "schema": "bayesianmgmfrm.gmfrm_prior_likelihood_sensitivity_grid.v1",
       "schema_matches": true,
@@ -263,7 +263,7 @@
       "path": "test/fixtures/gmfrm_real_data_case_study.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "f72415c0d5ff55d4f4fe1cadf553845250669cb0065286afd2887cba82167d29",
+      "sha256": "fdf0895574506267f8680e90524d3353d2166059315d9a409e21fd973acc9847",
       "expected_schema": "bayesianmgmfrm.gmfrm_real_data_case_study.v1",
       "schema": "bayesianmgmfrm.gmfrm_real_data_case_study.v1",
       "schema_matches": true,
@@ -278,7 +278,7 @@
       "path": "test/fixtures/gmfrm_guarded_fit_api_dry_run.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "bb1fcf7d5e876fef129e49bb2c3ef08fe5270de1b4ba4ae26686ca690f5ab97f",
+      "sha256": "66410bc1dbabc3b36fce4d1160f41a1d5992ef6972f0eebcee25dc2d19a6e8e7",
       "expected_schema": "bayesianmgmfrm.gmfrm_guarded_fit_api_dry_run.v1",
       "schema": "bayesianmgmfrm.gmfrm_guarded_fit_api_dry_run.v1",
       "schema_matches": true,
@@ -329,12 +329,12 @@
     {
       "path": "README.md",
       "exists": true,
-      "sha256": "0e4cb6b67fcec7dc8cc1a9120541bd46f0e821a5fca5484ca9e7570a835b1e49"
+      "sha256": "89741cb789471384217d99b3c1508fe5b1617d3d3e1a59c0f8eb3357cc707693"
     },
     {
       "path": "NEWS.md",
       "exists": true,
-      "sha256": "e82fedd685aecc6f57160b714989aabd4fb1a59ad31e374f44d3af72faef3e9c"
+      "sha256": "0b2605ebd0f5abcf23e5fdd62761cdb435f3dd976077e4c1818ef4da06501b60"
     },
     {
       "path": "ROADMAP.md",
@@ -354,17 +354,17 @@
     {
       "path": "test/runtests.jl",
       "exists": true,
-      "sha256": "2a93aa083821d275899e20955caea13d2128cc17bca8f4f05f5c9bcfd4b34d57"
+      "sha256": "a97a64adf12579038d3fb3dc83ef37bca0a4f64e48be64203be0e364fbc04e67"
     },
     {
       "path": "test/fixtures/README.md",
       "exists": true,
-      "sha256": "ad8a53e79171f3bec64b248218aeacb62d34e271f76c5f77fab9e8aa6906d058"
+      "sha256": "151f41eb8389affc18fb573cbbf64ae1e6f5146d450baf1dd9631e97e178f81d"
     },
     {
       "path": "docs/src/fitting.md",
       "exists": true,
-      "sha256": "f81cac5d5582ccf7d5af929c1225886b93163371b29abdd7b985ace096fc19e1"
+      "sha256": "679f830166625bdadb0b0bfb24d61bdde7152c02116010103d1127e08615d8fd"
     },
     {
       "path": "docs/src/model-equations.md",
@@ -374,12 +374,12 @@
     {
       "path": "docs/src/roadmap.md",
       "exists": true,
-      "sha256": "f0599c3d0d206a746a23d5aac53f9affddcd09cc119fd479415b161a656379f6"
+      "sha256": "73e9bc60e2b80158a7f6724494be55da98878f33cf7d4db7b7019c2e29a52289"
     },
     {
       "path": "scripts/pre_registration_gate.jl",
       "exists": true,
-      "sha256": "f2d8b1c2bc7ee60a141c39d942f7343a1822fe80f18550a65b50bcccf297fdc6"
+      "sha256": "530413e704428921d494912b624e8caf7a81e7526707e32a398fdd2994e9b834"
     },
     {
       "path": "scripts/generate_gmfrm_claim_recovery_reproduction_archive.jl",

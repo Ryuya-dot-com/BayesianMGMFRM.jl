@@ -1,0 +1,2150 @@
+{
+  "schema": "bayesianmgmfrm.mgmfrm_construct_reviewed_revised_q_1000_draw_geometry_branch_expansion.v1",
+  "family": "mgmfrm",
+  "scope": "construct_reviewed_revised_q_1000_draw_geometry_branch_expansion",
+  "status": "construct_reviewed_revised_q_1000_draw_geometry_branch_expansion_recorded",
+  "generated_at": "2026-07-07T22:29:09.473",
+  "local_only": true,
+  "publication_or_registration_action": false,
+  "package_default_change": false,
+  "fit_api_change": false,
+  "public_fit_metric_claim": false,
+  "public_q_revision_claim": false,
+  "automatic_q_revision": false,
+  "public_model_weight_claim": false,
+  "sparse_mgmfrm_superiority_claim": false,
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "model": "construct_reviewed_revised_q_mgmfrm",
+  "local_threshold_policy": {
+    "chains": 4,
+    "warmup_per_chain": 128,
+    "draws_per_chain": 1000,
+    "max_rhat": 1.01,
+    "min_ess": 400.0,
+    "max_divergences": 0,
+    "max_treedepth": 0,
+    "min_ebfmi": 0.3
+  },
+  "input_artifacts": [
+    {
+      "artifact": "previous_1000_draw_scenario_replication_fixture",
+      "path": "test/fixtures/mgmfrm_construct_reviewed_revised_q_1000_draw_scenario_replication.json",
+      "exists": true,
+      "sha256": "d962c9fb00bb2de33e5f24f42284cf81d7d09b26f06b5fe94e89cf92cdaa05ad"
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold1_4_128_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_scenario_replication/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold1_4_128_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "a69ec57f97c75fec2f1cb99df8101c7114ac4b414ed51fdb077e35950a77c791"
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold1_4_128_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_scenario_replication/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold1_4_128_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "fd9e7b440784f1d55a3eeea49d335543221929fea9630031366680fcdd1dbc9c"
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold1_4_128_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_scenario_replication/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold1_4_128_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "fc3846b6f5cf0f96692c9c30cd854bd47b73597d6e13f47848454286b6ae5b17"
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold2_4_128_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold2_4_128_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "f61d61ad802e8b6cdc2ce1d9b8145e1030b7a5d7a26267942ce385df7b9dced7"
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold2_4_128_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold2_4_128_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "85724ee24c7fcbb01940a669d20ea5142228ee38bb8bd495077c11b0ad602543"
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold2_4_128_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold2_4_128_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "4a33be00eea3e0633498e4e61cc14923b4995e1e11ddc4deff700f5a9c254c06"
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold3_4_128_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold3_4_128_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "c5837ea7e495fe7a33cc162f7e58d0860448995eab7c618ee7088a8944d8f552"
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold3_4_128_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold3_4_128_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "e498fa740f3ffdc5739da7e1841b6d66fcffb164cba10d4b9177c9b246a97cc6"
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold3_4_128_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold3_4_128_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "1a9a2932916f4137d057f238245eb8084f3db9815edd56d5d6f052f04a0e4790"
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold4_4_128_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold4_4_128_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "482da48bb5506d9f3a97f12d16756d24ec2a16743d290cf2c27f80681257c8b4"
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold4_4_128_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold4_4_128_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "c192f3f288855d14fa675bc73125b635c3c974fffbafd1758b482e4eca8553a5"
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold4_4_128_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold4_4_128_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "4e613275edbae1512a3d01df4676cd3c57d580325860653cbb46e524e0ee9cf9"
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold5_4_128_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold5_4_128_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "94a3edeeffc9655fba976da65f73bec1d009cb8f771626321017b79285712227"
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold5_4_128_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold5_4_128_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "42fa491a166ba9ccfe0029de3b6fd9f9d4b588e18334bd05e2ced7ed1c715e6d"
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold5_4_128_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold5_4_128_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "2caf66f8a776e1b5d2f292c0ba3430a55e0687c45eea1effc6b26b8a73631ba7"
+    },
+    {
+      "artifact": "rater_method_noise_fold1_4_128_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/rater_method_noise__construct_reviewed_revised_q_mgmfrm__fold1_4_128_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "b301142f56cc77dfe11a9cb8e6ed86414181eb0e3017bfef6d6e94f6df61fde2"
+    },
+    {
+      "artifact": "rater_method_noise_fold1_4_128_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/rater_method_noise__construct_reviewed_revised_q_mgmfrm__fold1_4_128_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "df5fb501bddb336f65367bfd94569dbe692aa4c75f8692ebf5224a0b4c1a2f54"
+    },
+    {
+      "artifact": "rater_method_noise_fold1_4_128_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/rater_method_noise__construct_reviewed_revised_q_mgmfrm__fold1_4_128_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "01b2cf69cefec781870b36c13b222db02bea394e931d99f7b0928c4fc2fe7902"
+    },
+    {
+      "artifact": "rater_method_noise_fold2_4_128_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/rater_method_noise__construct_reviewed_revised_q_mgmfrm__fold2_4_128_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "59343afbf73f67dfa07bbdbea13290a74f736967026c3498872038446dad1cb6"
+    },
+    {
+      "artifact": "rater_method_noise_fold2_4_128_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/rater_method_noise__construct_reviewed_revised_q_mgmfrm__fold2_4_128_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "3f30fec4a53b5c2659a45f4e4998adcd64ff342270737b22081b06fc25b054fe"
+    },
+    {
+      "artifact": "rater_method_noise_fold2_4_128_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/rater_method_noise__construct_reviewed_revised_q_mgmfrm__fold2_4_128_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "d5ee40ff8d0c28575853ee01b9eb323ced6a630bb7c982c89a038b932822f513"
+    },
+    {
+      "artifact": "rater_method_noise_fold3_4_128_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/rater_method_noise__construct_reviewed_revised_q_mgmfrm__fold3_4_128_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "9b6b2b2ea3049c1bb6d4d7766c0698efa904ceea4f087e131d31091db39af81e"
+    },
+    {
+      "artifact": "rater_method_noise_fold3_4_128_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/rater_method_noise__construct_reviewed_revised_q_mgmfrm__fold3_4_128_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "448f80665f6ee0ecad001bb284f5de639990892e9f01c38dab77e8911276f508"
+    },
+    {
+      "artifact": "rater_method_noise_fold3_4_128_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/rater_method_noise__construct_reviewed_revised_q_mgmfrm__fold3_4_128_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "52c7e81b45fe7d66db353c97ddb066aa85bb117f8e90bbba6cb7d6686d53dfd8"
+    },
+    {
+      "artifact": "rater_method_noise_fold4_4_128_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/rater_method_noise__construct_reviewed_revised_q_mgmfrm__fold4_4_128_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "0936bd262163356092bb655eeef836707ab1106205063682547d4afb0c4ecffb"
+    },
+    {
+      "artifact": "rater_method_noise_fold4_4_128_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/rater_method_noise__construct_reviewed_revised_q_mgmfrm__fold4_4_128_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "9260ae3a6029ecd383367d9b847ffb9b05394d10ee7be2dcd7e377b166afcd2d"
+    },
+    {
+      "artifact": "rater_method_noise_fold4_4_128_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/rater_method_noise__construct_reviewed_revised_q_mgmfrm__fold4_4_128_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "0ae6d54452652ffed090641d42e5cd89a2fc17716fcecac82e8f386fe7c719be"
+    },
+    {
+      "artifact": "rater_method_noise_fold5_4_128_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/rater_method_noise__construct_reviewed_revised_q_mgmfrm__fold5_4_128_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "d5fa760eff003d5745c5acc5d7b9464b994c1df6075ba052c14e29e11e0a7c36"
+    },
+    {
+      "artifact": "rater_method_noise_fold5_4_128_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/rater_method_noise__construct_reviewed_revised_q_mgmfrm__fold5_4_128_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "d1ed7c0494f8272c8a460cb31db25614d111cb6c44756c5ff9ec85eb40535115"
+    },
+    {
+      "artifact": "rater_method_noise_fold5_4_128_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/rater_method_noise__construct_reviewed_revised_q_mgmfrm__fold5_4_128_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "b551e00f761464523732a4b6391944737fc6434624d729596a797c244f7d320d"
+    },
+    {
+      "artifact": "sparse_signal_current_q_fold1_4_128_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/sparse_signal_current_q__construct_reviewed_revised_q_mgmfrm__fold1_4_128_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "9d4549a1ff6038ae7cb5c2b23199ec042eec99438aaab1a81d595ac8e6fc92ea"
+    },
+    {
+      "artifact": "sparse_signal_current_q_fold1_4_128_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/sparse_signal_current_q__construct_reviewed_revised_q_mgmfrm__fold1_4_128_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "0246d70d8abfc9f98c5ce099ea90a99fb86244f67c8fdce2408c62b01b357a3f"
+    },
+    {
+      "artifact": "sparse_signal_current_q_fold1_4_128_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/sparse_signal_current_q__construct_reviewed_revised_q_mgmfrm__fold1_4_128_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "16281a56424a3f50f0cf33fb4f76a8dce40f57f9c621f0fab5820be5fd1e7101"
+    },
+    {
+      "artifact": "sparse_signal_current_q_fold2_4_128_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/sparse_signal_current_q__construct_reviewed_revised_q_mgmfrm__fold2_4_128_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "68a98c9fd0527930b6dd68675b0a5c617397705a5814d5d9abc66939eab17a42"
+    },
+    {
+      "artifact": "sparse_signal_current_q_fold2_4_128_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/sparse_signal_current_q__construct_reviewed_revised_q_mgmfrm__fold2_4_128_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "1b64048664c0e4c0d8e605dec5ce2b12f49860d8cb1ff362afbec9c2d506889e"
+    },
+    {
+      "artifact": "sparse_signal_current_q_fold2_4_128_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/sparse_signal_current_q__construct_reviewed_revised_q_mgmfrm__fold2_4_128_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "0a9a6775a5cb2c1e67f91012d10b6fe6269d025fc57e08f60a26653125babf2f"
+    },
+    {
+      "artifact": "sparse_signal_current_q_fold3_4_128_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/sparse_signal_current_q__construct_reviewed_revised_q_mgmfrm__fold3_4_128_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "dbc8908755bf462c0758d2d49eb3496da0da0dbadae1f2c4d6d22649ab07745f"
+    },
+    {
+      "artifact": "sparse_signal_current_q_fold3_4_128_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/sparse_signal_current_q__construct_reviewed_revised_q_mgmfrm__fold3_4_128_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "3a98eedfcccb6d2fcb07716c21b05a6dae43fedaa732ed6b4e66dde764efbd37"
+    },
+    {
+      "artifact": "sparse_signal_current_q_fold3_4_128_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/sparse_signal_current_q__construct_reviewed_revised_q_mgmfrm__fold3_4_128_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "45363520f9dadcf45b114d220c61d3011dd992e2a74d8aa755bcc0f677499bd6"
+    },
+    {
+      "artifact": "sparse_signal_current_q_fold4_4_128_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/sparse_signal_current_q__construct_reviewed_revised_q_mgmfrm__fold4_4_128_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "6698436943dfc1894ff2ec3e6d7e808752581130f8cbba0a810c668176500d2b"
+    },
+    {
+      "artifact": "sparse_signal_current_q_fold4_4_128_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/sparse_signal_current_q__construct_reviewed_revised_q_mgmfrm__fold4_4_128_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "19628248674046b2529cbcc89ceca5ce7a18369692ab6a51302bcbede560839d"
+    },
+    {
+      "artifact": "sparse_signal_current_q_fold4_4_128_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/sparse_signal_current_q__construct_reviewed_revised_q_mgmfrm__fold4_4_128_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "73ce1753e98941e5c06f3a32968026ef7f183905e5d667614c0e7b0ecb902496"
+    },
+    {
+      "artifact": "sparse_signal_current_q_fold5_4_128_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/sparse_signal_current_q__construct_reviewed_revised_q_mgmfrm__fold5_4_128_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "2a654e5afa4ab8f1a3c6c43d77144b7226a7f34da6888126f141c84c28959d25"
+    },
+    {
+      "artifact": "sparse_signal_current_q_fold5_4_128_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/sparse_signal_current_q__construct_reviewed_revised_q_mgmfrm__fold5_4_128_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "a551f02ad1e31dad1b8aaee7c95b8cddef9dbfaa54267ef038b2e51e870ddbb7"
+    },
+    {
+      "artifact": "sparse_signal_current_q_fold5_4_128_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/sparse_signal_current_q__construct_reviewed_revised_q_mgmfrm__fold5_4_128_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "f6d25f8f045017c47350e403f30c66a2aa381daf536f9c99af9d9b892b862205"
+    },
+    {
+      "artifact": "weak_dimension_ambiguous_fold1_4_128_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/weak_dimension_ambiguous__construct_reviewed_revised_q_mgmfrm__fold1_4_128_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "e4938abfec9db789d498b74b494af8d5a85ba93cc22f4849498ee8b3580bac17"
+    },
+    {
+      "artifact": "weak_dimension_ambiguous_fold1_4_128_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/weak_dimension_ambiguous__construct_reviewed_revised_q_mgmfrm__fold1_4_128_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "af16d6c3aad89bd5f8f4933b4871be00c5c54cc090ff0059f2b1613ee40f61c8"
+    },
+    {
+      "artifact": "weak_dimension_ambiguous_fold1_4_128_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/weak_dimension_ambiguous__construct_reviewed_revised_q_mgmfrm__fold1_4_128_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "e965aee85993687aad4e475982d7e99753c906dae1bce1206609a7fa14cba997"
+    },
+    {
+      "artifact": "weak_dimension_ambiguous_fold2_4_128_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/weak_dimension_ambiguous__construct_reviewed_revised_q_mgmfrm__fold2_4_128_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "028f22c34b959ef7b6eab54b4dcd62666c0ac9483d345aea779c3002c849b05c"
+    },
+    {
+      "artifact": "weak_dimension_ambiguous_fold2_4_128_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/weak_dimension_ambiguous__construct_reviewed_revised_q_mgmfrm__fold2_4_128_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "eaa411aba05f339a0bb3388c48a80dc162db12bf6a84729dff0e83d8f1d1fe78"
+    },
+    {
+      "artifact": "weak_dimension_ambiguous_fold2_4_128_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/weak_dimension_ambiguous__construct_reviewed_revised_q_mgmfrm__fold2_4_128_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "2712e4479d4c21a046dc7720075ae6ddc909466c82225a536afcd360cb44b378"
+    },
+    {
+      "artifact": "weak_dimension_ambiguous_fold3_4_128_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/weak_dimension_ambiguous__construct_reviewed_revised_q_mgmfrm__fold3_4_128_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "f64113da39f979737f52dd3e8d993c5e56cbeaa23879266d389e7acee67dcfef"
+    },
+    {
+      "artifact": "weak_dimension_ambiguous_fold3_4_128_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/weak_dimension_ambiguous__construct_reviewed_revised_q_mgmfrm__fold3_4_128_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "14a1efbf3d32f8a5f538fe8f6bf7709674f34f3acddd4f29769c7c76f5f40c23"
+    },
+    {
+      "artifact": "weak_dimension_ambiguous_fold3_4_128_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/weak_dimension_ambiguous__construct_reviewed_revised_q_mgmfrm__fold3_4_128_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "abda83610b3f290914735c905940e8b13cc32899bc16763c3216bb152de3af4e"
+    },
+    {
+      "artifact": "weak_dimension_ambiguous_fold4_4_128_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/weak_dimension_ambiguous__construct_reviewed_revised_q_mgmfrm__fold4_4_128_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "4e73aed53c69a928defa90ec38bb2df4b085155aa27b63cb31fdefb88857c271"
+    },
+    {
+      "artifact": "weak_dimension_ambiguous_fold4_4_128_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/weak_dimension_ambiguous__construct_reviewed_revised_q_mgmfrm__fold4_4_128_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "3856e4b404752d9eb8a67d8a82942244e27bafae833d5c2c74cf7fb6591b06e0"
+    },
+    {
+      "artifact": "weak_dimension_ambiguous_fold4_4_128_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/weak_dimension_ambiguous__construct_reviewed_revised_q_mgmfrm__fold4_4_128_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "d2d3295d3c7b552ca2f23fec9588805d8c7099dc0a0ebcfc05f62df2a5a1eb0a"
+    },
+    {
+      "artifact": "weak_dimension_ambiguous_fold5_4_128_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/weak_dimension_ambiguous__construct_reviewed_revised_q_mgmfrm__fold5_4_128_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "72182eaf39577d5a321d2128b6b11e2ce417f1a59be6807a847f51fa63b23c2b"
+    },
+    {
+      "artifact": "weak_dimension_ambiguous_fold5_4_128_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/weak_dimension_ambiguous__construct_reviewed_revised_q_mgmfrm__fold5_4_128_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "62a69504234bfdf26f89c1a3fc217177b4eada592fe30f34d87c7d1485c51d20"
+    },
+    {
+      "artifact": "weak_dimension_ambiguous_fold5_4_128_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/weak_dimension_ambiguous__construct_reviewed_revised_q_mgmfrm__fold5_4_128_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "18461e45d2c0afea5ac23e12db237d681fede38b8ff28b586b8fce1de3f6b34e"
+    },
+    {
+      "artifact": "well_specified_current_q_fold1_4_128_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_extended_budget_followup/draws_only_4_128_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "81131e6db60b1b41284a414f65e2e73200750454a85c907b10687b37f3b4051c"
+    },
+    {
+      "artifact": "well_specified_current_q_fold1_4_128_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_extended_budget_followup/draws_only_4_128_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "59eca3cacc612cd58203fdc58b45e0d26a132b2d22272e974fb5c1d3189c5777"
+    },
+    {
+      "artifact": "well_specified_current_q_fold1_4_128_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_extended_budget_followup/draws_only_4_128_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "e2186367121be95a7be4e4fa0cedf59401fe4ce71cc49372309f9606f8103d39"
+    },
+    {
+      "artifact": "well_specified_current_q_fold2_4_128_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_scenario_replication/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold2_4_128_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "21ba463fa1abc0940f22bcefe23ce3a4c0a55512db2f79e3bbbec22b9e40cab4"
+    },
+    {
+      "artifact": "well_specified_current_q_fold2_4_128_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_scenario_replication/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold2_4_128_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "17a321477a002e90e63752fe387efa0364b02bec158ed319b9078e5e3b058775"
+    },
+    {
+      "artifact": "well_specified_current_q_fold2_4_128_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_scenario_replication/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold2_4_128_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "8e5be9414e1856e2608c2d865072e8ac55caaa2e07ad4d6ac89372fe6564b443"
+    },
+    {
+      "artifact": "well_specified_current_q_fold3_4_128_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_scenario_replication/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold3_4_128_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "6a9a296e4c8e7d5563093e68416e3213cec69804fc6e4d1f47d517bfac63d99a"
+    },
+    {
+      "artifact": "well_specified_current_q_fold3_4_128_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_scenario_replication/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold3_4_128_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "f079f73a0859f1021b854f6c75823b4063086365735d4525b6926af120193e6a"
+    },
+    {
+      "artifact": "well_specified_current_q_fold3_4_128_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_scenario_replication/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold3_4_128_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "7c6d9b96600921568b848fbda32fe7099565d7f9eb08a525c57a1086b3dd4ae2"
+    },
+    {
+      "artifact": "well_specified_current_q_fold4_4_128_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold4_4_128_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "951d49a02244a79d547f881b5cf78b2cdc0f463ba74f3e8d44808926650c46d3"
+    },
+    {
+      "artifact": "well_specified_current_q_fold4_4_128_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold4_4_128_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "532119c462ddaf6c8d28c4d623c289fd54cd085a4fa990c795f089d0c34a2c18"
+    },
+    {
+      "artifact": "well_specified_current_q_fold4_4_128_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold4_4_128_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "fa0eb8e43e5c66f4fa629d2420dc31a8a5b6442b9c9f919bcadddd2c4ffea4c2"
+    },
+    {
+      "artifact": "well_specified_current_q_fold5_4_128_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold5_4_128_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "f340e6417ffb7212073f13735689c2d1e7f02caacf174a66ae1f981d1400c40b"
+    },
+    {
+      "artifact": "well_specified_current_q_fold5_4_128_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold5_4_128_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "f4b593739dcf1ad13bf44590669d2d36637b11143c535840191324b8a28e3429"
+    },
+    {
+      "artifact": "well_specified_current_q_fold5_4_128_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold5_4_128_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "c0128f2ad431ec9edd3ae99177a66de1fb6808cbbb07bf9f3c130cc14f26ddf2"
+    },
+    {
+      "artifact": "well_specified_current_q_fold2_4_128_1000_ta090_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_scenario_replication/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold2_4_128_1000_ta090_result.json",
+      "exists": true,
+      "sha256": "b47fb71695039fc587a5563b96c846da3d380facaef35e3b8cbbcbccbb9f7428"
+    },
+    {
+      "artifact": "well_specified_current_q_fold2_4_128_1000_ta090_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_scenario_replication/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold2_4_128_1000_ta090_diagnostics.json",
+      "exists": true,
+      "sha256": "0d2fee9028138acf56971db6b93859e69285d724b70c90583280ba50a78ab472"
+    },
+    {
+      "artifact": "well_specified_current_q_fold2_4_128_1000_ta090_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_scenario_replication/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold2_4_128_1000_ta090_heldout_score.json",
+      "exists": true,
+      "sha256": "ccc1303da0098236c30652fa82a6842694fe42b5d7a8a6bddfe8bd5cb6d9e9be"
+    },
+    {
+      "artifact": "well_specified_current_q_fold2_4_256_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_scenario_replication/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold2_4_256_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "328b1edfe2f8d3cccddd56161add7f2234969706b4bf7c9b5be5e3b88369779d"
+    },
+    {
+      "artifact": "well_specified_current_q_fold2_4_256_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_scenario_replication/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold2_4_256_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "094cddb4fc15ac01e07f9cd4246da9b01899780246db71e74cd02bb601779f3d"
+    },
+    {
+      "artifact": "well_specified_current_q_fold2_4_256_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_scenario_replication/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold2_4_256_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "66e5daa566ef00e0a7ed76bebc3ab39ec200771a6e16db7b249618b96bd1e0f5"
+    },
+    {
+      "artifact": "well_specified_current_q_fold2_4_256_1000_ta090_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_scenario_replication/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold2_4_256_1000_ta090_result.json",
+      "exists": true,
+      "sha256": "bb42e2ed5c9fdfd12edd7ed217e63af0e70c24f30ae6557c07d3829ca3eef6ef"
+    },
+    {
+      "artifact": "well_specified_current_q_fold2_4_256_1000_ta090_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_scenario_replication/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold2_4_256_1000_ta090_diagnostics.json",
+      "exists": true,
+      "sha256": "aba3e42035922153d4eef2a5bb0d0fb2696eec24a0d4488db3862fe59ccf22e4"
+    },
+    {
+      "artifact": "well_specified_current_q_fold2_4_256_1000_ta090_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_scenario_replication/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold2_4_256_1000_ta090_heldout_score.json",
+      "exists": true,
+      "sha256": "1f9ca8d3d5d4396d565cab9ae575e2f2590ae9b8e5178abb8ce7e3fa1f29dd43"
+    },
+    {
+      "artifact": "well_specified_current_q_fold4_4_128_1000_ta090_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold4_4_128_1000_ta090_result.json",
+      "exists": true,
+      "sha256": "1b134f9693e5911c5a0931ea9d7104dbb52798c717fa32c2602653c8c195f2a2"
+    },
+    {
+      "artifact": "well_specified_current_q_fold4_4_128_1000_ta090_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold4_4_128_1000_ta090_diagnostics.json",
+      "exists": true,
+      "sha256": "94891aca08a37ebcc526c08e0d578fca1544f8bb09df4b05092676655e8e83f3"
+    },
+    {
+      "artifact": "well_specified_current_q_fold4_4_128_1000_ta090_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold4_4_128_1000_ta090_heldout_score.json",
+      "exists": true,
+      "sha256": "3f72b8147749a89de2a8de76946359b955508e6bd1a854b7692aeaab4cc6711b"
+    },
+    {
+      "artifact": "well_specified_current_q_fold4_4_256_1000_ta080_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold4_4_256_1000_ta080_result.json",
+      "exists": true,
+      "sha256": "c27ea4246c1ee185a9e184e159c75ad43c4c36f90a3c6783075f171f22a2793e"
+    },
+    {
+      "artifact": "well_specified_current_q_fold4_4_256_1000_ta080_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold4_4_256_1000_ta080_diagnostics.json",
+      "exists": true,
+      "sha256": "3b70c791b5ee33325c93c03e3b1d194fe86606ff5048c4dd5b5fb9633ff6fe65"
+    },
+    {
+      "artifact": "well_specified_current_q_fold4_4_256_1000_ta080_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold4_4_256_1000_ta080_heldout_score.json",
+      "exists": true,
+      "sha256": "fcf3dbcaf5ef8342b448276e9fe04b33ced8a65589efe9719aab9b5a401434af"
+    },
+    {
+      "artifact": "well_specified_current_q_fold4_4_256_1000_ta090_result",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold4_4_256_1000_ta090_result.json",
+      "exists": true,
+      "sha256": "803a981b1a72b9eda0c13d7d9b80a08f6734062e15122c900cbe91f2b723edef"
+    },
+    {
+      "artifact": "well_specified_current_q_fold4_4_256_1000_ta090_diagnostics",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold4_4_256_1000_ta090_diagnostics.json",
+      "exists": true,
+      "sha256": "0138d3a76219f75240e0724a8f840268071bc278670c7ff3bce6bbc75de95fad"
+    },
+    {
+      "artifact": "well_specified_current_q_fold4_4_256_1000_ta090_heldout",
+      "path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold4_4_256_1000_ta090_heldout_score.json",
+      "exists": true,
+      "sha256": "8cd631f688c4b3ec290a5c09f0b0d670ea996996e01e94a0bda295b41d830fdc"
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold1_4_500_1000_ta080_result",
+      "path": "artifacts/publication_grade_refit_batch/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold1_result.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold1_4_500_1000_ta080_diagnostics",
+      "path": "artifacts/publication_grade_refit_batch/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold1_diagnostics.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold1_4_500_1000_ta080_heldout",
+      "path": "artifacts/publication_grade_refit_batch/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold1_heldout_score.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold2_4_500_1000_ta080_result",
+      "path": "artifacts/publication_grade_refit_batch/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold2_result.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold2_4_500_1000_ta080_diagnostics",
+      "path": "artifacts/publication_grade_refit_batch/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold2_diagnostics.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold2_4_500_1000_ta080_heldout",
+      "path": "artifacts/publication_grade_refit_batch/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold2_heldout_score.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold3_4_500_1000_ta080_result",
+      "path": "artifacts/publication_grade_refit_batch/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold3_result.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold3_4_500_1000_ta080_diagnostics",
+      "path": "artifacts/publication_grade_refit_batch/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold3_diagnostics.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold3_4_500_1000_ta080_heldout",
+      "path": "artifacts/publication_grade_refit_batch/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold3_heldout_score.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold4_4_500_1000_ta080_result",
+      "path": "artifacts/publication_grade_refit_batch/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold4_result.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold4_4_500_1000_ta080_diagnostics",
+      "path": "artifacts/publication_grade_refit_batch/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold4_diagnostics.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold4_4_500_1000_ta080_heldout",
+      "path": "artifacts/publication_grade_refit_batch/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold4_heldout_score.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold5_4_500_1000_ta080_result",
+      "path": "artifacts/publication_grade_refit_batch/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold5_result.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold5_4_500_1000_ta080_diagnostics",
+      "path": "artifacts/publication_grade_refit_batch/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold5_diagnostics.json",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "artifact": "missing_loading_revised_q_fold5_4_500_1000_ta080_heldout",
+      "path": "artifacts/publication_grade_refit_batch/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold5_heldout_score.json",
+      "exists": false,
+      "sha256": null
+    }
+  ],
+  "default_profile_rows": [
+    {
+      "profile": "missing_loading_revised_q_fold1_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "missing_loading_revised_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold1",
+      "fold": 1,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026371701
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0024807728629965,
+        "min_ess": 1857.504504409731,
+        "e_bfmi": 0.9721529936769424,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -13.90650417151769,
+        "heldout_expected_score_mae": 1.0990653312747019,
+        "heldout_expected_score_rmse": 1.2217863438779974
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_scenario_replication/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold1_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "missing_loading_revised_q_fold2_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "missing_loading_revised_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold2",
+      "fold": 2,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026371702
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0033587454260364,
+        "min_ess": 1609.8388794782168,
+        "e_bfmi": 0.9300206519417717,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -11.347001163276378,
+        "heldout_expected_score_mae": 0.6661645631388444,
+        "heldout_expected_score_rmse": 0.8944322672873013
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold2_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "missing_loading_revised_q_fold3_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "missing_loading_revised_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold3",
+      "fold": 3,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026371703
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0014093081515858,
+        "min_ess": 2208.907684361715,
+        "e_bfmi": 0.9515712613065178,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -17.94082524796435,
+        "heldout_expected_score_mae": 1.0564899146606235,
+        "heldout_expected_score_rmse": 1.098444788208337
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold3_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "missing_loading_revised_q_fold4_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "missing_loading_revised_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold4",
+      "fold": 4,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026371704
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0031308521947038,
+        "min_ess": 1689.6614628144785,
+        "e_bfmi": 0.9471158333775851,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -16.916412104700598,
+        "heldout_expected_score_mae": 1.1004145586591292,
+        "heldout_expected_score_rmse": 1.2346298117704582
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold4_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "missing_loading_revised_q_fold5_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "missing_loading_revised_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold5",
+      "fold": 5,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026371705
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0017668179195012,
+        "min_ess": 1971.4415935584077,
+        "e_bfmi": 0.9443395863542093,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -17.801627544278965,
+        "heldout_expected_score_mae": 1.0105405543577333,
+        "heldout_expected_score_rmse": 1.0800757402056484
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold5_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "rater_method_noise_fold1_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "rater_method_noise",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "rater_method_noise__construct_reviewed_revised_q_mgmfrm__fold1",
+      "fold": 1,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026372701
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0018918414748843,
+        "min_ess": 1695.1919609056538,
+        "e_bfmi": 0.9170245216931001,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -17.536715620631078,
+        "heldout_expected_score_mae": 1.1446035447277927,
+        "heldout_expected_score_rmse": 1.2602335405349483
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/rater_method_noise__construct_reviewed_revised_q_mgmfrm__fold1_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "rater_method_noise_fold2_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "rater_method_noise",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "rater_method_noise__construct_reviewed_revised_q_mgmfrm__fold2",
+      "fold": 2,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026372702
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0035130232042921,
+        "min_ess": 1852.3715249555428,
+        "e_bfmi": 0.9314372871822736,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -18.2961829741067,
+        "heldout_expected_score_mae": 1.0330018001733356,
+        "heldout_expected_score_rmse": 1.0966896043076502
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/rater_method_noise__construct_reviewed_revised_q_mgmfrm__fold2_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "rater_method_noise_fold3_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "rater_method_noise",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "rater_method_noise__construct_reviewed_revised_q_mgmfrm__fold3",
+      "fold": 3,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026372703
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.001997731035781,
+        "min_ess": 1798.6424566628045,
+        "e_bfmi": 0.9745107883913929,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -13.294856612931314,
+        "heldout_expected_score_mae": 1.0853184299833256,
+        "heldout_expected_score_rmse": 1.197940433400219
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/rater_method_noise__construct_reviewed_revised_q_mgmfrm__fold3_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "rater_method_noise_fold4_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "rater_method_noise",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "rater_method_noise__construct_reviewed_revised_q_mgmfrm__fold4",
+      "fold": 4,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026372704
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0017096082008679,
+        "min_ess": 1709.7579992173557,
+        "e_bfmi": 0.8342087131500506,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -11.735814295493954,
+        "heldout_expected_score_mae": 0.6622283900169862,
+        "heldout_expected_score_rmse": 0.9195343933959612
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/rater_method_noise__construct_reviewed_revised_q_mgmfrm__fold4_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "rater_method_noise_fold5_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "rater_method_noise",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "rater_method_noise__construct_reviewed_revised_q_mgmfrm__fold5",
+      "fold": 5,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026372705
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0033024765450267,
+        "min_ess": 2469.181298895187,
+        "e_bfmi": 0.9118501960439916,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -17.644589483430778,
+        "heldout_expected_score_mae": 1.0509738353044868,
+        "heldout_expected_score_rmse": 1.0954619840114441
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/rater_method_noise__construct_reviewed_revised_q_mgmfrm__fold5_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "sparse_signal_current_q_fold1_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "sparse_signal_current_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "sparse_signal_current_q__construct_reviewed_revised_q_mgmfrm__fold1",
+      "fold": 1,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026373701
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0022248726866552,
+        "min_ess": 1757.0492507172362,
+        "e_bfmi": 0.9059423925221962,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -14.660552270356996,
+        "heldout_expected_score_mae": 0.8762430968474906,
+        "heldout_expected_score_rmse": 0.989097781879287
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/sparse_signal_current_q__construct_reviewed_revised_q_mgmfrm__fold1_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "sparse_signal_current_q_fold2_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "sparse_signal_current_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "sparse_signal_current_q__construct_reviewed_revised_q_mgmfrm__fold2",
+      "fold": 2,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026373702
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0022428120744407,
+        "min_ess": 1208.3040589597274,
+        "e_bfmi": 0.9723172651425722,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -13.89188318999227,
+        "heldout_expected_score_mae": 1.148965252372973,
+        "heldout_expected_score_rmse": 1.2484021883618062
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/sparse_signal_current_q__construct_reviewed_revised_q_mgmfrm__fold2_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "sparse_signal_current_q_fold3_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "sparse_signal_current_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "sparse_signal_current_q__construct_reviewed_revised_q_mgmfrm__fold3",
+      "fold": 3,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026373703
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0091157507458468,
+        "min_ess": 605.1565245673509,
+        "e_bfmi": 0.9205091194108201,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -12.462116773741318,
+        "heldout_expected_score_mae": 0.789170703984137,
+        "heldout_expected_score_rmse": 0.9844929641435303
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/sparse_signal_current_q__construct_reviewed_revised_q_mgmfrm__fold3_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "sparse_signal_current_q_fold4_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "sparse_signal_current_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "sparse_signal_current_q__construct_reviewed_revised_q_mgmfrm__fold4",
+      "fold": 4,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026373704
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0025026657781755,
+        "min_ess": 2087.1679714263973,
+        "e_bfmi": 0.8860901895205563,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -19.391137296585956,
+        "heldout_expected_score_mae": 1.056265922704748,
+        "heldout_expected_score_rmse": 1.1056532507247638
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/sparse_signal_current_q__construct_reviewed_revised_q_mgmfrm__fold4_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "sparse_signal_current_q_fold5_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "sparse_signal_current_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "sparse_signal_current_q__construct_reviewed_revised_q_mgmfrm__fold5",
+      "fold": 5,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026373705
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0016030587164158,
+        "min_ess": 2268.64879997978,
+        "e_bfmi": 0.9035794345357288,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -21.58148626970862,
+        "heldout_expected_score_mae": 1.2245334472237885,
+        "heldout_expected_score_rmse": 1.334322475851507
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/sparse_signal_current_q__construct_reviewed_revised_q_mgmfrm__fold5_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "weak_dimension_ambiguous_fold1_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "weak_dimension_ambiguous",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "weak_dimension_ambiguous__construct_reviewed_revised_q_mgmfrm__fold1",
+      "fold": 1,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026374701
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.001303990971031,
+        "min_ess": 2001.3356023563063,
+        "e_bfmi": 0.9047344420016813,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -16.210975646445995,
+        "heldout_expected_score_mae": 0.8963552870340258,
+        "heldout_expected_score_rmse": 0.9771571646291946
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/weak_dimension_ambiguous__construct_reviewed_revised_q_mgmfrm__fold1_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "weak_dimension_ambiguous_fold2_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "weak_dimension_ambiguous",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "weak_dimension_ambiguous__construct_reviewed_revised_q_mgmfrm__fold2",
+      "fold": 2,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026374702
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0020724577848765,
+        "min_ess": 2280.829560675844,
+        "e_bfmi": 0.9480183393747396,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -10.186722366678245,
+        "heldout_expected_score_mae": 0.8724778559916875,
+        "heldout_expected_score_rmse": 0.9681807188913323
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/weak_dimension_ambiguous__construct_reviewed_revised_q_mgmfrm__fold2_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "weak_dimension_ambiguous_fold3_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "weak_dimension_ambiguous",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "weak_dimension_ambiguous__construct_reviewed_revised_q_mgmfrm__fold3",
+      "fold": 3,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026374703
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0019116171457914,
+        "min_ess": 2703.9682167537153,
+        "e_bfmi": 0.995839798940128,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -13.036061443116644,
+        "heldout_expected_score_mae": 0.8966831563148828,
+        "heldout_expected_score_rmse": 0.9793010276111447
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/weak_dimension_ambiguous__construct_reviewed_revised_q_mgmfrm__fold3_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "weak_dimension_ambiguous_fold4_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "weak_dimension_ambiguous",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "weak_dimension_ambiguous__construct_reviewed_revised_q_mgmfrm__fold4",
+      "fold": 4,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026374704
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0016701258091008,
+        "min_ess": 1744.950793062606,
+        "e_bfmi": 1.0251985020983334,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -16.856088646922764,
+        "heldout_expected_score_mae": 1.0591565650690216,
+        "heldout_expected_score_rmse": 1.169016223089207
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/weak_dimension_ambiguous__construct_reviewed_revised_q_mgmfrm__fold4_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "weak_dimension_ambiguous_fold5_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "weak_dimension_ambiguous",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "weak_dimension_ambiguous__construct_reviewed_revised_q_mgmfrm__fold5",
+      "fold": 5,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026374705
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0014815245782518,
+        "min_ess": 2328.8523922283857,
+        "e_bfmi": 0.9501350560462127,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -8.502182398851838,
+        "heldout_expected_score_mae": 0.5711974001613764,
+        "heldout_expected_score_rmse": 0.7067156491833967
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/weak_dimension_ambiguous__construct_reviewed_revised_q_mgmfrm__fold5_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "well_specified_current_q_fold1_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "well_specified_current_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold1",
+      "fold": 1,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026375701
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.003008359484065,
+        "min_ess": 1903.8186583146328,
+        "e_bfmi": 0.9010189731039908,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -11.774989736873781,
+        "heldout_expected_score_mae": 0.6609367522415043,
+        "heldout_expected_score_rmse": 0.919055512847892
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_extended_budget_followup/draws_only_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "well_specified_current_q_fold2_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "well_specified_current_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold2",
+      "fold": 2,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026375702
+      },
+      "local_gate_passed": false,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": false,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "sampler_warning",
+      "fit_diagnostic_passed": false,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0034817809997079,
+        "min_ess": 2496.3162502948094,
+        "e_bfmi": 0.8281855851576145,
+        "n_divergences": 1,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -17.55748765315136,
+        "heldout_expected_score_mae": 1.0501986486398787,
+        "heldout_expected_score_rmse": 1.0945215597335
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_scenario_replication/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold2_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "well_specified_current_q_fold3_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "well_specified_current_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold3",
+      "fold": 3,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026375703
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0019699163521385,
+        "min_ess": 1780.640588237519,
+        "e_bfmi": 0.9398283149774389,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -17.414069518211875,
+        "heldout_expected_score_mae": 1.1423916421409221,
+        "heldout_expected_score_rmse": 1.2588087825499819
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_scenario_replication/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold3_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "well_specified_current_q_fold4_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "well_specified_current_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold4",
+      "fold": 4,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026375704
+      },
+      "local_gate_passed": false,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": false,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "sampler_warning",
+      "fit_diagnostic_passed": false,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.002306871488902,
+        "min_ess": 2056.006712314818,
+        "e_bfmi": 0.9426989576604856,
+        "n_divergences": 1,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -18.00206203307478,
+        "heldout_expected_score_mae": 1.0311265160638603,
+        "heldout_expected_score_rmse": 1.093857747146791
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold4_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "well_specified_current_q_fold5_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "well_specified_current_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold5",
+      "fold": 5,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026375705
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0036076639748703,
+        "min_ess": 1845.810706636008,
+        "e_bfmi": 0.9389900060918521,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -13.319443995507461,
+        "heldout_expected_score_mae": 1.0844268346283719,
+        "heldout_expected_score_rmse": 1.1959124727257318
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold5_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    }
+  ],
+  "default_geometry_failure_rows": [
+    {
+      "profile": "well_specified_current_q_fold2_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "well_specified_current_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold2",
+      "fold": 2,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026375702
+      },
+      "local_gate_passed": false,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": false,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "sampler_warning",
+      "fit_diagnostic_passed": false,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0034817809997079,
+        "min_ess": 2496.3162502948094,
+        "e_bfmi": 0.8281855851576145,
+        "n_divergences": 1,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -17.55748765315136,
+        "heldout_expected_score_mae": 1.0501986486398787,
+        "heldout_expected_score_rmse": 1.0945215597335
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_scenario_replication/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold2_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "well_specified_current_q_fold4_4_128_1000_ta080",
+      "role": "default_4_128_1000",
+      "scenario": "well_specified_current_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold4",
+      "fold": 4,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026375704
+      },
+      "local_gate_passed": false,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": false,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "sampler_warning",
+      "fit_diagnostic_passed": false,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.002306871488902,
+        "min_ess": 2056.006712314818,
+        "e_bfmi": 0.9426989576604856,
+        "n_divergences": 1,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -18.00206203307478,
+        "heldout_expected_score_mae": 1.0311265160638603,
+        "heldout_expected_score_rmse": 1.093857747146791
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold4_4_128_1000_ta080_result.json",
+      "public_claim_allowed": false
+    }
+  ],
+  "remediation_rows": [
+    {
+      "profile": "well_specified_current_q_fold2_4_128_1000_ta090",
+      "role": "target_acceptance_geometry_remediation",
+      "scenario": "well_specified_current_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold2",
+      "fold": 2,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.9,
+        "seed": 2026375702
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0033941138892781,
+        "min_ess": 2062.1277579672887,
+        "e_bfmi": 0.9188869555428051,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -17.59285368387755,
+        "heldout_expected_score_mae": 1.0475185016668853,
+        "heldout_expected_score_rmse": 1.0915476889932112
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_scenario_replication/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold2_4_128_1000_ta090_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "well_specified_current_q_fold2_4_256_1000_ta080",
+      "role": "warmup_geometry_remediation",
+      "scenario": "well_specified_current_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold2",
+      "fold": 2,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 256,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026375702
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0013516979545556,
+        "min_ess": 2697.816144427965,
+        "e_bfmi": 0.8745248849207222,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -17.781229665625382,
+        "heldout_expected_score_mae": 1.0490436188550554,
+        "heldout_expected_score_rmse": 1.093301207453701
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_scenario_replication/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold2_4_256_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "well_specified_current_q_fold2_4_256_1000_ta090",
+      "role": "combined_geometry_remediation",
+      "scenario": "well_specified_current_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold2",
+      "fold": 2,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 256,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.9,
+        "seed": 2026375702
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0032076107852421,
+        "min_ess": 2438.309358152744,
+        "e_bfmi": 0.9125712223960184,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -17.48933968334597,
+        "heldout_expected_score_mae": 1.0438087372117533,
+        "heldout_expected_score_rmse": 1.0877117266215566
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_scenario_replication/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold2_4_256_1000_ta090_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "well_specified_current_q_fold4_4_128_1000_ta090",
+      "role": "target_acceptance_geometry_remediation",
+      "scenario": "well_specified_current_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold4",
+      "fold": 4,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 128,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.9,
+        "seed": 2026375704
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.002211403150681,
+        "min_ess": 2656.5230444926738,
+        "e_bfmi": 0.9442573428697487,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -18.034497600511923,
+        "heldout_expected_score_mae": 1.029283720300275,
+        "heldout_expected_score_rmse": 1.0928135719102445
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold4_4_128_1000_ta090_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "well_specified_current_q_fold4_4_256_1000_ta080",
+      "role": "warmup_geometry_remediation",
+      "scenario": "well_specified_current_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold4",
+      "fold": 4,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 256,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.8,
+        "seed": 2026375704
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.0024473575772312,
+        "min_ess": 2042.306748487398,
+        "e_bfmi": 0.9099588462239361,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -17.953886935188986,
+        "heldout_expected_score_mae": 1.0261708857551106,
+        "heldout_expected_score_rmse": 1.0905841787667214
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold4_4_256_1000_ta080_result.json",
+      "public_claim_allowed": false
+    },
+    {
+      "profile": "well_specified_current_q_fold4_4_256_1000_ta090",
+      "role": "combined_geometry_remediation",
+      "scenario": "well_specified_current_q",
+      "model": "construct_reviewed_revised_q_mgmfrm",
+      "execution_unit_id": "well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold4",
+      "fold": 4,
+      "controls": {
+        "chains": 4,
+        "warmup_per_chain": 256,
+        "draws_per_chain": 1000,
+        "target_acceptance": 0.9,
+        "seed": 2026375704
+      },
+      "local_gate_passed": true,
+      "local_control_passed": true,
+      "local_rank_passed": true,
+      "local_ess_passed": true,
+      "local_geometry_passed": true,
+      "local_finite_passed": true,
+      "local_ppc_passed": true,
+      "diagnostic_flag": "ok",
+      "fit_diagnostic_passed": true,
+      "publication_gate_passed": false,
+      "metrics": {
+        "max_rhat": 1.001154518516888,
+        "min_ess": 2167.213860964664,
+        "e_bfmi": 0.9530286988869286,
+        "n_divergences": 0,
+        "n_max_treedepth": 0,
+        "heldout_elpd": -18.02926558917189,
+        "heldout_expected_score_mae": 1.0270391523842612,
+        "heldout_expected_score_rmse": 1.0912585024137382
+      },
+      "artifact_path": "artifacts/construct_reviewed_revised_q_1000_draw_geometry_branch_expansion/well_specified_current_q__construct_reviewed_revised_q_mgmfrm__fold4_4_256_1000_ta090_result.json",
+      "public_claim_allowed": false
+    }
+  ],
+  "missing_loading_publication_comparator_rows": [
+    {
+      "scenario": "missing_loading_revised_q",
+      "fold": 1,
+      "light_profile": "missing_loading_revised_q_fold1_4_128_1000_ta080",
+      "heavy_profile": "missing_loading_revised_q_fold1_4_500_1000_ta080",
+      "light_local_gate_passed": true,
+      "heavy_local_gate_passed": true,
+      "heavy_publication_gate_passed": true,
+      "light_heldout_elpd": -13.90650417151769,
+      "heavy_heldout_elpd": -13.890467429280312,
+      "heldout_elpd_delta": -0.01603674223737883,
+      "light_heldout_expected_score_mae": 1.0990653312747019,
+      "heavy_heldout_expected_score_mae": 1.096225975223712,
+      "heldout_expected_score_mae_delta": 0.0028393560509898386,
+      "light_max_rhat": 1.0024807728629965,
+      "heavy_max_rhat": 1.0022513495849938,
+      "light_n_divergences": 0,
+      "heavy_n_divergences": 0,
+      "heavy_artifact_path": "artifacts/publication_grade_refit_batch/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold1_result.json"
+    },
+    {
+      "scenario": "missing_loading_revised_q",
+      "fold": 2,
+      "light_profile": "missing_loading_revised_q_fold2_4_128_1000_ta080",
+      "heavy_profile": "missing_loading_revised_q_fold2_4_500_1000_ta080",
+      "light_local_gate_passed": true,
+      "heavy_local_gate_passed": true,
+      "heavy_publication_gate_passed": true,
+      "light_heldout_elpd": -11.347001163276378,
+      "heavy_heldout_elpd": -11.333666088870645,
+      "heldout_elpd_delta": -0.013335074405732783,
+      "light_heldout_expected_score_mae": 0.6661645631388444,
+      "heavy_heldout_expected_score_mae": 0.6642011181115135,
+      "heldout_expected_score_mae_delta": 0.0019634450273309234,
+      "light_max_rhat": 1.0033587454260364,
+      "heavy_max_rhat": 1.0031758541550988,
+      "light_n_divergences": 0,
+      "heavy_n_divergences": 0,
+      "heavy_artifact_path": "artifacts/publication_grade_refit_batch/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold2_result.json"
+    },
+    {
+      "scenario": "missing_loading_revised_q",
+      "fold": 3,
+      "light_profile": "missing_loading_revised_q_fold3_4_128_1000_ta080",
+      "heavy_profile": "missing_loading_revised_q_fold3_4_500_1000_ta080",
+      "light_local_gate_passed": true,
+      "heavy_local_gate_passed": true,
+      "heavy_publication_gate_passed": true,
+      "light_heldout_elpd": -17.94082524796435,
+      "heavy_heldout_elpd": -17.8290389472739,
+      "heldout_elpd_delta": -0.1117863006904507,
+      "light_heldout_expected_score_mae": 1.0564899146606235,
+      "heavy_heldout_expected_score_mae": 1.0499034683504567,
+      "heldout_expected_score_mae_delta": 0.006586446310166805,
+      "light_max_rhat": 1.0014093081515858,
+      "heavy_max_rhat": 1.0014967304924876,
+      "light_n_divergences": 0,
+      "heavy_n_divergences": 0,
+      "heavy_artifact_path": "artifacts/publication_grade_refit_batch/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold3_result.json"
+    },
+    {
+      "scenario": "missing_loading_revised_q",
+      "fold": 4,
+      "light_profile": "missing_loading_revised_q_fold4_4_128_1000_ta080",
+      "heavy_profile": "missing_loading_revised_q_fold4_4_500_1000_ta080",
+      "light_local_gate_passed": true,
+      "heavy_local_gate_passed": true,
+      "heavy_publication_gate_passed": true,
+      "light_heldout_elpd": -16.916412104700598,
+      "heavy_heldout_elpd": -16.74611710810688,
+      "heldout_elpd_delta": -0.17029499659371794,
+      "light_heldout_expected_score_mae": 1.1004145586591292,
+      "heavy_heldout_expected_score_mae": 1.0965963549375666,
+      "heldout_expected_score_mae_delta": 0.0038182037215626075,
+      "light_max_rhat": 1.0031308521947038,
+      "heavy_max_rhat": 1.003921757001741,
+      "light_n_divergences": 0,
+      "heavy_n_divergences": 0,
+      "heavy_artifact_path": "artifacts/publication_grade_refit_batch/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold4_result.json"
+    },
+    {
+      "scenario": "missing_loading_revised_q",
+      "fold": 5,
+      "light_profile": "missing_loading_revised_q_fold5_4_128_1000_ta080",
+      "heavy_profile": "missing_loading_revised_q_fold5_4_500_1000_ta080",
+      "light_local_gate_passed": true,
+      "heavy_local_gate_passed": true,
+      "heavy_publication_gate_passed": true,
+      "light_heldout_elpd": -17.801627544278965,
+      "heavy_heldout_elpd": -18.104776253107982,
+      "heldout_elpd_delta": 0.303148708829017,
+      "light_heldout_expected_score_mae": 1.0105405543577333,
+      "heavy_heldout_expected_score_mae": 1.0137731913478505,
+      "heldout_expected_score_mae_delta": -0.0032326369901172214,
+      "light_max_rhat": 1.0017668179195012,
+      "heavy_max_rhat": 1.0009983228513653,
+      "light_n_divergences": 0,
+      "heavy_n_divergences": 0,
+      "heavy_artifact_path": "artifacts/publication_grade_refit_batch/missing_loading_revised_q__construct_reviewed_revised_q_mgmfrm__fold5_result.json"
+    }
+  ],
+  "scenario_summary_rows": [
+    {
+      "scenario": "missing_loading_revised_q",
+      "n_default_profiles": 5,
+      "n_default_local_gate_passed": 5,
+      "n_default_rank_passed": 5,
+      "n_default_geometry_passed": 5,
+      "total_divergences": 0,
+      "max_rhat": 1.0033587454260364,
+      "min_ess": 1609.8388794782168,
+      "min_ebfmi": 0.9300206519417717,
+      "public_claim_allowed": false
+    },
+    {
+      "scenario": "rater_method_noise",
+      "n_default_profiles": 5,
+      "n_default_local_gate_passed": 5,
+      "n_default_rank_passed": 5,
+      "n_default_geometry_passed": 5,
+      "total_divergences": 0,
+      "max_rhat": 1.0035130232042921,
+      "min_ess": 1695.1919609056538,
+      "min_ebfmi": 0.8342087131500506,
+      "public_claim_allowed": false
+    },
+    {
+      "scenario": "sparse_signal_current_q",
+      "n_default_profiles": 5,
+      "n_default_local_gate_passed": 5,
+      "n_default_rank_passed": 5,
+      "n_default_geometry_passed": 5,
+      "total_divergences": 0,
+      "max_rhat": 1.0091157507458468,
+      "min_ess": 605.1565245673509,
+      "min_ebfmi": 0.8860901895205563,
+      "public_claim_allowed": false
+    },
+    {
+      "scenario": "weak_dimension_ambiguous",
+      "n_default_profiles": 5,
+      "n_default_local_gate_passed": 5,
+      "n_default_rank_passed": 5,
+      "n_default_geometry_passed": 5,
+      "total_divergences": 0,
+      "max_rhat": 1.0020724577848765,
+      "min_ess": 1744.950793062606,
+      "min_ebfmi": 0.9047344420016813,
+      "public_claim_allowed": false
+    },
+    {
+      "scenario": "well_specified_current_q",
+      "n_default_profiles": 5,
+      "n_default_local_gate_passed": 3,
+      "n_default_rank_passed": 5,
+      "n_default_geometry_passed": 3,
+      "total_divergences": 2,
+      "max_rhat": 1.0036076639748703,
+      "min_ess": 1780.640588237519,
+      "min_ebfmi": 0.8281855851576145,
+      "public_claim_allowed": false
+    }
+  ],
+  "finding_rows": [
+    {
+      "finding": "full_default_1000_draw_rank_replicated",
+      "severity": "info",
+      "evidence": "25/25 default profiles passed rank; max R-hat = 1.0091",
+      "implication": "retain_1000_draw_rank_guidance_candidate",
+      "public_claim_allowed": false
+    },
+    {
+      "finding": "default_geometry_failures_localized",
+      "severity": "warning",
+      "evidence": "2 default geometry failures; all in well_specified_current_q = true",
+      "implication": "use_geometry_branch_instead_of_rank_budget_change",
+      "public_claim_allowed": false
+    },
+    {
+      "finding": "geometry_remediation_branch_cleared_failures",
+      "severity": "info",
+      "evidence": "6/6 remediation profiles passed",
+      "implication": "target_acceptance_or_warmup_sensitivity_can_clear_divergent_cells",
+      "public_claim_allowed": false
+    },
+    {
+      "finding": "missing_loading_lightweight_close_to_heavy_comparator",
+      "severity": "info",
+      "evidence": "max abs dELPD vs 4/500/1000 = 0.3031",
+      "implication": "lightweight_profile_tracks_heavy_reference_descriptively_in_this_scenario",
+      "public_claim_allowed": false
+    },
+    {
+      "finding": "public_claims_remain_blocked",
+      "severity": "blocker",
+      "evidence": "local_synthetic_construct_reviewed_revised_q_diagnostic_only",
+      "implication": "connect_to_model_comparison_category_calibration_and_external_construct_evidence",
+      "public_claim_allowed": false
+    }
+  ],
+  "summary": {
+    "passed": true,
+    "n_default_profiles": 25,
+    "n_default_local_gate_passed": 23,
+    "n_default_rank_passed": 25,
+    "n_default_ess_passed": 25,
+    "n_default_geometry_passed": 23,
+    "default_1000_draw_rank_replicated": true,
+    "default_1000_draw_geometry_clean": false,
+    "n_default_local_failures": 2,
+    "n_default_geometry_failure_cells": 2,
+    "all_default_geometry_failures_in_well_specified_current_q": true,
+    "max_default_rhat": 1.0091157507458468,
+    "min_default_ess": 605.1565245673509,
+    "min_default_ebfmi": 0.8281855851576145,
+    "total_default_divergences": 2,
+    "n_remediation_profiles": 6,
+    "n_remediation_profiles_passed": 6,
+    "all_remediation_profiles_passed": true,
+    "target_acceptance_0p9_cleared_all_geometry_failures": true,
+    "warmup_256_cleared_all_geometry_failures": true,
+    "combined_256_0p9_cleared_all_geometry_failures": true,
+    "n_missing_loading_publication_comparisons": 5,
+    "max_abs_missing_loading_light_vs_heavy_heldout_elpd_delta": 0.303148708829017,
+    "mean_missing_loading_light_vs_heavy_heldout_elpd_delta": -0.0016608810196526492,
+    "max_abs_missing_loading_light_vs_heavy_mae_delta": 0.006586446310166805,
+    "no_public_fit_metric_claim": true,
+    "no_public_q_revision_claim": true,
+    "no_automatic_q_revision": true,
+    "no_public_model_weight_claim": true,
+    "no_sparse_mgmfrm_superiority_claim": true,
+    "recommendation": "retain_1000_draw_rank_guidance_with_geometry_remediation_branch",
+    "next_gate": "join_construct_reviewed_revised_q_budget_diagnostics_to_model_comparison_and_calibration"
+  }
+}

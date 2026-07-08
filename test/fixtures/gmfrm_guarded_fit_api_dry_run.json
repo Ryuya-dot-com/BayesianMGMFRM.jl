@@ -267,7 +267,7 @@
       "artifact": "test/fixtures/gmfrm_candidate_chain_study.json",
       "reference_kind": "local_file",
       "exists": true,
-      "sha256": "c4985c9822fe6b0e9f680184830e3a4836b4527429dd4a19f3bcc07e5d8b35cb"
+      "sha256": "432dc1b82bb91cfd8e5ea788701feba370b45c31d2522c2037e93264a3b7219c"
     },
     {
       "evidence": "recovery_smoke_study",
@@ -307,7 +307,7 @@
       "artifact": "test/fixtures/gmfrm_stress_chain_grid.json",
       "reference_kind": "local_file",
       "exists": true,
-      "sha256": "60f73c2e7876161d658a71d4e513b2da672f105860571fe789a5cd46d93f8a81"
+      "sha256": "2a717e4735f57740174de12308594153b0546c13bd3e070ae11d182a746e7865"
     },
     {
       "evidence": "baseline_comparison",
@@ -331,7 +331,7 @@
       "artifact": "test/fixtures/gmfrm_interval_decision_grid.json",
       "reference_kind": "local_file",
       "exists": true,
-      "sha256": "59c9aa4dba2e06b8fc14f18826e04e3686aa5b6581b885988e344776d5e4f87b"
+      "sha256": "3b7cfde575c915d85fab1588323eafe8087ac7864d948c7a6039466281c108f7"
     },
     {
       "evidence": "sparse_design_grid",
@@ -339,7 +339,7 @@
       "artifact": "test/fixtures/gmfrm_sparse_design_grid.json",
       "reference_kind": "local_file",
       "exists": true,
-      "sha256": "8302c301121551afd7d7ab07915818a7974383827bc2cbdfcad552136d5f5eeb"
+      "sha256": "1bd6662fdf3cdab18442eda3683d5e47706534d94fab3811d8382d91c3188651"
     },
     {
       "evidence": "waic_influence_review",
@@ -387,7 +387,7 @@
       "artifact": "test/fixtures/gmfrm_guarded_fit_method_wiring.json",
       "reference_kind": "local_file",
       "exists": true,
-      "sha256": "acba1d6449b00bb9d30e6f9f4eda5f540490b918471fb910786ee536f2a67a79"
+      "sha256": "0c5c7cef938e244980adbfff4c25e9ce96bf9c858d1eda289b8e3d6a44af5276"
     },
     {
       "evidence": "experimental_fit_validation_grid",
@@ -395,7 +395,7 @@
       "artifact": "test/fixtures/gmfrm_experimental_fit_validation_grid.json",
       "reference_kind": "local_file",
       "exists": true,
-      "sha256": "f748c1789f430438a12ebd7f6b8c1f6b170066c2ac79a1a0fee11a38d80fdb7d"
+      "sha256": "4bda1eec968993887b2497a34be0277d6d8bdc76e99b145f4a3dd78d2214ce97"
     },
     {
       "evidence": "posterior_predictive_grid",
@@ -403,7 +403,7 @@
       "artifact": "test/fixtures/gmfrm_posterior_predictive_grid.json",
       "reference_kind": "local_file",
       "exists": true,
-      "sha256": "6a65d9de506e97611277b527567dda913e95e45638067eaa097186ea1bb68866"
+      "sha256": "e5d4075ccfd7c321f6549875e7758a20177907bfefebf0bdfbd68f9472e37953"
     },
     {
       "evidence": "sparse_pathology_recovery_grid",
@@ -411,7 +411,7 @@
       "artifact": "test/fixtures/gmfrm_sparse_pathology_recovery_grid.json",
       "reference_kind": "local_file",
       "exists": true,
-      "sha256": "5420b21c1f116ef0fe1e4a1d88fdcab04297d375937415e25f2e6768cdcd012b"
+      "sha256": "912072c18980a96b9037c4ca0028a429f8e78d9e2decfebbb869bf9984932d94"
     },
     {
       "evidence": "prior_likelihood_sensitivity_grid",
@@ -419,7 +419,7 @@
       "artifact": "test/fixtures/gmfrm_prior_likelihood_sensitivity_grid.json",
       "reference_kind": "local_file",
       "exists": true,
-      "sha256": "b120b55f6d915b5c1eba87da88d41fba618f4d4a67699efdebd603c65d91fbdf"
+      "sha256": "167a262230a2f6f879fce598e674d544812107fb0d0fedb4415c287e04af6c41"
     },
     {
       "evidence": "real_data_case_study",
@@ -427,7 +427,7 @@
       "artifact": "test/fixtures/gmfrm_real_data_case_study.json",
       "reference_kind": "local_file",
       "exists": true,
-      "sha256": "f72415c0d5ff55d4f4fe1cadf553845250669cb0065286afd2887cba82167d29"
+      "sha256": "fdf0895574506267f8680e90524d3353d2166059315d9a409e21fd973acc9847"
     },
     {
       "evidence": "claim_recovery_reproduction_archive",
@@ -467,7 +467,7 @@
       "artifact": "test/fixtures/gmfrm_dff_estimand_validation_grid.json",
       "reference_kind": "local_file",
       "exists": true,
-      "sha256": "3114ba9b6d76e8741265127c9543c6d8a09a99cfb0e2355030607bd5d55b7b9e"
+      "sha256": "279d2600dfa1a0697e84b08bde6410533dc1aed0ee61cfa9e2849a0e9a420be7"
     },
     {
       "evidence": "manuscript_scale_simulation_grid",
@@ -507,7 +507,7 @@
       "artifact": "docs/src/fitting.md#guarded-generalized-model-caveats",
       "reference_kind": "local_file",
       "exists": true,
-      "sha256": "f81cac5d5582ccf7d5af929c1225886b93163371b29abdd7b985ace096fc19e1"
+      "sha256": "679f830166625bdadb0b0bfb24d61bdde7152c02116010103d1127e08615d8fd"
     }
   ],
   "target_dry_run": {
@@ -704,7 +704,9 @@
     "n_evidence_references": 35,
     "target_logdensity_finite": true,
     "target_diagnostics_passed": true,
-    "remaining_public_blockers": [],
+    "remaining_public_blockers": [
+
+    ],
     "recommendation": "full_archive_recorded_keep_guarded_scalar_gmfrm_only",
     "next_gate": "manual_publication_or_registration_by_user_only"
   }

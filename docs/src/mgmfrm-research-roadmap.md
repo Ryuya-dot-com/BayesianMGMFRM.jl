@@ -75,7 +75,7 @@ At the local level, each topic has a specific near-term decision.
 | Model comparison | WAIC, raw LOO, PSIS-LOO, K-fold, and shared-plan refit comparison rows exist. | Keep comparison rows diagnostic in `v0.1.1`; require prediction-target statements, Pareto-k/refit or K-fold follow-up, and no model-weight/superiority language. |
 | Visualization | The package returns plotting-ready rows for recovery, calibration, PPC, threshold maps, coverage matrices, rater overlap, and Wright maps. | In `v0.1.1`, stabilize plot-data schemas and documentation examples; defer backend-specific recipes until the report data contract is stable. |
 | Category functioning | Rating-scale and partial-credit interpretations can fail when categories are skipped, disordered, sparse, or used differently by raters. | Add category-functioning rows that separate observed category use, posterior threshold/step uncertainty, predictive category replication, and any category-collapsing recommendation. Recommendations should be diagnostic, not automatic data editing. |
-| Missingness and rater assignment | MFRM assumes the observed rating graph can support the intended facet comparisons; nonrandom assignment, planned missingness, and time/order effects can change what is identifiable. | Add a rating-design audit: structural missingness, accidental missingness, disconnectedness, anchor coverage, repeated ratings, time/order fields, and warnings that current models do not correct nonignorable assignment unless an explicit assignment model is introduced. |
+| Missingness and rater assignment | MFRM assumes the observed rating graph can support the intended facet comparisons; nonrandom assignment, planned missingness, and time/order effects can change what is identifiable. | Add rating-design review rows: structural missingness, accidental missingness, disconnectedness, anchor coverage, repeated ratings, time/order fields, and warnings that current models do not correct nonignorable assignment unless an explicit assignment model is introduced. |
 | Binary responses and multi-facet IRT | The current MFRM family includes two-category responses as the dichotomous Rasch special case with additional facet terms. Guarded generalized paths add discrimination/consistency terms that move beyond strict Rasch measurement. | Document the binary bridge explicitly: MFRM is a many-facet one-parameter logistic IRT model; GMFRM/MGMFRM with item discrimination, rater consistency, or multidimensional Q-masked loadings should be labelled generalized or 2PL/GPCM-like, not strict Rasch. |
 | Infit, outfit, and FACETS degrees of freedom | `fit_stats` currently returns posterior infit/outfit mean-square summaries for minimal MFRM fits; generalized paths do not yet expose full FACETS-style fit tables or ZSTD degrees-of-freedom approximations. | Keep posterior infit/outfit as the default Bayesian residual diagnostic. Add a separate FACETS-compatibility policy that records MNSQ formula, `outfit_df`, `infit_information`, optional Wilson-Hilferty/ZSTD approximation, and clear warnings when posterior uncertainty or generalized discrimination makes FACETS degrees of freedom only approximate. |
 | DFF and bias | DFF is validation and screening only: sparse/empty/confounded cells, grouped PPC rows, and posterior predictive interaction residuals. | Keep fitted DFF effects blocked through `v0.1.1`; use DFF rows for triage, design repair, and sensitivity planning, not unfairness or causal claims. |
@@ -142,15 +142,57 @@ threshold-profile sensitivity, Q-recovery risk, parameter-shift absorption, and
 observed-versus-expected fold-1 rank matches while keeping public fit,
 Q-revision, model-weight, and sparse-superiority claims blocked.
 
-The next small-step fixture is now
-`mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring`. It expands the fixed-Q
-MGMFRM candidate scoring from fold 1 to all five folds, records 75 candidate
-score rows and 600 pointwise heldout rows, and marks the fixed-Q candidate
-batch complete. It is still not a public model-selection result: scalar/null
-anchor refits, publication-grade chains and draws, and external construct
-validation remain unresolved. The next gate is therefore scalar/reference
-anchor refits or an external construct-validation dataset, not a model-weight
-or sparse-superiority claim.
+The latest small-step fixture is
+`mgmfrm_full_heldout_mcmc_refit_anchor_scoring`. It scores the scalar GMFRM and
+intercept/reference anchors across all five folds, joins those 50 anchor score
+rows to the 75 fixed-Q candidate score rows, and records a descriptive 125-unit
+k-fold comparison. It is still not a public model-selection result:
+publication-grade chains and draws, the analytic-reference-versus-MCMC boundary,
+and external construct validation remain unresolved. The next gate is therefore
+publication-grade refit diagnostics or an external construct-validation dataset,
+not a model-weight or sparse-superiority claim.
+
+### Uto-Style Inconsistency Diagnosis
+
+The local Uto-style diagnostics now clarify an important failure mode. The
+current compact batch can favor the Null/intercept reference, but that should
+not be read as a basic contradiction of Uto-style GMFRM/MGMFRM conclusions.
+When the data are generated from a source-aligned strong multidimensional
+condition, the guarded fixed-Q true-Q MGMFRM recovers the expected direction
+after MCMC.
+
+The evidence is deliberately local and bounded:
+
+| Diagnostic layer | Result | Roadmap interpretation |
+| --- | --- | --- |
+| Large Uto-style oracle | True-Q oracle dELPD vs Null `+417.079`. | Strong multidimensional signal and design support reproduce the expected direction. |
+| Compact weak oracle | True-Q oracle dELPD vs Null `+4.195`. | Small margins can be overturned by estimation, prior, calibration, or support losses. |
+| Source-aligned small MCMC | True-Q MCMC dELPD `+9.420`; loss vs oracle `-2.288`. | Guarded fit can recover the direction. |
+| Replicated small MCMC | Recovery `1.0` across 3 seeds; minimum dELPD `+4.087`. | Not a one-seed result. |
+| Internal prior sensitivity | Recovery `1.0` across default/tight/diffuse and 2 seeds; minimum dELPD `+3.798`. | Prior profile alone does not explain the pattern. |
+| Calibration bridge | Strong `+9.420`; moderate oracle `+0.201` but MCMC `-4.855`; weak `+2.783`. | Thresholds and categories change conclusions. |
+| Replicated calibration bridge | 2 seeds x 3 priors: strong recovery `1.0`; moderate `0.0`; weak `1.0` but threshold `4` pass `0.0`. | Not one-seed or prior-only. |
+| MCMC-budget bridge | `20/20`, `80/20`, `20/80`, `80/80`: direction stable; one post-hoc thinning threshold cell changed. | Near-cutoff thresholds need calibration. |
+| Category-calibration bridge | Strong/weak recovered; moderate stayed negative; `24` aligned cells and `0` caveats. | Require predictive plus category alignment. |
+| Threshold false-alarm/power profile | Threshold `2`: power `1.0`, false promotion `0.0`; threshold `4`: weak power `0.0`. | Screening profiles only. |
+| Threshold/Q-misspecification expansion | `13` scenarios, `11` axes, `4` false-add cells, `5` false-negative cells. | MCMC and category calibration needed. |
+| Q-misspecification small MCMC | 5 scenarios: one threshold-`2` false promotion, one threshold-`4` false negative, `20` warnings. | Replicate and calibrate. |
+| Replicated Q/category bridge | 2 seeds x 5 scenarios: threshold `2` false-promotion `0.2`; threshold `4` false-negative `0.2`; `40` warnings. | Public threshold wording remains blocked. |
+| Q/category budget stability | `16/16` to `32/32`: false-promotion `0.2` to `0.3`; `4` labels changed; `40` warnings. | Not budget-stable. |
+| Multi-axis diagnosis | Priority: sampler/budget, thresholds, false-add specificity, category, false-drop, rater-noise, split sparsity. | Treat as multi-causal. |
+| Critical-cell follow-up grid | 4 cells, 12 runs, 4 split-seed jobs, min heldout category count `3`. | Split control and sampler remediation next. |
+| Split-controlled critical grid | 4 cells x 2 splits: `4` risk labels changed; threshold `2` false-promotion `0.125`; `32` warnings. | Split variability is active. |
+| Sampler-remediation pilot | Split-stable cell with `4` chains and `64/64`: threshold `2` false-promotion `0.0`; `8` warnings. | Diagnose warning surface next. |
+| Warning-surface diagnosis | Same cell: `8` raw R-hat/ESS warnings; geometry/direct warnings `0`. | Budget/parameterization over thinning. |
+| Block-targeted/draws-x2 follow-up | Top blocks: person, item, discrimination, item steps; `draws_x2` improved 3/3 but cleared 0/3. | Run `draws_x4` or chain-count gate. |
+| Draws-x4 gate | Same 3 jobs: improved 3/3, cleared 0/3; failures are near threshold. | Chain-count plus parameterization audit. |
+| Chain/rank gates | `512` retained draws cleared and replicated 3/3; `256/512` warmup/draws stayed clear; post-hoc thinning warned in 5/6 rows; guidance synthesis recommends local `4` chains, `128` warmup, `512` retained draws. | Surface guidance in reports; no default change yet. |
+| Current compact Null-win batch | Scalar `-10.166`, Revised Q `-32.808`, Current Q `-33.027`, Sparse Q `-36.889` dELPD. | Diagnose calibration, Q/design support, and estimation loss. |
+
+Consequence: source-aligned cases reproduce the Uto-style direction; the
+Null-win case remains a signal/support/calibration/estimation problem. Public
+fit-threshold, Q-revision, model-weight, and sparse-superiority claims remain
+blocked. Next: surface local retained-draw guidance in reports.
 
 ## Decision Gates and Fallback Paths
 
@@ -191,7 +233,7 @@ interpretation.
 ## Release Decision Record Template
 
 Every generalized release candidate should leave a short decision record. The
-record is not a release note; it is the audit trail for why the surface was
+record is not a release note; it is the evidence trail for why the surface was
 promoted, held, or narrowed.
 
 | Field | Required content |
@@ -247,7 +289,7 @@ begin with target matching, not with real-data examples.
 | Step | Requirement | Failure handling |
 | --- | --- | --- |
 | 1. Target declaration | Name the exact package, function, model family, link, thresholds, facets, dimensions, constraints, priors or estimator, and prediction target. | If the target cannot be stated, classify the case as related-software positioning only. |
-| 2. Overlap audit | Decide whether the external target estimates the same estimand or only a related quantity. | Label non-overlap explicitly and do not count disagreement as validation evidence. |
+| 2. Overlap review | Decide whether the external target estimates the same estimand or only a related quantity. | Label non-overlap explicitly and do not count disagreement as validation evidence. |
 | 3. Known-truth simulation | Generate data from a target both workflows can represent, with fixed seeds and documented design support. | If either workflow cannot represent the target, narrow the target or drop the comparison. |
 | 4. Recovery metrics | Compare bias, RMSE, interval coverage, calibration, rater-effect recovery, loading recovery, and failure rates. | Treat runtime or point estimates alone as insufficient. |
 | 5. Computation metrics | Record divergences, convergence warnings, ESS/sec where applicable, elapsed time, memory, and failed fits. | Do not make performance claims without sampler-quality context. |
@@ -326,7 +368,7 @@ predictive checks, and validation evidence before claims.
   path: binary-mask schema checks, empty dimensions, empty item rows, duplicate
   or aliased columns, fixed cross-loading policy, dimension/facet subgraph
   coverage, and item blocks that cannot identify positive interpreted loadings.
-- Add a rating-design audit section: structural versus accidental missingness,
+- Add rating-design review rows: structural versus accidental missingness,
   disconnected components, anchor coverage, repeated ratings, optional
   time/order fields, sparse person-rater-item blocks, and warnings that
   nonignorable rater assignment is not corrected by the current likelihood.
@@ -351,8 +393,8 @@ predictive checks, and validation evidence before claims.
   divergences, max-depth hits, E-BFMI availability, rank-normalized R-hat,
   bulk/tail ESS, direct-constraint failures, pointwise log-likelihood
   finiteness, and parameter-block pass/fail flags. Until rank-normalized
-  diagnostics are implemented, reports must label the current classical split
-  R-hat and autocorrelation ESS as provisional diagnostics.
+  diagnostics are public API, reports must label classical split R-hat and
+  autocorrelation ESS as provisional.
 - Add a binary-response interpretation note to the docs and reports: the
   two-category MFRM is a many-facet Rasch/1PL IRT model, while binary
   GMFRM/MGMFRM variants with item discrimination, rater consistency, or
@@ -462,6 +504,9 @@ and exploratory models.
   scenario: MFRM infit/outfit, posterior predictive discrepancies,
   calibration error, WAIC/LOO or heldout ELPD, direct parameter shifts, and
   decision reversals.
+- Carry those threshold profiles into the publication-grade refit batch review
+  so every executed fold can be read under multiple cutoffs before threshold
+  wording, model weights, or sparse-superiority language is considered.
 - Extend power-scaling sensitivity to higher-dimensional fixed-Q designs, with
   block-wise prior/likelihood sensitivity for abilities, rater consistency,
   item/dimension discrimination, and item-step effects.
@@ -581,9 +626,18 @@ workflow validation.
   correlation/exploratory variants that are exposed.
 - Simulation-based calibration or equivalent recovery evidence passes for
   predeclared complete, sparse, weakly connected, and misspecified designs.
+- The publication-grade refit gate is frozen before heavy runs: 4-chain NUTS
+  controls, R-hat/ESS/HMC diagnostic thresholds, posterior-predictive checks,
+  expected-score calibration, heldout ELPD/K-fold summaries, and public-claim
+  blockers are recorded before the first single-cell pilot is executed.
+- The publication-grade pilot execution harness and local runner are recorded
+  before heavy runs: the next local gate is to execute the five selected pilot
+  jobs or attach an external construct-validation dataset. The result-review
+  layer is recorded so local runner artifacts can be audited as missing,
+  partial, or complete without turning pilot evidence into public claims.
 - Compact workflow demonstrations can run end to end, but real-data validation
   and R-package overlap comparisons are not required for `v0.2.0` completion.
-- Rating-design audits, category-functioning diagnostics, pooling-policy rows,
+- Rating-design reviews, category-functioning diagnostics, pooling-policy rows,
   and artifact-governance metadata are present for every stable-public surface.
 - Unsupported or weakly identified designs fail with actionable messages.
 - Model-weight, sparse-superiority, and DFF-causality claims remain absent

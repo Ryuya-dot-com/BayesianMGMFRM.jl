@@ -170,17 +170,48 @@ const INPUT_ARTIFACTS = [
         expected_schema =
             "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring.v1",
         hash_policy = :sha256),
+    (name = :mgmfrm_full_heldout_mcmc_refit_anchor_scoring,
+        path =
+            "test/fixtures/mgmfrm_full_heldout_mcmc_refit_anchor_scoring.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_anchor_scoring.v1",
+        hash_policy = :sha256),
+    (name = :mgmfrm_publication_grade_refit_gate,
+        path =
+            "test/fixtures/mgmfrm_publication_grade_refit_gate.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_publication_grade_refit_gate.v1",
+        hash_policy = :sha256),
+    (name = :mgmfrm_publication_grade_refit_pilot_plan,
+        path =
+            "test/fixtures/mgmfrm_publication_grade_refit_pilot_plan.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_publication_grade_refit_pilot_plan.v1",
+        hash_policy = :sha256),
     (name = :mgmfrm_fit_threshold_q_heldout_linkage,
         path =
             "test/fixtures/mgmfrm_fit_threshold_q_heldout_linkage.json",
         expected_schema =
             "bayesianmgmfrm.mgmfrm_fit_threshold_q_heldout_linkage.v1",
         hash_policy = :sha256),
+    (name = :mgmfrm_publication_grade_refit_pilot_execution_harness,
+        path =
+            "test/fixtures/mgmfrm_publication_grade_refit_pilot_execution_harness.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_publication_grade_refit_pilot_execution_harness.v1",
+        hash_policy = :sha256),
+    (name = :mgmfrm_publication_grade_refit_batch_expansion_plan,
+        path =
+            "test/fixtures/mgmfrm_publication_grade_refit_batch_expansion_plan.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_publication_grade_refit_batch_expansion_plan.v1",
+        hash_policy = :sha256),
     (name = :full_paper_reproduction_archive,
         path = "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
         expected_schema =
             "bayesianmgmfrm.gmfrm_full_paper_reproduction_archive.v1",
-        hash_policy = :sha256),
+        hash_policy =
+            :existence_only_avoids_full_archive_manuscript_grid_cycle),
 ]
 
 const PROTOCOL = (;
@@ -235,7 +266,13 @@ const PROTOCOL = (;
             true,
         require_mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring_passed =
             true,
+        require_mgmfrm_full_heldout_mcmc_refit_anchor_scoring_passed =
+            true,
+        require_mgmfrm_publication_grade_refit_gate_passed = true,
+        require_mgmfrm_publication_grade_refit_pilot_plan_passed = true,
         require_mgmfrm_fit_threshold_q_heldout_linkage_passed = true,
+        require_mgmfrm_publication_grade_refit_pilot_execution_harness_passed =
+            true,
         require_full_paper_reproduction_archive_passed = true,
         require_minimum_total_evidence_cells = 60,
         require_no_publication_commands = true,
@@ -850,6 +887,86 @@ function artifact_summary(name::Symbol, summary::AbstractString)
             !json_bool(summary, "external_construct_dataset_attached") &&
             !json_bool(summary, "external_construct_validation_completed"),
     )
+    name === :mgmfrm_full_heldout_mcmc_refit_anchor_scoring && return (;
+        passed = json_bool(summary, "passed"),
+        n_evidence_cells = json_int(summary, "n_review_cells"),
+        key_check = :mgmfrm_full_heldout_mcmc_refit_anchor_scoring,
+        all_primary_checks =
+            json_bool(summary, "fixed_q_mgmfrm_candidate_batch_completed") &&
+            json_bool(summary,
+                "fixed_q_mgmfrm_candidate_heldout_scores_computed") &&
+            json_bool(summary, "scalar_anchor_scores_computed") &&
+            json_bool(summary, "reference_anchor_scores_computed") &&
+            json_bool(summary, "comparison_anchor_scores_computed") &&
+            json_bool(summary, "full_125_unit_scoring_completed") &&
+            json_bool(summary, "full_heldout_predictive_scores_computed") &&
+            json_bool(summary, "anchor_units_selected") &&
+            json_bool(summary, "scalar_anchor_refits_succeeded") &&
+            json_bool(summary, "reference_anchor_scores_recorded") &&
+            json_bool(summary, "all_anchor_scores_recorded") &&
+            json_bool(summary, "all_anchor_pointwise_scores_recorded") &&
+            json_bool(summary, "all_anchor_score_values_finite") &&
+            json_bool(summary, "anchor_kfold_rows_recorded") &&
+            json_bool(summary, "combined_model_kfold_rows_recorded") &&
+            json_bool(summary, "combined_rank_rows_recorded") &&
+            json_bool(summary,
+                "candidate_and_anchor_scores_cover_125_units") &&
+            json_bool(summary, "publication_grade_diagnostics_blocked") &&
+            json_bool(summary,
+                "external_construct_dataset_still_required") &&
+            json_bool(summary, "no_public_fit_metric_claim") &&
+            json_bool(summary, "no_public_q_revision_claim") &&
+            json_bool(summary, "no_public_model_weight_claim") &&
+            json_bool(summary, "no_sparse_superiority_claim") &&
+            !json_bool(summary, "full_mcmc_refit_execution_completed") &&
+            !json_bool(summary, "full_125_unit_mcmc_refit_batch_completed") &&
+            !json_bool(summary, "external_construct_dataset_attached") &&
+            !json_bool(summary, "external_construct_validation_completed"),
+    )
+    name === :mgmfrm_publication_grade_refit_gate && return (;
+        passed = json_bool(summary, "passed"),
+        n_evidence_cells = json_int(summary, "n_review_cells"),
+        key_check = :mgmfrm_publication_grade_refit_gate,
+        all_primary_checks =
+            json_bool(summary, "publication_grade_gate_defined") &&
+            json_bool(summary, "anchor_scoring_completed") &&
+            json_bool(summary, "diagnostic_gate_rows_recorded") &&
+            json_bool(summary, "metric_profile_rows_recorded") &&
+            json_bool(summary, "pilot_scope_recorded") &&
+            json_bool(summary, "claim_rules_block_public_claims") &&
+            json_bool(summary, "publication_grade_pilot_required") &&
+            !json_bool(summary, "publication_grade_pilot_executed") &&
+            !json_bool(summary,
+                "full_125_unit_publication_grade_batch_completed") &&
+            json_bool(summary,
+                "external_construct_dataset_still_required") &&
+            json_bool(summary, "no_public_fit_metric_claim") &&
+            json_bool(summary, "no_public_q_revision_claim") &&
+            json_bool(summary, "no_public_model_weight_claim") &&
+            json_bool(summary, "no_sparse_superiority_claim"),
+    )
+    name === :mgmfrm_publication_grade_refit_pilot_plan && return (;
+        passed = json_bool(summary, "passed"),
+        n_evidence_cells = json_int(summary, "n_review_cells"),
+        key_check = :mgmfrm_publication_grade_refit_pilot_plan,
+        all_primary_checks =
+            json_bool(summary, "publication_grade_gate_defined") &&
+            json_bool(summary, "publication_grade_pilot_plan_recorded") &&
+            json_bool(summary, "selected_units_recorded") &&
+            json_bool(summary, "all_five_models_selected") &&
+            json_bool(summary,
+                "publication_grade_controls_match_gate") &&
+            json_bool(summary, "diagnostic_placeholders_recorded") &&
+            !json_bool(summary, "publication_grade_pilot_executed") &&
+            !json_bool(summary,
+                "full_125_unit_publication_grade_batch_completed") &&
+            json_bool(summary,
+                "external_construct_dataset_still_required") &&
+            json_bool(summary, "no_public_fit_metric_claim") &&
+            json_bool(summary, "no_public_q_revision_claim") &&
+            json_bool(summary, "no_public_model_weight_claim") &&
+            json_bool(summary, "no_sparse_superiority_claim"),
+    )
     name === :mgmfrm_fit_threshold_q_heldout_linkage && return (;
         passed = json_bool(summary, "passed"),
         n_evidence_cells =
@@ -869,6 +986,58 @@ function artifact_summary(name::Symbol, summary::AbstractString)
             json_bool(summary, "anchor_limitations_recorded") &&
             json_bool(summary, "no_single_threshold_profile_promoted") &&
             json_bool(summary, "no_automatic_q_revision") &&
+            json_bool(summary, "no_public_fit_metric_claim") &&
+            json_bool(summary, "no_public_q_revision_claim") &&
+            json_bool(summary, "no_public_model_weight_claim") &&
+            json_bool(summary, "no_sparse_superiority_claim"),
+    )
+    name === :mgmfrm_publication_grade_refit_pilot_execution_harness && return (;
+        passed = json_bool(summary, "passed"),
+        n_evidence_cells = json_int(summary, "n_review_cells"),
+        key_check =
+            :mgmfrm_publication_grade_refit_pilot_execution_harness,
+        publication_grade_pilot_runner_materialized =
+            json_bool(summary, "publication_grade_pilot_runner_materialized"),
+        recommendation = json_string(summary, "recommendation"),
+        next_gate = json_string(summary, "next_gate"),
+        all_primary_checks =
+            json_bool(summary,
+                "publication_grade_pilot_execution_harness_recorded") &&
+            json_bool(summary, "execution_jobs_materialized") &&
+            json_bool(summary, "execution_commands_recorded") &&
+            json_bool(summary, "runner_state_recorded") &&
+            json_bool(summary, "result_artifact_targets_recorded") &&
+            json_bool(summary,
+                "diagnostic_capture_manifest_recorded") &&
+            json_bool(summary, "comparison_hooks_recorded") &&
+            !json_bool(summary, "publication_grade_pilot_executed") &&
+            !json_bool(summary,
+                "full_125_unit_publication_grade_batch_completed") &&
+            json_bool(summary,
+                "external_construct_dataset_still_required") &&
+            json_bool(summary, "no_public_fit_metric_claim") &&
+            json_bool(summary, "no_public_q_revision_claim") &&
+            json_bool(summary, "no_public_model_weight_claim") &&
+            json_bool(summary, "no_sparse_superiority_claim"),
+    )
+    name === :mgmfrm_publication_grade_refit_batch_expansion_plan && return (;
+        passed = json_bool(summary, "passed"),
+        n_evidence_cells = json_int(summary, "n_review_cells"),
+        key_check =
+            :mgmfrm_publication_grade_refit_batch_expansion_plan,
+        all_primary_checks =
+            json_bool(summary,
+                "scalar_target_acceptance_policy_recorded") &&
+            json_bool(summary, "batch_unit_rows_recorded") &&
+            json_bool(summary, "all_125_units_materialized") &&
+            json_bool(summary, "command_templates_recorded") &&
+            json_bool(summary, "result_artifact_targets_recorded") &&
+            json_bool(summary,
+                "diagnostic_capture_manifest_recorded") &&
+            json_bool(summary, "runner_adapter_state_recorded") &&
+            !json_bool(summary,
+                "full_125_unit_publication_grade_batch_completed") &&
+            !json_bool(summary, "batch_execution_ready_local_only") &&
             json_bool(summary, "no_public_fit_metric_claim") &&
             json_bool(summary, "no_public_q_revision_claim") &&
             json_bool(summary, "no_public_model_weight_claim") &&
@@ -928,7 +1097,11 @@ function evidence_rows(records)
     ]
 end
 
-function claim_decision_rows()
+function claim_decision_rows(harness_runner_materialized::Bool,
+        publication_grade_followup::Symbol)
+    model_weight_decision = harness_runner_materialized ?
+        :publication_grade_execution_harness_ready_keep_blocked_until_pilot_or_external_dataset_review :
+        :publication_grade_execution_harness_recorded_keep_blocked_until_runner_or_external_dataset_review
     return [
         (claim = :guarded_scalar_gmfrm_fit,
             decision = :local_guarded_experimental_remains_enabled,
@@ -943,11 +1116,9 @@ function claim_decision_rows()
             public_claim_allowed = false,
             required_followup = :future_dff_model_effect_fit_policy),
         (claim = :model_weights_or_sparse_mgmfrm_superiority,
-            decision =
-                :candidate_batch_scoring_recorded_keep_blocked_until_anchor_refits_or_external_dataset_review,
+            decision = model_weight_decision,
             public_claim_allowed = false,
-            required_followup =
-                :run_scalar_and_reference_anchor_refits_or_external_construct_dataset_review),
+            required_followup = publication_grade_followup),
     ]
 end
 
@@ -971,6 +1142,14 @@ function build_artifact()
     total_evidence_cells =
         sum(record.summary.n_evidence_cells for record in input_records)
     no_publication = no_publication_commands()
+    harness_record =
+        record_by_name(input_records,
+            :mgmfrm_publication_grade_refit_pilot_execution_harness)
+    harness_runner_materialized =
+        Bool(harness_record.summary.publication_grade_pilot_runner_materialized)
+    publication_grade_followup = Symbol(harness_record.summary.next_gate)
+    publication_grade_recommendation =
+        Symbol(harness_record.summary.recommendation)
     passed = all_input_artifacts_present &&
         all_expected_schemas &&
         all_input_summaries_passed &&
@@ -997,7 +1176,9 @@ function build_artifact()
         protocol = PROTOCOL,
         input_artifacts = input_records,
         evidence_rows = rows,
-        claim_decision_rows = claim_decision_rows(),
+        claim_decision_rows =
+            claim_decision_rows(harness_runner_materialized,
+                publication_grade_followup),
         blocker_rows = BLOCKER_ROWS,
         decision_record = (;
             selected_decision =
@@ -1009,8 +1190,9 @@ function build_artifact()
                 :gate_e_and_full_archive_recorded_no_publication_action,
             interpretation =
                 :manuscript_scale_grid_recorded_full_archive_available,
-            required_followup =
-                :run_scalar_and_reference_anchor_refits_or_external_construct_dataset_review,
+            publication_grade_pilot_runner_materialized =
+                harness_runner_materialized,
+            required_followup = publication_grade_followup,
         ),
         summary = (;
             passed,
@@ -1119,10 +1301,25 @@ function build_artifact()
                 record_by_name(input_records,
                     :mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring).
                     summary_passed,
+            mgmfrm_full_heldout_mcmc_refit_anchor_scoring_passed =
+                record_by_name(input_records,
+                    :mgmfrm_full_heldout_mcmc_refit_anchor_scoring).
+                    summary_passed,
+            mgmfrm_publication_grade_refit_gate_passed =
+                record_by_name(input_records,
+                    :mgmfrm_publication_grade_refit_gate).summary_passed,
+            mgmfrm_publication_grade_refit_pilot_plan_passed =
+                record_by_name(input_records,
+                    :mgmfrm_publication_grade_refit_pilot_plan).
+                    summary_passed,
             mgmfrm_fit_threshold_q_heldout_linkage_passed =
                 record_by_name(input_records,
                     :mgmfrm_fit_threshold_q_heldout_linkage).
                     summary_passed,
+            mgmfrm_publication_grade_refit_pilot_execution_harness_passed =
+                harness_record.summary_passed,
+            publication_grade_pilot_runner_materialized =
+                harness_runner_materialized,
             full_paper_reproduction_archive_passed =
                 record_by_name(input_records,
                     :full_paper_reproduction_archive).summary_passed,
@@ -1135,10 +1332,8 @@ function build_artifact()
             n_blockers = length(BLOCKER_ROWS),
             remaining_public_blockers =
                 [row.blocker for row in BLOCKER_ROWS],
-            recommendation =
-                :manual_scope_review_recorded_keep_broader_claims_blocked,
-            next_gate =
-                :run_scalar_and_reference_anchor_refits_or_external_construct_dataset_review,
+            recommendation = publication_grade_recommendation,
+            next_gate = publication_grade_followup,
         ),
     )
 end

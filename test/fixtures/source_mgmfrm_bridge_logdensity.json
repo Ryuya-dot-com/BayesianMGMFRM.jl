@@ -168,7 +168,7 @@
   ],
   "propto": false,
   "jacobian": false,
-  "tolerance": 1e-08,
+  "tolerance": 1.0e-08,
   "stan_direct_parameter_order": [
     "person.1",
     "person.2",
@@ -331,6 +331,6 @@
       "log_lik.5",
       "log_lik.6"
     ],
-    "tolerance": 1e-08
+    "tolerance": 1.0e-08
   }
 }

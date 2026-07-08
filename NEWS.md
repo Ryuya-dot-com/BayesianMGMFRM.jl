@@ -54,6 +54,10 @@
   fixed-Q MGMFRM WAIC, LOO, posterior predictive, calibration, and
   common-parameter-shift summaries across literature-motivated threshold
   profiles while keeping convergence, fit-metric, and Q-revision claims local.
+- Extend the MGMFRM publication-grade refit batch results review to inherit
+  those threshold profiles and record job-level, model-level, and
+  scenario-model threshold surfaces so strict, screening, lenient, and
+  sample-size-sensitive cutoffs can be compared before any public fit claim.
 - Add a local MGMFRM construct-reviewed Q fit reporting-policy generator and
   committed JSON artifact that summarizes threshold-profile dependence,
   candidate/declared indicator conflicts, existing MFRM reference comparisons,
@@ -114,6 +118,52 @@
   heldout pointwise rows, leaves scalar/null anchors unscored, and keeps
   model-weight, sparse-superiority, fit-threshold, and Q-revision claims blocked
   pending anchor refits or external construct validation.
+- Add a local MGMFRM heldout anchor-scoring generator and JSON artifact that
+  scores the scalar GMFRM and intercept/reference anchors across all five folds,
+  joins them to the fixed-Q candidate k-fold summaries for a descriptive
+  125-unit comparison, and keeps public model-weight, sparse-superiority,
+  fit-threshold, and Q-revision claims blocked pending publication-grade refits
+  or external construct validation.
+- Add local MGMFRM publication-grade refit gate and single-cell pilot-plan
+  artifacts that freeze the diagnostic thresholds, metric profile, selected
+  scenario/fold/model workload, and claim blockers before heavy NUTS refits are
+  run.
+- Add a local MGMFRM publication-grade refit pilot execution-harness artifact
+  that materializes the five pilot jobs, command templates, result targets,
+  diagnostic-capture rows, and comparison hooks, plus a local runner script for
+  dry-run, analytic-reference, and refit-job execution while keeping heavy
+  pilot completion and public MGMFRM claims blocked.
+- Add a local MGMFRM publication-grade refit pilot results-review artifact that
+  reads local runner outputs, records missing, partial, or complete execution,
+  adds descriptive heldout rank rows and diagnostic-failure rows when local
+  outputs are present, keeps committed fixtures isolated from ignored local
+  artifacts, and keeps fit-metric, Q-revision, model-weight, and
+  sparse-superiority claims blocked until all selected jobs and diagnostics are
+  reviewed.
+- Add a local MGMFRM publication-grade sampler-remediation review artifact that
+  records a separate scalar GMFRM target-acceptance escalation run for the pilot
+  divergence warning without replacing the preregistered primary pilot result.
+- Add a local MGMFRM scalar-remediation comparison artifact that compares the
+  primary scalar GMFRM pilot fit with the target-acceptance escalation before
+  batch expansion, records a local-only scalar batch sampler policy, and keeps
+  public fit-metric and model-comparison claims blocked.
+- Add a local MGMFRM publication-grade batch-expansion plan artifact that
+  materializes the full 125 scenario-model-fold command manifest, applies the
+  conditional scalar target-acceptance 0.9 policy, keeps other MCMC candidates
+  at 0.8, and blocks execution until local scalar remediation evidence and the
+  batch runner adapter are both ready.
+- Extend the publication-grade refit runner so it can read either the pilot
+  plan or the full batch-expansion plan via `--plan`, preserving pilot
+  compatibility while enabling batch dry-runs and analytic reference jobs.
+- Add a local publication-grade refit batch orchestrator that reads the 125-unit
+  plan, skips completed artifacts by default, writes resumable manifests and
+  per-job logs, and requires explicit `--execute`/`--materialize-dry-run-artifacts`
+  plus a job limit or explicit unit selection before invoking runner jobs.
+- Add a local MGMFRM publication-grade batch results-review artifact that reads
+  batch runner outputs when explicitly requested, records model and
+  scenario-model execution summaries, and keeps fit, Q-revision, model-weight,
+  and sparse-superiority claims blocked until the full batch and diagnostics are
+  reviewed.
 - Add a local MGMFRM fit-threshold/Q/heldout linkage generator and JSON
   artifact that connects threshold-profile sensitivity, Q-matrix recovery
   diagnostics, predeclared heldout simulation expectations, and observed fold-1

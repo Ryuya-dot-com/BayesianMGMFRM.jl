@@ -101,7 +101,8 @@ const INPUT_ARTIFACTS = [
         expected_schema =
             "bayesianmgmfrm.gmfrm_full_paper_reproduction_archive.v1",
         pass_policy = :summary_passed,
-        hash_policy = :sha256),
+        hash_policy =
+            :existence_only_avoids_full_archive_broader_review_cycle),
     (name = :mgmfrm_bridge_oracle,
         path = "test/fixtures/source_mgmfrm_bridge_logdensity.json",
         expected_schema = "bayesianmgmfrm.source_mgmfrm_bridge_logdensity.v1",

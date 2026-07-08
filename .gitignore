@@ -6,5 +6,6 @@ Manifest.toml
 *.dll
 .DS_Store
 results/
+artifacts/
 docs/build/
 test/fixtures/local/

@@ -46,7 +46,7 @@
       "schema": "bayesianmgmfrm.mgmfrm_fit_metric_threshold_sensitivity.v1",
       "expected_schema": "bayesianmgmfrm.mgmfrm_fit_metric_threshold_sensitivity.v1",
       "schema_matches": true,
-      "sha256": "a72f1e2879cc158e6a0294af57b7866cb6e39d2465c9b8cfd0049dc1adf4596e",
+      "sha256": "366df68d55c9b4fb261ac0c0d09179941a0696535172fe793c75421a3b1bcaa2",
       "summary_passed": true,
       "next_gate": "construct_reviewed_q_fit_reporting_policy"
     }
@@ -486,7 +486,9 @@
     "n_conflict_rows_with_conflicts": 5,
     "n_moderate_or_larger_parameter_shift_rows": 6,
     "n_blockers": 0,
-    "remaining_public_blockers": [],
+    "remaining_public_blockers": [
+
+    ],
     "recommendation": "report_construct_reviewed_q_fit_metrics_as_local_appendix_only",
     "next_gate": "heldout_prediction_or_external_validation_before_claims"
   }

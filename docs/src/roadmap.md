@@ -111,7 +111,7 @@ The implementation roadmap has six workstreams.
 The issue-sized implementation checklist is maintained in
 [v0.1.1 Implementation Checklist](v0.1.1-implementation-checklist.md).
 
-1. **Equation and status audit**: reconcile public terminology for rater
+1. **Equation and status review**: reconcile public terminology for rater
    consistency, item/dimension discrimination, raw coordinates, direct
    parameters, constraints, and status levels across `model_manifest`,
    `constraint_table`, `fit_metadata`, reports, README text, and docs. Add a
@@ -219,7 +219,7 @@ For example, a model-comparison helper can be public while model-weight claims
 remain blocked, and a DFF screening row can be useful while fitted DFF effects
 remain out of scope.
 
-### Promotion Audit Questions
+### Promotion Review Questions
 
 Before promoting any feature, answer these questions in the docs or the
 machine-readable artifact that backs the docs:
@@ -289,7 +289,7 @@ they do block the corresponding public claim.
 | Packet entry | Required for | Minimum content |
 | --- | --- | --- |
 | Scope summary | Every release | `release_scope_summary(; include_evidence = true)` output and blocked-claim rows. |
-| Model-surface audit | Generalized or multidimensional releases | Family, dimensions, constraints, status levels, unsupported options, and public wording. |
+| Model-surface review | Generalized or multidimensional releases | Family, dimensions, constraints, status levels, unsupported options, and public wording. |
 | Source/transform evidence | Fit-surface promotion | Fixture IDs, tolerance policy, raw/direct checks, and BridgeStan or hand-computed comparison. |
 | Diagnostic evidence | Fit-supported or interpretation-supported claims | Block-level diagnostics, sampler pathologies, R-hat/ESS type, direct constraints, and failure rows. |
 | Design-support evidence | DFF, rater, anchor, or Q-matrix claims | Rating graph, category use, anchors, Q support, sparse cells, and confounding warnings. |

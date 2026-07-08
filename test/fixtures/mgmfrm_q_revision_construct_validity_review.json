@@ -128,7 +128,7 @@
       "artifact": "q_revision_cross_validation_policy",
       "path": "test/fixtures/mgmfrm_q_revision_cross_validation_policy.json",
       "exists": true,
-      "sha256": "50118f93c71506d3f0186e7b06c650dbf7a1b7a787fc30263ce67ebd970b1f04",
+      "sha256": "bc50f185539d30b4adbc4aa7aaf0ac1d4c14a153471f0fba62b55de3ce1ef2b0",
       "expected_schema": "bayesianmgmfrm.mgmfrm_q_revision_cross_validation_policy.v1",
       "schema": "bayesianmgmfrm.mgmfrm_q_revision_cross_validation_policy.v1",
       "schema_matches": true,
@@ -467,7 +467,9 @@
     "n_public_revisions_allowed": 0,
     "n_automatic_revisions_allowed": 0,
     "n_blockers": 0,
-    "remaining_public_blockers": [],
+    "remaining_public_blockers": [
+
+    ],
     "recommendation": "use_construct_reviewed_q_candidates_as_local_manual_inputs_only",
     "next_gate": "guarded_local_mgmfrm_fit_entrypoint"
   }

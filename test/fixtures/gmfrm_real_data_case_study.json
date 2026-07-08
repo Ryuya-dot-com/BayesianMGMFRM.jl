@@ -129,7 +129,7 @@
       "artifact": "test/fixtures/gmfrm_prior_likelihood_sensitivity_grid.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "b120b55f6d915b5c1eba87da88d41fba618f4d4a67699efdebd603c65d91fbdf"
+      "sha256": "167a262230a2f6f879fce598e674d544812107fb0d0fedb4415c287e04af6c41"
     },
     {
       "artifact": "test/fixtures/gmfrm_guarded_exposure_review.json",
@@ -369,8 +369,12 @@
         "passed": true,
         "n_errors": 0,
         "n_warnings": 0,
-        "issue_rows": [],
-        "issue_codes": [],
+        "issue_rows": [
+
+        ],
+        "issue_codes": [
+
+        ],
         "n_components": 1,
         "component_sizes": [
           10
@@ -1761,7 +1765,7 @@
             36
           ],
           "all_finite": true,
-          "minimum": 7.224530094456611e-6,
+          "minimum": 7.224530094456611e-06,
           "maximum": 1.988087668011833,
           "mean": 0.8863812534223783
         },
@@ -1771,7 +1775,7 @@
             36
           ],
           "all_finite": true,
-          "minimum": 4.351193982898849e-8,
+          "minimum": 4.351193982898849e-08,
           "maximum": 0.949102413664235,
           "mean": 0.3866164457597129
         },

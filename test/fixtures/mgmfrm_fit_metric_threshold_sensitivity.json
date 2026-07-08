@@ -80,7 +80,7 @@
       "artifact": "q_revision_construct_validity_review",
       "path": "test/fixtures/mgmfrm_q_revision_construct_validity_review.json",
       "exists": true,
-      "sha256": "543c8f7ce2e79d69512c883d858e69c243ae5840b122dc2d215bbf00d86068a8",
+      "sha256": "c1c8a7c600d738550ab0265e5f31069743a692978e2b53b0a0aa9fd4d377e6e9",
       "expected_schema": "bayesianmgmfrm.mgmfrm_q_revision_construct_validity_review.v1",
       "schema": "bayesianmgmfrm.mgmfrm_q_revision_construct_validity_review.v1",
       "schema_matches": true,
@@ -101,7 +101,7 @@
       "artifact": "guarded_local_fit_entrypoint",
       "path": "test/fixtures/mgmfrm_guarded_local_fit_entrypoint.json",
       "exists": true,
-      "sha256": "de782bbbeea7150c79d673274b515f880e09a77463c829da4722a4bb0a0dfeb0",
+      "sha256": "e8cf692f5a4237a459dca774d42e26d48f6dd812b79d8cb40e3c5a3f49d3860c",
       "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_local_fit_entrypoint.v1",
       "schema": "bayesianmgmfrm.mgmfrm_guarded_local_fit_entrypoint.v1",
       "schema_matches": true,
@@ -2582,7 +2582,9 @@
       "candidate_specific_direct_parameters": [
         "item_dimension_discrimination[item=I3,dim=2]"
       ],
-      "declared_specific_direct_parameters": []
+      "declared_specific_direct_parameters": [
+
+      ]
     },
     {
       "scenario": "missing_loading_candidate_cv_supported_manual_gate",
@@ -2596,7 +2598,9 @@
       "candidate_specific_direct_parameters": [
         "item_dimension_discrimination[item=I3,dim=2]"
       ],
-      "declared_specific_direct_parameters": []
+      "declared_specific_direct_parameters": [
+
+      ]
     },
     {
       "scenario": "missing_loading_candidate_cv_supported_manual_gate",
@@ -2610,7 +2614,9 @@
       "candidate_specific_direct_parameters": [
         "item_dimension_discrimination[item=I3,dim=2]"
       ],
-      "declared_specific_direct_parameters": []
+      "declared_specific_direct_parameters": [
+
+      ]
     },
     {
       "scenario": "extra_loading_candidate_cv_supported_manual_gate",
@@ -2621,7 +2627,9 @@
       "max_abs_common_direct_parameter_shift": 0.19680999051905346,
       "n_common_direct_parameters_shifted_gt_0_10": 8,
       "n_common_direct_parameters_shifted_gt_0_25": 0,
-      "candidate_specific_direct_parameters": [],
+      "candidate_specific_direct_parameters": [
+
+      ],
       "declared_specific_direct_parameters": [
         "item_dimension_discrimination[item=I3,dim=2]"
       ]
@@ -2635,7 +2643,9 @@
       "max_abs_common_direct_parameter_shift": 0.18361962881583893,
       "n_common_direct_parameters_shifted_gt_0_10": 2,
       "n_common_direct_parameters_shifted_gt_0_25": 0,
-      "candidate_specific_direct_parameters": [],
+      "candidate_specific_direct_parameters": [
+
+      ],
       "declared_specific_direct_parameters": [
         "item_dimension_discrimination[item=I3,dim=2]"
       ]
@@ -2649,7 +2659,9 @@
       "max_abs_common_direct_parameter_shift": 0.21789647969366333,
       "n_common_direct_parameters_shifted_gt_0_10": 4,
       "n_common_direct_parameters_shifted_gt_0_25": 0,
-      "candidate_specific_direct_parameters": [],
+      "candidate_specific_direct_parameters": [
+
+      ],
       "declared_specific_direct_parameters": [
         "item_dimension_discrimination[item=I3,dim=2]"
       ]
@@ -2968,7 +2980,9 @@
     "no_public_fit_metric_claim": true,
     "public_fit_metric_claim_allowed": false,
     "n_blockers": 0,
-    "remaining_public_blockers": [],
+    "remaining_public_blockers": [
+
+    ],
     "recommendation": "report_metric_sensitivity_as_local_diagnostic_appendix_only",
     "next_gate": "construct_reviewed_q_fit_reporting_policy"
   }

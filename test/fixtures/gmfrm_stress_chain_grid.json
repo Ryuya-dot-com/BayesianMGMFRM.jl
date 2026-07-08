@@ -942,7 +942,7 @@
         "n_nonfinite_pointwise": 0,
         "n_nonfinite_loglikelihood": 0,
         "minimum_pointwise_loglikelihood": -5.056690967653301,
-        "maximum_pointwise_loglikelihood": -6.449809504260884e-7,
+        "maximum_pointwise_loglikelihood": -6.449809504260884e-07,
         "minimum_loglikelihood": -9.835300524744966,
         "maximum_loglikelihood": -3.3277980256090425
       }

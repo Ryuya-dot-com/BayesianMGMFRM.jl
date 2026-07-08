@@ -28,10 +28,25 @@ The current public slice focuses on:
   GMFRM candidate or [`MGMFRMFit`](@ref) for the fixed-Q confirmatory MGMFRM
   candidate with `dimensions >= 2`, with local validation and caveat evidence
   recorded;
+- local Uto-style MGMFRM diagnostics showing that source-aligned strong-signal
+  fixed-Q MGMFRM recovers the expected direction across replicated seeds and
+  tested internal prior profiles, with replicated calibration bridges that
+  profile multiple dELPD thresholds plus MCMC-budget, category-calibration, and
+  false-alarm/power checks plus Q-misspecification expansion and small-MCMC
+  checks plus replicated Q/category, budget-stability, and multi-axis
+  instability gates, with critical-cell, split-control, and sampler-remediation
+  pilots plus warning-surface, block-targeted, draws-x2 smoke, and draws-x4
+  gate diagnostics plus chain-count, Stan-guided remediation, and
+  rank-normalized/parameterization/init-jitter/coupling-budget review with
+  independent-seed retained-draw replication plus warmup/thinning sensitivity
+  and local budget guidance staged,
+  while the current compact Null-win batch remains a
+  calibration/support/estimation diagnostic rather than a public
+  model-superiority result;
 - serializable provenance manifests and report bundles for fit-supported specs,
   specified-only specs, designs, fits, cached-fit artifacts, and report-facing
-  summaries via [`model_manifest`](@ref), [`fit_artifact`](@ref), and
-  [`fit_report`](@ref);
+  summaries, including guarded MGMFRM local MCMC-budget guidance, via
+  [`model_manifest`](@ref), [`fit_artifact`](@ref), and [`fit_report`](@ref);
 - integrated diagnostic summaries via [`diagnostics`](@ref);
 - chain-level sampler summaries via [`sampler_diagnostics`](@ref);
 - chain-aware R-hat and ESS summaries via [`mcmc_diagnostics`](@ref);

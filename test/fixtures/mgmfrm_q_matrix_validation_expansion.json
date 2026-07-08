@@ -243,8 +243,12 @@
           "note": "dimension_specific_person_rater_item_subgraph_connected"
         }
       ],
-      "error_checks": [],
-      "warning_checks": [],
+      "error_checks": [
+
+      ],
+      "warning_checks": [
+
+      ],
       "validation_summary": {
         "passed": true,
         "n_items": 2,
@@ -457,7 +461,9 @@
           "note": "dimension_specific_person_rater_item_subgraph_connected"
         }
       ],
-      "error_checks": [],
+      "error_checks": [
+
+      ],
       "warning_checks": [
         "cross_loading_policy"
       ],
@@ -533,7 +539,9 @@
       "error_checks": [
         "required_q_matrix"
       ],
-      "warning_checks": [],
+      "warning_checks": [
+
+      ],
       "validation_summary": {
         "passed": false,
         "n_items": 2,
@@ -606,7 +614,9 @@
       "error_checks": [
         "matrix_schema"
       ],
-      "warning_checks": [],
+      "warning_checks": [
+
+      ],
       "validation_summary": {
         "passed": false,
         "n_items": 2,
@@ -714,7 +724,9 @@
       "error_checks": [
         "binary_mask_schema"
       ],
-      "warning_checks": [],
+      "warning_checks": [
+
+      ],
       "validation_summary": {
         "passed": false,
         "n_items": 2,
@@ -818,7 +830,9 @@
       "error_checks": [
         "shape"
       ],
-      "warning_checks": [],
+      "warning_checks": [
+
+      ],
       "validation_summary": {
         "passed": false,
         "n_items": 2,
@@ -928,7 +942,9 @@
       "error_checks": [
         "shape"
       ],
-      "warning_checks": [],
+      "warning_checks": [
+
+      ],
       "validation_summary": {
         "passed": false,
         "n_items": 2,
@@ -1144,7 +1160,9 @@
       "error_checks": [
         "empty_item_rows"
       ],
-      "warning_checks": [],
+      "warning_checks": [
+
+      ],
       "validation_summary": {
         "passed": false,
         "n_items": 3,
@@ -2017,7 +2035,9 @@
           "note": "dimension_specific_person_rater_item_subgraph_connected"
         }
       ],
-      "error_checks": [],
+      "error_checks": [
+
+      ],
       "warning_checks": [
         "cross_loading_policy",
         "positive_loading_identification"
@@ -2234,7 +2254,9 @@
           "note": "dimension_specific_person_rater_item_subgraph_connected"
         }
       ],
-      "error_checks": [],
+      "error_checks": [
+
+      ],
       "warning_checks": [
         "dimension_facet_subgraph_coverage"
       ],

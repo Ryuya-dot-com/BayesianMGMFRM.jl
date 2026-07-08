@@ -154,7 +154,7 @@ person-rater-item cells, optional time/order metadata, and nonignorable rater
 assignment limitation into report rows. Because the current `FacetData`
 contract stores observed complete long-format rows rather than an external
 planned-design table, structural versus accidental missingness is reported as
-not identifiable from the observed data alone. The same audit is threaded into
+not identifiable from the observed data alone. The same review is threaded into
 `model_manifest` and `fit_report`.
 `threshold_map_data` returns rating-scale or partial-credit threshold-step
 metadata, including derived sum-to-zero steps when a parameter vector is

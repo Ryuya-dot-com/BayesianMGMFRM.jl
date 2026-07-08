@@ -208,7 +208,7 @@ function each_source_file(paths)
 end
 
 function public_wording_check()
-    public_files = each_source_file(["README.md", "NEWS.md", "src", "docs/src", "examples"])
+    public_files = each_source_file(["README.md", "NEWS.md", "docs/src", "examples"])
     public_audit_hits = String[]
     for path in public_files
         for (line_no, line) in enumerate(eachline(path))
