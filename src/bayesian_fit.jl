@@ -14298,6 +14298,207 @@ function fit_stats(fit::MFRMFit;
     return fit_stats(fit.design, fit.draws[indices, :]; by, interval, min_n)
 end
 
+function _diagnostic_map_metrics(metrics::Symbol)
+    metrics === :all && return (:infit, :outfit)
+    return _diagnostic_map_metrics((metrics,))
+end
+
+function _diagnostic_map_metrics(metrics)
+    out = Symbol[]
+    for metric in metrics
+        metric isa Symbol ||
+            throw(ArgumentError("diagnostic map metrics must be Symbols"))
+        metric in (:infit, :outfit) ||
+            throw(ArgumentError("diagnostic_map_data supports metrics :infit and :outfit"))
+        metric in out &&
+            throw(ArgumentError("diagnostic map metrics must not contain duplicates"))
+        push!(out, metric)
+    end
+    return Tuple(out)
+end
+
+function _diagnostic_map_fit_value(row, metric::Symbol)
+    metric === :infit && return (;
+        value = row.infit_mean,
+        median = row.infit_median,
+        lower = row.infit_lower,
+        upper = row.infit_upper,
+    )
+    metric === :outfit && return (;
+        value = row.outfit_mean,
+        median = row.outfit_median,
+        lower = row.outfit_lower,
+        upper = row.outfit_upper,
+    )
+    throw(ArgumentError("diagnostic_map_data supports metrics :infit and :outfit"))
+end
+
+function _diagnostic_map_pathway_row(design::FacetDesign,
+        position_row,
+        fit_row,
+        metric::Symbol)
+    fit_value = _diagnostic_map_fit_value(fit_row, metric)
+    flag = position_row.flag !== :ok ? position_row.flag : fit_row.flag
+    return (;
+        schema = "bayesianmgmfrm.diagnostic_map_data.v1",
+        object = :diagnostic_map_row,
+        map_layer = :pathway_fit,
+        component = position_row.component,
+        model_family = design.spec.family,
+        thresholds = design.spec.thresholds,
+        facet = position_row.facet,
+        level = position_row.level,
+        level_index = position_row.level_index,
+        item = position_row.item,
+        item_index = position_row.item_index,
+        step = position_row.step,
+        from_category = position_row.from_category,
+        to_category = position_row.to_category,
+        label = position_row.label,
+        fit_metric = metric,
+        fit_value = fit_value.value,
+        fit_median = fit_value.median,
+        fit_lower = fit_value.lower,
+        fit_upper = fit_value.upper,
+        fit_interval_probability = fit_row.interval_probability,
+        logit_position = position_row.position_mean,
+        logit_median = position_row.position_median,
+        logit_lower = position_row.position_lower,
+        logit_upper = position_row.position_upper,
+        logit_interval_probability = position_row.interval_probability,
+        n_observations = fit_row.n_obs,
+        n_draws = position_row.n_draws,
+        scale = position_row.scale,
+        parameter_index = position_row.parameter_index,
+        parameter_name = position_row.parameter_name,
+        status = position_row.status,
+        fit_flag = fit_row.flag,
+        position_flag = position_row.flag,
+        flag,
+        caveat = :diagnostic_map_screening_not_model_selection,
+        suggested_x = fit_value.value,
+        suggested_y = position_row.position_mean,
+    )
+end
+
+function _diagnostic_map_threshold_row(design::FacetDesign, position_row)
+    return (;
+        schema = "bayesianmgmfrm.diagnostic_map_data.v1",
+        object = :diagnostic_map_row,
+        map_layer = :threshold_position,
+        component = position_row.component,
+        model_family = design.spec.family,
+        thresholds = design.spec.thresholds,
+        facet = position_row.facet,
+        level = position_row.level,
+        level_index = position_row.level_index,
+        item = position_row.item,
+        item_index = position_row.item_index,
+        step = position_row.step,
+        from_category = position_row.from_category,
+        to_category = position_row.to_category,
+        label = position_row.label,
+        fit_metric = missing,
+        fit_value = missing,
+        fit_median = missing,
+        fit_lower = missing,
+        fit_upper = missing,
+        fit_interval_probability = missing,
+        logit_position = position_row.position_mean,
+        logit_median = position_row.position_median,
+        logit_lower = position_row.position_lower,
+        logit_upper = position_row.position_upper,
+        logit_interval_probability = position_row.interval_probability,
+        n_observations = position_row.n_observations,
+        n_draws = position_row.n_draws,
+        scale = position_row.scale,
+        parameter_index = position_row.parameter_index,
+        parameter_name = position_row.parameter_name,
+        status = position_row.status,
+        fit_flag = missing,
+        position_flag = position_row.flag,
+        flag = position_row.flag,
+        caveat = :diagnostic_map_screening_not_model_selection,
+        suggested_x = missing,
+        suggested_y = position_row.position_mean,
+    )
+end
+
+"""
+    diagnostic_map_data(fit::MFRMFit; facets = :all, include_thresholds = true,
+        metrics = :all, interval = 0.95, min_n = 1, ndraws = nothing,
+        draw_indices = nothing, rng = Random.default_rng())
+    diagnostic_map_data(design::FacetDesign, draws; facets = :all,
+        include_thresholds = true, metrics = :all, interval = 0.95,
+        min_n = 1)
+
+Return plotting-backend-independent rows that join Wright-map logit positions
+to posterior infit/outfit summaries. `:pathway_fit` rows are intended for
+pathway-map displays with `x = fit_value` and `y = logit_position`; threshold
+rows are returned as `:threshold_position` reference rows on the same logit
+scale. The rows are diagnostic screening data, not model-selection or
+fairness-claim evidence.
+"""
+function diagnostic_map_data(design::FacetDesign,
+        draws::AbstractMatrix;
+        facets = :all,
+        include_thresholds::Bool = true,
+        metrics = :all,
+        interval::Real = 0.95,
+        min_n::Int = 1)
+    requested_facets = _wright_map_facets(facets)
+    requested_metrics = _diagnostic_map_metrics(metrics)
+    wright_rows = wright_map_data(design, draws;
+        facets = requested_facets,
+        include_thresholds,
+        interval)
+    position_by_key = Dict{Tuple{Symbol,Any},Any}()
+    rows = NamedTuple[]
+
+    for row in wright_rows
+        if row.component === :facet_measure
+            position_by_key[(row.facet, row.level)] = row
+        elseif row.component === :threshold
+            push!(rows, _diagnostic_map_threshold_row(design, row))
+        end
+    end
+
+    for facet in requested_facets
+        fit_rows = fit_stats(design, draws; by = facet, interval, min_n)
+        for fit_row in fit_rows
+            position_row = position_by_key[(facet, fit_row.level)]
+            for metric in requested_metrics
+                push!(rows, _diagnostic_map_pathway_row(
+                    design,
+                    position_row,
+                    fit_row,
+                    metric,
+                ))
+            end
+        end
+    end
+
+    return rows
+end
+
+function diagnostic_map_data(fit::MFRMFit;
+        facets = :all,
+        include_thresholds::Bool = true,
+        metrics = :all,
+        interval::Real = 0.95,
+        min_n::Int = 1,
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    return diagnostic_map_data(fit.design, fit.draws[indices, :];
+        facets,
+        include_thresholds,
+        metrics,
+        interval,
+        min_n)
+end
+
 function _residual_summary_groups(data::FacetData, by::Symbol)
     by === :observation && return collect(1:data.n), collect(1:data.n)
     return _fit_stat_groups(data, by)

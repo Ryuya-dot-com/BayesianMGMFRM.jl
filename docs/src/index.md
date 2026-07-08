@@ -58,6 +58,8 @@ The current public slice focuses on:
   [`predictive_check_plot_data`](@ref);
 - Wright-map rows for posterior facet measures and item-threshold positions via
   [`wright_map_data`](@ref);
+- pathway-map rows that join fit statistics to logit locations via
+  [`diagnostic_map_data`](@ref);
 - row-by-category likelihood inspection via [`linear_predictor_table`](@ref)
   and [`linear_predictor_values`](@ref);
 - observation-level predictive probabilities, expected scores, variances, and

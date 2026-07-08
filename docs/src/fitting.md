@@ -386,8 +386,11 @@ draws when `parameter_space = :raw`, so external generalized draws can be
 turned into the same WAIC/LOO log-likelihood matrix contract before strong
 comparison claims are made.
 `parameter_recovery_plot_data`, `calibration_plot_data`,
-`predictive_check_plot_data`, and `wright_map_data` return plotting-ready rows
-without depending on a specific plotting library.
+`predictive_check_plot_data`, `wright_map_data`, and `diagnostic_map_data`
+return plotting-ready rows without depending on a specific plotting library.
+`diagnostic_map_data` joins Wright-map logit positions to posterior
+infit/outfit summaries for pathway-map displays with fit metrics on one axis
+and logit locations on the other.
 `waic` computes WAIC from posterior pointwise log-likelihood draws, and
 `waic_diagnostics` reports the observation-level WAIC components and flags
 high-variance rows. `loo` computes raw importance-sampling LOO, while

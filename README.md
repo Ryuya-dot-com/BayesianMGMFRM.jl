@@ -148,7 +148,8 @@ usually wants to see.
   quality.
 - `posterior_summary`, `fair_average_summary`,
   `separation_reliability_summary`, `rater_diagnostics`, `residual_summary`,
-  `fit_stats`, and `wright_map_data` produce report-ready measurement rows.
+  `fit_stats`, `wright_map_data`, and `diagnostic_map_data` produce
+  report-ready measurement and pathway-map rows.
 - `prior_predictive_check`, `posterior_predictive_check`,
   `predictive_check_summary`, `calibration_table`, `waic_diagnostics`,
   `loo_diagnostics`, `psis_loo`, `kfold`, and `compare_models` support the

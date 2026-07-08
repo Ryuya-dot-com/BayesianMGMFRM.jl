@@ -27,6 +27,7 @@ using BayesianMGMFRM:
     constraint_table,
     coverage_matrix,
     coverage_summary,
+    diagnostic_map_data,
     diagnostics,
     design_row_table,
     dff_report,
@@ -11942,6 +11943,7 @@ end
             :kfold, :loo, :psis_loo, :loo_diagnostics,
             :linear_predictor_table, :linear_predictor_values,
             :calibration_table, :diagnostics,
+            :diagnostic_map_data,
             :comparison_evidence_row, :comparison_evidence_summary,
             :compare_kfold, :compare_models, :coverage_matrix, :coverage_summary, :design_row_table, :validate_design, :mcmc_diagnostics, :mfrm_spec, :getdesign,
             :model_equation, :model_ladder, :model_manifest, :model_surface_audit,
@@ -21248,6 +21250,74 @@ end
     @test_throws ArgumentError fit_stats(result; method = :plugin)
     @test_throws ArgumentError fit_stats(result; interval = 1.0)
     @test_throws ArgumentError fit_stats(result; min_n = 0)
+
+    diagnostic_map = diagnostic_map_data(result;
+        draw_indices = [1, 2],
+        interval = 0.8)
+    diagnostic_pathway_rows =
+        filter(row -> row.map_layer === :pathway_fit, diagnostic_map)
+    diagnostic_threshold_rows =
+        filter(row -> row.map_layer === :threshold_position, diagnostic_map)
+    @test length(diagnostic_pathway_rows) ==
+        2 * (length(data.person_levels) + length(data.rater_levels) +
+        length(data.item_levels))
+    @test length(diagnostic_threshold_rows) ==
+        length(data.item_levels) * (length(data.category_levels) - 1)
+    @test Set(row.fit_metric for row in diagnostic_pathway_rows) ==
+        Set((:infit, :outfit))
+    @test all(row -> row.schema == "bayesianmgmfrm.diagnostic_map_data.v1",
+        diagnostic_map)
+    @test all(row -> row.object === :diagnostic_map_row, diagnostic_map)
+    @test all(row -> row.model_family === :mfrm, diagnostic_map)
+    @test all(row -> row.scale === :logit, diagnostic_map)
+    @test all(row -> row.caveat === :diagnostic_map_screening_not_model_selection,
+        diagnostic_map)
+    @test all(row -> row.suggested_x == row.fit_value &&
+        row.suggested_y == row.logit_position,
+        diagnostic_pathway_rows)
+    @test all(row -> ismissing(row.fit_metric) &&
+        ismissing(row.suggested_x) &&
+        row.suggested_y == row.logit_position,
+        diagnostic_threshold_rows)
+    r1_infit_map = only(row for row in diagnostic_pathway_rows
+        if row.facet === :rater && row.level == "R1" &&
+        row.fit_metric === :infit)
+    r1_wright = only(row for row in wright_facet_rows
+        if row.facet === :rater && row.level == "R1")
+    r1_fit = only(row for row in rater_fit if row.level == "R1")
+    @test r1_infit_map.logit_position ≈ r1_wright.position_mean
+    @test r1_infit_map.logit_lower ≈ r1_wright.position_lower
+    @test r1_infit_map.fit_value ≈ r1_fit.infit_mean
+    @test r1_infit_map.fit_lower ≈ r1_fit.infit_lower
+    @test r1_infit_map.fit_flag === r1_fit.flag
+    @test r1_infit_map.position_flag === r1_wright.flag
+    @test r1_infit_map.flag === (r1_wright.flag !== :ok ?
+        r1_wright.flag : r1_fit.flag)
+    rater_outfit_map = diagnostic_map_data(result;
+        facets = :rater,
+        include_thresholds = false,
+        metrics = :outfit,
+        draw_indices = [1, 2],
+        interval = 0.8)
+    @test length(rater_outfit_map) == length(data.rater_levels)
+    @test all(row -> row.facet === :rater &&
+        row.fit_metric === :outfit &&
+        row.map_layer === :pathway_fit,
+        rater_outfit_map)
+    @test isequal(
+        diagnostic_map_data(design, result.draws[1:2, :];
+            facets = :rater,
+            include_thresholds = false,
+            metrics = :outfit,
+            interval = 0.8),
+        rater_outfit_map,
+    )
+    @test_throws ArgumentError diagnostic_map_data(result; metrics = :rmse)
+    @test_throws ArgumentError diagnostic_map_data(result; metrics = (:infit, :infit))
+    @test_throws ArgumentError diagnostic_map_data(result; facets = :category)
+    @test_throws ArgumentError diagnostic_map_data(result; interval = 1.0)
+    @test_throws ArgumentError diagnostic_map_data(result; min_n = 0)
+    @test_throws ArgumentError diagnostic_map_data(result; draw_indices = [0])
 
     prior_replicated = prior_predict(design; prior, ndraws = 5, rng = MersenneTwister(2234))
     @test size(prior_replicated) == (5, data.n)

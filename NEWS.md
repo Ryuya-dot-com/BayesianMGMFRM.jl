@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add `diagnostic_map_data` as a plotting-backend-independent pathway-map data
+  contract that joins MFRM Wright-map logit positions to posterior infit/outfit
+  summaries.
 - Split the rendered API reference into smaller workflow pages to avoid the
   oversized single-page Documenter warning.
 - Turn the Documenter 100 KiB rendered-page warning threshold into a hard docs

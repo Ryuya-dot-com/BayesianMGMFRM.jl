@@ -41,6 +41,7 @@ predictive_residuals
 calibration_table
 calibration_plot_data
 wright_map_data
+diagnostic_map_data
 fair_average_summary
 dff_report
 separation_reliability_summary
