@@ -257,6 +257,13 @@ heldout diagnostic gates, and keeps all public claims blocked until the
 remaining pilot jobs, threshold recalibration, full batch, and external
 construct evidence are reviewed.
 
+`mgmfrm_publication_grade_refit_brms_like_pilot_execution_review.json` records
+the full brms-like fold-1 pilot execution across the five selected comparison
+units. It verifies 15 ignored local runner artifacts, records 3/4 MCMC units as
+passing the full local gate, isolates the scalar GMFRM divergence failure,
+ranks heldout ELPD descriptively, and keeps fit-metric, Q-revision,
+model-weight, sparse-superiority, full-batch, and public-scope claims blocked.
+
 `mgmfrm_publication_grade_refit_sampler_remediation_review.json` records the
 local scalar-GMFRM sampler remediation layer. It tracks the target-acceptance
 0.9 rerun for the scalar pilot divergence warning, keeps committed fixtures

@@ -9,6 +9,10 @@
   fixture that records the construct-reviewed revised-Q fold-1 run at `4`
   chains, `1000` warmup draws per chain, and `1000` retained draws per chain,
   with passed R-hat/ESS/HMC/heldout gates and public claims still blocked.
+- Add a local brms-like full pilot execution review fixture for the five
+  `well_specified_current_q` fold-1 publication-grade units, recording that
+  3/4 MCMC gates passed, scalar GMFRM had two divergences, the analytic null
+  reference ranked first on heldout ELPD, and public claims remain blocked.
 - Split the rendered API reference into smaller workflow pages to avoid the
   oversized single-page Documenter warning.
 - Turn the Documenter 100 KiB rendered-page warning threshold into a hard docs

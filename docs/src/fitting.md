@@ -359,6 +359,17 @@ This clears the initial runtime/geometry check for one revised-Q cell only. The
 remaining pilot units, threshold recalibration, full 125-unit batch, external
 construct evidence, and public MGMFRM claims remain blocked.
 
+The brms-like fold-1 pilot has now also been executed for all five selected
+comparison units. Current-Q confirmatory, sparse current-Q, and
+construct-reviewed revised-Q MGMFRM passed the full local diagnostic gate. The
+scalar GMFRM baseline retained two divergences, so the next gate is sampler
+remediation before batch expansion. The analytic null reference ranked first on
+heldout ELPD (`-8.926`), scalar was the best MCMC model (`-10.164`) but failed
+the divergence gate, and sparse current-Q was the best diagnostic-passed MCMC
+model (`-11.674`). These ranks are descriptive local diagnostics only; they
+motivate signal-strength, category-calibration, and threshold-sensitivity
+checks rather than any public model-weight claim.
+
 These numbers are local diagnostic evidence only. They should not be cited as
 public fit thresholds, model weights, Q-revision evidence, sparse-superiority
 evidence, or a stable-public MGMFRM validation claim.

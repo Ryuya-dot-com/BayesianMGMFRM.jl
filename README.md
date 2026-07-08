@@ -419,6 +419,16 @@ recovered after MCMC across replicated seeds and internal prior profiles:
   `-11.794`. This is single-cell local evidence only; the remaining pilot
   units, threshold recalibration, full 125-unit batch, external construct
   evidence, and public claims remain blocked.
+- The brms-like fold-1 pilot has also been executed across all five selected
+  comparison units. Three of the four MCMC units passed the full local gate:
+  current-Q confirmatory, sparse current-Q, and construct-reviewed revised-Q
+  MGMFRM. The scalar GMFRM baseline had two divergences despite good R-hat/ESS,
+  so sampler remediation remains required. Descriptively, the analytic null
+  reference ranked first on heldout ELPD (`-8.926`), scalar was the best MCMC
+  model (`-10.164`) but failed the divergence gate, and sparse current-Q was the
+  best diagnostic-passed MCMC model (`-11.674`). This strengthens the need to
+  diagnose signal strength, category calibration, and threshold behavior before
+  any model-weight or sparse-superiority claim.
 - The current compact Null-win batch still shows large structured-model losses
   (for example Current Q dELPD vs Null `-33.027`), so current failures should be
   diagnosed through signal strength, category calibration, Q support, prior
