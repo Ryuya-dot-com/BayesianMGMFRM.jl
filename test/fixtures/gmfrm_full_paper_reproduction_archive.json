@@ -375,7 +375,7 @@
       "path": "test/fixtures/gmfrm_claim_recovery_reproduction_archive.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "911ecf5d419b49e616cd482c108256e78e42aa66548e5dcccb4d407d8c5821b0",
+      "sha256": "2838b2dd135a94dbbceaf2cdfe9b618a31dee237903cf924ea528467544c82de",
       "expected_schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
       "schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
       "schema_matches": true,
@@ -981,7 +981,7 @@
     {
       "path": "src/bayesian_fit.jl",
       "exists": true,
-      "sha256": "2650ad0a26ac9ccee33be70dc874bf24ce161558f70e6dff94dcbebd0ef8dbc4",
+      "sha256": "f3b27eb80a7f58d45bb07480d06147ae92535902c3b9b8a23ac32d6e76d0c2b0",
       "line_count": 17481
     },
     {
@@ -993,7 +993,7 @@
     {
       "path": "test/runtests.jl",
       "exists": true,
-      "sha256": "6ef4bda1518fe3f836b250130544120f7ca88dd65aa80be48c20672fd2d89af0",
+      "sha256": "2a93aa083821d275899e20955caea13d2128cc17bca8f4f05f5c9bcfd4b34d57",
       "line_count": 21868
     },
     {

@@ -16381,6 +16381,33 @@ end
     @test any(row -> row.pooling === :hierarchical_rater_consistency_pooling &&
         row.status === :blocked,
         mgmfrm_report.pooling_policy.rows)
+    @test mgmfrm_report.mcmc_budget_guidance.status === :computed
+    @test mgmfrm_report.mcmc_budget_guidance.schema ==
+        "bayesianmgmfrm.fit_report_mcmc_budget_guidance.v1"
+    @test mgmfrm_report.mcmc_budget_guidance.n_rows == 5
+    @test !mgmfrm_report.mcmc_budget_guidance.summary.current_budget_meets_guidance
+    @test mgmfrm_report.mcmc_budget_guidance.summary.recommended_preset === :brms_like
+    @test mgmfrm_report.mcmc_budget_guidance.summary.recommended_min_chains == 4
+    @test mgmfrm_report.mcmc_budget_guidance.summary.recommended_min_warmup_per_chain == 1000
+    @test mgmfrm_report.mcmc_budget_guidance.summary.recommended_min_draws_per_chain == 1000
+    @test mgmfrm_report.mcmc_budget_guidance.summary.recommended_total_iterations_per_chain == 2000
+    @test mgmfrm_report.mcmc_budget_guidance.summary.recommended_total_retained_draws == 4000
+    @test !mgmfrm_report.mcmc_budget_guidance.summary.thinning_primary_fix
+    @test !mgmfrm_report.mcmc_budget_guidance.summary.package_default_change
+    @test any(row -> row.recommendation === :local_mgmfrm_diagnostic_budget &&
+        row.status === :not_met &&
+        row.action === :increase_budget_before_substantive_rank_warning_interpretation &&
+        !row.package_default_change &&
+        !row.public_claim_allowed,
+        mgmfrm_report.mcmc_budget_guidance.rows)
+    @test any(row -> row.recommendation === :thinning_policy &&
+        row.status === :not_primary_fix &&
+        row.action === :do_not_use_thinning_as_primary_fix,
+        mgmfrm_report.mcmc_budget_guidance.rows)
+    @test any(row -> row.recommendation === :warmup_policy &&
+        row.status === :below_brms_like_budget &&
+        row.recommended_minimum == 1000,
+        mgmfrm_report.mcmc_budget_guidance.rows)
     @test mgmfrm_report.prior_predictive.status === :not_requested
     @test mgmfrm_report.posterior.status === :computed
     @test mgmfrm_report.direct_posterior.status === :computed
@@ -17656,6 +17683,9 @@ end
     @test any(row -> row.block === :rater_consistency &&
         row.status === :not_applicable,
         report.pooling_policy.rows)
+    @test report.mcmc_budget_guidance.status === :unsupported
+    @test occursin("guarded MGMFRM",
+        report.mcmc_budget_guidance.reason)
     @test report.rating_design.status === :computed
     @test report.rating_design.schema == "bayesianmgmfrm.rating_design_audit.v1"
     @test report.rating_design.summary.nonignorable_assignment_flagged
@@ -17730,6 +17760,7 @@ end
     report_section_names = [row.section for row in report_sections]
     @test :diagnostics in report_section_names
     @test :rating_design in report_section_names
+    @test :mcmc_budget_guidance in report_section_names
     @test :prior_policy in report_section_names
     @test :pooling_policy in report_section_names
     @test :posterior in report_section_names
@@ -17744,6 +17775,12 @@ end
     @test pooling_policy_section.status === :computed
     @test pooling_policy_section.row_fields == [:rows]
     @test pooling_policy_section.n_rows == report.pooling_policy.n_rows
+    mcmc_budget_section = only(filter(row ->
+            row.section === :mcmc_budget_guidance,
+        report_sections))
+    @test mcmc_budget_section.status === :unsupported
+    @test isempty(mcmc_budget_section.row_fields)
+    @test mcmc_budget_section.n_rows == 0
     posterior_section = only(filter(row -> row.section === :posterior, report_sections))
     @test posterior_section.status === :computed
     @test posterior_section.row_fields == [:rows]

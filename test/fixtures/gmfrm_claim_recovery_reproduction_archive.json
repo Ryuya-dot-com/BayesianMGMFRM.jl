@@ -349,12 +349,12 @@
     {
       "path": "src/bayesian_fit.jl",
       "exists": true,
-      "sha256": "2650ad0a26ac9ccee33be70dc874bf24ce161558f70e6dff94dcbebd0ef8dbc4"
+      "sha256": "f3b27eb80a7f58d45bb07480d06147ae92535902c3b9b8a23ac32d6e76d0c2b0"
     },
     {
       "path": "test/runtests.jl",
       "exists": true,
-      "sha256": "6ef4bda1518fe3f836b250130544120f7ca88dd65aa80be48c20672fd2d89af0"
+      "sha256": "2a93aa083821d275899e20955caea13d2128cc17bca8f4f05f5c9bcfd4b34d57"
     },
     {
       "path": "test/fixtures/README.md",

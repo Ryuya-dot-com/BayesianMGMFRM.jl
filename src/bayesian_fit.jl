@@ -4790,15 +4790,174 @@ function _fit_report_pooling_policy(fit::_ModelComparisonFit)
     )
 end
 
+const _MGMFRM_LOCAL_GUIDANCE_PRESET = :brms_like
+const _MGMFRM_LOCAL_GUIDANCE_MIN_CHAINS = 4
+const _MGMFRM_LOCAL_GUIDANCE_MIN_WARMUP_PER_CHAIN = 1000
+const _MGMFRM_LOCAL_GUIDANCE_MIN_DRAWS_PER_CHAIN = 1000
+const _MGMFRM_LOCAL_GUIDANCE_REFERENCE_DRAWS_PER_CHAIN = 1000
+const _MGMFRM_LOCAL_GUIDANCE_TOTAL_ITER_PER_CHAIN =
+    _MGMFRM_LOCAL_GUIDANCE_MIN_WARMUP_PER_CHAIN +
+    _MGMFRM_LOCAL_GUIDANCE_MIN_DRAWS_PER_CHAIN
+
+function _fit_report_mcmc_budget_guidance_row(; family::Symbol,
+        recommendation::Symbol, status::Symbol, applies::Bool,
+        current_value, recommended_minimum, evidence::Symbol,
+        action::Symbol, note::AbstractString)
+    return (;
+        schema = "bayesianmgmfrm.fit_report_mcmc_budget_guidance_row.v1",
+        family,
+        recommendation,
+        status,
+        applies,
+        current_value,
+        recommended_minimum,
+        evidence,
+        action,
+        public_claim_allowed = false,
+        package_default_change = false,
+        note,
+    )
+end
+
+function _fit_report_mcmc_budget_guidance(fit::_ModelComparisonFit, metadata,
+        diagnostic_surface)
+    family = fit.design.spec.family
+    family === :mgmfrm ||
+        return _fit_report_unsupported(
+            "local retained-draw budget guidance is currently documented for guarded MGMFRM fits only",
+        )
+    current_chains = Int(metadata.n_chains)
+    current_warmup = Int(metadata.warmup)
+    current_draws = Int(metadata.draws_per_chain)
+    summary = diagnostic_surface.summary
+    geometry_warning_rows =
+        Int(_nt_get(summary, :n_divergences, 0)) +
+        Int(_nt_get(summary, :n_max_treedepth, 0)) +
+        Int(_nt_get(summary, :n_sampler_warnings, 0))
+    meets_chains = current_chains >= _MGMFRM_LOCAL_GUIDANCE_MIN_CHAINS
+    meets_warmup = current_warmup >= _MGMFRM_LOCAL_GUIDANCE_MIN_WARMUP_PER_CHAIN
+    meets_draws = current_draws >= _MGMFRM_LOCAL_GUIDANCE_MIN_DRAWS_PER_CHAIN
+    rows = [
+        _fit_report_mcmc_budget_guidance_row(
+            family = family,
+            recommendation = :local_mgmfrm_diagnostic_budget,
+            status = meets_chains && meets_warmup && meets_draws ?
+                :met : :not_met,
+            applies = true,
+            current_value = (;
+                chains = current_chains,
+                warmup_per_chain = current_warmup,
+                draws_per_chain = current_draws,
+            ),
+            recommended_minimum = (;
+                preset = _MGMFRM_LOCAL_GUIDANCE_PRESET,
+                chains = _MGMFRM_LOCAL_GUIDANCE_MIN_CHAINS,
+                warmup_per_chain = _MGMFRM_LOCAL_GUIDANCE_MIN_WARMUP_PER_CHAIN,
+                draws_per_chain = _MGMFRM_LOCAL_GUIDANCE_MIN_DRAWS_PER_CHAIN,
+                total_iterations_per_chain =
+                    _MGMFRM_LOCAL_GUIDANCE_TOTAL_ITER_PER_CHAIN,
+            ),
+            evidence = :brms_like_default_and_local_1000_draw_rank_replication,
+            action = meets_chains && meets_warmup && meets_draws ?
+                :continue_standard_diagnostic_review :
+                :increase_budget_before_substantive_rank_warning_interpretation,
+            note = "report guidance recommends a brms-like guarded MGMFRM budget: 4 chains, 1000 warmup draws, and 1000 retained draws per chain before treating rank warnings as substantive evidence",
+        ),
+        _fit_report_mcmc_budget_guidance_row(
+            family = family,
+            recommendation = :rank_warning_escalation_order,
+            status = current_draws >= _MGMFRM_LOCAL_GUIDANCE_REFERENCE_DRAWS_PER_CHAIN ?
+                :active : :below_reference_budget,
+            applies = true,
+            current_value = current_draws,
+            recommended_minimum = _MGMFRM_LOCAL_GUIDANCE_MIN_DRAWS_PER_CHAIN,
+            evidence = :local_1000_draw_rank_replication_review,
+            action = geometry_warning_rows == 0 &&
+                     current_draws < _MGMFRM_LOCAL_GUIDANCE_MIN_DRAWS_PER_CHAIN ?
+                :increase_retained_draws_before_reparameterizing_or_thinning :
+                :review_rank_and_geometry_diagnostics_together,
+            note = "use 1000 retained draws as the report-facing guarded MGMFRM rank-guidance budget and review divergences or treedepth warnings through a separate geometry branch",
+        ),
+        _fit_report_mcmc_budget_guidance_row(
+            family = family,
+            recommendation = :warmup_policy,
+            status = current_warmup >= _MGMFRM_LOCAL_GUIDANCE_MIN_WARMUP_PER_CHAIN ?
+                :met : :below_brms_like_budget,
+            applies = true,
+            current_value = current_warmup,
+            recommended_minimum = _MGMFRM_LOCAL_GUIDANCE_MIN_WARMUP_PER_CHAIN,
+            evidence = :brms_iter_2000_warmup_half_convention,
+            action = geometry_warning_rows > 0 &&
+                     current_warmup < _MGMFRM_LOCAL_GUIDANCE_MIN_WARMUP_PER_CHAIN ?
+                :increase_warmup_or_target_acceptance_for_geometry_warning :
+                :use_brms_like_warmup_for_substantive_mgmfrm_diagnostics,
+            note = "brms uses total iterations including warmup, with a default warmup of iter/2; the analogous package guidance is warmup = 1000 and retained draws = 1000 per chain",
+        ),
+        _fit_report_mcmc_budget_guidance_row(
+            family = family,
+            recommendation = :thinning_policy,
+            status = :not_primary_fix,
+            applies = true,
+            current_value = :not_exposed_in_fit_api,
+            recommended_minimum = :not_applicable,
+            evidence = :thinning_reduces_diagnostic_support,
+            action = :do_not_use_thinning_as_primary_fix,
+            note = "post-hoc thinning can reduce diagnostic support and is not exposed as the primary guarded fit API control",
+        ),
+        _fit_report_mcmc_budget_guidance_row(
+            family = family,
+            recommendation = :package_default_policy,
+            status = :blocked_for_default_change,
+            applies = true,
+            current_value = :current_fit_controls,
+            recommended_minimum = :brms_like_report_guidance_not_global_fit_default,
+            evidence = :public_defaults_require_runtime_and_external_construct_review,
+            action = :do_not_change_package_defaults_from_this_local_gate,
+            note = "this is report-facing guarded MGMFRM diagnostic guidance, not a package-wide fit default change or public fit-threshold claim",
+        ),
+    ]
+    return (;
+        status = :computed,
+        schema = "bayesianmgmfrm.fit_report_mcmc_budget_guidance.v1",
+        rows,
+        n_rows = length(rows),
+        summary = (;
+            family,
+            current_chains,
+            current_warmup_per_chain = current_warmup,
+            current_draws_per_chain = current_draws,
+            recommended_preset = _MGMFRM_LOCAL_GUIDANCE_PRESET,
+            recommended_min_chains = _MGMFRM_LOCAL_GUIDANCE_MIN_CHAINS,
+            recommended_min_warmup_per_chain =
+                _MGMFRM_LOCAL_GUIDANCE_MIN_WARMUP_PER_CHAIN,
+            recommended_min_draws_per_chain =
+                _MGMFRM_LOCAL_GUIDANCE_MIN_DRAWS_PER_CHAIN,
+            recommended_total_iterations_per_chain =
+                _MGMFRM_LOCAL_GUIDANCE_TOTAL_ITER_PER_CHAIN,
+            recommended_total_retained_draws =
+                _MGMFRM_LOCAL_GUIDANCE_MIN_CHAINS *
+                _MGMFRM_LOCAL_GUIDANCE_MIN_DRAWS_PER_CHAIN,
+            current_budget_meets_guidance =
+                meets_chains && meets_warmup && meets_draws,
+            geometry_warning_rows,
+            thinning_primary_fix = false,
+            package_default_change = false,
+            public_fit_metric_claim_allowed = false,
+            next_gate =
+                :join_brms_like_budget_guidance_to_model_comparison_and_calibration,
+        ),
+    )
+end
+
 """
     fit_report(fit; kwargs...)
 
 Build a compact, machine-readable report bundle for a fitted MFRM, guarded
 GMFRM, or guarded MGMFRM object. The report combines fit metadata, provenance,
-diagnostics, prior and pooling policy rows, posterior summaries, posterior
-predictive summaries, calibration rows, WAIC/LOO summaries and diagnostics,
-optional DFF rows, and a compact archive manifest. Section-level failures are
-captured by default with
+diagnostics, prior, pooling, and MGMFRM local MCMC-budget guidance rows,
+posterior summaries, posterior predictive summaries, calibration rows,
+WAIC/LOO summaries and diagnostics, optional DFF rows, and a compact archive
+manifest. Section-level failures are captured by default with
 `status = :error`; use `on_section_error = :throw` to make the first failing
 section raise.
 
@@ -5005,6 +5164,8 @@ function fit_report(fit::_ModelComparisonFit;
 
     prior_policy = _fit_report_prior_policy(fit)
     pooling_policy = _fit_report_pooling_policy(fit)
+    mcmc_budget_guidance =
+        _fit_report_mcmc_budget_guidance(fit, metadata, diagnostic_surface)
     rating_design = _fit_report_section(checked_on_error) do
         audit = manifest.rating_design
         rows = collect(audit.rows)
@@ -5145,6 +5306,7 @@ function fit_report(fit::_ModelComparisonFit;
         rating_design,
         q_matrix,
         diagnostics = diagnostic_surface,
+        mcmc_budget_guidance,
         prior_policy,
         pooling_policy,
         prior_predictive,
@@ -5368,6 +5530,7 @@ const _FIT_REPORT_SECTION_ORDER = (
     :diagnostics,
     :rating_design,
     :q_matrix,
+    :mcmc_budget_guidance,
     :prior_policy,
     :pooling_policy,
     :prior_predictive,
