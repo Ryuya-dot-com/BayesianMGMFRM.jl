@@ -285,13 +285,14 @@ next scalar batch, but the committed fixture remains local-only and keeps all
 public fit-metric and model-comparison claims blocked.
 
 `mgmfrm_publication_grade_refit_batch_expansion_plan.json` expands the
-publication-grade pilot into the full 125 scenario-model-fold batch. It records
-conditional scalar target acceptance 0.9, the default 0.8 setting for the
-fixed-Q MGMFRM candidates, analytic reference jobs, command templates, result
-targets, and diagnostic-capture rows. The shared runner now reads this plan via
-`--plan`, so committed fixtures keep execution blocked only until local
-remediation evidence is attached; ignored local remediation artifacts can
-advance the next gate to local batch execution.
+publication-grade pilot into the full 125 scenario-model-fold batch. It now
+uses the brms-like scalar remediation review as its scalar policy source,
+records scalar target acceptance 0.9, the default 0.8 setting for the fixed-Q
+MGMFRM candidates, `1000` warmup draws per MCMC chain, analytic reference jobs,
+command templates, result targets, and diagnostic-capture rows. The shared
+runner reads this plan via `--plan`, and the committed plan is now local
+execution-ready while public claims remain blocked until batch results are
+observed and reviewed.
 
 `scripts/run_mgmfrm_publication_grade_refit_batch.jl` is the local-only batch
 orchestrator for that next gate. It reads the batch plan, skips already

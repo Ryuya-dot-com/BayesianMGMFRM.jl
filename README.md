@@ -436,6 +436,12 @@ recovered after MCMC across replicated seeds and internal prior profiles:
   not replaced; the local batch policy can use `target_acceptance = 0.9` for
   scalar GMFRM jobs while public sampler-stability, fit-threshold, and
   model-comparison claims remain blocked.
+- The 125-unit publication-grade batch plan has been updated to consume that
+  brms-like scalar remediation evidence. Scalar GMFRM jobs now use
+  `target_acceptance = 0.9`, fixed-Q MGMFRM jobs keep `0.8`, all MCMC jobs use
+  `4` chains with `1000` warmup and `1000` retained draws per chain, and the
+  local runner adapter is ready. The next gate is executing the batch locally;
+  full-batch, external-construct, and public-scope blockers remain.
 - The current compact Null-win batch still shows large structured-model losses
   (for example Current Q dELPD vs Null `-33.027`), so current failures should be
   diagnosed through signal strength, category calibration, Q support, prior

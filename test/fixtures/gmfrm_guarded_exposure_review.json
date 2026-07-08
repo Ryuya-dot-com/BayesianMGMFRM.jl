@@ -359,7 +359,7 @@
     {
       "artifact": "guarded_fit_api_dry_run",
       "path": "test/fixtures/gmfrm_guarded_fit_api_dry_run.json",
-      "sha256": "8a17577c1d677bfcb6f511f8fd5f4004aa2a686fbe142c3e7d6caf048dd37222",
+      "sha256": "4c2919746dc988a375b40b6df581a0f5072f896c042adef72e1d2734ea04d6b6",
       "schema": "bayesianmgmfrm.gmfrm_guarded_fit_api_dry_run.v1",
       "family": "gmfrm",
       "scope": "scalar_gmfrm_fit_ready_candidate",
@@ -607,7 +607,7 @@
     {
       "artifact": "claim_recovery_reproduction_archive",
       "path": "test/fixtures/gmfrm_claim_recovery_reproduction_archive.json",
-      "sha256": "7626edc48d26e37c5b20f7a62fb3e375bba68b066f5843426b54c5bd1af9e91d",
+      "sha256": "a60986e280c87777659903f41698cb34f4ae87a7ecb219369f8eca56b729237d",
       "schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
       "family": "gmfrm",
       "scope": "scalar_gmfrm_fit_ready_candidate",
@@ -641,7 +641,7 @@
     {
       "artifact": "broader_experimental_exposure_decision_review",
       "path": "test/fixtures/gmfrm_broader_experimental_exposure_decision_review.json",
-      "sha256": "48172fa8b654bf9dbf6afdd3b33d83452fe2e945db9b19188c7e0c5b1d64aa36",
+      "sha256": "5aa4094d87e1e5c9a62c3daa590f8b1e4cd7d23da2e40916eb55c9b750c3fff2",
       "schema": "bayesianmgmfrm.gmfrm_broader_experimental_exposure_decision_review.v1",
       "family": "gmfrm",
       "scope": "broader_generalized_exposure_decision",
@@ -862,7 +862,7 @@
     {
       "artifact": "prediction_target_and_model_weight_policy",
       "path": "test/fixtures/gmfrm_prediction_target_and_model_weight_policy.json",
-      "sha256": "7eb772ed74f1ec256b0d481f0a53eda8f6b4e5a0e15b31e95548ba249c18feb7",
+      "sha256": "b07499c4b5c3a59efe6dc443eb9d7cbbd17b3187b726ad9c67e03eb402a49b8c",
       "schema": "bayesianmgmfrm.gmfrm_prediction_target_and_model_weight_policy.v1",
       "family": "gmfrm",
       "scope": "prediction_target_and_model_weight_policy",
@@ -900,7 +900,7 @@
     {
       "artifact": "mgmfrm_manual_public_scope_review_for_fit",
       "path": "test/fixtures/mgmfrm_manual_public_scope_review_for_fit.json",
-      "sha256": "37a11b66e483102904a4a1fce721e08157dd25c0629062be9db4db1d6aaba81a",
+      "sha256": "7e6bb90ba1ca7b4617cd0f26f929761f673d18886b1c7d95df0d3584de59adc1",
       "schema": "bayesianmgmfrm.mgmfrm_manual_public_scope_review_for_fit.v1",
       "family": "mgmfrm",
       "scope": "minimal_confirmatory_mgmfrm_candidate",
@@ -976,7 +976,7 @@
     {
       "artifact": "manuscript_scale_simulation_grid",
       "path": "test/fixtures/gmfrm_manuscript_scale_simulation_grid.json",
-      "sha256": "b68c2036e4ac8fdc30dd28a0553a418c0d5be7d6f89208aef558407cb5e9c093",
+      "sha256": "12cd8a7ff82519ea4b6c39eb74fac848f6af5a73202e649f7426ff3a84900c69",
       "schema": "bayesianmgmfrm.gmfrm_manuscript_scale_simulation_grid.v1",
       "family": "gmfrm",
       "scope": "manuscript_scale_simulation_grid",
@@ -1036,7 +1036,7 @@
     {
       "artifact": "full_paper_reproduction_archive",
       "path": "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
-      "sha256": "31d9720bd7ad4ece7592f4fe9cf4522592134ee5ac120a647806aa6b7879483f",
+      "sha256": "b1d2ebef20bda0dffe869a266f5bd09333ae3bb3c49548c5c0430711185b54c0",
       "schema": "bayesianmgmfrm.gmfrm_full_paper_reproduction_archive.v1",
       "family": "gmfrm",
       "scope": "full_paper_reproduction_archive",

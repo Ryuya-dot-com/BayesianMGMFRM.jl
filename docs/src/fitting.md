@@ -378,6 +378,13 @@ essentially unchanged (`-10.164 -> -10.160`, dELPD `+0.0043`). This is local
 sampler-policy evidence, not a replacement of the primary pilot row or a public
 model-selection claim.
 
+The full 125-unit publication-grade batch plan now consumes that brms-like
+scalar remediation review. Scalar GMFRM jobs are planned with
+`target_acceptance = 0.9`, fixed-Q MGMFRM jobs with `0.8`, and all MCMC jobs
+with `4` chains, `1000` warmup draws, and `1000` retained draws per chain. The
+runner adapter is ready for local execution, but the full-batch result review,
+external construct evidence, and public-scope review remain unresolved.
+
 These numbers are local diagnostic evidence only. They should not be cited as
 public fit thresholds, model weights, Q-revision evidence, sparse-superiority
 evidence, or a stable-public MGMFRM validation claim.

@@ -13192,7 +13192,7 @@ function check_mgmfrm_publication_grade_refit_batch_expansion_plan_fixture(
     @test Bool(fixture[:experimental_public])
     @test Bool(fixture[:fit_ready]) == false
     @test Bool(fixture[:harness_ready])
-    @test Bool(fixture[:execution_ready]) == false
+    @test Bool(fixture[:execution_ready])
     @test Bool(fixture[:local_only])
     @test Bool(fixture[:publication_or_registration_action]) == false
     @test Bool(fixture[:publication_grade_batch_plan_recorded])
@@ -13217,14 +13217,15 @@ function check_mgmfrm_publication_grade_refit_batch_expansion_plan_fixture(
     @test String(protocol[:runner_script]) ==
         "scripts/run_mgmfrm_publication_grade_refit_job.jl"
     @test Int(controls[:chains]) == 4
-    @test Int(controls[:warmup_per_chain]) == 500
+    @test Int(controls[:warmup_per_chain]) == 1000
     @test Int(controls[:draws_per_chain]) == 1000
     @test Float64(controls[:default_target_acceptance]) == 0.8
     @test Float64(controls[:scalar_remediated_target_acceptance]) == 0.9
     @test Int(controls[:seed_offset]) == 300000
     @test Bool(thresholds[:require_execution_plan_passed])
     @test Bool(thresholds[:require_gate_passed])
-    @test Bool(thresholds[:require_scalar_remediation_comparison_passed])
+    @test Bool(thresholds[:require_brms_like_scalar_remediation_review_passed])
+    @test Bool(thresholds[:require_scalar_remediation_success_observed])
     @test Bool(thresholds[:require_all_125_units_materialized])
     @test Bool(thresholds[:require_scalar_target_acceptance_policy_recorded])
     @test Bool(thresholds[:require_command_templates_recorded])
@@ -13240,8 +13241,8 @@ function check_mgmfrm_publication_grade_refit_batch_expansion_plan_fixture(
             "test/fixtures/mgmfrm_full_heldout_mcmc_refit_execution_plan.json",
         "mgmfrm_publication_grade_refit_gate" =>
             "test/fixtures/mgmfrm_publication_grade_refit_gate.json",
-        "mgmfrm_publication_grade_refit_scalar_remediation_comparison" =>
-            "test/fixtures/mgmfrm_publication_grade_refit_scalar_remediation_comparison.json",
+        "mgmfrm_publication_grade_refit_brms_like_scalar_remediation_review" =>
+            "test/fixtures/mgmfrm_publication_grade_refit_brms_like_scalar_remediation_review.json",
     )
     @test length(inputs) == length(expected_inputs)
     @test Set(String(row[:artifact]) for row in inputs) ==
@@ -13262,8 +13263,8 @@ function check_mgmfrm_publication_grade_refit_batch_expansion_plan_fixture(
         if String(row[:model_group]) == "scalar_gmfrm_baseline")
     @test Float64(scalar_policy[:target_acceptance]) == 0.9
     @test String(scalar_policy[:source]) ==
-        "scalar_remediation_fallback_pending_observation"
-    @test Bool(scalar_policy[:policy_ready_local_only]) == false
+        "scalar_remediation_observed_policy"
+    @test Bool(scalar_policy[:policy_ready_local_only])
     mgmfrm_policy = only(row for row in policies
         if String(row[:model_group]) == "mgmfrm_mcmc_candidates")
     @test Float64(mgmfrm_policy[:target_acceptance]) == 0.8
@@ -13287,7 +13288,8 @@ function check_mgmfrm_publication_grade_refit_batch_expansion_plan_fixture(
         if String(row[:model]) == "scalar_gmfrm_baseline"]
     @test all(row -> Float64(row[:target_acceptance]) == 0.9, scalar_jobs)
     @test all(row -> String(row[:target_acceptance_source]) ==
-        "scalar_remediation_fallback_pending_observation", scalar_jobs)
+        "scalar_remediation_observed_policy", scalar_jobs)
+    @test all(row -> Int(row[:warmup_per_chain]) == 1000, scalar_jobs)
     mgmfrm_jobs = [row for row in jobs
         if String(row[:model]) in (
             "confirmatory_mgmfrm_current_q",
@@ -13295,6 +13297,7 @@ function check_mgmfrm_publication_grade_refit_batch_expansion_plan_fixture(
             "construct_reviewed_revised_q_mgmfrm")]
     @test length(mgmfrm_jobs) == 75
     @test all(row -> Float64(row[:target_acceptance]) == 0.8, mgmfrm_jobs)
+    @test all(row -> Int(row[:warmup_per_chain]) == 1000, mgmfrm_jobs)
     @test all(row -> String(row[:target_acceptance_source]) ==
         "publication_grade_gate_default", mgmfrm_jobs)
     reference_jobs = [row for row in jobs
@@ -13352,13 +13355,13 @@ function check_mgmfrm_publication_grade_refit_batch_expansion_plan_fixture(
 
     blockers = fixture[:blocker_rows]
     @test length(blockers) == 5
-    @test count(row -> Bool(row[:resolved]), blockers) == 1
+    @test count(row -> Bool(row[:resolved]), blockers) == 2
     runner_blocker = only(row for row in blockers
         if String(row[:blocker]) ==
            "publication_grade_batch_runner_adapter_not_materialized")
     @test Bool(runner_blocker[:resolved])
     @test Set(String(row[:blocker]) for row in blockers) == Set([
-        "scalar_remediation_comparison_not_observed",
+        "brms_like_scalar_remediation_not_observed",
         "publication_grade_batch_runner_adapter_not_materialized",
         "full_125_unit_publication_grade_batch_not_executed",
         "external_construct_dataset_missing",
@@ -13369,12 +13372,13 @@ function check_mgmfrm_publication_grade_refit_batch_expansion_plan_fixture(
     @test String(decision[:selected_decision]) ==
         "record_full_batch_expansion_plan_before_heavy_execution"
     @test Bool(decision[:publication_grade_batch_plan_recorded])
-    @test Bool(decision[:scalar_remediation_comparison_observed]) == false
+    @test Bool(decision[:scalar_remediation_review_observed])
+    @test Bool(decision[:scalar_remediation_comparison_observed])
+    @test Bool(decision[:scalar_remediation_success_observed])
     @test Float64(decision[:scalar_target_acceptance]) == 0.9
-    @test Bool(decision[:scalar_batch_sampler_policy_ready_local_only]) ==
-        false
+    @test Bool(decision[:scalar_batch_sampler_policy_ready_local_only])
     @test Bool(decision[:batch_runner_adapter_materialized])
-    @test Bool(decision[:batch_execution_ready_local_only]) == false
+    @test Bool(decision[:batch_execution_ready_local_only])
     @test Bool(decision[:full_125_unit_publication_grade_batch_completed]) ==
         false
     @test Bool(decision[:public_fit_metric_claim_allowed]) == false
@@ -13382,7 +13386,7 @@ function check_mgmfrm_publication_grade_refit_batch_expansion_plan_fixture(
     @test Bool(decision[
         :model_weight_or_sparse_superiority_claim_allowed]) == false
     @test String(decision[:required_followup]) ==
-        "attach_local_scalar_remediation_comparison_before_batch_execution"
+        "execute_publication_grade_refit_batch_locally"
 
     summary = fixture[:summary]
     @test Bool(summary[:passed])
@@ -13393,13 +13397,14 @@ function check_mgmfrm_publication_grade_refit_batch_expansion_plan_fixture(
     @test Bool(summary[:all_input_summaries_passed])
     @test Bool(summary[:execution_plan_passed])
     @test Bool(summary[:gate_passed])
+    @test Bool(summary[:scalar_remediation_review_passed])
     @test Bool(summary[:scalar_remediation_comparison_passed])
-    @test Bool(summary[:scalar_remediation_comparison_observed]) == false
-    @test Bool(summary[:scalar_remediation_success_observed]) == false
+    @test Bool(summary[:scalar_remediation_review_observed])
+    @test Bool(summary[:scalar_remediation_comparison_observed])
+    @test Bool(summary[:scalar_remediation_success_observed])
     @test Bool(summary[:scalar_target_acceptance_policy_recorded])
     @test Float64(summary[:scalar_target_acceptance]) == 0.9
-    @test Bool(summary[:scalar_batch_sampler_policy_ready_local_only]) ==
-        false
+    @test Bool(summary[:scalar_batch_sampler_policy_ready_local_only])
     @test Bool(summary[:batch_unit_rows_recorded])
     @test Bool(summary[:all_125_units_materialized])
     @test Bool(summary[:command_templates_recorded])
@@ -13407,7 +13412,7 @@ function check_mgmfrm_publication_grade_refit_batch_expansion_plan_fixture(
     @test Bool(summary[:diagnostic_capture_manifest_recorded])
     @test Bool(summary[:runner_adapter_state_recorded])
     @test Bool(summary[:batch_runner_adapter_materialized])
-    @test Bool(summary[:batch_execution_ready_local_only]) == false
+    @test Bool(summary[:batch_execution_ready_local_only])
     @test Bool(summary[:full_125_unit_publication_grade_batch_completed]) ==
         false
     @test Bool(summary[:no_public_fit_metric_claim])
@@ -13430,19 +13435,18 @@ function check_mgmfrm_publication_grade_refit_batch_expansion_plan_fixture(
     @test Int(summary[:n_review_cells]) == 2134
     @test Int(summary[:planned_chains]) == 400
     @test Int(summary[:planned_posterior_draws]) == 400000
-    @test Int(summary[:planned_warmup_iterations]) == 200000
-    @test Int(summary[:n_blockers]) == 4
+    @test Int(summary[:planned_warmup_iterations]) == 400000
+    @test Int(summary[:n_blockers]) == 3
     @test Set(String(blocker) for blocker in
         summary[:remaining_public_blockers]) == Set([
-            "scalar_remediation_comparison_not_observed",
             "full_125_unit_publication_grade_batch_not_executed",
             "external_construct_dataset_missing",
             "independent_public_scope_review_missing",
         ])
     @test String(summary[:recommendation]) ==
-        "attach_local_scalar_remediation_comparison_before_batch_execution"
+        "execute_publication_grade_batch_locally_keep_claims_blocked"
     @test String(summary[:next_gate]) ==
-        "attach_local_scalar_remediation_comparison_before_batch_execution"
+        "execute_publication_grade_refit_batch_locally"
 end
 
 function check_mgmfrm_publication_grade_refit_batch_results_review_fixture(

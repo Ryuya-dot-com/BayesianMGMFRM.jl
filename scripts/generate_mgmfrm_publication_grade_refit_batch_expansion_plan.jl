@@ -14,9 +14,9 @@ const DEFAULT_EXECUTION_PLAN =
 const DEFAULT_GATE =
     joinpath(ROOT, "test", "fixtures",
         "mgmfrm_publication_grade_refit_gate.json")
-const DEFAULT_SCALAR_COMPARISON =
+const DEFAULT_SCALAR_REMEDIATION =
     joinpath(ROOT, "test", "fixtures",
-        "mgmfrm_publication_grade_refit_scalar_remediation_comparison.json")
+        "mgmfrm_publication_grade_refit_brms_like_scalar_remediation_review.json")
 const RUNNER_SCRIPT = "scripts/run_mgmfrm_publication_grade_refit_job.jl"
 
 include(joinpath(@__DIR__, "local_json.jl"))
@@ -25,8 +25,8 @@ const EXECUTION_PLAN_SCHEMA =
     "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_execution_plan.v1"
 const GATE_SCHEMA =
     "bayesianmgmfrm.mgmfrm_publication_grade_refit_gate.v1"
-const SCALAR_COMPARISON_SCHEMA =
-    "bayesianmgmfrm.mgmfrm_publication_grade_refit_scalar_remediation_comparison.v1"
+const SCALAR_REMEDIATION_SCHEMA =
+    "bayesianmgmfrm.mgmfrm_publication_grade_refit_brms_like_scalar_remediation_review.v1"
 
 const PROTOCOL = (;
     protocol_id =
@@ -42,14 +42,14 @@ const PROTOCOL = (;
         :mgmfrm_full_heldout_mcmc_refit_execution_plan,
     source_gate = :mgmfrm_publication_grade_refit_gate,
     source_scalar_policy =
-        :mgmfrm_publication_grade_refit_scalar_remediation_comparison,
+        :mgmfrm_publication_grade_refit_brms_like_scalar_remediation_review,
     result_root = "artifacts/publication_grade_refit_batch",
     runner_script = RUNNER_SCRIPT,
     fit_controls = (;
         backend = :advancedhmc,
         sampler = :nuts,
         chains = 4,
-        warmup_per_chain = 500,
+        warmup_per_chain = 1000,
         draws_per_chain = 1000,
         default_target_acceptance = 0.8,
         scalar_remediated_target_acceptance = 0.9,
@@ -58,7 +58,8 @@ const PROTOCOL = (;
     thresholds = (;
         require_execution_plan_passed = true,
         require_gate_passed = true,
-        require_scalar_remediation_comparison_passed = true,
+        require_brms_like_scalar_remediation_review_passed = true,
+        require_scalar_remediation_success_observed = true,
         require_batch_unit_rows_recorded = true,
         require_all_125_units_materialized = true,
         require_scalar_target_acceptance_policy_recorded = true,
@@ -91,7 +92,8 @@ function usage()
       --output PATH              Review fixture path.
       --execution-plan PATH      Full heldout MCMC execution plan.
       --gate PATH                Publication-grade refit gate fixture.
-      --scalar-comparison PATH   Scalar remediation comparison fixture.
+      --scalar-remediation PATH  Brms-like scalar remediation review fixture.
+      --scalar-comparison PATH   Deprecated alias for --scalar-remediation.
     """
 end
 
@@ -99,7 +101,7 @@ function parse_args(args)
     output = DEFAULT_OUTPUT
     execution_plan = DEFAULT_EXECUTION_PLAN
     gate = DEFAULT_GATE
-    scalar_comparison = DEFAULT_SCALAR_COMPARISON
+    scalar_remediation = DEFAULT_SCALAR_REMEDIATION
     index = 1
     while index <= length(args)
         arg = args[index]
@@ -115,10 +117,10 @@ function parse_args(args)
             index < length(args) || error("--gate requires a path")
             gate = abspath(args[index + 1])
             index += 2
-        elseif arg == "--scalar-comparison"
+        elseif arg == "--scalar-remediation" || arg == "--scalar-comparison"
             index < length(args) ||
-                error("--scalar-comparison requires a path")
-            scalar_comparison = abspath(args[index + 1])
+                error("$arg requires a path")
+            scalar_remediation = abspath(args[index + 1])
             index += 2
         elseif arg in ("-h", "--help")
             println(usage())
@@ -127,7 +129,7 @@ function parse_args(args)
             error("unknown argument: $arg")
         end
     end
-    return (; output, execution_plan, gate, scalar_comparison)
+    return (; output, execution_plan, gate, scalar_remediation)
 end
 
 project_version() = String(TOML.parsefile(joinpath(ROOT, "Project.toml"))["version"])
@@ -199,11 +201,12 @@ function artifact_summary(name::Symbol, summary)
         planned_warmup_per_chain =
             json_int(summary, :planned_warmup_per_chain),
     )
-    name === :mgmfrm_publication_grade_refit_scalar_remediation_comparison &&
+    name === :mgmfrm_publication_grade_refit_brms_like_scalar_remediation_review &&
         return (;
             passed = json_bool(summary, :passed),
             comparison_observed =
-                json_bool(summary, :comparison_observed),
+                json_bool(summary, :comparison_observed,
+                    json_bool(summary, :remediation_success_observed)),
             remediation_success_observed =
                 json_bool(summary, :remediation_success_observed),
             scalar_batch_target_acceptance_policy_recorded =
@@ -214,6 +217,8 @@ function artifact_summary(name::Symbol, summary)
             scalar_batch_expansion_allowed_local_only =
                 json_bool(summary,
                     :scalar_batch_expansion_allowed_local_only),
+            same_mcmc_budget =
+                json_bool(summary, :same_mcmc_budget),
             no_public_fit_metric_claim =
                 json_bool(summary, :no_public_fit_metric_claim),
         )
@@ -258,16 +263,21 @@ function scalar_policy(comparison)
         json_float_or_missing(policy, :selected_batch_target_acceptance)
     fallback =
         json_float_or_missing(policy, :fallback_batch_target_acceptance)
-    target = ismissing(selected) ? fallback : selected
+    default_non_scalar =
+        json_float_or_missing(policy, :default_non_scalar_target_acceptance)
+    target = ismissing(selected) ?
+        (ismissing(fallback) ? default_non_scalar : fallback) : selected
     ismissing(target) &&
         error("scalar comparison policy lacks target acceptance fallback")
+    allowed = json_bool(policy,
+        :batch_expansion_allowed_for_scalar_local_only,
+        json_bool(policy, :batch_expansion_allowed_for_scalar))
     return (;
         selected_batch_target_acceptance = selected,
         fallback_batch_target_acceptance = target,
         effective_scalar_target_acceptance = target,
         selection_basis = as_symbol(policy[:selection_basis]),
-        batch_expansion_allowed_for_scalar =
-            json_bool(policy, :batch_expansion_allowed_for_scalar),
+        batch_expansion_allowed_for_scalar = allowed,
         public_claim_allowed = json_bool(policy, :public_claim_allowed),
     )
 end
@@ -277,10 +287,10 @@ function gate_controls(gate)
     return (;
         backend = as_symbol(controls[:backend]),
         sampler = as_symbol(controls[:sampler]),
-        chains = as_int(controls[:chains]),
-        warmup_per_chain = as_int(controls[:warmup_per_chain]),
-        draws_per_chain = as_int(controls[:draws_per_chain]),
-        target_acceptance = as_float(controls[:target_acceptance]),
+        chains = PROTOCOL.fit_controls.chains,
+        warmup_per_chain = PROTOCOL.fit_controls.warmup_per_chain,
+        draws_per_chain = PROTOCOL.fit_controls.draws_per_chain,
+        target_acceptance = PROTOCOL.fit_controls.default_target_acceptance,
     )
 end
 
@@ -523,7 +533,7 @@ function comparison_hook_rows()
             public_claim_allowed = false),
         (hook = :scalar_remediation_policy_reapplied_to_all_scalar_folds,
             source_artifact =
-                :mgmfrm_publication_grade_refit_scalar_remediation_comparison,
+                :mgmfrm_publication_grade_refit_brms_like_scalar_remediation_review,
             target_artifact =
                 :mgmfrm_publication_grade_refit_batch_results_review,
             comparison_status = :planned_not_executed,
@@ -546,7 +556,7 @@ end
 
 function blocker_rows(scalar_ready::Bool, runner_adapter_ready::Bool)
     rows = NamedTuple[]
-    push!(rows, (blocker = :scalar_remediation_comparison_not_observed,
+    push!(rows, (blocker = :brms_like_scalar_remediation_not_observed,
         blocks = :scalar_batch_sampler_policy_finalization,
         resolved = scalar_ready))
     push!(rows, (blocker = :publication_grade_batch_runner_adapter_not_materialized,
@@ -580,15 +590,15 @@ function build_artifact(options)
             options.execution_plan, EXECUTION_PLAN_SCHEMA),
         input_record(:mgmfrm_publication_grade_refit_gate,
             options.gate, GATE_SCHEMA),
-        input_record(:mgmfrm_publication_grade_refit_scalar_remediation_comparison,
-            options.scalar_comparison, SCALAR_COMPARISON_SCHEMA),
+        input_record(:mgmfrm_publication_grade_refit_brms_like_scalar_remediation_review,
+            options.scalar_remediation, SCALAR_REMEDIATION_SCHEMA),
     ]
     execution_record = records[1]
     gate_record = records[2]
     scalar_record = records[3]
     execution_plan = load_json(options.execution_plan)
     gate = load_json(options.gate)
-    scalar_comparison = load_json(options.scalar_comparison)
+    scalar_comparison = load_json(options.scalar_remediation)
     controls = gate_controls(gate)
     policy = scalar_policy(scalar_comparison)
 
@@ -609,8 +619,10 @@ function build_artifact(options)
     all_input_summaries_passed = all(record -> record.summary_passed, records)
     execution_plan_passed = Bool(execution_record.summary.passed)
     gate_passed = Bool(gate_record.summary.passed)
-    scalar_remediation_comparison_passed =
+    scalar_remediation_review_passed =
         Bool(scalar_record.summary.passed)
+    scalar_remediation_success_observed =
+        Bool(scalar_record.summary.remediation_success_observed)
     scalar_target_acceptance_policy_recorded =
         Bool(scalar_record.summary.scalar_batch_target_acceptance_policy_recorded)
     expected_units =
@@ -648,7 +660,8 @@ function build_artifact(options)
         all_input_summaries_passed &&
         execution_plan_passed &&
         gate_passed &&
-        scalar_remediation_comparison_passed &&
+        scalar_remediation_review_passed &&
+        scalar_remediation_success_observed &&
         batch_unit_rows_recorded &&
         all_125_units_materialized &&
         scalar_target_acceptance_policy_recorded &&
@@ -726,8 +739,11 @@ function build_artifact(options)
             selected_decision =
                 :record_full_batch_expansion_plan_before_heavy_execution,
             publication_grade_batch_plan_recorded = true,
+            scalar_remediation_review_observed =
+                Bool(scalar_record.summary.comparison_observed),
             scalar_remediation_comparison_observed =
                 Bool(scalar_record.summary.comparison_observed),
+            scalar_remediation_success_observed,
             scalar_target_acceptance =
                 policy.effective_scalar_target_acceptance,
             scalar_batch_sampler_policy_ready_local_only =
@@ -749,11 +765,14 @@ function build_artifact(options)
             all_input_summaries_passed,
             execution_plan_passed,
             gate_passed,
-            scalar_remediation_comparison_passed,
+            scalar_remediation_review_passed,
+            scalar_remediation_comparison_passed =
+                scalar_remediation_review_passed,
+            scalar_remediation_success_observed,
+            scalar_remediation_review_observed =
+                Bool(scalar_record.summary.comparison_observed),
             scalar_remediation_comparison_observed =
                 Bool(scalar_record.summary.comparison_observed),
-            scalar_remediation_success_observed =
-                Bool(scalar_record.summary.remediation_success_observed),
             scalar_target_acceptance_policy_recorded,
             scalar_target_acceptance =
                 policy.effective_scalar_target_acceptance,

@@ -161,10 +161,11 @@
   batch expansion, records a local-only scalar batch sampler policy, and keeps
   public fit-metric and model-comparison claims blocked.
 - Add a local MGMFRM publication-grade batch-expansion plan artifact that
-  materializes the full 125 scenario-model-fold command manifest, applies the
-  conditional scalar target-acceptance 0.9 policy, keeps other MCMC candidates
-  at 0.8, and blocks execution until local scalar remediation evidence and the
-  batch runner adapter are both ready.
+  materializes the full 125 scenario-model-fold command manifest, consumes the
+  brms-like scalar remediation review, applies scalar target acceptance 0.9,
+  keeps fixed-Q MGMFRM candidates at 0.8, upgrades the batch warmup budget to
+  `1000` per chain, and marks the local runner path ready while public claims
+  remain blocked until batch results are reviewed.
 - Extend the publication-grade refit runner so it can read either the pilot
   plan or the full batch-expansion plan via `--plan`, preserving pilot
   compatibility while enabling batch dry-runs and analytic reference jobs.
