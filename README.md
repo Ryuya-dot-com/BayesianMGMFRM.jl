@@ -448,6 +448,12 @@ recovered after MCMC across replicated seeds and internal prior profiles:
   divergences, and the analytic null/reference still ranked first on heldout
   ELPD. The next gate is running the remaining publication-grade batch jobs
   while keeping model-weight, sparse-superiority, and public fit claims blocked.
+- The `well_specified_current_q` scenario has now been run across all five
+  folds through the same publication-grade batch path. All 25 artifacts are
+  present and the remaining 20 jobs executed without runner failures, but
+  scalar GMFRM still has divergence failures in folds 3 and 5 (`5` and `1`
+  divergences), so all public fit, sampler-stability, model-weight, and
+  sparse-superiority claims remain blocked.
 - The current compact Null-win batch still shows large structured-model losses
   (for example Current Q dELPD vs Null `-33.027`), so current failures should be
   diagnosed through signal strength, category calibration, Q support, prior

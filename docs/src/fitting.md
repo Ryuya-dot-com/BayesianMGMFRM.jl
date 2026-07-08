@@ -393,6 +393,15 @@ analytic null/reference still ranked first on heldout ELPD, so the evidence
 continues to support batch expansion for diagnosis rather than any public
 structured-model superiority claim.
 
+The same `well_specified_current_q` scenario has now been expanded to all five
+folds. The scenario-level orchestrator executed the remaining 20 jobs without
+runner failures and all 25 result/diagnostic/heldout artifacts are present.
+However, scalar GMFRM still failed the local divergence gate in fold 3 and fold
+5 (`5` and `1` divergences) even with `target_acceptance = 0.9`; only 3/5
+scalar folds passed the diagnostic gate. This makes scalar sampler stability an
+active blocker alongside the null/reference heldout wins and the unexecuted
+remaining 100 publication-grade units.
+
 These numbers are local diagnostic evidence only. They should not be cited as
 public fit thresholds, model weights, Q-revision evidence, sparse-superiority
 evidence, or a stable-public MGMFRM validation claim.

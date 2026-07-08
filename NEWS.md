@@ -171,6 +171,11 @@
   gates passed through the batch runner path, scalar target acceptance 0.9 kept
   divergences at zero, the analytic null/reference still ranked first on
   heldout ELPD, and remaining batch/public claims stay blocked.
+- Add a local publication-grade `well_specified_current_q` scenario execution
+  review fixture that summarizes all 25 five-fold jobs, records the remaining
+  20 jobs as runner-successful under the brms-like budget, preserves scalar
+  divergence failures in folds 3 and 5 as sampler-stability blockers, and keeps
+  public fit, model-weight, Q-revision, and sparse-superiority claims blocked.
 - Extend the publication-grade refit runner so it can read either the pilot
   plan or the full batch-expansion plan via `--plan`, preserving pilot
   compatibility while enabling batch dry-runs and analytic reference jobs.

@@ -51,7 +51,7 @@
       "artifact": "mgmfrm_validation_split_model_comparison_policy",
       "path": "test/fixtures/mgmfrm_validation_split_model_comparison_policy.json",
       "exists": true,
-      "sha256": "c41d6024d6d0a54e9fad65b139dea05bb4fcf9407fbc98c1d11f7287eeb128a9",
+      "sha256": "a3a5ac406d881ee6f13d0b4deff73f82f9c5ccf9d5c55f83032283ffe52854b8",
       "schema": "bayesianmgmfrm.mgmfrm_validation_split_model_comparison_policy.v1",
       "expected_schema": "bayesianmgmfrm.mgmfrm_validation_split_model_comparison_policy.v1",
       "schema_matches": true,

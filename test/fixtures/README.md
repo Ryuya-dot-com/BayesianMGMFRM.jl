@@ -301,6 +301,16 @@ first local batch-runner smoke execution. It summarizes the five
 MCMC diagnostic gates as passing, preserves the analytic null/reference heldout
 win as a blocker, and advances the next gate to the remaining batch jobs.
 
+`mgmfrm_publication_grade_refit_well_specified_scenario_execution_review.json`
+records the first scenario-level publication-grade batch execution. It
+summarizes all 25 `well_specified_current_q` jobs across five folds, records
+that the scenario orchestrator executed the remaining 20 jobs without failures,
+keeps the five fold-1 smoke artifacts as prior completed jobs, and preserves
+the scalar divergence failures in folds 3 and 5 (`5` and `1` divergences) as
+sampler-stability blockers. It keeps all public fit, Q-revision, model-weight,
+and sparse-superiority claims blocked while the remaining 100 batch units and
+external construct review are unresolved.
+
 `scripts/run_mgmfrm_publication_grade_refit_batch.jl` is the local-only batch
 orchestrator for that next gate. It reads the batch plan, skips already
 completed job artifacts by default, writes a manifest, and only calls the
