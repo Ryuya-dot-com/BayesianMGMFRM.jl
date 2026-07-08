@@ -248,6 +248,15 @@ diagnostics and heldout-score artifacts, and keeps fit-metric, Q-revision,
 model-weight, and sparse-superiority claims blocked until all selected jobs are
 executed and reviewed.
 
+`mgmfrm_publication_grade_refit_brms_like_single_cell_execution_review.json`
+records the first brms-like single-cell publication-grade execution evidence.
+It summarizes the ignored local runner artifacts for the construct-reviewed
+revised-Q `well_specified_current_q` fold-1 cell, verifies the `4` chains /
+`1000` warmup / `1000` retained-draw budget, records passed R-hat/ESS/HMC/
+heldout diagnostic gates, and keeps all public claims blocked until the
+remaining pilot jobs, threshold recalibration, full batch, and external
+construct evidence are reviewed.
+
 `mgmfrm_publication_grade_refit_sampler_remediation_review.json` records the
 local scalar-GMFRM sampler remediation layer. It tracks the target-acceptance
 0.9 rerun for the scalar pilot divergence warning, keeps committed fixtures

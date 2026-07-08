@@ -349,6 +349,16 @@ the brms convention of `iter = 2000` including warmup with default warmup
 guarded MGMFRM report-guidance setting, not a package-wide `fit` default change
 or a public fit-threshold claim.
 
+The first brms-like publication-grade single-cell execution is also recorded as
+local evidence for the construct-reviewed revised-Q MGMFRM in the
+`well_specified_current_q` fold-1 cell. That run used `4` chains, `1000` warmup
+draws per chain, and `1000` retained draws per chain; it passed all 12 local
+diagnostic-gate rows (`R-hat = 1.0030`, minimum ESS `1551.4`, E-BFMI `0.8548`,
+no divergences, no max-treedepth hits) and produced heldout ELPD `-11.794`.
+This clears the initial runtime/geometry check for one revised-Q cell only. The
+remaining pilot units, threshold recalibration, full 125-unit batch, external
+construct evidence, and public MGMFRM claims remain blocked.
+
 These numbers are local diagnostic evidence only. They should not be cited as
 public fit thresholds, model weights, Q-revision evidence, sparse-superiority
 evidence, or a stable-public MGMFRM validation claim.

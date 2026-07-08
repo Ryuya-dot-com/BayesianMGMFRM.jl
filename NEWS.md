@@ -5,6 +5,10 @@
 - Add `diagnostic_map_data` as a plotting-backend-independent pathway-map data
   contract that joins MFRM Wright-map logit positions to posterior infit/outfit
   summaries.
+- Add a local brms-like single-cell MGMFRM publication-grade execution review
+  fixture that records the construct-reviewed revised-Q fold-1 run at `4`
+  chains, `1000` warmup draws per chain, and `1000` retained draws per chain,
+  with passed R-hat/ESS/HMC/heldout gates and public claims still blocked.
 - Split the rendered API reference into smaller workflow pages to avoid the
   oversized single-page Documenter warning.
 - Turn the Documenter 100 KiB rendered-page warning threshold into a hard docs

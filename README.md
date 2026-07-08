@@ -410,6 +410,15 @@ recovered after MCMC across replicated seeds and internal prior profiles:
   (`2000` total iterations per chain, `4000` retained posterior draws). This
   updates the report guidance without changing the package-wide `fit` defaults
   or making a public threshold claim.
+- A first brms-like publication-grade single-cell execution has now been
+  recorded for the construct-reviewed revised-Q MGMFRM in the
+  `well_specified_current_q` fold-1 cell. The run used `4` chains, `1000`
+  warmup draws per chain, and `1000` retained draws per chain, passed all 12
+  local diagnostic-gate rows (`R-hat = 1.0030`, minimum ESS `1551.4`, E-BFMI
+  `0.8548`, no divergences, no max-treedepth hits), and produced heldout ELPD
+  `-11.794`. This is single-cell local evidence only; the remaining pilot
+  units, threshold recalibration, full 125-unit batch, external construct
+  evidence, and public claims remain blocked.
 - The current compact Null-win batch still shows large structured-model losses
   (for example Current Q dELPD vs Null `-33.027`), so current failures should be
   diagnosed through signal strength, category calibration, Q support, prior

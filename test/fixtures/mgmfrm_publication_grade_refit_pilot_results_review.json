@@ -56,7 +56,7 @@
       "artifact": "mgmfrm_publication_grade_refit_pilot_execution_harness",
       "path": "test/fixtures/mgmfrm_publication_grade_refit_pilot_execution_harness.json",
       "exists": true,
-      "sha256": "786ee9e470b9aa36363e0562eccc49a122d723878b742cb5e4da23a0152b3f36",
+      "sha256": "13db5fc0d5128f5fc979d38c29e55c2ddd9b666bd26b53e720c4ebbb9f9017fa",
       "schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_pilot_execution_harness.v1",
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_pilot_execution_harness.v1",
       "schema_matches": true,
