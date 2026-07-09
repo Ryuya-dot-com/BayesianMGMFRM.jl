@@ -155,6 +155,46 @@ than as a feature wish list:
 5. Keep historical completed work separate from active release blockers so that
    high checklist completion does not obscure low claim maturity.
 
+## Current Roadmap Checkpoint
+
+As of the local evidence archive that records `68` fixture artifacts, `64`
+code/doc references, `68` full regeneration commands, and `5585`
+manuscript-scale evidence cells, the practical boundary has moved from
+"execute the MGMFRM publication-grade batch" to "attach valid external
+construct evidence and an independent public-scope review before any public
+MGMFRM claim release." The completed local chain now includes the full
+125-unit publication-grade batch, threshold/model-weight policy review,
+external-construct requirement gate, attachment intake preflight, and
+external-attachment request packet.
+
+This checkpoint creates two separate work tracks:
+
+- **External-dependent track**: wait for user-supplied external construct
+  dataset and independent public-scope review manifests. The package must not
+  fabricate, infer, or approve those inputs. The next external gate is
+  `attach_valid_external_construct_dataset_manifest_and_independent_public_scope_review_manifest`.
+- **Local-hardening track**: continue improving guarded generalized diagnostics,
+  report contracts, fixed-Q invariance checks, predictive/calibration rows,
+  release-scope checks, and documentation while keeping all model-weight,
+  Q-revision, construct-validity, and sparse-superiority wording blocked.
+
+### External Attachment Critical Path
+
+The external handoff is now machine-readable, but it is not evidence. Future
+work should keep these gates separate:
+
+| Stage | Required artifact | Promotion effect |
+| --- | --- | --- |
+| Request packet recorded | `mgmfrm_external_construct_attachment_request_packet.json` with 25 user-supplied fields, 10 checklist rows, and 6 rejection conditions. | No public claim release; this only tells a data owner and independent reviewer what must be supplied. |
+| Attachment acceptance | Valid external dataset manifest and independent review manifest at the recorded paths, with expected schemas, required fields, hashes, signature, and no placeholders. | Allows external scoring/review to run; does not by itself approve claims. |
+| External construct scoring | Recomputed heldout or external construct metrics using the predeclared crosswalk, validation split, and scoring plan. | Can support construct-validity review only if file integrity and leakage controls pass. |
+| Independent public-scope review | Signed per-claim allow/block/request-revision table bound to the exact external manifest and threshold/model-weight review hashes. | May unblock selected public wording only at the claim level; broad MGMFRM support remains separately gated. |
+| Release-scope reconciliation | README/docs/reports/release notes checked against the signed claim table and evidence artifacts. | Only the weakest supported claim tier may be advertised. |
+
+If external inputs are not available, do not create placeholder manifests to
+make tests pass. Instead, keep the external blockers visible and advance the
+local-hardening track.
+
 ## Public Claim Language Guardrails
 
 Use narrow language until the evidence tier changes. The same restriction
@@ -529,10 +569,12 @@ The roadmap has two different progress notions:
 
 - **Checklist progress**: currently 143 of 179 tracked roadmap checkboxes are
   complete, or 79.9%. This is useful for implementation accounting.
-- **Claim progress**: broad v1 claims are closer to 45-50% complete because
-  the remaining claim-level work includes broader generalized fitting, broader
-  recovery simulations, and a public-scope release decision beyond the guarded
-  GMFRM/MGMFRM experiments.
+- **Claim progress**: broad v1 claims are closer to 50-55% complete. Local
+  reproducibility and publication-grade MGMFRM execution evidence are now much
+  stronger, but public claim release still depends on valid external construct
+  attachments, an independent signed public-scope review, broader generalized
+  diagnostics/reporting hardening, and post-`v0.2.0` overlap validation for
+  external-software claims.
 
 The former scalar GMFRM internal promotion candidate is now a guarded
 experimental path. It has source-aligned fixtures, raw transforms, BridgeStan
@@ -567,8 +609,16 @@ a local full-paper reproduction archive are now recorded. The fixed-Q
 confirmatory MGMFRM guarded sampler is now available through
 `fit(spec; experimental = true)` and produces an experimental fit artifact while
 keeping broader MGMFRM exposure blocked.
-The
-minimal MGMFRM path now has an internal confirmatory gauge candidate manifest
+
+The local publication-grade MGMFRM chain has since advanced through a completed
+125-unit batch, threshold/model-weight policy review, external-construct and
+independent public-scope requirements gate, attachment intake preflight, and an
+external-attachment request packet. These artifacts make the handoff auditable,
+but they intentionally do not create external evidence or approve public
+MGMFRM fit, model-weight, Q-revision, construct-validity, or sparse-superiority
+claims.
+
+The minimal MGMFRM path now has an internal confirmatory gauge candidate manifest
 and a separated fit-ready candidate transform manifest. It also has a
 BridgeStan confirmatory-candidate oracle block for raw, direct, gradient,
 pointwise, and total-likelihood checks, plus a local two-fixture candidate-chain
@@ -893,16 +943,25 @@ support.
 The remaining `v0.1.1` changes should be implemented in an order that minimizes
 schema churn and avoids unnecessary long Julia runs:
 
-- finish the remaining fixed-Q MGMFRM initialization and invariance checks;
-- standardize generalized diagnostics before adding more report sections;
-- add predictive-path, calibration, and category-functioning rows after the
-  diagnostic shape is stable;
-- add FACETS compatibility, model-comparison policy, and rater homogeneity rows
-  after the report shape is stable;
-- finish evidence-artifact governance and evidence bundles after report schemas
-  settle;
-- leave final README/docs/release wording and tag preparation to the last
-  release-review slice.
+1. Keep the external request packet as the boundary object for data-owner and
+   independent-reviewer handoff. Do not write placeholder external manifests.
+2. Finish the remaining fixed-Q MGMFRM initialization and invariance checks.
+3. Standardize generalized diagnostics before adding more report sections.
+4. Add predictive-path, calibration, and category-functioning rows after the
+   diagnostic shape is stable.
+5. Add FACETS compatibility, model-comparison policy, and rater homogeneity rows
+   after the report shape is stable.
+6. Finish evidence-artifact governance and evidence bundles after report schemas
+   settle.
+7. Leave final README/docs/release wording and tag preparation to the last
+   release-review slice.
+
+The external-dependent work should proceed only when valid user-supplied
+manifests arrive. At that point, the first implementation task is an attachment
+acceptance generator that validates schemas, required fields, hashes,
+crosswalk keys, signatures, and per-claim release decisions against the request
+packet before any external construct scoring or public-scope claim review is
+allowed.
 
 Verification should be staged. Use load checks and targeted fixture scripts for
 small edits; regenerate low-level fixtures before review/archive fixtures; run
