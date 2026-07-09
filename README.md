@@ -458,10 +458,12 @@ recovered after MCMC across replicated seeds and internal prior profiles:
   targeted scalar refits resolved the remaining divergence failures. All 375
   result/diagnostic/heldout artifacts are present, all 125 units pass their
   local diagnostic gates, and all scenario-level diagnostic reports now record
-  zero diagnostic failures. Public fit, model-weight, Q-revision, and
-  sparse-superiority claims remain blocked pending fit-threshold/model-weight
-  sensitivity comparison, external construct evidence, and independent
-  public-scope review.
+  zero diagnostic failures. The fit-threshold/model-weight policy comparison
+  has also been recorded locally: only 24/500 threshold-profile job rows pass,
+  no threshold profile is promoted, the null/reference remains the descriptive
+  total-ELPD winner, and public fit, model-weight, Q-revision, and
+  sparse-superiority claims remain blocked pending external construct evidence
+  and independent public-scope review.
 - The current compact Null-win batch still shows large structured-model losses:
   the analytic null/reference ranked first in 24/25 heldout folds, and Current Q
   had total dELPD vs Null `-153.200`. These failures should be diagnosed

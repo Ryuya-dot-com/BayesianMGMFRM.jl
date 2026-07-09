@@ -34,7 +34,7 @@
         5,
         6
       ],
-      "finite_difference_step": 1.0e-05,
+      "finite_difference_step": 1.0e-5,
       "max_gradient_abs_error": 0.0001
     },
     "decision_rules": {
@@ -74,7 +74,7 @@
       "artifact": "guarded_fit_method_wiring",
       "path": "test/fixtures/mgmfrm_guarded_fit_method_wiring.json",
       "exists": true,
-      "sha256": "361b0be4a0216a2e732b190ad5da2fbfecebe2956378309d883df4501a9221be",
+      "sha256": "945e80d4bc82fccdc0539008152ccd6ca5b6b447d403a8db07f4f818e6d712a9",
       "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_method_wiring.v1",
       "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_method_wiring.v1",
       "schema_matches": true,
@@ -93,7 +93,7 @@
       "artifact": "guarded_fit_validation_grid",
       "path": "test/fixtures/mgmfrm_guarded_fit_validation_grid.json",
       "exists": true,
-      "sha256": "8140cc24bb397dcd22b92515365656dff7f7dec9822e08a62b30d6ad15ea6fdb",
+      "sha256": "c0fabba97e8b05e1d24eb230930e0670fd4a8398057de8c5f45bd6a0072472fb",
       "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_validation_grid.v1",
       "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_validation_grid.v1",
       "schema_matches": true,

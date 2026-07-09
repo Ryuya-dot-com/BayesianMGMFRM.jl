@@ -3932,6 +3932,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         :require_mgmfrm_publication_grade_refit_batch_expansion_plan_passed])
     @test Bool(thresholds[
         :require_mgmfrm_publication_grade_refit_batch_results_review_passed])
+    @test Bool(thresholds[
+        :require_mgmfrm_publication_grade_threshold_model_weight_policy_review_passed])
     @test Bool(thresholds[:require_mgmfrm_guarded_fit_method_wiring_passed])
     @test Bool(thresholds[:require_mgmfrm_guarded_fit_validation_grid_passed])
     @test Bool(thresholds[:require_mgmfrm_guarded_fit_api_dry_run_passed])
@@ -4056,6 +4058,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
             "test/fixtures/mgmfrm_publication_grade_refit_batch_expansion_plan.json",
         "mgmfrm_publication_grade_refit_batch_results_review" =>
             "test/fixtures/mgmfrm_publication_grade_refit_batch_results_review.json",
+        "mgmfrm_publication_grade_threshold_model_weight_policy_review" =>
+            "test/fixtures/mgmfrm_publication_grade_threshold_model_weight_policy_review.json",
         "mgmfrm_guarded_fit_method_wiring" =>
             "test/fixtures/mgmfrm_guarded_fit_method_wiring.json",
         "mgmfrm_guarded_fit_validation_grid" =>
@@ -4096,7 +4100,7 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     end
 
     code_doc_records = fixture[:code_doc_records]
-    @test length(code_doc_records) == 60
+    @test length(code_doc_records) == 61
     @test all(row -> Bool(row[:exists]), code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_gmfrm_full_paper_reproduction_archive.jl",
@@ -4198,6 +4202,9 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         "scripts/generate_mgmfrm_publication_grade_refit_batch_results_review.jl",
         code_doc_records)
     @test any(row -> String(row[:path]) ==
+        "scripts/generate_mgmfrm_publication_grade_threshold_model_weight_policy_review.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) ==
         "scripts/generate_mgmfrm_guarded_fit_method_wiring.jl",
         code_doc_records)
     @test any(row -> String(row[:path]) ==
@@ -4232,8 +4239,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     end
 
     full_commands = fixture[:full_regeneration_commands]
-    @test length(full_commands) == 64
-    @test [Int(row[:step]) for row in full_commands] == collect(1:64)
+    @test length(full_commands) == 65
+    @test [Int(row[:step]) for row in full_commands] == collect(1:65)
     @test all(row -> Bool(row[:local_only]), full_commands)
     @test any(row -> String(row[:artifact]) ==
         "mgmfrm_report_shape_simulation_grid", full_commands)
@@ -4310,6 +4317,9 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         full_commands)
     @test any(row -> String(row[:artifact]) ==
         "mgmfrm_publication_grade_refit_batch_results_review",
+        full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "mgmfrm_publication_grade_threshold_model_weight_policy_review",
         full_commands)
     @test any(row -> String(row[:artifact]) ==
         "prediction_target_and_model_weight_policy", full_commands)
@@ -4419,6 +4429,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         :mgmfrm_publication_grade_refit_batch_expansion_plan_passed])
     @test Bool(summary[
         :mgmfrm_publication_grade_refit_batch_results_review_passed])
+    @test Bool(summary[
+        :mgmfrm_publication_grade_threshold_model_weight_policy_review_passed])
     @test Bool(summary[:mgmfrm_guarded_fit_method_wiring_passed])
     @test Bool(summary[:mgmfrm_guarded_fit_validation_grid_passed])
     @test Bool(summary[:mgmfrm_guarded_fit_api_dry_run_passed])
@@ -4803,7 +4815,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     evidence_rows = fixture[:evidence_rows]
     @test length(evidence_rows) == length(input_artifacts)
     @test all(row -> String(row[:status]) == "passed", evidence_rows)
-    @test Int(sum(Int(row[:n_evidence_cells]) for row in evidence_rows)) == 5581
+    @test Int(sum(Int(row[:n_evidence_cells]) for row in evidence_rows)) == 5582
     @test any(row -> String(row[:gate]) == "prior_likelihood_sensitivity_grid" &&
         Int(row[:n_evidence_cells]) == 45, evidence_rows)
     @test any(row -> String(row[:gate]) ==
@@ -4973,7 +4985,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     @test Bool(summary[:all_primary_checks_passed])
     @test Int(summary[:n_input_artifacts]) == length(input_artifacts)
     @test Int(summary[:n_evidence_rows]) == length(evidence_rows)
-    @test Int(summary[:total_evidence_cells]) == 5581
+    @test Int(summary[:total_evidence_cells]) == 5582
     @test Int(summary[:minimum_required_evidence_cells]) == 60
     @test Bool(summary[:scalar_fit_validation_grid_passed])
     @test Bool(summary[:posterior_predictive_grid_passed])
@@ -5746,7 +5758,7 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(manuscript_grid[:summary][:all_input_summaries_passed])
     @test Bool(manuscript_grid[:summary][:all_primary_checks_passed])
     @test Int(manuscript_grid[:summary][:n_input_artifacts]) == 35
-    @test Int(manuscript_grid[:summary][:total_evidence_cells]) == 5581
+    @test Int(manuscript_grid[:summary][:total_evidence_cells]) == 5582
     @test Int(manuscript_grid[:summary][:minimum_required_evidence_cells]) == 60
     @test Bool(manuscript_grid[:summary][:prediction_target_and_model_weight_policy_passed])
     @test Bool(manuscript_grid[:summary][
@@ -5805,9 +5817,9 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(full_archive[:summary][:all_external_sources_present])
     @test Bool(full_archive[:summary][:all_commands_local_only])
     @test Bool(full_archive[:summary][:no_publication_commands])
-    @test Int(full_archive[:summary][:n_fixture_artifacts]) == 64
-    @test Int(full_archive[:summary][:n_code_doc_records]) == 60
-    @test Int(full_archive[:summary][:n_full_regeneration_commands]) == 64
+    @test Int(full_archive[:summary][:n_fixture_artifacts]) == 65
+    @test Int(full_archive[:summary][:n_code_doc_records]) == 61
+    @test Int(full_archive[:summary][:n_full_regeneration_commands]) == 65
     @test Int(full_archive[:summary][:n_verification_commands]) == 4
     @test Bool(full_archive[:summary][:mgmfrm_report_shape_simulation_grid_passed])
     @test Bool(full_archive[:summary][:mgmfrm_q_matrix_validation_expansion_passed])
@@ -8164,12 +8176,19 @@ function check_mgmfrm_construct_reviewed_q_fit_reporting_policy_fixture(
         profile_rows)
     @test all(row -> Bool(row[:mgmfrm_decision_is_threshold_sensitive]),
         profile_rows)
-    @test any(row -> String(row[:profile]) == "strict_bayesian_workflow" &&
-        Int(row[:n_mfrm_profile_failures]) == 3 &&
-        Int(row[:min_mgmfrm_metric_flags]) >= 7, profile_rows)
-    @test any(row -> String(row[:profile]) == "exploratory_rasch_lenient" &&
-        Int(row[:n_mgmfrm_metric_profile_passes_without_mcmc]) == 3,
-        profile_rows)
+    strict_profile = only(row for row in profile_rows
+                          if String(row[:profile]) == "strict_bayesian_workflow")
+    exploratory_profile = only(row for row in profile_rows
+                               if String(row[:profile]) ==
+                                  "exploratory_rasch_lenient")
+    @test Int(strict_profile[:n_mfrm_profile_failures]) == 3
+    @test Int(strict_profile[:n_mgmfrm_metric_profile_passes_without_mcmc]) == 0
+    @test Int(strict_profile[:n_mgmfrm_metric_profile_failures_without_mcmc]) ==
+        Int(strict_profile[:n_mgmfrm_threshold_rows])
+    @test Float64(strict_profile[:mean_mgmfrm_metric_flags]) >
+        Float64(exploratory_profile[:mean_mgmfrm_metric_flags])
+    @test Int(exploratory_profile[
+        :n_mgmfrm_metric_profile_passes_without_mcmc]) == 3
 
     scenario_rows = fixture[:scenario_impact_rows]
     @test length(scenario_rows) == 6
@@ -14223,6 +14242,195 @@ function check_mgmfrm_publication_grade_refit_batch_results_review_fixture(
         "review_batch_fit_thresholds_and_model_weight_sensitivity_keep_claims_blocked"
     @test String(summary[:next_gate]) ==
         "compare_publication_grade_batch_against_threshold_and_model_weight_policy"
+end
+
+function check_mgmfrm_publication_grade_threshold_model_weight_policy_review_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_publication_grade_threshold_model_weight_policy_review.v1"
+    @test String(fixture[:family]) == "mgmfrm"
+    @test String(fixture[:scope]) ==
+        "publication_grade_threshold_model_weight_policy_review"
+    @test String(fixture[:status]) ==
+        "publication_grade_threshold_model_weight_policy_review_recorded"
+    @test String(fixture[:decision]) ==
+        "record_threshold_model_weight_policy_comparison_keep_claims_blocked"
+    @test Bool(fixture[:public_fit])
+    @test Bool(fixture[:experimental_public])
+    @test Bool(fixture[:local_only])
+    @test Bool(fixture[:publication_or_registration_action]) == false
+    @test Bool(fixture[:public_fit_metric_claim]) == false
+    @test Bool(fixture[:public_q_revision_claim]) == false
+    @test Bool(fixture[:public_model_weight_claim]) == false
+    @test Bool(fixture[:sparse_mgmfrm_superiority_claim]) == false
+
+    protocol = fixture[:protocol]
+    thresholds = protocol[:thresholds]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_publication_grade_threshold_model_weight_policy_review_v1"
+    @test String(protocol[:review_kind]) ==
+        "local_publication_grade_threshold_model_weight_policy_review"
+    @test String(protocol[:source_gate]) ==
+        "compare_publication_grade_batch_against_threshold_and_model_weight_policy"
+    @test String(protocol[:primary_prediction_target]) ==
+        "heldout_observation_log_score"
+    @test Bool(thresholds[:require_publication_grade_batch_results_review_passed])
+    @test Bool(thresholds[:require_fit_metric_threshold_sensitivity_passed])
+    @test Bool(thresholds[
+        :require_prediction_target_and_model_weight_policy_passed])
+    @test Bool(thresholds[:require_manual_public_scope_review_for_fit_passed])
+    @test Bool(thresholds[:require_all_125_units_executed])
+    @test Bool(thresholds[:require_all_mcmc_diagnostic_gates_passed])
+    @test Bool(thresholds[:require_zero_diagnostic_failure_rows])
+    @test Bool(thresholds[:require_threshold_profile_batch_rows_recorded])
+    @test Bool(thresholds[
+        :require_threshold_profiles_change_observed_batch_flag])
+    @test Bool(thresholds[:require_no_single_threshold_profile_promoted])
+    @test Bool(thresholds[
+        :require_model_weight_policy_blocks_public_weight_claims])
+    @test Bool(thresholds[
+        :require_manual_scope_review_blocks_public_weight_claims])
+    @test Bool(thresholds[:require_no_public_fit_metric_claim])
+    @test Bool(thresholds[:require_no_public_model_weight_claim])
+    @test Bool(thresholds[:require_no_sparse_superiority_claim])
+    @test Bool(thresholds[:require_no_publication_or_registration_action])
+
+    expected_inputs = Dict(
+        "mgmfrm_publication_grade_refit_batch_results_review" =>
+            "test/fixtures/mgmfrm_publication_grade_refit_batch_results_review.json",
+        "mgmfrm_fit_metric_threshold_sensitivity" =>
+            "test/fixtures/mgmfrm_fit_metric_threshold_sensitivity.json",
+        "prediction_target_and_model_weight_policy" =>
+            "test/fixtures/gmfrm_prediction_target_and_model_weight_policy.json",
+        "mgmfrm_manual_public_scope_review_for_fit" =>
+            "test/fixtures/mgmfrm_manual_public_scope_review_for_fit.json",
+    )
+    inputs = fixture[:input_artifacts]
+    @test length(inputs) == length(expected_inputs)
+    @test Set(String(row[:artifact]) for row in inputs) ==
+        Set(keys(expected_inputs))
+    for row in inputs
+        artifact = String(row[:artifact])
+        @test String(row[:path]) == expected_inputs[artifact]
+        @test Bool(row[:exists])
+        @test Bool(row[:schema_matches])
+        @test Bool(row[:summary_passed])
+        @test String(row[:sha256]) ==
+            file_sha256(joinpath(root, String(row[:path])))
+    end
+
+    profile_rows = fixture[:threshold_profile_decision_rows]
+    @test length(profile_rows) == 4
+    @test sum(Int(row[:n_threshold_profile_rows]) for row in profile_rows) ==
+        500
+    @test sum(Int(row[:n_passed_rows]) for row in profile_rows) == 24
+    @test sum(Int(row[:n_flagged_rows]) for row in profile_rows) == 476
+    @test all(row -> Bool(row[:threshold_profile_promoted]) == false,
+        profile_rows)
+    exploratory = only(row for row in profile_rows
+        if String(row[:profile]) == "exploratory_rasch_lenient")
+    @test Int(exploratory[:n_passed_rows]) == 24
+    @test Float64(exploratory[:pass_rate]) ≈ 0.192
+
+    model_rows = fixture[:model_weight_policy_alignment_rows]
+    @test length(model_rows) == 5
+    @test String(model_rows[1][:model]) == "null_or_intercept_reference"
+    @test Float64(model_rows[1][:local_diagnostic_weight]) ≈ 1.0
+    scalar = only(row for row in model_rows
+        if String(row[:model]) == "scalar_gmfrm_baseline")
+    @test String(scalar[:policy_surface]) == "scalar_gmfrm_guarded_fit"
+    @test Bool(scalar[:policy_local_weight_reporting_allowed])
+    @test Float64(scalar[:local_diagnostic_weight]) < 1e-20
+    sparse = only(row for row in model_rows
+        if String(row[:model]) == "sparse_mgmfrm_current_q")
+    @test Int(sparse[:n_threshold_profile_passed_rows]) == 1
+    @test Int(sparse[:n_threshold_profile_flagged_rows]) == 99
+    @test all(row -> Bool(row[:public_model_weight_claim_allowed]) == false,
+        model_rows)
+    @test all(row -> Bool(row[:public_fit_metric_claim_allowed]) == false,
+        model_rows)
+    @test all(row -> Bool(row[:sparse_superiority_claim_allowed]) == false,
+        model_rows)
+
+    claim_rows = fixture[:claim_gate_rows]
+    @test length(claim_rows) == 5
+    @test count(row -> String(row[:status]) == "blocked", claim_rows) == 4
+    @test any(row -> String(row[:claim]) == "diagnostic_gate_claim" &&
+        String(row[:status]) == "local_diagnostic_passed" &&
+        Int(row[:n_diagnostic_failure_rows]) == 0, claim_rows)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, claim_rows)
+
+    blockers = fixture[:blocker_rows]
+    @test length(blockers) == 5
+    @test count(row -> Bool(row[:resolved]), blockers) == 3
+    @test count(row -> !Bool(row[:resolved]), blockers) == 2
+
+    decision = fixture[:decision_record]
+    @test String(decision[:selected_decision]) ==
+        "threshold_model_weight_policy_review_recorded_local_only"
+    @test Bool(decision[:publication_grade_batch_completed])
+    @test Bool(decision[:all_mcmc_diagnostic_gates_passed])
+    @test Bool(decision[:threshold_profiles_promoted]) == false
+    @test String(decision[:best_total_heldout_elpd_model]) ==
+        "null_or_intercept_reference"
+    @test Bool(decision[:local_diagnostic_weights_recorded])
+    @test Bool(decision[:public_fit_metric_claim_allowed]) == false
+    @test Bool(decision[:public_model_weight_claim_allowed]) == false
+    @test Bool(decision[:sparse_superiority_claim_allowed]) == false
+    @test String(decision[:required_followup]) ==
+        "attach_external_construct_dataset_and_independent_public_scope_review"
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:publication_or_registration_action]) == false
+    @test Bool(summary[:local_only])
+    @test Bool(summary[:all_input_artifacts_present])
+    @test Bool(summary[:all_expected_schemas])
+    @test Bool(summary[:all_input_summaries_passed])
+    @test Bool(summary[:publication_grade_batch_results_review_passed])
+    @test Bool(summary[:fit_metric_threshold_sensitivity_passed])
+    @test Bool(summary[:prediction_target_and_model_weight_policy_passed])
+    @test Bool(summary[:manual_public_scope_review_for_fit_passed])
+    @test Bool(summary[:all_125_units_executed])
+    @test Bool(summary[:all_mcmc_diagnostic_gates_passed])
+    @test Bool(summary[:zero_diagnostic_failures])
+    @test Bool(summary[:threshold_profile_batch_rows_recorded])
+    @test Bool(summary[:threshold_profiles_change_observed_batch_flag])
+    @test Bool(summary[:no_single_threshold_profile_promoted])
+    @test Bool(summary[:policy_blocks_public_model_weight_claims])
+    @test Bool(summary[:manual_scope_review_blocks_public_model_weight_claims])
+    @test Bool(summary[:no_public_fit_metric_claim])
+    @test Bool(summary[:no_public_q_revision_claim])
+    @test Bool(summary[:no_public_model_weight_claim])
+    @test Bool(summary[:no_sparse_superiority_claim])
+    @test Int(summary[:n_input_artifacts]) == 4
+    @test Int(summary[:n_threshold_profile_decision_rows]) == 4
+    @test Int(summary[:n_model_weight_policy_alignment_rows]) == 5
+    @test Int(summary[:n_claim_gate_rows]) == 5
+    @test Int(summary[:n_threshold_profile_job_rows]) == 500
+    @test Int(summary[:n_threshold_profile_passed_rows]) == 24
+    @test Int(summary[:n_threshold_profile_flagged_rows]) == 476
+    @test Int(summary[:n_batch_execution_job_rows]) == 125
+    @test Int(summary[:n_diagnostic_failure_rows]) == 0
+    @test String(summary[:best_total_heldout_elpd_model]) ==
+        "null_or_intercept_reference"
+    @test Float64(summary[:null_or_intercept_reference_local_weight]) ≈ 1.0
+    @test Float64(summary[:scalar_gmfrm_baseline_local_weight]) < 1e-20
+    @test Int(summary[:n_blocker_rows]) == 5
+    @test Int(summary[:n_blockers]) == 2
+    @test Set(String(blocker) for blocker in
+        summary[:remaining_public_blockers]) == Set([
+            "external_construct_dataset_missing",
+            "independent_public_scope_review_missing",
+        ])
+    @test String(summary[:recommendation]) ==
+        "keep_public_threshold_model_weight_q_revision_and_sparse_claims_blocked"
+    @test String(summary[:next_gate]) ==
+        "attach_external_construct_dataset_and_independent_public_scope_review"
 end
 
 function check_mgmfrm_fit_threshold_q_heldout_linkage_fixture(
@@ -21298,6 +21506,12 @@ end
     if !isempty(mgmfrm_publication_grade_refit_batch_results_review_fixture)
         check_mgmfrm_publication_grade_refit_batch_results_review_fixture(
             mgmfrm_publication_grade_refit_batch_results_review_fixture,
+        )
+    end
+    mgmfrm_publication_grade_threshold_model_weight_policy_review_fixture = optional_fixture_path("MFRM_MGMFRM_PUBLICATION_GRADE_THRESHOLD_MODEL_WEIGHT_POLICY_REVIEW_FIXTURE", joinpath("test", "fixtures", "mgmfrm_publication_grade_threshold_model_weight_policy_review.json"))
+    if !isempty(mgmfrm_publication_grade_threshold_model_weight_policy_review_fixture)
+        check_mgmfrm_publication_grade_threshold_model_weight_policy_review_fixture(
+            mgmfrm_publication_grade_threshold_model_weight_policy_review_fixture,
         )
     end
     mgmfrm_fit_threshold_q_heldout_linkage_fixture = optional_fixture_path("MFRM_MGMFRM_FIT_THRESHOLD_Q_HELDOUT_LINKAGE_FIXTURE", joinpath("test", "fixtures", "mgmfrm_fit_threshold_q_heldout_linkage.json"))

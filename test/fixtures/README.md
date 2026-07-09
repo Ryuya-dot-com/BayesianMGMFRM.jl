@@ -333,8 +333,17 @@ four fit-threshold profiles from
 scenario-model threshold surfaces so strict, screening, lenient, and
 sample-size-sensitive interpretations can be compared without promoting a
 single cutoff. All public fit, Q-revision, model-weight, and sparse-superiority
-claims remain blocked pending diagnostic-failure review, external construct
-evidence, and independent public-scope review.
+claims remain blocked pending external construct evidence and independent
+public-scope review.
+
+`mgmfrm_publication_grade_threshold_model_weight_policy_review.json` records the
+follow-up policy comparison gate for that completed batch. It joins the batch
+review, fit-threshold sensitivity artifact, prediction-target/model-weight
+policy, and manual fit-scope review; records local-only diagnostic model weights
+from total heldout ELPD; confirms that only 24/500 threshold-profile job rows
+pass; and keeps public fit-threshold, model-weight, Q-revision, and
+sparse-superiority claims blocked. The next gate is attaching external
+construct evidence and completing independent public-scope review.
 
 `mgmfrm_fit_threshold_q_heldout_linkage.json` links the literature-motivated
 fit-threshold sensitivity grid, empirical Q-matrix recovery simulation, heldout

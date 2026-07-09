@@ -192,6 +192,11 @@
   zero diagnostic-failure rows, the next fit-threshold/model-weight sensitivity
   comparison gate, and continued public-claim blocking pending external
   construct evidence and independent public-scope review.
+- Add the publication-grade threshold/model-weight policy review fixture, tying
+  the completed 125-unit batch to the threshold-sensitivity and model-weight
+  policy artifacts. The review records only 24/500 threshold-profile job rows as
+  passing, keeps local diagnostic model weights descriptive, and advances the
+  next gate to external construct evidence plus independent public-scope review.
 - Extend the publication-grade refit runner so it can read either the pilot
   plan or the full batch-expansion plan via `--plan`, preserving pilot
   compatibility while enabling batch dry-runs and analytic reference jobs.

@@ -5,11 +5,13 @@ using SHA
 using TOML
 
 import BayesianMGMFRM
+import Random
 
 const ROOT = normpath(joinpath(@__DIR__, ".."))
 const DEFAULT_OUTPUT =
     joinpath(ROOT, "test", "fixtures",
         "mgmfrm_fit_metric_threshold_sensitivity.json")
+const PPC_SEED_OFFSET = 100_000
 
 include(joinpath(@__DIR__, "local_json.jl"))
 
@@ -440,12 +442,13 @@ function max_abs_ppc_mean_error(rows)
         for row in rows)
 end
 
-function metric_surface(fit)
+function metric_surface(fit, seed::Int)
     waic_stat = BayesianMGMFRM.waic(fit)
     loo_stat = BayesianMGMFRM.loo(fit; min_tail_draws = 2)
     calibration_rows =
         BayesianMGMFRM.calibration_table(fit; bins = 3, interval = 0.8)
-    ppc = BayesianMGMFRM.posterior_predictive_check(fit)
+    ppc = BayesianMGMFRM.posterior_predictive_check(fit;
+        rng = Random.MersenneTwister(seed + PPC_SEED_OFFSET))
     ppc_rows = BayesianMGMFRM.predictive_check_summary(ppc; interval = 0.8)
     return (;
         waic = waic_stat,
@@ -805,7 +808,7 @@ function build_artifact()
         data = facet_data(table)
         seed = PROTOCOL.mfrm_baseline_sampler.seed_base + 100 * regime_index
         fit = fit_mfrm(data, seed)
-        metrics = metric_surface(fit)
+        metrics = metric_surface(fit, seed)
         mfrm_metric_by_regime[regime_spec.regime] = metrics
         push!(mfrm_metric_rows, mfrm_metric_summary_row(
             regime_spec.regime, fit, metrics, seed))
@@ -835,8 +838,8 @@ function build_artifact()
                 100 * regime_index
             declared_fit = fit_mgmfrm(data, declared_q, seed_base + 1)
             candidate_fit = fit_mgmfrm(data, candidate_q, seed_base + 2)
-            declared_metrics = metric_surface(declared_fit)
-            candidate_metrics = metric_surface(candidate_fit)
+            declared_metrics = metric_surface(declared_fit, seed_base + 1)
+            candidate_metrics = metric_surface(candidate_fit, seed_base + 2)
 
             push!(mgmfrm_fit_rows, fit_summary_row(
                 scenario,

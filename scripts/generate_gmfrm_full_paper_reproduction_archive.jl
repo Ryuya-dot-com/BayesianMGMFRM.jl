@@ -542,6 +542,17 @@ const REPRODUCTION_FIXTURES = [
             "MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_BATCH_RESULTS_REVIEW_FIXTURE",
         pass_policy = :summary_passed,
         hash_policy = :sha256),
+    (name = :mgmfrm_publication_grade_threshold_model_weight_policy_review,
+        path =
+            "test/fixtures/mgmfrm_publication_grade_threshold_model_weight_policy_review.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_publication_grade_threshold_model_weight_policy_review.v1",
+        generator =
+            "scripts/generate_mgmfrm_publication_grade_threshold_model_weight_policy_review.jl",
+        env_var =
+            "MFRM_MGMFRM_PUBLICATION_GRADE_THRESHOLD_MODEL_WEIGHT_POLICY_REVIEW_FIXTURE",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
     (name = :mgmfrm_guarded_fit_method_wiring,
         path = "test/fixtures/mgmfrm_guarded_fit_method_wiring.json",
         expected_schema =
@@ -653,6 +664,7 @@ const CODE_AND_DOC_PATHS = [
     "scripts/generate_mgmfrm_publication_grade_refit_scalar_remediation_comparison.jl",
     "scripts/generate_mgmfrm_publication_grade_refit_batch_expansion_plan.jl",
     "scripts/generate_mgmfrm_publication_grade_refit_batch_results_review.jl",
+    "scripts/generate_mgmfrm_publication_grade_threshold_model_weight_policy_review.jl",
     "scripts/generate_mgmfrm_guarded_fit_method_wiring.jl",
     "scripts/generate_mgmfrm_guarded_fit_validation_grid.jl",
     "scripts/generate_mgmfrm_guarded_fit_api_dry_run.jl",
@@ -805,6 +817,9 @@ const FULL_REGENERATION_COMMANDS = [
     (artifact = :mgmfrm_publication_grade_refit_batch_results_review,
         command =
             "julia --project=. scripts/generate_mgmfrm_publication_grade_refit_batch_results_review.jl"),
+    (artifact = :mgmfrm_publication_grade_threshold_model_weight_policy_review,
+        command =
+            "julia --project=. scripts/generate_mgmfrm_publication_grade_threshold_model_weight_policy_review.jl"),
     (artifact = :mgmfrm_guarded_fit_method_wiring,
         command = "julia --project=. scripts/generate_mgmfrm_guarded_fit_method_wiring.jl"),
     (artifact = :mgmfrm_guarded_fit_validation_grid,
@@ -914,6 +929,8 @@ const PROTOCOL = (;
         require_mgmfrm_publication_grade_refit_batch_expansion_plan_passed =
             true,
         require_mgmfrm_publication_grade_refit_batch_results_review_passed =
+            true,
+        require_mgmfrm_publication_grade_threshold_model_weight_policy_review_passed =
             true,
         require_mgmfrm_guarded_fit_method_wiring_passed = true,
         require_mgmfrm_guarded_fit_validation_grid_passed = true,
@@ -1267,6 +1284,9 @@ function build_artifact()
     mgmfrm_publication_grade_refit_batch_results_review =
         record_by_name(fixture_records,
             :mgmfrm_publication_grade_refit_batch_results_review)
+    mgmfrm_publication_grade_threshold_model_weight_policy_review =
+        record_by_name(fixture_records,
+            :mgmfrm_publication_grade_threshold_model_weight_policy_review)
     mgmfrm_method =
         record_by_name(fixture_records, :mgmfrm_guarded_fit_method_wiring)
     mgmfrm_validation =
@@ -1343,6 +1363,7 @@ function build_artifact()
         mgmfrm_publication_grade_refit_scalar_remediation_comparison.summary_passed &&
         mgmfrm_publication_grade_refit_batch_expansion_plan.summary_passed &&
         mgmfrm_publication_grade_refit_batch_results_review.summary_passed &&
+        mgmfrm_publication_grade_threshold_model_weight_policy_review.summary_passed &&
         mgmfrm_method.summary_passed &&
         mgmfrm_validation.summary_passed &&
         mgmfrm_api_dry_run.summary_passed &&
@@ -1486,6 +1507,8 @@ function build_artifact()
                 mgmfrm_publication_grade_refit_batch_expansion_plan.summary_passed,
             mgmfrm_publication_grade_refit_batch_results_review_passed =
                 mgmfrm_publication_grade_refit_batch_results_review.summary_passed,
+            mgmfrm_publication_grade_threshold_model_weight_policy_review_passed =
+                mgmfrm_publication_grade_threshold_model_weight_policy_review.summary_passed,
             mgmfrm_guarded_fit_method_wiring_passed =
                 mgmfrm_method.summary_passed,
             mgmfrm_guarded_fit_validation_grid_passed =

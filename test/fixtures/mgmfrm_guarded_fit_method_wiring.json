@@ -193,9 +193,7 @@
     "n_required_fields": 26,
     "n_required_provenance_artifacts": 4,
     "all_required_fields_present": true,
-    "missing_required_fields": [
-
-    ],
+    "missing_required_fields": [],
     "all_required_provenance_recorded": true,
     "enables_public_fit": true
   },

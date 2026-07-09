@@ -404,9 +404,11 @@ The full 125-unit publication-grade batch has now been run locally, and targeted
 scalar refits resolved the remaining divergence failures. All 375
 result/diagnostic/heldout artifacts are present, all 125 units pass their local
 diagnostic gates, and all scenario-level diagnostic reports now record zero
-diagnostic failures. The next gate is fit-threshold/model-weight sensitivity
-comparison; external construct evidence and independent public-scope review are
-still unresolved. Heldout ranks remain descriptive only: the analytic
+diagnostic failures. The fit-threshold/model-weight policy comparison is now
+recorded locally as a descriptive review: only 24/500 threshold-profile job rows
+pass, no threshold profile is promoted, and the analytic null/reference remains
+the total-ELPD winner. External construct evidence and independent public-scope
+review are still unresolved. Heldout ranks remain descriptive only: the analytic
 null/reference ranked first in 24/25 folds, and Current Q had total dELPD vs
 Null `-153.200`.
 
