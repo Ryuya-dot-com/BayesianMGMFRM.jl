@@ -115,7 +115,7 @@
       "artifact": "guarded_fit_api_dry_run",
       "path": "test/fixtures/gmfrm_guarded_fit_api_dry_run.json",
       "exists": true,
-      "sha256": "df1254028080a738087dce96b30b6205cda08048b4a1a46d72f0261f6a7746b6",
+      "sha256": "f4be38019bef102abb36f043b1a587674d012a2e39f843b0f1fa4416d4c5d90e",
       "expected_schema": "bayesianmgmfrm.gmfrm_guarded_fit_api_dry_run.v1",
       "schema": "bayesianmgmfrm.gmfrm_guarded_fit_api_dry_run.v1",
       "schema_matches": true,

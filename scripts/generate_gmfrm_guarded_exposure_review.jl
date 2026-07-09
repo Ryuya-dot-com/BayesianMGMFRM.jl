@@ -1475,6 +1475,9 @@ function artifact_summary(name::Symbol, text::AbstractString)
         mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed =
             json_bool(summary,
                 "mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed"),
+        mgmfrm_external_construct_attachment_intake_preflight_passed =
+            json_bool(summary,
+                "mgmfrm_external_construct_attachment_intake_preflight_passed"),
         prediction_target_and_model_weight_policy_passed =
             json_bool(summary,
                 "prediction_target_and_model_weight_policy_passed"),
@@ -1876,6 +1879,12 @@ function review_rows(records)
                 :mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed)),
             finding =
                 :external_construct_and_independent_public_scope_requirements_recorded_claims_blocked),
+        (gate = :confirmatory_mgmfrm_external_construct_attachment_intake_preflight,
+            status = :passed_with_policy_blocker,
+            evidence = Bool(getproperty(full_archive.summary,
+                :mgmfrm_external_construct_attachment_intake_preflight_passed)),
+            finding =
+                :external_construct_attachment_intake_preflight_recorded_claims_blocked),
         (gate = :dff_estimand_and_validation_grid, status = :passed,
             evidence = Bool(dff_grid.summary.passed) &&
                 Bool(dff_grid.summary.all_estimands_predeclared) &&
@@ -2123,6 +2132,9 @@ function build_artifact()
             mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed =
                 Bool(getproperty(full_archive.summary,
                     :mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed)),
+            mgmfrm_external_construct_attachment_intake_preflight_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_attachment_intake_preflight_passed)),
             prediction_target_and_model_weight_policy_passed =
                 Bool(prediction_policy.summary.passed),
             mgmfrm_manual_public_scope_review_for_fit_passed =

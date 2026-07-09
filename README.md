@@ -471,6 +471,11 @@ recovered after MCMC across replicated seeds and internal prior profiles:
   MGMFRM fit-metric, model-weight, Q-revision, construct-validity, and
   sparse-superiority claims blocked until those manifests and validation results
   are attached.
+- The external-attachment intake preflight is now recorded as a separate local
+  gate. It fixes 13 required external dataset-manifest fields and 12 required
+  independent-review manifest fields, records the missing manifest paths, and
+  keeps all public MGMFRM claim release switches off until valid signed inputs
+  are attached.
 - The current compact Null-win batch still shows large structured-model losses:
   the analytic null/reference ranked first in 24/25 heldout folds, and Current Q
   had total dELPD vs Null `-153.200`. These failures should be diagnosed

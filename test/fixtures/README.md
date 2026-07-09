@@ -355,6 +355,12 @@ external manifest or independent review manifest is attached, all public
 fit-metric, Q-revision, model-weight, construct-validity, and sparse-superiority
 claims remain blocked.
 
+`mgmfrm_external_construct_attachment_intake_preflight.json` records the local
+attachment-intake preflight for those two missing manifests. It fixes 13
+required external dataset-manifest fields, 12 required independent-review
+manifest fields, and five unresolved claim-release blockers without creating or
+approving external evidence.
+
 `mgmfrm_fit_threshold_q_heldout_linkage.json` links the literature-motivated
 fit-threshold sensitivity grid, empirical Q-matrix recovery simulation, heldout
 prediction simulation expectations, and observed fold-1 heldout scores. It

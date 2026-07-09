@@ -68,6 +68,7 @@
       "require_mgmfrm_publication_grade_refit_batch_results_review_passed": true,
       "require_mgmfrm_publication_grade_threshold_model_weight_policy_review_passed": true,
       "require_mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed": true,
+      "require_mgmfrm_external_construct_attachment_intake_preflight_passed": true,
       "require_mgmfrm_guarded_fit_method_wiring_passed": true,
       "require_mgmfrm_guarded_fit_validation_grid_passed": true,
       "require_mgmfrm_guarded_fit_api_dry_run_passed": true,
@@ -274,7 +275,7 @@
       "path": "test/fixtures/gmfrm_guarded_fit_api_dry_run.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "df1254028080a738087dce96b30b6205cda08048b4a1a46d72f0261f6a7746b6",
+      "sha256": "f4be38019bef102abb36f043b1a587674d012a2e39f843b0f1fa4416d4c5d90e",
       "expected_schema": "bayesianmgmfrm.gmfrm_guarded_fit_api_dry_run.v1",
       "schema": "bayesianmgmfrm.gmfrm_guarded_fit_api_dry_run.v1",
       "schema_matches": true,
@@ -386,7 +387,7 @@
       "path": "test/fixtures/gmfrm_claim_recovery_reproduction_archive.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "938baeb885b9898f41569569746e0f0ca241908ed4ab6f6481a60f613de3f517",
+      "sha256": "bd1301ba3b2492606b34cee4e31b53f129f99b0a93294c8d45e2a778111b4186",
       "expected_schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
       "schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
       "schema_matches": true,
@@ -690,7 +691,7 @@
       "path": "test/fixtures/mgmfrm_heldout_prediction_validation_policy.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "4819846c08fdf2895f5d201142e1e4734f38fe0f47b67b5aeb50315b8bf336de",
+      "sha256": "9f01c55988895d9f71dec96a525a678955a71e97c266cab5ff669dd222a9300c",
       "expected_schema": "bayesianmgmfrm.mgmfrm_heldout_prediction_validation_policy.v1",
       "schema": "bayesianmgmfrm.mgmfrm_heldout_prediction_validation_policy.v1",
       "schema_matches": true,
@@ -706,7 +707,7 @@
       "path": "test/fixtures/mgmfrm_validation_split_model_comparison_policy.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "ced2895d1fc871a0b9b09b3bd459431a1554682b5ff61f0eaaad8dfae8389e08",
+      "sha256": "5e0812035fe6759589d0f6a83af8241000c6377408537f741c08bb8a637d298f",
       "expected_schema": "bayesianmgmfrm.mgmfrm_validation_split_model_comparison_policy.v1",
       "schema": "bayesianmgmfrm.mgmfrm_validation_split_model_comparison_policy.v1",
       "schema_matches": true,
@@ -722,7 +723,7 @@
       "path": "test/fixtures/mgmfrm_heldout_prediction_simulation_grid.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "35d7032074b2e0ab90293d38874260cdd10030066a9615193727b90ee8d7511c",
+      "sha256": "02a2ddef0b5afdfc88e12c8e21f24649e0f3b4a7d919ff3800a90b246975042b",
       "expected_schema": "bayesianmgmfrm.mgmfrm_heldout_prediction_simulation_grid.v1",
       "schema": "bayesianmgmfrm.mgmfrm_heldout_prediction_simulation_grid.v1",
       "schema_matches": true,
@@ -738,7 +739,7 @@
       "path": "test/fixtures/mgmfrm_heldout_prediction_execution.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "2b3681e85dbc3d448183c3f3b0ac9d90d0827fc197ad7dd25257364c5de12e58",
+      "sha256": "db0f19dae490facbb66f2795e6fe0c4b1948c160251c1b1b25cc7a9f115ed8d3",
       "expected_schema": "bayesianmgmfrm.mgmfrm_heldout_prediction_execution.v1",
       "schema": "bayesianmgmfrm.mgmfrm_heldout_prediction_execution.v1",
       "schema_matches": true,
@@ -754,7 +755,7 @@
       "path": "test/fixtures/mgmfrm_full_heldout_refit_or_construct_validation_review.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "d254ba18ef844c7386a610083e7019b6cf4b7697b49dcbd039596913f13ad848",
+      "sha256": "b1dabcb0f3bc64740f22abefc86ce37affbeb69a61dc7e7118a80ee77ecee306",
       "expected_schema": "bayesianmgmfrm.mgmfrm_full_heldout_refit_or_construct_validation_review.v1",
       "schema": "bayesianmgmfrm.mgmfrm_full_heldout_refit_or_construct_validation_review.v1",
       "schema_matches": true,
@@ -770,7 +771,7 @@
       "path": "test/fixtures/mgmfrm_full_heldout_mcmc_refit_execution_plan.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "f16ed89729360a705a3bf88d0bc810186121c5f528b128ad47a13b4990db2b7e",
+      "sha256": "4278fa6f5fa01f41e776f4a4440c97c36fa5d1b99bd7325c162b8651a84587e9",
       "expected_schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_execution_plan.v1",
       "schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_execution_plan.v1",
       "schema_matches": true,
@@ -786,7 +787,7 @@
       "path": "test/fixtures/mgmfrm_full_heldout_mcmc_refit_batch_smoke.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "80e22be17f955c76652f5cd8137196b9174d92976351f049b414b122c17d3915",
+      "sha256": "9dca3f011d9efe9a7591ae9c7cc500fc85fa899b70a48447650f19973b56537b",
       "expected_schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_batch_smoke.v1",
       "schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_batch_smoke.v1",
       "schema_matches": true,
@@ -802,7 +803,7 @@
       "path": "test/fixtures/mgmfrm_full_heldout_mcmc_refit_fold1_pilot.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "bd68cc19bcde7d02a1f37c8eac5748e89c2bdd96649bd35f4991a30c8f551be8",
+      "sha256": "fdd49324a455519da0446a05b100dee3c33bdeafd17246f531cc388c140e5008",
       "expected_schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_fold1_pilot.v1",
       "schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_fold1_pilot.v1",
       "schema_matches": true,
@@ -818,7 +819,7 @@
       "path": "test/fixtures/mgmfrm_full_heldout_mcmc_refit_fold1_scoring.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "bf63b1f8b7e0ca263870a92a981a0686742f901ac18fa020f161d3cd35beef99",
+      "sha256": "77a16de6c030c94dea3e17b463e9ff1e37a0653d656602b8ec834a9476178fa3",
       "expected_schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_fold1_scoring.v1",
       "schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_fold1_scoring.v1",
       "schema_matches": true,
@@ -834,7 +835,7 @@
       "path": "test/fixtures/mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "8d2c63eadba268e21668615a1be64cda2a58c34a51448033d68463498be081cc",
+      "sha256": "8f9f5006980c32a36d17b4af529c817e7032cd142c39ed89149096376b5818fc",
       "expected_schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring.v1",
       "schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring.v1",
       "schema_matches": true,
@@ -850,7 +851,7 @@
       "path": "test/fixtures/mgmfrm_full_heldout_mcmc_refit_anchor_scoring.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "867ee613ada9cc9e1ce2ad6e950e6f12817e0f91fc742e6304f65d7f727b0c32",
+      "sha256": "05ff5c9a7426280929e6a3b6ee8b556b45133af72bfdea3f2cf37fd7d2a87f0a",
       "expected_schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_anchor_scoring.v1",
       "schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_anchor_scoring.v1",
       "schema_matches": true,
@@ -866,7 +867,7 @@
       "path": "test/fixtures/mgmfrm_publication_grade_refit_gate.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "b0f1367caea4d51091fbdf9c96eadfbe43f599fdbbe7e6b9ce7e8f1e11a20417",
+      "sha256": "eec0490743fd55054b93cf6f192c8cd6db60c77c86066c7f94375653288eac5f",
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_gate.v1",
       "schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_gate.v1",
       "schema_matches": true,
@@ -882,7 +883,7 @@
       "path": "test/fixtures/mgmfrm_publication_grade_refit_pilot_plan.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "7b8113ddf6c2e6438e796cd8e47455965c22f5e14ccbc5f5324c140d29a37396",
+      "sha256": "99669445a6c33816debe4821552f7781be6ef4ae10c4c55ee13677a6867f7030",
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_pilot_plan.v1",
       "schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_pilot_plan.v1",
       "schema_matches": true,
@@ -898,7 +899,7 @@
       "path": "test/fixtures/mgmfrm_fit_threshold_q_heldout_linkage.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "67363453c37827d58cca76f1d0ed32a897f9a978ef33ac9f00a7ccc8ad06bc6e",
+      "sha256": "82a62eefae63e3edfbd49f593bd3ec0b73743f4a34f2a6a7755e1b82daa97202",
       "expected_schema": "bayesianmgmfrm.mgmfrm_fit_threshold_q_heldout_linkage.v1",
       "schema": "bayesianmgmfrm.mgmfrm_fit_threshold_q_heldout_linkage.v1",
       "schema_matches": true,
@@ -914,7 +915,7 @@
       "path": "test/fixtures/mgmfrm_publication_grade_refit_pilot_execution_harness.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "b95ff10f9541d93098006fd225706d96704151e70f128fd842904652f78097a1",
+      "sha256": "fabbb12789a556f308e1a0025f31bef60f9a9c4b10618d0ecda9f81c62160e5d",
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_pilot_execution_harness.v1",
       "schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_pilot_execution_harness.v1",
       "schema_matches": true,
@@ -930,7 +931,7 @@
       "path": "test/fixtures/mgmfrm_publication_grade_refit_pilot_results_review.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "61044df5ffba0a684baeb14a6dd200ad0403407fd77ef52ceed8ab6288657b0e",
+      "sha256": "ec621d86b5858ea73c078bdcb1436504a22396c28aae91b5cd11424b28f109ce",
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_pilot_results_review.v1",
       "schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_pilot_results_review.v1",
       "schema_matches": true,
@@ -946,7 +947,7 @@
       "path": "test/fixtures/mgmfrm_publication_grade_refit_sampler_remediation_review.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "312267e57698bb7bbca4c102df6224dfd880089617d000bf3432f584ff2a61eb",
+      "sha256": "07974508bb9451375f8a38784c76eea29e51ccacf88bc9084838d9ff73c92a4a",
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_sampler_remediation_review.v1",
       "schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_sampler_remediation_review.v1",
       "schema_matches": true,
@@ -962,7 +963,7 @@
       "path": "test/fixtures/mgmfrm_publication_grade_refit_scalar_remediation_comparison.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "2cddebee19f9219c6b813a457da5f33cebc7655138b91fba16f171360529903e",
+      "sha256": "bdd332691f38ed572fc66680d500cbfda111c3d804740b05d4924969d51cffb2",
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_scalar_remediation_comparison.v1",
       "schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_scalar_remediation_comparison.v1",
       "schema_matches": true,
@@ -978,7 +979,7 @@
       "path": "test/fixtures/mgmfrm_publication_grade_refit_batch_expansion_plan.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "785175bb6217b1fb8a642c5b4ec6d440e86dd8a5fd5e4c71229e884f3704cc3a",
+      "sha256": "41644e591a1a0ad4c55f05a37625fc9dc5f98ebd04f03b31fb81a87338072f7f",
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_batch_expansion_plan.v1",
       "schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_batch_expansion_plan.v1",
       "schema_matches": true,
@@ -994,7 +995,7 @@
       "path": "test/fixtures/mgmfrm_publication_grade_refit_batch_results_review.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "8b7daf88f8458483e68a28ff88cee93c75f6e31f9343be7f094523438b17fc4b",
+      "sha256": "26b74f79344a7fede80ac0bba63827d98360dfe876f0e232be3ebb44b921a16e",
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_batch_results_review.v1",
       "schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_batch_results_review.v1",
       "schema_matches": true,
@@ -1010,7 +1011,7 @@
       "path": "test/fixtures/mgmfrm_publication_grade_threshold_model_weight_policy_review.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "2402b24d1867a5d8480dee2122bb0180071fc375cd01468b085286282d22d6ee",
+      "sha256": "7d2caf6b50dcbaed8faab04435b5698205e6aa8fc52800b10eacc03442c9ac1f",
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_threshold_model_weight_policy_review.v1",
       "schema": "bayesianmgmfrm.mgmfrm_publication_grade_threshold_model_weight_policy_review.v1",
       "schema_matches": true,
@@ -1026,13 +1027,29 @@
       "path": "test/fixtures/mgmfrm_external_construct_dataset_and_independent_public_scope_review.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "fd77e31b9ec93f38cefab6004e821207410dbfbc65a031d6c497fd8b803f6355",
+      "sha256": "1f79c90e738d03b6b0c0e88a24a21bccbf7a2247ebb44f32fb9312900d5c5972",
       "expected_schema": "bayesianmgmfrm.mgmfrm_external_construct_dataset_and_independent_public_scope_review.v1",
       "schema": "bayesianmgmfrm.mgmfrm_external_construct_dataset_and_independent_public_scope_review.v1",
       "schema_matches": true,
       "generator": "scripts/generate_mgmfrm_external_construct_dataset_and_independent_public_scope_review.jl",
       "generation_command": "julia --project=. scripts/generate_mgmfrm_external_construct_dataset_and_independent_public_scope_review.jl",
       "env_var": "MFRM_MGMFRM_EXTERNAL_CONSTRUCT_DATASET_AND_INDEPENDENT_PUBLIC_SCOPE_REVIEW_FIXTURE",
+      "generator_exists": true,
+      "summary_present": true,
+      "summary_passed": true
+    },
+    {
+      "artifact": "mgmfrm_external_construct_attachment_intake_preflight",
+      "path": "test/fixtures/mgmfrm_external_construct_attachment_intake_preflight.json",
+      "exists": true,
+      "hash_policy": "sha256",
+      "sha256": "eeef456026eb06a13de497d493309600dc91a56db86ac700d82dd63b46ea8e26",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_external_construct_attachment_intake_preflight.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_external_construct_attachment_intake_preflight.v1",
+      "schema_matches": true,
+      "generator": "scripts/generate_mgmfrm_external_construct_attachment_intake_preflight.jl",
+      "generation_command": "julia --project=. scripts/generate_mgmfrm_external_construct_attachment_intake_preflight.jl",
+      "env_var": "MFRM_MGMFRM_EXTERNAL_CONSTRUCT_ATTACHMENT_INTAKE_PREFLIGHT_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
       "summary_passed": true
@@ -1106,7 +1123,7 @@
       "path": "test/fixtures/gmfrm_prediction_target_and_model_weight_policy.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "34e7ec5eeb91a04e9e44d5c58f33f240fd917b5cb7f236c1fdf470b9ce586050",
+      "sha256": "384ccef33205868cb7e6be9d41d40dc279bc8e307f31e70aa49bc2972ec44119",
       "expected_schema": "bayesianmgmfrm.gmfrm_prediction_target_and_model_weight_policy.v1",
       "schema": "bayesianmgmfrm.gmfrm_prediction_target_and_model_weight_policy.v1",
       "schema_matches": true,
@@ -1122,7 +1139,7 @@
       "path": "test/fixtures/mgmfrm_manual_public_scope_review_for_fit.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "067c9f2bf802ac421b20e7141f4653885dacf3c9058795e2bc1fbd709275942d",
+      "sha256": "b5d12565bfd72bd69625965611de312c171132b9f1a141e65f521597f986542f",
       "expected_schema": "bayesianmgmfrm.mgmfrm_manual_public_scope_review_for_fit.v1",
       "schema": "bayesianmgmfrm.mgmfrm_manual_public_scope_review_for_fit.v1",
       "schema_matches": true,
@@ -1144,14 +1161,14 @@
     {
       "path": "README.md",
       "exists": true,
-      "sha256": "f480fd639d10ae4a6bd21cfe9b9050277dfaa08f807065d4966cd6363f9417dd",
-      "line_count": 584
+      "sha256": "5418dee542da0dcf8732750a1d55d722bcbca3b5ed6c3992afd1d15fbeb70a89",
+      "line_count": 589
     },
     {
       "path": "NEWS.md",
       "exists": true,
-      "sha256": "a18974c3af4c697479047c860f3f04b13b0898b572b36e9ce65f2b7646f9d595",
-      "line_count": 644
+      "sha256": "7182b39e4b17c6304ab90cfffddd07879343d2071faa330afafc490ab03800b4",
+      "line_count": 648
     },
     {
       "path": "ROADMAP.md",
@@ -1180,14 +1197,14 @@
     {
       "path": "test/runtests.jl",
       "exists": true,
-      "sha256": "d1b0ead2b8b2ed6bb32dc4a7463e95a446a652fabd6eac092629be33bf179e28",
-      "line_count": 26833
+      "sha256": "3ec9e0540859b1b48bb8c241f5fcf80b35324f9a27c57e3103576178ef9e309f",
+      "line_count": 27087
     },
     {
       "path": "test/fixtures/README.md",
       "exists": true,
-      "sha256": "09835de485c5249b69985fba8c8b7e3fb22756e5fe34b75a42954ce5e3340d56",
-      "line_count": 375
+      "sha256": "5c04d43c9a77b8eca341bf9bdf61542a60717d5928c96e23f1bc7b4be18107a6",
+      "line_count": 381
     },
     {
       "path": "docs/make.jl",
@@ -1216,8 +1233,8 @@
     {
       "path": "docs/src/fitting.md",
       "exists": true,
-      "sha256": "293904042b4a840a3c417a5e6a72b62792dd4f92fb4786418881ce13d5a48de5",
-      "line_count": 832
+      "sha256": "57b49d7bedff41d773c9595b5b19676cf4500f47dc660bd6bff47221e257b985",
+      "line_count": 839
     },
     {
       "path": "docs/src/model-equations.md",
@@ -1252,8 +1269,8 @@
     {
       "path": "scripts/generate_gmfrm_full_paper_reproduction_archive.jl",
       "exists": true,
-      "sha256": "43f6f9046fd2651dd235b35eebd61a276bb503542fb139b40c0b9bd83cadeb59",
-      "line_count": 1573
+      "sha256": "96fede89b660bd65d47f6bef54d1657dee5670ec4aa4b40632466e88de279afe",
+      "line_count": 1596
     },
     {
       "path": "scripts/generate_mgmfrm_report_shape_simulation_grid.jl",
@@ -1458,6 +1475,12 @@
       "exists": true,
       "sha256": "c75f8a0ed1a314f6a7a8fedde4ebfab7082fad35cd19ef0e0ac3e29bf2fa3392",
       "line_count": 667
+    },
+    {
+      "path": "scripts/generate_mgmfrm_external_construct_attachment_intake_preflight.jl",
+      "exists": true,
+      "sha256": "bead89e3c209fff75c255290d88b72c619f0cd88005e30383f1ae88b26f5f625",
+      "line_count": 518
     },
     {
       "path": "scripts/generate_mgmfrm_guarded_fit_method_wiring.jl",
@@ -1855,66 +1878,72 @@
     },
     {
       "step": 56,
+      "artifact": "mgmfrm_external_construct_attachment_intake_preflight",
+      "command": "julia --project=. scripts/generate_mgmfrm_external_construct_attachment_intake_preflight.jl",
+      "local_only": true
+    },
+    {
+      "step": 57,
       "artifact": "mgmfrm_guarded_fit_method_wiring",
       "command": "julia --project=. scripts/generate_mgmfrm_guarded_fit_method_wiring.jl",
       "local_only": true
     },
     {
-      "step": 57,
+      "step": 58,
       "artifact": "mgmfrm_guarded_fit_validation_grid",
       "command": "julia --project=. scripts/generate_mgmfrm_guarded_fit_validation_grid.jl",
       "local_only": true
     },
     {
-      "step": 58,
+      "step": 59,
       "artifact": "mgmfrm_guarded_fit_api_dry_run",
       "command": "julia --project=. scripts/generate_mgmfrm_guarded_fit_api_dry_run.jl",
       "local_only": true
     },
     {
-      "step": 59,
+      "step": 60,
       "artifact": "mgmfrm_guarded_fit_public_exposure_review",
       "command": "julia --project=. scripts/generate_mgmfrm_guarded_fit_public_exposure_review.jl",
       "local_only": true
     },
     {
-      "step": 60,
+      "step": 61,
       "artifact": "prediction_target_and_model_weight_policy",
       "command": "julia --project=. scripts/generate_gmfrm_prediction_target_and_model_weight_policy.jl",
       "local_only": true
     },
     {
-      "step": 61,
+      "step": 62,
       "artifact": "mgmfrm_manual_public_scope_review_for_fit",
       "command": "julia --project=. scripts/generate_mgmfrm_manual_public_scope_review_for_fit.jl",
       "local_only": true
     },
     {
-      "step": 62,
+      "step": 63,
       "artifact": "gmfrm_dff_estimand_validation_grid",
       "command": "julia --project=. scripts/generate_gmfrm_dff_estimand_validation_grid.jl",
       "local_only": true
     },
     {
-      "step": 63,
+      "step": 64,
       "artifact": "gmfrm_full_paper_reproduction_archive",
       "command": "julia --project=. scripts/generate_gmfrm_full_paper_reproduction_archive.jl",
       "local_only": true
     },
     {
-      "step": 64,
+      "step": 65,
       "artifact": "gmfrm_manuscript_scale_simulation_grid",
       "command": "julia --project=. scripts/generate_gmfrm_manuscript_scale_simulation_grid.jl",
       "local_only": true
     },
     {
-      "step": 65,
+      "step": 66,
       "artifact": "gmfrm_broader_experimental_exposure_decision_review",
       "command": "julia --project=. scripts/generate_gmfrm_broader_experimental_exposure_decision_review.jl",
       "local_only": true
     },
     {
-      "step": 66,
+      "step": 67,
       "artifact": "gmfrm_guarded_exposure_review",
       "command": "julia --project=. scripts/generate_gmfrm_guarded_exposure_review.jl",
       "local_only": true
@@ -1994,10 +2023,10 @@
     "verification_commands_recorded": true,
     "all_commands_local_only": true,
     "no_publication_commands": true,
-    "n_fixture_artifacts": 66,
-    "n_code_doc_records": 62,
+    "n_fixture_artifacts": 67,
+    "n_code_doc_records": 63,
     "n_source_records": 2,
-    "n_full_regeneration_commands": 66,
+    "n_full_regeneration_commands": 67,
     "n_verification_commands": 4,
     "claim_recovery_reproduction_archive_passed": true,
     "guarded_exposure_review_passed": true,
@@ -2036,6 +2065,7 @@
     "mgmfrm_publication_grade_refit_batch_results_review_passed": true,
     "mgmfrm_publication_grade_threshold_model_weight_policy_review_passed": true,
     "mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed": true,
+    "mgmfrm_external_construct_attachment_intake_preflight_passed": true,
     "mgmfrm_guarded_fit_method_wiring_passed": true,
     "mgmfrm_guarded_fit_validation_grid_passed": true,
     "mgmfrm_guarded_fit_api_dry_run_passed": true,

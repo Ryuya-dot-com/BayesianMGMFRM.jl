@@ -75,6 +75,10 @@
   those threshold profiles and record job-level, model-level, and
   scenario-model threshold surfaces so strict, screening, lenient, and
   sample-size-sensitive cutoffs can be compared before any public fit claim.
+- Add a local MGMFRM external-construct attachment intake preflight generator
+  and JSON artifact that fix the required external dataset and independent
+  public-scope review manifest fields, record the missing manifest paths, and
+  keep all public MGMFRM claim-release rows blocked.
 - Add a local MGMFRM construct-reviewed Q fit reporting-policy generator and
   committed JSON artifact that summarizes threshold-profile dependence,
   candidate/declared indicator conflicts, existing MFRM reference comparisons,

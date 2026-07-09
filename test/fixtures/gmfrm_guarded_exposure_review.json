@@ -359,7 +359,7 @@
     {
       "artifact": "guarded_fit_api_dry_run",
       "path": "test/fixtures/gmfrm_guarded_fit_api_dry_run.json",
-      "sha256": "df1254028080a738087dce96b30b6205cda08048b4a1a46d72f0261f6a7746b6",
+      "sha256": "f4be38019bef102abb36f043b1a587674d012a2e39f843b0f1fa4416d4c5d90e",
       "schema": "bayesianmgmfrm.gmfrm_guarded_fit_api_dry_run.v1",
       "family": "gmfrm",
       "scope": "scalar_gmfrm_fit_ready_candidate",
@@ -607,7 +607,7 @@
     {
       "artifact": "claim_recovery_reproduction_archive",
       "path": "test/fixtures/gmfrm_claim_recovery_reproduction_archive.json",
-      "sha256": "938baeb885b9898f41569569746e0f0ca241908ed4ab6f6481a60f613de3f517",
+      "sha256": "bd1301ba3b2492606b34cee4e31b53f129f99b0a93294c8d45e2a778111b4186",
       "schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
       "family": "gmfrm",
       "scope": "scalar_gmfrm_fit_ready_candidate",
@@ -641,7 +641,7 @@
     {
       "artifact": "broader_experimental_exposure_decision_review",
       "path": "test/fixtures/gmfrm_broader_experimental_exposure_decision_review.json",
-      "sha256": "17cde766c8200c2cdc48ad66a636155998593ceb825f4fe7178f0c941be84ba0",
+      "sha256": "3482ed5ede984b5a0f3da0a4888d301c5ed71240aedc4804c339fbd078441ee5",
       "schema": "bayesianmgmfrm.gmfrm_broader_experimental_exposure_decision_review.v1",
       "family": "gmfrm",
       "scope": "broader_generalized_exposure_decision",
@@ -862,7 +862,7 @@
     {
       "artifact": "prediction_target_and_model_weight_policy",
       "path": "test/fixtures/gmfrm_prediction_target_and_model_weight_policy.json",
-      "sha256": "34e7ec5eeb91a04e9e44d5c58f33f240fd917b5cb7f236c1fdf470b9ce586050",
+      "sha256": "384ccef33205868cb7e6be9d41d40dc279bc8e307f31e70aa49bc2972ec44119",
       "schema": "bayesianmgmfrm.gmfrm_prediction_target_and_model_weight_policy.v1",
       "family": "gmfrm",
       "scope": "prediction_target_and_model_weight_policy",
@@ -900,7 +900,7 @@
     {
       "artifact": "mgmfrm_manual_public_scope_review_for_fit",
       "path": "test/fixtures/mgmfrm_manual_public_scope_review_for_fit.json",
-      "sha256": "067c9f2bf802ac421b20e7141f4653885dacf3c9058795e2bc1fbd709275942d",
+      "sha256": "b5d12565bfd72bd69625965611de312c171132b9f1a141e65f521597f986542f",
       "schema": "bayesianmgmfrm.mgmfrm_manual_public_scope_review_for_fit.v1",
       "family": "mgmfrm",
       "scope": "minimal_confirmatory_mgmfrm_candidate",
@@ -976,7 +976,7 @@
     {
       "artifact": "manuscript_scale_simulation_grid",
       "path": "test/fixtures/gmfrm_manuscript_scale_simulation_grid.json",
-      "sha256": "8a88a7480f4055c3ff15c95edc5eb5d10375cc25bbbd757b391bda14c425295b",
+      "sha256": "45445efb0e5492b02e4e6ae7c1a93303019d6a6faae0028edd64adc71e25da4f",
       "schema": "bayesianmgmfrm.gmfrm_manuscript_scale_simulation_grid.v1",
       "family": "gmfrm",
       "scope": "manuscript_scale_simulation_grid",
@@ -994,7 +994,7 @@
         "all_primary_checks_passed": true,
         "n_input_artifacts": 35,
         "n_evidence_rows": 35,
-        "total_evidence_cells": 5583,
+        "total_evidence_cells": 5584,
         "minimum_required_evidence_cells": 60,
         "scalar_fit_validation_grid_passed": true,
         "posterior_predictive_grid_passed": true,
@@ -1036,7 +1036,7 @@
     {
       "artifact": "full_paper_reproduction_archive",
       "path": "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
-      "sha256": "37b2aa58948724475debf053385c5e5cf71b86d1edf80eebdcb7e9efda0563f5",
+      "sha256": "e65a77293086bdd07c1ce790f1f6efcde9e0eeacd326985d0cc82cf6a37086a2",
       "schema": "bayesianmgmfrm.gmfrm_full_paper_reproduction_archive.v1",
       "family": "gmfrm",
       "scope": "full_paper_reproduction_archive",
@@ -1056,10 +1056,10 @@
         "all_external_sources_present": true,
         "all_commands_local_only": true,
         "no_publication_commands": true,
-        "n_fixture_artifacts": 66,
-        "n_code_doc_records": 62,
+        "n_fixture_artifacts": 67,
+        "n_code_doc_records": 63,
         "n_source_records": 2,
-        "n_full_regeneration_commands": 66,
+        "n_full_regeneration_commands": 67,
         "n_verification_commands": 4,
         "guarded_exposure_review_passed": true,
         "broader_experimental_exposure_decision_review_passed": true,
@@ -1096,6 +1096,7 @@
         "mgmfrm_publication_grade_refit_batch_results_review_passed": true,
         "mgmfrm_publication_grade_threshold_model_weight_policy_review_passed": true,
         "mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed": true,
+        "mgmfrm_external_construct_attachment_intake_preflight_passed": true,
         "prediction_target_and_model_weight_policy_passed": true,
         "mgmfrm_manual_public_scope_review_for_fit_passed": true,
         "manuscript_reproducibility_claims_supported": true,
@@ -1421,6 +1422,12 @@
       "finding": "external_construct_and_independent_public_scope_requirements_recorded_claims_blocked"
     },
     {
+      "gate": "confirmatory_mgmfrm_external_construct_attachment_intake_preflight",
+      "status": "passed_with_policy_blocker",
+      "evidence": true,
+      "finding": "external_construct_attachment_intake_preflight_recorded_claims_blocked"
+    },
+    {
       "gate": "dff_estimand_and_validation_grid",
       "status": "passed",
       "evidence": true,
@@ -1500,6 +1507,7 @@
     "mgmfrm_publication_grade_refit_batch_results_review_passed": true,
     "mgmfrm_publication_grade_threshold_model_weight_policy_review_passed": true,
     "mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed": true,
+    "mgmfrm_external_construct_attachment_intake_preflight_passed": true,
     "prediction_target_and_model_weight_policy_passed": true,
     "mgmfrm_manual_public_scope_review_for_fit_passed": true,
     "dff_estimand_validation_grid_passed": true,
@@ -1509,7 +1517,7 @@
     "broader_generalized_fit_allowed": false,
     "mgmfrm_fit_allowed": true,
     "n_reviewed_artifacts": 29,
-    "n_review_rows": 53,
+    "n_review_rows": 54,
     "n_blockers": 0,
     "fit_allowed": true,
     "experimental_keyword_enabled": true,
