@@ -361,6 +361,12 @@ required external dataset-manifest fields, 12 required independent-review
 manifest fields, and five unresolved claim-release blockers without creating or
 approving external evidence.
 
+`mgmfrm_external_construct_attachment_request_packet.json` records the
+actionable local handoff for the missing external attachments. It embeds the 25
+user-supplied manifest fields, ten attachment checklist rows, and six rejection
+conditions while keeping external manifest files unwritten and all public claim
+release switches blocked.
+
 `mgmfrm_fit_threshold_q_heldout_linkage.json` links the literature-motivated
 fit-threshold sensitivity grid, empirical Q-matrix recovery simulation, heldout
 prediction simulation expectations, and observed fold-1 heldout scores. It

@@ -41,7 +41,7 @@
       "artifact": "mgmfrm_external_construct_dataset_and_independent_public_scope_review",
       "path": "test/fixtures/mgmfrm_external_construct_dataset_and_independent_public_scope_review.json",
       "exists": true,
-      "sha256": "1f79c90e738d03b6b0c0e88a24a21bccbf7a2247ebb44f32fb9312900d5c5972",
+      "sha256": "76e8a3725b1b5e2137f92f8afa7f38d1d0ca75bed75842c3254069f65ef9bf60",
       "expected_schema": "bayesianmgmfrm.mgmfrm_external_construct_dataset_and_independent_public_scope_review.v1",
       "schema": "bayesianmgmfrm.mgmfrm_external_construct_dataset_and_independent_public_scope_review.v1",
       "schema_matches": true,

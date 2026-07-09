@@ -79,6 +79,9 @@
   and JSON artifact that fix the required external dataset and independent
   public-scope review manifest fields, record the missing manifest paths, and
   keep all public MGMFRM claim-release rows blocked.
+- Add a local MGMFRM external-construct attachment request-packet generator and
+  JSON artifact that turn the preflight into a user-supplied field checklist and
+  rejection-condition handoff without writing external manifest files.
 - Add a local MGMFRM construct-reviewed Q fit reporting-policy generator and
   committed JSON artifact that summarizes threshold-profile dependence,
   candidate/declared indicator conflicts, existing MFRM reference comparisons,

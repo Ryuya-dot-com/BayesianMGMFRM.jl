@@ -476,6 +476,10 @@ recovered after MCMC across replicated seeds and internal prior profiles:
   independent-review manifest fields, records the missing manifest paths, and
   keeps all public MGMFRM claim release switches off until valid signed inputs
   are attached.
+- The external-attachment request packet is now recorded as the actionable
+  handoff for that preflight. It embeds the 25 user-supplied manifest fields,
+  ten attachment checklist rows, and six rejection conditions while explicitly
+  avoiding creation of external evidence or manifest files.
 - The current compact Null-win batch still shows large structured-model losses:
   the analytic null/reference ranked first in 24/25 heldout folds, and Current Q
   had total dELPD vs Null `-153.200`. These failures should be diagnosed

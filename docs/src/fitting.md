@@ -426,6 +426,11 @@ independent public-scope review manifest. Because both manifests are still
 absent, manifest validity remains false and every public MGMFRM claim-release
 row remains blocked pending valid signed inputs.
 
+The attachment request packet turns that preflight into an actionable handoff.
+It embeds the same 25 user-supplied fields, ten attachment checklist rows, and
+six rejection conditions, but it still writes no external manifest files and
+does not mark any placeholder value as valid.
+
 These numbers are local diagnostic evidence only. They should not be cited as
 public fit thresholds, model weights, Q-revision evidence, sparse-superiority
 evidence, or a stable-public MGMFRM validation claim.
