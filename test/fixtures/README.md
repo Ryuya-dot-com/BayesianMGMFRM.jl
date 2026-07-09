@@ -305,11 +305,12 @@ win as a blocker, and advances the next gate to the remaining batch jobs.
 records the first scenario-level publication-grade batch execution. It
 summarizes all 25 `well_specified_current_q` jobs across five folds, records
 that the scenario orchestrator executed the remaining 20 jobs without failures,
-keeps the five fold-1 smoke artifacts as prior completed jobs, and preserves
-the scalar divergence failures in folds 3 and 5 (`5` and `1` divergences) as
-sampler-stability blockers. It keeps all public fit, Q-revision, model-weight,
-and sparse-superiority claims blocked while full-batch diagnostics, external
-construct review, and public-scope review remain unresolved.
+keeps the five fold-1 smoke artifacts as prior completed jobs, and records the
+targeted scalar refits that removed the earlier fold-3 and fold-5 divergence
+failures. This scenario fixture keeps all public fit, Q-revision, model-weight,
+and sparse-superiority claims blocked while remaining batch execution,
+fit-threshold comparison, external construct review, and public-scope review
+remain unresolved.
 
 `scripts/run_mgmfrm_publication_grade_refit_batch.jl` is the local-only batch
 orchestrator for that next gate. It reads the batch plan, skips already
@@ -323,11 +324,11 @@ accidentally.
 corresponding batch result-review layer. The committed fixture now records the
 local full 125-unit batch review after reading ignored runner artifacts: all 375
 result/diagnostic/heldout artifacts are present, all fixed-Q MGMFRM candidate
-families and analytic reference rows passed their local diagnostic gates, and
-scalar GMFRM remains the active sampler blocker with 11 divergence-count
-failure rows. The analytic null/reference is the descriptive heldout winner in
-24/25 folds, so model-weight and structured-model superiority claims remain
-blocked. It also carries the four fit-threshold profiles from
+families, analytic reference rows, and targeted scalar refits passed their local
+diagnostic gates, leaving zero diagnostic-failure rows. The analytic
+null/reference is the descriptive heldout winner in 24/25 folds, so model-weight
+and structured-model superiority claims remain blocked. It also carries the
+four fit-threshold profiles from
 `mgmfrm_fit_metric_threshold_sensitivity.json` into job-level, model-level, and
 scenario-model threshold surfaces so strict, screening, lenient, and
 sample-size-sensitive interpretations can be compared without promoting a

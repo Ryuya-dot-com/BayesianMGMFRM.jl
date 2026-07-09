@@ -51,7 +51,7 @@
       "artifact": "mgmfrm_publication_grade_refit_batch_expansion_plan",
       "path": "test/fixtures/mgmfrm_publication_grade_refit_batch_expansion_plan.json",
       "exists": true,
-      "sha256": "72da3b2a5199acc0a34bc36841db9df1a5a5ebab871113ee1ed9d5584d72480e",
+      "sha256": "c0d893071236f5f0ca02bb28319a367f491d01760f3f010ffba989cbb1198575",
       "schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_batch_expansion_plan.v1",
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_batch_expansion_plan.v1",
       "schema_matches": true,
@@ -673,7 +673,7 @@
       "kind": "result",
       "path": "artifacts/publication_grade_refit_batch/well_specified_current_q__scalar_gmfrm_baseline__fold3_result.json",
       "exists": true,
-      "sha256": "7ffa070649df2d3a39bae63f600bafd7e448ec36ca193c21c3d0769441d98ab2",
+      "sha256": "b199e52c1a00c3cd11e92f1f752396bbefeed0e45bcd54fd5c35eb44dbce1e4b",
       "schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_job_result.v1",
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_job_result.v1",
       "schema_matches": true,
@@ -681,14 +681,14 @@
       "summary_passed": true,
       "executed": true,
       "dry_run": false,
-      "diagnostic_gate_passed": false,
+      "diagnostic_gate_passed": true,
       "public_claim_allowed": false
     },
     {
       "kind": "diagnostics",
       "path": "artifacts/publication_grade_refit_batch/well_specified_current_q__scalar_gmfrm_baseline__fold3_diagnostics.json",
       "exists": true,
-      "sha256": "8b1f0bebe81e3dca683365807b3fa473dac871f8334ecd40e8f22866caf2f619",
+      "sha256": "ce416d3775b9270110b346cde724926f937eafc695791980cf957c99d5236d91",
       "schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_job_diagnostics.v1",
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_job_diagnostics.v1",
       "schema_matches": true,
@@ -703,7 +703,7 @@
       "kind": "heldout",
       "path": "artifacts/publication_grade_refit_batch/well_specified_current_q__scalar_gmfrm_baseline__fold3_heldout_score.json",
       "exists": true,
-      "sha256": "b3ee33cda9e871bce666266d2e03d0999d83ed61c32a6ce868d495dbc2af110a",
+      "sha256": "e0b2ce0f2181170ad23764a377bf312ea3b1c624b6327cfed0778f4d6b34a423",
       "schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_job_heldout_score.v1",
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_job_heldout_score.v1",
       "schema_matches": true,
@@ -1123,7 +1123,7 @@
       "kind": "result",
       "path": "artifacts/publication_grade_refit_batch/well_specified_current_q__scalar_gmfrm_baseline__fold5_result.json",
       "exists": true,
-      "sha256": "e5f378c97a25b74177cfe008fcfeec403cd69be58dad61c3b0a178607a39c32c",
+      "sha256": "1069e03727f2867868dd232e0fba719c00bfc02b0f9da42d82b3f3741673bedd",
       "schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_job_result.v1",
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_job_result.v1",
       "schema_matches": true,
@@ -1131,14 +1131,14 @@
       "summary_passed": true,
       "executed": true,
       "dry_run": false,
-      "diagnostic_gate_passed": false,
+      "diagnostic_gate_passed": true,
       "public_claim_allowed": false
     },
     {
       "kind": "diagnostics",
       "path": "artifacts/publication_grade_refit_batch/well_specified_current_q__scalar_gmfrm_baseline__fold5_diagnostics.json",
       "exists": true,
-      "sha256": "1c45f9bcb54fdfbde5a494ad3ca78ba30a78010e8066aba5978dc5d3f98b66df",
+      "sha256": "c79327c4d8f31eaec7077d74f603474215272812808a560526b56c870bdae768",
       "schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_job_diagnostics.v1",
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_job_diagnostics.v1",
       "schema_matches": true,
@@ -1153,7 +1153,7 @@
       "kind": "heldout",
       "path": "artifacts/publication_grade_refit_batch/well_specified_current_q__scalar_gmfrm_baseline__fold5_heldout_score.json",
       "exists": true,
-      "sha256": "725b44c8f6cab301c29330e23a61780e1e89c2df93357b0498f71871d5c70e5f",
+      "sha256": "e33dc53b7b8921c5621a173ed74d95f39d8f3baced09576cc27787437ef30571",
       "schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_job_heldout_score.v1",
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_job_heldout_score.v1",
       "schema_matches": true,
@@ -1940,26 +1940,26 @@
       "executed": true,
       "dry_run": false,
       "artifacts_complete": true,
-      "diagnostic_gate_passed": false,
+      "diagnostic_gate_passed": true,
       "diagnostics_observed": true,
-      "sampler_flag": "sampler_warning",
+      "sampler_flag": "ok",
       "chains": 4,
-      "warmup_per_chain": 1000,
+      "warmup_per_chain": 2000,
       "draws_per_chain": 1000,
       "total_retained_draws": 4000,
-      "target_acceptance": 0.9,
-      "max_rhat": 1.0023756426801702,
-      "min_ess": 1890.7590700609853,
-      "e_bfmi": 0.8108480594297492,
-      "n_divergences": 5,
+      "target_acceptance": 0.99,
+      "max_rhat": 1.0013646522300494,
+      "min_ess": 2409.883082474611,
+      "e_bfmi": 0.9080428093176163,
+      "n_divergences": 0,
       "n_max_treedepth": 0,
       "n_nonfinite_logdensity": 0,
       "n_failed_direct_constraints": 0,
       "heldout_predictive_score_computed": true,
-      "heldout_elpd": -10.380007190473634,
-      "heldout_mean_log_predictive_density": -1.2975008988092043,
-      "heldout_expected_score_mae": 0.8795198432966637,
-      "heldout_expected_score_rmse": 0.99445824220709,
+      "heldout_elpd": -10.410472382362812,
+      "heldout_mean_log_predictive_density": -1.3013090477953515,
+      "heldout_expected_score_mae": 0.8802764232229726,
+      "heldout_expected_score_rmse": 0.9972397121214531,
       "all_pointwise_scores_finite": true,
       "public_claim_allowed": false
     },
@@ -2290,26 +2290,26 @@
       "executed": true,
       "dry_run": false,
       "artifacts_complete": true,
-      "diagnostic_gate_passed": false,
+      "diagnostic_gate_passed": true,
       "diagnostics_observed": true,
-      "sampler_flag": "sampler_warning",
+      "sampler_flag": "ok",
       "chains": 4,
-      "warmup_per_chain": 1000,
+      "warmup_per_chain": 2000,
       "draws_per_chain": 1000,
       "total_retained_draws": 4000,
-      "target_acceptance": 0.9,
-      "max_rhat": 1.0034334127904152,
-      "min_ess": 2259.973155159376,
-      "e_bfmi": 0.8120766878415785,
-      "n_divergences": 1,
+      "target_acceptance": 0.99,
+      "max_rhat": 1.0012182247152932,
+      "min_ess": 2289.9811021275264,
+      "e_bfmi": 0.7992140054373146,
+      "n_divergences": 0,
       "n_max_treedepth": 0,
       "n_nonfinite_logdensity": 0,
       "n_failed_direct_constraints": 0,
       "heldout_predictive_score_computed": true,
-      "heldout_elpd": -12.006696571536459,
-      "heldout_mean_log_predictive_density": -1.5008370714420574,
-      "heldout_expected_score_mae": 0.9649599023677717,
-      "heldout_expected_score_rmse": 1.111299803395519,
+      "heldout_elpd": -11.985176418863537,
+      "heldout_mean_log_predictive_density": -1.498147052357942,
+      "heldout_expected_score_mae": 0.9645245070424417,
+      "heldout_expected_score_rmse": 1.110692194641494,
       "all_pointwise_scores_finite": true,
       "public_claim_allowed": false
     },
@@ -2399,10 +2399,10 @@
       "n_mcmc_execution_units": 5,
       "n_analytic_reference_units": 0,
       "n_executed_units": 5,
-      "n_diagnostic_gate_passed_units": 3,
-      "n_divergences": 6,
-      "mean_heldout_elpd": -11.053965596512946,
-      "min_heldout_elpd": -12.006696571536459,
+      "n_diagnostic_gate_passed_units": 5,
+      "n_divergences": 0,
+      "mean_heldout_elpd": -11.055754604356197,
+      "min_heldout_elpd": -11.985176418863537,
       "max_heldout_elpd": -10.15953696736171,
       "all_public_claims_blocked": true
     },
@@ -2659,11 +2659,11 @@
       "role": "scalar",
       "mcmc_refit_required": true,
       "analytic_reference_scored": false,
-      "diagnostic_gate_passed": false,
-      "heldout_elpd": -10.380007190473634,
-      "delta_elpd_from_fold_best": -1.454493050271621,
-      "heldout_expected_score_mae": 0.8795198432966637,
-      "heldout_expected_score_rmse": 0.99445824220709,
+      "diagnostic_gate_passed": true,
+      "heldout_elpd": -10.410472382362812,
+      "delta_elpd_from_fold_best": -1.4849582421607987,
+      "heldout_expected_score_mae": 0.8802764232229726,
+      "heldout_expected_score_rmse": 0.9972397121214531,
       "descriptive_only": true,
       "public_model_weight_claim_allowed": false,
       "public_fit_metric_claim_allowed": false
@@ -2829,11 +2829,11 @@
       "role": "scalar",
       "mcmc_refit_required": true,
       "analytic_reference_scored": false,
-      "diagnostic_gate_passed": false,
-      "heldout_elpd": -12.006696571536459,
-      "delta_elpd_from_fold_best": -2.612607818812174,
-      "heldout_expected_score_mae": 0.9649599023677717,
-      "heldout_expected_score_rmse": 1.111299803395519,
+      "diagnostic_gate_passed": true,
+      "heldout_elpd": -11.985176418863537,
+      "delta_elpd_from_fold_best": -2.591087666139252,
+      "heldout_expected_score_mae": 0.9645245070424417,
+      "heldout_expected_score_rmse": 1.110692194641494,
       "descriptive_only": true,
       "public_model_weight_claim_allowed": false,
       "public_fit_metric_claim_allowed": false
@@ -2890,38 +2890,7 @@
       "public_fit_metric_claim_allowed": false
     }
   ],
-  "diagnostic_failure_rows": [
-    {
-      "execution_unit_id": "well_specified_current_q__scalar_gmfrm_baseline__fold3",
-      "scenario": "well_specified_current_q",
-      "model": "scalar_gmfrm_baseline",
-      "fold": 3,
-      "diagnostic": "divergence_count_max",
-      "source": "hmc_diagnostics",
-      "comparison": "equal",
-      "threshold": 0,
-      "value": 5,
-      "observed": true,
-      "applicable": true,
-      "passed": false,
-      "public_claim_allowed": false
-    },
-    {
-      "execution_unit_id": "well_specified_current_q__scalar_gmfrm_baseline__fold5",
-      "scenario": "well_specified_current_q",
-      "model": "scalar_gmfrm_baseline",
-      "fold": 5,
-      "diagnostic": "divergence_count_max",
-      "source": "hmc_diagnostics",
-      "comparison": "equal",
-      "threshold": 0,
-      "value": 1,
-      "observed": true,
-      "applicable": true,
-      "passed": false,
-      "public_claim_allowed": false
-    }
-  ],
+  "diagnostic_failure_rows": [],
   "blocker_rows": [
     {
       "blocker": "well_specified_scenario_not_executed",
@@ -2931,12 +2900,12 @@
     {
       "blocker": "scenario_mcmc_diagnostic_failure",
       "blocks": "public_sampler_stability_claims",
-      "resolved": false
+      "resolved": true
     },
     {
       "blocker": "scalar_target_acceptance_policy_not_stable_across_folds",
       "blocks": "scalar_batch_sampler_policy",
-      "resolved": false
+      "resolved": true
     },
     {
       "blocker": "null_reference_best_all_well_specified_folds",
@@ -2967,14 +2936,14 @@
   "decision_record": {
     "selected_decision": "continue_batch_execution_after_well_specified_scenario_review",
     "well_specified_scenario_executed": true,
-    "all_mcmc_diagnostic_gates_passed": false,
+    "all_mcmc_diagnostic_gates_passed": true,
     "scalar_target_acceptance_policy_applied": true,
-    "scalar_target_acceptance_policy_stable_across_folds": false,
+    "scalar_target_acceptance_policy_stable_across_folds": true,
     "reference_best_all_folds": true,
     "public_fit_metric_claim_allowed": false,
     "public_model_weight_claim_allowed": false,
     "sparse_superiority_claim_allowed": false,
-    "required_followup": "run_remaining_publication_grade_refit_batch_jobs_and_review_scalar_divergences"
+    "required_followup": "run_remaining_publication_grade_refit_batch_jobs"
   },
   "summary": {
     "passed": true,
@@ -2984,9 +2953,9 @@
     "all_artifacts_valid": true,
     "publication_grade_well_specified_scenario_executed": true,
     "full_125_unit_publication_grade_batch_completed": false,
-    "all_mcmc_diagnostic_gates_passed": false,
+    "all_mcmc_diagnostic_gates_passed": true,
     "scalar_target_acceptance_policy_applied": true,
-    "scalar_target_acceptance_policy_stable_across_folds": false,
+    "scalar_target_acceptance_policy_stable_across_folds": true,
     "reference_best_all_folds": true,
     "no_public_claim_allowed": true,
     "n_input_artifacts": 2,
@@ -2997,7 +2966,7 @@
     "n_fold_best_rows": 5,
     "n_mcmc_execution_units": 20,
     "n_analytic_reference_units": 5,
-    "n_diagnostic_failure_rows": 2,
+    "n_diagnostic_failure_rows": 0,
     "n_heldout_model_rank_rows": 25,
     "n_manifest_matching_jobs": 25,
     "n_manifest_selected_for_action": 20,
@@ -3007,7 +2976,7 @@
     "n_manifest_successful_action_jobs": 20,
     "n_batch_complete_after_manifest": 50,
     "n_batch_pending_after_manifest": 75,
-    "n_scalar_diagnostic_gate_passed": 3,
+    "n_scalar_diagnostic_gate_passed": 5,
     "scalar_divergences_by_fold": [
       {
         "fold": 1,
@@ -3019,7 +2988,7 @@
       },
       {
         "fold": 3,
-        "n_divergences": 5
+        "n_divergences": 0
       },
       {
         "fold": 4,
@@ -3027,14 +2996,11 @@
       },
       {
         "fold": 5,
-        "n_divergences": 1
+        "n_divergences": 0
       }
     ],
-    "scalar_total_divergences": 6,
-    "folds_with_scalar_divergences": [
-      3,
-      5
-    ],
+    "scalar_total_divergences": 0,
+    "folds_with_scalar_divergences": [],
     "best_heldout_models_by_fold": [
       {
         "fold": 1,
@@ -3063,18 +3029,16 @@
       }
     ],
     "n_blocker_rows": 8,
-    "n_resolved_blockers": 1,
-    "n_blockers": 7,
+    "n_resolved_blockers": 3,
+    "n_blockers": 5,
     "remaining_public_blockers": [
-      "scenario_mcmc_diagnostic_failure",
-      "scalar_target_acceptance_policy_not_stable_across_folds",
       "null_reference_best_all_well_specified_folds",
       "fit_metric_thresholds_not_reestimated_under_publication_grade_batch",
       "remaining_100_unit_publication_grade_batch_not_executed",
       "external_construct_dataset_missing",
       "independent_public_scope_review_missing"
     ],
-    "recommendation": "review_scalar_divergences_and_run_remaining_publication_grade_batch_jobs_keep_claims_blocked",
-    "next_gate": "review_scalar_divergences_or_run_remaining_publication_grade_refit_batch_jobs"
+    "recommendation": "run_remaining_publication_grade_refit_batch_jobs_keep_claims_blocked",
+    "next_gate": "run_remaining_publication_grade_refit_batch_jobs"
   }
 }

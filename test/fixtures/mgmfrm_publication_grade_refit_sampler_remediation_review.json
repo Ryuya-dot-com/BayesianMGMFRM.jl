@@ -47,7 +47,7 @@
       "artifact": "mgmfrm_publication_grade_refit_pilot_results_review",
       "path": "test/fixtures/mgmfrm_publication_grade_refit_pilot_results_review.json",
       "exists": true,
-      "sha256": "be16e37ac09524e8981950d777af6ed1bb1c3c9098b7a6d15fb3b1b18be5e5ad",
+      "sha256": "d369aa27d87fab4dfb6cfb111fa17cf1a39cfeda3b9c9cd08b288eab8fb047a6",
       "schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_pilot_results_review.v1",
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_pilot_results_review.v1",
       "schema_matches": true,

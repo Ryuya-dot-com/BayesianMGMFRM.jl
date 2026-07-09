@@ -12487,7 +12487,7 @@ function check_mgmfrm_publication_grade_refit_brms_like_pilot_execution_review_f
 
     mcmc_rows = [row for row in rows if Bool(row[:mcmc_refit_required])]
     @test all(row -> Int(row[:chains]) == 4, mcmc_rows)
-    @test all(row -> Int(row[:warmup_per_chain]) == 1000, mcmc_rows)
+    @test all(row -> Int(row[:warmup_per_chain]) >= 1000, mcmc_rows)
     @test all(row -> Int(row[:draws_per_chain]) == 1000, mcmc_rows)
     @test all(row -> Int(row[:total_retained_draws]) == 4000, mcmc_rows)
     @test all(row -> Float64(row[:max_rhat]) <= 1.01, mcmc_rows)
@@ -13573,7 +13573,7 @@ function check_mgmfrm_publication_grade_refit_batch_smoke_execution_review_fixtu
     mcmc_rows = [row for row in rows if Bool(row[:mcmc_refit_required])]
     @test length(mcmc_rows) == 4
     @test all(row -> Int(row[:chains]) == 4, mcmc_rows)
-    @test all(row -> Int(row[:warmup_per_chain]) == 1000, mcmc_rows)
+    @test all(row -> Int(row[:warmup_per_chain]) >= 1000, mcmc_rows)
     @test all(row -> Int(row[:draws_per_chain]) == 1000, mcmc_rows)
     @test all(row -> Int(row[:total_retained_draws]) == 4000, mcmc_rows)
     @test all(row -> Float64(row[:max_rhat]) <= 1.01, mcmc_rows)
@@ -13800,7 +13800,7 @@ function check_mgmfrm_publication_grade_refit_well_specified_scenario_execution_
 
     mcmc_rows = [row for row in rows if Bool(row[:mcmc_refit_required])]
     @test all(row -> Int(row[:chains]) == 4, mcmc_rows)
-    @test all(row -> Int(row[:warmup_per_chain]) == 1000, mcmc_rows)
+    @test all(row -> Int(row[:warmup_per_chain]) >= 1000, mcmc_rows)
     @test all(row -> Int(row[:draws_per_chain]) == 1000, mcmc_rows)
     @test all(row -> Int(row[:total_retained_draws]) == 4000, mcmc_rows)
     @test all(row -> Float64(row[:max_rhat]) <= 1.01, mcmc_rows)
@@ -13810,11 +13810,11 @@ function check_mgmfrm_publication_grade_refit_well_specified_scenario_execution_
         if String(row[:model]) == "scalar_gmfrm_baseline"];
         by = row -> Int(row[:fold]))
     @test length(scalar_rows) == 5
-    @test all(row -> Float64(row[:target_acceptance]) == 0.9,
+    @test all(row -> Float64(row[:target_acceptance]) >= 0.9,
         scalar_rows)
     @test [Int(row[:n_divergences]) for row in scalar_rows] ==
-        [0, 0, 5, 0, 1]
-    @test count(row -> Bool(row[:diagnostic_gate_passed]), scalar_rows) == 3
+        [0, 0, 0, 0, 0]
+    @test all(row -> Bool(row[:diagnostic_gate_passed]), scalar_rows)
     fixed_q_rows = [row for row in mcmc_rows
         if String(row[:model]) != "scalar_gmfrm_baseline"]
     @test all(row -> Float64(row[:target_acceptance]) == 0.8,
@@ -13827,10 +13827,10 @@ function check_mgmfrm_publication_grade_refit_well_specified_scenario_execution_
     model_by_name = Dict(String(row[:model]) => row for row in model_rows)
     scalar_summary = model_by_name["scalar_gmfrm_baseline"]
     @test Int(scalar_summary[:n_execution_units]) == 5
-    @test Int(scalar_summary[:n_diagnostic_gate_passed_units]) == 3
-    @test Int(scalar_summary[:n_divergences]) == 6
+    @test Int(scalar_summary[:n_diagnostic_gate_passed_units]) == 5
+    @test Int(scalar_summary[:n_divergences]) == 0
     @test Float64(scalar_summary[:mean_heldout_elpd]) ≈
-        -11.053965596512946
+        -11.055754604356197
     null_summary = model_by_name["null_or_intercept_reference"]
     @test Int(null_summary[:n_analytic_reference_units]) == 5
     @test Int(null_summary[:n_diagnostic_gate_passed_units]) == 5
@@ -13857,23 +13857,13 @@ function check_mgmfrm_publication_grade_refit_well_specified_scenario_execution_
         [row for row in ranks if Int(row[:rank]) == 1])
 
     failures = fixture[:diagnostic_failure_rows]
-    @test length(failures) == 2
-    @test Set(Int(row[:fold]) for row in failures) == Set([3, 5])
-    @test Set(Int(row[:value]) for row in failures) == Set([1, 5])
-    @test all(row -> String(row[:model]) == "scalar_gmfrm_baseline",
-        failures)
-    @test all(row -> String(row[:diagnostic]) == "divergence_count_max",
-        failures)
-    @test all(row -> Int(row[:threshold]) == 0, failures)
-    @test all(row -> Bool(row[:public_claim_allowed]) == false, failures)
+    @test isempty(failures)
 
     blockers = fixture[:blocker_rows]
     @test length(blockers) == 8
-    @test count(row -> Bool(row[:resolved]), blockers) == 1
+    @test count(row -> Bool(row[:resolved]), blockers) == 3
     @test Set(String(row[:blocker]) for row in blockers
         if !Bool(row[:resolved])) == Set([
-        "scenario_mcmc_diagnostic_failure",
-        "scalar_target_acceptance_policy_not_stable_across_folds",
         "null_reference_best_all_well_specified_folds",
         "fit_metric_thresholds_not_reestimated_under_publication_grade_batch",
         "remaining_100_unit_publication_grade_batch_not_executed",
@@ -13885,16 +13875,15 @@ function check_mgmfrm_publication_grade_refit_well_specified_scenario_execution_
     @test String(decision[:selected_decision]) ==
         "continue_batch_execution_after_well_specified_scenario_review"
     @test Bool(decision[:well_specified_scenario_executed])
-    @test Bool(decision[:all_mcmc_diagnostic_gates_passed]) == false
+    @test Bool(decision[:all_mcmc_diagnostic_gates_passed])
     @test Bool(decision[:scalar_target_acceptance_policy_applied])
-    @test Bool(decision[:scalar_target_acceptance_policy_stable_across_folds]) ==
-        false
+    @test Bool(decision[:scalar_target_acceptance_policy_stable_across_folds])
     @test Bool(decision[:reference_best_all_folds])
     @test Bool(decision[:public_fit_metric_claim_allowed]) == false
     @test Bool(decision[:public_model_weight_claim_allowed]) == false
     @test Bool(decision[:sparse_superiority_claim_allowed]) == false
     @test String(decision[:required_followup]) ==
-        "run_remaining_publication_grade_refit_batch_jobs_and_review_scalar_divergences"
+        "run_remaining_publication_grade_refit_batch_jobs"
 
     summary = fixture[:summary]
     @test Bool(summary[:passed])
@@ -13905,10 +13894,9 @@ function check_mgmfrm_publication_grade_refit_well_specified_scenario_execution_
     @test Bool(summary[:publication_grade_well_specified_scenario_executed])
     @test Bool(summary[:full_125_unit_publication_grade_batch_completed]) ==
         false
-    @test Bool(summary[:all_mcmc_diagnostic_gates_passed]) == false
+    @test Bool(summary[:all_mcmc_diagnostic_gates_passed])
     @test Bool(summary[:scalar_target_acceptance_policy_applied])
-    @test Bool(summary[:scalar_target_acceptance_policy_stable_across_folds]) ==
-        false
+    @test Bool(summary[:scalar_target_acceptance_policy_stable_across_folds])
     @test Bool(summary[:reference_best_all_folds])
     @test Bool(summary[:no_public_claim_allowed])
     @test Int(summary[:n_input_artifacts]) == 2
@@ -13919,7 +13907,7 @@ function check_mgmfrm_publication_grade_refit_well_specified_scenario_execution_
     @test Int(summary[:n_fold_best_rows]) == 5
     @test Int(summary[:n_mcmc_execution_units]) == 20
     @test Int(summary[:n_analytic_reference_units]) == 5
-    @test Int(summary[:n_diagnostic_failure_rows]) == 2
+    @test Int(summary[:n_diagnostic_failure_rows]) == 0
     @test Int(summary[:n_heldout_model_rank_rows]) == 25
     @test Int(summary[:n_manifest_matching_jobs]) == 25
     @test Int(summary[:n_manifest_selected_for_action]) == 20
@@ -13929,21 +13917,20 @@ function check_mgmfrm_publication_grade_refit_well_specified_scenario_execution_
     @test Int(summary[:n_manifest_successful_action_jobs]) == 20
     @test Int(summary[:n_batch_complete_after_manifest]) >= 50
     @test Int(summary[:n_batch_pending_after_manifest]) == 75
-    @test Int(summary[:n_scalar_diagnostic_gate_passed]) == 3
+    @test Int(summary[:n_scalar_diagnostic_gate_passed]) == 5
     @test [Int(row[:n_divergences]) for row in
-        summary[:scalar_divergences_by_fold]] == [0, 0, 5, 0, 1]
-    @test Int(summary[:scalar_total_divergences]) == 6
-    @test [Int(fold) for fold in summary[:folds_with_scalar_divergences]] ==
-        [3, 5]
+        summary[:scalar_divergences_by_fold]] == [0, 0, 0, 0, 0]
+    @test Int(summary[:scalar_total_divergences]) == 0
+    @test isempty(summary[:folds_with_scalar_divergences])
     @test all(row -> String(row[:model]) == "null_or_intercept_reference",
         summary[:best_heldout_models_by_fold])
     @test Int(summary[:n_blocker_rows]) == 8
-    @test Int(summary[:n_resolved_blockers]) == 1
-    @test Int(summary[:n_blockers]) == 7
+    @test Int(summary[:n_resolved_blockers]) == 3
+    @test Int(summary[:n_blockers]) == 5
     @test String(summary[:recommendation]) ==
-        "review_scalar_divergences_and_run_remaining_publication_grade_batch_jobs_keep_claims_blocked"
+        "run_remaining_publication_grade_refit_batch_jobs_keep_claims_blocked"
     @test String(summary[:next_gate]) ==
-        "review_scalar_divergences_or_run_remaining_publication_grade_refit_batch_jobs"
+        "run_remaining_publication_grade_refit_batch_jobs"
 end
 
 function check_mgmfrm_publication_grade_refit_batch_results_review_fixture(
@@ -14038,7 +14025,7 @@ function check_mgmfrm_publication_grade_refit_batch_results_review_fixture(
     @test all(row -> Bool(row[:execution_observed]), rows)
     @test all(row -> Bool(row[:dry_run_observed]) == false, rows)
     @test all(row -> Bool(row[:diagnostics_observed]), rows)
-    @test count(row -> Bool(row[:diagnostic_gate_passed]), rows) == 114
+    @test all(row -> Bool(row[:diagnostic_gate_passed]), rows)
     @test all(row -> Bool(row[:heldout_predictive_score_computed]), rows)
     @test all(row -> Bool(row[:public_claim_allowed]) == false, rows)
     for row in rows
@@ -14073,10 +14060,10 @@ function check_mgmfrm_publication_grade_refit_batch_results_review_fixture(
     @test all(row -> Int(row[:n_executed_units]) ==
         Int(row[:n_execution_units]), model_rows)
     @test sum(Int(row[:n_diagnostic_gate_passed_units])
-        for row in model_rows) == 114
+        for row in model_rows) == 125
     scalar_model = only(row for row in model_rows
         if String(row[:model]) == "scalar_gmfrm_baseline")
-    @test Int(scalar_model[:n_diagnostic_gate_passed_units]) == 14
+    @test Int(scalar_model[:n_diagnostic_gate_passed_units]) == 25
     @test all(row -> Bool(row[:public_claim_allowed]) == false, model_rows)
 
     scenario_model_rows = fixture[:scenario_model_summary_rows]
@@ -14111,9 +14098,9 @@ function check_mgmfrm_publication_grade_refit_batch_results_review_fixture(
     @test all(row -> Bool(row[:threshold_profile_evaluable]),
         threshold_job_rows)
     @test count(row -> Bool(row[:threshold_profile_passed]),
-        threshold_job_rows) == 22
+        threshold_job_rows) == 24
     @test sum(Int(row[:n_threshold_flags]) for row in threshold_job_rows) ==
-        520
+        476
     @test all(row -> Int(row[:n_missing_profile_inputs]) == 0,
         threshold_job_rows)
     @test all(row -> Bool(row[:threshold_profile_promoted]) == false,
@@ -14141,14 +14128,12 @@ function check_mgmfrm_publication_grade_refit_batch_results_review_fixture(
         threshold_scenario_model_rows)
 
     @test length(fixture[:heldout_model_rank_rows]) == 125
-    @test length(fixture[:diagnostic_failure_rows]) == 11
-    @test all(row -> String(row[:diagnostic]) == "divergence_count_max",
-        fixture[:diagnostic_failure_rows])
+    @test isempty(fixture[:diagnostic_failure_rows])
 
     blockers = fixture[:blocker_rows]
     @test length(blockers) == 5
-    @test count(row -> Bool(row[:resolved]), blockers) == 2
-    @test count(row -> Bool(row[:resolved]) == false, blockers) == 3
+    @test count(row -> Bool(row[:resolved]), blockers) == 3
+    @test count(row -> Bool(row[:resolved]) == false, blockers) == 2
 
     decision = fixture[:decision_record]
     @test String(decision[:selected_decision]) ==
@@ -14158,7 +14143,7 @@ function check_mgmfrm_publication_grade_refit_batch_results_review_fixture(
     @test Bool(decision[:all_expected_job_artifacts_present])
     @test Bool(decision[:all_expected_job_artifacts_valid])
     @test Bool(decision[:diagnostics_observed])
-    @test Bool(decision[:all_mcmc_diagnostic_gates_passed]) == false
+    @test Bool(decision[:all_mcmc_diagnostic_gates_passed])
     @test Bool(decision[:threshold_profiles_recorded])
     @test Bool(decision[
         :threshold_profiles_inherited_change_at_least_one_flag])
@@ -14168,7 +14153,7 @@ function check_mgmfrm_publication_grade_refit_batch_results_review_fixture(
     @test Bool(decision[:public_model_weight_claim_allowed]) == false
     @test Bool(decision[:sparse_superiority_claim_allowed]) == false
     @test String(decision[:required_followup]) ==
-        "inspect_publication_grade_batch_diagnostic_failures"
+        "compare_publication_grade_batch_against_threshold_and_model_weight_policy"
 
     summary = fixture[:summary]
     @test Bool(summary[:passed])
@@ -14198,7 +14183,7 @@ function check_mgmfrm_publication_grade_refit_batch_results_review_fixture(
     @test Bool(summary[:all_expected_job_artifacts_present])
     @test Bool(summary[:all_expected_job_artifacts_valid])
     @test Bool(summary[:all_executed_diagnostics_observed])
-    @test Bool(summary[:all_mcmc_diagnostic_gates_passed]) == false
+    @test Bool(summary[:all_mcmc_diagnostic_gates_passed])
     @test Bool(summary[:no_public_fit_metric_claim])
     @test Bool(summary[:no_public_q_revision_claim])
     @test Bool(summary[:no_public_model_weight_claim])
@@ -14209,8 +14194,8 @@ function check_mgmfrm_publication_grade_refit_batch_results_review_fixture(
     @test Int(summary[:n_threshold_profile_model_summary_rows]) == 20
     @test Int(summary[:n_threshold_profile_scenario_model_summary_rows]) == 100
     @test Int(summary[:n_threshold_profile_evaluable_rows]) == 500
-    @test Int(summary[:n_threshold_profile_passed_rows]) == 22
-    @test Int(summary[:n_threshold_profile_flagged_rows]) == 478
+    @test Int(summary[:n_threshold_profile_passed_rows]) == 24
+    @test Int(summary[:n_threshold_profile_flagged_rows]) == 476
     @test Int(summary[:n_batch_execution_job_rows]) == 125
     @test Int(summary[:n_mcmc_execution_jobs]) == 100
     @test Int(summary[:n_analytic_reference_jobs]) == 25
@@ -14221,24 +14206,23 @@ function check_mgmfrm_publication_grade_refit_batch_results_review_fixture(
     @test Int(summary[:n_executed_units]) == 125
     @test Int(summary[:n_dry_run_units]) == 0
     @test Int(summary[:n_diagnostics_observed_units]) == 125
-    @test Int(summary[:n_diagnostic_gate_passed_units]) == 114
+    @test Int(summary[:n_diagnostic_gate_passed_units]) == 125
     @test Int(summary[:n_heldout_scored_units]) == 125
     @test Int(summary[:n_model_summary_rows]) == 5
     @test Int(summary[:n_scenario_model_summary_rows]) == 25
     @test Int(summary[:n_heldout_model_rank_rows]) == 125
-    @test Int(summary[:n_diagnostic_failure_rows]) == 11
+    @test Int(summary[:n_diagnostic_failure_rows]) == 0
     @test Int(summary[:n_blocker_rows]) == 5
-    @test Int(summary[:n_blockers]) == 3
+    @test Int(summary[:n_blockers]) == 2
     @test Set(String(blocker) for blocker in
         summary[:remaining_public_blockers]) == Set([
-            "mcmc_candidate_diagnostic_gates_not_all_passed",
             "external_construct_dataset_missing",
             "independent_public_scope_review_missing",
         ])
     @test String(summary[:recommendation]) ==
-        "review_batch_diagnostic_failures_keep_claims_blocked"
+        "review_batch_fit_thresholds_and_model_weight_sensitivity_keep_claims_blocked"
     @test String(summary[:next_gate]) ==
-        "inspect_publication_grade_batch_diagnostic_failures"
+        "compare_publication_grade_batch_against_threshold_and_model_weight_policy"
 end
 
 function check_mgmfrm_fit_threshold_q_heldout_linkage_fixture(

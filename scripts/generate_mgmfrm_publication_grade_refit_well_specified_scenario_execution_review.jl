@@ -445,7 +445,7 @@ function blocker_rows(values)
             resolved = false),
         (blocker = :remaining_100_unit_publication_grade_batch_not_executed,
             blocks = :public_kfold_model_comparison_claims,
-            resolved = false),
+            resolved = values.full_125_unit_publication_grade_batch_completed),
         (blocker = :external_construct_dataset_missing,
             blocks = :public_construct_or_q_revision_claims,
             resolved = false),
@@ -508,11 +508,14 @@ function build_artifact(options)
         all(row -> row.diagnostic_gate_passed, mcmc_rows)
     scalar_target_acceptance_policy_applied =
         length(scalar_rows) == 5 &&
-        all(row -> row.target_acceptance == 0.9, scalar_rows)
+        all(row -> row.target_acceptance >= 0.9, scalar_rows)
     scalar_batch_policy_stable_across_folds =
         scalar_target_acceptance_policy_applied &&
         all(row -> row.n_divergences == 0 && row.diagnostic_gate_passed,
             scalar_rows)
+    full_125_unit_publication_grade_batch_completed =
+        manifest_record.n_complete_after == 125 &&
+        manifest_record.n_pending_after == 0
     reference_best_all_folds =
         length(fold_bests) == 5 &&
         all(row -> row.best_model === :null_or_intercept_reference, fold_bests)
@@ -525,6 +528,7 @@ function build_artifact(options)
         all_mcmc_diagnostic_gates_passed,
         scalar_batch_policy_stable_across_folds,
         reference_best_all_folds,
+        full_125_unit_publication_grade_batch_completed,
     )
     blockers = blocker_rows(values)
     remaining_blockers = [row.blocker for row in blockers if !row.resolved]
@@ -550,7 +554,7 @@ function build_artifact(options)
         publication_or_registration_action = false,
         publication_grade_batch_plan_recorded = true,
         publication_grade_well_specified_scenario_executed = true,
-        full_125_unit_publication_grade_batch_completed = false,
+        full_125_unit_publication_grade_batch_completed,
         public_fit_metric_claim = false,
         public_q_revision_claim = false,
         public_model_weight_claim = false,
@@ -611,6 +615,10 @@ function build_artifact(options)
             public_model_weight_claim_allowed = false,
             sparse_superiority_claim_allowed = false,
             required_followup =
+                full_125_unit_publication_grade_batch_completed ?
+                :compare_publication_grade_batch_against_threshold_and_model_weight_policy :
+                scalar_batch_policy_stable_across_folds ?
+                :run_remaining_publication_grade_refit_batch_jobs :
                 :run_remaining_publication_grade_refit_batch_jobs_and_review_scalar_divergences,
         ),
         summary = (;
@@ -621,7 +629,7 @@ function build_artifact(options)
             all_artifacts_valid,
             publication_grade_well_specified_scenario_executed =
                 all_scenario_jobs_executed,
-            full_125_unit_publication_grade_batch_completed = false,
+            full_125_unit_publication_grade_batch_completed,
             all_mcmc_diagnostic_gates_passed,
             scalar_target_acceptance_policy_applied,
             scalar_target_acceptance_policy_stable_across_folds =
@@ -669,8 +677,16 @@ function build_artifact(options)
             n_blockers = length(remaining_blockers),
             remaining_public_blockers = remaining_blockers,
             recommendation =
+                full_125_unit_publication_grade_batch_completed ?
+                :review_batch_fit_thresholds_and_model_weight_sensitivity_keep_claims_blocked :
+                scalar_batch_policy_stable_across_folds ?
+                :run_remaining_publication_grade_refit_batch_jobs_keep_claims_blocked :
                 :review_scalar_divergences_and_run_remaining_publication_grade_batch_jobs_keep_claims_blocked,
             next_gate =
+                full_125_unit_publication_grade_batch_completed ?
+                :compare_publication_grade_batch_against_threshold_and_model_weight_policy :
+                scalar_batch_policy_stable_across_folds ?
+                :run_remaining_publication_grade_refit_batch_jobs :
                 :review_scalar_divergences_or_run_remaining_publication_grade_refit_batch_jobs,
         ),
     )

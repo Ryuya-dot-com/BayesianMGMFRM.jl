@@ -450,19 +450,18 @@ recovered after MCMC across replicated seeds and internal prior profiles:
   while keeping model-weight, sparse-superiority, and public fit claims blocked.
 - The `well_specified_current_q` scenario has now been run across all five
   folds through the same publication-grade batch path. All 25 artifacts are
-  present and the remaining 20 jobs executed without runner failures, but
-  scalar GMFRM still has divergence failures in folds 3 and 5 (`5` and `1`
-  divergences), so all public fit, sampler-stability, model-weight, and
-  sparse-superiority claims remain blocked.
-- The full 125-unit publication-grade batch has now been run locally under the
-  brms-like budget. All 375 result/diagnostic/heldout artifacts are present,
-  and the fixed-Q MGMFRM candidates plus the analytic reference passed their
-  local diagnostic gates across all folds. The scalar GMFRM baseline remains
-  the active sampler blocker: 14/25 scalar units passed, with 11 divergence
-  failures concentrated in scalar folds across the compact scenario set. Public
-  fit, model-weight, Q-revision, and sparse-superiority claims remain blocked
-  pending diagnostic-failure review, external construct evidence, and
-  independent public-scope review.
+  present, the remaining 20 jobs executed without runner failures, and targeted
+  scalar refits removed the earlier fold-3 and fold-5 divergence failures. All
+  public fit, sampler-stability, model-weight, and sparse-superiority claims
+  remain blocked.
+- The full 125-unit publication-grade batch has now been run locally and
+  targeted scalar refits resolved the remaining divergence failures. All 375
+  result/diagnostic/heldout artifacts are present, all 125 units pass their
+  local diagnostic gates, and all scenario-level diagnostic reports now record
+  zero diagnostic failures. Public fit, model-weight, Q-revision, and
+  sparse-superiority claims remain blocked pending fit-threshold/model-weight
+  sensitivity comparison, external construct evidence, and independent
+  public-scope review.
 - The current compact Null-win batch still shows large structured-model losses:
   the analytic null/reference ranked first in 24/25 heldout folds, and Current Q
   had total dELPD vs Null `-153.200`. These failures should be diagnosed

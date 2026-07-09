@@ -180,14 +180,18 @@
   20 jobs as runner-successful under the brms-like budget, preserves scalar
   divergence failures in folds 3 and 5 as sampler-stability blockers, and keeps
   public fit, model-weight, Q-revision, and sparse-superiority claims blocked.
-- Update the local publication-grade batch results-review fixture after running
-  the full 125-unit batch locally, recording all 375 result/diagnostic/heldout
-  artifacts as present, all fixed-Q MGMFRM candidate and analytic-reference
-  diagnostic gates as passed, scalar GMFRM as the remaining sampler blocker
-  with 11 divergence-count failures, the analytic null/reference as the
-  descriptive heldout winner in 24/25 folds, and public fit/model-weight/Q/
-  sparse claims still blocked pending diagnostic-failure review, external
-  construct evidence, and independent public-scope review.
+- Update the local publication-grade batch results-review fixture after the
+  first full 125-unit local run, recording all 375 result/diagnostic/heldout
+  artifacts as present, fixed-Q MGMFRM candidate and analytic-reference
+  diagnostic gates as passed, the initial scalar GMFRM divergence-count
+  failures, the analytic null/reference as the descriptive heldout winner in
+  24/25 folds, and public fit/model-weight/Q/sparse claims still blocked.
+- Add targeted scalar publication-grade refits for the 11 divergence-failing
+  batch units, using higher target acceptance and warmup locally, and update the
+  batch results-review fixture to record 125/125 diagnostic gates passed,
+  zero diagnostic-failure rows, the next fit-threshold/model-weight sensitivity
+  comparison gate, and continued public-claim blocking pending external
+  construct evidence and independent public-scope review.
 - Extend the publication-grade refit runner so it can read either the pilot
   plan or the full batch-expansion plan via `--plan`, preserving pilot
   compatibility while enabling batch dry-runs and analytic reference jobs.
