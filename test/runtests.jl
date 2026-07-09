@@ -13966,11 +13966,10 @@ function check_mgmfrm_publication_grade_refit_batch_results_review_fixture(
     @test Bool(fixture[:fit_ready])
     @test Bool(fixture[:local_only])
     @test Bool(fixture[:batch_only])
-    @test Bool(fixture[:local_artifacts_ignored_for_fixture])
+    @test Bool(fixture[:local_artifacts_ignored_for_fixture]) == false
     @test Bool(fixture[:publication_or_registration_action]) == false
     @test Bool(fixture[:publication_grade_batch_results_review_recorded])
-    @test Bool(fixture[:full_125_unit_publication_grade_batch_completed]) ==
-        false
+    @test Bool(fixture[:full_125_unit_publication_grade_batch_completed])
     @test Bool(fixture[:public_fit_metric_claim]) == false
     @test Bool(fixture[:public_q_revision_claim]) == false
     @test Bool(fixture[:public_model_weight_claim]) == false
@@ -14035,23 +14034,34 @@ function check_mgmfrm_publication_grade_refit_batch_results_review_fixture(
     @test length(rows) == 125
     @test count(row -> Bool(row[:mcmc_refit_required]), rows) == 100
     @test count(row -> Bool(row[:analytic_reference_scored]), rows) == 25
-    @test all(row -> Bool(row[:artifacts_complete]) == false, rows)
-    @test all(row -> Bool(row[:execution_observed]) == false, rows)
+    @test all(row -> Bool(row[:artifacts_complete]), rows)
+    @test all(row -> Bool(row[:execution_observed]), rows)
     @test all(row -> Bool(row[:dry_run_observed]) == false, rows)
-    @test all(row -> Bool(row[:diagnostics_observed]) == false, rows)
-    @test all(row -> Bool(row[:diagnostic_gate_passed]) == false, rows)
-    @test all(row -> Bool(row[:heldout_predictive_score_computed]) == false,
-        rows)
+    @test all(row -> Bool(row[:diagnostics_observed]), rows)
+    @test count(row -> Bool(row[:diagnostic_gate_passed]), rows) == 114
+    @test all(row -> Bool(row[:heldout_predictive_score_computed]), rows)
     @test all(row -> Bool(row[:public_claim_allowed]) == false, rows)
     for row in rows
-        for key in (:result_artifact, :diagnostic_artifact,
-                :heldout_artifact)
-            artifact = row[key]
-            @test Bool(artifact[:exists]) == false
-            @test String(artifact[:status]) == "missing"
-            @test Bool(artifact[:schema_matches]) == false
-            @test Bool(artifact[:summary_passed]) == false
-        end
+        result_artifact = row[:result_artifact]
+        @test Bool(result_artifact[:exists])
+        @test String(result_artifact[:status]) ==
+            "publication_grade_refit_batch_job_executed"
+        @test Bool(result_artifact[:schema_matches])
+        @test Bool(result_artifact[:summary_passed])
+
+        diagnostic_artifact = row[:diagnostic_artifact]
+        @test Bool(diagnostic_artifact[:exists])
+        @test String(diagnostic_artifact[:status]) ==
+            "publication_grade_refit_batch_job_diagnostics_recorded"
+        @test Bool(diagnostic_artifact[:schema_matches])
+        @test Bool(diagnostic_artifact[:summary_passed])
+
+        heldout_artifact = row[:heldout_artifact]
+        @test Bool(heldout_artifact[:exists])
+        @test String(heldout_artifact[:status]) ==
+            "publication_grade_refit_batch_job_heldout_score_recorded"
+        @test Bool(heldout_artifact[:schema_matches])
+        @test Bool(heldout_artifact[:summary_passed])
     end
 
     model_rows = fixture[:model_summary_rows]
@@ -14060,15 +14070,21 @@ function check_mgmfrm_publication_grade_refit_batch_results_review_fixture(
     @test sum(Int(row[:n_mcmc_execution_units]) for row in model_rows) == 100
     @test sum(Int(row[:n_analytic_reference_units]) for row in model_rows) ==
         25
-    @test all(row -> Int(row[:n_executed_units]) == 0, model_rows)
+    @test all(row -> Int(row[:n_executed_units]) ==
+        Int(row[:n_execution_units]), model_rows)
+    @test sum(Int(row[:n_diagnostic_gate_passed_units])
+        for row in model_rows) == 114
+    scalar_model = only(row for row in model_rows
+        if String(row[:model]) == "scalar_gmfrm_baseline")
+    @test Int(scalar_model[:n_diagnostic_gate_passed_units]) == 14
     @test all(row -> Bool(row[:public_claim_allowed]) == false, model_rows)
 
     scenario_model_rows = fixture[:scenario_model_summary_rows]
     @test length(scenario_model_rows) == 25
     @test sum(Int(row[:n_execution_units]) for row in scenario_model_rows) ==
         125
-    @test all(row -> Int(row[:n_executed_units]) == 0,
-        scenario_model_rows)
+    @test all(row -> Int(row[:n_executed_units]) ==
+        Int(row[:n_execution_units]), scenario_model_rows)
     @test all(row -> Bool(row[:public_claim_allowed]) == false,
         scenario_model_rows)
 
@@ -14091,15 +14107,14 @@ function check_mgmfrm_publication_grade_refit_batch_results_review_fixture(
     @test length(threshold_job_rows) == 500
     @test count(row -> Bool(row[:mcmc_refit_required]),
         threshold_job_rows) == 400
-    @test all(row -> Bool(row[:execution_observed]) == false,
+    @test all(row -> Bool(row[:execution_observed]), threshold_job_rows)
+    @test all(row -> Bool(row[:threshold_profile_evaluable]),
         threshold_job_rows)
-    @test all(row -> Bool(row[:threshold_profile_evaluable]) == false,
-        threshold_job_rows)
-    @test all(row -> Bool(row[:threshold_profile_passed]) == false,
-        threshold_job_rows)
-    @test all(row -> Int(row[:n_threshold_flags]) == 0,
-        threshold_job_rows)
-    @test all(row -> Int(row[:n_missing_profile_inputs]) > 0,
+    @test count(row -> Bool(row[:threshold_profile_passed]),
+        threshold_job_rows) == 22
+    @test sum(Int(row[:n_threshold_flags]) for row in threshold_job_rows) ==
+        520
+    @test all(row -> Int(row[:n_missing_profile_inputs]) == 0,
         threshold_job_rows)
     @test all(row -> Bool(row[:threshold_profile_promoted]) == false,
         threshold_job_rows)
@@ -14110,8 +14125,8 @@ function check_mgmfrm_publication_grade_refit_batch_results_review_fixture(
     @test length(threshold_model_rows) == 20
     @test sum(Int(row[:n_threshold_profile_rows])
         for row in threshold_model_rows) == 500
-    @test all(row -> Int(row[:n_evaluable_rows]) == 0,
-        threshold_model_rows)
+    @test all(row -> Int(row[:n_evaluable_rows]) ==
+        Int(row[:n_threshold_profile_rows]), threshold_model_rows)
     @test all(row -> Bool(row[:threshold_profile_promoted]) == false,
         threshold_model_rows)
 
@@ -14120,45 +14135,47 @@ function check_mgmfrm_publication_grade_refit_batch_results_review_fixture(
     @test length(threshold_scenario_model_rows) == 100
     @test sum(Int(row[:n_threshold_profile_rows])
         for row in threshold_scenario_model_rows) == 500
-    @test all(row -> Int(row[:n_evaluable_rows]) == 0,
-        threshold_scenario_model_rows)
+    @test all(row -> Int(row[:n_evaluable_rows]) ==
+        Int(row[:n_threshold_profile_rows]), threshold_scenario_model_rows)
     @test all(row -> Bool(row[:threshold_profile_promoted]) == false,
         threshold_scenario_model_rows)
 
-    @test isempty(fixture[:heldout_model_rank_rows])
-    @test isempty(fixture[:diagnostic_failure_rows])
+    @test length(fixture[:heldout_model_rank_rows]) == 125
+    @test length(fixture[:diagnostic_failure_rows]) == 11
+    @test all(row -> String(row[:diagnostic]) == "divergence_count_max",
+        fixture[:diagnostic_failure_rows])
 
     blockers = fixture[:blocker_rows]
     @test length(blockers) == 5
-    @test all(row -> Bool(row[:resolved]) == false, blockers)
+    @test count(row -> Bool(row[:resolved]), blockers) == 2
+    @test count(row -> Bool(row[:resolved]) == false, blockers) == 3
 
     decision = fixture[:decision_record]
     @test String(decision[:selected_decision]) ==
         "record_publication_grade_batch_results_review"
     @test Bool(decision[:batch_plan_recorded])
-    @test Bool(decision[:all_125_units_executed]) == false
-    @test Bool(decision[:all_expected_job_artifacts_present]) == false
-    @test Bool(decision[:all_expected_job_artifacts_valid]) == false
-    @test Bool(decision[:diagnostics_observed]) == false
+    @test Bool(decision[:all_125_units_executed])
+    @test Bool(decision[:all_expected_job_artifacts_present])
+    @test Bool(decision[:all_expected_job_artifacts_valid])
+    @test Bool(decision[:diagnostics_observed])
     @test Bool(decision[:all_mcmc_diagnostic_gates_passed]) == false
     @test Bool(decision[:threshold_profiles_recorded])
     @test Bool(decision[
         :threshold_profiles_inherited_change_at_least_one_flag])
-    @test Bool(decision[:threshold_profiles_change_observed_batch_flag]) ==
-        false
+    @test Bool(decision[:threshold_profiles_change_observed_batch_flag])
     @test Bool(decision[:threshold_profiles_promoted]) == false
     @test Bool(decision[:public_fit_metric_claim_allowed]) == false
     @test Bool(decision[:public_model_weight_claim_allowed]) == false
     @test Bool(decision[:sparse_superiority_claim_allowed]) == false
     @test String(decision[:required_followup]) ==
-        "execute_publication_grade_refit_batch_locally"
+        "inspect_publication_grade_batch_diagnostic_failures"
 
     summary = fixture[:summary]
     @test Bool(summary[:passed])
     @test Bool(summary[:publication_or_registration_action]) == false
     @test Bool(summary[:local_only])
     @test Bool(summary[:batch_only])
-    @test Bool(summary[:local_artifacts_ignored_for_fixture])
+    @test Bool(summary[:local_artifacts_ignored_for_fixture]) == false
     @test Bool(summary[:batch_plan_present])
     @test Bool(summary[:batch_plan_schema_matches])
     @test Bool(summary[:batch_plan_passed])
@@ -14167,7 +14184,7 @@ function check_mgmfrm_publication_grade_refit_batch_results_review_fixture(
     @test Bool(summary[:fit_metric_threshold_sensitivity_passed])
     @test Bool(summary[:result_review_rows_recorded])
     @test Bool(summary[:all_125_units_materialized])
-    @test Bool(summary[:all_125_units_executed]) == false
+    @test Bool(summary[:all_125_units_executed])
     @test Bool(summary[:missing_or_valid_job_artifacts])
     @test Bool(summary[:threshold_profiles_recorded])
     @test Bool(summary[:threshold_profile_job_rows_recorded])
@@ -14176,12 +14193,11 @@ function check_mgmfrm_publication_grade_refit_batch_results_review_fixture(
         :threshold_profile_scenario_model_summary_rows_recorded])
     @test Bool(summary[
         :threshold_profiles_inherited_change_at_least_one_flag])
-    @test Bool(summary[:threshold_profiles_change_observed_batch_flag]) ==
-        false
+    @test Bool(summary[:threshold_profiles_change_observed_batch_flag])
     @test Bool(summary[:no_single_threshold_profile_promoted])
-    @test Bool(summary[:all_expected_job_artifacts_present]) == false
-    @test Bool(summary[:all_expected_job_artifacts_valid]) == false
-    @test Bool(summary[:all_executed_diagnostics_observed]) == false
+    @test Bool(summary[:all_expected_job_artifacts_present])
+    @test Bool(summary[:all_expected_job_artifacts_valid])
+    @test Bool(summary[:all_executed_diagnostics_observed])
     @test Bool(summary[:all_mcmc_diagnostic_gates_passed]) == false
     @test Bool(summary[:no_public_fit_metric_claim])
     @test Bool(summary[:no_public_q_revision_claim])
@@ -14192,31 +14208,37 @@ function check_mgmfrm_publication_grade_refit_batch_results_review_fixture(
     @test Int(summary[:n_threshold_profile_job_rows]) == 500
     @test Int(summary[:n_threshold_profile_model_summary_rows]) == 20
     @test Int(summary[:n_threshold_profile_scenario_model_summary_rows]) == 100
-    @test Int(summary[:n_threshold_profile_evaluable_rows]) == 0
-    @test Int(summary[:n_threshold_profile_passed_rows]) == 0
-    @test Int(summary[:n_threshold_profile_flagged_rows]) == 0
+    @test Int(summary[:n_threshold_profile_evaluable_rows]) == 500
+    @test Int(summary[:n_threshold_profile_passed_rows]) == 22
+    @test Int(summary[:n_threshold_profile_flagged_rows]) == 478
     @test Int(summary[:n_batch_execution_job_rows]) == 125
     @test Int(summary[:n_mcmc_execution_jobs]) == 100
     @test Int(summary[:n_analytic_reference_jobs]) == 25
     @test Int(summary[:n_expected_job_artifacts]) == 375
-    @test Int(summary[:n_present_job_artifacts]) == 0
-    @test Int(summary[:n_valid_job_artifacts]) == 0
-    @test Int(summary[:n_complete_artifact_units]) == 0
-    @test Int(summary[:n_executed_units]) == 0
+    @test Int(summary[:n_present_job_artifacts]) == 375
+    @test Int(summary[:n_valid_job_artifacts]) == 375
+    @test Int(summary[:n_complete_artifact_units]) == 125
+    @test Int(summary[:n_executed_units]) == 125
     @test Int(summary[:n_dry_run_units]) == 0
-    @test Int(summary[:n_diagnostics_observed_units]) == 0
-    @test Int(summary[:n_diagnostic_gate_passed_units]) == 0
-    @test Int(summary[:n_heldout_scored_units]) == 0
+    @test Int(summary[:n_diagnostics_observed_units]) == 125
+    @test Int(summary[:n_diagnostic_gate_passed_units]) == 114
+    @test Int(summary[:n_heldout_scored_units]) == 125
     @test Int(summary[:n_model_summary_rows]) == 5
     @test Int(summary[:n_scenario_model_summary_rows]) == 25
-    @test Int(summary[:n_heldout_model_rank_rows]) == 0
-    @test Int(summary[:n_diagnostic_failure_rows]) == 0
+    @test Int(summary[:n_heldout_model_rank_rows]) == 125
+    @test Int(summary[:n_diagnostic_failure_rows]) == 11
     @test Int(summary[:n_blocker_rows]) == 5
-    @test Int(summary[:n_blockers]) == 5
+    @test Int(summary[:n_blockers]) == 3
+    @test Set(String(blocker) for blocker in
+        summary[:remaining_public_blockers]) == Set([
+            "mcmc_candidate_diagnostic_gates_not_all_passed",
+            "external_construct_dataset_missing",
+            "independent_public_scope_review_missing",
+        ])
     @test String(summary[:recommendation]) ==
-        "execute_missing_publication_grade_batch_jobs_keep_claims_blocked"
+        "review_batch_diagnostic_failures_keep_claims_blocked"
     @test String(summary[:next_gate]) ==
-        "execute_publication_grade_refit_batch_locally"
+        "inspect_publication_grade_batch_diagnostic_failures"
 end
 
 function check_mgmfrm_fit_threshold_q_heldout_linkage_fixture(

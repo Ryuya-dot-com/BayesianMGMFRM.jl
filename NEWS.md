@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Make the local publication-grade batch orchestrator default to the tracked
+  batch-expansion plan, requiring ignored local-ready plans to be passed
+  explicitly with `--plan` so stale local artifacts cannot silently change the
+  execution budget.
 - Add `diagnostic_map_data` as a plotting-backend-independent pathway-map data
   contract that joins MFRM Wright-map logit positions to posterior infit/outfit
   summaries.
@@ -176,6 +180,14 @@
   20 jobs as runner-successful under the brms-like budget, preserves scalar
   divergence failures in folds 3 and 5 as sampler-stability blockers, and keeps
   public fit, model-weight, Q-revision, and sparse-superiority claims blocked.
+- Update the local publication-grade batch results-review fixture after running
+  the full 125-unit batch locally, recording all 375 result/diagnostic/heldout
+  artifacts as present, all fixed-Q MGMFRM candidate and analytic-reference
+  diagnostic gates as passed, scalar GMFRM as the remaining sampler blocker
+  with 11 divergence-count failures, the analytic null/reference as the
+  descriptive heldout winner in 24/25 folds, and public fit/model-weight/Q/
+  sparse claims still blocked pending diagnostic-failure review, external
+  construct evidence, and independent public-scope review.
 - Extend the publication-grade refit runner so it can read either the pilot
   plan or the full batch-expansion plan via `--plan`, preserving pilot
   compatibility while enabling batch dry-runs and analytic reference jobs.

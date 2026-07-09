@@ -70,7 +70,7 @@
       "artifact": "prediction_target_and_model_weight_policy",
       "path": "test/fixtures/gmfrm_prediction_target_and_model_weight_policy.json",
       "exists": true,
-      "sha256": "36c05ab820980855883824bda71b6e7495db2f5a30f03d27d437de91e20b1a60",
+      "sha256": "4c7f6dc16ea01c0607127791d2555b61b9bf121a38640d5f7e30d5b92f66fb07",
       "schema": "bayesianmgmfrm.gmfrm_prediction_target_and_model_weight_policy.v1",
       "expected_schema": "bayesianmgmfrm.gmfrm_prediction_target_and_model_weight_policy.v1",
       "schema_matches": true,

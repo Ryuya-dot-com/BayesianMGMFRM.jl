@@ -56,7 +56,7 @@
       "artifact": "mgmfrm_publication_grade_refit_pilot_execution_harness",
       "path": "test/fixtures/mgmfrm_publication_grade_refit_pilot_execution_harness.json",
       "exists": true,
-      "sha256": "1c7d0880d8e9a2397f5734cf362ca3afd1838a85bb3d56897fe38dd0349ad5db",
+      "sha256": "9ff35e72e1f47f4989986e51c6a9fc811af87ec6428975b9ac3d02a527e1dd25",
       "schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_pilot_execution_harness.v1",
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_pilot_execution_harness.v1",
       "schema_matches": true,
@@ -485,12 +485,8 @@
       "public_claim_allowed": false
     }
   ],
-  "heldout_model_rank_rows": [
-
-  ],
-  "diagnostic_failure_rows": [
-
-  ],
+  "heldout_model_rank_rows": [],
+  "diagnostic_failure_rows": [],
   "blocker_rows": [
     {
       "blocker": "publication_grade_pilot_not_executed",

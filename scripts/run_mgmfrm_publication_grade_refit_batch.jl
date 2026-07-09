@@ -10,7 +10,7 @@ const TRACKED_PLAN = joinpath(ROOT, "test", "fixtures",
 const LOCAL_READY_PLAN = joinpath(ROOT, "artifacts",
     "publication_grade_refit_pilot_remediation",
     "current_batch_expansion_plan.json")
-const DEFAULT_PLAN = isfile(LOCAL_READY_PLAN) ? LOCAL_READY_PLAN : TRACKED_PLAN
+const DEFAULT_PLAN = TRACKED_PLAN
 const DEFAULT_GATE = joinpath(ROOT, "test", "fixtures",
     "mgmfrm_publication_grade_refit_gate.json")
 const DEFAULT_RUNNER = joinpath(ROOT, "scripts",
@@ -27,11 +27,12 @@ function usage()
     return """
     Orchestrate local publication-grade MGMFRM refit batch jobs.
 
-    This script reads the 125-unit batch expansion plan and calls the single
-    job runner in a resumable, local-only way. It is safe by default: without
-    --execute or --materialize-dry-run-artifacts it only writes a manifest and
-    runs no jobs. Execution modes require --max-jobs, --all, or explicit
-    --execution-unit selection.
+    This script reads the tracked 125-unit batch expansion plan by default and
+    calls the single job runner in a resumable, local-only way. It is safe by
+    default: without --execute or --materialize-dry-run-artifacts it only writes
+    a manifest and runs no jobs. Execution modes require --max-jobs, --all, or
+    explicit --execution-unit selection. Pass --plan explicitly to use an
+    ignored local-ready plan.
 
     Usage:
       julia --project=. scripts/run_mgmfrm_publication_grade_refit_batch.jl [options]

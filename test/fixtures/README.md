@@ -308,8 +308,8 @@ that the scenario orchestrator executed the remaining 20 jobs without failures,
 keeps the five fold-1 smoke artifacts as prior completed jobs, and preserves
 the scalar divergence failures in folds 3 and 5 (`5` and `1` divergences) as
 sampler-stability blockers. It keeps all public fit, Q-revision, model-weight,
-and sparse-superiority claims blocked while the remaining 100 batch units and
-external construct review are unresolved.
+and sparse-superiority claims blocked while full-batch diagnostics, external
+construct review, and public-scope review remain unresolved.
 
 `scripts/run_mgmfrm_publication_grade_refit_batch.jl` is the local-only batch
 orchestrator for that next gate. It reads the batch plan, skips already
@@ -320,16 +320,20 @@ explicit `--execution-unit` selection so the 125-unit batch is not launched
 accidentally.
 
 `mgmfrm_publication_grade_refit_batch_results_review.json` records the
-corresponding batch result-review layer. The committed fixture ignores local
-runner artifacts, so it remains a lightweight 125-unit review scaffold with
-model-level and scenario-model summaries. It also carries the four
-fit-threshold profiles from `mgmfrm_fit_metric_threshold_sensitivity.json` into
-job-level, model-level, and scenario-model threshold surfaces so strict,
-screening, lenient, and sample-size-sensitive interpretations can be compared
-without promoting a single cutoff. Local review artifacts can opt in to reading
-`artifacts/publication_grade_refit_batch/` and will count executed, dry-run,
-diagnostic, heldout-score, and threshold-profile evaluation rows while keeping
-all public claims blocked.
+corresponding batch result-review layer. The committed fixture now records the
+local full 125-unit batch review after reading ignored runner artifacts: all 375
+result/diagnostic/heldout artifacts are present, all fixed-Q MGMFRM candidate
+families and analytic reference rows passed their local diagnostic gates, and
+scalar GMFRM remains the active sampler blocker with 11 divergence-count
+failure rows. The analytic null/reference is the descriptive heldout winner in
+24/25 folds, so model-weight and structured-model superiority claims remain
+blocked. It also carries the four fit-threshold profiles from
+`mgmfrm_fit_metric_threshold_sensitivity.json` into job-level, model-level, and
+scenario-model threshold surfaces so strict, screening, lenient, and
+sample-size-sensitive interpretations can be compared without promoting a
+single cutoff. All public fit, Q-revision, model-weight, and sparse-superiority
+claims remain blocked pending diagnostic-failure review, external construct
+evidence, and independent public-scope review.
 
 `mgmfrm_fit_threshold_q_heldout_linkage.json` links the literature-motivated
 fit-threshold sensitivity grid, empirical Q-matrix recovery simulation, heldout

@@ -454,11 +454,20 @@ recovered after MCMC across replicated seeds and internal prior profiles:
   scalar GMFRM still has divergence failures in folds 3 and 5 (`5` and `1`
   divergences), so all public fit, sampler-stability, model-weight, and
   sparse-superiority claims remain blocked.
-- The current compact Null-win batch still shows large structured-model losses
-  (for example Current Q dELPD vs Null `-33.027`), so current failures should be
-  diagnosed through signal strength, category calibration, Q support, prior
-  sensitivity, and estimation loss rather than treated as a general rejection of
-  MGMFRM.
+- The full 125-unit publication-grade batch has now been run locally under the
+  brms-like budget. All 375 result/diagnostic/heldout artifacts are present,
+  and the fixed-Q MGMFRM candidates plus the analytic reference passed their
+  local diagnostic gates across all folds. The scalar GMFRM baseline remains
+  the active sampler blocker: 14/25 scalar units passed, with 11 divergence
+  failures concentrated in scalar folds across the compact scenario set. Public
+  fit, model-weight, Q-revision, and sparse-superiority claims remain blocked
+  pending diagnostic-failure review, external construct evidence, and
+  independent public-scope review.
+- The current compact Null-win batch still shows large structured-model losses:
+  the analytic null/reference ranked first in 24/25 heldout folds, and Current Q
+  had total dELPD vs Null `-153.200`. These failures should be diagnosed
+  through signal strength, category calibration, Q support, prior sensitivity,
+  and estimation loss rather than treated as a general rejection of MGMFRM.
 
 These are local research diagnostics, not public model-selection or
 fit-threshold claims. The relevant generated reports are under

@@ -1037,7 +1037,7 @@ function artifact_summary(name::Symbol, summary::AbstractString)
             json_bool(summary, "runner_adapter_state_recorded") &&
             !json_bool(summary,
                 "full_125_unit_publication_grade_batch_completed") &&
-            !json_bool(summary, "batch_execution_ready_local_only") &&
+            json_bool(summary, "batch_execution_ready_local_only") &&
             json_bool(summary, "no_public_fit_metric_claim") &&
             json_bool(summary, "no_public_q_revision_claim") &&
             json_bool(summary, "no_public_model_weight_claim") &&

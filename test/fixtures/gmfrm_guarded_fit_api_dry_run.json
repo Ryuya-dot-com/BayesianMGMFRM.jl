@@ -507,7 +507,7 @@
       "artifact": "docs/src/fitting.md#guarded-generalized-model-caveats",
       "reference_kind": "local_file",
       "exists": true,
-      "sha256": "99304d73fcd082edb64745a1a548441d78db6adf3c1de21446becfe80f5669ad"
+      "sha256": "d9b0908f1ad32c963df5e1e3a19d495afae7eaa98d71af37d59cbedf750a0245"
     }
   ],
   "target_dry_run": {
@@ -704,9 +704,7 @@
     "n_evidence_references": 35,
     "target_logdensity_finite": true,
     "target_diagnostics_passed": true,
-    "remaining_public_blockers": [
-
-    ],
+    "remaining_public_blockers": [],
     "recommendation": "full_archive_recorded_keep_guarded_scalar_gmfrm_only",
     "next_gate": "manual_publication_or_registration_by_user_only"
   }

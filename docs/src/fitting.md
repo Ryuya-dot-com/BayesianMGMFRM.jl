@@ -399,8 +399,17 @@ runner failures and all 25 result/diagnostic/heldout artifacts are present.
 However, scalar GMFRM still failed the local divergence gate in fold 3 and fold
 5 (`5` and `1` divergences) even with `target_acceptance = 0.9`; only 3/5
 scalar folds passed the diagnostic gate. This makes scalar sampler stability an
-active blocker alongside the null/reference heldout wins and the unexecuted
-remaining 100 publication-grade units.
+active blocker alongside the null/reference heldout wins.
+
+The full 125-unit publication-grade batch has now been run locally under the
+same brms-like controls. All 375 result/diagnostic/heldout artifacts are
+present. The fixed-Q MGMFRM candidate families and the analytic reference passed
+their local diagnostic gates across all folds, while scalar GMFRM remains the
+active sampler blocker: 14/25 scalar units passed and 11 scalar units retained
+divergence-count failures. The next gate is diagnostic-failure review; external
+construct evidence and independent public-scope review are still unresolved.
+Heldout ranks remain descriptive only: the analytic null/reference ranked first
+in 24/25 folds, and Current Q had total dELPD vs Null `-153.200`.
 
 These numbers are local diagnostic evidence only. They should not be cited as
 public fit thresholds, model weights, Q-revision evidence, sparse-superiority

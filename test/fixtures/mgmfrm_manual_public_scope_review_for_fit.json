@@ -208,7 +208,7 @@
       "artifact": "prediction_target_and_model_weight_policy",
       "path": "test/fixtures/gmfrm_prediction_target_and_model_weight_policy.json",
       "exists": true,
-      "sha256": "36c05ab820980855883824bda71b6e7495db2f5a30f03d27d437de91e20b1a60",
+      "sha256": "4c7f6dc16ea01c0607127791d2555b61b9bf121a38640d5f7e30d5b92f66fb07",
       "expected_schema": "bayesianmgmfrm.gmfrm_prediction_target_and_model_weight_policy.v1",
       "schema": "bayesianmgmfrm.gmfrm_prediction_target_and_model_weight_policy.v1",
       "schema_matches": true,
@@ -494,9 +494,7 @@
       "artifact": "test/fixtures/mgmfrm_manual_public_scope_review_for_fit.json"
     }
   ],
-  "blocker_rows": [
-
-  ],
+  "blocker_rows": [],
   "decision_record": {
     "selected_decision": "manual_scope_review_recorded_enable_guarded_mgmfrm_fit",
     "public_fit_allowed": true,
@@ -551,9 +549,7 @@
     "n_risk_rows": 5,
     "n_review_rows": 13,
     "n_blockers": 0,
-    "remaining_public_blockers": [
-
-    ],
+    "remaining_public_blockers": [],
     "recommendation": "manual_scope_review_recorded_implement_guarded_local_mgmfrm_fit_next",
     "next_gate": "guarded_local_mgmfrm_fit_entrypoint"
   }
