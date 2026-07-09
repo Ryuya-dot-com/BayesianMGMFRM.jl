@@ -1,0 +1,403 @@
+{
+  "schema": "bayesianmgmfrm.mgmfrm_external_construct_dataset_and_independent_public_scope_review.v1",
+  "family": "mgmfrm",
+  "scope": "external_construct_dataset_and_independent_public_scope_review",
+  "status": "external_construct_dataset_and_independent_public_scope_review_recorded",
+  "decision": "record_external_construct_and_independent_review_requirements_keep_claims_blocked",
+  "public_fit": true,
+  "experimental_public": true,
+  "local_only": true,
+  "publication_or_registration_action": false,
+  "external_construct_dataset_attached": false,
+  "external_construct_validation_completed": false,
+  "independent_public_scope_review_completed": false,
+  "public_fit_metric_claim": false,
+  "public_q_revision_claim": false,
+  "public_model_weight_claim": false,
+  "sparse_mgmfrm_superiority_claim": false,
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "protocol": {
+    "protocol_id": "mgmfrm_external_construct_dataset_and_independent_public_scope_review_v1",
+    "review_kind": "local_external_construct_dataset_and_independent_public_scope_review",
+    "publication_or_registration_action": false,
+    "local_only": true,
+    "source_gate": "attach_external_construct_dataset_and_independent_public_scope_review",
+    "decision_scope": "requirements_before_public_mgmfrm_construct_model_weight_or_sparse_claims",
+    "thresholds": {
+      "require_threshold_model_weight_policy_review_passed": true,
+      "require_threshold_model_weight_policy_review_next_gate_matched": true,
+      "require_full_heldout_refit_or_construct_validation_review_passed": true,
+      "require_publication_grade_batch_results_review_passed": true,
+      "require_manual_public_scope_review_for_fit_passed": true,
+      "require_publication_grade_batch_completed": true,
+      "require_external_construct_requirements_recorded": true,
+      "require_external_attachment_schema_recorded": true,
+      "require_independent_review_schema_recorded": true,
+      "require_missing_external_dataset_manifest_recorded": true,
+      "require_missing_independent_review_manifest_recorded": true,
+      "require_no_public_fit_metric_claim": true,
+      "require_no_public_q_revision_claim": true,
+      "require_no_public_model_weight_claim": true,
+      "require_no_sparse_superiority_claim": true,
+      "require_no_publication_or_registration_action": true
+    }
+  },
+  "input_artifacts": [
+    {
+      "artifact": "mgmfrm_publication_grade_threshold_model_weight_policy_review",
+      "path": "test/fixtures/mgmfrm_publication_grade_threshold_model_weight_policy_review.json",
+      "exists": true,
+      "sha256": "2402b24d1867a5d8480dee2122bb0180071fc375cd01468b085286282d22d6ee",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_threshold_model_weight_policy_review.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_publication_grade_threshold_model_weight_policy_review.v1",
+      "schema_matches": true,
+      "summary_passed": true
+    },
+    {
+      "artifact": "mgmfrm_full_heldout_refit_or_construct_validation_review",
+      "path": "test/fixtures/mgmfrm_full_heldout_refit_or_construct_validation_review.json",
+      "exists": true,
+      "sha256": "d254ba18ef844c7386a610083e7019b6cf4b7697b49dcbd039596913f13ad848",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_full_heldout_refit_or_construct_validation_review.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_full_heldout_refit_or_construct_validation_review.v1",
+      "schema_matches": true,
+      "summary_passed": true
+    },
+    {
+      "artifact": "mgmfrm_publication_grade_refit_batch_results_review",
+      "path": "test/fixtures/mgmfrm_publication_grade_refit_batch_results_review.json",
+      "exists": true,
+      "sha256": "8b7daf88f8458483e68a28ff88cee93c75f6e31f9343be7f094523438b17fc4b",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_batch_results_review.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_batch_results_review.v1",
+      "schema_matches": true,
+      "summary_passed": true
+    },
+    {
+      "artifact": "mgmfrm_manual_public_scope_review_for_fit",
+      "path": "test/fixtures/mgmfrm_manual_public_scope_review_for_fit.json",
+      "exists": true,
+      "sha256": "067c9f2bf802ac421b20e7141f4653885dacf3c9058795e2bc1fbd709275942d",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_manual_public_scope_review_for_fit.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_manual_public_scope_review_for_fit.v1",
+      "schema_matches": true,
+      "summary_passed": true
+    }
+  ],
+  "attachment_records": [
+    {
+      "artifact": "external_construct_dataset_manifest",
+      "path": "test/fixtures/external/mgmfrm_external_construct_dataset_manifest.json",
+      "exists": false,
+      "sha256": null,
+      "expected_schema": "bayesianmgmfrm.external_construct_dataset_manifest.v1",
+      "schema": null,
+      "schema_matches": false,
+      "summary_passed": false,
+      "attachment_required": true,
+      "purpose": "construct_validation_dataset_attachment"
+    },
+    {
+      "artifact": "independent_public_scope_review_manifest",
+      "path": "test/fixtures/external/mgmfrm_independent_public_scope_review_manifest.json",
+      "exists": false,
+      "sha256": null,
+      "expected_schema": "bayesianmgmfrm.independent_public_scope_review_manifest.v1",
+      "schema": null,
+      "schema_matches": false,
+      "summary_passed": false,
+      "attachment_required": true,
+      "purpose": "independent_public_claim_scope_review"
+    }
+  ],
+  "external_construct_requirement_rows": [
+    {
+      "scenario": "missing_loading_revised_q",
+      "validation_target": "external_alignment_of_construct_reviewed_loading",
+      "trigger": "construct_reviewed_q_claim_dependency",
+      "evidence_required": "external_construct_measure_or_independent_rubric_review",
+      "external_construct_dataset_manifest_attached": false,
+      "external_construct_validation_completed": false,
+      "public_q_revision_claim_allowed": false,
+      "public_model_superiority_claim_allowed": false,
+      "status": "blocked_external_construct_dataset_missing"
+    },
+    {
+      "scenario": "weak_dimension_ambiguous",
+      "validation_target": "weak_dimension_discriminant_construct_check",
+      "trigger": "rank_instability_and_construct_ambiguity",
+      "evidence_required": "external_construct_measure_or_independent_rubric_review",
+      "external_construct_dataset_manifest_attached": false,
+      "external_construct_validation_completed": false,
+      "public_q_revision_claim_allowed": false,
+      "public_model_superiority_claim_allowed": false,
+      "status": "blocked_external_construct_dataset_missing"
+    }
+  ],
+  "attachment_requirement_rows": [
+    {
+      "attachment": "external_construct_dataset_manifest",
+      "requirement": "manifest_schema",
+      "expected": "bayesianmgmfrm_external_construct_dataset_manifest_v1"
+    },
+    {
+      "attachment": "external_construct_dataset_manifest",
+      "requirement": "dataset_source_documentation",
+      "expected": "source_dataset_id_provenance_license_and_collection_context"
+    },
+    {
+      "attachment": "external_construct_dataset_manifest",
+      "requirement": "observation_crosswalk",
+      "expected": "observation_person_item_rater_and_score_keys"
+    },
+    {
+      "attachment": "external_construct_dataset_manifest",
+      "requirement": "construct_anchor",
+      "expected": "external_construct_measure_or_independent_rubric_score"
+    },
+    {
+      "attachment": "external_construct_dataset_manifest",
+      "requirement": "validation_split",
+      "expected": "predeclared_split_or_external_sample_membership"
+    },
+    {
+      "attachment": "external_construct_dataset_manifest",
+      "requirement": "reproducible_scoring_plan",
+      "expected": "heldout_or_external_log_score_recomputation_instructions"
+    },
+    {
+      "attachment": "independent_public_scope_review_manifest",
+      "requirement": "manifest_schema",
+      "expected": "bayesianmgmfrm_independent_public_scope_review_manifest_v1"
+    },
+    {
+      "attachment": "independent_public_scope_review_manifest",
+      "requirement": "reviewer_independence_statement",
+      "expected": "reviewer_not_involved_in_model_development_or_batch_generation"
+    },
+    {
+      "attachment": "independent_public_scope_review_manifest",
+      "requirement": "conflict_of_interest_statement",
+      "expected": "explicit_conflict_disclosure_and_resolution"
+    },
+    {
+      "attachment": "independent_public_scope_review_manifest",
+      "requirement": "reviewed_artifacts",
+      "expected": "threshold_model_weight_batch_and_external_construct_artifacts"
+    },
+    {
+      "attachment": "independent_public_scope_review_manifest",
+      "requirement": "claim_decision_table",
+      "expected": "per_claim_allow_block_or_request_revision_decision"
+    },
+    {
+      "attachment": "independent_public_scope_review_manifest",
+      "requirement": "signed_public_scope_decision",
+      "expected": "dated_reviewer_signature_or_equivalent_audit_record"
+    }
+  ],
+  "independent_review_requirement_rows": [
+    {
+      "review_surface": "fit_metric_claim",
+      "required_artifacts": [
+        "publication_grade_batch_results_review",
+        "threshold_model_weight_policy_review"
+      ],
+      "independent_review_completed": false,
+      "public_claim_allowed": false
+    },
+    {
+      "review_surface": "model_weight_claim",
+      "required_artifacts": [
+        "publication_grade_batch_results_review",
+        "threshold_model_weight_policy_review",
+        "prediction_target_and_model_weight_policy"
+      ],
+      "independent_review_completed": false,
+      "public_claim_allowed": false
+    },
+    {
+      "review_surface": "q_revision_claim",
+      "required_artifacts": [
+        "external_construct_dataset_manifest",
+        "external_construct_validation_results"
+      ],
+      "independent_review_completed": false,
+      "public_claim_allowed": false
+    },
+    {
+      "review_surface": "sparse_superiority_claim",
+      "required_artifacts": [
+        "external_construct_dataset_manifest",
+        "publication_grade_threshold_model_weight_policy_review"
+      ],
+      "independent_review_completed": false,
+      "public_claim_allowed": false
+    }
+  ],
+  "claim_release_rows": [
+    {
+      "claim": "publication_grade_fit_metric_claim",
+      "local_preconditions_satisfied": true,
+      "external_construct_dataset_required": false,
+      "independent_public_scope_review_required": true,
+      "release_status": "blocked_independent_public_scope_review_missing",
+      "public_claim_allowed": false
+    },
+    {
+      "claim": "model_weight_claim",
+      "local_preconditions_satisfied": true,
+      "external_construct_dataset_required": true,
+      "independent_public_scope_review_required": true,
+      "release_status": "blocked_external_construct_dataset_and_independent_review_missing",
+      "public_claim_allowed": false
+    },
+    {
+      "claim": "q_revision_claim",
+      "local_preconditions_satisfied": true,
+      "external_construct_dataset_required": true,
+      "independent_public_scope_review_required": true,
+      "release_status": "blocked_external_construct_dataset_and_independent_review_missing",
+      "public_claim_allowed": false
+    },
+    {
+      "claim": "construct_validity_claim",
+      "local_preconditions_satisfied": false,
+      "external_construct_dataset_required": true,
+      "independent_public_scope_review_required": true,
+      "release_status": "blocked_external_construct_validation_missing",
+      "public_claim_allowed": false
+    },
+    {
+      "claim": "sparse_mgmfrm_superiority_claim",
+      "local_preconditions_satisfied": true,
+      "external_construct_dataset_required": true,
+      "independent_public_scope_review_required": true,
+      "release_status": "blocked_external_construct_dataset_and_independent_review_missing",
+      "public_claim_allowed": false
+    }
+  ],
+  "blocker_rows": [
+    {
+      "blocker": "external_construct_dataset_manifest_missing",
+      "blocks": "public_construct_q_revision_model_weight_and_sparse_claims",
+      "resolved": false
+    },
+    {
+      "blocker": "external_construct_validation_not_completed",
+      "blocks": "public_construct_and_q_revision_claims",
+      "resolved": false
+    },
+    {
+      "blocker": "independent_public_scope_review_manifest_missing",
+      "blocks": "all_public_mgmfrm_claims",
+      "resolved": false
+    },
+    {
+      "blocker": "independent_public_scope_review_not_completed",
+      "blocks": "all_public_mgmfrm_claims",
+      "resolved": false
+    },
+    {
+      "blocker": "public_claim_release_decision_not_signed",
+      "blocks": "public_model_weight_q_revision_fit_metric_and_sparse_claims",
+      "resolved": false
+    }
+  ],
+  "evidence_link_rows": [
+    {
+      "evidence": "threshold_model_weight_policy_review_next_gate",
+      "link_satisfied": true,
+      "role": "supplies_current_public_claim_blockers"
+    },
+    {
+      "evidence": "full_heldout_refit_or_construct_validation_review",
+      "link_satisfied": true,
+      "role": "supplies_external_construct_validation_requirements"
+    },
+    {
+      "evidence": "publication_grade_batch_results_review",
+      "link_satisfied": true,
+      "role": "supplies_completed_publication_grade_batch_state"
+    },
+    {
+      "evidence": "manual_public_scope_review_for_fit",
+      "link_satisfied": true,
+      "role": "supplies_local_scope_review_not_independent_release"
+    },
+    {
+      "evidence": "external_attachment_manifests",
+      "link_satisfied": true,
+      "role": "records_missing_external_and_independent_review_inputs"
+    }
+  ],
+  "decision_record": {
+    "selected_decision": "external_construct_and_independent_review_gate_recorded",
+    "publication_grade_batch_completed": true,
+    "threshold_model_weight_policy_review_completed": true,
+    "local_manual_scope_review_satisfied": true,
+    "external_construct_dataset_attached": false,
+    "external_construct_validation_completed": false,
+    "independent_public_scope_review_completed": false,
+    "public_fit_metric_claim_allowed": false,
+    "public_q_revision_claim_allowed": false,
+    "public_model_weight_claim_allowed": false,
+    "sparse_superiority_claim_allowed": false,
+    "required_followup": "provide_external_construct_dataset_manifest_and_independent_public_scope_review"
+  },
+  "summary": {
+    "passed": true,
+    "publication_or_registration_action": false,
+    "local_only": true,
+    "all_input_artifacts_present": true,
+    "all_expected_schemas": true,
+    "all_input_summaries_passed": true,
+    "threshold_model_weight_policy_review_passed": true,
+    "threshold_model_weight_policy_review_next_gate_matched": true,
+    "full_heldout_refit_or_construct_validation_review_passed": true,
+    "publication_grade_batch_results_review_passed": true,
+    "manual_public_scope_review_for_fit_passed": true,
+    "manual_public_scope_review_satisfied": true,
+    "publication_grade_batch_completed": true,
+    "all_mcmc_diagnostic_gates_passed": true,
+    "external_construct_requirements_recorded": true,
+    "external_attachment_schema_recorded": true,
+    "independent_review_schema_recorded": true,
+    "missing_external_dataset_manifest_recorded": true,
+    "missing_independent_review_manifest_recorded": true,
+    "external_construct_dataset_manifest_present": false,
+    "independent_public_scope_review_manifest_present": false,
+    "external_construct_dataset_attached": false,
+    "external_construct_validation_completed": false,
+    "independent_public_scope_review_completed": false,
+    "all_public_claims_blocked": true,
+    "no_public_fit_metric_claim": true,
+    "no_public_q_revision_claim": true,
+    "no_public_model_weight_claim": true,
+    "no_sparse_superiority_claim": true,
+    "n_input_artifacts": 4,
+    "n_attachment_records": 2,
+    "n_external_construct_requirement_rows": 2,
+    "n_attachment_requirement_rows": 12,
+    "n_independent_review_requirement_rows": 4,
+    "n_claim_release_rows": 5,
+    "n_blocker_rows": 5,
+    "n_evidence_link_rows": 5,
+    "n_review_cells": 33,
+    "n_external_construct_validation_scenarios": 2,
+    "n_blockers": 5,
+    "remaining_public_blockers": [
+      "external_construct_dataset_manifest_missing",
+      "external_construct_validation_not_completed",
+      "independent_public_scope_review_manifest_missing",
+      "independent_public_scope_review_not_completed",
+      "public_claim_release_decision_not_signed"
+    ],
+    "recommendation": "attach_external_construct_dataset_manifest_and_independent_review_before_public_claims",
+    "next_gate": "provide_external_construct_dataset_manifest_and_independent_public_scope_review"
+  }
+}

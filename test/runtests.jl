@@ -3934,6 +3934,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         :require_mgmfrm_publication_grade_refit_batch_results_review_passed])
     @test Bool(thresholds[
         :require_mgmfrm_publication_grade_threshold_model_weight_policy_review_passed])
+    @test Bool(thresholds[
+        :require_mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed])
     @test Bool(thresholds[:require_mgmfrm_guarded_fit_method_wiring_passed])
     @test Bool(thresholds[:require_mgmfrm_guarded_fit_validation_grid_passed])
     @test Bool(thresholds[:require_mgmfrm_guarded_fit_api_dry_run_passed])
@@ -4060,6 +4062,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
             "test/fixtures/mgmfrm_publication_grade_refit_batch_results_review.json",
         "mgmfrm_publication_grade_threshold_model_weight_policy_review" =>
             "test/fixtures/mgmfrm_publication_grade_threshold_model_weight_policy_review.json",
+        "mgmfrm_external_construct_dataset_and_independent_public_scope_review" =>
+            "test/fixtures/mgmfrm_external_construct_dataset_and_independent_public_scope_review.json",
         "mgmfrm_guarded_fit_method_wiring" =>
             "test/fixtures/mgmfrm_guarded_fit_method_wiring.json",
         "mgmfrm_guarded_fit_validation_grid" =>
@@ -4100,7 +4104,7 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     end
 
     code_doc_records = fixture[:code_doc_records]
-    @test length(code_doc_records) == 61
+    @test length(code_doc_records) == 62
     @test all(row -> Bool(row[:exists]), code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_gmfrm_full_paper_reproduction_archive.jl",
@@ -4205,6 +4209,9 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         "scripts/generate_mgmfrm_publication_grade_threshold_model_weight_policy_review.jl",
         code_doc_records)
     @test any(row -> String(row[:path]) ==
+        "scripts/generate_mgmfrm_external_construct_dataset_and_independent_public_scope_review.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) ==
         "scripts/generate_mgmfrm_guarded_fit_method_wiring.jl",
         code_doc_records)
     @test any(row -> String(row[:path]) ==
@@ -4239,8 +4246,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     end
 
     full_commands = fixture[:full_regeneration_commands]
-    @test length(full_commands) == 65
-    @test [Int(row[:step]) for row in full_commands] == collect(1:65)
+    @test length(full_commands) == 66
+    @test [Int(row[:step]) for row in full_commands] == collect(1:66)
     @test all(row -> Bool(row[:local_only]), full_commands)
     @test any(row -> String(row[:artifact]) ==
         "mgmfrm_report_shape_simulation_grid", full_commands)
@@ -4320,6 +4327,9 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         full_commands)
     @test any(row -> String(row[:artifact]) ==
         "mgmfrm_publication_grade_threshold_model_weight_policy_review",
+        full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "mgmfrm_external_construct_dataset_and_independent_public_scope_review",
         full_commands)
     @test any(row -> String(row[:artifact]) ==
         "prediction_target_and_model_weight_policy", full_commands)
@@ -4431,6 +4441,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         :mgmfrm_publication_grade_refit_batch_results_review_passed])
     @test Bool(summary[
         :mgmfrm_publication_grade_threshold_model_weight_policy_review_passed])
+    @test Bool(summary[
+        :mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed])
     @test Bool(summary[:mgmfrm_guarded_fit_method_wiring_passed])
     @test Bool(summary[:mgmfrm_guarded_fit_validation_grid_passed])
     @test Bool(summary[:mgmfrm_guarded_fit_api_dry_run_passed])
@@ -4815,7 +4827,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     evidence_rows = fixture[:evidence_rows]
     @test length(evidence_rows) == length(input_artifacts)
     @test all(row -> String(row[:status]) == "passed", evidence_rows)
-    @test Int(sum(Int(row[:n_evidence_cells]) for row in evidence_rows)) == 5582
+    @test Int(sum(Int(row[:n_evidence_cells]) for row in evidence_rows)) == 5583
     @test any(row -> String(row[:gate]) == "prior_likelihood_sensitivity_grid" &&
         Int(row[:n_evidence_cells]) == 45, evidence_rows)
     @test any(row -> String(row[:gate]) ==
@@ -4985,7 +4997,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     @test Bool(summary[:all_primary_checks_passed])
     @test Int(summary[:n_input_artifacts]) == length(input_artifacts)
     @test Int(summary[:n_evidence_rows]) == length(evidence_rows)
-    @test Int(summary[:total_evidence_cells]) == 5582
+    @test Int(summary[:total_evidence_cells]) == 5583
     @test Int(summary[:minimum_required_evidence_cells]) == 60
     @test Bool(summary[:scalar_fit_validation_grid_passed])
     @test Bool(summary[:posterior_predictive_grid_passed])
@@ -5758,7 +5770,7 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(manuscript_grid[:summary][:all_input_summaries_passed])
     @test Bool(manuscript_grid[:summary][:all_primary_checks_passed])
     @test Int(manuscript_grid[:summary][:n_input_artifacts]) == 35
-    @test Int(manuscript_grid[:summary][:total_evidence_cells]) == 5582
+    @test Int(manuscript_grid[:summary][:total_evidence_cells]) == 5583
     @test Int(manuscript_grid[:summary][:minimum_required_evidence_cells]) == 60
     @test Bool(manuscript_grid[:summary][:prediction_target_and_model_weight_policy_passed])
     @test Bool(manuscript_grid[:summary][
@@ -5817,9 +5829,9 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(full_archive[:summary][:all_external_sources_present])
     @test Bool(full_archive[:summary][:all_commands_local_only])
     @test Bool(full_archive[:summary][:no_publication_commands])
-    @test Int(full_archive[:summary][:n_fixture_artifacts]) == 65
-    @test Int(full_archive[:summary][:n_code_doc_records]) == 61
-    @test Int(full_archive[:summary][:n_full_regeneration_commands]) == 65
+    @test Int(full_archive[:summary][:n_fixture_artifacts]) == 66
+    @test Int(full_archive[:summary][:n_code_doc_records]) == 62
+    @test Int(full_archive[:summary][:n_full_regeneration_commands]) == 66
     @test Int(full_archive[:summary][:n_verification_commands]) == 4
     @test Bool(full_archive[:summary][:mgmfrm_report_shape_simulation_grid_passed])
     @test Bool(full_archive[:summary][:mgmfrm_q_matrix_validation_expansion_passed])
@@ -5871,6 +5883,10 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
         :mgmfrm_publication_grade_refit_pilot_execution_harness_passed])
     @test Bool(full_archive[:summary][
         :mgmfrm_publication_grade_refit_pilot_results_review_passed])
+    @test Bool(full_archive[:summary][
+        :mgmfrm_publication_grade_threshold_model_weight_policy_review_passed])
+    @test Bool(full_archive[:summary][
+        :mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed])
     @test Bool(full_archive[:summary][:prediction_target_and_model_weight_policy_passed])
     @test Bool(full_archive[:summary][:manuscript_reproducibility_claims_supported])
     @test Int(full_archive[:summary][:n_blockers]) == 0
@@ -6169,6 +6185,20 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(summary[:mgmfrm_fit_threshold_q_heldout_linkage_passed])
     @test Bool(summary[
         :mgmfrm_publication_grade_refit_pilot_execution_harness_passed])
+    @test Bool(summary[
+        :mgmfrm_publication_grade_refit_pilot_results_review_passed])
+    @test Bool(summary[
+        :mgmfrm_publication_grade_refit_sampler_remediation_review_passed])
+    @test Bool(summary[
+        :mgmfrm_publication_grade_refit_scalar_remediation_comparison_passed])
+    @test Bool(summary[
+        :mgmfrm_publication_grade_refit_batch_expansion_plan_passed])
+    @test Bool(summary[
+        :mgmfrm_publication_grade_refit_batch_results_review_passed])
+    @test Bool(summary[
+        :mgmfrm_publication_grade_threshold_model_weight_policy_review_passed])
+    @test Bool(summary[
+        :mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed])
     @test Bool(summary[:prediction_target_and_model_weight_policy_passed])
     @test Bool(summary[:dff_estimand_validation_grid_passed])
     @test Bool(summary[:manuscript_scale_simulation_grid_passed])
@@ -14433,6 +14463,252 @@ function check_mgmfrm_publication_grade_threshold_model_weight_policy_review_fix
         "attach_external_construct_dataset_and_independent_public_scope_review"
 end
 
+function check_mgmfrm_external_construct_dataset_and_independent_public_scope_review_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_external_construct_dataset_and_independent_public_scope_review.v1"
+    @test String(fixture[:family]) == "mgmfrm"
+    @test String(fixture[:scope]) ==
+        "external_construct_dataset_and_independent_public_scope_review"
+    @test String(fixture[:status]) ==
+        "external_construct_dataset_and_independent_public_scope_review_recorded"
+    @test String(fixture[:decision]) ==
+        "record_external_construct_and_independent_review_requirements_keep_claims_blocked"
+    @test Bool(fixture[:public_fit])
+    @test Bool(fixture[:experimental_public])
+    @test Bool(fixture[:local_only])
+    @test Bool(fixture[:publication_or_registration_action]) == false
+    @test Bool(fixture[:external_construct_dataset_attached]) == false
+    @test Bool(fixture[:external_construct_validation_completed]) == false
+    @test Bool(fixture[:independent_public_scope_review_completed]) == false
+    @test Bool(fixture[:public_fit_metric_claim]) == false
+    @test Bool(fixture[:public_q_revision_claim]) == false
+    @test Bool(fixture[:public_model_weight_claim]) == false
+    @test Bool(fixture[:sparse_mgmfrm_superiority_claim]) == false
+
+    protocol = fixture[:protocol]
+    thresholds = protocol[:thresholds]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_external_construct_dataset_and_independent_public_scope_review_v1"
+    @test String(protocol[:review_kind]) ==
+        "local_external_construct_dataset_and_independent_public_scope_review"
+    @test String(protocol[:source_gate]) ==
+        "attach_external_construct_dataset_and_independent_public_scope_review"
+    @test String(protocol[:decision_scope]) ==
+        "requirements_before_public_mgmfrm_construct_model_weight_or_sparse_claims"
+    @test Bool(thresholds[
+        :require_threshold_model_weight_policy_review_passed])
+    @test Bool(thresholds[
+        :require_threshold_model_weight_policy_review_next_gate_matched])
+    @test Bool(thresholds[
+        :require_full_heldout_refit_or_construct_validation_review_passed])
+    @test Bool(thresholds[
+        :require_publication_grade_batch_results_review_passed])
+    @test Bool(thresholds[:require_manual_public_scope_review_for_fit_passed])
+    @test Bool(thresholds[:require_publication_grade_batch_completed])
+    @test Bool(thresholds[:require_external_construct_requirements_recorded])
+    @test Bool(thresholds[:require_external_attachment_schema_recorded])
+    @test Bool(thresholds[:require_independent_review_schema_recorded])
+    @test Bool(thresholds[:require_missing_external_dataset_manifest_recorded])
+    @test Bool(thresholds[
+        :require_missing_independent_review_manifest_recorded])
+    @test Bool(thresholds[:require_no_public_fit_metric_claim])
+    @test Bool(thresholds[:require_no_public_q_revision_claim])
+    @test Bool(thresholds[:require_no_public_model_weight_claim])
+    @test Bool(thresholds[:require_no_sparse_superiority_claim])
+    @test Bool(thresholds[:require_no_publication_or_registration_action])
+
+    expected_inputs = Dict(
+        "mgmfrm_publication_grade_threshold_model_weight_policy_review" =>
+            "test/fixtures/mgmfrm_publication_grade_threshold_model_weight_policy_review.json",
+        "mgmfrm_full_heldout_refit_or_construct_validation_review" =>
+            "test/fixtures/mgmfrm_full_heldout_refit_or_construct_validation_review.json",
+        "mgmfrm_publication_grade_refit_batch_results_review" =>
+            "test/fixtures/mgmfrm_publication_grade_refit_batch_results_review.json",
+        "mgmfrm_manual_public_scope_review_for_fit" =>
+            "test/fixtures/mgmfrm_manual_public_scope_review_for_fit.json",
+    )
+    inputs = fixture[:input_artifacts]
+    @test length(inputs) == length(expected_inputs)
+    @test Set(String(row[:artifact]) for row in inputs) ==
+        Set(keys(expected_inputs))
+    for row in inputs
+        artifact = String(row[:artifact])
+        @test String(row[:path]) == expected_inputs[artifact]
+        @test Bool(row[:exists])
+        @test Bool(row[:schema_matches])
+        @test Bool(row[:summary_passed])
+        @test String(row[:sha256]) ==
+            file_sha256(joinpath(root, String(row[:path])))
+    end
+
+    attachments = fixture[:attachment_records]
+    @test length(attachments) == 2
+    @test Set(String(row[:artifact]) for row in attachments) == Set([
+        "external_construct_dataset_manifest",
+        "independent_public_scope_review_manifest",
+    ])
+    @test all(row -> Bool(row[:attachment_required]), attachments)
+    @test all(row -> Bool(row[:exists]) == false, attachments)
+    @test all(row -> isnothing(row[:sha256]), attachments)
+    @test all(row -> Bool(row[:schema_matches]) == false, attachments)
+    @test any(row -> String(row[:path]) ==
+        "test/fixtures/external/mgmfrm_external_construct_dataset_manifest.json",
+        attachments)
+    @test any(row -> String(row[:path]) ==
+        "test/fixtures/external/mgmfrm_independent_public_scope_review_manifest.json",
+        attachments)
+
+    external_rows = fixture[:external_construct_requirement_rows]
+    @test length(external_rows) == 2
+    @test Set(String(row[:scenario]) for row in external_rows) == Set([
+        "missing_loading_revised_q",
+        "weak_dimension_ambiguous",
+    ])
+    @test all(row -> String(row[:status]) ==
+        "blocked_external_construct_dataset_missing", external_rows)
+    @test all(row -> Bool(row[:external_construct_dataset_manifest_attached]) ==
+        false, external_rows)
+    @test all(row -> Bool(row[:external_construct_validation_completed]) ==
+        false, external_rows)
+    @test all(row -> Bool(row[:public_q_revision_claim_allowed]) == false,
+        external_rows)
+    @test all(row -> Bool(row[:public_model_superiority_claim_allowed]) == false,
+        external_rows)
+
+    attachment_requirements = fixture[:attachment_requirement_rows]
+    @test length(attachment_requirements) == 12
+    @test count(row -> String(row[:attachment]) ==
+        "external_construct_dataset_manifest", attachment_requirements) == 6
+    @test count(row -> String(row[:attachment]) ==
+        "independent_public_scope_review_manifest",
+        attachment_requirements) == 6
+    @test any(row -> String(row[:requirement]) == "observation_crosswalk",
+        attachment_requirements)
+    @test any(row -> String(row[:requirement]) == "signed_public_scope_decision",
+        attachment_requirements)
+
+    independent_rows = fixture[:independent_review_requirement_rows]
+    @test length(independent_rows) == 4
+    @test Set(String(row[:review_surface]) for row in independent_rows) == Set([
+        "fit_metric_claim",
+        "model_weight_claim",
+        "q_revision_claim",
+        "sparse_superiority_claim",
+    ])
+    @test all(row -> Bool(row[:independent_review_completed]) == false,
+        independent_rows)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false,
+        independent_rows)
+
+    claim_rows = fixture[:claim_release_rows]
+    @test length(claim_rows) == 5
+    @test count(row -> Bool(row[:external_construct_dataset_required]),
+        claim_rows) == 4
+    @test all(row -> Bool(row[:independent_public_scope_review_required]),
+        claim_rows)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, claim_rows)
+    @test any(row -> String(row[:claim]) == "publication_grade_fit_metric_claim" &&
+        String(row[:release_status]) ==
+            "blocked_independent_public_scope_review_missing",
+        claim_rows)
+
+    blockers = fixture[:blocker_rows]
+    @test length(blockers) == 5
+    @test all(row -> Bool(row[:resolved]) == false, blockers)
+    @test Set(String(row[:blocker]) for row in blockers) == Set([
+        "external_construct_dataset_manifest_missing",
+        "external_construct_validation_not_completed",
+        "independent_public_scope_review_manifest_missing",
+        "independent_public_scope_review_not_completed",
+        "public_claim_release_decision_not_signed",
+    ])
+
+    evidence_rows = fixture[:evidence_link_rows]
+    @test length(evidence_rows) == 5
+    @test all(row -> Bool(row[:link_satisfied]), evidence_rows)
+    @test any(row -> String(row[:evidence]) ==
+        "threshold_model_weight_policy_review_next_gate", evidence_rows)
+    @test any(row -> String(row[:evidence]) ==
+        "external_attachment_manifests", evidence_rows)
+
+    decision = fixture[:decision_record]
+    @test String(decision[:selected_decision]) ==
+        "external_construct_and_independent_review_gate_recorded"
+    @test Bool(decision[:publication_grade_batch_completed])
+    @test Bool(decision[:threshold_model_weight_policy_review_completed])
+    @test Bool(decision[:local_manual_scope_review_satisfied])
+    @test Bool(decision[:external_construct_dataset_attached]) == false
+    @test Bool(decision[:external_construct_validation_completed]) == false
+    @test Bool(decision[:independent_public_scope_review_completed]) == false
+    @test Bool(decision[:public_fit_metric_claim_allowed]) == false
+    @test Bool(decision[:public_q_revision_claim_allowed]) == false
+    @test Bool(decision[:public_model_weight_claim_allowed]) == false
+    @test Bool(decision[:sparse_superiority_claim_allowed]) == false
+    @test String(decision[:required_followup]) ==
+        "provide_external_construct_dataset_manifest_and_independent_public_scope_review"
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:publication_or_registration_action]) == false
+    @test Bool(summary[:local_only])
+    @test Bool(summary[:all_input_artifacts_present])
+    @test Bool(summary[:all_expected_schemas])
+    @test Bool(summary[:all_input_summaries_passed])
+    @test Bool(summary[:threshold_model_weight_policy_review_passed])
+    @test Bool(summary[:threshold_model_weight_policy_review_next_gate_matched])
+    @test Bool(summary[
+        :full_heldout_refit_or_construct_validation_review_passed])
+    @test Bool(summary[:publication_grade_batch_results_review_passed])
+    @test Bool(summary[:manual_public_scope_review_for_fit_passed])
+    @test Bool(summary[:manual_public_scope_review_satisfied])
+    @test Bool(summary[:publication_grade_batch_completed])
+    @test Bool(summary[:all_mcmc_diagnostic_gates_passed])
+    @test Bool(summary[:external_construct_requirements_recorded])
+    @test Bool(summary[:external_attachment_schema_recorded])
+    @test Bool(summary[:independent_review_schema_recorded])
+    @test Bool(summary[:missing_external_dataset_manifest_recorded])
+    @test Bool(summary[:missing_independent_review_manifest_recorded])
+    @test Bool(summary[:external_construct_dataset_manifest_present]) == false
+    @test Bool(summary[
+        :independent_public_scope_review_manifest_present]) == false
+    @test Bool(summary[:external_construct_dataset_attached]) == false
+    @test Bool(summary[:external_construct_validation_completed]) == false
+    @test Bool(summary[:independent_public_scope_review_completed]) == false
+    @test Bool(summary[:all_public_claims_blocked])
+    @test Bool(summary[:no_public_fit_metric_claim])
+    @test Bool(summary[:no_public_q_revision_claim])
+    @test Bool(summary[:no_public_model_weight_claim])
+    @test Bool(summary[:no_sparse_superiority_claim])
+    @test Int(summary[:n_input_artifacts]) == 4
+    @test Int(summary[:n_attachment_records]) == 2
+    @test Int(summary[:n_external_construct_requirement_rows]) == 2
+    @test Int(summary[:n_attachment_requirement_rows]) == 12
+    @test Int(summary[:n_independent_review_requirement_rows]) == 4
+    @test Int(summary[:n_claim_release_rows]) == 5
+    @test Int(summary[:n_blocker_rows]) == 5
+    @test Int(summary[:n_evidence_link_rows]) == 5
+    @test Int(summary[:n_review_cells]) == 33
+    @test Int(summary[:n_external_construct_validation_scenarios]) == 2
+    @test Int(summary[:n_blockers]) == 5
+    @test Set(String(blocker) for blocker in
+        summary[:remaining_public_blockers]) == Set([
+            "external_construct_dataset_manifest_missing",
+            "external_construct_validation_not_completed",
+            "independent_public_scope_review_manifest_missing",
+            "independent_public_scope_review_not_completed",
+            "public_claim_release_decision_not_signed",
+        ])
+    @test String(summary[:recommendation]) ==
+        "attach_external_construct_dataset_manifest_and_independent_review_before_public_claims"
+    @test String(summary[:next_gate]) ==
+        "provide_external_construct_dataset_manifest_and_independent_public_scope_review"
+end
+
 function check_mgmfrm_fit_threshold_q_heldout_linkage_fixture(
         fixture_path::AbstractString)
     root = dirname(@__DIR__)
@@ -21512,6 +21788,12 @@ end
     if !isempty(mgmfrm_publication_grade_threshold_model_weight_policy_review_fixture)
         check_mgmfrm_publication_grade_threshold_model_weight_policy_review_fixture(
             mgmfrm_publication_grade_threshold_model_weight_policy_review_fixture,
+        )
+    end
+    mgmfrm_external_construct_dataset_and_independent_public_scope_review_fixture = optional_fixture_path("MFRM_MGMFRM_EXTERNAL_CONSTRUCT_DATASET_AND_INDEPENDENT_PUBLIC_SCOPE_REVIEW_FIXTURE", joinpath("test", "fixtures", "mgmfrm_external_construct_dataset_and_independent_public_scope_review.json"))
+    if !isempty(mgmfrm_external_construct_dataset_and_independent_public_scope_review_fixture)
+        check_mgmfrm_external_construct_dataset_and_independent_public_scope_review_fixture(
+            mgmfrm_external_construct_dataset_and_independent_public_scope_review_fixture,
         )
     end
     mgmfrm_fit_threshold_q_heldout_linkage_fixture = optional_fixture_path("MFRM_MGMFRM_FIT_THRESHOLD_Q_HELDOUT_LINKAGE_FIXTURE", joinpath("test", "fixtures", "mgmfrm_fit_threshold_q_heldout_linkage.json"))

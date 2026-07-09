@@ -412,6 +412,13 @@ review are still unresolved. Heldout ranks remain descriptive only: the analytic
 null/reference ranked first in 24/25 folds, and Current Q had total dELPD vs
 Null `-153.200`.
 
+The external construct / independent public-scope gate now records those
+unresolved requirements directly. The fixture specifies the required external
+dataset manifest, independent review manifest, and per-claim release checks;
+it carries two construct-validation scenarios forward and records five
+unresolved blockers. No public fit-metric, model-weight, Q-revision,
+construct-validity, or sparse-superiority claim is released by this gate.
+
 These numbers are local diagnostic evidence only. They should not be cited as
 public fit thresholds, model weights, Q-revision evidence, sparse-superiority
 evidence, or a stable-public MGMFRM validation claim.

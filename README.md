@@ -464,6 +464,13 @@ recovered after MCMC across replicated seeds and internal prior profiles:
   total-ELPD winner, and public fit, model-weight, Q-revision, and
   sparse-superiority claims remain blocked pending external construct evidence
   and independent public-scope review.
+- The follow-up external construct / independent public-scope gate is now also
+  recorded locally. It specifies the required external dataset manifest and
+  independent review manifest, carries forward two construct-validation
+  scenarios, records five unresolved public-claim blockers, and keeps all public
+  MGMFRM fit-metric, model-weight, Q-revision, construct-validity, and
+  sparse-superiority claims blocked until those manifests and validation results
+  are attached.
 - The current compact Null-win batch still shows large structured-model losses:
   the analytic null/reference ranked first in 24/25 heldout folds, and Current Q
   had total dELPD vs Null `-153.200`. These failures should be diagnosed

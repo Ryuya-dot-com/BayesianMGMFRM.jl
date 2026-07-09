@@ -345,6 +345,16 @@ pass; and keeps public fit-threshold, model-weight, Q-revision, and
 sparse-superiority claims blocked. The next gate is attaching external
 construct evidence and completing independent public-scope review.
 
+`mgmfrm_external_construct_dataset_and_independent_public_scope_review.json`
+records that attachment gate. It verifies the completed batch, threshold/model-
+weight review, full heldout-or-construct validation review, and manual scope
+review; specifies the required external construct dataset manifest and
+independent public-scope review manifest; carries two construct-validation
+scenarios forward; and records five unresolved release blockers. Because no
+external manifest or independent review manifest is attached, all public
+fit-metric, Q-revision, model-weight, construct-validity, and sparse-superiority
+claims remain blocked.
+
 `mgmfrm_fit_threshold_q_heldout_linkage.json` links the literature-motivated
 fit-threshold sensitivity grid, empirical Q-matrix recovery simulation, heldout
 prediction simulation expectations, and observed fold-1 heldout scores. It

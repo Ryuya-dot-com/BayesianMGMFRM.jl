@@ -197,6 +197,11 @@
   policy artifacts. The review records only 24/500 threshold-profile job rows as
   passing, keeps local diagnostic model weights descriptive, and advances the
   next gate to external construct evidence plus independent public-scope review.
+- Add the external construct dataset / independent public-scope review gate,
+  which records the missing external dataset and independent review manifests,
+  carries two construct-validation scenarios forward, and keeps all public
+  MGMFRM fit-metric, model-weight, Q-revision, construct-validity, and
+  sparse-superiority claims blocked.
 - Extend the publication-grade refit runner so it can read either the pilot
   plan or the full batch-expansion plan via `--plan`, preserving pilot
   compatibility while enabling batch dry-runs and analytic reference jobs.

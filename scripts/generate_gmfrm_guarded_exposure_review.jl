@@ -1457,6 +1457,24 @@ function artifact_summary(name::Symbol, text::AbstractString)
         mgmfrm_publication_grade_refit_pilot_results_review_passed =
             json_bool(summary,
                 "mgmfrm_publication_grade_refit_pilot_results_review_passed"),
+        mgmfrm_publication_grade_refit_sampler_remediation_review_passed =
+            json_bool(summary,
+                "mgmfrm_publication_grade_refit_sampler_remediation_review_passed"),
+        mgmfrm_publication_grade_refit_scalar_remediation_comparison_passed =
+            json_bool(summary,
+                "mgmfrm_publication_grade_refit_scalar_remediation_comparison_passed"),
+        mgmfrm_publication_grade_refit_batch_expansion_plan_passed =
+            json_bool(summary,
+                "mgmfrm_publication_grade_refit_batch_expansion_plan_passed"),
+        mgmfrm_publication_grade_refit_batch_results_review_passed =
+            json_bool(summary,
+                "mgmfrm_publication_grade_refit_batch_results_review_passed"),
+        mgmfrm_publication_grade_threshold_model_weight_policy_review_passed =
+            json_bool(summary,
+                "mgmfrm_publication_grade_threshold_model_weight_policy_review_passed"),
+        mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed =
+            json_bool(summary,
+                "mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed"),
         prediction_target_and_model_weight_policy_passed =
             json_bool(summary,
                 "prediction_target_and_model_weight_policy_passed"),
@@ -1816,6 +1834,48 @@ function review_rows(records)
                 :mgmfrm_publication_grade_refit_pilot_execution_harness_passed)),
             finding =
                 :publication_grade_refit_execution_harness_recorded_runner_pending),
+        (gate = :confirmatory_mgmfrm_publication_grade_refit_pilot_results_review,
+            status = :passed_with_policy_blocker,
+            evidence = Bool(getproperty(full_archive.summary,
+                :mgmfrm_publication_grade_refit_pilot_results_review_passed)),
+            finding =
+                :publication_grade_refit_pilot_results_review_recorded_external_construct_pending),
+        (gate = :confirmatory_mgmfrm_publication_grade_refit_sampler_remediation_review,
+            status = :passed_with_policy_blocker,
+            evidence = Bool(getproperty(full_archive.summary,
+                :mgmfrm_publication_grade_refit_sampler_remediation_review_passed)),
+            finding =
+                :publication_grade_refit_sampler_remediation_review_recorded),
+        (gate = :confirmatory_mgmfrm_publication_grade_refit_scalar_remediation_comparison,
+            status = :passed_with_policy_blocker,
+            evidence = Bool(getproperty(full_archive.summary,
+                :mgmfrm_publication_grade_refit_scalar_remediation_comparison_passed)),
+            finding =
+                :publication_grade_refit_scalar_remediation_comparison_recorded),
+        (gate = :confirmatory_mgmfrm_publication_grade_refit_batch_expansion_plan,
+            status = :passed_with_policy_blocker,
+            evidence = Bool(getproperty(full_archive.summary,
+                :mgmfrm_publication_grade_refit_batch_expansion_plan_passed)),
+            finding =
+                :publication_grade_refit_batch_expansion_plan_recorded),
+        (gate = :confirmatory_mgmfrm_publication_grade_refit_batch_results_review,
+            status = :passed_with_policy_blocker,
+            evidence = Bool(getproperty(full_archive.summary,
+                :mgmfrm_publication_grade_refit_batch_results_review_passed)),
+            finding =
+                :publication_grade_refit_batch_results_review_recorded),
+        (gate = :confirmatory_mgmfrm_publication_grade_threshold_model_weight_policy_review,
+            status = :passed_with_policy_blocker,
+            evidence = Bool(getproperty(full_archive.summary,
+                :mgmfrm_publication_grade_threshold_model_weight_policy_review_passed)),
+            finding =
+                :publication_grade_threshold_model_weight_policy_review_recorded_claims_blocked),
+        (gate = :confirmatory_mgmfrm_external_construct_dataset_and_independent_public_scope_review,
+            status = :passed_with_policy_blocker,
+            evidence = Bool(getproperty(full_archive.summary,
+                :mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed)),
+            finding =
+                :external_construct_and_independent_public_scope_requirements_recorded_claims_blocked),
         (gate = :dff_estimand_and_validation_grid, status = :passed,
             evidence = Bool(dff_grid.summary.passed) &&
                 Bool(dff_grid.summary.all_estimands_predeclared) &&
@@ -2042,6 +2102,27 @@ function build_artifact()
             mgmfrm_publication_grade_refit_pilot_execution_harness_passed =
                 Bool(getproperty(full_archive.summary,
                     :mgmfrm_publication_grade_refit_pilot_execution_harness_passed)),
+            mgmfrm_publication_grade_refit_pilot_results_review_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_publication_grade_refit_pilot_results_review_passed)),
+            mgmfrm_publication_grade_refit_sampler_remediation_review_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_publication_grade_refit_sampler_remediation_review_passed)),
+            mgmfrm_publication_grade_refit_scalar_remediation_comparison_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_publication_grade_refit_scalar_remediation_comparison_passed)),
+            mgmfrm_publication_grade_refit_batch_expansion_plan_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_publication_grade_refit_batch_expansion_plan_passed)),
+            mgmfrm_publication_grade_refit_batch_results_review_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_publication_grade_refit_batch_results_review_passed)),
+            mgmfrm_publication_grade_threshold_model_weight_policy_review_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_publication_grade_threshold_model_weight_policy_review_passed)),
+            mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed)),
             prediction_target_and_model_weight_policy_passed =
                 Bool(prediction_policy.summary.passed),
             mgmfrm_manual_public_scope_review_for_fit_passed =
