@@ -78,7 +78,7 @@
       "artifact": "guarded_fit_api_dry_run",
       "path": "test/fixtures/mgmfrm_guarded_fit_api_dry_run.json",
       "exists": true,
-      "sha256": "5af1f707328bc0a3baf3a47e52932d1968ff181536cc8e59df17fc70cbb22087",
+      "sha256": "a642305321f8ab11935ce7560e7d86588e164ea2e5d673550179a259550df794",
       "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_api_dry_run.v1",
       "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_api_dry_run.v1",
       "schema_matches": true,
@@ -169,7 +169,7 @@
           "actual_status": "rejected",
           "rejected": true,
           "error_type": "ArgumentError",
-          "message": "ArgumentError: guarded local MGMFRM fitting currently supports only backend = :advancedhmc",
+          "message": "ArgumentError: experimental MGMFRM fit does not support backend = :julia. Supported configuration: (family = :mgmfrm, dimensions = \">=2\", thresholds = (:partial_credit,), discrimination = (:none,), q_matrix = :fixed_confirmatory, validation_bias_terms = (), anchors = ()). guarded MGMFRM fitting currently supports only backend = :advancedhmc",
           "passed": true
         }
       ],
@@ -287,7 +287,7 @@
           "actual_status": "rejected",
           "rejected": true,
           "error_type": "ArgumentError",
-          "message": "ArgumentError: guarded local MGMFRM fitting currently supports only backend = :advancedhmc",
+          "message": "ArgumentError: experimental MGMFRM fit does not support backend = :julia. Supported configuration: (family = :mgmfrm, dimensions = \">=2\", thresholds = (:partial_credit,), discrimination = (:none,), q_matrix = :fixed_confirmatory, validation_bias_terms = (), anchors = ()). guarded MGMFRM fitting currently supports only backend = :advancedhmc",
           "passed": true
         }
       ],

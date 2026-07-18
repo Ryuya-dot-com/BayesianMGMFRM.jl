@@ -77,7 +77,7 @@ At the local level, each topic has a specific near-term decision.
 | Category functioning | Rating-scale and partial-credit interpretations can fail when categories are skipped, disordered, sparse, or used differently by raters. | Add category-functioning rows that separate observed category use, posterior threshold/step uncertainty, predictive category replication, and any category-collapsing recommendation. Recommendations should be diagnostic, not automatic data editing. |
 | Missingness and rater assignment | MFRM assumes the observed rating graph can support the intended facet comparisons; nonrandom assignment, planned missingness, and time/order effects can change what is identifiable. | Add rating-design review rows: structural missingness, accidental missingness, disconnectedness, anchor coverage, repeated ratings, time/order fields, and warnings that current models do not correct nonignorable assignment unless an explicit assignment model is introduced. |
 | Binary responses and multi-facet IRT | The current MFRM family includes two-category responses as the dichotomous Rasch special case with additional facet terms. Guarded generalized paths add discrimination/consistency terms that move beyond strict Rasch measurement. | Document the binary bridge explicitly: MFRM is a many-facet one-parameter logistic IRT model; GMFRM/MGMFRM with item discrimination, rater consistency, or multidimensional Q-masked loadings should be labelled generalized or 2PL/GPCM-like, not strict Rasch. |
-| Infit, outfit, and FACETS degrees of freedom | `fit_stats` currently returns posterior infit/outfit mean-square summaries for minimal MFRM fits; generalized paths do not yet expose full FACETS-style fit tables or ZSTD degrees-of-freedom approximations. | Keep posterior infit/outfit as the default Bayesian residual diagnostic. Add a separate FACETS-compatibility policy that records MNSQ formula, `outfit_df`, `infit_information`, optional Wilson-Hilferty/ZSTD approximation, and clear warnings when posterior uncertainty or generalized discrimination makes FACETS degrees of freedom only approximate. |
+| Infit, outfit, and FACETS degrees of freedom | `fit_stats` returns posterior infit/outfit mean-square summaries for minimal MFRM fits. The separate `facets_report` / `facets_compatibility_stats` API now returns unit-weighted posterior-mean plugin rows with Wright--Masters fourth-moment infit/outfit df, capped Wilson--Hilferty ZSTD, and explicit approximation labels; generalized fits are rejected. | Keep posterior infit/outfit as the default Bayesian residual diagnostic. Retain the separate MFRM/RSM/PCM-only compatibility surface, and require simulation calibration before considering any experimental generalized extension. |
 | DFF and bias | DFF is validation and screening only: sparse/empty/confounded cells, grouped PPC rows, and posterior predictive interaction residuals. | Keep fitted DFF effects blocked through `v0.1.1`; use DFF rows for triage, design repair, and sensitivity planning, not unfairness or causal claims. |
 | Rater homogeneity | Posterior summaries support probability of direction and ROPE for individual parameters; pairwise rater contrasts are not yet first-class. | Add rater contrast summaries for severity and log-consistency using ROPE and HDI/credible intervals. Treat Bayes factors as optional and blocked from the default workflow until prior sensitivity is documented. |
 | Artifact schemas and data governance | Report bundles exist, but broad use requires stable schemas and clear handling of raw rating data. | Version report-table schemas, include manifest compatibility checks, and make raw-data inclusion opt-in. Public artifacts should prefer anonymized or hashed identifiers unless the user explicitly exports raw labels. |
@@ -400,13 +400,9 @@ predictive checks, and validation evidence before claims.
   GMFRM/MGMFRM variants with item discrimination, rater consistency, or
   multidimensional Q-masked loadings are generalized IRT models rather than
   strict Rasch models.
-- Add a FACETS-fit compatibility note for `fit_stats`: posterior infit/outfit
-  intervals remain the default Bayesian diagnostic; optional FACETS-style
-  rows should record the residual formula, `outfit_df = n_obs`,
-  `infit_information`, any Wilson-Hilferty/ZSTD approximation, and whether the
-  row is point-estimate, draw-wise, or posterior-predictive. Do not treat
-  FACETS degrees of freedom as exact for posterior-summarized generalized
-  fits.
+- Keep `fit_stats` as the default Bayesian fit diagnostic. Use the separate
+  `facets_report` compatibility surface only for labelled, unit-weighted
+  MFRM/RSM/PCM plugin rows; generalized fits remain rejected.
 - Add category-functioning report rows: observed category use by rater/item/
   dimension, skipped or sparse categories, posterior step/threshold
   uncertainty, predictive category replication, and diagnostic-only category

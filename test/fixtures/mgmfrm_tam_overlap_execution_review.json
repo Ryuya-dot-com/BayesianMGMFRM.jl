@@ -1,0 +1,319 @@
+{
+  "schema": "bayesianmgmfrm.mgmfrm_tam_overlap_execution_review.v1",
+  "family": "mfrm",
+  "scope": "tam_overlap_execution_review",
+  "status": "tam_overlap_execution_recorded",
+  "decision": "record_tam_execution_keep_external_validation_claim_blocked",
+  "local_only": true,
+  "external_software": "tam",
+  "tam_execution_completed": true,
+  "tam_parameter_table_extracted": true,
+  "parameter_comparison_completed": true,
+  "external_software_validation_completed": false,
+  "public_claim_release_allowed": false,
+  "publication_or_registration_action": false,
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "protocol": {
+    "protocol_id": "mgmfrm_tam_overlap_execution_review_v1",
+    "generator": "scripts/generate_mgmfrm_tam_overlap_execution_review.jl",
+    "generator_source_sha256": "7bd7aa822e933769910b78c14aef3df5d45b17e51e95a57b17e9fcd28d0484d3",
+    "baseline_artifact": "test/fixtures/mgmfrm_tam_overlap_baseline.json",
+    "baseline_artifact_sha256": "030b08987dca7e51565bb4e557d4287a3f18c737693e68b4677a9ca3f3d21783",
+    "baseline_csv": "test/fixtures/mgmfrm_tam_overlap_baseline.csv",
+    "baseline_csv_sha256": "60ce874fc88a62af292b50f3fcb6c8d8c73ecaea41efaa52ea58b104b9427b76",
+    "rscript_path": "/usr/local/bin/Rscript",
+    "r_command": "TAM_tam_mml_mfr",
+    "tam_formulaA": "~ item + rater + item:step",
+    "tam_constraint": "cases"
+  },
+  "tam_environment": {
+    "r_version": "R version 4.6.1 (2026-06-24)",
+    "tam_version": "4.3.25",
+    "rscript_path": "/usr/local/bin/Rscript"
+  },
+  "tam_fit_summary": {
+    "iter": 128,
+    "deviance": 1573.16999176995,
+    "eap_rel": 0.936491295334505,
+    "n_persons": 40,
+    "loglike": -786.584995884977,
+    "aic": 1611.16999176995,
+    "bic": 1643.25870139812,
+    "n_parameters": 19,
+    "stdout_contains_pseudo_facet_notice": true,
+    "stderr_empty": true
+  },
+  "tam_formula_adapter_audit": {
+    "fitted_formulaA": "~item + rater + item:step + psf",
+    "n_design_rows": 20,
+    "n_score_categories": 4,
+    "n_independent_xsi": 22,
+    "n_expanded_xsi": 29,
+    "n_constraint_rows": 7,
+    "n_item_step_constraint_rows": 5,
+    "rater_sum_abs": 0.0,
+    "pseudo_facet_max_abs": 0.0,
+    "item_step_sum_max_abs": 0.0,
+    "category_intercept_reconstruction_max_abs_error": 8.88178419700125e-16,
+    "interpretation": "expanded_facets_reconstruct_tam_category_intercepts_under_sum_constraints"
+  },
+  "tam_parameter_rows": [
+    {
+      "parameter": "1",
+      "facet": "item",
+      "xsi": 0.170148153082254,
+      "se_xsi": 0.0987011431105342
+    },
+    {
+      "parameter": "2",
+      "facet": "item",
+      "xsi": 0.509805464481089,
+      "se_xsi": 0.097220351451203
+    },
+    {
+      "parameter": "3",
+      "facet": "item",
+      "xsi": -0.534596233334414,
+      "se_xsi": 0.0988050338722458
+    },
+    {
+      "parameter": "4",
+      "facet": "item",
+      "xsi": 0.701595345739029,
+      "se_xsi": 0.100865220442028
+    },
+    {
+      "parameter": "5",
+      "facet": "item",
+      "xsi": 0.077245781001606,
+      "se_xsi": 0.0975055026273907
+    },
+    {
+      "parameter": "rater1",
+      "facet": "rater",
+      "xsi": -0.134372192576835,
+      "se_xsi": 0.0629850296568494
+    },
+    {
+      "parameter": "rater2",
+      "facet": "rater",
+      "xsi": -0.97549053742957,
+      "se_xsi": 0.0650620075376583
+    },
+    {
+      "parameter": "rater3",
+      "facet": "rater",
+      "xsi": 0.237878452271076,
+      "se_xsi": 0.0639970648671707
+    },
+    {
+      "parameter": "rater4",
+      "facet": "rater",
+      "xsi": 0.87198427773533,
+      "se_xsi": 0.110886442351251
+    },
+    {
+      "parameter": "psfPF11",
+      "facet": "psf",
+      "xsi": 0.0,
+      "se_xsi": 0.0
+    },
+    {
+      "parameter": "psfPF12",
+      "facet": "psf",
+      "xsi": 0.0,
+      "se_xsi": 0.0
+    },
+    {
+      "parameter": "psfPF13",
+      "facet": "psf",
+      "xsi": 0.0,
+      "se_xsi": 0.0
+    },
+    {
+      "parameter": "psfPF14",
+      "facet": "psf",
+      "xsi": 0.0,
+      "se_xsi": 0.0
+    },
+    {
+      "parameter": "psfPF15",
+      "facet": "psf",
+      "xsi": 0.0,
+      "se_xsi": 0.0
+    },
+    {
+      "parameter": "1:step1",
+      "facet": "item:step",
+      "xsi": -0.195856026576587,
+      "se_xsi": 0.172379541466898
+    },
+    {
+      "parameter": "2:step1",
+      "facet": "item:step",
+      "xsi": 0.35976497044455,
+      "se_xsi": 0.190206105736017
+    },
+    {
+      "parameter": "3:step1",
+      "facet": "item:step",
+      "xsi": 0.517731456817207,
+      "se_xsi": 0.175744107227573
+    },
+    {
+      "parameter": "4:step1",
+      "facet": "item:step",
+      "xsi": 0.282599142742445,
+      "se_xsi": 0.184468100217666
+    },
+    {
+      "parameter": "5:step1",
+      "facet": "item:step",
+      "xsi": -0.290765083008489,
+      "se_xsi": 0.173263689846858
+    },
+    {
+      "parameter": "1:step2",
+      "facet": "item:step",
+      "xsi": -0.38602412833473,
+      "se_xsi": 0.199472784687672
+    },
+    {
+      "parameter": "2:step2",
+      "facet": "item:step",
+      "xsi": -0.198460220935497,
+      "se_xsi": 0.248619233078211
+    },
+    {
+      "parameter": "3:step2",
+      "facet": "item:step",
+      "xsi": -1.0456942447647,
+      "se_xsi": 0.186516030853491
+    },
+    {
+      "parameter": "4:step2",
+      "facet": "item:step",
+      "xsi": -0.73218231480366,
+      "se_xsi": 0.219567531003426
+    },
+    {
+      "parameter": "5:step2",
+      "facet": "item:step",
+      "xsi": 0.0626934035776798,
+      "se_xsi": 0.216008719354227
+    },
+    {
+      "parameter": "1:step3",
+      "facet": "item:step",
+      "xsi": 0.581880154911317,
+      "se_xsi": 0.263636298994263
+    },
+    {
+      "parameter": "2:step3",
+      "facet": "item:step",
+      "xsi": -0.161304749509053,
+      "se_xsi": 0.313033361985042
+    },
+    {
+      "parameter": "3:step3",
+      "facet": "item:step",
+      "xsi": 0.527962787947492,
+      "se_xsi": 0.256269820678435
+    },
+    {
+      "parameter": "4:step3",
+      "facet": "item:step",
+      "xsi": 0.449583172061215,
+      "se_xsi": 0.286772349902942
+    },
+    {
+      "parameter": "5:step3",
+      "facet": "item:step",
+      "xsi": 0.228071679430809,
+      "se_xsi": 0.276911670134
+    }
+  ],
+  "parameter_comparison_rows": [
+    {
+      "block": "item_difficulty",
+      "n_parameters": 5,
+      "adapter": "center_truth_and_tam_item_facets",
+      "pearson_correlation": 0.9987017912179644,
+      "mean_abs_difference": 0.0643202826222943,
+      "max_abs_difference": 0.13899734766510674,
+      "mean_signed_difference": -3.3306690738754695e-17,
+      "interpretation": "diagnostic_overlap_not_claim_threshold"
+    },
+    {
+      "block": "rater_severity",
+      "n_parameters": 4,
+      "adapter": "center_truth_and_tam_rater_facets",
+      "pearson_correlation": 0.9926991075723863,
+      "mean_abs_difference": 0.07685997533035005,
+      "max_abs_difference": 0.1343721925768352,
+      "mean_signed_difference": 6.938893903907228e-18,
+      "interpretation": "diagnostic_overlap_not_claim_threshold"
+    },
+    {
+      "block": "item_step",
+      "n_parameters": 15,
+      "adapter": "expanded_tam_item_step_sum_constraint_adapter",
+      "pearson_correlation": 0.7134617834114387,
+      "mean_abs_difference": 0.27856178362477235,
+      "max_abs_difference": 0.5812717340036275,
+      "mean_signed_difference": -8.326672684688674e-17,
+      "interpretation": "structurally_audited_numerically_pilot_only"
+    }
+  ],
+  "adapter_notes": [
+    {
+      "adapter": "center_truth_and_tam_item_facets",
+      "scope": "item_difficulty",
+      "claim_role": "diagnostic_overlap_only"
+    },
+    {
+      "adapter": "center_truth_and_tam_rater_facets",
+      "scope": "rater_severity",
+      "claim_role": "diagnostic_overlap_only"
+    },
+    {
+      "adapter": "expanded_tam_item_step_sum_constraint_adapter",
+      "scope": "item_step",
+      "claim_role": "structurally_audited_numerically_pilot_only"
+    }
+  ],
+  "output_hashes": {
+    "transient_tam_xsi_facets_csv_sha256": "16a2ebad5b86633695f2beb9029f6f12a6595442a7f06dabbf58350a292f7605",
+    "transient_tam_summary_csv_sha256": "f1fbd9a0193ac6e8cc2062826c6330681e18535fd2da5648394a332f462920e9",
+    "transient_tam_formula_audit_csv_sha256": "5ebdfcf94e3c2cf39ec449ae736f4a083ac8e00aff1f22fa27dc0edbc685523f"
+  },
+  "claim_limits": [
+    "single_local_tam_overlap_execution_only",
+    "parameter_differences_include_sampling_error",
+    "item_step_adapter_structure_audited_single_pilot_only",
+    "no_facets_or_conquest_execution",
+    "no_generalized_gmfrm_or_mgmfrm_external_validation",
+    "no_external_construct_validity_claim",
+    "no_public_claim_release"
+  ],
+  "summary": {
+    "passed": true,
+    "tam_execution_completed": true,
+    "tam_parameter_table_extracted": true,
+    "parameter_comparison_completed": true,
+    "external_software_validation_completed": false,
+    "public_claim_release_allowed": false,
+    "n_tam_parameter_rows": 29,
+    "n_item_rows": 5,
+    "n_rater_rows": 4,
+    "n_item_step_rows": 15,
+    "n_pseudo_facet_rows": 5,
+    "n_parameter_comparison_rows": 3,
+    "formula_adapter_audit_completed": true,
+    "next_gate": "freeze_prospective_tam_thresholds_and_run_multireplication_comparison"
+  }
+}

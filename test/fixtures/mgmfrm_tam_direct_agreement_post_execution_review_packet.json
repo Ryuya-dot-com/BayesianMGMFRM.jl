@@ -1,0 +1,784 @@
+{
+  "schema": "bayesianmgmfrm.mgmfrm_tam_direct_agreement_post_execution_review_packet.v1",
+  "family": "mfrm",
+  "scope": "tam_direct_agreement_independent_post_execution_review_packet",
+  "status": "packet_frozen_review_not_completed",
+  "decision": "freeze_post_execution_review_packet_keep_public_claims_blocked",
+  "local_only": true,
+  "tam_direct_local_execution_completed": true,
+  "scheduled_execution_recorded": true,
+  "external_software_validation_completed": false,
+  "independent_review_completed": false,
+  "signed_review_manifest_attached": false,
+  "public_claim_release_allowed": false,
+  "publication_or_registration_action": false,
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "protocol": {
+    "protocol_id": "mgmfrm_tam_direct_agreement_post_execution_review_packet_v1",
+    "review_kind": "independent_scientific_computational_and_reproducibility_review",
+    "generator": "scripts/generate_mgmfrm_tam_direct_agreement_post_execution_review_packet.jl",
+    "generator_source_sha256": "0315e6b63bb0e6d6674696c4d596ca5c7134c1004171aa7389854aff650aae3c",
+    "generated_after_execution": true,
+    "distinct_from_pre_execution_packet": true,
+    "pre_execution_packet_remains_immutable": true,
+    "signed_review_manifest_required": true,
+    "independent_reexecution_required": true
+  },
+  "required_input_rows": [
+    {
+      "input": "multireplication_result",
+      "path": "test/fixtures/mgmfrm_tam_direct_agreement_multireplication.json",
+      "sha256": "a6005308f566cb3dc5ff10121d48a09360e88627a527a3fe305bff8d5cb32c45",
+      "schema": "bayesianmgmfrm.mgmfrm_tam_direct_agreement_multireplication.v1",
+      "present": true,
+      "role": "completed_execution_and_decision_record",
+      "reviewer_must_verify": true
+    },
+    {
+      "input": "all_attempt_raw_archive_audit",
+      "path": "test/fixtures/mgmfrm_tam_direct_agreement_raw_archive_audit.json",
+      "sha256": "9c8bbebfed817471a1055d1ef8cffe63e94b561c3efc6eed03b66ce5fe7664a0",
+      "schema": "bayesianmgmfrm.mgmfrm_tam_direct_agreement_raw_archive_audit.v1",
+      "present": true,
+      "role": "raw_hash_and_retry_accounting",
+      "reviewer_must_verify": true
+    },
+    {
+      "input": "frozen_policy",
+      "path": "test/fixtures/mgmfrm_tam_direct_agreement_policy.json",
+      "sha256": "f3fcdcbb46bd2be105db82436bc42b6b3792641b393f5b9bd254048417c4c6a5",
+      "schema": "bayesianmgmfrm.mgmfrm_tam_direct_agreement_policy.v1",
+      "present": true,
+      "role": "pre_execution_primary_threshold_contract",
+      "reviewer_must_verify": true
+    },
+    {
+      "input": "policy_refinement",
+      "path": "test/fixtures/mgmfrm_tam_direct_agreement_policy_refinement.json",
+      "sha256": "4136714e14954aaae722f65d4b58437e821e0178be1ab61d5926d28df43fe358",
+      "schema": "bayesianmgmfrm.mgmfrm_tam_direct_agreement_policy_refinement.v1",
+      "present": true,
+      "role": "pre_execution_interpretation_and_execution_contract",
+      "reviewer_must_verify": true
+    },
+    {
+      "input": "pre_execution_independent_review_packet",
+      "path": "test/fixtures/mgmfrm_literature_anchored_independent_review_packet.json",
+      "sha256": "696a9ad921d2bc68c42a6e095ef130d356f1cc893cd99405b58c1f68a2619e02",
+      "schema": "bayesianmgmfrm.mgmfrm_literature_anchored_independent_review_packet.v1",
+      "present": true,
+      "role": "immutable_pre_execution_review_snapshot",
+      "reviewer_must_verify": true
+    }
+  ],
+  "source_hash_chain_valid": true,
+  "core_source_hash_chain_valid": true,
+  "pre_execution_lineage": {
+    "exact_input_lineage": false,
+    "policy_hash_matches": true,
+    "refinement_hash_matches": false,
+    "immutable_pre_execution_packet_preserved": true,
+    "post_execution_regeneration_used_to_erase_mismatch": false,
+    "status": "refinement_snapshot_hash_mismatch_requires_independent_review"
+  },
+  "decision_layers": {
+    "primary_policy": {
+      "decision": "pass",
+      "passed": true,
+      "rule": "all_three_n100_blocks_pass_at_least_four_of_five_runs"
+    },
+    "scientific_interpretation": {
+      "classification": "local_numerical_agreement_with_both_recovery_profiles",
+      "safe_local_wording": "locally_frozen_synthetic_fully_crossed_unit_discrimination_mfrm_pcm_runs_met_the_numerical_agreement_rule_against_tam",
+      "independent_review_pending": true
+    },
+    "recovery_qualifiers": {
+      "package_passed": true,
+      "tam_passed": true,
+      "both_passed": true,
+      "changes_primary_agreement_decision": false
+    },
+    "computation_and_protocol": {
+      "valid": true,
+      "all_protocol_alignment_valid": true,
+      "all_tam_executions_valid": true,
+      "all_package_sampler_gates_passed": true,
+      "all_attempt_raw_archive_audit_passed": true
+    }
+  },
+  "primary_scenario_block_rows": [
+    {
+      "block": "item_difficulty",
+      "direct_fragility_class": "all_five_pass",
+      "direct_n_passed": 5,
+      "direct_pass_rate": 1,
+      "direct_primary_block_passed": true,
+      "maximum_package_vs_tam_max_abs_difference": 0.04829156143182434,
+      "maximum_package_vs_tam_mean_abs_difference": 0.02518453588378581,
+      "median_package_vs_tam_max_abs_difference": 0.04301486244655117,
+      "median_package_vs_tam_mean_abs_difference": 0.02357326405263321,
+      "median_package_vs_tam_pearson": 0.9998409397222171,
+      "minimum_package_vs_tam_pearson": 0.9996625525438088,
+      "minimum_tam_inside_package_interval95_rate": 1,
+      "n_persons": 100,
+      "n_replications": 5,
+      "package_recovery_qualifier_passed": true,
+      "package_truth_n_passed": 5,
+      "package_truth_pass_rate": 1,
+      "primary_gate_row": true,
+      "tam_recovery_qualifier_passed": true,
+      "tam_truth_n_passed": 5,
+      "tam_truth_pass_rate": 1,
+      "triangle_classification": "both_recover"
+    },
+    {
+      "block": "rater_severity",
+      "direct_fragility_class": "all_five_pass",
+      "direct_n_passed": 5,
+      "direct_pass_rate": 1,
+      "direct_primary_block_passed": true,
+      "maximum_package_vs_tam_max_abs_difference": 0.07746281176785286,
+      "maximum_package_vs_tam_mean_abs_difference": 0.04006846200758652,
+      "median_package_vs_tam_max_abs_difference": 0.06821922507551925,
+      "median_package_vs_tam_mean_abs_difference": 0.03820004384762976,
+      "median_package_vs_tam_pearson": 0.9999815040584438,
+      "minimum_package_vs_tam_pearson": 0.9999635338149336,
+      "minimum_tam_inside_package_interval95_rate": 1,
+      "n_persons": 100,
+      "n_replications": 5,
+      "package_recovery_qualifier_passed": true,
+      "package_truth_n_passed": 5,
+      "package_truth_pass_rate": 1,
+      "primary_gate_row": true,
+      "tam_recovery_qualifier_passed": true,
+      "tam_truth_n_passed": 5,
+      "tam_truth_pass_rate": 1,
+      "triangle_classification": "both_recover"
+    },
+    {
+      "block": "item_step",
+      "direct_fragility_class": "all_five_pass",
+      "direct_n_passed": 5,
+      "direct_pass_rate": 1,
+      "direct_primary_block_passed": true,
+      "maximum_package_vs_tam_max_abs_difference": 0.14734170927591728,
+      "maximum_package_vs_tam_mean_abs_difference": 0.06632251396392659,
+      "median_package_vs_tam_max_abs_difference": 0.09888112059441012,
+      "median_package_vs_tam_mean_abs_difference": 0.05659597058395006,
+      "median_package_vs_tam_pearson": 0.984508932315435,
+      "minimum_package_vs_tam_pearson": 0.9812541366186737,
+      "minimum_tam_inside_package_interval95_rate": 1,
+      "n_persons": 100,
+      "n_replications": 5,
+      "package_recovery_qualifier_passed": true,
+      "package_truth_n_passed": 5,
+      "package_truth_pass_rate": 1,
+      "primary_gate_row": true,
+      "tam_recovery_qualifier_passed": true,
+      "tam_truth_n_passed": 5,
+      "tam_truth_pass_rate": 1,
+      "triangle_classification": "both_recover"
+    }
+  ],
+  "all_scenario_block_rows": [
+    {
+      "block": "item_difficulty",
+      "direct_fragility_class": "all_five_pass",
+      "direct_n_passed": 5,
+      "direct_pass_rate": 1,
+      "direct_primary_block_passed": false,
+      "maximum_package_vs_tam_max_abs_difference": 0.05339608487096603,
+      "maximum_package_vs_tam_mean_abs_difference": 0.02603543004796331,
+      "median_package_vs_tam_max_abs_difference": 0.03986327181471566,
+      "median_package_vs_tam_mean_abs_difference": 0.02051121644789853,
+      "median_package_vs_tam_pearson": 0.9996603263331736,
+      "minimum_package_vs_tam_pearson": 0.9991277187150867,
+      "minimum_tam_inside_package_interval95_rate": 1,
+      "n_persons": 40,
+      "n_replications": 5,
+      "package_recovery_qualifier_passed": false,
+      "package_truth_n_passed": 4,
+      "package_truth_pass_rate": 0.8,
+      "primary_gate_row": false,
+      "tam_recovery_qualifier_passed": false,
+      "tam_truth_n_passed": 4,
+      "tam_truth_pass_rate": 0.8,
+      "triangle_classification": "neither"
+    },
+    {
+      "block": "rater_severity",
+      "direct_fragility_class": "all_five_pass",
+      "direct_n_passed": 5,
+      "direct_pass_rate": 1,
+      "direct_primary_block_passed": false,
+      "maximum_package_vs_tam_max_abs_difference": 0.07910043789289056,
+      "maximum_package_vs_tam_mean_abs_difference": 0.03955021894644524,
+      "median_package_vs_tam_max_abs_difference": 0.06742099494527076,
+      "median_package_vs_tam_mean_abs_difference": 0.03519339791264171,
+      "median_package_vs_tam_pearson": 0.9999687984631503,
+      "minimum_package_vs_tam_pearson": 0.9999265705497024,
+      "minimum_tam_inside_package_interval95_rate": 1,
+      "n_persons": 40,
+      "n_replications": 5,
+      "package_recovery_qualifier_passed": false,
+      "package_truth_n_passed": 5,
+      "package_truth_pass_rate": 1,
+      "primary_gate_row": false,
+      "tam_recovery_qualifier_passed": false,
+      "tam_truth_n_passed": 5,
+      "tam_truth_pass_rate": 1,
+      "triangle_classification": "neither"
+    },
+    {
+      "block": "item_step",
+      "direct_fragility_class": "all_five_pass",
+      "direct_n_passed": 5,
+      "direct_pass_rate": 1,
+      "direct_primary_block_passed": false,
+      "maximum_package_vs_tam_max_abs_difference": 0.25539621330658036,
+      "maximum_package_vs_tam_mean_abs_difference": 0.08873555244864766,
+      "median_package_vs_tam_max_abs_difference": 0.14629317031558892,
+      "median_package_vs_tam_mean_abs_difference": 0.06549380966976776,
+      "median_package_vs_tam_pearson": 0.9873770726106708,
+      "minimum_package_vs_tam_pearson": 0.9852784340269022,
+      "minimum_tam_inside_package_interval95_rate": 1,
+      "n_persons": 40,
+      "n_replications": 5,
+      "package_recovery_qualifier_passed": false,
+      "package_truth_n_passed": 3,
+      "package_truth_pass_rate": 0.6,
+      "primary_gate_row": false,
+      "tam_recovery_qualifier_passed": false,
+      "tam_truth_n_passed": 3,
+      "tam_truth_pass_rate": 0.6,
+      "triangle_classification": "neither"
+    },
+    {
+      "block": "item_difficulty",
+      "direct_fragility_class": "all_five_pass",
+      "direct_n_passed": 5,
+      "direct_pass_rate": 1,
+      "direct_primary_block_passed": true,
+      "maximum_package_vs_tam_max_abs_difference": 0.04829156143182434,
+      "maximum_package_vs_tam_mean_abs_difference": 0.02518453588378581,
+      "median_package_vs_tam_max_abs_difference": 0.04301486244655117,
+      "median_package_vs_tam_mean_abs_difference": 0.02357326405263321,
+      "median_package_vs_tam_pearson": 0.9998409397222171,
+      "minimum_package_vs_tam_pearson": 0.9996625525438088,
+      "minimum_tam_inside_package_interval95_rate": 1,
+      "n_persons": 100,
+      "n_replications": 5,
+      "package_recovery_qualifier_passed": true,
+      "package_truth_n_passed": 5,
+      "package_truth_pass_rate": 1,
+      "primary_gate_row": true,
+      "tam_recovery_qualifier_passed": true,
+      "tam_truth_n_passed": 5,
+      "tam_truth_pass_rate": 1,
+      "triangle_classification": "both_recover"
+    },
+    {
+      "block": "rater_severity",
+      "direct_fragility_class": "all_five_pass",
+      "direct_n_passed": 5,
+      "direct_pass_rate": 1,
+      "direct_primary_block_passed": true,
+      "maximum_package_vs_tam_max_abs_difference": 0.07746281176785286,
+      "maximum_package_vs_tam_mean_abs_difference": 0.04006846200758652,
+      "median_package_vs_tam_max_abs_difference": 0.06821922507551925,
+      "median_package_vs_tam_mean_abs_difference": 0.03820004384762976,
+      "median_package_vs_tam_pearson": 0.9999815040584438,
+      "minimum_package_vs_tam_pearson": 0.9999635338149336,
+      "minimum_tam_inside_package_interval95_rate": 1,
+      "n_persons": 100,
+      "n_replications": 5,
+      "package_recovery_qualifier_passed": true,
+      "package_truth_n_passed": 5,
+      "package_truth_pass_rate": 1,
+      "primary_gate_row": true,
+      "tam_recovery_qualifier_passed": true,
+      "tam_truth_n_passed": 5,
+      "tam_truth_pass_rate": 1,
+      "triangle_classification": "both_recover"
+    },
+    {
+      "block": "item_step",
+      "direct_fragility_class": "all_five_pass",
+      "direct_n_passed": 5,
+      "direct_pass_rate": 1,
+      "direct_primary_block_passed": true,
+      "maximum_package_vs_tam_max_abs_difference": 0.14734170927591728,
+      "maximum_package_vs_tam_mean_abs_difference": 0.06632251396392659,
+      "median_package_vs_tam_max_abs_difference": 0.09888112059441012,
+      "median_package_vs_tam_mean_abs_difference": 0.05659597058395006,
+      "median_package_vs_tam_pearson": 0.984508932315435,
+      "minimum_package_vs_tam_pearson": 0.9812541366186737,
+      "minimum_tam_inside_package_interval95_rate": 1,
+      "n_persons": 100,
+      "n_replications": 5,
+      "package_recovery_qualifier_passed": true,
+      "package_truth_n_passed": 5,
+      "package_truth_pass_rate": 1,
+      "primary_gate_row": true,
+      "tam_recovery_qualifier_passed": true,
+      "tam_truth_n_passed": 5,
+      "tam_truth_pass_rate": 1,
+      "triangle_classification": "both_recover"
+    }
+  ],
+  "failure_rows": [
+    {
+      "detail": "rank_or_ebfmi_advisory_false",
+      "failure": "sampler_advisory_warning",
+      "job_id": "n040_rep03"
+    },
+    {
+      "detail": "rank_or_ebfmi_advisory_false",
+      "failure": "sampler_advisory_warning",
+      "job_id": "n040_rep05"
+    },
+    {
+      "detail": "rank_or_ebfmi_advisory_false",
+      "failure": "sampler_advisory_warning",
+      "job_id": "n100_rep02"
+    },
+    {
+      "detail": "rank_or_ebfmi_advisory_false",
+      "failure": "sampler_advisory_warning",
+      "job_id": "n100_rep05"
+    }
+  ],
+  "retry_accounting": {
+    "documented_selected_retry_rows": [
+      {
+        "attempt": 2,
+        "attempt_integrity_passed": true,
+        "engine_failure": false,
+        "error_message": null,
+        "error_type": null,
+        "execution_completed": true,
+        "file_manifest_sha256": "b8980809a90a15bc36362f092e81017294a6f1675b2f1eda22516302a44b7ab7",
+        "generator_source_sha256": "09df8a5138d40e533ed3f8c7fbf85e2fe885e645cf758e16628ac4516800caae",
+        "infrastructure_retry": true,
+        "infrastructure_retry_reason": "runner_serialization_bug_fixed_before_result_write",
+        "job_id": "n040_rep01",
+        "n_actual_payload_files": 19,
+        "n_files": 20,
+        "n_recorded_payload_files": 19,
+        "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02",
+        "recorded_file_rows_match_actual": true,
+        "recorded_manifest_fingerprint": "dada26c39e23183e1faeb36756d69515f3ffac333c128672f92712b756dfeb58",
+        "recorded_manifest_fingerprint_matches": true,
+        "recorded_manifest_fingerprint_present": true,
+        "recorded_manifest_fingerprint_status": "matched",
+        "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/job_result.json",
+        "result_sha256": "2a4fb00e3229671f37d9a4b7e408ef6d9343366d31570da612f7065bf3c1fea3",
+        "retry_attempt_matches": true,
+        "safe_manifest_paths": true,
+        "selected": true
+      }
+    ],
+    "failed_attempt_rows": [
+      {
+        "attempt": 1,
+        "attempt_integrity_passed": true,
+        "engine_failure": true,
+        "error_message": "UndefVarError: `keys` not defined in local scope\nSuggestion: check for an assignment to a local variable that shadows a global of the same name.\nHint: a global variable of this name also exists in Base.",
+        "error_type": "UndefVarError",
+        "execution_completed": false,
+        "file_manifest_sha256": "123f452897c78df2efa23d01e6ffc5e08c2cc528d67b7d21cde72603c6c6481e",
+        "generator_source_sha256": "18da6449e71cf078dbbfc5d675a82c79e7a1b7d4e1cb8624b1101bf20c73e6a2",
+        "infrastructure_retry": false,
+        "infrastructure_retry_reason": null,
+        "job_id": "n040_rep01",
+        "n_actual_payload_files": 19,
+        "n_files": 20,
+        "n_recorded_payload_files": 19,
+        "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01",
+        "recorded_file_rows_match_actual": true,
+        "recorded_manifest_fingerprint": null,
+        "recorded_manifest_fingerprint_matches": null,
+        "recorded_manifest_fingerprint_present": false,
+        "recorded_manifest_fingerprint_status": "missing_from_engine_failure_record_recomputed_by_audit",
+        "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01/job_result.json",
+        "result_sha256": "0a7b07a6bf6a6603c89ce62eeed583a6c79453a921e3a180b8c78bd76e0a6eff",
+        "retry_attempt_matches": true,
+        "safe_manifest_paths": true,
+        "selected": false
+      }
+    ],
+    "failed_attempts_excluded_from_archive": false,
+    "n_documented_selected_retries": 1,
+    "n_failed_attempts": 1,
+    "n_nonselected_attempts": 1,
+    "nonselected_attempt_rows": [
+      {
+        "attempt": 1,
+        "attempt_integrity_passed": true,
+        "engine_failure": true,
+        "error_message": "UndefVarError: `keys` not defined in local scope\nSuggestion: check for an assignment to a local variable that shadows a global of the same name.\nHint: a global variable of this name also exists in Base.",
+        "error_type": "UndefVarError",
+        "execution_completed": false,
+        "file_manifest_sha256": "123f452897c78df2efa23d01e6ffc5e08c2cc528d67b7d21cde72603c6c6481e",
+        "generator_source_sha256": "18da6449e71cf078dbbfc5d675a82c79e7a1b7d4e1cb8624b1101bf20c73e6a2",
+        "infrastructure_retry": false,
+        "infrastructure_retry_reason": null,
+        "job_id": "n040_rep01",
+        "n_actual_payload_files": 19,
+        "n_files": 20,
+        "n_recorded_payload_files": 19,
+        "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01",
+        "recorded_file_rows_match_actual": true,
+        "recorded_manifest_fingerprint": null,
+        "recorded_manifest_fingerprint_matches": null,
+        "recorded_manifest_fingerprint_present": false,
+        "recorded_manifest_fingerprint_status": "missing_from_engine_failure_record_recomputed_by_audit",
+        "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01/job_result.json",
+        "result_sha256": "0a7b07a6bf6a6603c89ce62eeed583a6c79453a921e3a180b8c78bd76e0a6eff",
+        "retry_attempt_matches": true,
+        "safe_manifest_paths": true,
+        "selected": false
+      }
+    ],
+    "replacement_seed_used": false,
+    "selected_attempt_denominator_reduced": false
+  },
+  "review_task_rows": [
+    {
+      "task": "frozen_policy_integrity",
+      "required_evidence": "policy_refinement_and_result_hash_chain",
+      "reviewer_required": true,
+      "reviewer_decision": "pending_independent_review",
+      "completed": false,
+      "blocks_public_claim_release": true
+    },
+    {
+      "task": "pre_execution_chronology_and_amendment",
+      "required_evidence": "immutable_pre_execution_packet_hashes_compared_with_final_execution_inputs",
+      "reviewer_required": true,
+      "reviewer_decision": "pending_independent_review",
+      "completed": false,
+      "blocks_public_claim_release": true
+    },
+    {
+      "task": "protocol_alignment",
+      "required_evidence": "all_ten_jobs_follow_the_frozen_design_and_seed_registry",
+      "reviewer_required": true,
+      "reviewer_decision": "pending_independent_review",
+      "completed": false,
+      "blocks_public_claim_release": true
+    },
+    {
+      "task": "tam_execution_validity",
+      "required_evidence": "per_job_tam_version_convergence_formula_and_constraint_checks",
+      "reviewer_required": true,
+      "reviewer_decision": "pending_independent_review",
+      "completed": false,
+      "blocks_public_claim_release": true
+    },
+    {
+      "task": "package_sampler_validity",
+      "required_evidence": "frozen_sampler_gate_on_all_ten_scheduled_fits",
+      "reviewer_required": true,
+      "reviewer_decision": "pending_independent_review",
+      "completed": false,
+      "blocks_public_claim_release": true
+    },
+    {
+      "task": "primary_gate_independent_recomputation",
+      "required_evidence": "n100_four_of_five_rule_for_all_three_parameter_blocks",
+      "reviewer_required": true,
+      "reviewer_decision": "pending_independent_review",
+      "completed": false,
+      "blocks_public_claim_release": true
+    },
+    {
+      "task": "stress_condition_review",
+      "required_evidence": "n40_results_reported_separately_from_the_primary_gate",
+      "reviewer_required": true,
+      "reviewer_decision": "pending_independent_review",
+      "completed": false,
+      "blocks_public_claim_release": true
+    },
+    {
+      "task": "truth_recovery_separation",
+      "required_evidence": "package_and_tam_recovery_are_qualifiers_not_agreement_metrics",
+      "reviewer_required": true,
+      "reviewer_decision": "pending_independent_review",
+      "completed": false,
+      "blocks_public_claim_release": true
+    },
+    {
+      "task": "interval_and_rope_interpretation",
+      "required_evidence": "interval_inclusion_and_conditional_rope_are_not_equivalence_tests",
+      "reviewer_required": true,
+      "reviewer_decision": "pending_independent_review",
+      "completed": false,
+      "blocks_public_claim_release": true
+    },
+    {
+      "task": "chain_stability_and_rank_advisories",
+      "required_evidence": "pooled_chain_decision_stability_and_rank_diagnostics",
+      "reviewer_required": true,
+      "reviewer_decision": "pending_independent_review",
+      "completed": false,
+      "blocks_public_claim_release": true
+    },
+    {
+      "task": "failure_and_retry_accounting",
+      "required_evidence": "all_attempts_retained_and_retry_does_not_reduce_denominator",
+      "reviewer_required": true,
+      "reviewer_decision": "pending_independent_review",
+      "completed": false,
+      "blocks_public_claim_release": true
+    },
+    {
+      "task": "raw_archive_hash_verification",
+      "required_evidence": "selected_and_nonselected_attempt_file_hash_manifest",
+      "reviewer_required": true,
+      "reviewer_decision": "pending_independent_review",
+      "completed": false,
+      "blocks_public_claim_release": true
+    },
+    {
+      "task": "independent_reexecution",
+      "required_evidence": "fresh_environment_reexecution_against_recorded_versions",
+      "reviewer_required": true,
+      "reviewer_decision": "pending_independent_review",
+      "completed": false,
+      "blocks_public_claim_release": true
+    },
+    {
+      "task": "claim_scope_review",
+      "required_evidence": "mfrm_pcm_only_no_package_wide_or_construct_validity_claim",
+      "reviewer_required": true,
+      "reviewer_decision": "pending_independent_review",
+      "completed": false,
+      "blocks_public_claim_release": true
+    },
+    {
+      "task": "uto_gmfrm_mgmfrm_nonextrapolation",
+      "required_evidence": "no_transfer_beyond_the_executed_unidimensional_unit_slope_scope",
+      "reviewer_required": true,
+      "reviewer_decision": "pending_independent_review",
+      "completed": false,
+      "blocks_public_claim_release": true
+    }
+  ],
+  "reviewer_manifest_field_rows": [
+    {
+      "field": "schema",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_equal_tam_direct_post_execution_review_manifest_v1",
+      "placeholder_policy": "reviewer_supplied_no_default"
+    },
+    {
+      "field": "reviewer_name_or_id",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_identify_the_independent_reviewer_or_review_body",
+      "placeholder_policy": "reviewer_supplied_no_default"
+    },
+    {
+      "field": "reviewer_independence_statement",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_state_independence_from_package_authorship_and_execution",
+      "placeholder_policy": "reviewer_supplied_no_default"
+    },
+    {
+      "field": "conflict_of_interest_statement",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_record_conflicts_or_no_conflicts",
+      "placeholder_policy": "reviewer_supplied_no_default"
+    },
+    {
+      "field": "review_date",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_be_an_explicit_date",
+      "placeholder_policy": "reviewer_supplied_no_default"
+    },
+    {
+      "field": "reviewed_packet_sha256",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_match_this_generated_packet",
+      "placeholder_policy": "reviewer_supplied_no_default"
+    },
+    {
+      "field": "reviewed_result_sha256",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_match_the_multireplication_result",
+      "placeholder_policy": "reviewer_supplied_no_default"
+    },
+    {
+      "field": "reviewed_raw_audit_sha256",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_match_the_all_attempt_raw_archive_audit",
+      "placeholder_policy": "reviewer_supplied_no_default"
+    },
+    {
+      "field": "independent_environment_record",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_record_os_julia_r_tam_and_package_versions",
+      "placeholder_policy": "reviewer_supplied_no_default"
+    },
+    {
+      "field": "independent_reexecution_record",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_record_commands_exit_statuses_and_output_hashes",
+      "placeholder_policy": "reviewer_supplied_no_default"
+    },
+    {
+      "field": "per_task_decision_table",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_decide_every_review_task",
+      "placeholder_policy": "reviewer_supplied_no_default"
+    },
+    {
+      "field": "per_claim_decision_table",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_allow_block_or_request_revision_for_every_claim",
+      "placeholder_policy": "reviewer_supplied_no_default"
+    },
+    {
+      "field": "required_revisions",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_list_required_revisions_or_explicitly_state_none",
+      "placeholder_policy": "reviewer_supplied_no_default"
+    },
+    {
+      "field": "signature",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_include_a_dated_signature_or_equivalent_audit_record",
+      "placeholder_policy": "reviewer_supplied_no_default"
+    }
+  ],
+  "claim_review_rows": [
+    {
+      "claim": "safe_local_outcome_wording",
+      "wording": "locally_frozen_synthetic_fully_crossed_unit_discrimination_mfrm_pcm_runs_met_the_numerical_agreement_rule_against_tam",
+      "artifact_support": true,
+      "primary_direct_gate_passed": true,
+      "tested_scope_only": true,
+      "reviewer_decision": "pending_independent_review",
+      "public_claim_allowed": false
+    },
+    {
+      "claim": "package_and_tam_estimators_are_equivalent",
+      "wording": "prohibited_equivalence_claim",
+      "artifact_support": false,
+      "tested_scope_only": false,
+      "reviewer_decision": "must_remain_blocked",
+      "public_claim_allowed": false
+    },
+    {
+      "claim": "tam_validates_the_package",
+      "wording": "prohibited_package_wide_validation_claim",
+      "artifact_support": false,
+      "tested_scope_only": false,
+      "reviewer_decision": "must_remain_blocked",
+      "public_claim_allowed": false
+    },
+    {
+      "claim": "gmfrm_or_mgmfrm_validated",
+      "wording": "prohibited_generalized_model_transfer",
+      "artifact_support": false,
+      "tested_scope_only": false,
+      "reviewer_decision": "must_remain_blocked",
+      "public_claim_allowed": false
+    },
+    {
+      "claim": "uto_2021_reproduced_or_externally_validated",
+      "wording": "prohibited_source_study_validation_claim",
+      "artifact_support": false,
+      "tested_scope_only": false,
+      "reviewer_decision": "must_remain_blocked",
+      "public_claim_allowed": false
+    },
+    {
+      "claim": "construct_population_fairness_or_performance_validity",
+      "wording": "prohibited_construct_or_population_transfer",
+      "artifact_support": false,
+      "tested_scope_only": false,
+      "reviewer_decision": "must_remain_blocked",
+      "public_claim_allowed": false
+    }
+  ],
+  "decision_record": {
+    "selected_decision": "post_execution_packet_frozen",
+    "packet_integrity_passed": true,
+    "independent_reviewer_assigned": false,
+    "independent_reexecution_completed": false,
+    "signed_review_manifest_attached": false,
+    "independent_review_completed": false,
+    "public_claim_release_allowed": false,
+    "required_followup": "assign_independent_reviewer_reexecute_and_attach_signed_manifest"
+  },
+  "claim_limits": [
+    "local_tam_comparison_is_not_package_wide_external_validation",
+    "agreement_and_truth_recovery_are_distinct_evidence_layers",
+    "interval_inclusion_is_not_frequentist_coverage",
+    "conditional_rope_is_advisory_not_an_equivalence_test",
+    "five_replications_give_imprecise_pass_rates",
+    "synthetic_fully_crossed_fixed_truth_scope_only",
+    "no_sparse_unbalanced_real_data_or_construct_validity",
+    "no_facets_or_conquest_execution",
+    "no_gmfrm_mgmfrm_or_uto_2021_result_transfer",
+    "pre_execution_packet_refinement_hash_mismatch_preserved_for_review",
+    "independent_review_and_reexecution_pending",
+    "no_public_claim_release"
+  ],
+  "summary": {
+    "passed": true,
+    "packet_integrity_passed": true,
+    "source_hash_chain_valid": true,
+    "core_source_hash_chain_valid": true,
+    "pre_execution_packet_exact_input_lineage": false,
+    "pre_execution_packet_policy_hash_matches": true,
+    "pre_execution_packet_refinement_hash_matches": false,
+    "tam_direct_local_execution_completed": true,
+    "scheduled_execution_recorded": true,
+    "execution_valid": true,
+    "primary_policy_decision": "pass",
+    "scientific_interpretation": "local_numerical_agreement_with_both_recovery_profiles",
+    "primary_direct_gate_passed": true,
+    "package_recovery_qualifier_passed": true,
+    "tam_recovery_qualifier_passed": true,
+    "n_required_inputs": 5,
+    "n_review_tasks": 15,
+    "n_reviewer_manifest_fields": 14,
+    "n_claim_rows": 6,
+    "n_primary_scenario_block_rows": 3,
+    "independent_review_completed": false,
+    "signed_review_manifest_attached": false,
+    "external_software_validation_completed": false,
+    "public_claim_release_allowed": false,
+    "remaining_public_blockers": [
+      "independent_reviewer_not_assigned",
+      "independent_reexecution_not_completed",
+      "signed_review_manifest_not_attached",
+      "per_task_review_decisions_missing",
+      "per_claim_review_decisions_missing",
+      "external_construct_validity_not_supplied",
+      "pre_execution_packet_refinement_hash_lineage_mismatch"
+    ],
+    "recommendation": "send_frozen_packet_to_independent_reviewer_without_claim_release",
+    "next_gate": "assign_independent_reviewer_reexecute_and_attach_signed_manifest"
+  }
+}

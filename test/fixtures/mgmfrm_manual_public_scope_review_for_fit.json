@@ -132,7 +132,7 @@
       "artifact": "guarded_fit_method_wiring",
       "path": "test/fixtures/mgmfrm_guarded_fit_method_wiring.json",
       "exists": true,
-      "sha256": "945e80d4bc82fccdc0539008152ccd6ca5b6b447d403a8db07f4f818e6d712a9",
+      "sha256": "a9404175445ea42f397012675bd08c7c93b4968bd38a516f0ab56fc9eb75f704",
       "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_method_wiring.v1",
       "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_method_wiring.v1",
       "schema_matches": true,
@@ -151,7 +151,7 @@
       "artifact": "guarded_fit_validation_grid",
       "path": "test/fixtures/mgmfrm_guarded_fit_validation_grid.json",
       "exists": true,
-      "sha256": "c0fabba97e8b05e1d24eb230930e0670fd4a8398057de8c5f45bd6a0072472fb",
+      "sha256": "8e57f0524634740a98c81c517822b161e071e474dfaffe7dc8f3e3f8957d9af2",
       "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_validation_grid.v1",
       "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_validation_grid.v1",
       "schema_matches": true,
@@ -169,7 +169,7 @@
       "artifact": "guarded_fit_api_dry_run",
       "path": "test/fixtures/mgmfrm_guarded_fit_api_dry_run.json",
       "exists": true,
-      "sha256": "5af1f707328bc0a3baf3a47e52932d1968ff181536cc8e59df17fc70cbb22087",
+      "sha256": "a642305321f8ab11935ce7560e7d86588e164ea2e5d673550179a259550df794",
       "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_api_dry_run.v1",
       "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_api_dry_run.v1",
       "schema_matches": true,
@@ -190,7 +190,7 @@
       "artifact": "guarded_fit_public_exposure_review",
       "path": "test/fixtures/mgmfrm_guarded_fit_public_exposure_review.json",
       "exists": true,
-      "sha256": "3011139b5e4e42d796759745d7ed41384fb4ff7098eeb0007980a7d0755ba620",
+      "sha256": "bd21d5176c28ffd168610dda613d7fbf1de018da1469ae4e58df5334cb9710e6",
       "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_public_exposure_review.v1",
       "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_public_exposure_review.v1",
       "schema_matches": true,
@@ -208,7 +208,7 @@
       "artifact": "prediction_target_and_model_weight_policy",
       "path": "test/fixtures/gmfrm_prediction_target_and_model_weight_policy.json",
       "exists": true,
-      "sha256": "6b5c5824d1c3fc84f090a10c70f58b9d77bdf9803ea68c69aa48170b5767dd7c",
+      "sha256": "aa4c76a441bd49ca676d7ab36c409a521a2c4adcb9042174881ac5c081dfe9ce",
       "expected_schema": "bayesianmgmfrm.gmfrm_prediction_target_and_model_weight_policy.v1",
       "schema": "bayesianmgmfrm.gmfrm_prediction_target_and_model_weight_policy.v1",
       "schema_matches": true,
@@ -266,7 +266,7 @@
       "actual_status": "rejected",
       "rejected": true,
       "error_type": "MethodError",
-      "message": "MethodError: no method matching fit(::BayesianMGMFRM.FacetDesign; experimental::Bool, ndraws::Int64, warmup::Int64)\nThis method does not support all of the given keyword arguments (and may not support any).\n\nClosest candidates are:\n  fit(::BayesianMGMFRM.FacetDesign; prior, backend, ndraws, warmup, chains, step_size, init, rng, seed, target_accept, max_depth, max_energy_error, metric, ad_backend, init_jitter, progress) got unsupported keyword argument \"experimental\"\n   @ BayesianMGMFRM ~/Dropbox/MFRM_Application/BayesianMGMFRM.jl/src/bayesian_fit.jl:1062\n  fit(!Matched::BayesianMGMFRM.FacetSpec; experimental, kwargs...)\n   @ BayesianMGMFRM ~/Dropbox/MFRM_Application/BayesianMGMFRM.jl/src/bayesian_fit.jl:3128\n",
+      "message": "MethodError: no method matching fit(::BayesianMGMFRM.FacetDesign; experimental::Bool, ndraws::Int64, warmup::Int64)\nThis method does not support all of the given keyword arguments (and may not support any).\n\nClosest candidates are:\n  fit(::BayesianMGMFRM.FacetDesign; prior, backend, ndraws, warmup, chains, step_size, init, rng, seed, target_accept, max_depth, max_energy_error, metric, ad_backend, init_jitter, progress) got unsupported keyword argument \"experimental\"\n  fit(!Matched::BayesianMGMFRM.FacetSpec; experimental, kwargs...)\n",
       "passed": true
     },
     {
@@ -275,7 +275,7 @@
       "actual_status": "rejected",
       "rejected": true,
       "error_type": "ArgumentError",
-      "message": "ArgumentError: guarded local MGMFRM fitting currently supports only backend = :advancedhmc",
+      "message": "ArgumentError: experimental MGMFRM fit does not support backend = :julia. Supported configuration: (family = :mgmfrm, dimensions = \">=2\", thresholds = (:partial_credit,), discrimination = (:none,), q_matrix = :fixed_confirmatory, validation_bias_terms = (), anchors = ()). guarded MGMFRM fitting currently supports only backend = :advancedhmc",
       "passed": true
     }
   ],
@@ -304,7 +304,7 @@
       "actual_status": "rejected",
       "rejected": true,
       "error_type": "MethodError",
-      "message": "MethodError: no method matching fit(::BayesianMGMFRM.FacetDesign; experimental::Bool, ndraws::Int64, warmup::Int64)\nThis method does not support all of the given keyword arguments (and may not support any).\n\nClosest candidates are:\n  fit(::BayesianMGMFRM.FacetDesign; prior, backend, ndraws, warmup, chains, step_size, init, rng, seed, target_accept, max_depth, max_energy_error, metric, ad_backend, init_jitter, progress) got unsupported keyword argument \"experimental\"\n   @ BayesianMGMFRM ~/Dropbox/MFRM_Application/BayesianMGMFRM.jl/src/bayesian_fit.jl:1062\n  fit(!Matched::BayesianMGMFRM.FacetSpec; experimental, kwargs...)\n   @ BayesianMGMFRM ~/Dropbox/MFRM_Application/BayesianMGMFRM.jl/src/bayesian_fit.jl:3128\n",
+      "message": "MethodError: no method matching fit(::BayesianMGMFRM.FacetDesign; experimental::Bool, ndraws::Int64, warmup::Int64)\nThis method does not support all of the given keyword arguments (and may not support any).\n\nClosest candidates are:\n  fit(::BayesianMGMFRM.FacetDesign; prior, backend, ndraws, warmup, chains, step_size, init, rng, seed, target_accept, max_depth, max_energy_error, metric, ad_backend, init_jitter, progress) got unsupported keyword argument \"experimental\"\n  fit(!Matched::BayesianMGMFRM.FacetSpec; experimental, kwargs...)\n",
       "passed": true
     },
     {
@@ -313,7 +313,7 @@
       "actual_status": "rejected",
       "rejected": true,
       "error_type": "ArgumentError",
-      "message": "ArgumentError: guarded local MGMFRM fitting currently supports only backend = :advancedhmc",
+      "message": "ArgumentError: experimental MGMFRM fit does not support backend = :julia. Supported configuration: (family = :mgmfrm, dimensions = \">=2\", thresholds = (:partial_credit,), discrimination = (:none,), q_matrix = :fixed_confirmatory, validation_bias_terms = (), anchors = ()). guarded MGMFRM fitting currently supports only backend = :advancedhmc",
       "passed": true
     }
   ],

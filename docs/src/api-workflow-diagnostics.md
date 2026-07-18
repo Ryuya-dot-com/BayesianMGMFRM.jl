@@ -48,4 +48,6 @@ separation_reliability_summary
 rater_diagnostics
 residual_summary
 fit_stats
+facets_report
+facets_compatibility_stats
 ```

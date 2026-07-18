@@ -57,7 +57,7 @@ manifest = model_manifest(spec)
 println("Manifest: object=", manifest.object,
     ", family=", manifest.spec.family,
     ", dimensions=", manifest.spec.dimensions,
-    ", estimation_status=", manifest.spec.estimation_status)
+    ", status=experimental preview")
 
 fit_result = fit(spec;
     experimental = true,
@@ -77,15 +77,16 @@ println("Fit metadata: backend=", metadata.backend,
     ", sampler=", metadata.sampler,
     ", draws=", metadata.n_draws,
     ", chains=", metadata.n_chains,
-    ", experimental_public=", metadata.experimental_public,
-    ", guarded_local_fit=", metadata.guarded_local_fit)
+    ", status=experimental")
 artifact = fit_artifact(fit_result; include_environment = false)
 println("Fit artifact: schema=", artifact.schema,
     ", q_matrix=", artifact.q_matrix,
     ", diagnostics=", artifact.diagnostics.summary.flag)
 report = fit_report(fit_result;
+    view = :public,
     draw_indices = [1, 2],
     include_loo = false,
+    rng = MersenneTwister(20260632),
     artifact_include_environment = false)
 println("Fit report: schema=", report.schema,
     ", direct_posterior_rows=", report.direct_posterior.n_rows,

@@ -11,6 +11,19 @@ using Serialization
 import AdvancedHMC
 import BayesianMGMFRM
 import LogDensityProblemsAD
+
+include(joinpath(dirname(@__DIR__), "scripts", "local_json.jl"))
+
+module RuntimePublicLanguagePolicyForTest
+
+include(joinpath(@__DIR__, "..", "scripts", "public_language_gate.jl"))
+
+end
+
+
+const RuntimePublicLanguagePolicy =
+    RuntimePublicLanguagePolicyForTest.PublicLanguageGate
+
 using BayesianMGMFRM:
     FacetData,
     anchor_linking_summary,
@@ -35,6 +48,8 @@ using BayesianMGMFRM:
     evidence_artifact_schema_policy,
     evidence_metadata,
     expected_scores,
+    facets_compatibility_stats,
+    facets_report,
     facet_response_table,
     fair_average_summary,
     falsification_rule_summary,
@@ -44,6 +59,7 @@ using BayesianMGMFRM:
     fit_artifact,
     fit_cache_key,
     fit_report,
+    fit_report_public,
     fit_report_dossier,
     fit_report_dossier_markdown,
     fit_report_markdown,
@@ -2409,6 +2425,18 @@ function check_gmfrm_guarded_fit_method_wiring_fixture(fixture_path::AbstractStr
     @test String(
         rejection_by_check[:fit_experimental_non_rater_discrimination][:next_gate],
     ) == "item_discrimination_promotion_decision"
+    for check_name in (
+            :fit_experimental_unsupported_backend,
+            :fit_experimental_public_mfrm_prior,
+            :fit_experimental_dff_effects,
+            :fit_experimental_non_rater_discrimination)
+        message = String(rejection_by_check[check_name][:message])
+        @test occursin("does not support", message)
+        @test occursin("Supported configuration:", message)
+        @test !occursin("blocked_option", message)
+        @test !occursin("next_gate", message)
+        @test Bool(rejection_by_check[check_name][:actionable_gate_message])
+    end
 
     decision = fixture[:decision_record]
     @test Bool(decision[:public_fit_allowed])
@@ -3705,7 +3733,7 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
     @test Bool(thresholds[:require_real_data_case_study_passed])
 
     fixture_records = fixture[:fixture_records]
-    @test length(fixture_records) == 18
+    @test length(fixture_records) == 21
     @test Set(String(row[:artifact]) for row in fixture_records) == Set([
         "candidate_chain_study",
         "stress_chain_grid",
@@ -3724,6 +3752,9 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
         "prior_likelihood_sensitivity_grid",
         "real_data_case_study",
         "guarded_fit_api_dry_run",
+        "tam_direct_agreement_multireplication",
+        "tam_direct_agreement_raw_archive_audit",
+        "tam_direct_agreement_post_execution_review_packet",
         "guarded_exposure_review",
     ])
     for row in fixture_records
@@ -3734,6 +3765,10 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
         @test occursin("julia --project=. scripts/generate_",
             String(row[:generation_command]))
         @test !isempty(String(row[:env_var]))
+        if startswith(String(row[:artifact]), "tam_direct_agreement")
+            @test String(row[:evidence_scope]) ==
+                "mfrm_tam_overlap_nontransfer"
+        end
         if String(row[:artifact]) == "guarded_exposure_review"
             @test String(row[:hash_policy]) ==
                 "existence_only_avoids_archive_review_hash_cycle"
@@ -3760,18 +3795,23 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
     end
 
     code_doc_records = fixture[:code_doc_records]
-    @test length(code_doc_records) == 13
+    @test length(code_doc_records) == 17
     @test all(row -> Bool(row[:exists]), code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_gmfrm_claim_recovery_reproduction_archive.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) == "scripts/local_json.jl",
         code_doc_records)
     @test all(row -> String(row[:sha256]) ==
         file_sha256(joinpath(root, String(row[:path]))), code_doc_records)
 
     full_commands = fixture[:full_regeneration_commands]
-    @test length(full_commands) == 19
-    @test [Int(row[:step]) for row in full_commands] == collect(1:19)
+    @test length(full_commands) == 22
+    @test [Int(row[:step]) for row in full_commands] == collect(1:22)
     @test all(row -> Bool(row[:local_only]), full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "tam_direct_agreement_multireplication" &&
+        endswith(String(row[:command]), "--aggregate-only"), full_commands)
     @test String(full_commands[end - 1][:artifact]) ==
         "claim_recovery_reproduction_archive"
     @test String(full_commands[end][:artifact]) == "guarded_exposure_review"
@@ -3802,6 +3842,11 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
         "satisfied_for_broader_experimental_exposure_decision_followup"
     @test String(decision[:interpretation]) ==
         "claim_level_recovery_reproduction_archive_recorded"
+    @test String(decision[:tam_direct_evidence_scope]) ==
+        "mfrm_tam_overlap_nontransfer"
+    @test Bool(decision[:tam_direct_evidence_transfers_to_scalar_gmfrm]) ==
+        false
+    @test Bool(decision[:tam_independent_review_completed]) == false
     @test String(decision[:required_followup]) ==
         "broader_experimental_exposure_decision_review"
 
@@ -3824,8 +3869,19 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
     @test Bool(summary[:no_publication_commands])
     @test Bool(summary[:guarded_exposure_review_passed])
     @test Bool(summary[:real_data_case_study_passed])
+    @test Bool(summary[:tam_direct_primary_gate_passed])
+    @test Bool(summary[:tam_raw_archive_integrity_passed])
+    @test Bool(summary[:tam_post_packet_integrity_passed])
+    @test Bool(summary[:tam_independent_review_completed]) == false
+    @test Bool(summary[:tam_pre_execution_exact_input_lineage]) == false
+    @test Bool(summary[
+        :tam_direct_evidence_transfers_to_scalar_gmfrm]) == false
     @test Set(String(blocker) for blocker in summary[:remaining_public_blockers]) ==
-        Set(["broader_experimental_exposure_decision_review_missing"])
+        Set([
+            "broader_experimental_exposure_decision_review_missing",
+            "tam_direct_independent_review_pending",
+            "tam_pre_execution_refinement_lineage_adjudication_pending",
+        ])
     @test String(summary[:recommendation]) ==
         "keep_guarded_experimental_until_broader_exposure_decision_review"
     @test String(summary[:next_gate]) ==
@@ -3873,6 +3929,12 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     @test Bool(thresholds[:require_guarded_exposure_review_passed])
     @test Bool(thresholds[:require_broader_exposure_review_passed])
     @test Bool(thresholds[:require_manuscript_scale_simulation_grid_passed])
+    @test Bool(thresholds[:require_tam_direct_execution_recorded])
+    @test Bool(thresholds[:require_tam_raw_archive_integrity_passed])
+    @test Bool(thresholds[:require_tam_post_execution_packet_integrity_passed])
+    @test Bool(thresholds[:require_tam_independent_review_pending_recorded])
+    @test Bool(thresholds[:require_tam_pre_execution_lineage_mismatch_recorded])
+    @test Bool(thresholds[:require_tam_evidence_nontransfer_to_gmfrm_mgmfrm])
     @test Bool(thresholds[:require_mgmfrm_sparse_recovery_grid_passed])
     @test Bool(thresholds[:require_mgmfrm_report_shape_simulation_grid_passed])
     @test Bool(thresholds[:require_mgmfrm_q_matrix_validation_expansion_passed])
@@ -3931,6 +3993,10 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     @test Bool(thresholds[
         :require_mgmfrm_publication_grade_refit_batch_expansion_plan_passed])
     @test Bool(thresholds[
+        :require_mgmfrm_publication_grade_refit_batch_smoke_execution_review_passed])
+    @test Bool(thresholds[
+        :require_mgmfrm_publication_grade_refit_well_specified_scenario_execution_review_passed])
+    @test Bool(thresholds[
         :require_mgmfrm_publication_grade_refit_batch_results_review_passed])
     @test Bool(thresholds[
         :require_mgmfrm_publication_grade_threshold_model_weight_policy_review_passed])
@@ -3988,6 +4054,12 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
             "test/fixtures/gmfrm_real_data_case_study.json",
         "claim_recovery_reproduction_archive" =>
             "test/fixtures/gmfrm_claim_recovery_reproduction_archive.json",
+        "tam_direct_agreement_multireplication" =>
+            "test/fixtures/mgmfrm_tam_direct_agreement_multireplication.json",
+        "tam_direct_agreement_raw_archive_audit" =>
+            "test/fixtures/mgmfrm_tam_direct_agreement_raw_archive_audit.json",
+        "tam_direct_agreement_post_execution_review_packet" =>
+            "test/fixtures/mgmfrm_tam_direct_agreement_post_execution_review_packet.json",
         "broader_experimental_exposure_decision_review" =>
             "test/fixtures/gmfrm_broader_experimental_exposure_decision_review.json",
         "dff_estimand_validation_grid" =>
@@ -4062,6 +4134,10 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
             "test/fixtures/mgmfrm_publication_grade_refit_scalar_remediation_comparison.json",
         "mgmfrm_publication_grade_refit_batch_expansion_plan" =>
             "test/fixtures/mgmfrm_publication_grade_refit_batch_expansion_plan.json",
+        "mgmfrm_publication_grade_refit_batch_smoke_execution_review" =>
+            "test/fixtures/mgmfrm_publication_grade_refit_batch_smoke_execution_review.json",
+        "mgmfrm_publication_grade_refit_well_specified_scenario_execution_review" =>
+            "test/fixtures/mgmfrm_publication_grade_refit_well_specified_scenario_execution_review.json",
         "mgmfrm_publication_grade_refit_batch_results_review" =>
             "test/fixtures/mgmfrm_publication_grade_refit_batch_results_review.json",
         "mgmfrm_publication_grade_threshold_model_weight_policy_review" =>
@@ -4097,6 +4173,11 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         @test Bool(row[:summary_passed])
         @test Bool(row[:generator_exists])
         @test !isempty(String(row[:env_var]))
+        if artifact ==
+                "mgmfrm_publication_grade_refit_batch_results_review"
+            @test occursin("--read-local-artifacts",
+                String(row[:generation_command]))
+        end
         if artifact in (
                 "broader_experimental_exposure_decision_review",
                 "guarded_exposure_review",
@@ -4112,11 +4193,20 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     end
 
     code_doc_records = fixture[:code_doc_records]
-    @test length(code_doc_records) == 64
+    @test length(code_doc_records) == 86
     @test all(row -> Bool(row[:exists]), code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_gmfrm_full_paper_reproduction_archive.jl",
         code_doc_records)
+    @test any(row -> String(row[:path]) ==
+        "examples/guarded_gmfrm.jl",
+        code_doc_records)
+    @test all(path -> any(row -> String(row[:path]) == path,
+            code_doc_records), [
+        "test/facets_compatibility_stats.jl",
+        "test/generalized_guard_contract.jl",
+        "test/publication_grade_policy_contract.jl",
+    ])
     @test any(row -> String(row[:path]) ==
         "scripts/generate_mgmfrm_report_shape_simulation_grid.jl",
         code_doc_records)
@@ -4211,6 +4301,12 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         "scripts/generate_mgmfrm_publication_grade_refit_batch_expansion_plan.jl",
         code_doc_records)
     @test any(row -> String(row[:path]) ==
+        "scripts/generate_mgmfrm_publication_grade_refit_batch_smoke_execution_review.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) ==
+        "scripts/generate_mgmfrm_publication_grade_refit_well_specified_scenario_execution_review.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) ==
         "scripts/generate_mgmfrm_publication_grade_refit_batch_results_review.jl",
         code_doc_records)
     @test any(row -> String(row[:path]) ==
@@ -4224,6 +4320,15 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_mgmfrm_external_construct_attachment_request_packet.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) ==
+        "scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) ==
+        "scripts/generate_mgmfrm_tam_direct_agreement_raw_archive_audit.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) ==
+        "scripts/generate_mgmfrm_tam_direct_agreement_post_execution_review_packet.jl",
         code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_mgmfrm_guarded_fit_method_wiring.jl",
@@ -4260,8 +4365,9 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     end
 
     full_commands = fixture[:full_regeneration_commands]
-    @test length(full_commands) == 68
-    @test [Int(row[:step]) for row in full_commands] == collect(1:68)
+    @test length(full_commands) == 73
+    @test [Int(row[:step]) for row in full_commands] == collect(1:73)
+    @test allunique(String(row[:artifact]) for row in full_commands)
     @test all(row -> Bool(row[:local_only]), full_commands)
     @test any(row -> String(row[:artifact]) ==
         "mgmfrm_report_shape_simulation_grid", full_commands)
@@ -4337,8 +4443,77 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         "mgmfrm_publication_grade_refit_batch_expansion_plan",
         full_commands)
     @test any(row -> String(row[:artifact]) ==
+        "mgmfrm_publication_grade_refit_batch_smoke_execution_review",
+        full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "mgmfrm_publication_grade_refit_well_specified_scenario_execution_review",
+        full_commands)
+    @test any(row -> String(row[:artifact]) ==
         "mgmfrm_publication_grade_refit_batch_results_review",
         full_commands)
+    batch_review_command = only(row for row in full_commands
+        if String(row[:artifact]) ==
+            "mgmfrm_publication_grade_refit_batch_results_review")
+    @test occursin("--read-local-artifacts",
+        String(batch_review_command[:command]))
+
+    function command_generator_basename(command)
+        token = only(filter(part -> startswith(part, "scripts/"),
+            split(String(command))))
+        return basename(token)
+    end
+
+    function collect_hashed_fixture_paths!(paths::Set{String}, value)
+        if value isa AbstractDict
+            sha = get(value, :sha256, nothing)
+            if sha isa AbstractString && !isempty(sha)
+                for key in (:path, :artifact)
+                    candidate = get(value, key, nothing)
+                    if candidate isa AbstractString &&
+                            startswith(candidate, "test/fixtures/")
+                        push!(paths, String(candidate))
+                    end
+                end
+            end
+            for child in values(value)
+                collect_hashed_fixture_paths!(paths, child)
+            end
+        elseif value isa AbstractVector
+            for child in value
+                collect_hashed_fixture_paths!(paths, child)
+            end
+        end
+        return paths
+    end
+
+    step_by_artifact = Dict(
+        String(row[:artifact]) => Int(row[:step]) for row in full_commands)
+    artifact_by_generator = Dict(
+        command_generator_basename(row[:command]) => String(row[:artifact])
+        for row in full_commands)
+    artifact_by_path = Dict{String,String}()
+    for row in fixture_records
+        generator = basename(String(row[:generator]))
+        @test haskey(artifact_by_generator, generator)
+        haskey(artifact_by_generator, generator) || continue
+        artifact_by_path[String(row[:path])] =
+            artifact_by_generator[generator]
+    end
+
+    @testset "full regeneration SHA dependency order" begin
+        for (consumer_path, consumer) in artifact_by_path
+            document = JSON3.read(read(joinpath(root, consumer_path), String))
+            dependencies = collect_hashed_fixture_paths!(
+                Set{String}(), document)
+            for dependency_path in dependencies
+                haskey(artifact_by_path, dependency_path) || continue
+                dependency = artifact_by_path[dependency_path]
+                dependency == consumer && continue
+                @test step_by_artifact[dependency] <
+                    step_by_artifact[consumer]
+            end
+        end
+    end
     @test any(row -> String(row[:artifact]) ==
         "mgmfrm_publication_grade_threshold_model_weight_policy_review",
         full_commands)
@@ -4353,6 +4528,9 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         full_commands)
     @test any(row -> String(row[:artifact]) ==
         "prediction_target_and_model_weight_policy", full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "tam_direct_agreement_multireplication" &&
+        endswith(String(row[:command]), "--aggregate-only"), full_commands)
     @test String(full_commands[end - 3][:artifact]) ==
         "gmfrm_full_paper_reproduction_archive"
     @test String(full_commands[end][:artifact]) == "gmfrm_guarded_exposure_review"
@@ -4384,6 +4562,11 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     @test Bool(decision[:mgmfrm_fit_allowed])
     @test Bool(decision[:manuscript_reproducibility_claims_supported])
     @test Bool(decision[:publication_or_registration_action]) == false
+    @test String(decision[:tam_direct_evidence_scope]) ==
+        "mfrm_tam_overlap_nontransfer"
+    @test Bool(decision[
+        :tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm]) == false
+    @test Bool(decision[:tam_independent_review_completed]) == false
     @test String(decision[:required_followup]) ==
         "manual_publication_or_registration_by_user_only"
 
@@ -4407,6 +4590,13 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     @test Bool(summary[:all_commands_local_only])
     @test Bool(summary[:no_publication_commands])
     @test Bool(summary[:claim_recovery_reproduction_archive_passed])
+    @test Bool(summary[:tam_direct_primary_gate_passed])
+    @test Bool(summary[:tam_raw_archive_integrity_passed])
+    @test Bool(summary[:tam_post_packet_integrity_passed])
+    @test Bool(summary[:tam_independent_review_completed]) == false
+    @test Bool(summary[:tam_pre_execution_exact_input_lineage]) == false
+    @test Bool(summary[
+        :tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm]) == false
     @test Bool(summary[:guarded_exposure_review_passed])
     @test Bool(summary[:broader_experimental_exposure_decision_review_passed])
     @test Bool(summary[:manuscript_scale_simulation_grid_passed])
@@ -4458,6 +4648,10 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     @test Bool(summary[
         :mgmfrm_publication_grade_refit_batch_expansion_plan_passed])
     @test Bool(summary[
+        :mgmfrm_publication_grade_refit_batch_smoke_execution_review_passed])
+    @test Bool(summary[
+        :mgmfrm_publication_grade_refit_well_specified_scenario_execution_review_passed])
+    @test Bool(summary[
         :mgmfrm_publication_grade_refit_batch_results_review_passed])
     @test Bool(summary[
         :mgmfrm_publication_grade_threshold_model_weight_policy_review_passed])
@@ -4474,8 +4668,11 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     @test Bool(summary[:prediction_target_and_model_weight_policy_passed])
     @test Bool(summary[:mgmfrm_manual_public_scope_review_for_fit_passed])
     @test Bool(summary[:manuscript_reproducibility_claims_supported])
-    @test Int(summary[:n_blockers]) == 0
-    @test isempty(summary[:remaining_public_blockers])
+    @test Int(summary[:n_blockers]) == 2
+    @test Set(String.(summary[:remaining_public_blockers])) == Set([
+        "tam_direct_independent_review_pending",
+        "tam_pre_execution_refinement_lineage_adjudication_pending",
+    ])
     @test String(summary[:recommendation]) ==
         "full_paper_reproduction_archive_recorded_keep_publication_manual"
     @test String(summary[:next_gate]) ==
@@ -4851,7 +5048,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     evidence_rows = fixture[:evidence_rows]
     @test length(evidence_rows) == length(input_artifacts)
     @test all(row -> String(row[:status]) == "passed", evidence_rows)
-    @test Int(sum(Int(row[:n_evidence_cells]) for row in evidence_rows)) == 5585
+    @test Int(sum(Int(row[:n_evidence_cells]) for row in evidence_rows)) == 5596
     @test any(row -> String(row[:gate]) == "prior_likelihood_sensitivity_grid" &&
         Int(row[:n_evidence_cells]) == 45, evidence_rows)
     @test any(row -> String(row[:gate]) ==
@@ -5021,7 +5218,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     @test Bool(summary[:all_primary_checks_passed])
     @test Int(summary[:n_input_artifacts]) == length(input_artifacts)
     @test Int(summary[:n_evidence_rows]) == length(evidence_rows)
-    @test Int(summary[:total_evidence_cells]) == 5585
+    @test Int(summary[:total_evidence_cells]) == 5596
     @test Int(summary[:minimum_required_evidence_cells]) == 60
     @test Bool(summary[:scalar_fit_validation_grid_passed])
     @test Bool(summary[:posterior_predictive_grid_passed])
@@ -5124,6 +5321,12 @@ function check_gmfrm_broader_experimental_exposure_decision_review_fixture(
     @test Bool(thresholds[:require_prediction_target_and_model_weight_policy_passed])
     @test Bool(thresholds[:require_dff_estimand_validation_grid_passed])
     @test Bool(thresholds[:require_manuscript_scale_simulation_grid_passed])
+    @test Bool(thresholds[:require_tam_direct_execution_recorded])
+    @test Bool(thresholds[:require_tam_raw_archive_integrity_passed])
+    @test Bool(thresholds[:require_tam_post_execution_packet_integrity_passed])
+    @test Bool(thresholds[:require_tam_independent_review_pending_recorded])
+    @test Bool(thresholds[:require_tam_pre_execution_lineage_mismatch_recorded])
+    @test Bool(thresholds[:require_tam_evidence_nontransfer_to_gmfrm_mgmfrm])
     @test Bool(thresholds[:require_full_paper_reproduction_archive_passed])
     @test Bool(thresholds[:require_scalar_guarded_fit_kept_enabled])
     @test Bool(thresholds[:require_mgmfrm_fit_kept_internal])
@@ -5134,7 +5337,7 @@ function check_gmfrm_broader_experimental_exposure_decision_review_fixture(
     @test Bool(thresholds[:require_no_publication_commands])
 
     input_artifacts = fixture[:input_artifacts]
-    @test length(input_artifacts) == 17
+    @test length(input_artifacts) == 20
     expected_paths = Dict(
         "guarded_exposure_review" =>
             "test/fixtures/gmfrm_guarded_exposure_review.json",
@@ -5166,6 +5369,12 @@ function check_gmfrm_broader_experimental_exposure_decision_review_fixture(
             "test/fixtures/gmfrm_dff_estimand_validation_grid.json",
         "manuscript_scale_simulation_grid" =>
             "test/fixtures/gmfrm_manuscript_scale_simulation_grid.json",
+        "tam_direct_agreement_multireplication" =>
+            "test/fixtures/mgmfrm_tam_direct_agreement_multireplication.json",
+        "tam_direct_agreement_raw_archive_audit" =>
+            "test/fixtures/mgmfrm_tam_direct_agreement_raw_archive_audit.json",
+        "tam_direct_agreement_post_execution_review_packet" =>
+            "test/fixtures/mgmfrm_tam_direct_agreement_post_execution_review_packet.json",
         "full_paper_reproduction_archive" =>
             "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
         "mgmfrm_bridge_oracle" =>
@@ -5195,7 +5404,7 @@ function check_gmfrm_broader_experimental_exposure_decision_review_fixture(
     end
 
     decisions = fixture[:scope_decision_rows]
-    @test length(decisions) == 6
+    @test length(decisions) == 7
     scalar = only(row for row in decisions
         if String(row[:surface]) == "scalar_gmfrm_guarded_fit")
     @test String(scalar[:decision]) == "keep_enabled_guarded_experimental"
@@ -5219,10 +5428,20 @@ function check_gmfrm_broader_experimental_exposure_decision_review_fixture(
         String(row[:decision]) == "policy_recorded_keep_public_claims_blocked" &&
         Bool(row[:evidence]) &&
         Bool(row[:public_fit]) == false, decisions)
+    tam_surface = only(row for row in decisions
+        if String(row[:surface]) == "tam_direct_mfrm_overlap_claim")
+    @test String(tam_surface[:decision]) ==
+        "record_nontransfer_keep_public_validation_blocked"
+    @test Bool(tam_surface[:evidence])
+    @test Bool(tam_surface[:public_fit]) == false
 
     blockers = fixture[:blocker_rows]
-    expected_blockers = Set{String}()
-    @test isempty(blockers)
+    @test Set(String(row[:blocker]) for row in blockers) == Set([
+        "tam_direct_independent_review_pending",
+        "tam_pre_execution_refinement_lineage_adjudication_pending",
+    ])
+    @test all(row -> !Bool(row[:resolved]) &&
+        Bool(row[:does_not_block_guarded_local_fit]), blockers)
 
     cycle_breaks = fixture[:cycle_break_references]
     @test length(cycle_breaks) == 1
@@ -5234,6 +5453,12 @@ function check_gmfrm_broader_experimental_exposure_decision_review_fixture(
     @test Bool(decision[:scalar_guarded_fit_allowed])
     @test Bool(decision[:mgmfrm_fit_allowed])
     @test Bool(decision[:broader_generalized_fit_allowed]) == false
+    @test Bool(decision[:tam_public_validation_allowed]) == false
+    @test String(decision[:tam_direct_evidence_scope]) ==
+        "mfrm_tam_overlap_nontransfer"
+    @test Bool(decision[
+        :tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm]) == false
+    @test Bool(decision[:tam_independent_review_completed]) == false
     @test String(decision[:public_exposure_support]) ==
         "guarded_scalar_gmfrm_and_fixed_q_mgmfrm_only"
     @test String(decision[:interpretation]) ==
@@ -5265,6 +5490,13 @@ function check_gmfrm_broader_experimental_exposure_decision_review_fixture(
     @test Bool(summary[:dff_estimand_validation_grid_passed])
     @test Bool(summary[:manuscript_scale_simulation_grid_passed])
     @test Bool(summary[:full_paper_reproduction_archive_passed])
+    @test Bool(summary[:tam_direct_primary_gate_passed])
+    @test Bool(summary[:tam_raw_archive_integrity_passed])
+    @test Bool(summary[:tam_post_packet_integrity_passed])
+    @test Bool(summary[:tam_independent_review_completed]) == false
+    @test Bool(summary[:tam_pre_execution_exact_input_lineage]) == false
+    @test Bool(summary[
+        :tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm]) == false
     @test Int(summary[:n_input_artifacts]) == length(input_artifacts)
     @test Int(summary[:n_scope_decisions]) == length(decisions)
     @test Int(summary[:n_risk_rows]) == length(fixture[:risk_rows])
@@ -5275,8 +5507,12 @@ function check_gmfrm_broader_experimental_exposure_decision_review_fixture(
     @test Bool(summary[:dff_model_effects_allowed]) == false
     @test Bool(summary[:model_weights_allowed]) == false
     @test Bool(summary[:manuscript_claims_allowed]) == false
+    @test Bool(summary[:tam_public_validation_allowed]) == false
     @test Bool(summary[:no_publication_commands])
-    @test isempty(summary[:remaining_public_blockers])
+    @test Set(String.(summary[:remaining_public_blockers])) == Set([
+        "tam_direct_independent_review_pending",
+        "tam_pre_execution_refinement_lineage_adjudication_pending",
+    ])
     @test String(summary[:recommendation]) ==
         "manual_scope_review_recorded_keep_guarded_scalar_and_confirmatory_mgmfrm_only"
     @test String(summary[:next_gate]) == "guarded_local_mgmfrm_fit_entrypoint"
@@ -5320,6 +5556,12 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(thresholds[:require_real_data_case_study_passed])
     @test Bool(thresholds[:require_claim_recovery_reproduction_archive_passed])
     @test Bool(thresholds[:require_broader_experimental_exposure_decision_review_passed])
+    @test Bool(thresholds[:require_tam_direct_execution_recorded])
+    @test Bool(thresholds[:require_tam_raw_archive_integrity_passed])
+    @test Bool(thresholds[:require_tam_post_execution_packet_integrity_passed])
+    @test Bool(thresholds[:require_tam_evidence_nontransfer_to_gmfrm_mgmfrm])
+    @test Bool(thresholds[:require_tam_independent_review_pending_recorded])
+    @test Bool(thresholds[:require_tam_pre_execution_lineage_mismatch_recorded])
     @test Bool(thresholds[:require_mgmfrm_sparse_recovery_grid_passed])
     @test Bool(thresholds[:require_mgmfrm_guarded_fit_method_wiring_passed])
     @test Bool(thresholds[:require_mgmfrm_guarded_fit_validation_grid_passed])
@@ -5368,7 +5610,7 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(thresholds[:broader_experimental_exposure_decision_review_required_before_exposure])
 
     reviewed = fixture[:reviewed_artifacts]
-    @test length(reviewed) == 29
+    @test length(reviewed) == 32
     expected_artifacts = Dict(
         "candidate_chain_study" =>
             "test/fixtures/gmfrm_candidate_chain_study.json",
@@ -5426,6 +5668,12 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
             "test/fixtures/gmfrm_dff_estimand_validation_grid.json",
         "manuscript_scale_simulation_grid" =>
             "test/fixtures/gmfrm_manuscript_scale_simulation_grid.json",
+        "tam_direct_agreement_multireplication" =>
+            "test/fixtures/mgmfrm_tam_direct_agreement_multireplication.json",
+        "tam_direct_agreement_raw_archive_audit" =>
+            "test/fixtures/mgmfrm_tam_direct_agreement_raw_archive_audit.json",
+        "tam_direct_agreement_post_execution_review_packet" =>
+            "test/fixtures/mgmfrm_tam_direct_agreement_post_execution_review_packet.json",
         "full_paper_reproduction_archive" =>
             "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
     )
@@ -5456,6 +5704,9 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
         elseif artifact == "manuscript_scale_simulation_grid"
             @test String(row[:family]) == "gmfrm"
             @test String(row[:scope]) == "manuscript_scale_simulation_grid"
+        elseif startswith(artifact, "tam_direct_agreement")
+            @test String(row[:family]) == "mfrm"
+            @test startswith(String(row[:scope]), "tam_direct_")
         elseif artifact == "full_paper_reproduction_archive"
             @test String(row[:family]) == "gmfrm"
             @test String(row[:scope]) == "full_paper_reproduction_archive"
@@ -5466,7 +5717,11 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
             @test String(row[:family]) == "gmfrm"
             @test String(row[:scope]) == "scalar_gmfrm_fit_ready_candidate"
         end
-        if artifact in (
+        if startswith(artifact, "tam_direct_agreement")
+            @test isnothing(row[:public_fit])
+            @test isnothing(row[:experimental_public])
+            @test isnothing(row[:fit_ready])
+        elseif artifact in (
                 "guarded_fit_method_wiring",
                 "experimental_fit_validation_grid",
                 "posterior_predictive_grid",
@@ -5713,10 +5968,10 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(claim_archive[:summary][:passed])
     @test Bool(claim_archive[:summary][:publication_or_registration_action]) == false
     @test Bool(claim_archive[:summary][:local_only])
-    @test Int(claim_archive[:summary][:n_fixture_artifacts]) == 18
+    @test Int(claim_archive[:summary][:n_fixture_artifacts]) == 21
     @test Int(claim_archive[:summary][:n_source_records]) == 2
-    @test Int(claim_archive[:summary][:n_code_doc_records]) == 13
-    @test Int(claim_archive[:summary][:n_full_regeneration_commands]) == 19
+    @test Int(claim_archive[:summary][:n_code_doc_records]) == 17
+    @test Int(claim_archive[:summary][:n_full_regeneration_commands]) == 22
     @test Int(claim_archive[:summary][:n_verification_commands]) == 4
     @test Bool(claim_archive[:summary][:all_fixture_artifacts_present])
     @test Bool(claim_archive[:summary][:all_expected_schemas])
@@ -5728,6 +5983,13 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(claim_archive[:summary][:no_publication_commands])
     @test Bool(claim_archive[:summary][:guarded_exposure_review_passed])
     @test Bool(claim_archive[:summary][:real_data_case_study_passed])
+    @test Bool(claim_archive[:summary][:tam_direct_primary_gate_passed])
+    @test Bool(claim_archive[:summary][:tam_raw_archive_integrity_passed])
+    @test Bool(claim_archive[:summary][:tam_post_packet_integrity_passed])
+    @test Bool(claim_archive[:summary][:tam_independent_review_completed]) ==
+        false
+    @test Bool(claim_archive[:summary][
+        :tam_pre_execution_exact_input_lineage]) == false
     @test String(claim_archive[:summary][:next_gate]) ==
         "broader_experimental_exposure_decision_review"
     broader_review = only(row for row in reviewed
@@ -5755,16 +6017,25 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(broader_review[:summary][:dff_estimand_validation_grid_passed])
     @test Bool(broader_review[:summary][:manuscript_scale_simulation_grid_passed])
     @test Bool(broader_review[:summary][:full_paper_reproduction_archive_passed])
-    @test Int(broader_review[:summary][:n_input_artifacts]) == 17
-    @test Int(broader_review[:summary][:n_scope_decisions]) == 6
-    @test Int(broader_review[:summary][:n_risk_rows]) == 5
-    @test Int(broader_review[:summary][:n_blockers]) == 0
+    @test Bool(broader_review[:summary][:tam_direct_primary_gate_passed])
+    @test Bool(broader_review[:summary][:tam_raw_archive_integrity_passed])
+    @test Bool(broader_review[:summary][:tam_post_packet_integrity_passed])
+    @test Bool(broader_review[:summary][:tam_independent_review_completed]) ==
+        false
+    @test Bool(broader_review[:summary][
+        :tam_pre_execution_exact_input_lineage]) == false
+    @test Int(broader_review[:summary][:n_input_artifacts]) == 20
+    @test Int(broader_review[:summary][:n_scope_decisions]) == 7
+    @test Int(broader_review[:summary][:n_risk_rows]) == 7
+    @test Int(broader_review[:summary][:n_blockers]) == 2
     @test Bool(broader_review[:summary][:scalar_guarded_fit_allowed])
     @test Bool(broader_review[:summary][:broader_generalized_fit_allowed]) == false
     @test Bool(broader_review[:summary][:mgmfrm_fit_allowed])
     @test Bool(broader_review[:summary][:dff_model_effects_allowed]) == false
     @test Bool(broader_review[:summary][:model_weights_allowed]) == false
     @test Bool(broader_review[:summary][:manuscript_claims_allowed]) == false
+    @test Bool(broader_review[:summary][:tam_public_validation_allowed]) ==
+        false
     @test Bool(broader_review[:summary][:no_publication_commands])
     @test String(broader_review[:summary][:next_gate]) ==
         "guarded_local_mgmfrm_fit_entrypoint"
@@ -5794,7 +6065,7 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(manuscript_grid[:summary][:all_input_summaries_passed])
     @test Bool(manuscript_grid[:summary][:all_primary_checks_passed])
     @test Int(manuscript_grid[:summary][:n_input_artifacts]) == 35
-    @test Int(manuscript_grid[:summary][:total_evidence_cells]) == 5585
+    @test Int(manuscript_grid[:summary][:total_evidence_cells]) == 5596
     @test Int(manuscript_grid[:summary][:minimum_required_evidence_cells]) == 60
     @test Bool(manuscript_grid[:summary][:prediction_target_and_model_weight_policy_passed])
     @test Bool(manuscript_grid[:summary][
@@ -5853,9 +6124,18 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(full_archive[:summary][:all_external_sources_present])
     @test Bool(full_archive[:summary][:all_commands_local_only])
     @test Bool(full_archive[:summary][:no_publication_commands])
-    @test Int(full_archive[:summary][:n_fixture_artifacts]) == 68
-    @test Int(full_archive[:summary][:n_code_doc_records]) == 64
-    @test Int(full_archive[:summary][:n_full_regeneration_commands]) == 68
+    @test Bool(full_archive[:summary][:tam_direct_primary_gate_passed])
+    @test Bool(full_archive[:summary][:tam_raw_archive_integrity_passed])
+    @test Bool(full_archive[:summary][:tam_post_packet_integrity_passed])
+    @test Bool(full_archive[:summary][:tam_independent_review_completed]) ==
+        false
+    @test Bool(full_archive[:summary][
+        :tam_pre_execution_exact_input_lineage]) == false
+    @test Bool(full_archive[:summary][
+        :tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm]) == false
+    @test Int(full_archive[:summary][:n_fixture_artifacts]) == 73
+    @test Int(full_archive[:summary][:n_code_doc_records]) == 86
+    @test Int(full_archive[:summary][:n_full_regeneration_commands]) == 73
     @test Int(full_archive[:summary][:n_verification_commands]) == 4
     @test Bool(full_archive[:summary][:mgmfrm_report_shape_simulation_grid_passed])
     @test Bool(full_archive[:summary][:mgmfrm_q_matrix_validation_expansion_passed])
@@ -5917,7 +6197,7 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
         :mgmfrm_external_construct_attachment_request_packet_passed])
     @test Bool(full_archive[:summary][:prediction_target_and_model_weight_policy_passed])
     @test Bool(full_archive[:summary][:manuscript_reproducibility_claims_supported])
-    @test Int(full_archive[:summary][:n_blockers]) == 0
+    @test Int(full_archive[:summary][:n_blockers]) == 2
     @test String(full_archive[:summary][:next_gate]) ==
         "manual_publication_or_registration_by_user_only"
     mgmfrm_sparse_grid = only(row for row in reviewed
@@ -6148,18 +6428,40 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test any(row -> String(row[:gate]) == "manuscript_scale_simulation_grid" &&
         String(row[:status]) == "passed" &&
         Bool(row[:evidence]), review_rows)
+    @test any(row -> String(row[:gate]) ==
+        "tam_direct_agreement_multireplication" &&
+        String(row[:status]) == "passed_local_nontransfer" &&
+        Bool(row[:evidence]), review_rows)
+    @test any(row -> String(row[:gate]) ==
+        "tam_direct_agreement_raw_archive_audit" &&
+        String(row[:status]) == "passed" &&
+        Bool(row[:evidence]), review_rows)
+    @test any(row -> String(row[:gate]) ==
+        "tam_direct_post_execution_review" &&
+        String(row[:status]) == "passed_with_policy_blocker" &&
+        Bool(row[:evidence]), review_rows)
     @test any(row -> String(row[:gate]) == "full_paper_reproduction_archive" &&
         String(row[:status]) == "passed" &&
         Bool(row[:evidence]), review_rows)
 
     blocker_rows = fixture[:blocker_rows]
-    @test isempty(blocker_rows)
+    @test Set(String(row[:blocker]) for row in blocker_rows) == Set([
+        "tam_direct_independent_review_pending",
+        "tam_pre_execution_refinement_lineage_adjudication_pending",
+    ])
+    @test all(row -> !Bool(row[:resolved]) &&
+        !Bool(row[:blocks_guarded_local_scalar_fit]), blocker_rows)
 
     decision_record = fixture[:decision_record]
     @test String(decision_record[:public_exposure_support]) ==
         "guarded_scalar_gmfrm_only"
     @test String(decision_record[:interpretation]) ==
         "local_evidence_reviewed_manual_scope_review_recorded_and_broader_exposure_decision_recorded"
+    @test String(decision_record[:tam_direct_evidence_scope]) ==
+        "mfrm_tam_overlap_nontransfer"
+    @test Bool(decision_record[
+        :tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm]) == false
+    @test Bool(decision_record[:tam_independent_review_completed]) == false
     @test Bool(decision_record[:publication_grade_pilot_runner_materialized])
     @test String(decision_record[:required_followup]) ==
         "execute_publication_grade_refit_pilot_or_attach_external_construct_dataset"
@@ -6243,6 +6545,16 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(summary[:dff_estimand_validation_grid_passed])
     @test Bool(summary[:manuscript_scale_simulation_grid_passed])
     @test Bool(summary[:full_paper_reproduction_archive_passed])
+    @test Bool(summary[:tam_direct_agreement_multireplication_passed])
+    @test Bool(summary[:tam_direct_agreement_raw_archive_audit_passed])
+    @test Bool(summary[:tam_direct_post_execution_review_packet_passed])
+    @test Bool(summary[:tam_direct_primary_gate_passed])
+    @test Bool(summary[:tam_raw_archive_integrity_passed])
+    @test Bool(summary[:tam_post_packet_integrity_passed])
+    @test Bool(summary[:tam_independent_review_completed]) == false
+    @test Bool(summary[:tam_pre_execution_exact_input_lineage]) == false
+    @test Bool(summary[
+        :tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm]) == false
     @test Bool(summary[:scalar_guarded_fit_allowed])
     @test Bool(summary[:broader_generalized_fit_allowed]) == false
     @test Bool(summary[:mgmfrm_fit_allowed])
@@ -7231,6 +7543,2299 @@ function check_mgmfrm_empirical_q_matrix_recovery_simulation_grid_fixture(
         "use_q_recovery_simulation_grid_for_local_candidate_diagnostics_only"
     @test String(summary[:next_gate]) ==
         "real_fit_diagnostic_linkage_for_q_candidates"
+end
+
+function check_mgmfrm_literature_anchored_synthetic_benchmark_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_literature_anchored_synthetic_benchmark.v1"
+    @test String(fixture[:family]) == "gmfrm_mgmfrm"
+    @test String(fixture[:scope]) ==
+        "literature_anchored_synthetic_benchmark"
+    @test String(fixture[:status]) == "pilot_datasets_materialized"
+    @test String(fixture[:decision]) ==
+        "use_for_known_truth_and_external_software_bridge_preparation_only"
+    @test Bool(fixture[:synthetic_data_only])
+    @test Bool(fixture[:construct_validity_evidence]) == false
+    @test Bool(fixture[:external_software_validation_completed]) == false
+    @test Bool(fixture[:independent_review_completed]) == false
+    @test Bool(fixture[:publication_or_registration_action]) == false
+
+    protocol = fixture[:protocol]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_literature_anchored_synthetic_benchmark_v1"
+    @test String(protocol[:source_discovery]) == "zotero_library_review"
+    @test String(protocol[:committed_reference_policy]) ==
+        "public_doi_and_url_only_no_reference_manager_item_keys"
+    @test String(protocol[:generator]) == "standalone_equation_implementation"
+    @test Bool(protocol[:package_simulate_responses_called]) == false
+    @test Bool(protocol[:package_source_oracle_checked_before_write])
+    @test String(protocol[:generator_source]) ==
+        "scripts/generate_mgmfrm_literature_anchored_synthetic_benchmark.jl"
+    @test String(protocol[:generator_source_sha256]) == file_sha256(joinpath(
+        root,
+        String(protocol[:generator_source]),
+    ))
+    seed_policy = protocol[:seed_policy]
+    @test Int(seed_policy[:base_seed]) == 20260707
+    @test Int(seed_policy[:stream_offsets][:truth]) == 1
+    @test Int(seed_policy[:stream_offsets][:response]) == 3
+
+    references = fixture[:reference_records]
+    @test length(references) == 4
+    @test all(row -> String(row[:source]) == "doi", references)
+    @test all(row -> !haskey(row, :item_key) && !haskey(row, :zotero_key),
+        references)
+    @test Set(String(row[:doi]) for row in references) == Set([
+        "10.1007/s41237-020-00115-7",
+        "10.1007/s41237-021-00144-w",
+        "10.1177/0013164418814898",
+        "10.1177/0146621604271053",
+    ])
+
+    specifications = fixture[:benchmark_specifications]
+    @test length(specifications) == 4
+    @test Set(String(row[:benchmark_id]) for row in specifications) == Set([
+        "uto_ueno_2020_scalar_recovery_smallest_cell",
+        "uto_2021_fixed_q_recovery_smallest_cell",
+        "da_silva_2019_q_mask_stress_grid",
+        "wang_wilson_2005_conquest_mrcml_bridge",
+    ])
+    uto2020_spec = only(filter(row -> String(row[:benchmark_id]) ==
+        "uto_ueno_2020_scalar_recovery_smallest_cell", specifications))
+    @test Int(uto2020_spec[:selected_pilot_cell][:persons]) == 30
+    @test Int(uto2020_spec[:selected_pilot_cell][:items]) == 3
+    @test Int(uto2020_spec[:selected_pilot_cell][:raters]) == 5
+    @test String(uto2020_spec[:alignment][:sample_size_cell]) == "paper_exact"
+    uto2021_spec = only(filter(row -> String(row[:benchmark_id]) ==
+        "uto_2021_fixed_q_recovery_smallest_cell", specifications))
+    @test Int(uto2021_spec[:selected_pilot_cell][:dimensions]) == 2
+    @test String(uto2021_spec[:alignment][:ability_combination]) ==
+        "loading_weighted_sum"
+    @test String(uto2021_spec[:alignment][:loading_structure]) ==
+        "package_adapted_fixed_q"
+    @test Float64(uto2021_spec[:alignment][:paper_nonprimary_anchor_loading]) ==
+        0.2
+    @test all(row -> String(row[:materialization]) == "design_only",
+        filter(row -> String(row[:benchmark_id]) in (
+            "da_silva_2019_q_mask_stress_grid",
+            "wang_wilson_2005_conquest_mrcml_bridge",
+        ), specifications))
+
+    function observation_sha256(observations)
+        io = IOBuffer()
+        println(io, "person,rater,item,score")
+        for row in eachindex(observations[:person])
+            println(io,
+                Int(observations[:person][row]), ',',
+                Int(observations[:rater][row]), ',',
+                Int(observations[:item][row]), ',',
+                Int(observations[:score][row]),
+            )
+        end
+        return bytes2hex(sha256(take!(io)))
+    end
+
+    function expected_probability(dataset, check)
+        truth = dataset[:truth]
+        person = Int(check[:person])
+        rater = Int(check[:rater])
+        item = Int(check[:item])
+        categories = length(dataset[:design][:category_levels])
+        eta = zeros(Float64, categories)
+        if String(dataset[:family]) == "gmfrm"
+            location = Float64(truth[:person_ability][person]) -
+                Float64(truth[:item_difficulty][item]) -
+                Float64(truth[:rater_severity][rater])
+            scale = Float64(truth[:item_discrimination][item]) *
+                Float64(truth[:rater_consistency][rater])
+            for category in 2:categories
+                eta[category] = eta[category - 1] + scale *
+                    (location - Float64(truth[:rater_steps][rater][category]))
+            end
+        else
+            ability_score = sum(
+                Float64(truth[:item_dimension_discrimination][item][dimension]) *
+                Float64(truth[:person_ability][person][dimension])
+                for dimension in 1:Int(dataset[:design][:n_dimensions])
+            )
+            location = ability_score - Float64(truth[:item_difficulty][item]) -
+                Float64(truth[:rater_severity][rater])
+            scale = 1.7 * Float64(truth[:rater_consistency][rater])
+            for category in 2:categories
+                eta[category] = eta[category - 1] + scale *
+                    (location - Float64(truth[:item_steps][item][category]))
+            end
+        end
+        weights = exp.(eta .- maximum(eta))
+        return weights ./ sum(weights)
+    end
+
+    datasets = fixture[:datasets]
+    @test length(datasets) == 2
+    @test Set(String(row[:dataset_id]) for row in datasets) == Set([
+        "uto_ueno_2020_scalar_recovery_smallest_cell_rep01",
+        "uto_2021_fixed_q_recovery_smallest_cell_rep01",
+    ])
+    uto2021_dataset = only(filter(row -> String(row[:dataset_id]) ==
+        "uto_2021_fixed_q_recovery_smallest_cell_rep01", datasets))
+    @test String(uto2021_dataset[:equation][:ability_combination]) ==
+        "loading_weighted_sum"
+    @test String(uto2021_dataset[:adaptation][:ability_combination_scope]) ==
+        "record_generation_formula_not_compensatory_classification_claim"
+    seed_values = Int[]
+    for dataset in datasets
+        push!(seed_values, Int(dataset[:seeds][:truth]))
+        push!(seed_values, Int(dataset[:seeds][:response]))
+    end
+    @test length(unique(seed_values)) == 4
+    for dataset in datasets
+        design = dataset[:design]
+        observations = dataset[:observations]
+        n_observations = Int(design[:n_observations])
+        @test all(key -> length(observations[key]) == n_observations,
+            (:person, :rater, :item, :score))
+        @test Set(Int.(observations[:score])) ==
+            Set(Int.(design[:category_levels]))
+        @test String(dataset[:checksums][:observations_sha256]) ==
+            observation_sha256(observations)
+        @test occursin(r"^[0-9a-f]{64}$",
+            String(dataset[:checksums][:truth_sha256]))
+        @test Bool(dataset[:contains_personal_data]) == false
+        @test String(dataset[:materialization]) == "row_level_synthetic_pilot"
+        @test String(dataset[:equation][:implementation]) ==
+            "standalone_adjacent_category_softmax"
+        @test Bool(dataset[:equation][:package_generator_called]) == false
+        checks = dataset[:generator_checks]
+        tolerance = Float64(checks[:tolerance])
+        @test Float64(checks[:max_abs_probability_error]) <= tolerance
+        @test length(checks[:selected_rows]) == 3
+        for check in checks[:selected_rows]
+            row = Int(check[:row])
+            @test Int(observations[:person][row]) == Int(check[:person])
+            @test Int(observations[:rater][row]) == Int(check[:rater])
+            @test Int(observations[:item][row]) == Int(check[:item])
+            independent = Float64.(check[:independent_generator_probabilities])
+            oracle = Float64.(check[:package_source_oracle_probabilities])
+            @test sum(independent) ≈ 1.0 atol = 1e-12
+            @test sum(oracle) ≈ 1.0 atol = 1e-12
+            @test independent ≈ oracle atol = tolerance rtol = 0.0
+            @test independent ≈ expected_probability(dataset, check) atol = 1e-12
+        end
+        @test Bool(dataset[:summary][:all_categories_observed])
+        @test Bool(dataset[:summary][:complete_person_coverage])
+        @test Bool(dataset[:summary][:complete_rater_coverage])
+        @test Bool(dataset[:summary][:complete_item_coverage])
+    end
+
+    gmfrm = only(filter(row -> String(row[:family]) == "gmfrm", datasets))
+    @test Int(gmfrm[:design][:n_observations]) == 450
+    @test isapprox(sum(Float64.(gmfrm[:truth][:item_difficulty])), 0.0;
+        atol = 1e-12)
+    @test isapprox(prod(Float64.(gmfrm[:truth][:item_discrimination])), 1.0;
+        atol = 1e-12)
+    @test all(steps -> Float64(first(steps)) == 0.0 &&
+        isapprox(sum(Float64.(steps)), 0.0; atol = 1e-12),
+        gmfrm[:truth][:rater_steps])
+
+    mgmfrm = only(filter(row -> String(row[:family]) == "mgmfrm", datasets))
+    @test Int(mgmfrm[:design][:n_observations]) == 1250
+    @test [[Bool(value) for value in row] for row in mgmfrm[:design][:q_matrix]] == [
+        [true, false],
+        [false, true],
+        [true, false],
+        [false, true],
+        [true, true],
+    ]
+    @test Float64(mgmfrm[:truth][:item_dimension_discrimination][1][1]) == 1.5
+    @test Float64(mgmfrm[:truth][:item_dimension_discrimination][2][2]) == 1.5
+    @test isapprox(sum(Float64.(mgmfrm[:truth][:rater_severity])), 0.0;
+        atol = 1e-12)
+    @test isapprox(prod(Float64.(mgmfrm[:truth][:rater_consistency])), 1.0;
+        atol = 1e-12)
+    @test all(steps -> Float64(first(steps)) == 0.0 &&
+        isapprox(sum(Float64.(steps)), 0.0; atol = 1e-12),
+        mgmfrm[:truth][:item_steps])
+    @test String(mgmfrm[:adaptation][:type]) == "confirmatory_fixed_q"
+    @test Bool(mgmfrm[:adaptation][:paper_exact_loading_recovery_claim]) == false
+    @test occursin(r"^[0-9a-f]{64}$",
+        String(mgmfrm[:checksums][:q_matrix_sha256]))
+
+    bridges = fixture[:external_validation_bridges]
+    @test Set(String(row[:software]) for row in bridges) ==
+        Set(["tam", "facets", "conquest"])
+    tam_bridge = only(row for row in bridges if String(row[:software]) == "tam")
+    @test String(tam_bridge[:status]) ==
+        "direct_agreement_policy_frozen_and_multiaxially_refined_multirep_package_fits_pending"
+    @test String(tam_bridge[:overlap_target]) ==
+        "many_facet_rasch_partial_credit_baseline"
+    @test String(tam_bridge[:prepared_dataset]) ==
+        "test/fixtures/mgmfrm_tam_overlap_baseline.json"
+    @test String(tam_bridge[:prepared_csv]) ==
+        "test/fixtures/mgmfrm_tam_overlap_baseline.csv"
+    @test String(tam_bridge[:execution_review]) ==
+        "test/fixtures/mgmfrm_tam_overlap_execution_review.json"
+    @test String(tam_bridge[:comparison_policy_review]) ==
+        "test/fixtures/mgmfrm_tam_comparison_policy_review.json"
+    @test String(tam_bridge[:multireplication_comparison]) ==
+        "test/fixtures/mgmfrm_tam_multireplication_comparison.json"
+    @test String(tam_bridge[:direct_estimate_pilot]) ==
+        "test/fixtures/mgmfrm_tam_direct_estimate_pilot.json"
+    @test String(tam_bridge[:direct_agreement_policy]) ==
+        "test/fixtures/mgmfrm_tam_direct_agreement_policy.json"
+    @test String(tam_bridge[:direct_agreement_policy_refinement]) ==
+        "test/fixtures/mgmfrm_tam_direct_agreement_policy_refinement.json"
+    @test all(row -> String(row[:status]) == "not_executed",
+        filter(row -> String(row[:software]) in ("facets", "conquest"),
+            bridges))
+    independent_review = fixture[:independent_review]
+    @test Bool(independent_review[:separate_from_external_software_comparison])
+    @test String(independent_review[:status]) ==
+        "packet_frozen_review_not_started"
+    @test String(independent_review[:review_packet_artifact]) ==
+        "test/fixtures/mgmfrm_literature_anchored_independent_review_packet.json"
+    @test String(independent_review[:review_packet_schema]) ==
+        "bayesianmgmfrm.mgmfrm_literature_anchored_independent_review_packet.v1"
+    @test Set(String.(independent_review[:remaining_requirements])) == Set([
+        "assign_independent_reviewer",
+        "attach_signed_independent_review_manifest",
+        "record_per_claim_review_decisions",
+    ])
+    claims = fixture[:claim_ledger]
+    @test any(row -> String(row[:claim]) == "parameter_recovery" &&
+        Bool(row[:supported]) == false, claims)
+    @test any(row -> String(row[:claim]) == "external_software_agreement" &&
+        Bool(row[:supported]) == false, claims)
+    @test any(row -> String(row[:claim]) == "external_construct_validity" &&
+        Bool(row[:supported]) == false, claims)
+    @test any(row -> String(row[:claim]) == "independent_review" &&
+        Bool(row[:supported]) == false, claims)
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Int(summary[:n_reference_records]) == 4
+    @test Int(summary[:n_benchmark_specifications]) == 4
+    @test Int(summary[:n_materialized_datasets]) == 2
+    @test Int(summary[:n_materialized_observations]) == 1700
+    @test Bool(summary[:standalone_generator_oracle_agreement])
+    @test Bool(summary[:row_and_category_coverage_passed])
+    @test Bool(summary[:parameter_recovery_completed]) == false
+    @test Bool(summary[:external_software_validation_completed]) == false
+    @test Bool(summary[:external_construct_validation_completed]) == false
+    @test Bool(summary[:independent_review_completed]) == false
+    @test Bool(summary[:public_claim_release_allowed]) == false
+    @test Set(String.(summary[:next_gates])) == Set([
+        "run_predeclared_recovery_refits_across_paper_grid_cells",
+        "run_predeclared_multireplication_package_vs_tam_direct_agreement_under_refined_adjudication",
+        "add_facets_unit_discrimination_overlap_dataset_and_adapter",
+        "add_conquest_mrcml_overlap_dataset_and_adapter",
+        "assign_independent_reviewer_and_attach_signed_review",
+        "attach_real_external_construct_dataset_separately",
+    ])
+end
+
+function check_mgmfrm_tam_overlap_baseline_fixture(fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_tam_overlap_baseline.v1"
+    @test String(fixture[:family]) == "mfrm"
+    @test String(fixture[:scope]) == "tam_overlap_baseline"
+    @test String(fixture[:status]) == "tam_overlap_dataset_prepared"
+    @test String(fixture[:decision]) ==
+        "prepare_tam_overlap_baseline_do_not_claim_validation"
+    @test Bool(fixture[:local_only])
+    @test Bool(fixture[:synthetic_data_only])
+    @test String(fixture[:external_software]) == "tam"
+    @test Bool(fixture[:external_software_validation_completed]) == false
+    @test Bool(fixture[:tam_execution_completed]) == false
+    @test Bool(fixture[:parameter_comparison_completed]) == false
+    @test Bool(fixture[:public_claim_release_allowed]) == false
+    @test Bool(fixture[:publication_or_registration_action]) == false
+
+    protocol = fixture[:protocol]
+    @test String(protocol[:protocol_id]) == "mgmfrm_tam_overlap_baseline_v1"
+    @test String(protocol[:generator]) == "standalone_mfrm_overlap_generator"
+    @test String(protocol[:generator_independence_scope]) ==
+        "response_sampling_does_not_call_package_probability_or_simulation_helpers"
+    @test Bool(protocol[:package_oracle_checked_before_write])
+    @test String(protocol[:generator_source]) ==
+        "scripts/generate_mgmfrm_tam_overlap_baseline.jl"
+    @test String(protocol[:generator_source_sha256]) == file_sha256(joinpath(
+        root,
+        String(protocol[:generator_source]),
+    ))
+    @test Int(protocol[:base_seed]) == 20260711
+    @test Int(protocol[:truth_seed]) != Int(protocol[:response_seed])
+
+    references = fixture[:reference_records]
+    @test length(references) == 3
+    @test Set(String(row[:source]) for row in references) ==
+        Set(["cran", "pkgdown", "rdrr"])
+
+    target = fixture[:overlap_target]
+    @test String(target[:software]) == "tam"
+    @test String(target[:r_package]) == "TAM"
+    @test String(target[:target_function]) == "TAM::tam.mml.mfr"
+    @test String(target[:target_model]) ==
+        "many_facet_rasch_partial_credit"
+    @test String(target[:tam_formulaA]) == "~ item + rater + item:step"
+    @test String(target[:tam_constraint]) == "cases"
+    @test String(target[:package_family]) == "mfrm"
+    @test String(target[:package_thresholds]) == "partial_credit"
+    @test Set(String.(target[:excluded_from_overlap])) == Set([
+        "item_discrimination",
+        "rater_consistency",
+        "multidimensional_loading",
+        "free_latent_correlation",
+        "construct_validity_claim",
+    ])
+
+    design = fixture[:design]
+    @test Int(design[:n_persons]) == 40
+    @test Int(design[:n_items]) == 5
+    @test Int(design[:n_raters]) == 4
+    @test Int(design[:n_dimensions]) == 1
+    @test Int.(design[:category_levels]) == [0, 1, 2, 3]
+    @test String(design[:assignment]) == "fully_crossed"
+    @test Int(design[:n_observations]) == 800
+
+    equation = fixture[:equation]
+    @test String(equation[:implementation]) ==
+        "standalone_adjacent_category_softmax"
+    @test String(equation[:location]) ==
+        "person_ability_minus_rater_severity_minus_item_difficulty"
+    @test Float64(equation[:item_discrimination]) == 1.0
+    @test Float64(equation[:rater_consistency]) == 1.0
+    @test Bool(equation[:package_generator_called]) == false
+
+    observations = fixture[:observations]
+    @test all(key -> length(observations[key]) == Int(design[:n_observations]),
+        (:person, :rater, :item, :score))
+    @test Set(Int.(observations[:person])) == Set(1:40)
+    @test Set(Int.(observations[:rater])) == Set(1:4)
+    @test Set(Int.(observations[:item])) == Set(1:5)
+    @test Set(Int.(observations[:score])) == Set(0:3)
+
+    truth = fixture[:truth]
+    @test length(truth[:person_ability]) == 40
+    @test Float64(truth[:rater_severity][1]) == 0.0
+    @test Float64(truth[:item_difficulty][1]) == 0.0
+    @test length(truth[:item_steps]) == 5
+    @test all(steps -> isapprox(sum(Float64.(steps)), 0.0; atol = 1e-12),
+        truth[:item_steps])
+
+    tam_export = fixture[:tam_export]
+    @test String(tam_export[:path]) ==
+        "test/fixtures/mgmfrm_tam_overlap_baseline.csv"
+    csv_path = joinpath(root, String(tam_export[:path]))
+    @test isfile(csv_path)
+    @test String(tam_export[:sha256]) == file_sha256(csv_path)
+    csv_lines = readlines(csv_path)
+    @test length(csv_lines) == 801
+    @test first(csv_lines) == "person,rater,item,score"
+    @test all(line -> occursin(r"^[0-9]+,[0-9]+,[0-9]+,[0-3]$", line),
+        csv_lines[2:end])
+    @test String(tam_export[:response_column]) == "score"
+    @test Set(String.(tam_export[:facet_columns])) == Set(["item", "rater"])
+    @test String(tam_export[:runner_template_status]) == "not_executed"
+    runner = String.(tam_export[:runner_template])
+    @test any(contains("TAM::tam.mml.mfr"), runner)
+    @test any(contains("formulaA <- ~ item + rater + item:step"), runner)
+    @test any(contains("constraint = \"cases\""), runner)
+
+    checksums = fixture[:checksums]
+    @test String(checksums[:observations_sha256]) ==
+        String(tam_export[:sha256])
+    @test occursin(r"^[0-9a-f]{64}$", String(checksums[:truth_sha256]))
+
+    generator_checks = fixture[:generator_checks]
+    @test String(generator_checks[:package_oracle]) ==
+        "predictive_probabilities_mfrm_partial_credit"
+    @test Float64(generator_checks[:max_abs_probability_error]) <=
+        Float64(generator_checks[:tolerance])
+    @test length(generator_checks[:selected_rows]) == 3
+    for row in generator_checks[:selected_rows]
+        independent = Float64.(row[:independent_generator_probabilities])
+        oracle = Float64.(row[:package_mfrm_oracle_probabilities])
+        @test sum(independent) ≈ 1.0 atol = 1e-12
+        @test sum(oracle) ≈ 1.0 atol = 1e-12
+        @test independent ≈ oracle atol = Float64(generator_checks[:tolerance]) rtol = 0.0
+    end
+
+    @test Set(String.(fixture[:claim_limits])) == Set([
+        "tam_export_prepared_not_executed",
+        "no_tam_parameter_estimate_comparison",
+        "no_facets_or_conquest_comparison",
+        "no_generalized_gmfrm_or_mgmfrm_overlap_claim",
+        "no_external_construct_validity_claim",
+        "no_public_claim_release",
+    ])
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Int(summary[:n_reference_records]) == 3
+    @test Int(summary[:n_observations]) == 800
+    @test Bool(summary[:all_categories_observed])
+    @test Bool(summary[:tam_csv_written])
+    @test String(summary[:tam_csv_sha256]) == file_sha256(csv_path)
+    @test Bool(summary[:tam_execution_completed]) == false
+    @test Bool(summary[:external_software_validation_completed]) == false
+    @test Bool(summary[:public_claim_release_allowed]) == false
+    @test String(summary[:next_gate]) ==
+        "run_tam_mml_mfr_and_compare_parameter_table_under_recorded_adapter"
+end
+
+function check_mgmfrm_tam_overlap_execution_review_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_tam_overlap_execution_review.v1"
+    @test String(fixture[:family]) == "mfrm"
+    @test String(fixture[:scope]) == "tam_overlap_execution_review"
+    @test String(fixture[:status]) == "tam_overlap_execution_recorded"
+    @test String(fixture[:decision]) ==
+        "record_tam_execution_keep_external_validation_claim_blocked"
+    @test Bool(fixture[:local_only])
+    @test String(fixture[:external_software]) == "tam"
+    @test Bool(fixture[:tam_execution_completed])
+    @test Bool(fixture[:tam_parameter_table_extracted])
+    @test Bool(fixture[:parameter_comparison_completed])
+    @test Bool(fixture[:external_software_validation_completed]) == false
+    @test Bool(fixture[:public_claim_release_allowed]) == false
+    @test Bool(fixture[:publication_or_registration_action]) == false
+
+    protocol = fixture[:protocol]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_tam_overlap_execution_review_v1"
+    @test String(protocol[:generator]) ==
+        "scripts/generate_mgmfrm_tam_overlap_execution_review.jl"
+    @test String(protocol[:generator_source_sha256]) == file_sha256(joinpath(
+        root,
+        String(protocol[:generator]),
+    ))
+    @test String(protocol[:baseline_artifact]) ==
+        "test/fixtures/mgmfrm_tam_overlap_baseline.json"
+    @test String(protocol[:baseline_artifact_sha256]) == file_sha256(joinpath(
+        root,
+        String(protocol[:baseline_artifact]),
+    ))
+    @test String(protocol[:baseline_csv]) ==
+        "test/fixtures/mgmfrm_tam_overlap_baseline.csv"
+    @test String(protocol[:baseline_csv_sha256]) == file_sha256(joinpath(
+        root,
+        String(protocol[:baseline_csv]),
+    ))
+    @test !isempty(String(protocol[:rscript_path]))
+    @test String(protocol[:r_command]) == "TAM_tam_mml_mfr"
+    @test String(protocol[:tam_formulaA]) == "~ item + rater + item:step"
+    @test String(protocol[:tam_constraint]) == "cases"
+
+    environment = fixture[:tam_environment]
+    @test occursin("R version", String(environment[:r_version]))
+    @test occursin(r"^[0-9]+\.[0-9]+\.[0-9]+$",
+        String(environment[:tam_version]))
+    @test !isempty(String(environment[:rscript_path]))
+
+    fit = fixture[:tam_fit_summary]
+    @test Int(fit[:iter]) > 0
+    @test isfinite(Float64(fit[:deviance]))
+    @test 0.0 < Float64(fit[:eap_rel]) <= 1.0
+    @test Int(fit[:n_persons]) == 40
+    @test isfinite(Float64(fit[:loglike]))
+    @test isfinite(Float64(fit[:aic]))
+    @test isfinite(Float64(fit[:bic]))
+    @test Int(fit[:n_parameters]) == 19
+    @test Bool(fit[:stdout_contains_pseudo_facet_notice])
+    @test Bool(fit[:stderr_empty])
+
+    parameters = fixture[:tam_parameter_rows]
+    @test length(parameters) == 29
+    @test count(row -> String(row[:facet]) == "item", parameters) == 5
+    @test count(row -> String(row[:facet]) == "rater", parameters) == 4
+    @test count(row -> String(row[:facet]) == "psf", parameters) == 5
+    @test count(row -> String(row[:facet]) == "item:step", parameters) == 15
+    @test all(row -> isfinite(Float64(row[:xsi])), parameters)
+    @test all(row -> Float64(row[:se_xsi]) >= 0.0, parameters)
+
+    comparisons = fixture[:parameter_comparison_rows]
+    @test length(comparisons) == 3
+    @test Set(String(row[:block]) for row in comparisons) == Set([
+        "item_difficulty",
+        "rater_severity",
+        "item_step",
+    ])
+    expected_n = Dict(
+        "item_difficulty" => 5,
+        "rater_severity" => 4,
+        "item_step" => 15,
+    )
+    expected_interpretation = Dict(
+        "item_difficulty" => "diagnostic_overlap_not_claim_threshold",
+        "rater_severity" => "diagnostic_overlap_not_claim_threshold",
+        "item_step" => "structurally_audited_numerically_pilot_only",
+    )
+    for row in comparisons
+        block = String(row[:block])
+        @test Int(row[:n_parameters]) == expected_n[block]
+        @test Float64(row[:pearson_correlation]) > 0.0
+        @test isfinite(Float64(row[:mean_abs_difference]))
+        @test isfinite(Float64(row[:max_abs_difference]))
+        @test isfinite(Float64(row[:mean_signed_difference]))
+        @test String(row[:interpretation]) == expected_interpretation[block]
+    end
+
+    @test Set(String.(fixture[:claim_limits])) == Set([
+        "single_local_tam_overlap_execution_only",
+        "parameter_differences_include_sampling_error",
+        "item_step_adapter_structure_audited_single_pilot_only",
+        "no_facets_or_conquest_execution",
+        "no_generalized_gmfrm_or_mgmfrm_external_validation",
+        "no_external_construct_validity_claim",
+        "no_public_claim_release",
+    ])
+
+    hashes = fixture[:output_hashes]
+    @test occursin(r"^[0-9a-f]{64}$",
+        String(hashes[:transient_tam_xsi_facets_csv_sha256]))
+    @test occursin(r"^[0-9a-f]{64}$",
+        String(hashes[:transient_tam_summary_csv_sha256]))
+    @test occursin(r"^[0-9a-f]{64}$",
+        String(hashes[:transient_tam_formula_audit_csv_sha256]))
+
+    audit = fixture[:tam_formula_adapter_audit]
+    @test String(audit[:fitted_formulaA]) ==
+        "~item + rater + item:step + psf"
+    @test Int(audit[:n_design_rows]) == 20
+    @test Int(audit[:n_score_categories]) == 4
+    @test Int(audit[:n_independent_xsi]) == 22
+    @test Int(audit[:n_expanded_xsi]) == 29
+    @test Int(audit[:n_constraint_rows]) == 7
+    @test Int(audit[:n_item_step_constraint_rows]) == 5
+    @test Float64(audit[:rater_sum_abs]) <= 1e-10
+    @test Float64(audit[:pseudo_facet_max_abs]) <= 1e-10
+    @test Float64(audit[:item_step_sum_max_abs]) <= 1e-10
+    @test Float64(audit[:category_intercept_reconstruction_max_abs_error]) <=
+        1e-10
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:tam_execution_completed])
+    @test Bool(summary[:tam_parameter_table_extracted])
+    @test Bool(summary[:parameter_comparison_completed])
+    @test Bool(summary[:external_software_validation_completed]) == false
+    @test Bool(summary[:public_claim_release_allowed]) == false
+    @test Int(summary[:n_tam_parameter_rows]) == 29
+    @test Int(summary[:n_item_rows]) == 5
+    @test Int(summary[:n_rater_rows]) == 4
+    @test Int(summary[:n_item_step_rows]) == 15
+    @test Int(summary[:n_pseudo_facet_rows]) == 5
+    @test Int(summary[:n_parameter_comparison_rows]) == 3
+    @test Bool(summary[:formula_adapter_audit_completed])
+    @test String(summary[:next_gate]) ==
+        "freeze_prospective_tam_thresholds_and_run_multireplication_comparison"
+end
+
+function check_mgmfrm_tam_comparison_policy_review_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_tam_comparison_policy_review.v1"
+    @test String(fixture[:family]) == "mfrm"
+    @test String(fixture[:scope]) ==
+        "tam_comparison_policy_and_item_step_adapter_review"
+    @test String(fixture[:status]) ==
+        "prospective_thresholds_frozen_adapter_structure_confirmed"
+    @test String(fixture[:decision]) ==
+        "run_multireplication_tam_comparison_keep_external_claim_blocked"
+    @test Bool(fixture[:local_only])
+    @test String(fixture[:external_software]) == "tam"
+    @test Bool(fixture[:external_software_validation_completed]) == false
+    @test Bool(fixture[:public_claim_release_allowed]) == false
+    @test Bool(fixture[:publication_or_registration_action]) == false
+
+    protocol = fixture[:protocol]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_tam_comparison_policy_review_v1"
+    @test String(protocol[:generator]) ==
+        "scripts/generate_mgmfrm_tam_comparison_policy_review.jl"
+    @test String(protocol[:generator_source_sha256]) == file_sha256(joinpath(
+        root, String(protocol[:generator])))
+    for key in (:baseline_artifact, :execution_artifact)
+        path = joinpath(root, String(protocol[key]))
+        @test isfile(path)
+        @test String(protocol[Symbol(String(key) * "_sha256")]) ==
+            file_sha256(path)
+    end
+    @test String(protocol[:threshold_freeze_order]) ==
+        "after_initial_pilot_before_multireplication_execution"
+    @test String(protocol[:current_pilot_role]) ==
+        "retrospective_calibration_only"
+    @test String(protocol[:future_runs_role]) ==
+        "prospective_confirmatory_gate"
+    @test Float64(protocol[:structural_tolerance]) == 1e-10
+
+    relationship = fixture[:relationship_to_tam]
+    @test String(relationship[:overlapping_model]) ==
+        "unidimensional_many_facet_rasch_partial_credit"
+    @test Set(String.(relationship[:shared_terms])) == Set([
+        "person_location", "item_difficulty", "rater_severity",
+        "item_specific_category_steps",
+    ])
+    @test String(relationship[:estimator_difference]) ==
+        "tam_marginal_maximum_likelihood_vs_package_bayesian_posterior"
+    @test String(relationship[:current_comparison_target]) ==
+        "known_truth_recovery_not_direct_estimate_equality"
+    @test "multidimensional_fixed_q_loading" in
+        String.(relationship[:excluded_generalizations])
+
+    adapter = fixture[:item_step_adapter]
+    @test String(adapter[:mapping]) ==
+        "same_item_and_adjacent_step_after_tam_constraint_expansion"
+    @test Bool(adapter[:structure_review_completed])
+    @test Bool(adapter[:numerical_precision_review_completed]) == false
+
+    structural = fixture[:structural_check_rows]
+    @test length(structural) == 10
+    @test all(row -> Bool(row[:passed]), structural)
+    @test any(row -> String(row[:check]) ==
+        "category_intercept_reconstruction" &&
+        Float64(row[:observed]) <= 1e-10, structural)
+    @test any(row -> String(row[:check]) == "item_step_sum_by_item" &&
+        Float64(row[:observed]) <= 1e-10, structural)
+
+    thresholds = fixture[:numerical_threshold_rows]
+    @test length(thresholds) == 9
+    @test count(row -> Bool(row[:passed]), thresholds) == 7
+    @test all(row -> String(row[:evaluation_role]) ==
+        "retrospective_pilot_calibration_only", thresholds)
+    @test all(row -> String(row[:future_role]) ==
+        "prospective_multireplication_gate", thresholds)
+    @test count(row -> String(row[:block]) == "item_step" &&
+        Bool(row[:passed]) == false, thresholds) == 2
+
+    blocks = fixture[:block_decision_rows]
+    @test length(blocks) == 3
+    @test all(row -> Bool(row[:all_pilot_thresholds_passed]),
+        filter(row -> String(row[:block]) in
+            ("item_difficulty", "rater_severity"), blocks))
+    item_step = only(row for row in blocks if String(row[:block]) == "item_step")
+    @test Bool(item_step[:all_pilot_thresholds_passed]) == false
+    @test String(item_step[:interpretation]) ==
+        "adapter_structure_confirmed_but_pilot_precision_below_future_gate"
+
+    @test Set(String.(fixture[:claim_limits])) == Set([
+        "thresholds_frozen_after_first_pilot_not_before_it",
+        "single_pilot_cannot_confirm_external_software_agreement",
+        "item_step_pilot_misses_future_correlation_and_mean_absolute_difference_gates",
+        "future_multireplication_results_required",
+        "no_facets_or_conquest_execution",
+        "no_generalized_gmfrm_or_mgmfrm_external_validation",
+        "no_public_claim_release",
+    ])
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:structural_adapter_checks_passed])
+    @test Bool(summary[:prospective_thresholds_frozen])
+    @test Bool(summary[:current_pilot_all_numerical_thresholds_passed]) == false
+    @test Bool(summary[:current_pilot_item_and_rater_thresholds_passed])
+    @test Bool(summary[:current_pilot_item_step_thresholds_passed]) == false
+    @test Int(summary[:n_structural_checks]) == 10
+    @test Int(summary[:n_structural_checks_passed]) == 10
+    @test Int(summary[:n_numerical_thresholds]) == 9
+    @test Int(summary[:n_numerical_thresholds_passed]) == 7
+    @test Bool(summary[:external_software_validation_completed]) == false
+    @test Bool(summary[:public_claim_release_allowed]) == false
+    @test String(summary[:next_gate]) ==
+        "run_predeclared_multireplication_tam_comparison"
+end
+
+function check_mgmfrm_tam_multireplication_comparison_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_tam_multireplication_comparison.v1"
+    @test String(fixture[:family]) == "mfrm"
+    @test String(fixture[:scope]) ==
+        "tam_predeclared_multireplication_known_truth_comparison"
+    @test String(fixture[:status]) ==
+        "tam_multireplication_comparison_recorded"
+    @test String(fixture[:decision]) ==
+        "record_tam_multireplication_gate_pass_keep_broad_claim_blocked"
+    @test Bool(fixture[:local_only])
+    @test String(fixture[:external_software]) == "tam"
+    @test Bool(fixture[:tam_multireplication_execution_completed])
+    @test Bool(fixture[:package_estimator_direct_comparison_completed]) == false
+    @test Bool(fixture[:external_software_validation_completed]) == false
+    @test Bool(fixture[:public_claim_release_allowed]) == false
+    @test Bool(fixture[:publication_or_registration_action]) == false
+
+    protocol = fixture[:protocol]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_tam_multireplication_comparison_v1"
+    @test String(protocol[:generator]) ==
+        "scripts/generate_mgmfrm_tam_multireplication_comparison.jl"
+    @test String(protocol[:generator_source_sha256]) == file_sha256(joinpath(
+        root, String(protocol[:generator])))
+    for key in (:baseline_artifact, :policy_artifact)
+        path = joinpath(root, String(protocol[key]))
+        @test isfile(path)
+        @test String(protocol[Symbol(String(key) * "_sha256")]) ==
+            file_sha256(path)
+    end
+    @test Bool(protocol[:inherited_thresholds_unchanged])
+    @test Int(protocol[:base_seed]) == 20260712
+    @test Int.(protocol[:person_counts]) == [40, 100, 250]
+    @test Int(protocol[:replications_per_person_count]) == 10
+    @test Int(protocol[:primary_person_count]) == 250
+    @test Float64(protocol[:primary_block_pass_rate_threshold]) == 0.80
+    @test String(protocol[:primary_gate]) ==
+        "each_parameter_block_all_metric_pass_rate_at_least_0_80"
+
+    environment = fixture[:tam_environment]
+    @test occursin("R version", String(environment[:r_version]))
+    @test occursin(r"^[0-9]+\.[0-9]+\.[0-9]+$",
+        String(environment[:tam_version]))
+    @test !isempty(String(environment[:rscript_path]))
+
+    scope = fixture[:relationship_scope]
+    @test String(scope[:comparison]) ==
+        "tam_estimates_against_shared_known_truth"
+    @test Bool(scope[:direct_package_posterior_vs_tam_estimate_comparison]) ==
+        false
+    @test Bool(scope[:generalized_gmfrm_or_mgmfrm_scope]) == false
+
+    replications = fixture[:replication_rows]
+    @test length(replications) == 30
+    @test Set(Int(row[:n_persons]) for row in replications) ==
+        Set([40, 100, 250])
+    @test all(n -> count(row -> Int(row[:n_persons]) == n, replications) == 10,
+        (40, 100, 250))
+    @test length(unique(Int(row[:ability_seed]) for row in replications)) == 30
+    @test length(unique(Int(row[:response_seed]) for row in replications)) == 30
+    @test all(row -> Int(row[:n_observations]) ==
+        20 * Int(row[:n_persons]), replications)
+    @test all(row -> Bool(row[:all_categories_observed]), replications)
+    @test all(row -> Int(row[:tam_iter]) > 0, replications)
+    @test all(row -> isfinite(Float64(row[:tam_deviance])), replications)
+    @test all(row -> Int(row[:tam_n_parameters]) == 19, replications)
+    @test all(row -> occursin(r"^[0-9a-f]{64}$",
+        String(row[:observation_csv_sha256])), replications)
+    @test all(row -> length(row[:comparisons]) == 3, replications)
+    @test all(row -> Set(String(comparison[:block])
+            for comparison in row[:comparisons]) ==
+        Set(["item_difficulty", "rater_severity", "item_step"]), replications)
+
+    scenario_blocks = fixture[:scenario_block_summary_rows]
+    @test length(scenario_blocks) == 9
+    @test all(row -> Int(row[:n_replications]) == 10, scenario_blocks)
+    @test all(row -> 0.0 <= Float64(row[:all_thresholds_pass_rate]) <= 1.0,
+        scenario_blocks)
+    primary = filter(row -> Bool(row[:primary_gate_row]), scenario_blocks)
+    @test length(primary) == 3
+    @test all(row -> Int(row[:n_persons]) == 250, primary)
+    @test all(row -> Float64(row[:all_thresholds_pass_rate]) == 1.0, primary)
+    @test all(row -> Bool(row[:primary_gate_passed]), primary)
+    n40_item_step = only(row for row in scenario_blocks
+        if Int(row[:n_persons]) == 40 && String(row[:block]) == "item_step")
+    @test Float64(n40_item_step[:all_thresholds_pass_rate]) == 0.60
+    n100_item_step = only(row for row in scenario_blocks
+        if Int(row[:n_persons]) == 100 && String(row[:block]) == "item_step")
+    @test Float64(n100_item_step[:all_thresholds_pass_rate]) == 1.0
+
+    @test Set(String.(fixture[:claim_limits])) == Set([
+        "known_truth_tam_recovery_only",
+        "not_direct_bayesianmgmfrm_posterior_vs_tam_estimate_agreement",
+        "fixed_item_rater_step_truth_single_design",
+        "no_facets_or_conquest_execution",
+        "no_generalized_gmfrm_or_mgmfrm_external_validation",
+        "no_external_construct_validity_claim",
+        "no_public_claim_release",
+    ])
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:all_tam_executions_valid])
+    @test Bool(summary[:primary_multireplication_gate_passed])
+    @test Int(summary[:n_scenarios]) == 3
+    @test Int(summary[:n_replications]) == 30
+    @test Int(summary[:n_parameter_comparison_rows]) == 90
+    @test Int(summary[:n_primary_block_rows]) == 3
+    @test Int(summary[:n_primary_block_rows_passed]) == 3
+    @test Bool(summary[:package_estimator_direct_comparison_completed]) == false
+    @test Bool(summary[:external_software_validation_completed]) == false
+    @test Bool(summary[:public_claim_release_allowed]) == false
+    @test String(summary[:next_gate]) ==
+        "compare_package_posterior_summaries_directly_with_tam_estimates"
+end
+
+function check_mgmfrm_tam_direct_estimate_pilot_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_tam_direct_estimate_pilot.v1"
+    @test String(fixture[:family]) == "mfrm"
+    @test String(fixture[:scope]) ==
+        "tam_direct_package_posterior_estimate_pilot"
+    @test String(fixture[:status]) ==
+        "direct_estimate_pilot_recorded_thresholds_not_predeclared"
+    @test String(fixture[:decision]) ==
+        "record_descriptive_direct_comparison_keep_claim_blocked"
+    @test Bool(fixture[:local_only])
+    @test String(fixture[:external_software]) == "tam"
+    @test Bool(fixture[:package_estimator_direct_comparison_completed])
+    @test Bool(fixture[:direct_agreement_thresholds_predeclared]) == false
+    @test Bool(fixture[:external_software_validation_completed]) == false
+    @test Bool(fixture[:public_claim_release_allowed]) == false
+    @test Bool(fixture[:publication_or_registration_action]) == false
+
+    protocol = fixture[:protocol]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_tam_direct_estimate_pilot_v1"
+    @test String(protocol[:generator]) ==
+        "scripts/generate_mgmfrm_tam_direct_estimate_pilot.jl"
+    @test String(protocol[:generator_source_sha256]) == file_sha256(joinpath(
+        root, String(protocol[:generator])))
+    for key in (:baseline_artifact, :tam_execution_review)
+        path = joinpath(root, String(protocol[key]))
+        @test isfile(path)
+        @test String(protocol[Symbol(String(key) * "_sha256")]) ==
+            file_sha256(path)
+    end
+    @test String(protocol[:package_fit]) ==
+        "BayesianMGMFRM_AdvancedHMC_NUTS"
+    @test Int(protocol[:seed]) == 20260713
+    @test Int(protocol[:ndraws_per_chain]) == 400
+    @test Int(protocol[:warmup_per_chain]) == 400
+    @test Int(protocol[:chains]) == 4
+    @test Float64(protocol[:target_accept]) == 0.90
+    @test Int(protocol[:max_depth]) == 10
+    @test String(protocol[:metric]) == "diagonal"
+    @test String(protocol[:ad_backend]) == "ForwardDiff"
+
+    crosswalk = fixture[:estimand_crosswalk]
+    @test String(crosswalk[:item]) ==
+        "center_reference_coded_package_and_tam_item_effects"
+    @test String(crosswalk[:rater]) ==
+        "center_reference_coded_package_and_tam_rater_effects"
+    @test String(crosswalk[:item_step]) ==
+        "reconstruct_last_step_as_negative_free_step_sum"
+    @test Bool(crosswalk[:equality_expected]) == false
+
+    sampler = fixture[:sampler_summary]
+    @test Int(sampler[:n_parameters]) == 57
+    @test Int(sampler[:total_posterior_draws]) == 1600
+    @test Bool(sampler[:all_draws_and_logposterior_finite])
+    @test 0.0 < Float64(sampler[:acceptance_rate]) < 1.0
+    @test length(sampler[:chain_acceptance_rate]) == 4
+    @test Int(sampler[:n_divergences]) == 0
+    @test Int(sampler[:n_max_treedepth]) == 0
+    @test Float64(sampler[:max_classical_split_rhat]) <= 1.01
+    @test Float64(sampler[:min_autocorrelation_ess]) >= 400.0
+    @test Int(sampler[:n_mcmc_warning_parameters]) == 0
+    @test Bool(sampler[:manuscript_diagnostic_thresholds_passed])
+
+    parameters = fixture[:parameter_rows]
+    @test length(parameters) == 24
+    @test count(row -> String(row[:block]) == "item_difficulty", parameters) == 5
+    @test count(row -> String(row[:block]) == "rater_severity", parameters) == 4
+    @test count(row -> String(row[:block]) == "item_step", parameters) == 15
+    @test all(row -> isfinite(Float64(row[:package_posterior_mean])) &&
+        Float64(row[:package_posterior_lower95]) <=
+            Float64(row[:package_posterior_mean]) <=
+            Float64(row[:package_posterior_upper95]), parameters)
+
+    comparisons = fixture[:direct_comparison_rows]
+    @test length(comparisons) == 6
+    @test Set(String(row[:block]) for row in comparisons) ==
+        Set(["item_difficulty", "rater_severity", "item_step"])
+    tam_comparisons = filter(row -> occursin("tam_estimate",
+        String(row[:interpretation])), comparisons)
+    @test length(tam_comparisons) == 3
+    @test all(row -> Float64(row[:pearson_correlation]) > 0.99,
+        tam_comparisons)
+    @test all(row -> Float64(row[:mean_abs_difference]) < 0.05,
+        tam_comparisons)
+    @test all(row -> Float64(row[:max_abs_difference]) < 0.15,
+        tam_comparisons)
+
+    intervals = fixture[:block_interval_summary_rows]
+    @test length(intervals) == 3
+    @test all(row -> Float64(row[:tam_inside_package_interval95_rate]) == 1.0,
+        intervals)
+    @test all(row -> 0.0 <= Float64(row[:truth_inside_package_interval95_rate]) <=
+        1.0, intervals)
+
+    @test Set(String.(fixture[:claim_limits])) == Set([
+        "single_dataset_direct_estimate_pilot",
+        "direct_agreement_thresholds_not_predeclared",
+        "package_and_tam_estimators_are_not_identical",
+        "package_uses_fixed_person_parameters_tam_uses_marginal_likelihood",
+        "no_facets_or_conquest_execution",
+        "no_generalized_gmfrm_or_mgmfrm_external_validation",
+        "no_public_claim_release",
+    ])
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:direct_estimate_pilot_completed])
+    @test Bool(summary[:direct_agreement_thresholds_predeclared]) == false
+    @test Bool(summary[:sampler_diagnostics_passed])
+    @test Int(summary[:n_parameter_rows]) == 24
+    @test Int(summary[:n_direct_comparison_rows]) == 6
+    @test Bool(summary[:external_software_validation_completed]) == false
+    @test Bool(summary[:public_claim_release_allowed]) == false
+    @test String(summary[:next_gate]) ==
+        "freeze_direct_agreement_policy_then_run_multireplication_package_vs_tam_fits"
+end
+
+function check_mgmfrm_tam_direct_agreement_policy_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_tam_direct_agreement_policy.v1"
+    @test String(fixture[:family]) == "mfrm"
+    @test String(fixture[:scope]) ==
+        "tam_direct_package_vs_tam_agreement_policy"
+    @test String(fixture[:status]) ==
+        "prospective_direct_agreement_policy_frozen"
+    @test String(fixture[:decision]) ==
+        "run_multireplication_package_vs_tam_fits_keep_claim_blocked"
+    @test Bool(fixture[:local_only])
+    @test String(fixture[:external_software]) == "tam"
+    @test Bool(fixture[:direct_agreement_thresholds_predeclared])
+    @test Bool(fixture[:future_direct_multireplication_execution_completed]) ==
+        false
+    @test Bool(fixture[:external_software_validation_completed]) == false
+    @test Bool(fixture[:public_claim_release_allowed]) == false
+    @test Bool(fixture[:publication_or_registration_action]) == false
+
+    protocol = fixture[:protocol]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_tam_direct_agreement_policy_v1"
+    @test String(protocol[:generator]) ==
+        "scripts/generate_mgmfrm_tam_direct_agreement_policy.jl"
+    @test String(protocol[:generator_source_sha256]) == file_sha256(joinpath(
+        root, String(protocol[:generator])))
+    @test String(protocol[:direct_estimate_pilot]) ==
+        "test/fixtures/mgmfrm_tam_direct_estimate_pilot.json"
+    @test String(protocol[:direct_estimate_pilot_sha256]) ==
+        file_sha256(joinpath(root, String(protocol[:direct_estimate_pilot])))
+    @test String(protocol[:threshold_freeze_order]) ==
+        "after_single_dataset_direct_pilot_before_direct_multireplication_execution"
+    @test String(protocol[:current_pilot_role]) ==
+        "retrospective_calibration_only"
+    @test String(protocol[:future_runs_role]) == "prospective_confirmatory_gate"
+
+    relationship = fixture[:relationship_to_tam]
+    @test String(relationship[:overlap_target]) ==
+        "many_facet_rasch_partial_credit"
+    @test String(relationship[:compared_estimand]) ==
+        "aligned_item_rater_and_item_step_parameter_summaries"
+    @test String(relationship[:package_estimator]) ==
+        "bayesian_fixed_person_advancedhmc_posterior_mean_and_interval"
+    @test String(relationship[:tam_estimator]) ==
+        "marginal_maximum_likelihood_xsi_estimate"
+    @test Bool(relationship[:exact_estimator_equality_expected]) == false
+
+    plan = fixture[:future_execution_plan]
+    @test String(plan[:planned_artifact]) ==
+        "test/fixtures/mgmfrm_tam_direct_agreement_multireplication.json"
+    @test Int.(plan[:person_counts]) == [40, 100]
+    @test Int(plan[:replications_per_person_count]) == 5
+    @test Int(plan[:primary_person_count]) == 100
+    @test Float64(plan[:primary_block_pass_rate_threshold]) == 0.80
+    @test Int(plan[:chains]) == 4
+    @test Int(plan[:ndraws_per_chain]) == 400
+    @test Int(plan[:warmup_per_chain]) == 400
+    @test Float64(plan[:target_accept]) == 0.90
+    @test String(plan[:gate]) ==
+        "each_primary_block_all_direct_metrics_pass_rate_at_least_0_80_and_all_sampler_gates_pass"
+
+    thresholds = fixture[:direct_threshold_rows]
+    @test length(thresholds) == 12
+    @test Set(String(row[:block]) for row in thresholds) ==
+        Set(["item_difficulty", "rater_severity", "item_step"])
+    @test all(row -> String(row[:evaluation_role]) ==
+        "descriptive_pilot_calibration_only", thresholds)
+    @test all(row -> String(row[:future_role]) ==
+        "prospective_multireplication_gate", thresholds)
+    @test all(row -> Bool(row[:pilot_passed]), thresholds)
+    expected_thresholds = Dict(
+        "pearson_correlation" => 0.95,
+        "mean_abs_difference" => 0.10,
+        "max_abs_difference" => 0.30,
+        "tam_inside_package_interval95_rate" => 0.80,
+    )
+    @test Set(String(row[:metric]) for row in thresholds) ==
+        Set(keys(expected_thresholds))
+    @test all(row -> Float64(row[:threshold]) ==
+        expected_thresholds[String(row[:metric])], thresholds)
+
+    sampler = fixture[:sampler_threshold_rows]
+    @test length(sampler) == 6
+    @test all(row -> Bool(row[:pilot_passed]), sampler)
+    @test all(row -> String(row[:future_role]) ==
+        "prospective_fit_diagnostic_gate", sampler)
+    @test any(row -> String(row[:metric]) == "max_classical_split_rhat" &&
+        Float64(row[:threshold]) == 1.01, sampler)
+    @test any(row -> String(row[:metric]) == "min_autocorrelation_ess" &&
+        Float64(row[:threshold]) == 400.0, sampler)
+    @test any(row -> String(row[:metric]) == "n_divergences" &&
+        Int(row[:threshold]) == 0, sampler)
+
+    blocks = fixture[:block_policy_rows]
+    @test length(blocks) == 3
+    @test all(row -> Int(row[:n_thresholds]) == 4, blocks)
+    @test all(row -> Int(row[:n_pilot_thresholds_passed]) == 4, blocks)
+    @test all(row -> Bool(row[:all_pilot_thresholds_passed]), blocks)
+
+    @test Set(String.(fixture[:claim_limits])) == Set([
+        "thresholds_frozen_after_single_direct_pilot_not_before_it",
+        "current_pilot_is_calibration_only",
+        "future_multireplication_package_vs_tam_fits_required",
+        "package_and_tam_estimators_are_not_identical",
+        "no_facets_or_conquest_execution",
+        "no_generalized_gmfrm_or_mgmfrm_external_validation",
+        "no_public_claim_release",
+    ])
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:direct_agreement_thresholds_predeclared])
+    @test Bool(summary[:current_pilot_all_direct_thresholds_passed])
+    @test Bool(summary[:current_pilot_all_sampler_thresholds_passed])
+    @test Bool(summary[:future_direct_multireplication_execution_completed]) ==
+        false
+    @test Bool(summary[:external_software_validation_completed]) == false
+    @test Bool(summary[:public_claim_release_allowed]) == false
+    @test Int(summary[:n_direct_threshold_rows]) == 12
+    @test Int(summary[:n_sampler_threshold_rows]) == 6
+    @test Int(summary[:n_block_policy_rows]) == 3
+    @test String(summary[:next_gate]) ==
+        "run_predeclared_multireplication_package_vs_tam_direct_agreement"
+end
+
+function check_mgmfrm_tam_direct_agreement_policy_refinement_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_tam_direct_agreement_policy_refinement.v1"
+    @test String(fixture[:family]) == "mfrm"
+    @test String(fixture[:scope]) ==
+        "tam_direct_agreement_multiaxial_policy_refinement"
+    @test String(fixture[:status]) ==
+        "frozen_policy_refined_without_primary_gate_change"
+    @test String(fixture[:decision]) ==
+        "apply_adjudication_overlay_then_run_frozen_direct_multireplication"
+    @test Bool(fixture[:local_only])
+    @test String(fixture[:external_software]) == "tam"
+    @test String(fixture[:refinement_kind]) ==
+        "interpretation_adjudication_and_reporting_overlay"
+    @test Bool(fixture[:frozen_primary_thresholds_modified]) == false
+    @test Bool(fixture[:frozen_primary_design_modified]) == false
+    @test Bool(fixture[:direct_multireplication_execution_completed]) == false
+    @test Bool(fixture[:external_software_validation_completed]) == false
+    @test Bool(fixture[:public_claim_release_allowed]) == false
+    @test Bool(fixture[:publication_or_registration_action]) == false
+
+    protocol = fixture[:protocol]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_tam_direct_agreement_policy_refinement_v1"
+    @test String(protocol[:generator]) ==
+        "scripts/generate_mgmfrm_tam_direct_agreement_policy_refinement.jl"
+    @test String(protocol[:generator_source_sha256]) == file_sha256(joinpath(
+        root, String(protocol[:generator])))
+    @test String(protocol[:refinement_freeze_order]) ==
+        "after_frozen_primary_policy_before_direct_multireplication_execution"
+    @test String(protocol[:primary_policy_role]) ==
+        "immutable_confirmatory_decision_rule"
+    @test String(protocol[:refinement_role]) ==
+        "prospective_interpretation_and_adjudication_overlay"
+    @test String(protocol[:retrospective_evidence_role]) ==
+        "context_only_no_threshold_recalibration"
+
+    sources = fixture[:source_artifacts]
+    expected_sources = Dict(
+        :frozen_policy =>
+            "test/fixtures/mgmfrm_tam_direct_agreement_policy.json",
+        :baseline => "test/fixtures/mgmfrm_tam_overlap_baseline.json",
+        :direct_pilot =>
+            "test/fixtures/mgmfrm_tam_direct_estimate_pilot.json",
+        :recovery_policy =>
+            "test/fixtures/mgmfrm_tam_comparison_policy_review.json",
+        :tam_multireplication =>
+            "test/fixtures/mgmfrm_tam_multireplication_comparison.json",
+    )
+    for (field, path) in expected_sources
+        @test String(sources[field]) == path
+        @test String(sources[Symbol(String(field) * "_sha256")]) ==
+            file_sha256(joinpath(root, path))
+    end
+    @test occursin(r"^[0-9a-f]{64}$",
+        String(fixture[:frozen_primary_gate_fingerprint_sha256]))
+    @test occursin(r"^[0-9a-f]{64}$",
+        String(fixture[:direct_threshold_table_sha256]))
+    @test occursin(r"^[0-9a-f]{64}$",
+        String(fixture[:sampler_threshold_table_sha256]))
+
+    freeze = fixture[:freeze_provenance]
+    @test String(freeze[:external_registration_status]) == "not_registered"
+    @test String(freeze[:cryptographic_timestamp_status]) == "not_recorded"
+    @test Bool(freeze[:local_hash_evidence_only])
+    @test Bool(freeze[:can_be_called_preregistered]) == false
+    @test Bool(freeze[:can_be_called_locally_frozen_before_future_direct_runs])
+    @test Bool(freeze[:independent_freeze_verification_pending])
+
+    environment = fixture[:environment_contract]
+    @test String(environment[:project_toml]) == "Project.toml"
+    @test String(environment[:project_toml_sha256]) ==
+        file_sha256(joinpath(root, "Project.toml"))
+    @test String(environment[:manifest_toml]) == "Manifest.toml"
+    @test String(environment[:manifest_toml_sha256]) ==
+        file_sha256(joinpath(root, "Manifest.toml"))
+    @test Bool(environment[:os_blas_and_cpu_metadata_required_in_result])
+
+    parent = JSON3.read(read(joinpath(root,
+        String(sources[:frozen_policy])), String))
+    snapshot = fixture[:frozen_primary_gate_snapshot]
+    direct = snapshot[:direct_threshold_rows]
+    @test length(direct) == 12
+    @test Set((String(row[:block]), String(row[:metric]),
+        String(row[:direction]), Float64(row[:threshold])) for row in direct) ==
+        Set((String(row[:block]), String(row[:metric]),
+            String(row[:direction]), Float64(row[:threshold]))
+            for row in parent[:direct_threshold_rows])
+    sampler = snapshot[:sampler_threshold_rows]
+    @test length(sampler) == 6
+    @test Set(String(row[:metric]) for row in sampler) ==
+        Set(String(row[:metric]) for row in parent[:sampler_threshold_rows])
+    @test Int.(snapshot[:person_counts]) == [40, 100]
+    @test Int(snapshot[:replications_per_person_count]) == 5
+    @test Int(snapshot[:primary_person_count]) == 100
+    @test Float64(snapshot[:primary_block_pass_rate_threshold]) == 0.80
+    @test Int(snapshot[:chains]) == 4
+    @test Int(snapshot[:ndraws_per_chain]) == 400
+    @test Int(snapshot[:warmup_per_chain]) == 400
+    @test Float64(snapshot[:target_accept]) == 0.90
+    @test Int(snapshot[:max_depth]) == 10
+
+    design = fixture[:inherited_design_scope]
+    @test Bool(design[:inherited_without_change])
+    @test Int.(design[:person_counts]) == [40, 100]
+    @test Int(design[:primary_person_count]) == 100
+    @test Int(design[:n_items]) == 5
+    @test Int(design[:n_raters]) == 4
+    @test Int(design[:n_dimensions]) == 1
+    @test Int.(design[:category_levels]) == [0, 1, 2, 3]
+    @test Int(design[:n_categories]) == 4
+    @test String(design[:assignment]) == "fully_crossed"
+    @test String(design[:thresholds]) == "partial_credit"
+    @test Float64(design[:item_discrimination]) == 1.0
+    @test Float64(design[:rater_consistency]) == 1.0
+
+    data_contract = fixture[:data_and_input_contract]
+    @test String(data_contract[:generator]) ==
+        "standalone_adjacent_category_softmax"
+    @test Bool(data_contract[
+        :package_probability_or_simulation_helper_used_for_generation]) == false
+    @test Int(data_contract[:base_seed]) == 20260714
+    @test Bool(data_contract[
+        :seed_disjoint_from_direct_pilot_and_tam_only_multireplication])
+    @test Bool(data_contract[:adaptive_seed_search_or_redraw_allowed]) == false
+    @test Bool(data_contract[:missing_category_regeneration_allowed]) == false
+    @test Int(data_contract[:n_items]) == 5
+    @test Int(data_contract[:n_raters]) == 4
+    @test Int.(data_contract[:category_levels]) == [0, 1, 2, 3]
+    @test String(data_contract[:canonical_row_order]) ==
+        "person_then_rater_then_item"
+    @test Bool(data_contract[:package_and_tam_must_use_identical_csv_sha256])
+    seed_rows = data_contract[:seed_registry_rows]
+    @test length(seed_rows) == 10
+    all_seeds = Int[]
+    for row in seed_rows
+        append!(all_seeds, [Int(row[:ability_seed]), Int(row[:response_seed]),
+            Int(row[:package_fit_seed])])
+    end
+    @test length(unique(all_seeds)) == 30
+    @test 20260713 ∉ all_seeds
+
+    package_fit = fixture[:package_fit_contract]
+    @test String(package_fit[:backend]) == "advancedhmc"
+    @test String(package_fit[:sampler]) == "nuts"
+    @test Int(package_fit[:chains]) == 4
+    @test Int(package_fit[:warmup_per_chain]) == 400
+    @test Int(package_fit[:retained_draws_per_chain]) == 400
+    @test Float64(package_fit[:step_size]) == 0.05
+    @test Float64(package_fit[:target_accept]) == 0.90
+    @test Float64(package_fit[:max_energy_error]) == 1000.0
+    @test Float64(package_fit[:init_jitter]) == 0.05
+    @test Float64(package_fit[:prior][:person_sd]) == 1.5
+    @test Bool(package_fit[:post_result_tuning_change_allowed]) == false
+
+    tam_fit = fixture[:tam_fit_contract]
+    @test String(tam_fit[:r_command]) == "TAM_tam_mml_mfr"
+    @test String(tam_fit[:formulaA]) == "~ item + rater + item:step"
+    @test String(tam_fit[:constraint]) == "cases"
+    @test Int(tam_fit[:control][:maxiter]) == 1000
+    @test Float64(tam_fit[:control][:conv]) == 1.0e-4
+    @test Float64(tam_fit[:control][:convD]) == 1.0e-3
+    @test Float64(tam_fit[:control][:convM]) == 1.0e-4
+    @test Bool(tam_fit[:delete_red_items])
+    @test String(tam_fit[:tam_version]) == "4.3.25"
+    @test Set(String.(tam_fit[:required_validity_checks])) == Set([
+        "exit_code_zero",
+        "finite_deviance",
+        "positive_iteration_count",
+        "iteration_limit_not_reached",
+        "all_expected_parameters_present_once",
+        "no_unexpected_parameters_after_adapter",
+        "all_estimates_and_standard_errors_finite",
+        "formula_and_constraint_audit_pass",
+        "sum_zero_and_category_intercept_reconstruction_pass",
+    ])
+
+    archive = fixture[:artifact_archive_contract]
+    @test Bool(archive[:raw_local_archive_required])
+    @test Bool(archive[:per_attempt_command_environment_and_sha256_manifest_required])
+    @test Bool(archive[:failed_and_retried_attempts_both_retained])
+    @test Bool(archive[:independent_metric_recomputation_from_raw_outputs_required])
+
+    estimands = fixture[:estimand_alignment_rows]
+    @test length(estimands) == 7
+    @test Set(String(row[:estimand]) for row in estimands
+        if Bool(row[:included_in_primary_gate])) ==
+        Set(["item_difficulty", "rater_severity", "item_step"])
+    @test any(row -> String(row[:estimand]) == "person_ability" &&
+        String(row[:alignment]) == "not_directly_aligned" &&
+        Bool(row[:included_in_primary_gate]) == false, estimands)
+    @test any(row -> String(row[:estimand]) == "uncertainty" &&
+        String(row[:alignment]) == "not_identical_interval_frameworks",
+        estimands)
+
+    axes = fixture[:evidence_axis_rows]
+    @test length(axes) == 9
+    axis_by_name = Dict(Symbol(String(row[:axis])) => row for row in axes)
+    @test String(axis_by_name[:protocol_and_parameterization_alignment][
+        :current_status]) == "passed"
+    @test String(axis_by_name[:direct_cross_software_numerical_agreement][
+        :current_status]) ==
+        "descriptive_pilot_pass_confirmatory_runs_pending"
+    @test String(axis_by_name[:known_truth_recovery][:current_status]) ==
+        "tam_primary_n250_pass_package_multirep_pending"
+    @test String(axis_by_name[:model_family_coverage][:current_status]) ==
+        "unit_discrimination_unidimensional_mfrm_overlap_only"
+    @test String(axis_by_name[:software_diversity][:current_status]) ==
+        "tam_only"
+
+    metric_roles = fixture[:metric_role_rows]
+    @test length(metric_roles) == 4
+    @test all(row -> Bool(row[:independent_evidence_unit]) == false,
+        metric_roles)
+    @test any(row -> String(row[:metric]) ==
+        "tam_inside_package_interval95_rate" &&
+        occursin("not_an_equivalence_test", String(row[:limitation])),
+        metric_roles)
+
+    discreteness = fixture[:block_discreteness_rows]
+    @test length(discreteness) == 3
+    discrete_by_block = Dict(Symbol(String(row[:block])) => row
+        for row in discreteness)
+    @test Int(discrete_by_block[:item_difficulty][
+        :minimum_interval_containment_count]) == 4
+    @test Int(discrete_by_block[:rater_severity][
+        :minimum_interval_containment_count]) == 4
+    @test Int(discrete_by_block[:item_step][
+        :minimum_interval_containment_count]) == 12
+    @test Int(discrete_by_block[:rater_severity][
+        :correlation_degrees_of_freedom]) == 2
+    @test all(row -> Int(row[:minimum_replications_passing]) == 4,
+        discreteness)
+
+    precision = fixture[:replication_precision_rows]
+    @test Int.(getindex.(precision, :successes)) == [4, 5]
+    @test all(row -> Int(row[:trials]) == 5 &&
+        Bool(row[:frozen_gate_passed]), precision)
+    @test Float64(first(precision)[:wilson95_lower]) < 0.40
+    @test Float64(last(precision)[:wilson95_lower]) < 0.60
+    @test all(row -> String(row[:inferential_role]) ==
+        "precision_context_not_primary_gate", precision)
+    replication_design = fixture[:replication_design_interpretation]
+    @test Bool(replication_design[:observed_pass_rates_are_discrete])
+    @test Float64.(replication_design[:possible_pass_rates]) ==
+        [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+    @test Int(replication_design[:minimum_successes]) == 4
+    @test isapprox(Float64(replication_design[
+        :probability_of_observing_at_least_four_of_five_if_true_rate_is_0_80]),
+        0.73728; atol = 1e-12)
+    @test Bool(replication_design[
+        :can_establish_population_pass_probability_at_least_0_80]) == false
+
+    margins = fixture[:retrospective_pilot_direct_margin_rows]
+    @test length(margins) == 12
+    @test all(row -> Bool(row[:pilot_passed]), margins)
+    @test all(row -> Bool(row[:can_confirm_future_gate]) == false, margins)
+    @test all(row -> String(row[:role]) ==
+        "retrospective_descriptive_context_only", margins)
+
+    triangle = fixture[:retrospective_pilot_triangle_rows]
+    @test length(triangle) == 3
+    item_step = only(row for row in triangle
+        if String(row[:block]) == "item_step")
+    @test Float64(item_step[:package_vs_tam_pearson]) > 0.99
+    @test Float64(item_step[:package_vs_truth_pearson]) < 0.70
+    @test Float64(item_step[:tam_vs_truth_pearson]) < 0.72
+    @test Float64(item_step[:tam_vs_truth_mean_abs_difference]) > 0.27
+    @test Bool(item_step[:package_truth_recovery_profile_passed]) == false
+    @test Bool(item_step[:tam_truth_recovery_profile_passed]) == false
+    @test Bool(item_step[
+        :both_estimators_truth_recovery_profiles_passed]) == false
+    @test String(item_step[:interpretation]) ==
+        "direct_agreement_but_neither_estimator_has_descriptive_recovery_support"
+    @test all(row -> Bool(row[:confirmatory]) == false, triangle)
+
+    tam_context = fixture[:tam_known_truth_context_rows]
+    @test length(tam_context) == 9
+    @test all(row -> Bool(row[:direct_threshold_cross_application_allowed]) ==
+        false, tam_context)
+    @test only(Float64(row[:all_recovery_thresholds_pass_rate])
+        for row in tam_context if Int(row[:n_persons]) == 40 &&
+            String(row[:block]) == "item_step") == 0.6
+    @test only(Float64(row[:all_recovery_thresholds_pass_rate])
+        for row in tam_context if Int(row[:n_persons]) == 100 &&
+            String(row[:block]) == "item_step") == 1.0
+
+    qualifier = fixture[:secondary_recovery_qualifier]
+    @test String(qualifier[:status]) ==
+        "prospective_secondary_claim_qualifier_frozen"
+    @test Int(qualifier[:primary_person_count]) == 100
+    @test Int(qualifier[:replications]) == 5
+    @test Int(qualifier[:minimum_replications_passing_per_block]) == 4
+    @test Bool(qualifier[:all_blocks_required_for_qualifier])
+    @test Bool(qualifier[:changes_frozen_primary_direct_gate]) == false
+    @test Bool(qualifier[:cannot_rescue_primary_direct_failure])
+    @test Bool(qualifier[:cannot_veto_primary_direct_pass])
+    recovery_thresholds = qualifier[:threshold_rows]
+    @test length(recovery_thresholds) == 9
+    @test all(row -> String(row[:source_role]) ==
+        "inherited_unchanged_from_frozen_tam_known_truth_policy",
+        recovery_thresholds)
+    @test all(row -> String(row[:primary_direct_gate_effect]) == "none",
+        recovery_thresholds)
+
+    retry = fixture[:retry_and_missingness_policy]
+    @test Int(retry[:fixed_primary_denominator]) == 5
+    @test String(retry[:sampler_gate_scope]) ==
+        "all_ten_scheduled_package_fits"
+    @test Bool(retry[:n40_and_n100_pooling_allowed]) == false
+    @test String(retry[:n40_role]) ==
+        "secondary_sample_size_stress_condition"
+    @test String(retry[:n100_role]) == "primary_confirmatory_condition"
+    @test String(retry[:undefined_or_nonfinite_primary_metric]) ==
+        "automatic_replication_block_failure"
+    @test String(retry[:interval_metric_denominator]) ==
+        "all_expected_parameters_in_block"
+    @test Bool(retry[:all_scheduled_replications_must_be_recorded])
+    @test Bool(retry[:sampler_failure_counts_as_primary_gate_failure])
+    @test Bool(retry[:sampler_failure_may_be_replaced]) == false
+    @test Bool(retry[:agreement_metric_failure_may_be_replaced]) == false
+    @test Bool(retry[:replacement_seed_allowed]) == false
+    @test Bool(retry[:denominator_reduction_allowed]) == false
+    @test Bool(retry[:post_result_threshold_or_tuning_change_allowed]) == false
+
+    decisions = fixture[:decision_state_rows]
+    @test length(decisions) == 6
+    @test all(row -> Bool(row[:public_claim_release]) == false, decisions)
+    @test Set(String(row[:state]) for row in decisions) == Set([
+        "direct_pass_recovery_qualifier_pass",
+        "direct_pass_recovery_qualifier_fail",
+        "direct_fail_sampler_valid",
+        "sampler_invalid",
+        "execution_incomplete",
+        "protocol_violation",
+    ])
+
+    failures = fixture[:failure_taxonomy_rows]
+    @test length(failures) == 9
+    @test Int.(getindex.(failures, :priority)) == collect(1:9)
+    @test String(first(failures)[:failure]) ==
+        "protocol_or_alignment_failure"
+    @test any(row -> String(row[:failure]) == "threshold_fragile_pass" &&
+        String(row[:disposition]) ==
+            "primary_pass_retained_with_fragility_label", failures)
+    @test any(row -> String(row[:failure]) ==
+        "truth_triangulation_limitation" &&
+        "agree_but_both_miss_truth" in String.(row[:examples]), failures)
+
+    equivalence = fixture[:equivalence_advisory]
+    @test Bool(equivalence[:primary_metric_is_equivalence_test]) == false
+    rope = equivalence[:conditional_rope_analysis]
+    @test String(rope[:status]) == "prospective_advisory_only"
+    @test Float64(rope[:posterior_interval_probability]) == 0.90
+    @test Float64(rope[:rope_half_width]) == 0.30
+    @test Bool(rope[:changes_frozen_primary_gate]) == false
+    @test Bool(equivalence[:full_estimator_equivalence_completed]) == false
+
+    reports = fixture[:required_reporting_rows]
+    @test length(reports) == 10
+    @test any(row -> String(row[:report]) ==
+        "package_vs_tam_package_vs_truth_and_tam_vs_truth_triangle" &&
+        String(row[:role]) == "required_secondary_interpretation", reports)
+    @test any(row -> String(row[:report]) ==
+        "rank_normalized_rhat_bulk_tail_ess_and_ebfmi_when_available" &&
+        occursin("no_change_to_frozen_gate", String(row[:role])), reports)
+
+    scope = fixture[:model_scope_rows]
+    @test any(row -> String(row[:component]) ==
+        "uto_2021_loading_weighted_multidimensional_model" &&
+        String(row[:status]) == "excluded_no_inference_from_tam_overlap",
+        scope)
+    @test any(row -> String(row[:component]) ==
+        "multidimensional_fixed_q_mgmfrm" &&
+        String(row[:status]) == "excluded", scope)
+    @test any(row -> String(row[:component]) == "person_ability" &&
+        String(row[:status]) == "shared_kernel_term_not_direct_estimand",
+        scope)
+
+    claims = fixture[:claim_wording_rows]
+    @test length(claims) == 5
+    @test count(row -> String(row[:claim]) == "prohibited", claims) == 3
+    @test any(row -> occursin("uto_2021", String(row[:wording])), claims)
+
+    @test Set(String.(fixture[:claim_limits])) == Set([
+        "original_thresholds_and_design_remain_unchanged",
+        "direct_agreement_is_not_known_truth_recovery",
+        "five_replications_are_a_decision_rule_not_precise_rate_estimation",
+        "small_item_and_rater_blocks_make_correlation_and_coverage_discrete",
+        "interval_containment_is_not_equivalence_testing",
+        "same_data_estimators_can_share_sampling_error",
+        "classical_rhat_and_autocorrelation_ess_are_provisional",
+        "no_facets_or_conquest_execution",
+        "no_generalized_gmfrm_or_mgmfrm_external_validation",
+        "no_uto_2021_validation_inference_from_tam_overlap",
+        "no_external_construct_or_population_validity_claim",
+        "no_public_claim_release",
+    ])
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:frozen_primary_gate_unchanged])
+    @test Bool(summary[:frozen_primary_thresholds_modified]) == false
+    @test Bool(summary[:frozen_primary_design_modified]) == false
+    @test Bool(summary[:seed_registry_complete_and_disjoint])
+    @test Bool(summary[:structural_adapter_checks_passed])
+    @test Bool(summary[:retrospective_direct_pilot_all_thresholds_passed])
+    @test Bool(summary[:retrospective_pilot_full_recovery_support]) == false
+    @test String(summary[:retrospective_pilot_classification]) ==
+        "descriptive_agreement_without_full_recovery_support"
+    @test Float64(summary[:tam_known_truth_n40_item_step_pass_rate]) == 0.6
+    @test Float64(summary[:tam_known_truth_n100_item_step_pass_rate]) == 1.0
+    @test Bool(summary[:tam_known_truth_n250_primary_gate_passed])
+    @test Bool(summary[:secondary_recovery_qualifier_frozen])
+    @test Bool(summary[:direct_multireplication_execution_completed]) == false
+    @test Bool(summary[:external_software_validation_completed]) == false
+    @test Bool(summary[:public_claim_release_allowed]) == false
+    @test Int(summary[:n_evidence_axes]) == 9
+    @test Int(summary[:n_estimand_alignment_rows]) == 7
+    @test Int(summary[:n_metric_roles]) == 4
+    @test Int(summary[:n_decision_states]) == 6
+    @test Int(summary[:n_failure_taxonomy_rows]) == 9
+    @test Int(summary[:n_required_reporting_rows]) == 10
+    @test String(summary[:next_gate]) ==
+        "run_predeclared_multireplication_package_vs_tam_direct_agreement_under_refined_adjudication"
+end
+
+function check_mgmfrm_literature_anchored_independent_review_packet_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_literature_anchored_independent_review_packet.v1"
+    @test String(fixture[:family]) == "gmfrm_mgmfrm"
+    @test String(fixture[:scope]) ==
+        "literature_anchored_independent_review_packet"
+    @test String(fixture[:status]) == "packet_frozen_review_not_completed"
+    @test String(fixture[:decision]) ==
+        "freeze_independent_review_packet_keep_public_claims_blocked"
+    @test Bool(fixture[:local_only])
+    @test Bool(fixture[:publication_or_registration_action]) == false
+    @test Bool(fixture[:external_software_validation_completed]) == false
+    @test Bool(fixture[:independent_review_completed]) == false
+    @test Bool(fixture[:public_claim_release_allowed]) == false
+
+    protocol = fixture[:protocol]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_literature_anchored_independent_review_packet_v1"
+    @test String(protocol[:review_kind]) ==
+        "independent_scientific_and_reproducibility_review"
+    @test String(protocol[:source_artifact]) ==
+        "mgmfrm_literature_anchored_synthetic_benchmark"
+    @test String(protocol[:source_artifact_path]) ==
+        "test/fixtures/mgmfrm_literature_anchored_synthetic_benchmark.json"
+    @test Bool(protocol[:separate_from_external_software_comparison])
+    @test Bool(protocol[:signed_review_manifest_required])
+    @test String(protocol[:generator]) ==
+        "scripts/generate_mgmfrm_literature_anchored_independent_review_packet.jl"
+    @test String(protocol[:generator_source_sha256]) == file_sha256(joinpath(
+        root,
+        String(protocol[:generator]),
+    ))
+
+    source = fixture[:source_benchmark]
+    @test String(source[:path]) ==
+        "test/fixtures/mgmfrm_literature_anchored_synthetic_benchmark.json"
+    @test String(source[:expected_schema]) ==
+        "bayesianmgmfrm.mgmfrm_literature_anchored_synthetic_benchmark.v1"
+    @test Bool(source[:schema_matches])
+    @test String(source[:sha256]) ==
+        file_sha256(joinpath(root, String(source[:path])))
+    @test String(source[:generator_source]) ==
+        "scripts/generate_mgmfrm_literature_anchored_synthetic_benchmark.jl"
+    @test Bool(source[:recorded_generator_source_sha256_matches])
+    @test Bool(source[:package_simulate_responses_called]) == false
+    @test Bool(source[:package_source_oracle_checked_before_write])
+    @test Int(source[:n_reference_records]) == 4
+    @test Int(source[:n_benchmark_specifications]) == 4
+    @test Int(source[:n_datasets]) == 2
+    @test Int(source[:n_materialized_observations]) == 1700
+    @test Bool(source[:standalone_generator_oracle_agreement])
+    @test Bool(source[:public_claim_release_allowed]) == false
+    @test Bool(source[:independent_review_completed]) == false
+    @test Bool(source[:tam_direct_pilot_thresholds_predeclared]) == false
+    @test String(source[:tam_direct_agreement_policy_path]) ==
+        "test/fixtures/mgmfrm_tam_direct_agreement_policy.json"
+    @test String(source[:tam_direct_agreement_policy_schema]) ==
+        "bayesianmgmfrm.mgmfrm_tam_direct_agreement_policy.v1"
+    @test Bool(source[:tam_direct_agreement_policy_schema_matches])
+    @test Bool(source[:tam_direct_agreement_thresholds_predeclared])
+    @test Bool(source[:tam_direct_agreement_multireplication_completed]) ==
+        false
+    @test String(source[:tam_direct_agreement_policy_refinement_path]) ==
+        "test/fixtures/mgmfrm_tam_direct_agreement_policy_refinement.json"
+    @test String(source[:tam_direct_agreement_policy_refinement_schema]) ==
+        "bayesianmgmfrm.mgmfrm_tam_direct_agreement_policy_refinement.v1"
+    @test Bool(source[
+        :tam_direct_agreement_policy_refinement_schema_matches])
+    @test Bool(source[:tam_direct_frozen_primary_gate_unchanged])
+    @test Bool(source[:tam_direct_secondary_recovery_qualifier_frozen])
+    @test Bool(source[:tam_direct_refinement_execution_completed]) == false
+
+    source_rows = source[:source_dataset_rows]
+    @test length(source_rows) == 2
+    @test any(row -> String(row[:dataset_id]) ==
+        "uto_ueno_2020_scalar_recovery_smallest_cell_rep01" &&
+        String(row[:ability_combination]) == "not_applicable", source_rows)
+    @test any(row -> String(row[:dataset_id]) ==
+        "uto_2021_fixed_q_recovery_smallest_cell_rep01" &&
+        String(row[:ability_combination]) == "loading_weighted_sum" &&
+        String(row[:q_matrix_sha256]) != "not_applicable", source_rows)
+    @test all(row -> occursin(r"^[0-9a-f]{64}$",
+        String(row[:observations_sha256])), source_rows)
+    @test all(row -> occursin(r"^[0-9a-f]{64}$",
+        String(row[:truth_sha256])), source_rows)
+    @test all(row -> Float64(row[:max_abs_probability_error]) <= 1e-12,
+        source_rows)
+
+    required_inputs = fixture[:required_input_rows]
+    @test length(required_inputs) == 11
+    @test Set(String(row[:input]) for row in required_inputs) == Set([
+        "frozen_benchmark_artifact",
+        "generator_source",
+        "reference_records",
+        "dataset_checksums",
+        "paper_exact_vs_package_adapted_labels",
+        "claim_limit_ledger",
+        "tam_comparison_policy_and_adapter_review",
+        "tam_multireplication_comparison",
+        "tam_direct_estimate_pilot",
+        "tam_direct_agreement_policy",
+        "tam_direct_agreement_policy_refinement",
+    ])
+    @test all(row -> Bool(row[:present]), required_inputs)
+    @test all(row -> Bool(row[:reviewer_must_verify]), required_inputs)
+
+    tasks = fixture[:review_task_rows]
+    @test length(tasks) == 10
+    @test all(row -> String(row[:reviewer_decision]) ==
+        "pending_independent_review", tasks)
+    @test all(row -> Bool(row[:reviewer_required]), tasks)
+    @test all(row -> Bool(row[:completed]) == false, tasks)
+    @test all(row -> Bool(row[:blocks_public_claim_release]), tasks)
+    @test any(row -> String(row[:task]) ==
+        "ability_combination_recorded_as_formula" &&
+        String(row[:required_evidence]) ==
+            "loading_weighted_sum_not_classification_claim", tasks)
+    @test any(row -> String(row[:task]) == "external_software_bridge_scope" &&
+        String(row[:required_evidence]) ==
+            "tam_direct_policy_refined_multirep_package_fits_and_facets_conquest_pending", tasks)
+
+    fields = fixture[:reviewer_manifest_field_rows]
+    @test length(fields) == 12
+    @test all(row -> Bool(row[:required]), fields)
+    @test all(row -> Bool(row[:completed]) == false, fields)
+    @test any(row -> String(row[:field]) == "reviewed_benchmark_sha256" &&
+        String(row[:validation_rule]) ==
+            "must_match_source_benchmark_sha256", fields)
+    @test any(row -> String(row[:field]) == "per_claim_decision_table" &&
+        String(row[:validation_rule]) ==
+            "must_allow_block_or_request_revision_per_claim", fields)
+
+    claim_rows = fixture[:claim_review_rows]
+    @test length(claim_rows) == 6
+    @test count(row -> Bool(row[:artifact_support]), claim_rows) == 2
+    @test all(row -> Bool(row[:independent_review_required]), claim_rows)
+    @test all(row -> String(row[:reviewer_decision]) ==
+        "pending_independent_review", claim_rows)
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, claim_rows)
+    @test any(row -> String(row[:claim]) == "independent_review" &&
+        String(row[:artifact_blocker]) ==
+            "signed_independent_review_not_attached", claim_rows)
+
+    decision = fixture[:decision_record]
+    @test String(decision[:selected_decision]) ==
+        "independent_review_packet_frozen"
+    @test Bool(decision[:packet_frozen])
+    @test Bool(decision[:signed_review_manifest_attached]) == false
+    @test Bool(decision[:public_claim_release_allowed]) == false
+    @test String(decision[:required_followup]) ==
+        "assign_independent_reviewer_and_attach_signed_review_manifest"
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:packet_frozen])
+    @test Bool(summary[:source_benchmark_schema_matches])
+    @test Bool(summary[:generator_source_hash_matches])
+    @test Bool(summary[:standalone_generator_oracle_agreement])
+    @test Bool(summary[:independent_review_completed]) == false
+    @test Bool(summary[:signed_review_manifest_attached]) == false
+    @test Bool(summary[:external_software_validation_completed]) == false
+    @test Bool(summary[:public_claim_release_allowed]) == false
+    @test Int(summary[:n_required_inputs]) == 11
+    @test Int(summary[:n_review_task_rows]) == 10
+    @test Int(summary[:n_reviewer_manifest_fields]) == 12
+    @test Int(summary[:n_claim_review_rows]) == 6
+    @test Int(summary[:n_source_datasets]) == 2
+    @test Int(summary[:n_materialized_observations]) == 1700
+    @test Set(String.(summary[:remaining_public_blockers])) == Set([
+        "independent_reviewer_not_assigned",
+        "signed_review_manifest_not_attached",
+        "per_claim_review_decisions_missing",
+        "external_software_validation_not_completed",
+        "parameter_recovery_refits_not_completed",
+        "external_construct_validity_not_supplied",
+    ])
+    @test String(summary[:recommendation]) ==
+        "send_packet_to_independent_reviewer_without_claim_release"
+    @test String(summary[:next_gate]) ==
+        "assign_independent_reviewer_and_attach_signed_review_manifest"
+end
+
+function check_mgmfrm_tam_direct_agreement_multireplication_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_tam_direct_agreement_multireplication.v1"
+    @test String(fixture[:family]) == "mfrm"
+    @test String(fixture[:scope]) ==
+        "tam_direct_package_vs_tam_multireplication_execution"
+    @test String(fixture[:status]) ==
+        "direct_multireplication_execution_recorded"
+    @test Bool(fixture[:local_only])
+    @test Bool(fixture[:externally_preregistered]) == false
+    @test String(fixture[:external_software]) == "tam"
+    @test Bool(fixture[:tam_overlap_direct_evaluation_completed])
+    @test Bool(fixture[:package_wide_validation_completed]) == false
+    @test Bool(fixture[:external_software_validation_completed]) == false
+    @test Bool(fixture[:public_claim_release_allowed]) == false
+    @test Bool(fixture[:publication_or_registration_action]) == false
+
+    protocol = fixture[:protocol]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_tam_direct_agreement_multireplication_v1"
+    @test String(protocol[:generator]) ==
+        "scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl"
+    @test String(protocol[:generator_source_sha256]) == file_sha256(joinpath(
+        root, String(protocol[:generator])))
+    for (path_key, hash_key) in (
+            (:baseline_artifact, :baseline_artifact_sha256),
+            (:frozen_policy_artifact, :frozen_policy_artifact_sha256),
+            (:refinement_artifact, :refinement_artifact_sha256),
+            (:recovery_policy_artifact, :recovery_policy_artifact_sha256))
+        source_path = joinpath(root, String(protocol[path_key]))
+        @test isfile(source_path)
+        @test String(protocol[hash_key]) == file_sha256(source_path)
+    end
+    @test Bool(protocol[:inherited_thresholds_unchanged])
+    @test Int.(protocol[:person_counts]) == [40, 100]
+    @test Int(protocol[:replications_per_person_count]) == 5
+    @test Int(protocol[:primary_person_count]) == 100
+    @test String(protocol[:n40_role]) ==
+        "secondary_sample_size_stress_condition"
+    @test String(protocol[:n100_role]) == "primary_confirmatory_condition"
+    @test String(protocol[:sampler_gate_scope]) ==
+        "all_ten_scheduled_package_fits"
+    @test String(protocol[:failed_fit_disposition]) ==
+        "counts_as_failure_no_exclusion"
+    @test Bool(protocol[:replacement_seed_allowed]) == false
+
+    tested_scope = fixture[:tested_scope]
+    @test String(tested_scope[:tested_family]) == "mfrm"
+    @test Int(tested_scope[:dimensions]) == 1
+    @test Float64(tested_scope[:item_discrimination_fixed]) == 1.0
+    @test Float64(tested_scope[:rater_consistency_fixed]) == 1.0
+    @test Bool(tested_scope[:q_matrix_used]) == false
+    @test Bool(tested_scope[:uto_2021_model_evaluated]) == false
+    @test Bool(tested_scope[:result_transfer_to_gmfrm_or_mgmfrm_allowed]) ==
+        false
+    @test Bool(tested_scope[:facets_or_conquest_executed]) == false
+    @test Bool(tested_scope[:construct_or_population_validity_assessed]) ==
+        false
+
+    integrity = fixture[:policy_integrity]
+    @test Bool(integrity[:frozen_policy_hash_matches_refinement])
+    @test Bool(integrity[:baseline_hash_matches_refinement])
+    @test Bool(integrity[:recovery_policy_hash_matches_refinement])
+    @test Bool(integrity[:refinement_records_gate_unchanged])
+    @test Bool(integrity[:pilot_excluded_from_confirmatory_denominator])
+
+    selected = fixture[:selected_attempt_rows]
+    @test length(selected) == 10
+    @test length(unique(String(row[:job_id]) for row in selected)) == 10
+    @test all(row -> occursin(r"^[0-9a-f]{64}$",
+        String(row[:pointer_sha256])) &&
+        occursin(r"^[0-9a-f]{64}$", String(row[:result_sha256])), selected)
+
+    replications = fixture[:replication_rows]
+    @test length(replications) == 10
+    @test Set(Int(row[:n_persons]) for row in replications) == Set([40, 100])
+    @test count(row -> Int(row[:n_persons]) == 40, replications) == 5
+    @test count(row -> Int(row[:n_persons]) == 100, replications) == 5
+    @test all(row -> Bool(row[:execution_completed]), replications)
+    @test all(row -> Bool(row[:engine_failure]) == false, replications)
+    @test all(row -> Bool(row[:protocol_alignment_valid]), replications)
+    @test all(row -> Bool(row[:tam_validity][:passed]), replications)
+    @test all(row -> Bool(row[:package][:frozen_sampler_gate_passed]),
+        replications)
+    @test count(row -> !Bool(row[:package][
+        :rank_ebfmi_advisory_passed]), replications) == 4
+    @test Set(String(row[:job_id]) for row in replications
+        if !Bool(row[:package][:rank_ebfmi_advisory_passed])) == Set([
+        "n040_rep03", "n040_rep05", "n100_rep02", "n100_rep05"])
+    @test all(row -> length(row[:block_result_rows]) == 3, replications)
+    @test all(row -> all(block -> length(block[:direct_metric_rows]) == 4,
+        row[:block_result_rows]), replications)
+
+    scenario_rows = fixture[:scenario_block_summary_rows]
+    @test length(scenario_rows) == 6
+    @test Set(String(row[:block]) for row in scenario_rows) == Set([
+        "item_difficulty", "rater_severity", "item_step"])
+    @test all(row -> Int(row[:n_replications]) == 5, scenario_rows)
+    @test all(row -> Int(row[:direct_n_passed]) in 0:5, scenario_rows)
+    @test all(row -> Float64(row[:direct_pass_rate]) ==
+        Int(row[:direct_n_passed]) / 5, scenario_rows)
+    primary_rows = [row for row in scenario_rows
+        if Bool(row[:primary_gate_row])]
+    stress_rows = [row for row in scenario_rows
+        if !Bool(row[:primary_gate_row])]
+    @test length(primary_rows) == 3
+    @test length(stress_rows) == 3
+    @test all(row -> Int(row[:n_persons]) == 100, primary_rows)
+    @test all(row -> Int(row[:n_persons]) == 40, stress_rows)
+    computed_primary = all(row -> Int(row[:direct_n_passed]) >= 4,
+        primary_rows)
+    computed_package_recovery = all(row ->
+        Int(row[:package_truth_n_passed]) >= 4, primary_rows)
+    computed_tam_recovery = all(row ->
+        Int(row[:tam_truth_n_passed]) >= 4, primary_rows)
+    @test all(row -> Int(row[:direct_n_passed]) == 5, primary_rows)
+    @test all(row -> Int(row[:package_truth_n_passed]) == 5, primary_rows)
+    @test all(row -> Int(row[:tam_truth_n_passed]) == 5, primary_rows)
+    stress_by_block = Dict(String(row[:block]) => row for row in stress_rows)
+    @test Int(stress_by_block["item_difficulty"][
+        :package_truth_n_passed]) == 4
+    @test Int(stress_by_block["rater_severity"][
+        :package_truth_n_passed]) == 5
+    @test Int(stress_by_block["item_step"][:package_truth_n_passed]) == 3
+    @test all(row -> Int(row[:package_truth_n_passed]) ==
+        Int(row[:tam_truth_n_passed]), stress_rows)
+    @test all(row -> Bool(row[:direct_primary_block_passed]) ==
+        (Int(row[:direct_n_passed]) >= 4), primary_rows)
+
+    outcome = fixture[:outcome]
+    @test Bool(outcome[:primary_direct_gate_passed]) == computed_primary
+    @test Bool(outcome[:package_recovery_qualifier_passed]) ==
+        computed_package_recovery
+    @test Bool(outcome[:tam_recovery_qualifier_passed]) ==
+        computed_tam_recovery
+    @test Bool(outcome[:both_estimators_recovery_qualifier_passed]) ==
+        (computed_package_recovery && computed_tam_recovery)
+    @test String(outcome[:primary_policy_decision]) ==
+        (computed_primary ? "pass" : "fail")
+    @test String(outcome[:primary_policy_decision]) == "pass"
+    @test String(outcome[:scientific_interpretation]) ==
+        "local_numerical_agreement_with_both_recovery_profiles"
+    @test Set(String.(outcome[:prohibited_regardless_of_outcome])) == Set([
+        "bayesianmgmfrm_validated_by_tam",
+        "estimators_are_equivalent",
+        "uto_2021_reproduced_or_externally_validated",
+        "gmfrm_or_mgmfrm_validated",
+        "construct_population_fairness_or_performance_claim",
+    ])
+
+    raw_manifest = fixture[:raw_archive_manifest]
+    @test Bool(raw_manifest[:local_ignored_artifact])
+    @test Int(raw_manifest[:n_files]) == length(raw_manifest[:file_rows])
+    @test occursin(r"^[0-9a-f]{64}$",
+        String(raw_manifest[:manifest_sha256]))
+    @test all(row -> occursin(r"^[0-9a-f]{64}$",
+        String(row[:sha256])) && Int(row[:bytes]) >= 0,
+        raw_manifest[:file_rows])
+    raw_manifest_payload = join([
+        string(String(row[:path]), '|', Int(row[:bytes]), '|',
+            String(row[:sha256])) for row in raw_manifest[:file_rows]
+    ], "\n")
+    @test String(raw_manifest[:manifest_sha256]) ==
+        bytes2hex(sha256(raw_manifest_payload))
+
+    failures = fixture[:failure_rows]
+    @test length(failures) == 4
+    @test all(row -> String(row[:failure]) ==
+        "sampler_advisory_warning" &&
+        String(row[:detail]) == "rank_or_ebfmi_advisory_false", failures)
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:execution_completed])
+    @test Bool(summary[:all_protocol_alignment_valid])
+    @test Bool(summary[:all_tam_executions_valid])
+    @test Bool(summary[:all_package_sampler_gates_passed])
+    @test Bool(summary[:primary_direct_gate_passed]) == computed_primary
+    @test String(summary[:primary_policy_decision]) ==
+        String(outcome[:primary_policy_decision])
+    @test String(summary[:scientific_interpretation]) ==
+        String(outcome[:scientific_interpretation])
+    @test Int(summary[:n_selected_jobs]) == 10
+    @test Int(summary[:n_primary_block_rows]) == 3
+    @test Int(summary[:n_primary_block_rows_passed]) ==
+        count(row -> Bool(row[:direct_primary_block_passed]), primary_rows)
+    @test Int(summary[:n_failure_rows]) == length(fixture[:failure_rows])
+    @test Bool(summary[:external_software_validation_completed]) == false
+    @test Bool(summary[:public_claim_release_allowed]) == false
+    @test String(summary[:next_gate]) ==
+        "generate_independent_post_execution_tam_direct_review_packet"
+end
+
+function check_mgmfrm_tam_direct_agreement_raw_archive_audit_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_tam_direct_agreement_raw_archive_audit.v1"
+    @test String(fixture[:family]) == "mfrm"
+    @test String(fixture[:scope]) ==
+        "tam_direct_agreement_all_attempt_raw_archive_audit"
+    @test String(fixture[:status]) == "all_attempt_archive_audited"
+    @test String(fixture[:decision]) ==
+        "retain_all_attempts_commit_hash_manifest_only"
+    @test Bool(fixture[:local_only])
+    @test Bool(fixture[:raw_archive_committed]) == false
+    @test Bool(fixture[:raw_archive_hash_manifest_committed])
+    @test Bool(fixture[:public_claim_release_allowed]) == false
+
+    protocol = fixture[:protocol]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_tam_direct_agreement_raw_archive_audit_v1"
+    @test String(protocol[:generator]) ==
+        "scripts/generate_mgmfrm_tam_direct_agreement_raw_archive_audit.jl"
+    @test String(protocol[:generator_source_sha256]) == file_sha256(joinpath(
+        root, String(protocol[:generator])))
+    @test String(protocol[:execution_generator]) ==
+        "scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl"
+    @test String(protocol[:execution_generator_source_sha256]) ==
+        file_sha256(joinpath(root, String(protocol[:execution_generator])))
+    result_path = joinpath(root, String(protocol[:result_artifact]))
+    @test isfile(result_path)
+    @test String(protocol[:result_artifact_sha256]) == file_sha256(result_path)
+    @test Bool(protocol[:raw_root_is_gitignored])
+    @test Bool(protocol[:selected_and_nonselected_attempts_in_scope])
+    @test String(protocol[:manifest_fingerprint_format]) ==
+        "newline_joined_path_pipe_bytes_pipe_sha256_v1_order_preserving"
+    @test String(protocol[:audit_file_order]) == "lexicographic_path"
+    @test Bool(protocol[:repository_generated_paths_exclude_pipe_and_newline])
+
+    jobs = fixture[:job_rows]
+    pointers = fixture[:selected_pointer_rows]
+    attempts = fixture[:attempt_rows]
+    @test length(jobs) == 10
+    @test length(pointers) == 10
+    @test length(attempts) == 11
+    @test all(row -> Bool(row[:selected_pointer_valid]), jobs)
+    @test all(row -> Bool(row[:all_attempts_retained]), jobs)
+    @test all(row -> Bool(row[:attempts_are_contiguous]), jobs)
+    @test all(row -> Bool(row[:all_attempt_integrity_passed]), jobs)
+    @test all(row -> Bool(row[:selected_execution_completed]), jobs)
+    @test all(row -> Bool(row[:schema_matches]) &&
+        Bool(row[:job_id_matches]) &&
+        Bool(row[:selected_attempt_is_latest]) &&
+        Bool(row[:selected_result_exists]) &&
+        Bool(row[:selected_result_path_matches]) &&
+        Bool(row[:selected_result_hash_matches]) &&
+        Bool(row[:pointer_hash_and_path_valid]) &&
+        Bool(row[:selected_retry_documented]), pointers)
+    @test count(row -> Bool(row[:selected]), attempts) == 10
+    @test count(row -> !Bool(row[:selected]), attempts) == 1
+    @test count(row -> Bool(row[:engine_failure]), attempts) == 1
+    @test any(row -> String(row[:job_id]) == "n040_rep01" &&
+        Int(row[:attempt]) == 1 && !Bool(row[:selected]) &&
+        String(row[:error_type]) == "UndefVarError", attempts)
+    @test any(row -> String(row[:job_id]) == "n040_rep01" &&
+        Int(row[:attempt]) == 2 && Bool(row[:selected]) &&
+        String(row[:infrastructure_retry_reason]) ==
+            "runner_serialization_bug_fixed_before_result_write", attempts)
+    @test all(row -> Bool(row[:recorded_file_rows_match_actual]) &&
+        Bool(row[:retry_attempt_matches]) &&
+        Bool(row[:safe_manifest_paths]) &&
+        Bool(row[:attempt_integrity_passed]), attempts)
+    @test any(row -> String(row[:job_id]) == "n040_rep01" &&
+        Int(row[:attempt]) == 1 &&
+        String(row[:recorded_manifest_fingerprint_status]) ==
+            "missing_from_engine_failure_record_recomputed_by_audit",
+        attempts)
+    @test count(row -> String(row[
+        :recorded_manifest_fingerprint_status]) == "matched", attempts) == 10
+
+    files = fixture[:raw_file_rows]
+    @test length(files) == Int(fixture[:archive_manifest][:n_files])
+    @test length(files) == 230
+    @test length(unique(String(row[:path]) for row in files)) == length(files)
+    @test all(row -> Int(row[:bytes]) >= 0 &&
+        occursin(r"^[0-9a-f]{64}$", String(row[:sha256])), files)
+    fingerprint_rows = [(;
+        path = String(row[:path]),
+        bytes = Int(row[:bytes]),
+        sha256 = String(row[:sha256]),
+    ) for row in files]
+    payload = join([string(row.path, '|', row.bytes, '|', row.sha256)
+        for row in fingerprint_rows], "\n")
+    @test String(fixture[:archive_manifest][:manifest_sha256]) ==
+        bytes2hex(sha256(payload))
+    @test Bool(fixture[:archive_manifest][
+        :includes_nonselected_attempts])
+    @test Bool(fixture[:archive_manifest][:includes_failed_attempts])
+
+    verification = fixture[:result_manifest_verification_rows]
+    @test !isempty(verification)
+    @test all(row -> Bool(row[:exists]) && Bool(row[:bytes_match]) &&
+        Bool(row[:sha256_matches]), verification)
+    result = JSON3.read(read(result_path, String))
+    result_manifest = result[:raw_archive_manifest]
+    result_manifest_payload = join([
+        string(String(row[:path]), '|', Int(row[:bytes]), '|',
+            String(row[:sha256])) for row in result_manifest[:file_rows]
+    ], "\n")
+    @test String(result_manifest[:manifest_sha256]) ==
+        bytes2hex(sha256(result_manifest_payload))
+    selected_attempt_by_job = Dict(String(row[:job_id]) => Int(row[:attempt])
+        for row in attempts if Bool(row[:selected]))
+    selected_file_tuples = Set((String(row[:path]), Int(row[:bytes]),
+        String(row[:sha256])) for row in files
+        if Int(row[:attempt]) != 0 &&
+            Int(row[:attempt]) == selected_attempt_by_job[String(row[:job_id])])
+    result_file_tuples = Set((String(row[:path]), Int(row[:bytes]),
+        String(row[:sha256])) for row in result_manifest[:file_rows])
+    @test selected_file_tuples == result_file_tuples
+    selected_attempt_rows_by_job = Dict(String(row[:job_id]) => row
+        for row in attempts if Bool(row[:selected]))
+    pointer_rows_by_job = Dict(String(row[:job_id]) => row for row in pointers)
+    @test all(row -> begin
+        job_id = String(row[:job_id])
+        pointer = pointer_rows_by_job[job_id]
+        selected_attempt_row = selected_attempt_rows_by_job[job_id]
+        String(row[:pointer_path]) == String(pointer[:path]) &&
+            String(row[:pointer_sha256]) == String(pointer[:sha256]) &&
+            String(row[:result_path]) ==
+                String(pointer[:selected_result_path]) &&
+            String(row[:result_sha256]) ==
+                String(selected_attempt_row[:result_sha256]) &&
+            Int(row[:selected_attempt]) == Int(pointer[:selected_attempt])
+    end, result[:selected_attempt_rows])
+    accounting = fixture[:failure_and_retry_accounting]
+    @test Int(accounting[:n_failed_attempts]) == 1
+    @test Int(accounting[:n_nonselected_attempts]) == 1
+    @test Int(accounting[:n_documented_selected_retries]) == 1
+    @test Bool(accounting[:failed_attempts_excluded_from_archive]) == false
+    @test Bool(accounting[:selected_attempt_denominator_reduced]) == false
+    @test Bool(accounting[:replacement_seed_used]) == false
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:archive_integrity_passed])
+    @test Int(summary[:n_expected_jobs]) == 10
+    @test Int(summary[:n_job_rows]) == 10
+    @test Int(summary[:n_selected_pointers]) == 10
+    @test Int(summary[:n_attempts]) == 11
+    @test Int(summary[:n_selected_attempts]) == 10
+    @test Int(summary[:n_nonselected_attempts]) == 1
+    @test Int(summary[:n_failed_attempts]) == 1
+    @test Int(summary[:n_files]) == 230
+    @test Bool(summary[:all_selected_pointers_valid])
+    @test Bool(summary[:all_attempt_integrity_passed])
+    @test Bool(summary[:all_attempts_retained])
+    @test Bool(summary[:selected_result_sets_match])
+    @test Bool(summary[:result_selected_attempt_rows_match_audit])
+    @test Bool(summary[:selected_attempt_files_match_result_manifest])
+    @test Bool(summary[:recorded_result_manifest_fingerprint_matches])
+    @test Bool(summary[:all_recorded_result_manifest_files_match])
+    @test Bool(summary[:all_selected_generator_hashes_match_current])
+    @test Bool(summary[:all_file_paths_unique])
+    @test Bool(summary[:raw_root_is_gitignored])
+    @test Bool(summary[:result_execution_completed])
+    @test Bool(summary[:all_selected_execution_completed])
+    @test Int(summary[:n_selected_engine_failures]) == 0
+    @test Bool(summary[:raw_archive_committed]) == false
+    @test Bool(summary[:hash_manifest_committed])
+    @test Bool(summary[:public_claim_release_allowed]) == false
+end
+
+function check_mgmfrm_tam_direct_agreement_post_execution_review_packet_fixture(
+        fixture_path::AbstractString)
+    root = dirname(@__DIR__)
+    resolved_fixture_path =
+        isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
+    fixture = JSON3.read(read(resolved_fixture_path, String))
+    @test String(fixture[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_tam_direct_agreement_post_execution_review_packet.v1"
+    @test String(fixture[:family]) == "mfrm"
+    @test String(fixture[:scope]) ==
+        "tam_direct_agreement_independent_post_execution_review_packet"
+    @test String(fixture[:status]) == "packet_frozen_review_not_completed"
+    @test String(fixture[:decision]) ==
+        "freeze_post_execution_review_packet_keep_public_claims_blocked"
+    @test Bool(fixture[:tam_direct_local_execution_completed])
+    @test Bool(fixture[:scheduled_execution_recorded])
+    @test Bool(fixture[:external_software_validation_completed]) == false
+    @test Bool(fixture[:independent_review_completed]) == false
+    @test Bool(fixture[:signed_review_manifest_attached]) == false
+    @test Bool(fixture[:public_claim_release_allowed]) == false
+    @test Bool(fixture[:publication_or_registration_action]) == false
+
+    protocol = fixture[:protocol]
+    @test String(protocol[:protocol_id]) ==
+        "mgmfrm_tam_direct_agreement_post_execution_review_packet_v1"
+    @test String(protocol[:review_kind]) ==
+        "independent_scientific_computational_and_reproducibility_review"
+    @test String(protocol[:generator]) ==
+        "scripts/generate_mgmfrm_tam_direct_agreement_post_execution_review_packet.jl"
+    @test String(protocol[:generator_source_sha256]) == file_sha256(joinpath(
+        root, String(protocol[:generator])))
+    @test Bool(protocol[:generated_after_execution])
+    @test Bool(protocol[:distinct_from_pre_execution_packet])
+    @test Bool(protocol[:pre_execution_packet_remains_immutable])
+    @test Bool(protocol[:signed_review_manifest_required])
+    @test Bool(protocol[:independent_reexecution_required])
+
+    inputs = fixture[:required_input_rows]
+    @test length(inputs) == 5
+    @test Set(String(row[:input]) for row in inputs) == Set([
+        "multireplication_result",
+        "all_attempt_raw_archive_audit",
+        "frozen_policy",
+        "policy_refinement",
+        "pre_execution_independent_review_packet",
+    ])
+    @test all(row -> Bool(row[:present]) &&
+        Bool(row[:reviewer_must_verify]), inputs)
+    @test all(row -> isfile(joinpath(root, String(row[:path]))) &&
+        String(row[:sha256]) ==
+            file_sha256(joinpath(root, String(row[:path]))), inputs)
+    input_by_name = Dict(String(row[:input]) => row for row in inputs)
+    post_result_path = joinpath(root,
+        String(input_by_name["multireplication_result"][:path]))
+    post_audit_path = joinpath(root,
+        String(input_by_name["all_attempt_raw_archive_audit"][:path]))
+    post_policy_path = joinpath(root,
+        String(input_by_name["frozen_policy"][:path]))
+    post_refinement_path = joinpath(root,
+        String(input_by_name["policy_refinement"][:path]))
+    post_pre_packet_path = joinpath(root,
+        String(input_by_name[
+            "pre_execution_independent_review_packet"][:path]))
+    post_result = JSON3.read(read(post_result_path, String))
+    post_audit = JSON3.read(read(post_audit_path, String))
+    post_refinement = JSON3.read(read(post_refinement_path, String))
+    post_pre_packet = JSON3.read(read(post_pre_packet_path, String))
+    result_protocol = post_result[:protocol]
+    @test String(result_protocol[:frozen_policy_artifact_sha256]) ==
+        file_sha256(post_policy_path)
+    @test String(result_protocol[:refinement_artifact_sha256]) ==
+        file_sha256(post_refinement_path)
+    @test String(result_protocol[:generator_source_sha256]) ==
+        file_sha256(joinpath(root, String(result_protocol[:generator])))
+    @test String(result_protocol[:baseline_artifact_sha256]) ==
+        file_sha256(joinpath(root,
+            String(result_protocol[:baseline_artifact])))
+    @test String(result_protocol[:recovery_policy_artifact_sha256]) ==
+        file_sha256(joinpath(root,
+            String(result_protocol[:recovery_policy_artifact])))
+    @test String(result_protocol[
+        :frozen_primary_gate_fingerprint_sha256]) == String(post_refinement[
+        :frozen_primary_gate_fingerprint_sha256])
+    @test String(post_audit[:protocol][:result_artifact_sha256]) ==
+        file_sha256(post_result_path)
+    @test String(post_audit[:protocol][
+        :execution_generator_source_sha256]) ==
+        String(result_protocol[:generator_source_sha256])
+    pre_input_by_name = Dict(String(row[:input]) => row
+        for row in post_pre_packet[:required_input_rows])
+    @test String(pre_input_by_name[
+        "tam_direct_agreement_policy"][:sha256]) ==
+        file_sha256(post_policy_path)
+    @test String(pre_input_by_name[
+        "tam_direct_agreement_policy_refinement"][:sha256]) !=
+        file_sha256(post_refinement_path)
+    @test Bool(fixture[:source_hash_chain_valid])
+    @test Bool(fixture[:core_source_hash_chain_valid])
+    lineage = fixture[:pre_execution_lineage]
+    @test Bool(lineage[:exact_input_lineage]) == false
+    @test Bool(lineage[:policy_hash_matches])
+    @test Bool(lineage[:refinement_hash_matches]) == false
+    @test Bool(lineage[:immutable_pre_execution_packet_preserved])
+    @test Bool(lineage[:post_execution_regeneration_used_to_erase_mismatch]) ==
+        false
+    @test String(lineage[:status]) ==
+        "refinement_snapshot_hash_mismatch_requires_independent_review"
+
+    layers = fixture[:decision_layers]
+    @test String(layers[:primary_policy][:rule]) ==
+        "all_three_n100_blocks_pass_at_least_four_of_five_runs"
+    @test Bool(layers[:recovery_qualifiers][
+        :changes_primary_agreement_decision]) == false
+    @test Bool(layers[:computation_and_protocol][:valid])
+    @test Bool(layers[:computation_and_protocol][
+        :all_protocol_alignment_valid])
+    @test Bool(layers[:computation_and_protocol][
+        :all_tam_executions_valid])
+    @test Bool(layers[:computation_and_protocol][
+        :all_package_sampler_gates_passed])
+    @test Bool(layers[:computation_and_protocol][
+        :all_attempt_raw_archive_audit_passed])
+    @test length(fixture[:primary_scenario_block_rows]) == 3
+    @test length(fixture[:all_scenario_block_rows]) == 6
+
+    tasks = fixture[:review_task_rows]
+    @test length(tasks) == 15
+    @test all(row -> Bool(row[:reviewer_required]) &&
+        String(row[:reviewer_decision]) == "pending_independent_review" &&
+        !Bool(row[:completed]) &&
+        Bool(row[:blocks_public_claim_release]), tasks)
+    @test any(row -> String(row[:task]) ==
+        "failure_and_retry_accounting", tasks)
+    @test any(row -> String(row[:task]) ==
+        "pre_execution_chronology_and_amendment", tasks)
+    @test any(row -> String(row[:task]) ==
+        "uto_gmfrm_mgmfrm_nonextrapolation", tasks)
+
+    fields = fixture[:reviewer_manifest_field_rows]
+    @test length(fields) == 14
+    @test all(row -> Bool(row[:required]) && !Bool(row[:completed]) &&
+        String(row[:placeholder_policy]) == "reviewer_supplied_no_default",
+        fields)
+    @test any(row -> String(row[:field]) ==
+        "independent_reexecution_record", fields)
+    @test any(row -> String(row[:field]) == "signature", fields)
+
+    claims = fixture[:claim_review_rows]
+    @test length(claims) == 6
+    @test all(row -> Bool(row[:public_claim_allowed]) == false, claims)
+    @test count(row -> Bool(row[:artifact_support]), claims) == 1
+    @test any(row -> String(row[:claim]) ==
+        "safe_local_outcome_wording" &&
+        String(row[:reviewer_decision]) == "pending_independent_review",
+        claims)
+    @test all(row -> String(row[:reviewer_decision]) ==
+        "must_remain_blocked", claims[2:end])
+
+    decision = fixture[:decision_record]
+    @test String(decision[:selected_decision]) ==
+        "post_execution_packet_frozen"
+    @test Bool(decision[:packet_integrity_passed])
+    @test Bool(decision[:independent_reviewer_assigned]) == false
+    @test Bool(decision[:independent_reexecution_completed]) == false
+    @test Bool(decision[:signed_review_manifest_attached]) == false
+    @test Bool(decision[:independent_review_completed]) == false
+    @test Bool(decision[:public_claim_release_allowed]) == false
+
+    summary = fixture[:summary]
+    @test Bool(summary[:passed])
+    @test Bool(summary[:packet_integrity_passed])
+    @test Bool(summary[:source_hash_chain_valid])
+    @test Bool(summary[:core_source_hash_chain_valid])
+    @test Bool(summary[:pre_execution_packet_exact_input_lineage]) == false
+    @test Bool(summary[:pre_execution_packet_policy_hash_matches])
+    @test Bool(summary[:pre_execution_packet_refinement_hash_matches]) == false
+    @test Bool(summary[:tam_direct_local_execution_completed])
+    @test Bool(summary[:scheduled_execution_recorded])
+    @test Bool(summary[:execution_valid])
+    @test String(summary[:primary_policy_decision]) == "pass"
+    @test String(summary[:scientific_interpretation]) ==
+        "local_numerical_agreement_with_both_recovery_profiles"
+    @test Bool(summary[:primary_direct_gate_passed])
+    @test Bool(summary[:package_recovery_qualifier_passed])
+    @test Bool(summary[:tam_recovery_qualifier_passed])
+    @test Int(summary[:n_required_inputs]) == 5
+    @test Int(summary[:n_review_tasks]) == 15
+    @test Int(summary[:n_reviewer_manifest_fields]) == 14
+    @test Int(summary[:n_claim_rows]) == 6
+    @test Int(summary[:n_primary_scenario_block_rows]) == 3
+    @test Bool(summary[:independent_review_completed]) == false
+    @test Bool(summary[:signed_review_manifest_attached]) == false
+    @test Bool(summary[:external_software_validation_completed]) == false
+    @test Bool(summary[:public_claim_release_allowed]) == false
+    @test Set(String.(summary[:remaining_public_blockers])) == Set([
+        "independent_reviewer_not_assigned",
+        "independent_reexecution_not_completed",
+        "signed_review_manifest_not_attached",
+        "per_task_review_decisions_missing",
+        "per_claim_review_decisions_missing",
+        "external_construct_validity_not_supplied",
+        "pre_execution_packet_refinement_hash_lineage_mismatch",
+    ])
+    @test String(summary[:recommendation]) ==
+        "send_frozen_packet_to_independent_reviewer_without_claim_release"
+    @test String(summary[:next_gate]) ==
+        "assign_independent_reviewer_reexecute_and_attach_signed_manifest"
 end
 
 function check_mgmfrm_q_candidate_real_fit_diagnostic_linkage_fixture(
@@ -17138,6 +19743,45 @@ function check_scalar_validation_stan_pair(known_fixture_path::AbstractString,
     )
 end
 
+@testset "local JSON writer handles JSON3 dictionaries" begin
+    source = JSON3.read("{\"z\":null,\"b\":[2,1],\"a\":{\"x\":true}}")
+    io = IOBuffer()
+    write_json(io, source)
+    written = String(take!(io))
+    reparsed = JSON3.read(written)
+    @test reparsed[:z] === nothing
+    @test Int.(reparsed[:b]) == [2, 1]
+    @test Bool(reparsed[:a][:x])
+    @test first(findfirst("\"a\"", written)) <
+        first(findfirst("\"b\"", written)) <
+        first(findfirst("\"z\"", written))
+
+    raw_error = "MethodError: no method matching fit(::Any; experimental=true)\r\n" *
+        "Closest candidates are:\r\n" *
+        "  fit(::Any; experimental)\r\n" *
+        "    @ BayesianMGMFRM /Users/example/src/bayesian_fit.jl:1071\r" *
+        "  fit(::Any) got unsupported keyword argument \"experimental\"\r\n" *
+        "    @ BayesianMGMFRM C:\\workspace\\src\\bayesian_fit.jl:3114"
+    normalized_error = normalize_error_message(raw_error)
+    @test occursin("fit(::Any; experimental)", normalized_error)
+    @test occursin("unsupported keyword argument \"experimental\"",
+        normalized_error)
+    @test !occursin('\r', normalized_error)
+    @test !occursin("/Users/example", normalized_error)
+    @test !occursin("C:\\workspace", normalized_error)
+    @test !occursin(r"\.jl:\d+", normalized_error)
+
+    fixture_root = joinpath(@__DIR__, "fixtures")
+    location_pattern = r"\.jl:\d+"
+    location_bearing_fixtures = sort!(String[
+        relpath(path, dirname(@__DIR__))
+        for path in readdir(fixture_root; join = true)
+        if endswith(path, ".json") &&
+            occursin(location_pattern, read(path, String))
+    ])
+    @test isempty(location_bearing_fixtures)
+end
+
 @testset "public docstrings" begin
     for name in (:FacetData, :ValidationIssue, :ValidationReport, :FacetSpec, :FacetDesign,
             :MFRMPrior, :MFRMLogDensity, :MFRMFit, :GMFRMFit, :MGMFRMFit,
@@ -17145,7 +19789,8 @@ end
             :benchmark_result_row, :benchmark_summary, :calibration_plot_data,
             :case_study_provenance_manifest,
             :constraint_table, :dff_report, :domain_compilation_summary,
-            :expected_scores, :fair_average_summary,
+            :expected_scores, :facets_compatibility_stats, :facets_report,
+            :fair_average_summary,
             :falsification_rule_summary, :falsification_rules,
             :fit, :fit_archive_manifest, :fit_artifact, :fit_cache_key, :fit_metadata,
             :fit_reproduction_manifest,
@@ -17624,7 +20269,7 @@ end
     @test any(row -> row.source === :documentation &&
         row.target === :readme_public_surface &&
         row.check === :required_text &&
-        row.expected == "`experimental_public`" &&
+        row.expected == "| Scalar rater-consistency GMFRM | Experimental |" &&
         row.status === :passed,
         release_gate.rows)
     @test any(row -> row.source === :manifest &&
@@ -18274,10 +20919,9 @@ end
             discrimination = :rater,
         )
     end
-    @test occursin("blocked_option=:multidimensional_ability",
+    @test occursin("family = :gmfrm is one-dimensional",
         gmfrm_multidimensional_error)
-    @test occursin("next_gate=:mgmfrm_guarded_fit_validation_grid",
-        gmfrm_multidimensional_error)
+    @test occursin("family = :mgmfrm", gmfrm_multidimensional_error)
 
     gmfrm_item_discrimination_spec =
         mfrm_spec(identified_data; family = :gmfrm, discrimination = :item)
@@ -18290,23 +20934,23 @@ end
             chains = 1,
         )
     end
-    @test occursin("blocked_option=:discrimination", gmfrm_item_fit_error)
-    @test occursin("value=:item", gmfrm_item_fit_error)
-    @test occursin("next_gate=:item_discrimination_promotion_decision",
-        gmfrm_item_fit_error)
+    @test occursin("discrimination = :item", gmfrm_item_fit_error)
+    @test occursin("Supported configuration:", gmfrm_item_fit_error)
+    @test !occursin(r"blocked_option|supported_surface|next_gate", gmfrm_item_fit_error)
 
     gmfrm_backend_error = argument_error_message() do
         fit(gmfrm_spec; experimental = true, backend = :julia, ndraws = 1, warmup = 0)
     end
-    @test occursin("blocked_option=:backend", gmfrm_backend_error)
-    @test occursin("next_gate=:advancedhmc_guarded_sampler_policy",
-        gmfrm_backend_error)
+    @test occursin("backend = :julia", gmfrm_backend_error)
+    @test occursin("backend = :advancedhmc", gmfrm_backend_error)
+    @test !occursin(r"blocked_option|supported_surface|next_gate", gmfrm_backend_error)
 
     gmfrm_prior_error = argument_error_message() do
         fit(gmfrm_spec; experimental = true, prior = MFRMPrior(), ndraws = 1, warmup = 0)
     end
-    @test occursin("blocked_option=:prior", gmfrm_prior_error)
-    @test occursin("next_gate=:scalar_gmfrm_prior_likelihood_sensitivity_grid",
+    @test occursin("prior = :MFRMPrior", gmfrm_prior_error)
+    @test occursin("Omit `prior`", gmfrm_prior_error)
+    @test !occursin(r"blocked_option|supported_surface|next_gate|internal_|_SourceFixturePrior",
         gmfrm_prior_error)
 
     gmfrm_dff_data = FacetData(
@@ -18332,9 +20976,9 @@ end
     gmfrm_dff_fit_error = argument_error_message() do
         fit(gmfrm_dff_spec; experimental = true, ndraws = 1, warmup = 0)
     end
-    @test occursin("blocked_option=:dff_effects", gmfrm_dff_fit_error)
-    @test occursin("next_gate=:gmfrm_dff_estimand_validation_grid",
-        gmfrm_dff_fit_error)
+    @test occursin("dff_effects = ", gmfrm_dff_fit_error)
+    @test occursin("Supported configuration:", gmfrm_dff_fit_error)
+    @test !occursin(r"blocked_option|supported_surface|next_gate", gmfrm_dff_fit_error)
     gmfrm_equation = model_equation(gmfrm_spec)
     @test gmfrm_equation.family === :gmfrm
     @test !gmfrm_equation.fit_ready
@@ -19910,6 +22554,13 @@ end
         max_depth = 3,
         metric = :unit)
     @test gmfrm_experimental_fit isa GMFRMFit
+    @test isempty(RuntimePublicLanguagePolicy.runtime_language_violations([
+        "actual GMFRMFit show" => sprint(show, gmfrm_experimental_fit),
+        "actual GMFRMFit text/plain" =>
+            sprint(show, MIME"text/plain"(), gmfrm_experimental_fit),
+    ]))
+    @test_throws ArgumentError facets_report(gmfrm_experimental_fit)
+    @test_throws ArgumentError facets_compatibility_stats(gmfrm_experimental_fit)
     @test gmfrm_experimental_fit.design.spec.family === :gmfrm
     @test gmfrm_experimental_fit.design.spec.discrimination === :rater
     @test gmfrm_experimental_fit.backend === :advancedhmc
@@ -20086,6 +22737,23 @@ end
         draw_indices = [1, 2],
         include_loo = false,
         artifact_include_environment = false)
+    gmfrm_report_hash = artifact_content_hash(gmfrm_report)
+    gmfrm_public_report = fit_report_public(gmfrm_report)
+    @test gmfrm_public_report.schema ==
+        "bayesianmgmfrm.fit_report_public.v1"
+    @test gmfrm_public_report.status === :experimental
+    @test gmfrm_public_report.source_report.content_hash ==
+        BayesianMGMFRM._public_fit_report_content_hash_record(gmfrm_report).value
+    @test artifact_content_hash(gmfrm_report) == gmfrm_report_hash
+    @test !hasproperty(gmfrm_public_report, :status_policy)
+    @test !hasproperty(gmfrm_public_report, :manifest)
+    @test !occursin(r"experimental_public|guarded_local_fit|next_gate|test/fixtures/|scripts/generate_",
+        JSON3.write(gmfrm_public_report))
+    @test isempty(RuntimePublicLanguagePolicy.runtime_language_violations([
+        "actual GMFRM public report" => JSON3.write(gmfrm_public_report),
+        "actual GMFRM public Markdown" =>
+            fit_report_markdown(gmfrm_public_report; max_rows = 2),
+    ]))
     @test gmfrm_report.prior_policy.status === :computed
     @test gmfrm_report.prior_policy.summary.raw_coordinate_generalized_priors
     @test !gmfrm_report.prior_policy.summary.direct_scale_generalized_priors_enabled
@@ -21399,6 +24067,13 @@ end
             metric = :unit,
         )
     @test mgmfrm_guarded_fit isa MGMFRMFit
+    @test isempty(RuntimePublicLanguagePolicy.runtime_language_violations([
+        "actual MGMFRMFit show" => sprint(show, mgmfrm_guarded_fit),
+        "actual MGMFRMFit text/plain" =>
+            sprint(show, MIME"text/plain"(), mgmfrm_guarded_fit),
+    ]))
+    @test_throws ArgumentError facets_report(mgmfrm_guarded_fit)
+    @test_throws ArgumentError facets_compatibility_stats(mgmfrm_guarded_fit)
     @test mgmfrm_guarded_fit.design.spec.family === :mgmfrm
     @test mgmfrm_guarded_fit.backend === :advancedhmc
     @test mgmfrm_guarded_fit.sampler === :nuts
@@ -21495,6 +24170,23 @@ end
         draw_indices = [1, 2],
         include_loo = false,
         artifact_include_environment = false)
+    mgmfrm_report_hash = artifact_content_hash(mgmfrm_report)
+    mgmfrm_public_report = fit_report_public(mgmfrm_report)
+    @test mgmfrm_public_report.schema ==
+        "bayesianmgmfrm.fit_report_public.v1"
+    @test mgmfrm_public_report.status === :experimental
+    @test mgmfrm_public_report.source_report.content_hash ==
+        BayesianMGMFRM._public_fit_report_content_hash_record(mgmfrm_report).value
+    @test artifact_content_hash(mgmfrm_report) == mgmfrm_report_hash
+    @test !hasproperty(mgmfrm_public_report, :status_policy)
+    @test !hasproperty(mgmfrm_public_report, :model_surface_audit)
+    @test !occursin(r"experimental_public|guarded_local_fit|next_gate|test/fixtures/|scripts/generate_",
+        JSON3.write(mgmfrm_public_report))
+    @test isempty(RuntimePublicLanguagePolicy.runtime_language_violations([
+        "actual MGMFRM public report" => JSON3.write(mgmfrm_public_report),
+        "actual MGMFRM public Markdown" =>
+            fit_report_markdown(mgmfrm_public_report; max_rows = 2),
+    ]))
     @test mgmfrm_report.schema == "bayesianmgmfrm.fit_report.v1"
     @test mgmfrm_report.family === :mgmfrm
     @test mgmfrm_report.status_policy.status_label === :experimental_public
@@ -22084,6 +24776,78 @@ end
             mgmfrm_empirical_q_matrix_recovery_simulation_grid_fixture,
         )
     end
+    mgmfrm_literature_anchored_synthetic_benchmark_fixture = optional_fixture_path("MFRM_MGMFRM_LITERATURE_ANCHORED_SYNTHETIC_BENCHMARK_FIXTURE", joinpath("test", "fixtures", "mgmfrm_literature_anchored_synthetic_benchmark.json"))
+    if !isempty(mgmfrm_literature_anchored_synthetic_benchmark_fixture)
+        check_mgmfrm_literature_anchored_synthetic_benchmark_fixture(
+            mgmfrm_literature_anchored_synthetic_benchmark_fixture,
+        )
+    end
+    mgmfrm_tam_overlap_baseline_fixture = optional_fixture_path("MFRM_MGMFRM_TAM_OVERLAP_BASELINE_FIXTURE", joinpath("test", "fixtures", "mgmfrm_tam_overlap_baseline.json"))
+    if !isempty(mgmfrm_tam_overlap_baseline_fixture)
+        check_mgmfrm_tam_overlap_baseline_fixture(
+            mgmfrm_tam_overlap_baseline_fixture,
+        )
+    end
+    mgmfrm_tam_overlap_execution_review_fixture = optional_fixture_path("MFRM_MGMFRM_TAM_OVERLAP_EXECUTION_REVIEW_FIXTURE", joinpath("test", "fixtures", "mgmfrm_tam_overlap_execution_review.json"))
+    if !isempty(mgmfrm_tam_overlap_execution_review_fixture)
+        check_mgmfrm_tam_overlap_execution_review_fixture(
+            mgmfrm_tam_overlap_execution_review_fixture,
+        )
+    end
+    mgmfrm_tam_comparison_policy_review_fixture = optional_fixture_path("MFRM_MGMFRM_TAM_COMPARISON_POLICY_REVIEW_FIXTURE", joinpath("test", "fixtures", "mgmfrm_tam_comparison_policy_review.json"))
+    if !isempty(mgmfrm_tam_comparison_policy_review_fixture)
+        check_mgmfrm_tam_comparison_policy_review_fixture(
+            mgmfrm_tam_comparison_policy_review_fixture,
+        )
+    end
+    mgmfrm_tam_multireplication_comparison_fixture = optional_fixture_path("MFRM_MGMFRM_TAM_MULTIREPLICATION_COMPARISON_FIXTURE", joinpath("test", "fixtures", "mgmfrm_tam_multireplication_comparison.json"))
+    if !isempty(mgmfrm_tam_multireplication_comparison_fixture)
+        check_mgmfrm_tam_multireplication_comparison_fixture(
+            mgmfrm_tam_multireplication_comparison_fixture,
+        )
+    end
+    mgmfrm_tam_direct_estimate_pilot_fixture = optional_fixture_path("MFRM_MGMFRM_TAM_DIRECT_ESTIMATE_PILOT_FIXTURE", joinpath("test", "fixtures", "mgmfrm_tam_direct_estimate_pilot.json"))
+    if !isempty(mgmfrm_tam_direct_estimate_pilot_fixture)
+        check_mgmfrm_tam_direct_estimate_pilot_fixture(
+            mgmfrm_tam_direct_estimate_pilot_fixture,
+        )
+    end
+    mgmfrm_tam_direct_agreement_policy_fixture = optional_fixture_path("MFRM_MGMFRM_TAM_DIRECT_AGREEMENT_POLICY_FIXTURE", joinpath("test", "fixtures", "mgmfrm_tam_direct_agreement_policy.json"))
+    if !isempty(mgmfrm_tam_direct_agreement_policy_fixture)
+        check_mgmfrm_tam_direct_agreement_policy_fixture(
+            mgmfrm_tam_direct_agreement_policy_fixture,
+        )
+    end
+    mgmfrm_tam_direct_agreement_policy_refinement_fixture = optional_fixture_path("MFRM_MGMFRM_TAM_DIRECT_AGREEMENT_POLICY_REFINEMENT_FIXTURE", joinpath("test", "fixtures", "mgmfrm_tam_direct_agreement_policy_refinement.json"))
+    if !isempty(mgmfrm_tam_direct_agreement_policy_refinement_fixture)
+        check_mgmfrm_tam_direct_agreement_policy_refinement_fixture(
+            mgmfrm_tam_direct_agreement_policy_refinement_fixture,
+        )
+    end
+    mgmfrm_tam_direct_agreement_multireplication_fixture = optional_fixture_path("MFRM_MGMFRM_TAM_DIRECT_AGREEMENT_MULTIREPLICATION_FIXTURE", joinpath("test", "fixtures", "mgmfrm_tam_direct_agreement_multireplication.json"))
+    if !isempty(mgmfrm_tam_direct_agreement_multireplication_fixture)
+        check_mgmfrm_tam_direct_agreement_multireplication_fixture(
+            mgmfrm_tam_direct_agreement_multireplication_fixture,
+        )
+    end
+    mgmfrm_tam_direct_agreement_raw_archive_audit_fixture = optional_fixture_path("MFRM_MGMFRM_TAM_DIRECT_AGREEMENT_RAW_ARCHIVE_AUDIT_FIXTURE", joinpath("test", "fixtures", "mgmfrm_tam_direct_agreement_raw_archive_audit.json"))
+    if !isempty(mgmfrm_tam_direct_agreement_raw_archive_audit_fixture)
+        check_mgmfrm_tam_direct_agreement_raw_archive_audit_fixture(
+            mgmfrm_tam_direct_agreement_raw_archive_audit_fixture,
+        )
+    end
+    mgmfrm_tam_direct_agreement_post_execution_review_packet_fixture = optional_fixture_path("MFRM_MGMFRM_TAM_DIRECT_AGREEMENT_POST_EXECUTION_REVIEW_PACKET_FIXTURE", joinpath("test", "fixtures", "mgmfrm_tam_direct_agreement_post_execution_review_packet.json"))
+    if !isempty(mgmfrm_tam_direct_agreement_post_execution_review_packet_fixture)
+        check_mgmfrm_tam_direct_agreement_post_execution_review_packet_fixture(
+            mgmfrm_tam_direct_agreement_post_execution_review_packet_fixture,
+        )
+    end
+    mgmfrm_literature_anchored_independent_review_packet_fixture = optional_fixture_path("MFRM_MGMFRM_LITERATURE_ANCHORED_INDEPENDENT_REVIEW_PACKET_FIXTURE", joinpath("test", "fixtures", "mgmfrm_literature_anchored_independent_review_packet.json"))
+    if !isempty(mgmfrm_literature_anchored_independent_review_packet_fixture)
+        check_mgmfrm_literature_anchored_independent_review_packet_fixture(
+            mgmfrm_literature_anchored_independent_review_packet_fixture,
+        )
+    end
     mgmfrm_q_candidate_real_fit_diagnostic_linkage_fixture = optional_fixture_path("MFRM_MGMFRM_Q_CANDIDATE_REAL_FIT_DIAGNOSTIC_LINKAGE_FIXTURE", joinpath("test", "fixtures", "mgmfrm_q_candidate_real_fit_diagnostic_linkage.json"))
     if !isempty(mgmfrm_q_candidate_real_fit_diagnostic_linkage_fixture)
         check_mgmfrm_q_candidate_real_fit_diagnostic_linkage_fixture(
@@ -22538,6 +25302,11 @@ end
         init,
         seed = 20260618)
     @test result isa MFRMFit
+    @test isempty(RuntimePublicLanguagePolicy.runtime_language_violations([
+        "actual MFRMFit show" => sprint(show, result),
+        "actual MFRMFit text/plain" =>
+            sprint(show, MIME"text/plain"(), result),
+    ]))
     @test result.design === design
     @test result.prior === prior
     @test size(result.draws) == (24, length(design.parameter_names))
@@ -23004,6 +25773,98 @@ end
         rng = MersenneTwister(20260625),
         calibration_bins = 2,
         artifact_include_environment = false)
+    report_hash_before_public_projection = artifact_content_hash(report)
+    public_report = fit_report_public(report)
+    @test public_report.schema == "bayesianmgmfrm.fit_report_public.v1"
+    @test public_report.object === :fit_report_public
+    @test public_report.status === :supported
+    @test public_report.source_report.content_hash ==
+        BayesianMGMFRM._public_fit_report_content_hash_record(report).value
+    @test artifact_content_hash(report) == report_hash_before_public_projection
+    @test !hasproperty(public_report, :manifest)
+    @test !hasproperty(public_report, :evidence_artifact_schema_policy)
+    @test !hasproperty(public_report.rating_design, :audit)
+    @test [row.audit for row in public_report.rating_design.rows] ==
+        [row.audit for row in report.rating_design.rows]
+    @test !occursin(r"experimental_public|guarded_local_fit|next_gate|test/fixtures/|scripts/generate_",
+        JSON3.write(public_report))
+    @test isempty(RuntimePublicLanguagePolicy.runtime_language_violations([
+        "actual MFRM public report" => JSON3.write(public_report),
+        "actual MFRM public Markdown" =>
+            fit_report_markdown(public_report; max_rows = 2),
+    ]))
+    user_label_row = (;
+        parameter = "person[_E1]",
+        item = "_respondent",
+        cell = ("_cell A", "internal consistency"),
+        step_path = ["_category 1", "internal consistency"],
+        label = (;
+            display = "reader label",
+            note = "internal_target_constructor",
+        ),
+        scientific_note = "internal consistency",
+        documentation_url = "https://example.org/mnt/guide",
+        private_note = "_θ",
+        local_path = raw"C:\Temp\private.txt",
+        network_path = raw"\\server\private\report.json",
+        volume_path = "/Volumes/private/report.json",
+        mount_path = "/mnt/private/report.json",
+        maintenance_note = "registration\nhandoff",
+    )
+    user_label_report = merge(report, (;
+        dimension_labels = ("_latent", "internal consistency"),
+        posterior = merge(report.posterior, (;
+            n_rows = 1,
+            rows = [user_label_row],
+        )),
+    ))
+    user_label_public_report = fit_report_public(user_label_report)
+    @test user_label_public_report.dimension_labels ==
+        ("_latent", "internal consistency")
+    @test user_label_public_report.posterior.rows[1].parameter == "person[_E1]"
+    @test user_label_public_report.posterior.rows[1].item == "_respondent"
+    @test user_label_public_report.posterior.rows[1].cell ==
+        ("_cell A", "internal consistency")
+    @test user_label_public_report.posterior.rows[1].step_path ==
+        Any["_category 1", "internal consistency"]
+    @test user_label_public_report.posterior.rows[1].label.display ==
+        "reader label"
+    @test !hasproperty(user_label_public_report.posterior.rows[1].label, :note)
+    @test user_label_public_report.posterior.rows[1].scientific_note ==
+        "internal consistency"
+    @test user_label_public_report.posterior.rows[1].documentation_url ==
+        "https://example.org/mnt/guide"
+    for field in (
+            :private_note, :local_path, :network_path, :volume_path,
+            :mount_path, :maintenance_note)
+        @test !hasproperty(user_label_public_report.posterior.rows[1], field)
+    end
+    user_label_markdown = fit_report_markdown(user_label_public_report;
+        max_rows = 2)
+    for text in (
+            "person[_E1]", "_respondent", "step_path", "_category 1",
+            "internal consistency", "_latent", "_cell A", "reader label",
+            "https://example.org/mnt/guide")
+        @test occursin(text, user_label_markdown)
+    end
+    @test !occursin("_No rows to preview._", user_label_markdown)
+    forged_label_row = merge(first(public_report.posterior.rows), (;
+        label = (;
+            display = "reader label",
+            note = "internal_target_constructor",
+        ),
+    ))
+    forged_label_payload = merge(public_report, (;
+        posterior = merge(public_report.posterior, (;
+            n_rows = 1,
+            rows = [forged_label_row],
+        )),
+    ))
+    forged_label_report = merge(forged_label_payload, (;
+        content_hash = BayesianMGMFRM._public_fit_report_content_hash_record(
+            forged_label_payload),
+    ))
+    @test_throws ArgumentError fit_report_public(forged_label_report)
     @test report.schema == "bayesianmgmfrm.fit_report.v1"
     @test report.object === :fit_report
     @test report.family === :mfrm
@@ -23162,6 +26023,32 @@ end
     @test_throws ArgumentError fit_report_rows(report, :posterior;
         row_field = :diagnostic_rows)
     report_dir = mktempdir()
+    invalid_public_payload = merge(public_report, (;
+        next_gate = :private_review_step,
+    ))
+    invalid_public_report = merge(invalid_public_payload, (;
+        content_hash = BayesianMGMFRM._public_fit_report_content_hash_record(
+            invalid_public_payload),
+    ))
+    invalid_public_json_path = joinpath(report_dir, "invalid_public.json")
+    invalid_public_table_dir = joinpath(report_dir, "invalid_public_tables")
+    invalid_public_markdown_path = joinpath(report_dir, "invalid_public.md")
+    invalid_public_bundle_dir = joinpath(report_dir, "invalid_public_bundle")
+    @test_throws ArgumentError save_fit_report(
+        invalid_public_json_path, invalid_public_report)
+    @test_throws ArgumentError save_fit_report_tables(
+        invalid_public_table_dir, invalid_public_report)
+    @test_throws ArgumentError fit_report_markdown(invalid_public_report)
+    @test_throws ArgumentError save_fit_report_markdown(
+        invalid_public_markdown_path, invalid_public_report)
+    @test_throws ArgumentError save_fit_report_bundle(
+        invalid_public_bundle_dir, invalid_public_report)
+    @test_throws ArgumentError fit_report_dossier(
+        :invalid => invalid_public_report)
+    @test !ispath(invalid_public_json_path)
+    @test !ispath(invalid_public_table_dir)
+    @test !ispath(invalid_public_markdown_path)
+    @test !ispath(invalid_public_bundle_dir)
     table_dir = joinpath(report_dir, "minimal_fit_report_tables")
     table_manifest = save_fit_report_tables(table_dir, report; label = :minimal)
     expected_table_count = sum(length(row.row_fields) for row in report_sections)
@@ -23332,10 +26219,71 @@ end
     @test report_export.report_content_hash.value == report_hash
     @test report_export.json_content_hash.value ==
         BayesianMGMFRM._fit_report_json_hash_record(report_export.report).value
+    @test public_report.source_report.content_hash ==
+        report_export.json_content_hash.value
     loaded_report = load_fit_report(report_path)
     @test loaded_report["schema"] == report.schema
     @test loaded_report["object"] == "fit_report"
     @test loaded_report["posterior"]["n_rows"] == report.posterior.n_rows
+    loaded_public_report = fit_report_public(loaded_report)
+    @test !haskey(loaded_public_report.rating_design, "audit")
+    @test [row["audit"] for row in
+        loaded_public_report.rating_design["rows"]] ==
+        [row["audit"] for row in loaded_report["rating_design"]["rows"]]
+    public_report_path = joinpath(report_dir, "minimal_fit_report_public.json")
+    public_report_export = save_fit_report(public_report_path, public_report)
+    @test !hasproperty(public_report_export, :source_path)
+    @test public_report_export.report_content_hash == public_report.content_hash
+    @test load_fit_report(public_report_path)["schema"] == public_report.schema
+    for invalid_nbytes in (true, -1, 1.5, "1", missing)
+        invalid_hash_record = (;
+            content_hash = (;
+                algorithm = :sha256,
+                value = repeat("0", 64),
+                scope = :public_json_without_top_level_content_hash,
+                canonicalization = :cache_stable_string,
+                n_canonical_bytes = invalid_nbytes,
+            ),
+        )
+        @test_throws ArgumentError BayesianMGMFRM._check_fit_report_hash_record(
+            invalid_hash_record,
+            :content_hash,
+            "invalid hash byte count";
+            expected_scope = :public_json_without_top_level_content_hash,
+            expected_canonicalization = :cache_stable_string)
+    end
+    tampered_public_wrapper = JSON3.read(read(public_report_path, String),
+        Dict{String,Any})
+    tampered_public_wrapper["report_content_hash"]["value"] = repeat("0", 64)
+    tampered_public_wrapper_path = joinpath(report_dir,
+        "tampered_fit_report_public_wrapper.json")
+    open(tampered_public_wrapper_path, "w") do io
+        JSON3.write(io, tampered_public_wrapper)
+        write(io, "\n")
+    end
+    @test_throws ArgumentError load_fit_report(tampered_public_wrapper_path;
+        verify_hash = false)
+    invalid_hash_bytes_record = JSON3.read(read(public_report_path, String),
+        Dict{String,Any})
+    invalid_hash_bytes_record["json_content_hash"]["n_canonical_bytes"] = true
+    invalid_hash_bytes_path = joinpath(report_dir,
+        "invalid_fit_report_hash_bytes.json")
+    open(invalid_hash_bytes_path, "w") do io
+        JSON3.write(io, invalid_hash_bytes_record)
+        write(io, "\n")
+    end
+    @test_throws ArgumentError load_fit_report(invalid_hash_bytes_path;
+        verify_hash = false)
+    mismatched_hash_bytes_record = JSON3.read(read(public_report_path, String),
+        Dict{String,Any})
+    mismatched_hash_bytes_record["json_content_hash"]["n_canonical_bytes"] += 1
+    mismatched_hash_bytes_path = joinpath(report_dir,
+        "mismatched_fit_report_hash_bytes.json")
+    open(mismatched_hash_bytes_path, "w") do io
+        JSON3.write(io, mismatched_hash_bytes_record)
+        write(io, "\n")
+    end
+    @test_throws ArgumentError load_fit_report(mismatched_hash_bytes_path)
     loaded_sections = fit_report_sections(loaded_report)
     loaded_posterior_section = only(filter(row -> row.section === :posterior,
         loaded_sections))
@@ -23396,10 +26344,8 @@ end
     @test dossier.object === :fit_report_dossier
     @test dossier.label === :minimal_dossier
     @test dossier.report_policy.rendering_scope === :review_dossier
-    @test !dossier.report_policy.publication_or_registration_action
-    @test !dossier.report_policy.manuscript_claims_allowed
-    @test dossier.report_policy.next_gate ===
-        :manual_publication_or_registration_by_user_only
+    @test propertynames(dossier.report_policy) ==
+        (:include_reports, :rendering_scope)
     @test dossier.n_reports == 2
     @test dossier.models == ("minimal", "loaded")
     @test dossier.n_report_rows == 2
@@ -23419,17 +26365,35 @@ end
         dossier.section_rows)
     @test [row.model for row in dossier.comparison_rows] ==
         [row.model for row in dossier_comparison_rows]
-    @test first(dossier.evidence_rows).publication_or_registration_action == false
+    @test !hasproperty(first(dossier.evidence_rows),
+        :publication_or_registration_action)
+    dossier_json = JSON3.write(dossier)
+    @test !occursin(
+        r"publication_or_registration_action|manuscript_claims_allowed|next_gate|source_path",
+        dossier_json)
     embedded_dossier = fit_report_dossier(report;
         names = [:minimal],
         include_reports = true)
     @test embedded_dossier.n_reports == 1
     @test length(embedded_dossier.reports) == 1
+    @test only(embedded_dossier.reports).schema ==
+        "bayesianmgmfrm.fit_report_public.v1"
+    @test !occursin(
+        r"publication_or_registration_action|manuscript_claims_allowed|next_gate|source_path",
+        JSON3.write(embedded_dossier))
     @test_throws ArgumentError fit_report_dossier()
     @test_throws ArgumentError fit_report_dossier(report, loaded_report;
         names = [:dup, :dup])
     @test_throws ArgumentError fit_report_dossier(:bad => report;
         comparison_rows = [1])
+    invalid_dossier = merge(dossier, (;
+        next_gate = :manual_publication_or_registration_by_user_only,
+    ))
+    @test_throws ArgumentError fit_report_dossier_markdown(invalid_dossier)
+    invalid_dossier_path = joinpath(report_dir, "invalid_fit_report_dossier.json")
+    @test_throws ArgumentError save_fit_report_dossier(
+        invalid_dossier_path, invalid_dossier)
+    @test !ispath(invalid_dossier_path)
 
     dossier_markdown = fit_report_dossier_markdown(dossier;
         title = "Minimal fit report dossier",
@@ -23439,7 +26403,10 @@ end
     @test occursin("## Report Summary", dossier_markdown)
     @test occursin("## Section Summary", dossier_markdown)
     @test occursin("## Comparison Rows", dossier_markdown)
-    @test occursin("Publication or registration action: false", dossier_markdown)
+    @test occursin("Interpret results within the documented model scope.",
+        dossier_markdown)
+    @test !occursin(r"publication_or_registration_action|manuscript_claims_allowed|next_gate",
+        dossier_markdown)
     @test_throws ArgumentError fit_report_dossier_markdown(dossier; max_rows = -1)
 
     dossier_path = joinpath(report_dir, "minimal_fit_report_dossier.json")
@@ -23450,10 +26417,12 @@ end
         "bayesianmgmfrm.fit_report_dossier_export.v1"
     @test dossier_export.object === :fit_report_dossier_export
     @test dossier_export.label === :minimal_dossier
+    @test !hasproperty(dossier_export, :source_path)
     @test dossier_export.dossier_schema == dossier.schema
     @test dossier_export.dossier_object === :fit_report_dossier
     @test length(dossier_export.dossier_content_hash.value) == 64
     @test length(dossier_export.json_content_hash.value) == 64
+    @test !occursin(report_dir, read(dossier_path, String))
     loaded_dossier = load_fit_report_dossier(dossier_path)
     @test loaded_dossier["schema"] == dossier.schema
     @test loaded_dossier["object"] == "fit_report_dossier"
@@ -23465,8 +26434,100 @@ end
     loaded_dossier_record = load_fit_report_dossier(dossier_path;
         return_record = true)
     @test loaded_dossier_record["schema"] == dossier_export.schema
+    @test !haskey(loaded_dossier_record, "source_path")
     @test loaded_dossier_record["dossier_content_hash"]["value"] ==
-        dossier_export.dossier_content_hash.value
+        BayesianMGMFRM._artifact_content_hash_record(loaded_dossier).value
+
+    legacy_source_path = "/Users/legacy/private/minimal_fit_report_dossier.json"
+    legacy_dossier = merge(embedded_dossier, (;
+        report_policy = (;
+            include_reports = true,
+            rendering_scope = :review_dossier,
+            publication_or_registration_action = false,
+            manuscript_claims_allowed = false,
+            next_gate = :manual_publication_or_registration_by_user_only,
+        ),
+        n_evidence_rows = 1,
+        evidence_rows = [(;
+            evidence = :fit_report_review_bundle,
+            status = :recorded,
+            publication_or_registration_action = false,
+            next_gate = :manual_publication_or_registration_by_user_only,
+            source_path = legacy_source_path,
+        )],
+        reports = (report,),
+    ))
+    legacy_json_dossier = BayesianMGMFRM._json_export_value(legacy_dossier)
+    legacy_dossier_export = (;
+        schema = "bayesianmgmfrm.fit_report_dossier_export.v1",
+        object = :fit_report_dossier_export,
+        created_at = dossier_export.created_at,
+        label = :v0_1_0_compatibility,
+        source_path = legacy_source_path,
+        serialization = dossier_export.serialization,
+        dossier_schema = legacy_dossier.schema,
+        dossier_object = legacy_dossier.object,
+        dossier_content_hash =
+            BayesianMGMFRM._artifact_content_hash_record(legacy_dossier),
+        json_content_hash =
+            BayesianMGMFRM._fit_report_dossier_json_hash_record(
+                legacy_json_dossier),
+        dossier = legacy_json_dossier,
+    )
+    legacy_dossier_path = joinpath(report_dir,
+        "v0_1_0_fit_report_dossier.json")
+    open(legacy_dossier_path, "w") do io
+        JSON3.write(io,
+            BayesianMGMFRM._json_export_value(legacy_dossier_export))
+        write(io, "\n")
+    end
+    loaded_legacy_dossier = load_fit_report_dossier(legacy_dossier_path)
+    @test Set(keys(loaded_legacy_dossier["report_policy"])) ==
+        Set(["include_reports", "rendering_scope"])
+    @test loaded_legacy_dossier["report_policy"]["include_reports"]
+    @test loaded_legacy_dossier["report_policy"]["rendering_scope"] ==
+        "review_dossier"
+    @test only(loaded_legacy_dossier["reports"])["schema"] ==
+        "bayesianmgmfrm.fit_report_public.v1"
+    @test only(loaded_legacy_dossier["reports"])["object"] ==
+        "fit_report_public"
+    loaded_legacy_json = JSON3.write(loaded_legacy_dossier)
+    @test !occursin(legacy_source_path, loaded_legacy_json)
+    @test !occursin(
+        r"publication_or_registration_action|manuscript_claims_allowed|next_gate|source_path",
+        loaded_legacy_json)
+    loaded_legacy_record = load_fit_report_dossier(legacy_dossier_path;
+        return_record = true)
+    @test !haskey(loaded_legacy_record, "source_path")
+    @test loaded_legacy_record["dossier"] == loaded_legacy_dossier
+    @test loaded_legacy_record["dossier_content_hash"]["value"] ==
+        BayesianMGMFRM._artifact_content_hash_record(
+            loaded_legacy_dossier).value
+    @test loaded_legacy_record["json_content_hash"]["value"] ==
+        BayesianMGMFRM._fit_report_dossier_json_hash_record(
+            loaded_legacy_dossier).value
+    legacy_dossier_markdown = fit_report_dossier_markdown(
+        loaded_legacy_dossier;
+        title = "Loaded v0.1.0 fit report dossier",
+        max_rows = 1)
+    @test startswith(legacy_dossier_markdown,
+        "# Loaded v0.1.0 fit report dossier")
+    @test !occursin(
+        r"publication_or_registration_action|manuscript_claims_allowed|next_gate|source_path|/Users/",
+        legacy_dossier_markdown)
+    legacy_resaved_path = joinpath(report_dir,
+        "v0_1_0_fit_report_dossier_resaved.json")
+    legacy_resaved_export = save_fit_report_dossier(
+        legacy_resaved_path,
+        loaded_legacy_dossier)
+    @test !hasproperty(legacy_resaved_export, :source_path)
+    @test !occursin(
+        r"publication_or_registration_action|manuscript_claims_allowed|next_gate|source_path|/Users/",
+        read(legacy_resaved_path, String))
+    @test only(load_fit_report_dossier(
+        legacy_resaved_path)["reports"])["schema"] ==
+        "bayesianmgmfrm.fit_report_public.v1"
+
     dossier_markdown_path = joinpath(report_dir, "minimal_fit_report_dossier.md")
     dossier_markdown_export = save_fit_report_dossier_markdown(
         dossier_markdown_path,
@@ -23479,6 +26540,7 @@ end
         "bayesianmgmfrm.fit_report_dossier_markdown_export.v1"
     @test dossier_markdown_export.object === :fit_report_dossier_markdown_export
     @test dossier_markdown_export.label === :minimal_dossier
+    @test !hasproperty(dossier_markdown_export, :source_path)
     @test dossier_markdown_export.markdown_content_hash.value ==
         BayesianMGMFRM._fit_report_dossier_markdown_hash_record(
             dossier_markdown).value
@@ -23714,8 +26776,18 @@ end
         write(io, "\n")
     end
     @test_throws ArgumentError load_fit_report(tampered_path)
-    @test load_fit_report(tampered_path; verify_hash = false)["schema"] ==
-        "tampered.fit_report.v1"
+    @test_throws ArgumentError load_fit_report(tampered_path;
+        verify_hash = false)
+
+    tampered_record = deepcopy(loaded_record)
+    tampered_record["report"]["created_at"] = "tampered"
+    open(tampered_path, "w") do io
+        JSON3.write(io, tampered_record)
+        write(io, "\n")
+    end
+    @test_throws ArgumentError load_fit_report(tampered_path)
+    @test load_fit_report(tampered_path;
+        verify_hash = false)["created_at"] == "tampered"
 
     too_short_report = fit_report(spec_result;
         artifact_include_environment = false)
@@ -27322,4 +30394,38 @@ end
             @test maximum(abs.(g_julia .- g_stan)) < max(tol, 1e-6)
         end
     end
+end
+
+include("facets_compatibility_stats.jl")
+include("generalized_guard_contract.jl")
+include("publication_grade_policy_contract.jl")
+include("public_language_gate.jl")
+
+module FullPaperReproductionArchiveContractForTest
+
+include(joinpath(@__DIR__, "..", "scripts",
+    "generate_gmfrm_full_paper_reproduction_archive.jl"))
+
+end
+
+
+@testset "full archive guarded-summary contract" begin
+    generator = FullPaperReproductionArchiveContractForTest
+    spec = (;
+        name = :guarded_exposure_review,
+        pass_policy = :summary_passed,
+    )
+    @test generator.summary_passed(
+        spec,
+        "{\"reviewed\":true,\"all_local_evidence_passed\":true}",
+    )
+    @test !generator.summary_passed(
+        spec,
+        "{\"passed\":true,\"reviewed\":true," *
+        "\"all_local_evidence_passed\":false}",
+    )
+    @test !generator.summary_passed(
+        spec,
+        "{\"reviewed\":true}",
+    )
 end

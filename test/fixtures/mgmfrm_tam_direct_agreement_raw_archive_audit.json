@@ -1,0 +1,4432 @@
+{
+  "schema": "bayesianmgmfrm.mgmfrm_tam_direct_agreement_raw_archive_audit.v1",
+  "family": "mfrm",
+  "scope": "tam_direct_agreement_all_attempt_raw_archive_audit",
+  "status": "all_attempt_archive_audited",
+  "decision": "retain_all_attempts_commit_hash_manifest_only",
+  "local_only": true,
+  "raw_archive_committed": false,
+  "raw_archive_hash_manifest_committed": true,
+  "publication_or_registration_action": false,
+  "public_claim_release_allowed": false,
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "protocol": {
+    "protocol_id": "mgmfrm_tam_direct_agreement_raw_archive_audit_v1",
+    "generator": "scripts/generate_mgmfrm_tam_direct_agreement_raw_archive_audit.jl",
+    "generator_source_sha256": "4f07d8c76ae310c837134e884b49cfeedff896c13d3986192b502247ff4a3fc2",
+    "execution_generator": "scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl",
+    "execution_generator_source_sha256": "09df8a5138d40e533ed3f8c7fbf85e2fe885e645cf758e16628ac4516800caae",
+    "result_artifact": "test/fixtures/mgmfrm_tam_direct_agreement_multireplication.json",
+    "result_artifact_sha256": "a6005308f566cb3dc5ff10121d48a09360e88627a527a3fe305bff8d5cb32c45",
+    "result_schema": "bayesianmgmfrm.mgmfrm_tam_direct_agreement_multireplication.v1",
+    "raw_root": "artifacts/mgmfrm_tam_direct_agreement_multireplication",
+    "raw_root_is_gitignored": true,
+    "selected_and_nonselected_attempts_in_scope": true,
+    "manifest_fingerprint_format": "newline_joined_path_pipe_bytes_pipe_sha256_v1_order_preserving",
+    "audit_file_order": "lexicographic_path",
+    "repository_generated_paths_exclude_pipe_and_newline": true
+  },
+  "job_rows": [
+    {
+      "job_id": "n040_rep01",
+      "n_attempts": 2,
+      "n_selected_attempts": 1,
+      "n_completed_attempts": 1,
+      "n_failed_attempts": 1,
+      "attempts_are_contiguous": true,
+      "all_attempts_retained": true,
+      "all_attempt_integrity_passed": true,
+      "selected_attempt": 2,
+      "selected_execution_completed": true,
+      "selected_pointer_valid": true
+    },
+    {
+      "job_id": "n040_rep02",
+      "n_attempts": 1,
+      "n_selected_attempts": 1,
+      "n_completed_attempts": 1,
+      "n_failed_attempts": 0,
+      "attempts_are_contiguous": true,
+      "all_attempts_retained": true,
+      "all_attempt_integrity_passed": true,
+      "selected_attempt": 1,
+      "selected_execution_completed": true,
+      "selected_pointer_valid": true
+    },
+    {
+      "job_id": "n040_rep03",
+      "n_attempts": 1,
+      "n_selected_attempts": 1,
+      "n_completed_attempts": 1,
+      "n_failed_attempts": 0,
+      "attempts_are_contiguous": true,
+      "all_attempts_retained": true,
+      "all_attempt_integrity_passed": true,
+      "selected_attempt": 1,
+      "selected_execution_completed": true,
+      "selected_pointer_valid": true
+    },
+    {
+      "job_id": "n040_rep04",
+      "n_attempts": 1,
+      "n_selected_attempts": 1,
+      "n_completed_attempts": 1,
+      "n_failed_attempts": 0,
+      "attempts_are_contiguous": true,
+      "all_attempts_retained": true,
+      "all_attempt_integrity_passed": true,
+      "selected_attempt": 1,
+      "selected_execution_completed": true,
+      "selected_pointer_valid": true
+    },
+    {
+      "job_id": "n040_rep05",
+      "n_attempts": 1,
+      "n_selected_attempts": 1,
+      "n_completed_attempts": 1,
+      "n_failed_attempts": 0,
+      "attempts_are_contiguous": true,
+      "all_attempts_retained": true,
+      "all_attempt_integrity_passed": true,
+      "selected_attempt": 1,
+      "selected_execution_completed": true,
+      "selected_pointer_valid": true
+    },
+    {
+      "job_id": "n100_rep01",
+      "n_attempts": 1,
+      "n_selected_attempts": 1,
+      "n_completed_attempts": 1,
+      "n_failed_attempts": 0,
+      "attempts_are_contiguous": true,
+      "all_attempts_retained": true,
+      "all_attempt_integrity_passed": true,
+      "selected_attempt": 1,
+      "selected_execution_completed": true,
+      "selected_pointer_valid": true
+    },
+    {
+      "job_id": "n100_rep02",
+      "n_attempts": 1,
+      "n_selected_attempts": 1,
+      "n_completed_attempts": 1,
+      "n_failed_attempts": 0,
+      "attempts_are_contiguous": true,
+      "all_attempts_retained": true,
+      "all_attempt_integrity_passed": true,
+      "selected_attempt": 1,
+      "selected_execution_completed": true,
+      "selected_pointer_valid": true
+    },
+    {
+      "job_id": "n100_rep03",
+      "n_attempts": 1,
+      "n_selected_attempts": 1,
+      "n_completed_attempts": 1,
+      "n_failed_attempts": 0,
+      "attempts_are_contiguous": true,
+      "all_attempts_retained": true,
+      "all_attempt_integrity_passed": true,
+      "selected_attempt": 1,
+      "selected_execution_completed": true,
+      "selected_pointer_valid": true
+    },
+    {
+      "job_id": "n100_rep04",
+      "n_attempts": 1,
+      "n_selected_attempts": 1,
+      "n_completed_attempts": 1,
+      "n_failed_attempts": 0,
+      "attempts_are_contiguous": true,
+      "all_attempts_retained": true,
+      "all_attempt_integrity_passed": true,
+      "selected_attempt": 1,
+      "selected_execution_completed": true,
+      "selected_pointer_valid": true
+    },
+    {
+      "job_id": "n100_rep05",
+      "n_attempts": 1,
+      "n_selected_attempts": 1,
+      "n_completed_attempts": 1,
+      "n_failed_attempts": 0,
+      "attempts_are_contiguous": true,
+      "all_attempts_retained": true,
+      "all_attempt_integrity_passed": true,
+      "selected_attempt": 1,
+      "selected_execution_completed": true,
+      "selected_pointer_valid": true
+    }
+  ],
+  "selected_pointer_rows": [
+    {
+      "job_id": "n040_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/selected_attempt.json",
+      "sha256": "32a06d2f03dad26b8bb96313de8a46a73ebf7b05dfb046ab4007f67f1f872826",
+      "schema_matches": true,
+      "job_id_matches": true,
+      "selected_attempt": 2,
+      "selected_attempt_is_latest": true,
+      "selected_result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/job_result.json",
+      "selected_result_exists": true,
+      "selected_result_path_matches": true,
+      "selected_result_hash_matches": true,
+      "pointer_hash_and_path_valid": true,
+      "selected_execution_completed": true,
+      "selected_engine_failure": false,
+      "selected_retry_documented": true,
+      "infrastructure_retry_reason": "runner_serialization_bug_fixed_before_result_write"
+    },
+    {
+      "job_id": "n040_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/selected_attempt.json",
+      "sha256": "6d072e65e407182e428a163ee39007f043b202a9dc5847daf63f9b7441993852",
+      "schema_matches": true,
+      "job_id_matches": true,
+      "selected_attempt": 1,
+      "selected_attempt_is_latest": true,
+      "selected_result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/job_result.json",
+      "selected_result_exists": true,
+      "selected_result_path_matches": true,
+      "selected_result_hash_matches": true,
+      "pointer_hash_and_path_valid": true,
+      "selected_execution_completed": true,
+      "selected_engine_failure": false,
+      "selected_retry_documented": true,
+      "infrastructure_retry_reason": null
+    },
+    {
+      "job_id": "n040_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/selected_attempt.json",
+      "sha256": "4f158c15a5c1a5c0f44c4a63622382cb6bbf7046785d7b14eca40ccb964b23f9",
+      "schema_matches": true,
+      "job_id_matches": true,
+      "selected_attempt": 1,
+      "selected_attempt_is_latest": true,
+      "selected_result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/job_result.json",
+      "selected_result_exists": true,
+      "selected_result_path_matches": true,
+      "selected_result_hash_matches": true,
+      "pointer_hash_and_path_valid": true,
+      "selected_execution_completed": true,
+      "selected_engine_failure": false,
+      "selected_retry_documented": true,
+      "infrastructure_retry_reason": null
+    },
+    {
+      "job_id": "n040_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/selected_attempt.json",
+      "sha256": "e58f9ca2a9da2fd4236b8285902d4e4d38beeca96852bb29c9cfe10a41ff9dcb",
+      "schema_matches": true,
+      "job_id_matches": true,
+      "selected_attempt": 1,
+      "selected_attempt_is_latest": true,
+      "selected_result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/job_result.json",
+      "selected_result_exists": true,
+      "selected_result_path_matches": true,
+      "selected_result_hash_matches": true,
+      "pointer_hash_and_path_valid": true,
+      "selected_execution_completed": true,
+      "selected_engine_failure": false,
+      "selected_retry_documented": true,
+      "infrastructure_retry_reason": null
+    },
+    {
+      "job_id": "n040_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/selected_attempt.json",
+      "sha256": "7ffbbaba1c044226501b720fedf3d3db05018be2856339de016bbfbabc12bdf4",
+      "schema_matches": true,
+      "job_id_matches": true,
+      "selected_attempt": 1,
+      "selected_attempt_is_latest": true,
+      "selected_result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/job_result.json",
+      "selected_result_exists": true,
+      "selected_result_path_matches": true,
+      "selected_result_hash_matches": true,
+      "pointer_hash_and_path_valid": true,
+      "selected_execution_completed": true,
+      "selected_engine_failure": false,
+      "selected_retry_documented": true,
+      "infrastructure_retry_reason": null
+    },
+    {
+      "job_id": "n100_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/selected_attempt.json",
+      "sha256": "19914c4565c8f2659ef1b0cef076af6a5366861019ad70456581ab32387331d6",
+      "schema_matches": true,
+      "job_id_matches": true,
+      "selected_attempt": 1,
+      "selected_attempt_is_latest": true,
+      "selected_result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/job_result.json",
+      "selected_result_exists": true,
+      "selected_result_path_matches": true,
+      "selected_result_hash_matches": true,
+      "pointer_hash_and_path_valid": true,
+      "selected_execution_completed": true,
+      "selected_engine_failure": false,
+      "selected_retry_documented": true,
+      "infrastructure_retry_reason": null
+    },
+    {
+      "job_id": "n100_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/selected_attempt.json",
+      "sha256": "1eb23ca36e6511f9ee149a2e642e8f3a440dedd9b60ec2359a0f8cf53befd3ae",
+      "schema_matches": true,
+      "job_id_matches": true,
+      "selected_attempt": 1,
+      "selected_attempt_is_latest": true,
+      "selected_result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/job_result.json",
+      "selected_result_exists": true,
+      "selected_result_path_matches": true,
+      "selected_result_hash_matches": true,
+      "pointer_hash_and_path_valid": true,
+      "selected_execution_completed": true,
+      "selected_engine_failure": false,
+      "selected_retry_documented": true,
+      "infrastructure_retry_reason": null
+    },
+    {
+      "job_id": "n100_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/selected_attempt.json",
+      "sha256": "96722e6ab47d6222a3019537823b631ec5c2712365df4c8c0dd177d7441fa1ad",
+      "schema_matches": true,
+      "job_id_matches": true,
+      "selected_attempt": 1,
+      "selected_attempt_is_latest": true,
+      "selected_result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/job_result.json",
+      "selected_result_exists": true,
+      "selected_result_path_matches": true,
+      "selected_result_hash_matches": true,
+      "pointer_hash_and_path_valid": true,
+      "selected_execution_completed": true,
+      "selected_engine_failure": false,
+      "selected_retry_documented": true,
+      "infrastructure_retry_reason": null
+    },
+    {
+      "job_id": "n100_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/selected_attempt.json",
+      "sha256": "b643336da3e08339d24ea03aed3b1207aa1e567fedb6679ad48209a491e4d4fb",
+      "schema_matches": true,
+      "job_id_matches": true,
+      "selected_attempt": 1,
+      "selected_attempt_is_latest": true,
+      "selected_result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/job_result.json",
+      "selected_result_exists": true,
+      "selected_result_path_matches": true,
+      "selected_result_hash_matches": true,
+      "pointer_hash_and_path_valid": true,
+      "selected_execution_completed": true,
+      "selected_engine_failure": false,
+      "selected_retry_documented": true,
+      "infrastructure_retry_reason": null
+    },
+    {
+      "job_id": "n100_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/selected_attempt.json",
+      "sha256": "5f15ad16e45c45eab3c376e581781a3ba7c238f99df5d64d01889ddc7c3489d6",
+      "schema_matches": true,
+      "job_id_matches": true,
+      "selected_attempt": 1,
+      "selected_attempt_is_latest": true,
+      "selected_result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/job_result.json",
+      "selected_result_exists": true,
+      "selected_result_path_matches": true,
+      "selected_result_hash_matches": true,
+      "pointer_hash_and_path_valid": true,
+      "selected_execution_completed": true,
+      "selected_engine_failure": false,
+      "selected_retry_documented": true,
+      "infrastructure_retry_reason": null
+    }
+  ],
+  "attempt_rows": [
+    {
+      "job_id": "n040_rep01",
+      "attempt": 1,
+      "selected": false,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01",
+      "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01/job_result.json",
+      "result_sha256": "0a7b07a6bf6a6603c89ce62eeed583a6c79453a921e3a180b8c78bd76e0a6eff",
+      "execution_completed": false,
+      "engine_failure": true,
+      "infrastructure_retry": false,
+      "infrastructure_retry_reason": null,
+      "retry_attempt_matches": true,
+      "error_type": "UndefVarError",
+      "error_message": "UndefVarError: `keys` not defined in local scope\nSuggestion: check for an assignment to a local variable that shadows a global of the same name.\nHint: a global variable of this name also exists in Base.",
+      "generator_source_sha256": "18da6449e71cf078dbbfc5d675a82c79e7a1b7d4e1cb8624b1101bf20c73e6a2",
+      "n_files": 20,
+      "file_manifest_sha256": "123f452897c78df2efa23d01e6ffc5e08c2cc528d67b7d21cde72603c6c6481e",
+      "n_recorded_payload_files": 19,
+      "n_actual_payload_files": 19,
+      "recorded_file_rows_match_actual": true,
+      "recorded_manifest_fingerprint_present": false,
+      "recorded_manifest_fingerprint": null,
+      "recorded_manifest_fingerprint_matches": null,
+      "recorded_manifest_fingerprint_status": "missing_from_engine_failure_record_recomputed_by_audit",
+      "safe_manifest_paths": true,
+      "attempt_integrity_passed": true
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 2,
+      "selected": true,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02",
+      "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/job_result.json",
+      "result_sha256": "2a4fb00e3229671f37d9a4b7e408ef6d9343366d31570da612f7065bf3c1fea3",
+      "execution_completed": true,
+      "engine_failure": false,
+      "infrastructure_retry": true,
+      "infrastructure_retry_reason": "runner_serialization_bug_fixed_before_result_write",
+      "retry_attempt_matches": true,
+      "error_type": null,
+      "error_message": null,
+      "generator_source_sha256": "09df8a5138d40e533ed3f8c7fbf85e2fe885e645cf758e16628ac4516800caae",
+      "n_files": 20,
+      "file_manifest_sha256": "b8980809a90a15bc36362f092e81017294a6f1675b2f1eda22516302a44b7ab7",
+      "n_recorded_payload_files": 19,
+      "n_actual_payload_files": 19,
+      "recorded_file_rows_match_actual": true,
+      "recorded_manifest_fingerprint_present": true,
+      "recorded_manifest_fingerprint": "dada26c39e23183e1faeb36756d69515f3ffac333c128672f92712b756dfeb58",
+      "recorded_manifest_fingerprint_matches": true,
+      "recorded_manifest_fingerprint_status": "matched",
+      "safe_manifest_paths": true,
+      "attempt_integrity_passed": true
+    },
+    {
+      "job_id": "n040_rep02",
+      "attempt": 1,
+      "selected": true,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01",
+      "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/job_result.json",
+      "result_sha256": "c11a7b85b0c326e2f5d54917c4c9ba126ecec828c2659f4d0522227ff62f1254",
+      "execution_completed": true,
+      "engine_failure": false,
+      "infrastructure_retry": false,
+      "infrastructure_retry_reason": null,
+      "retry_attempt_matches": true,
+      "error_type": null,
+      "error_message": null,
+      "generator_source_sha256": "09df8a5138d40e533ed3f8c7fbf85e2fe885e645cf758e16628ac4516800caae",
+      "n_files": 20,
+      "file_manifest_sha256": "c0d983fbf372c86c05be7b369bf21c4d3e61902682c6e97b041335af1f782ff8",
+      "n_recorded_payload_files": 19,
+      "n_actual_payload_files": 19,
+      "recorded_file_rows_match_actual": true,
+      "recorded_manifest_fingerprint_present": true,
+      "recorded_manifest_fingerprint": "5d8cd8f41b15e7535e64a43286930f1897fe1809843bb6a827f6b34da026716c",
+      "recorded_manifest_fingerprint_matches": true,
+      "recorded_manifest_fingerprint_status": "matched",
+      "safe_manifest_paths": true,
+      "attempt_integrity_passed": true
+    },
+    {
+      "job_id": "n040_rep03",
+      "attempt": 1,
+      "selected": true,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01",
+      "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/job_result.json",
+      "result_sha256": "746f9ca0ea48e6f87aaa4051dfdc12c843d461cd50c98e4e06a02a8adf7d052c",
+      "execution_completed": true,
+      "engine_failure": false,
+      "infrastructure_retry": false,
+      "infrastructure_retry_reason": null,
+      "retry_attempt_matches": true,
+      "error_type": null,
+      "error_message": null,
+      "generator_source_sha256": "09df8a5138d40e533ed3f8c7fbf85e2fe885e645cf758e16628ac4516800caae",
+      "n_files": 20,
+      "file_manifest_sha256": "972fc9a8acd7e7409526bfea0b522e63d08847ffaedb40c924a29b0a3888239c",
+      "n_recorded_payload_files": 19,
+      "n_actual_payload_files": 19,
+      "recorded_file_rows_match_actual": true,
+      "recorded_manifest_fingerprint_present": true,
+      "recorded_manifest_fingerprint": "d4ac8ab0cd32820b52e6393f04f079454a559426c5ba94fb02539a73b5c1c8bc",
+      "recorded_manifest_fingerprint_matches": true,
+      "recorded_manifest_fingerprint_status": "matched",
+      "safe_manifest_paths": true,
+      "attempt_integrity_passed": true
+    },
+    {
+      "job_id": "n040_rep04",
+      "attempt": 1,
+      "selected": true,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01",
+      "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/job_result.json",
+      "result_sha256": "2281db76dc9646d7c3250de92ad5f087c3970d2bde545e8bf9207171c14a13c9",
+      "execution_completed": true,
+      "engine_failure": false,
+      "infrastructure_retry": false,
+      "infrastructure_retry_reason": null,
+      "retry_attempt_matches": true,
+      "error_type": null,
+      "error_message": null,
+      "generator_source_sha256": "09df8a5138d40e533ed3f8c7fbf85e2fe885e645cf758e16628ac4516800caae",
+      "n_files": 20,
+      "file_manifest_sha256": "be142eb6dd9f1233d8e3eb994a69e1d3a5e59b368542163c50a5d58594e47192",
+      "n_recorded_payload_files": 19,
+      "n_actual_payload_files": 19,
+      "recorded_file_rows_match_actual": true,
+      "recorded_manifest_fingerprint_present": true,
+      "recorded_manifest_fingerprint": "83165a6db9d61096a00464d4b4b03f76f62c68dbb0b242431b2725422d25ed72",
+      "recorded_manifest_fingerprint_matches": true,
+      "recorded_manifest_fingerprint_status": "matched",
+      "safe_manifest_paths": true,
+      "attempt_integrity_passed": true
+    },
+    {
+      "job_id": "n040_rep05",
+      "attempt": 1,
+      "selected": true,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01",
+      "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/job_result.json",
+      "result_sha256": "8713795dd72677f3f320b9d74d095d0de516cec416c816d00b9185d25767d675",
+      "execution_completed": true,
+      "engine_failure": false,
+      "infrastructure_retry": false,
+      "infrastructure_retry_reason": null,
+      "retry_attempt_matches": true,
+      "error_type": null,
+      "error_message": null,
+      "generator_source_sha256": "09df8a5138d40e533ed3f8c7fbf85e2fe885e645cf758e16628ac4516800caae",
+      "n_files": 20,
+      "file_manifest_sha256": "b2d6e6414fe008f129749605bec7c3c477b80c038e21489a86a478cbf3a82dd7",
+      "n_recorded_payload_files": 19,
+      "n_actual_payload_files": 19,
+      "recorded_file_rows_match_actual": true,
+      "recorded_manifest_fingerprint_present": true,
+      "recorded_manifest_fingerprint": "938118afb4e6c5e21634970bb80509c791deb562e2dd3c699b1f404efa31b4bb",
+      "recorded_manifest_fingerprint_matches": true,
+      "recorded_manifest_fingerprint_status": "matched",
+      "safe_manifest_paths": true,
+      "attempt_integrity_passed": true
+    },
+    {
+      "job_id": "n100_rep01",
+      "attempt": 1,
+      "selected": true,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01",
+      "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/job_result.json",
+      "result_sha256": "fc363f7521a8ecc670cbd05e40d39e07965a4713b3fbdf7f324e1803f276b657",
+      "execution_completed": true,
+      "engine_failure": false,
+      "infrastructure_retry": false,
+      "infrastructure_retry_reason": null,
+      "retry_attempt_matches": true,
+      "error_type": null,
+      "error_message": null,
+      "generator_source_sha256": "09df8a5138d40e533ed3f8c7fbf85e2fe885e645cf758e16628ac4516800caae",
+      "n_files": 20,
+      "file_manifest_sha256": "99bda5b9c2066f7f2c3330f6f8bb41fce3aa7319e686791e768420dce759b5f5",
+      "n_recorded_payload_files": 19,
+      "n_actual_payload_files": 19,
+      "recorded_file_rows_match_actual": true,
+      "recorded_manifest_fingerprint_present": true,
+      "recorded_manifest_fingerprint": "5c1c8cc199907d2c52f984670d5573f38c90f4f4584f810d77e40de9674ee331",
+      "recorded_manifest_fingerprint_matches": true,
+      "recorded_manifest_fingerprint_status": "matched",
+      "safe_manifest_paths": true,
+      "attempt_integrity_passed": true
+    },
+    {
+      "job_id": "n100_rep02",
+      "attempt": 1,
+      "selected": true,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01",
+      "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/job_result.json",
+      "result_sha256": "4564ec48bed60d497762fcbf60c9a97488f8a081c8efd512a0f12c2cd1ccb362",
+      "execution_completed": true,
+      "engine_failure": false,
+      "infrastructure_retry": false,
+      "infrastructure_retry_reason": null,
+      "retry_attempt_matches": true,
+      "error_type": null,
+      "error_message": null,
+      "generator_source_sha256": "09df8a5138d40e533ed3f8c7fbf85e2fe885e645cf758e16628ac4516800caae",
+      "n_files": 20,
+      "file_manifest_sha256": "b6d1fc09d5929fad371d7d4c7de2a4c9106cea874c99ff418444889823a12819",
+      "n_recorded_payload_files": 19,
+      "n_actual_payload_files": 19,
+      "recorded_file_rows_match_actual": true,
+      "recorded_manifest_fingerprint_present": true,
+      "recorded_manifest_fingerprint": "5525db7e1954582580458c01a3dad1e3a38644cf53a0013a2970047826d28dc8",
+      "recorded_manifest_fingerprint_matches": true,
+      "recorded_manifest_fingerprint_status": "matched",
+      "safe_manifest_paths": true,
+      "attempt_integrity_passed": true
+    },
+    {
+      "job_id": "n100_rep03",
+      "attempt": 1,
+      "selected": true,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01",
+      "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/job_result.json",
+      "result_sha256": "69eb9c6b42b143d09c7186fce4b3901cb69b7c6dbbc5a6313baeafc34a2ea145",
+      "execution_completed": true,
+      "engine_failure": false,
+      "infrastructure_retry": false,
+      "infrastructure_retry_reason": null,
+      "retry_attempt_matches": true,
+      "error_type": null,
+      "error_message": null,
+      "generator_source_sha256": "09df8a5138d40e533ed3f8c7fbf85e2fe885e645cf758e16628ac4516800caae",
+      "n_files": 20,
+      "file_manifest_sha256": "639dc7be550255eb1bd9f19716d643fccc1bcb0e79a801294bb0fe8f60d941d7",
+      "n_recorded_payload_files": 19,
+      "n_actual_payload_files": 19,
+      "recorded_file_rows_match_actual": true,
+      "recorded_manifest_fingerprint_present": true,
+      "recorded_manifest_fingerprint": "31ca95e381a0c96ef31d3976696444d7a5eb492fc71bf9f57330176d340f9668",
+      "recorded_manifest_fingerprint_matches": true,
+      "recorded_manifest_fingerprint_status": "matched",
+      "safe_manifest_paths": true,
+      "attempt_integrity_passed": true
+    },
+    {
+      "job_id": "n100_rep04",
+      "attempt": 1,
+      "selected": true,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01",
+      "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/job_result.json",
+      "result_sha256": "aa1aa60f1b043dcdb750312e060e90e750222580986b2a95906d451d7c33856f",
+      "execution_completed": true,
+      "engine_failure": false,
+      "infrastructure_retry": false,
+      "infrastructure_retry_reason": null,
+      "retry_attempt_matches": true,
+      "error_type": null,
+      "error_message": null,
+      "generator_source_sha256": "09df8a5138d40e533ed3f8c7fbf85e2fe885e645cf758e16628ac4516800caae",
+      "n_files": 20,
+      "file_manifest_sha256": "9315ac0a0d390d596709ba8a9984c01deab65657df67c21a505ce4efffff1dfe",
+      "n_recorded_payload_files": 19,
+      "n_actual_payload_files": 19,
+      "recorded_file_rows_match_actual": true,
+      "recorded_manifest_fingerprint_present": true,
+      "recorded_manifest_fingerprint": "b1f33604ac4892740a2ed319d7da9058ef029a42579f63789ab01f2d31c80e3e",
+      "recorded_manifest_fingerprint_matches": true,
+      "recorded_manifest_fingerprint_status": "matched",
+      "safe_manifest_paths": true,
+      "attempt_integrity_passed": true
+    },
+    {
+      "job_id": "n100_rep05",
+      "attempt": 1,
+      "selected": true,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01",
+      "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/job_result.json",
+      "result_sha256": "c31743a292e51cc24248decc7501a359ffa798590aa6c05717e061319122cb67",
+      "execution_completed": true,
+      "engine_failure": false,
+      "infrastructure_retry": false,
+      "infrastructure_retry_reason": null,
+      "retry_attempt_matches": true,
+      "error_type": null,
+      "error_message": null,
+      "generator_source_sha256": "09df8a5138d40e533ed3f8c7fbf85e2fe885e645cf758e16628ac4516800caae",
+      "n_files": 20,
+      "file_manifest_sha256": "a930ad4becd32cfcc5a35c752b113b39d875f8495e736a5d501cf3471556157f",
+      "n_recorded_payload_files": 19,
+      "n_actual_payload_files": 19,
+      "recorded_file_rows_match_actual": true,
+      "recorded_manifest_fingerprint_present": true,
+      "recorded_manifest_fingerprint": "10b329703cf99c9912736cf0272e2edb45786ae54c3b82c697c3f903acc9c392",
+      "recorded_manifest_fingerprint_matches": true,
+      "recorded_manifest_fingerprint_status": "matched",
+      "safe_manifest_paths": true,
+      "attempt_integrity_passed": true
+    }
+  ],
+  "raw_file_rows": [
+    {
+      "job_id": "n040_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01/Manifest.toml",
+      "bytes": 62633,
+      "sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01/Project.toml",
+      "bytes": 1155,
+      "sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01/abilities.csv",
+      "bytes": 910,
+      "sha256": "b5ce51bcd258d4aa7dd17e9aac262062ec78e305c730e63beeabb116836b3480",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01/dataset_truth.json",
+      "bytes": 1893,
+      "sha256": "da27ee798a2caccdd0bfff9fc750ac991a2886d00618540781ce233bf4d27ae8",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01/input.csv",
+      "bytes": 7044,
+      "sha256": "d8dcc471377f3bbac4bc380f88df62605c3346912a2b6a7329b93e416e03bf7c",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01/job_result.json",
+      "bytes": 5664,
+      "sha256": "0a7b07a6bf6a6603c89ce62eeed583a6c79453a921e3a180b8c78bd76e0a6eff",
+      "role": "attempt_job_result"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01/package_aligned_draws.csv",
+      "bytes": 776629,
+      "sha256": "a38048edf1aa194834e7c0e9117fdf7d6b89fc9b5cbdf0376d0c3b849d12ff6d",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01/package_draws.csv",
+      "bytes": 1831937,
+      "sha256": "ae4029812a26068d9f83d02379967f87c9a65b62e911282e9a4b0cc322cd601b",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01/package_mcmc_rows.json",
+      "bytes": 26521,
+      "sha256": "76af94748d574696697449384d4e57783d48d0754be19e3683263e72e9df5aed",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01/package_parameter_rows.json",
+      "bytes": 19311,
+      "sha256": "3c13d03067379d9a12496b1c6a53e7bc8eb562c9b9ab58717b8589b2de9ef83e",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01/package_rank_rows.json",
+      "bytes": 6956,
+      "sha256": "4dc27d5d3e3f6fb23be89e12c1832d8a35a5dbf276993c77c9d5400bdee83858",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01/package_sampler_rows.json",
+      "bytes": 3417,
+      "sha256": "411136988505fa714a1f368e6910a14a7e45e3d837e4163cb8ad0fc2888eba6b",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01/tam_fit.rds",
+      "bytes": 180517,
+      "sha256": "6025bc38efa9ef921c5fdd22f5271b83087c1f1cb46932c62ca1c4c4f04835e0",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01/tam_formula_audit.csv",
+      "bytes": 331,
+      "sha256": "9e53fdac237d8a8c132171fd2e1aa5650ca00bfd356627e269af84830c66071d",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01/tam_runner.R",
+      "bytes": 4110,
+      "sha256": "050e47e3d6ce7c4fd42881a05a0d4634d93730456cc41dc1abe814f1111d5275",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01/tam_session_info.txt",
+      "bytes": 730,
+      "sha256": "30a11dc8bf02578d62964a4101a01180146182da3eea884415acefd586ecaa8a",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01/tam_stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01/tam_stdout.txt",
+      "bytes": 110,
+      "sha256": "47c17d72f140bbb18c08f19708e86f7735f4708cb737b50873b23bc2ecf5ed78",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01/tam_summary.csv",
+      "bytes": 427,
+      "sha256": "b6ffa4e7a11d36dfd449fd1ec6701d4b88cf55163524e434d2db3a1678070b23",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01/tam_xsi_facets.csv",
+      "bytes": 1467,
+      "sha256": "bd8b2b3d7b43d229ea17cfba27657ac293ddb6c0227f3fa9ff9995d827a632f2",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 2,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/Manifest.toml",
+      "bytes": 62633,
+      "sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 2,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/Project.toml",
+      "bytes": 1155,
+      "sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 2,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/abilities.csv",
+      "bytes": 910,
+      "sha256": "b5ce51bcd258d4aa7dd17e9aac262062ec78e305c730e63beeabb116836b3480",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 2,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/dataset_truth.json",
+      "bytes": 1893,
+      "sha256": "da27ee798a2caccdd0bfff9fc750ac991a2886d00618540781ce233bf4d27ae8",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 2,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/input.csv",
+      "bytes": 7044,
+      "sha256": "d8dcc471377f3bbac4bc380f88df62605c3346912a2b6a7329b93e416e03bf7c",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 2,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/job_result.json",
+      "bytes": 50900,
+      "sha256": "2a4fb00e3229671f37d9a4b7e408ef6d9343366d31570da612f7065bf3c1fea3",
+      "role": "attempt_job_result"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 2,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/package_aligned_draws.csv",
+      "bytes": 776629,
+      "sha256": "a38048edf1aa194834e7c0e9117fdf7d6b89fc9b5cbdf0376d0c3b849d12ff6d",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 2,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/package_draws.csv",
+      "bytes": 1831937,
+      "sha256": "ae4029812a26068d9f83d02379967f87c9a65b62e911282e9a4b0cc322cd601b",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 2,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/package_mcmc_rows.json",
+      "bytes": 26521,
+      "sha256": "76af94748d574696697449384d4e57783d48d0754be19e3683263e72e9df5aed",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 2,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/package_parameter_rows.json",
+      "bytes": 19311,
+      "sha256": "3c13d03067379d9a12496b1c6a53e7bc8eb562c9b9ab58717b8589b2de9ef83e",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 2,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/package_rank_rows.json",
+      "bytes": 6956,
+      "sha256": "4dc27d5d3e3f6fb23be89e12c1832d8a35a5dbf276993c77c9d5400bdee83858",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 2,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/package_sampler_rows.json",
+      "bytes": 3417,
+      "sha256": "411136988505fa714a1f368e6910a14a7e45e3d837e4163cb8ad0fc2888eba6b",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 2,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/tam_fit.rds",
+      "bytes": 180516,
+      "sha256": "b119e1a9aef25869e38c576dfc0dcd6b7a6c801f4e33ea83bccd6e6a834d77a4",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 2,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/tam_formula_audit.csv",
+      "bytes": 331,
+      "sha256": "9e53fdac237d8a8c132171fd2e1aa5650ca00bfd356627e269af84830c66071d",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 2,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/tam_runner.R",
+      "bytes": 4110,
+      "sha256": "050e47e3d6ce7c4fd42881a05a0d4634d93730456cc41dc1abe814f1111d5275",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 2,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/tam_session_info.txt",
+      "bytes": 730,
+      "sha256": "30a11dc8bf02578d62964a4101a01180146182da3eea884415acefd586ecaa8a",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 2,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/tam_stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 2,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/tam_stdout.txt",
+      "bytes": 110,
+      "sha256": "47c17d72f140bbb18c08f19708e86f7735f4708cb737b50873b23bc2ecf5ed78",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 2,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/tam_summary.csv",
+      "bytes": 427,
+      "sha256": "b6ffa4e7a11d36dfd449fd1ec6701d4b88cf55163524e434d2db3a1678070b23",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 2,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/tam_xsi_facets.csv",
+      "bytes": 1467,
+      "sha256": "bd8b2b3d7b43d229ea17cfba27657ac293ddb6c0227f3fa9ff9995d827a632f2",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep01",
+      "attempt": 0,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/selected_attempt.json",
+      "bytes": 440,
+      "sha256": "32a06d2f03dad26b8bb96313de8a46a73ebf7b05dfb046ab4007f67f1f872826",
+      "role": "selected_attempt_pointer"
+    },
+    {
+      "job_id": "n040_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/Manifest.toml",
+      "bytes": 62633,
+      "sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/Project.toml",
+      "bytes": 1155,
+      "sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/abilities.csv",
+      "bytes": 912,
+      "sha256": "78155dde34f27a451946b7e537b562cad1b6dc69305e643a7a704e4473fb179a",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/dataset_truth.json",
+      "bytes": 1895,
+      "sha256": "ddb7826a11703d93fb493ba17fe23d3888d53402d28adc3f7f8a11985ab3982d",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/input.csv",
+      "bytes": 7044,
+      "sha256": "09eeecf69a6b542309e6fa9000b88710d7c5b5d1f5388456cd733401e62e3b79",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/job_result.json",
+      "bytes": 50879,
+      "sha256": "c11a7b85b0c326e2f5d54917c4c9ba126ecec828c2659f4d0522227ff62f1254",
+      "role": "attempt_job_result"
+    },
+    {
+      "job_id": "n040_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/package_aligned_draws.csv",
+      "bytes": 773370,
+      "sha256": "8e03dee028d33835eb09d7813ab1b4bc202a547f00dc8bed991b94b534e52b49",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/package_draws.csv",
+      "bytes": 1827250,
+      "sha256": "0f5f1a05bf35b97bc6c7f8ed7c0573f88f3a4407e09ff5199e333fb3170ca61a",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/package_mcmc_rows.json",
+      "bytes": 26546,
+      "sha256": "4b7aa67be8d7722208a4a6179af522c77a8c62e81aec7ba2de26682f887bdb41",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/package_parameter_rows.json",
+      "bytes": 19320,
+      "sha256": "92784fe711ba40d00e75b6b259825719a01d9226e528ecd39980041b65e9ba8a",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/package_rank_rows.json",
+      "bytes": 6929,
+      "sha256": "59265177f25180a6152abeea550b0a7fe3bae2e6332b576358d17de131350535",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/package_sampler_rows.json",
+      "bytes": 3411,
+      "sha256": "db6cba7db98b2fa2867b16e04e22b012c5a5a47ca6e5a1a443267b0c84b1760f",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/tam_fit.rds",
+      "bytes": 183102,
+      "sha256": "6a49907e8626411be9596d4de6e0d325ec4617869901b138acb698ee07f4293e",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/tam_formula_audit.csv",
+      "bytes": 331,
+      "sha256": "9e53fdac237d8a8c132171fd2e1aa5650ca00bfd356627e269af84830c66071d",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/tam_runner.R",
+      "bytes": 4110,
+      "sha256": "050e47e3d6ce7c4fd42881a05a0d4634d93730456cc41dc1abe814f1111d5275",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/tam_session_info.txt",
+      "bytes": 730,
+      "sha256": "30a11dc8bf02578d62964a4101a01180146182da3eea884415acefd586ecaa8a",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/tam_stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/tam_stdout.txt",
+      "bytes": 110,
+      "sha256": "47c17d72f140bbb18c08f19708e86f7735f4708cb737b50873b23bc2ecf5ed78",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/tam_summary.csv",
+      "bytes": 425,
+      "sha256": "843fd2695645137ad6792c49a5f932fafba0085510f73f71b32faf8b6511a9dd",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/tam_xsi_facets.csv",
+      "bytes": 1467,
+      "sha256": "e073ae27904f5bb6aad0fff877d4c8026cc644e28e7d757d5629f5ee9e93c005",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep02",
+      "attempt": 0,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/selected_attempt.json",
+      "bytes": 392,
+      "sha256": "6d072e65e407182e428a163ee39007f043b202a9dc5847daf63f9b7441993852",
+      "role": "selected_attempt_pointer"
+    },
+    {
+      "job_id": "n040_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/Manifest.toml",
+      "bytes": 62633,
+      "sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/Project.toml",
+      "bytes": 1155,
+      "sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/abilities.csv",
+      "bytes": 911,
+      "sha256": "c98114c9973be1f67aa502cedb3b15c03ed490bce4a36ed1bbd3719fdce06250",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/dataset_truth.json",
+      "bytes": 1894,
+      "sha256": "369afbe77fffff24a5a51d4a6671d1f11120e85728703f778d583e0fde9f7906",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/input.csv",
+      "bytes": 7044,
+      "sha256": "153f1d9d50762b576308ada554176331e71737f8fab78359d234a2e64dae19df",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/job_result.json",
+      "bytes": 50853,
+      "sha256": "746f9ca0ea48e6f87aaa4051dfdc12c843d461cd50c98e4e06a02a8adf7d052c",
+      "role": "attempt_job_result"
+    },
+    {
+      "job_id": "n040_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/package_aligned_draws.csv",
+      "bytes": 773055,
+      "sha256": "21729929dde7b23fc3b1373a2839faacc21fd4a2d8bb0cfb4fa8a0f3bf84f324",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/package_draws.csv",
+      "bytes": 1835462,
+      "sha256": "66c16b5aec5ee323c875e7cd3a7884f7d98251f70ab5c4f121fb4f2e922501e7",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/package_mcmc_rows.json",
+      "bytes": 26547,
+      "sha256": "dca45858b4f6a8be04110adb2d76381ad0e0e4a57353b13268de9cd0e036620a",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/package_parameter_rows.json",
+      "bytes": 19322,
+      "sha256": "7e11752768ee45eb623fea38e768dd4107561e3fd5450caeb093912451f5bcc8",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/package_rank_rows.json",
+      "bytes": 6995,
+      "sha256": "5d5a694c84625adb7dae2087b1f23df05214c4e31f058fda063c17208cd3e2ed",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/package_sampler_rows.json",
+      "bytes": 3417,
+      "sha256": "9fc3e562524669c48d4e5fcc01f442ef43408b6d0534ddf22be2a4006601a245",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/tam_fit.rds",
+      "bytes": 183488,
+      "sha256": "6b99e01d62a50841be0f9b8c2aeaf7de4cbf344ba504a9a981db18e79ae29403",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/tam_formula_audit.csv",
+      "bytes": 331,
+      "sha256": "9e53fdac237d8a8c132171fd2e1aa5650ca00bfd356627e269af84830c66071d",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/tam_runner.R",
+      "bytes": 4110,
+      "sha256": "050e47e3d6ce7c4fd42881a05a0d4634d93730456cc41dc1abe814f1111d5275",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/tam_session_info.txt",
+      "bytes": 730,
+      "sha256": "30a11dc8bf02578d62964a4101a01180146182da3eea884415acefd586ecaa8a",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/tam_stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/tam_stdout.txt",
+      "bytes": 110,
+      "sha256": "47c17d72f140bbb18c08f19708e86f7735f4708cb737b50873b23bc2ecf5ed78",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/tam_summary.csv",
+      "bytes": 428,
+      "sha256": "3e9a282417d5a09fc0e9f7751a4541dae1a9521e7be53fd282a0b4c6e6738534",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/tam_xsi_facets.csv",
+      "bytes": 1474,
+      "sha256": "6d87022353db2a3cba5328106aa027d83fd499acc2c2b8caf5dbc55c928dce62",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep03",
+      "attempt": 0,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/selected_attempt.json",
+      "bytes": 392,
+      "sha256": "4f158c15a5c1a5c0f44c4a63622382cb6bbf7046785d7b14eca40ccb964b23f9",
+      "role": "selected_attempt_pointer"
+    },
+    {
+      "job_id": "n040_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/Manifest.toml",
+      "bytes": 62633,
+      "sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/Project.toml",
+      "bytes": 1155,
+      "sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/abilities.csv",
+      "bytes": 920,
+      "sha256": "883ea2c087e3c19112c230b4b67c61254c82ed3b1385ccca7b8cbe848848a672",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/dataset_truth.json",
+      "bytes": 1903,
+      "sha256": "f5ac388c86b37d448e2ce1b6cf8ae07d8b36cf3ad1ed9fafc61c668654781203",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/input.csv",
+      "bytes": 7044,
+      "sha256": "fb1b5136b0707a373184a26e47005de6692ee53c76418c580bf73f8725ff558a",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/job_result.json",
+      "bytes": 50916,
+      "sha256": "2281db76dc9646d7c3250de92ad5f087c3970d2bde545e8bf9207171c14a13c9",
+      "role": "attempt_job_result"
+    },
+    {
+      "job_id": "n040_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/package_aligned_draws.csv",
+      "bytes": 776200,
+      "sha256": "04cb587bb7203aad3a891d61b6c02c194b74a522db7969150251ade2fe17fefc",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/package_draws.csv",
+      "bytes": 1839175,
+      "sha256": "de9152efaf417d92e2163ff620bb1a1ef55c66f25d6cac67dfe9bedf6ef1fb1f",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/package_mcmc_rows.json",
+      "bytes": 26535,
+      "sha256": "54c862e9dcb53878549d2b0c7e3bb4fde35cbc949e486e5a63829b9e1739c3a4",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/package_parameter_rows.json",
+      "bytes": 19344,
+      "sha256": "dfa279e62d129cfb0ef35e9fb723082350b98ba99650d49f22d45853b9a62bf1",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/package_rank_rows.json",
+      "bytes": 6999,
+      "sha256": "3ea652527ac074bc02e989f7ad3ebef3aabd50170070a2183aa7c5c6cec2acd7",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/package_sampler_rows.json",
+      "bytes": 3418,
+      "sha256": "17390c6e6f4c6a23129af1b3edb7512e6f7cd694ffdffd5fdd3b36c1d814d477",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/tam_fit.rds",
+      "bytes": 178872,
+      "sha256": "3c1cb58945b66be1c573bb5227763037ebc1d9f6f1e441ff8fd408348cf91e7b",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/tam_formula_audit.csv",
+      "bytes": 331,
+      "sha256": "5ebdfcf94e3c2cf39ec449ae736f4a083ac8e00aff1f22fa27dc0edbc685523f",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/tam_runner.R",
+      "bytes": 4110,
+      "sha256": "050e47e3d6ce7c4fd42881a05a0d4634d93730456cc41dc1abe814f1111d5275",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/tam_session_info.txt",
+      "bytes": 730,
+      "sha256": "30a11dc8bf02578d62964a4101a01180146182da3eea884415acefd586ecaa8a",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/tam_stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/tam_stdout.txt",
+      "bytes": 110,
+      "sha256": "47c17d72f140bbb18c08f19708e86f7735f4708cb737b50873b23bc2ecf5ed78",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/tam_summary.csv",
+      "bytes": 426,
+      "sha256": "c26cf83e2a86297ac606ea10bc385704fd88251816e90073b1a0d97bd9bf5b6b",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/tam_xsi_facets.csv",
+      "bytes": 1464,
+      "sha256": "20a20bc7357fb7443d04a9a81446fcc89468f0ab6e78f38550450cc6db38f7eb",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep04",
+      "attempt": 0,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/selected_attempt.json",
+      "bytes": 392,
+      "sha256": "e58f9ca2a9da2fd4236b8285902d4e4d38beeca96852bb29c9cfe10a41ff9dcb",
+      "role": "selected_attempt_pointer"
+    },
+    {
+      "job_id": "n040_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/Manifest.toml",
+      "bytes": 62633,
+      "sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/Project.toml",
+      "bytes": 1155,
+      "sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/abilities.csv",
+      "bytes": 913,
+      "sha256": "fba71c596516fc15c64a08d2bedbcef41b5065151ab88256bcd9fbc581e3ba54",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/dataset_truth.json",
+      "bytes": 1896,
+      "sha256": "042871d34d7568aed27611afcb92b5086a824be1f90ca811a3e6a784a6a9d2c0",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/input.csv",
+      "bytes": 7044,
+      "sha256": "d05d0e9e66a026a0d8020d9e22331a980cec7ada57f2b9e5575591f40396c576",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/job_result.json",
+      "bytes": 50848,
+      "sha256": "8713795dd72677f3f320b9d74d095d0de516cec416c816d00b9185d25767d675",
+      "role": "attempt_job_result"
+    },
+    {
+      "job_id": "n040_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/package_aligned_draws.csv",
+      "bytes": 773787,
+      "sha256": "36a3516ef1e354d4c0c56ca30c5549762286252f4027669b3759ee54a3cadcb6",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/package_draws.csv",
+      "bytes": 1826263,
+      "sha256": "7da4cdc827aa4bc70b3782024a51f1443bc8fff1f6707eac66ad22c7fe86758b",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/package_mcmc_rows.json",
+      "bytes": 26564,
+      "sha256": "bd896575826d4b02452938db59407a654d3c52e8f6accf468ca1ffbbd37bcaca",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/package_parameter_rows.json",
+      "bytes": 19320,
+      "sha256": "33d6dc1040bf282b598efcab6d6589245d232420472c58bca93b5948712b233d",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/package_rank_rows.json",
+      "bytes": 6972,
+      "sha256": "764b962d6ed9ca0b5cc1ae3a0427546d879b4fa7e73e191bfbc2dd98587e1e96",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/package_sampler_rows.json",
+      "bytes": 3410,
+      "sha256": "45c407c7fa6b0432aa8e59ebc838c734393d9d265bddc3644d6da396b416d7ca",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/tam_fit.rds",
+      "bytes": 182247,
+      "sha256": "9a18ccf0b1d0978df9ccdf476da200590ec1b807cb3a5cfec28973befcec5b8f",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/tam_formula_audit.csv",
+      "bytes": 331,
+      "sha256": "5ebdfcf94e3c2cf39ec449ae736f4a083ac8e00aff1f22fa27dc0edbc685523f",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/tam_runner.R",
+      "bytes": 4110,
+      "sha256": "050e47e3d6ce7c4fd42881a05a0d4634d93730456cc41dc1abe814f1111d5275",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/tam_session_info.txt",
+      "bytes": 730,
+      "sha256": "30a11dc8bf02578d62964a4101a01180146182da3eea884415acefd586ecaa8a",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/tam_stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/tam_stdout.txt",
+      "bytes": 110,
+      "sha256": "47c17d72f140bbb18c08f19708e86f7735f4708cb737b50873b23bc2ecf5ed78",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/tam_summary.csv",
+      "bytes": 427,
+      "sha256": "abebb801544fecd3833d1412efc84bc1e5f22d83e7839113b207c290e6c075c2",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/tam_xsi_facets.csv",
+      "bytes": 1473,
+      "sha256": "497b9f6dc81dae8dd9d8a3446d7b951b41ec2375007791b18cea8941564117a1",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n040_rep05",
+      "attempt": 0,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/selected_attempt.json",
+      "bytes": 392,
+      "sha256": "7ffbbaba1c044226501b720fedf3d3db05018be2856339de016bbfbabc12bdf4",
+      "role": "selected_attempt_pointer"
+    },
+    {
+      "job_id": "n100_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/Manifest.toml",
+      "bytes": 62633,
+      "sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/Project.toml",
+      "bytes": 1155,
+      "sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/abilities.csv",
+      "bytes": 2291,
+      "sha256": "f809954aed5575f34a8051e9a373878cbc378135878f1787b00169d0b9f65d40",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/dataset_truth.json",
+      "bytes": 3394,
+      "sha256": "eb8881d86fcb75d1e45d9418eaaccc5d5eb392454dd34730bd82934e7a162e30",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/input.csv",
+      "bytes": 17864,
+      "sha256": "c75bfb918771bbecb7f6bb74986e224a37294e4cfd5f3b094e1ca8014847d887",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/job_result.json",
+      "bytes": 50907,
+      "sha256": "fc363f7521a8ecc670cbd05e40d39e07965a4713b3fbdf7f324e1803f276b657",
+      "role": "attempt_job_result"
+    },
+    {
+      "job_id": "n100_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/package_aligned_draws.csv",
+      "bytes": 776309,
+      "sha256": "2f02470720b87a92fbc7d586ce2e78a7fcbbb537596377b455c9882e5b233d7d",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/package_draws.csv",
+      "bytes": 3729592,
+      "sha256": "5c3f4f6ea21840dc35b181d60c6ed5d595fb5192ecf231842785152f83b973ad",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/package_mcmc_rows.json",
+      "bytes": 54376,
+      "sha256": "87d6fb9fbab312b6f210b89572cbaa16f16363d8bb0633913228a0a468220229",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/package_parameter_rows.json",
+      "bytes": 19349,
+      "sha256": "22924c7a3de0db000a57386e079fef7a6ca0027db805f054ab55dad6a1ab7349",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/package_rank_rows.json",
+      "bytes": 6999,
+      "sha256": "b755655c442ab0a7eb9e55a9533d7d0956ef5d1328c111bbbe85c8b1c6a591a2",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/package_sampler_rows.json",
+      "bytes": 3409,
+      "sha256": "fb977b882e3d9b6ac1bd79c2b7c14aa558ffd45dd9857b43e7cfc9d70dcfd868",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/tam_fit.rds",
+      "bytes": 277378,
+      "sha256": "297eba18354d486f08b76fa3691536fa4174c01f2d673908928aa13d4ced5062",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/tam_formula_audit.csv",
+      "bytes": 331,
+      "sha256": "9e53fdac237d8a8c132171fd2e1aa5650ca00bfd356627e269af84830c66071d",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/tam_runner.R",
+      "bytes": 4110,
+      "sha256": "050e47e3d6ce7c4fd42881a05a0d4634d93730456cc41dc1abe814f1111d5275",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/tam_session_info.txt",
+      "bytes": 730,
+      "sha256": "30a11dc8bf02578d62964a4101a01180146182da3eea884415acefd586ecaa8a",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/tam_stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/tam_stdout.txt",
+      "bytes": 110,
+      "sha256": "47c17d72f140bbb18c08f19708e86f7735f4708cb737b50873b23bc2ecf5ed78",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/tam_summary.csv",
+      "bytes": 427,
+      "sha256": "c3882e2058eaf77b24cf83d0b338984a88f2b97adb3cc9943964abde0079204a",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep01",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/tam_xsi_facets.csv",
+      "bytes": 1468,
+      "sha256": "759f3ce71052bbd6461e01a497efd18a313d6c4d01e2cd1078c0141a595d3d94",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep01",
+      "attempt": 0,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/selected_attempt.json",
+      "bytes": 392,
+      "sha256": "19914c4565c8f2659ef1b0cef076af6a5366861019ad70456581ab32387331d6",
+      "role": "selected_attempt_pointer"
+    },
+    {
+      "job_id": "n100_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/Manifest.toml",
+      "bytes": 62633,
+      "sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/Project.toml",
+      "bytes": 1155,
+      "sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/abilities.csv",
+      "bytes": 2273,
+      "sha256": "ceaa97da570e2614282d7dc6c0a9ae431c566ce40c9631af15a42300fd2ebbfa",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/dataset_truth.json",
+      "bytes": 3376,
+      "sha256": "fc61a3008ecadb8bc5c2734a8b43c76086685615e3e7270160bc60bb1a8a282e",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/input.csv",
+      "bytes": 17864,
+      "sha256": "97b025c5070d31b71fe1bf49b033d98f6903230f6bab430412618974c6842bf7",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/job_result.json",
+      "bytes": 50914,
+      "sha256": "4564ec48bed60d497762fcbf60c9a97488f8a081c8efd512a0f12c2cd1ccb362",
+      "role": "attempt_job_result"
+    },
+    {
+      "job_id": "n100_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/package_aligned_draws.csv",
+      "bytes": 777358,
+      "sha256": "49d5238b2b7e2a83b40be0d3e7f019e5c1180c08acb2cb0c9adc10477527c033",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/package_draws.csv",
+      "bytes": 3731358,
+      "sha256": "a70102d7efa3989e8e3b8ec72e969399099c0bc024650767e2ec9b8cacffd2f9",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/package_mcmc_rows.json",
+      "bytes": 54375,
+      "sha256": "bc44496ffbba254314afc96c8f50be9fe254a4564a05c9f775e5d8c963e8f550",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/package_parameter_rows.json",
+      "bytes": 19376,
+      "sha256": "d98d71e2b32ddc8c5fe0431281ad3354645437b7559f9fc8df5b18714e870390",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/package_rank_rows.json",
+      "bytes": 6995,
+      "sha256": "49a5f3e4511d83a123fc3d33b167fa7322ca79275b06daf5c76f569ad6e34715",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/package_sampler_rows.json",
+      "bytes": 3411,
+      "sha256": "925f80bfb00f3f0e98bd4419032f5a9a0bccea668504262a12fc5bbe41f56810",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/tam_fit.rds",
+      "bytes": 276236,
+      "sha256": "9498027c2b4ec61f12628139d4e09d4b5b143d9ddcdefa92245c229904e24055",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/tam_formula_audit.csv",
+      "bytes": 331,
+      "sha256": "5ebdfcf94e3c2cf39ec449ae736f4a083ac8e00aff1f22fa27dc0edbc685523f",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/tam_runner.R",
+      "bytes": 4110,
+      "sha256": "050e47e3d6ce7c4fd42881a05a0d4634d93730456cc41dc1abe814f1111d5275",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/tam_session_info.txt",
+      "bytes": 730,
+      "sha256": "30a11dc8bf02578d62964a4101a01180146182da3eea884415acefd586ecaa8a",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/tam_stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/tam_stdout.txt",
+      "bytes": 110,
+      "sha256": "47c17d72f140bbb18c08f19708e86f7735f4708cb737b50873b23bc2ecf5ed78",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/tam_summary.csv",
+      "bytes": 427,
+      "sha256": "1291baf7d8698f4ba94d7d12e689f9aa929d7d3404009142a89f6edec0f1d6e7",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep02",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/tam_xsi_facets.csv",
+      "bytes": 1465,
+      "sha256": "ade9a0c56e150177ea5a1bb94d019f2d033dd51f72a4733e99532173f094eb0e",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep02",
+      "attempt": 0,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/selected_attempt.json",
+      "bytes": 392,
+      "sha256": "1eb23ca36e6511f9ee149a2e642e8f3a440dedd9b60ec2359a0f8cf53befd3ae",
+      "role": "selected_attempt_pointer"
+    },
+    {
+      "job_id": "n100_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/Manifest.toml",
+      "bytes": 62633,
+      "sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/Project.toml",
+      "bytes": 1155,
+      "sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/abilities.csv",
+      "bytes": 2282,
+      "sha256": "74af136629417ff035a8cf2a1999b57d7bdd4c4578073120e3e9641cc1c77a32",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/dataset_truth.json",
+      "bytes": 3385,
+      "sha256": "5d266c8a65dbe07fb47f268bbcc3c18bb8cdb13c01819202786a49181cf6bf2b",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/input.csv",
+      "bytes": 17864,
+      "sha256": "ed8025781e411b6a26a82c2694e68fcf411b439d481e1eeb8e4d59f8fe27b9c2",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/job_result.json",
+      "bytes": 50902,
+      "sha256": "69eb9c6b42b143d09c7186fce4b3901cb69b7c6dbbc5a6313baeafc34a2ea145",
+      "role": "attempt_job_result"
+    },
+    {
+      "job_id": "n100_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/package_aligned_draws.csv",
+      "bytes": 771121,
+      "sha256": "a7df98e124e6f2299f44f2ee89f45039f0cf2a2c8f40e8de212ee00cc0e021c4",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/package_draws.csv",
+      "bytes": 3728444,
+      "sha256": "c33d900cb322f65eb0cfe00c7a48cbb4f70884b39ff88dff6f6a3d62f091fa37",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/package_mcmc_rows.json",
+      "bytes": 54382,
+      "sha256": "0051d8fb81ea3620493eed6af32604b9df8eae66386997ffcfd35ac8d5d84c6f",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/package_parameter_rows.json",
+      "bytes": 19352,
+      "sha256": "f4ed209976b26c959f355b80f65c24a9c9252d6909517e14de92d5078ebf0828",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/package_rank_rows.json",
+      "bytes": 7033,
+      "sha256": "adde2f48c98ce3a551e3c88345b493add1d108d1d623a874cf22a29ba83ca9e3",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/package_sampler_rows.json",
+      "bytes": 3419,
+      "sha256": "23c3d3abb3b1776a680349dd8a4640fbc3309e69611a89baaa560a7e6d7b6b41",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/tam_fit.rds",
+      "bytes": 276805,
+      "sha256": "6337b74046ae3600baaf4ff0edebe837e16099774214fcd74485d3d55df3b2bf",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/tam_formula_audit.csv",
+      "bytes": 331,
+      "sha256": "9e53fdac237d8a8c132171fd2e1aa5650ca00bfd356627e269af84830c66071d",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/tam_runner.R",
+      "bytes": 4110,
+      "sha256": "050e47e3d6ce7c4fd42881a05a0d4634d93730456cc41dc1abe814f1111d5275",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/tam_session_info.txt",
+      "bytes": 730,
+      "sha256": "30a11dc8bf02578d62964a4101a01180146182da3eea884415acefd586ecaa8a",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/tam_stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/tam_stdout.txt",
+      "bytes": 110,
+      "sha256": "47c17d72f140bbb18c08f19708e86f7735f4708cb737b50873b23bc2ecf5ed78",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/tam_summary.csv",
+      "bytes": 428,
+      "sha256": "12cecb096706d9c0feaa321267034f5feebb9e51aafbb14e492e1da6f2c7afe7",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep03",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/tam_xsi_facets.csv",
+      "bytes": 1471,
+      "sha256": "bfb25bbf2d0c91acdf77b7bdc29f0356fdad3c49d64f9d2768081703cfec1a6f",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep03",
+      "attempt": 0,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/selected_attempt.json",
+      "bytes": 392,
+      "sha256": "96722e6ab47d6222a3019537823b631ec5c2712365df4c8c0dd177d7441fa1ad",
+      "role": "selected_attempt_pointer"
+    },
+    {
+      "job_id": "n100_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/Manifest.toml",
+      "bytes": 62633,
+      "sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/Project.toml",
+      "bytes": 1155,
+      "sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/abilities.csv",
+      "bytes": 2281,
+      "sha256": "65dfb7b47fc16e816d260d1df8c7cdefdf86dab3026e16b43d4a78dde97e4927",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/dataset_truth.json",
+      "bytes": 3384,
+      "sha256": "dc26346754f86b2330e6f4e112ba1cdfc69c0cd0443717346051a5e37a1b7ffc",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/input.csv",
+      "bytes": 17864,
+      "sha256": "c4e9f8e0c846be182f4cb465566e303afca90920071cd96a21cb6b0300b3d37f",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/job_result.json",
+      "bytes": 50903,
+      "sha256": "aa1aa60f1b043dcdb750312e060e90e750222580986b2a95906d451d7c33856f",
+      "role": "attempt_job_result"
+    },
+    {
+      "job_id": "n100_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/package_aligned_draws.csv",
+      "bytes": 777005,
+      "sha256": "d77454f70ef0dce52348a2f0cd31de81744d5957f5ad64b83893588bc8fb5b2d",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/package_draws.csv",
+      "bytes": 3721323,
+      "sha256": "a8e3d0173a1e52b259f8c765330fa47daac11355c07a9693a170177a33fe910d",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/package_mcmc_rows.json",
+      "bytes": 54365,
+      "sha256": "c196cf2816b7c87c3586060c5d0db5afdbe21a6b3970af9a3f53df6de89c8d9c",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/package_parameter_rows.json",
+      "bytes": 19355,
+      "sha256": "eaf9216ed59e488df942b92aebd19ff0624889a9723fa86f74389c8f1cf1a382",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/package_rank_rows.json",
+      "bytes": 6990,
+      "sha256": "5321d3922099e5e7243e214c29ccb7d9a38557129b9f87ba10b7a3cf243d21af",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/package_sampler_rows.json",
+      "bytes": 3413,
+      "sha256": "0b1f72dbc2d3282eee6bc49ceeabc40d1821a571bfca11d9baf75b2ec577286f",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/tam_fit.rds",
+      "bytes": 280084,
+      "sha256": "db7d473d6790b37af44402d75a879a89e53a8caeb9fd2c1d09431f89f8fd5820",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/tam_formula_audit.csv",
+      "bytes": 331,
+      "sha256": "5ebdfcf94e3c2cf39ec449ae736f4a083ac8e00aff1f22fa27dc0edbc685523f",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/tam_runner.R",
+      "bytes": 4110,
+      "sha256": "050e47e3d6ce7c4fd42881a05a0d4634d93730456cc41dc1abe814f1111d5275",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/tam_session_info.txt",
+      "bytes": 730,
+      "sha256": "30a11dc8bf02578d62964a4101a01180146182da3eea884415acefd586ecaa8a",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/tam_stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/tam_stdout.txt",
+      "bytes": 110,
+      "sha256": "47c17d72f140bbb18c08f19708e86f7735f4708cb737b50873b23bc2ecf5ed78",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/tam_summary.csv",
+      "bytes": 427,
+      "sha256": "b9fd32f68f4c2ec6526afd0e7e6ac07a1778480a23c9968dc5cff64b2e8133c6",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep04",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/tam_xsi_facets.csv",
+      "bytes": 1465,
+      "sha256": "094aaea14d896e6e25350f7c3571e74dc2a5f0e4ee341b5e26a7f5fc7ee0710e",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep04",
+      "attempt": 0,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/selected_attempt.json",
+      "bytes": 392,
+      "sha256": "b643336da3e08339d24ea03aed3b1207aa1e567fedb6679ad48209a491e4d4fb",
+      "role": "selected_attempt_pointer"
+    },
+    {
+      "job_id": "n100_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/Manifest.toml",
+      "bytes": 62633,
+      "sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/Project.toml",
+      "bytes": 1155,
+      "sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/abilities.csv",
+      "bytes": 2280,
+      "sha256": "aecb0b45f75bfdc91f3042e3df3b210f956f2da82b986d44d3244d03c7b691c9",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/dataset_truth.json",
+      "bytes": 3383,
+      "sha256": "ac7e03fb5b477af0badce69f7ffdb2e167def217a3d1e131e9101699dcbe6dfd",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/input.csv",
+      "bytes": 17864,
+      "sha256": "28bef60c92c8c9c69cc116684e4ee80e4f29aa00e99a4232484b6c15abd9cf56",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/job_result.json",
+      "bytes": 50910,
+      "sha256": "c31743a292e51cc24248decc7501a359ffa798590aa6c05717e061319122cb67",
+      "role": "attempt_job_result"
+    },
+    {
+      "job_id": "n100_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/package_aligned_draws.csv",
+      "bytes": 775272,
+      "sha256": "7991118705410920d58d706114d8a09ec5e2a01c6b970a7bb13a5ef236f6533e",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/package_draws.csv",
+      "bytes": 3720645,
+      "sha256": "328d0c66a2c5e5cfc1599658a68c3372e198fed9c85906259b6c3149ca85fbd5",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/package_mcmc_rows.json",
+      "bytes": 54394,
+      "sha256": "e27f5e5907323beb82c7cf5504ab30e6afc35718546298529facac8f8ff1a0e3",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/package_parameter_rows.json",
+      "bytes": 19357,
+      "sha256": "e333c35b0627c4527ff27d70cfae16343d0497f336c5a74b72349bb7163752d4",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/package_rank_rows.json",
+      "bytes": 7041,
+      "sha256": "f1b33165331b92e4993ae5960e39f830eb899a394e96910edeab5e32797fdf14",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/package_sampler_rows.json",
+      "bytes": 3418,
+      "sha256": "8886506980c834647f446bc20db1bf5df9c0af847fd3cc547256725aa1c42d6f",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/tam_fit.rds",
+      "bytes": 282183,
+      "sha256": "68c472affde7f0ae4c4ab0c26335e1076b105e400723997d58cca53dfc1158f6",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/tam_formula_audit.csv",
+      "bytes": 331,
+      "sha256": "9e53fdac237d8a8c132171fd2e1aa5650ca00bfd356627e269af84830c66071d",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/tam_runner.R",
+      "bytes": 4110,
+      "sha256": "050e47e3d6ce7c4fd42881a05a0d4634d93730456cc41dc1abe814f1111d5275",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/tam_session_info.txt",
+      "bytes": 730,
+      "sha256": "30a11dc8bf02578d62964a4101a01180146182da3eea884415acefd586ecaa8a",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/tam_stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/tam_stdout.txt",
+      "bytes": 110,
+      "sha256": "47c17d72f140bbb18c08f19708e86f7735f4708cb737b50873b23bc2ecf5ed78",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/tam_summary.csv",
+      "bytes": 429,
+      "sha256": "d657e28bb42d87f7ecdb73e6f85880e14178b4586da2bc0dc1bc55507e7b2a83",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep05",
+      "attempt": 1,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/tam_xsi_facets.csv",
+      "bytes": 1469,
+      "sha256": "0a2cda54509672299daee50d7cd98105a054be5637fa4442afb08ebbd0c7a27a",
+      "role": "attempt_raw_file"
+    },
+    {
+      "job_id": "n100_rep05",
+      "attempt": 0,
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/selected_attempt.json",
+      "bytes": 392,
+      "sha256": "5f15ad16e45c45eab3c376e581781a3ba7c238f99df5d64d01889ddc7c3489d6",
+      "role": "selected_attempt_pointer"
+    }
+  ],
+  "result_manifest_verification_rows": [
+    {
+      "job_id": "n040_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/job_result.json",
+      "recorded_bytes": 50900,
+      "recorded_sha256": "2a4fb00e3229671f37d9a4b7e408ef6d9343366d31570da612f7065bf3c1fea3",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/Manifest.toml",
+      "recorded_bytes": 62633,
+      "recorded_sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/Project.toml",
+      "recorded_bytes": 1155,
+      "recorded_sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/abilities.csv",
+      "recorded_bytes": 910,
+      "recorded_sha256": "b5ce51bcd258d4aa7dd17e9aac262062ec78e305c730e63beeabb116836b3480",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/dataset_truth.json",
+      "recorded_bytes": 1893,
+      "recorded_sha256": "da27ee798a2caccdd0bfff9fc750ac991a2886d00618540781ce233bf4d27ae8",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/input.csv",
+      "recorded_bytes": 7044,
+      "recorded_sha256": "d8dcc471377f3bbac4bc380f88df62605c3346912a2b6a7329b93e416e03bf7c",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/package_aligned_draws.csv",
+      "recorded_bytes": 776629,
+      "recorded_sha256": "a38048edf1aa194834e7c0e9117fdf7d6b89fc9b5cbdf0376d0c3b849d12ff6d",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/package_draws.csv",
+      "recorded_bytes": 1831937,
+      "recorded_sha256": "ae4029812a26068d9f83d02379967f87c9a65b62e911282e9a4b0cc322cd601b",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/package_mcmc_rows.json",
+      "recorded_bytes": 26521,
+      "recorded_sha256": "76af94748d574696697449384d4e57783d48d0754be19e3683263e72e9df5aed",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/package_parameter_rows.json",
+      "recorded_bytes": 19311,
+      "recorded_sha256": "3c13d03067379d9a12496b1c6a53e7bc8eb562c9b9ab58717b8589b2de9ef83e",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/package_rank_rows.json",
+      "recorded_bytes": 6956,
+      "recorded_sha256": "4dc27d5d3e3f6fb23be89e12c1832d8a35a5dbf276993c77c9d5400bdee83858",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/package_sampler_rows.json",
+      "recorded_bytes": 3417,
+      "recorded_sha256": "411136988505fa714a1f368e6910a14a7e45e3d837e4163cb8ad0fc2888eba6b",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/tam_fit.rds",
+      "recorded_bytes": 180516,
+      "recorded_sha256": "b119e1a9aef25869e38c576dfc0dcd6b7a6c801f4e33ea83bccd6e6a834d77a4",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/tam_formula_audit.csv",
+      "recorded_bytes": 331,
+      "recorded_sha256": "9e53fdac237d8a8c132171fd2e1aa5650ca00bfd356627e269af84830c66071d",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/tam_runner.R",
+      "recorded_bytes": 4110,
+      "recorded_sha256": "050e47e3d6ce7c4fd42881a05a0d4634d93730456cc41dc1abe814f1111d5275",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/tam_session_info.txt",
+      "recorded_bytes": 730,
+      "recorded_sha256": "30a11dc8bf02578d62964a4101a01180146182da3eea884415acefd586ecaa8a",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/tam_stderr.txt",
+      "recorded_bytes": 0,
+      "recorded_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/tam_stdout.txt",
+      "recorded_bytes": 110,
+      "recorded_sha256": "47c17d72f140bbb18c08f19708e86f7735f4708cb737b50873b23bc2ecf5ed78",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/tam_summary.csv",
+      "recorded_bytes": 427,
+      "recorded_sha256": "b6ffa4e7a11d36dfd449fd1ec6701d4b88cf55163524e434d2db3a1678070b23",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/tam_xsi_facets.csv",
+      "recorded_bytes": 1467,
+      "recorded_sha256": "bd8b2b3d7b43d229ea17cfba27657ac293ddb6c0227f3fa9ff9995d827a632f2",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/job_result.json",
+      "recorded_bytes": 50879,
+      "recorded_sha256": "c11a7b85b0c326e2f5d54917c4c9ba126ecec828c2659f4d0522227ff62f1254",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/Manifest.toml",
+      "recorded_bytes": 62633,
+      "recorded_sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/Project.toml",
+      "recorded_bytes": 1155,
+      "recorded_sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/abilities.csv",
+      "recorded_bytes": 912,
+      "recorded_sha256": "78155dde34f27a451946b7e537b562cad1b6dc69305e643a7a704e4473fb179a",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/dataset_truth.json",
+      "recorded_bytes": 1895,
+      "recorded_sha256": "ddb7826a11703d93fb493ba17fe23d3888d53402d28adc3f7f8a11985ab3982d",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/input.csv",
+      "recorded_bytes": 7044,
+      "recorded_sha256": "09eeecf69a6b542309e6fa9000b88710d7c5b5d1f5388456cd733401e62e3b79",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/package_aligned_draws.csv",
+      "recorded_bytes": 773370,
+      "recorded_sha256": "8e03dee028d33835eb09d7813ab1b4bc202a547f00dc8bed991b94b534e52b49",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/package_draws.csv",
+      "recorded_bytes": 1827250,
+      "recorded_sha256": "0f5f1a05bf35b97bc6c7f8ed7c0573f88f3a4407e09ff5199e333fb3170ca61a",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/package_mcmc_rows.json",
+      "recorded_bytes": 26546,
+      "recorded_sha256": "4b7aa67be8d7722208a4a6179af522c77a8c62e81aec7ba2de26682f887bdb41",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/package_parameter_rows.json",
+      "recorded_bytes": 19320,
+      "recorded_sha256": "92784fe711ba40d00e75b6b259825719a01d9226e528ecd39980041b65e9ba8a",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/package_rank_rows.json",
+      "recorded_bytes": 6929,
+      "recorded_sha256": "59265177f25180a6152abeea550b0a7fe3bae2e6332b576358d17de131350535",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/package_sampler_rows.json",
+      "recorded_bytes": 3411,
+      "recorded_sha256": "db6cba7db98b2fa2867b16e04e22b012c5a5a47ca6e5a1a443267b0c84b1760f",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/tam_fit.rds",
+      "recorded_bytes": 183102,
+      "recorded_sha256": "6a49907e8626411be9596d4de6e0d325ec4617869901b138acb698ee07f4293e",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/tam_formula_audit.csv",
+      "recorded_bytes": 331,
+      "recorded_sha256": "9e53fdac237d8a8c132171fd2e1aa5650ca00bfd356627e269af84830c66071d",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/tam_runner.R",
+      "recorded_bytes": 4110,
+      "recorded_sha256": "050e47e3d6ce7c4fd42881a05a0d4634d93730456cc41dc1abe814f1111d5275",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/tam_session_info.txt",
+      "recorded_bytes": 730,
+      "recorded_sha256": "30a11dc8bf02578d62964a4101a01180146182da3eea884415acefd586ecaa8a",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/tam_stderr.txt",
+      "recorded_bytes": 0,
+      "recorded_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/tam_stdout.txt",
+      "recorded_bytes": 110,
+      "recorded_sha256": "47c17d72f140bbb18c08f19708e86f7735f4708cb737b50873b23bc2ecf5ed78",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/tam_summary.csv",
+      "recorded_bytes": 425,
+      "recorded_sha256": "843fd2695645137ad6792c49a5f932fafba0085510f73f71b32faf8b6511a9dd",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/tam_xsi_facets.csv",
+      "recorded_bytes": 1467,
+      "recorded_sha256": "e073ae27904f5bb6aad0fff877d4c8026cc644e28e7d757d5629f5ee9e93c005",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/job_result.json",
+      "recorded_bytes": 50853,
+      "recorded_sha256": "746f9ca0ea48e6f87aaa4051dfdc12c843d461cd50c98e4e06a02a8adf7d052c",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/Manifest.toml",
+      "recorded_bytes": 62633,
+      "recorded_sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/Project.toml",
+      "recorded_bytes": 1155,
+      "recorded_sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/abilities.csv",
+      "recorded_bytes": 911,
+      "recorded_sha256": "c98114c9973be1f67aa502cedb3b15c03ed490bce4a36ed1bbd3719fdce06250",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/dataset_truth.json",
+      "recorded_bytes": 1894,
+      "recorded_sha256": "369afbe77fffff24a5a51d4a6671d1f11120e85728703f778d583e0fde9f7906",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/input.csv",
+      "recorded_bytes": 7044,
+      "recorded_sha256": "153f1d9d50762b576308ada554176331e71737f8fab78359d234a2e64dae19df",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/package_aligned_draws.csv",
+      "recorded_bytes": 773055,
+      "recorded_sha256": "21729929dde7b23fc3b1373a2839faacc21fd4a2d8bb0cfb4fa8a0f3bf84f324",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/package_draws.csv",
+      "recorded_bytes": 1835462,
+      "recorded_sha256": "66c16b5aec5ee323c875e7cd3a7884f7d98251f70ab5c4f121fb4f2e922501e7",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/package_mcmc_rows.json",
+      "recorded_bytes": 26547,
+      "recorded_sha256": "dca45858b4f6a8be04110adb2d76381ad0e0e4a57353b13268de9cd0e036620a",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/package_parameter_rows.json",
+      "recorded_bytes": 19322,
+      "recorded_sha256": "7e11752768ee45eb623fea38e768dd4107561e3fd5450caeb093912451f5bcc8",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/package_rank_rows.json",
+      "recorded_bytes": 6995,
+      "recorded_sha256": "5d5a694c84625adb7dae2087b1f23df05214c4e31f058fda063c17208cd3e2ed",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/package_sampler_rows.json",
+      "recorded_bytes": 3417,
+      "recorded_sha256": "9fc3e562524669c48d4e5fcc01f442ef43408b6d0534ddf22be2a4006601a245",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/tam_fit.rds",
+      "recorded_bytes": 183488,
+      "recorded_sha256": "6b99e01d62a50841be0f9b8c2aeaf7de4cbf344ba504a9a981db18e79ae29403",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/tam_formula_audit.csv",
+      "recorded_bytes": 331,
+      "recorded_sha256": "9e53fdac237d8a8c132171fd2e1aa5650ca00bfd356627e269af84830c66071d",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/tam_runner.R",
+      "recorded_bytes": 4110,
+      "recorded_sha256": "050e47e3d6ce7c4fd42881a05a0d4634d93730456cc41dc1abe814f1111d5275",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/tam_session_info.txt",
+      "recorded_bytes": 730,
+      "recorded_sha256": "30a11dc8bf02578d62964a4101a01180146182da3eea884415acefd586ecaa8a",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/tam_stderr.txt",
+      "recorded_bytes": 0,
+      "recorded_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/tam_stdout.txt",
+      "recorded_bytes": 110,
+      "recorded_sha256": "47c17d72f140bbb18c08f19708e86f7735f4708cb737b50873b23bc2ecf5ed78",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/tam_summary.csv",
+      "recorded_bytes": 428,
+      "recorded_sha256": "3e9a282417d5a09fc0e9f7751a4541dae1a9521e7be53fd282a0b4c6e6738534",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/tam_xsi_facets.csv",
+      "recorded_bytes": 1474,
+      "recorded_sha256": "6d87022353db2a3cba5328106aa027d83fd499acc2c2b8caf5dbc55c928dce62",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/job_result.json",
+      "recorded_bytes": 50916,
+      "recorded_sha256": "2281db76dc9646d7c3250de92ad5f087c3970d2bde545e8bf9207171c14a13c9",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/Manifest.toml",
+      "recorded_bytes": 62633,
+      "recorded_sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/Project.toml",
+      "recorded_bytes": 1155,
+      "recorded_sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/abilities.csv",
+      "recorded_bytes": 920,
+      "recorded_sha256": "883ea2c087e3c19112c230b4b67c61254c82ed3b1385ccca7b8cbe848848a672",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/dataset_truth.json",
+      "recorded_bytes": 1903,
+      "recorded_sha256": "f5ac388c86b37d448e2ce1b6cf8ae07d8b36cf3ad1ed9fafc61c668654781203",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/input.csv",
+      "recorded_bytes": 7044,
+      "recorded_sha256": "fb1b5136b0707a373184a26e47005de6692ee53c76418c580bf73f8725ff558a",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/package_aligned_draws.csv",
+      "recorded_bytes": 776200,
+      "recorded_sha256": "04cb587bb7203aad3a891d61b6c02c194b74a522db7969150251ade2fe17fefc",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/package_draws.csv",
+      "recorded_bytes": 1839175,
+      "recorded_sha256": "de9152efaf417d92e2163ff620bb1a1ef55c66f25d6cac67dfe9bedf6ef1fb1f",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/package_mcmc_rows.json",
+      "recorded_bytes": 26535,
+      "recorded_sha256": "54c862e9dcb53878549d2b0c7e3bb4fde35cbc949e486e5a63829b9e1739c3a4",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/package_parameter_rows.json",
+      "recorded_bytes": 19344,
+      "recorded_sha256": "dfa279e62d129cfb0ef35e9fb723082350b98ba99650d49f22d45853b9a62bf1",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/package_rank_rows.json",
+      "recorded_bytes": 6999,
+      "recorded_sha256": "3ea652527ac074bc02e989f7ad3ebef3aabd50170070a2183aa7c5c6cec2acd7",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/package_sampler_rows.json",
+      "recorded_bytes": 3418,
+      "recorded_sha256": "17390c6e6f4c6a23129af1b3edb7512e6f7cd694ffdffd5fdd3b36c1d814d477",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/tam_fit.rds",
+      "recorded_bytes": 178872,
+      "recorded_sha256": "3c1cb58945b66be1c573bb5227763037ebc1d9f6f1e441ff8fd408348cf91e7b",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/tam_formula_audit.csv",
+      "recorded_bytes": 331,
+      "recorded_sha256": "5ebdfcf94e3c2cf39ec449ae736f4a083ac8e00aff1f22fa27dc0edbc685523f",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/tam_runner.R",
+      "recorded_bytes": 4110,
+      "recorded_sha256": "050e47e3d6ce7c4fd42881a05a0d4634d93730456cc41dc1abe814f1111d5275",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/tam_session_info.txt",
+      "recorded_bytes": 730,
+      "recorded_sha256": "30a11dc8bf02578d62964a4101a01180146182da3eea884415acefd586ecaa8a",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/tam_stderr.txt",
+      "recorded_bytes": 0,
+      "recorded_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/tam_stdout.txt",
+      "recorded_bytes": 110,
+      "recorded_sha256": "47c17d72f140bbb18c08f19708e86f7735f4708cb737b50873b23bc2ecf5ed78",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/tam_summary.csv",
+      "recorded_bytes": 426,
+      "recorded_sha256": "c26cf83e2a86297ac606ea10bc385704fd88251816e90073b1a0d97bd9bf5b6b",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/tam_xsi_facets.csv",
+      "recorded_bytes": 1464,
+      "recorded_sha256": "20a20bc7357fb7443d04a9a81446fcc89468f0ab6e78f38550450cc6db38f7eb",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/job_result.json",
+      "recorded_bytes": 50848,
+      "recorded_sha256": "8713795dd72677f3f320b9d74d095d0de516cec416c816d00b9185d25767d675",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/Manifest.toml",
+      "recorded_bytes": 62633,
+      "recorded_sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/Project.toml",
+      "recorded_bytes": 1155,
+      "recorded_sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/abilities.csv",
+      "recorded_bytes": 913,
+      "recorded_sha256": "fba71c596516fc15c64a08d2bedbcef41b5065151ab88256bcd9fbc581e3ba54",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/dataset_truth.json",
+      "recorded_bytes": 1896,
+      "recorded_sha256": "042871d34d7568aed27611afcb92b5086a824be1f90ca811a3e6a784a6a9d2c0",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/input.csv",
+      "recorded_bytes": 7044,
+      "recorded_sha256": "d05d0e9e66a026a0d8020d9e22331a980cec7ada57f2b9e5575591f40396c576",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/package_aligned_draws.csv",
+      "recorded_bytes": 773787,
+      "recorded_sha256": "36a3516ef1e354d4c0c56ca30c5549762286252f4027669b3759ee54a3cadcb6",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/package_draws.csv",
+      "recorded_bytes": 1826263,
+      "recorded_sha256": "7da4cdc827aa4bc70b3782024a51f1443bc8fff1f6707eac66ad22c7fe86758b",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/package_mcmc_rows.json",
+      "recorded_bytes": 26564,
+      "recorded_sha256": "bd896575826d4b02452938db59407a654d3c52e8f6accf468ca1ffbbd37bcaca",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/package_parameter_rows.json",
+      "recorded_bytes": 19320,
+      "recorded_sha256": "33d6dc1040bf282b598efcab6d6589245d232420472c58bca93b5948712b233d",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/package_rank_rows.json",
+      "recorded_bytes": 6972,
+      "recorded_sha256": "764b962d6ed9ca0b5cc1ae3a0427546d879b4fa7e73e191bfbc2dd98587e1e96",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/package_sampler_rows.json",
+      "recorded_bytes": 3410,
+      "recorded_sha256": "45c407c7fa6b0432aa8e59ebc838c734393d9d265bddc3644d6da396b416d7ca",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/tam_fit.rds",
+      "recorded_bytes": 182247,
+      "recorded_sha256": "9a18ccf0b1d0978df9ccdf476da200590ec1b807cb3a5cfec28973befcec5b8f",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/tam_formula_audit.csv",
+      "recorded_bytes": 331,
+      "recorded_sha256": "5ebdfcf94e3c2cf39ec449ae736f4a083ac8e00aff1f22fa27dc0edbc685523f",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/tam_runner.R",
+      "recorded_bytes": 4110,
+      "recorded_sha256": "050e47e3d6ce7c4fd42881a05a0d4634d93730456cc41dc1abe814f1111d5275",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/tam_session_info.txt",
+      "recorded_bytes": 730,
+      "recorded_sha256": "30a11dc8bf02578d62964a4101a01180146182da3eea884415acefd586ecaa8a",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/tam_stderr.txt",
+      "recorded_bytes": 0,
+      "recorded_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/tam_stdout.txt",
+      "recorded_bytes": 110,
+      "recorded_sha256": "47c17d72f140bbb18c08f19708e86f7735f4708cb737b50873b23bc2ecf5ed78",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/tam_summary.csv",
+      "recorded_bytes": 427,
+      "recorded_sha256": "abebb801544fecd3833d1412efc84bc1e5f22d83e7839113b207c290e6c075c2",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n040_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/tam_xsi_facets.csv",
+      "recorded_bytes": 1473,
+      "recorded_sha256": "497b9f6dc81dae8dd9d8a3446d7b951b41ec2375007791b18cea8941564117a1",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/job_result.json",
+      "recorded_bytes": 50907,
+      "recorded_sha256": "fc363f7521a8ecc670cbd05e40d39e07965a4713b3fbdf7f324e1803f276b657",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/Manifest.toml",
+      "recorded_bytes": 62633,
+      "recorded_sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/Project.toml",
+      "recorded_bytes": 1155,
+      "recorded_sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/abilities.csv",
+      "recorded_bytes": 2291,
+      "recorded_sha256": "f809954aed5575f34a8051e9a373878cbc378135878f1787b00169d0b9f65d40",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/dataset_truth.json",
+      "recorded_bytes": 3394,
+      "recorded_sha256": "eb8881d86fcb75d1e45d9418eaaccc5d5eb392454dd34730bd82934e7a162e30",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/input.csv",
+      "recorded_bytes": 17864,
+      "recorded_sha256": "c75bfb918771bbecb7f6bb74986e224a37294e4cfd5f3b094e1ca8014847d887",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/package_aligned_draws.csv",
+      "recorded_bytes": 776309,
+      "recorded_sha256": "2f02470720b87a92fbc7d586ce2e78a7fcbbb537596377b455c9882e5b233d7d",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/package_draws.csv",
+      "recorded_bytes": 3729592,
+      "recorded_sha256": "5c3f4f6ea21840dc35b181d60c6ed5d595fb5192ecf231842785152f83b973ad",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/package_mcmc_rows.json",
+      "recorded_bytes": 54376,
+      "recorded_sha256": "87d6fb9fbab312b6f210b89572cbaa16f16363d8bb0633913228a0a468220229",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/package_parameter_rows.json",
+      "recorded_bytes": 19349,
+      "recorded_sha256": "22924c7a3de0db000a57386e079fef7a6ca0027db805f054ab55dad6a1ab7349",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/package_rank_rows.json",
+      "recorded_bytes": 6999,
+      "recorded_sha256": "b755655c442ab0a7eb9e55a9533d7d0956ef5d1328c111bbbe85c8b1c6a591a2",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/package_sampler_rows.json",
+      "recorded_bytes": 3409,
+      "recorded_sha256": "fb977b882e3d9b6ac1bd79c2b7c14aa558ffd45dd9857b43e7cfc9d70dcfd868",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/tam_fit.rds",
+      "recorded_bytes": 277378,
+      "recorded_sha256": "297eba18354d486f08b76fa3691536fa4174c01f2d673908928aa13d4ced5062",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/tam_formula_audit.csv",
+      "recorded_bytes": 331,
+      "recorded_sha256": "9e53fdac237d8a8c132171fd2e1aa5650ca00bfd356627e269af84830c66071d",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/tam_runner.R",
+      "recorded_bytes": 4110,
+      "recorded_sha256": "050e47e3d6ce7c4fd42881a05a0d4634d93730456cc41dc1abe814f1111d5275",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/tam_session_info.txt",
+      "recorded_bytes": 730,
+      "recorded_sha256": "30a11dc8bf02578d62964a4101a01180146182da3eea884415acefd586ecaa8a",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/tam_stderr.txt",
+      "recorded_bytes": 0,
+      "recorded_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/tam_stdout.txt",
+      "recorded_bytes": 110,
+      "recorded_sha256": "47c17d72f140bbb18c08f19708e86f7735f4708cb737b50873b23bc2ecf5ed78",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/tam_summary.csv",
+      "recorded_bytes": 427,
+      "recorded_sha256": "c3882e2058eaf77b24cf83d0b338984a88f2b97adb3cc9943964abde0079204a",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep01",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/tam_xsi_facets.csv",
+      "recorded_bytes": 1468,
+      "recorded_sha256": "759f3ce71052bbd6461e01a497efd18a313d6c4d01e2cd1078c0141a595d3d94",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/job_result.json",
+      "recorded_bytes": 50914,
+      "recorded_sha256": "4564ec48bed60d497762fcbf60c9a97488f8a081c8efd512a0f12c2cd1ccb362",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/Manifest.toml",
+      "recorded_bytes": 62633,
+      "recorded_sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/Project.toml",
+      "recorded_bytes": 1155,
+      "recorded_sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/abilities.csv",
+      "recorded_bytes": 2273,
+      "recorded_sha256": "ceaa97da570e2614282d7dc6c0a9ae431c566ce40c9631af15a42300fd2ebbfa",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/dataset_truth.json",
+      "recorded_bytes": 3376,
+      "recorded_sha256": "fc61a3008ecadb8bc5c2734a8b43c76086685615e3e7270160bc60bb1a8a282e",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/input.csv",
+      "recorded_bytes": 17864,
+      "recorded_sha256": "97b025c5070d31b71fe1bf49b033d98f6903230f6bab430412618974c6842bf7",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/package_aligned_draws.csv",
+      "recorded_bytes": 777358,
+      "recorded_sha256": "49d5238b2b7e2a83b40be0d3e7f019e5c1180c08acb2cb0c9adc10477527c033",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/package_draws.csv",
+      "recorded_bytes": 3731358,
+      "recorded_sha256": "a70102d7efa3989e8e3b8ec72e969399099c0bc024650767e2ec9b8cacffd2f9",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/package_mcmc_rows.json",
+      "recorded_bytes": 54375,
+      "recorded_sha256": "bc44496ffbba254314afc96c8f50be9fe254a4564a05c9f775e5d8c963e8f550",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/package_parameter_rows.json",
+      "recorded_bytes": 19376,
+      "recorded_sha256": "d98d71e2b32ddc8c5fe0431281ad3354645437b7559f9fc8df5b18714e870390",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/package_rank_rows.json",
+      "recorded_bytes": 6995,
+      "recorded_sha256": "49a5f3e4511d83a123fc3d33b167fa7322ca79275b06daf5c76f569ad6e34715",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/package_sampler_rows.json",
+      "recorded_bytes": 3411,
+      "recorded_sha256": "925f80bfb00f3f0e98bd4419032f5a9a0bccea668504262a12fc5bbe41f56810",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/tam_fit.rds",
+      "recorded_bytes": 276236,
+      "recorded_sha256": "9498027c2b4ec61f12628139d4e09d4b5b143d9ddcdefa92245c229904e24055",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/tam_formula_audit.csv",
+      "recorded_bytes": 331,
+      "recorded_sha256": "5ebdfcf94e3c2cf39ec449ae736f4a083ac8e00aff1f22fa27dc0edbc685523f",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/tam_runner.R",
+      "recorded_bytes": 4110,
+      "recorded_sha256": "050e47e3d6ce7c4fd42881a05a0d4634d93730456cc41dc1abe814f1111d5275",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/tam_session_info.txt",
+      "recorded_bytes": 730,
+      "recorded_sha256": "30a11dc8bf02578d62964a4101a01180146182da3eea884415acefd586ecaa8a",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/tam_stderr.txt",
+      "recorded_bytes": 0,
+      "recorded_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/tam_stdout.txt",
+      "recorded_bytes": 110,
+      "recorded_sha256": "47c17d72f140bbb18c08f19708e86f7735f4708cb737b50873b23bc2ecf5ed78",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/tam_summary.csv",
+      "recorded_bytes": 427,
+      "recorded_sha256": "1291baf7d8698f4ba94d7d12e689f9aa929d7d3404009142a89f6edec0f1d6e7",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep02",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/tam_xsi_facets.csv",
+      "recorded_bytes": 1465,
+      "recorded_sha256": "ade9a0c56e150177ea5a1bb94d019f2d033dd51f72a4733e99532173f094eb0e",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/job_result.json",
+      "recorded_bytes": 50902,
+      "recorded_sha256": "69eb9c6b42b143d09c7186fce4b3901cb69b7c6dbbc5a6313baeafc34a2ea145",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/Manifest.toml",
+      "recorded_bytes": 62633,
+      "recorded_sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/Project.toml",
+      "recorded_bytes": 1155,
+      "recorded_sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/abilities.csv",
+      "recorded_bytes": 2282,
+      "recorded_sha256": "74af136629417ff035a8cf2a1999b57d7bdd4c4578073120e3e9641cc1c77a32",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/dataset_truth.json",
+      "recorded_bytes": 3385,
+      "recorded_sha256": "5d266c8a65dbe07fb47f268bbcc3c18bb8cdb13c01819202786a49181cf6bf2b",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/input.csv",
+      "recorded_bytes": 17864,
+      "recorded_sha256": "ed8025781e411b6a26a82c2694e68fcf411b439d481e1eeb8e4d59f8fe27b9c2",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/package_aligned_draws.csv",
+      "recorded_bytes": 771121,
+      "recorded_sha256": "a7df98e124e6f2299f44f2ee89f45039f0cf2a2c8f40e8de212ee00cc0e021c4",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/package_draws.csv",
+      "recorded_bytes": 3728444,
+      "recorded_sha256": "c33d900cb322f65eb0cfe00c7a48cbb4f70884b39ff88dff6f6a3d62f091fa37",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/package_mcmc_rows.json",
+      "recorded_bytes": 54382,
+      "recorded_sha256": "0051d8fb81ea3620493eed6af32604b9df8eae66386997ffcfd35ac8d5d84c6f",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/package_parameter_rows.json",
+      "recorded_bytes": 19352,
+      "recorded_sha256": "f4ed209976b26c959f355b80f65c24a9c9252d6909517e14de92d5078ebf0828",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/package_rank_rows.json",
+      "recorded_bytes": 7033,
+      "recorded_sha256": "adde2f48c98ce3a551e3c88345b493add1d108d1d623a874cf22a29ba83ca9e3",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/package_sampler_rows.json",
+      "recorded_bytes": 3419,
+      "recorded_sha256": "23c3d3abb3b1776a680349dd8a4640fbc3309e69611a89baaa560a7e6d7b6b41",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/tam_fit.rds",
+      "recorded_bytes": 276805,
+      "recorded_sha256": "6337b74046ae3600baaf4ff0edebe837e16099774214fcd74485d3d55df3b2bf",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/tam_formula_audit.csv",
+      "recorded_bytes": 331,
+      "recorded_sha256": "9e53fdac237d8a8c132171fd2e1aa5650ca00bfd356627e269af84830c66071d",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/tam_runner.R",
+      "recorded_bytes": 4110,
+      "recorded_sha256": "050e47e3d6ce7c4fd42881a05a0d4634d93730456cc41dc1abe814f1111d5275",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/tam_session_info.txt",
+      "recorded_bytes": 730,
+      "recorded_sha256": "30a11dc8bf02578d62964a4101a01180146182da3eea884415acefd586ecaa8a",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/tam_stderr.txt",
+      "recorded_bytes": 0,
+      "recorded_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/tam_stdout.txt",
+      "recorded_bytes": 110,
+      "recorded_sha256": "47c17d72f140bbb18c08f19708e86f7735f4708cb737b50873b23bc2ecf5ed78",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/tam_summary.csv",
+      "recorded_bytes": 428,
+      "recorded_sha256": "12cecb096706d9c0feaa321267034f5feebb9e51aafbb14e492e1da6f2c7afe7",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep03",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/tam_xsi_facets.csv",
+      "recorded_bytes": 1471,
+      "recorded_sha256": "bfb25bbf2d0c91acdf77b7bdc29f0356fdad3c49d64f9d2768081703cfec1a6f",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/job_result.json",
+      "recorded_bytes": 50903,
+      "recorded_sha256": "aa1aa60f1b043dcdb750312e060e90e750222580986b2a95906d451d7c33856f",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/Manifest.toml",
+      "recorded_bytes": 62633,
+      "recorded_sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/Project.toml",
+      "recorded_bytes": 1155,
+      "recorded_sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/abilities.csv",
+      "recorded_bytes": 2281,
+      "recorded_sha256": "65dfb7b47fc16e816d260d1df8c7cdefdf86dab3026e16b43d4a78dde97e4927",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/dataset_truth.json",
+      "recorded_bytes": 3384,
+      "recorded_sha256": "dc26346754f86b2330e6f4e112ba1cdfc69c0cd0443717346051a5e37a1b7ffc",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/input.csv",
+      "recorded_bytes": 17864,
+      "recorded_sha256": "c4e9f8e0c846be182f4cb465566e303afca90920071cd96a21cb6b0300b3d37f",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/package_aligned_draws.csv",
+      "recorded_bytes": 777005,
+      "recorded_sha256": "d77454f70ef0dce52348a2f0cd31de81744d5957f5ad64b83893588bc8fb5b2d",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/package_draws.csv",
+      "recorded_bytes": 3721323,
+      "recorded_sha256": "a8e3d0173a1e52b259f8c765330fa47daac11355c07a9693a170177a33fe910d",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/package_mcmc_rows.json",
+      "recorded_bytes": 54365,
+      "recorded_sha256": "c196cf2816b7c87c3586060c5d0db5afdbe21a6b3970af9a3f53df6de89c8d9c",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/package_parameter_rows.json",
+      "recorded_bytes": 19355,
+      "recorded_sha256": "eaf9216ed59e488df942b92aebd19ff0624889a9723fa86f74389c8f1cf1a382",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/package_rank_rows.json",
+      "recorded_bytes": 6990,
+      "recorded_sha256": "5321d3922099e5e7243e214c29ccb7d9a38557129b9f87ba10b7a3cf243d21af",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/package_sampler_rows.json",
+      "recorded_bytes": 3413,
+      "recorded_sha256": "0b1f72dbc2d3282eee6bc49ceeabc40d1821a571bfca11d9baf75b2ec577286f",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/tam_fit.rds",
+      "recorded_bytes": 280084,
+      "recorded_sha256": "db7d473d6790b37af44402d75a879a89e53a8caeb9fd2c1d09431f89f8fd5820",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/tam_formula_audit.csv",
+      "recorded_bytes": 331,
+      "recorded_sha256": "5ebdfcf94e3c2cf39ec449ae736f4a083ac8e00aff1f22fa27dc0edbc685523f",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/tam_runner.R",
+      "recorded_bytes": 4110,
+      "recorded_sha256": "050e47e3d6ce7c4fd42881a05a0d4634d93730456cc41dc1abe814f1111d5275",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/tam_session_info.txt",
+      "recorded_bytes": 730,
+      "recorded_sha256": "30a11dc8bf02578d62964a4101a01180146182da3eea884415acefd586ecaa8a",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/tam_stderr.txt",
+      "recorded_bytes": 0,
+      "recorded_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/tam_stdout.txt",
+      "recorded_bytes": 110,
+      "recorded_sha256": "47c17d72f140bbb18c08f19708e86f7735f4708cb737b50873b23bc2ecf5ed78",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/tam_summary.csv",
+      "recorded_bytes": 427,
+      "recorded_sha256": "b9fd32f68f4c2ec6526afd0e7e6ac07a1778480a23c9968dc5cff64b2e8133c6",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep04",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/tam_xsi_facets.csv",
+      "recorded_bytes": 1465,
+      "recorded_sha256": "094aaea14d896e6e25350f7c3571e74dc2a5f0e4ee341b5e26a7f5fc7ee0710e",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/job_result.json",
+      "recorded_bytes": 50910,
+      "recorded_sha256": "c31743a292e51cc24248decc7501a359ffa798590aa6c05717e061319122cb67",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/Manifest.toml",
+      "recorded_bytes": 62633,
+      "recorded_sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/Project.toml",
+      "recorded_bytes": 1155,
+      "recorded_sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/abilities.csv",
+      "recorded_bytes": 2280,
+      "recorded_sha256": "aecb0b45f75bfdc91f3042e3df3b210f956f2da82b986d44d3244d03c7b691c9",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/dataset_truth.json",
+      "recorded_bytes": 3383,
+      "recorded_sha256": "ac7e03fb5b477af0badce69f7ffdb2e167def217a3d1e131e9101699dcbe6dfd",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/input.csv",
+      "recorded_bytes": 17864,
+      "recorded_sha256": "28bef60c92c8c9c69cc116684e4ee80e4f29aa00e99a4232484b6c15abd9cf56",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/package_aligned_draws.csv",
+      "recorded_bytes": 775272,
+      "recorded_sha256": "7991118705410920d58d706114d8a09ec5e2a01c6b970a7bb13a5ef236f6533e",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/package_draws.csv",
+      "recorded_bytes": 3720645,
+      "recorded_sha256": "328d0c66a2c5e5cfc1599658a68c3372e198fed9c85906259b6c3149ca85fbd5",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/package_mcmc_rows.json",
+      "recorded_bytes": 54394,
+      "recorded_sha256": "e27f5e5907323beb82c7cf5504ab30e6afc35718546298529facac8f8ff1a0e3",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/package_parameter_rows.json",
+      "recorded_bytes": 19357,
+      "recorded_sha256": "e333c35b0627c4527ff27d70cfae16343d0497f336c5a74b72349bb7163752d4",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/package_rank_rows.json",
+      "recorded_bytes": 7041,
+      "recorded_sha256": "f1b33165331b92e4993ae5960e39f830eb899a394e96910edeab5e32797fdf14",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/package_sampler_rows.json",
+      "recorded_bytes": 3418,
+      "recorded_sha256": "8886506980c834647f446bc20db1bf5df9c0af847fd3cc547256725aa1c42d6f",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/tam_fit.rds",
+      "recorded_bytes": 282183,
+      "recorded_sha256": "68c472affde7f0ae4c4ab0c26335e1076b105e400723997d58cca53dfc1158f6",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/tam_formula_audit.csv",
+      "recorded_bytes": 331,
+      "recorded_sha256": "9e53fdac237d8a8c132171fd2e1aa5650ca00bfd356627e269af84830c66071d",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/tam_runner.R",
+      "recorded_bytes": 4110,
+      "recorded_sha256": "050e47e3d6ce7c4fd42881a05a0d4634d93730456cc41dc1abe814f1111d5275",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/tam_session_info.txt",
+      "recorded_bytes": 730,
+      "recorded_sha256": "30a11dc8bf02578d62964a4101a01180146182da3eea884415acefd586ecaa8a",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/tam_stderr.txt",
+      "recorded_bytes": 0,
+      "recorded_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/tam_stdout.txt",
+      "recorded_bytes": 110,
+      "recorded_sha256": "47c17d72f140bbb18c08f19708e86f7735f4708cb737b50873b23bc2ecf5ed78",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/tam_summary.csv",
+      "recorded_bytes": 429,
+      "recorded_sha256": "d657e28bb42d87f7ecdb73e6f85880e14178b4586da2bc0dc1bc55507e7b2a83",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    },
+    {
+      "job_id": "n100_rep05",
+      "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/tam_xsi_facets.csv",
+      "recorded_bytes": 1469,
+      "recorded_sha256": "0a2cda54509672299daee50d7cd98105a054be5637fa4442afb08ebbd0c7a27a",
+      "exists": true,
+      "bytes_match": true,
+      "sha256_matches": true
+    }
+  ],
+  "archive_manifest": {
+    "n_files": 230,
+    "manifest_sha256": "eb470a8d0ff763dee58965390badd608e7a0c9463c90b3b33a9f6a33e79d22cf",
+    "fingerprint_format": "newline_joined_path_pipe_bytes_pipe_sha256_v1_order_preserving",
+    "file_order": "lexicographic_path",
+    "includes_selected_attempt_pointers": true,
+    "includes_selected_attempts": true,
+    "includes_nonselected_attempts": true,
+    "includes_failed_attempts": true
+  },
+  "failure_and_retry_accounting": {
+    "n_failed_attempts": 1,
+    "failed_attempt_rows": [
+      {
+        "job_id": "n040_rep01",
+        "attempt": 1,
+        "selected": false,
+        "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01",
+        "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01/job_result.json",
+        "result_sha256": "0a7b07a6bf6a6603c89ce62eeed583a6c79453a921e3a180b8c78bd76e0a6eff",
+        "execution_completed": false,
+        "engine_failure": true,
+        "infrastructure_retry": false,
+        "infrastructure_retry_reason": null,
+        "retry_attempt_matches": true,
+        "error_type": "UndefVarError",
+        "error_message": "UndefVarError: `keys` not defined in local scope\nSuggestion: check for an assignment to a local variable that shadows a global of the same name.\nHint: a global variable of this name also exists in Base.",
+        "generator_source_sha256": "18da6449e71cf078dbbfc5d675a82c79e7a1b7d4e1cb8624b1101bf20c73e6a2",
+        "n_files": 20,
+        "file_manifest_sha256": "123f452897c78df2efa23d01e6ffc5e08c2cc528d67b7d21cde72603c6c6481e",
+        "n_recorded_payload_files": 19,
+        "n_actual_payload_files": 19,
+        "recorded_file_rows_match_actual": true,
+        "recorded_manifest_fingerprint_present": false,
+        "recorded_manifest_fingerprint": null,
+        "recorded_manifest_fingerprint_matches": null,
+        "recorded_manifest_fingerprint_status": "missing_from_engine_failure_record_recomputed_by_audit",
+        "safe_manifest_paths": true,
+        "attempt_integrity_passed": true
+      }
+    ],
+    "n_nonselected_attempts": 1,
+    "nonselected_attempt_rows": [
+      {
+        "job_id": "n040_rep01",
+        "attempt": 1,
+        "selected": false,
+        "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01",
+        "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_01/job_result.json",
+        "result_sha256": "0a7b07a6bf6a6603c89ce62eeed583a6c79453a921e3a180b8c78bd76e0a6eff",
+        "execution_completed": false,
+        "engine_failure": true,
+        "infrastructure_retry": false,
+        "infrastructure_retry_reason": null,
+        "retry_attempt_matches": true,
+        "error_type": "UndefVarError",
+        "error_message": "UndefVarError: `keys` not defined in local scope\nSuggestion: check for an assignment to a local variable that shadows a global of the same name.\nHint: a global variable of this name also exists in Base.",
+        "generator_source_sha256": "18da6449e71cf078dbbfc5d675a82c79e7a1b7d4e1cb8624b1101bf20c73e6a2",
+        "n_files": 20,
+        "file_manifest_sha256": "123f452897c78df2efa23d01e6ffc5e08c2cc528d67b7d21cde72603c6c6481e",
+        "n_recorded_payload_files": 19,
+        "n_actual_payload_files": 19,
+        "recorded_file_rows_match_actual": true,
+        "recorded_manifest_fingerprint_present": false,
+        "recorded_manifest_fingerprint": null,
+        "recorded_manifest_fingerprint_matches": null,
+        "recorded_manifest_fingerprint_status": "missing_from_engine_failure_record_recomputed_by_audit",
+        "safe_manifest_paths": true,
+        "attempt_integrity_passed": true
+      }
+    ],
+    "n_documented_selected_retries": 1,
+    "documented_selected_retry_rows": [
+      {
+        "job_id": "n040_rep01",
+        "attempt": 2,
+        "selected": true,
+        "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02",
+        "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/job_result.json",
+        "result_sha256": "2a4fb00e3229671f37d9a4b7e408ef6d9343366d31570da612f7065bf3c1fea3",
+        "execution_completed": true,
+        "engine_failure": false,
+        "infrastructure_retry": true,
+        "infrastructure_retry_reason": "runner_serialization_bug_fixed_before_result_write",
+        "retry_attempt_matches": true,
+        "error_type": null,
+        "error_message": null,
+        "generator_source_sha256": "09df8a5138d40e533ed3f8c7fbf85e2fe885e645cf758e16628ac4516800caae",
+        "n_files": 20,
+        "file_manifest_sha256": "b8980809a90a15bc36362f092e81017294a6f1675b2f1eda22516302a44b7ab7",
+        "n_recorded_payload_files": 19,
+        "n_actual_payload_files": 19,
+        "recorded_file_rows_match_actual": true,
+        "recorded_manifest_fingerprint_present": true,
+        "recorded_manifest_fingerprint": "dada26c39e23183e1faeb36756d69515f3ffac333c128672f92712b756dfeb58",
+        "recorded_manifest_fingerprint_matches": true,
+        "recorded_manifest_fingerprint_status": "matched",
+        "safe_manifest_paths": true,
+        "attempt_integrity_passed": true
+      }
+    ],
+    "failed_attempts_excluded_from_archive": false,
+    "selected_attempt_denominator_reduced": false,
+    "replacement_seed_used": false
+  },
+  "claim_limits": [
+    "raw_archive_is_local_and_gitignored",
+    "hashes_verify_bytes_but_do_not_replace_independent_reexecution",
+    "failed_attempt_retention_does_not_convert_failure_to_evidence",
+    "selected_retry_is_an_infrastructure_retry_not_a_seed_replacement",
+    "audit_does_not_release_public_claims"
+  ],
+  "summary": {
+    "passed": true,
+    "archive_integrity_passed": true,
+    "n_expected_jobs": 10,
+    "n_job_rows": 10,
+    "n_selected_pointers": 10,
+    "n_attempts": 11,
+    "n_selected_attempts": 10,
+    "n_nonselected_attempts": 1,
+    "n_failed_attempts": 1,
+    "n_files": 230,
+    "all_selected_pointers_valid": true,
+    "all_attempt_integrity_passed": true,
+    "all_attempts_retained": true,
+    "selected_result_sets_match": true,
+    "result_selected_attempt_rows_match_audit": true,
+    "selected_attempt_files_match_result_manifest": true,
+    "recorded_result_manifest_fingerprint_matches": true,
+    "all_recorded_result_manifest_files_match": true,
+    "all_selected_generator_hashes_match_current": true,
+    "all_file_paths_unique": true,
+    "raw_root_is_gitignored": true,
+    "result_execution_completed": true,
+    "all_selected_execution_completed": true,
+    "n_selected_engine_failures": 0,
+    "raw_archive_committed": false,
+    "hash_manifest_committed": true,
+    "public_claim_release_allowed": false,
+    "next_gate": "generate_independent_post_execution_tam_direct_review_packet"
+  }
+}

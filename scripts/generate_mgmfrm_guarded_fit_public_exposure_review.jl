@@ -403,7 +403,7 @@ function rejection_check(name::Symbol, callable)
             check = name,
             rejected = true,
             error_type = String(nameof(typeof(err))),
-            message = sprint(showerror, err),
+            message = portable_error_message(err),
         )
     end
 end

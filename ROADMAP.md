@@ -120,6 +120,65 @@ expanding the public API immediately:
    work unless the target model, estimator, constraints, and prediction target
    genuinely overlap.
 
+The first implementation slice of item 2 is now recorded in
+`mgmfrm_literature_anchored_synthetic_benchmark.json`: one deterministic
+smallest-cell Uto and Ueno (2020) scalar-GMFRM dataset and one deterministic
+smallest-cell Uto (2021) fixed-Q adaptation, with `1,700` total synthetic
+ratings, a loading-weighted ability sum for the multidimensional source term,
+parameter truth, seed separation, hashes, and a standalone-equation to
+package-oracle probability check. This completes dataset materialization and
+generator wiring only. `mgmfrm_literature_anchored_independent_review_packet.json`
+now freezes the benchmark, generator source, hashes, exact/adapted labels, and
+claim ledger for reviewer handoff. `mgmfrm_tam_overlap_baseline.json` and its
+CSV now prepare a TAM `tam.mml.mfr` overlap baseline, and
+`mgmfrm_tam_overlap_execution_review.json` records one local TAM run plus
+diagnostic parameter-table comparisons. The follow-up
+`mgmfrm_tam_comparison_policy_review.json` confirms the item-step constraint and
+category-intercept mapping, freezes post-pilot thresholds for future runs, and
+records that the current item/rater results clear those gates while item-step
+precision does not. The predeclared multi-replication follow-up now records 30
+TAM fits at 40, 100, and 250 persons: all parameter blocks pass in 10/10 primary
+250-person replications, while item-step passes 6/10 at 40 persons and 10/10 at
+100 and 250 persons. A same-data direct-estimate pilot now also records a stable
+four-chain package fit and correlations above 0.99 between package posterior
+means and TAM estimates for item, rater, and item-step blocks. This pilot was
+run before direct-agreement thresholds were frozen, so it remains descriptive.
+`mgmfrm_tam_direct_agreement_policy.json` now freezes the future direct
+package-versus-TAM gates after that pilot and before any direct multi-replication
+package fits. The separate
+`mgmfrm_tam_direct_agreement_policy_refinement.json` preserves those frozen
+gates while adding a prospective adjudication overlay. It distinguishes
+same-data numerical agreement from known-truth recovery, classifies the current
+item-step pilot as descriptive agreement without full recovery support, fixes
+the 4-of-5 denominator and failed-fit/retry rules, freezes fresh disjoint seeds
+and the complete package/TAM fit contracts, and prohibits extrapolation to Uto
+(2021), generalized GMFRM/MGMFRM, sparse designs, or construct validity. The
+scheduled execution is now recorded separately in
+`mgmfrm_tam_direct_agreement_multireplication.json`. All ten package fits pass
+the frozen sampler gate, all ten TAM fits pass their numerical and adapter
+audit, and all three directly compared blocks pass in 5/5 primary 100-person
+replications. Package and TAM known-truth recovery also pass 5/5 for every
+primary block, so the narrow scientific classification is local numerical
+agreement with both recovery profiles. The 40-person stress rows still separate
+agreement from recovery: direct agreement is 5/5 for all blocks, while the
+package and TAM recovery counts are 4/5 for item, 5/5 for rater, and 3/5 for
+item-step. Four rank-normalized R-hat values fall just above the prospective
+advisory cutoff, but every frozen classical R-hat/ESS/HMC gate passes; the
+advisories therefore remain visible without changing the primary decision.
+The all-attempt audit retains 11 attempts and hashes 230 files, including the
+non-selected result-writer failure and its same-seed infrastructure retry. A
+separate post-execution review packet is ready. Its core execution hash chain
+passes, while the immutable pre-execution packet is transparently retained with
+an older refinement-snapshot hash rather than regenerated after seeing results;
+that chronology difference now requires independent adjudication. Independent
+re-execution, a signed independent review, multi-replication generalized recovery,
+FACETS/ConQuest overlap bridges, and external construct data remain open. The
+TAM result does not transfer to GMFRM/MGMFRM or Uto (2021) and does not release
+package-wide or public validation claims. The claim-recovery/full reproduction
+archives and broader/guarded exposure reviews now carry the result under that
+non-transfer scope and retain independent-review and chronology adjudication as
+TAM-specific blockers without disabling existing guarded local fit surfaces.
+
 ## Claim-to-Evidence Ledger
 
 The roadmap should track claims as evidence obligations. The package can expose
@@ -157,12 +216,13 @@ than as a feature wish list:
 
 ## Current Roadmap Checkpoint
 
-As of the local evidence archive that records `68` fixture artifacts, `64`
-code/doc references, `68` full regeneration commands, and `5585`
+As of the local evidence archive that records `73` fixture artifacts, `86`
+code/doc references, `73` full regeneration commands, and `5596`
 manuscript-scale evidence cells, the practical boundary has moved from
 "execute the MGMFRM publication-grade batch" to "attach valid external
-construct evidence and an independent public-scope review before any public
-MGMFRM claim release." The completed local chain now includes the full
+construct evidence and an independent public-scope review before any broader
+MGMFRM validation, model-comparison, construct-validity, or superiority claim."
+The completed local chain now includes the full
 125-unit publication-grade batch, threshold/model-weight policy review,
 external-construct requirement gate, attachment intake preflight, and
 external-attachment request packet.
@@ -451,8 +511,9 @@ The report driver should provide:
 The central risk is mathematical, not engineering speed. Uto and Ueno (2020)
 define the generalized MFRM by adding item discrimination, rater consistency,
 and rater-specific steps to the many-facet ordinal kernel; Uto (2021) extends
-that target to a multidimensional GPCM-style ability term with a fixed `1.7`
-scaling constant, rater consistency, rater severity, and item-step effects.
+that target to a multidimensional GPCM-style, loading-weighted ability sum with
+a fixed `1.7` scaling constant, rater consistency, rater severity, and item-step
+effects.
 The DOI-backed source list is maintained in `docs/src/model-equations.md`.
 Therefore the public MGMFRM implementation should advance only through these
 gates.
@@ -567,8 +628,8 @@ rater-consistency candidate and fixed-Q confirmatory MGMFRM candidate with
 
 The roadmap has two different progress notions:
 
-- **Checklist progress**: currently 143 of 179 tracked roadmap checkboxes are
-  complete, or 79.9%. This is useful for implementation accounting.
+- **Checklist progress**: currently 151 of 182 tracked roadmap checkboxes are
+  complete, or 83.0%. This is useful for implementation accounting.
 - **Claim progress**: broad v1 claims are closer to 50-55% complete. Local
   reproducibility and publication-grade MGMFRM execution evidence are now much
   stronger, but public claim release still depends on valid external construct
@@ -715,6 +776,11 @@ GMFRM/MGMFRM support.
 
 Issue-sized implementation drafts are maintained in
 [`docs/src/v0.1.1-implementation-checklist.md`](docs/src/v0.1.1-implementation-checklist.md).
+The workstreams below preserve the original planning record. For the release
+candidate, scope is frozen to the completed auditability, portable-report,
+fixed-Q, FACETS-description, and runnable-example work listed in the release
+gate. Unchecked stretch items are deferred to `v0.1.2` or later and are not
+`v0.1.1` ship criteria.
 
 Non-goals for `v0.1.1`:
 
@@ -735,10 +801,10 @@ Non-goals for `v0.1.1`:
 - [x] Add a model-surface audit table that records, for every GMFRM/MGMFRM
   block, the source symbol, direct interpretation, raw coordinate, constraint,
   prior scale, report label, and current status level.
-- [x] Ensure `model_manifest`, `constraint_table`, `fit_metadata`, report
-  sections, README text, and docs use the same status vocabulary:
-  `experimental_public` for the guarded scalar GMFRM and fixed-Q MGMFRM paths,
-  `blocked` for broader generalized surfaces.
+- [x] Keep `experimental_public` and related machine labels in the complete
+  version-1 compatibility payload, while README, published docs, displays, and
+  the structured public report use reader-facing `experimental`, `supported`,
+  and `not_supported` labels.
 - [x] Add an evidence-artifact schema policy: schema version, package/git/
   environment hashes, seed and sampler controls, cache provenance,
   unsupported-claim flags, and raw-data/anonymization status.
@@ -771,11 +837,12 @@ source-equation role and a machine-readable manifest row.
   by `model_manifest` and `getdesign`.
 - [ ] Tighten validation for the guarded scalar GMFRM path: reject unsupported
   item-discrimination, rater-step, DFF-effect, and multidimensional variants
-  with errors that name the next required gate instead of generic unsupported
-  messages.
-  - [x] Add actionable `blocked_option` and `next_gate` messages for
-    item-discrimination, DFF-effect, unsupported backend/prior choices, and
-    multidimensional GMFRM spec construction.
+  with errors that describe the supported configuration and next user action
+  instead of generic unsupported messages.
+  - [x] Add actionable reader-facing messages for item-discrimination,
+    DFF-effect, unsupported backend/prior choices, and multidimensional GMFRM
+    spec construction, while keeping maintenance gate identifiers out of
+    public errors.
   - [x] Add an explicit user-facing rater-step option/policy gate before
     rater-step variants can be rejected as public options rather than internal
     source-model blocks.
@@ -876,11 +943,11 @@ private notebook logic or inferring which predictive path was used.
   diagnostic heatmaps, trace/rank-ready rows, PPC/calibration panels, rater
   severity/consistency maps, Q-matrix/loading heatmaps, DFF screening panels,
   and model-comparison uncertainty rows.
-- [ ] Add a FACETS-fit compatibility policy for `fit_stats`: posterior
-  infit/outfit intervals remain the default Bayesian diagnostic, while optional
-  FACETS-style rows must record the residual formula, `outfit_df = n_obs`,
-  `infit_information`, Wilson-Hilferty/ZSTD approximation status, and whether
-  the row is point-estimate, draw-wise, or posterior-predictive.
+- [x] Add a separate `facets_report` / `facets_compatibility_stats` policy while keeping
+  `fit_stats` posterior infit/outfit intervals as the default Bayesian
+  diagnostic. The compatibility rows record the posterior-mean plugin residual
+  formula, Wright--Masters fourth-moment infit/outfit df, unit weighting,
+  Wilson-Hilferty/ZSTD cap, and explicit approximation status.
 - [ ] Do not treat FACETS degrees of freedom as exact for posterior-summarized
   GMFRM/MGMFRM fit statistics; require explicit approximation labels and
   simulation calibration before generalized ZSTD interpretation.
@@ -934,27 +1001,29 @@ measurement reviewer can audit without inferring policy from code.
   sampler controls, package version, git tree, source fixture hashes, and
   falsification outcomes.
 
-Exit criterion: `v0.1.1` can claim stronger experimental workflow evidence for
-the guarded generalized paths, but still cannot claim stable broad GMFRM/MGMFRM
-support.
+Exit criterion for a later validation release: stronger experimental workflow
+evidence may be claimed for the guarded generalized paths, but stable broad
+GMFRM/MGMFRM support still requires its own promotion decision.
 
-#### v0.1.1 Runtime-Aware Implementation Sequence
+#### Post-v0.1.1 Runtime-Aware Implementation Sequence
 
-The remaining `v0.1.1` changes should be implemented in an order that minimizes
-schema churn and avoids unnecessary long Julia runs:
+The deferred generalized-report and validation work should be implemented in an
+order that minimizes schema churn and avoids unnecessary long Julia runs:
 
 1. Keep the external request packet as the boundary object for data-owner and
    independent-reviewer handoff. Do not write placeholder external manifests.
-2. Finish the remaining fixed-Q MGMFRM initialization and invariance checks.
-3. Standardize generalized diagnostics before adding more report sections.
+2. Expand fixed-Q MGMFRM initialization and invariance evidence beyond the
+   contract and helper checks shipped in `v0.1.1`.
+3. Add rank-normalized and bulk/tail generalized diagnostics before adding more
+   report sections.
 4. Add predictive-path, calibration, and category-functioning rows after the
    diagnostic shape is stable.
-5. Add FACETS compatibility, model-comparison policy, and rater homogeneity rows
-   after the report shape is stable.
+5. Extend the `v0.1.1` MFRM FACETS description with model-comparison policy and
+   rater-homogeneity rows after the report shape is stable.
 6. Finish evidence-artifact governance and evidence bundles after report schemas
    settle.
-7. Leave final README/docs/release wording and tag preparation to the last
-   release-review slice.
+7. Reconcile public wording and release-scope rows before promoting any later
+   model or evidence surface.
 
 The external-dependent work should proceed only when valid user-supplied
 manifests arrive. At that point, the first implementation task is an attachment
@@ -973,14 +1042,24 @@ example scripts, and release-scope checks.
 #### v0.1.1 Release Gate
 
 - [ ] `Pkg.test()` passes on the supported Julia versions.
-- [ ] Documentation builds with the page-size gate enabled.
-- [ ] The minimal example, guarded scalar GMFRM example, and guarded fixed-Q
+- [x] Documentation builds with the page-size gate enabled.
+- [x] The mandatory source-level public-language gate scans README, NEWS,
+  examples, and every page in the published Documenter navigation; CI does not
+  skip it.
+- [x] Developer roadmaps, implementation checklists, fixture inventories, and
+  registry-maintenance guidance are excluded from the published Documenter
+  navigation.
+- [x] Exported docstrings, representative user-visible errors, and
+  reader-facing structured and Markdown report output pass a runtime
+  public-language scan without implementation-only identifiers or
+  machine-specific paths.
+- [x] The minimal example, guarded scalar GMFRM example, and guarded fixed-Q
   MGMFRM example run with intentionally small sampler controls.
-- [ ] `release_scope_summary(; include_evidence = true)` includes a
+- [x] `release_scope_summary(; include_evidence = true)` includes a
   `v0.1.1_generalized_refinement` row and still marks broad generalized claims
   as blocked.
-- [ ] README installation and model-support text reflects the registered
-  package state and the exact `v0.1.1` experimental boundaries.
+- [x] README uses `Pkg.add("BayesianMGMFRM")` as the standard installation and
+  states the exact experimental model boundaries.
 
 Release decision: ship `v0.1.1` only if the guarded GMFRM/MGMFRM paths become
 easier to audit and harder to overinterpret. If the work exposes unresolved

@@ -8,14 +8,16 @@ pre-fit data validation, MFRM/GMFRM/MGMFRM specification manifests, minimal
 RSM/PCM design scaffolding, and initial Bayesian fitting, predictive-check, and
 WAIC / raw or PSIS-smoothed importance-sampling LOO paths for small validation
 examples. The minimal MFRM/RSM/PCM design can be fit with a random-walk example
-backend, an
-    initial AdvancedHMC/NUTS backend, or a Turing/NUTS backend. Guarded
-    experimental generalized paths are available through
-    `fit(spec; experimental = true)` for the scalar rater-consistency GMFRM
-    candidate, configured with `discrimination = :rater`, and the fixed-Q
-    confirmatory MGMFRM candidate with `dimensions >= 2`.
-    Broader generalized discrimination likelihoods, group/DFF model effects, and
-    exploratory MGMFRM fitting remain planned work.
+backend, an initial AdvancedHMC/NUTS backend, or a Turing/NUTS backend. Guarded
+experimental generalized paths are available through
+`fit(spec; experimental = true)` for source-aligned `thresholds = :partial_credit`
+specs without anchors or fitted DFF terms. The scalar rater-consistency GMFRM
+configuration requires `discrimination = :rater`; the fixed-Q confirmatory MGMFRM
+configuration requires `dimensions >= 2` and the generic compatibility selector
+`discrimination = :none`. Unsupported manifest options are rejected before
+numerical execution rather than silently reinterpreted. Broader generalized
+discrimination likelihoods, group/DFF model effects, anchors, rating-scale
+generalized kernels, and exploratory MGMFRM fitting remain planned work.
 """
 module BayesianMGMFRM
 
@@ -51,6 +53,8 @@ export FacetData,
     evidence_metadata,
     evidence_artifact_schema_policy,
     expected_scores,
+    facets_compatibility_stats,
+    facets_report,
     facet_response_table,
     fair_average_summary,
     falsification_rule_summary,
@@ -61,6 +65,7 @@ export FacetData,
     fit_cache_key,
     fit_metadata,
     fit_report,
+    fit_report_public,
     fit_report_dossier,
     fit_report_dossier_markdown,
     fit_report_markdown,

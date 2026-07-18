@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-# Print the manual Registrator trigger comment for the current release commit.
+# Print the manual registry-update trigger comment for the current release.
 # This script intentionally does not call GitHub, Registrator, or General.
 
 using Pkg
@@ -13,6 +13,12 @@ using BayesianMGMFRM
 using TOML
 
 const STRICT = "--strict" in ARGS
+const EXPECTED_VERSION = let
+    values = [split(arg, "="; limit = 2)[2]
+              for arg in ARGS if startswith(arg, "--expected-version=")]
+    length(values) <= 1 || error("--expected-version may be supplied only once")
+    isempty(values) ? nothing : VersionNumber(only(values))
+end
 
 function read_cmd(cmd::Cmd)
     return strip(readchomp(Cmd(cmd; dir = ROOT)))
@@ -25,7 +31,7 @@ function project_file()
 end
 
 function assert_release_boundary()
-    scope = release_scope_summary(; include_evidence = true)
+    scope = BayesianMGMFRM.release_scope_summary(; include_evidence = true)
     summary = scope.summary
     summary.next_gate == :manual_publication_or_registration_by_user_only ||
         error("unexpected next release gate: $(summary.next_gate)")
@@ -40,7 +46,11 @@ function assert_project_metadata(project)
     name = String(project["name"])
     version = VersionNumber(String(project["version"]))
     name == "BayesianMGMFRM" || error("unexpected package name: $name")
-    version == v"0.1.0" || error("unexpected registration version: $version")
+    version >= v"0.1.0" || error("release version must be at least 0.1.0, got $version")
+    if EXPECTED_VERSION !== nothing
+        version == EXPECTED_VERSION ||
+            error("expected release version $(EXPECTED_VERSION), got $version")
+    end
     return (; name, version)
 end
 
@@ -50,22 +60,21 @@ function emit_handoff()
     summary = assert_release_boundary()
     branch = read_cmd(`git branch --show-current`)
     commit = read_cmd(`git rev-parse HEAD`)
-    status = read_cmd(`git status --porcelain --untracked-files=no`)
+    status = read_cmd(`git status --porcelain`)
 
     if STRICT
         branch == "main" || error("strict handoff must run from main, got $branch")
-        isempty(status) || error("tracked worktree changes are present:\n$status")
+        isempty(status) || error("worktree changes are present:\n$status")
     end
 
-    println("Registration handoff")
+    println("Registry-update handoff")
     println("  package: ", metadata.name)
     println("  version: ", metadata.version)
     println("  branch: ", isempty(branch) ? "(detached)" : branch)
     println("  commit: ", commit)
     println("  strict: ", STRICT)
-    println("  next_gate: ", summary.next_gate)
     if !isempty(status)
-        println("  tracked_changes: present")
+        println("  worktree_changes: present")
     end
 
     println()
@@ -75,7 +84,7 @@ function emit_handoff()
     println()
     println("Release notes:")
     println()
-    println("Initial 0.1.0 release of BayesianMGMFRM.jl. This release provides a")
+    println("Release $(metadata.version) of BayesianMGMFRM.jl. This release provides a")
     println("conservative Bayesian many-facet Rasch workflow scaffold covering")
     println("long-format data validation, design inspection, minimal MFRM/RSM/PCM")
     println("fitting, and guarded scalar GMFRM / fixed-Q confirmatory MGMFRM")

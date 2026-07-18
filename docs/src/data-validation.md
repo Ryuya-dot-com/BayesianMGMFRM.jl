@@ -107,7 +107,7 @@ Supplied validation reports are accepted only for the same `FacetData`; if
 `bias` or `min_cell_count` is passed again, the validation options must also
 match.
 
-`getdesign(spec)` returns a minimal internal design object with stable parameter
+`getdesign(spec)` returns a compact compiled design object with stable parameter
 names and block ranges. The current minimal design fixes the first rater and
 item levels as references and represents threshold steps with a sum-to-zero
 constraint.

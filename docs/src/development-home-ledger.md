@@ -1,0 +1,157 @@
+# BayesianMGMFRM.jl Development Home Ledger
+
+`BayesianMGMFRM.jl` is an early Julia package scaffold for many-facet Rasch
+measurement workflows.
+
+The current public slice focuses on:
+
+- long-format rating data via [`FacetData`](@ref);
+- pre-fit design validation via [`validate_design`](@ref);
+- minimal MFRM specification and design inspection via [`mfrm_spec`](@ref) and
+  [`getdesign`](@ref);
+- source-traced likelihood contracts via [`model_equation`](@ref);
+- specified-only GMFRM/MGMFRM configuration manifests and non-fit-ready preview
+  designs via [`model_ladder`](@ref), [`constraint_table`](@ref),
+  [`identification_declarations`](@ref), [`getdesign`](@ref), and
+  [`model_manifest`](@ref);
+- fit-ready parameter layout metadata via
+  [`fit_ready_parameter_layout`](@ref) and domain compiler review rows via
+  [`domain_compilation_summary`](@ref);
+- initial Bayesian fitting for the minimal identified design via [`fit`](@ref),
+  [`cached_fit`](@ref), [`MFRMPrior`](@ref), [`fit_metadata`](@ref),
+  [`fit_artifact`](@ref), [`fit_report`](@ref), and
+  [`posterior_summary`](@ref), including a small random-walk backend, initial
+  AdvancedHMC/NUTS and Turing/NUTS backends, and RDS-like serialized fit
+  caches;
+- guarded experimental generalized paths via `fit(spec; experimental = true)`
+  returning [`GMFRMFit`](@ref) for the one-dimensional rater-consistency
+  GMFRM candidate or [`MGMFRMFit`](@ref) for the fixed-Q confirmatory MGMFRM
+  candidate with `dimensions >= 2`; both require
+  `thresholds = :partial_credit`, no anchors or fitted DFF terms, and their
+  family-specific discrimination selector, with local validation and caveat
+  evidence recorded;
+- local Uto-style MGMFRM diagnostics showing that source-aligned strong-signal
+  fixed-Q MGMFRM recovers the expected direction across replicated seeds and
+  tested internal prior profiles, with replicated calibration bridges that
+  profile multiple dELPD thresholds plus MCMC-budget, category-calibration, and
+  false-alarm/power checks plus Q-misspecification expansion and small-MCMC
+  checks plus replicated Q/category, budget-stability, and multi-axis
+  instability gates, with critical-cell, split-control, and sampler-remediation
+  pilots plus warning-surface, block-targeted, draws-x2 smoke, and draws-x4
+  gate diagnostics plus chain-count, Stan-guided remediation, and
+  rank-normalized/parameterization/init-jitter/coupling-budget review with
+  independent-seed retained-draw replication plus warmup/thinning sensitivity
+  and local budget guidance staged,
+  while the current compact Null-win batch remains a
+  calibration/support/estimation diagnostic rather than a public
+  model-superiority result;
+- serializable provenance manifests and report bundles for fit-supported specs,
+  specified-only specs, designs, fits, cached-fit artifacts, and report-facing
+  summaries, including guarded MGMFRM local MCMC-budget guidance, via
+  [`model_manifest`](@ref), [`fit_artifact`](@ref), and [`fit_report`](@ref);
+- integrated diagnostic summaries via [`diagnostics`](@ref);
+- chain-level sampler summaries via [`sampler_diagnostics`](@ref);
+- chain-aware R-hat and ESS summaries via [`mcmc_diagnostics`](@ref);
+- parameter-block R-hat and ESS summaries via
+  [`parameter_block_diagnostics`](@ref);
+- prior and posterior predictive replication via [`prior_predict`](@ref),
+  [`prior_predictive_check`](@ref), [`posterior_predict`](@ref), and
+  [`posterior_predictive_check`](@ref);
+- simulation-study helpers via [`simulation_grid`](@ref),
+  [`simulation_grid_summary`](@ref), [`falsification_rules`](@ref),
+  [`falsification_rule_summary`](@ref), [`simulate_responses`](@ref),
+  [`parameter_recovery`](@ref), and [`parameter_recovery_summary`](@ref),
+  including predeclared grid/rule rows and raw/direct-coordinate rows for
+  guarded GMFRM/MGMFRM fit-ready skeletons;
+- report-ready predictive-check summaries, including grouped PPC expansion
+  rows, via [`predictive_check_summary`](@ref);
+- hash-checked single-fit reports and multi-report review dossiers for local
+  analysis review via [`fit_report`](@ref) and
+  [`fit_report_dossier`](@ref);
+- binned expected-score and ordinal-category calibration summaries via
+  [`calibration_table`](@ref);
+- plotting-ready rows via [`parameter_recovery_plot_data`](@ref),
+  [`calibration_plot_data`](@ref), and
+  [`predictive_check_plot_data`](@ref);
+- Wright-map rows for posterior facet measures and item-threshold positions via
+  [`wright_map_data`](@ref);
+- pathway-map rows that join fit statistics to logit locations via
+  [`diagnostic_map_data`](@ref);
+- row-by-category likelihood inspection via [`linear_predictor_table`](@ref)
+  and [`linear_predictor_values`](@ref);
+- observation-level predictive probabilities, expected scores, variances, and
+  residuals via [`predictive_probabilities`](@ref), [`expected_scores`](@ref),
+  [`predictive_variances`](@ref), and [`predictive_residuals`](@ref);
+- posterior fair-average expected-score intervals for person, rater, or item
+  reports via [`fair_average_summary`](@ref);
+- declared or ad hoc DFF screening rows on expected-score and local logit
+  scales, with optional practical-magnitude probabilities, via
+  [`dff_report`](@ref);
+- posterior separation and empirical reliability intervals for person, rater,
+  and item measures via [`separation_reliability_summary`](@ref);
+- rater severity, category-use, range/centrality, residual, and available
+  discrimination diagnostics via [`rater_diagnostics`](@ref);
+- posterior residual summaries and infit/outfit summaries by observation or
+  facet level via [`residual_summary`](@ref) and [`fit_stats`](@ref);
+- WAIC, raw or PSIS-smoothed importance-sampling LOO, supplied heldout K-fold
+  model-comparison rows, shared-plan exact/K-fold refit comparisons, and local
+  prior/likelihood power-scaling grids via
+  [`waic`](@ref), [`loo`](@ref), [`psis_loo`](@ref), [`kfold`](@ref),
+  [`compare_models`](@ref), [`compare_kfold`](@ref),
+  [`loo_refit_comparison`](@ref), [`kfold_refit_comparison`](@ref),
+  [`sensitivity_comparison`](@ref), and
+  [`prior_likelihood_sensitivity`](@ref), with declared-axis coverage audited
+  by [`sensitivity_comparison_summary`](@ref), and cross-tool evidence coverage
+  audited by [`comparison_evidence_row`](@ref) and
+  [`comparison_evidence_summary`](@ref), plus repeated benchmark summaries via
+  [`benchmark_result_row`](@ref) and [`benchmark_summary`](@ref);
+- fit-independent reporting data via [`coverage_summary`](@ref),
+  [`coverage_matrix`](@ref), [`rater_overlap`](@ref),
+  [`anchor_linking_summary`](@ref), [`rating_design_audit`](@ref),
+  [`domain_compilation_summary`](@ref),
+  [`design_row_table`](@ref), [`linear_predictor_table`](@ref),
+  [`threshold_map_data`](@ref), [`wright_map_data`](@ref), and
+  [`dff_report`](@ref);
+- test-suite validation against small/medium Julia/BridgeStan scalar fixtures,
+  exposed as [`stan_validation_row`](@ref) and
+  [`stan_validation_summary`](@ref), and internal hand-computed
+  source-aligned GMFRM/MGMFRM preview fixtures, including raw-coordinate
+  transforms for source identification restrictions and fixture-only
+  raw-coordinate log-likelihood / log-density target checks, plus local scalar
+  GMFRM BridgeStan-oracle, candidate-chain, stress-chain, and recovery-smoke
+  evidence for the private validation candidate, and an internal confirmatory
+  MGMFRM gauge manifest with BridgeStan confirmatory-candidate and local
+  candidate-chain/recovery-smoke evidence.
+
+Stan/CmdStan sampling, broad production refit-management outside the
+fit-supported shared-plan comparison slice, generalized discrimination
+likelihoods beyond the guarded scalar rater-consistency candidate, group/DFF
+model terms, and broad Multidimensional Generalized Many-Facet Rasch Model
+(MGMFRM) fitting APIs beyond the guarded fixed-Q confirmatory candidate are
+planned work and are not exposed yet. The Turing/NUTS backend is currently
+limited to the minimal MFRM/RSM/PCM `MFRMLogDensity` target.
+Specified-only GMFRM/MGMFRM configs are available for constraint and manifest
+review, with estimation currently limited to the guarded scalar GMFRM
+rater-consistency candidate and the fixed-Q confirmatory MGMFRM candidate.
+See the [Bayesian Workflow](bayesian-workflow.md)
+page for the current check sequence and limitations, [Examples](examples.md)
+for runnable minimal and guarded MGMFRM scripts, and
+[Scope and Releases](scope.md) for the supported surface and conservative
+release direction.
+
+```@contents
+Pages = [
+    "data-validation.md",
+    "model-equations.md",
+    "bayesian-workflow.md",
+    "fitting.md",
+    "examples.md",
+    "scope.md",
+    "api.md",
+    "api-data-design.md",
+    "api-fitting-artifacts.md",
+    "api-workflow-diagnostics.md",
+    "api-validation-evidence.md",
+]
+Depth = 2
+```

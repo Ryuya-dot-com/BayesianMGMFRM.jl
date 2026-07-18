@@ -157,6 +157,45 @@ const REPRODUCTION_FIXTURES = [
             "MFRM_GMFRM_CLAIM_RECOVERY_REPRODUCTION_ARCHIVE_FIXTURE",
         pass_policy = :summary_passed,
         hash_policy = :sha256),
+    (name = :tam_direct_agreement_multireplication,
+        path =
+            "test/fixtures/mgmfrm_tam_direct_agreement_multireplication.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_tam_direct_agreement_multireplication.v1",
+        generator =
+            "scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl",
+        generation_command =
+            "julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl --aggregate-only",
+        env_var =
+            "MFRM_MGMFRM_TAM_DIRECT_AGREEMENT_MULTIREPLICATION_FIXTURE",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
+    (name = :tam_direct_agreement_raw_archive_audit,
+        path =
+            "test/fixtures/mgmfrm_tam_direct_agreement_raw_archive_audit.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_tam_direct_agreement_raw_archive_audit.v1",
+        generator =
+            "scripts/generate_mgmfrm_tam_direct_agreement_raw_archive_audit.jl",
+        generation_command =
+            "julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_raw_archive_audit.jl",
+        env_var =
+            "MFRM_MGMFRM_TAM_DIRECT_AGREEMENT_RAW_ARCHIVE_AUDIT_FIXTURE",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
+    (name = :tam_direct_agreement_post_execution_review_packet,
+        path =
+            "test/fixtures/mgmfrm_tam_direct_agreement_post_execution_review_packet.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_tam_direct_agreement_post_execution_review_packet.v1",
+        generator =
+            "scripts/generate_mgmfrm_tam_direct_agreement_post_execution_review_packet.jl",
+        generation_command =
+            "julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_post_execution_review_packet.jl",
+        env_var =
+            "MFRM_MGMFRM_TAM_DIRECT_AGREEMENT_POST_EXECUTION_REVIEW_PACKET_FIXTURE",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
     (name = :broader_experimental_exposure_decision_review,
         path =
             "test/fixtures/gmfrm_broader_experimental_exposure_decision_review.json",
@@ -531,6 +570,28 @@ const REPRODUCTION_FIXTURES = [
             "MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_BATCH_EXPANSION_PLAN_FIXTURE",
         pass_policy = :summary_passed,
         hash_policy = :sha256),
+    (name = :mgmfrm_publication_grade_refit_batch_smoke_execution_review,
+        path =
+            "test/fixtures/mgmfrm_publication_grade_refit_batch_smoke_execution_review.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_publication_grade_refit_batch_smoke_execution_review.v1",
+        generator =
+            "scripts/generate_mgmfrm_publication_grade_refit_batch_smoke_execution_review.jl",
+        env_var =
+            "MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_BATCH_SMOKE_EXECUTION_REVIEW_FIXTURE",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
+    (name = :mgmfrm_publication_grade_refit_well_specified_scenario_execution_review,
+        path =
+            "test/fixtures/mgmfrm_publication_grade_refit_well_specified_scenario_execution_review.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_publication_grade_refit_well_specified_scenario_execution_review.v1",
+        generator =
+            "scripts/generate_mgmfrm_publication_grade_refit_well_specified_scenario_execution_review.jl",
+        env_var =
+            "MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_WELL_SPECIFIED_SCENARIO_EXECUTION_REVIEW_FIXTURE",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
     (name = :mgmfrm_publication_grade_refit_batch_results_review,
         path =
             "test/fixtures/mgmfrm_publication_grade_refit_batch_results_review.json",
@@ -538,6 +599,8 @@ const REPRODUCTION_FIXTURES = [
             "bayesianmgmfrm.mgmfrm_publication_grade_refit_batch_results_review.v1",
         generator =
             "scripts/generate_mgmfrm_publication_grade_refit_batch_results_review.jl",
+        generation_command =
+            "julia --project=. scripts/generate_mgmfrm_publication_grade_refit_batch_results_review.jl --read-local-artifacts",
         env_var =
             "MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_BATCH_RESULTS_REVIEW_FIXTURE",
         pass_policy = :summary_passed,
@@ -645,6 +708,7 @@ const REPRODUCTION_FIXTURES = [
 ]
 
 const CODE_AND_DOC_PATHS = [
+    ".github/workflows/CI.yml",
     "Project.toml",
     "README.md",
     "NEWS.md",
@@ -653,16 +717,32 @@ const CODE_AND_DOC_PATHS = [
     "src/bayesian_fit.jl",
     "src/facet_workflow.jl",
     "test/runtests.jl",
+    "test/facets_compatibility_stats.jl",
+    "test/generalized_guard_contract.jl",
+    "test/public_language_gate.jl",
+    "test/publication_grade_policy_contract.jl",
     "test/fixtures/README.md",
     "docs/make.jl",
     "docs/src/index.md",
     "docs/src/api.md",
+    "docs/src/api-data-design.md",
+    "docs/src/api-fitting-artifacts.md",
+    "docs/src/api-validation-evidence.md",
+    "docs/src/api-workflow-diagnostics.md",
+    "docs/src/bayesian-workflow.md",
     "docs/src/data-validation.md",
+    "docs/src/examples.md",
     "docs/src/fitting.md",
     "docs/src/model-equations.md",
     "docs/src/roadmap.md",
+    "docs/src/scope.md",
+    "examples/guarded_gmfrm.jl",
+    "examples/guarded_mgmfrm.jl",
+    "examples/minimal.jl",
     "scripts/local_json.jl",
     "scripts/pre_registration_gate.jl",
+    "scripts/public_language_gate.jl",
+    "scripts/runtime_public_language_gate.jl",
     "scripts/generate_source_bridge_fixtures.py",
     "scripts/generate_gmfrm_full_paper_reproduction_archive.jl",
     "scripts/generate_mgmfrm_report_shape_simulation_grid.jl",
@@ -697,10 +777,15 @@ const CODE_AND_DOC_PATHS = [
     "scripts/generate_mgmfrm_publication_grade_refit_scalar_remediation_comparison.jl",
     "scripts/generate_mgmfrm_publication_grade_refit_batch_expansion_plan.jl",
     "scripts/generate_mgmfrm_publication_grade_refit_batch_results_review.jl",
+    "scripts/generate_mgmfrm_publication_grade_refit_batch_smoke_execution_review.jl",
+    "scripts/generate_mgmfrm_publication_grade_refit_well_specified_scenario_execution_review.jl",
     "scripts/generate_mgmfrm_publication_grade_threshold_model_weight_policy_review.jl",
     "scripts/generate_mgmfrm_external_construct_dataset_and_independent_public_scope_review.jl",
     "scripts/generate_mgmfrm_external_construct_attachment_intake_preflight.jl",
     "scripts/generate_mgmfrm_external_construct_attachment_request_packet.jl",
+    "scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl",
+    "scripts/generate_mgmfrm_tam_direct_agreement_raw_archive_audit.jl",
+    "scripts/generate_mgmfrm_tam_direct_agreement_post_execution_review_packet.jl",
     "scripts/generate_mgmfrm_guarded_fit_method_wiring.jl",
     "scripts/generate_mgmfrm_guarded_fit_validation_grid.jl",
     "scripts/generate_mgmfrm_guarded_fit_api_dry_run.jl",
@@ -751,10 +836,15 @@ const FULL_REGENERATION_COMMANDS = [
         command = "julia --project=. scripts/generate_gmfrm_prior_likelihood_sensitivity_grid.jl"),
     (artifact = :gmfrm_real_data_case_study,
         command = "julia --project=. scripts/generate_gmfrm_real_data_case_study.jl"),
-    (artifact = :gmfrm_guarded_fit_api_dry_run,
-        command = "julia --project=. scripts/generate_gmfrm_guarded_fit_api_dry_run.jl"),
-    (artifact = :gmfrm_claim_recovery_reproduction_archive,
-        command = "julia --project=. scripts/generate_gmfrm_claim_recovery_reproduction_archive.jl"),
+    (artifact = :tam_direct_agreement_multireplication,
+        command =
+            "julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl --aggregate-only"),
+    (artifact = :tam_direct_agreement_raw_archive_audit,
+        command =
+            "julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_raw_archive_audit.jl"),
+    (artifact = :tam_direct_agreement_post_execution_review_packet,
+        command =
+            "julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_post_execution_review_packet.jl"),
     (artifact = :mgmfrm_candidate_chain_study,
         command = "julia --project=. scripts/generate_mgmfrm_candidate_chain_study.jl"),
     (artifact = :mgmfrm_recovery_smoke,
@@ -784,6 +874,12 @@ const FULL_REGENERATION_COMMANDS = [
     (artifact = :mgmfrm_q_revision_construct_validity_review,
         command =
             "julia --project=. scripts/generate_mgmfrm_q_revision_construct_validity_review.jl"),
+    (artifact = :mgmfrm_guarded_fit_method_wiring,
+        command = "julia --project=. scripts/generate_mgmfrm_guarded_fit_method_wiring.jl"),
+    (artifact = :mgmfrm_guarded_fit_validation_grid,
+        command = "julia --project=. scripts/generate_mgmfrm_guarded_fit_validation_grid.jl"),
+    (artifact = :mgmfrm_guarded_fit_api_dry_run,
+        command = "julia --project=. scripts/generate_mgmfrm_guarded_fit_api_dry_run.jl"),
     (artifact = :mgmfrm_guarded_local_fit_entrypoint,
         command =
             "julia --project=. scripts/generate_mgmfrm_guarded_local_fit_entrypoint.jl"),
@@ -793,6 +889,18 @@ const FULL_REGENERATION_COMMANDS = [
     (artifact = :mgmfrm_construct_reviewed_q_fit_reporting_policy,
         command =
             "julia --project=. scripts/generate_mgmfrm_construct_reviewed_q_fit_reporting_policy.jl"),
+    (artifact = :gmfrm_dff_estimand_validation_grid,
+        command = "julia --project=. scripts/generate_gmfrm_dff_estimand_validation_grid.jl"),
+    (artifact = :gmfrm_guarded_fit_api_dry_run,
+        command = "julia --project=. scripts/generate_gmfrm_guarded_fit_api_dry_run.jl"),
+    (artifact = :gmfrm_claim_recovery_reproduction_archive,
+        command = "julia --project=. scripts/generate_gmfrm_claim_recovery_reproduction_archive.jl"),
+    (artifact = :mgmfrm_guarded_fit_public_exposure_review,
+        command =
+            "julia --project=. scripts/generate_mgmfrm_guarded_fit_public_exposure_review.jl"),
+    (artifact = :prediction_target_and_model_weight_policy,
+        command =
+            "julia --project=. scripts/generate_gmfrm_prediction_target_and_model_weight_policy.jl"),
     (artifact = :mgmfrm_heldout_prediction_validation_policy,
         command =
             "julia --project=. scripts/generate_mgmfrm_heldout_prediction_validation_policy.jl"),
@@ -826,15 +934,15 @@ const FULL_REGENERATION_COMMANDS = [
     (artifact = :mgmfrm_full_heldout_mcmc_refit_anchor_scoring,
         command =
             "julia --project=. scripts/generate_mgmfrm_full_heldout_mcmc_refit_anchor_scoring.jl"),
+    (artifact = :mgmfrm_fit_threshold_q_heldout_linkage,
+        command =
+            "julia --project=. scripts/generate_mgmfrm_fit_threshold_q_heldout_linkage.jl"),
     (artifact = :mgmfrm_publication_grade_refit_gate,
         command =
             "julia --project=. scripts/generate_mgmfrm_publication_grade_refit_gate.jl"),
     (artifact = :mgmfrm_publication_grade_refit_pilot_plan,
         command =
             "julia --project=. scripts/generate_mgmfrm_publication_grade_refit_pilot_plan.jl"),
-    (artifact = :mgmfrm_fit_threshold_q_heldout_linkage,
-        command =
-            "julia --project=. scripts/generate_mgmfrm_fit_threshold_q_heldout_linkage.jl"),
     (artifact = :mgmfrm_publication_grade_refit_pilot_execution_harness,
         command =
             "julia --project=. scripts/generate_mgmfrm_publication_grade_refit_pilot_execution_harness.jl"),
@@ -850,9 +958,18 @@ const FULL_REGENERATION_COMMANDS = [
     (artifact = :mgmfrm_publication_grade_refit_batch_expansion_plan,
         command =
             "julia --project=. scripts/generate_mgmfrm_publication_grade_refit_batch_expansion_plan.jl"),
+    (artifact = :mgmfrm_publication_grade_refit_batch_smoke_execution_review,
+        command =
+            "julia --project=. scripts/generate_mgmfrm_publication_grade_refit_batch_smoke_execution_review.jl"),
+    (artifact = :mgmfrm_publication_grade_refit_well_specified_scenario_execution_review,
+        command =
+            "julia --project=. scripts/generate_mgmfrm_publication_grade_refit_well_specified_scenario_execution_review.jl"),
     (artifact = :mgmfrm_publication_grade_refit_batch_results_review,
         command =
-            "julia --project=. scripts/generate_mgmfrm_publication_grade_refit_batch_results_review.jl"),
+            "julia --project=. scripts/generate_mgmfrm_publication_grade_refit_batch_results_review.jl --read-local-artifacts"),
+    (artifact = :mgmfrm_manual_public_scope_review_for_fit,
+        command =
+            "julia --project=. scripts/generate_mgmfrm_manual_public_scope_review_for_fit.jl"),
     (artifact = :mgmfrm_publication_grade_threshold_model_weight_policy_review,
         command =
             "julia --project=. scripts/generate_mgmfrm_publication_grade_threshold_model_weight_policy_review.jl"),
@@ -865,23 +982,8 @@ const FULL_REGENERATION_COMMANDS = [
     (artifact = :mgmfrm_external_construct_attachment_request_packet,
         command =
             "julia --project=. scripts/generate_mgmfrm_external_construct_attachment_request_packet.jl"),
-    (artifact = :mgmfrm_guarded_fit_method_wiring,
-        command = "julia --project=. scripts/generate_mgmfrm_guarded_fit_method_wiring.jl"),
-    (artifact = :mgmfrm_guarded_fit_validation_grid,
-        command = "julia --project=. scripts/generate_mgmfrm_guarded_fit_validation_grid.jl"),
-    (artifact = :mgmfrm_guarded_fit_api_dry_run,
-        command = "julia --project=. scripts/generate_mgmfrm_guarded_fit_api_dry_run.jl"),
-    (artifact = :mgmfrm_guarded_fit_public_exposure_review,
-        command =
-            "julia --project=. scripts/generate_mgmfrm_guarded_fit_public_exposure_review.jl"),
-    (artifact = :prediction_target_and_model_weight_policy,
-        command =
-            "julia --project=. scripts/generate_gmfrm_prediction_target_and_model_weight_policy.jl"),
-    (artifact = :mgmfrm_manual_public_scope_review_for_fit,
-        command =
-            "julia --project=. scripts/generate_mgmfrm_manual_public_scope_review_for_fit.jl"),
-    (artifact = :gmfrm_dff_estimand_validation_grid,
-        command = "julia --project=. scripts/generate_gmfrm_dff_estimand_validation_grid.jl"),
+    # The archive is written before its three existence-only cycle-break
+    # consumers; the guarded exposure review is always refreshed last.
     (artifact = :gmfrm_full_paper_reproduction_archive,
         command = "julia --project=. scripts/generate_gmfrm_full_paper_reproduction_archive.jl"),
     (artifact = :gmfrm_manuscript_scale_simulation_grid,
@@ -930,6 +1032,12 @@ const PROTOCOL = (;
         require_guarded_exposure_review_passed = true,
         require_broader_exposure_review_passed = true,
         require_manuscript_scale_simulation_grid_passed = true,
+        require_tam_direct_execution_recorded = true,
+        require_tam_raw_archive_integrity_passed = true,
+        require_tam_post_execution_packet_integrity_passed = true,
+        require_tam_independent_review_pending_recorded = true,
+        require_tam_pre_execution_lineage_mismatch_recorded = true,
+        require_tam_evidence_nontransfer_to_gmfrm_mgmfrm = true,
         require_mgmfrm_sparse_recovery_grid_passed = true,
         require_mgmfrm_report_shape_simulation_grid_passed = true,
         require_mgmfrm_q_matrix_validation_expansion_passed = true,
@@ -972,6 +1080,10 @@ const PROTOCOL = (;
         require_mgmfrm_publication_grade_refit_scalar_remediation_comparison_passed =
             true,
         require_mgmfrm_publication_grade_refit_batch_expansion_plan_passed =
+            true,
+        require_mgmfrm_publication_grade_refit_batch_smoke_execution_review_passed =
+            true,
+        require_mgmfrm_publication_grade_refit_well_specified_scenario_execution_review_passed =
             true,
         require_mgmfrm_publication_grade_refit_batch_results_review_passed =
             true,
@@ -1148,13 +1260,16 @@ end
 function summary_passed(spec, summary)
     spec.pass_policy === :schema_only && return true
     summary === nothing && return false
+    if spec.name === :guarded_exposure_review
+        # `reviewed` records that the packet was inspected; it is not evidence
+        # that the guarded evidence gate passed. Keep this dependency fail
+        # closed even if both fields are present in a future schema revision.
+        value = json_optional_bool(summary, "all_local_evidence_passed")
+        return value === missing ? false : Bool(value)
+    end
     for key in ("passed", "overall_passed", "reviewed")
         value = json_optional_bool(summary, key)
         value === missing || return Bool(value)
-    end
-    if spec.name === :guarded_exposure_review
-        value = json_optional_bool(summary, "all_local_evidence_passed")
-        return value === missing ? false : Bool(value)
     end
     return false
 end
@@ -1192,7 +1307,9 @@ function fixture_record(spec)
         schema,
         schema_matches,
         generator = spec.generator,
-        generation_command = if endswith(spec.generator, ".py")
+        generation_command = if hasproperty(spec, :generation_command)
+            spec.generation_command
+        elseif endswith(spec.generator, ".py")
             "python $(spec.generator)"
         else
             "julia --project=. $(spec.generator)"
@@ -1247,6 +1364,28 @@ function build_artifact()
         fixture_records, :broader_experimental_exposure_decision_review)
     manuscript = record_by_name(fixture_records, :manuscript_scale_simulation_grid)
     claim = record_by_name(fixture_records, :claim_recovery_reproduction_archive)
+    tam_result = record_by_name(
+        fixture_records, :tam_direct_agreement_multireplication)
+    tam_audit = record_by_name(
+        fixture_records, :tam_direct_agreement_raw_archive_audit)
+    tam_post_packet = record_by_name(
+        fixture_records, :tam_direct_agreement_post_execution_review_packet)
+    tam_result_summary =
+        json_summary(read(local_path(tam_result.path), String))
+    tam_audit_summary =
+        json_summary(read(local_path(tam_audit.path), String))
+    tam_post_summary =
+        json_summary(read(local_path(tam_post_packet.path), String))
+    tam_direct_primary_gate_passed = Bool(json_optional_bool(
+        tam_result_summary, "primary_direct_gate_passed"))
+    tam_raw_archive_integrity_passed = Bool(json_optional_bool(
+        tam_audit_summary, "archive_integrity_passed"))
+    tam_post_packet_integrity_passed = Bool(json_optional_bool(
+        tam_post_summary, "packet_integrity_passed"))
+    tam_independent_review_completed = Bool(json_optional_bool(
+        tam_post_summary, "independent_review_completed"))
+    tam_pre_execution_exact_input_lineage = Bool(json_optional_bool(
+        tam_post_summary, "pre_execution_packet_exact_input_lineage"))
     mgmfrm_sparse = record_by_name(fixture_records, :mgmfrm_sparse_recovery_grid)
     mgmfrm_report_shape =
         record_by_name(fixture_records, :mgmfrm_report_shape_simulation_grid)
@@ -1332,6 +1471,12 @@ function build_artifact()
     mgmfrm_publication_grade_refit_batch_expansion_plan =
         record_by_name(fixture_records,
             :mgmfrm_publication_grade_refit_batch_expansion_plan)
+    mgmfrm_publication_grade_refit_batch_smoke_execution_review =
+        record_by_name(fixture_records,
+            :mgmfrm_publication_grade_refit_batch_smoke_execution_review)
+    mgmfrm_publication_grade_refit_well_specified_scenario_execution_review =
+        record_by_name(fixture_records,
+            :mgmfrm_publication_grade_refit_well_specified_scenario_execution_review)
     mgmfrm_publication_grade_refit_batch_results_review =
         record_by_name(fixture_records,
             :mgmfrm_publication_grade_refit_batch_results_review)
@@ -1422,6 +1567,8 @@ function build_artifact()
         mgmfrm_publication_grade_refit_sampler_remediation_review.summary_passed &&
         mgmfrm_publication_grade_refit_scalar_remediation_comparison.summary_passed &&
         mgmfrm_publication_grade_refit_batch_expansion_plan.summary_passed &&
+        mgmfrm_publication_grade_refit_batch_smoke_execution_review.summary_passed &&
+        mgmfrm_publication_grade_refit_well_specified_scenario_execution_review.summary_passed &&
         mgmfrm_publication_grade_refit_batch_results_review.summary_passed &&
         mgmfrm_publication_grade_threshold_model_weight_policy_review.summary_passed &&
         mgmfrm_external_construct_dataset_and_independent_public_scope_review.summary_passed &&
@@ -1483,6 +1630,9 @@ function build_artifact()
                 :local_full_reproduction_archive_recorded,
             interpretation =
                 :full_archive_recorded_without_publication_or_registration,
+            tam_direct_evidence_scope = :mfrm_tam_overlap_nontransfer,
+            tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm = false,
+            tam_independent_review_completed,
             required_followup = :manual_publication_or_registration_by_user_only,
         ),
         summary = (;
@@ -1505,6 +1655,12 @@ function build_artifact()
             n_full_regeneration_commands = length(regeneration_commands),
             n_verification_commands = length(verification_commands),
             claim_recovery_reproduction_archive_passed = claim.summary_passed,
+            tam_direct_primary_gate_passed,
+            tam_raw_archive_integrity_passed,
+            tam_post_packet_integrity_passed,
+            tam_independent_review_completed,
+            tam_pre_execution_exact_input_lineage,
+            tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm = false,
             guarded_exposure_review_passed = guarded.summary_passed,
             broader_experimental_exposure_decision_review_passed =
                 broader.summary_passed,
@@ -1568,6 +1724,10 @@ function build_artifact()
                 mgmfrm_publication_grade_refit_scalar_remediation_comparison.summary_passed,
             mgmfrm_publication_grade_refit_batch_expansion_plan_passed =
                 mgmfrm_publication_grade_refit_batch_expansion_plan.summary_passed,
+            mgmfrm_publication_grade_refit_batch_smoke_execution_review_passed =
+                mgmfrm_publication_grade_refit_batch_smoke_execution_review.summary_passed,
+            mgmfrm_publication_grade_refit_well_specified_scenario_execution_review_passed =
+                mgmfrm_publication_grade_refit_well_specified_scenario_execution_review.summary_passed,
             mgmfrm_publication_grade_refit_batch_results_review_passed =
                 mgmfrm_publication_grade_refit_batch_results_review.summary_passed,
             mgmfrm_publication_grade_threshold_model_weight_policy_review_passed =
@@ -1596,8 +1756,11 @@ function build_artifact()
             dff_model_effects_allowed = false,
             model_weights_allowed = false,
             manuscript_reproducibility_claims_supported = true,
-            n_blockers = 0,
-            remaining_public_blockers = Symbol[],
+            n_blockers = 2,
+            remaining_public_blockers = [
+                :tam_direct_independent_review_pending,
+                :tam_pre_execution_refinement_lineage_adjudication_pending,
+            ],
             recommendation =
                 :full_paper_reproduction_archive_recorded_keep_publication_manual,
             next_gate = :manual_publication_or_registration_by_user_only,

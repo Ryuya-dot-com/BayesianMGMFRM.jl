@@ -43,7 +43,7 @@
       "artifact": "mgmfrm_external_construct_attachment_intake_preflight",
       "path": "test/fixtures/mgmfrm_external_construct_attachment_intake_preflight.json",
       "exists": true,
-      "sha256": "e110ca20efd9e8f9fc6fe42c160d3e2d554f28a92d6739038e7eae5890300cd9",
+      "sha256": "5b2c74f360372be440e541165e5759d45b3ebc964e84bd47f6e633bb67eb4799",
       "expected_schema": "bayesianmgmfrm.mgmfrm_external_construct_attachment_intake_preflight.v1",
       "schema": "bayesianmgmfrm.mgmfrm_external_construct_attachment_intake_preflight.v1",
       "schema_matches": true,

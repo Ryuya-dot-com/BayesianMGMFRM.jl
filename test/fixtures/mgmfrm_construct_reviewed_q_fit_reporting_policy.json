@@ -46,7 +46,7 @@
       "schema": "bayesianmgmfrm.mgmfrm_fit_metric_threshold_sensitivity.v1",
       "expected_schema": "bayesianmgmfrm.mgmfrm_fit_metric_threshold_sensitivity.v1",
       "schema_matches": true,
-      "sha256": "3fdaf7d18f948cba835f534a8437ddee6be987555baa49265f68799dffe07798",
+      "sha256": "6dd7df95707522553f3be262bb13c249aff743ecc8a1d1f6435d9d9a668303db",
       "summary_passed": true,
       "next_gate": "construct_reviewed_q_fit_reporting_policy"
     }

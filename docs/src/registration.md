@@ -13,12 +13,12 @@ julia --startup-file=no scripts/pre_registration_gate.jl
 
 The gate checks project metadata, General AutoMerge-facing package and origin
 URL shape, clean temporary-environment import, `Pkg.test()`, the minimal
-example, the guarded MGMFRM example, Documenter with a 100 KiB rendered-page
-hard limit, Aqua package hygiene, `git diff --check`, and the public wording /
-skipped-test scan. CI runs the hygiene subset in a lighter mode because the
-matrix test and documentation jobs cover `Pkg.test()` and the docs build
-separately, while the stricter public wording scan remains a manual
-pre-registration check.
+example, the guarded scalar GMFRM example, the guarded fixed-Q MGMFRM example,
+Documenter with a 100 KiB rendered-page hard limit, Aqua package hygiene,
+`git diff --check`, and the public wording / skipped-test scan. CI runs the
+hygiene subset in a lighter mode because the matrix test and documentation jobs
+cover `Pkg.test()` and the docs build separately, while the stricter public
+wording scan remains a manual pre-registration check.
 
 The machine-readable release boundary is available from
 [`release_scope_summary`](@ref):

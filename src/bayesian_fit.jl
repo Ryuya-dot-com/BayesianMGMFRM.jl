@@ -196,7 +196,7 @@ logposterior(spec::FacetSpec, params::AbstractVector, prior::MFRMPrior = MFRMPri
 posterior. This object exposes the same log posterior as `logposterior` through
 `LogDensityProblems.logdensity`, so external samplers and automatic
 differentiation wrappers can use the package's design compiler without relying
-on the internal random-walk Metropolis sampler.
+on the built-in random-walk Metropolis sampler.
 """
 struct MFRMLogDensity
     design::FacetDesign
@@ -398,7 +398,8 @@ end
 
 Experimental scalar GMFRM fit result returned only by
 `fit(spec; experimental = true)` for the one-dimensional rater-consistency
-promotion candidate configured with `discrimination = :rater`.
+experimental configuration with `thresholds = :partial_credit`,
+`discrimination = :rater`, and no anchors or fitted DFF terms.
 Raw draws are stored in `draws`, constrained direct draws in `direct_draws`, and
 observation-ordered direct pointwise log likelihoods in
 `direct_pointwise_loglikelihood`.
@@ -428,7 +429,11 @@ end
 
 Guarded experimental MGMFRM fit result returned by
 `fit(spec; experimental = true)` for the fixed-Q confirmatory candidate with
-`dimensions >= 2`. Raw draws are stored in `draws`, constrained direct draws in
+`dimensions >= 2`, `thresholds = :partial_credit`, the generic compatibility
+selector `discrimination = :none`, and no anchors or fitted DFF terms. The
+kernel still contains Q-masked item-dimension discrimination parameters;
+`:none` means that the broader generic discrimination selector is not used.
+Raw draws are stored in `draws`, constrained direct draws in
 `direct_draws`, and observation-ordered direct pointwise log likelihoods in
 `direct_pointwise_loglikelihood`.
 """
@@ -462,7 +467,7 @@ function Base.show(io::IO, fit::GMFRMFit)
         size(fit.draws, 2), " raw parameter(s), backend = :",
         fit.backend, ", sampler = :", fit.sampler,
         ", chains = ", length(fit.chain_acceptance_rate),
-        ", experimental_public = true)")
+        ", status = :experimental)")
 end
 
 function Base.show(io::IO, fit::MGMFRMFit)
@@ -471,7 +476,7 @@ function Base.show(io::IO, fit::MGMFRMFit)
         size(fit.draws, 2), " raw parameter(s), backend = :",
         fit.backend, ", sampler = :", fit.sampler,
         ", chains = ", length(fit.chain_acceptance_rate),
-        ", experimental_public = true, guarded_local_fit = true)")
+        ", status = :experimental)")
 end
 
 struct _SourceFixtureLogDensity
@@ -1050,14 +1055,18 @@ ReverseDiff path is left to a future adapter after the Turing AD interface can
 support this wrapped target reliably.
 
 The `experimental = true` keyword is intentionally narrow. It is accepted for
-the scalar source-aligned GMFRM promotion candidate with `family = :gmfrm`,
-`dimensions = 1`, and `discrimination = :rater`, returning [`GMFRMFit`](@ref),
+the scalar source-aligned experimental GMFRM configuration with `family = :gmfrm`,
+`dimensions = 1`, `thresholds = :partial_credit`, and
+`discrimination = :rater`, returning [`GMFRMFit`](@ref),
 and for the fixed-Q confirmatory MGMFRM candidate with `family = :mgmfrm`,
-`dimensions >= 2`, and a fixed `q_matrix`, returning
-[`MGMFRMFit`](@ref). Multidimensional GMFRM, exploratory MGMFRM loadings,
-free latent correlations, non-rater GMFRM discrimination, and public
-`MFRMPrior` priors for generalized raw-coordinate fits are rejected on those
-guarded paths.
+`dimensions >= 2`, `thresholds = :partial_credit`,
+`discrimination = :none`, and a fixed `q_matrix`, returning
+[`MGMFRMFit`](@ref). Both generalized surfaces require empty anchors and no
+fitted validation-bias/DFF terms. Multidimensional GMFRM, rating-scale
+generalized kernels, exploratory MGMFRM loadings, free latent correlations,
+non-rater GMFRM discrimination, non-default generic MGMFRM discrimination,
+and public `MFRMPrior` priors for generalized raw-coordinate fits are rejected
+before compilation or cache lookup.
 """
 function fit(design::FacetDesign;
         prior::MFRMPrior = MFRMPrior(),
@@ -2923,7 +2932,8 @@ function _experimental_gmfrm_prior(prior)
         :prior,
         Symbol(nameof(typeof(prior))),
         :scalar_gmfrm_prior_likelihood_sensitivity_grid,
-        "guarded scalar GMFRM fitting uses the internal raw-coordinate prior contract; omit `prior` or pass the internal _SourceFixturePrior for local validation",
+        "The experimental scalar GMFRM fit uses its built-in raw-coordinate " *
+        "prior. Omit `prior`; custom prior objects are not supported.",
     ))
 end
 
@@ -2932,52 +2942,21 @@ function _guarded_gmfrm_unsupported_error(
         value,
         next_gate::Symbol,
         reason::AbstractString)
-    return ArgumentError(
-        "guarded scalar GMFRM experimental fit rejected " *
-        "blocked_option=:$(option), value=$(repr(value)); " *
-        "supported_surface=(family=:gmfrm, dimensions=1, discrimination=:rater, validation_bias_terms=()); " *
-        "next_gate=:$(next_gate); reason=$(reason)",
+    return _guarded_generalized_unsupported_error(
+        "experimental scalar GMFRM fit",
+        :gmfrm,
+        option,
+        value,
+        reason;
+        next_gate,
     )
 end
 
 function _check_experimental_gmfrm_spec(spec::FacetSpec)
-    spec.family === :gmfrm ||
-        throw(_guarded_gmfrm_unsupported_error(
-            :family,
-            spec.family,
-            :guarded_scalar_gmfrm_fit_entrypoint,
-            "this guarded entrypoint is only for the scalar GMFRM surface",
-        ))
-    spec.dimensions == 1 ||
-        throw(_guarded_gmfrm_unsupported_error(
-            :dimensions,
-            spec.dimensions,
-            :mgmfrm_guarded_fit_validation_grid,
-            "multidimensional generalized fits require the fixed-Q MGMFRM validation gate",
-        ))
-    spec.discrimination === :rater ||
-        throw(_guarded_gmfrm_unsupported_error(
-            :discrimination,
-            spec.discrimination,
-            spec.discrimination === :item ?
-                :item_discrimination_promotion_decision :
-                :guarded_scalar_gmfrm_fit_entrypoint,
-            "the public guarded scalar GMFRM fit is the rater-consistency surface only",
-        ))
-    isempty(spec.validation_bias_terms) ||
-        throw(_guarded_gmfrm_unsupported_error(
-            :dff_effects,
-            spec.validation_bias_terms,
-            :gmfrm_dff_estimand_validation_grid,
-            "DFF/bias terms are validation and reporting rows only; they are not fitted model effects in v0.1.x",
-        ))
-    spec.estimation_status === :specified_only ||
-        throw(_guarded_gmfrm_unsupported_error(
-            :estimation_status,
-            spec.estimation_status,
-            :guarded_scalar_gmfrm_manifest_review,
-            "guarded scalar GMFRM fitting expects the specified-only scalar GMFRM manifest path",
-        ))
+    _check_guarded_generalized_spec(
+        spec,
+        "experimental scalar GMFRM fit",
+    )
     return nothing
 end
 
@@ -3045,22 +3024,22 @@ end
 function _guarded_mgmfrm_prior(prior)
     prior === nothing && return _SourceFixturePrior()
     prior isa _SourceFixturePrior && return prior
-    throw(ArgumentError(
-        "guarded local MGMFRM fitting currently uses the internal " *
-        "raw-coordinate prior contract; omit `prior` or pass the internal " *
-        "_SourceFixturePrior for local validation",
+    throw(_guarded_generalized_unsupported_error(
+        "experimental MGMFRM fit",
+        :mgmfrm,
+        :prior,
+        Symbol(nameof(typeof(prior))),
+        "The experimental MGMFRM fit uses its built-in raw-coordinate prior. " *
+        "Omit `prior`; custom prior objects are not supported.";
+        next_gate = :mgmfrm_raw_prior_contract,
     ))
 end
 
 function _check_guarded_mgmfrm_spec(spec::FacetSpec)
-    spec.family === :mgmfrm ||
-        throw(ArgumentError("guarded local MGMFRM fitting supports only family = :mgmfrm"))
-    spec.dimensions >= 2 ||
-        throw(ArgumentError("guarded local MGMFRM fitting requires dimensions >= 2"))
-    spec.q_matrix !== nothing ||
-        throw(ArgumentError("guarded local MGMFRM fitting requires a fixed confirmatory q_matrix"))
-    spec.estimation_status === :specified_only ||
-        throw(ArgumentError("guarded local MGMFRM fitting expects the specified-only MGMFRM manifest path"))
+    _check_guarded_generalized_spec(
+        spec,
+        "experimental MGMFRM fit",
+    )
     return nothing
 end
 
@@ -3107,7 +3086,14 @@ function _fit_guarded_mgmfrm(spec::FacetSpec;
         kwargs...)
     _check_guarded_mgmfrm_spec(spec)
     backend === :advancedhmc ||
-        throw(ArgumentError("guarded local MGMFRM fitting currently supports only backend = :advancedhmc"))
+        throw(_guarded_generalized_unsupported_error(
+            "experimental MGMFRM fit",
+            :mgmfrm,
+            :backend,
+            backend,
+            "guarded MGMFRM fitting currently supports only backend = :advancedhmc";
+            next_gate = :advancedhmc_guarded_sampler_policy,
+        ))
     mgmfrm_prior = _guarded_mgmfrm_prior(prior)
     design = getdesign(spec; preview = true)
     target = _mgmfrm_guarded_local_fit_logdensity(design; prior = mgmfrm_prior)
@@ -4950,7 +4936,7 @@ function _fit_report_mcmc_budget_guidance(fit::_ModelComparisonFit, metadata,
 end
 
 """
-    fit_report(fit; kwargs...)
+    fit_report(fit; view = :full, kwargs...)
 
 Build a compact, machine-readable report bundle for a fitted MFRM, guarded
 GMFRM, or guarded MGMFRM object. The report combines fit metadata, provenance,
@@ -4964,9 +4950,13 @@ section raise.
 Set `include_prior_predictive = true` for MFRM fits to include prior predictive
 summary rows. Use `include_full_artifact = true` to embed the full compact
 `fit_artifact`; otherwise only the artifact schema, content hash, and archive
-manifest are included in the report.
+manifest are included in the report. The default `view = :full` preserves the
+complete `bayesianmgmfrm.fit_report.v1` compatibility payload. Set
+`view = :public` to return the reader-facing structured projection produced by
+[`fit_report_public`](@ref).
 """
 function fit_report(fit::_ModelComparisonFit;
+        view::Symbol = :full,
         include_prior_predictive::Bool = false,
         prior_predictive_ndraws::Int = 100,
         prior_predictive_rng::AbstractRNG = Random.default_rng(),
@@ -5012,6 +5002,8 @@ function fit_report(fit::_ModelComparisonFit;
         rhat_threshold::Real = 1.01,
         ess_threshold::Real = 400,
         on_section_error::Symbol = :capture)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     checked_on_error = _fit_report_on_section_error(on_section_error)
     diagnostic_surface = diagnostics(fit;
         split_chains,
@@ -5253,7 +5245,7 @@ function fit_report(fit::_ModelComparisonFit;
         end :
         _fit_report_not_requested()
 
-    return (;
+    report = (;
         schema = "bayesianmgmfrm.fit_report.v1",
         object = :fit_report,
         created_at = string(now()),
@@ -5319,6 +5311,7 @@ function fit_report(fit::_ModelComparisonFit;
         dff,
         artifact,
     )
+    return view === :full ? report : fit_report_public(report)
 end
 
 function _json_export_array(value::AbstractArray)
@@ -5415,12 +5408,15 @@ function _fit_report_export_record(report;
         source_path = nothing)
     _check_fit_report_payload(report)
     json_report = _json_export_value(report)
-    return (;
+    location = source_path === nothing ? NamedTuple() : (;
+        source_path = String(source_path),
+    )
+    return merge((;
         schema = "bayesianmgmfrm.fit_report_export.v1",
         object = :fit_report_export,
         created_at = string(now()),
         label = label === nothing ? missing : label,
-        source_path = source_path === nothing ? missing : String(source_path),
+    ), location, (;
         serialization = (;
             format = :json,
             writer = :JSON3,
@@ -5430,10 +5426,10 @@ function _fit_report_export_record(report;
         ),
         report_schema = _report_lookup(report, :schema, missing),
         report_object = _report_symbol_value(_report_lookup(report, :object, missing)),
-        report_content_hash = _artifact_content_hash_record(report),
+        report_content_hash = _fit_report_content_hash_record(report),
         json_content_hash = _fit_report_json_hash_record(json_report),
         report = json_report,
-    )
+    ))
 end
 
 """
@@ -5453,7 +5449,7 @@ function save_fit_report(path::AbstractString,
         throw(ArgumentError("fit report export already exists at $path; pass overwrite = true to replace it"))
     record = _fit_report_export_record(report;
         label,
-        source_path = path)
+        source_path = _is_public_fit_report(report) ? nothing : path)
     mkpath(dirname(path))
     open(path, "w") do io
         JSON3.write(io, _json_export_value(record))
@@ -5490,18 +5486,39 @@ function _check_fit_report_export_record(record, path)
         throw(ArgumentError("fit report export at $path has an unsupported object"))
     get(record, "report", nothing) isa AbstractDict ||
         throw(ArgumentError("fit report export at $path does not contain a report object"))
+    report = record["report"]
+    report_schema = get(report, "schema", nothing)
+    report_object = get(report, "object", nothing)
+    isequal(get(record, "report_schema", nothing), report_schema) ||
+        throw(ArgumentError("fit report export at $path has inconsistent report schemas"))
+    isequal(get(record, "report_object", nothing), report_object) ||
+        throw(ArgumentError("fit report export at $path has inconsistent report objects"))
+    _check_fit_report_payload(report)
+    if report_schema == _FIT_REPORT_PUBLIC_SCHEMA
+        haskey(record, "source_path") &&
+            throw(ArgumentError("public fit report export at $path contains source_path"))
+    end
+    report_hash_scope = String(_fit_report_content_hash_scope(report_schema))
     _check_fit_report_export_hash_record(record, "report_content_hash", path,
-        "artifact_without_hash_metadata")
+        report_hash_scope)
     _check_fit_report_export_hash_record(record, "json_content_hash", path,
         "json_report_without_hash_metadata")
+    if report_schema == _FIT_REPORT_PUBLIC_SCHEMA
+        _fit_report_hash_record_matches_actual(record, :report_content_hash,
+            _public_fit_report_content_hash_record(report),
+            "public fit report export at $path";
+            expected_scope = :public_json_without_top_level_content_hash,
+            expected_canonicalization = :cache_stable_string)
+    end
     return record
 end
 
 function _verify_fit_report_export_record(record, path)
-    expected = get(record["json_content_hash"], "value", nothing)
-    actual = _fit_report_json_hash_record(record["report"]).value
-    isequal(expected, actual) ||
-        throw(ArgumentError("fit report export content hash mismatch for $path"))
+    _fit_report_hash_record_matches_actual(record, :json_content_hash,
+        _fit_report_json_hash_record(record["report"]),
+        "fit report export at $path";
+        expected_scope = :json_report_without_hash_metadata,
+        expected_canonicalization = :cache_stable_string)
     return record
 end
 
@@ -5600,13 +5617,480 @@ function _report_keys(container)
     return Symbol[]
 end
 
+const _FIT_REPORT_FULL_SCHEMA = "bayesianmgmfrm.fit_report.v1"
+const _FIT_REPORT_PUBLIC_SCHEMA = "bayesianmgmfrm.fit_report_public.v1"
+
 function _check_fit_report_payload(report)
     (report isa NamedTuple || report isa AbstractDict) ||
         throw(ArgumentError("expected a fit_report payload as a NamedTuple or Dict"))
     schema = _report_lookup(report, :schema, _FIT_REPORT_LOOKUP_MISSING)
-    schema == "bayesianmgmfrm.fit_report.v1" ||
+    schema in (_FIT_REPORT_FULL_SCHEMA, _FIT_REPORT_PUBLIC_SCHEMA) ||
+        throw(ArgumentError(
+            "expected a bayesianmgmfrm.fit_report.v1 or " *
+            "bayesianmgmfrm.fit_report_public.v1 payload"))
+    schema == _FIT_REPORT_PUBLIC_SCHEMA &&
+        _assert_public_fit_report_language(report)
+    return report
+end
+
+function _check_full_fit_report_payload(report)
+    _check_fit_report_payload(report)
+    schema = _report_lookup(report, :schema, _FIT_REPORT_LOOKUP_MISSING)
+    schema == _FIT_REPORT_FULL_SCHEMA ||
         throw(ArgumentError("expected a bayesianmgmfrm.fit_report.v1 payload"))
     return report
+end
+
+_is_public_fit_report(report) =
+    _report_lookup(report, :schema, _FIT_REPORT_LOOKUP_MISSING) ==
+    _FIT_REPORT_PUBLIC_SCHEMA
+
+const _PUBLIC_FIT_REPORT_OMITTED = Ref(:public_fit_report_omitted)
+
+const _PUBLIC_FIT_REPORT_HIDDEN_FIELDS = Set((
+    :archive_manifest,
+    :artifact,
+    :audit,
+    :blocked_alternatives,
+    :blocked_option,
+    :blocker,
+    :cache_path,
+    :caveat_docs_artifact,
+    :chain_type,
+    :environment,
+    :evidence,
+    :evidence_artifact_schema_policy,
+    :experimental_public,
+    :fit_ready,
+    :fixture_provenance,
+    :guarded_local_fit,
+    :initialization_policy,
+    :internal_sampler_diagnostic_constructor,
+    :internal_target_constructor,
+    :manifest,
+    :manuscript_claims_allowed,
+    :model_surface_audit,
+    :next_gate,
+    :object,
+    :output_path,
+    :package_default_change,
+    :publication_or_registration_action,
+    :public_fit,
+    :public_claim_allowed,
+    :raw_prior_control_manifest,
+    :report_policy,
+    :report_bundle_path,
+    :schema,
+    :scope,
+    :source_path,
+    :stable_public,
+    :status_policy,
+    :supported_surface,
+    :turing_model,
+    :validation,
+))
+
+const _PUBLIC_FIT_REPORT_TOP_LEVEL_SECTIONS = (
+    :metadata,
+    :rating_design,
+    :q_matrix,
+    :diagnostics,
+    :mcmc_budget_guidance,
+    :prior_policy,
+    :pooling_policy,
+    :prior_predictive,
+    :posterior,
+    :direct_posterior,
+    :posterior_predictive,
+    :calibration,
+    :waic,
+    :loo,
+    :dff,
+    :artifact,
+)
+
+const _PUBLIC_FIT_REPORT_UNSAFE_TEXT_PATTERNS = (
+    r"(?i)\binternal(?![\s_-]+consistency\b)(?:[\s_-]+[A-Za-z0-9_-]+)*\b",
+    r"(?<![\p{L}\p{N}_])_+[\p{L}][\p{L}\p{N}_!]*",
+    r"(?:file://|(?<![A-Za-z0-9:/])/(?:Users|home|tmp|private/(?:tmp|var/folders)|var/(?:folders|tmp)|workspace|workspaces|Volumes|mnt)(?:/|\b)|(?<![A-Za-z0-9])[A-Za-z]:[\\/]+|\\\\[^\\/\s]+[\\/]+[^\\/\s]+)",
+    r"(?:test/fixtures/|scripts/generate_|artifacts/(?:uto_style|publication_grade))",
+    r"(?i)\b(?:source[\s_-]?fixture[A-Za-z0-9_]*|fixture[\s_-]?only|fixture[\s_-]?provenance|promotion[\s_-]?candidate|guarded[\s_-]?local[\s_-]?entrypoint|guarded[\s_-]?local[\s_-]?fit|experimental_public|next[\s_-]?gate|blocked[\s_-]?option|supported[\s_-]?surface|candidate[\s_-]?gates|caveat[\s_-]?docs[\s_-]?artifact|internal[\s_-]?target[\s_-]?constructor|internal[\s_-]?sampler[\s_-]?diagnostic[\s_-]?constructor|publication[\s_-]?or[\s_-]?registration[\s_-]?action|manual[\s_-]?publication[\s_-]?or[\s_-]?registration[\s_-]?by[\s_-]?user[\s_-]?only|manuscript[\s_-]?claims[\s_-]?allowed|public[\s_-]?claim[\s_-]?allowed|package[\s_-]?default[\s_-]?change)\b",
+    r"(?i)\b(?:development[\s_-]+ledgers?|registry[\s_-]+maintenance|release[\s_-]+control|worktree[\s_-]+checking|release[\s_-]+handoff|CI[\s_-]+rendering)\b",
+    r"(?i)\b(?:until\s+the\s+package\s+is\s+registered\s+in\s+julia\s+general|after\s+general\s+registration|pre[\s-]+registration|promotion[\s-]+candidate|manual\s+public[\s-]+scope|(?:manual[\s-]+)?local[\s-]+only)\b",
+    r"(?i)(?:\brelease_gate_check\b|\brelease_scope_summary\b|\bcase_study_provenance_manifest\b|\bevidence_artifact_schema_policy\b|\bGeneral\s+AutoMerge\b|\bRegistrator\b|@JuliaRegistrator|\bregistration\s+handoff\b|\bfixture[\s-]+SHA\b|--read-local-artifacts|\bmethod[\s-]+wiring\b|\blocal\s+runner\b|\bimplementation\s+checklist\b|\bexecution\s+prompt\s+pack\b|\bcurrent\s+branch\s+status\b)",
+)
+
+const _PUBLIC_FIT_REPORT_USER_VALUE_FIELDS = Set((
+    :category,
+    :category_levels,
+    :cell,
+    :column_levels,
+    :contrast,
+    :dimension_label,
+    :dimension_labels,
+    :direct_parameter_names,
+    :facet,
+    :focal_level,
+    :group,
+    :item,
+    :label,
+    :level,
+    :model,
+    :models,
+    :optional_facets,
+    :parameter,
+    :parameter_name,
+    :parameter_names,
+    :person,
+    :rater,
+    :reference_level,
+    :row_levels,
+    :step_path,
+    :term,
+    :threshold_path,
+))
+
+function _public_fit_report_user_value_field(field::Symbol)
+    field in _PUBLIC_FIT_REPORT_USER_VALUE_FIELDS && return true
+    name = lowercase(String(field))
+    return endswith(name, "_label") || endswith(name, "_labels") ||
+        endswith(name, "_level") || endswith(name, "_levels")
+end
+
+function _public_fit_report_field_allowed(field::Symbol)
+    field in _PUBLIC_FIT_REPORT_HIDDEN_FIELDS && return false
+    name = lowercase(String(field))
+    startswith(name, "internal_") && return false
+    startswith(name, "raw_") && return false
+    name in ("artifact_path", "file_path", "repository_path") && return false
+    for fragment in (
+            "fixture", "next_gate", "blocked_option", "blocked_alternative",
+            "supported_surface", "publication", "registration", "claim",
+            "promotion", "package_default", "candidate", "constructor",
+            "caveat_docs", "generator", "command", "public_fit",
+            "public_exposure", "release_control")
+        occursin(fragment, name) && return false
+    end
+    return true
+end
+
+function _public_fit_report_projection_field_allowed(field::Symbol,
+        path::Tuple)
+    field === :audit && path == (:rating_design, :rows) && return true
+    field === :evidence && path == (:evidence_rows,) && return true
+    return _public_fit_report_field_allowed(field)
+end
+
+function _public_fit_report_sanitized_text(value::AbstractString)
+    text = String(value)
+    for (source, replacement) in (
+            "guarded_experimental_public" => "experimental",
+            "experimental_public" => "experimental",
+            "guarded_local_fit" => "experimental",
+            "fit_supported" => "supported",
+            "specified_only" => "not_supported",
+            "stable_public" => "supported")
+        text = replace(text, source => replacement)
+    end
+    any(pattern -> occursin(pattern, text),
+        _PUBLIC_FIT_REPORT_UNSAFE_TEXT_PATTERNS) &&
+        return _PUBLIC_FIT_REPORT_OMITTED
+    return text
+end
+
+_public_fit_report_user_text_scalar(value) =
+    value isa Symbol || value isa AbstractString
+
+function _public_fit_report_child_preserves_user_text(value,
+        preserve_user_text::Bool)
+    return preserve_user_text && _public_fit_report_user_text_scalar(value)
+end
+
+function _public_fit_report_project_value(value;
+        preserve_user_text::Bool = false,
+        path::Tuple = ())
+    if value isa NamedTuple
+        pairs = Pair{Symbol,Any}[]
+        for field in keys(value)
+            _public_fit_report_projection_field_allowed(field, path) || continue
+            projected = _public_fit_report_project_value(
+                getproperty(value, field);
+                preserve_user_text =
+                    _public_fit_report_user_value_field(field),
+                path = (path..., field),
+            )
+            projected === _PUBLIC_FIT_REPORT_OMITTED && continue
+            push!(pairs, field => projected)
+        end
+        return (; pairs...)
+    elseif value isa AbstractDict
+        projected = Dict{String,Any}()
+        for (key, item) in value
+            field = _report_key_symbol(key)
+            _public_fit_report_projection_field_allowed(field, path) || continue
+            projected_item = _public_fit_report_project_value(item;
+                preserve_user_text =
+                    _public_fit_report_user_value_field(field),
+                path = (path..., field))
+            projected_item === _PUBLIC_FIT_REPORT_OMITTED && continue
+            projected[String(field)] = projected_item
+        end
+        return projected
+    elseif value isa Tuple
+        projected = Any[]
+        for item in value
+            projected_item = _public_fit_report_project_value(item;
+                preserve_user_text =
+                    _public_fit_report_child_preserves_user_text(
+                        item, preserve_user_text),
+                path)
+            push!(projected, projected_item === _PUBLIC_FIT_REPORT_OMITTED ?
+                missing : projected_item)
+        end
+        return Tuple(projected)
+    elseif value isa AbstractArray
+        if ndims(value) == 1
+            projected = Any[]
+            for item in value
+                projected_item = _public_fit_report_project_value(item;
+                    preserve_user_text =
+                        _public_fit_report_child_preserves_user_text(
+                            item, preserve_user_text),
+                    path)
+                push!(projected, projected_item === _PUBLIC_FIT_REPORT_OMITTED ?
+                    missing : projected_item)
+            end
+            return projected
+        end
+        return map(value) do item
+            projected_item = _public_fit_report_project_value(item;
+                preserve_user_text =
+                    _public_fit_report_child_preserves_user_text(
+                        item, preserve_user_text),
+                path)
+            projected_item === _PUBLIC_FIT_REPORT_OMITTED ? missing : projected_item
+        end
+    elseif value isa Symbol
+        preserve_user_text && return value
+        projected = _public_fit_report_sanitized_text(String(value))
+        return projected === _PUBLIC_FIT_REPORT_OMITTED ? projected : Symbol(projected)
+    elseif value isa AbstractString
+        preserve_user_text && return String(value)
+        return _public_fit_report_sanitized_text(value)
+    elseif value === missing || value === nothing || value isa Bool
+        return value
+    elseif value isa Number
+        return _json_export_number(value)
+    end
+    return _PUBLIC_FIT_REPORT_OMITTED
+end
+
+function _public_fit_report_status(value)
+    status = _report_symbol_value(value)
+    status in (:fit_supported, :stable_public, :supported) && return :supported
+    status in (:experimental_public, :guarded_local_fit, :experimental) &&
+        return :experimental
+    status in (:specified_only, :blocked, :unsupported, :not_supported) &&
+        return :not_supported
+    return :unknown
+end
+
+function _public_fit_report_content_hash_record(report)
+    if _report_lookup(report, :schema, _FIT_REPORT_LOOKUP_MISSING) ==
+            _FIT_REPORT_FULL_SCHEMA
+        return _fit_report_json_hash_record(_json_export_value(report))
+    end
+    payload = _json_export_value(report)
+    delete!(payload, "content_hash")
+    canonical = _cache_stable_string(_json_hash_value(payload))
+    return (;
+        algorithm = :sha256,
+        value = bytes2hex(sha256(codeunits(canonical))),
+        scope = :public_json_without_top_level_content_hash,
+        canonicalization = :cache_stable_string,
+        n_canonical_bytes = sizeof(canonical),
+    )
+end
+
+_fit_report_content_hash_scope(schema) =
+    schema == _FIT_REPORT_PUBLIC_SCHEMA ?
+    :public_json_without_top_level_content_hash :
+    :artifact_without_hash_metadata
+
+function _fit_report_content_hash_record(report)
+    return _is_public_fit_report(report) ?
+        _public_fit_report_content_hash_record(report) :
+        _artifact_content_hash_record(report)
+end
+
+function _public_fit_report_output_field_allowed(field::Symbol,
+        path::Tuple)
+    if isempty(path)
+        return field in (
+            :schema, :object, :created_at, :source_report, :family,
+            :thresholds, :dimensions, :dimension_labels, :status,
+            :content_hash,
+        ) || field in _PUBLIC_FIT_REPORT_TOP_LEVEL_SECTIONS
+    elseif path == (:source_report,)
+        return field in (:schema, :content_hash)
+    elseif path == (:content_hash,)
+        return field in (
+            :algorithm, :value, :scope, :canonicalization,
+            :n_canonical_bytes,
+        )
+    end
+    return _public_fit_report_projection_field_allowed(field, path)
+end
+
+function _assert_public_fit_report_value(value,
+        path::Tuple = ();
+        preserve_user_text::Bool = false)
+    if value isa NamedTuple
+        for field in keys(value)
+            _public_fit_report_output_field_allowed(field, path) ||
+                throw(ArgumentError(
+                    "fit_report_public contains a repository-maintenance field"))
+            _assert_public_fit_report_value(getproperty(value, field),
+                (path..., field);
+                preserve_user_text =
+                    _public_fit_report_user_value_field(field))
+        end
+    elseif value isa AbstractDict
+        for (key, item) in value
+            field = _report_key_symbol(key)
+            _public_fit_report_output_field_allowed(field, path) ||
+                throw(ArgumentError(
+                    "fit_report_public contains a repository-maintenance field"))
+            _assert_public_fit_report_value(item, (path..., field);
+                preserve_user_text =
+                    _public_fit_report_user_value_field(field))
+        end
+    elseif value isa Tuple || value isa AbstractArray
+        for item in value
+            _assert_public_fit_report_value(item, path;
+                preserve_user_text =
+                    _public_fit_report_child_preserves_user_text(
+                        item, preserve_user_text))
+        end
+    elseif (value isa Symbol || value isa AbstractString) && !preserve_user_text
+        text = String(value)
+        for pattern in _PUBLIC_FIT_REPORT_UNSAFE_TEXT_PATTERNS
+            occursin(pattern, text) || continue
+            throw(ArgumentError(
+                "fit_report_public could not remove a private implementation detail"))
+        end
+    end
+    return value
+end
+
+function _check_public_fit_report_hash(report)
+    object = _report_symbol_value(_report_lookup(report, :object, missing))
+    object === :fit_report_public ||
+        throw(ArgumentError("invalid fit_report_public object label"))
+    status = _report_symbol_value(_report_lookup(report, :status, missing))
+    status isa Symbol &&
+        status in (:supported, :experimental, :not_supported, :unknown) ||
+        throw(ArgumentError("invalid fit_report_public status label"))
+    source_report = _report_lookup(report, :source_report, missing)
+    isequal(_report_lookup(source_report, :schema, missing),
+        _FIT_REPORT_FULL_SCHEMA) ||
+        throw(ArgumentError("invalid fit_report_public source-report schema"))
+    source_hash = _report_lookup(source_report, :content_hash, missing)
+    source_hash isa AbstractString &&
+        occursin(r"^[0-9a-f]{64}$", source_hash) ||
+        throw(ArgumentError("fit_report_public source-report hash is missing"))
+    hash_record = _report_lookup(report, :content_hash, missing)
+    _report_symbol_value(_report_lookup(hash_record, :algorithm, missing)) === :sha256 ||
+        throw(ArgumentError("invalid fit_report_public hash algorithm"))
+    expected = _report_lookup(hash_record, :value, missing)
+    actual = _public_fit_report_content_hash_record(report)
+    expected isa AbstractString && occursin(r"^[0-9a-f]{64}$", expected) &&
+        expected == actual.value ||
+        throw(ArgumentError("fit_report_public content hash mismatch"))
+    _report_symbol_value(_report_lookup(hash_record, :scope, missing)) ===
+        actual.scope ||
+        throw(ArgumentError("invalid fit_report_public hash scope"))
+    _report_symbol_value(_report_lookup(hash_record, :canonicalization, missing)) ===
+        actual.canonicalization ||
+        throw(ArgumentError("invalid fit_report_public hash canonicalization"))
+    isequal(_report_lookup(hash_record, :n_canonical_bytes, missing),
+        actual.n_canonical_bytes) ||
+        throw(ArgumentError("invalid fit_report_public hash byte count"))
+    return report
+end
+
+function _assert_public_fit_report_language(report)
+    _check_public_fit_report_hash(report)
+    _assert_public_fit_report_value(report)
+    return report
+end
+
+"""
+    fit_report_public(report)
+    fit_report_public(fit; kwargs...)
+
+Return a reader-facing structured projection of a full `fit_report` payload.
+The result uses schema `bayesianmgmfrm.fit_report_public.v1`, preserves model
+results and diagnostic rows, normalizes support labels, and recursively omits
+implementation-only fields and machine-specific paths. The complete
+`bayesianmgmfrm.fit_report.v1` payload remains unchanged for compatibility and
+reproducibility workflows.
+User-supplied label values remain unchanged, nonfinite numeric values use
+portable string representations, and the public content hash is normalized to
+the JSON representation so it remains stable after save/load.
+
+Passing a fit object first builds `fit_report(fit; view = :full, kwargs...)`.
+The projection is idempotent and may also be applied to a JSON-loaded public
+report.
+"""
+function fit_report_public(report)
+    _check_fit_report_payload(report)
+    if _is_public_fit_report(report)
+        return _assert_public_fit_report_language(report)
+    end
+    _check_full_fit_report_payload(report)
+    section_pairs = Pair{Symbol,Any}[]
+    for section in _PUBLIC_FIT_REPORT_TOP_LEVEL_SECTIONS
+        value = _report_lookup(report, section, _FIT_REPORT_LOOKUP_MISSING)
+        value === _FIT_REPORT_LOOKUP_MISSING && continue
+        projected = _public_fit_report_project_value(value;
+            path = (section,))
+        projected === _PUBLIC_FIT_REPORT_OMITTED && continue
+        push!(section_pairs, section => projected)
+    end
+    estimation_status = _report_lookup(report, :estimation_status, missing)
+    status_policy = _report_lookup(report, :status_policy, missing)
+    public_status_source = status_policy === missing ?
+        estimation_status :
+        _report_lookup(status_policy, :status_label, estimation_status)
+    payload = merge((;
+        schema = _FIT_REPORT_PUBLIC_SCHEMA,
+        object = :fit_report_public,
+        created_at = _public_fit_report_project_value(
+            _report_lookup(report, :created_at, missing)),
+        source_report = (;
+            schema = _FIT_REPORT_FULL_SCHEMA,
+            content_hash = _public_fit_report_content_hash_record(report).value,
+        ),
+        family = _public_fit_report_project_value(
+            _report_lookup(report, :family, missing)),
+        thresholds = _public_fit_report_project_value(
+            _report_lookup(report, :thresholds, missing)),
+        dimensions = _public_fit_report_project_value(
+            _report_lookup(report, :dimensions, missing)),
+        dimension_labels = _public_fit_report_project_value(
+            _report_lookup(report, :dimension_labels, Any[]);
+            preserve_user_text = true),
+        status = _public_fit_report_status(public_status_source),
+    ), (; section_pairs...))
+    public_report = merge(payload, (;
+        content_hash = _public_fit_report_content_hash_record(payload),
+    ))
+    return _assert_public_fit_report_language(public_report)
+end
+
+function fit_report_public(fit::_ModelComparisonFit; kwargs...)
+    return fit_report_public(fit_report(fit; kwargs...))
 end
 
 function _report_status(section)
@@ -5795,21 +6279,24 @@ function _fit_report_table_manifest(report, table_records;
             content_hash = record.content_hash,
         ))
     end
-    payload = (;
+    location = source_path === nothing ? NamedTuple() : (;
+        source_path = String(source_path),
+    )
+    payload = merge((;
         schema = "bayesianmgmfrm.fit_report_table_export.v1",
         object = :fit_report_table_export,
         created_at = string(now()),
         label = label === nothing ? missing : label,
-        source_path = source_path === nothing ? missing : String(source_path),
+    ), location, (;
         report_schema = _report_lookup(report, :schema, missing),
         report_object = _report_symbol_value(_report_lookup(report, :object, missing)),
-        report_content_hash = _artifact_content_hash_record(report),
+        report_content_hash = _fit_report_content_hash_record(report),
         table_format = :json,
         manifest_filename = "manifest.json",
         n_tables = length(table_rows),
         n_rows = total_rows,
         tables = table_rows,
-    )
+    ))
     return merge(payload, (;
         content_hash = _fit_report_table_hash_record(payload;
             scope = :fit_report_table_export_without_hash_metadata),
@@ -5870,7 +6357,7 @@ function save_fit_report_tables(directory::AbstractString,
     end
     manifest = _fit_report_table_manifest(report, table_records;
         label,
-        source_path = directory)
+        source_path = _is_public_fit_report(report) ? nothing : directory)
     _write_json_record(joinpath(directory, "manifest.json"), manifest)
     return manifest
 end
@@ -5931,17 +6418,114 @@ function _markdown_row_fields(rows, max_rows::Int)
     return fields
 end
 
+const _PUBLIC_MARKDOWN_HIDDEN_FIELDS = Set((
+    :blocked_option,
+    :blocker,
+    :caveat_docs_artifact,
+    :experimental_public,
+    :fixture_provenance,
+    :guarded_local_fit,
+    :internal_sampler_diagnostic_constructor,
+    :internal_target_constructor,
+    :manuscript_claims_allowed,
+    :next_gate,
+    :package_default_change,
+    :publication_or_registration_action,
+    :public_claim_allowed,
+    :supported_surface,
+))
+
+const _PUBLIC_MARKDOWN_STRUCTURED_FIELDS = Set((
+    :step_path,
+    :threshold_path,
+))
+
+function _public_markdown_field_allowed(field::Symbol, path::Tuple = ())
+    _public_fit_report_projection_field_allowed(field, path) || return false
+    field in _PUBLIC_MARKDOWN_HIDDEN_FIELDS && return false
+    name = String(field)
+    startswith(name, "internal_") && return false
+    occursin("fixture", name) && return false
+    occursin("next_gate", name) && return false
+    endswith(name, "_path") && field ∉ _PUBLIC_MARKDOWN_STRUCTURED_FIELDS &&
+        return false
+    return true
+end
+
+_public_markdown_scalar(value) =
+    value === missing || value === nothing || value isa Symbol ||
+    value isa AbstractString || value isa Bool || value isa Number
+
+function _public_markdown_value(value, field::Symbol, path::Tuple)
+    if _public_fit_report_user_value_field(field) ||
+            field in _PUBLIC_MARKDOWN_STRUCTURED_FIELDS
+        projected = _public_fit_report_project_value(value;
+            preserve_user_text = _public_fit_report_user_value_field(field),
+            path = (path..., field))
+        projected === _PUBLIC_FIT_REPORT_OMITTED &&
+            return "Implementation detail omitted."
+        return _markdown_plain_value(projected)
+    end
+    _public_markdown_scalar(value) || return "See the structured report."
+    text = _public_fit_report_sanitized_text(_markdown_plain_value(value))
+    text === _PUBLIC_FIT_REPORT_OMITTED &&
+        return "Implementation detail omitted."
+    if occursin(r"(?:^|[^A-Za-z0-9])_[A-Za-z][A-Za-z0-9_!]*", text)
+        return "Implementation detail omitted."
+    end
+    if occursin(r"(?:file://|/(?:Users|home|tmp)/|/private/tmp/|[A-Za-z]:[\\/]+Users[\\/]+)", text)
+        return "Environment path omitted."
+    end
+    if occursin(r"(?:test/fixtures/|scripts/generate_)", text)
+        return "Repository detail omitted."
+    end
+    if occursin(r"\b(?:blocked_option|supported_surface|next_gate|internal_target_constructor|internal_sampler_diagnostic_constructor|manual_publication_or_registration_by_user_only)\b",
+            text)
+        return "Implementation detail omitted."
+    end
+    return text
+end
+
+function _public_markdown_effective_field(row, field::Symbol)
+    field === :value || return field
+    semantic_field = _report_symbol_value(
+        _report_lookup(row, :field, _FIT_REPORT_LOOKUP_MISSING))
+    return semantic_field isa Symbol ? semantic_field : field
+end
+
+function _public_markdown_displayable(value, field::Symbol)
+    return _public_markdown_scalar(value) ||
+        field in _PUBLIC_MARKDOWN_STRUCTURED_FIELDS ||
+        _public_fit_report_user_value_field(field)
+end
+
+function _public_markdown_fields(rows, fields, path::Tuple)
+    row_vector = collect(rows)
+    return [field for field in fields
+            if _public_markdown_field_allowed(field, path) &&
+            all(row -> begin
+                    effective_field = _public_markdown_effective_field(row, field)
+                    _public_markdown_displayable(
+                        _report_lookup(row, field, missing), effective_field)
+                end, row_vector)]
+end
+
 function _write_markdown_table(io::IO, rows;
         fields = nothing,
         max_rows::Int = 6,
-        max_cell_chars::Int = 96)
+        max_cell_chars::Int = 96,
+        public_view::Bool = false,
+        path::Tuple = ())
     row_vector = collect(rows)
     display_rows = collect(Iterators.take(row_vector, max_rows))
     resolved_fields = fields === nothing ?
         _markdown_row_fields(display_rows, max(1, length(display_rows))) :
         collect(fields)
+    public_view &&
+        (resolved_fields = _public_markdown_fields(
+            display_rows, resolved_fields, path))
     if isempty(resolved_fields)
-        println(io, "_No rows to preview._")
+        println(io, "*No rows to preview.*")
         return
     end
     header_cells = [String(field) for field in resolved_fields]
@@ -5949,7 +6533,12 @@ function _write_markdown_table(io::IO, rows;
     println(io, "| ", join(fill("---", length(resolved_fields)), " | "), " |")
     for row in display_rows
         cells = [
-            _markdown_cell(_report_lookup(row, field, missing);
+            _markdown_cell(public_view ?
+                _public_markdown_value(
+                    _report_lookup(row, field, missing),
+                    _public_markdown_effective_field(row, field),
+                    path) :
+                _report_lookup(row, field, missing);
                 max_cell_chars = max_cell_chars)
             for field in resolved_fields
         ]
@@ -5957,15 +6546,15 @@ function _write_markdown_table(io::IO, rows;
     end
     if length(row_vector) > length(display_rows)
         println(io)
-        println(io, "_", length(row_vector) - length(display_rows),
-            " additional row(s) omitted._")
+        println(io, "*", length(row_vector) - length(display_rows),
+            " additional row(s) omitted.*")
     end
     return
 end
 
 function _fit_report_metadata_rows(report)
     fields = (:schema, :object, :created_at, :family, :thresholds,
-        :dimensions, :estimation_status)
+        :dimensions, :dimension_labels, :estimation_status, :status)
     rows = NamedTuple[]
     for field in fields
         value = _report_lookup(report, field, _FIT_REPORT_LOOKUP_MISSING)
@@ -5994,9 +6583,10 @@ function fit_report_markdown(report;
     io = IOBuffer()
     println(io, "# ", title)
     println(io)
-    println(io, "Generated from `bayesianmgmfrm.fit_report.v1`.")
+    report_schema = _report_lookup(report, :schema, missing)
+    println(io, "Generated from `", report_schema, "`.")
     println(io)
-    report_hash = _artifact_content_hash_record(report)
+    report_hash = _fit_report_content_hash_record(report)
     println(io, "- Report content hash: `", report_hash.value, "`")
     println(io, "- Markdown preview rows per table: ", max_rows)
     println(io)
@@ -6005,14 +6595,18 @@ function fit_report_markdown(report;
     _write_markdown_table(io, _fit_report_metadata_rows(report);
         fields = (:field, :value),
         max_rows = typemax(Int),
-        max_cell_chars = 160)
+        max_cell_chars = 160,
+        public_view = true,
+        path = (:metadata_table,))
     println(io)
     println(io, "## Section Summary")
     println(io)
     _write_markdown_table(io, fit_report_sections(report);
-        fields = (:section, :status, :row_fields, :n_rows),
+        fields = (:section, :status, :n_rows),
         max_rows = typemax(Int),
-        max_cell_chars = 160)
+        max_cell_chars = 160,
+        public_view = true,
+        path = (:section_summary,))
     println(io)
     println(io, "## Table Previews")
     sections = fit_report_sections(report)
@@ -6032,12 +6626,14 @@ function fit_report_markdown(report;
             println(io)
             _write_markdown_table(io, rows;
                 max_rows = Int(max_rows),
-                max_cell_chars = 120)
+                max_cell_chars = 120,
+                public_view = true,
+                path = (section.section, row_field))
         end
     end
     if !wrote_preview
         println(io)
-        println(io, "_No tabular report rows are available._")
+        println(io, "*No tabular report rows are available.*")
     end
     return String(take!(io))
 end
@@ -6049,22 +6645,25 @@ function _fit_report_markdown_export_record(path::AbstractString,
         title::AbstractString,
         max_rows::Integer,
         include_empty::Bool)
-    return (;
+    location = _is_public_fit_report(report) ? NamedTuple() : (;
+        source_path = String(path),
+    )
+    return merge((;
         schema = "bayesianmgmfrm.fit_report_markdown_export.v1",
         object = :fit_report_markdown_export,
         created_at = string(now()),
         label = label === nothing ? missing : label,
-        source_path = String(path),
+    ), location, (;
         report_schema = _report_lookup(report, :schema, missing),
         report_object = _report_symbol_value(_report_lookup(report, :object, missing)),
-        report_content_hash = _artifact_content_hash_record(report),
+        report_content_hash = _fit_report_content_hash_record(report),
         markdown_content_hash = _fit_report_markdown_hash_record(markdown),
         format = :markdown,
         title = String(title),
         max_rows = Int(max_rows),
         include_empty,
         n_bytes = sizeof(markdown),
-    )
+    ))
 end
 
 """
@@ -6171,12 +6770,16 @@ function _fit_report_bundle_manifest(directory::AbstractString,
         table_manifest,
         markdown_export;
         label = nothing)
-    payload = (;
+    public_report = report_export.report_schema == _FIT_REPORT_PUBLIC_SCHEMA
+    location = public_report ? NamedTuple() : (;
+        source_path = String(directory),
+    )
+    payload = merge((;
         schema = "bayesianmgmfrm.fit_report_bundle_export.v1",
         object = :fit_report_bundle_export,
         created_at = string(now()),
         label = label === nothing ? missing : label,
-        source_path = String(directory),
+    ), location, (;
         report_schema = report_export.report_schema,
         report_object = report_export.report_object,
         report_content_hash = report_export.report_content_hash,
@@ -6189,7 +6792,7 @@ function _fit_report_bundle_manifest(directory::AbstractString,
         n_rows = table_manifest.n_rows,
         files = _fit_report_bundle_file_rows(report_export, table_manifest,
             markdown_export),
-    )
+    ))
     return merge(payload, (;
         content_hash = _fit_report_bundle_hash_record(payload),
     ))
@@ -6284,6 +6887,12 @@ function _check_fit_report_hash_record(record, field::Symbol, context::AbstractS
     value = _report_lookup(hash_record, :value, _FIT_REPORT_LOOKUP_MISSING)
     value isa AbstractString && occursin(r"^[0-9a-f]{64}$", value) ||
         throw(ArgumentError("$context has an invalid $(String(field)) value"))
+    n_canonical_bytes = _report_lookup(hash_record, :n_canonical_bytes,
+        _FIT_REPORT_LOOKUP_MISSING)
+    n_canonical_bytes isa Integer && !(n_canonical_bytes isa Bool) &&
+        n_canonical_bytes >= 0 ||
+        throw(ArgumentError(
+            "$context has an invalid $(String(field)) canonical byte count"))
     if expected_scope !== nothing
         scope = _report_symbol_value(_report_lookup(hash_record, :scope,
             _FIT_REPORT_LOOKUP_MISSING))
@@ -6297,6 +6906,28 @@ function _check_fit_report_hash_record(record, field::Symbol, context::AbstractS
             throw(ArgumentError("$context has an unsupported $(String(field)) canonicalization"))
     end
     return hash_record
+end
+
+function _fit_report_hash_record_matches_actual(record,
+        field::Symbol,
+        actual,
+        context::AbstractString;
+        expected_scope = nothing,
+        expected_canonicalization = nothing)
+    expected = _check_fit_report_hash_record(record, field, context;
+        expected_scope,
+        expected_canonicalization)
+    expected_value = _report_lookup(expected, :value, _FIT_REPORT_LOOKUP_MISSING)
+    actual_value = _report_lookup(actual, :value, _FIT_REPORT_LOOKUP_MISSING)
+    isequal(expected_value, actual_value) ||
+        throw(ArgumentError("$context $(String(field)) content hash mismatch"))
+    expected_bytes = _report_lookup(expected, :n_canonical_bytes,
+        _FIT_REPORT_LOOKUP_MISSING)
+    actual_bytes = _report_lookup(actual, :n_canonical_bytes,
+        _FIT_REPORT_LOOKUP_MISSING)
+    isequal(expected_bytes, actual_bytes) ||
+        throw(ArgumentError("$context $(String(field)) canonical byte count mismatch"))
+    return expected
 end
 
 function _fit_report_hash_value(record, field::Symbol, context::AbstractString;
@@ -6349,9 +6980,11 @@ function _check_fit_report_bundle_manifest(manifest, path)
         "fit report bundle manifest at $path";
         expected_scope = :fit_report_bundle_export_without_hash_metadata,
         expected_canonicalization = :cache_stable_string)
+    report_hash_scope = _fit_report_content_hash_scope(
+        _report_lookup(manifest, :report_schema, missing))
     _fit_report_hash_value(manifest, :report_content_hash,
         "fit report bundle manifest at $path";
-        expected_scope = :artifact_without_hash_metadata,
+        expected_scope = report_hash_scope,
         expected_canonicalization = :cache_stable_string)
     for (role, scope, canonicalization) in (
         (:report_json, :json_report_without_hash_metadata, :cache_stable_string),
@@ -6372,13 +7005,11 @@ end
 function _verify_fit_report_bundle_manifest(manifest,
         directory::AbstractString,
         manifest_path::AbstractString)
-    expected_manifest_hash = _fit_report_hash_value(manifest, :content_hash,
+    _fit_report_hash_record_matches_actual(manifest, :content_hash,
+        _fit_report_bundle_hash_record(manifest),
         "fit report bundle manifest at $manifest_path";
         expected_scope = :fit_report_bundle_export_without_hash_metadata,
         expected_canonicalization = :cache_stable_string)
-    actual_manifest_hash = _fit_report_bundle_hash_record(manifest).value
-    isequal(expected_manifest_hash, actual_manifest_hash) ||
-        throw(ArgumentError("fit report bundle manifest content hash mismatch for $manifest_path"))
 
     report_file = _fit_report_bundle_file_record(manifest, :report_json,
         "fit report bundle manifest at $manifest_path")
@@ -6387,26 +7018,25 @@ function _verify_fit_report_bundle_manifest(manifest,
     report_record = load_fit_report(report_path;
         verify_hash = true,
         return_record = true)
-    expected_report_json_hash = _fit_report_hash_value(report_file,
-        :content_hash, "fit report bundle report_json row at $manifest_path";
-        expected_scope = :json_report_without_hash_metadata,
-        expected_canonicalization = :cache_stable_string)
-    actual_report_json_hash = _fit_report_hash_value(report_record,
+    actual_report_json_hash = _check_fit_report_hash_record(report_record,
         :json_content_hash, "fit report export at $report_path";
         expected_scope = :json_report_without_hash_metadata,
         expected_canonicalization = :cache_stable_string)
-    isequal(expected_report_json_hash, actual_report_json_hash) ||
-        throw(ArgumentError("fit report bundle report JSON hash mismatch for $report_path"))
-    expected_report_hash = _fit_report_hash_value(manifest,
-        :report_content_hash, "fit report bundle manifest at $manifest_path";
-        expected_scope = :artifact_without_hash_metadata,
+    _fit_report_hash_record_matches_actual(report_file, :content_hash,
+        actual_report_json_hash,
+        "fit report bundle report_json row at $manifest_path";
+        expected_scope = :json_report_without_hash_metadata,
         expected_canonicalization = :cache_stable_string)
-    actual_report_hash = _fit_report_hash_value(report_record,
+    report_hash_scope = _fit_report_content_hash_scope(
+        _report_lookup(manifest, :report_schema, missing))
+    actual_report_hash = _check_fit_report_hash_record(report_record,
         :report_content_hash, "fit report export at $report_path";
-        expected_scope = :artifact_without_hash_metadata,
+        expected_scope = report_hash_scope,
         expected_canonicalization = :cache_stable_string)
-    isequal(expected_report_hash, actual_report_hash) ||
-        throw(ArgumentError("fit report bundle report content hash mismatch for $report_path"))
+    _fit_report_hash_record_matches_actual(manifest, :report_content_hash,
+        actual_report_hash, "fit report bundle manifest at $manifest_path";
+        expected_scope = report_hash_scope,
+        expected_canonicalization = :cache_stable_string)
 
     table_file = _fit_report_bundle_file_record(manifest, :table_manifest,
         "fit report bundle manifest at $manifest_path")
@@ -6418,16 +7048,16 @@ function _verify_fit_report_bundle_manifest(manifest,
     table_manifest = load_fit_report_tables(dirname(table_path);
         verify_hash = true,
         return_manifest = true)
-    expected_table_hash = _fit_report_hash_value(table_file, :content_hash,
-        "fit report bundle table_manifest row at $manifest_path";
-        expected_scope = :fit_report_table_export_without_hash_metadata,
-        expected_canonicalization = :cache_stable_string)
-    actual_table_hash = _fit_report_hash_value(table_manifest, :content_hash,
+    actual_table_hash = _check_fit_report_hash_record(table_manifest,
+        :content_hash,
         "fit report table manifest at $table_path";
         expected_scope = :fit_report_table_export_without_hash_metadata,
         expected_canonicalization = :cache_stable_string)
-    isequal(expected_table_hash, actual_table_hash) ||
-        throw(ArgumentError("fit report bundle table manifest hash mismatch for $table_path"))
+    _fit_report_hash_record_matches_actual(table_file, :content_hash,
+        actual_table_hash,
+        "fit report bundle table_manifest row at $manifest_path";
+        expected_scope = :fit_report_table_export_without_hash_metadata,
+        expected_canonicalization = :cache_stable_string)
 
     markdown_file = _fit_report_bundle_file_record(manifest, :markdown,
         "fit report bundle manifest at $manifest_path")
@@ -6435,14 +7065,11 @@ function _verify_fit_report_bundle_manifest(manifest,
         "fit report bundle manifest at $manifest_path")
     isfile(markdown_path) ||
         throw(ArgumentError("fit report markdown file does not exist at $markdown_path"))
-    expected_markdown_hash = _fit_report_hash_value(markdown_file,
-        :content_hash, "fit report bundle markdown row at $manifest_path";
+    _fit_report_hash_record_matches_actual(markdown_file, :content_hash,
+        _fit_report_markdown_hash_record(read(markdown_path, String)),
+        "fit report bundle markdown row at $manifest_path";
         expected_scope = :fit_report_markdown,
         expected_canonicalization = :raw_markdown_string)
-    actual_markdown_hash =
-        _fit_report_markdown_hash_record(read(markdown_path, String)).value
-    isequal(expected_markdown_hash, actual_markdown_hash) ||
-        throw(ArgumentError("fit report bundle markdown hash mismatch for $markdown_path"))
     return manifest
 end
 
@@ -6480,13 +7107,170 @@ function load_fit_report_bundle(directory::AbstractString;
     return load_fit_report(report_path; verify_hash)
 end
 
-function _check_fit_report_dossier_payload(dossier)
+const _FIT_REPORT_DOSSIER_TOP_LEVEL_FIELDS = Set((
+    :schema,
+    :object,
+    :created_at,
+    :label,
+    :report_policy,
+    :n_reports,
+    :models,
+    :n_report_rows,
+    :n_section_rows,
+    :n_comparison_rows,
+    :n_sensitivity_rows,
+    :n_evidence_rows,
+    :report_rows,
+    :section_rows,
+    :comparison_rows,
+    :sensitivity_rows,
+    :evidence_rows,
+    :reports,
+))
+
+const _FIT_REPORT_DOSSIER_HASH_FIELDS = Set((
+    :report_content_hash,
+    :content_hash,
+    :dossier_content_hash,
+    :json_content_hash,
+    :markdown_content_hash,
+))
+
+function _fit_report_dossier_output_field_allowed(field::Symbol, path::Tuple)
+    isempty(path) && return field in _FIT_REPORT_DOSSIER_TOP_LEVEL_FIELDS
+    path == (:report_policy,) &&
+        return field in (:include_reports, :rendering_scope)
+    if last(path) in _FIT_REPORT_DOSSIER_HASH_FIELDS
+        return field in (
+            :algorithm, :value, :scope, :canonicalization,
+            :n_canonical_bytes,
+        )
+    end
+    return _public_fit_report_projection_field_allowed(field, path)
+end
+
+function _assert_fit_report_dossier_value(value, path::Tuple = ();
+        preserve_user_text::Bool = false)
+    if (value isa NamedTuple || value isa AbstractDict) && path == (:reports,)
+        _check_fit_report_payload(value)
+        _is_public_fit_report(value) ||
+            throw(ArgumentError(
+                "fit_report_dossier embedded reports must use the public schema"))
+        return value
+    elseif value isa NamedTuple
+        for field in keys(value)
+            _fit_report_dossier_output_field_allowed(field, path) ||
+                throw(ArgumentError(
+                    "fit_report_dossier contains a repository-maintenance field"))
+            _assert_fit_report_dossier_value(getproperty(value, field),
+                (path..., field);
+                preserve_user_text =
+                    _public_fit_report_user_value_field(field))
+        end
+    elseif value isa AbstractDict
+        for (key, item) in value
+            field = _report_key_symbol(key)
+            _fit_report_dossier_output_field_allowed(field, path) ||
+                throw(ArgumentError(
+                    "fit_report_dossier contains a repository-maintenance field"))
+            _assert_fit_report_dossier_value(item, (path..., field);
+                preserve_user_text =
+                    _public_fit_report_user_value_field(field))
+        end
+    elseif value isa Tuple || value isa AbstractArray
+        for item in value
+            _assert_fit_report_dossier_value(item, path;
+                preserve_user_text =
+                    _public_fit_report_child_preserves_user_text(
+                        item, preserve_user_text))
+        end
+    elseif (value isa Symbol || value isa AbstractString) && !preserve_user_text
+        _assert_public_fit_report_value(value;
+            preserve_user_text = false)
+    end
+    return value
+end
+
+function _check_fit_report_dossier_compatibility_payload(dossier)
     (dossier isa NamedTuple || dossier isa AbstractDict) ||
         throw(ArgumentError("expected a fit_report_dossier payload as a NamedTuple or Dict"))
     schema = _report_lookup(dossier, :schema, _FIT_REPORT_LOOKUP_MISSING)
     schema == "bayesianmgmfrm.fit_report_dossier.v1" ||
         throw(ArgumentError("expected a bayesianmgmfrm.fit_report_dossier.v1 payload"))
+    object = _report_symbol_value(_report_lookup(dossier, :object, missing))
+    object === :fit_report_dossier ||
+        throw(ArgumentError("invalid fit_report_dossier object label"))
     return dossier
+end
+
+function _check_fit_report_dossier_payload(dossier)
+    _check_fit_report_dossier_compatibility_payload(dossier)
+    _assert_fit_report_dossier_value(dossier)
+    return dossier
+end
+
+function _fit_report_dossier_public_projection(value, path::Tuple = ();
+        preserve_user_text::Bool = false)
+    if (value isa NamedTuple || value isa AbstractDict) && path == (:reports,)
+        return _json_export_value(fit_report_public(value))
+    elseif value isa NamedTuple
+        pairs = Pair{Symbol,Any}[]
+        for field in keys(value)
+            _fit_report_dossier_output_field_allowed(field, path) || continue
+            projected = _fit_report_dossier_public_projection(
+                getproperty(value, field),
+                (path..., field);
+                preserve_user_text = _public_fit_report_user_value_field(field),
+            )
+            projected === _PUBLIC_FIT_REPORT_OMITTED && continue
+            push!(pairs, field => projected)
+        end
+        return (; pairs...)
+    elseif value isa AbstractDict
+        projected = Dict{String,Any}()
+        for (key, item) in value
+            field = _report_key_symbol(key)
+            _fit_report_dossier_output_field_allowed(field, path) || continue
+            projected_item = _fit_report_dossier_public_projection(
+                item,
+                (path..., field);
+                preserve_user_text = _public_fit_report_user_value_field(field),
+            )
+            projected_item === _PUBLIC_FIT_REPORT_OMITTED && continue
+            projected[String(field)] = projected_item
+        end
+        return projected
+    elseif value isa Tuple || value isa AbstractArray
+        projected = Any[]
+        for item in value
+            projected_item = _fit_report_dossier_public_projection(
+                item,
+                path;
+                preserve_user_text =
+                    _public_fit_report_child_preserves_user_text(
+                        item, preserve_user_text),
+            )
+            push!(projected, projected_item === _PUBLIC_FIT_REPORT_OMITTED ?
+                missing : projected_item)
+        end
+        return value isa Tuple ? Tuple(projected) : projected
+    end
+    return _public_fit_report_project_value(value;
+        preserve_user_text,
+        path)
+end
+
+function _fit_report_dossier_loaded_projection(dossier)
+    _check_fit_report_dossier_compatibility_payload(dossier)
+    projected = _fit_report_dossier_public_projection(dossier)
+    projected isa AbstractDict ||
+        throw(ArgumentError("expected a JSON-loaded fit_report_dossier payload"))
+    reports = get(projected, "reports", nothing)
+    projected["report_policy"] = Dict{String,Any}(
+        "include_reports" => reports !== nothing,
+        "rendering_scope" => "review_dossier",
+    )
+    return _check_fit_report_dossier_payload(projected)
 end
 
 function _fit_report_dossier_rows(rows, field::Symbol)
@@ -6537,7 +7321,11 @@ function _fit_report_dossier_report_and_section_rows(
     section_rows = NamedTuple[]
     for (label, report) in zip(labels, reports)
         sections = fit_report_sections(report)
-        report_hash = _artifact_content_hash_record(report)
+        report_hash = _fit_report_content_hash_record(report)
+        estimation_status_value = _report_lookup(
+            report, :estimation_status, _FIT_REPORT_LOOKUP_MISSING)
+        estimation_status_value === _FIT_REPORT_LOOKUP_MISSING &&
+            (estimation_status_value = _report_lookup(report, :status, missing))
         n_error_sections = count(row -> row.status === :error, sections)
         n_computed_sections = count(row -> row.status === :computed, sections)
         n_not_requested_sections = count(row -> row.status === :not_requested, sections)
@@ -6551,7 +7339,7 @@ function _fit_report_dossier_report_and_section_rows(
             thresholds = _report_symbol_value(_report_lookup(report, :thresholds, missing)),
             dimensions = _report_lookup(report, :dimensions, missing),
             estimation_status =
-                _report_symbol_value(_report_lookup(report, :estimation_status, missing)),
+                _report_symbol_value(estimation_status_value),
             diagnostic_flag = _fit_report_dossier_diagnostic_flag(report),
             n_sections = length(sections),
             n_computed_sections,
@@ -6579,12 +7367,11 @@ end
         label = nothing)
     fit_report_dossier(report1, report2, ...; names = nothing, kwargs...)
 
-Build a review dossier from one or more [`fit_report`](@ref) payloads. The
-dossier records per-report metadata, section summaries, supplied model
-comparison rows, supplied sensitivity rows, and optional evidence rows in one
-portable object for downstream review or manuscript-draft rendering. It does
-not run publication or registration actions, and embedded full reports are
-omitted unless `include_reports = true`.
+Build a reader-facing review dossier from one or more [`fit_report`](@ref)
+payloads. Inputs are normalized through [`fit_report_public`](@ref), including
+reports embedded with `include_reports = true`. Supplied comparison,
+sensitivity, and evidence rows are projected through the same field-aware
+language boundary, and the portable dossier retains only reader-facing fields.
 """
 function fit_report_dossier(reports::Pair...;
         comparison_rows = (),
@@ -6630,15 +7417,19 @@ function _fit_report_dossier(labels::AbstractVector{<:AbstractString},
         evidence_rows,
         include_reports::Bool,
         label)
+    reader_reports = Any[fit_report_public(report) for report in reports]
     report_rows, section_rows =
-        _fit_report_dossier_report_and_section_rows(labels, reports)
-    checked_comparison_rows =
-        _fit_report_dossier_rows(comparison_rows, :comparison_rows)
-    checked_sensitivity_rows =
-        _fit_report_dossier_rows(sensitivity_rows, :sensitivity_rows)
-    checked_evidence_rows =
-        _fit_report_dossier_rows(evidence_rows, :evidence_rows)
-    return (;
+        _fit_report_dossier_report_and_section_rows(labels, reader_reports)
+    checked_comparison_rows = _public_fit_report_project_value(
+        _fit_report_dossier_rows(comparison_rows, :comparison_rows);
+        path = (:comparison_rows,))
+    checked_sensitivity_rows = _public_fit_report_project_value(
+        _fit_report_dossier_rows(sensitivity_rows, :sensitivity_rows);
+        path = (:sensitivity_rows,))
+    checked_evidence_rows = _public_fit_report_project_value(
+        _fit_report_dossier_rows(evidence_rows, :evidence_rows);
+        path = (:evidence_rows,))
+    dossier = (;
         schema = "bayesianmgmfrm.fit_report_dossier.v1",
         object = :fit_report_dossier,
         created_at = string(now()),
@@ -6646,11 +7437,8 @@ function _fit_report_dossier(labels::AbstractVector{<:AbstractString},
         report_policy = (;
             include_reports,
             rendering_scope = :review_dossier,
-            publication_or_registration_action = false,
-            manuscript_claims_allowed = false,
-            next_gate = :manual_publication_or_registration_by_user_only,
         ),
-        n_reports = length(reports),
+        n_reports = length(reader_reports),
         models = Tuple(labels),
         n_report_rows = length(report_rows),
         n_section_rows = length(section_rows),
@@ -6662,8 +7450,9 @@ function _fit_report_dossier(labels::AbstractVector{<:AbstractString},
         comparison_rows = checked_comparison_rows,
         sensitivity_rows = checked_sensitivity_rows,
         evidence_rows = checked_evidence_rows,
-        reports = include_reports ? Tuple(reports) : nothing,
+        reports = include_reports ? Tuple(reader_reports) : nothing,
     )
+    return _check_fit_report_dossier_payload(dossier)
 end
 
 function _fit_report_dossier_metadata_rows(dossier)
@@ -6676,15 +7465,6 @@ function _fit_report_dossier_metadata_rows(dossier)
         value === _FIT_REPORT_LOOKUP_MISSING && continue
         push!(rows, (; field, value = _report_symbol_value(value)))
     end
-    policy = _report_lookup(dossier, :report_policy, _FIT_REPORT_LOOKUP_MISSING)
-    if policy !== _FIT_REPORT_LOOKUP_MISSING
-        for field in (:rendering_scope, :publication_or_registration_action,
-                :manuscript_claims_allowed, :next_gate)
-            value = _report_lookup(policy, field, _FIT_REPORT_LOOKUP_MISSING)
-            value === _FIT_REPORT_LOOKUP_MISSING && continue
-            push!(rows, (; field, value = _report_symbol_value(value)))
-        end
-    end
     return rows
 end
 
@@ -6696,7 +7476,8 @@ end
 
 function _write_fit_report_dossier_markdown_section(io::IO,
         title::AbstractString,
-        rows;
+        rows,
+        field::Symbol;
         max_rows::Int,
         include_empty::Bool)
     if isempty(rows) && !include_empty
@@ -6710,7 +7491,9 @@ function _write_fit_report_dossier_markdown_section(io::IO,
     println(io)
     _write_markdown_table(io, rows;
         max_rows,
-        max_cell_chars = 120)
+        max_cell_chars = 120,
+        public_view = true,
+        path = (field,))
     return true
 end
 
@@ -6738,23 +7521,26 @@ function fit_report_dossier_markdown(dossier;
     dossier_hash = _artifact_content_hash_record(dossier)
     println(io, "- Dossier content hash: `", dossier_hash.value, "`")
     println(io, "- Markdown preview rows per table: ", max_rows)
-    println(io, "- Publication or registration action: false")
-    println(io, "- Manuscript claims allowed: false")
+    println(io, "- Interpret results within the documented model scope.")
     println(io)
     println(io, "## Dossier Metadata")
     println(io)
     _write_markdown_table(io, _fit_report_dossier_metadata_rows(dossier);
         fields = (:field, :value),
         max_rows = typemax(Int),
-        max_cell_chars = 160)
+        max_cell_chars = 160,
+        public_view = true,
+        path = (:dossier_metadata,))
     _write_fit_report_dossier_markdown_section(io,
         "Report Summary",
-        _fit_report_dossier_row_vector(dossier, :report_rows);
+        _fit_report_dossier_row_vector(dossier, :report_rows),
+        :report_rows;
         max_rows = Int(max_rows),
         include_empty = true)
     _write_fit_report_dossier_markdown_section(io,
         "Section Summary",
-        _fit_report_dossier_row_vector(dossier, :section_rows);
+        _fit_report_dossier_row_vector(dossier, :section_rows),
+        :section_rows;
         max_rows = Int(max_rows),
         include_empty = true)
     wrote_optional = false
@@ -6764,13 +7550,14 @@ function fit_report_dossier_markdown(dossier;
             ("Evidence Rows", :evidence_rows))
         wrote_optional |= _write_fit_report_dossier_markdown_section(io,
             title,
-            _fit_report_dossier_row_vector(dossier, field);
+            _fit_report_dossier_row_vector(dossier, field),
+            field;
             max_rows = Int(max_rows),
             include_empty)
     end
     if !wrote_optional && include_empty
         println(io)
-        println(io, "_No comparison, sensitivity, or evidence rows are available._")
+        println(io, "*No comparison, sensitivity, or evidence rows are available.*")
     end
     return String(take!(io))
 end
@@ -6807,7 +7594,6 @@ function _fit_report_dossier_export_record(path::AbstractString,
         object = :fit_report_dossier_export,
         created_at = string(now()),
         label = label === nothing ? missing : label,
-        source_path = String(path),
         serialization = (;
             format = :json,
             writer = :JSON3,
@@ -6852,6 +7638,13 @@ function _check_fit_report_dossier_export_record(record, path)
         throw(ArgumentError("fit report dossier export at $path has an unsupported object"))
     get(record, "dossier", nothing) isa AbstractDict ||
         throw(ArgumentError("fit report dossier export at $path does not contain a dossier object"))
+    dossier = _check_fit_report_dossier_compatibility_payload(record["dossier"])
+    isequal(get(record, "dossier_schema", nothing),
+        _report_lookup(dossier, :schema, missing)) ||
+        throw(ArgumentError("fit report dossier export at $path has inconsistent dossier schemas"))
+    isequal(get(record, "dossier_object", nothing),
+        _report_lookup(dossier, :object, missing)) ||
+        throw(ArgumentError("fit report dossier export at $path has inconsistent dossier objects"))
     _check_fit_report_hash_record(record, :dossier_content_hash,
         "fit report dossier export at $path";
         expected_scope = :artifact_without_hash_metadata,
@@ -6864,13 +7657,11 @@ function _check_fit_report_dossier_export_record(record, path)
 end
 
 function _verify_fit_report_dossier_export_record(record, path)
-    expected_json = _fit_report_hash_value(record, :json_content_hash,
+    _fit_report_hash_record_matches_actual(record, :json_content_hash,
+        _fit_report_dossier_json_hash_record(record["dossier"]),
         "fit report dossier export at $path";
         expected_scope = :fit_report_dossier_json_without_hash_metadata,
         expected_canonicalization = :cache_stable_string)
-    actual_json = _fit_report_dossier_json_hash_record(record["dossier"]).value
-    isequal(expected_json, actual_json) ||
-        throw(ArgumentError("fit report dossier export JSON hash mismatch for $path"))
     return record
 end
 
@@ -6879,8 +7670,13 @@ end
 
 Load a JSON fit-report dossier export written by
 [`save_fit_report_dossier`](@ref). Hash metadata is checked, the JSON payload is
-verified by default, and the loaded dossier payload is returned as ordinary
-`Dict{String,Any}` / `Vector{Any}` data unless `return_record = true`.
+verified by default, and the loaded dossier payload is projected to the current
+reader-facing shape before it is returned as ordinary `Dict{String,Any}` /
+`Vector{Any}` data. This projection also accepts v0.1.0 dossier exports,
+removes their stored source path and implementation-only fields, and converts
+embedded full reports to the public report schema. Set `return_record = true`
+to return a current export record containing that projected dossier; both
+content hashes then describe the projected payload.
 """
 function load_fit_report_dossier(path::AbstractString;
         verify_hash::Bool = true,
@@ -6888,7 +7684,17 @@ function load_fit_report_dossier(path::AbstractString;
     record = _read_json_dict(path, "fit report dossier export")
     record = _check_fit_report_dossier_export_record(record, path)
     verify_hash && _verify_fit_report_dossier_export_record(record, path)
-    return return_record ? record : record["dossier"]
+    dossier = _fit_report_dossier_loaded_projection(record["dossier"])
+    current_record = _json_export_value(_fit_report_dossier_export_record(
+        path,
+        dossier;
+        label = get(record, "label", nothing),
+    ))
+    created_at = _public_fit_report_project_value(
+        get(record, "created_at", missing))
+    created_at === _PUBLIC_FIT_REPORT_OMITTED ||
+        (current_record["created_at"] = created_at)
+    return return_record ? current_record : dossier
 end
 
 function _fit_report_dossier_markdown_export_record(path::AbstractString,
@@ -6903,7 +7709,6 @@ function _fit_report_dossier_markdown_export_record(path::AbstractString,
         object = :fit_report_dossier_markdown_export,
         created_at = string(now()),
         label = label === nothing ? missing : label,
-        source_path = String(path),
         dossier_schema = _report_lookup(dossier, :schema, missing),
         dossier_object = _report_symbol_value(_report_lookup(dossier, :object, missing)),
         dossier_content_hash = _artifact_content_hash_record(dossier),
@@ -7033,26 +7838,22 @@ function _check_fit_report_table_record(record, path)
 end
 
 function _verify_fit_report_table_record(record, path)
-    expected = _fit_report_hash_value(record, :content_hash,
+    _fit_report_hash_record_matches_actual(record, :content_hash,
+        _fit_report_table_hash_record(record;
+            scope = :fit_report_table_without_hash_metadata),
         "fit report table at $path";
         expected_scope = :fit_report_table_without_hash_metadata,
         expected_canonicalization = :cache_stable_string)
-    actual = _fit_report_table_hash_record(record;
-        scope = :fit_report_table_without_hash_metadata).value
-    isequal(expected, actual) ||
-        throw(ArgumentError("fit report table content hash mismatch for $path"))
     return record
 end
 
 function _verify_fit_report_table_manifest(manifest, path)
-    expected = _fit_report_hash_value(manifest, :content_hash,
+    _fit_report_hash_record_matches_actual(manifest, :content_hash,
+        _fit_report_table_hash_record(manifest;
+            scope = :fit_report_table_export_without_hash_metadata),
         "fit report table manifest at $path";
         expected_scope = :fit_report_table_export_without_hash_metadata,
         expected_canonicalization = :cache_stable_string)
-    actual = _fit_report_table_hash_record(manifest;
-        scope = :fit_report_table_export_without_hash_metadata).value
-    isequal(expected, actual) ||
-        throw(ArgumentError("fit report table manifest content hash mismatch for $path"))
     return manifest
 end
 
@@ -7072,16 +7873,14 @@ function _fit_report_table_matches_manifest_row(record, row,
     expected_rows isa Integer && actual_rows isa Integer &&
         expected_rows == actual_rows ||
         throw(ArgumentError("fit report table $table_path does not match n_rows in manifest $manifest_path"))
-    expected_hash = _fit_report_hash_value(row, :content_hash,
-        "fit report table manifest row at $manifest_path";
-        expected_scope = :fit_report_table_without_hash_metadata,
-        expected_canonicalization = :cache_stable_string)
-    actual_hash = _fit_report_hash_value(record, :content_hash,
+    actual_hash = _check_fit_report_hash_record(record, :content_hash,
         "fit report table at $table_path";
         expected_scope = :fit_report_table_without_hash_metadata,
         expected_canonicalization = :cache_stable_string)
-    isequal(expected_hash, actual_hash) ||
-        throw(ArgumentError("fit report table $table_path does not match content hash in manifest $manifest_path"))
+    _fit_report_hash_record_matches_actual(row, :content_hash, actual_hash,
+        "fit report table manifest row at $manifest_path";
+        expected_scope = :fit_report_table_without_hash_metadata,
+        expected_canonicalization = :cache_stable_string)
     return true
 end
 
@@ -7799,7 +8598,14 @@ function _fit_cache_initial(design::FacetDesign, init, prior, experimental::Bool
 end
 
 function _fit_cache_design(spec::FacetSpec, experimental::Bool)
-    return experimental ? getdesign(spec; preview = true) : getdesign(spec)
+    if experimental
+        _check_guarded_generalized_spec(
+            spec,
+            "experimental fit cache request",
+        )
+        return getdesign(spec; preview = true)
+    end
+    return getdesign(spec)
 end
 
 function _fit_cache_request(design::FacetDesign;
@@ -9684,10 +10490,15 @@ function _refit_score_loglikelihood(score_design::FacetDesign, training_fit::MGM
     draws = training_fit.draws
     out = Matrix{Float64}(undef, size(draws, 1), score_design.spec.data.n)
     for draw in axes(draws, 1)
+        params = _mgmfrm_source_constrained_params_from_unconstrained(
+            training_fit.design,
+            (@view draws[draw, :]),
+        )
         out[draw, :] .=
-            _mgmfrm_source_pointwise_loglikelihood_from_unconstrained(
+            _mgmfrm_source_pointwise_loglikelihood(
                 score_design,
-                (@view draws[draw, :]),
+                params;
+                require_q_observation_coverage = false,
             )
     end
     return out
@@ -9754,10 +10565,10 @@ function _check_refit_supported_spec(spec::FacetSpec, caller::AbstractString;
     experimental ||
         throw(ArgumentError(
             "$caller requires experimental = true for guarded generalized refits"))
-    spec.estimation_status === :specified_only ||
-        throw(ArgumentError(
-            "$caller guarded generalized refits currently require specified-only " *
-            "GMFRM/MGMFRM specs"))
+    _check_guarded_generalized_spec(
+        spec,
+        "$caller guarded generalized refit",
+    )
     return spec
 end
 
@@ -11142,7 +11953,7 @@ end
 
 Compare fitted models with WAIC (`criterion = :waic`), raw
 importance-sampling LOO (`criterion = :loo`), or PSIS-smoothed LOO
-(`criterion = :psis_loo`). MFRM, scalar GMFRM, and internal guarded MGMFRM fit
+(`criterion = :psis_loo`). MFRM, scalar GMFRM, and experimental MGMFRM fit
 objects can be compared when they share the same observation data, row order,
 ordinal category levels, latent dimensionality, and fixed Q-matrix contract.
 PSIS-smoothed comparison rows keep `criterion = :loo` and are identified by
@@ -14364,6 +15175,300 @@ function calibration_table(fit::MGMFRMFit;
     )
 end
 
+function _facets_plugin_parameters(draws::AbstractMatrix)
+    size(draws, 1) >= 1 ||
+        throw(ArgumentError("FACETS compatibility statistics require at least one draw"))
+    params = Vector{Float64}(undef, size(draws, 2))
+    for column in axes(draws, 2)
+        params[column] = _column_mean(@view draws[:, column])
+    end
+    all(isfinite, params) ||
+        throw(ArgumentError("the plugin parameter estimate contains non-finite values"))
+    return params
+end
+
+function _facets_score_moments(design::FacetDesign, params::AbstractVector)
+    _check_fit_supported_mfrm(design, "facets_compatibility_stats")
+    _check_parameter_vector(design, params)
+    probabilities = predictive_probabilities(
+        design,
+        reshape(Float64.(params), 1, length(params)),
+    )
+    data = design.spec.data
+    levels = Float64.(data.category_levels)
+    expected = Vector{Float64}(undef, data.n)
+    variance = Vector{Float64}(undef, data.n)
+    fourth = Vector{Float64}(undef, data.n)
+
+    for row in 1:data.n
+        mean_score = 0.0
+        for category in eachindex(levels)
+            mean_score += probabilities[1, row, category] * levels[category]
+        end
+        second_central = 0.0
+        fourth_central = 0.0
+        for category in eachindex(levels)
+            centered = levels[category] - mean_score
+            probability = probabilities[1, row, category]
+            second_central += probability * centered^2
+            fourth_central += probability * centered^4
+        end
+        expected[row] = mean_score
+        variance[row] = max(second_central, 0.0)
+        fourth[row] = max(fourth_central, 0.0)
+    end
+    return (;
+        expected,
+        residual = Float64.(data.score) .- expected,
+        variance,
+        fourth,
+    )
+end
+
+function _facets_wright_masters_df(information::Float64,
+        weight_sum::Float64,
+        infit_denominator::Float64,
+        outfit_denominator::Float64,
+        tolerance::Float64)
+    infit_df = information > 0 && infit_denominator > tolerance ?
+        2 * information^2 / infit_denominator : NaN
+    outfit_df = weight_sum > 0 && outfit_denominator > tolerance ?
+        2 * weight_sum^2 / outfit_denominator : NaN
+    return infit_df, outfit_df
+end
+
+function _facets_wilson_hilferty_zstd(mnsq::Float64, df::Float64, cap::Float64)
+    isfinite(mnsq) && mnsq > 0 && isfinite(df) && df > 0 || return NaN
+    zstd =
+        (cbrt(mnsq) - (1 - 2 / (9 * df))) / sqrt(2 / (9 * df))
+    return isfinite(zstd) ? clamp(zstd, -cap, cap) : NaN
+end
+
+function _facets_compatibility_stats(design::FacetDesign,
+        params::AbstractVector;
+        by::Symbol,
+        min_n::Int,
+        weighting,
+        zstd_cap::Real,
+        variance_tolerance::Real,
+        method::Symbol,
+        parameter_estimate::Symbol,
+        n_draws_aggregated::Int)
+    min_n >= 1 || throw(ArgumentError("min_n must be positive"))
+    weighting === :unit ||
+        throw(ArgumentError(
+            "facets_compatibility_stats currently supports only weighting = :unit; " *
+            "frequency, sampling, and other observation weights are not implemented",
+        ))
+    isfinite(zstd_cap) && zstd_cap > 0 ||
+        throw(ArgumentError("zstd_cap must be finite and positive"))
+    isfinite(variance_tolerance) && variance_tolerance > 0 ||
+        throw(ArgumentError("variance_tolerance must be finite and positive"))
+    cap = Float64(zstd_cap)
+    tolerance = Float64(variance_tolerance)
+    moments = _facets_score_moments(design, params)
+    data = design.spec.data
+    group_index, group_levels = _fit_stat_groups(data, by)
+    threshold_model = design.spec.thresholds === :rating_scale ? :rsm : :pcm
+    rows = NamedTuple[]
+
+    for (level_index, level) in pairs(group_levels)
+        observations = findall(==(level_index), group_index)
+        valid = [
+            row for row in observations
+            if isfinite(moments.variance[row]) &&
+                moments.variance[row] > tolerance &&
+                isfinite(moments.fourth[row])
+        ]
+        n_obs = length(observations)
+        n_valid = length(valid)
+        n_excluded_tiny_variance = n_obs - n_valid
+
+        infit = NaN
+        outfit = NaN
+        infit_information = NaN
+        outfit_weight_sum = NaN
+        infit_fourth_moment_denominator = NaN
+        outfit_fourth_moment_denominator = NaN
+        infit_df = NaN
+        outfit_df = NaN
+        infit_zstd = NaN
+        outfit_zstd = NaN
+
+        if n_valid >= min_n
+            residual_ss = sum(row -> moments.residual[row]^2, valid)
+            infit_information = sum(row -> moments.variance[row], valid)
+            outfit_weight_sum = Float64(n_valid)
+            standardized_ss = sum(
+                row -> moments.residual[row]^2 / moments.variance[row],
+                valid,
+            )
+            infit = residual_ss / infit_information
+            outfit = standardized_ss / outfit_weight_sum
+            infit_fourth_moment_denominator = sum(
+                row -> moments.fourth[row] - moments.variance[row]^2,
+                valid,
+            )
+            outfit_fourth_moment_denominator = sum(
+                row -> moments.fourth[row] / moments.variance[row]^2 - 1,
+                valid,
+            )
+            infit_df, outfit_df = _facets_wright_masters_df(
+                infit_information,
+                outfit_weight_sum,
+                infit_fourth_moment_denominator,
+                outfit_fourth_moment_denominator,
+                tolerance,
+            )
+            infit_zstd = _facets_wilson_hilferty_zstd(infit, infit_df, cap)
+            outfit_zstd = _facets_wilson_hilferty_zstd(outfit, outfit_df, cap)
+        end
+
+        flag = n_valid < min_n ? :below_min_n :
+            !(isfinite(infit_df) && isfinite(outfit_df)) ?
+                :undefined_fourth_moment_df :
+            !(isfinite(infit_zstd) && isfinite(outfit_zstd)) ?
+                :undefined_zstd :
+            n_excluded_tiny_variance > 0 ?
+                :excluded_tiny_predictive_variance : :ok
+
+        push!(rows, (;
+            schema = "bayesianmgmfrm.facets_compatibility_stats.v1",
+            object = :facets_compatibility_fit_row,
+            model_family = :mfrm,
+            threshold_regime = design.spec.thresholds,
+            rasch_model = threshold_model,
+            facet = by,
+            level,
+            n_obs,
+            n_valid,
+            n_excluded_tiny_variance,
+            method,
+            parameter_estimate,
+            n_draws_aggregated,
+            weighting = :unit,
+            residual_formula = :observed_minus_plugin_expected_score,
+            mnsq_formula = :rasch_expected_score_variance,
+            df_method = :facets_wright_masters_fourth_moment,
+            zstd_transform = :wilson_hilferty_cube_root,
+            zstd_cap = cap,
+            approximation = :facets_compatible_bayesian_plugin,
+            facets_software_equivalence = :not_claimed,
+            posterior_uncertainty = :not_propagated,
+            generalized_model_support = :rejected,
+            infit,
+            outfit,
+            infit_information,
+            outfit_weight_sum,
+            infit_fourth_moment_denominator,
+            outfit_fourth_moment_denominator,
+            infit_df,
+            outfit_df,
+            infit_zstd,
+            outfit_zstd,
+            variance_tolerance = tolerance,
+            flag,
+            caveat = :point_estimate_approximation_not_facets_jml_output,
+        ))
+    end
+    return rows
+end
+
+"""
+    facets_compatibility_stats(fit::MFRMFit; by = :rater,
+        point_estimate = :posterior_mean, min_n = 1, weighting = :unit,
+        zstd_cap = 9, variance_tolerance = 1e-12, ndraws = nothing,
+        draw_indices = nothing, rng = Random.default_rng())
+    facets_compatibility_stats(design::FacetDesign, params; by = :rater,
+        min_n = 1, weighting = :unit, zstd_cap = 9,
+        variance_tolerance = 1e-12)
+
+Return an explicitly approximate FACETS-compatible fit table for the
+fit-supported one-dimensional MFRM rating-scale or partial-credit model. The
+fit method plugs the selected draws' parameter-wise posterior means into the
+Rasch response probabilities. It then computes infit and outfit MnSq, the
+Wright--Masters fourth-moment degrees of freedom, and Wilson--Hilferty ZSTD
+values capped at `+/-zstd_cap`.
+
+This function is separate from [`fit_stats`](@ref): posterior infit/outfit
+summaries remain the default Bayesian residual diagnostic. Only unit-weighted
+observations are supported, and rows state that posterior uncertainty is not
+propagated and numerical equivalence to FACETS JML output is not claimed.
+`GMFRMFit` and `MGMFRMFit` inputs are rejected because generalized
+discrimination invalidates an unqualified FACETS-df interpretation.
+"""
+function facets_compatibility_stats(design::FacetDesign,
+        params::AbstractVector;
+        by::Symbol = :rater,
+        min_n::Int = 1,
+        weighting = :unit,
+        zstd_cap::Real = 9,
+        variance_tolerance::Real = 1e-12)
+    return _facets_compatibility_stats(
+        design,
+        params;
+        by,
+        min_n,
+        weighting,
+        zstd_cap,
+        variance_tolerance,
+        method = :supplied_parameter_plugin,
+        parameter_estimate = :supplied,
+        n_draws_aggregated = 0,
+    )
+end
+
+function facets_compatibility_stats(fit::MFRMFit;
+        by::Symbol = :rater,
+        point_estimate::Symbol = :posterior_mean,
+        min_n::Int = 1,
+        weighting = :unit,
+        zstd_cap::Real = 9,
+        variance_tolerance::Real = 1e-12,
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng())
+    point_estimate === :posterior_mean ||
+        throw(ArgumentError(
+            "only point_estimate = :posterior_mean is currently supported",
+        ))
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    params = _facets_plugin_parameters(@view fit.draws[indices, :])
+    return _facets_compatibility_stats(
+        fit.design,
+        params;
+        by,
+        min_n,
+        weighting,
+        zstd_cap,
+        variance_tolerance,
+        method = :posterior_mean_plugin,
+        parameter_estimate = :posterior_mean,
+        n_draws_aggregated = length(indices),
+    )
+end
+
+function facets_compatibility_stats(fit::Union{GMFRMFit,MGMFRMFit}; kwargs...)
+    family = fit isa GMFRMFit ? :gmfrm : :mgmfrm
+    throw(ArgumentError(
+        "facets_compatibility_stats rejects $family fits: FACETS-style " *
+        "fourth-moment df and ZSTD are currently limited to unit-discrimination " *
+        "MFRM/RSM/PCM fits; generalized support requires a separately calibrated " *
+        "experimental estimand",
+    ))
+end
+
+"""
+    facets_report(args...; kwargs...)
+
+Report-oriented public name for [`facets_compatibility_stats`](@ref). It
+returns the same explicitly approximate, unit-weighted posterior-mean plugin
+rows for MFRM/RSM/PCM fits and preserves the same rejection boundaries for
+non-unit weights and generalized fits. [`fit_stats`](@ref) remains the default
+posterior Bayesian diagnostic.
+"""
+facets_report(args...; kwargs...) = facets_compatibility_stats(args...; kwargs...)
+
 """
     fit_stats(fit::MFRMFit; by = :rater, method = :posterior,
         interval = 0.95, min_n = 1, ndraws = nothing, draw_indices = nothing,
@@ -16642,8 +17747,8 @@ end
         output = :data, parameter_space = :direct, preview = false)
 
 Simulate one response dataset from the current fit-supported MFRM/RSM/PCM
-likelihood, or from a specified-only GMFRM/MGMFRM preview design for internal
-simulation/recovery scaffolding. MFRM/RSM/PCM designs use direct identified
+likelihood, or from a specified-only GMFRM/MGMFRM preview design for
+simulation and recovery evaluation. MFRM/RSM/PCM designs use direct identified
 parameters. GMFRM/MGMFRM previews accept constrained direct parameters by
 default, or raw fit-ready candidate parameters with `parameter_space = :raw`.
 `output = :data` returns a `FacetData` object with the same

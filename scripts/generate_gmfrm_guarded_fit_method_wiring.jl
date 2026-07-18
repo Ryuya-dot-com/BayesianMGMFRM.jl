@@ -144,7 +144,12 @@ function method_context()
     )
 end
 
-function rejection_check(name::Symbol, callable)
+function rejection_check(
+        name::Symbol,
+        callable;
+        legacy_blocked_option = missing,
+        legacy_next_gate = missing,
+        required_guidance = ())
     try
         callable()
         return (;
@@ -157,29 +162,26 @@ function rejection_check(name::Symbol, callable)
             actionable_gate_message = false,
         )
     catch err
-        message = sprint(showerror, err)
-        blocked_option = message_symbol_token(message, :blocked_option)
-        next_gate = message_symbol_token(message, :next_gate)
+        message = portable_error_message(err)
+        actionable_gate_message = !isempty(required_guidance) &&
+            all(fragment -> occursin(fragment, message), required_guidance)
         return (;
             check = name,
             rejected = true,
             error_type = String(nameof(typeof(err))),
             message,
-            blocked_option,
-            next_gate,
-            actionable_gate_message = !ismissing(next_gate),
+            # Retain the v1 artifact fields as compatibility metadata. Public
+            # errors intentionally use reader-facing guidance instead of these
+            # maintainer identifiers.
+            blocked_option = legacy_blocked_option,
+            next_gate = legacy_next_gate,
+            actionable_gate_message,
         )
     end
 end
 
-rejection_check(callable, name::Symbol) = rejection_check(name, callable)
-
-function message_symbol_token(message::AbstractString, key::Symbol)
-    pattern = Regex(string(key, "=:(\\w+)"))
-    found = match(pattern, message)
-    found === nothing && return missing
-    return Symbol(found.captures[1])
-end
+rejection_check(callable, name::Symbol; kwargs...) =
+    rejection_check(name, callable; kwargs...)
 
 function sampler_kwargs()
     sampler = PROTOCOL.sampler
@@ -274,7 +276,16 @@ function build_artifact()
                 warmup = 0,
             )
         end,
-        rejection_check(:fit_experimental_unsupported_backend) do
+        rejection_check(
+            :fit_experimental_unsupported_backend;
+            legacy_blocked_option = :backend,
+            legacy_next_gate = :advancedhmc_guarded_sampler_policy,
+            required_guidance = (
+                "does not support backend = :julia",
+                "Supported configuration:",
+                "backend = :advancedhmc",
+            ),
+        ) do
             BayesianMGMFRM.fit(
                 context.spec;
                 experimental = true,
@@ -283,7 +294,16 @@ function build_artifact()
                 warmup = 0,
             )
         end,
-        rejection_check(:fit_experimental_public_mfrm_prior) do
+        rejection_check(
+            :fit_experimental_public_mfrm_prior;
+            legacy_blocked_option = :prior,
+            legacy_next_gate = :scalar_gmfrm_prior_likelihood_sensitivity_grid,
+            required_guidance = (
+                "does not support prior = :MFRMPrior",
+                "Supported configuration:",
+                "Omit `prior`",
+            ),
+        ) do
             BayesianMGMFRM.fit(
                 context.spec;
                 experimental = true,
@@ -292,7 +312,16 @@ function build_artifact()
                 warmup = 0,
             )
         end,
-        rejection_check(:fit_experimental_dff_effects) do
+        rejection_check(
+            :fit_experimental_dff_effects;
+            legacy_blocked_option = :dff_effects,
+            legacy_next_gate = :gmfrm_dff_estimand_validation_grid,
+            required_guidance = (
+                "does not support dff_effects =",
+                "Supported configuration:",
+                "not fitted model effects",
+            ),
+        ) do
             BayesianMGMFRM.fit(
                 context.dff_spec;
                 experimental = true,
@@ -300,7 +329,16 @@ function build_artifact()
                 warmup = 0,
             )
         end,
-        rejection_check(:fit_experimental_non_rater_discrimination) do
+        rejection_check(
+            :fit_experimental_non_rater_discrimination;
+            legacy_blocked_option = :discrimination,
+            legacy_next_gate = :item_discrimination_promotion_decision,
+            required_guidance = (
+                "does not support discrimination = :item",
+                "Supported configuration:",
+                "discrimination = (:rater,)",
+            ),
+        ) do
             BayesianMGMFRM.fit(
                 context.item_discrimination_spec;
                 experimental = true,

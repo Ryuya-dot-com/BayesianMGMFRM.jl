@@ -101,7 +101,7 @@
       "artifact": "guarded_local_fit_entrypoint",
       "path": "test/fixtures/mgmfrm_guarded_local_fit_entrypoint.json",
       "exists": true,
-      "sha256": "8ac8c517b558da43c47db9236eaa05c6f77aa34e3539d20eaa9613bc2b1c506c",
+      "sha256": "bea892cc2e49fa90071f6a0253c0d8759544f0c567058b58d68946cc6cf907e2",
       "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_local_fit_entrypoint.v1",
       "schema": "bayesianmgmfrm.mgmfrm_guarded_local_fit_entrypoint.v1",
       "schema_matches": true,

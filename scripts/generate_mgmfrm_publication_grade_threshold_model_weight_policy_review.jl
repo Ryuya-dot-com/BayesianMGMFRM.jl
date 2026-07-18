@@ -219,8 +219,42 @@ function heldout_rows_by_model(batch)
     return rows
 end
 
-function model_weight_rows(batch, policy)
+function check_completed_model_weight_surface(batch)
+    summary = batch[:summary]
+    heldout_rows = batch[:heldout_model_rank_rows]
     by_model = heldout_rows_by_model(batch)
+    expected_models = Set(keys(MODEL_SURFACE))
+    observed_models = Set(keys(by_model))
+    all_125_units_executed =
+        as_bool(json_get(summary, :all_125_units_executed, false))
+    summary_row_count =
+        as_int(json_get(summary, :n_heldout_model_rank_rows, 0))
+    actual_row_count = length(heldout_rows)
+    balanced_surface = observed_models == expected_models &&
+        all(length(get(by_model, model, Any[])) == 25
+            for model in expected_models)
+
+    if !(all_125_units_executed && summary_row_count == 125 &&
+            actual_row_count == 125 && balanced_surface)
+        model_counts = join([
+            "$(model)=$(length(get(by_model, model, Any[])))"
+            for model in sort(collect(expected_models))
+        ], ", ")
+        throw(ArgumentError(
+            "publication-grade model weights require a completed " *
+            "125-unit heldout surface (5 models x 25 cells); got " *
+            "all_125_units_executed=$(all_125_units_executed), " *
+            "summary_rows=$(summary_row_count), " *
+            "actual_rows=$(actual_row_count), model_rows={$(model_counts)}. " *
+            "Regenerate the batch review with --read-local-artifacts after " *
+            "all local job artifacts exist."
+        ))
+    end
+    return by_model
+end
+
+function model_weight_rows(batch, policy)
+    by_model = check_completed_model_weight_surface(batch)
     threshold_by_model = threshold_rows_by_model(batch)
     policy_rows = policy_by_surface(policy)
     totals = Dict(model => sum(as_float(row[:heldout_elpd]) for row in rows)
@@ -546,4 +580,6 @@ function main(args)
     return nothing
 end
 
-main(ARGS)
+if abspath(PROGRAM_FILE) == abspath(@__FILE__)
+    main(ARGS)
+end

@@ -20,6 +20,12 @@ function print_header(label)
     println("== ", label, " ==")
 end
 
+function reader_support_status(status)
+    status === :fit_supported && return :supported
+    occursin("experimental", String(status)) && return :experimental
+    return :not_supported
+end
+
 ratings = (
     examinee = ["E1", "E1", "E1", "E1", "E2", "E2", "E2", "E2"],
     rater = ["R1", "R2", "R1", "R2", "R1", "R2", "R1", "R2"],
@@ -46,7 +52,11 @@ println(validation)
 println(spec)
 println(design)
 println("Parameters: ", join(design.parameter_names, ", "))
-print_rows("Model ladder", model_ladder(); fields = (:family, :scope, :estimation_status))
+ladder_rows = [(;
+    family = row.family,
+    status = reader_support_status(row.estimation_status),
+) for row in model_ladder()]
+print_rows("Model ladder", ladder_rows; fields = (:family, :status))
 print_rows("Constraints", constraint_table(design);
     fields = (:block, :constraint, :status, :n_parameters))
 manifest = model_manifest(design)
@@ -94,7 +104,7 @@ ppc = posterior_predictive_check(fit_result; ndraws = 4, rng = MersenneTwister(1
 print_header("Fit")
 print_rows("Prior predictive rows", predictive_check_summary(prior_ppc);
     fields = (:statistic, :level, :observed, :replicated_mean, :flag))
-println("Fit cache path: ", cache_path)
+println("Fit cache: created ", basename(cache_path))
 println("Fit cache key: ", fit_cache_key(spec; prior, ndraws = 4, warmup = 4, chains = 2, step_size = 0.1, seed = 102))
 metadata = fit_metadata(fit_result)
 println("Fit metadata: backend=", metadata.backend,
@@ -111,6 +121,7 @@ println("Fit artifact: schema=", artifact.schema,
     ", draws=", artifact.reproducibility.artifact_policy.draws,
     ", diagnostics=", artifact.diagnostics.summary.flag)
 report = fit_report(fit_result;
+    view = :public,
     include_prior_predictive = true,
     prior_predictive_ndraws = 4,
     ndraws = 4,
@@ -124,7 +135,7 @@ report_path = joinpath(mktempdir(), "minimal_fit_report.json")
 report_export = save_fit_report(report_path, report)
 println("Fit report export: schema=", report_export.schema,
     ", json_hash=", report_export.json_content_hash.value,
-    ", path=", report_path)
+    ", file=", basename(report_path))
 loaded_report = load_fit_report(report_path)
 posterior_rows = fit_report_rows(loaded_report, :posterior)
 println("Loaded fit report: sections=", length(fit_report_sections(loaded_report)),
@@ -133,20 +144,20 @@ report_table_dir = joinpath(mktempdir(), "minimal_fit_report_tables")
 report_table_manifest = save_fit_report_tables(report_table_dir, loaded_report)
 println("Fit report tables: tables=", report_table_manifest.n_tables,
     ", rows=", report_table_manifest.n_rows,
-    ", dir=", report_table_dir)
+    ", directory=", basename(report_table_dir))
 loaded_report_tables = load_fit_report_tables(report_table_dir)
 println("Loaded fit report tables: tables=", length(loaded_report_tables))
 report_markdown_path = joinpath(mktempdir(), "minimal_fit_report.md")
 report_markdown_export = save_fit_report_markdown(report_markdown_path, loaded_report;
     max_rows = 3)
 println("Fit report markdown: bytes=", report_markdown_export.n_bytes,
-    ", path=", report_markdown_path)
+    ", file=", basename(report_markdown_path))
 report_bundle_dir = joinpath(mktempdir(), "minimal_fit_report_bundle")
 report_bundle_manifest = save_fit_report_bundle(report_bundle_dir, loaded_report;
     max_rows = 3)
 println("Fit report bundle: tables=", report_bundle_manifest.n_tables,
     ", rows=", report_bundle_manifest.n_rows,
-    ", dir=", report_bundle_dir)
+    ", directory=", basename(report_bundle_dir))
 loaded_bundle_report = load_fit_report_bundle(report_bundle_dir)
 println("Loaded bundle report: sections=", length(fit_report_sections(loaded_bundle_report)))
 diagnostic_surface = diagnostics(fit_result)

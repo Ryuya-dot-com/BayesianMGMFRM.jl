@@ -20,6 +20,15 @@ function escape_json_string(value::AbstractString)
     return String(take!(io))
 end
 
+function normalize_error_message(message::AbstractString)
+    canonical = replace(String(message), "\r\n" => "\n", '\r' => '\n')
+    lines = split(canonical, '\n'; keepempty = true)
+    filter!(line -> !occursin(r"^\s*@\s+.*\.jl:\d+\s*$", line), lines)
+    return join(lines, '\n')
+end
+
+portable_error_message(err) = normalize_error_message(sprint(showerror, err))
+
 function write_indent(io, indent)
     print(io, repeat(" ", indent))
 end
@@ -53,15 +62,15 @@ function write_json(io, value, indent::Int = 0)
         end
         print(io, "}")
     elseif value isa AbstractDict
-        keys = sort(collect(keys(value)); by = string)
+        dict_keys = sort(collect(Base.keys(value)); by = string)
         print(io, "{")
-        if !isempty(keys)
+        if !isempty(dict_keys)
             println(io)
-            for (index, key) in enumerate(keys)
+            for (index, key) in enumerate(dict_keys)
                 write_indent(io, indent + 2)
                 print(io, '"', escape_json_string(String(key)), "\": ")
                 write_json(io, value[key], indent + 2)
-                index < length(keys) && print(io, ",")
+                index < length(dict_keys) && print(io, ",")
                 println(io)
             end
             write_indent(io, indent)

@@ -1,0 +1,460 @@
+{
+  "schema": "bayesianmgmfrm.mgmfrm_tam_direct_estimate_pilot.v1",
+  "family": "mfrm",
+  "scope": "tam_direct_package_posterior_estimate_pilot",
+  "status": "direct_estimate_pilot_recorded_thresholds_not_predeclared",
+  "decision": "record_descriptive_direct_comparison_keep_claim_blocked",
+  "local_only": true,
+  "external_software": "tam",
+  "package_estimator_direct_comparison_completed": true,
+  "direct_agreement_thresholds_predeclared": false,
+  "external_software_validation_completed": false,
+  "public_claim_release_allowed": false,
+  "publication_or_registration_action": false,
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "protocol": {
+    "protocol_id": "mgmfrm_tam_direct_estimate_pilot_v1",
+    "generator": "scripts/generate_mgmfrm_tam_direct_estimate_pilot.jl",
+    "generator_source_sha256": "33c08f3683314353fc5dc529f27abf0cf1e4ba67305e393fb6d1d04dad6768aa",
+    "baseline_artifact": "test/fixtures/mgmfrm_tam_overlap_baseline.json",
+    "baseline_artifact_sha256": "030b08987dca7e51565bb4e557d4287a3f18c737693e68b4677a9ca3f3d21783",
+    "tam_execution_review": "test/fixtures/mgmfrm_tam_overlap_execution_review.json",
+    "tam_execution_review_sha256": "9ba624785d2c631f74624875bdecd3591b0ac891e645101c065bb0fb41a4a3f1",
+    "package_fit": "BayesianMGMFRM_AdvancedHMC_NUTS",
+    "seed": 20260713,
+    "ndraws_per_chain": 400,
+    "warmup_per_chain": 400,
+    "chains": 4,
+    "target_accept": 0.9,
+    "max_depth": 10,
+    "metric": "diagonal",
+    "ad_backend": "ForwardDiff",
+    "prior": {
+      "person_sd": 1.5,
+      "rater_sd": 1.0,
+      "item_sd": 1.0,
+      "step_sd": 1.0
+    }
+  },
+  "estimand_crosswalk": {
+    "item": "center_reference_coded_package_and_tam_item_effects",
+    "rater": "center_reference_coded_package_and_tam_rater_effects",
+    "item_step": "reconstruct_last_step_as_negative_free_step_sum",
+    "estimator_difference": "package_fixed_person_bayesian_model_vs_tam_marginal_maximum_likelihood",
+    "equality_expected": false
+  },
+  "sampler_summary": {
+    "n_parameters": 57,
+    "total_posterior_draws": 1600,
+    "all_draws_and_logposterior_finite": true,
+    "acceptance_rate": 0.9101421073711512,
+    "chain_acceptance_rate": [
+      0.9050816793740311,
+      0.9226440071260869,
+      0.9038231702784298,
+      0.9090195727060569
+    ],
+    "n_divergences": 0,
+    "n_max_treedepth": 0,
+    "max_classical_split_rhat": 1.0019750013296171,
+    "min_autocorrelation_ess": 999.0942686915723,
+    "n_mcmc_warning_parameters": 0,
+    "manuscript_diagnostic_thresholds_passed": true
+  },
+  "parameter_rows": [
+    {
+      "block": "item_difficulty",
+      "parameter": "item[1]",
+      "package_posterior_mean": -0.028616039663233676,
+      "package_posterior_sd": 0.08406495946796853,
+      "package_posterior_lower95": -0.20138389007247287,
+      "package_posterior_upper95": 0.13107038847201383,
+      "tam_estimate": -0.01469154911165882,
+      "known_truth": 0.0,
+      "tam_inside_package_interval95": true,
+      "truth_inside_package_interval95": true
+    },
+    {
+      "block": "item_difficulty",
+      "parameter": "item[2]",
+      "package_posterior_mean": 0.34189902901837294,
+      "package_posterior_sd": 0.09034957311962159,
+      "package_posterior_lower95": 0.16834967779599166,
+      "package_posterior_upper95": 0.5171879873242907,
+      "tam_estimate": 0.32496576228717616,
+      "known_truth": 0.287535409917976,
+      "tam_inside_package_interval95": true,
+      "truth_inside_package_interval95": true
+    },
+    {
+      "block": "item_difficulty",
+      "parameter": "item[3]",
+      "package_posterior_mean": -0.7430067983984512,
+      "package_posterior_sd": 0.09504929171792094,
+      "package_posterior_lower95": -0.9349163627169184,
+      "package_posterior_upper95": -0.560148170228891,
+      "tam_estimate": -0.7194359355283269,
+      "known_truth": -0.5804385878632201,
+      "tam_inside_package_interval95": true,
+      "truth_inside_package_interval95": true
+    },
+    {
+      "block": "item_difficulty",
+      "parameter": "item[4]",
+      "package_posterior_mean": 0.5347272415682355,
+      "package_posterior_sd": 0.09613833876910316,
+      "package_posterior_lower95": 0.35244522800935457,
+      "package_posterior_upper95": 0.7221471142729043,
+      "tam_estimate": 0.5167556435451162,
+      "known_truth": 0.39338528935858064,
+      "tam_inside_package_interval95": true,
+      "truth_inside_package_interval95": true
+    },
+    {
+      "block": "item_difficulty",
+      "parameter": "item[5]",
+      "package_posterior_mean": -0.1050034325249235,
+      "package_posterior_sd": 0.09042909645043508,
+      "package_posterior_lower95": -0.2809747649849985,
+      "package_posterior_upper95": 0.059968520918107095,
+      "tam_estimate": -0.10759392119230682,
+      "known_truth": -0.10048211141333652,
+      "tam_inside_package_interval95": true,
+      "truth_inside_package_interval95": true
+    },
+    {
+      "block": "rater_severity",
+      "parameter": "rater[1]",
+      "package_posterior_mean": -0.1454669456402934,
+      "package_posterior_sd": 0.07191821194172413,
+      "package_posterior_lower95": -0.28285116413290173,
+      "package_posterior_upper95": -0.002705061633557732,
+      "tam_estimate": -0.13437219257683525,
+      "known_truth": -5.551115123125783e-17,
+      "tam_inside_package_interval95": true,
+      "truth_inside_package_interval95": false
+    },
+    {
+      "block": "rater_severity",
+      "parameter": "rater[2]",
+      "package_posterior_mean": -1.0035384889418892,
+      "package_posterior_sd": 0.089366180748695,
+      "package_posterior_lower95": -1.1804505287278602,
+      "package_posterior_upper95": -0.8289754740736381,
+      "tam_estimate": -0.9754905374295703,
+      "known_truth": -0.9561427793457054,
+      "tam_inside_package_interval95": true,
+      "truth_inside_package_interval95": true
+    },
+    {
+      "block": "rater_severity",
+      "parameter": "rater[3]",
+      "package_posterior_mean": 0.24795612884443843,
+      "package_posterior_sd": 0.07540385315484623,
+      "package_posterior_lower95": 0.10385795837654613,
+      "package_posterior_upper95": 0.39736244493367,
+      "tam_estimate": 0.23787845227107576,
+      "known_truth": 0.2114341791955211,
+      "tam_inside_package_interval95": true,
+      "truth_inside_package_interval95": true
+    },
+    {
+      "block": "rater_severity",
+      "parameter": "rater[4]",
+      "package_posterior_mean": 0.9010493057377446,
+      "package_posterior_sd": 0.09222246778986178,
+      "package_posterior_lower95": 0.7249615964264343,
+      "package_posterior_upper95": 1.087103132329439,
+      "tam_estimate": 0.8719842777353298,
+      "known_truth": 0.7447086001501844,
+      "tam_inside_package_interval95": true,
+      "truth_inside_package_interval95": true
+    },
+    {
+      "block": "item_step",
+      "parameter": "item[1]:step[1]",
+      "package_posterior_mean": -0.23769255943270387,
+      "package_posterior_sd": 0.22408389046915217,
+      "package_posterior_lower95": -0.668945696480368,
+      "package_posterior_upper95": 0.2056538082445848,
+      "tam_estimate": -0.195856026576587,
+      "known_truth": 0.3090654987977079,
+      "tam_inside_package_interval95": true,
+      "truth_inside_package_interval95": false
+    },
+    {
+      "block": "item_step",
+      "parameter": "item[1]:step[2]",
+      "package_posterior_mean": -0.36341484979895694,
+      "package_posterior_sd": 0.26831199724659077,
+      "package_posterior_lower95": -0.89756650695228,
+      "package_posterior_upper95": 0.14955633329480436,
+      "tam_estimate": -0.38602412833473,
+      "known_truth": -0.30967391970539726,
+      "tam_inside_package_interval95": true,
+      "truth_inside_package_interval95": true
+    },
+    {
+      "block": "item_step",
+      "parameter": "item[1]:step[3]",
+      "package_posterior_mean": 0.6011074092316607,
+      "package_posterior_sd": 0.21729548408436997,
+      "package_posterior_lower95": 0.1751621591116724,
+      "package_posterior_upper95": 1.0113066487509306,
+      "tam_estimate": 0.581880154911317,
+      "known_truth": 0.0006084209076893665,
+      "tam_inside_package_interval95": true,
+      "truth_inside_package_interval95": false
+    },
+    {
+      "block": "item_step",
+      "parameter": "item[2]:step[1]",
+      "package_posterior_mean": 0.3061037212739769,
+      "package_posterior_sd": 0.23703503790182864,
+      "package_posterior_lower95": -0.1601648720421007,
+      "package_posterior_upper95": 0.790638451759071,
+      "tam_estimate": 0.35976497044455,
+      "known_truth": 0.3190112129106472,
+      "tam_inside_package_interval95": true,
+      "truth_inside_package_interval95": true
+    },
+    {
+      "block": "item_step",
+      "parameter": "item[2]:step[2]",
+      "package_posterior_mean": -0.15908504706917242,
+      "package_posterior_sd": 0.3020673801495978,
+      "package_posterior_lower95": -0.7518206098061423,
+      "package_posterior_upper95": 0.42339906091078455,
+      "tam_estimate": -0.198460220935497,
+      "known_truth": 0.05875989867420562,
+      "tam_inside_package_interval95": true,
+      "truth_inside_package_interval95": true
+    },
+    {
+      "block": "item_step",
+      "parameter": "item[2]:step[3]",
+      "package_posterior_mean": -0.1470186742048045,
+      "package_posterior_sd": 0.252428884960552,
+      "package_posterior_lower95": -0.6615929972359328,
+      "package_posterior_upper95": 0.3441807617393725,
+      "tam_estimate": -0.161304749509053,
+      "known_truth": -0.3777711115848528,
+      "tam_inside_package_interval95": true,
+      "truth_inside_package_interval95": true
+    },
+    {
+      "block": "item_step",
+      "parameter": "item[3]:step[1]",
+      "package_posterior_mean": 0.38402377309423774,
+      "package_posterior_sd": 0.27556614475569624,
+      "package_posterior_lower95": -0.12962956084941438,
+      "package_posterior_upper95": 0.9469424076042604,
+      "tam_estimate": 0.517731456817207,
+      "known_truth": 0.5533524304874086,
+      "tam_inside_package_interval95": true,
+      "truth_inside_package_interval95": true
+    },
+    {
+      "block": "item_step",
+      "parameter": "item[3]:step[2]",
+      "package_posterior_mean": -0.9323580380851046,
+      "package_posterior_sd": 0.29043386664737847,
+      "package_posterior_lower95": -1.496938826804748,
+      "package_posterior_upper95": -0.3682791194270164,
+      "tam_estimate": -1.0456942447647,
+      "known_truth": -0.8479984645733923,
+      "tam_inside_package_interval95": true,
+      "truth_inside_package_interval95": true
+    },
+    {
+      "block": "item_step",
+      "parameter": "item[3]:step[3]",
+      "package_posterior_mean": 0.5483342649908669,
+      "package_posterior_sd": 0.20275740649243915,
+      "package_posterior_lower95": 0.16195498829941246,
+      "package_posterior_upper95": 0.9447164040605699,
+      "tam_estimate": 0.527962787947492,
+      "known_truth": 0.2946460340859838,
+      "tam_inside_package_interval95": true,
+      "truth_inside_package_interval95": true
+    },
+    {
+      "block": "item_step",
+      "parameter": "item[4]:step[1]",
+      "package_posterior_mean": 0.21227407213230573,
+      "package_posterior_sd": 0.24370794293803322,
+      "package_posterior_lower95": -0.23407027191400234,
+      "package_posterior_upper95": 0.70460377490797,
+      "tam_estimate": 0.282599142742445,
+      "known_truth": 0.03580631197522096,
+      "tam_inside_package_interval95": true,
+      "truth_inside_package_interval95": true
+    },
+    {
+      "block": "item_step",
+      "parameter": "item[4]:step[2]",
+      "package_posterior_mean": -0.6751006620877428,
+      "package_posterior_sd": 0.2856602584818152,
+      "package_posterior_lower95": -1.2259144496165228,
+      "package_posterior_upper95": -0.12993280663409362,
+      "tam_estimate": -0.73218231480366,
+      "known_truth": -0.23540567471092796,
+      "tam_inside_package_interval95": true,
+      "truth_inside_package_interval95": true
+    },
+    {
+      "block": "item_step",
+      "parameter": "item[4]:step[3]",
+      "package_posterior_mean": 0.46282658995543696,
+      "package_posterior_sd": 0.23532379221376534,
+      "package_posterior_lower95": -0.01872757941763161,
+      "package_posterior_upper95": 0.9116440240602898,
+      "tam_estimate": 0.449583172061215,
+      "known_truth": 0.199599362735707,
+      "tam_inside_package_interval95": true,
+      "truth_inside_package_interval95": true
+    },
+    {
+      "block": "item_step",
+      "parameter": "item[5]:step[1]",
+      "package_posterior_mean": -0.3227644570394091,
+      "package_posterior_sd": 0.21660072995282995,
+      "package_posterior_lower95": -0.7359394980643593,
+      "package_posterior_upper95": 0.11903446734111814,
+      "tam_estimate": -0.290765083008489,
+      "known_truth": 0.1374771926375064,
+      "tam_inside_package_interval95": true,
+      "truth_inside_package_interval95": false
+    },
+    {
+      "block": "item_step",
+      "parameter": "item[5]:step[2]",
+      "package_posterior_mean": 0.05717607085505517,
+      "package_posterior_sd": 0.26617023705110837,
+      "package_posterior_lower95": -0.4379013261498905,
+      "package_posterior_upper95": 0.5978578997651641,
+      "tam_estimate": 0.0626934035776798,
+      "known_truth": -0.45793472604054164,
+      "tam_inside_package_interval95": true,
+      "truth_inside_package_interval95": false
+    },
+    {
+      "block": "item_step",
+      "parameter": "item[5]:step[3]",
+      "package_posterior_mean": 0.2655883861843538,
+      "package_posterior_sd": 0.2383677538433326,
+      "package_posterior_lower95": -0.19836682173966413,
+      "package_posterior_upper95": 0.7246495923607813,
+      "tam_estimate": 0.228071679430809,
+      "known_truth": 0.32045753340303523,
+      "tam_inside_package_interval95": true,
+      "truth_inside_package_interval95": true
+    }
+  ],
+  "direct_comparison_rows": [
+    {
+      "block": "item_difficulty",
+      "n_parameters": 5,
+      "adapter": "centered_item_rater_and_reconstructed_sum_zero_steps",
+      "pearson_correlation": 0.9998687567787137,
+      "mean_abs_difference": 0.01499814136867975,
+      "max_abs_difference": 0.023570862870124443,
+      "mean_signed_difference": 2.4980018054066023e-17,
+      "interpretation": "descriptive_package_posterior_mean_vs_tam_estimate"
+    },
+    {
+      "block": "item_difficulty",
+      "n_parameters": 5,
+      "adapter": "centered_item_rater_and_reconstructed_sum_zero_steps",
+      "pearson_correlation": 0.9984351198925923,
+      "mean_abs_difference": 0.07828222852402071,
+      "max_abs_difference": 0.16256821053523118,
+      "mean_signed_difference": -5.551115123125783e-18,
+      "interpretation": "descriptive_package_posterior_mean_vs_known_truth"
+    },
+    {
+      "block": "rater_severity",
+      "n_parameters": 4,
+      "adapter": "centered_item_rater_and_reconstructed_sum_zero_steps",
+      "pearson_correlation": 0.9999833178265483,
+      "mean_abs_difference": 0.019571352287888505,
+      "max_abs_difference": 0.029065028002414284,
+      "mean_signed_difference": -2.7755575615628914e-17,
+      "interpretation": "descriptive_package_posterior_mean_vs_tam_estimate"
+    },
+    {
+      "block": "rater_severity",
+      "n_parameters": 4,
+      "adapter": "centered_item_rater_and_reconstructed_sum_zero_steps",
+      "pearson_correlation": 0.9920255191546302,
+      "mean_abs_difference": 0.09643132761823855,
+      "max_abs_difference": 0.15634070558755975,
+      "mean_signed_difference": -2.0816681711721685e-17,
+      "interpretation": "descriptive_package_posterior_mean_vs_known_truth"
+    },
+    {
+      "block": "item_step",
+      "n_parameters": 15,
+      "adapter": "centered_item_rater_and_reconstructed_sum_zero_steps",
+      "pearson_correlation": 0.9943382370046474,
+      "mean_abs_difference": 0.044939632415112486,
+      "max_abs_difference": 0.13370768372296915,
+      "mean_signed_difference": 8.974302782386682e-17,
+      "interpretation": "descriptive_package_posterior_mean_vs_tam_estimate"
+    },
+    {
+      "block": "item_step",
+      "n_parameters": 15,
+      "adapter": "centered_item_rater_and_reconstructed_sum_zero_steps",
+      "pearson_correlation": 0.6766665497980103,
+      "mean_abs_difference": 0.2719660587841753,
+      "max_abs_difference": 0.6004989883239715,
+      "mean_signed_difference": 7.401486830834377e-18,
+      "interpretation": "descriptive_package_posterior_mean_vs_known_truth"
+    }
+  ],
+  "block_interval_summary_rows": [
+    {
+      "block": "item_difficulty",
+      "n_parameters": 5,
+      "tam_inside_package_interval95_rate": 1.0,
+      "truth_inside_package_interval95_rate": 1.0
+    },
+    {
+      "block": "rater_severity",
+      "n_parameters": 4,
+      "tam_inside_package_interval95_rate": 1.0,
+      "truth_inside_package_interval95_rate": 0.75
+    },
+    {
+      "block": "item_step",
+      "n_parameters": 15,
+      "tam_inside_package_interval95_rate": 1.0,
+      "truth_inside_package_interval95_rate": 0.7333333333333333
+    }
+  ],
+  "claim_limits": [
+    "single_dataset_direct_estimate_pilot",
+    "direct_agreement_thresholds_not_predeclared",
+    "package_and_tam_estimators_are_not_identical",
+    "package_uses_fixed_person_parameters_tam_uses_marginal_likelihood",
+    "no_facets_or_conquest_execution",
+    "no_generalized_gmfrm_or_mgmfrm_external_validation",
+    "no_public_claim_release"
+  ],
+  "summary": {
+    "passed": true,
+    "direct_estimate_pilot_completed": true,
+    "direct_agreement_thresholds_predeclared": false,
+    "sampler_diagnostics_passed": true,
+    "n_parameter_rows": 24,
+    "n_direct_comparison_rows": 6,
+    "external_software_validation_completed": false,
+    "public_claim_release_allowed": false,
+    "next_gate": "freeze_direct_agreement_policy_then_run_multireplication_package_vs_tam_fits"
+  }
+}
