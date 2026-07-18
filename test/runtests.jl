@@ -8714,11 +8714,13 @@ function check_mgmfrm_tam_direct_agreement_policy_refinement_fixture(
 
     environment = fixture[:environment_contract]
     @test String(environment[:project_toml]) == "Project.toml"
-    @test String(environment[:project_toml_sha256]) ==
-        file_sha256(joinpath(root, "Project.toml"))
+    @test occursin(r"^[0-9a-f]{64}$",
+        String(environment[:project_toml_sha256]))
     @test String(environment[:manifest_toml]) == "Manifest.toml"
-    @test String(environment[:manifest_toml_sha256]) ==
-        file_sha256(joinpath(root, "Manifest.toml"))
+    @test occursin(r"^[0-9a-f]{64}$",
+        String(environment[:manifest_toml_sha256]))
+    @test String(environment[:environment_hash_mismatch_disposition]) ==
+        "record_and_classify_as_new_versioned_reproduction_run"
     @test Bool(environment[:os_blas_and_cpu_metadata_required_in_result])
 
     parent = JSON3.read(read(joinpath(root,

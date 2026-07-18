@@ -396,7 +396,7 @@
       "path": "test/fixtures/gmfrm_claim_recovery_reproduction_archive.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "25600bf9c8a5d33fa04eaa55c070d523ca840ebe4bd97acfbb6417a39abcda57",
+      "sha256": "221efd79a639779990969a4cf3022a3225f1edf36dff5f55e328065237b01544",
       "expected_schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
       "schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
       "schema_matches": true,
@@ -1308,8 +1308,8 @@
     {
       "path": "test/runtests.jl",
       "exists": true,
-      "sha256": "7f614f4c7b3818f35019cd31b6e7467206826ef3b4c5e813059995cab5d4de4f",
-      "line_count": 30431
+      "sha256": "182d0bb7ffaaf6aa9935a17645ed98daa77ce1fd2e686cf884aa278d6dfbc2c8",
+      "line_count": 30433
     },
     {
       "path": "test/facets_compatibility_stats.jl",
