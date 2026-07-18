@@ -20268,10 +20268,18 @@ end
     @test release_gate.summary.n_failed_rows == 0
     @test !release_gate.summary.broad_generalized_fit_allowed
     @test !release_gate.summary.model_weight_claims_allowed
+    @test release_gate.summary.next_gate ===
+        :manual_publication_or_registration_by_user_only
     @test any(row -> row.source === :documentation &&
         row.target === :readme_public_surface &&
         row.check === :required_text &&
         row.expected == "| Scalar rater-consistency GMFRM | Experimental |" &&
+        row.status === :passed,
+        release_gate.rows)
+    @test any(row -> row.source === :documentation &&
+        row.target === :news_public_changes &&
+        row.check === :required_text &&
+        row.expected == "## 0.1.1" &&
         row.status === :passed,
         release_gate.rows)
     @test any(row -> row.source === :manifest &&

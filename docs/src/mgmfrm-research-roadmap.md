@@ -9,11 +9,12 @@ equation.
 
 ## Scope Decision
 
-The active post-`v0.1.0` sequence is:
+The `v0.1.x` sequence records `v0.1.1` as completed and continues with:
 
-- `v0.1.1`: refine fixed-Q confirmatory MGMFRM. Strengthen execution,
-  diagnostics, reporting, and validation for the existing guarded path.
-- `v0.1.2`: stay fixed-Q and confirmatory, but expand dimensionality,
+- `v0.1.1`: completed fixed-Q confirmatory MGMFRM refinement by strengthening
+  execution, diagnostics, reporting, and validation for the existing guarded
+  path.
+- `v0.1.2`: next, stay fixed-Q and confirmatory, but expand dimensionality,
   Q validation, and fit-threshold calibration beyond the original compact
   smoke surface.
 - `v0.1.3`: decide whether free latent correlations are ready for guarded
@@ -72,13 +73,13 @@ At the local level, each topic has a specific near-term decision.
 | Weakly informative priors | Public MFRM uses independent normal priors on identified parameters. Guarded generalized fits use raw-coordinate independent normal priors. | Keep defaults weakly informative but require prior predictive checks and prior/likelihood power-scaling sensitivity before interpretation. |
 | Hierarchical shrinkage | Current public priors are independent by block; sparse rater-mediated designs often invite partial pooling, but pooling changes estimands and shrinkage interpretation. | Keep independent priors as the v0.1.x default. Before `v0.2.0`, decide whether hierarchical facet priors are out of scope, optional experimental, or part of the stable MGMFRM surface; if added, report shrinkage diagnostics and sensitivity. |
 | Convergence diagnostics | Current R-hat/ESS are classical split R-hat and autocorrelation ESS. HMC rows include divergences, tree-depth fields, and E-BFMI when available. | Label current R-hat/ESS as provisional and add rank-normalized R-hat plus bulk/tail ESS before stable generalized claims. |
-| Model comparison | WAIC, raw LOO, PSIS-LOO, K-fold, and shared-plan refit comparison rows exist. | Keep comparison rows diagnostic in `v0.1.1`; require prediction-target statements, Pareto-k/refit or K-fold follow-up, and no model-weight/superiority language. |
-| Visualization | The package returns plotting-ready rows for recovery, calibration, PPC, threshold maps, coverage matrices, rater overlap, and Wright maps. | In `v0.1.1`, stabilize plot-data schemas and documentation examples; defer backend-specific recipes until the report data contract is stable. |
+| Model comparison | WAIC, raw LOO, PSIS-LOO, K-fold, and shared-plan refit comparison rows exist. | The `v0.1.1` scope kept comparison rows diagnostic; prediction-target statements, Pareto-k/refit or K-fold follow-up, and no model-weight/superiority language remain required. |
+| Visualization | The package returns plotting-ready rows for recovery, calibration, PPC, threshold maps, coverage matrices, rater overlap, and Wright maps. | The `v0.1.1` plan targeted plot-data schema and documentation-example stabilization; unfinished work continues under `v0.1.2` or later, with backend-specific recipes deferred until the report data contract is stable. |
 | Category functioning | Rating-scale and partial-credit interpretations can fail when categories are skipped, disordered, sparse, or used differently by raters. | Add category-functioning rows that separate observed category use, posterior threshold/step uncertainty, predictive category replication, and any category-collapsing recommendation. Recommendations should be diagnostic, not automatic data editing. |
 | Missingness and rater assignment | MFRM assumes the observed rating graph can support the intended facet comparisons; nonrandom assignment, planned missingness, and time/order effects can change what is identifiable. | Add rating-design review rows: structural missingness, accidental missingness, disconnectedness, anchor coverage, repeated ratings, time/order fields, and warnings that current models do not correct nonignorable assignment unless an explicit assignment model is introduced. |
 | Binary responses and multi-facet IRT | The current MFRM family includes two-category responses as the dichotomous Rasch special case with additional facet terms. Guarded generalized paths add discrimination/consistency terms that move beyond strict Rasch measurement. | Document the binary bridge explicitly: MFRM is a many-facet one-parameter logistic IRT model; GMFRM/MGMFRM with item discrimination, rater consistency, or multidimensional Q-masked loadings should be labelled generalized or 2PL/GPCM-like, not strict Rasch. |
 | Infit, outfit, and FACETS degrees of freedom | `fit_stats` returns posterior infit/outfit mean-square summaries for minimal MFRM fits. The separate `facets_report` / `facets_compatibility_stats` API now returns unit-weighted posterior-mean plugin rows with Wright--Masters fourth-moment infit/outfit df, capped Wilson--Hilferty ZSTD, and explicit approximation labels; generalized fits are rejected. | Keep posterior infit/outfit as the default Bayesian residual diagnostic. Retain the separate MFRM/RSM/PCM-only compatibility surface, and require simulation calibration before considering any experimental generalized extension. |
-| DFF and bias | DFF is validation and screening only: sparse/empty/confounded cells, grouped PPC rows, and posterior predictive interaction residuals. | Keep fitted DFF effects blocked through `v0.1.1`; use DFF rows for triage, design repair, and sensitivity planning, not unfairness or causal claims. |
+| DFF and bias | DFF is validation and screening only: sparse/empty/confounded cells, grouped PPC rows, and posterior predictive interaction residuals. | The `v0.1.1` scope kept fitted DFF effects blocked and used DFF rows for triage, design repair, and sensitivity planning, not unfairness or causal claims. |
 | Rater homogeneity | Posterior summaries support probability of direction and ROPE for individual parameters; pairwise rater contrasts are not yet first-class. | Add rater contrast summaries for severity and log-consistency using ROPE and HDI/credible intervals. Treat Bayes factors as optional and blocked from the default workflow until prior sensitivity is documented. |
 | Artifact schemas and data governance | Report bundles exist, but broad use requires stable schemas and clear handling of raw rating data. | Version report-table schemas, include manifest compatibility checks, and make raw-data inclusion opt-in. Public artifacts should prefer anonymized or hashed identifiers unless the user explicitly exports raw labels. |
 
@@ -99,10 +100,10 @@ source URLs, not internal item keys.
 
 ### Refined Critical Path
 
-1. Finish `v0.1.1` as a reporting and evidence-governance release for guarded
-   scalar GMFRM and fixed-Q MGMFRM. Do not expand the API until diagnostics,
-   fit-threshold provenance, prediction targets, and blocked-claim rows are
-   consistently visible in reports and archives.
+1. Use the completed `v0.1.1` reporting and evidence-governance release as the
+   baseline for guarded scalar GMFRM and fixed-Q MGMFRM. Do not expand the API
+   until diagnostics, fit-threshold provenance, prediction targets, and
+   blocked-claim rows are consistently visible in reports and archives.
 2. Make `v0.1.2` the fixed-Q validation and threshold-calibration release.
    The key deliverable is not "more dimensions"; it is evidence that the
    package can distinguish well-specified fixed-Q MGMFRM, Q misspecification,
@@ -202,7 +203,7 @@ silently carrying risk into the next release.
 
 | Release | Positive gate | Fallback if the gate fails |
 | --- | --- | --- |
-| `v0.1.1` | Existing guarded scalar GMFRM and fixed-Q MGMFRM fits have auditable diagnostics, report sections, prior policy, predictive path labels, and blocked-claim rows. | Ship documentation, manifest, and report-governance improvements only. Keep guarded examples minimal and mark unresolved diagnostics as blockers. |
+| `v0.1.1` (completed) | Existing guarded scalar GMFRM and fixed-Q MGMFRM fits were made more auditable through diagnostics, report sections, prior policy, predictive path labels, and blocked-claim rows. | Historical fallback: narrow the release to documentation, manifest, and report-governance improvements; keep guarded examples minimal and mark unresolved diagnostics as blockers. |
 | `v0.1.2` | Higher-dimensional fixed-Q designs pass Q validation, source/BridgeStan checks, initialization checks, simulation recovery, and report-shape tests. | Keep the public fixed-Q surface guarded and confirmatory; allow only the evidence-backed subset to remain `experimental_public`. |
 | `v0.1.3` | Free latent correlations have a stable parameterization, prior policy, sampler diagnostics, and interpretation rules that do not change focal conclusions under sensitivity checks. | Keep identity correlation as the stable policy and record free-correlation evidence as internal research only. |
 | `v0.1.4` | Exploratory loading proposals have rotation, sign, permutation, and reporting rules that make posterior summaries interpretable. | Keep exploratory loadings blocked; provide only design-review tools and confirmatory Q workflows. |
@@ -309,12 +310,12 @@ The package now exposes the same positioning table programmatically through
 [`related_software_capability_matrix`](@ref). The table is a scope-governance
 artifact, not a validation result or superiority claim.
 
-| Tool | Established strength | BayesianMGMFRM overlap | v0.1.1 stance |
+| Tool | Established strength | BayesianMGMFRM overlap | v0.1.1 recorded stance |
 | --- | --- | --- | --- |
 | [Facets](https://www.winsteps.com/facets.htm) | Mature many-facet Rasch measurement workflow, facet maps, fit tables, and practitioner reporting. | MFRM-facing outputs such as severity, fair averages, fit statistics, maps, and sparse-design warnings. | Migration and terminology reference, not a replacement claim. |
 | [TAM](https://cran.r-project.org/web/packages/TAM/refman/TAM.html) | Broad R IRT toolkit including Rasch/PCM/GPCM, multidimensional IRT, and multi-faceted Rasch models. | MFRM/PCM/GPCM and fixed-Q multidimensional cases where targets genuinely overlap. | Breadth baseline; do not duplicate generic IRT coverage just to match TAM. |
 | [mirt](https://www.jstatsoft.org/article/view/v048i06) | Exploratory and confirmatory multidimensional IRT with mature estimation and diagnostics. | Fixed-Q MIRT expectations and multidimensional loading interpretation. | Multidimensional baseline, not a dedicated many-facet replacement. |
-| [sirt](https://cran.r-project.org/web/packages/sirt/sirt.pdf) | Supplementary IRT methods, including specialized model, diagnostic, and rater-related tools. | Rater-effect, DIF/DFF, and diagnostic-method context. | Specialized-method reference; keep fitted DFF effects blocked in v0.1.1. |
+| [sirt](https://cran.r-project.org/web/packages/sirt/sirt.pdf) | Supplementary IRT methods, including specialized model, diagnostic, and rater-related tools. | Rater-effect, DIF/DFF, and diagnostic-method context. | Specialized-method reference; `v0.1.1` kept fitted DFF effects blocked. |
 | [immer](https://cran.r-project.org/web/packages/immer/immer.pdf) | Item response models for multiple ratings and rater-mediated designs. | Multiple-rating and rater-effect context. | Rater-model reference; overlap comparison waits until post-v0.2.0. |
 | [brms](https://cran.r-project.org/web/packages/brms/brms.pdf) / [Stan](https://mc-stan.org/docs/stan-users-guide/item-response-models.html) | Flexible Bayesian multilevel and custom IRT modeling with HMC/NUTS diagnostics. | Bayesian diagnostics, posterior predictive checks, custom IRT targets, and model-comparison workflow. | Bayesian workflow baseline, not a packaged MGMFRM substitute. |
 | `BayesianMGMFRM.jl` | Source-audited Julia workflow for Bayesian MFRM, guarded rater-consistency GMFRM, and fixed-Q confirmatory MGMFRM artifacts. | Own current public surface. | Narrow auditable workflow; generic IRT replacement and superiority claims remain blocked. |
@@ -353,16 +354,20 @@ artifact, not a validation result or superiority claim.
 
 ## Version Roadmap
 
-### v0.1.1: Fixed-Q Confirmatory MGMFRM Refinement
+### v0.1.1 release record: Fixed-Q Confirmatory MGMFRM Refinement
 
-**Goal:** make the existing fixed-Q guarded MGMFRM path
+**Recorded goal:** make the existing fixed-Q guarded MGMFRM path
 auditable and hard to overinterpret.
 
 **Research basis:** Uto's MGMFRM is confirmatory in spirit for rubric
 dimensions and uses NUT-HMC; Bayesian workflow literature requires diagnostics,
 predictive checks, and validation evidence before claims.
 
-**Implementation work:**
+The list below preserves the original plan. `v0.1.1` shipped only the narrowed
+auditability, portable-report, fixed-Q, FACETS-description, reproducibility,
+and runnable-example subset; unfinished items continue under `v0.1.2` or later.
+
+**Historical implementation plan:**
 
 - `q_matrix_validation` now strengthens the current fixed-Q
   path: binary-mask schema checks, empty dimensions, empty item rows, duplicate
@@ -438,7 +443,7 @@ predictive checks, and validation evidence before claims.
   evidence bundles; extend bundle/export manifests where a downstream workflow
   needs file-level policy checks.
 
-**Implementation order and runtime policy:**
+**Historical implementation order and runtime policy:**
 
 - Finish the remaining fixed-Q MGMFRM initialization fallback reporting and
   invariance checks first.
@@ -455,7 +460,7 @@ predictive checks, and validation evidence before claims.
   fixture SHA scans before full tests, and full `Pkg.test()` only for milestone
   slices, supported-version release checks, and final tag candidates.
 
-**Exit gate:**
+**Recorded exit gate:**
 
 - The guarded fixed-Q MGMFRM example runs with small sampler settings.
 - `fit_report` explains the gauge, dimensions, diagnostics, predictive path,

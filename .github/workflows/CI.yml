@@ -56,4 +56,4 @@ jobs:
       - uses: julia-actions/cache@v2
       - name: Run release hygiene gate
         run: |
-          julia --startup-file=no scripts/pre_registration_gate.jl --skip-tests --skip-docs
+          julia --startup-file=no scripts/pre_registration_gate.jl --skip-tests --skip-docs --expected-version=0.1.1

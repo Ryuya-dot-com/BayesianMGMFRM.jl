@@ -1,6 +1,6 @@
 name = "BayesianMGMFRM"
 uuid = "1c3fdc16-45de-4463-900f-cd2a5999ffa5"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Ryuya Komuro"]
 
 [deps]

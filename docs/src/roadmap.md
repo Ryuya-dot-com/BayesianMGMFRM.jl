@@ -69,15 +69,17 @@ The following are planned but not yet exposed:
   beyond the current machine-readable reports, multi-report review dossiers,
   and local full-paper archive.
 
-## Active MGMFRM Release Sequence
+## v0.1.x MGMFRM Release Sequence
 
 The source-grounded staged plan is maintained in
-[MGMFRM Research Roadmap](mgmfrm-research-roadmap.md). The active sequence is:
+[MGMFRM Research Roadmap](mgmfrm-research-roadmap.md). The sequence records
+`v0.1.1` as completed and continues with:
 
-- `v0.1.1`: refine fixed-Q confirmatory MGMFRM by strengthening execution,
-  diagnostics, reporting, and validation for the existing guarded path.
-- `v0.1.2`: remain fixed-Q and confirmatory, while expanding dimensionality
-  and Q validation.
+- `v0.1.1`: completed fixed-Q confirmatory MGMFRM refinement by strengthening
+  execution, diagnostics, reporting, and validation for the existing guarded
+  path.
+- `v0.1.2`: next, remain fixed-Q and confirmatory while expanding
+  dimensionality and Q validation.
 - `v0.1.3`: decide whether free latent correlations are ready for guarded
   exposure.
 - `v0.1.4`: design exploratory loading and rotation policy before broad
@@ -162,15 +164,15 @@ design stress; it cannot
 establish construct representation, population generalization, fairness, or
 performance on an external real dataset.
 
-## v0.1.1 Focus
+## v0.1.1 Release Record
 
-The v0.1.1 release candidate refines the core generalized and multidimensional
-surfaces without broadening public claims. The target is better auditability:
-the guarded scalar GMFRM and fixed-Q confirmatory MGMFRM paths should explain
-their source equations, constraints, priors, diagnostics, and reports clearly
-enough for serious review.
+The `v0.1.1` release refined the core generalized and multidimensional surfaces
+without broadening public claims. Its target was better auditability: the
+guarded scalar GMFRM and fixed-Q confirmatory MGMFRM paths were required to
+explain their source equations, constraints, priors, diagnostics, and reports
+clearly enough for serious review.
 
-`v0.1.1` should keep these boundaries:
+`v0.1.1` kept these boundaries:
 
 - no exploratory MGMFRM loadings, rotations, or free latent correlations;
 - no dimensionality discovery beyond a fixed confirmatory Q-matrix;
@@ -179,8 +181,8 @@ enough for serious review.
 - no direct-scale generalized priors unless the log-Jacobian policy is fully
   documented and tested.
 
-The implementation roadmap originally defined six workstreams. The v0.1.1
-scope is now frozen to the completed status, portable-report, fixed-Q,
+The implementation roadmap originally defined six workstreams. The `v0.1.1`
+scope was frozen to the completed status, portable-report, fixed-Q,
 initial-diagnostics, MFRM FACETS-description, reproducibility, and runnable
 example slices. Broader predictive/category reporting, rank-normalized and
 bulk/tail diagnostics, rater-homogeneity work, and expanded validation bundles
@@ -249,10 +251,10 @@ The issue-sized implementation checklist is maintained in
    immer, and keep Bayes factors out of the default workflow until
    prior-sensitivity policy is documented.
 
-The release gate is documentation and evidence, not API breadth. `v0.1.1`
-should ship only if the guarded GMFRM/MGMFRM paths become easier to inspect and
-harder to overinterpret. Broad generalized fitting remains blocked until the
-later stable-public gates pass.
+The release gate was documentation and evidence, not API breadth. `v0.1.1` was
+limited to changes that made the guarded GMFRM/MGMFRM paths easier to inspect
+and harder to overinterpret. Broad generalized fitting remains blocked until
+the later stable-public gates pass.
 
 ### Critical Triage Rules
 
@@ -272,12 +274,12 @@ The next roadmap decisions should use a conservative triage order:
 5. **Scope labels before examples**: every runnable example must state whether
    it is `supported`, `experimental_public`, `specified_only`, or `blocked`.
 
-Fallback paths should be explicit. If fixed-Q MGMFRM diagnostics are unstable,
-`v0.1.1` should ship report-governance and validation improvements without
-expanding examples. If source or sensitivity checks fail for generalized
-blocks, keep the API guarded and document the failed gate. If external
-comparison targets do not match, classify them as non-overlap rather than
-forcing a misleading validation table.
+Fallback paths remain explicit for later releases. For `v0.1.1`, unstable
+fixed-Q MGMFRM diagnostics would have narrowed the release to report-governance
+and validation improvements without expanding examples. If source or
+sensitivity checks fail for generalized blocks, keep the API guarded and
+document the failed gate. If external comparison targets do not match,
+classify them as non-overlap rather than forcing a misleading validation table.
 
 ### Evidence Maturity Matrix
 
@@ -323,7 +325,7 @@ statements.
 
 | Release | Claim budget | Explicitly not in budget |
 | --- | --- | --- |
-| `v0.1.1` | Existing guarded scalar GMFRM and fixed-Q MGMFRM paths are more auditable: status, priors, diagnostics, Q/gauge, rating-design, report, and artifact wording become harder to overinterpret. | Broader generalized fitting, exploratory loading, free latent correlations, fitted DFF effects, model weights, external validation, performance claims. |
+| `v0.1.1` | Delivered: existing guarded scalar GMFRM and fixed-Q MGMFRM paths became more auditable; status, priors, diagnostics, Q/gauge, rating-design, report, and artifact wording became harder to overinterpret. | Broader generalized fitting, exploratory loading, free latent correlations, fitted DFF effects, model weights, external validation, performance claims. |
 | `v0.1.2` | Fixed-Q confirmatory dimensionality expands only if Q validation, source checks, initialization, diagnostics, recovery, and report schemas scale cleanly. | Free latent correlations, exploratory loading, broad MGMFRM, real-data validation claims. |
 | `v0.1.3` | Free latent correlation receives a proceed/narrow/stop decision with parameterization, prior, diagnostics, and sensitivity evidence. | Automatic promotion of free correlations or exploratory loadings. |
 | `v0.1.4` | Exploratory loading and rotation policy is designed and stress-tested as a reporting problem before exposure. | Stable exploratory MGMFRM claims without rotation/sign/permutation evidence. |

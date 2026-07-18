@@ -2,14 +2,17 @@
 
 ## Unreleased
 
+## 0.1.1
+
 ### Added
 
 - Add `facets_report`, with `facets_compatibility_stats` as an alias, for
   explicitly approximate MFRM/RSM/PCM infit, outfit, degrees-of-freedom, and
   standardized-fit rows.
-- Add clearer fixed-Q MGMFRM reporting for Q validation, gauge choices,
-  initialization, prior policy, sampler diagnostics, predictive checks, and
-  portable Markdown reports.
+- Add clearer reporting for the guarded experimental fixed-Q confirmatory
+  MGMFRM path, covering Q validation, gauge choices, initialization, prior
+  policy, sampler diagnostics, predictive checks, and portable Markdown
+  reports.
 - Add stricter reproducibility checks for fit caches, report bundles, content
   hashes, and full-versus-cached reproduction paths.
 - Add `fit_report_public` and `fit_report(...; view = :public)` for a

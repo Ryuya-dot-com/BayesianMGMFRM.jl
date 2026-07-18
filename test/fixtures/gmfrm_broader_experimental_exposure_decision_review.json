@@ -10,7 +10,7 @@
   "broader_public_fit": false,
   "package": {
     "name": "BayesianMGMFRM",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "julia_version": "1.12.5"
   },
   "protocol": {
@@ -70,7 +70,7 @@
       "path": "test/fixtures/gmfrm_claim_recovery_reproduction_archive.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "221efd79a639779990969a4cf3022a3225f1edf36dff5f55e328065237b01544",
+      "sha256": "6a244b07d3caf5a657709562364542409c46f7717208dccd4fc2abfb68808145",
       "expected_schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
       "schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
       "schema_matches": true,

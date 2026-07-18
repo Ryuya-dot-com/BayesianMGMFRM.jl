@@ -750,34 +750,34 @@ stable.
 
 ## Release Roadmap
 
-### Active post-v0.1.0 MGMFRM release sequence
+### v0.1.x MGMFRM release sequence
 
-This active sequence keeps the package claim narrow while the generalized and
-multidimensional surface is hardened. See
+This sequence records `v0.1.1` as the completed baseline while the generalized
+and multidimensional surface continues to be hardened. See
 [`docs/src/mgmfrm-research-roadmap.md`](docs/src/mgmfrm-research-roadmap.md)
 for the literature-grounded rationale and detailed gates.
 
 | Version | Scope | Release gate |
 | --- | --- | --- |
-| `v0.1.1` | Fixed-Q confirmatory MGMFRM refinement. Strengthen execution, diagnostics, reporting, and validation for the existing guarded path. | Guarded scalar GMFRM and fixed-Q MGMFRM are easier to audit and harder to overinterpret. |
+| `v0.1.1` | Completed fixed-Q confirmatory MGMFRM refinement for the existing guarded path. | Guarded scalar GMFRM and fixed-Q MGMFRM are easier to audit and harder to overinterpret. |
 | `v0.1.2` | Fixed-Q dimensionality and Q validation expansion. Still confirmatory. | Higher-dimensional fixed-Q examples pass source, AD, HMC, recovery, and report-shape tests. |
 | `v0.1.3` | Free latent correlation decision. | Free correlation is either kept blocked, promoted internally, or exposed narrowly with diagnostics and prior policy. |
 | `v0.1.4` | Exploratory loading and rotation policy design. | Rotation, sign, permutation, and reporting rules are documented and validated before exposure. |
 | `v0.2.0` | Generic MGMFRM stable-public candidate. | Source, transform, prior, internal simulation/recovery, reporting, and rejection gates pass for every exposed surface; R-package simulation comparison is post-`v0.2.0`. |
 
-### v0.1.1: generalized and multidimensional refinement
+### v0.1.1 release record: generalized and multidimensional refinement
 
-Goal: turn the `v0.1.0` guarded generalized paths from "available for narrow
-experiments" into auditable experimental workflows whose equations,
-parameterization, diagnostics, and reports are precise enough for serious
-review. This release should improve the generalized MFRM and fixed-Q
-confirmatory MGMFRM surfaces without changing the package claim to broad
-GMFRM/MGMFRM support.
+The `v0.1.1` release turned the `v0.1.0` guarded generalized paths from
+"available for narrow experiments" into auditable experimental workflows whose
+equations, parameterization, diagnostics, and reports are precise enough for
+serious review. It improved the generalized MFRM and fixed-Q confirmatory
+MGMFRM surfaces without changing the package claim to broad GMFRM/MGMFRM
+support.
 
 Issue-sized implementation drafts are maintained in
 [`docs/src/v0.1.1-implementation-checklist.md`](docs/src/v0.1.1-implementation-checklist.md).
-The workstreams below preserve the original planning record. For the release
-candidate, scope is frozen to the completed auditability, portable-report,
+The workstreams below preserve the original planning record. For `v0.1.1`,
+scope was frozen to the completed auditability, portable-report,
 fixed-Q, FACETS-description, and runnable-example work listed in the release
 gate. Unchecked stretch items are deferred to `v0.1.2` or later and are not
 `v0.1.1` ship criteria.
@@ -1035,13 +1035,15 @@ allowed.
 Verification should be staged. Use load checks and targeted fixture scripts for
 small edits; regenerate low-level fixtures before review/archive fixtures; run
 the fixture SHA scan before the full suite; and reserve full `Pkg.test()` runs
-for milestone slices and release candidates. Final release still requires
-`Pkg.test()` on supported Julia versions, docs build with the page-size gate,
-example scripts, and release-scope checks.
+for milestone slices and release candidates. Tagging a release commit requires
+`Pkg.test()` on supported Julia versions, the docs build with the page-size
+gate, example scripts, and release-scope checks.
 
-#### v0.1.1 Release Gate
+#### v0.1.1 Release Gate Record
 
-- [ ] `Pkg.test()` passes on the supported Julia versions.
+- [x] The first release-candidate CI checkpoint completed 8/8 green.
+- The release process tags only an exact release commit whose supported-version
+  CI run is green.
 - [x] Documentation builds with the page-size gate enabled.
 - [x] The mandatory source-level public-language gate scans README, NEWS,
   examples, and every page in the published Documenter navigation; CI does not
@@ -1061,10 +1063,10 @@ example scripts, and release-scope checks.
 - [x] README uses `Pkg.add("BayesianMGMFRM")` as the standard installation and
   states the exact experimental model boundaries.
 
-Release decision: ship `v0.1.1` only if the guarded GMFRM/MGMFRM paths become
-easier to audit and harder to overinterpret. If the work exposes unresolved
-identification or sampler pathologies, ship narrower documentation and
-validation improvements instead of broadening the fit API.
+Release decision: `v0.1.1` was limited to changes that made the guarded
+GMFRM/MGMFRM paths easier to audit and harder to overinterpret. Unresolved
+identification or sampler pathologies remained grounds to narrow documentation
+and validation rather than broaden the fit API.
 
 ### Post-v0.2.0: R simulation comparison and external validation
 

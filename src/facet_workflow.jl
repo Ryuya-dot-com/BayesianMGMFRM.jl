@@ -2375,6 +2375,7 @@ function _release_gate_document_specs()
             path = "NEWS.md",
             required = (
                 "## Unreleased",
+                "## 0.1.1",
                 "User-facing experimental fit displays",
                 "Refocus the published manual on installation, model scope, fitting",
                 "version-1 report payloads remain unchanged",
@@ -2699,7 +2700,7 @@ function release_gate_check(; root::AbstractString = _release_gate_default_root(
         sparse_superiority_claims_allowed =
             scope.summary.sparse_superiority_claims_allowed,
         publication_or_registration_action = false,
-        next_gate = passed ? :v0_1_1_workstream_b_design_audit :
+        next_gate = passed ? :manual_publication_or_registration_by_user_only :
             :repair_release_scope_documentation_or_manifest_drift,
     )
     result = (;

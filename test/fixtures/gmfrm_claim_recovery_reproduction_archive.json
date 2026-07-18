@@ -9,7 +9,7 @@
   "fit_ready": true,
   "package": {
     "name": "BayesianMGMFRM",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "julia_version": "1.12.5"
   },
   "protocol": {
@@ -390,7 +390,7 @@
     {
       "path": "Project.toml",
       "exists": true,
-      "sha256": "199b2b22154d2d7e86d027bf6b75c326aabfa9176e3af456f8a2a92dbd6af8c9"
+      "sha256": "2ad9ff5a914dbdbba24912e87216862d1df1622bb93c3973f89c96d7e65fe05f"
     },
     {
       "path": "README.md",
@@ -400,17 +400,17 @@
     {
       "path": "NEWS.md",
       "exists": true,
-      "sha256": "2ce162cc91f82dd1aa2bce3a9b628fdf73fb972380ffbc7478fa48e5f9f6a705"
+      "sha256": "f29f9263cfe1e9f5184ca6a83f349d8004b2d0f1a08435e555b7defe04a4dbaf"
     },
     {
       "path": "ROADMAP.md",
       "exists": true,
-      "sha256": "3751536c347db879c4484a8e32169173b9186c492d7881a4b2bbc351e4c2124e"
+      "sha256": "02cced1629ca0e3419348c932cf9faa74517379d718b8072be33ad0eb7dd0bde"
     },
     {
       "path": "src/facet_workflow.jl",
       "exists": true,
-      "sha256": "7dadc3436ae2edd7fc8a46cb4512ce96eb8f6290beea231e61de1d18339ab083"
+      "sha256": "bbf49cf4f0bdb5cd0340905e0f7ab8efa9c7bf971c8aac1c61053c58f4f9c97d"
     },
     {
       "path": "src/bayesian_fit.jl",
@@ -420,7 +420,7 @@
     {
       "path": "test/runtests.jl",
       "exists": true,
-      "sha256": "182d0bb7ffaaf6aa9935a17645ed98daa77ce1fd2e686cf884aa278d6dfbc2c8"
+      "sha256": "d7e6e66837f10147101cd05cbddd8f7d1f7a877e779d8086fafd50ae38c5d110"
     },
     {
       "path": "test/fixtures/README.md",
@@ -440,7 +440,7 @@
     {
       "path": "docs/src/roadmap.md",
       "exists": true,
-      "sha256": "04ed7d43b9d7f1a5943d02981181e646ad4e529987a952c520b0cbc50f2676ff"
+      "sha256": "a2576183690191f3862d739e85b934475da5f773c59edb7c8ebb5d9ee76a9619"
     },
     {
       "path": "scripts/local_json.jl",
