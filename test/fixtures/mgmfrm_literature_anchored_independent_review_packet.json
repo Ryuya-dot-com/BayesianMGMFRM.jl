@@ -1,0 +1,441 @@
+{
+  "schema": "bayesianmgmfrm.mgmfrm_literature_anchored_independent_review_packet.v1",
+  "family": "gmfrm_mgmfrm",
+  "scope": "literature_anchored_independent_review_packet",
+  "status": "packet_frozen_review_not_completed",
+  "decision": "freeze_independent_review_packet_keep_public_claims_blocked",
+  "local_only": true,
+  "publication_or_registration_action": false,
+  "external_software_validation_completed": false,
+  "independent_review_completed": false,
+  "public_claim_release_allowed": false,
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "protocol": {
+    "protocol_id": "mgmfrm_literature_anchored_independent_review_packet_v1",
+    "review_kind": "independent_scientific_and_reproducibility_review",
+    "source_artifact": "mgmfrm_literature_anchored_synthetic_benchmark",
+    "source_artifact_path": "test/fixtures/mgmfrm_literature_anchored_synthetic_benchmark.json",
+    "source_artifact_sha256": "27d56562b9f27767cd189c0351e9ad21676c8557078f62f4646edfe3057ca73f",
+    "generator": "scripts/generate_mgmfrm_literature_anchored_independent_review_packet.jl",
+    "generator_source_sha256": "df28742fae98d2767bd7fabca92f859894b92c2a22fb7d7c53c5cb27d0747c2f",
+    "separate_from_external_software_comparison": true,
+    "signed_review_manifest_required": true
+  },
+  "source_benchmark": {
+    "artifact": "mgmfrm_literature_anchored_synthetic_benchmark",
+    "path": "test/fixtures/mgmfrm_literature_anchored_synthetic_benchmark.json",
+    "exists": true,
+    "expected_schema": "bayesianmgmfrm.mgmfrm_literature_anchored_synthetic_benchmark.v1",
+    "schema": "bayesianmgmfrm.mgmfrm_literature_anchored_synthetic_benchmark.v1",
+    "schema_matches": true,
+    "sha256": "27d56562b9f27767cd189c0351e9ad21676c8557078f62f4646edfe3057ca73f",
+    "generator_source": "scripts/generate_mgmfrm_literature_anchored_synthetic_benchmark.jl",
+    "generator_source_sha256": "6a5b6b0f0c79a90bb49a709d66391fa7457de4cee28a2de91829c04aa60acaee",
+    "recorded_generator_source_sha256": "6a5b6b0f0c79a90bb49a709d66391fa7457de4cee28a2de91829c04aa60acaee",
+    "recorded_generator_source_sha256_matches": true,
+    "package_simulate_responses_called": false,
+    "package_source_oracle_checked_before_write": true,
+    "n_reference_records": 4,
+    "n_benchmark_specifications": 4,
+    "n_datasets": 2,
+    "n_materialized_observations": 1700,
+    "standalone_generator_oracle_agreement": true,
+    "public_claim_release_allowed": false,
+    "independent_review_completed": false,
+    "source_dataset_rows": [
+      {
+        "dataset_id": "uto_ueno_2020_scalar_recovery_smallest_cell_rep01",
+        "family": "gmfrm",
+        "reference": "uto_ueno_2020_gmfrm",
+        "relationship_to_source": "paper_exact_design_cell_package_overlap_equation",
+        "n_observations": 450,
+        "n_dimensions": 1,
+        "ability_combination": "not_applicable",
+        "max_abs_probability_error": 7.105427357601002e-15,
+        "observations_sha256": "79ea9447adc5bb1d324bdb483be2ba3180d7d39d5c98802708117eeee75e5c74",
+        "truth_sha256": "8f37a8abaa9533a7bb56ee368979ee252a4a070ed475a614d7ae55245febbb12",
+        "q_matrix_sha256": "not_applicable"
+      },
+      {
+        "dataset_id": "uto_2021_fixed_q_recovery_smallest_cell_rep01",
+        "family": "mgmfrm",
+        "reference": "uto_2021_mgmfrm",
+        "relationship_to_source": "paper_exact_sample_size_package_adapted_fixed_q",
+        "n_observations": 1250,
+        "n_dimensions": 2,
+        "ability_combination": "loading_weighted_sum",
+        "max_abs_probability_error": 4.884981308350689e-15,
+        "observations_sha256": "4df065a3e691046af3d7c13e6a13e748600833a6dd3d399003c910996015a5b0",
+        "truth_sha256": "78b0b50bef953b26561bf22dd88fd7f484c044d3e918e8508c15604512bab2f1",
+        "q_matrix_sha256": "8c28ee9035f5b3bc33ad73aacddb6c9f5048a7ce9876029d4639cbc78f583aba"
+      }
+    ],
+    "tam_comparison_policy_path": "test/fixtures/mgmfrm_tam_comparison_policy_review.json",
+    "tam_comparison_policy_sha256": "8fd2d128ea617ead0359a52ef809cd2ffc0fe69eb3e9c82346aeabf4b1fbd7cd",
+    "tam_comparison_policy_schema": "bayesianmgmfrm.mgmfrm_tam_comparison_policy_review.v1",
+    "tam_comparison_policy_schema_matches": true,
+    "tam_adapter_structure_review_completed": true,
+    "tam_multireplication_comparison_completed": true,
+    "tam_multireplication_comparison_path": "test/fixtures/mgmfrm_tam_multireplication_comparison.json",
+    "tam_multireplication_comparison_sha256": "eef63814470bd9893662544350378d517a3ad7d6999df81f83445d1a40edb206",
+    "tam_multireplication_comparison_schema": "bayesianmgmfrm.mgmfrm_tam_multireplication_comparison.v1",
+    "tam_multireplication_comparison_schema_matches": true,
+    "tam_multireplication_comparison_passed": true,
+    "tam_package_direct_comparison_completed": true,
+    "tam_direct_estimate_pilot_path": "test/fixtures/mgmfrm_tam_direct_estimate_pilot.json",
+    "tam_direct_estimate_pilot_sha256": "559ab9551fd2ddde70be9837559d62b7cf518e77f7a740dd9a05fd4f045597ca",
+    "tam_direct_estimate_pilot_schema": "bayesianmgmfrm.mgmfrm_tam_direct_estimate_pilot.v1",
+    "tam_direct_estimate_pilot_schema_matches": true,
+    "tam_direct_estimate_pilot_completed": true,
+    "tam_direct_estimate_sampler_diagnostics_passed": true,
+    "tam_direct_pilot_thresholds_predeclared": false,
+    "tam_direct_agreement_policy_path": "test/fixtures/mgmfrm_tam_direct_agreement_policy.json",
+    "tam_direct_agreement_policy_sha256": "f3fcdcbb46bd2be105db82436bc42b6b3792641b393f5b9bd254048417c4c6a5",
+    "tam_direct_agreement_policy_schema": "bayesianmgmfrm.mgmfrm_tam_direct_agreement_policy.v1",
+    "tam_direct_agreement_policy_schema_matches": true,
+    "tam_direct_agreement_thresholds_predeclared": true,
+    "tam_direct_agreement_multireplication_completed": false,
+    "tam_direct_agreement_policy_refinement_path": "test/fixtures/mgmfrm_tam_direct_agreement_policy_refinement.json",
+    "tam_direct_agreement_policy_refinement_sha256": "9756310dad22c226fad977ac221fc7ffe77931ae3f3ed99c212ff1e78b1868e5",
+    "tam_direct_agreement_policy_refinement_schema": "bayesianmgmfrm.mgmfrm_tam_direct_agreement_policy_refinement.v1",
+    "tam_direct_agreement_policy_refinement_schema_matches": true,
+    "tam_direct_frozen_primary_gate_unchanged": true,
+    "tam_direct_secondary_recovery_qualifier_frozen": true,
+    "tam_direct_refinement_execution_completed": false
+  },
+  "required_input_rows": [
+    {
+      "input": "frozen_benchmark_artifact",
+      "path": "test/fixtures/mgmfrm_literature_anchored_synthetic_benchmark.json",
+      "sha256": "27d56562b9f27767cd189c0351e9ad21676c8557078f62f4646edfe3057ca73f",
+      "present": true,
+      "reviewer_must_verify": true
+    },
+    {
+      "input": "generator_source",
+      "path": "scripts/generate_mgmfrm_literature_anchored_synthetic_benchmark.jl",
+      "sha256": "6a5b6b0f0c79a90bb49a709d66391fa7457de4cee28a2de91829c04aa60acaee",
+      "present": true,
+      "reviewer_must_verify": true
+    },
+    {
+      "input": "reference_records",
+      "path": "test/fixtures/mgmfrm_literature_anchored_synthetic_benchmark.json",
+      "sha256": "27d56562b9f27767cd189c0351e9ad21676c8557078f62f4646edfe3057ca73f",
+      "present": true,
+      "reviewer_must_verify": true
+    },
+    {
+      "input": "dataset_checksums",
+      "path": "test/fixtures/mgmfrm_literature_anchored_synthetic_benchmark.json",
+      "sha256": "27d56562b9f27767cd189c0351e9ad21676c8557078f62f4646edfe3057ca73f",
+      "present": true,
+      "reviewer_must_verify": true
+    },
+    {
+      "input": "paper_exact_vs_package_adapted_labels",
+      "path": "test/fixtures/mgmfrm_literature_anchored_synthetic_benchmark.json",
+      "sha256": "27d56562b9f27767cd189c0351e9ad21676c8557078f62f4646edfe3057ca73f",
+      "present": true,
+      "reviewer_must_verify": true
+    },
+    {
+      "input": "claim_limit_ledger",
+      "path": "test/fixtures/mgmfrm_literature_anchored_synthetic_benchmark.json",
+      "sha256": "27d56562b9f27767cd189c0351e9ad21676c8557078f62f4646edfe3057ca73f",
+      "present": true,
+      "reviewer_must_verify": true
+    },
+    {
+      "input": "tam_comparison_policy_and_adapter_review",
+      "path": "test/fixtures/mgmfrm_tam_comparison_policy_review.json",
+      "sha256": "8fd2d128ea617ead0359a52ef809cd2ffc0fe69eb3e9c82346aeabf4b1fbd7cd",
+      "present": true,
+      "reviewer_must_verify": true
+    },
+    {
+      "input": "tam_multireplication_comparison",
+      "path": "test/fixtures/mgmfrm_tam_multireplication_comparison.json",
+      "sha256": "eef63814470bd9893662544350378d517a3ad7d6999df81f83445d1a40edb206",
+      "present": true,
+      "reviewer_must_verify": true
+    },
+    {
+      "input": "tam_direct_estimate_pilot",
+      "path": "test/fixtures/mgmfrm_tam_direct_estimate_pilot.json",
+      "sha256": "559ab9551fd2ddde70be9837559d62b7cf518e77f7a740dd9a05fd4f045597ca",
+      "present": true,
+      "reviewer_must_verify": true
+    },
+    {
+      "input": "tam_direct_agreement_policy",
+      "path": "test/fixtures/mgmfrm_tam_direct_agreement_policy.json",
+      "sha256": "f3fcdcbb46bd2be105db82436bc42b6b3792641b393f5b9bd254048417c4c6a5",
+      "present": true,
+      "reviewer_must_verify": true
+    },
+    {
+      "input": "tam_direct_agreement_policy_refinement",
+      "path": "test/fixtures/mgmfrm_tam_direct_agreement_policy_refinement.json",
+      "sha256": "9756310dad22c226fad977ac221fc7ffe77931ae3f3ed99c212ff1e78b1868e5",
+      "present": true,
+      "reviewer_must_verify": true
+    }
+  ],
+  "review_task_rows": [
+    {
+      "task": "source_equation_traceability",
+      "required_evidence": "published_reference_equation_to_generator_crosswalk",
+      "reviewer_decision": "pending_independent_review",
+      "reviewer_required": true,
+      "completed": false,
+      "blocks_public_claim_release": true
+    },
+    {
+      "task": "standalone_generator_independence",
+      "required_evidence": "no_package_response_simulation_or_probability_helper_call",
+      "reviewer_decision": "pending_independent_review",
+      "reviewer_required": true,
+      "completed": false,
+      "blocks_public_claim_release": true
+    },
+    {
+      "task": "deterministic_reproducibility",
+      "required_evidence": "separate_truth_and_response_seeds_plus_hashes",
+      "reviewer_decision": "pending_independent_review",
+      "reviewer_required": true,
+      "completed": false,
+      "blocks_public_claim_release": true
+    },
+    {
+      "task": "known_truth_checksums",
+      "required_evidence": "truth_observation_and_q_matrix_hashes",
+      "reviewer_decision": "pending_independent_review",
+      "reviewer_required": true,
+      "completed": false,
+      "blocks_public_claim_release": true
+    },
+    {
+      "task": "paper_exact_vs_package_adapted_labels",
+      "required_evidence": "per_dataset_alignment_and_adaptation_rows",
+      "reviewer_decision": "pending_independent_review",
+      "reviewer_required": true,
+      "completed": false,
+      "blocks_public_claim_release": true
+    },
+    {
+      "task": "ability_combination_recorded_as_formula",
+      "required_evidence": "loading_weighted_sum_not_classification_claim",
+      "reviewer_decision": "pending_independent_review",
+      "reviewer_required": true,
+      "completed": false,
+      "blocks_public_claim_release": true
+    },
+    {
+      "task": "claim_limit_ledger",
+      "required_evidence": "unsupported_claims_are_blocked",
+      "reviewer_decision": "pending_independent_review",
+      "reviewer_required": true,
+      "completed": false,
+      "blocks_public_claim_release": true
+    },
+    {
+      "task": "external_software_bridge_scope",
+      "required_evidence": "tam_direct_policy_refined_multirep_package_fits_and_facets_conquest_pending",
+      "reviewer_decision": "pending_independent_review",
+      "reviewer_required": true,
+      "completed": false,
+      "blocks_public_claim_release": true
+    },
+    {
+      "task": "construct_validity_scope",
+      "required_evidence": "synthetic_data_only_no_construct_validity_claim",
+      "reviewer_decision": "pending_independent_review",
+      "reviewer_required": true,
+      "completed": false,
+      "blocks_public_claim_release": true
+    },
+    {
+      "task": "public_claim_wording_scope",
+      "required_evidence": "public_claim_release_remains_blocked",
+      "reviewer_decision": "pending_independent_review",
+      "reviewer_required": true,
+      "completed": false,
+      "blocks_public_claim_release": true
+    }
+  ],
+  "reviewer_manifest_field_rows": [
+    {
+      "field": "schema",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_equal_literature_anchored_independent_review_manifest_v1",
+      "placeholder_policy": "user_supplied_no_default"
+    },
+    {
+      "field": "reviewer_name_or_id",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_identify_independent_reviewer_or_review_body",
+      "placeholder_policy": "user_supplied_no_default"
+    },
+    {
+      "field": "reviewer_independence_statement",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_state_independence_from_package_authorship",
+      "placeholder_policy": "user_supplied_no_default"
+    },
+    {
+      "field": "conflict_of_interest_statement",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_record_conflicts_or_no_conflicts",
+      "placeholder_policy": "user_supplied_no_default"
+    },
+    {
+      "field": "reviewed_packet_sha256",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_match_this_packet_sha256",
+      "placeholder_policy": "user_supplied_no_default"
+    },
+    {
+      "field": "reviewed_benchmark_sha256",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_match_source_benchmark_sha256",
+      "placeholder_policy": "user_supplied_no_default"
+    },
+    {
+      "field": "reviewed_generator_sha256",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_match_generator_source_sha256",
+      "placeholder_policy": "user_supplied_no_default"
+    },
+    {
+      "field": "review_date",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_be_explicit_review_date",
+      "placeholder_policy": "user_supplied_no_default"
+    },
+    {
+      "field": "per_task_decision_table",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_decide_each_review_task",
+      "placeholder_policy": "user_supplied_no_default"
+    },
+    {
+      "field": "per_claim_decision_table",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_allow_block_or_request_revision_per_claim",
+      "placeholder_policy": "user_supplied_no_default"
+    },
+    {
+      "field": "required_revisions",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_list_required_revisions_or_none",
+      "placeholder_policy": "user_supplied_no_default"
+    },
+    {
+      "field": "signature",
+      "required": true,
+      "completed": false,
+      "validation_rule": "must_include_dated_signature_or_audit_record",
+      "placeholder_policy": "user_supplied_no_default"
+    }
+  ],
+  "claim_review_rows": [
+    {
+      "claim": "standalone_generator_matches_in_repository_source_equation_oracle",
+      "artifact_support": true,
+      "artifact_blocker": "none",
+      "independent_review_required": true,
+      "reviewer_decision": "pending_independent_review",
+      "public_claim_allowed": false
+    },
+    {
+      "claim": "selected_literature_scale_conditions_are_materialized",
+      "artifact_support": true,
+      "artifact_blocker": "none",
+      "independent_review_required": true,
+      "reviewer_decision": "pending_independent_review",
+      "public_claim_allowed": false
+    },
+    {
+      "claim": "parameter_recovery",
+      "artifact_support": false,
+      "artifact_blocker": "paper_replication_grids_and_refits_not_run",
+      "independent_review_required": true,
+      "reviewer_decision": "pending_independent_review",
+      "public_claim_allowed": false
+    },
+    {
+      "claim": "external_software_agreement",
+      "artifact_support": false,
+      "artifact_blocker": "tam_direct_policy_refined_multirep_package_fits_and_facets_conquest_pending",
+      "independent_review_required": true,
+      "reviewer_decision": "pending_independent_review",
+      "public_claim_allowed": false
+    },
+    {
+      "claim": "external_construct_validity",
+      "artifact_support": false,
+      "artifact_blocker": "synthetic_known_truth_data_cannot_supply_construct_evidence",
+      "independent_review_required": true,
+      "reviewer_decision": "pending_independent_review",
+      "public_claim_allowed": false
+    },
+    {
+      "claim": "independent_review",
+      "artifact_support": false,
+      "artifact_blocker": "signed_independent_review_not_attached",
+      "independent_review_required": true,
+      "reviewer_decision": "pending_independent_review",
+      "public_claim_allowed": false
+    }
+  ],
+  "decision_record": {
+    "selected_decision": "independent_review_packet_frozen",
+    "packet_frozen": true,
+    "signed_review_manifest_attached": false,
+    "public_claim_release_allowed": false,
+    "required_followup": "assign_independent_reviewer_and_attach_signed_review_manifest"
+  },
+  "summary": {
+    "passed": true,
+    "packet_frozen": true,
+    "source_benchmark_schema_matches": true,
+    "generator_source_hash_matches": true,
+    "standalone_generator_oracle_agreement": true,
+    "independent_review_completed": false,
+    "signed_review_manifest_attached": false,
+    "external_software_validation_completed": false,
+    "public_claim_release_allowed": false,
+    "n_required_inputs": 11,
+    "n_review_task_rows": 10,
+    "n_reviewer_manifest_fields": 12,
+    "n_claim_review_rows": 6,
+    "n_source_datasets": 2,
+    "n_materialized_observations": 1700,
+    "remaining_public_blockers": [
+      "independent_reviewer_not_assigned",
+      "signed_review_manifest_not_attached",
+      "per_claim_review_decisions_missing",
+      "external_software_validation_not_completed",
+      "parameter_recovery_refits_not_completed",
+      "external_construct_validity_not_supplied"
+    ],
+    "recommendation": "send_packet_to_independent_reviewer_without_claim_release",
+    "next_gate": "assign_independent_reviewer_and_attach_signed_review_manifest"
+  }
+}

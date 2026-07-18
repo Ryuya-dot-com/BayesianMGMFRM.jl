@@ -78,7 +78,7 @@
       "artifact": "guarded_fit_api_dry_run",
       "path": "test/fixtures/mgmfrm_guarded_fit_api_dry_run.json",
       "exists": true,
-      "sha256": "fe557754ac556fbf7a19e36d515a762f0b5acc3174c0cf16ca53a574c37db85e",
+      "sha256": "a642305321f8ab11935ce7560e7d86588e164ea2e5d673550179a259550df794",
       "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_api_dry_run.v1",
       "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_api_dry_run.v1",
       "schema_matches": true,
@@ -169,7 +169,7 @@
           "actual_status": "rejected",
           "rejected": true,
           "error_type": "ArgumentError",
-          "message": "ArgumentError: guarded local MGMFRM fitting currently supports only backend = :advancedhmc",
+          "message": "ArgumentError: experimental MGMFRM fit does not support backend = :julia. Supported configuration: (family = :mgmfrm, dimensions = \">=2\", thresholds = (:partial_credit,), discrimination = (:none,), q_matrix = :fixed_confirmatory, validation_bias_terms = (), anchors = ()). guarded MGMFRM fitting currently supports only backend = :advancedhmc",
           "passed": true
         }
       ],
@@ -249,9 +249,7 @@
         "n_cross_loading_items": 0,
         "n_duplicate_dimension_groups": 0,
         "n_dimension_facet_subgraphs_disconnected": 0,
-        "warning_checks": [
-
-        ]
+        "warning_checks": []
       },
       "preview_summary": {
         "spec_estimation_status": "specified_only",
@@ -289,7 +287,7 @@
           "actual_status": "rejected",
           "rejected": true,
           "error_type": "ArgumentError",
-          "message": "ArgumentError: guarded local MGMFRM fitting currently supports only backend = :advancedhmc",
+          "message": "ArgumentError: experimental MGMFRM fit does not support backend = :julia. Supported configuration: (family = :mgmfrm, dimensions = \">=2\", thresholds = (:partial_credit,), discrimination = (:none,), q_matrix = :fixed_confirmatory, validation_bias_terms = (), anchors = ()). guarded MGMFRM fitting currently supports only backend = :advancedhmc",
           "passed": true
         }
       ],
@@ -382,9 +380,7 @@
     "n_automatic_revisions_allowed": 0,
     "n_public_claims_allowed": 0,
     "n_blockers": 0,
-    "remaining_public_blockers": [
-
-    ],
+    "remaining_public_blockers": [],
     "recommendation": "use_construct_reviewed_q_candidates_for_manual_local_guarded_fit_only",
     "next_gate": "construct_reviewed_q_fit_reporting_policy"
   }

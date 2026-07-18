@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.10'
+          - '1.10.8'
           - '1'
         os:
           - ubuntu-latest
@@ -43,9 +43,10 @@ jobs:
       - name: Build documentation
         run: |
           julia --project=docs -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate(); include("docs/make.jl")'
+          julia --startup-file=no scripts/public_language_gate.jl --rendered
 
-  registration-gate:
-    name: Pre-registration gate
+  release-hygiene-gate:
+    name: Release hygiene gate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -53,6 +54,6 @@ jobs:
         with:
           version: '1'
       - uses: julia-actions/cache@v2
-      - name: Run package hygiene gate
+      - name: Run release hygiene gate
         run: |
-          julia --startup-file=no scripts/pre_registration_gate.jl --skip-tests --skip-docs --skip-public-wording
+          julia --startup-file=no scripts/pre_registration_gate.jl --skip-tests --skip-docs --expected-version=0.1.1

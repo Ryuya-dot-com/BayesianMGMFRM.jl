@@ -193,9 +193,7 @@
     "n_required_fields": 26,
     "n_required_provenance_artifacts": 4,
     "all_required_fields_present": true,
-    "missing_required_fields": [
-
-    ],
+    "missing_required_fields": [],
     "all_required_provenance_recorded": true,
     "enables_public_fit": true
   },
@@ -504,7 +502,7 @@
       "actual_status": "rejected",
       "rejected": true,
       "error_type": "MethodError",
-      "message": "MethodError: no method matching fit(::BayesianMGMFRM.FacetDesign; experimental::Bool, ndraws::Int64, warmup::Int64)\nThis method does not support all of the given keyword arguments (and may not support any).\n\nClosest candidates are:\n  fit(::BayesianMGMFRM.FacetDesign; prior, backend, ndraws, warmup, chains, step_size, init, rng, seed, target_accept, max_depth, max_energy_error, metric, ad_backend, init_jitter, progress) got unsupported keyword argument \"experimental\"\n   @ BayesianMGMFRM ~/Dropbox/MFRM_Application/BayesianMGMFRM.jl/src/bayesian_fit.jl:1062\n  fit(!Matched::BayesianMGMFRM.FacetSpec; experimental, kwargs...)\n   @ BayesianMGMFRM ~/Dropbox/MFRM_Application/BayesianMGMFRM.jl/src/bayesian_fit.jl:3128\n",
+      "message": "MethodError: no method matching fit(::BayesianMGMFRM.FacetDesign; experimental::Bool, ndraws::Int64, warmup::Int64)\nThis method does not support all of the given keyword arguments (and may not support any).\n\nClosest candidates are:\n  fit(::BayesianMGMFRM.FacetDesign; prior, backend, ndraws, warmup, chains, step_size, init, rng, seed, target_accept, max_depth, max_energy_error, metric, ad_backend, init_jitter, progress) got unsupported keyword argument \"experimental\"\n  fit(!Matched::BayesianMGMFRM.FacetSpec; experimental, kwargs...)\n",
       "passed": true
     },
     {
@@ -513,7 +511,7 @@
       "actual_status": "rejected",
       "rejected": true,
       "error_type": "ArgumentError",
-      "message": "ArgumentError: guarded local MGMFRM fitting currently supports only backend = :advancedhmc",
+      "message": "ArgumentError: experimental MGMFRM fit does not support backend = :julia. Supported configuration: (family = :mgmfrm, dimensions = \">=2\", thresholds = (:partial_credit,), discrimination = (:none,), q_matrix = :fixed_confirmatory, validation_bias_terms = (), anchors = ()). guarded MGMFRM fitting currently supports only backend = :advancedhmc",
       "passed": true
     }
   ],
@@ -542,7 +540,7 @@
       "actual_status": "rejected",
       "rejected": true,
       "error_type": "MethodError",
-      "message": "MethodError: no method matching fit(::BayesianMGMFRM.FacetDesign; experimental::Bool, ndraws::Int64, warmup::Int64)\nThis method does not support all of the given keyword arguments (and may not support any).\n\nClosest candidates are:\n  fit(::BayesianMGMFRM.FacetDesign; prior, backend, ndraws, warmup, chains, step_size, init, rng, seed, target_accept, max_depth, max_energy_error, metric, ad_backend, init_jitter, progress) got unsupported keyword argument \"experimental\"\n   @ BayesianMGMFRM ~/Dropbox/MFRM_Application/BayesianMGMFRM.jl/src/bayesian_fit.jl:1062\n  fit(!Matched::BayesianMGMFRM.FacetSpec; experimental, kwargs...)\n   @ BayesianMGMFRM ~/Dropbox/MFRM_Application/BayesianMGMFRM.jl/src/bayesian_fit.jl:3128\n",
+      "message": "MethodError: no method matching fit(::BayesianMGMFRM.FacetDesign; experimental::Bool, ndraws::Int64, warmup::Int64)\nThis method does not support all of the given keyword arguments (and may not support any).\n\nClosest candidates are:\n  fit(::BayesianMGMFRM.FacetDesign; prior, backend, ndraws, warmup, chains, step_size, init, rng, seed, target_accept, max_depth, max_energy_error, metric, ad_backend, init_jitter, progress) got unsupported keyword argument \"experimental\"\n  fit(!Matched::BayesianMGMFRM.FacetSpec; experimental, kwargs...)\n",
       "passed": true
     },
     {
@@ -551,7 +549,7 @@
       "actual_status": "rejected",
       "rejected": true,
       "error_type": "ArgumentError",
-      "message": "ArgumentError: guarded local MGMFRM fitting currently supports only backend = :advancedhmc",
+      "message": "ArgumentError: experimental MGMFRM fit does not support backend = :julia. Supported configuration: (family = :mgmfrm, dimensions = \">=2\", thresholds = (:partial_credit,), discrimination = (:none,), q_matrix = :fixed_confirmatory, validation_bias_terms = (), anchors = ()). guarded MGMFRM fitting currently supports only backend = :advancedhmc",
       "passed": true
     }
   ],

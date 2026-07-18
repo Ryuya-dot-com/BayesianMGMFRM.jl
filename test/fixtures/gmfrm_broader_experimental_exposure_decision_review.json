@@ -10,7 +10,7 @@
   "broader_public_fit": false,
   "package": {
     "name": "BayesianMGMFRM",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "julia_version": "1.12.5"
   },
   "protocol": {
@@ -37,6 +37,12 @@
       "require_mgmfrm_manual_public_scope_review_for_fit_passed": true,
       "require_dff_estimand_validation_grid_passed": true,
       "require_manuscript_scale_simulation_grid_passed": true,
+      "require_tam_direct_execution_recorded": true,
+      "require_tam_raw_archive_integrity_passed": true,
+      "require_tam_post_execution_packet_integrity_passed": true,
+      "require_tam_independent_review_pending_recorded": true,
+      "require_tam_pre_execution_lineage_mismatch_recorded": true,
+      "require_tam_evidence_nontransfer_to_gmfrm_mgmfrm": true,
       "require_full_paper_reproduction_archive_passed": true,
       "require_scalar_guarded_fit_kept_enabled": true,
       "require_mgmfrm_fit_kept_internal": true,
@@ -64,7 +70,7 @@
       "path": "test/fixtures/gmfrm_claim_recovery_reproduction_archive.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "f3020f99ff036c0cf3e4348b0518fcae1e6317e667142557464378b878f76e09",
+      "sha256": "6a244b07d3caf5a657709562364542409c46f7717208dccd4fc2abfb68808145",
       "expected_schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
       "schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
       "schema_matches": true,
@@ -130,7 +136,7 @@
       "path": "test/fixtures/mgmfrm_guarded_fit_method_wiring.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "361b0be4a0216a2e732b190ad5da2fbfecebe2956378309d883df4501a9221be",
+      "sha256": "a9404175445ea42f397012675bd08c7c93b4968bd38a516f0ab56fc9eb75f704",
       "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_method_wiring.v1",
       "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_method_wiring.v1",
       "schema_matches": true,
@@ -141,7 +147,7 @@
       "path": "test/fixtures/mgmfrm_guarded_fit_validation_grid.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "8140cc24bb397dcd22b92515365656dff7f7dec9822e08a62b30d6ad15ea6fdb",
+      "sha256": "8e57f0524634740a98c81c517822b161e071e474dfaffe7dc8f3e3f8957d9af2",
       "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_validation_grid.v1",
       "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_validation_grid.v1",
       "schema_matches": true,
@@ -152,7 +158,7 @@
       "path": "test/fixtures/mgmfrm_guarded_fit_api_dry_run.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "fe557754ac556fbf7a19e36d515a762f0b5acc3174c0cf16ca53a574c37db85e",
+      "sha256": "a642305321f8ab11935ce7560e7d86588e164ea2e5d673550179a259550df794",
       "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_api_dry_run.v1",
       "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_api_dry_run.v1",
       "schema_matches": true,
@@ -163,7 +169,7 @@
       "path": "test/fixtures/mgmfrm_guarded_fit_public_exposure_review.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "26fc5892606f415acabc5f7c5c19143b644745436bfc6d4f02bf92cffe522249",
+      "sha256": "bd21d5176c28ffd168610dda613d7fbf1de018da1469ae4e58df5334cb9710e6",
       "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_public_exposure_review.v1",
       "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_public_exposure_review.v1",
       "schema_matches": true,
@@ -174,7 +180,7 @@
       "path": "test/fixtures/gmfrm_prediction_target_and_model_weight_policy.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "d3e3b52c8cb11ceb31ac21a196327923849d8e16b4e58bc3ea8958597864e08f",
+      "sha256": "aa4c76a441bd49ca676d7ab36c409a521a2c4adcb9042174881ac5c081dfe9ce",
       "expected_schema": "bayesianmgmfrm.gmfrm_prediction_target_and_model_weight_policy.v1",
       "schema": "bayesianmgmfrm.gmfrm_prediction_target_and_model_weight_policy.v1",
       "schema_matches": true,
@@ -185,7 +191,7 @@
       "path": "test/fixtures/mgmfrm_manual_public_scope_review_for_fit.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "9d052c9d73f84ebd110df7c72409ac0a2611a84eaa4fd4285db5661cebbd217a",
+      "sha256": "327e59c0dcb29592e496992619b885f29992e5f519af5ab629c0228feec27ba5",
       "expected_schema": "bayesianmgmfrm.mgmfrm_manual_public_scope_review_for_fit.v1",
       "schema": "bayesianmgmfrm.mgmfrm_manual_public_scope_review_for_fit.v1",
       "schema_matches": true,
@@ -207,9 +213,42 @@
       "path": "test/fixtures/gmfrm_manuscript_scale_simulation_grid.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "4133359a7763cf2dbd5a085bdc72d4483fb8de422c20e1be2d5e13d87e8dec60",
+      "sha256": "a8e391fae6ff381413b41eb0f17c343c2aaf6623a97f8c2d91669789dce7abd3",
       "expected_schema": "bayesianmgmfrm.gmfrm_manuscript_scale_simulation_grid.v1",
       "schema": "bayesianmgmfrm.gmfrm_manuscript_scale_simulation_grid.v1",
+      "schema_matches": true,
+      "summary_passed": true
+    },
+    {
+      "artifact": "tam_direct_agreement_multireplication",
+      "path": "test/fixtures/mgmfrm_tam_direct_agreement_multireplication.json",
+      "exists": true,
+      "hash_policy": "sha256",
+      "sha256": "a6005308f566cb3dc5ff10121d48a09360e88627a527a3fe305bff8d5cb32c45",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_tam_direct_agreement_multireplication.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_tam_direct_agreement_multireplication.v1",
+      "schema_matches": true,
+      "summary_passed": true
+    },
+    {
+      "artifact": "tam_direct_agreement_raw_archive_audit",
+      "path": "test/fixtures/mgmfrm_tam_direct_agreement_raw_archive_audit.json",
+      "exists": true,
+      "hash_policy": "sha256",
+      "sha256": "9c8bbebfed817471a1055d1ef8cffe63e94b561c3efc6eed03b66ce5fe7664a0",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_tam_direct_agreement_raw_archive_audit.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_tam_direct_agreement_raw_archive_audit.v1",
+      "schema_matches": true,
+      "summary_passed": true
+    },
+    {
+      "artifact": "tam_direct_agreement_post_execution_review_packet",
+      "path": "test/fixtures/mgmfrm_tam_direct_agreement_post_execution_review_packet.json",
+      "exists": true,
+      "hash_policy": "sha256",
+      "sha256": "77c9a62c858525848c457343429fd7c08ac374ccd01efb05c0b269985bb75449",
+      "expected_schema": "bayesianmgmfrm.mgmfrm_tam_direct_agreement_post_execution_review_packet.v1",
+      "schema": "bayesianmgmfrm.mgmfrm_tam_direct_agreement_post_execution_review_packet.v1",
       "schema_matches": true,
       "summary_passed": true
     },
@@ -290,6 +329,15 @@
       "public_fit": false,
       "experimental_public": false,
       "next_required_evidence": "guarded_local_mgmfrm_fit_entrypoint"
+    },
+    {
+      "surface": "tam_direct_mfrm_overlap_claim",
+      "current_status": "local_primary_pass_independent_review_pending",
+      "decision": "record_nontransfer_keep_public_validation_blocked",
+      "evidence": true,
+      "public_fit": false,
+      "experimental_public": false,
+      "next_required_evidence": "independent_reexecution_lineage_adjudication_and_signed_review"
     }
   ],
   "risk_rows": [
@@ -317,10 +365,31 @@
       "risk": "dff_fairness_overclaim",
       "decision": "keep_dff_as_validation_only",
       "mitigation": "require_predeclared_estimands_and_practical_scale_checks"
+    },
+    {
+      "risk": "tam_overlap_overgeneralization",
+      "decision": "do_not_transfer_mfrm_tam_agreement_to_gmfrm_or_mgmfrm",
+      "mitigation": "record_tested_scope_and_nontransfer_as_separate_gate"
+    },
+    {
+      "risk": "tam_pre_execution_lineage_mismatch",
+      "decision": "keep_public_tam_validation_claim_blocked",
+      "mitigation": "preserve_immutable_pre_execution_packet_and_require_independent_adjudication"
     }
   ],
   "blocker_rows": [
-
+    {
+      "blocker": "tam_direct_independent_review_pending",
+      "scope": "tam_public_validation_claim",
+      "resolved": false,
+      "does_not_block_guarded_local_fit": true
+    },
+    {
+      "blocker": "tam_pre_execution_refinement_lineage_adjudication_pending",
+      "scope": "tam_public_validation_claim",
+      "resolved": false,
+      "does_not_block_guarded_local_fit": true
+    }
   ],
   "cycle_break_references": [
     {
@@ -333,6 +402,10 @@
     "scalar_guarded_fit_allowed": true,
     "mgmfrm_fit_allowed": true,
     "broader_generalized_fit_allowed": false,
+    "tam_public_validation_allowed": false,
+    "tam_direct_evidence_scope": "mfrm_tam_overlap_nontransfer",
+    "tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm": false,
+    "tam_independent_review_completed": false,
     "public_exposure_support": "guarded_scalar_gmfrm_and_fixed_q_mgmfrm_only",
     "interpretation": "broader_exposure_review_recorded_guarded_confirmatory_mgmfrm_enabled_keep_broader_claims_blocked",
     "required_followup": "guarded_local_mgmfrm_fit_entrypoint"
@@ -361,19 +434,27 @@
     "dff_estimand_validation_grid_passed": true,
     "manuscript_scale_simulation_grid_passed": true,
     "full_paper_reproduction_archive_passed": true,
-    "n_input_artifacts": 17,
-    "n_scope_decisions": 6,
-    "n_risk_rows": 5,
-    "n_blockers": 0,
+    "tam_direct_primary_gate_passed": true,
+    "tam_raw_archive_integrity_passed": true,
+    "tam_post_packet_integrity_passed": true,
+    "tam_independent_review_completed": false,
+    "tam_pre_execution_exact_input_lineage": false,
+    "tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm": false,
+    "n_input_artifacts": 20,
+    "n_scope_decisions": 7,
+    "n_risk_rows": 7,
+    "n_blockers": 2,
     "scalar_guarded_fit_allowed": true,
     "broader_generalized_fit_allowed": false,
     "mgmfrm_fit_allowed": true,
     "dff_model_effects_allowed": false,
     "model_weights_allowed": false,
     "manuscript_claims_allowed": false,
+    "tam_public_validation_allowed": false,
     "no_publication_commands": true,
     "remaining_public_blockers": [
-
+      "tam_direct_independent_review_pending",
+      "tam_pre_execution_refinement_lineage_adjudication_pending"
     ],
     "recommendation": "manual_scope_review_recorded_keep_guarded_scalar_and_confirmatory_mgmfrm_only",
     "next_gate": "guarded_local_mgmfrm_fit_entrypoint"

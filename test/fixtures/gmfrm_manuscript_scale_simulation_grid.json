@@ -166,7 +166,7 @@
       "sha256": null,
       "summary": {
         "passed": true,
-        "n_evidence_cells": 18,
+        "n_evidence_cells": 21,
         "key_check": "claim_level_reproduction_archive",
         "all_primary_checks": true
       }
@@ -183,7 +183,7 @@
       "sha256": null,
       "summary": {
         "passed": true,
-        "n_evidence_cells": 17,
+        "n_evidence_cells": 20,
         "key_check": "broader_exposure_decision",
         "all_primary_checks": true
       }
@@ -197,7 +197,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "d3e3b52c8cb11ceb31ac21a196327923849d8e16b4e58bc3ea8958597864e08f",
+      "sha256": "aa4c76a441bd49ca676d7ab36c409a521a2c4adcb9042174881ac5c081dfe9ce",
       "summary": {
         "passed": true,
         "n_evidence_cells": 6,
@@ -214,7 +214,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "9d052c9d73f84ebd110df7c72409ac0a2611a84eaa4fd4285db5661cebbd217a",
+      "sha256": "327e59c0dcb29592e496992619b885f29992e5f519af5ab629c0228feec27ba5",
       "summary": {
         "passed": true,
         "n_evidence_cells": 10,
@@ -333,7 +333,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "e8cf692f5a4237a459dca774d42e26d48f6dd812b79d8cb40e3c5a3f49d3860c",
+      "sha256": "bea892cc2e49fa90071f6a0253c0d8759544f0c567058b58d68946cc6cf907e2",
       "summary": {
         "passed": true,
         "n_evidence_cells": 2,
@@ -350,7 +350,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "366df68d55c9b4fb261ac0c0d09179941a0696535172fe793c75421a3b1bcaa2",
+      "sha256": "6dd7df95707522553f3be262bb13c249aff743ecc8a1d1f6435d9d9a668303db",
       "summary": {
         "passed": true,
         "n_evidence_cells": 78,
@@ -367,7 +367,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "e266737bda4df3eb1e07ed333fc17d71b31e60a54e94bd75028977b5ab87a2c4",
+      "sha256": "93d22a0e915a10f7615d52ceb94b5ca937117a43828b362ac52b314f711a56a0",
       "summary": {
         "passed": true,
         "n_evidence_cells": 34,
@@ -384,7 +384,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "8f3809ac9a652d4f79c38651c29f1d309d966e0406e9dfa17a54eb412c198cd6",
+      "sha256": "2b3e8f2bfcf0837c4663e8bbedf81ddbe3bbe531070d49bd78761b0381a91c70",
       "summary": {
         "passed": true,
         "n_evidence_cells": 14,
@@ -401,7 +401,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "f9774ede72c6740fd25fa3b7a8467c180ad0c3e04b64b14fce65232707bd538e",
+      "sha256": "1e71a58c2d2b912b8004059aafd250b7d3ae739e48163f19673c4adaeaf6714b",
       "summary": {
         "passed": true,
         "n_evidence_cells": 29,
@@ -418,7 +418,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "cc695671cb4dbcc61733126c45859833cd4d182be6f438d4d50217b77c59d898",
+      "sha256": "87b3d3b33ed3c671b29cd0d4bac02528f041ed22bed76a3551cdef61b544dbfa",
       "summary": {
         "passed": true,
         "n_evidence_cells": 125,
@@ -435,7 +435,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "298a3a842c3df1123a276450f3591e8e3674d54435f78618652ae81ed2b62348",
+      "sha256": "b70cf0426cca10c411eaf9e04e489613e9523ca5763b22d77cf1a4d34d46f68a",
       "summary": {
         "passed": true,
         "n_evidence_cells": 625,
@@ -452,7 +452,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "6916ae37b578a252be3926f77e6938111d47a0f5ce07e8f679585190fd65f16d",
+      "sha256": "83cf4b53a83df675f5d4d98a3072051dec983574b76cd15a7784502911b037d8",
       "summary": {
         "passed": true,
         "n_evidence_cells": 17,
@@ -469,7 +469,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "c401b580b70ec3add9627cb23e77e00ea741d97a20dff976c96a964de44a3d0d",
+      "sha256": "fae6e4e9e80ffd76076ddbd8f0c69e382bf1a105da1fcb46f119f878ed3348b3",
       "summary": {
         "passed": true,
         "n_evidence_cells": 144,
@@ -486,7 +486,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "a09c17eb83cedcb83bcc94698d78377b594b4f54a26bf7dfa58e0e535cf14bac",
+      "sha256": "230df0db735df512f08ac29270c856eda9b6115e459110a34919196033cd0f33",
       "summary": {
         "passed": true,
         "n_evidence_cells": 33,
@@ -503,7 +503,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "41be4bdf513f1b2b33415aae5a2e945d90bd8244c21d818b44fd4ac0a63d7b64",
+      "sha256": "933fa3709bf8b6c73f4a81472da0f888a7b3fa100aaca2d0b317055ecdc1c0f7",
       "summary": {
         "passed": true,
         "n_evidence_cells": 225,
@@ -520,7 +520,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "7ed58b482698827c35088812b1890b140222e70813178d7a30de4e7d61d43a90",
+      "sha256": "b2c4b922eb72f704cdd79c9c960813db5d8d6d0b2ab17b0478849d83bd781419",
       "summary": {
         "passed": true,
         "n_evidence_cells": 175,
@@ -537,7 +537,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "6113960886bee953aac8303ebba9a2645a5df32b756cef5f939da1d7cda865e5",
+      "sha256": "6c8c82cc42e67bcc76dc42e4eb49519b168fdd94453738afb56e93f98ce97dc3",
       "summary": {
         "passed": true,
         "n_evidence_cells": 855,
@@ -554,7 +554,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "72fc4ea69a4310fa8d86ad1a6215f577189fe567d797f762b2feaf55239dbb4c",
+      "sha256": "104ec27e6122d05fbb0ef14589b0c3ae9ef12b29b42a0e98c6d128c40c94fcda",
       "summary": {
         "passed": true,
         "n_evidence_cells": 668,
@@ -571,7 +571,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "29da979fb86bb1bc9b298ae55834aa802ccd523a0bd58b034ef67b8d846707db",
+      "sha256": "54311f16f58cb909a717fbb52a25b1c3f5cc5454b552e73729eda7c3e9d17f63",
       "summary": {
         "passed": true,
         "n_evidence_cells": 26,
@@ -588,7 +588,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "5ff0cd31e03e7e6c5bc82ce57a9390e560507fadd6e0ee99a3ce0675a6df0cef",
+      "sha256": "2e6a3fbdd5973d6cde1fef6d8303f665e875423bc78920b5a8c8fb2b5989211d",
       "summary": {
         "passed": true,
         "n_evidence_cells": 70,
@@ -605,7 +605,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "82e8aacf047eb3974346075e4638a49e25347a49fdc1c491d8b24e1284337aa1",
+      "sha256": "d3f85ab67cd8fc7cb5ce28326685622051b5f47225b769e6784b83a4f63ab54a",
       "summary": {
         "passed": true,
         "n_evidence_cells": 35,
@@ -622,7 +622,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "786ee9e470b9aa36363e0562eccc49a122d723878b742cb5e4da23a0152b3f36",
+      "sha256": "84abacc965d07f068e1b0c8c6748e1108c6cea8329fa33501daed753a083c732",
       "summary": {
         "passed": true,
         "n_evidence_cells": 90,
@@ -642,7 +642,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "a4a23a36710913917c818ab182eae383ea3361279c51a266096cbec15332768a",
+      "sha256": "8816118519f5fe51f049148b488e843562466b172aaf5d9c133323b2c5644229",
       "summary": {
         "passed": true,
         "n_evidence_cells": 2134,
@@ -662,7 +662,7 @@
       "sha256": null,
       "summary": {
         "passed": true,
-        "n_evidence_cells": 64,
+        "n_evidence_cells": 73,
         "key_check": "full_paper_reproduction_archive",
         "all_primary_checks": true
       }
@@ -707,14 +707,14 @@
     {
       "gate": "claim_recovery_reproduction_archive",
       "status": "passed",
-      "n_evidence_cells": 18,
+      "n_evidence_cells": 21,
       "key_check": "claim_level_reproduction_archive",
       "artifact": "test/fixtures/gmfrm_claim_recovery_reproduction_archive.json"
     },
     {
       "gate": "broader_experimental_exposure_decision_review",
       "status": "passed",
-      "n_evidence_cells": 17,
+      "n_evidence_cells": 20,
       "key_check": "broader_exposure_decision",
       "artifact": "test/fixtures/gmfrm_broader_experimental_exposure_decision_review.json"
     },
@@ -910,7 +910,7 @@
     {
       "gate": "full_paper_reproduction_archive",
       "status": "passed",
-      "n_evidence_cells": 64,
+      "n_evidence_cells": 73,
       "key_check": "full_paper_reproduction_archive",
       "artifact": "test/fixtures/gmfrm_full_paper_reproduction_archive.json"
     }
@@ -941,9 +941,7 @@
       "required_followup": "execute_publication_grade_refit_pilot_or_attach_external_construct_dataset"
     }
   ],
-  "blocker_rows": [
-
-  ],
+  "blocker_rows": [],
   "decision_record": {
     "selected_decision": "full_archive_recorded_keep_guarded_scalar_and_confirmatory_mgmfrm_only",
     "scalar_guarded_fit_allowed": true,
@@ -964,7 +962,7 @@
     "all_primary_checks_passed": true,
     "n_input_artifacts": 35,
     "n_evidence_rows": 35,
-    "total_evidence_cells": 5581,
+    "total_evidence_cells": 5596,
     "minimum_required_evidence_cells": 60,
     "scalar_fit_validation_grid_passed": true,
     "posterior_predictive_grid_passed": true,
@@ -1008,9 +1006,7 @@
     "manuscript_claims_allowed": false,
     "no_publication_commands": true,
     "n_blockers": 0,
-    "remaining_public_blockers": [
-
-    ],
+    "remaining_public_blockers": [],
     "recommendation": "execute_single_cell_publication_grade_pilot_or_attach_external_dataset",
     "next_gate": "execute_publication_grade_refit_pilot_or_attach_external_construct_dataset"
   }

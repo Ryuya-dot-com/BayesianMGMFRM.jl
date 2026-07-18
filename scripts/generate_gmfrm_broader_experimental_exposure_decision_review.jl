@@ -96,6 +96,27 @@ const INPUT_ARTIFACTS = [
             "bayesianmgmfrm.gmfrm_manuscript_scale_simulation_grid.v1",
         pass_policy = :summary_passed,
         hash_policy = :sha256),
+    (name = :tam_direct_agreement_multireplication,
+        path =
+            "test/fixtures/mgmfrm_tam_direct_agreement_multireplication.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_tam_direct_agreement_multireplication.v1",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
+    (name = :tam_direct_agreement_raw_archive_audit,
+        path =
+            "test/fixtures/mgmfrm_tam_direct_agreement_raw_archive_audit.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_tam_direct_agreement_raw_archive_audit.v1",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
+    (name = :tam_direct_agreement_post_execution_review_packet,
+        path =
+            "test/fixtures/mgmfrm_tam_direct_agreement_post_execution_review_packet.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_tam_direct_agreement_post_execution_review_packet.v1",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
     (name = :full_paper_reproduction_archive,
         path = "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
         expected_schema =
@@ -134,6 +155,12 @@ const PROTOCOL = (;
         require_mgmfrm_manual_public_scope_review_for_fit_passed = true,
         require_dff_estimand_validation_grid_passed = true,
         require_manuscript_scale_simulation_grid_passed = true,
+        require_tam_direct_execution_recorded = true,
+        require_tam_raw_archive_integrity_passed = true,
+        require_tam_post_execution_packet_integrity_passed = true,
+        require_tam_independent_review_pending_recorded = true,
+        require_tam_pre_execution_lineage_mismatch_recorded = true,
+        require_tam_evidence_nontransfer_to_gmfrm_mgmfrm = true,
         require_full_paper_reproduction_archive_passed = true,
         require_scalar_guarded_fit_kept_enabled = true,
         require_mgmfrm_fit_kept_internal = true,
@@ -145,7 +172,20 @@ const PROTOCOL = (;
     ),
 )
 
-const BLOCKER_ROWS = NamedTuple[]
+const BLOCKER_ROWS = [
+    (;
+        blocker = :tam_direct_independent_review_pending,
+        scope = :tam_public_validation_claim,
+        resolved = false,
+        does_not_block_guarded_local_fit = true,
+    ),
+    (;
+        blocker = :tam_pre_execution_refinement_lineage_adjudication_pending,
+        scope = :tam_public_validation_claim,
+        resolved = false,
+        does_not_block_guarded_local_fit = true,
+    ),
+]
 
 function usage()
     return """
@@ -372,6 +412,12 @@ function scope_decision_rows(input_records)
         record_by_name(input_records, :dff_estimand_validation_grid)
     manuscript_grid =
         record_by_name(input_records, :manuscript_scale_simulation_grid)
+    tam_result = record_by_name(
+        input_records, :tam_direct_agreement_multireplication)
+    tam_audit = record_by_name(
+        input_records, :tam_direct_agreement_raw_archive_audit)
+    tam_post = record_by_name(
+        input_records, :tam_direct_agreement_post_execution_review_packet)
     full_archive =
         record_by_name(input_records, :full_paper_reproduction_archive)
     mgmfrm_bridge = record_by_name(input_records, :mgmfrm_bridge_oracle)
@@ -437,6 +483,17 @@ function scope_decision_rows(input_records)
             public_fit = false,
             experimental_public = false,
             next_required_evidence = :guarded_local_mgmfrm_fit_entrypoint),
+        (surface = :tam_direct_mfrm_overlap_claim,
+            current_status =
+                :local_primary_pass_independent_review_pending,
+            decision = :record_nontransfer_keep_public_validation_blocked,
+            evidence = Bool(tam_result.summary_passed) &&
+                Bool(tam_audit.summary_passed) &&
+                Bool(tam_post.summary_passed),
+            public_fit = false,
+            experimental_public = false,
+            next_required_evidence =
+                :independent_reexecution_lineage_adjudication_and_signed_review),
     ]
 end
 
@@ -457,6 +514,13 @@ function risk_rows()
         (risk = :dff_fairness_overclaim,
             decision = :keep_dff_as_validation_only,
             mitigation = :require_predeclared_estimands_and_practical_scale_checks),
+        (risk = :tam_overlap_overgeneralization,
+            decision = :do_not_transfer_mfrm_tam_agreement_to_gmfrm_or_mgmfrm,
+            mitigation = :record_tested_scope_and_nontransfer_as_separate_gate),
+        (risk = :tam_pre_execution_lineage_mismatch,
+            decision = :keep_public_tam_validation_claim_blocked,
+            mitigation =
+                :preserve_immutable_pre_execution_packet_and_require_independent_adjudication),
     ]
 end
 
@@ -498,6 +562,28 @@ function build_artifact()
         record_by_name(input_records, :dff_estimand_validation_grid)
     manuscript_grid =
         record_by_name(input_records, :manuscript_scale_simulation_grid)
+    tam_result = record_by_name(
+        input_records, :tam_direct_agreement_multireplication)
+    tam_audit = record_by_name(
+        input_records, :tam_direct_agreement_raw_archive_audit)
+    tam_post = record_by_name(
+        input_records, :tam_direct_agreement_post_execution_review_packet)
+    tam_result_summary = json_optional_summary(
+        read(local_path(tam_result.path), String))
+    tam_audit_summary = json_optional_summary(
+        read(local_path(tam_audit.path), String))
+    tam_post_summary = json_optional_summary(
+        read(local_path(tam_post.path), String))
+    tam_direct_primary_gate_passed = Bool(json_optional_bool(
+        tam_result_summary, "primary_direct_gate_passed"))
+    tam_raw_archive_integrity_passed = Bool(json_optional_bool(
+        tam_audit_summary, "archive_integrity_passed"))
+    tam_post_packet_integrity_passed = Bool(json_optional_bool(
+        tam_post_summary, "packet_integrity_passed"))
+    tam_independent_review_completed = Bool(json_optional_bool(
+        tam_post_summary, "independent_review_completed"))
+    tam_pre_execution_exact_input_lineage = Bool(json_optional_bool(
+        tam_post_summary, "pre_execution_packet_exact_input_lineage"))
     full_archive =
         record_by_name(input_records, :full_paper_reproduction_archive)
     mgmfrm_bridge = record_by_name(input_records, :mgmfrm_bridge_oracle)
@@ -522,6 +608,9 @@ function build_artifact()
     manuscript_claims_allowed =
         Bool(first(row for row in decisions
             if row.surface === :manuscript_sparse_mgmfrm_claims).public_fit)
+    tam_public_validation_allowed =
+        Bool(first(row for row in decisions
+            if row.surface === :tam_direct_mfrm_overlap_claim).public_fit)
     no_publication = no_publication_commands()
     passed = all_input_artifacts_present &&
         all_expected_schemas &&
@@ -532,6 +621,12 @@ function build_artifact()
         !dff_model_effects_allowed &&
         !model_weights_allowed &&
         !manuscript_claims_allowed &&
+        !tam_public_validation_allowed &&
+        tam_direct_primary_gate_passed &&
+        tam_raw_archive_integrity_passed &&
+        tam_post_packet_integrity_passed &&
+        !tam_independent_review_completed &&
+        !tam_pre_execution_exact_input_lineage &&
         no_publication
     return (;
         schema =
@@ -563,6 +658,10 @@ function build_artifact()
             scalar_guarded_fit_allowed,
             mgmfrm_fit_allowed,
             broader_generalized_fit_allowed,
+            tam_public_validation_allowed,
+            tam_direct_evidence_scope = :mfrm_tam_overlap_nontransfer,
+            tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm = false,
+            tam_independent_review_completed,
             public_exposure_support =
                 :guarded_scalar_gmfrm_and_fixed_q_mgmfrm_only,
             interpretation =
@@ -607,6 +706,12 @@ function build_artifact()
                 Bool(manuscript_grid.summary_passed),
             full_paper_reproduction_archive_passed =
                 Bool(full_archive.summary_passed),
+            tam_direct_primary_gate_passed,
+            tam_raw_archive_integrity_passed,
+            tam_post_packet_integrity_passed,
+            tam_independent_review_completed,
+            tam_pre_execution_exact_input_lineage,
+            tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm = false,
             n_input_artifacts = length(input_records),
             n_scope_decisions = length(decisions),
             n_risk_rows = length(risk_rows()),
@@ -617,6 +722,7 @@ function build_artifact()
             dff_model_effects_allowed,
             model_weights_allowed,
             manuscript_claims_allowed,
+            tam_public_validation_allowed,
             no_publication_commands = no_publication,
             remaining_public_blockers =
                 [row.blocker for row in BLOCKER_ROWS],

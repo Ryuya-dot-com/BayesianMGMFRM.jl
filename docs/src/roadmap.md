@@ -69,15 +69,17 @@ The following are planned but not yet exposed:
   beyond the current machine-readable reports, multi-report review dossiers,
   and local full-paper archive.
 
-## Active MGMFRM Release Sequence
+## v0.1.x MGMFRM Release Sequence
 
 The source-grounded staged plan is maintained in
-[MGMFRM Research Roadmap](mgmfrm-research-roadmap.md). The active sequence is:
+[MGMFRM Research Roadmap](mgmfrm-research-roadmap.md). The sequence records
+`v0.1.1` as completed and continues with:
 
-- `v0.1.1`: refine fixed-Q confirmatory MGMFRM by strengthening execution,
-  diagnostics, reporting, and validation for the existing guarded path.
-- `v0.1.2`: remain fixed-Q and confirmatory, while expanding dimensionality
-  and Q validation.
+- `v0.1.1`: completed fixed-Q confirmatory MGMFRM refinement by strengthening
+  execution, diagnostics, reporting, and validation for the existing guarded
+  path.
+- `v0.1.2`: next, remain fixed-Q and confirmatory while expanding
+  dimensionality and Q validation.
 - `v0.1.3`: decide whether free latent correlations are ready for guarded
   exposure.
 - `v0.1.4`: design exploratory loading and rotation policy before broad
@@ -90,15 +92,87 @@ comparisons against overlapping R package targets. Real-data validation and
 R-package overlap claims are deliberately not `v0.1.x` or `v0.2.0` release
 gates.
 
-## v0.1.1 Focus
+## Literature-Anchored Synthetic Benchmark
 
-The next release should refine the core generalized and multidimensional
-surfaces rather than broaden public claims. The target is better auditability:
-the guarded scalar GMFRM and fixed-Q confirmatory MGMFRM paths should explain
-their source equations, constraints, priors, diagnostics, and reports clearly
-enough for serious review.
+The first DOI-traced benchmark artifact materializes two deterministic
+known-truth datasets from the Zotero-informed design review. The scalar pilot is
+the smallest Uto and Ueno (2020) recovery cell (`J=30`, `I=3`, `R=5`, `K=5`,
+fully crossed). The multidimensional pilot uses the smallest two-dimensional Uto
+(2021) cell (`J=50`, `I=5`, `R=5`, `L=2`, `K=4`, fully crossed), but is explicitly
+adapted to the package's confirmatory fixed-Q surface: inactive loadings are zero
+rather than the paper's non-primary anchor loading of `0.2`, and the ability
+term is recorded as a loading-weighted sum.
 
-`v0.1.1` should keep these boundaries:
+The generator duplicates the published adjacent-category equations in a
+standalone response-sampling path and does not call package simulation or
+probability helpers. After generation, it uses the package source-equation path
+only as an oracle check. The committed artifact records the maximum probability
+error, parameter truth, independent truth/response seeds, row hashes, and the
+exact/adapted crosswalk. This is stronger wiring evidence than a same-code
+simulation, but remains an in-repository crosscheck rather than an independently
+maintained external oracle.
+
+The independent review packet is now frozen as a separate artifact, but it is
+not a signed review. A TAM `tam.mml.mfr` overlap baseline and CSV export are
+prepared, and one local TAM execution review records the extracted parameter
+table plus diagnostic item/rater/item-step comparisons. A follow-up TAM policy
+review reconstructs the TAM category intercepts from the expanded facet table,
+confirms the item-step sum constraints, and freezes post-pilot thresholds for
+future replications. The item/rater pilot clears those future numerical gates;
+item-step does not. The frozen policy has now been executed over 30 TAM fits at
+40, 100, and 250 persons. All three parameter blocks pass in every primary
+250-person replication; item-step passes 6/10 at 40 persons and 10/10 at both
+100 and 250 persons. A same-data direct-estimate pilot then fits the package with
+four AdvancedHMC chains: all sampler gates pass and the three aligned parameter
+blocks correlate above 0.99 with TAM estimates. Because direct-agreement
+thresholds were not frozen before that pilot, it remains descriptive. A
+prospective direct package-versus-TAM agreement policy is now frozen for future
+runs. A separate multiaxial refinement sidecar leaves every frozen primary
+threshold unchanged while separating agreement from truth recovery, fixing
+seed/data/fit/retry/failure contracts, recording the five-replication precision
+limit, and constraining any result to the fully crossed unit-discrimination
+MFRM/PCM overlap. The current item-step pilot is therefore classified as close
+descriptive package/TAM agreement without full known-truth recovery support. A
+separate completed execution artifact now applies that unchanged policy to five
+fresh 40-person and five fresh 100-person datasets. All ten package fits pass
+the frozen sampler gate, all ten TAM fits pass the numerical and adapter audit,
+and item, rater, and item-step direct agreement pass 5/5 in the primary
+100-person condition. Both estimators' known-truth recovery qualifiers also
+pass 5/5 for every primary block. The 40-person stress condition illustrates
+why these layers remain separate: direct agreement is 5/5 for every block,
+while package and TAM recovery counts are 4/5 for item, 5/5 for rater, and 3/5
+for item-step. Four rank-normalized R-hat advisories just exceed 1.01, although
+every prospectively frozen classical R-hat/ESS/HMC gate passes. The all-attempt
+audit retains 11 attempts and hashes 230 files, including the non-selected
+result-writer failure and its same-seed infrastructure retry. The separate
+post-execution packet is ready for review and its core execution hash chain
+passes. The immutable pre-execution packet is not rewritten, however: its
+policy hash matches while its refinement hash identifies an older snapshot.
+That chronology difference is retained as an explicit independent-review task
+and public-claim blocker. Independent re-execution and a signed review remain
+incomplete. The remaining scientific gates are
+multi-replication generalized recovery refits, a unit-discrimination MFRM
+bridge for FACETS, an aligned MRCML bridge for ConQuest, and external construct
+data. None of the TAM evidence transfers to GMFRM/MGMFRM or Uto (2021), and no
+package-wide or public validation claim is released.
+The upper claim-recovery/full reproduction archives and broader/guarded
+exposure reviews carry the TAM artifacts only as MFRM-overlap non-transfer
+evidence. Their pending independent review and chronology adjudication remain
+TAM-claim blockers and do not disable the existing guarded local fit surfaces.
+Synthetic known truth can test source equations, constraints, recovery, and
+design stress; it cannot
+establish construct representation, population generalization, fairness, or
+performance on an external real dataset.
+
+## v0.1.1 Release Record
+
+The `v0.1.1` release refined the core generalized and multidimensional surfaces
+without broadening public claims. Its target was better auditability: the
+guarded scalar GMFRM and fixed-Q confirmatory MGMFRM paths were required to
+explain their source equations, constraints, priors, diagnostics, and reports
+clearly enough for serious review.
+
+`v0.1.1` kept these boundaries:
 
 - no exploratory MGMFRM loadings, rotations, or free latent correlations;
 - no dimensionality discovery beyond a fixed confirmatory Q-matrix;
@@ -107,7 +181,12 @@ enough for serious review.
 - no direct-scale generalized priors unless the log-Jacobian policy is fully
   documented and tested.
 
-The implementation roadmap has six workstreams.
+The implementation roadmap originally defined six workstreams. The `v0.1.1`
+scope was frozen to the completed status, portable-report, fixed-Q,
+initial-diagnostics, MFRM FACETS-description, reproducibility, and runnable
+example slices. Broader predictive/category reporting, rank-normalized and
+bulk/tail diagnostics, rater-homogeneity work, and expanded validation bundles
+described below are deferred to v0.1.2 or later.
 The issue-sized implementation checklist is maintained in
 [v0.1.1 Implementation Checklist](v0.1.1-implementation-checklist.md).
 
@@ -172,10 +251,10 @@ The issue-sized implementation checklist is maintained in
    immer, and keep Bayes factors out of the default workflow until
    prior-sensitivity policy is documented.
 
-The release gate is documentation and evidence, not API breadth. `v0.1.1`
-should ship only if the guarded GMFRM/MGMFRM paths become easier to inspect and
-harder to overinterpret. Broad generalized fitting remains blocked until the
-later stable-public gates pass.
+The release gate was documentation and evidence, not API breadth. `v0.1.1` was
+limited to changes that made the guarded GMFRM/MGMFRM paths easier to inspect
+and harder to overinterpret. Broad generalized fitting remains blocked until
+the later stable-public gates pass.
 
 ### Critical Triage Rules
 
@@ -195,12 +274,12 @@ The next roadmap decisions should use a conservative triage order:
 5. **Scope labels before examples**: every runnable example must state whether
    it is `supported`, `experimental_public`, `specified_only`, or `blocked`.
 
-Fallback paths should be explicit. If fixed-Q MGMFRM diagnostics are unstable,
-`v0.1.1` should ship report-governance and validation improvements without
-expanding examples. If source or sensitivity checks fail for generalized
-blocks, keep the API guarded and document the failed gate. If external
-comparison targets do not match, classify them as non-overlap rather than
-forcing a misleading validation table.
+Fallback paths remain explicit for later releases. For `v0.1.1`, unstable
+fixed-Q MGMFRM diagnostics would have narrowed the release to report-governance
+and validation improvements without expanding examples. If source or
+sensitivity checks fail for generalized blocks, keep the API guarded and
+document the failed gate. If external comparison targets do not match,
+classify them as non-overlap rather than forcing a misleading validation table.
 
 ### Evidence Maturity Matrix
 
@@ -246,7 +325,7 @@ statements.
 
 | Release | Claim budget | Explicitly not in budget |
 | --- | --- | --- |
-| `v0.1.1` | Existing guarded scalar GMFRM and fixed-Q MGMFRM paths are more auditable: status, priors, diagnostics, Q/gauge, rating-design, report, and artifact wording become harder to overinterpret. | Broader generalized fitting, exploratory loading, free latent correlations, fitted DFF effects, model weights, external validation, performance claims. |
+| `v0.1.1` | Delivered: existing guarded scalar GMFRM and fixed-Q MGMFRM paths became more auditable; status, priors, diagnostics, Q/gauge, rating-design, report, and artifact wording became harder to overinterpret. | Broader generalized fitting, exploratory loading, free latent correlations, fitted DFF effects, model weights, external validation, performance claims. |
 | `v0.1.2` | Fixed-Q confirmatory dimensionality expands only if Q validation, source checks, initialization, diagnostics, recovery, and report schemas scale cleanly. | Free latent correlations, exploratory loading, broad MGMFRM, real-data validation claims. |
 | `v0.1.3` | Free latent correlation receives a proceed/narrow/stop decision with parameterization, prior, diagnostics, and sensitivity evidence. | Automatic promotion of free correlations or exploratory loadings. |
 | `v0.1.4` | Exploratory loading and rotation policy is designed and stress-tested as a reporting problem before exposure. | Stable exploratory MGMFRM claims without rotation/sign/permutation evidence. |
@@ -255,7 +334,7 @@ statements.
 
 ### Runtime-Aware Verification
 
-The remaining `v0.1.1` work should use staged verification because Julia
+Post-v0.1.1 work should use staged verification because Julia
 startup, precompilation, guarded HMC smoke tests, Documenter builds, and
 fixture/archive regeneration can be slow. Local slices should start with load
 checks and targeted fixture scripts; manifest, report, or docs changes should
@@ -405,8 +484,8 @@ Model surfaces should move through explicit levels:
 | Level | Meaning |
 | --- | --- |
 | `blocked` | Planned or unsupported; validation and docs prevent accidental use. |
-| `internal_fixture` | Likelihood or transform exists only for tests and source-equation checks. |
-| `internal_promotion_candidate` | Private target with raw/constrained manifests, AD checks, HMC diagnostics, and BridgeStan evidence. |
+| Test-only implementation | Likelihood or transform exists only for tests and source-equation checks. |
+| Private validation candidate | Private target with raw/constrained manifests, AD checks, HMC diagnostics, and BridgeStan evidence. |
 | `experimental_public` | Narrow user-facing fit path with explicit warnings, diagnostics, and recovery smoke evidence. |
 | `stable_public` | Ordinary examples and package claims are supported by internal simulation, sensitivity checks, and reproduction artifacts. |
 | `external_validated` | Post-`v0.2.0` claims supported by known-truth R-package simulation comparisons and, only after that, real-data validation evidence. |
@@ -496,7 +575,7 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   raw/constrained layout plus raw/direct posterior row schemas; scalar GMFRM
   item-discrimination public promotion is explicitly kept preview-only for
   `v0.1.1` via a machine-readable decision row; scalar GMFRM internal
-  promotion-candidate gates, a fit-ready compiler-candidate manifest, gradient
+  experimental-candidate gates, a fit-ready compiler-candidate manifest, gradient
   diagnostics, direct block metadata, direct pointwise fixture API,
   raw-to-direct transform diagnostics, internal raw/direct sampler diagnostic
   surface, a local candidate-chain study artifact, an internal
@@ -520,7 +599,7 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   transform boundary checks done; preview raw-parameterization manifest rows
   added; public fit-ready parameter layout rows added for MFRM direct blocks
   and GMFRM/MGMFRM raw/constrained compiler candidates; scalar GMFRM
-  promotion-candidate fit-ready compiler manifest, gradient and raw-to-direct
+  experimental-candidate fit-ready compiler manifest, gradient and raw-to-direct
   transform diagnostics, direct pointwise fixture API, and BridgeStan
   direct-parameter checks added; internal raw/direct sampler diagnostics, a
   local two-fixture candidate-chain study artifact, an experimental-public
@@ -633,7 +712,10 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   and item-threshold position rows for Wright-map-style displays,
   [`dff_report`](@ref) returns declared or ad hoc DFF screening rows with
   expected-score interaction residuals and local logit-scale approximations,
-  [`fit_stats`](@ref) provides posterior infit/outfit rows, and
+  [`fit_stats`](@ref) provides posterior infit/outfit rows,
+  [`facets_report`](@ref) / [`facets_compatibility_stats`](@ref) provides separately labelled
+  unit-weighted posterior-mean plugin rows with Wright--Masters fourth-moment
+  df and capped Wilson--Hilferty ZSTD for MFRM/RSM/PCM fits only, and
   [`residual_summary`](@ref) now provides observation- or facet-level
   expected-score and residual intervals with residual-screening caveat flags.
   [`anchor_linking_summary`](@ref) adds declared hard/soft anchor review rows,
@@ -652,7 +734,7 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   stability. [`simulation_grid`](@ref) and
   [`simulation_grid_summary`](@ref) now predeclare and check the density,
   anchor-size, ratings-per-target, category-pathology, rater-noise, DFF,
-  dimensionality, and misspecification axes. `scripts/generate_validation_plan.jl`
+  dimensionality, and misspecification axes. A deterministic validation-plan export
   now turns those controls and the falsification-rule contract into a
   deterministic JSON plan artifact; it still does not run simulations or fit
   models.
@@ -678,17 +760,17 @@ Stan fixtures, cached draws, and rendered reports should be versioned.
   before marking fast cached-draw reproduction ready. [`release_scope_summary`](@ref)
   now exposes those fit-cache, reproduction, and Documenter HTML page-size
   guardrails as local evidence rows without broadening public generalized claims,
-  and records the local pre-registration gate as the manual General-registration
-  readiness boundary.
+  and records the release-verification gate as the registry-update readiness
+  boundary.
 
 ## Completed 30-45 Day Sprint Record
 
 This section is retained as the completed sprint record for guarded scalar
 GMFRM and fixed-Q confirmatory MGMFRM exposure work. Broader stable-public claims
-and release actions remain governed by the release-scope and manual public-scope
+and release actions remain governed by the release-scope and independent scope-review
 gates above.
 
-1. Split the scalar GMFRM promotion candidate from source-fixture helper logic
+1. Split the scalar GMFRM experimental candidate from source-fixture helper logic
    into an internal fit-ready compiler path with generated raw blocks,
    constrained blocks, transforms, constraints, and prior-policy rows.
    [Initial manifest split done]

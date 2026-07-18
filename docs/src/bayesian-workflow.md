@@ -1,156 +1,105 @@
 # Bayesian Workflow
 
-The current package exposes the early pieces needed for a Bayesian many-facet
-Rasch workflow, including initial AdvancedHMC/NUTS and Turing/NUTS paths for
-the minimal MFRM/RSM/PCM design. Guarded generalized experimental paths are
-also available through `fit(spec; experimental = true)` for the
-one-dimensional rater-consistency GMFRM candidate and the fixed-Q confirmatory
-MGMFRM candidate with `dimensions >= 2`. Broader GMFRM/MGMFRM fitting beyond
-those guarded candidates remains planned work, but specified-only
-GMFRM/MGMFRM configs can already be recorded in
-manifests, constraint tables, and identification declarations.
-`getdesign(spec; preview = true)` can also compile a non-fit-ready parameter
-blueprint for those configurations, so future Bayesian checks can be added
-without changing the data layer.
+A many-facet analysis is more than a sampling call. The rating design,
+identification constraints, priors, sampler behavior, predictive performance,
+and reporting scope all affect what can be interpreted.
 
-## Recommended Sequence
+## 1. Validate the Rating Design
 
-1. Build long-format rating data with [`FacetData`](@ref).
-2. Run pre-fit checks with [`validate_design`](@ref), [`coverage_summary`](@ref),
-   [`coverage_matrix`](@ref), and [`rating_design_audit`](@ref).
-3. Inspect supported and specified-only model families with [`model_ladder`](@ref).
-4. Declare a minimal MFRM/RSM/PCM specification with [`mfrm_spec`](@ref), then
-   inspect the source-traced mathematical contract with [`model_equation`](@ref),
-   constraints with [`constraint_table`](@ref), normalized identification
-   declarations with [`identification_declarations`](@ref), and the identified
-   parameter design with [`getdesign`](@ref). Use
-   [`fit_ready_parameter_layout`](@ref) when sampler-coordinate and
-   constrained-coordinate block ranges are needed.
-   For specified-only GMFRM/MGMFRM review, use `getdesign(spec; preview = true)`,
-   `design_row_table(spec; preview = true)`, and
-   `linear_predictor_table(spec; preview = true)`. Use
-   `fit(spec; experimental = true)` only for the guarded scalar GMFRM
-   rater-consistency candidate or the guarded fixed-Q confirmatory MGMFRM
-   candidate.
-5. Choose weakly informative scales with [`MFRMPrior`](@ref).
-6. For external sampler or AD experiments, build an [`MFRMLogDensity`](@ref)
-   target and a deterministic start with [`initial_params`](@ref); use
-   [`linear_predictor_values`](@ref), [`loglikelihood`](@ref),
-   [`logprior`](@ref), and [`logposterior`](@ref) to inspect the category-score
-   and scalar target components.
-7. Run [`prior_predictive_check`](@ref) and summarize it with
-   [`predictive_check_summary`](@ref) before fitting.
-8. Fit the current minimal model with [`fit`](@ref), or use
-   [`cached_fit`](@ref) with a stable `cache_path` and integer `seed` to avoid
-   recomputation when [`fit_cache_key`](@ref) still matches. Use
-   `backend = :advancedhmc` or `backend = :turing` for NUTS paths and
-   `chains >= 2` when convergence diagnostics are needed. The default gradient
-   path is `ad_backend = :ForwardDiff`; `:ReverseDiff` can be selected for the
-   direct AdvancedHMC backend when that AD package is available, and
-   `:analytic` is reserved for AdvancedHMC targets that expose a native
-   `LogDensityProblems.logdensity_and_gradient` method. The Turing backend
-   currently uses ForwardDiff only.
-9. Record fit-level metadata with [`fit_metadata`](@ref).
-10. Record data/spec/design/fit provenance with [`model_manifest`](@ref), then
-   create a cached-fit reproducibility artifact with [`fit_artifact`](@ref) and
-   a compact report-facing bundle with [`fit_report`](@ref).
-11. Inspect the integrated diagnostic surface with [`diagnostics`](@ref), or use
-   [`sampler_diagnostics`](@ref), [`mcmc_diagnostics`](@ref), and
-   [`parameter_block_diagnostics`](@ref) separately when lower-level rows are
-   needed.
-12. Inspect parameters with [`posterior_summary`](@ref), prepare Wright-map
-   rows with [`wright_map_data`](@ref), then inspect observation-level
-   predictions with [`predictive_probabilities`](@ref),
-   [`expected_scores`](@ref), [`predictive_variances`](@ref), and
-   [`predictive_residuals`](@ref).
-13. Run [`posterior_predictive_check`](@ref), summarize it with
-   [`predictive_check_summary`](@ref), and inspect binned calibration with
-   [`calibration_table`](@ref).
-14. Inspect posterior fair-average expected-score rows with
-   [`fair_average_summary`](@ref), separation/reliability rows with
-   [`separation_reliability_summary`](@ref), posterior residual summaries with
-   [`residual_summary`](@ref), rater diagnostics with
-   [`rater_diagnostics`](@ref), DFF screening rows with [`dff_report`](@ref),
-   and facet-level infit/outfit with [`fit_stats`](@ref).
-15. Compare same-observation candidate models with [`waic`](@ref), raw
-    importance-sampling [`loo`](@ref), PSIS-smoothed [`psis_loo`](@ref), and
-    [`compare_models`](@ref); inspect influential WAIC rows with
-    [`waic_diagnostics`](@ref) and unstable LOO rows with
-    [`loo_diagnostics`](@ref).
+Create [`FacetData`](@ref) from long-format ratings and run
+[`validate_design`](@ref). Review:
 
-## Calibration
+- person, rater, item, and category coverage;
+- disconnected or weakly linked rating blocks;
+- skipped or sparse categories;
+- repeated ratings and optional time or order fields;
+- anchors and optional grouping variables;
+- the distinction between planned and accidental missingness.
 
-[`calibration_table`](@ref) is the closest current analogue to a binned
-Bayesian calibration check. By default it bins observations by posterior
-expected score and compares the observed mean score in each bin with posterior
-predicted means. For binary or highest-category reporting, use
-`target = :category_probability`; use `category = :all` for one block per
-ordinal score category, or `target = :all` for expected-score rows plus all
-category-probability rows.
+[`coverage_summary`](@ref), [`coverage_matrix`](@ref),
+[`rater_overlap`](@ref), [`anchor_linking_summary`](@ref), and
+[`rating_design_audit`](@ref) provide additional review rows. These checks do
+not make non-random rater assignment ignorable.
 
-```julia
-calibration_table(fit_result; bins = 5)
-calibration_table(fit_result; target = :category_probability, bins = 5)
-calibration_table(fit_result; target = :category_probability, category = 2, bins = 5)
-calibration_table(fit_result; target = :category_probability, category = :all, bins = 5)
-calibration_table(fit_result; target = :all, bins = 5)
-```
+## 2. Inspect the Model Before Fitting
 
-## Current Limits
+Create an [`mfrm_spec`](@ref) and inspect:
 
-The current `backend = :julia` sampler is a random-walk Metropolis path for
-small validation examples. `backend = :advancedhmc` provides a direct
-AdvancedHMC/NUTS path for the minimal design using [`MFRMLogDensity`](@ref),
-and `backend = :turing` wraps the same target in a Turing model with a flat
-vector parameter and `Turing.@addlogprob!`. The direct AdvancedHMC path routes
-through a shared gradient target adapter, with target-provided analytic
-gradients used when explicitly selected and otherwise AD-backed gradients
-selected by `ad_backend`; the Turing path currently uses ForwardDiff.
-[`sampler_diagnostics`](@ref) reports chain-level acceptance rates,
-log-posterior summaries, divergent-transition counts, max-tree-depth hits, and
-E-BFMI when available, and
-[`mcmc_diagnostics`](@ref) provides classical split R-hat and
-autocorrelation-based ESS when at least two chains are available.
-[`parameter_block_diagnostics`](@ref) aggregates those parameter rows by
-identified design block.
-[`diagnostics`](@ref) combines those rows into a single pass/fail summary and
-includes HMC/NUTS fields when the selected backend produces them. The package
-exposes raw importance-sampling [`loo`](@ref), PSIS-smoothed
-[`psis_loo`](@ref), and [`loo_diagnostics`](@ref) with Hill-estimated Pareto-k
-screening plus deterministic heldout fold plans from [`kfold_plan`](@ref),
-fit-supported automatic [`kfold_refit`](@ref), shared-plan
-[`loo_refit_comparison`](@ref) and [`kfold_refit_comparison`](@ref) rows, and
-supplied heldout-refit [`kfold`](@ref) / [`compare_kfold`](@ref) summaries, plus local
-prior/likelihood power-scaling grids from
-[`prior_likelihood_sensitivity`](@ref), but broad production refit management
-outside the fit-supported same-plan slice remains planned. It also does not
-yet expose covariate terms, random slopes, broad generalized
-discrimination likelihoods, or MGMFRM fitting beyond the guarded fixed-Q
-confirmatory candidate. Specified-only GMFRM/MGMFRM rows in
-[`constraint_table`](@ref) and
-[`identification_declarations`](@ref) are provenance and design-review data,
-not fitted likelihood terms.
+- [`model_equation`](@ref) for the likelihood and source contract;
+- [`constraint_table`](@ref) and [`identification_declarations`](@ref) for the
+  gauge and reference rules;
+- [`getdesign`](@ref) for the identified parameter vector;
+- [`model_manifest`](@ref) for a portable summary of data, model, and design.
 
-Until those pieces are added, treat [`waic`](@ref), [`waic_diagnostics`](@ref),
-[`loo`](@ref), [`psis_loo`](@ref), [`loo_diagnostics`](@ref), [`kfold`](@ref),
-[`kfold_plan`](@ref), [`kfold_refit`](@ref),
-[`loo_refit_comparison`](@ref), [`kfold_refit_comparison`](@ref),
-[`compare_models`](@ref), [`compare_kfold`](@ref),
-[`posterior_predictive_check`](@ref),
-[`calibration_table`](@ref), [`prior_likelihood_sensitivity`](@ref),
-[`fit_stats`](@ref), and [`rater_diagnostics`](@ref) as small-model workflow
-scaffolding rather than a complete production Bayesian model-comparison stack.
-The `relative_weight` returned by
-[`compare_models`](@ref) or [`compare_kfold`](@ref) is an Akaike-style weight
-for a declared prediction target, not a posterior model probability.
-`compare_models` checks the comparison contract up front: observation data and
-row order, ordinal category levels, latent dimensionality, and any fixed
-Q-matrix must match, and the returned rows carry those contract fields for
-reporting. `compare_kfold` similarly requires the same heldout observation
-order and fold assignment order.
-[`sensitivity_comparison`](@ref) uses the same scoring path and adds declared
-axis values plus baseline-relative differences for fit-supported threshold,
-prior, backend, sampler, or custom externally labelled regimes.
-[`prior_likelihood_sensitivity`](@ref) is different: it reweights one fitted
-draw set across prior and likelihood powers and reports effective sample size
-for each local sensitivity cell.
+Specified configurations are not necessarily fit-supported. The support table
+in [Scope and Releases](scope.md) governs whether a fitting call is available.
+
+## 3. Check Prior Implications
+
+Choose [`MFRMPrior`](@ref) scales that match the analysis context and run
+[`prior_predictive_check`](@ref). Look for implausible score distributions,
+category use, or facet ranges before inspecting the observed-data posterior.
+
+The experimental generalized configurations use their documented built-in
+raw-coordinate priors. Custom generalized prior objects are not supported.
+
+## 4. Fit and Diagnose
+
+Use [`fit`](@ref) for supported models. Set an integer seed when replay is
+required and record the sampler controls. Multiple chains are required for
+meaningful between-chain convergence checks.
+
+Review:
+
+- [`sampler_diagnostics`](@ref) for chain and HMC behavior;
+- [`mcmc_diagnostics`](@ref) for R-hat and ESS;
+- [`parameter_block_diagnostics`](@ref) for block-level patterns;
+- [`diagnostics`](@ref) for the compact combined status.
+
+A completed run is not automatically a trustworthy run. Divergences,
+tree-depth saturation, low ESS, unstable R-hat, non-finite evaluations, or
+constraint failures require investigation.
+
+## 5. Examine Predictions and Residuals
+
+Use [`posterior_predictive_check`](@ref),
+[`predictive_check_summary`](@ref), and [`calibration_table`](@ref) to compare
+observed and replicated outcomes. [`predictive_residuals`](@ref),
+[`residual_summary`](@ref), [`fit_stats`](@ref), and
+[`rater_diagnostics`](@ref) help locate misfit.
+
+DFF rows are screening information unless the fitted model explicitly supports
+the corresponding identified effect. Statistical differences should be
+reported separately from practical magnitude and substantive interpretation.
+
+## 6. Compare Models Carefully
+
+WAIC, LOO, PSIS-LOO, and K-fold summaries require compatible observations and
+an explicit prediction target. Inspect pointwise influence, Pareto-k, and
+held-out diagnostics. Relative weights are not posterior model probabilities,
+and a ranking is not by itself a superiority claim.
+
+Sensitivity work should cover defensible prior choices and any threshold,
+anchor, dimensionality, or Q-matrix decisions that could change the
+interpretation.
+
+## 7. Report the Boundary
+
+[`posterior_summary`](@ref), [`fair_average_summary`](@ref),
+[`separation_reliability_summary`](@ref), [`wright_map_data`](@ref), and other
+reporting helpers return table-oriented results. [`fit_report`](@ref) combines
+the complete machine-oriented sections. Use `fit_report(fit; view = :public)`
+or [`fit_report_public`](@ref) for a reader-facing structured projection, and
+[`fit_report_markdown`](@ref) for a Markdown preview.
+
+A report should state:
+
+- model family, threshold regime, dimensions, and constraints;
+- rating-design limitations;
+- priors and sampler controls;
+- convergence and predictive diagnostics;
+- the prediction target for model comparison;
+- unsupported features and the limits of generalization.
+
+Experimental fixed-Q MGMFRM results must not be generalized to exploratory
+multidimensional models or freely estimated correlation structures.

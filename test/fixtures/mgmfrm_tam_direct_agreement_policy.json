@@ -1,0 +1,291 @@
+{
+  "schema": "bayesianmgmfrm.mgmfrm_tam_direct_agreement_policy.v1",
+  "family": "mfrm",
+  "scope": "tam_direct_package_vs_tam_agreement_policy",
+  "status": "prospective_direct_agreement_policy_frozen",
+  "decision": "run_multireplication_package_vs_tam_fits_keep_claim_blocked",
+  "local_only": true,
+  "external_software": "tam",
+  "direct_agreement_thresholds_predeclared": true,
+  "future_direct_multireplication_execution_completed": false,
+  "external_software_validation_completed": false,
+  "public_claim_release_allowed": false,
+  "publication_or_registration_action": false,
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "protocol": {
+    "protocol_id": "mgmfrm_tam_direct_agreement_policy_v1",
+    "generator": "scripts/generate_mgmfrm_tam_direct_agreement_policy.jl",
+    "generator_source_sha256": "b4611e533c1a119d246a267c9897c83d5a258348787e27aa849b9e62c2e06f2b",
+    "direct_estimate_pilot": "test/fixtures/mgmfrm_tam_direct_estimate_pilot.json",
+    "direct_estimate_pilot_sha256": "559ab9551fd2ddde70be9837559d62b7cf518e77f7a740dd9a05fd4f045597ca",
+    "threshold_freeze_order": "after_single_dataset_direct_pilot_before_direct_multireplication_execution",
+    "current_pilot_role": "retrospective_calibration_only",
+    "future_runs_role": "prospective_confirmatory_gate"
+  },
+  "relationship_to_tam": {
+    "overlap_target": "many_facet_rasch_partial_credit",
+    "compared_estimand": "aligned_item_rater_and_item_step_parameter_summaries",
+    "package_estimator": "bayesian_fixed_person_advancedhmc_posterior_mean_and_interval",
+    "tam_estimator": "marginal_maximum_likelihood_xsi_estimate",
+    "exact_estimator_equality_expected": false,
+    "agreement_target": "numerical_parameter_alignment_under_shared_overlap_model"
+  },
+  "future_execution_plan": {
+    "planned_artifact": "test/fixtures/mgmfrm_tam_direct_agreement_multireplication.json",
+    "person_counts": [
+      40,
+      100
+    ],
+    "replications_per_person_count": 5,
+    "primary_person_count": 100,
+    "primary_block_pass_rate_threshold": 0.8,
+    "package_fit": "BayesianMGMFRM_AdvancedHMC_NUTS",
+    "chains": 4,
+    "ndraws_per_chain": 400,
+    "warmup_per_chain": 400,
+    "target_accept": 0.9,
+    "max_depth": 10,
+    "metric": "diagonal",
+    "ad_backend": "ForwardDiff",
+    "gate": "each_primary_block_all_direct_metrics_pass_rate_at_least_0_80_and_all_sampler_gates_pass"
+  },
+  "direct_threshold_rows": [
+    {
+      "block": "item_difficulty",
+      "metric": "pearson_correlation",
+      "target": "package_posterior_mean_vs_tam_estimate",
+      "direction": "minimum",
+      "threshold": 0.95,
+      "observed": 0.9998687567787137,
+      "pilot_passed": true,
+      "evaluation_role": "descriptive_pilot_calibration_only",
+      "future_role": "prospective_multireplication_gate"
+    },
+    {
+      "block": "item_difficulty",
+      "metric": "mean_abs_difference",
+      "target": "package_posterior_mean_vs_tam_estimate",
+      "direction": "maximum",
+      "threshold": 0.1,
+      "observed": 0.01499814136867975,
+      "pilot_passed": true,
+      "evaluation_role": "descriptive_pilot_calibration_only",
+      "future_role": "prospective_multireplication_gate"
+    },
+    {
+      "block": "item_difficulty",
+      "metric": "max_abs_difference",
+      "target": "package_posterior_mean_vs_tam_estimate",
+      "direction": "maximum",
+      "threshold": 0.3,
+      "observed": 0.023570862870124443,
+      "pilot_passed": true,
+      "evaluation_role": "descriptive_pilot_calibration_only",
+      "future_role": "prospective_multireplication_gate"
+    },
+    {
+      "block": "item_difficulty",
+      "metric": "tam_inside_package_interval95_rate",
+      "target": "tam_estimate_inside_package_interval95",
+      "direction": "minimum",
+      "threshold": 0.8,
+      "observed": 1.0,
+      "pilot_passed": true,
+      "evaluation_role": "descriptive_pilot_calibration_only",
+      "future_role": "prospective_multireplication_gate"
+    },
+    {
+      "block": "rater_severity",
+      "metric": "pearson_correlation",
+      "target": "package_posterior_mean_vs_tam_estimate",
+      "direction": "minimum",
+      "threshold": 0.95,
+      "observed": 0.9999833178265483,
+      "pilot_passed": true,
+      "evaluation_role": "descriptive_pilot_calibration_only",
+      "future_role": "prospective_multireplication_gate"
+    },
+    {
+      "block": "rater_severity",
+      "metric": "mean_abs_difference",
+      "target": "package_posterior_mean_vs_tam_estimate",
+      "direction": "maximum",
+      "threshold": 0.1,
+      "observed": 0.019571352287888505,
+      "pilot_passed": true,
+      "evaluation_role": "descriptive_pilot_calibration_only",
+      "future_role": "prospective_multireplication_gate"
+    },
+    {
+      "block": "rater_severity",
+      "metric": "max_abs_difference",
+      "target": "package_posterior_mean_vs_tam_estimate",
+      "direction": "maximum",
+      "threshold": 0.3,
+      "observed": 0.029065028002414284,
+      "pilot_passed": true,
+      "evaluation_role": "descriptive_pilot_calibration_only",
+      "future_role": "prospective_multireplication_gate"
+    },
+    {
+      "block": "rater_severity",
+      "metric": "tam_inside_package_interval95_rate",
+      "target": "tam_estimate_inside_package_interval95",
+      "direction": "minimum",
+      "threshold": 0.8,
+      "observed": 1.0,
+      "pilot_passed": true,
+      "evaluation_role": "descriptive_pilot_calibration_only",
+      "future_role": "prospective_multireplication_gate"
+    },
+    {
+      "block": "item_step",
+      "metric": "pearson_correlation",
+      "target": "package_posterior_mean_vs_tam_estimate",
+      "direction": "minimum",
+      "threshold": 0.95,
+      "observed": 0.9943382370046474,
+      "pilot_passed": true,
+      "evaluation_role": "descriptive_pilot_calibration_only",
+      "future_role": "prospective_multireplication_gate"
+    },
+    {
+      "block": "item_step",
+      "metric": "mean_abs_difference",
+      "target": "package_posterior_mean_vs_tam_estimate",
+      "direction": "maximum",
+      "threshold": 0.1,
+      "observed": 0.044939632415112486,
+      "pilot_passed": true,
+      "evaluation_role": "descriptive_pilot_calibration_only",
+      "future_role": "prospective_multireplication_gate"
+    },
+    {
+      "block": "item_step",
+      "metric": "max_abs_difference",
+      "target": "package_posterior_mean_vs_tam_estimate",
+      "direction": "maximum",
+      "threshold": 0.3,
+      "observed": 0.13370768372296915,
+      "pilot_passed": true,
+      "evaluation_role": "descriptive_pilot_calibration_only",
+      "future_role": "prospective_multireplication_gate"
+    },
+    {
+      "block": "item_step",
+      "metric": "tam_inside_package_interval95_rate",
+      "target": "tam_estimate_inside_package_interval95",
+      "direction": "minimum",
+      "threshold": 0.8,
+      "observed": 1.0,
+      "pilot_passed": true,
+      "evaluation_role": "descriptive_pilot_calibration_only",
+      "future_role": "prospective_multireplication_gate"
+    }
+  ],
+  "sampler_threshold_rows": [
+    {
+      "metric": "all_draws_and_logposterior_finite",
+      "direction": "equals",
+      "threshold": true,
+      "observed": true,
+      "pilot_passed": true,
+      "evaluation_role": "descriptive_pilot_calibration_only",
+      "future_role": "prospective_fit_diagnostic_gate"
+    },
+    {
+      "metric": "n_divergences",
+      "direction": "maximum",
+      "threshold": 0,
+      "observed": 0,
+      "pilot_passed": true,
+      "evaluation_role": "descriptive_pilot_calibration_only",
+      "future_role": "prospective_fit_diagnostic_gate"
+    },
+    {
+      "metric": "n_max_treedepth",
+      "direction": "maximum",
+      "threshold": 0,
+      "observed": 0,
+      "pilot_passed": true,
+      "evaluation_role": "descriptive_pilot_calibration_only",
+      "future_role": "prospective_fit_diagnostic_gate"
+    },
+    {
+      "metric": "max_classical_split_rhat",
+      "direction": "maximum",
+      "threshold": 1.01,
+      "observed": 1.0019750013296171,
+      "pilot_passed": true,
+      "evaluation_role": "descriptive_pilot_calibration_only",
+      "future_role": "prospective_fit_diagnostic_gate"
+    },
+    {
+      "metric": "min_autocorrelation_ess",
+      "direction": "minimum",
+      "threshold": 400.0,
+      "observed": 999.0942686915723,
+      "pilot_passed": true,
+      "evaluation_role": "descriptive_pilot_calibration_only",
+      "future_role": "prospective_fit_diagnostic_gate"
+    },
+    {
+      "metric": "n_mcmc_warning_parameters",
+      "direction": "maximum",
+      "threshold": 0,
+      "observed": 0,
+      "pilot_passed": true,
+      "evaluation_role": "descriptive_pilot_calibration_only",
+      "future_role": "prospective_fit_diagnostic_gate"
+    }
+  ],
+  "block_policy_rows": [
+    {
+      "block": "item_difficulty",
+      "n_thresholds": 4,
+      "n_pilot_thresholds_passed": 4,
+      "all_pilot_thresholds_passed": true,
+      "interpretation": "pilot_supports_policy_calibration_but_future_multireplication_required"
+    },
+    {
+      "block": "rater_severity",
+      "n_thresholds": 4,
+      "n_pilot_thresholds_passed": 4,
+      "all_pilot_thresholds_passed": true,
+      "interpretation": "pilot_supports_policy_calibration_but_future_multireplication_required"
+    },
+    {
+      "block": "item_step",
+      "n_thresholds": 4,
+      "n_pilot_thresholds_passed": 4,
+      "all_pilot_thresholds_passed": true,
+      "interpretation": "pilot_supports_policy_calibration_but_future_multireplication_required"
+    }
+  ],
+  "claim_limits": [
+    "thresholds_frozen_after_single_direct_pilot_not_before_it",
+    "current_pilot_is_calibration_only",
+    "future_multireplication_package_vs_tam_fits_required",
+    "package_and_tam_estimators_are_not_identical",
+    "no_facets_or_conquest_execution",
+    "no_generalized_gmfrm_or_mgmfrm_external_validation",
+    "no_public_claim_release"
+  ],
+  "summary": {
+    "passed": true,
+    "direct_agreement_thresholds_predeclared": true,
+    "current_pilot_all_direct_thresholds_passed": true,
+    "current_pilot_all_sampler_thresholds_passed": true,
+    "future_direct_multireplication_execution_completed": false,
+    "external_software_validation_completed": false,
+    "public_claim_release_allowed": false,
+    "n_direct_threshold_rows": 12,
+    "n_sampler_threshold_rows": 6,
+    "n_block_policy_rows": 3,
+    "next_gate": "run_predeclared_multireplication_package_vs_tam_direct_agreement"
+  }
+}

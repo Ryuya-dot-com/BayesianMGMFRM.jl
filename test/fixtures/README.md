@@ -52,6 +52,223 @@ default test suite checks them only when the corresponding file exists under
 points to a file. If an environment variable is set to a missing path, the test
 suite errors so local evidence jobs cannot silently skip a requested fixture.
 
+`mgmfrm_literature_anchored_synthetic_benchmark.json` materializes two
+DOI-traced, deterministic known-truth pilot datasets: the smallest Uto and Ueno
+(2020) scalar-GMFRM recovery cell (`30` persons, `3` items, `5` raters, `5`
+categories; `450` ratings), and a fixed-Q adaptation of the smallest
+two-dimensional Uto (2021) cell (`50` persons, `5` items, `5` raters, `4`
+categories; `1,250` ratings) using a loading-weighted ability sum. The generator
+implements the source equations without calling package response-simulation or
+probability helpers, then checks selected and full probability surfaces against
+the package source-equation oracle before writing. The artifact records separate
+truth/response seeds, truth and observation hashes, paper-exact versus
+package-adapted fields, and
+FACETS/ConQuest bridge plans. It is one pilot replication per condition: it is
+not parameter-recovery, external-software, external-construct, or independent-
+review evidence. Regenerate it with:
+
+```bash
+julia --project=. scripts/generate_mgmfrm_literature_anchored_synthetic_benchmark.jl
+```
+
+An alternate artifact can be checked with
+`MFRM_MGMFRM_LITERATURE_ANCHORED_SYNTHETIC_BENCHMARK_FIXTURE`.
+
+`mgmfrm_literature_anchored_independent_review_packet.json` freezes the
+literature-anchored synthetic benchmark for independent review. It records the
+source benchmark hash, generator-source hashes, dataset checksum rows,
+review-task rows, reviewer-manifest fields, and per-claim pending decisions. It
+is a reviewer handoff packet only: no reviewer is assigned, no signed review
+manifest is attached, and no public claim is released. It remains the immutable
+pre-execution review snapshot; completed direct TAM evidence is bound by the
+separate post-execution packet below. Its original deterministic generation
+command is:
+
+```bash
+julia --project=. scripts/generate_mgmfrm_literature_anchored_independent_review_packet.jl
+```
+
+An alternate artifact can be checked with
+`MFRM_MGMFRM_LITERATURE_ANCHORED_INDEPENDENT_REVIEW_PACKET_FIXTURE`.
+
+`mgmfrm_tam_overlap_baseline.json` and
+`mgmfrm_tam_overlap_baseline.csv` prepare a deterministic known-truth MFRM
+partial-credit baseline for R/TAM. The JSON records the overlap target
+`TAM::tam.mml.mfr`, formula `~ item + rater + item:step`, unit
+discrimination/consistency exclusions, truth and observation hashes, and a
+runner template. The CSV is a long-format `person,rater,item,score` export. TAM
+is not run by this fixture, no parameter-table comparison is completed, and no
+external-software validation claim is released. Regenerate both files with:
+
+```bash
+julia --project=. scripts/generate_mgmfrm_tam_overlap_baseline.jl
+```
+
+An alternate JSON artifact can be checked with
+`MFRM_MGMFRM_TAM_OVERLAP_BASELINE_FIXTURE`.
+
+`mgmfrm_tam_overlap_execution_review.json` records one local R/TAM execution of
+the overlap baseline with `TAM::tam.mml.mfr`. It stores the R/TAM environment,
+fit summary, extracted TAM parameter rows, diagnostic item/rater/item-step
+comparison summaries, the expanded-constraint/category-intercept adapter audit,
+and explicit claim limits. This is an execution record, not an
+external-validation release. Regenerate it with:
+
+```bash
+julia --project=. scripts/generate_mgmfrm_tam_overlap_execution_review.jl
+```
+
+An alternate JSON artifact can be checked with
+`MFRM_MGMFRM_TAM_OVERLAP_EXECUTION_REVIEW_FIXTURE`.
+
+`mgmfrm_tam_comparison_policy_review.json` freezes numerical thresholds for
+future multi-replication TAM comparisons after the initial pilot and records the
+item-step adapter decision. All structural checks pass, including reconstruction
+of TAM category intercepts from the expanded item/rater/item-step table. The
+current item/rater pilot clears the future numerical thresholds, but item-step
+misses its correlation and mean-absolute-difference thresholds. Because the
+thresholds were frozen after this pilot, that evaluation is calibration-only;
+external-validation and public claims remain blocked. Regenerate it after the
+execution review with:
+
+```bash
+julia --project=. scripts/generate_mgmfrm_tam_comparison_policy_review.jl
+```
+
+An alternate artifact can be checked with
+`MFRM_MGMFRM_TAM_COMPARISON_POLICY_REVIEW_FIXTURE`.
+
+`mgmfrm_tam_multireplication_comparison.json` executes that frozen policy over
+10 replications each at 40, 100, and 250 persons. The 250-person condition is
+the predeclared primary gate: item difficulty, rater severity, and item-step all
+pass their inherited correlation and absolute-difference thresholds in 10/10
+replications. Item-step passes 6/10 at 40 persons and 10/10 at 100 persons,
+recording the expected precision improvement rather than hiding the small-sample
+limitation. This is TAM known-truth recovery evidence; it does not directly
+compare BayesianMGMFRM posterior summaries with TAM estimates. Regenerate it
+after the policy artifact with:
+
+```bash
+julia --project=. scripts/generate_mgmfrm_tam_multireplication_comparison.jl
+```
+
+An alternate artifact can be checked with
+`MFRM_MGMFRM_TAM_MULTIREPLICATION_COMPARISON_FIXTURE`.
+
+`mgmfrm_tam_direct_estimate_pilot.json` fits the package's partial-credit MFRM
+to the same committed data used by TAM and compares aligned parameter summaries
+directly. The package fit uses four AdvancedHMC/NUTS chains and 1,600 retained
+draws; centered item/rater effects and reconstructed sum-zero item steps are
+compared with the expanded TAM facet table and known truth. Sampler diagnostics
+pass, and all three package-versus-TAM correlations exceed 0.99. The comparison
+is descriptive because direct-agreement thresholds were not frozen before the
+pilot, and the package uses Bayesian fixed person parameters whereas TAM uses
+marginal maximum likelihood. Regenerate it with:
+
+```bash
+julia --project=. scripts/generate_mgmfrm_tam_direct_estimate_pilot.jl
+```
+
+An alternate artifact can be checked with
+`MFRM_MGMFRM_TAM_DIRECT_ESTIMATE_PILOT_FIXTURE`.
+
+`mgmfrm_tam_direct_agreement_policy.json` freezes the prospective gates for
+future direct package-versus-TAM multi-replication fits. It records per-block
+correlation, mean-absolute-difference, max-absolute-difference,
+TAM-inside-package-interval, and sampler-diagnostic thresholds. The existing
+direct pilot is included only as retrospective calibration evidence; external
+validation and public claims remain blocked. The committed policy is retained
+unchanged as the pre-execution snapshot; the completed planned fits are recorded
+in the separate multireplication result below. Its original deterministic
+generation command is:
+
+```bash
+julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_policy.jl
+```
+
+An alternate artifact can be checked with
+`MFRM_MGMFRM_TAM_DIRECT_AGREEMENT_POLICY_FIXTURE`.
+
+`mgmfrm_tam_direct_agreement_policy_refinement.json` is a prospective sidecar
+to the frozen policy, not a replacement for it. It verifies the parent-policy
+hash and unchanged threshold tables, fixes fresh disjoint seeds and complete
+package/TAM execution contracts, makes the 4-of-5 aggregation, small-block
+discreteness, failed-fit disposition, and no-replacement rules explicit, and
+adds a secondary truth-recovery qualifier. The qualifier cannot rescue or veto
+the frozen direct-agreement decision; it distinguishes agreement with recovery
+support from agreement without recovery support. The existing descriptive
+item-step pilot falls in the latter category. The committed refinement is also
+retained unchanged as a pre-execution snapshot. Its original deterministic
+generation command is:
+
+```bash
+julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_policy_refinement.jl
+```
+
+An alternate artifact can be checked with
+`MFRM_MGMFRM_TAM_DIRECT_AGREEMENT_POLICY_REFINEMENT_FIXTURE`.
+
+`mgmfrm_tam_direct_agreement_multireplication.json` is the completed execution
+record for that unchanged policy and refinement. It contains five fresh
+fully-crossed synthetic replications at each of 40 and 100 persons, with a
+four-chain package fit and a separate `TAM::tam.mml.mfr` fit for every dataset.
+All ten selected fits pass the frozen package sampler gate, all ten TAM fits
+pass the version/convergence/formula/constraint audit, and item difficulty,
+rater severity, and item-step pass every direct metric in 5/5 primary
+100-person replications. Both package and TAM known-truth recovery qualifiers
+also pass 5/5 for all three primary blocks. Four fits have a rank-normalized
+R-hat advisory just above 1.01; these are retained as advisories because the
+prospectively frozen classical R-hat, ESS, divergence, tree-depth, and warning
+gate passes for all ten fits. This supports only the artifact's narrow local
+MFRM/PCM numerical-agreement wording, not estimator equivalence, package-wide
+TAM validation, generalized-model validation, or public claim release.
+Regenerate only the committed aggregation after the ten raw jobs exist with:
+
+```bash
+julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl --aggregate-only
+```
+
+An alternate artifact can be checked with
+`MFRM_MGMFRM_TAM_DIRECT_AGREEMENT_MULTIREPLICATION_FIXTURE`.
+
+`mgmfrm_tam_direct_agreement_raw_archive_audit.json` hashes all 230 retained
+files across 11 attempts, including the non-selected first attempt whose fits
+completed but whose result writer hit a local JSON serialization bug. The
+selected retry uses the same frozen seeds and settings, records the objective
+infrastructure reason, and does not reduce the ten-fit denominator. Raw draws,
+TAM objects, inputs, environments, logs, and all attempts remain under the
+gitignored `artifacts/` tree; the committed audit stores their paths, byte
+counts, and SHA-256 values. Regenerate it while the local raw archive is
+available with:
+
+```bash
+julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_raw_archive_audit.jl
+```
+
+An alternate artifact can be checked with
+`MFRM_MGMFRM_TAM_DIRECT_AGREEMENT_RAW_ARCHIVE_AUDIT_FIXTURE`.
+
+`mgmfrm_tam_direct_agreement_post_execution_review_packet.json` binds the
+frozen policy, refinement, completed result, all-attempt audit, and immutable
+pre-execution review packet into a separate independent-review handoff. It
+keeps the primary policy decision, scientific interpretation, truth-recovery
+qualifiers, and computation/protocol validity as four distinct decision
+layers. Its core result/policy/refinement/raw-audit hash chain passes. It also
+preserves rather than rewrites a chronology mismatch: the immutable
+pre-execution packet contains the current policy hash but an older refinement
+snapshot hash. That discrepancy is one of 15 pending review tasks and remains
+a public-claim blocker. The packet is structurally complete, but no independent
+reviewer has been assigned, no independent re-execution has been recorded, no
+signed manifest is attached, and public claims remain blocked. Regenerate it
+after the result and raw-audit fixtures with:
+
+```bash
+julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_post_execution_review_packet.jl
+```
+
+An alternate artifact can be checked with
+`MFRM_MGMFRM_TAM_DIRECT_AGREEMENT_POST_EXECUTION_REVIEW_PACKET_FIXTURE`.
+
 `mgmfrm_q_candidate_real_fit_diagnostic_linkage.json` is a local evidence
 artifact for the fixed-Q confirmatory MGMFRM path. It links candidate Q masks
 from the empirical recovery grid to guarded short-fit diagnostics, records
@@ -248,6 +465,30 @@ diagnostics and heldout-score artifacts, and keeps fit-metric, Q-revision,
 model-weight, and sparse-superiority claims blocked until all selected jobs are
 executed and reviewed.
 
+`mgmfrm_publication_grade_refit_brms_like_single_cell_execution_review.json`
+records the first brms-like single-cell publication-grade execution evidence.
+It summarizes the ignored local runner artifacts for the construct-reviewed
+revised-Q `well_specified_current_q` fold-1 cell, verifies the `4` chains /
+`1000` warmup / `1000` retained-draw budget, records passed R-hat/ESS/HMC/
+heldout diagnostic gates, and keeps all public claims blocked until the
+remaining pilot jobs, threshold recalibration, full batch, and external
+construct evidence are reviewed.
+
+`mgmfrm_publication_grade_refit_brms_like_pilot_execution_review.json` records
+the full brms-like fold-1 pilot execution across the five selected comparison
+units. It verifies 15 ignored local runner artifacts, records 3/4 MCMC units as
+passing the full local gate, isolates the scalar GMFRM divergence failure,
+ranks heldout ELPD descriptively, and keeps fit-metric, Q-revision,
+model-weight, sparse-superiority, full-batch, and public-scope claims blocked.
+
+`mgmfrm_publication_grade_refit_brms_like_scalar_remediation_review.json`
+records the brms-like scalar sampler-remediation evidence. It compares the
+primary scalar GMFRM `target_acceptance = 0.8` run with a same-budget
+`target_acceptance = 0.9` rerun, records that divergences dropped from `2` to
+`0` with no material heldout-ELPD shift, and selects scalar-only
+`target_acceptance = 0.9` as a local batch policy while leaving public claims
+blocked.
+
 `mgmfrm_publication_grade_refit_sampler_remediation_review.json` records the
 local scalar-GMFRM sampler remediation layer. It tracks the target-acceptance
 0.9 rerun for the scalar pilot divergence warning, keeps committed fixtures
@@ -261,13 +502,32 @@ next scalar batch, but the committed fixture remains local-only and keeps all
 public fit-metric and model-comparison claims blocked.
 
 `mgmfrm_publication_grade_refit_batch_expansion_plan.json` expands the
-publication-grade pilot into the full 125 scenario-model-fold batch. It records
-conditional scalar target acceptance 0.9, the default 0.8 setting for the
-fixed-Q MGMFRM candidates, analytic reference jobs, command templates, result
-targets, and diagnostic-capture rows. The shared runner now reads this plan via
-`--plan`, so committed fixtures keep execution blocked only until local
-remediation evidence is attached; ignored local remediation artifacts can
-advance the next gate to local batch execution.
+publication-grade pilot into the full 125 scenario-model-fold batch. It now
+uses the brms-like scalar remediation review as its scalar policy source,
+records scalar target acceptance 0.9, the default 0.8 setting for the fixed-Q
+MGMFRM candidates, `1000` warmup draws per MCMC chain, analytic reference jobs,
+command templates, result targets, and diagnostic-capture rows. The shared
+runner reads this plan via `--plan`, and the committed plan is now local
+execution-ready while public claims remain blocked until batch results are
+observed and reviewed.
+
+`mgmfrm_publication_grade_refit_batch_smoke_execution_review.json` records the
+first local batch-runner smoke execution. It summarizes the five
+`well_specified_current_q` fold-1 jobs, verifies that the scalar
+`target_acceptance = 0.9` batch path kept divergences at `0`, records all four
+MCMC diagnostic gates as passing, preserves the analytic null/reference heldout
+win as a blocker, and advances the next gate to the remaining batch jobs.
+
+`mgmfrm_publication_grade_refit_well_specified_scenario_execution_review.json`
+records the first scenario-level publication-grade batch execution. It
+summarizes all 25 `well_specified_current_q` jobs across five folds, records
+that the scenario orchestrator executed the remaining 20 jobs without failures,
+keeps the five fold-1 smoke artifacts as prior completed jobs, and records the
+targeted scalar refits that removed the earlier fold-3 and fold-5 divergence
+failures. This scenario fixture keeps all public fit, Q-revision, model-weight,
+and sparse-superiority claims blocked while remaining batch execution,
+fit-threshold comparison, external construct review, and public-scope review
+remain unresolved.
 
 `scripts/run_mgmfrm_publication_grade_refit_batch.jl` is the local-only batch
 orchestrator for that next gate. It reads the batch plan, skips already
@@ -278,16 +538,58 @@ explicit `--execution-unit` selection so the 125-unit batch is not launched
 accidentally.
 
 `mgmfrm_publication_grade_refit_batch_results_review.json` records the
-corresponding batch result-review layer. The committed fixture ignores local
-runner artifacts, so it remains a lightweight 125-unit review scaffold with
-model-level and scenario-model summaries. It also carries the four
-fit-threshold profiles from `mgmfrm_fit_metric_threshold_sensitivity.json` into
-job-level, model-level, and scenario-model threshold surfaces so strict,
-screening, lenient, and sample-size-sensitive interpretations can be compared
-without promoting a single cutoff. Local review artifacts can opt in to reading
-`artifacts/publication_grade_refit_batch/` and will count executed, dry-run,
-diagnostic, heldout-score, and threshold-profile evaluation rows while keeping
-all public claims blocked.
+corresponding batch result-review layer. The committed fixture now records the
+local full 125-unit batch review after explicitly reading local runner artifacts:
+all 375
+result/diagnostic/heldout artifacts are present, all fixed-Q MGMFRM candidate
+families, analytic reference rows, and targeted scalar refits passed their local
+diagnostic gates, leaving zero diagnostic-failure rows. The analytic
+null/reference is the descriptive heldout winner in 24/25 folds, so model-weight
+and structured-model superiority claims remain blocked. It also carries the
+four fit-threshold profiles from
+`mgmfrm_fit_metric_threshold_sensitivity.json` into job-level, model-level, and
+scenario-model threshold surfaces so strict, screening, lenient, and
+sample-size-sensitive interpretations can be compared without promoting a
+single cutoff. All public fit, Q-revision, model-weight, and sparse-superiority
+claims remain blocked pending external construct evidence and independent
+public-scope review.
+
+Regenerate that completed review with `--read-local-artifacts`; the safe default
+for fixture output deliberately treats local runner files as absent. The full
+reproduction archive records this flag and orders its regeneration commands by
+non-null fixture-SHA dependencies. Its tests rescan those edges, while the three
+documented existence-only cycle breaks are excluded from the ordering check.
+
+`mgmfrm_publication_grade_threshold_model_weight_policy_review.json` records the
+follow-up policy comparison gate for that completed batch. It joins the batch
+review, fit-threshold sensitivity artifact, prediction-target/model-weight
+policy, and manual fit-scope review; records local-only diagnostic model weights
+from total heldout ELPD; confirms that only 24/500 threshold-profile job rows
+pass; and keeps public fit-threshold, model-weight, Q-revision, and
+sparse-superiority claims blocked. The next gate is attaching external
+construct evidence and completing independent public-scope review.
+
+`mgmfrm_external_construct_dataset_and_independent_public_scope_review.json`
+records that attachment gate. It verifies the completed batch, threshold/model-
+weight review, full heldout-or-construct validation review, and manual scope
+review; specifies the required external construct dataset manifest and
+independent public-scope review manifest; carries two construct-validation
+scenarios forward; and records five unresolved release blockers. Because no
+external manifest or independent review manifest is attached, all public
+fit-metric, Q-revision, model-weight, construct-validity, and sparse-superiority
+claims remain blocked.
+
+`mgmfrm_external_construct_attachment_intake_preflight.json` records the local
+attachment-intake preflight for those two missing manifests. It fixes 13
+required external dataset-manifest fields, 12 required independent-review
+manifest fields, and five unresolved claim-release blockers without creating or
+approving external evidence.
+
+`mgmfrm_external_construct_attachment_request_packet.json` records the
+actionable local handoff for the missing external attachments. It embeds the 25
+user-supplied manifest fields, ten attachment checklist rows, and six rejection
+conditions while keeping external manifest files unwritten and all public claim
+release switches blocked.
 
 `mgmfrm_fit_threshold_q_heldout_linkage.json` links the literature-motivated
 fit-threshold sensitivity grid, empirical Q-matrix recovery simulation, heldout

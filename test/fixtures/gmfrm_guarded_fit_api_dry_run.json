@@ -58,7 +58,7 @@
       "check": "fit_preview_design_with_experimental_keyword",
       "rejected": true,
       "error_type": "MethodError",
-      "message": "MethodError: no method matching fit(::BayesianMGMFRM.FacetDesign; experimental::Bool, ndraws::Int64, warmup::Int64)\nThis method does not support all of the given keyword arguments (and may not support any).\n\nClosest candidates are:\n  fit(::BayesianMGMFRM.FacetDesign; prior, backend, ndraws, warmup, chains, step_size, init, rng, seed, target_accept, max_depth, max_energy_error, metric, ad_backend, init_jitter, progress) got unsupported keyword argument \"experimental\"\n   @ BayesianMGMFRM ~/Dropbox/MFRM_Application/BayesianMGMFRM.jl/src/bayesian_fit.jl:1062\n  fit(!Matched::BayesianMGMFRM.FacetSpec; experimental, kwargs...)\n   @ BayesianMGMFRM ~/Dropbox/MFRM_Application/BayesianMGMFRM.jl/src/bayesian_fit.jl:3128\n"
+      "message": "MethodError: no method matching fit(::BayesianMGMFRM.FacetDesign; experimental::Bool, ndraws::Int64, warmup::Int64)\nThis method does not support all of the given keyword arguments (and may not support any).\n\nClosest candidates are:\n  fit(::BayesianMGMFRM.FacetDesign; prior, backend, ndraws, warmup, chains, step_size, init, rng, seed, target_accept, max_depth, max_energy_error, metric, ad_backend, init_jitter, progress) got unsupported keyword argument \"experimental\"\n  fit(!Matched::BayesianMGMFRM.FacetSpec; experimental, kwargs...)\n"
     }
   ],
   "artifact_contract_review": {
@@ -387,7 +387,7 @@
       "artifact": "test/fixtures/gmfrm_guarded_fit_method_wiring.json",
       "reference_kind": "local_file",
       "exists": true,
-      "sha256": "0c5c7cef938e244980adbfff4c25e9ce96bf9c858d1eda289b8e3d6a44af5276"
+      "sha256": "237116c8893e2a8a8f988d31e779f1a2dd0d0cdeeac8e12292739fabffd13db7"
     },
     {
       "evidence": "experimental_fit_validation_grid",
@@ -507,7 +507,7 @@
       "artifact": "docs/src/fitting.md#guarded-generalized-model-caveats",
       "reference_kind": "local_file",
       "exists": true,
-      "sha256": "679f830166625bdadb0b0bfb24d61bdde7152c02116010103d1127e08615d8fd"
+      "sha256": "43437bc6c514cabb3918d3f7f6dded0b541b10f492ecdf9ac59832c6c1572001"
     }
   ],
   "target_dry_run": {
@@ -704,9 +704,7 @@
     "n_evidence_references": 35,
     "target_logdensity_finite": true,
     "target_diagnostics_passed": true,
-    "remaining_public_blockers": [
-
-    ],
+    "remaining_public_blockers": [],
     "recommendation": "full_archive_recorded_keep_guarded_scalar_gmfrm_only",
     "next_gate": "manual_publication_or_registration_by_user_only"
   }

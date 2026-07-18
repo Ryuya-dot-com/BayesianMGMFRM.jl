@@ -170,7 +170,7 @@
   },
   "fit_record": {
     "type": "GMFRMFit",
-    "show": "GMFRMFit(8 raw draw(s), 17 raw parameter(s), backend = :advancedhmc, sampler = :nuts, chains = 2, experimental_public = true)",
+    "show": "GMFRMFit(8 raw draw(s), 17 raw parameter(s), backend = :advancedhmc, sampler = :nuts, chains = 2, status = :experimental)",
     "backend": "advancedhmc",
     "sampler": "nuts",
     "raw_draws_shape": [
@@ -274,9 +274,7 @@
     "n_required_fields": 20,
     "n_required_provenance_artifacts": 4,
     "all_required_fields_present": true,
-    "missing_required_fields": [
-
-    ],
+    "missing_required_fields": [],
     "all_required_provenance_recorded": true,
     "enables_public_fit": true
   },
@@ -336,7 +334,7 @@
       "check": "fit_preview_design_with_experimental_keyword",
       "rejected": true,
       "error_type": "MethodError",
-      "message": "MethodError: no method matching fit(::BayesianMGMFRM.FacetDesign; experimental::Bool, ndraws::Int64, warmup::Int64)\nThis method does not support all of the given keyword arguments (and may not support any).\n\nClosest candidates are:\n  fit(::BayesianMGMFRM.FacetDesign; prior, backend, ndraws, warmup, chains, step_size, init, rng, seed, target_accept, max_depth, max_energy_error, metric, ad_backend, init_jitter, progress) got unsupported keyword argument \"experimental\"\n   @ BayesianMGMFRM ~/Library/CloudStorage/Dropbox/MFRM_Application/BayesianMGMFRM.jl/src/bayesian_fit.jl:1062\n  fit(!Matched::BayesianMGMFRM.FacetSpec; experimental, kwargs...)\n   @ BayesianMGMFRM ~/Library/CloudStorage/Dropbox/MFRM_Application/BayesianMGMFRM.jl/src/bayesian_fit.jl:2913\n",
+      "message": "MethodError: no method matching fit(::BayesianMGMFRM.FacetDesign; experimental::Bool, ndraws::Int64, warmup::Int64)\nThis method does not support all of the given keyword arguments (and may not support any).\n\nClosest candidates are:\n  fit(::BayesianMGMFRM.FacetDesign; prior, backend, ndraws, warmup, chains, step_size, init, rng, seed, target_accept, max_depth, max_energy_error, metric, ad_backend, init_jitter, progress) got unsupported keyword argument \"experimental\"\n  fit(!Matched::BayesianMGMFRM.FacetSpec; experimental, kwargs...)\n",
       "blocked_option": null,
       "next_gate": null,
       "actionable_gate_message": false
@@ -345,7 +343,7 @@
       "check": "fit_experimental_unsupported_backend",
       "rejected": true,
       "error_type": "ArgumentError",
-      "message": "ArgumentError: guarded scalar GMFRM experimental fit rejected blocked_option=:backend, value=:julia; supported_surface=(family=:gmfrm, dimensions=1, discrimination=:rater, validation_bias_terms=()); next_gate=:advancedhmc_guarded_sampler_policy; reason=guarded scalar GMFRM fitting currently supports only backend = :advancedhmc",
+      "message": "ArgumentError: experimental scalar GMFRM fit does not support backend = :julia. Supported configuration: (family = :gmfrm, dimensions = \"1\", thresholds = (:partial_credit,), discrimination = (:rater,), q_matrix = :not_used, validation_bias_terms = (), anchors = ()). guarded scalar GMFRM fitting currently supports only backend = :advancedhmc",
       "blocked_option": "backend",
       "next_gate": "advancedhmc_guarded_sampler_policy",
       "actionable_gate_message": true
@@ -354,7 +352,7 @@
       "check": "fit_experimental_public_mfrm_prior",
       "rejected": true,
       "error_type": "ArgumentError",
-      "message": "ArgumentError: guarded scalar GMFRM experimental fit rejected blocked_option=:prior, value=:MFRMPrior; supported_surface=(family=:gmfrm, dimensions=1, discrimination=:rater, validation_bias_terms=()); next_gate=:scalar_gmfrm_prior_likelihood_sensitivity_grid; reason=guarded scalar GMFRM fitting uses the internal raw-coordinate prior contract; omit `prior` or pass the internal _SourceFixturePrior for local validation",
+      "message": "ArgumentError: experimental scalar GMFRM fit does not support prior = :MFRMPrior. Supported configuration: (family = :gmfrm, dimensions = \"1\", thresholds = (:partial_credit,), discrimination = (:rater,), q_matrix = :not_used, validation_bias_terms = (), anchors = ()). The experimental scalar GMFRM fit uses its built-in raw-coordinate prior. Omit `prior`; custom prior objects are not supported.",
       "blocked_option": "prior",
       "next_gate": "scalar_gmfrm_prior_likelihood_sensitivity_grid",
       "actionable_gate_message": true
@@ -363,7 +361,7 @@
       "check": "fit_experimental_dff_effects",
       "rejected": true,
       "error_type": "ArgumentError",
-      "message": "ArgumentError: guarded scalar GMFRM experimental fit rejected blocked_option=:dff_effects, value=[(:rater, :group)]; supported_surface=(family=:gmfrm, dimensions=1, discrimination=:rater, validation_bias_terms=()); next_gate=:gmfrm_dff_estimand_validation_grid; reason=DFF/bias terms are validation and reporting rows only; they are not fitted model effects in v0.1.x",
+      "message": "ArgumentError: experimental scalar GMFRM fit does not support dff_effects = [(:rater, :group)]. Supported configuration: (family = :gmfrm, dimensions = \"1\", thresholds = (:partial_credit,), discrimination = (:rater,), q_matrix = :not_used, validation_bias_terms = (), anchors = ()). DFF/bias terms are validation and reporting rows only; they are not fitted model effects",
       "blocked_option": "dff_effects",
       "next_gate": "gmfrm_dff_estimand_validation_grid",
       "actionable_gate_message": true
@@ -372,7 +370,7 @@
       "check": "fit_experimental_non_rater_discrimination",
       "rejected": true,
       "error_type": "ArgumentError",
-      "message": "ArgumentError: guarded scalar GMFRM experimental fit rejected blocked_option=:discrimination, value=:item; supported_surface=(family=:gmfrm, dimensions=1, discrimination=:rater, validation_bias_terms=()); next_gate=:item_discrimination_promotion_decision; reason=the public guarded scalar GMFRM fit is the rater-consistency surface only",
+      "message": "ArgumentError: experimental scalar GMFRM fit does not support discrimination = :item. Supported configuration: (family = :gmfrm, dimensions = \"1\", thresholds = (:partial_credit,), discrimination = (:rater,), q_matrix = :not_used, validation_bias_terms = (), anchors = ()). the guarded surface requires its family-specific generic discrimination selector",
       "blocked_option": "discrimination",
       "next_gate": "item_discrimination_promotion_decision",
       "actionable_gate_message": true

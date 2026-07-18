@@ -1,11 +1,14 @@
 #!/usr/bin/env julia
 
-# Local pre-registration gate for BayesianMGMFRM.jl.
-# This is intentionally stricter than ordinary `Pkg.test()` and mirrors the
-# checks needed before asking Registrator to publish the first package version.
+# Release-verification gate for BayesianMGMFRM.jl.
+# The historical filename is retained for compatibility with existing local
+# workflows. This gate is intentionally stricter than ordinary `Pkg.test()`.
 
 using Pkg
 using TOML
+
+include(joinpath(@__DIR__, "public_language_gate.jl"))
+using .PublicLanguageGate
 
 const ROOT = abspath(normpath(joinpath(@__DIR__, "..")))
 const JULIA = joinpath(Sys.BINDIR, Base.julia_exename())
@@ -13,7 +16,14 @@ const JULIA = joinpath(Sys.BINDIR, Base.julia_exename())
 const SKIP_TESTS = "--skip-tests" in ARGS
 const SKIP_DOCS = "--skip-docs" in ARGS
 const SKIP_AQUA = "--skip-aqua" in ARGS
-const SKIP_PUBLIC_WORDING = "--skip-public-wording" in ARGS
+const SKIP_PUBLIC_LANGUAGE =
+    "--skip-public-language" in ARGS || "--skip-public-wording" in ARGS
+const EXPECTED_VERSION = let
+    values = [split(arg, "="; limit = 2)[2]
+              for arg in ARGS if startswith(arg, "--expected-version=")]
+    length(values) <= 1 || error("--expected-version may be supplied only once")
+    isempty(values) ? nothing : VersionNumber(only(values))
+end
 
 function step(name::AbstractString, f::Function)
     println("\n==> ", name)
@@ -23,6 +33,25 @@ end
 
 function run_cmd(cmd::Cmd)
     run(Cmd(cmd; dir = ROOT))
+end
+
+function capture_cmd(cmd::Cmd)
+    stdout_buffer = IOBuffer()
+    stderr_buffer = IOBuffer()
+    failure = nothing
+    try
+        run(pipeline(Cmd(cmd; dir = ROOT);
+            stdout = stdout_buffer,
+            stderr = stderr_buffer))
+    catch err
+        failure = err
+    end
+    return (;
+        passed = failure === nothing,
+        stdout = String(take!(stdout_buffer)),
+        stderr = String(take!(stderr_buffer)),
+        failure,
+    )
 end
 
 function read_cmd(cmd::Cmd)
@@ -95,7 +124,11 @@ function metadata_check()
         endswith(origin_repo_path, ":BayesianMGMFRM.jl")) ||
         error("origin URL should resolve to repository path BayesianMGMFRM.jl, got $origin_url")
     uuid == "1c3fdc16-45de-4463-900f-cd2a5999ffa5" || error("unexpected uuid: $uuid")
-    version == v"0.1.0" || error("unexpected initial version: $version")
+    version >= v"0.1.0" || error("release version must be at least 0.1.0, got $version")
+    if EXPECTED_VERSION !== nothing
+        version == EXPECTED_VERSION ||
+            error("expected release version $(EXPECTED_VERSION), got $version")
+    end
     all(!isempty(strip(String(author))) for author in authors) ||
         error("authors must be non-empty strings")
 
@@ -122,6 +155,8 @@ function metadata_check()
     isfile(joinpath(ROOT, "README.md")) || error("README.md is missing")
     isfile(joinpath(ROOT, "NEWS.md")) || error("NEWS.md is missing")
     isfile(joinpath(ROOT, "examples", "minimal.jl")) || error("examples/minimal.jl is missing")
+    isfile(joinpath(ROOT, "examples", "guarded_gmfrm.jl")) ||
+        error("examples/guarded_gmfrm.jl is missing")
     isfile(joinpath(ROOT, "examples", "guarded_mgmfrm.jl")) ||
         error("examples/guarded_mgmfrm.jl is missing")
     isfile(joinpath(ROOT, "docs", "make.jl")) || error("docs/make.jl is missing")
@@ -147,13 +182,60 @@ function run_package_tests()
     return nothing
 end
 
-function run_minimal_example()
-    run_with_developed_package("""include($(repr(joinpath(ROOT, "examples", "minimal.jl"))))""")
+function public_example_paths()
+    paths = String[]
+    for path in PublicLanguageGate.public_surface_paths(ROOT)
+        relative = relpath(path, ROOT)
+        parts = splitpath(relative)
+        isempty(parts) && continue
+        first(parts) == "examples" || continue
+        push!(paths, path)
+    end
+    return sort(paths)
+end
+
+function _preserve_captured_example_output(relative::String, captured)
+    if !isempty(captured.stdout)
+        println("\n--- example stdout: $relative ---")
+        print(captured.stdout)
+        endswith(captured.stdout, "\n") || println()
+    end
+    if !isempty(captured.stderr)
+        println(stderr, "\n--- example stderr: $relative ---")
+        print(stderr, captured.stderr)
+        endswith(captured.stderr, "\n") || println(stderr)
+    end
     return nothing
 end
 
-function run_guarded_mgmfrm_example()
-    run_with_developed_package("""include($(repr(joinpath(ROOT, "examples", "guarded_mgmfrm.jl"))))""")
+function run_public_examples()
+    failures = String[]
+    for path in public_example_paths()
+        relative = relpath(path, ROOT)
+        captured = capture_cmd(
+            `$JULIA --startup-file=no --project=$ROOT $path`)
+        _preserve_captured_example_output(relative, captured)
+        outputs = Pair{String,String}[]
+        isempty(captured.stdout) ||
+            push!(outputs, "example:$relative:stdout" => captured.stdout)
+        isempty(captured.stderr) ||
+            push!(outputs, "example:$relative:stderr" => captured.stderr)
+        violations = PublicLanguageGate.runtime_language_violations(outputs)
+        if !isempty(violations)
+            details = [
+                "[$(violation.rule)] $(violation.surface):$(violation.line): " *
+                violation.excerpt
+                for violation in violations
+            ]
+            push!(failures,
+                "$relative emitted restricted public language:\n" *
+                join(details, "\n"))
+        end
+        captured.passed || push!(failures,
+            "$relative failed: $(sprint(showerror, captured.failure))")
+    end
+    isempty(failures) || error(
+        "public example verification failed:\n" * join(failures, "\n"))
     return nothing
 end
 
@@ -207,17 +289,14 @@ function each_source_file(paths)
     return sort(out)
 end
 
-function public_wording_check()
-    public_files = each_source_file(["README.md", "NEWS.md", "docs/src", "examples"])
-    public_audit_hits = String[]
-    for path in public_files
-        for (line_no, line) in enumerate(eachline(path))
-            occursin(r"\b[Aa]udit\b", line) || continue
-            push!(public_audit_hits, "$(relpath(path, ROOT)):$line_no:$line")
-        end
-    end
-    isempty(public_audit_hits) ||
-        error("public wording still contains audit terminology:\n" * join(public_audit_hits, "\n"))
+function public_language_check()
+    PublicLanguageGate.assert_public_language(ROOT)
+    !SKIP_DOCS && PublicLanguageGate.assert_rendered_public_language(ROOT)
+    return nothing
+end
+
+function runtime_public_language_check()
+    run_cmd(`$JULIA --startup-file=no --project=$ROOT scripts/runtime_public_language_gate.jl`)
     return nothing
 end
 
@@ -236,15 +315,14 @@ function skipped_test_check()
     return nothing
 end
 
-step("Project metadata and registration shape", metadata_check)
+step("Project metadata and registry shape", metadata_check)
 step("Clean temporary-environment import", clean_import_check)
 step("Instantiate package in temporary environment", instantiate_project)
 step("Registration handoff message", run_registration_handoff)
 if !SKIP_TESTS
     step("Pkg.test()", run_package_tests)
 end
-step("Minimal example", run_minimal_example)
-step("Guarded MGMFRM example", run_guarded_mgmfrm_example)
+step("Public examples", run_public_examples)
 if !SKIP_DOCS
     step("Documenter build", build_docs)
 end
@@ -252,9 +330,10 @@ if !SKIP_AQUA
     step("Aqua package hygiene", run_aqua)
 end
 step("git diff --check", git_diff_check)
-if !SKIP_PUBLIC_WORDING
-    step("Public wording scan", public_wording_check)
+if !SKIP_PUBLIC_LANGUAGE
+    step("Public language gate", public_language_check)
+    step("Runtime public language gate", runtime_public_language_check)
 end
 step("Skipped-test scan", skipped_test_check)
 
-println("\nPre-registration gate passed.")
+println("\nRelease-verification gate passed.")

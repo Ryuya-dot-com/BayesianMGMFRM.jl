@@ -47,7 +47,7 @@ ValidationIssue(code::Symbol, severity::Symbol, message::AbstractString; context
 
 Structured result returned by `validate_design`, including pass/fail status,
 category and facet counts, graph components, item/category support warnings,
-requested DFF cell counts, and internal signatures used to prevent stale report
+requested DFF cell counts, and data signatures used to prevent stale report
 reuse.
 """
 struct ValidationReport
@@ -1540,6 +1540,48 @@ function rating_design_audit(data_or_spec_or_design;
     )
 end
 
+function _guarded_generalized_fit_capability(family::Symbol)
+    if family === :gmfrm
+        return (;
+            family,
+            scope = :scalar_gmfrm_guarded_experimental,
+            minimum_dimensions = 1,
+            maximum_dimensions = 1,
+            threshold_regimes = (:partial_credit,),
+            spec_discrimination = (:rater,),
+            requires_fixed_q = false,
+            allows_validation_bias_terms = false,
+            allows_anchors = false,
+            kernel_discrimination = (:item_discrimination, :rater_consistency),
+            kernel_threshold_block = :rater_steps,
+            expected_blocks =
+                (:person, :rater, :item, :item_discrimination,
+                    :rater_consistency, :rater_steps),
+        )
+    elseif family === :mgmfrm
+        return (;
+            family,
+            scope = :fixed_q_confirmatory_mgmfrm_guarded_experimental,
+            minimum_dimensions = 2,
+            maximum_dimensions = nothing,
+            threshold_regimes = (:partial_credit,),
+            spec_discrimination = (:none,),
+            requires_fixed_q = true,
+            allows_validation_bias_terms = false,
+            allows_anchors = false,
+            kernel_discrimination =
+                (:item_dimension_discrimination, :rater_consistency),
+            kernel_threshold_block = :item_steps,
+            expected_blocks =
+                (:person, :rater, :item, :item_dimension_discrimination,
+                    :rater_consistency, :item_steps),
+        )
+    end
+    throw(ArgumentError(
+        "guarded generalized fitting supports only family = :gmfrm or :mgmfrm; got :$family",
+    ))
+end
+
 """
     model_ladder()
 
@@ -1551,6 +1593,8 @@ about fitting support separate from claims about representable specification
 intent.
 """
 function model_ladder()
+    gmfrm_capability = _guarded_generalized_fit_capability(:gmfrm)
+    mgmfrm_capability = _guarded_generalized_fit_capability(:mgmfrm)
     return [
         (;
             family = :mfrm,
@@ -1566,10 +1610,12 @@ function model_ladder()
         ),
         (;
             family = :gmfrm,
-            scope = :scalar_gmfrm_guarded_experimental,
+            scope = gmfrm_capability.scope,
             dimensions = "1",
-            discrimination = (:rater,),
-            threshold_regimes = (:rating_scale, :partial_credit),
+            discrimination = gmfrm_capability.spec_discrimination,
+            spec_discrimination = gmfrm_capability.spec_discrimination,
+            kernel_discrimination = gmfrm_capability.kernel_discrimination,
+            threshold_regimes = gmfrm_capability.threshold_regimes,
             estimation_status = :experimental_public,
             public_fit = true,
             experimental_public = true,
@@ -1578,10 +1624,12 @@ function model_ladder()
         ),
         (;
             family = :mgmfrm,
-            scope = :fixed_q_confirmatory_mgmfrm_guarded_experimental,
+            scope = mgmfrm_capability.scope,
             dimensions = ">= 2",
-            discrimination = (:item_dimension_discrimination, :rater_consistency),
-            threshold_regimes = (:partial_credit,),
+            discrimination = mgmfrm_capability.kernel_discrimination,
+            spec_discrimination = mgmfrm_capability.spec_discrimination,
+            kernel_discrimination = mgmfrm_capability.kernel_discrimination,
+            threshold_regimes = mgmfrm_capability.threshold_regimes,
             estimation_status = :experimental_public,
             public_fit = true,
             experimental_public = true,
@@ -1616,6 +1664,8 @@ function model_ladder()
 end
 
 function _release_scope_fit_surface_rows()
+    gmfrm_capability = _guarded_generalized_fit_capability(:gmfrm)
+    mgmfrm_capability = _guarded_generalized_fit_capability(:mgmfrm)
     return (
         (;
             surface = :minimal_mfrm_rsm_pcm,
@@ -1637,6 +1687,12 @@ function _release_scope_fit_surface_rows()
             experimental_public = true,
             public_fit = true,
             claim_scope = :guarded_scalar_rater_consistency_only,
+            threshold_regimes = gmfrm_capability.threshold_regimes,
+            spec_discrimination = gmfrm_capability.spec_discrimination,
+            q_matrix_policy = :not_used,
+            anchors_allowed = gmfrm_capability.allows_anchors,
+            validation_bias_terms_allowed =
+                gmfrm_capability.allows_validation_bias_terms,
             note = "guarded scalar rater-consistency GMFRM, without broader generalized claims",
         ),
         (;
@@ -1648,6 +1704,12 @@ function _release_scope_fit_surface_rows()
             experimental_public = true,
             public_fit = true,
             claim_scope = :fixed_q_confirmatory_only,
+            threshold_regimes = mgmfrm_capability.threshold_regimes,
+            spec_discrimination = mgmfrm_capability.spec_discrimination,
+            q_matrix_policy = :fixed_confirmatory,
+            anchors_allowed = mgmfrm_capability.allows_anchors,
+            validation_bias_terms_allowed =
+                mgmfrm_capability.allows_validation_bias_terms,
             note = "guarded fixed-Q confirmatory MGMFRM, without model-weight or sparse-superiority claims",
         ),
     )
@@ -1708,7 +1770,7 @@ function _release_scope_status_vocabulary_rows()
             experimental_public = false,
             stable_public = true,
             external_validated = false,
-            meaning = "ordinary package claims backed by internal simulation, sensitivity, and reproducibility evidence",
+            meaning = "ordinary package claims backed by simulation, sensitivity, and reproducibility evidence",
         ),
         (;
             status = :external_validated,
@@ -2298,66 +2360,63 @@ function _release_gate_document_specs()
             target = :readme_public_surface,
             path = "README.md",
             required = (
-                "`supported`",
-                "`experimental_public`",
-                "`blocked`",
-                "rater-consistency GMFRM",
-                "Fixed-Q confirmatory MGMFRM",
+                "Pkg.add(\"BayesianMGMFRM\")",
+                "| Scalar rater-consistency GMFRM | Experimental |",
+                "| Fixed-Q confirmatory MGMFRM | Experimental |",
+                "| Broader discrimination structures | Not supported |",
                 "fit(spec; experimental = true)",
-                "DFF model effects",
-                "model-weight",
+                "no anchors",
+                "fitted DFF terms",
             ),
-            forbidden = (
-                "Scalar rater-discrimination GMFRM",
-                "rater-discrimination candidate",
-            ),
+            forbidden = (),
         ),
         (;
-            target = :roadmap_status_policy,
-            path = "ROADMAP.md",
+            target = :news_public_changes,
+            path = "NEWS.md",
             required = (
-                "`experimental_public`",
-                "`blocked`",
-                "rater-consistency GMFRM",
-                "fixed-Q confirmatory MGMFRM",
-                "fit(spec; experimental = true)",
-                "post-`v0.2.0`",
-                "broader generalized",
+                "## Unreleased",
+                "## 0.1.1",
+                "User-facing experimental fit displays",
+                "Refocus the published manual on installation, model scope, fitting",
+                "version-1 report payloads remain unchanged",
             ),
-            forbidden = (
-                "Scalar rater-discrimination GMFRM",
-                "rater-discrimination candidate",
-            ),
+            forbidden = (),
         ),
         (;
             target = :docs_index_public_surface,
             path = joinpath("docs", "src", "index.md"),
             required = (
-                "fit(spec; experimental = true)",
-                "rater-consistency",
-                "fixed-Q confirmatory",
-                "not exposed yet",
+                "rater-consistency GMFRM",
+                "fixed-Q confirmatory MGMFRM",
+                "not supported",
+                "Scope and Releases",
+                "fit_report_markdown",
             ),
-            forbidden = (
-                "Scalar rater-discrimination GMFRM",
-                "rater-discrimination candidate",
-            ),
+            forbidden = (),
         ),
         (;
-            target = :docs_roadmap_scope,
-            path = joinpath("docs", "src", "roadmap.md"),
+            target = :docs_fitting_experimental_contract,
+            path = joinpath("docs", "src", "fitting.md"),
             required = (
-                "`experimental_public`",
-                "`blocked`",
-                "rater-consistency GMFRM",
-                "fixed-Q confirmatory",
-                "remain blocked",
-                "post-`v0.2.0`",
+                "`thresholds = :partial_credit`",
+                "`discrimination = :rater`",
+                "`discrimination = :none`",
+                "no anchors and no fitted DFF terms",
+                "Custom generalized prior objects are not supported",
             ),
-            forbidden = (
-                "Scalar rater-discrimination GMFRM",
-                "rater-discrimination candidate",
+            forbidden = (),
+        ),
+        (;
+            target = :docs_scope_public_surface,
+            path = joinpath("docs", "src", "scope.md"),
+            required = (
+                "| MFRM with rating-scale or partial-credit steps | Supported |",
+                "| Scalar rater-consistency GMFRM | Experimental |",
+                "| Fixed-Q confirmatory MGMFRM | Experimental |",
+                "| Broader generalized discrimination structures | Not supported |",
+                "The registered release remains the default installation.",
             ),
+            forbidden = (),
         ),
         (;
             target = :docs_model_equations_scope,
@@ -2365,54 +2424,48 @@ function _release_gate_document_specs()
             required = (
                 "rater-consistency",
                 "fixed-Q confirmatory",
-                "broad generalized fitting remains guarded",
+                "under development",
+                "Scope and Releases",
             ),
-            forbidden = (
-                "Scalar rater-discrimination GMFRM",
-                "rater-discrimination candidate",
-            ),
+            forbidden = (),
         ),
         (;
             target = :docs_bayesian_workflow_scope,
             path = joinpath("docs", "src", "bayesian-workflow.md"),
             required = (
-                "fit(spec; experimental = true)",
-                "rater-consistency",
-                "fixed-Q",
-                "Broader GMFRM/MGMFRM fitting",
-                "planned work",
+                "Validate the Rating Design",
+                "Inspect the Model Before Fitting",
+                "Fit and Diagnose",
+                "Compare Models Carefully",
+                "Report the Boundary",
             ),
-            forbidden = (
-                "Scalar rater-discrimination GMFRM",
-                "rater-discrimination candidate",
-            ),
+            forbidden = (),
         ),
         (;
-            target = :docs_v0_1_1_checklist_scope,
-            path = joinpath("docs", "src", "v0.1.1-implementation-checklist.md"),
+            target = :docs_examples_public_surface,
+            path = joinpath("docs", "src", "examples.md"),
             required = (
-                "Broad GMFRM/MGMFRM remains blocked",
-                "R-package overlap comparison is post-v0.2.0",
-                "release-gate check",
+                "learning and",
+                "public surfaces",
+                "experimental MGMFRM entrypoint",
+                "does not support exploratory loadings",
             ),
-            forbidden = (
-                "Scalar rater-discrimination GMFRM",
-                "rater-discrimination candidate",
-            ),
+            forbidden = (),
         ),
         (;
-            target = :docs_mgmfrm_research_roadmap_scope,
-            path = joinpath("docs", "src", "mgmfrm-research-roadmap.md"),
+            target = :documenter_public_boundary,
+            path = joinpath("docs", "make.jl"),
             required = (
-                "`experimental_public`",
-                "`blocked`",
-                "rater consistency",
-                "fixed-Q",
-                "post-`v0.2.0`",
+                "checkdocs = :exports",
+                "pagesonly = true",
+                "Scope and Releases",
+                "\"scope.md\"",
             ),
             forbidden = (
-                "Scalar rater-discrimination GMFRM",
-                "rater-discrimination candidate",
+                "\"roadmap.md\"",
+                "\"registration.md\"",
+                "\"mgmfrm-research-roadmap.md\"",
+                "\"v0.1.1-implementation-checklist.md\"",
             ),
         ),
     )
@@ -2435,6 +2488,20 @@ end
 
 _release_gate_contains(text::AbstractString, needle::AbstractString) =
     occursin(lowercase(needle), lowercase(text))
+
+_release_gate_forbidden_public_tokens() = (
+    "experimental_public",
+    "guarded_local_fit",
+    "internal_target_constructor",
+    "internal_sampler_diagnostic_constructor",
+    "blocked_option",
+    "supported_surface",
+    "next_gate",
+    "pre-registration",
+    "registration handoff",
+    "test/fixtures/",
+    "scripts/generate_",
+)
 
 function _release_gate_document_rows(root::AbstractString)
     rows = NamedTuple[]
@@ -2466,7 +2533,7 @@ function _release_gate_document_rows(root::AbstractString)
                 note = "required generalized-support wording is present",
             ))
         end
-        for token in spec.forbidden
+        for token in (spec.forbidden..., _release_gate_forbidden_public_tokens()...)
             found = _release_gate_contains(text, token)
             push!(rows, _release_gate_row(
                 source = :documentation,
@@ -2503,6 +2570,11 @@ function _release_gate_manifest_rows(scope)
     surfaces = scope.public_fit_surfaces
     blocked_claims = Tuple(row.claim for row in scope.blocked_claims)
     evidence_rows = scope.evidence_rows
+    ladder = model_ladder()
+    gmfrm_guarded_surface = only(row for row in ladder
+        if row.scope === :scalar_gmfrm_guarded_experimental)
+    mgmfrm_guarded_surface = only(row for row in ladder
+        if row.scope === :fixed_q_confirmatory_mgmfrm_guarded_experimental)
     manifest_checks = (
         (target = :minimal_mfrm_supported,
             expected = :supported_public_fit,
@@ -2514,7 +2586,10 @@ function _release_gate_manifest_rows(scope)
             observed = any(row -> row.surface === :scalar_gmfrm_guarded_experimental &&
                 row.public_fit && row.experimental_public &&
                 row.entrypoint == "fit(spec; experimental = true)" &&
-                row.claim_scope === :guarded_scalar_rater_consistency_only,
+                row.claim_scope === :guarded_scalar_rater_consistency_only &&
+                row.threshold_regimes == (:partial_credit,) &&
+                row.spec_discrimination == (:rater,) &&
+                !row.anchors_allowed && !row.validation_bias_terms_allowed,
                 surfaces)),
         (target = :fixed_q_mgmfrm_experimental_public,
             expected = :experimental_public_guarded_fit,
@@ -2522,8 +2597,22 @@ function _release_gate_manifest_rows(scope)
                 :fixed_q_confirmatory_mgmfrm_guarded_experimental &&
                 row.public_fit && row.experimental_public &&
                 row.entrypoint == "fit(spec; experimental = true)" &&
-                row.claim_scope === :fixed_q_confirmatory_only,
+                row.claim_scope === :fixed_q_confirmatory_only &&
+                row.threshold_regimes == (:partial_credit,) &&
+                row.spec_discrimination == (:none,) &&
+                row.q_matrix_policy === :fixed_confirmatory &&
+                !row.anchors_allowed && !row.validation_bias_terms_allowed,
                 surfaces)),
+        (target = :scalar_gmfrm_fail_closed_option_contract,
+            expected = :partial_credit_rater_no_implicit_variant,
+            observed = gmfrm_guarded_surface.threshold_regimes ==
+                (:partial_credit,) &&
+                gmfrm_guarded_surface.spec_discrimination == (:rater,)),
+        (target = :fixed_q_mgmfrm_fail_closed_option_contract,
+            expected = :partial_credit_generic_none_no_implicit_variant,
+            observed = mgmfrm_guarded_surface.threshold_regimes ==
+                (:partial_credit,) &&
+                mgmfrm_guarded_surface.spec_discrimination == (:none,)),
         (target = :broad_generalized_claims_blocked,
             expected = :blocked,
             observed = :broad_generalized_fit in blocked_claims &&
@@ -2611,7 +2700,7 @@ function release_gate_check(; root::AbstractString = _release_gate_default_root(
         sparse_superiority_claims_allowed =
             scope.summary.sparse_superiority_claims_allowed,
         publication_or_registration_action = false,
-        next_gate = passed ? :v0_1_1_workstream_b_design_audit :
+        next_gate = passed ? :manual_publication_or_registration_by_user_only :
             :repair_release_scope_documentation_or_manifest_drift,
     )
     result = (;
@@ -2886,8 +2975,8 @@ function _check_dimensions(family::Symbol, dimensions::Int)
     family === :gmfrm && dimensions == 1 ||
         family !== :gmfrm ||
         throw(ArgumentError(
-            "family = :gmfrm currently represents one-dimensional guarded scalar GMFRM configurations; " *
-            "blocked_option=:multidimensional_ability; next_gate=:mgmfrm_guarded_fit_validation_grid",
+            "family = :gmfrm is one-dimensional; use family = :mgmfrm with " *
+            "dimensions >= 2 and a fixed q_matrix for multidimensional models",
         ))
     family === :mgmfrm && dimensions >= 2 ||
         family !== :mgmfrm ||
@@ -3515,6 +3604,19 @@ q_matrix_validation(spec::FacetSpec; cross_loading_policy::Symbol = :confirmator
 q_matrix_validation(design::FacetDesign; kwargs...) =
     q_matrix_validation(design.spec; kwargs...)
 
+const _Q_MATRIX_OBSERVATION_COVERAGE_CHECKS =
+    (:dimension_facet_subgraph_coverage,)
+
+function _q_matrix_guarded_structure_passed(validation)
+    # Keep this as a small coverage denylist: every unclassified current or
+    # future error remains blocking, so mutable Q inputs fail closed.
+    return all(
+        row -> row.severity !== :error ||
+            row.check in _Q_MATRIX_OBSERVATION_COVERAGE_CHECKS,
+        validation.rows,
+    )
+end
+
 function _normalize_q_matrix(data::FacetData,
         family::Symbol,
         dimensions::Int,
@@ -3623,6 +3725,146 @@ function _estimation_status(family::Symbol,
         isempty(anchors) &&
         return :fit_supported
     return :specified_only
+end
+
+function _guarded_generalized_next_gate(
+        family::Symbol,
+        option::Symbol,
+        value)
+    option === :thresholds && return :guarded_generalized_threshold_contract
+    option === :anchors && return :generalized_anchor_likelihood_implementation
+    option === :q_matrix && return :mgmfrm_fixed_q_validation
+    option === :dff_effects && return family === :gmfrm ?
+        :gmfrm_dff_estimand_validation_grid : :mgmfrm_dff_estimand_validation_grid
+    option === :dimensions && return family === :gmfrm ?
+        :mgmfrm_guarded_fit_validation_grid : :mgmfrm_guarded_fit_entrypoint
+    option === :discrimination && return family === :gmfrm && value === :item ?
+        :item_discrimination_promotion_decision :
+        (family === :gmfrm ?
+            :guarded_scalar_gmfrm_fit_entrypoint :
+            :mgmfrm_generic_discrimination_validation)
+    option === :estimation_status && return family === :gmfrm ?
+        :guarded_scalar_gmfrm_manifest_review : :mgmfrm_guarded_manifest_review
+    option === :family && return :guarded_generalized_fit_entrypoint
+    return :guarded_generalized_capability_review
+end
+
+function _guarded_generalized_supported_surface(capability)
+    dimensions = capability.maximum_dimensions === nothing ?
+        ">=$(capability.minimum_dimensions)" :
+        capability.minimum_dimensions == capability.maximum_dimensions ?
+            string(capability.minimum_dimensions) :
+            "$(capability.minimum_dimensions):$(capability.maximum_dimensions)"
+    return (;
+        family = capability.family,
+        dimensions,
+        thresholds = capability.threshold_regimes,
+        discrimination = capability.spec_discrimination,
+        q_matrix = capability.requires_fixed_q ? :fixed_confirmatory : :not_used,
+        validation_bias_terms = (),
+        anchors = (),
+    )
+end
+
+function _guarded_generalized_unsupported_error(
+        caller::AbstractString,
+        family::Symbol,
+        option::Symbol,
+        value,
+        reason::AbstractString;
+        next_gate::Symbol = _guarded_generalized_next_gate(family, option, value))
+    capability = _guarded_generalized_fit_capability(family)
+    return ArgumentError(
+        "$caller does not support $(option) = $(repr(value)). " *
+        "Supported configuration: " *
+        "$(repr(_guarded_generalized_supported_surface(capability))). " *
+        reason,
+    )
+end
+
+function _check_guarded_generalized_spec(
+        spec::FacetSpec,
+        caller::AbstractString;
+        require_q_observation_coverage::Bool = true)
+    capability = _guarded_generalized_fit_capability(spec.family)
+    spec.dimensions >= capability.minimum_dimensions &&
+        (capability.maximum_dimensions === nothing ||
+            spec.dimensions <= capability.maximum_dimensions) ||
+        throw(_guarded_generalized_unsupported_error(
+            caller,
+            spec.family,
+            :dimensions,
+            spec.dimensions,
+            "the guarded surface has a family-specific dimensionality contract",
+        ))
+    spec.thresholds in capability.threshold_regimes ||
+        throw(_guarded_generalized_unsupported_error(
+            caller,
+            spec.family,
+            :thresholds,
+            spec.thresholds,
+            "the compiled generalized kernel uses $(capability.kernel_threshold_block); " *
+            "unsupported threshold labels are not silently reinterpreted",
+        ))
+    spec.discrimination in capability.spec_discrimination ||
+        throw(_guarded_generalized_unsupported_error(
+            caller,
+            spec.family,
+            :discrimination,
+            spec.discrimination,
+            "the guarded surface requires its family-specific generic discrimination selector",
+        ))
+    if capability.requires_fixed_q
+        spec.q_matrix === nothing &&
+            throw(_guarded_generalized_unsupported_error(
+                caller,
+                spec.family,
+                :q_matrix,
+                nothing,
+                "the guarded MGMFRM surface requires a fixed confirmatory q_matrix",
+            ))
+        q_validation = q_matrix_validation(spec)
+        q_validation_passed = require_q_observation_coverage ?
+            q_validation.passed :
+            _q_matrix_guarded_structure_passed(q_validation)
+        q_validation_passed ||
+            throw(_guarded_generalized_unsupported_error(
+                caller,
+                spec.family,
+                :q_matrix,
+                spec.q_matrix,
+                "the fixed q_matrix no longer passes confirmatory " *
+                (require_q_observation_coverage ? "validation; " :
+                    "structural validation; ") *
+                "mutable specification inputs are revalidated before numerical execution",
+            ))
+    end
+    !capability.allows_validation_bias_terms &&
+        !isempty(spec.validation_bias_terms) &&
+        throw(_guarded_generalized_unsupported_error(
+            caller,
+            spec.family,
+            :dff_effects,
+            spec.validation_bias_terms,
+            "DFF/bias terms are validation and reporting rows only; they are not fitted model effects",
+        ))
+    !capability.allows_anchors && !isempty(spec.anchors) &&
+        throw(_guarded_generalized_unsupported_error(
+            caller,
+            spec.family,
+            :anchors,
+            spec.anchors,
+            "declared anchors are not yet applied by the generalized likelihood or raw-coordinate transform",
+        ))
+    spec.estimation_status === :specified_only ||
+        throw(_guarded_generalized_unsupported_error(
+            caller,
+            spec.family,
+            :estimation_status,
+            spec.estimation_status,
+            "guarded generalized fitting expects the specified-only manifest path",
+        ))
+    return capability
 end
 
 function _spec_scope(family::Symbol, status::Symbol)
@@ -3990,8 +4232,12 @@ Construct a many-facet measurement specification after validation errors are
 resolved. The default `family = :mfrm`, `dimensions = 1`, and
 `discrimination = :none` path is the minimal MFRM/RSM/PCM slice supported by
 `getdesign` and `fit`. GMFRM/MGMFRM configurations can be represented for
-manifest and constraint review, but have `estimation_status = :specified_only`
-until their likelihoods and identification checks are implemented.
+manifest and constraint review with `estimation_status = :specified_only`.
+The guarded generalized numerical path is narrower than this representation
+surface: it requires `thresholds = :partial_credit`, no anchors or fitted DFF
+terms, and the family-specific discrimination/Q contract documented by
+[`fit`](@ref). Other specified-only configurations remain inspection-only and
+are rejected before numerical evaluation.
 """
 function mfrm_spec(data::FacetData;
         thresholds::Symbol = :partial_credit,
@@ -4794,7 +5040,16 @@ function _check_gmfrm_source_fixture_design(design::FacetDesign, caller::Abstrac
     design.spec.family === :gmfrm &&
         design.spec.estimation_status === :specified_only ||
         throw(ArgumentError("$caller is only for specified-only GMFRM preview designs"))
-    for block in (:person, :rater, :item, :item_discrimination, :rater_consistency, :rater_steps)
+    capability = _check_guarded_generalized_spec(design.spec, caller)
+    Set(keys(design.blocks)) == Set(capability.expected_blocks) ||
+        throw(_guarded_generalized_unsupported_error(
+            caller,
+            :gmfrm,
+            :compiled_blocks,
+            Tuple(sort!(collect(keys(design.blocks)); by = string)),
+            "the compiled design blocks do not match the guarded GMFRM kernel contract",
+        ))
+    for block in capability.expected_blocks
         haskey(design.blocks, block) ||
             throw(ArgumentError("$caller requires a GMFRM preview block :$block"))
     end
@@ -5107,11 +5362,27 @@ function _gmfrm_source_fixture_values(design::FacetDesign, params::AbstractVecto
     return rows
 end
 
-function _check_mgmfrm_source_fixture_design(design::FacetDesign, caller::AbstractString)
+function _check_mgmfrm_source_fixture_design(
+        design::FacetDesign,
+        caller::AbstractString;
+        require_q_observation_coverage::Bool = true)
     design.spec.family === :mgmfrm &&
         design.spec.estimation_status === :specified_only ||
         throw(ArgumentError("$caller is only for specified-only MGMFRM preview designs"))
-    for block in (:person, :rater, :item, :item_dimension_discrimination, :rater_consistency, :item_steps)
+    capability = _check_guarded_generalized_spec(
+        design.spec,
+        caller;
+        require_q_observation_coverage,
+    )
+    Set(keys(design.blocks)) == Set(capability.expected_blocks) ||
+        throw(_guarded_generalized_unsupported_error(
+            caller,
+            :mgmfrm,
+            :compiled_blocks,
+            Tuple(sort!(collect(keys(design.blocks)); by = string)),
+            "the compiled design blocks do not match the guarded MGMFRM kernel contract",
+        ))
+    for block in capability.expected_blocks
         haskey(design.blocks, block) ||
             throw(ArgumentError("$caller requires an MGMFRM preview block :$block"))
     end
@@ -5279,8 +5550,15 @@ function _mgmfrm_source_linear_predictors!(etas::AbstractVector,
     return etas
 end
 
-function _mgmfrm_source_pointwise_loglikelihood(design::FacetDesign, params::AbstractVector)
-    _check_mgmfrm_source_fixture_design(design, "_mgmfrm_source_pointwise_loglikelihood")
+function _mgmfrm_source_pointwise_loglikelihood(
+        design::FacetDesign,
+        params::AbstractVector;
+        require_q_observation_coverage::Bool = true)
+    _check_mgmfrm_source_fixture_design(
+        design,
+        "_mgmfrm_source_pointwise_loglikelihood";
+        require_q_observation_coverage,
+    )
     _check_parameter_vector_length(design, params)
     _mgmfrm_source_fixture_constraints(design, params)
     data = design.spec.data
@@ -5659,7 +5937,7 @@ end
 Return deterministic parameter names and block ranges for each compiled
 likelihood layout currently represented by the package. The fit-supported
 MFRM/RSM/PCM path reports direct parameter blocks. Specified-only GMFRM/MGMFRM
-preview designs report internal raw and constrained fit-ready candidate blocks,
+preview designs report experimental raw and constrained fit-ready blocks,
 including raw-to-constrained transform rows, without enabling broad public
 generalized fitting.
 
@@ -5939,8 +6217,8 @@ discrimination or loading blocks, scoring vectors, constraints, priors, fixed
 Q-masks, validation requirements, DFF/bias validation terms, and anchors.
 
 Fit-supported MFRM/RSM/PCM designs report `fit_ready = true` and
-`public_fit = true`. Specified-only GMFRM/MGMFRM previews report the internal
-candidate parameterization without enabling broad public fitting. For
+`public_fit = true`. Specified-only GMFRM/MGMFRM previews report the
+experimental parameterization without enabling broad generalized fitting. For
 specified-only `FacetSpec` values, pass `preview = true`, matching
 [`getdesign`](@ref).
 """
@@ -6581,19 +6859,29 @@ function _promotion_candidate_gate_rows(family::Symbol)
 end
 
 function _gmfrm_experimental_candidate_option_rows()
+    capability = _guarded_generalized_fit_capability(:gmfrm)
     return [
         (option = :entrypoint, value = "fit(spec; experimental = true)",
             status = :enabled_guarded,
             note = :scalar_gmfrm_only),
-        (option = :family, value = :gmfrm,
+        (option = :family, value = capability.family,
             status = :candidate_only,
             note = :scalar_gmfrm_before_mgmfrm),
-        (option = :dimensions, value = 1,
+        (option = :dimensions, value = capability.minimum_dimensions,
             status = :candidate_only,
             note = :one_dimensional_only),
-        (option = :discrimination, value = :rater,
+        (option = :thresholds, value = only(capability.threshold_regimes),
+            status = :candidate_only,
+            note = :source_aligned_rater_step_kernel),
+        (option = :discrimination, value = only(capability.spec_discrimination),
             status = :candidate_only,
             note = :source_aligned_scalar_gmfrm_fixture),
+        (option = :validation_bias_terms, value = (),
+            status = :candidate_only,
+            note = :validation_only_not_fitted),
+        (option = :anchors, value = (),
+            status = :candidate_only,
+            note = :anchor_likelihood_not_implemented),
         (option = :density_space, value = :raw_unconstrained,
             status = :candidate_only,
             note = :raw_coordinate_prior_contract_required),
@@ -6605,6 +6893,12 @@ end
 
 function _gmfrm_experimental_rejected_option_rows()
     return [
+        (option = :thresholds, value = :rating_scale,
+            status = :blocked,
+            blocker = :guarded_generalized_threshold_contract),
+        (option = :anchors, value = :nonempty,
+            status = :blocked,
+            blocker = :generalized_anchor_likelihood_not_implemented),
         (option = :family, value = :mgmfrm,
             status = :blocked,
             blocker = :mgmfrm_baseline_sparse_prior_policy_pending),
@@ -7293,11 +7587,12 @@ function _mgmfrm_confirmatory_blocker_rows()
 end
 
 function _mgmfrm_experimental_candidate_option_rows()
+    capability = _guarded_generalized_fit_capability(:mgmfrm)
     return [
         (option = :entrypoint, value = "fit(spec; experimental = true)",
             status = :enabled_guarded_experimental,
             note = :fixed_q_confirmatory_mgmfrm_only),
-        (option = :family, value = :mgmfrm,
+        (option = :family, value = capability.family,
             status = :enabled_guarded_experimental,
             note = :confirmatory_mgmfrm_after_scalar_gmfrm),
         (option = :dimensions, value = :two_or_more,
@@ -7306,6 +7601,18 @@ function _mgmfrm_experimental_candidate_option_rows()
         (option = :q_matrix, value = :fixed_confirmatory,
             status = :enabled_guarded_experimental,
             note = :no_exploratory_loading_search),
+        (option = :thresholds, value = only(capability.threshold_regimes),
+            status = :enabled_guarded_experimental,
+            note = :source_aligned_item_step_kernel),
+        (option = :discrimination, value = only(capability.spec_discrimination),
+            status = :enabled_guarded_experimental,
+            note = :generic_selector_unused_q_masked_loadings_are_internal),
+        (option = :validation_bias_terms, value = (),
+            status = :enabled_guarded_experimental,
+            note = :validation_only_not_fitted),
+        (option = :anchors, value = (),
+            status = :enabled_guarded_experimental,
+            note = :anchor_likelihood_not_implemented),
         (option = :latent_correlation, value = :identity_fixed,
             status = :enabled_guarded_experimental,
             note = :no_rotation_or_correlation_estimation),
@@ -7314,6 +7621,18 @@ end
 
 function _mgmfrm_experimental_rejected_option_rows()
     return [
+        (option = :thresholds, value = :rating_scale,
+            status = :blocked,
+            blocker = :guarded_generalized_threshold_contract),
+        (option = :discrimination, value = :nondefault_generic_selector,
+            status = :blocked,
+            blocker = :mgmfrm_generic_discrimination_not_implemented),
+        (option = :bias_or_dff_terms, value = :model_effects,
+            status = :blocked,
+            blocker = :mgmfrm_dff_model_effects_not_implemented),
+        (option = :anchors, value = :nonempty,
+            status = :blocked,
+            blocker = :generalized_anchor_likelihood_not_implemented),
         (option = :q_matrix, value = :estimated_or_free,
             status = :blocked,
             blocker = :q_matrix_selection_not_implemented),

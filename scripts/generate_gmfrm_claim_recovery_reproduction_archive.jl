@@ -100,6 +100,42 @@ const FIXTURE_SPECS = [
         expected_schema = "bayesianmgmfrm.gmfrm_guarded_fit_api_dry_run.v1",
         generator = "scripts/generate_gmfrm_guarded_fit_api_dry_run.jl",
         env_var = "MFRM_GMFRM_GUARDED_FIT_API_DRY_RUN_FIXTURE"),
+    (name = :tam_direct_agreement_multireplication,
+        path =
+            "test/fixtures/mgmfrm_tam_direct_agreement_multireplication.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_tam_direct_agreement_multireplication.v1",
+        generator =
+            "scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl",
+        generation_command =
+            "julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl --aggregate-only",
+        env_var =
+            "MFRM_MGMFRM_TAM_DIRECT_AGREEMENT_MULTIREPLICATION_FIXTURE",
+        evidence_scope = :mfrm_tam_overlap_nontransfer),
+    (name = :tam_direct_agreement_raw_archive_audit,
+        path =
+            "test/fixtures/mgmfrm_tam_direct_agreement_raw_archive_audit.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_tam_direct_agreement_raw_archive_audit.v1",
+        generator =
+            "scripts/generate_mgmfrm_tam_direct_agreement_raw_archive_audit.jl",
+        generation_command =
+            "julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_raw_archive_audit.jl",
+        env_var =
+            "MFRM_MGMFRM_TAM_DIRECT_AGREEMENT_RAW_ARCHIVE_AUDIT_FIXTURE",
+        evidence_scope = :mfrm_tam_overlap_nontransfer),
+    (name = :tam_direct_agreement_post_execution_review_packet,
+        path =
+            "test/fixtures/mgmfrm_tam_direct_agreement_post_execution_review_packet.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_tam_direct_agreement_post_execution_review_packet.v1",
+        generator =
+            "scripts/generate_mgmfrm_tam_direct_agreement_post_execution_review_packet.jl",
+        generation_command =
+            "julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_post_execution_review_packet.jl",
+        env_var =
+            "MFRM_MGMFRM_TAM_DIRECT_AGREEMENT_POST_EXECUTION_REVIEW_PACKET_FIXTURE",
+        evidence_scope = :mfrm_tam_overlap_nontransfer),
     (name = :guarded_exposure_review,
         path = "test/fixtures/gmfrm_guarded_exposure_review.json",
         expected_schema = "bayesianmgmfrm.gmfrm_guarded_exposure_review.v1",
@@ -119,7 +155,11 @@ const CODE_AND_DOC_PATHS = [
     "docs/src/fitting.md",
     "docs/src/model-equations.md",
     "docs/src/roadmap.md",
+    "scripts/local_json.jl",
     "scripts/pre_registration_gate.jl",
+    "scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl",
+    "scripts/generate_mgmfrm_tam_direct_agreement_raw_archive_audit.jl",
+    "scripts/generate_mgmfrm_tam_direct_agreement_post_execution_review_packet.jl",
     "scripts/generate_gmfrm_claim_recovery_reproduction_archive.jl",
 ]
 
@@ -363,8 +403,11 @@ function artifact_record(spec)
         schema,
         schema_matches,
         generator = spec.generator,
-        generation_command = "julia --project=. $(spec.generator)",
+        generation_command = hasproperty(spec, :generation_command) ?
+            spec.generation_command : "julia --project=. $(spec.generator)",
         env_var = spec.env_var,
+        evidence_scope = hasproperty(spec, :evidence_scope) ?
+            spec.evidence_scope : :scalar_gmfrm_claim_archive,
         generator_exists = isfile(local_path(spec.generator)),
         summary_passed = exists ? summary_passed(spec.name, summary) : false,
     )
@@ -450,6 +493,27 @@ function archive_artifact()
         if record.artifact === :guarded_exposure_review)
     real_data = only(record for record in fixture_records
         if record.artifact === :real_data_case_study)
+    tam_result = only(record for record in fixture_records
+        if record.artifact === :tam_direct_agreement_multireplication)
+    tam_audit = only(record for record in fixture_records
+        if record.artifact === :tam_direct_agreement_raw_archive_audit)
+    tam_post_packet = only(record for record in fixture_records
+        if record.artifact ===
+            :tam_direct_agreement_post_execution_review_packet)
+    tam_result_summary = json_summary(read(local_path(tam_result.path), String))
+    tam_audit_summary = json_summary(read(local_path(tam_audit.path), String))
+    tam_post_summary =
+        json_summary(read(local_path(tam_post_packet.path), String))
+    tam_direct_primary_gate_passed = Bool(json_optional_bool(
+        tam_result_summary, "primary_direct_gate_passed"))
+    tam_raw_archive_integrity_passed = Bool(json_optional_bool(
+        tam_audit_summary, "archive_integrity_passed"))
+    tam_post_packet_integrity_passed = Bool(json_optional_bool(
+        tam_post_summary, "packet_integrity_passed"))
+    tam_independent_review_completed = Bool(json_optional_bool(
+        tam_post_summary, "independent_review_completed"))
+    tam_pre_execution_exact_input_lineage = Bool(json_optional_bool(
+        tam_post_summary, "pre_execution_packet_exact_input_lineage"))
 
     all_fixture_artifacts_present = all(record -> record.exists, fixture_records)
     all_expected_schemas = all(record -> record.schema_matches, fixture_records)
@@ -511,6 +575,9 @@ function archive_artifact()
                 :satisfied_for_broader_experimental_exposure_decision_followup,
             interpretation =
                 :claim_level_recovery_reproduction_archive_recorded,
+            tam_direct_evidence_scope = :mfrm_tam_overlap_nontransfer,
+            tam_direct_evidence_transfers_to_scalar_gmfrm = false,
+            tam_independent_review_completed,
             required_followup = :broader_experimental_exposure_decision_review,
         ),
         summary = (;
@@ -532,8 +599,18 @@ function archive_artifact()
             no_publication_commands,
             guarded_exposure_review_passed,
             real_data_case_study_passed,
+            tam_direct_primary_gate_passed,
+            tam_raw_archive_integrity_passed,
+            tam_post_packet_integrity_passed,
+            tam_independent_review_completed,
+            tam_pre_execution_exact_input_lineage,
+            tam_direct_evidence_transfers_to_scalar_gmfrm = false,
             remaining_public_blockers =
-                [:broader_experimental_exposure_decision_review_missing],
+                [
+                    :broader_experimental_exposure_decision_review_missing,
+                    :tam_direct_independent_review_pending,
+                    :tam_pre_execution_refinement_lineage_adjudication_pending,
+                ],
             recommendation =
                 :keep_guarded_experimental_until_broader_exposure_decision_review,
             next_gate = :broader_experimental_exposure_decision_review,
