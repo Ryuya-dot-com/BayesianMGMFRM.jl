@@ -118,6 +118,7 @@ export FacetData,
     linear_predictor_table,
     linear_predictor_values,
     local_dependence_contract,
+    local_dependence_simulation_grid,
     local_dependence_summary,
     model_equation,
     mcmc_diagnostics,
@@ -169,6 +170,7 @@ export FacetData,
     separation_reliability_summary,
     simulation_grid,
     simulation_grid_summary,
+    simulate_local_dependence,
     simulate_responses,
     stan_validation_row,
     stan_validation_summary,
@@ -193,6 +195,8 @@ include("mgmfrm_free_correlation_resource_probe.jl")
 include("mgmfrm_free_correlation_study_scoring.jl")
 include("experimental.jl")
 include("local_dependence.jl")
+include("local_dependence_known_truth_dgp.jl")
+include("local_dependence_simulation.jl")
 
 # Scalar validation target used by the analytic-gradient test suite.
 include("scalar_validation_logp.jl")
