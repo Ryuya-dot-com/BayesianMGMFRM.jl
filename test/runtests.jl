@@ -9352,6 +9352,57 @@ function check_mgmfrm_tam_direct_agreement_multireplication_fixture(
     @test Bool(integrity[:recovery_policy_hash_matches_refinement])
     @test Bool(integrity[:refinement_records_gate_unchanged])
     @test Bool(integrity[:pilot_excluded_from_confirmatory_denominator])
+    @test Bool(integrity[:execution_refinement_snapshot_validated])
+    @test Bool(integrity[:selected_job_input_lineage_validated])
+    @test Bool(integrity[:selected_job_seed_lineage_validated])
+    @test Bool(integrity[:selected_job_environment_lineage_validated])
+
+    aggregation = fixture[:aggregation_provenance]
+    @test String(aggregation[:mode]) ==
+        "aggregate_only_from_selected_attempts"
+    @test Bool(aggregation[:mcmc_executed]) == false
+    @test Bool(aggregation[:fail_closed])
+    @test String(aggregation[:generator]) ==
+        "scripts/generate_mgmfrm_tam_direct_agreement_multireplication_aggregate.jl"
+    @test String(aggregation[:generator_source_sha256]) == file_sha256(
+        joinpath(root, String(aggregation[:generator])))
+    @test String(aggregation[:wrapped_execution_generator]) ==
+        String(protocol[:generator])
+    @test String(aggregation[:wrapped_execution_generator_source_sha256]) ==
+        String(protocol[:generator_source_sha256])
+    @test Bool(aggregation[:protocol_generator_fields_preserved])
+    execution_snapshot_path = joinpath(root,
+        String(aggregation[:refinement_execution_snapshot]))
+    @test isfile(execution_snapshot_path)
+    @test Int(aggregation[:refinement_execution_snapshot_bytes]) ==
+        filesize(execution_snapshot_path)
+    @test String(aggregation[:refinement_execution_snapshot_sha256]) ==
+        file_sha256(execution_snapshot_path) ==
+        "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e"
+    execution_snapshot = JSON3.read(read(execution_snapshot_path, String))
+    @test String(aggregation[:expected_project_toml_sha256]) == String(
+        execution_snapshot[:environment_contract][:project_toml_sha256])
+    @test String(aggregation[:expected_manifest_toml_sha256]) == String(
+        execution_snapshot[:environment_contract][:manifest_toml_sha256])
+    @test Int(aggregation[:n_selected_jobs_expected]) == 10
+    @test Int(aggregation[:n_selected_jobs_validated]) == 10
+    @test Bool(aggregation[:all_selected_job_lineage_valid])
+    selected_lineage = aggregation[:selected_job_lineage_rows]
+    @test length(selected_lineage) == 10
+    @test length(unique(String(row[:job_id]) for row in selected_lineage)) == 10
+    @test all(row -> Bool(row[:passed]) &&
+        String(row[:execution_generator_source_sha256]) ==
+            String(protocol[:generator_source_sha256]) &&
+        String(row[:refinement_snapshot_sha256]) ==
+            String(aggregation[:refinement_execution_snapshot_sha256]) &&
+        String(row[:truth_sha256]) == String(
+            execution_snapshot[:data_and_input_contract][
+                :fixed_truth_sha256]) &&
+        String(row[:project_toml][:sha256]) ==
+            String(aggregation[:expected_project_toml_sha256]) &&
+        String(row[:manifest_toml][:sha256]) ==
+            String(aggregation[:expected_manifest_toml_sha256]),
+        selected_lineage)
 
     selected = fixture[:selected_attempt_rows]
     @test length(selected) == 10
@@ -9474,6 +9525,10 @@ function check_mgmfrm_tam_direct_agreement_multireplication_fixture(
     @test Int(summary[:n_primary_block_rows_passed]) ==
         count(row -> Bool(row[:direct_primary_block_passed]), primary_rows)
     @test Int(summary[:n_failure_rows]) == length(fixture[:failure_rows])
+    @test Bool(summary[:aggregate_only])
+    @test Bool(summary[:mcmc_executed]) == false
+    @test Bool(summary[:selected_job_lineage_validation_passed])
+    @test Int(summary[:n_selected_job_lineage_rows]) == 10
     @test Bool(summary[:external_software_validation_completed]) == false
     @test Bool(summary[:public_claim_release_allowed]) == false
     @test String(summary[:next_gate]) ==
