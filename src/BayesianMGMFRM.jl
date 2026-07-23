@@ -117,6 +117,9 @@ export FacetData,
     logprior,
     linear_predictor_table,
     linear_predictor_values,
+    local_dependence_calibration_contract,
+    local_dependence_calibration_row,
+    local_dependence_calibration_summary,
     local_dependence_contract,
     local_dependence_simulation_grid,
     local_dependence_summary,
@@ -197,6 +200,7 @@ include("experimental.jl")
 include("local_dependence.jl")
 include("local_dependence_known_truth_dgp.jl")
 include("local_dependence_simulation.jl")
+include("local_dependence_calibration.jl")
 
 # Scalar validation target used by the analytic-gradient test suite.
 include("scalar_validation_logp.jl")
