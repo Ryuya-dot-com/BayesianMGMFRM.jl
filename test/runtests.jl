@@ -104,6 +104,7 @@ using BayesianMGMFRM:
     logprior,
     linear_predictor_table,
     linear_predictor_values,
+    local_dependence_contract,
     GMFRMFit,
     MGMFRMFit,
     MFRMFit,
@@ -163,6 +164,7 @@ using BayesianMGMFRM:
     sensitivity_comparison_summary,
     separation_reliability_summary,
     threshold_map_data,
+    testlet_design_audit,
     model_ladder,
     validate_design,
     validation_suggestions,
@@ -19816,6 +19818,7 @@ end
             :initial_params, :loglikelihood, :logposterior, :logprior,
             :kfold, :loo, :psis_loo, :loo_diagnostics,
             :linear_predictor_table, :linear_predictor_values,
+            :local_dependence_contract,
             :calibration_table, :diagnostics,
             :diagnostic_map_data,
             :comparison_evidence_row, :comparison_evidence_summary,
@@ -19846,7 +19849,8 @@ end
             :separation_reliability_summary, :simulation_grid,
             :simulation_grid_summary, :simulate_responses,
             :stan_validation_row, :stan_validation_summary,
-            :threshold_map_data, :validation_suggestions, :evidence_metadata,
+            :threshold_map_data, :testlet_design_audit,
+            :validation_suggestions, :evidence_metadata,
             :evidence_artifact_schema_policy,
             :waic, :waic_diagnostics, :wright_map_data)
         @test has_doc(BayesianMGMFRM, name)
@@ -30541,7 +30545,9 @@ end
 end
 
 include("model_contract.jl")
+include("testlet_design_audit.jl")
 include("testlet_overlap_contract.jl")
+include("local_dependence_contract.jl")
 include("facets_compatibility_stats.jl")
 include("generalized_guard_contract.jl")
 include("experimental_namespace.jl")
