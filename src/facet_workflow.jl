@@ -439,10 +439,12 @@ function _connected_components(data::FacetData)
     for node in keys(adj)
         node in seen && continue
         queue = [node]
+        head = 1
         push!(seen, node)
         component = Tuple{Symbol,Int}[]
-        while !isempty(queue)
-            current = popfirst!(queue)
+        while head <= length(queue)
+            current = queue[head]
+            head += 1
             push!(component, current)
             for nxt in adj[current]
                 nxt in seen && continue
@@ -3077,10 +3079,12 @@ function _q_matrix_component_rows(data::FacetData,
     for node in nodes
         node in seen && continue
         queue = [node]
+        head = 1
         push!(seen, node)
         component = Tuple{Symbol,Int}[]
-        while !isempty(queue)
-            current = popfirst!(queue)
+        while head <= length(queue)
+            current = queue[head]
+            head += 1
             push!(component, current)
             for nxt in adj[current]
                 nxt in seen && continue
@@ -3136,10 +3140,12 @@ function _q_matrix_dimension_facet_components(data::FacetData, active_items::Set
     for node in active_nodes
         node in seen && continue
         queue = [node]
+        head = 1
         push!(seen, node)
         component = Tuple{Symbol,Int}[]
-        while !isempty(queue)
-            current = popfirst!(queue)
+        while head <= length(queue)
+            current = queue[head]
+            head += 1
             push!(component, current)
             for nxt in adj[current]
                 nxt in seen && continue
