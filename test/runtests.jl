@@ -13,6 +13,8 @@ import BayesianMGMFRM
 import LogDensityProblemsAD
 
 include(joinpath(dirname(@__DIR__), "scripts", "local_json.jl"))
+include(joinpath(dirname(@__DIR__), "scripts",
+    "scientific_payload_digest.jl"))
 
 module RuntimePublicLanguagePolicyForTest
 
@@ -19757,6 +19759,19 @@ end
     @test first(findfirst("\"a\"", written)) <
         first(findfirst("\"b\"", written)) <
         first(findfirst("\"z\"", written))
+    canonical_io = IOBuffer()
+    write_canonical_json(canonical_io, (;
+        z = -0.0,
+        b = 1000.0,
+        a = (value = 4.0, ratio = 0.75),
+    ))
+    canonical_written = String(take!(canonical_io))
+    canonical_reparsed = JSON3.read(canonical_written)
+    reparsed_io = IOBuffer()
+    write_canonical_json(reparsed_io, canonical_reparsed)
+    @test String(take!(reparsed_io)) == canonical_written
+    @test canonical_written ==
+        "{\"a\":{\"ratio\":0.75,\"value\":4},\"b\":1000,\"z\":0}"
 
     raw_error = "MethodError: no method matching fit(::Any; experimental=true)\r\n" *
         "Closest candidates are:\r\n" *
@@ -20128,6 +20143,24 @@ end
     @test evidence_policy.object === :evidence_artifact_schema_policy
     @test evidence_policy.artifact_kind === :unit_test
     @test evidence_policy.hash_policy.algorithm === :sha256
+    @test evidence_policy.scientific_payload_hash_policy.payload_field ===
+        :scientific_payload
+    @test evidence_policy.scientific_payload_hash_policy.digest_field ===
+        :scientific_payload_sha256
+    @test evidence_policy.scientific_payload_hash_policy.projection_policy ===
+        :explicit_schema_contract
+    @test evidence_policy.scientific_payload_hash_policy.implementation_scope ===
+        :repository_tooling
+    @test evidence_policy.scientific_payload_hash_policy.
+        artifact_integration_status === :staged
+    @test evidence_policy.scientific_payload_hash_policy.
+        semantic_equivalence_comparison_status === :not_yet_integrated
+    @test !evidence_policy.scientific_payload_hash_policy.
+        legacy_absence_verifies_equivalence
+    @test evidence_policy.scientific_payload_hash_policy.
+        semantic_gate_requires_verified_digest
+    @test evidence_policy.scientific_payload_hash_policy.
+        exact_file_sha256_retained
     @test any(row -> row.field === :schema && row.status === :required,
         evidence_policy.required_fields)
     @test any(row -> row.field === :unsupported_claims,
@@ -30419,6 +30452,7 @@ include("facets_compatibility_stats.jl")
 include("generalized_guard_contract.jl")
 include("publication_grade_policy_contract.jl")
 include("public_language_gate.jl")
+include("scientific_payload_digest.jl")
 
 module FullPaperReproductionArchiveContractForTest
 

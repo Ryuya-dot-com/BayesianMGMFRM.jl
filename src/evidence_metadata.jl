@@ -194,7 +194,9 @@ end
 Return the machine-readable schema policy for review artifacts. The policy
 defines required provenance fields for schema versioning, content hashes,
 package/git/environment hashes, seed and sampler controls, cache provenance,
-unsupported-claim flags, and raw-data/anonymization status.
+unsupported-claim flags, and raw-data/anonymization status. The additive
+scientific-payload policy separates an explicit schema-specific scientific
+projection from the exact-file hash while legacy v1 artifacts are migrated.
 """
 function evidence_artifact_schema_policy(artifact_kind::Symbol = :general;
         include_environment::Bool = true,
@@ -218,6 +220,27 @@ function evidence_artifact_schema_policy(artifact_kind::Symbol = :general;
             algorithm = :sha256,
             canonicalization = :cache_stable_json_without_hash_metadata,
             required = true,
+        ),
+        scientific_payload_hash_policy = (;
+            payload_field = :scientific_payload,
+            digest_field = :scientific_payload_sha256,
+            algorithm = :sha256,
+            scope = :explicit_schema_specific_projection,
+            canonicalization = :local_json_sorted_compact_v1,
+            projection_policy = :explicit_schema_contract,
+            schema_contract_requires = (
+                :expected_schema,
+                :required_top_level_fields,
+                :allowed_top_level_fields,
+            ),
+            implementation_scope = :repository_tooling,
+            artifact_integration_status = :staged,
+            semantic_equivalence_comparison_status = :not_yet_integrated,
+            legacy_absence_allowed_for_inventory = true,
+            legacy_absence_verifies_equivalence = false,
+            verify_if_present = true,
+            semantic_gate_requires_verified_digest = true,
+            exact_file_sha256_retained = true,
         ),
         environment_policy = (;
             include_environment,
@@ -246,6 +269,7 @@ function evidence_artifact_schema_policy(artifact_kind::Symbol = :general;
             n_required_fields = length(required_fields),
             n_unsupported_claims = length(normalized_claims),
             has_hash_policy = true,
+            has_scientific_payload_hash_policy = true,
             has_environment_policy = true,
             has_execution_policy = true,
             has_claim_policy = true,
