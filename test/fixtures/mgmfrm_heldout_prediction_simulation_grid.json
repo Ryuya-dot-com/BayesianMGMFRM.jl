@@ -17,7 +17,7 @@
   "sparse_mgmfrm_superiority_claim": false,
   "package": {
     "name": "BayesianMGMFRM",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "julia_version": "1.12.5"
   },
   "protocol": {
@@ -51,7 +51,7 @@
       "artifact": "mgmfrm_validation_split_model_comparison_policy",
       "path": "test/fixtures/mgmfrm_validation_split_model_comparison_policy.json",
       "exists": true,
-      "sha256": "1e71a58c2d2b912b8004059aafd250b7d3ae739e48163f19673c4adaeaf6714b",
+      "sha256": "5947220873a62ab62b7b73e94dbb15b18553fe04043961c3e4b03df3293ecbee",
       "schema": "bayesianmgmfrm.mgmfrm_validation_split_model_comparison_policy.v1",
       "expected_schema": "bayesianmgmfrm.mgmfrm_validation_split_model_comparison_policy.v1",
       "schema_matches": true,

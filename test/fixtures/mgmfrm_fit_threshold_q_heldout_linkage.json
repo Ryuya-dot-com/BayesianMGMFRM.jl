@@ -16,7 +16,7 @@
   "sparse_mgmfrm_superiority_claim": false,
   "package": {
     "name": "BayesianMGMFRM",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "julia_version": "1.12.5"
   },
   "protocol": {
@@ -93,7 +93,7 @@
       "artifact": "mgmfrm_heldout_prediction_simulation_grid",
       "path": "test/fixtures/mgmfrm_heldout_prediction_simulation_grid.json",
       "exists": true,
-      "sha256": "87b3d3b33ed3c671b29cd0d4bac02528f041ed22bed76a3551cdef61b544dbfa",
+      "sha256": "6c8f894fb7fce019c63d198cd2e8057611cd0d449d5c06b98b86dcdd4cd69f70",
       "schema": "bayesianmgmfrm.mgmfrm_heldout_prediction_simulation_grid.v1",
       "expected_schema": "bayesianmgmfrm.mgmfrm_heldout_prediction_simulation_grid.v1",
       "schema_matches": true,
@@ -111,7 +111,7 @@
       "artifact": "mgmfrm_full_heldout_mcmc_refit_fold1_scoring",
       "path": "test/fixtures/mgmfrm_full_heldout_mcmc_refit_fold1_scoring.json",
       "exists": true,
-      "sha256": "b2c4b922eb72f704cdd79c9c960813db5d8d6d0b2ab17b0478849d83bd781419",
+      "sha256": "7c46e14462c8b13be80952edf417f7ea456e64f7945d5396ad6bf73a31e61cc6",
       "schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_fold1_scoring.v1",
       "expected_schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_fold1_scoring.v1",
       "schema_matches": true,

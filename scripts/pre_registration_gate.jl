@@ -178,7 +178,9 @@ function instantiate_project()
 end
 
 function run_package_tests()
-    run_with_developed_package("""Pkg.test("BayesianMGMFRM")""")
+    withenv("BAYESIANMGMFRM_STRICT_ARCHIVE_SHA" => "true") do
+        run_with_developed_package("""Pkg.test("BayesianMGMFRM")""")
+    end
     return nothing
 end
 

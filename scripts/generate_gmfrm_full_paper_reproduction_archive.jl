@@ -95,6 +95,50 @@ const REPRODUCTION_FIXTURES = [
         env_var = "MFRM_GMFRM_EXACT_LOO_OR_KFOLD_REVIEW_FIXTURE",
         pass_policy = :summary_passed,
         hash_policy = :sha256),
+    (name = :local_dependence_known_truth_preflight,
+        path =
+            "test/fixtures/local_dependence_known_truth_preflight.json",
+        expected_schema =
+            "bayesianmgmfrm.local_dependence_known_truth_preflight.v1",
+        generator =
+            "scripts/generate_local_dependence_known_truth_preflight.jl",
+        env_var =
+            "MFRM_LOCAL_DEPENDENCE_KNOWN_TRUTH_PREFLIGHT_FIXTURE",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
+    (name = :local_dependence_calibration_scorer_preflight,
+        path =
+            "test/fixtures/local_dependence_calibration_scorer_preflight.json",
+        expected_schema =
+            "bayesianmgmfrm.local_dependence_calibration_scorer_preflight.v1",
+        generator =
+            "scripts/generate_local_dependence_calibration_scorer_preflight.jl",
+        env_var =
+            "MFRM_LOCAL_DEPENDENCE_CALIBRATION_SCORER_PREFLIGHT_FIXTURE",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
+    (name = :local_dependence_pilot_protocol_preflight,
+        path =
+            "test/fixtures/local_dependence_pilot_protocol_preflight.json",
+        expected_schema =
+            "bayesianmgmfrm.local_dependence_pilot_protocol_preflight.v1",
+        generator =
+            "scripts/generate_local_dependence_pilot_protocol_preflight.jl",
+        env_var =
+            "MFRM_LOCAL_DEPENDENCE_PILOT_PROTOCOL_PREFLIGHT_FIXTURE",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
+    (name = :local_dependence_pilot_batch_execution_harness,
+        path =
+            "test/fixtures/local_dependence_pilot_batch_execution_harness.json",
+        expected_schema =
+            "bayesianmgmfrm.local_dependence_pilot_batch_execution_harness.v2",
+        generator =
+            "scripts/generate_local_dependence_pilot_batch_execution_harness.jl",
+        env_var =
+            "MFRM_LOCAL_DEPENDENCE_PILOT_BATCH_EXECUTION_HARNESS_FIXTURE",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256),
     (name = :guarded_fit_api_dry_run,
         path = "test/fixtures/gmfrm_guarded_fit_api_dry_run.json",
         expected_schema = "bayesianmgmfrm.gmfrm_guarded_fit_api_dry_run.v1",
@@ -157,15 +201,26 @@ const REPRODUCTION_FIXTURES = [
             "MFRM_GMFRM_CLAIM_RECOVERY_REPRODUCTION_ARCHIVE_FIXTURE",
         pass_policy = :summary_passed,
         hash_policy = :sha256),
+    (name = :tam_direct_agreement_policy_refinement_execution_snapshot,
+        path =
+            "test/fixtures/mgmfrm_tam_direct_agreement_policy_refinement_execution_snapshot.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_tam_direct_agreement_policy_refinement.v1",
+        expected_sha256 =
+            "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e",
+        pass_policy = :summary_passed,
+        hash_policy = :sha256,
+        immutable = true,
+        regeneration_policy = :immutable_snapshot_no_regeneration),
     (name = :tam_direct_agreement_multireplication,
         path =
             "test/fixtures/mgmfrm_tam_direct_agreement_multireplication.json",
         expected_schema =
             "bayesianmgmfrm.mgmfrm_tam_direct_agreement_multireplication.v1",
         generator =
-            "scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl",
+            "scripts/generate_mgmfrm_tam_direct_agreement_multireplication_aggregate.jl",
         generation_command =
-            "julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl --aggregate-only",
+            "julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_multireplication_aggregate.jl",
         env_var =
             "MFRM_MGMFRM_TAM_DIRECT_AGREEMENT_MULTIREPLICATION_FIXTURE",
         pass_policy = :summary_passed,
@@ -716,12 +771,33 @@ const CODE_AND_DOC_PATHS = [
     "src/BayesianMGMFRM.jl",
     "src/bayesian_fit.jl",
     "src/facet_workflow.jl",
+    "src/model_contract.jl",
+    "src/local_dependence.jl",
+    "src/local_dependence_calibration.jl",
+    "src/local_dependence_calibration_pilot.jl",
+    "src/local_dependence_known_truth_dgp.jl",
+    "src/local_dependence_simulation.jl",
+    "src/testlet_design_audit.jl",
     "test/runtests.jl",
+    "test/model_contract.jl",
     "test/facets_compatibility_stats.jl",
     "test/generalized_guard_contract.jl",
+    "test/local_dependence_calibration_artifact.jl",
+    "test/local_dependence_calibration.jl",
+    "test/local_dependence_calibration_pilot.jl",
+    "test/local_dependence_contract.jl",
+    "test/local_dependence_pilot_protocol_artifact.jl",
+    "test/local_dependence_pilot_batch_execution_harness.jl",
+    "test/local_dependence_simulation.jl",
+    "test/local_dependence_summary.jl",
+    "test/predictive_standardized_residuals.jl",
     "test/public_language_gate.jl",
     "test/publication_grade_policy_contract.jl",
+    "test/rank_normalized_diagnostics.jl",
+    "test/testlet_design_audit.jl",
+    "test/testlet_overlap_contract.jl",
     "test/fixtures/README.md",
+    "docs/build.jl",
     "docs/make.jl",
     "docs/src/index.md",
     "docs/src/api.md",
@@ -733,6 +809,7 @@ const CODE_AND_DOC_PATHS = [
     "docs/src/data-validation.md",
     "docs/src/examples.md",
     "docs/src/fitting.md",
+    "docs/src/mgmfrm-research-roadmap.md",
     "docs/src/model-equations.md",
     "docs/src/roadmap.md",
     "docs/src/scope.md",
@@ -743,6 +820,11 @@ const CODE_AND_DOC_PATHS = [
     "scripts/pre_registration_gate.jl",
     "scripts/public_language_gate.jl",
     "scripts/runtime_public_language_gate.jl",
+    "scripts/generate_local_dependence_calibration_scorer_preflight.jl",
+    "scripts/generate_local_dependence_known_truth_preflight.jl",
+    "scripts/generate_local_dependence_pilot_protocol_preflight.jl",
+    "scripts/generate_local_dependence_pilot_batch_execution_harness.jl",
+    "scripts/run_local_dependence_calibration_pilot_batch.jl",
     "scripts/generate_source_bridge_fixtures.py",
     "scripts/generate_gmfrm_full_paper_reproduction_archive.jl",
     "scripts/generate_mgmfrm_report_shape_simulation_grid.jl",
@@ -784,6 +866,7 @@ const CODE_AND_DOC_PATHS = [
     "scripts/generate_mgmfrm_external_construct_attachment_intake_preflight.jl",
     "scripts/generate_mgmfrm_external_construct_attachment_request_packet.jl",
     "scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl",
+    "scripts/generate_mgmfrm_tam_direct_agreement_multireplication_aggregate.jl",
     "scripts/generate_mgmfrm_tam_direct_agreement_raw_archive_audit.jl",
     "scripts/generate_mgmfrm_tam_direct_agreement_post_execution_review_packet.jl",
     "scripts/generate_mgmfrm_guarded_fit_method_wiring.jl",
@@ -824,6 +907,18 @@ const FULL_REGENERATION_COMMANDS = [
         command = "julia --project=. scripts/generate_gmfrm_psis_loo_review.jl"),
     (artifact = :gmfrm_exact_loo_or_kfold_review,
         command = "julia --project=. scripts/generate_gmfrm_exact_loo_or_kfold_review.jl"),
+    (artifact = :local_dependence_known_truth_preflight,
+        command =
+            "julia --project=. scripts/generate_local_dependence_known_truth_preflight.jl"),
+    (artifact = :local_dependence_calibration_scorer_preflight,
+        command =
+            "julia --project=. scripts/generate_local_dependence_calibration_scorer_preflight.jl"),
+    (artifact = :local_dependence_pilot_protocol_preflight,
+        command =
+            "julia --project=. scripts/generate_local_dependence_pilot_protocol_preflight.jl"),
+    (artifact = :local_dependence_pilot_batch_execution_harness,
+        command =
+            "julia --project=. scripts/generate_local_dependence_pilot_batch_execution_harness.jl"),
     (artifact = :gmfrm_guarded_fit_method_wiring,
         command = "julia --project=. scripts/generate_gmfrm_guarded_fit_method_wiring.jl"),
     (artifact = :gmfrm_experimental_fit_validation_grid,
@@ -838,7 +933,7 @@ const FULL_REGENERATION_COMMANDS = [
         command = "julia --project=. scripts/generate_gmfrm_real_data_case_study.jl"),
     (artifact = :tam_direct_agreement_multireplication,
         command =
-            "julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl --aggregate-only"),
+            "julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_multireplication_aggregate.jl"),
     (artifact = :tam_direct_agreement_raw_archive_audit,
         command =
             "julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_raw_archive_audit.jl"),
@@ -1000,7 +1095,8 @@ const VERIFICATION_COMMANDS = [
         command = "julia --project=. -e 'import Pkg; Pkg.test()'",
         execution = :required_before_claim_use),
     (name = :documentation_build,
-        command = "julia --project=docs docs/make.jl",
+        command =
+            "julia --startup-file=no --project=docs docs/build.jl",
         execution = :required_before_claim_use),
     (name = :local_pre_registration_gate,
         command =
@@ -1021,6 +1117,7 @@ const PROTOCOL = (;
     thresholds = (;
         require_all_fixture_artifacts_present = true,
         require_all_expected_schemas = true,
+        require_all_expected_sha256_matches = true,
         require_all_fixture_summaries_passed = true,
         require_all_generator_scripts_present = true,
         require_all_code_doc_references_present = true,
@@ -1035,6 +1132,7 @@ const PROTOCOL = (;
         require_tam_direct_execution_recorded = true,
         require_tam_raw_archive_integrity_passed = true,
         require_tam_post_execution_packet_integrity_passed = true,
+        require_tam_execution_input_lineage_exact = true,
         require_tam_independent_review_pending_recorded = true,
         require_tam_pre_execution_lineage_mismatch_recorded = true,
         require_tam_evidence_nontransfer_to_gmfrm_mgmfrm = true,
@@ -1296,26 +1394,42 @@ function fixture_record(spec)
     schema = exists ? json_string(text, "schema") : missing
     summary = exists ? json_summary(text) : nothing
     schema_matches = exists && schema == spec.expected_schema
+    immutable = hasproperty(spec, :immutable) ? Bool(spec.immutable) : false
+    regeneration_policy = hasproperty(spec, :regeneration_policy) ?
+        spec.regeneration_policy : :generator_replay
     sha_policy = spec.hash_policy
+    sha256 = exists && sha_policy === :sha256 ? file_sha256(path) : missing
+    expected_sha256 = hasproperty(spec, :expected_sha256) ?
+        spec.expected_sha256 : missing
+    sha256_matches = ismissing(expected_sha256) ? true :
+        exists && sha256 == expected_sha256
+    generator = hasproperty(spec, :generator) ? spec.generator : missing
+    generation_command = if hasproperty(spec, :generation_command)
+        spec.generation_command
+    elseif immutable
+        missing
+    elseif endswith(generator, ".py")
+        "python $(generator)"
+    else
+        "julia --project=. $(generator)"
+    end
     return (;
         artifact = spec.name,
         path = spec.path,
         exists,
+        immutable,
+        regeneration_policy,
         hash_policy = sha_policy,
-        sha256 = exists && sha_policy === :sha256 ? file_sha256(path) : missing,
+        sha256,
+        expected_sha256,
+        sha256_matches,
         expected_schema = spec.expected_schema,
         schema,
         schema_matches,
-        generator = spec.generator,
-        generation_command = if hasproperty(spec, :generation_command)
-            spec.generation_command
-        elseif endswith(spec.generator, ".py")
-            "python $(spec.generator)"
-        else
-            "julia --project=. $(spec.generator)"
-        end,
-        env_var = spec.env_var,
-        generator_exists = isfile(local_path(spec.generator)),
+        generator,
+        generation_command,
+        env_var = hasproperty(spec, :env_var) ? spec.env_var : missing,
+        generator_exists = immutable ? missing : isfile(local_path(generator)),
         summary_present = summary !== nothing,
         summary_passed = exists && schema_matches && summary_passed(spec, summary),
     )
@@ -1386,6 +1500,8 @@ function build_artifact()
         tam_post_summary, "independent_review_completed"))
     tam_pre_execution_exact_input_lineage = Bool(json_optional_bool(
         tam_post_summary, "pre_execution_packet_exact_input_lineage"))
+    tam_execution_input_lineage_exact = Bool(json_optional_bool(
+        tam_post_summary, "raw_job_execution_input_lineage_exact"))
     mgmfrm_sparse = record_by_name(fixture_records, :mgmfrm_sparse_recovery_grid)
     mgmfrm_report_shape =
         record_by_name(fixture_records, :mgmfrm_report_shape_simulation_grid)
@@ -1510,10 +1626,13 @@ function build_artifact()
 
     all_fixture_artifacts_present = all(record -> record.exists, fixture_records)
     all_expected_schemas = all(record -> record.schema_matches, fixture_records)
+    all_expected_sha256_matches =
+        all(record -> record.sha256_matches, fixture_records)
     all_fixture_summaries_passed =
         all(record -> record.summary_passed, fixture_records)
     all_generator_scripts_present =
-        all(record -> record.generator_exists, fixture_records)
+        all(record -> record.immutable || record.generator_exists,
+            fixture_records)
     all_code_doc_references_present =
         all(record -> record.exists, code_doc_records)
     all_external_sources_present = all(record -> record.exists, source_records)
@@ -1526,6 +1645,7 @@ function build_artifact()
 
     passed = all_fixture_artifacts_present &&
         all_expected_schemas &&
+        all_expected_sha256_matches &&
         all_fixture_summaries_passed &&
         all_generator_scripts_present &&
         all_code_doc_references_present &&
@@ -1534,6 +1654,7 @@ function build_artifact()
         verification_commands_recorded &&
         all_commands_local_only &&
         no_publication_commands &&
+        tam_execution_input_lineage_exact &&
         guarded.summary_passed &&
         broader.summary_passed &&
         manuscript.summary_passed &&
@@ -1633,6 +1754,7 @@ function build_artifact()
             tam_direct_evidence_scope = :mfrm_tam_overlap_nontransfer,
             tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm = false,
             tam_independent_review_completed,
+            tam_execution_input_lineage_exact,
             required_followup = :manual_publication_or_registration_by_user_only,
         ),
         summary = (;
@@ -1641,6 +1763,7 @@ function build_artifact()
             local_only = true,
             all_fixture_artifacts_present,
             all_expected_schemas,
+            all_expected_sha256_matches,
             all_fixture_summaries_passed,
             all_generator_scripts_present,
             all_code_doc_references_present,
@@ -1659,6 +1782,7 @@ function build_artifact()
             tam_raw_archive_integrity_passed,
             tam_post_packet_integrity_passed,
             tam_independent_review_completed,
+            tam_execution_input_lineage_exact,
             tam_pre_execution_exact_input_lineage,
             tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm = false,
             guarded_exposure_review_passed = guarded.summary_passed,

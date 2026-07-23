@@ -11,7 +11,7 @@
   "manuscript_claims_allowed": false,
   "package": {
     "name": "BayesianMGMFRM",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "julia_version": "1.12.5"
   },
   "protocol": {
@@ -166,7 +166,7 @@
       "sha256": null,
       "summary": {
         "passed": true,
-        "n_evidence_cells": 21,
+        "n_evidence_cells": 26,
         "key_check": "claim_level_reproduction_archive",
         "all_primary_checks": true
       }
@@ -197,7 +197,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "aa4c76a441bd49ca676d7ab36c409a521a2c4adcb9042174881ac5c081dfe9ce",
+      "sha256": "d80e38d94fdbab12cd42082c4486894aa425c3936306e33c4878183744e145a2",
       "summary": {
         "passed": true,
         "n_evidence_cells": 6,
@@ -214,7 +214,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "327e59c0dcb29592e496992619b885f29992e5f519af5ab629c0228feec27ba5",
+      "sha256": "680ed94babfba6583efdc1df768683242b31ce01e3fbd957c9ee5f10d6f834cc",
       "summary": {
         "passed": true,
         "n_evidence_cells": 10,
@@ -384,7 +384,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "2b3e8f2bfcf0837c4663e8bbedf81ddbe3bbe531070d49bd78761b0381a91c70",
+      "sha256": "6c21642fea8aad86a5f0ad742937fe3473a1f0ce60d2376a80313f7e34030799",
       "summary": {
         "passed": true,
         "n_evidence_cells": 14,
@@ -401,7 +401,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "1e71a58c2d2b912b8004059aafd250b7d3ae739e48163f19673c4adaeaf6714b",
+      "sha256": "5947220873a62ab62b7b73e94dbb15b18553fe04043961c3e4b03df3293ecbee",
       "summary": {
         "passed": true,
         "n_evidence_cells": 29,
@@ -418,7 +418,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "87b3d3b33ed3c671b29cd0d4bac02528f041ed22bed76a3551cdef61b544dbfa",
+      "sha256": "6c8f894fb7fce019c63d198cd2e8057611cd0d449d5c06b98b86dcdd4cd69f70",
       "summary": {
         "passed": true,
         "n_evidence_cells": 125,
@@ -435,7 +435,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "b70cf0426cca10c411eaf9e04e489613e9523ca5763b22d77cf1a4d34d46f68a",
+      "sha256": "15f3537ce84a1fb0e3d5d01444226ce66b1ebecfa8cc4c0591c29c5089e7cf1b",
       "summary": {
         "passed": true,
         "n_evidence_cells": 625,
@@ -452,7 +452,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "83cf4b53a83df675f5d4d98a3072051dec983574b76cd15a7784502911b037d8",
+      "sha256": "8ad6c45e35196ed21494aadf3d37bd60467c62954d8911d6b1ad9c52885c7de3",
       "summary": {
         "passed": true,
         "n_evidence_cells": 17,
@@ -469,7 +469,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "fae6e4e9e80ffd76076ddbd8f0c69e382bf1a105da1fcb46f119f878ed3348b3",
+      "sha256": "aaa37b2e78b4f3173f80da4764d4b03c0e7544678a6eb2059306fc4d9f618d26",
       "summary": {
         "passed": true,
         "n_evidence_cells": 144,
@@ -486,7 +486,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "230df0db735df512f08ac29270c856eda9b6115e459110a34919196033cd0f33",
+      "sha256": "6acbd009c3490defeb4a03e379377450117707104dfc73d631ee2a9a3735382c",
       "summary": {
         "passed": true,
         "n_evidence_cells": 33,
@@ -503,7 +503,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "933fa3709bf8b6c73f4a81472da0f888a7b3fa100aaca2d0b317055ecdc1c0f7",
+      "sha256": "836b91ad91648a1f23fc0b74cbca0233f6a77e8aa4d554e880fdf33a6c1e7b65",
       "summary": {
         "passed": true,
         "n_evidence_cells": 225,
@@ -520,7 +520,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "b2c4b922eb72f704cdd79c9c960813db5d8d6d0b2ab17b0478849d83bd781419",
+      "sha256": "7c46e14462c8b13be80952edf417f7ea456e64f7945d5396ad6bf73a31e61cc6",
       "summary": {
         "passed": true,
         "n_evidence_cells": 175,
@@ -537,7 +537,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "6c8c82cc42e67bcc76dc42e4eb49519b168fdd94453738afb56e93f98ce97dc3",
+      "sha256": "47e6fac56ceddd5da6833124421e905e4efdcf006e6c05e8cbf5ed2cccd54ea7",
       "summary": {
         "passed": true,
         "n_evidence_cells": 855,
@@ -554,7 +554,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "104ec27e6122d05fbb0ef14589b0c3ae9ef12b29b42a0e98c6d128c40c94fcda",
+      "sha256": "8541a2838c833d51e60ab5f90e898b14e157e2e860347c5f2e5d285b4fbfc6ef",
       "summary": {
         "passed": true,
         "n_evidence_cells": 668,
@@ -571,7 +571,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "54311f16f58cb909a717fbb52a25b1c3f5cc5454b552e73729eda7c3e9d17f63",
+      "sha256": "d937a0920261d1db447716bc74428280a413867d71549adc85bef8eb3d753679",
       "summary": {
         "passed": true,
         "n_evidence_cells": 26,
@@ -588,7 +588,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "2e6a3fbdd5973d6cde1fef6d8303f665e875423bc78920b5a8c8fb2b5989211d",
+      "sha256": "39870d77a77375fba41a9429f5f84f7a90ebde6e60b9b495b6d7138f439b3bc9",
       "summary": {
         "passed": true,
         "n_evidence_cells": 70,
@@ -605,7 +605,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "d3f85ab67cd8fc7cb5ce28326685622051b5f47225b769e6784b83a4f63ab54a",
+      "sha256": "14b4fa61e6a5a57c17dfc9f3a9f3471f3e8aa7b9554aa812dcf2daf2efa59c89",
       "summary": {
         "passed": true,
         "n_evidence_cells": 35,
@@ -622,7 +622,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "84abacc965d07f068e1b0c8c6748e1108c6cea8329fa33501daed753a083c732",
+      "sha256": "a4bd74ea31c52c016f10dbfae7e7ed107dbe4995a138b7d9ba99659e34c40455",
       "summary": {
         "passed": true,
         "n_evidence_cells": 90,
@@ -642,7 +642,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "8816118519f5fe51f049148b488e843562466b172aaf5d9c133323b2c5644229",
+      "sha256": "0278c7ae33d1fc040a6acd52f5550b2e3076f5b68145caef6ccde5b5f2481bd2",
       "summary": {
         "passed": true,
         "n_evidence_cells": 2134,
@@ -662,7 +662,7 @@
       "sha256": null,
       "summary": {
         "passed": true,
-        "n_evidence_cells": 73,
+        "n_evidence_cells": 78,
         "key_check": "full_paper_reproduction_archive",
         "all_primary_checks": true
       }
@@ -707,7 +707,7 @@
     {
       "gate": "claim_recovery_reproduction_archive",
       "status": "passed",
-      "n_evidence_cells": 21,
+      "n_evidence_cells": 26,
       "key_check": "claim_level_reproduction_archive",
       "artifact": "test/fixtures/gmfrm_claim_recovery_reproduction_archive.json"
     },
@@ -910,7 +910,7 @@
     {
       "gate": "full_paper_reproduction_archive",
       "status": "passed",
-      "n_evidence_cells": 73,
+      "n_evidence_cells": 78,
       "key_check": "full_paper_reproduction_archive",
       "artifact": "test/fixtures/gmfrm_full_paper_reproduction_archive.json"
     }
@@ -962,7 +962,7 @@
     "all_primary_checks_passed": true,
     "n_input_artifacts": 35,
     "n_evidence_rows": 35,
-    "total_evidence_cells": 5596,
+    "total_evidence_cells": 5606,
     "minimum_required_evidence_cells": 60,
     "scalar_fit_validation_grid_passed": true,
     "posterior_predictive_grid_passed": true,

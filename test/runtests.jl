@@ -1977,7 +1977,8 @@ function check_gmfrm_guarded_fit_api_dry_run_fixture(fixture_path::AbstractStrin
     @test Bool(fixture[:public_fit]) == false
     @test Bool(fixture[:experimental_public]) == false
     @test Bool(fixture[:fit_ready]) == false
-    @test String(fixture[:proposed_entrypoint]) == "fit(spec; experimental = true)"
+    @test String(fixture[:proposed_entrypoint]) ==
+        "BayesianMGMFRM.Experimental.fit(spec)"
     @test Bool(fixture[:entrypoint_enabled]) == false
 
     protocol = fixture[:protocol]
@@ -2092,7 +2093,15 @@ function check_gmfrm_guarded_fit_api_dry_run_fixture(fixture_path::AbstractStrin
     for row in evidence_rows
         String(row[:reference_kind]) == "local_file" || continue
         path = first(split(String(row[:artifact]), '#'; limit = 2))
-        @test String(row[:sha256]) == file_sha256(joinpath(root, path))
+        reference_kind = splitext(path)[2] in
+            (".jl", ".md", ".toml", ".yml", ".yaml") ?
+            :code_doc : :generated_artifact
+        integrity = ScientificPayloadDigest.reference_integrity_status(
+            String(row[:sha256]),
+            file_sha256(joinpath(root, path));
+            reference_kind,
+        )
+        @test integrity.provenance_policy_accepted
     end
 
     target = fixture[:target_dry_run]
@@ -2168,7 +2177,10 @@ function check_gmfrm_guarded_fit_api_dry_run_fixture(fixture_path::AbstractStrin
     @test String(manifest[:experimental_decision_status]) == "experimental_public"
     @test String(manifest[:experimental_decision]) == "enable_guarded_experimental"
     @test Bool(manifest[:experimental_summary][:fit_allowed])
+    @test Bool(manifest[:experimental_summary][:canonical_namespace_enabled])
     @test Bool(manifest[:experimental_summary][:experimental_keyword_enabled])
+    @test String(manifest[:experimental_summary][:legacy_keyword_status]) ==
+        "compatibility_only"
     @test Int(manifest[:experimental_summary][:n_evidence_done]) >= 25
     @test String(manifest[:experimental_summary][:next_gate]) ==
         "manual_publication_or_registration_by_user_only"
@@ -3736,6 +3748,7 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
         "fast_and_full_local_reproduction_manifest"
     @test Bool(thresholds[:require_all_fixture_artifacts_present])
     @test Bool(thresholds[:require_all_expected_schemas])
+    @test Bool(thresholds[:require_all_expected_sha256_matches])
     @test Bool(thresholds[:require_all_fixture_summaries_passed])
     @test Bool(thresholds[:require_all_generator_scripts_present])
     @test Bool(thresholds[:require_all_code_doc_references_present])
@@ -3746,7 +3759,7 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
     @test Bool(thresholds[:require_real_data_case_study_passed])
 
     fixture_records = fixture[:fixture_records]
-    @test length(fixture_records) == 21
+    @test length(fixture_records) == 26
     @test Set(String(row[:artifact]) for row in fixture_records) == Set([
         "candidate_chain_study",
         "stress_chain_grid",
@@ -3758,6 +3771,10 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
         "waic_influence_review",
         "psis_loo_review",
         "exact_loo_or_kfold_review",
+        "local_dependence_known_truth_preflight",
+        "local_dependence_calibration_scorer_preflight",
+        "local_dependence_pilot_protocol_preflight",
+        "local_dependence_pilot_batch_execution_harness",
         "guarded_fit_method_wiring",
         "experimental_fit_validation_grid",
         "posterior_predictive_grid",
@@ -3765,22 +3782,61 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
         "prior_likelihood_sensitivity_grid",
         "real_data_case_study",
         "guarded_fit_api_dry_run",
+        "tam_direct_agreement_policy_refinement_execution_snapshot",
         "tam_direct_agreement_multireplication",
         "tam_direct_agreement_raw_archive_audit",
         "tam_direct_agreement_post_execution_review_packet",
         "guarded_exposure_review",
     ])
     for row in fixture_records
+        immutable = Bool(row[:immutable])
         @test Bool(row[:exists])
         @test Bool(row[:schema_matches])
         @test Bool(row[:summary_passed])
-        @test Bool(row[:generator_exists])
-        @test occursin("julia --project=. scripts/generate_",
-            String(row[:generation_command]))
-        @test !isempty(String(row[:env_var]))
+        @test Bool(row[:sha256_matches])
+        if immutable
+            @test String(row[:artifact]) ==
+                "tam_direct_agreement_policy_refinement_execution_snapshot"
+            @test String(row[:regeneration_policy]) ==
+                "immutable_snapshot_no_regeneration"
+            @test isnothing(row[:generator])
+            @test isnothing(row[:generator_exists])
+            @test isnothing(row[:generation_command])
+            @test isnothing(row[:env_var])
+            @test String(row[:expected_sha256]) ==
+                "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e"
+            @test String(row[:sha256]) == String(row[:expected_sha256])
+        else
+            @test String(row[:regeneration_policy]) == "generator_replay"
+            @test Bool(row[:generator_exists])
+            @test occursin("julia --project=. scripts/generate_",
+                String(row[:generation_command]))
+            @test !isempty(String(row[:env_var]))
+            @test isnothing(row[:expected_sha256])
+        end
         if startswith(String(row[:artifact]), "tam_direct_agreement")
             @test String(row[:evidence_scope]) ==
                 "mfrm_tam_overlap_nontransfer"
+        end
+        if String(row[:artifact]) ==
+                "local_dependence_known_truth_preflight"
+            @test String(row[:evidence_scope]) ==
+                "ld1a_generator_preflight_noncalibration"
+        end
+        if String(row[:artifact]) ==
+                "local_dependence_calibration_scorer_preflight"
+            @test String(row[:evidence_scope]) ==
+                "ld1b0_scorer_protocol_preflight_noncalibration"
+        end
+        if String(row[:artifact]) ==
+                "local_dependence_pilot_protocol_preflight"
+            @test String(row[:evidence_scope]) ==
+                "ld1b1_pilot_execution_protocol_preflight_noncalibration"
+        end
+        if String(row[:artifact]) ==
+                "local_dependence_pilot_batch_execution_harness"
+            @test String(row[:evidence_scope]) ==
+                "ld1b1_pilot_batch_harness_preflight_noncalibration"
         end
         if String(row[:artifact]) == "guarded_exposure_review"
             @test String(row[:hash_policy]) ==
@@ -3808,23 +3864,87 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
     end
 
     code_doc_records = fixture[:code_doc_records]
-    @test length(code_doc_records) == 17
+    @test length(code_doc_records) == 53
     @test all(row -> Bool(row[:exists]), code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_gmfrm_claim_recovery_reproduction_archive.jl",
         code_doc_records)
     @test any(row -> String(row[:path]) == "scripts/local_json.jl",
         code_doc_records)
-    @test all(row -> String(row[:sha256]) ==
-        file_sha256(joinpath(root, String(row[:path]))), code_doc_records)
+    @test all(path -> any(row -> String(row[:path]) == path,
+            code_doc_records), [
+        "scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl",
+        "scripts/generate_mgmfrm_tam_direct_agreement_multireplication_aggregate.jl",
+    ])
+    @test any(row -> String(row[:path]) == "src/testlet_design_audit.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) == "src/model_contract.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) == "test/model_contract.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) == "src/local_dependence.jl",
+        code_doc_records)
+    @test all(path -> any(row -> String(row[:path]) == path,
+            code_doc_records), [
+        "src/local_dependence_known_truth_dgp.jl",
+        "src/local_dependence_simulation.jl",
+        "src/local_dependence_calibration.jl",
+        "src/local_dependence_calibration_pilot.jl",
+        "test/local_dependence_simulation.jl",
+        "test/local_dependence_calibration.jl",
+        "test/local_dependence_calibration_artifact.jl",
+        "test/local_dependence_calibration_pilot.jl",
+        "test/local_dependence_pilot_protocol_artifact.jl",
+        "test/local_dependence_pilot_batch_execution_harness.jl",
+        "scripts/generate_local_dependence_known_truth_preflight.jl",
+        "scripts/generate_local_dependence_calibration_scorer_preflight.jl",
+        "scripts/generate_local_dependence_pilot_protocol_preflight.jl",
+        "scripts/generate_local_dependence_pilot_batch_execution_harness.jl",
+        "scripts/run_local_dependence_calibration_pilot_batch.jl",
+        "docs/src/api-validation-evidence.md",
+    ])
+    @test any(row -> String(row[:path]) == "test/testlet_design_audit.jl",
+        code_doc_records)
+    @test all(path -> any(row -> String(row[:path]) == path,
+            code_doc_records), [
+        "test/local_dependence_contract.jl",
+        "test/local_dependence_summary.jl",
+        "test/predictive_standardized_residuals.jl",
+        "test/testlet_overlap_contract.jl",
+    ])
+    @test any(row -> String(row[:path]) ==
+        "docs/src/mgmfrm-research-roadmap.md", code_doc_records)
+    code_doc_integrity = [
+        ScientificPayloadDigest.reference_integrity_status(
+            String(row[:sha256]),
+            file_sha256(joinpath(root, String(row[:path])));
+            reference_kind = :code_doc,
+        ) for row in code_doc_records
+    ]
+    @test all(row -> row.provenance_policy_accepted, code_doc_integrity)
+    @test all(row -> !row.scientific_equivalence_verified,
+        code_doc_integrity)
 
     full_commands = fixture[:full_regeneration_commands]
-    @test length(full_commands) == 22
-    @test [Int(row[:step]) for row in full_commands] == collect(1:22)
+    @test length(full_commands) == 26
+    @test [Int(row[:step]) for row in full_commands] == collect(1:26)
     @test all(row -> Bool(row[:local_only]), full_commands)
     @test any(row -> String(row[:artifact]) ==
         "tam_direct_agreement_multireplication" &&
-        endswith(String(row[:command]), "--aggregate-only"), full_commands)
+        String(row[:command]) ==
+            "julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_multireplication_aggregate.jl",
+        full_commands)
+    @test !any(row -> String(row[:artifact]) ==
+        "tam_direct_agreement_policy_refinement_execution_snapshot",
+        full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "local_dependence_known_truth_preflight", full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "local_dependence_calibration_scorer_preflight", full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "local_dependence_pilot_protocol_preflight", full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "local_dependence_pilot_batch_execution_harness", full_commands)
     @test String(full_commands[end - 1][:artifact]) ==
         "claim_recovery_reproduction_archive"
     @test String(full_commands[end][:artifact]) == "guarded_exposure_review"
@@ -3874,6 +3994,7 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
     @test Int(summary[:n_verification_commands]) == length(verification)
     @test Bool(summary[:all_fixture_artifacts_present])
     @test Bool(summary[:all_expected_schemas])
+    @test Bool(summary[:all_expected_sha256_matches])
     @test Bool(summary[:all_fixture_summaries_passed])
     @test Bool(summary[:all_generator_scripts_present])
     @test Bool(summary[:all_code_doc_references_present])
@@ -3886,6 +4007,7 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
     @test Bool(summary[:tam_raw_archive_integrity_passed])
     @test Bool(summary[:tam_post_packet_integrity_passed])
     @test Bool(summary[:tam_independent_review_completed]) == false
+    @test Bool(summary[:tam_execution_input_lineage_exact])
     @test Bool(summary[:tam_pre_execution_exact_input_lineage]) == false
     @test Bool(summary[
         :tam_direct_evidence_transfers_to_scalar_gmfrm]) == false
@@ -3931,6 +4053,7 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         "full_and_fast_local_reproduction_manifest"
     @test Bool(thresholds[:require_all_fixture_artifacts_present])
     @test Bool(thresholds[:require_all_expected_schemas])
+    @test Bool(thresholds[:require_all_expected_sha256_matches])
     @test Bool(thresholds[:require_all_fixture_summaries_passed])
     @test Bool(thresholds[:require_all_generator_scripts_present])
     @test Bool(thresholds[:require_all_code_doc_references_present])
@@ -4051,6 +4174,14 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
             "test/fixtures/gmfrm_psis_loo_review.json",
         "exact_loo_or_kfold_review" =>
             "test/fixtures/gmfrm_exact_loo_or_kfold_review.json",
+        "local_dependence_known_truth_preflight" =>
+            "test/fixtures/local_dependence_known_truth_preflight.json",
+        "local_dependence_calibration_scorer_preflight" =>
+            "test/fixtures/local_dependence_calibration_scorer_preflight.json",
+        "local_dependence_pilot_protocol_preflight" =>
+            "test/fixtures/local_dependence_pilot_protocol_preflight.json",
+        "local_dependence_pilot_batch_execution_harness" =>
+            "test/fixtures/local_dependence_pilot_batch_execution_harness.json",
         "guarded_fit_api_dry_run" =>
             "test/fixtures/gmfrm_guarded_fit_api_dry_run.json",
         "guarded_fit_method_wiring" =>
@@ -4067,6 +4198,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
             "test/fixtures/gmfrm_real_data_case_study.json",
         "claim_recovery_reproduction_archive" =>
             "test/fixtures/gmfrm_claim_recovery_reproduction_archive.json",
+        "tam_direct_agreement_policy_refinement_execution_snapshot" =>
+            "test/fixtures/mgmfrm_tam_direct_agreement_policy_refinement_execution_snapshot.json",
         "tam_direct_agreement_multireplication" =>
             "test/fixtures/mgmfrm_tam_direct_agreement_multireplication.json",
         "tam_direct_agreement_raw_archive_audit" =>
@@ -4180,12 +4313,30 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     for row in fixture_records
         artifact = String(row[:artifact])
         path = String(row[:path])
+        immutable = Bool(row[:immutable])
         @test expected_paths[artifact] == path
         @test Bool(row[:exists])
         @test Bool(row[:schema_matches])
         @test Bool(row[:summary_passed])
-        @test Bool(row[:generator_exists])
-        @test !isempty(String(row[:env_var]))
+        @test Bool(row[:sha256_matches])
+        if immutable
+            @test artifact ==
+                "tam_direct_agreement_policy_refinement_execution_snapshot"
+            @test String(row[:regeneration_policy]) ==
+                "immutable_snapshot_no_regeneration"
+            @test isnothing(row[:generator])
+            @test isnothing(row[:generator_exists])
+            @test isnothing(row[:generation_command])
+            @test isnothing(row[:env_var])
+            @test String(row[:expected_sha256]) ==
+                "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e"
+            @test String(row[:sha256]) == String(row[:expected_sha256])
+        else
+            @test String(row[:regeneration_policy]) == "generator_replay"
+            @test Bool(row[:generator_exists])
+            @test !isempty(String(row[:env_var]))
+            @test isnothing(row[:expected_sha256])
+        end
         if artifact ==
                 "mgmfrm_publication_grade_refit_batch_results_review"
             @test occursin("--read-local-artifacts",
@@ -4206,7 +4357,7 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     end
 
     code_doc_records = fixture[:code_doc_records]
-    @test length(code_doc_records) == 86
+    @test length(code_doc_records) == 114
     @test all(row -> Bool(row[:exists]), code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_gmfrm_full_paper_reproduction_archive.jl",
@@ -4214,11 +4365,38 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     @test any(row -> String(row[:path]) ==
         "examples/guarded_gmfrm.jl",
         code_doc_records)
+    @test any(row -> String(row[:path]) ==
+        "docs/src/mgmfrm-research-roadmap.md", code_doc_records)
+    @test any(row -> String(row[:path]) == "src/local_dependence.jl",
+        code_doc_records)
+    @test all(path -> any(row -> String(row[:path]) == path,
+            code_doc_records), [
+        "src/local_dependence_known_truth_dgp.jl",
+        "src/local_dependence_simulation.jl",
+        "src/local_dependence_calibration.jl",
+        "src/local_dependence_calibration_pilot.jl",
+        "test/local_dependence_simulation.jl",
+        "test/local_dependence_calibration.jl",
+        "test/local_dependence_calibration_artifact.jl",
+        "test/local_dependence_calibration_pilot.jl",
+        "test/local_dependence_pilot_protocol_artifact.jl",
+        "test/local_dependence_pilot_batch_execution_harness.jl",
+        "scripts/generate_local_dependence_known_truth_preflight.jl",
+        "scripts/generate_local_dependence_calibration_scorer_preflight.jl",
+        "scripts/generate_local_dependence_pilot_protocol_preflight.jl",
+        "scripts/generate_local_dependence_pilot_batch_execution_harness.jl",
+        "scripts/run_local_dependence_calibration_pilot_batch.jl",
+    ])
     @test all(path -> any(row -> String(row[:path]) == path,
             code_doc_records), [
         "test/facets_compatibility_stats.jl",
         "test/generalized_guard_contract.jl",
+        "test/local_dependence_contract.jl",
+        "test/local_dependence_summary.jl",
+        "test/predictive_standardized_residuals.jl",
         "test/publication_grade_policy_contract.jl",
+        "test/testlet_design_audit.jl",
+        "test/testlet_overlap_contract.jl",
     ])
     @test any(row -> String(row[:path]) ==
         "scripts/generate_mgmfrm_report_shape_simulation_grid.jl",
@@ -4338,6 +4516,9 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         "scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl",
         code_doc_records)
     @test any(row -> String(row[:path]) ==
+        "scripts/generate_mgmfrm_tam_direct_agreement_multireplication_aggregate.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) ==
         "scripts/generate_mgmfrm_tam_direct_agreement_raw_archive_audit.jl",
         code_doc_records)
     @test any(row -> String(row[:path]) ==
@@ -4355,14 +4536,26 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     @test any(row -> String(row[:path]) ==
         "scripts/generate_mgmfrm_guarded_fit_public_exposure_review.jl",
         code_doc_records)
+    @test any(row -> String(row[:path]) == "src/model_contract.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) == "test/model_contract.jl",
+        code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_gmfrm_prediction_target_and_model_weight_policy.jl",
         code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_mgmfrm_manual_public_scope_review_for_fit.jl",
         code_doc_records)
-    @test all(row -> String(row[:sha256]) ==
-        file_sha256(joinpath(root, String(row[:path]))), code_doc_records)
+    code_doc_integrity = [
+        ScientificPayloadDigest.reference_integrity_status(
+            String(row[:sha256]),
+            file_sha256(joinpath(root, String(row[:path])));
+            reference_kind = :code_doc,
+        ) for row in code_doc_records
+    ]
+    @test all(row -> row.provenance_policy_accepted, code_doc_integrity)
+    @test all(row -> !row.scientific_equivalence_verified,
+        code_doc_integrity)
 
     source_records = fixture[:source_records]
     @test length(source_records) == 2
@@ -4378,10 +4571,18 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     end
 
     full_commands = fixture[:full_regeneration_commands]
-    @test length(full_commands) == 73
-    @test [Int(row[:step]) for row in full_commands] == collect(1:73)
+    @test length(full_commands) == 77
+    @test [Int(row[:step]) for row in full_commands] == collect(1:77)
     @test allunique(String(row[:artifact]) for row in full_commands)
     @test all(row -> Bool(row[:local_only]), full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "local_dependence_known_truth_preflight", full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "local_dependence_calibration_scorer_preflight", full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "local_dependence_pilot_protocol_preflight", full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "local_dependence_pilot_batch_execution_harness", full_commands)
     @test any(row -> String(row[:artifact]) ==
         "mgmfrm_report_shape_simulation_grid", full_commands)
     @test any(row -> String(row[:artifact]) ==
@@ -4506,6 +4707,7 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         for row in full_commands)
     artifact_by_path = Dict{String,String}()
     for row in fixture_records
+        Bool(row[:immutable]) && continue
         generator = basename(String(row[:generator]))
         @test haskey(artifact_by_generator, generator)
         haskey(artifact_by_generator, generator) || continue
@@ -4543,7 +4745,12 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         "prediction_target_and_model_weight_policy", full_commands)
     @test any(row -> String(row[:artifact]) ==
         "tam_direct_agreement_multireplication" &&
-        endswith(String(row[:command]), "--aggregate-only"), full_commands)
+        String(row[:command]) ==
+            "julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_multireplication_aggregate.jl",
+        full_commands)
+    @test !any(row -> String(row[:artifact]) ==
+        "tam_direct_agreement_policy_refinement_execution_snapshot",
+        full_commands)
     @test String(full_commands[end - 3][:artifact]) ==
         "gmfrm_full_paper_reproduction_archive"
     @test String(full_commands[end][:artifact]) == "gmfrm_guarded_exposure_review"
@@ -4594,6 +4801,7 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     @test Int(summary[:n_verification_commands]) == length(verification)
     @test Bool(summary[:all_fixture_artifacts_present])
     @test Bool(summary[:all_expected_schemas])
+    @test Bool(summary[:all_expected_sha256_matches])
     @test Bool(summary[:all_fixture_summaries_passed])
     @test Bool(summary[:all_generator_scripts_present])
     @test Bool(summary[:all_code_doc_references_present])
@@ -4607,6 +4815,7 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     @test Bool(summary[:tam_raw_archive_integrity_passed])
     @test Bool(summary[:tam_post_packet_integrity_passed])
     @test Bool(summary[:tam_independent_review_completed]) == false
+    @test Bool(summary[:tam_execution_input_lineage_exact])
     @test Bool(summary[:tam_pre_execution_exact_input_lineage]) == false
     @test Bool(summary[
         :tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm]) == false
@@ -5061,7 +5270,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     evidence_rows = fixture[:evidence_rows]
     @test length(evidence_rows) == length(input_artifacts)
     @test all(row -> String(row[:status]) == "passed", evidence_rows)
-    @test Int(sum(Int(row[:n_evidence_cells]) for row in evidence_rows)) == 5596
+    @test Int(sum(Int(row[:n_evidence_cells]) for row in evidence_rows)) == 5606
     @test any(row -> String(row[:gate]) == "prior_likelihood_sensitivity_grid" &&
         Int(row[:n_evidence_cells]) == 45, evidence_rows)
     @test any(row -> String(row[:gate]) ==
@@ -5231,7 +5440,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     @test Bool(summary[:all_primary_checks_passed])
     @test Int(summary[:n_input_artifacts]) == length(input_artifacts)
     @test Int(summary[:n_evidence_rows]) == length(evidence_rows)
-    @test Int(summary[:total_evidence_cells]) == 5596
+    @test Int(summary[:total_evidence_cells]) == 5606
     @test Int(summary[:minimum_required_evidence_cells]) == 60
     @test Bool(summary[:scalar_fit_validation_grid_passed])
     @test Bool(summary[:posterior_predictive_grid_passed])
@@ -5507,6 +5716,7 @@ function check_gmfrm_broader_experimental_exposure_decision_review_fixture(
     @test Bool(summary[:tam_raw_archive_integrity_passed])
     @test Bool(summary[:tam_post_packet_integrity_passed])
     @test Bool(summary[:tam_independent_review_completed]) == false
+    @test Bool(summary[:tam_execution_input_lineage_exact])
     @test Bool(summary[:tam_pre_execution_exact_input_lineage]) == false
     @test Bool(summary[
         :tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm]) == false
@@ -5981,10 +6191,10 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(claim_archive[:summary][:passed])
     @test Bool(claim_archive[:summary][:publication_or_registration_action]) == false
     @test Bool(claim_archive[:summary][:local_only])
-    @test Int(claim_archive[:summary][:n_fixture_artifacts]) == 21
+    @test Int(claim_archive[:summary][:n_fixture_artifacts]) == 26
     @test Int(claim_archive[:summary][:n_source_records]) == 2
-    @test Int(claim_archive[:summary][:n_code_doc_records]) == 17
-    @test Int(claim_archive[:summary][:n_full_regeneration_commands]) == 22
+    @test Int(claim_archive[:summary][:n_code_doc_records]) == 53
+    @test Int(claim_archive[:summary][:n_full_regeneration_commands]) == 26
     @test Int(claim_archive[:summary][:n_verification_commands]) == 4
     @test Bool(claim_archive[:summary][:all_fixture_artifacts_present])
     @test Bool(claim_archive[:summary][:all_expected_schemas])
@@ -6001,6 +6211,7 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(claim_archive[:summary][:tam_post_packet_integrity_passed])
     @test Bool(claim_archive[:summary][:tam_independent_review_completed]) ==
         false
+    @test Bool(claim_archive[:summary][:tam_execution_input_lineage_exact])
     @test Bool(claim_archive[:summary][
         :tam_pre_execution_exact_input_lineage]) == false
     @test String(claim_archive[:summary][:next_gate]) ==
@@ -6035,6 +6246,7 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(broader_review[:summary][:tam_post_packet_integrity_passed])
     @test Bool(broader_review[:summary][:tam_independent_review_completed]) ==
         false
+    @test Bool(broader_review[:summary][:tam_execution_input_lineage_exact])
     @test Bool(broader_review[:summary][
         :tam_pre_execution_exact_input_lineage]) == false
     @test Int(broader_review[:summary][:n_input_artifacts]) == 20
@@ -6078,7 +6290,7 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(manuscript_grid[:summary][:all_input_summaries_passed])
     @test Bool(manuscript_grid[:summary][:all_primary_checks_passed])
     @test Int(manuscript_grid[:summary][:n_input_artifacts]) == 35
-    @test Int(manuscript_grid[:summary][:total_evidence_cells]) == 5596
+    @test Int(manuscript_grid[:summary][:total_evidence_cells]) == 5606
     @test Int(manuscript_grid[:summary][:minimum_required_evidence_cells]) == 60
     @test Bool(manuscript_grid[:summary][:prediction_target_and_model_weight_policy_passed])
     @test Bool(manuscript_grid[:summary][
@@ -6142,13 +6354,14 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(full_archive[:summary][:tam_post_packet_integrity_passed])
     @test Bool(full_archive[:summary][:tam_independent_review_completed]) ==
         false
+    @test Bool(full_archive[:summary][:tam_execution_input_lineage_exact])
     @test Bool(full_archive[:summary][
         :tam_pre_execution_exact_input_lineage]) == false
     @test Bool(full_archive[:summary][
         :tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm]) == false
-    @test Int(full_archive[:summary][:n_fixture_artifacts]) == 73
-    @test Int(full_archive[:summary][:n_code_doc_records]) == 86
-    @test Int(full_archive[:summary][:n_full_regeneration_commands]) == 73
+    @test Int(full_archive[:summary][:n_fixture_artifacts]) == 78
+    @test Int(full_archive[:summary][:n_code_doc_records]) == 114
+    @test Int(full_archive[:summary][:n_full_regeneration_commands]) == 77
     @test Int(full_archive[:summary][:n_verification_commands]) == 4
     @test Bool(full_archive[:summary][:mgmfrm_report_shape_simulation_grid_passed])
     @test Bool(full_archive[:summary][:mgmfrm_q_matrix_validation_expansion_passed])
@@ -6565,6 +6778,7 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(summary[:tam_raw_archive_integrity_passed])
     @test Bool(summary[:tam_post_packet_integrity_passed])
     @test Bool(summary[:tam_independent_review_completed]) == false
+    @test Bool(summary[:tam_execution_input_lineage_exact])
     @test Bool(summary[:tam_pre_execution_exact_input_lineage]) == false
     @test Bool(summary[
         :tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm]) == false

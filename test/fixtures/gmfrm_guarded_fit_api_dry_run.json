@@ -9,7 +9,7 @@
   "fit_ready": false,
   "package": {
     "name": "BayesianMGMFRM",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "julia_version": "1.12.5"
   },
   "protocol": {
@@ -45,7 +45,7 @@
       "guarded_fit_method_wiring_required_before_public_exposure": true
     }
   },
-  "proposed_entrypoint": "fit(spec; experimental = true)",
+  "proposed_entrypoint": "BayesianMGMFRM.Experimental.fit(spec)",
   "entrypoint_enabled": false,
   "fit_rejection_checks": [
     {
@@ -507,7 +507,7 @@
       "artifact": "docs/src/fitting.md#guarded-generalized-model-caveats",
       "reference_kind": "local_file",
       "exists": true,
-      "sha256": "43437bc6c514cabb3918d3f7f6dded0b541b10f492ecdf9ac59832c6c1572001"
+      "sha256": "9e16f9eb2b2c20b11f569cd75eb733993a2b6a9d0b1693a0398d0288df8f11d1"
     }
   ],
   "target_dry_run": {
@@ -656,7 +656,9 @@
     "experimental_decision": "enable_guarded_experimental",
     "experimental_summary": {
       "fit_allowed": true,
+      "canonical_namespace_enabled": true,
       "experimental_keyword_enabled": true,
+      "legacy_keyword_status": "compatibility_only",
       "n_evidence_done": 35,
       "n_evidence_pending": 0,
       "n_evidence_blocked": 0,
