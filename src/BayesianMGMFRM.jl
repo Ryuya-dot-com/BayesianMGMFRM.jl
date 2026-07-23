@@ -117,6 +117,7 @@ export FacetData,
     logprior,
     linear_predictor_table,
     linear_predictor_values,
+    local_dependence_contract,
     model_equation,
     mcmc_diagnostics,
     model_manifest,
@@ -170,6 +171,7 @@ export FacetData,
     stan_validation_row,
     stan_validation_summary,
     threshold_map_data,
+    testlet_design_audit,
     validate_design,
     validation_suggestions,
     predictive_check_plot_data,
@@ -180,6 +182,7 @@ export FacetData,
 include("evidence_metadata.jl")
 include("facet_workflow.jl")
 include("model_contract.jl")
+include("testlet_design_audit.jl")
 include("bayesian_fit.jl")
 include("mgmfrm_free_correlation_candidate.jl")
 include("mgmfrm_free_correlation_recovery.jl")
