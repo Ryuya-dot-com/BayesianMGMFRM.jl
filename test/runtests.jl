@@ -28,15 +28,12 @@ const RuntimePublicLanguagePolicy =
 
 using BayesianMGMFRM:
     FacetData,
-    anchor_refit_plan,
     anchor_linking_summary,
     artifact_content_hash,
     benchmark_result_row,
     benchmark_summary,
     calibration_plot_data,
     case_study_provenance_manifest,
-    category_functioning_summary,
-    conquest_bridge_bundle,
     cached_fit,
     comparison_evidence_row,
     comparison_evidence_summary,
@@ -52,10 +49,8 @@ using BayesianMGMFRM:
     domain_compilation_summary,
     evidence_artifact_schema_policy,
     evidence_metadata,
-    external_bridge_result_receipt,
     expected_scores,
     facets_compatibility_stats,
-    facets_bridge_bundle,
     facets_report,
     facet_response_table,
     fair_average_summary,
@@ -149,22 +144,18 @@ using BayesianMGMFRM:
     prior_predictive_check,
     q_matrix_validation,
     rater_diagnostics,
-    rater_homogeneity_summary,
     rater_overlap,
     rating_design_audit,
     related_software_capability_matrix,
     residual_summary,
     release_gate_check,
     release_scope_summary,
-    load_conquest_semantic_parameters,
-    load_conquest_parameter_export,
     load_fit_cache,
     load_fit_report,
     load_fit_report_dossier,
     load_fit_report_bundle,
     load_fit_report_tables,
     sampler_diagnostics,
-    save_external_bridge_bundle,
     save_fit_cache,
     save_fit_report,
     save_fit_report_dossier,
@@ -185,7 +176,6 @@ using BayesianMGMFRM:
     testlet_design_audit,
     model_ladder,
     validate_design,
-    validate_external_bridge_bundle,
     validation_suggestions,
     waic,
     waic_diagnostics,
@@ -20009,14 +19999,13 @@ end
 @testset "public docstrings" begin
     for name in (:FacetData, :ValidationIssue, :ValidationReport, :FacetSpec, :FacetDesign,
             :MFRMPrior, :MFRMLogDensity, :MFRMFit, :GMFRMFit, :MGMFRMFit,
-            :anchor_refit_plan, :anchor_linking_summary,
-            :artifact_content_hash, :cached_fit,
+            :anchor_linking_summary, :artifact_content_hash, :cached_fit,
             :benchmark_result_row, :benchmark_summary, :calibration_plot_data,
-            :case_study_provenance_manifest, :category_functioning_summary,
-            :conquest_bridge_bundle, :constraint_table, :dff_report,
-            :domain_compilation_summary,
-            :expected_scores, :external_bridge_result_receipt,
-            :facets_bridge_bundle, :facets_compatibility_stats, :facets_report,
+            :case_study_provenance_manifest,
+            :constraint_table, :dff_report, :domain_compilation_summary,
+            :conquest_bridge_bundle, :facets_bridge_bundle,
+            :external_bridge_result_receipt,
+            :expected_scores, :facets_compatibility_stats, :facets_report,
             :fair_average_summary,
             :falsification_rule_summary, :falsification_rules,
             :fit, :fit_archive_manifest, :fit_artifact, :fit_cache_key, :fit_metadata,
@@ -20026,13 +20015,7 @@ end
             :initial_params, :loglikelihood, :logposterior, :logprior,
             :kfold, :loo, :psis_loo, :loo_diagnostics,
             :linear_predictor_table, :linear_predictor_values,
-            :local_dependence_calibration_contract,
-            :local_dependence_calibration_pilot_contract,
-            :local_dependence_calibration_pilot_preflight,
-            :local_dependence_calibration_row,
-            :local_dependence_calibration_summary,
-            :local_dependence_contract, :local_dependence_simulation_grid,
-            :local_dependence_summary,
+            :local_dependence_contract, :local_dependence_summary,
             :calibration_table, :diagnostics,
             :diagnostic_map_data,
             :comparison_evidence_row, :comparison_evidence_summary,
@@ -20050,27 +20033,25 @@ end
             :fit_report_dossier, :fit_report_dossier_markdown,
             :fit_report_markdown, :fit_report_section, :fit_report_sections,
             :fit_report_rows,
-            :load_conquest_parameter_export,
-            :load_conquest_semantic_parameters,
             :load_fit_cache, :load_fit_report, :load_fit_report_dossier,
             :load_fit_report_bundle,
-            :load_fit_report_tables, :rater_diagnostics,
-            :rater_homogeneity_summary, :rater_overlap,
+            :load_fit_report_tables, :load_conquest_parameter_export,
+            :rater_diagnostics, :rater_overlap,
             :rating_design_audit,
             :related_software_capability_matrix, :release_gate_check,
             :release_scope_summary, :residual_summary, :sampler_diagnostics,
-            :save_external_bridge_bundle, :save_fit_cache, :save_fit_report,
+            :save_fit_cache, :save_fit_report,
             :save_fit_report_dossier, :save_fit_report_dossier_markdown,
             :save_fit_report_bundle, :save_fit_report_markdown,
             :save_fit_report_tables,
+            :save_external_bridge_bundle,
             :sensitivity_comparison, :sensitivity_comparison_summary,
             :separation_reliability_summary, :simulation_grid,
-            :simulation_grid_summary, :simulate_local_dependence,
-            :simulate_responses,
+            :simulation_grid_summary, :simulate_responses,
             :stan_validation_row, :stan_validation_summary,
-            :threshold_map_data, :testlet_design_audit,
+            :testlet_design_audit, :threshold_map_data, :validation_suggestions,
             :validate_external_bridge_bundle,
-            :validation_suggestions, :evidence_metadata,
+            :evidence_metadata,
             :evidence_artifact_schema_policy,
             :waic, :waic_diagnostics, :wright_map_data)
         @test has_doc(BayesianMGMFRM, name)
@@ -22568,7 +22549,7 @@ end
     @test gmfrm_sampler_diagnostics.summary.n_max_treedepth >= 0
     @test gmfrm_sampler_diagnostics.summary.flag in
         (:ok, :direct_transform_warning, :sampler_warning, :mcmc_warning,
-            :insufficient_chains)
+            :insufficient_chains, :insufficient_draws)
     @test BayesianMGMFRM._gmfrm_promotion_candidate_sampler_diagnostics(
         gmfrm_spec,
         gmfrm_raw_params;
@@ -31295,6 +31276,9 @@ end
 include("existing_api_design_robustness_recovery_scorer.jl")
 include("facets_conquest_bridge.jl")
 include("model_contract.jl")
+include("facets_compatibility_stats.jl")
+include("practitioner_diagnostics.jl")
+include("anchor_refit_plan.jl")
 include("testlet_design_audit.jl")
 include("testlet_overlap_contract.jl")
 include("predictive_standardized_residuals.jl")
@@ -31306,9 +31290,6 @@ include("local_dependence_calibration_artifact.jl")
 include("local_dependence_calibration_pilot.jl")
 include("local_dependence_pilot_protocol_artifact.jl")
 include("local_dependence_pilot_batch_execution_harness.jl")
-include("facets_compatibility_stats.jl")
-include("practitioner_diagnostics.jl")
-include("anchor_refit_plan.jl")
 include("generalized_guard_contract.jl")
 include("experimental_namespace.jl")
 include("mgmfrm_free_latent_correlation_2d.jl")

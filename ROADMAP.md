@@ -23,10 +23,11 @@ implemented public slice covers:
   shared analytic/AD gradient adapter, or a Turing/NUTS wrapper around the same
   `MFRMLogDensity` target;
 - guarded experimental generalized fitting through
-  `fit(spec; experimental = true)` for the scalar rater-consistency GMFRM
+  `BayesianMGMFRM.Experimental.fit(spec)` for the scalar rater-consistency GMFRM
   candidate, configured with the compatibility keyword
   `discrimination = :rater`, and the fixed-Q confirmatory MGMFRM candidate
-  with `dimensions >= 2`;
+  with `dimensions >= 2`; the older `fit(spec; experimental = true)` spelling
+  remains a compatibility route;
 - cached-fit artifacts, sampler diagnostics, R-hat/ESS rows, parameter-block
   diagnostics, prior and posterior predictive replication, calibration
   summaries, observation-level predictive quantities, fair-average summaries,
@@ -78,6 +79,58 @@ Only the lowest satisfied tier should be advertised. A feature that runs but
 does not pass source-alignment or sampler gates remains experimental or
 internal, even if its API is convenient.
 
+### Active Core Integrity Gate
+
+Further model expansion is subordinate to a shared model-identity boundary.
+The first completed slice adds a canonical `design_identity`, rejects stale
+data/spec/design objects at public compilation and numerical entry points, and
+stores validated deep design snapshots in fit targets and results. Fingerprint
+generation streams the encoded contract into SHA-256 and avoids row-count-
+specialized tuple compilation.
+
+The remaining dependency order is:
+
+1. bind serialized fit contents, cache keys, artifact hashes, and a cache-
+   envelope hash in a backward-readable cache schema;
+2. separate compilation status, fit exposure, and executed-evidence status in
+   one capability registry;
+3. introduce shared public generalized-prior and sampler-control contracts;
+4. make public report projections the release-facing path while retaining an
+   explicit developer payload;
+5. split numerical kernels, sampling, diagnostics, reports, and cache code only
+   after the contracts above have regression coverage.
+
+Percent-complete estimates do not increase for additive code alone. Each stage
+must also pass identity, execution, evidence, public-output, and operational
+gates.
+
+### Experimental Namespace Boundary
+
+Generalized fitting now has an explicit quarantine entry point at
+`BayesianMGMFRM.Experimental`. This is an architectural boundary, not a model
+promotion: scalar GMFRM and fixed-Q confirmatory MGMFRM retain their existing
+experimental evidence status and claim restrictions.
+
+The first boundary stage intentionally leaves the defining `GMFRMFit` and
+`MGMFRMFit` types at package root. Moving their defining module would change
+Julia serialization identity and could invalidate existing fit caches. The
+namespace therefore exposes compatibility aliases and delegates to the shared
+guarded engine. The legacy `fit(spec; experimental = true)` route remains
+available until an explicit deprecation and cache-migration decision is made.
+
+The next dependency order is:
+
+1. keep namespace and legacy entry points behaviorally equivalent under fixed
+   seeds, diagnostics, artifacts, cache keys, and fail-closed option checks;
+2. add namespaced refit and model-comparison entry points only when their
+   prediction-target contracts can remain explicit;
+3. separate lightweight boundary tests, numerical integration tests, and
+   evidence-regression jobs without weakening the existing full suite;
+4. inventory private generalized dependencies and source-hash-bearing evidence
+   before moving compiler, kernel, sampler, or report implementations;
+5. consider removing root compatibility exports only through a documented
+   deprecation cycle, never as an incidental consequence of refactoring.
+
 ### Stop, Narrow, or Proceed Rules
 
 | Evidence outcome | Roadmap action |
@@ -101,7 +154,7 @@ not compensate for failed identification, source-equation, or sampler gates.
 
 ### Current Literature-Grounded Priority Stack
 
-The current Zotero-backed roadmap update sharpens the next work rather than
+The current literature-backed roadmap update sharpens the next work rather than
 expanding the public API immediately:
 
 1. Use MRCML, ConQuest, and multidimensional Rasch/MIRT sources to keep the
@@ -119,6 +172,453 @@ expanding the public API immediately:
 5. Keep external software comparisons as post-`v0.2.0` known-truth simulation
    work unless the target model, estimator, constraints, and prediction target
    genuinely overlap.
+6. Before adding a time parameter, run a paired known-truth design-robustness
+   grid against the existing public MFRM and guarded GMFRM/MGMFRM APIs. Cross
+   common-linking-response amount and range with rater-link topology,
+   ability-based assignment, additive versus fixed-total-target-displacement
+   budgets, and latent/outcome dispersion. Test pure row permutation separately
+   from a true omitted order effect; do not count the planning-only
+   `simulation_grid.anchor_size` field as executed evidence.
+7. Before attributing residual dependence to time, add a local-independence
+   boundary gate. Introduce explicit testlet/response identifiers, pairwise and
+   cluster-level posterior predictive residual diagnostics, and a pre-fit audit
+   of person--testlet, rater--response, rater--task, and Q-by-testlet support.
+8. Compare competing dependence mechanisms under known truth: person-by-testlet
+   performance, rater-by-response halo, rater-by-task severity, substantive
+   multidimensionality, and temporal drift. A testlet term must not become a
+   catch-all explanation for any within-response association.
+9. Add a parallel rater-process and assignment-design research track without
+   expanding the current public API. Its first obligation is a process-data
+   contract for within-rater order, session/time, active duration, repeated
+   benchmark responses, and assignment reason.
+10. Treat time-varying rater severity as an identification claim, not merely a
+   new parameter block. Before a dynamic model is exposed, cross true drift
+   with ability/order composition, temporal benchmark placement, assignment,
+   and rating-graph sparsity in a predeclared falsification grid.
+11. Distinguish component replication from new integration. Dynamic MFRM,
+   static MGMFRM, rating-time models, HRM, Bayesian G theory, DRF, adaptive
+   monitoring, and human--machine rating all have primary precedents; their
+   fixed-Q multidimensional, time-varying, assignment-aware integration does
+   not yet have the same evidence base.
+
+### Parallel Rater-Process and Assignment-Design Track
+
+This track does not alter the `v0.1.2`--`v0.2.0` fixed-Q release sequence.
+Data capture and design triage can proceed in parallel, while new fitted model
+families remain later research surfaces. The detailed source map and study
+contract are maintained in
+[`docs/src/mgmfrm-research-roadmap.md`](docs/src/mgmfrm-research-roadmap.md).
+
+The literature boundary is explicit:
+
+- [Uto 2023](https://doi.org/10.3758/s13428-022-01997-z) provides a Bayesian
+  Markov model for time-specific rater severity, and
+  [Huang 2023](https://doi.org/10.1177/01466216231174566) provides systematic,
+  stochastic, and change-point rating-order models;
+- [Uto 2021](https://doi.org/10.1007/s41237-021-00144-w) provides the static
+  multidimensional generalized MFRM target, but not its dynamic integration;
+- [Jin and Eckes 2024](https://doi.org/10.3758/s13428-023-02259-2) provide a
+  joint ratings-and-rating-times facets model;
+- [Bradlow, Wainer, and Wang 1999](https://doi.org/10.1007/BF02294533),
+  [Wang and Wilson 2005](https://doi.org/10.1177/0146621604271053), and
+  [Wang, Bradlow, and Wainer 2002](https://doi.org/10.1177/0146621602026001007)
+  provide random-effects testlet models; [Wilson and Hoskens
+  2001](https://doi.org/10.3102/10769986026003283) and [Wang, Su, and Qiu
+  2014](https://doi.org/10.1111/jedm.12045) show that common-rater bundles and
+  multiple ratings create distinct local-dependence mechanisms;
+- [Patz et al. 2002](https://doi.org/10.3102/10769986027004341),
+  [Jiang and Skorupski 2018](https://doi.org/10.3758/s13428-017-0986-3), the
+  [Dual DRF model](https://doi.org/10.1177/00131644211043207), and
+  [Wang et al. 2017](https://doi.org/10.1177/0146621616672855) establish direct
+  precedents for HRM, Bayesian G theory, joint severity/centrality DRF, and
+  adaptive rater monitoring; and
+- human--machine MFRM and linking studies exist, but an automated score must be
+  treated as a fallible observation or linking device rather than an
+  unquestioned truth anchor.
+
+The first specialized study is now an **existing-API design-robustness stress
+test**. [DeMars, Shapovalov, and Hathcoat
+2023](https://commons.lib.jmu.edu/gradpsych/63/), [Hombo, Donoghue, and Thayer
+2001](https://doi.org/10.1002/j.2333-8504.2001.tb01847.x), [Wind and Jones
+2018](https://doi.org/10.1177/0013164417703733), and [Uto
+2021](https://doi.org/10.3758/s13428-020-01498-x) show that link topology,
+nested versus distributed assignment, linking-set size, and common raters or
+tasks can change uncertainty and bias. The current generic `simulation_grid`
+only records `anchor_size`; it does not generate shared responses or run fits.
+The current GMFRM/MGMFRM sparse fixtures cover three small connected patterns
+per family and are computational smoke evidence, not a replicated
+nonrandom-assignment or linking-dose study.
+
+`test/fixtures/existing_api_design_robustness_plan.json` now records the
+specialized plan and executes its deterministic contract layer. All seven
+checks pass: named likelihood rows are permutation-equivariant, categorical
+`occasion` is confirmed not to enter the likelihood, an ability-nested no-link
+design is blocked by rank and rater-link failures, 5% and 10% common linking
+targets are physically materialized, the assignment warning remains visible,
+parameter anchors remain separate from linking responses, and the legacy
+`anchor_size` metadata is not mistaken for generated ratings. These checks do
+not support a recovery claim; the artifact records
+`paired_known_truth_recovery_completed=false`.
+
+The paired runner must compare public MFRM, guarded scalar GMFRM, and guarded
+fixed-Q MGMFRM over rotating/fixed/random pairs, mostly single ratings with a
+common linking set, weak bridges, and disconnected controls. It crosses
+balanced versus ability/severity-informed assignment, full- versus
+narrow-range links, additive versus fixed-total target-displacement budgets, number of
+raters per common target, ability/severity dispersion, threshold spacing, and
+common-linking-target fractions of 0%, 2%, 5%, 10%, and 20%. Those percentages
+are experimental doses, not a universal recommended anchor rate. Report the
+multiply-scored fraction, all-rater common-set fraction, controlled-benchmark
+fraction, and rating-event burden separately; a wholly double-rated baseline
+is 100% multiply scored even when it has no designated common set.
+
+Use two separate tracks. The correctly specified static-recovery track has no
+true order effect; reordering identical rows is only an exact likelihood
+equivariance check. The misspecification-boundary track injects a true linear
+or change-point order effect, crosses it with random, reinforcing, and opposing
+ability sequences, and then deliberately fits the existing static API. This is
+the condition that can reveal bias from ability--presentation-order
+confounding without pretending that the static API estimates drift.
+Both P0 tracks set testlet and halo variation to zero. Passing P0 therefore does
+not establish local independence; the separate cluster gate below reuses its
+assignment skeletons under nonzero competing dependence mechanisms.
+
+The minimum paired cells are a double-rated random baseline, its pure row
+permutation, an ability-nested 0% negative control, matched 5% early and
+distributed placements, matched additive and fixed-total-target-displacement
+5% and 10% full-range doses,
+and a 10% narrow-range support check. The static likelihood must give the same result for identical ratings
+whose rows or common-link positions alone are reordered. Recovery evidence must
+come from repeated empirical bias/RMSE and interval coverage, not model-based
+standard errors alone. Every cell records achieved score SD, rating count,
+planned/observed/dropped target coverage, linking fractions/burden under named
+denominators, sequence--ability and assignment--severity
+correlations, early/late ability shift, and graph connectivity from
+materialized rows. Mandatory pairs are followed by a fractional-factorial
+subset rather than an infeasible full cross. The dedicated
+`generate_existing_api_design_robustness_stress_grid.jl` runner and MCMC-free
+fixture now pass over 24 model-design cells, 21 paired A/B datasets, and six
+pure row-permutation checks, together with three family-specific C2P
+early-versus-distributed placement checks. Replication-specific seeds resample
+assignment, common-link selection, fixed-budget displacement, and within-rater
+order while each A/B pair shares the same realized skeleton. Requested design
+labels are checked against achieved range, placement, linking, and event-budget
+metrics; seeded full-range sets with at least two targets are constructed to
+cover at least 0.75 of both ability and item ranges, while underresolved smoke
+cells remain planned-only. Pilot/calibration dry profiles preflight every
+requested candidate-family replication skeleton before score generation, and
+the same check is a hard gate before fitting; the 50-replication calibration
+profile passes all 1,050 rows. MGMFRM rows also record
+dimension-specific and Q-active-source ability/order diagnostics. An optional one-replication,
+low-draw run remains wiring-only and is not part of the versioned evidence.
+The repeated parameter-recovery and interval-coverage scorer is now
+implemented and MCMC-free tested. It aggregates bias, MAE, RMSE, empirical
+coverage, posterior-SD calibration, block completeness, and sampler-gate
+outcomes while preserving failed and unattempted fits. Pilot and calibration
+preflights are regenerated from canonical options before their content-addressed
+records are accepted; the reviewed pilot snapshot, statistical policy, and
+thresholds are one bound decision record. A passing q95/q99 result is labelled
+well-specified-static distributional contract success rather than recovery of
+every cell or parameter. External chronology attestation remains a separate
+unmet evidence requirement. No repeated MCMC has yet been executed. Predictive
+and decision-stability scorers remain missing,
+so the full robustness gate stays closed. The next gate is to finish those
+scorers, run the 30-replication pilot to freeze study-local thresholds, and
+then run 50--100 paired evaluation replications on untouched seeds.
+
+### Local-Independence and Testlet Boundary Gate
+
+The static rating-design gate is followed by a separate local-independence
+gate. The current likelihood factorizes over observed rating rows conditional
+on its parameters. Existing residual, infit/outfit, overlap, and grouped PPC
+summaries do not estimate pairwise residual dependence and must not be described
+as a complete local-independence diagnosis.
+
+The initial LD0a metadata-and-estimand scaffold is now implemented. `FacetData` distinguishes
+`testlet_id`, `response_id`, and categorical `occasion`; `task` remains separate
+metadata and is not a fitted testlet term. `testlet_design_audit` checks
+identifier nesting, target-specific replication, mechanism graphs, halo and
+repeated-response support, rater--task crossing, and fixed-Q testlet coverage.
+`predictive_standardized_residuals` supplies draw-specific Pearson residuals
+for MFRM, GMFRM, and MGMFRM, while `local_dependence_contract` separates
+single-rating item, within-rater item, and rater-pair estimands and freezes
+duplicate rejection, draw-specific support, weighting, adjusted-Q3 centering,
+conditional versus marginal PPC, within-family FDR, and one all-family
+maximum-statistic FWER scope. These are conservative design and estimand
+contracts only; current cluster-effect fitting and calibrated Q3/FDR/FWER
+decision labels remain unavailable.
+
+LD0b is now implemented as the report-only `local_dependence_summary`. It
+reports Q3/adjusted-Q3-style item pairs, rater-pair residual association on the
+same response and criterion, paired posterior predictive tail fractions,
+common-unit and distinct-response counts, family-by-testlet support graphs, and
+sparse or undefined reason codes without universal cutoffs. Posterior draws are
+distinct and sampled without replacement; observed and replicated statistics
+share the same parameter draw. Criterion-split responses are not silently
+treated as single-rater item pairs; applicability is evaluated per testlet so
+an inapplicable stratum does not suppress a valid one. Rater support
+concentrated in one response is exposed separately from the number of
+response-criterion units.
+The all-family maximum spans every overall-supported diagnostic family and
+pair, including overlapping source rows; family-specific maxima remain
+localization aids. All BH and maximum-statistic values remain report-only.
+
+LD1 is now split at an explicit evidence boundary. **LD1a is complete:**
+`local_dependence_simulation_grid` freezes 22 matched scenarios, and
+`simulate_local_dependence` generates ordinal known-truth data with an
+adjacent-category kernel that does not call the fitted probability or
+likelihood implementation. The bundle records component-specific seeds,
+event-keyed uniforms, intended and realized category support, sequence
+positions, all additive truth components, design-audit results, and bounded
+resource counts. It covers null and exact-zero controls, study-local near-zero
+through large person-by-testlet magnitudes, support boundaries, sparse and
+underidentified rejection controls, halo, rater-by-task severity, omitted
+multidimensionality, randomized drift, ability-confounded no-drift order,
+ability-informed rater assignment, and a testlet-plus-sequence mixture. Those
+magnitude settings are local to this
+study and are not universal diagnostic cutoffs.
+
+**LD1b0 scorer/protocol preflight is complete:**
+`local_dependence_calibration_contract`,
+`local_dependence_calibration_row`, and
+`local_dependence_calibration_summary` freeze candidate pair, family-maximum,
+and all-family-maximum scoring rules; preserve planned, failed, rejected, and
+unresolved replication denominators; restrict Wilson intervals to
+replication-level binary rates; and keep pooled pair rates descriptive. The
+MCMC-free `local_dependence_calibration_scorer_preflight.json` artifact checks
+that contract across all 22 planning scenarios and materializes the four
+declared pre-fit rejection rows.
+
+**LD1b1 pilot execution-protocol preflight is complete:**
+`local_dependence_calibration_pilot_contract` and
+`local_dependence_calibration_pilot_preflight` freeze the execution plan for a 30-replication pilot
+for each of the 22 scenarios (`30 × 22 = 660`). The resulting execution matrix
+comprises 540 eligible fitting jobs and 120 planned structural
+rejections. The MCMC-free
+`local_dependence_pilot_protocol_preflight.json` artifact checks seed
+separation, job identity, resource and failure policies, and the rule that a
+retry is an additional outcome and cannot overwrite the original failure.
+Operational candidate bounds remain study-local planning values. Evaluation
+sizes of 50 and 100 replications are candidates; one must be chosen and frozen
+after the pilot and before evaluation.
+
+Authorization is tied to
+`rank_normalized_rhat_bulk_tail_ess_v1` and its complete dependency and
+operation-order record, including the primary fields, tail probability,
+minimum independent-chain and diagnostic-draw requirements, complete-chain
+E-BFMI coverage, and the recorded SHA-256 digest of `src/bayesian_fit.jl`.
+Changing any of those inputs requires a new preflight. Authorization confirms
+the execution plan only; it is not a completed run or calibration evidence.
+
+**LD1b1 MCMC-free batch execution-harness dry run is complete:**
+`scripts/generate_local_dependence_pilot_batch_execution_harness.jl` records
+the versioned `local_dependence_pilot_batch_execution_harness.json` artifact,
+and `scripts/run_local_dependence_calibration_pilot_batch.jl` implements status,
+dry-run, and aggregate-only modes and defines fail-closed execute-primary and
+execute-retry interfaces;
+`--resume` is a checkpoint-verified option. The dry run covers all 660 planned
+rows, including 540 eligible fitting jobs and 120 planned pre-fit rejections.
+The batch-controller and generator sources are identified. The execution plan
+remains incomplete until the canonical single-job executor SHA-256 is
+materialized. Terminal records require exact status-specific semantic
+evidence, one hashed source artifact per evidence
+role, and exact upstream evidence hashes. The frozen `pilot_contract` and
+ordered 660 job rows must match their canonical SHA-256 values. Every
+`pre_fit_rejected` result retains the exact `generated_data` ->
+`structural_rejection_audit` -> `calibration_row` chain, and the calibration
+member follows the existing public calibration-row contract. Simulation
+members are checked down to their response data, table columns, probability
+cells, truth and row-truth arrays, and data/score/design signatures. Fit members
+must use the structured `local_dependence_pilot_fit_artifact_export.v1` JSON
+wrapper containing retained draws, log posterior values, and sampler statistics.
+Its package-native content hash must be verified by the future pinned canonical
+executor before JSON projection; the batch runner separately recomputes the
+canonical JSON payload hash and verifies the exact file SHA-256. The JSON
+projection cannot soundly reconstruct the native typed hash. Resource counts
+and the fixed sampler controls are checked, and convergence, divergence, depth,
+and complete-chain E-BFMI gates are validated individually. Fit,
+sampler, local-dependence, and calibration evidence must agree on data, design,
+fit-artifact, retained-draw, chain, and iteration provenance. The custom
+`local_dependence_pilot_summary_bundle.v1` directly records the draw-selection
+and posterior-predictive seeds; the runner compares both with its evidence
+payload, the frozen job, and the calibration execution seeds. Draw selection
+uses the frozen `sha256_seeded_rank_without_replacement_v1` algorithm, and the
+runner recomputes its ordered draw indices from the frozen seed.
+The posterior-predictive seed is source-bound, but seed-to-result replay
+verification remains
+pending the canonical single-job executor and bounded smoke review. A
+`diagnostic_failed` record may identify `sampler_quality_gate` only when that
+gate failed, or `local_dependence_summary` only after the sampler gate passed.
+Symbolic links, hard links, and unmanifested files fail archive integrity.
+Aggregate state binds the verified
+primary-result, evidence-manifest, and attempt-inventory digests. The controller
+refuses to overwrite a primary attempt and stores remediation as additive
+records. On resume, it first rescans the complete attempt archive as the source
+of truth, then verifies and compares the derived checkpoint, and skips only
+verified terminal primary records. Invalid
+remediation fails archive integrity without replacing the primary denominator.
+Because the generated dry run does not scan an attempt archive, integrity is
+reported as not assessed. No response data were generated, no model was fitted,
+and no MCMC was run; pilot results, calibration or power estimates, diagnostic
+decisions, and mechanism interpretations remain unavailable.
+
+Snapshot and inventory values are rechecked during validation, but this is a
+static consistency check rather than an atomic completed-attempt seal.
+
+Before the 660-job pilot is started, materialize the canonical single-job
+executor against the frozen result schema. It must retain the required hashed
+data, fit, sampler-diagnostic, local-dependence, calibration, or structural-
+rejection records for each terminal status and pass a bounded execution smoke
+review without changing seeds, sampler controls, or primary denominators.
+Before execution, add a completed-attempt seal and an append-only way to recover
+or retire an interrupted attempt; a partial primary remains excluded from the
+scientific denominator and must never be promoted by a remediation result.
+
+**LD1b pilot execution and evaluation remain pending.** Package sampler
+diagnostics now provide rank-normalized split R-hat and bulk/tail ESS, and the
+LD1b1 preflight authorizes the pilot execution protocol. The pilot has not been
+run. The sequence is single-job executor materialization, bounded smoke review,
+completed-attempt sealing, interrupted-attempt recovery review, pilot execution,
+review and freeze of the study-local operating rules and evaluation size, then
+a separately seeded evaluation. Repeated
+simulation must estimate null and boundary behavior, pair-level tail and
+maximum-statistic reference behavior, support-related missingness, and
+mechanism-confusion rates. The completed preflight runs no fit or MCMC and does
+not support calibration, pairwise-power, diagnostic decisions, or mechanism
+interpretation claims; `local_dependence_summary` remains report-only.
+
+The first fitted candidate is deliberately narrow: a non-centered scalar
+person-by-testlet effect
+
+```math
+u_{pt} = \sigma_T z_{pt}, \qquad z_{pt} \sim \mathcal{N}(0,1),
+```
+
+added to the MFRM location with one common standard deviation `sigma_T`. The
+first slice is limited to one response per person-by-testlet. Repeated responses
+require a separate response/occasion effect rather than silent reuse of
+`u[p,t]`. Because person-by-testlet and response are then one-to-one, the term
+is labelled only as a shared cluster effect, not stable task-specific
+performance. A fixed task main effect does not represent within-testlet
+dependence, and item-nested task means are aliased with item difficulty. A continuous positive-scale prior also makes
+`P(sigma_T > 0 | y)` uninformative as an existence claim; report a practical
+ROPE probability, interval, prior sensitivity, cluster PPC, and predictive
+comparison instead. A spike-and-slab formulation remains a later research
+option if an explicit point-null probability is required. `sigma_T` always
+denotes a standard deviation. At the exact-zero boundary, evaluate practical-
+effect false declarations, ROPE calibration, and a one-sided upper limit rather
+than equal-tailed interval coverage; reserve bias/RMSE/two-sided coverage for
+strictly positive truths. Freeze `epsilon`, `gamma` in the declaration rule
+`P(sigma_T > epsilon | y) > gamma`, and the upper-limit credibility level after
+pilot seeds and before evaluation seeds.
+
+Identification is checked before fitting. Each person should contribute to at
+least two testlets, each person-by-testlet cluster should have at least two
+usable indicators, and the person--testlet and rating graphs must remain
+connected. A rater-by-response halo term additionally requires at least two
+criteria within each supported rater-by-response cell, independent rater
+overlap across responses, and repeated responses per rater. Multiple raters or
+a one-criterion-per-rater split alone are insufficient. Separating rater-by-
+task severity requires raters to cross tasks. Fixed-Q MGMFRM additionally
+requires Q-by-testlet coverage within each dimension. Separating stable
+`u[p,t]` from response-specific `v[p,t,o]` requires multiple occasions for each
+supported person-by-testlet, multiple indicators per response, and enough
+repeated clusters. One task per person, one occasion per person-by-testlet, one
+rater-by-response observation, nested raters, or unsupported Q-by-testlet cells
+trigger a blocking design status rather than a prior-driven fit.
+
+The known-truth study is a mechanism-confusion matrix, not only a power curve.
+It crosses null, near-zero, small, moderate, and large person-by-testlet
+standard deviations with independent ratings, rater-by-response halo, rater-
+by-task severity, omitted multidimensionality, true temporal drift, and selected
+mixtures. Design axes include items per testlet, testlets per person, raters per
+response, same-rater versus criterion-split scoring, sparse/crossed/nested and
+ability-informed assignment, Q-by-testlet coverage, latent/outcome dispersion,
+and randomized versus ability-confounded task order.
+
+The 22-scenario LD1a preflight is the first frozen subset of this larger study,
+not the completed cross. Its ability-sorted, no-drift and ability-informed
+assignment scenarios are explicit case-mix confounding controls. Parameter
+anchors, common linking
+responses, and controlled benchmark responses remain distinct objects; the
+fraction and early/middle/late placement of time-distributed benchmark
+responses belongs to the existing-API and temporal-identification studies,
+not to the LD1a generator claim.
+
+Promotion requires all of the following:
+
+- underidentified designs are rejected before sampling;
+- the null data-generating process does not manufacture a practically important
+  testlet standard deviation or degrade cluster-level prediction; its evidence
+  is the practical-effect false-declaration rate, ROPE calibration, and upper-
+  limit behavior, not equal-tailed coverage of an excluded boundary;
+- each non-testlet mechanism is not systematically absorbed by `sigma_T`;
+- strictly positive testlet standard deviations are recovered with calibrated
+  interval coverage, and the fitted block removes the targeted within-testlet
+  posterior predictive discrepancy;
+- bias/RMSE/coverage, reliability or information inflation, decision reversal,
+  pair-level Type-I error/power, dataset-level FWER/power, mechanism-
+  misclassification, HMC, and prior-sensitivity metrics pass the frozen
+  evaluation profile; and
+- predictive comparisons separately target another rating on a known response,
+  a calibrated rater newly assigned to an observed response, that calibrated
+  rater on a wholly held-out response, a rater absent from fitting, a repeated
+  new response, a new person-by-testlet combination, a new person, or a new
+  task. Fixed person/rater/task facets cannot support population prediction for
+  wholly unseen levels without a separately validated hierarchy. Every
+  supported unseen effect is
+  marginalized; observation-row LOO alone is insufficient because it can leak
+  a shared cluster effect.
+
+Implementation proceeds from diagnostics and an independently coded data-
+generating process, to a scalar MFRM testlet candidate, to cluster prediction
+and a compatible MRCML/ConQuest bridge, then to separate response/occasion,
+halo, and rater-by-task candidates. GMFRM and fixed-Q MGMFRM extensions follow only after the
+unidimensional mechanism-confusion gate passes; dimension-specific testlet,
+bifactor, or covariance structures remain later alternatives. This gate may be
+developed in parallel with completion of the static recovery scorer, but no
+dynamic-severity interpretation is promoted until both gates pass.
+
+Only after the static and local-dependence gates pass does the **temporal drift
+identifiability stress test** begin. Its primary falsification target is a model
+declaring drift when true severity is constant but later responses come from a
+lower- or higher-ability case mix. The test must distinguish the current
+parameter-anchor contract from three data-collection objects: linking
+performances, monitoring/validity
+benchmarks, and repeated embedded benchmark responses shown across time.
+
+The minimum grid crosses:
+
+| Axis | Minimum levels |
+| --- | --- |
+| True severity process | none, linear, random walk/AR(1), change point |
+| True clustered process | none, person-by-testlet, rater-by-response halo, rater-by-task severity, and a minimum drift-plus-testlet mixture |
+| Fitted nuisance structure | omit or include the predeclared testlet, halo, and rater-by-task blocks |
+| Ability/order composition | randomized, low-to-high, high-to-low, block-clustered |
+| Presentation/assignment | randomized, task/form-blocked, adaptive, ability-informed or nested |
+| Temporal benchmark schedule | none, initial-only, initial-plus-final, evenly distributed early/middle/late, blind or information-adaptive |
+| Benchmark support | narrow versus full score range, reference-score uncertainty, 0%/2%/5%/10% controlled-response target fractions, and achieved rating-event burden reported separately |
+| Rating graph | fully crossed, connected sparse, weak bridge, mostly single-rated plus benchmarks, and disconnected rejection control |
+| Observation fidelity | exact within-rater order, coarse occasion bins, missing/mislabeled timestamps, and interrupted active time |
+| Fitted candidate | static MFRM, independent time facet, Markov drift, change point, and assignment/case-mix-aware candidate |
+
+Mandatory contrasts include no-drift plus strong late case-mix shift with no
+benchmarks, the same condition with evenly distributed full-range blind
+benchmarks, true drift under randomized order, and true drift under opposing or
+reinforcing case-mix trends. They also include no-drift controls generated with
+testlet, halo, or rater-by-task structure and a true-drift-plus-testlet control,
+each fitted with the corresponding nuisance block omitted and included. Primary evidence is false drift declaration under
+the no-drift controls, calibration and interval coverage for the practical
+early-to-late severity contrast, ability and severity bias/RMSE, change-point
+error, early/late cut-score reversals, prior sensitivity, and information gain
+per benchmark response.
+
+The planned implementation boundary is a dedicated predeclared plan and later
+specialized grid, not an expansion of the generic eight-axis simulation grid:
+`generate_rater_drift_identifiability_plan.jl` precedes any stress runner.
+Pilot seeds and decision thresholds must be frozen before evaluation seeds are
+run. Dynamic MGMFRM remains downstream of a unidimensional dynamic-MFRM pass;
+a Markov prior cannot repair a confounded or disconnected assignment design.
 
 The first implementation slice of item 2 is now recorded in
 `mgmfrm_literature_anchored_synthetic_benchmark.json`: one deterministic
@@ -168,11 +668,15 @@ advisories therefore remain visible without changing the primary decision.
 The all-attempt audit retains 11 attempts and hashes 230 files, including the
 non-selected result-writer failure and its same-seed infrastructure retry. A
 separate post-execution review packet is ready. Its core execution hash chain
-passes, while the immutable pre-execution packet is transparently retained with
-an older refinement-snapshot hash rather than regenerated after seeing results;
-that chronology difference now requires independent adjudication. Independent
+passes. The byte-exact refinement snapshot used by the retained jobs is now
+preserved separately and selected-job plus all-attempt input lineage is checked
+against it without rerunning MCMC. The immutable pre-execution packet is still
+transparently retained with an older refinement-snapshot hash rather than
+regenerated after seeing results; that chronology difference continues to
+require independent adjudication. Independent
 re-execution, a signed independent review, multi-replication generalized recovery,
-FACETS/ConQuest overlap bridges, and external construct data remain open. The
+executed and sample-validated FACETS/ConQuest overlap comparisons, and external
+construct data remain open. The
 TAM result does not transfer to GMFRM/MGMFRM or Uto (2021) and does not release
 package-wide or public validation claims. The claim-recovery/full reproduction
 archives and broader/guarded exposure reviews now carry the result under that
@@ -189,6 +693,9 @@ helpers earlier than it can make claims about them.
 | Minimal MFRM/RSM/PCM workflow is usable | Load check, deterministic design rows, identified constraints, narrow examples, diagnostics, PPC/calibration rows, and report metadata. | Call it a small-example workflow, not a production workflow. |
 | Scalar rater-consistency GMFRM is fit-supported | Source-aligned log density, raw/direct transform checks, AD gradient checks, block diagnostics, prior-policy rows, and sensitivity rows for rater consistency. | Keep `fit(...; experimental = true)` guarded and label outputs experimental. |
 | Fixed-Q confirmatory MGMFRM is interpretable | Q validation, fixed gauge, positive interpreted loading checks, initialization fallback reporting, dimension labels, direct-constraint checks, block diagnostics, and recovery evidence. | Keep it as a fixed-Q guarded path; do not broaden into exploratory loading, free correlation, or generic MGMFRM claims. |
+| Existing static fits are robust to sparse or nonrandom rating designs | Paired known-truth recovery over topology, assignment, order invariance, linking-target amount and range, and latent dispersion; empirical-versus-posterior uncertainty; heldout prediction and decision stability; disconnected rejection controls; and frozen seed/threshold policy. | Retain only small connected-design evidence; do not recommend an anchor percentage or claim robustness to ability-informed assignment. |
+| A testlet effect explains local dependence | Explicit response/testlet identifiers, pre-fit identification audit, frozen residual/matching/multiplicity rules, calibrated pairwise and cluster PPC, null-boundary false-declaration/ROPE behavior, positive-truth recovery/coverage, competing halo/rater-by-task/multidimensional/drift generators, target-specific cluster-heldout prediction, and prior sensitivity. | Report residual-dependence screening only; do not call the association a testlet effect or use it to release a dynamic claim. |
+| Time-varying rater severity is interpretable | Exact within-rater order or defensible time bins, time-window connectivity, randomized/counterbalanced case mix or temporally distributed full-range repeated benchmark responses, known-truth false-drift calibration, practical-magnitude thresholds, and prior/time-bin sensitivity. | Report the time pattern as confounded design triage; block drift, fatigue, learning, and causal language. |
 | DFF/fairness rows support decisions | Nonempty and weak-cell flags, group/rater/item support, grouped PPC, confounding warnings, practical-magnitude thresholds, and prior/likelihood sensitivity. | Report screening evidence only; block unfairness, bias, or causal language. |
 | Model comparison can guide selection | Shared prediction target, row matching, pointwise diagnostics, Pareto-k/refit or K-fold follow-up, and sensitivity of ranks to influential rows. | Present WAIC/LOO/K-fold as diagnostics; block model weights and superiority claims. |
 | External software validates the package | Comparable parameterization, known-truth simulation target, aligned scoring output, and documented non-overlap cases. | Use related-software positioning only; do not call disagreements validation failures or successes. |
@@ -213,11 +720,15 @@ than as a feature wish list:
    report wording, evidence bundle, privacy, or external overlap.
 5. Keep historical completed work separate from active release blockers so that
    high checklist completion does not obscure low claim maturity.
+6. Run automated wording checks and a manual reader-facing review. Public docs
+   summarize evidence state and supported scope; reference-manager metadata,
+   private paths, temporary reviewer instructions, placeholders, and execution
+   diary language stay in developer evidence records rather than release text.
 
 ## Current Roadmap Checkpoint
 
-As of the local evidence archive that records `73` fixture artifacts, `86`
-code/doc references, `73` full regeneration commands, and `5596`
+As of the local evidence archive that records `78` fixture artifacts, `114`
+code/doc references, `77` full regeneration commands, and `5606`
 manuscript-scale evidence cells, the practical boundary has moved from
 "execute the MGMFRM publication-grade batch" to "attach valid external
 construct evidence and an independent public-scope review before any broader
@@ -235,8 +746,9 @@ This checkpoint creates two separate work tracks:
   `attach_valid_external_construct_dataset_manifest_and_independent_public_scope_review_manifest`.
 - **Local-hardening track**: continue improving guarded generalized diagnostics,
   report contracts, fixed-Q invariance checks, predictive/calibration rows,
-  release-scope checks, and documentation while keeping all model-weight,
-  Q-revision, construct-validity, and sparse-superiority wording blocked.
+  local-dependence design and diagnostic contracts, release-scope checks, and
+  documentation while keeping all model-weight, testlet-mechanism, Q-revision,
+  construct-validity, and sparse-superiority wording blocked.
 
 ### External Attachment Critical Path
 
@@ -266,6 +778,8 @@ drafts.
 | MFRM/RSM/PCM | "small-example Bayesian many-facet Rasch workflow" and "identified minimal design" | "production-grade MFRM replacement" or "fully validated MFRM platform" |
 | Scalar GMFRM | "guarded experimental rater-consistency path" | "general GMFRM support" or "rater discrimination fully validated" |
 | Fixed-Q MGMFRM | "guarded fixed-Q confirmatory experiment" | "exploratory MGMFRM", "free multidimensional structure", or "general MGMFRM support" |
+| Local dependence/testlet | "posterior residual-dependence screen under the observed cluster design" | "testlet effect identified" until the design audit, competing-mechanism stress test, and cluster prediction gate pass |
+| Dynamic rater process | "time/order pattern under the observed assignment design" | "rater drift", "fatigue", or "learning" unless temporal benchmarks or randomized/counterbalanced assignment identify the contrast |
 | DFF/fairness | "screening rows", "design-support warnings", and "posterior predictive checks" | "bias detection", "unfairness proof", or "causal DFF effect" |
 | Model comparison | "diagnostic comparison for a named prediction target" | "model weights", "best model", or "sparse-design superiority" |
 | External software | "capability positioning" and "post-v0.2.0 overlap target" | "validated against R packages" before compatible known-truth comparisons exist |
@@ -282,12 +796,15 @@ defensible.
 | --- | --- | --- |
 | Source alignment | Hand-computed, Julia, and BridgeStan pointwise log likelihoods agree within predeclared tolerance for the promoted target. | Stop promotion and fix equations, indexing, constraints, or transforms. |
 | Gradients | AD gradients match finite-difference or external reference checks at stable fixture points. | Keep the target internal; do not run promotion HMC as evidence. |
-| HMC pathologies | Zero unreported divergences, no unreported max-depth saturation, finite log density, and E-BFMI reported where available. | Keep the path experimental and improve parameterization, priors, or initialization. |
+| HMC pathologies | Zero unreported divergences, no unreported max-depth saturation, finite log density, and complete finite-chain E-BFMI coverage. | Keep the path experimental and improve parameterization, priors, or initialization. |
 | Chain diagnostics | Manuscript-facing blocks use max R-hat <= 1.01 and bulk/tail ESS >= 400 for focal contrasts; weaker smoke thresholds must be labelled as smoke tests. | Remove interpretation examples or label conclusions diagnostic-only. |
 | Direct constraints | Direct draws satisfy positivity, gauge, location, product/scale, and Q-mask constraints with zero silent failures. | Stop interpretation and repair raw/direct transforms or report checks. |
 | Predictive comparison | WAIC/LOO/K-fold rows name the prediction target, row matching, candidate set, and influential-row or Pareto-k follow-up policy. | Block model weights, ranking, and superiority wording. |
 | Sensitivity | Prior/likelihood perturbations do not change focal decisions, or the decision is explicitly labelled sensitive with refit guidance. | Block ranking, fairness, or practical-decision language. |
-| Design support | Rating graph, anchors, category use, Q matrix, and DFF cells support the requested contrast. | Report design triage only; do not interpret the contrast. |
+| Design support | Rating graph, parameter anchors, common linking targets, category use, Q matrix, and DFF cells support the requested contrast. | Report design triage only; do not interpret the contrast. |
+| Static design robustness | Row permutation and `occasion` metadata are likelihood-invariant; disconnected controls are rejected; paired known-truth bias/RMSE, empirical-versus-posterior uncertainty, interval coverage, calibration, and decision stability pass under the predeclared assignment/linking grid. | Keep sparse and nonrandom-assignment claims blocked; do not recommend a linking or benchmark percentage. |
+| Local-dependence identification | Null practical-effect false declarations/ROPE and positive-standard-deviation recovery/coverage pass under the frozen profile; pair-level and dataset-level error are calibrated; testlet, halo, rater-by-task, multidimensional, and drift generators are distinguishable; target-specific cluster prediction has no row leakage. | Return a mechanism-confounded or underidentified status; retain diagnostics as screening and do not promote the fitted extension. |
+| Temporal identification | The preregistered practical drift contrast has near-nominal coverage; no-drift false declarations are compatible with the nominal decision rate within Monte Carlo uncertainty; time windows remain connected; and distributed full-range benchmarks or randomized/counterbalanced presentation separate drift from case mix. | Return `drift_assignment_confounded`; block dynamic interpretation and compare design repairs before fitting a broader model. |
 | Reproducibility | Seed, sampler controls, package versions, project hashes, artifact schema, and raw-data policy are present. | Keep artifacts local or provisional. |
 
 ## Failure Triage Playbook
@@ -303,6 +820,8 @@ failure as a generic "needs more validation" item.
 | Direct-constraint failure | Identify whether the failure is transform, naming, draw extraction, or report-row logic. | Stop interpretation; add invariant tests before rerunning examples. |
 | Sensitivity failure | Determine whether the focal conclusion, only nuisance blocks, or the prediction target changes. | Relabel the conclusion sensitive, require refits where needed, and block decision language. |
 | Design-support failure | Inspect connectedness, anchors, sparse cells, skipped categories, Q support, and confounding. | Report design triage; avoid fairness, recovery, and ranking claims for that contrast. |
+| Residual dependence persists or changes label across candidates | Check shared response/testlet identity, rater overlap, criterion assignment, task crossing, Q support, sequence, and the cluster holdout target. | Keep the result mechanism-ambiguous; compare testlet, halo, rater-by-task, multidimensional, and temporal generators before extending the likelihood. |
+| Apparent drift under changing case mix | Compare time-window ability distributions, within-rater order, assignment reasons, repeated benchmark trajectories, and time-window graph connectivity before changing the severity process. | Treat the result as order/assignment confounding; randomize or counterbalance presentation, distribute full-range blind benchmarks, or fit a supported assignment/case-mix model before making a drift claim. |
 | Docs/manifest drift | Compare README, docs, examples, reports, `release_scope_summary`, and `model_surface_audit`. | Narrow public wording first; only then decide whether code promotion is still appropriate. |
 | Artifact privacy failure | Inspect exported identifiers, row-level data, case-study labels, hashes, and provenance rows. | Remove or anonymize raw fields and require explicit opt-in before public artifact claims. |
 
@@ -325,6 +844,10 @@ Required package behavior:
   documented free-loading regime, positivity or sign constraints, latent
   correlation structure, and post-hoc Procrustes only where interpretation is
   invariant.
+- Clustered extensions expose which design contrasts separate person ability,
+  person-by-testlet performance, rater-by-response halo, rater-by-task
+  severity, Q dimensions, and rater-by-sequence drift; unsupported contrasts
+  are rejected before fitting.
 
 Gate: reject or warn on a feature if the compiler cannot explain the
 identification rule in a machine-readable table.
@@ -339,7 +862,9 @@ Required package behavior:
 
 - `diagnostics(fit)` reports R-hat, bulk ESS, tail ESS, divergences or
   numerical errors, max-treedepth hits, step size, leapfrog counts, and E-BFMI
-  where available.
+  coverage. The compatibility `e_bfmi` value is the minimum finite value that
+  is available, but a publication gate evaluates its threshold only when
+  `e_bfmi_complete` confirms finite values for every expected chain.
 - Diagnostics are summarized by parameter block and include machine-readable
   pass/fail flags.
 - ESS/sec is reported for substantive blocks, not only for all parameters
@@ -460,6 +985,8 @@ should contain:
 
 - facet roles and original column names;
 - deterministic level maps and integer indexes;
+- declared response/testlet cluster keys, item or rubric membership, repeated-
+  response identity, and sequence/occasion semantics when present;
 - score scale and category labels;
 - threshold regime;
 - additive/location design blocks;
@@ -480,6 +1007,8 @@ A fitted object must not be only a draw matrix. It should contain:
 - `spec` and `design`;
 - posterior draws and parameter-block index map;
 - pointwise log likelihood, log prior, and log posterior hooks;
+- declared conditional and marginal likelihood/prediction paths for every
+  shared response, testlet, task, or person random effect;
 - sampler metadata and diagnostics;
 - prior table and posterior summaries;
 - predictive draw hooks;
@@ -498,6 +1027,8 @@ The report driver should provide:
 - convergence diagnostics;
 - prior predictive checks;
 - posterior predictive checks and calibration;
+- pairwise and cluster local-dependence screens with support counts, plus the
+  conditional or whole-cluster prediction target used for validation;
 - posterior summaries with 66%, 90%, and 95% credible intervals where useful;
 - probability of direction and ROPE/practical-magnitude flags for focal
   contrasts;
@@ -619,23 +1150,75 @@ rater-consistency candidate and fixed-Q confirmatory MGMFRM candidate with
 | MFRM/RSM/PCM fitting | Public scaffold | Identified minimal design, tested likelihood path, diagnostics, simulation/recovery, and plotting-ready rows exist. |
 | GMFRM/MGMFRM manifests and compiler previews | Public preview/specification plus guarded generalized experiments | Useful for mathematical review and design inspection; only the scalar rater-consistency GMFRM candidate, configured with `discrimination = :rater`, and fixed-Q confirmatory MGMFRM candidate with `dimensions >= 2` have guarded experimental fit methods. |
 | GMFRM/MGMFRM raw likelihood targets | Internal tests plus guarded experimental targets | Source-aligned fixtures, AD checks, HMC smoke tests, BridgeStan checks, and guarded GMFRM/MGMFRM fit paths exist; broader gauge contracts and exploratory promotion remain incomplete. |
-| GMFRM/MGMFRM `fit` | Guarded experimental public paths | `fit(spec; experimental = true)` returns `GMFRMFit` for the scalar rater-consistency GMFRM candidate or `MGMFRMFit` for the fixed-Q confirmatory MGMFRM candidate with `dimensions >= 2`. Exploratory Q-matrices, free latent correlations, and broad generalized claims remain blocked. |
+| GMFRM/MGMFRM `fit` | Guarded experimental public paths | `BayesianMGMFRM.Experimental.fit(spec)` returns `GMFRMFit` for the scalar rater-consistency GMFRM candidate or `MGMFRMFit` for the fixed-Q confirmatory MGMFRM candidate with `dimensions >= 2`. The older keyword spelling is compatibility-only. Exploratory Q-matrices, free latent correlations, and broad generalized claims remain blocked. |
+| FACETS/ConQuest offline bridge | Public input-and-receipt workflow plus a narrow ConQuest semantic layer | Manual-syntax unanchored MFRM/RSM/PCM bundles can be prepared on a Mac and independently hash-checked before launch. FACETS has a Windows path; ConQuest has Windows and macOS paths. The hardened macOS path has successful, receipt-bound ConQuest 5.47.5 Demonstration RSM/PCM known-truth fixtures, and the exact three-category boundary has a fail-closed source-gauge semantic adapter. This is single-operator, version-specific evidence: FACETS execution, both Windows paths, independent re-execution, executable authenticity, convergence adjudication, reference-gauge alignment, anchored second-stage calibration, and direct package agreement remain open. |
 | DFF model effects | Blocked | Current DFF support is validation/specification evidence, not fitted effects. |
 | PSIS/exact LOO and model weights | Local scalar policy only | Same-observation WAIC and raw importance LOO remain diagnostic-only; deterministic 3-fold heldout log-score evidence is the selected local scalar model-weight target. Public model-weight claims remain blocked until a future public model-weight claim review. |
 | Manuscript claims about sparse MGMFRM superiority | Blocked | Prediction-target/model-weight policy, manual public-scope review, and a guarded local MGMFRM fit artifact path are recorded, but sparse-superiority claims still require broader reproducible validation and a separate public-scope release decision. |
 
-## Progress Ledger and Promotion Rules
+## Progress Ledger and Canonical Maturity Dashboard
 
-The roadmap has two different progress notions:
+This dashboard is the canonical interpretation of completion percentages.
+Every percentage has its own named denominator; values from different rows
+must not be averaged or treated as interchangeable.
 
-- **Checklist progress**: currently 151 of 182 tracked roadmap checkboxes are
-  complete, or 83.0%. This is useful for implementation accounting.
-- **Claim progress**: broad v1 claims are closer to 50-55% complete. Local
-  reproducibility and publication-grade MGMFRM execution evidence are now much
-  stronger, but public claim release still depends on valid external construct
-  attachments, an independent signed public-scope review, broader generalized
-  diagnostics/reporting hardening, and post-`v0.2.0` overlap validation for
-  external-software claims.
+| Progress axis | Current estimate | Denominator | What remains outside or incomplete |
+| --- | ---: | --- | --- |
+| Mechanical roadmap checklist | **160/189 (84.7%)** | All checked and unchecked roadmap tasks, including historical delivery, documentation, evidence, and future research infrastructure. | This is task-accounting only. It is **not** the implementation rate of MFRM, GMFRM, or MGMFRM. |
+| Minimal MFRM/RSM/PCM core implementation | **about 96%** | The declared Bayesian scope: long-format data/specification, identified RSM/PCM likelihoods, priors, HMC fitting, diagnostics, PPC/calibration, category/rater practitioner summaries, reporting rows, cache/reproduction support, tests, and examples. | Remaining work is actual hard-anchor refitting, report integration for the new practitioner summaries, and edge-case hardening. FACETS feature parity, JMLE/MMLE backends, generalized discrimination, and external construct validation are not part of this denominator. |
+| Minimal MFRM/RSM/PCM validation maturity | **about 80-83%** | Evidence needed to call the narrow Bayesian implementation externally validated and production-ready under stated design conditions. | The repeated recovery scorer, design preflights, narrow TAM evidence, and a version-specific ConQuest RSM/PCM known-truth execution fixture exist. Staged repeated MCMC, FACETS execution, independent ConQuest/TAM re-execution and review, external construct data, and comparative performance evidence remain open. |
+| TAM narrow-overlap evidence for MFRM | **about 80-85%** | The fully crossed unit-discrimination MFRM/PCM target currently shared by the package and TAM, with aligned signs, constraints, known truth, and direct parameter blocks. | Local direct agreement and recovery evidence are strong, but independent re-execution, signed review, and chronology adjudication remain open; the result does not transfer to GMFRM/MGMFRM. |
+| FACETS compatibility and validation bridge | **about 65-72%** | Familiar MFRM summaries plus a matched known-truth comparison with FACETS under aligned model, scale, anchoring, weighting, and reporting conventions. | The migration crosswalk and deterministic manual-syntax input/return-integrity bundle are implemented. Actual Windows PowerShell 5.1 verification, a licensed-host execution, version-specific output samples, semantic result adapter, gauge-aligned comparison, anchored second stage, and independent numerical review remain open. |
+| ConQuest overlap bridge | **about 72-76%** | A matched MRCML/MFRM target with explicit design matrices, constraints, parameter signs, and known-truth recovery. | The MRCML crosswalk, deterministic bundle, Windows/macOS launch paths, strict raw reader, exact output contract, receipt-bound macOS 5.47.5 RSM/PCM known-truth fixtures, and a fail-closed three-category source-gauge semantic adapter now exist. The adapter binds the complete bundle back to the specification, verifies exact comment/header order and the full design basis, and reconstructs rater/item/step constraints without a sign reversal. A convergence policy, destination reference-gauge transform, direct package comparison, anchor-aware second stage, Windows-path execution, and independent re-execution/review remain open. |
+| Full FACETS/TAM product feature parity | **not scored (non-goal)** | The complete breadth of mature products, including model catalogs, arbitrary facet structures, response types, weighting, operational workflows, graphics, and long-established examples. | Add only capabilities that strengthen the declared Bayesian MFRM/MGMFRM workflow; do not turn unrelated product breadth into a hidden completion requirement. |
+| Guarded scalar GMFRM implementation | **about 72-78%** | The deliberately narrow rater-consistency candidate, not every generalized MFRM variant. | Stable-public promotion, broader generalized kernels/priors, recovery breadth, and external validation remain open. |
+| Guarded fixed-Q confirmatory MGMFRM implementation | **about 72-78%** | Fixed Q, confirmatory dimensions, fixed latent identity correlation, guarded Bayesian fitting, diagnostics, and recovery artifacts. | Stable-public promotion and broader design validation remain open; exploratory Q/loadings and free latent correlations are excluded. |
+| Broad stable-public generalized claim maturity | **about 50-55%** | Evidence required for broader release or manuscript claims, rather than callable local implementations. | Valid external construct attachments, independent signed public-scope review, generalized diagnostics/reporting hardening, and compatible post-`v0.2.0` external comparisons remain open. |
+| Generic MGMFRM research target | **about 30-40%** | A broader engine including exploratory/estimated structure, free latent correlations, generalized kernels and priors, and wider validation. | Major mathematical, computational, identification, reporting, and validation milestones remain downstream. |
+
+The absence of JMLE or MMLE does not lower the approximately 96%
+core-implementation score:
+the package currently declares a Bayesian estimator, so JMLE/MMLE would be a
+new estimator family and should receive a separate future milestone and
+evidence ledger. Likewise, the breadth of FACETS or TAM is a related-software
+positioning and overlap-validation axis, not a hidden requirement for calling
+the declared Bayesian MFRM/RSM/PCM implementation complete. The present TAM
+evidence strengthens the overlapping MFRM slice; it does not establish feature
+parity, production superiority, construct validity, or transfer to
+GMFRM/MGMFRM.
+
+### MFRM Completion and Interoperability Tracks
+
+The remaining MFRM work is split into three tracks so that estimator breadth
+cannot silently reduce the declared Bayesian implementation score:
+
+1. **Bayesian core-to-complete:** finish the predictive and decision-stability
+   portions of the paired sparse/nonrandom scorer, execute the staged repeated
+   fits, integrate the completed MFRM category/rater summaries into
+   `fit_report`, and implement the affine hard-anchor refit map. The new
+   `anchor_refit_plan` is a provenance, identifiability, and numerical-strategy
+   preflight; it does not yet perform a constrained refit or estimate linking
+   constants.
+2. **Practitioner and external bridges:** the FACETS/ConQuest migration guide
+   now freezes sign, scale, constraint, threshold, anchor, and estimator
+   non-equivalence rules. The deterministic version-1 bridge prepares
+   unanchored manual-syntax bundles on a Mac, verifies inputs before the
+   FACETS Windows or ConQuest Windows/macOS launcher calls an authorized
+   executable, and verifies the returned input inventory and raw-output hashes.
+   The ConQuest 5.47.5 macOS RSM/PCM known-truth run and privacy-reduced sample
+   freeze and the narrow source-gauge semantic adapter are complete. Next,
+   independently re-execute those samples, validate a separate destination
+   reference-gauge transform, execute FACETS and the Windows paths, and only
+   then design an anchor-aware second stage for the exact returned designs. A
+   successful receipt is transport-integrity evidence,
+   not convergence or numerical-validation evidence. Independently re-execute the
+   narrow TAM comparison as a separate gate; keep point-estimate agreement and
+   uncertainty agreement separate.
+3. **Optional estimator interoperability:** prefer reproducible external
+   adapters before considering native JMLE or MMLE engines. A native
+   frequentist backend should be proposed only for a concrete use case and must
+   have its own mathematical, numerical, diagnostic, and maintenance gates; it
+   is not part of the final five percent of the Bayesian core.
 
 The former scalar GMFRM internal promotion candidate is now a guarded
 experimental path. It has source-aligned fixtures, raw transforms, BridgeStan
@@ -668,8 +1251,9 @@ prediction-target/model-weight policy, local DFF estimand/validation grid,
 Gate E manuscript-scale evidence grid, a local manual public-scope review, and
 a local full-paper reproduction archive are now recorded. The fixed-Q
 confirmatory MGMFRM guarded sampler is now available through
-`fit(spec; experimental = true)` and produces an experimental fit artifact while
-keeping broader MGMFRM exposure blocked.
+`BayesianMGMFRM.Experimental.fit(spec)` and produces an experimental fit
+artifact while keeping broader MGMFRM exposure blocked. The older keyword
+spelling remains compatibility-only.
 
 The local publication-grade MGMFRM chain has since advanced through a completed
 125-unit batch, threshold/model-weight policy review, external-construct and
@@ -760,10 +1344,11 @@ for the literature-grounded rationale and detailed gates.
 | Version | Scope | Release gate |
 | --- | --- | --- |
 | `v0.1.1` | Completed fixed-Q confirmatory MGMFRM refinement for the existing guarded path. | Guarded scalar GMFRM and fixed-Q MGMFRM are easier to audit and harder to overinterpret. |
-| `v0.1.2` | Fixed-Q dimensionality and Q validation expansion. Still confirmatory. | Higher-dimensional fixed-Q examples pass source, AD, HMC, recovery, and report-shape tests. |
+| next `v0.1.x` checkpoint | Core integrity and minimal-MFRM completion. | Canonical model identity, authenticated fit/cache envelope, hard-anchor refit, practitioner-report integration, and repeated sparse/nonrandom recovery gates pass. |
+| `v0.1.2` candidate | Fixed-Q productionization, not initial multidimensional compiler implementation. | Existing 2D/3D and sparse-Q paths pass completion audit, source/AD/HMC checks, allocation/performance baselines, repeated recovery, Q-misspecification, and report-shape tests. |
 | `v0.1.3` | Free latent correlation decision. | Free correlation is either kept blocked, promoted internally, or exposed narrowly with diagnostics and prior policy. |
 | `v0.1.4` | Exploratory loading and rotation policy design. | Rotation, sign, permutation, and reporting rules are documented and validated before exposure. |
-| `v0.2.0` | Generic MGMFRM stable-public candidate. | Source, transform, prior, internal simulation/recovery, reporting, and rejection gates pass for every exposed surface; R-package simulation comparison is post-`v0.2.0`. |
+| `v0.2.0` | Intentional stable API boundary for the subset that has passed all gates; not an automatic generic-MGMFRM claim. | Source, transform, prior, internal simulation/recovery, external known-truth overlap where available, performance, reporting, and rejection gates pass for every exposed surface. |
 
 ### v0.1.1 release record: generalized and multidimensional refinement
 
@@ -893,13 +1478,32 @@ remain blocked.
 
 #### v0.1.1 Workstream D: diagnostics and posterior workflow
 
-- [ ] Standardize `diagnostics`, `parameter_block_diagnostics`, and
+- [x] Standardize `diagnostics`, `parameter_block_diagnostics`, and
   `sampler_diagnostics` across `MFRMFit`, `GMFRMFit`, and `MGMFRMFit`,
-  including divergences, max-depth hits, E-BFMI availability, rank-normalized
-  R-hat, bulk/tail ESS, and direct-constraint failures.
-- [ ] Until rank-normalized diagnostics are implemented, label the current
-  classical split R-hat and autocorrelation ESS as provisional in reports and
-  artifacts, and keep the thresholds explicit.
+  including divergences, max-depth hits, complete-chain E-BFMI coverage,
+  rank-normalized split R-hat, bulk/tail ESS, and direct-constraint failures. Guarded
+  generalized gates inspect both raw unconstrained and direct constrained rows.
+- [x] Retain classical split `rhat` and autocorrelation `ess` as compatibility
+  fields while using rank-normalized split R-hat and bulk/tail ESS as the
+  primary quality gate. Match Stan/posterior odd-draw rank/fold/tail operation
+  order and all-valid-lag ESS behavior, and version the diagnostic fit-cache
+  contract.
+- [x] Keep constrained coordinates fixed by zero-raw-dimension transforms as
+  explicit `:structurally_fixed` rows with `quality_gate_applicable = false`.
+  Exclude them from extrema and failure counts while retaining reconstructed
+  constrained coordinates that vary with free raw coordinates in the gate.
+- [x] Record expected, available, and unavailable E-BFMI chain counts and
+  `e_bfmi_complete`. Retain the minimum available value for compatibility, but
+  apply the publication threshold only with complete finite chain coverage.
+- [x] Keep result, diagnostic, and heldout wrapper schemas at version 1 and use
+  `diagnostic_contract` as the migration boundary. Rows without
+  `rank_normalized_rhat_bulk_tail_ess_v1` remain pre-modern evidence;
+  `flag` follows `rank_normalized_flag`, and
+  `classical_compatibility_flag` remains the legacy assessment.
+- [ ] Re-run any publication-grade generalized-fit evidence intended for later
+  promotion under the versioned modern diagnostic contract. Historical runner
+  artifacts remain pre-modern compatibility evidence and are not upgraded in
+  place.
 - [ ] Add prior-policy and prior-predictive report rows for guarded generalized
   fits: raw prior scales, direct-scale prior status, no-Jacobian policy,
   prior-predictive category/facet implications, and any prior implication
@@ -909,10 +1513,12 @@ remain blocked.
   the minimal MFRM predictive path.
 - [ ] Add calibration summaries for guarded generalized fits by rater, item,
   category, group/DFF cell, and sparse-design block.
-- [ ] Add category-functioning report rows: observed category use by rater,
-  item, and dimension; skipped or sparse categories; posterior step/threshold
-  uncertainty; predictive category replication; and diagnostic-only category
-  collapsing flags.
+- [x] Add MFRM-only category-functioning rows for overall, rater, and item
+  category use; skipped or sparse categories; posterior RSM/PCM step
+  uncertainty; predictive category replication; and diagnostic-only review
+  flags that never collapse categories automatically.
+- [ ] Extend category-functioning rows to fixed-Q dimensions and guarded
+  generalized predictive paths, then add the settled bundle to `fit_report`.
 - [ ] Add direct-parameter posterior summary rows for generalized blocks with
   probability of direction and practical-magnitude fields where interpretation
   is defensible.
@@ -951,12 +1557,18 @@ private notebook logic or inferring which predictive path was used.
 - [ ] Do not treat FACETS degrees of freedom as exact for posterior-summarized
   GMFRM/MGMFRM fit statistics; require explicit approximation labels and
   simulation calibration before generalized ZSTD interpretation.
-- [ ] Add migration and compatibility examples for users coming from Facets,
-  TAM, mirt, sirt, or immer: column mapping, equivalent or non-equivalent model
-  choices, comparable output rows, and explicit unsupported surfaces.
-- [ ] Add rater homogeneity summaries for severity and rater consistency:
-  pairwise posterior contrasts, ROPE probabilities, HDI or explicitly labelled
-  central intervals, probability of direction, and practical-equivalence flags.
+- [x] Add a FACETS/ConQuest migration guide with long-format column mapping,
+  RSM/PCM model crosswalks, comparable category/rater outputs, anchor
+  provenance, and explicit unsupported surfaces.
+- [ ] Extend migration and compatibility examples to TAM, mirt, sirt, or
+  immer where model targets genuinely overlap.
+- [x] Add MFRM severity-homogeneity rows with draw-wise pairwise contrasts,
+  optional user-declared ROPE probabilities, explicitly labelled central
+  intervals, probability of direction, practical-equivalence flags, and
+  direct/network/disconnected overlap support.
+- [ ] Extend rater homogeneity to guarded generalized rater-consistency
+  log-ratios and fixed-Q reports after the generalized interpretation policy is
+  calibrated.
 - [ ] Treat Bayes factors as optional research artifacts, not a default
   workflow. If added, they must be limited to preregistered contrasts and paired
   with prior sensitivity, power-scaling evidence, and clear warnings that point
@@ -1014,8 +1626,9 @@ order that minimizes schema churn and avoids unnecessary long Julia runs:
    independent-reviewer handoff. Do not write placeholder external manifests.
 2. Expand fixed-Q MGMFRM initialization and invariance evidence beyond the
    contract and helper checks shipped in `v0.1.1`.
-3. Add rank-normalized and bulk/tail generalized diagnostics before adding more
-   report sections.
+3. [Complete] Add rank-normalized split R-hat and bulk/tail generalized
+   diagnostics before adding more report sections; gate raw and direct rows and
+   bind the versioned diagnostic contract into cache identity.
 4. Add predictive-path, calibration, and category-functioning rows after the
    diagnostic shape is stable.
 5. Extend the `v0.1.1` MFRM FACETS description with model-comparison policy and
@@ -1492,8 +2105,8 @@ Completed checklist:
   [`dff_report` returns declared or ad hoc DFF screening rows with
   expected-score interaction residuals and local logit-scale approximations,
   while retaining a fitted-effect caveat.]
-- [x] Implement hard/soft anchors, anchor sensitivity, and robust linking
-  diagnostics.
+- [x] Implement hard/soft anchor declarations, anchor sensitivity, and robust
+  linking diagnostics.
   [`anchor_linking_summary` combines declared hard/soft anchor rows, anchor
   target checks, rater-linking connectedness diagnostics, and optional
   anchor-axis sensitivity coverage. It is a diagnostic summary and does not yet
@@ -1721,6 +2334,9 @@ reported dimensions are interpretable.
 | Scalar GMFRM HMC pathologies | Divergences, low E-BFMI, or unstable R-hat appear in candidate chains. | Tune parameterization, strengthen priors, or keep GMFRM internal. |
 | MGMFRM gauge confusion | Different rotations or sign choices change interpreted loadings. | Restrict v1 to confirmatory Q-mask and fixed identity correlation. |
 | Sparse-design overclaim | Recovery fails in sparse cells or DFF decisions are unstable. | Narrow claims, add warnings, or require stronger design validation. |
+| Universal-linking-rate overclaim | A percentage of common responses is reported without its topology, latent/score-range support, number of raters, or rating-event burden. | Report the full design and empirical dose curve; make no universal anchor-rate recommendation. |
+| Local-dependence mechanism confusion | A scalar testlet effect absorbs halo, rater-by-task severity, omitted dimensions, or temporal order. | Run the competing-mechanism stress grid and cluster-heldout checks; keep the effect diagnostic until the generating mechanisms are distinguishable. |
+| Drift/case-mix confounding | Later responses differ in ability, task, form, or assignment while rater severity is modeled as time-varying. | Require randomized/counterbalanced presentation or time-distributed full-range repeated benchmarks, run the false-drift stress grid, and block interpretation when time-window connectivity is weak. |
 | BridgeStan drift | Julia and Stan disagree after compiler refactors. | Treat Stan fixture mismatch as a release blocker. |
 | Documentation drift | README, docs, and manifest statuses disagree. | Require synchronized doc updates for every status transition. |
 
@@ -1751,6 +2367,19 @@ reported dimensions are interpretable.
 - Do not use single-run timings as manuscript evidence.
 - Do not interpret the observed rating graph as random rater assignment unless
   the design or assignment model justifies that claim.
+- Do not recommend a universal anchor or linking-response percentage from
+  connectedness alone; report link topology, target-range support, and rating-
+  event burden, and require paired known-truth recovery evidence.
+- Do not label residual dependence as a testlet effect until person-by-testlet,
+  rater-by-response halo, rater-by-task severity, multidimensional, and temporal
+  explanations have been tested under an identified design.
+- Do not use observation-row LOO to validate a shared testlet or response random
+  effect; hold out the full cluster and state whether its latent effect is
+  conditioned on or marginalized.
+- Do not interpret a time/order coefficient as rater severity drift, fatigue,
+  or learning unless randomized/counterbalanced assignment or time-distributed
+  repeated benchmark responses and time-window connectedness support that
+  contrast.
 - Do not automatically collapse sparse or disordered categories without a
   recorded analysis decision.
 - Do not report partially pooled facet effects as unpooled facet locations;

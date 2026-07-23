@@ -116,10 +116,11 @@
 - Add an all-attempt raw-archive audit that hashes 230 files across 11 retained
   attempts, including a non-selected result-writer failure and its documented
   same-seed infrastructure retry, plus a separate post-execution independent
-  review packet. The core execution hash chain passes, while the immutable
-  pre-execution packet's older refinement-snapshot hash is preserved as an
-  explicit chronology-review blocker rather than rewritten after observing the
-  results. Independent re-execution, signed review, package-wide external
+  review packet. Preserve the byte-exact refinement snapshot used by those
+  jobs and verify selected-job plus all-attempt input lineage against it without
+  rerunning MCMC. The immutable pre-execution packet's still-older refinement
+  hash remains an explicit chronology-review blocker rather than being
+  rewritten after observing the results. Independent re-execution, signed review, package-wide external
   validation, generalized-model transfer, and public claim release remain blocked.
 - Thread the TAM result, all-attempt audit, and post-execution packet through
   the claim-recovery and full reproduction archives plus the broader/guarded

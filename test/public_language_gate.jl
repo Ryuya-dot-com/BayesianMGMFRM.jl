@@ -18,9 +18,23 @@ const PublicLanguagePolicy = PublicLanguageGateContractForTest.PublicLanguageGat
     @test result.n_language_violations == 0
     @test result.n_navigation_violations == 0
     @test result.n_workflow_violations == 0
-    @test result.n_public_files == 17
+    @test result.n_public_files == 19
+    @test "experimental.md" in PublicLanguagePolicy.PUBLIC_DOCUMENTATION_PAGES
     @test "scope.md" in PublicLanguagePolicy.PUBLIC_DOCUMENTATION_PAGES
     @test "roadmap.md" in PublicLanguagePolicy.DEVELOPER_DOCUMENTATION_PAGES
+    @test PublicLanguagePolicy._rendered_build_root(root) ==
+        joinpath(root, "docs", "build")
+    mktempdir() do temp_root
+        absolute_build = joinpath(temp_root, "rendered")
+        withenv("BAYESIANMGMFRM_DOCS_BUILD" => absolute_build) do
+            @test PublicLanguagePolicy._rendered_build_root(root) ==
+                abspath(absolute_build)
+        end
+        withenv("BAYESIANMGMFRM_DOCS_BUILD" => "alternate-build") do
+            @test PublicLanguagePolicy._rendered_build_root(root) ==
+                joinpath(root, "docs", "alternate-build")
+        end
+    end
     for maintainer_name in (
             :case_study_provenance_manifest,
             :evidence_artifact_schema_policy,
