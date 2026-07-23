@@ -105,6 +105,7 @@ using BayesianMGMFRM:
     linear_predictor_table,
     linear_predictor_values,
     local_dependence_contract,
+    local_dependence_simulation_grid,
     local_dependence_summary,
     GMFRMFit,
     MGMFRMFit,
@@ -159,6 +160,7 @@ using BayesianMGMFRM:
     save_fit_report_tables,
     simulation_grid,
     simulation_grid_summary,
+    simulate_local_dependence,
     simulate_responses,
     stan_validation_row,
     stan_validation_summary,
@@ -19820,7 +19822,8 @@ end
             :initial_params, :loglikelihood, :logposterior, :logprior,
             :kfold, :loo, :psis_loo, :loo_diagnostics,
             :linear_predictor_table, :linear_predictor_values,
-            :local_dependence_contract, :local_dependence_summary,
+            :local_dependence_contract, :local_dependence_simulation_grid,
+            :local_dependence_summary,
             :calibration_table, :diagnostics,
             :diagnostic_map_data,
             :comparison_evidence_row, :comparison_evidence_summary,
@@ -19850,7 +19853,8 @@ end
             :save_fit_report_tables,
             :sensitivity_comparison, :sensitivity_comparison_summary,
             :separation_reliability_summary, :simulation_grid,
-            :simulation_grid_summary, :simulate_responses,
+            :simulation_grid_summary, :simulate_local_dependence,
+            :simulate_responses,
             :stan_validation_row, :stan_validation_summary,
             :threshold_map_data, :testlet_design_audit,
             :validation_suggestions, :evidence_metadata,
@@ -30569,6 +30573,7 @@ include("testlet_overlap_contract.jl")
 include("predictive_standardized_residuals.jl")
 include("local_dependence_contract.jl")
 include("local_dependence_summary.jl")
+include("local_dependence_simulation.jl")
 include("facets_compatibility_stats.jl")
 include("generalized_guard_contract.jl")
 include("experimental_namespace.jl")
