@@ -105,6 +105,7 @@ using BayesianMGMFRM:
     linear_predictor_table,
     linear_predictor_values,
     local_dependence_contract,
+    local_dependence_summary,
     GMFRMFit,
     MGMFRMFit,
     MFRMFit,
@@ -19819,7 +19820,7 @@ end
             :initial_params, :loglikelihood, :logposterior, :logprior,
             :kfold, :loo, :psis_loo, :loo_diagnostics,
             :linear_predictor_table, :linear_predictor_values,
-            :local_dependence_contract,
+            :local_dependence_contract, :local_dependence_summary,
             :calibration_table, :diagnostics,
             :diagnostic_map_data,
             :comparison_evidence_row, :comparison_evidence_summary,
@@ -30567,6 +30568,7 @@ include("testlet_design_audit.jl")
 include("testlet_overlap_contract.jl")
 include("predictive_standardized_residuals.jl")
 include("local_dependence_contract.jl")
+include("local_dependence_summary.jl")
 include("facets_compatibility_stats.jl")
 include("generalized_guard_contract.jl")
 include("experimental_namespace.jl")
