@@ -30541,6 +30541,7 @@ end
 end
 
 include("model_contract.jl")
+include("testlet_overlap_contract.jl")
 include("facets_compatibility_stats.jl")
 include("generalized_guard_contract.jl")
 include("experimental_namespace.jl")
