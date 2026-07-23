@@ -25,7 +25,9 @@ const PUBLIC_DOCUMENTATION_PAGES = (
     "model-equations.md",
     "bayesian-workflow.md",
     "fitting.md",
+    "experimental.md",
     "examples.md",
+    "migration-facets-conquest.md",
     "scope.md",
     "api.md",
     "api-data-design.md",
@@ -281,9 +283,18 @@ function public_surface_paths(root::AbstractString)
     return paths
 end
 
+function _rendered_build_root(root::AbstractString)
+    normalized_root = abspath(normpath(root))
+    configured = strip(get(ENV, "BAYESIANMGMFRM_DOCS_BUILD", ""))
+    isempty(configured) && return joinpath(normalized_root, "docs", "build")
+    return isabspath(configured) ?
+        abspath(normpath(configured)) :
+        abspath(normpath(joinpath(normalized_root, "docs", configured)))
+end
+
 function rendered_public_surface_paths(root::AbstractString)
     normalized_root = abspath(normpath(root))
-    build_root = joinpath(normalized_root, "docs", "build")
+    build_root = _rendered_build_root(normalized_root)
     isdir(build_root) || error(
         "rendered documentation does not exist at $(relpath(build_root, normalized_root)); build docs first")
     paths = [page == "index.md" ?
@@ -639,7 +650,7 @@ end
 
 function check_rendered_public_language(root::AbstractString)
     normalized_root = abspath(normpath(root))
-    build_root = joinpath(normalized_root, "docs", "build")
+    build_root = _rendered_build_root(normalized_root)
     expected_paths = rendered_public_surface_paths(normalized_root)
     expected = Set(abspath.(expected_paths))
     actual = Set{String}()

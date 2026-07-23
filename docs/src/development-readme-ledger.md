@@ -542,7 +542,7 @@ For ordinary local verification:
 
 ```bash
 julia --project=. -e 'using Pkg; Pkg.test()'
-julia --project=docs docs/make.jl
+julia --startup-file=no --project=docs docs/build.jl
 ```
 
 Before cutting a release or requesting a Julia General update, run the stricter
@@ -569,9 +569,14 @@ call GitHub, Registrator, General, or any publication endpoint.
 
 ## Manifest and Cache Policy
 
-Package `Manifest.toml` files are intentionally ignored for Julia General
-registration. The package gate develops the repository in fresh temporary
-environments so local manifests do not affect registration checks.
+The root `Manifest.toml` and `docs/Manifest.toml` are ignored, machine-local
+files. The versioned `Manifest-v1.10.toml` is the tracked lockfile for the Julia
+1.10.8 minimum-version lane; Julia 1.10 selects it while the latest Julia 1.x
+lane resolves from `Project.toml` compatibility bounds to detect forward drift.
+A study that binds any manifest must archive its exact bytes or hash with the
+study outputs. The package gate develops the repository in fresh temporary
+environments, so the local root and docs manifests do not affect registration
+checks.
 
 Serialized fit caches from `cached_fit` are for same-environment recomputation
 avoidance. For durable review, keep the `model_manifest`, `fit_artifact`,

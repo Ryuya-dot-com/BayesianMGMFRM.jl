@@ -68,70 +68,20 @@ Sampler success is necessary but not sufficient. Review:
 Very short chains commonly produce unreliable R-hat and ESS values even when
 the example completes without an exception.
 
-## Experimental Scalar GMFRM
+## Experimental Generalized Fitting
 
-The scalar rater-consistency configuration requires:
+Generalized fitting is deliberately outside this stable fitting surface. Use
+the [Experimental Generalized Models](experimental.md) page for the scalar
+rater-consistency GMFRM and fixed-Q confirmatory MGMFRM contracts, examples,
+and migration guidance.
 
-- `family = :gmfrm` and one dimension;
-- `thresholds = :partial_credit`;
-- `discrimination = :rater`;
-- no anchors and no fitted DFF terms;
-- `experimental = true` at fitting time.
-
-```julia
-gmfrm_spec = mfrm_spec(data;
-    family = :gmfrm,
-    thresholds = :partial_credit,
-    discrimination = :rater,
-    anchors = [],
-)
-
-gmfrm_fit = fit(gmfrm_spec;
-    experimental = true,
-    backend = :advancedhmc,
-    ndraws = 500,
-    warmup = 500,
-    chains = 4,
-    seed = 20260718,
-)
-```
-
-This is not a general discrimination model. Item discrimination,
-multidimensional ability, rating-scale generalized kernels, and fitted DFF terms
-are not supported by this path.
-Custom generalized prior objects are not supported.
-
-## Experimental Fixed-Q MGMFRM
-
-The confirmatory MGMFRM configuration requires at least two dimensions, a fixed
-Q-matrix, partial-credit steps, identity latent correlation, no anchors, and no
-fitted DFF terms.
-
-```julia
-q_matrix = Bool[1 0; 0 1]
-
-mgmfrm_spec = mfrm_spec(data;
-    family = :mgmfrm,
-    dimensions = 2,
-    thresholds = :partial_credit,
-    discrimination = :none,
-    q_matrix,
-    anchors = [],
-)
-
-mgmfrm_fit = fit(mgmfrm_spec;
-    experimental = true,
-    backend = :advancedhmc,
-    ndraws = 500,
-    warmup = 500,
-    chains = 4,
-    seed = 20260718,
-)
-```
-
-`discrimination = :none` is the generic selector for this fixed configuration;
-the likelihood still contains positive Q-masked item-dimension discrimination
-parameters. The Q-matrix is confirmatory and is not estimated or rotated.
+Both configurations require `thresholds = :partial_credit`.
+Both configurations require no anchors and no fitted DFF terms. Scalar GMFRM
+uses `discrimination = :rater`; fixed-Q MGMFRM uses the compatibility selector
+`discrimination = :none`. Custom generalized prior objects are not supported.
+The legacy
+`fit(spec; experimental = true)` form remains source-compatible, but
+`BayesianMGMFRM.Experimental.fit` is the canonical entry point for new work.
 
 ## Predictive Checks and Model Comparison
 

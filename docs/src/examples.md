@@ -28,7 +28,7 @@ runs the guarded scalar rater-consistency GMFRM path. It covers:
 - a compact one-dimensional example with partial-credit thresholds and
   `discrimination = :rater`;
 - preview design and constraint inspection before fitting;
-- opt-in fitting through `fit(spec; experimental = true)`;
+- opt-in fitting through `BayesianMGMFRM.Experimental.fit(spec)`;
 - guarded [`GMFRMFit`](@ref) metadata, fit artifacts, fit reports, sampler
   diagnostics, posterior summaries, WAIC rows, and posterior predictive
   summaries.
@@ -45,7 +45,7 @@ runs the guarded fixed-Q confirmatory MGMFRM path. It covers:
 - a compact two-dimensional example of the `family = :mgmfrm` guarded path,
   using a fixed item-by-dimension `q_matrix`;
 - preview design and constraint inspection before fitting;
-- opt-in fitting through `fit(spec; experimental = true)`;
+- opt-in fitting through `BayesianMGMFRM.Experimental.fit(spec)`;
 - guarded [`MGMFRMFit`](@ref) metadata, fit artifacts, fit reports, sampler
   diagnostics, posterior summaries, WAIC rows, and posterior predictive
   summaries.
