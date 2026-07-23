@@ -1,0 +1,136 @@
+{
+  "schema": "bayesianmgmfrm.conquest_5_47_5_execution_fixture.v1",
+  "software": "ACER ConQuest",
+  "software_version": "5.47.5",
+  "edition": "Demonstration Version",
+  "expires": "2026-09-01",
+  "executed_on": {
+    "os": "macOS 26.5.2",
+    "host_architecture": "arm64",
+    "executable_architecture": "x86_64",
+    "translation": "Rosetta 2",
+    "executable_sha256": "61d0b87f379f1578466b789866366c5cc633d31a6c3501e872861d44ff02da48"
+  },
+  "privacy": {
+    "real_person_data_included": false,
+    "row_level_ratings_included": false,
+    "person_estimates_included": false,
+    "original_labels_included": false,
+    "licence_credentials_or_activation_material_included": false,
+    "licence_metadata_included": true,
+    "executed_bundle_contained_row_level_synthetic_ratings": true
+  },
+  "generation": {
+    "first_three_persons_forced_to_categories": [0, 1, 2],
+    "purpose": "Guarantee complete category coverage in every observed rater-item generalized item",
+    "known_truth_and_seed_are_operator_recorded": true,
+    "row_level_generation_reproducible_from_fixture": false
+  },
+  "provenance": {
+    "executed_control_retained": true,
+    "executed_manifest_retained": true,
+    "executed_macos_verifier_retained": true,
+    "executed_macos_runner_retained": true,
+    "receipt_retained": true,
+    "retained_raw_outputs_per_model": 4,
+    "receipt_output_inventory_records_per_model": 15,
+    "unretained_output_bytes_recomputable_from_fixture": false,
+    "independent_execution_verified": false
+  },
+  "models": {
+    "rsm": {
+      "seed": 20260721,
+      "n_persons": 120,
+      "n_ratings": 1440,
+      "bundle_id": "sha256:9c0ecf6444032cf2f8c862a4c1f86c95b8300ee5a9c012a078d92613a576c084",
+      "macos_verifier_sha256": "9495a6739ec4aa84ec78e551c6262708b19b0c31b633960338a35c03e1f614a1",
+      "macos_runner_sha256": "d490c42465270dc2ae1528e3ad0c8fc3e1ee7657f3259b7392856a680916ccfb",
+      "executed_at_utc": "2026-07-21T12:56:07Z",
+      "receipt_content_hash": "4e7508f58072d13de0b68940b649c32f4167f13964000688c8a201626bd387ae",
+      "exit_code": 0,
+      "receipt_output_records": 15,
+      "retained_raw_output_files": 4,
+      "n_free_parameters": 6,
+      "selected_iteration": 13,
+      "history_last_iteration": 18,
+      "selected_deviance": 2418.47160,
+      "selected_population_variance": 2.92363,
+      "truth": {
+        "rater": [-0.45, 0.0, 0.45],
+        "item": [-0.60, -0.20, 0.20, 0.60],
+        "step": [-0.60, 0.60]
+      },
+      "estimate_after_constraint_reconstruction": {
+        "rater": [-0.48064, -0.01241, 0.49305],
+        "item": [-0.63820, -0.21705, 0.14364, 0.71161],
+        "step": [-0.71581, 0.71581]
+      },
+      "rmse": {
+        "rater": 0.031337518514819675,
+        "item": 0.06592265202492995,
+        "step": 0.11580999999999997
+      },
+      "files": {
+        "parameters": "d3f7442f96bc7a9f15952ee28928ecb2ba93abefd8a0941add0136e3a0e825c8",
+        "designmatrix": "3eb6b8afbcc7e43a047abfecdbe739a58109069e896b6443aa1c45486de9944a",
+        "history": "8a02337fdcb08e5c05f05bf1dddef750c6dd8fc643385494dbe37f14a6f79bc6",
+        "labels": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "control": "24be10d062a0b02235561a80e8d46785e2996a7d3412f64a29884f671b3312a0",
+        "manifest": "aca795c413ad74b984da7a1d3e98204d1b8f6cd5c278640164cb9c1a851da557",
+        "receipt": "ae392863f7d7ad7e111ba5bc9d17a6648d0a7bb7d731d5983b4bc4fb3b470d65",
+        "macos_verifier": "9495a6739ec4aa84ec78e551c6262708b19b0c31b633960338a35c03e1f614a1",
+        "macos_runner": "d490c42465270dc2ae1528e3ad0c8fc3e1ee7657f3259b7392856a680916ccfb"
+      }
+    },
+    "pcm": {
+      "seed": 20260722,
+      "n_persons": 160,
+      "n_ratings": 1920,
+      "bundle_id": "sha256:932a22a73087f5025eb9fa7141d92e2027751c3274b5597600732df6fe88f4fe",
+      "macos_verifier_sha256": "fdb00db696b8d9914e811ae267821b7db594fa0b4d2071cf3afdb29ffff05d0d",
+      "macos_runner_sha256": "d490c42465270dc2ae1528e3ad0c8fc3e1ee7657f3259b7392856a680916ccfb",
+      "executed_at_utc": "2026-07-21T12:56:32Z",
+      "receipt_content_hash": "95e44f4cdf91690dbadeb01661c730b3428c85dde955e9c71cfeb38728457e14",
+      "exit_code": 0,
+      "receipt_output_records": 15,
+      "retained_raw_output_files": 4,
+      "n_free_parameters": 9,
+      "selected_iteration": 13,
+      "history_last_iteration": 17,
+      "selected_deviance": 3265.77583,
+      "selected_population_variance": 2.54937,
+      "truth": {
+        "rater": [-0.45, 0.0, 0.45],
+        "item": [-0.60, -0.20, 0.20, 0.60],
+        "item_steps": [[-0.80, 0.80], [-0.60, 0.60], [-0.40, 0.40], [-0.20, 0.20]]
+      },
+      "estimate_after_constraint_reconstruction": {
+        "rater": [-0.35313, -0.04979, 0.40292],
+        "item": [-0.58169, -0.12919, 0.16438, 0.54650],
+        "item_steps": [[-0.68676, 0.68676], [-0.49813, 0.49813], [-0.42007, 0.42007], [-0.10561, 0.10561]]
+      },
+      "rmse": {
+        "rater": 0.06850636807382704,
+        "item": 0.04868353571794059,
+        "step": 0.09015690697334286
+      },
+      "files": {
+        "parameters": "17d5f4b74ffc657ded402aa0a0ca1d0c6bb817d1f25672b7b22b50d709ae7f36",
+        "designmatrix": "81dc44b734783f97a7c9086b707faf799b52beba36b63f7c44ff5197bfd9c0cc",
+        "history": "79bc48271b8d173a5cce4d7d08193e6ac77eebca37457a67f51043e868d06464",
+        "labels": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "control": "97416cf29649f523ec87b3ca62880687f9bc038d2e20af6e0dd34d34137859f7",
+        "manifest": "25bde1e0f64522841bf1ef5d85339df465468e33b727115945db01d347dfb7c6",
+        "receipt": "577b650fcb22452bbeb21e9e6215c800a55bbcae40c4162749a2ee5228470911",
+        "macos_verifier": "fdb00db696b8d9914e811ae267821b7db594fa0b4d2071cf3afdb29ffff05d0d",
+        "macos_runner": "d490c42465270dc2ae1528e3ad0c8fc3e1ee7657f3259b7392856a680916ccfb"
+      }
+    }
+  },
+  "interpretation": {
+    "constraint_reconstruction": "The final rater and item parameters are the negative sum of free parameters; the second step in each two-step structure is the negative first step.",
+    "history_selection": "Use the minimum-deviance accepted iteration, not the final history row.",
+    "threshold_warning": "The threshold export gamma column contains generalized rater-item thresholds and is not the source step-parameter vector.",
+    "scope": "Version-specific known-truth execution evidence; not product equivalence or independent replication."
+  }
+}
