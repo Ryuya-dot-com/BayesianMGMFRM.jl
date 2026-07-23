@@ -11169,6 +11169,8 @@ function _facet_data_optional_kwargs(data::FacetData)
         task = haskey(data.optional, :task) ? :task : nothing,
         form = haskey(data.optional, :form) ? :form : nothing,
         occasion = haskey(data.optional, :occasion) ? :occasion : nothing,
+        response_id = haskey(data.optional, :response_id) ? :response_id : nothing,
+        testlet_id = haskey(data.optional, :testlet_id) ? :testlet_id : nothing,
     )
 end
 
