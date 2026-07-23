@@ -35,6 +35,7 @@ using BayesianMGMFRM:
     benchmark_summary,
     calibration_plot_data,
     case_study_provenance_manifest,
+    category_functioning_summary,
     cached_fit,
     comparison_evidence_row,
     comparison_evidence_summary,
@@ -145,6 +146,7 @@ using BayesianMGMFRM:
     prior_predictive_check,
     q_matrix_validation,
     rater_diagnostics,
+    rater_homogeneity_summary,
     rater_overlap,
     rating_design_audit,
     related_software_capability_matrix,
@@ -19817,7 +19819,7 @@ end
             :anchor_refit_plan, :anchor_linking_summary,
             :artifact_content_hash, :cached_fit,
             :benchmark_result_row, :benchmark_summary, :calibration_plot_data,
-            :case_study_provenance_manifest,
+            :case_study_provenance_manifest, :category_functioning_summary,
             :constraint_table, :dff_report, :domain_compilation_summary,
             :expected_scores, :facets_compatibility_stats, :facets_report,
             :fair_average_summary,
@@ -19855,7 +19857,8 @@ end
             :fit_report_rows,
             :load_fit_cache, :load_fit_report, :load_fit_report_dossier,
             :load_fit_report_bundle,
-            :load_fit_report_tables, :rater_diagnostics, :rater_overlap,
+            :load_fit_report_tables, :rater_diagnostics,
+            :rater_homogeneity_summary, :rater_overlap,
             :rating_design_audit,
             :related_software_capability_matrix, :release_gate_check,
             :release_scope_summary, :residual_summary, :sampler_diagnostics,
@@ -30592,6 +30595,7 @@ include("local_dependence_calibration_pilot.jl")
 include("local_dependence_pilot_protocol_artifact.jl")
 include("local_dependence_pilot_batch_execution_harness.jl")
 include("facets_compatibility_stats.jl")
+include("practitioner_diagnostics.jl")
 include("anchor_refit_plan.jl")
 include("generalized_guard_contract.jl")
 include("experimental_namespace.jl")

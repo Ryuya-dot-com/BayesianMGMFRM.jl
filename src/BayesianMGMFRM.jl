@@ -65,6 +65,7 @@ export FacetData,
     cached_fit,
     calibration_plot_data,
     case_study_provenance_manifest,
+    category_functioning_summary,
     comparison_evidence_row,
     comparison_evidence_summary,
     diagnostic_map_data,
@@ -152,6 +153,7 @@ export FacetData,
     prior_predictive_check,
     q_matrix_validation,
     rater_diagnostics,
+    rater_homogeneity_summary,
     rater_overlap,
     rating_design_audit,
     related_software_capability_matrix,
@@ -201,6 +203,7 @@ include("mgmfrm_free_correlation_resource_probe.jl")
 include("mgmfrm_free_correlation_study_scoring.jl")
 include("experimental.jl")
 include("anchor_refit_plan.jl")
+include("practitioner_diagnostics.jl")
 include("local_dependence.jl")
 include("local_dependence_known_truth_dgp.jl")
 include("local_dependence_simulation.jl")
