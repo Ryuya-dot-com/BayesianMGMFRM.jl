@@ -15,7 +15,7 @@
   "publication_or_registration_action": false,
   "package": {
     "name": "BayesianMGMFRM",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "julia_version": "1.12.5"
   },
   "protocol": {
@@ -38,9 +38,9 @@
   },
   "environment_contract": {
     "project_toml": "Project.toml",
-    "project_toml_sha256": "199b2b22154d2d7e86d027bf6b75c326aabfa9176e3af456f8a2a92dbd6af8c9",
+    "project_toml_sha256": "97191682f911e36a38546395f00258ae23c11a8c45ba8851d0cb0832864cb51e",
     "manifest_toml": "Manifest.toml",
-    "manifest_toml_sha256": "854ecdb168aec3bcf5f47366d0e75a1cbfe3d00206e0ec7efc8ba9f325c93d02",
+    "manifest_toml_sha256": "a5dfcaa707528bed6a2c5519b9430d88f37a94ca8676cbe26b04b4046ad62c18",
     "julia_version": "1.12.5",
     "r_and_tam_versions": "recorded_in_tam_fit_contract",
     "os_blas_and_cpu_metadata_required_in_result": true,
