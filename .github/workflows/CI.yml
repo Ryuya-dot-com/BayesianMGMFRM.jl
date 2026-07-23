@@ -42,8 +42,32 @@ jobs:
       - uses: julia-actions/cache@v2
       - name: Build documentation
         run: |
-          julia --project=docs -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate(); include("docs/make.jl")'
+          julia --startup-file=no --project=docs docs/build.jl
           julia --startup-file=no scripts/public_language_gate.jl --rendered
+
+  experimental-boundary:
+    name: Experimental namespace boundary and lightweight guarded-fit smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.10.8'
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: Test the scientific payload digest contract
+        run: julia --startup-file=no --project=. test/scientific_payload_digest.jl
+      - name: Test the quarantined 2D free-correlation contract and bounded diagnostic smoke
+        env:
+          BAYESIANMGMFRM_FREE_CORRELATION_SMOKE: "true"
+          BAYESIANMGMFRM_FREE_CORRELATION_RECOVERY_SMOKE: "true"
+          JULIA_NUM_THREADS: "1"
+          OPENBLAS_NUM_THREADS: "1"
+        run: julia --startup-file=no --project=. test/mgmfrm_free_latent_correlation_2d.jl
+      - name: Test the experimental boundary and guarded fits
+        env:
+          BAYESIANMGMFRM_EXPERIMENTAL_BOUNDARY_SMOKE: "true"
+        run: julia --startup-file=no --project=. test/experimental_namespace.jl
 
   release-hygiene-gate:
     name: Release hygiene gate
@@ -57,3 +81,19 @@ jobs:
       - name: Run release hygiene gate
         run: |
           julia --startup-file=no scripts/pre_registration_gate.jl --skip-tests --skip-docs --expected-version=0.1.1
+
+  strict-archive-reproduction-gate:
+    name: Manual strict archive reproduction gate
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      BAYESIANMGMFRM_STRICT_ARCHIVE_SHA: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.10.8'
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: Require exact archived code and documentation bytes
+        run: julia --startup-file=no --project=. test/scientific_payload_digest.jl --strict-archive
