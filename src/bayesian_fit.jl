@@ -15735,6 +15735,198 @@ function predictive_residuals(fit::MGMFRMFit;
     return residuals
 end
 
+function _predictive_standardized_residuals_from_probabilities(
+        data::FacetData,
+        probabilities::AbstractArray{<:Real,3};
+        family,
+        thresholds,
+        draw_indices,
+        draw_source::Symbol,
+        variance_tolerance::Real)
+    size(probabilities, 1) >= 1 ||
+        throw(ArgumentError(
+            "predictive_standardized_residuals requires at least one draw"))
+    size(probabilities, 2) == data.n ||
+        throw(ArgumentError("probabilities observation count does not match data"))
+    size(probabilities, 3) == length(data.category_levels) ||
+        throw(ArgumentError("probabilities category count does not match data"))
+    tolerance = Float64(variance_tolerance)
+    isfinite(tolerance) && tolerance >= 0 ||
+        throw(ArgumentError(
+            "variance_tolerance must be finite and nonnegative"))
+    all(value -> isfinite(Float64(value)), probabilities) ||
+        throw(ArgumentError(
+            "predictive probabilities contain non-finite values; " *
+            "standardized residuals are not available"))
+
+    expected = _expected_scores_from_probabilities(
+        probabilities,
+        data.category_levels,
+    )
+    variances = _predictive_variances_from_probabilities(
+        probabilities,
+        data.category_levels,
+    )
+    all(isfinite, expected) ||
+        throw(ArgumentError(
+            "predictive expected scores contain non-finite values; " *
+            "standardized residuals are not available"))
+    all(isfinite, variances) ||
+        throw(ArgumentError(
+            "predictive variances contain non-finite values; " *
+            "standardized residuals are not available"))
+    values = fill(NaN, size(expected))
+    valid = falses(size(expected))
+    for draw in axes(expected, 1), row in axes(expected, 2)
+        variance = variances[draw, row]
+        if variance > tolerance
+            value = (Float64(data.score[row]) - expected[draw, row]) /
+                sqrt(variance)
+            isfinite(value) ||
+                throw(ArgumentError(
+                    "standardized residual is non-finite at draw $draw, " *
+                    "observation $row"))
+            values[draw, row] = value
+            valid[draw, row] = true
+        end
+    end
+    excluded_by_draw = Tuple(
+        count(!, @view valid[draw, :]) for draw in axes(valid, 1))
+    excluded_by_observation = Tuple(
+        count(!, @view valid[:, row]) for row in axes(valid, 2))
+
+    return (;
+        schema = "bayesianmgmfrm.predictive_standardized_residuals.v1",
+        object = :predictive_standardized_residuals,
+        family,
+        thresholds,
+        draw_source,
+        draw_indices = Tuple(Int.(draw_indices)),
+        n_draws = size(values, 1),
+        n_observations = size(values, 2),
+        residual_definition = :draw_specific_pearson,
+        conditioning = :parameter_draw,
+        variance_tolerance = tolerance,
+        values,
+        valid,
+        n_valid = count(valid),
+        n_excluded = length(valid) - count(valid),
+        excluded_by_draw,
+        excluded_by_observation,
+        nonfinite_prediction_action = :error,
+        caveat = :low_predictive_variance_rows_are_excluded_not_clamped,
+    )
+end
+
+"""
+    predictive_standardized_residuals(
+        fit::MFRMFit;
+        ndraws = nothing,
+        draw_indices = nothing,
+        rng = Random.default_rng(),
+        variance_tolerance = 1e-12)
+    predictive_standardized_residuals(
+        design::FacetDesign,
+        draws;
+        variance_tolerance = 1e-12)
+
+Return draw-specific Pearson score residuals for MFRM, GMFRM, or MGMFRM
+predictions. For observation `n` and parameter draw `d`, the reported value is
+`(y[n] - E[y[n] | draw d]) / sqrt(Var[y[n] | draw d])`. The result retains the
+draw-by-observation matrix in `values`, a same-shaped `valid` mask, draw indices,
+and exclusion counts. Predictive variances at or below `variance_tolerance` are
+excluded rather than clamped, preventing artificial extreme residuals.
+Non-finite predictive probabilities, expectations, variances, or standardized
+values raise `ArgumentError`; they are never counted as low-variance exclusions.
+
+These residuals are a low-level diagnostic input. They do not by themselves
+establish local independence, a testlet effect, rater halo, or a universal Q3
+cutoff. Use [`local_dependence_contract`](@ref) and
+[`testlet_design_audit`](@ref) to inspect the planned matching and design
+requirements before forming pairwise dependence statistics.
+"""
+function predictive_standardized_residuals(
+        design::FacetDesign,
+        draws::AbstractMatrix;
+        variance_tolerance::Real = 1e-12)
+    probabilities = predictive_probabilities(design, draws)
+    return _predictive_standardized_residuals_from_probabilities(
+        design.spec.data,
+        probabilities;
+        family = design.spec.family,
+        thresholds = design.spec.thresholds,
+        draw_indices = 1:size(draws, 1),
+        draw_source = :supplied,
+        variance_tolerance,
+    )
+end
+
+function predictive_standardized_residuals(
+        fit::MFRMFit;
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng(),
+        variance_tolerance::Real = 1e-12)
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    probabilities = predictive_probabilities(
+        fit.design,
+        @view(fit.draws[indices, :]),
+    )
+    return _predictive_standardized_residuals_from_probabilities(
+        fit.design.spec.data,
+        probabilities;
+        family = fit.design.spec.family,
+        thresholds = fit.design.spec.thresholds,
+        draw_indices = indices,
+        draw_source = :posterior,
+        variance_tolerance,
+    )
+end
+
+function predictive_standardized_residuals(
+        fit::GMFRMFit;
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng(),
+        variance_tolerance::Real = 1e-12)
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    probabilities = _gmfrm_predictive_probabilities_direct(
+        fit.design,
+        @view(fit.direct_draws[indices, :]),
+    )
+    return _predictive_standardized_residuals_from_probabilities(
+        fit.design.spec.data,
+        probabilities;
+        family = fit.design.spec.family,
+        thresholds = fit.design.spec.thresholds,
+        draw_indices = indices,
+        draw_source = :posterior,
+        variance_tolerance,
+    )
+end
+
+function predictive_standardized_residuals(
+        fit::MGMFRMFit;
+        ndraws::Union{Nothing,Int} = nothing,
+        draw_indices = nothing,
+        rng::AbstractRNG = Random.default_rng(),
+        variance_tolerance::Real = 1e-12)
+    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
+    probabilities = _mgmfrm_predictive_probabilities_direct(
+        fit.design,
+        @view(fit.direct_draws[indices, :]),
+    )
+    return _predictive_standardized_residuals_from_probabilities(
+        fit.design.spec.data,
+        probabilities;
+        family = fit.design.spec.family,
+        thresholds = fit.design.spec.thresholds,
+        draw_indices = indices,
+        draw_source = :posterior,
+        variance_tolerance,
+    )
+end
+
 function _fit_stat_groups(data::FacetData, by::Symbol)
     by === :person && return data.person, data.person_levels
     by === :rater && return data.rater, data.rater_levels
