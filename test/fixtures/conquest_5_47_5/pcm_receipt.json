@@ -1,0 +1,120 @@
+{
+  "schema": "bayesianmgmfrm.external_software_bridge_result_receipt.v1",
+  "object": "external_software_bridge_result_receipt",
+  "status": "raw_return_integrity_verified",
+  "bundle_id": "sha256:932a22a73087f5025eb9fa7141d92e2027751c3274b5597600732df6fe88f4fe",
+  "software": "conquest",
+  "software_version": "ConQuest 5.47.5 Demonstration Version",
+  "executable_sha256": "61d0b87f379f1578466b789866366c5cc633d31a6c3501e872861d44ff02da48",
+  "executed_at_utc": "2026-07-21T12:56:32Z",
+  "exit_code": 0,
+  "input_manifest_sha256": "25bde1e0f64522841bf1ef5d85339df465468e33b727115945db01d347dfb7c6",
+  "raw_return_integrity_verified": true,
+  "external_execution_completed": false,
+  "external_execution_reported_completed": true,
+  "external_execution_independently_verified": false,
+  "external_execution_authenticity_verified": false,
+  "convergence_validated": false,
+  "semantic_parameter_adapter_validated": false,
+  "numerical_comparison_allowed": false,
+  "software_equivalence_claimed": false,
+  "parameter_export": {
+    "parsed": true,
+    "n_parameter_pairs": 9,
+    "semantic_parameter_identity_resolved": false,
+    "source_sha256": "17d5f4b74ffc657ded402aa0a0ca1d0c6bb817d1f25672b7b22b50d709ae7f36"
+  },
+  "output_files": [
+    {
+      "path": "results/conquest_cases_wle.csv",
+      "role": "case_estimates",
+      "nbytes": 7424,
+      "sha256": "b08e2aa495c1c6f42bec17cad0cb93c12ea2d5779f239627db150be103f00b1d"
+    },
+    {
+      "path": "results/conquest_commands.txt",
+      "role": "command_history",
+      "nbytes": 1314,
+      "sha256": "dad2c6282dc8a27539db5540a72160d035c163d717e12f0e92e24b32eb04e313"
+    },
+    {
+      "path": "results/conquest_console.log",
+      "role": "console_log",
+      "nbytes": 27077,
+      "sha256": "15957295174052d856df32b4aa6feffcb3c25f9c96b1cee7c988aadb6abe299c"
+    },
+    {
+      "path": "results/conquest_designmatrix.csv",
+      "role": "design_matrix",
+      "nbytes": 1050,
+      "sha256": "81dc44b734783f97a7c9086b707faf799b52beba36b63f7c44ff5197bfd9c0cc"
+    },
+    {
+      "path": "results/conquest_estimation.log",
+      "role": "estimation_log",
+      "nbytes": 13059,
+      "sha256": "63b8c0bbad31ab092b42d91bf4cb49fb0c56b17a4e007cb11913dda30acbca64"
+    },
+    {
+      "path": "results/conquest_history.txt",
+      "role": "estimation_history",
+      "nbytes": 2047,
+      "sha256": "79bc48271b8d173a5cce4d7d08193e6ac77eebca37457a67f51043e868d06464"
+    },
+    {
+      "path": "results/conquest_input_snapshot.txt",
+      "role": "parsed_input_snapshot",
+      "nbytes": 44160,
+      "sha256": "ea10982889cbedf28e60d7d093e6dfc360298e613f8a2468778fbfa126c96e80"
+    },
+    {
+      "path": "results/conquest_itanal_export.txt",
+      "role": "item_analysis",
+      "nbytes": 3772,
+      "sha256": "7ceb8d1cd5d15cf09b454637235111aae914954728ca4ddc3db55d240673d840"
+    },
+    {
+      "path": "results/conquest_labels.txt",
+      "role": "conquest_labels",
+      "nbytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "results/conquest_parameters.txt",
+      "role": "parameter_pairs",
+      "nbytes": 451,
+      "sha256": "17d5f4b74ffc657ded402aa0a0ca1d0c6bb817d1f25672b7b22b50d709ae7f36"
+    },
+    {
+      "path": "results/conquest_population_covariance.txt",
+      "role": "population_covariance",
+      "nbytes": 23,
+      "sha256": "0e2b7bd9d3e05672173959085a90ab4a4ae567f05021b81beafe2acc37f6963f"
+    },
+    {
+      "path": "results/conquest_residuals.csv",
+      "role": "residual_output",
+      "nbytes": 38424,
+      "sha256": "b009ad151ea2f2fca41d9df5900de0fd53008942b4753c262a42a41075674b14"
+    },
+    {
+      "path": "results/conquest_show_parameters.txt",
+      "role": "parameter_report",
+      "nbytes": 18242,
+      "sha256": "11170f4c55f569666a9537716ef6c103051b6c71b724ddd3080e17af3eefdce2"
+    },
+    {
+      "path": "results/conquest_thresholds.csv",
+      "role": "threshold_output",
+      "nbytes": 1518,
+      "sha256": "d0013a9dd180b754f895db4804e77e147a08a695e02467a295ba5faa186ad2c2"
+    },
+    {
+      "path": "results/external_exit_code.txt",
+      "role": "process_exit_code",
+      "nbytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    }
+  ],
+  "content_hash": "95e44f4cdf91690dbadeb01661c730b3428c85dde955e9c71cfeb38728457e14"
+}

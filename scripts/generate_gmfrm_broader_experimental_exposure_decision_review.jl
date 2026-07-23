@@ -158,6 +158,7 @@ const PROTOCOL = (;
         require_tam_direct_execution_recorded = true,
         require_tam_raw_archive_integrity_passed = true,
         require_tam_post_execution_packet_integrity_passed = true,
+        require_tam_execution_input_lineage_exact = true,
         require_tam_independent_review_pending_recorded = true,
         require_tam_pre_execution_lineage_mismatch_recorded = true,
         require_tam_evidence_nontransfer_to_gmfrm_mgmfrm = true,
@@ -584,6 +585,8 @@ function build_artifact()
         tam_post_summary, "independent_review_completed"))
     tam_pre_execution_exact_input_lineage = Bool(json_optional_bool(
         tam_post_summary, "pre_execution_packet_exact_input_lineage"))
+    tam_execution_input_lineage_exact = Bool(json_optional_bool(
+        tam_post_summary, "raw_job_execution_input_lineage_exact"))
     full_archive =
         record_by_name(input_records, :full_paper_reproduction_archive)
     mgmfrm_bridge = record_by_name(input_records, :mgmfrm_bridge_oracle)
@@ -625,6 +628,7 @@ function build_artifact()
         tam_direct_primary_gate_passed &&
         tam_raw_archive_integrity_passed &&
         tam_post_packet_integrity_passed &&
+        tam_execution_input_lineage_exact &&
         !tam_independent_review_completed &&
         !tam_pre_execution_exact_input_lineage &&
         no_publication
@@ -662,6 +666,7 @@ function build_artifact()
             tam_direct_evidence_scope = :mfrm_tam_overlap_nontransfer,
             tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm = false,
             tam_independent_review_completed,
+            tam_execution_input_lineage_exact,
             public_exposure_support =
                 :guarded_scalar_gmfrm_and_fixed_q_mgmfrm_only,
             interpretation =
@@ -710,6 +715,7 @@ function build_artifact()
             tam_raw_archive_integrity_passed,
             tam_post_packet_integrity_passed,
             tam_independent_review_completed,
+            tam_execution_input_lineage_exact,
             tam_pre_execution_exact_input_lineage,
             tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm = false,
             n_input_artifacts = length(input_records),

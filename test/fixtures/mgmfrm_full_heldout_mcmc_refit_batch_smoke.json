@@ -23,7 +23,7 @@
   "sparse_mgmfrm_superiority_claim": false,
   "package": {
     "name": "BayesianMGMFRM",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "julia_version": "1.12.5"
   },
   "protocol": {
@@ -67,7 +67,7 @@
       "artifact": "mgmfrm_full_heldout_mcmc_refit_execution_plan",
       "path": "test/fixtures/mgmfrm_full_heldout_mcmc_refit_execution_plan.json",
       "exists": true,
-      "sha256": "fae6e4e9e80ffd76076ddbd8f0c69e382bf1a105da1fcb46f119f878ed3348b3",
+      "sha256": "aaa37b2e78b4f3173f80da4764d4b03c0e7544678a6eb2059306fc4d9f618d26",
       "schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_execution_plan.v1",
       "expected_schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_execution_plan.v1",
       "schema_matches": true,

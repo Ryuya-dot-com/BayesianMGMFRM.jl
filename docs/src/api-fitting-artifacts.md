@@ -1,11 +1,11 @@
 # Fitting and Artifact API
 
+## Stable fitting and shared artifacts
+
 ```@docs
 MFRMPrior
 MFRMLogDensity
 MFRMFit
-GMFRMFit
-MGMFRMFit
 fit
 fit_metadata
 fit_artifact
@@ -35,4 +35,17 @@ save_fit_report_bundle
 save_fit_report_markdown
 save_fit_report_tables
 related_software_capability_matrix
+```
+
+## Experimental compatibility types
+
+`GMFRMFit` and `MGMFRMFit` remain root-level compatibility bindings so that
+existing serialized fit caches retain their Julia type identity. New
+generalized workflows should access them through
+`BayesianMGMFRM.Experimental`; see
+[Experimental Generalized Models](experimental.md).
+
+```@docs
+GMFRMFit
+MGMFRMFit
 ```

@@ -134,7 +134,31 @@ function protocol_passed(summary)
         isfinite(summary.min_ess) &&
         summary.min_ess >= thresholds.min_ess &&
         isfinite(summary.e_bfmi) &&
+        summary.e_bfmi_complete &&
         summary.e_bfmi >= thresholds.min_ebfmi
+end
+
+# This version-1 study is retained as pre-modern compatibility evidence. Its
+# classical R-hat/ESS flag must remain local to the historical generator and
+# must not be used by the package's modern diagnostic contract.
+function historical_compatibility_summary_flag(
+        n_sampler_warnings::Int,
+        n_nonfinite_logdensity::Int,
+        n_failed_direct_constraints::Int,
+        n_nonfinite_direct_loglikelihood::Int,
+        n_insufficient::Int,
+        n_degenerate::Int,
+        n_bad_rhat::Int,
+        n_low_ess::Int)
+    (n_failed_direct_constraints > 0 ||
+        n_nonfinite_direct_loglikelihood > 0) &&
+        return :direct_transform_warning
+    (n_sampler_warnings > 0 || n_nonfinite_logdensity > 0) &&
+        return :sampler_warning
+    n_insufficient > 0 && return :insufficient_chains
+    (n_degenerate > 0 || n_bad_rhat > 0 || n_low_ess > 0) &&
+        return :mcmc_warning
+    return :ok
 end
 
 function sampler_row_record(row)
@@ -427,6 +451,7 @@ function run_diagnostics(target, raw_initial, seed)
         draws_per_chain = PROTOCOL.draws,
         total_draws,
         split_chains = actual_split,
+        split_chains_requested = PROTOCOL.split_chains,
         rhat_threshold = PROTOCOL.thresholds.max_rhat,
         ess_threshold = PROTOCOL.thresholds.min_ess,
     )
@@ -437,6 +462,10 @@ function run_diagnostics(target, raw_initial, seed)
         direct_values.direct_draws,
         target.blueprint.constrained_parameter_names,
         PROTOCOL.chains;
+        structurally_fixed_parameters =
+            BayesianMGMFRM._structurally_fixed_constrained_parameter_names(
+                target.blueprint,
+            ),
         split_chains = PROTOCOL.split_chains,
         rhat_threshold = PROTOCOL.thresholds.max_rhat,
         ess_threshold = PROTOCOL.thresholds.min_ess,
@@ -449,6 +478,7 @@ function run_diagnostics(target, raw_initial, seed)
         draws_per_chain = PROTOCOL.draws,
         total_draws,
         split_chains = actual_split,
+        split_chains_requested = PROTOCOL.split_chains,
         rhat_threshold = PROTOCOL.thresholds.max_rhat,
         ess_threshold = PROTOCOL.thresholds.min_ess,
     )
@@ -466,7 +496,7 @@ function run_diagnostics(target, raw_initial, seed)
     n_divergences = BayesianMGMFRM._sum_nonmissing(row.n_divergences for row in sampler_rows)
     n_max_treedepth =
         BayesianMGMFRM._sum_nonmissing(row.n_max_treedepth for row in sampler_rows)
-    e_bfmi = BayesianMGMFRM._min_nonmissing(row.e_bfmi for row in sampler_rows)
+    e_bfmi_coverage = BayesianMGMFRM._ebfmi_coverage(sampler_rows)
     n_insufficient = count(row -> row.flag === :insufficient_chains, parameter_rows)
     n_degenerate = count(row -> row.flag === :degenerate_draws, parameter_rows)
     n_bad_rhat = count(row -> isfinite(row.rhat) &&
@@ -475,7 +505,7 @@ function run_diagnostics(target, raw_initial, seed)
         row.ess < PROTOCOL.thresholds.min_ess, parameter_rows)
     max_rhat = BayesianMGMFRM._finite_extreme((row.rhat for row in parameter_rows), maximum)
     min_ess = BayesianMGMFRM._finite_extreme((row.ess for row in parameter_rows), minimum)
-    flag = BayesianMGMFRM._gmfrm_promotion_candidate_summary_flag(
+    flag = historical_compatibility_summary_flag(
         n_sampler_warnings,
         n_nonfinite_logdensity,
         n_failed_direct_constraints,
@@ -546,7 +576,7 @@ function run_diagnostics(target, raw_initial, seed)
             n_failed_direct_constraints,
             n_divergences,
             n_max_treedepth,
-            e_bfmi,
+            e_bfmi_coverage...,
         ),
     )
 end
@@ -573,6 +603,10 @@ function fixture_record(target, spec)
             n_divergences = diagnostics.summary.n_divergences,
             n_max_treedepth = diagnostics.summary.n_max_treedepth,
             e_bfmi = diagnostics.summary.e_bfmi,
+            n_e_bfmi_expected = diagnostics.summary.n_e_bfmi_expected,
+            n_e_bfmi_available = diagnostics.summary.n_e_bfmi_available,
+            n_e_bfmi_unavailable = diagnostics.summary.n_e_bfmi_unavailable,
+            e_bfmi_complete = diagnostics.summary.e_bfmi_complete,
             n_sampler_warnings = diagnostics.summary.n_sampler_warnings,
             n_block_warnings = diagnostics.summary.n_block_warnings,
             n_direct_block_warnings = diagnostics.summary.n_direct_block_warnings,
@@ -646,6 +680,8 @@ function study_artifact()
             max_rhat = maximum(summary.max_rhat for summary in summaries),
             min_ess = minimum(summary.min_ess for summary in summaries),
             min_ebfmi = minimum(summary.e_bfmi for summary in summaries),
+            all_e_bfmi_complete = all(
+                summary.e_bfmi_complete for summary in summaries),
             n_divergences = sum(summary.n_divergences for summary in summaries),
             n_max_treedepth = sum(summary.n_max_treedepth for summary in summaries),
             n_failed_direct_constraints =

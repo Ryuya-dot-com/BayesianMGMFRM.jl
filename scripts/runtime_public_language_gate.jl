@@ -2,6 +2,7 @@
 
 using BayesianMGMFRM
 using JSON3
+using Random
 
 include(joinpath(@__DIR__, "public_language_gate.jl"))
 using .PublicLanguageGate
@@ -19,6 +20,16 @@ const LEGACY_MAINTENANCE_EXPORTS = Set((
     :release_scope_summary,
 ))
 
+const EXPERIMENTAL_PUBLIC_DOCSTRINGS = (
+    :GMFRMFit,
+    :MGMFRMFit,
+    :cached_fit,
+    :fit,
+    :fit_cache_key,
+    :preview,
+    :surface_contract,
+)
+
 function exported_docstring_outputs()
     outputs = Pair{String,String}[]
     for name in sort!(collect(names(BayesianMGMFRM;
@@ -29,6 +40,19 @@ function exported_docstring_outputs()
         doc === nothing && continue
         text = sprint(show, MIME"text/plain"(), doc)
         push!(outputs, "docstring:$(String(name))" => text)
+    end
+    module_binding = Docs.Binding(BayesianMGMFRM, :Experimental)
+    module_doc = Docs.doc(module_binding)
+    module_doc === nothing || push!(outputs,
+        "docstring:Experimental" =>
+            sprint(show, MIME"text/plain"(), module_doc))
+    for name in EXPERIMENTAL_PUBLIC_DOCSTRINGS
+        binding = Docs.Binding(BayesianMGMFRM.Experimental, name)
+        doc = Docs.doc(binding)
+        doc === nothing && error(
+            "missing public Experimental docstring for $(String(name))")
+        text = sprint(show, MIME"text/plain"(), doc)
+        push!(outputs, "docstring:Experimental.$(String(name))" => text)
     end
     return outputs
 end
@@ -46,10 +70,24 @@ function representative_objects()
         item = :item,
         score = :score,
     )
+    clustered_ratings = merge(ratings, (;
+        response_id = ["S1", "S1", "S1", "S1", "S2", "S2", "S2", "S2"],
+        testlet_id = fill("T1", 8),
+    ))
+    clustered_data = FacetData(clustered_ratings;
+        person = :examinee,
+        rater = :rater,
+        item = :item,
+        score = :score,
+        response_id = :response_id,
+        testlet_id = :testlet_id,
+    )
     validation = validate_design(data)
     spec = mfrm_spec(data; thresholds = :partial_credit,
         validation_report = validation)
     design = getdesign(spec)
+    clustered_spec = mfrm_spec(clustered_data; thresholds = :partial_credit)
+    clustered_design = getdesign(clustered_spec)
     mgmfrm_spec = mfrm_spec(data;
         thresholds = :partial_credit,
         family = :mgmfrm,
@@ -63,6 +101,20 @@ function representative_objects()
         design,
         prior,
         zeros(1, n_parameters),
+        [0.0],
+        1.0,
+        [1],
+        [1],
+        [1.0],
+        :julia,
+        :random_walk_metropolis,
+        0,
+        0.1,
+    )
+    clustered_fit = MFRMFit(
+        clustered_design,
+        prior,
+        zeros(1, length(clustered_design.parameter_names)),
         [0.0],
         1.0,
         [1],
@@ -92,6 +144,51 @@ function representative_objects()
         NamedTuple(),
         NamedTuple(),
     )
+    local_dependence_grid = local_dependence_simulation_grid(;
+        repetitions = 1,
+        base_seed = 20260720,
+        n_persons = 8,
+        n_testlets = 4,
+        items_per_testlet = 2,
+        n_raters = 2,
+        n_categories = 3,
+    )
+    local_dependence_known_truth = simulate_local_dependence(
+        first(local_dependence_grid);
+        max_ratings = 10_000,
+        max_probability_cells = 50_000,
+    )
+    local_dependence_calibration = local_dependence_calibration_contract()
+    local_dependence_calibration_result = local_dependence_calibration_row(
+        first(local_dependence_grid);
+        contract = local_dependence_calibration,
+        status = :generation_failed,
+        failure_code = :representative_run_not_executed,
+    )
+    local_dependence_calibration_overview =
+        local_dependence_calibration_summary(
+            [first(local_dependence_grid)],
+            [local_dependence_calibration_result];
+            contract = local_dependence_calibration,
+        )
+    local_dependence_pilot_grid = local_dependence_simulation_grid(;
+        repetitions = 30,
+        base_seed = 20260720,
+        phase = :pilot,
+        grid_id = "runtime_public_language_ld1b1",
+        n_persons = 40,
+        n_testlets = 4,
+        items_per_testlet = 3,
+        n_raters = 4,
+        n_categories = 4,
+    )
+    local_dependence_pilot_contract =
+        local_dependence_calibration_pilot_contract()
+    local_dependence_pilot_preflight =
+        local_dependence_calibration_pilot_preflight(
+            local_dependence_pilot_grid;
+            contract = local_dependence_pilot_contract,
+        )
     return (;
         data,
         validation,
@@ -108,6 +205,25 @@ function representative_objects()
         mfrm_fit,
         gmfrm_fit = GMFRMFit(generalized_args...),
         mgmfrm_fit = MGMFRMFit(generalized_args...),
+        clustered_data,
+        testlet_audit = testlet_design_audit(clustered_data),
+        local_dependence = local_dependence_contract(),
+        local_dependence_summary = local_dependence_summary(
+            clustered_fit;
+            draw_indices = [1],
+            rng = MersenneTwister(20260720),
+        ),
+        local_dependence_grid,
+        local_dependence_known_truth,
+        local_dependence_calibration,
+        local_dependence_calibration_result,
+        local_dependence_calibration_overview,
+        local_dependence_pilot_contract,
+        local_dependence_pilot_preflight,
+        standardized_residuals = predictive_standardized_residuals(
+            design,
+            zeros(1, n_parameters),
+        ),
     )
 end
 
@@ -131,6 +247,74 @@ function show_outputs(objects)
         push!(outputs, "show:$label" => sprint(show, value))
         push!(outputs, "show:text/plain:$label" =>
             sprint(show, MIME"text/plain"(), value))
+    end
+    return outputs
+end
+
+function clustered_diagnostic_outputs(objects)
+    values = (
+        "testlet-design-audit" => objects.testlet_audit,
+        "local-dependence-contract" => objects.local_dependence,
+        "local-dependence-summary" => objects.local_dependence_summary,
+        "predictive-standardized-residuals" => objects.standardized_residuals,
+    )
+    outputs = Pair{String,String}[]
+    for (label, value) in values
+        push!(outputs, "clustered:$label:json" => JSON3.write(value))
+        push!(outputs, "clustered:$label:show" => sprint(show, value))
+    end
+    return outputs
+end
+
+function runtime_dynamic_projection(value)
+    Base.@nospecialize value
+    if value === nothing || ismissing(value) || value isa Bool ||
+            value isa Number || value isa Symbol || value isa AbstractString
+        return value
+    elseif value isa NamedTuple || value isa AbstractDict
+        output = Dict{String,Any}()
+        for (key, element) in pairs(value)
+            output[string(key)] = runtime_dynamic_projection(element)
+        end
+        return output
+    elseif value isa AbstractArray || value isa Tuple || value isa AbstractSet
+        return Any[runtime_dynamic_projection(element) for element in value]
+    elseif value isa Pair
+        return Any[
+            runtime_dynamic_projection(first(value)),
+            runtime_dynamic_projection(last(value)),
+        ]
+    end
+    names = propertynames(value)
+    isempty(names) && return sprint(show, value)
+    output = Dict{String,Any}()
+    for name in names
+        output[String(name)] = runtime_dynamic_projection(
+            getproperty(value, name))
+    end
+    return output
+end
+
+function known_truth_simulation_outputs(objects)
+    values = (
+        "local-dependence-simulation-grid" => objects.local_dependence_grid,
+        "local-dependence-known-truth" => objects.local_dependence_known_truth,
+        "local-dependence-calibration-contract" =>
+            objects.local_dependence_calibration,
+        "local-dependence-calibration-row" =>
+            objects.local_dependence_calibration_result,
+        "local-dependence-calibration-summary" =>
+            objects.local_dependence_calibration_overview,
+        "local-dependence-calibration-pilot-contract" =>
+            objects.local_dependence_pilot_contract,
+        "local-dependence-calibration-pilot-preflight" =>
+            objects.local_dependence_pilot_preflight,
+    )
+    outputs = Pair{String,String}[]
+    for (label, value) in values
+        projected = runtime_dynamic_projection(value)
+        push!(outputs, "simulation:$label:json" => JSON3.write(projected))
+        push!(outputs, "simulation:$label:show" => sprint(show, projected))
     end
     return outputs
 end
@@ -311,6 +495,8 @@ function main()
     outputs = Pair{String,String}[]
     append!(outputs, exported_docstring_outputs())
     append!(outputs, show_outputs(objects))
+    append!(outputs, clustered_diagnostic_outputs(objects))
+    append!(outputs, known_truth_simulation_outputs(objects))
     append!(outputs, report_outputs(objects))
     append!(outputs, error_outputs(objects))
     result = assert_runtime_public_language(outputs)

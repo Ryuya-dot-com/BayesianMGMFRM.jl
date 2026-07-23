@@ -11,6 +11,7 @@ validate_design
 validation_suggestions
 mfrm_spec
 getdesign
+design_identity
 constraint_table
 identification_declarations
 model_ladder
@@ -33,5 +34,14 @@ coverage_summary
 coverage_matrix
 rater_overlap
 anchor_linking_summary
+anchor_refit_plan
+facets_bridge_bundle
+conquest_bridge_bundle
+save_external_bridge_bundle
+validate_external_bridge_bundle
+load_conquest_parameter_export
+load_conquest_semantic_parameters
+external_bridge_result_receipt
 rating_design_audit
+testlet_design_audit
 ```

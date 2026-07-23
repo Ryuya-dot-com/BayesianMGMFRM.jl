@@ -11,7 +11,7 @@
   "publication_or_registration_action": false,
   "package": {
     "name": "BayesianMGMFRM",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "julia_version": "1.12.5"
   },
   "protocol": {
@@ -115,7 +115,7 @@
       "artifact": "guarded_fit_api_dry_run",
       "path": "test/fixtures/gmfrm_guarded_fit_api_dry_run.json",
       "exists": true,
-      "sha256": "7350ec1fd9f1212d1389e11945812aea9c35669fd226d43bff3304a1bf3a29f7",
+      "sha256": "c88af0c86aaf383a1bf8216a39795d0d70c8d151a6ad3e65bfd07ccf8b5e3995",
       "expected_schema": "bayesianmgmfrm.gmfrm_guarded_fit_api_dry_run.v1",
       "schema": "bayesianmgmfrm.gmfrm_guarded_fit_api_dry_run.v1",
       "schema_matches": true,

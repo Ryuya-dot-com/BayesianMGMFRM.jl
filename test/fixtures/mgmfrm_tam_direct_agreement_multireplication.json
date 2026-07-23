@@ -15,7 +15,7 @@
   "publication_or_registration_action": false,
   "package": {
     "name": "BayesianMGMFRM",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "julia_version": "1.12.5"
   },
   "protocol": {
@@ -26,8 +26,8 @@
     "baseline_artifact_sha256": "030b08987dca7e51565bb4e557d4287a3f18c737693e68b4677a9ca3f3d21783",
     "frozen_policy_artifact": "test/fixtures/mgmfrm_tam_direct_agreement_policy.json",
     "frozen_policy_artifact_sha256": "f3fcdcbb46bd2be105db82436bc42b6b3792641b393f5b9bd254048417c4c6a5",
-    "refinement_artifact": "test/fixtures/mgmfrm_tam_direct_agreement_policy_refinement.json",
-    "refinement_artifact_sha256": "4136714e14954aaae722f65d4b58437e821e0178be1ab61d5926d28df43fe358",
+    "refinement_artifact": "test/fixtures/mgmfrm_tam_direct_agreement_policy_refinement_execution_snapshot.json",
+    "refinement_artifact_sha256": "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e",
     "recovery_policy_artifact": "test/fixtures/mgmfrm_tam_comparison_policy_review.json",
     "recovery_policy_artifact_sha256": "8fd2d128ea617ead0359a52ef809cd2ffc0fe69eb3e9c82346aeabf4b1fbd7cd",
     "frozen_primary_gate_fingerprint_sha256": "3442edda6e92df57628dadd57bb1c13abf888eda85e2dcabfebf0a938c4b13ab",
@@ -68,7 +68,11 @@
     "baseline_hash_matches_refinement": true,
     "recovery_policy_hash_matches_refinement": true,
     "refinement_records_gate_unchanged": true,
-    "pilot_excluded_from_confirmatory_denominator": true
+    "pilot_excluded_from_confirmatory_denominator": true,
+    "execution_refinement_snapshot_validated": true,
+    "selected_job_input_lineage_validated": true,
+    "selected_job_seed_lineage_validated": true,
+    "selected_job_environment_lineage_validated": true
   },
   "selected_attempt_rows": [
     {
@@ -15097,6 +15101,330 @@
     "n_failure_rows": 4,
     "external_software_validation_completed": false,
     "public_claim_release_allowed": false,
-    "next_gate": "generate_independent_post_execution_tam_direct_review_packet"
+    "next_gate": "generate_independent_post_execution_tam_direct_review_packet",
+    "aggregate_only": true,
+    "mcmc_executed": false,
+    "selected_job_lineage_validation_passed": true,
+    "n_selected_job_lineage_rows": 10
+  },
+  "aggregation_provenance": {
+    "mode": "aggregate_only_from_selected_attempts",
+    "mcmc_executed": false,
+    "generator": "scripts/generate_mgmfrm_tam_direct_agreement_multireplication_aggregate.jl",
+    "generator_source_sha256": "787b11b0ebfc1a6a66104f97178b3a04383390dbc3864bdb7e3591f0d0a10324",
+    "wrapped_execution_generator": "scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl",
+    "wrapped_execution_generator_source_sha256": "09df8a5138d40e533ed3f8c7fbf85e2fe885e645cf758e16628ac4516800caae",
+    "protocol_generator_fields_preserved": true,
+    "refinement_execution_snapshot": "test/fixtures/mgmfrm_tam_direct_agreement_policy_refinement_execution_snapshot.json",
+    "refinement_execution_snapshot_bytes": 51684,
+    "refinement_execution_snapshot_sha256": "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e",
+    "expected_project_toml_sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b",
+    "expected_manifest_toml_sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d",
+    "fail_closed": true,
+    "n_selected_jobs_expected": 10,
+    "n_selected_jobs_validated": 10,
+    "all_selected_job_lineage_valid": true,
+    "selected_job_lineage_rows": [
+      {
+        "job_id": "n040_rep01",
+        "n_persons": 40,
+        "replication": 1,
+        "selected_attempt": 2,
+        "selected_attempt_pointer_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/selected_attempt.json",
+        "selected_attempt_pointer_sha256": "32a06d2f03dad26b8bb96313de8a46a73ebf7b05dfb046ab4007f67f1f872826",
+        "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/job_result.json",
+        "result_sha256": "2a4fb00e3229671f37d9a4b7e408ef6d9343366d31570da612f7065bf3c1fea3",
+        "execution_generator_source_sha256": "09df8a5138d40e533ed3f8c7fbf85e2fe885e645cf758e16628ac4516800caae",
+        "refinement_snapshot_sha256": "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e",
+        "baseline_sha256": "030b08987dca7e51565bb4e557d4287a3f18c737693e68b4677a9ca3f3d21783",
+        "frozen_policy_sha256": "f3fcdcbb46bd2be105db82436bc42b6b3792641b393f5b9bd254048417c4c6a5",
+        "recovery_policy_sha256": "8fd2d128ea617ead0359a52ef809cd2ffc0fe69eb3e9c82346aeabf4b1fbd7cd",
+        "truth_sha256": "487a519431c040aa4db6572c11a4735f6e8958fee4445ed5a49578f1392eb802",
+        "ability_seed": 20361725,
+        "response_seed": 20361743,
+        "package_fit_seed": 20361761,
+        "project_toml": {
+          "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/Project.toml",
+          "bytes": 1155,
+          "sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b"
+        },
+        "manifest_toml": {
+          "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep01/attempt_02/Manifest.toml",
+          "bytes": 62633,
+          "sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d"
+        },
+        "passed": true
+      },
+      {
+        "job_id": "n040_rep02",
+        "n_persons": 40,
+        "replication": 2,
+        "selected_attempt": 1,
+        "selected_attempt_pointer_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/selected_attempt.json",
+        "selected_attempt_pointer_sha256": "6d072e65e407182e428a163ee39007f043b202a9dc5847daf63f9b7441993852",
+        "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/job_result.json",
+        "result_sha256": "c11a7b85b0c326e2f5d54917c4c9ba126ecec828c2659f4d0522227ff62f1254",
+        "execution_generator_source_sha256": "09df8a5138d40e533ed3f8c7fbf85e2fe885e645cf758e16628ac4516800caae",
+        "refinement_snapshot_sha256": "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e",
+        "baseline_sha256": "030b08987dca7e51565bb4e557d4287a3f18c737693e68b4677a9ca3f3d21783",
+        "frozen_policy_sha256": "f3fcdcbb46bd2be105db82436bc42b6b3792641b393f5b9bd254048417c4c6a5",
+        "recovery_policy_sha256": "8fd2d128ea617ead0359a52ef809cd2ffc0fe69eb3e9c82346aeabf4b1fbd7cd",
+        "truth_sha256": "487a519431c040aa4db6572c11a4735f6e8958fee4445ed5a49578f1392eb802",
+        "ability_seed": 20362725,
+        "response_seed": 20362743,
+        "package_fit_seed": 20362761,
+        "project_toml": {
+          "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/Project.toml",
+          "bytes": 1155,
+          "sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b"
+        },
+        "manifest_toml": {
+          "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep02/attempt_01/Manifest.toml",
+          "bytes": 62633,
+          "sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d"
+        },
+        "passed": true
+      },
+      {
+        "job_id": "n040_rep03",
+        "n_persons": 40,
+        "replication": 3,
+        "selected_attempt": 1,
+        "selected_attempt_pointer_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/selected_attempt.json",
+        "selected_attempt_pointer_sha256": "4f158c15a5c1a5c0f44c4a63622382cb6bbf7046785d7b14eca40ccb964b23f9",
+        "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/job_result.json",
+        "result_sha256": "746f9ca0ea48e6f87aaa4051dfdc12c843d461cd50c98e4e06a02a8adf7d052c",
+        "execution_generator_source_sha256": "09df8a5138d40e533ed3f8c7fbf85e2fe885e645cf758e16628ac4516800caae",
+        "refinement_snapshot_sha256": "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e",
+        "baseline_sha256": "030b08987dca7e51565bb4e557d4287a3f18c737693e68b4677a9ca3f3d21783",
+        "frozen_policy_sha256": "f3fcdcbb46bd2be105db82436bc42b6b3792641b393f5b9bd254048417c4c6a5",
+        "recovery_policy_sha256": "8fd2d128ea617ead0359a52ef809cd2ffc0fe69eb3e9c82346aeabf4b1fbd7cd",
+        "truth_sha256": "487a519431c040aa4db6572c11a4735f6e8958fee4445ed5a49578f1392eb802",
+        "ability_seed": 20363725,
+        "response_seed": 20363743,
+        "package_fit_seed": 20363761,
+        "project_toml": {
+          "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/Project.toml",
+          "bytes": 1155,
+          "sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b"
+        },
+        "manifest_toml": {
+          "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep03/attempt_01/Manifest.toml",
+          "bytes": 62633,
+          "sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d"
+        },
+        "passed": true
+      },
+      {
+        "job_id": "n040_rep04",
+        "n_persons": 40,
+        "replication": 4,
+        "selected_attempt": 1,
+        "selected_attempt_pointer_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/selected_attempt.json",
+        "selected_attempt_pointer_sha256": "e58f9ca2a9da2fd4236b8285902d4e4d38beeca96852bb29c9cfe10a41ff9dcb",
+        "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/job_result.json",
+        "result_sha256": "2281db76dc9646d7c3250de92ad5f087c3970d2bde545e8bf9207171c14a13c9",
+        "execution_generator_source_sha256": "09df8a5138d40e533ed3f8c7fbf85e2fe885e645cf758e16628ac4516800caae",
+        "refinement_snapshot_sha256": "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e",
+        "baseline_sha256": "030b08987dca7e51565bb4e557d4287a3f18c737693e68b4677a9ca3f3d21783",
+        "frozen_policy_sha256": "f3fcdcbb46bd2be105db82436bc42b6b3792641b393f5b9bd254048417c4c6a5",
+        "recovery_policy_sha256": "8fd2d128ea617ead0359a52ef809cd2ffc0fe69eb3e9c82346aeabf4b1fbd7cd",
+        "truth_sha256": "487a519431c040aa4db6572c11a4735f6e8958fee4445ed5a49578f1392eb802",
+        "ability_seed": 20364725,
+        "response_seed": 20364743,
+        "package_fit_seed": 20364761,
+        "project_toml": {
+          "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/Project.toml",
+          "bytes": 1155,
+          "sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b"
+        },
+        "manifest_toml": {
+          "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep04/attempt_01/Manifest.toml",
+          "bytes": 62633,
+          "sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d"
+        },
+        "passed": true
+      },
+      {
+        "job_id": "n040_rep05",
+        "n_persons": 40,
+        "replication": 5,
+        "selected_attempt": 1,
+        "selected_attempt_pointer_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/selected_attempt.json",
+        "selected_attempt_pointer_sha256": "7ffbbaba1c044226501b720fedf3d3db05018be2856339de016bbfbabc12bdf4",
+        "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/job_result.json",
+        "result_sha256": "8713795dd72677f3f320b9d74d095d0de516cec416c816d00b9185d25767d675",
+        "execution_generator_source_sha256": "09df8a5138d40e533ed3f8c7fbf85e2fe885e645cf758e16628ac4516800caae",
+        "refinement_snapshot_sha256": "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e",
+        "baseline_sha256": "030b08987dca7e51565bb4e557d4287a3f18c737693e68b4677a9ca3f3d21783",
+        "frozen_policy_sha256": "f3fcdcbb46bd2be105db82436bc42b6b3792641b393f5b9bd254048417c4c6a5",
+        "recovery_policy_sha256": "8fd2d128ea617ead0359a52ef809cd2ffc0fe69eb3e9c82346aeabf4b1fbd7cd",
+        "truth_sha256": "487a519431c040aa4db6572c11a4735f6e8958fee4445ed5a49578f1392eb802",
+        "ability_seed": 20365725,
+        "response_seed": 20365743,
+        "package_fit_seed": 20365761,
+        "project_toml": {
+          "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/Project.toml",
+          "bytes": 1155,
+          "sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b"
+        },
+        "manifest_toml": {
+          "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n040_rep05/attempt_01/Manifest.toml",
+          "bytes": 62633,
+          "sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d"
+        },
+        "passed": true
+      },
+      {
+        "job_id": "n100_rep01",
+        "n_persons": 100,
+        "replication": 1,
+        "selected_attempt": 1,
+        "selected_attempt_pointer_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/selected_attempt.json",
+        "selected_attempt_pointer_sha256": "19914c4565c8f2659ef1b0cef076af6a5366861019ad70456581ab32387331d6",
+        "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/job_result.json",
+        "result_sha256": "fc363f7521a8ecc670cbd05e40d39e07965a4713b3fbdf7f324e1803f276b657",
+        "execution_generator_source_sha256": "09df8a5138d40e533ed3f8c7fbf85e2fe885e645cf758e16628ac4516800caae",
+        "refinement_snapshot_sha256": "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e",
+        "baseline_sha256": "030b08987dca7e51565bb4e557d4287a3f18c737693e68b4677a9ca3f3d21783",
+        "frozen_policy_sha256": "f3fcdcbb46bd2be105db82436bc42b6b3792641b393f5b9bd254048417c4c6a5",
+        "recovery_policy_sha256": "8fd2d128ea617ead0359a52ef809cd2ffc0fe69eb3e9c82346aeabf4b1fbd7cd",
+        "truth_sha256": "487a519431c040aa4db6572c11a4735f6e8958fee4445ed5a49578f1392eb802",
+        "ability_seed": 20461725,
+        "response_seed": 20461743,
+        "package_fit_seed": 20461761,
+        "project_toml": {
+          "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/Project.toml",
+          "bytes": 1155,
+          "sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b"
+        },
+        "manifest_toml": {
+          "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep01/attempt_01/Manifest.toml",
+          "bytes": 62633,
+          "sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d"
+        },
+        "passed": true
+      },
+      {
+        "job_id": "n100_rep02",
+        "n_persons": 100,
+        "replication": 2,
+        "selected_attempt": 1,
+        "selected_attempt_pointer_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/selected_attempt.json",
+        "selected_attempt_pointer_sha256": "1eb23ca36e6511f9ee149a2e642e8f3a440dedd9b60ec2359a0f8cf53befd3ae",
+        "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/job_result.json",
+        "result_sha256": "4564ec48bed60d497762fcbf60c9a97488f8a081c8efd512a0f12c2cd1ccb362",
+        "execution_generator_source_sha256": "09df8a5138d40e533ed3f8c7fbf85e2fe885e645cf758e16628ac4516800caae",
+        "refinement_snapshot_sha256": "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e",
+        "baseline_sha256": "030b08987dca7e51565bb4e557d4287a3f18c737693e68b4677a9ca3f3d21783",
+        "frozen_policy_sha256": "f3fcdcbb46bd2be105db82436bc42b6b3792641b393f5b9bd254048417c4c6a5",
+        "recovery_policy_sha256": "8fd2d128ea617ead0359a52ef809cd2ffc0fe69eb3e9c82346aeabf4b1fbd7cd",
+        "truth_sha256": "487a519431c040aa4db6572c11a4735f6e8958fee4445ed5a49578f1392eb802",
+        "ability_seed": 20462725,
+        "response_seed": 20462743,
+        "package_fit_seed": 20462761,
+        "project_toml": {
+          "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/Project.toml",
+          "bytes": 1155,
+          "sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b"
+        },
+        "manifest_toml": {
+          "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep02/attempt_01/Manifest.toml",
+          "bytes": 62633,
+          "sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d"
+        },
+        "passed": true
+      },
+      {
+        "job_id": "n100_rep03",
+        "n_persons": 100,
+        "replication": 3,
+        "selected_attempt": 1,
+        "selected_attempt_pointer_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/selected_attempt.json",
+        "selected_attempt_pointer_sha256": "96722e6ab47d6222a3019537823b631ec5c2712365df4c8c0dd177d7441fa1ad",
+        "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/job_result.json",
+        "result_sha256": "69eb9c6b42b143d09c7186fce4b3901cb69b7c6dbbc5a6313baeafc34a2ea145",
+        "execution_generator_source_sha256": "09df8a5138d40e533ed3f8c7fbf85e2fe885e645cf758e16628ac4516800caae",
+        "refinement_snapshot_sha256": "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e",
+        "baseline_sha256": "030b08987dca7e51565bb4e557d4287a3f18c737693e68b4677a9ca3f3d21783",
+        "frozen_policy_sha256": "f3fcdcbb46bd2be105db82436bc42b6b3792641b393f5b9bd254048417c4c6a5",
+        "recovery_policy_sha256": "8fd2d128ea617ead0359a52ef809cd2ffc0fe69eb3e9c82346aeabf4b1fbd7cd",
+        "truth_sha256": "487a519431c040aa4db6572c11a4735f6e8958fee4445ed5a49578f1392eb802",
+        "ability_seed": 20463725,
+        "response_seed": 20463743,
+        "package_fit_seed": 20463761,
+        "project_toml": {
+          "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/Project.toml",
+          "bytes": 1155,
+          "sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b"
+        },
+        "manifest_toml": {
+          "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep03/attempt_01/Manifest.toml",
+          "bytes": 62633,
+          "sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d"
+        },
+        "passed": true
+      },
+      {
+        "job_id": "n100_rep04",
+        "n_persons": 100,
+        "replication": 4,
+        "selected_attempt": 1,
+        "selected_attempt_pointer_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/selected_attempt.json",
+        "selected_attempt_pointer_sha256": "b643336da3e08339d24ea03aed3b1207aa1e567fedb6679ad48209a491e4d4fb",
+        "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/job_result.json",
+        "result_sha256": "aa1aa60f1b043dcdb750312e060e90e750222580986b2a95906d451d7c33856f",
+        "execution_generator_source_sha256": "09df8a5138d40e533ed3f8c7fbf85e2fe885e645cf758e16628ac4516800caae",
+        "refinement_snapshot_sha256": "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e",
+        "baseline_sha256": "030b08987dca7e51565bb4e557d4287a3f18c737693e68b4677a9ca3f3d21783",
+        "frozen_policy_sha256": "f3fcdcbb46bd2be105db82436bc42b6b3792641b393f5b9bd254048417c4c6a5",
+        "recovery_policy_sha256": "8fd2d128ea617ead0359a52ef809cd2ffc0fe69eb3e9c82346aeabf4b1fbd7cd",
+        "truth_sha256": "487a519431c040aa4db6572c11a4735f6e8958fee4445ed5a49578f1392eb802",
+        "ability_seed": 20464725,
+        "response_seed": 20464743,
+        "package_fit_seed": 20464761,
+        "project_toml": {
+          "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/Project.toml",
+          "bytes": 1155,
+          "sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b"
+        },
+        "manifest_toml": {
+          "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep04/attempt_01/Manifest.toml",
+          "bytes": 62633,
+          "sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d"
+        },
+        "passed": true
+      },
+      {
+        "job_id": "n100_rep05",
+        "n_persons": 100,
+        "replication": 5,
+        "selected_attempt": 1,
+        "selected_attempt_pointer_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/selected_attempt.json",
+        "selected_attempt_pointer_sha256": "5f15ad16e45c45eab3c376e581781a3ba7c238f99df5d64d01889ddc7c3489d6",
+        "result_path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/job_result.json",
+        "result_sha256": "c31743a292e51cc24248decc7501a359ffa798590aa6c05717e061319122cb67",
+        "execution_generator_source_sha256": "09df8a5138d40e533ed3f8c7fbf85e2fe885e645cf758e16628ac4516800caae",
+        "refinement_snapshot_sha256": "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e",
+        "baseline_sha256": "030b08987dca7e51565bb4e557d4287a3f18c737693e68b4677a9ca3f3d21783",
+        "frozen_policy_sha256": "f3fcdcbb46bd2be105db82436bc42b6b3792641b393f5b9bd254048417c4c6a5",
+        "recovery_policy_sha256": "8fd2d128ea617ead0359a52ef809cd2ffc0fe69eb3e9c82346aeabf4b1fbd7cd",
+        "truth_sha256": "487a519431c040aa4db6572c11a4735f6e8958fee4445ed5a49578f1392eb802",
+        "ability_seed": 20465725,
+        "response_seed": 20465743,
+        "package_fit_seed": 20465761,
+        "project_toml": {
+          "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/Project.toml",
+          "bytes": 1155,
+          "sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b"
+        },
+        "manifest_toml": {
+          "path": "artifacts/mgmfrm_tam_direct_agreement_multireplication/n100_rep05/attempt_01/Manifest.toml",
+          "bytes": 62633,
+          "sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d"
+        },
+        "passed": true
+      }
+    ]
   }
 }

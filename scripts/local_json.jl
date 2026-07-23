@@ -96,6 +96,47 @@ function write_json(io, value, indent::Int = 0)
     return nothing
 end
 
+function write_canonical_json(io, value)
+    if value === nothing || ismissing(value)
+        print(io, "null")
+    elseif value isa Bool
+        print(io, value ? "true" : "false")
+    elseif value isa Integer
+        print(io, value)
+    elseif value isa AbstractFloat
+        if !isfinite(value)
+            print(io, "null")
+        elseif isinteger(value)
+            print(io, trunc(BigInt, value))
+        else
+            print(io, value == 0 ? "0" : string(value))
+        end
+    elseif value isa Symbol
+        print(io, '"', escape_json_string(String(value)), '"')
+    elseif value isa AbstractString
+        print(io, '"', escape_json_string(value), '"')
+    elseif value isa NamedTuple || value isa AbstractDict
+        items = sort!(collect(pairs(value)); by = pair -> String(pair.first))
+        print(io, "{")
+        for (index, pair) in enumerate(items)
+            index > 1 && print(io, ",")
+            print(io, '"', escape_json_string(String(pair.first)), "\":")
+            write_canonical_json(io, pair.second)
+        end
+        print(io, "}")
+    elseif value isa AbstractArray || value isa Tuple
+        print(io, "[")
+        for (index, element) in enumerate(value)
+            index > 1 && print(io, ",")
+            write_canonical_json(io, element)
+        end
+        print(io, "]")
+    else
+        error("cannot canonically encode value of type $(typeof(value)) as JSON")
+    end
+    return nothing
+end
+
 function write_artifact(path::AbstractString, artifact)
     mkpath(dirname(path))
     open(path, "w") do io

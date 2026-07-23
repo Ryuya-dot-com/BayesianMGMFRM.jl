@@ -5,7 +5,16 @@
 *.toml text eol=lf
 *.json text eol=lf
 *.csv text eol=lf
+*.tsv text eol=lf
+*.txt text eol=lf
 *.stan text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
 *.py text eol=lf
+
+# These two fixtures preserve the exact CRLF bytes hashed by the executed
+# ConQuest bundle. Treat them as byte artifacts rather than normalizing them.
+test/fixtures/conquest_5_47_5/rsm_control.cqc -text whitespace=-trailing-space
+test/fixtures/conquest_5_47_5/pcm_control.cqc -text whitespace=-trailing-space
+test/fixtures/conquest_5_47_5/rsm_history.tsv whitespace=-trailing-space
+test/fixtures/conquest_5_47_5/pcm_history.tsv whitespace=-trailing-space

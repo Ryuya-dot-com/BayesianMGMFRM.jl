@@ -59,8 +59,7 @@ println("Manifest: object=", manifest.object,
     ", dimensions=", manifest.spec.dimensions,
     ", status=experimental preview")
 
-fit_result = fit(spec;
-    experimental = true,
+fit_result = BayesianMGMFRM.Experimental.fit(spec;
     seed = 20260630,
     ndraws = 2,
     warmup = 0,

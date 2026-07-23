@@ -1,0 +1,1400 @@
+{
+  "schema": "bayesianmgmfrm.mgmfrm_tam_direct_agreement_policy_refinement.v1",
+  "family": "mfrm",
+  "scope": "tam_direct_agreement_multiaxial_policy_refinement",
+  "status": "frozen_policy_refined_without_primary_gate_change",
+  "decision": "apply_adjudication_overlay_then_run_frozen_direct_multireplication",
+  "local_only": true,
+  "external_software": "tam",
+  "refinement_kind": "interpretation_adjudication_and_reporting_overlay",
+  "frozen_primary_thresholds_modified": false,
+  "frozen_primary_design_modified": false,
+  "direct_multireplication_execution_completed": false,
+  "external_software_validation_completed": false,
+  "public_claim_release_allowed": false,
+  "publication_or_registration_action": false,
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.0",
+    "julia_version": "1.12.5"
+  },
+  "protocol": {
+    "protocol_id": "mgmfrm_tam_direct_agreement_policy_refinement_v1",
+    "generator": "scripts/generate_mgmfrm_tam_direct_agreement_policy_refinement.jl",
+    "generator_source_sha256": "f206abbb8ac274e147f2c35029d2dd402bcaa48f5f5e3ece61cfd4c04713e009",
+    "refinement_freeze_order": "after_frozen_primary_policy_before_direct_multireplication_execution",
+    "primary_policy_role": "immutable_confirmatory_decision_rule",
+    "refinement_role": "prospective_interpretation_and_adjudication_overlay",
+    "retrospective_evidence_role": "context_only_no_threshold_recalibration"
+  },
+  "freeze_provenance": {
+    "external_registration_status": "not_registered",
+    "cryptographic_timestamp_status": "not_recorded",
+    "git_commit_anchor_status": "not_recorded_for_this_local_freeze",
+    "local_hash_evidence_only": true,
+    "can_be_called_preregistered": false,
+    "can_be_called_locally_frozen_before_future_direct_runs": true,
+    "independent_freeze_verification_pending": true
+  },
+  "environment_contract": {
+    "project_toml": "Project.toml",
+    "project_toml_sha256": "77b1123020e1f0139654f53f5edcb84e9cd6b3ad912e5f71d57ffa7560c2e55b",
+    "manifest_toml": "Manifest.toml",
+    "manifest_toml_sha256": "24b6ac17a149c06ed3540834d06de73d793d7e8950888057c1a59af719416b4d",
+    "julia_version": "1.12.5",
+    "r_and_tam_versions": "recorded_in_tam_fit_contract",
+    "os_blas_and_cpu_metadata_required_in_result": true,
+    "environment_hash_mismatch_disposition": "record_and_classify_as_new_versioned_reproduction_run"
+  },
+  "source_artifacts": {
+    "frozen_policy": "test/fixtures/mgmfrm_tam_direct_agreement_policy.json",
+    "frozen_policy_sha256": "f3fcdcbb46bd2be105db82436bc42b6b3792641b393f5b9bd254048417c4c6a5",
+    "baseline": "test/fixtures/mgmfrm_tam_overlap_baseline.json",
+    "baseline_sha256": "030b08987dca7e51565bb4e557d4287a3f18c737693e68b4677a9ca3f3d21783",
+    "direct_pilot": "test/fixtures/mgmfrm_tam_direct_estimate_pilot.json",
+    "direct_pilot_sha256": "559ab9551fd2ddde70be9837559d62b7cf518e77f7a740dd9a05fd4f045597ca",
+    "recovery_policy": "test/fixtures/mgmfrm_tam_comparison_policy_review.json",
+    "recovery_policy_sha256": "8fd2d128ea617ead0359a52ef809cd2ffc0fe69eb3e9c82346aeabf4b1fbd7cd",
+    "tam_multireplication": "test/fixtures/mgmfrm_tam_multireplication_comparison.json",
+    "tam_multireplication_sha256": "eef63814470bd9893662544350378d517a3ad7d6999df81f83445d1a40edb206"
+  },
+  "frozen_primary_gate_snapshot": {
+    "direct_threshold_rows": [
+      {
+        "block": "item_difficulty",
+        "metric": "pearson_correlation",
+        "direction": "minimum",
+        "threshold": 0.95
+      },
+      {
+        "block": "item_difficulty",
+        "metric": "mean_abs_difference",
+        "direction": "maximum",
+        "threshold": 0.1
+      },
+      {
+        "block": "item_difficulty",
+        "metric": "max_abs_difference",
+        "direction": "maximum",
+        "threshold": 0.3
+      },
+      {
+        "block": "item_difficulty",
+        "metric": "tam_inside_package_interval95_rate",
+        "direction": "minimum",
+        "threshold": 0.8
+      },
+      {
+        "block": "rater_severity",
+        "metric": "pearson_correlation",
+        "direction": "minimum",
+        "threshold": 0.95
+      },
+      {
+        "block": "rater_severity",
+        "metric": "mean_abs_difference",
+        "direction": "maximum",
+        "threshold": 0.1
+      },
+      {
+        "block": "rater_severity",
+        "metric": "max_abs_difference",
+        "direction": "maximum",
+        "threshold": 0.3
+      },
+      {
+        "block": "rater_severity",
+        "metric": "tam_inside_package_interval95_rate",
+        "direction": "minimum",
+        "threshold": 0.8
+      },
+      {
+        "block": "item_step",
+        "metric": "pearson_correlation",
+        "direction": "minimum",
+        "threshold": 0.95
+      },
+      {
+        "block": "item_step",
+        "metric": "mean_abs_difference",
+        "direction": "maximum",
+        "threshold": 0.1
+      },
+      {
+        "block": "item_step",
+        "metric": "max_abs_difference",
+        "direction": "maximum",
+        "threshold": 0.3
+      },
+      {
+        "block": "item_step",
+        "metric": "tam_inside_package_interval95_rate",
+        "direction": "minimum",
+        "threshold": 0.8
+      }
+    ],
+    "sampler_threshold_rows": [
+      {
+        "metric": "all_draws_and_logposterior_finite",
+        "direction": "equals",
+        "threshold": true
+      },
+      {
+        "metric": "n_divergences",
+        "direction": "maximum",
+        "threshold": 0
+      },
+      {
+        "metric": "n_max_treedepth",
+        "direction": "maximum",
+        "threshold": 0
+      },
+      {
+        "metric": "max_classical_split_rhat",
+        "direction": "maximum",
+        "threshold": 1.01
+      },
+      {
+        "metric": "min_autocorrelation_ess",
+        "direction": "minimum",
+        "threshold": 400
+      },
+      {
+        "metric": "n_mcmc_warning_parameters",
+        "direction": "maximum",
+        "threshold": 0
+      }
+    ],
+    "person_counts": [
+      40,
+      100
+    ],
+    "replications_per_person_count": 5,
+    "primary_person_count": 100,
+    "primary_block_pass_rate_threshold": 0.8,
+    "chains": 4,
+    "ndraws_per_chain": 400,
+    "warmup_per_chain": 400,
+    "target_accept": 0.9,
+    "max_depth": 10,
+    "metric": "diagonal",
+    "ad_backend": "ForwardDiff"
+  },
+  "frozen_primary_gate_fingerprint_sha256": "3442edda6e92df57628dadd57bb1c13abf888eda85e2dcabfebf0a938c4b13ab",
+  "direct_threshold_table_sha256": "992ed8c08ddd09c03a7489aa53c8799ba96a0c2dfc3d7897b712c18eee1fd18d",
+  "sampler_threshold_table_sha256": "d21782ac1681826d6df21dd0a6a1903ccb52fc25c6bce7d62d80f588f5c0c45d",
+  "inherited_design_scope": {
+    "inherited_without_change": true,
+    "person_counts": [
+      40,
+      100
+    ],
+    "primary_person_count": 100,
+    "n_items": 5,
+    "n_raters": 4,
+    "n_dimensions": 1,
+    "category_levels": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "n_categories": 4,
+    "assignment": "fully_crossed",
+    "thresholds": "partial_credit",
+    "item_discrimination": 1.0,
+    "rater_consistency": 1.0,
+    "truth_source": "tam_overlap_baseline_fixed_item_rater_and_step_truth",
+    "varying_component": "new_person_ability_and_response_draw_per_replication"
+  },
+  "data_and_input_contract": {
+    "generator": "standalone_adjacent_category_softmax",
+    "package_probability_or_simulation_helper_used_for_generation": false,
+    "fixed_truth_sha256": "487a519431c040aa4db6572c11a4735f6e8958fee4445ed5a49578f1392eb802",
+    "base_seed": 20260714,
+    "seed_formula": "base_plus_100000_times_scenario_plus_1000_times_replication_plus_stream_offset",
+    "stream_offsets": {
+      "ability": 11,
+      "response": 29,
+      "package_fit": 47
+    },
+    "seed_registry_rows": [
+      {
+        "n_persons": 40,
+        "replication": 1,
+        "ability_seed": 20361725,
+        "response_seed": 20361743,
+        "package_fit_seed": 20361761,
+        "chain_rng_contract": "single_replayable_mersenne_twister_consumed_sequentially_by_four_chains"
+      },
+      {
+        "n_persons": 100,
+        "replication": 1,
+        "ability_seed": 20461725,
+        "response_seed": 20461743,
+        "package_fit_seed": 20461761,
+        "chain_rng_contract": "single_replayable_mersenne_twister_consumed_sequentially_by_four_chains"
+      },
+      {
+        "n_persons": 40,
+        "replication": 2,
+        "ability_seed": 20362725,
+        "response_seed": 20362743,
+        "package_fit_seed": 20362761,
+        "chain_rng_contract": "single_replayable_mersenne_twister_consumed_sequentially_by_four_chains"
+      },
+      {
+        "n_persons": 100,
+        "replication": 2,
+        "ability_seed": 20462725,
+        "response_seed": 20462743,
+        "package_fit_seed": 20462761,
+        "chain_rng_contract": "single_replayable_mersenne_twister_consumed_sequentially_by_four_chains"
+      },
+      {
+        "n_persons": 40,
+        "replication": 3,
+        "ability_seed": 20363725,
+        "response_seed": 20363743,
+        "package_fit_seed": 20363761,
+        "chain_rng_contract": "single_replayable_mersenne_twister_consumed_sequentially_by_four_chains"
+      },
+      {
+        "n_persons": 100,
+        "replication": 3,
+        "ability_seed": 20463725,
+        "response_seed": 20463743,
+        "package_fit_seed": 20463761,
+        "chain_rng_contract": "single_replayable_mersenne_twister_consumed_sequentially_by_four_chains"
+      },
+      {
+        "n_persons": 40,
+        "replication": 4,
+        "ability_seed": 20364725,
+        "response_seed": 20364743,
+        "package_fit_seed": 20364761,
+        "chain_rng_contract": "single_replayable_mersenne_twister_consumed_sequentially_by_four_chains"
+      },
+      {
+        "n_persons": 100,
+        "replication": 4,
+        "ability_seed": 20464725,
+        "response_seed": 20464743,
+        "package_fit_seed": 20464761,
+        "chain_rng_contract": "single_replayable_mersenne_twister_consumed_sequentially_by_four_chains"
+      },
+      {
+        "n_persons": 40,
+        "replication": 5,
+        "ability_seed": 20365725,
+        "response_seed": 20365743,
+        "package_fit_seed": 20365761,
+        "chain_rng_contract": "single_replayable_mersenne_twister_consumed_sequentially_by_four_chains"
+      },
+      {
+        "n_persons": 100,
+        "replication": 5,
+        "ability_seed": 20465725,
+        "response_seed": 20465743,
+        "package_fit_seed": 20465761,
+        "chain_rng_contract": "single_replayable_mersenne_twister_consumed_sequentially_by_four_chains"
+      }
+    ],
+    "seed_disjoint_from_direct_pilot_and_tam_only_multireplication": true,
+    "adaptive_seed_search_or_redraw_allowed": false,
+    "missing_category_regeneration_allowed": false,
+    "n_items": 5,
+    "n_raters": 4,
+    "category_levels": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "assignment": "fully_crossed",
+    "canonical_row_order": "person_then_rater_then_item",
+    "package_and_tam_must_use_identical_csv_sha256": true,
+    "package_and_tam_must_match_row_count_ids_and_categories": true,
+    "each_dataset_truth_observations_and_csv_sha256_required": true
+  },
+  "package_fit_contract": {
+    "backend": "advancedhmc",
+    "sampler": "nuts",
+    "chains": 4,
+    "warmup_per_chain": 400,
+    "retained_draws_per_chain": 400,
+    "step_size": 0.05,
+    "target_accept": 0.9,
+    "max_depth": 10,
+    "max_energy_error": 1000.0,
+    "metric": "diagonal",
+    "ad_backend": "ForwardDiff",
+    "init": "zeros",
+    "init_jitter": 0.05,
+    "progress": false,
+    "prior": {
+      "person_sd": 1.5,
+      "rater_sd": 1.0,
+      "item_sd": 1.0,
+      "step_sd": 1.0
+    },
+    "post_result_tuning_change_allowed": false
+  },
+  "tam_fit_contract": {
+    "r_command": "TAM_tam_mml_mfr",
+    "formulaA": "~ item + rater + item:step",
+    "constraint": "cases",
+    "control": {
+      "maxiter": 1000,
+      "conv": 0.0001,
+      "convD": 0.001,
+      "convM": 0.0001
+    },
+    "delete_red_items": true,
+    "tam_version": "4.3.25",
+    "r_version": "R version 4.6.1 (2026-06-24)",
+    "version_mismatch_disposition": "new_versioned_protocol_required",
+    "required_validity_checks": [
+      "exit_code_zero",
+      "finite_deviance",
+      "positive_iteration_count",
+      "iteration_limit_not_reached",
+      "all_expected_parameters_present_once",
+      "no_unexpected_parameters_after_adapter",
+      "all_estimates_and_standard_errors_finite",
+      "formula_and_constraint_audit_pass",
+      "sum_zero_and_category_intercept_reconstruction_pass"
+    ]
+  },
+  "artifact_archive_contract": {
+    "committed_fixture_role": "summary_decision_and_hash_manifest",
+    "raw_local_archive_required": true,
+    "raw_tam_outputs": [
+      "input_csv",
+      "xsi_facets_csv",
+      "fit_summary_csv",
+      "formula_audit_csv",
+      "stdout",
+      "stderr"
+    ],
+    "raw_package_outputs": [
+      "draws",
+      "log_posterior",
+      "sampler_rows",
+      "parameter_diagnostics",
+      "derived_aligned_parameter_draws",
+      "fit_controls"
+    ],
+    "per_attempt_command_environment_and_sha256_manifest_required": true,
+    "failed_and_retried_attempts_both_retained": true,
+    "independent_metric_recomputation_from_raw_outputs_required": true
+  },
+  "estimand_alignment_rows": [
+    {
+      "estimand": "item_difficulty",
+      "package_quantity": "centered_identified_item_effect",
+      "tam_quantity": "centered_expanded_item_facet_xsi",
+      "alignment": "contrast_aligned_after_centering",
+      "included_in_primary_gate": true
+    },
+    {
+      "estimand": "rater_severity",
+      "package_quantity": "centered_identified_rater_effect",
+      "tam_quantity": "centered_expanded_rater_facet_xsi",
+      "alignment": "contrast_aligned_after_centering",
+      "included_in_primary_gate": true
+    },
+    {
+      "estimand": "item_step",
+      "package_quantity": "free_steps_plus_reconstructed_negative_sum_last_step",
+      "tam_quantity": "expanded_item_colon_step_facet_under_within_item_sum_constraint",
+      "alignment": "same_item_adjacent_step_after_constraint_reconstruction",
+      "included_in_primary_gate": true
+    },
+    {
+      "estimand": "person_ability",
+      "package_quantity": "fixed_person_parameter_with_prior",
+      "tam_quantity": "marginal_latent_distribution_and_eap_quantity",
+      "alignment": "not_directly_aligned",
+      "included_in_primary_gate": false
+    },
+    {
+      "estimand": "uncertainty",
+      "package_quantity": "bayesian_posterior_credible_interval",
+      "tam_quantity": "mml_point_estimate_and_standard_error",
+      "alignment": "not_identical_interval_frameworks",
+      "included_in_primary_gate": false
+    },
+    {
+      "estimand": "model_fit_or_prediction",
+      "package_quantity": "waic_loo_or_posterior_predictive_quantities",
+      "tam_quantity": "deviance_aic_bic_or_eap_reliability",
+      "alignment": "undefined_in_current_policy",
+      "included_in_primary_gate": false
+    },
+    {
+      "estimand": "generalized_discrimination_loading_or_consistency",
+      "package_quantity": "gmfrm_or_mgmfrm_parameter",
+      "tam_quantity": "absent_from_current_rasch_pcm_target",
+      "alignment": "nonoverlap",
+      "included_in_primary_gate": false
+    }
+  ],
+  "evidence_axis_rows": [
+    {
+      "axis": "protocol_and_parameterization_alignment",
+      "current_status": "passed",
+      "evidence": "ten_tam_item_step_adapter_structural_checks",
+      "primary_gate_effect": "execution_precondition"
+    },
+    {
+      "axis": "computational_reliability",
+      "current_status": "descriptive_pilot_pass",
+      "evidence": "classical_split_rhat_autocorrelation_ess_and_hmc_geometry",
+      "primary_gate_effect": "frozen_sampler_conjunction"
+    },
+    {
+      "axis": "direct_cross_software_numerical_agreement",
+      "current_status": "descriptive_pilot_pass_confirmatory_runs_pending",
+      "evidence": "package_posterior_summary_vs_tam_same_data_estimate",
+      "primary_gate_effect": "frozen_primary_decision"
+    },
+    {
+      "axis": "known_truth_recovery",
+      "current_status": "tam_primary_n250_pass_package_multirep_pending",
+      "evidence": "tam_multireplication_plus_single_package_pilot",
+      "primary_gate_effect": "secondary_claim_qualifier_no_rescue_or_veto"
+    },
+    {
+      "axis": "sample_size_robustness",
+      "current_status": "item_step_sensitivity_observed",
+      "evidence": "tam_n40_n100_n250_known_truth_comparison",
+      "primary_gate_effect": "n40_secondary_n100_primary_as_frozen"
+    },
+    {
+      "axis": "software_diversity",
+      "current_status": "tam_only",
+      "evidence": "facets_and_conquest_not_executed",
+      "primary_gate_effect": "blocks_broad_external_software_claim"
+    },
+    {
+      "axis": "model_family_coverage",
+      "current_status": "unit_discrimination_unidimensional_mfrm_overlap_only",
+      "evidence": "tam_mml_mfr_partial_credit_bridge",
+      "primary_gate_effect": "blocks_gmfrm_and_mgmfrm_generalization"
+    },
+    {
+      "axis": "external_construct_and_population_validity",
+      "current_status": "not_supplied",
+      "evidence": "synthetic_known_truth_data_only",
+      "primary_gate_effect": "blocks_construct_and_population_claims"
+    },
+    {
+      "axis": "independent_review",
+      "current_status": "packet_only_review_not_completed",
+      "evidence": "signed_independent_review_manifest_missing",
+      "primary_gate_effect": "blocks_public_claim_release"
+    }
+  ],
+  "metric_role_rows": [
+    {
+      "metric": "pearson_correlation",
+      "primary_role": "linear_pattern_agreement",
+      "strength": "detects_relative_order_and_linear_pattern",
+      "limitation": "insensitive_to_common_location_and_scale_and_unstable_in_small_blocks",
+      "independent_evidence_unit": false
+    },
+    {
+      "metric": "mean_abs_difference",
+      "primary_role": "typical_logit_scale_difference",
+      "strength": "detects_average_level_disagreement",
+      "limitation": "scale_dependent_and_can_hide_a_single_large_error",
+      "independent_evidence_unit": false
+    },
+    {
+      "metric": "max_abs_difference",
+      "primary_role": "worst_parameter_difference",
+      "strength": "prevents_average_metrics_from_hiding_a_local_mismatch",
+      "limitation": "highly_outlier_and_parameter_count_sensitive",
+      "independent_evidence_unit": false
+    },
+    {
+      "metric": "tam_inside_package_interval95_rate",
+      "primary_role": "asymmetric_interval_compatibility",
+      "strength": "records_whether_tam_points_fall_inside_package_intervals",
+      "limitation": "not_an_equivalence_test_not_symmetric_and_increases_with_wider_intervals",
+      "independent_evidence_unit": false
+    }
+  ],
+  "block_discreteness_rows": [
+    {
+      "block": "item_difficulty",
+      "n_parameters": 5,
+      "correlation_degrees_of_freedom": 3,
+      "small_parameter_block": true,
+      "interval_rate_threshold": 0.8,
+      "minimum_interval_containment_count": 4,
+      "replications_per_person_count": 5,
+      "block_pass_rate_threshold": 0.8,
+      "minimum_replications_passing": 4,
+      "interpretation": "correlation_and_interval_rate_are_discrete_small_block_statistics"
+    },
+    {
+      "block": "rater_severity",
+      "n_parameters": 4,
+      "correlation_degrees_of_freedom": 2,
+      "small_parameter_block": true,
+      "interval_rate_threshold": 0.8,
+      "minimum_interval_containment_count": 4,
+      "replications_per_person_count": 5,
+      "block_pass_rate_threshold": 0.8,
+      "minimum_replications_passing": 4,
+      "interpretation": "correlation_and_interval_rate_are_discrete_small_block_statistics"
+    },
+    {
+      "block": "item_step",
+      "n_parameters": 15,
+      "correlation_degrees_of_freedom": 13,
+      "small_parameter_block": false,
+      "interval_rate_threshold": 0.8,
+      "minimum_interval_containment_count": 12,
+      "replications_per_person_count": 5,
+      "block_pass_rate_threshold": 0.8,
+      "minimum_replications_passing": 4,
+      "interpretation": "parameter_level_statistics_still_share_constraints_and_data"
+    }
+  ],
+  "replication_precision_rows": [
+    {
+      "successes": 4,
+      "trials": 5,
+      "observed_pass_rate": 0.8,
+      "frozen_gate_passed": true,
+      "wilson95_lower": 0.37553462976252533,
+      "wilson95_upper": 0.9637758913675698,
+      "inferential_role": "precision_context_not_primary_gate",
+      "interpretation": "five_replications_define_a_decision_rule_not_a_precise_population_pass_rate"
+    },
+    {
+      "successes": 5,
+      "trials": 5,
+      "observed_pass_rate": 1.0,
+      "frozen_gate_passed": true,
+      "wilson95_lower": 0.5655175352168251,
+      "wilson95_upper": 1.0,
+      "inferential_role": "precision_context_not_primary_gate",
+      "interpretation": "five_replications_define_a_decision_rule_not_a_precise_population_pass_rate"
+    }
+  ],
+  "replication_design_interpretation": {
+    "observed_pass_rates_are_discrete": true,
+    "possible_pass_rates": [
+      0.0,
+      0.2,
+      0.4,
+      0.6,
+      0.8,
+      1.0
+    ],
+    "minimum_successes": 4,
+    "probability_of_observing_at_least_four_of_five_if_true_rate_is_0_80": 0.7372800000000002,
+    "can_establish_population_pass_probability_at_least_0_80": false
+  },
+  "retrospective_pilot_direct_margin_rows": [
+    {
+      "block": "item_difficulty",
+      "metric": "pearson_correlation",
+      "observed": 0.9998687567787137,
+      "direction": "minimum",
+      "frozen_threshold": 0.95,
+      "pass_margin": 0.04986875677871372,
+      "pilot_passed": true,
+      "role": "retrospective_descriptive_context_only",
+      "can_confirm_future_gate": false
+    },
+    {
+      "block": "item_difficulty",
+      "metric": "mean_abs_difference",
+      "observed": 0.01499814136867975,
+      "direction": "maximum",
+      "frozen_threshold": 0.1,
+      "pass_margin": 0.08500185863132026,
+      "pilot_passed": true,
+      "role": "retrospective_descriptive_context_only",
+      "can_confirm_future_gate": false
+    },
+    {
+      "block": "item_difficulty",
+      "metric": "max_abs_difference",
+      "observed": 0.023570862870124443,
+      "direction": "maximum",
+      "frozen_threshold": 0.3,
+      "pass_margin": 0.27642913712987555,
+      "pilot_passed": true,
+      "role": "retrospective_descriptive_context_only",
+      "can_confirm_future_gate": false
+    },
+    {
+      "block": "item_difficulty",
+      "metric": "tam_inside_package_interval95_rate",
+      "observed": 1.0,
+      "direction": "minimum",
+      "frozen_threshold": 0.8,
+      "pass_margin": 0.19999999999999996,
+      "pilot_passed": true,
+      "role": "retrospective_descriptive_context_only",
+      "can_confirm_future_gate": false
+    },
+    {
+      "block": "rater_severity",
+      "metric": "pearson_correlation",
+      "observed": 0.9999833178265483,
+      "direction": "minimum",
+      "frozen_threshold": 0.95,
+      "pass_margin": 0.0499833178265483,
+      "pilot_passed": true,
+      "role": "retrospective_descriptive_context_only",
+      "can_confirm_future_gate": false
+    },
+    {
+      "block": "rater_severity",
+      "metric": "mean_abs_difference",
+      "observed": 0.019571352287888505,
+      "direction": "maximum",
+      "frozen_threshold": 0.1,
+      "pass_margin": 0.0804286477121115,
+      "pilot_passed": true,
+      "role": "retrospective_descriptive_context_only",
+      "can_confirm_future_gate": false
+    },
+    {
+      "block": "rater_severity",
+      "metric": "max_abs_difference",
+      "observed": 0.029065028002414284,
+      "direction": "maximum",
+      "frozen_threshold": 0.3,
+      "pass_margin": 0.2709349719975857,
+      "pilot_passed": true,
+      "role": "retrospective_descriptive_context_only",
+      "can_confirm_future_gate": false
+    },
+    {
+      "block": "rater_severity",
+      "metric": "tam_inside_package_interval95_rate",
+      "observed": 1.0,
+      "direction": "minimum",
+      "frozen_threshold": 0.8,
+      "pass_margin": 0.19999999999999996,
+      "pilot_passed": true,
+      "role": "retrospective_descriptive_context_only",
+      "can_confirm_future_gate": false
+    },
+    {
+      "block": "item_step",
+      "metric": "pearson_correlation",
+      "observed": 0.9943382370046474,
+      "direction": "minimum",
+      "frozen_threshold": 0.95,
+      "pass_margin": 0.04433823700464745,
+      "pilot_passed": true,
+      "role": "retrospective_descriptive_context_only",
+      "can_confirm_future_gate": false
+    },
+    {
+      "block": "item_step",
+      "metric": "mean_abs_difference",
+      "observed": 0.044939632415112486,
+      "direction": "maximum",
+      "frozen_threshold": 0.1,
+      "pass_margin": 0.05506036758488752,
+      "pilot_passed": true,
+      "role": "retrospective_descriptive_context_only",
+      "can_confirm_future_gate": false
+    },
+    {
+      "block": "item_step",
+      "metric": "max_abs_difference",
+      "observed": 0.13370768372296915,
+      "direction": "maximum",
+      "frozen_threshold": 0.3,
+      "pass_margin": 0.16629231627703084,
+      "pilot_passed": true,
+      "role": "retrospective_descriptive_context_only",
+      "can_confirm_future_gate": false
+    },
+    {
+      "block": "item_step",
+      "metric": "tam_inside_package_interval95_rate",
+      "observed": 1.0,
+      "direction": "minimum",
+      "frozen_threshold": 0.8,
+      "pass_margin": 0.19999999999999996,
+      "pilot_passed": true,
+      "role": "retrospective_descriptive_context_only",
+      "can_confirm_future_gate": false
+    }
+  ],
+  "retrospective_pilot_triangle_rows": [
+    {
+      "block": "item_difficulty",
+      "n_parameters": 5,
+      "package_vs_tam_pearson": 0.9998687567787137,
+      "package_vs_tam_mean_abs_difference": 0.01499814136867975,
+      "package_vs_tam_max_abs_difference": 0.023570862870124443,
+      "package_vs_truth_pearson": 0.9984351198925923,
+      "package_vs_truth_mean_abs_difference": 0.07828222852402071,
+      "package_vs_truth_max_abs_difference": 0.16256821053523118,
+      "tam_vs_truth_pearson": 0.9987017912179644,
+      "tam_vs_truth_mean_abs_difference": 0.0643202826222943,
+      "tam_vs_truth_max_abs_difference": 0.13899734766510674,
+      "tam_inside_package_interval95_rate": 1.0,
+      "truth_inside_package_interval95_rate": 1.0,
+      "package_truth_recovery_profile_passed": true,
+      "tam_truth_recovery_profile_passed": true,
+      "both_estimators_truth_recovery_profiles_passed": true,
+      "interpretation": "direct_agreement_with_descriptive_recovery_support_for_both_estimators",
+      "confirmatory": false
+    },
+    {
+      "block": "rater_severity",
+      "n_parameters": 4,
+      "package_vs_tam_pearson": 0.9999833178265483,
+      "package_vs_tam_mean_abs_difference": 0.019571352287888505,
+      "package_vs_tam_max_abs_difference": 0.029065028002414284,
+      "package_vs_truth_pearson": 0.9920255191546302,
+      "package_vs_truth_mean_abs_difference": 0.09643132761823855,
+      "package_vs_truth_max_abs_difference": 0.15634070558755975,
+      "tam_vs_truth_pearson": 0.9926991075723863,
+      "tam_vs_truth_mean_abs_difference": 0.07685997533035005,
+      "tam_vs_truth_max_abs_difference": 0.1343721925768352,
+      "tam_inside_package_interval95_rate": 1.0,
+      "truth_inside_package_interval95_rate": 0.75,
+      "package_truth_recovery_profile_passed": true,
+      "tam_truth_recovery_profile_passed": true,
+      "both_estimators_truth_recovery_profiles_passed": true,
+      "interpretation": "direct_agreement_with_descriptive_recovery_support_for_both_estimators",
+      "confirmatory": false
+    },
+    {
+      "block": "item_step",
+      "n_parameters": 15,
+      "package_vs_tam_pearson": 0.9943382370046474,
+      "package_vs_tam_mean_abs_difference": 0.044939632415112486,
+      "package_vs_tam_max_abs_difference": 0.13370768372296915,
+      "package_vs_truth_pearson": 0.6766665497980103,
+      "package_vs_truth_mean_abs_difference": 0.2719660587841753,
+      "package_vs_truth_max_abs_difference": 0.6004989883239715,
+      "tam_vs_truth_pearson": 0.7134617834114387,
+      "tam_vs_truth_mean_abs_difference": 0.27856178362477235,
+      "tam_vs_truth_max_abs_difference": 0.5812717340036275,
+      "tam_inside_package_interval95_rate": 1.0,
+      "truth_inside_package_interval95_rate": 0.7333333333333333,
+      "package_truth_recovery_profile_passed": false,
+      "tam_truth_recovery_profile_passed": false,
+      "both_estimators_truth_recovery_profiles_passed": false,
+      "interpretation": "direct_agreement_but_neither_estimator_has_descriptive_recovery_support",
+      "confirmatory": false
+    }
+  ],
+  "tam_known_truth_context_rows": [
+    {
+      "n_persons": 40,
+      "block": "item_difficulty",
+      "n_replications": 10,
+      "median_pearson_correlation": 0.9843112605169192,
+      "minimum_pearson_correlation": 0.9273876270071764,
+      "median_mean_abs_difference": 0.07873107157031588,
+      "percentile90_mean_abs_difference": 0.11091317990048147,
+      "median_max_abs_difference": 0.16885912312637963,
+      "percentile90_max_abs_difference": 0.24467617546604314,
+      "all_recovery_thresholds_pass_rate": 0.8,
+      "role": "known_truth_sample_size_context_only",
+      "direct_threshold_cross_application_allowed": false,
+      "interpretation": "context_for_recovery_not_direct_agreement"
+    },
+    {
+      "n_persons": 40,
+      "block": "rater_severity",
+      "n_replications": 10,
+      "median_pearson_correlation": 0.9959415997358607,
+      "minimum_pearson_correlation": 0.9887787501088732,
+      "median_mean_abs_difference": 0.06566727284794899,
+      "percentile90_mean_abs_difference": 0.10246717980747878,
+      "median_max_abs_difference": 0.12070866545848241,
+      "percentile90_max_abs_difference": 0.20299148225664868,
+      "all_recovery_thresholds_pass_rate": 1.0,
+      "role": "known_truth_sample_size_context_only",
+      "direct_threshold_cross_application_allowed": false,
+      "interpretation": "context_for_recovery_not_direct_agreement"
+    },
+    {
+      "n_persons": 40,
+      "block": "item_step",
+      "n_replications": 10,
+      "median_pearson_correlation": 0.8488472568520466,
+      "minimum_pearson_correlation": 0.652407424941398,
+      "median_mean_abs_difference": 0.2052278731076977,
+      "percentile90_mean_abs_difference": 0.23363095646558116,
+      "median_max_abs_difference": 0.5070791938641759,
+      "percentile90_max_abs_difference": 0.6133288574690329,
+      "all_recovery_thresholds_pass_rate": 0.6,
+      "role": "known_truth_sample_size_context_only",
+      "direct_threshold_cross_application_allowed": false,
+      "interpretation": "item_step_recovery_is_small_sample_sensitive"
+    },
+    {
+      "n_persons": 100,
+      "block": "item_difficulty",
+      "n_replications": 10,
+      "median_pearson_correlation": 0.9910301171719047,
+      "minimum_pearson_correlation": 0.9844910941663355,
+      "median_mean_abs_difference": 0.04227775218279764,
+      "percentile90_mean_abs_difference": 0.054724485004895865,
+      "median_max_abs_difference": 0.08379945020919122,
+      "percentile90_max_abs_difference": 0.1122147053074909,
+      "all_recovery_thresholds_pass_rate": 1.0,
+      "role": "known_truth_sample_size_context_only",
+      "direct_threshold_cross_application_allowed": false,
+      "interpretation": "context_for_recovery_not_direct_agreement"
+    },
+    {
+      "n_persons": 100,
+      "block": "rater_severity",
+      "n_replications": 10,
+      "median_pearson_correlation": 0.9974626215308796,
+      "minimum_pearson_correlation": 0.994637029459823,
+      "median_mean_abs_difference": 0.04876093836526915,
+      "percentile90_mean_abs_difference": 0.06482271917873245,
+      "median_max_abs_difference": 0.0800185380886422,
+      "percentile90_max_abs_difference": 0.10170759305757013,
+      "all_recovery_thresholds_pass_rate": 1.0,
+      "role": "known_truth_sample_size_context_only",
+      "direct_threshold_cross_application_allowed": false,
+      "interpretation": "context_for_recovery_not_direct_agreement"
+    },
+    {
+      "n_persons": 100,
+      "block": "item_step",
+      "n_replications": 10,
+      "median_pearson_correlation": 0.9306872426487532,
+      "minimum_pearson_correlation": 0.8538441533790337,
+      "median_mean_abs_difference": 0.1383206851425488,
+      "percentile90_mean_abs_difference": 0.15214614939422577,
+      "median_max_abs_difference": 0.3574436977499246,
+      "percentile90_max_abs_difference": 0.4089088401793061,
+      "all_recovery_thresholds_pass_rate": 1.0,
+      "role": "known_truth_sample_size_context_only",
+      "direct_threshold_cross_application_allowed": false,
+      "interpretation": "context_for_recovery_not_direct_agreement"
+    },
+    {
+      "n_persons": 250,
+      "block": "item_difficulty",
+      "n_replications": 10,
+      "median_pearson_correlation": 0.9981249493470508,
+      "minimum_pearson_correlation": 0.9931468604287363,
+      "median_mean_abs_difference": 0.024352342084385244,
+      "percentile90_mean_abs_difference": 0.03245762325454127,
+      "median_max_abs_difference": 0.047676055840008225,
+      "percentile90_max_abs_difference": 0.06485571586639736,
+      "all_recovery_thresholds_pass_rate": 1.0,
+      "role": "known_truth_sample_size_context_only",
+      "direct_threshold_cross_application_allowed": false,
+      "interpretation": "context_for_recovery_not_direct_agreement"
+    },
+    {
+      "n_persons": 250,
+      "block": "rater_severity",
+      "n_replications": 10,
+      "median_pearson_correlation": 0.9995855472881421,
+      "minimum_pearson_correlation": 0.9982485283915175,
+      "median_mean_abs_difference": 0.024261018531975903,
+      "percentile90_mean_abs_difference": 0.031890378279333643,
+      "median_max_abs_difference": 0.03888491089022261,
+      "percentile90_max_abs_difference": 0.05420594832694993,
+      "all_recovery_thresholds_pass_rate": 1.0,
+      "role": "known_truth_sample_size_context_only",
+      "direct_threshold_cross_application_allowed": false,
+      "interpretation": "context_for_recovery_not_direct_agreement"
+    },
+    {
+      "n_persons": 250,
+      "block": "item_step",
+      "n_replications": 10,
+      "median_pearson_correlation": 0.9674370370547412,
+      "minimum_pearson_correlation": 0.9387270313169506,
+      "median_mean_abs_difference": 0.08033208283296958,
+      "percentile90_mean_abs_difference": 0.094632081041286,
+      "median_max_abs_difference": 0.19083986201941713,
+      "percentile90_max_abs_difference": 0.327993830903051,
+      "all_recovery_thresholds_pass_rate": 1.0,
+      "role": "known_truth_sample_size_context_only",
+      "direct_threshold_cross_application_allowed": false,
+      "interpretation": "context_for_recovery_not_direct_agreement"
+    }
+  ],
+  "secondary_recovery_qualifier": {
+    "status": "prospective_secondary_claim_qualifier_frozen",
+    "purpose": "distinguish_direct_agreement_from_known_truth_recovery",
+    "estimators": [
+      "package_posterior_mean",
+      "tam_mml_estimate"
+    ],
+    "application": "separate_estimator_vs_truth_evaluation_on_same_future_datasets",
+    "primary_person_count": 100,
+    "replications": 5,
+    "minimum_replications_passing_per_block": 4,
+    "all_blocks_required_for_qualifier": true,
+    "changes_frozen_primary_direct_gate": false,
+    "cannot_rescue_primary_direct_failure": true,
+    "cannot_veto_primary_direct_pass": true,
+    "threshold_rows": [
+      {
+        "block": "item_difficulty",
+        "metric": "pearson_correlation",
+        "direction": "minimum",
+        "threshold": 0.95,
+        "source_role": "inherited_unchanged_from_frozen_tam_known_truth_policy",
+        "future_application": "apply_separately_to_package_vs_truth_and_tam_vs_truth",
+        "aggregation": "four_of_five_primary_n100_replications_per_block",
+        "primary_direct_gate_effect": "none"
+      },
+      {
+        "block": "item_difficulty",
+        "metric": "mean_abs_difference",
+        "direction": "maximum",
+        "threshold": 0.15,
+        "source_role": "inherited_unchanged_from_frozen_tam_known_truth_policy",
+        "future_application": "apply_separately_to_package_vs_truth_and_tam_vs_truth",
+        "aggregation": "four_of_five_primary_n100_replications_per_block",
+        "primary_direct_gate_effect": "none"
+      },
+      {
+        "block": "item_difficulty",
+        "metric": "max_abs_difference",
+        "direction": "maximum",
+        "threshold": 0.3,
+        "source_role": "inherited_unchanged_from_frozen_tam_known_truth_policy",
+        "future_application": "apply_separately_to_package_vs_truth_and_tam_vs_truth",
+        "aggregation": "four_of_five_primary_n100_replications_per_block",
+        "primary_direct_gate_effect": "none"
+      },
+      {
+        "block": "rater_severity",
+        "metric": "pearson_correlation",
+        "direction": "minimum",
+        "threshold": 0.95,
+        "source_role": "inherited_unchanged_from_frozen_tam_known_truth_policy",
+        "future_application": "apply_separately_to_package_vs_truth_and_tam_vs_truth",
+        "aggregation": "four_of_five_primary_n100_replications_per_block",
+        "primary_direct_gate_effect": "none"
+      },
+      {
+        "block": "rater_severity",
+        "metric": "mean_abs_difference",
+        "direction": "maximum",
+        "threshold": 0.15,
+        "source_role": "inherited_unchanged_from_frozen_tam_known_truth_policy",
+        "future_application": "apply_separately_to_package_vs_truth_and_tam_vs_truth",
+        "aggregation": "four_of_five_primary_n100_replications_per_block",
+        "primary_direct_gate_effect": "none"
+      },
+      {
+        "block": "rater_severity",
+        "metric": "max_abs_difference",
+        "direction": "maximum",
+        "threshold": 0.3,
+        "source_role": "inherited_unchanged_from_frozen_tam_known_truth_policy",
+        "future_application": "apply_separately_to_package_vs_truth_and_tam_vs_truth",
+        "aggregation": "four_of_five_primary_n100_replications_per_block",
+        "primary_direct_gate_effect": "none"
+      },
+      {
+        "block": "item_step",
+        "metric": "pearson_correlation",
+        "direction": "minimum",
+        "threshold": 0.8,
+        "source_role": "inherited_unchanged_from_frozen_tam_known_truth_policy",
+        "future_application": "apply_separately_to_package_vs_truth_and_tam_vs_truth",
+        "aggregation": "four_of_five_primary_n100_replications_per_block",
+        "primary_direct_gate_effect": "none"
+      },
+      {
+        "block": "item_step",
+        "metric": "mean_abs_difference",
+        "direction": "maximum",
+        "threshold": 0.25,
+        "source_role": "inherited_unchanged_from_frozen_tam_known_truth_policy",
+        "future_application": "apply_separately_to_package_vs_truth_and_tam_vs_truth",
+        "aggregation": "four_of_five_primary_n100_replications_per_block",
+        "primary_direct_gate_effect": "none"
+      },
+      {
+        "block": "item_step",
+        "metric": "max_abs_difference",
+        "direction": "maximum",
+        "threshold": 0.6,
+        "source_role": "inherited_unchanged_from_frozen_tam_known_truth_policy",
+        "future_application": "apply_separately_to_package_vs_truth_and_tam_vs_truth",
+        "aggregation": "four_of_five_primary_n100_replications_per_block",
+        "primary_direct_gate_effect": "none"
+      }
+    ]
+  },
+  "estimand_triangle": {
+    "primary_edge": "package_posterior_summary_vs_tam_mml_estimate",
+    "secondary_edges": [
+      "package_posterior_summary_vs_known_truth",
+      "tam_mml_estimate_vs_known_truth"
+    ],
+    "required_interpretive_classification": [
+      "agreement_with_recovery_support",
+      "agreement_without_recovery_support",
+      "nonagreement",
+      "computationally_inconclusive",
+      "protocol_invalid"
+    ],
+    "shared_error_warning": "same_data_estimators_can_agree_while_both_deviate_from_truth"
+  },
+  "retry_and_missingness_policy": {
+    "fixed_primary_denominator": 5,
+    "sampler_gate_scope": "all_ten_scheduled_package_fits",
+    "n40_and_n100_pooling_allowed": false,
+    "n40_role": "secondary_sample_size_stress_condition",
+    "n100_role": "primary_confirmatory_condition",
+    "undefined_or_nonfinite_primary_metric": "automatic_replication_block_failure",
+    "interval_metric_denominator": "all_expected_parameters_in_block",
+    "all_scheduled_replications_must_be_recorded": true,
+    "sampler_failure_counts_as_primary_gate_failure": true,
+    "sampler_failure_may_be_replaced": false,
+    "agreement_metric_failure_may_be_replaced": false,
+    "replacement_seed_allowed": false,
+    "denominator_reduction_allowed": false,
+    "post_result_threshold_or_tuning_change_allowed": false,
+    "objective_infrastructure_failure_retry": "same_dataset_same_seed_same_frozen_settings_only",
+    "retry_audit": "retain_original_attempt_record_error_correction_and_retry_hash",
+    "remediation_after_sampler_failure": "new_versioned_protocol_not_continuation_of_frozen_confirmatory_run"
+  },
+  "decision_state_rows": [
+    {
+      "state": "direct_pass_recovery_qualifier_pass",
+      "condition": "frozen_direct_gate_passes_and_both_estimators_pass_secondary_recovery_profile",
+      "interpretation": "local_cross_software_agreement_with_known_truth_recovery_support",
+      "public_claim_release": false
+    },
+    {
+      "state": "direct_pass_recovery_qualifier_fail",
+      "condition": "frozen_direct_gate_passes_but_either_estimator_fails_secondary_recovery_profile",
+      "interpretation": "local_cross_software_agreement_without_known_truth_recovery_support",
+      "public_claim_release": false
+    },
+    {
+      "state": "direct_fail_sampler_valid",
+      "condition": "all_fits_computationally_valid_but_any_primary_block_has_fewer_than_four_of_five_passes",
+      "interpretation": "nonagreement_under_frozen_rule_no_threshold_revision_or_secondary_rescue",
+      "public_claim_release": false
+    },
+    {
+      "state": "sampler_invalid",
+      "condition": "any_scheduled_fit_fails_any_frozen_sampler_gate",
+      "interpretation": "primary_gate_not_passed_computational_failure_retained",
+      "public_claim_release": false
+    },
+    {
+      "state": "execution_incomplete",
+      "condition": "any_scheduled_dataset_or_fit_is_missing",
+      "interpretation": "incomplete_no_denominator_reduction_or_replacement_seed",
+      "public_claim_release": false
+    },
+    {
+      "state": "protocol_violation",
+      "condition": "input_hash_parameter_mapping_seed_or_frozen_setting_mismatch",
+      "interpretation": "execution_invalid_preserve_attempt_and_restart_only_under_documented_protocol",
+      "public_claim_release": false
+    }
+  ],
+  "failure_taxonomy_rows": [
+    {
+      "priority": 1,
+      "failure": "protocol_or_alignment_failure",
+      "examples": [
+        "hash_mismatch",
+        "seed_mismatch",
+        "sign_or_centering_mismatch",
+        "missing_or_duplicate_parameter",
+        "undefined_correlation"
+      ],
+      "disposition": "protocol_invalid"
+    },
+    {
+      "priority": 2,
+      "failure": "tam_engine_or_numerical_failure",
+      "examples": [
+        "nonzero_exit",
+        "nonfinite_estimate_or_se",
+        "iteration_limit",
+        "invalid_parameter_table"
+      ],
+      "disposition": "scheduled_replication_failure_no_replacement"
+    },
+    {
+      "priority": 3,
+      "failure": "package_engine_failure",
+      "examples": [
+        "exception",
+        "nonfinite_draw_or_logposterior"
+      ],
+      "disposition": "scheduled_replication_failure_no_replacement"
+    },
+    {
+      "priority": 4,
+      "failure": "package_sampler_confirmatory_failure",
+      "examples": [
+        "divergence",
+        "max_treedepth",
+        "classical_rhat",
+        "autocorrelation_ess",
+        "warning_parameter"
+      ],
+      "disposition": "primary_gate_not_passed"
+    },
+    {
+      "priority": 5,
+      "failure": "sampler_advisory_warning",
+      "examples": [
+        "rank_rhat",
+        "bulk_or_tail_ess",
+        "ebfmi",
+        "mcse"
+      ],
+      "disposition": "retain_separately_no_primary_gate_change"
+    },
+    {
+      "priority": 6,
+      "failure": "direct_metric_failure",
+      "examples": [
+        "correlation",
+        "mad",
+        "max_difference",
+        "interval_compatibility"
+      ],
+      "disposition": "block_replication_failure"
+    },
+    {
+      "priority": 7,
+      "failure": "multireplication_aggregation_failure",
+      "examples": [
+        "fewer_than_four_of_five_block_passes"
+      ],
+      "disposition": "direct_nonagreement"
+    },
+    {
+      "priority": 8,
+      "failure": "threshold_fragile_pass",
+      "examples": [
+        "exactly_four_of_five",
+        "small_normalized_margin",
+        "leave_one_replication_out_flip"
+      ],
+      "disposition": "primary_pass_retained_with_fragility_label"
+    },
+    {
+      "priority": 9,
+      "failure": "truth_triangulation_limitation",
+      "examples": [
+        "agree_but_both_miss_truth",
+        "agree_package_only_recovers",
+        "agree_tam_only_recovers"
+      ],
+      "disposition": "recovery_qualifier_and_claim_wording_only"
+    }
+  ],
+  "equivalence_advisory": {
+    "frozen_primary_interval_metric": "tam_point_inside_package_equal_tail_interval95_rate",
+    "primary_metric_is_equivalence_test": false,
+    "conditional_rope_analysis": {
+      "status": "prospective_advisory_only",
+      "difference": "package_parameter_draw_minus_fixed_tam_point_estimate",
+      "posterior_interval_probability": 0.9,
+      "rope_half_width": 0.3,
+      "outcomes": [
+        "conditional_equivalence_demonstrated",
+        "conditional_equivalence_inconclusive",
+        "meaningful_difference_supported"
+      ],
+      "changes_frozen_primary_gate": false
+    },
+    "full_estimator_equivalence_requires": "paired_same_resample_refits_with_joint_difference_uncertainty",
+    "full_estimator_equivalence_completed": false
+  },
+  "required_reporting_rows": [
+    {
+      "report": "all_scheduled_attempts_and_failure_reasons",
+      "role": "required_no_silent_exclusion"
+    },
+    {
+      "report": "per_replication_per_block_all_four_primary_metrics",
+      "role": "required_primary_audit"
+    },
+    {
+      "report": "per_metric_pass_rates_alongside_conjunctive_block_pass_rate",
+      "role": "diagnostic_only_no_rescue"
+    },
+    {
+      "report": "package_vs_tam_package_vs_truth_and_tam_vs_truth_triangle",
+      "role": "required_secondary_interpretation"
+    },
+    {
+      "report": "parameter_ids_for_max_errors",
+      "role": "required_localization"
+    },
+    {
+      "report": "rmse_median_absolute_difference_regression_slope_and_concordance",
+      "role": "descriptive_no_threshold"
+    },
+    {
+      "report": "package_interval_widths_tam_standard_errors_and_interval_counts",
+      "role": "descriptive_uncertainty_context_not_equivalence"
+    },
+    {
+      "report": "rank_normalized_rhat_bulk_tail_ess_and_ebfmi_when_available",
+      "role": "secondary_quality_overlay_no_change_to_frozen_gate"
+    },
+    {
+      "report": "n40_vs_n100_sample_size_pattern",
+      "role": "secondary_robustness_context"
+    },
+    {
+      "report": "adapter_constraint_and_input_hash_checks",
+      "role": "required_protocol_integrity"
+    }
+  ],
+  "model_scope_rows": [
+    {
+      "component": "unidimensional_many_facet_rasch_partial_credit",
+      "status": "included_primary_overlap"
+    },
+    {
+      "component": "fully_crossed_person_item_rater_assignment",
+      "status": "included_only_design"
+    },
+    {
+      "component": "item_difficulty_rater_severity_item_steps",
+      "status": "included_aligned_parameter_blocks"
+    },
+    {
+      "component": "person_ability",
+      "status": "shared_kernel_term_not_direct_estimand"
+    },
+    {
+      "component": "rating_scale_mfrm",
+      "status": "not_tested"
+    },
+    {
+      "component": "binary_mfrm",
+      "status": "nested_but_not_tested"
+    },
+    {
+      "component": "free_item_discrimination",
+      "status": "excluded"
+    },
+    {
+      "component": "rater_consistency_or_rater_specific_steps",
+      "status": "excluded"
+    },
+    {
+      "component": "multidimensional_fixed_q_mgmfrm",
+      "status": "excluded"
+    },
+    {
+      "component": "uto_2021_loading_weighted_multidimensional_model",
+      "status": "excluded_no_inference_from_tam_overlap"
+    },
+    {
+      "component": "tam_gpcm_mirt_or_other_functions",
+      "status": "not_executed"
+    },
+    {
+      "component": "sparse_or_incomplete_rating_design",
+      "status": "excluded"
+    },
+    {
+      "component": "facets_or_conquest_agreement",
+      "status": "excluded_not_executed"
+    },
+    {
+      "component": "real_data_construct_or_population_validity",
+      "status": "excluded_not_supplied"
+    },
+    {
+      "component": "posterior_uncertainty_calibration",
+      "status": "excluded_requires_sbc_or_replicated_coverage"
+    }
+  ],
+  "claim_wording_rows": [
+    {
+      "claim": "allowed_if_direct_primary_gate_passes",
+      "wording": "under_the_predeclared_synthetic_unit_discrimination_mfrm_overlap_cells_package_parameter_summaries_met_the_frozen_numerical_agreement_rule_against_tam",
+      "requires_secondary_recovery_qualifier": false
+    },
+    {
+      "claim": "allowed_only_if_secondary_recovery_qualifier_also_passes",
+      "wording": "the_same_runs_also_supported_known_truth_recovery_for_both_estimators_under_the_inherited_recovery_profile",
+      "requires_secondary_recovery_qualifier": true
+    },
+    {
+      "claim": "prohibited",
+      "wording": "bayesianmgmfrm_is_equivalent_to_or_validated_by_tam",
+      "requires_secondary_recovery_qualifier": true
+    },
+    {
+      "claim": "prohibited",
+      "wording": "gmfrm_or_mgmfrm_including_uto_2021_is_externally_validated",
+      "requires_secondary_recovery_qualifier": true
+    },
+    {
+      "claim": "prohibited",
+      "wording": "construct_validity_population_generalizability_or_publication_grade_validation",
+      "requires_secondary_recovery_qualifier": true
+    }
+  ],
+  "claim_limits": [
+    "original_thresholds_and_design_remain_unchanged",
+    "direct_agreement_is_not_known_truth_recovery",
+    "five_replications_are_a_decision_rule_not_precise_rate_estimation",
+    "small_item_and_rater_blocks_make_correlation_and_coverage_discrete",
+    "interval_containment_is_not_equivalence_testing",
+    "same_data_estimators_can_share_sampling_error",
+    "classical_rhat_and_autocorrelation_ess_are_provisional",
+    "no_facets_or_conquest_execution",
+    "no_generalized_gmfrm_or_mgmfrm_external_validation",
+    "no_uto_2021_validation_inference_from_tam_overlap",
+    "no_external_construct_or_population_validity_claim",
+    "no_public_claim_release"
+  ],
+  "summary": {
+    "passed": true,
+    "frozen_primary_gate_unchanged": true,
+    "frozen_primary_thresholds_modified": false,
+    "frozen_primary_design_modified": false,
+    "seed_registry_complete_and_disjoint": true,
+    "structural_adapter_checks_passed": true,
+    "retrospective_direct_pilot_all_thresholds_passed": true,
+    "retrospective_pilot_full_recovery_support": false,
+    "retrospective_pilot_classification": "descriptive_agreement_without_full_recovery_support",
+    "tam_known_truth_n40_item_step_pass_rate": 0.6,
+    "tam_known_truth_n100_item_step_pass_rate": 1.0,
+    "tam_known_truth_n250_primary_gate_passed": true,
+    "secondary_recovery_qualifier_frozen": true,
+    "direct_multireplication_execution_completed": false,
+    "external_software_validation_completed": false,
+    "public_claim_release_allowed": false,
+    "n_evidence_axes": 9,
+    "n_estimand_alignment_rows": 7,
+    "n_metric_roles": 4,
+    "n_decision_states": 6,
+    "n_failure_taxonomy_rows": 9,
+    "n_required_reporting_rows": 10,
+    "next_gate": "run_predeclared_multireplication_package_vs_tam_direct_agreement_under_refined_adjudication"
+  }
+}

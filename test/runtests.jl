@@ -13,6 +13,8 @@ import BayesianMGMFRM
 import LogDensityProblemsAD
 
 include(joinpath(dirname(@__DIR__), "scripts", "local_json.jl"))
+include(joinpath(dirname(@__DIR__), "scripts",
+    "scientific_payload_digest.jl"))
 
 module RuntimePublicLanguagePolicyForTest
 
@@ -102,6 +104,14 @@ using BayesianMGMFRM:
     logprior,
     linear_predictor_table,
     linear_predictor_values,
+    local_dependence_calibration_contract,
+    local_dependence_calibration_pilot_contract,
+    local_dependence_calibration_pilot_preflight,
+    local_dependence_calibration_row,
+    local_dependence_calibration_summary,
+    local_dependence_contract,
+    local_dependence_simulation_grid,
+    local_dependence_summary,
     GMFRMFit,
     MGMFRMFit,
     MFRMFit,
@@ -128,6 +138,7 @@ using BayesianMGMFRM:
     predictive_check_plot_data,
     predictive_probabilities,
     predictive_residuals,
+    predictive_standardized_residuals,
     predictive_variances,
     prior_predict,
     prior_predictive_check,
@@ -154,6 +165,7 @@ using BayesianMGMFRM:
     save_fit_report_tables,
     simulation_grid,
     simulation_grid_summary,
+    simulate_local_dependence,
     simulate_responses,
     stan_validation_row,
     stan_validation_summary,
@@ -161,6 +173,7 @@ using BayesianMGMFRM:
     sensitivity_comparison_summary,
     separation_reliability_summary,
     threshold_map_data,
+    testlet_design_audit,
     model_ladder,
     validate_design,
     validation_suggestions,
@@ -1964,7 +1977,8 @@ function check_gmfrm_guarded_fit_api_dry_run_fixture(fixture_path::AbstractStrin
     @test Bool(fixture[:public_fit]) == false
     @test Bool(fixture[:experimental_public]) == false
     @test Bool(fixture[:fit_ready]) == false
-    @test String(fixture[:proposed_entrypoint]) == "fit(spec; experimental = true)"
+    @test String(fixture[:proposed_entrypoint]) ==
+        "BayesianMGMFRM.Experimental.fit(spec)"
     @test Bool(fixture[:entrypoint_enabled]) == false
 
     protocol = fixture[:protocol]
@@ -2079,7 +2093,15 @@ function check_gmfrm_guarded_fit_api_dry_run_fixture(fixture_path::AbstractStrin
     for row in evidence_rows
         String(row[:reference_kind]) == "local_file" || continue
         path = first(split(String(row[:artifact]), '#'; limit = 2))
-        @test String(row[:sha256]) == file_sha256(joinpath(root, path))
+        reference_kind = splitext(path)[2] in
+            (".jl", ".md", ".toml", ".yml", ".yaml") ?
+            :code_doc : :generated_artifact
+        integrity = ScientificPayloadDigest.reference_integrity_status(
+            String(row[:sha256]),
+            file_sha256(joinpath(root, path));
+            reference_kind,
+        )
+        @test integrity.provenance_policy_accepted
     end
 
     target = fixture[:target_dry_run]
@@ -2155,7 +2177,10 @@ function check_gmfrm_guarded_fit_api_dry_run_fixture(fixture_path::AbstractStrin
     @test String(manifest[:experimental_decision_status]) == "experimental_public"
     @test String(manifest[:experimental_decision]) == "enable_guarded_experimental"
     @test Bool(manifest[:experimental_summary][:fit_allowed])
+    @test Bool(manifest[:experimental_summary][:canonical_namespace_enabled])
     @test Bool(manifest[:experimental_summary][:experimental_keyword_enabled])
+    @test String(manifest[:experimental_summary][:legacy_keyword_status]) ==
+        "compatibility_only"
     @test Int(manifest[:experimental_summary][:n_evidence_done]) >= 25
     @test String(manifest[:experimental_summary][:next_gate]) ==
         "manual_publication_or_registration_by_user_only"
@@ -3723,6 +3748,7 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
         "fast_and_full_local_reproduction_manifest"
     @test Bool(thresholds[:require_all_fixture_artifacts_present])
     @test Bool(thresholds[:require_all_expected_schemas])
+    @test Bool(thresholds[:require_all_expected_sha256_matches])
     @test Bool(thresholds[:require_all_fixture_summaries_passed])
     @test Bool(thresholds[:require_all_generator_scripts_present])
     @test Bool(thresholds[:require_all_code_doc_references_present])
@@ -3733,7 +3759,7 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
     @test Bool(thresholds[:require_real_data_case_study_passed])
 
     fixture_records = fixture[:fixture_records]
-    @test length(fixture_records) == 21
+    @test length(fixture_records) == 26
     @test Set(String(row[:artifact]) for row in fixture_records) == Set([
         "candidate_chain_study",
         "stress_chain_grid",
@@ -3745,6 +3771,10 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
         "waic_influence_review",
         "psis_loo_review",
         "exact_loo_or_kfold_review",
+        "local_dependence_known_truth_preflight",
+        "local_dependence_calibration_scorer_preflight",
+        "local_dependence_pilot_protocol_preflight",
+        "local_dependence_pilot_batch_execution_harness",
         "guarded_fit_method_wiring",
         "experimental_fit_validation_grid",
         "posterior_predictive_grid",
@@ -3752,22 +3782,61 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
         "prior_likelihood_sensitivity_grid",
         "real_data_case_study",
         "guarded_fit_api_dry_run",
+        "tam_direct_agreement_policy_refinement_execution_snapshot",
         "tam_direct_agreement_multireplication",
         "tam_direct_agreement_raw_archive_audit",
         "tam_direct_agreement_post_execution_review_packet",
         "guarded_exposure_review",
     ])
     for row in fixture_records
+        immutable = Bool(row[:immutable])
         @test Bool(row[:exists])
         @test Bool(row[:schema_matches])
         @test Bool(row[:summary_passed])
-        @test Bool(row[:generator_exists])
-        @test occursin("julia --project=. scripts/generate_",
-            String(row[:generation_command]))
-        @test !isempty(String(row[:env_var]))
+        @test Bool(row[:sha256_matches])
+        if immutable
+            @test String(row[:artifact]) ==
+                "tam_direct_agreement_policy_refinement_execution_snapshot"
+            @test String(row[:regeneration_policy]) ==
+                "immutable_snapshot_no_regeneration"
+            @test isnothing(row[:generator])
+            @test isnothing(row[:generator_exists])
+            @test isnothing(row[:generation_command])
+            @test isnothing(row[:env_var])
+            @test String(row[:expected_sha256]) ==
+                "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e"
+            @test String(row[:sha256]) == String(row[:expected_sha256])
+        else
+            @test String(row[:regeneration_policy]) == "generator_replay"
+            @test Bool(row[:generator_exists])
+            @test occursin("julia --project=. scripts/generate_",
+                String(row[:generation_command]))
+            @test !isempty(String(row[:env_var]))
+            @test isnothing(row[:expected_sha256])
+        end
         if startswith(String(row[:artifact]), "tam_direct_agreement")
             @test String(row[:evidence_scope]) ==
                 "mfrm_tam_overlap_nontransfer"
+        end
+        if String(row[:artifact]) ==
+                "local_dependence_known_truth_preflight"
+            @test String(row[:evidence_scope]) ==
+                "ld1a_generator_preflight_noncalibration"
+        end
+        if String(row[:artifact]) ==
+                "local_dependence_calibration_scorer_preflight"
+            @test String(row[:evidence_scope]) ==
+                "ld1b0_scorer_protocol_preflight_noncalibration"
+        end
+        if String(row[:artifact]) ==
+                "local_dependence_pilot_protocol_preflight"
+            @test String(row[:evidence_scope]) ==
+                "ld1b1_pilot_execution_protocol_preflight_noncalibration"
+        end
+        if String(row[:artifact]) ==
+                "local_dependence_pilot_batch_execution_harness"
+            @test String(row[:evidence_scope]) ==
+                "ld1b1_pilot_batch_harness_preflight_noncalibration"
         end
         if String(row[:artifact]) == "guarded_exposure_review"
             @test String(row[:hash_policy]) ==
@@ -3795,23 +3864,87 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
     end
 
     code_doc_records = fixture[:code_doc_records]
-    @test length(code_doc_records) == 17
+    @test length(code_doc_records) == 53
     @test all(row -> Bool(row[:exists]), code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_gmfrm_claim_recovery_reproduction_archive.jl",
         code_doc_records)
     @test any(row -> String(row[:path]) == "scripts/local_json.jl",
         code_doc_records)
-    @test all(row -> String(row[:sha256]) ==
-        file_sha256(joinpath(root, String(row[:path]))), code_doc_records)
+    @test all(path -> any(row -> String(row[:path]) == path,
+            code_doc_records), [
+        "scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl",
+        "scripts/generate_mgmfrm_tam_direct_agreement_multireplication_aggregate.jl",
+    ])
+    @test any(row -> String(row[:path]) == "src/testlet_design_audit.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) == "src/model_contract.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) == "test/model_contract.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) == "src/local_dependence.jl",
+        code_doc_records)
+    @test all(path -> any(row -> String(row[:path]) == path,
+            code_doc_records), [
+        "src/local_dependence_known_truth_dgp.jl",
+        "src/local_dependence_simulation.jl",
+        "src/local_dependence_calibration.jl",
+        "src/local_dependence_calibration_pilot.jl",
+        "test/local_dependence_simulation.jl",
+        "test/local_dependence_calibration.jl",
+        "test/local_dependence_calibration_artifact.jl",
+        "test/local_dependence_calibration_pilot.jl",
+        "test/local_dependence_pilot_protocol_artifact.jl",
+        "test/local_dependence_pilot_batch_execution_harness.jl",
+        "scripts/generate_local_dependence_known_truth_preflight.jl",
+        "scripts/generate_local_dependence_calibration_scorer_preflight.jl",
+        "scripts/generate_local_dependence_pilot_protocol_preflight.jl",
+        "scripts/generate_local_dependence_pilot_batch_execution_harness.jl",
+        "scripts/run_local_dependence_calibration_pilot_batch.jl",
+        "docs/src/api-validation-evidence.md",
+    ])
+    @test any(row -> String(row[:path]) == "test/testlet_design_audit.jl",
+        code_doc_records)
+    @test all(path -> any(row -> String(row[:path]) == path,
+            code_doc_records), [
+        "test/local_dependence_contract.jl",
+        "test/local_dependence_summary.jl",
+        "test/predictive_standardized_residuals.jl",
+        "test/testlet_overlap_contract.jl",
+    ])
+    @test any(row -> String(row[:path]) ==
+        "docs/src/mgmfrm-research-roadmap.md", code_doc_records)
+    code_doc_integrity = [
+        ScientificPayloadDigest.reference_integrity_status(
+            String(row[:sha256]),
+            file_sha256(joinpath(root, String(row[:path])));
+            reference_kind = :code_doc,
+        ) for row in code_doc_records
+    ]
+    @test all(row -> row.provenance_policy_accepted, code_doc_integrity)
+    @test all(row -> !row.scientific_equivalence_verified,
+        code_doc_integrity)
 
     full_commands = fixture[:full_regeneration_commands]
-    @test length(full_commands) == 22
-    @test [Int(row[:step]) for row in full_commands] == collect(1:22)
+    @test length(full_commands) == 26
+    @test [Int(row[:step]) for row in full_commands] == collect(1:26)
     @test all(row -> Bool(row[:local_only]), full_commands)
     @test any(row -> String(row[:artifact]) ==
         "tam_direct_agreement_multireplication" &&
-        endswith(String(row[:command]), "--aggregate-only"), full_commands)
+        String(row[:command]) ==
+            "julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_multireplication_aggregate.jl",
+        full_commands)
+    @test !any(row -> String(row[:artifact]) ==
+        "tam_direct_agreement_policy_refinement_execution_snapshot",
+        full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "local_dependence_known_truth_preflight", full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "local_dependence_calibration_scorer_preflight", full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "local_dependence_pilot_protocol_preflight", full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "local_dependence_pilot_batch_execution_harness", full_commands)
     @test String(full_commands[end - 1][:artifact]) ==
         "claim_recovery_reproduction_archive"
     @test String(full_commands[end][:artifact]) == "guarded_exposure_review"
@@ -3861,6 +3994,7 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
     @test Int(summary[:n_verification_commands]) == length(verification)
     @test Bool(summary[:all_fixture_artifacts_present])
     @test Bool(summary[:all_expected_schemas])
+    @test Bool(summary[:all_expected_sha256_matches])
     @test Bool(summary[:all_fixture_summaries_passed])
     @test Bool(summary[:all_generator_scripts_present])
     @test Bool(summary[:all_code_doc_references_present])
@@ -3873,6 +4007,7 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
     @test Bool(summary[:tam_raw_archive_integrity_passed])
     @test Bool(summary[:tam_post_packet_integrity_passed])
     @test Bool(summary[:tam_independent_review_completed]) == false
+    @test Bool(summary[:tam_execution_input_lineage_exact])
     @test Bool(summary[:tam_pre_execution_exact_input_lineage]) == false
     @test Bool(summary[
         :tam_direct_evidence_transfers_to_scalar_gmfrm]) == false
@@ -3918,6 +4053,7 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         "full_and_fast_local_reproduction_manifest"
     @test Bool(thresholds[:require_all_fixture_artifacts_present])
     @test Bool(thresholds[:require_all_expected_schemas])
+    @test Bool(thresholds[:require_all_expected_sha256_matches])
     @test Bool(thresholds[:require_all_fixture_summaries_passed])
     @test Bool(thresholds[:require_all_generator_scripts_present])
     @test Bool(thresholds[:require_all_code_doc_references_present])
@@ -4038,6 +4174,14 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
             "test/fixtures/gmfrm_psis_loo_review.json",
         "exact_loo_or_kfold_review" =>
             "test/fixtures/gmfrm_exact_loo_or_kfold_review.json",
+        "local_dependence_known_truth_preflight" =>
+            "test/fixtures/local_dependence_known_truth_preflight.json",
+        "local_dependence_calibration_scorer_preflight" =>
+            "test/fixtures/local_dependence_calibration_scorer_preflight.json",
+        "local_dependence_pilot_protocol_preflight" =>
+            "test/fixtures/local_dependence_pilot_protocol_preflight.json",
+        "local_dependence_pilot_batch_execution_harness" =>
+            "test/fixtures/local_dependence_pilot_batch_execution_harness.json",
         "guarded_fit_api_dry_run" =>
             "test/fixtures/gmfrm_guarded_fit_api_dry_run.json",
         "guarded_fit_method_wiring" =>
@@ -4054,6 +4198,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
             "test/fixtures/gmfrm_real_data_case_study.json",
         "claim_recovery_reproduction_archive" =>
             "test/fixtures/gmfrm_claim_recovery_reproduction_archive.json",
+        "tam_direct_agreement_policy_refinement_execution_snapshot" =>
+            "test/fixtures/mgmfrm_tam_direct_agreement_policy_refinement_execution_snapshot.json",
         "tam_direct_agreement_multireplication" =>
             "test/fixtures/mgmfrm_tam_direct_agreement_multireplication.json",
         "tam_direct_agreement_raw_archive_audit" =>
@@ -4167,12 +4313,30 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     for row in fixture_records
         artifact = String(row[:artifact])
         path = String(row[:path])
+        immutable = Bool(row[:immutable])
         @test expected_paths[artifact] == path
         @test Bool(row[:exists])
         @test Bool(row[:schema_matches])
         @test Bool(row[:summary_passed])
-        @test Bool(row[:generator_exists])
-        @test !isempty(String(row[:env_var]))
+        @test Bool(row[:sha256_matches])
+        if immutable
+            @test artifact ==
+                "tam_direct_agreement_policy_refinement_execution_snapshot"
+            @test String(row[:regeneration_policy]) ==
+                "immutable_snapshot_no_regeneration"
+            @test isnothing(row[:generator])
+            @test isnothing(row[:generator_exists])
+            @test isnothing(row[:generation_command])
+            @test isnothing(row[:env_var])
+            @test String(row[:expected_sha256]) ==
+                "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e"
+            @test String(row[:sha256]) == String(row[:expected_sha256])
+        else
+            @test String(row[:regeneration_policy]) == "generator_replay"
+            @test Bool(row[:generator_exists])
+            @test !isempty(String(row[:env_var]))
+            @test isnothing(row[:expected_sha256])
+        end
         if artifact ==
                 "mgmfrm_publication_grade_refit_batch_results_review"
             @test occursin("--read-local-artifacts",
@@ -4193,7 +4357,7 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     end
 
     code_doc_records = fixture[:code_doc_records]
-    @test length(code_doc_records) == 86
+    @test length(code_doc_records) == 114
     @test all(row -> Bool(row[:exists]), code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_gmfrm_full_paper_reproduction_archive.jl",
@@ -4201,11 +4365,38 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     @test any(row -> String(row[:path]) ==
         "examples/guarded_gmfrm.jl",
         code_doc_records)
+    @test any(row -> String(row[:path]) ==
+        "docs/src/mgmfrm-research-roadmap.md", code_doc_records)
+    @test any(row -> String(row[:path]) == "src/local_dependence.jl",
+        code_doc_records)
+    @test all(path -> any(row -> String(row[:path]) == path,
+            code_doc_records), [
+        "src/local_dependence_known_truth_dgp.jl",
+        "src/local_dependence_simulation.jl",
+        "src/local_dependence_calibration.jl",
+        "src/local_dependence_calibration_pilot.jl",
+        "test/local_dependence_simulation.jl",
+        "test/local_dependence_calibration.jl",
+        "test/local_dependence_calibration_artifact.jl",
+        "test/local_dependence_calibration_pilot.jl",
+        "test/local_dependence_pilot_protocol_artifact.jl",
+        "test/local_dependence_pilot_batch_execution_harness.jl",
+        "scripts/generate_local_dependence_known_truth_preflight.jl",
+        "scripts/generate_local_dependence_calibration_scorer_preflight.jl",
+        "scripts/generate_local_dependence_pilot_protocol_preflight.jl",
+        "scripts/generate_local_dependence_pilot_batch_execution_harness.jl",
+        "scripts/run_local_dependence_calibration_pilot_batch.jl",
+    ])
     @test all(path -> any(row -> String(row[:path]) == path,
             code_doc_records), [
         "test/facets_compatibility_stats.jl",
         "test/generalized_guard_contract.jl",
+        "test/local_dependence_contract.jl",
+        "test/local_dependence_summary.jl",
+        "test/predictive_standardized_residuals.jl",
         "test/publication_grade_policy_contract.jl",
+        "test/testlet_design_audit.jl",
+        "test/testlet_overlap_contract.jl",
     ])
     @test any(row -> String(row[:path]) ==
         "scripts/generate_mgmfrm_report_shape_simulation_grid.jl",
@@ -4325,6 +4516,9 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         "scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl",
         code_doc_records)
     @test any(row -> String(row[:path]) ==
+        "scripts/generate_mgmfrm_tam_direct_agreement_multireplication_aggregate.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) ==
         "scripts/generate_mgmfrm_tam_direct_agreement_raw_archive_audit.jl",
         code_doc_records)
     @test any(row -> String(row[:path]) ==
@@ -4342,14 +4536,26 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     @test any(row -> String(row[:path]) ==
         "scripts/generate_mgmfrm_guarded_fit_public_exposure_review.jl",
         code_doc_records)
+    @test any(row -> String(row[:path]) == "src/model_contract.jl",
+        code_doc_records)
+    @test any(row -> String(row[:path]) == "test/model_contract.jl",
+        code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_gmfrm_prediction_target_and_model_weight_policy.jl",
         code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_mgmfrm_manual_public_scope_review_for_fit.jl",
         code_doc_records)
-    @test all(row -> String(row[:sha256]) ==
-        file_sha256(joinpath(root, String(row[:path]))), code_doc_records)
+    code_doc_integrity = [
+        ScientificPayloadDigest.reference_integrity_status(
+            String(row[:sha256]),
+            file_sha256(joinpath(root, String(row[:path])));
+            reference_kind = :code_doc,
+        ) for row in code_doc_records
+    ]
+    @test all(row -> row.provenance_policy_accepted, code_doc_integrity)
+    @test all(row -> !row.scientific_equivalence_verified,
+        code_doc_integrity)
 
     source_records = fixture[:source_records]
     @test length(source_records) == 2
@@ -4365,10 +4571,18 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     end
 
     full_commands = fixture[:full_regeneration_commands]
-    @test length(full_commands) == 73
-    @test [Int(row[:step]) for row in full_commands] == collect(1:73)
+    @test length(full_commands) == 77
+    @test [Int(row[:step]) for row in full_commands] == collect(1:77)
     @test allunique(String(row[:artifact]) for row in full_commands)
     @test all(row -> Bool(row[:local_only]), full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "local_dependence_known_truth_preflight", full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "local_dependence_calibration_scorer_preflight", full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "local_dependence_pilot_protocol_preflight", full_commands)
+    @test any(row -> String(row[:artifact]) ==
+        "local_dependence_pilot_batch_execution_harness", full_commands)
     @test any(row -> String(row[:artifact]) ==
         "mgmfrm_report_shape_simulation_grid", full_commands)
     @test any(row -> String(row[:artifact]) ==
@@ -4493,6 +4707,7 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         for row in full_commands)
     artifact_by_path = Dict{String,String}()
     for row in fixture_records
+        Bool(row[:immutable]) && continue
         generator = basename(String(row[:generator]))
         @test haskey(artifact_by_generator, generator)
         haskey(artifact_by_generator, generator) || continue
@@ -4530,7 +4745,12 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         "prediction_target_and_model_weight_policy", full_commands)
     @test any(row -> String(row[:artifact]) ==
         "tam_direct_agreement_multireplication" &&
-        endswith(String(row[:command]), "--aggregate-only"), full_commands)
+        String(row[:command]) ==
+            "julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_multireplication_aggregate.jl",
+        full_commands)
+    @test !any(row -> String(row[:artifact]) ==
+        "tam_direct_agreement_policy_refinement_execution_snapshot",
+        full_commands)
     @test String(full_commands[end - 3][:artifact]) ==
         "gmfrm_full_paper_reproduction_archive"
     @test String(full_commands[end][:artifact]) == "gmfrm_guarded_exposure_review"
@@ -4581,6 +4801,7 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     @test Int(summary[:n_verification_commands]) == length(verification)
     @test Bool(summary[:all_fixture_artifacts_present])
     @test Bool(summary[:all_expected_schemas])
+    @test Bool(summary[:all_expected_sha256_matches])
     @test Bool(summary[:all_fixture_summaries_passed])
     @test Bool(summary[:all_generator_scripts_present])
     @test Bool(summary[:all_code_doc_references_present])
@@ -4594,6 +4815,7 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     @test Bool(summary[:tam_raw_archive_integrity_passed])
     @test Bool(summary[:tam_post_packet_integrity_passed])
     @test Bool(summary[:tam_independent_review_completed]) == false
+    @test Bool(summary[:tam_execution_input_lineage_exact])
     @test Bool(summary[:tam_pre_execution_exact_input_lineage]) == false
     @test Bool(summary[
         :tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm]) == false
@@ -5048,7 +5270,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     evidence_rows = fixture[:evidence_rows]
     @test length(evidence_rows) == length(input_artifacts)
     @test all(row -> String(row[:status]) == "passed", evidence_rows)
-    @test Int(sum(Int(row[:n_evidence_cells]) for row in evidence_rows)) == 5596
+    @test Int(sum(Int(row[:n_evidence_cells]) for row in evidence_rows)) == 5606
     @test any(row -> String(row[:gate]) == "prior_likelihood_sensitivity_grid" &&
         Int(row[:n_evidence_cells]) == 45, evidence_rows)
     @test any(row -> String(row[:gate]) ==
@@ -5218,7 +5440,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     @test Bool(summary[:all_primary_checks_passed])
     @test Int(summary[:n_input_artifacts]) == length(input_artifacts)
     @test Int(summary[:n_evidence_rows]) == length(evidence_rows)
-    @test Int(summary[:total_evidence_cells]) == 5596
+    @test Int(summary[:total_evidence_cells]) == 5606
     @test Int(summary[:minimum_required_evidence_cells]) == 60
     @test Bool(summary[:scalar_fit_validation_grid_passed])
     @test Bool(summary[:posterior_predictive_grid_passed])
@@ -5494,6 +5716,7 @@ function check_gmfrm_broader_experimental_exposure_decision_review_fixture(
     @test Bool(summary[:tam_raw_archive_integrity_passed])
     @test Bool(summary[:tam_post_packet_integrity_passed])
     @test Bool(summary[:tam_independent_review_completed]) == false
+    @test Bool(summary[:tam_execution_input_lineage_exact])
     @test Bool(summary[:tam_pre_execution_exact_input_lineage]) == false
     @test Bool(summary[
         :tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm]) == false
@@ -5968,10 +6191,10 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(claim_archive[:summary][:passed])
     @test Bool(claim_archive[:summary][:publication_or_registration_action]) == false
     @test Bool(claim_archive[:summary][:local_only])
-    @test Int(claim_archive[:summary][:n_fixture_artifacts]) == 21
+    @test Int(claim_archive[:summary][:n_fixture_artifacts]) == 26
     @test Int(claim_archive[:summary][:n_source_records]) == 2
-    @test Int(claim_archive[:summary][:n_code_doc_records]) == 17
-    @test Int(claim_archive[:summary][:n_full_regeneration_commands]) == 22
+    @test Int(claim_archive[:summary][:n_code_doc_records]) == 53
+    @test Int(claim_archive[:summary][:n_full_regeneration_commands]) == 26
     @test Int(claim_archive[:summary][:n_verification_commands]) == 4
     @test Bool(claim_archive[:summary][:all_fixture_artifacts_present])
     @test Bool(claim_archive[:summary][:all_expected_schemas])
@@ -5988,6 +6211,7 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(claim_archive[:summary][:tam_post_packet_integrity_passed])
     @test Bool(claim_archive[:summary][:tam_independent_review_completed]) ==
         false
+    @test Bool(claim_archive[:summary][:tam_execution_input_lineage_exact])
     @test Bool(claim_archive[:summary][
         :tam_pre_execution_exact_input_lineage]) == false
     @test String(claim_archive[:summary][:next_gate]) ==
@@ -6022,6 +6246,7 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(broader_review[:summary][:tam_post_packet_integrity_passed])
     @test Bool(broader_review[:summary][:tam_independent_review_completed]) ==
         false
+    @test Bool(broader_review[:summary][:tam_execution_input_lineage_exact])
     @test Bool(broader_review[:summary][
         :tam_pre_execution_exact_input_lineage]) == false
     @test Int(broader_review[:summary][:n_input_artifacts]) == 20
@@ -6065,7 +6290,7 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(manuscript_grid[:summary][:all_input_summaries_passed])
     @test Bool(manuscript_grid[:summary][:all_primary_checks_passed])
     @test Int(manuscript_grid[:summary][:n_input_artifacts]) == 35
-    @test Int(manuscript_grid[:summary][:total_evidence_cells]) == 5596
+    @test Int(manuscript_grid[:summary][:total_evidence_cells]) == 5606
     @test Int(manuscript_grid[:summary][:minimum_required_evidence_cells]) == 60
     @test Bool(manuscript_grid[:summary][:prediction_target_and_model_weight_policy_passed])
     @test Bool(manuscript_grid[:summary][
@@ -6129,13 +6354,14 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(full_archive[:summary][:tam_post_packet_integrity_passed])
     @test Bool(full_archive[:summary][:tam_independent_review_completed]) ==
         false
+    @test Bool(full_archive[:summary][:tam_execution_input_lineage_exact])
     @test Bool(full_archive[:summary][
         :tam_pre_execution_exact_input_lineage]) == false
     @test Bool(full_archive[:summary][
         :tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm]) == false
-    @test Int(full_archive[:summary][:n_fixture_artifacts]) == 73
-    @test Int(full_archive[:summary][:n_code_doc_records]) == 86
-    @test Int(full_archive[:summary][:n_full_regeneration_commands]) == 73
+    @test Int(full_archive[:summary][:n_fixture_artifacts]) == 78
+    @test Int(full_archive[:summary][:n_code_doc_records]) == 114
+    @test Int(full_archive[:summary][:n_full_regeneration_commands]) == 77
     @test Int(full_archive[:summary][:n_verification_commands]) == 4
     @test Bool(full_archive[:summary][:mgmfrm_report_shape_simulation_grid_passed])
     @test Bool(full_archive[:summary][:mgmfrm_q_matrix_validation_expansion_passed])
@@ -6552,6 +6778,7 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(summary[:tam_raw_archive_integrity_passed])
     @test Bool(summary[:tam_post_packet_integrity_passed])
     @test Bool(summary[:tam_independent_review_completed]) == false
+    @test Bool(summary[:tam_execution_input_lineage_exact])
     @test Bool(summary[:tam_pre_execution_exact_input_lineage]) == false
     @test Bool(summary[
         :tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm]) == false
@@ -9329,6 +9556,57 @@ function check_mgmfrm_tam_direct_agreement_multireplication_fixture(
     @test Bool(integrity[:recovery_policy_hash_matches_refinement])
     @test Bool(integrity[:refinement_records_gate_unchanged])
     @test Bool(integrity[:pilot_excluded_from_confirmatory_denominator])
+    @test Bool(integrity[:execution_refinement_snapshot_validated])
+    @test Bool(integrity[:selected_job_input_lineage_validated])
+    @test Bool(integrity[:selected_job_seed_lineage_validated])
+    @test Bool(integrity[:selected_job_environment_lineage_validated])
+
+    aggregation = fixture[:aggregation_provenance]
+    @test String(aggregation[:mode]) ==
+        "aggregate_only_from_selected_attempts"
+    @test Bool(aggregation[:mcmc_executed]) == false
+    @test Bool(aggregation[:fail_closed])
+    @test String(aggregation[:generator]) ==
+        "scripts/generate_mgmfrm_tam_direct_agreement_multireplication_aggregate.jl"
+    @test String(aggregation[:generator_source_sha256]) == file_sha256(
+        joinpath(root, String(aggregation[:generator])))
+    @test String(aggregation[:wrapped_execution_generator]) ==
+        String(protocol[:generator])
+    @test String(aggregation[:wrapped_execution_generator_source_sha256]) ==
+        String(protocol[:generator_source_sha256])
+    @test Bool(aggregation[:protocol_generator_fields_preserved])
+    execution_snapshot_path = joinpath(root,
+        String(aggregation[:refinement_execution_snapshot]))
+    @test isfile(execution_snapshot_path)
+    @test Int(aggregation[:refinement_execution_snapshot_bytes]) ==
+        filesize(execution_snapshot_path)
+    @test String(aggregation[:refinement_execution_snapshot_sha256]) ==
+        file_sha256(execution_snapshot_path) ==
+        "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e"
+    execution_snapshot = JSON3.read(read(execution_snapshot_path, String))
+    @test String(aggregation[:expected_project_toml_sha256]) == String(
+        execution_snapshot[:environment_contract][:project_toml_sha256])
+    @test String(aggregation[:expected_manifest_toml_sha256]) == String(
+        execution_snapshot[:environment_contract][:manifest_toml_sha256])
+    @test Int(aggregation[:n_selected_jobs_expected]) == 10
+    @test Int(aggregation[:n_selected_jobs_validated]) == 10
+    @test Bool(aggregation[:all_selected_job_lineage_valid])
+    selected_lineage = aggregation[:selected_job_lineage_rows]
+    @test length(selected_lineage) == 10
+    @test length(unique(String(row[:job_id]) for row in selected_lineage)) == 10
+    @test all(row -> Bool(row[:passed]) &&
+        String(row[:execution_generator_source_sha256]) ==
+            String(protocol[:generator_source_sha256]) &&
+        String(row[:refinement_snapshot_sha256]) ==
+            String(aggregation[:refinement_execution_snapshot_sha256]) &&
+        String(row[:truth_sha256]) == String(
+            execution_snapshot[:data_and_input_contract][
+                :fixed_truth_sha256]) &&
+        String(row[:project_toml][:sha256]) ==
+            String(aggregation[:expected_project_toml_sha256]) &&
+        String(row[:manifest_toml][:sha256]) ==
+            String(aggregation[:expected_manifest_toml_sha256]),
+        selected_lineage)
 
     selected = fixture[:selected_attempt_rows]
     @test length(selected) == 10
@@ -9451,6 +9729,10 @@ function check_mgmfrm_tam_direct_agreement_multireplication_fixture(
     @test Int(summary[:n_primary_block_rows_passed]) ==
         count(row -> Bool(row[:direct_primary_block_passed]), primary_rows)
     @test Int(summary[:n_failure_rows]) == length(fixture[:failure_rows])
+    @test Bool(summary[:aggregate_only])
+    @test Bool(summary[:mcmc_executed]) == false
+    @test Bool(summary[:selected_job_lineage_validation_passed])
+    @test Int(summary[:n_selected_job_lineage_rows]) == 10
     @test Bool(summary[:external_software_validation_completed]) == false
     @test Bool(summary[:public_claim_release_allowed]) == false
     @test String(summary[:next_gate]) ==
@@ -9487,6 +9769,33 @@ function check_mgmfrm_tam_direct_agreement_raw_archive_audit_fixture(
         "scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl"
     @test String(protocol[:execution_generator_source_sha256]) ==
         file_sha256(joinpath(root, String(protocol[:execution_generator])))
+    @test occursin(r"^[0-9a-f]{64}$", String(protocol[
+        :expected_retained_failed_generator_source_sha256]))
+    execution_snapshot_path = joinpath(root,
+        String(protocol[:execution_refinement_snapshot]))
+    @test isfile(execution_snapshot_path)
+    @test String(protocol[:execution_refinement_snapshot_schema]) ==
+        "bayesianmgmfrm.mgmfrm_tam_direct_agreement_policy_refinement.v1"
+    @test String(protocol[:execution_refinement_snapshot_sha256]) ==
+        file_sha256(execution_snapshot_path)
+    @test String(protocol[:expected_execution_refinement_snapshot_sha256]) ==
+        "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e"
+    @test String(protocol[:execution_refinement_snapshot_sha256]) ==
+        String(protocol[:expected_execution_refinement_snapshot_sha256])
+    @test Bool(protocol[
+        :execution_refinement_snapshot_sha256_matches_pinned])
+    @test length(protocol[:execution_source_rows]) == 3
+    @test all(row -> Bool(row[:present]) &&
+        Bool(row[:artifact_sha256_matches]) &&
+        String(row[:actual_sha256]) == String(row[:expected_sha256]),
+        protocol[:execution_source_rows])
+    @test Bool(protocol[:all_execution_source_artifacts_present_exact])
+    @test Bool(protocol[:execution_seed_registry_exact])
+    execution_snapshot = JSON3.read(read(execution_snapshot_path, String))
+    @test String(protocol[:expected_project_toml_sha256]) == String(
+        execution_snapshot[:environment_contract][:project_toml_sha256])
+    @test String(protocol[:expected_manifest_toml_sha256]) == String(
+        execution_snapshot[:environment_contract][:manifest_toml_sha256])
     result_path = joinpath(root, String(protocol[:result_artifact]))
     @test isfile(result_path)
     @test String(protocol[:result_artifact_sha256]) == file_sha256(result_path)
@@ -9537,6 +9846,29 @@ function check_mgmfrm_tam_direct_agreement_raw_archive_audit_fixture(
         attempts)
     @test count(row -> String(row[
         :recorded_manifest_fingerprint_status]) == "matched", attempts) == 10
+    @test all(row -> Bool(row[:refinement_snapshot_sha256_matches]) &&
+        Bool(row[:truth_sha256_matches]) &&
+        Bool(row[:source_input_lineage_exact]) &&
+        Bool(row[:seed_registry_lineage_exact]) &&
+        Bool(row[:project_toml_lineage_exact]) &&
+        Bool(row[:manifest_toml_lineage_exact]) &&
+        Bool(row[:environment_input_lineage_exact]) &&
+        Bool(row[:generator_lineage_accepted]) &&
+        Bool(row[:execution_input_lineage_exact]), attempts)
+    @test all(row -> length(row[:source_input_rows]) == 3 &&
+        all(source -> Bool(source[:recorded_sha256_matches]) &&
+            Bool(source[:source_artifact_sha256_matches]),
+            row[:source_input_rows]), attempts)
+    failed_attempt = only(row for row in attempts if Bool(row[:engine_failure]))
+    @test Bool(failed_attempt[:generator_current_match_required]) == false
+    @test Bool(failed_attempt[
+        :generator_source_sha256_matches_current]) == false
+    @test Bool(failed_attempt[
+        :generator_source_sha256_matches_retained_failed_version])
+    @test all(row -> Bool(row[:generator_current_match_required]) &&
+        Bool(row[:generator_source_sha256_matches_current]) &&
+        !Bool(row[:generator_source_sha256_matches_retained_failed_version]),
+        (row for row in attempts if !Bool(row[:engine_failure])))
 
     files = fixture[:raw_file_rows]
     @test length(files) == Int(fixture[:archive_manifest][:n_files])
@@ -9608,6 +9940,7 @@ function check_mgmfrm_tam_direct_agreement_raw_archive_audit_fixture(
     @test Int(summary[:n_job_rows]) == 10
     @test Int(summary[:n_selected_pointers]) == 10
     @test Int(summary[:n_attempts]) == 11
+    @test Int(summary[:n_expected_retained_attempts]) == 11
     @test Int(summary[:n_selected_attempts]) == 10
     @test Int(summary[:n_nonselected_attempts]) == 1
     @test Int(summary[:n_failed_attempts]) == 1
@@ -9621,6 +9954,24 @@ function check_mgmfrm_tam_direct_agreement_raw_archive_audit_fixture(
     @test Bool(summary[:recorded_result_manifest_fingerprint_matches])
     @test Bool(summary[:all_recorded_result_manifest_files_match])
     @test Bool(summary[:all_selected_generator_hashes_match_current])
+    @test String(summary[:execution_refinement_snapshot_sha256]) ==
+        String(protocol[:execution_refinement_snapshot_sha256])
+    @test Bool(summary[
+        :execution_refinement_snapshot_sha256_matches_pinned])
+    @test Bool(summary[:all_execution_source_artifacts_present_exact])
+    @test Bool(summary[:execution_seed_registry_exact])
+    @test Bool(summary[:all_retained_refinement_lineage_exact])
+    @test Bool(summary[:all_retained_truth_lineage_exact])
+    @test Bool(summary[:all_retained_source_input_lineage_exact])
+    @test Bool(summary[:all_retained_seed_registry_lineage_exact])
+    @test Bool(summary[:all_retained_project_toml_lineage_exact])
+    @test Bool(summary[:all_retained_manifest_toml_lineage_exact])
+    @test Bool(summary[:all_retained_environment_input_lineage_exact])
+    @test Bool(summary[:all_retained_generator_lineage_accepted])
+    @test Bool(summary[:retained_failed_generator_exception_exact])
+    @test Int(summary[:n_retained_failed_generator_exceptions]) == 1
+    @test Bool(summary[:all_retained_execution_input_lineage_exact])
+    @test Int(summary[:n_execution_input_lineage_failures]) == 0
     @test Bool(summary[:all_file_paths_unique])
     @test Bool(summary[:raw_root_is_gitignored])
     @test Bool(summary[:result_execution_completed])
@@ -9669,12 +10020,13 @@ function check_mgmfrm_tam_direct_agreement_post_execution_review_packet_fixture(
     @test Bool(protocol[:independent_reexecution_required])
 
     inputs = fixture[:required_input_rows]
-    @test length(inputs) == 5
+    @test length(inputs) == 6
     @test Set(String(row[:input]) for row in inputs) == Set([
         "multireplication_result",
         "all_attempt_raw_archive_audit",
         "frozen_policy",
         "policy_refinement",
+        "policy_refinement_execution_snapshot",
         "pre_execution_independent_review_packet",
     ])
     @test all(row -> Bool(row[:present]) &&
@@ -9691,18 +10043,25 @@ function check_mgmfrm_tam_direct_agreement_post_execution_review_packet_fixture(
         String(input_by_name["frozen_policy"][:path]))
     post_refinement_path = joinpath(root,
         String(input_by_name["policy_refinement"][:path]))
+    post_execution_snapshot_path = joinpath(root,
+        String(input_by_name[
+            "policy_refinement_execution_snapshot"][:path]))
     post_pre_packet_path = joinpath(root,
         String(input_by_name[
             "pre_execution_independent_review_packet"][:path]))
     post_result = JSON3.read(read(post_result_path, String))
     post_audit = JSON3.read(read(post_audit_path, String))
     post_refinement = JSON3.read(read(post_refinement_path, String))
+    post_execution_snapshot =
+        JSON3.read(read(post_execution_snapshot_path, String))
     post_pre_packet = JSON3.read(read(post_pre_packet_path, String))
     result_protocol = post_result[:protocol]
     @test String(result_protocol[:frozen_policy_artifact_sha256]) ==
         file_sha256(post_policy_path)
     @test String(result_protocol[:refinement_artifact_sha256]) ==
-        file_sha256(post_refinement_path)
+        file_sha256(post_execution_snapshot_path)
+    @test joinpath(root, String(result_protocol[:refinement_artifact])) ==
+        post_execution_snapshot_path
     @test String(result_protocol[:generator_source_sha256]) ==
         file_sha256(joinpath(root, String(result_protocol[:generator])))
     @test String(result_protocol[:baseline_artifact_sha256]) ==
@@ -9729,6 +10088,46 @@ function check_mgmfrm_tam_direct_agreement_post_execution_review_packet_fixture(
         file_sha256(post_refinement_path)
     @test Bool(fixture[:source_hash_chain_valid])
     @test Bool(fixture[:core_source_hash_chain_valid])
+    execution_lineage = fixture[:execution_input_lineage]
+    @test joinpath(root,
+        String(execution_lineage[:execution_refinement_snapshot])) ==
+        post_execution_snapshot_path
+    @test String(execution_lineage[
+        :execution_refinement_snapshot_sha256]) ==
+        file_sha256(post_execution_snapshot_path)
+    @test String(execution_lineage[
+        :expected_execution_refinement_snapshot_sha256]) ==
+        "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e"
+    @test Bool(execution_lineage[
+        :execution_refinement_snapshot_sha256_matches_pinned])
+    @test Bool(execution_lineage[:aggregation_provenance_present])
+    @test Bool(execution_lineage[:aggregation_generator_hash_matches])
+    @test Bool(execution_lineage[:aggregate_wrapper_lineage_exact])
+    @test Int(execution_lineage[
+        :n_aggregate_selected_job_lineage_rows]) == 10
+    @test Bool(execution_lineage[:aggregate_selected_seed_registry_exact])
+    @test length(execution_lineage[
+        :aggregate_selected_job_lineage_rows]) == 10
+    @test all(row -> Bool(row[:execution_input_lineage_exact]),
+        execution_lineage[:aggregate_selected_job_lineage_rows])
+    @test Bool(execution_lineage[
+        :aggregate_selected_execution_input_lineage_exact])
+    @test Int(execution_lineage[
+        :n_raw_retained_attempt_lineage_rows]) == 11
+    @test Bool(execution_lineage[:raw_audit_snapshot_lineage_exact])
+    @test Bool(execution_lineage[:raw_attempt_lineage_rows_exact])
+    @test Bool(execution_lineage[:raw_summary_lineage_exact])
+    @test Bool(execution_lineage[:raw_job_execution_input_lineage_exact])
+    @test Bool(execution_lineage[
+        :aggregate_selected_and_raw_retained_lineage_independently_exact])
+    @test String(execution_lineage[
+        :execution_refinement_snapshot_sha256]) == String(
+        post_audit[:protocol][:execution_refinement_snapshot_sha256])
+    @test String(execution_lineage[
+        :execution_refinement_snapshot_sha256]) == file_sha256(
+        post_execution_snapshot_path)
+    @test String(post_execution_snapshot[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_tam_direct_agreement_policy_refinement.v1"
     lineage = fixture[:pre_execution_lineage]
     @test Bool(lineage[:exact_input_lineage]) == false
     @test Bool(lineage[:policy_hash_matches])
@@ -9753,6 +10152,10 @@ function check_mgmfrm_tam_direct_agreement_post_execution_review_packet_fixture(
         :all_package_sampler_gates_passed])
     @test Bool(layers[:computation_and_protocol][
         :all_attempt_raw_archive_audit_passed])
+    @test Bool(layers[:computation_and_protocol][
+        :aggregate_selected_execution_input_lineage_exact])
+    @test Bool(layers[:computation_and_protocol][
+        :raw_job_execution_input_lineage_exact])
     @test length(fixture[:primary_scenario_block_rows]) == 3
     @test length(fixture[:all_scenario_block_rows]) == 6
 
@@ -9793,6 +10196,8 @@ function check_mgmfrm_tam_direct_agreement_post_execution_review_packet_fixture(
     @test String(decision[:selected_decision]) ==
         "post_execution_packet_frozen"
     @test Bool(decision[:packet_integrity_passed])
+    @test Bool(decision[:aggregate_selected_execution_input_lineage_exact])
+    @test Bool(decision[:raw_job_execution_input_lineage_exact])
     @test Bool(decision[:independent_reviewer_assigned]) == false
     @test Bool(decision[:independent_reexecution_completed]) == false
     @test Bool(decision[:signed_review_manifest_attached]) == false
@@ -9804,7 +10209,15 @@ function check_mgmfrm_tam_direct_agreement_post_execution_review_packet_fixture(
     @test Bool(summary[:packet_integrity_passed])
     @test Bool(summary[:source_hash_chain_valid])
     @test Bool(summary[:core_source_hash_chain_valid])
+    @test Bool(summary[
+        :execution_refinement_snapshot_sha256_matches_pinned])
+    @test Bool(summary[:aggregate_wrapper_lineage_exact])
+    @test Bool(summary[:aggregate_selected_execution_input_lineage_exact])
+    @test Bool(summary[:raw_job_execution_input_lineage_exact])
+    @test Bool(summary[
+        :aggregate_selected_and_raw_retained_lineage_independently_exact])
     @test Bool(summary[:pre_execution_packet_exact_input_lineage]) == false
+    @test Bool(summary[:pre_execution_refinement_mismatch_preserved])
     @test Bool(summary[:pre_execution_packet_policy_hash_matches])
     @test Bool(summary[:pre_execution_packet_refinement_hash_matches]) == false
     @test Bool(summary[:tam_direct_local_execution_completed])
@@ -9816,7 +10229,7 @@ function check_mgmfrm_tam_direct_agreement_post_execution_review_packet_fixture(
     @test Bool(summary[:primary_direct_gate_passed])
     @test Bool(summary[:package_recovery_qualifier_passed])
     @test Bool(summary[:tam_recovery_qualifier_passed])
-    @test Int(summary[:n_required_inputs]) == 5
+    @test Int(summary[:n_required_inputs]) == 6
     @test Int(summary[:n_review_tasks]) == 15
     @test Int(summary[:n_reviewer_manifest_fields]) == 14
     @test Int(summary[:n_claim_rows]) == 6
@@ -19757,6 +20170,19 @@ end
     @test first(findfirst("\"a\"", written)) <
         first(findfirst("\"b\"", written)) <
         first(findfirst("\"z\"", written))
+    canonical_io = IOBuffer()
+    write_canonical_json(canonical_io, (;
+        z = -0.0,
+        b = 1000.0,
+        a = (value = 4.0, ratio = 0.75),
+    ))
+    canonical_written = String(take!(canonical_io))
+    canonical_reparsed = JSON3.read(canonical_written)
+    reparsed_io = IOBuffer()
+    write_canonical_json(reparsed_io, canonical_reparsed)
+    @test String(take!(reparsed_io)) == canonical_written
+    @test canonical_written ==
+        "{\"a\":{\"ratio\":0.75,\"value\":4},\"b\":1000,\"z\":0}"
 
     raw_error = "MethodError: no method matching fit(::Any; experimental=true)\r\n" *
         "Closest candidates are:\r\n" *
@@ -19791,6 +20217,8 @@ end
             :benchmark_result_row, :benchmark_summary, :calibration_plot_data,
             :case_study_provenance_manifest,
             :constraint_table, :dff_report, :domain_compilation_summary,
+            :conquest_bridge_bundle, :facets_bridge_bundle,
+            :external_bridge_result_receipt,
             :expected_scores, :facets_compatibility_stats, :facets_report,
             :fair_average_summary,
             :falsification_rule_summary, :falsification_rules,
@@ -19801,6 +20229,7 @@ end
             :initial_params, :loglikelihood, :logposterior, :logprior,
             :kfold, :loo, :psis_loo, :loo_diagnostics,
             :linear_predictor_table, :linear_predictor_values,
+            :local_dependence_contract, :local_dependence_summary,
             :calibration_table, :diagnostics,
             :diagnostic_map_data,
             :comparison_evidence_row, :comparison_evidence_summary,
@@ -19811,7 +20240,8 @@ end
             :pointwise_loglikelihood, :pointwise_loglikelihood_matrix, :posterior_predict,
             :posterior_predictive_check, :posterior_summary,
             :predictive_check_summary, :predictive_check_plot_data, :predictive_probabilities,
-            :predictive_residuals, :predictive_variances,
+            :predictive_residuals, :predictive_standardized_residuals,
+            :predictive_variances,
             :prior_likelihood_sensitivity, :prior_predict, :prior_predictive_check,
             :q_matrix_validation,
             :fit_report_dossier, :fit_report_dossier_markdown,
@@ -19819,7 +20249,8 @@ end
             :fit_report_rows,
             :load_fit_cache, :load_fit_report, :load_fit_report_dossier,
             :load_fit_report_bundle,
-            :load_fit_report_tables, :rater_diagnostics, :rater_overlap,
+            :load_fit_report_tables, :load_conquest_parameter_export,
+            :rater_diagnostics, :rater_overlap,
             :rating_design_audit,
             :related_software_capability_matrix, :release_gate_check,
             :release_scope_summary, :residual_summary, :sampler_diagnostics,
@@ -19827,11 +20258,14 @@ end
             :save_fit_report_dossier, :save_fit_report_dossier_markdown,
             :save_fit_report_bundle, :save_fit_report_markdown,
             :save_fit_report_tables,
+            :save_external_bridge_bundle,
             :sensitivity_comparison, :sensitivity_comparison_summary,
             :separation_reliability_summary, :simulation_grid,
             :simulation_grid_summary, :simulate_responses,
             :stan_validation_row, :stan_validation_summary,
-            :threshold_map_data, :validation_suggestions, :evidence_metadata,
+            :testlet_design_audit, :threshold_map_data, :validation_suggestions,
+            :validate_external_bridge_bundle,
+            :evidence_metadata,
             :evidence_artifact_schema_policy,
             :waic, :waic_diagnostics, :wright_map_data)
         @test has_doc(BayesianMGMFRM, name)
@@ -20128,6 +20562,24 @@ end
     @test evidence_policy.object === :evidence_artifact_schema_policy
     @test evidence_policy.artifact_kind === :unit_test
     @test evidence_policy.hash_policy.algorithm === :sha256
+    @test evidence_policy.scientific_payload_hash_policy.payload_field ===
+        :scientific_payload
+    @test evidence_policy.scientific_payload_hash_policy.digest_field ===
+        :scientific_payload_sha256
+    @test evidence_policy.scientific_payload_hash_policy.projection_policy ===
+        :explicit_schema_contract
+    @test evidence_policy.scientific_payload_hash_policy.implementation_scope ===
+        :repository_tooling
+    @test evidence_policy.scientific_payload_hash_policy.
+        artifact_integration_status === :staged
+    @test evidence_policy.scientific_payload_hash_policy.
+        semantic_equivalence_comparison_status === :not_yet_integrated
+    @test !evidence_policy.scientific_payload_hash_policy.
+        legacy_absence_verifies_equivalence
+    @test evidence_policy.scientific_payload_hash_policy.
+        semantic_gate_requires_verified_digest
+    @test evidence_policy.scientific_payload_hash_policy.
+        exact_file_sha256_retained
     @test any(row -> row.field === :schema && row.status === :required,
         evidence_policy.required_fields)
     @test any(row -> row.field === :unsupported_claims,
@@ -20195,7 +20647,9 @@ end
     @test release_scope.summary.v0_1_1_generalized_refinement_planned
     @test isempty(release_scope.evidence_rows)
     @test any(row -> row.surface === :scalar_gmfrm_guarded_experimental &&
-        row.entrypoint == "fit(spec; experimental = true)",
+        row.entrypoint == "BayesianMGMFRM.Experimental.fit(spec)" &&
+        row.legacy_entrypoint ==
+            "BayesianMGMFRM.fit(spec; experimental = true)",
         release_scope.public_fit_surfaces)
     @test any(row -> row.family === :mgmfrm && row.option === :q_matrix &&
         row.status === :blocked,
@@ -21460,7 +21914,9 @@ end
     @test gmfrm_experimental_decision.experimental_public
     @test gmfrm_experimental_decision.fit_ready
     @test gmfrm_experimental_decision.proposed_entrypoint ==
-        "fit(spec; experimental = true)"
+        "BayesianMGMFRM.Experimental.fit(spec)"
+    @test gmfrm_experimental_decision.legacy_entrypoint ==
+        "BayesianMGMFRM.fit(spec; experimental = true)"
     @test gmfrm_experimental_decision.public_target_label ===
         :guarded_scalar_gmfrm_logdensity
     @test gmfrm_experimental_decision.public_target_description ==
@@ -21818,8 +22274,12 @@ end
         row.status === :candidate_only,
         gmfrm_experimental_decision.accepted_candidate_options)
     @test any(row -> row.option === :entrypoint &&
-        row.value == "fit(spec; experimental = true)" &&
+        row.value == "BayesianMGMFRM.Experimental.fit(spec)" &&
         row.status === :enabled_guarded,
+        gmfrm_experimental_decision.accepted_candidate_options)
+    @test any(row -> row.option === :legacy_entrypoint &&
+        row.value == "BayesianMGMFRM.fit(spec; experimental = true)" &&
+        row.status === :compatibility_only,
         gmfrm_experimental_decision.accepted_candidate_options)
     @test any(row -> row.option === :rater_steps &&
         row.value === :internal_source_block &&
@@ -22022,7 +22482,10 @@ end
     @test !any(row -> row.blocker === :public_caveat_docs_missing,
         gmfrm_experimental_decision.blocker_rows)
     @test gmfrm_experimental_decision.summary.fit_allowed
+    @test gmfrm_experimental_decision.summary.canonical_namespace_enabled
     @test gmfrm_experimental_decision.summary.experimental_keyword_enabled
+    @test gmfrm_experimental_decision.summary.legacy_keyword_status ===
+        :compatibility_only
     @test gmfrm_experimental_decision.summary.n_evidence_done >= 28
     @test gmfrm_experimental_decision.summary.n_evidence_pending == 0
     @test gmfrm_experimental_decision.summary.n_blockers == 0
@@ -22300,7 +22763,7 @@ end
     @test gmfrm_sampler_diagnostics.summary.n_max_treedepth >= 0
     @test gmfrm_sampler_diagnostics.summary.flag in
         (:ok, :direct_transform_warning, :sampler_warning, :mcmc_warning,
-            :insufficient_chains)
+            :insufficient_chains, :insufficient_draws)
     @test BayesianMGMFRM._gmfrm_promotion_candidate_sampler_diagnostics(
         gmfrm_spec,
         gmfrm_raw_params;
@@ -22582,6 +23045,15 @@ end
     @test size(gmfrm_experimental_fit.direct_pointwise_loglikelihood) ==
         (8, identified_data.n)
     @test all(isfinite, gmfrm_experimental_fit.log_posterior)
+    gmfrm_standardized_residuals = predictive_standardized_residuals(
+        gmfrm_experimental_fit;
+        draw_indices = [2, 1],
+    )
+    @test gmfrm_standardized_residuals.family === :gmfrm
+    @test gmfrm_standardized_residuals.draw_indices == (2, 1)
+    @test size(gmfrm_standardized_residuals.values) == (2, identified_data.n)
+    @test gmfrm_standardized_residuals.n_valid +
+        gmfrm_standardized_residuals.n_excluded == 2 * identified_data.n
     @test pointwise_loglikelihood_matrix(gmfrm_experimental_fit) ==
         gmfrm_experimental_fit.direct_pointwise_loglikelihood
     gmfrm_direct_llmat = pointwise_loglikelihood_matrix(
@@ -22650,7 +23122,7 @@ end
     @test gmfrm_experimental_diagnostics.diagnostic_row_policy.parameter_spaces ==
         (:raw_unconstrained, :direct_constrained)
     @test gmfrm_experimental_diagnostics.diagnostic_row_policy.rhat_ess_status ===
-        :provisional_classical
+        :rank_normalized_available
     @test gmfrm_experimental_diagnostics.summary.total_draws == 8
     @test length(sampler_diagnostics(gmfrm_experimental_fit)) == 2
     @test all(row -> row.diagnostic_row === :sampler_chain &&
@@ -22661,19 +23133,31 @@ end
         size(gmfrm_experimental_fit.draws, 2)
     @test all(row -> row.diagnostic_row === :parameter &&
         row.parameter_space === :raw_unconstrained &&
-        row.diagnostic_status === :provisional_classical,
+        row.diagnostic_method === :rank_normalized_split_rhat_bulk_tail_ess &&
+        row.diagnostic_status === :rank_normalized_available &&
+        row.flag === row.rank_normalized_flag,
         mcmc_diagnostics(gmfrm_experimental_fit))
     @test length(parameter_block_diagnostics(gmfrm_experimental_fit)) >= 1
     @test all(row -> row.diagnostic_row === :parameter_block &&
         row.parameter_space === :raw_unconstrained &&
-        row.diagnostic_status === :provisional_classical,
+        row.diagnostic_method === :rank_normalized_split_rhat_bulk_tail_ess &&
+        row.diagnostic_status === :rank_normalized_available,
         parameter_block_diagnostics(gmfrm_experimental_fit))
     @test all(row -> row.parameter_space === :direct_constrained &&
-        row.diagnostic_status === :provisional_classical,
+        row.diagnostic_method === :rank_normalized_split_rhat_bulk_tail_ess &&
+        ((row.quality_gate_applicable &&
+                row.diagnostic_status === :rank_normalized_available &&
+                row.flag === row.rank_normalized_flag) ||
+            (!row.quality_gate_applicable &&
+                row.diagnostic_status === :structurally_fixed &&
+                row.flag === :structurally_fixed &&
+                row.classical_compatibility_flag === :structurally_fixed)),
         gmfrm_experimental_diagnostics.direct_parameter_rows)
     @test all(row -> row.diagnostic_row === :parameter_block &&
         row.parameter_space === :direct_constrained &&
-        row.diagnostic_status === :provisional_classical,
+        row.diagnostic_method === :rank_normalized_split_rhat_bulk_tail_ess &&
+        row.diagnostic_status in
+            (:rank_normalized_available, :structurally_fixed),
         gmfrm_experimental_diagnostics.direct_block_rows)
     gmfrm_experimental_artifact =
         fit_artifact(gmfrm_experimental_fit; include_environment = false)
@@ -22681,6 +23165,14 @@ end
         "bayesianmgmfrm.gmfrm_experimental_fit_artifact.v1"
     @test gmfrm_experimental_artifact.public_fit
     @test gmfrm_experimental_artifact.experimental_public
+    @test gmfrm_experimental_artifact.entrypoint ==
+        "BayesianMGMFRM.Experimental.fit(spec)"
+    @test gmfrm_experimental_artifact.legacy_entrypoint ==
+        "BayesianMGMFRM.fit(spec; experimental = true)"
+    @test gmfrm_experimental_artifact.reproducibility.diagnostic_policy.diagnostic_contract ===
+        :rank_normalized_rhat_bulk_tail_ess_v1
+    @test gmfrm_experimental_artifact.reproducibility.diagnostic_policy.diagnostic_contract_details.id ===
+        :rank_normalized_rhat_bulk_tail_ess_v1
     @test gmfrm_experimental_artifact.public_target_label ===
         :guarded_scalar_gmfrm_logdensity
     @test gmfrm_experimental_artifact.public_target_description ==
@@ -23590,7 +24082,9 @@ end
     @test mgmfrm_experimental_decision.experimental_public
     @test mgmfrm_experimental_decision.fit_ready
     @test mgmfrm_experimental_decision.proposed_entrypoint ==
-        "fit(spec; experimental = true)"
+        "BayesianMGMFRM.Experimental.fit(spec)"
+    @test mgmfrm_experimental_decision.legacy_entrypoint ==
+        "BayesianMGMFRM.fit(spec; experimental = true)"
     @test mgmfrm_experimental_decision.public_target_label ===
         :guarded_confirmatory_mgmfrm_logdensity
     @test mgmfrm_experimental_decision.public_target_description ==
@@ -23704,6 +24198,14 @@ end
         mgmfrm_fit_artifact_contract.provenance_rows)
     @test any(row -> row.option === :q_matrix &&
         row.value === :fixed_confirmatory,
+        mgmfrm_experimental_decision.accepted_candidate_options)
+    @test any(row -> row.option === :entrypoint &&
+        row.value == "BayesianMGMFRM.Experimental.fit(spec)" &&
+        row.status === :enabled_guarded_experimental,
+        mgmfrm_experimental_decision.accepted_candidate_options)
+    @test any(row -> row.option === :legacy_entrypoint &&
+        row.value == "BayesianMGMFRM.fit(spec; experimental = true)" &&
+        row.status === :compatibility_only,
         mgmfrm_experimental_decision.accepted_candidate_options)
     @test any(row -> row.option === :latent_correlation &&
         row.value === :free &&
@@ -23830,7 +24332,10 @@ end
     @test mgmfrm_experimental_decision.summary.n_evidence_pending == 0
     @test mgmfrm_experimental_decision.summary.n_evidence_blocked == 0
     @test mgmfrm_experimental_decision.summary.fit_allowed
+    @test mgmfrm_experimental_decision.summary.canonical_namespace_enabled
     @test mgmfrm_experimental_decision.summary.experimental_keyword_enabled
+    @test mgmfrm_experimental_decision.summary.legacy_keyword_status ===
+        :compatibility_only
     @test mgmfrm_experimental_decision.summary.n_blockers == 0
     @test mgmfrm_experimental_decision.summary.next_gate ===
         :manual_publication_or_registration_by_user_only
@@ -24511,7 +25016,7 @@ end
     @test mgmfrm_guarded_diagnostics.diagnostic_row_policy.parameter_spaces ==
         (:raw_unconstrained, :direct_constrained)
     @test mgmfrm_guarded_diagnostics.diagnostic_row_policy.rhat_ess_status ===
-        :provisional_classical
+        :rank_normalized_available
     @test mgmfrm_guarded_diagnostics.initialization_policy.initial_source ===
         :user_supplied_raw
     @test any(row -> row.policy === :initial_direct_transform &&
@@ -24530,19 +25035,31 @@ end
         size(mgmfrm_guarded_fit.draws, 2)
     @test all(row -> row.diagnostic_row === :parameter &&
         row.parameter_space === :raw_unconstrained &&
-        row.diagnostic_status === :provisional_classical,
+        row.diagnostic_method === :rank_normalized_split_rhat_bulk_tail_ess &&
+        row.diagnostic_status === :rank_normalized_available &&
+        row.flag === row.rank_normalized_flag,
         mcmc_diagnostics(mgmfrm_guarded_fit))
     @test length(parameter_block_diagnostics(mgmfrm_guarded_fit)) >= 1
     @test all(row -> row.diagnostic_row === :parameter_block &&
         row.parameter_space === :raw_unconstrained &&
-        row.diagnostic_status === :provisional_classical,
+        row.diagnostic_method === :rank_normalized_split_rhat_bulk_tail_ess &&
+        row.diagnostic_status === :rank_normalized_available,
         parameter_block_diagnostics(mgmfrm_guarded_fit))
     @test all(row -> row.parameter_space === :direct_constrained &&
-        row.diagnostic_status === :provisional_classical,
+        row.diagnostic_method === :rank_normalized_split_rhat_bulk_tail_ess &&
+        ((row.quality_gate_applicable &&
+                row.diagnostic_status === :rank_normalized_available &&
+                row.flag === row.rank_normalized_flag) ||
+            (!row.quality_gate_applicable &&
+                row.diagnostic_status === :structurally_fixed &&
+                row.flag === :structurally_fixed &&
+                row.classical_compatibility_flag === :structurally_fixed)),
         mgmfrm_guarded_diagnostics.direct_parameter_rows)
     @test all(row -> row.diagnostic_row === :parameter_block &&
         row.parameter_space === :direct_constrained &&
-        row.diagnostic_status === :provisional_classical,
+        row.diagnostic_method === :rank_normalized_split_rhat_bulk_tail_ess &&
+        row.diagnostic_status in
+            (:rank_normalized_available, :structurally_fixed),
         mgmfrm_guarded_diagnostics.direct_block_rows)
     mgmfrm_guarded_artifact =
         fit_artifact(mgmfrm_guarded_fit; include_environment = false)
@@ -24552,6 +25069,10 @@ end
     @test mgmfrm_guarded_artifact.experimental_public
     @test mgmfrm_guarded_artifact.guarded_local_fit
     @test mgmfrm_guarded_artifact.fit_ready
+    @test mgmfrm_guarded_artifact.reproducibility.diagnostic_policy.diagnostic_contract ===
+        :rank_normalized_rhat_bulk_tail_ess_v1
+    @test mgmfrm_guarded_artifact.reproducibility.diagnostic_policy.diagnostic_contract_details.id ===
+        :rank_normalized_rhat_bulk_tail_ess_v1
     @test mgmfrm_guarded_artifact.public_target_label ===
         :guarded_confirmatory_mgmfrm_logdensity
     @test mgmfrm_guarded_artifact.public_target_description ==
@@ -24566,7 +25087,10 @@ end
         mgmfrm_guarded_artifact.evidence_artifact_schema_policy.claim_policy.unsupported_claims
     @test mgmfrm_guarded_artifact.evidence_artifact_schema_policy.environment_policy.include_environment ===
         false
-    @test mgmfrm_guarded_artifact.entrypoint == "fit(spec; experimental = true)"
+    @test mgmfrm_guarded_artifact.entrypoint ==
+        "BayesianMGMFRM.Experimental.fit(spec)"
+    @test mgmfrm_guarded_artifact.legacy_entrypoint ==
+        "BayesianMGMFRM.fit(spec; experimental = true)"
     @test mgmfrm_guarded_artifact.guarded_local_entrypoint === :_fit_guarded_mgmfrm
     @test mgmfrm_guarded_artifact.target === :_mgmfrm_guarded_local_fit_logdensity
     @test mgmfrm_guarded_artifact.ability_scale ===
@@ -24719,6 +25243,13 @@ end
     @test all(isfinite, mgmfrm3_fit.log_posterior)
     @test all(isfinite, mgmfrm3_fit.direct_pointwise_loglikelihood)
     @test mgmfrm3_fit.diagnostic_surface.summary.n_failed_direct_constraints == 0
+    mgmfrm3_standardized_residuals = predictive_standardized_residuals(
+        mgmfrm3_fit;
+        draw_indices = [1],
+    )
+    @test mgmfrm3_standardized_residuals.family === :mgmfrm
+    @test mgmfrm3_standardized_residuals.draw_indices == (1,)
+    @test size(mgmfrm3_standardized_residuals.values) == (1, mgmfrm3_data.n)
 
     @test_throws ArgumentError BayesianMGMFRM._fit_guarded_mgmfrm(
         gmfrm_spec;
@@ -25261,7 +25792,9 @@ end
 
     target = MFRMLogDensity(design; prior)
     spec_target = MFRMLogDensity(spec; prior)
-    @test target.design === design
+    @test target.design !== design
+    @test BayesianMGMFRM.design_identity(target.design).value ==
+        BayesianMGMFRM.design_identity(design).value
     @test target.prior === prior
     @test spec_target.design.parameter_names == design.parameter_names
     @test initial_params(target) == init
@@ -25317,7 +25850,9 @@ end
         "actual MFRMFit text/plain" =>
             sprint(show, MIME"text/plain"(), result),
     ]))
-    @test result.design === design
+    @test result.design !== design
+    @test BayesianMGMFRM.design_identity(result.design).value ==
+        BayesianMGMFRM.design_identity(design).value
     @test result.prior === prior
     @test size(result.draws) == (24, length(design.parameter_names))
     @test length(result.log_posterior) == 24
@@ -25403,18 +25938,27 @@ end
     @test all(row -> row.diagnostic_draws_per_chain == 4, diagnostics)
     @test all(row -> row.total_draws == 24, diagnostics)
     @test all(row -> row.split_chains, diagnostics)
-    @test all(row -> row.flag in (:ok, :mcmc_warning, :degenerate_draws), diagnostics)
+    @test all(row -> row.flag in
+        (:ok, :mcmc_warning, :insufficient_draws, :nonfinite_draws,
+            :degenerate_draws), diagnostics)
     @test all(row -> row.diagnostic_row === :parameter &&
         row.parameter_space === :identified &&
-        row.diagnostic_method === :classical_split_rhat_autocorrelation_ess &&
-        row.diagnostic_status === :provisional_classical,
+        row.diagnostic_contract === :rank_normalized_rhat_bulk_tail_ess_v1 &&
+        row.diagnostic_method === :rank_normalized_split_rhat_bulk_tail_ess &&
+        row.diagnostic_status === :rank_normalized_available &&
+        row.flag === row.rank_normalized_flag,
         diagnostics)
     @test all(row -> row.flag === :ok ?
-        isfinite(row.rhat) && row.rhat <= 1.01 && isfinite(row.ess) && row.ess >= 400.0 :
+        isfinite(row.rank_normalized_rhat) &&
+            row.rank_normalized_rhat <= 1.01 &&
+            isfinite(row.bulk_ess) && row.bulk_ess >= 400.0 &&
+            isfinite(row.tail_ess) && row.tail_ess >= 400.0 :
         true, diagnostics)
-    @test all(row -> (isfinite(row.rhat) && row.rhat > 1.01 ||
-            isfinite(row.ess) && row.ess < 400.0) ?
-        row.flag === :mcmc_warning :
+    @test all(row -> row.flag === :mcmc_warning ?
+        (isfinite(row.rank_normalized_rhat) &&
+                row.rank_normalized_rhat > 1.01 ||
+            isfinite(row.bulk_ess) && row.bulk_ess < 400.0 ||
+            isfinite(row.tail_ess) && row.tail_ess < 400.0) :
         true, diagnostics)
     @test_throws ArgumentError mcmc_diagnostics(result; rhat_threshold = 1.0)
     @test_throws ArgumentError mcmc_diagnostics(result; ess_threshold = 0)
@@ -25422,6 +25966,10 @@ end
     @test all(row -> row.diagnostic_chains == 3, unsplit_diagnostics)
     @test all(row -> row.diagnostic_draws_per_chain == 8, unsplit_diagnostics)
     @test all(row -> !row.split_chains, unsplit_diagnostics)
+    @test all(row -> row.split_chains_requested === false &&
+        row.diagnostic_method ===
+            :rank_normalized_unsplit_rhat_bulk_tail_ess,
+        unsplit_diagnostics)
 
     block_rows = parameter_block_diagnostics(result)
     @test [row.block for row in block_rows] == sort(collect(keys(design.blocks)); by = string)
@@ -25432,11 +25980,14 @@ end
     @test all(row -> row.split_chains, block_rows)
     @test all(row -> row.rhat_threshold == 1.01, block_rows)
     @test all(row -> row.ess_threshold == 400.0, block_rows)
-    @test all(row -> row.flag in (:ok, :mcmc_warning, :insufficient_chains, :degenerate_draws, :empty_block), block_rows)
+    @test all(row -> row.flag in
+        (:ok, :mcmc_warning, :insufficient_chains, :insufficient_draws,
+            :nonfinite_draws, :degenerate_draws, :empty_block), block_rows)
     @test all(row -> row.diagnostic_row === :parameter_block &&
         row.parameter_space === :identified &&
-        row.diagnostic_method === :classical_split_rhat_autocorrelation_ess &&
-        row.diagnostic_status === :provisional_classical,
+        row.diagnostic_contract === :rank_normalized_rhat_bulk_tail_ess_v1 &&
+        row.diagnostic_method === :rank_normalized_split_rhat_bulk_tail_ess &&
+        row.diagnostic_status === :rank_normalized_available,
         block_rows)
     person_block_row = only(filter(row -> row.block === :person, block_rows))
     @test person_block_row.n_parameters == length(data.person_levels)
@@ -25453,25 +26004,31 @@ end
     @test diagnostic_surface.schema == "bayesianmgmfrm.diagnostics.v1"
     @test diagnostic_surface.diagnostic_row_policy.family === :mfrm
     @test diagnostic_surface.diagnostic_row_policy.parameter_spaces == (:identified,)
-    @test diagnostic_surface.diagnostic_row_policy.rhat_method === :classical_split
-    @test diagnostic_surface.diagnostic_row_policy.ess_method === :autocorrelation
-    @test !diagnostic_surface.diagnostic_row_policy.rank_normalized_rhat_available
-    @test !diagnostic_surface.diagnostic_row_policy.bulk_tail_ess_available
+    @test diagnostic_surface.diagnostic_row_policy.diagnostic_contract ===
+        :rank_normalized_rhat_bulk_tail_ess_v1
+    @test diagnostic_surface.diagnostic_row_policy.rhat_method === :rank_normalized
+    @test diagnostic_surface.diagnostic_row_policy.ess_method === :bulk_and_tail
+    @test diagnostic_surface.diagnostic_row_policy.rank_normalized_rhat_available
+    @test diagnostic_surface.diagnostic_row_policy.bulk_tail_ess_available
     @test diagnostic_surface.backend === result.backend
     @test diagnostic_surface.sampler === result.sampler
     @test diagnostic_surface.summary.n_chains == 3
     @test diagnostic_surface.summary.draws_per_chain == 8
     @test diagnostic_surface.summary.n_parameters == length(design.parameter_names)
-    @test diagnostic_surface.summary.flag in (:ok, :sampler_warning, :mcmc_warning, :insufficient_chains)
+    @test diagnostic_surface.summary.flag in
+        (:ok, :sampler_warning, :mcmc_warning, :insufficient_chains,
+            :insufficient_draws)
     @test diagnostic_surface.summary.n_divergences == 0
     @test ismissing(diagnostic_surface.summary.n_max_treedepth)
     @test ismissing(diagnostic_surface.summary.e_bfmi)
     @test diagnostic_surface.summary.n_block_warnings ==
-        count(row -> row.flag in (:insufficient_chains, :degenerate_draws, :mcmc_warning), block_rows)
+        count(row -> row.flag in
+            (:insufficient_chains, :insufficient_draws, :nonfinite_draws,
+                :degenerate_draws, :mcmc_warning), block_rows)
     @test diagnostic_surface.summary.n_empty_blocks == count(row -> row.flag === :empty_block, block_rows)
     @test isequal(diagnostic_surface.sampler_rows, sampler_rows)
-    @test diagnostic_surface.parameter_rows == diagnostics
-    @test diagnostic_surface.block_rows == block_rows
+    @test isequal(diagnostic_surface.parameter_rows, diagnostics)
+    @test isequal(diagnostic_surface.block_rows, block_rows)
     @test_throws ArgumentError BayesianMGMFRM.diagnostics(result; rhat_threshold = 1.0)
     @test_throws ArgumentError BayesianMGMFRM.diagnostics(result; ess_threshold = 0)
 
@@ -25526,7 +26083,9 @@ end
         init,
         rng = MersenneTwister(20260620))
     @test hmc_result isa MFRMFit
-    @test hmc_result.design === design
+    @test hmc_result.design !== design
+    @test BayesianMGMFRM.design_identity(hmc_result.design).value ==
+        BayesianMGMFRM.design_identity(design).value
     @test hmc_result.prior === prior
     @test hmc_result.backend === :advancedhmc
     @test hmc_result.sampler === :nuts
@@ -25570,10 +26129,12 @@ end
     @test hmc_surface.summary.draws_per_chain == 3
     @test hmc_surface.summary.n_divergences >= 0
     @test hmc_surface.summary.n_max_treedepth >= 0
-    @test hmc_surface.summary.flag in (:ok, :sampler_warning, :mcmc_warning, :insufficient_chains)
+    @test hmc_surface.summary.flag in
+        (:ok, :sampler_warning, :mcmc_warning, :insufficient_chains,
+            :insufficient_draws)
     @test isequal(hmc_surface.sampler_rows, hmc_sampler_rows)
     hmc_block_rows = parameter_block_diagnostics(hmc_result)
-    @test hmc_surface.block_rows == hmc_block_rows
+    @test isequal(hmc_surface.block_rows, hmc_block_rows)
     @test sum(row.n_parameters for row in hmc_block_rows) == length(design.parameter_names)
     @test all(row -> row.n_chains == 2, hmc_block_rows)
 
@@ -25589,7 +26150,9 @@ end
         init,
         seed = 20260623)
     @test turing_result isa MFRMFit
-    @test turing_result.design === design
+    @test turing_result.design !== design
+    @test BayesianMGMFRM.design_identity(turing_result.design).value ==
+        BayesianMGMFRM.design_identity(design).value
     @test turing_result.prior === prior
     @test turing_result.backend === :turing
     @test turing_result.sampler === :nuts
@@ -25644,10 +26207,12 @@ end
     @test turing_surface.summary.draws_per_chain == 2
     @test turing_surface.summary.n_divergences >= 0
     @test turing_surface.summary.n_max_treedepth >= 0
-    @test turing_surface.summary.flag in (:ok, :sampler_warning, :mcmc_warning, :insufficient_chains)
+    @test turing_surface.summary.flag in
+        (:ok, :sampler_warning, :mcmc_warning, :insufficient_chains,
+            :insufficient_draws)
     @test isequal(turing_surface.sampler_rows, turing_sampler_rows)
     turing_block_rows = parameter_block_diagnostics(turing_result)
-    @test turing_surface.block_rows == turing_block_rows
+    @test isequal(turing_surface.block_rows, turing_block_rows)
     @test sum(row.n_parameters for row in turing_block_rows) == length(design.parameter_names)
     @test all(row -> row.n_chains == 2, turing_block_rows)
 
@@ -25708,6 +26273,10 @@ end
     @test compact_artifact.reproducibility.artifact_policy.draws === :omitted
     @test compact_artifact.reproducibility.artifact_policy.environment === :omitted
     @test compact_artifact.reproducibility.artifact_policy.package_status === :omitted
+    @test compact_artifact.reproducibility.diagnostic_policy.diagnostic_contract ===
+        :rank_normalized_rhat_bulk_tail_ess_v1
+    @test compact_artifact.reproducibility.diagnostic_policy.diagnostic_contract_details.id ===
+        :rank_normalized_rhat_bulk_tail_ess_v1
     @test compact_artifact.reproducibility.diagnostic_policy.rhat_threshold == 1.01
     @test compact_artifact.reproducibility.diagnostic_policy.ess_threshold == 400.0
     @test isnothing(compact_artifact.environment)
@@ -27380,11 +27949,18 @@ end
     @test_throws ArgumentError falsification_rule_summary(NamedTuple[])
     @test_throws ArgumentError falsification_rule_summary(Any[1])
 
+    active_test_project = Base.active_project()
+    subprocess_project_dir = if isnothing(active_test_project)
+        dirname(@__DIR__)
+    else
+        dirname(active_test_project)
+    end
+
     validation_plan_script =
         joinpath(dirname(@__DIR__), "scripts", "generate_validation_plan.jl")
     @test isfile(validation_plan_script)
     validation_plan_path = tempname() * ".json"
-    run(`$(Base.julia_cmd()) --startup-file=no --project=$(dirname(@__DIR__))
+    run(`$(Base.julia_cmd()) --startup-file=no --project=$subprocess_project_dir
         $validation_plan_script --preset smoke --grid-id unit-plan
         --base-seed 8100 --output $validation_plan_path`)
     validation_plan = JSON3.read(read(validation_plan_path, String))
@@ -27414,6 +27990,511 @@ end
     @test String(validation_plan[:content_hash][:algorithm]) == "sha256"
     @test length(String(validation_plan[:content_hash][:value])) == 64
     rm(validation_plan_path; force = true)
+
+    design_robustness_script = joinpath(
+        dirname(@__DIR__),
+        "scripts",
+        "generate_existing_api_design_robustness_plan.jl",
+    )
+    design_robustness_fixture = joinpath(
+        dirname(@__DIR__),
+        "test",
+        "fixtures",
+        "existing_api_design_robustness_plan.json",
+    )
+    @test isfile(design_robustness_script)
+    @test isfile(design_robustness_fixture)
+    design_robustness_path = tempname() * ".json"
+    run(`$(Base.julia_cmd()) --startup-file=no --project=$subprocess_project_dir
+        $design_robustness_script --output $design_robustness_path`)
+    @test read(design_robustness_path, String) ==
+        read(design_robustness_fixture, String)
+    design_robustness = JSON3.read(read(design_robustness_path, String))
+    @test String(design_robustness[:schema]) ==
+        "bayesianmgmfrm.existing_api_design_robustness_plan.v1"
+    @test String(design_robustness[:scope]) ==
+        "existing_static_api_design_robustness"
+    @test String(design_robustness[:status]) ==
+        "deterministic_contract_checks_passed_recovery_not_run"
+    @test Bool(design_robustness[:public_claim_release_allowed]) == false
+    @test Bool(design_robustness[:publication_or_registration_action]) == false
+    references = design_robustness[:reference_records]
+    @test length(references) == 7
+    @test all(row -> !haskey(row, :item_key) && !haskey(row, :zotero_key),
+        references)
+    @test Set(String(row[:source]) for row in references) == Set(["doi", "url"])
+    current_evidence = design_robustness[:current_evidence_audit]
+    @test length(current_evidence) == 2
+    @test all(row -> Bool(row[:summary_passed]), current_evidence)
+    @test all(row -> Bool(row[:design_robustness_claim_supported]) == false,
+        current_evidence)
+    @test Bool(design_robustness[:current_evidence_boundary][
+        :generic_simulation_grid_runs_fits]) == false
+    @test Bool(design_robustness[:current_evidence_boundary][
+        :generic_anchor_size_materializes_linking_targets]) == false
+    checks = design_robustness[:deterministic_contract_checks]
+    @test length(checks) == 7
+    @test all(row -> Bool(row[:passed]), checks)
+    @test Set(String(row[:check_id]) for row in checks) == Set([
+        "row_order_equivariance",
+        "occasion_metadata_not_likelihood",
+        "ability_nested_no_link_negative_control",
+        "materialized_common_linking_fraction_5pct",
+        "materialized_common_linking_fraction_10pct",
+        "parameter_anchor_guard",
+        "simulation_grid_anchor_size_is_planning_metadata",
+    ])
+    nested_check = only(row for row in checks
+        if String(row[:check_id]) == "ability_nested_no_link_negative_control")
+    row_order_check = only(row for row in checks
+        if String(row[:check_id]) == "row_order_equivariance")
+    @test Float64(row_order_check[:achieved_multiply_scored_target_fraction]) ==
+        1.0
+    @test Float64(row_order_check[:achieved_all_raters_common_target_fraction]) ==
+        0.0
+    @test Bool(nested_check[:validation_passed]) == false
+    @test Bool(nested_check[:rating_design_audit_passed]) == false
+    @test String(nested_check[:rater_linking_status]) == "disconnected"
+    @test "rank_deficient_design" in
+        String.(nested_check[:validation_issue_codes])
+    linking_checks = filter(row -> startswith(
+        String(row[:check_id]),
+        "materialized_common_linking_fraction_",
+    ), checks)
+    @test Set(Float64(row[:achieved_multiply_scored_target_fraction])
+        for row in linking_checks) == Set([0.05, 0.10])
+    @test Set(Float64(row[:achieved_all_raters_common_target_fraction])
+        for row in linking_checks) == Set([0.05, 0.10])
+    @test all(row -> Float64(row[:controlled_benchmark_target_fraction]) == 0.0,
+        linking_checks)
+    @test all(row -> String(row[:rating_budget_policy]) == "additive",
+        linking_checks)
+    @test all(row -> Int(row[:parameter_anchor_count]) == 0, linking_checks)
+    @test all(row -> Bool(row[:assignment_warning_retained]), linking_checks)
+    anchor_guard = only(row for row in checks
+        if String(row[:check_id]) == "parameter_anchor_guard")
+    @test String(anchor_guard[:estimation_status]) == "specified_only"
+    @test Bool(anchor_guard[:ordinary_design_compilation_blocked])
+    @test String(anchor_guard[:interpretation]) ==
+        "parameter_anchor_not_materialized_linking_response"
+    scenarios = design_robustness[:mandatory_scenarios]
+    @test length(scenarios) == 9
+    @test Set(String(row[:scenario_id]) for row in scenarios) == Set([
+        "C0_balanced_random_double_rated",
+        "C0P_same_ratings_row_permuted",
+        "C1_ability_nested_no_link",
+        "C2A_nested_5pct_link_early_additive",
+        "C2P_same_ratings_5pct_link_distributed",
+        "C2F_nested_5pct_link_early_fixed_total",
+        "C3A_nested_10pct_link_distributed_additive",
+        "C3F_nested_10pct_link_distributed_fixed_total",
+        "C4_ability_nested_10pct_narrow_support",
+    ])
+    @test Set(Float64(value) for value in
+        design_robustness[:study_axes][:common_linking_target_fraction]) ==
+        Set([0.0, 0.02, 0.05, 0.10, 0.20])
+    @test Set(String(value) for value in
+        design_robustness[:study_axes][:rating_budget_policy]) ==
+        Set(["additive", "fixed_total_target_displacement"])
+    @test Bool(design_robustness[:design_selection][:full_factorial_allowed]) ==
+        false
+    @test length(design_robustness[:order_misspecification_scenarios]) == 5
+    baseline = only(row for row in scenarios
+        if String(row[:scenario_id]) == "C0_balanced_random_double_rated")
+    @test Float64(baseline[:planned_multiply_scored_target_fraction]) == 1.0
+    @test Float64(baseline[:common_linking_target_fraction]) == 0.0
+    @test Float64(baseline[:controlled_benchmark_target_fraction]) == 0.0
+    fixed_budget = only(row for row in scenarios
+        if String(row[:scenario_id]) ==
+            "C3F_nested_10pct_link_distributed_fixed_total")
+    @test String(fixed_budget[:rating_budget_policy]) ==
+        "fixed_total_target_displacement"
+    @test Int(fixed_budget[:planned_total_rating_events]) == 400
+    @test Float64(fixed_budget[:planned_multiply_scored_target_fraction]) == 0.10
+    @test Float64(fixed_budget[
+        :planned_multiply_scored_target_fraction_observed]) == 0.20
+    @test Float64(fixed_budget[:planned_dropped_target_fraction]) == 0.50
+    stages = design_robustness[:execution_stages]
+    @test String(stages[1][:status]) == "passed"
+    @test String(stages[2][:status]) == "predeclared_not_run"
+    @test Bool(design_robustness[:execution_policy][
+        :deterministic_checks_executed])
+    @test Bool(design_robustness[:execution_policy][
+        :mcmc_fits_executed]) == false
+    design_robustness_summary = design_robustness[:summary]
+    @test Bool(design_robustness_summary[:passed])
+    @test Int(design_robustness_summary[:n_deterministic_checks]) == 7
+    @test Int(design_robustness_summary[:n_deterministic_checks_passed]) == 7
+    @test Bool(design_robustness_summary[:paired_known_truth_recovery_completed]) == false
+    @test Bool(design_robustness_summary[:design_robustness_claim_supported]) == false
+    @test String(design_robustness_summary[:next_gate]) ==
+        "existing_api_design_robustness_stress_grid"
+    @test String(design_robustness[:content_hash][:algorithm]) == "sha256"
+    @test length(String(design_robustness[:content_hash][:value])) == 64
+    rm(design_robustness_path; force = true)
+
+    design_stress_script = joinpath(
+        dirname(@__DIR__),
+        "scripts",
+        "generate_existing_api_design_robustness_stress_grid.jl",
+    )
+    design_stress_fixture = joinpath(
+        dirname(@__DIR__),
+        "test",
+        "fixtures",
+        "existing_api_design_robustness_stress_grid.json",
+    )
+    @test isfile(design_stress_script)
+    @test isfile(design_stress_fixture)
+    protected_fixture_bytes = read(design_stress_fixture)
+    blocked_fixture_output = IOBuffer()
+    blocked_fixture_process = run(pipeline(ignorestatus(
+        `$(Base.julia_cmd()) --startup-file=no --project=$subprocess_project_dir
+            $design_stress_script --execute --output $design_stress_fixture`);
+        stdout = blocked_fixture_output,
+        stderr = blocked_fixture_output,
+    ))
+    @test !success(blocked_fixture_process)
+    @test read(design_stress_fixture) == protected_fixture_bytes
+    @test occursin(
+        "--execute output must not resolve to the deterministic fixture",
+        String(take!(blocked_fixture_output)),
+    )
+    design_stress_path = tempname() * ".json"
+    run(`$(Base.julia_cmd()) --startup-file=no --project=$subprocess_project_dir
+        $design_stress_script --output $design_stress_path`)
+    design_stress = JSON3.read(read(design_stress_path, String))
+    committed_design_stress = JSON3.read(read(design_stress_fixture, String))
+    function stress_local_json_value(value)
+        if value isa AbstractDict
+            materialized_pairs = collect(pairs(value))
+            names = Tuple(Symbol(String(pair.first)) for pair in materialized_pairs)
+            values = Tuple(stress_local_json_value(pair.second)
+                for pair in materialized_pairs)
+            return NamedTuple{names}(values)
+        elseif value isa AbstractArray || value isa Tuple
+            return [stress_local_json_value(element) for element in value]
+        end
+        return value
+    end
+    function stress_recomputed_content_hash(artifact)
+        named = stress_local_json_value(artifact)
+        without_hash = (; (key => value for (key, value) in pairs(named)
+            if key !== :content_hash)...)
+        io = IOBuffer()
+        write_canonical_json(io, without_hash)
+        return bytes2hex(sha256(take!(io)))
+    end
+    for artifact in (design_stress, committed_design_stress)
+        @test String(artifact[:content_hash][:algorithm]) == "sha256"
+        @test String(artifact[:content_hash][:covers]) ==
+            "artifact_without_content_hash"
+        @test String(artifact[:content_hash][:value]) ==
+            stress_recomputed_content_hash(artifact)
+    end
+    stress_semantic_signature = artifact -> (;
+        schema = String(artifact[:schema]),
+        status = String(artifact[:status]),
+        package_version = String(artifact[:package][:version]),
+        n_design_cells = Int(artifact[:summary][:n_design_cells]),
+        n_model_design_cells = Int(artifact[:summary][:n_model_design_cells]),
+        n_paired_replication_rows =
+            Int(artifact[:summary][:n_paired_replication_rows]),
+        deterministic_checks = [(String(row[:check]), Bool(row[:passed]))
+            for row in artifact[:deterministic_checks]],
+        placement_checks = [(String(row[:family]), Bool(row[:passed]))
+            for row in artifact[:c2p_placement_contrast_checks]],
+        recovery_completed = Bool(artifact[:summary][
+            :paired_known_truth_recovery_completed]),
+    )
+    @test stress_semantic_signature(design_stress) ==
+        stress_semantic_signature(committed_design_stress)
+    function stress_evidence_projection(artifact)
+        cells = artifact[:model_cell_preflight]
+        cell = (cell_id, family) -> only(row for row in cells
+            if String(row[:cell_id]) == cell_id &&
+                String(row[:family]) == family)
+        baseline = cell("C0_balanced_random_double_rated", "mfrm")[
+            :design_metrics]
+        f1 = cell("F1_mfrm_2pct_high_variance_random_order", "mfrm")[
+            :design_metrics][:requested_vs_achieved]
+        c3f = cell("C3F_nested_10pct_link_distributed_fixed_total", "mfrm")[
+            :design_metrics]
+        c2p = [(;
+            family = String(row[:family]),
+            passed = Bool(row[:passed]),
+            same_event_set = Bool(row[:same_event_set]),
+            same_common_target_rater_events =
+                Bool(row[:same_common_target_rater_events]),
+            same_named_truth = Bool(row[:same_named_truth]),
+            same_uniform_score_assignment_by_named_event =
+                Bool(row[:same_uniform_score_assignment_by_named_event]),
+            positions_and_occasions_recomputed =
+                Bool(row[:positions_and_occasions_recomputed]),
+            distributed_spans_early_and_late =
+                Bool(row[:distributed_spans_early_and_late]),
+            event_hashes_match_within_artifact =
+                String(row[:event_set_sha256_early]) ==
+                    String(row[:event_set_sha256_distributed]),
+            common_hashes_match_within_artifact =
+                String(row[:common_target_rater_events_sha256_early]) ==
+                    String(row[:common_target_rater_events_sha256_distributed]),
+            truth_hashes_match_within_artifact =
+                String(row[:named_truth_sha256_early]) ==
+                    String(row[:named_truth_sha256_distributed]),
+            assignment_hashes_match_within_artifact =
+                String(row[:uniform_score_assignment_sha256_early]) ==
+                    String(row[:uniform_score_assignment_sha256_distributed]),
+        ) for row in artifact[:c2p_placement_contrast_checks]]
+        skeletons = artifact[:all_requested_replication_skeleton_preflight]
+        return (;
+            c2p,
+            f1 = (;
+                status = String(f1[:status]),
+                fit_eligible = Bool(f1[:fit_eligible]),
+                support_passed = Bool(f1[:support_passed]),
+                placement_passed = Bool(f1[:placement_passed]),
+                rater_linking_passed = Bool(f1[:rater_linking_passed]),
+            ),
+            baseline_multi_planned = Float64(baseline[
+                :achieved_multi_rated_target_fraction_planned_denominator]),
+            baseline_multi_observed = Float64(baseline[
+                :achieved_multi_rated_target_fraction_observed_denominator]),
+            c3f_multi_planned = Float64(c3f[
+                :achieved_multi_rated_target_fraction_planned_denominator]),
+            c3f_multi_observed = Float64(c3f[
+                :achieved_multi_rated_target_fraction_observed_denominator]),
+            skeleton_preflight = (;
+                requested_replications = Int(skeletons[:requested_replications]),
+                n_rows = Int(skeletons[:n_candidate_family_replication_rows]),
+                n_passed = Int(skeletons[:n_passed]),
+                n_failed = Int(skeletons[:n_failed]),
+                passed = Bool(skeletons[:passed]),
+            ),
+        )
+    end
+    @test stress_evidence_projection(design_stress) ==
+        stress_evidence_projection(committed_design_stress)
+    @test String(design_stress[:generator][:source_sha256]) ==
+        file_sha256(design_stress_script)
+    @test String(committed_design_stress[:generator][:source_sha256]) ==
+        file_sha256(design_stress_script)
+    @test String(design_stress[:prerequisite_plan][:sha256]) ==
+        file_sha256(design_robustness_fixture)
+    @test String(committed_design_stress[:prerequisite_plan][:sha256]) ==
+        file_sha256(design_robustness_fixture)
+    @test String(design_stress[:schema]) ==
+        "bayesianmgmfrm.existing_api_design_robustness_stress_grid.v1"
+    @test String(design_stress[:status]) ==
+        "paired_known_truth_dry_run_passed_mcmc_not_run"
+    @test Bool(design_stress[:execution][:execute_mcmc]) == false
+    @test Int(design_stress[:execution][:n_fit_attempted]) == 0
+    @test String(design_stress[:execution][:seed_namespace]) == "smoke_wiring"
+    @test Bool(design_stress[:execution][
+        :paired_fit_execution_completed]) == false
+    @test Bool(design_stress[:execution][:full_gate_scorer_implemented]) == false
+    @test Bool(design_stress[:execution][
+        :all_requested_replication_skeletons_design_preflighted])
+    @test Bool(design_stress[:execution][
+        :all_requested_replication_skeletons_passed])
+    skeleton_preflight = design_stress[
+        :all_requested_replication_skeleton_preflight]
+    @test Int(skeleton_preflight[:requested_replications]) == 1
+    @test Int(skeleton_preflight[:n_candidate_family_replication_rows]) == 3
+    @test Int(skeleton_preflight[:n_passed]) == 3
+    @test Int(skeleton_preflight[:n_failed]) == 0
+    @test Bool(skeleton_preflight[:passed])
+    @test !haskey(design_stress[:package], :julia_version)
+    @test !occursin('\\', String(design_stress[:prerequisite_plan][:path]))
+    @test Bool(design_stress[:summary][:passed])
+    @test Int(design_stress[:summary][:n_design_cells]) == 10
+    @test Int(design_stress[:summary][:n_model_design_cells]) == 24
+    @test Int(design_stress[:summary][:n_paired_replication_rows]) == 21
+    @test Bool(design_stress[:summary][
+        :paired_known_truth_recovery_completed]) == false
+    @test Bool(design_stress[:summary][
+        :design_robustness_claim_supported]) == false
+    @test haskey(design_stress[:terminology],
+        :inclusive_multiply_scored_target)
+    @test !haskey(design_stress[:terminology],
+        :ordinary_multiply_scored_target)
+    @test all(row -> Bool(row[:passed]),
+        design_stress[:deterministic_checks])
+    skeleton_probe = design_stress[:replication_skeleton_resampling_probe]
+    @test Bool(skeleton_probe[:passed])
+    @test Bool(skeleton_probe[:event_assignment_changed])
+    @test Bool(skeleton_probe[:within_rater_order_changed])
+    permutation_checks = design_stress[:row_permutation_equivariance_checks]
+    @test length(permutation_checks) == 6
+    @test Set(String(row[:family]) for row in permutation_checks) == Set([
+        "mfrm",
+        "guarded_scalar_gmfrm",
+        "guarded_fixed_q_mgmfrm",
+    ])
+    @test all(row -> Bool(row[:passed]) &&
+        Float64(row[:maximum_aligned_pointwise_loglikelihood_error]) <=
+            Float64(row[:tolerance]) &&
+        Float64(row[:absolute_total_loglikelihood_error]) <=
+            Float64(row[:total_reduction_tolerance]), permutation_checks)
+    placement_checks = design_stress[:c2p_placement_contrast_checks]
+    @test length(placement_checks) == 3
+    @test all(row -> Bool(row[:passed]) && Bool(row[:same_event_set]) &&
+        Bool(row[:same_common_target_rater_events]) &&
+        Bool(row[:same_named_truth]) &&
+        Bool(row[:same_uniform_score_assignment_by_named_event]) &&
+        Bool(row[:positions_and_occasions_recomputed]) &&
+        Bool(row[:distributed_spans_early_and_late]) &&
+        String(row[:event_set_sha256_early]) ==
+            String(row[:event_set_sha256_distributed]) &&
+        String(row[:common_target_rater_events_sha256_early]) ==
+            String(row[:common_target_rater_events_sha256_distributed]) &&
+        String(row[:named_truth_sha256_early]) ==
+            String(row[:named_truth_sha256_distributed]) &&
+        String(row[:uniform_score_assignment_sha256_early]) ==
+            String(row[:uniform_score_assignment_sha256_distributed]) &&
+        Float64(row[:maximum_aligned_pointwise_loglikelihood_error]) <=
+            Float64(row[:tolerance]), placement_checks)
+    stress_cells = design_stress[:model_cell_preflight]
+    stress_mfrm_cells = filter(row -> String(row[:family]) == "mfrm",
+        stress_cells)
+    baseline_stress = only(row for row in stress_mfrm_cells
+        if String(row[:cell_id]) == "C0_balanced_random_double_rated")
+    baseline_metrics = baseline_stress[:design_metrics]
+    @test Float64(baseline_metrics[
+        :achieved_multi_rated_target_fraction_planned_denominator]) == 1.0
+    @test Float64(baseline_metrics[
+        :achieved_multi_rated_target_fraction_observed_denominator]) == 1.0
+    @test Float64(baseline_metrics[
+        :achieved_common_linking_fraction_planned_denominator]) == 0.0
+    @test String(baseline_metrics[:controlled_benchmark_status]) ==
+        "not_materialized"
+    f1_stress = only(row for row in stress_mfrm_cells
+        if String(row[:cell_id]) ==
+            "F1_mfrm_2pct_high_variance_random_order")
+    f1_gate = f1_stress[:design_metrics][:requested_vs_achieved]
+    @test String(f1_gate[:status]) == "underresolved_planned_only"
+    @test Bool(f1_gate[:fit_eligible]) == false
+    @test Bool(f1_gate[:support_passed]) == false
+    @test Bool(f1_gate[:placement_passed]) == false
+    @test Bool(f1_gate[:rater_linking_passed]) == false
+    mgmfrm_stress = only(row for row in stress_cells
+        if String(row[:cell_id]) == "C0_balanced_random_double_rated" &&
+            String(row[:family]) == "guarded_fixed_q_mgmfrm")
+    mgmfrm_order = mgmfrm_stress[:design_metrics][
+        :mgmfrm_order_diagnostics]
+    @test length(mgmfrm_order[:dimension_specific]) == 2
+    @test all(row -> length(row[:by_rater]) == 4,
+        mgmfrm_order[:dimension_specific])
+    @test length(mgmfrm_order[:q_active_source][:by_rater]) == 4
+    @test Bool(design_stress[:paired_dgp_contract][
+        :condition_A_dgp_and_fit_share_package_likelihood_kernel])
+    @test Bool(design_stress[:paired_dgp_contract][
+        :independent_dgp_cross_check_completed]) == false
+    @test Bool(design_stress[:evidence_boundary][
+        :kernel_independent_validation_claim_supported]) == false
+    for cell_id in (
+        "C2F_nested_5pct_link_early_fixed_total",
+        "C3F_nested_10pct_link_distributed_fixed_total",
+    )
+        cell = only(row for row in stress_mfrm_cells
+            if String(row[:cell_id]) == cell_id)
+        metrics = cell[:design_metrics]
+        @test String(metrics[:rating_budget_implementation]) ==
+            "fixed_total_target_displacement"
+        @test Int(metrics[:n_rating_events]) ==
+            Int(metrics[:planned_target_denominator])
+        @test Int(metrics[:observed_target_denominator]) +
+            Int(metrics[:n_displaced_operational_targets]) ==
+            Int(metrics[:planned_target_denominator])
+        @test isapprox(
+            Float64(metrics[
+                :achieved_common_linking_fraction_observed_denominator]),
+            Int(metrics[:n_common_linking_targets]) /
+                Int(metrics[:observed_target_denominator]);
+            atol = 1.0e-12,
+        )
+        planned_multi = Float64(metrics[
+            :achieved_multi_rated_target_fraction_planned_denominator])
+        observed_multi = Float64(metrics[
+            :achieved_multi_rated_target_fraction_observed_denominator])
+        @test isapprox(planned_multi,
+            Int(metrics[:n_multi_rated_targets]) /
+                Int(metrics[:planned_target_denominator]); atol = 1.0e-12)
+        @test isapprox(observed_multi,
+            Int(metrics[:n_multi_rated_targets]) /
+                Int(metrics[:observed_target_denominator]); atol = 1.0e-12)
+        if cell_id == "C3F_nested_10pct_link_distributed_fixed_total"
+            @test observed_multi > planned_multi
+            @test isapprox(observed_multi - planned_multi,
+                Int(metrics[:n_multi_rated_targets]) *
+                    (1 / Int(metrics[:observed_target_denominator]) -
+                        1 / Int(metrics[:planned_target_denominator]));
+                atol = 1.0e-12)
+        end
+    end
+    paired_stress_rows = design_stress[:paired_replication_rows]
+    @test all(row -> Bool(row[:category_support_conditioning]) == false &&
+        Bool(row[:category_support_resampling]) == false, paired_stress_rows)
+    @test all(row -> length(row[:conditions]) == 2 &&
+        String(row[:conditions][1][:condition]) == "A_well_specified_static" &&
+        String(row[:conditions][2][:condition]) == "B_unmodeled_order_effect",
+        paired_stress_rows)
+    @test all(condition -> length(condition[:score_summary][
+        :category_counts]) == 4,
+        (condition for row in paired_stress_rows for condition in row[:conditions]))
+    @test String(design_stress[:content_hash][:algorithm]) == "sha256"
+    @test length(String(design_stress[:content_hash][:value])) == 64
+    rm(design_stress_path; force = true)
+
+    blocked_pilot_path = tempname() * ".json"
+    blocked_pilot_output = IOBuffer()
+    blocked_pilot_process = run(pipeline(ignorestatus(
+        `$(Base.julia_cmd()) --startup-file=no --project=$subprocess_project_dir
+            $design_stress_script --profile pilot --execute --allow-heavy
+            --output $blocked_pilot_path`);
+        stdout = blocked_pilot_output,
+        stderr = blocked_pilot_output,
+    ))
+    @test !success(blocked_pilot_process)
+    @test !isfile(blocked_pilot_path)
+    @test occursin(
+        "pilot/calibration MCMC is blocked until the declared full gate scorer is implemented",
+        String(take!(blocked_pilot_output)),
+    )
+
+    calibration_skeleton_path = tempname() * ".json"
+    run(`$(Base.julia_cmd()) --startup-file=no --project=$subprocess_project_dir
+        $design_stress_script --profile calibration --replications 50
+        --output $calibration_skeleton_path`)
+    calibration_skeleton = JSON3.read(
+        read(calibration_skeleton_path, String))
+    calibration_preflight = calibration_skeleton[
+        :all_requested_replication_skeleton_preflight]
+    @test Bool(calibration_preflight[:passed])
+    @test Int(calibration_preflight[:requested_replications]) == 50
+    @test Int(calibration_preflight[:n_profile_fit_candidate_families]) == 21
+    @test Int(calibration_preflight[:n_unique_design_skeletons]) == 450
+    @test Int(calibration_preflight[
+        :n_candidate_family_replication_rows]) == 1050
+    @test Int(calibration_preflight[:n_passed]) == 1050
+    @test Int(calibration_preflight[:n_failed]) == 0
+    @test isempty(calibration_preflight[:failure_rows])
+    calibration_f1_rows = [row for row in calibration_preflight[:rows]
+        if String(row[:cell_id]) ==
+            "F1_mfrm_2pct_high_variance_random_order"]
+    @test length(calibration_f1_rows) == 50
+    @test Set(Int(row[:replication]) for row in calibration_f1_rows) ==
+        Set(1:50)
+    @test all(row -> Bool(row[:passed]) &&
+        Float64(row[:requested_vs_achieved][
+            :achieved_ability_range_ratio]) >= 0.75 &&
+        Float64(row[:requested_vs_achieved][
+            :achieved_item_range_ratio]) >= 0.75,
+        calibration_f1_rows)
+    @test Int(calibration_skeleton[:summary][
+        :n_paired_replication_rows]) == 21
+    @test Int(calibration_skeleton[:execution][:n_fit_attempted]) == 0
+    rm(calibration_skeleton_path; force = true)
 
     comparison_rows = [
         comparison_evidence_row(;
@@ -30406,10 +31487,44 @@ end
     end
 end
 
+include("existing_api_design_robustness_recovery_scorer.jl")
+include("facets_conquest_bridge.jl")
+include("model_contract.jl")
 include("facets_compatibility_stats.jl")
+include("practitioner_diagnostics.jl")
+include("anchor_refit_plan.jl")
+include("testlet_design_audit.jl")
+include("testlet_overlap_contract.jl")
+include("predictive_standardized_residuals.jl")
+include("local_dependence_contract.jl")
+include("local_dependence_summary.jl")
+include("local_dependence_simulation.jl")
+include("local_dependence_calibration.jl")
+include("local_dependence_calibration_artifact.jl")
+include("local_dependence_calibration_pilot.jl")
+include("local_dependence_pilot_protocol_artifact.jl")
+include("local_dependence_pilot_batch_execution_harness.jl")
 include("generalized_guard_contract.jl")
+include("experimental_namespace.jl")
+include("mgmfrm_free_latent_correlation_2d.jl")
+include("mgmfrm_free_latent_correlation_2d_study.jl")
+@testset "free-correlation runner workspace-project subprocess" begin
+    runner_test_path = joinpath(
+        @__DIR__,
+        "mgmfrm_free_latent_correlation_2d_study_unit_runner.jl",
+    )
+    command = addenv(
+        `$(Base.julia_cmd()) --project=$(dirname(@__DIR__)) $runner_test_path`,
+        "JULIA_LOAD_PATH" => "@:@stdlib",
+    )
+    process = run(command; wait = false)
+    wait(process)
+    @test success(process)
+end
 include("publication_grade_policy_contract.jl")
 include("public_language_gate.jl")
+include("rank_normalized_diagnostics.jl")
+include("scientific_payload_digest.jl")
 
 module FullPaperReproductionArchiveContractForTest
 

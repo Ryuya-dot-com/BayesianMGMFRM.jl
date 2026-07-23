@@ -16,7 +16,8 @@ experimental opt-in:
 
 Broader discrimination structures, exploratory loadings, free latent
 correlations, and fitted DFF effects are not supported. See
-[Scope and Releases](scope.md) for the exact boundary.
+[Scope and Releases](scope.md) for the exact boundary and
+[Experimental Generalized Models](experimental.md) for the quarantined API.
 
 ## Recommended Path
 
@@ -44,7 +45,12 @@ correlations, and fitted DFF effects are not supported. See
   interpretation checks.
 - [Bayesian Fitting](fitting.md) covers backends, experimental restrictions,
   diagnostics, and reports.
+- [Experimental Generalized Models](experimental.md) documents the provisional
+  namespace and its promotion boundary.
 - [Examples](examples.md) points to runnable scripts.
+- [Migrating from FACETS and ACER ConQuest](migration-facets-conquest.md)
+  maps the overlapping RSM/PCM models, sign and identification conventions,
+  estimator differences, and the staged anchor-refitting policy.
 - [Scope and Releases](scope.md) states supported and unsupported surfaces.
 - [API](api.md) lists the public functions by workflow.
 
@@ -54,7 +60,9 @@ Pages = [
     "model-equations.md",
     "bayesian-workflow.md",
     "fitting.md",
+    "experimental.md",
     "examples.md",
+    "migration-facets-conquest.md",
     "scope.md",
     "api.md",
     "api-data-design.md",

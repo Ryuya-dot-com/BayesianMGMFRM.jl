@@ -4,11 +4,16 @@ using LinearAlgebra
 
 """
     FacetData(table; person, rater, item, score, group = nothing, task = nothing,
-              form = nothing, occasion = nothing, missing_policy = :error)
+              form = nothing, occasion = nothing, response_id = nothing,
+              testlet_id = nothing, missing_policy = :error)
 
 Encode long-format rating data into deterministic integer indexes for the
 required person, rater, item, and ordinal score columns. Optional columns are
 stored as indexed metadata and are not model terms in the v0.1 design scaffold.
+Use `response_id` for a globally unique scored response and `testlet_id` for
+its declared task or item-cluster identity. `occasion` remains categorical
+metadata; its encoded index must not be interpreted as elapsed time or row
+sequence.
 """
 struct FacetData
     n::Int
@@ -260,6 +265,8 @@ function FacetData(table;
         task::Union{Nothing,Symbol} = nothing,
         form::Union{Nothing,Symbol} = nothing,
         occasion::Union{Nothing,Symbol} = nothing,
+        response_id::Union{Nothing,Symbol} = nothing,
+        testlet_id::Union{Nothing,Symbol} = nothing,
         missing_policy::Symbol = :error)
     missing_policy == :error ||
         throw(ArgumentError("only missing_policy = :error is currently supported"))
@@ -281,7 +288,14 @@ function FacetData(table;
     optional = Dict{Symbol,Vector{Int}}()
     optional_levels = Dict{Symbol,Vector{Any}}()
     optional_columns = Dict{Symbol,Symbol}()
-    for (role, column) in ((:group, group), (:task, task), (:form, form), (:occasion, occasion))
+    for (role, column) in (
+            (:group, group),
+            (:task, task),
+            (:form, form),
+            (:occasion, occasion),
+            (:response_id, response_id),
+            (:testlet_id, testlet_id),
+        )
         column === nothing && continue
         col = _column(table, column)
         _check_length!(n, col, column)
@@ -352,9 +366,10 @@ end
 
 Return a role-normalized long-format response table from encoded `FacetData`.
 The table is a named tuple with `person`, `rater`, `item`, and `score` vectors,
-plus optional facet vectors such as `group`, `task`, `form`, or `occasion` when
-present. Pass `observations` to materialize a selected row order, for example a
-training or heldout row set from [`kfold_plan`](@ref).
+plus optional facet vectors such as `group`, `task`, `form`, `occasion`,
+`response_id`, or `testlet_id` when present. Pass `observations` to materialize
+a selected row order, for example a training or heldout row set from
+[`kfold_plan`](@ref).
 
 The returned table uses role names rather than the original input column names,
 so it can be passed back to `FacetData(table; person = :person, rater = :rater,
@@ -439,10 +454,12 @@ function _connected_components(data::FacetData)
     for node in keys(adj)
         node in seen && continue
         queue = [node]
+        head = 1
         push!(seen, node)
         component = Tuple{Symbol,Int}[]
-        while !isempty(queue)
-            current = popfirst!(queue)
+        while head <= length(queue)
+            current = queue[head]
+            head += 1
             push!(component, current)
             for nxt in adj[current]
                 nxt in seen && continue
@@ -703,6 +720,7 @@ function validate_design(data::FacetData; bias = Tuple{Symbol,Symbol}[], min_cel
     _validate_singletons!(issues, data, :rater, data.rater, data.rater_levels)
     _validate_singletons!(issues, data, :item, data.item, data.item_levels)
     for (role, idx) in data.optional
+        role === :response_id && continue
         _validate_singletons!(issues, data, role, idx, data.optional_levels[role])
     end
 
@@ -915,7 +933,7 @@ end
 Return a facet-by-facet rating-count matrix for heat maps and design coverage
 checks. `rows` and `columns` may be required facets (`:person`, `:rater`,
 `:item`) or optional metadata roles present in `FacetData`, such as `:group`,
-`:task`, `:form`, or `:occasion`.
+`:task`, `:form`, `:occasion`, `:response_id`, or `:testlet_id`.
 """
 function coverage_matrix(data_or_spec; rows::Symbol = :rater, columns::Symbol = :person)
     data = _facet_data(data_or_spec)
@@ -956,19 +974,73 @@ function _overlap_unit(data::FacetData, row::Int, unit::Symbol)
             throw(ArgumentError("unit = :person_task requires FacetData(...; task = ...)"))
         return (data.person[row], data.optional[:task][row])
     end
-    throw(ArgumentError("unit must be one of :person, :item, :person_item, :task, or :person_task"))
+    if unit === :response_id
+        haskey(data.optional, :response_id) ||
+            throw(ArgumentError("unit = :response_id requires FacetData(...; response_id = ...)"))
+        return (data.optional[:response_id][row],)
+    end
+    if unit === :testlet_id
+        haskey(data.optional, :testlet_id) ||
+            throw(ArgumentError("unit = :testlet_id requires FacetData(...; testlet_id = ...)"))
+        return (data.optional[:testlet_id][row],)
+    end
+    if unit === :person_testlet
+        haskey(data.optional, :testlet_id) ||
+            throw(ArgumentError("unit = :person_testlet requires FacetData(...; testlet_id = ...)"))
+        return (data.person[row], data.optional[:testlet_id][row])
+    end
+    if unit === :response_item
+        haskey(data.optional, :response_id) ||
+            throw(ArgumentError("unit = :response_item requires FacetData(...; response_id = ...)"))
+        return (data.optional[:response_id][row], data.item[row])
+    end
+    throw(ArgumentError(
+        "unit must be one of :person, :item, :person_item, :task, " *
+        ":person_task, :response_id, :testlet_id, :person_testlet, or :response_item"))
+end
+
+function _rater_overlap_unit_metadata(unit::Symbol)
+    if unit in (:testlet_id, :person_testlet)
+        return (;
+            overlap_purpose = :descriptive_coverage,
+            rater_linking_eligible = false,
+            interpretation =
+                :shared_testlet_coverage_does_not_establish_common_response_linking,
+        )
+    elseif unit in (:response_id, :response_item)
+        return (;
+            overlap_purpose = :common_response_linking,
+            rater_linking_eligible = true,
+            interpretation = :shared_response_overlap_can_support_rater_linking,
+        )
+    end
+    return (;)
+end
+
+function _require_rater_linking_unit(unit::Symbol, caller::Symbol)
+    unit in (:testlet_id, :person_testlet) || return nothing
+    throw(ArgumentError(
+        "$(String(caller)) cannot use unit = :$unit for rater-link " *
+        "connectivity because it is descriptive cluster coverage only; " *
+        "use rater_overlap(...; unit = :$unit) for coverage counts, or " *
+        "use unit = :response_id or :response_item for common-response linking"))
 end
 
 """
     rater_overlap(data_or_spec; unit = :person_item)
 
 Return pairwise rater-overlap data for coverage and linking plots. `unit`
-controls what counts as a shared rated unit and may be `:person`,
-`:item`, `:person_item`, `:task`, or `:person_task`. Task-based units require
-`FacetData(...; task = ...)`.
+controls what counts as a shared rated unit and may be `:person`, `:item`,
+`:person_item`, `:task`, `:person_task`, `:response_id`, `:testlet_id`,
+`:person_testlet`, or `:response_item`. Metadata-based units require the
+corresponding optional role in `FacetData`. Rows for `:testlet_id` and
+`:person_testlet` are explicitly marked as descriptive coverage and are not
+eligible for rater-link connectivity. Rows for `:response_id` and
+`:response_item` are marked as common-response linking units.
 """
 function rater_overlap(data_or_spec; unit::Symbol = :person_item)
     data = _facet_data(data_or_spec)
+    unit_metadata = _rater_overlap_unit_metadata(unit)
     unit_sets = [Set{Any}() for _ in data.rater_levels]
     for row in 1:data.n
         push!(unit_sets[data.rater[row]], _overlap_unit(data, row, unit))
@@ -987,6 +1059,7 @@ function rater_overlap(data_or_spec; unit::Symbol = :person_item)
             shared_units = length(shared),
             union_units = length(all_units),
             jaccard = isempty(all_units) ? 0.0 : length(shared) / length(all_units),
+            unit_metadata...,
         ))
     end
     return rows
@@ -1108,12 +1181,15 @@ This is a report and design-review helper. It does not fit hard anchors, turn
 soft anchors into priors, estimate linking constants, or create sensitivity
 refits. Use it to document whether declared anchors are internally consistent
 and whether raters are connected strongly enough for a planned analysis.
+`unit = :testlet_id` and `:person_testlet` are descriptive coverage units and
+are rejected here; use `rater_overlap` to inspect them without a linking claim.
 """
 function anchor_linking_summary(data_or_spec; unit::Symbol = :person_item,
         min_shared_units::Int = 1,
         sensitivity_rows = nothing)
     min_shared_units >= 1 ||
         throw(ArgumentError("min_shared_units must be positive"))
+    _require_rater_linking_unit(unit, :anchor_linking_summary)
     data = _facet_data(data_or_spec)
     spec = _facet_spec(data_or_spec)
     validation = _validation_report(data_or_spec)
@@ -1306,6 +1382,8 @@ The current `FacetData` contract stores complete observed long-format rows but
 does not store an external planned-design table. Consequently the audit counts
 unobserved complete-grid cells and explicitly marks structural versus
 accidental missingness as not identified from the observed data alone.
+`unit = :testlet_id` and `:person_testlet` are descriptive coverage units and
+cannot be used for the audit's rater-link connectivity decision.
 """
 function rating_design_audit(data_or_spec_or_design;
         unit::Symbol = :person_item,
@@ -1315,6 +1393,7 @@ function rating_design_audit(data_or_spec_or_design;
         throw(ArgumentError("min_shared_units must be positive"))
     min_sparse_cell_count >= 1 ||
         throw(ArgumentError("min_sparse_cell_count must be positive"))
+    _require_rater_linking_unit(unit, :rating_design_audit)
 
     data = _facet_data(data_or_spec_or_design)
     spec = _facet_spec(data_or_spec_or_design)
@@ -1540,6 +1619,11 @@ function rating_design_audit(data_or_spec_or_design;
     )
 end
 
+const _EXPERIMENTAL_CANONICAL_ENTRYPOINT =
+    "BayesianMGMFRM.Experimental.fit(spec)"
+const _EXPERIMENTAL_LEGACY_ENTRYPOINT =
+    "BayesianMGMFRM.fit(spec; experimental = true)"
+
 function _guarded_generalized_fit_capability(family::Symbol)
     if family === :gmfrm
         return (;
@@ -1620,7 +1704,7 @@ function model_ladder()
             public_fit = true,
             experimental_public = true,
             identification = (:item_discrimination_product_constraint, :rater_consistency_positive, :rater_step_constraints),
-            note = "guarded scalar rater-consistency GMFRM through fit(spec; experimental = true)",
+            note = "guarded scalar rater-consistency GMFRM through BayesianMGMFRM.Experimental.fit(spec)",
         ),
         (;
             family = :mgmfrm,
@@ -1634,7 +1718,7 @@ function model_ladder()
             public_fit = true,
             experimental_public = true,
             identification = (:fixed_confirmatory_q_mask, :identity_latent_correlation, :standard_normal_ability_scale, :positive_q_masked_loadings),
-            note = "guarded fixed-Q confirmatory MGMFRM through fit(spec; experimental = true)",
+            note = "guarded fixed-Q confirmatory MGMFRM through BayesianMGMFRM.Experimental.fit(spec)",
         ),
         (;
             family = :gmfrm,
@@ -1683,7 +1767,8 @@ function _release_scope_fit_surface_rows()
             family = :gmfrm,
             scope = :scalar_gmfrm_fit_ready_candidate,
             status = :guarded_experimental_public,
-            entrypoint = "fit(spec; experimental = true)",
+            entrypoint = _EXPERIMENTAL_CANONICAL_ENTRYPOINT,
+            legacy_entrypoint = _EXPERIMENTAL_LEGACY_ENTRYPOINT,
             experimental_public = true,
             public_fit = true,
             claim_scope = :guarded_scalar_rater_consistency_only,
@@ -1700,7 +1785,8 @@ function _release_scope_fit_surface_rows()
             family = :mgmfrm,
             scope = :minimal_confirmatory_mgmfrm_candidate,
             status = :guarded_experimental_public,
-            entrypoint = "fit(spec; experimental = true)",
+            entrypoint = _EXPERIMENTAL_CANONICAL_ENTRYPOINT,
+            legacy_entrypoint = _EXPERIMENTAL_LEGACY_ENTRYPOINT,
             experimental_public = true,
             public_fit = true,
             claim_scope = :fixed_q_confirmatory_only,
@@ -2364,6 +2450,7 @@ function _release_gate_document_specs()
                 "| Scalar rater-consistency GMFRM | Experimental |",
                 "| Fixed-Q confirmatory MGMFRM | Experimental |",
                 "| Broader discrimination structures | Not supported |",
+                "BayesianMGMFRM.Experimental.fit",
                 "fit(spec; experimental = true)",
                 "no anchors",
                 "fitted DFF terms",
@@ -2375,6 +2462,9 @@ function _release_gate_document_specs()
             path = "NEWS.md",
             required = (
                 "## Unreleased",
+                "BayesianMGMFRM.Experimental",
+                "canonical quarantine namespace",
+                "no longer the recommended entry point",
                 "## 0.1.1",
                 "User-facing experimental fit displays",
                 "Refocus the published manual on installation, model scope, fitting",
@@ -2403,6 +2493,22 @@ function _release_gate_document_specs()
                 "`discrimination = :none`",
                 "no anchors and no fitted DFF terms",
                 "Custom generalized prior objects are not supported",
+            ),
+            forbidden = (),
+        ),
+        (;
+            target = :docs_experimental_namespace_contract,
+            path = joinpath("docs", "src", "experimental.md"),
+            required = (
+                "BayesianMGMFRM.Experimental",
+                "BayesianMGMFRM.Experimental.fit",
+                "fit(spec; experimental = true)",
+                "fixed-Q confirmatory MGMFRM",
+                "contract.stable_public_gates",
+                "contract.external_validated_gates",
+                "Stable-public consideration",
+                "external-validated level separately",
+                "tests does not perform it",
             ),
             forbidden = (),
         ),
@@ -2459,6 +2565,8 @@ function _release_gate_document_specs()
                 "checkdocs = :exports",
                 "pagesonly = true",
                 "Scope and Releases",
+                "BayesianMGMFRM.Experimental",
+                "\"experimental.md\"",
                 "\"scope.md\"",
             ),
             forbidden = (
@@ -2585,7 +2693,8 @@ function _release_gate_manifest_rows(scope)
             expected = :experimental_public_guarded_fit,
             observed = any(row -> row.surface === :scalar_gmfrm_guarded_experimental &&
                 row.public_fit && row.experimental_public &&
-                row.entrypoint == "fit(spec; experimental = true)" &&
+                row.entrypoint == _EXPERIMENTAL_CANONICAL_ENTRYPOINT &&
+                row.legacy_entrypoint == _EXPERIMENTAL_LEGACY_ENTRYPOINT &&
                 row.claim_scope === :guarded_scalar_rater_consistency_only &&
                 row.threshold_regimes == (:partial_credit,) &&
                 row.spec_discrimination == (:rater,) &&
@@ -2596,7 +2705,8 @@ function _release_gate_manifest_rows(scope)
             observed = any(row -> row.surface ===
                 :fixed_q_confirmatory_mgmfrm_guarded_experimental &&
                 row.public_fit && row.experimental_public &&
-                row.entrypoint == "fit(spec; experimental = true)" &&
+                row.entrypoint == _EXPERIMENTAL_CANONICAL_ENTRYPOINT &&
+                row.legacy_entrypoint == _EXPERIMENTAL_LEGACY_ENTRYPOINT &&
                 row.claim_scope === :fixed_q_confirmatory_only &&
                 row.threshold_regimes == (:partial_credit,) &&
                 row.spec_discrimination == (:none,) &&
@@ -3077,10 +3187,12 @@ function _q_matrix_component_rows(data::FacetData,
     for node in nodes
         node in seen && continue
         queue = [node]
+        head = 1
         push!(seen, node)
         component = Tuple{Symbol,Int}[]
-        while !isempty(queue)
-            current = popfirst!(queue)
+        while head <= length(queue)
+            current = queue[head]
+            head += 1
             push!(component, current)
             for nxt in adj[current]
                 nxt in seen && continue
@@ -3136,10 +3248,12 @@ function _q_matrix_dimension_facet_components(data::FacetData, active_items::Set
     for node in active_nodes
         node in seen && continue
         queue = [node]
+        head = 1
         push!(seen, node)
         component = Tuple{Symbol,Int}[]
-        while !isempty(queue)
-            current = popfirst!(queue)
+        while head <= length(queue)
+            current = queue[head]
+            head += 1
             push!(component, current)
             for nxt in adj[current]
                 nxt in seen && continue
@@ -4529,6 +4643,7 @@ compile an inspectable, non-fit-ready parameter blueprint for specified-only
 configurations.
 """
 function getdesign(spec::FacetSpec; preview::Bool = false)
+    _require_current_facet_spec(spec, "getdesign")
     if preview
         spec.estimation_status === :fit_supported && return _minimal_design(spec)
         return _preview_design(spec)
@@ -4886,6 +5001,7 @@ function _predictor_components(design::FacetDesign,
 end
 
 function _check_fit_supported_mfrm(design::FacetDesign, caller::AbstractString)
+    _require_canonical_design(design, caller)
     design.spec.family === :mfrm && design.spec.estimation_status === :fit_supported ||
         throw(ArgumentError("$caller is currently implemented only for the fit-supported minimal MFRM/RSM/PCM design"))
     return nothing
@@ -6861,9 +6977,12 @@ end
 function _gmfrm_experimental_candidate_option_rows()
     capability = _guarded_generalized_fit_capability(:gmfrm)
     return [
-        (option = :entrypoint, value = "fit(spec; experimental = true)",
+        (option = :entrypoint, value = _EXPERIMENTAL_CANONICAL_ENTRYPOINT,
             status = :enabled_guarded,
             note = :scalar_gmfrm_only),
+        (option = :legacy_entrypoint, value = _EXPERIMENTAL_LEGACY_ENTRYPOINT,
+            status = :compatibility_only,
+            note = :source_compatibility_during_namespace_migration),
         (option = :family, value = capability.family,
             status = :candidate_only,
             note = :scalar_gmfrm_before_mgmfrm),
@@ -7165,7 +7284,8 @@ function _gmfrm_experimental_public_api_decision(blueprint)
         public_fit = true,
         experimental_public = true,
         fit_ready = true,
-        proposed_entrypoint = "fit(spec; experimental = true)",
+        proposed_entrypoint = _EXPERIMENTAL_CANONICAL_ENTRYPOINT,
+        legacy_entrypoint = _EXPERIMENTAL_LEGACY_ENTRYPOINT,
         public_target_label = _GMFRM_PUBLIC_TARGET_LABEL,
         public_target_description = _GMFRM_PUBLIC_TARGET_DESCRIPTION,
         internal_target_constructor = _GMFRM_INTERNAL_TARGET_CONSTRUCTOR,
@@ -7452,7 +7572,9 @@ function _gmfrm_experimental_public_api_decision(blueprint)
         blocker_rows,
         summary = (;
             fit_allowed = true,
+            canonical_namespace_enabled = true,
             experimental_keyword_enabled = true,
+            legacy_keyword_status = :compatibility_only,
             n_evidence_done = count(row -> row.status === :done, evidence_rows),
             n_evidence_pending = count(row -> row.status === :pending, evidence_rows),
             n_evidence_blocked = count(row -> row.status === :blocked, evidence_rows),
@@ -7589,9 +7711,12 @@ end
 function _mgmfrm_experimental_candidate_option_rows()
     capability = _guarded_generalized_fit_capability(:mgmfrm)
     return [
-        (option = :entrypoint, value = "fit(spec; experimental = true)",
+        (option = :entrypoint, value = _EXPERIMENTAL_CANONICAL_ENTRYPOINT,
             status = :enabled_guarded_experimental,
             note = :fixed_q_confirmatory_mgmfrm_only),
+        (option = :legacy_entrypoint, value = _EXPERIMENTAL_LEGACY_ENTRYPOINT,
+            status = :compatibility_only,
+            note = :source_compatibility_during_namespace_migration),
         (option = :family, value = capability.family,
             status = :enabled_guarded_experimental,
             note = :confirmatory_mgmfrm_after_scalar_gmfrm),
@@ -7716,7 +7841,8 @@ function _mgmfrm_experimental_public_api_decision(blueprint)
         public_fit = true,
         experimental_public = true,
         fit_ready = true,
-        proposed_entrypoint = "fit(spec; experimental = true)",
+        proposed_entrypoint = _EXPERIMENTAL_CANONICAL_ENTRYPOINT,
+        legacy_entrypoint = _EXPERIMENTAL_LEGACY_ENTRYPOINT,
         public_target_label = _MGMFRM_PUBLIC_TARGET_LABEL,
         public_target_description = _MGMFRM_PUBLIC_TARGET_DESCRIPTION,
         internal_target_constructor = _MGMFRM_INTERNAL_TARGET_CONSTRUCTOR,
@@ -7807,7 +7933,9 @@ function _mgmfrm_experimental_public_api_decision(blueprint)
         blocker_rows,
         summary = (;
             fit_allowed = true,
+            canonical_namespace_enabled = true,
             experimental_keyword_enabled = true,
+            legacy_keyword_status = :compatibility_only,
             n_evidence_done = count(row -> row.status === :done, evidence_rows),
             n_evidence_pending = count(row -> row.status === :pending, evidence_rows),
             n_evidence_blocked = count(row -> row.status === :blocked, evidence_rows),
@@ -8016,6 +8144,7 @@ function model_manifest(data::FacetData)
 end
 
 function model_manifest(spec::FacetSpec)
+    _require_current_facet_spec(spec, "model_manifest")
     spec_manifest = _spec_manifest(spec)
     return (;
         schema = "bayesianmgmfrm.model_manifest.v1",
@@ -8029,6 +8158,7 @@ function model_manifest(spec::FacetSpec)
 end
 
 function model_manifest(design::FacetDesign)
+    _require_canonical_design(design, "model_manifest")
     spec = design.spec
     spec_manifest = _spec_manifest(spec)
     return (;
@@ -8039,6 +8169,7 @@ function model_manifest(design::FacetDesign)
         validation = _validation_manifest(spec.validation),
         spec = spec_manifest,
         design = _design_manifest(design),
+        design_identity = design_identity(design),
         model_surface_audit = model_surface_audit(design),
         rating_design = rating_design_audit(design),
     )
@@ -8147,16 +8278,9 @@ function _step_sum(design::FacetDesign, params::AbstractVector, item::Int, categ
     return total
 end
 
-"""
-    pointwise_loglikelihood(design::FacetDesign, params)
-
-Evaluate the minimal additive RSM/PCM pointwise log likelihood for the
-identified parameter vector returned by `getdesign`. This helper is for design
-validation and does not apply Bayesian priors.
-"""
-function pointwise_loglikelihood(design::FacetDesign, params::AbstractVector)
-    _check_fit_supported_mfrm(design, "pointwise_loglikelihood")
-    _check_parameter_vector_length(design, params)
+function _pointwise_loglikelihood_unchecked(
+        design::FacetDesign,
+        params::AbstractVector)
     data = design.spec.data
     T = typeof(_param_zero(params) + 0.0)
     out = Vector{T}(undef, data.n)
@@ -8167,4 +8291,17 @@ function pointwise_loglikelihood(design::FacetDesign, params::AbstractVector)
         out[n] = etas[data.category[n]] - _logsumexp(etas)
     end
     return out
+end
+
+"""
+    pointwise_loglikelihood(design::FacetDesign, params)
+
+Evaluate the minimal additive RSM/PCM pointwise log likelihood for the
+identified parameter vector returned by `getdesign`. This helper is for design
+validation and does not apply Bayesian priors.
+"""
+function pointwise_loglikelihood(design::FacetDesign, params::AbstractVector)
+    _check_fit_supported_mfrm(design, "pointwise_loglikelihood")
+    _check_parameter_vector_length(design, params)
+    return _pointwise_loglikelihood_unchecked(design, params)
 end
