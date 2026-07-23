@@ -3,11 +3,13 @@
 using Random
 using SHA
 using Serialization
+using Statistics
 import AdvancedHMC
 import ForwardDiff
 import JSON3
 import LogDensityProblems
 import LogDensityProblemsAD
+import MCMCDiagnosticTools
 import Turing
 
 const LOG2PI_BAYES = log(2 * pi)
@@ -1695,6 +1697,209 @@ function _rhat_and_ess(values::Array{Float64,3}, param::Int)
     return (rhat = rhat, ess = ess, flag = flag)
 end
 
+const _RANK_NORMALIZED_TAIL_PROBABILITY = 0.10
+const _MCMC_DIAGNOSTIC_CONTRACT =
+    :rank_normalized_rhat_bulk_tail_ess_v1
+
+_mcmc_diagnostic_method(split_chains::Bool) = split_chains ?
+    :rank_normalized_split_rhat_bulk_tail_ess :
+    :rank_normalized_unsplit_rhat_bulk_tail_ess
+
+function _mcmc_diagnostic_contract_record()
+    return (;
+        id = _MCMC_DIAGNOSTIC_CONTRACT,
+        dependency = (;
+            package = :MCMCDiagnosticTools,
+            version = string(pkgversion(MCMCDiagnosticTools)),
+        ),
+        minimum_independent_chains = 2,
+        split_factor = 2,
+        split_request_field = :split_chains_requested,
+        split_applied_field = :split_chains,
+        diagnostic_methods = (;
+            split = _mcmc_diagnostic_method(true),
+            unsplit = _mcmc_diagnostic_method(false),
+        ),
+        odd_draw_policy = :bulk_trim_fold_before_trim_tail_quantile_before_split,
+        tail_probability = _RANK_NORMALIZED_TAIL_PROBABILITY,
+        autocovariance_maxlag_policy = :all_available_lags,
+        minimum_draws_per_diagnostic_chain_for_ess = 5,
+        nonfinite_input_policy = :precheck_before_rank_normalization,
+        quality_gate = (;
+            applicability_field = :quality_gate_applicable,
+            structurally_fixed_status = :structurally_fixed,
+            structurally_fixed_policy =
+                :exclude_zero_raw_dimension_transforms,
+        ),
+        sampler_fields = (;
+            e_bfmi = :e_bfmi,
+            e_bfmi_expected = :n_e_bfmi_expected,
+            e_bfmi_available = :n_e_bfmi_available,
+            e_bfmi_unavailable = :n_e_bfmi_unavailable,
+            e_bfmi_complete = :e_bfmi_complete,
+            e_bfmi_input_policy =
+                :all_retained_chain_energies_finite,
+            complete_chain_coverage_required = true,
+        ),
+        primary_fields = (;
+            rhat = :rank_normalized_rhat,
+            ess = (:bulk_ess, :tail_ess),
+            flag = :rank_normalized_flag,
+        ),
+        compatibility_fields = (;
+            rhat = :rhat,
+            ess = :ess,
+            flag = :classical_compatibility_flag,
+        ),
+    )
+end
+
+function _rank_normalized_rhat_bulk_tail_ess(
+        values::Array{Float64,3},
+        param::Int;
+        split_chains::Bool)
+    niterations, nchains, _ = size(values)
+    nan_result(flag) = (;
+        rank_normalized_rhat = NaN,
+        bulk_rank_normalized_rhat = NaN,
+        folded_rank_normalized_rhat = NaN,
+        bulk_ess = NaN,
+        tail_ess = NaN,
+        tail_probability = _RANK_NORMALIZED_TAIL_PROBABILITY,
+        autocovariance_maxlag = missing,
+        flag,
+    )
+    nchains >= 2 || return nan_result(:insufficient_chains)
+    niterations >= 2 || return nan_result(:insufficient_draws)
+    original_samples = Matrix{Float64}(@view values[:, :, param])
+    all(isfinite, original_samples) || return nan_result(:nonfinite_draws)
+    split_chains && niterations < 4 &&
+        return nan_result(:insufficient_draws)
+
+    split_count = split_chains ? 2 : 1
+    bulk_samples = if split_count == 2 && isodd(niterations)
+        half = div(niterations, 2)
+        vcat(
+            @view(original_samples[1:half, :]),
+            @view(original_samples[(niterations - half + 1):niterations, :]),
+        )
+    else
+        original_samples
+    end
+    diagnostic_iterations = div(size(bulk_samples, 1), split_count)
+    diagnostic_iterations >= 2 || return nan_result(:insufficient_draws)
+    folded_samples = abs.(original_samples .- median(vec(original_samples)))
+    folded_samples = if split_count == 2 && isodd(niterations)
+        half = div(niterations, 2)
+        vcat(
+            @view(folded_samples[1:half, :]),
+            @view(folded_samples[(niterations - half + 1):niterations, :]),
+        )
+    else
+        folded_samples
+    end
+    folded_rank_normalized_rhat = Float64(MCMCDiagnosticTools.rhat(
+        folded_samples;
+        kind = :bulk,
+        split_chains = split_count,
+    ))
+    if diagnostic_iterations <= 4
+        bulk_rank_normalized_rhat = Float64(MCMCDiagnosticTools.rhat(
+            bulk_samples;
+            kind = :bulk,
+            split_chains = split_count,
+        ))
+        if !(isfinite(bulk_rank_normalized_rhat) &&
+                isfinite(folded_rank_normalized_rhat))
+            return nan_result(:degenerate_draws)
+        end
+        rank_normalized_rhat = max(
+            bulk_rank_normalized_rhat,
+            folded_rank_normalized_rhat,
+        )
+        return (;
+            rank_normalized_rhat,
+            bulk_rank_normalized_rhat,
+            folded_rank_normalized_rhat,
+            bulk_ess = NaN,
+            tail_ess = NaN,
+            tail_probability = _RANK_NORMALIZED_TAIL_PROBABILITY,
+            autocovariance_maxlag = missing,
+            flag = :insufficient_draws,
+        )
+    end
+
+    maxlag = diagnostic_iterations - 4
+    bulk = MCMCDiagnosticTools.ess_rhat(
+        bulk_samples;
+        kind = :bulk,
+        split_chains = split_count,
+        maxlag,
+    )
+    bulk_ess = Float64(bulk.ess)
+    bulk_rank_normalized_rhat = Float64(bulk.rhat)
+    if !(isfinite(bulk_rank_normalized_rhat) &&
+            isfinite(folded_rank_normalized_rhat))
+        return nan_result(:degenerate_draws)
+    end
+    rank_normalized_rhat = max(
+        bulk_rank_normalized_rhat,
+        folded_rank_normalized_rhat,
+    )
+    tail_ess = Float64(MCMCDiagnosticTools.ess(
+        original_samples;
+        kind = :tail,
+        tail_prob = _RANK_NORMALIZED_TAIL_PROBABILITY,
+        split_chains = split_count,
+        maxlag,
+    ))
+    flag = isfinite(bulk_ess) && isfinite(tail_ess) ?
+        :ok : :degenerate_draws
+    return (;
+        rank_normalized_rhat,
+        bulk_rank_normalized_rhat,
+        folded_rank_normalized_rhat,
+        bulk_ess,
+        tail_ess,
+        tail_probability = _RANK_NORMALIZED_TAIL_PROBABILITY,
+        autocovariance_maxlag = maxlag,
+        flag,
+    )
+end
+
+function _mcmc_parameter_metrics(
+        values::Array{Float64,3},
+        param::Int;
+        split_chains::Bool)
+    original_iterations, original_chains, _ = size(values)
+    actual_split = split_chains && original_chains >= 2 &&
+        original_iterations >= 4
+    classical_values = actual_split ? _split_chain_array(values) : values
+    classical = _rhat_and_ess(classical_values, param)
+    modern = _rank_normalized_rhat_bulk_tail_ess(
+        values,
+        param;
+        split_chains,
+    )
+    finite_draws = all(isfinite, @view values[:, :, param])
+    classical_compatibility_status = finite_draws ?
+        classical.flag : :nonfinite_draws
+    return (;
+        rhat = classical.rhat,
+        ess = classical.ess,
+        rank_normalized_rhat = modern.rank_normalized_rhat,
+        bulk_rank_normalized_rhat = modern.bulk_rank_normalized_rhat,
+        folded_rank_normalized_rhat = modern.folded_rank_normalized_rhat,
+        bulk_ess = modern.bulk_ess,
+        tail_ess = modern.tail_ess,
+        tail_probability = modern.tail_probability,
+        autocovariance_maxlag = modern.autocovariance_maxlag,
+        rank_normalized_status = modern.flag,
+        classical_compatibility_status,
+        flag = modern.flag,
+    )
+end
+
 function _draw_matrix_to_chain_array(draws::AbstractMatrix{<:Real}, chains::Int)
     chains >= 1 || throw(ArgumentError("chains must be positive"))
     total_draws, nparams = size(draws)
@@ -1711,10 +1916,21 @@ function _draw_matrix_to_chain_array(draws::AbstractMatrix{<:Real}, chains::Int)
     return out
 end
 
+function _structurally_fixed_constrained_parameter_names(blueprint)
+    names = Set{String}()
+    for transform in _source_transform_manifest_rows(blueprint)
+        transform.raw_n_parameters == 0 || continue
+        transform.constrained_n_parameters > 0 || continue
+        union!(names, transform.constrained_parameter_names)
+    end
+    return names
+end
+
 function _candidate_mcmc_diagnostic_rows(draws::AbstractMatrix{<:Real},
         parameter_names::Vector{String},
         chains::Int;
         parameter_space::Symbol = :raw_unconstrained,
+        structurally_fixed_parameters = Set{String}(),
         split_chains::Bool,
         rhat_threshold::Float64,
         ess_threshold::Float64)
@@ -1729,26 +1945,73 @@ function _candidate_mcmc_diagnostic_rows(draws::AbstractMatrix{<:Real},
     actual_split = split_chains && original_chains >= 2 && original_iterations >= 4
     rows = NamedTuple[]
     for param in 1:nparams
-        diagnostic = _rhat_and_ess(diagnostic_values, param)
+        parameter = parameter_names[param]
+        quality_gate_applicable =
+            !(parameter in structurally_fixed_parameters)
+        diagnostic = if quality_gate_applicable
+            _mcmc_parameter_metrics(
+                values,
+                param;
+                split_chains,
+            )
+        else
+            (;
+                rhat = NaN,
+                ess = NaN,
+                rank_normalized_rhat = NaN,
+                bulk_rank_normalized_rhat = NaN,
+                folded_rank_normalized_rhat = NaN,
+                bulk_ess = NaN,
+                tail_ess = NaN,
+                tail_probability = _RANK_NORMALIZED_TAIL_PROBABILITY,
+                autocovariance_maxlag = missing,
+                rank_normalized_status = :structurally_fixed,
+                classical_compatibility_status = :structurally_fixed,
+                flag = :structurally_fixed,
+            )
+        end
+        rank_normalized_flag = quality_gate_applicable ?
+            _mcmc_parameter_flag(
+                diagnostic,
+                rhat_threshold,
+                ess_threshold,
+            ) : :structurally_fixed
+        classical_compatibility_flag = quality_gate_applicable ?
+            _classical_compatibility_parameter_flag(
+                diagnostic,
+                rhat_threshold,
+                ess_threshold,
+            ) : :structurally_fixed
         push!(rows, (;
             diagnostic_row = :parameter,
             parameter_space,
-            diagnostic_method = :classical_split_rhat_autocorrelation_ess,
-            diagnostic_status = :provisional_classical,
-            parameter = parameter_names[param],
+            diagnostic_contract = _MCMC_DIAGNOSTIC_CONTRACT,
+            diagnostic_method = _mcmc_diagnostic_method(split_chains),
+            diagnostic_status = quality_gate_applicable ?
+                :rank_normalized_available : :structurally_fixed,
+            parameter,
+            quality_gate_applicable,
             rhat = diagnostic.rhat,
             ess = diagnostic.ess,
+            rank_normalized_rhat = diagnostic.rank_normalized_rhat,
+            bulk_rank_normalized_rhat =
+                diagnostic.bulk_rank_normalized_rhat,
+            folded_rank_normalized_rhat =
+                diagnostic.folded_rank_normalized_rhat,
+            bulk_ess = diagnostic.bulk_ess,
+            tail_ess = diagnostic.tail_ess,
+            tail_probability = diagnostic.tail_probability,
+            autocovariance_maxlag = diagnostic.autocovariance_maxlag,
             n_chains = original_chains,
             draws_per_chain = original_iterations,
             diagnostic_chains,
             diagnostic_draws_per_chain = diagnostic_iterations,
             total_draws = size(draws, 1),
+            split_chains_requested = split_chains,
             split_chains = actual_split,
-            flag = _mcmc_parameter_flag(
-                diagnostic,
-                rhat_threshold,
-                ess_threshold,
-            ),
+            rank_normalized_flag,
+            classical_compatibility_flag,
+            flag = rank_normalized_flag,
         ))
     end
     return rows
@@ -1762,6 +2025,7 @@ function _candidate_parameter_block_diagnostics(blocks::Dict{Symbol,UnitRange{In
         draws_per_chain::Int,
         total_draws::Int,
         split_chains::Bool,
+        split_chains_requested::Bool = split_chains,
         rhat_threshold::Float64,
         ess_threshold::Float64)
     row_by_name = Dict(row.parameter => row for row in parameter_rows)
@@ -1772,41 +2036,65 @@ function _candidate_parameter_block_diagnostics(blocks::Dict{Symbol,UnitRange{In
         names = isempty(indices) ? String[] : copy(parameter_names[indices])
         block_rows = [row_by_name[name] for name in names]
         n_parameters = length(names)
-        n_insufficient = count(row -> row.flag === :insufficient_chains, block_rows)
-        n_degenerate = count(row -> row.flag === :degenerate_draws, block_rows)
-        n_bad_rhat = count(row -> isfinite(row.rhat) && row.rhat > rhat_threshold, block_rows)
-        n_low_ess = count(row -> isfinite(row.ess) && row.ess < ess_threshold, block_rows)
+        metrics = _mcmc_metric_summary(
+            block_rows,
+            rhat_threshold,
+            ess_threshold,
+        )
+        n_quality_gate_parameters = metrics.n_quality_gate_parameters
+        n_structurally_fixed_parameters =
+            metrics.n_structurally_fixed_parameters
+        quality_gate_applicable = n_quality_gate_parameters > 0
+        available_rows = filter(row -> row.quality_gate_applicable, block_rows)
         push!(rows, (;
             diagnostic_row = :parameter_block,
             parameter_space,
-            diagnostic_method = :classical_split_rhat_autocorrelation_ess,
-            diagnostic_status = :provisional_classical,
+            diagnostic_contract = _MCMC_DIAGNOSTIC_CONTRACT,
+            diagnostic_method =
+                _mcmc_diagnostic_method(split_chains_requested),
+            diagnostic_status = n_parameters > 0 &&
+                !quality_gate_applicable ?
+                :structurally_fixed : :rank_normalized_available,
             block,
             first_parameter = isempty(indices) ? missing : first(indices),
             last_parameter = isempty(indices) ? missing : last(indices),
             n_parameters,
+            n_quality_gate_parameters,
+            n_structurally_fixed_parameters,
+            quality_gate_applicable,
             parameter_names = names,
             n_chains = chains,
             draws_per_chain,
             total_draws,
+            split_chains_requested,
             split_chains,
+            autocovariance_maxlag = isempty(available_rows) ? missing :
+                first(available_rows).autocovariance_maxlag,
             rhat_threshold,
             ess_threshold,
-            max_rhat = n_parameters == 0 ? missing :
-                _finite_extreme((row.rhat for row in block_rows), maximum),
-            min_ess = n_parameters == 0 ? missing :
-                _finite_extreme((row.ess for row in block_rows), minimum),
-            n_bad_rhat,
-            n_low_ess,
-            n_insufficient_chains = n_insufficient,
-            n_degenerate_parameters = n_degenerate,
-            flag = _parameter_block_flag(
-                n_parameters,
-                n_insufficient,
-                n_degenerate,
-                n_bad_rhat,
-                n_low_ess,
-            ),
+            max_rhat = !quality_gate_applicable ? missing : metrics.max_rhat,
+            min_ess = !quality_gate_applicable ? missing : metrics.min_ess,
+            max_rank_normalized_rhat = !quality_gate_applicable ? missing :
+                metrics.max_rank_normalized_rhat,
+            min_bulk_ess = !quality_gate_applicable ? missing :
+                metrics.min_bulk_ess,
+            min_tail_ess = !quality_gate_applicable ? missing :
+                metrics.min_tail_ess,
+            n_bad_rhat = metrics.n_bad_rhat,
+            n_low_ess = metrics.n_low_ess,
+            n_bad_rank_normalized_rhat =
+                metrics.n_bad_rank_normalized_rhat,
+            n_low_bulk_ess = metrics.n_low_bulk_ess,
+            n_low_tail_ess = metrics.n_low_tail_ess,
+            n_insufficient_chains = metrics.n_insufficient_chains,
+            n_insufficient_draws = metrics.n_insufficient_draws,
+            n_nonfinite_parameters = metrics.n_nonfinite_parameters,
+            n_degenerate_parameters = metrics.n_degenerate_parameters,
+            classical_compatibility_flag =
+                _classical_compatibility_block_flag(n_parameters, metrics),
+            rank_normalized_flag =
+                _parameter_block_flag(n_parameters, metrics),
+            flag = _parameter_block_flag(n_parameters, metrics),
         ))
     end
     return rows
@@ -2277,17 +2565,20 @@ function _gmfrm_promotion_candidate_summary_flag(n_sampler_warnings::Int,
         n_nonfinite_logdensity::Int,
         n_failed_direct_constraints::Int,
         n_nonfinite_direct_loglikelihood::Int,
-        n_insufficient::Int,
-        n_degenerate::Int,
-        n_bad_rhat::Int,
-        n_low_ess::Int)
+        raw_metrics,
+        direct_metrics)
     (n_failed_direct_constraints > 0 || n_nonfinite_direct_loglikelihood > 0) &&
         return :direct_transform_warning
     (n_sampler_warnings > 0 || n_nonfinite_logdensity > 0) &&
         return :sampler_warning
-    n_insufficient > 0 && return :insufficient_chains
-    (n_degenerate > 0 || n_bad_rhat > 0 || n_low_ess > 0) &&
-        return :mcmc_warning
+    metrics = (raw_metrics, direct_metrics)
+    any(row -> row.n_insufficient_chains > 0, metrics) &&
+        return :insufficient_chains
+    any(row -> row.n_insufficient_draws > 0, metrics) &&
+        return :insufficient_draws
+    any(row -> row.n_nonfinite_parameters > 0 ||
+            row.n_degenerate_parameters > 0 ||
+            _mcmc_metric_warning(row), metrics) && return :mcmc_warning
     return :ok
 end
 
@@ -2467,6 +2758,7 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
         draws_per_chain = ndraws,
         total_draws,
         split_chains = actual_split,
+        split_chains_requested = split_chains,
         rhat_threshold = checked.rhat_threshold,
         ess_threshold = checked.ess_threshold,
     )
@@ -2478,6 +2770,10 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
         target.blueprint.constrained_parameter_names,
         chains;
         parameter_space = :direct_constrained,
+        structurally_fixed_parameters =
+            _structurally_fixed_constrained_parameter_names(
+                target.blueprint,
+            ),
         split_chains,
         rhat_threshold = checked.rhat_threshold,
         ess_threshold = checked.ess_threshold,
@@ -2491,13 +2787,20 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
         draws_per_chain = ndraws,
         total_draws,
         split_chains = actual_split,
+        split_chains_requested = split_chains,
         rhat_threshold = checked.rhat_threshold,
         ess_threshold = checked.ess_threshold,
     )
 
     n_sampler_warnings = count(row -> row.flag !== :ok, sampler_rows)
-    n_block_warnings = count(row -> row.flag in (:insufficient_chains, :degenerate_draws, :mcmc_warning), block_rows)
-    n_direct_block_warnings = count(row -> row.flag in (:insufficient_chains, :degenerate_draws, :mcmc_warning), direct_block_rows)
+    n_block_warnings = count(row -> row.flag in
+        (:insufficient_chains, :insufficient_draws, :nonfinite_draws,
+            :degenerate_draws,
+            :mcmc_warning), block_rows)
+    n_direct_block_warnings = count(row -> row.flag in
+        (:insufficient_chains, :insufficient_draws, :nonfinite_draws,
+            :degenerate_draws,
+            :mcmc_warning), direct_block_rows)
     n_nonfinite_logdensity = sum(row.n_nonfinite_logdensity for row in sampler_rows)
     n_nonfinite_direct_loglikelihood =
         count(!isfinite, direct_values.loglikelihood) +
@@ -2505,22 +2808,34 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
     n_failed_direct_constraints = sum(row.n_failed for row in direct_constraint_rows)
     n_divergences = _sum_nonmissing(row.n_divergences for row in sampler_rows)
     n_max_treedepth = _sum_nonmissing(row.n_max_treedepth for row in sampler_rows)
-    e_bfmi = _min_nonmissing(row.e_bfmi for row in sampler_rows)
-    n_insufficient = count(row -> row.flag === :insufficient_chains, parameter_rows)
-    n_degenerate = count(row -> row.flag === :degenerate_draws, parameter_rows)
-    n_bad_rhat = count(row -> isfinite(row.rhat) && row.rhat > checked.rhat_threshold, parameter_rows)
-    n_low_ess = count(row -> isfinite(row.ess) && row.ess < checked.ess_threshold, parameter_rows)
-    max_rhat = _finite_extreme((row.rhat for row in parameter_rows), maximum)
-    min_ess = _finite_extreme((row.ess for row in parameter_rows), minimum)
+    e_bfmi_coverage = _ebfmi_coverage(sampler_rows)
+    raw_metrics = _mcmc_metric_summary(
+        parameter_rows,
+        checked.rhat_threshold,
+        checked.ess_threshold,
+    )
+    direct_metrics = _mcmc_metric_summary(
+        direct_parameter_rows,
+        checked.rhat_threshold,
+        checked.ess_threshold,
+    )
+    combined_metrics = _mcmc_metric_summary(
+        vcat(parameter_rows, direct_parameter_rows),
+        checked.rhat_threshold,
+        checked.ess_threshold,
+    )
+    metric_fields = _generalized_mcmc_metric_fields(
+        raw_metrics,
+        direct_metrics,
+        combined_metrics,
+    )
     flag = _gmfrm_promotion_candidate_summary_flag(
         n_sampler_warnings,
         n_nonfinite_logdensity,
         n_failed_direct_constraints,
         n_nonfinite_direct_loglikelihood,
-        n_insufficient,
-        n_degenerate,
-        n_bad_rhat,
-        n_low_ess,
+        raw_metrics,
+        direct_metrics,
     )
     initial_direct = _gmfrm_source_constrained_params_from_unconstrained(target.design, initial)
 
@@ -2568,22 +2883,31 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
         direct_parameter_rows,
         direct_block_rows,
         summary = (;
+            diagnostic_contract = _MCMC_DIAGNOSTIC_CONTRACT,
+            diagnostic_contract_details = _mcmc_diagnostic_contract_record(),
             flag,
             passed = flag === :ok,
+            classical_compatibility_flag =
+                _classical_compatibility_block_flag(
+                    length(parameter_rows) + length(direct_parameter_rows),
+                    combined_metrics,
+                ),
             n_chains = chains,
             draws_per_chain = ndraws,
             total_draws,
             n_parameters = nparams,
             n_direct_parameters = size(direct_values.direct_draws, 2),
+            n_diagnostic_parameters =
+                nparams + size(direct_values.direct_draws, 2),
+            n_quality_gate_parameters =
+                combined_metrics.n_quality_gate_parameters,
+            n_structurally_fixed_parameters =
+                combined_metrics.n_structurally_fixed_parameters,
             split_chains = actual_split,
+            split_chains_requested = split_chains,
             rhat_threshold = checked.rhat_threshold,
             ess_threshold = checked.ess_threshold,
-            max_rhat,
-            min_ess,
-            n_bad_rhat,
-            n_low_ess,
-            n_insufficient_chains = n_insufficient,
-            n_degenerate_parameters = n_degenerate,
+            metric_fields...,
             n_block_warnings,
             n_direct_block_warnings,
             n_sampler_warnings,
@@ -2593,7 +2917,7 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
             n_failed_direct_constraints,
             n_divergences,
             n_max_treedepth,
-            e_bfmi,
+            e_bfmi_coverage...,
         ),
     )
 end
@@ -2795,6 +3119,7 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
         draws_per_chain = ndraws,
         total_draws,
         split_chains = actual_split,
+        split_chains_requested = split_chains,
         rhat_threshold = checked.rhat_threshold,
         ess_threshold = checked.ess_threshold,
     )
@@ -2809,6 +3134,10 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
         target.blueprint.constrained_parameter_names,
         chains;
         parameter_space = :direct_constrained,
+        structurally_fixed_parameters =
+            _structurally_fixed_constrained_parameter_names(
+                target.blueprint,
+            ),
         split_chains,
         rhat_threshold = checked.rhat_threshold,
         ess_threshold = checked.ess_threshold,
@@ -2822,13 +3151,20 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
         draws_per_chain = ndraws,
         total_draws,
         split_chains = actual_split,
+        split_chains_requested = split_chains,
         rhat_threshold = checked.rhat_threshold,
         ess_threshold = checked.ess_threshold,
     )
 
     n_sampler_warnings = count(row -> row.flag !== :ok, sampler_rows)
-    n_block_warnings = count(row -> row.flag in (:insufficient_chains, :degenerate_draws, :mcmc_warning), block_rows)
-    n_direct_block_warnings = count(row -> row.flag in (:insufficient_chains, :degenerate_draws, :mcmc_warning), direct_block_rows)
+    n_block_warnings = count(row -> row.flag in
+        (:insufficient_chains, :insufficient_draws, :nonfinite_draws,
+            :degenerate_draws,
+            :mcmc_warning), block_rows)
+    n_direct_block_warnings = count(row -> row.flag in
+        (:insufficient_chains, :insufficient_draws, :nonfinite_draws,
+            :degenerate_draws,
+            :mcmc_warning), direct_block_rows)
     n_nonfinite_logdensity = sum(row.n_nonfinite_logdensity for row in sampler_rows)
     n_nonfinite_direct_loglikelihood =
         count(!isfinite, direct_values.loglikelihood) +
@@ -2836,22 +3172,34 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
     n_failed_direct_constraints = sum(row.n_failed for row in direct_constraint_rows)
     n_divergences = _sum_nonmissing(row.n_divergences for row in sampler_rows)
     n_max_treedepth = _sum_nonmissing(row.n_max_treedepth for row in sampler_rows)
-    e_bfmi = _min_nonmissing(row.e_bfmi for row in sampler_rows)
-    n_insufficient = count(row -> row.flag === :insufficient_chains, parameter_rows)
-    n_degenerate = count(row -> row.flag === :degenerate_draws, parameter_rows)
-    n_bad_rhat = count(row -> isfinite(row.rhat) && row.rhat > checked.rhat_threshold, parameter_rows)
-    n_low_ess = count(row -> isfinite(row.ess) && row.ess < checked.ess_threshold, parameter_rows)
-    max_rhat = _finite_extreme((row.rhat for row in parameter_rows), maximum)
-    min_ess = _finite_extreme((row.ess for row in parameter_rows), minimum)
+    e_bfmi_coverage = _ebfmi_coverage(sampler_rows)
+    raw_metrics = _mcmc_metric_summary(
+        parameter_rows,
+        checked.rhat_threshold,
+        checked.ess_threshold,
+    )
+    direct_metrics = _mcmc_metric_summary(
+        direct_parameter_rows,
+        checked.rhat_threshold,
+        checked.ess_threshold,
+    )
+    combined_metrics = _mcmc_metric_summary(
+        vcat(parameter_rows, direct_parameter_rows),
+        checked.rhat_threshold,
+        checked.ess_threshold,
+    )
+    metric_fields = _generalized_mcmc_metric_fields(
+        raw_metrics,
+        direct_metrics,
+        combined_metrics,
+    )
     flag = _gmfrm_promotion_candidate_summary_flag(
         n_sampler_warnings,
         n_nonfinite_logdensity,
         n_failed_direct_constraints,
         n_nonfinite_direct_loglikelihood,
-        n_insufficient,
-        n_degenerate,
-        n_bad_rhat,
-        n_low_ess,
+        raw_metrics,
+        direct_metrics,
     )
     initial_direct = _mgmfrm_source_constrained_params_from_unconstrained(
         target.design,
@@ -2918,22 +3266,31 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
         direct_parameter_rows,
         direct_block_rows,
         summary = (;
+            diagnostic_contract = _MCMC_DIAGNOSTIC_CONTRACT,
+            diagnostic_contract_details = _mcmc_diagnostic_contract_record(),
             flag,
             passed = flag === :ok,
+            classical_compatibility_flag =
+                _classical_compatibility_block_flag(
+                    length(parameter_rows) + length(direct_parameter_rows),
+                    combined_metrics,
+                ),
             n_chains = chains,
             draws_per_chain = ndraws,
             total_draws,
             n_parameters = nparams,
             n_direct_parameters = size(direct_values.direct_draws, 2),
+            n_diagnostic_parameters =
+                nparams + size(direct_values.direct_draws, 2),
+            n_quality_gate_parameters =
+                combined_metrics.n_quality_gate_parameters,
+            n_structurally_fixed_parameters =
+                combined_metrics.n_structurally_fixed_parameters,
             split_chains = actual_split,
+            split_chains_requested = split_chains,
             rhat_threshold = checked.rhat_threshold,
             ess_threshold = checked.ess_threshold,
-            max_rhat,
-            min_ess,
-            n_bad_rhat,
-            n_low_ess,
-            n_insufficient_chains = n_insufficient,
-            n_degenerate_parameters = n_degenerate,
+            metric_fields...,
             n_block_warnings,
             n_direct_block_warnings,
             n_sampler_warnings,
@@ -2943,7 +3300,7 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
             n_failed_direct_constraints,
             n_divergences,
             n_max_treedepth,
-            e_bfmi,
+            e_bfmi_coverage...,
         ),
     )
 end
@@ -3436,13 +3793,20 @@ function _maybe_max_int(rows, field::Symbol)
 end
 
 function _ebfmi(energies)
-    values = [Float64(value) for value in energies if !ismissing(value) && isfinite(value)]
+    values = Float64[]
+    for value in energies
+        ismissing(value) && return missing
+        converted = Float64(value)
+        isfinite(converted) || return missing
+        push!(values, converted)
+    end
     length(values) >= 3 || return missing
     mean_energy = _column_mean(values)
     denom = sum((value - mean_energy)^2 for value in values) / (length(values) - 1)
-    denom > 0 || return missing
+    isfinite(denom) && denom > 0 || return missing
     numerator = sum((values[i] - values[i - 1])^2 for i in 2:length(values)) / (length(values) - 1)
-    return numerator / denom
+    result = numerator / denom
+    return isfinite(result) && result >= 0 ? result : missing
 end
 
 function _chain_sampler_summary(fit::MFRMFit, chain::Int)
@@ -3520,7 +3884,23 @@ end
 function _mcmc_parameter_flag(diagnostic,
         rhat_threshold::Float64,
         ess_threshold::Float64)
-    diagnostic.flag === :ok || return diagnostic.flag
+    diagnostic.rank_normalized_status === :ok ||
+        return diagnostic.rank_normalized_status
+    isfinite(diagnostic.rank_normalized_rhat) &&
+        diagnostic.rank_normalized_rhat > rhat_threshold &&
+        return :mcmc_warning
+    isfinite(diagnostic.bulk_ess) && diagnostic.bulk_ess < ess_threshold &&
+        return :mcmc_warning
+    isfinite(diagnostic.tail_ess) && diagnostic.tail_ess < ess_threshold &&
+        return :mcmc_warning
+    return :ok
+end
+
+function _classical_compatibility_parameter_flag(diagnostic,
+        rhat_threshold::Float64,
+        ess_threshold::Float64)
+    diagnostic.classical_compatibility_status === :ok ||
+        return diagnostic.classical_compatibility_status
     isfinite(diagnostic.rhat) && diagnostic.rhat > rhat_threshold &&
         return :mcmc_warning
     isfinite(diagnostic.ess) && diagnostic.ess < ess_threshold &&
@@ -3533,12 +3913,19 @@ end
                      rhat_threshold = 1.01, ess_threshold = 400)
 
 Return parameter-level convergence diagnostics for the current fitted draws.
-Rows include classical split R-hat and an autocorrelation-based effective
-sample size estimate. These diagnostics require at least two independent
-chains; single-chain fits return `NaN` diagnostics with
-`flag = :insufficient_chains`. Finite rows whose R-hat or ESS fail the supplied
-thresholds return `flag = :mcmc_warning`. Use `sampler_diagnostics` for
-backend-specific sampler fields such as divergent transitions and tree depth.
+Rows include rank-normalized split R-hat, its bulk and folded components,
+bulk ESS, and tail ESS at the joint 10% tail probability. The compatibility
+fields `rhat` and `ess` retain the previous classical split R-hat and
+autocorrelation ESS values. The primary `flag` and `rank_normalized_flag`
+apply only the modern contract; `classical_compatibility_flag` records the
+previous diagnostic result without adding an undeclared quality gate.
+
+These diagnostics require at least two independent chains. Rank-normalized
+ESS requires more than four draws per diagnostic chain after optional
+splitting; shorter runs return `flag = :insufficient_draws`. Non-finite or
+degenerate draws are never passed through as apparently usable diagnostics.
+Use `sampler_diagnostics` for backend-specific fields such as divergent
+transitions and tree depth.
 """
 function mcmc_diagnostics(fit::MFRMFit;
         split_chains::Bool = true,
@@ -3553,35 +3940,68 @@ function mcmc_diagnostics(fit::MFRMFit;
     diagnostic_iterations, diagnostic_chains, _ = size(diagnostic_values)
     rows = NamedTuple[]
     for param in 1:nparams
-        diagnostic = _rhat_and_ess(diagnostic_values, param)
+        diagnostic = _mcmc_parameter_metrics(
+            values,
+            param;
+            split_chains,
+        )
+        rank_normalized_flag = _mcmc_parameter_flag(
+            diagnostic,
+            checked.rhat_threshold,
+            checked.ess_threshold,
+        )
+        classical_compatibility_flag =
+            _classical_compatibility_parameter_flag(
+                diagnostic,
+                checked.rhat_threshold,
+                checked.ess_threshold,
+            )
         push!(rows, (;
             diagnostic_row = :parameter,
             parameter_space = :identified,
-            diagnostic_method = :classical_split_rhat_autocorrelation_ess,
-            diagnostic_status = :provisional_classical,
+            diagnostic_contract = _MCMC_DIAGNOSTIC_CONTRACT,
+            diagnostic_method = _mcmc_diagnostic_method(split_chains),
+            diagnostic_status = :rank_normalized_available,
             parameter = fit.design.parameter_names[param],
+            quality_gate_applicable = true,
             rhat = diagnostic.rhat,
             ess = diagnostic.ess,
+            rank_normalized_rhat = diagnostic.rank_normalized_rhat,
+            bulk_rank_normalized_rhat =
+                diagnostic.bulk_rank_normalized_rhat,
+            folded_rank_normalized_rhat =
+                diagnostic.folded_rank_normalized_rhat,
+            bulk_ess = diagnostic.bulk_ess,
+            tail_ess = diagnostic.tail_ess,
+            tail_probability = diagnostic.tail_probability,
+            autocovariance_maxlag = diagnostic.autocovariance_maxlag,
             n_chains = original_chains,
             draws_per_chain = original_iterations,
             diagnostic_chains,
             diagnostic_draws_per_chain = diagnostic_iterations,
             total_draws = size(fit.draws, 1),
+            split_chains_requested = split_chains,
             split_chains = split_chains && original_chains >= 2 && original_iterations >= 4,
-            flag = _mcmc_parameter_flag(
-                diagnostic,
-                checked.rhat_threshold,
-                checked.ess_threshold,
-            ),
+            rank_normalized_flag,
+            classical_compatibility_flag,
+            flag = rank_normalized_flag,
         ))
     end
     return rows
 end
 
 function _check_diagnostic_thresholds(rhat_threshold::Real, ess_threshold::Real)
-    rhat_threshold > 1 || throw(ArgumentError("rhat_threshold must be greater than 1"))
-    ess_threshold > 0 || throw(ArgumentError("ess_threshold must be positive"))
-    return (rhat_threshold = Float64(rhat_threshold), ess_threshold = Float64(ess_threshold))
+    checked_rhat = Float64(rhat_threshold)
+    checked_ess = Float64(ess_threshold)
+    isfinite(checked_rhat) && checked_rhat > 1 ||
+        throw(ArgumentError(
+            "rhat_threshold must be finite and greater than 1",
+        ))
+    isfinite(checked_ess) && checked_ess > 0 ||
+        throw(ArgumentError(
+            "ess_threshold must be finite and positive",
+        ))
+    return (rhat_threshold = checked_rhat, ess_threshold = checked_ess)
 end
 
 function _finite_extreme(values, reducer)
@@ -3590,15 +4010,156 @@ function _finite_extreme(values, reducer)
     return reducer(finite_values)
 end
 
-function _parameter_block_flag(n_parameters::Int,
-        n_insufficient::Int,
-        n_degenerate::Int,
-        n_bad_rhat::Int,
-        n_low_ess::Int)
+_quality_gate_applicable(row) =
+    !hasproperty(row, :quality_gate_applicable) ||
+    row.quality_gate_applicable
+
+function _mcmc_metric_summary(rows,
+        rhat_threshold::Float64,
+        ess_threshold::Float64)
+    applicable_rows = filter(_quality_gate_applicable, rows)
+    return (;
+        n_parameters = length(rows),
+        n_quality_gate_parameters = length(applicable_rows),
+        n_structurally_fixed_parameters =
+            count(row -> !_quality_gate_applicable(row), rows),
+        max_rhat = _finite_extreme(
+            (row.rhat for row in applicable_rows),
+            maximum,
+        ),
+        min_ess = _finite_extreme(
+            (row.ess for row in applicable_rows),
+            minimum,
+        ),
+        max_rank_normalized_rhat = _finite_extreme(
+            (row.rank_normalized_rhat for row in applicable_rows),
+            maximum,
+        ),
+        min_bulk_ess = _finite_extreme(
+            (row.bulk_ess for row in applicable_rows),
+            minimum,
+        ),
+        min_tail_ess = _finite_extreme(
+            (row.tail_ess for row in applicable_rows),
+            minimum,
+        ),
+        n_bad_rhat = count(row ->
+            isfinite(row.rhat) && row.rhat > rhat_threshold,
+            applicable_rows),
+        n_low_ess = count(row ->
+            isfinite(row.ess) && row.ess < ess_threshold,
+            applicable_rows),
+        n_bad_rank_normalized_rhat = count(row ->
+            isfinite(row.rank_normalized_rhat) &&
+                row.rank_normalized_rhat > rhat_threshold,
+            applicable_rows),
+        n_low_bulk_ess = count(row ->
+            isfinite(row.bulk_ess) && row.bulk_ess < ess_threshold,
+            applicable_rows),
+        n_low_tail_ess = count(row ->
+            isfinite(row.tail_ess) && row.tail_ess < ess_threshold,
+            applicable_rows),
+        n_insufficient_chains = count(row ->
+            row.flag === :insufficient_chains, applicable_rows),
+        n_insufficient_draws = count(row ->
+            row.flag === :insufficient_draws, applicable_rows),
+        n_nonfinite_parameters = count(row ->
+            row.flag === :nonfinite_draws, applicable_rows),
+        n_degenerate_parameters = count(row ->
+            row.flag === :degenerate_draws, applicable_rows),
+        n_classical_insufficient_chains = count(row ->
+            row.classical_compatibility_flag === :insufficient_chains,
+            applicable_rows),
+        n_classical_nonfinite_parameters = count(row ->
+            row.classical_compatibility_flag === :nonfinite_draws,
+            applicable_rows),
+        n_classical_degenerate_parameters = count(row ->
+            row.classical_compatibility_flag === :degenerate_draws,
+            applicable_rows),
+        n_classical_compatibility_warnings = count(row ->
+            row.classical_compatibility_flag !== :ok,
+            applicable_rows),
+    )
+end
+
+function _generalized_mcmc_metric_fields(
+        raw_metrics,
+        direct_metrics,
+        combined_metrics)
+    return (;
+        # Preserve the established raw-space meaning of classical fields.
+        max_rhat = raw_metrics.max_rhat,
+        min_ess = raw_metrics.min_ess,
+        n_bad_rhat = raw_metrics.n_bad_rhat,
+        n_low_ess = raw_metrics.n_low_ess,
+        n_classical_insufficient_chains =
+            raw_metrics.n_classical_insufficient_chains,
+        n_classical_nonfinite_parameters =
+            raw_metrics.n_classical_nonfinite_parameters,
+        n_classical_degenerate_parameters =
+            raw_metrics.n_classical_degenerate_parameters,
+        n_classical_compatibility_warnings =
+            raw_metrics.n_classical_compatibility_warnings,
+        # Modern fields conservatively cover raw and direct parameter spaces.
+        max_rank_normalized_rhat =
+            combined_metrics.max_rank_normalized_rhat,
+        min_bulk_ess = combined_metrics.min_bulk_ess,
+        min_tail_ess = combined_metrics.min_tail_ess,
+        n_bad_rank_normalized_rhat =
+            combined_metrics.n_bad_rank_normalized_rhat,
+        n_low_bulk_ess = combined_metrics.n_low_bulk_ess,
+        n_low_tail_ess = combined_metrics.n_low_tail_ess,
+        # Preserve raw-space status counts and expose explicit overall counts.
+        n_insufficient_chains = raw_metrics.n_insufficient_chains,
+        n_insufficient_draws = raw_metrics.n_insufficient_draws,
+        n_nonfinite_parameters = raw_metrics.n_nonfinite_parameters,
+        n_degenerate_parameters = raw_metrics.n_degenerate_parameters,
+        n_overall_insufficient_chains =
+            combined_metrics.n_insufficient_chains,
+        n_overall_insufficient_draws =
+            combined_metrics.n_insufficient_draws,
+        n_overall_nonfinite_parameters =
+            combined_metrics.n_nonfinite_parameters,
+        n_overall_degenerate_parameters =
+            combined_metrics.n_degenerate_parameters,
+        raw_diagnostic_metrics = raw_metrics,
+        direct_diagnostic_metrics = direct_metrics,
+        combined_diagnostic_metrics = combined_metrics,
+    )
+end
+
+function _mcmc_metric_warning(metrics)
+    return metrics.n_bad_rank_normalized_rhat > 0 ||
+        metrics.n_low_bulk_ess > 0 ||
+        metrics.n_low_tail_ess > 0
+end
+
+function _classical_compatibility_metric_warning(metrics)
+    return metrics.n_bad_rhat > 0 || metrics.n_low_ess > 0
+end
+
+function _parameter_block_flag(n_parameters::Int, metrics)
     n_parameters == 0 && return :empty_block
-    n_insufficient > 0 && return :insufficient_chains
-    n_degenerate > 0 && return :degenerate_draws
-    (n_bad_rhat > 0 || n_low_ess > 0) && return :mcmc_warning
+    metrics.n_quality_gate_parameters == 0 &&
+        metrics.n_structurally_fixed_parameters > 0 &&
+        return :structurally_fixed
+    metrics.n_insufficient_chains > 0 && return :insufficient_chains
+    metrics.n_insufficient_draws > 0 && return :insufficient_draws
+    metrics.n_nonfinite_parameters > 0 && return :nonfinite_draws
+    metrics.n_degenerate_parameters > 0 && return :degenerate_draws
+    _mcmc_metric_warning(metrics) && return :mcmc_warning
+    return :ok
+end
+
+function _classical_compatibility_block_flag(n_parameters::Int, metrics)
+    n_parameters == 0 && return :empty_block
+    metrics.n_quality_gate_parameters == 0 &&
+        metrics.n_structurally_fixed_parameters > 0 &&
+        return :structurally_fixed
+    metrics.n_classical_insufficient_chains > 0 && return :insufficient_chains
+    metrics.n_classical_nonfinite_parameters > 0 && return :nonfinite_draws
+    metrics.n_classical_degenerate_parameters > 0 && return :degenerate_draws
+    _classical_compatibility_metric_warning(metrics) && return :mcmc_warning
     return :ok
 end
 
@@ -3616,41 +4177,62 @@ function _parameter_block_diagnostics(fit::MFRMFit,
         names = isempty(indices) ? String[] : copy(fit.design.parameter_names[indices])
         block_rows = [row_by_name[name] for name in names]
         n_parameters = length(names)
-        n_insufficient = count(row -> row.flag === :insufficient_chains, block_rows)
-        n_degenerate = count(row -> row.flag === :degenerate_draws, block_rows)
-        n_bad_rhat = count(row -> isfinite(row.rhat) && row.rhat > rhat_threshold, block_rows)
-        n_low_ess = count(row -> isfinite(row.ess) && row.ess < ess_threshold, block_rows)
+        metrics = _mcmc_metric_summary(
+            block_rows,
+            rhat_threshold,
+            ess_threshold,
+        )
+        n_quality_gate_parameters = metrics.n_quality_gate_parameters
+        n_structurally_fixed_parameters =
+            metrics.n_structurally_fixed_parameters
         push!(rows, (;
             diagnostic_row = :parameter_block,
             parameter_space = :identified,
-            diagnostic_method = :classical_split_rhat_autocorrelation_ess,
-            diagnostic_status = :provisional_classical,
+            diagnostic_contract = _MCMC_DIAGNOSTIC_CONTRACT,
+            diagnostic_method = _mcmc_diagnostic_method(split_chains),
+            diagnostic_status = :rank_normalized_available,
             block,
             first_parameter = isempty(indices) ? missing : first(indices),
             last_parameter = isempty(indices) ? missing : last(indices),
             n_parameters,
+            n_quality_gate_parameters,
+            n_structurally_fixed_parameters,
+            quality_gate_applicable = n_quality_gate_parameters > 0,
             parameter_names = names,
             n_chains = length(fit.chain_acceptance_rate),
             draws_per_chain = _fit_draws_per_chain(fit),
             total_draws = size(fit.draws, 1),
-            split_chains = split_chains && length(fit.chain_acceptance_rate) >= 2,
+            split_chains_requested = split_chains,
+            split_chains = split_chains &&
+                length(fit.chain_acceptance_rate) >= 2 &&
+                _fit_draws_per_chain(fit) >= 4,
+            autocovariance_maxlag = n_parameters == 0 ? missing :
+                first(block_rows).autocovariance_maxlag,
             rhat_threshold,
             ess_threshold,
-            max_rhat = n_parameters == 0 ? missing :
-                _finite_extreme((row.rhat for row in block_rows), maximum),
-            min_ess = n_parameters == 0 ? missing :
-                _finite_extreme((row.ess for row in block_rows), minimum),
-            n_bad_rhat,
-            n_low_ess,
-            n_insufficient_chains = n_insufficient,
-            n_degenerate_parameters = n_degenerate,
-            flag = _parameter_block_flag(
-                n_parameters,
-                n_insufficient,
-                n_degenerate,
-                n_bad_rhat,
-                n_low_ess,
-            ),
+            max_rhat = n_parameters == 0 ? missing : metrics.max_rhat,
+            min_ess = n_parameters == 0 ? missing : metrics.min_ess,
+            max_rank_normalized_rhat = n_parameters == 0 ? missing :
+                metrics.max_rank_normalized_rhat,
+            min_bulk_ess = n_parameters == 0 ? missing :
+                metrics.min_bulk_ess,
+            min_tail_ess = n_parameters == 0 ? missing :
+                metrics.min_tail_ess,
+            n_bad_rhat = metrics.n_bad_rhat,
+            n_low_ess = metrics.n_low_ess,
+            n_bad_rank_normalized_rhat =
+                metrics.n_bad_rank_normalized_rhat,
+            n_low_bulk_ess = metrics.n_low_bulk_ess,
+            n_low_tail_ess = metrics.n_low_tail_ess,
+            n_insufficient_chains = metrics.n_insufficient_chains,
+            n_insufficient_draws = metrics.n_insufficient_draws,
+            n_nonfinite_parameters = metrics.n_nonfinite_parameters,
+            n_degenerate_parameters = metrics.n_degenerate_parameters,
+            classical_compatibility_flag =
+                _classical_compatibility_block_flag(n_parameters, metrics),
+            rank_normalized_flag =
+                _parameter_block_flag(n_parameters, metrics),
+            flag = _parameter_block_flag(n_parameters, metrics),
         ))
     end
     return rows
@@ -3701,6 +4283,24 @@ function _min_nonmissing(values)
     return minimum(finite_values)
 end
 
+function _ebfmi_coverage(rows)
+    values = Float64[
+        row.e_bfmi for row in rows
+        if !ismissing(row.e_bfmi) && isfinite(row.e_bfmi)
+    ]
+    n_e_bfmi_expected = length(rows)
+    n_e_bfmi_available = length(values)
+    n_e_bfmi_unavailable = n_e_bfmi_expected - n_e_bfmi_available
+    return (;
+        e_bfmi = isempty(values) ? missing : minimum(values),
+        n_e_bfmi_expected,
+        n_e_bfmi_available,
+        n_e_bfmi_unavailable,
+        e_bfmi_complete =
+            n_e_bfmi_expected > 0 && n_e_bfmi_unavailable == 0,
+    )
+end
+
 function _diagnostic_row_policy(; family::Symbol, parameter_spaces)
     return (;
         schema = "bayesianmgmfrm.diagnostic_row_policy.v1",
@@ -3709,20 +4309,47 @@ function _diagnostic_row_policy(; family::Symbol, parameter_spaces)
         parameter_row = :parameter,
         block_row = :parameter_block,
         parameter_spaces = Tuple(parameter_spaces),
-        rhat_method = :classical_split,
-        ess_method = :autocorrelation,
-        rhat_ess_status = :provisional_classical,
-        rank_normalized_rhat_available = false,
-        bulk_tail_ess_available = false,
-        failure_flags = (
+        diagnostic_contract = _MCMC_DIAGNOSTIC_CONTRACT,
+        diagnostic_contract_details = _mcmc_diagnostic_contract_record(),
+        rhat_method = :rank_normalized,
+        rhat_components = (
+            :bulk_rank_normalized_rhat,
+            :folded_rank_normalized_rhat,
+        ),
+        primary_rhat_field = :rank_normalized_rhat,
+        ess_method = :bulk_and_tail,
+        primary_ess_fields = (:bulk_ess, :tail_ess),
+        tail_probability = _RANK_NORMALIZED_TAIL_PROBABILITY,
+        autocovariance_maxlag_policy = :all_available_lags,
+        minimum_draws_per_diagnostic_chain_for_ess = 5,
+        quality_gate_applicability_field = :quality_gate_applicable,
+        structurally_fixed_status = :structurally_fixed,
+        compatibility_rhat_field = :rhat,
+        compatibility_rhat_method = :classical_split,
+        compatibility_ess_field = :ess,
+        compatibility_ess_method = :autocorrelation,
+        primary_flag_field = :rank_normalized_flag,
+        compatibility_flag_field = :classical_compatibility_flag,
+        rhat_ess_status = :rank_normalized_available,
+        rank_normalized_rhat_available = true,
+        bulk_tail_ess_available = true,
+        e_bfmi_field = :e_bfmi,
+        e_bfmi_completeness_field = :e_bfmi_complete,
+        e_bfmi_chain_coverage_required = true,
+        informational_flags = (
             :ok,
+            :empty_block,
+            :structurally_fixed,
+        ),
+        failure_flags = (
+            :direct_transform_warning,
             :sampler_warning,
             :mcmc_warning,
             :insufficient_chains,
+            :insufficient_draws,
+            :nonfinite_draws,
             :degenerate_draws,
-            :empty_block,
         ),
-        next_gate = :rank_normalized_rhat_bulk_tail_ess,
     )
 end
 
@@ -3734,9 +4361,27 @@ Return a single diagnostic surface for the current minimal Bayesian fitting
 path. The result includes chain-level sampler rows from `sampler_diagnostics`,
 parameter-level rows from `mcmc_diagnostics`, block-level rows from
 `parameter_block_diagnostics`, and a compact machine-readable summary with
+rank-normalized R-hat, bulk ESS, tail ESS, compatibility metrics, and
 pass/fail counts. For the AdvancedHMC-backed NUTS path, the summary also
 reports divergent-transition counts, max-tree-depth hits, and the minimum
-available E-BFMI estimate across chains.
+available E-BFMI estimate across chains. The fields `n_e_bfmi_expected`,
+`n_e_bfmi_available`, `n_e_bfmi_unavailable`, and `e_bfmi_complete` distinguish
+that compatibility minimum from an all-chain E-BFMI gate. A chain is
+unavailable when any retained energy value is missing or non-finite.
+
+Generalized diagnostic surfaces also include direct constrained rows.
+Coordinates fixed by a declared zero-dimensional raw transform remain visible
+with `diagnostic_status = :structurally_fixed` and
+`quality_gate_applicable = false`; they do not enter convergence extrema or
+failure counts. Constrained coordinates reconstructed from estimable raw
+coordinates remain quality-gate applicable.
+
+The surrounding version-1 diagnostic payload is discriminated by its nested
+`diagnostic_contract`. Rows without
+`:rank_normalized_rhat_bulk_tail_ess_v1` are pre-modern compatibility records
+and must not be relabeled as modern evidence. Under the modern contract,
+`flag` aliases `rank_normalized_flag`; use `classical_compatibility_flag` when
+the previous classical result is specifically required.
 """
 function diagnostics(fit::MFRMFit;
         split_chains::Bool = true,
@@ -3754,24 +4399,30 @@ function diagnostics(fit::MFRMFit;
         rhat_threshold = checked.rhat_threshold,
         ess_threshold = checked.ess_threshold)
     n_sampler_warnings = count(row -> row.flag !== :ok, sampler_rows)
-    n_block_warnings = count(row -> row.flag in (:insufficient_chains, :degenerate_draws, :mcmc_warning), block_rows)
+    n_block_warnings = count(row -> row.flag in
+        (:insufficient_chains, :insufficient_draws, :nonfinite_draws,
+            :degenerate_draws,
+            :mcmc_warning), block_rows)
     n_empty_blocks = count(row -> row.flag === :empty_block, block_rows)
     n_nonfinite_log_posterior = sum(row.n_nonfinite_log_posterior for row in sampler_rows)
     n_divergences = _sum_nonmissing(row.n_divergences for row in sampler_rows)
     n_max_treedepth = _sum_nonmissing(row.n_max_treedepth for row in sampler_rows)
-    e_bfmi = _min_nonmissing(row.e_bfmi for row in sampler_rows)
-    n_insufficient = count(row -> row.flag === :insufficient_chains, parameter_rows)
-    n_degenerate = count(row -> row.flag === :degenerate_draws, parameter_rows)
-    n_bad_rhat = count(row -> isfinite(row.rhat) && row.rhat > rhat_threshold, parameter_rows)
-    n_low_ess = count(row -> isfinite(row.ess) && row.ess < ess_threshold, parameter_rows)
-    max_rhat = _finite_extreme((row.rhat for row in parameter_rows), maximum)
-    min_ess = _finite_extreme((row.ess for row in parameter_rows), minimum)
+    e_bfmi_coverage = _ebfmi_coverage(sampler_rows)
+    metrics = _mcmc_metric_summary(
+        parameter_rows,
+        checked.rhat_threshold,
+        checked.ess_threshold,
+    )
 
     flag = if n_sampler_warnings > 0 || n_nonfinite_log_posterior > 0
         :sampler_warning
-    elseif n_insufficient > 0
+    elseif metrics.n_insufficient_chains > 0
         :insufficient_chains
-    elseif n_degenerate > 0 || n_bad_rhat > 0 || n_low_ess > 0
+    elseif metrics.n_insufficient_draws > 0
+        :insufficient_draws
+    elseif metrics.n_nonfinite_parameters > 0 ||
+            metrics.n_degenerate_parameters > 0 ||
+            _mcmc_metric_warning(metrics)
         :mcmc_warning
     else
         :ok
@@ -3785,28 +4436,30 @@ function diagnostics(fit::MFRMFit;
             family = :mfrm,
             parameter_spaces = (:identified,)),
         summary = (;
+            diagnostic_contract = _MCMC_DIAGNOSTIC_CONTRACT,
+            diagnostic_contract_details = _mcmc_diagnostic_contract_record(),
             flag,
             passed = flag === :ok,
+            classical_compatibility_flag =
+                _classical_compatibility_block_flag(
+                    length(parameter_rows), metrics),
             n_chains = length(fit.chain_acceptance_rate),
             draws_per_chain = _fit_draws_per_chain(fit),
             total_draws = size(fit.draws, 1),
-            n_parameters = length(fit.design.parameter_names),
-            split_chains = split_chains && length(fit.chain_acceptance_rate) >= 2,
+            split_chains_requested = split_chains,
+            split_chains = split_chains &&
+                length(fit.chain_acceptance_rate) >= 2 &&
+                _fit_draws_per_chain(fit) >= 4,
             rhat_threshold = checked.rhat_threshold,
             ess_threshold = checked.ess_threshold,
-            max_rhat,
-            min_ess,
-            n_bad_rhat,
-            n_low_ess,
-            n_insufficient_chains = n_insufficient,
-            n_degenerate_parameters = n_degenerate,
+            metrics...,
             n_block_warnings,
             n_empty_blocks,
             n_sampler_warnings,
             n_nonfinite_log_posterior,
             n_divergences,
             n_max_treedepth,
-            e_bfmi,
+            e_bfmi_coverage...,
         ),
         sampler_rows,
         parameter_rows,
@@ -3816,16 +4469,115 @@ end
 
 sampler_diagnostics(fit::GMFRMFit) = fit.diagnostic_surface.sampler_rows
 
+function _check_stored_generalized_diagnostic_contract(surface, family_label::String)
+    summary = surface.summary
+    expected_contract = _mcmc_diagnostic_contract_record()
+    hasproperty(summary, :diagnostic_contract) &&
+        summary.diagnostic_contract === _MCMC_DIAGNOSTIC_CONTRACT ||
+        throw(ArgumentError(
+            "$family_label fit stores an older MCMC diagnostic contract; " *
+            "refresh the fit or its cache before requesting diagnostics",
+        ))
+    hasproperty(summary, :diagnostic_contract_details) &&
+        isequal(summary.diagnostic_contract_details, expected_contract) ||
+        throw(ArgumentError(
+            "$family_label fit was created under a different MCMC " *
+            "diagnostic dependency or operation-order contract; refresh the " *
+            "fit or its cache before requesting diagnostics",
+        ))
+    all(field -> hasproperty(summary, field), (
+            :n_e_bfmi_expected,
+            :n_e_bfmi_available,
+            :n_e_bfmi_unavailable,
+            :e_bfmi_complete,
+        )) &&
+        summary.n_e_bfmi_expected == summary.n_chains &&
+        summary.n_e_bfmi_available + summary.n_e_bfmi_unavailable ==
+            summary.n_e_bfmi_expected &&
+        summary.e_bfmi_complete ===
+            (summary.n_e_bfmi_expected > 0 &&
+                summary.n_e_bfmi_unavailable == 0) ||
+        throw(ArgumentError(
+            "$family_label fit stores incomplete E-BFMI chain coverage; " *
+            "refresh the fit or its cache before requesting diagnostics",
+        ))
+    required_fields = (
+        :diagnostic_contract,
+        :rank_normalized_rhat,
+        :bulk_rank_normalized_rhat,
+        :folded_rank_normalized_rhat,
+        :bulk_ess,
+        :tail_ess,
+        :rank_normalized_flag,
+        :classical_compatibility_flag,
+        :quality_gate_applicable,
+        :split_chains_requested,
+    )
+    parameter_rows = (surface.parameter_rows, surface.direct_parameter_rows)
+    all(row -> all(field -> hasproperty(row, field), required_fields) &&
+            row.diagnostic_contract === _MCMC_DIAGNOSTIC_CONTRACT &&
+            row.diagnostic_method === _mcmc_diagnostic_method(
+                row.split_chains_requested,
+            ) &&
+            ((row.quality_gate_applicable &&
+                    row.diagnostic_status ===
+                        :rank_normalized_available) ||
+                (!row.quality_gate_applicable &&
+                    row.diagnostic_status === :structurally_fixed &&
+                    row.rank_normalized_flag === :structurally_fixed &&
+                    row.classical_compatibility_flag ===
+                        :structurally_fixed)),
+        Iterators.flatten(parameter_rows)) || throw(ArgumentError(
+        "$family_label fit stores incomplete MCMC diagnostic rows; " *
+        "refresh the fit or its cache before requesting diagnostics",
+    ))
+    block_rows = (surface.block_rows, surface.direct_block_rows)
+    all(row -> all(field -> hasproperty(row, field), (
+                :diagnostic_contract,
+                :rank_normalized_flag,
+                :classical_compatibility_flag,
+                :quality_gate_applicable,
+                :n_quality_gate_parameters,
+                :n_structurally_fixed_parameters,
+                :split_chains_requested,
+            )) &&
+            row.diagnostic_contract === _MCMC_DIAGNOSTIC_CONTRACT &&
+            row.diagnostic_method === _mcmc_diagnostic_method(
+                row.split_chains_requested,
+            ) &&
+            ((row.diagnostic_status === :rank_normalized_available &&
+                    (row.quality_gate_applicable ||
+                        row.flag === :empty_block)) ||
+                (row.diagnostic_status === :structurally_fixed &&
+                    !row.quality_gate_applicable &&
+                    row.n_quality_gate_parameters == 0 &&
+                    row.n_structurally_fixed_parameters > 0 &&
+                    row.rank_normalized_flag === :structurally_fixed &&
+                    row.classical_compatibility_flag ===
+                        :structurally_fixed)),
+        Iterators.flatten(block_rows)) || throw(ArgumentError(
+        "$family_label fit stores incomplete MCMC diagnostic block rows; " *
+        "refresh the fit or its cache before requesting diagnostics",
+    ))
+    return nothing
+end
+
 function _check_gmfrm_fit_diagnostic_policy(fit::GMFRMFit;
         split_chains::Bool,
         rhat_threshold::Real,
         ess_threshold::Real)
     checked = _check_diagnostic_thresholds(rhat_threshold, ess_threshold)
+    _check_stored_generalized_diagnostic_contract(
+        fit.diagnostic_surface,
+        "experimental GMFRM",
+    )
     summary = fit.diagnostic_surface.summary
     actual_split = split_chains &&
         length(fit.chain_acceptance_rate) >= 2 &&
         _fit_draws_per_chain(fit) >= 4
-    summary.split_chains == actual_split &&
+    hasproperty(summary, :split_chains_requested) &&
+        summary.split_chains_requested == split_chains &&
+        summary.split_chains == actual_split &&
         summary.rhat_threshold == checked.rhat_threshold &&
         summary.ess_threshold == checked.ess_threshold ||
         throw(ArgumentError(
@@ -3895,11 +4647,17 @@ function _check_mgmfrm_fit_diagnostic_policy(fit::MGMFRMFit;
         rhat_threshold::Real,
         ess_threshold::Real)
     checked = _check_diagnostic_thresholds(rhat_threshold, ess_threshold)
+    _check_stored_generalized_diagnostic_contract(
+        fit.diagnostic_surface,
+        "guarded MGMFRM",
+    )
     summary = fit.diagnostic_surface.summary
     actual_split = split_chains &&
         length(fit.chain_acceptance_rate) >= 2 &&
         _fit_draws_per_chain(fit) >= 4
-    summary.split_chains == actual_split &&
+    hasproperty(summary, :split_chains_requested) &&
+        summary.split_chains_requested == split_chains &&
+        summary.split_chains == actual_split &&
         summary.rhat_threshold == checked.rhat_threshold &&
         summary.ess_threshold == checked.ess_threshold ||
         throw(ArgumentError(
@@ -4118,6 +4876,12 @@ function fit_artifact(fit::MFRMFit;
         replayable_rng = _nt_get(rng, :replayable, false) === true,
         sampler_controls = fit.sampler_controls,
         diagnostic_policy = (;
+            diagnostic_contract =
+                diagnostic_surface.summary.diagnostic_contract,
+            diagnostic_contract_details =
+                diagnostic_surface.summary.diagnostic_contract_details,
+            split_chains_requested =
+                diagnostic_surface.summary.split_chains_requested,
             split_chains = diagnostic_surface.summary.split_chains,
             rhat_threshold = diagnostic_surface.summary.rhat_threshold,
             ess_threshold = diagnostic_surface.summary.ess_threshold,
@@ -4180,6 +4944,12 @@ function fit_artifact(fit::GMFRMFit;
         replayable_rng = _nt_get(rng, :replayable, false) === true,
         sampler_controls = fit.sampler_controls,
         diagnostic_policy = (;
+            diagnostic_contract =
+                diagnostic_surface.summary.diagnostic_contract,
+            diagnostic_contract_details =
+                diagnostic_surface.summary.diagnostic_contract_details,
+            split_chains_requested =
+                diagnostic_surface.summary.split_chains_requested,
             split_chains = diagnostic_surface.summary.split_chains,
             rhat_threshold = diagnostic_surface.summary.rhat_threshold,
             ess_threshold = diagnostic_surface.summary.ess_threshold,
@@ -4294,6 +5064,12 @@ function fit_artifact(fit::MGMFRMFit;
         replayable_rng = _nt_get(rng, :replayable, false) === true,
         sampler_controls = fit.sampler_controls,
         diagnostic_policy = (;
+            diagnostic_contract =
+                diagnostic_surface.summary.diagnostic_contract,
+            diagnostic_contract_details =
+                diagnostic_surface.summary.diagnostic_contract_details,
+            split_chains_requested =
+                diagnostic_surface.summary.split_chains_requested,
             split_chains = diagnostic_surface.summary.split_chains,
             rhat_threshold = diagnostic_surface.summary.rhat_threshold,
             ess_threshold = diagnostic_surface.summary.ess_threshold,
@@ -8698,12 +9474,13 @@ function _fit_cache_request(design::FacetDesign;
         ad_backend,
         init_jitter)
     return (;
-        schema = "bayesianmgmfrm.fit_request.v1",
+        schema = "bayesianmgmfrm.fit_request.v2",
         julia_version = string(VERSION),
         data_signature = design.spec.validation.data_signature,
         manifest = model_manifest(design),
         experimental,
         parameter_space = experimental ? :raw_unconstrained : :direct_identified,
+        diagnostic_contract = _mcmc_diagnostic_contract_record(),
         prior = _prior_cache_record(checked_prior),
         controls,
     )
@@ -8714,7 +9491,8 @@ end
 
 Return the deterministic cache key used by [`cached_fit`](@ref). The key hashes
 the data/spec/design manifest, prior scales, backend-specific sampler controls,
-RNG seed metadata, Julia version, and initial-parameter hash. The `progress`
+RNG seed metadata, Julia version, initial-parameter hash, and versioned MCMC
+diagnostic contract. The `progress`
 keyword is accepted for API symmetry with [`fit`](@ref) but is not included in
 the key because it does not affect posterior draws. Cache keys require
 `seed = <integer>` so automatic cache reuse is tied to a replayable fit request.

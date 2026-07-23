@@ -567,7 +567,23 @@ function fit_and_score_mcmc(unit, controls)
     train_pointwise =
         [logmeanexp(vec(fit.direct_pointwise_loglikelihood[:, column]))
             for column in axes(fit.direct_pointwise_loglikelihood, 2)]
-    summary = fit.diagnostic_surface.summary
+    summary = BayesianMGMFRM.diagnostics(fit).summary
+    n_e_bfmi_expected = hasproperty(summary, :n_e_bfmi_expected) ?
+        Int(summary.n_e_bfmi_expected) : length(fit.chain_acceptance_rate)
+    n_e_bfmi_available = hasproperty(summary, :n_e_bfmi_available) ?
+        Int(summary.n_e_bfmi_available) : 0
+    n_e_bfmi_unavailable = hasproperty(summary, :n_e_bfmi_unavailable) ?
+        Int(summary.n_e_bfmi_unavailable) : n_e_bfmi_expected
+    e_bfmi_complete = hasproperty(summary, :e_bfmi_complete) &&
+        summary.e_bfmi_complete === true
+    modern_diagnostic_metrics_complete =
+        Int(summary.n_overall_insufficient_chains) == 0 &&
+        Int(summary.n_overall_insufficient_draws) == 0 &&
+        Int(summary.n_overall_nonfinite_parameters) == 0 &&
+        Int(summary.n_overall_degenerate_parameters) == 0 &&
+        Int(summary.n_nonfinite_logdensity) == 0 &&
+        Int(summary.n_nonfinite_direct_loglikelihood) == 0 &&
+        Int(summary.n_failed_direct_constraints) == 0
     pointwise_rows = heldout_pointwise_rows(
         unit,
         data.rows,
@@ -645,6 +661,20 @@ function fit_and_score_mcmc(unit, controls)
         n_ppc_draws = ppc_summary.n_ppc_draws,
         diagnostic_flag = summary.flag,
         diagnostic_passed = Bool(summary.passed),
+        diagnostic_contract = summary.diagnostic_contract,
+        diagnostic_contract_details = hasproperty(
+            summary,
+            :diagnostic_contract_details,
+        ) ? summary.diagnostic_contract_details : missing,
+        modern_diagnostic_metrics_complete,
+        n_insufficient_chains =
+            Int(summary.n_overall_insufficient_chains),
+        n_insufficient_draws =
+            Int(summary.n_overall_insufficient_draws),
+        n_nonfinite_parameters =
+            Int(summary.n_overall_nonfinite_parameters),
+        n_degenerate_parameters =
+            Int(summary.n_overall_degenerate_parameters),
         n_nonfinite_logdensity = Int(summary.n_nonfinite_logdensity),
         n_nonfinite_direct_loglikelihood =
             Int(summary.n_nonfinite_direct_loglikelihood),
@@ -652,8 +682,16 @@ function fit_and_score_mcmc(unit, controls)
             Int(summary.n_failed_direct_constraints),
         max_rhat = Float64(summary.max_rhat),
         min_ess = Float64(summary.min_ess),
+        max_rank_normalized_rhat =
+            Float64(summary.max_rank_normalized_rhat),
+        min_bulk_ess = Float64(summary.min_bulk_ess),
+        min_tail_ess = Float64(summary.min_tail_ess),
         e_bfmi = ismissing(summary.e_bfmi) ? missing :
             Float64(summary.e_bfmi),
+        n_e_bfmi_expected,
+        n_e_bfmi_available,
+        n_e_bfmi_unavailable,
+        e_bfmi_complete,
         n_divergences = Int(summary.n_divergences),
         n_max_treedepth = Int(summary.n_max_treedepth),
         heldout_predictive_score_computed = true,
@@ -771,12 +809,26 @@ function score_analytic_reference(unit)
         n_ppc_draws = 0,
         diagnostic_flag = :analytic_reference_no_mcmc,
         diagnostic_passed = false,
+        diagnostic_contract = missing,
+        diagnostic_contract_details = missing,
+        modern_diagnostic_metrics_complete = false,
+        n_insufficient_chains = 0,
+        n_insufficient_draws = 0,
+        n_nonfinite_parameters = 0,
+        n_degenerate_parameters = 0,
         n_nonfinite_logdensity = 0,
         n_nonfinite_direct_loglikelihood = 0,
         n_failed_direct_constraints = 0,
         max_rhat = NaN,
         min_ess = NaN,
+        max_rank_normalized_rhat = NaN,
+        min_bulk_ess = NaN,
+        min_tail_ess = NaN,
         e_bfmi = missing,
+        n_e_bfmi_expected = 0,
+        n_e_bfmi_available = 0,
+        n_e_bfmi_unavailable = 0,
+        e_bfmi_complete = false,
         n_divergences = 0,
         n_max_treedepth = 0,
         heldout_predictive_score_computed = true,
@@ -809,16 +861,37 @@ function compare_metric(value, threshold, comparison::Symbol)
     error("unsupported diagnostic comparison: $comparison")
 end
 
+function modern_diagnostic_contract_matches(score_row)
+    return hasproperty(score_row, :diagnostic_contract) &&
+        score_row.diagnostic_contract ===
+            BayesianMGMFRM._MCMC_DIAGNOSTIC_CONTRACT
+end
+
 function diagnostic_value(diagnostic::Symbol, score_row)
     diagnostic === :chains_min && return score_row.chains
     diagnostic === :warmup_per_chain_min && return score_row.warmup
     diagnostic === :draws_per_chain_min && return score_row.draws_per_chain
-    diagnostic === :rank_normalized_rhat_max && return score_row.max_rhat
-    diagnostic === :ess_bulk_min && return score_row.min_ess
-    diagnostic === :ess_tail_min && return score_row.min_ess
+    if diagnostic in (
+            :rank_normalized_rhat_max,
+            :ess_bulk_min,
+            :ess_tail_min)
+        modern_diagnostic_contract_matches(score_row) || return missing
+        hasproperty(score_row, :modern_diagnostic_metrics_complete) &&
+            score_row.modern_diagnostic_metrics_complete === true ||
+            return missing
+        diagnostic === :rank_normalized_rhat_max &&
+            return score_row.max_rank_normalized_rhat
+        diagnostic === :ess_bulk_min && return score_row.min_bulk_ess
+        return score_row.min_tail_ess
+    end
     diagnostic === :divergence_count_max && return score_row.n_divergences
     diagnostic === :max_treedepth_count_max && return score_row.n_max_treedepth
-    diagnostic === :ebfmi_min && return score_row.e_bfmi
+    if diagnostic === :ebfmi_min
+        modern_diagnostic_contract_matches(score_row) || return missing
+        hasproperty(score_row, :e_bfmi_complete) &&
+            score_row.e_bfmi_complete === true || return missing
+        return score_row.e_bfmi
+    end
     diagnostic === :pointwise_loglikelihood_finite &&
         return score_row.all_pointwise_scores_finite
     diagnostic === :posterior_predictive_check_recorded &&
@@ -844,7 +917,13 @@ function diagnostic_rows(gate, unit, score_row, dry_run::Bool)
         threshold = row[:threshold]
         applicable = diagnostic_applicable(diagnostic, unit)
         observed = !dry_run && applicable
-        value = observed ? diagnostic_value(diagnostic, score_row) : missing
+        diagnostic_contract_required =
+            unit.mcmc_refit_required && applicable
+        diagnostic_contract_matches_requirement =
+            !diagnostic_contract_required ||
+            modern_diagnostic_contract_matches(score_row)
+        value = observed && diagnostic_contract_matches_requirement ?
+            diagnostic_value(diagnostic, score_row) : missing
         passed = observed &&
             compare_metric(value, threshold, comparison)
         push!(rows, (;
@@ -853,6 +932,12 @@ function diagnostic_rows(gate, unit, score_row, dry_run::Bool)
             model = unit.model,
             fold = unit.fold,
             diagnostic,
+            diagnostic_contract = hasproperty(score_row, :diagnostic_contract) ?
+                score_row.diagnostic_contract : missing,
+            required_diagnostic_contract = diagnostic_contract_required ?
+                BayesianMGMFRM._MCMC_DIAGNOSTIC_CONTRACT : missing,
+            diagnostic_contract_required,
+            diagnostic_contract_matches_requirement,
             source = as_symbol(row[:source]),
             comparison,
             threshold,
@@ -886,6 +971,13 @@ function planned_score_row(unit, controls)
         n_heldout_observations = unit.n_heldout_observations,
         heldout_predictive_score_computed = false,
         posterior_predictive_check_recorded = false,
+        diagnostic_contract = missing,
+        diagnostic_contract_details = missing,
+        modern_diagnostic_metrics_complete = false,
+        n_e_bfmi_expected = controls.chains,
+        n_e_bfmi_available = 0,
+        n_e_bfmi_unavailable = controls.chains,
+        e_bfmi_complete = false,
         public_fit_metric_claim_allowed = false,
         public_model_weight_claim_allowed = false,
         sparse_superiority_claim_allowed = false,

@@ -22683,7 +22683,7 @@ end
     @test gmfrm_experimental_diagnostics.diagnostic_row_policy.parameter_spaces ==
         (:raw_unconstrained, :direct_constrained)
     @test gmfrm_experimental_diagnostics.diagnostic_row_policy.rhat_ess_status ===
-        :provisional_classical
+        :rank_normalized_available
     @test gmfrm_experimental_diagnostics.summary.total_draws == 8
     @test length(sampler_diagnostics(gmfrm_experimental_fit)) == 2
     @test all(row -> row.diagnostic_row === :sampler_chain &&
@@ -22694,19 +22694,31 @@ end
         size(gmfrm_experimental_fit.draws, 2)
     @test all(row -> row.diagnostic_row === :parameter &&
         row.parameter_space === :raw_unconstrained &&
-        row.diagnostic_status === :provisional_classical,
+        row.diagnostic_method === :rank_normalized_split_rhat_bulk_tail_ess &&
+        row.diagnostic_status === :rank_normalized_available &&
+        row.flag === row.rank_normalized_flag,
         mcmc_diagnostics(gmfrm_experimental_fit))
     @test length(parameter_block_diagnostics(gmfrm_experimental_fit)) >= 1
     @test all(row -> row.diagnostic_row === :parameter_block &&
         row.parameter_space === :raw_unconstrained &&
-        row.diagnostic_status === :provisional_classical,
+        row.diagnostic_method === :rank_normalized_split_rhat_bulk_tail_ess &&
+        row.diagnostic_status === :rank_normalized_available,
         parameter_block_diagnostics(gmfrm_experimental_fit))
     @test all(row -> row.parameter_space === :direct_constrained &&
-        row.diagnostic_status === :provisional_classical,
+        row.diagnostic_method === :rank_normalized_split_rhat_bulk_tail_ess &&
+        ((row.quality_gate_applicable &&
+                row.diagnostic_status === :rank_normalized_available &&
+                row.flag === row.rank_normalized_flag) ||
+            (!row.quality_gate_applicable &&
+                row.diagnostic_status === :structurally_fixed &&
+                row.flag === :structurally_fixed &&
+                row.classical_compatibility_flag === :structurally_fixed)),
         gmfrm_experimental_diagnostics.direct_parameter_rows)
     @test all(row -> row.diagnostic_row === :parameter_block &&
         row.parameter_space === :direct_constrained &&
-        row.diagnostic_status === :provisional_classical,
+        row.diagnostic_method === :rank_normalized_split_rhat_bulk_tail_ess &&
+        row.diagnostic_status in
+            (:rank_normalized_available, :structurally_fixed),
         gmfrm_experimental_diagnostics.direct_block_rows)
     gmfrm_experimental_artifact =
         fit_artifact(gmfrm_experimental_fit; include_environment = false)
@@ -22714,6 +22726,14 @@ end
         "bayesianmgmfrm.gmfrm_experimental_fit_artifact.v1"
     @test gmfrm_experimental_artifact.public_fit
     @test gmfrm_experimental_artifact.experimental_public
+    @test gmfrm_experimental_artifact.entrypoint ==
+        "BayesianMGMFRM.Experimental.fit(spec)"
+    @test gmfrm_experimental_artifact.legacy_entrypoint ==
+        "BayesianMGMFRM.fit(spec; experimental = true)"
+    @test gmfrm_experimental_artifact.reproducibility.diagnostic_policy.diagnostic_contract ===
+        :rank_normalized_rhat_bulk_tail_ess_v1
+    @test gmfrm_experimental_artifact.reproducibility.diagnostic_policy.diagnostic_contract_details.id ===
+        :rank_normalized_rhat_bulk_tail_ess_v1
     @test gmfrm_experimental_artifact.public_target_label ===
         :guarded_scalar_gmfrm_logdensity
     @test gmfrm_experimental_artifact.public_target_description ==
@@ -24544,7 +24564,7 @@ end
     @test mgmfrm_guarded_diagnostics.diagnostic_row_policy.parameter_spaces ==
         (:raw_unconstrained, :direct_constrained)
     @test mgmfrm_guarded_diagnostics.diagnostic_row_policy.rhat_ess_status ===
-        :provisional_classical
+        :rank_normalized_available
     @test mgmfrm_guarded_diagnostics.initialization_policy.initial_source ===
         :user_supplied_raw
     @test any(row -> row.policy === :initial_direct_transform &&
@@ -24563,19 +24583,31 @@ end
         size(mgmfrm_guarded_fit.draws, 2)
     @test all(row -> row.diagnostic_row === :parameter &&
         row.parameter_space === :raw_unconstrained &&
-        row.diagnostic_status === :provisional_classical,
+        row.diagnostic_method === :rank_normalized_split_rhat_bulk_tail_ess &&
+        row.diagnostic_status === :rank_normalized_available &&
+        row.flag === row.rank_normalized_flag,
         mcmc_diagnostics(mgmfrm_guarded_fit))
     @test length(parameter_block_diagnostics(mgmfrm_guarded_fit)) >= 1
     @test all(row -> row.diagnostic_row === :parameter_block &&
         row.parameter_space === :raw_unconstrained &&
-        row.diagnostic_status === :provisional_classical,
+        row.diagnostic_method === :rank_normalized_split_rhat_bulk_tail_ess &&
+        row.diagnostic_status === :rank_normalized_available,
         parameter_block_diagnostics(mgmfrm_guarded_fit))
     @test all(row -> row.parameter_space === :direct_constrained &&
-        row.diagnostic_status === :provisional_classical,
+        row.diagnostic_method === :rank_normalized_split_rhat_bulk_tail_ess &&
+        ((row.quality_gate_applicable &&
+                row.diagnostic_status === :rank_normalized_available &&
+                row.flag === row.rank_normalized_flag) ||
+            (!row.quality_gate_applicable &&
+                row.diagnostic_status === :structurally_fixed &&
+                row.flag === :structurally_fixed &&
+                row.classical_compatibility_flag === :structurally_fixed)),
         mgmfrm_guarded_diagnostics.direct_parameter_rows)
     @test all(row -> row.diagnostic_row === :parameter_block &&
         row.parameter_space === :direct_constrained &&
-        row.diagnostic_status === :provisional_classical,
+        row.diagnostic_method === :rank_normalized_split_rhat_bulk_tail_ess &&
+        row.diagnostic_status in
+            (:rank_normalized_available, :structurally_fixed),
         mgmfrm_guarded_diagnostics.direct_block_rows)
     mgmfrm_guarded_artifact =
         fit_artifact(mgmfrm_guarded_fit; include_environment = false)
@@ -24585,6 +24617,10 @@ end
     @test mgmfrm_guarded_artifact.experimental_public
     @test mgmfrm_guarded_artifact.guarded_local_fit
     @test mgmfrm_guarded_artifact.fit_ready
+    @test mgmfrm_guarded_artifact.reproducibility.diagnostic_policy.diagnostic_contract ===
+        :rank_normalized_rhat_bulk_tail_ess_v1
+    @test mgmfrm_guarded_artifact.reproducibility.diagnostic_policy.diagnostic_contract_details.id ===
+        :rank_normalized_rhat_bulk_tail_ess_v1
     @test mgmfrm_guarded_artifact.public_target_label ===
         :guarded_confirmatory_mgmfrm_logdensity
     @test mgmfrm_guarded_artifact.public_target_description ==
@@ -24599,7 +24635,10 @@ end
         mgmfrm_guarded_artifact.evidence_artifact_schema_policy.claim_policy.unsupported_claims
     @test mgmfrm_guarded_artifact.evidence_artifact_schema_policy.environment_policy.include_environment ===
         false
-    @test mgmfrm_guarded_artifact.entrypoint == "fit(spec; experimental = true)"
+    @test mgmfrm_guarded_artifact.entrypoint ==
+        "BayesianMGMFRM.Experimental.fit(spec)"
+    @test mgmfrm_guarded_artifact.legacy_entrypoint ==
+        "BayesianMGMFRM.fit(spec; experimental = true)"
     @test mgmfrm_guarded_artifact.guarded_local_entrypoint === :_fit_guarded_mgmfrm
     @test mgmfrm_guarded_artifact.target === :_mgmfrm_guarded_local_fit_logdensity
     @test mgmfrm_guarded_artifact.ability_scale ===
@@ -25440,18 +25479,27 @@ end
     @test all(row -> row.diagnostic_draws_per_chain == 4, diagnostics)
     @test all(row -> row.total_draws == 24, diagnostics)
     @test all(row -> row.split_chains, diagnostics)
-    @test all(row -> row.flag in (:ok, :mcmc_warning, :degenerate_draws), diagnostics)
+    @test all(row -> row.flag in
+        (:ok, :mcmc_warning, :insufficient_draws, :nonfinite_draws,
+            :degenerate_draws), diagnostics)
     @test all(row -> row.diagnostic_row === :parameter &&
         row.parameter_space === :identified &&
-        row.diagnostic_method === :classical_split_rhat_autocorrelation_ess &&
-        row.diagnostic_status === :provisional_classical,
+        row.diagnostic_contract === :rank_normalized_rhat_bulk_tail_ess_v1 &&
+        row.diagnostic_method === :rank_normalized_split_rhat_bulk_tail_ess &&
+        row.diagnostic_status === :rank_normalized_available &&
+        row.flag === row.rank_normalized_flag,
         diagnostics)
     @test all(row -> row.flag === :ok ?
-        isfinite(row.rhat) && row.rhat <= 1.01 && isfinite(row.ess) && row.ess >= 400.0 :
+        isfinite(row.rank_normalized_rhat) &&
+            row.rank_normalized_rhat <= 1.01 &&
+            isfinite(row.bulk_ess) && row.bulk_ess >= 400.0 &&
+            isfinite(row.tail_ess) && row.tail_ess >= 400.0 :
         true, diagnostics)
-    @test all(row -> (isfinite(row.rhat) && row.rhat > 1.01 ||
-            isfinite(row.ess) && row.ess < 400.0) ?
-        row.flag === :mcmc_warning :
+    @test all(row -> row.flag === :mcmc_warning ?
+        (isfinite(row.rank_normalized_rhat) &&
+                row.rank_normalized_rhat > 1.01 ||
+            isfinite(row.bulk_ess) && row.bulk_ess < 400.0 ||
+            isfinite(row.tail_ess) && row.tail_ess < 400.0) :
         true, diagnostics)
     @test_throws ArgumentError mcmc_diagnostics(result; rhat_threshold = 1.0)
     @test_throws ArgumentError mcmc_diagnostics(result; ess_threshold = 0)
@@ -25459,6 +25507,10 @@ end
     @test all(row -> row.diagnostic_chains == 3, unsplit_diagnostics)
     @test all(row -> row.diagnostic_draws_per_chain == 8, unsplit_diagnostics)
     @test all(row -> !row.split_chains, unsplit_diagnostics)
+    @test all(row -> row.split_chains_requested === false &&
+        row.diagnostic_method ===
+            :rank_normalized_unsplit_rhat_bulk_tail_ess,
+        unsplit_diagnostics)
 
     block_rows = parameter_block_diagnostics(result)
     @test [row.block for row in block_rows] == sort(collect(keys(design.blocks)); by = string)
@@ -25469,11 +25521,14 @@ end
     @test all(row -> row.split_chains, block_rows)
     @test all(row -> row.rhat_threshold == 1.01, block_rows)
     @test all(row -> row.ess_threshold == 400.0, block_rows)
-    @test all(row -> row.flag in (:ok, :mcmc_warning, :insufficient_chains, :degenerate_draws, :empty_block), block_rows)
+    @test all(row -> row.flag in
+        (:ok, :mcmc_warning, :insufficient_chains, :insufficient_draws,
+            :nonfinite_draws, :degenerate_draws, :empty_block), block_rows)
     @test all(row -> row.diagnostic_row === :parameter_block &&
         row.parameter_space === :identified &&
-        row.diagnostic_method === :classical_split_rhat_autocorrelation_ess &&
-        row.diagnostic_status === :provisional_classical,
+        row.diagnostic_contract === :rank_normalized_rhat_bulk_tail_ess_v1 &&
+        row.diagnostic_method === :rank_normalized_split_rhat_bulk_tail_ess &&
+        row.diagnostic_status === :rank_normalized_available,
         block_rows)
     person_block_row = only(filter(row -> row.block === :person, block_rows))
     @test person_block_row.n_parameters == length(data.person_levels)
@@ -25490,25 +25545,31 @@ end
     @test diagnostic_surface.schema == "bayesianmgmfrm.diagnostics.v1"
     @test diagnostic_surface.diagnostic_row_policy.family === :mfrm
     @test diagnostic_surface.diagnostic_row_policy.parameter_spaces == (:identified,)
-    @test diagnostic_surface.diagnostic_row_policy.rhat_method === :classical_split
-    @test diagnostic_surface.diagnostic_row_policy.ess_method === :autocorrelation
-    @test !diagnostic_surface.diagnostic_row_policy.rank_normalized_rhat_available
-    @test !diagnostic_surface.diagnostic_row_policy.bulk_tail_ess_available
+    @test diagnostic_surface.diagnostic_row_policy.diagnostic_contract ===
+        :rank_normalized_rhat_bulk_tail_ess_v1
+    @test diagnostic_surface.diagnostic_row_policy.rhat_method === :rank_normalized
+    @test diagnostic_surface.diagnostic_row_policy.ess_method === :bulk_and_tail
+    @test diagnostic_surface.diagnostic_row_policy.rank_normalized_rhat_available
+    @test diagnostic_surface.diagnostic_row_policy.bulk_tail_ess_available
     @test diagnostic_surface.backend === result.backend
     @test diagnostic_surface.sampler === result.sampler
     @test diagnostic_surface.summary.n_chains == 3
     @test diagnostic_surface.summary.draws_per_chain == 8
     @test diagnostic_surface.summary.n_parameters == length(design.parameter_names)
-    @test diagnostic_surface.summary.flag in (:ok, :sampler_warning, :mcmc_warning, :insufficient_chains)
+    @test diagnostic_surface.summary.flag in
+        (:ok, :sampler_warning, :mcmc_warning, :insufficient_chains,
+            :insufficient_draws)
     @test diagnostic_surface.summary.n_divergences == 0
     @test ismissing(diagnostic_surface.summary.n_max_treedepth)
     @test ismissing(diagnostic_surface.summary.e_bfmi)
     @test diagnostic_surface.summary.n_block_warnings ==
-        count(row -> row.flag in (:insufficient_chains, :degenerate_draws, :mcmc_warning), block_rows)
+        count(row -> row.flag in
+            (:insufficient_chains, :insufficient_draws, :nonfinite_draws,
+                :degenerate_draws, :mcmc_warning), block_rows)
     @test diagnostic_surface.summary.n_empty_blocks == count(row -> row.flag === :empty_block, block_rows)
     @test isequal(diagnostic_surface.sampler_rows, sampler_rows)
-    @test diagnostic_surface.parameter_rows == diagnostics
-    @test diagnostic_surface.block_rows == block_rows
+    @test isequal(diagnostic_surface.parameter_rows, diagnostics)
+    @test isequal(diagnostic_surface.block_rows, block_rows)
     @test_throws ArgumentError BayesianMGMFRM.diagnostics(result; rhat_threshold = 1.0)
     @test_throws ArgumentError BayesianMGMFRM.diagnostics(result; ess_threshold = 0)
 
@@ -25609,10 +25670,12 @@ end
     @test hmc_surface.summary.draws_per_chain == 3
     @test hmc_surface.summary.n_divergences >= 0
     @test hmc_surface.summary.n_max_treedepth >= 0
-    @test hmc_surface.summary.flag in (:ok, :sampler_warning, :mcmc_warning, :insufficient_chains)
+    @test hmc_surface.summary.flag in
+        (:ok, :sampler_warning, :mcmc_warning, :insufficient_chains,
+            :insufficient_draws)
     @test isequal(hmc_surface.sampler_rows, hmc_sampler_rows)
     hmc_block_rows = parameter_block_diagnostics(hmc_result)
-    @test hmc_surface.block_rows == hmc_block_rows
+    @test isequal(hmc_surface.block_rows, hmc_block_rows)
     @test sum(row.n_parameters for row in hmc_block_rows) == length(design.parameter_names)
     @test all(row -> row.n_chains == 2, hmc_block_rows)
 
@@ -25685,10 +25748,12 @@ end
     @test turing_surface.summary.draws_per_chain == 2
     @test turing_surface.summary.n_divergences >= 0
     @test turing_surface.summary.n_max_treedepth >= 0
-    @test turing_surface.summary.flag in (:ok, :sampler_warning, :mcmc_warning, :insufficient_chains)
+    @test turing_surface.summary.flag in
+        (:ok, :sampler_warning, :mcmc_warning, :insufficient_chains,
+            :insufficient_draws)
     @test isequal(turing_surface.sampler_rows, turing_sampler_rows)
     turing_block_rows = parameter_block_diagnostics(turing_result)
-    @test turing_surface.block_rows == turing_block_rows
+    @test isequal(turing_surface.block_rows, turing_block_rows)
     @test sum(row.n_parameters for row in turing_block_rows) == length(design.parameter_names)
     @test all(row -> row.n_chains == 2, turing_block_rows)
 
@@ -25749,6 +25814,10 @@ end
     @test compact_artifact.reproducibility.artifact_policy.draws === :omitted
     @test compact_artifact.reproducibility.artifact_policy.environment === :omitted
     @test compact_artifact.reproducibility.artifact_policy.package_status === :omitted
+    @test compact_artifact.reproducibility.diagnostic_policy.diagnostic_contract ===
+        :rank_normalized_rhat_bulk_tail_ess_v1
+    @test compact_artifact.reproducibility.diagnostic_policy.diagnostic_contract_details.id ===
+        :rank_normalized_rhat_bulk_tail_ess_v1
     @test compact_artifact.reproducibility.diagnostic_policy.rhat_threshold == 1.01
     @test compact_artifact.reproducibility.diagnostic_policy.ess_threshold == 400.0
     @test isnothing(compact_artifact.environment)
@@ -30452,6 +30521,7 @@ include("facets_compatibility_stats.jl")
 include("generalized_guard_contract.jl")
 include("publication_grade_policy_contract.jl")
 include("public_language_gate.jl")
+include("rank_normalized_diagnostics.jl")
 include("scientific_payload_digest.jl")
 
 module FullPaperReproductionArchiveContractForTest
