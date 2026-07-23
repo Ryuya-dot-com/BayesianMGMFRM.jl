@@ -51,6 +51,7 @@ export FacetData,
     MFRMPrior,
     ValidationIssue,
     ValidationReport,
+    anchor_refit_plan,
     anchor_linking_summary,
     artifact_content_hash,
     benchmark_result_row,
@@ -199,6 +200,7 @@ include("mgmfrm_free_correlation_study.jl")
 include("mgmfrm_free_correlation_resource_probe.jl")
 include("mgmfrm_free_correlation_study_scoring.jl")
 include("experimental.jl")
+include("anchor_refit_plan.jl")
 include("local_dependence.jl")
 include("local_dependence_known_truth_dgp.jl")
 include("local_dependence_simulation.jl")

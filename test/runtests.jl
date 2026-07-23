@@ -28,6 +28,7 @@ const RuntimePublicLanguagePolicy =
 
 using BayesianMGMFRM:
     FacetData,
+    anchor_refit_plan,
     anchor_linking_summary,
     artifact_content_hash,
     benchmark_result_row,
@@ -19813,7 +19814,8 @@ end
 @testset "public docstrings" begin
     for name in (:FacetData, :ValidationIssue, :ValidationReport, :FacetSpec, :FacetDesign,
             :MFRMPrior, :MFRMLogDensity, :MFRMFit, :GMFRMFit, :MGMFRMFit,
-            :anchor_linking_summary, :artifact_content_hash, :cached_fit,
+            :anchor_refit_plan, :anchor_linking_summary,
+            :artifact_content_hash, :cached_fit,
             :benchmark_result_row, :benchmark_summary, :calibration_plot_data,
             :case_study_provenance_manifest,
             :constraint_table, :dff_report, :domain_compilation_summary,
@@ -30590,6 +30592,7 @@ include("local_dependence_calibration_pilot.jl")
 include("local_dependence_pilot_protocol_artifact.jl")
 include("local_dependence_pilot_batch_execution_harness.jl")
 include("facets_compatibility_stats.jl")
+include("anchor_refit_plan.jl")
 include("generalized_guard_contract.jl")
 include("experimental_namespace.jl")
 include("mgmfrm_free_latent_correlation_2d.jl")
