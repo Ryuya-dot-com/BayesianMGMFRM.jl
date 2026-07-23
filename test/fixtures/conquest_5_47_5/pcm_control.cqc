@@ -1,0 +1,29 @@
+title ConQuest macOS hardened runner PCM;
+set lconstraints=items,seed=2,storecommands=yes,exit_on_error=yes,addextension=no;
+datafile conquest_ratings.csv
+  ! filetype=csv,
+    responses=response,
+    pid=personid,
+    keeps=itemid raterid,
+    width=1,
+    pidwidth=7,
+    keepswidth=7,
+    header=yes
+  >> results/conquest_input_snapshot.txt;
+codes A,B,C;
+score (A,B,C) (0,1,2);
+model raterid + itemid + itemid*step;
+export logfile >> results/conquest_estimation.log;
+estimate ! method=gauss,nodes=20,convergence=0.0001,stderr=empirical,fit=yes,pfit=yes;
+export parameters >> results/conquest_parameters.txt;
+export covariance >> results/conquest_population_covariance.txt;
+export designmatrix ! filetype=csv >> results/conquest_designmatrix.csv;
+export labels >> results/conquest_labels.txt;
+export history >> results/conquest_history.txt;
+export threshold ! filetype=csv >> results/conquest_thresholds.csv;
+show parameters ! tables=1:2:3:5:10,labelled=yes,estimates=wle >> results/conquest_show_parameters.txt;
+show cases ! estimates=wle,pfit=yes,filetype=csv >> results/conquest_cases_wle.csv;
+show residuals ! estimates=wle,filetype=csv >> results/conquest_residuals.csv;
+itanal ! estimates=wle,format=export >> results/conquest_itanal_export.txt;
+chistory >> results/conquest_commands.txt;
+quit;
