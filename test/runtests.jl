@@ -27938,6 +27938,369 @@ end
     @test length(String(design_robustness[:content_hash][:value])) == 64
     rm(design_robustness_path; force = true)
 
+    design_stress_script = joinpath(
+        dirname(@__DIR__),
+        "scripts",
+        "generate_existing_api_design_robustness_stress_grid.jl",
+    )
+    design_stress_fixture = joinpath(
+        dirname(@__DIR__),
+        "test",
+        "fixtures",
+        "existing_api_design_robustness_stress_grid.json",
+    )
+    @test isfile(design_stress_script)
+    @test isfile(design_stress_fixture)
+    protected_fixture_bytes = read(design_stress_fixture)
+    blocked_fixture_output = IOBuffer()
+    blocked_fixture_process = run(pipeline(ignorestatus(
+        `$(Base.julia_cmd()) --startup-file=no --project=$subprocess_project_dir
+            $design_stress_script --execute --output $design_stress_fixture`);
+        stdout = blocked_fixture_output,
+        stderr = blocked_fixture_output,
+    ))
+    @test !success(blocked_fixture_process)
+    @test read(design_stress_fixture) == protected_fixture_bytes
+    @test occursin(
+        "--execute output must not resolve to the deterministic fixture",
+        String(take!(blocked_fixture_output)),
+    )
+    design_stress_path = tempname() * ".json"
+    run(`$(Base.julia_cmd()) --startup-file=no --project=$subprocess_project_dir
+        $design_stress_script --output $design_stress_path`)
+    design_stress = JSON3.read(read(design_stress_path, String))
+    committed_design_stress = JSON3.read(read(design_stress_fixture, String))
+    function stress_local_json_value(value)
+        if value isa AbstractDict
+            materialized_pairs = collect(pairs(value))
+            names = Tuple(Symbol(String(pair.first)) for pair in materialized_pairs)
+            values = Tuple(stress_local_json_value(pair.second)
+                for pair in materialized_pairs)
+            return NamedTuple{names}(values)
+        elseif value isa AbstractArray || value isa Tuple
+            return [stress_local_json_value(element) for element in value]
+        end
+        return value
+    end
+    function stress_recomputed_content_hash(artifact)
+        named = stress_local_json_value(artifact)
+        without_hash = (; (key => value for (key, value) in pairs(named)
+            if key !== :content_hash)...)
+        io = IOBuffer()
+        write_canonical_json(io, without_hash)
+        return bytes2hex(sha256(take!(io)))
+    end
+    for artifact in (design_stress, committed_design_stress)
+        @test String(artifact[:content_hash][:algorithm]) == "sha256"
+        @test String(artifact[:content_hash][:covers]) ==
+            "artifact_without_content_hash"
+        @test String(artifact[:content_hash][:value]) ==
+            stress_recomputed_content_hash(artifact)
+    end
+    stress_semantic_signature = artifact -> (;
+        schema = String(artifact[:schema]),
+        status = String(artifact[:status]),
+        package_version = String(artifact[:package][:version]),
+        n_design_cells = Int(artifact[:summary][:n_design_cells]),
+        n_model_design_cells = Int(artifact[:summary][:n_model_design_cells]),
+        n_paired_replication_rows =
+            Int(artifact[:summary][:n_paired_replication_rows]),
+        deterministic_checks = [(String(row[:check]), Bool(row[:passed]))
+            for row in artifact[:deterministic_checks]],
+        placement_checks = [(String(row[:family]), Bool(row[:passed]))
+            for row in artifact[:c2p_placement_contrast_checks]],
+        recovery_completed = Bool(artifact[:summary][
+            :paired_known_truth_recovery_completed]),
+    )
+    @test stress_semantic_signature(design_stress) ==
+        stress_semantic_signature(committed_design_stress)
+    function stress_evidence_projection(artifact)
+        cells = artifact[:model_cell_preflight]
+        cell = (cell_id, family) -> only(row for row in cells
+            if String(row[:cell_id]) == cell_id &&
+                String(row[:family]) == family)
+        baseline = cell("C0_balanced_random_double_rated", "mfrm")[
+            :design_metrics]
+        f1 = cell("F1_mfrm_2pct_high_variance_random_order", "mfrm")[
+            :design_metrics][:requested_vs_achieved]
+        c3f = cell("C3F_nested_10pct_link_distributed_fixed_total", "mfrm")[
+            :design_metrics]
+        c2p = [(;
+            family = String(row[:family]),
+            passed = Bool(row[:passed]),
+            same_event_set = Bool(row[:same_event_set]),
+            same_common_target_rater_events =
+                Bool(row[:same_common_target_rater_events]),
+            same_named_truth = Bool(row[:same_named_truth]),
+            same_uniform_score_assignment_by_named_event =
+                Bool(row[:same_uniform_score_assignment_by_named_event]),
+            positions_and_occasions_recomputed =
+                Bool(row[:positions_and_occasions_recomputed]),
+            distributed_spans_early_and_late =
+                Bool(row[:distributed_spans_early_and_late]),
+            event_hashes_match_within_artifact =
+                String(row[:event_set_sha256_early]) ==
+                    String(row[:event_set_sha256_distributed]),
+            common_hashes_match_within_artifact =
+                String(row[:common_target_rater_events_sha256_early]) ==
+                    String(row[:common_target_rater_events_sha256_distributed]),
+            truth_hashes_match_within_artifact =
+                String(row[:named_truth_sha256_early]) ==
+                    String(row[:named_truth_sha256_distributed]),
+            assignment_hashes_match_within_artifact =
+                String(row[:uniform_score_assignment_sha256_early]) ==
+                    String(row[:uniform_score_assignment_sha256_distributed]),
+        ) for row in artifact[:c2p_placement_contrast_checks]]
+        skeletons = artifact[:all_requested_replication_skeleton_preflight]
+        return (;
+            c2p,
+            f1 = (;
+                status = String(f1[:status]),
+                fit_eligible = Bool(f1[:fit_eligible]),
+                support_passed = Bool(f1[:support_passed]),
+                placement_passed = Bool(f1[:placement_passed]),
+                rater_linking_passed = Bool(f1[:rater_linking_passed]),
+            ),
+            baseline_multi_planned = Float64(baseline[
+                :achieved_multi_rated_target_fraction_planned_denominator]),
+            baseline_multi_observed = Float64(baseline[
+                :achieved_multi_rated_target_fraction_observed_denominator]),
+            c3f_multi_planned = Float64(c3f[
+                :achieved_multi_rated_target_fraction_planned_denominator]),
+            c3f_multi_observed = Float64(c3f[
+                :achieved_multi_rated_target_fraction_observed_denominator]),
+            skeleton_preflight = (;
+                requested_replications = Int(skeletons[:requested_replications]),
+                n_rows = Int(skeletons[:n_candidate_family_replication_rows]),
+                n_passed = Int(skeletons[:n_passed]),
+                n_failed = Int(skeletons[:n_failed]),
+                passed = Bool(skeletons[:passed]),
+            ),
+        )
+    end
+    @test stress_evidence_projection(design_stress) ==
+        stress_evidence_projection(committed_design_stress)
+    @test String(design_stress[:generator][:source_sha256]) ==
+        file_sha256(design_stress_script)
+    @test String(committed_design_stress[:generator][:source_sha256]) ==
+        file_sha256(design_stress_script)
+    @test String(design_stress[:prerequisite_plan][:sha256]) ==
+        file_sha256(design_robustness_fixture)
+    @test String(committed_design_stress[:prerequisite_plan][:sha256]) ==
+        file_sha256(design_robustness_fixture)
+    @test String(design_stress[:schema]) ==
+        "bayesianmgmfrm.existing_api_design_robustness_stress_grid.v1"
+    @test String(design_stress[:status]) ==
+        "paired_known_truth_dry_run_passed_mcmc_not_run"
+    @test Bool(design_stress[:execution][:execute_mcmc]) == false
+    @test Int(design_stress[:execution][:n_fit_attempted]) == 0
+    @test String(design_stress[:execution][:seed_namespace]) == "smoke_wiring"
+    @test Bool(design_stress[:execution][
+        :paired_fit_execution_completed]) == false
+    @test Bool(design_stress[:execution][:full_gate_scorer_implemented]) == false
+    @test Bool(design_stress[:execution][
+        :all_requested_replication_skeletons_design_preflighted])
+    @test Bool(design_stress[:execution][
+        :all_requested_replication_skeletons_passed])
+    skeleton_preflight = design_stress[
+        :all_requested_replication_skeleton_preflight]
+    @test Int(skeleton_preflight[:requested_replications]) == 1
+    @test Int(skeleton_preflight[:n_candidate_family_replication_rows]) == 3
+    @test Int(skeleton_preflight[:n_passed]) == 3
+    @test Int(skeleton_preflight[:n_failed]) == 0
+    @test Bool(skeleton_preflight[:passed])
+    @test !haskey(design_stress[:package], :julia_version)
+    @test !occursin('\\', String(design_stress[:prerequisite_plan][:path]))
+    @test Bool(design_stress[:summary][:passed])
+    @test Int(design_stress[:summary][:n_design_cells]) == 10
+    @test Int(design_stress[:summary][:n_model_design_cells]) == 24
+    @test Int(design_stress[:summary][:n_paired_replication_rows]) == 21
+    @test Bool(design_stress[:summary][
+        :paired_known_truth_recovery_completed]) == false
+    @test Bool(design_stress[:summary][
+        :design_robustness_claim_supported]) == false
+    @test haskey(design_stress[:terminology],
+        :inclusive_multiply_scored_target)
+    @test !haskey(design_stress[:terminology],
+        :ordinary_multiply_scored_target)
+    @test all(row -> Bool(row[:passed]),
+        design_stress[:deterministic_checks])
+    skeleton_probe = design_stress[:replication_skeleton_resampling_probe]
+    @test Bool(skeleton_probe[:passed])
+    @test Bool(skeleton_probe[:event_assignment_changed])
+    @test Bool(skeleton_probe[:within_rater_order_changed])
+    permutation_checks = design_stress[:row_permutation_equivariance_checks]
+    @test length(permutation_checks) == 6
+    @test Set(String(row[:family]) for row in permutation_checks) == Set([
+        "mfrm",
+        "guarded_scalar_gmfrm",
+        "guarded_fixed_q_mgmfrm",
+    ])
+    @test all(row -> Bool(row[:passed]) &&
+        Float64(row[:maximum_aligned_pointwise_loglikelihood_error]) <=
+            Float64(row[:tolerance]) &&
+        Float64(row[:absolute_total_loglikelihood_error]) <=
+            Float64(row[:total_reduction_tolerance]), permutation_checks)
+    placement_checks = design_stress[:c2p_placement_contrast_checks]
+    @test length(placement_checks) == 3
+    @test all(row -> Bool(row[:passed]) && Bool(row[:same_event_set]) &&
+        Bool(row[:same_common_target_rater_events]) &&
+        Bool(row[:same_named_truth]) &&
+        Bool(row[:same_uniform_score_assignment_by_named_event]) &&
+        Bool(row[:positions_and_occasions_recomputed]) &&
+        Bool(row[:distributed_spans_early_and_late]) &&
+        String(row[:event_set_sha256_early]) ==
+            String(row[:event_set_sha256_distributed]) &&
+        String(row[:common_target_rater_events_sha256_early]) ==
+            String(row[:common_target_rater_events_sha256_distributed]) &&
+        String(row[:named_truth_sha256_early]) ==
+            String(row[:named_truth_sha256_distributed]) &&
+        String(row[:uniform_score_assignment_sha256_early]) ==
+            String(row[:uniform_score_assignment_sha256_distributed]) &&
+        Float64(row[:maximum_aligned_pointwise_loglikelihood_error]) <=
+            Float64(row[:tolerance]), placement_checks)
+    stress_cells = design_stress[:model_cell_preflight]
+    stress_mfrm_cells = filter(row -> String(row[:family]) == "mfrm",
+        stress_cells)
+    baseline_stress = only(row for row in stress_mfrm_cells
+        if String(row[:cell_id]) == "C0_balanced_random_double_rated")
+    baseline_metrics = baseline_stress[:design_metrics]
+    @test Float64(baseline_metrics[
+        :achieved_multi_rated_target_fraction_planned_denominator]) == 1.0
+    @test Float64(baseline_metrics[
+        :achieved_multi_rated_target_fraction_observed_denominator]) == 1.0
+    @test Float64(baseline_metrics[
+        :achieved_common_linking_fraction_planned_denominator]) == 0.0
+    @test String(baseline_metrics[:controlled_benchmark_status]) ==
+        "not_materialized"
+    f1_stress = only(row for row in stress_mfrm_cells
+        if String(row[:cell_id]) ==
+            "F1_mfrm_2pct_high_variance_random_order")
+    f1_gate = f1_stress[:design_metrics][:requested_vs_achieved]
+    @test String(f1_gate[:status]) == "underresolved_planned_only"
+    @test Bool(f1_gate[:fit_eligible]) == false
+    @test Bool(f1_gate[:support_passed]) == false
+    @test Bool(f1_gate[:placement_passed]) == false
+    @test Bool(f1_gate[:rater_linking_passed]) == false
+    mgmfrm_stress = only(row for row in stress_cells
+        if String(row[:cell_id]) == "C0_balanced_random_double_rated" &&
+            String(row[:family]) == "guarded_fixed_q_mgmfrm")
+    mgmfrm_order = mgmfrm_stress[:design_metrics][
+        :mgmfrm_order_diagnostics]
+    @test length(mgmfrm_order[:dimension_specific]) == 2
+    @test all(row -> length(row[:by_rater]) == 4,
+        mgmfrm_order[:dimension_specific])
+    @test length(mgmfrm_order[:q_active_source][:by_rater]) == 4
+    @test Bool(design_stress[:paired_dgp_contract][
+        :condition_A_dgp_and_fit_share_package_likelihood_kernel])
+    @test Bool(design_stress[:paired_dgp_contract][
+        :independent_dgp_cross_check_completed]) == false
+    @test Bool(design_stress[:evidence_boundary][
+        :kernel_independent_validation_claim_supported]) == false
+    for cell_id in (
+        "C2F_nested_5pct_link_early_fixed_total",
+        "C3F_nested_10pct_link_distributed_fixed_total",
+    )
+        cell = only(row for row in stress_mfrm_cells
+            if String(row[:cell_id]) == cell_id)
+        metrics = cell[:design_metrics]
+        @test String(metrics[:rating_budget_implementation]) ==
+            "fixed_total_target_displacement"
+        @test Int(metrics[:n_rating_events]) ==
+            Int(metrics[:planned_target_denominator])
+        @test Int(metrics[:observed_target_denominator]) +
+            Int(metrics[:n_displaced_operational_targets]) ==
+            Int(metrics[:planned_target_denominator])
+        @test isapprox(
+            Float64(metrics[
+                :achieved_common_linking_fraction_observed_denominator]),
+            Int(metrics[:n_common_linking_targets]) /
+                Int(metrics[:observed_target_denominator]);
+            atol = 1.0e-12,
+        )
+        planned_multi = Float64(metrics[
+            :achieved_multi_rated_target_fraction_planned_denominator])
+        observed_multi = Float64(metrics[
+            :achieved_multi_rated_target_fraction_observed_denominator])
+        @test isapprox(planned_multi,
+            Int(metrics[:n_multi_rated_targets]) /
+                Int(metrics[:planned_target_denominator]); atol = 1.0e-12)
+        @test isapprox(observed_multi,
+            Int(metrics[:n_multi_rated_targets]) /
+                Int(metrics[:observed_target_denominator]); atol = 1.0e-12)
+        if cell_id == "C3F_nested_10pct_link_distributed_fixed_total"
+            @test observed_multi > planned_multi
+            @test isapprox(observed_multi - planned_multi,
+                Int(metrics[:n_multi_rated_targets]) *
+                    (1 / Int(metrics[:observed_target_denominator]) -
+                        1 / Int(metrics[:planned_target_denominator]));
+                atol = 1.0e-12)
+        end
+    end
+    paired_stress_rows = design_stress[:paired_replication_rows]
+    @test all(row -> Bool(row[:category_support_conditioning]) == false &&
+        Bool(row[:category_support_resampling]) == false, paired_stress_rows)
+    @test all(row -> length(row[:conditions]) == 2 &&
+        String(row[:conditions][1][:condition]) == "A_well_specified_static" &&
+        String(row[:conditions][2][:condition]) == "B_unmodeled_order_effect",
+        paired_stress_rows)
+    @test all(condition -> length(condition[:score_summary][
+        :category_counts]) == 4,
+        (condition for row in paired_stress_rows for condition in row[:conditions]))
+    @test String(design_stress[:content_hash][:algorithm]) == "sha256"
+    @test length(String(design_stress[:content_hash][:value])) == 64
+    rm(design_stress_path; force = true)
+
+    blocked_pilot_path = tempname() * ".json"
+    blocked_pilot_output = IOBuffer()
+    blocked_pilot_process = run(pipeline(ignorestatus(
+        `$(Base.julia_cmd()) --startup-file=no --project=$subprocess_project_dir
+            $design_stress_script --profile pilot --execute --allow-heavy
+            --output $blocked_pilot_path`);
+        stdout = blocked_pilot_output,
+        stderr = blocked_pilot_output,
+    ))
+    @test !success(blocked_pilot_process)
+    @test !isfile(blocked_pilot_path)
+    @test occursin(
+        "pilot/calibration MCMC is blocked until the declared full gate scorer is implemented",
+        String(take!(blocked_pilot_output)),
+    )
+
+    calibration_skeleton_path = tempname() * ".json"
+    run(`$(Base.julia_cmd()) --startup-file=no --project=$subprocess_project_dir
+        $design_stress_script --profile calibration --replications 50
+        --output $calibration_skeleton_path`)
+    calibration_skeleton = JSON3.read(
+        read(calibration_skeleton_path, String))
+    calibration_preflight = calibration_skeleton[
+        :all_requested_replication_skeleton_preflight]
+    @test Bool(calibration_preflight[:passed])
+    @test Int(calibration_preflight[:requested_replications]) == 50
+    @test Int(calibration_preflight[:n_profile_fit_candidate_families]) == 21
+    @test Int(calibration_preflight[:n_unique_design_skeletons]) == 450
+    @test Int(calibration_preflight[
+        :n_candidate_family_replication_rows]) == 1050
+    @test Int(calibration_preflight[:n_passed]) == 1050
+    @test Int(calibration_preflight[:n_failed]) == 0
+    @test isempty(calibration_preflight[:failure_rows])
+    calibration_f1_rows = [row for row in calibration_preflight[:rows]
+        if String(row[:cell_id]) ==
+            "F1_mfrm_2pct_high_variance_random_order"]
+    @test length(calibration_f1_rows) == 50
+    @test Set(Int(row[:replication]) for row in calibration_f1_rows) ==
+        Set(1:50)
+    @test all(row -> Bool(row[:passed]) &&
+        Float64(row[:requested_vs_achieved][
+            :achieved_ability_range_ratio]) >= 0.75 &&
+        Float64(row[:requested_vs_achieved][
+            :achieved_item_range_ratio]) >= 0.75,
+        calibration_f1_rows)
+    @test Int(calibration_skeleton[:summary][
+        :n_paired_replication_rows]) == 21
+    @test Int(calibration_skeleton[:execution][:n_fit_attempted]) == 0
+    rm(calibration_skeleton_path; force = true)
+
     comparison_rows = [
         comparison_evidence_row(;
             comparison_class = :stan,
@@ -30929,6 +31292,7 @@ end
     end
 end
 
+include("existing_api_design_robustness_recovery_scorer.jl")
 include("facets_conquest_bridge.jl")
 include("model_contract.jl")
 include("testlet_design_audit.jl")
