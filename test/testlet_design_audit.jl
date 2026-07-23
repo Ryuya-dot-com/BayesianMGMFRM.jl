@@ -593,3 +593,66 @@ end
     @test_throws ArgumentError testlet_design_audit(data;
         min_indicators_per_response = 0)
 end
+
+@testset "LD0 standardized residual smoke" begin
+    data = ld0_facet_data(ld0_cluster_table())
+    design = getdesign(mfrm_spec(data; thresholds = :partial_credit))
+    draws = zeros(2, length(design.parameter_names))
+    standardized = predictive_standardized_residuals(design, draws)
+    expected = expected_scores(design, draws)
+    variances = predictive_variances(design, draws)
+    manual = (reshape(Float64.(data.score), 1, :) .- expected) ./ sqrt.(variances)
+    @test standardized.schema ==
+        "bayesianmgmfrm.predictive_standardized_residuals.v1"
+    @test standardized.family === :mfrm
+    @test standardized.draw_indices == (1, 2)
+    @test standardized.n_valid == length(standardized.valid)
+    @test standardized.n_excluded == 0
+    @test all(standardized.valid)
+    @test standardized.values ≈ manual
+
+    excluded = predictive_standardized_residuals(
+        design,
+        draws;
+        variance_tolerance = 1.0,
+    )
+    @test excluded.n_valid == 0
+    @test excluded.n_excluded == length(excluded.valid)
+    @test all(isnan, excluded.values)
+    @test all(==(data.n), excluded.excluded_by_draw)
+    @test_throws ArgumentError predictive_standardized_residuals(
+        design,
+        draws;
+        variance_tolerance = -1.0,
+    )
+    @test_throws ArgumentError predictive_standardized_residuals(
+        design,
+        zeros(0, length(design.parameter_names)),
+    )
+
+    fit_result = fit(
+        design;
+        ndraws = 2,
+        warmup = 1,
+        chains = 1,
+        step_size = 0.02,
+        seed = 20260720,
+    )
+    selected = predictive_standardized_residuals(
+        fit_result;
+        draw_indices = [2, 1],
+    )
+    supplied = predictive_standardized_residuals(
+        design,
+        fit_result.draws[[2, 1], :],
+    )
+    @test selected.draw_indices == (2, 1)
+    @test selected.draw_source === :posterior
+    @test selected.values ≈ supplied.values
+    @test selected.valid == supplied.valid
+    @test_throws ArgumentError predictive_standardized_residuals(
+        fit_result;
+        ndraws = 1,
+        draw_indices = [1],
+    )
+end

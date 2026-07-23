@@ -131,6 +131,7 @@ using BayesianMGMFRM:
     predictive_check_plot_data,
     predictive_probabilities,
     predictive_residuals,
+    predictive_standardized_residuals,
     predictive_variances,
     prior_predict,
     prior_predictive_check,
@@ -19829,7 +19830,8 @@ end
             :pointwise_loglikelihood, :pointwise_loglikelihood_matrix, :posterior_predict,
             :posterior_predictive_check, :posterior_summary,
             :predictive_check_summary, :predictive_check_plot_data, :predictive_probabilities,
-            :predictive_residuals, :predictive_variances,
+            :predictive_residuals, :predictive_standardized_residuals,
+            :predictive_variances,
             :prior_likelihood_sensitivity, :prior_predict, :prior_predictive_check,
             :q_matrix_validation,
             :fit_report_dossier, :fit_report_dossier_markdown,
@@ -22630,6 +22632,15 @@ end
     @test size(gmfrm_experimental_fit.direct_pointwise_loglikelihood) ==
         (8, identified_data.n)
     @test all(isfinite, gmfrm_experimental_fit.log_posterior)
+    gmfrm_standardized_residuals = predictive_standardized_residuals(
+        gmfrm_experimental_fit;
+        draw_indices = [2, 1],
+    )
+    @test gmfrm_standardized_residuals.family === :gmfrm
+    @test gmfrm_standardized_residuals.draw_indices == (2, 1)
+    @test size(gmfrm_standardized_residuals.values) == (2, identified_data.n)
+    @test gmfrm_standardized_residuals.n_valid +
+        gmfrm_standardized_residuals.n_excluded == 2 * identified_data.n
     @test pointwise_loglikelihood_matrix(gmfrm_experimental_fit) ==
         gmfrm_experimental_fit.direct_pointwise_loglikelihood
     gmfrm_direct_llmat = pointwise_loglikelihood_matrix(
@@ -24819,6 +24830,13 @@ end
     @test all(isfinite, mgmfrm3_fit.log_posterior)
     @test all(isfinite, mgmfrm3_fit.direct_pointwise_loglikelihood)
     @test mgmfrm3_fit.diagnostic_surface.summary.n_failed_direct_constraints == 0
+    mgmfrm3_standardized_residuals = predictive_standardized_residuals(
+        mgmfrm3_fit;
+        draw_indices = [1],
+    )
+    @test mgmfrm3_standardized_residuals.family === :mgmfrm
+    @test mgmfrm3_standardized_residuals.draw_indices == (1,)
+    @test size(mgmfrm3_standardized_residuals.values) == (1, mgmfrm3_data.n)
 
     @test_throws ArgumentError BayesianMGMFRM._fit_guarded_mgmfrm(
         gmfrm_spec;
@@ -30547,6 +30565,7 @@ end
 include("model_contract.jl")
 include("testlet_design_audit.jl")
 include("testlet_overlap_contract.jl")
+include("predictive_standardized_residuals.jl")
 include("local_dependence_contract.jl")
 include("facets_compatibility_stats.jl")
 include("generalized_guard_contract.jl")
