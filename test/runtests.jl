@@ -105,6 +105,8 @@ using BayesianMGMFRM:
     linear_predictor_table,
     linear_predictor_values,
     local_dependence_calibration_contract,
+    local_dependence_calibration_pilot_contract,
+    local_dependence_calibration_pilot_preflight,
     local_dependence_calibration_row,
     local_dependence_calibration_summary,
     local_dependence_contract,
@@ -19826,6 +19828,8 @@ end
             :kfold, :loo, :psis_loo, :loo_diagnostics,
             :linear_predictor_table, :linear_predictor_values,
             :local_dependence_calibration_contract,
+            :local_dependence_calibration_pilot_contract,
+            :local_dependence_calibration_pilot_preflight,
             :local_dependence_calibration_row,
             :local_dependence_calibration_summary,
             :local_dependence_contract, :local_dependence_simulation_grid,
@@ -30582,6 +30586,8 @@ include("local_dependence_summary.jl")
 include("local_dependence_simulation.jl")
 include("local_dependence_calibration.jl")
 include("local_dependence_calibration_artifact.jl")
+include("local_dependence_calibration_pilot.jl")
+include("local_dependence_pilot_protocol_artifact.jl")
 include("facets_compatibility_stats.jl")
 include("generalized_guard_contract.jl")
 include("experimental_namespace.jl")
