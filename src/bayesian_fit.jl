@@ -429,7 +429,8 @@ end
     GMFRMFit
 
 Experimental scalar GMFRM fit result returned only by
-`fit(spec; experimental = true)` for the one-dimensional rater-consistency
+`BayesianMGMFRM.Experimental.fit(spec)` (or the legacy
+`fit(spec; experimental = true)` spelling) for the one-dimensional rater-consistency
 experimental configuration with `thresholds = :partial_credit`,
 `discrimination = :rater`, and no anchors or fitted DFF terms.
 Raw draws are stored in `draws`, constrained direct draws in `direct_draws`, and
@@ -460,7 +461,8 @@ end
     MGMFRMFit
 
 Guarded experimental MGMFRM fit result returned by
-`fit(spec; experimental = true)` for the fixed-Q confirmatory candidate with
+`BayesianMGMFRM.Experimental.fit(spec)` (or the legacy
+`fit(spec; experimental = true)` spelling) for the fixed-Q confirmatory candidate with
 `dimensions >= 2`, `thresholds = :partial_credit`, the generic compatibility
 selector `discrimination = :none`, and no anchors or fitted DFF terms. The
 kernel still contains Q-masked item-dimension discrimination parameters;
@@ -1077,7 +1079,7 @@ end
         rng = Random.default_rng(), seed = nothing, target_accept = 0.8,
         max_depth = 10, max_energy_error = 1000.0, metric = :diagonal,
         ad_backend = :ForwardDiff, init_jitter = 0.0, progress = false)
-    fit(spec; experimental = true, backend = :advancedhmc, ...)
+    BayesianMGMFRM.Experimental.fit(spec; backend = :advancedhmc, ...)
 
 Fit the current minimal Bayesian MFRM/RSM/PCM scaffold with the selected
 backend. `backend = :julia` uses a random-walk Metropolis kernel,
@@ -1096,7 +1098,9 @@ analytic target gradients are not consumed by Turing's model trace, and the
 ReverseDiff path is left to a future adapter after the Turing AD interface can
 support this wrapped target reliably.
 
-The `experimental = true` keyword is intentionally narrow. It is accepted for
+The `BayesianMGMFRM.Experimental` namespace is intentionally narrow. The
+legacy `experimental = true` keyword remains source-compatible. Both routes
+are accepted for
 the scalar source-aligned experimental GMFRM configuration with `family = :gmfrm`,
 `dimensions = 1`, `thresholds = :partial_credit`, and
 `discrimination = :rater`, returning [`GMFRMFit`](@ref),
@@ -3517,14 +3521,16 @@ function _fit_experimental_mgmfrm(spec::FacetSpec; kwargs...)
     return _fit_guarded_mgmfrm(spec; kwargs...)
 end
 
+function _fit_guarded_generalized(spec::FacetSpec; kwargs...)
+    spec.family === :gmfrm && return _fit_experimental_gmfrm(spec; kwargs...)
+    spec.family === :mgmfrm && return _fit_experimental_mgmfrm(spec; kwargs...)
+    throw(ArgumentError(
+        "experimental fitting currently supports only family = :gmfrm or :mgmfrm",
+    ))
+end
+
 function fit(spec::FacetSpec; experimental::Bool = false, kwargs...)
-    if experimental
-        spec.family === :gmfrm && return _fit_experimental_gmfrm(spec; kwargs...)
-        spec.family === :mgmfrm && return _fit_experimental_mgmfrm(spec; kwargs...)
-        throw(ArgumentError(
-            "experimental fitting currently supports only family = :gmfrm or :mgmfrm",
-        ))
-    end
+    experimental && return _fit_guarded_generalized(spec; kwargs...)
     return fit(getdesign(spec); kwargs...)
 end
 
@@ -4978,6 +4984,8 @@ function fit_artifact(fit::GMFRMFit;
         fit_ready = true,
         created_at = string(now()),
         evidence_artifact_schema_policy = evidence_policy,
+        entrypoint = _EXPERIMENTAL_CANONICAL_ENTRYPOINT,
+        legacy_entrypoint = _EXPERIMENTAL_LEGACY_ENTRYPOINT,
         public_target_label = experimental_decision.public_target_label,
         public_target_description = experimental_decision.public_target_description,
         internal_target_constructor = experimental_decision.internal_target_constructor,
@@ -5100,7 +5108,8 @@ function fit_artifact(fit::MGMFRMFit;
         created_at = string(now()),
         evidence_artifact_schema_policy = evidence_policy,
         density_space = :raw_unconstrained,
-        entrypoint = "fit(spec; experimental = true)",
+        entrypoint = _EXPERIMENTAL_CANONICAL_ENTRYPOINT,
+        legacy_entrypoint = _EXPERIMENTAL_LEGACY_ENTRYPOINT,
         guarded_local_entrypoint = :_fit_guarded_mgmfrm,
         public_target_label = experimental_decision.public_target_label,
         public_target_description = experimental_decision.public_target_description,

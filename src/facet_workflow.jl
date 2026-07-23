@@ -1542,6 +1542,11 @@ function rating_design_audit(data_or_spec_or_design;
     )
 end
 
+const _EXPERIMENTAL_CANONICAL_ENTRYPOINT =
+    "BayesianMGMFRM.Experimental.fit(spec)"
+const _EXPERIMENTAL_LEGACY_ENTRYPOINT =
+    "BayesianMGMFRM.fit(spec; experimental = true)"
+
 function _guarded_generalized_fit_capability(family::Symbol)
     if family === :gmfrm
         return (;
@@ -1622,7 +1627,7 @@ function model_ladder()
             public_fit = true,
             experimental_public = true,
             identification = (:item_discrimination_product_constraint, :rater_consistency_positive, :rater_step_constraints),
-            note = "guarded scalar rater-consistency GMFRM through fit(spec; experimental = true)",
+            note = "guarded scalar rater-consistency GMFRM through BayesianMGMFRM.Experimental.fit(spec)",
         ),
         (;
             family = :mgmfrm,
@@ -1636,7 +1641,7 @@ function model_ladder()
             public_fit = true,
             experimental_public = true,
             identification = (:fixed_confirmatory_q_mask, :identity_latent_correlation, :standard_normal_ability_scale, :positive_q_masked_loadings),
-            note = "guarded fixed-Q confirmatory MGMFRM through fit(spec; experimental = true)",
+            note = "guarded fixed-Q confirmatory MGMFRM through BayesianMGMFRM.Experimental.fit(spec)",
         ),
         (;
             family = :gmfrm,
@@ -1685,7 +1690,8 @@ function _release_scope_fit_surface_rows()
             family = :gmfrm,
             scope = :scalar_gmfrm_fit_ready_candidate,
             status = :guarded_experimental_public,
-            entrypoint = "fit(spec; experimental = true)",
+            entrypoint = _EXPERIMENTAL_CANONICAL_ENTRYPOINT,
+            legacy_entrypoint = _EXPERIMENTAL_LEGACY_ENTRYPOINT,
             experimental_public = true,
             public_fit = true,
             claim_scope = :guarded_scalar_rater_consistency_only,
@@ -1702,7 +1708,8 @@ function _release_scope_fit_surface_rows()
             family = :mgmfrm,
             scope = :minimal_confirmatory_mgmfrm_candidate,
             status = :guarded_experimental_public,
-            entrypoint = "fit(spec; experimental = true)",
+            entrypoint = _EXPERIMENTAL_CANONICAL_ENTRYPOINT,
+            legacy_entrypoint = _EXPERIMENTAL_LEGACY_ENTRYPOINT,
             experimental_public = true,
             public_fit = true,
             claim_scope = :fixed_q_confirmatory_only,
@@ -2587,7 +2594,8 @@ function _release_gate_manifest_rows(scope)
             expected = :experimental_public_guarded_fit,
             observed = any(row -> row.surface === :scalar_gmfrm_guarded_experimental &&
                 row.public_fit && row.experimental_public &&
-                row.entrypoint == "fit(spec; experimental = true)" &&
+                row.entrypoint == _EXPERIMENTAL_CANONICAL_ENTRYPOINT &&
+                row.legacy_entrypoint == _EXPERIMENTAL_LEGACY_ENTRYPOINT &&
                 row.claim_scope === :guarded_scalar_rater_consistency_only &&
                 row.threshold_regimes == (:partial_credit,) &&
                 row.spec_discrimination == (:rater,) &&
@@ -2598,7 +2606,8 @@ function _release_gate_manifest_rows(scope)
             observed = any(row -> row.surface ===
                 :fixed_q_confirmatory_mgmfrm_guarded_experimental &&
                 row.public_fit && row.experimental_public &&
-                row.entrypoint == "fit(spec; experimental = true)" &&
+                row.entrypoint == _EXPERIMENTAL_CANONICAL_ENTRYPOINT &&
+                row.legacy_entrypoint == _EXPERIMENTAL_LEGACY_ENTRYPOINT &&
                 row.claim_scope === :fixed_q_confirmatory_only &&
                 row.threshold_regimes == (:partial_credit,) &&
                 row.spec_discrimination == (:none,) &&
@@ -6869,9 +6878,12 @@ end
 function _gmfrm_experimental_candidate_option_rows()
     capability = _guarded_generalized_fit_capability(:gmfrm)
     return [
-        (option = :entrypoint, value = "fit(spec; experimental = true)",
+        (option = :entrypoint, value = _EXPERIMENTAL_CANONICAL_ENTRYPOINT,
             status = :enabled_guarded,
             note = :scalar_gmfrm_only),
+        (option = :legacy_entrypoint, value = _EXPERIMENTAL_LEGACY_ENTRYPOINT,
+            status = :compatibility_only,
+            note = :source_compatibility_during_namespace_migration),
         (option = :family, value = capability.family,
             status = :candidate_only,
             note = :scalar_gmfrm_before_mgmfrm),
@@ -7173,7 +7185,8 @@ function _gmfrm_experimental_public_api_decision(blueprint)
         public_fit = true,
         experimental_public = true,
         fit_ready = true,
-        proposed_entrypoint = "fit(spec; experimental = true)",
+        proposed_entrypoint = _EXPERIMENTAL_CANONICAL_ENTRYPOINT,
+        legacy_entrypoint = _EXPERIMENTAL_LEGACY_ENTRYPOINT,
         public_target_label = _GMFRM_PUBLIC_TARGET_LABEL,
         public_target_description = _GMFRM_PUBLIC_TARGET_DESCRIPTION,
         internal_target_constructor = _GMFRM_INTERNAL_TARGET_CONSTRUCTOR,
@@ -7460,7 +7473,9 @@ function _gmfrm_experimental_public_api_decision(blueprint)
         blocker_rows,
         summary = (;
             fit_allowed = true,
+            canonical_namespace_enabled = true,
             experimental_keyword_enabled = true,
+            legacy_keyword_status = :compatibility_only,
             n_evidence_done = count(row -> row.status === :done, evidence_rows),
             n_evidence_pending = count(row -> row.status === :pending, evidence_rows),
             n_evidence_blocked = count(row -> row.status === :blocked, evidence_rows),
@@ -7597,9 +7612,12 @@ end
 function _mgmfrm_experimental_candidate_option_rows()
     capability = _guarded_generalized_fit_capability(:mgmfrm)
     return [
-        (option = :entrypoint, value = "fit(spec; experimental = true)",
+        (option = :entrypoint, value = _EXPERIMENTAL_CANONICAL_ENTRYPOINT,
             status = :enabled_guarded_experimental,
             note = :fixed_q_confirmatory_mgmfrm_only),
+        (option = :legacy_entrypoint, value = _EXPERIMENTAL_LEGACY_ENTRYPOINT,
+            status = :compatibility_only,
+            note = :source_compatibility_during_namespace_migration),
         (option = :family, value = capability.family,
             status = :enabled_guarded_experimental,
             note = :confirmatory_mgmfrm_after_scalar_gmfrm),
@@ -7724,7 +7742,8 @@ function _mgmfrm_experimental_public_api_decision(blueprint)
         public_fit = true,
         experimental_public = true,
         fit_ready = true,
-        proposed_entrypoint = "fit(spec; experimental = true)",
+        proposed_entrypoint = _EXPERIMENTAL_CANONICAL_ENTRYPOINT,
+        legacy_entrypoint = _EXPERIMENTAL_LEGACY_ENTRYPOINT,
         public_target_label = _MGMFRM_PUBLIC_TARGET_LABEL,
         public_target_description = _MGMFRM_PUBLIC_TARGET_DESCRIPTION,
         internal_target_constructor = _MGMFRM_INTERNAL_TARGET_CONSTRUCTOR,
@@ -7815,7 +7834,9 @@ function _mgmfrm_experimental_public_api_decision(blueprint)
         blocker_rows,
         summary = (;
             fit_allowed = true,
+            canonical_namespace_enabled = true,
             experimental_keyword_enabled = true,
+            legacy_keyword_status = :compatibility_only,
             n_evidence_done = count(row -> row.status === :done, evidence_rows),
             n_evidence_pending = count(row -> row.status === :pending, evidence_rows),
             n_evidence_blocked = count(row -> row.status === :blocked, evidence_rows),

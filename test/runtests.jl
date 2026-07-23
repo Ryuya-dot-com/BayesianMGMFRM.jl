@@ -20228,7 +20228,9 @@ end
     @test release_scope.summary.v0_1_1_generalized_refinement_planned
     @test isempty(release_scope.evidence_rows)
     @test any(row -> row.surface === :scalar_gmfrm_guarded_experimental &&
-        row.entrypoint == "fit(spec; experimental = true)",
+        row.entrypoint == "BayesianMGMFRM.Experimental.fit(spec)" &&
+        row.legacy_entrypoint ==
+            "BayesianMGMFRM.fit(spec; experimental = true)",
         release_scope.public_fit_surfaces)
     @test any(row -> row.family === :mgmfrm && row.option === :q_matrix &&
         row.status === :blocked,
@@ -21493,7 +21495,9 @@ end
     @test gmfrm_experimental_decision.experimental_public
     @test gmfrm_experimental_decision.fit_ready
     @test gmfrm_experimental_decision.proposed_entrypoint ==
-        "fit(spec; experimental = true)"
+        "BayesianMGMFRM.Experimental.fit(spec)"
+    @test gmfrm_experimental_decision.legacy_entrypoint ==
+        "BayesianMGMFRM.fit(spec; experimental = true)"
     @test gmfrm_experimental_decision.public_target_label ===
         :guarded_scalar_gmfrm_logdensity
     @test gmfrm_experimental_decision.public_target_description ==
@@ -21851,8 +21855,12 @@ end
         row.status === :candidate_only,
         gmfrm_experimental_decision.accepted_candidate_options)
     @test any(row -> row.option === :entrypoint &&
-        row.value == "fit(spec; experimental = true)" &&
+        row.value == "BayesianMGMFRM.Experimental.fit(spec)" &&
         row.status === :enabled_guarded,
+        gmfrm_experimental_decision.accepted_candidate_options)
+    @test any(row -> row.option === :legacy_entrypoint &&
+        row.value == "BayesianMGMFRM.fit(spec; experimental = true)" &&
+        row.status === :compatibility_only,
         gmfrm_experimental_decision.accepted_candidate_options)
     @test any(row -> row.option === :rater_steps &&
         row.value === :internal_source_block &&
@@ -22055,7 +22063,10 @@ end
     @test !any(row -> row.blocker === :public_caveat_docs_missing,
         gmfrm_experimental_decision.blocker_rows)
     @test gmfrm_experimental_decision.summary.fit_allowed
+    @test gmfrm_experimental_decision.summary.canonical_namespace_enabled
     @test gmfrm_experimental_decision.summary.experimental_keyword_enabled
+    @test gmfrm_experimental_decision.summary.legacy_keyword_status ===
+        :compatibility_only
     @test gmfrm_experimental_decision.summary.n_evidence_done >= 28
     @test gmfrm_experimental_decision.summary.n_evidence_pending == 0
     @test gmfrm_experimental_decision.summary.n_blockers == 0
@@ -23643,7 +23654,9 @@ end
     @test mgmfrm_experimental_decision.experimental_public
     @test mgmfrm_experimental_decision.fit_ready
     @test mgmfrm_experimental_decision.proposed_entrypoint ==
-        "fit(spec; experimental = true)"
+        "BayesianMGMFRM.Experimental.fit(spec)"
+    @test mgmfrm_experimental_decision.legacy_entrypoint ==
+        "BayesianMGMFRM.fit(spec; experimental = true)"
     @test mgmfrm_experimental_decision.public_target_label ===
         :guarded_confirmatory_mgmfrm_logdensity
     @test mgmfrm_experimental_decision.public_target_description ==
@@ -23757,6 +23770,14 @@ end
         mgmfrm_fit_artifact_contract.provenance_rows)
     @test any(row -> row.option === :q_matrix &&
         row.value === :fixed_confirmatory,
+        mgmfrm_experimental_decision.accepted_candidate_options)
+    @test any(row -> row.option === :entrypoint &&
+        row.value == "BayesianMGMFRM.Experimental.fit(spec)" &&
+        row.status === :enabled_guarded_experimental,
+        mgmfrm_experimental_decision.accepted_candidate_options)
+    @test any(row -> row.option === :legacy_entrypoint &&
+        row.value == "BayesianMGMFRM.fit(spec; experimental = true)" &&
+        row.status === :compatibility_only,
         mgmfrm_experimental_decision.accepted_candidate_options)
     @test any(row -> row.option === :latent_correlation &&
         row.value === :free &&
@@ -23883,7 +23904,10 @@ end
     @test mgmfrm_experimental_decision.summary.n_evidence_pending == 0
     @test mgmfrm_experimental_decision.summary.n_evidence_blocked == 0
     @test mgmfrm_experimental_decision.summary.fit_allowed
+    @test mgmfrm_experimental_decision.summary.canonical_namespace_enabled
     @test mgmfrm_experimental_decision.summary.experimental_keyword_enabled
+    @test mgmfrm_experimental_decision.summary.legacy_keyword_status ===
+        :compatibility_only
     @test mgmfrm_experimental_decision.summary.n_blockers == 0
     @test mgmfrm_experimental_decision.summary.next_gate ===
         :manual_publication_or_registration_by_user_only
@@ -30519,6 +30543,22 @@ end
 include("model_contract.jl")
 include("facets_compatibility_stats.jl")
 include("generalized_guard_contract.jl")
+include("experimental_namespace.jl")
+include("mgmfrm_free_latent_correlation_2d.jl")
+include("mgmfrm_free_latent_correlation_2d_study.jl")
+@testset "free-correlation runner workspace-project subprocess" begin
+    runner_test_path = joinpath(
+        @__DIR__,
+        "mgmfrm_free_latent_correlation_2d_study_unit_runner.jl",
+    )
+    command = addenv(
+        `$(Base.julia_cmd()) --project=$(dirname(@__DIR__)) $runner_test_path`,
+        "JULIA_LOAD_PATH" => "@:@stdlib",
+    )
+    process = run(command; wait = false)
+    wait(process)
+    @test success(process)
+end
 include("publication_grade_policy_contract.jl")
 include("public_language_gate.jl")
 include("rank_normalized_diagnostics.jl")
