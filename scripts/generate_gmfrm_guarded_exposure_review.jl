@@ -170,6 +170,7 @@ const PROTOCOL = (;
         require_tam_direct_execution_recorded = true,
         require_tam_raw_archive_integrity_passed = true,
         require_tam_post_execution_packet_integrity_passed = true,
+        require_tam_execution_input_lineage_exact = true,
         require_tam_evidence_nontransfer_to_gmfrm_mgmfrm = true,
         require_tam_independent_review_pending_recorded = true,
         require_tam_pre_execution_lineage_mismatch_recorded = true,
@@ -871,6 +872,28 @@ function artifact_summary(name::Symbol, text::AbstractString)
         recommendation = json_string(summary, "recommendation"),
         next_gate = json_string(summary, "next_gate"),
     )
+    name === :tam_direct_agreement_post_execution_review_packet && return (;
+        passed = json_bool(summary, "passed"),
+        packet_integrity_passed =
+            json_bool(summary, "packet_integrity_passed"),
+        execution_refinement_snapshot_sha256_matches_pinned =
+            json_bool(summary,
+                "execution_refinement_snapshot_sha256_matches_pinned"),
+        aggregate_wrapper_lineage_exact =
+            json_bool(summary, "aggregate_wrapper_lineage_exact"),
+        aggregate_selected_execution_input_lineage_exact =
+            json_bool(summary,
+                "aggregate_selected_execution_input_lineage_exact"),
+        raw_job_execution_input_lineage_exact =
+            json_bool(summary, "raw_job_execution_input_lineage_exact"),
+        aggregate_selected_and_raw_retained_lineage_independently_exact =
+            json_bool(summary,
+                "aggregate_selected_and_raw_retained_lineage_independently_exact"),
+        independent_review_completed =
+            json_bool(summary, "independent_review_completed"),
+        pre_execution_packet_exact_input_lineage =
+            json_bool(summary, "pre_execution_packet_exact_input_lineage"),
+    )
     name === :claim_recovery_reproduction_archive && return (;
         passed = json_bool(summary, "passed"),
         publication_or_registration_action =
@@ -907,6 +930,8 @@ function artifact_summary(name::Symbol, text::AbstractString)
             json_bool(summary, "tam_raw_archive_integrity_passed"),
         tam_post_packet_integrity_passed =
             json_bool(summary, "tam_post_packet_integrity_passed"),
+        tam_execution_input_lineage_exact =
+            json_bool(summary, "tam_execution_input_lineage_exact"),
         tam_independent_review_completed =
             json_bool(summary, "tam_independent_review_completed"),
         tam_pre_execution_exact_input_lineage =
@@ -967,6 +992,8 @@ function artifact_summary(name::Symbol, text::AbstractString)
             json_bool(summary, "tam_raw_archive_integrity_passed"),
         tam_post_packet_integrity_passed =
             json_bool(summary, "tam_post_packet_integrity_passed"),
+        tam_execution_input_lineage_exact =
+            json_bool(summary, "tam_execution_input_lineage_exact"),
         tam_independent_review_completed =
             json_bool(summary, "tam_independent_review_completed"),
         tam_pre_execution_exact_input_lineage =
@@ -1418,6 +1445,8 @@ function artifact_summary(name::Symbol, text::AbstractString)
             json_bool(summary, "tam_raw_archive_integrity_passed"),
         tam_post_packet_integrity_passed =
             json_bool(summary, "tam_post_packet_integrity_passed"),
+        tam_execution_input_lineage_exact =
+            json_bool(summary, "tam_execution_input_lineage_exact"),
         tam_independent_review_completed =
             json_bool(summary, "tam_independent_review_completed"),
         tam_pre_execution_exact_input_lineage =
@@ -1986,6 +2015,10 @@ function review_rows(records)
             status = :passed_with_policy_blocker,
             evidence = Bool(tam_post.summary.passed) &&
                 Bool(full_archive.summary.tam_post_packet_integrity_passed) &&
+                Bool(tam_post.summary.raw_job_execution_input_lineage_exact) &&
+                Bool(claim_archive.summary.tam_execution_input_lineage_exact) &&
+                Bool(broader_review.summary.tam_execution_input_lineage_exact) &&
+                Bool(full_archive.summary.tam_execution_input_lineage_exact) &&
                 !Bool(full_archive.summary.tam_independent_review_completed) &&
                 !Bool(full_archive.summary.tam_pre_execution_exact_input_lineage),
             finding =
@@ -2073,7 +2106,13 @@ function build_artifact()
         records, :tam_direct_agreement_post_execution_review_packet)
     full_archive =
         artifact_by_name(records, :full_paper_reproduction_archive)
-    all_local_evidence_passed = all(artifact_passed, records)
+    tam_execution_input_lineage_exact =
+        Bool(tam_post.summary.raw_job_execution_input_lineage_exact) &&
+        Bool(claim_archive.summary.tam_execution_input_lineage_exact) &&
+        Bool(broader_review.summary.tam_execution_input_lineage_exact) &&
+        Bool(full_archive.summary.tam_execution_input_lineage_exact)
+    all_local_evidence_passed =
+        all(artifact_passed, records) && tam_execution_input_lineage_exact
     any_high_variance_waic =
         Bool(baseline.summary.any_high_variance_waic) ||
         Bool(grid.summary.any_high_variance_waic) ||
@@ -2115,6 +2154,7 @@ function build_artifact()
             tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm = false,
             tam_independent_review_completed =
                 Bool(full_archive.summary.tam_independent_review_completed),
+            tam_execution_input_lineage_exact,
             publication_grade_pilot_runner_materialized =
                 Bool(manuscript_grid.summary.publication_grade_pilot_runner_materialized),
             required_followup = publication_grade_followup,
@@ -2279,6 +2319,7 @@ function build_artifact()
                 Bool(full_archive.summary.tam_post_packet_integrity_passed),
             tam_independent_review_completed =
                 Bool(full_archive.summary.tam_independent_review_completed),
+            tam_execution_input_lineage_exact,
             tam_pre_execution_exact_input_lineage =
                 Bool(full_archive.summary.tam_pre_execution_exact_input_lineage),
             tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm = false,

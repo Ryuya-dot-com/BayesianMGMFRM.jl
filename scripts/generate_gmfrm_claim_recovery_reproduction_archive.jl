@@ -61,6 +61,48 @@ const FIXTURE_SPECS = [
         expected_schema = "bayesianmgmfrm.gmfrm_exact_loo_or_kfold_review.v1",
         generator = "scripts/generate_gmfrm_exact_loo_or_kfold_review.jl",
         env_var = "MFRM_GMFRM_EXACT_LOO_OR_KFOLD_REVIEW_FIXTURE"),
+    (name = :local_dependence_known_truth_preflight,
+        path =
+            "test/fixtures/local_dependence_known_truth_preflight.json",
+        expected_schema =
+            "bayesianmgmfrm.local_dependence_known_truth_preflight.v1",
+        generator =
+            "scripts/generate_local_dependence_known_truth_preflight.jl",
+        env_var =
+            "MFRM_LOCAL_DEPENDENCE_KNOWN_TRUTH_PREFLIGHT_FIXTURE",
+        evidence_scope = :ld1a_generator_preflight_noncalibration),
+    (name = :local_dependence_calibration_scorer_preflight,
+        path =
+            "test/fixtures/local_dependence_calibration_scorer_preflight.json",
+        expected_schema =
+            "bayesianmgmfrm.local_dependence_calibration_scorer_preflight.v1",
+        generator =
+            "scripts/generate_local_dependence_calibration_scorer_preflight.jl",
+        env_var =
+            "MFRM_LOCAL_DEPENDENCE_CALIBRATION_SCORER_PREFLIGHT_FIXTURE",
+        evidence_scope = :ld1b0_scorer_protocol_preflight_noncalibration),
+    (name = :local_dependence_pilot_protocol_preflight,
+        path =
+            "test/fixtures/local_dependence_pilot_protocol_preflight.json",
+        expected_schema =
+            "bayesianmgmfrm.local_dependence_pilot_protocol_preflight.v1",
+        generator =
+            "scripts/generate_local_dependence_pilot_protocol_preflight.jl",
+        env_var =
+            "MFRM_LOCAL_DEPENDENCE_PILOT_PROTOCOL_PREFLIGHT_FIXTURE",
+        evidence_scope =
+            :ld1b1_pilot_execution_protocol_preflight_noncalibration),
+    (name = :local_dependence_pilot_batch_execution_harness,
+        path =
+            "test/fixtures/local_dependence_pilot_batch_execution_harness.json",
+        expected_schema =
+            "bayesianmgmfrm.local_dependence_pilot_batch_execution_harness.v2",
+        generator =
+            "scripts/generate_local_dependence_pilot_batch_execution_harness.jl",
+        env_var =
+            "MFRM_LOCAL_DEPENDENCE_PILOT_BATCH_EXECUTION_HARNESS_FIXTURE",
+        evidence_scope =
+            :ld1b1_pilot_batch_harness_preflight_noncalibration),
     (name = :guarded_fit_method_wiring,
         path = "test/fixtures/gmfrm_guarded_fit_method_wiring.json",
         expected_schema = "bayesianmgmfrm.gmfrm_guarded_fit_method_wiring.v1",
@@ -100,15 +142,25 @@ const FIXTURE_SPECS = [
         expected_schema = "bayesianmgmfrm.gmfrm_guarded_fit_api_dry_run.v1",
         generator = "scripts/generate_gmfrm_guarded_fit_api_dry_run.jl",
         env_var = "MFRM_GMFRM_GUARDED_FIT_API_DRY_RUN_FIXTURE"),
+    (name = :tam_direct_agreement_policy_refinement_execution_snapshot,
+        path =
+            "test/fixtures/mgmfrm_tam_direct_agreement_policy_refinement_execution_snapshot.json",
+        expected_schema =
+            "bayesianmgmfrm.mgmfrm_tam_direct_agreement_policy_refinement.v1",
+        expected_sha256 =
+            "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e",
+        immutable = true,
+        regeneration_policy = :immutable_snapshot_no_regeneration,
+        evidence_scope = :mfrm_tam_overlap_nontransfer),
     (name = :tam_direct_agreement_multireplication,
         path =
             "test/fixtures/mgmfrm_tam_direct_agreement_multireplication.json",
         expected_schema =
             "bayesianmgmfrm.mgmfrm_tam_direct_agreement_multireplication.v1",
         generator =
-            "scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl",
+            "scripts/generate_mgmfrm_tam_direct_agreement_multireplication_aggregate.jl",
         generation_command =
-            "julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl --aggregate-only",
+            "julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_multireplication_aggregate.jl",
         env_var =
             "MFRM_MGMFRM_TAM_DIRECT_AGREEMENT_MULTIREPLICATION_FIXTURE",
         evidence_scope = :mfrm_tam_overlap_nontransfer),
@@ -148,16 +200,52 @@ const CODE_AND_DOC_PATHS = [
     "README.md",
     "NEWS.md",
     "ROADMAP.md",
+    "src/BayesianMGMFRM.jl",
     "src/facet_workflow.jl",
+    "src/model_contract.jl",
+    "src/testlet_design_audit.jl",
     "src/bayesian_fit.jl",
+    "src/local_dependence.jl",
+    "src/local_dependence_calibration.jl",
+    "src/local_dependence_calibration_pilot.jl",
+    "src/local_dependence_known_truth_dgp.jl",
+    "src/local_dependence_simulation.jl",
     "test/runtests.jl",
+    "test/model_contract.jl",
+    "test/local_dependence_calibration_artifact.jl",
+    "test/local_dependence_contract.jl",
+    "test/local_dependence_calibration.jl",
+    "test/local_dependence_calibration_pilot.jl",
+    "test/local_dependence_pilot_protocol_artifact.jl",
+    "test/local_dependence_pilot_batch_execution_harness.jl",
+    "test/local_dependence_simulation.jl",
+    "test/local_dependence_summary.jl",
+    "test/predictive_standardized_residuals.jl",
+    "test/rank_normalized_diagnostics.jl",
+    "test/testlet_design_audit.jl",
+    "test/testlet_overlap_contract.jl",
     "test/fixtures/README.md",
+    "docs/build.jl",
+    "docs/make.jl",
+    "docs/src/api-data-design.md",
+    "docs/src/api-validation-evidence.md",
+    "docs/src/api-workflow-diagnostics.md",
+    "docs/src/bayesian-workflow.md",
+    "docs/src/data-validation.md",
     "docs/src/fitting.md",
+    "docs/src/mgmfrm-research-roadmap.md",
     "docs/src/model-equations.md",
     "docs/src/roadmap.md",
+    "docs/src/scope.md",
     "scripts/local_json.jl",
     "scripts/pre_registration_gate.jl",
+    "scripts/generate_local_dependence_calibration_scorer_preflight.jl",
+    "scripts/generate_local_dependence_known_truth_preflight.jl",
+    "scripts/generate_local_dependence_pilot_protocol_preflight.jl",
+    "scripts/generate_local_dependence_pilot_batch_execution_harness.jl",
+    "scripts/run_local_dependence_calibration_pilot_batch.jl",
     "scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl",
+    "scripts/generate_mgmfrm_tam_direct_agreement_multireplication_aggregate.jl",
     "scripts/generate_mgmfrm_tam_direct_agreement_raw_archive_audit.jl",
     "scripts/generate_mgmfrm_tam_direct_agreement_post_execution_review_packet.jl",
     "scripts/generate_gmfrm_claim_recovery_reproduction_archive.jl",
@@ -173,7 +261,8 @@ const VERIFICATION_COMMANDS = [
         command = "julia --project=. -e 'import Pkg; Pkg.test()'",
         execution = :required_before_claim_use),
     (name = :documentation_build,
-        command = "julia --project=docs docs/make.jl",
+        command =
+            "julia --startup-file=no --project=docs docs/build.jl",
         execution = :required_before_claim_use),
     (name = :local_pre_registration_gate,
         command =
@@ -194,6 +283,7 @@ const PROTOCOL = (;
     thresholds = (;
         require_all_fixture_artifacts_present = true,
         require_all_expected_schemas = true,
+        require_all_expected_sha256_matches = true,
         require_all_fixture_summaries_passed = true,
         require_all_generator_scripts_present = true,
         require_all_code_doc_references_present = true,
@@ -202,6 +292,7 @@ const PROTOCOL = (;
         require_no_publication_commands = true,
         require_guarded_exposure_review_passed = true,
         require_real_data_case_study_passed = true,
+        require_tam_execution_input_lineage_exact = true,
     ),
 )
 
@@ -391,24 +482,43 @@ function artifact_record(spec)
     schema = exists ? json_string(text, "schema") : missing
     summary = exists ? json_summary(text) : ""
     schema_matches = exists && schema == spec.expected_schema
+    immutable = hasproperty(spec, :immutable) ? Bool(spec.immutable) : false
+    regeneration_policy = hasproperty(spec, :regeneration_policy) ?
+        spec.regeneration_policy : :generator_replay
     hash_policy = spec.name === :guarded_exposure_review ?
         :existence_only_avoids_archive_review_hash_cycle : :sha256
+    sha256 = exists && hash_policy === :sha256 ? file_sha256(path) : missing
+    expected_sha256 = hasproperty(spec, :expected_sha256) ?
+        spec.expected_sha256 : missing
+    sha256_matches = ismissing(expected_sha256) ? true :
+        exists && sha256 == expected_sha256
+    generator = hasproperty(spec, :generator) ? spec.generator : missing
+    generation_command = if hasproperty(spec, :generation_command)
+        spec.generation_command
+    elseif immutable
+        missing
+    else
+        "julia --project=. $(generator)"
+    end
     return (;
         artifact = spec.name,
         path = spec.path,
         exists,
+        immutable,
+        regeneration_policy,
         hash_policy,
-        sha256 = exists && hash_policy === :sha256 ? file_sha256(path) : missing,
+        sha256,
+        expected_sha256,
+        sha256_matches,
         expected_schema = spec.expected_schema,
         schema,
         schema_matches,
-        generator = spec.generator,
-        generation_command = hasproperty(spec, :generation_command) ?
-            spec.generation_command : "julia --project=. $(spec.generator)",
-        env_var = spec.env_var,
+        generator,
+        generation_command,
+        env_var = hasproperty(spec, :env_var) ? spec.env_var : missing,
         evidence_scope = hasproperty(spec, :evidence_scope) ?
             spec.evidence_scope : :scalar_gmfrm_claim_archive,
-        generator_exists = isfile(local_path(spec.generator)),
+        generator_exists = immutable ? missing : isfile(local_path(generator)),
         summary_passed = exists ? summary_passed(spec.name, summary) : false,
     )
 end
@@ -461,7 +571,7 @@ function archive_artifact()
     verification_commands = [command_record(spec) for spec in VERIFICATION_COMMANDS]
     supporting_records = [
         record for record in fixture_records
-        if record.artifact !== :guarded_exposure_review
+        if record.artifact !== :guarded_exposure_review && !record.immutable
     ]
     full_regeneration_commands = NamedTuple[]
     for record in supporting_records
@@ -514,13 +624,18 @@ function archive_artifact()
         tam_post_summary, "independent_review_completed"))
     tam_pre_execution_exact_input_lineage = Bool(json_optional_bool(
         tam_post_summary, "pre_execution_packet_exact_input_lineage"))
+    tam_execution_input_lineage_exact = Bool(json_optional_bool(
+        tam_post_summary, "raw_job_execution_input_lineage_exact"))
 
     all_fixture_artifacts_present = all(record -> record.exists, fixture_records)
     all_expected_schemas = all(record -> record.schema_matches, fixture_records)
+    all_expected_sha256_matches =
+        all(record -> record.sha256_matches, fixture_records)
     all_fixture_summaries_passed =
         all(record -> record.summary_passed, fixture_records)
     all_generator_scripts_present =
-        all(record -> record.generator_exists, fixture_records)
+        all(record -> record.immutable || record.generator_exists,
+            fixture_records)
     all_code_doc_references_present =
         all(record -> record.exists, code_doc_records)
     all_external_sources_present = all(record -> record.exists, source_records)
@@ -533,6 +648,7 @@ function archive_artifact()
 
     passed = all_fixture_artifacts_present &&
         all_expected_schemas &&
+        all_expected_sha256_matches &&
         all_fixture_summaries_passed &&
         all_generator_scripts_present &&
         all_code_doc_references_present &&
@@ -540,7 +656,8 @@ function archive_artifact()
         all_commands_local_only &&
         no_publication_commands &&
         guarded_exposure_review_passed &&
-        real_data_case_study_passed
+        real_data_case_study_passed &&
+        tam_execution_input_lineage_exact
 
     return (;
         schema =
@@ -578,6 +695,7 @@ function archive_artifact()
             tam_direct_evidence_scope = :mfrm_tam_overlap_nontransfer,
             tam_direct_evidence_transfers_to_scalar_gmfrm = false,
             tam_independent_review_completed,
+            tam_execution_input_lineage_exact,
             required_followup = :broader_experimental_exposure_decision_review,
         ),
         summary = (;
@@ -591,6 +709,7 @@ function archive_artifact()
             n_verification_commands = length(verification_commands),
             all_fixture_artifacts_present,
             all_expected_schemas,
+            all_expected_sha256_matches,
             all_fixture_summaries_passed,
             all_generator_scripts_present,
             all_code_doc_references_present,
@@ -603,6 +722,7 @@ function archive_artifact()
             tam_raw_archive_integrity_passed,
             tam_post_packet_integrity_passed,
             tam_independent_review_completed,
+            tam_execution_input_lineage_exact,
             tam_pre_execution_exact_input_lineage,
             tam_direct_evidence_transfers_to_scalar_gmfrm = false,
             remaining_public_blockers =

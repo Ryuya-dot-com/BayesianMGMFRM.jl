@@ -17,7 +17,7 @@
   "sparse_mgmfrm_superiority_claim": false,
   "package": {
     "name": "BayesianMGMFRM",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "julia_version": "1.12.5"
   },
   "protocol": {
@@ -43,7 +43,7 @@
       "artifact": "mgmfrm_external_construct_attachment_intake_preflight",
       "path": "test/fixtures/mgmfrm_external_construct_attachment_intake_preflight.json",
       "exists": true,
-      "sha256": "5b2c74f360372be440e541165e5759d45b3ebc964e84bd47f6e633bb67eb4799",
+      "sha256": "c2e311f26bf290c5cc77c54a72879eeaa89a92b79372f196bae99efbac7ab9d6",
       "expected_schema": "bayesianmgmfrm.mgmfrm_external_construct_attachment_intake_preflight.v1",
       "schema": "bayesianmgmfrm.mgmfrm_external_construct_attachment_intake_preflight.v1",
       "schema_matches": true,

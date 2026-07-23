@@ -10,7 +10,7 @@
   "publication_or_registration_action": false,
   "package": {
     "name": "BayesianMGMFRM",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "julia_version": "1.12.5"
   },
   "protocol": {
@@ -208,7 +208,7 @@
       "artifact": "prediction_target_and_model_weight_policy",
       "path": "test/fixtures/gmfrm_prediction_target_and_model_weight_policy.json",
       "exists": true,
-      "sha256": "aa4c76a441bd49ca676d7ab36c409a521a2c4adcb9042174881ac5c081dfe9ce",
+      "sha256": "d80e38d94fdbab12cd42082c4486894aa425c3936306e33c4878183744e145a2",
       "expected_schema": "bayesianmgmfrm.gmfrm_prediction_target_and_model_weight_policy.v1",
       "schema": "bayesianmgmfrm.gmfrm_prediction_target_and_model_weight_policy.v1",
       "schema_matches": true,
@@ -324,7 +324,9 @@
     "experimental_decision": "enable_guarded_experimental",
     "experimental_summary": {
       "fit_allowed": true,
+      "canonical_namespace_enabled": true,
       "experimental_keyword_enabled": true,
+      "legacy_keyword_status": "compatibility_only",
       "n_evidence_done": 20,
       "n_evidence_pending": 0,
       "n_evidence_blocked": 0,
