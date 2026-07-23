@@ -4535,6 +4535,7 @@ compile an inspectable, non-fit-ready parameter blueprint for specified-only
 configurations.
 """
 function getdesign(spec::FacetSpec; preview::Bool = false)
+    _require_current_facet_spec(spec, "getdesign")
     if preview
         spec.estimation_status === :fit_supported && return _minimal_design(spec)
         return _preview_design(spec)
@@ -4892,6 +4893,7 @@ function _predictor_components(design::FacetDesign,
 end
 
 function _check_fit_supported_mfrm(design::FacetDesign, caller::AbstractString)
+    _require_canonical_design(design, caller)
     design.spec.family === :mfrm && design.spec.estimation_status === :fit_supported ||
         throw(ArgumentError("$caller is currently implemented only for the fit-supported minimal MFRM/RSM/PCM design"))
     return nothing
@@ -8022,6 +8024,7 @@ function model_manifest(data::FacetData)
 end
 
 function model_manifest(spec::FacetSpec)
+    _require_current_facet_spec(spec, "model_manifest")
     spec_manifest = _spec_manifest(spec)
     return (;
         schema = "bayesianmgmfrm.model_manifest.v1",
@@ -8035,6 +8038,7 @@ function model_manifest(spec::FacetSpec)
 end
 
 function model_manifest(design::FacetDesign)
+    _require_canonical_design(design, "model_manifest")
     spec = design.spec
     spec_manifest = _spec_manifest(spec)
     return (;
@@ -8045,6 +8049,7 @@ function model_manifest(design::FacetDesign)
         validation = _validation_manifest(spec.validation),
         spec = spec_manifest,
         design = _design_manifest(design),
+        design_identity = design_identity(design),
         model_surface_audit = model_surface_audit(design),
         rating_design = rating_design_audit(design),
     )
@@ -8153,16 +8158,9 @@ function _step_sum(design::FacetDesign, params::AbstractVector, item::Int, categ
     return total
 end
 
-"""
-    pointwise_loglikelihood(design::FacetDesign, params)
-
-Evaluate the minimal additive RSM/PCM pointwise log likelihood for the
-identified parameter vector returned by `getdesign`. This helper is for design
-validation and does not apply Bayesian priors.
-"""
-function pointwise_loglikelihood(design::FacetDesign, params::AbstractVector)
-    _check_fit_supported_mfrm(design, "pointwise_loglikelihood")
-    _check_parameter_vector_length(design, params)
+function _pointwise_loglikelihood_unchecked(
+        design::FacetDesign,
+        params::AbstractVector)
     data = design.spec.data
     T = typeof(_param_zero(params) + 0.0)
     out = Vector{T}(undef, data.n)
@@ -8173,4 +8171,17 @@ function pointwise_loglikelihood(design::FacetDesign, params::AbstractVector)
         out[n] = etas[data.category[n]] - _logsumexp(etas)
     end
     return out
+end
+
+"""
+    pointwise_loglikelihood(design::FacetDesign, params)
+
+Evaluate the minimal additive RSM/PCM pointwise log likelihood for the
+identified parameter vector returned by `getdesign`. This helper is for design
+validation and does not apply Bayesian priors.
+"""
+function pointwise_loglikelihood(design::FacetDesign, params::AbstractVector)
+    _check_fit_supported_mfrm(design, "pointwise_loglikelihood")
+    _check_parameter_vector_length(design, params)
+    return _pointwise_loglikelihood_unchecked(design, params)
 end

@@ -123,6 +123,17 @@ function _check_parameter_vector(design::FacetDesign, params::AbstractVector)
     return nothing
 end
 
+function _logprior_unchecked(
+        design::FacetDesign,
+        params::AbstractVector,
+        prior::MFRMPrior)
+    lp = _param_zero(params)
+    for index in eachindex(params)
+        lp += _normal_logpdf(params[index], _prior_sd(design, prior, index))
+    end
+    return lp
+end
+
 """
     logprior(design::FacetDesign, params, prior = MFRMPrior())
     logprior(spec::FacetSpec, params, prior = MFRMPrior())
@@ -137,16 +148,19 @@ value per selected posterior draw. Guarded generalized fits report the raw-prior
 contribution implied by their stored log posterior minus direct log likelihood.
 """
 function logprior(design::FacetDesign, params::AbstractVector, prior::MFRMPrior = MFRMPrior())
+    _check_fit_supported_mfrm(design, "logprior")
     _check_parameter_vector(design, params)
-    lp = _param_zero(params)
-    for index in eachindex(params)
-        lp += _normal_logpdf(params[index], _prior_sd(design, prior, index))
-    end
-    return lp
+    return _logprior_unchecked(design, params, prior)
 end
 
 logprior(spec::FacetSpec, params::AbstractVector, prior::MFRMPrior = MFRMPrior()) =
     logprior(getdesign(spec), params, prior)
+
+function _loglikelihood_unchecked(
+        design::FacetDesign,
+        params::AbstractVector)
+    return sum(_pointwise_loglikelihood_unchecked(design, params))
+end
 
 """
     loglikelihood(design::FacetDesign, params)
@@ -163,12 +177,21 @@ draw. Guarded generalized fits use their stored constrained direct
 log-likelihood values.
 """
 function loglikelihood(design::FacetDesign, params::AbstractVector)
+    _check_fit_supported_mfrm(design, "loglikelihood")
     _check_parameter_vector(design, params)
-    return sum(pointwise_loglikelihood(design, params))
+    return _loglikelihood_unchecked(design, params)
 end
 
 loglikelihood(spec::FacetSpec, params::AbstractVector) =
     loglikelihood(getdesign(spec), params)
+
+function _logposterior_unchecked(
+        design::FacetDesign,
+        params::AbstractVector,
+        prior::MFRMPrior)
+    return _loglikelihood_unchecked(design, params) +
+        _logprior_unchecked(design, params, prior)
+end
 
 """
     logposterior(design::FacetDesign, params, prior = MFRMPrior())
@@ -182,7 +205,9 @@ prior)` on the identified parameter vector. For fit objects, return the stored
 log posterior for each selected posterior draw.
 """
 function logposterior(design::FacetDesign, params::AbstractVector, prior::MFRMPrior = MFRMPrior())
-    return loglikelihood(design, params) + logprior(design, params, prior)
+    _check_fit_supported_mfrm(design, "logposterior")
+    _check_parameter_vector(design, params)
+    return _logposterior_unchecked(design, params, prior)
 end
 
 logposterior(spec::FacetSpec, params::AbstractVector, prior::MFRMPrior = MFRMPrior()) =
@@ -201,6 +226,10 @@ on the built-in random-walk Metropolis sampler.
 struct MFRMLogDensity
     design::FacetDesign
     prior::MFRMPrior
+    function MFRMLogDensity(design::FacetDesign, prior::MFRMPrior)
+        snapshot = _validated_design_snapshot(design, "MFRMLogDensity")
+        return new(snapshot, prior)
+    end
 end
 
 MFRMLogDensity(design::FacetDesign; prior::MFRMPrior = MFRMPrior()) =
@@ -216,7 +245,8 @@ function Base.show(io::IO, target::MFRMLogDensity)
 end
 
 LogDensityProblems.logdensity(target::MFRMLogDensity, params) =
-    logposterior(target.design, params, target.prior)
+    (_check_parameter_vector(target.design, params);
+        _logposterior_unchecked(target.design, params, target.prior))
 
 LogDensityProblems.dimension(target::MFRMLogDensity) =
     length(target.design.parameter_names)
@@ -507,8 +537,9 @@ end
 
 function _source_fixture_logdensity(design::FacetDesign;
         prior::_SourceFixturePrior = _SourceFixturePrior())
-    blueprint = _source_fixture_blueprint(design)
-    return _SourceFixtureLogDensity(design, blueprint, prior)
+    snapshot = _validated_design_snapshot(design, "_source_fixture_logdensity")
+    blueprint = _source_fixture_blueprint(snapshot)
+    return _SourceFixtureLogDensity(snapshot, blueprint, prior)
 end
 
 function _source_fixture_logdensity(spec::FacetSpec;
@@ -536,11 +567,15 @@ end
 
 function _gmfrm_promotion_candidate_logdensity(design::FacetDesign;
         prior::_SourceFixturePrior = _SourceFixturePrior())
-    design.spec.family === :gmfrm &&
-        design.spec.estimation_status === :specified_only ||
+    snapshot = _validated_design_snapshot(
+        design,
+        "_gmfrm_promotion_candidate_logdensity",
+    )
+    snapshot.spec.family === :gmfrm &&
+        snapshot.spec.estimation_status === :specified_only ||
         throw(ArgumentError("_gmfrm_promotion_candidate_logdensity is only for specified-only GMFRM preview designs"))
-    blueprint = _gmfrm_fit_ready_candidate_blueprint(design)
-    return _GMFRMPromotionCandidateLogDensity(design, blueprint, prior)
+    blueprint = _gmfrm_fit_ready_candidate_blueprint(snapshot)
+    return _GMFRMPromotionCandidateLogDensity(snapshot, blueprint, prior)
 end
 
 function _gmfrm_promotion_candidate_logdensity(spec::FacetSpec;
@@ -550,15 +585,19 @@ end
 
 function _mgmfrm_guarded_local_fit_logdensity(design::FacetDesign;
         prior::_SourceFixturePrior = _SourceFixturePrior())
-    design.spec.family === :mgmfrm &&
-        design.spec.estimation_status === :specified_only ||
+    snapshot = _validated_design_snapshot(
+        design,
+        "_mgmfrm_guarded_local_fit_logdensity",
+    )
+    snapshot.spec.family === :mgmfrm &&
+        snapshot.spec.estimation_status === :specified_only ||
         throw(ArgumentError("_mgmfrm_guarded_local_fit_logdensity is only for specified-only MGMFRM preview designs"))
-    design.spec.dimensions >= 2 ||
+    snapshot.spec.dimensions >= 2 ||
         throw(ArgumentError("_mgmfrm_guarded_local_fit_logdensity requires dimensions >= 2"))
-    design.spec.q_matrix !== nothing ||
+    snapshot.spec.q_matrix !== nothing ||
         throw(ArgumentError("_mgmfrm_guarded_local_fit_logdensity requires a fixed confirmatory q_matrix"))
-    blueprint = _mgmfrm_fit_ready_candidate_blueprint(design)
-    return _MGMFRMGuardedLocalFitLogDensity(design, blueprint, prior)
+    blueprint = _mgmfrm_fit_ready_candidate_blueprint(snapshot)
+    return _MGMFRMGuardedLocalFitLogDensity(snapshot, blueprint, prior)
 end
 
 function _mgmfrm_guarded_local_fit_logdensity(spec::FacetSpec;
@@ -969,6 +1008,7 @@ samplers can start from a known point while model-specific initialization
 heuristics are developed.
 """
 function initial_params(design::FacetDesign; value::Real = 0.0)
+    _require_canonical_design(design, "initial_params")
     isfinite(value) || throw(ArgumentError("value must be finite"))
     return fill(Float64(value), length(design.parameter_names))
 end
@@ -1090,14 +1130,15 @@ function fit(design::FacetDesign;
     chains >= 1 || throw(ArgumentError("chains must be positive"))
     isfinite(step_size) && step_size > 0 ||
         throw(ArgumentError("step_size must be finite and positive"))
-    initial = _fit_initial_params(design, init)
+    execution_design = _validated_design_snapshot(design, "fit")
+    initial = _fit_initial_params(execution_design, init)
     fit_rng, rng_control = _fit_rng(rng, seed)
 
     if backend === :julia
-        return _fit_random_walk(design, prior, ndraws, warmup, chains,
+        return _fit_random_walk(execution_design, prior, ndraws, warmup, chains,
             Float64(step_size), initial, fit_rng, rng_control)
     elseif backend === :advancedhmc
-        return _fit_advancedhmc(design, prior, ndraws, warmup, chains,
+        return _fit_advancedhmc(execution_design, prior, ndraws, warmup, chains,
             Float64(step_size), initial, fit_rng, rng_control;
             target_accept,
             max_depth,
@@ -1107,7 +1148,7 @@ function fit(design::FacetDesign;
             init_jitter,
             progress)
     elseif backend === :turing
-        return _fit_turing(design, prior, ndraws, warmup, chains,
+        return _fit_turing(execution_design, prior, ndraws, warmup, chains,
             Float64(step_size), initial, fit_rng, rng_control;
             target_accept,
             max_depth,
@@ -1167,7 +1208,7 @@ function _fit_random_walk(design::FacetDesign,
 
     for chain in 1:chains
         current = copy(initial)
-        current_lp = logposterior(design, current, prior)
+        current_lp = _logposterior_unchecked(design, current, prior)
         isfinite(current_lp) || throw(ArgumentError("initial parameter vector has non-finite log posterior"))
         proposal = similar(current)
         accepted = 0
@@ -1175,7 +1216,7 @@ function _fit_random_walk(design::FacetDesign,
             @inbounds for j in 1:nparams
                 proposal[j] = current[j] + step * randn(rng)
             end
-            proposal_lp = logposterior(design, proposal, prior)
+            proposal_lp = _logposterior_unchecked(design, proposal, prior)
             is_accepted = false
             if log(rand(rng)) < proposal_lp - current_lp
                 current .= proposal
@@ -3018,7 +3059,11 @@ function _fit_experimental_gmfrm(spec::FacetSpec;
         raw_initial;
         kwargs...,
     )
-    return _gmfrm_fit_from_sampler_diagnostics(design, gmfrm_prior, diagnostic_surface)
+    return _gmfrm_fit_from_sampler_diagnostics(
+        target.design,
+        gmfrm_prior,
+        diagnostic_surface,
+    )
 end
 
 function _guarded_mgmfrm_prior(prior)
@@ -3104,7 +3149,11 @@ function _fit_guarded_mgmfrm(spec::FacetSpec;
         initial_source = init === nothing ? :default_zero_raw : :user_supplied_raw,
         kwargs...,
     )
-    return _mgmfrm_fit_from_sampler_diagnostics(design, mgmfrm_prior, diagnostic_surface)
+    return _mgmfrm_fit_from_sampler_diagnostics(
+        target.design,
+        mgmfrm_prior,
+        diagnostic_surface,
+    )
 end
 
 function _fit_experimental_mgmfrm(spec::FacetSpec; kwargs...)
@@ -3175,6 +3224,7 @@ metadata helper does not itself report chain-aware convergence diagnostics; use
 R-hat/ESS summaries.
 """
 function fit_metadata(fit::MFRMFit)
+    identity = design_identity(fit.design)
     data = fit.design.spec.data
     return (;
         n_observations = data.n,
@@ -3215,10 +3265,12 @@ function fit_metadata(fit::MFRMFit)
             step_sd = fit.prior.step_sd,
         ),
         data_signature = fit.design.spec.validation.data_signature,
+        design_identity = identity,
     )
 end
 
 function fit_metadata(fit::GMFRMFit)
+    identity = design_identity(fit.design)
     data = fit.design.spec.data
     diagnostic = fit.diagnostic_surface
     return (;
@@ -3265,10 +3317,12 @@ function fit_metadata(fit::GMFRMFit)
             step_sd = fit.prior.step_sd,
         ),
         data_signature = fit.design.spec.validation.data_signature,
+        design_identity = identity,
     )
 end
 
 function fit_metadata(fit::MGMFRMFit)
+    identity = design_identity(fit.design)
     data = fit.design.spec.data
     diagnostic = fit.diagnostic_surface
     return (;
@@ -3319,6 +3373,7 @@ function fit_metadata(fit::MGMFRMFit)
             step_sd = fit.prior.step_sd,
         ),
         data_signature = fit.design.spec.validation.data_signature,
+        design_identity = identity,
     )
 end
 
@@ -8626,6 +8681,7 @@ function _fit_cache_request(design::FacetDesign;
         ad_backend::Symbol = :ForwardDiff,
         init_jitter::Real = 0.0,
         progress::Bool = false)
+    _require_canonical_design(design, "fit cache request")
     experimental && backend !== :advancedhmc &&
         throw(ArgumentError(
             "experimental fit caches currently support only backend = :advancedhmc"))
@@ -9346,6 +9402,24 @@ function direct_posterior_summary(fit::MGMFRMFit;
     )
 end
 
+function _mfrm_pointwise_loglikelihood_matrix_unchecked(
+        design::FacetDesign,
+        draws::AbstractMatrix)
+    size(draws, 2) == length(design.parameter_names) ||
+        throw(ArgumentError(
+            "draws has $(size(draws, 2)) column(s); " *
+            "expected $(length(design.parameter_names))",
+        ))
+    out = Matrix{Float64}(undef, size(draws, 1), design.spec.data.n)
+    for draw in axes(draws, 1)
+        out[draw, :] .= _pointwise_loglikelihood_unchecked(
+            design,
+            @view(draws[draw, :]),
+        )
+    end
+    return out
+end
+
 """
     pointwise_loglikelihood_matrix(fit::Union{MFRMFit,GMFRMFit,MGMFRMFit})
     pointwise_loglikelihood_matrix(design::FacetDesign, draws;
@@ -9359,20 +9433,17 @@ when `draws` are raw unconstrained candidate coordinates.
 function pointwise_loglikelihood_matrix(design::FacetDesign,
         draws::AbstractMatrix;
         parameter_space::Symbol = :direct)
+    _require_canonical_design(design, "pointwise_loglikelihood_matrix")
     parameter_space in (:direct, :raw) ||
         throw(ArgumentError("parameter_space must be :direct or :raw"))
-    out = Matrix{Float64}(undef, size(draws, 1), design.spec.data.n)
     if design.spec.family === :mfrm &&
             design.spec.estimation_status === :fit_supported
         parameter_space === :direct ||
             throw(ArgumentError("fit-supported MFRM/RSM/PCM pointwise loglikelihood only accepts parameter_space = :direct"))
-        size(draws, 2) == length(design.parameter_names) ||
-            throw(ArgumentError("draws has $(size(draws, 2)) column(s); expected $(length(design.parameter_names))"))
-        for draw in axes(draws, 1)
-            out[draw, :] .= pointwise_loglikelihood(design, @view draws[draw, :])
-        end
-        return out
-    elseif design.spec.family === :gmfrm &&
+        return _mfrm_pointwise_loglikelihood_matrix_unchecked(design, draws)
+    end
+    out = Matrix{Float64}(undef, size(draws, 1), design.spec.data.n)
+    if design.spec.family === :gmfrm &&
             design.spec.estimation_status === :specified_only
         expected = parameter_space === :raw ?
             _gmfrm_source_unconstrained_blueprint(design).n_parameters :
@@ -10470,7 +10541,10 @@ function _loo_refit_score_design(source::FacetData,
 end
 
 function _refit_score_loglikelihood(score_design::FacetDesign, training_fit::MFRMFit)
-    return Matrix{Float64}(pointwise_loglikelihood_matrix(score_design, training_fit.draws))
+    return _mfrm_pointwise_loglikelihood_matrix_unchecked(
+        score_design,
+        training_fit.draws,
+    )
 end
 
 function _refit_score_loglikelihood(score_design::FacetDesign, training_fit::GMFRMFit)

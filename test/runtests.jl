@@ -25261,7 +25261,9 @@ end
 
     target = MFRMLogDensity(design; prior)
     spec_target = MFRMLogDensity(spec; prior)
-    @test target.design === design
+    @test target.design !== design
+    @test BayesianMGMFRM.design_identity(target.design).value ==
+        BayesianMGMFRM.design_identity(design).value
     @test target.prior === prior
     @test spec_target.design.parameter_names == design.parameter_names
     @test initial_params(target) == init
@@ -25317,7 +25319,9 @@ end
         "actual MFRMFit text/plain" =>
             sprint(show, MIME"text/plain"(), result),
     ]))
-    @test result.design === design
+    @test result.design !== design
+    @test BayesianMGMFRM.design_identity(result.design).value ==
+        BayesianMGMFRM.design_identity(design).value
     @test result.prior === prior
     @test size(result.draws) == (24, length(design.parameter_names))
     @test length(result.log_posterior) == 24
@@ -25526,7 +25530,9 @@ end
         init,
         rng = MersenneTwister(20260620))
     @test hmc_result isa MFRMFit
-    @test hmc_result.design === design
+    @test hmc_result.design !== design
+    @test BayesianMGMFRM.design_identity(hmc_result.design).value ==
+        BayesianMGMFRM.design_identity(design).value
     @test hmc_result.prior === prior
     @test hmc_result.backend === :advancedhmc
     @test hmc_result.sampler === :nuts
@@ -25589,7 +25595,9 @@ end
         init,
         seed = 20260623)
     @test turing_result isa MFRMFit
-    @test turing_result.design === design
+    @test turing_result.design !== design
+    @test BayesianMGMFRM.design_identity(turing_result.design).value ==
+        BayesianMGMFRM.design_identity(design).value
     @test turing_result.prior === prior
     @test turing_result.backend === :turing
     @test turing_result.sampler === :nuts
@@ -30406,6 +30414,7 @@ end
     end
 end
 
+include("model_contract.jl")
 include("facets_compatibility_stats.jl")
 include("generalized_guard_contract.jl")
 include("publication_grade_policy_contract.jl")

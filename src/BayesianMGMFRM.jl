@@ -47,6 +47,7 @@ export FacetData,
     comparison_evidence_row,
     comparison_evidence_summary,
     diagnostic_map_data,
+    design_identity,
     design_row_table,
     dff_report,
     domain_compilation_summary,
@@ -158,6 +159,7 @@ export FacetData,
 
 include("evidence_metadata.jl")
 include("facet_workflow.jl")
+include("model_contract.jl")
 include("bayesian_fit.jl")
 
 # Scalar validation target used by the analytic-gradient test suite.
