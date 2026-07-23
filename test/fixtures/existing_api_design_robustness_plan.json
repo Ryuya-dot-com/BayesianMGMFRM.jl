@@ -1,0 +1,677 @@
+{
+  "schema": "bayesianmgmfrm.existing_api_design_robustness_plan.v1",
+  "family": "mfrm_gmfrm_mgmfrm",
+  "scope": "existing_static_api_design_robustness",
+  "status": "deterministic_contract_checks_passed_recovery_not_run",
+  "decision": "run_paired_known_truth_recovery_before_dynamic_extension",
+  "public_claim_release_allowed": false,
+  "publication_or_registration_action": false,
+  "package": {
+    "name": "BayesianMGMFRM",
+    "version": "0.1.1"
+  },
+  "generator": {
+    "script": "scripts/generate_existing_api_design_robustness_plan.jl",
+    "source_sha256": "6ee0256a952d4aaf285516e473652f0a3bd47f3e2612ad54bcae84c8681ca247",
+    "deterministic": true
+  },
+  "terminology": {
+    "parameter_anchor": "hard_or_soft_parameter_constraint_currently_specified_only",
+    "multiply_scored_target": "unique_person_item_response_scored_by_two_or_more_raters",
+    "common_linking_target": "planned_shared_response_scored_by_the_designated_linking_raters",
+    "controlled_benchmark_target": "planned_control_response_with_reference_information",
+    "requested_target_fraction_denominator": "all_planned_unique_person_item_targets",
+    "observed_target_fraction_denominator": "observed_unique_person_item_targets",
+    "common_target_rating_event_fraction_denominator": "all_rating_events",
+    "additional_link_rating_fraction_denominator": "all_rating_events",
+    "temporal_benchmark": "repeated_control_response_placed_across_sequence_not_a_parameter_anchor",
+    "anchor_size_legacy_grid_field": "planning_metadata_not_materialized_shared_response_count"
+  },
+  "reference_records": [
+    {
+      "citation": "DeMars, Shapovalov, and Hathcoat (2023)",
+      "title": "Many-Facet Rasch Designs: How Should Raters be Assigned to Examinees?",
+      "source": "url",
+      "url": "https://commons.lib.jmu.edu/gradpsych/63/",
+      "contribution": "linking_topology_and_empirical_uncertainty"
+    },
+    {
+      "citation": "Hombo, Donoghue, and Thayer (2001)",
+      "title": "A simulation study of the effect of rater designs on ability estimation",
+      "source": "doi",
+      "doi": "10.1002/j.2333-8504.2001.tb01847.x",
+      "contribution": "nested_vs_spiral_assignment_bias"
+    },
+    {
+      "citation": "Wind and Jones (2018)",
+      "title": "The stabilizing influences of linking set size and model-data fit in sparse rater-mediated assessment networks",
+      "source": "doi",
+      "doi": "10.1177/0013164417703733",
+      "contribution": "linking_set_size_and_sparse_network_stability"
+    },
+    {
+      "citation": "Uto (2021)",
+      "title": "Accuracy of performance-test linking based on a many-facet Rasch model",
+      "source": "doi",
+      "doi": "10.3758/s13428-020-01498-x",
+      "contribution": "common_rater_and_task_linking_accuracy"
+    },
+    {
+      "citation": "Wang, Song, Wang, and Wolfe (2017)",
+      "title": "Essay selection methods for adaptive rater monitoring",
+      "source": "doi",
+      "doi": "10.1177/0146621616672855",
+      "contribution": "benchmark_information_efficiency"
+    },
+    {
+      "citation": "Huang (2023)",
+      "title": "Modeling rating order effects under item response theory models for rater-mediated assessments",
+      "source": "doi",
+      "doi": "10.1177/01466216231174566",
+      "contribution": "static_api_misspecification_boundary_for_order_effects"
+    },
+    {
+      "citation": "Yeates et al. (2022)",
+      "title": "Determining influence, interaction and causality of contrast and sequence effects in objective structured clinical exams",
+      "source": "doi",
+      "doi": "10.1111/medu.14713",
+      "contribution": "embedded_performance_early_late_order_effect"
+    }
+  ],
+  "current_evidence_audit": [
+    {
+      "name": "scalar_gmfrm_sparse_pathology_recovery",
+      "path": "test/fixtures/gmfrm_sparse_pathology_recovery_grid.json",
+      "sha256": "912072c18980a96b9037c4ca0028a429f8e78d9e2decfebbb869bf9984932d94",
+      "schema": "bayesianmgmfrm.gmfrm_sparse_pathology_recovery_grid.v1",
+      "summary_passed": true,
+      "evidence_scope": "three_small_connected_sparse_patterns_computational_smoke",
+      "design_robustness_claim_supported": false
+    },
+    {
+      "name": "confirmatory_mgmfrm_sparse_recovery",
+      "path": "test/fixtures/mgmfrm_sparse_recovery_grid.json",
+      "sha256": "66f93609547525a7fb4d3556bab7b7e47f9863cfa283209e9416749a0059b628",
+      "schema": "bayesianmgmfrm.mgmfrm_sparse_recovery_grid.v1",
+      "summary_passed": true,
+      "evidence_scope": "three_small_connected_fixed_q_patterns_computational_smoke",
+      "design_robustness_claim_supported": false
+    }
+  ],
+  "current_evidence_boundary": {
+    "generic_simulation_grid_runs_fits": false,
+    "generic_anchor_size_materializes_linking_targets": false,
+    "existing_sparse_fixtures_cross_nonrandom_assignment": false,
+    "existing_sparse_fixtures_cross_presentation_order": false,
+    "existing_sparse_fixtures_cross_omitted_order_effect": false,
+    "existing_sparse_fixtures_cross_linking_target_fraction": false,
+    "conclusion": "computational_smoke_is_not_design_robustness_evidence"
+  },
+  "deterministic_contract_checks": [
+    {
+      "check_id": "row_order_equivariance",
+      "passed": true,
+      "n_observations": 48,
+      "parameter_name_set_preserved": true,
+      "max_aligned_pointwise_loglikelihood_error": 0.0,
+      "absolute_total_loglikelihood_error": 2.842170943040401e-14,
+      "tolerance": 1.0e-12,
+      "achieved_multiply_scored_target_fraction": 1.0,
+      "achieved_all_raters_common_target_fraction": 0.0,
+      "note": "same_observed_ratings_only_row_order_changed"
+    },
+    {
+      "check_id": "occasion_metadata_not_likelihood",
+      "passed": true,
+      "parameter_names_preserved": true,
+      "max_pointwise_loglikelihood_error": 0.0,
+      "tolerance": 1.0e-12,
+      "audit_status": "recorded_not_modeled",
+      "interpretation": "occasion_presence_does_not_identify_order_or_drift"
+    },
+    {
+      "check_id": "ability_nested_no_link_negative_control",
+      "passed": true,
+      "validation_passed": false,
+      "validation_issue_codes": [
+        "rank_deficient_design",
+        "unobserved_item_category"
+      ],
+      "rating_design_audit_passed": false,
+      "rating_graph_status": "connected",
+      "rater_linking_status": "disconnected",
+      "nonignorable_assignment_flagged": true,
+      "expected_action": "block_fit_before_sampling"
+    },
+    {
+      "check_id": "materialized_common_linking_fraction_5pct",
+      "passed": true,
+      "requested_common_linking_target_fraction": 0.05,
+      "achieved_multiply_scored_target_fraction": 0.05,
+      "achieved_all_raters_common_target_fraction": 0.05,
+      "controlled_benchmark_target_fraction": 0.0,
+      "n_targets": 400,
+      "n_linking_targets": 20,
+      "base_rating_events": 400,
+      "total_rating_events": 500,
+      "linking_ratings_added": 100,
+      "additional_link_rating_fraction": 0.2,
+      "common_target_rating_event_fraction": 0.24,
+      "rating_budget_policy": "additive",
+      "minimum_shared_person_item_units": 20,
+      "rater_linking_status": "connected",
+      "parameter_anchor_count": 0,
+      "parameter_anchor_status": "not_declared",
+      "assignment_warning_retained": true
+    },
+    {
+      "check_id": "materialized_common_linking_fraction_10pct",
+      "passed": true,
+      "requested_common_linking_target_fraction": 0.1,
+      "achieved_multiply_scored_target_fraction": 0.1,
+      "achieved_all_raters_common_target_fraction": 0.1,
+      "controlled_benchmark_target_fraction": 0.0,
+      "n_targets": 400,
+      "n_linking_targets": 40,
+      "base_rating_events": 400,
+      "total_rating_events": 600,
+      "linking_ratings_added": 200,
+      "additional_link_rating_fraction": 0.3333333333333333,
+      "common_target_rating_event_fraction": 0.4,
+      "rating_budget_policy": "additive",
+      "minimum_shared_person_item_units": 40,
+      "rater_linking_status": "connected",
+      "parameter_anchor_count": 0,
+      "parameter_anchor_status": "not_declared",
+      "assignment_warning_retained": true
+    },
+    {
+      "check_id": "parameter_anchor_guard",
+      "passed": true,
+      "estimation_status": "specified_only",
+      "ordinary_design_compilation_blocked": true,
+      "error_type": "ArgumentError",
+      "parameter_anchor_count": 1,
+      "linking_summary_caveat": "diagnostic_summary_not_anchor_refit_or_linking_estimator",
+      "interpretation": "parameter_anchor_not_materialized_linking_response"
+    },
+    {
+      "check_id": "simulation_grid_anchor_size_is_planning_metadata",
+      "passed": true,
+      "anchor_sizes": [
+        0,
+        20
+      ],
+      "planned_n_ratings": [
+        800,
+        800
+      ],
+      "unique_planned_n_ratings": [
+        800
+      ],
+      "simulation_statuses": [
+        "predeclared_not_run",
+        "predeclared_not_run"
+      ],
+      "interpretation": "anchor_size_does_not_materialize_shared_ratings"
+    }
+  ],
+  "study_tracks": {
+    "A_well_specified_static_recovery": {
+      "true_order_effect": "none",
+      "purpose": "isolate_topology_assignment_linking_and_latent_dispersion",
+      "order_role": "pure_permutation_equivariance_only_not_a_confounding_test"
+    },
+    "B_static_misspecification_boundary": {
+      "fitted_model": "same_existing_static_api",
+      "true_order_effect": [
+        "none",
+        "linear_severity_change",
+        "change_point"
+      ],
+      "purpose": "measure_bias_and_detection_when_order_dependence_is_omitted",
+      "interpretation": "failure_maps_the_static_api_boundary_not_a_dynamic_fit_claim"
+    }
+  },
+  "study_axes": {
+    "model_family": [
+      "mfrm",
+      "guarded_scalar_gmfrm",
+      "guarded_fixed_q_mgmfrm"
+    ],
+    "rating_topology": [
+      "fully_crossed",
+      "rotating_pairs",
+      "fixed_pairs",
+      "random_pairs",
+      "mostly_single_common_linking_set",
+      "weak_bridge",
+      "disconnected_rejection"
+    ],
+    "assignment": [
+      "balanced_random",
+      "ability_stratified_balanced",
+      "ability_informed_nested",
+      "severity_aligned",
+      "severity_opposed"
+    ],
+    "presentation_order": [
+      "random",
+      "row_permutation_only"
+    ],
+    "misspecification_ability_order": [
+      "random",
+      "low_to_high",
+      "high_to_low",
+      "block_clustered"
+    ],
+    "common_linking_target_fraction": [
+      0.0,
+      0.02,
+      0.05,
+      0.1,
+      0.2
+    ],
+    "linking_raters_per_common_target": [
+      2,
+      3,
+      "all_raters"
+    ],
+    "rating_budget_policy": [
+      "additive",
+      "fixed_total_target_displacement"
+    ],
+    "linking_support": [
+      "full_ability_and_item_range",
+      "narrow_low",
+      "narrow_middle",
+      "narrow_high"
+    ],
+    "linking_placement": [
+      "not_applicable",
+      "early_only",
+      "distributed"
+    ],
+    "ability_sd": [
+      0.5,
+      1.0,
+      2.0
+    ],
+    "rater_severity_sd": [
+      0.25,
+      0.75,
+      1.5
+    ],
+    "threshold_spacing": [
+      "compressed",
+      "reference",
+      "wide"
+    ]
+  },
+  "mandatory_scenarios": [
+    {
+      "scenario_id": "C0_balanced_random_double_rated",
+      "assignment": "balanced_random",
+      "ratings_per_target": 2,
+      "planned_multiply_scored_target_fraction": 1.0,
+      "common_linking_target_fraction": 0.0,
+      "all_raters_common_target_fraction": 0.0,
+      "controlled_benchmark_target_fraction": 0.0,
+      "rating_budget_policy": "baseline_double_rating",
+      "planned_total_rating_events": 800,
+      "planned_ordinary_overlap_target_fraction": 1.0,
+      "linking_placement": "not_applicable",
+      "execution": "fit",
+      "role": "identified_baseline"
+    },
+    {
+      "scenario_id": "C0P_same_ratings_row_permuted",
+      "assignment": "same_as_C0",
+      "ratings_per_target": 2,
+      "planned_multiply_scored_target_fraction": 1.0,
+      "common_linking_target_fraction": 0.0,
+      "all_raters_common_target_fraction": 0.0,
+      "controlled_benchmark_target_fraction": 0.0,
+      "rating_budget_policy": "same_as_C0",
+      "planned_total_rating_events": 800,
+      "planned_ordinary_overlap_target_fraction": 1.0,
+      "linking_placement": "not_applicable",
+      "execution": "deterministic_invariance_only",
+      "role": "row_order_equivariance"
+    },
+    {
+      "scenario_id": "C1_ability_nested_no_link",
+      "assignment": "ability_informed_nested",
+      "ratings_per_target": 1,
+      "planned_multiply_scored_target_fraction": 0.0,
+      "common_linking_target_fraction": 0.0,
+      "all_raters_common_target_fraction": 0.0,
+      "controlled_benchmark_target_fraction": 0.0,
+      "rating_budget_policy": "single_rating_baseline",
+      "planned_total_rating_events": 400,
+      "planned_ordinary_overlap_target_fraction": 0.0,
+      "linking_placement": "not_applicable",
+      "execution": "prefit_rejection_only",
+      "role": "negative_design_control"
+    },
+    {
+      "scenario_id": "C2A_nested_5pct_link_early_additive",
+      "assignment": "ability_informed_nested",
+      "ratings_per_target": 1,
+      "planned_multiply_scored_target_fraction": 0.05,
+      "common_linking_target_fraction": 0.05,
+      "all_raters_common_target_fraction": 0.05,
+      "controlled_benchmark_target_fraction": 0.0,
+      "rating_budget_policy": "additive",
+      "planned_total_rating_events": 500,
+      "planned_ordinary_overlap_target_fraction": 0.0,
+      "linking_placement": "early_only",
+      "execution": "fit",
+      "role": "weak_linking_stress"
+    },
+    {
+      "scenario_id": "C2P_same_ratings_5pct_link_distributed",
+      "assignment": "same_as_C2A",
+      "ratings_per_target": 1,
+      "planned_multiply_scored_target_fraction": 0.05,
+      "common_linking_target_fraction": 0.05,
+      "all_raters_common_target_fraction": 0.05,
+      "controlled_benchmark_target_fraction": 0.0,
+      "rating_budget_policy": "same_as_C2A",
+      "planned_total_rating_events": 500,
+      "planned_ordinary_overlap_target_fraction": 0.0,
+      "linking_placement": "distributed",
+      "execution": "deterministic_invariance_only",
+      "role": "placement_only_static_contrast"
+    },
+    {
+      "scenario_id": "C2F_nested_5pct_link_early_fixed_total",
+      "assignment": "ability_informed_nested",
+      "ratings_per_target": 1,
+      "planned_multiply_scored_target_fraction": 0.05,
+      "planned_multiply_scored_target_fraction_observed": 0.06666666666666667,
+      "common_linking_target_fraction": 0.05,
+      "all_raters_common_target_fraction": 0.05,
+      "controlled_benchmark_target_fraction": 0.0,
+      "rating_budget_policy": "fixed_total_target_displacement",
+      "planned_total_rating_events": 400,
+      "planned_observed_target_fraction": 0.75,
+      "planned_dropped_target_fraction": 0.25,
+      "planned_ordinary_overlap_target_fraction": 0.0,
+      "linking_placement": "early_only",
+      "execution": "fit",
+      "role": "weak_linking_vs_operational_target_coverage"
+    },
+    {
+      "scenario_id": "C3A_nested_10pct_link_distributed_additive",
+      "assignment": "ability_informed_nested",
+      "ratings_per_target": 1,
+      "planned_multiply_scored_target_fraction": 0.1,
+      "common_linking_target_fraction": 0.1,
+      "all_raters_common_target_fraction": 0.1,
+      "controlled_benchmark_target_fraction": 0.0,
+      "rating_budget_policy": "additive",
+      "planned_total_rating_events": 600,
+      "planned_ordinary_overlap_target_fraction": 0.0,
+      "linking_placement": "distributed",
+      "execution": "fit",
+      "role": "linking_dose_contrast"
+    },
+    {
+      "scenario_id": "C3F_nested_10pct_link_distributed_fixed_total",
+      "assignment": "ability_informed_nested",
+      "ratings_per_target": 1,
+      "planned_multiply_scored_target_fraction": 0.1,
+      "planned_multiply_scored_target_fraction_observed": 0.2,
+      "common_linking_target_fraction": 0.1,
+      "all_raters_common_target_fraction": 0.1,
+      "controlled_benchmark_target_fraction": 0.0,
+      "rating_budget_policy": "fixed_total_target_displacement",
+      "planned_total_rating_events": 400,
+      "planned_observed_target_fraction": 0.5,
+      "planned_dropped_target_fraction": 0.5,
+      "planned_ordinary_overlap_target_fraction": 0.0,
+      "linking_placement": "distributed",
+      "execution": "fit",
+      "role": "linking_information_vs_operational_target_coverage"
+    },
+    {
+      "scenario_id": "C4_ability_nested_10pct_narrow_support",
+      "assignment": "ability_informed_nested",
+      "ratings_per_target": 1,
+      "planned_multiply_scored_target_fraction": 0.1,
+      "common_linking_target_fraction": 0.1,
+      "all_raters_common_target_fraction": 0.1,
+      "controlled_benchmark_target_fraction": 0.0,
+      "rating_budget_policy": "additive",
+      "planned_total_rating_events": 600,
+      "planned_ordinary_overlap_target_fraction": 0.0,
+      "linking_placement": "distributed",
+      "execution": "second_batch_fit",
+      "role": "linking_range_blind_spot"
+    }
+  ],
+  "order_misspecification_scenarios": [
+    {
+      "scenario_id": "M0_no_order_effect_random_sequence",
+      "true_order_effect": "none",
+      "ability_order": "random",
+      "expected_static_status": "well_specified",
+      "role": "negative_control"
+    },
+    {
+      "scenario_id": "M1_order_effect_random_sequence",
+      "true_order_effect": "linear_severity_change",
+      "ability_order": "random",
+      "expected_static_status": "misspecified",
+      "role": "order_effect_without_case_mix_trend"
+    },
+    {
+      "scenario_id": "M2_order_effect_reinforcing_ability_sequence",
+      "true_order_effect": "linear_severity_change",
+      "ability_order": "reinforcing_low_to_high_or_high_to_low",
+      "expected_static_status": "misspecified",
+      "role": "order_and_case_mix_amplification"
+    },
+    {
+      "scenario_id": "M3_order_effect_opposing_ability_sequence",
+      "true_order_effect": "linear_severity_change",
+      "ability_order": "opposing_low_to_high_or_high_to_low",
+      "expected_static_status": "misspecified",
+      "role": "order_and_case_mix_cancellation"
+    },
+    {
+      "scenario_id": "M4_order_effect_block_clustered_sequence",
+      "true_order_effect": "linear_severity_change",
+      "ability_order": "block_clustered",
+      "expected_static_status": "misspecified",
+      "role": "order_and_case_mix_local_clustering"
+    }
+  ],
+  "design_realization_metrics": {
+    "required": [
+      "n_rating_events",
+      "achieved_score_sd",
+      "observed_target_fraction",
+      "dropped_target_fraction",
+      "achieved_multiply_scored_target_fraction",
+      "achieved_all_raters_common_target_fraction",
+      "achieved_controlled_benchmark_target_fraction",
+      "achieved_common_target_rating_event_fraction",
+      "achieved_additional_link_rating_fraction",
+      "rater_load_min",
+      "rater_load_max",
+      "rater_load_cv",
+      "common_target_ability_range",
+      "common_target_ability_quantile_coverage",
+      "within_rater_sequence_ability_correlation",
+      "assignment_severity_correlation",
+      "late_minus_early_ability_mean",
+      "common_target_fraction_by_sequence_block",
+      "rating_graph_components",
+      "rater_link_components",
+      "minimum_pairwise_overlap",
+      "category_use_counts"
+    ],
+    "source": "materialized_rating_rows_not_scenario_labels"
+  },
+  "design_selection": {
+    "strategy": "mandatory_paired_cells_then_interaction_focused_fractional_factorial",
+    "full_factorial_allowed": false,
+    "reason": "full_cross_is_computationally_intractable_and_scientifically_redundant",
+    "paired_truth_and_seed_policy": true,
+    "fixed_total_target_displacement": {
+      "base_unique_targets": 400,
+      "rating_event_budget": 400,
+      "allocation_rule": "each_added_common_rating_displaces_one_ordinary_person_item_target",
+      "required_reporting": [
+        "planned_target_fraction",
+        "observed_target_fraction",
+        "dropped_target_fraction"
+      ]
+    },
+    "future_unimplemented_budget_policy": {
+      "policy": "fixed_total_routine_overlap_reallocation",
+      "purpose": "retain_all_targets_and_reallocate_routine_duplicate_ratings_to_common_targets"
+    }
+  },
+  "execution_stages": [
+    {
+      "stage": "D0_deterministic_contract",
+      "status": "passed",
+      "simulations": false,
+      "mcmc_fits": false,
+      "purpose": "api_equivariance_guards_and_materialized_design_counts"
+    },
+    {
+      "stage": "D1_paired_pilot",
+      "status": "predeclared_not_run",
+      "replications": 30,
+      "fitted_scenarios": [
+        "C0_balanced_random_double_rated",
+        "C2A_nested_5pct_link_early_additive",
+        "C2F_nested_5pct_link_early_fixed_total",
+        "C3A_nested_10pct_link_distributed_additive",
+        "C3F_nested_10pct_link_distributed_fixed_total"
+      ],
+      "families": [
+        "mfrm",
+        "guarded_scalar_gmfrm",
+        "guarded_fixed_q_mgmfrm"
+      ],
+      "study_track": "A_well_specified_static_recovery",
+      "purpose": "debug_and_recovery_threshold_freeze_not_release_evidence"
+    },
+    {
+      "stage": "D1B_order_misspecification_pilot",
+      "status": "predeclared_not_run",
+      "replications": 30,
+      "fitted_candidate": "same_existing_static_api",
+      "scenarios": [
+        "M0_no_order_effect_random_sequence",
+        "M1_order_effect_random_sequence",
+        "M2_order_effect_reinforcing_ability_sequence",
+        "M3_order_effect_opposing_ability_sequence",
+        "M4_order_effect_block_clustered_sequence"
+      ],
+      "study_track": "B_static_misspecification_boundary",
+      "purpose": "quantify_omitted_order_effect_bias_and_audit_power"
+    },
+    {
+      "stage": "D2_calibration",
+      "status": "blocked_until_D1_thresholds_frozen",
+      "replications": "at_least_50_extend_to_100_if_monte_carlo_uncertain",
+      "paired_seed_policy": true,
+      "purpose": "known_truth_recovery_calibration_and_linking_dose_curve"
+    }
+  ],
+  "estimands": {
+    "recovery": [
+      "bias",
+      "mae",
+      "rmse",
+      "interval_coverage",
+      "interval_width",
+      "empirical_to_posterior_se_ratio"
+    ],
+    "focal_blocks": [
+      "person_ability",
+      "rater_severity",
+      "item_difficulty",
+      "thresholds",
+      "rater_consistency",
+      "fixed_q_dimension_parameters"
+    ],
+    "prediction": [
+      "category_probability_error",
+      "expected_score_error",
+      "heldout_log_predictive_density",
+      "posterior_predictive_calibration"
+    ],
+    "decision": [
+      "rank_stability",
+      "cut_score_flip_rate",
+      "pairwise_rater_contrast_stability"
+    ],
+    "design": [
+      "graph_components",
+      "rater_link_components",
+      "achieved_linking_fraction",
+      "benchmark_burden",
+      "assignment_warning_retention"
+    ]
+  },
+  "gates": {
+    "fixed_contract_and_sampler": {
+      "max_rhat": 1.01,
+      "min_bulk_ess": 400,
+      "min_tail_ess": 400,
+      "required_divergences": 0,
+      "required_max_treedepth_hits": 0,
+      "disconnected_negative_control_fit_attempts": 0,
+      "permutation_equivariance_tolerance": 1.0e-12,
+      "require_empirical_vs_posterior_uncertainty_comparison": true,
+      "require_assignment_warning_under_ability_informed_design": true,
+      "require_parameter_anchor_and_linking_target_separation": true,
+      "require_requested_vs_achieved_design_checks": true
+    },
+    "provisional_recovery_and_decision": {
+      "min_aggregate_interval_coverage": 0.9,
+      "max_block_mae": 0.35,
+      "max_focal_absolute_error": 0.75,
+      "max_expected_score_calibration_error": 0.25,
+      "max_category_probability_error": 0.1,
+      "max_decision_flip_rate": 0.1,
+      "status": "freeze_after_pilot_before_evaluation_seeds"
+    },
+    "threshold_policy": "fixed_sampler_contract_then_pilot_freeze_for_recovery_gates"
+  },
+  "execution_policy": {
+    "deterministic_checks_executed": true,
+    "simulations_executed": false,
+    "mcmc_fits_executed": false,
+    "recovery_claim_evaluated": false,
+    "dynamic_model_in_scope": false,
+    "next_artifact": "scripts/generate_existing_api_design_robustness_stress_grid.jl"
+  },
+  "summary": {
+    "passed": true,
+    "n_reference_records": 7,
+    "n_current_evidence_artifacts": 2,
+    "n_deterministic_checks": 7,
+    "n_deterministic_checks_passed": 7,
+    "n_mandatory_scenarios": 9,
+    "n_order_misspecification_scenarios": 5,
+    "deterministic_contract_checks_passed": true,
+    "paired_known_truth_recovery_completed": false,
+    "design_robustness_claim_supported": false,
+    "public_claim_release_allowed": false,
+    "recommendation": "run_paired_static_recovery_grid_before_temporal_drift_grid",
+    "next_gate": "existing_api_design_robustness_stress_grid"
+  },
+  "content_hash": {
+    "algorithm": "sha256",
+    "value": "7bc5962d271e2a72bcb6f24ebc3b8f23246665b927a00149d3435fb7b701a299",
+    "covers": "artifact_without_content_hash"
+  }
+}
