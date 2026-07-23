@@ -16,6 +16,9 @@ const DEFAULT_POLICY = joinpath(
 const DEFAULT_REFINEMENT = joinpath(
     ROOT, "test", "fixtures",
     "mgmfrm_tam_direct_agreement_policy_refinement.json")
+const DEFAULT_EXECUTION_SNAPSHOT = joinpath(
+    ROOT, "test", "fixtures",
+    "mgmfrm_tam_direct_agreement_policy_refinement_execution_snapshot.json")
 const DEFAULT_PRE_EXECUTION_PACKET = joinpath(
     ROOT, "test", "fixtures",
     "mgmfrm_literature_anchored_independent_review_packet.json")
@@ -35,6 +38,16 @@ const PRE_EXECUTION_PACKET_SCHEMA =
     "bayesianmgmfrm.mgmfrm_literature_anchored_independent_review_packet.v1"
 const PACKET_SCHEMA =
     "bayesianmgmfrm.mgmfrm_tam_direct_agreement_post_execution_review_packet.v1"
+const EXPECTED_EXECUTION_SNAPSHOT_SHA256 =
+    "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e"
+const EXPECTED_PRE_EXECUTION_PACKET_SHA256 =
+    "696a9ad921d2bc68c42a6e095ef130d356f1cc893cd99405b58c1f68a2619e02"
+const EXPECTED_AGGREGATION_GENERATOR =
+    "scripts/generate_mgmfrm_tam_direct_agreement_multireplication_aggregate.jl"
+const EXPECTED_AGGREGATION_GENERATOR_SHA256 =
+    "787b11b0ebfc1a6a66104f97178b3a04383390dbc3864bdb7e3591f0d0a10324"
+const EXPECTED_SELECTED_JOBS = 10
+const EXPECTED_RETAINED_ATTEMPTS = 11
 
 include(joinpath(@__DIR__, "local_json.jl"))
 
@@ -120,6 +133,7 @@ function usage()
       --raw-audit PATH
       --policy PATH
       --refinement PATH
+      --execution-snapshot PATH
       --pre-execution-packet PATH
       --output PATH
     """
@@ -130,6 +144,7 @@ function parse_args(args)
     raw_audit = DEFAULT_RAW_AUDIT
     policy = DEFAULT_POLICY
     refinement = DEFAULT_REFINEMENT
+    execution_snapshot = DEFAULT_EXECUTION_SNAPSHOT
     pre_execution_packet = DEFAULT_PRE_EXECUTION_PACKET
     output = DEFAULT_OUTPUT
     index = 1
@@ -151,6 +166,11 @@ function parse_args(args)
             index < length(args) || error("--refinement requires a path")
             refinement = abspath(args[index + 1])
             index += 2
+        elseif arg == "--execution-snapshot"
+            index < length(args) ||
+                error("--execution-snapshot requires a path")
+            execution_snapshot = abspath(args[index + 1])
+            index += 2
         elseif arg == "--pre-execution-packet"
             index < length(args) ||
                 error("--pre-execution-packet requires a path")
@@ -168,7 +188,8 @@ function parse_args(args)
         end
     end
     return (;
-        result, raw_audit, policy, refinement, pre_execution_packet, output)
+        result, raw_audit, policy, refinement, execution_snapshot,
+        pre_execution_packet, output)
 end
 
 load_json(path::AbstractString) = JSON3.read(read(path, String))
@@ -184,6 +205,10 @@ function file_sha256(path::AbstractString)
     return open(path, "r") do io
         bytes2hex(sha256(io))
     end
+end
+
+function path_from_root(path::AbstractString)
+    return isabspath(path) ? normpath(path) : normpath(joinpath(ROOT, path))
 end
 
 function checked_artifact(path::AbstractString, schema::AbstractString)
@@ -204,6 +229,159 @@ function source_row(name::Symbol, path::AbstractString,
         present = true,
         role,
         reviewer_must_verify = true,
+    )
+end
+
+field_is_true(object, key::Symbol) =
+    haskey(object, key) && as_bool(object[key])
+
+function execution_snapshot_seed_rows(snapshot)
+    rows = snapshot[:data_and_input_contract][:seed_registry_rows]
+    expected_pairs = Set((n_persons, replication)
+        for n_persons in (40, 100) for replication in 1:5)
+    pairs = [(as_int(row[:n_persons]), as_int(row[:replication]))
+        for row in rows]
+    exact = length(rows) == EXPECTED_SELECTED_JOBS &&
+        length(unique(pairs)) == length(pairs) &&
+        Set(pairs) == expected_pairs
+    return (; rows, exact)
+end
+
+function execution_snapshot_seed_row(seed_contract, n_persons::Int,
+        replication::Int)
+    rows = [row for row in seed_contract.rows
+        if as_int(row[:n_persons]) == n_persons &&
+            as_int(row[:replication]) == replication]
+    return length(rows) == 1 ? only(rows) : nothing
+end
+
+function selected_environment_row(job, filename::String,
+        expected_sha256::AbstractString)
+    rows = [row for row in job[:raw_file_manifest_rows]
+        if basename(as_string(row[:path])) == filename]
+    exactly_one = length(rows) == 1
+    row = exactly_one ? only(rows) : nothing
+    path = exactly_one ? path_from_root(as_string(row[:path])) : nothing
+    present = path !== nothing && isfile(path)
+    actual_bytes = present ? filesize(path) : nothing
+    actual_sha256 = present ? file_sha256(path) : nothing
+    recorded_bytes_match = present &&
+        actual_bytes == as_int(row[:bytes])
+    recorded_sha256_match = present &&
+        actual_sha256 == as_string(row[:sha256])
+    expected_sha256_match = present && actual_sha256 == expected_sha256
+    return (;
+        filename,
+        exactly_one,
+        path = path === nothing ? nothing : relpath(path, ROOT),
+        present,
+        actual_bytes,
+        actual_sha256,
+        expected_sha256,
+        recorded_bytes_match,
+        recorded_sha256_match,
+        expected_sha256_match,
+        exact = exactly_one && present && recorded_bytes_match &&
+            recorded_sha256_match && expected_sha256_match,
+    )
+end
+
+function aggregate_selected_lineage(result, snapshot,
+        snapshot_sha256::AbstractString)
+    seed_contract = execution_snapshot_seed_rows(snapshot)
+    sources = snapshot[:source_artifacts]
+    environment = snapshot[:environment_contract]
+    expected_project_sha256 =
+        as_string(environment[:project_toml_sha256])
+    expected_manifest_sha256 =
+        as_string(environment[:manifest_toml_sha256])
+    expected_source_hashes = (;
+        baseline_sha256 = as_string(sources[:baseline_sha256]),
+        frozen_policy_sha256 = as_string(sources[:frozen_policy_sha256]),
+        recovery_policy_sha256 =
+            as_string(sources[:recovery_policy_sha256]),
+    )
+    expected_truth_sha256 = as_string(
+        snapshot[:data_and_input_contract][:fixed_truth_sha256])
+    result_protocol = result[:protocol]
+    expected_generator = as_string(result_protocol[:generator])
+    expected_generator_sha256 =
+        as_string(result_protocol[:generator_source_sha256])
+    rows = NamedTuple[]
+    for job in result[:replication_rows]
+        n_persons = as_int(job[:n_persons])
+        replication = as_int(job[:replication])
+        expected_job_id =
+            "n$(lpad(n_persons, 3, '0'))_rep$(lpad(replication, 2, '0'))"
+        protocol = job[:protocol]
+        seed = execution_snapshot_seed_row(
+            seed_contract, n_persons, replication)
+        seed_registry_row_present = seed !== nothing
+        generator_lineage_exact =
+            as_string(protocol[:generator]) == expected_generator &&
+            as_string(protocol[:generator_source_sha256]) ==
+                expected_generator_sha256
+        refinement_snapshot_lineage_exact =
+            as_string(protocol[:refinement_sha256]) == snapshot_sha256
+        source_input_lineage_exact =
+            as_string(protocol[:baseline_sha256]) ==
+                expected_source_hashes.baseline_sha256 &&
+            as_string(protocol[:frozen_policy_sha256]) ==
+                expected_source_hashes.frozen_policy_sha256 &&
+            as_string(protocol[:recovery_policy_sha256]) ==
+                expected_source_hashes.recovery_policy_sha256
+        truth_sha256_matches =
+            as_string(protocol[:truth_sha256]) == expected_truth_sha256
+        seed_registry_lineage_exact = seed_contract.exact &&
+            seed_registry_row_present &&
+            as_int(protocol[:ability_seed]) == as_int(seed[:ability_seed]) &&
+            as_int(protocol[:response_seed]) ==
+                as_int(seed[:response_seed]) &&
+            as_int(protocol[:package_fit_seed]) ==
+                as_int(seed[:package_fit_seed])
+        project = selected_environment_row(
+            job, "Project.toml", expected_project_sha256)
+        manifest = selected_environment_row(
+            job, "Manifest.toml", expected_manifest_sha256)
+        environment_input_lineage_exact = project.exact && manifest.exact
+        job_identity_exact = as_string(job[:job_id]) == expected_job_id
+        execution_input_lineage_exact = job_identity_exact &&
+            as_bool(job[:execution_completed]) &&
+            !as_bool(job[:engine_failure]) && generator_lineage_exact &&
+            refinement_snapshot_lineage_exact &&
+            source_input_lineage_exact && truth_sha256_matches &&
+            seed_registry_lineage_exact &&
+            environment_input_lineage_exact
+        push!(rows, (;
+            job_id = Symbol(as_string(job[:job_id])),
+            n_persons,
+            replication,
+            attempt = as_int(job[:attempt]),
+            job_identity_exact,
+            generator_lineage_exact,
+            refinement_snapshot_lineage_exact,
+            source_input_lineage_exact,
+            truth_sha256_matches,
+            seed_registry_row_present,
+            seed_registry_lineage_exact,
+            project_toml = project,
+            manifest_toml = manifest,
+            environment_input_lineage_exact,
+            execution_input_lineage_exact,
+        ))
+    end
+    expected_pairs = Set((n_persons, replication)
+        for n_persons in (40, 100) for replication in 1:5)
+    observed_pairs = Set((row.n_persons, row.replication) for row in rows)
+    exact = length(rows) == EXPECTED_SELECTED_JOBS &&
+        observed_pairs == expected_pairs &&
+        all(row -> row.execution_input_lineage_exact, rows)
+    return (;
+        rows,
+        seed_registry_exact = seed_contract.exact,
+        all_truth_lineage_exact = all(
+            row -> row.truth_sha256_matches, rows),
+        exact,
     )
 end
 
@@ -290,8 +468,16 @@ function build_artifact(parsed)
     raw_audit = checked_artifact(parsed.raw_audit, RAW_AUDIT_SCHEMA)
     policy = checked_artifact(parsed.policy, POLICY_SCHEMA)
     refinement = checked_artifact(parsed.refinement, REFINEMENT_SCHEMA)
+    execution_snapshot = checked_artifact(
+        parsed.execution_snapshot, REFINEMENT_SCHEMA)
+    execution_snapshot_sha256 = file_sha256(parsed.execution_snapshot)
+    execution_snapshot_sha256_matches_pinned =
+        execution_snapshot_sha256 == EXPECTED_EXECUTION_SNAPSHOT_SHA256
     pre_packet = checked_artifact(
         parsed.pre_execution_packet, PRE_EXECUTION_PACKET_SCHEMA)
+    pre_execution_packet_sha256 = file_sha256(parsed.pre_execution_packet)
+    pre_execution_packet_sha256_matches_pinned =
+        pre_execution_packet_sha256 == EXPECTED_PRE_EXECUTION_PACKET_SHA256
     tasks = review_task_rows()
     fields = reviewer_manifest_field_rows()
     claims = claim_review_rows(result)
@@ -304,6 +490,9 @@ function build_artifact(parsed)
             role = :pre_execution_primary_threshold_contract),
         source_row(:policy_refinement, parsed.refinement, REFINEMENT_SCHEMA;
             role = :pre_execution_interpretation_and_execution_contract),
+        source_row(:policy_refinement_execution_snapshot,
+            parsed.execution_snapshot, REFINEMENT_SCHEMA;
+            role = :immutable_byte_exact_execution_input_snapshot),
         source_row(:pre_execution_independent_review_packet,
             parsed.pre_execution_packet, PRE_EXECUTION_PACKET_SCHEMA;
             role = :immutable_pre_execution_review_snapshot),
@@ -328,15 +517,144 @@ function build_artifact(parsed)
     pre_execution_packet_refinement_hash_matches =
         length(pre_refinement_rows) == 1 &&
         as_string(only(pre_refinement_rows)[:sha256]) ==
-        file_sha256(parsed.refinement)
+        execution_snapshot_sha256
     pre_execution_packet_exact_input_lineage =
         pre_execution_packet_policy_hash_matches &&
         pre_execution_packet_refinement_hash_matches
+    pre_execution_refinement_mismatch_preserved =
+        pre_execution_packet_sha256_matches_pinned &&
+        pre_execution_packet_policy_hash_matches &&
+        !pre_execution_packet_refinement_hash_matches &&
+        !pre_execution_packet_exact_input_lineage
+    aggregate_selected = aggregate_selected_lineage(
+        result, execution_snapshot, execution_snapshot_sha256)
+    aggregation_provenance_present =
+        haskey(result, :aggregation_provenance)
+    aggregation_provenance = aggregation_provenance_present ?
+        result[:aggregation_provenance] : nothing
+    aggregation_generator_path = aggregation_provenance_present ?
+        path_from_root(as_string(aggregation_provenance[:generator])) :
+        nothing
+    expected_aggregation_generator_path =
+        path_from_root(EXPECTED_AGGREGATION_GENERATOR)
+    aggregation_generator_path_matches =
+        aggregation_generator_path !== nothing &&
+        aggregation_generator_path == expected_aggregation_generator_path &&
+        as_string(aggregation_provenance[:generator]) ==
+            EXPECTED_AGGREGATION_GENERATOR
+    aggregation_generator_hash_matches =
+        aggregation_generator_path_matches &&
+        isfile(aggregation_generator_path) &&
+        file_sha256(aggregation_generator_path) ==
+            as_string(aggregation_provenance[:generator_source_sha256])
+    aggregation_generator_hash_matches_pinned =
+        aggregation_generator_hash_matches &&
+        file_sha256(aggregation_generator_path) ==
+            EXPECTED_AGGREGATION_GENERATOR_SHA256
+    wrapped_execution_generator_lineage_exact =
+        aggregation_provenance_present &&
+        as_string(aggregation_provenance[:wrapped_execution_generator]) ==
+            as_string(result_protocol[:generator]) &&
+        as_string(aggregation_provenance[
+            :wrapped_execution_generator_source_sha256]) ==
+            as_string(result_protocol[:generator_source_sha256])
+    aggregate_wrapper_lineage_exact = aggregation_provenance_present &&
+        as_string(aggregation_provenance[:mode]) ==
+            "aggregate_only_from_selected_attempts" &&
+        !as_bool(aggregation_provenance[:mcmc_executed]) &&
+        as_bool(aggregation_provenance[:fail_closed]) &&
+        as_bool(aggregation_provenance[
+            :protocol_generator_fields_preserved]) &&
+        wrapped_execution_generator_lineage_exact &&
+        as_string(aggregation_provenance[
+            :refinement_execution_snapshot]) ==
+            relpath(parsed.execution_snapshot, ROOT) &&
+        as_int(aggregation_provenance[
+            :refinement_execution_snapshot_bytes]) ==
+            filesize(parsed.execution_snapshot) &&
+        as_string(aggregation_provenance[
+            :refinement_execution_snapshot_sha256]) ==
+            execution_snapshot_sha256 &&
+        as_int(aggregation_provenance[:n_selected_jobs_expected]) ==
+            EXPECTED_SELECTED_JOBS &&
+        as_int(aggregation_provenance[:n_selected_jobs_validated]) ==
+            EXPECTED_SELECTED_JOBS &&
+        as_bool(aggregation_provenance[:all_selected_job_lineage_valid]) &&
+        length(aggregation_provenance[:selected_job_lineage_rows]) ==
+            EXPECTED_SELECTED_JOBS &&
+        all(row -> as_bool(row[:passed]),
+            aggregation_provenance[:selected_job_lineage_rows]) &&
+        Set(as_string(row[:job_id]) for row in
+            aggregation_provenance[:selected_job_lineage_rows]) ==
+            Set(String(row.job_id) for row in aggregate_selected.rows) &&
+        as_string(aggregation_provenance[
+            :expected_project_toml_sha256]) ==
+            as_string(execution_snapshot[:environment_contract][
+                :project_toml_sha256]) &&
+        as_string(aggregation_provenance[
+            :expected_manifest_toml_sha256]) ==
+            as_string(execution_snapshot[:environment_contract][
+                :manifest_toml_sha256]) &&
+        aggregation_generator_path_matches &&
+        aggregation_generator_hash_matches_pinned
+    aggregate_selected_execution_input_lineage_exact =
+        execution_snapshot_sha256_matches_pinned &&
+        aggregate_selected.exact && aggregate_wrapper_lineage_exact
+    raw_attempt_rows = raw_audit[:attempt_rows]
+    raw_attempt_lineage_rows_exact =
+        length(raw_attempt_rows) == EXPECTED_RETAINED_ATTEMPTS &&
+        all(row -> field_is_true(row, :execution_input_lineage_exact),
+            raw_attempt_rows)
+    raw_audit_snapshot_lineage_exact =
+        haskey(raw_audit[:protocol],
+            :execution_refinement_snapshot_sha256) &&
+        as_string(raw_audit[:protocol][
+            :execution_refinement_snapshot_sha256]) ==
+            execution_snapshot_sha256 &&
+        field_is_true(raw_audit[:protocol],
+            :execution_refinement_snapshot_sha256_matches_pinned)
+    raw_summary = raw_audit[:summary]
+    raw_summary_lineage_exact =
+        as_int(raw_summary[:n_attempts]) == EXPECTED_RETAINED_ATTEMPTS &&
+        haskey(raw_summary, :n_expected_retained_attempts) &&
+        as_int(raw_summary[:n_expected_retained_attempts]) ==
+            EXPECTED_RETAINED_ATTEMPTS &&
+        field_is_true(raw_summary,
+            :all_retained_refinement_lineage_exact) &&
+        field_is_true(raw_summary,
+            :all_retained_job_design_identity_exact) &&
+        field_is_true(raw_summary,
+            :all_retained_truth_lineage_exact) &&
+        field_is_true(raw_summary,
+            :all_retained_source_input_lineage_exact) &&
+        field_is_true(raw_summary,
+            :all_retained_seed_registry_lineage_exact) &&
+        field_is_true(raw_summary,
+            :all_retained_project_toml_lineage_exact) &&
+        field_is_true(raw_summary,
+            :all_retained_manifest_toml_lineage_exact) &&
+        field_is_true(raw_summary,
+            :all_retained_environment_input_lineage_exact) &&
+        field_is_true(raw_summary,
+            :all_retained_generator_lineage_accepted) &&
+        field_is_true(raw_summary,
+            :retained_failed_generator_exception_exact) &&
+        haskey(raw_summary, :n_retained_failed_generator_exceptions) &&
+        as_int(raw_summary[:n_retained_failed_generator_exceptions]) == 1 &&
+        field_is_true(raw_summary,
+            :all_retained_execution_input_lineage_exact) &&
+        as_int(raw_summary[:n_execution_input_lineage_failures]) == 0
+    raw_job_execution_input_lineage_exact =
+        execution_snapshot_sha256_matches_pinned &&
+        raw_audit_snapshot_lineage_exact &&
+        raw_attempt_lineage_rows_exact && raw_summary_lineage_exact
     core_source_hash_chain_valid =
         file_sha256(parsed.policy) ==
             as_string(result_protocol[:frozen_policy_artifact_sha256]) &&
-        file_sha256(parsed.refinement) ==
+        execution_snapshot_sha256 ==
             as_string(result_protocol[:refinement_artifact_sha256]) &&
+        path_from_root(as_string(result_protocol[:refinement_artifact])) ==
+            normpath(parsed.execution_snapshot) &&
         isfile(baseline_path) && file_sha256(baseline_path) ==
             as_string(result_protocol[:baseline_artifact_sha256]) &&
         isfile(recovery_policy_path) &&
@@ -365,6 +683,10 @@ function build_artifact(parsed)
     packet_integrity =
         as_bool(raw_audit[:summary][:passed]) &&
         as_bool(refinement[:summary][:frozen_primary_gate_unchanged]) &&
+        execution_snapshot_sha256_matches_pinned &&
+        aggregate_selected_execution_input_lineage_exact &&
+        raw_job_execution_input_lineage_exact &&
+        pre_execution_refinement_mismatch_preserved &&
         as_bool(pre_packet[:summary][:packet_frozen]) &&
         !as_bool(pre_packet[:summary][:independent_review_completed]) &&
         core_source_hash_chain_valid &&
@@ -407,18 +729,66 @@ function build_artifact(parsed)
             independent_reexecution_required = true,
         ),
         required_input_rows = required_inputs,
+        execution_input_lineage = (;
+            execution_refinement_snapshot =
+                relpath(parsed.execution_snapshot, ROOT),
+            execution_refinement_snapshot_sha256 =
+                execution_snapshot_sha256,
+            expected_execution_refinement_snapshot_sha256 =
+                EXPECTED_EXECUTION_SNAPSHOT_SHA256,
+            execution_refinement_snapshot_sha256_matches_pinned =
+                execution_snapshot_sha256_matches_pinned,
+            aggregation_provenance_present,
+            expected_aggregation_generator =
+                EXPECTED_AGGREGATION_GENERATOR,
+            expected_aggregation_generator_sha256 =
+                EXPECTED_AGGREGATION_GENERATOR_SHA256,
+            aggregation_generator_path_matches,
+            aggregation_generator_hash_matches,
+            aggregation_generator_hash_matches_pinned,
+            wrapped_execution_generator_lineage_exact,
+            aggregate_wrapper_lineage_exact,
+            n_aggregate_selected_job_lineage_rows =
+                length(aggregate_selected.rows),
+            aggregate_selected_seed_registry_exact =
+                aggregate_selected.seed_registry_exact,
+            aggregate_selected_truth_lineage_exact =
+                aggregate_selected.all_truth_lineage_exact,
+            aggregate_selected_job_lineage_rows =
+                aggregate_selected.rows,
+            aggregate_selected_execution_input_lineage_exact,
+            n_raw_retained_attempt_lineage_rows =
+                length(raw_attempt_rows),
+            raw_audit_snapshot_lineage_exact,
+            raw_attempt_lineage_rows_exact,
+            raw_summary_lineage_exact,
+            raw_job_execution_input_lineage_exact,
+            aggregate_selected_and_raw_retained_lineage_independently_exact =
+                aggregate_selected_execution_input_lineage_exact &&
+                raw_job_execution_input_lineage_exact,
+        ),
         source_hash_chain_valid = core_source_hash_chain_valid,
         core_source_hash_chain_valid,
         pre_execution_lineage = (;
+            pre_execution_packet_sha256,
+            expected_pre_execution_packet_sha256 =
+                EXPECTED_PRE_EXECUTION_PACKET_SHA256,
+            pre_execution_packet_sha256_matches_pinned,
             exact_input_lineage = pre_execution_packet_exact_input_lineage,
             policy_hash_matches = pre_execution_packet_policy_hash_matches,
             refinement_hash_matches =
                 pre_execution_packet_refinement_hash_matches,
-            immutable_pre_execution_packet_preserved = true,
-            post_execution_regeneration_used_to_erase_mismatch = false,
-            status = pre_execution_packet_exact_input_lineage ?
-                :exact_pre_execution_input_lineage :
-                :refinement_snapshot_hash_mismatch_requires_independent_review,
+            refinement_mismatch_preserved =
+                pre_execution_refinement_mismatch_preserved,
+            immutable_pre_execution_packet_preserved =
+                pre_execution_refinement_mismatch_preserved,
+            post_execution_regeneration_used_to_erase_mismatch =
+                pre_execution_packet_exact_input_lineage,
+            status = pre_execution_refinement_mismatch_preserved ?
+                :refinement_snapshot_hash_mismatch_requires_independent_review :
+                pre_execution_packet_exact_input_lineage ?
+                :unexpected_exact_pre_execution_input_lineage :
+                :pre_execution_packet_lineage_invalid,
         ),
         decision_layers = (;
             primary_policy = (;
@@ -454,6 +824,8 @@ function build_artifact(parsed)
                     :all_package_sampler_gates_passed]),
                 all_attempt_raw_archive_audit_passed = as_bool(
                     raw_audit[:summary][:passed]),
+                aggregate_selected_execution_input_lineage_exact,
+                raw_job_execution_input_lineage_exact,
             ),
         ),
         primary_scenario_block_rows = primary_rows,
@@ -466,6 +838,8 @@ function build_artifact(parsed)
         decision_record = (;
             selected_decision = :post_execution_packet_frozen,
             packet_integrity_passed = packet_integrity,
+            aggregate_selected_execution_input_lineage_exact,
+            raw_job_execution_input_lineage_exact,
             independent_reviewer_assigned = false,
             independent_reexecution_completed = false,
             signed_review_manifest_attached = false,
@@ -485,6 +859,7 @@ function build_artifact(parsed)
             :no_facets_or_conquest_execution,
             :no_gmfrm_mgmfrm_or_uto_2021_result_transfer,
             :pre_execution_packet_refinement_hash_mismatch_preserved_for_review,
+            :execution_snapshot_lineage_is_distinct_from_pre_execution_packet_lineage,
             :independent_review_and_reexecution_pending,
             :no_public_claim_release,
         ],
@@ -493,7 +868,19 @@ function build_artifact(parsed)
             packet_integrity_passed = packet_integrity,
             source_hash_chain_valid = core_source_hash_chain_valid,
             core_source_hash_chain_valid,
+            execution_refinement_snapshot_sha256_matches_pinned =
+                execution_snapshot_sha256_matches_pinned,
+            aggregate_wrapper_lineage_exact,
+            aggregation_generator_hash_matches_pinned,
+            wrapped_execution_generator_lineage_exact,
+            aggregate_selected_execution_input_lineage_exact,
+            raw_job_execution_input_lineage_exact,
+            aggregate_selected_and_raw_retained_lineage_independently_exact =
+                aggregate_selected_execution_input_lineage_exact &&
+                raw_job_execution_input_lineage_exact,
             pre_execution_packet_exact_input_lineage,
+            pre_execution_refinement_mismatch_preserved,
+            pre_execution_packet_sha256_matches_pinned,
             pre_execution_packet_policy_hash_matches,
             pre_execution_packet_refinement_hash_matches,
             tam_direct_local_execution_completed = execution_completed,

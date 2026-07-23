@@ -9565,6 +9565,33 @@ function check_mgmfrm_tam_direct_agreement_raw_archive_audit_fixture(
         "scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl"
     @test String(protocol[:execution_generator_source_sha256]) ==
         file_sha256(joinpath(root, String(protocol[:execution_generator])))
+    @test occursin(r"^[0-9a-f]{64}$", String(protocol[
+        :expected_retained_failed_generator_source_sha256]))
+    execution_snapshot_path = joinpath(root,
+        String(protocol[:execution_refinement_snapshot]))
+    @test isfile(execution_snapshot_path)
+    @test String(protocol[:execution_refinement_snapshot_schema]) ==
+        "bayesianmgmfrm.mgmfrm_tam_direct_agreement_policy_refinement.v1"
+    @test String(protocol[:execution_refinement_snapshot_sha256]) ==
+        file_sha256(execution_snapshot_path)
+    @test String(protocol[:expected_execution_refinement_snapshot_sha256]) ==
+        "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e"
+    @test String(protocol[:execution_refinement_snapshot_sha256]) ==
+        String(protocol[:expected_execution_refinement_snapshot_sha256])
+    @test Bool(protocol[
+        :execution_refinement_snapshot_sha256_matches_pinned])
+    @test length(protocol[:execution_source_rows]) == 3
+    @test all(row -> Bool(row[:present]) &&
+        Bool(row[:artifact_sha256_matches]) &&
+        String(row[:actual_sha256]) == String(row[:expected_sha256]),
+        protocol[:execution_source_rows])
+    @test Bool(protocol[:all_execution_source_artifacts_present_exact])
+    @test Bool(protocol[:execution_seed_registry_exact])
+    execution_snapshot = JSON3.read(read(execution_snapshot_path, String))
+    @test String(protocol[:expected_project_toml_sha256]) == String(
+        execution_snapshot[:environment_contract][:project_toml_sha256])
+    @test String(protocol[:expected_manifest_toml_sha256]) == String(
+        execution_snapshot[:environment_contract][:manifest_toml_sha256])
     result_path = joinpath(root, String(protocol[:result_artifact]))
     @test isfile(result_path)
     @test String(protocol[:result_artifact_sha256]) == file_sha256(result_path)
@@ -9615,6 +9642,29 @@ function check_mgmfrm_tam_direct_agreement_raw_archive_audit_fixture(
         attempts)
     @test count(row -> String(row[
         :recorded_manifest_fingerprint_status]) == "matched", attempts) == 10
+    @test all(row -> Bool(row[:refinement_snapshot_sha256_matches]) &&
+        Bool(row[:truth_sha256_matches]) &&
+        Bool(row[:source_input_lineage_exact]) &&
+        Bool(row[:seed_registry_lineage_exact]) &&
+        Bool(row[:project_toml_lineage_exact]) &&
+        Bool(row[:manifest_toml_lineage_exact]) &&
+        Bool(row[:environment_input_lineage_exact]) &&
+        Bool(row[:generator_lineage_accepted]) &&
+        Bool(row[:execution_input_lineage_exact]), attempts)
+    @test all(row -> length(row[:source_input_rows]) == 3 &&
+        all(source -> Bool(source[:recorded_sha256_matches]) &&
+            Bool(source[:source_artifact_sha256_matches]),
+            row[:source_input_rows]), attempts)
+    failed_attempt = only(row for row in attempts if Bool(row[:engine_failure]))
+    @test Bool(failed_attempt[:generator_current_match_required]) == false
+    @test Bool(failed_attempt[
+        :generator_source_sha256_matches_current]) == false
+    @test Bool(failed_attempt[
+        :generator_source_sha256_matches_retained_failed_version])
+    @test all(row -> Bool(row[:generator_current_match_required]) &&
+        Bool(row[:generator_source_sha256_matches_current]) &&
+        !Bool(row[:generator_source_sha256_matches_retained_failed_version]),
+        (row for row in attempts if !Bool(row[:engine_failure])))
 
     files = fixture[:raw_file_rows]
     @test length(files) == Int(fixture[:archive_manifest][:n_files])
@@ -9686,6 +9736,7 @@ function check_mgmfrm_tam_direct_agreement_raw_archive_audit_fixture(
     @test Int(summary[:n_job_rows]) == 10
     @test Int(summary[:n_selected_pointers]) == 10
     @test Int(summary[:n_attempts]) == 11
+    @test Int(summary[:n_expected_retained_attempts]) == 11
     @test Int(summary[:n_selected_attempts]) == 10
     @test Int(summary[:n_nonselected_attempts]) == 1
     @test Int(summary[:n_failed_attempts]) == 1
@@ -9699,6 +9750,24 @@ function check_mgmfrm_tam_direct_agreement_raw_archive_audit_fixture(
     @test Bool(summary[:recorded_result_manifest_fingerprint_matches])
     @test Bool(summary[:all_recorded_result_manifest_files_match])
     @test Bool(summary[:all_selected_generator_hashes_match_current])
+    @test String(summary[:execution_refinement_snapshot_sha256]) ==
+        String(protocol[:execution_refinement_snapshot_sha256])
+    @test Bool(summary[
+        :execution_refinement_snapshot_sha256_matches_pinned])
+    @test Bool(summary[:all_execution_source_artifacts_present_exact])
+    @test Bool(summary[:execution_seed_registry_exact])
+    @test Bool(summary[:all_retained_refinement_lineage_exact])
+    @test Bool(summary[:all_retained_truth_lineage_exact])
+    @test Bool(summary[:all_retained_source_input_lineage_exact])
+    @test Bool(summary[:all_retained_seed_registry_lineage_exact])
+    @test Bool(summary[:all_retained_project_toml_lineage_exact])
+    @test Bool(summary[:all_retained_manifest_toml_lineage_exact])
+    @test Bool(summary[:all_retained_environment_input_lineage_exact])
+    @test Bool(summary[:all_retained_generator_lineage_accepted])
+    @test Bool(summary[:retained_failed_generator_exception_exact])
+    @test Int(summary[:n_retained_failed_generator_exceptions]) == 1
+    @test Bool(summary[:all_retained_execution_input_lineage_exact])
+    @test Int(summary[:n_execution_input_lineage_failures]) == 0
     @test Bool(summary[:all_file_paths_unique])
     @test Bool(summary[:raw_root_is_gitignored])
     @test Bool(summary[:result_execution_completed])
@@ -9747,12 +9816,13 @@ function check_mgmfrm_tam_direct_agreement_post_execution_review_packet_fixture(
     @test Bool(protocol[:independent_reexecution_required])
 
     inputs = fixture[:required_input_rows]
-    @test length(inputs) == 5
+    @test length(inputs) == 6
     @test Set(String(row[:input]) for row in inputs) == Set([
         "multireplication_result",
         "all_attempt_raw_archive_audit",
         "frozen_policy",
         "policy_refinement",
+        "policy_refinement_execution_snapshot",
         "pre_execution_independent_review_packet",
     ])
     @test all(row -> Bool(row[:present]) &&
@@ -9769,18 +9839,25 @@ function check_mgmfrm_tam_direct_agreement_post_execution_review_packet_fixture(
         String(input_by_name["frozen_policy"][:path]))
     post_refinement_path = joinpath(root,
         String(input_by_name["policy_refinement"][:path]))
+    post_execution_snapshot_path = joinpath(root,
+        String(input_by_name[
+            "policy_refinement_execution_snapshot"][:path]))
     post_pre_packet_path = joinpath(root,
         String(input_by_name[
             "pre_execution_independent_review_packet"][:path]))
     post_result = JSON3.read(read(post_result_path, String))
     post_audit = JSON3.read(read(post_audit_path, String))
     post_refinement = JSON3.read(read(post_refinement_path, String))
+    post_execution_snapshot =
+        JSON3.read(read(post_execution_snapshot_path, String))
     post_pre_packet = JSON3.read(read(post_pre_packet_path, String))
     result_protocol = post_result[:protocol]
     @test String(result_protocol[:frozen_policy_artifact_sha256]) ==
         file_sha256(post_policy_path)
     @test String(result_protocol[:refinement_artifact_sha256]) ==
-        file_sha256(post_refinement_path)
+        file_sha256(post_execution_snapshot_path)
+    @test joinpath(root, String(result_protocol[:refinement_artifact])) ==
+        post_execution_snapshot_path
     @test String(result_protocol[:generator_source_sha256]) ==
         file_sha256(joinpath(root, String(result_protocol[:generator])))
     @test String(result_protocol[:baseline_artifact_sha256]) ==
@@ -9807,6 +9884,46 @@ function check_mgmfrm_tam_direct_agreement_post_execution_review_packet_fixture(
         file_sha256(post_refinement_path)
     @test Bool(fixture[:source_hash_chain_valid])
     @test Bool(fixture[:core_source_hash_chain_valid])
+    execution_lineage = fixture[:execution_input_lineage]
+    @test joinpath(root,
+        String(execution_lineage[:execution_refinement_snapshot])) ==
+        post_execution_snapshot_path
+    @test String(execution_lineage[
+        :execution_refinement_snapshot_sha256]) ==
+        file_sha256(post_execution_snapshot_path)
+    @test String(execution_lineage[
+        :expected_execution_refinement_snapshot_sha256]) ==
+        "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e"
+    @test Bool(execution_lineage[
+        :execution_refinement_snapshot_sha256_matches_pinned])
+    @test Bool(execution_lineage[:aggregation_provenance_present])
+    @test Bool(execution_lineage[:aggregation_generator_hash_matches])
+    @test Bool(execution_lineage[:aggregate_wrapper_lineage_exact])
+    @test Int(execution_lineage[
+        :n_aggregate_selected_job_lineage_rows]) == 10
+    @test Bool(execution_lineage[:aggregate_selected_seed_registry_exact])
+    @test length(execution_lineage[
+        :aggregate_selected_job_lineage_rows]) == 10
+    @test all(row -> Bool(row[:execution_input_lineage_exact]),
+        execution_lineage[:aggregate_selected_job_lineage_rows])
+    @test Bool(execution_lineage[
+        :aggregate_selected_execution_input_lineage_exact])
+    @test Int(execution_lineage[
+        :n_raw_retained_attempt_lineage_rows]) == 11
+    @test Bool(execution_lineage[:raw_audit_snapshot_lineage_exact])
+    @test Bool(execution_lineage[:raw_attempt_lineage_rows_exact])
+    @test Bool(execution_lineage[:raw_summary_lineage_exact])
+    @test Bool(execution_lineage[:raw_job_execution_input_lineage_exact])
+    @test Bool(execution_lineage[
+        :aggregate_selected_and_raw_retained_lineage_independently_exact])
+    @test String(execution_lineage[
+        :execution_refinement_snapshot_sha256]) == String(
+        post_audit[:protocol][:execution_refinement_snapshot_sha256])
+    @test String(execution_lineage[
+        :execution_refinement_snapshot_sha256]) == file_sha256(
+        post_execution_snapshot_path)
+    @test String(post_execution_snapshot[:schema]) ==
+        "bayesianmgmfrm.mgmfrm_tam_direct_agreement_policy_refinement.v1"
     lineage = fixture[:pre_execution_lineage]
     @test Bool(lineage[:exact_input_lineage]) == false
     @test Bool(lineage[:policy_hash_matches])
@@ -9831,6 +9948,10 @@ function check_mgmfrm_tam_direct_agreement_post_execution_review_packet_fixture(
         :all_package_sampler_gates_passed])
     @test Bool(layers[:computation_and_protocol][
         :all_attempt_raw_archive_audit_passed])
+    @test Bool(layers[:computation_and_protocol][
+        :aggregate_selected_execution_input_lineage_exact])
+    @test Bool(layers[:computation_and_protocol][
+        :raw_job_execution_input_lineage_exact])
     @test length(fixture[:primary_scenario_block_rows]) == 3
     @test length(fixture[:all_scenario_block_rows]) == 6
 
@@ -9871,6 +9992,8 @@ function check_mgmfrm_tam_direct_agreement_post_execution_review_packet_fixture(
     @test String(decision[:selected_decision]) ==
         "post_execution_packet_frozen"
     @test Bool(decision[:packet_integrity_passed])
+    @test Bool(decision[:aggregate_selected_execution_input_lineage_exact])
+    @test Bool(decision[:raw_job_execution_input_lineage_exact])
     @test Bool(decision[:independent_reviewer_assigned]) == false
     @test Bool(decision[:independent_reexecution_completed]) == false
     @test Bool(decision[:signed_review_manifest_attached]) == false
@@ -9882,7 +10005,15 @@ function check_mgmfrm_tam_direct_agreement_post_execution_review_packet_fixture(
     @test Bool(summary[:packet_integrity_passed])
     @test Bool(summary[:source_hash_chain_valid])
     @test Bool(summary[:core_source_hash_chain_valid])
+    @test Bool(summary[
+        :execution_refinement_snapshot_sha256_matches_pinned])
+    @test Bool(summary[:aggregate_wrapper_lineage_exact])
+    @test Bool(summary[:aggregate_selected_execution_input_lineage_exact])
+    @test Bool(summary[:raw_job_execution_input_lineage_exact])
+    @test Bool(summary[
+        :aggregate_selected_and_raw_retained_lineage_independently_exact])
     @test Bool(summary[:pre_execution_packet_exact_input_lineage]) == false
+    @test Bool(summary[:pre_execution_refinement_mismatch_preserved])
     @test Bool(summary[:pre_execution_packet_policy_hash_matches])
     @test Bool(summary[:pre_execution_packet_refinement_hash_matches]) == false
     @test Bool(summary[:tam_direct_local_execution_completed])
@@ -9894,7 +10025,7 @@ function check_mgmfrm_tam_direct_agreement_post_execution_review_packet_fixture(
     @test Bool(summary[:primary_direct_gate_passed])
     @test Bool(summary[:package_recovery_qualifier_passed])
     @test Bool(summary[:tam_recovery_qualifier_passed])
-    @test Int(summary[:n_required_inputs]) == 5
+    @test Int(summary[:n_required_inputs]) == 6
     @test Int(summary[:n_review_tasks]) == 15
     @test Int(summary[:n_reviewer_manifest_fields]) == 14
     @test Int(summary[:n_claim_rows]) == 6

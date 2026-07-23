@@ -10,6 +10,9 @@ const DEFAULT_RAW_ROOT = joinpath(
 const DEFAULT_RESULT = joinpath(
     ROOT, "test", "fixtures",
     "mgmfrm_tam_direct_agreement_multireplication.json")
+const DEFAULT_EXECUTION_SNAPSHOT = joinpath(
+    ROOT, "test", "fixtures",
+    "mgmfrm_tam_direct_agreement_policy_refinement_execution_snapshot.json")
 const DEFAULT_OUTPUT = joinpath(
     ROOT, "test", "fixtures",
     "mgmfrm_tam_direct_agreement_raw_archive_audit.json")
@@ -20,8 +23,15 @@ const JOB_SCHEMA =
     "bayesianmgmfrm.mgmfrm_tam_direct_agreement_multireplication_job.v1"
 const SELECTED_ATTEMPT_SCHEMA =
     "bayesianmgmfrm.mgmfrm_tam_direct_agreement_selected_attempt.v1"
+const REFINEMENT_SCHEMA =
+    "bayesianmgmfrm.mgmfrm_tam_direct_agreement_policy_refinement.v1"
 const AUDIT_SCHEMA =
     "bayesianmgmfrm.mgmfrm_tam_direct_agreement_raw_archive_audit.v1"
+const EXPECTED_EXECUTION_SNAPSHOT_SHA256 =
+    "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e"
+const EXPECTED_RETAINED_FAILED_GENERATOR_SHA256 =
+    "18da6449e71cf078dbbfc5d675a82c79e7a1b7d4e1cb8624b1101bf20c73e6a2"
+const EXPECTED_RETAINED_ATTEMPTS = 11
 const EXPECTED_JOB_IDS = [
     "n$(lpad(n, 3, '0'))_rep$(lpad(replication, 2, '0'))"
     for n in (40, 100) for replication in 1:5
@@ -44,6 +54,7 @@ function usage()
     Options:
       --raw-root PATH
       --result PATH
+      --execution-snapshot PATH
       --output PATH
     """
 end
@@ -51,6 +62,7 @@ end
 function parse_args(args)
     raw_root = DEFAULT_RAW_ROOT
     result = DEFAULT_RESULT
+    execution_snapshot = DEFAULT_EXECUTION_SNAPSHOT
     output = DEFAULT_OUTPUT
     index = 1
     while index <= length(args)
@@ -63,6 +75,11 @@ function parse_args(args)
             index < length(args) || error("--result requires a path")
             result = abspath(args[index + 1])
             index += 2
+        elseif arg == "--execution-snapshot"
+            index < length(args) ||
+                error("--execution-snapshot requires a path")
+            execution_snapshot = abspath(args[index + 1])
+            index += 2
         elseif arg == "--output"
             index < length(args) || error("--output requires a path")
             output = abspath(args[index + 1])
@@ -74,7 +91,7 @@ function parse_args(args)
             error("unknown argument: $arg")
         end
     end
-    return (; raw_root, result, output)
+    return (; raw_root, result, execution_snapshot, output)
 end
 
 load_json(path::AbstractString) = JSON3.read(read(path, String))
@@ -98,6 +115,87 @@ end
 
 function path_from_root(path::AbstractString)
     return isabspath(path) ? normpath(path) : normpath(joinpath(ROOT, path))
+end
+
+function execution_source_row(snapshot, name::Symbol,
+        protocol_field::Symbol)
+    sources = snapshot[:source_artifacts]
+    path = path_from_root(as_string(sources[name]))
+    expected_sha256 = as_string(sources[Symbol(string(name), "_sha256")])
+    present = isfile(path)
+    actual_sha256 = present ? file_sha256(path) : nothing
+    return (;
+        source = name,
+        protocol_field,
+        path = relpath(path, ROOT),
+        expected_sha256,
+        present,
+        actual_sha256,
+        artifact_sha256_matches = present &&
+            actual_sha256 == expected_sha256,
+    )
+end
+
+function execution_lineage_contract(path::AbstractString)
+    isfile(path) || error("execution snapshot missing: $path")
+    snapshot = load_json(path)
+    as_string(snapshot[:schema]) == REFINEMENT_SCHEMA ||
+        error("unexpected execution-snapshot schema")
+    snapshot_sha256 = file_sha256(path)
+    snapshot_sha256_matches_pinned =
+        snapshot_sha256 == EXPECTED_EXECUTION_SNAPSHOT_SHA256
+    source_rows = [
+        execution_source_row(snapshot, :baseline, :baseline_sha256),
+        execution_source_row(
+            snapshot, :frozen_policy, :frozen_policy_sha256),
+        execution_source_row(
+            snapshot, :recovery_policy, :recovery_policy_sha256),
+    ]
+    seed_rows = snapshot[:data_and_input_contract][:seed_registry_rows]
+    seed_keys = [
+        "n$(lpad(as_int(row[:n_persons]), 3, '0'))_rep$(lpad(as_int(row[:replication]), 2, '0'))"
+        for row in seed_rows
+    ]
+    seed_registry_exact = length(seed_rows) == length(EXPECTED_JOB_IDS) &&
+        length(unique(seed_keys)) == length(seed_keys) &&
+        Set(seed_keys) == Set(EXPECTED_JOB_IDS)
+    expected_truth_sha256 = as_string(
+        snapshot[:data_and_input_contract][:fixed_truth_sha256])
+    baseline_source_row = only(row for row in source_rows
+        if row.source === :baseline)
+    baseline_artifact = baseline_source_row.present ?
+        load_json(path_from_root(baseline_source_row.path)) : nothing
+    baseline_truth_sha256 = baseline_artifact === nothing ? nothing :
+        as_string(baseline_artifact[:checksums][:truth_sha256])
+    fixed_truth_source_lineage_exact =
+        baseline_source_row.artifact_sha256_matches &&
+        baseline_truth_sha256 == expected_truth_sha256
+    environment = snapshot[:environment_contract]
+    project_toml_sha256 = as_string(environment[:project_toml_sha256])
+    manifest_toml_sha256 = as_string(environment[:manifest_toml_sha256])
+    return (;
+        snapshot,
+        snapshot_path = path,
+        snapshot_sha256,
+        snapshot_sha256_matches_pinned,
+        source_rows,
+        all_source_artifacts_present_exact = all(
+            row -> row.artifact_sha256_matches, source_rows),
+        seed_rows,
+        seed_registry_exact,
+        expected_truth_sha256,
+        baseline_truth_sha256,
+        fixed_truth_source_lineage_exact,
+        project_toml_sha256,
+        manifest_toml_sha256,
+    )
+end
+
+function lineage_seed_row(lineage, n_persons::Int, replication::Int)
+    rows = [row for row in lineage.seed_rows
+        if as_int(row[:n_persons]) == n_persons &&
+            as_int(row[:replication]) == replication]
+    return length(rows) == 1 ? only(rows) : nothing
 end
 
 function manifest_fingerprint(rows)
@@ -138,7 +236,7 @@ function directory_file_rows(directory::AbstractString, job_id::AbstractString,
 end
 
 function attempt_record(directory::AbstractString, job_id::AbstractString,
-        selected_attempt::Int)
+        selected_attempt::Int, lineage)
     attempt = attempt_number(directory)
     result_path = joinpath(directory, "job_result.json")
     isfile(result_path) || error("missing job result: $result_path")
@@ -150,6 +248,95 @@ function attempt_record(directory::AbstractString, job_id::AbstractString,
     as_int(result[:attempt]) == attempt ||
         error("attempt mismatch: $result_path")
     retry = result[:retry]
+    protocol = result[:protocol]
+    n_persons = as_int(result[:n_persons])
+    replication = as_int(result[:replication])
+    engine_failure = as_bool(result[:engine_failure])
+    expected_job_id_from_design =
+        "n$(lpad(n_persons, 3, '0'))_rep$(lpad(replication, 2, '0'))"
+    job_design_identity_exact = job_id == expected_job_id_from_design
+    retained_failed_attempt_expected_row =
+        job_id == "n040_rep01" && attempt == 1 &&
+        attempt != selected_attempt && engine_failure &&
+        !as_bool(result[:execution_completed])
+    refinement_snapshot_sha256_matches =
+        as_string(protocol[:refinement_sha256]) == lineage.snapshot_sha256
+    recorded_truth_sha256 = nullable_string(protocol, :truth_sha256)
+    truth_sha256_recorded = recorded_truth_sha256 !== nothing
+    truth_sha256_matches = truth_sha256_recorded ?
+        recorded_truth_sha256 == lineage.expected_truth_sha256 :
+        retained_failed_attempt_expected_row &&
+            lineage.fixed_truth_source_lineage_exact
+    truth_lineage_source = truth_sha256_recorded ?
+        :attempt_protocol : retained_failed_attempt_expected_row ?
+        :pinned_baseline_checksum_for_retained_failed_attempt :
+        :missing
+    source_input_rows = [(;
+        source = row.source,
+        protocol_field = row.protocol_field,
+        expected_sha256 = row.expected_sha256,
+        recorded_sha256 = as_string(protocol[row.protocol_field]),
+        recorded_sha256_matches =
+            as_string(protocol[row.protocol_field]) == row.expected_sha256,
+        source_artifact_present = row.present,
+        source_artifact_sha256 = row.actual_sha256,
+        source_artifact_sha256_matches = row.artifact_sha256_matches,
+    ) for row in lineage.source_rows]
+    source_input_lineage_exact =
+        lineage.all_source_artifacts_present_exact &&
+        all(row -> row.recorded_sha256_matches, source_input_rows)
+    seed_row = lineage_seed_row(lineage, n_persons, replication)
+    seed_registry_row_present = seed_row !== nothing
+    ability_seed_matches = seed_registry_row_present &&
+        as_int(protocol[:ability_seed]) == as_int(seed_row[:ability_seed])
+    response_seed_matches = seed_registry_row_present &&
+        as_int(protocol[:response_seed]) == as_int(seed_row[:response_seed])
+    package_fit_seed_matches = seed_registry_row_present &&
+        as_int(protocol[:package_fit_seed]) ==
+            as_int(seed_row[:package_fit_seed])
+    seed_registry_lineage_exact = lineage.seed_registry_exact &&
+        job_design_identity_exact &&
+        ability_seed_matches && response_seed_matches &&
+        package_fit_seed_matches
+    project_path = joinpath(directory, "Project.toml")
+    manifest_path = joinpath(directory, "Manifest.toml")
+    project_toml_present = isfile(project_path)
+    manifest_toml_present = isfile(manifest_path)
+    project_toml_sha256 = project_toml_present ?
+        file_sha256(project_path) : nothing
+    manifest_toml_sha256 = manifest_toml_present ?
+        file_sha256(manifest_path) : nothing
+    project_toml_lineage_exact = project_toml_present &&
+        project_toml_sha256 == lineage.project_toml_sha256
+    manifest_toml_lineage_exact = manifest_toml_present &&
+        manifest_toml_sha256 == lineage.manifest_toml_sha256
+    environment_input_lineage_exact = project_toml_lineage_exact &&
+        manifest_toml_lineage_exact
+    current_generator = joinpath(
+        ROOT, "scripts", "generate_mgmfrm_tam_direct_agreement_multireplication.jl")
+    generator_path_matches = as_string(protocol[:generator]) ==
+        relpath(current_generator, ROOT)
+    generator_source_sha256 =
+        as_string(protocol[:generator_source_sha256])
+    generator_source_sha256_present = !isempty(generator_source_sha256)
+    generator_source_sha256_matches_current =
+        generator_source_sha256 == file_sha256(current_generator)
+    generator_source_sha256_matches_retained_failed_version =
+        generator_source_sha256 == EXPECTED_RETAINED_FAILED_GENERATOR_SHA256
+    generator_current_match_required = !engine_failure
+    retained_failed_generator_exception_expected_row =
+        retained_failed_attempt_expected_row
+    generator_lineage_accepted = generator_path_matches &&
+        generator_source_sha256_present &&
+        (generator_source_sha256_matches_current ||
+            (retained_failed_generator_exception_expected_row &&
+                generator_source_sha256_matches_retained_failed_version))
+    execution_input_lineage_exact =
+        lineage.snapshot_sha256_matches_pinned &&
+        refinement_snapshot_sha256_matches &&
+        source_input_lineage_exact && truth_sha256_matches &&
+        seed_registry_lineage_exact && job_design_identity_exact &&
+        environment_input_lineage_exact && generator_lineage_accepted
     files = directory_file_rows(directory, job_id, attempt)
     payload_files = [row for row in files
         if row.role !== :attempt_job_result]
@@ -169,7 +356,6 @@ function attempt_record(directory::AbstractString, job_id::AbstractString,
             bytes = as_int(row[:bytes]),
             sha256 = as_string(row[:sha256]),
         ) for row in recorded_rows]) : nothing
-    engine_failure = as_bool(result[:engine_failure])
     missing_recorded_fingerprint_allowed =
         !recorded_fingerprint_present && engine_failure
     retry_attempt_matches = as_int(retry[:attempt]) == attempt
@@ -197,8 +383,40 @@ function attempt_record(directory::AbstractString, job_id::AbstractString,
             retry_attempt_matches,
             error_type = nullable_string(result, :error_type),
             error_message = nullable_string(result, :error_message),
-            generator_source_sha256 =
-                as_string(result[:protocol][:generator_source_sha256]),
+            generator_source_sha256,
+            generator_path_matches,
+            generator_source_sha256_present,
+            generator_source_sha256_matches_current,
+            generator_source_sha256_matches_retained_failed_version,
+            generator_current_match_required,
+            retained_failed_generator_exception_expected_row,
+            generator_lineage_accepted,
+            expected_job_id_from_design = Symbol(expected_job_id_from_design),
+            job_design_identity_exact,
+            refinement_snapshot_sha256 = lineage.snapshot_sha256,
+            refinement_snapshot_sha256_matches,
+            expected_truth_sha256 = lineage.expected_truth_sha256,
+            recorded_truth_sha256,
+            truth_sha256_recorded,
+            truth_sha256_matches,
+            truth_lineage_source,
+            source_input_rows,
+            source_input_lineage_exact,
+            seed_registry_row_present,
+            ability_seed_matches,
+            response_seed_matches,
+            package_fit_seed_matches,
+            seed_registry_lineage_exact,
+            project_toml_present,
+            project_toml_sha256,
+            expected_project_toml_sha256 = lineage.project_toml_sha256,
+            project_toml_lineage_exact,
+            manifest_toml_present,
+            manifest_toml_sha256,
+            expected_manifest_toml_sha256 = lineage.manifest_toml_sha256,
+            manifest_toml_lineage_exact,
+            environment_input_lineage_exact,
+            execution_input_lineage_exact,
             n_files = length(files),
             file_manifest_sha256 = manifest_fingerprint(files),
             n_recorded_payload_files = length(recorded_rows),
@@ -222,7 +440,8 @@ function attempt_record(directory::AbstractString, job_id::AbstractString,
     )
 end
 
-function job_record(raw_root::AbstractString, job_id::AbstractString)
+function job_record(raw_root::AbstractString, job_id::AbstractString,
+        lineage)
     job_root = joinpath(raw_root, job_id)
     isdir(job_root) || error("missing job directory: $job_root")
     selected_path = joinpath(job_root, "selected_attempt.json")
@@ -235,7 +454,7 @@ function job_record(raw_root::AbstractString, job_id::AbstractString)
     attempt_directories = sort(filter(isdir,
         [joinpath(job_root, name) for name in readdir(job_root)
             if startswith(name, "attempt_")]); by = attempt_number)
-    attempts = [attempt_record(directory, job_id, selected_attempt)
+    attempts = [attempt_record(directory, job_id, selected_attempt, lineage)
         for directory in attempt_directories]
     attempt_rows = [record.attempt_row for record in attempts]
     file_rows = reduce(vcat, [record.file_rows for record in attempts];
@@ -292,6 +511,8 @@ function job_record(raw_root::AbstractString, job_id::AbstractString)
         attempt_numbers))
     all_attempt_integrity_passed = all(
         row -> row.attempt_integrity_passed, attempt_rows)
+    all_attempt_execution_input_lineage_exact = all(
+        row -> row.execution_input_lineage_exact, attempt_rows)
     pointer_file_row = (;
         job_id = Symbol(job_id),
         attempt = 0,
@@ -312,6 +533,7 @@ function job_record(raw_root::AbstractString, job_id::AbstractString)
             all_attempts_retained = attempts_are_contiguous &&
                 length(attempt_rows) == length(attempt_directories),
             all_attempt_integrity_passed,
+            all_attempt_execution_input_lineage_exact,
             selected_attempt,
             selected_execution_completed =
                 selected.attempt_row.execution_completed,
@@ -347,7 +569,8 @@ function build_artifact(parsed)
     result = load_json(parsed.result)
     as_string(result[:schema]) == RESULT_SCHEMA ||
         error("unexpected multireplication result schema")
-    records = [job_record(parsed.raw_root, job_id)
+    lineage = execution_lineage_contract(parsed.execution_snapshot)
+    records = [job_record(parsed.raw_root, job_id, lineage)
         for job_id in EXPECTED_JOB_IDS]
     job_rows = [record.job_row for record in records]
     pointer_rows = [record.pointer_row for record in records]
@@ -413,6 +636,39 @@ function build_artifact(parsed)
         job_rows)
     all_attempt_integrity_passed = all(
         row -> row.all_attempt_integrity_passed, job_rows)
+    all_retained_refinement_lineage_exact = all(row ->
+        row.refinement_snapshot_sha256_matches, attempt_rows)
+    all_retained_job_design_identity_exact = all(row ->
+        row.job_design_identity_exact, attempt_rows)
+    all_retained_truth_lineage_exact = all(row ->
+        row.truth_sha256_matches, attempt_rows)
+    all_retained_source_input_lineage_exact = all(row ->
+        row.source_input_lineage_exact, attempt_rows)
+    all_retained_seed_registry_lineage_exact = all(row ->
+        row.seed_registry_lineage_exact, attempt_rows)
+    all_retained_project_toml_lineage_exact = all(row ->
+        row.project_toml_lineage_exact, attempt_rows)
+    all_retained_manifest_toml_lineage_exact = all(row ->
+        row.manifest_toml_lineage_exact, attempt_rows)
+    all_retained_environment_input_lineage_exact = all(row ->
+        row.environment_input_lineage_exact, attempt_rows)
+    all_retained_generator_lineage_accepted = all(row ->
+        row.generator_lineage_accepted, attempt_rows)
+    retained_failed_generator_exception_rows = [row for row in attempt_rows
+        if row.generator_source_sha256_matches_retained_failed_version]
+    retained_failed_generator_exception_row =
+        length(retained_failed_generator_exception_rows) == 1 ?
+        only(retained_failed_generator_exception_rows) : nothing
+    retained_failed_generator_exception_exact =
+        retained_failed_generator_exception_row !== nothing &&
+        getproperty(retained_failed_generator_exception_row,
+            :retained_failed_generator_exception_expected_row) &&
+        getproperty(retained_failed_generator_exception_row,
+            :generator_lineage_accepted)
+    all_retained_execution_input_lineage_exact = all(row ->
+        row.execution_input_lineage_exact, attempt_rows)
+    n_execution_input_lineage_failures = count(row ->
+        !row.execution_input_lineage_exact, attempt_rows)
     all_result_manifest_files_match = all(row ->
         row.exists && row.bytes_match && row.sha256_matches,
         result_manifest_rows)
@@ -434,7 +690,7 @@ function build_artifact(parsed)
     audit_passed = length(job_rows) == 10 &&
         Set(String(row.job_id) for row in job_rows) == Set(EXPECTED_JOB_IDS) &&
         length(pointer_rows) == 10 &&
-        length(attempt_rows) >= 10 &&
+        length(attempt_rows) == EXPECTED_RETAINED_ATTEMPTS &&
         all_selected_pointers_valid &&
         all_attempt_integrity_passed &&
         all(row -> row.all_attempts_retained, job_rows) &&
@@ -446,6 +702,21 @@ function build_artifact(parsed)
         recorded_manifest_fingerprint_matches &&
         all_result_manifest_files_match &&
         all_selected_generator_hashes_match_current &&
+        lineage.snapshot_sha256_matches_pinned &&
+        lineage.all_source_artifacts_present_exact &&
+        lineage.seed_registry_exact &&
+        lineage.fixed_truth_source_lineage_exact &&
+        all_retained_refinement_lineage_exact &&
+        all_retained_job_design_identity_exact &&
+        all_retained_truth_lineage_exact &&
+        all_retained_source_input_lineage_exact &&
+        all_retained_seed_registry_lineage_exact &&
+        all_retained_project_toml_lineage_exact &&
+        all_retained_manifest_toml_lineage_exact &&
+        all_retained_environment_input_lineage_exact &&
+        all_retained_generator_lineage_accepted &&
+        retained_failed_generator_exception_exact &&
+        all_retained_execution_input_lineage_exact &&
         raw_root_is_gitignored
     return (;
         schema = AUDIT_SCHEMA,
@@ -471,9 +742,32 @@ function build_artifact(parsed)
             execution_generator =
                 "scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl",
             execution_generator_source_sha256 = file_sha256(current_generator),
+            expected_retained_failed_generator_source_sha256 =
+                EXPECTED_RETAINED_FAILED_GENERATOR_SHA256,
             result_artifact = relpath(parsed.result, ROOT),
             result_artifact_sha256 = file_sha256(parsed.result),
             result_schema = RESULT_SCHEMA,
+            execution_refinement_snapshot =
+                relpath(lineage.snapshot_path, ROOT),
+            execution_refinement_snapshot_schema = REFINEMENT_SCHEMA,
+            execution_refinement_snapshot_sha256 =
+                lineage.snapshot_sha256,
+            expected_execution_refinement_snapshot_sha256 =
+                EXPECTED_EXECUTION_SNAPSHOT_SHA256,
+            execution_refinement_snapshot_sha256_matches_pinned =
+                lineage.snapshot_sha256_matches_pinned,
+            execution_source_rows = lineage.source_rows,
+            all_execution_source_artifacts_present_exact =
+                lineage.all_source_artifacts_present_exact,
+            execution_seed_registry_exact = lineage.seed_registry_exact,
+            expected_truth_sha256 = lineage.expected_truth_sha256,
+            baseline_truth_sha256 = lineage.baseline_truth_sha256,
+            fixed_truth_source_lineage_exact =
+                lineage.fixed_truth_source_lineage_exact,
+            expected_project_toml_sha256 =
+                lineage.project_toml_sha256,
+            expected_manifest_toml_sha256 =
+                lineage.manifest_toml_sha256,
             raw_root = relpath(parsed.raw_root, ROOT),
             raw_root_is_gitignored,
             selected_and_nonselected_attempts_in_scope = true,
@@ -523,6 +817,7 @@ function build_artifact(parsed)
             n_job_rows = length(job_rows),
             n_selected_pointers = length(pointer_rows),
             n_attempts = length(attempt_rows),
+            n_expected_retained_attempts = EXPECTED_RETAINED_ATTEMPTS,
             n_selected_attempts = count(row -> row.selected, attempt_rows),
             n_nonselected_attempts = length(nonselected_rows),
             n_failed_attempts = length(failed_rows),
@@ -539,6 +834,29 @@ function build_artifact(parsed)
             all_recorded_result_manifest_files_match =
                 all_result_manifest_files_match,
             all_selected_generator_hashes_match_current,
+            execution_refinement_snapshot_sha256 =
+                lineage.snapshot_sha256,
+            execution_refinement_snapshot_sha256_matches_pinned =
+                lineage.snapshot_sha256_matches_pinned,
+            all_execution_source_artifacts_present_exact =
+                lineage.all_source_artifacts_present_exact,
+            execution_seed_registry_exact = lineage.seed_registry_exact,
+            fixed_truth_source_lineage_exact =
+                lineage.fixed_truth_source_lineage_exact,
+            all_retained_refinement_lineage_exact,
+            all_retained_job_design_identity_exact,
+            all_retained_truth_lineage_exact,
+            all_retained_source_input_lineage_exact,
+            all_retained_seed_registry_lineage_exact,
+            all_retained_project_toml_lineage_exact,
+            all_retained_manifest_toml_lineage_exact,
+            all_retained_environment_input_lineage_exact,
+            all_retained_generator_lineage_accepted,
+            retained_failed_generator_exception_exact,
+            n_retained_failed_generator_exceptions =
+                length(retained_failed_generator_exception_rows),
+            all_retained_execution_input_lineage_exact,
+            n_execution_input_lineage_failures,
             all_file_paths_unique = all_paths_unique,
             raw_root_is_gitignored,
             result_execution_completed,
