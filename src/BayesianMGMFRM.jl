@@ -10,14 +10,34 @@ WAIC / raw or PSIS-smoothed importance-sampling LOO paths for small validation
 examples. The minimal MFRM/RSM/PCM design can be fit with a random-walk example
 backend, an initial AdvancedHMC/NUTS backend, or a Turing/NUTS backend. Guarded
 experimental generalized paths are available through
-`fit(spec; experimental = true)` for source-aligned `thresholds = :partial_credit`
+`BayesianMGMFRM.Experimental.fit(spec)` for source-aligned
+`thresholds = :partial_credit`
 specs without anchors or fitted DFF terms. The scalar rater-consistency GMFRM
 configuration requires `discrimination = :rater`; the fixed-Q confirmatory MGMFRM
 configuration requires `dimensions >= 2` and the generic compatibility selector
 `discrimination = :none`. Unsupported manifest options are rejected before
 numerical execution rather than silently reinterpreted. Broader generalized
 discrimination likelihoods, group/DFF model effects, anchors, rating-scale
-generalized kernels, and exploratory MGMFRM fitting remain planned work.
+generalized kernels, exploratory MGMFRM fitting, and free-correlation fitting
+remain planned work.
+An exactly two-dimensional free-latent-correlation log-density and gradient
+candidate is quarantined separately at
+`BayesianMGMFRM.Experimental.free_latent_correlation_2d_candidate`. A
+response-level known-truth generator and a quarantined single-dataset
+multichain recovery pilot are available in the same quarantine. They return
+NamedTuples only, never set replicated recovery to verified, and are not
+connected to the public fitting, result-type, or cache contracts.
+A frozen 525-unit replicated-study roster, denominator-preserving ledger,
+fail-closed single-unit preflight, MCMC-free initial-gradient resource probe,
+bounded fixture dry run, pre-execution archive diagnostic, and versioned pure
+scorer are also available only through the experimental quarantine. The
+pre-execution runner cannot create or interpret a scientific attempt, and the
+compact result contract does not yet persist raw draws for independent
+diagnostic recalculation. No replicated scientific study has been executed,
+and none of these controls promotes or verifies free-correlation recovery. The
+frozen v2 plan and 525-unit roster are pinned in the experimental contract;
+the initial-gradient decision, bounded short-NUTS profile, and atomic
+scientific-worker gates remain incomplete.
 """
 module BayesianMGMFRM
 
@@ -166,6 +186,7 @@ include("mgmfrm_free_correlation_recovery.jl")
 include("mgmfrm_free_correlation_study.jl")
 include("mgmfrm_free_correlation_resource_probe.jl")
 include("mgmfrm_free_correlation_study_scoring.jl")
+include("experimental.jl")
 
 # Scalar validation target used by the analytic-gradient test suite.
 include("scalar_validation_logp.jl")
