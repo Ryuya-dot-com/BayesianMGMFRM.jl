@@ -27754,11 +27754,18 @@ end
     @test_throws ArgumentError falsification_rule_summary(NamedTuple[])
     @test_throws ArgumentError falsification_rule_summary(Any[1])
 
+    active_test_project = Base.active_project()
+    subprocess_project_dir = if isnothing(active_test_project)
+        dirname(@__DIR__)
+    else
+        dirname(active_test_project)
+    end
+
     validation_plan_script =
         joinpath(dirname(@__DIR__), "scripts", "generate_validation_plan.jl")
     @test isfile(validation_plan_script)
     validation_plan_path = tempname() * ".json"
-    run(`$(Base.julia_cmd()) --startup-file=no --project=$(dirname(@__DIR__))
+    run(`$(Base.julia_cmd()) --startup-file=no --project=$subprocess_project_dir
         $validation_plan_script --preset smoke --grid-id unit-plan
         --base-seed 8100 --output $validation_plan_path`)
     validation_plan = JSON3.read(read(validation_plan_path, String))
@@ -27788,6 +27795,148 @@ end
     @test String(validation_plan[:content_hash][:algorithm]) == "sha256"
     @test length(String(validation_plan[:content_hash][:value])) == 64
     rm(validation_plan_path; force = true)
+
+    design_robustness_script = joinpath(
+        dirname(@__DIR__),
+        "scripts",
+        "generate_existing_api_design_robustness_plan.jl",
+    )
+    design_robustness_fixture = joinpath(
+        dirname(@__DIR__),
+        "test",
+        "fixtures",
+        "existing_api_design_robustness_plan.json",
+    )
+    @test isfile(design_robustness_script)
+    @test isfile(design_robustness_fixture)
+    design_robustness_path = tempname() * ".json"
+    run(`$(Base.julia_cmd()) --startup-file=no --project=$subprocess_project_dir
+        $design_robustness_script --output $design_robustness_path`)
+    @test read(design_robustness_path, String) ==
+        read(design_robustness_fixture, String)
+    design_robustness = JSON3.read(read(design_robustness_path, String))
+    @test String(design_robustness[:schema]) ==
+        "bayesianmgmfrm.existing_api_design_robustness_plan.v1"
+    @test String(design_robustness[:scope]) ==
+        "existing_static_api_design_robustness"
+    @test String(design_robustness[:status]) ==
+        "deterministic_contract_checks_passed_recovery_not_run"
+    @test Bool(design_robustness[:public_claim_release_allowed]) == false
+    @test Bool(design_robustness[:publication_or_registration_action]) == false
+    references = design_robustness[:reference_records]
+    @test length(references) == 7
+    @test all(row -> !haskey(row, :item_key) && !haskey(row, :zotero_key),
+        references)
+    @test Set(String(row[:source]) for row in references) == Set(["doi", "url"])
+    current_evidence = design_robustness[:current_evidence_audit]
+    @test length(current_evidence) == 2
+    @test all(row -> Bool(row[:summary_passed]), current_evidence)
+    @test all(row -> Bool(row[:design_robustness_claim_supported]) == false,
+        current_evidence)
+    @test Bool(design_robustness[:current_evidence_boundary][
+        :generic_simulation_grid_runs_fits]) == false
+    @test Bool(design_robustness[:current_evidence_boundary][
+        :generic_anchor_size_materializes_linking_targets]) == false
+    checks = design_robustness[:deterministic_contract_checks]
+    @test length(checks) == 7
+    @test all(row -> Bool(row[:passed]), checks)
+    @test Set(String(row[:check_id]) for row in checks) == Set([
+        "row_order_equivariance",
+        "occasion_metadata_not_likelihood",
+        "ability_nested_no_link_negative_control",
+        "materialized_common_linking_fraction_5pct",
+        "materialized_common_linking_fraction_10pct",
+        "parameter_anchor_guard",
+        "simulation_grid_anchor_size_is_planning_metadata",
+    ])
+    nested_check = only(row for row in checks
+        if String(row[:check_id]) == "ability_nested_no_link_negative_control")
+    row_order_check = only(row for row in checks
+        if String(row[:check_id]) == "row_order_equivariance")
+    @test Float64(row_order_check[:achieved_multiply_scored_target_fraction]) ==
+        1.0
+    @test Float64(row_order_check[:achieved_all_raters_common_target_fraction]) ==
+        0.0
+    @test Bool(nested_check[:validation_passed]) == false
+    @test Bool(nested_check[:rating_design_audit_passed]) == false
+    @test String(nested_check[:rater_linking_status]) == "disconnected"
+    @test "rank_deficient_design" in
+        String.(nested_check[:validation_issue_codes])
+    linking_checks = filter(row -> startswith(
+        String(row[:check_id]),
+        "materialized_common_linking_fraction_",
+    ), checks)
+    @test Set(Float64(row[:achieved_multiply_scored_target_fraction])
+        for row in linking_checks) == Set([0.05, 0.10])
+    @test Set(Float64(row[:achieved_all_raters_common_target_fraction])
+        for row in linking_checks) == Set([0.05, 0.10])
+    @test all(row -> Float64(row[:controlled_benchmark_target_fraction]) == 0.0,
+        linking_checks)
+    @test all(row -> String(row[:rating_budget_policy]) == "additive",
+        linking_checks)
+    @test all(row -> Int(row[:parameter_anchor_count]) == 0, linking_checks)
+    @test all(row -> Bool(row[:assignment_warning_retained]), linking_checks)
+    anchor_guard = only(row for row in checks
+        if String(row[:check_id]) == "parameter_anchor_guard")
+    @test String(anchor_guard[:estimation_status]) == "specified_only"
+    @test Bool(anchor_guard[:ordinary_design_compilation_blocked])
+    @test String(anchor_guard[:interpretation]) ==
+        "parameter_anchor_not_materialized_linking_response"
+    scenarios = design_robustness[:mandatory_scenarios]
+    @test length(scenarios) == 9
+    @test Set(String(row[:scenario_id]) for row in scenarios) == Set([
+        "C0_balanced_random_double_rated",
+        "C0P_same_ratings_row_permuted",
+        "C1_ability_nested_no_link",
+        "C2A_nested_5pct_link_early_additive",
+        "C2P_same_ratings_5pct_link_distributed",
+        "C2F_nested_5pct_link_early_fixed_total",
+        "C3A_nested_10pct_link_distributed_additive",
+        "C3F_nested_10pct_link_distributed_fixed_total",
+        "C4_ability_nested_10pct_narrow_support",
+    ])
+    @test Set(Float64(value) for value in
+        design_robustness[:study_axes][:common_linking_target_fraction]) ==
+        Set([0.0, 0.02, 0.05, 0.10, 0.20])
+    @test Set(String(value) for value in
+        design_robustness[:study_axes][:rating_budget_policy]) ==
+        Set(["additive", "fixed_total_target_displacement"])
+    @test Bool(design_robustness[:design_selection][:full_factorial_allowed]) ==
+        false
+    @test length(design_robustness[:order_misspecification_scenarios]) == 5
+    baseline = only(row for row in scenarios
+        if String(row[:scenario_id]) == "C0_balanced_random_double_rated")
+    @test Float64(baseline[:planned_multiply_scored_target_fraction]) == 1.0
+    @test Float64(baseline[:common_linking_target_fraction]) == 0.0
+    @test Float64(baseline[:controlled_benchmark_target_fraction]) == 0.0
+    fixed_budget = only(row for row in scenarios
+        if String(row[:scenario_id]) ==
+            "C3F_nested_10pct_link_distributed_fixed_total")
+    @test String(fixed_budget[:rating_budget_policy]) ==
+        "fixed_total_target_displacement"
+    @test Int(fixed_budget[:planned_total_rating_events]) == 400
+    @test Float64(fixed_budget[:planned_multiply_scored_target_fraction]) == 0.10
+    @test Float64(fixed_budget[
+        :planned_multiply_scored_target_fraction_observed]) == 0.20
+    @test Float64(fixed_budget[:planned_dropped_target_fraction]) == 0.50
+    stages = design_robustness[:execution_stages]
+    @test String(stages[1][:status]) == "passed"
+    @test String(stages[2][:status]) == "predeclared_not_run"
+    @test Bool(design_robustness[:execution_policy][
+        :deterministic_checks_executed])
+    @test Bool(design_robustness[:execution_policy][
+        :mcmc_fits_executed]) == false
+    design_robustness_summary = design_robustness[:summary]
+    @test Bool(design_robustness_summary[:passed])
+    @test Int(design_robustness_summary[:n_deterministic_checks]) == 7
+    @test Int(design_robustness_summary[:n_deterministic_checks_passed]) == 7
+    @test Bool(design_robustness_summary[:paired_known_truth_recovery_completed]) == false
+    @test Bool(design_robustness_summary[:design_robustness_claim_supported]) == false
+    @test String(design_robustness_summary[:next_gate]) ==
+        "existing_api_design_robustness_stress_grid"
+    @test String(design_robustness[:content_hash][:algorithm]) == "sha256"
+    @test length(String(design_robustness[:content_hash][:value])) == 64
+    rm(design_robustness_path; force = true)
 
     comparison_rows = [
         comparison_evidence_row(;
