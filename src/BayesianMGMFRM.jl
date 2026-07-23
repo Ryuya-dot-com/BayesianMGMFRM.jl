@@ -161,6 +161,7 @@ include("evidence_metadata.jl")
 include("facet_workflow.jl")
 include("model_contract.jl")
 include("bayesian_fit.jl")
+include("mgmfrm_free_correlation_candidate.jl")
 
 # Scalar validation target used by the analytic-gradient test suite.
 include("scalar_validation_logp.jl")
