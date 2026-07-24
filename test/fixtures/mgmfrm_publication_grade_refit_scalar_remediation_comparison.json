@@ -17,8 +17,8 @@
   "sparse_mgmfrm_superiority_claim": false,
   "package": {
     "name": "BayesianMGMFRM",
-    "version": "0.1.1",
-    "julia_version": "1.12.5"
+    "version": "0.1.2",
+    "julia_version": "1.10.8"
   },
   "protocol": {
     "protocol_id": "mgmfrm_publication_grade_refit_scalar_remediation_comparison_v1",
@@ -49,7 +49,7 @@
       "artifact": "mgmfrm_publication_grade_refit_pilot_results_review",
       "path": "test/fixtures/mgmfrm_publication_grade_refit_pilot_results_review.json",
       "exists": true,
-      "sha256": "dec4cb9d0b0660f54d6e910f735f452650ea1c1caf2e10bfbd0e51fa720faab7",
+      "sha256": "a75551851027307812039d3dbd33815e9b96951837cbfdd1e37dcdda3cd288b5",
       "schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_pilot_results_review.v1",
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_pilot_results_review.v1",
       "schema_matches": true,
@@ -59,7 +59,7 @@
       "artifact": "mgmfrm_publication_grade_refit_sampler_remediation_review",
       "path": "test/fixtures/mgmfrm_publication_grade_refit_sampler_remediation_review.json",
       "exists": true,
-      "sha256": "4ea336db8e2055c004449bfba60f69a764672fee1ece8829127b0aeb1924315e",
+      "sha256": "e9a4ac950455205795e731c44b1a28658485b105575356e2727504b0238e843a",
       "schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_sampler_remediation_review.v1",
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_sampler_remediation_review.v1",
       "schema_matches": true,

@@ -9,26 +9,81 @@ using .PublicLanguageGate
 
 const ROOT = abspath(normpath(joinpath(@__DIR__, "..")))
 
-# Three names were exported by v0.1.0 and two more are present on origin/main.
-# Keep the v0.1.x namespace compatible, but treat their maintainer-oriented
-# docstrings as outside the reader-facing runtime surface scanned here.
+# These compatibility exports intentionally describe repository/release
+# administration rather than reader-facing model results. Their full legacy
+# views are tested separately; new public projections must not be added here.
 const LEGACY_MAINTENANCE_EXPORTS = Set((
     :case_study_provenance_manifest,
     :evidence_artifact_schema_policy,
-    :evidence_metadata,
     :release_gate_check,
     :release_scope_summary,
 ))
 
-const EXPERIMENTAL_PUBLIC_DOCSTRINGS = (
+const EXPERIMENTAL_READER_FACING_DOCSTRINGS = Set((
     :GMFRMFit,
     :MGMFRMFit,
     :cached_fit,
     :fit,
     :fit_cache_key,
+    :free_latent_correlation_2d_candidate,
+    :free_latent_correlation_2d_contract,
+    :free_latent_correlation_2d_diagnostics,
+    :free_latent_correlation_2d_state,
     :preview,
     :surface_contract,
-)
+))
+
+# These fully qualified functions support developer research workflows. They
+# are intentionally absent from the published manual. Exact study-ledger and
+# recorded-output payloads remain unchanged.
+const EXPERIMENTAL_DEVELOPER_DOCSTRINGS = Set((
+    :free_latent_correlation_2d_known_truth_fixture,
+    :free_latent_correlation_2d_oracle_profile,
+    :free_latent_correlation_2d_recovery_pilot,
+    :free_latent_correlation_2d_sampler_smoke,
+    :free_latent_correlation_2d_study_apply_result,
+    :free_latent_correlation_2d_study_dry_run,
+    :free_latent_correlation_2d_study_feasibility_decision,
+    :free_latent_correlation_2d_study_ledger,
+    :free_latent_correlation_2d_study_plan,
+    :free_latent_correlation_2d_study_resource_probe,
+    :free_latent_correlation_2d_study_run_unit,
+    :free_latent_correlation_2d_study_score,
+    :free_latent_correlation_2d_study_unit_preflight,
+))
+
+function experimental_documented_names()
+    implicit_module_bindings = Set((:Experimental, :eval, :include))
+    candidates = names(BayesianMGMFRM.Experimental;
+        all = true, imported = false)
+    return sort!(filter(candidates) do name
+        name in implicit_module_bindings && return false
+        text = String(name)
+        startswith(text, "_") && return false
+        startswith(text, "#") && return false
+        binding = Docs.Binding(BayesianMGMFRM.Experimental, name)
+        Docs.doc(binding) !== nothing
+    end; by = String)
+end
+
+function experimental_public_docstring_names()
+    documented = Set(experimental_documented_names())
+    classified = union(
+        EXPERIMENTAL_READER_FACING_DOCSTRINGS,
+        EXPERIMENTAL_DEVELOPER_DOCSTRINGS,
+    )
+    overlap = intersect(
+        EXPERIMENTAL_READER_FACING_DOCSTRINGS,
+        EXPERIMENTAL_DEVELOPER_DOCSTRINGS,
+    )
+    isempty(overlap) || error(
+        "Experimental docstring classifications overlap: $(sort!(collect(overlap); by=String))")
+    documented == classified || error(
+        "Experimental documented bindings must be classified exactly; " *
+        "unclassified=$(sort!(collect(setdiff(documented, classified)); by=String)) " *
+        "missing=$(sort!(collect(setdiff(classified, documented)); by=String))")
+    return sort!(collect(EXPERIMENTAL_READER_FACING_DOCSTRINGS); by = String)
+end
 
 function exported_docstring_outputs()
     outputs = Pair{String,String}[]
@@ -46,13 +101,272 @@ function exported_docstring_outputs()
     module_doc === nothing || push!(outputs,
         "docstring:Experimental" =>
             sprint(show, MIME"text/plain"(), module_doc))
-    for name in EXPERIMENTAL_PUBLIC_DOCSTRINGS
+    experimental_names = experimental_public_docstring_names()
+    isempty(experimental_names) &&
+        error("no public Experimental docstrings were discovered")
+    for name in experimental_names
         binding = Docs.Binding(BayesianMGMFRM.Experimental, name)
         doc = Docs.doc(binding)
         doc === nothing && error(
             "missing public Experimental docstring for $(String(name))")
         text = sprint(show, MIME"text/plain"(), doc)
         push!(outputs, "docstring:Experimental.$(String(name))" => text)
+    end
+    return outputs
+end
+
+function reader_facing_contract_outputs(objects)
+    adversarial_environment_metadata = withenv(
+        "GMFRM_POWER_NOTES" => "/Users/example/private-notes.txt",
+    ) do
+        evidence_metadata(; include_packages = false)
+    end
+    mfrm_metadata = fit_metadata(objects.mfrm_fit; view = :public)
+    gmfrm_metadata = fit_metadata(objects.gmfrm_fit; view = :public)
+    mgmfrm_metadata = fit_metadata(objects.mgmfrm_fit; view = :public)
+    mfrm_diagnostics = diagnostics(objects.mfrm_fit; view = :public)
+    gmfrm_diagnostics = diagnostics(objects.gmfrm_fit; view = :public)
+    mgmfrm_diagnostics = diagnostics(objects.mgmfrm_fit; view = :public)
+    gmfrm_metadata.estimation_status === :experimental || error(
+        "public GMFRM fit metadata must report experimental availability")
+    mgmfrm_metadata.estimation_status === :experimental || error(
+        "public MGMFRM fit metadata must report experimental availability")
+    for (label, surface) in (
+            :gmfrm => gmfrm_diagnostics,
+            :mgmfrm => mgmfrm_diagnostics)
+        hasproperty(surface.summary, :raw_diagnostic_metrics) || error(
+            "public $label diagnostics dropped raw-space metrics")
+        hasproperty(surface.parameter_layout, :raw_parameter_names) || error(
+            "public $label diagnostics dropped raw parameter names")
+    end
+    any(row -> row.value isa AbstractString &&
+            occursin(r"^[0-9a-f]{64}$", row.value),
+        mgmfrm_diagnostics.initialization_rows) && error(
+            "public MGMFRM initialization rows expose identity hashes")
+
+    sensitivity_baseline = (;
+        sensitivity_axis = :thresholds,
+        sensitivity_value = :partial_credit,
+        baseline_value = :partial_credit,
+        model = :partial_credit,
+        baseline_model = :partial_credit,
+        is_baseline = true,
+        contrast = :baseline,
+        criterion = :waic,
+        elpd_difference_from_baseline = 0.0,
+        information_criterion_difference_from_baseline = 0.0,
+    )
+    sensitivity_candidate = merge(sensitivity_baseline, (;
+        sensitivity_value = :rating_scale,
+        model = :rating_scale,
+        is_baseline = false,
+        contrast = :candidate,
+    ))
+    sensitivity_summary = sensitivity_comparison_summary(
+        sensitivity_baseline,
+        sensitivity_candidate;
+        required_axes = (:thresholds,),
+        view = :public,
+    )
+    sensitivity_summary.n_candidate_rows == 1 || error(
+        "public sensitivity summary dropped candidate counts")
+    only(sensitivity_summary.axis_rows).n_candidate_rows == 1 || error(
+        "public sensitivity axis summary dropped candidate counts")
+
+    comparison_rows = [
+        comparison_evidence_row(;
+            comparison_class = :stan,
+            target_model = :mfrm_pcm,
+            comparator = :reference_stan,
+            metric = :log_density,
+            estimate = 0.0,
+            reference = 0.0,
+            artifact = "private/results.json",
+        ),
+        comparison_evidence_row(;
+            comparison_class = :facets,
+            target_model = :mfrm_pcm,
+            comparator = :facets_export,
+            metric = :severity_correlation,
+            estimate = 1.0,
+            reference = 1.0,
+            artifact = "/Users/example/private/results.json",
+        ),
+        comparison_evidence_row(;
+            comparison_class = :nested,
+            target_model = :scalar_gmfrm,
+            comparator = :mfrm_pcm,
+            metric = :heldout_elpd_difference,
+            estimate = 1.0,
+            reference = 0.0,
+            pass_if = :greater_equal,
+        ),
+    ]
+    comparison_summary = comparison_evidence_summary(
+        comparison_rows;
+        view = :public,
+    )
+    comparison_text = JSON3.write(runtime_dynamic_projection(
+        comparison_summary))
+    occursin("private/results.json", comparison_text) && error(
+        "public comparison summary exposes artifact paths")
+
+    benchmark_rows = (
+        benchmark_result_row(;
+            benchmark = :minimal_pcm_nuts,
+            engine = :advancedhmc,
+            model = :mfrm_pcm,
+            elapsed_seconds = (1.0, 1.1, 0.9),
+            effective_sample_sizes = (100.0, 110.0, 90.0),
+        ),
+        benchmark_result_row(;
+            benchmark = :minimal_pcm_nuts,
+            engine = :cmdstan,
+            model = :stan_pcm,
+            elapsed_seconds = (2.0, 2.1, 1.9),
+            effective_sample_sizes = (80.0, 84.0, 76.0),
+        ),
+    )
+    benchmark_gate = benchmark_summary(
+        benchmark_rows...;
+        view = :public,
+    )
+    simulation_rows = simulation_grid(;
+        densities = (:sparse,),
+        anchor_sizes = (0,),
+        ratings_per_target = (1,),
+        category_pathologies = (:none,),
+        rater_noise = (:low,),
+        dff = (:none,),
+        dimensionalities = (1, 2),
+        misspecifications = (:none, :omitted_dff),
+        repetitions = 1,
+        n_persons = 8,
+        n_items = 2,
+        n_raters = 2,
+        n_categories = 3,
+    )
+    public_simulation_rows = simulation_grid(;
+        densities = (:sparse,),
+        anchor_sizes = (0,),
+        ratings_per_target = (1,),
+        category_pathologies = (:none,),
+        rater_noise = (:low,),
+        dff = (:none,),
+        dimensionalities = (1, 2),
+        misspecifications = (:none, :omitted_dff),
+        repetitions = 1,
+        n_persons = 8,
+        n_items = 2,
+        n_raters = 2,
+        n_categories = 3,
+        view = :public,
+    )
+    any(row -> row.dimensionality == 2 &&
+            row.fit_surface === :fixed_q_confirmatory_mgmfrm_preview,
+        public_simulation_rows) || error(
+            "public simulation grid did not translate the 2D fit surface")
+    any(row -> row.dimensionality == 1 &&
+            row.misspecification === :omitted_dff &&
+            row.fit_surface ===
+                :mfrm_baseline_or_experimental_gmfrm_comparison,
+        public_simulation_rows) || error(
+            "public simulation grid did not translate the GMFRM comparison surface")
+    occursin("guarded", JSON3.write(runtime_dynamic_projection(
+        public_simulation_rows))) && error(
+            "public simulation grid exposes implementation status wording")
+    simulation_summary = simulation_grid_summary(
+        simulation_rows;
+        view = :public,
+    )
+    falsification_summary = falsification_rule_summary(
+        falsification_rules();
+        view = :public,
+    )
+    values = (
+        "evidence-metadata" => evidence_metadata(; include_packages = false),
+        "evidence-metadata:adversarial-env" =>
+            adversarial_environment_metadata,
+        "experimental-surface-contract" =>
+            BayesianMGMFRM.Experimental.surface_contract(),
+        "experimental-free-correlation-contract" =>
+            BayesianMGMFRM.Experimental.free_latent_correlation_2d_contract(),
+        "experimental-free-correlation-state" =>
+            objects.free_correlation_state,
+        "experimental-free-correlation-diagnostics" =>
+            objects.free_correlation_diagnostics,
+        "fit-metadata:MFRM" => mfrm_metadata,
+        "fit-metadata:GMFRM" => gmfrm_metadata,
+        "fit-metadata:MGMFRM" => mgmfrm_metadata,
+        "diagnostics:MFRM" => mfrm_diagnostics,
+        "diagnostics:GMFRM" => gmfrm_diagnostics,
+        "diagnostics:MGMFRM" => mgmfrm_diagnostics,
+        "sensitivity-comparison-summary" => sensitivity_summary,
+        "comparison-evidence-summary" => comparison_summary,
+        "benchmark-summary" => benchmark_gate,
+        "simulation-grid" => public_simulation_rows,
+        "simulation-grid-summary" => simulation_summary,
+        "falsification-rule-summary" => falsification_summary,
+        "model-equation:MGMFRM" => model_equation(objects.mgmfrm_spec),
+        "fit-ready-parameter-layout:MFRM" =>
+            fit_ready_parameter_layout(objects.design; view = :public),
+        "fit-ready-parameter-layout:MGMFRM" =>
+            fit_ready_parameter_layout(objects.preview; view = :public),
+        "domain-compilation-summary:MFRM" =>
+            domain_compilation_summary(objects.design; view = :public),
+        "domain-compilation-summary:MGMFRM" =>
+            domain_compilation_summary(objects.preview; view = :public),
+        "domain-compilation-summary:anchor-path-redaction" =>
+            domain_compilation_summary(
+                objects.anchored_spec;
+                preview = true,
+                view = :public,
+            ),
+        "model-ladder" => model_ladder(view = :public),
+        "rating-design-audit:anchor-path-redaction" =>
+            rating_design_audit(objects.anchored_spec; view = :public),
+        "anchor-linking-summary:anchor-path-redaction" =>
+            anchor_linking_summary(objects.anchored_spec; view = :public),
+        "related-software-capability-matrix" =>
+            related_software_capability_matrix(view = :public),
+        "model-manifest:MGMFRM" =>
+            model_manifest(objects.preview; view = :public),
+        "model-manifest:anchor-path-redaction" =>
+            model_manifest(objects.anchored_spec; view = :public),
+        "model-manifest:MFRM-fit" =>
+            model_manifest(objects.mfrm_fit; view = :public),
+        "model-manifest:MGMFRM-fit" =>
+            model_manifest(objects.mgmfrm_fit; view = :public),
+        "model-surface-audit:MGMFRM" =>
+            model_surface_audit(objects.mgmfrm_spec; view = :public),
+        "model-surface-audit:MGMFRM-fit" =>
+            model_surface_audit(objects.mgmfrm_fit; view = :public),
+        "fit-artifact:MFRM" => fit_artifact(
+            objects.mfrm_fit;
+            view = :public,
+            include_environment = false,
+        ),
+        "fit-artifact:GMFRM" => fit_artifact(
+            objects.gmfrm_fit;
+            view = :public,
+            include_environment = false,
+        ),
+        "fit-artifact:MGMFRM" => fit_artifact(
+            objects.mgmfrm_fit;
+            view = :public,
+            include_environment = false,
+        ),
+        "anchor-declaration-validation" => anchor_refit_plan(objects.spec),
+        "fit-reproduction-manifest" =>
+            fit_reproduction_manifest(objects.mfrm_fit;
+                view = :public,
+                include_environment = false),
+    )
+    outputs = Pair{String,String}[]
+    for (label, value) in values
+        projected = runtime_dynamic_projection(value)
+        push!(outputs, "contract:$label:json" => JSON3.write(projected))
+        push!(outputs, "contract:$label:show" => sprint(show, projected))
     end
     return outputs
 end
@@ -85,6 +399,25 @@ function representative_objects()
     validation = validate_design(data)
     spec = mfrm_spec(data; thresholds = :partial_credit,
         validation_report = validation)
+    anchored_spec = mfrm_spec(data;
+        thresholds = :partial_credit,
+        anchors = [(;
+            block = :rater,
+            level = "R2",
+            value = 0.25,
+            type = :hard,
+            source = :facets,
+            source_version = "4.5.1",
+            source_model = :mfrm_pcm,
+            source_estimator = :jml,
+            source_hash = repeat("0123456789abcdef", 4),
+            source_scale = :logit,
+            sign = :severity_positive,
+            repository_path = "/Users/example/private-anchor.json",
+            source_path = "/Users/example/private-source.json",
+            file_path = "/Users/example/private-file.json",
+        )],
+    )
     design = getdesign(spec)
     clustered_spec = mfrm_spec(clustered_data; thresholds = :partial_credit)
     clustered_design = getdesign(clustered_spec)
@@ -94,6 +427,61 @@ function representative_objects()
         dimensions = 2,
         q_matrix = Bool[1 0; 0 1],
     )
+    gmfrm_spec = mfrm_spec(data;
+        thresholds = :partial_credit,
+        family = :gmfrm,
+        discrimination = :rater,
+    )
+    free_correlation_data = FacetData((;
+        person = repeat(["E1", "E2", "E3", "E4"]; inner = 4),
+        rater = [
+            "R2", "R1", "R2", "R1",
+            "R1", "R2", "R1", "R2",
+            "R2", "R1", "R2", "R1",
+            "R1", "R2", "R1", "R2",
+        ],
+        item = repeat(["I1", "I2", "I3", "I4"], 4),
+        score = [
+            0, 1, 2, 1,
+            1, 2, 1, 0,
+            2, 1, 0, 2,
+            1, 0, 2, 1,
+        ],
+    );
+        person = :person,
+        rater = :rater,
+        item = :item,
+        score = :score,
+    )
+    free_correlation_spec = mfrm_spec(free_correlation_data;
+        thresholds = :partial_credit,
+        family = :mgmfrm,
+        dimensions = 2,
+        discrimination = :none,
+        q_matrix = Bool[1 0; 0 1; 1 0; 0 1],
+        dimension_labels = ["analytic", "verbal"],
+    )
+    free_correlation_candidate = BayesianMGMFRM.Experimental.
+        free_latent_correlation_2d_candidate(free_correlation_spec)
+    free_correlation_raw = initial_params(
+        free_correlation_candidate;
+        zrho = 0.2,
+    )
+    free_correlation_state = BayesianMGMFRM.Experimental.
+        free_latent_correlation_2d_state(
+            free_correlation_candidate,
+            free_correlation_raw,
+        )
+    free_correlation_diagnostics = BayesianMGMFRM.Experimental.
+        free_latent_correlation_2d_diagnostics(
+            free_correlation_spec,
+            free_correlation_raw;
+            finite_difference_coords = (
+                1,
+                2,
+                length(free_correlation_raw),
+            ),
+        )
     preview = getdesign(mgmfrm_spec; preview = true)
     n_parameters = length(design.parameter_names)
     prior = MFRMPrior()
@@ -125,24 +513,23 @@ function representative_objects()
         0,
         0.1,
     )
-    generalized_args = (
-        design,
-        BayesianMGMFRM._SourceFixturePrior(),
-        zeros(1, n_parameters),
-        [0.0],
-        zeros(1, n_parameters),
-        [0.0],
-        zeros(1, data.n),
-        [1],
-        [1],
-        [1.0],
-        :advancedhmc,
-        :nuts,
-        0,
-        0.1,
-        NamedTuple[],
-        NamedTuple(),
-        NamedTuple(),
+    generalized_smoke_controls = (;
+        backend = :advancedhmc,
+        ndraws = 1,
+        warmup = 0,
+        chains = 1,
+        seed = 20260722,
+        step_size = 0.02,
+        max_depth = 1,
+        metric = :unit,
+    )
+    gmfrm_fit = BayesianMGMFRM.Experimental.fit(
+        gmfrm_spec;
+        generalized_smoke_controls...,
+    )
+    mgmfrm_fit = BayesianMGMFRM.Experimental.fit(
+        mgmfrm_spec;
+        generalized_smoke_controls...,
     )
     local_dependence_grid = local_dependence_simulation_grid(;
         repetitions = 1,
@@ -193,9 +580,13 @@ function representative_objects()
         data,
         validation,
         spec,
+        anchored_spec,
         design,
         mgmfrm_spec,
         preview,
+        free_correlation_candidate,
+        free_correlation_state,
+        free_correlation_diagnostics,
         issue = isempty(validation.issues) ?
             ValidationIssue(:small_example, :warning,
                 "The representative design is intentionally small.") :
@@ -203,8 +594,8 @@ function representative_objects()
         prior,
         target = MFRMLogDensity(design),
         mfrm_fit,
-        gmfrm_fit = GMFRMFit(generalized_args...),
-        mgmfrm_fit = MGMFRMFit(generalized_args...),
+        gmfrm_fit,
+        mgmfrm_fit,
         clustered_data,
         testlet_audit = testlet_design_audit(clustered_data),
         local_dependence = local_dependence_contract(),
@@ -236,6 +627,8 @@ function show_outputs(objects)
         "FacetDesign:MFRM" => objects.design,
         "FacetSpec:MGMFRM" => objects.mgmfrm_spec,
         "FacetDesign:MGMFRM" => objects.preview,
+        "ExperimentalFreeLatentCorrelation2DDensity" =>
+            objects.free_correlation_candidate,
         "MFRMPrior" => objects.prior,
         "MFRMLogDensity" => objects.target,
         "MFRMFit" => objects.mfrm_fit,
@@ -497,6 +890,7 @@ function main()
     append!(outputs, show_outputs(objects))
     append!(outputs, clustered_diagnostic_outputs(objects))
     append!(outputs, known_truth_simulation_outputs(objects))
+    append!(outputs, reader_facing_contract_outputs(objects))
     append!(outputs, report_outputs(objects))
     append!(outputs, error_outputs(objects))
     result = assert_runtime_public_language(outputs)

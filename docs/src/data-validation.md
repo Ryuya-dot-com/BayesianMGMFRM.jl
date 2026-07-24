@@ -176,70 +176,12 @@ studies. LD1a establishes generator and pre-fit behavior. LD1b0 adds an
 MCMC-free protocol and scorer validation layer that keeps missing, failed,
 rejected, unsupported, and completed replications distinct. LD1b1 adds
 `local_dependence_calibration_pilot_contract` and
-`local_dependence_calibration_pilot_preflight`, which validate a
-`30 × 22 = 660` execution plan without running it. The planned rows contain 540
-eligible fitting jobs and 120 planned structural rejections. A retry cannot
-replace the original failed outcome, and the operational candidate bounds are
-study-local.
-The MCMC-free `local_dependence_pilot_protocol_preflight.json` artifact records
-that rank-normalized R-hat and bulk/tail ESS capability is available and the
-pilot execution protocol is authorized under the exact diagnostic dependency
-and operation-order record, primary fields, tail probability, minimum chain and
-draw requirements, complete-chain E-BFMI coverage, and recorded SHA-256 digest
-of `src/bayesian_fit.jl`. This authorization is not a completed run or
-calibration evidence. The pilot and evaluation are still
-pending; the 50- and 100-replication evaluation sizes must be selected and
-frozen after the pilot and before evaluation. The magnitude settings are not
-universal cutoffs, and no calibration evidence, pairwise power, diagnostic
-decision, or mechanism interpretation is available.
-
-The MCMC-free `local_dependence_pilot_batch_execution_harness.json` dry run
-checks the complete 660-row layout of 540 eligible fitting jobs and 120 planned
-pre-fit rejections. Before a result can contribute to aggregation, its frozen
-job identity, seeds, attempt, terminal status, executor identity, role-specific
-evidence content, and file digests must agree. Every role binds one source
-artifact and its upstream evidence hashes. The frozen `pilot_contract` and
-ordered 660 job rows are verified against canonical SHA-256 values. A
-`pre_fit_rejected` result requires `generated_data`, then
-`structural_rejection_audit`, then a `calibration_row` conforming to the
-existing public calibration-row contract. The simulation member is checked for
-response data, table-column lengths, probability cells, truth and row-truth
-arrays, structural eligibility, and data/score/design signatures. Fit evidence
-must use the structured `local_dependence_pilot_fit_artifact_export.v1` JSON
-wrapper with retained draws, log posterior values, and sampler statistics. Its
-package-native content hash must be verified by the future pinned canonical
-executor before JSON projection; the batch runner separately recomputes the
-canonical JSON payload hash and verifies the exact file SHA-256. The JSON
-projection cannot soundly reconstruct the native typed hash. Data,
-design, fit-artifact, retained-draw, chain, and iteration provenance is compared
-across fit, sampler, local-dependence, and calibration evidence. The custom
-`local_dependence_pilot_summary_bundle.v1` directly records the draw-selection
-and posterior-predictive seeds; the runner compares both with its evidence
-payload, the frozen job, and the calibration execution seeds. Draw selection
-uses the frozen `sha256_seeded_rank_without_replacement_v1` algorithm, and the
-runner recomputes its ordered draw indices from the frozen seed.
-The posterior-predictive seed is source-bound, but seed-to-result replay
-verification remains
-pending the canonical single-job executor and bounded smoke review. A
-`diagnostic_failed` result may name `sampler_quality_gate` only when that gate
-failed, or `local_dependence_summary` only after it passed. Generated resource
-counts and frozen sampler-quality conditions are checked explicitly; symbolic
-links, hard links, and unmanifested files are
-rejected. These checks establish result consistency and provenance, not
-statistical calibration or model adequacy. The controller prohibits
-overwriting primary outcomes, preserves remediation as
-additive records, and on resume first rescans the complete attempt archive as
-the source of truth. It then verifies and compares the derived checkpoint and
-skips only verified terminal primary records. The generated dry run does not
-assess an attempt archive. Snapshot values are rechecked against a static
-inventory, but that is not an atomic completed-attempt seal. The canonical
-single-job executor, bounded smoke review, completed-attempt seal, and
-append-only recovery or retirement path for interrupted attempts remain
-required before execution.
-
-No response data are generated, no model is fitted, and no MCMC is run; pilot
-results, calibration or power estimates, diagnostic decisions, and mechanism
-interpretations remain unavailable.
+`local_dependence_calibration_pilot_preflight`, which freeze a 30-replication
+pilot plan for each of the 22 scenarios and validate its study-specific sampler
+and diagnostic requirements. The preflight runs no fit or MCMC, and the pilot
+and evaluation remain unrun. It supplies no repeated-calibration, power,
+diagnostic-decision, or mechanism-identification evidence. Clustered effects
+remain unsupported for fitting.
 
 Use [`validation_suggestions`](@ref) to convert validation issues into
 machine-readable next-step suggestions:
@@ -338,9 +280,9 @@ Use [`model_manifest`](@ref) to capture the current data/spec/design provenance
 contract for reports and future cached fits:
 
 ```julia
-model_manifest(data)
-model_manifest(spec)
-model_manifest(design)
+model_manifest(data; view = :public)
+model_manifest(spec; view = :public)
+model_manifest(design; view = :public)
 ```
 
 This is the scaffold for the full MFRM/GMFRM/MGMFRM compiler. The ordinary
@@ -359,8 +301,8 @@ figures without adding a plotting dependency:
 coverage = coverage_summary(spec)
 heatmap_data = coverage_matrix(data; rows = :rater, columns = :person)
 overlap = rater_overlap(data; unit = :person_item)
-linking = anchor_linking_summary(spec; unit = :person_item)
-rating_design = rating_design_audit(spec; unit = :person_item)
+linking = anchor_linking_summary(spec; unit = :person_item, view = :public)
+rating_design = rating_design_audit(spec; unit = :person_item, view = :public)
 thresholds = threshold_map_data(design; params = zeros(length(design.parameter_names)))
 ```
 
@@ -403,12 +345,11 @@ proportion deliberately shared by the designated linking raters), and the
 corresponding share of all rating events separately. A double-rated design has
 `multiply_scored_target_fraction = 1` even when it has no special all-rater
 common set. Controlled benchmarks with reference information are a fourth
-quantity. The versioned `existing_api_design_robustness_plan.json` demonstrates
-these distinctions with physically materialized 5% and 10% all-rater common
-sets. The companion MCMC-free stress-grid artifact records both planned and
-observed denominators, target displacement under a fixed rating-event budget,
-and achieved order/ability metrics. Its contract checks pass, while repeated
-paired recovery remains a separate required gate.
+quantity. The design-robustness examples materialize separate 5% and 10%
+all-rater common sets and report planned and observed denominators, target
+displacement under a fixed rating-event budget, and achieved order/ability
+metrics. These MCMC-free checks do not provide repeated paired-recovery
+evidence.
 
 `threshold_map_data` returns rating-scale or partial-credit threshold-step
 metadata, including derived sum-to-zero steps when a parameter vector is

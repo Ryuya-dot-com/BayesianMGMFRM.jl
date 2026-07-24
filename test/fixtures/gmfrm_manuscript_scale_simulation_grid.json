@@ -11,8 +11,8 @@
   "manuscript_claims_allowed": false,
   "package": {
     "name": "BayesianMGMFRM",
-    "version": "0.1.1",
-    "julia_version": "1.12.5"
+    "version": "0.1.2",
+    "julia_version": "1.10.8"
   },
   "protocol": {
     "protocol_id": "gmfrm_manuscript_scale_simulation_grid_v1",
@@ -197,7 +197,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "d80e38d94fdbab12cd42082c4486894aa425c3936306e33c4878183744e145a2",
+      "sha256": "cf8406719aad612f740244cacd1b099479ecd44836b25ecd436762fab491ecaa",
       "summary": {
         "passed": true,
         "n_evidence_cells": 6,
@@ -214,7 +214,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "680ed94babfba6583efdc1df768683242b31ce01e3fbd957c9ee5f10d6f834cc",
+      "sha256": "75319e5636120d5d2df8e13d05cce700466dc1d40293c29507e62a33e486037c",
       "summary": {
         "passed": true,
         "n_evidence_cells": 10,
@@ -384,7 +384,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "6c21642fea8aad86a5f0ad742937fe3473a1f0ce60d2376a80313f7e34030799",
+      "sha256": "a3646c5d5998c5affe76ecd3cd314796df6c39b7bd8c1942184eb15089b727d0",
       "summary": {
         "passed": true,
         "n_evidence_cells": 14,
@@ -401,7 +401,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "5947220873a62ab62b7b73e94dbb15b18553fe04043961c3e4b03df3293ecbee",
+      "sha256": "55e99bf73afb684db9280c90c1f0633103007d573ce53bf73bb6460fef43cbca",
       "summary": {
         "passed": true,
         "n_evidence_cells": 29,
@@ -418,7 +418,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "6c8f894fb7fce019c63d198cd2e8057611cd0d449d5c06b98b86dcdd4cd69f70",
+      "sha256": "b234f605f8f86853336b57f8f5b8f4d2ef8984e7493efef40a4abef8750ff477",
       "summary": {
         "passed": true,
         "n_evidence_cells": 125,
@@ -435,7 +435,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "15f3537ce84a1fb0e3d5d01444226ce66b1ebecfa8cc4c0591c29c5089e7cf1b",
+      "sha256": "1b8db56866456ee5baabeb2334827c5f96cff46260a51c15f88951aed6e7eb4d",
       "summary": {
         "passed": true,
         "n_evidence_cells": 625,
@@ -452,7 +452,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "8ad6c45e35196ed21494aadf3d37bd60467c62954d8911d6b1ad9c52885c7de3",
+      "sha256": "844eb0d37edc1e39d96c816fc6417a2f2f51f9f038b1348a3f32fd9a15ac5595",
       "summary": {
         "passed": true,
         "n_evidence_cells": 17,
@@ -469,7 +469,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "aaa37b2e78b4f3173f80da4764d4b03c0e7544678a6eb2059306fc4d9f618d26",
+      "sha256": "03079d677b448ff50f955fe603aa60334412471f72c26d7e749883e567b75f35",
       "summary": {
         "passed": true,
         "n_evidence_cells": 144,
@@ -486,7 +486,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "6acbd009c3490defeb4a03e379377450117707104dfc73d631ee2a9a3735382c",
+      "sha256": "aeba9a9efda22b427bed12ea5ae82f1219276380fd5e8cedc5ab73f47a3e6ea2",
       "summary": {
         "passed": true,
         "n_evidence_cells": 33,
@@ -503,7 +503,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "836b91ad91648a1f23fc0b74cbca0233f6a77e8aa4d554e880fdf33a6c1e7b65",
+      "sha256": "0d404fb66933b767c06c21c7d0c7ccfe11a9bd1660f7efe37f5890901ea5d4f6",
       "summary": {
         "passed": true,
         "n_evidence_cells": 225,
@@ -520,7 +520,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "7c46e14462c8b13be80952edf417f7ea456e64f7945d5396ad6bf73a31e61cc6",
+      "sha256": "1b53068c3c00c58a8a30207014fa5dcc33534cf9e247e6d5d3f1d11ec7fa1268",
       "summary": {
         "passed": true,
         "n_evidence_cells": 175,
@@ -537,7 +537,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "47e6fac56ceddd5da6833124421e905e4efdcf006e6c05e8cbf5ed2cccd54ea7",
+      "sha256": "fd26b2a766eb5cdb81e0976e84698d20fefb9c79cd9d9acf7ec6a72270c62350",
       "summary": {
         "passed": true,
         "n_evidence_cells": 855,
@@ -554,7 +554,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "8541a2838c833d51e60ab5f90e898b14e157e2e860347c5f2e5d285b4fbfc6ef",
+      "sha256": "aabeb2ecf2996defd6a84c6d12a28ce198a8e25fbb5b1bf9ba2b7dbc15e4ee05",
       "summary": {
         "passed": true,
         "n_evidence_cells": 668,
@@ -571,7 +571,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "d937a0920261d1db447716bc74428280a413867d71549adc85bef8eb3d753679",
+      "sha256": "55ba9c0f8e68c246c27f2db9024883484aa8a8467fa1d635d41a5df1efeebf54",
       "summary": {
         "passed": true,
         "n_evidence_cells": 26,
@@ -588,7 +588,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "39870d77a77375fba41a9429f5f84f7a90ebde6e60b9b495b6d7138f439b3bc9",
+      "sha256": "968bcfa30731946b367f747ea91ac284b3d54edd5158854933e143a1c7a0f69c",
       "summary": {
         "passed": true,
         "n_evidence_cells": 70,
@@ -605,7 +605,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "14b4fa61e6a5a57c17dfc9f3a9f3471f3e8aa7b9554aa812dcf2daf2efa59c89",
+      "sha256": "2fb568c85e1ed98151751d1cd85d4ab7722b59bd5234c85339aa8e47b6bac85d",
       "summary": {
         "passed": true,
         "n_evidence_cells": 35,
@@ -622,7 +622,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "a4bd74ea31c52c016f10dbfae7e7ed107dbe4995a138b7d9ba99659e34c40455",
+      "sha256": "54c6dc85bb45b75bc5cc9c92c76a7d42e8aa8ff1d4588f584e5451301258bb5b",
       "summary": {
         "passed": true,
         "n_evidence_cells": 90,
@@ -642,7 +642,7 @@
       "schema_matches": true,
       "summary_passed": true,
       "hash_policy": "sha256",
-      "sha256": "0278c7ae33d1fc040a6acd52f5550b2e3076f5b68145caef6ccde5b5f2481bd2",
+      "sha256": "a0dd362a136742118a42b8dfe1c6c690504b5c38351ed7a3aae4a99edba14c58",
       "summary": {
         "passed": true,
         "n_evidence_cells": 2134,

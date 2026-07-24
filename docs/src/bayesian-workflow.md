@@ -191,82 +191,12 @@ surface does not itself run a pilot or evaluation study and does not modify the
 decision-disabled observed-data diagnostic.
 
 LD1b1 adds `local_dependence_calibration_pilot_contract` and
-`local_dependence_calibration_pilot_preflight`. The contract fixes 30
-replications for each of the 22 scenarios (`30 × 22 = 660`): 540 eligible fits,
-and 120 planned structural rejections. For each eligible scenario, the study-
-local operational candidates require at least 27 completed jobs, at most three
-categorized failures, and no missing outcome. Retry outcomes are appended and
-cannot overwrite the original failure. The planned sampler uses four
-AdvancedHMC/NUTS chains with 500 warmup and 500 retained draws per chain, and
-the diagnostic uses 250 distinct posterior-predictive draws. These are study-
-specific execution settings, not package defaults.
-
-The MCMC-free `local_dependence_pilot_protocol_preflight.json` artifact records
-that package sampler diagnostics now provide the required rank-normalized
-R-hat and bulk/tail ESS, so the pilot execution protocol is authorized. The
-authorization pins the exact `rank_normalized_rhat_bulk_tail_ess_v1` dependency
-and operation-order record, primary fields, tail probability, minimum chain and
-draw requirements, complete-chain E-BFMI coverage, and the SHA-256 digest of
-`src/bayesian_fit.jl`.
-Candidate quality bounds are rank-normalized R-hat at most 1.01, bulk and tail
-ESS of at least 400, no divergences or maximum-depth hits, and E-BFMI of at
-least 0.3. After the pilot, either 50 or 100 evaluation replications must be
-selected and frozen before a separately seeded evaluation; the evaluation may
-not be extended partway through. The preflight runs no fit or MCMC, the pilot
-has not been run, and no repeated-calibration evidence, pairwise power,
-diagnostic decision, or mechanism interpretation is available.
-
-The MCMC-free `local_dependence_pilot_batch_execution_harness.json` dry run
-checks orchestration for the 660 planned rows: 540 eligible fitting jobs and
-120 planned pre-fit rejections. The controller and generator sources are
-identified, while a complete execution plan also requires the future
-single-job executor SHA-256. Role-specific evidence envelopes are bound to each
-job result. Every evidence role identifies one source artifact by bytes and
-SHA-256 and records its exact upstream evidence
-hashes. The frozen `pilot_contract` and ordered 660 job rows must reproduce
-their canonical SHA-256 values. The exact evidence chain for
-`pre_fit_rejected` is `generated_data` -> `structural_rejection_audit` ->
-`calibration_row`, where the final member follows the existing public
-calibration-row contract. Simulation evidence validates response data, table
-columns, probability cells, truth and row-truth arrays, and data/score/design
-signatures. Fit evidence uses the structured
-`local_dependence_pilot_fit_artifact_export.v1` JSON wrapper containing retained
-draws, log posterior values, and sampler statistics. Its package-native content
-hash must be verified by the future pinned canonical executor before JSON
-projection; the batch runner separately recomputes the canonical JSON payload
-hash and verifies the exact file SHA-256. The JSON projection cannot soundly
-reconstruct the native typed hash. Data, design, fit-artifact, retained-draw,
-chain, and iteration
-provenance must match across fit, sampler, local-dependence, and calibration
-members. The custom `local_dependence_pilot_summary_bundle.v1` directly records
-the draw-selection and posterior-predictive seeds; the runner compares both
-with its evidence payload, the frozen job, and the calibration execution seeds.
-Draw selection uses the frozen `sha256_seeded_rank_without_replacement_v1`
-algorithm, and the runner recomputes its ordered draw indices from the frozen
-seed. The posterior-predictive seed is source-bound, but seed-to-result replay
-verification remains pending the canonical single-job executor and bounded
-smoke review.
-For `diagnostic_failed`, `sampler_quality_gate` requires a failed
-sampler gate, whereas `local_dependence_summary` requires that sampler gate to
-have passed. Resource counts and fixed sampler controls are checked, and the
-R-hat, bulk/tail ESS, divergence, depth, and complete-chain E-BFMI gates are
-evaluated individually. Symbolic links, hard links, and unmanifested files are
-rejected.
-
-The aggregate state is bound to the ordered primary-result and evidence
-digests. Primary outcomes are nonoverwritable, and remediation remains
-separately visible. Resume first
-rescans the complete attempt archive as the source of truth, then verifies and
-compares the derived checkpoint, and skips only verified terminal primary
-records; it does not resume a sampler chain. The generated dry run reports
-attempt-archive integrity as not assessed. Snapshot and inventory rechecks are
-static consistency checks, not an atomic completed-attempt seal. The canonical
-single-job executor, bounded smoke review, completed-attempt seal, and append-
-only recovery or retirement path for interrupted attempts remain required
-before execution. No response data are generated, no model is fitted, and no
-MCMC is
-run; pilot results, calibration or power estimates, diagnostic decisions, and
-mechanism interpretations remain unavailable.
+`local_dependence_calibration_pilot_preflight`. They freeze a 30-replication
+pilot plan for each of the 22 scenarios and validate its study-specific sampler
+and diagnostic requirements. The preflight runs no fit or MCMC; the pilot and
+evaluation remain unrun. Consequently, these layers provide no
+repeated-calibration, power, diagnostic-decision, or mechanism-identification
+evidence, and they do not make clustered effects available for fitting.
 
 Observation-row LOO does not validate
 prediction for a wholly unseen response whose shared effect was informed by

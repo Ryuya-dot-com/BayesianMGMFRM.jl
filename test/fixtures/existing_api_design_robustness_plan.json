@@ -8,11 +8,11 @@
   "publication_or_registration_action": false,
   "package": {
     "name": "BayesianMGMFRM",
-    "version": "0.1.1"
+    "version": "0.1.2"
   },
   "generator": {
     "script": "scripts/generate_existing_api_design_robustness_plan.jl",
-    "source_sha256": "6ee0256a952d4aaf285516e473652f0a3bd47f3e2612ad54bcae84c8681ca247",
+    "source_sha256": "825cf028898c9b34c2ed11bf30da31301530f299aa0b553a20d23360f99bfba4",
     "deterministic": true
   },
   "terminology": {
@@ -114,8 +114,9 @@
       "n_observations": 48,
       "parameter_name_set_preserved": true,
       "max_aligned_pointwise_loglikelihood_error": 0.0,
-      "absolute_total_loglikelihood_error": 2.842170943040401e-14,
+      "absolute_total_loglikelihood_error": 0.0,
       "tolerance": 1.0e-12,
+      "error_normalization_policy": "at_or_below_tolerance_reported_as_zero",
       "achieved_multiply_scored_target_fraction": 1.0,
       "achieved_all_raters_common_target_fraction": 0.0,
       "note": "same_observed_ratings_only_row_order_changed"
@@ -671,7 +672,7 @@
   },
   "content_hash": {
     "algorithm": "sha256",
-    "value": "7bc5962d271e2a72bcb6f24ebc3b8f23246665b927a00149d3435fb7b701a299",
+    "value": "389961ba038440f94fe6c02c8c463c8912383e37fc0c4b43a81b798ac2e93ebd",
     "covers": "artifact_without_content_hash"
   }
 }

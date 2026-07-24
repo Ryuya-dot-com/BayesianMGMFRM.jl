@@ -1182,12 +1182,12 @@ is reported.
 
 | Axis | Current interpretation | Roadmap consequence |
 | --- | --- | --- |
-| Declared Bayesian MFRM/RSM/PCM scope | The stable minimal path includes identified RSM/PCM likelihoods, Bayesian fitting, posterior summaries, diagnostics, PPC/calibration, category/rater practitioner summaries, fair averages, separation/reliability rows, Wright-map data, FACETS-labelled compatibility rows, reports, caches, and reproducibility support. On this deliberately bounded implementation denominator, maturity is about 96%; the remaining work is mainly staged stress execution, actual hard-anchor refitting, new-summary report integration, and independent overlap evidence rather than a missing core estimator. | Track the remaining evidence and usability work explicitly. Do not lower this percentage merely because the package does not reproduce every FACETS/TAM feature or estimator. |
+| Declared Bayesian MFRM/RSM/PCM scope | The stable minimal path includes identified RSM/PCM likelihoods, Bayesian fitting, posterior summaries, diagnostics, PPC/calibration, category/rater practitioner summaries, fair averages, separation/reliability rows, Wright-map data, FACETS-labelled compatibility rows, reports, caches, and reproducibility support. The implementation is substantial but evidence remains incomplete: staged stress execution, actual hard-anchor refitting, new-summary report integration, and independent overlap evidence remain open. | Track the remaining evidence and usability work explicitly without reducing the status to a subjective completion percentage or conflating it with FACETS/TAM feature breadth. |
 | FACETS/TAM practitioner-feature parity | Practitioner-facing coverage is substantial but partial. The package provides familiar summaries, compatibility labels, and a fail-closed offline FACETS/ConQuest input-and-receipt bridge, while FACETS and TAM retain broader model catalogs, mature import/export conventions, established graphical and batch workflows, and a much larger body of operational examples. Full product parity is not a declared release goal. A ConQuest 5.47.5 RSM/PCM output sample and a three-category source-gauge semantic adapter now exist, but destination-gauge alignment and independent review remain open. | Execute FACETS samples only for genuinely overlapping targets, independently re-execute ConQuest, validate the separate gauge and comparison layers before numerical claims, and record non-goals instead of duplicating unrelated IRT breadth. |
 | JMLE/MMLE estimator parity | Bayesian HMC/NUTS is the package's intended estimator. FACETS-style JMLE and TAM-style MMLE/EM are not alternate fitting engines in this package, so their absence is an estimator-scope difference rather than incomplete Bayesian MFRM implementation. The completed TAM study supports only a narrow fully crossed unit-discrimination MFRM/PCM overlap and does not establish general estimator equivalence. | Compare estimators only under aligned likelihoods, constraints, scales, and known truth. Keep independent re-execution/review and licensed-host FACETS/ConQuest comparison evidence open; do not treat numerical agreement as proof that posterior and frequentist uncertainty summaries have the same interpretation. |
 
-This separation also clarifies release language: a high declared-scope MFRM
-maturity score can coexist with partial FACETS/TAM feature parity and no plan to
+This separation also clarifies release language: a substantial declared-scope
+MFRM implementation can coexist with partial FACETS/TAM feature parity and no plan to
 embed JMLE or MMLE as interchangeable estimators.
 
 The package now exposes the same positioning table programmatically through
@@ -1441,9 +1441,7 @@ analytic/AD/finite-difference checks, a quarantined sampler, a response-level
 known-truth generator, and a single-dataset multichain pilot. The generator
 checks a separately coded direct-scale closed-form probability oracle as well
 as the shared-kernel replay. The scalar likelihood hot path now caches the
-fixed simple-Q integer layout; on the frozen 300-person first unit this reduced
-steady-state initial ForwardDiff gradient time by about 93% (roughly 14.7x)
-and allocation by about 93%, while retaining the pointwise source path as an
+fixed simple-Q integer layout while retaining the pointwise source path as an
 independent reference.
 
 A frozen version-2 replicated-study control plane now fixes 25 feasibility and
@@ -1470,52 +1468,11 @@ uses exact-rational endpoint-enumerated full-denominator envelopes with
 directed Float64 bounds: only a lower bound beyond a limit is a hard failure,
 while a boundary-crossing upper bound is inconclusive.
 
-Protocol eligibility is now separate from operational authorization. The
-initial-gradient resource probe and the pre-execution archive harness are
-MCMC-free; the latter uses no-replace hard-link publication for dry-run
-diagnostics and rejects all scientific attempt states that it cannot create.
-Its post-load file snapshot is explicitly not loaded-code attestation, and its
-self-hashes are not an external authenticity anchor. Scientific execution
-remains fail-closed. This remains planning,
-implementation, orchestration, performance, and scorer evidence: the 25
-scientific feasibility fits and 500 evaluation fits have not run.
-The compatibility `study_run_unit` entry point is permanently preflight-only,
-so changing the operational gate alone cannot connect it to a sampler; a
-separate non-public atomic worker must validate all archive receipts before
-future scientific execution.
-The first production pre-execution dry run was retained as historical lineage
-after the public `study_run_unit` path was made permanently preflight-only
-(17,584 bytes; file SHA-256
-`4bc95ae2903310abab20d6a47a67e784a61e3bae28562e738323544f436539a0`;
-content identity
-`de7861f89e805aa17d5fcd4e7faec90eb885ea14223792c6d062002e309aeb8f`).
-A replacement current-source dry run was published by no-replace hard link and
-immediately validated against the current source and stable environment
-snapshots (17,711 bytes; file SHA-256
-`5911eee0653f4c4f20fd7d74221d9f2044fc15d50331f5189312a83c16ddadca`,
-content identity
-`96b724c2501a21225a03b280308de678c99534ab2228b9b0560ba7df35793178`,
-validation-record identity
-`c712f75703685dbf3f41872aeba6c085eb43ee86a8a16947f0c058a09d610ddc`).
-The two dry-run files are workspace-local under the git-ignored `artifacts/`
-tree; the validation identity is a returned object and was not persisted as a
-separate record. They are not repository-distributed or externally archived.
-Neither dry run created scientific unit/attempt state; both remain
-self-consistency evidence only, without authenticity or timestamp attestation.
-The frozen plan still records `resource_probe_completed = false`,
-`short_nuts_resource_profile_completed = false`, and both operational and
-scientific execution authorization as false; an optional local initial-gradient
-measurement does not mutate those preregistered facts.
-The 2026-07-23 three-repetition Julia 1.12.5 measurement had median gradient
-time `0.0441816` seconds, median allocation `85,811,848` bytes, zero measured
-GC time, and a frozen 32-gradients-per-transition planning projection of
-`5,655.2448` seconds. Those thresholds passed, but that projection is neither
-a measured short-NUTS runtime nor a worst-case upper bound. Minimum free memory
-was 2.580 GiB against the frozen 8 GiB minimum, so the overall resource gate
-failed closed. The returned local
-artifact identity was
-`78bc652642dc61ff49c109d208fd910bcf15391ce7e8389b1522838392625d2f`;
-it is not externally anchored and is not scientific execution evidence.
+Protocol eligibility is separate from scientific evidence. The resource probe
+and archive harness are MCMC-free prerequisite checks, and the compatibility
+`study_run_unit` entry point remains preflight-only. The 25 scientific
+feasibility fits and 500 evaluation fits have not run, so no recovery claim is
+supported by these checks.
 Replicated recovery, separate prior and likelihood sensitivity,
 misspecification stress, an independently reproduced decision artifact, and
 higher-dimensional LKJ-Cholesky parameterization remain pending; every current

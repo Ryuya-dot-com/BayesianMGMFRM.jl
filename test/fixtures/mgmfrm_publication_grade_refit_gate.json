@@ -20,8 +20,8 @@
   "sparse_mgmfrm_superiority_claim": false,
   "package": {
     "name": "BayesianMGMFRM",
-    "version": "0.1.1",
-    "julia_version": "1.12.5"
+    "version": "0.1.2",
+    "julia_version": "1.10.8"
   },
   "protocol": {
     "protocol_id": "mgmfrm_publication_grade_refit_gate_v1",
@@ -64,7 +64,7 @@
       "artifact": "mgmfrm_full_heldout_mcmc_refit_execution_plan",
       "path": "test/fixtures/mgmfrm_full_heldout_mcmc_refit_execution_plan.json",
       "exists": true,
-      "sha256": "aaa37b2e78b4f3173f80da4764d4b03c0e7544678a6eb2059306fc4d9f618d26",
+      "sha256": "03079d677b448ff50f955fe603aa60334412471f72c26d7e749883e567b75f35",
       "schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_execution_plan.v1",
       "expected_schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_execution_plan.v1",
       "schema_matches": true,
@@ -83,7 +83,7 @@
       "artifact": "mgmfrm_full_heldout_mcmc_refit_anchor_scoring",
       "path": "test/fixtures/mgmfrm_full_heldout_mcmc_refit_anchor_scoring.json",
       "exists": true,
-      "sha256": "8541a2838c833d51e60ab5f90e898b14e157e2e860347c5f2e5d285b4fbfc6ef",
+      "sha256": "aabeb2ecf2996defd6a84c6d12a28ce198a8e25fbb5b1bf9ba2b7dbc15e4ee05",
       "schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_anchor_scoring.v1",
       "expected_schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_anchor_scoring.v1",
       "schema_matches": true,
@@ -103,7 +103,7 @@
       "artifact": "mgmfrm_validation_split_model_comparison_policy",
       "path": "test/fixtures/mgmfrm_validation_split_model_comparison_policy.json",
       "exists": true,
-      "sha256": "5947220873a62ab62b7b73e94dbb15b18553fe04043961c3e4b03df3293ecbee",
+      "sha256": "55e99bf73afb684db9280c90c1f0633103007d573ce53bf73bb6460fef43cbca",
       "schema": "bayesianmgmfrm.mgmfrm_validation_split_model_comparison_policy.v1",
       "expected_schema": "bayesianmgmfrm.mgmfrm_validation_split_model_comparison_policy.v1",
       "schema_matches": true,
@@ -122,7 +122,7 @@
       "artifact": "mgmfrm_fit_threshold_q_heldout_linkage",
       "path": "test/fixtures/mgmfrm_fit_threshold_q_heldout_linkage.json",
       "exists": true,
-      "sha256": "14b4fa61e6a5a57c17dfc9f3a9f3471f3e8aa7b9554aa812dcf2daf2efa59c89",
+      "sha256": "2fb568c85e1ed98151751d1cd85d4ab7722b59bd5234c85339aa8e47b6bac85d",
       "schema": "bayesianmgmfrm.mgmfrm_fit_threshold_q_heldout_linkage.v1",
       "expected_schema": "bayesianmgmfrm.mgmfrm_fit_threshold_q_heldout_linkage.v1",
       "schema_matches": true,

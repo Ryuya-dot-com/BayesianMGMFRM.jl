@@ -91,7 +91,9 @@ declared categories remain in the artifact. Condition A uses the same package
 likelihood kernel for generation and fitting, so this is a design-robustness
 pilot rather than an independent kernel cross-check. The small 2% smoke cell is
 recorded as underresolved and fit-ineligible. The default fixture attempts no
-MCMC and supports no recovery or anchor-rate claim. Regenerate it with:
+MCMC and supports no recovery or anchor-rate claim. The committed reference is
+generated with Julia 1.10.8 and the tracked `Manifest-v1.10.toml`; its
+`runtime_provenance` records both explicitly. Regenerate it with Julia 1.10.8:
 
 ```bash
 julia --project=. scripts/generate_existing_api_design_robustness_stress_grid.jl

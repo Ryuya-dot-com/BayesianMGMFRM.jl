@@ -9,8 +9,8 @@
   "fit_ready": false,
   "package": {
     "name": "BayesianMGMFRM",
-    "version": "0.1.1",
-    "julia_version": "1.12.5"
+    "version": "0.1.2",
+    "julia_version": "1.10.8"
   },
   "protocol": {
     "protocol_id": "scalar_gmfrm_guarded_fit_api_dry_run_v1",
@@ -58,7 +58,7 @@
       "check": "fit_preview_design_with_experimental_keyword",
       "rejected": true,
       "error_type": "MethodError",
-      "message": "MethodError: no method matching fit(::BayesianMGMFRM.FacetDesign; experimental::Bool, ndraws::Int64, warmup::Int64)\nThis method does not support all of the given keyword arguments (and may not support any).\n\nClosest candidates are:\n  fit(::BayesianMGMFRM.FacetDesign; prior, backend, ndraws, warmup, chains, step_size, init, rng, seed, target_accept, max_depth, max_energy_error, metric, ad_backend, init_jitter, progress) got unsupported keyword argument \"experimental\"\n  fit(!Matched::BayesianMGMFRM.FacetSpec; experimental, kwargs...)\n"
+      "message": "MethodError: no method matching fit(::BayesianMGMFRM.FacetDesign; experimental::Bool, ndraws::Int64, warmup::Int64)\n\nClosest candidates are:\n  fit(::BayesianMGMFRM.FacetDesign; prior, backend, ndraws, warmup, chains, step_size, init, rng, seed, target_accept, max_depth, max_energy_error, metric, ad_backend, init_jitter, progress) got unsupported keyword argument \"experimental\"\n  fit(!Matched::BayesianMGMFRM.FacetSpec; experimental, kwargs...)\n"
     }
   ],
   "artifact_contract_review": {
@@ -507,7 +507,7 @@
       "artifact": "docs/src/fitting.md#guarded-generalized-model-caveats",
       "reference_kind": "local_file",
       "exists": true,
-      "sha256": "9e16f9eb2b2c20b11f569cd75eb733993a2b6a9d0b1693a0398d0288df8f11d1"
+      "sha256": "9fe2a510cf799b2bc9aabc99823ab2f113d14d0dfef442285271b0c21093beba"
     }
   ],
   "target_dry_run": {

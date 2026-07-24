@@ -34,6 +34,7 @@ const FAMILIES = (:mfrm, :guarded_scalar_gmfrm, :guarded_fixed_q_mgmfrm)
 const BASE_SKELETON_SEED = 20260630
 const BASE_SIMULATION_SEED = 20260730
 const BASE_SAMPLER_SEED = 20260830
+const REFERENCE_JULIA_VERSION = v"1.10.8"
 const ORDER_EFFECT_SLOPE = 0.8
 const RECOVERY_GATE_SCORER_IMPLEMENTED = true
 const PREDICTIVE_GATE_SCORER_IMPLEMENTED = false
@@ -469,6 +470,8 @@ function usage()
       MCMC and any executed run with more than one replication require --allow-heavy.
       Pilot/calibration MCMC is blocked until the declared full gate scorer is
       implemented; their profiles remain available as MCMC-free design plans.
+      Writing the committed reference fixture requires Julia 1.10.8. Other
+      Julia versions remain available for semantic checks with --output.
     """
 end
 
@@ -535,6 +538,13 @@ function parse_args(args)
         heavy = profile !== :smoke || requested_replications > 1
         heavy && !allow_heavy && error(
             "executed pilot/calibration or multi-replication MCMC requires --allow-heavy",
+        )
+    end
+    if resolves_to_default_output(output) && VERSION != REFERENCE_JULIA_VERSION
+        error(
+            "the committed reference fixture requires Julia " *
+            "$(REFERENCE_JULIA_VERSION); use --output for cross-version " *
+            "semantic checks",
         )
     end
     return (;
@@ -664,6 +674,16 @@ function project_version()
     return String(project["version"])
 end
 
+function runtime_manifest_path()
+    candidates = (
+        joinpath(ROOT, "Manifest-v$(VERSION.major).$(VERSION.minor).toml"),
+        joinpath(ROOT, "Manifest-v$(VERSION.major).toml"),
+        joinpath(ROOT, "Manifest.toml"),
+    )
+    index = findfirst(isfile, candidates)
+    return index === nothing ? nothing : candidates[index]
+end
+
 file_sha256(path::AbstractString) = bytes2hex(open(sha256, path))
 
 portable_path(path::AbstractString) = replace(String(path), '\\' => '/')
@@ -688,12 +708,14 @@ function package_runtime_provenance()
         end
     end
     sort!(source_rows; by = row -> row.path)
-    manifest_path = joinpath(ROOT, "Manifest.toml")
+    manifest_path = runtime_manifest_path()
     return (;
         julia_version = string(VERSION),
         project_toml_sha256 = file_sha256(joinpath(ROOT, "Project.toml")),
-        manifest_toml_sha256 = isfile(manifest_path) ?
-            file_sha256(manifest_path) : nothing,
+        manifest_file = manifest_path === nothing ? nothing :
+            portable_path(relpath(manifest_path, ROOT)),
+        manifest_toml_sha256 = manifest_path === nothing ? nothing :
+            file_sha256(manifest_path),
         source_files = source_rows,
         source_tree_sha256 = portable_json_hash(source_rows),
         immutable_vcs_revision_verified = false,

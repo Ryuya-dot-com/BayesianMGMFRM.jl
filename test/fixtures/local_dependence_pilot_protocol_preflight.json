@@ -5,24 +5,24 @@
   "status": "pilot_protocol_preflight_passed",
   "package": {
     "name": "BayesianMGMFRM",
-    "version": "0.1.1"
+    "version": "0.1.2"
   },
   "generator": {
     "script": "scripts/generate_local_dependence_pilot_protocol_preflight.jl",
-    "script_source_sha256": "60190de5507205737b4a327551c5c45672404f85ff959421cc08621de7687885",
+    "script_source_sha256": "a4b7d193a62825e676cf55a495b1516d07f5bcd2cf39edab121ec9392817740e",
     "pilot_source": "src/local_dependence_calibration_pilot.jl",
     "pilot_source_sha256": "b7a1a66cdca057ab1a4915093d3039081bad20f0f354804653346a8921fbf6bf",
     "diagnostic_source": "src/bayesian_fit.jl",
-    "diagnostic_source_sha256": "c2f81cf99139ed4aaee7702ef118e73765ec7d066185cb7426faf345fa6118ea",
+    "diagnostic_source_sha256": "77cf5c4df82f6fefb8d42f948a8fc081c22d0621898b08a6bb31574d9a9fe6d6",
     "calibration_source": "src/local_dependence_calibration.jl",
     "calibration_source_sha256": "d50e1dc0ead880ce5a450008c05998f034f45a15f87fbb295ff464690eecfac5",
     "simulation_source": "src/local_dependence_simulation.jl",
     "simulation_source_sha256": "006cb3d2514eacdf9606db303c80460efa095772691772f63defbe11fd362ae8",
     "environment_provenance": {
       "project": "Project.toml",
-      "project_sha256": "97191682f911e36a38546395f00258ae23c11a8c45ba8851d0cb0832864cb51e",
-      "manifest": "Manifest.toml",
-      "manifest_sha256": "a5dfcaa707528bed6a2c5519b9430d88f37a94ca8676cbe26b04b4046ad62c18",
+      "project_sha256": "98f8d27a13e621f8f341abc84ab4cfae565b9cfecef83b24f6e8331fc320f247",
+      "manifest": "Manifest-v1.10.toml",
+      "manifest_sha256": "b57f6381e5c8ac151359b3f6d6f62f98377248c8ff9a9abc624a4ecb64c85d47",
       "julia_compat": "1.10.8",
       "exact_runtime_version_recorded": false,
       "cross_julia_bitwise_portability_claimed": false
@@ -33,10 +33,10 @@
       "artifact": "local_dependence_known_truth_preflight",
       "path": "test/fixtures/local_dependence_known_truth_preflight.json",
       "expected_schema": "bayesianmgmfrm.local_dependence_known_truth_preflight.v1",
-      "file_sha256": "77acb372781c9d907ad5cfba6d1f40d01e0cda798355728e7cb63e4b2d282efc",
+      "file_sha256": "4dfadee6f8837fd9714f374d00dac582ebda41ed7dca8b5bd9d9ad9592a8d4d1",
       "content_hash": {
         "algorithm": "sha256",
-        "value": "0fe7256783a9a222e0c48be3d35559bc7f969e483d7474163a1e9fc73c8a2e9d",
+        "value": "cad08fb44d83e27ab699f68234cfa0b8f96a4bb4dd6f5b02ce28e097e60f91cc",
         "verified": true,
         "canonical_format": "local_json_sorted_compact"
       }
@@ -45,10 +45,10 @@
       "artifact": "local_dependence_calibration_scorer_preflight",
       "path": "test/fixtures/local_dependence_calibration_scorer_preflight.json",
       "expected_schema": "bayesianmgmfrm.local_dependence_calibration_scorer_preflight.v1",
-      "file_sha256": "501af5ffbfe59ec875b4f65469b2a5b649f4cd8ce81b28eaf23af75b4f89f073",
+      "file_sha256": "a9f4eca686658f2d07ad2025732eb0d657d44e0189befcb9b78dfc2530c37a51",
       "content_hash": {
         "algorithm": "sha256",
-        "value": "b9925f38397931885982dc914312087ed31361cd2f8800748268359c65f886da",
+        "value": "e753c9d66d471736c3395550ed87a9b6ce7cbb9d1e8ed587e0c3bc2d66c4bc4d",
         "verified": true,
         "canonical_format": "local_json_sorted_compact"
       }
@@ -16700,7 +16700,7 @@
   },
   "content_hash": {
     "algorithm": "sha256",
-    "value": "7fdf3785b7628fd0fda0a6ebb03369602c54c4cbea922b415e3101eeb0d55f8c",
+    "value": "fde4264860c371aac3aee7103a7805d31cb8f9f031f1df5eeb7d1209f6914618",
     "covers": "artifact_without_content_hash",
     "canonical_format": "local_json_sorted_compact"
   }

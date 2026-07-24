@@ -32,6 +32,7 @@ const LD1B1_JOB_RESULT_SCHEMA =
     "bayesianmgmfrm.local_dependence_pilot_job_result.v2"
 const LD1B1_EVIDENCE_SCHEMA =
     "bayesianmgmfrm.local_dependence_pilot_job_evidence.v2"
+const LD1B1_CANONICAL_MANIFEST = "Manifest-v1.10.toml"
 const LD1B1_EXPECTED_JOBS = 660
 const LD1B1_EXPECTED_FIT_JOBS = 540
 const LD1B1_EXPECTED_REJECTION_JOBS = 120
@@ -653,16 +654,24 @@ function ld1b1_source_identity(protocol)
 
     environment = generator[:environment_provenance]
     project_path = joinpath(LD1B1_ROOT, "Project.toml")
-    manifest_path = joinpath(LD1B1_ROOT, "Manifest.toml")
+    manifest_toml = ld1b1_string(environment[:manifest])
+    manifest_toml == basename(manifest_toml) ||
+        error("protocol manifest identity must be a repository-root basename")
+    manifest_toml == LD1B1_CANONICAL_MANIFEST || error(
+        "protocol manifest identity must use $(LD1B1_CANONICAL_MANIFEST)")
+    manifest_path = joinpath(LD1B1_ROOT, manifest_toml)
+    isfile(manifest_path) ||
+        error("protocol manifest identity is missing: $manifest_toml")
     project_sha = ld1b1_file_sha256(project_path)
     manifest_sha = ld1b1_file_sha256(manifest_path)
     project_sha == ld1b1_string(environment[:project_sha256]) ||
         error("Project.toml differs from the protocol-preflight identity")
     manifest_sha == ld1b1_string(environment[:manifest_sha256]) ||
-        error("Manifest.toml differs from the protocol-preflight identity")
+        error("$manifest_toml differs from the protocol-preflight identity")
     return (;
         source_rows,
         project_toml_sha256 = project_sha,
+        manifest_toml,
         manifest_toml_sha256 = manifest_sha,
         all_sources_match = true,
         environment_matches = true,
@@ -852,6 +861,7 @@ function ld1b1_checked_protocol(path::AbstractString;
         ordered_job_rows_sha256,
         pilot_contract_sha256,
         project_toml_sha256 = source_identity.project_toml_sha256,
+        manifest_toml = source_identity.manifest_toml,
         manifest_toml_sha256 = source_identity.manifest_toml_sha256,
         source_rows = source_identity.source_rows,
     )

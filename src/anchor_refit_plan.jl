@@ -1,4 +1,4 @@
-# anchor_refit_plan.jl -- preflight contract for future anchor-constrained refits.
+# anchor_refit_plan.jl -- declaration checks for anchor-constrained refits.
 
 _anchor_refit_spec(spec::FacetSpec) = spec
 _anchor_refit_spec(design::FacetDesign) = design.spec
@@ -379,9 +379,9 @@ end
 """
     anchor_refit_plan(spec_or_design; require_provenance = true)
 
-Return a machine-readable preflight plan for anchor-constrained re-estimation.
-The first implementation target is deliberately narrow: explicit individual
-hard anchors on rater severity or item difficulty in the minimal Bayesian
+Return machine-readable declaration validation for anchor-constrained
+re-estimation. The accepted declaration scope is deliberately narrow: explicit
+individual hard anchors on rater severity or item difficulty in the minimal Bayesian
 MFRM/RSM/PCM family. Each candidate anchor is checked for a finite value, an
 observed level, duplicate or conflicting declarations, and typed source,
 version, model, estimator, SHA-256, source-scale, and sign provenance. Boolean
@@ -398,19 +398,13 @@ verified by this preflight.
 
 An explicit hard anchor must not also declare `scale`, `sd`, or `prior_scale`.
 A soft anchor on the current first-level-zero rater/item reference is rejected
-because its prior would be constant under that gauge; a future implementation
-must reparameterize the reference or transform the source anchor to an
-identified contrast.
-
-The planned hard-anchor implementation replaces the current reference gauge
-with an affine direct-parameter map, removes fixed coordinates from the sampled
-vector, and restores fixed values in posterior reports. It must not add a
-zero-variance prior or silently stack anchors on top of the existing reference
-constraint. Soft anchors remain a later, sensitivity-tested prior feature.
+because its prior would be constant under that gauge; an anchor-aware estimator
+must reparameterize the reference or transform the source anchor to an identified
+contrast.
 
 This function performs no fit and does not change `FacetSpec.estimation_status`.
-It records whether a declaration is ready for the future numerical hard-anchor
-slice and the comparison gates an anchored refit must pass.
+It validates declarations and records the identification constraints that a
+separate anchor-aware estimator must satisfy.
 """
 function anchor_refit_plan(spec_or_design; require_provenance::Bool = true)
     spec = _anchor_refit_spec(spec_or_design)
@@ -436,8 +430,8 @@ function anchor_refit_plan(spec_or_design; require_provenance::Bool = true)
         dimensions = spec.dimensions,
         discrimination = spec.discrimination,
         estimation_status = spec.estimation_status,
-        current_implementation = :declaration_and_diagnostics_only,
-        numerical_refit_implemented = false,
+        capability = :declaration_validation_only,
+        executes_refit = false,
         require_provenance,
         n_anchors = length(rows),
         n_hard_anchors = n_hard,
@@ -462,20 +456,20 @@ function anchor_refit_plan(spec_or_design; require_provenance::Bool = true)
             source_bytes_verified = false,
             provenance_complete_semantics =
                 :required_fields_present_and_field_contract_valid,
-            split_original_and_destination_fields = :future_schema,
         ),
         hard_anchor_contract = (;
-            first_slice = :individual_rater_and_item_hard_anchors,
+            accepted_blocks = (:rater, :item),
+            accepted_type = :hard_anchor,
             coordinate_strategy = :affine_direct_parameter_map,
             identification_policy = :replace_reference_gauge_not_stack_constraints,
             prior_scale_declaration_allowed = false,
-            fixed_coordinates_sampled = false,
-            full_direct_draws_restored_for_reports = true,
+            fixed_coordinates_must_not_be_sampled = true,
+            full_direct_draw_restoration_required = true,
             exact_fixed_value_check_required = true,
             rank_and_overconstraint_check_required = true,
         ),
         soft_anchor_contract = (;
-            status = :deferred,
+            accepted = false,
             strategy = :proper_normal_prior_on_identified_direct_parameter,
             structural_gauge_retained = true,
             prior_scale_required = true,
@@ -484,19 +478,11 @@ function anchor_refit_plan(spec_or_design; require_provenance::Bool = true)
             current_reference_level_policy =
                 :reject_until_reparameterized_or_source_contrast_transformed,
         ),
-        comparison_gates = (
+        estimator_requirements = (
             :constraint_rank_and_exactness,
-            :sampler_quality,
-            :nonanchor_parameter_recovery,
-            :posterior_shift_against_unanchored_fit,
-            :heldout_predictive_performance,
-            :posterior_predictive_category_replication,
-            :rater_linking_connectivity,
-            :predeclared_anchor_sensitivity,
+            :remove_fixed_coordinates_from_sampled_vector,
+            :restore_fixed_values_in_reports,
+            :do_not_stack_with_reference_constraint,
         ),
-        caveat = :plan_only_does_not_execute_anchor_constrained_refit,
-        next_gate = candidate_supported ?
-            :implement_minimal_mfrm_hard_anchor_affine_map :
-            :resolve_anchor_refit_preflight,
     )
 end

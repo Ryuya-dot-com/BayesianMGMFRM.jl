@@ -28,9 +28,6 @@ end
     @test contract.schema == "bayesianmgmfrm.experimental_surface.v1"
     @test contract.stability === :experimental
     @test contract.legacy_status === :compatibility_only
-    @test !contract.automatic_promotion
-    @test :reproducibility_archive in contract.stable_public_gates
-    @test :external_construct_evidence in contract.external_validated_gates
     @test contract.entrypoint == "BayesianMGMFRM.Experimental.fit(spec)"
     @test contract.legacy_entrypoint ==
         "BayesianMGMFRM.fit(spec; experimental = true)"
@@ -48,13 +45,12 @@ end
         generalized_surfaces)
     gmfrm_contract = experimental.surface_contract(:gmfrm)
     mgmfrm_contract = experimental.surface_contract(:mgmfrm)
-    @test gmfrm_contract.scope === :scalar_gmfrm_guarded_experimental
+    @test gmfrm_contract.scope === :scalar_rater_consistency_gmfrm
     @test gmfrm_contract.minimum_dimensions == 1
     @test gmfrm_contract.maximum_dimensions == 1
     @test gmfrm_contract.discrimination == (:rater,)
     @test !gmfrm_contract.fixed_q_required
-    @test mgmfrm_contract.scope ===
-        :fixed_q_confirmatory_mgmfrm_guarded_experimental
+    @test mgmfrm_contract.scope === :fixed_q_confirmatory_mgmfrm
     @test mgmfrm_contract.minimum_dimensions == 2
     @test mgmfrm_contract.maximum_dimensions === nothing
     @test mgmfrm_contract.discrimination == (:none,)
@@ -80,6 +76,17 @@ end
         q_matrix = Bool[1 0; 0 1],
     )
 
+    for spec in (gmfrm_spec, mgmfrm_spec)
+        equation = model_equation(spec)
+        @test !equation.fit_ready
+        @test equation.experimental_fit_available
+        @test equation.experimental_fit_entrypoint ==
+            "BayesianMGMFRM.Experimental.fit(spec)"
+        @test equation.implementation_gap_scope ===
+            :stable_compiler_and_broader_scope
+        @test !isempty(equation.implementation_gaps)
+    end
+
     gmfrm_design = experimental.preview(gmfrm_spec)
     mgmfrm_design = experimental.preview(mgmfrm_spec)
     @test gmfrm_design.spec === gmfrm_spec
@@ -89,6 +96,152 @@ end
         gmfrm_spec;
         experimental = true,
     )
+
+    forbidden_layout_fields = (
+        :scope,
+        :compiler_stage,
+        :status,
+        :internal,
+        :public_fit,
+        :experimental_public,
+        :fit_ready,
+    )
+    stable_layout_full = fit_ready_parameter_layout(stable_spec)
+    @test isequal(stable_layout_full,
+        fit_ready_parameter_layout(stable_spec; view = :full))
+    stable_layout_public = fit_ready_parameter_layout(stable_spec; view = :public)
+    gmfrm_layout_public = fit_ready_parameter_layout(
+        gmfrm_spec;
+        preview = true,
+        view = :public,
+    )
+    mgmfrm_layout_public = fit_ready_parameter_layout(
+        mgmfrm_design;
+        view = :public,
+    )
+    @test isequal(fit_ready_parameter_layout(gmfrm_spec; preview = true),
+        fit_ready_parameter_layout(gmfrm_spec; preview = true, view = :full))
+    @test stable_layout_public.stability === :stable
+    @test stable_layout_public.fit_available
+    @test stable_layout_public.entrypoint == "BayesianMGMFRM.fit(spec)"
+    @test stable_layout_public.claim_scope === :minimal_mfrm_rsm_pcm
+    for layout in (gmfrm_layout_public, mgmfrm_layout_public)
+        @test layout.stability === :experimental
+        @test layout.fit_available
+        @test layout.entrypoint == contract.entrypoint
+        @test all(field -> !haskey(layout, field), forbidden_layout_fields)
+        @test all(row -> !haskey(row, :status), layout.transforms)
+        @test all(row -> !haskey(row, :status), layout.constraints)
+        @test all(row -> !haskey(row, :status) &&
+            !haskey(row, :estimation_status),
+            layout.identification_declarations)
+    end
+    @test gmfrm_layout_public.claim_scope === :scalar_rater_consistency_only
+    @test mgmfrm_layout_public.claim_scope === :fixed_q_confirmatory_only
+    @test gmfrm_layout_public.raw_parameter_names ==
+        fit_ready_parameter_layout(gmfrm_spec; preview = true).raw_parameter_names
+    @test mgmfrm_layout_public.constrained_parameter_names ==
+        fit_ready_parameter_layout(mgmfrm_design).constrained_parameter_names
+
+    stable_domain_full = domain_compilation_summary(stable_spec)
+    @test isequal(stable_domain_full,
+        domain_compilation_summary(stable_spec; view = :full))
+    stable_domain_public = domain_compilation_summary(stable_spec; view = :public)
+    gmfrm_domain_public = domain_compilation_summary(
+        gmfrm_design;
+        view = :public,
+    )
+    mgmfrm_domain_public = domain_compilation_summary(
+        mgmfrm_spec;
+        preview = true,
+        view = :public,
+    )
+    @test isequal(domain_compilation_summary(gmfrm_spec; preview = true),
+        domain_compilation_summary(gmfrm_spec; preview = true, view = :full))
+    @test all(row -> row.stability === :stable && row.fit_available &&
+        row.entrypoint == "BayesianMGMFRM.fit(spec)", stable_domain_public)
+    for rows in (gmfrm_domain_public, mgmfrm_domain_public)
+        @test all(row -> row.stability === :experimental &&
+            row.fit_available && row.entrypoint == contract.entrypoint, rows)
+        @test all(row -> all(field -> !haskey(row, field),
+            forbidden_layout_fields), rows)
+    end
+    @test any(row -> row.raw_block === :log_item_discrimination_free &&
+        row.constrained_block === :item_discrimination,
+        gmfrm_domain_public)
+    @test any(row -> row.compiled_role === :loading_mask &&
+        row.loading_mask == Bool[1 0; 0 1], mgmfrm_domain_public)
+
+    private_anchor_path = "/Users/example/private-anchor.json"
+    anchored_spec = mfrm_spec(
+        data;
+        thresholds = :partial_credit,
+        anchors = [(;
+            block = :rater,
+            level = "R2",
+            value = 0.25,
+            type = :hard,
+            source = :facets,
+            source_hash = repeat("0123456789abcdef", 4),
+            repository_path = private_anchor_path,
+            source_path = "/Users/example/private-source.json",
+            file_path = "/Users/example/private-file.json",
+        )],
+    )
+    public_anchor_domain = domain_compilation_summary(
+        anchored_spec;
+        preview = true,
+        view = :public,
+    )
+    anchor_row = only(filter(row -> row.domain_option === :anchors,
+        public_anchor_domain))
+    @test anchor_row.option_value.source === :facets
+    @test haskey(anchor_row.option_value, :source_hash)
+    @test !haskey(anchor_row.option_value, :repository_path)
+    @test !haskey(anchor_row.option_value, :source_path)
+    @test !haskey(anchor_row.option_value, :file_path)
+    @test !occursin(private_anchor_path, sprint(show, public_anchor_domain))
+
+    @test isequal(model_ladder(), model_ladder(view = :full))
+    public_ladder = model_ladder(view = :public)
+    @test count(row -> row.stability === :experimental && row.fit_available,
+        public_ladder) == 2
+    @test all(row -> all(field -> !haskey(row, field),
+        (:scope, :estimation_status, :public_fit, :experimental_public)),
+        public_ladder)
+    public_linking = anchor_linking_summary(anchored_spec; view = :public)
+    @test public_linking.schema ==
+        "bayesianmgmfrm.anchor_linking_summary_public.v1"
+    @test !haskey(public_linking, :estimation_status)
+    @test !haskey(public_linking, :next_gate)
+    @test !haskey(public_linking, :anchor_sensitivity_summary)
+    public_rating_audit = rating_design_audit(anchored_spec; view = :public)
+    @test public_rating_audit.schema ==
+        "bayesianmgmfrm.rating_design_audit_public.v1"
+    @test !haskey(public_rating_audit, :estimation_status)
+    @test public_rating_audit.anchor_linking.schema ==
+        "bayesianmgmfrm.anchor_linking_summary_public.v1"
+    @test !occursin(private_anchor_path, sprint(show, public_rating_audit))
+    @test model_manifest(anchored_spec; view = :public).rating_design.schema ==
+        "bayesianmgmfrm.rating_design_audit_public.v1"
+
+    @test isequal(related_software_capability_matrix(),
+        related_software_capability_matrix(view = :full))
+    public_software = related_software_capability_matrix(view = :public)
+    @test public_software.stability === :stable
+    @test all(source -> !startswith(source.url, "local://"),
+        public_software.sources)
+    @test all(row -> all(url -> !startswith(url, "local://"),
+        row.source_urls), public_software.rows)
+    @test all(row -> !haskey(row, :comparison_gate) &&
+        !haskey(row, :v0_1_1_position), public_software.rows)
+
+    @test_throws ArgumentError fit_ready_parameter_layout(stable_spec; view = :bad)
+    @test_throws ArgumentError domain_compilation_summary(stable_spec; view = :bad)
+    @test_throws ArgumentError model_ladder(view = :bad)
+    @test_throws ArgumentError anchor_linking_summary(stable_spec; view = :bad)
+    @test_throws ArgumentError rating_design_audit(stable_spec; view = :bad)
+    @test_throws ArgumentError related_software_capability_matrix(view = :bad)
 
     gmfrm_candidate =
         model_manifest(gmfrm_design).design.raw_parameterization.promotion_candidate

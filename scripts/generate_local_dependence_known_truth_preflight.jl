@@ -14,6 +14,7 @@ const DEFAULT_OUTPUT = joinpath(
 )
 const DGP_SOURCE = joinpath(ROOT, "src", "local_dependence_known_truth_dgp.jl")
 const ADAPTER_SOURCE = joinpath(ROOT, "src", "local_dependence_simulation.jl")
+const CANONICAL_MANIFEST = "Manifest-v1.10.toml"
 
 include(joinpath(@__DIR__, "local_json.jl"))
 
@@ -764,8 +765,9 @@ function build_artifact()
             environment_provenance = (;
                 project = "Project.toml",
                 project_sha256 = file_sha256(joinpath(ROOT, "Project.toml")),
-                manifest = "Manifest.toml",
-                manifest_sha256 = file_sha256(joinpath(ROOT, "Manifest.toml")),
+                manifest = CANONICAL_MANIFEST,
+                manifest_sha256 =
+                    file_sha256(joinpath(ROOT, CANONICAL_MANIFEST)),
                 julia_compat = project_julia_compat(),
                 exact_runtime_version_recorded = false,
                 cross_julia_bitwise_portability_claimed = false,

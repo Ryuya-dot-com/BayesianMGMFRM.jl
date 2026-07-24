@@ -16,8 +16,8 @@
   "sparse_mgmfrm_superiority_claim": false,
   "package": {
     "name": "BayesianMGMFRM",
-    "version": "0.1.1",
-    "julia_version": "1.12.5"
+    "version": "0.1.2",
+    "julia_version": "1.10.8"
   },
   "protocol": {
     "protocol_id": "mgmfrm_external_construct_attachment_intake_preflight_v1",
@@ -41,7 +41,7 @@
       "artifact": "mgmfrm_external_construct_dataset_and_independent_public_scope_review",
       "path": "test/fixtures/mgmfrm_external_construct_dataset_and_independent_public_scope_review.json",
       "exists": true,
-      "sha256": "7aef1f71255aeb55b2e9af45f4ce7a61cb410f94791d85db054b7c3cbe5627c0",
+      "sha256": "de6a4a99e9db387ace7c14eaa54ce1028e776ff66e7801012c283e8c92f210a2",
       "expected_schema": "bayesianmgmfrm.mgmfrm_external_construct_dataset_and_independent_public_scope_review.v1",
       "schema": "bayesianmgmfrm.mgmfrm_external_construct_dataset_and_independent_public_scope_review.v1",
       "schema_matches": true,

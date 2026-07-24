@@ -853,8 +853,10 @@ end
     @test !Bool(provenance[:cross_julia_bitwise_portability_claimed])
     @test String(provenance[:project_sha256]) ==
         bytes2hex(open(sha256, joinpath(root, "Project.toml")))
+    @test String(provenance[:manifest]) == "Manifest-v1.10.toml"
     @test String(provenance[:manifest_sha256]) ==
-        bytes2hex(open(sha256, joinpath(root, "Manifest.toml")))
+        bytes2hex(open(sha256,
+            joinpath(root, String(provenance[:manifest]))))
     for (field, relative_path) in (
             (:script_source_sha256,
                 "scripts/generate_local_dependence_known_truth_preflight.jl"),

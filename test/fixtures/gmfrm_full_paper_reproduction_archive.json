@@ -11,8 +11,8 @@
   "publication_or_registration_action": false,
   "package": {
     "name": "BayesianMGMFRM",
-    "version": "0.1.1",
-    "julia_version": "1.12.5"
+    "version": "0.1.2",
+    "julia_version": "1.10.8"
   },
   "protocol": {
     "protocol_id": "gmfrm_full_paper_reproduction_archive_v1",
@@ -336,7 +336,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "77acb372781c9d907ad5cfba6d1f40d01e0cda798355728e7cb63e4b2d282efc",
+      "sha256": "4dfadee6f8837fd9714f374d00dac582ebda41ed7dca8b5bd9d9ad9592a8d4d1",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.local_dependence_known_truth_preflight.v1",
@@ -356,7 +356,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "501af5ffbfe59ec875b4f65469b2a5b649f4cd8ce81b28eaf23af75b4f89f073",
+      "sha256": "a9f4eca686658f2d07ad2025732eb0d657d44e0189befcb9b78dfc2530c37a51",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.local_dependence_calibration_scorer_preflight.v1",
@@ -376,7 +376,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "99683d0c02c2f67842ef26b6c51d2ea647a907fed682c80a4913e15ab42021f0",
+      "sha256": "7932d55033599c2fdc2f5894a6546c7d6bf5873bd7920e10927a08206d35baa3",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.local_dependence_pilot_protocol_preflight.v1",
@@ -396,7 +396,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "327b218f05375c0f1294d47cc41d139db705358ad625da0e281b41e15d5c79c8",
+      "sha256": "c46ed1f1134258cd8254d5f2427683f9ee1fe11f2a22bd3fec73a83effcb3d99",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.local_dependence_pilot_batch_execution_harness.v2",
@@ -416,7 +416,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "c88af0c86aaf383a1bf8216a39795d0d70c8d151a6ad3e65bfd07ccf8b5e3995",
+      "sha256": "99804e2795d2c81285936c3a23a3c3b1e4d8debce642f5f1207b6d9b67f8f975",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.gmfrm_guarded_fit_api_dry_run.v1",
@@ -556,7 +556,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "888c2727d762eb255efa637502034b640e9d3406755a0bee46f1534b7ce6707f",
+      "sha256": "4c838b752e31cb9b5533f75dde963222ce14f23c025b99c059f7df594f3bce81",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
@@ -1016,7 +1016,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "6c21642fea8aad86a5f0ad742937fe3473a1f0ce60d2376a80313f7e34030799",
+      "sha256": "a3646c5d5998c5affe76ecd3cd314796df6c39b7bd8c1942184eb15089b727d0",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_heldout_prediction_validation_policy.v1",
@@ -1036,7 +1036,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "5947220873a62ab62b7b73e94dbb15b18553fe04043961c3e4b03df3293ecbee",
+      "sha256": "55e99bf73afb684db9280c90c1f0633103007d573ce53bf73bb6460fef43cbca",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_validation_split_model_comparison_policy.v1",
@@ -1056,7 +1056,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "6c8f894fb7fce019c63d198cd2e8057611cd0d449d5c06b98b86dcdd4cd69f70",
+      "sha256": "b234f605f8f86853336b57f8f5b8f4d2ef8984e7493efef40a4abef8750ff477",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_heldout_prediction_simulation_grid.v1",
@@ -1076,7 +1076,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "15f3537ce84a1fb0e3d5d01444226ce66b1ebecfa8cc4c0591c29c5089e7cf1b",
+      "sha256": "1b8db56866456ee5baabeb2334827c5f96cff46260a51c15f88951aed6e7eb4d",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_heldout_prediction_execution.v1",
@@ -1096,7 +1096,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "8ad6c45e35196ed21494aadf3d37bd60467c62954d8911d6b1ad9c52885c7de3",
+      "sha256": "844eb0d37edc1e39d96c816fc6417a2f2f51f9f038b1348a3f32fd9a15ac5595",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_full_heldout_refit_or_construct_validation_review.v1",
@@ -1116,7 +1116,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "aaa37b2e78b4f3173f80da4764d4b03c0e7544678a6eb2059306fc4d9f618d26",
+      "sha256": "03079d677b448ff50f955fe603aa60334412471f72c26d7e749883e567b75f35",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_execution_plan.v1",
@@ -1136,7 +1136,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "6acbd009c3490defeb4a03e379377450117707104dfc73d631ee2a9a3735382c",
+      "sha256": "aeba9a9efda22b427bed12ea5ae82f1219276380fd5e8cedc5ab73f47a3e6ea2",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_batch_smoke.v1",
@@ -1156,7 +1156,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "836b91ad91648a1f23fc0b74cbca0233f6a77e8aa4d554e880fdf33a6c1e7b65",
+      "sha256": "0d404fb66933b767c06c21c7d0c7ccfe11a9bd1660f7efe37f5890901ea5d4f6",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_fold1_pilot.v1",
@@ -1176,7 +1176,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "7c46e14462c8b13be80952edf417f7ea456e64f7945d5396ad6bf73a31e61cc6",
+      "sha256": "1b53068c3c00c58a8a30207014fa5dcc33534cf9e247e6d5d3f1d11ec7fa1268",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_fold1_scoring.v1",
@@ -1196,7 +1196,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "47e6fac56ceddd5da6833124421e905e4efdcf006e6c05e8cbf5ed2cccd54ea7",
+      "sha256": "fd26b2a766eb5cdb81e0976e84698d20fefb9c79cd9d9acf7ec6a72270c62350",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring.v1",
@@ -1216,7 +1216,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "8541a2838c833d51e60ab5f90e898b14e157e2e860347c5f2e5d285b4fbfc6ef",
+      "sha256": "aabeb2ecf2996defd6a84c6d12a28ce198a8e25fbb5b1bf9ba2b7dbc15e4ee05",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_full_heldout_mcmc_refit_anchor_scoring.v1",
@@ -1236,7 +1236,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "d937a0920261d1db447716bc74428280a413867d71549adc85bef8eb3d753679",
+      "sha256": "55ba9c0f8e68c246c27f2db9024883484aa8a8467fa1d635d41a5df1efeebf54",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_gate.v1",
@@ -1256,7 +1256,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "39870d77a77375fba41a9429f5f84f7a90ebde6e60b9b495b6d7138f439b3bc9",
+      "sha256": "968bcfa30731946b367f747ea91ac284b3d54edd5158854933e143a1c7a0f69c",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_pilot_plan.v1",
@@ -1276,7 +1276,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "14b4fa61e6a5a57c17dfc9f3a9f3471f3e8aa7b9554aa812dcf2daf2efa59c89",
+      "sha256": "2fb568c85e1ed98151751d1cd85d4ab7722b59bd5234c85339aa8e47b6bac85d",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_fit_threshold_q_heldout_linkage.v1",
@@ -1296,7 +1296,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "a4bd74ea31c52c016f10dbfae7e7ed107dbe4995a138b7d9ba99659e34c40455",
+      "sha256": "54c6dc85bb45b75bc5cc9c92c76a7d42e8aa8ff1d4588f584e5451301258bb5b",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_pilot_execution_harness.v1",
@@ -1316,7 +1316,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "dec4cb9d0b0660f54d6e910f735f452650ea1c1caf2e10bfbd0e51fa720faab7",
+      "sha256": "a75551851027307812039d3dbd33815e9b96951837cbfdd1e37dcdda3cd288b5",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_pilot_results_review.v1",
@@ -1336,7 +1336,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "4ea336db8e2055c004449bfba60f69a764672fee1ece8829127b0aeb1924315e",
+      "sha256": "e9a4ac950455205795e731c44b1a28658485b105575356e2727504b0238e843a",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_sampler_remediation_review.v1",
@@ -1356,7 +1356,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "0606fb174916df6eeacb68bad4f56d1d5bc34a4eb91b60076748407a0f88513a",
+      "sha256": "7e6378eadba04f883d0f92969531305ba3500f674633ffa7608c147f600e382a",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_scalar_remediation_comparison.v1",
@@ -1376,7 +1376,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "0278c7ae33d1fc040a6acd52f5550b2e3076f5b68145caef6ccde5b5f2481bd2",
+      "sha256": "a0dd362a136742118a42b8dfe1c6c690504b5c38351ed7a3aae4a99edba14c58",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_batch_expansion_plan.v1",
@@ -1396,7 +1396,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "c81d7f1e9a377cd6672d2c11650e1aced7b55cff0129de05a0d88acd25b8e4ea",
+      "sha256": "31c1155566e00c57b3b1df20807ca06ff0cceaff45d72ab9527fdb7798c6b4f2",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_batch_smoke_execution_review.v1",
@@ -1416,7 +1416,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "1316b62afd7ee74ecec49d8aa7c724fc1158a24142e97764a010f158158246cf",
+      "sha256": "79397b7ee0998d43ba99b7bf40a8411e354820a86061b2ee4508fec536bebd07",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_well_specified_scenario_execution_review.v1",
@@ -1436,7 +1436,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "9f600b625bda284cf4e205d6eaa58209d3843a87370f7c33919e15f3ee709195",
+      "sha256": "54e8fd51f2181da4bbf565f4b2b844d545ef8e8eb7ae385e4a5c208d0c952568",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_batch_results_review.v1",
@@ -1456,7 +1456,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "31db0dac332a28d2d502d5a65f061a390a65daefb617e790f0f84c00e4acf4ef",
+      "sha256": "aadfe7c7ab8d9504c3625d985ab7007eb227d6f9711fc32ef6575253a3942b69",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_threshold_model_weight_policy_review.v1",
@@ -1476,7 +1476,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "7aef1f71255aeb55b2e9af45f4ce7a61cb410f94791d85db054b7c3cbe5627c0",
+      "sha256": "de6a4a99e9db387ace7c14eaa54ce1028e776ff66e7801012c283e8c92f210a2",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_external_construct_dataset_and_independent_public_scope_review.v1",
@@ -1496,7 +1496,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "c2e311f26bf290c5cc77c54a72879eeaa89a92b79372f196bae99efbac7ab9d6",
+      "sha256": "bf12448db04a24d84cd5ce4907246f5db14a55c4a9413a84b3b337226584b09b",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_external_construct_attachment_intake_preflight.v1",
@@ -1516,7 +1516,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "d7e6c6673dc157f163ec20d8c4225acea8c2ce26aab4a5ae30b24165ccee71da",
+      "sha256": "9f2b1c378edf01595de9e09395fcf0a8cc7c9222acd66aabb49c92461e73c584",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_external_construct_attachment_request_packet.v1",
@@ -1596,7 +1596,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "bd21d5176c28ffd168610dda613d7fbf1de018da1469ae4e58df5334cb9710e6",
+      "sha256": "1a963028aa73009cd7ea8a8279c95e1bea6bc0d7437bec4cc3ab9012da23839c",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_guarded_fit_public_exposure_review.v1",
@@ -1616,7 +1616,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "d80e38d94fdbab12cd42082c4486894aa425c3936306e33c4878183744e145a2",
+      "sha256": "cf8406719aad612f740244cacd1b099479ecd44836b25ecd436762fab491ecaa",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.gmfrm_prediction_target_and_model_weight_policy.v1",
@@ -1636,7 +1636,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "680ed94babfba6583efdc1df768683242b31ce01e3fbd957c9ee5f10d6f834cc",
+      "sha256": "75319e5636120d5d2df8e13d05cce700466dc1d40293c29507e62a33e486037c",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_manual_public_scope_review_for_fit.v1",
@@ -1654,50 +1654,50 @@
     {
       "path": ".github/workflows/CI.yml",
       "exists": true,
-      "sha256": "677127b6733f1fec688ace4952171b66ff49d7e8197721ee883c03f64ef3af37",
+      "sha256": "01ed26ad17911c531b10db9c1636e5aab700a498c6b7eb719331f42e70910de3",
       "line_count": 99
     },
     {
       "path": "Project.toml",
       "exists": true,
-      "sha256": "97191682f911e36a38546395f00258ae23c11a8c45ba8851d0cb0832864cb51e",
+      "sha256": "98f8d27a13e621f8f341abc84ab4cfae565b9cfecef83b24f6e8331fc320f247",
       "line_count": 48
     },
     {
       "path": "README.md",
       "exists": true,
-      "sha256": "9655899152224778f4e373b3762a4f763eec9511e3b60914812dca08055a5bb4",
-      "line_count": 354
+      "sha256": "b96ebed02ec7d60ce2b196a4b3cb235cc2fba57d4b588fd9fd1ea9db775930ef",
+      "line_count": 294
     },
     {
       "path": "NEWS.md",
       "exists": true,
-      "sha256": "dd881e51b3bdd138d89bfe94d47f5a08f1d1d72302234a3171699b9039a98766",
-      "line_count": 472
+      "sha256": "ef5c32dfc0a125d809ec6e42185c640477cd5d64d9f0fd3fafc5639505664a26",
+      "line_count": 112
     },
     {
       "path": "ROADMAP.md",
       "exists": true,
-      "sha256": "b1c4d814d06110f45b3f1f246076a15bb26afa39bfa70ec77ad6f934eba5ff06",
-      "line_count": 2394
+      "sha256": "afe6ce47d4b0577f90c2c7684e955cf87ad79762b8cc197e02e43c5a769f4ab4",
+      "line_count": 2393
     },
     {
       "path": "src/BayesianMGMFRM.jl",
       "exists": true,
-      "sha256": "d878cc262fc727ce6db43c72322ba682627a046991a506a46ae448d8cfd625dc",
-      "line_count": 224
+      "sha256": "f76be5ac76aa89ef62c27858dd226247755a3b9ed22e9fd9390776b954cd70b2",
+      "line_count": 199
     },
     {
       "path": "src/bayesian_fit.jl",
       "exists": true,
-      "sha256": "f183f94de0767ae27d550a6585661cebb44822566483354a430e0593e46e3f66",
-      "line_count": 20005
+      "sha256": "77cf5c4df82f6fefb8d42f948a8fc081c22d0621898b08a6bb31574d9a9fe6d6",
+      "line_count": 20463
     },
     {
       "path": "src/facet_workflow.jl",
       "exists": true,
-      "sha256": "8998375e21ef6c6ef4cf52a39db48a1316857ce7ab60005ccaf4bdef90f98a1e",
-      "line_count": 8307
+      "sha256": "b669fbe67e5a1fcecb439d49531d78d42a1dd2500f50acc325d9238fa9dedaac",
+      "line_count": 8910
     },
     {
       "path": "src/model_contract.jl",
@@ -1744,8 +1744,8 @@
     {
       "path": "test/runtests.jl",
       "exists": true,
-      "sha256": "d23d8461a2d1adcc22a9508adf4229fc2c9be50e0c423a5e782ddb52a144650d",
-      "line_count": 31556
+      "sha256": "ee80ec09a3de0b7e07e60c9a2964b5b1b0054c3963b3f935d56c627432c29ccb",
+      "line_count": 32118
     },
     {
       "path": "test/model_contract.jl",
@@ -1768,8 +1768,8 @@
     {
       "path": "test/local_dependence_calibration_artifact.jl",
       "exists": true,
-      "sha256": "d975842c7f33cce17282a83e06cbd7efe14c0686568bd0bd75eeddb6da68a5a8",
-      "line_count": 156
+      "sha256": "b38c528c46e981688048529873e688f7eeea6d805b268b86e27092d9f690b417",
+      "line_count": 161
     },
     {
       "path": "test/local_dependence_calibration.jl",
@@ -1792,20 +1792,20 @@
     {
       "path": "test/local_dependence_pilot_protocol_artifact.jl",
       "exists": true,
-      "sha256": "ac7464679a7c5269c3839e244c5da75ab05e5a85d8c05354fa0c2d3f916b38ba",
-      "line_count": 518
+      "sha256": "e15481b4cbaed0c7db59af6aa17f0e4c9a865b83c96573ded044b0bc47f1eb6e",
+      "line_count": 523
     },
     {
       "path": "test/local_dependence_pilot_batch_execution_harness.jl",
       "exists": true,
-      "sha256": "88ac6852efc9a22b9c969c44fb8318cb0fcd942500d3f716a1f8fa83a1f3984a",
-      "line_count": 2292
+      "sha256": "06fd671fc84280fe6b0e5165f7039bc27caed352465f61e8efc5e97fdd58f84c",
+      "line_count": 2245
     },
     {
       "path": "test/local_dependence_simulation.jl",
       "exists": true,
-      "sha256": "53913c99da6ed2e3aac3bc812f4645810743eba07410b5dfc256bc9eab8b8be6",
-      "line_count": 876
+      "sha256": "ecc62e41ea5630d765a5efffd86244ebd36113c340e734c26101b1c0fdd164f9",
+      "line_count": 878
     },
     {
       "path": "test/local_dependence_summary.jl",
@@ -1852,8 +1852,8 @@
     {
       "path": "test/fixtures/README.md",
       "exists": true,
-      "sha256": "cb1fb750c2fed9f729dcfac6e1119c5e5cc306a4f2bad70f7f020e18589c72e5",
-      "line_count": 840
+      "sha256": "72e5920a48484f39e759cc2947c0cfc65dd5392165dd378c90448dca930812b2",
+      "line_count": 842
     },
     {
       "path": "docs/build.jl",
@@ -1870,7 +1870,7 @@
     {
       "path": "docs/src/index.md",
       "exists": true,
-      "sha256": "9026e4f3c6c13e6294e5dd94a5f1b473b26edada79661f82ede6c2f19e20c4f2",
+      "sha256": "c30757c3e890fa9d6055e5782d5e57f2916811294cfcaf45b7d747564cc24977",
       "line_count": 74
     },
     {
@@ -1882,8 +1882,8 @@
     {
       "path": "docs/src/api-data-design.md",
       "exists": true,
-      "sha256": "5eab375a9b8c1ffd8f30441f3bf4e8f72efd80df29bdea04a9377f989e566f1a",
-      "line_count": 47
+      "sha256": "17e8ccf86a27aaeb2fbfd4963273ac92727d9551eb15d2279d223824bfb8dbbd",
+      "line_count": 67
     },
     {
       "path": "docs/src/api-fitting-artifacts.md",
@@ -1894,8 +1894,8 @@
     {
       "path": "docs/src/api-validation-evidence.md",
       "exists": true,
-      "sha256": "e7ffdfcac2483eda75a8f290a4db8450a3dabf7785ede2a859e23dca460a45c5",
-      "line_count": 166
+      "sha256": "f8175a94cd70bfe8fa8eb6e0c90b30144125f03faf95e9e30db610c0914c5aeb",
+      "line_count": 73
     },
     {
       "path": "docs/src/api-workflow-diagnostics.md",
@@ -1906,14 +1906,14 @@
     {
       "path": "docs/src/bayesian-workflow.md",
       "exists": true,
-      "sha256": "f0322f1bce953996dbbe9ed47ea074b84d7fb98ab8129e4efc1970fa6720317d",
-      "line_count": 309
+      "sha256": "2019af22c79ff29dc5fb837d5cbd7975b4762da68c497c56e047a6b5baeec05f",
+      "line_count": 239
     },
     {
       "path": "docs/src/data-validation.md",
       "exists": true,
-      "sha256": "ee2a5de626a4ae9935fe9c949d10dfa2b6e110f659c5c57eb7bd61b5bcbc5e03",
-      "line_count": 415
+      "sha256": "16256e6df7fdf060c37e83ad2b2ddd0b3ea7764b2fd83e07e4142ce5bedfaecf",
+      "line_count": 356
     },
     {
       "path": "docs/src/examples.md",
@@ -1924,14 +1924,14 @@
     {
       "path": "docs/src/fitting.md",
       "exists": true,
-      "sha256": "9e16f9eb2b2c20b11f569cd75eb733993a2b6a9d0b1693a0398d0288df8f11d1",
-      "line_count": 132
+      "sha256": "9fe2a510cf799b2bc9aabc99823ab2f113d14d0dfef442285271b0c21093beba",
+      "line_count": 158
     },
     {
       "path": "docs/src/mgmfrm-research-roadmap.md",
       "exists": true,
-      "sha256": "36e3bd48e3528fda3f6bf2c7b63c8c1ff3515848910c3e5b36458199f3c502ff",
-      "line_count": 1706
+      "sha256": "557d51f5dec8ca9fd9e67859dcc9ee602f8e7059b273b0640b15c680c53e6743",
+      "line_count": 1663
     },
     {
       "path": "docs/src/model-equations.md",
@@ -1942,25 +1942,25 @@
     {
       "path": "docs/src/roadmap.md",
       "exists": true,
-      "sha256": "89a6a6d883dc4471a77d97b56da1ae5bc0dee2113501e0c5561fd04145de3828",
-      "line_count": 1253
+      "sha256": "00a3a453deb20624bc5de83b3fe60fc200e4308f7cbac79ee68a6b23b964dd9c",
+      "line_count": 1252
     },
     {
       "path": "docs/src/scope.md",
       "exists": true,
-      "sha256": "844b4c23cc55352297074a2b4b1ce6d824cae0c75d694c36b2ae2ff5c38c15f1",
-      "line_count": 102
+      "sha256": "1fa9a76e8bc394426171582eab1bb462e7e8f6ed6429e49dc01b9fb6068f361a",
+      "line_count": 49
     },
     {
       "path": "examples/guarded_gmfrm.jl",
       "exists": true,
-      "sha256": "264f063ab8654ddf0db0bc352e37eff6aaea8d8c3daad52d573488c0e63d1153",
+      "sha256": "fd68f4792563f19b97c2dd5e8f69ac5fc1e28175ff833c01728b17c4b01185da",
       "line_count": 103
     },
     {
       "path": "examples/guarded_mgmfrm.jl",
       "exists": true,
-      "sha256": "4c8584440e0dc4f60d1c55c14b8696bb6b8db72ce5d570f840c610158f2b13b4",
+      "sha256": "5bba9a0be0cc32a9280eb2e2b6137c77fd2d15c9ba25a643cef9042132f5c458",
       "line_count": 106
     },
     {
@@ -1990,26 +1990,26 @@
     {
       "path": "scripts/runtime_public_language_gate.jl",
       "exists": true,
-      "sha256": "8e64abca742baf8c39eff4b0c671fae170d39b36519acbd3c084bfdff1f57dc8",
-      "line_count": 509
+      "sha256": "77bf472715b66d6a554daf85240db333b5dbb02092a1bc9f9d4f1026040dac93",
+      "line_count": 903
     },
     {
       "path": "scripts/generate_local_dependence_calibration_scorer_preflight.jl",
       "exists": true,
-      "sha256": "c21388e51250a6bc1115ba891bc6820e91eb521fecb5e1087a853df7ef960b43",
-      "line_count": 392
+      "sha256": "9bb169da87dc8a2bcb8e392d2d97f7a1bd9dc4cd90ae10def81adaee9b02939c",
+      "line_count": 393
     },
     {
       "path": "scripts/generate_local_dependence_known_truth_preflight.jl",
       "exists": true,
-      "sha256": "fd61577467d8ab841047c62ba343cd3e307c2ba8bb6dc3efd137f2ef189bf377",
-      "line_count": 852
+      "sha256": "6625b76f10754a7059cd925e7928e3c9a237f2d27c5bf2a44b2b5ac1a6e05510",
+      "line_count": 854
     },
     {
       "path": "scripts/generate_local_dependence_pilot_protocol_preflight.jl",
       "exists": true,
-      "sha256": "60190de5507205737b4a327551c5c45672404f85ff959421cc08621de7687885",
-      "line_count": 396
+      "sha256": "a4b7d193a62825e676cf55a495b1516d07f5bcd2cf39edab121ec9392817740e",
+      "line_count": 398
     },
     {
       "path": "scripts/generate_local_dependence_pilot_batch_execution_harness.jl",
@@ -2020,8 +2020,8 @@
     {
       "path": "scripts/run_local_dependence_calibration_pilot_batch.jl",
       "exists": true,
-      "sha256": "91164218d256b9b7659e8cc3e9b6ee8b40acc508b067ff62ac66b04e59f6458d",
-      "line_count": 4157
+      "sha256": "b81811d1a6884f70cc5a776895b0420c22f02bdc423493221b42a360d075edeb",
+      "line_count": 4167
     },
     {
       "path": "scripts/generate_source_bridge_fixtures.py",
@@ -2032,7 +2032,7 @@
     {
       "path": "scripts/generate_gmfrm_full_paper_reproduction_archive.jl",
       "exists": true,
-      "sha256": "a2dc62ae6f68272fec3083e8ad706b3f69d3de74ab946a0ad24bae70bb1f995c",
+      "sha256": "98b0482fe83b67cbd612046e7eb2866a7dc175d5be1644a75e759238b904edeb",
       "line_count": 1906
     },
     {
@@ -2868,7 +2868,7 @@
     "mgmfrm_fit_allowed": true,
     "dff_model_effects_allowed": false,
     "model_weights_allowed": false,
-    "manuscript_reproducibility_claims_supported": true,
+    "manuscript_reproducibility_claims_supported": false,
     "publication_or_registration_action": false,
     "public_exposure_support": "local_full_reproduction_archive_recorded",
     "interpretation": "full_archive_recorded_without_publication_or_registration",
@@ -2957,7 +2957,7 @@
     "mgmfrm_fit_allowed": true,
     "dff_model_effects_allowed": false,
     "model_weights_allowed": false,
-    "manuscript_reproducibility_claims_supported": true,
+    "manuscript_reproducibility_claims_supported": false,
     "n_blockers": 2,
     "remaining_public_blockers": [
       "tam_direct_independent_review_pending",

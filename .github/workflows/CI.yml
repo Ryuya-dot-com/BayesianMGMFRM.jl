@@ -57,7 +57,7 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
       - name: Test the scientific payload digest contract
         run: julia --startup-file=no --project=. test/scientific_payload_digest.jl
-      - name: Test the quarantined 2D free-correlation contract and bounded diagnostic smoke
+      - name: Test the experimental 2D free-correlation contract and bounded diagnostic smoke
         env:
           BAYESIANMGMFRM_FREE_CORRELATION_SMOKE: "true"
           BAYESIANMGMFRM_FREE_CORRELATION_RECOVERY_SMOKE: "true"
@@ -80,7 +80,7 @@ jobs:
       - uses: julia-actions/cache@v2
       - name: Run release hygiene gate
         run: |
-          julia --startup-file=no scripts/pre_registration_gate.jl --skip-tests --skip-docs --expected-version=0.1.1
+          julia --startup-file=no scripts/pre_registration_gate.jl --skip-tests --skip-docs --expected-version=0.1.2
 
   strict-archive-reproduction-gate:
     name: Manual strict archive reproduction gate

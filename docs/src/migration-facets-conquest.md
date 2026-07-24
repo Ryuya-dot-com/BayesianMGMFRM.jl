@@ -123,7 +123,7 @@ design = getdesign(spec)
 
 # Freeze the compiled meaning before sampling.
 constraint_rows = constraint_table(design)
-manifest = model_manifest(design)
+manifest = model_manifest(design; view = :public)
 
 fit_result = fit(design;
     backend = :advancedhmc,
@@ -533,8 +533,8 @@ anchored_spec = mfrm_spec(data;
 plan = anchor_refit_plan(anchored_spec)
 @assert plan.status == :hard_anchor_candidate_ready
 @assert plan.candidate_supported
-@assert !plan.numerical_refit_implemented
-@assert plan.caveat == :plan_only_does_not_execute_anchor_constrained_refit
+@assert !plan.executes_refit
+@assert plan.capability == :declaration_validation_only
 ```
 
 Version 1 accepts only the following normalized declaration contract:

@@ -3567,17 +3567,30 @@ function _fit_status_policy(fit::MGMFRMFit)
     )
 end
 
-model_surface_audit(fit::MFRMFit) =
-    _model_surface_audit(fit.design; status_policy = _fit_status_policy(fit))
+function _fit_model_surface_audit(fit; view::Symbol)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
+    rows = _model_surface_audit(
+        fit.design;
+        status_policy = _fit_status_policy(fit),
+    )
+    return view === :public ? _public_model_surface_rows(
+        rows,
+        _public_model_availability(fit.design.spec),
+    ) : rows
+end
 
-model_surface_audit(fit::GMFRMFit) =
-    _model_surface_audit(fit.design; status_policy = _fit_status_policy(fit))
+model_surface_audit(fit::MFRMFit; view::Symbol = :full) =
+    _fit_model_surface_audit(fit; view)
 
-model_surface_audit(fit::MGMFRMFit) =
-    _model_surface_audit(fit.design; status_policy = _fit_status_policy(fit))
+model_surface_audit(fit::GMFRMFit; view::Symbol = :full) =
+    _fit_model_surface_audit(fit; view)
+
+model_surface_audit(fit::MGMFRMFit; view::Symbol = :full) =
+    _fit_model_surface_audit(fit; view)
 
 """
-    fit_metadata(fit::MFRMFit)
+    fit_metadata(fit::MFRMFit; view = :full)
 
 Return report-ready metadata for a fitted minimal MFRM object, including data
 dimensions, model family, threshold structure, posterior draw dimensions,
@@ -3585,11 +3598,17 @@ backend, sampler, warmup, step size, sampler controls, and prior scales. This
 metadata helper does not itself report chain-aware convergence diagnostics; use
 `diagnostics`, `sampler_diagnostics`, and `mcmc_diagnostics` for sampler and
 R-hat/ESS summaries.
+
+The compatibility default `view = :full` preserves the complete fitting
+record. Use `view = :public` for a reader-facing projection with an explicit
+family and stability label and a compact set of portable reporting fields.
 """
-function fit_metadata(fit::MFRMFit)
+function fit_metadata(fit::MFRMFit; view::Symbol = :full)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     identity = design_identity(fit.design)
     data = fit.design.spec.data
-    return (;
+    metadata = (;
         n_observations = data.n,
         n_persons = length(data.person_levels),
         n_raters = length(data.rater_levels),
@@ -3630,13 +3649,22 @@ function fit_metadata(fit::MFRMFit)
         data_signature = fit.design.spec.validation.data_signature,
         design_identity = identity,
     )
+    return view === :full ? metadata :
+        _public_reader_payload(
+            merge(metadata, (estimation_status = :supported,));
+            schema = "bayesianmgmfrm.fit_metadata_public.v1",
+            family = :mfrm,
+            stability = :stable,
+        )
 end
 
-function fit_metadata(fit::GMFRMFit)
+function fit_metadata(fit::GMFRMFit; view::Symbol = :full)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     identity = design_identity(fit.design)
     data = fit.design.spec.data
     diagnostic = fit.diagnostic_surface
-    return (;
+    metadata = (;
         n_observations = data.n,
         n_persons = length(data.person_levels),
         n_raters = length(data.rater_levels),
@@ -3682,13 +3710,22 @@ function fit_metadata(fit::GMFRMFit)
         data_signature = fit.design.spec.validation.data_signature,
         design_identity = identity,
     )
+    return view === :full ? metadata :
+        _public_reader_payload(
+            merge(metadata, (estimation_status = :experimental,));
+            schema = "bayesianmgmfrm.fit_metadata_public.v1",
+            family = :gmfrm,
+            stability = :experimental,
+        )
 end
 
-function fit_metadata(fit::MGMFRMFit)
+function fit_metadata(fit::MGMFRMFit; view::Symbol = :full)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     identity = design_identity(fit.design)
     data = fit.design.spec.data
     diagnostic = fit.diagnostic_surface
-    return (;
+    metadata = (;
         n_observations = data.n,
         n_persons = length(data.person_levels),
         n_raters = length(data.rater_levels),
@@ -3738,6 +3775,13 @@ function fit_metadata(fit::MGMFRMFit)
         data_signature = fit.design.spec.validation.data_signature,
         design_identity = identity,
     )
+    return view === :full ? metadata :
+        _public_reader_payload(
+            merge(metadata, (estimation_status = :experimental,));
+            schema = "bayesianmgmfrm.fit_metadata_public.v1",
+            family = :mgmfrm,
+            stability = :experimental,
+        )
 end
 
 function _sampler_diagnostic_flag(acceptance_rate::Float64,
@@ -4360,8 +4404,8 @@ function _diagnostic_row_policy(; family::Symbol, parameter_spaces)
 end
 
 """
-    diagnostics(fit::MFRMFit; split_chains = true, rhat_threshold = 1.01,
-                ess_threshold = 400)
+    diagnostics(fit::MFRMFit; view = :full, split_chains = true,
+                rhat_threshold = 1.01, ess_threshold = 400)
 
 Return a single diagnostic surface for the current minimal Bayesian fitting
 path. The result includes chain-level sampler rows from `sampler_diagnostics`,
@@ -4388,11 +4432,19 @@ The surrounding version-1 diagnostic payload is discriminated by its nested
 and must not be relabeled as modern evidence. Under the modern contract,
 `flag` aliases `rank_normalized_flag`; use `classical_compatibility_flag` when
 the previous classical result is specifically required.
+
+The compatibility default `view = :full` returns the complete diagnostic
+surface. `view = :public` keeps reader-facing diagnostic results while
+carrying explicit `family` and `stability` fields in a compact portable
+schema.
 """
 function diagnostics(fit::MFRMFit;
+        view::Symbol = :full,
         split_chains::Bool = true,
         rhat_threshold::Real = 1.01,
         ess_threshold::Real = 400)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     checked = _check_diagnostic_thresholds(rhat_threshold, ess_threshold)
 
     sampler_rows = sampler_diagnostics(fit)
@@ -4434,7 +4486,7 @@ function diagnostics(fit::MFRMFit;
         :ok
     end
 
-    return (;
+    surface = (;
         schema = "bayesianmgmfrm.diagnostics.v1",
         backend = fit.backend,
         sampler = fit.sampler,
@@ -4471,6 +4523,13 @@ function diagnostics(fit::MFRMFit;
         parameter_rows,
         block_rows,
     )
+    return view === :full ? surface :
+        _public_reader_payload(
+            surface;
+            schema = "bayesianmgmfrm.diagnostics_public.v1",
+            family = :mfrm,
+            stability = :stable,
+        )
 end
 
 sampler_diagnostics(fit::GMFRMFit) = fit.diagnostic_surface.sampler_rows
@@ -4616,15 +4675,18 @@ function parameter_block_diagnostics(fit::GMFRMFit;
 end
 
 function diagnostics(fit::GMFRMFit;
+        view::Symbol = :full,
         split_chains::Bool = true,
         rhat_threshold::Real = 1.01,
         ess_threshold::Real = 400)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     _check_gmfrm_fit_diagnostic_policy(fit;
         split_chains,
         rhat_threshold,
         ess_threshold)
     surface = fit.diagnostic_surface
-    return (;
+    diagnostic_surface = (;
         schema = "bayesianmgmfrm.gmfrm_experimental_fit_diagnostics.v1",
         family = :gmfrm,
         scope = :scalar_gmfrm_fit_ready_candidate,
@@ -4644,6 +4706,18 @@ function diagnostics(fit::GMFRMFit;
         direct_parameter_rows = surface.direct_parameter_rows,
         direct_block_rows = surface.direct_block_rows,
     )
+    return view === :full ? diagnostic_surface :
+        _public_reader_payload(
+            merge(diagnostic_surface, (;
+                parameter_layout = fit_ready_parameter_layout(
+                    fit.design;
+                    view = :public,
+                ),
+            ));
+            schema = "bayesianmgmfrm.diagnostics_public.v1",
+            family = :gmfrm,
+            stability = :experimental,
+        )
 end
 
 sampler_diagnostics(fit::MGMFRMFit) = fit.diagnostic_surface.sampler_rows
@@ -4696,15 +4770,18 @@ function parameter_block_diagnostics(fit::MGMFRMFit;
 end
 
 function diagnostics(fit::MGMFRMFit;
+        view::Symbol = :full,
         split_chains::Bool = true,
         rhat_threshold::Real = 1.01,
         ess_threshold::Real = 400)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     _check_mgmfrm_fit_diagnostic_policy(fit;
         split_chains,
         rhat_threshold,
         ess_threshold)
     surface = fit.diagnostic_surface
-    return (;
+    diagnostic_surface = (;
         schema = "bayesianmgmfrm.mgmfrm_guarded_local_fit_diagnostics.v1",
         family = :mgmfrm,
         scope = :minimal_confirmatory_mgmfrm_candidate,
@@ -4732,6 +4809,26 @@ function diagnostics(fit::MGMFRMFit;
         direct_parameter_rows = surface.direct_parameter_rows,
         direct_block_rows = surface.direct_block_rows,
     )
+    return view === :full ? diagnostic_surface :
+        _public_reader_payload(
+            merge(diagnostic_surface, (;
+                parameter_layout = fit_ready_parameter_layout(
+                    fit.design;
+                    view = :public,
+                ),
+                initialization_rows =
+                    _public_mgmfrm_initialization_rows(
+                        diagnostic_surface.initialization_rows,
+                    ),
+                fixed_q_invariance_rows =
+                    _public_mgmfrm_fixed_q_invariance_rows(
+                        diagnostic_surface.fixed_q_invariance_rows,
+                    ),
+            ));
+            schema = "bayesianmgmfrm.diagnostics_public.v1",
+            family = :mgmfrm,
+            stability = :experimental,
+        )
 end
 
 function _model_manifest(fit::MFRMFit, diagnostic_summary)
@@ -4751,8 +4848,23 @@ function _model_manifest(fit::MFRMFit, diagnostic_summary)
     )
 end
 
-function model_manifest(fit::MFRMFit)
-    return _model_manifest(fit, diagnostics(fit).summary)
+function _public_fit_model_manifest(fit, diagnostic_summary)
+    return (;
+        schema = "bayesianmgmfrm.model_manifest_public.v1",
+        object = :fit,
+        family = fit.design.spec.family,
+        model = model_manifest(fit.design; view = :public),
+        fit = _public_fit_report_project_value(fit_metadata(fit)),
+        diagnostics = _public_fit_report_project_value(diagnostic_summary),
+    )
+end
+
+function model_manifest(fit::MFRMFit; view::Symbol = :full)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
+    diagnostic_summary = diagnostics(fit).summary
+    return view === :full ? _model_manifest(fit, diagnostic_summary) :
+        _public_fit_model_manifest(fit, diagnostic_summary)
 end
 
 function _model_manifest(fit::GMFRMFit, diagnostic_summary)
@@ -4777,8 +4889,12 @@ function _model_manifest(fit::GMFRMFit, diagnostic_summary)
     )
 end
 
-function model_manifest(fit::GMFRMFit)
-    return _model_manifest(fit, diagnostics(fit).summary)
+function model_manifest(fit::GMFRMFit; view::Symbol = :full)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
+    diagnostic_summary = diagnostics(fit).summary
+    return view === :full ? _model_manifest(fit, diagnostic_summary) :
+        _public_fit_model_manifest(fit, diagnostic_summary)
 end
 
 function _model_manifest(fit::MGMFRMFit, diagnostic_summary)
@@ -4804,8 +4920,12 @@ function _model_manifest(fit::MGMFRMFit, diagnostic_summary)
     )
 end
 
-function model_manifest(fit::MGMFRMFit)
-    return _model_manifest(fit, diagnostics(fit).summary)
+function model_manifest(fit::MGMFRMFit; view::Symbol = :full)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
+    diagnostic_summary = diagnostics(fit).summary
+    return view === :full ? _model_manifest(fit, diagnostic_summary) :
+        _public_fit_model_manifest(fit, diagnostic_summary)
 end
 
 function _fit_rng_control(fit)
@@ -4834,31 +4954,41 @@ function _fit_evidence_artifact_schema_policy(artifact_kind::Symbol,
 end
 
 """
-    fit_artifact(fit::MFRMFit; include_draws = false,
+    fit_artifact(fit; view = :full, include_draws = false,
                  include_log_posterior = include_draws,
                  include_sampler_stats = false,
                  include_environment = true,
                  include_packages = false,
+                 include_environment_paths = false,
                  split_chains = true,
                  rhat_threshold = 1.01,
                  ess_threshold = 400)
 
-Return a reproducibility artifact for a fitted minimal MFRM object. The artifact
-combines the model manifest, selected diagnostic surface, posterior summary,
-sampler controls, RNG replay metadata, and optional environment metadata. Draws,
-log-posterior values, and sampler-stat rows are omitted by default to keep the
-artifact compact; set the corresponding `include_*` keyword to retain them for a
-cached-draw report path.
+Return a reproducibility artifact for a fitted MFRM, experimental scalar GMFRM,
+or experimental fixed-Q MGMFRM object. The artifact combines the model
+manifest, selected diagnostic surface, posterior summary, sampler controls, RNG
+replay metadata, and optional environment metadata. Draws, log-posterior values,
+and sampler-stat rows are omitted by default to keep the artifact compact; set
+the corresponding `include_*` keyword to retain them for a cached-draw report
+path. Environment metadata omits machine-local paths by default;
+`include_environment_paths = true` is an explicit private-record opt-in. The
+compatibility default `view = :full` retains the complete archive contract and
+is intended for private reproduction records. Use `view = :public` when sharing
+a reader-facing, path-free projection with its own verifiable content hash.
 """
 function fit_artifact(fit::MFRMFit;
+        view::Symbol = :full,
         include_draws::Bool = false,
         include_log_posterior::Bool = include_draws,
         include_sampler_stats::Bool = false,
         include_environment::Bool = true,
         include_packages::Bool = false,
+        include_environment_paths::Bool = false,
         split_chains::Bool = true,
         rhat_threshold::Real = 1.01,
         ess_threshold::Real = 400)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     diagnostic_surface = diagnostics(fit;
         split_chains,
         rhat_threshold,
@@ -4895,9 +5025,12 @@ function fit_artifact(fit::MFRMFit;
         artifact_policy,
     )
     environment = include_environment ?
-        evidence_metadata(; include_packages) :
+        evidence_metadata(;
+            include_packages,
+            include_paths = include_environment_paths,
+        ) :
         nothing
-    return _with_archive_metadata((;
+    artifact = _with_archive_metadata((;
         schema = "bayesianmgmfrm.fit_artifact.v1",
         object = :fit_artifact,
         created_at = string(now()),
@@ -4911,17 +5044,23 @@ function fit_artifact(fit::MFRMFit;
         log_posterior = include_log_posterior ? copy(fit.log_posterior) : nothing,
         sampler_stats = include_sampler_stats ? copy(fit.sampler_stats) : nothing,
     ); label = :fit_artifact)
+    return view === :full ? artifact :
+        _public_fit_artifact_projection(artifact, fit)
 end
 
 function fit_artifact(fit::GMFRMFit;
+        view::Symbol = :full,
         include_draws::Bool = false,
         include_log_posterior::Bool = include_draws,
         include_sampler_stats::Bool = false,
         include_environment::Bool = true,
         include_packages::Bool = false,
+        include_environment_paths::Bool = false,
         split_chains::Bool = true,
         rhat_threshold::Real = 1.01,
         ess_threshold::Real = 400)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     diagnostic_surface = diagnostics(fit;
         split_chains,
         rhat_threshold,
@@ -4963,7 +5102,10 @@ function fit_artifact(fit::GMFRMFit;
         artifact_policy,
     )
     environment = include_environment ?
-        evidence_metadata(; include_packages) :
+        evidence_metadata(;
+            include_packages,
+            include_paths = include_environment_paths,
+        ) :
         nothing
     parameter_layout = diagnostic_surface.parameter_layout
     raw_posterior_rows = posterior_summary(fit)
@@ -4973,7 +5115,7 @@ function fit_artifact(fit::GMFRMFit;
             experimental_decision.raw_prior_control_manifest,
             fit.prior,
         )
-    return _with_archive_metadata((;
+    artifact = _with_archive_metadata((;
         schema = "bayesianmgmfrm.gmfrm_experimental_fit_artifact.v1",
         object = :fit_artifact,
         family = :gmfrm,
@@ -5033,17 +5175,23 @@ function fit_artifact(fit::GMFRMFit;
         log_posterior = include_log_posterior ? copy(fit.log_posterior) : nothing,
         sampler_stats = include_sampler_stats ? copy(fit.sampler_stats) : nothing,
     ); label = :gmfrm_experimental_fit_artifact)
+    return view === :full ? artifact :
+        _public_fit_artifact_projection(artifact, fit)
 end
 
 function fit_artifact(fit::MGMFRMFit;
+        view::Symbol = :full,
         include_draws::Bool = false,
         include_log_posterior::Bool = include_draws,
         include_sampler_stats::Bool = false,
         include_environment::Bool = true,
         include_packages::Bool = false,
+        include_environment_paths::Bool = false,
         split_chains::Bool = true,
         rhat_threshold::Real = 1.01,
         ess_threshold::Real = 400)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     diagnostic_surface = diagnostics(fit;
         split_chains,
         rhat_threshold,
@@ -5085,7 +5233,10 @@ function fit_artifact(fit::MGMFRMFit;
         artifact_policy,
     )
     environment = include_environment ?
-        evidence_metadata(; include_packages) :
+        evidence_metadata(;
+            include_packages,
+            include_paths = include_environment_paths,
+        ) :
         nothing
     parameter_layout = diagnostic_surface.parameter_layout
     raw_posterior_rows = posterior_summary(fit)
@@ -5095,7 +5246,7 @@ function fit_artifact(fit::MGMFRMFit;
             experimental_decision.raw_prior_control_manifest,
             fit.prior,
         )
-    return _with_archive_metadata((;
+    artifact = _with_archive_metadata((;
         schema = "bayesianmgmfrm.mgmfrm_experimental_fit_artifact.v1",
         object = :fit_artifact,
         family = :mgmfrm,
@@ -5167,6 +5318,8 @@ function fit_artifact(fit::MGMFRMFit;
         log_posterior = include_log_posterior ? copy(fit.log_posterior) : nothing,
         sampler_stats = include_sampler_stats ? copy(fit.sampler_stats) : nothing,
     ); label = :mgmfrm_experimental_fit_artifact)
+    return view === :full ? artifact :
+        _public_fit_artifact_projection(artifact, fit)
 end
 
 function _fit_report_on_section_error(on_section_error::Symbol)
@@ -6723,6 +6876,203 @@ function _public_fit_report_project_value(value;
         return _json_export_number(value)
     end
     return _PUBLIC_FIT_REPORT_OMITTED
+end
+
+const _PUBLIC_READER_HIDDEN_FIELDS = Set((
+    :archive_manifest,
+    :artifact,
+    :artifacts,
+    :blocked_alternatives,
+    :blocked_claims,
+    :blocked_option,
+    :cache_path,
+    :caveat_docs_artifact,
+    :data_signature,
+    :design_identity,
+    :environment,
+    :experimental_public,
+    :file_path,
+    :fit_ready,
+    :fixture_provenance,
+    :guarded_local_fit,
+    :initialization_policy,
+    :internal_sampler_diagnostic_constructor,
+    :internal_target_constructor,
+    :manifest,
+    :manuscript_claims_allowed,
+    :next_gate,
+    :output_path,
+    :package_default_change,
+    :publication_or_registration_action,
+    :public_claim_allowed,
+    :public_fit,
+    :raw_prior_control_manifest,
+    :report_bundle_path,
+    :report_policy,
+    :repository_path,
+    :scope,
+    :source,
+    :source_path,
+    :stable_public,
+    :status_policy,
+    :supported_surface,
+    :target,
+    :turing_model,
+))
+
+function _public_reader_hidden_field(field::Symbol)
+    field in _PUBLIC_READER_HIDDEN_FIELDS && return true
+    name = lowercase(String(field))
+    return startswith(name, "internal_") ||
+        startswith(name, "private_") ||
+        occursin("guarded", name) || occursin("fixture", name) ||
+        occursin("hash", name) || occursin("fingerprint", name) ||
+        occursin("digest", name) || occursin("signature", name)
+end
+
+function _public_reader_sanitized_text(value::AbstractString)
+    text = String(value)
+    for (source, replacement) in (
+            "outside_guarded_local_mgmfrm_scope" =>
+                "outside_fixed_q_confirmatory_mgmfrm_scope",
+            "free_latent_correlation_blocked_for_guarded_candidate" =>
+                "free_latent_correlation_not_supported",
+            "fixed_q_identity_correlation_defines_candidate_gauge" =>
+                "fixed_q_identity_correlation_defines_gauge",
+            "guarded_mgmfrm_preview" =>
+                "fixed_q_confirmatory_mgmfrm_preview",
+            "public_mfrm_baseline_or_guarded_gmfrm_comparison" =>
+                "mfrm_baseline_or_experimental_gmfrm_comparison",
+            "blocked_broad_generalized_mgmfrm" =>
+                "broader_generalized_mgmfrm_not_supported",
+            "package_under_development" =>
+                "package_specific_bayesian_workflow",
+            "release_gate_check" => "scope_and_evidence_checks",
+            "promotion_candidate" => "experimental_configuration",
+            "guarded_experimental_public" => "experimental",
+            "experimental_public" => "experimental",
+            "guarded_local_fit" => "experimental",
+            "fit_supported" => "supported",
+            "stable_public" => "supported")
+        text = replace(text, source => replacement)
+    end
+    text == "blocked" && return "not_supported"
+    any(pattern -> occursin(pattern, text),
+        _PUBLIC_FIT_REPORT_UNSAFE_TEXT_PATTERNS) &&
+        return _PUBLIC_FIT_REPORT_OMITTED
+    return text
+end
+
+function _public_reader_project_value(value;
+        preserve_user_text::Bool = false,
+        path::Tuple = ())
+    if value isa NamedTuple
+        pairs = Pair{Symbol,Any}[]
+        for field in keys(value)
+            _public_reader_hidden_field(field) && continue
+            projected = _public_reader_project_value(
+                getproperty(value, field);
+                preserve_user_text = _public_fit_report_user_value_field(field),
+                path = (path..., field),
+            )
+            projected === _PUBLIC_FIT_REPORT_OMITTED && continue
+            push!(pairs, field => projected)
+        end
+        return (; pairs...)
+    elseif value isa AbstractDict
+        projected = Dict{String,Any}()
+        for (key, item) in value
+            field = _report_key_symbol(key)
+            _public_reader_hidden_field(field) && continue
+            projected_item = _public_reader_project_value(
+                item;
+                preserve_user_text = _public_fit_report_user_value_field(field),
+                path = (path..., field),
+            )
+            projected_item === _PUBLIC_FIT_REPORT_OMITTED && continue
+            projected[String(field)] = projected_item
+        end
+        return projected
+    elseif value isa Tuple
+        projected = Any[]
+        for item in value
+            projected_item = _public_reader_project_value(
+                item;
+                preserve_user_text =
+                    _public_fit_report_child_preserves_user_text(
+                        item,
+                        preserve_user_text,
+                    ),
+                path,
+            )
+            push!(projected, projected_item === _PUBLIC_FIT_REPORT_OMITTED ?
+                missing : projected_item)
+        end
+        return Tuple(projected)
+    elseif value isa AbstractArray
+        return map(value) do item
+            projected_item = _public_reader_project_value(
+                item;
+                preserve_user_text =
+                    _public_fit_report_child_preserves_user_text(
+                        item,
+                        preserve_user_text,
+                    ),
+                path,
+            )
+            projected_item === _PUBLIC_FIT_REPORT_OMITTED ? missing : projected_item
+        end
+    elseif value isa Symbol
+        preserve_user_text && return value
+        projected = _public_reader_sanitized_text(String(value))
+        return projected === _PUBLIC_FIT_REPORT_OMITTED ? projected : Symbol(projected)
+    elseif value isa AbstractString
+        preserve_user_text && return String(value)
+        return _public_reader_sanitized_text(value)
+    elseif value === missing || value === nothing || value isa Bool
+        return value
+    elseif value isa Number
+        return _json_export_number(value)
+    end
+    return _PUBLIC_FIT_REPORT_OMITTED
+end
+
+function _public_mgmfrm_initialization_rows(rows)
+    return [row.policy in (:initial_raw_vector, :initial_direct_transform) ?
+        merge(row, (value = missing,)) : row for row in rows]
+end
+
+function _public_mgmfrm_fixed_q_invariance_rows(rows)
+    return map(rows) do row
+        row.policy === :latent_correlation && return merge(row, (;
+            note = :free_latent_correlation_not_supported,
+        ))
+        row.policy === :rotation && return merge(row, (;
+            value = :not_supported,
+            note = :fixed_q_identity_correlation_defines_gauge,
+        ))
+        row.policy === :exploratory_loading && return merge(row, (;
+            status = :not_supported,
+            note = :outside_fixed_q_confirmatory_mgmfrm_scope,
+        ))
+        return row
+    end
+end
+
+function _public_reader_payload(payload;
+        schema::AbstractString,
+        family = nothing,
+        stability = nothing)
+    projected = _public_reader_project_value(payload)
+    body = Pair{Symbol,Any}[]
+    for field in keys(projected)
+        field in (:schema, :family, :stability) && continue
+        push!(body, field => getproperty(projected, field))
+    end
+    header = Pair{Symbol,Any}[:schema => String(schema)]
+    family === nothing || push!(header, :family => family)
+    stability === nothing || push!(header, :stability => stability)
+    return (; header..., body...)
 end
 
 function _public_fit_report_status(value)
@@ -8895,6 +9245,22 @@ function _artifact_content_hash_record(artifact)
     )
 end
 
+function _public_fit_artifact_projection(artifact, fit::_ModelComparisonFit)
+    projected = _public_fit_report_project_value(
+        _artifact_hash_payload(artifact),
+    )
+    public_payload = merge(projected, (;
+        schema = "bayesianmgmfrm.fit_artifact_public.v1",
+        object = :fit_artifact,
+        family = fit.design.spec.family,
+        stability = fit isa MFRMFit ? :stable : :experimental,
+        model_manifest = model_manifest(fit.design; view = :public),
+    ))
+    return merge(public_payload, (;
+        content_hash = _artifact_content_hash_record(public_payload),
+    ))
+end
+
 function _artifact_summary(artifact)
     return (;
         schema = _nt_get(artifact, :schema, missing),
@@ -9249,7 +9615,7 @@ function _fit_reproduction_manifest_payload(fit;
 end
 
 """
-    fit_reproduction_manifest(fit; cache_record = nothing, cache_path = nothing,
+    fit_reproduction_manifest(fit; view = :full, cache_record = nothing, cache_path = nothing,
         report_bundle_manifest = nothing, report_bundle_path = nothing,
         artifact = nothing, verify_cache_hash = true, kwargs...)
 
@@ -9258,10 +9624,13 @@ manifest treats full rerun evidence and fast cached-draw evidence as separate
 required paths: full rerun is ready only when the fit artifact records a
 replayable RNG seed and sampler controls, while fast cached draws are ready only
 when a hash-verified fit-cache record is supplied. Optional fit-report bundle
-metadata can be attached for review exports. The manifest does not perform
-publication or registration actions.
+metadata can be attached for review exports. The compatibility default
+`view = :full` retains complete compatibility metadata. Use
+`view = :public` for a reader-facing projection without machine-local paths or
+maintainer workflow fields.
 """
 function fit_reproduction_manifest(fit::_ModelComparisonFit;
+        view::Symbol = :full,
         label = nothing,
         artifact = nothing,
         source_path = nothing,
@@ -9278,6 +9647,8 @@ function fit_reproduction_manifest(fit::_ModelComparisonFit;
         split_chains::Bool = true,
         rhat_threshold::Real = 1.01,
         ess_threshold::Real = 400)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     payload = _fit_reproduction_manifest_payload(fit;
         label,
         artifact,
@@ -9295,8 +9666,17 @@ function fit_reproduction_manifest(fit::_ModelComparisonFit;
         split_chains,
         rhat_threshold,
         ess_threshold)
-    return merge(payload, (;
+    result = merge(payload, (;
         content_hash = _artifact_content_hash_record(payload),
+    ))
+    view === :full && return result
+    projected = _public_fit_report_project_value(payload)
+    public_payload = merge((;
+        schema = "bayesianmgmfrm.fit_reproduction_manifest_public.v1",
+        object = :fit_reproduction_manifest,
+    ), projected)
+    return merge(public_payload, (;
+        content_hash = _artifact_content_hash_record(public_payload),
     ))
 end
 
@@ -13737,7 +14117,7 @@ end
 """
     sensitivity_comparison_summary(rows; required_axes =
         (:thresholds, :discrimination, :rater_pooling, :dff, :anchor,
-         :dimensions, :prior_regime))
+         :dimensions, :prior_regime), view = :full)
     sensitivity_comparison_summary(row, rows...; required_axes = ...)
 
 Summarize report-ready sensitivity comparison rows and check whether the
@@ -13752,9 +14132,14 @@ baseline coverage, criteria used, and whether every required axis has both a
 baseline and at least one candidate row. It audits declared comparison rows; it
 does not create refits, fit unsupported generalized/DFF/anchor models, or
 replace predeclared simulation and case-study protocols.
+`view = :public` returns the compact reader-facing projection; `:full`
+preserves the existing contract.
 """
 function sensitivity_comparison_summary(rows::AbstractVector;
-        required_axes = _DEFAULT_SENSITIVITY_REQUIRED_AXES)
+        required_axes = _DEFAULT_SENSITIVITY_REQUIRED_AXES,
+        view::Symbol = :full)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     isempty(rows) &&
         throw(ArgumentError("at least one sensitivity comparison row is required"))
     for row in rows
@@ -13792,7 +14177,7 @@ function sensitivity_comparison_summary(rows::AbstractVector;
         _sensitivity_unique_tuple(String(string(row.baseline_model)) for row in rows)
     n_baseline_rows = count(row -> row.is_baseline, rows)
 
-    return (;
+    summary = (;
         schema = "bayesianmgmfrm.sensitivity_comparison_summary.v1",
         object = :sensitivity_comparison_summary,
         comparison_scope = :declared_same_data_sensitivity_rows,
@@ -13815,11 +14200,21 @@ function sensitivity_comparison_summary(rows::AbstractVector;
         caveat = :summary_of_declared_rows_not_refit_orchestration,
         next_gate = :predeclared_case_study_sensitivity_grid,
     )
+    return view === :full ? summary :
+        _public_reader_payload(
+            summary;
+            schema = "bayesianmgmfrm.sensitivity_comparison_summary_public.v1",
+        )
 end
 
 function sensitivity_comparison_summary(row::NamedTuple, rows::NamedTuple...;
-        required_axes = _DEFAULT_SENSITIVITY_REQUIRED_AXES)
-    return sensitivity_comparison_summary([row; collect(rows)]; required_axes)
+        required_axes = _DEFAULT_SENSITIVITY_REQUIRED_AXES,
+        view::Symbol = :full)
+    return sensitivity_comparison_summary(
+        [row; collect(rows)];
+        required_axes,
+        view,
+    )
 end
 
 function _sensitivity_power_values(values, name::Symbol)
@@ -14256,7 +14651,7 @@ end
 
 """
     comparison_evidence_summary(rows; required_classes =
-        (:stan_faithful, :r_frequentist, :nested_model))
+        (:stan_faithful, :r_frequentist, :nested_model), view = :full)
     comparison_evidence_summary(row, rows...; required_classes = ...)
 
 Summarize declared comparison-evidence rows and check whether the default
@@ -14264,9 +14659,14 @@ critical-review comparison classes are present and passing: faithful
 Stan/BridgeStan models, overlapping R/frequentist tools, and simpler nested
 models. The summary is a coverage check over recorded comparison rows; it does
 not execute external tools or refit models.
+Use `view = :public` for a compact reader-facing summary of the recorded
+comparison results. The default `:full` contract is unchanged.
 """
 function comparison_evidence_summary(rows::AbstractVector;
-        required_classes = _DEFAULT_COMPARISON_EVIDENCE_CLASSES)
+        required_classes = _DEFAULT_COMPARISON_EVIDENCE_CLASSES,
+        view::Symbol = :full)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     isempty(rows) &&
         throw(ArgumentError("at least one comparison evidence row is required"))
     for row in rows
@@ -14289,7 +14689,7 @@ function comparison_evidence_summary(rows::AbstractVector;
         if row.status === :passed)
     n_passed_rows = count(row -> row.passed === true, rows)
 
-    return (;
+    summary = (;
         schema = "bayesianmgmfrm.comparison_evidence_summary.v1",
         object = :comparison_evidence_summary,
         comparison_scope = :stan_r_frequentist_nested_evidence,
@@ -14310,11 +14710,21 @@ function comparison_evidence_summary(rows::AbstractVector;
         caveat = :summary_of_declared_comparison_rows_not_external_runner,
         next_gate = :idle_machine_repeated_benchmarks,
     )
+    return view === :full ? summary :
+        _public_reader_payload(
+            summary;
+            schema = "bayesianmgmfrm.comparison_evidence_summary_public.v1",
+        )
 end
 
 function comparison_evidence_summary(row::NamedTuple, rows::NamedTuple...;
-        required_classes = _DEFAULT_COMPARISON_EVIDENCE_CLASSES)
-    return comparison_evidence_summary([row; collect(rows)]; required_classes)
+        required_classes = _DEFAULT_COMPARISON_EVIDENCE_CLASSES,
+        view::Symbol = :full)
+    return comparison_evidence_summary(
+        [row; collect(rows)];
+        required_classes,
+        view,
+    )
 end
 
 const _DEFAULT_BENCHMARK_REQUIRED_ENGINES = (
@@ -14559,17 +14969,22 @@ end
 
 """
     benchmark_summary(rows; required_engines = (:julia, :stan),
-        min_repetitions = 3)
+        min_repetitions = 3, view = :full)
     benchmark_summary(row, rows...; required_engines = ..., min_repetitions = 3)
 
 Summarize repeated idle-machine benchmark rows. The summary checks required
 engine coverage, minimum repetitions, idle-machine flags, time-to-quality
 threshold failures, and per-benchmark Stan/Julia elapsed-time and ESS/sec ratios.
 It aggregates recorded benchmark rows; it does not run benchmarks.
+`view = :public` produces a compact reader-facing projection;
+`view = :full` preserves the complete existing payload.
 """
 function benchmark_summary(rows::AbstractVector;
         required_engines = _DEFAULT_BENCHMARK_REQUIRED_ENGINES,
-        min_repetitions::Integer = 3)
+        min_repetitions::Integer = 3,
+        view::Symbol = :full)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     isempty(rows) &&
         throw(ArgumentError("at least one benchmark row is required"))
     checked_min_repetitions =
@@ -14607,7 +15022,7 @@ function benchmark_summary(rows::AbstractVector;
         failed_time_to_quality == 0 &&
         all_idle
 
-    return (;
+    summary = (;
         schema = "bayesianmgmfrm.benchmark_summary.v1",
         object = :benchmark_summary,
         benchmark_scope = :idle_machine_repeated_benchmarks,
@@ -14628,12 +15043,23 @@ function benchmark_summary(rows::AbstractVector;
         caveat = :local_benchmark_summary_not_portable_performance_claim,
         next_gate = :external_release_decision,
     )
+    return view === :full ? summary :
+        _public_reader_payload(
+            summary;
+            schema = "bayesianmgmfrm.benchmark_summary_public.v1",
+        )
 end
 
 function benchmark_summary(row::NamedTuple, rows::NamedTuple...;
         required_engines = _DEFAULT_BENCHMARK_REQUIRED_ENGINES,
-        min_repetitions::Integer = 3)
-    return benchmark_summary([row; collect(rows)]; required_engines, min_repetitions)
+        min_repetitions::Integer = 3,
+        view::Symbol = :full)
+    return benchmark_summary(
+        [row; collect(rows)];
+        required_engines,
+        min_repetitions,
+        view,
+    )
 end
 
 function _draw_indices(fit, ndraws::Union{Nothing,Int}, rng::AbstractRNG)
@@ -19425,7 +19851,8 @@ end
         dimensionalities = (1, 2),
         misspecifications = (:none, :wrong_thresholds, :omitted_dff),
         repetitions = 1, base_seed = 20260620, grid_id = "default",
-        n_persons = 48, n_items = 12, n_raters = 6, n_categories = 4)
+        n_persons = 48, n_items = 12, n_raters = 6, n_categories = 4,
+        view = :full)
 
 Return predeclared simulation-study rows that cross sparse-to-near-complete
 design density, anchor size, ratings per target, category pathologies, rater
@@ -19434,6 +19861,8 @@ metadata for reproducible simulation/recovery studies; this helper does not
 simulate responses, fit models, or evaluate claims. Use the rows with
 [`simulate_responses`](@ref), [`parameter_recovery`](@ref), calibration,
 predictive-check, and model-comparison helpers when executing a study.
+Use `view = :public` for compact reader-facing rows; `view = :full` preserves
+the complete planning record.
 """
 function simulation_grid(; densities = (:sparse, :moderate, :near_complete),
         anchor_sizes = (0, 2, 5),
@@ -19449,7 +19878,10 @@ function simulation_grid(; densities = (:sparse, :moderate, :near_complete),
         n_persons::Integer = 48,
         n_items::Integer = 12,
         n_raters::Integer = 6,
-        n_categories::Integer = 4)
+        n_categories::Integer = 4,
+        view::Symbol = :full)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     density_axis = _simulation_axis_tuple(densities, :density)
     anchor_axis = _simulation_integer_axis(anchor_sizes, :anchor_size; minimum = 0)
     ratings_axis = _simulation_integer_axis(ratings_per_target, :ratings_per_target)
@@ -19531,7 +19963,12 @@ function simulation_grid(; densities = (:sparse, :moderate, :near_complete),
             ))
         end
     end
-    return rows
+    return view === :full ? rows : [
+        _public_reader_payload(
+            row;
+            schema = "bayesianmgmfrm.simulation_grid_public.v1",
+        ) for row in rows
+    ]
 end
 
 function _simulation_grid_axis(axis::Symbol)
@@ -19583,16 +20020,22 @@ end
 """
     simulation_grid_summary(rows; required_axes =
         (:density, :anchor_size, :ratings_per_target, :category_pathology,
-         :rater_noise, :dff, :dimensionality, :misspecification))
+         :rater_noise, :dff, :dimensionality, :misspecification),
+         view = :full)
 
 Summarize whether predeclared simulation-grid rows cover the default critical axes
 for sparse Bayesian MFRM/GMFRM/MGMFRM validation. The summary reports missing
 required axes, single-value axes, varied axes, row/scenario counts, and the
 repetition/seed envelope. It is a coverage check for a planned grid, not
 evidence that the grid has been run.
+`view = :public` returns a compact reader-facing summary; the default `:full`
+payload remains unchanged.
 """
 function simulation_grid_summary(rows::AbstractVector;
-        required_axes = _DEFAULT_SIMULATION_GRID_REQUIRED_AXES)
+        required_axes = _DEFAULT_SIMULATION_GRID_REQUIRED_AXES,
+        view::Symbol = :full)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     isempty(rows) &&
         throw(ArgumentError("at least one simulation grid row is required"))
     for row in rows
@@ -19616,7 +20059,7 @@ function simulation_grid_summary(rows::AbstractVector;
         for row in rows)
     seed_values = [Int(row.seed) for row in rows if hasproperty(row, :seed)]
 
-    return (;
+    summary = (;
         schema = "bayesianmgmfrm.simulation_grid_summary.v1",
         object = :simulation_grid_summary,
         required_axes = checked_required,
@@ -19634,6 +20077,11 @@ function simulation_grid_summary(rows::AbstractVector;
         caveat = :simulation_grid_summary_not_run_evidence,
         next_gate = :run_predeclared_grid_and_apply_falsification_rules,
     )
+    return view === :full ? summary :
+        _public_reader_payload(
+            summary;
+            schema = "bayesianmgmfrm.simulation_grid_summary_public.v1",
+        )
 end
 
 simulation_grid_summary(row, rows...; kwargs...) =
@@ -19913,14 +20361,19 @@ end
     falsification_rule_summary(rows; required_domains =
         (:simulation_grid, :design_validation, :computation, :recovery,
          :calibration, :predictive_check, :decision_stability, :sensitivity,
-         :baseline_comparison, :reproducibility))
+         :baseline_comparison, :reproducibility), view = :full)
 
 Summarize predeclared falsification-rule rows and check whether every required
 claim domain is represented. This is a rule-coverage summary; it does not
 evaluate study results or decide whether a claim has passed.
+`view = :public` returns a compact reader-facing summary; `view = :full`
+preserves the complete rule-coverage record.
 """
 function falsification_rule_summary(rows::AbstractVector;
-        required_domains = _DEFAULT_FALSIFICATION_RULE_DOMAINS)
+        required_domains = _DEFAULT_FALSIFICATION_RULE_DOMAINS,
+        view::Symbol = :full)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     isempty(rows) &&
         throw(ArgumentError("at least one falsification rule row is required"))
     for row in rows
@@ -19934,7 +20387,7 @@ function falsification_rule_summary(rows::AbstractVector;
         if row.status === :missing)
     present_required_domains = Tuple(row.domain for row in domain_rows
         if row.status === :present)
-    return (;
+    summary = (;
         schema = "bayesianmgmfrm.falsification_rule_summary.v1",
         object = :falsification_rule_summary,
         required_domains = checked_required,
@@ -19950,6 +20403,11 @@ function falsification_rule_summary(rows::AbstractVector;
         caveat = :rule_summary_not_study_result,
         next_gate = :evaluate_rules_on_predeclared_simulation_grid,
     )
+    return view === :full ? summary :
+        _public_reader_payload(
+            summary;
+            schema = "bayesianmgmfrm.falsification_rule_summary_public.v1",
+        )
 end
 
 falsification_rule_summary(row, rows...; kwargs...) =

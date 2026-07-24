@@ -1745,7 +1745,7 @@ function build_artifact()
             mgmfrm_fit_allowed = true,
             dff_model_effects_allowed = false,
             model_weights_allowed = false,
-            manuscript_reproducibility_claims_supported = true,
+            manuscript_reproducibility_claims_supported = false,
             publication_or_registration_action = false,
             public_exposure_support =
                 :local_full_reproduction_archive_recorded,
@@ -1879,7 +1879,7 @@ function build_artifact()
             mgmfrm_fit_allowed = true,
             dff_model_effects_allowed = false,
             model_weights_allowed = false,
-            manuscript_reproducibility_claims_supported = true,
+            manuscript_reproducibility_claims_supported = false,
             n_blockers = 2,
             remaining_public_blockers = [
                 :tam_direct_independent_review_pending,

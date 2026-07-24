@@ -26,6 +26,7 @@ const LD1A_FIXTURE = joinpath(
 const LD1B0_FIXTURE = joinpath(
     ROOT, "test", "fixtures",
     "local_dependence_calibration_scorer_preflight.json")
+const CANONICAL_MANIFEST = "Manifest-v1.10.toml"
 
 include(joinpath(@__DIR__, "local_json.jl"))
 
@@ -291,8 +292,9 @@ function build_artifact()
             environment_provenance = (;
                 project = "Project.toml",
                 project_sha256 = file_sha256(joinpath(ROOT, "Project.toml")),
-                manifest = "Manifest.toml",
-                manifest_sha256 = file_sha256(joinpath(ROOT, "Manifest.toml")),
+                manifest = CANONICAL_MANIFEST,
+                manifest_sha256 =
+                    file_sha256(joinpath(ROOT, CANONICAL_MANIFEST)),
                 julia_compat = project_value("compat", "julia"),
                 exact_runtime_version_recorded = false,
                 cross_julia_bitwise_portability_claimed = false,

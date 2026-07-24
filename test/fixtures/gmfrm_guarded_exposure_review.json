@@ -9,8 +9,8 @@
   "fit_ready": true,
   "package": {
     "name": "BayesianMGMFRM",
-    "version": "0.1.1",
-    "julia_version": "1.12.5"
+    "version": "0.1.2",
+    "julia_version": "1.10.8"
   },
   "protocol": {
     "protocol_id": "scalar_gmfrm_guarded_exposure_review_v1",
@@ -366,7 +366,7 @@
     {
       "artifact": "guarded_fit_api_dry_run",
       "path": "test/fixtures/gmfrm_guarded_fit_api_dry_run.json",
-      "sha256": "c88af0c86aaf383a1bf8216a39795d0d70c8d151a6ad3e65bfd07ccf8b5e3995",
+      "sha256": "99804e2795d2c81285936c3a23a3c3b1e4d8debce642f5f1207b6d9b67f8f975",
       "schema": "bayesianmgmfrm.gmfrm_guarded_fit_api_dry_run.v1",
       "family": "gmfrm",
       "scope": "scalar_gmfrm_fit_ready_candidate",
@@ -614,7 +614,7 @@
     {
       "artifact": "claim_recovery_reproduction_archive",
       "path": "test/fixtures/gmfrm_claim_recovery_reproduction_archive.json",
-      "sha256": "888c2727d762eb255efa637502034b640e9d3406755a0bee46f1534b7ce6707f",
+      "sha256": "4c838b752e31cb9b5533f75dde963222ce14f23c025b99c059f7df594f3bce81",
       "schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
       "family": "gmfrm",
       "scope": "scalar_gmfrm_fit_ready_candidate",
@@ -654,7 +654,7 @@
     {
       "artifact": "broader_experimental_exposure_decision_review",
       "path": "test/fixtures/gmfrm_broader_experimental_exposure_decision_review.json",
-      "sha256": "0ad290d5e2cbacf482d7689dbcc4adb7051c380eaa4a923ff98f504c3d31d27c",
+      "sha256": "5fb4a1b025ee895d88e6d2de1814175650bac265aedfec036bb8c8150f6475d3",
       "schema": "bayesianmgmfrm.gmfrm_broader_experimental_exposure_decision_review.v1",
       "family": "gmfrm",
       "scope": "broader_generalized_exposure_decision",
@@ -850,7 +850,7 @@
     {
       "artifact": "mgmfrm_guarded_fit_public_exposure_review",
       "path": "test/fixtures/mgmfrm_guarded_fit_public_exposure_review.json",
-      "sha256": "bd21d5176c28ffd168610dda613d7fbf1de018da1469ae4e58df5334cb9710e6",
+      "sha256": "1a963028aa73009cd7ea8a8279c95e1bea6bc0d7437bec4cc3ab9012da23839c",
       "schema": "bayesianmgmfrm.mgmfrm_guarded_fit_public_exposure_review.v1",
       "family": "mgmfrm",
       "scope": "minimal_confirmatory_mgmfrm_candidate",
@@ -883,7 +883,7 @@
     {
       "artifact": "prediction_target_and_model_weight_policy",
       "path": "test/fixtures/gmfrm_prediction_target_and_model_weight_policy.json",
-      "sha256": "d80e38d94fdbab12cd42082c4486894aa425c3936306e33c4878183744e145a2",
+      "sha256": "cf8406719aad612f740244cacd1b099479ecd44836b25ecd436762fab491ecaa",
       "schema": "bayesianmgmfrm.gmfrm_prediction_target_and_model_weight_policy.v1",
       "family": "gmfrm",
       "scope": "prediction_target_and_model_weight_policy",
@@ -921,7 +921,7 @@
     {
       "artifact": "mgmfrm_manual_public_scope_review_for_fit",
       "path": "test/fixtures/mgmfrm_manual_public_scope_review_for_fit.json",
-      "sha256": "680ed94babfba6583efdc1df768683242b31ce01e3fbd957c9ee5f10d6f834cc",
+      "sha256": "75319e5636120d5d2df8e13d05cce700466dc1d40293c29507e62a33e486037c",
       "schema": "bayesianmgmfrm.mgmfrm_manual_public_scope_review_for_fit.v1",
       "family": "mgmfrm",
       "scope": "minimal_confirmatory_mgmfrm_candidate",
@@ -997,7 +997,7 @@
     {
       "artifact": "manuscript_scale_simulation_grid",
       "path": "test/fixtures/gmfrm_manuscript_scale_simulation_grid.json",
-      "sha256": "88b64f5a868adf297d69ce9161b4ee2831de44bc6a5d1cb2d9382e1f65f5c341",
+      "sha256": "4a7caab581d89ba04d2927676b22982eb137d17ee3b1a9a9ff31147e3afb40b2",
       "schema": "bayesianmgmfrm.gmfrm_manuscript_scale_simulation_grid.v1",
       "family": "gmfrm",
       "scope": "manuscript_scale_simulation_grid",
@@ -1110,7 +1110,7 @@
     {
       "artifact": "full_paper_reproduction_archive",
       "path": "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
-      "sha256": "c9e914a5eb7ed826fc16f3e279695cbb14c8dcb5a83998c79d12e19d431d86f5",
+      "sha256": "96befd097bdacefc9e42f6e1367756e8cc5bafd54bb29f4a967fef3ab6602587",
       "schema": "bayesianmgmfrm.gmfrm_full_paper_reproduction_archive.v1",
       "family": "gmfrm",
       "scope": "full_paper_reproduction_archive",
@@ -1181,7 +1181,7 @@
         "mgmfrm_external_construct_attachment_request_packet_passed": true,
         "prediction_target_and_model_weight_policy_passed": true,
         "mgmfrm_manual_public_scope_review_for_fit_passed": true,
-        "manuscript_reproducibility_claims_supported": true,
+        "manuscript_reproducibility_claims_supported": false,
         "n_blockers": 2,
         "recommendation": "full_paper_reproduction_archive_recorded_keep_publication_manual",
         "next_gate": "manual_publication_or_registration_by_user_only"

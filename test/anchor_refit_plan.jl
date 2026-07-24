@@ -32,13 +32,19 @@ using BayesianMGMFRM
     @test plan.schema == "bayesianmgmfrm.anchor_refit_plan.v1"
     @test plan.status === :hard_anchor_candidate_ready
     @test plan.candidate_supported
-    @test !plan.numerical_refit_implemented
+    @test plan.capability === :declaration_validation_only
+    @test !plan.executes_refit
     @test plan.estimation_status === :specified_only
     @test plan.hard_anchor_contract.coordinate_strategy ===
         :affine_direct_parameter_map
     @test plan.hard_anchor_contract.identification_policy ===
         :replace_reference_gauge_not_stack_constraints
     @test !plan.hard_anchor_contract.prior_scale_declaration_allowed
+    @test plan.hard_anchor_contract.fixed_coordinates_must_not_be_sampled
+    @test plan.hard_anchor_contract.full_direct_draw_restoration_required
+    @test :fixed_coordinates_sampled ∉ keys(plan.hard_anchor_contract)
+    @test :full_direct_draws_restored_for_reports ∉
+        keys(plan.hard_anchor_contract)
     @test plan.provenance_contract.source_scale_semantics ===
         :normalized_anchor_value_destination_scale
     @test plan.provenance_contract.sign_semantics ===
@@ -59,6 +65,19 @@ using BayesianMGMFRM
     @test row.source_hash_format_valid
     @test !row.source_bytes_verified
     @test row.status === :candidate_supported
+
+    private_path_spec = mfrm_spec(data; anchors = [merge(anchor, (;
+        repository_path = "/Users/example/private-anchor.json",
+        source_path = "/Users/example/private-source.json",
+        file_path = "/Users/example/private-file.json",
+    ))])
+    public_anchor = only(model_manifest(
+        private_path_spec;
+        view = :public,
+    ).spec.anchors)
+    @test :repository_path ∉ keys(public_anchor)
+    @test :source_path ∉ keys(public_anchor)
+    @test :file_path ∉ keys(public_anchor)
 
     no_provenance_spec = mfrm_spec(data; anchors = [(;
         block = :item,
@@ -208,7 +227,7 @@ using BayesianMGMFRM
     @test only(soft_plan.anchor_rows).status === :deferred_soft_anchor
     @test only(soft_plan.anchor_rows).scale_valid
     @test only(soft_plan.anchor_rows).normalized_scale === 0.2
-    @test soft_plan.soft_anchor_contract.status === :deferred
+    @test !soft_plan.soft_anchor_contract.accepted
     @test soft_plan.soft_anchor_contract.current_reference_level_policy ===
         :reject_until_reparameterized_or_source_contrast_transformed
 
@@ -269,5 +288,5 @@ using BayesianMGMFRM
 
     empty_plan = anchor_refit_plan(mfrm_spec(data))
     @test empty_plan.status === :no_anchors_declared
-    @test empty_plan.next_gate === :resolve_anchor_refit_preflight
+    @test !empty_plan.executes_refit
 end

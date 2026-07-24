@@ -2026,15 +2026,7 @@ end
     # the initial ForwardDiff log-density-and-gradient and remains incapable of
     # authorizing or invoking MCMC.
     contract = experimental.free_latent_correlation_2d_contract()
-    @test occursin(
-        "free_latent_correlation_2d_study_resource_probe",
-        contract.study_resource_probe_entrypoint,
-    )
-    @test contract.replicated_study_resource_probe_enabled
-    @test !contract.
-        replicated_study_resource_probe_default_executes_measurement
-    @test !contract.replicated_study_resource_probe_executes_mcmc
-    @test !contract.replicated_study_operational_execution_authorized
+    @test :gradient_diagnostics in contract.available_operations
 
     probe_plan = experimental.
         free_latent_correlation_2d_study_resource_probe(

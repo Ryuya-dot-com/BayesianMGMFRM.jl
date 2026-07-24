@@ -1,5 +1,25 @@
 # Data and Design API
 
+Functions that expose both detailed compatibility records and concise
+reader-facing records use a `view` keyword. Existing calls retain
+`view = :full`. For reports or shared structured output, use `view = :public`:
+
+```julia
+layout = fit_ready_parameter_layout(spec; preview = true, view = :public)
+domain_rows = domain_compilation_summary(spec; preview = true, view = :public)
+ladder = model_ladder(view = :public)
+rating_audit = rating_design_audit(spec; view = :public)
+software = related_software_capability_matrix(view = :public)
+```
+
+The public parameter-layout and domain rows report `stability`,
+`fit_available`, `entrypoint`, and `claim_scope` directly. They preserve raw
+and constrained parameter names, blocks, transforms, constraints, priors, and
+fixed-Q information. Stable MFRM/RSM/PCM fitting uses `fit(spec)`; the limited
+scalar-GMFRM and fixed-Q confirmatory MGMFRM subsets use
+`BayesianMGMFRM.Experimental.fit(spec)`. A preview layout by itself is not a
+claim that every represented generalized configuration can be fitted.
+
 ```@docs
 BayesianMGMFRM
 FacetData

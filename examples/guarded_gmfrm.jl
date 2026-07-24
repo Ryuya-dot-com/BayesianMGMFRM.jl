@@ -51,7 +51,7 @@ println(design)
 println("Parameters: ", join(design.parameter_names, ", "))
 print_rows("Constraints", constraint_table(spec);
     fields = (:block, :constraint, :status))
-manifest = model_manifest(spec)
+manifest = model_manifest(spec; view = :public)
 println("Manifest: object=", manifest.object,
     ", family=", manifest.spec.family,
     ", dimensions=", manifest.spec.dimensions,
@@ -69,13 +69,13 @@ fit_result = BayesianMGMFRM.Experimental.fit(spec;
 
 print_header("Guarded Scalar GMFRM Fit")
 println(fit_result)
-metadata = fit_metadata(fit_result)
+metadata = fit_metadata(fit_result; view = :public)
 println("Fit metadata: backend=", metadata.backend,
     ", sampler=", metadata.sampler,
     ", draws=", metadata.n_draws,
     ", chains=", metadata.n_chains,
     ", status=experimental")
-artifact = fit_artifact(fit_result; include_environment = false)
+artifact = fit_artifact(fit_result; view = :public, include_environment = false)
 println("Fit artifact: schema=", artifact.schema,
     ", diagnostics=", artifact.diagnostics.summary.flag)
 report = fit_report(fit_result;

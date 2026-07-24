@@ -96,7 +96,7 @@ function _free_correlation_incomplete_person_data()
     )
 end
 
-@testset "quarantined MGMFRM 2D free latent correlation" begin
+@testset "experimental MGMFRM 2D free latent correlation" begin
     experimental = BayesianMGMFRM.Experimental
     data = _free_correlation_test_data()
     spec = mfrm_spec(
@@ -110,7 +110,8 @@ end
     )
 
     contract = experimental.free_latent_correlation_2d_contract()
-    @test contract.scope === :mgmfrm_2d_free_latent_correlation_candidate
+    @test contract.status === :experimental
+    @test contract.scope === :mgmfrm_2d_free_latent_correlation
     @test contract.dimensions == 2
     @test contract.q_matrix === :fixed_simple_structure
     @test contract.minimum_pure_items_per_dimension == 2
@@ -122,57 +123,12 @@ end
     @test contract.maximum_lkj_eta == 10_000
     @test !contract.fit_enabled
     @test !contract.cache_enabled
-    @test contract.sampler_smoke_enabled
-    @test contract.sampler_smoke_claim_scope ===
-        :execution_smoke_not_recovery
-    @test contract.oracle_profile_enabled
-    @test contract.oracle_profile_claim_scope ===
-        :oracle_complete_latent_profile_not_response_recovery
-    @test contract.known_truth_fixture_enabled
-    @test contract.known_truth_fixture_claim_scope ===
-        :response_level_dgp_not_recovery
-    @test contract.recovery_pilot_enabled
-    @test contract.recovery_pilot_modes == (:diagnostic_smoke, :scientific)
-    @test contract.recovery_pilot_sampler_defaults == (;
-        max_depth = 10,
-        metric = :diagonal,
+    @test contract.available_operations == (
+        :state,
+        :gradient_diagnostics,
     )
-    @test contract.scientific_pilot_minimum == (;
-        chains = 4,
-        warmup_per_chain = 500,
-        draws_per_chain = 500,
-    )
-    @test contract.end_to_end_response_recovery_status ===
-        :internal_single_dataset_pilot_available
-    @test contract.reproducibility_archive_status ===
-        :pending_closed_set_refresh
-    @test contract.replicated_study_status ===
-        :frozen_v2_plan_preexecution_controls_and_deterministic_scoring_scientific_execution_not_started
-    @test contract.replicated_study_plan_fingerprint ==
-        "d3f39355bf16c8ae984b58f5b2c52b5ab81ccbbe26a68379e31d0281b2beb4e3"
-    @test contract.replicated_study_unit_roster_sha256 ==
-        "0c4939ab76a0e5f78c2dd13896446c51a7faecdff65288b5b94c9c957cc62d08"
-    @test contract.replicated_study_scientific_mcmc_units_executed == 0
-    @test contract.replicated_study_run_unit_entrypoint_preflight_only
-    @test !contract.
-        replicated_study_run_unit_entrypoint_scientific_execution_enabled
-    @test !contract.replicated_study_frozen_plan_resource_probe_completed
-    @test !contract.replicated_study_short_nuts_resource_profile_completed
-    @test contract.replicated_study_preexecution_archive_runner_enabled
-    @test !contract.
-        replicated_study_preexecution_archive_runner_scientific_execution_enabled
-    @test !contract.replicated_study_atomic_scientific_worker_ready
-    @test !contract.
-        replicated_study_preload_immutable_source_snapshot_ready
-    @test !contract.
-        replicated_study_independently_recalculable_raw_draw_archive_ready
-    @test !contract.replicated_study_operational_execution_authorized
-    @test !contract.replicated_study_scientific_execution_authorized
-    @test contract.replicated_study_scientific_execution_required_gates ==
-        (:protocol, :operational, :atomic_archive_receipt)
-    @test contract.next_gate ===
-        :initial_gradient_resource_probe_then_short_nuts_profile_and_atomic_runner
-    @test contract.promotion_effect === :none
+    @test contract.evidence_scope ===
+        :density_and_gradient_diagnostics_only
     @test experimental.surface_contract().candidate_surfaces.
         mgmfrm_free_latent_correlation_2d == contract
     @test experimental.surface_contract(:mgmfrm).latent_correlation ===
@@ -951,13 +907,28 @@ end
             gradient_atol = 2e-5,
             gradient_rtol = 2e-5,
         )
+        @test diagnostics.schema ==
+            "bayesianmgmfrm.experimental_free_latent_correlation_2d_diagnostics.v1"
+        @test diagnostics.family === :mgmfrm
+        @test diagnostics.stability === :experimental
+        @test diagnostics.diagnostic_scope ===
+            :free_latent_correlation_2d_density
+        @test diagnostics.summary.status === :passed
         @test diagnostics.summary.passed
-        @test diagnostics.likelihood_identity.passed
-        @test diagnostics.likelihood_identity.abs_error == 0.0
+        @test diagnostics.response_likelihood_check.unchanged
+        @test diagnostics.response_likelihood_check.absolute_difference == 0.0
         @test diagnostics.correlation.rho ≈ tanh(checked_raw[end])
-        @test all(row -> row.passed, diagnostics.finite_difference_rows)
-        @test !diagnostics.public_fit
-        @test !diagnostics.cache_enabled
+        @test all(row -> row.passed, diagnostics.finite_difference_checks)
+        @test diagnostics.density_evaluation.log_density isa Real
+        @test length(diagnostics.density_evaluation.gradient) ==
+            length(checked_raw)
+        @test isempty(intersect(
+            Set(propertynames(diagnostics)),
+            Set((:status, :target, :public_fit, :fit_ready, :cache_enabled)),
+        ))
+        diagnostics_text = sprint(show, diagnostics)
+        @test !occursin("internal", lowercase(diagnostics_text))
+        @test !occursin("_mgmfrm_free_latent", diagnostics_text)
     end
 
     positive_oracle_raw = copy(base_raw)

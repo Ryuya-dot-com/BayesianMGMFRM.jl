@@ -13,61 +13,6 @@ module LD1B1PilotBatchRunnerForTest
 include(joinpath(@__DIR__, "..", "scripts",
     "run_local_dependence_calibration_pilot_batch.jl"))
 
-# The production runner must continue to reject any source-byte drift.  This
-# one-file binding exists only in this test module so the remainder of the
-# harness can still be exercised after that fail-closed boundary is verified.
-const _LD1B1_TEST_SOURCE_SHA_SHIM =
-    Ref{Union{Nothing,NamedTuple}}(nothing)
-
-_ld1b1_test_physical_file_sha256(path::AbstractString) =
-    bytes2hex(open(sha256, path))
-
-function _ld1b1_test_install_single_source_sha_shim!(
-        absolute_path::AbstractString,
-        recorded_sha256::AbstractString,
-        current_sha256::AbstractString)
-    isnothing(_LD1B1_TEST_SOURCE_SHA_SHIM[]) ||
-        error("the test-only source SHA shim is already installed")
-    normalized_path = normpath(abspath(String(absolute_path)))
-    expected_path = normpath(abspath(joinpath(
-        LD1B1_ROOT,
-        "src",
-        "bayesian_fit.jl",
-    )))
-    normalized_path == expected_path ||
-        error("the test-only source SHA shim is limited to src/bayesian_fit.jl")
-    recorded = String(recorded_sha256)
-    current = String(current_sha256)
-    occursin(r"^[0-9a-f]{64}$", recorded) ||
-        error("the recorded test-only source SHA is not canonical")
-    occursin(r"^[0-9a-f]{64}$", current) ||
-        error("the current test-only source SHA is not canonical")
-    recorded != current ||
-        error("the test-only source SHA shim requires actual provenance drift")
-    physical = _ld1b1_test_physical_file_sha256(normalized_path)
-    physical == current ||
-        error("the source changed before the test-only SHA shim was installed")
-    binding = (;
-        absolute_path = normalized_path,
-        recorded_sha256 = recorded,
-        current_sha256 = current,
-    )
-    _LD1B1_TEST_SOURCE_SHA_SHIM[] = binding
-    return binding
-end
-
-function ld1b1_file_sha256(path::String)
-    physical = _ld1b1_test_physical_file_sha256(path)
-    binding = _LD1B1_TEST_SOURCE_SHA_SHIM[]
-    if !isnothing(binding) &&
-            normpath(abspath(path)) == binding.absolute_path
-        physical == binding.current_sha256 || error(
-            "the shimmed source changed after provenance classification")
-        return binding.recorded_sha256
-    end
-    return physical
-end
-
 end
 
 module LD1B1PilotBatchHarnessGeneratorForTest
@@ -118,21 +63,22 @@ const LD1B1_HARNESS_TEST_LOCAL_CONTRACT =
         reference...,
         absolute_path = joinpath(dirname(@__DIR__), reference.path),
         recorded_sha256 = String(generator[String(reference.field)]),
-        current_sha256 = runner._ld1b1_test_physical_file_sha256(
+        current_sha256 = runner.ld1b1_file_sha256(
             joinpath(dirname(@__DIR__), reference.path)),
     ) for reference in references]
-    drift_rows = [row for row in source_rows
-        if row.recorded_sha256 != row.current_sha256]
 
     @test length(source_rows) == 5
     @test count(row -> row.recorded_sha256 == row.current_sha256,
-        source_rows) == 4
-    @test length(drift_rows) == 1
-    length(drift_rows) == 1 || error(
-        "the temporary test-only provenance shim requires exactly one drift")
-    drift = only(drift_rows)
+        source_rows) == 5
+
+    diagnostic = only(row for row in source_rows
+        if row.field === :diagnostic_source_sha256)
+    synthetic_sha256 = diagnostic.current_sha256 == repeat("0", 64) ?
+        repeat("1", 64) : repeat("0", 64)
+    drift = merge(diagnostic, (; recorded_sha256 = synthetic_sha256))
     @test drift.field === :diagnostic_source_sha256
     @test drift.path == "src/bayesian_fit.jl"
+    @test drift.recorded_sha256 != drift.current_sha256
 
     ordinary = LD1B1HarnessScientificPayloadDigest.
         reference_integrity_status(
@@ -157,36 +103,39 @@ const LD1B1_HARNESS_TEST_LOCAL_CONTRACT =
     @test !strict.exact_file_sha256_verified
     @test strict.archive_refresh_required
 
-    strict_error = try
-        runner.ld1b1_checked_protocol(
-            runner.LD1B1_DEFAULT_PROTOCOL;
-            job_runner_path = LD1B1_HARNESS_TEST_RUNNER_PATH,
+    mktempdir() do temporary_directory
+        drifted_protocol = deepcopy(LD1B1_HARNESS_TEST_PROTOCOL)
+        drifted_protocol["generator"]["diagnostic_source_sha256"] =
+            synthetic_sha256
+        delete!(drifted_protocol, "content_hash")
+        drifted_protocol["content_hash"] = Dict(
+            "algorithm" => "sha256",
+            "value" => runner.ld1b1_canonical_sha256(drifted_protocol),
+            "covers" => "artifact_without_content_hash",
+            "canonical_format" => "local_json_sorted_compact",
         )
-        nothing
-    catch error
-        error
-    end
-    @test strict_error isa ErrorException
-    @test occursin(
-        "protocol source identity mismatch: src/bayesian_fit.jl",
-        sprint(showerror, strict_error),
-    )
+        drifted_protocol_path = joinpath(
+            temporary_directory,
+            "local_dependence_pilot_protocol_preflight.json",
+        )
+        open(drifted_protocol_path, "w") do io
+            runner.write_json(io, drifted_protocol)
+            println(io)
+        end
 
-    binding = runner._ld1b1_test_install_single_source_sha_shim!(
-        drift.absolute_path,
-        drift.recorded_sha256,
-        drift.current_sha256,
-    )
-    @test binding.absolute_path == normpath(abspath(drift.absolute_path))
-    @test runner._ld1b1_test_physical_file_sha256(drift.absolute_path) ==
-        drift.current_sha256
-    @test runner.ld1b1_file_sha256(drift.absolute_path) ==
-        drift.recorded_sha256
-    @test_throws ErrorException begin
-        runner._ld1b1_test_install_single_source_sha_shim!(
-            drift.absolute_path,
-            drift.recorded_sha256,
-            drift.current_sha256,
+        strict_error = try
+            runner.ld1b1_checked_protocol(
+                drifted_protocol_path;
+                job_runner_path = LD1B1_HARNESS_TEST_RUNNER_PATH,
+            )
+            nothing
+        catch error
+            error
+        end
+        @test strict_error isa ErrorException
+        @test occursin(
+            "protocol source identity mismatch: src/bayesian_fit.jl",
+            sprint(showerror, strict_error),
         )
     end
 end
@@ -1138,6 +1087,7 @@ end
             checked.identity.ordered_job_rows_sha256,
         pilot_contract_sha256 = checked.identity.pilot_contract_sha256,
         project_toml_sha256 = checked.identity.project_toml_sha256,
+        manifest_toml = checked.identity.manifest_toml,
         manifest_toml_sha256 = checked.identity.manifest_toml_sha256,
         source_rows = checked.identity.source_rows,
     )
@@ -1156,8 +1106,10 @@ end
         checked.identity.source_rows)
     @test checked.identity.project_toml_sha256 ==
         runner.ld1b1_file_sha256(joinpath(dirname(@__DIR__), "Project.toml"))
+    @test checked.identity.manifest_toml == "Manifest-v1.10.toml"
     @test checked.identity.manifest_toml_sha256 ==
-        runner.ld1b1_file_sha256(joinpath(dirname(@__DIR__), "Manifest.toml"))
+        runner.ld1b1_file_sha256(joinpath(dirname(@__DIR__),
+            checked.identity.manifest_toml))
 
     fixture_path = get(
         ENV,
@@ -1187,6 +1139,7 @@ end
                 :ordered_job_rows_sha256,
                 :pilot_contract_sha256,
                 :project_toml_sha256,
+                :manifest_toml,
                 :manifest_toml_sha256,
             )
             @test String(fixture_identity[field]) ==

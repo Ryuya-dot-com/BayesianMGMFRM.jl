@@ -81,7 +81,7 @@ fit_result = fit(design;
     seed = 20260718,
 )
 
-diagnostics(fit_result)
+diagnostics(fit_result; view = :public)
 posterior_summary(fit_result)
 ```
 
@@ -209,72 +209,12 @@ The default identifier map still contains unsalted deterministic hashes of
 canonical label representations. That is pseudonymization, not anonymization;
 guessable labels can be matched and equal labels remain linkable across bundles.
 
-LD1a completes generator and structural-preflight coverage, LD1b0 adds the
-scorer contract, and LD1b1 validates only the pilot execution plan in the
-MCMC-free `local_dependence_pilot_protocol_preflight.json` artifact. The
-protocol keeps original failures visible when a retry is attempted and treats
-its operational bounds as study-local planning values. Package diagnostics now
-provide rank-normalized split R-hat plus bulk and tail ESS, so the preflight
-authorizes pilot execution against an exact diagnostic-contract record. That
-record pins the dependency version and operation order, primary fields, tail
-probability, minimum chain and draw requirements, complete-chain E-BFMI
-coverage, and the SHA-256 digest of `src/bayesian_fit.jl`.
-
-The MCMC-free `local_dependence_pilot_batch_execution_harness.json` dry run
-checks orchestration for all 660 planned rows: 540 eligible fitting jobs and
-120 planned pre-fit rejections. It records deterministic plan and job
-identities. The execution contract requires any future executor to be
-source-identified. Status-specific evidence must match its job, seeds, attempt,
-and terminal status. Each evidence role must identify one source artifact by
-byte count and SHA-256 and must name the exact upstream evidence hashes on
-which it depends. The frozen `pilot_contract` and the exact ordered 660 job rows
-must reproduce their canonical SHA-256 values. A `pre_fit_rejected` result must
-retain the exact `generated_data` -> `structural_rejection_audit` ->
-`calibration_row` evidence chain, with the calibration row conforming to the
-existing public calibration-row contract. Simulation evidence is validated at
-the response-data, table-column, probability-cell, truth, row-truth, and
-data/score/design-signature levels. Fit evidence must use the structured
-`local_dependence_pilot_fit_artifact_export.v1` JSON wrapper containing retained
-draws, log posterior values, and sampler statistics. Its package-native content
-hash must be verified by the future pinned canonical executor before JSON
-projection; the batch runner separately recomputes the canonical JSON payload
-hash and verifies the exact file SHA-256. The JSON projection cannot soundly
-reconstruct the native typed hash. Generated resource
-counts must match the frozen job, and sampler evidence is checked against the
-fixed 4-chain, 500-draw configuration and its R-hat, bulk/tail ESS, divergence,
-depth, and complete-chain E-BFMI gates. Data, design, fit-artifact, retained-
-draw, chain, and iteration provenance must agree across fit, sampler,
-local-dependence, and calibration evidence. The custom
-`local_dependence_pilot_summary_bundle.v1` directly records the draw-selection
-and posterior-predictive seeds; the runner compares both with its evidence
-payload, the frozen job, and the calibration execution seeds. Draw selection
-uses the frozen `sha256_seeded_rank_without_replacement_v1` algorithm, and the
-runner recomputes its ordered draw indices from the frozen seed.
-The posterior-predictive seed is source-bound, but seed-to-result replay
-verification remains
-pending the canonical single-job executor and bounded smoke review. A
-`diagnostic_failed` result must
-identify `sampler_quality_gate` only when the sampler gate failed, or
-`local_dependence_summary` only after that gate passed. Symbolic links, hard
-links, and unmanifested attempt files are rejected.
-Aggregate records remain traceable to the verified primary-result set. The
-contract also prohibits overwriting primary outcomes and keeps remediation
-attempts as additive records. On resume, it first rescans the complete attempt archive as
-the source of truth, then verifies and compares the derived checkpoint, and
-skips only verified terminal primary records. The generated dry-run artifact
-does not scan an attempt archive, so archive integrity is reported as not
-assessed rather than passed. File snapshots can be rechecked against a static
-attempt inventory, but that check is not an atomic completed-attempt seal. The
-canonical single-job executor and its bounded smoke review remain pending; the
-pilot cannot yet be started from the repository. A completed-attempt seal and an
-append-only recovery or retirement path for interrupted partial attempts also
-remain execution prerequisites. The dry run generates no response data, fits
-no model, and runs no MCMC. Pilot results, repeated calibration,
-pairwise power estimates, diagnostic decisions, and mechanism interpretations
-remain unavailable. The candidate evaluation sizes
-of 50 and 100 replications must be chosen and frozen after the pilot and before
-evaluation. Testlet, halo, rater-by-task, multidimensional, and temporal effects
-remain unsupported for fitting.
+LD1a provides known-truth simulation and structural checks, LD1b0 validates the
+calibration scorer, and LD1b1 freezes a 30-replication pilot plan for each of 22
+scenarios. These planning and validation layers run no MCMC and provide no
+repeated-calibration, power, diagnostic-decision, or mechanism-identification
+evidence. Testlet, response-cluster, halo, rater-by-task, multidimensional, and
+temporal effects remain unsupported for fitting.
 
 ## Experimental Fixed-Q MGMFRM
 

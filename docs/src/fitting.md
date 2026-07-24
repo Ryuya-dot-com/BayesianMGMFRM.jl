@@ -68,6 +68,17 @@ Sampler success is necessary but not sufficient. Review:
 Very short chains commonly produce unreliable R-hat and ESS values even when
 the example completes without an exception.
 
+[`fit_metadata`](@ref) and [`diagnostics`](@ref) retain their complete existing
+payload with the default `view = :full`. For a reader-facing structured result,
+request `view = :public`. The public form identifies its schema, model family,
+and stability level in a compact portable payload. Experimental fit metadata
+reports the fitted configuration as `estimation_status = :experimental`.
+Public generalized diagnostics retain raw-space, constrained-space, and
+combined convergence metrics, parameter names, and scientific warning counts,
+while omitting initialization identity hashes and repository artifact paths.
+The public form is intended for tables and reports, while the full form remains
+available when the complete fitting record is required.
+
 ## Experimental Generalized Fitting
 
 Generalized fitting is deliberately outside this stable fitting surface. Use
@@ -108,9 +119,24 @@ Report dossiers saved by v0.1.0 remain readable; loading converts them to the
 same portable form before rendering or resaving.
 
 Use [`fit_artifact`](@ref) for a hash-checked fit artifact and [`cached_fit`](@ref)
-when cache identity is explicitly part of the workflow. A cache hit should be
-accepted only when model, data, prior, initialization, backend, and sampler
-controls match the requested fit.
+when cache identity is explicitly part of the workflow. The compatibility
+default `view = :full` is the complete reproduction archive and can contain
+repository- and environment-specific metadata; use
+`fit_artifact(fit; view = :public)` when
+sharing a reader-facing artifact. The same distinction applies to
+[`model_manifest`](@ref) and [`fit_reproduction_manifest`](@ref): retain the
+full view for a private reproduction record and request `view = :public` for a
+portable public projection. A cache hit should be accepted only when model,
+data, prior, initialization, backend, and sampler controls match the requested
+fit.
+
+The same optional view is available for
+[`sensitivity_comparison_summary`](@ref),
+[`comparison_evidence_summary`](@ref), [`benchmark_summary`](@ref),
+[`simulation_grid`](@ref), [`simulation_grid_summary`](@ref), and
+[`falsification_rule_summary`](@ref). Their public projections retain the
+scientific results in compact reader-facing payloads; the default full payload
+remains unchanged.
 
 ## FACETS-Compatible Descriptive Rows
 

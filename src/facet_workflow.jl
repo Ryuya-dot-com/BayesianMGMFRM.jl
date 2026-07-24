@@ -71,11 +71,12 @@ end
     FacetSpec
 
 Machine-readable many-facet measurement specification produced by `mfrm_spec`.
-The current fitting compiler supports the minimal one-dimensional MFRM/RSM/PCM
-slice. The same object can also hold planned GMFRM/MGMFRM configuration intent
-so reviewers and downstream reports can inspect family, dimensionality,
-discrimination, Q-mask, validation-bias terms, anchors, constraints, and prior
-contracts before those terms are exposed for fitting.
+The stable compiler and [`fit`](@ref) entrypoint support the minimal
+one-dimensional MFRM/RSM/PCM slice. The same object can hold GMFRM/MGMFRM
+configuration intent for design inspection. A narrower scalar-GMFRM and
+fixed-Q confirmatory MGMFRM subset is available through the explicitly limited
+`BayesianMGMFRM.Experimental.fit(spec)` entrypoint; broader represented
+configurations remain inspection-only.
 """
 struct FacetSpec
     data::FacetData
@@ -123,8 +124,12 @@ FacetSpec(data::FacetData, thresholds::Symbol, validation::ValidationReport) =
     FacetDesign
 
 Inspectable design object with deterministic parameter names and block ranges.
-The current scaffold uses reference constraints for rater and item blocks and
-sum-to-zero threshold steps.
+Stable MFRM/RSM/PCM designs use reference constraints for rater and item blocks
+and sum-to-zero threshold steps. GMFRM/MGMFRM preview designs expose their
+declared raw and constrained parameter layouts for inspection; only the narrow
+subset accepted by `BayesianMGMFRM.Experimental.fit(spec)` is numerically
+available, and that limited entrypoint does not make the preview compiler a
+stable generalized fitting API.
 """
 struct FacetDesign
     spec::FacetSpec
@@ -1169,7 +1174,7 @@ end
 
 """
     anchor_linking_summary(data_or_spec; unit = :person_item,
-        min_shared_units = 1, sensitivity_rows = nothing)
+        min_shared_units = 1, sensitivity_rows = nothing, view = :full)
 
 Return a compact anchoring and rater-linking diagnostic summary. The summary
 combines declared hard/soft anchor rows from a `FacetSpec` or `FacetDesign`,
@@ -1183,10 +1188,16 @@ refits. Use it to document whether declared anchors are internally consistent
 and whether raters are connected strongly enough for a planned analysis.
 `unit = :testlet_id` and `:person_testlet` are descriptive coverage units and
 are rejected here; use `rater_overlap` to inspect them without a linking claim.
+The compatibility default `view = :full` retains the complete design-review
+record. Use `view = :public` for a concise diagnostic projection without
+workflow-control fields or attached sensitivity records.
 """
 function anchor_linking_summary(data_or_spec; unit::Symbol = :person_item,
         min_shared_units::Int = 1,
-        sensitivity_rows = nothing)
+        sensitivity_rows = nothing,
+        view::Symbol = :full)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     min_shared_units >= 1 ||
         throw(ArgumentError("min_shared_units must be positive"))
     _require_rater_linking_unit(unit, :anchor_linking_summary)
@@ -1213,7 +1224,7 @@ function anchor_linking_summary(data_or_spec; unit::Symbol = :person_item,
     linking_passed = rater_linking_status !== :disconnected
     sensitivity_passed = sensitivity_rows === nothing || sensitivity.passed === true
 
-    return (;
+    full = (;
         schema = "bayesianmgmfrm.anchor_linking_summary.v1",
         object = :anchor_linking_summary,
         family = spec === nothing ? missing : spec.family,
@@ -1249,6 +1260,44 @@ function anchor_linking_summary(data_or_spec; unit::Symbol = :person_item,
         passed = linking_passed && n_anchor_target_failures == 0 && sensitivity_passed,
         caveat = :diagnostic_summary_not_anchor_refit_or_linking_estimator,
         next_gate = :predeclared_anchor_sensitivity_case_study,
+    )
+    return view === :public ? _public_anchor_linking_summary(full) : full
+end
+
+function _public_anchor_linking_summary(summary)
+    return (;
+        schema = "bayesianmgmfrm.anchor_linking_summary_public.v1",
+        object = :anchor_linking_summary,
+        stability = :stable,
+        claim_scope = :anchor_and_rater_linking_diagnostic_only,
+        family = summary.family,
+        thresholds = summary.thresholds,
+        data_signature = summary.data_signature,
+        unit = summary.unit,
+        min_shared_units = summary.min_shared_units,
+        n_raters = summary.n_raters,
+        rater_linking_status = summary.rater_linking_status,
+        n_rater_components = summary.n_rater_components,
+        rater_components = summary.rater_components,
+        largest_rater_component = summary.largest_rater_component,
+        n_overlap_pairs = summary.n_overlap_pairs,
+        n_links_at_or_above_min = summary.n_links_at_or_above_min,
+        n_weak_links = summary.n_weak_links,
+        n_zero_overlap_pairs = summary.n_zero_overlap_pairs,
+        minimum_shared_units = summary.minimum_shared_units,
+        overlap_rows = summary.overlap_rows,
+        anchor_status = summary.anchor_status,
+        n_anchors = summary.n_anchors,
+        n_hard_anchors = summary.n_hard_anchors,
+        n_soft_anchors = summary.n_soft_anchors,
+        n_anchor_target_failures = summary.n_anchor_target_failures,
+        anchor_rows = summary.anchor_rows,
+        anchor_sensitivity_status = summary.anchor_sensitivity_status,
+        anchor_sensitivity_passed = summary.anchor_sensitivity_passed,
+        anchor_sensitivity_n_rows = summary.anchor_sensitivity_n_rows,
+        anchor_sensitivity_missing_required_axes =
+            summary.anchor_sensitivity_missing_required_axes,
+        passed = summary.passed,
     )
 end
 
@@ -1370,7 +1419,7 @@ end
 
 """
     rating_design_audit(data_or_spec_or_design; unit = :person_item,
-        min_shared_units = 1, min_sparse_cell_count = 2)
+        min_shared_units = 1, min_sparse_cell_count = 2, view = :full)
 
 Return a report-ready audit of the observed rating design before fitting. Rows
 summarize person-rater-item graph components, rater overlap strength, anchor
@@ -1384,11 +1433,17 @@ unobserved complete-grid cells and explicitly marks structural versus
 accidental missingness as not identified from the observed data alone.
 `unit = :testlet_id` and `:person_testlet` are descriptive coverage units and
 cannot be used for the audit's rater-link connectivity decision.
+The compatibility default `view = :full` retains the complete audit record.
+Use `view = :public` for a reader-facing projection with a public nested anchor
+summary and without model-compiler status fields.
 """
 function rating_design_audit(data_or_spec_or_design;
         unit::Symbol = :person_item,
         min_shared_units::Int = 1,
-        min_sparse_cell_count::Int = 2)
+        min_sparse_cell_count::Int = 2,
+        view::Symbol = :full)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     min_shared_units >= 1 ||
         throw(ArgumentError("min_shared_units must be positive"))
     min_sparse_cell_count >= 1 ||
@@ -1580,7 +1635,7 @@ function rating_design_audit(data_or_spec_or_design;
     passed = graph_status !== :disconnected &&
         rater_linking_status !== :disconnected &&
         anchor_summary.passed === true
-    return (;
+    full = (;
         schema = "bayesianmgmfrm.rating_design_audit.v1",
         object = :rating_design_audit,
         family = spec === nothing ? missing : spec.family,
@@ -1616,6 +1671,29 @@ function rating_design_audit(data_or_spec_or_design;
             optional_time_order_recorded = optional.occasion_recorded,
             nonignorable_assignment_flagged = true,
         ),
+    )
+    return view === :public ? _public_rating_design_audit(full) : full
+end
+
+function _public_rating_design_audit(audit)
+    return (;
+        schema = "bayesianmgmfrm.rating_design_audit_public.v1",
+        object = :rating_design_audit,
+        stability = :stable,
+        claim_scope = :observed_rating_design_diagnostic_only,
+        family = audit.family,
+        thresholds = audit.thresholds,
+        data_signature = audit.data_signature,
+        unit = audit.unit,
+        min_shared_units = audit.min_shared_units,
+        min_sparse_cell_count = audit.min_sparse_cell_count,
+        status = audit.status,
+        passed = audit.passed,
+        rows = audit.rows,
+        n_rows = audit.n_rows,
+        overlap_rows = audit.overlap_rows,
+        anchor_linking = _public_anchor_linking_summary(audit.anchor_linking),
+        summary = audit.summary,
     )
 end
 
@@ -1667,19 +1745,23 @@ function _guarded_generalized_fit_capability(family::Symbol)
 end
 
 """
-    model_ladder()
+    model_ladder(; view = :full)
 
 Return the package's machine-readable model ladder. Rows distinguish the
 implemented minimal MFRM/RSM/PCM fitting slice, guarded experimental
 generalized fit surfaces, and broader specified-only GMFRM/MGMFRM
 configurations. The ladder is documentation data: it is used to keep claims
 about fitting support separate from claims about representable specification
-intent.
+intent. The compatibility default `view = :full` retains the original ladder
+rows. Use `view = :public` for rows with explicit stability, fit entrypoint,
+and claim scope fields.
 """
-function model_ladder()
+function model_ladder(; view::Symbol = :full)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     gmfrm_capability = _guarded_generalized_fit_capability(:gmfrm)
     mgmfrm_capability = _guarded_generalized_fit_capability(:mgmfrm)
-    return [
+    rows = [
         (;
             family = :mfrm,
             scope = :minimal_mfrm_rsm_pcm,
@@ -1745,6 +1827,50 @@ function model_ladder()
             note = "source-aligned preview for broader manifests and multidimensional gauge review; broad fitting remains planned",
         ),
     ]
+    return view === :public ? [_public_model_ladder_row(row) for row in rows] : rows
+end
+
+function _public_model_ladder_row(row)
+    availability = if row.estimation_status === :fit_supported
+        (;
+            stability = :stable,
+            fit_available = true,
+            entrypoint = "BayesianMGMFRM.fit(spec)",
+            claim_scope = :minimal_mfrm_rsm_pcm,
+        )
+    elseif row.estimation_status === :experimental_public
+        (;
+            stability = :experimental,
+            fit_available = true,
+            entrypoint = _EXPERIMENTAL_CANONICAL_ENTRYPOINT,
+            claim_scope = row.family === :gmfrm ?
+                :scalar_rater_consistency_only : :fixed_q_confirmatory_only,
+        )
+    else
+        (;
+            stability = :not_supported,
+            fit_available = false,
+            entrypoint = missing,
+            claim_scope = :specification_and_design_inspection_only,
+        )
+    end
+    base = (;
+        schema = "bayesianmgmfrm.model_ladder_row_public.v1",
+        family = row.family,
+        availability...,
+        dimensions = row.dimensions,
+        discrimination = row.discrimination,
+        threshold_regimes = row.threshold_regimes,
+        identification = row.identification,
+        note = row.note,
+    )
+    if haskey(row, :spec_discrimination)
+        return merge(base, (;
+            spec_discrimination = row.spec_discrimination,
+            kernel_discrimination = row.kernel_discrimination,
+        ))
+    end
+    return base
 end
 
 function _release_scope_fit_surface_rows()
@@ -2384,9 +2510,9 @@ function _related_software_capability_rows()
 end
 
 """
-    related_software_capability_matrix()
+    related_software_capability_matrix(; view = :full)
 
-Return the v0.1.1 related-software positioning matrix. The matrix compares
+Return the related-software positioning matrix. The matrix compares
 Facets, TAM, mirt, sirt, immer, brms/Stan-style workflows, and
 `BayesianMGMFRM.jl` across model coverage, estimation style, rater/facet
 support, multidimensional support, Bayesian workflow support, diagnostics and
@@ -2395,8 +2521,14 @@ sensitivity coverage, and report-artifact support.
 This is a scope-governance artifact, not validation evidence and not a
 superiority claim. Overlap comparisons against R packages or Facets remain a
 post-v0.2.0 known-truth simulation task where model targets genuinely overlap.
+The compatibility default `view = :full` retains the original governance
+record. Use `view = :public` for a reader-facing capability matrix that keeps
+the substantive comparison axes and external sources without local workflow
+fields.
 """
-function related_software_capability_matrix()
+function related_software_capability_matrix(; view::Symbol = :full)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     rows = _related_software_capability_rows()
     sources = _related_software_source_rows()
     axes = (
@@ -2408,7 +2540,7 @@ function related_software_capability_matrix()
         :diagnostics_and_sensitivity,
         :report_artifact_support,
     )
-    return (;
+    full = (;
         schema = "bayesianmgmfrm.related_software_capability_matrix.v1",
         object = :related_software_capability_matrix,
         status = :scope_positioning_recorded,
@@ -2436,6 +2568,73 @@ function related_software_capability_matrix()
                 :source_audited_bayesian_rater_mediated_mgmfrm_workflow,
         ),
     )
+    return view === :public ? _public_related_software_capability_matrix(full) : full
+end
+
+function _public_related_software_row(row)
+    public_model_coverage = Tuple(
+        value === :blocked_broad_generalized_mgmfrm ?
+            :broader_generalized_mgmfrm_not_supported : value
+        for value in row.model_coverage
+    )
+    public_diagnostics = Tuple(
+        value === :release_gate_check ? :scope_and_evidence_checks : value
+        for value in row.diagnostics_and_sensitivity
+    )
+    public_overlap = Tuple(
+        value === :package_under_development ?
+            :package_specific_bayesian_workflow : value
+        for value in row.bayesianmgmfrm_overlap
+    )
+    return (;
+        schema = "bayesianmgmfrm.related_software_capability_row_public.v1",
+        tool = row.tool,
+        display_name = row.display_name,
+        ecosystem = row.ecosystem,
+        current_role = row.current_role,
+        model_coverage = public_model_coverage,
+        estimation_methods = row.estimation_methods,
+        rater_facet_support = row.rater_facet_support,
+        multidimensional_support = row.multidimensional_support,
+        bayesian_support = row.bayesian_support,
+        diagnostics_and_sensitivity = public_diagnostics,
+        report_artifact_support = row.report_artifact_support,
+        bayesianmgmfrm_overlap = public_overlap,
+        source_urls = Tuple(url for url in row.source_urls
+            if !startswith(url, "local://")),
+    )
+end
+
+function _public_related_software_capability_matrix(matrix)
+    rows = Tuple(_public_related_software_row(row) for row in matrix.rows)
+    sources = Tuple(row for row in matrix.sources
+        if !startswith(row.url, "local://"))
+    return (;
+        schema = "bayesianmgmfrm.related_software_capability_matrix_public.v1",
+        object = :related_software_capability_matrix,
+        stability = :stable,
+        claim_scope = :descriptive_scope_positioning_not_validation_or_superiority,
+        axes = matrix.axes,
+        rows,
+        sources,
+        summary = (;
+            n_tools = length(rows),
+            n_axes = length(matrix.axes),
+            tools = Tuple(row.tool for row in rows),
+            includes_facets = any(row -> row.tool === :facets, rows),
+            includes_tam = any(row -> row.tool === :tam, rows),
+            includes_mirt = any(row -> row.tool === :mirt, rows),
+            includes_sirt = any(row -> row.tool === :sirt, rows),
+            includes_immer = any(row -> row.tool === :immer, rows),
+            includes_brms_stan = any(row -> row.tool === :brms_stan, rows),
+            includes_bayesianmgmfrm =
+                any(row -> row.tool === :bayesianmgmfrm, rows),
+            no_superiority_claims = true,
+            generic_irt_replacement = false,
+            external_overlap_validation_claim = false,
+            package_niche = matrix.summary.package_niche,
+        ),
+    )
 end
 
 _release_gate_default_root() = normpath(joinpath(@__DIR__, ".."))
@@ -2461,10 +2660,10 @@ function _release_gate_document_specs()
             target = :news_public_changes,
             path = "NEWS.md",
             required = (
-                "## Unreleased",
+                "## 0.1.2 (unreleased)",
                 "BayesianMGMFRM.Experimental",
-                "canonical quarantine namespace",
-                "no longer the recommended entry point",
+                "documented scalar rater-consistency GMFRM",
+                "not part of the stable fitting",
                 "## 0.1.1",
                 "User-facing experimental fit displays",
                 "Refocus the published manual on installation, model scope, fitting",
@@ -2504,11 +2703,11 @@ function _release_gate_document_specs()
                 "BayesianMGMFRM.Experimental.fit",
                 "fit(spec; experimental = true)",
                 "fixed-Q confirmatory MGMFRM",
-                "contract.stable_public_gates",
-                "contract.external_validated_gates",
-                "Stable-public consideration",
-                "external-validated level separately",
-                "tests does not perform it",
+                "contract.families.mgmfrm",
+                "contract.candidate_surfaces.mgmfrm_free_latent_correlation_2d",
+                "A successful run demonstrates only that exact",
+                "does not establish broader source-equation coverage",
+                "construct validity",
             ),
             forbidden = (),
         ),
@@ -3981,6 +4180,17 @@ function _check_guarded_generalized_spec(
     return capability
 end
 
+function _experimental_generalized_fit_supported(spec::FacetSpec)
+    spec.family in (:gmfrm, :mgmfrm) || return false
+    try
+        _check_guarded_generalized_spec(spec, "experimental fit capability")
+        return true
+    catch err
+        err isa ArgumentError || rethrow()
+        return false
+    end
+end
+
 function _spec_scope(family::Symbol, status::Symbol)
     family === :mfrm && status === :fit_supported && return :minimal_mfrm_rsm_pcm
     family === :mfrm && return :planned_mfrm_variant
@@ -4112,11 +4322,17 @@ records the intended likelihood family, a compact adjacent-category logit
 kernel, primary-source references, required parameter blocks, identification
 restrictions, and implementation gaps.
 
-For specified-only GMFRM/MGMFRM specs this function deliberately reports the
-missing blocks needed to match the literature equations; it does not enable
-fitting.
+For GMFRM/MGMFRM specifications, `fit_ready` continues to describe the stable
+compiler route and remains `false`. `experimental_fit_available` separately
+records whether the documented limited configuration can be executed through
+[`BayesianMGMFRM.Experimental.fit`](@ref). The implementation-gap rows retain
+the broader literature-alignment work that is outside that limited route;
+`implementation_gap_scope` identifies that stable-compiler and broader-model
+boundary explicitly.
 """
 function model_equation(spec::FacetSpec)
+    implementation_gaps = _equation_implementation_gaps(spec)
+    experimental_fit_available = _experimental_generalized_fit_supported(spec)
     return (;
         schema = "bayesianmgmfrm.model_equation.v1",
         family = spec.family,
@@ -4127,15 +4343,21 @@ function model_equation(spec::FacetSpec)
         discrimination = spec.discrimination,
         estimation_status = spec.estimation_status,
         probability_form = :adjacent_category_softmax,
-        category_indexing = :internal_one_based_with_observed_integer_scores,
+        category_indexing = :one_based_with_observed_integer_scores,
         kernel = _equation_kernel(spec),
         primary_sources = _equation_sources(spec.family, spec.thresholds),
         source_urls = _equation_source_urls(spec.family, spec.thresholds),
         required_blocks = _equation_required_blocks(spec),
         identification = _equation_identification(spec),
-        implementation_gaps = _equation_implementation_gaps(spec),
+        implementation_gaps,
+        implementation_gap_scope = spec.family === :mfrm ?
+            :none : :stable_compiler_and_broader_scope,
         fit_ready = spec.estimation_status === :fit_supported &&
-            isempty(_equation_implementation_gaps(spec)),
+            isempty(implementation_gaps),
+        experimental_fit_available,
+        experimental_fit_entrypoint =
+            experimental_fit_available ?
+            "BayesianMGMFRM.Experimental.fit(spec)" : nothing,
     )
 end
 
@@ -4637,10 +4859,12 @@ Return the current minimal additive RSM/PCM design scaffold. The first rater
 and first item levels are fixed to zero as reference levels. Rating-scale and
 partial-credit threshold steps are represented with a sum-to-zero constraint.
 
-Specified-only GMFRM/MGMFRM configurations are rejected by default so fitting
-code cannot silently use an unsupported likelihood. Set `preview = true` to
-compile an inspectable, non-fit-ready parameter blueprint for specified-only
-configurations.
+Specified-only GMFRM/MGMFRM configurations are rejected by this stable compiler
+route so fitting code cannot silently use an unsupported likelihood. Set
+`preview = true` to compile an inspectable parameter blueprint. The documented
+partial-credit scalar GMFRM and fixed-Q, identity-correlation MGMFRM subsets are
+fit-ready only through [`BayesianMGMFRM.Experimental.fit`](@ref); other preview
+configurations remain inspection-only.
 """
 function getdesign(spec::FacetSpec; preview::Bool = false)
     _require_current_facet_spec(spec, "getdesign")
@@ -4661,9 +4885,11 @@ end
 
 Return machine-readable identification and transform declarations for a
 `FacetSpec` or `FacetDesign`. For specified-only GMFRM/MGMFRM configurations,
-rows explain the planned constraint/gauge rather than pretending the likelihood
-is fit-ready. For a compiled `FacetDesign`, implemented rows also include
-parameter ranges and names.
+rows explain the declared constraint/gauge. The documented partial-credit
+scalar GMFRM and fixed-Q, identity-correlation MGMFRM subsets are executable
+only through [`BayesianMGMFRM.Experimental.fit`](@ref); all other generalized
+configurations remain inspection-only. For a compiled `FacetDesign`,
+implemented rows also include parameter ranges and names.
 """
 function constraint_table(spec::FacetSpec)
     return copy(spec.constraints)
@@ -5106,9 +5332,10 @@ threshold-step values, their sum, the category score `eta`, the row log
 denominator, and the category log probability.
 
 Numeric values are deliberately not implemented for specified-only
-GMFRM/MGMFRM previews. Those models still require fixture-backed identified
-transforms and a public generalized likelihood interface before fitting or
-numeric likelihood evaluation is exposed.
+GMFRM/MGMFRM previews. The limited
+`BayesianMGMFRM.Experimental.fit(spec)` entrypoint performs its own guarded
+generalized evaluation, but it does not extend this stable compiler-inspection
+helper to generalized parameter vectors.
 """
 function linear_predictor_values(spec::FacetSpec, params::AbstractVector; preview::Bool = false)
     return linear_predictor_values(getdesign(spec; preview), params)
@@ -6047,8 +6274,88 @@ function _generalized_fit_ready_parameter_layout(design::FacetDesign, blueprint)
     )
 end
 
+const _PUBLIC_PARAMETER_LAYOUT_ROW_FIELDS = Set((
+    :anchor_scale,
+    :anchor_type,
+    :anchor_value,
+    :block,
+    :components,
+    :constrained_block,
+    :constrained_first_parameter,
+    :constrained_last_parameter,
+    :constrained_n_parameters,
+    :constrained_parameter_names,
+    :constraint,
+    :dimensions,
+    :family,
+    :first_parameter,
+    :identification,
+    :jacobian_policy,
+    :last_parameter,
+    :n_parameters,
+    :parameter_names,
+    :prior_block,
+    :raw_block,
+    :raw_first_parameter,
+    :raw_last_parameter,
+    :raw_n_parameters,
+    :raw_parameter_names,
+    :rule,
+    :transform,
+))
+
+function _public_parameter_layout_row(row::NamedTuple)
+    pairs = Pair{Symbol,Any}[]
+    for field in keys(row)
+        field in _PUBLIC_PARAMETER_LAYOUT_ROW_FIELDS || continue
+        value = getproperty(row, field)
+        if value isa AbstractArray
+            value = copy(value)
+        end
+        push!(pairs, field => value)
+    end
+    return (; pairs...)
+end
+
+function _public_fit_ready_parameter_layout(layout, spec::FacetSpec)
+    availability = _public_model_availability(spec)
+    return (;
+        schema = "bayesianmgmfrm.fit_ready_parameter_layout_public.v1",
+        object = :fit_ready_parameter_layout,
+        family = layout.family,
+        stability = availability.stability,
+        fit_available = availability.fit_available,
+        entrypoint = availability.entrypoint,
+        claim_scope = availability.claim_scope,
+        likelihood = layout.likelihood,
+        density_space = layout.density_space,
+        parameterization = layout.parameterization,
+        n_parameters = layout.n_parameters,
+        parameter_names = copy(layout.parameter_names),
+        blocks = [_public_parameter_layout_row(row) for row in layout.blocks],
+        n_raw_parameters = layout.n_raw_parameters,
+        raw_parameter_names = copy(layout.raw_parameter_names),
+        raw_blocks = [_public_parameter_layout_row(row) for row in layout.raw_blocks],
+        n_constrained_parameters = layout.n_constrained_parameters,
+        constrained_parameter_names = copy(layout.constrained_parameter_names),
+        constrained_blocks = [
+            _public_parameter_layout_row(row) for row in layout.constrained_blocks
+        ],
+        transforms = [
+            _public_parameter_layout_row(row) for row in layout.transforms
+        ],
+        constraints = [
+            _public_parameter_layout_row(row) for row in layout.constraints
+        ],
+        identification_declarations = [
+            _public_parameter_layout_row(row)
+            for row in layout.identification_declarations
+        ],
+    )
+end
+
 """
-    fit_ready_parameter_layout(spec_or_design; preview = false)
+    fit_ready_parameter_layout(spec_or_design; preview = false, view = :full)
 
 Return deterministic parameter names and block ranges for each compiled
 likelihood layout currently represented by the package. The fit-supported
@@ -6058,28 +6365,43 @@ including raw-to-constrained transform rows, without enabling broad public
 generalized fitting.
 
 For specified-only `FacetSpec` values, pass `preview = true`, matching
-[`getdesign`](@ref).
+[`getdesign`](@ref). The compatibility default `view = :full` retains the
+complete compiler record. Use `view = :public` for a reader-facing projection
+that states stable or experimental fit availability directly while retaining
+the scientific raw/constrained parameter layout.
 """
-function fit_ready_parameter_layout(spec::FacetSpec; preview::Bool = false)
-    return fit_ready_parameter_layout(getdesign(spec; preview))
+function fit_ready_parameter_layout(spec::FacetSpec;
+        preview::Bool = false,
+        view::Symbol = :full)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
+    return fit_ready_parameter_layout(getdesign(spec; preview); view)
 end
 
-function fit_ready_parameter_layout(design::FacetDesign; preview::Bool = false)
+function fit_ready_parameter_layout(design::FacetDesign;
+        preview::Bool = false,
+        view::Symbol = :full)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     preview &&
         throw(ArgumentError("preview is only a FacetSpec compilation option; pass fit_ready_parameter_layout(spec; preview = true)"))
-    if design.spec.family === :mfrm && design.spec.estimation_status === :fit_supported
-        return _mfrm_fit_ready_parameter_layout(design)
+    layout = if design.spec.family === :mfrm &&
+            design.spec.estimation_status === :fit_supported
+        _mfrm_fit_ready_parameter_layout(design)
     elseif design.spec.family === :gmfrm && design.spec.estimation_status === :specified_only
         blueprint = _gmfrm_fit_ready_candidate_blueprint(design)
-        return _generalized_fit_ready_parameter_layout(design, blueprint)
+        _generalized_fit_ready_parameter_layout(design, blueprint)
     elseif design.spec.family === :mgmfrm && design.spec.estimation_status === :specified_only
         blueprint = _mgmfrm_fit_ready_candidate_blueprint(design)
-        return _generalized_fit_ready_parameter_layout(design, blueprint)
+        _generalized_fit_ready_parameter_layout(design, blueprint)
+    else
+        throw(ArgumentError(
+            "fit_ready_parameter_layout currently supports fit-supported MFRM/RSM/PCM " *
+            "designs and specified-only GMFRM/MGMFRM preview designs",
+        ))
     end
-    throw(ArgumentError(
-        "fit_ready_parameter_layout currently supports fit-supported MFRM/RSM/PCM " *
-        "designs and specified-only GMFRM/MGMFRM preview designs",
-    ))
+    return view === :public ?
+        _public_fit_ready_parameter_layout(layout, design.spec) : layout
 end
 
 function _specified_only_preview_parameter_layout(design::FacetDesign)
@@ -6324,8 +6646,46 @@ function _domain_validation_requirement_rows(spec::FacetSpec, layout)
     return rows
 end
 
+function _public_domain_option_value(row)
+    if row.domain_option === :anchors && row.option_value isa NamedTuple
+        return _public_anchor_manifest(row.option_value)
+    elseif row.option_value isa AbstractArray
+        return copy(row.option_value)
+    end
+    return row.option_value
+end
+
+function _public_domain_compilation_row(row, spec::FacetSpec)
+    availability = _public_model_availability(spec)
+    return (;
+        schema = "bayesianmgmfrm.domain_compilation_row_public.v1",
+        family = row.family,
+        stability = availability.stability,
+        fit_available = availability.fit_available,
+        entrypoint = availability.entrypoint,
+        claim_scope = availability.claim_scope,
+        domain_option = row.domain_option,
+        option_value = _public_domain_option_value(row),
+        compiled_role = row.compiled_role,
+        block = row.block,
+        raw_block = row.raw_block,
+        constrained_block = row.constrained_block,
+        parameter_names = copy(row.parameter_names),
+        raw_parameter_names = copy(row.raw_parameter_names),
+        constraint = row.constraint,
+        transform = row.transform,
+        prior_block = row.prior_block,
+        prior = row.prior,
+        scoring_vector = copy(row.scoring_vector),
+        loading_mask = row.loading_mask isa AbstractArray ?
+            copy(row.loading_mask) : row.loading_mask,
+        validation_requirement = row.validation_requirement,
+        note = row.note,
+    )
+end
+
 """
-    domain_compilation_summary(spec_or_design; preview = false)
+    domain_compilation_summary(spec_or_design; preview = false, view = :full)
 
 Return a review table showing how domain options were compiled into the current
 design contract. Rows cover likelihood family, additive/location blocks,
@@ -6336,13 +6696,24 @@ Fit-supported MFRM/RSM/PCM designs report `fit_ready = true` and
 `public_fit = true`. Specified-only GMFRM/MGMFRM previews report the
 experimental parameterization without enabling broad generalized fitting. For
 specified-only `FacetSpec` values, pass `preview = true`, matching
-[`getdesign`](@ref).
+[`getdesign`](@ref). The compatibility default `view = :full` retains the
+complete compiler record. Use `view = :public` for rows that state stable or
+experimental fit availability directly, omit compiler-control fields, and
+redact non-scientific anchor metadata.
 """
-function domain_compilation_summary(spec::FacetSpec; preview::Bool = false)
-    return domain_compilation_summary(getdesign(spec; preview))
+function domain_compilation_summary(spec::FacetSpec;
+        preview::Bool = false,
+        view::Symbol = :full)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
+    return domain_compilation_summary(getdesign(spec; preview); view)
 end
 
-function domain_compilation_summary(design::FacetDesign; preview::Bool = false)
+function domain_compilation_summary(design::FacetDesign;
+        preview::Bool = false,
+        view::Symbol = :full)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     preview &&
         throw(ArgumentError("preview is only a FacetSpec compilation option; pass domain_compilation_summary(spec; preview = true)"))
     spec = design.spec
@@ -6419,7 +6790,8 @@ function domain_compilation_summary(design::FacetDesign; preview::Bool = false)
         ))
     end
     append!(rows, _domain_validation_requirement_rows(spec, layout))
-    return rows
+    return view === :public ?
+        [_public_domain_compilation_row(row, spec) for row in rows] : rows
 end
 
 function _surface_status_policy_for_spec(spec::FacetSpec)
@@ -6560,29 +6932,54 @@ function _model_surface_audit(design::FacetDesign; status_policy = _surface_stat
 end
 
 """
-    model_surface_audit(spec_or_design; preview = nothing)
+    model_surface_audit(spec_or_design; preview = nothing, view = :full)
 
 Return a machine-readable audit table for the current model surface. Rows trace
 each parameter or validation block from the source-equation symbol to the direct
 interpretation, raw coordinate, constraint, prior scale, report label, and
 current status policy.
 
+The compatibility default `view = :full` retains additional provenance fields.
+Use `view = :public` for a concise reader-facing result. Public rows keep model
+execution availability (`execution_status`, `fit_available`, and
+`fit_entrypoint`) separate from each block's `declaration_status`.
+
 For specified-only GMFRM/MGMFRM specs, `preview` defaults to `true` so the audit
 can inspect the represented source-aligned blocks without enabling broad public
 fitting. Passing a compiled `FacetDesign` audits that design directly.
 """
-function model_surface_audit(spec::FacetSpec; preview::Union{Nothing,Bool} = nothing)
+function model_surface_audit(spec::FacetSpec;
+        preview::Union{Nothing,Bool} = nothing,
+        view::Symbol = :full)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     compile_preview = preview === nothing ?
         spec.estimation_status !== :fit_supported :
         preview
     design = getdesign(spec; preview = compile_preview)
-    return _model_surface_audit(design; status_policy = _surface_status_policy_for_spec(spec))
+    rows = _model_surface_audit(
+        design;
+        status_policy = _surface_status_policy_for_spec(spec),
+    )
+    return view === :public ?
+        _public_model_surface_rows(rows, _public_model_availability(spec)) : rows
 end
 
-function model_surface_audit(design::FacetDesign; preview::Bool = false)
+function model_surface_audit(design::FacetDesign;
+        preview::Bool = false,
+        view::Symbol = :full)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     preview &&
         throw(ArgumentError("preview is only a FacetSpec compilation option; pass model_surface_audit(spec; preview = true)"))
-    return _model_surface_audit(design; status_policy = _surface_status_policy_for_spec(design.spec))
+    rows = _model_surface_audit(
+        design;
+        status_policy = _surface_status_policy_for_spec(design.spec),
+    )
+    return view === :public ? _public_model_surface_rows(
+        rows,
+        _public_model_availability(design.spec),
+    ) : rows
 end
 
 function _source_transform_declarations(family::Symbol)
@@ -8124,27 +8521,211 @@ function _design_manifest(design::FacetDesign)
     )
 end
 
-"""
-    model_manifest(data_or_spec_or_design)
-
-Return a serializable, report-ready manifest for `FacetData`, `FacetSpec`, or
-`FacetDesign`. The manifest records facet roles, level maps, category scale,
-validation status, threshold structure, deterministic parameter names, block
-ranges, identification rules, and data signatures. It is intended as the stable
-provenance contract for future cached fits, reports, and HMC/GMFRM/MGMFRM
-extensions.
-"""
-function model_manifest(data::FacetData)
+function _public_model_availability(spec::FacetSpec)
+    spec.estimation_status === :fit_supported && return (;
+        stability = :stable,
+        fit_available = true,
+        entrypoint = "BayesianMGMFRM.fit(spec)",
+        claim_scope = :minimal_mfrm_rsm_pcm,
+    )
+    _experimental_generalized_fit_supported(spec) && return (;
+        stability = :experimental,
+        fit_available = true,
+        entrypoint = "BayesianMGMFRM.Experimental.fit(spec)",
+        claim_scope = spec.family === :gmfrm ?
+            :scalar_rater_consistency_only : :fixed_q_confirmatory_only,
+    )
     return (;
-        schema = "bayesianmgmfrm.model_manifest.v1",
-        object = :data,
-        data = _data_manifest(data),
-        rating_design = rating_design_audit(data),
+        stability = :not_supported,
+        fit_available = false,
+        entrypoint = missing,
+        claim_scope = :specification_and_design_inspection_only,
     )
 end
 
-function model_manifest(spec::FacetSpec)
+function _public_model_surface_rows(rows, availability)
+    return [(;
+        family = row.family,
+        availability = availability.stability,
+        execution_status = availability.stability,
+        fit_available = availability.fit_available,
+        fit_entrypoint = availability.entrypoint,
+        claim_scope = availability.claim_scope,
+        block = row.block,
+        compiled_role = row.compiled_role,
+        source_symbol = row.source_symbol,
+        direct_interpretation = row.direct_interpretation,
+        raw_coordinate = row.raw_coordinate,
+        constrained_block = row.constrained_block,
+        constraint = row.constraint,
+        transform = row.transform,
+        prior = row.prior,
+        prior_scale = row.prior_scale,
+        prior_parameters = row.prior_parameters,
+        report_label = row.report_label,
+        parameter_names = copy(row.parameter_names),
+        raw_parameter_names = copy(row.raw_parameter_names),
+        declaration_status = row.block_status,
+        note = row.note,
+    ) for row in rows]
+end
+
+function _public_raw_parameterization_manifest(design::FacetDesign)
+    raw = _raw_parameterization_manifest(design)
+    raw === nothing && return nothing
+    return (;
+        family = raw.family,
+        density_space = raw.density_space,
+        prior_policy = raw.prior_policy,
+        jacobian_policy = raw.jacobian_policy,
+        n_raw_parameters = raw.n_raw_parameters,
+        raw_parameter_names = copy(raw.raw_parameter_names),
+        constrained_parameter_names = copy(raw.constrained_parameter_names),
+        raw_blocks = raw.raw_blocks,
+        constrained_blocks = raw.constrained_blocks,
+        transforms = raw.transforms,
+    )
+end
+
+const _PUBLIC_ANCHOR_MANIFEST_FIELDS = Set((
+    :anchor_scale,
+    :anchor_type,
+    :block,
+    :facet_level,
+    :kind,
+    :level,
+    :parameter,
+    :prior_scale,
+    :scale,
+    :sd,
+    :sign,
+    :source,
+    :source_estimator,
+    :source_hash,
+    :source_model,
+    :source_scale,
+    :source_version,
+    :target,
+    :type,
+    :value,
+))
+
+function _public_anchor_manifest(anchor::NamedTuple)
+    pairs = Pair{Symbol,Any}[]
+    for field in keys(anchor)
+        field in _PUBLIC_ANCHOR_MANIFEST_FIELDS || continue
+        push!(pairs, field => getproperty(anchor, field))
+    end
+    return (; pairs...)
+end
+
+function _public_spec_manifest(spec::FacetSpec)
+    return (;
+        family = spec.family,
+        thresholds = spec.thresholds,
+        dimensions = spec.dimensions,
+        dimension_labels = copy(spec.dimension_labels),
+        discrimination = spec.discrimination,
+        q_matrix = _q_matrix_manifest(spec.q_matrix),
+        q_matrix_validation = q_matrix_validation(spec),
+        validation_bias_terms = copy(spec.validation_bias_terms),
+        anchors = [_public_anchor_manifest(anchor) for anchor in spec.anchors],
+        availability = _public_model_availability(spec),
+        required_facets = (:person, :rater, :item),
+        optional_facets = sort(collect(keys(spec.data.optional)); by = string),
+        equation = model_equation(spec),
+        identification_declarations = identification_declarations(spec),
+        constraints = constraint_table(spec),
+        prior_blocks = copy(spec.prior_blocks),
+    )
+end
+
+function _public_design_manifest(design::FacetDesign)
+    base = _design_manifest(design)
+    return (;
+        n_parameters = base.n_parameters,
+        parameter_names = copy(base.parameter_names),
+        blocks = base.blocks,
+        constraints = base.constraints,
+        identification_declarations = base.identification_declarations,
+        identification = base.identification,
+        raw_parameterization = _public_raw_parameterization_manifest(design),
+    )
+end
+
+function _public_model_manifest_projection(value)
+    if value isa NamedTuple
+        pairs = Pair{Symbol,Any}[]
+        for field in keys(value)
+            name = lowercase(String(field))
+            (field === :next_gate || startswith(name, "internal_") ||
+                occursin("fixture_provenance", name) ||
+                occursin("repository_path", name)) && continue
+            push!(pairs, field => _public_model_manifest_projection(
+                getproperty(value, field)))
+        end
+        return (; pairs...)
+    elseif value isa AbstractDict
+        output = Dict{String,Any}()
+        for (key, item) in value
+            field = Symbol(key)
+            name = lowercase(String(field))
+            (field === :next_gate || startswith(name, "internal_") ||
+                occursin("fixture_provenance", name) ||
+                occursin("repository_path", name)) && continue
+            output[String(key)] = _public_model_manifest_projection(item)
+        end
+        return output
+    elseif value isa AbstractArray
+        return map(_public_model_manifest_projection, value)
+    elseif value isa Tuple
+        return map(_public_model_manifest_projection, value)
+    end
+    return value
+end
+
+"""
+    model_manifest(data_or_spec_or_design_or_fit; view = :full)
+
+Return a serializable, report-ready manifest for `FacetData`, `FacetSpec`,
+`FacetDesign`, or a fitted MFRM/experimental generalized object. The manifest
+records facet roles, level maps, category scale, validation status, threshold
+structure, deterministic parameter names, block ranges, identification rules,
+and data signatures. The compatibility default `view = :full` retains complete
+compatibility metadata, including detailed provenance references, and is
+intended for private reproduction records. Use `view = :public` when sharing
+reader-facing output; that projection keeps scientific model and
+parameterization metadata in a concise form.
+"""
+function model_manifest(data::FacetData; view::Symbol = :full)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
+    return (;
+        schema = view === :public ?
+            "bayesianmgmfrm.model_manifest_public.v1" :
+            "bayesianmgmfrm.model_manifest.v1",
+        object = :data,
+        data = _data_manifest(data),
+        rating_design = view === :public ?
+            rating_design_audit(data; view = :public) :
+            rating_design_audit(data),
+    )
+end
+
+function model_manifest(spec::FacetSpec; view::Symbol = :full)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     _require_current_facet_spec(spec, "model_manifest")
+    if view === :public
+        return (;
+            schema = "bayesianmgmfrm.model_manifest_public.v1",
+            object = :spec,
+            data = _data_manifest(spec.data),
+            validation = _validation_manifest(spec.validation),
+            spec = _public_spec_manifest(spec),
+            rating_design = rating_design_audit(spec; view = :public),
+        )
+    end
     spec_manifest = _spec_manifest(spec)
     return (;
         schema = "bayesianmgmfrm.model_manifest.v1",
@@ -8157,9 +8738,31 @@ function model_manifest(spec::FacetSpec)
     )
 end
 
-function model_manifest(design::FacetDesign)
+function model_manifest(design::FacetDesign; view::Symbol = :full)
+    view in (:full, :public) ||
+        throw(ArgumentError("view must be :full or :public"))
     _require_canonical_design(design, "model_manifest")
     spec = design.spec
+    if view === :public
+        surface_rows = _model_surface_audit(
+            design;
+            status_policy = _surface_status_policy_for_spec(spec),
+        )
+        return (;
+            schema = "bayesianmgmfrm.model_manifest_public.v1",
+            object = :design,
+            data = _data_manifest(spec.data),
+            validation = _validation_manifest(spec.validation),
+            spec = _public_spec_manifest(spec),
+            design = _public_design_manifest(design),
+            design_identity = design_identity(design),
+            model_surface = _public_model_surface_rows(
+                surface_rows,
+                _public_model_availability(spec),
+            ),
+            rating_design = rating_design_audit(design; view = :public),
+        )
+    end
     spec_manifest = _spec_manifest(spec)
     return (;
         schema = "bayesianmgmfrm.model_manifest.v1",

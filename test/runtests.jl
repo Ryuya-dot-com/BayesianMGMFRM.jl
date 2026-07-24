@@ -26,6 +26,80 @@ end
 const RuntimePublicLanguagePolicy =
     RuntimePublicLanguagePolicyForTest.PublicLanguageGate
 
+function structured_field_names(value, fields = Symbol[])
+    if value isa NamedTuple
+        for field in keys(value)
+            push!(fields, field)
+            structured_field_names(getproperty(value, field), fields)
+        end
+    elseif value isa AbstractDict
+        for (key, item) in value
+            push!(fields, Symbol(key))
+            structured_field_names(item, fields)
+        end
+    elseif value isa Tuple || value isa AbstractArray
+        for item in value
+            structured_field_names(item, fields)
+        end
+    end
+    return fields
+end
+
+const PRIVATE_READER_FIT_FIELDS = Set((
+    :artifact,
+    :artifacts,
+    :status_policy,
+    :scope,
+    :public_fit,
+    :experimental_public,
+    :fit_ready,
+    :guarded_local_fit,
+    :internal_target_constructor,
+    :internal_sampler_diagnostic_constructor,
+    :target,
+    :initialization_policy,
+    :source_path,
+    :repository_path,
+    :file_path,
+))
+
+function reader_payload_contains_identity_value(value)
+    if value isa AbstractString
+        return occursin(r"^[0-9a-fA-F]{64}$", value)
+    elseif value isa NamedTuple
+        return any(reader_payload_contains_identity_value(
+            getproperty(value, field)) for field in keys(value))
+    elseif value isa AbstractDict
+        return any(reader_payload_contains_identity_value(item)
+            for item in values(value))
+    elseif value isa Tuple || value isa AbstractArray
+        return any(reader_payload_contains_identity_value, value)
+    end
+    return false
+end
+
+function reader_payload_is_identity_free(value)
+    fields_are_identity_free = all(structured_field_names(value)) do field
+        name = lowercase(String(field))
+        !occursin("hash", name) && !occursin("fingerprint", name) &&
+            !occursin("digest", name) && !occursin("signature", name)
+    end
+    return fields_are_identity_free &&
+        !reader_payload_contains_identity_value(value)
+end
+
+function public_portable_numeric_summary_matches(public, full)
+    keys(public) == keys(full) || return false
+    return all(keys(full)) do field
+        public_value = getproperty(public, field)
+        full_value = getproperty(full, field)
+        if full_value isa AbstractFloat && !isfinite(full_value)
+            return public_value == string(full_value)
+        end
+        return isequal(public_value, full_value)
+    end
+end
+
 using BayesianMGMFRM:
     FacetData,
     anchor_linking_summary,
@@ -4780,7 +4854,7 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     @test Bool(decision[:scalar_guarded_fit_allowed])
     @test Bool(decision[:broader_generalized_fit_allowed]) == false
     @test Bool(decision[:mgmfrm_fit_allowed])
-    @test Bool(decision[:manuscript_reproducibility_claims_supported])
+    @test !Bool(decision[:manuscript_reproducibility_claims_supported])
     @test Bool(decision[:publication_or_registration_action]) == false
     @test String(decision[:tam_direct_evidence_scope]) ==
         "mfrm_tam_overlap_nontransfer"
@@ -4889,7 +4963,7 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     @test Bool(summary[:mgmfrm_guarded_fit_public_exposure_review_passed])
     @test Bool(summary[:prediction_target_and_model_weight_policy_passed])
     @test Bool(summary[:mgmfrm_manual_public_scope_review_for_fit_passed])
-    @test Bool(summary[:manuscript_reproducibility_claims_supported])
+    @test !Bool(summary[:manuscript_reproducibility_claims_supported])
     @test Int(summary[:n_blockers]) == 2
     @test Set(String.(summary[:remaining_public_blockers])) == Set([
         "tam_direct_independent_review_pending",
@@ -6422,7 +6496,7 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(full_archive[:summary][
         :mgmfrm_external_construct_attachment_request_packet_passed])
     @test Bool(full_archive[:summary][:prediction_target_and_model_weight_policy_passed])
-    @test Bool(full_archive[:summary][:manuscript_reproducibility_claims_supported])
+    @test !Bool(full_archive[:summary][:manuscript_reproducibility_claims_supported])
     @test Int(full_archive[:summary][:n_blockers]) == 2
     @test String(full_archive[:summary][:next_gate]) ==
         "manual_publication_or_registration_by_user_only"
@@ -13284,7 +13358,6 @@ function check_mgmfrm_full_heldout_mcmc_refit_fold1_pilot_fixture(
         @test String(row[:sha256]) ==
             file_sha256(joinpath(root, String(row[:path])))
     end
-
     scenarios = Set([
         "well_specified_current_q",
         "missing_loading_revised_q",
@@ -18287,6 +18360,13 @@ function check_mgmfrm_fit_threshold_q_heldout_linkage_fixture(
         @test String(row[:sha256]) ==
             file_sha256(joinpath(root, String(row[:path])))
     end
+    heldout_simulation = JSON3.read(read(joinpath(root,
+        expected_inputs["mgmfrm_heldout_prediction_simulation_grid"]), String))
+    fold1_scoring = JSON3.read(read(joinpath(root,
+        expected_inputs[
+            "mgmfrm_full_heldout_mcmc_refit_fold1_scoring"]), String))
+    expected_scenario_rows = heldout_simulation[:scenario_rows]
+    fold1_rank_rows = fold1_scoring[:candidate_rank_rows]
 
     scenarios = Set([
         "well_specified_current_q",
@@ -18300,25 +18380,61 @@ function check_mgmfrm_fit_threshold_q_heldout_linkage_fixture(
     @test Set(String(row[:scenario]) for row in scenario_rows) == scenarios
     @test all(row -> Bool(row[:public_claim_allowed]) == false,
         scenario_rows)
-    @test count(row -> Bool(row[:observed_best_matches_expected]),
-        scenario_rows) == 1
-    @test count(row -> !Bool(row[:observed_best_matches_expected]),
-        scenario_rows) == 4
-    @test count(row -> !Bool(row[:expected_model_scored_fold1]),
-        scenario_rows) == 1
+    n_observed_expected_matches = count(
+        row -> Bool(row[:observed_best_matches_expected]), scenario_rows)
+    n_observed_expected_mismatches = count(
+        row -> !Bool(row[:observed_best_matches_expected]), scenario_rows)
+    n_expected_models_not_scored = count(
+        row -> !Bool(row[:expected_model_scored_fold1]), scenario_rows)
+    @test n_observed_expected_matches + n_observed_expected_mismatches ==
+        length(scenario_rows)
+    @test n_observed_expected_mismatches > 0
+    @test n_expected_models_not_scored == 1
     @test all(row -> isfinite(Float64(row[:observed_fold1_best_elpd])) &&
             isfinite(Float64(row[:observed_fold1_best_mae])) &&
             isfinite(Float64(row[:delta_elpd_waic])) &&
             isfinite(Float64(row[:delta_elpd_loo])) &&
             isfinite(Float64(row[:max_abs_common_direct_parameter_shift])),
         scenario_rows)
+    for scenario_row in scenario_rows
+        scenario = String(scenario_row[:scenario])
+        expected_row = only(row for row in expected_scenario_rows
+            if String(row[:scenario]) == scenario)
+        ranks = [row for row in fold1_rank_rows
+            if String(row[:scenario]) == scenario]
+        best_elpd = only(row for row in ranks if Int(row[:rank]) == 1)
+        best_mae = first(sort(ranks;
+            by = row -> Float64(row[:heldout_expected_score_mae])))
+        expected_model = String(expected_row[:expected_best_model])
+        observed_model = String(best_elpd[:model])
+        expected_model_scored = any(
+            row -> String(row[:model]) == expected_model, ranks)
+        observed_matches_expected =
+            expected_model_scored && observed_model == expected_model
+        expected_interpretation = observed_matches_expected ?
+            "fold1_pilot_matches_predeclared_expected_best" :
+            "fold1_pilot_differs_or_expected_anchor_not_scored"
+
+        @test String(scenario_row[:expected_best_model]) == expected_model
+        @test String(scenario_row[:observed_fold1_best_model]) ==
+            observed_model
+        @test Float64(scenario_row[:observed_fold1_best_elpd]) ==
+            Float64(best_elpd[:heldout_elpd])
+        @test Bool(scenario_row[:expected_model_scored_fold1]) ==
+            expected_model_scored
+        @test Bool(scenario_row[:observed_best_matches_expected]) ==
+            observed_matches_expected
+        @test String(scenario_row[:observed_fold1_best_mae_model]) ==
+            String(best_mae[:model])
+        @test Float64(scenario_row[:observed_fold1_best_mae]) ==
+            Float64(best_mae[:heldout_expected_score_mae])
+        @test String(scenario_row[:interpretation]) ==
+            expected_interpretation
+    end
     missing_loading = only(row for row in scenario_rows
         if String(row[:scenario]) == "missing_loading_revised_q")
     @test String(missing_loading[:expected_best_model]) ==
         "construct_reviewed_revised_q_mgmfrm"
-    @test String(missing_loading[:observed_fold1_best_model]) ==
-        "construct_reviewed_revised_q_mgmfrm"
-    @test Bool(missing_loading[:observed_best_matches_expected])
     rater_noise = only(row for row in scenario_rows
         if String(row[:scenario]) == "rater_method_noise")
     @test String(rater_noise[:expected_best_model]) == "scalar_gmfrm_baseline"
@@ -18413,9 +18529,12 @@ function check_mgmfrm_fit_threshold_q_heldout_linkage_fixture(
     @test Int(summary[:n_q_recovery_link_rows]) == 5
     @test Int(summary[:n_parameter_absorption_rows]) == 5
     @test Int(summary[:n_anchor_limitation_rows]) == 6
-    @test Int(summary[:n_observed_expected_matches]) == 1
-    @test Int(summary[:n_observed_expected_mismatches]) == 4
-    @test Int(summary[:n_expected_models_not_scored]) == 1
+    @test Int(summary[:n_observed_expected_matches]) ==
+        n_observed_expected_matches
+    @test Int(summary[:n_observed_expected_mismatches]) ==
+        n_observed_expected_mismatches
+    @test Int(summary[:n_expected_models_not_scored]) ==
+        n_expected_models_not_scored
     @test Int(summary[:n_threshold_unstable_rows]) == 5
     @test Int(summary[:n_q_false_candidate_links]) == 1
     @test isfinite(Float64(summary[:fold1_total_heldout_elpd]))
@@ -20594,6 +20713,47 @@ end
     @test haskey(metadata["hashes"], "manifest_sha256")
     @test isnothing(metadata["hashes"]["active_project_sha256"]) ||
         length(metadata["hashes"]["active_project_sha256"]) == 64
+    @test metadata["hashes"]["active_project"] === nothing
+    @test metadata["hashes"]["manifest"] === nothing
+    @test metadata["software"]["julia"]["project"] === nothing
+    @test metadata["software"]["julia"]["depot_path"] === nothing
+    @test metadata["software"]["julia"]["load_path"] === nothing
+    @test metadata["execution"]["power_thermal_notes"] === nothing
+    git_metadata = metadata["git"]
+    mktempdir() do directory
+        cd(directory) do
+            metadata_from_other_cwd = evidence_metadata(;
+                include_packages = false,
+            )
+            @test metadata_from_other_cwd["git"] == git_metadata
+        end
+    end
+    withenv("GMFRM_POWER_NOTES" => "/Users/example/private-notes.txt") do
+        public_metadata = evidence_metadata(; include_packages = false)
+        @test public_metadata["execution"]["power_thermal_notes"] === nothing
+        @test public_metadata["execution"]["power_thermal_notes_recorded"]
+        private_notes_metadata = evidence_metadata(;
+            include_packages = false,
+            include_paths = true,
+        )
+        @test private_notes_metadata["execution"]["power_thermal_notes"] ==
+            "/Users/example/private-notes.txt"
+    end
+    private_metadata = evidence_metadata(;
+        include_packages = false,
+        include_paths = true,
+    )
+    @test private_metadata["hashes"]["active_project"] ==
+        Base.active_project()
+    mktempdir() do directory
+        generic = joinpath(directory, "Manifest.toml")
+        versioned = joinpath(directory,
+            "Manifest-v$(VERSION.major).$(VERSION.minor).toml")
+        write(generic, "generic")
+        @test BayesianMGMFRM._evidence_manifest_path(directory) == generic
+        write(versioned, "versioned")
+        @test BayesianMGMFRM._evidence_manifest_path(directory) == versioned
+    end
     @test release_scope.evidence_artifact_schema_policy.schema ==
         evidence_policy.schema
     @test release_scope.evidence_artifact_schema_policy.artifact_kind ===
@@ -23097,6 +23257,30 @@ end
     @test gmfrm_experimental_metadata.density_space === :raw_unconstrained
     @test gmfrm_experimental_metadata.n_direct_parameters ==
         size(gmfrm_experimental_fit.direct_draws, 2)
+    @test isequal(
+        gmfrm_experimental_metadata,
+        fit_metadata(gmfrm_experimental_fit; view = :full),
+    )
+    gmfrm_public_metadata = fit_metadata(
+        gmfrm_experimental_fit;
+        view = :public,
+    )
+    @test gmfrm_public_metadata.schema ==
+        "bayesianmgmfrm.fit_metadata_public.v1"
+    @test gmfrm_public_metadata.family === :gmfrm
+    @test gmfrm_public_metadata.stability === :experimental
+    @test gmfrm_public_metadata.estimation_status === :experimental
+    @test gmfrm_public_metadata.raw_parameter_names ==
+        gmfrm_experimental_metadata.raw_parameter_names
+    @test isempty(intersect(
+        Set(structured_field_names(gmfrm_public_metadata)),
+        PRIVATE_READER_FIT_FIELDS,
+    ))
+    @test reader_payload_is_identity_free(gmfrm_public_metadata)
+    @test_throws ArgumentError fit_metadata(
+        gmfrm_experimental_fit;
+        view = :unknown,
+    )
     gmfrm_fit_audit = model_surface_audit(gmfrm_experimental_fit)
     @test all(row -> row.current_status === :experimental_public,
         gmfrm_fit_audit)
@@ -23124,6 +23308,33 @@ end
     @test gmfrm_experimental_diagnostics.diagnostic_row_policy.rhat_ess_status ===
         :rank_normalized_available
     @test gmfrm_experimental_diagnostics.summary.total_draws == 8
+    @test isequal(
+        gmfrm_experimental_diagnostics,
+        diagnostics(gmfrm_experimental_fit; view = :full),
+    )
+    gmfrm_public_diagnostics = diagnostics(
+        gmfrm_experimental_fit;
+        view = :public,
+    )
+    @test gmfrm_public_diagnostics.schema ==
+        "bayesianmgmfrm.diagnostics_public.v1"
+    @test gmfrm_public_diagnostics.family === :gmfrm
+    @test gmfrm_public_diagnostics.stability === :experimental
+    @test public_portable_numeric_summary_matches(
+        gmfrm_public_diagnostics.summary.raw_diagnostic_metrics,
+        gmfrm_experimental_diagnostics.summary.raw_diagnostic_metrics,
+    )
+    @test gmfrm_public_diagnostics.parameter_layout.raw_parameter_names ==
+        gmfrm_experimental_diagnostics.parameter_layout.raw_parameter_names
+    @test isempty(intersect(
+        Set(structured_field_names(gmfrm_public_diagnostics)),
+        PRIVATE_READER_FIT_FIELDS,
+    ))
+    @test reader_payload_is_identity_free(gmfrm_public_diagnostics)
+    @test_throws ArgumentError diagnostics(
+        gmfrm_experimental_fit;
+        view = :unknown,
+    )
     @test length(sampler_diagnostics(gmfrm_experimental_fit)) == 2
     @test all(row -> row.diagnostic_row === :sampler_chain &&
         row.parameter_space === :raw_unconstrained &&
@@ -23181,6 +23392,32 @@ end
         :_gmfrm_promotion_candidate_logdensity
     @test gmfrm_experimental_artifact.internal_sampler_diagnostic_constructor ===
         :_gmfrm_promotion_candidate_sampler_diagnostics
+    gmfrm_public_artifact = fit_artifact(
+        gmfrm_experimental_fit;
+        view = :public,
+        include_environment = false,
+    )
+    @test gmfrm_public_artifact.schema ==
+        "bayesianmgmfrm.fit_artifact_public.v1"
+    @test gmfrm_public_artifact.stability === :experimental
+    @test gmfrm_public_artifact.content_hash.value ==
+        artifact_content_hash(gmfrm_public_artifact)
+    @test :internal_target_constructor ∉ keys(gmfrm_public_artifact)
+    @test :internal_sampler_diagnostic_constructor ∉
+        keys(gmfrm_public_artifact)
+    @test :fixture_provenance ∉ keys(gmfrm_public_artifact)
+    gmfrm_public_surface = model_surface_audit(
+        gmfrm_experimental_fit;
+        view = :public,
+    )
+    @test all(row -> row.execution_status === :experimental &&
+        row.fit_available &&
+        row.fit_entrypoint == "BayesianMGMFRM.Experimental.fit(spec)" &&
+        row.claim_scope === :scalar_rater_consistency_only &&
+        :block_status ∉ keys(row),
+        gmfrm_public_surface)
+    @test any(row -> row.declaration_status === :specified_only,
+        gmfrm_public_surface)
     @test gmfrm_experimental_artifact.evidence_artifact_schema_policy.artifact_kind ===
         :gmfrm_experimental_fit_artifact
     @test :broad_generalized_fit in
@@ -24992,6 +25229,30 @@ end
     @test :sparse_mgmfrm_superiority in
         mgmfrm_guarded_metadata.status_policy.blocked_claims
     @test mgmfrm_guarded_metadata.scope === :minimal_confirmatory_mgmfrm_candidate
+    @test isequal(
+        mgmfrm_guarded_metadata,
+        fit_metadata(mgmfrm_guarded_fit; view = :full),
+    )
+    mgmfrm_public_metadata = fit_metadata(
+        mgmfrm_guarded_fit;
+        view = :public,
+    )
+    @test mgmfrm_public_metadata.schema ==
+        "bayesianmgmfrm.fit_metadata_public.v1"
+    @test mgmfrm_public_metadata.family === :mgmfrm
+    @test mgmfrm_public_metadata.stability === :experimental
+    @test mgmfrm_public_metadata.estimation_status === :experimental
+    @test mgmfrm_public_metadata.raw_parameter_names ==
+        mgmfrm_guarded_metadata.raw_parameter_names
+    @test isempty(intersect(
+        Set(structured_field_names(mgmfrm_public_metadata)),
+        PRIVATE_READER_FIT_FIELDS,
+    ))
+    @test reader_payload_is_identity_free(mgmfrm_public_metadata)
+    @test_throws ArgumentError fit_metadata(
+        mgmfrm_guarded_fit;
+        view = :unknown,
+    )
     mgmfrm_fit_audit = model_surface_audit(mgmfrm_guarded_fit)
     @test all(row -> row.current_status === :experimental_public,
         mgmfrm_fit_audit)
@@ -25026,6 +25287,45 @@ end
     @test any(row -> row.policy === :dimension_permutation &&
         row.status === :anchored_by_fixed_q_dimension_labels,
         mgmfrm_guarded_diagnostics.fixed_q_invariance_rows)
+    @test isequal(
+        mgmfrm_guarded_diagnostics,
+        diagnostics(mgmfrm_guarded_fit; view = :full),
+    )
+    mgmfrm_public_diagnostics = diagnostics(
+        mgmfrm_guarded_fit;
+        view = :public,
+    )
+    @test mgmfrm_public_diagnostics.schema ==
+        "bayesianmgmfrm.diagnostics_public.v1"
+    @test mgmfrm_public_diagnostics.family === :mgmfrm
+    @test mgmfrm_public_diagnostics.stability === :experimental
+    @test public_portable_numeric_summary_matches(
+        mgmfrm_public_diagnostics.summary.raw_diagnostic_metrics,
+        mgmfrm_guarded_diagnostics.summary.raw_diagnostic_metrics,
+    )
+    @test mgmfrm_public_diagnostics.parameter_layout.raw_parameter_names ==
+        mgmfrm_guarded_diagnostics.parameter_layout.raw_parameter_names
+    @test all(row -> !(row.value isa AbstractString &&
+            occursin(r"^[0-9a-fA-F]{64}$", row.value)),
+        mgmfrm_public_diagnostics.initialization_rows)
+    @test only(filter(row -> row.policy === :latent_correlation,
+        mgmfrm_public_diagnostics.fixed_q_invariance_rows)).note ===
+        :free_latent_correlation_not_supported
+    @test only(filter(row -> row.policy === :rotation,
+        mgmfrm_public_diagnostics.fixed_q_invariance_rows)).value ===
+        :not_supported
+    @test only(filter(row -> row.policy === :exploratory_loading,
+        mgmfrm_public_diagnostics.fixed_q_invariance_rows)).status ===
+        :not_supported
+    @test isempty(intersect(
+        Set(structured_field_names(mgmfrm_public_diagnostics)),
+        PRIVATE_READER_FIT_FIELDS,
+    ))
+    @test reader_payload_is_identity_free(mgmfrm_public_diagnostics)
+    @test_throws ArgumentError diagnostics(
+        mgmfrm_guarded_fit;
+        view = :unknown,
+    )
     @test length(sampler_diagnostics(mgmfrm_guarded_fit)) == 1
     @test all(row -> row.diagnostic_row === :sampler_chain &&
         row.parameter_space === :raw_unconstrained &&
@@ -25093,6 +25393,34 @@ end
         "BayesianMGMFRM.fit(spec; experimental = true)"
     @test mgmfrm_guarded_artifact.guarded_local_entrypoint === :_fit_guarded_mgmfrm
     @test mgmfrm_guarded_artifact.target === :_mgmfrm_guarded_local_fit_logdensity
+    mgmfrm_public_artifact = fit_artifact(
+        mgmfrm_guarded_fit;
+        view = :public,
+        include_environment = false,
+    )
+    @test mgmfrm_public_artifact.schema ==
+        "bayesianmgmfrm.fit_artifact_public.v1"
+    @test mgmfrm_public_artifact.stability === :experimental
+    @test mgmfrm_public_artifact.content_hash.value ==
+        artifact_content_hash(mgmfrm_public_artifact)
+    @test :internal_target_constructor ∉ keys(mgmfrm_public_artifact)
+    @test :internal_sampler_diagnostic_constructor ∉
+        keys(mgmfrm_public_artifact)
+    @test :guarded_local_entrypoint ∉ keys(mgmfrm_public_artifact)
+    @test :target ∉ keys(mgmfrm_public_artifact)
+    @test :fixture_provenance ∉ keys(mgmfrm_public_artifact)
+    mgmfrm_public_surface = model_surface_audit(
+        mgmfrm_guarded_fit;
+        view = :public,
+    )
+    @test all(row -> row.execution_status === :experimental &&
+        row.fit_available &&
+        row.fit_entrypoint == "BayesianMGMFRM.Experimental.fit(spec)" &&
+        row.claim_scope === :fixed_q_confirmatory_only &&
+        :block_status ∉ keys(row),
+        mgmfrm_public_surface)
+    @test any(row -> row.declaration_status === :specified_only,
+        mgmfrm_public_surface)
     @test mgmfrm_guarded_artifact.ability_scale ===
         :standard_normal_by_dimension
     @test mgmfrm_guarded_artifact.initialization_policy ==
@@ -25903,6 +26231,19 @@ end
     @test metadata.prior.item_sd == prior.item_sd
     @test metadata.prior.step_sd == prior.step_sd
     @test metadata.data_signature == spec.validation.data_signature
+    @test isequal(metadata, fit_metadata(result; view = :full))
+    public_metadata = fit_metadata(result; view = :public)
+    @test public_metadata.schema ==
+        "bayesianmgmfrm.fit_metadata_public.v1"
+    @test public_metadata.family === :mfrm
+    @test public_metadata.stability === :stable
+    @test public_metadata.estimation_status === :supported
+    @test isempty(intersect(
+        Set(structured_field_names(public_metadata)),
+        PRIVATE_READER_FIT_FIELDS,
+    ))
+    @test reader_payload_is_identity_free(public_metadata)
+    @test_throws ArgumentError fit_metadata(result; view = :unknown)
 
     sampler_rows = sampler_diagnostics(result)
     @test length(sampler_rows) == 3
@@ -26029,6 +26370,27 @@ end
     @test isequal(diagnostic_surface.sampler_rows, sampler_rows)
     @test isequal(diagnostic_surface.parameter_rows, diagnostics)
     @test isequal(diagnostic_surface.block_rows, block_rows)
+    @test isequal(
+        diagnostic_surface,
+        BayesianMGMFRM.diagnostics(result; view = :full),
+    )
+    public_diagnostic_surface = BayesianMGMFRM.diagnostics(
+        result;
+        view = :public,
+    )
+    @test public_diagnostic_surface.schema ==
+        "bayesianmgmfrm.diagnostics_public.v1"
+    @test public_diagnostic_surface.family === :mfrm
+    @test public_diagnostic_surface.stability === :stable
+    @test isempty(intersect(
+        Set(structured_field_names(public_diagnostic_surface)),
+        PRIVATE_READER_FIT_FIELDS,
+    ))
+    @test reader_payload_is_identity_free(public_diagnostic_surface)
+    @test_throws ArgumentError BayesianMGMFRM.diagnostics(
+        result;
+        view = :unknown,
+    )
     @test_throws ArgumentError BayesianMGMFRM.diagnostics(result; rhat_threshold = 1.0)
     @test_throws ArgumentError BayesianMGMFRM.diagnostics(result; ess_threshold = 0)
 
@@ -26288,6 +26650,18 @@ end
     @test compact_artifact.content_hash.scope === :artifact_without_hash_metadata
     @test length(compact_artifact.content_hash.value) == 64
     @test compact_artifact.content_hash.value == artifact_content_hash(compact_artifact)
+    public_artifact = fit_artifact(result;
+        view = :public,
+        include_environment = false,
+    )
+    @test public_artifact.schema == "bayesianmgmfrm.fit_artifact_public.v1"
+    @test public_artifact.stability === :stable
+    @test public_artifact.content_hash.scope ===
+        :artifact_without_hash_metadata
+    @test public_artifact.content_hash.value ==
+        artifact_content_hash(public_artifact)
+    @test :environment ∉ keys(public_artifact)
+    @test :archive_manifest ∉ keys(public_artifact)
     @test compact_artifact.archive_manifest.schema ==
         "bayesianmgmfrm.fit_archive_manifest.v1"
     @test compact_artifact.archive_manifest.object === :fit_archive_manifest
@@ -26322,6 +26696,19 @@ end
         :manual_publication_or_registration_by_user_only
     @test partial_reproduction_manifest.content_hash.value ==
         artifact_content_hash(partial_reproduction_manifest)
+    public_reproduction_manifest = fit_reproduction_manifest(result;
+        view = :public,
+        artifact = compact_artifact,
+        source_path = "memory://compact_artifact")
+    @test public_reproduction_manifest.schema ==
+        "bayesianmgmfrm.fit_reproduction_manifest_public.v1"
+    @test public_reproduction_manifest.object === :fit_reproduction_manifest
+    @test public_reproduction_manifest.content_hash.scope ===
+        :artifact_without_hash_metadata
+    @test public_reproduction_manifest.content_hash.value ==
+        artifact_content_hash(public_reproduction_manifest)
+    @test :next_gate ∉ keys(public_reproduction_manifest)
+    @test :archive_manifest ∉ keys(public_reproduction_manifest)
 
     full_artifact = fit_artifact(result;
         include_environment = false,
@@ -27863,6 +28250,51 @@ end
         row.fit_surface === :guarded_mgmfrm_preview, sim_grid)
     @test any(row -> row.misspecification === :omitted_dff &&
         row.misspecified, sim_grid)
+    public_sim_grid = simulation_grid(;
+        densities = (:sparse,),
+        anchor_sizes = (0,),
+        ratings_per_target = (1,),
+        category_pathologies = (:none,),
+        rater_noise = (:low,),
+        dff = (:none,),
+        dimensionalities = (1,),
+        misspecifications = (:none,),
+        n_raters = 2,
+        view = :public,
+    )
+    @test first(public_sim_grid).schema ==
+        "bayesianmgmfrm.simulation_grid_public.v1"
+    @test :next_gate ∉ keys(first(public_sim_grid))
+    public_mgmfrm_grid = simulation_grid(;
+        densities = (:sparse,),
+        anchor_sizes = (0,),
+        ratings_per_target = (1,),
+        category_pathologies = (:none,),
+        rater_noise = (:low,),
+        dff = (:none,),
+        dimensionalities = (2,),
+        misspecifications = (:none, :omitted_dff),
+        n_raters = 2,
+        view = :public,
+    )
+    @test any(row -> row.fit_surface ===
+        :fixed_q_confirmatory_mgmfrm_preview, public_mgmfrm_grid)
+    public_gmfrm_comparison_grid = simulation_grid(;
+        densities = (:sparse,),
+        anchor_sizes = (0,),
+        ratings_per_target = (1,),
+        category_pathologies = (:none,),
+        rater_noise = (:low,),
+        dff = (:none,),
+        dimensionalities = (1,),
+        misspecifications = (:omitted_dff,),
+        n_raters = 2,
+        view = :public,
+    )
+    @test only(public_gmfrm_comparison_grid).fit_surface ===
+        :mfrm_baseline_or_experimental_gmfrm_comparison
+    @test !occursin("guarded", JSON3.write(public_mgmfrm_grid))
+    @test !occursin("guarded", JSON3.write(public_gmfrm_comparison_grid))
     grid_summary = simulation_grid_summary(sim_grid)
     @test grid_summary.schema == "bayesianmgmfrm.simulation_grid_summary.v1"
     @test grid_summary.passed
@@ -27876,6 +28308,11 @@ end
     @test grid_summary.varied_required_axes ==
         (:density, :anchor_size, :ratings_per_target, :category_pathology,
             :rater_noise, :dff, :dimensionality, :misspecification)
+    @test isequal(grid_summary, simulation_grid_summary(sim_grid; view = :full))
+    public_grid_summary = simulation_grid_summary(sim_grid; view = :public)
+    @test public_grid_summary.schema ==
+        "bayesianmgmfrm.simulation_grid_summary_public.v1"
+    @test :next_gate ∉ keys(public_grid_summary)
     compact_grid = simulation_grid(;
         densities = (:sparse,),
         anchor_sizes = (0,),
@@ -27894,8 +28331,10 @@ end
     @test_throws ArgumentError simulation_grid(; densities = ())
     @test_throws ArgumentError simulation_grid(; ratings_per_target = (3,), n_raters = 2)
     @test_throws ArgumentError simulation_grid(; repetitions = 0)
+    @test_throws ArgumentError simulation_grid(; view = :unknown)
     @test_throws ArgumentError simulation_grid_summary(NamedTuple[])
     @test_throws ArgumentError simulation_grid_summary(Any[1])
+    @test_throws ArgumentError simulation_grid_summary(sim_grid; view = :unknown)
 
     rules = falsification_rules()
     @test length(rules) == 13
@@ -27926,6 +28365,14 @@ end
         (:simulation_grid, :design_validation, :computation, :recovery,
             :calibration, :predictive_check, :decision_stability,
             :sensitivity, :baseline_comparison, :reproducibility)
+    @test isequal(
+        rule_summary,
+        falsification_rule_summary(rules; view = :full),
+    )
+    public_rule_summary = falsification_rule_summary(rules; view = :public)
+    @test public_rule_summary.schema ==
+        "bayesianmgmfrm.falsification_rule_summary_public.v1"
+    @test :next_gate ∉ keys(public_rule_summary)
     incomplete_rules = filter(row -> row.domain !== :calibration, rules)
     incomplete_rule_summary = falsification_rule_summary(incomplete_rules)
     @test !incomplete_rule_summary.passed
@@ -27948,6 +28395,10 @@ end
     @test_throws ArgumentError falsification_rules(; min_interval_coverage = 1.1)
     @test_throws ArgumentError falsification_rule_summary(NamedTuple[])
     @test_throws ArgumentError falsification_rule_summary(Any[1])
+    @test_throws ArgumentError falsification_rule_summary(
+        rules;
+        view = :unknown,
+    )
 
     active_test_project = Base.active_project()
     subprocess_project_dir = if isnothing(active_test_project)
@@ -28052,6 +28503,11 @@ end
         1.0
     @test Float64(row_order_check[:achieved_all_raters_common_target_fraction]) ==
         0.0
+    @test Float64(row_order_check[:max_aligned_pointwise_loglikelihood_error]) ==
+        0.0
+    @test Float64(row_order_check[:absolute_total_loglikelihood_error]) == 0.0
+    @test String(row_order_check[:error_normalization_policy]) ==
+        "at_or_below_tolerance_reported_as_zero"
     @test Bool(nested_check[:validation_passed]) == false
     @test Bool(nested_check[:rating_design_audit_passed]) == false
     @test String(nested_check[:rater_linking_status]) == "disconnected"
@@ -28165,6 +28621,17 @@ end
         $design_stress_script --output $design_stress_path`)
     design_stress = JSON3.read(read(design_stress_path, String))
     committed_design_stress = JSON3.read(read(design_stress_fixture, String))
+    expected_package_version = string(pkgversion(BayesianMGMFRM))
+    @test String(design_stress[:package][:version]) ==
+        expected_package_version
+    @test String(committed_design_stress[:package][:version]) ==
+        expected_package_version
+    committed_runtime = committed_design_stress[:runtime_provenance]
+    @test String(committed_runtime[:julia_version]) == "1.10.8"
+    @test String(committed_runtime[:manifest_file]) == "Manifest-v1.10.toml"
+    @test String(committed_runtime[:manifest_toml_sha256]) == file_sha256(
+        joinpath(dirname(@__DIR__), "Manifest-v1.10.toml"),
+    )
     function stress_local_json_value(value)
         if value isa AbstractDict
             materialized_pairs = collect(pairs(value))
@@ -28195,7 +28662,6 @@ end
     stress_semantic_signature = artifact -> (;
         schema = String(artifact[:schema]),
         status = String(artifact[:status]),
-        package_version = String(artifact[:package][:version]),
         n_design_cells = Int(artifact[:summary][:n_design_cells]),
         n_model_design_cells = Int(artifact[:summary][:n_model_design_cells]),
         n_paired_replication_rows =
@@ -28551,6 +29017,57 @@ end
     @test only(filter(row -> row.comparison_class === :stan_faithful,
         comparison_summary.class_rows)).artifacts ==
         ("test/fixtures/scalar_validation_stan_logdensity.json",)
+    @test isequal(
+        comparison_summary,
+        comparison_evidence_summary(comparison_rows; view = :full),
+    )
+    public_comparison_summary = comparison_evidence_summary(
+        comparison_rows;
+        view = :public,
+    )
+    @test public_comparison_summary.schema ==
+        "bayesianmgmfrm.comparison_evidence_summary_public.v1"
+    @test :next_gate ∉ keys(public_comparison_summary)
+    @test only(filter(row -> row.comparison_class === :stan_faithful,
+        public_comparison_summary.class_rows)).evidence ==
+        (:stan_validation_summary,)
+    path_comparison_rows = [
+        comparison_evidence_row(;
+            comparison_class = :stan,
+            target_model = :scalar_gmfrm,
+            comparator = :bridge_stan,
+            metric = :log_density,
+            estimate = 0.0,
+            reference = 0.0,
+            artifact = "private/results.json",
+        ),
+        comparison_evidence_row(;
+            comparison_class = :facets,
+            target_model = :mfrm_pcm,
+            comparator = :facets_export,
+            metric = :severity_correlation,
+            estimate = 1.0,
+            reference = 1.0,
+            artifact = "/Users/example/private/results.json",
+        ),
+        comparison_evidence_row(;
+            comparison_class = :nested,
+            target_model = :scalar_gmfrm,
+            comparator = :mfrm_pcm,
+            metric = :heldout_elpd_difference,
+            estimate = 1.0,
+            reference = 0.0,
+            pass_if = :greater_equal,
+        ),
+    ]
+    path_free_comparison_summary = comparison_evidence_summary(
+        path_comparison_rows;
+        view = :public,
+    )
+    @test !occursin("private/results.json",
+        JSON3.write(path_free_comparison_summary))
+    @test all(row -> :artifacts ∉ keys(row),
+        path_free_comparison_summary.class_rows)
     incomplete_comparison_summary = comparison_evidence_summary(
         filter(row -> row.comparison_class !== :r_frequentist, comparison_rows))
     @test !incomplete_comparison_summary.passed
@@ -28604,6 +29121,10 @@ end
         pass_if = :bad)
     @test_throws ArgumentError comparison_evidence_summary(NamedTuple[])
     @test_throws ArgumentError comparison_evidence_summary(Any[1])
+    @test_throws ArgumentError comparison_evidence_summary(
+        comparison_rows;
+        view = :unknown,
+    )
 
     julia_benchmark = benchmark_result_row(;
         benchmark = :minimal_pcm_nuts,
@@ -28654,6 +29175,18 @@ end
     @test ratio_row.status === :complete
     @test ratio_row.stan_to_julia_elapsed_ratio ≈ 2.0
     @test ratio_row.julia_to_stan_ess_per_second_ratio ≈ 2.5
+    @test isequal(
+        benchmark_gate,
+        benchmark_summary(julia_benchmark, stan_benchmark; view = :full),
+    )
+    public_benchmark_gate = benchmark_summary(
+        julia_benchmark,
+        stan_benchmark;
+        view = :public,
+    )
+    @test public_benchmark_gate.schema ==
+        "bayesianmgmfrm.benchmark_summary_public.v1"
+    @test :next_gate ∉ keys(public_benchmark_gate)
     missing_engine_gate = benchmark_summary([julia_benchmark])
     @test !missing_engine_gate.passed
     @test missing_engine_gate.status === :incomplete
@@ -28701,6 +29234,10 @@ end
     @test_throws ArgumentError benchmark_summary(NamedTuple[])
     @test_throws ArgumentError benchmark_summary(Any[1])
     @test_throws ArgumentError benchmark_summary(julia_benchmark; min_repetitions = 0)
+    @test_throws ArgumentError benchmark_summary(
+        julia_benchmark;
+        view = :unknown,
+    )
 
     truth = [row.mean for row in summary]
     recovery = parameter_recovery(result, truth; interval = 0.8)
@@ -30074,6 +30611,27 @@ end
     @test sensitivity_summary.criteria == (:waic,)
     @test Set(sensitivity_summary.baseline_models) ==
         Set(["main", "partial_credit"])
+    @test isequal(
+        sensitivity_summary,
+        sensitivity_comparison_summary(
+            NamedTuple[threshold_sensitivity...; custom_sensitivity...];
+            required_axes = (:threshold, :prior),
+            view = :full,
+        ),
+    )
+    public_sensitivity_summary = sensitivity_comparison_summary(
+        NamedTuple[threshold_sensitivity...; custom_sensitivity...];
+        required_axes = (:threshold, :prior),
+        view = :public,
+    )
+    @test public_sensitivity_summary.schema ==
+        "bayesianmgmfrm.sensitivity_comparison_summary_public.v1"
+    @test :next_gate ∉ keys(public_sensitivity_summary)
+    @test public_sensitivity_summary.n_candidate_rows ==
+        sensitivity_summary.n_candidate_rows
+    @test [row.n_candidate_rows for row in
+        public_sensitivity_summary.axis_rows] ==
+        [row.n_candidate_rows for row in sensitivity_summary.axis_rows]
     threshold_axis_summary = only(filter(row -> row.axis === :thresholds,
         sensitivity_summary.axis_rows))
     @test threshold_axis_summary.present
@@ -30101,6 +30659,10 @@ end
         threshold_sensitivity[1], threshold_sensitivity[2];
         required_axes = (:thresholds,))
     @test vararg_sensitivity_summary.passed
+    @test_throws ArgumentError sensitivity_comparison_summary(
+        threshold_sensitivity;
+        view = :unknown,
+    )
 
     required_sensitivity_axes = (
         :thresholds,

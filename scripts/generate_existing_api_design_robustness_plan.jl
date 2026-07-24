@@ -224,9 +224,13 @@ function row_order_check()
         permuted_design,
         permuted_params,
     )
-    aligned_error = maximum(abs.(permuted_pointwise .- pointwise[permutation]))
-    total_error = abs(sum(permuted_pointwise) - sum(pointwise))
-    passed = aligned_error <= 1.0e-12 && total_error <= 1.0e-12 &&
+    tolerance = 1.0e-12
+    raw_aligned_error =
+        maximum(abs.(permuted_pointwise .- pointwise[permutation]))
+    raw_total_error = abs(sum(permuted_pointwise) - sum(pointwise))
+    aligned_error = raw_aligned_error <= tolerance ? 0.0 : raw_aligned_error
+    total_error = raw_total_error <= tolerance ? 0.0 : raw_total_error
+    passed = raw_aligned_error <= tolerance && raw_total_error <= tolerance &&
         multiplicity.multiply_scored_target_fraction == 1.0 &&
         multiplicity.all_raters_common_target_fraction == 0.0
     return (;
@@ -236,7 +240,8 @@ function row_order_check()
         parameter_name_set_preserved = true,
         max_aligned_pointwise_loglikelihood_error = aligned_error,
         absolute_total_loglikelihood_error = total_error,
-        tolerance = 1.0e-12,
+        tolerance,
+        error_normalization_policy = :at_or_below_tolerance_reported_as_zero,
         achieved_multiply_scored_target_fraction =
             multiplicity.multiply_scored_target_fraction,
         achieved_all_raters_common_target_fraction =

@@ -5,9 +5,10 @@ using LinearAlgebra
 using Pkg
 using SHA
 
-function _evidence_try_read(cmd)
+function _evidence_try_read(cmd; dir = nothing)
     try
-        return readchomp(cmd)
+        resolved = dir === nothing ? cmd : Cmd(cmd; dir)
+        return readchomp(resolved)
     catch
         return nothing
     end
@@ -30,7 +31,10 @@ function _evidence_total_memory()
     end
 end
 
-function _evidence_cmdstan_metadata()
+_evidence_path_basename(path) =
+    path isa AbstractString && !isempty(path) ? basename(normpath(path)) : nothing
+
+function _evidence_cmdstan_metadata(; include_paths::Bool = false)
     path = get(ENV, "CMDSTAN", get(ENV, "CMDSTAN_HOME", ""))
     if isempty(path)
         root = joinpath(homedir(), ".cmdstan")
@@ -46,11 +50,16 @@ function _evidence_cmdstan_metadata()
         m = match(r"cmdstan-([0-9.]+)", basename(path))
         version = isnothing(m) ? nothing : m.captures[1]
     end
-    return Dict{String,Any}("path" => isempty(path) ? nothing : path,
-                            "version" => version)
+    return Dict{String,Any}(
+        "path" => include_paths && !isempty(path) ? path : nothing,
+        "path_basename" => _evidence_path_basename(path),
+        "version" => version,
+    )
 end
 
-function _evidence_package_status(; direct_only::Bool = true)
+function _evidence_package_status(;
+        direct_only::Bool = true,
+        include_paths::Bool = false)
     out = Dict{String,Any}()
     for (uuid, dep) in Pkg.dependencies()
         direct_only && !dep.is_direct_dep && continue
@@ -59,7 +68,8 @@ function _evidence_package_status(; direct_only::Bool = true)
             "uuid" => string(uuid),
             "is_direct_dep" => dep.is_direct_dep,
             "is_tracking_path" => dep.is_tracking_path,
-            "source" => dep.source,
+            "source" => include_paths ? dep.source : nothing,
+            "source_basename" => _evidence_path_basename(dep.source),
         )
     end
     return out
@@ -75,48 +85,76 @@ function _evidence_file_sha256(path)
     end
 end
 
-function _evidence_git_metadata()
-    root = _evidence_try_read(`git rev-parse --show-toplevel`)
+function _evidence_manifest_path(project_dir;
+        version::VersionNumber = VERSION)
+    project_dir isa AbstractString || return nothing
+    candidates = (
+        joinpath(project_dir,
+            "Manifest-v$(version.major).$(version.minor).toml"),
+        joinpath(project_dir, "Manifest-v$(version.major).toml"),
+        joinpath(project_dir, "Manifest.toml"),
+    )
+    index = findfirst(isfile, candidates)
+    return index === nothing ? nothing : candidates[index]
+end
+
+function _evidence_git_metadata(; include_paths::Bool = false)
+    project = Base.active_project()
+    project_dir = isnothing(project) ? nothing : dirname(project)
+    root = isnothing(project_dir) ? nothing :
+        _evidence_try_read(`git rev-parse --show-toplevel`; dir = project_dir)
     isnothing(root) && return Dict{String,Any}(
         "available" => false,
         "root" => nothing,
+        "root_basename" => nothing,
         "commit" => nothing,
         "branch" => nothing,
         "dirty" => nothing,
         "status_short_sha256" => nothing,
     )
-    status_short = _evidence_try_read(`git status --short`)
+    status_short = _evidence_try_read(`git status --short`; dir = root)
     return Dict{String,Any}(
         "available" => true,
-        "root" => root,
-        "commit" => _evidence_try_read(`git rev-parse HEAD`),
-        "branch" => _evidence_try_read(`git rev-parse --abbrev-ref HEAD`),
+        "root" => include_paths ? root : nothing,
+        "root_basename" => _evidence_path_basename(root),
+        "commit" => _evidence_try_read(`git rev-parse HEAD`; dir = root),
+        "branch" => _evidence_try_read(
+            `git rev-parse --abbrev-ref HEAD`;
+            dir = root,
+        ),
         "dirty" => isnothing(status_short) ? nothing : !isempty(status_short),
         "status_short_sha256" => isnothing(status_short) ?
             nothing : bytes2hex(sha256(codeunits(status_short))),
     )
 end
 
-function _evidence_project_hashes()
+function _evidence_project_hashes(; include_paths::Bool = false)
     project = Base.active_project()
     project_dir = isnothing(project) ? nothing : dirname(project)
-    manifest = isnothing(project_dir) ? nothing : joinpath(project_dir, "Manifest.toml")
+    manifest = _evidence_manifest_path(project_dir)
     return Dict{String,Any}(
-        "active_project" => project,
+        "active_project" => include_paths ? project : nothing,
+        "active_project_basename" => _evidence_path_basename(project),
         "active_project_sha256" => _evidence_file_sha256(project),
-        "manifest" => manifest,
+        "manifest" => include_paths ? manifest : nothing,
+        "manifest_basename" => _evidence_path_basename(manifest),
         "manifest_sha256" => _evidence_file_sha256(manifest),
     )
 end
 
 """
-    evidence_metadata(; include_packages = true)
+    evidence_metadata(; include_packages = true, include_paths = false)
 
 Return reproducibility metadata for the active Julia session, including Julia,
 OS, BLAS, optional R/CmdStan discovery, git/project hashes, and direct package
-status.
+status. Machine-local paths are omitted by default while safe basenames and
+content hashes are retained. Set `include_paths = true` only when a private
+reproduction record explicitly requires complete local paths and free-form
+execution notes.
 """
-function evidence_metadata(; include_packages::Bool = true)
+function evidence_metadata(;
+        include_packages::Bool = true,
+        include_paths::Bool = false)
     cpu = Sys.cpu_info()
     cpu_model = isempty(cpu) ? nothing : getproperty(first(cpu), :model)
     return Dict{String,Any}(
@@ -134,30 +172,40 @@ function evidence_metadata(; include_packages::Bool = true)
             ),
             "julia" => Dict{String,Any}(
                 "version" => string(VERSION),
-                "project" => Base.active_project(),
+                "project" => include_paths ? Base.active_project() : nothing,
+                "project_basename" =>
+                    _evidence_path_basename(Base.active_project()),
                 "threads" => Threads.nthreads(),
-                "depot_path" => DEPOT_PATH,
-                "load_path" => LOAD_PATH,
+                "depot_path" => include_paths ? copy(DEPOT_PATH) : nothing,
+                "depot_basenames" =>
+                    [_evidence_path_basename(path) for path in DEPOT_PATH],
+                "load_path" => include_paths ? copy(LOAD_PATH) : nothing,
+                "load_path_basenames" =>
+                    [_evidence_path_basename(path) for path in LOAD_PATH],
             ),
             "r" => Dict{String,Any}(
                 "version" => _evidence_try_read(`Rscript -e "cat(R.version.string)"`),
             ),
-            "cmdstan" => _evidence_cmdstan_metadata(),
+            "cmdstan" => _evidence_cmdstan_metadata(; include_paths),
             "blas" => Dict{String,Any}(
                 "threads" => BLAS.get_num_threads(),
                 "config" => string(BLAS.get_config()),
             ),
         ),
-        "git" => _evidence_git_metadata(),
-        "hashes" => _evidence_project_hashes(),
+        "git" => _evidence_git_metadata(; include_paths),
+        "hashes" => _evidence_project_hashes(; include_paths),
         "execution" => Dict{String,Any}(
             "julia_num_threads_env" => get(ENV, "JULIA_NUM_THREADS", nothing),
             "omp_num_threads" => get(ENV, "OMP_NUM_THREADS", nothing),
             "openblas_num_threads" => get(ENV, "OPENBLAS_NUM_THREADS", nothing),
             "blas_num_threads" => BLAS.get_num_threads(),
-            "power_thermal_notes" => get(ENV, "GMFRM_POWER_NOTES", "not recorded"),
+            "power_thermal_notes" => include_paths ?
+                get(ENV, "GMFRM_POWER_NOTES", nothing) : nothing,
+            "power_thermal_notes_recorded" =>
+                haskey(ENV, "GMFRM_POWER_NOTES"),
         ),
-        "packages" => include_packages ? _evidence_package_status() : Dict{String,Any}(),
+        "packages" => include_packages ?
+            _evidence_package_status(; include_paths) : Dict{String,Any}(),
     )
 end
 

@@ -122,6 +122,11 @@ end
         "ld1b_pilot_then_frozen_evaluation"
 
     generator = fixture[:generator]
+    provenance = generator[:environment_provenance]
+    @test String(provenance[:manifest]) == "Manifest-v1.10.toml"
+    @test String(provenance[:manifest_sha256]) ==
+        bytes2hex(open(sha256,
+            joinpath(root, String(provenance[:manifest]))))
     for (field, relative_path) in (
             (:script_source_sha256,
                 "scripts/generate_local_dependence_calibration_scorer_preflight.jl"),

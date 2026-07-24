@@ -14,8 +14,8 @@
   "sparse_mgmfrm_superiority_claim": false,
   "package": {
     "name": "BayesianMGMFRM",
-    "version": "0.1.1",
-    "julia_version": "1.12.5"
+    "version": "0.1.2",
+    "julia_version": "1.10.8"
   },
   "protocol": {
     "protocol_id": "mgmfrm_publication_grade_threshold_model_weight_policy_review_v1",
@@ -48,7 +48,7 @@
       "artifact": "mgmfrm_publication_grade_refit_batch_results_review",
       "path": "test/fixtures/mgmfrm_publication_grade_refit_batch_results_review.json",
       "exists": true,
-      "sha256": "9f600b625bda284cf4e205d6eaa58209d3843a87370f7c33919e15f3ee709195",
+      "sha256": "54e8fd51f2181da4bbf565f4b2b844d545ef8e8eb7ae385e4a5c208d0c952568",
       "expected_schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_batch_results_review.v1",
       "schema": "bayesianmgmfrm.mgmfrm_publication_grade_refit_batch_results_review.v1",
       "schema_matches": true,
@@ -68,7 +68,7 @@
       "artifact": "prediction_target_and_model_weight_policy",
       "path": "test/fixtures/gmfrm_prediction_target_and_model_weight_policy.json",
       "exists": true,
-      "sha256": "d80e38d94fdbab12cd42082c4486894aa425c3936306e33c4878183744e145a2",
+      "sha256": "cf8406719aad612f740244cacd1b099479ecd44836b25ecd436762fab491ecaa",
       "expected_schema": "bayesianmgmfrm.gmfrm_prediction_target_and_model_weight_policy.v1",
       "schema": "bayesianmgmfrm.gmfrm_prediction_target_and_model_weight_policy.v1",
       "schema_matches": true,
@@ -78,7 +78,7 @@
       "artifact": "mgmfrm_manual_public_scope_review_for_fit",
       "path": "test/fixtures/mgmfrm_manual_public_scope_review_for_fit.json",
       "exists": true,
-      "sha256": "680ed94babfba6583efdc1df768683242b31ce01e3fbd957c9ee5f10d6f834cc",
+      "sha256": "75319e5636120d5d2df8e13d05cce700466dc1d40293c29507e62a33e486037c",
       "expected_schema": "bayesianmgmfrm.mgmfrm_manual_public_scope_review_for_fit.v1",
       "schema": "bayesianmgmfrm.mgmfrm_manual_public_scope_review_for_fit.v1",
       "schema_matches": true,
