@@ -36,6 +36,13 @@ jobs:
           version: ${{ matrix.version }}
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
+      - name: Check tracked harness portability
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $GeneratedHarness = Join-Path $env:RUNNER_TEMP 'local_dependence_pilot_batch_execution_harness.json'
+          julia --startup-file=no --project=. scripts/generate_local_dependence_pilot_batch_execution_harness.jl --output $GeneratedHarness
+          git diff --no-index --exit-code -- test/fixtures/local_dependence_pilot_batch_execution_harness.json $GeneratedHarness
       - uses: julia-actions/julia-runtest@v1
 
   docs:
