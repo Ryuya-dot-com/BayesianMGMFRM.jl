@@ -2251,6 +2251,16 @@ end
         payload, :sampler_diagnostics, job, :diagnostic_failed)
 end
 
+@testset "LD1b1 attempt inventory paths are portable" begin
+    runner = LD1B1HarnessRunner
+    @test runner.ld1b1_portable_inventory_relative_path(
+        raw"evidence\summary.json", '\\') == "evidence/summary.json"
+    @test runner.ld1b1_portable_inventory_relative_path(
+        raw"evidence\summary.json", "\\") == "evidence/summary.json"
+    @test runner.ld1b1_portable_inventory_relative_path(
+        "evidence/summary.json", '/') == "evidence/summary.json"
+end
+
 @testset "LD1b1 pilot batch immutable attempts and resume scan" begin
     runner = LD1B1HarnessRunner
     checked = ld1b1_harness_test_checked(runner)

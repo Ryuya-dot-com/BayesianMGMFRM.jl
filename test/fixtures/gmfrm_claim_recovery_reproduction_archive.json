@@ -295,7 +295,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "2e334a19b2b9f38df873a354381446e312f5db40502d1079547526e56ced0e6a",
+      "sha256": "2f1b7e49e0cdee9155cee0311dd8b2612740f62b846a214f079e8cc4b41977c4",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.local_dependence_pilot_protocol_preflight.v1",
@@ -316,7 +316,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "2cdd4e66f0ba2a860f55e7d273e548c9a1ed64766c545b6a25eefb99b6182139",
+      "sha256": "b07ea80a8e293562068a6fd93d864a9ae060172b6aac7432f7516b1b45942ac8",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.local_dependence_pilot_batch_execution_harness.v3",
@@ -749,7 +749,7 @@
     {
       "path": "test/local_dependence_pilot_batch_execution_harness.jl",
       "exists": true,
-      "sha256": "5d2b4fbf603b390ad4aa10db2930ab4351ea90d29a164683ede25b5e3405bc7e"
+      "sha256": "b83bffa95e8a5c4db31a4d081dcd44e0f0b62d38b0b00a11b8222e95e94e36b5"
     },
     {
       "path": "test/local_dependence_pilot_bounded_canonical_smoke.jl",
@@ -914,7 +914,7 @@
     {
       "path": "scripts/run_local_dependence_calibration_pilot_batch.jl",
       "exists": true,
-      "sha256": "a4a941961b77eee6b27d60e042ddde6d8351ea7cbe97b0b8ac13bd5789443d08"
+      "sha256": "9b8643aed462635a8fea315c15cac40d708688c5056e13a3fec4df2102724c89"
     },
     {
       "path": "scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl",

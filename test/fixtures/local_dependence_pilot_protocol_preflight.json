@@ -22,7 +22,7 @@
       "project": "Project.toml",
       "project_sha256": "fa903c793a1c67b66ec61e8ccd732d3e2169503a856e2c4902b01d98fb5ec45f",
       "manifest": "Manifest-v1.10.toml",
-      "manifest_sha256": "b57f6381e5c8ac151359b3f6d6f62f98377248c8ff9a9abc624a4ecb64c85d47",
+      "manifest_sha256": "0e56ce537ef547df436126a352791cec530ae0bd6dc6127d8ec889544b872291",
       "julia_compat": "1.10.8",
       "exact_runtime_version_recorded": false,
       "cross_julia_bitwise_portability_claimed": false
@@ -61,7 +61,7 @@
       {
         "role": "batch_controller",
         "path": "scripts/run_local_dependence_calibration_pilot_batch.jl",
-        "sha256": "a4a941961b77eee6b27d60e042ddde6d8351ea7cbe97b0b8ac13bd5789443d08"
+        "sha256": "9b8643aed462635a8fea315c15cac40d708688c5056e13a3fec4df2102724c89"
       },
       {
         "role": "canonical_json",
@@ -119,7 +119,7 @@
     },
     "pin_id": {
       "algorithm": "sha256",
-      "value": "73c48900317b05d437445e6d979ae8da9170b2423d791d198a950074498c4d30",
+      "value": "d32d9c1319fd98b2c64c01c9dfb9cc3a151f2316ea6ca7fe0e7905ad152e1dfb",
       "covers": "canonical_executor_source_pin_without_pin_id",
       "canonical_format": "local_json_sorted_compact"
     }
@@ -16798,7 +16798,7 @@
   },
   "content_hash": {
     "algorithm": "sha256",
-    "value": "dfe1564eab428539a31eee98f3a4ebf922c3780a8815099a4187a4dac9a03376",
+    "value": "25654f229ef5133b45d73a8126e9319ba4fda2256239092c72677fc9cd7fecda",
     "covers": "artifact_without_content_hash",
     "canonical_format": "local_json_sorted_compact"
   }

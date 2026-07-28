@@ -2545,6 +2545,13 @@ function ld1b1_regular_file_snapshot(path::AbstractString,
     )
 end
 
+function ld1b1_portable_inventory_relative_path(
+        relative::AbstractString,
+        separator = Base.Filesystem.path_separator)
+    separator == '/' && return String(relative)
+    return replace(String(relative), separator => '/')
+end
+
 function ld1b1_attempt_inventory_rows(attempt_dir::AbstractString)
     isdir(attempt_dir) || return ()
     control_files = Set((
@@ -2556,7 +2563,8 @@ function ld1b1_attempt_inventory_rows(attempt_dir::AbstractString)
             follow_symlinks = false)
         for name in sort(directories)
             path = joinpath(root, name)
-            relative = relpath(path, attempt_dir)
+            relative = ld1b1_portable_inventory_relative_path(
+                relpath(path, attempt_dir))
             relative in control_files && continue
             if islink(path)
                 push!(rows, (;
@@ -2578,7 +2586,8 @@ function ld1b1_attempt_inventory_rows(attempt_dir::AbstractString)
         end
         for name in sort(files)
             path = joinpath(root, name)
-            relative = relpath(path, attempt_dir)
+            relative = ld1b1_portable_inventory_relative_path(
+                relpath(path, attempt_dir))
             relative in control_files && continue
             if islink(path)
                 push!(rows, (;
