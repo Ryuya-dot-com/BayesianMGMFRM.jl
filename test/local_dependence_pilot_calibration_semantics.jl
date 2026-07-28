@@ -10,7 +10,7 @@ include(joinpath(
     "local_dependence_pilot_calibration_semantics.jl",
 ))
 
-const LD1B1CalibrationSemantics =
+const LD1B1CalibrationSemanticsForTest =
     LocalDependencePilotCalibrationSemantics
 
 function ld1b1_semantics_generation_failure_record(plan;
@@ -213,9 +213,9 @@ end
 function ld1b1_semantics_changed_top_level_fields(reference, candidate)
     return Set(
         key for key in keys(reference)
-        if LD1B1CalibrationSemantics.ld1b1_normalized_json(
+        if LD1B1CalibrationSemanticsForTest.ld1b1_normalized_json(
             reference[key],
-        ) != LD1B1CalibrationSemantics.ld1b1_normalized_json(
+        ) != LD1B1CalibrationSemanticsForTest.ld1b1_normalized_json(
             candidate[key],
         )
     )
@@ -228,7 +228,7 @@ end
         "fixtures",
         "local_dependence_pilot_protocol_preflight.json",
     )
-    semantics = LD1B1CalibrationSemantics
+    semantics = LD1B1CalibrationSemanticsForTest
     context = semantics.ld1b1_load_calibration_semantic_context(
         protocol_path,
     )
