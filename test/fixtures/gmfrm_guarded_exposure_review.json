@@ -1110,7 +1110,7 @@
     {
       "artifact": "full_paper_reproduction_archive",
       "path": "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
-      "sha256": "e3b4c1de1a45005c6792058934bc416ad0a3c048058c7cd57060cc0868d560c9",
+      "sha256": "daf80c8dfcc3eb5e0e942ee07d130bc310a867866be5b16c8ef261bb889594d7",
       "schema": "bayesianmgmfrm.gmfrm_full_paper_reproduction_archive.v1",
       "family": "gmfrm",
       "scope": "full_paper_reproduction_archive",

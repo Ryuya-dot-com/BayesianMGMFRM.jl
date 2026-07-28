@@ -1763,8 +1763,8 @@
     {
       "path": ".github/workflows/CI.yml",
       "exists": true,
-      "sha256": "01ed26ad17911c531b10db9c1636e5aab700a498c6b7eb719331f42e70910de3",
-      "line_count": 99
+      "sha256": "c392df99a2c2b906ea2f5b8fd669a40956833dda8dd91069b4595ad9104eac2d",
+      "line_count": 106
     },
     {
       "path": "Project.toml",

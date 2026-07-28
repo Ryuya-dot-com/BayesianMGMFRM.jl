@@ -24,6 +24,13 @@ jobs:
           - windows-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Use a short Windows temporary directory
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path 'D:\t' | Out-Null
+          "TMP=D:\t" >> $env:GITHUB_ENV
+          "TEMP=D:\t" >> $env:GITHUB_ENV
       - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
