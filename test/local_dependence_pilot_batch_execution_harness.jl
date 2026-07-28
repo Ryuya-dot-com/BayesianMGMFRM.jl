@@ -2043,6 +2043,7 @@ end
         attempt_roots = [raw"repro\attempts", raw"repro\bounded-smoke"],
         nested = ((;
             attempt_directory = raw"repro\attempts\job-0001",
+            primary_attempt_dir = raw"repro\attempts\job-0001\attempt_001",
         ),),
         note = raw"preserve\nonpath",
     )
@@ -2055,6 +2056,8 @@ end
         ["repro/attempts", "repro/bounded-smoke"]
     @test only(portable.nested).attempt_directory ==
         "repro/attempts/job-0001"
+    @test only(portable.nested).primary_attempt_dir ==
+        "repro/attempts/job-0001/attempt_001"
     @test portable.note == raw"preserve\nonpath"
 end
 

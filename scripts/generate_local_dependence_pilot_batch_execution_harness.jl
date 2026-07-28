@@ -79,7 +79,7 @@ function ld1b1_portable_harness_value(value, field::Union{Nothing,String} = noth
             ld1b1_portable_harness_value(element, field), value)
     elseif value isa AbstractString && field !== nothing
         path_field = occursin(
-            r"(?:^|_)(?:path|paths|root|roots|directory|directories)(?:$|_)",
+            r"(?:^|_)(?:path|paths|root|roots|dir|dirs|directory|directories)(?:$|_)",
             field,
         )
         return field == "command" || path_field ?

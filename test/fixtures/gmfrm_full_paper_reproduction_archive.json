@@ -400,7 +400,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "331e2e5465882105bc57f888abb7c789c066a7ff557a3f77851d854d9cb6be03",
+      "sha256": "2e334a19b2b9f38df873a354381446e312f5db40502d1079547526e56ced0e6a",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.local_dependence_pilot_protocol_preflight.v1",
@@ -421,7 +421,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "f9f72d65368399cc8bd0a85dc935eae2f716d144febafc5177843f40d5c1bceb",
+      "sha256": "2cdd4e66f0ba2a860f55e7d273e548c9a1ed64766c545b6a25eefb99b6182139",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.local_dependence_pilot_batch_execution_harness.v3",
@@ -610,7 +610,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "da9fd56249f2cbd5ace8841d2c8d57564c7600524d6864d7a5da5fa168e682da",
+      "sha256": "766eed06caca8be931ca43c6ab524c1da0e96d98d76601b45f719829b42c010e",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
@@ -1931,8 +1931,8 @@
     {
       "path": "test/local_dependence_pilot_batch_execution_harness.jl",
       "exists": true,
-      "sha256": "53fba7d49ffbdb8c7d0b6411b64a7cf67fc4a5b78328460abb7de28367c69acc",
-      "line_count": 4171
+      "sha256": "5d2b4fbf603b390ad4aa10db2930ab4351ea90d29a164683ede25b5e3405bc7e",
+      "line_count": 4174
     },
     {
       "path": "test/local_dependence_pilot_bounded_canonical_smoke.jl",
@@ -2165,7 +2165,7 @@
     {
       "path": "scripts/generate_local_dependence_pilot_batch_execution_harness.jl",
       "exists": true,
-      "sha256": "924fc48d68c9f737a0d152cd3c89c7def16a95cfb22456fe3100b2cc56eb5313",
+      "sha256": "ea54b8bc434128ac7aed7728810763e4d4d5b41b08f3f89b0c52518e522009e8",
       "line_count": 181
     },
     {
