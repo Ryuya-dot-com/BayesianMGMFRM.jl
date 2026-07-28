@@ -11,7 +11,7 @@
     "script": "scripts/generate_local_dependence_known_truth_preflight.jl",
     "script_source_sha256": "6625b76f10754a7059cd925e7928e3c9a237f2d27c5bf2a44b2b5ac1a6e05510",
     "known_truth_source": "src/local_dependence_known_truth_dgp.jl",
-    "known_truth_source_sha256": "43b1ae7c69c5d25bd7054429cd265b38010fd2e9a8a67e1fc4e58f91d2b87b92",
+    "known_truth_source_sha256": "dbaca584bdf65d2291231c8482245ab43070665d7ae6a62f47d741e150ff47c9",
     "adapter_source": "src/local_dependence_simulation.jl",
     "adapter_source_sha256": "006cb3d2514eacdf9606db303c80460efa095772691772f63defbe11fd362ae8",
     "deterministic_within_recorded_rng_contract": true,
@@ -101,7 +101,7 @@
     },
     "environment_provenance": {
       "project": "Project.toml",
-      "project_sha256": "98f8d27a13e621f8f341abc84ab4cfae565b9cfecef83b24f6e8331fc320f247",
+      "project_sha256": "fa903c793a1c67b66ec61e8ccd732d3e2169503a856e2c4902b01d98fb5ec45f",
       "manifest": "Manifest-v1.10.toml",
       "manifest_sha256": "b57f6381e5c8ac151359b3f6d6f62f98377248c8ff9a9abc624a4ecb64c85d47",
       "julia_compat": "1.10.8",
@@ -127,7 +127,7 @@
   "source_independence": {
     "passed": true,
     "source": "src/local_dependence_known_truth_dgp.jl",
-    "source_sha256": "43b1ae7c69c5d25bd7054429cd265b38010fd2e9a8a67e1fc4e58f91d2b87b92",
+    "source_sha256": "dbaca584bdf65d2291231c8482245ab43070665d7ae6a62f47d741e150ff47c9",
     "source_dependency_statements": [
       "using Random"
     ],
@@ -247,7 +247,7 @@
       "category_counts": [
         {
           "category": 0,
-          "count": 146
+          "count": 118
         },
         {
           "category": 1,
@@ -255,11 +255,11 @@
         },
         {
           "category": 2,
-          "count": 119
+          "count": 129
         },
         {
           "category": 3,
-          "count": 108
+          "count": 126
         }
       ],
       "component_maximum_absolute_shifts": {
@@ -281,14 +281,14 @@
       "within_rater_item_pair_status": "eligible",
       "shared_response_rater_pair_status": "sparse",
       "future_fit_action": "structurally_eligible_for_future_candidate",
-      "data_signature": "17642564402994891486",
+      "data_signature": "10625665563959630219",
       "testlet_design_signature": {
         "algorithm": "sha256",
-        "value": "8254dbb6b58562e624f2769e9d3f0c3174037d564f55fa48a46619c097368d4d"
+        "value": "eb61fa6e2c3437b3ad732a762e1022ebc3a528430207b0a201aad7692c824872"
       },
-      "score_signature": "b2600db265b5206cd1a6efdf1474834663515019dd38683fc45d00ac988c1fc9",
+      "score_signature": "7e02f321222000146c8a1c413ffc5cbf221c3461ddfd8d7a44e091e2162e1bc6",
       "truth_surface_encoding": "local_json_shape_explicit_matrix_row_major_v1",
-      "truth_surface_sha256": "055ff0913de3080957eeae6222c5c9b03db65f219aef67c1b142dbc91fa0a86d",
+      "truth_surface_sha256": "8ec967a8430a534a72adc0f08d19aec5d7c419c91a4f2170430bf4e552533f75",
       "truth_known_by_construction": true,
       "calibration_evidence_available": false,
       "diagnostic_decision_labels_available": false,
@@ -343,19 +343,19 @@
       "category_counts": [
         {
           "category": 0,
-          "count": 529
+          "count": 498
         },
         {
           "category": 1,
-          "count": 492
+          "count": 458
         },
         {
           "category": 2,
-          "count": 463
+          "count": 467
         },
         {
           "category": 3,
-          "count": 436
+          "count": 497
         }
       ],
       "component_maximum_absolute_shifts": {
@@ -377,14 +377,14 @@
       "within_rater_item_pair_status": "eligible",
       "shared_response_rater_pair_status": "eligible",
       "future_fit_action": "structurally_eligible_for_future_candidate",
-      "data_signature": "15085194874925265108",
+      "data_signature": "10312896619841961002",
       "testlet_design_signature": {
         "algorithm": "sha256",
         "value": "46c67eaae3bceb006682eb720259477251ec67ccd959fa6e421f125600836bbc"
       },
-      "score_signature": "7b54f9a002ce0a90e33a9b831e2454ebdd465ab322c512b610a34b4b9a5e4a41",
+      "score_signature": "bb8381cadcd4331990d67d2a42e4aff088baf8079212b5fe3940609f3c8cff34",
       "truth_surface_encoding": "local_json_shape_explicit_matrix_row_major_v1",
-      "truth_surface_sha256": "ec85ddbb595a463011c971bc8b82f68f2fcb6c84074dacd2fab840bbe3d3f26b",
+      "truth_surface_sha256": "12064c2128c80dade4316d178031d0848b21124bf507514e220e95a9ce075a89",
       "truth_known_by_construction": true,
       "calibration_evidence_available": false,
       "diagnostic_decision_labels_available": false,
@@ -439,19 +439,19 @@
       "category_counts": [
         {
           "category": 0,
-          "count": 143
+          "count": 122
         },
         {
           "category": 1,
-          "count": 113
+          "count": 111
         },
         {
           "category": 2,
-          "count": 115
+          "count": 130
         },
         {
           "category": 3,
-          "count": 109
+          "count": 117
         }
       ],
       "component_maximum_absolute_shifts": {
@@ -473,14 +473,14 @@
       "within_rater_item_pair_status": "eligible",
       "shared_response_rater_pair_status": "sparse",
       "future_fit_action": "structurally_eligible_for_future_candidate",
-      "data_signature": "17557063181949096677",
+      "data_signature": "9488306950283610540",
       "testlet_design_signature": {
         "algorithm": "sha256",
-        "value": "24e5cb902e0aabd1010ed044c3963f634be4006700f84907777b9ff22d1ca94e"
+        "value": "cfe212090465d8219be6fdbe8da0ee5f83c8d1a7f24593b4deacf28bc00ebeff"
       },
-      "score_signature": "08e2f4f1220599f6b96a1c0636220d1f3c1bc1879f35aff0d662abf4b46a7986",
+      "score_signature": "8e0a38ec393bc654ddfd1459e5eb24532a168b029e1c6986b100921976a7555d",
       "truth_surface_encoding": "local_json_shape_explicit_matrix_row_major_v1",
-      "truth_surface_sha256": "a852e951bc4b7e5fc863b4cc157d90d573f24fbdf99828a89952dfb5f226d043",
+      "truth_surface_sha256": "e7f2d0a78cf71990cfb9f1ec4e75314c821d62d6a2ad5e1deb9417cd6387161c",
       "truth_known_by_construction": true,
       "calibration_evidence_available": false,
       "diagnostic_decision_labels_available": false,
@@ -535,19 +535,19 @@
       "category_counts": [
         {
           "category": 0,
-          "count": 76
+          "count": 64
         },
         {
           "category": 1,
-          "count": 54
+          "count": 57
         },
         {
           "category": 2,
-          "count": 49
+          "count": 59
         },
         {
           "category": 3,
-          "count": 49
+          "count": 48
         }
       ],
       "component_maximum_absolute_shifts": {
@@ -569,14 +569,14 @@
       "within_rater_item_pair_status": "sparse",
       "shared_response_rater_pair_status": "sparse",
       "future_fit_action": "structurally_eligible_for_future_candidate",
-      "data_signature": "14771468947624190252",
+      "data_signature": "5490962522623049974",
       "testlet_design_signature": {
         "algorithm": "sha256",
-        "value": "7c3701fb09dd80a7dbb5dcf22fc5aabd7cef03b3ff1597cdc5378cfed8f9f949"
+        "value": "dbf41087a442063718e452b16d33bb9fee0a567626d69338abf3423b906e2e48"
       },
-      "score_signature": "568187e177ee3d277225ed62af17b384eccfe1cb513ff2b34198cfe73c6cd561",
+      "score_signature": "15d16e4813cd17bcea53a756669687ba85fcf99e0c68ccc0444847952e07f5de",
       "truth_surface_encoding": "local_json_shape_explicit_matrix_row_major_v1",
-      "truth_surface_sha256": "45e95060557d54e36c46dd0d62d292e07d06fce59da3452aeef40f6743709309",
+      "truth_surface_sha256": "9a73b4e28b33107d28894d8abdfeeadcf62f1519a1ab0f1f65ddf1b0436c476a",
       "truth_known_by_construction": true,
       "calibration_evidence_available": false,
       "diagnostic_decision_labels_available": false,
@@ -631,19 +631,19 @@
       "category_counts": [
         {
           "category": 0,
-          "count": 77
+          "count": 69
         },
         {
           "category": 1,
-          "count": 58
+          "count": 61
         },
         {
           "category": 2,
-          "count": 53
+          "count": 60
         },
         {
           "category": 3,
-          "count": 52
+          "count": 50
         }
       ],
       "component_maximum_absolute_shifts": {
@@ -665,14 +665,14 @@
       "within_rater_item_pair_status": "eligible",
       "shared_response_rater_pair_status": "sparse",
       "future_fit_action": "structurally_eligible_for_future_candidate",
-      "data_signature": "1761776587471958067",
+      "data_signature": "12478643378875552124",
       "testlet_design_signature": {
         "algorithm": "sha256",
-        "value": "406618c4b1ccfdef285709a643529650b6fa08aaa1f56fca3fcde76ec74e7dd6"
+        "value": "8ccaad833fcfefe5cf603ec355fbbfad12241d41df2d36522d778a75e009d1d2"
       },
-      "score_signature": "23b06b768f52cd268a760dd19a5ac06b0481b0109ff31e4aa2f80ea1d17c2f1b",
+      "score_signature": "1dc2789fbe551a42d77d323737c81e92f75830116ef341b05743daa900b872ec",
       "truth_surface_encoding": "local_json_shape_explicit_matrix_row_major_v1",
-      "truth_surface_sha256": "f32ee24446f157c12a8774ebfccba58ab50ad51b129b472c9982bc48b9a646dc",
+      "truth_surface_sha256": "d90d04278d7de2a19c80c7ea05720c05ba91b75b6d0e9459139346a8d1c88bfe",
       "truth_known_by_construction": true,
       "calibration_evidence_available": false,
       "diagnostic_decision_labels_available": false,
@@ -727,23 +727,23 @@
       "category_counts": [
         {
           "category": 0,
-          "count": 147
+          "count": 119
         },
         {
           "category": 1,
-          "count": 105
+          "count": 106
         },
         {
           "category": 2,
-          "count": 122
+          "count": 129
         },
         {
           "category": 3,
-          "count": 106
+          "count": 126
         }
       ],
       "component_maximum_absolute_shifts": {
-        "person_testlet_shift": 0.15386529759144946,
+        "person_testlet_shift": 0.13925327120059316,
         "response_occasion_shift": 0.0,
         "rater_response_halo_shift": 0.0,
         "rater_task_severity_shift": 0.0,
@@ -761,14 +761,14 @@
       "within_rater_item_pair_status": "eligible",
       "shared_response_rater_pair_status": "sparse",
       "future_fit_action": "structurally_eligible_for_future_candidate",
-      "data_signature": "1986079134049738663",
+      "data_signature": "13351060166339159979",
       "testlet_design_signature": {
         "algorithm": "sha256",
-        "value": "8254dbb6b58562e624f2769e9d3f0c3174037d564f55fa48a46619c097368d4d"
+        "value": "eb61fa6e2c3437b3ad732a762e1022ebc3a528430207b0a201aad7692c824872"
       },
-      "score_signature": "1459f2356333689ef1e33ca3d0e83dd14e10132050a5e89ea1906d3ca2bd6079",
+      "score_signature": "ca5fbad3534273dc387b2b38e6a907b65a97a13a83bb92d019d8ff249a31433a",
       "truth_surface_encoding": "local_json_shape_explicit_matrix_row_major_v1",
-      "truth_surface_sha256": "83697d739ae58c45b8e5441aced43cd76b4ad47ed23ba2dcf1286264315f6902",
+      "truth_surface_sha256": "150ea21d5c182899c16d100d6068eef6824e5a9da7f7496c4f1864709aea4387",
       "truth_known_by_construction": true,
       "calibration_evidence_available": false,
       "diagnostic_decision_labels_available": false,
@@ -823,23 +823,23 @@
       "category_counts": [
         {
           "category": 0,
-          "count": 155
+          "count": 118
         },
         {
           "category": 1,
-          "count": 101
+          "count": 108
         },
         {
           "category": 2,
-          "count": 117
+          "count": 122
         },
         {
           "category": 3,
-          "count": 107
+          "count": 132
         }
       ],
       "component_maximum_absolute_shifts": {
-        "person_testlet_shift": 0.6154611903657978,
+        "person_testlet_shift": 0.5570130848023727,
         "response_occasion_shift": 0.0,
         "rater_response_halo_shift": 0.0,
         "rater_task_severity_shift": 0.0,
@@ -857,14 +857,14 @@
       "within_rater_item_pair_status": "eligible",
       "shared_response_rater_pair_status": "sparse",
       "future_fit_action": "structurally_eligible_for_future_candidate",
-      "data_signature": "11420650910551050216",
+      "data_signature": "12618515507576589242",
       "testlet_design_signature": {
         "algorithm": "sha256",
-        "value": "8254dbb6b58562e624f2769e9d3f0c3174037d564f55fa48a46619c097368d4d"
+        "value": "eb61fa6e2c3437b3ad732a762e1022ebc3a528430207b0a201aad7692c824872"
       },
-      "score_signature": "a5950fe601617a3b5847a5173921c7d71cf96a3a079874c8eddc79670851fa94",
+      "score_signature": "da00a332a1240393eb75ec66c554f657200db75dd5c05f0286c39fad31a7ea1e",
       "truth_surface_encoding": "local_json_shape_explicit_matrix_row_major_v1",
-      "truth_surface_sha256": "b2bf3f804158b3c962453e6835a319930149c6ff7cf9d005249e9b287c9620d0",
+      "truth_surface_sha256": "e1dc32135c2bd4f93ea8a082a670a8e4769a2bda24499992b78d87fd05c344ce",
       "truth_known_by_construction": true,
       "calibration_evidence_available": false,
       "diagnostic_decision_labels_available": false,
@@ -919,23 +919,23 @@
       "category_counts": [
         {
           "category": 0,
-          "count": 164
+          "count": 123
         },
         {
           "category": 1,
-          "count": 96
+          "count": 110
         },
         {
           "category": 2,
-          "count": 111
+          "count": 119
         },
         {
           "category": 3,
-          "count": 109
+          "count": 128
         }
       ],
       "component_maximum_absolute_shifts": {
-        "person_testlet_shift": 1.5386529759144945,
+        "person_testlet_shift": 1.3925327120059316,
         "response_occasion_shift": 0.0,
         "rater_response_halo_shift": 0.0,
         "rater_task_severity_shift": 0.0,
@@ -953,14 +953,14 @@
       "within_rater_item_pair_status": "eligible",
       "shared_response_rater_pair_status": "sparse",
       "future_fit_action": "structurally_eligible_for_future_candidate",
-      "data_signature": "2398718389492155470",
+      "data_signature": "7725646950593589445",
       "testlet_design_signature": {
         "algorithm": "sha256",
-        "value": "8254dbb6b58562e624f2769e9d3f0c3174037d564f55fa48a46619c097368d4d"
+        "value": "eb61fa6e2c3437b3ad732a762e1022ebc3a528430207b0a201aad7692c824872"
       },
-      "score_signature": "5a3d4d21b83aaeba59bd9fccbc91b8a6f575dc69f7a36fb08c497f8d2364f792",
+      "score_signature": "bedb554b3e05921ed7b57ad6dd4d6776f33dad35f050fc25ad2b3cd7ea81c98c",
       "truth_surface_encoding": "local_json_shape_explicit_matrix_row_major_v1",
-      "truth_surface_sha256": "48e28d3b6b7fc9739910f812f52c348352e7ecf6bc550b3748a535df31a7bc6f",
+      "truth_surface_sha256": "42da05dab1e4c7b4159f9e0a3df02b99ae9c4d350fbdad129d0651f142804f76",
       "truth_known_by_construction": true,
       "calibration_evidence_available": false,
       "diagnostic_decision_labels_available": false,
@@ -1015,23 +1015,23 @@
       "category_counts": [
         {
           "category": 0,
-          "count": 169
+          "count": 129
         },
         {
           "category": 1,
-          "count": 94
+          "count": 102
         },
         {
           "category": 2,
-          "count": 100
+          "count": 117
         },
         {
           "category": 3,
-          "count": 117
+          "count": 132
         }
       ],
       "component_maximum_absolute_shifts": {
-        "person_testlet_shift": 2.4618447614631913,
+        "person_testlet_shift": 2.2280523392094906,
         "response_occasion_shift": 0.0,
         "rater_response_halo_shift": 0.0,
         "rater_task_severity_shift": 0.0,
@@ -1049,14 +1049,14 @@
       "within_rater_item_pair_status": "eligible",
       "shared_response_rater_pair_status": "sparse",
       "future_fit_action": "structurally_eligible_for_future_candidate",
-      "data_signature": "4116152962751846809",
+      "data_signature": "4084945982313163647",
       "testlet_design_signature": {
         "algorithm": "sha256",
-        "value": "8254dbb6b58562e624f2769e9d3f0c3174037d564f55fa48a46619c097368d4d"
+        "value": "eb61fa6e2c3437b3ad732a762e1022ebc3a528430207b0a201aad7692c824872"
       },
-      "score_signature": "ba6a54bbb259fdf110bc8a37909c4350e395c0e2477c210d734021a2cae0c860",
+      "score_signature": "d57ca4bdd41765b907772b1df2ad24e9cde4db6241a63276e4880d236fd00254",
       "truth_surface_encoding": "local_json_shape_explicit_matrix_row_major_v1",
-      "truth_surface_sha256": "9b08b98892c3580b4c61d98963375b84b2e237b4d4337cd4a366882837c4a186",
+      "truth_surface_sha256": "b018c6396d57883b8f6d46783b21d2100e7066dbd825b5805f909189c0ab88d7",
       "truth_known_by_construction": true,
       "calibration_evidence_available": false,
       "diagnostic_decision_labels_available": false,
@@ -1111,23 +1111,23 @@
       "category_counts": [
         {
           "category": 0,
-          "count": 89
+          "count": 66
         },
         {
           "category": 1,
-          "count": 46
+          "count": 56
         },
         {
           "category": 2,
-          "count": 52
+          "count": 54
         },
         {
           "category": 3,
-          "count": 53
+          "count": 64
         }
       ],
       "component_maximum_absolute_shifts": {
-        "person_testlet_shift": 1.5386529759144945,
+        "person_testlet_shift": 1.2700694823211267,
         "response_occasion_shift": 0.0,
         "rater_response_halo_shift": 0.0,
         "rater_task_severity_shift": 0.0,
@@ -1145,14 +1145,14 @@
       "within_rater_item_pair_status": "eligible",
       "shared_response_rater_pair_status": "sparse",
       "future_fit_action": "structurally_eligible_for_future_candidate",
-      "data_signature": "13491567060886068612",
+      "data_signature": "12542315318714197495",
       "testlet_design_signature": {
         "algorithm": "sha256",
-        "value": "5f3aaa86a76d418ff18cb5fc3e98decbc189186d161c43cc8694c6c3f16af4ef"
+        "value": "0d851aaaa17d8b929495f0808818f849686e9352bd9a4613a3a28021050b3f91"
       },
-      "score_signature": "1f983d84168b0e9bdb8146ccd9b312aebdc99959ba273ed20448ab9fb11e9c21",
+      "score_signature": "2e7b0815d2d82569b6a84e4980862eec970fadb57ff8a64bd447ca8feac7ed60",
       "truth_surface_encoding": "local_json_shape_explicit_matrix_row_major_v1",
-      "truth_surface_sha256": "f825bad13af0edd39d1cdb7ffcc1b3d42dfa380864f4814f0c05b1305adee4b5",
+      "truth_surface_sha256": "04904764c38463110154dc255f310656f0087a090992c571dabe004996d5fc98",
       "truth_known_by_construction": true,
       "calibration_evidence_available": false,
       "diagnostic_decision_labels_available": false,
@@ -1207,23 +1207,23 @@
       "category_counts": [
         {
           "category": 0,
-          "count": 53
+          "count": 42
         },
         {
           "category": 1,
-          "count": 32
+          "count": 42
         },
         {
           "category": 2,
-          "count": 38
+          "count": 36
         },
         {
           "category": 3,
-          "count": 37
+          "count": 40
         }
       ],
       "component_maximum_absolute_shifts": {
-        "person_testlet_shift": 1.5386529759144945,
+        "person_testlet_shift": 1.3925327120059316,
         "response_occasion_shift": 0.0,
         "rater_response_halo_shift": 0.0,
         "rater_task_severity_shift": 0.0,
@@ -1241,14 +1241,14 @@
       "within_rater_item_pair_status": "not_applicable",
       "shared_response_rater_pair_status": "sparse",
       "future_fit_action": "do_not_fit_underidentified_design",
-      "data_signature": "11926409585863668567",
+      "data_signature": "8320573838572696411",
       "testlet_design_signature": {
         "algorithm": "sha256",
-        "value": "369fe25e65144b6c9d514512b7f5de54fa98ab6c706ef8b79f2d3425b2739532"
+        "value": "2bac056ba7e78408834285d82ed920c57e16a82d73b5c9e7a769c1ef6bb69a63"
       },
-      "score_signature": "7e9a6c3554ccfac6ab7e151d6fba4bc08a3da0b8c92da0340939cd501ce44d3b",
+      "score_signature": "d98577503b76e6c0eb23e5a46e8e7c974ff6a5b9de70e3a62580861100812a67",
       "truth_surface_encoding": "local_json_shape_explicit_matrix_row_major_v1",
-      "truth_surface_sha256": "f203a25099b62150209d3d20f0b4d73cee6cc03b09e135bf90c0932c07cd6f7a",
+      "truth_surface_sha256": "b7a7355c416b966ec19a77a18c365b2905517da3970756c40e266b77512c7bba",
       "truth_known_by_construction": true,
       "calibration_evidence_available": false,
       "diagnostic_decision_labels_available": false,
@@ -1303,23 +1303,23 @@
       "category_counts": [
         {
           "category": 0,
-          "count": 51
+          "count": 41
         },
         {
           "category": 1,
-          "count": 26
+          "count": 32
         },
         {
           "category": 2,
-          "count": 24
+          "count": 25
         },
         {
           "category": 3,
-          "count": 19
+          "count": 22
         }
       ],
       "component_maximum_absolute_shifts": {
-        "person_testlet_shift": 1.1501097196673127,
+        "person_testlet_shift": 0.9490981481258909,
         "response_occasion_shift": 0.0,
         "rater_response_halo_shift": 0.0,
         "rater_task_severity_shift": 0.0,
@@ -1337,14 +1337,14 @@
       "within_rater_item_pair_status": "sparse",
       "shared_response_rater_pair_status": "not_applicable",
       "future_fit_action": "do_not_fit_underidentified_design",
-      "data_signature": "9325261994235975994",
+      "data_signature": "4910253314562828077",
       "testlet_design_signature": {
         "algorithm": "sha256",
-        "value": "6db29c4cf06e4d262eb03025ab245d59d3455658ad61576d8f5feeba8320362f"
+        "value": "0af2ceaccfd8a0f0a90480a167fca50f97d553147ea330767a17431f76003f5b"
       },
-      "score_signature": "b5f2e2c2cac3f8c52caaa4fffe61fda5f2f6bfdea052f4b82fba6e096100f0b4",
+      "score_signature": "5a814be33c5a4673775ed57dba838c4941a341e71afbef54826a79e0ed8ba993",
       "truth_surface_encoding": "local_json_shape_explicit_matrix_row_major_v1",
-      "truth_surface_sha256": "49bba26667268cd0c570109278b9c69c0f9d2dcf087a6751dff8221e9d9ad868",
+      "truth_surface_sha256": "5804bb3681a7370054f6237a9d0d4e168fd5cc7b3b6cb89fc7c91d1562cffe98",
       "truth_known_by_construction": true,
       "calibration_evidence_available": false,
       "diagnostic_decision_labels_available": false,
@@ -1399,23 +1399,23 @@
       "category_counts": [
         {
           "category": 0,
-          "count": 81
+          "count": 57
         },
         {
           "category": 1,
-          "count": 58
+          "count": 62
         },
         {
           "category": 2,
-          "count": 49
+          "count": 56
         },
         {
           "category": 3,
-          "count": 52
+          "count": 65
         }
       ],
       "component_maximum_absolute_shifts": {
-        "person_testlet_shift": 1.5386529759144945,
+        "person_testlet_shift": 1.12874721458009,
         "response_occasion_shift": 0.0,
         "rater_response_halo_shift": 0.0,
         "rater_task_severity_shift": 0.0,
@@ -1433,14 +1433,14 @@
       "within_rater_item_pair_status": "eligible",
       "shared_response_rater_pair_status": "not_applicable",
       "future_fit_action": "do_not_fit_underidentified_design",
-      "data_signature": "14213977326349648487",
+      "data_signature": "7895842326369123979",
       "testlet_design_signature": {
         "algorithm": "sha256",
-        "value": "cec1558a5ede586a4d66444dba02cb64a0a7cf1c2f0f35141ccbbb30d2f6c131"
+        "value": "975c253e5c577d59aa838ec3b3e57b17f955ed8b61a0a828c96d9865dc2f35c4"
       },
-      "score_signature": "ae0f9ba97f0f9aa816a7b24c36fa0bc87ec2c38c8f851616e4eb5b52fe0c798d",
+      "score_signature": "7d2fecec7390a44547dc048ecd5830f194dc271c066ba938c95ac6611530abfa",
       "truth_surface_encoding": "local_json_shape_explicit_matrix_row_major_v1",
-      "truth_surface_sha256": "04340b0e8e6096431cd2a85deacf89b27c4c472b7caf585ec524f285b367b44b",
+      "truth_surface_sha256": "1d389a957da121ec03bbd594a8df1018ff1b7a73ed5d1f9887d7bf0441adeded",
       "truth_known_by_construction": true,
       "calibration_evidence_available": false,
       "diagnostic_decision_labels_available": false,
@@ -1495,25 +1495,25 @@
       "category_counts": [
         {
           "category": 0,
-          "count": 555
+          "count": 518
         },
         {
           "category": 1,
-          "count": 469
+          "count": 434
         },
         {
           "category": 2,
-          "count": 440
+          "count": 454
         },
         {
           "category": 3,
-          "count": 456
+          "count": 514
         }
       ],
       "component_maximum_absolute_shifts": {
         "person_testlet_shift": 0.0,
         "response_occasion_shift": 0.0,
-        "rater_response_halo_shift": 1.6461006005549137,
+        "rater_response_halo_shift": 1.3961030314792469,
         "rater_task_severity_shift": 0.0,
         "multidimensional_shift": 0.0,
         "temporal_severity_shift": 0.0
@@ -1529,14 +1529,14 @@
       "within_rater_item_pair_status": "eligible",
       "shared_response_rater_pair_status": "eligible",
       "future_fit_action": "structurally_eligible_for_future_candidate",
-      "data_signature": "17266440757301083095",
+      "data_signature": "9651448366909889123",
       "testlet_design_signature": {
         "algorithm": "sha256",
         "value": "46c67eaae3bceb006682eb720259477251ec67ccd959fa6e421f125600836bbc"
       },
-      "score_signature": "497ee5e90a7c601111b7f23659156cad2937d10fe5a93e7b44516754832b88d6",
+      "score_signature": "18c5d9b54468769c52214fe4b3ebe119c4d2be209d5100adba542ec7a2f29d7e",
       "truth_surface_encoding": "local_json_shape_explicit_matrix_row_major_v1",
-      "truth_surface_sha256": "69fe284d167cfabf4280f9e2ab1a6bcae4c8f9254c8e9a3298551b7611caca21",
+      "truth_surface_sha256": "0a194817c498562c642af8af0ba11cf14836060b0142f4b91979c0cc8fbdd4f1",
       "truth_known_by_construction": true,
       "calibration_evidence_available": false,
       "diagnostic_decision_labels_available": false,
@@ -1591,26 +1591,26 @@
       "category_counts": [
         {
           "category": 0,
-          "count": 538
+          "count": 496
         },
         {
           "category": 1,
-          "count": 483
+          "count": 458
         },
         {
           "category": 2,
-          "count": 462
+          "count": 472
         },
         {
           "category": 3,
-          "count": 437
+          "count": 494
         }
       ],
       "component_maximum_absolute_shifts": {
         "person_testlet_shift": 0.0,
         "response_occasion_shift": 0.0,
         "rater_response_halo_shift": 0.0,
-        "rater_task_severity_shift": 0.7317964221002515,
+        "rater_task_severity_shift": 0.5813989807598965,
         "multidimensional_shift": 0.0,
         "temporal_severity_shift": 0.0
       },
@@ -1625,14 +1625,14 @@
       "within_rater_item_pair_status": "eligible",
       "shared_response_rater_pair_status": "eligible",
       "future_fit_action": "structurally_eligible_for_future_candidate",
-      "data_signature": "15975696665672906953",
+      "data_signature": "15506946431212621285",
       "testlet_design_signature": {
         "algorithm": "sha256",
         "value": "46c67eaae3bceb006682eb720259477251ec67ccd959fa6e421f125600836bbc"
       },
-      "score_signature": "73978f4c53c8574ccf32577ed8c4d2cad187b86a2e4333f3550f82a9fe8f7c65",
+      "score_signature": "3f638a194bd9d9bf56e206bd4f0883cf9bc6004d6db9c1b566b573cfe642bbf2",
       "truth_surface_encoding": "local_json_shape_explicit_matrix_row_major_v1",
-      "truth_surface_sha256": "624b531b0ed9a171514a3828d0cfba380c066058e65451398c2f80dbe9610ce9",
+      "truth_surface_sha256": "1cbd641fedf544893ec194f7b32fc3867ecdfc4a8a8428fcec5e8498a5b4663b",
       "truth_known_by_construction": true,
       "calibration_evidence_available": false,
       "diagnostic_decision_labels_available": false,
@@ -1687,26 +1687,26 @@
       "category_counts": [
         {
           "category": 0,
-          "count": 140
+          "count": 119
         },
         {
           "category": 1,
-          "count": 107
+          "count": 117
         },
         {
           "category": 2,
-          "count": 109
+          "count": 125
         },
         {
           "category": 3,
-          "count": 124
+          "count": 119
         }
       ],
       "component_maximum_absolute_shifts": {
         "person_testlet_shift": 0.0,
         "response_occasion_shift": 0.0,
         "rater_response_halo_shift": 0.0,
-        "rater_task_severity_shift": 0.5811327576574894,
+        "rater_task_severity_shift": 0.5698127838450135,
         "multidimensional_shift": 0.0,
         "temporal_severity_shift": 0.0
       },
@@ -1721,14 +1721,14 @@
       "within_rater_item_pair_status": "eligible",
       "shared_response_rater_pair_status": "not_applicable",
       "future_fit_action": "do_not_fit_underidentified_design",
-      "data_signature": "4757602120092606789",
+      "data_signature": "3699756882888582261",
       "testlet_design_signature": {
         "algorithm": "sha256",
-        "value": "df99ef4e90101ea13f5d9de1582e791aebeb4abc3317372fdd9a556c9b60210a"
+        "value": "4cda3182a1c87f8523265ac8fec4e34b179b4f9b0f9dd56e2e88a80619c3a511"
       },
-      "score_signature": "d94996c2ac12d9961d2060d1cc262deefdde9b066a491bca958b9a6440d9a969",
+      "score_signature": "ca393689b08beb964c95e680133bf9b0192643ad706386116c76c972ed3a97a5",
       "truth_surface_encoding": "local_json_shape_explicit_matrix_row_major_v1",
-      "truth_surface_sha256": "375ec2293ed74853bf86c6ca827257b3fe556f82840bccddcefb29bc1b7d7400",
+      "truth_surface_sha256": "bb2a75e5999067d912cf20122efc234e550b131e4d98991d2d124363cbfae844",
       "truth_known_by_construction": true,
       "calibration_evidence_available": false,
       "diagnostic_decision_labels_available": false,
@@ -1783,19 +1783,19 @@
       "category_counts": [
         {
           "category": 0,
-          "count": 140
+          "count": 124
         },
         {
           "category": 1,
-          "count": 115
+          "count": 100
         },
         {
           "category": 2,
-          "count": 114
+          "count": 139
         },
         {
           "category": 3,
-          "count": 111
+          "count": 117
         }
       ],
       "component_maximum_absolute_shifts": {
@@ -1803,7 +1803,7 @@
         "response_occasion_shift": 0.0,
         "rater_response_halo_shift": 0.0,
         "rater_task_severity_shift": 0.0,
-        "multidimensional_shift": 1.2567949268980947,
+        "multidimensional_shift": 1.6941577342325638,
         "temporal_severity_shift": 0.0
       },
       "requested_targets": [
@@ -1817,14 +1817,14 @@
       "within_rater_item_pair_status": "eligible",
       "shared_response_rater_pair_status": "sparse",
       "future_fit_action": "structurally_eligible_for_future_candidate",
-      "data_signature": "4475237089714848647",
+      "data_signature": "10093087802677053957",
       "testlet_design_signature": {
         "algorithm": "sha256",
-        "value": "8254dbb6b58562e624f2769e9d3f0c3174037d564f55fa48a46619c097368d4d"
+        "value": "eb61fa6e2c3437b3ad732a762e1022ebc3a528430207b0a201aad7692c824872"
       },
-      "score_signature": "3504b822bdaed016df820e41a213df596ad6e8d18ed746e3f211b0699dca3818",
+      "score_signature": "1383d9bf092c1d06c0530e1dc6d0130bed63014f0b150badb851bd45df06bb58",
       "truth_surface_encoding": "local_json_shape_explicit_matrix_row_major_v1",
-      "truth_surface_sha256": "9ccc46db2699d768ec0f4fd255bb7b85406db87611e5853348d03ff1d9a56105",
+      "truth_surface_sha256": "12603a91421f501820aa3b2c3111813fcba942d534467866e16d0ce38087d762",
       "truth_known_by_construction": true,
       "calibration_evidence_available": false,
       "diagnostic_decision_labels_available": false,
@@ -1879,19 +1879,19 @@
       "category_counts": [
         {
           "category": 0,
-          "count": 147
+          "count": 119
         },
         {
           "category": 1,
-          "count": 106
+          "count": 111
         },
         {
           "category": 2,
-          "count": 117
+          "count": 122
         },
         {
           "category": 3,
-          "count": 110
+          "count": 128
         }
       ],
       "component_maximum_absolute_shifts": {
@@ -1900,7 +1900,7 @@
         "rater_response_halo_shift": 0.0,
         "rater_task_severity_shift": 0.0,
         "multidimensional_shift": 0.0,
-        "temporal_severity_shift": 0.26808649669605505
+        "temporal_severity_shift": 0.2739625008146014
       },
       "requested_targets": [
         "scalar_shared_cluster"
@@ -1913,14 +1913,14 @@
       "within_rater_item_pair_status": "eligible",
       "shared_response_rater_pair_status": "sparse",
       "future_fit_action": "structurally_eligible_for_future_candidate",
-      "data_signature": "10303271092078102848",
+      "data_signature": "677556909335378094",
       "testlet_design_signature": {
         "algorithm": "sha256",
-        "value": "8254dbb6b58562e624f2769e9d3f0c3174037d564f55fa48a46619c097368d4d"
+        "value": "eb61fa6e2c3437b3ad732a762e1022ebc3a528430207b0a201aad7692c824872"
       },
-      "score_signature": "5408fad68c13aba608d3b77e1f215b687c0cb8e0e4beca53b686f6d4c547f055",
+      "score_signature": "e3362a5bef3951dd381efc296c93d63b70c2029f535299b97c8bc59675fb765b",
       "truth_surface_encoding": "local_json_shape_explicit_matrix_row_major_v1",
-      "truth_surface_sha256": "9a1a6ec80cf5faea0910ba46ba3149bd17c06e2fe7deb070e7ee2876a2472cb4",
+      "truth_surface_sha256": "8563965556fdb5ed81a98ff50609807091cfffa14e79dbf164b4652cf11c1c53",
       "truth_known_by_construction": true,
       "calibration_evidence_available": false,
       "diagnostic_decision_labels_available": false,
@@ -1975,7 +1975,7 @@
       "category_counts": [
         {
           "category": 0,
-          "count": 146
+          "count": 118
         },
         {
           "category": 1,
@@ -1983,11 +1983,11 @@
         },
         {
           "category": 2,
-          "count": 119
+          "count": 129
         },
         {
           "category": 3,
-          "count": 108
+          "count": 126
         }
       ],
       "component_maximum_absolute_shifts": {
@@ -2009,14 +2009,14 @@
       "within_rater_item_pair_status": "eligible",
       "shared_response_rater_pair_status": "sparse",
       "future_fit_action": "structurally_eligible_for_future_candidate",
-      "data_signature": "17988093060784852797",
+      "data_signature": "13137681456996355483",
       "testlet_design_signature": {
         "algorithm": "sha256",
-        "value": "8254dbb6b58562e624f2769e9d3f0c3174037d564f55fa48a46619c097368d4d"
+        "value": "eb61fa6e2c3437b3ad732a762e1022ebc3a528430207b0a201aad7692c824872"
       },
-      "score_signature": "68b5603a815034eea3e47c1d521144011c5e5e94648f695b9bb9ed5b778eac52",
+      "score_signature": "f3bb4821902821f10eee632d0f0cd54de128d07e0fef1dada922558f08bea86b",
       "truth_surface_encoding": "local_json_shape_explicit_matrix_row_major_v1",
-      "truth_surface_sha256": "19bdcd31ef3238adc7efe9738f961d507a9918fbc9bf7910714be975e0f31caf",
+      "truth_surface_sha256": "110d2304cb6a8270217b5b5ddc5e5b8ef1560c99a379a7e6188dd49e8f16660d",
       "truth_known_by_construction": true,
       "calibration_evidence_available": false,
       "diagnostic_decision_labels_available": false,
@@ -2075,15 +2075,15 @@
         },
         {
           "category": 1,
-          "count": 104
+          "count": 108
         },
         {
           "category": 2,
-          "count": 119
+          "count": 107
         },
         {
           "category": 3,
-          "count": 124
+          "count": 132
         }
       ],
       "component_maximum_absolute_shifts": {
@@ -2105,14 +2105,14 @@
       "within_rater_item_pair_status": "eligible",
       "shared_response_rater_pair_status": "sparse",
       "future_fit_action": "structurally_eligible_for_future_candidate",
-      "data_signature": "17558613256223937777",
+      "data_signature": "8641317601450451893",
       "testlet_design_signature": {
         "algorithm": "sha256",
-        "value": "6736c741d43a5746bfa8ffa5ed7e155bd4c4fbc5728d2a7a93629ecde4b88c95"
+        "value": "db585f75c031a756c4b2606c6f9eb30f95c46fb5b25770abe2f54bcd164d30df"
       },
-      "score_signature": "c416dd1b7edf10ce5495b1070627d6041f17151bc27a73572759fa9a1c012150",
+      "score_signature": "4747a65e45b88050ee5458f04c1abbce5a1b650dff83f132928965e639da14f0",
       "truth_surface_encoding": "local_json_shape_explicit_matrix_row_major_v1",
-      "truth_surface_sha256": "8fe32ffca4fd5e3a1d89809b2de6f882c3a4e2e60fbae3165f781cd66a1e70f0",
+      "truth_surface_sha256": "47ed17d0244a91d1ec8f64739a38c2319d14f042cd9e8c6b2ff3b4a555a80ee6",
       "truth_known_by_construction": true,
       "calibration_evidence_available": false,
       "diagnostic_decision_labels_available": false,
@@ -2167,11 +2167,11 @@
       "category_counts": [
         {
           "category": 0,
-          "count": 160
+          "count": 121
         },
         {
           "category": 1,
-          "count": 95
+          "count": 110
         },
         {
           "category": 2,
@@ -2179,16 +2179,16 @@
         },
         {
           "category": 3,
-          "count": 108
+          "count": 132
         }
       ],
       "component_maximum_absolute_shifts": {
-        "person_testlet_shift": 1.0879919531620006,
+        "person_testlet_shift": 0.9846693236834878,
         "response_occasion_shift": 0.0,
         "rater_response_halo_shift": 0.0,
         "rater_task_severity_shift": 0.0,
         "multidimensional_shift": 0.0,
-        "temporal_severity_shift": 0.18956577975832548
+        "temporal_severity_shift": 0.19372074211682966
       },
       "requested_targets": [
         "scalar_shared_cluster"
@@ -2201,14 +2201,14 @@
       "within_rater_item_pair_status": "eligible",
       "shared_response_rater_pair_status": "sparse",
       "future_fit_action": "structurally_eligible_for_future_candidate",
-      "data_signature": "627400890167486032",
+      "data_signature": "2678854761209798083",
       "testlet_design_signature": {
         "algorithm": "sha256",
-        "value": "8254dbb6b58562e624f2769e9d3f0c3174037d564f55fa48a46619c097368d4d"
+        "value": "eb61fa6e2c3437b3ad732a762e1022ebc3a528430207b0a201aad7692c824872"
       },
-      "score_signature": "8fade28c76469f7639a71fa5ff7fe1cc6dda1531cb6abaf0760271403125e573",
+      "score_signature": "a61c1df7df75fe66ebe5f59f4ad1c64434cdcf6c854ed0a9faa8bc2e294c17a2",
       "truth_surface_encoding": "local_json_shape_explicit_matrix_row_major_v1",
-      "truth_surface_sha256": "87a5c0999eb08240a57d9961f5217fb3620dce46d1d20e4e27698cc721b5f965",
+      "truth_surface_sha256": "2b306768811358f6c7a9abdc8c450b828014bdbba0a19fb915e1dd175083d927",
       "truth_known_by_construction": true,
       "calibration_evidence_available": false,
       "diagnostic_decision_labels_available": false,
@@ -2263,7 +2263,7 @@
       "category_counts": [
         {
           "category": 0,
-          "count": 146
+          "count": 118
         },
         {
           "category": 1,
@@ -2271,11 +2271,11 @@
         },
         {
           "category": 2,
-          "count": 119
+          "count": 129
         },
         {
           "category": 3,
-          "count": 108
+          "count": 126
         }
       ],
       "component_maximum_absolute_shifts": {
@@ -2297,14 +2297,14 @@
       "within_rater_item_pair_status": "eligible",
       "shared_response_rater_pair_status": "sparse",
       "future_fit_action": "structurally_eligible_for_future_candidate",
-      "data_signature": "17642564402994891486",
+      "data_signature": "10625665563959630219",
       "testlet_design_signature": {
         "algorithm": "sha256",
-        "value": "8254dbb6b58562e624f2769e9d3f0c3174037d564f55fa48a46619c097368d4d"
+        "value": "eb61fa6e2c3437b3ad732a762e1022ebc3a528430207b0a201aad7692c824872"
       },
-      "score_signature": "b2600db265b5206cd1a6efdf1474834663515019dd38683fc45d00ac988c1fc9",
+      "score_signature": "7e02f321222000146c8a1c413ffc5cbf221c3461ddfd8d7a44e091e2162e1bc6",
       "truth_surface_encoding": "local_json_shape_explicit_matrix_row_major_v1",
-      "truth_surface_sha256": "641442ff28a304f7af37eb428a8c3611f0a9c8d09960e7674236edaadeb80303",
+      "truth_surface_sha256": "af033baaf920427b4865dd28f07593093e9766b138d0cc6942d9fcc753727046",
       "truth_known_by_construction": true,
       "calibration_evidence_available": false,
       "diagnostic_decision_labels_available": false,
@@ -2380,9 +2380,9 @@
         "response_uniforms_bit_identical": true,
         "baseline_locations_bit_identical": true,
         "probability_surface_changed": true,
-        "maximum_probability_difference": 0.48081147618797226,
+        "maximum_probability_difference": 0.45312307390687323,
         "component_maximum_absolute_shifts": {
-          "person_testlet_shift": 1.5386529759144945,
+          "person_testlet_shift": 1.3925327120059316,
           "response_occasion_shift": 0.0,
           "rater_response_halo_shift": 0.0,
           "rater_task_severity_shift": 0.0,
@@ -2419,11 +2419,11 @@
         "response_uniforms_bit_identical": true,
         "baseline_locations_bit_identical": true,
         "probability_surface_changed": true,
-        "maximum_probability_difference": 0.5239131199956175,
+        "maximum_probability_difference": 0.4535159382146273,
         "component_maximum_absolute_shifts": {
           "person_testlet_shift": 0.0,
           "response_occasion_shift": 0.0,
-          "rater_response_halo_shift": 1.6461006005549137,
+          "rater_response_halo_shift": 1.3961030314792469,
           "rater_task_severity_shift": 0.0,
           "multidimensional_shift": 0.0,
           "temporal_severity_shift": 0.0
@@ -2458,20 +2458,20 @@
         "response_uniforms_bit_identical": true,
         "baseline_locations_bit_identical": true,
         "probability_surface_changed": true,
-        "maximum_probability_difference": 0.2533205606598091,
+        "maximum_probability_difference": 0.20289451395815844,
         "component_maximum_absolute_shifts": {
           "person_testlet_shift": 0.0,
           "response_occasion_shift": 0.0,
           "rater_response_halo_shift": 0.0,
-          "rater_task_severity_shift": 0.7317964221002515,
+          "rater_task_severity_shift": 0.5813989807598965,
           "multidimensional_shift": 0.0,
           "temporal_severity_shift": 0.0
         },
         "rater_task_double_center_constraint": {
           "applicable": true,
           "tolerance": 1.0e-12,
-          "maximum_absolute_row_mean": 2.220446049250313e-16,
-          "maximum_absolute_column_mean": 1.1102230246251565e-16,
+          "maximum_absolute_row_mean": 2.7755575615628914e-17,
+          "maximum_absolute_column_mean": 5.551115123125783e-17,
           "passed": true
         }
       },
@@ -2497,13 +2497,13 @@
         "response_uniforms_bit_identical": true,
         "baseline_locations_bit_identical": true,
         "probability_surface_changed": true,
-        "maximum_probability_difference": 0.3613011860876489,
+        "maximum_probability_difference": 0.5317413206521102,
         "component_maximum_absolute_shifts": {
           "person_testlet_shift": 0.0,
           "response_occasion_shift": 0.0,
           "rater_response_halo_shift": 0.0,
           "rater_task_severity_shift": 0.0,
-          "multidimensional_shift": 1.2567949268980947,
+          "multidimensional_shift": 1.6941577342325638,
           "temporal_severity_shift": 0.0
         },
         "rater_task_double_center_constraint": {
@@ -2536,14 +2536,14 @@
         "response_uniforms_bit_identical": true,
         "baseline_locations_bit_identical": true,
         "probability_surface_changed": true,
-        "maximum_probability_difference": 0.09459512703251388,
+        "maximum_probability_difference": 0.09629730012074389,
         "component_maximum_absolute_shifts": {
           "person_testlet_shift": 0.0,
           "response_occasion_shift": 0.0,
           "rater_response_halo_shift": 0.0,
           "rater_task_severity_shift": 0.0,
           "multidimensional_shift": 0.0,
-          "temporal_severity_shift": 0.26808649669605505
+          "temporal_severity_shift": 0.2739625008146014
         },
         "rater_task_double_center_constraint": {
           "applicable": false,
@@ -2575,14 +2575,14 @@
         "response_uniforms_bit_identical": true,
         "baseline_locations_bit_identical": true,
         "probability_surface_changed": true,
-        "maximum_probability_difference": 0.3403729862410009,
+        "maximum_probability_difference": 0.3581004329987817,
         "component_maximum_absolute_shifts": {
-          "person_testlet_shift": 1.0879919531620006,
+          "person_testlet_shift": 0.9846693236834878,
           "response_occasion_shift": 0.0,
           "rater_response_halo_shift": 0.0,
           "rater_task_severity_shift": 0.0,
           "multidimensional_shift": 0.0,
-          "temporal_severity_shift": 0.18956577975832548
+          "temporal_severity_shift": 0.19372074211682966
         },
         "rater_task_double_center_constraint": {
           "applicable": false,
@@ -2747,7 +2747,7 @@
   },
   "content_hash": {
     "algorithm": "sha256",
-    "value": "cad08fb44d83e27ab699f68234cfa0b8f96a4bb4dd6f5b02ce28e097e60f91cc",
+    "value": "f56e8cca169d5303c73bda1b99896674a71111ca0c2559d019fdb89d3d9834f1",
     "covers": "artifact_without_content_hash",
     "canonical_format": "local_json_sorted_compact"
   }

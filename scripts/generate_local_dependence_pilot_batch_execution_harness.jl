@@ -122,6 +122,7 @@ function ld1b1_harness_generator_main(args)
     artifact = ld1b1_build_harness(
         options;
         scan_results = false,
+        consume_bounded_smoke_receipt = false,
         artifact_generator = (;
             path = LD1B1_HARNESS_GENERATOR_PATH,
             source_sha256 = ld1b1_file_sha256(generator_path),

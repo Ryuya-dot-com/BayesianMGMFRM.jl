@@ -481,6 +481,12 @@ recovered after MCMC across replicated seeds and internal prior profiles:
   handoff for that preflight. It embeds the 25 user-supplied manifest fields,
   ten attachment checklist rows, and six rejection conditions while explicitly
   avoiding creation of external evidence or manifest files.
+- The three external-attachment artifacts now label their legacy `passed`
+  fields with `pass_scope = contract_and_blocker_preservation_only` and expose
+  `artifact_contract_valid` separately from attachment, integrity, validation,
+  independent-review, and public-release gates. Thus the committed structural
+  packets pass their contracts while all external evidence/release gates remain
+  false.
 - The current compact Null-win batch still shows large structured-model losses:
   the analytic null/reference ranked first in 24/25 heldout folds, and Current Q
   had total dELPD vs Null `-153.200`. These failures should be diagnosed

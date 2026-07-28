@@ -91,8 +91,19 @@ end
         @test help.help
         usage = runner.freecorr_runner_usage()
         @test occursin("blocked before archive reservation", usage)
+        @test occursin("resource-probe", usage)
+        @test occursin("first feasibility unit and three", usage)
         @test occursin("never interprets or creates scientific attempt state", usage)
         @test !occursin(r"(?m)^\s+--all(?:\s|$)", usage)
+        @test runner.freecorr_parse_mode("resource-probe") === :resource_probe
+        @test runner.freecorr_parse_mode("resource_probe") === :resource_probe
+        @test runner.FREECORR_RESOURCE_PROBE_REPETITIONS == 3
+        @test runner.FREECORR_RESOURCE_PROBE_FILENAME ==
+            "initial_gradient_probe_attempt_001.json"
+        @test runner.FREECORR_RESOURCE_PROBE_RESERVATION_FILENAME ==
+            "initial_gradient_probe_attempt_001.reservation.json"
+        @test runner.FREECORR_RESOURCE_PROBE_FAILURE_FILENAME ==
+            "initial_gradient_probe_attempt_001.failure.json"
 
         duplicate_cases = (
             ["--mode", "status", "--mode", "validate",
@@ -496,7 +507,664 @@ end
             )
             @test status.status === :archive_state_valid
             @test status.state.state === :absent
+            @test status.resource_probe_state.state === :absent
+            @test status.resource_probe_artifacts_inspected_by_status
             @test !status.staging_orphans_are_status_inputs
+        end
+    end
+
+    @testset "fixed MCMC-free resource-probe receipt" begin
+        contract = runner.freecorr_resource_probe_contract()
+        @test contract.unit_selection === :first_frozen_feasibility_unit
+        @test contract.repetitions == 3
+        @test contract.resource_probe_attempt == 1
+        @test contract.reservation_required_before_measurement
+        @test contract.reservation_permanently_consumes_attempt
+        @test contract.interrupted_reservation_requires_operator_review
+        @test contract.pre_reservation_runtime_initialization ===
+            :one_by_one_blas_gemm
+        @test contract.runtime_initialization_result_checked
+        @test !contract.runtime_initialization_mcmc
+        @test contract.reservation_binds_source_aggregate
+        @test contract.reservation_binds_stable_environment_identity
+        @test contract.terminal_cross_binding_required
+        @test contract.scientific_attempt_tree_separate
+        @test !contract.scientific_attempt_creation_supported
+        @test !contract.execute_primary_available
+        @test !contract.mcmc_allowed
+        @test !contract.recovery_evidence_allowed
+        @test contract.threshold_failure_receipt_persisted
+        @test contract.threshold_failure_exit_code == 5
+        @test !contract.retry_supported
+        @test !contract.overwrite_allowed
+        @test contract.serialized_package_provenance_digests_recomputed
+        @test contract.serialized_package_artifact_hash_recomputed
+        @test !contract.power_loss_durability_attested
+        @test runner.freecorr_resource_probe_exit_code(true) == 0
+        @test runner.freecorr_resource_probe_exit_code(false) == 5
+        initialization = runner.freecorr_initialize_resource_probe_runtime()
+        @test initialization.result_checked
+        @test !initialization.mcmc_executed
+
+        mktempdir() do root
+            options = _freecorr_runner_options(
+                runner,
+                root,
+                unit.unit_id;
+                mode = "resource-probe",
+            )
+            boundary = runner.freecorr_prepare_archive_root(
+                root;
+                test_root_override = true,
+                create = true,
+            )
+            reservation = runner.freecorr_resource_probe_reservation(
+                plan,
+                unit,
+            )
+            reservation_path =
+                runner.freecorr_resource_probe_reservation_path(
+                    root,
+                    plan,
+                    unit,
+                )
+            runner.freecorr_atomic_publish_json(
+                reservation_path,
+                reservation,
+                runner.freecorr_staging_dir(root, plan),
+                boundary;
+                semantic_validator = value ->
+                    runner.freecorr_validate_resource_probe_reservation(
+                        value,
+                        plan,
+                        unit,
+                    ),
+                artifact_label = "test resource-probe reservation",
+            )
+            partial = runner.freecorr_resource_probe_archive_status(
+                options,
+                plan,
+            )
+            @test partial.state === :partial
+            @test !partial.archive_integrity_passed
+            @test partial.disposition ===
+                :resource_probe_reserved_incomplete
+            @test partial.attempt_consumed
+            @test !partial.initial_gradient_probe_thresholds_passed
+
+            retry_measurements = Ref(0)
+            @test_throws ErrorException runner.freecorr_write_resource_probe(
+                options,
+                plan,
+                unit;
+                measure_probe = (args...) -> begin
+                    retry_measurements[] += 1
+                    error("must not run")
+                end,
+            )
+            @test retry_measurements[] == 0
+
+            status = runner.freecorr_status_artifact(
+                merge(options, (; mode = :status)),
+                plan,
+                unit,
+            )
+            @test status.status === :archive_state_invalid
+            @test status.resource_probe_state.state === :partial
+
+            output = IOBuffer()
+            errors = IOBuffer()
+            code = withenv(runner.FREECORR_TEST_ROOT_ENV => "1") do
+                runner.freecorr_runner_main([
+                    "--mode", "validate",
+                    "--unit-id", unit.unit_id,
+                    "--attempt-root", root,
+                    "--allow-test-root",
+                ]; output_io = output, error_io = errors)
+            end
+            @test code == 4
+            @test isempty(String(take!(errors)))
+            @test JSON3.read(String(take!(output))).status ==
+                "archive_state_invalid"
+        end
+
+        mktempdir() do root
+            options = _freecorr_runner_options(
+                runner,
+                root,
+                unit.unit_id;
+                mode = "resource-probe",
+            )
+            measurement_started = Channel{Nothing}(1)
+            release_measurement = Channel{Nothing}(1)
+            measurement_calls = Ref(0)
+            winner = @async runner.freecorr_write_resource_probe(
+                options,
+                plan,
+                unit;
+                measure_probe = (args...) -> begin
+                    measurement_calls[] += 1
+                    put!(measurement_started, nothing)
+                    take!(release_measurement)
+                    error("injected measurement failure")
+                end,
+            )
+            take!(measurement_started)
+
+            losing_measurements = Ref(0)
+            @test_throws ErrorException runner.freecorr_write_resource_probe(
+                options,
+                plan,
+                unit;
+                measure_probe = (args...) -> begin
+                    losing_measurements[] += 1
+                    error("loser must not measure")
+                end,
+            )
+            @test losing_measurements[] == 0
+            put!(release_measurement, nothing)
+            winner_error = try
+                fetch(winner)
+                nothing
+            catch error
+                error
+            end
+            @test winner_error isa TaskFailedException
+            @test measurement_calls[] == 1
+
+            reservation_path =
+                runner.freecorr_resource_probe_reservation_path(
+                    root,
+                    plan,
+                    unit,
+                )
+            failure_path = runner.freecorr_resource_probe_failure_path(
+                root,
+                plan,
+                unit,
+            )
+            @test isfile(reservation_path)
+            @test isfile(failure_path)
+            @test !ispath(runner.freecorr_resource_probe_path(
+                root,
+                plan,
+                unit,
+            ))
+            terminal = runner.freecorr_resource_probe_archive_status(
+                options,
+                plan,
+            )
+            @test terminal.state === :valid
+            @test terminal.outcome === :operational_failure
+            @test terminal.archive_integrity_passed
+            @test terminal.attempt_consumed
+            @test !terminal.initial_gradient_probe_thresholds_passed
+
+            post_failure_measurements = Ref(0)
+            @test_throws ErrorException runner.freecorr_write_resource_probe(
+                options,
+                plan,
+                unit;
+                measure_probe = (args...) -> begin
+                    post_failure_measurements[] += 1
+                    error("retry must not measure")
+                end,
+            )
+            @test post_failure_measurements[] == 0
+            @test !ispath(runner.freecorr_unit_root(root, plan, unit))
+        end
+
+        mktempdir() do root
+            wrong_unit = plan.units[2]
+            wrong_output = IOBuffer()
+            wrong_errors = IOBuffer()
+            wrong_code = withenv(
+                    runner.FREECORR_TEST_ROOT_ENV => "1") do
+                runner.freecorr_runner_main([
+                    "--mode", "resource-probe",
+                    "--unit-id", wrong_unit.unit_id,
+                    "--attempt-root", root,
+                    "--allow-test-root",
+                ]; output_io = wrong_output, error_io = wrong_errors)
+            end
+            @test wrong_code == 4
+            @test isempty(String(take!(wrong_output)))
+            @test occursin(
+                "fixed to the first feasibility unit",
+                String(take!(wrong_errors)),
+            )
+            @test isempty(readdir(root))
+
+            output = IOBuffer()
+            errors = IOBuffer()
+            code = withenv(runner.FREECORR_TEST_ROOT_ENV => "1") do
+                runner.freecorr_runner_main([
+                    "--mode", "resource-probe",
+                    "--unit-id", unit.unit_id,
+                    "--attempt-root", root,
+                    "--allow-test-root",
+                ]; output_io = output, error_io = errors)
+            end
+            @test code in (0, 5)
+            @test isempty(String(take!(errors)))
+            summary = JSON3.read(String(take!(output)))
+            @test summary.resource_probe_receipt_persisted
+            @test !summary.scientific_execution_receipt
+            @test !summary.scientific_attempt_created
+            @test !summary.mcmc_executed
+            @test !summary.recovery_evidence_available
+            @test summary.package_provenance_digests_recomputed_after_json
+            @test summary.package_artifact_sha256_recomputed_after_json
+            @test summary.initial_gradient_probe_thresholds_passed ===
+                summary.profile_thresholds_passed
+            @test !summary.operational_execution_authorized
+            @test summary.self_consistency_only
+            @test !summary.authenticity_attested
+            @test !summary.external_anchor_present
+            @test !summary.timestamp_attested
+
+            expected_path = runner.freecorr_resource_probe_path(
+                root,
+                plan,
+                unit,
+            )
+            reservation_path =
+                runner.freecorr_resource_probe_reservation_path(
+                    root,
+                    plan,
+                    unit,
+                )
+            @test normpath(String(summary.path)) == normpath(expected_path)
+            @test normpath(String(summary.reservation_path)) ==
+                normpath(reservation_path)
+            @test isfile(expected_path)
+            @test isfile(reservation_path)
+            @test basename(expected_path) ==
+                "initial_gradient_probe_attempt_001.json"
+            @test occursin(
+                runner.FREECORR_RESOURCE_PROBE_DIRECTORY,
+                expected_path,
+            )
+            @test !runner.freecorr_path_within(
+                expected_path,
+                runner.freecorr_unit_root(root, plan, unit),
+            )
+            @test !ispath(runner.freecorr_unit_root(root, plan, unit))
+            @test !ispath(runner.freecorr_attempt_dir(root, plan, unit))
+
+            snapshot = runner.freecorr_read_json_once(
+                expected_path,
+                "resource-probe test receipt",
+            )
+            reservation_snapshot = runner.freecorr_read_json_once(
+                reservation_path,
+                "resource-probe test reservation",
+            )
+            reservation_validation =
+                runner.freecorr_validate_resource_probe_reservation(
+                    reservation_snapshot.parsed,
+                    plan,
+                    unit,
+                )
+            receipt = runner.freecorr_json_native(snapshot.parsed)
+            validation = runner.freecorr_validate_resource_probe_receipt(
+                receipt,
+                plan,
+                unit;
+                require_current = true,
+            )
+            @test validation.validated
+            @test validation.source.current_matches
+            @test validation.environment.current_matches
+            @test validation.package_provenance_digests_recomputed
+            @test validation.package_artifact_sha256_recomputed
+            @test validation.reservation_file_sha256 ==
+                reservation_snapshot.file_sha256
+            @test validation.reservation_content_sha256 ==
+                reservation_validation.content_sha256
+            @test validation.source.aggregate_sha256 ==
+                reservation_validation.source_aggregate_sha256
+            @test validation.environment.stable_identity_sha256 ==
+                reservation_validation.stable_environment_identity_sha256
+            @test !validation.scientific_execution_receipt
+            @test !validation.mcmc_executed
+            @test !validation.recovery_evidence_available
+            @test validation.profile_thresholds_passed ===
+                summary.profile_thresholds_passed
+            @test code == (validation.profile_thresholds_passed ? 0 : 5)
+            @test receipt["resource_probe_contract"]["repetitions"] == 3
+            @test receipt["resource_probe_contract"][
+                "reservation_required_before_measurement"
+            ]
+            @test receipt["resource_probe_artifact"]["repetitions"] == 3
+            @test receipt["resource_probe_artifact"]["execute_measurement"]
+            @test length(receipt["resource_probe_artifact"]["measurement"][
+                "gradient_profile"
+            ]["timed_rows"]) == 3
+            @test !receipt["operational_execution_authorized"]
+            @test !receipt["scientific_execution_authorized"]
+            @test !receipt["scientific_attempt_created"]
+            @test !receipt["mcmc_executed"]
+            @test !receipt["recovery_evidence_available"]
+            @test !receipt["short_nuts_resource_profile_completed"]
+            @test !receipt["atomic_scientific_runner_ready"]
+            @test receipt["activity"]["resource_probe_attempt"] == 1
+            @test receipt["activity"]["fixture_generated"]
+            @test receipt["activity"]["gradient_executed"]
+            @test !receipt["activity"]["model_fit_run"]
+            @test !receipt["activity"]["mcmc_executed"]
+            @test !receipt["activity"]["scientific_state_written"]
+            @test !receipt["activity"]["recovery_evidence_available"]
+
+            archive_status = runner.freecorr_status_artifact(
+                _freecorr_runner_options(
+                    runner,
+                    root,
+                    unit.unit_id;
+                    mode = "status",
+                ),
+                plan,
+                unit,
+            )
+            @test archive_status.status === :archive_state_valid
+            @test archive_status.resource_probe_state.state === :valid
+            @test archive_status.resource_probe_state.outcome ===
+                (validation.profile_thresholds_passed ?
+                    :threshold_pass : :threshold_fail)
+            @test archive_status.resource_probe_state.attempt_consumed
+            @test archive_status.initial_gradient_probe_thresholds_passed ===
+                validation.profile_thresholds_passed
+            @test !archive_status.operational_execution_authorized
+
+            validation_options = _freecorr_runner_options(
+                runner,
+                root,
+                unit.unit_id;
+                mode = "validate",
+                artifact = expected_path,
+            )
+            validation_artifact = runner.freecorr_validate_artifact_path(
+                validation_options,
+                plan,
+                unit,
+            )
+            @test validation_artifact.status ===
+                :resource_probe_receipt_package_native_reconstruction_validated_current_snapshot
+            @test validation_artifact.profile_thresholds_passed ===
+                validation.profile_thresholds_passed
+            @test validation_artifact.package_provenance_digests_recomputed
+            @test validation_artifact.package_artifact_sha256_recomputed
+            @test !validation_artifact.scientific_execution_receipt
+            @test !validation_artifact.mcmc_started_by_this_invocation
+            @test !validation_artifact.recovery_evidence_available
+
+            winner_bytes = read(expected_path)
+            retry_output = IOBuffer()
+            retry_errors = IOBuffer()
+            retry_code = withenv(
+                    runner.FREECORR_TEST_ROOT_ENV => "1") do
+                runner.freecorr_runner_main([
+                    "--mode", "resource-probe",
+                    "--unit-id", unit.unit_id,
+                    "--attempt-root", root,
+                    "--allow-test-root",
+                ]; output_io = retry_output, error_io = retry_errors)
+            end
+            @test retry_code == 4
+            @test isempty(String(take!(retry_output)))
+            @test occursin(
+                "immutable resource-probe attempt 001",
+                String(take!(retry_errors)),
+            )
+            @test read(expected_path) == winner_bytes
+            @test !ispath(runner.freecorr_unit_root(root, plan, unit))
+            @test !ispath(runner.freecorr_attempt_dir(root, plan, unit))
+
+            validate_output = IOBuffer()
+            validate_errors = IOBuffer()
+            validate_code = withenv(
+                    runner.FREECORR_TEST_ROOT_ENV => "1") do
+                runner.freecorr_runner_main([
+                    "--mode", "validate",
+                    "--unit-id", unit.unit_id,
+                    "--attempt-root", root,
+                    "--allow-test-root",
+                    "--artifact", expected_path,
+                ]; output_io = validate_output, error_io = validate_errors)
+            end
+            @test validate_code == 0
+            @test isempty(String(take!(validate_errors)))
+            @test JSON3.read(String(take!(validate_output))).status ==
+                "resource_probe_receipt_package_native_reconstruction_validated_current_snapshot"
+
+            restored = runner.freecorr_validate_resource_probe_payload(
+                receipt["resource_probe_artifact"],
+                plan,
+                unit,
+            ).package_native_artifact
+            forced_profile = merge(
+                restored.measurement.gradient_profile,
+                (;
+                    free_memory_bytes_before = UInt64(0),
+                    free_memory_bytes_after = UInt64(0),
+                    minimum_free_memory_bytes_observed = UInt64(0),
+                ),
+            )
+            forced_runtime = merge(
+                restored.runtime,
+                (;
+                    free_memory_bytes_before = UInt64(0),
+                    free_memory_bytes_after = UInt64(0),
+                    minimum_free_memory_bytes_observed = UInt64(0),
+                ),
+            )
+            forced_provenance = getfield(
+                BayesianMGMFRM,
+                :_free_correlation_resource_probe_provenance,
+            )(forced_runtime)
+            forced_measurement = merge(
+                restored.measurement,
+                (; gradient_profile = forced_profile),
+            )
+            forced_failure_probe = getfield(
+                BayesianMGMFRM,
+                :_free_correlation_resource_probe_artifact,
+            )(
+                plan,
+                unit,
+                runner.FREECORR_RESOURCE_PROBE_REPETITIONS;
+                runtime = forced_runtime,
+                provenance = forced_provenance,
+                measurement = forced_measurement,
+            )
+            getfield(
+                BayesianMGMFRM,
+                :_validate_free_correlation_study_resource_probe,
+            )(forced_failure_probe, plan, unit.unit_id)
+            @test !forced_failure_probe.profile_thresholds_passed
+            @test !forced_failure_probe.checks.free_memory_passed
+
+            mktempdir() do deterministic_root
+                deterministic_output = IOBuffer()
+                deterministic_errors = IOBuffer()
+                deterministic_code = withenv(
+                        runner.FREECORR_TEST_ROOT_ENV => "1") do
+                    runner.freecorr_runner_main([
+                        "--mode", "resource-probe",
+                        "--unit-id", unit.unit_id,
+                        "--attempt-root", deterministic_root,
+                        "--allow-test-root",
+                    ];
+                        output_io = deterministic_output,
+                        error_io = deterministic_errors,
+                        measure_probe = (args...) -> forced_failure_probe,
+                    )
+                end
+                @test deterministic_code == 5
+                @test isempty(String(take!(deterministic_errors)))
+                deterministic_summary = JSON3.read(
+                    String(take!(deterministic_output)),
+                )
+                @test deterministic_summary.resource_probe_receipt_persisted
+                @test !deterministic_summary.profile_thresholds_passed
+                @test !deterministic_summary.
+                    initial_gradient_probe_thresholds_passed
+                @test !deterministic_summary.operational_execution_authorized
+                @test isfile(runner.freecorr_resource_probe_reservation_path(
+                    deterministic_root,
+                    plan,
+                    unit,
+                ))
+                @test isfile(runner.freecorr_resource_probe_path(
+                    deterministic_root,
+                    plan,
+                    unit,
+                ))
+                deterministic_status = runner.
+                    freecorr_resource_probe_archive_status(
+                        _freecorr_runner_options(
+                            runner,
+                            deterministic_root,
+                            unit.unit_id,
+                        ),
+                        plan,
+                    )
+                @test deterministic_status.state === :valid
+                @test deterministic_status.outcome === :threshold_fail
+                @test !deterministic_status.
+                    initial_gradient_probe_thresholds_passed
+            end
+
+            provenance_tampered = deepcopy(receipt)
+            provenance_sources = provenance_tampered[
+                "resource_probe_artifact"
+            ]["provenance"]["sources"]
+            provenance_sources[1]["sha256"] = repeat("0", 64)
+            provenance_tampered["resource_probe_json_sha256"] =
+                runner.freecorr_canonical_sha256(
+                    provenance_tampered["resource_probe_artifact"],
+                )
+            _freecorr_runner_rehash!(runner, provenance_tampered)
+            provenance_error = try
+                runner.freecorr_validate_resource_probe_receipt(
+                    provenance_tampered,
+                    plan,
+                    unit;
+                    require_current = false,
+                )
+                nothing
+            catch error
+                error
+            end
+            @test provenance_error isa Exception
+            @test occursin(
+                "provenance digests were modified",
+                sprint(showerror, provenance_error),
+            )
+
+            artifact_hash_tampered = deepcopy(receipt)
+            embedded_hash = artifact_hash_tampered[
+                "resource_probe_artifact"
+            ]["artifact_sha256"]
+            artifact_hash_tampered[
+                "resource_probe_artifact"
+            ]["artifact_sha256"] = string(
+                first(embedded_hash) == '0' ? '1' : '0',
+                embedded_hash[2:end],
+            )
+            artifact_hash_tampered["resource_probe_artifact_sha256"] =
+                artifact_hash_tampered[
+                    "resource_probe_artifact"
+                ]["artifact_sha256"]
+            artifact_hash_tampered["resource_probe_json_sha256"] =
+                runner.freecorr_canonical_sha256(
+                    artifact_hash_tampered["resource_probe_artifact"],
+                )
+            _freecorr_runner_rehash!(runner, artifact_hash_tampered)
+            @test_throws ErrorException runner.
+                freecorr_validate_resource_probe_receipt(
+                    artifact_hash_tampered,
+                    plan,
+                    unit;
+                    require_current = false,
+                )
+
+            tampered = deepcopy(receipt)
+            checks = tampered["resource_probe_artifact"]["checks"]
+            checks["free_memory_passed"] = !checks["free_memory_passed"]
+            tampered["resource_probe_json_sha256"] =
+                runner.freecorr_canonical_sha256(
+                    tampered["resource_probe_artifact"],
+                )
+            _freecorr_runner_rehash!(runner, tampered)
+            @test_throws ErrorException runner.
+                freecorr_validate_resource_probe_receipt(
+                    tampered,
+                    plan,
+                    unit;
+                    require_current = false,
+                )
+            write(
+                expected_path,
+                runner.freecorr_encode_json_bytes(tampered),
+            )
+            tamper_output = IOBuffer()
+            tamper_errors = IOBuffer()
+            tamper_code = withenv(
+                    runner.FREECORR_TEST_ROOT_ENV => "1") do
+                runner.freecorr_runner_main([
+                    "--mode", "validate",
+                    "--unit-id", unit.unit_id,
+                    "--attempt-root", root,
+                    "--allow-test-root",
+                    "--artifact", expected_path,
+                ]; output_io = tamper_output, error_io = tamper_errors)
+            end
+            @test tamper_code == 4
+            @test isempty(String(take!(tamper_output)))
+            @test occursin(
+                "complete valid reservation/terminal tree",
+                String(take!(tamper_errors)),
+            )
+
+            status_output = IOBuffer()
+            status_errors = IOBuffer()
+            status_code = withenv(
+                    runner.FREECORR_TEST_ROOT_ENV => "1") do
+                runner.freecorr_runner_main([
+                    "--mode", "status",
+                    "--unit-id", unit.unit_id,
+                    "--attempt-root", root,
+                    "--allow-test-root",
+                ]; output_io = status_output, error_io = status_errors)
+            end
+            @test status_code == 0
+            @test isempty(String(take!(status_errors)))
+            tampered_status = JSON3.read(String(take!(status_output)))
+            @test tampered_status.status == "archive_state_invalid"
+            @test tampered_status.resource_probe_state.state == "invalid"
+
+            archive_validate_output = IOBuffer()
+            archive_validate_errors = IOBuffer()
+            archive_validate_code = withenv(
+                    runner.FREECORR_TEST_ROOT_ENV => "1") do
+                runner.freecorr_runner_main([
+                    "--mode", "validate",
+                    "--unit-id", unit.unit_id,
+                    "--attempt-root", root,
+                    "--allow-test-root",
+                ];
+                    output_io = archive_validate_output,
+                    error_io = archive_validate_errors,
+                )
+            end
+            @test archive_validate_code == 4
+            @test isempty(String(take!(archive_validate_errors)))
+            @test JSON3.read(
+                String(take!(archive_validate_output)),
+            ).status == "archive_state_invalid"
+            @test !ispath(runner.freecorr_unit_root(root, plan, unit))
+            @test !ispath(runner.freecorr_attempt_dir(root, plan, unit))
         end
     end
 

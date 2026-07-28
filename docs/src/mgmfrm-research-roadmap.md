@@ -14,9 +14,11 @@ The `v0.1.x` sequence records `v0.1.1` as completed and continues with:
 - `v0.1.1`: completed fixed-Q confirmatory MGMFRM refinement by strengthening
   execution, diagnostics, reporting, and validation for the existing guarded
   path.
-- `v0.1.2`: next, stay fixed-Q and confirmatory, but expand dimensionality,
-  Q validation, and fit-threshold calibration beyond the original compact
-  smoke surface.
+- current `v0.1.2` integration checkpoint: stay fixed-Q and confirmatory while
+  completing core identity/cache and minimal-MFRM gates and expanding
+  dimensionality, Q validation, fit-threshold calibration, recovery,
+  performance, and report-shape review beyond the original compact smoke
+  surface. The independent LD1b checklist does not broaden this release scope.
 - `v0.1.3`: decide whether free latent correlations are ready for guarded
   exposure.
 - `v0.1.4`: design the exploratory loading and rotation policy without yet
@@ -78,11 +80,11 @@ At the local level, each topic has a specific near-term decision.
 | Weakly informative priors | Public MFRM uses independent normal priors on identified parameters. Guarded generalized fits use raw-coordinate independent normal priors. | Keep defaults weakly informative but require prior predictive checks and prior/likelihood power-scaling sensitivity before interpretation. |
 | Hierarchical shrinkage | Current public priors are independent by block; sparse rater-mediated designs often invite partial pooling, but pooling changes estimands and shrinkage interpretation. | Keep independent priors as the v0.1.x default. Before `v0.2.0`, decide whether hierarchical facet priors are out of scope, optional experimental, or part of the stable MGMFRM surface; if added, report shrinkage diagnostics and sensitivity. |
 | Convergence diagnostics | Rank-normalized split R-hat, bulk ESS, and tail ESS are the primary quality fields. Classical `rhat`/`ess` and the minimum available `e_bfmi` remain compatibility outputs. E-BFMI coverage counts and `e_bfmi_complete` show whether every chain supplied a finite value. Odd-draw rank/fold/tail operation order and all-valid-lag ESS follow Stan/posterior semantics. | Require both raw unconstrained and applicable direct constrained generalized rows to pass. Preserve zero-raw-dimension coordinates as non-gated `:structurally_fixed` rows, keep reconstructed-but-varying coordinates gated, require complete-chain E-BFMI before applying its threshold, preserve the versioned cache contract, and validate the modern fields in every promotion artifact. |
-| Model comparison | WAIC, raw LOO, PSIS-LOO, K-fold, and shared-plan refit comparison rows exist. | The `v0.1.1` scope kept comparison rows diagnostic; prediction-target statements, Pareto-k/refit or K-fold follow-up, and no model-weight/superiority language remain required. |
+| Model comparison | WAIC, raw LOO, PSIS-LOO, exact one-row LOO refits, K-fold refits, and shared-plan refit comparison rows exist for fit-supported or explicitly guarded candidates. | These are prediction-target-specific diagnostic/refit surfaces. Prediction-target statements, coverage checks, Pareto-k/refit or K-fold follow-up, and no model-weight/superiority language remain required. |
 | Visualization | The package returns plotting-ready rows for recovery, calibration, PPC, threshold maps, coverage matrices, rater overlap, and Wright maps. | The `v0.1.1` plan targeted plot-data schema and documentation-example stabilization; unfinished work continues under `v0.1.2` or later, with backend-specific recipes deferred until the report data contract is stable. |
 | Category functioning | Rating-scale and partial-credit interpretations can fail when categories are skipped, disordered, sparse, or used differently by raters. | Add category-functioning rows that separate observed category use, posterior threshold/step uncertainty, predictive category replication, and any category-collapsing recommendation. Recommendations should be diagnostic, not automatic data editing. |
 | Missingness and rater assignment | MFRM assumes the observed rating graph can support the intended facet comparisons; nonrandom assignment, planned missingness, and time/order effects can change what is identifiable. | Add rating-design review rows: structural missingness, accidental missingness, disconnectedness, anchor coverage, repeated ratings, time/order fields, and warnings that current models do not correct nonignorable assignment unless an explicit assignment model is introduced. |
-| Local independence and clustered ratings | The likelihood treats observed rows as conditionally independent. LD0a supplies response/testlet identifiers, a pre-fit design audit, draw-specific residuals, and a frozen estimand contract; LD0b adds report-only pair and multiplicity references; LD1a adds an independent 22-scenario known-truth generator and structural preflight; LD1b0 freezes the scorer and denominator-preserving aggregation protocol; LD1b1 preflights and authorizes the 30-replication pilot execution protocol, and its MCMC-free batch harness dry run checks orchestration without running the pilot. Applicability remains testlet-specific, and `task` is metadata rather than a fitted testlet term. | Materialize and pin the canonical single-job executor, pass bounded smoke, add a completed-attempt seal, and pass interrupted-attempt recovery review before executing the authorized pilot with the rank-normalized R-hat and bulk/tail ESS gate. Freeze the study-local operating rules and either 50 or 100 evaluation replications, and run the separately seeded evaluation before adding any diagnostic decision label, fitting a testlet extension, or interpreting temporal dependence. |
+| Local independence and clustered ratings | The likelihood treats observed rows as conditionally independent. LD0a supplies response/testlet identifiers, a pre-fit design audit, draw-specific residuals, and a frozen estimand contract; LD0b adds report-only pair and multiplicity references; LD1a adds an independent 22-scenario known-truth generator and structural preflight; LD1b0 freezes the scorer and denominator-preserving aggregation protocol; LD1b1 preflights and authorizes the 30-replication pilot execution protocol, and its MCMC-free batch harness dry run checks orchestration without running the pilot. Completed-attempt seals, receipt-bearing launched-attempt retirement, reservation-before-precommit recovery, the canonical single-job worker, and its ordered seven-source pin/dependent identity regeneration pass local MCMC-free tests. The final verification-only bounded canonical smoke also passes outside the official `0/660` pilot denominator. All five terminal statuses require an explicit semantic context and exact replay through the canonical public calibration constructor and summary; completed outcomes additionally require exact pair/family/global diagnostic linkage, while the reserved nonterminal `sampler_diagnostics_unavailable` and `final_calibration_serialization_failed` codes cannot pass canonical runner validation for a completed seal or terminal admission. Applicability remains testlet-specific, and `task` is metadata rather than a fitted testlet term. | Pass an independent pinned recovery/readiness review before executing the authorized pilot. Freeze the study-local operating rules and either 50 or 100 evaluation replications, and run the separately seeded evaluation before adding any diagnostic decision label, fitting a testlet extension, or interpreting temporal dependence. |
 | Temporal rater process and order confounding | The current `FacetData` contract stores an optional categorical `occasion` field, but it does not encode within-rater sequence, timestamps, active duration, breaks, repeated benchmark-response identity, or assignment reason. A late shift in examinee case mix can therefore be mistaken for rater drift. | Before any dynamic-severity fit surface is exposed, define a process-data contract and complete a known-truth stress test that crosses true drift, ability/order composition, temporal benchmark placement, assignment, and rating-graph sparsity. Keep drift claims blocked when the design cannot separate rater change from changing case mix. |
 | Binary responses and multi-facet IRT | The current MFRM family includes two-category responses as the dichotomous Rasch special case with additional facet terms. Guarded generalized paths add discrimination/consistency terms that move beyond strict Rasch measurement. | Document the binary bridge explicitly: MFRM is a many-facet one-parameter logistic IRT model; GMFRM/MGMFRM with item discrimination, rater consistency, or multidimensional Q-masked loadings should be labelled generalized or 2PL/GPCM-like, not strict Rasch. |
 | Infit, outfit, and FACETS degrees of freedom | `fit_stats` returns posterior infit/outfit mean-square summaries for minimal MFRM fits. The separate `facets_report` / `facets_compatibility_stats` API now returns unit-weighted posterior-mean plugin rows with Wright--Masters fourth-moment infit/outfit df, capped Wilson--Hilferty ZSTD, and explicit approximation labels; generalized fits are rejected. | Keep posterior infit/outfit as the default Bayesian residual diagnostic. Retain the separate MFRM/RSM/PCM-only compatibility surface, and require simulation calibration before considering any experimental generalized extension. |
@@ -506,14 +508,103 @@ dependency and operation-order record, primary fields, tail probability,
 minimum chain and draw requirements, complete-chain E-BFMI coverage, and the
 SHA-256 digest of `src/bayesian_fit.jl`. A mismatch requires a new preflight.
 
-The MCMC-free batch execution-harness dry run is recorded by
-`scripts/generate_local_dependence_pilot_batch_execution_harness.jl`, using
-the orchestration contract in
+The executor-readiness audit also caught a pre-execution sampler mismatch: the
+previously frozen `ad_backend = :analytic` route is unavailable for the
+order-0 MFRM target. The protocol is now re-pinned to `:ForwardDiff`, and its
+capability record checks the AdvancedHMC backend, NUTS algorithm, and
+target-compatible gradient route before authorization. A target-level wiring
+test reproduces the old failure and a finite revised gradient. This repair is
+not a pilot outcome or bounded frozen-control smoke; the official execution
+count remains `0/660`.
+
+An isolated noncanonical full-control run subsequently selected row 5,
+`null_support_at_minimum`, as the smallest planned row with actual supported
+pairs. Its 4 chains and 2,000 retained draws passed the frozen sampler gate
+(maximum rank-normalized R-hat `1.00483`, minimum bulk/tail ESS
+`1439.8`/`1152.1`, no divergences or depth hits, and complete-chain minimum
+E-BFMI `0.9438`) and produced 24 supported `:report_only` pair rows. A matched
+row-4 comparison found ForwardDiff about 3.50 times faster per warm gradient
+and 3.14 times faster in a short NUTS run than an isolated ReverseDiff
+environment; ReverseDiff is not an ordinary runtime dependency. These are
+route-selection and wiring observations only. They selected row 5 for the
+subsequent canonical bounded-smoke review and do not enter the pilot
+denominator.
+
+Gate 7 then ran that exact row 5 against the final source pin in a separate
+verification-only namespace. After a harness-portability fix changed the pin,
+the smoke was first rerun under plan `d2d716…`. A subsequent clean `Pkg.test()`
+found `Sockets` missing from the test extras; adding its test-only target and
+compatibility bound changed the Project hash, so `d2d716…` was archived and the
+smoke was rerun under plan `7c8e49…`. Clean testing then found the known-truth
+fixture's Project SHA stale. Regenerating the known-truth -> scorer -> protocol
+chain and the Julia 1.10.8 robustness fixture archived `7c8e49…`; the smoke was
+rerun under final plan
+`4e32bbbaae5dafda795ccca1ddaf819cc1bd715568206134278a878f8c8b19a9`.
+The frozen AdvancedHMC/NUTS configuration used 4 chains with 500 warmup and 500
+retained iterations per chain and produced a strictly validated completed-
+attempt seal and smoke receipt. The canonical pilot root was unchanged before
+and after the run, so the smoke contributes zero scientifically and leaves the
+official count at `0/660`. Its sealed raw bundle remains local pending tracked
+release-lineage verification. The earlier successful `d4c6ed…` receipt is
+archived; MCMC-free harness generation now explicitly disables smoke-receipt
+consumption and is byte-identical with or without the local raw receipt. The
+canonical source pin remained unchanged across the final provenance refresh.
+
+The controller no longer treats the mere existence of a runner file as a
+complete execution plan. Operational authorization is the conjunction of the
+protocol authorization, pinned canonical executor source, passing bounded
+canonical-smoke receipt, completed-attempt seal support, passing interrupted-
+attempt recovery-control readiness review, and canonical execution-root
+binding. Execute mode checks this before creating an attempt root or job
+directory. The completed-attempt seal boundary now passes its MCMC-free
+synthetic tests. Receipt-bearing launched attempts also validate owner/launch
+lineage plus either a validated exit receipt or a separately prepared external
+process-identity review, then check result state and the pre-review inventory
+before create-new review and retirement publication. Full public-contract
+semantic replay and component-specific nonterminal failure/serialization
+semantics now pass MCMC-free local tests. The canonical worker also implements
+controller-owned reservation, owner, launch, and exit receipt lineage plus
+reservation-before-precommit and launched-attempt recovery. The protocol now
+records an ordered seven-source SHA-256 pin, and the controller compares every
+digest with the repository files before deriving authorization, harness, all
+660 command, and checkpoint identities. That pin/regeneration gate and bounded
+canonical smoke are complete in the local worktree. Independent
+recovery/readiness review remains the only pre-pilot blocker, keeps operational
+readiness false, and leaves the official count at `0/660`.
+
+The five existing terminal statuses now each require a
+`local_dependence_calibration_row.v1` source member and an explicit semantic
+context. Generation failure records no invented simulation provenance; fit and
+diagnostic failures bind their generated-data and failure-record identities. A
+mixed-status test uses the public constructors and reconstructs the complete
+`5/5` planned/result denominator through
+`local_dependence_calibration_summary`. Every status requires exact replay
+through the canonical public calibration constructor and summary. Context
+identity is reloaded from the protocol path; the protocol file identity is
+revalidated, and the complete 660-row plan and public preflight are compared
+exactly before replay. Completed
+outcomes additionally require exact pair/family/global diagnostic linkage. The
+reserved nonterminal artifact-failure codes
+`sampler_diagnostics_unavailable` and
+`final_calibration_serialization_failed` cannot pass the canonical runner
+validation required for a completed seal or terminal admission. Generation-
+failure rows are rebuilt from the public frozen
+660-row plan, publicly summarized, and required to match the archived member
+exactly after normalized JSON projection; the validator source is pinned in the
+execution identity.
+
+The MCMC-free batch execution-harness dry run is recorded as
+`bayesianmgmfrm.local_dependence_pilot_batch_execution_harness.v3` by
+`scripts/generate_local_dependence_pilot_batch_execution_harness.jl`, using the
+orchestration contract in
 `scripts/run_local_dependence_calibration_pilot_batch.jl`. It checks all 660
 planned rows, including 540 eligible fitting jobs and 120 planned pre-fit
-rejections. The batch-controller and generator sources are identified; the
-execution plan remains incomplete until the canonical single-job executor
-SHA-256 is materialized. Terminal records require exact role-specific semantic
+rejections. The protocol records an ordered seven-source SHA-256 pin, and the
+controller verifies every digest against the repository before deriving the
+authorization, harness, all 660 command, and checkpoint identities. The
+bounded smoke passes in the local worktree; the execution plan remains
+incomplete until independent pinned recovery/readiness review passes. Terminal
+records require exact role-specific semantic
 evidence, one hashed source artifact per role, and exact upstream evidence
 hashes. The frozen `pilot_contract` and the
 canonical ordering of all 660 job rows are verified by canonical SHA-256. A
@@ -525,9 +616,9 @@ columns, probability cells, truth and row-truth arrays, structural eligibility,
 and data/score/design signatures. Fit evidence uses the structured
 `local_dependence_pilot_fit_artifact_export.v1` JSON wrapper containing retained
 draws, log posterior values, sampler statistics, sampler
-controls, and reproducibility metadata. Its package-native content hash must be
-verified by the future pinned canonical executor before JSON projection; the
-batch runner separately recomputes the canonical JSON payload hash and verifies
+controls, and reproducibility metadata. Its package-native content hash is
+verified by the local canonical executor before JSON projection; the batch
+runner separately recomputes the canonical JSON payload hash and verifies
 the exact file SHA-256. The JSON projection cannot soundly reconstruct the
 native typed hash. Frozen resource counts and sampler controls are checked, and
 convergence, divergence, depth, and complete-chain E-BFMI gates are validated
@@ -539,42 +630,84 @@ both with its evidence payload, the frozen job, and the calibration execution
 seeds. Draw selection uses the frozen
 `sha256_seeded_rank_without_replacement_v1` algorithm, and the runner
 recomputes its ordered draw indices from the frozen seed.
-The posterior-predictive seed is source-bound, but seed-to-result replay
-verification remains
-pending the canonical single-job executor and bounded smoke review. A
+The posterior-predictive seed is source-bound, and its recorded lineage passes
+the bounded smoke on the pinned canonical single-job executor. Independent
+recovery/readiness review remains pending. A
 `diagnostic_failed` component identifies the sampler-quality gate
 only when it failed, or the local-dependence summary only after that gate
 passed. Symbolic links, hard links, and unmanifested files fail archive
-integrity. Aggregate state binds the verified primary-result,
-evidence-manifest, and attempt-inventory digests.
-Primary attempts are nonoverwritable, and remediation remains additive. Resume
+integrity. The v3 scan/checkpoint records separate digests for verified primary
+results and primary dispositions. Result rows bind result, evidence-manifest,
+seal, and attempt-inventory identities; disposition rows bind either a
+completed seal or an interrupted-retirement control artifact and its attempt
+inventory.
+Primary attempts are nonoverwritable, and remediation remains additive. The
+receipt-verified `retire-interrupted` mode records a nonterminal, zero-
+contribution disposition; a retired primary stays missing from the scientific
+numerator and a retired predecessor cannot yet authorize remediation. Resume
 first rescans the complete attempt archive as the source of truth, then verifies
-and compares the derived checkpoint, and skips only verified terminal primary
-records. Invalid remediation fails archive integrity without replacing the
-primary denominator.
+and compares the derived
+`bayesianmgmfrm.local_dependence_pilot_batch_checkpoint.v3` checkpoint, and
+skips only verified terminal primary records. Invalid remediation fails archive
+integrity without replacing the primary denominator.
+Terminal admission now also requires a create-new completed-attempt seal after
+semantic result validation. It binds the plan, execution source, job, attempt,
+terminal outcome, result, evidence-manifest, and inventory identities. A result
+without the seal remains partial; post-seal mutation or addition, mismatched
+outcome identity, and duplicate publication fail closed. This is a static
+verification boundary rather than a transactional filesystem snapshot.
 The generated dry run does not scan an attempt archive, so integrity is not
 assessed. It generates no response data, fits no model, and runs no MCMC;
 pilot results, calibration or power estimates, diagnostic decisions, and
 mechanism interpretations remain unavailable.
 
-Snapshot and inventory values are rechecked during validation, but this remains
-a static consistency check rather than an atomic completed-attempt seal.
-
-The next execution-control step is the canonical single-job executor. Before
-the pilot starts, it must retain the status-specific hashed data, fit, sampler-
-diagnostic, local-dependence, calibration, or structural-rejection records and
-pass a bounded smoke review without changing the frozen seeds, sampler
-controls, or primary denominator. The same gate must add a completed-attempt
-seal and an append-only recovery or retirement path for interrupted attempts;
-remediation cannot promote a partial primary into the scientific denominator.
+The full public-contract semantic replay, reserved nonterminal artifact-
+failure semantics, and canonical single-job executor pass in the current local
+worktree. The executor retains status-specific hashed data, fit, sampler-
+diagnostic, local-dependence, calibration, or structural-rejection records;
+binds controller-owned execute-path receipts; and covers reservation-before-
+precommit recovery without changing the frozen seeds, sampler controls, or
+primary denominator. The completed-attempt seal is also complete.
+The retirement path separates original primary-slot identity from zero
+scientific contribution and passes deterministic hardlink-publication plus
+controller/scanner/checkpoint tests. The ordered seven-source protocol pin and
+dependent authorization, harness, 660 command, and checkpoint identities are
+complete in the local worktree. Gate 7 bounded canonical smoke is also complete
+locally. Gate 8 independent pinned recovery/readiness review is the next open
+integration gate. Remediation cannot
+promote a partial or retired primary into the scientific denominator.
 
 Rank-normalized split R-hat and bulk/tail ESS are now available from package
-sampler diagnostics, so the preflight authorizes pilot execution after the
-executor, smoke, completed-attempt seal, and interrupted-attempt recovery gates
-pass. Pilot and evaluation replications have not been run, so the completed
-preflight provides
+sampler diagnostics. Source pinning and identity regeneration are complete in
+the local worktree, and the bounded smoke passes there. Pilot execution remains
+gated on independent recovery/readiness review. Pilot and evaluation
+replications have not been
+run, so the completed preflight provides
 no repeated-calibration evidence, pairwise power, diagnostic decision, or
 mechanism interpretation.
+
+### Current v0.1.2 LD1b Integration Checklist
+
+This active checklist records nine ordered integration-acceptance gates. In the
+current dirty-worktree snapshot, `7/9` gates are attained (77.8%); this is not
+an estimate of effort completed or scientific progress. The third through seventh
+gates are backed by local-worktree evidence and become release-lineage evidence
+only after the new files are tracked and the complete release-lineage
+verification passes. This score is independent
+of the historical `160/189` snapshot, the official `0/660` pilot denominator,
+and full `v0.1.2` release readiness.
+
+| Gate | Status | Completion evidence or next condition |
+| --- | --- | --- |
+| Freeze the `v0.1.2` fixed-Q/guarded exposure boundary and align package/release metadata. | `complete` | `Project.toml` records `0.1.2`; free correlation, exploratory loading, and broad generalized claims remain outside the checkpoint. |
+| Freeze LD1b0 scoring and LD1b1 authorization, seeds, controls, and the 660-row denominator. | `complete` | The scorer/protocol preflights record 540 eligible jobs and 120 planned structural rejections without executing the pilot. |
+| Complete the MCMC-free batch harness, completed-attempt seal, and receipt-bearing launched-attempt retirement boundary. | `complete_local_worktree` | Synthetic archive/controller/scanner/checkpoint evidence passes while retired attempts remain nonterminal and contribute zero scientifically; tracked release-lineage verification remains pending. |
+| Complete public-contract semantic replay for every terminal source member and define unavailable-diagnostic and final-serialization failure semantics. | `complete_local_worktree` | All five terminal statuses require an explicit semantic context and exact replay through the canonical public calibration constructor and summary; completed outcomes require exact pair/family/global diagnostic linkage; the reserved nonterminal `sampler_diagnostics_unavailable` and `final_calibration_serialization_failed` codes cannot pass canonical runner validation for a completed seal or terminal admission. Tracked release-lineage verification remains pending. |
+| Implement the canonical single-job worker with status-specific artifacts, execute-path owner/launch/exit receipts, and reservation-before-precommit recovery. | `complete_local_worktree` | The strict worker preserves frozen seeds, controls, job identities, and the primary denominator; routes five terminal statuses and two reserved nonterminal artifact failures; projects exact UInt64 data signatures before hashing; publishes source -> evidence -> result with CREATE_NEW semantics; validates controller-owned reservation -> owner -> launch -> exit lineage; and passes MCMC-free production pre-fit, receipt, tamper, and interruption-recovery tests. Tracked release-lineage verification remains pending. |
+| Pin the final worker source and regenerate every authorization, harness, command, and checkpoint identity that depends on it. | `complete_local_worktree` | The protocol records an ordered seven-source SHA-256 pin covering the batch controller, canonical JSON helper, single-job worker, attempt archive, interruption recovery, calibration semantics, and harness generator. The controller compares every recorded digest with the repository files before deriving authorization, harness, all 660 command, and checkpoint identities. The worker execute path reconstructs readiness, so a CLI authorization flag alone cannot bypass missing smoke/review evidence. MCMC-free identity/tamper tests pass; tracked release-lineage verification remains pending. |
+| Pass the bounded canonical smoke against that exact final pinned source. | `complete_local_worktree` | Canonical row 5 completed under the frozen 4-chain, 500-warmup plus 500-retained-per-chain controls in a separate verification-only namespace. The strict receipt validates the completed seal and unchanged pilot root; scientific contribution is zero and tracked release-lineage verification remains pending. |
+| Pass an independent pinned recovery/readiness review over the final worker, receipts, precommit recovery, and smoke evidence. | `open` | Controller readiness remains false until the independent review is accepted. The review must also exercise the transition from the receipt's unchanged `0/660` snapshot to a nonempty append-only official root and confirm that later resume checks do not retroactively invalidate the historical smoke evidence. |
+| Execute, review, and freeze the authorized 660-job pilot. | `open` | Only verified terminal primary outcomes enter the scientific numerator; pilot review then freezes the evaluation size and study-local operating rules. |
 
 | Axis | Required levels |
 | --- | --- |
@@ -694,9 +827,12 @@ held-out cluster informed the posterior.
    separated seeds, resource and failure policy, and append-only retry history.
    The operational bounds are study-local, and the 50- and 100-replication
    evaluation sizes are candidates rather than completed runs. **The pilot
-   protocol is authorized, but execution remains gated** until the canonical
-   single-job executor, bounded smoke review, completed-attempt seal, and
-   interrupted-attempt recovery review pass. Rank-normalized split R-hat and
+   protocol is authorized, but execution remains gated** until independent
+   pinned recovery/readiness review passes. Bounded smoke against the locally
+   pinned source and regenerated identities now passes. The completed-attempt
+   seal boundary and receipt-bearing launched-attempt retirement integration are
+   complete.
+   Rank-normalized split R-hat and
    bulk/tail ESS are available
    under the exact frozen diagnostic contract, complete-chain E-BFMI rule, and
    recorded diagnostic-source hash.
@@ -738,8 +874,11 @@ preflight, and its MCMC-free batch execution-harness dry run are complete.
 The harness covers 660 planned rows, including 540 eligible fitting jobs and
 120 planned pre-fit rejections. Because the dry run does not scan attempts, its
 archive assessment is `not_assessed`. Rank-normalized split R-hat and bulk/tail
-ESS are implemented, but the LD1b pilot begins only after the executor, bounded
-smoke, completed-attempt seal, and interrupted-attempt recovery gates pass. The
+ESS are implemented, and the receipt- and precommit-capable worker plus its
+ordered seven-source pin/dependent identities pass local tests. Gate 7 bounded
+smoke also passes in the local worktree. The LD1b pilot begins only after
+independent recovery/readiness review passes; completed-attempt seal and receipt-bearing
+launched-attempt retirement already pass their synthetic boundary tests. The
 existing-API recovery
 scorer may proceed in parallel. The pilot itself remains unrun. Pilot review
 then freezes the study-local rules and one evaluation size before separately
@@ -883,19 +1022,23 @@ parallel; new fitted model families remain later research surfaces.
    complete. The LD1b1 pilot execution protocol is also preflighted and
    authorized for 660 planned rows without fitting. Its MCMC-free batch harness
    dry run checks 540 eligible fitting jobs, 120 planned pre-fit rejections,
-   identified batch-controller and generator sources, an execution plan that
-   remains incomplete until the canonical single-job executor SHA-256 is
-   materialized, semantic evidence contracts, and nonoverwrite and additive-
+   identified batch-controller and generator sources, an ordered seven-source
+   protocol pin whose current repository digests are verified by the controller,
+   regenerated authorization/harness/660-command/checkpoint identities, semantic
+   evidence contracts, and nonoverwrite and additive-
    remediation rules. On resume, it first rescans the complete attempt archive,
    then verifies and compares the derived checkpoint, and skips only verified
    terminal primary records. The generated dry run reports archive integrity
    as not assessed and supplies no pilot evidence. Rank-normalized split R-hat
-   and bulk/tail ESS are implemented. Next materialize and pin the single-job
-   executor, pass bounded smoke, add a completed-attempt seal, and pass
-   interrupted-attempt recovery review before executing the pilot. Then freeze
-   one of the 50/100 evaluation sizes and the
-   study-local operating rules, and run evaluation for pair, family, and global
-   reference behavior and mechanism confusion.
+   and bulk/tail ESS are implemented. Receipt-bearing launched-attempt
+   retirement is integrated. The semantic replay gate and canonical worker,
+   including execute-path receipt binding and reservation-before-precommit
+   recovery, pass MCMC-free local tests. Bounded smoke on that exact pinned
+   source now passes; next pass an independent pinned recovery/readiness review
+   before executing the pilot. Then
+   freeze one of the 50/100 evaluation sizes and the study-local operating rules,
+   and run evaluation for pair, family, and global reference behavior and
+   mechanism confusion.
 4. **P1c -- scalar testlet candidate:** after P0 and P1b pass, run source,
    gradient, HMC, null-boundary, positive-truth recovery, and prior-sensitivity
    gates for a non-centered unidimensional MFRM person-by-testlet standard-
@@ -1110,11 +1253,11 @@ implementation progress.
 
 | Debt | Why it matters | Resolution path | Release impact |
 | --- | --- | --- | --- |
-| Modern generalized diagnostics need promotion evidence | Rank-normalized split R-hat, bulk ESS, tail ESS, structurally fixed coordinate handling, and complete-chain E-BFMI accounting are implemented, but implementation alone does not validate interpretation-supported generalized claims. Historical publication-grade runner artifacts predate the versioned contract and remain classical compatibility evidence. | Exercise raw and applicable direct block-level pass/fail rows, zero-raw-dimension versus reconstructed-varying transforms, incomplete E-BFMI coverage, the Stan/posterior odd-draw and lag contract, and versioned cache invalidation in new fits. Keep wrapper schemas at version 1, but do not reinterpret rows lacking `rank_normalized_rhat_bulk_tail_ess_v1`. | Blocks interpretation-supported generalized claims, not authorization of the LD1b1 protocol; pilot execution still has its own executor, smoke, completed-attempt seal, and recovery gates. |
+| Modern generalized diagnostics need promotion evidence | Rank-normalized split R-hat, bulk ESS, tail ESS, structurally fixed coordinate handling, and complete-chain E-BFMI accounting are implemented, but implementation alone does not validate interpretation-supported generalized claims. Historical publication-grade runner artifacts predate the versioned contract and remain classical compatibility evidence. | Exercise raw and applicable direct block-level pass/fail rows, zero-raw-dimension versus reconstructed-varying transforms, incomplete E-BFMI coverage, the Stan/posterior odd-draw and lag contract, and versioned cache invalidation in new fits. Keep wrapper schemas at version 1, but do not reinterpret rows lacking `rank_normalized_rhat_bulk_tail_ess_v1`. | Blocks interpretation-supported generalized claims, not authorization of the LD1b1 protocol; pilot execution still has its own independent recovery/readiness gate after the local bounded smoke. |
 | Fixed-Q invariance checks are incomplete | Dimension labels and loading signs can look stable when the gauge is actually doing the work. | Add fixed-sign, fixed-identity-correlation, positive-loading, and direct-constraint invariance checks. | Blocks broader fixed-Q claims and non-confirmatory expansion. |
 | Prior sensitivity is not yet tied to focal decisions | Weak priors can determine rater consistency, loading, or sparse DFF-adjacent conclusions. | Connect prior predictive rows, prior-scale grids, and power-scaling shifts to report decision labels. | Blocks ranking and practical-decision language. |
 | Predictive targets are not yet uniformly attached to comparison rows | WAIC, LOO, and K-fold can answer different questions if row matching or targets differ. | Require prediction-target, row-matching, candidate-set, and influential-row fields before interpretation. | Blocks model weights and superiority claims. |
-| Local-dependence calibration and cluster prediction are incomplete | Report-only pair summaries, the LD1b0/LD1b1 preflights, and the MCMC-free batch harness dry run do not establish operating characteristics, and row-level prediction can leak shared response/testlet information. | First materialize and pin the single-job executor, pass bounded smoke, add a completed-attempt seal, and pass interrupted-attempt recovery review. Then execute the authorized pilot and frozen evaluation with the modern sampler-diagnostic gate, followed by calibrated pair/cluster PPC and conditional versus whole-response marginal prediction. | Blocks testlet/halo interpretation and any claim that row-level LOO validates clustered ratings. |
+| Local-dependence calibration and cluster prediction are incomplete | Report-only pair summaries, the LD1b0/LD1b1 preflights, and the MCMC-free batch harness dry run do not establish operating characteristics, and row-level prediction can leak shared response/testlet information. Completed-attempt seal, receipt-bearing launched-attempt retirement, reservation-before-precommit recovery, the canonical single-job worker, its seven-source pin/dependent identity regeneration, and the final verification-only bounded canonical smoke pass local boundary tests. Context-required exact replay through the canonical public calibration constructor and summary passes for all five terminal statuses, including exact completed pair/family/global diagnostic linkage and rejection of the reserved nonterminal `sampler_diagnostics_unavailable` and `final_calibration_serialization_failed` codes by canonical runner validation for completed seal and terminal admission. | Pass an independent pinned recovery/readiness review. Then execute the authorized pilot and frozen evaluation with the modern sampler-diagnostic gate, followed by calibrated pair/cluster PPC and conditional versus whole-response marginal prediction. | Blocks testlet/halo interpretation and any claim that row-level LOO validates clustered ratings. |
 | DFF remains screening-only | Sparse or confounded cells can produce compelling contrasts that are not fairness evidence. | Keep fitted DFF effects blocked; add design-support, grouped PPC, practical-magnitude, and sensitivity rows. | Blocks bias/unfairness language. |
 | External overlap targets are unresolved | Mature R packages may estimate related but nonidentical models. | Start post-`v0.2.0` with known-truth simulations and explicit non-overlap labels. | Blocks external validation claims. |
 | Artifact privacy policy needs release testing | Rating data often contain identifiable people, raters, institutions, tasks, or groups. | Make raw labels opt-in, require provenance/anonymization rows, and test bundle contents. | Blocks public evidence bundles. |
@@ -1477,6 +1620,33 @@ Replicated recovery, separate prior and likelihood sensitivity,
 misspecification stress, an independently reproduced decision artifact, and
 higher-dimensional LKJ-Cholesky parameterization remain pending; every current
 artifact retains `recovery_verified = false`.
+
+**MCMC-free execution-control checkpoint (2026-07-26):** the frozen
+three-repetition initial-gradient profile was measured for
+`mgmfrm_freecorr_feasibility_rho_m060_rep_001`. Finite-gradient, raw-dimension,
+fixture/oracle identity, median runtime, allocated-memory, GC-fraction, and
+estimated-full-unit-time checks passed. The conjunctive profile failed because
+the observed minimum free memory was 3.91 GiB and did not meet the unchanged
+8 GiB requirement. The measured medians were 0.0366 seconds per gradient,
+86,564,144 allocated bytes, and zero GC-time fraction; the projected full-unit
+time was 4,678.64 seconds. Before measurement, the pre-execution runner now
+publishes a create-new reservation, then publishes either a terminal receipt
+or an operational-failure marker outside the scientific attempt tree. It
+refuses to reuse an interrupted or completed attempt, and ordinary status
+validation inspects this resource-probe tree. These local records are
+self-consistency evidence without an external anchor or power-loss durability
+attestation. They are not a frozen study unit, fit, recovery result, or reason
+to weaken the version-2 threshold.
+
+| Free-correlation execution-control gate | Current state | Scientific denominator effect |
+| --- | --- | --- |
+| MCMC-free initial-gradient measurement and receipt | **Measured; create-new reservation and threshold-failure receipt recorded** | None; the passing-prerequisite count remains 0/3. |
+| Unchanged version-2 initial-gradient threshold | **Failed on minimum free memory** | None; short-NUTS and scientific execution remain blocked. |
+| Bounded short-NUTS resource profile | **Pending** | None. |
+| Atomic scientific worker, raw-draw archive, and external digest anchor | **Pending** | None. |
+| Computation-only feasibility roster | **0/25** | No terminal scientific attempt exists. |
+| Separately seeded recovery evaluation | **0/500** | Evaluation remains unauthorized. |
+| Total frozen scientific roster | **0/525 (0.0%)** | The 25 feasibility units plus 500 evaluation units remain outside execution until all operational prerequisites pass. |
 
 **Implementation work:**
 

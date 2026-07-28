@@ -3,6 +3,7 @@
 using Dates
 using JSON3
 using SHA
+using Sockets
 using TOML
 
 const LD1B1_ROOT = normpath(joinpath(@__DIR__, ".."))
@@ -17,6 +18,23 @@ const LD1B1_DEFAULT_ATTEMPT_ROOT = joinpath(
     "artifacts",
     "local_dependence_pilot",
 )
+const LD1B1_DEFAULT_BOUNDED_SMOKE_ROOT = joinpath(
+    LD1B1_ROOT,
+    "artifacts",
+    "local_dependence_pilot_bounded_smoke_v1",
+)
+const LD1B1_DEFAULT_BOUNDED_SMOKE_RECEIPT = joinpath(
+    LD1B1_ROOT,
+    "test",
+    "fixtures",
+    "local_dependence_pilot_bounded_canonical_smoke_receipt.json",
+)
+const LD1B1_DEFAULT_INDEPENDENT_RECOVERY_READINESS_REVIEW = joinpath(
+    LD1B1_ROOT,
+    "test",
+    "fixtures",
+    "local_dependence_pilot_independent_recovery_readiness_review.json",
+)
 const LD1B1_DEFAULT_JOB_RUNNER = joinpath(
     LD1B1_ROOT,
     "scripts",
@@ -25,28 +43,62 @@ const LD1B1_DEFAULT_JOB_RUNNER = joinpath(
 const LD1B1_PROTOCOL_SCHEMA =
     "bayesianmgmfrm.local_dependence_pilot_protocol_preflight.v1"
 const LD1B1_HARNESS_SCHEMA =
-    "bayesianmgmfrm.local_dependence_pilot_batch_execution_harness.v2"
+    "bayesianmgmfrm.local_dependence_pilot_batch_execution_harness.v3"
 const LD1B1_CHECKPOINT_SCHEMA =
-    "bayesianmgmfrm.local_dependence_pilot_batch_checkpoint.v2"
+    "bayesianmgmfrm.local_dependence_pilot_batch_checkpoint.v3"
 const LD1B1_JOB_RESULT_SCHEMA =
-    "bayesianmgmfrm.local_dependence_pilot_job_result.v2"
+    "bayesianmgmfrm.local_dependence_pilot_job_result.v3"
 const LD1B1_EVIDENCE_SCHEMA =
-    "bayesianmgmfrm.local_dependence_pilot_job_evidence.v2"
+    "bayesianmgmfrm.local_dependence_pilot_job_evidence.v3"
+const LD1B1_BOUNDED_SMOKE_AUTHORIZATION_SCHEMA =
+    "bayesianmgmfrm.local_dependence_pilot_bounded_smoke_authorization.v1"
+const LD1B1_BOUNDED_SMOKE_RECEIPT_SCHEMA =
+    "bayesianmgmfrm.local_dependence_pilot_bounded_canonical_smoke_receipt.v1"
+const LD1B1_INDEPENDENT_RECOVERY_READINESS_REVIEW_SCHEMA =
+    "bayesianmgmfrm.local_dependence_pilot_independent_recovery_readiness_review.v1"
+const LD1B1_CANONICAL_EXECUTOR_SOURCE_PIN_SCHEMA =
+    "bayesianmgmfrm.local_dependence_pilot_canonical_executor_source_pin.v1"
 const LD1B1_CANONICAL_MANIFEST = "Manifest-v1.10.toml"
 const LD1B1_EXPECTED_JOBS = 660
 const LD1B1_EXPECTED_FIT_JOBS = 540
 const LD1B1_EXPECTED_REJECTION_JOBS = 120
+const LD1B1_BOUNDED_SMOKE_ROW_INDEX = 5
+const LD1B1_BOUNDED_SMOKE_JOB_ID =
+    "ld1b1_pilot__rep01__s05__null_support_at_minimum"
+const LD1B1_BOUNDED_SMOKE_TIMEOUT_SECONDS = 7_200
+const LD1B1_BOUNDED_SMOKE_TERMINATION_GRACE_SECONDS = 10
+const LD1B1_BOUNDED_SMOKE_MAX_RSS_BYTES = 8 * 1024^3
+const LD1B1_BOUNDED_SMOKE_MAX_ARCHIVE_BYTES = 1024^3
+const LD1B1_BOUNDED_SMOKE_AUTHORIZATION_FILENAME =
+    "bounded_smoke_authorization.json"
 const LD1B1_MINIMUM_COMPLETED_PER_ELIGIBLE_SCENARIO = 27
 const LD1B1_MAXIMUM_FAILURES_PER_ELIGIBLE_SCENARIO = 3
 const LD1B1_REQUIRED_REJECTIONS_PER_REJECTION_SCENARIO = 30
 const LD1B1_PILOT_CONTRACT_SHA256 =
-    "e1937f86d65bac2e1fc6114686f89d4df9fb0cc413a0786ee8bb3de0446022b3"
+    "a651515317e0b7636ce47d4e56776c4017d1e6293e3185607c377915f6ad2e5a"
 const LD1B1_ORDERED_JOB_ROWS_SHA256 =
     "71eb1f33bb2bdc05495b748608c32af50334216ae607e6ae2be8d50cbf9be574"
 const LD1B1_DIAGNOSTIC_CONTRACT_DETAILS_SHA256 =
     "b5877d521d77bbc3b25287a9348d871415460c608f987ea59a7b9992076e9df5"
 const LD1B1_DRAW_SELECTION_ALGORITHM =
     :sha256_seeded_rank_without_replacement_v1
+const LD1B1_CANONICAL_EXECUTOR_SOURCE_ROWS = (
+    (role = :batch_controller,
+        path = "scripts/run_local_dependence_calibration_pilot_batch.jl"),
+    (role = :canonical_json,
+        path = "scripts/local_json.jl"),
+    (role = :single_job_worker,
+        path = "scripts/run_local_dependence_calibration_pilot_job.jl"),
+    (role = :attempt_archive,
+        path = "scripts/local_dependence_pilot_attempt_archive.jl"),
+    (role = :interruption_recovery,
+        path = "scripts/local_dependence_pilot_recovery.jl"),
+    (role = :calibration_semantics,
+        path = "scripts/local_dependence_pilot_calibration_semantics.jl"),
+    (role = :batch_harness_generator,
+        path =
+            "scripts/generate_local_dependence_pilot_batch_execution_harness.jl"),
+)
 const LD1B1_TERMINAL_STATUSES = Set((
     :completed,
     :pre_fit_rejected,
@@ -59,6 +111,67 @@ const LD1B1_CATEGORIZED_FAILURE_STATUSES = Set((
     :fit_failed,
     :diagnostic_failed,
 ))
+const LD1B1_TERMINAL_OUTCOME_CODES = (;
+    completed = :completed,
+    pre_fit_rejected = :pre_fit_rejected,
+    generation_failed = :generation_failed,
+    fit_failed = :fit_failed,
+    diagnostic_failed = :diagnostic_failed,
+)
+
+function ld1b1_execution_context(scope::Symbol = :pilot)
+    scope === :pilot && return (;
+        execution_scope = :pilot,
+        root_namespace = :local_dependence_pilot,
+        official_pilot_denominator_eligible = true,
+    )
+    scope === :bounded_smoke && return (;
+        execution_scope = :bounded_smoke,
+        root_namespace = :local_dependence_pilot_bounded_smoke_v1,
+        official_pilot_denominator_eligible = false,
+    )
+    error("unsupported LD1b1 execution scope: $scope")
+end
+
+function ld1b1_validate_execution_context(value;
+        expected_scope::Union{Nothing,Symbol} = nothing)
+    ld1b1_require_only_keys(value, (
+        :execution_scope,
+        :root_namespace,
+        :official_pilot_denominator_eligible,
+    ), "execution context")
+    scope = ld1b1_symbol(value[:execution_scope])
+    expected = ld1b1_execution_context(scope)
+    observed = (;
+        execution_scope = scope,
+        root_namespace = ld1b1_symbol(value[:root_namespace]),
+        official_pilot_denominator_eligible =
+            ld1b1_bool(value[:official_pilot_denominator_eligible]),
+    )
+    observed == expected || error(
+        "execution context differs from the frozen $scope contract")
+    expected_scope === nothing || scope === expected_scope || error(
+        "execution context has scope $scope; expected $expected_scope")
+    return observed
+end
+
+function ld1b1_attempt_identity(attempt::Int, execution_context)
+    attempt >= 1 || error("attempt number must be positive")
+    context = ld1b1_validate_execution_context(execution_context)
+    if context.execution_scope === :bounded_smoke
+        attempt == 1 || error("bounded smoke permits only verification attempt 1")
+        return (;
+            number = 1,
+            role = :verification,
+            counts_toward_primary = false,
+        )
+    end
+    return (;
+        number = attempt,
+        role = attempt == 1 ? :primary : :remediation,
+        counts_toward_primary = attempt == 1,
+    )
+end
 
 function ld1b1_required_evidence_roles(status::Symbol)
     status === :completed && return (
@@ -73,21 +186,90 @@ function ld1b1_required_evidence_roles(status::Symbol)
         :structural_rejection_audit,
         :calibration_row,
     )
-    status === :generation_failed && return (:generation_failure_record,)
+    status === :generation_failed && return (
+        :generation_failure_record,
+        :calibration_row,
+    )
     status === :fit_failed && return (
         :generated_data,
         :fit_failure_record,
+        :calibration_row,
     )
     status === :diagnostic_failed && return (
         :generated_data,
         :fit_result,
         :sampler_diagnostics,
         :diagnostic_failure_record,
+        :calibration_row,
     )
     error("unsupported LD1b1 terminal status: $status")
 end
 
+function ld1b1_failure_semantics()
+    semantics = (;
+        schema =
+            "bayesianmgmfrm.local_dependence_pilot_failure_semantics.v1",
+        terminal_diagnostic_failures = (;
+            sampler_quality_gate = (;
+                terminal_status = :diagnostic_failed,
+                diagnostics_bundle_required = true,
+                sampler_gate_passed = false,
+            ),
+            local_dependence_summary = (;
+                terminal_status = :diagnostic_failed,
+                diagnostics_bundle_required = true,
+                sampler_gate_passed = true,
+            ),
+        ),
+        nonterminal_artifact_failures = (;
+            sampler_diagnostics_unavailable = (;
+                terminal_status = missing,
+                archive_state = :partial_attempt,
+                recovery_action = :review_then_retire_interruption,
+                fabricated_diagnostics_bundle_allowed = false,
+            ),
+            final_calibration_serialization_failed = (;
+                terminal_status = missing,
+                archive_state = :partial_attempt,
+                recovery_action = :review_then_retire_interruption,
+                fabricated_calibration_row_allowed = false,
+            ),
+        ),
+        incomplete_artifact_failure_counts_toward_scientific_denominator =
+            false,
+        incomplete_artifact_failure_may_publish_completed_seal = false,
+    )
+    declared_nonterminal_codes = Set(propertynames(
+        semantics.nonterminal_artifact_failures))
+    canonical_nonterminal_codes = Set(LD1B1CalibrationSemantics.
+        ld1b1_nonterminal_artifact_failure_codes())
+    declared_nonterminal_codes == canonical_nonterminal_codes || error(
+        "LD1b1 nonterminal artifact-failure semantics drifted from calibration replay")
+    return semantics
+end
+
 include(joinpath(@__DIR__, "local_json.jl"))
+include(joinpath(@__DIR__, "local_dependence_pilot_attempt_archive.jl"))
+include(joinpath(@__DIR__, "local_dependence_pilot_recovery.jl"))
+include(joinpath(
+    @__DIR__,
+    "local_dependence_pilot_calibration_semantics.jl",
+))
+const LD1B1AttemptArchive = LocalDependencePilotAttemptArchive
+const LD1B1Recovery = LocalDependencePilotRecovery
+const LD1B1CalibrationSemantics =
+    LocalDependencePilotCalibrationSemantics
+const LD1B1_CALIBRATION_SEMANTIC_IDENTITY_CACHE =
+    Dict{Tuple{String,String},Any}()
+const LD1B1_CALIBRATION_SEMANTIC_IDENTITY_CACHE_LOCK = ReentrantLock()
+const LD1B1_COMPLETED_ATTEMPT_ARCHIVE_SEAL_SUPPORTED = true
+const LD1B1_RETIREMENT_REASON_CODES = Set((
+    :interrupted_after_reservation_before_owner,
+    :interrupted_after_owner_before_launch_receipt,
+    :interrupted_without_result,
+    :interrupted_with_semantically_valid_unsealed_result,
+    :interrupted_with_invalid_unsealed_result,
+))
 
 function ld1b1_batch_usage()
     return """
@@ -103,7 +285,8 @@ function ld1b1_batch_usage()
 
     Options:
       --mode MODE             status (default), dry-run, execute-primary,
-                              execute-retry, or aggregate-only.
+                              execute-retry, bounded-smoke,
+                              retire-interrupted, or aggregate-only.
       --protocol PATH         LD1b1 protocol-preflight artifact.
       --attempt-root PATH     Root for plan-scoped job attempts.
       --runner PATH           Single-job runner used only by execute modes.
@@ -117,9 +300,15 @@ function ld1b1_batch_usage()
       --replication CSV       Select pilot replications.
       --max-jobs N            Limit the selected jobs.
       --all                   Explicitly select every matching job.
-      --attempt N             Retry attempt number; primary is always 1.
+      --attempt N             Retry or retirement attempt number; default 1.
       --retry-of N            Required in retry mode and must identify attempt 1.
       --retry-reason TEXT     Required nonempty remediation reason.
+      --retirement-reason CODE
+                              Frozen interruption reason; required only by
+                              retire-interrupted.
+      --stopped-process-review PATH
+                              Externally prepared stopped-process review;
+                              required only by retire-interrupted.
       --continue-on-error     Continue after a failed subprocess.
 
     There is deliberately no force, seed-override, or sampler-override option.
@@ -138,6 +327,18 @@ function ld1b1_json_native(value)
         return [ld1b1_json_native(element) for element in value]
     end
     return value
+end
+
+function ld1b1_field(value, field::Symbol)
+    if value isa NamedTuple
+        hasproperty(value, field) || throw(KeyError(field))
+        return getproperty(value, field)
+    elseif value isa AbstractDict
+        haskey(value, field) && return value[field]
+        string_field = String(field)
+        haskey(value, string_field) && return value[string_field]
+    end
+    throw(KeyError(field))
 end
 
 function ld1b1_canonical_sha256(value)
@@ -269,6 +470,8 @@ function ld1b1_parse_mode(value::AbstractString)
         "dry-run",
         "execute-primary",
         "execute-retry",
+        "bounded-smoke",
+        "retire-interrupted",
         "aggregate-only",
     ) || error("unsupported --mode: $value")
     return Symbol(replace(normalized, '-' => '_'))
@@ -278,8 +481,10 @@ function ld1b1_parse_args(args)
     mode = :status
     protocol = LD1B1_DEFAULT_PROTOCOL
     attempt_root = LD1B1_DEFAULT_ATTEMPT_ROOT
+    attempt_root_supplied = false
     runner = LD1B1_DEFAULT_JOB_RUNNER
     output = nothing
+    output_supplied = false
     checkpoint = nothing
     write_checkpoint = false
     resume = false
@@ -292,6 +497,8 @@ function ld1b1_parse_args(args)
     attempt = 1
     retry_of = nothing
     retry_reason = nothing
+    retirement_reason = nothing
+    stopped_process_review = nothing
     stop_on_error = true
 
     index = 1
@@ -308,6 +515,7 @@ function ld1b1_parse_args(args)
         elseif arg == "--attempt-root"
             index < length(args) || error("--attempt-root requires a path")
             attempt_root = abspath(args[index + 1])
+            attempt_root_supplied = true
             index += 2
         elseif arg == "--runner"
             index < length(args) || error("--runner requires a path")
@@ -316,6 +524,7 @@ function ld1b1_parse_args(args)
         elseif arg == "--output"
             index < length(args) || error("--output requires a path")
             output = abspath(args[index + 1])
+            output_supplied = true
             index += 2
         elseif arg == "--checkpoint"
             index < length(args) || error("--checkpoint requires a path")
@@ -365,6 +574,19 @@ function ld1b1_parse_args(args)
             retry_reason = strip(String(args[index + 1]))
             isempty(retry_reason) && error("--retry-reason must not be empty")
             index += 2
+        elseif arg == "--retirement-reason"
+            index < length(args) || error(
+                "--retirement-reason requires a value")
+            retirement_reason = Symbol(replace(
+                lowercase(strip(String(args[index + 1]))), '-' => '_'))
+            retirement_reason in LD1B1_RETIREMENT_REASON_CODES || error(
+                "unsupported --retirement-reason: $(args[index + 1])")
+            index += 2
+        elseif arg == "--stopped-process-review"
+            index < length(args) || error(
+                "--stopped-process-review requires a path")
+            stopped_process_review = abspath(args[index + 1])
+            index += 2
         elseif arg == "--continue-on-error"
             stop_on_error = false
             index += 1
@@ -394,11 +616,51 @@ function ld1b1_parse_args(args)
         run_all && error("execute-retry cannot use --all")
         max_jobs === nothing || max_jobs == 1 ||
             error("execute-retry may select only one job")
+    elseif mode === :bounded_smoke
+        selectors_present && error(
+            "bounded-smoke uses only the frozen canonical row 5")
+        run_all && error("bounded-smoke does not accept --all")
+        max_jobs === nothing || error(
+            "bounded-smoke freezes max-jobs at one internally")
+        attempt_root_supplied && error(
+            "bounded-smoke uses its dedicated fixed attempt root")
+        output_supplied && error(
+            "bounded-smoke uses its fixed immutable receipt path")
+        !resume || error("bounded-smoke does not accept --resume")
+        !write_checkpoint || error(
+            "bounded-smoke never writes a pilot checkpoint")
+        stop_on_error || error(
+            "bounded-smoke cannot continue after an error")
+        attempt_root = LD1B1_DEFAULT_BOUNDED_SMOKE_ROOT
+        output = LD1B1_DEFAULT_BOUNDED_SMOKE_RECEIPT
+    elseif mode === :retire_interrupted
+        length(job_ids) == 1 || error(
+            "retire-interrupted requires exactly one --job-id")
+        isempty(row_indexes) && isempty(scenarios) && isempty(replications) ||
+            error("retire-interrupted accepts only --job-id selection")
+        !run_all || error("retire-interrupted cannot use --all")
+        max_jobs === nothing || error(
+            "retire-interrupted cannot use --max-jobs")
+        retry_of === nothing || error(
+            "--retry-of is unavailable in retire-interrupted mode")
+        retry_reason === nothing || error(
+            "--retry-reason is unavailable in retire-interrupted mode")
+        retirement_reason === nothing && error(
+            "retire-interrupted requires --retirement-reason")
+        stopped_process_review === nothing && error(
+            "retire-interrupted requires --stopped-process-review")
+        !resume || error("retire-interrupted cannot use --resume")
+        !write_checkpoint || error(
+            "retire-interrupted cannot use --write-checkpoint")
     else
         attempt == 1 || error("--attempt is available only in execute-retry mode")
         retry_of === nothing || error("--retry-of is available only in execute-retry mode")
         retry_reason === nothing ||
             error("--retry-reason is available only in execute-retry mode")
+        retirement_reason === nothing || error(
+            "--retirement-reason is available only in retire-interrupted mode")
+        stopped_process_review === nothing || error(
+            "--stopped-process-review is available only in retire-interrupted mode")
     end
     if mode === :aggregate_only && selectors_present
         error("aggregate-only mode always audits the complete canonical batch")
@@ -427,6 +689,8 @@ function ld1b1_parse_args(args)
         attempt,
         retry_of,
         retry_reason,
+        retirement_reason,
+        stopped_process_review,
         stop_on_error,
     )
 end
@@ -597,10 +861,105 @@ function ld1b1_require_sha256(value, label::AbstractString)
     return text
 end
 
-function ld1b1_data_signature(value, label::AbstractString)
-    value isa Integer && !(value isa Bool) && value >= 0 ||
-        error("$label is not a nonnegative integer data signature")
-    return string(value)
+# Canonical evidence and archive validation accepts only the lossless decimal
+# string projection. `allow_native_uint64` is reserved for the worker's
+# in-memory projection boundary, before JSON serialization.
+function ld1b1_data_signature(value, label::AbstractString;
+        allow_native_uint64::Bool = false)
+    if value isa AbstractString
+        text = String(value)
+        occursin(r"^(0|[1-9][0-9]*)$", text) || error(
+            "$label is not a canonical decimal data signature")
+        tryparse(UInt64, text) === nothing && error(
+            "$label is outside the UInt64 data-signature range")
+        return text
+    elseif allow_native_uint64 && value isa UInt64
+        return string(value)
+    end
+    error(allow_native_uint64 ?
+        "$label is neither a canonical decimal string nor a native UInt64" :
+        "$label is not a canonical decimal string data signature")
+end
+
+const LD1B1_CANONICAL_FIT_ARTIFACT_DATA_SIGNATURE_PATHS = (
+    ("manifest", "data", "data_signature"),
+    ("manifest", "validation", "data_signature"),
+    ("manifest", "fit", "data_signature"),
+    ("manifest", "fit", "design_identity", "data_signature"),
+    ("manifest", "rating_design", "data_signature"),
+    ("manifest", "rating_design", "anchor_linking", "data_signature"),
+    ("reproducibility", "data_signature"),
+    ("archive_manifest", "manifest", "data_signature"),
+    ("archive_manifest", "reproducibility", "data_signature"),
+)
+
+function ld1b1_collect_data_signature_fields(value,
+        path::Tuple = ())
+    rows = NamedTuple[]
+    if value isa NamedTuple
+        for field in keys(value)
+            field_name = String(field)
+            child_path = (path..., field_name)
+            child = getproperty(value, field)
+            if field_name == "data_signature"
+                push!(rows, (; path = child_path, value = child))
+            else
+                append!(rows,
+                    ld1b1_collect_data_signature_fields(child, child_path))
+            end
+        end
+    elseif value isa AbstractDict
+        for (field, child) in pairs(value)
+            field_name = String(field)
+            child_path = (path..., field_name)
+            if field_name == "data_signature"
+                push!(rows, (; path = child_path, value = child))
+            else
+                append!(rows,
+                    ld1b1_collect_data_signature_fields(child, child_path))
+            end
+        end
+    elseif value isa AbstractArray || value isa Tuple
+        for (index, child) in pairs(value)
+            child_path = (path..., "[$index]")
+            append!(rows,
+                ld1b1_collect_data_signature_fields(child, child_path))
+        end
+    end
+    sort!(rows; by = row -> join(row.path, '.'))
+    return rows
+end
+
+function ld1b1_validate_canonical_fit_artifact_data_signatures(
+        artifact, payload_data_signature)
+    payload_signature = ld1b1_data_signature(
+        payload_data_signature, "fit-result payload data signature")
+    rows = ld1b1_collect_data_signature_fields(artifact)
+    expected = Set(LD1B1_CANONICAL_FIT_ARTIFACT_DATA_SIGNATURE_PATHS)
+    observed = Set(row.path for row in rows)
+    if observed != expected || length(rows) != length(expected)
+        missing_paths = sort!(collect(setdiff(expected, observed));
+            by = path -> join(path, '.'))
+        additional_paths = sort!(collect(setdiff(observed, expected));
+            by = path -> join(path, '.'))
+        error(string(
+            "fit-artifact data-signature path set is noncanonical; missing=",
+            join((join(path, '.') for path in missing_paths), ','),
+            "; additional=",
+            join((join(path, '.') for path in additional_paths), ','),
+        ))
+    end
+    for row in rows
+        signature = ld1b1_data_signature(
+            row.value, "fit-artifact $(join(row.path, '.'))")
+        signature == payload_signature || error(
+            "fit-artifact $(join(row.path, '.')) differs from its evidence payload")
+    end
+    return (;
+        data_signature = payload_signature,
+        paths = LD1B1_CANONICAL_FIT_ARTIFACT_DATA_SIGNATURE_PATHS,
+        n_paths = length(expected),
+    )
 end
 
 function ld1b1_sha256_record_value(record, label::AbstractString)
@@ -678,6 +1037,161 @@ function ld1b1_source_identity(protocol)
     )
 end
 
+function ld1b1_validate_canonical_executor_source_pin(protocol)
+    haskey(protocol, :canonical_executor_source_pin) || error(
+        "protocol does not contain the canonical executor source pin")
+    pin = protocol[:canonical_executor_source_pin]
+    ld1b1_require_only_keys(pin, (
+        :schema,
+        :status,
+        :source_rows,
+        :checks,
+        :evidence_boundary,
+        :pin_id,
+    ), "canonical executor source pin")
+    ld1b1_string(pin[:schema]) ==
+        LD1B1_CANONICAL_EXECUTOR_SOURCE_PIN_SCHEMA || error(
+        "canonical executor source pin has an unexpected schema")
+    ld1b1_symbol(pin[:status]) ===
+        :canonical_executor_source_pin_recorded || error(
+        "canonical executor source pin was not recorded")
+
+    rows = collect(pin[:source_rows])
+    length(rows) == length(LD1B1_CANONICAL_EXECUTOR_SOURCE_ROWS) || error(
+        "canonical executor source pin must contain exactly seven source rows")
+    verified_rows = NamedTuple[]
+    digests = Dict{Symbol,String}()
+    for (index, (row, expected)) in enumerate(zip(
+            rows, LD1B1_CANONICAL_EXECUTOR_SOURCE_ROWS))
+        label = "canonical executor source-pin row $index"
+        ld1b1_require_only_keys(row, (:role, :path, :sha256), label)
+        role = ld1b1_symbol(row[:role])
+        path = ld1b1_string(row[:path])
+        role === expected.role || error(
+            "$label has the wrong role")
+        path == expected.path || error(
+            "$label has the wrong canonical path")
+        !isabspath(path) && normpath(path) == path &&
+            !startswith(path, "..") || error(
+            "$label is not repository relative")
+        absolute = joinpath(LD1B1_ROOT, path)
+        isfile(absolute) && !islink(absolute) || error(
+            "canonical executor source is not a regular file: $path")
+        recorded = ld1b1_require_sha256(
+            row[:sha256], "$label SHA-256")
+        actual = ld1b1_file_sha256(absolute)
+        recorded == actual || error(
+            "canonical executor source pin mismatch: $path")
+        haskey(digests, role) && error(
+            "canonical executor source pin repeats role $role")
+        digests[role] = actual
+        push!(verified_rows, (;
+            role,
+            path,
+            recorded_sha256 = recorded,
+            actual_sha256 = actual,
+            matches = true,
+        ))
+    end
+
+    checks = pin[:checks]
+    check_fields = (
+        :exact_source_count,
+        :canonical_source_order,
+        :unique_roles,
+        :unique_paths,
+        :repository_relative_paths,
+        :regular_files_present,
+        :source_sha256_matches,
+    )
+    ld1b1_require_only_keys(
+        checks, check_fields, "canonical executor source-pin checks")
+    all(field -> ld1b1_bool(checks[field]), check_fields) || error(
+        "canonical executor source pin contains a failed check")
+
+    boundary = pin[:evidence_boundary]
+    boundary_fields = (
+        :authorization_scope,
+        :canonical_executor_source_pinned,
+        :bounded_canonical_smoke_passed,
+        :independent_recovery_readiness_review_passed,
+        :operational_execution_authorized,
+        :response_data_generated,
+        :model_fit_run,
+        :mcmc_run,
+        :pilot_execution_started,
+        :pilot_execution_completed,
+        :scientific_pilot_outcomes,
+        :scientific_pilot_denominator,
+    )
+    ld1b1_require_only_keys(boundary, boundary_fields,
+        "canonical executor source-pin evidence boundary")
+    ld1b1_symbol(boundary[:authorization_scope]) ===
+        :source_identity_only || error(
+        "canonical executor source pin has the wrong authorization scope")
+    ld1b1_bool(boundary[:canonical_executor_source_pinned]) || error(
+        "canonical executor source pin does not claim its source-only boundary")
+    for field in (
+            :bounded_canonical_smoke_passed,
+            :independent_recovery_readiness_review_passed,
+            :operational_execution_authorized,
+            :response_data_generated,
+            :model_fit_run,
+            :mcmc_run,
+            :pilot_execution_started,
+            :pilot_execution_completed,
+        )
+        !ld1b1_bool(boundary[field]) || error(
+            "canonical executor source pin exceeds its evidence boundary: $field")
+    end
+    ld1b1_int(boundary[:scientific_pilot_outcomes]) == 0 || error(
+        "canonical executor source pin cannot contain pilot outcomes")
+    ld1b1_int(boundary[:scientific_pilot_denominator]) ==
+        LD1B1_EXPECTED_JOBS || error(
+        "canonical executor source pin has the wrong pilot denominator")
+
+    pin_id = pin[:pin_id]
+    ld1b1_require_only_keys(pin_id, (
+        :algorithm,
+        :value,
+        :covers,
+        :canonical_format,
+    ), "canonical executor source-pin id")
+    ld1b1_symbol(pin_id[:algorithm]) === :sha256 || error(
+        "canonical executor source pin does not use SHA-256")
+    ld1b1_symbol(pin_id[:covers]) ===
+        :canonical_executor_source_pin_without_pin_id || error(
+        "canonical executor source pin has the wrong hash coverage")
+    ld1b1_symbol(pin_id[:canonical_format]) ===
+        :local_json_sorted_compact || error(
+        "canonical executor source pin has the wrong canonical format")
+    recorded_pin_id = ld1b1_require_sha256(
+        pin_id[:value], "canonical executor source-pin id")
+    pin_material = ld1b1_json_native(pin)
+    delete!(pin_material, "pin_id")
+    recorded_pin_id == ld1b1_canonical_sha256(pin_material) || error(
+        "canonical executor source-pin id does not match its contents")
+
+    execution_source_identity = (;
+        batch_runner_source_sha256 = digests[:batch_controller],
+        local_json_source_sha256 = digests[:canonical_json],
+        job_runner_source_sha256 = digests[:single_job_worker],
+        attempt_archive_source_sha256 = digests[:attempt_archive],
+        local_dependence_pilot_recovery_source_sha256 =
+            digests[:interruption_recovery],
+        local_dependence_pilot_calibration_semantics_source_sha256 =
+            digests[:calibration_semantics],
+    )
+    return (;
+        pin_id = recorded_pin_id,
+        source_rows = Tuple(verified_rows),
+        execution_source_identity,
+        batch_harness_generator_source_sha256 =
+            digests[:batch_harness_generator],
+        valid = true,
+    )
+end
+
 function ld1b1_validate_frozen_pilot_contract(protocol)
     contract = protocol[:pilot_contract]
     ld1b1_canonical_sha256(ld1b1_json_native(contract)) ==
@@ -728,7 +1242,7 @@ function ld1b1_validate_frozen_pilot_contract(protocol)
         target_accept = 0.9,
         max_depth = 10,
         metric = :diagonal,
-        ad_backend = :analytic,
+        ad_backend = :ForwardDiff,
         split_chains = true,
         diagnostic_draws = 250,
         diagnostic_draw_policy = :distinct_without_replacement,
@@ -790,8 +1304,48 @@ function ld1b1_validate_frozen_pilot_contract(protocol)
     return true
 end
 
+function ld1b1_execution_readiness(;
+        protocol_execution_authorized::Bool,
+        job_runner_path::AbstractString,
+        attempt_root::AbstractString,
+        canonical_executor_source_pin_validated::Bool = false,
+        bounded_canonical_smoke_passed::Bool = false,
+        completed_attempt_archive_seal_supported::Bool = false,
+        interrupted_attempt_recovery_review_passed::Bool = false)
+    job_runner_materialized = isfile(job_runner_path) && !islink(job_runner_path)
+    canonical_executor_materialized = job_runner_materialized &&
+        normpath(job_runner_path) == normpath(LD1B1_DEFAULT_JOB_RUNNER)
+    final_worker_source_pinned_and_identities_regenerated =
+        canonical_executor_materialized &&
+        canonical_executor_source_pin_validated
+    canonical_executor_source_pinned =
+        final_worker_source_pinned_and_identities_regenerated
+    canonical_execution_root_bound =
+        normpath(attempt_root) == normpath(LD1B1_DEFAULT_ATTEMPT_ROOT)
+    checks = (;
+        protocol_execution_authorized,
+        canonical_executor_materialized,
+        final_worker_source_pinned_and_identities_regenerated,
+        bounded_canonical_smoke_passed,
+        completed_attempt_archive_seal_supported,
+        interrupted_attempt_recovery_review_passed,
+        canonical_execution_root_bound,
+    )
+    operational_blockers = Tuple(field for field in propertynames(checks)
+        if !getproperty(checks, field))
+    blockers = canonical_executor_source_pinned ? operational_blockers :
+        (operational_blockers..., :canonical_executor_source_pinned)
+    return merge(checks, (;
+        canonical_executor_source_pinned,
+        operational_execution_authorized = isempty(operational_blockers),
+        blockers,
+    ))
+end
+
 function ld1b1_checked_protocol(path::AbstractString;
-        job_runner_path::AbstractString = LD1B1_DEFAULT_JOB_RUNNER)
+        job_runner_path::AbstractString = LD1B1_DEFAULT_JOB_RUNNER,
+        attempt_root::AbstractString = LD1B1_DEFAULT_ATTEMPT_ROOT,
+        consume_bounded_smoke_receipt::Bool = true)
     isfile(path) || error("protocol artifact is missing: $path")
     protocol = JSON3.read(read(path, String))
     ld1b1_string(protocol[:schema]) == LD1B1_PROTOCOL_SCHEMA ||
@@ -811,6 +1365,17 @@ function ld1b1_checked_protocol(path::AbstractString;
     protocol_content_hash = ld1b1_verify_content_hash(
         protocol; label = "LD1b1 protocol")
     protocol_file_sha256 = ld1b1_file_sha256(path)
+    executor_source_pin =
+        ld1b1_validate_canonical_executor_source_pin(protocol)
+    calibration_semantic_context = try
+        LD1B1CalibrationSemantics.
+            ld1b1_load_calibration_semantic_context(path)
+    catch err
+        error(
+            "LD1b1 calibration semantic context validation failed: " *
+            sprint(showerror, err),
+        )
+    end
 
     preflight = protocol[:pilot_preflight]
     jobs = collect(preflight[:job_rows])
@@ -860,6 +1425,7 @@ function ld1b1_checked_protocol(path::AbstractString;
         protocol_content_hash,
         ordered_job_rows_sha256,
         pilot_contract_sha256,
+        canonical_executor_source_pin_id = executor_source_pin.pin_id,
         project_toml_sha256 = source_identity.project_toml_sha256,
         manifest_toml = source_identity.manifest_toml,
         manifest_toml_sha256 = source_identity.manifest_toml_sha256,
@@ -873,24 +1439,159 @@ function ld1b1_checked_protocol(path::AbstractString;
             joinpath(@__DIR__, "local_json.jl")),
         job_runner_source_sha256 = job_runner_materialized ?
             ld1b1_file_sha256(job_runner_path) : missing,
+        attempt_archive_source_sha256 =
+            LD1B1AttemptArchive.ld1b_attempt_archive_source_sha256(),
+        local_dependence_pilot_recovery_source_sha256 =
+            ld1b1_file_sha256(joinpath(
+                @__DIR__,
+                "local_dependence_pilot_recovery.jl",
+            )),
+        local_dependence_pilot_calibration_semantics_source_sha256 =
+            ld1b1_file_sha256(joinpath(
+                @__DIR__,
+                "local_dependence_pilot_calibration_semantics.jl",
+            )),
     )
+    canonical_executor_source_pin_validated =
+        normpath(job_runner_path) == normpath(LD1B1_DEFAULT_JOB_RUNNER) &&
+        ld1b1_canonical_sha256(execution_source_identity) ==
+            ld1b1_canonical_sha256(
+                executor_source_pin.execution_source_identity)
     plan_id = ld1b1_canonical_sha256((;
         protocol_plan_id,
         execution_source_identity,
     ))
+    readiness = ld1b1_execution_readiness(;
+        protocol_execution_authorized = true,
+        job_runner_path,
+        attempt_root,
+        canonical_executor_source_pin_validated,
+        bounded_canonical_smoke_passed = false,
+        completed_attempt_archive_seal_supported =
+            LD1B1_COMPLETED_ATTEMPT_ARCHIVE_SEAL_SUPPORTED,
+        interrupted_attempt_recovery_review_passed = false,
+    )
     identity = merge(protocol_plan_material, (;
         protocol_plan_id,
         execution_source_identity,
         plan_id,
         protocol_schema = LD1B1_PROTOCOL_SCHEMA,
         protocol_scope = ld1b1_symbol(protocol[:scope]),
+        canonical_executor_source_pin_source_rows =
+            executor_source_pin.source_rows,
+        batch_harness_generator_source_sha256 =
+            executor_source_pin.batch_harness_generator_source_sha256,
         n_jobs = length(jobs),
         plan_identity_valid = true,
-        execution_plan_complete = job_runner_materialized,
-        execution_plan_assessment = job_runner_materialized ?
-            :complete : :incomplete_missing_job_runner,
+        readiness,
+        execution_plan_complete = readiness.operational_execution_authorized,
+        execution_plan_assessment = readiness.operational_execution_authorized ?
+            :complete : :incomplete_operational_readiness,
     ))
-    return (; protocol, preflight, jobs, job_ids, identity)
+    checked = (;
+        protocol,
+        preflight,
+        jobs,
+        job_ids,
+        identity,
+        calibration_semantic_context,
+    )
+    smoke_receipt_validation = (;
+        present = false,
+        valid = false,
+        assessment = :not_present,
+        error = missing,
+    )
+    should_consume_smoke = consume_bounded_smoke_receipt &&
+        normpath(job_runner_path) == normpath(LD1B1_DEFAULT_JOB_RUNNER) &&
+        normpath(attempt_root) == normpath(LD1B1_DEFAULT_ATTEMPT_ROOT) &&
+        (ispath(LD1B1_DEFAULT_BOUNDED_SMOKE_RECEIPT) ||
+            islink(LD1B1_DEFAULT_BOUNDED_SMOKE_RECEIPT))
+    if should_consume_smoke
+        smoke_receipt_validation = try
+            validation = ld1b1_validate_bounded_smoke_receipt(
+                LD1B1_DEFAULT_BOUNDED_SMOKE_RECEIPT,
+                checked,
+            )
+            (;
+                present = true,
+                valid = validation.valid,
+                assessment = :passed,
+                error = missing,
+                validation,
+            )
+        catch err
+            (;
+                present = true,
+                valid = false,
+                assessment = :invalid_fail_closed,
+                error = portable_error_message(err),
+            )
+        end
+    end
+    independent_review_validation = (;
+        present = false,
+        valid = false,
+        assessment = :not_present,
+        error = missing,
+    )
+    review_present = ispath(
+        LD1B1_DEFAULT_INDEPENDENT_RECOVERY_READINESS_REVIEW) || islink(
+        LD1B1_DEFAULT_INDEPENDENT_RECOVERY_READINESS_REVIEW)
+    if consume_bounded_smoke_receipt && review_present
+        if smoke_receipt_validation.valid
+            independent_review_validation = try
+                validation =
+                    ld1b1_validate_independent_recovery_readiness_review(
+                        LD1B1_DEFAULT_INDEPENDENT_RECOVERY_READINESS_REVIEW,
+                        checked,
+                        smoke_receipt_validation.validation,
+                    )
+                (;
+                    present = true,
+                    valid = validation.valid,
+                    assessment = :passed,
+                    error = missing,
+                    validation,
+                )
+            catch err
+                (;
+                    present = true,
+                    valid = false,
+                    assessment = :invalid_fail_closed,
+                    error = portable_error_message(err),
+                )
+            end
+        else
+            independent_review_validation = (;
+                present = true,
+                valid = false,
+                assessment = :blocked_by_missing_or_invalid_smoke,
+                error = missing,
+            )
+        end
+    end
+    readiness = ld1b1_execution_readiness(;
+        protocol_execution_authorized = true,
+        job_runner_path,
+        attempt_root,
+        canonical_executor_source_pin_validated,
+        bounded_canonical_smoke_passed = smoke_receipt_validation.valid,
+        completed_attempt_archive_seal_supported =
+            LD1B1_COMPLETED_ATTEMPT_ARCHIVE_SEAL_SUPPORTED,
+        interrupted_attempt_recovery_review_passed =
+            independent_review_validation.valid,
+    )
+    identity = merge(identity, (;
+        readiness,
+        bounded_smoke_receipt_validation = smoke_receipt_validation,
+        independent_recovery_readiness_review_validation =
+            independent_review_validation,
+        execution_plan_complete = readiness.operational_execution_authorized,
+        execution_plan_assessment = readiness.operational_execution_authorized ?
+            :complete : :incomplete_operational_readiness,
+    ))
+    return merge(checked, (; identity))
 end
 
 function ld1b1_job_specs(checked)
@@ -962,6 +1663,187 @@ function ld1b1_job_specs(checked)
     ) for (index, row) in pairs(checked.jobs)]
 end
 
+function ld1b1_bounded_smoke_job(specs)
+    matches = [job for job in specs if
+        job.row_index == LD1B1_BOUNDED_SMOKE_ROW_INDEX]
+    length(matches) == 1 || error(
+        "bounded smoke row is not unique in the canonical plan")
+    job = only(matches)
+    job.job_id == LD1B1_BOUNDED_SMOKE_JOB_ID || error(
+        "bounded smoke row has the wrong canonical job id")
+    job.scenario_id === :null_support_at_minimum || error(
+        "bounded smoke row has the wrong scenario")
+    job.replication == 1 || error(
+        "bounded smoke row has the wrong replication")
+    job.expected_action === :fit_and_score_diagnostic || error(
+        "bounded smoke must exercise the complete fit-and-score path")
+    job.expected_structural_eligibility || error(
+        "bounded smoke job is not structurally eligible")
+    job.resources == (;
+        n_ratings = 240,
+        n_probability_cells = 960,
+        n_truth_cells = 6_376,
+    ) || error("bounded smoke resource caps differ from the frozen row")
+    return job
+end
+
+function ld1b1_bounded_smoke_contract(parent_identity, job;
+        timeout_seconds::Int = LD1B1_BOUNDED_SMOKE_TIMEOUT_SECONDS,
+        termination_grace_seconds::Int =
+            LD1B1_BOUNDED_SMOKE_TERMINATION_GRACE_SECONDS,
+        max_rss_bytes::Int = LD1B1_BOUNDED_SMOKE_MAX_RSS_BYTES,
+        max_archive_bytes::Int = LD1B1_BOUNDED_SMOKE_MAX_ARCHIVE_BYTES)
+    job.row_index == LD1B1_BOUNDED_SMOKE_ROW_INDEX &&
+        job.job_id == LD1B1_BOUNDED_SMOKE_JOB_ID &&
+        job.expected_action === :fit_and_score_diagnostic || error(
+        "bounded smoke contract requires the canonical allowlisted job")
+    timeout_seconds >= 1 || error("bounded smoke timeout must be positive")
+    termination_grace_seconds >= 1 || error(
+        "bounded smoke termination grace must be positive")
+    max_rss_bytes >= 1 || error("bounded smoke RSS cap must be positive")
+    max_archive_bytes >= 1 || error(
+        "bounded smoke archive cap must be positive")
+    return (;
+        schema = "bayesianmgmfrm.local_dependence_pilot_bounded_smoke_contract.v1",
+        scope = :verification_only_nonpilot,
+        execution_context = ld1b1_execution_context(:bounded_smoke),
+        canonical_parent_plan_id = parent_identity.plan_id,
+        canonical_executor_source_pin_id =
+            parent_identity.canonical_executor_source_pin_id,
+        job = merge(ld1b1_result_job_identity(job), (;
+            resources = job.resources,
+        )),
+        sampler_contract = job.sampler_contract,
+        quality_contract = job.quality_contract,
+        bounds = (;
+            max_jobs = 1,
+            timeout_seconds,
+            termination_grace_seconds,
+            max_rss_bytes,
+            max_archive_bytes,
+            maximum_child_processes = 1,
+        ),
+        restrictions = (;
+            attempt = 1,
+            attempt_role = :verification,
+            retries_allowed = false,
+            resume_allowed = false,
+            sampler_overrides_allowed = false,
+            seed_overrides_allowed = false,
+            canonical_pilot_root_writes_allowed = false,
+            official_pilot_denominator_eligible = false,
+            scientific_contribution = 0,
+        ),
+    )
+end
+
+function ld1b1_bounded_smoke_identity(parent_identity, job; kwargs...)
+    contract = ld1b1_bounded_smoke_contract(
+        parent_identity, job; kwargs...)
+    smoke_plan_id = ld1b1_canonical_sha256((;
+        domain = :ld1b1_bounded_canonical_smoke_plan_v1,
+        parent_plan_identity = ld1b1_result_plan_identity(parent_identity),
+        execution_source_identity = parent_identity.execution_source_identity,
+        contract,
+    ))
+    identity = merge(parent_identity, (;
+        plan_id = smoke_plan_id,
+        parent_plan_id = parent_identity.plan_id,
+        bounded_smoke_contract = contract,
+    ))
+    return (; identity, contract, smoke_plan_id)
+end
+
+function ld1b1_bounded_smoke_authorization_path(
+        smoke_root::AbstractString, smoke_plan_id::AbstractString)
+    return joinpath(
+        normpath(smoke_root),
+        String(smoke_plan_id),
+        LD1B1_BOUNDED_SMOKE_AUTHORIZATION_FILENAME,
+    )
+end
+
+function ld1b1_bounded_smoke_execution_root(
+        smoke_root::AbstractString, smoke_plan_id::AbstractString)
+    return joinpath(
+        normpath(smoke_root),
+        String(smoke_plan_id),
+        "attempts",
+        String(smoke_plan_id),
+    )
+end
+
+function ld1b1_bounded_smoke_authorization(parent_identity, smoke_identity,
+        job, smoke_root::AbstractString)
+    smoke_identity.parent_plan_id == parent_identity.plan_id || error(
+        "bounded smoke identity has the wrong parent plan")
+    smoke_identity.bounded_smoke_contract.canonical_parent_plan_id ==
+        parent_identity.plan_id || error(
+        "bounded smoke contract has the wrong parent plan")
+    base = (;
+        schema = LD1B1_BOUNDED_SMOKE_AUTHORIZATION_SCHEMA,
+        object = :local_dependence_pilot_bounded_smoke_authorization,
+        status = :verification_only_authorized,
+        execution_context = ld1b1_execution_context(:bounded_smoke),
+        parent_plan_identity = ld1b1_result_plan_identity(parent_identity),
+        smoke_plan_identity = ld1b1_result_plan_identity(smoke_identity),
+        canonical_executor_source_pin_id =
+            parent_identity.canonical_executor_source_pin_id,
+        execution_source_identity = parent_identity.execution_source_identity,
+        contract = smoke_identity.bounded_smoke_contract,
+        path_contract = (;
+            root_namespace = :local_dependence_pilot_bounded_smoke_v1,
+            smoke_root = ld1b1_record_path(smoke_root),
+            authorization_path = ld1b1_record_path(
+                ld1b1_bounded_smoke_authorization_path(
+                    smoke_root, smoke_identity.plan_id)),
+            execution_root = ld1b1_record_path(
+                ld1b1_bounded_smoke_execution_root(
+                    smoke_root, smoke_identity.plan_id)),
+            official_pilot_root = ld1b1_record_path(
+                LD1B1_DEFAULT_ATTEMPT_ROOT),
+            roots_disjoint = true,
+        ),
+        evidence_boundary = (;
+            response_data_generated = false,
+            model_fit_run = false,
+            mcmc_run = false,
+            bounded_smoke_passed = false,
+            independent_recovery_readiness_review_passed = false,
+            operational_execution_authorized = false,
+            pilot_execution_started = false,
+            pilot_execution_completed = false,
+            scientific_pilot_outcomes = 0,
+            scientific_pilot_denominator = LD1B1_EXPECTED_JOBS,
+        ),
+    )
+    return ld1b1_with_content_hash(base)
+end
+
+function ld1b1_validate_bounded_smoke_authorization(path::AbstractString,
+        parent_identity, smoke_identity, job, smoke_root::AbstractString)
+    expected_path = ld1b1_bounded_smoke_authorization_path(
+        smoke_root, smoke_identity.plan_id)
+    normpath(path) == normpath(expected_path) || error(
+        "bounded smoke authorization path is not canonical")
+    isfile(path) && !islink(path) || error(
+        "bounded smoke authorization is not a regular file")
+    observed = JSON3.read(read(path, String))
+    ld1b1_verify_content_hash(
+        observed; label = "bounded smoke authorization")
+    expected = ld1b1_bounded_smoke_authorization(
+        parent_identity, smoke_identity, job, smoke_root)
+    ld1b1_canonical_sha256(ld1b1_json_native(observed)) ==
+        ld1b1_canonical_sha256(ld1b1_json_native(expected)) || error(
+        "bounded smoke authorization differs from the reconstructed contract")
+    return (;
+        valid = true,
+        file_sha256 = ld1b1_file_sha256(path),
+        content_hash = ld1b1_string(observed[:content_hash][:value]),
+        artifact = observed,
+    )
+end
+
 ld1b1_execution_root(attempt_root::AbstractString, plan_id::AbstractString) =
     joinpath(normpath(attempt_root), String(plan_id))
 
@@ -975,6 +1857,63 @@ end
 ld1b1_result_path(execution_root::AbstractString, job_id::AbstractString,
     attempt::Int) = joinpath(
         ld1b1_attempt_dir(execution_root, job_id, attempt), "job_result.json")
+
+function ld1b1_attempt_reservation_path(execution_root::AbstractString,
+        job_id::AbstractString, attempt::Int)
+    1 <= attempt <= 999 || error("attempt must be in 1:999")
+    return joinpath(
+        normpath(execution_root),
+        "attempt_reservations",
+        String(job_id),
+        string("attempt_", lpad(string(attempt), 3, '0')),
+        LD1B1Recovery.LD1B_ATTEMPT_RESERVATION_FILENAME,
+    )
+end
+
+ld1b1_attempt_reservations_root(execution_root::AbstractString) =
+    joinpath(normpath(execution_root), "attempt_reservations")
+
+ld1b1_attempt_reservation_staging_dir(execution_root::AbstractString) =
+    joinpath(normpath(execution_root), ".attempt_reservation_staging")
+
+ld1b1_receipt_staging_dir(execution_root::AbstractString) =
+    joinpath(normpath(execution_root), ".attempt_receipt_staging")
+
+ld1b1_seal_path(execution_root::AbstractString, job_id::AbstractString,
+    attempt::Int) = joinpath(
+        ld1b1_attempt_dir(execution_root, job_id, attempt),
+        LD1B1AttemptArchive.LD1B_ATTEMPT_SEAL_FILENAME,
+    )
+
+ld1b1_seal_staging_dir(execution_root::AbstractString) =
+    joinpath(normpath(execution_root), ".attempt_seal_staging")
+
+ld1b1_retirement_path(execution_root::AbstractString,
+    job_id::AbstractString, attempt::Int) = joinpath(
+        ld1b1_attempt_dir(execution_root, job_id, attempt),
+        LD1B1AttemptArchive.LD1B_ATTEMPT_RETIREMENT_FILENAME,
+    )
+
+ld1b1_interruption_review_path(execution_root::AbstractString,
+    job_id::AbstractString, attempt::Int) = joinpath(
+        ld1b1_attempt_dir(execution_root, job_id, attempt),
+        LD1B1Recovery.LD1B_INTERRUPTION_REVIEW_FILENAME,
+    )
+
+ld1b1_precommit_interruption_review_path(execution_root::AbstractString,
+    job_id::AbstractString, attempt::Int) = joinpath(
+        ld1b1_attempt_dir(execution_root, job_id, attempt),
+        LD1B1Recovery.LD1B_PRECOMMIT_INTERRUPTION_REVIEW_FILENAME,
+    )
+
+ld1b1_retirement_staging_dir(execution_root::AbstractString) =
+    joinpath(normpath(execution_root), ".attempt_retirement_staging")
+
+ld1b1_recovery_staging_dir(execution_root::AbstractString) =
+    joinpath(normpath(execution_root), ".attempt_recovery_staging")
+
+ld1b1_result_execution_root(path::AbstractString) =
+    dirname(dirname(dirname(dirname(normpath(path)))))
 
 function ld1b1_selected_jobs(specs, options)
     job_filter = Set(options.job_ids)
@@ -1020,6 +1959,38 @@ function ld1b1_expected_job_runner_sha256(identity)
     return ld1b1_require_sha256(value, "single-job runner source identity")
 end
 
+function ld1b1_terminal_outcome_code(status::Symbol)
+    status in LD1B1_TERMINAL_STATUSES ||
+        error("unsupported LD1b1 terminal status: $status")
+    return getproperty(LD1B1_TERMINAL_OUTCOME_CODES, status)
+end
+
+function ld1b1_result_plan_identity(identity)
+    return (;
+        plan_id = identity.plan_id,
+        protocol_plan_id = identity.protocol_plan_id,
+        protocol_file_sha256 = identity.protocol_file_sha256,
+        protocol_content_hash = identity.protocol_content_hash,
+        ordered_job_rows_sha256 = identity.ordered_job_rows_sha256,
+        pilot_contract_sha256 = identity.pilot_contract_sha256,
+    )
+end
+
+function ld1b1_result_job_identity(job)
+    return (;
+        job_id = job.job_id,
+        row_index = job.row_index,
+        scenario_index = job.scenario_index,
+        scenario_id = job.scenario_id,
+        replication = job.replication,
+        expected_action = job.expected_action,
+        seed = job.seed,
+        fit_seed = job.fit_seed,
+        draw_selection_seed = job.draw_selection_seed,
+        posterior_predictive_seed = job.posterior_predictive_seed,
+    )
+end
+
 function ld1b1_evidence_payload_schema(role::Symbol)
     role === :generated_data && return :generated_data_v2
     role === :fit_result && return :fit_result_v2
@@ -1063,13 +2034,29 @@ function ld1b1_expected_evidence_dependencies(status::Symbol, role::Symbol)
         :fit_result,
         :sampler_diagnostics,
     )
-    role === :calibration_row && return status === :pre_fit_rejected ? (
-        :generated_data,
-        :structural_rejection_audit,
-    ) : (
-        :generated_data,
-        :local_dependence_summary,
-    )
+    if role === :calibration_row
+        status === :completed && return (
+            :generated_data,
+            :local_dependence_summary,
+        )
+        status === :pre_fit_rejected && return (
+            :generated_data,
+            :structural_rejection_audit,
+        )
+        status === :generation_failed && return (
+            :generation_failure_record,
+        )
+        status === :fit_failed && return (
+            :generated_data,
+            :fit_failure_record,
+        )
+        status === :diagnostic_failed && return (
+            :generated_data,
+            :fit_result,
+            :sampler_diagnostics,
+            :diagnostic_failure_record,
+        )
+    end
     role === :fit_failure_record && return (:generated_data,)
     role === :diagnostic_failure_record && return (
         :generated_data,
@@ -1280,16 +2267,23 @@ function ld1b1_validate_evidence_payload(payload, role::Symbol, job,
             error("calibration-row evidence has the wrong scenario")
         ld1b1_int(payload[:replication]) == job.replication ||
             error("calibration-row evidence has the wrong replication")
-        expected_status = terminal_status === :pre_fit_rejected ?
-            :pre_fit_rejected : :completed
-        ld1b1_symbol(payload[:status]) === expected_status ||
+        ld1b1_symbol(payload[:status]) === terminal_status ||
             error("calibration-row evidence has the wrong status")
-        ld1b1_data_signature(payload[:data_signature],
-            "calibration-row data signature")
-        for field in (:observed_score_signature_sha256,
-                :design_signature_sha256)
-            ld1b1_require_sha256(payload[field],
-                "calibration-row $(replace(String(field), '_' => '-'))")
+        signature_fields = (:data_signature,
+            :observed_score_signature_sha256, :design_signature_sha256)
+        if terminal_status === :generation_failed
+            for field in signature_fields
+                ismissing(ld1b1_get(payload, field, missing)) || error(
+                    "generation-failure calibration row contains $field")
+            end
+        else
+            ld1b1_data_signature(payload[:data_signature],
+                "calibration-row data signature")
+            for field in (:observed_score_signature_sha256,
+                    :design_signature_sha256)
+                ld1b1_require_sha256(payload[field],
+                    "calibration-row $(replace(String(field), '_' => '-'))")
+            end
         end
         ld1b1_bool(payload[:row_complete]) ||
             error("calibration-row evidence is incomplete")
@@ -1352,7 +2346,8 @@ function ld1b1_evidence_envelope(identity, job, attempt::Int,
         terminal_status::Symbol, role::Symbol, payload;
         member,
         dependencies = (),
-        runner_source_sha256)
+        runner_source_sha256,
+        execution_context = ld1b1_execution_context())
     role in ld1b1_required_evidence_roles(terminal_status) ||
         error("evidence role does not belong to terminal status $terminal_status")
     expected_runner_sha256 = ld1b1_expected_job_runner_sha256(identity)
@@ -1386,10 +2381,15 @@ function ld1b1_evidence_envelope(identity, job, attempt::Int,
     end
     dependency_roles == expected_dependencies ||
         error("job-evidence dependency roles do not match the frozen contract")
+    context = ld1b1_validate_execution_context(execution_context)
+    attempt_identity = ld1b1_attempt_identity(attempt, context)
     artifact = (;
         schema = LD1B1_EVIDENCE_SCHEMA,
         family = :mfrm,
-        scope = :ld1b1_pilot_job_evidence,
+        scope = context.execution_scope === :pilot ?
+            :ld1b1_pilot_job_evidence :
+            :ld1b1_bounded_smoke_job_evidence,
+        execution_context = context,
         plan_identity = (;
             plan_id = identity.plan_id,
             protocol_plan_id = identity.protocol_plan_id,
@@ -1407,8 +2407,10 @@ function ld1b1_evidence_envelope(identity, job, attempt::Int,
             posterior_predictive_seed = job.posterior_predictive_seed,
         ),
         attempt = (;
-            number = attempt,
-            role = attempt == 1 ? :primary : :remediation,
+            number = attempt_identity.number,
+            role = attempt_identity.role,
+            counts_toward_primary =
+                attempt_identity.counts_toward_primary,
         ),
         terminal_status,
         evidence_role = role,
@@ -1422,14 +2424,19 @@ end
 
 function ld1b1_result_envelope(identity, job, attempt::Int,
         terminal_status::Symbol;
+        terminal_outcome_code::Symbol =
+            ld1b1_terminal_outcome_code(terminal_status),
         retry_reason = nothing,
         retry_of_attempt = nothing,
         primary_result_sha256 = nothing,
         file_manifest = (),
         lineage_valid::Bool = true,
-        runner_source_sha256)
+        runner_source_sha256,
+        execution_context = ld1b1_execution_context())
     terminal_status in LD1B1_TERMINAL_STATUSES ||
         error("unsupported LD1b1 terminal status: $terminal_status")
+    terminal_outcome_code === ld1b1_terminal_outcome_code(terminal_status) ||
+        error("terminal outcome code does not match terminal status")
     if job.expected_action === :pre_fit_reject
         terminal_status in (:pre_fit_rejected, :generation_failed) ||
             error("a pre-fit rejection job must reject before fit or record generation failure")
@@ -1437,8 +2444,17 @@ function ld1b1_result_envelope(identity, job, attempt::Int,
         terminal_status === :pre_fit_rejected &&
             error("an eligible fit job cannot terminate as pre_fit_rejected")
     end
-    role = attempt == 1 ? :primary : :remediation
-    if attempt == 1
+    context = ld1b1_validate_execution_context(execution_context)
+    attempt_identity = ld1b1_attempt_identity(attempt, context)
+    role = attempt_identity.role
+    if context.execution_scope === :bounded_smoke
+        retry_reason === nothing || error(
+            "bounded smoke cannot have a retry reason")
+        retry_of_attempt === nothing || error(
+            "bounded smoke cannot identify retry_of")
+        primary_result_sha256 === nothing || error(
+            "bounded smoke cannot identify a primary-result digest")
+    elseif attempt == 1
         retry_reason === nothing || error("primary result cannot have a retry reason")
         retry_of_attempt === nothing || error("primary result cannot identify retry_of")
         primary_result_sha256 === nothing ||
@@ -1458,38 +2474,25 @@ function ld1b1_result_envelope(identity, job, attempt::Int,
     artifact = (;
         schema = LD1B1_JOB_RESULT_SCHEMA,
         family = :mfrm,
-        scope = :ld1b1_pilot_job_result,
-        plan_identity = (;
-            plan_id = identity.plan_id,
-            protocol_plan_id = identity.protocol_plan_id,
-            protocol_file_sha256 = identity.protocol_file_sha256,
-            protocol_content_hash = identity.protocol_content_hash,
-            ordered_job_rows_sha256 = identity.ordered_job_rows_sha256,
-            pilot_contract_sha256 = identity.pilot_contract_sha256,
-        ),
+        scope = context.execution_scope === :pilot ?
+            :ld1b1_pilot_job_result :
+            :ld1b1_bounded_smoke_job_result,
+        execution_context = context,
+        plan_identity = ld1b1_result_plan_identity(identity),
         execution_source_identity = identity.execution_source_identity,
-        job = (;
-            job_id = job.job_id,
-            row_index = job.row_index,
-            scenario_index = job.scenario_index,
-            scenario_id = job.scenario_id,
-            replication = job.replication,
-            expected_action = job.expected_action,
-            seed = job.seed,
-            fit_seed = job.fit_seed,
-            draw_selection_seed = job.draw_selection_seed,
-            posterior_predictive_seed = job.posterior_predictive_seed,
-        ),
+        job = ld1b1_result_job_identity(job),
         attempt = (;
             number = attempt,
             role,
-            counts_toward_primary = attempt == 1,
+            counts_toward_primary =
+                attempt_identity.counts_toward_primary,
             retry_of_attempt,
             retry_reason,
             primary_result_sha256,
             same_seed_contract = true,
         ),
         terminal_status,
+        terminal_outcome_code,
         lineage_valid,
         file_manifest = Tuple(file_manifest),
         primary_outcome_replaced = false,
@@ -1533,12 +2536,17 @@ end
 
 function ld1b1_attempt_inventory_rows(attempt_dir::AbstractString)
     isdir(attempt_dir) || return ()
+    control_files = Set((
+        LD1B1AttemptArchive.LD1B_ATTEMPT_SEAL_FILENAME,
+        LD1B1AttemptArchive.LD1B_ATTEMPT_RETIREMENT_FILENAME,
+    ))
     rows = NamedTuple[]
     for (root, directories, files) in walkdir(attempt_dir;
             follow_symlinks = false)
         for name in sort(directories)
             path = joinpath(root, name)
             relative = relpath(path, attempt_dir)
+            relative in control_files && continue
             if islink(path)
                 push!(rows, (;
                     path = relative,
@@ -1560,6 +2568,7 @@ function ld1b1_attempt_inventory_rows(attempt_dir::AbstractString)
         for name in sort(files)
             path = joinpath(root, name)
             relative = relpath(path, attempt_dir)
+            relative in control_files && continue
             if islink(path)
                 push!(rows, (;
                     path = relative,
@@ -1587,6 +2596,34 @@ end
 function ld1b1_attempt_inventory_sha256(attempt_dir::AbstractString)
     return ld1b1_canonical_sha256(
         ld1b1_attempt_inventory_rows(attempt_dir))
+end
+
+function ld1b1_observed_helper_inventory_sha256(
+        attempt_dir::AbstractString)
+    try
+        return LD1B1AttemptArchive.ld1b_attempt_inventory_sha256(
+            attempt_dir)
+    catch
+        return missing
+    end
+end
+
+function ld1b1_observed_semantic_inventory_sha256(
+        attempt_dir::AbstractString)
+    try
+        return ld1b1_attempt_inventory_sha256(attempt_dir)
+    catch
+        return missing
+    end
+end
+
+function ld1b1_observed_path_sha256(path::AbstractString)
+    (ispath(path) || islink(path)) || return missing
+    islink(path) &&
+        return bytes2hex(sha256(codeunits(readlink(path))))
+    isfile(path) && return ld1b1_file_sha256(path)
+    return ld1b1_canonical_sha256(
+        ld1b1_unexpected_inventory_rows(path))
 end
 
 function ld1b1_expected_manifest_directories(paths)
@@ -1617,8 +2654,33 @@ function ld1b1_payload_member_sha256(payload, role::Symbol)
         "job-evidence payload source-member digest")
 end
 
-function ld1b1_validate_source_member_json(bytes, role::Symbol, job, payload)
-    member = JSON3.read(String(bytes))
+function ld1b1_observed_score_signature_from_simulation_source(member)
+    table = member[:table]
+    fields = (:person, :rater, :item, :response_id, :testlet_id, :score)
+    lengths = Tuple(length(table[field]) for field in fields)
+    length(unique(lengths)) == 1 || error(
+        "simulation table cannot define an observed-score signature with unequal column lengths")
+    records = Tuple[]
+    for row in 1:first(lengths)
+        push!(records, (
+            repr(table[:person][row]),
+            repr(table[:rater][row]),
+            repr(table[:item][row]),
+            repr(table[:response_id][row]),
+            repr(table[:testlet_id][row]),
+            ld1b1_int(table[:score][row]),
+        ))
+    end
+    sort!(records; by = repr)
+    return bytes2hex(sha256(codeunits(repr(Tuple(records)))))
+end
+
+function ld1b1_validate_source_member_json(bytes, role::Symbol, job, payload,
+        terminal_status::Symbol)
+    # `String(::Vector{UInt8})` may take ownership of and empty the vector.
+    # Validation must not consume bytes that the worker still has to hash and
+    # publish in its CREATE_NEW transaction.
+    member = JSON3.read(String(copy(bytes)))
     if role === :generated_data
         ld1b1_require_exact_keys(member, (
             :schema, :object, :status, :profile, :grid_id, :scenario_id,
@@ -1672,11 +2734,18 @@ function ld1b1_validate_source_member_json(bytes, role::Symbol, job, payload)
             !ld1b1_bool(
                 member[:observed_data_mechanism_interpretation_eligible]) ||
             error("simulation source member exceeds its evidence boundary")
-        ld1b1_bool(member[:summary][:passed]) ||
+        summary = member[:summary]
+        ld1b1_require_exact_keys(summary, (
+            :passed, :n_ratings, :n_persons, :n_raters, :n_items,
+            :n_testlets, :intended_categories, :realized_categories,
+            :category_support_complete, :requested_targets_eligible,
+            :future_fit_action,
+        ), "simulation summary")
+        ld1b1_bool(summary[:passed]) ||
             error("simulation source member did not pass its checks")
-        ld1b1_int(member[:summary][:n_ratings]) == job.resources.n_ratings ||
+        ld1b1_int(summary[:n_ratings]) == job.resources.n_ratings ||
             error("simulation source member summary has the wrong rating count")
-        ld1b1_bool(member[:summary][:requested_targets_eligible]) ==
+        ld1b1_bool(summary[:requested_targets_eligible]) ==
             job.expected_structural_eligibility ||
             error("simulation summary has the wrong structural eligibility")
         ld1b1_require_keys(member[:generator_contract],
@@ -1795,6 +2864,20 @@ function ld1b1_validate_source_member_json(bytes, role::Symbol, job, payload)
         ld1b1_symbol(member[:design_support][:future_fit_action]) ===
             expected_future_action ||
             error("simulation future-fit action differs from eligibility")
+        ld1b1_symbol(summary[:future_fit_action]) === expected_future_action ||
+            error("simulation summary future-fit action differs from eligibility")
+        ld1b1_bool(summary[:category_support_complete]) || error(
+            "pilot simulation source member lacks complete category support")
+        ld1b1_int(summary[:n_persons]) == length(truth[:person_labels]) &&
+            ld1b1_int(summary[:n_testlets]) ==
+                length(truth[:testlet_labels]) &&
+            ld1b1_int(summary[:n_items]) == length(truth[:item_labels]) &&
+            ld1b1_int(summary[:n_raters]) == length(truth[:rater_labels]) &&
+            ld1b1_int(summary[:intended_categories]) ==
+                length(truth[:intended_category_levels]) &&
+            ld1b1_int(summary[:realized_categories]) ==
+                length(truth[:realized_category_levels]) || error(
+            "simulation summary dimensions differ from known truth")
         ld1b1_require_keys(member[:checks], (
             :probabilities_finite, :probabilities_nonnegative,
             :score_support_valid, :all_rows_observed,
@@ -1864,6 +2947,8 @@ function ld1b1_validate_source_member_json(bytes, role::Symbol, job, payload)
             "bayesianmgmfrm.fit_artifact.v1" &&
             ld1b1_symbol(member[:object]) === :fit_artifact ||
             error("fit-artifact source member has the wrong schema")
+        ld1b1_validate_canonical_fit_artifact_data_signatures(
+            member, payload[:data_signature])
         content_hash = member[:content_hash]
         ld1b1_require_exact_keys(content_hash, (
             :algorithm, :value, :scope, :canonicalization,
@@ -2227,7 +3312,8 @@ function ld1b1_validate_source_member_json(bytes, role::Symbol, job, payload)
             ld1b1_symbol(member[:object]) === :local_dependence_calibration_row ||
             error("calibration-row source member has the wrong schema or status")
         expected_status = ld1b1_symbol(payload[:status])
-        expected_status in (:completed, :pre_fit_rejected) &&
+        expected_status in LD1B1_TERMINAL_STATUSES &&
+            expected_status === terminal_status &&
             ld1b1_symbol(member[:status]) === expected_status ||
             error("calibration-row source member has the wrong status")
         ld1b1_int(member[:row_index]) == job.row_index &&
@@ -2256,8 +3342,16 @@ function ld1b1_validate_source_member_json(bytes, role::Symbol, job, payload)
             ismissing(ld1b1_get(member, field, missing)) &&
                 error("calibration-row source member lacks $field")
         end
-        ismissing(ld1b1_get(member, :failure_code, missing)) ||
-            error("calibration row contains a failure code")
+        failure_code = ld1b1_get(member, :failure_code, missing)
+        if expected_status in LD1B1_CATEGORIZED_FAILURE_STATUSES
+            ismissing(failure_code) &&
+                error("failed calibration row lacks a failure code")
+            isempty(strip(ld1b1_string(failure_code))) &&
+                error("failed calibration row has an empty failure code")
+        else
+            ismissing(failure_code) ||
+                error("non-failed calibration row contains a failure code")
+        end
         execution_seeds = member[:execution_seeds]
         ld1b1_require_exact_keys(execution_seeds,
             (:fit, :draw_selection, :posterior_predictive, :contract),
@@ -2273,39 +3367,46 @@ function ld1b1_validate_source_member_json(bytes, role::Symbol, job, payload)
             ld1b1_canonical_sha256(ld1b1_json_native(
                 member[:contract][:seed_contract])) ||
             error("calibration-row execution seed contract is inconsistent")
-        simulation_provenance = member[:simulation_provenance]
-        ismissing(ld1b1_get(member, :simulation_provenance, missing)) &&
-            error("calibration row lacks simulation provenance")
-        ld1b1_require_keys(simulation_provenance, (
-            :status, :data_signature, :score_signature,
-            :observed_score_signature, :testlet_design_signature,
-            :n_ratings, :planning_shape, :observed_shape,
-            :requested_targets_eligible, :future_fit_action,
-        ), "calibration-row simulation provenance")
-        ld1b1_symbol(simulation_provenance[:status]) ===
-            :known_truth_generated &&
-            ld1b1_int(simulation_provenance[:n_ratings]) ==
-                job.resources.n_ratings &&
-            ld1b1_bool(simulation_provenance[
-                :requested_targets_eligible]) ==
-                job.expected_structural_eligibility ||
-            error("calibration-row simulation provenance is inconsistent")
-        data_signature = ld1b1_data_signature(
-            simulation_provenance[:data_signature],
-            "calibration-row simulation data signature")
-        data_signature == ld1b1_data_signature(payload[:data_signature],
-            "calibration-row payload data signature") ||
-            error("calibration-row data signature differs from its payload")
-        ld1b1_sha256_record_value(
-            simulation_provenance[:observed_score_signature],
-            "calibration-row observed-score signature") ==
-            ld1b1_string(payload[:observed_score_signature_sha256]) ||
-            error("calibration-row score signature differs from its payload")
-        ld1b1_sha256_record_value(
-            simulation_provenance[:testlet_design_signature],
-            "calibration-row design signature") ==
-            ld1b1_string(payload[:design_signature_sha256]) ||
-            error("calibration-row design signature differs from its payload")
+        simulation_provenance = ld1b1_get(
+            member, :simulation_provenance, missing)
+        data_signature = missing
+        if expected_status === :generation_failed
+            ismissing(simulation_provenance) || error(
+                "generation-failure calibration row contains simulation provenance")
+        else
+            ismissing(simulation_provenance) &&
+                error("calibration row lacks simulation provenance")
+            ld1b1_require_exact_keys(simulation_provenance, (
+                :status, :data_signature, :score_signature,
+                :observed_score_signature, :testlet_design_signature,
+                :n_ratings, :planning_shape, :observed_shape,
+                :requested_targets_eligible, :future_fit_action,
+            ), "calibration-row simulation provenance")
+            ld1b1_symbol(simulation_provenance[:status]) ===
+                :known_truth_generated &&
+                ld1b1_int(simulation_provenance[:n_ratings]) ==
+                    job.resources.n_ratings &&
+                ld1b1_bool(simulation_provenance[
+                    :requested_targets_eligible]) ==
+                    job.expected_structural_eligibility ||
+                error("calibration-row simulation provenance is inconsistent")
+            data_signature = ld1b1_data_signature(
+                simulation_provenance[:data_signature],
+                "calibration-row simulation data signature")
+            data_signature == ld1b1_data_signature(payload[:data_signature],
+                "calibration-row payload data signature") ||
+                error("calibration-row data signature differs from its payload")
+            ld1b1_sha256_record_value(
+                simulation_provenance[:observed_score_signature],
+                "calibration-row observed-score signature") ==
+                ld1b1_string(payload[:observed_score_signature_sha256]) ||
+                error("calibration-row score signature differs from its payload")
+            ld1b1_sha256_record_value(
+                simulation_provenance[:testlet_design_signature],
+                "calibration-row design signature") ==
+                ld1b1_string(payload[:design_signature_sha256]) ||
+                error("calibration-row design signature differs from its payload")
+        end
         diagnostic_provenance = ld1b1_get(
             member, :diagnostic_provenance, missing)
         if expected_status === :completed
@@ -2332,11 +3433,11 @@ function ld1b1_validate_source_member_json(bytes, role::Symbol, job, payload)
                 error("calibration-row diagnostic signatures are inconsistent")
         else
             ismissing(diagnostic_provenance) ||
-                error("pre-fit rejection contains diagnostic provenance")
+                error("non-completed calibration row contains diagnostic provenance")
             isempty(member[:pair_evidence]) &&
                 isempty(member[:family_evidence]) &&
                 ismissing(ld1b1_get(member, :global_evidence, missing)) ||
-                error("pre-fit rejection contains diagnostic evidence")
+                error("non-completed calibration row contains diagnostic evidence")
         end
         ld1b1_int(member[:n_pair_evidence]) == length(member[:pair_evidence]) ||
             error("calibration-row pair evidence count is inconsistent")
@@ -2413,6 +3514,25 @@ end
 
 function ld1b1_validate_cross_evidence_lineage(evidence_by_role,
         terminal_status::Symbol, job)
+    if terminal_status in LD1B1_CATEGORIZED_FAILURE_STATUSES
+        failure_role = terminal_status === :generation_failed ?
+            :generation_failure_record : terminal_status === :fit_failed ?
+                :fit_failure_record : :diagnostic_failure_record
+        haskey(evidence_by_role, failure_role) || error(
+            "failed calibration result lacks its failure record")
+        haskey(evidence_by_role, :calibration_row) || error(
+            "failed calibration result lacks its calibration row")
+        calibration = evidence_by_role[:calibration_row]
+        ld1b1_symbol(calibration.payload[:status]) === terminal_status &&
+            ld1b1_symbol(calibration.source_value[:status]) ===
+                terminal_status ||
+            error("failed calibration row has the wrong terminal status")
+        ld1b1_symbol(calibration.source_value[:failure_code]) ===
+            ld1b1_symbol(evidence_by_role[
+                failure_role].payload[:error_class]) || error(
+            "calibration failure code is not linked to its failure record")
+    end
+
     haskey(evidence_by_role, :generated_data) || return true
     generated = evidence_by_role[:generated_data]
     generated_payload = generated.payload
@@ -2441,14 +3561,16 @@ function ld1b1_validate_cross_evidence_lineage(evidence_by_role,
             ld1b1_data_signature(sampler_payload[:data_signature],
                 "sampler lineage data signature") == data_signature ||
                 error("sampler diagnostics are not linked to the generated dataset")
-            fit_stats = fit.source_value[:sampler_stats]
+            fit_stats = ld1b1_field(fit.source_value, :sampler_stats)
             sampler_source = sampler.source_value
-            Tuple(ld1b1_int(row[:chain]) for row in fit_stats) ==
-                Tuple(ld1b1_int(value) for value in
-                    sampler_source[:chain_ids]) &&
-                Tuple(ld1b1_int(row[:iteration]) for row in fit_stats) ==
-                    Tuple(ld1b1_int(value) for value in
-                        sampler_source[:iterations]) ||
+            sampler_chain_ids = ld1b1_field(sampler_source, :chain_ids)
+            sampler_iterations = ld1b1_field(sampler_source, :iterations)
+            Tuple(ld1b1_int(ld1b1_field(row, :chain))
+                for row in fit_stats) ==
+                Tuple(ld1b1_int(value) for value in sampler_chain_ids) &&
+                Tuple(ld1b1_int(ld1b1_field(row, :iteration))
+                    for row in fit_stats) ==
+                Tuple(ld1b1_int(value) for value in sampler_iterations) ||
                 error("sampler draw identities do not match the fit artifact")
         end
     end
@@ -2470,15 +3592,19 @@ function ld1b1_validate_cross_evidence_lineage(evidence_by_role,
         sampler_source =
             evidence_by_role[:sampler_diagnostics].source_value
         local_source = local_evidence.source_value
-        draw_indices = Tuple(
-            ld1b1_int(value) for value in local_source[:draw_indices])
+        draw_indices = Tuple(ld1b1_int(value) for value in
+            ld1b1_field(local_source, :draw_indices))
+        sampler_chain_ids = ld1b1_field(sampler_source, :chain_ids)
+        sampler_iterations = ld1b1_field(sampler_source, :iterations)
         selected_chain_ids = Tuple(ld1b1_int(
-            sampler_source[:chain_ids][index]) for index in draw_indices)
+            sampler_chain_ids[index]) for index in draw_indices)
         selected_iterations = Tuple(ld1b1_int(
-            sampler_source[:iterations][index]) for index in draw_indices)
-        Tuple(ld1b1_int(value) for value in local_source[:chain_ids]) ==
+            sampler_iterations[index]) for index in draw_indices)
+        Tuple(ld1b1_int(value) for value in
+                ld1b1_field(local_source, :chain_ids)) ==
             selected_chain_ids &&
-            Tuple(ld1b1_int(value) for value in local_source[:iterations]) ==
+            Tuple(ld1b1_int(value) for value in
+                ld1b1_field(local_source, :iterations)) ==
                 selected_iterations ||
             error("local-dependence draw identities do not match sampler draws")
     end
@@ -2527,6 +3653,58 @@ function ld1b1_validate_cross_evidence_lineage(evidence_by_role,
             ld1b1_string(generated_source[:truth][
                 :generating_mechanism]) ||
             error("calibration row is not linked to simulation truth")
+        simulation_provenance = calibration_source[:simulation_provenance]
+        ld1b1_symbol(simulation_provenance[:status]) ===
+            ld1b1_symbol(generated_source[:status]) ||
+            error("calibration simulation status is not linked to its source")
+        ld1b1_string(simulation_provenance[:score_signature]) ==
+            ld1b1_string(generated_source[:score_signature]) ||
+            error("calibration score signature is not linked to its source")
+        ld1b1_sha256_record_value(
+            simulation_provenance[:observed_score_signature],
+            "calibration observed-score signature",
+        ) == ld1b1_observed_score_signature_from_simulation_source(
+            generated_source) || error(
+            "calibration observed-score signature is not linked to its source")
+        ld1b1_sha256_record_value(
+            simulation_provenance[:testlet_design_signature],
+            "calibration simulation design signature",
+        ) == ld1b1_sha256_record_value(
+            generated_source[:testlet_design_signature],
+            "generated simulation design signature",
+        ) || error(
+            "calibration design signature is not linked to its source")
+        ld1b1_canonical_sha256(ld1b1_json_native(
+            simulation_provenance[:planning_shape])) ==
+            ld1b1_canonical_sha256(ld1b1_json_native(
+                calibration_source[:planning_shape])) || error(
+            "calibration simulation shape is not linked to its plan")
+        generated_summary = generated_source[:summary]
+        ld1b1_int(simulation_provenance[:n_ratings]) ==
+            ld1b1_int(generated_summary[:n_ratings]) &&
+            ld1b1_bool(simulation_provenance[
+                :requested_targets_eligible]) ==
+                ld1b1_bool(generated_source[:design_support][
+                    :requested_targets_eligible]) &&
+            ld1b1_symbol(simulation_provenance[:future_fit_action]) ===
+                ld1b1_symbol(generated_source[:design_support][
+                    :future_fit_action]) || error(
+            "calibration simulation provenance differs from its source")
+        observed_shape = simulation_provenance[:observed_shape]
+        ld1b1_require_exact_keys(observed_shape, (
+            :n_persons, :n_testlets, :n_items, :n_raters, :n_categories,
+        ), "calibration observed simulation shape")
+        for (field, summary_field) in (
+                (:n_persons, :n_persons),
+                (:n_testlets, :n_testlets),
+                (:n_items, :n_items),
+                (:n_raters, :n_raters),
+                (:n_categories, :realized_categories),
+            )
+            ld1b1_int(observed_shape[field]) ==
+                ld1b1_int(generated_summary[summary_field]) || error(
+                "calibration observed shape is not linked to simulation field $field")
+        end
         if terminal_status === :completed
             local_payload =
                 evidence_by_role[:local_dependence_summary].payload
@@ -2542,7 +3720,7 @@ function ld1b1_validate_cross_evidence_lineage(evidence_by_role,
             for field in (:draw_selection_seed, :posterior_predictive_seed)
                 calibration_field = field === :draw_selection_seed ?
                     :draw_selection : :posterior_predictive
-                ld1b1_int(local_source[field]) ==
+                ld1b1_int(ld1b1_field(local_source, field)) ==
                     ld1b1_int(execution_seeds[calibration_field]) ||
                     error("calibration row is not linked to local seed $field")
             end
@@ -2550,7 +3728,7 @@ function ld1b1_validate_cross_evidence_lineage(evidence_by_role,
             ld1b1_string(calibration_payload[:design_signature_sha256]) ==
                 ld1b1_string(generated_payload[
                     :testlet_design_signature_sha256]) ||
-                error("pre-fit calibration row is not linked to the generated design")
+                error("calibration row is not linked to the generated design")
         end
     end
 
@@ -2569,10 +3747,206 @@ function ld1b1_validate_cross_evidence_lineage(evidence_by_role,
     return true
 end
 
+function ld1b1_validate_calibration_semantics(
+        calibration_semantic_context, semantic_inputs, job,
+        terminal_status::Symbol)
+    calibration_semantic_context === nothing && error(
+        "calibration validation lacks the canonical semantic context")
+    semantic_inputs === nothing && error(
+        "calibration validation lacks loaded semantic source members")
+    try
+        if terminal_status === :completed
+            link = LD1B1CalibrationSemantics.
+                ld1b1_validate_completed_diagnostic_calibration_link(
+                    semantic_inputs.calibration_member,
+                    semantic_inputs.local_dependence_member,
+                )
+            link.valid || error(
+                "completed diagnostic-to-calibration evidence link did not pass")
+        end
+        validation = LD1B1CalibrationSemantics.
+            ld1b1_validate_calibration_member(
+                calibration_semantic_context,
+                job.row_index,
+                semantic_inputs.calibration_member;
+                expected_status = terminal_status,
+                failure_record = semantic_inputs.failure_record,
+            )
+        validation.valid || error(
+            "canonical calibration semantic replay did not pass")
+    catch err
+        error(
+            "calibration semantic replay failed for $terminal_status: " *
+            sprint(showerror, err),
+        )
+    end
+    return true
+end
+
+function ld1b1_canonical_calibration_semantic_identity(
+        protocol_path::AbstractString, expected_file_sha256::AbstractString)
+    path = normpath(abspath(protocol_path))
+    expected_sha256 = String(expected_file_sha256)
+    ld1b1_file_sha256(path) == expected_sha256 || error(
+        "calibration semantic context has the wrong protocol file identity")
+    key = (path, expected_sha256)
+    return lock(LD1B1_CALIBRATION_SEMANTIC_IDENTITY_CACHE_LOCK) do
+        get!(LD1B1_CALIBRATION_SEMANTIC_IDENTITY_CACHE, key) do
+            canonical = try
+                LD1B1CalibrationSemantics.
+                    ld1b1_load_calibration_semantic_context(path)
+            catch err
+                error(
+                    "canonical calibration semantic context reconstruction failed: " *
+                    sprint(showerror, err),
+                )
+            end
+            return (;
+                pilot_contract = canonical.pilot_contract,
+                calibration_contract = canonical.calibration_contract,
+                plan_rows = canonical.plan_rows,
+                public_preflight = canonical.public_preflight,
+                pilot_contract_sha256 = ld1b1_canonical_sha256(
+                    ld1b1_json_native(canonical.pilot_contract)),
+                calibration_contract_sha256 = ld1b1_canonical_sha256(
+                    ld1b1_json_native(canonical.calibration_contract)),
+                plan_rows_sha256 = ld1b1_canonical_sha256(
+                    ld1b1_json_native(canonical.plan_rows)),
+                public_preflight_sha256 = ld1b1_canonical_sha256(
+                    ld1b1_json_native(canonical.public_preflight)),
+                protocol_content_hash =
+                    String(canonical.protocol_content_hash),
+                public_contract_sha256 =
+                    String(canonical.public_contract_sha256),
+                artifact_contract_sha256 =
+                    String(canonical.artifact_contract_sha256),
+                public_job_rows_sha256 =
+                    String(canonical.public_job_rows_sha256),
+                artifact_job_rows_sha256 =
+                    String(canonical.artifact_job_rows_sha256),
+            )
+        end
+    end
+end
+
+function ld1b1_validate_calibration_semantic_context_identity(
+        calibration_semantic_context, identity, job)
+    calibration_semantic_context === nothing && error(
+        "calibration semantic context is missing")
+    for field in (
+            :protocol_path,
+            :protocol_content_hash,
+            :pilot_contract,
+            :calibration_contract,
+            :plan_rows,
+            :public_preflight,
+            :public_contract_sha256,
+            :artifact_contract_sha256,
+            :public_job_rows_sha256,
+            :artifact_job_rows_sha256,
+        )
+        hasproperty(calibration_semantic_context, field) || error(
+            "calibration semantic context lacks identity field $field")
+    end
+    ld1b1_string(calibration_semantic_context.protocol_content_hash) ==
+        String(identity.protocol_content_hash) || error(
+        "calibration semantic context has the wrong protocol content hash")
+    ld1b1_string(calibration_semantic_context.public_contract_sha256) ==
+        String(identity.pilot_contract_sha256) || error(
+        "calibration semantic context has the wrong pilot-contract hash")
+    ld1b1_string(calibration_semantic_context.public_job_rows_sha256) ==
+        String(identity.ordered_job_rows_sha256) || error(
+        "calibration semantic context has the wrong ordered-job hash")
+    canonical_identity = ld1b1_canonical_calibration_semantic_identity(
+        calibration_semantic_context.protocol_path,
+        String(identity.protocol_file_sha256),
+    )
+    ld1b1_string(calibration_semantic_context.protocol_content_hash) ==
+        canonical_identity.protocol_content_hash || error(
+        "calibration semantic context differs from the canonical protocol hash")
+    ld1b1_string(calibration_semantic_context.public_contract_sha256) ==
+        canonical_identity.public_contract_sha256 || error(
+        "calibration semantic context differs from the canonical public contract hash")
+    ld1b1_string(calibration_semantic_context.artifact_contract_sha256) ==
+        canonical_identity.artifact_contract_sha256 || error(
+        "calibration semantic context differs from the canonical artifact contract hash")
+    ld1b1_string(calibration_semantic_context.public_job_rows_sha256) ==
+        canonical_identity.public_job_rows_sha256 || error(
+        "calibration semantic context differs from the canonical public job-row hash")
+    ld1b1_string(calibration_semantic_context.artifact_job_rows_sha256) ==
+        canonical_identity.artifact_job_rows_sha256 || error(
+        "calibration semantic context differs from the canonical artifact job-row hash")
+    isequal(calibration_semantic_context.pilot_contract,
+        canonical_identity.pilot_contract) || error(
+        "calibration semantic context pilot contract is not canonical")
+    isequal(calibration_semantic_context.calibration_contract,
+        canonical_identity.calibration_contract) || error(
+        "calibration semantic context has the wrong calibration contract")
+    isequal(calibration_semantic_context.plan_rows,
+        canonical_identity.plan_rows) || error(
+        "calibration semantic context plan rows are not canonical")
+    isequal(calibration_semantic_context.public_preflight,
+        canonical_identity.public_preflight) || error(
+        "calibration semantic context preflight is not canonical")
+    canonical_identity.pilot_contract_sha256 ==
+        String(identity.pilot_contract_sha256) || error(
+        "canonical calibration semantic context has the wrong pilot-contract hash")
+    canonical_identity.calibration_contract_sha256 ==
+        String(job.quality_contract.calibration_contract_sha256) || error(
+        "canonical calibration semantic context has the wrong calibration contract")
+
+    1 <= job.row_index <= length(calibration_semantic_context.plan_rows) ||
+        error("calibration semantic context lacks the requested plan row")
+    length(calibration_semantic_context.plan_rows) == LD1B1_EXPECTED_JOBS ||
+        error("calibration semantic context has the wrong plan-row count")
+    length(calibration_semantic_context.public_preflight.job_rows) ==
+        LD1B1_EXPECTED_JOBS || error(
+        "calibration semantic context has the wrong public job-row count")
+    plan = calibration_semantic_context.plan_rows[job.row_index]
+    compact = calibration_semantic_context.public_preflight.job_rows[
+        job.row_index]
+    for field in (
+            :row_index,
+            :scenario_index,
+            :scenario_id,
+            :matched_set_id,
+            :replication,
+            :phase,
+            :seed,
+        )
+        expected = getproperty(job, field)
+        plan_value = getproperty(plan, field)
+        compact_value = getproperty(compact, field)
+        isequal(plan_value, expected) && isequal(compact_value, expected) ||
+            error("calibration semantic context differs from job field $field")
+    end
+    plan.expected_requested_targets_eligible ===
+        job.expected_structural_eligibility &&
+        compact.expected_structural_eligibility ===
+            job.expected_structural_eligibility &&
+        compact.expected_action === job.expected_action || error(
+        "calibration semantic context differs from the job routing")
+    for field in (
+            :fit_seed,
+            :draw_selection_seed,
+            :posterior_predictive_seed,
+        )
+        getproperty(compact, field) == getproperty(job, field) || error(
+            "calibration semantic context differs from execution seed $field")
+    end
+    for field in (:n_ratings, :n_probability_cells, :n_truth_cells)
+        getproperty(compact.resources, field) ==
+            getproperty(job.resources, field) || error(
+            "calibration semantic context differs from job resource $field")
+    end
+    return true
+end
+
 function ld1b1_validate_evidence_file(path::AbstractString, identity, job,
         attempt_number::Int, terminal_status::Symbol, role::Symbol,
         attempt_dir::AbstractString, expected_bytes::Int,
-        expected_sha256::AbstractString)
+        expected_sha256::AbstractString;
+        execution_context = ld1b1_execution_context())
     snapshot = ld1b1_regular_file_snapshot(
         path, attempt_dir, "job-evidence envelope")
     snapshot.nbytes == expected_bytes ||
@@ -2584,6 +3958,7 @@ function ld1b1_validate_evidence_file(path::AbstractString, identity, job,
         :schema,
         :family,
         :scope,
+        :execution_context,
         :plan_identity,
         :execution_source_identity,
         :job,
@@ -2600,7 +3975,17 @@ function ld1b1_validate_evidence_file(path::AbstractString, identity, job,
         error("unexpected job-evidence schema")
     ld1b1_string(evidence[:family]) == "mfrm" ||
         error("unexpected job-evidence family")
-    ld1b1_string(evidence[:scope]) == "ld1b1_pilot_job_evidence" ||
+    expected_context = ld1b1_validate_execution_context(execution_context)
+    observed_context = ld1b1_validate_execution_context(
+        evidence[:execution_context];
+        expected_scope = expected_context.execution_scope,
+    )
+    observed_context == expected_context || error(
+        "job-evidence execution context mismatch")
+    expected_evidence_scope = expected_context.execution_scope === :pilot ?
+        "ld1b1_pilot_job_evidence" :
+        "ld1b1_bounded_smoke_job_evidence"
+    ld1b1_string(evidence[:scope]) == expected_evidence_scope ||
         error("unexpected job-evidence scope")
     content_hash = ld1b1_verify_content_hash(
         evidence; label = "LD1b1 job evidence")
@@ -2617,6 +4002,9 @@ function ld1b1_validate_evidence_file(path::AbstractString, identity, job,
         :batch_runner_source_sha256,
         :local_json_source_sha256,
         :job_runner_source_sha256,
+        :attempt_archive_source_sha256,
+        :local_dependence_pilot_recovery_source_sha256,
+        :local_dependence_pilot_calibration_semantics_source_sha256,
     ), "job-evidence execution source identity")
     ld1b1_canonical_sha256(ld1b1_json_native(execution_source_identity)) ==
         ld1b1_canonical_sha256(identity.execution_source_identity) ||
@@ -2653,12 +4041,17 @@ function ld1b1_validate_evidence_file(path::AbstractString, identity, job,
     end
     observed_attempt = evidence[:attempt]
     ld1b1_require_only_keys(observed_attempt,
-        (:number, :role), "job-evidence attempt identity")
+        (:number, :role, :counts_toward_primary),
+        "job-evidence attempt identity")
     ld1b1_int(observed_attempt[:number]) == attempt_number ||
         error("job-evidence attempt number mismatch")
-    expected_attempt_role = attempt_number == 1 ? :primary : :remediation
-    ld1b1_symbol(observed_attempt[:role]) === expected_attempt_role ||
+    expected_attempt = ld1b1_attempt_identity(
+        attempt_number, expected_context)
+    ld1b1_symbol(observed_attempt[:role]) === expected_attempt.role ||
         error("job-evidence attempt role mismatch")
+    ld1b1_bool(observed_attempt[:counts_toward_primary]) ===
+        expected_attempt.counts_toward_primary || error(
+        "job-evidence primary-denominator eligibility mismatch")
     ld1b1_symbol(evidence[:terminal_status]) === terminal_status ||
         error("job-evidence terminal status mismatch")
     ld1b1_symbol(evidence[:evidence_role]) === role ||
@@ -2708,7 +4101,9 @@ end
 
 function ld1b1_validate_manifest_files(result, result_path::AbstractString,
         identity, job, attempt_number::Int, terminal_status::Symbol,
-        result_snapshot)
+        result_snapshot; allow_interruption_review::Bool = false,
+        require_canonical_controller_receipts::Bool = false,
+        execution_context = ld1b1_execution_context())
     rows = result[:file_manifest]
     isempty(rows) && error("job-result file manifest must not be empty")
     attempt_dir = dirname(result_path)
@@ -2752,6 +4147,7 @@ function ld1b1_validate_manifest_files(result, result_path::AbstractString,
             attempt_dir,
             expected_bytes,
             expected_sha256,
+            ; execution_context,
         )
         evidence_by_role[role] = validated_evidence
         snapshots[normalized] = validated_evidence.snapshot
@@ -2807,7 +4203,8 @@ function ld1b1_validate_manifest_files(result, result_path::AbstractString,
             error("source-member SHA-256 mismatch: $relative")
         snapshots[normalized] = member_snapshot
         source_value = ld1b1_validate_source_member_json(
-            member_snapshot.bytes, role, job, validated.payload)
+            member_snapshot.bytes, role, job, validated.payload,
+            terminal_status)
         evidence_by_role[role] = merge(validated, (;
             source_value,
             source_snapshot = member_snapshot,
@@ -2826,6 +4223,103 @@ function ld1b1_validate_manifest_files(result, result_path::AbstractString,
     ld1b1_validate_cross_evidence_lineage(
         evidence_by_role, terminal_status, job)
 
+    failure_role = terminal_status === :generation_failed ?
+        :generation_failure_record : terminal_status === :fit_failed ?
+        :fit_failure_record : terminal_status === :diagnostic_failed ?
+        :diagnostic_failure_record : nothing
+    calibration_semantic_inputs = (;
+        failure_record = failure_role === nothing ? nothing :
+            evidence_by_role[failure_role].source_value,
+        local_dependence_member = terminal_status === :completed ?
+            evidence_by_role[:local_dependence_summary].source_value : nothing,
+        calibration_member = evidence_by_role[:calibration_row].source_value,
+    )
+
+    recovery_receipt_filenames = (
+        LD1B1Recovery.LD1B_ATTEMPT_OWNER_FILENAME,
+        LD1B1Recovery.LD1B_CHILD_LAUNCH_FILENAME,
+        LD1B1Recovery.LD1B_CHILD_EXIT_FILENAME,
+    )
+    present_recovery_receipts = Tuple(filename for filename in
+        recovery_receipt_filenames if ispath(joinpath(attempt_dir, filename)) ||
+            islink(joinpath(attempt_dir, filename)))
+    execution_root = ld1b1_result_execution_root(result_path)
+    reservation_path = ld1b1_attempt_reservation_path(
+        execution_root, job.job_id, attempt_number)
+    reservation_present = ispath(reservation_path) || islink(reservation_path)
+    controller_receipts = nothing
+    if require_canonical_controller_receipts
+        Set(present_recovery_receipts) == Set(recovery_receipt_filenames) ||
+            error("canonical terminal admission requires owner, launch, and exit receipts")
+        controller_receipts =
+            ld1b1_validate_canonical_terminal_admission_receipts(
+            attempt_dir, identity, job, attempt_number;
+            execution_context)
+    elseif reservation_present || !isempty(present_recovery_receipts)
+        required_receipts = Set((
+            LD1B1Recovery.LD1B_ATTEMPT_OWNER_FILENAME,
+            LD1B1Recovery.LD1B_CHILD_LAUNCH_FILENAME,
+        ))
+        issubset(required_receipts, Set(present_recovery_receipts)) || error(
+            "attempt recovery receipts are incomplete")
+        identity_args = ld1b1_controller_receipt_identity(
+            identity, job, attempt_number; execution_context)
+        lineage = reservation_present ? ld1b1_reservation_lineage(
+            execution_root, identity, job, attempt_number;
+            execution_context) : nothing
+        launch = lineage === nothing ?
+            LD1B1Recovery.ld1b_validate_child_launch_file(
+                attempt_dir; identity_args...) :
+            LD1B1Recovery.ld1b_validate_child_launch_file(
+                attempt_dir;
+                identity_args...,
+                reservation_path = lineage.reservation_path,
+                execution_root,
+                expected_reservation_id =
+                    lineage.reservation.reservation_id,
+            )
+        launch.valid || error("child-launch receipt did not validate")
+        if LD1B1Recovery.LD1B_CHILD_EXIT_FILENAME in
+                present_recovery_receipts
+            exit = lineage === nothing ?
+                LD1B1Recovery.ld1b_validate_child_exit_file(
+                    attempt_dir; identity_args...) :
+                LD1B1Recovery.ld1b_validate_child_exit_file(
+                    attempt_dir;
+                    identity_args...,
+                    reservation_path = lineage.reservation_path,
+                    execution_root,
+                    expected_reservation_id =
+                        lineage.reservation.reservation_id,
+                )
+            exit.valid || error("child-exit receipt did not validate")
+        end
+    end
+    for filename in present_recovery_receipts
+        filename in seen && error(
+            "recovery receipt cannot also be a result-manifest member")
+        snapshots[filename] = ld1b1_regular_file_snapshot(
+            joinpath(attempt_dir, filename),
+            attempt_dir,
+            "attempt recovery receipt",
+        )
+    end
+    allowed_interruption_review_files = String[]
+    interruption_review_path = joinpath(
+        attempt_dir, LD1B1Recovery.LD1B_INTERRUPTION_REVIEW_FILENAME)
+    if allow_interruption_review &&
+            (ispath(interruption_review_path) ||
+                islink(interruption_review_path))
+        snapshots[LD1B1Recovery.LD1B_INTERRUPTION_REVIEW_FILENAME] =
+            ld1b1_regular_file_snapshot(
+                interruption_review_path,
+                attempt_dir,
+                "interruption review during result semantic validation",
+            )
+        push!(allowed_interruption_review_files,
+            LD1B1Recovery.LD1B_INTERRUPTION_REVIEW_FILENAME)
+    end
+
     inventory = ld1b1_attempt_inventory_rows(attempt_dir)
     any(row -> row.kind === :symbolic_link, inventory) &&
         error("attempt tree must not contain symbolic links")
@@ -2833,7 +4327,12 @@ function ld1b1_validate_manifest_files(result, result_path::AbstractString,
         error("attempt tree must not contain hard-linked files")
     snapshots["job_result.json"] = result_snapshot
     actual_files = Set(row.path for row in inventory if row.kind === :file)
-    expected_files = union(Set(seen), Set(["job_result.json"]))
+    expected_files = union(
+        Set(seen),
+        Set(["job_result.json"]),
+        Set(present_recovery_receipts),
+        Set(allowed_interruption_review_files),
+    )
     actual_files == expected_files ||
         error("attempt tree contains unmanifested or missing files")
     actual_directories = Set(
@@ -2856,14 +4355,27 @@ function ld1b1_validate_manifest_files(result, result_path::AbstractString,
         evidence_rows = Tuple(evidence_rows),
         evidence_manifest_sha256 = ld1b1_canonical_sha256(evidence_rows),
         attempt_inventory_sha256 = ld1b1_canonical_sha256(inventory),
+        calibration_semantic_inputs,
+        canonical_controller_receipts_verified =
+            controller_receipts !== nothing,
+        child_exit_code = controller_receipts === nothing ? missing :
+            controller_receipts.exit_code,
     )
 end
 
 function ld1b1_validate_result(path::AbstractString, identity, job,
-        expected_attempt::Int)
+        expected_attempt::Int;
+        calibration_semantic_context = nothing,
+        allow_interruption_review::Bool = false,
+        require_canonical_controller_receipts::Bool = false,
+        execution_context = ld1b1_execution_context())
+    calibration_semantic_context === nothing && error(
+        "terminal-result validation requires the canonical calibration semantic context")
+    ld1b1_validate_calibration_semantic_context_identity(
+        calibration_semantic_context, identity, job)
     isfile(path) || error("job result is missing")
     islink(path) && error("job result must not be a symbolic link")
-    result_execution_root = dirname(dirname(dirname(dirname(path))))
+    result_execution_root = ld1b1_result_execution_root(path)
     result_snapshot = ld1b1_regular_file_snapshot(
         path, result_execution_root, "job-result envelope")
     result = JSON3.read(String(result_snapshot.bytes))
@@ -2871,11 +4383,13 @@ function ld1b1_validate_result(path::AbstractString, identity, job,
         :schema,
         :family,
         :scope,
+        :execution_context,
         :plan_identity,
         :execution_source_identity,
         :job,
         :attempt,
         :terminal_status,
+        :terminal_outcome_code,
         :lineage_valid,
         :file_manifest,
         :primary_outcome_replaced,
@@ -2890,7 +4404,17 @@ function ld1b1_validate_result(path::AbstractString, identity, job,
         error("unexpected job-result schema")
     ld1b1_string(result[:family]) == "mfrm" ||
         error("unexpected job-result family")
-    ld1b1_string(result[:scope]) == "ld1b1_pilot_job_result" ||
+    expected_context = ld1b1_validate_execution_context(execution_context)
+    observed_context = ld1b1_validate_execution_context(
+        result[:execution_context];
+        expected_scope = expected_context.execution_scope,
+    )
+    observed_context == expected_context || error(
+        "job-result execution context mismatch")
+    expected_result_scope = expected_context.execution_scope === :pilot ?
+        "ld1b1_pilot_job_result" :
+        "ld1b1_bounded_smoke_job_result"
+    ld1b1_string(result[:scope]) == expected_result_scope ||
         error("unexpected job-result scope")
     ld1b1_verify_content_hash(result; label = "LD1b1 job result")
     plan = result[:plan_identity]
@@ -2918,6 +4442,9 @@ function ld1b1_validate_result(path::AbstractString, identity, job,
         :batch_runner_source_sha256,
         :local_json_source_sha256,
         :job_runner_source_sha256,
+        :attempt_archive_source_sha256,
+        :local_dependence_pilot_recovery_source_sha256,
+        :local_dependence_pilot_calibration_semantics_source_sha256,
     ), "job-result execution source identity")
     ld1b1_canonical_sha256(ld1b1_json_native(
         result_execution_source_identity)) ==
@@ -2975,10 +4502,13 @@ function ld1b1_validate_result(path::AbstractString, identity, job,
     ), "job-result attempt identity")
     number = ld1b1_int(attempt[:number])
     number == expected_attempt || error("job-result attempt number mismatch")
-    expected_role = number == 1 ? :primary : :remediation
+    expected_attempt_identity = ld1b1_attempt_identity(
+        number, expected_context)
+    expected_role = expected_attempt_identity.role
     ld1b1_symbol(attempt[:role]) === expected_role ||
         error("job-result attempt role mismatch")
-    ld1b1_bool(attempt[:counts_toward_primary]) == (number == 1) ||
+    ld1b1_bool(attempt[:counts_toward_primary]) ===
+        expected_attempt_identity.counts_toward_primary ||
         error("job-result primary-denominator role mismatch")
     ld1b1_bool(attempt[:same_seed_contract]) ||
         error("job-result retry changed the frozen seed contract")
@@ -2998,6 +4528,9 @@ function ld1b1_validate_result(path::AbstractString, identity, job,
     status = ld1b1_symbol(result[:terminal_status])
     status in LD1B1_TERMINAL_STATUSES ||
         error("job result has a nonterminal status")
+    outcome = ld1b1_symbol(result[:terminal_outcome_code])
+    outcome === ld1b1_terminal_outcome_code(status) ||
+        error("job-result terminal outcome code does not match its status")
     if job.expected_action === :pre_fit_reject
         status in (:pre_fit_rejected, :generation_failed) ||
             error("pre-fit rejection job has the wrong terminal status")
@@ -3032,16 +4565,600 @@ function ld1b1_validate_result(path::AbstractString, identity, job,
         number,
         status,
         result_snapshot,
+        ; allow_interruption_review,
+        require_canonical_controller_receipts,
+        execution_context = expected_context,
+    )
+    ld1b1_validate_calibration_semantics(
+        calibration_semantic_context,
+        manifest.calibration_semantic_inputs,
+        job,
+        status,
     )
     return (;
         valid = true,
         terminal_status = status,
+        terminal_outcome_code = outcome,
         result_sha256 = result_snapshot.sha256,
         content_hash = ld1b1_string(result[:content_hash][:value]),
         runner_source_sha256,
         evidence_roles = Tuple(sort!(collect(manifest.roles); by = string)),
         evidence_manifest_sha256 = manifest.evidence_manifest_sha256,
         attempt_inventory_sha256 = manifest.attempt_inventory_sha256,
+        calibration_semantic_replay_verified = true,
+        canonical_controller_receipts_verified =
+            manifest.canonical_controller_receipts_verified,
+        child_exit_code = manifest.child_exit_code,
+    )
+end
+
+function ld1b1_validate_completed_attempt(path::AbstractString,
+        identity, job, expected_attempt::Int;
+        calibration_semantic_context = nothing,
+        execution_context = ld1b1_execution_context())
+    calibration_semantic_context === nothing && error(
+        "completed-attempt validation requires the canonical calibration semantic context")
+    execution_root = ld1b1_result_execution_root(path)
+    expected_path = ld1b1_result_path(
+        execution_root, job.job_id, expected_attempt)
+    normpath(path) == normpath(expected_path) ||
+        error("completed-attempt result path does not match its identity")
+    semantic = ld1b1_validate_result(
+        path,
+        identity,
+        job,
+        expected_attempt;
+        calibration_semantic_context,
+        require_canonical_controller_receipts = true,
+        execution_context,
+    )
+    context = ld1b1_validate_execution_context(execution_context)
+    attempt_role = ld1b1_attempt_identity(
+        expected_attempt, context).role
+    seal = LD1B1AttemptArchive.ld1b_validate_completed_attempt_seal(
+        dirname(path);
+        plan_identity = ld1b1_result_plan_identity(identity),
+        execution_source_identity = identity.execution_source_identity,
+        job_identity = ld1b1_result_job_identity(job),
+        attempt_number = expected_attempt,
+        attempt_role,
+        execution_context = context,
+        terminal_status = semantic.terminal_status,
+        terminal_outcome_code = semantic.terminal_outcome_code,
+    )
+    seal.result_file_sha256 == semantic.result_sha256 ||
+        error("completed-attempt seal has the wrong result SHA-256")
+    seal.result_content_hash == semantic.content_hash ||
+        error("completed-attempt seal has the wrong result content hash")
+    seal.evidence_manifest_sha256 == semantic.evidence_manifest_sha256 ||
+        error("completed-attempt seal has the wrong evidence-manifest SHA-256")
+    seal.attempt_inventory_sha256 ==
+        semantic.attempt_inventory_sha256 || error(
+        "completed-attempt helper inventory differs from semantic validation")
+    return merge(semantic, (;
+        archive_state = :verified_terminal,
+        seal_file_sha256 = seal.seal_file_sha256,
+        seal_content_hash = seal.seal_content_hash,
+        helper_attempt_inventory_sha256 =
+            seal.attempt_inventory_sha256,
+    ))
+end
+
+function ld1b1_publish_completed_attempt_seal(path::AbstractString,
+        identity, job, expected_attempt::Int;
+        staging_dir::AbstractString = ld1b1_seal_staging_dir(
+            ld1b1_result_execution_root(path)),
+        calibration_semantic_context = nothing,
+        execution_context = ld1b1_execution_context())
+    calibration_semantic_context === nothing && error(
+        "completed-attempt sealing requires the canonical calibration semantic context")
+    execution_root = ld1b1_result_execution_root(path)
+    expected_path = ld1b1_result_path(
+        execution_root, job.job_id, expected_attempt)
+    normpath(path) == normpath(expected_path) ||
+        error("completed-attempt result path does not match its identity")
+    semantic = ld1b1_validate_result(
+        path,
+        identity,
+        job,
+        expected_attempt;
+        calibration_semantic_context,
+        require_canonical_controller_receipts = true,
+        execution_context,
+    )
+    context = ld1b1_validate_execution_context(execution_context)
+    attempt_role = ld1b1_attempt_identity(
+        expected_attempt, context).role
+    publication =
+        LD1B1AttemptArchive.ld1b_publish_completed_attempt_seal(
+            dirname(path);
+            plan_identity = ld1b1_result_plan_identity(identity),
+            execution_source_identity = identity.execution_source_identity,
+            job_identity = ld1b1_result_job_identity(job),
+            attempt_number = expected_attempt,
+            attempt_role,
+            execution_context = context,
+            terminal_status = semantic.terminal_status,
+            terminal_outcome_code = semantic.terminal_outcome_code,
+            evidence_manifest_sha256 =
+                semantic.evidence_manifest_sha256,
+            staging_dir,
+            boundary = execution_root,
+        )
+    validation = ld1b1_validate_completed_attempt(
+        path,
+        identity,
+        job,
+        expected_attempt;
+        calibration_semantic_context,
+        execution_context = context,
+    )
+    return (;
+        artifact = publication.artifact,
+        publication = publication.publication,
+        validation,
+    )
+end
+
+function ld1b1_validate_retired_attempt(execution_root::AbstractString,
+        identity, job, expected_attempt::Int)
+    attempt_dir = ld1b1_attempt_dir(
+        execution_root, job.job_id, expected_attempt)
+    attempt_role = expected_attempt == 1 ? :primary : :remediation
+    launched_review_path = ld1b1_interruption_review_path(
+        execution_root, job.job_id, expected_attempt)
+    precommit_review_path = ld1b1_precommit_interruption_review_path(
+        execution_root, job.job_id, expected_attempt)
+    launched_review_present = ispath(launched_review_path) ||
+        islink(launched_review_path)
+    precommit_review_present = ispath(precommit_review_path) ||
+        islink(precommit_review_path)
+    xor(launched_review_present, precommit_review_present) || error(
+        "retired attempt requires exactly one interruption-review kind")
+    review = if precommit_review_present
+        validated = ld1b1_validate_precommit_interruption_review_record(
+            attempt_dir, execution_root, identity, job, expected_attempt)
+        (;
+            retirement_reason_code = validated.reason_code,
+            review_file_sha256 = validated.file_sha256,
+            review_content_hash = validated.content_hash,
+            review_kind = :precommit_interruption,
+            scientific_contribution = validated.scientific_contribution,
+        )
+    else
+        recovery = ld1b1_recovery_reservation_context(
+            attempt_dir, identity, job, expected_attempt)
+        validated = LD1B1Recovery.ld1b_validate_interruption_review_file(
+            attempt_dir;
+            plan_identity = ld1b1_result_plan_identity(identity),
+            execution_source_identity = identity.execution_source_identity,
+            job_identity = ld1b1_result_job_identity(job),
+            attempt_number = expected_attempt,
+            attempt_role,
+            recovery.file_kwargs...,
+        )
+        (;
+            retirement_reason_code = validated.retirement_reason_code,
+            review_file_sha256 = validated.review_file_sha256,
+            review_content_hash = validated.review_content_hash,
+            review_kind = :launched_interruption,
+            scientific_contribution = 0,
+        )
+    end
+    review.scientific_contribution == 0 || error(
+        "retired interruption cannot contribute a scientific job")
+    retirement = LD1B1AttemptArchive.
+        ld1b_validate_attempt_retirement_marker(
+            attempt_dir;
+            plan_identity = ld1b1_result_plan_identity(identity),
+            execution_source_identity = identity.execution_source_identity,
+            job_identity = ld1b1_result_job_identity(job),
+            attempt_number = expected_attempt,
+            attempt_role,
+            expected_reason_code = review.retirement_reason_code,
+            expected_review_record_sha256 = review.review_file_sha256,
+        )
+    retirement.retirement_counts_toward_primary && error(
+        "retired interruption must not count toward the scientific denominator")
+    return (;
+        archive_state = :retired_interrupted,
+        terminal_status = missing,
+        terminal_outcome_code =
+            retirement.terminal_outcome_code,
+        retirement_reason_code = retirement.retirement_reason_code,
+        review_file_sha256 = review.review_file_sha256,
+        review_content_hash = review.review_content_hash,
+        review_kind = review.review_kind,
+        retirement_file_sha256 = retirement.retirement_file_sha256,
+        retirement_content_hash = retirement.retirement_content_hash,
+        attempt_inventory_sha256 =
+            retirement.attempt_inventory_sha256,
+        original_slot_counts_toward_primary =
+            retirement.original_slot_counts_toward_primary,
+        retirement_counts_toward_primary =
+            retirement.retirement_counts_toward_primary,
+    )
+end
+
+function ld1b1_interrupted_attempt_observation(
+        execution_root::AbstractString, identity, job, attempt::Int;
+        calibration_semantic_context = nothing)
+    calibration_semantic_context === nothing && error(
+        "interrupted-attempt observation requires the canonical calibration semantic context")
+    attempt_dir = ld1b1_attempt_dir(execution_root, job.job_id, attempt)
+    isdir(attempt_dir) && !islink(attempt_dir) || error(
+        "interrupted-attempt directory is missing or unsafe")
+    seal_path = ld1b1_seal_path(execution_root, job.job_id, attempt)
+    retirement_path = ld1b1_retirement_path(
+        execution_root, job.job_id, attempt)
+    (ispath(seal_path) || islink(seal_path)) && error(
+        "sealed terminal attempt cannot be retired")
+    (ispath(retirement_path) || islink(retirement_path)) && error(
+        "attempt already contains a retirement disposition")
+    result_path = ld1b1_result_path(execution_root, job.job_id, attempt)
+    result_present = ispath(result_path) || islink(result_path)
+    if !result_present
+        return (;
+            retirement_reason_code = :interrupted_without_result,
+            result_present = false,
+            result_file_sha256 = nothing,
+            result_semantic_assessment = :result_absent,
+        )
+    end
+    try
+        semantic = ld1b1_validate_result(
+            result_path,
+            identity,
+            job,
+            attempt;
+            calibration_semantic_context,
+            allow_interruption_review = true,
+        )
+        return (;
+            retirement_reason_code =
+                :interrupted_with_semantically_valid_unsealed_result,
+            result_present = true,
+            result_file_sha256 = semantic.result_sha256,
+            result_semantic_assessment = :semantically_valid_unsealed_result,
+        )
+    catch
+        return (;
+            retirement_reason_code =
+                :interrupted_with_invalid_unsealed_result,
+            result_present = true,
+            result_file_sha256 =
+                ld1b1_observed_path_sha256(result_path),
+            result_semantic_assessment = :invalid_unsealed_result,
+        )
+    end
+end
+
+function ld1b1_recovery_reservation_context(attempt_dir::AbstractString,
+        identity, job, attempt::Int)
+    execution_root = ld1b1_result_execution_root(
+        joinpath(attempt_dir, "job_result.json"))
+    reservation_path = ld1b1_attempt_reservation_path(
+        execution_root, job.job_id, attempt)
+    if !(ispath(reservation_path) || islink(reservation_path))
+        return (;
+            execution_root,
+            lineage = nothing,
+            file_kwargs = (;),
+            artifact_kwargs = (;),
+        )
+    end
+    lineage = ld1b1_reservation_lineage(
+        execution_root, identity, job, attempt)
+    return (;
+        execution_root,
+        lineage,
+        file_kwargs = (;
+            reservation_path = lineage.reservation_path,
+            execution_root,
+            expected_reservation_id =
+                lineage.reservation.reservation_id,
+        ),
+        artifact_kwargs = lineage.lineage_args,
+    )
+end
+
+function ld1b1_interruption_review_validation_context(
+        attempt_dir::AbstractString, review_artifact,
+        identity, job, attempt::Int)
+    attempt_role = attempt == 1 ? :primary : :remediation
+    identity_args = (;
+        plan_identity = ld1b1_result_plan_identity(identity),
+        execution_source_identity = identity.execution_source_identity,
+        job_identity = ld1b1_result_job_identity(job),
+        attempt_number = attempt,
+        attempt_role,
+    )
+    recovery = ld1b1_recovery_reservation_context(
+        attempt_dir, identity, job, attempt)
+    launch = LD1B1Recovery.ld1b_validate_child_launch_file(
+        attempt_dir; identity_args..., recovery.file_kwargs...)
+    native = ld1b1_json_native(review_artifact)
+    haskey(native, "review") || error(
+        "external stopped-process review lacks its review block")
+    review = native["review"]
+    review isa AbstractDict || error(
+        "external stopped-process review has an invalid review block")
+    haskey(review, "mode") || error(
+        "external stopped-process review lacks its review mode")
+    mode = ld1b1_symbol(review["mode"])
+    exit = if mode === :validated_exit_receipt
+        LD1B1Recovery.ld1b_validate_child_exit_file(
+            attempt_dir; identity_args..., recovery.file_kwargs...)
+    elseif mode === :external_process_identity_review
+        exit_path = joinpath(
+            attempt_dir, LD1B1Recovery.LD1B_CHILD_EXIT_FILENAME)
+        (ispath(exit_path) || islink(exit_path)) && error(
+            "external process-identity review cannot ignore an exit receipt")
+        nothing
+    else
+        error("external stopped-process review has an unsupported mode")
+    end
+    inventory = LD1B1Recovery.
+        ld1b_inventory_before_interruption_review(attempt_dir)
+    validator = value -> LD1B1Recovery.
+        ld1b_validate_stopped_process_interruption_review(
+            value;
+            identity_args...,
+            owner_artifact = launch.owner.artifact,
+            owner_receipt_sha256 = launch.owner.file_sha256,
+            launch_artifact = launch.artifact,
+            launch_receipt_sha256 = launch.file_sha256,
+            exit_artifact = exit === nothing ? nothing : exit.artifact,
+            exit_receipt_sha256 =
+                exit === nothing ? nothing : exit.file_sha256,
+            expected_inventory_before_review = inventory,
+            recovery.artifact_kwargs...,
+        )
+    return (;
+        identity_args,
+        launch,
+        exit,
+        inventory,
+        validator,
+        recovery,
+    )
+end
+
+function ld1b1_validate_external_interruption_review(
+        source_path::AbstractString, attempt_dir::AbstractString,
+        identity, job, attempt::Int)
+    source = LD1B1AttemptArchive._ld1b_read_json_snapshot(
+        normpath(source_path),
+        dirname(normpath(source_path)),
+        "external stopped-process interruption review",
+    )
+    context = ld1b1_interruption_review_validation_context(
+        attempt_dir, source.parsed, identity, job, attempt)
+    validation = context.validator(source.parsed)
+    return (; source, context, validation)
+end
+
+function ld1b1_publish_external_interruption_review(
+        source_path::AbstractString, attempt_dir::AbstractString,
+        execution_root::AbstractString, identity, job, attempt::Int)
+    external = ld1b1_validate_external_interruption_review(
+        source_path, attempt_dir, identity, job, attempt)
+    target = joinpath(
+        attempt_dir, LD1B1Recovery.LD1B_INTERRUPTION_REVIEW_FILENAME)
+    publication = if ispath(target) || islink(target)
+        existing = LD1B1Recovery.ld1b_validate_interruption_review_file(
+            attempt_dir;
+            external.context.identity_args...,
+            external.context.recovery.file_kwargs...,
+        )
+        existing.review_content_hash == external.validation.content_hash ||
+            error("existing interruption review differs from the supplied review")
+        (;
+            published = false,
+            reused_existing = true,
+            path = target,
+            review_file_sha256 = existing.review_file_sha256,
+            review_content_hash = existing.review_content_hash,
+        )
+    else
+        published = LD1B1AttemptArchive.
+            ld1b_atomic_publish_json_create_new(
+                target,
+                external.source.parsed,
+                ld1b1_recovery_staging_dir(execution_root),
+                execution_root;
+                semantic_validator = external.context.validator,
+                artifact_label =
+                    "externally prepared stopped-process interruption review",
+            )
+        validated = LD1B1Recovery.ld1b_validate_interruption_review_file(
+            attempt_dir;
+            external.context.identity_args...,
+            external.context.recovery.file_kwargs...,
+        )
+        (;
+            published = true,
+            reused_existing = false,
+            path = target,
+            review_file_sha256 = validated.review_file_sha256,
+            review_content_hash = validated.review_content_hash,
+            publication = published.publication,
+        )
+    end
+    validation = LD1B1Recovery.ld1b_validate_interruption_review_file(
+        attempt_dir;
+        external.context.identity_args...,
+        external.context.recovery.file_kwargs...,
+    )
+    return (; external, publication, validation)
+end
+
+function ld1b1_precommit_interruption_review_validation_context(
+        attempt_dir::AbstractString, review_artifact,
+        execution_root::AbstractString, identity, job, attempt::Int)
+    lineage = ld1b1_reservation_lineage(
+        execution_root, identity, job, attempt)
+    normpath(attempt_dir) == normpath(lineage.attempt_dir) || error(
+        "precommit review belongs to the wrong reserved attempt path")
+    owner_path = joinpath(
+        attempt_dir, LD1B1Recovery.LD1B_ATTEMPT_OWNER_FILENAME)
+    owner = if ispath(owner_path) || islink(owner_path)
+        LD1B1Recovery.ld1b_validate_canonical_attempt_owner_file(
+            attempt_dir;
+            reservation_path = lineage.reservation_path,
+            execution_root,
+            lineage.identity_args...,
+            expected_reservation_id =
+                lineage.reservation.reservation_id,
+        )
+    else
+        nothing
+    end
+    for forbidden in (
+            LD1B1Recovery.LD1B_CHILD_LAUNCH_FILENAME,
+            LD1B1Recovery.LD1B_CHILD_EXIT_FILENAME,
+            "job_result.json",
+            LD1B1AttemptArchive.LD1B_ATTEMPT_SEAL_FILENAME,
+        )
+        path = joinpath(attempt_dir, forbidden)
+        !(ispath(path) || islink(path)) || error(
+            "precommit recovery cannot ignore $forbidden")
+    end
+    inventory = LD1B1Recovery.
+        ld1b_inventory_before_precommit_interruption_review(attempt_dir)
+    validator = value -> LD1B1Recovery.
+        ld1b_validate_precommit_interruption_review(
+            value;
+            lineage.identity_args...,
+            lineage.lineage_args...,
+            owner_artifact = owner === nothing ? nothing : owner.artifact,
+            owner_receipt_sha256 = owner === nothing ?
+                nothing : owner.file_sha256,
+            expected_inventory_before_review = inventory,
+        )
+    validation = validator(review_artifact)
+    validation.scientific_contribution == 0 || error(
+        "precommit review has a nonzero scientific contribution")
+    return (; lineage, owner, inventory, validator, validation)
+end
+
+function ld1b1_validate_external_precommit_interruption_review(
+        source_path::AbstractString, attempt_dir::AbstractString,
+        execution_root::AbstractString, identity, job, attempt::Int)
+    source = LD1B1AttemptArchive._ld1b_read_json_snapshot(
+        normpath(source_path),
+        dirname(normpath(source_path)),
+        "external precommit interruption review",
+    )
+    context = ld1b1_precommit_interruption_review_validation_context(
+        attempt_dir, source.parsed, execution_root, identity, job, attempt)
+    return (; source, context, validation = context.validation)
+end
+
+function ld1b1_publish_external_precommit_interruption_review(
+        source_path::AbstractString, attempt_dir::AbstractString,
+        execution_root::AbstractString, identity, job, attempt::Int)
+    external = ld1b1_validate_external_precommit_interruption_review(
+        source_path, attempt_dir, execution_root, identity, job, attempt)
+    target = joinpath(
+        attempt_dir,
+        LD1B1Recovery.LD1B_PRECOMMIT_INTERRUPTION_REVIEW_FILENAME,
+    )
+    publication = if ispath(target) || islink(target)
+        native = ld1b1_json_native(external.source.parsed)
+        review = native["review"]
+        validation = LD1B1Recovery.
+            ld1b_reuse_existing_precommit_interruption_review(
+                attempt_dir;
+                external.context.lineage.identity_args...,
+                reservation_path =
+                    external.context.lineage.reservation_path,
+                execution_root,
+                expected_reservation_id = external.context.lineage.
+                    reservation.reservation_id,
+                reason_code = external.validation.reason_code,
+                review_host = ld1b1_string(review["review_host"]),
+                reviewer = ld1b1_string(review["reviewer"]),
+                reviewed_at_utc =
+                    ld1b1_string(review["reviewed_at_utc"]),
+                controller_confirmed_stopped = ld1b1_bool(
+                    review["controller_confirmed_stopped"]),
+                child_launch_receipt_confirmed_absent = ld1b1_bool(
+                    review["child_launch_receipt_confirmed_absent"]),
+                child_process_confirmed_stopped = ld1b1_bool(
+                    review["child_process_confirmed_stopped"]),
+            )
+        validation.content_hash == external.validation.content_hash || error(
+            "existing precommit review differs from the supplied review")
+        (;
+            reused_existing = true,
+            published = false,
+            path = target,
+            file_sha256 = validation.file_sha256,
+            content_hash = validation.content_hash,
+        )
+    else
+        created = LD1B1AttemptArchive.ld1b_atomic_publish_json_create_new(
+            target,
+            external.source.parsed,
+            ld1b1_recovery_staging_dir(execution_root),
+            execution_root;
+            semantic_validator = external.context.validator,
+            artifact_label =
+                "externally prepared precommit interruption review",
+        )
+        merge(created, (; reused_existing = false))
+    end
+    validation = ld1b1_validate_precommit_interruption_review_record(
+        attempt_dir, execution_root, identity, job, attempt)
+    validation.content_hash == external.validation.content_hash || error(
+        "published precommit review differs from the supplied review")
+    return (; external, publication, validation)
+end
+
+function ld1b1_validate_precommit_interruption_review_record(
+        attempt_dir::AbstractString, execution_root::AbstractString,
+        identity, job, attempt::Int)
+    lineage = ld1b1_reservation_lineage(
+        execution_root, identity, job, attempt)
+    owner_path = joinpath(
+        attempt_dir, LD1B1Recovery.LD1B_ATTEMPT_OWNER_FILENAME)
+    owner = if ispath(owner_path) || islink(owner_path)
+        LD1B1Recovery.ld1b_validate_canonical_attempt_owner_file(
+            attempt_dir;
+            reservation_path = lineage.reservation_path,
+            execution_root,
+            lineage.identity_args...,
+            expected_reservation_id =
+                lineage.reservation.reservation_id,
+        )
+    else
+        nothing
+    end
+    review_path = joinpath(
+        attempt_dir,
+        LD1B1Recovery.LD1B_PRECOMMIT_INTERRUPTION_REVIEW_FILENAME,
+    )
+    snapshot = LD1B1AttemptArchive._ld1b_read_json_snapshot(
+        review_path, attempt_dir, "precommit interruption review")
+    validation = LD1B1Recovery.ld1b_validate_precommit_interruption_review(
+        snapshot.parsed;
+        lineage.identity_args...,
+        lineage.lineage_args...,
+        owner_artifact = owner === nothing ? nothing : owner.artifact,
+        owner_receipt_sha256 = owner === nothing ? nothing : owner.file_sha256,
+    )
+    validation.scientific_contribution == 0 || error(
+        "precommit review has a nonzero scientific contribution")
+    return (;
+        valid = true,
+        file_sha256 = snapshot.sha256,
+        content_hash = validation.content_hash,
+        reason_code = validation.reason_code,
+        owner_present = validation.owner_present,
+        scientific_contribution = validation.scientific_contribution,
+        artifact = validation.native,
+        lineage,
     )
 end
 
@@ -3062,14 +5179,145 @@ function ld1b1_attempt_numbers(job_dir::AbstractString)
     return sort(numbers), unexpected
 end
 
+function ld1b1_scan_attempt_reservations(specs, identity,
+        execution_root::AbstractString)
+    root = ld1b1_attempt_reservations_root(execution_root)
+    rows = NamedTuple[]
+    unexpected_entries = NamedTuple[]
+    unexpected_plan_entries = NamedTuple[]
+    by_job = Dict(job.job_id => job for job in specs)
+    if !ispath(root) && !islink(root)
+        return (;
+            active = false,
+            rows = (),
+            by_key = Dict{Tuple{String,Int},Any}(),
+            unexpected_entries = (),
+            unexpected_plan_entries = (),
+        )
+    end
+    if !isdir(root) || islink(root)
+        entry = ld1b1_unexpected_entry(root, execution_root)
+        return (;
+            active = true,
+            rows = (),
+            by_key = Dict{Tuple{String,Int},Any}(),
+            unexpected_entries = (entry,),
+            unexpected_plan_entries = (entry,),
+        )
+    end
+    ld1b1_reject_symlink_components(root, execution_root)
+    for job_entry in sort(readdir(root))
+        job_path = joinpath(root, job_entry)
+        if !haskey(by_job, job_entry) || !isdir(job_path) || islink(job_path)
+            entry = ld1b1_unexpected_entry(job_path, execution_root)
+            push!(unexpected_entries, entry)
+            push!(unexpected_plan_entries, entry)
+            continue
+        end
+        job = by_job[job_entry]
+        for attempt_entry in sort(readdir(job_path))
+            attempt_path = joinpath(job_path, attempt_entry)
+            matched = match(r"^attempt_([0-9]{3})$", attempt_entry)
+            if matched === nothing || !isdir(attempt_path) ||
+                    islink(attempt_path)
+                push!(unexpected_entries,
+                    ld1b1_unexpected_entry(attempt_path, execution_root))
+                continue
+            end
+            attempt = parse(Int, only(matched.captures))
+            expected_receipt = ld1b1_attempt_reservation_path(
+                execution_root, job.job_id, attempt)
+            entries = sort(readdir(attempt_path))
+            if entries != [LD1B1Recovery.LD1B_ATTEMPT_RESERVATION_FILENAME]
+                push!(unexpected_entries,
+                    ld1b1_unexpected_entry(attempt_path, execution_root))
+                push!(rows, (;
+                    job_id = job.job_id,
+                    attempt,
+                    reservation_path = ld1b1_record_path(expected_receipt),
+                    reservation_valid = false,
+                    attempt_directory_present = isdir(ld1b1_attempt_dir(
+                        execution_root, job.job_id, attempt)),
+                    reservation_id = missing,
+                    reservation_file_sha256 =
+                        ld1b1_observed_path_sha256(expected_receipt),
+                    reservation_content_hash = missing,
+                    assessment = :invalid_reservation_directory,
+                    error = "reservation directory has a noncanonical inventory",
+                ))
+                continue
+            end
+            try
+                lineage = ld1b1_reservation_lineage(
+                    execution_root, identity, job, attempt)
+                attempt_present = isdir(lineage.attempt_dir) &&
+                    !islink(lineage.attempt_dir)
+                push!(rows, (;
+                    job_id = job.job_id,
+                    attempt,
+                    reservation_path =
+                        ld1b1_record_path(lineage.reservation_path),
+                    reservation_valid = true,
+                    attempt_directory_present = attempt_present,
+                    reservation_id =
+                        lineage.reservation.reservation_id,
+                    reservation_file_sha256 =
+                        lineage.reservation.file_sha256,
+                    reservation_content_hash =
+                        lineage.reservation.content_hash,
+                    assessment = attempt_present ? :bound_to_attempt_directory :
+                        :reserved_before_attempt_directory,
+                    error = missing,
+                ))
+                attempt_present || push!(unexpected_entries,
+                    ld1b1_unexpected_marker(
+                        lineage.reservation_path,
+                        execution_root,
+                        "reservation_without_attempt_directory",
+                    ))
+            catch err
+                push!(rows, (;
+                    job_id = job.job_id,
+                    attempt,
+                    reservation_path = ld1b1_record_path(expected_receipt),
+                    reservation_valid = false,
+                    attempt_directory_present = isdir(ld1b1_attempt_dir(
+                        execution_root, job.job_id, attempt)),
+                    reservation_id = missing,
+                    reservation_file_sha256 =
+                        ld1b1_observed_path_sha256(expected_receipt),
+                    reservation_content_hash = missing,
+                    assessment = :invalid_reservation,
+                    error = portable_error_message(err),
+                ))
+                push!(unexpected_entries,
+                    ld1b1_unexpected_entry(expected_receipt, execution_root))
+            end
+        end
+    end
+    sort!(rows; by = row -> (row.job_id, row.attempt))
+    by_key = Dict((row.job_id, row.attempt) => row for row in rows)
+    return (;
+        active = true,
+        rows = Tuple(rows),
+        by_key,
+        unexpected_entries = Tuple(unexpected_entries),
+        unexpected_plan_entries = Tuple(unexpected_plan_entries),
+    )
+end
+
 function ld1b1_empty_scan(specs, identity)
     return (;
         job_state_rows = (),
         scenario_status_rows = (),
+        attempt_reservation_scan_active = false,
+        attempt_reservation_rows = (),
+        attempt_reservation_state_digest = missing,
         unexpected_entries = (),
         unexpected_plan_entries = (),
         state_digest = missing,
         observed_primary_result_set_sha256 = missing,
+        observed_primary_disposition_set_sha256 = missing,
         summary = (;
             n_jobs = length(specs),
             scan_assessment = :not_scanned,
@@ -3081,6 +5329,11 @@ function ld1b1_empty_scan(specs, identity)
             n_retry_attempts_observed = missing,
             n_invalid_attempts = missing,
             n_partial_attempts = missing,
+            n_retired_attempts = missing,
+            n_retired_primary_attempts = missing,
+            n_retired_remediation_attempts = missing,
+            n_reviewed_pending_retirement_attempts = missing,
+            n_disposition_conflicts = missing,
             n_lineage_mismatches = missing,
             n_invalid_primary_attempts = missing,
             n_invalid_remediation_attempts = missing,
@@ -3092,6 +5345,7 @@ function ld1b1_empty_scan(specs, identity)
             n_unexpected_attempt_tree_entries = missing,
             n_unexpected_plan_entries = missing,
             all_primary_outcomes_recorded = missing,
+            all_primary_attempts_disposed = missing,
             primary_attempt_tree_clean = missing,
             remediation_archive_clean = missing,
             clean_attempt_tree = missing,
@@ -3108,7 +5362,10 @@ function ld1b1_empty_scan(specs, identity)
     )
 end
 
-function ld1b1_scan_attempts(specs, identity, execution_root::AbstractString)
+function ld1b1_scan_attempts(specs, identity, execution_root::AbstractString;
+        calibration_semantic_context = nothing)
+    calibration_semantic_context === nothing && error(
+        "attempt scanning requires the canonical calibration semantic context")
     expected_ids = Set(job.job_id for job in specs)
     jobs_root = joinpath(execution_root, "jobs")
     unexpected_entries = NamedTuple[]
@@ -3136,18 +5393,27 @@ function ld1b1_scan_attempts(specs, identity, execution_root::AbstractString)
         push!(unexpected_entries, entry)
         push!(unexpected_plan_entries, entry)
     end
+    reservation_scan = ld1b1_scan_attempt_reservations(
+        specs, identity, execution_root)
+    append!(unexpected_entries, reservation_scan.unexpected_entries)
+    append!(unexpected_plan_entries,
+        reservation_scan.unexpected_plan_entries)
 
     rows = NamedTuple[]
     for job in specs
         job_dir = joinpath(jobs_root, job.job_id)
         attempts, unexpected = jobs_root_safe ?
             ld1b1_attempt_numbers(job_dir) : (Int[], String[])
+        reservation_rows = [row for row in reservation_scan.rows
+            if row.job_id == job.job_id]
+        reserved_attempts = [row.attempt for row in reservation_rows]
+        observed_attempts = sort!(unique(vcat(attempts, reserved_attempts)))
         append!(unexpected_entries,
             [ld1b1_unexpected_entry(
                 joinpath(job_dir, entry), execution_root)
                 for entry in unexpected])
-        contiguous_attempts = isempty(attempts) ||
-            attempts == collect(1:maximum(attempts))
+        contiguous_attempts = isempty(observed_attempts) ||
+            observed_attempts == collect(1:maximum(observed_attempts))
         contiguous_attempts || push!(unexpected_entries,
             ld1b1_unexpected_marker(job_dir, execution_root,
                 "noncontiguous_attempt_sequence"))
@@ -3158,13 +5424,247 @@ function ld1b1_scan_attempts(specs, identity, execution_root::AbstractString)
         invalid_remediation = 0
         partial_primary = 0
         partial_remediation = 0
+        retired = 0
+        retired_primary = 0
+        retired_remediation = 0
+        reviewed_pending_retirement = 0
+        disposition_conflicts = 0
         primary_lineage = 0
         remediation_lineage = 0
         statuses = Dict{Int,Symbol}()
+        outcomes = Dict{Int,Symbol}()
         attempt_result_rows = NamedTuple[]
         for attempt in attempts
+            if reservation_scan.active &&
+                    !haskey(reservation_scan.by_key, (job.job_id, attempt))
+                push!(unexpected_entries, ld1b1_unexpected_marker(
+                    ld1b1_attempt_dir(
+                        execution_root, job.job_id, attempt),
+                    execution_root,
+                    "attempt_directory_without_reservation",
+                ))
+            end
+            attempt_dir = ld1b1_attempt_dir(
+                execution_root, job.job_id, attempt)
             result_path = ld1b1_result_path(execution_root, job.job_id, attempt)
-            if !isfile(result_path)
+            seal_path = ld1b1_seal_path(
+                execution_root, job.job_id, attempt)
+            launched_review_path = ld1b1_interruption_review_path(
+                execution_root, job.job_id, attempt)
+            precommit_review_path =
+                ld1b1_precommit_interruption_review_path(
+                    execution_root, job.job_id, attempt)
+            retirement_path = ld1b1_retirement_path(
+                execution_root, job.job_id, attempt)
+            result_present = ispath(result_path) || islink(result_path)
+            seal_present = ispath(seal_path) || islink(seal_path)
+            launched_review_present = ispath(launched_review_path) ||
+                islink(launched_review_path)
+            precommit_review_present = ispath(precommit_review_path) ||
+                islink(precommit_review_path)
+            review_present = launched_review_present ||
+                precommit_review_present
+            review_path = precommit_review_present ?
+                precommit_review_path : launched_review_path
+            launched_review_present && precommit_review_present &&
+                (disposition_conflicts += 1)
+            retirement_present =
+                ispath(retirement_path) || islink(retirement_path)
+            if retirement_present
+                seal_present && (disposition_conflicts += 1)
+                try
+                    validated = ld1b1_validate_retired_attempt(
+                        execution_root, identity, job, attempt)
+                    retired += 1
+                    attempt == 1 ? (retired_primary += 1) :
+                        (retired_remediation += 1)
+                    push!(attempt_result_rows, (;
+                        attempt_number = attempt,
+                        attempt_role =
+                            attempt == 1 ? :primary : :remediation,
+                        validated...,
+                        result_sha256 = result_present ?
+                            ld1b1_observed_path_sha256(result_path) : missing,
+                        result_content_hash = missing,
+                        runner_source_sha256 = missing,
+                        evidence_manifest_sha256 = missing,
+                        seal_file_sha256 = seal_present ?
+                            ld1b1_observed_path_sha256(seal_path) : missing,
+                        seal_content_hash = missing,
+                        helper_attempt_inventory_sha256 =
+                            validated.attempt_inventory_sha256,
+                    ))
+                catch err
+                    invalid += 1
+                    attempt == 1 ? (invalid_primary += 1) :
+                        (invalid_remediation += 1)
+                    push!(attempt_result_rows, (;
+                        attempt_number = attempt,
+                        attempt_role =
+                            attempt == 1 ? :primary : :remediation,
+                        archive_state = :invalid,
+                        terminal_status = missing,
+                        terminal_outcome_code = missing,
+                        result_sha256 = result_present ?
+                            ld1b1_observed_path_sha256(result_path) : missing,
+                        result_content_hash = missing,
+                        runner_source_sha256 = missing,
+                        evidence_manifest_sha256 = missing,
+                        seal_file_sha256 = seal_present ?
+                            ld1b1_observed_path_sha256(seal_path) : missing,
+                        seal_content_hash = missing,
+                        review_file_sha256 = review_present ?
+                            ld1b1_observed_path_sha256(review_path) : missing,
+                        retirement_file_sha256 =
+                            ld1b1_observed_path_sha256(retirement_path),
+                        attempt_inventory_sha256 =
+                            ld1b1_observed_semantic_inventory_sha256(
+                                attempt_dir),
+                        helper_attempt_inventory_sha256 =
+                            ld1b1_observed_helper_inventory_sha256(
+                                attempt_dir),
+                    ))
+                end
+                continue
+            end
+
+            if (review_present && seal_present) ||
+                    (launched_review_present && precommit_review_present)
+                disposition_conflicts += 1
+                invalid += 1
+                attempt == 1 ? (invalid_primary += 1) :
+                    (invalid_remediation += 1)
+                push!(attempt_result_rows, (;
+                    attempt_number = attempt,
+                    attempt_role = attempt == 1 ? :primary : :remediation,
+                    archive_state = :invalid_disposition_conflict,
+                    terminal_status = missing,
+                    terminal_outcome_code = missing,
+                    result_sha256 = result_present ?
+                        ld1b1_observed_path_sha256(result_path) : missing,
+                    result_content_hash = missing,
+                    runner_source_sha256 = missing,
+                    evidence_manifest_sha256 = missing,
+                    seal_file_sha256 =
+                        ld1b1_observed_path_sha256(seal_path),
+                    seal_content_hash = missing,
+                    review_file_sha256 =
+                        ld1b1_observed_path_sha256(review_path),
+                    retirement_file_sha256 = missing,
+                    attempt_inventory_sha256 =
+                        ld1b1_observed_semantic_inventory_sha256(attempt_dir),
+                    helper_attempt_inventory_sha256 =
+                        ld1b1_observed_helper_inventory_sha256(attempt_dir),
+                ))
+                continue
+            end
+
+            if review_present
+                try
+                    reviewed = if precommit_review_present
+                        validated =
+                            ld1b1_validate_precommit_interruption_review_record(
+                                attempt_dir,
+                                execution_root,
+                                identity,
+                                job,
+                                attempt,
+                            )
+                        (;
+                            kind = :precommit_interruption,
+                            reason = validated.reason_code,
+                            scientific_contribution =
+                                validated.scientific_contribution,
+                        )
+                    else
+                        recovery = ld1b1_recovery_reservation_context(
+                            attempt_dir, identity, job, attempt)
+                        validated = LD1B1Recovery.
+                            ld1b_validate_interruption_review_file(
+                                attempt_dir;
+                                plan_identity =
+                                    ld1b1_result_plan_identity(identity),
+                                execution_source_identity =
+                                    identity.execution_source_identity,
+                                job_identity =
+                                    ld1b1_result_job_identity(job),
+                                attempt_number = attempt,
+                                attempt_role = attempt == 1 ?
+                                    :primary : :remediation,
+                                recovery.file_kwargs...,
+                            )
+                        (;
+                            kind = :launched_interruption,
+                            reason = validated.retirement_reason_code,
+                            scientific_contribution = 0,
+                        )
+                    end
+                    reviewed.scientific_contribution == 0 || error(
+                        "pending interruption review contributes science")
+                    reviewed_pending_retirement += 1
+                    partial += 1
+                    attempt == 1 ? (partial_primary += 1) :
+                        (partial_remediation += 1)
+                    push!(attempt_result_rows, (;
+                        attempt_number = attempt,
+                        attempt_role = attempt == 1 ?
+                            :primary : :remediation,
+                        archive_state = :reviewed_pending_retirement,
+                        terminal_status = missing,
+                        terminal_outcome_code = missing,
+                        result_sha256 = result_present ?
+                            ld1b1_observed_path_sha256(result_path) : missing,
+                        result_content_hash = missing,
+                        runner_source_sha256 = missing,
+                        evidence_manifest_sha256 = missing,
+                        seal_file_sha256 = missing,
+                        seal_content_hash = missing,
+                        review_kind = reviewed.kind,
+                        retirement_reason_code = reviewed.reason,
+                        scientific_contribution = 0,
+                        review_file_sha256 =
+                            ld1b1_observed_path_sha256(review_path),
+                        retirement_file_sha256 = missing,
+                        attempt_inventory_sha256 =
+                            ld1b1_observed_semantic_inventory_sha256(
+                                attempt_dir),
+                        helper_attempt_inventory_sha256 =
+                            ld1b1_observed_helper_inventory_sha256(
+                                attempt_dir),
+                    ))
+                catch err
+                    invalid += 1
+                    attempt == 1 ? (invalid_primary += 1) :
+                        (invalid_remediation += 1)
+                    push!(attempt_result_rows, (;
+                        attempt_number = attempt,
+                        attempt_role = attempt == 1 ?
+                            :primary : :remediation,
+                        archive_state = :invalid_interruption_review,
+                        terminal_status = missing,
+                        terminal_outcome_code = missing,
+                        result_sha256 = result_present ?
+                            ld1b1_observed_path_sha256(result_path) : missing,
+                        result_content_hash = missing,
+                        runner_source_sha256 = missing,
+                        evidence_manifest_sha256 = missing,
+                        seal_file_sha256 = missing,
+                        seal_content_hash = missing,
+                        review_file_sha256 =
+                            ld1b1_observed_path_sha256(review_path),
+                        retirement_file_sha256 = missing,
+                        review_validation_error = portable_error_message(err),
+                        attempt_inventory_sha256 =
+                            ld1b1_observed_semantic_inventory_sha256(
+                                attempt_dir),
+                        helper_attempt_inventory_sha256 =
+                            ld1b1_observed_helper_inventory_sha256(
+                                attempt_dir),
+                    ))
+                end
+                continue
+            end
+            if !result_present && !seal_present
                 partial += 1
                 attempt == 1 ? (partial_primary += 1) :
                     (partial_remediation += 1)
@@ -3173,32 +5673,145 @@ function ld1b1_scan_attempts(specs, identity, execution_root::AbstractString)
                     attempt_role = attempt == 1 ? :primary : :remediation,
                     archive_state = :partial,
                     terminal_status = missing,
+                    terminal_outcome_code = missing,
                     result_sha256 = missing,
                     result_content_hash = missing,
                     runner_source_sha256 = missing,
                     evidence_manifest_sha256 = missing,
-                    attempt_inventory_sha256 = ld1b1_attempt_inventory_sha256(
-                        ld1b1_attempt_dir(
-                            execution_root, job.job_id, attempt)),
+                    seal_file_sha256 = missing,
+                    seal_content_hash = missing,
+                    attempt_inventory_sha256 =
+                        ld1b1_observed_semantic_inventory_sha256(attempt_dir),
+                    helper_attempt_inventory_sha256 =
+                        ld1b1_observed_helper_inventory_sha256(attempt_dir),
                 ))
                 continue
             end
+
+            if result_present && !seal_present
+                try
+                    semantic = ld1b1_validate_result(
+                        result_path,
+                        identity,
+                        job,
+                        attempt;
+                        calibration_semantic_context,
+                    )
+                    partial += 1
+                    attempt == 1 ? (partial_primary += 1) :
+                        (partial_remediation += 1)
+                    push!(attempt_result_rows, (;
+                        attempt_number = attempt,
+                        attempt_role =
+                            attempt == 1 ? :primary : :remediation,
+                        archive_state = :partial,
+                        terminal_status = missing,
+                        terminal_outcome_code = missing,
+                        result_sha256 = semantic.result_sha256,
+                        result_content_hash = semantic.content_hash,
+                        runner_source_sha256 =
+                            semantic.runner_source_sha256,
+                        evidence_manifest_sha256 =
+                            semantic.evidence_manifest_sha256,
+                        seal_file_sha256 = missing,
+                        seal_content_hash = missing,
+                        attempt_inventory_sha256 =
+                            semantic.attempt_inventory_sha256,
+                        helper_attempt_inventory_sha256 =
+                            ld1b1_observed_helper_inventory_sha256(
+                                attempt_dir),
+                    ))
+                    continue
+                catch err
+                    invalid += 1
+                    attempt == 1 ? (invalid_primary += 1) :
+                        (invalid_remediation += 1)
+                    message = sprint(showerror, err)
+                    if occursin("identity", message) ||
+                            occursin("lineage", message) ||
+                            occursin("seed contract", message)
+                        lineage += 1
+                        attempt == 1 ? (primary_lineage += 1) :
+                            (remediation_lineage += 1)
+                    end
+                    push!(attempt_result_rows, (;
+                        attempt_number = attempt,
+                        attempt_role =
+                            attempt == 1 ? :primary : :remediation,
+                        archive_state = :invalid,
+                        terminal_status = missing,
+                        terminal_outcome_code = missing,
+                        result_sha256 =
+                            ld1b1_observed_path_sha256(result_path),
+                        result_content_hash = missing,
+                        runner_source_sha256 = missing,
+                        evidence_manifest_sha256 = missing,
+                        seal_file_sha256 = missing,
+                        seal_content_hash = missing,
+                        attempt_inventory_sha256 =
+                            ld1b1_observed_semantic_inventory_sha256(
+                                attempt_dir),
+                        helper_attempt_inventory_sha256 =
+                            ld1b1_observed_helper_inventory_sha256(
+                                attempt_dir),
+                    ))
+                    continue
+                end
+            end
+
+            if !result_present && seal_present
+                invalid += 1
+                attempt == 1 ? (invalid_primary += 1) :
+                    (invalid_remediation += 1)
+                push!(attempt_result_rows, (;
+                    attempt_number = attempt,
+                    attempt_role = attempt == 1 ? :primary : :remediation,
+                    archive_state = :invalid,
+                    terminal_status = missing,
+                    terminal_outcome_code = missing,
+                    result_sha256 = missing,
+                    result_content_hash = missing,
+                    runner_source_sha256 = missing,
+                    evidence_manifest_sha256 = missing,
+                    seal_file_sha256 =
+                        ld1b1_observed_path_sha256(seal_path),
+                    seal_content_hash = missing,
+                    attempt_inventory_sha256 =
+                        ld1b1_observed_semantic_inventory_sha256(attempt_dir),
+                    helper_attempt_inventory_sha256 =
+                        ld1b1_observed_helper_inventory_sha256(attempt_dir),
+                ))
+                continue
+            end
+
             try
-                validated = ld1b1_validate_result(
-                    result_path, identity, job, attempt)
+                validated = ld1b1_validate_completed_attempt(
+                    result_path,
+                    identity,
+                    job,
+                    attempt;
+                    calibration_semantic_context,
+                )
                 statuses[attempt] = validated.terminal_status
+                outcomes[attempt] = validated.terminal_outcome_code
                 push!(attempt_result_rows, (;
                     attempt_number = attempt,
                     attempt_role = attempt == 1 ? :primary : :remediation,
                     archive_state = :verified_terminal,
                     terminal_status = validated.terminal_status,
+                    terminal_outcome_code =
+                        validated.terminal_outcome_code,
                     result_sha256 = validated.result_sha256,
                     result_content_hash = validated.content_hash,
                     runner_source_sha256 = validated.runner_source_sha256,
                     evidence_manifest_sha256 =
                         validated.evidence_manifest_sha256,
+                    seal_file_sha256 = validated.seal_file_sha256,
+                    seal_content_hash = validated.seal_content_hash,
                     attempt_inventory_sha256 =
                         validated.attempt_inventory_sha256,
+                    helper_attempt_inventory_sha256 =
+                        validated.helper_attempt_inventory_sha256,
                 ))
             catch err
                 invalid += 1
@@ -3212,38 +5825,79 @@ function ld1b1_scan_attempts(specs, identity, execution_root::AbstractString)
                     attempt == 1 ? (primary_lineage += 1) :
                         (remediation_lineage += 1)
                 end
-                result_digest = islink(result_path) ?
-                    bytes2hex(sha256(codeunits(readlink(result_path)))) :
-                    ld1b1_file_sha256(result_path)
                 push!(attempt_result_rows, (;
                     attempt_number = attempt,
                     attempt_role = attempt == 1 ? :primary : :remediation,
                     archive_state = :invalid,
                     terminal_status = missing,
-                    result_sha256 = result_digest,
+                    terminal_outcome_code = missing,
+                    result_sha256 =
+                        ld1b1_observed_path_sha256(result_path),
                     result_content_hash = missing,
                     runner_source_sha256 = missing,
                     evidence_manifest_sha256 = missing,
-                    attempt_inventory_sha256 = ld1b1_attempt_inventory_sha256(
-                        ld1b1_attempt_dir(
-                            execution_root, job.job_id, attempt)),
+                    seal_file_sha256 =
+                        ld1b1_observed_path_sha256(seal_path),
+                    seal_content_hash = missing,
+                    attempt_inventory_sha256 =
+                        ld1b1_observed_semantic_inventory_sha256(attempt_dir),
+                    helper_attempt_inventory_sha256 =
+                        ld1b1_observed_helper_inventory_sha256(attempt_dir),
                 ))
             end
+        end
+        for reservation in reservation_rows
+            reservation.attempt_directory_present && continue
+            partial += 1
+            reservation.attempt == 1 ? (partial_primary += 1) :
+                (partial_remediation += 1)
+            push!(attempt_result_rows, (;
+                attempt_number = reservation.attempt,
+                attempt_role = reservation.attempt == 1 ?
+                    :primary : :remediation,
+                archive_state = reservation.reservation_valid ?
+                    :reserved_precommit_partial :
+                    :invalid_reserved_precommit,
+                terminal_status = missing,
+                terminal_outcome_code = missing,
+                result_sha256 = missing,
+                result_content_hash = missing,
+                runner_source_sha256 = missing,
+                evidence_manifest_sha256 = missing,
+                seal_file_sha256 = missing,
+                seal_content_hash = missing,
+                reservation_path = reservation.reservation_path,
+                reservation_id = reservation.reservation_id,
+                reservation_file_sha256 =
+                    reservation.reservation_file_sha256,
+                reservation_content_hash =
+                    reservation.reservation_content_hash,
+                scientific_contribution = 0,
+                attempt_inventory_sha256 = missing,
+                helper_attempt_inventory_sha256 = missing,
+            ))
         end
         sort!(attempt_result_rows; by = row -> row.attempt_number)
         primary_present = 1 in attempts && isfile(
             ld1b1_result_path(execution_root, job.job_id, 1))
         primary_valid = haskey(statuses, 1)
-        state = isempty(attempts) ? :absent :
+        state = isempty(observed_attempts) ? :absent :
             !contiguous_attempts ? :noncontiguous_attempts :
+            reviewed_pending_retirement > 0 && partial_primary > 0 ?
+                :reviewed_pending_retirement :
             partial_primary > 0 ? :partial :
             primary_lineage > 0 ? :lineage_mismatch :
             invalid_primary > 0 ? :corrupt :
+            retired_primary > 0 ? :primary_retired_interrupted :
             !primary_valid ? :missing_primary :
+            reviewed_pending_retirement > 0 && partial_remediation > 0 ?
+                :remediation_reviewed_pending_retirement :
             partial_remediation > 0 ? :remediation_partial :
             remediation_lineage > 0 ? :remediation_lineage_mismatch :
             invalid_remediation > 0 ? :remediation_corrupt :
-            length(attempts) == 1 ? :complete_verified :
+            retired_remediation > 0 ?
+                :complete_verified_with_retired_remediation :
+            length(observed_attempts) == 1 ? :complete_verified :
             :complete_verified_with_remediation
         push!(rows, (;
             job_id = job.job_id,
@@ -3252,12 +5906,21 @@ function ld1b1_scan_attempts(specs, identity, execution_root::AbstractString)
             replication = job.replication,
             expected_action = job.expected_action,
             state,
-            attempt_numbers = attempts,
-            n_attempts = length(attempts),
+            attempt_numbers = observed_attempts,
+            n_attempts = length(observed_attempts),
             primary_present,
             primary_valid,
+            primary_disposed = primary_valid || retired_primary == 1,
             primary_terminal_status = primary_valid ? statuses[1] : missing,
-            retry_attempts = count(>(1), attempts),
+            primary_terminal_outcome_code =
+                primary_valid ? outcomes[1] : missing,
+            retry_attempts = count(>(1), observed_attempts),
+            retired_attempts = retired,
+            retired_primary_attempts = retired_primary,
+            retired_remediation_attempts = retired_remediation,
+            reviewed_pending_retirement_attempts =
+                reviewed_pending_retirement,
+            disposition_conflicts,
             invalid_attempts = invalid,
             partial_attempts = partial,
             lineage_mismatches = lineage,
@@ -3271,12 +5934,26 @@ function ld1b1_scan_attempts(specs, identity, execution_root::AbstractString)
             attempt_result_rows = Tuple(attempt_result_rows),
         ))
     end
-    return ld1b1_scan_summary(
+    summary = ld1b1_scan_summary(
         rows,
         unexpected_entries,
         unexpected_plan_entries;
         execution_plan_id = identity.plan_id,
     )
+    reservation_state_digest = ld1b1_canonical_sha256((;
+        active = reservation_scan.active,
+        rows = reservation_scan.rows,
+    ))
+    state_digest = ld1b1_canonical_sha256((;
+        attempt_tree_state_digest = summary.state_digest,
+        attempt_reservation_state_digest = reservation_state_digest,
+    ))
+    return merge(summary, (;
+        state_digest,
+        attempt_reservation_scan_active = reservation_scan.active,
+        attempt_reservation_rows = reservation_scan.rows,
+        attempt_reservation_state_digest = reservation_state_digest,
+    ))
 end
 
 function ld1b1_scan_summary(rows, unexpected_entries,
@@ -3296,6 +5973,13 @@ function ld1b1_scan_summary(rows, unexpected_entries,
     n_retry = sum(row.retry_attempts for row in rows)
     n_invalid = sum(row.invalid_attempts for row in rows)
     n_partial = sum(row.partial_attempts for row in rows)
+    n_retired = sum(row.retired_attempts for row in rows)
+    n_retired_primary = sum(row.retired_primary_attempts for row in rows)
+    n_retired_remediation =
+        sum(row.retired_remediation_attempts for row in rows)
+    n_reviewed_pending_retirement = sum(
+        row.reviewed_pending_retirement_attempts for row in rows)
+    n_disposition_conflicts = sum(row.disposition_conflicts for row in rows)
     n_lineage = sum(row.lineage_mismatches for row in rows)
     n_invalid_primary = sum(row.invalid_primary_attempts for row in rows)
     n_invalid_remediation =
@@ -3339,6 +6023,8 @@ function ld1b1_scan_summary(rows, unexpected_entries,
         )
     end)() for scenario_id in scenario_ids)
     all_primary_recorded = n_primary == length(rows)
+    all_primary_disposed = count(row -> row.primary_disposed, rows) ==
+        length(rows)
     primary_attempt_tree_clean = n_invalid_primary == 0 &&
         n_partial_primary == 0 && n_primary_lineage == 0 &&
         isempty(unexpected_plan_entries)
@@ -3355,6 +6041,7 @@ function ld1b1_scan_summary(rows, unexpected_entries,
         job_id = row.job_id,
         row_index = row.row_index,
         terminal_status = row.primary_terminal_status,
+        terminal_outcome_code = row.primary_terminal_outcome_code,
         result_sha256 = only(attempt.result_sha256 for attempt in
             row.attempt_result_rows if attempt.attempt_number == 1),
         result_content_hash = only(attempt.result_content_hash for attempt in
@@ -3364,9 +6051,43 @@ function ld1b1_scan_summary(rows, unexpected_entries,
         evidence_manifest_sha256 = only(
             attempt.evidence_manifest_sha256 for attempt in
             row.attempt_result_rows if attempt.attempt_number == 1),
+        seal_file_sha256 = only(attempt.seal_file_sha256 for attempt in
+            row.attempt_result_rows if attempt.attempt_number == 1),
+        seal_content_hash = only(attempt.seal_content_hash for attempt in
+            row.attempt_result_rows if attempt.attempt_number == 1),
+        helper_attempt_inventory_sha256 = only(
+            attempt.helper_attempt_inventory_sha256 for attempt in
+            row.attempt_result_rows if attempt.attempt_number == 1),
     ) for row in rows if row.primary_valid)
     observed_primary_result_set_sha256 = ld1b1_canonical_sha256(
         observed_primary_result_rows)
+    observed_primary_disposition_rows = Tuple(begin
+        attempt = only(attempt for attempt in row.attempt_result_rows
+            if attempt.attempt_number == 1)
+        if row.primary_valid
+            (;
+                job_id = row.job_id,
+                row_index = row.row_index,
+                disposition_kind = :sealed_terminal,
+                control_file_sha256 = attempt.seal_file_sha256,
+                control_content_hash = attempt.seal_content_hash,
+                attempt_inventory_sha256 =
+                    attempt.helper_attempt_inventory_sha256,
+            )
+        else
+            (;
+                job_id = row.job_id,
+                row_index = row.row_index,
+                disposition_kind = :retired_interrupted,
+                control_file_sha256 = attempt.retirement_file_sha256,
+                control_content_hash = attempt.retirement_content_hash,
+                attempt_inventory_sha256 =
+                    attempt.helper_attempt_inventory_sha256,
+            )
+        end
+    end for row in rows if row.primary_disposed)
+    observed_primary_disposition_set_sha256 = ld1b1_canonical_sha256(
+        observed_primary_disposition_rows)
     state_digest = ld1b1_canonical_sha256((;
         execution_plan_id,
         scan_assessment = :completed,
@@ -3387,6 +6108,7 @@ function ld1b1_scan_summary(rows, unexpected_entries,
         unexpected_plan_entries,
         state_digest,
         observed_primary_result_set_sha256,
+        observed_primary_disposition_set_sha256,
         summary = (;
             n_jobs = length(rows),
             scan_assessment = :completed,
@@ -3398,6 +6120,12 @@ function ld1b1_scan_summary(rows, unexpected_entries,
             n_retry_attempts_observed = n_retry,
             n_invalid_attempts = n_invalid,
             n_partial_attempts = n_partial,
+            n_retired_attempts = n_retired,
+            n_retired_primary_attempts = n_retired_primary,
+            n_retired_remediation_attempts = n_retired_remediation,
+            n_reviewed_pending_retirement_attempts =
+                n_reviewed_pending_retirement,
+            n_disposition_conflicts,
             n_lineage_mismatches = n_lineage,
             n_invalid_primary_attempts = n_invalid_primary,
             n_invalid_remediation_attempts = n_invalid_remediation,
@@ -3409,6 +6137,7 @@ function ld1b1_scan_summary(rows, unexpected_entries,
             n_unexpected_attempt_tree_entries = length(unexpected_entries),
             n_unexpected_plan_entries = length(unexpected_plan_entries),
             all_primary_outcomes_recorded = all_primary_recorded,
+            all_primary_attempts_disposed = all_primary_disposed,
             primary_attempt_tree_clean,
             remediation_archive_clean,
             clean_attempt_tree,
@@ -3438,6 +6167,8 @@ function ld1b1_checkpoint_artifact(identity, scan; generated_at = string(Dates.n
         state_digest = scan.state_digest,
         observed_primary_result_set_sha256 =
             scan.observed_primary_result_set_sha256,
+        observed_primary_disposition_set_sha256 =
+            scan.observed_primary_disposition_set_sha256,
         summary = scan.summary,
         source_of_truth = :immutable_job_attempt_records,
         checkpoint_role = :derived_resume_index_only,
@@ -3455,14 +6186,23 @@ function ld1b1_resume_state(checkpoint_path::AbstractString, identity, scan)
     plan = checkpoint[:plan_identity]
     for field in (
             :plan_id,
+            :protocol_plan_id,
             :protocol_file_sha256,
             :protocol_content_hash,
             :ordered_job_rows_sha256,
             :pilot_contract_sha256,
+            :canonical_executor_source_pin_id,
         )
         ld1b1_string(plan[field]) == String(getproperty(identity, field)) ||
             error("resume checkpoint plan identity mismatch: $field")
     end
+    ld1b1_canonical_sha256(ld1b1_json_native(
+        plan[:execution_source_identity])) ==
+        ld1b1_canonical_sha256(identity.execution_source_identity) || error(
+        "resume checkpoint execution source identity mismatch")
+    ld1b1_string(plan[:batch_harness_generator_source_sha256]) ==
+        String(identity.batch_harness_generator_source_sha256) || error(
+        "resume checkpoint harness-generator source identity mismatch")
     stored_digest = ld1b1_string(checkpoint[:state_digest])
     return (;
         checkpoint_present = true,
@@ -3538,18 +6278,29 @@ ld1b1_portable_command_string(args::Vector{String}) =
     ld1b1_command_string(ld1b1_portable_command_args(args))
 
 function ld1b1_job_command(job, identity, execution_root, options;
-        runner_source_sha256 = nothing)
+        runner_source_sha256 = nothing,
+        controller_readiness_authorized::Bool = false,
+        bounded_smoke_authorization = nothing)
+    controller_readiness_authorized &&
+        bounded_smoke_authorization !== nothing && error(
+        "job command cannot combine pilot and bounded-smoke authorization")
+    worker_mode = bounded_smoke_authorization !== nothing ?
+        "bounded-smoke" :
+        controller_readiness_authorized ? "execute" : "status"
     result_path = ld1b1_result_path(
         execution_root, job.job_id, options.attempt)
     args = String[
         ld1b1_julia_executable(),
         string("--project=", LD1B1_ROOT),
         options.runner,
+        "--mode", worker_mode,
         "--protocol", options.protocol,
         "--job-id", job.job_id,
         "--row-index", string(job.row_index),
         "--attempt", string(options.attempt),
         "--output", result_path,
+        "--reservation-receipt", ld1b1_attempt_reservation_path(
+            execution_root, job.job_id, options.attempt),
         "--plan-id", identity.plan_id,
         "--protocol-plan-id", identity.protocol_plan_id,
         "--protocol-file-sha256", identity.protocol_file_sha256,
@@ -3559,13 +6310,27 @@ function ld1b1_job_command(job, identity, execution_root, options;
             identity.execution_source_identity.batch_runner_source_sha256,
         "--local-json-source-sha256",
             identity.execution_source_identity.local_json_source_sha256,
+        "--attempt-archive-source-sha256",
+            identity.execution_source_identity.attempt_archive_source_sha256,
+        "--local-dependence-pilot-recovery-source-sha256",
+            identity.execution_source_identity.
+                local_dependence_pilot_recovery_source_sha256,
+        "--local-dependence-pilot-calibration-semantics-source-sha256",
+            identity.execution_source_identity.
+                local_dependence_pilot_calibration_semantics_source_sha256,
         "--seed", string(job.seed),
         "--fit-seed", string(job.fit_seed),
         "--draw-selection-seed", string(job.draw_selection_seed),
         "--posterior-predictive-seed",
             string(job.posterior_predictive_seed),
     ]
-    if options.mode === :execute_retry
+    if bounded_smoke_authorization !== nothing
+        append!(args, [
+            "--attempt-role", "verification",
+            "--bounded-smoke-authorization",
+            String(bounded_smoke_authorization),
+        ])
+    elseif options.mode === :execute_retry
         append!(args, [
             "--attempt-role", "remediation",
             "--retry-of", string(options.retry_of),
@@ -3579,15 +6344,30 @@ function ld1b1_job_command(job, identity, execution_root, options;
     runner_source_sha256 === nothing || append!(args, [
         "--runner-source-sha256", String(runner_source_sha256),
     ])
-    return (; args, result_path)
+    controller_readiness_authorized &&
+        push!(args, "--controller-readiness-authorized")
+    return (;
+        args,
+        result_path,
+        controller_readiness_authorized,
+        bounded_smoke_authorization,
+        worker_mode = Symbol(replace(worker_mode, '-' => '_')),
+    )
 end
 
-function ld1b1_require_attempt_available(job, identity, execution_root, options)
+function ld1b1_require_attempt_available(job, identity, execution_root, options;
+        calibration_semantic_context = nothing)
+    calibration_semantic_context === nothing && error(
+        "attempt admission requires the canonical calibration semantic context")
     attempt = options.attempt
     target_dir = ld1b1_attempt_dir(execution_root, job.job_id, attempt)
+    reservation_path = ld1b1_attempt_reservation_path(
+        execution_root, job.job_id, attempt)
     ld1b1_reject_symlink_components(target_dir, execution_root)
     ispath(target_dir) && error(
         "refusing to overwrite existing attempt directory: $target_dir")
+    (ispath(reservation_path) || islink(reservation_path)) && error(
+        "refusing to overwrite existing attempt reservation: $reservation_path")
     job_dir = dirname(target_dir)
     attempts, unexpected = ld1b1_attempt_numbers(job_dir)
     isempty(unexpected) || error("job directory contains noncanonical entries")
@@ -3600,11 +6380,307 @@ function ld1b1_require_attempt_available(job, identity, execution_root, options)
         for previous_attempt in attempts
             previous_path = ld1b1_result_path(
                 execution_root, job.job_id, previous_attempt)
-            ld1b1_validate_result(
-                previous_path, identity, job, previous_attempt)
+            ld1b1_validate_completed_attempt(
+                previous_path,
+                identity,
+                job,
+                previous_attempt;
+                calibration_semantic_context,
+            )
         end
     end
     return target_dir
+end
+
+ld1b1_receipt_recorded_at_utc() = Dates.format(
+    Dates.now(Dates.UTC), dateformat"yyyy-mm-ddTHH:MM:SS.sssZ")
+
+function ld1b1_controller_receipt_identity(identity, job, attempt::Int;
+        execution_context = ld1b1_execution_context())
+    context = ld1b1_validate_execution_context(execution_context)
+    return (;
+        plan_identity = ld1b1_result_plan_identity(identity),
+        execution_source_identity = identity.execution_source_identity,
+        job_identity = ld1b1_result_job_identity(job),
+        attempt_number = attempt,
+        attempt_role = ld1b1_attempt_identity(attempt, context).role,
+        execution_context = context,
+    )
+end
+
+function ld1b1_attempt_reservation_id(identity, job, attempt::Int,
+        controller_run_id::AbstractString)
+    digest = ld1b1_canonical_sha256((;
+        identity.plan_id,
+        job.job_id,
+        attempt,
+        controller_run_id = String(controller_run_id),
+    ))
+    return string("ld1b1_", digest)
+end
+
+function ld1b1_reservation_lineage(execution_root::AbstractString,
+        identity, job, attempt::Int; expected_reservation_id = nothing,
+        execution_context = ld1b1_execution_context())
+    attempt_dir = ld1b1_attempt_dir(
+        execution_root, job.job_id, attempt)
+    reservation_path = ld1b1_attempt_reservation_path(
+        execution_root, job.job_id, attempt)
+    identity_args = ld1b1_controller_receipt_identity(
+        identity, job, attempt; execution_context)
+    relative_attempt_path = relpath(attempt_dir, execution_root)
+    reservation = LD1B1Recovery.ld1b_validate_attempt_reservation_file(
+        reservation_path;
+        execution_root,
+        identity_args...,
+        expected_reservation_id,
+        expected_execution_root_relative_attempt_path =
+            relative_attempt_path,
+    )
+    lineage_args = (;
+        reservation_artifact = reservation.artifact,
+        reservation_receipt_sha256 = reservation.file_sha256,
+        expected_reservation_id = reservation.reservation_id,
+        expected_execution_root_relative_reservation_path =
+            reservation.execution_root_relative_reservation_path,
+        expected_execution_root_relative_attempt_path =
+            relative_attempt_path,
+    )
+    return (;
+        attempt_dir,
+        reservation_path,
+        relative_attempt_path,
+        identity_args,
+        lineage_args,
+        reservation,
+    )
+end
+
+function ld1b1_publish_attempt_reservation_create_new(
+        execution_root::AbstractString, identity, job, attempt::Int,
+        controller_run_id::AbstractString;
+        execution_context = ld1b1_execution_context())
+    mkpath(execution_root)
+    isdir(execution_root) && !islink(execution_root) || error(
+        "execution root is not a regular directory")
+    attempt_dir = ld1b1_attempt_dir(
+        execution_root, job.job_id, attempt)
+    reservation_path = ld1b1_attempt_reservation_path(
+        execution_root, job.job_id, attempt)
+    mkpath(dirname(reservation_path))
+    reservation_id = ld1b1_attempt_reservation_id(
+        identity, job, attempt, controller_run_id)
+    identity_args = ld1b1_controller_receipt_identity(
+        identity, job, attempt; execution_context)
+    publication = LD1B1Recovery.ld1b_publish_attempt_reservation(
+        reservation_path;
+        execution_root,
+        identity_args...,
+        reservation_id,
+        execution_root_relative_attempt_path =
+            relpath(attempt_dir, execution_root),
+        controller_host = Sockets.gethostname(),
+        controller_run_id,
+        controller_pid = getpid(),
+        recorded_at_utc = ld1b1_receipt_recorded_at_utc(),
+        staging_dir =
+            ld1b1_attempt_reservation_staging_dir(execution_root),
+    )
+    lineage = ld1b1_reservation_lineage(
+        execution_root, identity, job, attempt; expected_reservation_id =
+            reservation_id, execution_context)
+    return (; publication, lineage)
+end
+
+function ld1b1_publish_receipt_create_new(path::AbstractString, artifact,
+        execution_root::AbstractString; semantic_validator,
+        artifact_label::AbstractString)
+    return LD1B1AttemptArchive.ld1b_atomic_publish_json_create_new(
+        path,
+        artifact,
+        ld1b1_receipt_staging_dir(execution_root),
+        execution_root;
+        semantic_validator,
+        artifact_label,
+    )
+end
+
+function ld1b1_publish_canonical_owner_create_new(lineage,
+        execution_root::AbstractString)
+    artifact = LD1B1Recovery.ld1b_canonical_attempt_owner_precommit(;
+        lineage.identity_args...,
+        lineage.lineage_args...,
+        recorded_at_utc = ld1b1_receipt_recorded_at_utc(),
+    )
+    validator = value -> LD1B1Recovery.
+        ld1b_validate_canonical_attempt_owner_precommit(
+            value;
+            lineage.identity_args...,
+            lineage.lineage_args...,
+        )
+    path = joinpath(
+        lineage.attempt_dir, LD1B1Recovery.LD1B_ATTEMPT_OWNER_FILENAME)
+    publication = ld1b1_publish_receipt_create_new(
+        path,
+        artifact,
+        execution_root;
+        semantic_validator = validator,
+        artifact_label = "canonical attempt-owner precommit",
+    )
+    owner = LD1B1Recovery.ld1b_validate_canonical_attempt_owner_file(
+        lineage.attempt_dir;
+        lineage.identity_args...,
+        reservation_path = lineage.reservation_path,
+        execution_root,
+        expected_reservation_id =
+            lineage.reservation.reservation_id,
+    )
+    return (; publication, owner)
+end
+
+function ld1b1_publish_child_launch_create_new(lineage, owner,
+        child_pid::Integer, execution_root::AbstractString)
+    child_pid = Int(child_pid)
+    artifact = LD1B1Recovery.ld1b_child_launch_receipt(;
+        lineage.identity_args...,
+        lineage.lineage_args...,
+        owner_artifact = owner.artifact,
+        owner_receipt_sha256 = owner.file_sha256,
+        child_pid,
+        recorded_at_utc = ld1b1_receipt_recorded_at_utc(),
+    )
+    validator = value -> LD1B1Recovery.ld1b_validate_child_launch_receipt(
+        value;
+        lineage.identity_args...,
+        lineage.lineage_args...,
+        owner_artifact = owner.artifact,
+        owner_receipt_sha256 = owner.file_sha256,
+    )
+    path = joinpath(
+        lineage.attempt_dir, LD1B1Recovery.LD1B_CHILD_LAUNCH_FILENAME)
+    publication = ld1b1_publish_receipt_create_new(
+        path,
+        artifact,
+        execution_root;
+        semantic_validator = validator,
+        artifact_label = "child-launch receipt",
+    )
+    launch = LD1B1Recovery.ld1b_validate_child_launch_file(
+        lineage.attempt_dir;
+        lineage.identity_args...,
+        reservation_path = lineage.reservation_path,
+        execution_root,
+        expected_reservation_id =
+            lineage.reservation.reservation_id,
+    )
+    ld1b1_int(launch.artifact["launch"]["child_pid"]) == child_pid || error(
+        "published child-launch receipt has the wrong PID")
+    return (; publication, launch)
+end
+
+function ld1b1_publish_child_exit_create_new(lineage, launch,
+        exit_code::Integer, execution_root::AbstractString)
+    exit_code = Int(exit_code)
+    artifact = LD1B1Recovery.ld1b_child_exit_receipt(;
+        lineage.identity_args...,
+        lineage.lineage_args...,
+        owner_artifact = launch.owner.artifact,
+        owner_receipt_sha256 = launch.owner.file_sha256,
+        launch_artifact = launch.artifact,
+        launch_receipt_sha256 = launch.file_sha256,
+        exit_code,
+        recorded_at_utc = ld1b1_receipt_recorded_at_utc(),
+    )
+    validator = value -> LD1B1Recovery.ld1b_validate_child_exit_receipt(
+        value;
+        lineage.identity_args...,
+        lineage.lineage_args...,
+        owner_artifact = launch.owner.artifact,
+        owner_receipt_sha256 = launch.owner.file_sha256,
+        launch_artifact = launch.artifact,
+        launch_receipt_sha256 = launch.file_sha256,
+    )
+    path = joinpath(
+        lineage.attempt_dir, LD1B1Recovery.LD1B_CHILD_EXIT_FILENAME)
+    publication = ld1b1_publish_receipt_create_new(
+        path,
+        artifact,
+        execution_root;
+        semantic_validator = validator,
+        artifact_label = "child-exit receipt",
+    )
+    exit = LD1B1Recovery.ld1b_validate_child_exit_file(
+        lineage.attempt_dir;
+        lineage.identity_args...,
+        reservation_path = lineage.reservation_path,
+        execution_root,
+        expected_reservation_id =
+            lineage.reservation.reservation_id,
+    )
+    observed_exit_code = ld1b1_int(exit.artifact["exit"]["exit_code"])
+    observed_exit_code == exit_code || error(
+        "published child-exit receipt has the wrong exit code")
+    return (; publication, exit, exit_code = observed_exit_code)
+end
+
+function ld1b1_validate_canonical_controller_receipts(
+        attempt_dir::AbstractString, identity, job, attempt::Int;
+        execution_context = ld1b1_execution_context())
+    execution_root = ld1b1_result_execution_root(
+        joinpath(attempt_dir, "job_result.json"))
+    expected_attempt_dir = ld1b1_attempt_dir(
+        execution_root, job.job_id, attempt)
+    normpath(attempt_dir) == normpath(expected_attempt_dir) || error(
+        "controller receipts belong to the wrong attempt directory")
+    lineage = ld1b1_reservation_lineage(
+        execution_root, identity, job, attempt; execution_context)
+    owner = LD1B1Recovery.ld1b_validate_canonical_attempt_owner_file(
+        attempt_dir;
+        lineage.identity_args...,
+        reservation_path = lineage.reservation_path,
+        execution_root,
+        expected_reservation_id =
+            lineage.reservation.reservation_id,
+    )
+    launch = LD1B1Recovery.ld1b_validate_child_launch_file(
+        attempt_dir;
+        lineage.identity_args...,
+        reservation_path = lineage.reservation_path,
+        execution_root,
+        expected_reservation_id =
+            lineage.reservation.reservation_id,
+    )
+    exit = LD1B1Recovery.ld1b_validate_child_exit_file(
+        attempt_dir;
+        lineage.identity_args...,
+        reservation_path = lineage.reservation_path,
+        execution_root,
+        expected_reservation_id =
+            lineage.reservation.reservation_id,
+    )
+    launch.owner.file_sha256 == owner.file_sha256 || error(
+        "child-launch receipt does not reference the canonical owner")
+    exit.launch.file_sha256 == launch.file_sha256 || error(
+        "child-exit receipt does not reference the canonical launch")
+    exit_code = ld1b1_int(exit.artifact["exit"]["exit_code"])
+    return (;
+        reservation = lineage.reservation,
+        owner,
+        launch,
+        exit,
+        exit_code,
+        receipt_order = (:reservation, :owner, :launch, :exit),
+    )
+end
+
+function ld1b1_validate_canonical_terminal_admission_receipts(
+        attempt_dir::AbstractString, identity, job, attempt::Int;
+        execution_context = ld1b1_execution_context())
+    receipts = ld1b1_validate_canonical_controller_receipts(
+        attempt_dir, identity, job, attempt; execution_context)
+    receipts.exit_code == 0 || error(
+        "canonical terminal admission requires child exit code 0")
+    return receipts
 end
 
 function ld1b1_run_command(args::Vector{String}, log_path::AbstractString)
@@ -3634,8 +6710,236 @@ function ld1b1_run_command(args::Vector{String}, log_path::AbstractString)
     )
 end
 
+function ld1b1_observed_process_rss_bytes(pid::Integer)
+    ps = Sys.which("ps")
+    ps === nothing && return missing
+    text = try
+        read(pipeline(
+            Cmd([String(ps), "-o", "rss=", "-p", string(Int(pid))]);
+            stderr = devnull,
+        ), String)
+    catch
+        return missing
+    end
+    stripped = strip(text)
+    isempty(stripped) && return missing
+    value = tryparse(Int, first(split(stripped)))
+    value === nothing && return missing
+    value >= 0 || return missing
+    return value * 1024
+end
+
+function ld1b1_observed_tree_bytes(root::AbstractString)
+    (ispath(root) || islink(root)) || return 0
+    isdir(root) && !islink(root) || error(
+        "bounded resource root is not a regular directory")
+    total = 0
+    for (directory, directories, files) in walkdir(root; follow_symlinks = false)
+        for name in directories
+            path = joinpath(directory, name)
+            islink(path) && error(
+                "bounded resource tree contains a symbolic-link directory")
+        end
+        for name in files
+            path = joinpath(directory, name)
+            isfile(path) && !islink(path) || error(
+                "bounded resource tree contains a non-regular file")
+            metadata = stat(path)
+            metadata.nlink == 1 || error(
+                "bounded resource tree contains a hard-linked file")
+            total += metadata.size
+        end
+    end
+    return total
+end
+
+function ld1b1_terminate_bounded_process(process;
+        grace_seconds::Real)
+    term_sent = false
+    kill_sent = false
+    if !process_exited(process)
+        try
+            kill(process)
+            term_sent = true
+        catch
+        end
+    end
+    if !process_exited(process)
+        state = timedwait(
+            () -> process_exited(process),
+            Float64(grace_seconds);
+            pollint = 0.05,
+        )
+        if state === :timed_out && !process_exited(process)
+            try
+                kill(process, Base.SIGKILL)
+                kill_sent = true
+            catch
+            end
+        end
+    end
+    try
+        wait(process)
+    catch
+    end
+    return (; term_sent, kill_sent)
+end
+
+function ld1b1_run_command_with_controller_receipts(
+        args::Vector{String}, log_path::AbstractString, lineage, owner,
+        execution_root::AbstractString;
+        timeout_seconds = nothing,
+        termination_grace_seconds::Real =
+            LD1B1_BOUNDED_SMOKE_TERMINATION_GRACE_SECONDS,
+        max_rss_bytes = nothing,
+        max_archive_bytes = nothing,
+        monitored_archive_root::AbstractString = execution_root,
+        poll_seconds::Real = 0.5,
+        rss_observer::Function = ld1b1_observed_process_rss_bytes)
+    mkpath(dirname(log_path))
+    ispath(log_path) && error("refusing to overwrite existing log: $log_path")
+    started_at = Dates.now()
+    process = nothing
+    child_pid = missing
+    launch_publication = nothing
+    exit_publication = nothing
+    exit_code = missing
+    message = missing
+    timed_out = false
+    resource_limit_exceeded = false
+    resource_limit_code = missing
+    peak_rss_bytes = 0
+    peak_archive_bytes = 0
+    rss_monitor_available = true
+    termination = (term_sent = false, kill_sent = false)
+    try
+        open(log_path, "w") do io
+            println(io, "command=", ld1b1_command_string(args))
+            println(io, "started_at=", started_at)
+            flush(io)
+            process = run(
+                pipeline(Cmd(args); stdout = io, stderr = io);
+                wait = false,
+            )
+            child_pid = getpid(process)
+            launch_publication = ld1b1_publish_child_launch_create_new(
+                lineage, owner, child_pid, execution_root)
+            if timeout_seconds === nothing && max_rss_bytes === nothing &&
+                    max_archive_bytes === nothing
+                wait(process)
+            else
+                timeout_seconds isa Real && timeout_seconds > 0 || error(
+                    "bounded command timeout must be positive")
+                max_rss_bytes isa Integer && max_rss_bytes > 0 || error(
+                    "bounded command RSS cap must be a positive integer")
+                max_archive_bytes isa Integer && max_archive_bytes > 0 || error(
+                    "bounded command archive cap must be a positive integer")
+                started_monotonic = time()
+                while !process_exited(process)
+                    rss = rss_observer(child_pid)
+                    if ismissing(rss)
+                        if !process_exited(process)
+                            rss_monitor_available = false
+                            resource_limit_exceeded = true
+                            resource_limit_code = :rss_monitor_unavailable
+                        end
+                    else
+                        peak_rss_bytes = max(peak_rss_bytes, rss)
+                        if rss > max_rss_bytes
+                            resource_limit_exceeded = true
+                            resource_limit_code = :rss_cap_exceeded
+                        end
+                    end
+                    archive_bytes = ld1b1_observed_tree_bytes(
+                        monitored_archive_root)
+                    peak_archive_bytes = max(
+                        peak_archive_bytes, archive_bytes)
+                    if archive_bytes > max_archive_bytes
+                        resource_limit_exceeded = true
+                        resource_limit_code = :archive_cap_exceeded
+                    end
+                    if time() - started_monotonic >= timeout_seconds
+                        timed_out = true
+                        resource_limit_code = :wall_time_cap_exceeded
+                    end
+                    if timed_out || resource_limit_exceeded
+                        termination = ld1b1_terminate_bounded_process(
+                            process; grace_seconds = termination_grace_seconds)
+                        break
+                    end
+                    sleep(Float64(poll_seconds))
+                end
+                if !process_exited(process)
+                    wait(process)
+                end
+                final_archive_bytes = ld1b1_observed_tree_bytes(
+                    monitored_archive_root)
+                peak_archive_bytes = max(
+                    peak_archive_bytes, final_archive_bytes)
+                if final_archive_bytes > max_archive_bytes
+                    resource_limit_exceeded = true
+                    resource_limit_code = :archive_cap_exceeded
+                end
+            end
+            exit_code = process.exitcode
+            exit_publication = ld1b1_publish_child_exit_create_new(
+                lineage, launch_publication.launch, exit_code,
+                execution_root)
+            println(io, "finished_at=", Dates.now())
+            println(io, "exit_code=", exit_code)
+            flush(io)
+        end
+        if timed_out
+            message = "single-job runner exceeded the bounded wall-time cap"
+        elseif resource_limit_exceeded
+            message = "single-job runner exceeded or could not verify resource cap: " *
+                string(resource_limit_code)
+        elseif exit_code != 0
+            message = "single-job runner exited with code $exit_code"
+        end
+    catch err
+        message = portable_error_message(err)
+        if process !== nothing && !process_exited(process)
+            try
+                wait(process)
+            catch
+            end
+        end
+    end
+    finished_at = Dates.now()
+    return (;
+        ok = !ismissing(exit_code) && exit_code == 0 &&
+            exit_publication !== nothing && !timed_out &&
+            !resource_limit_exceeded,
+        subprocess_started = process !== nothing,
+        child_pid,
+        exit_code,
+        started_at = string(started_at),
+        finished_at = string(finished_at),
+        elapsed_ms = Dates.value(finished_at - started_at),
+        error = message,
+        timed_out,
+        resource_limit_exceeded,
+        resource_limit_code,
+        peak_rss_bytes,
+        peak_archive_bytes,
+        rss_monitor_available,
+        termination,
+        launch_publication,
+        exit_publication,
+        receipt_order = exit_publication === nothing ?
+            (:reservation, :attempt_directory, :owner,
+                :launch_or_exit_incomplete) :
+            (:reservation, :attempt_directory, :owner, :launch, :exit),
+    )
+end
+
 function ld1b1_execute_selected(selection, checked, specs, execution_root,
         checkpoint_path, options)
+    readiness = checked.identity.readiness
+    readiness.operational_execution_authorized || error(
+        "LD1b1 operational execution is blocked before attempt creation: " *
+        join(string.(readiness.blockers), ", "))
     isfile(options.runner) || error(
         "single-job runner is not materialized: $(options.runner)")
     !islink(options.runner) || error(
@@ -3646,6 +6950,22 @@ function ld1b1_execute_selected(selection, checked, specs, execution_root,
     runner_source_sha256 ==
         checked.identity.execution_source_identity.job_runner_source_sha256 ||
         error("single-job runner differs from the execution-plan identity")
+    LD1B1AttemptArchive.ld1b_attempt_archive_source_sha256() ==
+        checked.identity.execution_source_identity.
+            attempt_archive_source_sha256 || error(
+        "attempt-archive helper differs from the execution-plan identity")
+    ld1b1_file_sha256(joinpath(
+        @__DIR__,
+        "local_dependence_pilot_recovery.jl",
+    )) == checked.identity.execution_source_identity.
+        local_dependence_pilot_recovery_source_sha256 || error(
+        "interruption-recovery helper differs from the execution-plan identity")
+    ld1b1_file_sha256(joinpath(
+        @__DIR__,
+        "local_dependence_pilot_calibration_semantics.jl",
+    )) == checked.identity.execution_source_identity.
+        local_dependence_pilot_calibration_semantics_source_sha256 || error(
+        "calibration-semantics helper differs from the execution-plan identity")
     run_id = string(
         Dates.format(Dates.now(), dateformat"yyyymmdd_HHMMSS_sss"),
         "_pid", getpid(),
@@ -3654,7 +6974,12 @@ function ld1b1_execute_selected(selection, checked, specs, execution_root,
     rows = NamedTuple[]
     stopped = false
     current_scan = ld1b1_scan_attempts(
-        specs, checked.identity, execution_root)
+        specs,
+        checked.identity,
+        execution_root;
+        calibration_semantic_context =
+            checked.calibration_semantic_context,
+    )
     state_by_job = Dict(row.job_id => row for row in current_scan.job_state_rows)
     for job in selection.selected
         if stopped
@@ -3688,28 +7013,64 @@ function ld1b1_execute_selected(selection, checked, specs, execution_root,
             continue
         end
         target_dir = ld1b1_require_attempt_available(
-            job, checked.identity, execution_root, options)
+            job,
+            checked.identity,
+            execution_root,
+            options;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
+        reservation_setup = ld1b1_publish_attempt_reservation_create_new(
+            execution_root,
+            checked.identity,
+            job,
+            options.attempt,
+            run_id,
+        )
         mkpath(dirname(target_dir))
         mkdir(target_dir)
         ld1b1_require_realpath_containment(target_dir, execution_root)
+        owner_setup = ld1b1_publish_canonical_owner_create_new(
+            reservation_setup.lineage, execution_root)
         command = ld1b1_job_command(
             job, checked.identity, execution_root, options;
             runner_source_sha256,
+            controller_readiness_authorized = true,
         )
         ld1b1_file_sha256(options.runner) == runner_source_sha256 ||
             error("single-job runner changed before invocation")
         log_path = joinpath(run_root, "logs", string(
             job.job_id, "__attempt_",
             lpad(string(options.attempt), 3, '0'), ".log"))
-        result = ld1b1_run_command(command.args, log_path)
+        result = ld1b1_run_command_with_controller_receipts(
+            command.args,
+            log_path,
+            reservation_setup.lineage,
+            owner_setup.owner,
+            execution_root,
+        )
         ld1b1_file_sha256(options.runner) == runner_source_sha256 ||
             error("single-job runner changed during invocation")
         action_status = :runner_failed
         error_message = result.error
         if result.ok
             try
-                ld1b1_validate_result(command.result_path, checked.identity,
-                    job, options.attempt)
+                receipts = ld1b1_validate_canonical_controller_receipts(
+                    target_dir,
+                    checked.identity,
+                    job,
+                    options.attempt,
+                )
+                receipts.exit_code == 0 || error(
+                    "successful runner admission has a nonzero exit receipt")
+                ld1b1_publish_completed_attempt_seal(
+                    command.result_path,
+                    checked.identity,
+                    job,
+                    options.attempt;
+                    calibration_semantic_context =
+                        checked.calibration_semantic_context,
+                )
                 action_status = :terminal_result_verified
             catch err
                 action_status = :invalid_or_missing_terminal_result
@@ -3723,10 +7084,29 @@ function ld1b1_execute_selected(selection, checked, specs, execution_root,
             command = ld1b1_portable_command_string(command.args),
             result_path = ld1b1_record_path(command.result_path),
             log_path = ld1b1_record_path(log_path),
-            subprocess_started = true,
+            reservation_path = ld1b1_record_path(
+                reservation_setup.lineage.reservation_path),
+            owner_receipt_path = ld1b1_record_path(joinpath(
+                target_dir, LD1B1Recovery.LD1B_ATTEMPT_OWNER_FILENAME)),
+            launch_receipt_path = ld1b1_record_path(joinpath(
+                target_dir, LD1B1Recovery.LD1B_CHILD_LAUNCH_FILENAME)),
+            exit_receipt_path = ld1b1_record_path(joinpath(
+                target_dir, LD1B1Recovery.LD1B_CHILD_EXIT_FILENAME)),
+            controller_readiness_authorized =
+                command.controller_readiness_authorized,
+            receipt_order = result.receipt_order,
+            child_pid = result.child_pid,
+            child_exit_code = result.exit_code,
+            subprocess_started = result.subprocess_started,
             error = error_message,
         ))
-        scan = ld1b1_scan_attempts(specs, checked.identity, execution_root)
+        scan = ld1b1_scan_attempts(
+            specs,
+            checked.identity,
+            execution_root;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
         state_by_job = Dict(row.job_id => row for row in scan.job_state_rows)
         if options.write_checkpoint
             checkpoint = ld1b1_checkpoint_artifact(checked.identity, scan)
@@ -3740,6 +7120,1217 @@ function ld1b1_execute_selected(selection, checked, specs, execution_root,
     return Tuple(rows)
 end
 
+function ld1b1_bounded_smoke_official_state(checked, specs)
+    official_execution_root = ld1b1_execution_root(
+        LD1B1_DEFAULT_ATTEMPT_ROOT, checked.identity.plan_id)
+    scan = ld1b1_scan_attempts(
+        specs,
+        checked.identity,
+        official_execution_root;
+        calibration_semantic_context = checked.calibration_semantic_context,
+    )
+    summary = scan.summary
+    summary.n_primary_attempts_observed == 0 || error(
+        "bounded smoke requires an untouched official primary-attempt tree")
+    summary.n_retry_attempts_observed == 0 || error(
+        "bounded smoke requires an untouched official remediation tree")
+    summary.n_partial_attempts == 0 || error(
+        "bounded smoke requires no partial official attempts")
+    summary.n_retired_attempts == 0 || error(
+        "bounded smoke requires no retired official attempts")
+    summary.n_missing_primary_outcomes == LD1B1_EXPECTED_JOBS || error(
+        "bounded smoke official denominator state is not 0/660")
+    return (;
+        execution_root = official_execution_root,
+        state_digest = scan.state_digest,
+        observed_primary_result_set_sha256 =
+            scan.observed_primary_result_set_sha256,
+        observed_primary_disposition_set_sha256 =
+            scan.observed_primary_disposition_set_sha256,
+        n_primary_attempts_observed = summary.n_primary_attempts_observed,
+        n_retry_attempts_observed = summary.n_retry_attempts_observed,
+        n_partial_attempts = summary.n_partial_attempts,
+        n_retired_attempts = summary.n_retired_attempts,
+        scientific_pilot_outcomes = 0,
+        scientific_pilot_denominator = LD1B1_EXPECTED_JOBS,
+    )
+end
+
+function ld1b1_bounded_smoke_receipt(checked, smoke_identity, job,
+        smoke_root::AbstractString, authorization, command, run_result,
+        controller_receipts, terminal_validation, official_before,
+        official_after, log_path::AbstractString)
+    context = ld1b1_execution_context(:bounded_smoke)
+    execution_root = ld1b1_bounded_smoke_execution_root(
+        smoke_root, smoke_identity.plan_id)
+    attempt_dir = ld1b1_attempt_dir(execution_root, job.job_id, 1)
+    result_path = ld1b1_result_path(execution_root, job.job_id, 1)
+    inventory = LD1B1AttemptArchive.ld1b_attempt_inventory(
+        attempt_dir; exclude = ())
+    inventory_sha256 = ld1b1_canonical_sha256(inventory)
+    total_file_bytes = sum(row.bytes for row in inventory
+        if row.kind === :file)
+    log_snapshot = ld1b1_regular_file_snapshot(
+        log_path, dirname(log_path), "bounded-smoke worker log")
+    receipt_rows = (
+        (role = :reservation,
+            path = ld1b1_record_path(ld1b1_attempt_reservation_path(
+                execution_root, job.job_id, 1)),
+            sha256 = controller_receipts.reservation.file_sha256),
+        (role = :owner,
+            path = ld1b1_record_path(joinpath(
+                attempt_dir, LD1B1Recovery.LD1B_ATTEMPT_OWNER_FILENAME)),
+            sha256 = controller_receipts.owner.file_sha256),
+        (role = :launch,
+            path = ld1b1_record_path(joinpath(
+                attempt_dir, LD1B1Recovery.LD1B_CHILD_LAUNCH_FILENAME)),
+            sha256 = controller_receipts.launch.file_sha256),
+        (role = :exit,
+            path = ld1b1_record_path(joinpath(
+                attempt_dir, LD1B1Recovery.LD1B_CHILD_EXIT_FILENAME)),
+            sha256 = controller_receipts.exit.file_sha256),
+    )
+    base = (;
+        schema = LD1B1_BOUNDED_SMOKE_RECEIPT_SCHEMA,
+        object = :local_dependence_pilot_bounded_canonical_smoke_receipt,
+        package = (;
+            name = :BayesianMGMFRM,
+            version = ld1b1_project_version(),
+        ),
+        family = :mfrm,
+        scope = :ld1b1_bounded_canonical_smoke_nonpilot,
+        status = :bounded_canonical_smoke_passed,
+        execution_context = context,
+        protocol_artifact = (;
+            path = ld1b1_record_path(checked.calibration_semantic_context.
+                protocol_path),
+            schema = LD1B1_PROTOCOL_SCHEMA,
+            file_sha256 = checked.identity.protocol_file_sha256,
+            content_hash = checked.identity.protocol_content_hash,
+        ),
+        parent_plan_identity = ld1b1_result_plan_identity(checked.identity),
+        smoke_plan_identity = ld1b1_result_plan_identity(smoke_identity),
+        canonical_executor_source_pin = (;
+            schema = LD1B1_CANONICAL_EXECUTOR_SOURCE_PIN_SCHEMA,
+            pin_id = checked.identity.canonical_executor_source_pin_id,
+            source_rows = checked.identity.
+                canonical_executor_source_pin_source_rows,
+        ),
+        smoke_contract = smoke_identity.bounded_smoke_contract,
+        authorization = (;
+            path = ld1b1_record_path(authorization.path),
+            file_sha256 = authorization.file_sha256,
+            content_hash = authorization.content_hash,
+        ),
+        execution = (;
+            command = ld1b1_portable_command_string(command.args),
+            command_sha256 = ld1b1_canonical_sha256(
+                ld1b1_portable_command_args(command.args)),
+            worker_mode = command.worker_mode,
+            subprocesses_started = 1,
+            child_pid = run_result.child_pid,
+            exit_code = run_result.exit_code,
+            elapsed_ms = run_result.elapsed_ms,
+            timed_out = run_result.timed_out,
+            resource_limit_exceeded = run_result.resource_limit_exceeded,
+            resource_limit_code = run_result.resource_limit_code,
+            peak_rss_bytes = run_result.peak_rss_bytes,
+            peak_archive_bytes = run_result.peak_archive_bytes,
+            rss_monitor_available = run_result.rss_monitor_available,
+            termination = run_result.termination,
+            log = (;
+                path = ld1b1_record_path(log_path),
+                bytes = log_snapshot.nbytes,
+                sha256 = log_snapshot.sha256,
+            ),
+            controller_receipts = receipt_rows,
+            receipt_order = run_result.receipt_order,
+        ),
+        raw_evidence = (;
+            attempt_directory = ld1b1_record_path(attempt_dir),
+            result_path = ld1b1_record_path(result_path),
+            result_file_sha256 = terminal_validation.result_sha256,
+            result_content_hash = terminal_validation.content_hash,
+            evidence_roles = terminal_validation.evidence_roles,
+            evidence_manifest_sha256 =
+                terminal_validation.evidence_manifest_sha256,
+            inventory,
+            inventory_sha256,
+            total_file_bytes,
+        ),
+        completion_seal = (;
+            path = ld1b1_record_path(ld1b1_seal_path(
+                execution_root, job.job_id, 1)),
+            file_sha256 = terminal_validation.seal_file_sha256,
+            content_hash = terminal_validation.seal_content_hash,
+            attempt_inventory_sha256 =
+                terminal_validation.attempt_inventory_sha256,
+            helper_attempt_inventory_sha256 =
+                terminal_validation.helper_attempt_inventory_sha256,
+            terminal_status = terminal_validation.terminal_status,
+            terminal_outcome_code =
+                terminal_validation.terminal_outcome_code,
+        ),
+        official_pilot_state = (;
+            before = merge(official_before, (;
+                execution_root =
+                    ld1b1_record_path(official_before.execution_root),
+            )),
+            after = merge(official_after, (;
+                execution_root =
+                    ld1b1_record_path(official_after.execution_root),
+            )),
+            unchanged = official_before == official_after,
+        ),
+        checks = (;
+            exact_allowlisted_job = true,
+            frozen_sampler_controls_used = true,
+            frozen_quality_contract_used = true,
+            exact_seeds_used = true,
+            one_subprocess_started = true,
+            timeout_cap_enforced = true,
+            rss_cap_enforced = true,
+            archive_cap_enforced = true,
+            child_exit_zero = controller_receipts.exit_code == 0,
+            terminal_status_completed =
+                terminal_validation.terminal_status === :completed,
+            canonical_controller_receipts_verified =
+                terminal_validation.canonical_controller_receipts_verified,
+            completed_attempt_seal_verified = true,
+            execution_source_unchanged = true,
+            official_pilot_state_unchanged =
+                official_before == official_after,
+            official_pilot_denominator_unchanged = true,
+            smoke_artifacts_scanner_ineligible = true,
+        ),
+        evidence_boundary = (;
+            response_data_generated = true,
+            model_fit_run = true,
+            mcmc_run = true,
+            bounded_canonical_smoke_passed = true,
+            counts_toward_scientific_denominator = false,
+            pilot_execution_started = false,
+            pilot_execution_completed = false,
+            scientific_pilot_outcomes = 0,
+            scientific_pilot_denominator = LD1B1_EXPECTED_JOBS,
+            independent_recovery_readiness_review_passed = false,
+            operational_execution_authorized = false,
+            evaluation_profile_frozen = false,
+            repeated_calibration_completed = false,
+            pairwise_power_available = false,
+            diagnostic_decision_labels_available = false,
+            mechanism_interpretation_eligible = false,
+            tracked_release_lineage_verified = false,
+        ),
+        summary = (;
+            passed = true,
+            assessment = :bounded_canonical_smoke_passed,
+            integration_gate = 7,
+            integration_gates_complete = 7,
+            integration_gates_total = 9,
+            integration_progress_percent = 100 * 7 / 9,
+            next_gate = :independent_pinned_recovery_readiness_review,
+            operational_execution_authorized = false,
+            scientific_pilot_outcomes = 0,
+            scientific_pilot_denominator = LD1B1_EXPECTED_JOBS,
+        ),
+    )
+    return ld1b1_with_content_hash(base)
+end
+
+function ld1b1_validate_bounded_smoke_receipt(path::AbstractString, checked;
+        smoke_root::AbstractString = LD1B1_DEFAULT_BOUNDED_SMOKE_ROOT)
+    isfile(path) && !islink(path) || error(
+        "bounded-smoke receipt is not a regular file")
+    receipt = JSON3.read(read(path, String))
+    ld1b1_require_only_keys(receipt, (
+        :schema,
+        :object,
+        :package,
+        :family,
+        :scope,
+        :status,
+        :execution_context,
+        :protocol_artifact,
+        :parent_plan_identity,
+        :smoke_plan_identity,
+        :canonical_executor_source_pin,
+        :smoke_contract,
+        :authorization,
+        :execution,
+        :raw_evidence,
+        :completion_seal,
+        :official_pilot_state,
+        :checks,
+        :evidence_boundary,
+        :summary,
+        :content_hash,
+    ), "bounded-smoke receipt")
+    ld1b1_string(receipt[:schema]) ==
+        LD1B1_BOUNDED_SMOKE_RECEIPT_SCHEMA || error(
+        "unexpected bounded-smoke receipt schema")
+    ld1b1_symbol(receipt[:object]) ===
+        :local_dependence_pilot_bounded_canonical_smoke_receipt || error(
+        "unexpected bounded-smoke receipt object")
+    ld1b1_string(receipt[:family]) == "mfrm" || error(
+        "unexpected bounded-smoke receipt family")
+    ld1b1_symbol(receipt[:scope]) ===
+        :ld1b1_bounded_canonical_smoke_nonpilot || error(
+        "unexpected bounded-smoke receipt scope")
+    ld1b1_symbol(receipt[:status]) ===
+        :bounded_canonical_smoke_passed || error(
+        "bounded-smoke receipt does not record a pass")
+    content_hash = ld1b1_verify_content_hash(
+        receipt; label = "bounded-smoke receipt")
+    context = ld1b1_validate_execution_context(
+        receipt[:execution_context]; expected_scope = :bounded_smoke)
+
+    package = receipt[:package]
+    ld1b1_require_only_keys(package, (:name, :version),
+        "bounded-smoke package")
+    ld1b1_symbol(package[:name]) === :BayesianMGMFRM &&
+        ld1b1_string(package[:version]) == ld1b1_project_version() || error(
+        "bounded-smoke package identity mismatch")
+
+    specs = ld1b1_job_specs(checked)
+    job = ld1b1_bounded_smoke_job(specs)
+    smoke = ld1b1_bounded_smoke_identity(checked.identity, job)
+    ld1b1_canonical_sha256(ld1b1_json_native(
+        receipt[:parent_plan_identity])) == ld1b1_canonical_sha256(
+        ld1b1_result_plan_identity(checked.identity)) || error(
+        "bounded-smoke parent plan identity mismatch")
+    ld1b1_canonical_sha256(ld1b1_json_native(
+        receipt[:smoke_plan_identity])) == ld1b1_canonical_sha256(
+        ld1b1_result_plan_identity(smoke.identity)) || error(
+        "bounded-smoke plan identity mismatch")
+    ld1b1_canonical_sha256(ld1b1_json_native(
+        receipt[:smoke_contract])) == ld1b1_canonical_sha256(
+        smoke.contract) || error("bounded-smoke contract mismatch")
+
+    protocol = receipt[:protocol_artifact]
+    ld1b1_require_only_keys(protocol,
+        (:path, :schema, :file_sha256, :content_hash),
+        "bounded-smoke protocol binding")
+    ld1b1_string(protocol[:path]) == ld1b1_record_path(
+        checked.calibration_semantic_context.protocol_path) &&
+        ld1b1_string(protocol[:schema]) == LD1B1_PROTOCOL_SCHEMA &&
+        ld1b1_string(protocol[:file_sha256]) ==
+            checked.identity.protocol_file_sha256 &&
+        ld1b1_string(protocol[:content_hash]) ==
+            checked.identity.protocol_content_hash || error(
+        "bounded-smoke protocol binding mismatch")
+
+    source_pin = receipt[:canonical_executor_source_pin]
+    ld1b1_require_only_keys(source_pin, (:schema, :pin_id, :source_rows),
+        "bounded-smoke source pin")
+    ld1b1_string(source_pin[:schema]) ==
+        LD1B1_CANONICAL_EXECUTOR_SOURCE_PIN_SCHEMA &&
+        ld1b1_string(source_pin[:pin_id]) ==
+            checked.identity.canonical_executor_source_pin_id &&
+        ld1b1_canonical_sha256(ld1b1_json_native(
+            source_pin[:source_rows])) == ld1b1_canonical_sha256(
+            checked.identity.canonical_executor_source_pin_source_rows) ||
+        error("bounded-smoke source pin mismatch")
+
+    authorization_path = ld1b1_bounded_smoke_authorization_path(
+        smoke_root, smoke.smoke_plan_id)
+    authorization = ld1b1_validate_bounded_smoke_authorization(
+        authorization_path,
+        checked.identity,
+        smoke.identity,
+        job,
+        smoke_root,
+    )
+    authorization_record = receipt[:authorization]
+    ld1b1_require_only_keys(authorization_record,
+        (:path, :file_sha256, :content_hash),
+        "bounded-smoke authorization binding")
+    ld1b1_string(authorization_record[:path]) ==
+        ld1b1_record_path(authorization_path) &&
+        ld1b1_string(authorization_record[:file_sha256]) ==
+            authorization.file_sha256 &&
+        ld1b1_string(authorization_record[:content_hash]) ==
+            authorization.content_hash || error(
+        "bounded-smoke authorization binding mismatch")
+
+    execution_root = ld1b1_bounded_smoke_execution_root(
+        smoke_root, smoke.smoke_plan_id)
+    attempt_dir = ld1b1_attempt_dir(execution_root, job.job_id, 1)
+    result_path = ld1b1_result_path(execution_root, job.job_id, 1)
+    terminal = ld1b1_validate_completed_attempt(
+        result_path,
+        smoke.identity,
+        job,
+        1;
+        calibration_semantic_context = checked.calibration_semantic_context,
+        execution_context = context,
+    )
+    terminal.terminal_status === :completed || error(
+        "bounded-smoke terminal status is not completed")
+    controller_receipts = ld1b1_validate_canonical_controller_receipts(
+        attempt_dir,
+        smoke.identity,
+        job,
+        1;
+        execution_context = context,
+    )
+    controller_receipts.exit_code == 0 || error(
+        "bounded-smoke controller exit receipt is nonzero")
+
+    execution = receipt[:execution]
+    ld1b1_require_only_keys(execution, (
+        :command,
+        :command_sha256,
+        :worker_mode,
+        :subprocesses_started,
+        :child_pid,
+        :exit_code,
+        :elapsed_ms,
+        :timed_out,
+        :resource_limit_exceeded,
+        :resource_limit_code,
+        :peak_rss_bytes,
+        :peak_archive_bytes,
+        :rss_monitor_available,
+        :termination,
+        :log,
+        :controller_receipts,
+        :receipt_order,
+    ), "bounded-smoke execution record")
+    command_options = (;
+        attempt = 1,
+        mode = :bounded_smoke,
+        runner = LD1B1_DEFAULT_JOB_RUNNER,
+        protocol = LD1B1_DEFAULT_PROTOCOL,
+    )
+    expected_command = ld1b1_job_command(
+        job,
+        smoke.identity,
+        execution_root,
+        command_options;
+        runner_source_sha256 = checked.identity.execution_source_identity.
+            job_runner_source_sha256,
+        bounded_smoke_authorization = authorization_path,
+    )
+    portable_args = ld1b1_portable_command_args(expected_command.args)
+    ld1b1_string(execution[:command]) ==
+        ld1b1_portable_command_string(expected_command.args) &&
+        ld1b1_string(execution[:command_sha256]) ==
+            ld1b1_canonical_sha256(portable_args) &&
+        ld1b1_symbol(execution[:worker_mode]) === :bounded_smoke || error(
+        "bounded-smoke command identity mismatch")
+    ld1b1_int(execution[:subprocesses_started]) == 1 &&
+        ld1b1_int(execution[:child_pid]) > 0 &&
+        ld1b1_int(execution[:exit_code]) == 0 &&
+        ld1b1_int(execution[:elapsed_ms]) >= 0 &&
+        !ld1b1_bool(execution[:timed_out]) &&
+        !ld1b1_bool(execution[:resource_limit_exceeded]) &&
+        (execution[:resource_limit_code] === nothing ||
+            ismissing(execution[:resource_limit_code])) &&
+        ld1b1_int(execution[:peak_rss_bytes]) <=
+            LD1B1_BOUNDED_SMOKE_MAX_RSS_BYTES &&
+        ld1b1_int(execution[:peak_archive_bytes]) <=
+            LD1B1_BOUNDED_SMOKE_MAX_ARCHIVE_BYTES &&
+        ld1b1_bool(execution[:rss_monitor_available]) || error(
+        "bounded-smoke resource/exit record did not pass")
+    current_archive_bytes = ld1b1_observed_tree_bytes(
+        dirname(dirname(execution_root)))
+    current_archive_bytes <= LD1B1_BOUNDED_SMOKE_MAX_ARCHIVE_BYTES &&
+        ld1b1_int(execution[:peak_archive_bytes]) >= current_archive_bytes ||
+        error("bounded-smoke sealed archive exceeds its recorded cap")
+    termination = execution[:termination]
+    ld1b1_require_only_keys(termination, (:term_sent, :kill_sent),
+        "bounded-smoke termination record")
+    !ld1b1_bool(termination[:term_sent]) &&
+        !ld1b1_bool(termination[:kill_sent]) || error(
+        "bounded-smoke required forced termination")
+
+    log_path = joinpath(dirname(dirname(execution_root)),
+        "logs", "bounded_smoke_worker.log")
+    log = execution[:log]
+    ld1b1_require_only_keys(log, (:path, :bytes, :sha256),
+        "bounded-smoke log binding")
+    log_snapshot = ld1b1_regular_file_snapshot(
+        log_path, dirname(log_path), "bounded-smoke log")
+    ld1b1_string(log[:path]) == ld1b1_record_path(log_path) &&
+        ld1b1_int(log[:bytes]) == log_snapshot.nbytes &&
+        ld1b1_string(log[:sha256]) == log_snapshot.sha256 || error(
+        "bounded-smoke log binding mismatch")
+
+    expected_receipt_rows = (
+        (role = :reservation,
+            path = ld1b1_record_path(ld1b1_attempt_reservation_path(
+                execution_root, job.job_id, 1)),
+            sha256 = controller_receipts.reservation.file_sha256),
+        (role = :owner,
+            path = ld1b1_record_path(joinpath(
+                attempt_dir, LD1B1Recovery.LD1B_ATTEMPT_OWNER_FILENAME)),
+            sha256 = controller_receipts.owner.file_sha256),
+        (role = :launch,
+            path = ld1b1_record_path(joinpath(
+                attempt_dir, LD1B1Recovery.LD1B_CHILD_LAUNCH_FILENAME)),
+            sha256 = controller_receipts.launch.file_sha256),
+        (role = :exit,
+            path = ld1b1_record_path(joinpath(
+                attempt_dir, LD1B1Recovery.LD1B_CHILD_EXIT_FILENAME)),
+            sha256 = controller_receipts.exit.file_sha256),
+    )
+    ld1b1_canonical_sha256(ld1b1_json_native(
+        execution[:controller_receipts])) == ld1b1_canonical_sha256(
+        expected_receipt_rows) || error(
+        "bounded-smoke controller receipt binding mismatch")
+    Tuple(ld1b1_symbol(value) for value in execution[:receipt_order]) ==
+        (:reservation, :attempt_directory, :owner, :launch, :exit) || error(
+        "bounded-smoke receipt order mismatch")
+
+    raw = receipt[:raw_evidence]
+    ld1b1_require_only_keys(raw, (
+        :attempt_directory,
+        :result_path,
+        :result_file_sha256,
+        :result_content_hash,
+        :evidence_roles,
+        :evidence_manifest_sha256,
+        :inventory,
+        :inventory_sha256,
+        :total_file_bytes,
+    ), "bounded-smoke raw evidence")
+    inventory = LD1B1AttemptArchive.ld1b_attempt_inventory(
+        attempt_dir; exclude = ())
+    ld1b1_string(raw[:attempt_directory]) ==
+        ld1b1_record_path(attempt_dir) &&
+        ld1b1_string(raw[:result_path]) == ld1b1_record_path(result_path) &&
+        ld1b1_string(raw[:result_file_sha256]) == terminal.result_sha256 &&
+        ld1b1_string(raw[:result_content_hash]) == terminal.content_hash &&
+        Tuple(ld1b1_symbol(value) for value in raw[:evidence_roles]) ==
+            terminal.evidence_roles &&
+        ld1b1_string(raw[:evidence_manifest_sha256]) ==
+            terminal.evidence_manifest_sha256 &&
+        ld1b1_canonical_sha256(ld1b1_json_native(raw[:inventory])) ==
+            ld1b1_canonical_sha256(inventory) &&
+        ld1b1_string(raw[:inventory_sha256]) ==
+            ld1b1_canonical_sha256(inventory) &&
+        ld1b1_int(raw[:total_file_bytes]) == sum(
+            row.bytes for row in inventory if row.kind === :file) || error(
+        "bounded-smoke raw evidence binding mismatch")
+
+    seal = receipt[:completion_seal]
+    ld1b1_require_only_keys(seal, (
+        :path,
+        :file_sha256,
+        :content_hash,
+        :attempt_inventory_sha256,
+        :helper_attempt_inventory_sha256,
+        :terminal_status,
+        :terminal_outcome_code,
+    ), "bounded-smoke completion seal")
+    ld1b1_string(seal[:path]) == ld1b1_record_path(ld1b1_seal_path(
+        execution_root, job.job_id, 1)) &&
+        ld1b1_string(seal[:file_sha256]) == terminal.seal_file_sha256 &&
+        ld1b1_string(seal[:content_hash]) == terminal.seal_content_hash &&
+        ld1b1_string(seal[:attempt_inventory_sha256]) ==
+            terminal.attempt_inventory_sha256 &&
+        ld1b1_string(seal[:helper_attempt_inventory_sha256]) ==
+            terminal.helper_attempt_inventory_sha256 &&
+        ld1b1_symbol(seal[:terminal_status]) === :completed &&
+        ld1b1_symbol(seal[:terminal_outcome_code]) === :completed || error(
+        "bounded-smoke completion-seal binding mismatch")
+
+    official = receipt[:official_pilot_state]
+    ld1b1_require_only_keys(official, (:before, :after, :unchanged),
+        "bounded-smoke official pilot state")
+    current_official = ld1b1_bounded_smoke_official_state(checked, specs)
+    expected_official = merge(current_official, (;
+        execution_root = ld1b1_record_path(current_official.execution_root),
+    ))
+    for field in (:before, :after)
+        ld1b1_canonical_sha256(ld1b1_json_native(official[field])) ==
+            ld1b1_canonical_sha256(expected_official) || error(
+            "bounded-smoke official pilot state mismatch: $field")
+    end
+    ld1b1_bool(official[:unchanged]) || error(
+        "bounded-smoke official pilot state changed")
+
+    checks = receipt[:checks]
+    check_fields = (
+        :exact_allowlisted_job,
+        :frozen_sampler_controls_used,
+        :frozen_quality_contract_used,
+        :exact_seeds_used,
+        :one_subprocess_started,
+        :timeout_cap_enforced,
+        :rss_cap_enforced,
+        :archive_cap_enforced,
+        :child_exit_zero,
+        :terminal_status_completed,
+        :canonical_controller_receipts_verified,
+        :completed_attempt_seal_verified,
+        :execution_source_unchanged,
+        :official_pilot_state_unchanged,
+        :official_pilot_denominator_unchanged,
+        :smoke_artifacts_scanner_ineligible,
+    )
+    ld1b1_require_only_keys(checks, check_fields,
+        "bounded-smoke checks")
+    all(field -> ld1b1_bool(checks[field]), check_fields) || error(
+        "bounded-smoke receipt contains a failed check")
+
+    boundary = receipt[:evidence_boundary]
+    boundary_fields = (
+        :response_data_generated,
+        :model_fit_run,
+        :mcmc_run,
+        :bounded_canonical_smoke_passed,
+        :counts_toward_scientific_denominator,
+        :pilot_execution_started,
+        :pilot_execution_completed,
+        :scientific_pilot_outcomes,
+        :scientific_pilot_denominator,
+        :independent_recovery_readiness_review_passed,
+        :operational_execution_authorized,
+        :evaluation_profile_frozen,
+        :repeated_calibration_completed,
+        :pairwise_power_available,
+        :diagnostic_decision_labels_available,
+        :mechanism_interpretation_eligible,
+        :tracked_release_lineage_verified,
+    )
+    ld1b1_require_only_keys(boundary, boundary_fields,
+        "bounded-smoke evidence boundary")
+    for field in (
+            :response_data_generated,
+            :model_fit_run,
+            :mcmc_run,
+            :bounded_canonical_smoke_passed,
+        )
+        ld1b1_bool(boundary[field]) || error(
+            "bounded-smoke evidence boundary lacks $field")
+    end
+    for field in setdiff(collect(boundary_fields), [
+            :response_data_generated,
+            :model_fit_run,
+            :mcmc_run,
+            :bounded_canonical_smoke_passed,
+            :scientific_pilot_outcomes,
+            :scientific_pilot_denominator,
+        ])
+        !ld1b1_bool(boundary[field]) || error(
+            "bounded-smoke evidence boundary exceeds scope: $field")
+    end
+    ld1b1_int(boundary[:scientific_pilot_outcomes]) == 0 &&
+        ld1b1_int(boundary[:scientific_pilot_denominator]) ==
+            LD1B1_EXPECTED_JOBS || error(
+        "bounded-smoke scientific denominator boundary mismatch")
+
+    summary = receipt[:summary]
+    ld1b1_require_only_keys(summary, (
+        :passed,
+        :assessment,
+        :integration_gate,
+        :integration_gates_complete,
+        :integration_gates_total,
+        :integration_progress_percent,
+        :next_gate,
+        :operational_execution_authorized,
+        :scientific_pilot_outcomes,
+        :scientific_pilot_denominator,
+    ), "bounded-smoke summary")
+    ld1b1_bool(summary[:passed]) &&
+        ld1b1_symbol(summary[:assessment]) ===
+            :bounded_canonical_smoke_passed &&
+        ld1b1_int(summary[:integration_gate]) == 7 &&
+        ld1b1_int(summary[:integration_gates_complete]) == 7 &&
+        ld1b1_int(summary[:integration_gates_total]) == 9 &&
+        !ld1b1_bool(summary[:operational_execution_authorized]) &&
+        ld1b1_int(summary[:scientific_pilot_outcomes]) == 0 &&
+        ld1b1_int(summary[:scientific_pilot_denominator]) ==
+            LD1B1_EXPECTED_JOBS || error(
+        "bounded-smoke summary mismatch")
+
+    return (;
+        valid = true,
+        bounded_canonical_smoke_passed = true,
+        content_hash,
+        file_sha256 = ld1b1_file_sha256(path),
+        smoke_plan_id = smoke.smoke_plan_id,
+        terminal_status = terminal.terminal_status,
+        scientific_contribution = 0,
+        operational_execution_authorized = false,
+    )
+end
+
+function ld1b1_independent_recovery_readiness_review_artifact(
+        checked, smoke_validation;
+        reviewer_id::AbstractString,
+        reviewed_at_utc::AbstractString)
+    reviewer = strip(String(reviewer_id))
+    isempty(reviewer) && error("independent reviewer id must not be empty")
+    reviewed_at = strip(String(reviewed_at_utc))
+    occursin(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$",
+        reviewed_at) || error(
+        "independent review time must use canonical UTC format")
+    smoke_validation.valid &&
+        smoke_validation.bounded_canonical_smoke_passed || error(
+        "independent review requires a valid bounded-smoke receipt")
+    smoke_receipt_sha256 = ld1b1_file_sha256(
+        LD1B1_DEFAULT_BOUNDED_SMOKE_RECEIPT)
+    findings = (
+        (component = :pinned_worker_and_controller_source,
+            assessment = :passed),
+        (component = :reservation_owner_launch_exit_lineage,
+            assessment = :passed),
+        (component = :precommit_and_launched_interruption_recovery,
+            assessment = :passed),
+        (component = :status_specific_result_and_evidence_semantics,
+            assessment = :passed),
+        (component = :completed_attempt_seal_and_inventory,
+            assessment = :passed),
+        (component = :bounded_timeout_rss_and_archive_limits,
+            assessment = :passed),
+        (component = :bounded_smoke_raw_evidence_and_seed_replay,
+            assessment = :passed),
+        (component = :official_pilot_denominator_isolation,
+            assessment = :passed),
+    )
+    reviewed_material = (;
+        parent_plan_id = checked.identity.plan_id,
+        canonical_executor_source_pin_id =
+            checked.identity.canonical_executor_source_pin_id,
+        canonical_executor_source_pin_source_rows =
+            checked.identity.canonical_executor_source_pin_source_rows,
+        bounded_smoke_receipt = (;
+            path = ld1b1_record_path(
+                LD1B1_DEFAULT_BOUNDED_SMOKE_RECEIPT),
+            file_sha256 = smoke_receipt_sha256,
+            content_hash = smoke_validation.content_hash,
+            smoke_plan_id = smoke_validation.smoke_plan_id,
+        ),
+        findings,
+        decision = :accept_pinned_worker_recovery_readiness,
+    )
+    attestation_material = (;
+        reviewer_id = reviewer,
+        reviewer_role = :independent_recovery_readiness_reviewer,
+        independent_from_smoke_executor = true,
+        pinned_source_author = false,
+        smoke_execution_operator = false,
+        reviewed_at_utc = reviewed_at,
+        reviewed_material_sha256 =
+            ld1b1_canonical_sha256(reviewed_material),
+    )
+    base = (;
+        schema = LD1B1_INDEPENDENT_RECOVERY_READINESS_REVIEW_SCHEMA,
+        object = :local_dependence_pilot_independent_recovery_readiness_review,
+        scope = :ld1b1_independent_pinned_recovery_readiness_review,
+        status = :independent_recovery_readiness_review_passed,
+        reviewer = merge(attestation_material, (;
+            attestation = (;
+                algorithm = :sha256,
+                value = ld1b1_canonical_sha256(attestation_material),
+                covers = :reviewer_attestation_without_attestation,
+                canonical_format = :local_json_sorted_compact,
+            ),
+        )),
+        reviewed_material,
+        checks = (;
+            reviewer_independence_attested = true,
+            exact_pinned_source_reviewed = true,
+            bounded_smoke_receipt_revalidated = true,
+            receipt_lineage_reviewed = true,
+            precommit_recovery_reviewed = true,
+            launched_recovery_reviewed = true,
+            result_evidence_semantics_reviewed = true,
+            seal_inventory_reviewed = true,
+            resource_bounds_reviewed = true,
+            denominator_isolation_reviewed = true,
+            all_findings_passed = true,
+        ),
+        evidence_boundary = (;
+            bounded_canonical_smoke_passed = true,
+            independent_recovery_readiness_review_passed = true,
+            operational_execution_authorized = true,
+            pilot_execution_started = false,
+            pilot_execution_completed = false,
+            scientific_pilot_outcomes = 0,
+            scientific_pilot_denominator = LD1B1_EXPECTED_JOBS,
+            tracked_release_lineage_verified = false,
+        ),
+    )
+    return ld1b1_with_content_hash(base)
+end
+
+function ld1b1_validate_independent_recovery_readiness_review(
+        path::AbstractString, checked, smoke_validation)
+    isfile(path) && !islink(path) || error(
+        "independent recovery/readiness review is not a regular file")
+    review = JSON3.read(read(path, String))
+    ld1b1_require_only_keys(review, (
+        :schema,
+        :object,
+        :scope,
+        :status,
+        :reviewer,
+        :reviewed_material,
+        :checks,
+        :evidence_boundary,
+        :content_hash,
+    ), "independent recovery/readiness review")
+    ld1b1_string(review[:schema]) ==
+        LD1B1_INDEPENDENT_RECOVERY_READINESS_REVIEW_SCHEMA &&
+        ld1b1_symbol(review[:object]) ===
+            :local_dependence_pilot_independent_recovery_readiness_review &&
+        ld1b1_symbol(review[:scope]) ===
+            :ld1b1_independent_pinned_recovery_readiness_review &&
+        ld1b1_symbol(review[:status]) ===
+            :independent_recovery_readiness_review_passed || error(
+        "independent recovery/readiness review identity mismatch")
+    content_hash = ld1b1_verify_content_hash(
+        review; label = "independent recovery/readiness review")
+    smoke_validation.valid &&
+        smoke_validation.bounded_canonical_smoke_passed || error(
+        "independent review cannot validate without bounded smoke")
+
+    reviewer = review[:reviewer]
+    ld1b1_require_only_keys(reviewer, (
+        :reviewer_id,
+        :reviewer_role,
+        :independent_from_smoke_executor,
+        :pinned_source_author,
+        :smoke_execution_operator,
+        :reviewed_at_utc,
+        :reviewed_material_sha256,
+        :attestation,
+    ), "independent reviewer attestation")
+    reviewer_id = strip(ld1b1_string(reviewer[:reviewer_id]))
+    isempty(reviewer_id) && error("independent reviewer id is empty")
+    ld1b1_symbol(reviewer[:reviewer_role]) ===
+        :independent_recovery_readiness_reviewer &&
+        ld1b1_bool(reviewer[:independent_from_smoke_executor]) &&
+        !ld1b1_bool(reviewer[:pinned_source_author]) &&
+        !ld1b1_bool(reviewer[:smoke_execution_operator]) || error(
+        "independent reviewer attestation does not establish separation")
+    reviewed_at = ld1b1_string(reviewer[:reviewed_at_utc])
+    occursin(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$",
+        reviewed_at) || error("independent review time is not canonical UTC")
+    reviewed_material_hash = ld1b1_canonical_sha256(
+        ld1b1_json_native(review[:reviewed_material]))
+    ld1b1_string(reviewer[:reviewed_material_sha256]) ==
+        reviewed_material_hash || error(
+        "independent review material hash mismatch")
+    attestation = reviewer[:attestation]
+    ld1b1_require_only_keys(attestation,
+        (:algorithm, :value, :covers, :canonical_format),
+        "independent review attestation hash")
+    ld1b1_symbol(attestation[:algorithm]) === :sha256 &&
+        ld1b1_symbol(attestation[:covers]) ===
+            :reviewer_attestation_without_attestation &&
+        ld1b1_symbol(attestation[:canonical_format]) ===
+            :local_json_sorted_compact || error(
+        "independent review attestation hash contract mismatch")
+    attestation_material = ld1b1_json_native(reviewer)
+    delete!(attestation_material, "attestation")
+    ld1b1_string(attestation[:value]) ==
+        ld1b1_canonical_sha256(attestation_material) || error(
+        "independent reviewer attestation hash mismatch")
+
+    expected_review = ld1b1_independent_recovery_readiness_review_artifact(
+        checked,
+        smoke_validation;
+        reviewer_id,
+        reviewed_at_utc = reviewed_at,
+    )
+    ld1b1_canonical_sha256(ld1b1_json_native(review)) ==
+        ld1b1_canonical_sha256(ld1b1_json_native(expected_review)) || error(
+        "independent recovery/readiness review differs from the frozen contract")
+    return (;
+        valid = true,
+        independent_recovery_readiness_review_passed = true,
+        reviewer_id,
+        content_hash,
+        file_sha256 = ld1b1_file_sha256(path),
+        operational_execution_authorized = true,
+    )
+end
+
+function ld1b1_execute_bounded_smoke(options)
+    normpath(options.protocol) == normpath(LD1B1_DEFAULT_PROTOCOL) || error(
+        "bounded-smoke requires the canonical protocol artifact")
+    normpath(options.runner) == normpath(LD1B1_DEFAULT_JOB_RUNNER) || error(
+        "bounded-smoke requires the canonical single-job worker")
+    normpath(options.attempt_root) ==
+        normpath(LD1B1_DEFAULT_BOUNDED_SMOKE_ROOT) || error(
+        "bounded-smoke requires the dedicated fixed root")
+    normpath(options.output) ==
+        normpath(LD1B1_DEFAULT_BOUNDED_SMOKE_RECEIPT) || error(
+        "bounded-smoke requires the fixed immutable receipt path")
+    (ispath(options.output) || islink(options.output)) && error(
+        "refusing to replace an existing bounded-smoke receipt")
+    normpath(options.attempt_root) != normpath(LD1B1_DEFAULT_ATTEMPT_ROOT) ||
+        error("bounded-smoke root collides with the official pilot root")
+
+    checked = ld1b1_checked_protocol(
+        options.protocol;
+        job_runner_path = options.runner,
+        attempt_root = LD1B1_DEFAULT_ATTEMPT_ROOT,
+    )
+    readiness = checked.identity.readiness
+    readiness.protocol_execution_authorized &&
+        readiness.canonical_executor_materialized &&
+        readiness.final_worker_source_pinned_and_identities_regenerated &&
+        readiness.canonical_executor_source_pinned &&
+        readiness.completed_attempt_archive_seal_supported &&
+        readiness.canonical_execution_root_bound || error(
+        "bounded-smoke source/receipt prerequisites did not pass")
+    !readiness.bounded_canonical_smoke_passed || error(
+        "bounded canonical smoke is already recorded")
+    !readiness.operational_execution_authorized || error(
+        "bounded-smoke cannot substitute for an authorized pilot")
+
+    specs = ld1b1_job_specs(checked)
+    job = ld1b1_bounded_smoke_job(specs)
+    official_before = ld1b1_bounded_smoke_official_state(checked, specs)
+    smoke = ld1b1_bounded_smoke_identity(checked.identity, job)
+    execution_root = ld1b1_bounded_smoke_execution_root(
+        options.attempt_root, smoke.smoke_plan_id)
+    authorization_path = ld1b1_bounded_smoke_authorization_path(
+        options.attempt_root, smoke.smoke_plan_id)
+    (ispath(execution_root) || islink(execution_root) ||
+        ispath(authorization_path) || islink(authorization_path)) && error(
+        "bounded-smoke plan root is already occupied")
+    authorization_artifact = ld1b1_bounded_smoke_authorization(
+        checked.identity, smoke.identity, job, options.attempt_root)
+    ld1b1_atomic_write_artifact(
+        authorization_path, authorization_artifact; overwrite = false)
+    authorization = merge(
+        ld1b1_validate_bounded_smoke_authorization(
+            authorization_path,
+            checked.identity,
+            smoke.identity,
+            job,
+            options.attempt_root,
+        ),
+        (; path = authorization_path),
+    )
+
+    target_dir = ld1b1_require_attempt_available(
+        job,
+        smoke.identity,
+        execution_root,
+        options;
+        calibration_semantic_context = checked.calibration_semantic_context,
+    )
+    run_id = string("bounded-smoke-", smoke.smoke_plan_id)
+    context = ld1b1_execution_context(:bounded_smoke)
+    reservation_setup = ld1b1_publish_attempt_reservation_create_new(
+        execution_root,
+        smoke.identity,
+        job,
+        1,
+        run_id;
+        execution_context = context,
+    )
+    mkpath(dirname(target_dir))
+    mkdir(target_dir)
+    ld1b1_require_realpath_containment(target_dir, execution_root)
+    owner_setup = ld1b1_publish_canonical_owner_create_new(
+        reservation_setup.lineage, execution_root)
+    runner_source_sha256 = ld1b1_file_sha256(options.runner)
+    command = ld1b1_job_command(
+        job,
+        smoke.identity,
+        execution_root,
+        options;
+        runner_source_sha256,
+        bounded_smoke_authorization = authorization_path,
+    )
+    run_root = dirname(dirname(execution_root))
+    log_path = joinpath(run_root, "logs", "bounded_smoke_worker.log")
+    result = ld1b1_run_command_with_controller_receipts(
+        command.args,
+        log_path,
+        reservation_setup.lineage,
+        owner_setup.owner,
+        execution_root;
+        timeout_seconds = LD1B1_BOUNDED_SMOKE_TIMEOUT_SECONDS,
+        termination_grace_seconds =
+            LD1B1_BOUNDED_SMOKE_TERMINATION_GRACE_SECONDS,
+        max_rss_bytes = LD1B1_BOUNDED_SMOKE_MAX_RSS_BYTES,
+        max_archive_bytes = LD1B1_BOUNDED_SMOKE_MAX_ARCHIVE_BYTES,
+        monitored_archive_root = run_root,
+    )
+    ld1b1_file_sha256(options.runner) == runner_source_sha256 || error(
+        "single-job worker changed during bounded smoke")
+    result.ok || error(
+        "bounded-smoke worker did not pass: " * string(result.error))
+    controller_receipts = ld1b1_validate_canonical_controller_receipts(
+        target_dir,
+        smoke.identity,
+        job,
+        1;
+        execution_context = context,
+    )
+    controller_receipts.exit_code == 0 || error(
+        "bounded-smoke child exit receipt is nonzero")
+    sealed = ld1b1_publish_completed_attempt_seal(
+        command.result_path,
+        smoke.identity,
+        job,
+        1;
+        calibration_semantic_context = checked.calibration_semantic_context,
+        execution_context = context,
+    )
+    terminal = sealed.validation
+    terminal.terminal_status === :completed || error(
+        "bounded-smoke terminal status is not completed: " *
+        string(terminal.terminal_status))
+    final_archive_bytes = ld1b1_observed_tree_bytes(run_root)
+    final_archive_bytes <= LD1B1_BOUNDED_SMOKE_MAX_ARCHIVE_BYTES || error(
+        "bounded-smoke sealed archive exceeds the fixed archive cap")
+    result = merge(result, (;
+        peak_archive_bytes = max(
+            result.peak_archive_bytes, final_archive_bytes),
+    ))
+    official_after = ld1b1_bounded_smoke_official_state(checked, specs)
+    official_before == official_after || error(
+        "official pilot tree changed during bounded smoke")
+    receipt = ld1b1_bounded_smoke_receipt(
+        checked,
+        smoke.identity,
+        job,
+        options.attempt_root,
+        authorization,
+        command,
+        result,
+        controller_receipts,
+        terminal,
+        official_before,
+        official_after,
+        log_path,
+    )
+    ld1b1_atomic_write_artifact(options.output, receipt; overwrite = false)
+    validated = ld1b1_validate_bounded_smoke_receipt(
+        options.output,
+        checked;
+        smoke_root = options.attempt_root,
+    )
+    return (; receipt, validated)
+end
+
+function ld1b1_retire_interrupted_selected(selection, checked,
+        execution_root::AbstractString, options)
+    length(selection.selected) == 1 || error(
+        "retire-interrupted must select exactly one canonical job")
+    job = only(selection.selected)
+    attempt = options.attempt
+    attempt_dir = ld1b1_attempt_dir(
+        execution_root, job.job_id, attempt)
+    source = LD1B1AttemptArchive._ld1b_read_json_snapshot(
+        normpath(options.stopped_process_review),
+        dirname(normpath(options.stopped_process_review)),
+        "external stopped-process review",
+    )
+    source_native = ld1b1_json_native(source.parsed)
+    haskey(source_native, "schema") || error(
+        "external stopped-process review lacks a schema")
+    source_schema = ld1b1_string(source_native["schema"])
+    precommit_review = source_schema ==
+        LD1B1Recovery.LD1B_PRECOMMIT_INTERRUPTION_REVIEW_SCHEMA
+    launched_review = source_schema ==
+        LD1B1Recovery.LD1B_INTERRUPTION_REVIEW_SCHEMA
+    xor(precommit_review, launched_review) || error(
+        "unsupported external stopped-process review schema")
+    if !ispath(attempt_dir) && !islink(attempt_dir)
+        precommit_review || error(
+            "launched-attempt retirement requires an existing attempt directory")
+        # Validate the immutable reservation before materializing the reserved
+        # directory.  The external review must still independently attest that
+        # both controller and any child process are stopped.
+        lineage = ld1b1_reservation_lineage(
+            execution_root, checked.identity, job, attempt)
+        normpath(lineage.attempt_dir) == normpath(attempt_dir) || error(
+            "reservation is bound to a different attempt directory")
+        prevalidation = LD1B1Recovery.
+            ld1b_validate_precommit_interruption_review(
+                source.parsed;
+                lineage.identity_args...,
+                lineage.lineage_args...,
+                owner_artifact = nothing,
+                owner_receipt_sha256 = nothing,
+            )
+        prevalidation.reason_code === options.retirement_reason || error(
+            "precommit review reason differs from --retirement-reason")
+        prevalidation.scientific_contribution == 0 || error(
+            "precommit review has a nonzero scientific contribution")
+        mkpath(dirname(attempt_dir))
+        mkdir(attempt_dir)
+    end
+    isdir(attempt_dir) && !islink(attempt_dir) || error(
+        "retire-interrupted requires a regular reserved attempt directory")
+    ld1b1_reject_symlink_components(attempt_dir, execution_root)
+
+    retirement_path = ld1b1_retirement_path(
+        execution_root, job.job_id, attempt)
+    retirement_already_present =
+        ispath(retirement_path) || islink(retirement_path)
+    external = precommit_review ?
+        ld1b1_validate_external_precommit_interruption_review(
+            options.stopped_process_review,
+            attempt_dir,
+            execution_root,
+            checked.identity,
+            job,
+            attempt,
+        ) :
+        ld1b1_validate_external_interruption_review(
+            options.stopped_process_review,
+            attempt_dir,
+            checked.identity,
+            job,
+            attempt,
+        )
+    external_reason = precommit_review ?
+        external.validation.reason_code :
+        external.validation.retirement_reason_code
+    external_reason ===
+        options.retirement_reason || error(
+        "supplied review retirement reason differs from --retirement-reason")
+
+    if retirement_already_present
+        retired = ld1b1_validate_retired_attempt(
+            execution_root, checked.identity, job, attempt)
+        retired.retirement_reason_code === options.retirement_reason || error(
+            "existing retirement reason differs from --retirement-reason")
+        existing_review = if precommit_review
+            ld1b1_validate_precommit_interruption_review_record(
+                attempt_dir, execution_root, checked.identity, job, attempt)
+        else
+            recovery = ld1b1_recovery_reservation_context(
+                attempt_dir, checked.identity, job, attempt)
+            LD1B1Recovery.ld1b_validate_interruption_review_file(
+                attempt_dir;
+                plan_identity = ld1b1_result_plan_identity(checked.identity),
+                execution_source_identity =
+                    checked.identity.execution_source_identity,
+                job_identity = ld1b1_result_job_identity(job),
+                attempt_number = attempt,
+                attempt_role = attempt == 1 ? :primary : :remediation,
+                recovery.file_kwargs...,
+            )
+        end
+        existing_content_hash = precommit_review ?
+            existing_review.content_hash : existing_review.review_content_hash
+        existing_content_hash ==
+            external.validation.content_hash || error(
+            "existing retirement review differs from the supplied review")
+        return ((;
+            job_id = job.job_id,
+            attempt,
+            action_status = :retired_interruption_verified,
+            review_publication = :reused_existing,
+            retirement_publication = :reused_existing,
+            review_mode = precommit_review ?
+                :precommit_process_stop_review : existing_review.mode,
+            retirement_reason_code = retired.retirement_reason_code,
+            review_file_sha256 = retired.review_file_sha256,
+            retirement_file_sha256 = retired.retirement_file_sha256,
+            subprocess_started = false,
+            response_data_generated = false,
+            model_fit_run = false,
+            mcmc_run = false,
+        ),)
+    end
+
+    if !precommit_review
+        observation = ld1b1_interrupted_attempt_observation(
+            execution_root,
+            checked.identity,
+            job,
+            attempt;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
+        observation.retirement_reason_code ===
+            options.retirement_reason || error(
+            "current attempt state differs from --retirement-reason")
+        reviewed_state = external.validation.observed_attempt_state
+        ld1b1_bool(reviewed_state["result_present"]) ==
+            observation.result_present || error(
+                "stopped-process review result presence differs from the attempt")
+        reviewed_result_sha256 = reviewed_state["result_file_sha256"]
+        if observation.result_file_sha256 === nothing
+            reviewed_result_sha256 === nothing || error(
+                "stopped-process review unexpectedly binds a result SHA-256")
+        else
+            ld1b1_string(reviewed_result_sha256) ==
+                observation.result_file_sha256 || error(
+                "stopped-process review result SHA-256 differs from the attempt")
+        end
+        ld1b1_symbol(reviewed_state["result_semantic_assessment"]) ===
+            observation.result_semantic_assessment || error(
+            "stopped-process review semantic assessment differs from the controller")
+    end
+
+    review = precommit_review ?
+        ld1b1_publish_external_precommit_interruption_review(
+            options.stopped_process_review,
+            attempt_dir,
+            execution_root,
+            checked.identity,
+            job,
+            attempt,
+        ) :
+        ld1b1_publish_external_interruption_review(
+            options.stopped_process_review,
+            attempt_dir,
+            execution_root,
+            checked.identity,
+            job,
+            attempt,
+        )
+    published_reason = precommit_review ? review.validation.reason_code :
+        review.validation.retirement_reason_code
+    published_reason ===
+        options.retirement_reason || error(
+        "published review retirement reason changed during publication")
+    attempt_role = attempt == 1 ? :primary : :remediation
+    marker = LD1B1AttemptArchive.ld1b_publish_attempt_retirement_marker(
+        attempt_dir;
+        plan_identity = ld1b1_result_plan_identity(checked.identity),
+        execution_source_identity =
+            checked.identity.execution_source_identity,
+        job_identity = ld1b1_result_job_identity(job),
+        attempt_number = attempt,
+        attempt_role,
+        retirement_reason_code = options.retirement_reason,
+        review_record_sha256 = precommit_review ?
+            review.validation.file_sha256 :
+            review.validation.review_file_sha256,
+        # This is derived only after strict receipt/review validation above.
+        process_confirmed_stopped = true,
+        staging_dir = ld1b1_retirement_staging_dir(execution_root),
+        boundary = execution_root,
+    )
+    retired = ld1b1_validate_retired_attempt(
+        execution_root, checked.identity, job, attempt)
+    return ((;
+        job_id = job.job_id,
+        attempt,
+        action_status = :retired_interruption_verified,
+        review_publication = review.publication.reused_existing ?
+            :reused_existing : :create_new,
+        retirement_publication = marker.publication.publication,
+        review_mode = precommit_review ?
+            :precommit_process_stop_review : review.validation.mode,
+        retirement_reason_code = retired.retirement_reason_code,
+        review_file_sha256 = retired.review_file_sha256,
+        retirement_file_sha256 = retired.retirement_file_sha256,
+        subprocess_started = false,
+        response_data_generated = false,
+        model_fit_run = false,
+        mcmc_run = false,
+    ),)
+end
+
 function ld1b1_command_rows(selection, identity, execution_root, options)
     return Tuple((function ()
         planned_runner_sha256 =
@@ -3751,6 +8342,7 @@ function ld1b1_command_rows(selection, identity, execution_root, options)
             options;
             runner_source_sha256 = ismissing(planned_runner_sha256) ?
                 nothing : planned_runner_sha256,
+            controller_readiness_authorized = false,
         )
         (;
             job_id = job.job_id,
@@ -3765,6 +8357,8 @@ function ld1b1_command_rows(selection, identity, execution_root, options)
             retry_reason = options.retry_reason,
             result_path = ld1b1_record_path(command.result_path),
             command = ld1b1_portable_command_string(command.args),
+            controller_readiness_authorized =
+                command.controller_readiness_authorized,
         )
     end)() for job in selection.selected)
 end
@@ -3791,8 +8385,19 @@ function ld1b1_harness_job_rows(specs, execution_root)
             job.primary_outcome_overwritable_by_retries,
         primary_attempt_dir = ld1b1_record_path(
             ld1b1_attempt_dir(execution_root, job.job_id, 1)),
+        primary_attempt_reservation_path = ld1b1_record_path(
+            ld1b1_attempt_reservation_path(
+                execution_root, job.job_id, 1)),
         primary_result_path = ld1b1_record_path(
             ld1b1_result_path(execution_root, job.job_id, 1)),
+        primary_interruption_review_path = ld1b1_record_path(
+            ld1b1_interruption_review_path(
+                execution_root, job.job_id, 1)),
+        primary_precommit_interruption_review_path = ld1b1_record_path(
+            ld1b1_precommit_interruption_review_path(
+                execution_root, job.job_id, 1)),
+        primary_retirement_path = ld1b1_record_path(
+            ld1b1_retirement_path(execution_root, job.job_id, 1)),
         remediation_attempt_path_template = ld1b1_record_path(joinpath(
             execution_root,
             "jobs",
@@ -3800,18 +8405,76 @@ function ld1b1_harness_job_rows(specs, execution_root)
             "attempt_{NNN}",
             "job_result.json",
         )),
+        remediation_interruption_review_path_template =
+            ld1b1_record_path(joinpath(
+                execution_root,
+                "jobs",
+                job.job_id,
+                "attempt_{NNN}",
+                LD1B1Recovery.LD1B_INTERRUPTION_REVIEW_FILENAME,
+            )),
+        remediation_retirement_path_template = ld1b1_record_path(joinpath(
+            execution_root,
+            "jobs",
+            job.job_id,
+            "attempt_{NNN}",
+            LD1B1AttemptArchive.LD1B_ATTEMPT_RETIREMENT_FILENAME,
+        )),
         execution_status = :not_executed,
     ) for job in specs)
+end
+
+function ld1b1_validate_harness_generator_metadata(
+        metadata, identity)
+    ld1b1_require_only_keys(metadata, (
+        :path,
+        :source_sha256,
+        :batch_runner_path,
+        :batch_runner_source_sha256,
+    ), "batch harness generator metadata")
+    path = ld1b1_string(metadata[:path])
+    path ==
+        "scripts/generate_local_dependence_pilot_batch_execution_harness.jl" ||
+        error("batch harness generator metadata has the wrong canonical path")
+    source_sha256 = ld1b1_require_sha256(
+        metadata[:source_sha256],
+        "batch harness generator source identity",
+    )
+    source_sha256 == identity.batch_harness_generator_source_sha256 || error(
+        "batch harness generator differs from the canonical executor source pin")
+    batch_runner_path = ld1b1_string(metadata[:batch_runner_path])
+    batch_runner_path ==
+        "scripts/run_local_dependence_calibration_pilot_batch.jl" || error(
+        "batch harness generator metadata has the wrong batch-runner path")
+    batch_runner_source_sha256 = ld1b1_require_sha256(
+        metadata[:batch_runner_source_sha256],
+        "batch harness generator batch-runner source identity",
+    )
+    batch_runner_source_sha256 ==
+        identity.execution_source_identity.batch_runner_source_sha256 || error(
+        "batch harness generator metadata has the wrong batch-runner source identity")
+    return (;
+        path,
+        source_sha256,
+        batch_runner_path,
+        batch_runner_source_sha256,
+    )
 end
 
 function ld1b1_build_harness(options;
         scan_results::Bool = true,
         generated_at = nothing,
-        artifact_generator = nothing)
+        artifact_generator = nothing,
+        consume_bounded_smoke_receipt::Bool = true)
     checked = ld1b1_checked_protocol(
         options.protocol;
         job_runner_path = options.runner,
+        attempt_root = options.attempt_root,
+        consume_bounded_smoke_receipt,
     )
+    artifact_generator === nothing ||
+        (artifact_generator = ld1b1_validate_harness_generator_metadata(
+            artifact_generator, checked.identity))
     specs = ld1b1_job_specs(checked)
     selection = ld1b1_selected_jobs(specs, options)
     execution_root = ld1b1_execution_root(
@@ -3819,13 +8482,19 @@ function ld1b1_build_harness(options;
     checkpoint_path = options.checkpoint === nothing ?
         joinpath(execution_root, "checkpoint.json") : options.checkpoint
     scan = scan_results ?
-        ld1b1_scan_attempts(specs, checked.identity, execution_root) :
-        ld1b1_empty_scan(specs, checked.identity)
+        ld1b1_scan_attempts(
+            specs,
+            checked.identity,
+            execution_root;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        ) : ld1b1_empty_scan(specs, checked.identity)
     resume_state = options.resume ?
         ld1b1_resume_state(checkpoint_path, checked.identity, scan) :
         ld1b1_no_resume_state(scan)
 
     execution_rows = ()
+    recovery_rows = ()
     if options.mode in (:execute_primary, :execute_retry)
         execution_rows = ld1b1_execute_selected(
             selection,
@@ -3835,7 +8504,27 @@ function ld1b1_build_harness(options;
             checkpoint_path,
             options,
         )
-        scan = ld1b1_scan_attempts(specs, checked.identity, execution_root)
+        scan = ld1b1_scan_attempts(
+            specs,
+            checked.identity,
+            execution_root;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
+    elseif options.mode === :retire_interrupted
+        recovery_rows = ld1b1_retire_interrupted_selected(
+            selection,
+            checked,
+            execution_root,
+            options,
+        )
+        scan = ld1b1_scan_attempts(
+            specs,
+            checked.identity,
+            execution_root;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
     end
     if options.write_checkpoint
         checkpoint = ld1b1_checkpoint_artifact(checked.identity, scan)
@@ -3843,7 +8532,7 @@ function ld1b1_build_harness(options;
             checkpoint_path, checkpoint; overwrite = true)
     end
 
-    command_rows = options.mode === :aggregate_only ? () :
+    command_rows = options.mode in (:aggregate_only, :retire_interrupted) ? () :
         ld1b1_command_rows(selection, checked.identity, execution_root, options)
     aggregate_passed = scan.summary.aggregate_assessment === :ready &&
         scan.summary.attempt_archive_assessment === :passed
@@ -3851,8 +8540,11 @@ function ld1b1_build_harness(options;
         :terminal_result_verified,
         :skipped_verified_terminal_primary,
     )), execution_rows)
+    recovery_failed = any(row -> row.action_status !==
+        :retired_interruption_verified, recovery_rows)
     passed = options.mode === :aggregate_only ? aggregate_passed :
         options.mode in (:execute_primary, :execute_retry) ? !execution_failed :
+        options.mode === :retire_interrupted ? !recovery_failed :
         true
     runner_materialized = isfile(options.runner) && !islink(options.runner)
     execute_mode_requested = options.mode in (:execute_primary, :execute_retry)
@@ -3864,6 +8556,8 @@ function ld1b1_build_harness(options;
     invocation_activity = invokes_job_runner ? missing : false
     pass_scope = options.mode === :aggregate_only ?
         :aggregate_integrity_and_operational_gate :
+        options.mode === :retire_interrupted ?
+            :interrupted_attempt_recovery_disposition :
         execute_mode_requested ? :batch_controller_invocation :
         :harness_contract_only
     base = (;
@@ -3922,6 +8616,10 @@ function ld1b1_build_harness(options;
             posterior_predictive_seed_to_result_replay_verified = false,
             pre_fit_rejection_requires_simulation_and_calibration_provenance = true,
             diagnostic_failure_component_must_match_sampler_gate = true,
+            failure_semantics = ld1b1_failure_semantics(),
+            unavailable_sampler_diagnostics_is_terminal = false,
+            final_calibration_serialization_failure_is_terminal = false,
+            incomplete_artifact_failure_requires_recovery_disposition = true,
             sampler_controls_and_quality_gates_frozen = true,
             diagnostic_summary_metrics_individually_validated = true,
             empty_file_manifest_accepted = false,
@@ -3930,7 +8628,29 @@ function ld1b1_build_harness(options;
             hard_links_allowed_in_attempt_tree = false,
             file_snapshot_rechecked_against_attempt_inventory = true,
             archive_validation_is_atomic = false,
-            completed_attempt_archive_seal_supported = false,
+            completed_attempt_archive_seal_supported =
+                LD1B1_COMPLETED_ATTEMPT_ARCHIVE_SEAL_SUPPORTED,
+            completed_attempt_seal_create_new_publication_required = true,
+            result_without_completed_attempt_seal_is_terminal = false,
+            completed_attempt_seal_and_result_semantics_both_required = true,
+            operational_readiness_conjunction_required = true,
+            protocol_execution_authorization_required = true,
+            canonical_executor_source_pin_required = true,
+            bounded_canonical_smoke_receipt_required = true,
+            interrupted_attempt_recovery_review_required = true,
+            interruption_review_schema =
+                LD1B1Recovery.LD1B_INTERRUPTION_REVIEW_SCHEMA,
+            interruption_review_create_new_publication_required = true,
+            validated_review_required_before_retirement = true,
+            review_file_sha256_must_match_retirement_marker = true,
+            retirement_is_nonterminal = true,
+            retirement_counts_toward_scientific_denominator = false,
+            retirement_may_replace_primary_outcome = false,
+            retired_attempt_same_slot_restart_allowed = false,
+            retired_predecessor_remediation_supported = false,
+            completed_seal_and_retirement_are_mutually_exclusive = true,
+            canonical_execution_root_binding_required = true,
+            execute_path_checks_readiness_before_attempt_creation = true,
             canonical_job_runner_required_for_execution = true,
             execute_path_verifies_runner_sha256_around_each_subprocess = true,
             execute_path_passes_expected_source_identity = true,
@@ -3968,6 +8688,10 @@ function ld1b1_build_harness(options;
             checkpoint_path = ld1b1_record_path(checkpoint_path),
             job_directory_pattern = "jobs/<job_id>/attempt_<NNN>",
             primary_result_filename = "job_result.json",
+            interruption_review_filename =
+                LD1B1Recovery.LD1B_INTERRUPTION_REVIEW_FILENAME,
+            attempt_retirement_filename =
+                LD1B1AttemptArchive.LD1B_ATTEMPT_RETIREMENT_FILENAME,
         ),
         runner = (;
             path = ld1b1_record_path(options.runner),
@@ -3991,19 +8715,34 @@ function ld1b1_build_harness(options;
             attempt = options.attempt,
             retry_of_attempt = options.retry_of,
             retry_reason = options.retry_reason,
+            retirement_reason = options.retirement_reason,
+            stopped_process_review = options.stopped_process_review === nothing ?
+                nothing : ld1b1_record_path(options.stopped_process_review),
         ),
         job_rows = ld1b1_harness_job_rows(specs, execution_root),
         command_rows,
         execution_rows,
+        recovery_rows,
         resume = resume_state,
         aggregate = (;
             aggregate_only = options.mode === :aggregate_only,
             attempt_tree_scanned = scan_results ||
-                options.mode in (:execute_primary, :execute_retry),
+                options.mode in (
+                    :execute_primary,
+                    :execute_retry,
+                    :retire_interrupted,
+                ),
             scan_assessment = scan.summary.scan_assessment,
             state_digest = scan.state_digest,
             observed_primary_result_set_sha256 =
                 scan.observed_primary_result_set_sha256,
+            observed_primary_disposition_set_sha256 =
+                scan.observed_primary_disposition_set_sha256,
+            attempt_reservation_scan_active =
+                scan.attempt_reservation_scan_active,
+            attempt_reservation_rows = scan.attempt_reservation_rows,
+            attempt_reservation_state_digest =
+                scan.attempt_reservation_state_digest,
             job_state_rows = scan_results ||
                 options.mode in (:execute_primary, :execute_retry) ?
                     scan.job_state_rows : (),
@@ -4055,6 +8794,27 @@ function ld1b1_build_harness(options;
                 checked.identity.execution_plan_complete,
             execution_plan_assessment =
                 checked.identity.execution_plan_assessment,
+            operational_execution_authorized = checked.identity.readiness.
+                operational_execution_authorized,
+            operational_execution_blockers =
+                checked.identity.readiness.blockers,
+            protocol_execution_authorized = checked.identity.readiness.
+                protocol_execution_authorized,
+            canonical_executor_materialized = checked.identity.readiness.
+                canonical_executor_materialized,
+            final_worker_source_pinned_and_identities_regenerated =
+                checked.identity.readiness.
+                    final_worker_source_pinned_and_identities_regenerated,
+            canonical_executor_source_pinned = checked.identity.readiness.
+                canonical_executor_source_pinned,
+            bounded_canonical_smoke_passed = checked.identity.readiness.
+                bounded_canonical_smoke_passed,
+            completed_attempt_archive_seal_supported = checked.identity.
+                readiness.completed_attempt_archive_seal_supported,
+            interrupted_attempt_recovery_review_passed = checked.identity.
+                readiness.interrupted_attempt_recovery_review_passed,
+            canonical_execution_root_bound = checked.identity.readiness.
+                canonical_execution_root_bound,
             canonical_job_matrix_valid = true,
             n_plan_jobs = length(specs),
             n_fit_jobs = LD1B1_EXPECTED_FIT_JOBS,
@@ -4073,6 +8833,15 @@ function ld1b1_build_harness(options;
             n_retry_attempts_observed =
                 scan.summary.n_retry_attempts_observed,
             n_partial_attempts = scan.summary.n_partial_attempts,
+            n_retired_attempts = scan.summary.n_retired_attempts,
+            n_retired_primary_attempts =
+                scan.summary.n_retired_primary_attempts,
+            n_retired_remediation_attempts =
+                scan.summary.n_retired_remediation_attempts,
+            n_reviewed_pending_retirement_attempts =
+                scan.summary.n_reviewed_pending_retirement_attempts,
+            n_disposition_conflicts =
+                scan.summary.n_disposition_conflicts,
             n_corrupt_attempts = scan.summary.n_invalid_attempts,
             n_invalid_primary_attempts =
                 scan.summary.n_invalid_primary_attempts,
@@ -4100,6 +8869,8 @@ function ld1b1_build_harness(options;
             aggregate_assessment = scan.summary.aggregate_assessment,
             observed_primary_result_set_sha256 =
                 scan.observed_primary_result_set_sha256,
+            observed_primary_disposition_set_sha256 =
+                scan.observed_primary_disposition_set_sha256,
             aggregate_only_executes_jobs = false,
             activity_scope = :current_batch_controller_invocation,
             job_runner_subprocesses_started =
@@ -4118,7 +8889,11 @@ function ld1b1_build_harness(options;
     generated_at === nothing ||
         (base = merge(base, (; generated_at = String(generated_at))))
     artifact_generator === nothing ||
-        (base = merge(base, (; artifact_generator)))
+        (base = merge(base, (; artifact_generator = merge(
+            artifact_generator,
+            (; canonical_executor_source_pin_id =
+                checked.identity.canonical_executor_source_pin_id),
+        ))))
     return ld1b1_with_content_hash(base)
 end
 
@@ -4132,6 +8907,10 @@ function ld1b1_default_output(options, plan_id::AbstractString)
         return joinpath(execution_root, "batch_runs", string(
             Dates.format(Dates.now(), dateformat"yyyymmdd_HHMMSS_sss"),
             "_orchestrator.json"))
+    elseif options.mode === :retire_interrupted
+        return joinpath(execution_root, "recovery_runs", string(
+            Dates.format(Dates.now(), dateformat"yyyymmdd_HHMMSS_sss"),
+            "_retirement.json"))
     elseif options.mode === :dry_run
         return joinpath(execution_root, "dry_runs", string(
             Dates.format(Dates.now(), dateformat"yyyymmdd_HHMMSS_sss"),
@@ -4142,6 +8921,16 @@ end
 
 function ld1b1_batch_main(args)
     options = ld1b1_parse_args(args)
+    if options.mode === :bounded_smoke
+        result = ld1b1_execute_bounded_smoke(options)
+        println(
+            "mode=bounded_smoke passed=", result.validated.valid,
+            " smoke_plan_id=", result.validated.smoke_plan_id,
+            " pilot_outcomes=0/", LD1B1_EXPECTED_JOBS,
+            " operational_execution_authorized=false",
+        )
+        return nothing
+    end
     artifact = ld1b1_build_harness(
         options; generated_at = string(Dates.now()))
     output = options.output === nothing ?

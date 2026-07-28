@@ -1421,6 +1421,10 @@ function artifact_summary(name::Symbol, text::AbstractString)
     )
     name === :full_paper_reproduction_archive && return (;
         passed = json_bool(summary, "passed"),
+        pass_scope = coalesce(json_optional_string(summary, "pass_scope"),
+            "legacy_unspecified"),
+        artifact_contract_valid = Bool(coalesce(json_optional_bool(summary,
+            "artifact_contract_valid"), json_bool(summary, "passed"))),
         publication_or_registration_action =
             json_bool(summary, "publication_or_registration_action"),
         local_only = json_bool(summary, "local_only"),
@@ -1429,6 +1433,10 @@ function artifact_summary(name::Symbol, text::AbstractString)
         all_expected_schemas = json_bool(summary, "all_expected_schemas"),
         all_fixture_summaries_passed =
             json_bool(summary, "all_fixture_summaries_passed"),
+        all_fixture_artifact_contracts_valid =
+            Bool(coalesce(json_optional_bool(summary,
+                "all_fixture_artifact_contracts_valid"),
+                json_bool(summary, "all_fixture_summaries_passed"))),
         all_generator_scripts_present =
             json_bool(summary, "all_generator_scripts_present"),
         all_code_doc_references_present =
@@ -1563,12 +1571,77 @@ function artifact_summary(name::Symbol, text::AbstractString)
         mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed =
             json_bool(summary,
                 "mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed"),
+        mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed_semantics =
+            coalesce(json_optional_string(summary,
+                "mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed_semantics"),
+                "legacy_unspecified"),
+        mgmfrm_external_construct_dataset_and_independent_public_scope_review_artifact_contract_valid =
+            Bool(coalesce(json_optional_bool(summary,
+                "mgmfrm_external_construct_dataset_and_independent_public_scope_review_artifact_contract_valid"),
+                json_bool(summary,
+                    "mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed"))),
         mgmfrm_external_construct_attachment_intake_preflight_passed =
             json_bool(summary,
                 "mgmfrm_external_construct_attachment_intake_preflight_passed"),
+        mgmfrm_external_construct_attachment_intake_preflight_passed_semantics =
+            coalesce(json_optional_string(summary,
+                "mgmfrm_external_construct_attachment_intake_preflight_passed_semantics"),
+                "legacy_unspecified"),
+        mgmfrm_external_construct_attachment_intake_preflight_artifact_contract_valid =
+            Bool(coalesce(json_optional_bool(summary,
+                "mgmfrm_external_construct_attachment_intake_preflight_artifact_contract_valid"),
+                json_bool(summary,
+                    "mgmfrm_external_construct_attachment_intake_preflight_passed"))),
         mgmfrm_external_construct_attachment_request_packet_passed =
             json_bool(summary,
                 "mgmfrm_external_construct_attachment_request_packet_passed"),
+        mgmfrm_external_construct_attachment_request_packet_passed_semantics =
+            coalesce(json_optional_string(summary,
+                "mgmfrm_external_construct_attachment_request_packet_passed_semantics"),
+                "legacy_unspecified"),
+        mgmfrm_external_construct_attachment_request_packet_artifact_contract_valid =
+            Bool(coalesce(json_optional_bool(summary,
+                "mgmfrm_external_construct_attachment_request_packet_artifact_contract_valid"),
+                json_bool(summary,
+                    "mgmfrm_external_construct_attachment_request_packet_passed"))),
+        mgmfrm_external_construct_dataset_manifest_attached_and_valid =
+            Bool(coalesce(json_optional_bool(summary,
+                "mgmfrm_external_construct_dataset_manifest_attached_and_valid"),
+                false)),
+        mgmfrm_external_construct_dataset_file_integrity_verified =
+            Bool(coalesce(json_optional_bool(summary,
+                "mgmfrm_external_construct_dataset_file_integrity_verified"),
+                false)),
+        mgmfrm_external_construct_validation_evidence_attached_and_valid =
+            Bool(coalesce(json_optional_bool(summary,
+                "mgmfrm_external_construct_validation_evidence_attached_and_valid"),
+                false)),
+        mgmfrm_external_construct_validation_evidence_passed =
+            Bool(coalesce(json_optional_bool(summary,
+                "mgmfrm_external_construct_validation_evidence_passed"),
+                false)),
+        mgmfrm_independent_public_scope_review_attached_and_valid =
+            Bool(coalesce(json_optional_bool(summary,
+                "mgmfrm_independent_public_scope_review_attached_and_valid"),
+                false)),
+        mgmfrm_independent_public_scope_review_gate_passed =
+            Bool(coalesce(json_optional_bool(summary,
+                "mgmfrm_independent_public_scope_review_gate_passed"),
+                false)),
+        mgmfrm_public_claim_release_decision_signed =
+            Bool(coalesce(json_optional_bool(summary,
+                "mgmfrm_public_claim_release_decision_signed"), false)),
+        mgmfrm_external_construct_public_claim_release_gate_passed =
+            Bool(coalesce(json_optional_bool(summary,
+                "mgmfrm_external_construct_public_claim_release_gate_passed"),
+                false)),
+        mgmfrm_external_construct_public_blocker_count =
+            begin
+                value = json_value_for_key(summary,
+                    "mgmfrm_external_construct_public_blocker_count")
+                value === nothing ? json_int(summary, "n_blockers") :
+                    parse(Int, value)
+            end,
         prediction_target_and_model_weight_policy_passed =
             json_bool(summary,
                 "prediction_target_and_model_weight_policy_passed"),
@@ -1971,21 +2044,45 @@ function review_rows(records)
             finding =
                 :publication_grade_threshold_model_weight_policy_review_recorded_claims_blocked),
         (gate = :confirmatory_mgmfrm_external_construct_dataset_and_independent_public_scope_review,
-            status = :passed_with_policy_blocker,
+            status = :contract_valid_claims_blocked,
             evidence = Bool(getproperty(full_archive.summary,
+                :mgmfrm_external_construct_dataset_and_independent_public_scope_review_artifact_contract_valid)),
+            compatibility_passed = Bool(getproperty(full_archive.summary,
                 :mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed)),
+            compatibility_passed_semantics = Symbol(getproperty(
+                full_archive.summary,
+                :mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed_semantics)),
+            external_construct_validation_evidence_passed = Bool(getproperty(
+                full_archive.summary,
+                :mgmfrm_external_construct_validation_evidence_passed)),
+            independent_public_scope_review_gate_passed = Bool(getproperty(
+                full_archive.summary,
+                :mgmfrm_independent_public_scope_review_gate_passed)),
+            public_claim_release_gate_passed = Bool(getproperty(
+                full_archive.summary,
+                :mgmfrm_external_construct_public_claim_release_gate_passed)),
             finding =
                 :external_construct_and_independent_public_scope_requirements_recorded_claims_blocked),
         (gate = :confirmatory_mgmfrm_external_construct_attachment_intake_preflight,
-            status = :passed_with_policy_blocker,
+            status = :contract_valid_claims_blocked,
             evidence = Bool(getproperty(full_archive.summary,
+                :mgmfrm_external_construct_attachment_intake_preflight_artifact_contract_valid)),
+            compatibility_passed = Bool(getproperty(full_archive.summary,
                 :mgmfrm_external_construct_attachment_intake_preflight_passed)),
+            compatibility_passed_semantics = Symbol(getproperty(
+                full_archive.summary,
+                :mgmfrm_external_construct_attachment_intake_preflight_passed_semantics)),
             finding =
                 :external_construct_attachment_intake_preflight_recorded_claims_blocked),
         (gate = :confirmatory_mgmfrm_external_construct_attachment_request_packet,
-            status = :passed_with_policy_blocker,
+            status = :contract_valid_claims_blocked,
             evidence = Bool(getproperty(full_archive.summary,
+                :mgmfrm_external_construct_attachment_request_packet_artifact_contract_valid)),
+            compatibility_passed = Bool(getproperty(full_archive.summary,
                 :mgmfrm_external_construct_attachment_request_packet_passed)),
+            compatibility_passed_semantics = Symbol(getproperty(
+                full_archive.summary,
+                :mgmfrm_external_construct_attachment_request_packet_passed_semantics)),
             finding =
                 :external_construct_attachment_request_packet_recorded_claims_blocked),
         (gate = :dff_estimand_and_validation_grid, status = :passed,
@@ -2106,6 +2203,16 @@ function build_artifact()
         records, :tam_direct_agreement_post_execution_review_packet)
     full_archive =
         artifact_by_name(records, :full_paper_reproduction_archive)
+    Bool(full_archive.summary.
+        mgmfrm_external_construct_validation_evidence_passed) &&
+        !Bool(full_archive.summary.
+            mgmfrm_external_construct_validation_evidence_attached_and_valid) &&
+        error("external construct evidence cannot pass without a valid attachment")
+    Bool(full_archive.summary.
+        mgmfrm_external_construct_public_claim_release_gate_passed) &&
+        Int(full_archive.summary.
+            mgmfrm_external_construct_public_blocker_count) != 0 &&
+        error("external public claim release cannot pass with unresolved blockers")
     tam_execution_input_lineage_exact =
         Bool(tam_post.summary.raw_job_execution_input_lineage_exact) &&
         Bool(claim_archive.summary.tam_execution_input_lineage_exact) &&
@@ -2289,12 +2396,57 @@ function build_artifact()
             mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed =
                 Bool(getproperty(full_archive.summary,
                     :mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed)),
+            mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed_semantics =
+                Symbol(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed_semantics)),
+            mgmfrm_external_construct_dataset_and_independent_public_scope_review_artifact_contract_valid =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_dataset_and_independent_public_scope_review_artifact_contract_valid)),
             mgmfrm_external_construct_attachment_intake_preflight_passed =
                 Bool(getproperty(full_archive.summary,
                     :mgmfrm_external_construct_attachment_intake_preflight_passed)),
+            mgmfrm_external_construct_attachment_intake_preflight_passed_semantics =
+                Symbol(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_attachment_intake_preflight_passed_semantics)),
+            mgmfrm_external_construct_attachment_intake_preflight_artifact_contract_valid =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_attachment_intake_preflight_artifact_contract_valid)),
             mgmfrm_external_construct_attachment_request_packet_passed =
                 Bool(getproperty(full_archive.summary,
                     :mgmfrm_external_construct_attachment_request_packet_passed)),
+            mgmfrm_external_construct_attachment_request_packet_passed_semantics =
+                Symbol(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_attachment_request_packet_passed_semantics)),
+            mgmfrm_external_construct_attachment_request_packet_artifact_contract_valid =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_attachment_request_packet_artifact_contract_valid)),
+            mgmfrm_external_construct_dataset_manifest_attached_and_valid =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_dataset_manifest_attached_and_valid)),
+            mgmfrm_external_construct_dataset_file_integrity_verified =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_dataset_file_integrity_verified)),
+            mgmfrm_external_construct_validation_evidence_attached_and_valid =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_validation_evidence_attached_and_valid)),
+            mgmfrm_external_construct_validation_evidence_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_validation_evidence_passed)),
+            mgmfrm_independent_public_scope_review_attached_and_valid =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_independent_public_scope_review_attached_and_valid)),
+            mgmfrm_independent_public_scope_review_gate_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_independent_public_scope_review_gate_passed)),
+            mgmfrm_public_claim_release_decision_signed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_public_claim_release_decision_signed)),
+            mgmfrm_external_construct_public_claim_release_gate_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_public_claim_release_gate_passed)),
+            mgmfrm_external_construct_public_blocker_count =
+                Int(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_public_blocker_count)),
             prediction_target_and_model_weight_policy_passed =
                 Bool(prediction_policy.summary.passed),
             mgmfrm_manual_public_scope_review_for_fit_passed =

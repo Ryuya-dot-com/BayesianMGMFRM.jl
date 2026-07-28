@@ -9,9 +9,9 @@
   },
   "generator": {
     "script": "scripts/generate_local_dependence_pilot_protocol_preflight.jl",
-    "script_source_sha256": "a4b7d193a62825e676cf55a495b1516d07f5bcd2cf39edab121ec9392817740e",
+    "script_source_sha256": "7998e06702c3a6f0254994f2362a82219ed8c6c1e7f8a6c496a6ce63a1c59d80",
     "pilot_source": "src/local_dependence_calibration_pilot.jl",
-    "pilot_source_sha256": "b7a1a66cdca057ab1a4915093d3039081bad20f0f354804653346a8921fbf6bf",
+    "pilot_source_sha256": "6caba29c7b5f7ab54c4d5b4d3ffc7d455e22283d348369fc4ca82952f890ec5b",
     "diagnostic_source": "src/bayesian_fit.jl",
     "diagnostic_source_sha256": "77cf5c4df82f6fefb8d42f948a8fc081c22d0621898b08a6bb31574d9a9fe6d6",
     "calibration_source": "src/local_dependence_calibration.jl",
@@ -20,7 +20,7 @@
     "simulation_source_sha256": "006cb3d2514eacdf9606db303c80460efa095772691772f63defbe11fd362ae8",
     "environment_provenance": {
       "project": "Project.toml",
-      "project_sha256": "98f8d27a13e621f8f341abc84ab4cfae565b9cfecef83b24f6e8331fc320f247",
+      "project_sha256": "fa903c793a1c67b66ec61e8ccd732d3e2169503a856e2c4902b01d98fb5ec45f",
       "manifest": "Manifest-v1.10.toml",
       "manifest_sha256": "b57f6381e5c8ac151359b3f6d6f62f98377248c8ff9a9abc624a4ecb64c85d47",
       "julia_compat": "1.10.8",
@@ -33,10 +33,10 @@
       "artifact": "local_dependence_known_truth_preflight",
       "path": "test/fixtures/local_dependence_known_truth_preflight.json",
       "expected_schema": "bayesianmgmfrm.local_dependence_known_truth_preflight.v1",
-      "file_sha256": "4dfadee6f8837fd9714f374d00dac582ebda41ed7dca8b5bd9d9ad9592a8d4d1",
+      "file_sha256": "dbfbdf635c6363c0fe5b460b97e09feaf40d139f8e5b331c370c75bc05504255",
       "content_hash": {
         "algorithm": "sha256",
-        "value": "cad08fb44d83e27ab699f68234cfa0b8f96a4bb4dd6f5b02ce28e097e60f91cc",
+        "value": "f56e8cca169d5303c73bda1b99896674a71111ca0c2559d019fdb89d3d9834f1",
         "verified": true,
         "canonical_format": "local_json_sorted_compact"
       }
@@ -45,15 +45,85 @@
       "artifact": "local_dependence_calibration_scorer_preflight",
       "path": "test/fixtures/local_dependence_calibration_scorer_preflight.json",
       "expected_schema": "bayesianmgmfrm.local_dependence_calibration_scorer_preflight.v1",
-      "file_sha256": "a9f4eca686658f2d07ad2025732eb0d657d44e0189befcb9b78dfc2530c37a51",
+      "file_sha256": "1e2bf155f8c0d04cbc99cef940d3c3cd94efbee134a782151b14de3e0f178893",
       "content_hash": {
         "algorithm": "sha256",
-        "value": "e753c9d66d471736c3395550ed87a9b6ce7cbb9d1e8ed587e0c3bc2d66c4bc4d",
+        "value": "d964dccf6ee64948d8c9e3132ffdad34f8353bd3cd5a9c33a49a40ed99932c12",
         "verified": true,
         "canonical_format": "local_json_sorted_compact"
       }
     }
   ],
+  "canonical_executor_source_pin": {
+    "schema": "bayesianmgmfrm.local_dependence_pilot_canonical_executor_source_pin.v1",
+    "status": "canonical_executor_source_pin_recorded",
+    "source_rows": [
+      {
+        "role": "batch_controller",
+        "path": "scripts/run_local_dependence_calibration_pilot_batch.jl",
+        "sha256": "f4f206e7fbe3cdaa4d1d9325a0d1e0d3d99dfca5fb1a1ea2f1444516c3e3f6ee"
+      },
+      {
+        "role": "canonical_json",
+        "path": "scripts/local_json.jl",
+        "sha256": "c230d9e32d5333c984c06cdb199b3ee8be2d38a6920f74e7058310ee595a6faa"
+      },
+      {
+        "role": "single_job_worker",
+        "path": "scripts/run_local_dependence_calibration_pilot_job.jl",
+        "sha256": "533de107d8be4b036118c3d7e595d518cff595140be80799f39d10b530dcac84"
+      },
+      {
+        "role": "attempt_archive",
+        "path": "scripts/local_dependence_pilot_attempt_archive.jl",
+        "sha256": "b6ed26b305d977702b934b0d629590d2e948485847c990aaad1d83f1e592e6e6"
+      },
+      {
+        "role": "interruption_recovery",
+        "path": "scripts/local_dependence_pilot_recovery.jl",
+        "sha256": "4e2638495e7fbaa1e2d9a040fc6812ce26df228bc29d60cc2ea3acba59b52e1a"
+      },
+      {
+        "role": "calibration_semantics",
+        "path": "scripts/local_dependence_pilot_calibration_semantics.jl",
+        "sha256": "7374f4b32b763c6d9ebcd01e611d4fb5d729882d64e744d89d5b12be3d1020ca"
+      },
+      {
+        "role": "batch_harness_generator",
+        "path": "scripts/generate_local_dependence_pilot_batch_execution_harness.jl",
+        "sha256": "a1ba1adc2fc48023584e0e2fd837a6a273043a8c1a94a7aed60475377a513405"
+      }
+    ],
+    "checks": {
+      "exact_source_count": true,
+      "canonical_source_order": true,
+      "unique_roles": true,
+      "unique_paths": true,
+      "repository_relative_paths": true,
+      "regular_files_present": true,
+      "source_sha256_matches": true
+    },
+    "evidence_boundary": {
+      "authorization_scope": "source_identity_only",
+      "canonical_executor_source_pinned": true,
+      "bounded_canonical_smoke_passed": false,
+      "independent_recovery_readiness_review_passed": false,
+      "operational_execution_authorized": false,
+      "response_data_generated": false,
+      "model_fit_run": false,
+      "mcmc_run": false,
+      "pilot_execution_started": false,
+      "pilot_execution_completed": false,
+      "scientific_pilot_outcomes": 0,
+      "scientific_pilot_denominator": 660
+    },
+    "pin_id": {
+      "algorithm": "sha256",
+      "value": "781bb1aebfda5c16c662b60939a33bde97664cdce6f385ea7bddb25a72353793",
+      "covers": "canonical_executor_source_pin_without_pin_id",
+      "canonical_format": "local_json_sorted_compact"
+    }
+  },
   "execution_scope": {
     "phase": "pilot",
     "base_seed": 20260720,
@@ -364,7 +434,7 @@
       "target_accept": 0.9,
       "max_depth": 10,
       "metric": "diagonal",
-      "ad_backend": "analytic",
+      "ad_backend": "ForwardDiff",
       "split_chains": true,
       "diagnostic_draws": 250,
       "diagnostic_draw_policy": "distinct_without_replacement",
@@ -793,7 +863,7 @@
         "target_accept": 0.9,
         "max_depth": 10,
         "metric": "diagonal",
-        "ad_backend": "analytic",
+        "ad_backend": "ForwardDiff",
         "split_chains": true,
         "diagnostic_draws": 250,
         "diagnostic_draw_policy": "distinct_without_replacement",
@@ -15664,6 +15734,14 @@
       "passed": true
     },
     "sampler_capability": {
+      "planned_sampler_backend": "advancedhmc",
+      "planned_sampler_algorithm": "nuts",
+      "planned_gradient_backend": "ForwardDiff",
+      "sampler_backend_supported": true,
+      "sampler_algorithm_supported": true,
+      "mfrm_logdensity_order": 0,
+      "mfrm_analytic_gradient_method_available": false,
+      "gradient_backend_supported": true,
       "current_rhat_method": "rank_normalized",
       "current_ess_method": "bulk_and_tail",
       "current_rhat_ess_status": "rank_normalized_available",
@@ -16456,6 +16534,14 @@
   ],
   "capability_boundary": {
     "sampler_capability": {
+      "planned_sampler_backend": "advancedhmc",
+      "planned_sampler_algorithm": "nuts",
+      "planned_gradient_backend": "ForwardDiff",
+      "sampler_backend_supported": true,
+      "sampler_algorithm_supported": true,
+      "mfrm_logdensity_order": 0,
+      "mfrm_analytic_gradient_method_available": false,
+      "gradient_backend_supported": true,
       "current_rhat_method": "rank_normalized",
       "current_ess_method": "bulk_and_tail",
       "current_rhat_ess_status": "rank_normalized_available",
@@ -16626,6 +16712,9 @@
     "blockers": [],
     "pilot_execution_authorized": true,
     "required_capabilities": {
+      "advancedhmc_backend_for_mfrm": true,
+      "nuts_algorithm_for_mfrm": true,
+      "executable_mfrm_gradient_backend": true,
       "rank_normalized_rhat": true,
       "bulk_ess": true,
       "tail_ess": true,
@@ -16661,6 +16750,15 @@
     "dependencies": {
       "all_present": true,
       "all_content_hashes_verified": true
+    },
+    "canonical_executor_source_pin": {
+      "exact_source_count": true,
+      "canonical_source_order": true,
+      "unique_roles": true,
+      "unique_paths": true,
+      "repository_relative_paths": true,
+      "regular_files_present": true,
+      "source_sha256_matches": true
     },
     "claim_boundary": {
       "execution_authorized": true,
@@ -16700,7 +16798,7 @@
   },
   "content_hash": {
     "algorithm": "sha256",
-    "value": "fde4264860c371aac3aee7103a7805d31cb8f9f031f1df5eeb7d1209f6914618",
+    "value": "6444fc5edea1be325541c1cf84fa3c34346f5a9efab483938e8f52d6335837b4",
     "covers": "artifact_without_content_hash",
     "canonical_format": "local_json_sorted_compact"
   }

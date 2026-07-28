@@ -2,6 +2,10 @@ using JSON3
 using SHA
 using Test
 
+if !isdefined(@__MODULE__, :write_canonical_json)
+    include(joinpath(@__DIR__, "..", "scripts", "local_json.jl"))
+end
+
 if !isdefined(@__MODULE__, :ScientificPayloadDigest)
     include(joinpath(
         @__DIR__,
@@ -32,6 +36,12 @@ function ld1b1_canonical_hash_without_content_hash(value)
     return (; stored, recomputed = bytes2hex(sha256(take!(io))))
 end
 
+function ld1b1_canonical_json_sha256(value)
+    io = IOBuffer()
+    write_canonical_json(io, ld1b1_artifact_native(value))
+    return bytes2hex(sha256(take!(io)))
+end
+
 function ld1b1_wilson_reference(successes::Int, trials::Int)
     z = 1.959963984540054
     proportion = successes / trials
@@ -47,11 +57,15 @@ end
 
 @testset "LD1b1 committed pilot protocol preflight artifact" begin
     root = dirname(@__DIR__)
-    fixture_path = joinpath(
-        root,
-        "test",
-        "fixtures",
-        "local_dependence_pilot_protocol_preflight.json",
+    fixture_path = get(
+        ENV,
+        "MFRM_LOCAL_DEPENDENCE_PILOT_PROTOCOL_PREFLIGHT_FIXTURE",
+        joinpath(
+            root,
+            "test",
+            "fixtures",
+            "local_dependence_pilot_protocol_preflight.json",
+        ),
     )
     fixture_text = read(fixture_path, String)
     fixture = JSON3.read(fixture_text)
@@ -91,6 +105,7 @@ end
     @test Int(sampler[:warmup_per_chain]) == 500
     @test Int(sampler[:draws_per_chain]) == 500
     @test Int(sampler[:total_retained_draws]) == 2_000
+    @test String(sampler[:ad_backend]) == "ForwardDiff"
     @test Int(sampler[:diagnostic_draws]) == 250
     @test String(sampler[:diagnostic_draw_policy]) ==
         "distinct_without_replacement"
@@ -319,6 +334,14 @@ end
         for row in precision[2:3])
 
     capability = preflight[:sampler_capability]
+    @test String(capability[:planned_sampler_backend]) == "advancedhmc"
+    @test String(capability[:planned_sampler_algorithm]) == "nuts"
+    @test String(capability[:planned_gradient_backend]) == "ForwardDiff"
+    @test Bool(capability[:sampler_backend_supported])
+    @test Bool(capability[:sampler_algorithm_supported])
+    @test Int(capability[:mfrm_logdensity_order]) == 0
+    @test !Bool(capability[:mfrm_analytic_gradient_method_available])
+    @test Bool(capability[:gradient_backend_supported])
     @test String(capability[:current_rhat_method]) == "rank_normalized"
     @test String(capability[:current_ess_method]) == "bulk_and_tail"
     @test String(capability[:current_rhat_ess_status]) ==
@@ -366,6 +389,9 @@ end
         ld1b1_artifact_native(diagnostic_contract_details),
     )
     for field in (
+            :advancedhmc_backend_for_mfrm,
+            :nuts_algorithm_for_mfrm,
+            :executable_mfrm_gradient_backend,
             :rank_normalized_rhat,
             :bulk_ess,
             :tail_ess,
@@ -380,6 +406,110 @@ end
     end
     @test isempty(boundary[:blockers])
     @test Bool(boundary[:pilot_execution_authorized])
+
+    executor_pin = fixture[:canonical_executor_source_pin]
+    @test Set(Symbol.(keys(executor_pin))) == Set((
+        :schema,
+        :status,
+        :source_rows,
+        :checks,
+        :evidence_boundary,
+        :pin_id,
+    ))
+    @test String(executor_pin[:schema]) ==
+        "bayesianmgmfrm.local_dependence_pilot_canonical_executor_source_pin.v1"
+    @test String(executor_pin[:status]) ==
+        "canonical_executor_source_pin_recorded"
+    expected_executor_sources = (
+        (:batch_controller,
+            "scripts/run_local_dependence_calibration_pilot_batch.jl"),
+        (:canonical_json, "scripts/local_json.jl"),
+        (:single_job_worker,
+            "scripts/run_local_dependence_calibration_pilot_job.jl"),
+        (:attempt_archive,
+            "scripts/local_dependence_pilot_attempt_archive.jl"),
+        (:interruption_recovery,
+            "scripts/local_dependence_pilot_recovery.jl"),
+        (:calibration_semantics,
+            "scripts/local_dependence_pilot_calibration_semantics.jl"),
+        (:batch_harness_generator,
+            "scripts/generate_local_dependence_pilot_batch_execution_harness.jl"),
+    )
+    executor_source_rows = executor_pin[:source_rows]
+    @test length(executor_source_rows) == length(expected_executor_sources)
+    @test Tuple((Symbol(String(row[:role])), String(row[:path]))
+        for row in executor_source_rows) == expected_executor_sources
+    for (row, (_, relative_path)) in
+            zip(executor_source_rows, expected_executor_sources)
+        @test Set(Symbol.(keys(row))) == Set((:role, :path, :sha256))
+        @test String(row[:sha256]) ==
+            bytes2hex(open(sha256, joinpath(root, relative_path)))
+    end
+    pin_checks = executor_pin[:checks]
+    @test Set(Symbol.(keys(pin_checks))) == Set((
+        :exact_source_count,
+        :canonical_source_order,
+        :unique_roles,
+        :unique_paths,
+        :repository_relative_paths,
+        :regular_files_present,
+        :source_sha256_matches,
+    ))
+    @test all(Bool(value) for value in values(pin_checks))
+
+    pin_id = executor_pin[:pin_id]
+    @test Set(Symbol.(keys(pin_id))) == Set((
+        :algorithm,
+        :value,
+        :covers,
+        :canonical_format,
+    ))
+    @test String(pin_id[:algorithm]) == "sha256"
+    @test String(pin_id[:covers]) ==
+        "canonical_executor_source_pin_without_pin_id"
+    @test String(pin_id[:canonical_format]) ==
+        "local_json_sorted_compact"
+    pin_material = ld1b1_artifact_native(executor_pin)
+    delete!(pin_material, "pin_id")
+    @test String(pin_id[:value]) ==
+        ld1b1_canonical_json_sha256(pin_material)
+    tampered_pin_material = deepcopy(pin_material)
+    tampered_pin_material["source_rows"][1]["sha256"] = repeat("0", 64)
+    @test String(pin_id[:value]) !=
+        ld1b1_canonical_json_sha256(tampered_pin_material)
+
+    pin_boundary = executor_pin[:evidence_boundary]
+    @test Set(Symbol.(keys(pin_boundary))) == Set((
+        :authorization_scope,
+        :canonical_executor_source_pinned,
+        :bounded_canonical_smoke_passed,
+        :independent_recovery_readiness_review_passed,
+        :operational_execution_authorized,
+        :response_data_generated,
+        :model_fit_run,
+        :mcmc_run,
+        :pilot_execution_started,
+        :pilot_execution_completed,
+        :scientific_pilot_outcomes,
+        :scientific_pilot_denominator,
+    ))
+    @test String(pin_boundary[:authorization_scope]) ==
+        "source_identity_only"
+    @test Bool(pin_boundary[:canonical_executor_source_pinned])
+    for field in (
+            :bounded_canonical_smoke_passed,
+            :independent_recovery_readiness_review_passed,
+            :operational_execution_authorized,
+            :response_data_generated,
+            :model_fit_run,
+            :mcmc_run,
+            :pilot_execution_started,
+            :pilot_execution_completed,
+        )
+        @test !Bool(pin_boundary[field])
+    end
+    @test Int(pin_boundary[:scientific_pilot_outcomes]) == 0
+    @test Int(pin_boundary[:scientific_pilot_denominator]) == 660
 
     execution = fixture[:execution_scope]
     @test Int(execution[:n_planned_jobs]) == 660

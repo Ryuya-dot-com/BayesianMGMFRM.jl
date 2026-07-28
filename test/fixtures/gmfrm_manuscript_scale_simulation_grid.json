@@ -12,7 +12,7 @@
   "package": {
     "name": "BayesianMGMFRM",
     "version": "0.1.2",
-    "julia_version": "1.10.8"
+    "julia_version": "1.12.5"
   },
   "protocol": {
     "protocol_id": "gmfrm_manuscript_scale_simulation_grid_v1",
@@ -166,7 +166,7 @@
       "sha256": null,
       "summary": {
         "passed": true,
-        "n_evidence_cells": 26,
+        "n_evidence_cells": 27,
         "key_check": "claim_level_reproduction_archive",
         "all_primary_checks": true
       }
@@ -662,7 +662,7 @@
       "sha256": null,
       "summary": {
         "passed": true,
-        "n_evidence_cells": 78,
+        "n_evidence_cells": 79,
         "key_check": "full_paper_reproduction_archive",
         "all_primary_checks": true
       }
@@ -707,7 +707,7 @@
     {
       "gate": "claim_recovery_reproduction_archive",
       "status": "passed",
-      "n_evidence_cells": 26,
+      "n_evidence_cells": 27,
       "key_check": "claim_level_reproduction_archive",
       "artifact": "test/fixtures/gmfrm_claim_recovery_reproduction_archive.json"
     },
@@ -910,7 +910,7 @@
     {
       "gate": "full_paper_reproduction_archive",
       "status": "passed",
-      "n_evidence_cells": 78,
+      "n_evidence_cells": 79,
       "key_check": "full_paper_reproduction_archive",
       "artifact": "test/fixtures/gmfrm_full_paper_reproduction_archive.json"
     }
@@ -962,7 +962,7 @@
     "all_primary_checks_passed": true,
     "n_input_artifacts": 35,
     "n_evidence_rows": 35,
-    "total_evidence_cells": 5606,
+    "total_evidence_cells": 5608,
     "minimum_required_evidence_cells": 60,
     "scalar_fit_validation_grid_passed": true,
     "posterior_predictive_grid_passed": true,

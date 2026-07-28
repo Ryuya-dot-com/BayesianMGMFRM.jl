@@ -27,6 +27,23 @@ const LD1B0_FIXTURE = joinpath(
     ROOT, "test", "fixtures",
     "local_dependence_calibration_scorer_preflight.json")
 const CANONICAL_MANIFEST = "Manifest-v1.10.toml"
+const CANONICAL_EXECUTOR_SOURCE_PATHS = (
+    (role = :batch_controller,
+        path = "scripts/run_local_dependence_calibration_pilot_batch.jl"),
+    (role = :canonical_json,
+        path = "scripts/local_json.jl"),
+    (role = :single_job_worker,
+        path = "scripts/run_local_dependence_calibration_pilot_job.jl"),
+    (role = :attempt_archive,
+        path = "scripts/local_dependence_pilot_attempt_archive.jl"),
+    (role = :interruption_recovery,
+        path = "scripts/local_dependence_pilot_recovery.jl"),
+    (role = :calibration_semantics,
+        path = "scripts/local_dependence_pilot_calibration_semantics.jl"),
+    (role = :batch_harness_generator,
+        path =
+            "scripts/generate_local_dependence_pilot_batch_execution_harness.jl"),
+)
 
 include(joinpath(@__DIR__, "local_json.jl"))
 
@@ -87,6 +104,76 @@ function json_native(value)
         return [json_native(element) for element in value]
     end
     return value
+end
+
+function canonical_executor_source_pin()
+    source_rows = Tuple((function ()
+        relative = row.path
+        !isabspath(relative) && normpath(relative) == relative &&
+            !startswith(relative, "..") || error(
+            "canonical executor source path is not repository relative: $relative")
+        absolute = joinpath(ROOT, relative)
+        isfile(absolute) && !islink(absolute) || error(
+            "canonical executor source is not a regular file: $relative")
+        digest = file_sha256(absolute)
+        occursin(r"^[0-9a-f]{64}$", digest) || error(
+            "canonical executor source does not have a SHA-256 digest: $relative")
+        (;
+            role = row.role,
+            path = relative,
+            sha256 = digest,
+        )
+    end)() for row in CANONICAL_EXECUTOR_SOURCE_PATHS)
+    roles = Tuple(row.role for row in source_rows)
+    paths = Tuple(row.path for row in source_rows)
+    checks = (;
+        exact_source_count = length(source_rows) == 7,
+        canonical_source_order = Tuple((row.role, row.path)
+            for row in source_rows) == Tuple((row.role, row.path)
+            for row in CANONICAL_EXECUTOR_SOURCE_PATHS),
+        unique_roles = length(unique(roles)) == length(roles),
+        unique_paths = length(unique(paths)) == length(paths),
+        repository_relative_paths = all(path ->
+            !isabspath(path) && normpath(path) == path &&
+                !startswith(path, ".."), paths),
+        regular_files_present = all(row -> begin
+            path = joinpath(ROOT, row.path)
+            isfile(path) && !islink(path)
+        end, source_rows),
+        source_sha256_matches = all(row ->
+            row.sha256 == file_sha256(joinpath(ROOT, row.path)), source_rows),
+    )
+    all_boolean_checks(checks) || error(
+        "canonical executor source-pin checks did not pass")
+    base = (;
+        schema =
+            "bayesianmgmfrm.local_dependence_pilot_canonical_executor_source_pin.v1",
+        status = :canonical_executor_source_pin_recorded,
+        source_rows,
+        checks,
+        evidence_boundary = (;
+            authorization_scope = :source_identity_only,
+            canonical_executor_source_pinned = true,
+            bounded_canonical_smoke_passed = false,
+            independent_recovery_readiness_review_passed = false,
+            operational_execution_authorized = false,
+            response_data_generated = false,
+            model_fit_run = false,
+            mcmc_run = false,
+            pilot_execution_started = false,
+            pilot_execution_completed = false,
+            scientific_pilot_outcomes = 0,
+            scientific_pilot_denominator = 660,
+        ),
+    )
+    return merge(base, (;
+        pin_id = (;
+            algorithm = :sha256,
+            value = canonical_json_sha256(base),
+            covers = :canonical_executor_source_pin_without_pin_id,
+            canonical_format = :local_json_sorted_compact,
+        ),
+    ))
 end
 
 function dependency_record(name::Symbol, path::AbstractString,
@@ -213,6 +300,7 @@ function build_artifact()
             "bayesianmgmfrm.local_dependence_calibration_scorer_preflight.v1",
         ),
     )
+    executor_source_pin = canonical_executor_source_pin()
 
     checks = (;
         pilot = (;
@@ -247,6 +335,8 @@ function build_artifact()
             all_content_hashes_verified = all(row ->
                 row.content_hash.verified, dependencies),
         ),
+        canonical_executor_source_pin =
+            executor_source_pin.checks,
         claim_boundary = (;
             execution_authorized =
                 preflight.pilot_execution_authorized,
@@ -301,6 +391,7 @@ function build_artifact()
             ),
         ),
         dependencies,
+        canonical_executor_source_pin = executor_source_pin,
         execution_scope = (;
             phase = :pilot,
             base_seed,
@@ -330,6 +421,12 @@ function build_artifact()
             pilot_execution_authorized =
                 preflight.pilot_execution_authorized,
             required_capabilities = (;
+                advancedhmc_backend_for_mfrm = preflight.sampler_capability.
+                    sampler_backend_supported,
+                nuts_algorithm_for_mfrm = preflight.sampler_capability.
+                    sampler_algorithm_supported,
+                executable_mfrm_gradient_backend = preflight.
+                    sampler_capability.gradient_backend_supported,
                 rank_normalized_rhat = true,
                 bulk_ess = true,
                 tail_ess = true,

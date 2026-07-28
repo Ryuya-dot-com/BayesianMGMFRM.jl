@@ -16,7 +16,7 @@
   },
   "runtime_provenance": {
     "julia_version": "1.10.8",
-    "project_toml_sha256": "98f8d27a13e621f8f341abc84ab4cfae565b9cfecef83b24f6e8331fc320f247",
+    "project_toml_sha256": "fa903c793a1c67b66ec61e8ccd732d3e2169503a856e2c4902b01d98fb5ec45f",
     "manifest_file": "Manifest-v1.10.toml",
     "manifest_toml_sha256": "b57f6381e5c8ac151359b3f6d6f62f98377248c8ff9a9abc624a4ecb64c85d47",
     "source_files": [
@@ -42,7 +42,7 @@
       },
       {
         "path": "src/facet_workflow.jl",
-        "sha256": "b669fbe67e5a1fcecb439d49531d78d42a1dd2500f50acc325d9238fa9dedaac"
+        "sha256": "e91f8d1173f2239ebb82f58f52efb78cd6a1c6f8efb192edf2b1407d5501a69d"
       },
       {
         "path": "src/facets_conquest_bridge.jl",
@@ -58,11 +58,11 @@
       },
       {
         "path": "src/local_dependence_calibration_pilot.jl",
-        "sha256": "b7a1a66cdca057ab1a4915093d3039081bad20f0f354804653346a8921fbf6bf"
+        "sha256": "6caba29c7b5f7ab54c4d5b4d3ffc7d455e22283d348369fc4ca82952f890ec5b"
       },
       {
         "path": "src/local_dependence_known_truth_dgp.jl",
-        "sha256": "43b1ae7c69c5d25bd7054429cd265b38010fd2e9a8a67e1fc4e58f91d2b87b92"
+        "sha256": "dbaca584bdf65d2291231c8482245ab43070665d7ae6a62f47d741e150ff47c9"
       },
       {
         "path": "src/local_dependence_simulation.jl",
@@ -74,15 +74,15 @@
       },
       {
         "path": "src/mgmfrm_free_correlation_recovery.jl",
-        "sha256": "4bd939d057a7fe97bf52531f6198b11d03f4b2b3246b4f0773b942f593a0abea"
+        "sha256": "154ce8e8408a311514929c642efa871124045a49ef712fc7cc3130ba9bdf89ca"
       },
       {
         "path": "src/mgmfrm_free_correlation_resource_probe.jl",
-        "sha256": "326170f1562ed535e528d305fbd1af56b09b93493de2e0b9dc6b9b7add3e5452"
+        "sha256": "206d96fbef04affd3bef228374a7792792d28e01f4063a9340d865d22aadc4d6"
       },
       {
         "path": "src/mgmfrm_free_correlation_study.jl",
-        "sha256": "ccf448a47ba37061016fe510203246cbc60a6fc2f7e38c59f131192c916c92d8"
+        "sha256": "b18705ec25d1afd8f8aa5d3c4dc5c9fe7a4fca8db396021a1cea9a6732e4781b"
       },
       {
         "path": "src/mgmfrm_free_correlation_study_scoring.jl",
@@ -105,7 +105,7 @@
         "sha256": "ad3b7963c8a871d9278d17be6fd708b7ab2fa01c6f2866b73c4c02043da855f9"
       }
     ],
-    "source_tree_sha256": "7784d3e5d8c25c54c6bccba507220ce2ab19da2a5064467c52303687be7dfeb2",
+    "source_tree_sha256": "57016a5e08935acdc74c447fddfa41fd3744cffb511776097dc445ee9b86f43a",
     "immutable_vcs_revision_verified": false,
     "clean_worktree_verified": false,
     "raw_draw_cache_identity_verified": false,
@@ -25644,7 +25644,7 @@
   },
   "content_hash": {
     "algorithm": "sha256",
-    "value": "edcf7e54687498045df4a4a1671961af98b77c9fdabdafce928af1cd53ecc6d3",
+    "value": "f175e3ed9e037d704760fc7c54b5349a5efc3173750ec6794ca9e9548138bccf",
     "covers": "artifact_without_content_hash"
   }
 }

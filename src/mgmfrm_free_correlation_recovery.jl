@@ -91,7 +91,8 @@ function _free_correlation_fixture_columns(
         score[row] = mod(row - 1, n_categories)
     end
     row == n_observations || throw(ArgumentError(
-        "internal free-correlation fixture row-count mismatch",
+        "free-correlation fixture row-count consistency check failed: " *
+        "expected $n_observations, generated $row",
     ))
     return (; person, rater, item, score)
 end

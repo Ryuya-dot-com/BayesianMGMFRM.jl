@@ -12,7 +12,7 @@
   "package": {
     "name": "BayesianMGMFRM",
     "version": "0.1.2",
-    "julia_version": "1.10.8"
+    "julia_version": "1.12.5"
   },
   "protocol": {
     "protocol_id": "gmfrm_full_paper_reproduction_archive_v1",
@@ -26,6 +26,7 @@
       "require_all_expected_schemas": true,
       "require_all_expected_sha256_matches": true,
       "require_all_fixture_summaries_passed": true,
+      "require_all_fixture_artifact_contracts_valid": true,
       "require_all_generator_scripts_present": true,
       "require_all_code_doc_references_present": true,
       "require_all_external_sources_present": true,
@@ -78,8 +79,17 @@
       "require_mgmfrm_publication_grade_refit_batch_results_review_passed": true,
       "require_mgmfrm_publication_grade_threshold_model_weight_policy_review_passed": true,
       "require_mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed": true,
+      "mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed_semantics": "artifact_contract_and_blocker_preservation_only",
+      "require_mgmfrm_external_construct_dataset_and_independent_public_scope_review_artifact_contract_valid": true,
       "require_mgmfrm_external_construct_attachment_intake_preflight_passed": true,
+      "mgmfrm_external_construct_attachment_intake_preflight_passed_semantics": "artifact_contract_and_blocker_preservation_only",
+      "require_mgmfrm_external_construct_attachment_intake_preflight_artifact_contract_valid": true,
       "require_mgmfrm_external_construct_attachment_request_packet_passed": true,
+      "mgmfrm_external_construct_attachment_request_packet_passed_semantics": "artifact_contract_and_blocker_preservation_only",
+      "require_mgmfrm_external_construct_attachment_request_packet_artifact_contract_valid": true,
+      "require_external_construct_evidence_pass_implies_attached_and_valid": true,
+      "require_external_construct_public_claim_release_gate_requires_zero_blockers": true,
+      "require_external_construct_gate_states_consistent": true,
       "require_mgmfrm_guarded_fit_method_wiring_passed": true,
       "require_mgmfrm_guarded_fit_validation_grid_passed": true,
       "require_mgmfrm_guarded_fit_api_dry_run_passed": true,
@@ -107,7 +117,8 @@
       "env_var": "MFRM_SOURCE_GMFRM_BRIDGE_LOGDENSITY_FIXTURE",
       "generator_exists": true,
       "summary_present": false,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "source_mgmfrm_bridge_logdensity",
@@ -127,7 +138,8 @@
       "env_var": "MFRM_SOURCE_MGMFRM_BRIDGE_LOGDENSITY_FIXTURE",
       "generator_exists": true,
       "summary_present": false,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "candidate_chain_study",
@@ -147,7 +159,8 @@
       "env_var": "MFRM_GMFRM_CANDIDATE_CHAIN_STUDY_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "stress_chain_grid",
@@ -167,7 +180,8 @@
       "env_var": "MFRM_GMFRM_STRESS_CHAIN_GRID_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "recovery_smoke_study",
@@ -187,7 +201,8 @@
       "env_var": "MFRM_GMFRM_RECOVERY_SMOKE_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "baseline_comparison",
@@ -207,7 +222,8 @@
       "env_var": "MFRM_GMFRM_BASELINE_COMPARISON_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "baseline_calibration_grid",
@@ -227,7 +243,8 @@
       "env_var": "MFRM_GMFRM_BASELINE_CALIBRATION_GRID_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "interval_decision_grid",
@@ -247,7 +264,8 @@
       "env_var": "MFRM_GMFRM_INTERVAL_DECISION_GRID_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "sparse_design_grid",
@@ -267,7 +285,8 @@
       "env_var": "MFRM_GMFRM_SPARSE_DESIGN_GRID_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "waic_influence_review",
@@ -287,7 +306,8 @@
       "env_var": "MFRM_GMFRM_WAIC_INFLUENCE_REVIEW_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "psis_loo_review",
@@ -307,7 +327,8 @@
       "env_var": "MFRM_GMFRM_PSIS_LOO_REVIEW_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "exact_loo_or_kfold_review",
@@ -327,7 +348,8 @@
       "env_var": "MFRM_GMFRM_EXACT_LOO_OR_KFOLD_REVIEW_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "local_dependence_known_truth_preflight",
@@ -336,7 +358,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "4dfadee6f8837fd9714f374d00dac582ebda41ed7dca8b5bd9d9ad9592a8d4d1",
+      "sha256": "dbfbdf635c6363c0fe5b460b97e09feaf40d139f8e5b331c370c75bc05504255",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.local_dependence_known_truth_preflight.v1",
@@ -347,7 +369,8 @@
       "env_var": "MFRM_LOCAL_DEPENDENCE_KNOWN_TRUTH_PREFLIGHT_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "local_dependence_calibration_scorer_preflight",
@@ -356,7 +379,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "a9f4eca686658f2d07ad2025732eb0d657d44e0189befcb9b78dfc2530c37a51",
+      "sha256": "1e2bf155f8c0d04cbc99cef940d3c3cd94efbee134a782151b14de3e0f178893",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.local_dependence_calibration_scorer_preflight.v1",
@@ -367,7 +390,8 @@
       "env_var": "MFRM_LOCAL_DEPENDENCE_CALIBRATION_SCORER_PREFLIGHT_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "local_dependence_pilot_protocol_preflight",
@@ -376,7 +400,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "7932d55033599c2fdc2f5894a6546c7d6bf5873bd7920e10927a08206d35baa3",
+      "sha256": "42738cfabc0a73101043593da1a3c1824cbff56af48263fa260a3ed948a6cbc9",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.local_dependence_pilot_protocol_preflight.v1",
@@ -387,7 +411,8 @@
       "env_var": "MFRM_LOCAL_DEPENDENCE_PILOT_PROTOCOL_PREFLIGHT_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "local_dependence_pilot_batch_execution_harness",
@@ -396,18 +421,40 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "c46ed1f1134258cd8254d5f2427683f9ee1fe11f2a22bd3fec73a83effcb3d99",
+      "sha256": "1afde641277e2219d4f0bbdb8a2665201876ff1f34a97b29a81a5adb67dd363d",
       "expected_sha256": null,
       "sha256_matches": true,
-      "expected_schema": "bayesianmgmfrm.local_dependence_pilot_batch_execution_harness.v2",
-      "schema": "bayesianmgmfrm.local_dependence_pilot_batch_execution_harness.v2",
+      "expected_schema": "bayesianmgmfrm.local_dependence_pilot_batch_execution_harness.v3",
+      "schema": "bayesianmgmfrm.local_dependence_pilot_batch_execution_harness.v3",
       "schema_matches": true,
       "generator": "scripts/generate_local_dependence_pilot_batch_execution_harness.jl",
       "generation_command": "julia --project=. scripts/generate_local_dependence_pilot_batch_execution_harness.jl",
       "env_var": "MFRM_LOCAL_DEPENDENCE_PILOT_BATCH_EXECUTION_HARNESS_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
+    },
+    {
+      "artifact": "local_dependence_pilot_bounded_canonical_smoke_receipt",
+      "path": "test/fixtures/local_dependence_pilot_bounded_canonical_smoke_receipt.json",
+      "exists": true,
+      "immutable": true,
+      "regeneration_policy": "immutable_snapshot_no_regeneration",
+      "hash_policy": "sha256",
+      "sha256": "de7f1ffab4002e99b75c86d64efbe73deca695b97ac45b0cf177afa5398b58c3",
+      "expected_sha256": "de7f1ffab4002e99b75c86d64efbe73deca695b97ac45b0cf177afa5398b58c3",
+      "sha256_matches": true,
+      "expected_schema": "bayesianmgmfrm.local_dependence_pilot_bounded_canonical_smoke_receipt.v1",
+      "schema": "bayesianmgmfrm.local_dependence_pilot_bounded_canonical_smoke_receipt.v1",
+      "schema_matches": true,
+      "generator": null,
+      "generation_command": null,
+      "env_var": null,
+      "generator_exists": null,
+      "summary_present": true,
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "guarded_fit_api_dry_run",
@@ -427,7 +474,8 @@
       "env_var": "MFRM_GMFRM_GUARDED_FIT_API_DRY_RUN_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "guarded_fit_method_wiring",
@@ -447,7 +495,8 @@
       "env_var": "MFRM_GMFRM_GUARDED_FIT_METHOD_WIRING_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "experimental_fit_validation_grid",
@@ -467,7 +516,8 @@
       "env_var": "MFRM_GMFRM_EXPERIMENTAL_FIT_VALIDATION_GRID_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "posterior_predictive_grid",
@@ -487,7 +537,8 @@
       "env_var": "MFRM_GMFRM_POSTERIOR_PREDICTIVE_GRID_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "sparse_pathology_recovery_grid",
@@ -507,7 +558,8 @@
       "env_var": "MFRM_GMFRM_SPARSE_PATHOLOGY_RECOVERY_GRID_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "prior_likelihood_sensitivity_grid",
@@ -527,7 +579,8 @@
       "env_var": "MFRM_GMFRM_PRIOR_LIKELIHOOD_SENSITIVITY_GRID_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "real_data_case_study",
@@ -547,7 +600,8 @@
       "env_var": "MFRM_GMFRM_REAL_DATA_CASE_STUDY_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "claim_recovery_reproduction_archive",
@@ -556,7 +610,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "4c838b752e31cb9b5533f75dde963222ce14f23c025b99c059f7df594f3bce81",
+      "sha256": "7c6a582edaa6dc72770b4fd947d61eb6346c80aa2273c24da3532dfa86ded381",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
@@ -567,7 +621,8 @@
       "env_var": "MFRM_GMFRM_CLAIM_RECOVERY_REPRODUCTION_ARCHIVE_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "tam_direct_agreement_policy_refinement_execution_snapshot",
@@ -587,7 +642,8 @@
       "env_var": null,
       "generator_exists": null,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "tam_direct_agreement_multireplication",
@@ -607,7 +663,8 @@
       "env_var": "MFRM_MGMFRM_TAM_DIRECT_AGREEMENT_MULTIREPLICATION_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "tam_direct_agreement_raw_archive_audit",
@@ -627,7 +684,8 @@
       "env_var": "MFRM_MGMFRM_TAM_DIRECT_AGREEMENT_RAW_ARCHIVE_AUDIT_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "tam_direct_agreement_post_execution_review_packet",
@@ -647,7 +705,8 @@
       "env_var": "MFRM_MGMFRM_TAM_DIRECT_AGREEMENT_POST_EXECUTION_REVIEW_PACKET_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "broader_experimental_exposure_decision_review",
@@ -667,7 +726,8 @@
       "env_var": "MFRM_GMFRM_BROADER_EXPERIMENTAL_EXPOSURE_DECISION_REVIEW_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "dff_estimand_validation_grid",
@@ -687,7 +747,8 @@
       "env_var": "MFRM_GMFRM_DFF_ESTIMAND_VALIDATION_GRID_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "manuscript_scale_simulation_grid",
@@ -707,7 +768,8 @@
       "env_var": "MFRM_GMFRM_MANUSCRIPT_SCALE_SIMULATION_GRID_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "guarded_exposure_review",
@@ -727,7 +789,8 @@
       "env_var": "MFRM_GMFRM_GUARDED_EXPOSURE_REVIEW_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_candidate_chain_study",
@@ -747,7 +810,8 @@
       "env_var": "MFRM_MGMFRM_CANDIDATE_CHAIN_STUDY_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_recovery_smoke",
@@ -767,7 +831,8 @@
       "env_var": "MFRM_MGMFRM_RECOVERY_SMOKE_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_baseline_comparison",
@@ -787,7 +852,8 @@
       "env_var": "MFRM_MGMFRM_BASELINE_COMPARISON_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_sparse_recovery_grid",
@@ -807,7 +873,8 @@
       "env_var": "MFRM_MGMFRM_SPARSE_RECOVERY_GRID_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_report_shape_simulation_grid",
@@ -827,7 +894,8 @@
       "env_var": "MFRM_MGMFRM_REPORT_SHAPE_SIMULATION_GRID_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_q_matrix_validation_expansion",
@@ -847,7 +915,8 @@
       "env_var": "MFRM_MGMFRM_Q_MATRIX_VALIDATION_EXPANSION_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_empirical_q_matrix_recovery_policy",
@@ -867,7 +936,8 @@
       "env_var": "MFRM_MGMFRM_EMPIRICAL_Q_MATRIX_RECOVERY_POLICY_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_empirical_q_matrix_recovery_simulation_grid",
@@ -887,7 +957,8 @@
       "env_var": "MFRM_MGMFRM_EMPIRICAL_Q_MATRIX_RECOVERY_SIMULATION_GRID_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_q_candidate_real_fit_diagnostic_linkage",
@@ -907,7 +978,8 @@
       "env_var": "MFRM_MGMFRM_Q_CANDIDATE_REAL_FIT_DIAGNOSTIC_LINKAGE_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_q_revision_cross_validation_policy",
@@ -927,7 +999,8 @@
       "env_var": "MFRM_MGMFRM_Q_REVISION_CROSS_VALIDATION_POLICY_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_q_revision_construct_validity_review",
@@ -947,7 +1020,8 @@
       "env_var": "MFRM_MGMFRM_Q_REVISION_CONSTRUCT_VALIDITY_REVIEW_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_guarded_local_fit_entrypoint",
@@ -967,7 +1041,8 @@
       "env_var": "MFRM_MGMFRM_GUARDED_LOCAL_FIT_ENTRYPOINT_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_fit_metric_threshold_sensitivity",
@@ -987,7 +1062,8 @@
       "env_var": "MFRM_MGMFRM_FIT_METRIC_THRESHOLD_SENSITIVITY_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_construct_reviewed_q_fit_reporting_policy",
@@ -1007,7 +1083,8 @@
       "env_var": "MFRM_MGMFRM_CONSTRUCT_REVIEWED_Q_FIT_REPORTING_POLICY_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_heldout_prediction_validation_policy",
@@ -1027,7 +1104,8 @@
       "env_var": "MFRM_MGMFRM_HELDOUT_PREDICTION_VALIDATION_POLICY_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_validation_split_model_comparison_policy",
@@ -1047,7 +1125,8 @@
       "env_var": "MFRM_MGMFRM_VALIDATION_SPLIT_MODEL_COMPARISON_POLICY_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_heldout_prediction_simulation_grid",
@@ -1067,7 +1146,8 @@
       "env_var": "MFRM_MGMFRM_HELDOUT_PREDICTION_SIMULATION_GRID_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_heldout_prediction_execution",
@@ -1087,7 +1167,8 @@
       "env_var": "MFRM_MGMFRM_HELDOUT_PREDICTION_EXECUTION_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_full_heldout_refit_or_construct_validation_review",
@@ -1107,7 +1188,8 @@
       "env_var": "MFRM_MGMFRM_FULL_HELDOUT_REFIT_OR_CONSTRUCT_VALIDATION_REVIEW_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_full_heldout_mcmc_refit_execution_plan",
@@ -1127,7 +1209,8 @@
       "env_var": "MFRM_MGMFRM_FULL_HELDOUT_MCMC_REFIT_EXECUTION_PLAN_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_full_heldout_mcmc_refit_batch_smoke",
@@ -1147,7 +1230,8 @@
       "env_var": "MFRM_MGMFRM_FULL_HELDOUT_MCMC_REFIT_BATCH_SMOKE_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_full_heldout_mcmc_refit_fold1_pilot",
@@ -1167,7 +1251,8 @@
       "env_var": "MFRM_MGMFRM_FULL_HELDOUT_MCMC_REFIT_FOLD1_PILOT_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_full_heldout_mcmc_refit_fold1_scoring",
@@ -1187,7 +1272,8 @@
       "env_var": "MFRM_MGMFRM_FULL_HELDOUT_MCMC_REFIT_FOLD1_SCORING_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_full_heldout_mcmc_refit_candidate_batch_scoring",
@@ -1207,7 +1293,8 @@
       "env_var": "MFRM_MGMFRM_FULL_HELDOUT_MCMC_REFIT_CANDIDATE_BATCH_SCORING_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_full_heldout_mcmc_refit_anchor_scoring",
@@ -1227,7 +1314,8 @@
       "env_var": "MFRM_MGMFRM_FULL_HELDOUT_MCMC_REFIT_ANCHOR_SCORING_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_publication_grade_refit_gate",
@@ -1247,7 +1335,8 @@
       "env_var": "MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_GATE_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_publication_grade_refit_pilot_plan",
@@ -1267,7 +1356,8 @@
       "env_var": "MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_PILOT_PLAN_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_fit_threshold_q_heldout_linkage",
@@ -1287,7 +1377,8 @@
       "env_var": "MFRM_MGMFRM_FIT_THRESHOLD_Q_HELDOUT_LINKAGE_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_publication_grade_refit_pilot_execution_harness",
@@ -1307,7 +1398,8 @@
       "env_var": "MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_PILOT_EXECUTION_HARNESS_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_publication_grade_refit_pilot_results_review",
@@ -1327,7 +1419,8 @@
       "env_var": "MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_PILOT_RESULTS_REVIEW_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_publication_grade_refit_sampler_remediation_review",
@@ -1347,7 +1440,8 @@
       "env_var": "MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_SAMPLER_REMEDIATION_REVIEW_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_publication_grade_refit_scalar_remediation_comparison",
@@ -1367,7 +1461,8 @@
       "env_var": "MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_SCALAR_REMEDIATION_COMPARISON_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_publication_grade_refit_batch_expansion_plan",
@@ -1387,7 +1482,8 @@
       "env_var": "MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_BATCH_EXPANSION_PLAN_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_publication_grade_refit_batch_smoke_execution_review",
@@ -1407,7 +1503,8 @@
       "env_var": "MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_BATCH_SMOKE_EXECUTION_REVIEW_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_publication_grade_refit_well_specified_scenario_execution_review",
@@ -1427,7 +1524,8 @@
       "env_var": "MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_WELL_SPECIFIED_SCENARIO_EXECUTION_REVIEW_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_publication_grade_refit_batch_results_review",
@@ -1447,7 +1545,8 @@
       "env_var": "MFRM_MGMFRM_PUBLICATION_GRADE_REFIT_BATCH_RESULTS_REVIEW_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_publication_grade_threshold_model_weight_policy_review",
@@ -1467,7 +1566,8 @@
       "env_var": "MFRM_MGMFRM_PUBLICATION_GRADE_THRESHOLD_MODEL_WEIGHT_POLICY_REVIEW_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_external_construct_dataset_and_independent_public_scope_review",
@@ -1476,7 +1576,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "de6a4a99e9db387ace7c14eaa54ce1028e776ff66e7801012c283e8c92f210a2",
+      "sha256": "1cde2ff59a27591526d1214b54deb652a4eb7e932f491735b19b3ce1a2bc842b",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_external_construct_dataset_and_independent_public_scope_review.v1",
@@ -1487,7 +1587,8 @@
       "env_var": "MFRM_MGMFRM_EXTERNAL_CONSTRUCT_DATASET_AND_INDEPENDENT_PUBLIC_SCOPE_REVIEW_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_external_construct_attachment_intake_preflight",
@@ -1496,7 +1597,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "bf12448db04a24d84cd5ce4907246f5db14a55c4a9413a84b3b337226584b09b",
+      "sha256": "9cefdf5e24b56f9f77a9d12c099e9b9321d4ab886011a8130281a2719f43d018",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_external_construct_attachment_intake_preflight.v1",
@@ -1507,7 +1608,8 @@
       "env_var": "MFRM_MGMFRM_EXTERNAL_CONSTRUCT_ATTACHMENT_INTAKE_PREFLIGHT_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_external_construct_attachment_request_packet",
@@ -1516,7 +1618,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "9f2b1c378edf01595de9e09395fcf0a8cc7c9222acd66aabb49c92461e73c584",
+      "sha256": "7656ce483dd2f735ba414c56023d7fb5eba70cac072f2e493a9e2966d116ca79",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.mgmfrm_external_construct_attachment_request_packet.v1",
@@ -1527,7 +1629,8 @@
       "env_var": "MFRM_MGMFRM_EXTERNAL_CONSTRUCT_ATTACHMENT_REQUEST_PACKET_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_guarded_fit_method_wiring",
@@ -1547,7 +1650,8 @@
       "env_var": "MFRM_MGMFRM_GUARDED_FIT_METHOD_WIRING_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_guarded_fit_validation_grid",
@@ -1567,7 +1671,8 @@
       "env_var": "MFRM_MGMFRM_GUARDED_FIT_VALIDATION_GRID_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_guarded_fit_api_dry_run",
@@ -1587,7 +1692,8 @@
       "env_var": "MFRM_MGMFRM_GUARDED_FIT_API_DRY_RUN_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_guarded_fit_public_exposure_review",
@@ -1607,7 +1713,8 @@
       "env_var": "MFRM_MGMFRM_GUARDED_FIT_PUBLIC_EXPOSURE_REVIEW_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "prediction_target_and_model_weight_policy",
@@ -1627,7 +1734,8 @@
       "env_var": "MFRM_GMFRM_PREDICTION_TARGET_AND_MODEL_WEIGHT_POLICY_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     },
     {
       "artifact": "mgmfrm_manual_public_scope_review_for_fit",
@@ -1647,7 +1755,8 @@
       "env_var": "MFRM_MGMFRM_MANUAL_PUBLIC_SCOPE_REVIEW_FOR_FIT_FIXTURE",
       "generator_exists": true,
       "summary_present": true,
-      "summary_passed": true
+      "summary_passed": true,
+      "artifact_contract_valid": true
     }
   ],
   "code_doc_records": [
@@ -1660,26 +1769,26 @@
     {
       "path": "Project.toml",
       "exists": true,
-      "sha256": "98f8d27a13e621f8f341abc84ab4cfae565b9cfecef83b24f6e8331fc320f247",
-      "line_count": 48
+      "sha256": "fa903c793a1c67b66ec61e8ccd732d3e2169503a856e2c4902b01d98fb5ec45f",
+      "line_count": 50
     },
     {
       "path": "README.md",
       "exists": true,
-      "sha256": "b96ebed02ec7d60ce2b196a4b3cb235cc2fba57d4b588fd9fd1ea9db775930ef",
-      "line_count": 294
+      "sha256": "1424935f4f38f1d2c89bf4114d663bd57f07411d063cd5b41a05013cb5f321f1",
+      "line_count": 358
     },
     {
       "path": "NEWS.md",
       "exists": true,
-      "sha256": "ef5c32dfc0a125d809ec6e42185c640477cd5d64d9f0fd3fafc5639505664a26",
-      "line_count": 112
+      "sha256": "83a631e09204ab8ffeb3b6b392498556c1c868e4d0c8e522660ebde21bbdd743",
+      "line_count": 200
     },
     {
       "path": "ROADMAP.md",
       "exists": true,
-      "sha256": "afe6ce47d4b0577f90c2c7684e955cf87ad79762b8cc197e02e43c5a769f4ab4",
-      "line_count": 2393
+      "sha256": "97862149d5b9082ca4bc4824ccd311531368853d654fc336b1761b771a846bc6",
+      "line_count": 2560
     },
     {
       "path": "src/BayesianMGMFRM.jl",
@@ -1696,8 +1805,8 @@
     {
       "path": "src/facet_workflow.jl",
       "exists": true,
-      "sha256": "b669fbe67e5a1fcecb439d49531d78d42a1dd2500f50acc325d9238fa9dedaac",
-      "line_count": 8910
+      "sha256": "e91f8d1173f2239ebb82f58f52efb78cd6a1c6f8efb192edf2b1407d5501a69d",
+      "line_count": 9334
     },
     {
       "path": "src/model_contract.jl",
@@ -1720,14 +1829,14 @@
     {
       "path": "src/local_dependence_calibration_pilot.jl",
       "exists": true,
-      "sha256": "b7a1a66cdca057ab1a4915093d3039081bad20f0f354804653346a8921fbf6bf",
-      "line_count": 723
+      "sha256": "6caba29c7b5f7ab54c4d5b4d3ffc7d455e22283d348369fc4ca82952f890ec5b",
+      "line_count": 762
     },
     {
       "path": "src/local_dependence_known_truth_dgp.jl",
       "exists": true,
-      "sha256": "43b1ae7c69c5d25bd7054429cd265b38010fd2e9a8a67e1fc4e58f91d2b87b92",
-      "line_count": 949
+      "sha256": "dbaca584bdf65d2291231c8482245ab43070665d7ae6a62f47d741e150ff47c9",
+      "line_count": 950
     },
     {
       "path": "src/local_dependence_simulation.jl",
@@ -1744,8 +1853,8 @@
     {
       "path": "test/runtests.jl",
       "exists": true,
-      "sha256": "ee80ec09a3de0b7e07e60c9a2964b5b1b0054c3963b3f935d56c627432c29ccb",
-      "line_count": 32118
+      "sha256": "32558d62f67bcd857d8c0c48727b6c9a20754ca6f0d5e497e64a475660f4b44d",
+      "line_count": 32871
     },
     {
       "path": "test/model_contract.jl",
@@ -1780,8 +1889,8 @@
     {
       "path": "test/local_dependence_calibration_pilot.jl",
       "exists": true,
-      "sha256": "cf5ad6a37ee4a1105b352b9a5ddc8f6542604f0f9fb37f136acb66d8be870bc5",
-      "line_count": 412
+      "sha256": "da884a5b2aa3bdca6f9f2aaa7de5f9f051c633a34d4b2850b883d7323ac0e7f3",
+      "line_count": 464
     },
     {
       "path": "test/local_dependence_contract.jl",
@@ -1792,14 +1901,56 @@
     {
       "path": "test/local_dependence_pilot_protocol_artifact.jl",
       "exists": true,
-      "sha256": "e15481b4cbaed0c7db59af6aa17f0e4c9a865b83c96573ded044b0bc47f1eb6e",
-      "line_count": 523
+      "sha256": "2f735049efbf0dd2060e757bed12ba4e8da711156cf5e2d9d43727f7d09fee2b",
+      "line_count": 653
+    },
+    {
+      "path": "test/local_dependence_pilot_attempt_archive.jl",
+      "exists": true,
+      "sha256": "51b556d58f8c6528f05ee48fac6c1024ab19115b76f91ba942e13167daca661c",
+      "line_count": 1215
+    },
+    {
+      "path": "test/local_dependence_pilot_calibration_semantics.jl",
+      "exists": true,
+      "sha256": "6cf1c677d211a382b448bd8883e262911d127148ff9cd0b95f2e58d5660db468",
+      "line_count": 835
+    },
+    {
+      "path": "test/local_dependence_pilot_recovery.jl",
+      "exists": true,
+      "sha256": "4e1de000841da3b12c93a8b8a3d456bca74ad75bb68fdce5817609af66526c28",
+      "line_count": 754
+    },
+    {
+      "path": "test/local_dependence_pilot_precommit_recovery.jl",
+      "exists": true,
+      "sha256": "a92c6151fd6a0d15ecef9cf88fd6c7bfd2bd95482aa086640604d324f972d4fd",
+      "line_count": 656
     },
     {
       "path": "test/local_dependence_pilot_batch_execution_harness.jl",
       "exists": true,
-      "sha256": "06fd671fc84280fe6b0e5165f7039bc27caed352465f61e8efc5e97fdd58f84c",
-      "line_count": 2245
+      "sha256": "9960f34bd11e63ad2559c4a729868659e6703b6d54a1c386c1282e93e32b1267",
+      "line_count": 4125
+    },
+    {
+      "path": "test/local_dependence_pilot_bounded_canonical_smoke.jl",
+      "exists": true,
+      "sha256": "eb23bcb83de7b2ddd2eb907396f19b1ffa5f046ca89586d16bd27f0460b6c16f",
+      "line_count": 564
+    },
+    {
+      "path": "test/local_dependence_pilot_controller_receipts.jl",
+      "exists": true,
+      "sha256": "0eb594284cf44cbcb8dd066cf982498bf95e461ecc08266fb5a9e33bc01c48c5",
+      "line_count": 631
+    },
+    {
+      "path": "test/local_dependence_pilot_job_worker.jl",
+      "exists": true,
+      "sha256": "ba8d426514b7491384eb40c05d49705a02cd3d8aa02bd0110707b42a2e3ac71c",
+      "line_count": 748
     },
     {
       "path": "test/local_dependence_simulation.jl",
@@ -1852,8 +2003,8 @@
     {
       "path": "test/fixtures/README.md",
       "exists": true,
-      "sha256": "72e5920a48484f39e759cc2947c0cfc65dd5392165dd378c90448dca930812b2",
-      "line_count": 842
+      "sha256": "e66f52f6fc892aa50f00c0a3b08bf9c288caba59a270f07c0f4fea8ccaa8e940",
+      "line_count": 911
     },
     {
       "path": "docs/build.jl",
@@ -1894,8 +2045,8 @@
     {
       "path": "docs/src/api-validation-evidence.md",
       "exists": true,
-      "sha256": "f8175a94cd70bfe8fa8eb6e0c90b30144125f03faf95e9e30db610c0914c5aeb",
-      "line_count": 73
+      "sha256": "9b21c37a5c4c27a76a58d3d351967223a2cd287ecaf60c4b03676a271d9cf256",
+      "line_count": 110
     },
     {
       "path": "docs/src/api-workflow-diagnostics.md",
@@ -1906,8 +2057,8 @@
     {
       "path": "docs/src/bayesian-workflow.md",
       "exists": true,
-      "sha256": "2019af22c79ff29dc5fb837d5cbd7975b4762da68c497c56e047a6b5baeec05f",
-      "line_count": 239
+      "sha256": "999f65c5a60e7be7df74c763a34746d2e80a68291a6179958bc63f8397f89528",
+      "line_count": 281
     },
     {
       "path": "docs/src/data-validation.md",
@@ -1930,8 +2081,8 @@
     {
       "path": "docs/src/mgmfrm-research-roadmap.md",
       "exists": true,
-      "sha256": "557d51f5dec8ca9fd9e67859dcc9ee602f8e7059b273b0640b15c680c53e6743",
-      "line_count": 1663
+      "sha256": "1066cebf06911fd0c84cfe6d8ff407efaa7cf00dcb161ea9fdcfc694ac54a9cf",
+      "line_count": 1833
     },
     {
       "path": "docs/src/model-equations.md",
@@ -1942,8 +2093,8 @@
     {
       "path": "docs/src/roadmap.md",
       "exists": true,
-      "sha256": "00a3a453deb20624bc5de83b3fe60fc200e4308f7cbac79ee68a6b23b964dd9c",
-      "line_count": 1252
+      "sha256": "d898f50e607da30394e913fcd81143b16483ce968ca3b351a0c3deaf5ec988fb",
+      "line_count": 1413
     },
     {
       "path": "docs/src/scope.md",
@@ -2008,20 +2159,44 @@
     {
       "path": "scripts/generate_local_dependence_pilot_protocol_preflight.jl",
       "exists": true,
-      "sha256": "a4b7d193a62825e676cf55a495b1516d07f5bcd2cf39edab121ec9392817740e",
-      "line_count": 398
+      "sha256": "7998e06702c3a6f0254994f2362a82219ed8c6c1e7f8a6c496a6ce63a1c59d80",
+      "line_count": 495
     },
     {
       "path": "scripts/generate_local_dependence_pilot_batch_execution_harness.jl",
       "exists": true,
-      "sha256": "538f7d1c7ca2aa9ce2af21853bfc897dd11244b165540321315860702cd8cd01",
-      "line_count": 150
+      "sha256": "a1ba1adc2fc48023584e0e2fd837a6a273043a8c1a94a7aed60475377a513405",
+      "line_count": 151
+    },
+    {
+      "path": "scripts/local_dependence_pilot_attempt_archive.jl",
+      "exists": true,
+      "sha256": "b6ed26b305d977702b934b0d629590d2e948485847c990aaad1d83f1e592e6e6",
+      "line_count": 1497
+    },
+    {
+      "path": "scripts/local_dependence_pilot_calibration_semantics.jl",
+      "exists": true,
+      "sha256": "7374f4b32b763c6d9ebcd01e611d4fb5d729882d64e744d89d5b12be3d1020ca",
+      "line_count": 824
+    },
+    {
+      "path": "scripts/local_dependence_pilot_recovery.jl",
+      "exists": true,
+      "sha256": "4e2638495e7fbaa1e2d9a040fc6812ce26df228bc29d60cc2ea3acba59b52e1a",
+      "line_count": 2273
+    },
+    {
+      "path": "scripts/run_local_dependence_calibration_pilot_job.jl",
+      "exists": true,
+      "sha256": "533de107d8be4b036118c3d7e595d518cff595140be80799f39d10b530dcac84",
+      "line_count": 1889
     },
     {
       "path": "scripts/run_local_dependence_calibration_pilot_batch.jl",
       "exists": true,
-      "sha256": "b81811d1a6884f70cc5a776895b0420c22f02bdc423493221b42a360d075edeb",
-      "line_count": 4167
+      "sha256": "f4f206e7fbe3cdaa4d1d9325a0d1e0d3d99dfca5fb1a1ea2f1444516c3e3f6ee",
+      "line_count": 8956
     },
     {
       "path": "scripts/generate_source_bridge_fixtures.py",
@@ -2032,8 +2207,8 @@
     {
       "path": "scripts/generate_gmfrm_full_paper_reproduction_archive.jl",
       "exists": true,
-      "sha256": "98b0482fe83b67cbd612046e7eb2866a7dc175d5be1644a75e759238b904edeb",
-      "line_count": 1906
+      "sha256": "11da3cf3e1996671af3c671705df2d3b9b292fe0d2b288370c3d7997052be835",
+      "line_count": 2074
     },
     {
       "path": "scripts/generate_mgmfrm_report_shape_simulation_grid.jl",
@@ -2248,20 +2423,20 @@
     {
       "path": "scripts/generate_mgmfrm_external_construct_dataset_and_independent_public_scope_review.jl",
       "exists": true,
-      "sha256": "c75f8a0ed1a314f6a7a8fedde4ebfab7082fad35cd19ef0e0ac3e29bf2fa3392",
-      "line_count": 667
+      "sha256": "e089e4433a613ac06f856a8fa6d9972db44066d68c567c729e5a72076c5f1fc5",
+      "line_count": 779
     },
     {
       "path": "scripts/generate_mgmfrm_external_construct_attachment_intake_preflight.jl",
       "exists": true,
-      "sha256": "bead89e3c209fff75c255290d88b72c619f0cd88005e30383f1ae88b26f5f625",
-      "line_count": 518
+      "sha256": "a649a64d0edaf1c1c64b9ec659a88a3ef310aefc594f9de852512bc00ef33f2a",
+      "line_count": 678
     },
     {
       "path": "scripts/generate_mgmfrm_external_construct_attachment_request_packet.jl",
       "exists": true,
-      "sha256": "8f761a8015810218a63c68ecee6df2321ce8860a6636bc014a7bb08bb2e3f47d",
-      "line_count": 388
+      "sha256": "85496e6aa9aa0ada569258ca6d2994eea379e40c66bb4554eec5f3ee2aad641b",
+      "line_count": 497
     },
     {
       "path": "scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl",
@@ -2880,12 +3055,16 @@
   },
   "summary": {
     "passed": true,
+    "pass_scope": "contract_and_blocker_preservation_only",
+    "artifact_contract_valid": true,
     "publication_or_registration_action": false,
     "local_only": true,
     "all_fixture_artifacts_present": true,
     "all_expected_schemas": true,
     "all_expected_sha256_matches": true,
     "all_fixture_summaries_passed": true,
+    "all_fixture_artifact_contracts_valid": true,
+    "external_construct_gate_states_consistent": true,
     "all_generator_scripts_present": true,
     "all_code_doc_references_present": true,
     "all_external_sources_present": true,
@@ -2893,8 +3072,8 @@
     "verification_commands_recorded": true,
     "all_commands_local_only": true,
     "no_publication_commands": true,
-    "n_fixture_artifacts": 78,
-    "n_code_doc_records": 114,
+    "n_fixture_artifacts": 79,
+    "n_code_doc_records": 125,
     "n_source_records": 2,
     "n_full_regeneration_commands": 77,
     "n_verification_commands": 4,
@@ -2944,8 +3123,23 @@
     "mgmfrm_publication_grade_refit_batch_results_review_passed": true,
     "mgmfrm_publication_grade_threshold_model_weight_policy_review_passed": true,
     "mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed": true,
+    "mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed_semantics": "artifact_contract_and_blocker_preservation_only",
+    "mgmfrm_external_construct_dataset_and_independent_public_scope_review_artifact_contract_valid": true,
     "mgmfrm_external_construct_attachment_intake_preflight_passed": true,
+    "mgmfrm_external_construct_attachment_intake_preflight_passed_semantics": "artifact_contract_and_blocker_preservation_only",
+    "mgmfrm_external_construct_attachment_intake_preflight_artifact_contract_valid": true,
     "mgmfrm_external_construct_attachment_request_packet_passed": true,
+    "mgmfrm_external_construct_attachment_request_packet_passed_semantics": "artifact_contract_and_blocker_preservation_only",
+    "mgmfrm_external_construct_attachment_request_packet_artifact_contract_valid": true,
+    "mgmfrm_external_construct_dataset_manifest_attached_and_valid": false,
+    "mgmfrm_external_construct_dataset_file_integrity_verified": false,
+    "mgmfrm_external_construct_validation_evidence_attached_and_valid": false,
+    "mgmfrm_external_construct_validation_evidence_passed": false,
+    "mgmfrm_independent_public_scope_review_attached_and_valid": false,
+    "mgmfrm_independent_public_scope_review_gate_passed": false,
+    "mgmfrm_public_claim_release_decision_signed": false,
+    "mgmfrm_external_construct_public_claim_release_gate_passed": false,
+    "mgmfrm_external_construct_public_blocker_count": 5,
     "mgmfrm_guarded_fit_method_wiring_passed": true,
     "mgmfrm_guarded_fit_validation_grid_passed": true,
     "mgmfrm_guarded_fit_api_dry_run_passed": true,

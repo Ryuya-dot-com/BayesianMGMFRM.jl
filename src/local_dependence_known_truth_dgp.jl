@@ -605,7 +605,8 @@ function _ld1_generate_raw(config)
         _ld1_keyed_uniform(seeds.design, rater), rater))
     cells = _ld1_rating_cells(config, abilities, rater_permutation)
     length(cells) == n_ratings || error(
-        "internal LD1 rating-count mismatch: preflight=$n_ratings, generated=$(length(cells))")
+        "LD1 rating-count consistency check failed: expected $n_ratings " *
+        "from preflight, generated $(length(cells))")
 
     sequence = _ld1_ordered_events(cells, config, abilities, seeds.design)
     person_testlet_z = Matrix{Float64}(undef, n_persons, n_testlets)

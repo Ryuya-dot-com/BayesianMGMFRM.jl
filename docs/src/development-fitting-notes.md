@@ -444,6 +444,14 @@ It embeds the same 25 user-supplied fields, ten attachment checklist rows, and
 six rejection conditions, but it still writes no external manifest files and
 does not mark any placeholder value as valid.
 
+The `passed` field on each of these three v1 artifacts is retained only as a
+compatibility alias for a valid artifact contract with blockers preserved. Its
+`pass_scope` is `contract_and_blocker_preservation_only`; it is not an external
+evidence result. Attachment validity, file integrity, validation evidence,
+independent review, and public claim release are separate fail-closed fields.
+The current artifacts have `artifact_contract_valid = true` but all external
+evidence, review, and release gates remain false.
+
 These numbers are local diagnostic evidence only. They should not be cited as
 public fit thresholds, model weights, Q-revision evidence, sparse-superiority
 evidence, or a stable-public MGMFRM validation claim.

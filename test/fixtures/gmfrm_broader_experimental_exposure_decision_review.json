@@ -11,7 +11,7 @@
   "package": {
     "name": "BayesianMGMFRM",
     "version": "0.1.2",
-    "julia_version": "1.10.8"
+    "julia_version": "1.12.5"
   },
   "protocol": {
     "protocol_id": "gmfrm_broader_experimental_exposure_decision_review_v1",
@@ -71,7 +71,7 @@
       "path": "test/fixtures/gmfrm_claim_recovery_reproduction_archive.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "4c838b752e31cb9b5533f75dde963222ce14f23c025b99c059f7df594f3bce81",
+      "sha256": "7c6a582edaa6dc72770b4fd947d61eb6346c80aa2273c24da3532dfa86ded381",
       "expected_schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
       "schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
       "schema_matches": true,
@@ -214,7 +214,7 @@
       "path": "test/fixtures/gmfrm_manuscript_scale_simulation_grid.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "4a7caab581d89ba04d2927676b22982eb137d17ee3b1a9a9ff31147e3afb40b2",
+      "sha256": "1b23c086af1b24c8c43efb3c7a98e35d074839cc448a6c02d6e51f099727e017",
       "expected_schema": "bayesianmgmfrm.gmfrm_manuscript_scale_simulation_grid.v1",
       "schema": "bayesianmgmfrm.gmfrm_manuscript_scale_simulation_grid.v1",
       "schema_matches": true,

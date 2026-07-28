@@ -1904,6 +1904,8 @@ function _release_scope_fit_surface_rows()
             anchors_allowed = gmfrm_capability.allows_anchors,
             validation_bias_terms_allowed =
                 gmfrm_capability.allows_validation_bias_terms,
+            completed_gate = :v0_1_1_generalized_refinement,
+            next_gate = :v0_1_2_fixed_q_productionization,
             note = "guarded scalar rater-consistency GMFRM, without broader generalized claims",
         ),
         (;
@@ -1922,6 +1924,8 @@ function _release_scope_fit_surface_rows()
             anchors_allowed = mgmfrm_capability.allows_anchors,
             validation_bias_terms_allowed =
                 mgmfrm_capability.allows_validation_bias_terms,
+            completed_gate = :v0_1_1_generalized_refinement,
+            next_gate = :v0_1_2_fixed_q_productionization,
             note = "guarded fixed-Q confirmatory MGMFRM, without model-weight or sparse-superiority claims",
         ),
     )
@@ -2062,7 +2066,7 @@ function _status_policy_manifest(family::Symbol,
         claim_scope,
         blocked_claims = _status_policy_blocked_claims(family, status_label),
         next_gate = status_label === :experimental_public ?
-            :v0_1_1_generalized_refinement :
+            :v0_1_2_fixed_q_productionization :
             status_label === :specified_only ?
             :promotion_review :
             status_label === :supported ?
@@ -2139,6 +2143,198 @@ function _release_scope_blocked_claim_rows()
     )
 end
 
+_release_scope_progress_evidence_scopes() = (
+    :free_latent_correlation_operational_prerequisites,
+    :free_latent_correlation_scientific_execution,
+    :v0_1_2_ld1b_integration,
+    :ld1b_scientific_execution,
+)
+
+function _release_scope_current_ld1b_integration_gate_rows()
+    return (
+        (gate = :fixed_q_guarded_exposure_boundary,
+            gate_status = :complete,
+            evidence_scope = :tracked_release_metadata),
+        (gate = :ld1b_scoring_authorization_and_denominator,
+            gate_status = :complete,
+            evidence_scope = :tracked_frozen_contract),
+        (gate = :batch_harness_seal_and_launched_attempt_retirement,
+            gate_status = :complete_local_worktree,
+            evidence_scope = :local_dirty_worktree),
+        (gate = :terminal_public_contract_semantic_replay,
+            gate_status = :complete_local_worktree,
+            evidence_scope = :local_dirty_worktree),
+        (gate = :canonical_single_job_worker,
+            gate_status = :complete_local_worktree,
+            evidence_scope = :local_dirty_worktree),
+        (gate = :final_worker_source_pinning_and_identity_regeneration,
+            gate_status = :complete_local_worktree,
+            evidence_scope = :local_dirty_worktree),
+        (gate = :bounded_canonical_smoke_on_pinned_source,
+            gate_status = :complete_local_worktree,
+            evidence_scope = :local_dirty_worktree),
+        (gate = :independent_pinned_recovery_readiness_review,
+            gate_status = :open,
+            evidence_scope = :none),
+        (gate = :authorized_660_job_pilot_execution_review_and_freeze,
+            gate_status = :open,
+            evidence_scope = :none),
+    )
+end
+
+function _release_scope_progress_evidence_rows()
+    free_correlation_plan = _mgmfrm_free_latent_correlation_2d_study_plan()
+    free_correlation_plan.checks.passed || throw(AssertionError(
+        "free-correlation progress evidence requires the validated frozen v2 plan",
+    ))
+    free_correlation_plan.resource_policy.initial_gradient_probe.
+        short_nuts_profile_required || throw(AssertionError(
+        "free-correlation progress denominator requires short-NUTS profiling",
+    ))
+    free_correlation_plan.resource_policy.initial_gradient_probe.
+        atomic_runner_required || throw(AssertionError(
+        "free-correlation progress denominator requires an atomic worker",
+    ))
+    free_correlation_operational_gates = (
+        (gate = :passing_mcmc_free_initial_gradient_resource_profile,
+            gate_status = :failed),
+        (gate = :passing_bounded_short_nuts_resource_profile,
+            gate_status = :pending),
+        (gate = :atomic_single_unit_scientific_worker,
+            gate_status = :pending),
+    )
+    free_correlation_operational_denominator = 1 +
+        Int(free_correlation_plan.resource_policy.initial_gradient_probe.
+            short_nuts_profile_required) +
+        Int(free_correlation_plan.resource_policy.initial_gradient_probe.
+            atomic_runner_required)
+    length(free_correlation_operational_gates) ==
+        free_correlation_operational_denominator || throw(AssertionError(
+        "free-correlation operational denominator does not match the frozen prerequisites",
+    ))
+    free_correlation_operational_numerator = count(
+        row -> row.gate_status === :passed,
+        free_correlation_operational_gates,
+    )
+    free_correlation_feasibility_denominator =
+        free_correlation_plan.phases.feasibility.n_units
+    free_correlation_evaluation_denominator =
+        free_correlation_plan.denominator_policy.n_planned_evaluation_units
+    free_correlation_scientific_denominator =
+        free_correlation_feasibility_denominator +
+        free_correlation_evaluation_denominator
+    length(free_correlation_plan.units) ==
+        free_correlation_scientific_denominator || throw(AssertionError(
+        "free-correlation scientific denominator does not match the frozen roster",
+    ))
+
+    ld1b_contract = local_dependence_calibration_pilot_contract()
+    ld1b_fit_denominator = ld1b_contract.planning.n_fit_jobs
+    ld1b_rejection_denominator =
+        ld1b_contract.planning.n_pre_fit_rejection_jobs
+    ld1b_scientific_denominator = ld1b_contract.planning.n_jobs
+    ld1b_fit_denominator + ld1b_rejection_denominator ==
+        ld1b_scientific_denominator || throw(AssertionError(
+        "LD1b scientific denominator does not match its frozen routing contract",
+    ))
+    ld1b_integration_gates =
+        _release_scope_current_ld1b_integration_gate_rows()
+    ld1b_integration_numerator = count(
+        row -> row.gate_status in (:complete, :complete_local_worktree),
+        ld1b_integration_gates,
+    )
+
+    return (
+        (family = :mgmfrm,
+            scope = :free_latent_correlation_operational_prerequisites,
+            evidence = :operational_gate_attainment,
+            record_status = :current_progress_recorded,
+            gate_status = :not_passed,
+            execution_status = :mcmc_free_initial_gradient_profile_failed,
+            numerator = free_correlation_operational_numerator,
+            denominator = free_correlation_operational_denominator,
+            attainment_percent = round(
+                100 * free_correlation_operational_numerator /
+                free_correlation_operational_denominator;
+                digits = 1,
+            ),
+            denominator_kind = :conjunctive_pre_scientific_operational_gates,
+            counts_toward_scientific_denominator = false,
+            source_artifact =
+                :mgmfrm_free_latent_correlation_2d_resource_probe_receipt,
+            source_contract = free_correlation_plan.plan_id,
+            gate_rows = free_correlation_operational_gates),
+        (family = :mgmfrm,
+            scope = :free_latent_correlation_scientific_execution,
+            evidence = :scientific_execution_progress,
+            record_status = :current_progress_recorded,
+            gate_status = :blocked_by_operational_prerequisites,
+            execution_status = :not_executed,
+            numerator = 0,
+            denominator = free_correlation_scientific_denominator,
+            attainment_percent = round(
+                100 * 0 / free_correlation_scientific_denominator;
+                digits = 1,
+            ),
+            denominator_kind = :frozen_scientific_study_units,
+            counts_toward_scientific_denominator = true,
+            source_artifact =
+                :mgmfrm_free_latent_correlation_2d_study_plan_v2,
+            source_contract = free_correlation_plan.plan_id,
+            source_artifact_sha256 = free_correlation_plan.plan_fingerprint,
+            component_counts = (;
+                computation_only_feasibility = (;
+                    numerator = 0,
+                    denominator = free_correlation_feasibility_denominator),
+                recovery_evaluation = (;
+                    numerator = 0,
+                    denominator = free_correlation_evaluation_denominator))),
+        (family = :local_dependence,
+            scope = :v0_1_2_ld1b_integration,
+            evidence = :integration_gate_attainment,
+            record_status = :current_dirty_worktree_snapshot_recorded,
+            gate_status = :partially_attained_local_worktree_only,
+            execution_status =
+                :bounded_verification_mcmc_nonpilot_integration_evidence_only,
+            numerator = ld1b_integration_numerator,
+            denominator = length(ld1b_integration_gates),
+            attainment_percent = round(
+                100 * ld1b_integration_numerator /
+                length(ld1b_integration_gates);
+                digits = 1,
+            ),
+            denominator_kind = :ordered_integration_acceptance_gates,
+            counts_toward_scientific_denominator = false,
+            source_artifact = :roadmap_current_v0_1_2_ld1b_integration_checklist,
+            release_lineage_verified = false,
+            scientific_numerator_contribution = 0,
+            gate_rows = ld1b_integration_gates),
+        (family = :local_dependence,
+            scope = :ld1b_scientific_execution,
+            evidence = :scientific_execution_progress,
+            record_status = :current_progress_recorded,
+            gate_status = :blocked_by_open_integration_gates,
+            execution_status = :not_executed,
+            numerator = 0,
+            denominator = ld1b_scientific_denominator,
+            attainment_percent = round(
+                100 * 0 / ld1b_scientific_denominator;
+                digits = 1,
+            ),
+            denominator_kind = :frozen_pilot_primary_jobs,
+            counts_toward_scientific_denominator = true,
+            source_artifact = :local_dependence_calibration_pilot_contract_v1,
+            source_contract_schema = ld1b_contract.schema,
+            component_counts = (;
+                eligible_fitting_jobs = (;
+                    numerator = 0,
+                    denominator = ld1b_fit_denominator),
+                planned_structural_rejections = (;
+                    numerator = 0,
+                    denominator = ld1b_rejection_denominator))),
+    )
+end
+
 function _release_scope_evidence_rows()
     rows = NamedTuple[]
     for row in _gmfrm_experimental_public_evidence_rows()
@@ -2176,7 +2372,9 @@ function _release_scope_evidence_rows()
         (family = :gmfrm_mgmfrm,
             scope = :v0_1_1_generalized_refinement,
             evidence = :implementation_checklist_created,
-            status = :planned,
+            status = :done,
+            phase_status = :completed,
+            historical_release = true,
             artifact = :docs_src_v0_1_1_implementation_checklist),
         (family = :all_evidence_artifacts,
             scope = :evidence_schema_policy,
@@ -2194,6 +2392,7 @@ function _release_scope_evidence_rows()
             status = :done,
             artifact = :related_software_capability_matrix),
     ])
+    append!(rows, _release_scope_progress_evidence_rows())
     return Tuple(rows)
 end
 
@@ -2206,7 +2405,10 @@ unsupported generalized options that remain rejected, and the broad claims that
 remain blocked. Set `include_evidence = true` to include the local evidence rows
 recorded by the guarded GMFRM/MGMFRM exposure manifests plus the current
 fit-cache, reproduction-manifest, documentation-size, and pre-registration gate
-guardrails.
+guardrails. The evidence rows also retain separate machine-readable operational,
+integration, and scientific denominators for the free-correlation and LD1b
+workstreams; operational or dirty-worktree attainment does not enter a
+scientific numerator.
 
 This is a release-scope guardrail, not a statistical validation result and not a
 publication or registration action.
@@ -2222,6 +2424,10 @@ function release_scope_summary(; include_evidence::Bool = false)
         raw_data_status = :not_included,
         unsupported_claims = Tuple(row.claim for row in blocked_claims))
     evidence_rows = include_evidence ? _release_scope_evidence_rows() : NamedTuple[]
+    development_version = string(pkgversion(@__MODULE__))
+    development_phase = development_version == "0.1.2" ?
+        :v0_1_2_fixed_q_productionization :
+        :release_scope_phase_update_required
     return (;
         schema = "bayesianmgmfrm.release_scope_summary.v1",
         object = :release_scope_summary,
@@ -2240,6 +2446,10 @@ function release_scope_summary(; include_evidence::Bool = false)
             n_blocked_public_options = length(blocked_options),
             n_blocked_claims = length(blocked_claims),
             n_evidence_rows = length(evidence_rows),
+            n_progress_evidence_rows = count(
+                row -> row.scope in _release_scope_progress_evidence_scopes(),
+                evidence_rows,
+            ),
             minimal_mfrm_fit_allowed = true,
             scalar_gmfrm_guarded_fit_allowed = true,
             fixed_q_mgmfrm_guarded_fit_allowed = true,
@@ -2255,7 +2465,14 @@ function release_scope_summary(; include_evidence::Bool = false)
             model_weight_claims_allowed = false,
             sparse_superiority_claims_allowed = false,
             publication_or_registration_action = false,
+            development_version,
+            development_phase,
+            development_next_gate = development_phase,
             v0_1_1_generalized_refinement_planned = true,
+            v0_1_1_generalized_refinement_planned_field_semantics =
+                :historical_plan_record_present,
+            v0_1_1_generalized_refinement_completed = true,
+            v0_1_1_generalized_refinement_status = :completed,
             next_gate = :manual_publication_or_registration_by_user_only,
         ),
     )
@@ -2640,6 +2857,19 @@ end
 _release_gate_default_root() = normpath(joinpath(@__DIR__, ".."))
 
 function _release_gate_document_specs()
+    development_version = string(pkgversion(@__MODULE__))
+    development_label = "v$development_version"
+    ld1b_integration_gates =
+        _release_scope_current_ld1b_integration_gate_rows()
+    ld1b_integration_numerator = count(
+        row -> row.gate_status in (:complete, :complete_local_worktree),
+        ld1b_integration_gates,
+    )
+    ld1b_integration_denominator = length(ld1b_integration_gates)
+    ld1b_integration_fraction =
+        "$ld1b_integration_numerator/$ld1b_integration_denominator"
+    ld1b_integration_paragraph = "current dirty-worktree snapshot, `" *
+        ld1b_integration_fraction * "` gates are attained"
     return (
         (;
             target = :readme_public_surface,
@@ -2758,6 +2988,40 @@ function _release_gate_document_specs()
             forbidden = (),
         ),
         (;
+            target = :developer_roadmap_release_scope,
+            path = "ROADMAP.md",
+            required = (
+                "`$development_label` integration checkpoint",
+                "Fixed-Q productionization plus core-integrity and minimal-MFRM completion",
+                "### Current $development_label LD1b Integration Checklist",
+                "| Current `$development_label` LD1b integration checklist | **" *
+                    ld1b_integration_fraction * " gates attained",
+                ld1b_integration_paragraph,
+                "| Broad stable-public generalized claim maturity | **blocked** |",
+                "| Quarantined 2D free-correlation operational prerequisites | **0/3 passed;",
+                "| LD1b local-dependence pilot execution | **0/660 (0.0%)** |",
+                "| Quarantined 2D free-correlation scientific execution | **0/525 (0.0%)** |",
+                "Exploratory Q/loadings and free latent correlations are excluded.",
+            ),
+            forbidden = (),
+            apply_public_language_forbidden_tokens = false,
+        ),
+        (;
+            target = :research_roadmap_release_scope,
+            path = joinpath("docs", "src", "mgmfrm-research-roadmap.md"),
+            required = (
+                "`$development_label` integration checkpoint: stay fixed-Q and confirmatory",
+                "### $development_label: Fixed-Q Dimensionality and Q Validation Expansion",
+                ld1b_integration_paragraph,
+                "Broad exploratory MGMFRM remains blocked.",
+                "The pilot itself remains unrun.",
+                "| Computation-only feasibility roster | **0/25** |",
+                "| Separately seeded recovery evaluation | **0/500** |",
+            ),
+            forbidden = (),
+            apply_public_language_forbidden_tokens = false,
+        ),
+        (;
             target = :documenter_public_boundary,
             path = joinpath("docs", "make.jl"),
             required = (
@@ -2840,7 +3104,13 @@ function _release_gate_document_rows(root::AbstractString)
                 note = "required generalized-support wording is present",
             ))
         end
-        for token in (spec.forbidden..., _release_gate_forbidden_public_tokens()...)
+        apply_public_language_forbidden_tokens =
+            !haskey(spec, :apply_public_language_forbidden_tokens) ||
+            spec.apply_public_language_forbidden_tokens
+        forbidden_tokens = apply_public_language_forbidden_tokens ?
+            (spec.forbidden..., _release_gate_forbidden_public_tokens()...) :
+            spec.forbidden
+        for token in forbidden_tokens
             found = _release_gate_contains(text, token)
             push!(rows, _release_gate_row(
                 source = :documentation,
@@ -2877,6 +3147,32 @@ function _release_gate_manifest_rows(scope)
     surfaces = scope.public_fit_surfaces
     blocked_claims = Tuple(row.claim for row in scope.blocked_claims)
     evidence_rows = scope.evidence_rows
+    progress_evidence_scopes = _release_scope_progress_evidence_scopes()
+    progress_evidence_rows = Tuple(row for row in evidence_rows
+        if row.scope in progress_evidence_scopes)
+    current_ld1b_integration_gates =
+        _release_scope_current_ld1b_integration_gate_rows()
+    current_ld1b_integration_numerator = count(
+        row -> row.gate_status in (:complete, :complete_local_worktree),
+        current_ld1b_integration_gates,
+    )
+    current_ld1b_integration_denominator =
+        length(current_ld1b_integration_gates)
+    progress_evidence_required_fields = (
+        :record_status,
+        :gate_status,
+        :execution_status,
+        :numerator,
+        :denominator,
+        :attainment_percent,
+        :denominator_kind,
+        :counts_toward_scientific_denominator,
+        :source_artifact,
+    )
+    has_progress_evidence_fields = row -> all(
+        field -> haskey(row, field),
+        progress_evidence_required_fields,
+    )
     ladder = model_ladder()
     gmfrm_guarded_surface = only(row for row in ladder
         if row.scope === :scalar_gmfrm_guarded_experimental)
@@ -2944,10 +3240,135 @@ function _release_gate_manifest_rows(scope)
                 (:r_package_overlap_comparison, :real_data_validation,
                     :external_validation))),
         (target = :v0_1_1_refinement_evidence_row,
-            expected = :recorded,
+            expected = :completed,
             observed = any(row -> row.scope === :v0_1_1_generalized_refinement &&
-                row.evidence === :implementation_checklist_created,
+                row.evidence === :implementation_checklist_created &&
+                row.status === :done &&
+                haskey(row, :phase_status) && row.phase_status === :completed &&
+                haskey(row, :historical_release) && row.historical_release,
                 evidence_rows)),
+        (target = :current_development_version,
+            expected = string(pkgversion(@__MODULE__)),
+            observed = scope.summary.development_version ==
+                string(pkgversion(@__MODULE__))),
+        (target = :current_development_phase,
+            expected = :v0_1_2_fixed_q_productionization,
+            observed = scope.summary.development_phase ===
+                :v0_1_2_fixed_q_productionization &&
+                scope.summary.development_next_gate ===
+                    :v0_1_2_fixed_q_productionization),
+        (target = :guarded_experimental_surface_next_gate,
+            expected = :v0_1_2_fixed_q_productionization,
+            observed = all(row -> !row.experimental_public ||
+                (haskey(row, :completed_gate) &&
+                    row.completed_gate === :v0_1_1_generalized_refinement &&
+                    haskey(row, :next_gate) &&
+                    row.next_gate === :v0_1_2_fixed_q_productionization),
+                surfaces)),
+        (target = :roadmap_progress_evidence_row_set,
+            expected = progress_evidence_scopes,
+            observed = length(progress_evidence_rows) ==
+                length(progress_evidence_scopes) &&
+                Set(row.scope for row in progress_evidence_rows) ==
+                    Set(progress_evidence_scopes)),
+        (target = :roadmap_progress_evidence_schema,
+            expected = progress_evidence_required_fields,
+            observed = all(row -> has_progress_evidence_fields(row) &&
+                !haskey(row, :status) &&
+                row.numerator isa Integer &&
+                row.denominator isa Integer &&
+                0 <= row.numerator <= row.denominator &&
+                row.attainment_percent isa Real &&
+                row.attainment_percent == round(
+                    100 * row.numerator / row.denominator;
+                    digits = 1,
+                ) &&
+                0.0 <= row.attainment_percent <= 100.0 &&
+                row.counts_toward_scientific_denominator isa Bool &&
+                !ismissing(row.source_artifact),
+                progress_evidence_rows)),
+        (target = :free_correlation_operational_progress,
+            expected = (numerator = 0, denominator = 3),
+            observed = any(row -> row.scope ===
+                    :free_latent_correlation_operational_prerequisites &&
+                has_progress_evidence_fields(row) &&
+                row.record_status === :current_progress_recorded &&
+                row.gate_status === :not_passed &&
+                row.execution_status ===
+                    :mcmc_free_initial_gradient_profile_failed &&
+                row.numerator == 0 && row.denominator == 3 &&
+                row.denominator_kind ===
+                    :conjunctive_pre_scientific_operational_gates &&
+                !row.counts_toward_scientific_denominator &&
+                row.source_artifact ===
+                    :mgmfrm_free_latent_correlation_2d_resource_probe_receipt &&
+                haskey(row, :gate_rows) && length(row.gate_rows) == 3,
+                progress_evidence_rows)),
+        (target = :free_correlation_scientific_progress,
+            expected = (numerator = 0, denominator = 525,
+                feasibility = (0, 25), evaluation = (0, 500)),
+            observed = any(row -> row.scope ===
+                    :free_latent_correlation_scientific_execution &&
+                has_progress_evidence_fields(row) &&
+                row.record_status === :current_progress_recorded &&
+                row.gate_status === :blocked_by_operational_prerequisites &&
+                row.execution_status === :not_executed &&
+                row.numerator == 0 && row.denominator == 525 &&
+                row.denominator_kind === :frozen_scientific_study_units &&
+                row.counts_toward_scientific_denominator &&
+                row.source_artifact ===
+                    :mgmfrm_free_latent_correlation_2d_study_plan_v2 &&
+                haskey(row, :component_counts) &&
+                row.component_counts.computation_only_feasibility ==
+                    (numerator = 0, denominator = 25) &&
+                row.component_counts.recovery_evaluation ==
+                    (numerator = 0, denominator = 500),
+                progress_evidence_rows)),
+        (target = :v0_1_2_ld1b_integration_progress,
+            expected = (numerator = current_ld1b_integration_numerator,
+                denominator = current_ld1b_integration_denominator,
+                attainment_percent = 77.8,
+                provenance = :local_dirty_worktree),
+            observed = any(row -> row.scope === :v0_1_2_ld1b_integration &&
+                has_progress_evidence_fields(row) &&
+                row.record_status ===
+                    :current_dirty_worktree_snapshot_recorded &&
+                row.gate_status === :partially_attained_local_worktree_only &&
+                row.execution_status ===
+                    :bounded_verification_mcmc_nonpilot_integration_evidence_only &&
+                row.numerator == current_ld1b_integration_numerator &&
+                row.denominator == current_ld1b_integration_denominator &&
+                row.attainment_percent == 77.8 &&
+                row.denominator_kind === :ordered_integration_acceptance_gates &&
+                !row.counts_toward_scientific_denominator &&
+                row.source_artifact ===
+                    :roadmap_current_v0_1_2_ld1b_integration_checklist &&
+                haskey(row, :release_lineage_verified) &&
+                !row.release_lineage_verified &&
+                haskey(row, :scientific_numerator_contribution) &&
+                row.scientific_numerator_contribution == 0 &&
+                haskey(row, :gate_rows) &&
+                row.gate_rows == current_ld1b_integration_gates,
+                progress_evidence_rows)),
+        (target = :ld1b_scientific_progress,
+            expected = (numerator = 0, denominator = 660,
+                fitting = (0, 540), structural_rejections = (0, 120)),
+            observed = any(row -> row.scope === :ld1b_scientific_execution &&
+                has_progress_evidence_fields(row) &&
+                row.record_status === :current_progress_recorded &&
+                row.gate_status === :blocked_by_open_integration_gates &&
+                row.execution_status === :not_executed &&
+                row.numerator == 0 && row.denominator == 660 &&
+                row.denominator_kind === :frozen_pilot_primary_jobs &&
+                row.counts_toward_scientific_denominator &&
+                row.source_artifact ===
+                    :local_dependence_calibration_pilot_contract_v1 &&
+                haskey(row, :component_counts) &&
+                row.component_counts.eligible_fitting_jobs ==
+                    (numerator = 0, denominator = 540) &&
+                row.component_counts.planned_structural_rejections ==
+                    (numerator = 0, denominator = 120),
+                progress_evidence_rows)),
         (target = :release_gate_check_evidence_row,
             expected = :recorded,
             observed = any(row -> row.scope === :status_synchronization &&
@@ -2968,7 +3389,7 @@ function _release_gate_manifest_rows(scope)
             expected = check.expected,
             observed = check.observed,
             passed = passed,
-            note = "release-scope manifest agrees with the v0.1.1 public-surface policy",
+            note = "release-scope manifest agrees with the current narrow public-surface policy",
         ))
     end
     return Tuple(rows)
@@ -3008,6 +3429,9 @@ function release_gate_check(; root::AbstractString = _release_gate_default_root(
         model_weight_claims_allowed = scope.summary.model_weight_claims_allowed,
         sparse_superiority_claims_allowed =
             scope.summary.sparse_superiority_claims_allowed,
+        development_version = scope.summary.development_version,
+        development_phase = scope.summary.development_phase,
+        development_next_gate = scope.summary.development_next_gate,
         publication_or_registration_action = false,
         next_gate = passed ? :manual_publication_or_registration_by_user_only :
             :repair_release_scope_documentation_or_manifest_drift,

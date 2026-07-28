@@ -42,6 +42,10 @@ references, and bounded generator workload. Evaluation uses either 50 or 100
 replications, selected after the pilot and before any evaluation result is
 observed; a mid-evaluation extension is not part of this protocol.
 
+The MFRM sampling route is fixed to AdvancedHMC/NUTS with `ForwardDiff`.
+`MFRMLogDensity` is an order-0 target and does not expose the analytic-gradient
+method required by `ad_backend = :analytic`.
+
 This object is planning evidence only. It does not execute fitting, complete
 the pilot, freeze an evaluation profile, enable diagnostic decisions, or
 support a dependence-mechanism interpretation. Pairwise power remains outside
@@ -93,7 +97,7 @@ function local_dependence_calibration_pilot_contract(;
             target_accept = 0.90,
             max_depth = 10,
             metric = :diagonal,
-            ad_backend = :analytic,
+            ad_backend = :ForwardDiff,
             split_chains = true,
             diagnostic_draws = 250,
             diagnostic_draw_policy = :distinct_without_replacement,
@@ -344,6 +348,24 @@ function _ld1b1_sampler_capability(contract)
         family = :mfrm,
         parameter_spaces = (:identified,),
     )
+    sampler = contract.sampler
+    backend_supported = sampler.backend === :advancedhmc
+    algorithm_supported = sampler.algorithm === :nuts
+    mfrm_capabilities = LogDensityProblems.capabilities(MFRMLogDensity)
+    mfrm_logdensity_order =
+        mfrm_capabilities isa LogDensityProblems.LogDensityOrder{0} ? 0 :
+        mfrm_capabilities isa LogDensityProblems.LogDensityOrder{1} ? 1 : -1
+    analytic_gradient_method_available = hasmethod(
+        LogDensityProblems.logdensity_and_gradient,
+        Tuple{MFRMLogDensity,Vector{Float64}},
+    )
+    # ForwardDiff is the only AD route available from the package's ordinary
+    # runtime dependencies. ReverseDiff is a test-only extra and therefore
+    # must not authorize the frozen scientific executor merely because its
+    # symbol is accepted by the generic fitting API.
+    gradient_backend_supported = sampler.ad_backend === :analytic ?
+        analytic_gradient_method_available :
+        sampler.ad_backend === :ForwardDiff
     rank_available = policy.rank_normalized_rhat_available === true
     bulk_tail_available = policy.bulk_tail_ess_available === true
     rank_method_matches = policy.rhat_method ===
@@ -385,6 +407,13 @@ function _ld1b1_sampler_capability(contract)
     draw_requirement_met =
         planned_diagnostic_draws_per_chain >= minimum_diagnostic_draws
     blockers = Symbol[]
+    backend_supported || push!(blockers, :unsupported_mfrm_sampler_backend)
+    algorithm_supported || push!(blockers, :unsupported_mfrm_sampler_algorithm)
+    if !gradient_backend_supported
+        push!(blockers, sampler.ad_backend === :analytic ?
+            :mfrm_analytic_gradient_unavailable :
+            :unsupported_mfrm_gradient_backend)
+    end
     if !rank_available
         push!(blockers, :rank_normalized_rhat_unavailable)
     elseif !rank_method_matches
@@ -411,6 +440,15 @@ function _ld1b1_sampler_capability(contract)
         push!(blockers, :insufficient_planned_diagnostic_draws)
     passed = isempty(blockers)
     return (;
+        planned_sampler_backend = sampler.backend,
+        planned_sampler_algorithm = sampler.algorithm,
+        planned_gradient_backend = sampler.ad_backend,
+        sampler_backend_supported = backend_supported,
+        sampler_algorithm_supported = algorithm_supported,
+        mfrm_logdensity_order,
+        mfrm_analytic_gradient_method_available =
+            analytic_gradient_method_available,
+        gradient_backend_supported,
         current_rhat_method = policy.rhat_method,
         current_ess_method = policy.ess_method,
         current_rhat_ess_status = policy.rhat_ess_status,
@@ -548,10 +586,11 @@ the fixed base dimensions. The result records compact job rows, deterministic
 workload counts, Wilson precision references, pilot/evaluation seed separation,
 and the currently available sampler-diagnostic capability.
 
-Execution is authorized only when the required rank-normalized R-hat and
-bulk/tail ESS capabilities match the frozen quality contract. Authorization
-does not execute the pilot: a successful planning preflight alone is not
-calibration evidence and does not enable decision or mechanism labels.
+Execution-protocol authorization requires an executable MFRM backend,
+algorithm, and gradient route as well as rank-normalized R-hat and bulk/tail
+ESS capabilities matching the frozen quality contract. Authorization does not
+execute the pilot: a successful planning preflight alone is not calibration
+evidence and does not enable decision or mechanism labels.
 """
 function local_dependence_calibration_pilot_preflight(
         plan_rows::AbstractVector;

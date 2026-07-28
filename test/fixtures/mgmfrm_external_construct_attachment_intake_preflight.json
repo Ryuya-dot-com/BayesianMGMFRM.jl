@@ -10,6 +10,14 @@
   "publication_or_registration_action": false,
   "external_construct_dataset_manifest_valid": false,
   "independent_public_scope_review_manifest_valid": false,
+  "external_construct_dataset_manifest_attached_and_valid": false,
+  "external_construct_dataset_file_integrity_verified": false,
+  "external_construct_validation_evidence_attached_and_valid": false,
+  "external_construct_validation_evidence_passed": false,
+  "independent_public_scope_review_attached_and_valid": false,
+  "independent_public_scope_review_gate_passed": false,
+  "public_claim_release_decision_signed": false,
+  "public_claim_release_gate_passed": false,
   "public_fit_metric_claim": false,
   "public_q_revision_claim": false,
   "public_model_weight_claim": false,
@@ -17,7 +25,7 @@
   "package": {
     "name": "BayesianMGMFRM",
     "version": "0.1.2",
-    "julia_version": "1.10.8"
+    "julia_version": "1.12.5"
   },
   "protocol": {
     "protocol_id": "mgmfrm_external_construct_attachment_intake_preflight_v1",
@@ -28,12 +36,16 @@
     "decision_scope": "preflight_before_external_construct_or_independent_review_attachment_is_accepted",
     "thresholds": {
       "require_external_construct_gate_review_passed": true,
+      "external_construct_gate_review_passed_semantics": "artifact_contract_and_blocker_preservation_only",
+      "require_external_construct_gate_artifact_contract_valid": true,
       "require_external_construct_gate_next_gate_matched": true,
       "require_external_manifest_field_spec_recorded": true,
       "require_independent_review_field_spec_recorded": true,
       "require_missing_manifest_paths_recorded": true,
       "require_no_public_claim_release_without_valid_manifests": true,
-      "require_no_publication_or_registration_action": true
+      "require_no_publication_or_registration_action": true,
+      "require_external_evidence_pass_implies_attached_and_valid": true,
+      "require_public_claim_release_gate_requires_zero_blockers": true
     }
   },
   "input_artifacts": [
@@ -41,11 +53,19 @@
       "artifact": "mgmfrm_external_construct_dataset_and_independent_public_scope_review",
       "path": "test/fixtures/mgmfrm_external_construct_dataset_and_independent_public_scope_review.json",
       "exists": true,
-      "sha256": "de6a4a99e9db387ace7c14eaa54ce1028e776ff66e7801012c283e8c92f210a2",
+      "sha256": "1cde2ff59a27591526d1214b54deb652a4eb7e932f491735b19b3ce1a2bc842b",
       "expected_schema": "bayesianmgmfrm.mgmfrm_external_construct_dataset_and_independent_public_scope_review.v1",
       "schema": "bayesianmgmfrm.mgmfrm_external_construct_dataset_and_independent_public_scope_review.v1",
       "schema_matches": true,
       "summary_passed": true,
+      "pass_scope": "contract_and_blocker_preservation_only",
+      "artifact_contract_valid": true,
+      "external_construct_dataset_manifest_attached_and_valid": false,
+      "external_construct_dataset_file_integrity_verified": false,
+      "external_construct_validation_evidence_passed": false,
+      "independent_public_scope_review_attached_and_valid": false,
+      "independent_public_scope_review_gate_passed": false,
+      "public_claim_release_gate_passed": false,
       "next_gate": "provide_external_construct_dataset_manifest_and_independent_public_scope_review",
       "n_blockers": 5
     }
@@ -63,7 +83,14 @@
       "present_required_field_count": 0,
       "all_required_fields_present": false,
       "summary_passed": false,
-      "manifest_valid": false
+      "manifest_valid": false,
+      "artifact_contract_valid": false,
+      "attachment_and_valid": false,
+      "external_construct_dataset_file_integrity_verified": false,
+      "external_construct_validation_evidence_attached_and_valid": false,
+      "external_construct_validation_evidence_passed": false,
+      "independent_public_scope_review_gate_passed": false,
+      "public_claim_release_decision_signed": false
     },
     {
       "artifact": "independent_public_scope_review_manifest",
@@ -77,7 +104,14 @@
       "present_required_field_count": 0,
       "all_required_fields_present": false,
       "summary_passed": false,
-      "manifest_valid": false
+      "manifest_valid": false,
+      "artifact_contract_valid": false,
+      "attachment_and_valid": false,
+      "external_construct_dataset_file_integrity_verified": false,
+      "external_construct_validation_evidence_attached_and_valid": false,
+      "external_construct_validation_evidence_passed": false,
+      "independent_public_scope_review_gate_passed": false,
+      "public_claim_release_decision_signed": false
     }
   ],
   "manifest_field_rows": [
@@ -312,6 +346,16 @@
       "check": "external_construct_gate_review_passed",
       "satisfied": true,
       "status": "passed",
+      "pass_scope": "contract_and_blocker_preservation_only",
+      "compatibility_field": true,
+      "public_claim_release_allowed": false
+    },
+    {
+      "check": "external_construct_gate_artifact_contract_valid",
+      "satisfied": true,
+      "status": "passed",
+      "pass_scope": "artifact_contract_only",
+      "compatibility_field": false,
       "public_claim_release_allowed": false
     },
     {
@@ -364,6 +408,9 @@
       "independent_public_scope_review_manifest_required": true,
       "external_construct_dataset_manifest_valid": false,
       "independent_public_scope_review_manifest_valid": false,
+      "external_construct_dataset_file_integrity_verified": false,
+      "external_construct_validation_evidence_passed": false,
+      "independent_public_scope_review_gate_passed": false,
       "public_claim_release_allowed": false,
       "status": "blocked_until_valid_external_inputs_and_independent_release_decision"
     },
@@ -373,6 +420,9 @@
       "independent_public_scope_review_manifest_required": true,
       "external_construct_dataset_manifest_valid": false,
       "independent_public_scope_review_manifest_valid": false,
+      "external_construct_dataset_file_integrity_verified": false,
+      "external_construct_validation_evidence_passed": false,
+      "independent_public_scope_review_gate_passed": false,
       "public_claim_release_allowed": false,
       "status": "blocked_until_valid_external_inputs_and_independent_release_decision"
     },
@@ -382,6 +432,9 @@
       "independent_public_scope_review_manifest_required": true,
       "external_construct_dataset_manifest_valid": false,
       "independent_public_scope_review_manifest_valid": false,
+      "external_construct_dataset_file_integrity_verified": false,
+      "external_construct_validation_evidence_passed": false,
+      "independent_public_scope_review_gate_passed": false,
       "public_claim_release_allowed": false,
       "status": "blocked_until_valid_external_inputs_and_independent_release_decision"
     },
@@ -391,6 +444,9 @@
       "independent_public_scope_review_manifest_required": true,
       "external_construct_dataset_manifest_valid": false,
       "independent_public_scope_review_manifest_valid": false,
+      "external_construct_dataset_file_integrity_verified": false,
+      "external_construct_validation_evidence_passed": false,
+      "independent_public_scope_review_gate_passed": false,
       "public_claim_release_allowed": false,
       "status": "blocked_until_valid_external_inputs_and_independent_release_decision"
     },
@@ -400,6 +456,9 @@
       "independent_public_scope_review_manifest_required": true,
       "external_construct_dataset_manifest_valid": false,
       "independent_public_scope_review_manifest_valid": false,
+      "external_construct_dataset_file_integrity_verified": false,
+      "external_construct_validation_evidence_passed": false,
+      "independent_public_scope_review_gate_passed": false,
       "public_claim_release_allowed": false,
       "status": "blocked_until_valid_external_inputs_and_independent_release_decision"
     }
@@ -435,14 +494,26 @@
     "selected_decision": "external_attachment_intake_preflight_recorded",
     "external_construct_dataset_manifest_valid": false,
     "independent_public_scope_review_manifest_valid": false,
+    "external_construct_dataset_manifest_attached_and_valid": false,
+    "external_construct_dataset_file_integrity_verified": false,
+    "external_construct_validation_evidence_attached_and_valid": false,
+    "external_construct_validation_evidence_passed": false,
+    "independent_public_scope_review_attached_and_valid": false,
+    "independent_public_scope_review_gate_passed": false,
+    "public_claim_release_decision_signed": false,
+    "public_claim_release_gate_passed": false,
     "public_claim_release_allowed": false,
     "required_followup": "attach_valid_external_construct_dataset_manifest_and_independent_public_scope_review_manifest"
   },
   "summary": {
     "passed": true,
+    "pass_scope": "contract_and_blocker_preservation_only",
+    "artifact_contract_valid": true,
     "publication_or_registration_action": false,
     "local_only": true,
     "external_construct_gate_review_passed": true,
+    "external_construct_gate_review_passed_semantics": "artifact_contract_and_blocker_preservation_only",
+    "external_construct_gate_artifact_contract_valid": true,
     "external_construct_gate_next_gate_matched": true,
     "external_manifest_field_spec_recorded": true,
     "independent_review_field_spec_recorded": true,
@@ -451,6 +522,14 @@
     "independent_public_scope_review_manifest_present": false,
     "external_construct_dataset_manifest_valid": false,
     "independent_public_scope_review_manifest_valid": false,
+    "external_construct_dataset_manifest_attached_and_valid": false,
+    "external_construct_dataset_file_integrity_verified": false,
+    "external_construct_validation_evidence_attached_and_valid": false,
+    "external_construct_validation_evidence_passed": false,
+    "independent_public_scope_review_attached_and_valid": false,
+    "independent_public_scope_review_gate_passed": false,
+    "public_claim_release_decision_signed": false,
+    "public_claim_release_gate_passed": false,
     "no_public_claim_release": true,
     "no_public_fit_metric_claim": true,
     "no_public_q_revision_claim": true,
@@ -461,7 +540,7 @@
     "n_external_manifest_required_fields": 13,
     "n_independent_review_required_fields": 12,
     "n_manifest_field_rows": 25,
-    "n_preflight_check_rows": 8,
+    "n_preflight_check_rows": 9,
     "n_claim_release_preflight_rows": 5,
     "n_blocker_rows": 5,
     "n_blockers": 5,

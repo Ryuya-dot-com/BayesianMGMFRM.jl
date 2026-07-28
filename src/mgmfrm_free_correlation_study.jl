@@ -220,7 +220,8 @@ function _mgmfrm_free_latent_correlation_2d_study_plan()
     units = _free_correlation_study_unit_rows()
     seed_checks = _free_correlation_study_seed_checks(units)
     seed_checks.passed || throw(ArgumentError(
-        "internal free-correlation study seed namespaces overlap",
+        "free-correlation study plan failed seed-namespace validation: " *
+        "generated seed sets overlap",
     ))
     n_feasibility = count(unit -> unit.phase === :feasibility, units)
     n_evaluation = count(unit -> unit.phase === :evaluation, units)

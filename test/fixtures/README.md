@@ -198,22 +198,77 @@ performance rates. The artifact binds the LD1a generator and LD1b0 scorer
 preflights by both file and canonical content hashes. It generates no response
 data, fits no model, runs no MCMC or local-dependence diagnostic, and does not
 freeze a threshold profile. Rank-normalized R-hat and bulk/tail ESS capability
-is now available, so the artifact authorizes the pilot execution protocol. The
-pilot remains unrun; calibration evidence, diagnostic decision labels, and
-mechanism interpretation therefore remain unavailable. Regenerate it with:
+is now available, so the artifact authorizes the pilot execution protocol. It
+also records an ordered seven-source SHA-256 pin covering the batch controller,
+canonical JSON helper, single-job worker, attempt archive, interruption
+recovery, calibration semantics, and harness generator. The pilot remains
+unrun; calibration evidence, diagnostic decision labels, and mechanism
+interpretation therefore remain unavailable. Regenerate it with:
 
 ```bash
 julia --project=. scripts/generate_local_dependence_pilot_protocol_preflight.jl
 ```
 
+`local_dependence_pilot_bounded_canonical_smoke_receipt.json` is the immutable
+final Gate 7 receipt for a successful verification-only execution of canonical
+row 5, `ld1b1_pilot__rep01__s05__null_support_at_minimum`, against the exact
+pinned source. It binds parent plan
+`197d91c65b89b669dcff6a0813b73f727acf57da90191fbda56c497a05544329`,
+source pin
+`781bb1aebfda5c16c662b60939a33bde97664cdce6f385ea7bddb25a72353793`,
+and smoke plan
+`4e32bbbaae5dafda795ccca1ddaf819cc1bd715568206134278a878f8c8b19a9`;
+its file SHA-256 is
+`de7f1ffab4002e99b75c86d64efbe73deca695b97ac45b0cf177afa5398b58c3`.
+It used the frozen AdvancedHMC/NUTS controls: 4 chains with 500 warmup and 500
+retained iterations per chain. The bounded child exited successfully after
+387.724 seconds; measured peak RSS was 3,131,703,296 bytes and peak archive
+size was 4,936,558 bytes, both below their frozen caps. The strict receipt
+revalidates the controller receipts, source pin, evidence lineage, completed-
+attempt seal, resource limits, and unchanged official pilot state.
+The smoke runs in a separate verification namespace, is scanner-ineligible for
+the canonical pilot, and contributes zero to the official `0/660` denominator.
+Its sealed raw bundle remains local, so tracked release-lineage verification is
+still pending; the compact receipt is a fixed evidence snapshot and has no
+routine regeneration command.
+
+Two earlier verification-only plan identities failed closed before
+`job_result` or evidence publication, first on a native-`UInt64` JSON projection
+bug and then on a String-key lineage bug. Both defects were fixed and covered by
+regression tests before the first successful receipt was published. Those failed
+plans also contribute zero scientifically.
+
+The earlier successful smoke plan
+`d4c6ed67958f47094efb68d4995b75846866f8c41f5d6c1d89687ac19ddd06c8`
+receipt was archived after a portability audit found that the tracked dry-run
+harness consumed local raw smoke state. The harness build and generator now
+explicitly set `consume_bounded_smoke_receipt = false`; generator output is
+byte-identical before and after a local receipt, with SHA-256
+`1afde641277e2219d4f0bbdb8a2665201876ff1f34a97b29a81a5adb67dd363d`.
+Because the fix changed the pinned source, smoke plan
+`d2d7169629d21a5ff49d35eeafac30bc5a342cc699b0029b9cfbf1c9366f8119`
+was rerun instead of reusing the archived `d4c6ed…` receipt. A subsequent clean
+`Pkg.test()` found `Sockets` missing from the test extras. Adding `Sockets` to
+the test target with its compatibility bound changed the Project hash, so the
+`d2d716…` receipt was archived and `7c8e49…` was rerun. Clean testing then found
+the known-truth fixture's Project SHA stale. Regenerating the known-truth ->
+scorer -> protocol chain and the Julia 1.10.8 robustness fixture archived
+`7c8e49…`; the final `4e32bb…` smoke above was rerun. The canonical executor
+source pin remained unchanged across this final provenance refresh.
+
 `local_dependence_pilot_batch_execution_harness.json` records the deterministic,
 MCMC-free LD1b1 batch execution-harness dry run for the same 660 planning jobs:
 540 eligible fitting jobs and 120 planned pre-fit rejections. It binds the
-protocol identity and the available batch-controller and generator source
-identities to deterministic plan and job identifiers, while marking the
-execution plan incomplete until the canonical single-job executor SHA-256 is
-materialized. It records the relative attempt layout without materializing
-attempt outcomes. A terminal result must carry exactly the semantic evidence
+protocol identity and ordered seven-source pin to deterministic plan and job
+identifiers. The controller compares each recorded source digest with the
+current repository file before deriving authorization, harness, all 660
+command, and checkpoint identities. The worker reconstructs readiness on its
+execute path, so a CLI authorization flag alone cannot bypass missing smoke or
+review evidence. Gates 6 and 7 are complete in the local worktree; Gate 7 is
+represented by the separate immutable bounded-smoke receipt above. Tracked
+release-lineage verification remains pending. The dry run records the relative
+attempt layout without materializing attempt outcomes. A terminal result must
+carry exactly the semantic evidence
 roles required by its status. Every evidence envelope is checked against the
 plan, executor, job, seeds, attempt, status, payload schema, file size, and
 SHA-256 digest. It must also bind one role-specific source artifact and the
@@ -225,9 +280,9 @@ uses the existing public calibration-row contract. Simulation members validate
 response data, table columns, probability cells, truth and row-truth arrays,
 and data/score/design signatures. Fit members use the structured
 `local_dependence_pilot_fit_artifact_export.v1` JSON wrapper, containing
-retained draws, log posterior values, and sampler statistics. Its package-native
-content hash must be verified by the future pinned canonical executor before
-JSON projection; the batch runner separately recomputes the canonical JSON
+retained draws, log posterior values, and sampler statistics. The pinned local
+canonical worker verifies the package-native content hash before JSON
+projection, and the batch runner separately recomputes the canonical JSON
 payload hash and verifies the exact file SHA-256. The JSON projection cannot
 soundly reconstruct the native typed hash. Generated resource counts are
 matched to the frozen job, while sampler records must satisfy the fixed
@@ -240,9 +295,9 @@ the draw-selection and posterior-predictive seeds; the runner compares both
 with its evidence payload, the frozen job, and the calibration execution seeds.
 Draw selection uses the frozen `sha256_seeded_rank_without_replacement_v1`
 algorithm, and the runner recomputes its ordered draw indices from the frozen
-seed. The posterior-predictive seed is source-bound, but seed-to-result replay
-verification remains pending the canonical single-job executor and bounded
-smoke review.
+seed. The posterior-predictive seed is source-bound, and its recorded lineage
+passes the bounded smoke on the final pinned source. Independent
+recovery/readiness review remains pending.
 For `diagnostic_failed`, `sampler_quality_gate` requires a failed
 sampler gate, while `local_dependence_summary` requires a passing sampler gate.
 Extra files, symbolic links, and hard links are rejected, and file snapshots
@@ -267,12 +322,18 @@ interpretations remain unavailable.
 The artifact is generated by
 `scripts/generate_local_dependence_pilot_batch_execution_harness.jl`. The
 companion `scripts/run_local_dependence_calibration_pilot_batch.jl` provides
-status, dry-run, execute-primary, execute-retry, and aggregate-only modes;
-`--resume` is the checkpoint-verified option. Execute modes remain fail-closed
-until the canonical single-job executor is materialized and pinned by source
-hash. Interrupted partial attempts are detected and excluded, but a
-completed-attempt seal and an append-only recovery or retirement path are still required
-before execution.
+status, dry-run, execute-primary, execute-retry, aggregate-only, and receipt-
+verified `retire-interrupted` modes; `--resume` verifies the derived v3
+checkpoint after a fresh archive scan. Execute modes remain fail-closed until
+independent pinned recovery/readiness review is accepted.
+Completed-attempt seals and receipt-bearing launched-attempt retirement pass
+synthetic boundary tests. Controller-owned execute-path receipt binding and
+reservation-before-precommit recovery also pass local MCMC-free tests. The
+current `v0.1.2` LD1b integration checkpoint is `7/9` (`77.8%`); Gates 3--7
+remain local-worktree evidence pending tracked release-lineage verification.
+Gate 8, independent pinned recovery/readiness review, is the only remaining
+pre-pilot blocker; operational readiness is false. No pilot job or official
+pilot MCMC has occurred, so the scientific count remains `0/660`.
 
 Regenerate the versioned artifact with:
 
@@ -821,6 +882,14 @@ actionable local handoff for the missing external attachments. It embeds the 25
 user-supplied manifest fields, ten attachment checklist rows, and six rejection
 conditions while keeping external manifest files unwritten and all public claim
 release switches blocked.
+
+For all three artifacts, `summary.passed` is a v1 compatibility field with
+`pass_scope = contract_and_blocker_preservation_only`; it means that the local
+artifact contract is valid and the blockers were preserved. It does **not**
+mean that external evidence passed. Use the explicit attachment, file-integrity,
+validation-evidence, independent-review, and public-claim-release gate fields;
+in the committed fixtures the artifact contracts are valid, while every one of
+those evidence/release gates remains false.
 
 `mgmfrm_fit_threshold_q_heldout_linkage.json` links the literature-motivated
 fit-threshold sensitivity grid, empirical Q-matrix recovery simulation, heldout

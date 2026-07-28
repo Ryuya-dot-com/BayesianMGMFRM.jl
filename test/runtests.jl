@@ -3824,6 +3824,7 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
     @test Bool(thresholds[:require_all_expected_schemas])
     @test Bool(thresholds[:require_all_expected_sha256_matches])
     @test Bool(thresholds[:require_all_fixture_summaries_passed])
+    @test Bool(thresholds[:require_all_fixture_artifact_contracts_valid])
     @test Bool(thresholds[:require_all_generator_scripts_present])
     @test Bool(thresholds[:require_all_code_doc_references_present])
     @test Bool(thresholds[:require_all_external_sources_present])
@@ -3833,7 +3834,7 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
     @test Bool(thresholds[:require_real_data_case_study_passed])
 
     fixture_records = fixture[:fixture_records]
-    @test length(fixture_records) == 26
+    @test length(fixture_records) == 27
     @test Set(String(row[:artifact]) for row in fixture_records) == Set([
         "candidate_chain_study",
         "stress_chain_grid",
@@ -3849,6 +3850,7 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
         "local_dependence_calibration_scorer_preflight",
         "local_dependence_pilot_protocol_preflight",
         "local_dependence_pilot_batch_execution_harness",
+        "local_dependence_pilot_bounded_canonical_smoke_receipt",
         "guarded_fit_method_wiring",
         "experimental_fit_validation_grid",
         "posterior_predictive_grid",
@@ -3862,15 +3864,22 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
         "tam_direct_agreement_post_execution_review_packet",
         "guarded_exposure_review",
     ])
+    immutable_sha256 = Dict(
+        "local_dependence_pilot_bounded_canonical_smoke_receipt" =>
+            "de7f1ffab4002e99b75c86d64efbe73deca695b97ac45b0cf177afa5398b58c3",
+        "tam_direct_agreement_policy_refinement_execution_snapshot" =>
+            "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e",
+    )
     for row in fixture_records
+        artifact = String(row[:artifact])
         immutable = Bool(row[:immutable])
         @test Bool(row[:exists])
         @test Bool(row[:schema_matches])
         @test Bool(row[:summary_passed])
+        @test Bool(row[:artifact_contract_valid])
         @test Bool(row[:sha256_matches])
         if immutable
-            @test String(row[:artifact]) ==
-                "tam_direct_agreement_policy_refinement_execution_snapshot"
+            @test haskey(immutable_sha256, artifact)
             @test String(row[:regeneration_policy]) ==
                 "immutable_snapshot_no_regeneration"
             @test isnothing(row[:generator])
@@ -3878,7 +3887,7 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
             @test isnothing(row[:generation_command])
             @test isnothing(row[:env_var])
             @test String(row[:expected_sha256]) ==
-                "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e"
+                immutable_sha256[artifact]
             @test String(row[:sha256]) == String(row[:expected_sha256])
         else
             @test String(row[:regeneration_policy]) == "generator_replay"
@@ -3888,31 +3897,36 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
             @test !isempty(String(row[:env_var]))
             @test isnothing(row[:expected_sha256])
         end
-        if startswith(String(row[:artifact]), "tam_direct_agreement")
+        if startswith(artifact, "tam_direct_agreement")
             @test String(row[:evidence_scope]) ==
                 "mfrm_tam_overlap_nontransfer"
         end
-        if String(row[:artifact]) ==
+        if artifact ==
                 "local_dependence_known_truth_preflight"
             @test String(row[:evidence_scope]) ==
                 "ld1a_generator_preflight_noncalibration"
         end
-        if String(row[:artifact]) ==
+        if artifact ==
                 "local_dependence_calibration_scorer_preflight"
             @test String(row[:evidence_scope]) ==
                 "ld1b0_scorer_protocol_preflight_noncalibration"
         end
-        if String(row[:artifact]) ==
+        if artifact ==
                 "local_dependence_pilot_protocol_preflight"
             @test String(row[:evidence_scope]) ==
                 "ld1b1_pilot_execution_protocol_preflight_noncalibration"
         end
-        if String(row[:artifact]) ==
+        if artifact ==
                 "local_dependence_pilot_batch_execution_harness"
             @test String(row[:evidence_scope]) ==
                 "ld1b1_pilot_batch_harness_preflight_noncalibration"
         end
-        if String(row[:artifact]) == "guarded_exposure_review"
+        if artifact ==
+                "local_dependence_pilot_bounded_canonical_smoke_receipt"
+            @test String(row[:evidence_scope]) ==
+                "ld1b1_bounded_canonical_smoke_nonpilot"
+        end
+        if artifact == "guarded_exposure_review"
             @test String(row[:hash_policy]) ==
                 "existence_only_avoids_archive_review_hash_cycle"
             @test isnothing(row[:sha256])
@@ -3938,7 +3952,7 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
     end
 
     code_doc_records = fixture[:code_doc_records]
-    @test length(code_doc_records) == 53
+    @test length(code_doc_records) == 64
     @test all(row -> Bool(row[:exists]), code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_gmfrm_claim_recovery_reproduction_archive.jl",
@@ -3970,11 +3984,21 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
         "test/local_dependence_calibration_pilot.jl",
         "test/local_dependence_pilot_protocol_artifact.jl",
         "test/local_dependence_pilot_batch_execution_harness.jl",
+        "test/local_dependence_pilot_attempt_archive.jl",
+        "test/local_dependence_pilot_calibration_semantics.jl",
+        "test/local_dependence_pilot_recovery.jl",
+        "test/local_dependence_pilot_precommit_recovery.jl",
+        "test/local_dependence_pilot_controller_receipts.jl",
+        "test/local_dependence_pilot_job_worker.jl",
         "scripts/generate_local_dependence_known_truth_preflight.jl",
         "scripts/generate_local_dependence_calibration_scorer_preflight.jl",
         "scripts/generate_local_dependence_pilot_protocol_preflight.jl",
         "scripts/generate_local_dependence_pilot_batch_execution_harness.jl",
         "scripts/run_local_dependence_calibration_pilot_batch.jl",
+        "scripts/local_dependence_pilot_attempt_archive.jl",
+        "scripts/local_dependence_pilot_calibration_semantics.jl",
+        "scripts/local_dependence_pilot_recovery.jl",
+        "scripts/run_local_dependence_calibration_pilot_job.jl",
         "docs/src/api-validation-evidence.md",
     ])
     @test any(row -> String(row[:path]) == "test/testlet_design_audit.jl",
@@ -4059,6 +4083,9 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
 
     summary = fixture[:summary]
     @test Bool(summary[:passed])
+    @test String(summary[:pass_scope]) ==
+        "contract_and_blocker_preservation_only"
+    @test Bool(summary[:artifact_contract_valid])
     @test Bool(summary[:publication_or_registration_action]) == false
     @test Bool(summary[:local_only])
     @test Int(summary[:n_fixture_artifacts]) == length(fixture_records)
@@ -4070,6 +4097,7 @@ function check_gmfrm_claim_recovery_reproduction_archive_fixture(
     @test Bool(summary[:all_expected_schemas])
     @test Bool(summary[:all_expected_sha256_matches])
     @test Bool(summary[:all_fixture_summaries_passed])
+    @test Bool(summary[:all_fixture_artifact_contracts_valid])
     @test Bool(summary[:all_generator_scripts_present])
     @test Bool(summary[:all_code_doc_references_present])
     @test Bool(summary[:all_external_sources_present])
@@ -4129,6 +4157,7 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     @test Bool(thresholds[:require_all_expected_schemas])
     @test Bool(thresholds[:require_all_expected_sha256_matches])
     @test Bool(thresholds[:require_all_fixture_summaries_passed])
+    @test Bool(thresholds[:require_all_fixture_artifact_contracts_valid])
     @test Bool(thresholds[:require_all_generator_scripts_present])
     @test Bool(thresholds[:require_all_code_doc_references_present])
     @test Bool(thresholds[:require_all_external_sources_present])
@@ -4212,10 +4241,31 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         :require_mgmfrm_publication_grade_threshold_model_weight_policy_review_passed])
     @test Bool(thresholds[
         :require_mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed])
+    @test String(thresholds[
+        :mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed_semantics]) ==
+        "artifact_contract_and_blocker_preservation_only"
+    @test Bool(thresholds[
+        :require_mgmfrm_external_construct_dataset_and_independent_public_scope_review_artifact_contract_valid])
     @test Bool(thresholds[
         :require_mgmfrm_external_construct_attachment_intake_preflight_passed])
+    @test String(thresholds[
+        :mgmfrm_external_construct_attachment_intake_preflight_passed_semantics]) ==
+        "artifact_contract_and_blocker_preservation_only"
+    @test Bool(thresholds[
+        :require_mgmfrm_external_construct_attachment_intake_preflight_artifact_contract_valid])
     @test Bool(thresholds[
         :require_mgmfrm_external_construct_attachment_request_packet_passed])
+    @test String(thresholds[
+        :mgmfrm_external_construct_attachment_request_packet_passed_semantics]) ==
+        "artifact_contract_and_blocker_preservation_only"
+    @test Bool(thresholds[
+        :require_mgmfrm_external_construct_attachment_request_packet_artifact_contract_valid])
+    @test Bool(thresholds[
+        :require_external_construct_evidence_pass_implies_attached_and_valid])
+    @test Bool(thresholds[
+        :require_external_construct_public_claim_release_gate_requires_zero_blockers])
+    @test Bool(thresholds[
+        :require_external_construct_gate_states_consistent])
     @test Bool(thresholds[:require_mgmfrm_guarded_fit_method_wiring_passed])
     @test Bool(thresholds[:require_mgmfrm_guarded_fit_validation_grid_passed])
     @test Bool(thresholds[:require_mgmfrm_guarded_fit_api_dry_run_passed])
@@ -4256,6 +4306,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
             "test/fixtures/local_dependence_pilot_protocol_preflight.json",
         "local_dependence_pilot_batch_execution_harness" =>
             "test/fixtures/local_dependence_pilot_batch_execution_harness.json",
+        "local_dependence_pilot_bounded_canonical_smoke_receipt" =>
+            "test/fixtures/local_dependence_pilot_bounded_canonical_smoke_receipt.json",
         "guarded_fit_api_dry_run" =>
             "test/fixtures/gmfrm_guarded_fit_api_dry_run.json",
         "guarded_fit_method_wiring" =>
@@ -4384,6 +4436,12 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     @test length(fixture_records) == length(expected_paths)
     @test Set(String(row[:artifact]) for row in fixture_records) ==
         Set(keys(expected_paths))
+    immutable_sha256 = Dict(
+        "local_dependence_pilot_bounded_canonical_smoke_receipt" =>
+            "de7f1ffab4002e99b75c86d64efbe73deca695b97ac45b0cf177afa5398b58c3",
+        "tam_direct_agreement_policy_refinement_execution_snapshot" =>
+            "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e",
+    )
     for row in fixture_records
         artifact = String(row[:artifact])
         path = String(row[:path])
@@ -4392,10 +4450,10 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         @test Bool(row[:exists])
         @test Bool(row[:schema_matches])
         @test Bool(row[:summary_passed])
+        @test Bool(row[:artifact_contract_valid])
         @test Bool(row[:sha256_matches])
         if immutable
-            @test artifact ==
-                "tam_direct_agreement_policy_refinement_execution_snapshot"
+            @test haskey(immutable_sha256, artifact)
             @test String(row[:regeneration_policy]) ==
                 "immutable_snapshot_no_regeneration"
             @test isnothing(row[:generator])
@@ -4403,7 +4461,7 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
             @test isnothing(row[:generation_command])
             @test isnothing(row[:env_var])
             @test String(row[:expected_sha256]) ==
-                "03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e"
+                immutable_sha256[artifact]
             @test String(row[:sha256]) == String(row[:expected_sha256])
         else
             @test String(row[:regeneration_policy]) == "generator_replay"
@@ -4431,7 +4489,7 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     end
 
     code_doc_records = fixture[:code_doc_records]
-    @test length(code_doc_records) == 114
+    @test length(code_doc_records) == 125
     @test all(row -> Bool(row[:exists]), code_doc_records)
     @test any(row -> String(row[:path]) ==
         "scripts/generate_gmfrm_full_paper_reproduction_archive.jl",
@@ -4455,11 +4513,21 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         "test/local_dependence_calibration_pilot.jl",
         "test/local_dependence_pilot_protocol_artifact.jl",
         "test/local_dependence_pilot_batch_execution_harness.jl",
+        "test/local_dependence_pilot_attempt_archive.jl",
+        "test/local_dependence_pilot_calibration_semantics.jl",
+        "test/local_dependence_pilot_recovery.jl",
+        "test/local_dependence_pilot_precommit_recovery.jl",
+        "test/local_dependence_pilot_controller_receipts.jl",
+        "test/local_dependence_pilot_job_worker.jl",
         "scripts/generate_local_dependence_known_truth_preflight.jl",
         "scripts/generate_local_dependence_calibration_scorer_preflight.jl",
         "scripts/generate_local_dependence_pilot_protocol_preflight.jl",
         "scripts/generate_local_dependence_pilot_batch_execution_harness.jl",
         "scripts/run_local_dependence_calibration_pilot_batch.jl",
+        "scripts/local_dependence_pilot_attempt_archive.jl",
+        "scripts/local_dependence_pilot_calibration_semantics.jl",
+        "scripts/local_dependence_pilot_recovery.jl",
+        "scripts/run_local_dependence_calibration_pilot_job.jl",
     ])
     @test all(path -> any(row -> String(row[:path]) == path,
             code_doc_records), [
@@ -4866,6 +4934,9 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
 
     summary = fixture[:summary]
     @test Bool(summary[:passed])
+    @test String(summary[:pass_scope]) ==
+        "contract_and_blocker_preservation_only"
+    @test Bool(summary[:artifact_contract_valid])
     @test Bool(summary[:publication_or_registration_action]) == false
     @test Bool(summary[:local_only])
     @test Int(summary[:n_fixture_artifacts]) == length(fixture_records)
@@ -4877,6 +4948,8 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
     @test Bool(summary[:all_expected_schemas])
     @test Bool(summary[:all_expected_sha256_matches])
     @test Bool(summary[:all_fixture_summaries_passed])
+    @test Bool(summary[:all_fixture_artifact_contracts_valid])
+    @test Bool(summary[:external_construct_gate_states_consistent])
     @test Bool(summary[:all_generator_scripts_present])
     @test Bool(summary[:all_code_doc_references_present])
     @test Bool(summary[:all_external_sources_present])
@@ -4953,10 +5026,50 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
         :mgmfrm_publication_grade_threshold_model_weight_policy_review_passed])
     @test Bool(summary[
         :mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed])
+    @test String(summary[
+        :mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed_semantics]) ==
+        "artifact_contract_and_blocker_preservation_only"
+    @test Bool(summary[
+        :mgmfrm_external_construct_dataset_and_independent_public_scope_review_artifact_contract_valid])
     @test Bool(summary[
         :mgmfrm_external_construct_attachment_intake_preflight_passed])
+    @test String(summary[
+        :mgmfrm_external_construct_attachment_intake_preflight_passed_semantics]) ==
+        "artifact_contract_and_blocker_preservation_only"
+    @test Bool(summary[
+        :mgmfrm_external_construct_attachment_intake_preflight_artifact_contract_valid])
     @test Bool(summary[
         :mgmfrm_external_construct_attachment_request_packet_passed])
+    @test String(summary[
+        :mgmfrm_external_construct_attachment_request_packet_passed_semantics]) ==
+        "artifact_contract_and_blocker_preservation_only"
+    @test Bool(summary[
+        :mgmfrm_external_construct_attachment_request_packet_artifact_contract_valid])
+    @test Bool(summary[
+        :mgmfrm_external_construct_dataset_manifest_attached_and_valid]) ==
+        false
+    @test Bool(summary[
+        :mgmfrm_external_construct_dataset_file_integrity_verified]) == false
+    @test Bool(summary[
+        :mgmfrm_external_construct_validation_evidence_attached_and_valid]) ==
+        false
+    @test Bool(summary[
+        :mgmfrm_external_construct_validation_evidence_passed]) == false
+    @test Bool(summary[
+        :mgmfrm_independent_public_scope_review_attached_and_valid]) == false
+    @test Bool(summary[
+        :mgmfrm_independent_public_scope_review_gate_passed]) == false
+    @test Bool(summary[:mgmfrm_public_claim_release_decision_signed]) == false
+    @test Bool(summary[
+        :mgmfrm_external_construct_public_claim_release_gate_passed]) == false
+    @test Int(summary[:mgmfrm_external_construct_public_blocker_count]) == 5
+    @test !Bool(summary[
+        :mgmfrm_external_construct_validation_evidence_passed]) ||
+        Bool(summary[
+            :mgmfrm_external_construct_validation_evidence_attached_and_valid])
+    @test !Bool(summary[
+        :mgmfrm_external_construct_public_claim_release_gate_passed]) ||
+        Int(summary[:mgmfrm_external_construct_public_blocker_count]) == 0
     @test Bool(summary[:mgmfrm_guarded_fit_method_wiring_passed])
     @test Bool(summary[:mgmfrm_guarded_fit_validation_grid_passed])
     @test Bool(summary[:mgmfrm_guarded_fit_api_dry_run_passed])
@@ -5344,7 +5457,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     evidence_rows = fixture[:evidence_rows]
     @test length(evidence_rows) == length(input_artifacts)
     @test all(row -> String(row[:status]) == "passed", evidence_rows)
-    @test Int(sum(Int(row[:n_evidence_cells]) for row in evidence_rows)) == 5606
+    @test Int(sum(Int(row[:n_evidence_cells]) for row in evidence_rows)) == 5608
     @test any(row -> String(row[:gate]) == "prior_likelihood_sensitivity_grid" &&
         Int(row[:n_evidence_cells]) == 45, evidence_rows)
     @test any(row -> String(row[:gate]) ==
@@ -5514,7 +5627,7 @@ function check_gmfrm_manuscript_scale_simulation_grid_fixture(
     @test Bool(summary[:all_primary_checks_passed])
     @test Int(summary[:n_input_artifacts]) == length(input_artifacts)
     @test Int(summary[:n_evidence_rows]) == length(evidence_rows)
-    @test Int(summary[:total_evidence_cells]) == 5606
+    @test Int(summary[:total_evidence_cells]) == 5608
     @test Int(summary[:minimum_required_evidence_cells]) == 60
     @test Bool(summary[:scalar_fit_validation_grid_passed])
     @test Bool(summary[:posterior_predictive_grid_passed])
@@ -6265,9 +6378,9 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(claim_archive[:summary][:passed])
     @test Bool(claim_archive[:summary][:publication_or_registration_action]) == false
     @test Bool(claim_archive[:summary][:local_only])
-    @test Int(claim_archive[:summary][:n_fixture_artifacts]) == 26
+    @test Int(claim_archive[:summary][:n_fixture_artifacts]) == 27
     @test Int(claim_archive[:summary][:n_source_records]) == 2
-    @test Int(claim_archive[:summary][:n_code_doc_records]) == 53
+    @test Int(claim_archive[:summary][:n_code_doc_records]) == 64
     @test Int(claim_archive[:summary][:n_full_regeneration_commands]) == 26
     @test Int(claim_archive[:summary][:n_verification_commands]) == 4
     @test Bool(claim_archive[:summary][:all_fixture_artifacts_present])
@@ -6364,7 +6477,7 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     @test Bool(manuscript_grid[:summary][:all_input_summaries_passed])
     @test Bool(manuscript_grid[:summary][:all_primary_checks_passed])
     @test Int(manuscript_grid[:summary][:n_input_artifacts]) == 35
-    @test Int(manuscript_grid[:summary][:total_evidence_cells]) == 5606
+    @test Int(manuscript_grid[:summary][:total_evidence_cells]) == 5608
     @test Int(manuscript_grid[:summary][:minimum_required_evidence_cells]) == 60
     @test Bool(manuscript_grid[:summary][:prediction_target_and_model_weight_policy_passed])
     @test Bool(manuscript_grid[:summary][
@@ -6414,11 +6527,16 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
     full_archive = only(row for row in reviewed
         if String(row[:artifact]) == "full_paper_reproduction_archive")
     @test Bool(full_archive[:summary][:passed])
+    @test String(full_archive[:summary][:pass_scope]) ==
+        "contract_and_blocker_preservation_only"
+    @test Bool(full_archive[:summary][:artifact_contract_valid])
     @test Bool(full_archive[:summary][:publication_or_registration_action]) == false
     @test Bool(full_archive[:summary][:local_only])
     @test Bool(full_archive[:summary][:all_fixture_artifacts_present])
     @test Bool(full_archive[:summary][:all_expected_schemas])
     @test Bool(full_archive[:summary][:all_fixture_summaries_passed])
+    @test Bool(full_archive[:summary][
+        :all_fixture_artifact_contracts_valid])
     @test Bool(full_archive[:summary][:all_code_doc_references_present])
     @test Bool(full_archive[:summary][:all_external_sources_present])
     @test Bool(full_archive[:summary][:all_commands_local_only])
@@ -6433,8 +6551,8 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
         :tam_pre_execution_exact_input_lineage]) == false
     @test Bool(full_archive[:summary][
         :tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm]) == false
-    @test Int(full_archive[:summary][:n_fixture_artifacts]) == 78
-    @test Int(full_archive[:summary][:n_code_doc_records]) == 114
+    @test Int(full_archive[:summary][:n_fixture_artifacts]) == 79
+    @test Int(full_archive[:summary][:n_code_doc_records]) == 125
     @test Int(full_archive[:summary][:n_full_regeneration_commands]) == 77
     @test Int(full_archive[:summary][:n_verification_commands]) == 4
     @test Bool(full_archive[:summary][:mgmfrm_report_shape_simulation_grid_passed])
@@ -6491,10 +6609,45 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
         :mgmfrm_publication_grade_threshold_model_weight_policy_review_passed])
     @test Bool(full_archive[:summary][
         :mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed])
+    @test String(full_archive[:summary][
+        :mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed_semantics]) ==
+        "artifact_contract_and_blocker_preservation_only"
+    @test Bool(full_archive[:summary][
+        :mgmfrm_external_construct_dataset_and_independent_public_scope_review_artifact_contract_valid])
     @test Bool(full_archive[:summary][
         :mgmfrm_external_construct_attachment_intake_preflight_passed])
+    @test String(full_archive[:summary][
+        :mgmfrm_external_construct_attachment_intake_preflight_passed_semantics]) ==
+        "artifact_contract_and_blocker_preservation_only"
+    @test Bool(full_archive[:summary][
+        :mgmfrm_external_construct_attachment_intake_preflight_artifact_contract_valid])
     @test Bool(full_archive[:summary][
         :mgmfrm_external_construct_attachment_request_packet_passed])
+    @test String(full_archive[:summary][
+        :mgmfrm_external_construct_attachment_request_packet_passed_semantics]) ==
+        "artifact_contract_and_blocker_preservation_only"
+    @test Bool(full_archive[:summary][
+        :mgmfrm_external_construct_attachment_request_packet_artifact_contract_valid])
+    @test Bool(full_archive[:summary][
+        :mgmfrm_external_construct_dataset_manifest_attached_and_valid]) ==
+        false
+    @test Bool(full_archive[:summary][
+        :mgmfrm_external_construct_dataset_file_integrity_verified]) == false
+    @test Bool(full_archive[:summary][
+        :mgmfrm_external_construct_validation_evidence_attached_and_valid]) ==
+        false
+    @test Bool(full_archive[:summary][
+        :mgmfrm_external_construct_validation_evidence_passed]) == false
+    @test Bool(full_archive[:summary][
+        :mgmfrm_independent_public_scope_review_attached_and_valid]) == false
+    @test Bool(full_archive[:summary][
+        :mgmfrm_independent_public_scope_review_gate_passed]) == false
+    @test Bool(full_archive[:summary][
+        :mgmfrm_public_claim_release_decision_signed]) == false
+    @test Bool(full_archive[:summary][
+        :mgmfrm_external_construct_public_claim_release_gate_passed]) == false
+    @test Int(full_archive[:summary][
+        :mgmfrm_external_construct_public_blocker_count]) == 5
     @test Bool(full_archive[:summary][:prediction_target_and_model_weight_policy_passed])
     @test !Bool(full_archive[:summary][:manuscript_reproducibility_claims_supported])
     @test Int(full_archive[:summary][:n_blockers]) == 2
@@ -6714,13 +6867,35 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
         "confirmatory_mgmfrm_publication_grade_refit_pilot_execution_harness" &&
         String(row[:status]) == "passed_with_policy_blocker" &&
         Bool(row[:evidence]), review_rows)
+    external_construct_review_row = only(row for row in review_rows
+        if String(row[:gate]) ==
+            "confirmatory_mgmfrm_external_construct_dataset_and_independent_public_scope_review")
+    @test String(external_construct_review_row[:status]) ==
+        "contract_valid_claims_blocked"
+    @test Bool(external_construct_review_row[:evidence])
+    @test Bool(external_construct_review_row[:compatibility_passed])
+    @test String(external_construct_review_row[
+        :compatibility_passed_semantics]) ==
+        "artifact_contract_and_blocker_preservation_only"
+    @test Bool(external_construct_review_row[
+        :external_construct_validation_evidence_passed]) == false
+    @test Bool(external_construct_review_row[
+        :independent_public_scope_review_gate_passed]) == false
+    @test Bool(external_construct_review_row[
+        :public_claim_release_gate_passed]) == false
     @test any(row -> String(row[:gate]) ==
         "confirmatory_mgmfrm_external_construct_attachment_intake_preflight" &&
-        String(row[:status]) == "passed_with_policy_blocker" &&
+        String(row[:status]) == "contract_valid_claims_blocked" &&
+        Bool(row[:compatibility_passed]) &&
+        String(row[:compatibility_passed_semantics]) ==
+            "artifact_contract_and_blocker_preservation_only" &&
         Bool(row[:evidence]), review_rows)
     @test any(row -> String(row[:gate]) ==
         "confirmatory_mgmfrm_external_construct_attachment_request_packet" &&
-        String(row[:status]) == "passed_with_policy_blocker" &&
+        String(row[:status]) == "contract_valid_claims_blocked" &&
+        Bool(row[:compatibility_passed]) &&
+        String(row[:compatibility_passed_semantics]) ==
+            "artifact_contract_and_blocker_preservation_only" &&
         Bool(row[:evidence]), review_rows)
     @test any(row -> String(row[:gate]) == "dff_estimand_and_validation_grid" &&
         String(row[:status]) == "passed" &&
@@ -6837,10 +7012,50 @@ function check_gmfrm_guarded_exposure_review_fixture(fixture_path::AbstractStrin
         :mgmfrm_publication_grade_threshold_model_weight_policy_review_passed])
     @test Bool(summary[
         :mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed])
+    @test String(summary[
+        :mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed_semantics]) ==
+        "artifact_contract_and_blocker_preservation_only"
+    @test Bool(summary[
+        :mgmfrm_external_construct_dataset_and_independent_public_scope_review_artifact_contract_valid])
     @test Bool(summary[
         :mgmfrm_external_construct_attachment_intake_preflight_passed])
+    @test String(summary[
+        :mgmfrm_external_construct_attachment_intake_preflight_passed_semantics]) ==
+        "artifact_contract_and_blocker_preservation_only"
+    @test Bool(summary[
+        :mgmfrm_external_construct_attachment_intake_preflight_artifact_contract_valid])
     @test Bool(summary[
         :mgmfrm_external_construct_attachment_request_packet_passed])
+    @test String(summary[
+        :mgmfrm_external_construct_attachment_request_packet_passed_semantics]) ==
+        "artifact_contract_and_blocker_preservation_only"
+    @test Bool(summary[
+        :mgmfrm_external_construct_attachment_request_packet_artifact_contract_valid])
+    @test Bool(summary[
+        :mgmfrm_external_construct_dataset_manifest_attached_and_valid]) ==
+        false
+    @test Bool(summary[
+        :mgmfrm_external_construct_dataset_file_integrity_verified]) == false
+    @test Bool(summary[
+        :mgmfrm_external_construct_validation_evidence_attached_and_valid]) ==
+        false
+    @test Bool(summary[
+        :mgmfrm_external_construct_validation_evidence_passed]) == false
+    @test Bool(summary[
+        :mgmfrm_independent_public_scope_review_attached_and_valid]) == false
+    @test Bool(summary[
+        :mgmfrm_independent_public_scope_review_gate_passed]) == false
+    @test Bool(summary[:mgmfrm_public_claim_release_decision_signed]) == false
+    @test Bool(summary[
+        :mgmfrm_external_construct_public_claim_release_gate_passed]) == false
+    @test Int(summary[:mgmfrm_external_construct_public_blocker_count]) == 5
+    @test !Bool(summary[
+        :mgmfrm_external_construct_validation_evidence_passed]) ||
+        Bool(summary[
+            :mgmfrm_external_construct_validation_evidence_attached_and_valid])
+    @test !Bool(summary[
+        :mgmfrm_external_construct_public_claim_release_gate_passed]) ||
+        Int(summary[:mgmfrm_external_construct_public_blocker_count]) == 0
     @test Bool(summary[:prediction_target_and_model_weight_policy_passed])
     @test Bool(summary[:dff_estimand_validation_grid_passed])
     @test Bool(summary[:manuscript_scale_simulation_grid_passed])
@@ -17616,8 +17831,21 @@ function check_mgmfrm_external_construct_dataset_and_independent_public_scope_re
     @test Bool(fixture[:local_only])
     @test Bool(fixture[:publication_or_registration_action]) == false
     @test Bool(fixture[:external_construct_dataset_attached]) == false
+    @test Bool(fixture[
+        :external_construct_dataset_manifest_attached_and_valid]) == false
+    @test Bool(fixture[
+        :external_construct_dataset_file_integrity_verified]) == false
     @test Bool(fixture[:external_construct_validation_completed]) == false
+    @test Bool(fixture[
+        :external_construct_validation_evidence_attached_and_valid]) == false
+    @test Bool(fixture[:external_construct_validation_evidence_passed]) ==
+        false
     @test Bool(fixture[:independent_public_scope_review_completed]) == false
+    @test Bool(fixture[
+        :independent_public_scope_review_attached_and_valid]) == false
+    @test Bool(fixture[:independent_public_scope_review_gate_passed]) == false
+    @test Bool(fixture[:public_claim_release_decision_signed]) == false
+    @test Bool(fixture[:public_claim_release_gate_passed]) == false
     @test Bool(fixture[:public_fit_metric_claim]) == false
     @test Bool(fixture[:public_q_revision_claim]) == false
     @test Bool(fixture[:public_model_weight_claim]) == false
@@ -17654,6 +17882,12 @@ function check_mgmfrm_external_construct_dataset_and_independent_public_scope_re
     @test Bool(thresholds[:require_no_public_model_weight_claim])
     @test Bool(thresholds[:require_no_sparse_superiority_claim])
     @test Bool(thresholds[:require_no_publication_or_registration_action])
+    @test Bool(thresholds[
+        :require_pass_scope_contract_and_blocker_preservation_only])
+    @test Bool(thresholds[
+        :require_external_evidence_pass_implies_attached_and_valid])
+    @test Bool(thresholds[
+        :require_public_claim_release_gate_requires_zero_blockers])
 
     expected_inputs = Dict(
         "mgmfrm_publication_grade_threshold_model_weight_policy_review" =>
@@ -17689,6 +17923,10 @@ function check_mgmfrm_external_construct_dataset_and_independent_public_scope_re
     @test all(row -> Bool(row[:exists]) == false, attachments)
     @test all(row -> isnothing(row[:sha256]), attachments)
     @test all(row -> Bool(row[:schema_matches]) == false, attachments)
+    @test all(row -> Bool(row[:artifact_contract_valid]) == false,
+        attachments)
+    @test all(row -> Bool(row[:attachment_and_valid]) == false,
+        attachments)
     @test any(row -> String(row[:path]) ==
         "test/fixtures/external/mgmfrm_external_construct_dataset_manifest.json",
         attachments)
@@ -17776,8 +18014,21 @@ function check_mgmfrm_external_construct_dataset_and_independent_public_scope_re
     @test Bool(decision[:threshold_model_weight_policy_review_completed])
     @test Bool(decision[:local_manual_scope_review_satisfied])
     @test Bool(decision[:external_construct_dataset_attached]) == false
+    @test Bool(decision[
+        :external_construct_dataset_manifest_attached_and_valid]) == false
+    @test Bool(decision[
+        :external_construct_dataset_file_integrity_verified]) == false
     @test Bool(decision[:external_construct_validation_completed]) == false
+    @test Bool(decision[
+        :external_construct_validation_evidence_attached_and_valid]) == false
+    @test Bool(decision[:external_construct_validation_evidence_passed]) ==
+        false
     @test Bool(decision[:independent_public_scope_review_completed]) == false
+    @test Bool(decision[
+        :independent_public_scope_review_attached_and_valid]) == false
+    @test Bool(decision[:independent_public_scope_review_gate_passed]) == false
+    @test Bool(decision[:public_claim_release_decision_signed]) == false
+    @test Bool(decision[:public_claim_release_gate_passed]) == false
     @test Bool(decision[:public_fit_metric_claim_allowed]) == false
     @test Bool(decision[:public_q_revision_claim_allowed]) == false
     @test Bool(decision[:public_model_weight_claim_allowed]) == false
@@ -17787,6 +18038,9 @@ function check_mgmfrm_external_construct_dataset_and_independent_public_scope_re
 
     summary = fixture[:summary]
     @test Bool(summary[:passed])
+    @test String(summary[:pass_scope]) ==
+        "contract_and_blocker_preservation_only"
+    @test Bool(summary[:artifact_contract_valid])
     @test Bool(summary[:publication_or_registration_action]) == false
     @test Bool(summary[:local_only])
     @test Bool(summary[:all_input_artifacts_present])
@@ -17810,8 +18064,21 @@ function check_mgmfrm_external_construct_dataset_and_independent_public_scope_re
     @test Bool(summary[
         :independent_public_scope_review_manifest_present]) == false
     @test Bool(summary[:external_construct_dataset_attached]) == false
+    @test Bool(summary[
+        :external_construct_dataset_manifest_attached_and_valid]) == false
+    @test Bool(summary[
+        :external_construct_dataset_file_integrity_verified]) == false
     @test Bool(summary[:external_construct_validation_completed]) == false
+    @test Bool(summary[
+        :external_construct_validation_evidence_attached_and_valid]) == false
+    @test Bool(summary[:external_construct_validation_evidence_passed]) ==
+        false
     @test Bool(summary[:independent_public_scope_review_completed]) == false
+    @test Bool(summary[
+        :independent_public_scope_review_attached_and_valid]) == false
+    @test Bool(summary[:independent_public_scope_review_gate_passed]) == false
+    @test Bool(summary[:public_claim_release_decision_signed]) == false
+    @test Bool(summary[:public_claim_release_gate_passed]) == false
     @test Bool(summary[:all_public_claims_blocked])
     @test Bool(summary[:no_public_fit_metric_claim])
     @test Bool(summary[:no_public_q_revision_claim])
@@ -17828,6 +18095,11 @@ function check_mgmfrm_external_construct_dataset_and_independent_public_scope_re
     @test Int(summary[:n_review_cells]) == 33
     @test Int(summary[:n_external_construct_validation_scenarios]) == 2
     @test Int(summary[:n_blockers]) == 5
+    @test !Bool(summary[:external_construct_validation_evidence_passed]) ||
+        Bool(summary[
+            :external_construct_validation_evidence_attached_and_valid])
+    @test !Bool(summary[:public_claim_release_gate_passed]) ||
+        Int(summary[:n_blockers]) == 0
     @test Set(String(blocker) for blocker in
         summary[:remaining_public_blockers]) == Set([
             "external_construct_dataset_manifest_missing",
@@ -17864,6 +18136,19 @@ function check_mgmfrm_external_construct_attachment_intake_preflight_fixture(
     @test Bool(fixture[:external_construct_dataset_manifest_valid]) == false
     @test Bool(fixture[:independent_public_scope_review_manifest_valid]) ==
         false
+    @test Bool(fixture[
+        :external_construct_dataset_manifest_attached_and_valid]) == false
+    @test Bool(fixture[
+        :external_construct_dataset_file_integrity_verified]) == false
+    @test Bool(fixture[
+        :external_construct_validation_evidence_attached_and_valid]) == false
+    @test Bool(fixture[:external_construct_validation_evidence_passed]) ==
+        false
+    @test Bool(fixture[
+        :independent_public_scope_review_attached_and_valid]) == false
+    @test Bool(fixture[:independent_public_scope_review_gate_passed]) == false
+    @test Bool(fixture[:public_claim_release_decision_signed]) == false
+    @test Bool(fixture[:public_claim_release_gate_passed]) == false
     @test Bool(fixture[:public_fit_metric_claim]) == false
     @test Bool(fixture[:public_q_revision_claim]) == false
     @test Bool(fixture[:public_model_weight_claim]) == false
@@ -17880,6 +18165,11 @@ function check_mgmfrm_external_construct_attachment_intake_preflight_fixture(
     @test String(protocol[:decision_scope]) ==
         "preflight_before_external_construct_or_independent_review_attachment_is_accepted"
     @test Bool(thresholds[:require_external_construct_gate_review_passed])
+    @test String(thresholds[
+        :external_construct_gate_review_passed_semantics]) ==
+        "artifact_contract_and_blocker_preservation_only"
+    @test Bool(thresholds[
+        :require_external_construct_gate_artifact_contract_valid])
     @test Bool(thresholds[:require_external_construct_gate_next_gate_matched])
     @test Bool(thresholds[:require_external_manifest_field_spec_recorded])
     @test Bool(thresholds[:require_independent_review_field_spec_recorded])
@@ -17887,6 +18177,10 @@ function check_mgmfrm_external_construct_attachment_intake_preflight_fixture(
     @test Bool(thresholds[
         :require_no_public_claim_release_without_valid_manifests])
     @test Bool(thresholds[:require_no_publication_or_registration_action])
+    @test Bool(thresholds[
+        :require_external_evidence_pass_implies_attached_and_valid])
+    @test Bool(thresholds[
+        :require_public_claim_release_gate_requires_zero_blockers])
 
     inputs = fixture[:input_artifacts]
     @test length(inputs) == 1
@@ -17898,6 +18192,18 @@ function check_mgmfrm_external_construct_attachment_intake_preflight_fixture(
     @test Bool(gate[:exists])
     @test Bool(gate[:schema_matches])
     @test Bool(gate[:summary_passed])
+    @test String(gate[:pass_scope]) ==
+        "contract_and_blocker_preservation_only"
+    @test Bool(gate[:artifact_contract_valid])
+    @test Bool(gate[
+        :external_construct_dataset_manifest_attached_and_valid]) == false
+    @test Bool(gate[
+        :external_construct_dataset_file_integrity_verified]) == false
+    @test Bool(gate[:external_construct_validation_evidence_passed]) == false
+    @test Bool(gate[
+        :independent_public_scope_review_attached_and_valid]) == false
+    @test Bool(gate[:independent_public_scope_review_gate_passed]) == false
+    @test Bool(gate[:public_claim_release_gate_passed]) == false
     @test String(gate[:expected_schema]) ==
         "bayesianmgmfrm.mgmfrm_external_construct_dataset_and_independent_public_scope_review.v1"
     @test String(gate[:schema]) ==
@@ -17921,6 +18227,9 @@ function check_mgmfrm_external_construct_attachment_intake_preflight_fixture(
         manifests)
     @test all(row -> Bool(row[:summary_passed]) == false, manifests)
     @test all(row -> Bool(row[:manifest_valid]) == false, manifests)
+    @test all(row -> Bool(row[:artifact_contract_valid]) == false,
+        manifests)
+    @test all(row -> Bool(row[:attachment_and_valid]) == false, manifests)
     external_manifest = only(row for row in manifests
         if String(row[:artifact]) == "external_construct_dataset_manifest")
     independent_review = only(row for row in manifests
@@ -17958,11 +18267,14 @@ function check_mgmfrm_external_construct_attachment_intake_preflight_fixture(
         String(row[:purpose]) == "review_signoff", field_rows)
 
     checks = fixture[:preflight_check_rows]
-    @test length(checks) == 8
+    @test length(checks) == 9
     @test all(row -> Bool(row[:public_claim_release_allowed]) == false,
         checks)
     @test any(row -> String(row[:check]) ==
         "external_construct_gate_review_passed" &&
+        Bool(row[:satisfied]) && String(row[:status]) == "passed", checks)
+    @test any(row -> String(row[:check]) ==
+        "external_construct_gate_artifact_contract_valid" &&
         Bool(row[:satisfied]) && String(row[:status]) == "passed", checks)
     @test any(row -> String(row[:check]) ==
         "external_construct_gate_next_gate_matched" &&
@@ -18022,15 +18334,35 @@ function check_mgmfrm_external_construct_attachment_intake_preflight_fixture(
     @test Bool(decision[:external_construct_dataset_manifest_valid]) == false
     @test Bool(decision[
         :independent_public_scope_review_manifest_valid]) == false
+    @test Bool(decision[
+        :external_construct_dataset_manifest_attached_and_valid]) == false
+    @test Bool(decision[
+        :external_construct_dataset_file_integrity_verified]) == false
+    @test Bool(decision[
+        :external_construct_validation_evidence_attached_and_valid]) == false
+    @test Bool(decision[:external_construct_validation_evidence_passed]) ==
+        false
+    @test Bool(decision[
+        :independent_public_scope_review_attached_and_valid]) == false
+    @test Bool(decision[:independent_public_scope_review_gate_passed]) == false
+    @test Bool(decision[:public_claim_release_decision_signed]) == false
+    @test Bool(decision[:public_claim_release_gate_passed]) == false
     @test Bool(decision[:public_claim_release_allowed]) == false
     @test String(decision[:required_followup]) ==
         "attach_valid_external_construct_dataset_manifest_and_independent_public_scope_review_manifest"
 
     summary = fixture[:summary]
     @test Bool(summary[:passed])
+    @test String(summary[:pass_scope]) ==
+        "contract_and_blocker_preservation_only"
+    @test Bool(summary[:artifact_contract_valid])
     @test Bool(summary[:publication_or_registration_action]) == false
     @test Bool(summary[:local_only])
     @test Bool(summary[:external_construct_gate_review_passed])
+    @test String(summary[
+        :external_construct_gate_review_passed_semantics]) ==
+        "artifact_contract_and_blocker_preservation_only"
+    @test Bool(summary[:external_construct_gate_artifact_contract_valid])
     @test Bool(summary[:external_construct_gate_next_gate_matched])
     @test Bool(summary[:external_manifest_field_spec_recorded])
     @test Bool(summary[:independent_review_field_spec_recorded])
@@ -18042,6 +18374,19 @@ function check_mgmfrm_external_construct_attachment_intake_preflight_fixture(
     @test Bool(summary[:external_construct_dataset_manifest_valid]) == false
     @test Bool(summary[
         :independent_public_scope_review_manifest_valid]) == false
+    @test Bool(summary[
+        :external_construct_dataset_manifest_attached_and_valid]) == false
+    @test Bool(summary[
+        :external_construct_dataset_file_integrity_verified]) == false
+    @test Bool(summary[
+        :external_construct_validation_evidence_attached_and_valid]) == false
+    @test Bool(summary[:external_construct_validation_evidence_passed]) ==
+        false
+    @test Bool(summary[
+        :independent_public_scope_review_attached_and_valid]) == false
+    @test Bool(summary[:independent_public_scope_review_gate_passed]) == false
+    @test Bool(summary[:public_claim_release_decision_signed]) == false
+    @test Bool(summary[:public_claim_release_gate_passed]) == false
     @test Bool(summary[:no_public_claim_release])
     @test Bool(summary[:no_public_fit_metric_claim])
     @test Bool(summary[:no_public_q_revision_claim])
@@ -18052,10 +18397,15 @@ function check_mgmfrm_external_construct_attachment_intake_preflight_fixture(
     @test Int(summary[:n_external_manifest_required_fields]) == 13
     @test Int(summary[:n_independent_review_required_fields]) == 12
     @test Int(summary[:n_manifest_field_rows]) == 25
-    @test Int(summary[:n_preflight_check_rows]) == 8
+    @test Int(summary[:n_preflight_check_rows]) == 9
     @test Int(summary[:n_claim_release_preflight_rows]) == 5
     @test Int(summary[:n_blocker_rows]) == 5
     @test Int(summary[:n_blockers]) == 5
+    @test !Bool(summary[:external_construct_validation_evidence_passed]) ||
+        Bool(summary[
+            :external_construct_validation_evidence_attached_and_valid])
+    @test !Bool(summary[:public_claim_release_gate_passed]) ||
+        Int(summary[:n_blockers]) == 0
     @test Set(String(blocker) for blocker in
         summary[:remaining_public_blockers]) == Set([
             "external_construct_dataset_manifest_missing_or_invalid",
@@ -18092,6 +18442,19 @@ function check_mgmfrm_external_construct_attachment_request_packet_fixture(
     @test Bool(fixture[:external_evidence_created]) == false
     @test Bool(fixture[:external_manifest_files_written]) == false
     @test Bool(fixture[:independent_review_manifest_written]) == false
+    @test Bool(fixture[
+        :external_construct_dataset_manifest_attached_and_valid]) == false
+    @test Bool(fixture[
+        :external_construct_dataset_file_integrity_verified]) == false
+    @test Bool(fixture[
+        :external_construct_validation_evidence_attached_and_valid]) == false
+    @test Bool(fixture[:external_construct_validation_evidence_passed]) ==
+        false
+    @test Bool(fixture[
+        :independent_public_scope_review_attached_and_valid]) == false
+    @test Bool(fixture[:independent_public_scope_review_gate_passed]) == false
+    @test Bool(fixture[:public_claim_release_decision_signed]) == false
+    @test Bool(fixture[:public_claim_release_gate_passed]) == false
     @test Bool(fixture[:public_fit_metric_claim]) == false
     @test Bool(fixture[:public_q_revision_claim]) == false
     @test Bool(fixture[:public_model_weight_claim]) == false
@@ -18108,6 +18471,9 @@ function check_mgmfrm_external_construct_attachment_request_packet_fixture(
     @test String(protocol[:decision_scope]) ==
         "make_external_attachment_requirements_actionable_without_creating_external_evidence"
     @test Bool(thresholds[:require_preflight_passed])
+    @test String(thresholds[:preflight_passed_semantics]) ==
+        "artifact_contract_and_blocker_preservation_only"
+    @test Bool(thresholds[:require_preflight_artifact_contract_valid])
     @test Bool(thresholds[:require_preflight_next_gate_matched])
     @test Bool(thresholds[:require_manifest_templates_recorded])
     @test Bool(thresholds[:require_attachment_checklist_recorded])
@@ -18115,6 +18481,10 @@ function check_mgmfrm_external_construct_attachment_request_packet_fixture(
     @test Bool(thresholds[:require_no_placeholder_values_marked_valid])
     @test Bool(thresholds[:require_no_public_claim_release])
     @test Bool(thresholds[:require_no_publication_or_registration_action])
+    @test Bool(thresholds[
+        :require_external_evidence_pass_implies_attached_and_valid])
+    @test Bool(thresholds[
+        :require_public_claim_release_gate_requires_zero_blockers])
 
     inputs = fixture[:input_artifacts]
     @test length(inputs) == 1
@@ -18126,6 +18496,23 @@ function check_mgmfrm_external_construct_attachment_request_packet_fixture(
     @test Bool(preflight[:exists])
     @test Bool(preflight[:schema_matches])
     @test Bool(preflight[:summary_passed])
+    @test String(preflight[:pass_scope]) ==
+        "contract_and_blocker_preservation_only"
+    @test Bool(preflight[:artifact_contract_valid])
+    @test Bool(preflight[
+        :external_construct_dataset_manifest_attached_and_valid]) == false
+    @test Bool(preflight[
+        :external_construct_dataset_file_integrity_verified]) == false
+    @test Bool(preflight[
+        :external_construct_validation_evidence_attached_and_valid]) == false
+    @test Bool(preflight[:external_construct_validation_evidence_passed]) ==
+        false
+    @test Bool(preflight[
+        :independent_public_scope_review_attached_and_valid]) == false
+    @test Bool(preflight[:independent_public_scope_review_gate_passed]) ==
+        false
+    @test Bool(preflight[:public_claim_release_decision_signed]) == false
+    @test Bool(preflight[:public_claim_release_gate_passed]) == false
     @test String(preflight[:sha256]) ==
         file_sha256(joinpath(root, String(preflight[:path])))
     @test Int(preflight[:n_manifest_field_rows]) == 25
@@ -18239,15 +18626,34 @@ function check_mgmfrm_external_construct_attachment_request_packet_fixture(
         "external_attachment_request_packet_recorded"
     @test Bool(decision[:external_evidence_created]) == false
     @test Bool(decision[:placeholder_values_marked_valid]) == false
+    @test Bool(decision[
+        :external_construct_dataset_manifest_attached_and_valid]) == false
+    @test Bool(decision[
+        :external_construct_dataset_file_integrity_verified]) == false
+    @test Bool(decision[
+        :external_construct_validation_evidence_attached_and_valid]) == false
+    @test Bool(decision[:external_construct_validation_evidence_passed]) ==
+        false
+    @test Bool(decision[
+        :independent_public_scope_review_attached_and_valid]) == false
+    @test Bool(decision[:independent_public_scope_review_gate_passed]) == false
+    @test Bool(decision[:public_claim_release_decision_signed]) == false
+    @test Bool(decision[:public_claim_release_gate_passed]) == false
     @test Bool(decision[:public_claim_release_allowed]) == false
     @test String(decision[:required_followup]) ==
         "attach_valid_external_construct_dataset_manifest_and_independent_public_scope_review_manifest"
 
     summary = fixture[:summary]
     @test Bool(summary[:passed])
+    @test String(summary[:pass_scope]) ==
+        "contract_and_blocker_preservation_only"
+    @test Bool(summary[:artifact_contract_valid])
     @test Bool(summary[:publication_or_registration_action]) == false
     @test Bool(summary[:local_only])
     @test Bool(summary[:preflight_passed])
+    @test String(summary[:preflight_passed_semantics]) ==
+        "artifact_contract_and_blocker_preservation_only"
+    @test Bool(summary[:preflight_artifact_contract_valid])
     @test Bool(summary[:preflight_schema_matches])
     @test Bool(summary[:preflight_next_gate_matched])
     @test Bool(summary[:manifest_templates_recorded])
@@ -18258,6 +18664,19 @@ function check_mgmfrm_external_construct_attachment_request_packet_fixture(
     @test Bool(summary[:external_evidence_created]) == false
     @test Bool(summary[:external_manifest_files_written]) == false
     @test Bool(summary[:independent_review_manifest_written]) == false
+    @test Bool(summary[
+        :external_construct_dataset_manifest_attached_and_valid]) == false
+    @test Bool(summary[
+        :external_construct_dataset_file_integrity_verified]) == false
+    @test Bool(summary[
+        :external_construct_validation_evidence_attached_and_valid]) == false
+    @test Bool(summary[:external_construct_validation_evidence_passed]) ==
+        false
+    @test Bool(summary[
+        :independent_public_scope_review_attached_and_valid]) == false
+    @test Bool(summary[:independent_public_scope_review_gate_passed]) == false
+    @test Bool(summary[:public_claim_release_decision_signed]) == false
+    @test Bool(summary[:public_claim_release_gate_passed]) == false
     @test Int(summary[:n_input_artifacts]) == 1
     @test Int(summary[:n_manifest_template_records]) == 2
     @test Int(summary[:n_template_field_rows]) == 25
@@ -18267,6 +18686,11 @@ function check_mgmfrm_external_construct_attachment_request_packet_fixture(
     @test Int(summary[:n_rejection_rows]) == 6
     @test Int(summary[:n_claim_release_request_rows]) == 5
     @test Int(summary[:n_blockers]) == 6
+    @test !Bool(summary[:external_construct_validation_evidence_passed]) ||
+        Bool(summary[
+            :external_construct_validation_evidence_attached_and_valid])
+    @test !Bool(summary[:public_claim_release_gate_passed]) ||
+        Int(summary[:n_blockers]) == 0
     @test Set(String(blocker) for blocker in
         summary[:remaining_public_blockers]) == Set([
             "manifest_schema_mismatch",
@@ -20673,6 +21097,16 @@ end
     @test !(:external_validation in external_policy.blocked_claims)
     @test !(:r_package_overlap_comparison in external_policy.blocked_claims)
     @test !(:real_data_validation in external_policy.blocked_claims)
+    experimental_policy = BayesianMGMFRM._status_policy_manifest(
+        :mgmfrm,
+        :experimental_public;
+        public_fit = true,
+        experimental_public = true,
+        fit_ready = true,
+        claim_scope = :fixed_q_confirmatory_only,
+    )
+    @test experimental_policy.next_gate ===
+        :v0_1_2_fixed_q_productionization
     evidence_policy = evidence_artifact_schema_policy(:unit_test;
         include_environment = false,
         raw_data_status = :not_included)
@@ -20804,8 +21238,25 @@ end
     @test !release_scope.summary.dff_model_effects_allowed
     @test !release_scope.summary.model_weight_claims_allowed
     @test !release_scope.summary.publication_or_registration_action
+    @test release_scope.summary.development_version ==
+        string(pkgversion(BayesianMGMFRM))
+    @test release_scope.summary.development_phase ===
+        :v0_1_2_fixed_q_productionization
+    @test release_scope.summary.development_next_gate ===
+        :v0_1_2_fixed_q_productionization
     @test release_scope.summary.v0_1_1_generalized_refinement_planned
+    @test release_scope.summary.
+        v0_1_1_generalized_refinement_planned_field_semantics ===
+            :historical_plan_record_present
+    @test release_scope.summary.v0_1_1_generalized_refinement_completed
+    @test release_scope.summary.v0_1_1_generalized_refinement_status ===
+        :completed
     @test isempty(release_scope.evidence_rows)
+    @test release_scope.summary.n_progress_evidence_rows == 0
+    @test all(row -> !row.experimental_public ||
+        (row.completed_gate === :v0_1_1_generalized_refinement &&
+            row.next_gate === :v0_1_2_fixed_q_productionization),
+        release_scope.public_fit_surfaces)
     @test any(row -> row.surface === :scalar_gmfrm_guarded_experimental &&
         row.entrypoint == "BayesianMGMFRM.Experimental.fit(spec)" &&
         row.legacy_entrypoint ==
@@ -20831,6 +21282,169 @@ end
         length(release_scope_with_evidence.evidence_rows)
     @test release_scope_with_evidence.summary.n_evidence_rows >
         release_scope.summary.n_evidence_rows
+    progress_evidence_scopes = (
+        :free_latent_correlation_operational_prerequisites,
+        :free_latent_correlation_scientific_execution,
+        :v0_1_2_ld1b_integration,
+        :ld1b_scientific_execution,
+    )
+    progress_evidence_rows = Tuple(row
+        for row in release_scope_with_evidence.evidence_rows
+        if row.scope in progress_evidence_scopes)
+    progress_evidence_required_fields = (
+        :record_status,
+        :gate_status,
+        :execution_status,
+        :numerator,
+        :denominator,
+        :attainment_percent,
+        :denominator_kind,
+        :counts_toward_scientific_denominator,
+        :source_artifact,
+    )
+    @test length(progress_evidence_rows) == 4
+    @test release_scope_with_evidence.summary.n_progress_evidence_rows == 4
+    @test Set(row.scope for row in progress_evidence_rows) ==
+        Set(progress_evidence_scopes)
+    @test all(row -> all(field -> haskey(row, field),
+            progress_evidence_required_fields), progress_evidence_rows)
+    @test all(row -> !haskey(row, :status), progress_evidence_rows)
+    @test all(row -> 0 <= row.numerator <= row.denominator,
+        progress_evidence_rows)
+    @test all(row -> row.attainment_percent == round(
+            100 * row.numerator / row.denominator;
+            digits = 1,
+        ), progress_evidence_rows)
+    @test all(row -> 0.0 <= row.attainment_percent <= 100.0,
+        progress_evidence_rows)
+
+    free_correlation_operational_progress = only(row
+        for row in progress_evidence_rows
+        if row.scope === :free_latent_correlation_operational_prerequisites)
+    @test free_correlation_operational_progress.record_status ===
+        :current_progress_recorded
+    @test free_correlation_operational_progress.gate_status === :not_passed
+    @test free_correlation_operational_progress.execution_status ===
+        :mcmc_free_initial_gradient_profile_failed
+    @test free_correlation_operational_progress.numerator == 0
+    @test free_correlation_operational_progress.denominator == 3
+    @test free_correlation_operational_progress.attainment_percent == 0.0
+    @test free_correlation_operational_progress.denominator ==
+        length(free_correlation_operational_progress.gate_rows)
+    @test free_correlation_operational_progress.denominator_kind ===
+        :conjunctive_pre_scientific_operational_gates
+    @test !free_correlation_operational_progress.
+        counts_toward_scientific_denominator
+    @test free_correlation_operational_progress.source_artifact ===
+        :mgmfrm_free_latent_correlation_2d_resource_probe_receipt
+    @test Tuple(row.gate_status
+        for row in free_correlation_operational_progress.gate_rows) ==
+        (:failed, :pending, :pending)
+
+    free_correlation_plan = BayesianMGMFRM.
+        _mgmfrm_free_latent_correlation_2d_study_plan()
+    @test free_correlation_operational_progress.denominator == 1 +
+        Int(free_correlation_plan.resource_policy.initial_gradient_probe.
+            short_nuts_profile_required) +
+        Int(free_correlation_plan.resource_policy.initial_gradient_probe.
+            atomic_runner_required)
+    free_correlation_scientific_progress = only(row
+        for row in progress_evidence_rows
+        if row.scope === :free_latent_correlation_scientific_execution)
+    @test free_correlation_scientific_progress.gate_status ===
+        :blocked_by_operational_prerequisites
+    @test free_correlation_scientific_progress.execution_status ===
+        :not_executed
+    @test free_correlation_scientific_progress.numerator == 0
+    @test free_correlation_scientific_progress.denominator == 525
+    @test free_correlation_scientific_progress.attainment_percent == 0.0
+    @test free_correlation_scientific_progress.denominator ==
+        length(free_correlation_plan.units)
+    @test free_correlation_scientific_progress.denominator ==
+        free_correlation_plan.phases.feasibility.n_units +
+        free_correlation_plan.denominator_policy.n_planned_evaluation_units
+    @test free_correlation_scientific_progress.component_counts.
+        computation_only_feasibility == (numerator = 0, denominator = 25)
+    @test free_correlation_scientific_progress.component_counts.
+        recovery_evaluation == (numerator = 0, denominator = 500)
+    @test free_correlation_scientific_progress.
+        counts_toward_scientific_denominator
+    @test free_correlation_scientific_progress.source_artifact ===
+        :mgmfrm_free_latent_correlation_2d_study_plan_v2
+    @test free_correlation_scientific_progress.source_contract ==
+        free_correlation_plan.plan_id
+    @test free_correlation_scientific_progress.source_artifact_sha256 ==
+        free_correlation_plan.plan_fingerprint
+
+    ld1b_integration_progress = only(row
+        for row in progress_evidence_rows
+        if row.scope === :v0_1_2_ld1b_integration)
+    @test ld1b_integration_progress.record_status ===
+        :current_dirty_worktree_snapshot_recorded
+    @test ld1b_integration_progress.gate_status ===
+        :partially_attained_local_worktree_only
+    @test ld1b_integration_progress.execution_status ===
+        :bounded_verification_mcmc_nonpilot_integration_evidence_only
+    @test ld1b_integration_progress.numerator == 7
+    @test ld1b_integration_progress.denominator == 9
+    @test ld1b_integration_progress.attainment_percent == 77.8
+    @test ld1b_integration_progress.denominator ==
+        length(ld1b_integration_progress.gate_rows)
+    @test ld1b_integration_progress.gate_rows == BayesianMGMFRM.
+        _release_scope_current_ld1b_integration_gate_rows()
+    @test count(row -> row.gate_status in
+            (:complete, :complete_local_worktree),
+        ld1b_integration_progress.gate_rows) == 7
+    @test count(row -> row.gate_status === :complete_local_worktree,
+        ld1b_integration_progress.gate_rows) == 5
+    @test only(row for row in ld1b_integration_progress.gate_rows
+        if row.gate === :canonical_single_job_worker) == (
+            gate = :canonical_single_job_worker,
+            gate_status = :complete_local_worktree,
+            evidence_scope = :local_dirty_worktree,
+        )
+    @test only(row for row in ld1b_integration_progress.gate_rows
+        if row.gate ===
+            :final_worker_source_pinning_and_identity_regeneration) == (
+            gate = :final_worker_source_pinning_and_identity_regeneration,
+            gate_status = :complete_local_worktree,
+            evidence_scope = :local_dirty_worktree,
+        )
+    @test only(row for row in ld1b_integration_progress.gate_rows
+        if row.gate === :bounded_canonical_smoke_on_pinned_source) == (
+            gate = :bounded_canonical_smoke_on_pinned_source,
+            gate_status = :complete_local_worktree,
+            evidence_scope = :local_dirty_worktree,
+        )
+    @test !ld1b_integration_progress.counts_toward_scientific_denominator
+    @test !ld1b_integration_progress.release_lineage_verified
+    @test ld1b_integration_progress.scientific_numerator_contribution == 0
+    @test ld1b_integration_progress.source_artifact ===
+        :roadmap_current_v0_1_2_ld1b_integration_checklist
+
+    ld1b_contract = local_dependence_calibration_pilot_contract()
+    ld1b_scientific_progress = only(row
+        for row in progress_evidence_rows
+        if row.scope === :ld1b_scientific_execution)
+    @test ld1b_scientific_progress.gate_status ===
+        :blocked_by_open_integration_gates
+    @test ld1b_scientific_progress.execution_status === :not_executed
+    @test ld1b_scientific_progress.numerator == 0
+    @test ld1b_scientific_progress.denominator == 660
+    @test ld1b_scientific_progress.attainment_percent == 0.0
+    @test ld1b_scientific_progress.denominator ==
+        ld1b_contract.planning.n_jobs
+    @test ld1b_scientific_progress.component_counts.eligible_fitting_jobs ==
+        (numerator = 0, denominator = ld1b_contract.planning.n_fit_jobs)
+    @test ld1b_scientific_progress.component_counts.
+        planned_structural_rejections ==
+            (numerator = 0,
+                denominator = ld1b_contract.planning.n_pre_fit_rejection_jobs)
+    @test ld1b_scientific_progress.counts_toward_scientific_denominator
+    @test ld1b_scientific_progress.source_artifact ===
+        :local_dependence_calibration_pilot_contract_v1
+    @test ld1b_scientific_progress.source_contract_schema ==
+        ld1b_contract.schema
     @test any(row -> row.family === :gmfrm &&
         row.evidence === :guarded_fit_method_wiring,
         release_scope_with_evidence.evidence_rows)
@@ -20857,7 +21471,9 @@ end
     @test any(row -> row.family === :gmfrm_mgmfrm &&
         row.scope === :v0_1_1_generalized_refinement &&
         row.evidence === :implementation_checklist_created &&
-        row.status === :planned,
+        row.status === :done &&
+        row.phase_status === :completed &&
+        row.historical_release,
         release_scope_with_evidence.evidence_rows)
     @test any(row -> row.family === :all_evidence_artifacts &&
         row.scope === :evidence_schema_policy &&
@@ -20882,6 +21498,12 @@ end
     @test release_gate.summary.n_failed_rows == 0
     @test !release_gate.summary.broad_generalized_fit_allowed
     @test !release_gate.summary.model_weight_claims_allowed
+    @test release_gate.summary.development_version ==
+        string(pkgversion(BayesianMGMFRM))
+    @test release_gate.summary.development_phase ===
+        :v0_1_2_fixed_q_productionization
+    @test release_gate.summary.development_next_gate ===
+        :v0_1_2_fixed_q_productionization
     @test release_gate.summary.next_gate ===
         :manual_publication_or_registration_by_user_only
     @test any(row -> row.source === :documentation &&
@@ -20896,6 +21518,41 @@ end
         row.expected == "## 0.1.1" &&
         row.status === :passed,
         release_gate.rows)
+    @test any(row -> row.source === :documentation &&
+        row.target === :developer_roadmap_release_scope &&
+        row.expected ==
+            "`v$(release_scope.summary.development_version)` integration checkpoint" &&
+        row.status === :passed,
+        release_gate.rows)
+    @test any(row -> row.source === :documentation &&
+        row.target === :developer_roadmap_release_scope &&
+        row.expected ==
+            "current dirty-worktree snapshot, `7/9` gates are attained" &&
+        row.status === :passed,
+        release_gate.rows)
+    @test any(row -> row.source === :documentation &&
+        row.target === :developer_roadmap_release_scope &&
+        row.expected ==
+            "| Quarantined 2D free-correlation operational prerequisites | **0/3 passed;" &&
+        row.status === :passed,
+        release_gate.rows)
+    @test any(row -> row.source === :documentation &&
+        row.target === :research_roadmap_release_scope &&
+        row.expected ==
+            "`v$(release_scope.summary.development_version)` integration checkpoint: stay fixed-Q and confirmatory" &&
+        row.status === :passed,
+        release_gate.rows)
+    @test any(row -> row.source === :documentation &&
+        row.target === :research_roadmap_release_scope &&
+        row.expected ==
+            "current dirty-worktree snapshot, `7/9` gates are attained" &&
+        row.status === :passed,
+        release_gate.rows)
+    @test any(row -> row.source === :documentation &&
+        row.target === :research_roadmap_release_scope &&
+        row.expected == "Broad exploratory MGMFRM remains blocked." &&
+        row.status === :passed,
+        release_gate.rows)
     @test any(row -> row.source === :manifest &&
         row.target === :post_v0_2_external_validation_blocked &&
         row.status === :passed,
@@ -20904,6 +21561,15 @@ end
         row.target === :related_software_capability_matrix_evidence_row &&
         row.status === :passed,
         release_gate.rows)
+    @test all(target -> any(row -> row.source === :manifest &&
+            row.target === target && row.status === :passed,
+            release_gate.rows),
+        (:roadmap_progress_evidence_row_set,
+            :roadmap_progress_evidence_schema,
+            :free_correlation_operational_progress,
+            :free_correlation_scientific_progress,
+            :v0_1_2_ld1b_integration_progress,
+            :ld1b_scientific_progress))
     missing_doc_root = mktempdir()
     missing_doc_gate = release_gate_check(; root = missing_doc_root)
     @test missing_doc_gate.status === :failed
@@ -20915,6 +21581,86 @@ end
     @test_throws ArgumentError release_gate_check(;
         root = missing_doc_root,
         throw_on_failure = true)
+    copy_release_gate_documents = function(destination)
+        package_root = normpath(joinpath(@__DIR__, ".."))
+        for document_spec in BayesianMGMFRM._release_gate_document_specs()
+            source = joinpath(package_root, document_spec.path)
+            target = joinpath(destination, document_spec.path)
+            mkpath(dirname(target))
+            cp(source, target)
+        end
+    end
+    mktempdir() do drift_root
+        copy_release_gate_documents(drift_root)
+        roadmap_path = joinpath(drift_root, "ROADMAP.md")
+        version_token =
+            "`v$(release_scope.summary.development_version)` integration checkpoint"
+        roadmap_text = read(roadmap_path, String)
+        @test occursin(version_token, roadmap_text)
+        write(roadmap_path, replace(
+            roadmap_text,
+            version_token => "`v9.9.9` integration checkpoint";
+            count = 1,
+        ))
+        roadmap_drift_gate = release_gate_check(; root = drift_root)
+        @test roadmap_drift_gate.status === :failed
+        @test any(row -> row.target === :developer_roadmap_release_scope &&
+            row.check === :required_text &&
+            row.expected == version_token &&
+            row.status === :failed,
+            roadmap_drift_gate.rows)
+        @test_throws ArgumentError release_gate_check(;
+            root = drift_root,
+            throw_on_failure = true)
+    end
+    mktempdir() do drift_root
+        copy_release_gate_documents(drift_root)
+        roadmap_path = joinpath(drift_root, "ROADMAP.md")
+        progress_token = "current dirty-worktree snapshot, `" *
+            "$(ld1b_integration_progress.numerator)/" *
+            "$(ld1b_integration_progress.denominator)` gates are attained"
+        drift_token = "current dirty-worktree snapshot, `" *
+            "$(ld1b_integration_progress.numerator + 1)/" *
+            "$(ld1b_integration_progress.denominator)` gates are attained"
+        roadmap_text = read(roadmap_path, String)
+        @test occursin(progress_token, roadmap_text)
+        write(roadmap_path, replace(
+            roadmap_text,
+            progress_token => drift_token;
+            count = 1,
+        ))
+        progress_drift_gate = release_gate_check(; root = drift_root)
+        @test progress_drift_gate.status === :failed
+        @test any(row -> row.target === :developer_roadmap_release_scope &&
+            row.check === :required_text &&
+            row.expected == progress_token &&
+            row.status === :failed,
+            progress_drift_gate.rows)
+    end
+    mktempdir() do drift_root
+        copy_release_gate_documents(drift_root)
+        research_path = joinpath(
+            drift_root,
+            "docs",
+            "src",
+            "mgmfrm-research-roadmap.md",
+        )
+        blocked_claim = "Broad exploratory MGMFRM remains blocked."
+        research_text = read(research_path, String)
+        @test occursin(blocked_claim, research_text)
+        write(research_path, replace(
+            research_text,
+            blocked_claim => "Broad exploratory MGMFRM is available.";
+            count = 1,
+        ))
+        research_drift_gate = release_gate_check(; root = drift_root)
+        @test research_drift_gate.status === :failed
+        @test any(row -> row.target === :research_roadmap_release_scope &&
+            row.check === :required_text &&
+            row.expected == blocked_claim &&
+            row.status === :failed,
+            research_drift_gate.rows)
+    end
     case_provenance = case_study_provenance_manifest()
     @test case_provenance.schema ==
         "bayesianmgmfrm.case_study_provenance_manifest.v1"
@@ -32065,7 +32811,14 @@ include("local_dependence_calibration.jl")
 include("local_dependence_calibration_artifact.jl")
 include("local_dependence_calibration_pilot.jl")
 include("local_dependence_pilot_protocol_artifact.jl")
+include("local_dependence_pilot_calibration_semantics.jl")
+include("local_dependence_pilot_attempt_archive.jl")
+include("local_dependence_pilot_bounded_canonical_smoke.jl")
+include("local_dependence_pilot_recovery.jl")
+include("local_dependence_pilot_precommit_recovery.jl")
 include("local_dependence_pilot_batch_execution_harness.jl")
+include("local_dependence_pilot_controller_receipts.jl")
+include("local_dependence_pilot_job_worker.jl")
 include("generalized_guard_contract.jl")
 include("experimental_namespace.jl")
 include("mgmfrm_free_latent_correlation_2d.jl")

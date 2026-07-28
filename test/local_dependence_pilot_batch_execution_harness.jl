@@ -1,6 +1,8 @@
 using JSON3
+using Random
 using SHA
 using Test
+using BayesianMGMFRM
 
 if !isdefined(@__MODULE__, :ScientificPayloadDigest)
     include(joinpath(@__DIR__, "..", "scripts",
@@ -27,7 +29,7 @@ const LD1B1HarnessGenerator = LD1B1PilotBatchHarnessGeneratorForTest
 const LD1B1_HARNESS_TEST_RUNNER_PATH = joinpath(
     dirname(@__DIR__),
     "scripts",
-    "run_local_dependence_calibration_pilot_batch.jl",
+    "run_local_dependence_calibration_pilot_job.jl",
 )
 const LD1B1_HARNESS_TEST_DIAGNOSTIC_DETAILS =
     LD1B1HarnessRunner.ld1b1_json_native(JSON3.read(read(
@@ -43,6 +45,10 @@ const LD1B1_HARNESS_TEST_CALIBRATION_CONTRACT =
     LD1B1_HARNESS_TEST_PROTOCOL["pilot_contract"]["calibration_contract"]
 const LD1B1_HARNESS_TEST_LOCAL_CONTRACT =
     LD1B1_HARNESS_TEST_CALIBRATION_CONTRACT["diagnostic_contract"]
+const LD1B1_HARNESS_TEST_CALIBRATION_SEMANTIC_CONTEXT =
+    LD1B1HarnessRunner.LD1B1CalibrationSemantics.
+        ld1b1_load_calibration_semantic_context(
+            LD1B1HarnessRunner.LD1B1_DEFAULT_PROTOCOL)
 
 @testset "LD1b1 frozen code provenance remains fail-closed" begin
     runner = LD1B1HarnessRunner
@@ -140,16 +146,117 @@ const LD1B1_HARNESS_TEST_LOCAL_CONTRACT =
     end
 end
 
+@testset "LD1b1 canonical executor source pin is exact and fail-closed" begin
+    runner = LD1B1HarnessRunner
+    protocol_native = deepcopy(LD1B1_HARNESS_TEST_PROTOCOL)
+    as_json_object = value -> JSON3.read(JSON3.write(value))
+    protocol = as_json_object(protocol_native)
+    validated = runner.ld1b1_validate_canonical_executor_source_pin(protocol)
+    @test validated.valid
+    @test length(validated.source_rows) == 7
+    @test all(row -> row.matches &&
+        row.recorded_sha256 == row.actual_sha256, validated.source_rows)
+    @test validated.execution_source_identity.job_runner_source_sha256 ==
+        runner.ld1b1_file_sha256(LD1B1_HARNESS_TEST_RUNNER_PATH)
+    @test validated.batch_harness_generator_source_sha256 ==
+        runner.ld1b1_file_sha256(joinpath(
+            dirname(@__DIR__),
+            "scripts",
+            "generate_local_dependence_pilot_batch_execution_harness.jl",
+        ))
+
+    extra_field = deepcopy(protocol_native)
+    extra_field["canonical_executor_source_pin"]["unexpected"] = true
+    @test_throws ErrorException begin
+        runner.ld1b1_validate_canonical_executor_source_pin(
+            as_json_object(extra_field))
+    end
+
+    reordered = deepcopy(protocol_native)
+    rows = reordered["canonical_executor_source_pin"]["source_rows"]
+    rows[1], rows[2] = rows[2], rows[1]
+    @test_throws ErrorException begin
+        runner.ld1b1_validate_canonical_executor_source_pin(
+            as_json_object(reordered))
+    end
+
+    source_drift = deepcopy(protocol_native)
+    source_drift["canonical_executor_source_pin"]["source_rows"][3][
+        "sha256"] = repeat("0", 64)
+    @test_throws ErrorException begin
+        runner.ld1b1_validate_canonical_executor_source_pin(
+            as_json_object(source_drift))
+    end
+
+    failed_check = deepcopy(protocol_native)
+    failed_check["canonical_executor_source_pin"]["checks"][
+        "source_sha256_matches"] = false
+    @test_throws ErrorException begin
+        runner.ld1b1_validate_canonical_executor_source_pin(
+            as_json_object(failed_check))
+    end
+
+    overclaim = deepcopy(protocol_native)
+    overclaim["canonical_executor_source_pin"]["evidence_boundary"][
+        "bounded_canonical_smoke_passed"] = true
+    @test_throws ErrorException begin
+        runner.ld1b1_validate_canonical_executor_source_pin(
+            as_json_object(overclaim))
+    end
+
+    forged_pin_id = deepcopy(protocol_native)
+    forged_pin_id["canonical_executor_source_pin"]["pin_id"]["value"] =
+        repeat("0", 64)
+    @test_throws ErrorException begin
+        runner.ld1b1_validate_canonical_executor_source_pin(
+            as_json_object(forged_pin_id))
+    end
+
+    @test_throws MethodError begin
+        runner.ld1b1_checked_protocol(
+            runner.LD1B1_DEFAULT_PROTOCOL;
+            final_worker_source_pinned_and_identities_regenerated = true,
+        )
+    end
+    @test_throws MethodError begin
+        runner.ld1b1_checked_protocol(
+            runner.LD1B1_DEFAULT_PROTOCOL;
+            bounded_canonical_smoke_passed = true,
+        )
+    end
+    @test_throws MethodError begin
+        runner.ld1b1_checked_protocol(
+            runner.LD1B1_DEFAULT_PROTOCOL;
+            interrupted_attempt_recovery_review_passed = true,
+        )
+    end
+end
+
 ld1b1_harness_test_sha256(text::AbstractString) =
     bytes2hex(sha256(codeunits(String(text))))
 
+const LD1B1_HARNESS_TEST_OBSERVED_SIGNATURES = Dict{Int,String}()
+
 function ld1b1_harness_test_signatures(job)
+    observed_score_signature = get!(
+            LD1B1_HARNESS_TEST_OBSERVED_SIGNATURES,
+            job.resources.n_ratings,
+        ) do
+        observed_records = Tuple(fill((
+            repr(1),
+            repr(1),
+            repr(1),
+            repr(1),
+            repr(1),
+            0,
+        ), job.resources.n_ratings))
+        bytes2hex(sha256(codeunits(repr(observed_records))))
+    end
     return (;
-        data_signature = 10_000 + job.row_index,
+        data_signature = string(10_000 + job.row_index),
         score_signature = bytes2hex(sha256(codeunits(join(
             fill(0, job.resources.n_ratings), ',')))),
-        observed_score_signature = ld1b1_harness_test_sha256(
-            "observed-score:$(job.job_id)"),
+        observed_score_signature,
         design_signature = ld1b1_harness_test_sha256(
             "design:$(job.job_id)"),
         fit_artifact_content_hash = ld1b1_harness_test_sha256(
@@ -244,6 +351,17 @@ function ld1b1_harness_test_refresh_source_binding!(runner,
     return (; evidence_path, source_path, evidence)
 end
 
+function ld1b1_harness_test_symbol_native(value)
+    if value isa NamedTuple || value isa AbstractDict
+        return Dict{Symbol,Any}(
+            Symbol(key) => ld1b1_harness_test_symbol_native(element)
+            for (key, element) in pairs(value))
+    elseif value isa AbstractArray || value isa Tuple
+        return [ld1b1_harness_test_symbol_native(element) for element in value]
+    end
+    return value
+end
+
 function ld1b1_harness_test_evidence_map(runner,
         result_path::AbstractString)
     result = JSON3.read(read(result_path, String))
@@ -255,7 +373,8 @@ function ld1b1_harness_test_evidence_map(runner,
         evidence = JSON3.read(read(evidence_path, String))
         source_path = joinpath(
             dirname(result_path), String(evidence[:source_member][:path]))
-        source_value = JSON3.read(read(source_path, String))
+        source_value = ld1b1_harness_test_symbol_native(
+            JSON3.read(read(source_path, String)))
         role === :fit_result &&
             (source_value = source_value[:artifact])
         payload = Dict{Symbol,Any}(
@@ -319,7 +438,8 @@ end
 
 function ld1b1_harness_test_evidence_payload(runner, job, role::Symbol,
         source_member_sha256::AbstractString;
-        source_members = Dict{Symbol,Any}())
+        source_members = Dict{Symbol,Any}(),
+        terminal_status = nothing)
     signatures = ld1b1_harness_test_signatures(job)
     retained = ld1b1_harness_test_retained_arrays(runner, job)
     role === :generated_data && return (;
@@ -399,22 +519,29 @@ function ld1b1_harness_test_evidence_payload(runner, job, role::Symbol,
         diagnostic_decision_labels_available = false,
         mechanism_interpretation_eligible = false,
     )
-    role === :calibration_row && return (;
-        calibration_content_sha256 = source_member_sha256,
-        calibration_contract =
-            "bayesianmgmfrm.local_dependence_calibration_row.v1",
-        row_index = job.row_index,
-        scenario_index = job.scenario_index,
-        scenario_id = job.scenario_id,
-        replication = job.replication,
-        status = job.expected_action === :pre_fit_reject ?
-            :pre_fit_rejected : :completed,
-        data_signature = signatures.data_signature,
-        observed_score_signature_sha256 =
-            signatures.observed_score_signature,
-        design_signature_sha256 = signatures.design_signature,
-        row_complete = true,
-    )
+    if role === :calibration_row
+        calibration_status = terminal_status === nothing ?
+            (job.expected_action === :pre_fit_reject ?
+                :pre_fit_rejected : :completed) : terminal_status
+        has_simulation = calibration_status !== :generation_failed
+        return (;
+            calibration_content_sha256 = source_member_sha256,
+            calibration_contract =
+                "bayesianmgmfrm.local_dependence_calibration_row.v1",
+            row_index = job.row_index,
+            scenario_index = job.scenario_index,
+            scenario_id = job.scenario_id,
+            replication = job.replication,
+            status = calibration_status,
+            data_signature = has_simulation ?
+                signatures.data_signature : missing,
+            observed_score_signature_sha256 = has_simulation ?
+                signatures.observed_score_signature : missing,
+            design_signature_sha256 = has_simulation ?
+                signatures.design_signature : missing,
+            row_complete = true,
+        )
+    end
     role === :structural_rejection_audit && return (;
         audit_content_sha256 = source_member_sha256,
         simulation_content_sha256 = source_members[:generated_data].sha256,
@@ -437,7 +564,45 @@ function ld1b1_harness_test_evidence_payload(runner, job, role::Symbol,
     )
 end
 
-function ld1b1_harness_test_planning_fields(job)
+function ld1b1_harness_test_planning_fields(job;
+        terminal_status = nothing,
+        calibration_semantic_context =
+            LD1B1_HARNESS_TEST_CALIBRATION_SEMANTIC_CONTEXT)
+    if calibration_semantic_context !== nothing
+        plan = calibration_semantic_context.plan_rows[job.row_index]
+        plan.row_index == job.row_index &&
+            plan.scenario_index == job.scenario_index &&
+            plan.scenario_id === job.scenario_id &&
+            plan.replication == job.replication || error(
+            "semantic planning fixture does not match its canonical job")
+        return (;
+            profile = plan.profile,
+            grid_id = plan.grid_id,
+            base_seed = plan.base_seed,
+            mechanism = plan.mechanism,
+            magnitude_label = plan.magnitude_label,
+            effect_scale = plan.effect_scale,
+            design = plan.design,
+            assignment = plan.assignment,
+            order = plan.order,
+            component_seeds = plan.component_seeds,
+            planning_shape = Dict(
+                "n_persons" => plan.n_persons,
+                "n_testlets" => plan.n_testlets,
+                "items_per_testlet" => plan.items_per_testlet,
+                "n_items" => plan.n_testlets * plan.items_per_testlet,
+                "n_raters" => plan.n_raters,
+                "n_categories" => plan.n_categories,
+                "audit_targets" => collect(plan.audit_targets),
+                "expected_diagnostic_pair_support" =>
+                    plan.expected_diagnostic_pair_support,
+            ),
+            truth = Dict(
+                "generating_mechanism" => String(plan.mechanism),
+                "pair_truth_oracle_available" => false,
+            ),
+        )
+    end
     return (;
         profile = "ld1_preflight_v1",
         grid_id = "ld1_simulation_grid_v1",
@@ -461,12 +626,121 @@ function ld1b1_harness_test_planning_fields(job)
     )
 end
 
-function ld1b1_harness_test_source_member_value(job, role::Symbol;
-        source_members = Dict{Symbol,Any}())
+function ld1b1_harness_test_canonical_calibration_member(job,
+        terminal_status::Symbol, calibration_semantic_context)
+    semantics = LD1B1HarnessRunner.LD1B1CalibrationSemantics
+    template = semantics._ld1b1_calibration_template(
+        calibration_semantic_context,
+        job.row_index,
+    )
+    value = semantics.ld1b1_semantic_json_native(template.expected)
     signatures = ld1b1_harness_test_signatures(job)
-    planning = ld1b1_harness_test_planning_fields(job)
+    has_simulation = terminal_status !== :generation_failed
+    has_diagnostic = terminal_status === :completed
+    shape = value["planning_shape"]
+    future_fit_action = job.expected_structural_eligibility ?
+        "structurally_eligible_for_future_candidate" :
+        "do_not_fit_underidentified_design"
+    simulation_provenance = has_simulation ? Dict(
+        "status" => "known_truth_generated",
+        "data_signature" => signatures.data_signature,
+        "score_signature" => signatures.score_signature,
+        "observed_score_signature" => Dict(
+            "algorithm" => "sha256",
+            "value" => signatures.observed_score_signature,
+        ),
+        "testlet_design_signature" => Dict(
+            "algorithm" => "sha256",
+            "value" => signatures.design_signature,
+        ),
+        "n_ratings" => job.resources.n_ratings,
+        "planning_shape" => deepcopy(shape),
+        "observed_shape" => Dict(
+            "n_persons" => shape["n_persons"],
+            "n_testlets" => shape["n_testlets"],
+            "n_items" => shape["n_items"],
+            "n_raters" => shape["n_raters"],
+            "n_categories" => shape["n_categories"],
+        ),
+        "requested_targets_eligible" =>
+            job.expected_structural_eligibility,
+        "future_fit_action" => future_fit_action,
+    ) : nothing
+    diagnostic_provenance = has_diagnostic ? Dict(
+        "status" => "no_eligible_pairs",
+        "profile" => String(
+            calibration_semantic_context.calibration_contract.
+                diagnostic_contract.profile),
+        "n_draws" => job.sampler_contract.diagnostic_draws,
+        "data_signature" => signatures.data_signature,
+        "observed_score_signature" => Dict(
+            "algorithm" => "sha256",
+            "value" => signatures.observed_score_signature,
+        ),
+        "design_signature" => Dict(
+            "algorithm" => "sha256",
+            "value" => signatures.design_signature,
+        ),
+    ) : nothing
+    families = (
+        :single_rating_item_q3,
+        :within_rater_item_q3,
+        :rater_on_shared_response_criterion,
+    )
+    family_evidence = has_diagnostic ? [Dict(
+        "family" => String(family),
+        "support_status" => "not_applicable",
+        "applicable" => false,
+        "n_pair_rows" => 0,
+        "n_eligible_pairs" => 0,
+        "n_raw_declared" => 0,
+        "n_bh_declared" => 0,
+        "any_raw_declared" => nothing,
+        "any_bh_declared" => nothing,
+        "maximum_support_status" => "not_applicable",
+        "maximum_tail_fraction" => nothing,
+        "family_evaluable" => false,
+        "candidate_family_declared" => nothing,
+    ) for family in families] : Any[]
+    global_evidence = has_diagnostic ? Dict(
+        "support_status" => "not_applicable",
+        "n_overall_supported_pairs" => 0,
+        "tail_fraction" => nothing,
+        "evaluable" => false,
+        "candidate_global_declared" => nothing,
+    ) : nothing
+
+    value["status"] = String(terminal_status)
+    value["failure_code"] = terminal_status in (
+        :generation_failed, :fit_failed, :diagnostic_failed) ?
+        "synthetic_test_failure" : nothing
+    value["simulation_provenance"] = simulation_provenance
+    value["diagnostic_provenance"] = diagnostic_provenance
+    value["n_pair_evidence"] = 0
+    value["pair_evidence"] = Any[]
+    value["family_evidence"] = family_evidence
+    value["global_evidence"] = global_evidence
+    return value
+end
+
+function ld1b1_harness_test_source_member_value(job, role::Symbol;
+        source_members = Dict{Symbol,Any}(),
+        terminal_status = nothing,
+        calibration_semantic_context =
+            LD1B1_HARNESS_TEST_CALIBRATION_SEMANTIC_CONTEXT)
+    signatures = ld1b1_harness_test_signatures(job)
+    planning = ld1b1_harness_test_planning_fields(
+        job;
+        terminal_status,
+        calibration_semantic_context,
+    )
     if role === :generated_data
         n = job.resources.n_ratings
+        n_persons = get(planning.planning_shape, "n_persons", 40)
+        n_testlets = get(planning.planning_shape, "n_testlets", 4)
+        n_items = get(planning.planning_shape, "n_items", 12)
+        n_raters = get(planning.planning_shape, "n_raters", 4)
+        n_categories = get(planning.planning_shape, "n_categories", 4)
         table_fields = (
             "person", "rater", "item", "score", "task", "occasion",
             "response_id", "testlet_id", "sequence_index",
@@ -524,12 +798,12 @@ function ld1b1_harness_test_source_member_value(job, role::Symbol;
                 "active_mechanisms" => Any[],
                 "component_scales" => Dict("testlet" => 0.0),
                 "component_seeds" => planning.component_seeds,
-                "person_labels" => collect(1:40),
-                "testlet_labels" => collect(1:4),
-                "item_labels" => collect(1:12),
-                "rater_labels" => collect(1:4),
-                "intended_category_levels" => collect(0:3),
-                "realized_category_levels" => collect(0:3),
+                "person_labels" => collect(1:n_persons),
+                "testlet_labels" => collect(1:n_testlets),
+                "item_labels" => collect(1:n_items),
+                "rater_labels" => collect(1:n_raters),
+                "intended_category_levels" => collect(0:(n_categories - 1)),
+                "realized_category_levels" => collect(0:(n_categories - 1)),
                 "category_support_complete" => true,
             ),
             "row_truth" => row_truth,
@@ -568,8 +842,16 @@ function ld1b1_harness_test_source_member_value(job, role::Symbol;
             "summary" => Dict(
                 "passed" => true,
                 "n_ratings" => job.resources.n_ratings,
+                "n_persons" => n_persons,
+                "n_raters" => n_raters,
+                "n_items" => n_items,
+                "n_testlets" => n_testlets,
+                "intended_categories" => n_categories,
+                "realized_categories" => n_categories,
+                "category_support_complete" => true,
                 "requested_targets_eligible" =>
                     job.expected_structural_eligibility,
+                "future_fit_action" => future_fit_action,
             ),
             "caveat" =>
                 "generator_and_preflight_evidence_not_calibration_or_mechanism_classification",
@@ -589,7 +871,7 @@ function ld1b1_harness_test_source_member_value(job, role::Symbol;
             "max_energy_error" => 1000.0,
             "metric" => String(sampler.metric),
             "ad_backend" => String(sampler.ad_backend),
-            "gradient_backend" => "analytic",
+            "gradient_backend" => "ad",
             "rng" => Dict(
                 "algorithm" => "MersenneTwister",
                 "seed" => job.fit_seed,
@@ -611,6 +893,8 @@ function ld1b1_harness_test_source_member_value(job, role::Symbol;
             "sampler_controls" => controls,
             "n_sampler_stats" => sampler.total_retained_draws,
             "data_signature" => signatures.data_signature,
+            "design_identity" => Dict(
+                "data_signature" => signatures.data_signature),
         )
         content_hash = Dict(
             "algorithm" => "sha256",
@@ -645,9 +929,16 @@ function ld1b1_harness_test_source_member_value(job, role::Symbol;
             "manifest" => Dict(
                 "schema" => "bayesianmgmfrm.model_manifest.v1",
                 "object" => "fit",
+                "data" => Dict(
+                    "data_signature" => signatures.data_signature),
                 "validation" => Dict(
                     "data_signature" => signatures.data_signature),
                 "fit" => fit_metadata,
+                "rating_design" => Dict(
+                    "data_signature" => signatures.data_signature,
+                    "anchor_linking" => Dict(
+                        "data_signature" => signatures.data_signature),
+                ),
                 "diagnostics" => Dict("flag" => "ok"),
             ),
             "diagnostics" => Dict("summary" => Dict("flag" => "ok")),
@@ -665,7 +956,8 @@ function ld1b1_harness_test_source_member_value(job, role::Symbol;
                 "artifact" => Dict(
                     "schema" => "bayesianmgmfrm.fit_artifact.v1"),
                 "manifest" => Dict(
-                    "n_draws" => sampler.total_retained_draws),
+                    "n_draws" => sampler.total_retained_draws,
+                    "data_signature" => signatures.data_signature),
                 "reproducibility" => reproducibility,
                 "archive_policy" => Dict(
                     "intended_use" => "long_term_export_manifest"),
@@ -739,6 +1031,31 @@ function ld1b1_harness_test_source_member_value(job, role::Symbol;
             job.sampler_contract.total_retained_draws,
             job.sampler_contract.diagnostic_draws,
         ))
+        semantic_completed = calibration_semantic_context !== nothing &&
+            terminal_status === :completed
+        families = (
+            :single_rating_item_q3,
+            :within_rater_item_q3,
+            :rater_on_shared_response_criterion,
+        )
+        family_rows = semantic_completed ? [Dict(
+            "family" => String(family),
+            "status" => "not_applicable",
+            "decision_available" => false,
+            "mechanism_interpretation_eligible" => false,
+        ) for family in families] : Any[]
+        family_max_rows = semantic_completed ? [Dict(
+            "family" => String(family),
+            "support_status" => "not_applicable",
+            "posterior_predictive_tail_fraction" => nothing,
+            "decision_available" => false,
+        ) for family in families] : Any[]
+        global_evidence = semantic_completed ? Dict(
+            "support_status" => "not_applicable",
+            "n_overall_supported_pairs" => 0,
+            "posterior_predictive_tail_fraction" => nothing,
+            "decision_available" => false,
+        ) : Dict("decision_available" => false)
         return Dict(
             "schema" =>
                 "bayesianmgmfrm.local_dependence_pilot_summary_bundle.v1",
@@ -794,11 +1111,11 @@ function ld1b1_harness_test_source_member_value(job, role::Symbol;
                 "within_rater_item_q3",
                 "rater_on_shared_response_criterion",
             ],
-            "family_rows" => Any[],
+            "family_rows" => family_rows,
             "family_testlet_rows" => Any[],
             "pair_rows" => Any[],
-            "family_max_rows" => Any[],
-            "global_evidence" => Dict("decision_available" => false),
+            "family_max_rows" => family_max_rows,
+            "global_evidence" => global_evidence,
             "residual_support" => Dict("fixture" => true),
             "n_pair_rows" => 0,
             "n_summary_supported_pairs" => 0,
@@ -827,12 +1144,24 @@ function ld1b1_harness_test_source_member_value(job, role::Symbol;
                 :mechanism_interpretation_eligible, :caveat,
             )
         )
-        calibration_status = job.expected_action === :pre_fit_reject ?
-            "pre_fit_rejected" : "completed"
+        calibration_status = terminal_status === nothing ?
+            (job.expected_action === :pre_fit_reject ?
+                :pre_fit_rejected : :completed) : terminal_status
+        if calibration_semantic_context !== nothing
+            return ld1b1_harness_test_canonical_calibration_member(
+                job,
+                calibration_status,
+                calibration_semantic_context,
+            )
+        elseif calibration_status === :generation_failed
+            error("generation-failure test source requires a semantic context")
+        end
+        has_simulation = calibration_status !== :generation_failed
+        has_diagnostic = calibration_status === :completed
         future_fit_action = job.expected_structural_eligibility ?
             "structurally_eligible_for_future_candidate" :
             "do_not_fit_underidentified_design"
-        simulation_provenance = Dict(
+        simulation_provenance = has_simulation ? Dict(
             "status" => "known_truth_generated",
             "data_signature" => signatures.data_signature,
             "score_signature" => signatures.score_signature,
@@ -851,9 +1180,8 @@ function ld1b1_harness_test_source_member_value(job, role::Symbol;
             "requested_targets_eligible" =>
                 job.expected_structural_eligibility,
             "future_fit_action" => future_fit_action,
-        )
-        diagnostic_provenance = job.expected_action === :pre_fit_reject ?
-            nothing : Dict(
+        ) : nothing
+        diagnostic_provenance = has_diagnostic ? Dict(
                 "status" => "no_eligible_pairs",
                 "profile" => String(
                     LD1B1_HARNESS_TEST_LOCAL_CONTRACT["profile"]),
@@ -867,7 +1195,7 @@ function ld1b1_harness_test_source_member_value(job, role::Symbol;
                     "algorithm" => "sha256",
                     "value" => signatures.design_signature,
                 ),
-            )
+            ) : nothing
         merge!(value, Dict(
             "schema" =>
                 "bayesianmgmfrm.local_dependence_calibration_row.v1",
@@ -876,7 +1204,7 @@ function ld1b1_harness_test_source_member_value(job, role::Symbol;
                 LD1B1_HARNESS_TEST_CALIBRATION_CONTRACT["profile"]),
             "planning_profile" => planning.profile,
             "protocol_status" => "protocol_preflight_only",
-            "status" => calibration_status,
+            "status" => String(calibration_status),
             "contract" => deepcopy(
                 LD1B1_HARNESS_TEST_CALIBRATION_CONTRACT),
             "grid_id" => planning.grid_id,
@@ -907,14 +1235,16 @@ function ld1b1_harness_test_source_member_value(job, role::Symbol;
                     LD1B1_HARNESS_TEST_CALIBRATION_CONTRACT[
                         "seed_contract"]),
             ),
-            "failure_code" => nothing,
+            "failure_code" => calibration_status in (
+                :generation_failed, :fit_failed, :diagnostic_failed) ?
+                "synthetic_test_failure" : nothing,
             "simulation_provenance" => simulation_provenance,
             "diagnostic_provenance" => diagnostic_provenance,
             "n_pair_evidence" => 0,
             "pair_evidence" => Any[],
             "family_evidence" => Any[],
-            "global_evidence" => job.expected_action === :pre_fit_reject ?
-                nothing : Dict("decision_available" => false),
+            "global_evidence" => has_diagnostic ?
+                Dict("decision_available" => false) : nothing,
             "target_evidence" => nothing,
             "target_evidence_available" => false,
             "pair_truth_oracle_available" => false,
@@ -965,7 +1295,10 @@ end
 
 function ld1b1_harness_test_write_source_member!(runner,
         attempt_dir::AbstractString, job, role::Symbol;
-        source_members = Dict{Symbol,Any}())
+        source_members = Dict{Symbol,Any}(),
+        terminal_status = nothing,
+        calibration_semantic_context =
+            LD1B1_HARNESS_TEST_CALIBRATION_SEMANTIC_CONTEXT)
     member_role = runner.ld1b1_evidence_member_role(role)
     extension = ".json"
     relative = joinpath("members", string(member_role, extension))
@@ -973,7 +1306,12 @@ function ld1b1_harness_test_write_source_member!(runner,
     mkpath(dirname(path))
     ld1b1_harness_test_write_json(path,
         ld1b1_harness_test_source_member_value(
-            job, role; source_members))
+            job,
+            role;
+            source_members,
+            terminal_status,
+            calibration_semantic_context,
+        ))
     return (;
         role = member_role,
         path = relative,
@@ -983,22 +1321,48 @@ function ld1b1_harness_test_write_source_member!(runner,
     )
 end
 
+function ld1b1_harness_test_canonical_controller_receipts!(
+        runner, identity, job, execution_root::AbstractString, attempt::Int)
+    run_id = string("synthetic_terminal_", job.job_id, "_", attempt)
+    setup = runner.ld1b1_publish_attempt_reservation_create_new(
+        execution_root, identity, job, attempt, run_id)
+    mkpath(dirname(setup.lineage.attempt_dir))
+    mkdir(setup.lineage.attempt_dir)
+    owner = runner.ld1b1_publish_canonical_owner_create_new(
+        setup.lineage, execution_root)
+    launch = runner.ld1b1_publish_child_launch_create_new(
+        setup.lineage, owner.owner, 12_000 + attempt, execution_root)
+    exit = runner.ld1b1_publish_child_exit_create_new(
+        setup.lineage, launch.launch, 0, execution_root)
+    return (; setup, owner, launch, exit)
+end
+
 function ld1b1_harness_test_terminal_result!(runner, identity, job,
         execution_root::AbstractString, attempt::Int, status::Symbol;
         retry_reason = nothing,
         retry_of_attempt = nothing,
         primary_result_sha256 = nothing,
         lineage_valid::Bool = true,
+        publish_seal::Bool = true,
+        canonical_controller_receipts::Bool = publish_seal,
+        calibration_semantic_context =
+            LD1B1_HARNESS_TEST_CALIBRATION_SEMANTIC_CONTEXT,
         runner_source_sha256 =
             identity.execution_source_identity.job_runner_source_sha256)
     attempt_dir = runner.ld1b1_attempt_dir(
         execution_root, job.job_id, attempt)
+    controller_receipts = canonical_controller_receipts ?
+        ld1b1_harness_test_canonical_controller_receipts!(
+            runner, identity, job, execution_root, attempt) : nothing
     manifest = NamedTuple[]
     evidence_hashes = Dict{Symbol,String}()
     source_members = Dict{Symbol,Any}()
     for role in runner.ld1b1_required_evidence_roles(status)
         member = ld1b1_harness_test_write_source_member!(
-            runner, attempt_dir, job, role; source_members)
+            runner, attempt_dir, job, role; source_members,
+            terminal_status = status,
+            calibration_semantic_context,
+        )
         source_members[role] = member
         dependencies = Tuple((;
             role = dependency_role,
@@ -1014,7 +1378,8 @@ function ld1b1_harness_test_terminal_result!(runner, identity, job,
             status,
             role,
             ld1b1_harness_test_evidence_payload(
-                runner, job, role, member.sha256; source_members);
+                runner, job, role, member.sha256; source_members,
+                terminal_status = status);
             member,
             dependencies,
             runner_source_sha256,
@@ -1043,12 +1408,280 @@ function ld1b1_harness_test_terminal_result!(runner, identity, job,
     path = runner.ld1b1_result_path(
         execution_root, job.job_id, attempt)
     runner.ld1b1_atomic_write_artifact(path, artifact; overwrite = false)
-    return (; artifact, path)
+    seal = publish_seal ?
+        runner.ld1b1_publish_completed_attempt_seal(
+            path,
+            identity,
+            job,
+            attempt;
+            calibration_semantic_context,
+        ) : nothing
+    return (; artifact, path, seal, controller_receipts)
+end
+
+function ld1b1_harness_test_recovery_receipts!(runner, identity, job,
+        execution_root::AbstractString, attempt::Int; with_exit::Bool = true)
+    recovery = runner.LD1B1Recovery
+    attempt_dir = runner.ld1b1_attempt_dir(
+        execution_root, job.job_id, attempt)
+    mkpath(attempt_dir)
+    identity_args = (;
+        plan_identity = runner.ld1b1_result_plan_identity(identity),
+        execution_source_identity = identity.execution_source_identity,
+        job_identity = runner.ld1b1_result_job_identity(job),
+        attempt_number = attempt,
+        attempt_role = attempt == 1 ? :primary : :remediation,
+    )
+    owner = recovery.ld1b_attempt_owner_precommit(;
+        identity_args...,
+        controller_host = "synthetic-controller-host",
+        controller_run_id = "synthetic-controller-run",
+        controller_pid = 12001,
+        recorded_at_utc = "2026-07-27T00:00:00Z",
+    )
+    owner_path = ld1b1_harness_test_write_json(joinpath(
+        attempt_dir, recovery.LD1B_ATTEMPT_OWNER_FILENAME), owner)
+    owner_sha256 = runner.ld1b1_file_sha256(owner_path)
+    launch = recovery.ld1b_child_launch_receipt(;
+        identity_args...,
+        owner_artifact = owner,
+        owner_receipt_sha256 = owner_sha256,
+        child_pid = 12002,
+        recorded_at_utc = "2026-07-27T00:00:01Z",
+    )
+    launch_path = ld1b1_harness_test_write_json(joinpath(
+        attempt_dir, recovery.LD1B_CHILD_LAUNCH_FILENAME), launch)
+    launch_sha256 = runner.ld1b1_file_sha256(launch_path)
+    exit = nothing
+    exit_path = nothing
+    exit_sha256 = nothing
+    if with_exit
+        exit = recovery.ld1b_child_exit_receipt(;
+            identity_args...,
+            owner_artifact = owner,
+            owner_receipt_sha256 = owner_sha256,
+            launch_artifact = launch,
+            launch_receipt_sha256 = launch_sha256,
+            exit_code = 137,
+            recorded_at_utc = "2026-07-27T00:00:02Z",
+        )
+        exit_path = ld1b1_harness_test_write_json(joinpath(
+            attempt_dir, recovery.LD1B_CHILD_EXIT_FILENAME), exit)
+        exit_sha256 = runner.ld1b1_file_sha256(exit_path)
+    end
+    return (; identity_args, attempt_dir, owner, owner_path, owner_sha256,
+        launch, launch_path, launch_sha256, exit, exit_path, exit_sha256)
+end
+
+function ld1b1_harness_test_external_review!(runner, identity, job,
+        execution_root::AbstractString, attempt::Int,
+        external_path::AbstractString;
+        calibration_semantic_context =
+            LD1B1_HARNESS_TEST_CALIBRATION_SEMANTIC_CONTEXT,
+        with_exit::Bool = true)
+    receipts = ld1b1_harness_test_recovery_receipts!(
+        runner, identity, job, execution_root, attempt; with_exit)
+    observation = runner.ld1b1_interrupted_attempt_observation(
+        execution_root,
+        identity,
+        job,
+        attempt;
+        calibration_semantic_context,
+    )
+    inventory = runner.LD1B1Recovery.
+        ld1b_inventory_before_interruption_review(receipts.attempt_dir)
+    mode = with_exit ? :validated_exit_receipt :
+        :external_process_identity_review
+    external_process_identity_review = with_exit ? nothing : (;
+        evidence_source = "synthetic independent process-table review",
+        controller_process_identity = "controller start-token absent",
+        child_process_identity = "child start-token absent",
+        observed_at_utc = "2026-07-27T00:04:00Z",
+    )
+    review = runner.LD1B1Recovery.
+        ld1b_stopped_process_interruption_review(;
+            receipts.identity_args...,
+            owner_artifact = receipts.owner,
+            owner_receipt_sha256 = receipts.owner_sha256,
+            launch_artifact = receipts.launch,
+            launch_receipt_sha256 = receipts.launch_sha256,
+            exit_artifact = receipts.exit,
+            exit_receipt_sha256 = receipts.exit_sha256,
+            inventory_before_review = inventory,
+            mode,
+            retirement_reason_code = observation.retirement_reason_code,
+            observed_attempt_state = (;
+                result_present = observation.result_present,
+                result_file_sha256 = observation.result_file_sha256,
+                result_semantic_assessment =
+                    observation.result_semantic_assessment,
+            ),
+            review_host = "synthetic-review-host",
+            reviewer = "synthetic-reviewer",
+            reviewed_at_utc = "2026-07-27T00:05:00Z",
+            controller_confirmed_stopped = true,
+            child_confirmed_stopped = true,
+            external_process_identity_review,
+        )
+    ld1b1_harness_test_write_json(external_path, review)
+    return (; receipts, observation, review, external_path)
+end
+
+function ld1b1_harness_test_publish_structural_seal!(
+        runner, identity, job, result_path::AbstractString,
+        attempt::Int, terminal_status::Symbol)
+    execution_root = runner.ld1b1_result_execution_root(result_path)
+    result_snapshot = runner.ld1b1_regular_file_snapshot(
+        result_path,
+        execution_root,
+        "test job-result envelope",
+    )
+    result = JSON3.read(String(result_snapshot.bytes))
+    manifest = runner.ld1b1_validate_manifest_files(
+        result,
+        result_path,
+        identity,
+        job,
+        attempt,
+        terminal_status,
+        result_snapshot,
+    )
+    attempt_role = attempt == 1 ? :primary : :remediation
+    publication = runner.LD1B1AttemptArchive.
+        ld1b_publish_completed_attempt_seal(
+            dirname(result_path);
+            plan_identity = runner.ld1b1_result_plan_identity(identity),
+            execution_source_identity = identity.execution_source_identity,
+            job_identity = runner.ld1b1_result_job_identity(job),
+            attempt_number = attempt,
+            attempt_role,
+            terminal_status,
+            terminal_outcome_code = terminal_status,
+            evidence_manifest_sha256 =
+                manifest.evidence_manifest_sha256,
+            staging_dir = runner.ld1b1_seal_staging_dir(execution_root),
+            boundary = execution_root,
+        )
+    validation = runner.LD1B1AttemptArchive.
+        ld1b_validate_completed_attempt_seal(
+            dirname(result_path);
+            plan_identity = runner.ld1b1_result_plan_identity(identity),
+            execution_source_identity = identity.execution_source_identity,
+            job_identity = runner.ld1b1_result_job_identity(job),
+            attempt_number = attempt,
+            attempt_role,
+            terminal_status,
+            terminal_outcome_code = terminal_status,
+        )
+    return (; publication, validation, manifest)
+end
+
+function ld1b1_harness_test_fixture_fit(data; n_draws::Int = 4)
+    design = getdesign(mfrm_spec(data; thresholds = :partial_credit))
+    draws = zeros(n_draws, length(design.parameter_names))
+    for draw in 2:n_draws
+        draws[draw, :] .= range(
+            -0.02 * draw,
+            0.02 * draw;
+            length = size(draws, 2),
+        )
+    end
+    return MFRMFit(
+        design,
+        MFRMPrior(),
+        draws,
+        zeros(n_draws),
+        1.0,
+        ones(Int, n_draws),
+        collect(1:n_draws),
+        [1.0],
+        :fixture,
+        :fixture,
+        0,
+        0.1,
+    )
+end
+
+@testset "LD1b1 five terminal statuses preserve the public denominator" begin
+    grid = local_dependence_simulation_grid(
+        repetitions = 1,
+        base_seed = 91_301,
+        phase = :pilot,
+        grid_id = "ld1b1-five-status-fixture",
+        n_persons = 8,
+        n_testlets = 4,
+        items_per_testlet = 2,
+        n_raters = 2,
+        n_categories = 3,
+    )
+    eligible = [row for row in grid
+        if row.expected_requested_targets_eligible]
+    rejection = first(row for row in grid
+        if !row.expected_requested_targets_eligible)
+    plans = [eligible[1], rejection, eligible[2], eligible[3], eligible[4]]
+
+    diagnostic_contract = local_dependence_contract(
+        profile = :custom_unvalidated,
+        min_common_units = 2,
+        min_eligible_draws = 2,
+        min_eligible_draw_fraction = 0.5,
+    )
+    contract = local_dependence_calibration_contract(;
+        diagnostic_contract)
+    completed_simulation = simulate_local_dependence(plans[1])
+    completed_diagnostic = local_dependence_summary(
+        ld1b1_harness_test_fixture_fit(completed_simulation.data);
+        contract = diagnostic_contract,
+        draw_indices = 1:4,
+        rng = MersenneTwister(91_302),
+    )
+    rejection_simulation = simulate_local_dependence(plans[2])
+    fit_failure_simulation = simulate_local_dependence(plans[4])
+    diagnostic_failure_simulation = simulate_local_dependence(plans[5])
+    results = [
+        local_dependence_calibration_row(
+            plans[1]; contract, simulation = completed_simulation,
+            diagnostic = completed_diagnostic),
+        local_dependence_calibration_row(
+            plans[2]; contract, status = :pre_fit_rejected,
+            simulation = rejection_simulation),
+        local_dependence_calibration_row(
+            plans[3]; contract, status = :generation_failed,
+            failure_code = :synthetic_generation_failure),
+        local_dependence_calibration_row(
+            plans[4]; contract, status = :fit_failed,
+            simulation = fit_failure_simulation,
+            failure_code = :synthetic_fit_failure),
+        local_dependence_calibration_row(
+            plans[5]; contract, status = :diagnostic_failed,
+            simulation = diagnostic_failure_simulation,
+            failure_code = :synthetic_diagnostic_failure),
+    ]
+
+    summary = local_dependence_calibration_summary(plans, results; contract)
+    status_count(status) = only(row.n for row in summary.status_rows
+        if row.status === status)
+    @test summary.n_plan_rows == 5
+    @test summary.n_result_rows == 5
+    @test summary.n_missing_result_rows == 0
+    @test sum(row.n_planned for row in summary.scenario_rows) == 5
+    @test sum(row.n_results for row in summary.scenario_rows) == 5
+    @test sum(row.n_missing_results for row in summary.scenario_rows) == 0
+    @test all(status_count(status) == 1 for status in (
+        :completed,
+        :pre_fit_rejected,
+        :generation_failed,
+        :fit_failed,
+        :diagnostic_failed,
+    ))
 end
 
 @testset "LD1b1 pilot batch canonical plan and generated harness" begin
     runner = LD1B1HarnessRunner
-    checked = runner.ld1b1_checked_protocol(runner.LD1B1_DEFAULT_PROTOCOL)
+    checked = runner.ld1b1_checked_protocol(
+        runner.LD1B1_DEFAULT_PROTOCOL;
+        consume_bounded_smoke_receipt = false,
+    )
     specs = runner.ld1b1_job_specs(checked)
 
     @test length(specs) == 660
@@ -1064,6 +1697,23 @@ end
     @test [job.row_index for job in specs] == collect(1:660)
     @test all(job -> job.primary_attempt == 1 &&
         !job.primary_outcome_overwritable_by_retries, specs)
+    failure_semantics = runner.ld1b1_failure_semantics()
+    @test failure_semantics.terminal_diagnostic_failures.
+        sampler_quality_gate.terminal_status === :diagnostic_failed
+    @test !failure_semantics.terminal_diagnostic_failures.
+        sampler_quality_gate.sampler_gate_passed
+    @test failure_semantics.terminal_diagnostic_failures.
+        local_dependence_summary.sampler_gate_passed
+    @test ismissing(failure_semantics.nonterminal_artifact_failures.
+        sampler_diagnostics_unavailable.terminal_status)
+    @test failure_semantics.nonterminal_artifact_failures.
+        sampler_diagnostics_unavailable.archive_state === :partial_attempt
+    @test ismissing(failure_semantics.nonterminal_artifact_failures.
+        final_calibration_serialization_failed.terminal_status)
+    @test !failure_semantics.
+        incomplete_artifact_failure_counts_toward_scientific_denominator
+    @test !failure_semantics.
+        incomplete_artifact_failure_may_publish_completed_seal
 
     protocol = checked.protocol
     @test runner.ld1b1_verify_content_hash(
@@ -1086,6 +1736,8 @@ end
         ordered_job_rows_sha256 =
             checked.identity.ordered_job_rows_sha256,
         pilot_contract_sha256 = checked.identity.pilot_contract_sha256,
+        canonical_executor_source_pin_id =
+            checked.identity.canonical_executor_source_pin_id,
         project_toml_sha256 = checked.identity.project_toml_sha256,
         manifest_toml = checked.identity.manifest_toml,
         manifest_toml_sha256 = checked.identity.manifest_toml_sha256,
@@ -1100,7 +1752,25 @@ end
     @test checked.identity.plan_identity_valid
     @test !checked.identity.execution_plan_complete
     @test checked.identity.execution_plan_assessment ===
-        :incomplete_missing_job_runner
+        :incomplete_operational_readiness
+    @test !checked.identity.readiness.operational_execution_authorized
+    @test checked.identity.readiness.canonical_executor_materialized
+    @test checked.identity.readiness.
+        final_worker_source_pinned_and_identities_regenerated
+    @test checked.identity.readiness.canonical_executor_source_pinned
+    @test !(:final_worker_source_pinned_and_identities_regenerated in
+        checked.identity.readiness.blockers)
+    @test !(:canonical_executor_source_pinned in
+        checked.identity.readiness.blockers)
+    @test :bounded_canonical_smoke_passed in
+        checked.identity.readiness.blockers
+    @test checked.identity.readiness.
+        completed_attempt_archive_seal_supported
+    @test !(:completed_attempt_archive_seal_supported in
+        checked.identity.readiness.blockers)
+    @test :interrupted_attempt_recovery_review_passed in
+        checked.identity.readiness.blockers
+    @test checked.identity.readiness.canonical_execution_root_bound
     @test all(row -> row.matches &&
         row.recorded_sha256 == row.actual_sha256,
         checked.identity.source_rows)
@@ -1110,6 +1780,70 @@ end
     @test checked.identity.manifest_toml_sha256 ==
         runner.ld1b1_file_sha256(joinpath(dirname(@__DIR__),
             checked.identity.manifest_toml))
+    @test Set(propertynames(
+        checked.identity.execution_source_identity)) == Set((
+        :batch_runner_source_sha256,
+        :local_json_source_sha256,
+        :job_runner_source_sha256,
+        :attempt_archive_source_sha256,
+        :local_dependence_pilot_recovery_source_sha256,
+        :local_dependence_pilot_calibration_semantics_source_sha256,
+    ))
+    @test checked.identity.execution_source_identity.
+        attempt_archive_source_sha256 ==
+        runner.ld1b1_file_sha256(joinpath(
+            dirname(@__DIR__),
+            "scripts",
+            "local_dependence_pilot_attempt_archive.jl",
+        ))
+    @test checked.identity.execution_source_identity.
+        local_dependence_pilot_recovery_source_sha256 ==
+        runner.ld1b1_file_sha256(joinpath(
+            dirname(@__DIR__),
+            "scripts",
+            "local_dependence_pilot_recovery.jl",
+        ))
+    @test checked.identity.execution_source_identity.
+        local_dependence_pilot_calibration_semantics_source_sha256 ==
+        runner.ld1b1_file_sha256(joinpath(
+            dirname(@__DIR__),
+            "scripts",
+            "local_dependence_pilot_calibration_semantics.jl",
+        ))
+    @test checked.identity.batch_harness_generator_source_sha256 ==
+        runner.ld1b1_file_sha256(joinpath(
+            dirname(@__DIR__),
+            "scripts",
+            "generate_local_dependence_pilot_batch_execution_harness.jl",
+        ))
+    generator_metadata = (;
+        path =
+            "scripts/generate_local_dependence_pilot_batch_execution_harness.jl",
+        source_sha256 =
+            checked.identity.batch_harness_generator_source_sha256,
+        batch_runner_path =
+            "scripts/run_local_dependence_calibration_pilot_batch.jl",
+        batch_runner_source_sha256 = checked.identity.
+            execution_source_identity.batch_runner_source_sha256,
+    )
+    @test runner.ld1b1_validate_harness_generator_metadata(
+        generator_metadata, checked.identity) == generator_metadata
+    for forged in (
+            merge(generator_metadata, (; path = "scripts/other.jl")),
+            merge(generator_metadata, (; source_sha256 = repeat("0", 64))),
+            merge(generator_metadata,
+                (; batch_runner_path = "scripts/other.jl")),
+            merge(generator_metadata,
+                (; batch_runner_source_sha256 = repeat("0", 64))),
+            merge(generator_metadata, (; unexpected = true)),
+        )
+        @test_throws ErrorException runner.ld1b1_validate_harness_generator_metadata(
+            forged, checked.identity)
+    end
+    @test all(row -> row.matches &&
+        row.recorded_sha256 == row.actual_sha256,
+        checked.identity.canonical_executor_source_pin_source_rows)
+    @test length(checked.calibration_semantic_context.plan_rows) == 660
 
     fixture_path = get(
         ENV,
@@ -1138,6 +1872,7 @@ end
                 :protocol_content_hash,
                 :ordered_job_rows_sha256,
                 :pilot_contract_sha256,
+                :canonical_executor_source_pin_id,
                 :project_toml_sha256,
                 :manifest_toml,
                 :manifest_toml_sha256,
@@ -1158,9 +1893,13 @@ end
         @test Int(summary[:n_fit_jobs]) == 540
         @test Int(summary[:n_pre_fit_rejection_jobs]) == 120
         @test Int(summary[:n_duplicate_job_ids]) == 0
-        @test String(summary[:job_runner_availability]) ==
-            "unavailable_missing_file"
-        @test String(summary[:execution_capability_status]) == "unavailable"
+        @test String(summary[:job_runner_availability]) == "available"
+        @test String(summary[:execution_capability_status]) == "available"
+        @test Bool(summary[
+            :final_worker_source_pinned_and_identities_regenerated])
+        @test Bool(summary[:canonical_executor_source_pinned])
+        @test !Bool(summary[:bounded_canonical_smoke_passed])
+        @test !Bool(summary[:interrupted_attempt_recovery_review_passed])
         @test !Bool(summary[:response_data_generated])
         @test !Bool(summary[:model_fit_run])
         @test !Bool(summary[:mcmc_run])
@@ -1214,6 +1953,14 @@ end
             :pre_fit_rejection_requires_simulation_and_calibration_provenance])
         @test Bool(harness_contract[
             :diagnostic_failure_component_must_match_sampler_gate])
+        @test !Bool(harness_contract[
+            :unavailable_sampler_diagnostics_is_terminal])
+        @test !Bool(harness_contract[
+            :final_calibration_serialization_failure_is_terminal])
+        @test Bool(harness_contract[
+            :incomplete_artifact_failure_requires_recovery_disposition])
+        @test String(harness_contract[:failure_semantics][:schema]) ==
+            "bayesianmgmfrm.local_dependence_pilot_failure_semantics.v1"
         @test Bool(harness_contract[
             :sampler_controls_and_quality_gates_frozen])
         @test !Bool(harness_contract[
@@ -1221,8 +1968,14 @@ end
         @test Bool(harness_contract[
             :file_snapshot_rechecked_against_attempt_inventory])
         @test !Bool(harness_contract[:archive_validation_is_atomic])
-        @test !Bool(harness_contract[
+        @test Bool(harness_contract[
             :completed_attempt_archive_seal_supported])
+        @test Bool(harness_contract[
+            :completed_attempt_seal_create_new_publication_required])
+        @test !Bool(harness_contract[
+            :result_without_completed_attempt_seal_is_terminal])
+        @test Bool(harness_contract[
+            :completed_attempt_seal_and_result_semantics_both_required])
         @test Set(String.(harness_contract[:terminal_evidence_roles][
             :completed])) == Set([
             "generated_data",
@@ -1238,6 +1991,15 @@ end
             "calibration_row",
         ]
         generator = fixture[:artifact_generator]
+        @test Set(Symbol.(keys(generator))) == Set((
+            :path,
+            :source_sha256,
+            :batch_runner_path,
+            :batch_runner_source_sha256,
+            :canonical_executor_source_pin_id,
+        ))
+        @test String(generator[:canonical_executor_source_pin_id]) ==
+            checked.identity.canonical_executor_source_pin_id
         for (field, relative_path) in (
                 (:source_sha256,
                     "scripts/generate_local_dependence_pilot_batch_execution_harness.jl"),
@@ -1247,6 +2009,28 @@ end
             @test String(generator[field]) == runner.ld1b1_file_sha256(
                 joinpath(dirname(@__DIR__), relative_path))
         end
+    end
+end
+
+@testset "LD1b1 tracked harness ignores dynamic smoke state" begin
+    generator = LD1B1HarnessGenerator
+    mktempdir() do directory
+        output = joinpath(directory, "portable_harness.json")
+        generator.ld1b1_harness_generator_main(["--output", output])
+        generated = JSON3.read(read(output, String))
+        tracked_path = joinpath(
+            dirname(@__DIR__),
+            "test",
+            "fixtures",
+            "local_dependence_pilot_batch_execution_harness.json",
+        )
+        @test read(output) == read(tracked_path)
+        @test !Bool(generated[:summary][:bounded_canonical_smoke_passed])
+        @test "bounded_canonical_smoke_passed" in String.(
+            generated[:summary][:operational_execution_blockers])
+        @test String(generated[:plan_identity][
+            :bounded_smoke_receipt_validation][:assessment]) ==
+            "not_present"
     end
 end
 
@@ -1354,6 +2138,42 @@ end
         @test_throws ErrorException runner.ld1b1_selected_jobs(
             specs, options)
     end
+    review_path = joinpath(tempdir(), "ld1b1-synthetic-review.json")
+    @test_throws ErrorException runner.ld1b1_parse_args([
+        "--mode", "retire-interrupted",
+        "--job-id", first(specs).job_id,
+        "--retirement-reason", "interrupted_without_result",
+    ])
+    @test_throws ErrorException runner.ld1b1_parse_args([
+        "--mode", "retire-interrupted",
+        "--job-id", first(specs).job_id,
+        "--job-id", specs[2].job_id,
+        "--retirement-reason", "interrupted_without_result",
+        "--stopped-process-review", review_path,
+    ])
+    @test_throws ErrorException runner.ld1b1_parse_args([
+        "--mode", "retire-interrupted",
+        "--job-id", first(specs).job_id,
+        "--max-jobs", "1",
+        "--retirement-reason", "interrupted_without_result",
+        "--stopped-process-review", review_path,
+    ])
+    @test_throws ErrorException runner.ld1b1_parse_args([
+        "--mode", "retire-interrupted",
+        "--job-id", first(specs).job_id,
+        "--retirement-reason", "reservation_interrupted_before_precommit",
+        "--stopped-process-review", review_path,
+    ])
+    valid_retirement = runner.ld1b1_parse_args([
+        "--mode", "retire-interrupted",
+        "--job-id", first(specs).job_id,
+        "--attempt", "2",
+        "--retirement-reason", "interrupted_without_result",
+        "--stopped-process-review", review_path,
+    ])
+    @test valid_retirement.mode === :retire_interrupted
+    @test valid_retirement.attempt == 2
+    @test valid_retirement.retirement_reason === :interrupted_without_result
 end
 
 @testset "LD1b1 sampler gate distinguishes completed and diagnostic failure" begin
@@ -1393,7 +2213,12 @@ end
         execution_root = runner.ld1b1_execution_root(
             attempt_root, checked.identity.plan_id)
         empty_scan = runner.ld1b1_scan_attempts(
-            specs, checked.identity, execution_root)
+            specs,
+            checked.identity,
+            execution_root;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
         @test empty_scan.summary.n_jobs == 660
         @test empty_scan.summary.n_primary_attempts_observed == 0
         @test empty_scan.summary.n_missing_primary_outcomes == 660
@@ -1406,11 +2231,20 @@ end
         primary_job = eligible[1]
         primary_record = ld1b1_harness_test_terminal_result!(
             runner, checked.identity, primary_job, execution_root, 1,
-            :completed)
+            :completed;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
         primary = primary_record.artifact
         primary_path = primary_record.path
         primary_validation = runner.ld1b1_validate_result(
-            primary_path, checked.identity, primary_job, 1)
+            primary_path,
+            checked.identity,
+            primary_job,
+            1;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
         @test primary_validation.valid
         @test primary_validation.terminal_status === :completed
         @test primary_validation.result_sha256 ==
@@ -1426,7 +2260,9 @@ end
             primary_job,
             checked.identity,
             execution_root,
-            primary_options,
+            primary_options;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
         )
 
         primary_sha = runner.ld1b1_file_sha256(primary_path)
@@ -1436,11 +2272,19 @@ end
             retry_reason = "verified_scheduler_interruption",
             retry_of_attempt = 1,
             primary_result_sha256 = primary_sha,
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
         )
         remediation = remediation_record.artifact
         remediation_path = remediation_record.path
         remediation_validation = runner.ld1b1_validate_result(
-            remediation_path, checked.identity, primary_job, 2)
+            remediation_path,
+            checked.identity,
+            primary_job,
+            2;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
         @test remediation_validation.valid
         @test remediation.attempt.role === :remediation
         @test !remediation.attempt.counts_toward_primary
@@ -1459,7 +2303,9 @@ end
             primary_job,
             checked.identity,
             execution_root,
-            retry_options,
+            retry_options;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
         )
         next_retry_options = ld1b1_harness_test_options([
             "--mode", "execute-retry",
@@ -1472,13 +2318,20 @@ end
             primary_job,
             checked.identity,
             execution_root,
-            next_retry_options,
+            next_retry_options;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
         ) == runner.ld1b1_attempt_dir(
             execution_root, primary_job.job_id, 3)
 
         scan_specs = eligible[1:4]
         checkpoint_scan = runner.ld1b1_scan_attempts(
-            scan_specs, checked.identity, execution_root)
+            scan_specs,
+            checked.identity,
+            execution_root;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
         checkpoint = runner.ld1b1_checkpoint_artifact(
             checked.identity,
             checkpoint_scan;
@@ -1520,7 +2373,12 @@ end
             lineage_path, lineage; overwrite = false)
 
         rescanned = runner.ld1b1_scan_attempts(
-            scan_specs, checked.identity, execution_root)
+            scan_specs,
+            checked.identity,
+            execution_root;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
         by_job = Dict(row.job_id => row for row in rescanned.job_state_rows)
         @test by_job[primary_job.job_id].state ===
             :complete_verified_with_remediation
@@ -1546,6 +2404,30 @@ end
         @test resume.stored_state_digest == checkpoint_scan.state_digest
         @test resume.rescanned_state_digest == rescanned.state_digest
         @test resume.resume_uses_rescanned_attempts
+
+        for (name, mutate!) in (
+                ("execution_source", value ->
+                    value["plan_identity"]["execution_source_identity"][
+                        "job_runner_source_sha256"] = repeat("0", 64)),
+                ("harness_generator", value ->
+                    value["plan_identity"][
+                        "batch_harness_generator_source_sha256"] =
+                            repeat("0", 64)),
+                ("source_pin", value ->
+                    value["plan_identity"][
+                        "canonical_executor_source_pin_id"] =
+                            repeat("0", 64)),
+            )
+            forged = runner.ld1b1_json_native(
+                JSON3.read(read(checkpoint_path, String)))
+            mutate!(forged)
+            ld1b1_harness_test_rehash!(forged)
+            forged_path = joinpath(
+                execution_root, "checkpoint_forged_$(name).json")
+            ld1b1_harness_test_write_json(forged_path, forged)
+            @test_throws ErrorException runner.ld1b1_resume_state(
+                forged_path, checked.identity, rescanned)
+        end
 
         aggregate_options = ld1b1_harness_test_options([
             "--mode", "aggregate-only",
@@ -1582,6 +2464,450 @@ end
     end
 end
 
+@testset "LD1b1 completed-attempt seal is the terminal boundary" begin
+    runner = LD1B1HarnessRunner
+    checked = ld1b1_harness_test_checked(runner)
+    job = first(job for job in runner.ld1b1_job_specs(checked)
+        if job.expected_action === :fit_and_score_diagnostic)
+
+    for status in (
+            :completed,
+            :pre_fit_rejected,
+            :generation_failed,
+            :fit_failed,
+            :diagnostic_failed,
+        )
+        @test runner.ld1b1_terminal_outcome_code(status) === status
+    end
+    @test_throws ErrorException runner.ld1b1_terminal_outcome_code(
+        :interrupted)
+    @test_throws ErrorException runner.ld1b1_result_envelope(
+        checked.identity,
+        job,
+        1,
+        :completed;
+        terminal_outcome_code = :fit_failed,
+        runner_source_sha256 =
+            checked.identity.execution_source_identity.
+                job_runner_source_sha256,
+    )
+
+    mktempdir() do attempt_root
+        execution_root = runner.ld1b1_execution_root(
+            attempt_root, checked.identity.plan_id)
+        record = ld1b1_harness_test_terminal_result!(
+            runner,
+            checked.identity,
+            job,
+            execution_root,
+            1,
+            :completed;
+            publish_seal = false,
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
+        semantic = runner.ld1b1_validate_result(
+            record.path,
+            checked.identity,
+            job,
+            1;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
+        @test semantic.valid
+        @test semantic.terminal_outcome_code === :completed
+        @test record.artifact.terminal_outcome_code === :completed
+        @test !ispath(runner.ld1b1_seal_path(
+            execution_root, job.job_id, 1))
+
+        unsealed_scan = runner.ld1b1_scan_attempts(
+            [job],
+            checked.identity,
+            execution_root;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
+        unsealed_job = only(unsealed_scan.job_state_rows)
+        unsealed_attempt = only(unsealed_job.attempt_result_rows)
+        @test unsealed_job.state === :partial
+        @test !unsealed_job.primary_valid
+        @test unsealed_attempt.archive_state === :partial
+        @test ismissing(unsealed_attempt.terminal_status)
+        @test ismissing(unsealed_attempt.terminal_outcome_code)
+        @test ismissing(unsealed_attempt.seal_file_sha256)
+        @test unsealed_scan.summary.n_primary_attempts_observed == 0
+        @test unsealed_scan.summary.n_partial_primary_attempts == 1
+        @test unsealed_scan.summary.n_missing_primary_outcomes == 1
+
+        review_source = joinpath(attempt_root, "review-source.json")
+        review = ld1b1_harness_test_external_review!(
+            runner,
+            checked.identity,
+            job,
+            execution_root,
+            1,
+            review_source;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
+        @test review.observation.retirement_reason_code ===
+            :interrupted_with_semantically_valid_unsealed_result
+        recovery_options = ld1b1_harness_test_options([
+            "--mode", "retire-interrupted",
+            "--job-id", job.job_id,
+            "--attempt", "1",
+            "--retirement-reason",
+                "interrupted_with_semantically_valid_unsealed_result",
+            "--stopped-process-review", review_source,
+        ], attempt_root)
+        recovery_artifact = runner.ld1b1_build_harness(
+            recovery_options;
+            generated_at = "2026-07-27T00:06:00Z",
+        )
+        @test recovery_artifact.summary.passed
+        @test recovery_artifact.summary.mode === :retire_interrupted
+        @test isempty(recovery_artifact.command_rows)
+        @test isempty(recovery_artifact.execution_rows)
+        @test length(recovery_artifact.recovery_rows) == 1
+        @test only(recovery_artifact.recovery_rows).action_status ===
+            :retired_interruption_verified
+        @test !only(recovery_artifact.recovery_rows).subprocess_started
+        @test !only(recovery_artifact.recovery_rows).mcmc_run
+
+        retired_scan = runner.ld1b1_scan_attempts(
+            [job],
+            checked.identity,
+            execution_root;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
+        retired_job = only(retired_scan.job_state_rows)
+        retired_attempt = only(retired_job.attempt_result_rows)
+        @test retired_job.state === :primary_retired_interrupted
+        @test !retired_job.primary_valid
+        @test retired_job.primary_disposed
+        @test retired_attempt.archive_state === :retired_interrupted
+        @test retired_attempt.retirement_reason_code ===
+            :interrupted_with_semantically_valid_unsealed_result
+        @test retired_scan.summary.n_primary_attempts_observed == 0
+        @test retired_scan.summary.n_retired_primary_attempts == 1
+        @test retired_scan.summary.n_partial_primary_attempts == 0
+        @test retired_scan.summary.n_missing_primary_outcomes == 1
+        @test retired_scan.summary.all_primary_attempts_disposed
+        @test !retired_scan.summary.all_primary_outcomes_recorded
+        @test retired_scan.summary.attempt_archive_integrity_passed
+        @test !retired_scan.summary.aggregate_ready
+        @test retired_scan.observed_primary_result_set_sha256 ==
+            unsealed_scan.observed_primary_result_set_sha256
+        @test retired_scan.observed_primary_disposition_set_sha256 !=
+            unsealed_scan.observed_primary_disposition_set_sha256
+        @test retired_scan.state_digest != unsealed_scan.state_digest
+        @test_throws ErrorException runner.
+            ld1b1_publish_completed_attempt_seal(
+                record.path,
+                checked.identity,
+                job,
+                1;
+                calibration_semantic_context =
+                    checked.calibration_semantic_context,
+            )
+    end
+
+    mktempdir() do attempt_root
+        execution_root = runner.ld1b1_execution_root(
+            attempt_root, checked.identity.plan_id)
+        record = ld1b1_harness_test_terminal_result!(
+            runner, checked.identity, job, execution_root, 1, :completed)
+        before = runner.ld1b1_scan_attempts(
+            [job],
+            checked.identity,
+            execution_root;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
+        @test only(before.job_state_rows).primary_valid
+        open(record.path, "a") do io
+            write(io, " ")
+        end
+        @test runner.ld1b1_validate_result(
+            record.path,
+            checked.identity,
+            job,
+            1;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        ).valid
+        @test_throws ErrorException runner.ld1b1_validate_completed_attempt(
+            record.path,
+            checked.identity,
+            job,
+            1;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
+        after = runner.ld1b1_scan_attempts(
+            [job],
+            checked.identity,
+            execution_root;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
+        @test only(after.job_state_rows).state === :corrupt
+        @test !only(after.job_state_rows).primary_valid
+        @test after.summary.n_invalid_primary_attempts == 1
+        @test after.summary.n_primary_attempts_observed == 0
+        @test after.state_digest != before.state_digest
+        @test after.observed_primary_result_set_sha256 !=
+            before.observed_primary_result_set_sha256
+    end
+
+    mktempdir() do attempt_root
+        execution_root = runner.ld1b1_execution_root(
+            attempt_root, checked.identity.plan_id)
+        record = ld1b1_harness_test_terminal_result!(
+            runner,
+            checked.identity,
+            job,
+            execution_root,
+            1,
+            :completed;
+            publish_seal = false,
+        )
+        result = runner.ld1b1_json_native(
+            JSON3.read(read(record.path, String)))
+        delete!(result, "terminal_outcome_code")
+        ld1b1_harness_test_rehash!(result)
+        ld1b1_harness_test_write_json(record.path, result)
+        @test_throws ErrorException runner.ld1b1_validate_result(
+            record.path,
+            checked.identity,
+            job,
+            1;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
+    end
+
+    for field in (
+            "attempt_archive_source_sha256",
+            "local_dependence_pilot_recovery_source_sha256",
+            "local_dependence_pilot_calibration_semantics_source_sha256",
+        )
+        mktempdir() do attempt_root
+            execution_root = runner.ld1b1_execution_root(
+                attempt_root, checked.identity.plan_id)
+            record = ld1b1_harness_test_terminal_result!(
+                runner,
+                checked.identity,
+                job,
+                execution_root,
+                1,
+                :completed;
+                publish_seal = false,
+            )
+            result = runner.ld1b1_json_native(
+                JSON3.read(read(record.path, String)))
+            delete!(result["execution_source_identity"], field)
+            ld1b1_harness_test_rehash!(result)
+            ld1b1_harness_test_write_json(record.path, result)
+            @test_throws ErrorException runner.ld1b1_validate_result(
+                record.path,
+                checked.identity,
+                job,
+                1;
+                calibration_semantic_context =
+                    checked.calibration_semantic_context,
+            )
+        end
+    end
+
+    mktempdir() do attempt_root
+        execution_root = runner.ld1b1_execution_root(
+            attempt_root, checked.identity.plan_id)
+        record = ld1b1_harness_test_terminal_result!(
+            runner,
+            checked.identity,
+            job,
+            execution_root,
+            1,
+            :completed;
+            publish_seal = false,
+        )
+        evidence_relative_path = "calibration_row.json"
+        evidence_path = joinpath(
+            dirname(record.path), evidence_relative_path)
+        evidence = runner.ld1b1_json_native(
+            JSON3.read(read(evidence_path, String)))
+        delete!(
+            evidence["execution_source_identity"],
+            "local_dependence_pilot_calibration_semantics_source_sha256",
+        )
+        ld1b1_harness_test_rehash!(evidence)
+        ld1b1_harness_test_write_json(evidence_path, evidence)
+        ld1b1_harness_test_refresh_evidence_manifest!(
+            runner,
+            record.path,
+            evidence_relative_path,
+        )
+        @test_throws ErrorException runner.ld1b1_validate_result(
+            record.path,
+            checked.identity,
+            job,
+            1;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
+    end
+end
+
+@testset "LD1b1 interruption review retires without completing the denominator" begin
+    runner = LD1B1HarnessRunner
+    checked = ld1b1_harness_test_checked(runner)
+    specs = runner.ld1b1_job_specs(checked)
+    job = first(job for job in specs
+        if job.expected_action === :fit_and_score_diagnostic)
+
+    mktempdir() do attempt_root
+        execution_root = runner.ld1b1_execution_root(
+            attempt_root, checked.identity.plan_id)
+        review_source = joinpath(attempt_root, "no-result-review.json")
+        review = ld1b1_harness_test_external_review!(
+            runner,
+            checked.identity,
+            job,
+            execution_root,
+            1,
+            review_source;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
+        @test review.observation.retirement_reason_code ===
+            :interrupted_without_result
+        before = runner.ld1b1_scan_attempts(
+            [job],
+            checked.identity,
+            execution_root;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
+        @test only(before.job_state_rows).state === :partial
+        @test before.summary.n_partial_primary_attempts == 1
+        checkpoint = runner.ld1b1_checkpoint_artifact(
+            checked.identity, before;
+            generated_at = "2026-07-27T00:03:00Z",
+        )
+        checkpoint_path = joinpath(execution_root, "checkpoint.json")
+        runner.ld1b1_atomic_write_artifact(
+            checkpoint_path, checkpoint; overwrite = false)
+
+        attempt_dir = runner.ld1b1_attempt_dir(
+            execution_root, job.job_id, 1)
+        published_review = runner.ld1b1_publish_external_interruption_review(
+            review_source,
+            attempt_dir,
+            execution_root,
+            checked.identity,
+            job,
+            1,
+        )
+        @test published_review.publication.published
+        pending = runner.ld1b1_scan_attempts(
+            [job],
+            checked.identity,
+            execution_root;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
+        @test only(pending.job_state_rows).state ===
+            :reviewed_pending_retirement
+        @test only(only(pending.job_state_rows).attempt_result_rows).
+            archive_state === :reviewed_pending_retirement
+        @test pending.summary.n_reviewed_pending_retirement_attempts == 1
+        @test pending.summary.n_partial_attempts == 1
+        @test pending.state_digest != before.state_digest
+
+        options = ld1b1_harness_test_options([
+            "--mode", "retire-interrupted",
+            "--job-id", job.job_id,
+            "--attempt", "1",
+            "--retirement-reason", "interrupted_without_result",
+            "--stopped-process-review", review_source,
+        ], attempt_root)
+        selection = runner.ld1b1_selected_jobs(specs, options)
+        recovery_rows = runner.ld1b1_retire_interrupted_selected(
+            selection, checked, execution_root, options)
+        @test only(recovery_rows).action_status ===
+            :retired_interruption_verified
+        @test !only(recovery_rows).subprocess_started
+        retired = runner.ld1b1_scan_attempts(
+            [job],
+            checked.identity,
+            execution_root;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
+        retired_job = only(retired.job_state_rows)
+        @test retired_job.state === :primary_retired_interrupted
+        @test retired_job.primary_disposed
+        @test !retired_job.primary_valid
+        @test retired.summary.n_retired_attempts == 1
+        @test retired.summary.n_retired_primary_attempts == 1
+        @test retired.summary.n_missing_primary_outcomes == 1
+        @test retired.summary.attempt_archive_integrity_passed
+        @test !retired.summary.pilot_execution_completed
+        @test !retired.summary.aggregate_ready
+        @test retired.observed_primary_result_set_sha256 ==
+            before.observed_primary_result_set_sha256
+        @test retired.observed_primary_disposition_set_sha256 !=
+            before.observed_primary_disposition_set_sha256
+        resume = runner.ld1b1_resume_state(
+            checkpoint_path, checked.identity, retired)
+        @test resume.checkpoint_stale
+
+        repeated = runner.ld1b1_retire_interrupted_selected(
+            selection, checked, execution_root, options)
+        @test only(repeated).review_publication === :reused_existing
+        @test only(repeated).retirement_publication === :reused_existing
+        @test !only(repeated).mcmc_run
+    end
+
+    mktempdir() do attempt_root
+        execution_root = runner.ld1b1_execution_root(
+            attempt_root, checked.identity.plan_id)
+        receipts = ld1b1_harness_test_recovery_receipts!(
+            runner, checked.identity, job, execution_root, 1)
+        marker = runner.LD1B1AttemptArchive.
+            ld1b_publish_attempt_retirement_marker(
+                receipts.attempt_dir;
+                plan_identity =
+                    runner.ld1b1_result_plan_identity(checked.identity),
+                execution_source_identity =
+                    checked.identity.execution_source_identity,
+                job_identity = runner.ld1b1_result_job_identity(job),
+                attempt_number = 1,
+                attempt_role = :primary,
+                retirement_reason_code = :interrupted_without_result,
+                review_record_sha256 = repeat("a", 64),
+                process_confirmed_stopped = true,
+                staging_dir = runner.ld1b1_retirement_staging_dir(
+                    execution_root),
+                boundary = execution_root,
+            )
+        @test marker.validation.valid
+        invalid = runner.ld1b1_scan_attempts(
+            [job],
+            checked.identity,
+            execution_root;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
+        @test only(invalid.job_state_rows).state === :corrupt
+        @test invalid.summary.n_invalid_primary_attempts == 1
+        @test invalid.summary.n_retired_attempts == 0
+        @test !invalid.summary.attempt_archive_integrity_passed
+    end
+end
+
 @testset "LD1b1 pilot batch dry-run remains MCMC-free" begin
     runner = LD1B1HarnessRunner
     mktempdir() do attempt_root
@@ -1596,8 +2922,25 @@ end
         )
         @test artifact.summary.passed
         @test artifact.summary.mode === :dry_run
-        @test artifact.summary.execution_plan_complete
-        @test artifact.summary.execution_plan_assessment === :complete
+        @test !artifact.summary.execution_plan_complete
+        @test artifact.summary.execution_plan_assessment ===
+            :incomplete_operational_readiness
+        @test !artifact.summary.operational_execution_authorized
+        @test artifact.summary.canonical_executor_materialized
+        @test artifact.summary.
+            final_worker_source_pinned_and_identities_regenerated
+        @test artifact.summary.canonical_executor_source_pinned
+        @test !(:canonical_executor_source_pinned in
+            artifact.summary.operational_execution_blockers)
+        @test :bounded_canonical_smoke_passed in
+            artifact.summary.operational_execution_blockers
+        @test artifact.summary.completed_attempt_archive_seal_supported
+        @test !(:completed_attempt_archive_seal_supported in
+            artifact.summary.operational_execution_blockers)
+        @test :interrupted_attempt_recovery_review_passed in
+            artifact.summary.operational_execution_blockers
+        @test :canonical_execution_root_bound in
+            artifact.summary.operational_execution_blockers
         @test artifact.summary.n_plan_jobs == 660
         @test artifact.summary.n_fit_jobs == 540
         @test artifact.summary.n_pre_fit_rejection_jobs == 120
@@ -1606,6 +2949,43 @@ end
         @test length(artifact.command_rows) == 2
         @test all(row -> row.attempt == 1 &&
             row.attempt_role === :primary && row.counts_toward_primary,
+            artifact.command_rows)
+        archive_sha256 = artifact.plan_identity.execution_source_identity.
+            attempt_archive_source_sha256
+        recovery_sha256 = artifact.plan_identity.execution_source_identity.
+            local_dependence_pilot_recovery_source_sha256
+        semantics_sha256 = artifact.plan_identity.execution_source_identity.
+            local_dependence_pilot_calibration_semantics_source_sha256
+        batch_sha256 = artifact.plan_identity.execution_source_identity.
+            batch_runner_source_sha256
+        local_json_sha256 = artifact.plan_identity.execution_source_identity.
+            local_json_source_sha256
+        worker_sha256 = artifact.plan_identity.execution_source_identity.
+            job_runner_source_sha256
+        @test all(row ->
+            occursin(artifact.plan_identity.plan_id, row.command) &&
+                occursin(
+                    artifact.plan_identity.protocol_content_hash,
+                    row.command,
+                ) &&
+                occursin("--batch-runner-source-sha256", row.command) &&
+                occursin(batch_sha256, row.command) &&
+                occursin("--local-json-source-sha256", row.command) &&
+                occursin(local_json_sha256, row.command) &&
+                occursin("--runner-source-sha256", row.command) &&
+                occursin(worker_sha256, row.command) &&
+                occursin("--attempt-archive-source-sha256", row.command) &&
+                occursin(archive_sha256, row.command) &&
+                occursin(
+                    "--local-dependence-pilot-recovery-source-sha256",
+                    row.command,
+                ) &&
+                occursin(recovery_sha256, row.command) &&
+                occursin(
+                    "--local-dependence-pilot-calibration-semantics-source-sha256",
+                    row.command,
+                ) &&
+                occursin(semantics_sha256, row.command),
             artifact.command_rows)
         @test isempty(artifact.execution_rows)
         @test artifact.runner.subprocesses_started == 0
@@ -1624,6 +3004,23 @@ end
     end
 end
 
+@testset "LD1b1 execute mode fails before attempt-root creation" begin
+    runner = LD1B1HarnessRunner
+    mktempdir() do parent
+        attempt_root = joinpath(parent, "must_not_be_created")
+        options = ld1b1_harness_test_options([
+            "--mode", "execute-primary",
+            "--row-index", "5",
+        ], attempt_root)
+        @test !ispath(attempt_root)
+        @test_throws ErrorException runner.ld1b1_build_harness(
+            options;
+            generated_at = "2026-07-27T00:00:00",
+        )
+        @test !ispath(attempt_root)
+    end
+end
+
 @testset "LD1b1 aggregate uses the complete primary denominator only" begin
     runner = LD1B1HarnessRunner
     checked = ld1b1_harness_test_checked(runner)
@@ -1635,17 +3032,32 @@ end
             status = job.expected_action === :pre_fit_reject ?
                 :pre_fit_rejected : :completed
             ld1b1_harness_test_terminal_result!(
-                runner, checked.identity, job, execution_root, 1, status)
+                runner,
+                checked.identity,
+                job,
+                execution_root,
+                1,
+                status;
+                calibration_semantic_context =
+                    checked.calibration_semantic_context,
+            )
         end
 
         scan = runner.ld1b1_scan_attempts(
-            specs, checked.identity, execution_root)
+            specs,
+            checked.identity,
+            execution_root;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
         @test scan.summary.n_primary_attempts_observed == 660
         @test scan.summary.n_completed_primary_outcomes == 540
         @test scan.summary.n_pre_fit_rejected_primary_outcomes == 120
         @test scan.summary.n_categorized_primary_failures == 0
         @test scan.summary.n_missing_primary_outcomes == 0
         @test scan.summary.n_retry_attempts_observed == 0
+        @test all(row -> row.primary_terminal_outcome_code ===
+            row.primary_terminal_status, scan.job_state_rows)
         @test scan.summary.clean_attempt_tree
         @test scan.summary.pilot_execution_completed
         @test scan.summary.operational_gate_passed
@@ -1678,7 +3090,12 @@ end
         mkpath(runner.ld1b1_attempt_dir(
             execution_root, first(specs).job_id, 2))
         remediation_scan = runner.ld1b1_scan_attempts(
-            specs, checked.identity, execution_root)
+            specs,
+            checked.identity,
+            execution_root;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
         @test remediation_scan.summary.primary_attempt_tree_clean
         @test !remediation_scan.summary.remediation_archive_clean
         @test !remediation_scan.summary.attempt_archive_integrity_passed
@@ -1717,7 +3134,12 @@ end
             primary_result_sha256 = runner.ld1b1_file_sha256(primary_path),
         )
         scan = runner.ld1b1_scan_attempts(
-            [job], checked.identity, execution_root)
+            [job],
+            checked.identity,
+            execution_root;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
         @test only(scan.job_state_rows).state === :noncontiguous_attempts
         @test scan.summary.n_primary_attempts_observed == 1
         @test scan.summary.n_retry_attempts_observed == 1
@@ -1732,15 +3154,298 @@ end
     checked = ld1b1_harness_test_checked(runner)
     job = first(job for job in runner.ld1b1_job_specs(checked)
         if job.expected_action === :fit_and_score_diagnostic)
+    rejection_job = first(job for job in runner.ld1b1_job_specs(checked)
+        if job.expected_action === :pre_fit_reject)
 
+    for status in (
+            :completed,
+            :pre_fit_rejected,
+            :generation_failed,
+            :fit_failed,
+            :diagnostic_failed,
+        )
+        status_job = status === :pre_fit_rejected ? rejection_job : job
+        mktempdir() do attempt_root
+            execution_root = runner.ld1b1_execution_root(
+                attempt_root, checked.identity.plan_id)
+            record = ld1b1_harness_test_terminal_result!(
+                runner,
+                checked.identity,
+                status_job,
+                execution_root,
+                1,
+                status;
+                publish_seal = false,
+                calibration_semantic_context =
+                    checked.calibration_semantic_context,
+            )
+            @test_throws ErrorException runner.ld1b1_validate_result(
+                record.path, checked.identity, status_job, 1)
+            @test_throws ErrorException runner.
+                ld1b1_publish_completed_attempt_seal(
+                    record.path, checked.identity, status_job, 1)
+            @test_throws ErrorException runner.ld1b1_scan_attempts(
+                [status_job], checked.identity, execution_root)
+            @test_throws ErrorException runner.
+                ld1b1_interrupted_attempt_observation(
+                    execution_root, checked.identity, status_job, 1)
+            if status === :completed
+                @test_throws ErrorException runner.
+                    ld1b1_validate_completed_attempt(
+                        record.path, checked.identity, status_job, 1)
+                @test_throws ErrorException runner.
+                    ld1b1_require_attempt_available(
+                        status_job,
+                        checked.identity,
+                        execution_root,
+                        (; attempt = 2),
+                    )
+                wrong_hash_context = merge(
+                    checked.calibration_semantic_context,
+                    (; public_job_rows_sha256 = repeat("0", 64)),
+                )
+                @test_throws ErrorException runner.ld1b1_validate_result(
+                    record.path,
+                    checked.identity,
+                    status_job,
+                    1;
+                    calibration_semantic_context = wrong_hash_context,
+                )
+                canonical_plan = checked.calibration_semantic_context.
+                    plan_rows[status_job.row_index]
+                changed_plan_rows = Base.setindex(
+                    checked.calibration_semantic_context.plan_rows,
+                    merge(canonical_plan, (; seed = canonical_plan.seed + 1)),
+                    status_job.row_index,
+                )
+                wrong_plan_context = merge(
+                    checked.calibration_semantic_context,
+                    (; plan_rows = changed_plan_rows),
+                )
+                @test_throws ErrorException runner.ld1b1_validate_result(
+                    record.path,
+                    checked.identity,
+                    status_job,
+                    1;
+                    calibration_semantic_context = wrong_plan_context,
+                )
+                changed_grid_plan_rows = Base.setindex(
+                    checked.calibration_semantic_context.plan_rows,
+                    merge(canonical_plan, (;
+                        grid_id = string(canonical_plan.grid_id, "-changed"),
+                    )),
+                    status_job.row_index,
+                )
+                wrong_grid_context = merge(
+                    checked.calibration_semantic_context,
+                    (; plan_rows = changed_grid_plan_rows),
+                )
+                @test_throws ErrorException runner.
+                    ld1b1_validate_calibration_semantic_context_identity(
+                        wrong_grid_context,
+                        checked.identity,
+                        status_job,
+                    )
+                wrong_preflight_context = merge(
+                    checked.calibration_semantic_context,
+                    (; public_preflight = merge(
+                        checked.calibration_semantic_context.public_preflight,
+                        (; status = :changed_preflight_status),
+                    )),
+                )
+                @test_throws ErrorException runner.
+                    ld1b1_validate_calibration_semantic_context_identity(
+                        wrong_preflight_context,
+                        checked.identity,
+                        status_job,
+                    )
+            end
+        end
+    end
+
+    expected_failure_roles = Dict(
+        :generation_failed => (
+            :generation_failure_record,
+            :calibration_row,
+        ),
+        :fit_failed => (
+            :generated_data,
+            :fit_failure_record,
+            :calibration_row,
+        ),
+        :diagnostic_failed => (
+            :generated_data,
+            :fit_result,
+            :sampler_diagnostics,
+            :diagnostic_failure_record,
+            :calibration_row,
+        ),
+    )
     for status in (:generation_failed, :fit_failed, :diagnostic_failed)
         mktempdir() do attempt_root
             execution_root = runner.ld1b1_execution_root(
                 attempt_root, checked.identity.plan_id)
             record = ld1b1_harness_test_terminal_result!(
-                runner, checked.identity, job, execution_root, 1, status)
-            @test runner.ld1b1_validate_result(
-                record.path, checked.identity, job, 1).terminal_status === status
+                runner,
+                checked.identity,
+                job,
+                execution_root,
+                1,
+                status;
+                calibration_semantic_context =
+                    checked.calibration_semantic_context,
+            )
+            validated = runner.ld1b1_validate_result(
+                record.path,
+                checked.identity,
+                job,
+                1;
+                calibration_semantic_context =
+                    checked.calibration_semantic_context,
+            )
+            @test validated.terminal_status === status
+            @test validated.terminal_outcome_code === status
+            @test record.artifact.terminal_outcome_code === status
+            @test Set(validated.evidence_roles) ==
+                Set(expected_failure_roles[status])
+            evidence_map = ld1b1_harness_test_evidence_map(
+                runner, record.path)
+            calibration = evidence_map[:calibration_row]
+            @test Symbol(calibration.payload[:status]) === status
+            @test Symbol(calibration.source_value[:failure_code]) ===
+                :synthetic_test_failure
+            @test ismissing(runner.ld1b1_get(
+                calibration.source_value, :diagnostic_provenance, missing))
+            @test isempty(calibration.source_value[:pair_evidence])
+            @test isempty(calibration.source_value[:family_evidence])
+            @test ismissing(runner.ld1b1_get(
+                calibration.source_value, :global_evidence, missing))
+            if status === :generation_failed
+                @test all(field -> ismissing(runner.ld1b1_get(
+                    calibration.payload, field, missing)), (
+                    :data_signature,
+                    :observed_score_signature_sha256,
+                    :design_signature_sha256,
+                ))
+                @test ismissing(runner.ld1b1_get(
+                    calibration.source_value,
+                    :simulation_provenance,
+                    missing,
+                ))
+                canonical = runner.LD1B1CalibrationSemantics.
+                    ld1b1_canonical_generation_failed_row(
+                        checked.calibration_semantic_context,
+                        job.row_index;
+                        failure_record = evidence_map[
+                            :generation_failure_record].source_value,
+                    )
+                @test runner.LD1B1CalibrationSemantics.
+                    ld1b1_normalized_json(calibration.source_value) ==
+                    runner.LD1B1CalibrationSemantics.
+                        ld1b1_normalized_json(canonical.expected)
+                @test runner.ld1b1_validate_completed_attempt(
+                    record.path,
+                    checked.identity,
+                    job,
+                    1;
+                    calibration_semantic_context =
+                        checked.calibration_semantic_context,
+                ).archive_state === :verified_terminal
+            else
+                @test !ismissing(runner.ld1b1_get(
+                    calibration.source_value,
+                    :simulation_provenance,
+                    missing,
+                ))
+                @test calibration.payload[:data_signature] ==
+                    evidence_map[:generated_data].payload[:data_signature]
+            end
+        end
+    end
+
+    planned_field_mutations = (
+        (:profile, member ->
+            (member["profile"] = "mutated_calibration_profile")),
+        (:component_seeds, member ->
+            (member["component_seeds"]["design"] += 1)),
+        (:truth, member ->
+            (member["truth"]["target_standard_deviation"] += 0.25)),
+    )
+    for (field, mutate!) in planned_field_mutations
+        mktempdir() do attempt_root
+            execution_root = runner.ld1b1_execution_root(
+                attempt_root, checked.identity.plan_id)
+            record = ld1b1_harness_test_terminal_result!(
+                runner,
+                checked.identity,
+                job,
+                execution_root,
+                1,
+                :generation_failed;
+                publish_seal = false,
+                canonical_controller_receipts = true,
+                calibration_semantic_context =
+                    checked.calibration_semantic_context,
+            )
+            evidence_path = joinpath(
+                dirname(record.path), "calibration_row.json")
+            evidence = runner.ld1b1_json_native(
+                JSON3.read(read(evidence_path, String)))
+            source_path = joinpath(
+                dirname(record.path),
+                String(evidence["source_member"]["path"]),
+            )
+            source = runner.ld1b1_json_native(
+                JSON3.read(read(source_path, String)))
+            mutate!(source)
+            ld1b1_harness_test_write_json(source_path, source)
+            ld1b1_harness_test_refresh_source_binding!(
+                runner,
+                record.path,
+                "calibration_row.json",
+            )
+
+            sealed = ld1b1_harness_test_publish_structural_seal!(
+                runner,
+                checked.identity,
+                job,
+                record.path,
+                1,
+                :generation_failed,
+            )
+            @test sealed.validation.valid
+            @test occursin(
+                r"^[0-9a-f]{64}$",
+                sealed.validation.seal_file_sha256,
+            )
+            failure = try
+                runner.ld1b1_validate_completed_attempt(
+                    record.path,
+                    checked.identity,
+                    job,
+                    1;
+                    calibration_semantic_context =
+                        checked.calibration_semantic_context,
+                )
+                nothing
+            catch err
+                err
+            end
+            @test failure isa ErrorException
+            @test occursin(
+                "calibration semantic replay failed for generation_failed",
+                sprint(showerror, failure),
+            )
+            scan = runner.ld1b1_scan_attempts(
+                [job],
+                checked.identity,
+                execution_root;
+                calibration_semantic_context =
+                    checked.calibration_semantic_context,
+            )
+            @test only(scan.job_state_rows).state === :corrupt
+            @test scan.summary.n_invalid_primary_attempts == 1
+            @test field in (:profile, :component_seeds, :truth)
         end
     end
 
@@ -1760,9 +3465,20 @@ end
         runner.ld1b1_atomic_write_artifact(
             result_path, empty_evidence; overwrite = false)
         @test_throws ErrorException runner.ld1b1_validate_result(
-            result_path, checked.identity, job, 1)
+            result_path,
+            checked.identity,
+            job,
+            1;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
         scan = runner.ld1b1_scan_attempts(
-            [job], checked.identity, execution_root)
+            [job],
+            checked.identity,
+            execution_root;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
         @test only(scan.job_state_rows).state === :corrupt
         @test scan.summary.n_invalid_primary_attempts == 1
         @test !scan.summary.primary_attempt_tree_clean
@@ -1788,7 +3504,13 @@ end
         ], attempt_root)
         @test isfile(primary.path)
         @test_throws Exception runner.ld1b1_require_attempt_available(
-            job, checked.identity, execution_root, retry_options)
+            job,
+            checked.identity,
+            execution_root,
+            retry_options;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
     end
 
     symlink_capability = ld1b1_harness_test_symlink_capability()
@@ -1806,7 +3528,13 @@ end
             rm(evidence_path)
             symlink(external_path, evidence_path)
             @test_throws ErrorException runner.ld1b1_validate_result(
-                record.path, checked.identity, job, 1)
+                record.path,
+                checked.identity,
+                job,
+                1;
+                calibration_semantic_context =
+                    checked.calibration_semantic_context,
+            )
         end
 
         mktempdir() do attempt_root
@@ -1818,7 +3546,12 @@ end
             mkpath(external_job_dir)
             symlink(external_job_dir, joinpath(jobs_root, job.job_id))
             scan = runner.ld1b1_scan_attempts(
-                [job], checked.identity, execution_root)
+                [job],
+                checked.identity,
+                execution_root;
+                calibration_semantic_context =
+                    checked.calibration_semantic_context,
+            )
             @test scan.summary.n_unexpected_plan_entries == 1
             @test !scan.summary.primary_attempt_tree_clean
             @test !scan.summary.aggregate_ready
@@ -1836,7 +3569,12 @@ end
             @test islink(jobs_root)
             @test !ispath(jobs_root)
             scan = runner.ld1b1_scan_attempts(
-                [job], checked.identity, execution_root)
+                [job],
+                checked.identity,
+                execution_root;
+                calibration_semantic_context =
+                    checked.calibration_semantic_context,
+            )
             @test scan.summary.n_unexpected_plan_entries == 1
             @test !scan.summary.primary_attempt_tree_clean
             @test !scan.summary.aggregate_ready
@@ -1875,9 +3613,47 @@ end
         evidence_map = ld1b1_harness_test_evidence_map(runner, record.path)
         @test runner.ld1b1_validate_cross_evidence_lineage(
             evidence_map, :completed, eligible)
-        evidence_map[:local_dependence_summary].payload[:data_signature] += 1
+        string_keyed_evidence = copy(evidence_map)
+        for role in (
+                :fit_result,
+                :sampler_diagnostics,
+                :local_dependence_summary,
+            )
+            row = evidence_map[role]
+            string_keyed_evidence[role] = merge(row, (;
+                source_value = runner.ld1b1_json_native(row.source_value),
+            ))
+        end
+        @test runner.ld1b1_validate_cross_evidence_lineage(
+            string_keyed_evidence, :completed, eligible)
+        observed_data_signature = evidence_map[
+            :local_dependence_summary].payload[:data_signature]
+        evidence_map[:local_dependence_summary].payload[:data_signature] =
+            string(parse(UInt64, observed_data_signature) + UInt64(1))
         @test_throws ErrorException runner.ld1b1_validate_cross_evidence_lineage(
             evidence_map, :completed, eligible)
+
+        simulation_lineage_mutations = (
+            evidence -> (evidence[:calibration_row].source_value[
+                :simulation_provenance][:status] = :different_status),
+            evidence -> (evidence[:calibration_row].source_value[
+                :simulation_provenance][:score_signature] = repeat("0", 64)),
+            evidence -> (evidence[:calibration_row].source_value[
+                :simulation_provenance][:observed_score_signature][:value] =
+                    repeat("0", 64)),
+            evidence -> (evidence[:calibration_row].source_value[
+                :simulation_provenance][:observed_shape][:n_raters] += 1),
+            evidence -> (evidence[:calibration_row].source_value[
+                :simulation_provenance][:future_fit_action] =
+                    :do_not_fit_category_support_incomplete),
+        )
+        for mutate! in simulation_lineage_mutations
+            mutated = ld1b1_harness_test_evidence_map(runner, record.path)
+            mutate!(mutated)
+            @test_throws ErrorException runner.
+                ld1b1_validate_cross_evidence_lineage(
+                    mutated, :completed, eligible)
+        end
     end
 
     mktempdir() do attempt_root
@@ -1889,6 +3665,12 @@ end
         evidence_map = ld1b1_harness_test_evidence_map(runner, record.path)
         @test runner.ld1b1_validate_cross_evidence_lineage(
             evidence_map, :diagnostic_failed, eligible)
+        evidence_map[:diagnostic_failure_record].payload[
+            :error_class] = :different_failure
+        @test_throws ErrorException runner.ld1b1_validate_cross_evidence_lineage(
+            evidence_map, :diagnostic_failed, eligible)
+        evidence_map[:diagnostic_failure_record].payload[
+            :error_class] = :synthetic_test_failure
         evidence_map[:diagnostic_failure_record].payload[
             :failure_component] = :sampler_quality_gate
         @test_throws ErrorException runner.ld1b1_validate_cross_evidence_lineage(
@@ -1902,7 +3684,13 @@ end
             runner, checked.identity, rejection, execution_root, 1,
             :pre_fit_rejected)
         validated = runner.ld1b1_validate_result(
-            record.path, checked.identity, rejection, 1)
+            record.path,
+            checked.identity,
+            rejection,
+            1;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
         @test Set(validated.evidence_roles) == Set((
             :generated_data,
             :structural_rejection_audit,
@@ -1915,9 +3703,18 @@ end
             attempt_root, checked.identity.plan_id)
         record = ld1b1_harness_test_terminal_result!(
             runner, checked.identity, rejection, execution_root, 1,
-            :generation_failed)
+            :generation_failed;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
         @test runner.ld1b1_validate_result(
-            record.path, checked.identity, rejection, 1).terminal_status ===
+            record.path,
+            checked.identity,
+            rejection,
+            1;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        ).terminal_status ===
             :generation_failed
     end
 
@@ -1935,7 +3732,13 @@ end
         ld1b1_harness_test_refresh_source_binding!(
             runner, record.path, "fit_result.json")
         @test_throws Exception runner.ld1b1_validate_result(
-            record.path, checked.identity, eligible, 1)
+            record.path,
+            checked.identity,
+            eligible,
+            1;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
     end
 
     mktempdir() do attempt_root
@@ -1955,7 +3758,13 @@ end
         ld1b1_harness_test_refresh_source_binding!(
             runner, record.path, "generated_data.json")
         @test_throws ErrorException runner.ld1b1_validate_result(
-            record.path, checked.identity, eligible, 1)
+            record.path,
+            checked.identity,
+            eligible,
+            1;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
     end
 
 end
@@ -1971,24 +3780,25 @@ end
     fit_payload = ld1b1_harness_test_evidence_payload(
         runner, job, :fit_result, repeat("a", 64))
     validated_fit = runner.ld1b1_validate_source_member_json(
-        json_bytes(fit_source), :fit_result, job, fit_payload)
+        json_bytes(fit_source), :fit_result, job, fit_payload, :completed)
     @test String(validated_fit[:schema]) ==
         "bayesianmgmfrm.fit_artifact.v1"
 
     changed_json = deepcopy(fit_source)
     changed_json["artifact"]["created_at"] = "2026-07-21T00:00:01"
     @test_throws ErrorException runner.ld1b1_validate_source_member_json(
-        json_bytes(changed_json), :fit_result, job, fit_payload)
+        json_bytes(changed_json), :fit_result, job, fit_payload, :completed)
 
     changed_native = deepcopy(fit_source)
     changed_native["artifact_content_hash"]["value"] = repeat("0", 64)
     @test_throws ErrorException runner.ld1b1_validate_source_member_json(
-        json_bytes(changed_native), :fit_result, job, fit_payload)
+        json_bytes(changed_native), :fit_result, job, fit_payload, :completed)
 
     changed_json_length = deepcopy(fit_source)
     changed_json_length["json_content_hash"]["n_canonical_bytes"] += 1
     @test_throws ErrorException runner.ld1b1_validate_source_member_json(
-        json_bytes(changed_json_length), :fit_result, job, fit_payload)
+        json_bytes(changed_json_length), :fit_result, job, fit_payload,
+        :completed)
 
     local_source = ld1b1_harness_test_source_member_value(
         job, :local_dependence_summary)
@@ -1996,7 +3806,7 @@ end
         runner, job, :local_dependence_summary, repeat("b", 64))
     @test String(runner.ld1b1_validate_source_member_json(
         json_bytes(local_source), :local_dependence_summary,
-        job, local_payload)[:schema]) ==
+        job, local_payload, :completed)[:schema]) ==
         "bayesianmgmfrm.local_dependence_pilot_summary_bundle.v1"
 
     for seed_field in ("draw_selection_seed", "posterior_predictive_seed")
@@ -2004,7 +3814,7 @@ end
         changed_seed[seed_field] += 1
         @test_throws ErrorException runner.ld1b1_validate_source_member_json(
             json_bytes(changed_seed), :local_dependence_summary,
-            job, local_payload)
+            job, local_payload, :completed)
     end
 
     changed_selection = deepcopy(local_source)
@@ -2016,7 +3826,7 @@ end
         reverse(changed_selection["iterations"][1:2])
     @test_throws ErrorException runner.ld1b1_validate_source_member_json(
         json_bytes(changed_selection), :local_dependence_summary,
-        job, local_payload)
+        job, local_payload, :completed)
 end
 
 @testset "LD1b1 unexpected-entry digests bind archive-relative contents" begin
@@ -2031,7 +3841,12 @@ end
         unexpected_path = joinpath(jobs_root, "unexpected.txt")
         write(unexpected_path, "alpha")
         first_scan = runner.ld1b1_scan_attempts(
-            [job], checked.identity, execution_root)
+            [job],
+            checked.identity,
+            execution_root;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
         first_entry = only(first_scan.unexpected_plan_entries)
         @test first_entry.path == joinpath("jobs", "unexpected.txt")
         @test !isabspath(first_entry.path)
@@ -2041,7 +3856,12 @@ end
 
         write(unexpected_path, "omega")
         second_scan = runner.ld1b1_scan_attempts(
-            [job], checked.identity, execution_root)
+            [job],
+            checked.identity,
+            execution_root;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
         second_entry = only(second_scan.unexpected_plan_entries)
         @test second_entry.path == first_entry.path
         @test second_entry.bytes == first_entry.bytes
@@ -2063,14 +3883,25 @@ end
         record = ld1b1_harness_test_terminal_result!(
             runner, checked.identity, job, execution_root, 1, :completed)
         validated = runner.ld1b1_validate_result(
-            record.path, checked.identity, job, 1)
+            record.path,
+            checked.identity,
+            job,
+            1;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
         @test occursin(r"^[0-9a-f]{64}$",
             validated.evidence_manifest_sha256)
         @test validated.runner_source_sha256 ==
             checked.identity.execution_source_identity.job_runner_source_sha256
 
         before = runner.ld1b1_scan_attempts(
-            [job], checked.identity, execution_root)
+            [job],
+            checked.identity,
+            execution_root;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
         checkpoint_path = joinpath(execution_root, "checkpoint.json")
         checkpoint = runner.ld1b1_checkpoint_artifact(
             checked.identity,
@@ -2099,10 +3930,23 @@ end
         ld1b1_harness_test_write_json(evidence_path, evidence)
         ld1b1_harness_test_refresh_evidence_manifest!(
             runner, record.path, "calibration_row.json")
-        runner.ld1b1_validate_result(
-            record.path, checked.identity, job, 1)
+        @test_throws ErrorException runner.ld1b1_validate_result(
+            record.path,
+            checked.identity,
+            job,
+            1;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
         after = runner.ld1b1_scan_attempts(
-            [job], checked.identity, execution_root)
+            [job],
+            checked.identity,
+            execution_root;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
+        @test only(after.job_state_rows).state === :corrupt
+        @test after.summary.n_invalid_primary_attempts == 1
         @test before.state_digest != after.state_digest
         @test before.observed_primary_result_set_sha256 !=
             after.observed_primary_result_set_sha256
@@ -2114,7 +3958,13 @@ end
 
         write(joinpath(dirname(record.path), "unmanifested.txt"), "unexpected")
         @test_throws ErrorException runner.ld1b1_validate_result(
-            record.path, checked.identity, job, 1)
+            record.path,
+            checked.identity,
+            job,
+            1;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
     end
 
     mktempdir() do attempt_root
@@ -2130,7 +3980,13 @@ end
         ld1b1_harness_test_refresh_evidence_manifest!(
             runner, record.path, "generated_data.json")
         @test_throws ErrorException runner.ld1b1_validate_result(
-            record.path, checked.identity, job, 1)
+            record.path,
+            checked.identity,
+            job,
+            1;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
     end
 
     mktempdir() do attempt_root
@@ -2147,7 +4003,13 @@ end
         ld1b1_harness_test_refresh_evidence_manifest!(
             runner, record.path, "generated_data.json")
         @test_throws ErrorException runner.ld1b1_validate_result(
-            record.path, checked.identity, job, 1)
+            record.path,
+            checked.identity,
+            job,
+            1;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
     end
 
     mktempdir() do attempt_root
@@ -2164,7 +4026,13 @@ end
         ld1b1_harness_test_refresh_evidence_manifest!(
             runner, record.path, "calibration_row.json")
         @test_throws ErrorException runner.ld1b1_validate_result(
-            record.path, checked.identity, job, 1)
+            record.path,
+            checked.identity,
+            job,
+            1;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
     end
 
     mktempdir() do attempt_root
@@ -2182,7 +4050,13 @@ end
         ld1b1_harness_test_refresh_evidence_manifest!(
             runner, record.path, "sampler_diagnostics.json")
         @test_throws ErrorException runner.ld1b1_validate_result(
-            record.path, checked.identity, job, 1)
+            record.path,
+            checked.identity,
+            job,
+            1;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
     end
 
     mktempdir() do attempt_root
@@ -2196,7 +4070,13 @@ end
             dirname(record.path), String(evidence[:source_member][:path]))
         hardlink(member_path, joinpath(attempt_root, "linked_member.json"))
         @test_throws ErrorException runner.ld1b1_validate_result(
-            record.path, checked.identity, job, 1)
+            record.path,
+            checked.identity,
+            job,
+            1;
+            calibration_semantic_context =
+                checked.calibration_semantic_context,
+        )
     end
 
     mktempdir() do directory

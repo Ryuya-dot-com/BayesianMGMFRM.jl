@@ -94,7 +94,8 @@ function _free_correlation_resource_probe_measure_candidate(
         warmup_evaluations::Int = 1,
         gc_before_each_timed_evaluation::Bool = true)
     1 <= repetitions <= 5 || throw(ArgumentError(
-        "internal resource-probe repetitions must be in 1:5",
+        "resource-probe repetitions must be between 1 and 5; " *
+        "received $repetitions",
     ))
     warmup_evaluations >= 1 || throw(ArgumentError(
         "resource-probe warmup_evaluations must be positive",

@@ -96,13 +96,23 @@ const FIXTURE_SPECS = [
         path =
             "test/fixtures/local_dependence_pilot_batch_execution_harness.json",
         expected_schema =
-            "bayesianmgmfrm.local_dependence_pilot_batch_execution_harness.v2",
+            "bayesianmgmfrm.local_dependence_pilot_batch_execution_harness.v3",
         generator =
             "scripts/generate_local_dependence_pilot_batch_execution_harness.jl",
         env_var =
             "MFRM_LOCAL_DEPENDENCE_PILOT_BATCH_EXECUTION_HARNESS_FIXTURE",
         evidence_scope =
             :ld1b1_pilot_batch_harness_preflight_noncalibration),
+    (name = :local_dependence_pilot_bounded_canonical_smoke_receipt,
+        path =
+            "test/fixtures/local_dependence_pilot_bounded_canonical_smoke_receipt.json",
+        expected_schema =
+            "bayesianmgmfrm.local_dependence_pilot_bounded_canonical_smoke_receipt.v1",
+        expected_sha256 =
+            "de7f1ffab4002e99b75c86d64efbe73deca695b97ac45b0cf177afa5398b58c3",
+        immutable = true,
+        regeneration_policy = :immutable_snapshot_no_regeneration,
+        evidence_scope = :ld1b1_bounded_canonical_smoke_nonpilot),
     (name = :guarded_fit_method_wiring,
         path = "test/fixtures/gmfrm_guarded_fit_method_wiring.json",
         expected_schema = "bayesianmgmfrm.gmfrm_guarded_fit_method_wiring.v1",
@@ -217,7 +227,14 @@ const CODE_AND_DOC_PATHS = [
     "test/local_dependence_calibration.jl",
     "test/local_dependence_calibration_pilot.jl",
     "test/local_dependence_pilot_protocol_artifact.jl",
+    "test/local_dependence_pilot_attempt_archive.jl",
+    "test/local_dependence_pilot_calibration_semantics.jl",
+    "test/local_dependence_pilot_recovery.jl",
+    "test/local_dependence_pilot_precommit_recovery.jl",
     "test/local_dependence_pilot_batch_execution_harness.jl",
+    "test/local_dependence_pilot_bounded_canonical_smoke.jl",
+    "test/local_dependence_pilot_controller_receipts.jl",
+    "test/local_dependence_pilot_job_worker.jl",
     "test/local_dependence_simulation.jl",
     "test/local_dependence_summary.jl",
     "test/predictive_standardized_residuals.jl",
@@ -243,6 +260,10 @@ const CODE_AND_DOC_PATHS = [
     "scripts/generate_local_dependence_known_truth_preflight.jl",
     "scripts/generate_local_dependence_pilot_protocol_preflight.jl",
     "scripts/generate_local_dependence_pilot_batch_execution_harness.jl",
+    "scripts/local_dependence_pilot_attempt_archive.jl",
+    "scripts/local_dependence_pilot_calibration_semantics.jl",
+    "scripts/local_dependence_pilot_recovery.jl",
+    "scripts/run_local_dependence_calibration_pilot_job.jl",
     "scripts/run_local_dependence_calibration_pilot_batch.jl",
     "scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl",
     "scripts/generate_mgmfrm_tam_direct_agreement_multireplication_aggregate.jl",
@@ -285,6 +306,7 @@ const PROTOCOL = (;
         require_all_expected_schemas = true,
         require_all_expected_sha256_matches = true,
         require_all_fixture_summaries_passed = true,
+        require_all_fixture_artifact_contracts_valid = true,
         require_all_generator_scripts_present = true,
         require_all_code_doc_references_present = true,
         require_all_external_sources_present = true,
@@ -500,6 +522,15 @@ function artifact_record(spec)
     else
         "julia --project=. $(generator)"
     end
+    compatibility_summary_passed =
+        exists ? summary_passed(spec.name, summary) : false
+    explicit_artifact_contract_valid = exists ?
+        json_optional_bool(summary, "artifact_contract_valid") : missing
+    artifact_contract_valid =
+        exists && schema_matches &&
+        (explicit_artifact_contract_valid === missing ?
+            compatibility_summary_passed :
+            Bool(explicit_artifact_contract_valid))
     return (;
         artifact = spec.name,
         path = spec.path,
@@ -519,7 +550,8 @@ function artifact_record(spec)
         evidence_scope = hasproperty(spec, :evidence_scope) ?
             spec.evidence_scope : :scalar_gmfrm_claim_archive,
         generator_exists = immutable ? missing : isfile(local_path(generator)),
-        summary_passed = exists ? summary_passed(spec.name, summary) : false,
+        summary_passed = compatibility_summary_passed,
+        artifact_contract_valid,
     )
 end
 
@@ -633,6 +665,8 @@ function archive_artifact()
         all(record -> record.sha256_matches, fixture_records)
     all_fixture_summaries_passed =
         all(record -> record.summary_passed, fixture_records)
+    all_fixture_artifact_contracts_valid =
+        all(record -> record.artifact_contract_valid, fixture_records)
     all_generator_scripts_present =
         all(record -> record.immutable || record.generator_exists,
             fixture_records)
@@ -650,6 +684,7 @@ function archive_artifact()
         all_expected_schemas &&
         all_expected_sha256_matches &&
         all_fixture_summaries_passed &&
+        all_fixture_artifact_contracts_valid &&
         all_generator_scripts_present &&
         all_code_doc_references_present &&
         all_external_sources_present &&
@@ -700,6 +735,8 @@ function archive_artifact()
         ),
         summary = (;
             passed,
+            pass_scope = :contract_and_blocker_preservation_only,
+            artifact_contract_valid = passed,
             publication_or_registration_action = false,
             local_only = true,
             n_fixture_artifacts = length(fixture_records),
@@ -711,6 +748,7 @@ function archive_artifact()
             all_expected_schemas,
             all_expected_sha256_matches,
             all_fixture_summaries_passed,
+            all_fixture_artifact_contracts_valid,
             all_generator_scripts_present,
             all_code_doc_references_present,
             all_external_sources_present,

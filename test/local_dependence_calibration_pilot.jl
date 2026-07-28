@@ -1,5 +1,6 @@
 using Test
 using BayesianMGMFRM
+using LogDensityProblems
 
 function _ld1b1_test_plan(;
         repetitions = 30,
@@ -91,7 +92,7 @@ _ld1b1_reader_text(value) = join(_ld1b1_reader_tokens!(String[], value), '\n')
     @test sampler.target_accept == 0.90
     @test sampler.max_depth == 10
     @test sampler.metric === :diagonal
-    @test sampler.ad_backend === :analytic
+    @test sampler.ad_backend === :ForwardDiff
     @test sampler.diagnostic_draws == 250
     @test sampler.diagnostic_draw_policy === :distinct_without_replacement
     @test sampler.posterior_predictive_replicates_per_draw == 1
@@ -195,6 +196,29 @@ _ld1b1_reader_text(value) = join(_ld1b1_reader_tokens!(String[], value), '\n')
     )
 end
 
+@testset "LD1b1 frozen MFRM gradient route is executable" begin
+    contract = local_dependence_calibration_pilot_contract()
+    row = first(candidate for candidate in _ld1b1_test_plan(
+        repetitions = 1) if candidate.expected_requested_targets_eligible)
+    simulation = simulate_local_dependence(row)
+    design = getdesign(mfrm_spec(
+        simulation.data; thresholds = contract.planning.thresholds))
+    target = MFRMLogDensity(design)
+    initial = initial_params(design)
+
+    adapter = BayesianMGMFRM._logdensity_gradient_target(
+        target, initial, contract.sampler.ad_backend)
+    log_density, gradient = LogDensityProblems.logdensity_and_gradient(
+        adapter.target, initial)
+    @test adapter.ad_backend === :ForwardDiff
+    @test adapter.gradient_backend === :ad
+    @test isfinite(log_density)
+    @test length(gradient) == length(initial)
+    @test all(isfinite, gradient)
+    @test_throws ArgumentError BayesianMGMFRM._logdensity_gradient_target(
+        target, initial, :analytic)
+end
+
 @testset "LD1b1 canonical pilot preflight" begin
     contract = local_dependence_calibration_pilot_contract()
     plan = _ld1b1_test_plan()
@@ -269,6 +293,14 @@ end
         BayesianMGMFRM._MCMC_DIAGNOSTIC_CONTRACT
     expected_diagnostic_contract_details =
         BayesianMGMFRM._mcmc_diagnostic_contract_record()
+    @test capability.planned_sampler_backend === :advancedhmc
+    @test capability.planned_sampler_algorithm === :nuts
+    @test capability.planned_gradient_backend === :ForwardDiff
+    @test capability.sampler_backend_supported
+    @test capability.sampler_algorithm_supported
+    @test capability.mfrm_logdensity_order == 0
+    @test !capability.mfrm_analytic_gradient_method_available
+    @test capability.gradient_backend_supported
     @test capability.current_rhat_method === :rank_normalized
     @test capability.current_ess_method === :bulk_and_tail
     @test capability.current_rhat_ess_status === :rank_normalized_available
@@ -321,6 +353,26 @@ end
     @test !altered_capability.requirement_met
     @test :diagnostic_contract_details_mismatch in
         altered_capability.blockers
+
+    analytic_contract = merge(contract, (;
+        sampler = merge(contract.sampler, (; ad_backend = :analytic)),
+    ))
+    analytic_capability =
+        BayesianMGMFRM._ld1b1_sampler_capability(analytic_contract)
+    @test !analytic_capability.gradient_backend_supported
+    @test !analytic_capability.requirement_met
+    @test :mfrm_analytic_gradient_unavailable in
+        analytic_capability.blockers
+
+    reversediff_contract = merge(contract, (;
+        sampler = merge(contract.sampler, (; ad_backend = :ReverseDiff)),
+    ))
+    reversediff_capability =
+        BayesianMGMFRM._ld1b1_sampler_capability(reversediff_contract)
+    @test !reversediff_capability.gradient_backend_supported
+    @test !reversediff_capability.requirement_met
+    @test :unsupported_mfrm_gradient_backend in
+        reversediff_capability.blockers
 
     @test ismissing(preflight.evaluation_repetitions_selected)
     @test preflight.evaluation_repetition_selection_status ===

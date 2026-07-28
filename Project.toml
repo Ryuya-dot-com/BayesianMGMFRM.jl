@@ -34,6 +34,7 @@ Random = "1"
 ReverseDiff = "1"
 SHA = "0.7"
 Serialization = "1"
+Sockets = "1"
 Statistics = "1"
 TOML = "1"
 Test = "1"
@@ -42,7 +43,8 @@ julia = "1.10.8"
 
 [extras]
 ReverseDiff = "37e2e3b7-166d-5795-8a7a-e32c996b4267"
+Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["ReverseDiff", "Test"]
+test = ["ReverseDiff", "Sockets", "Test"]
