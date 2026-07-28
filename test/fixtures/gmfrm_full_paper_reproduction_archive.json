@@ -400,7 +400,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "c32905980fd82ef1a36894aa1903867e2f6497cd895e6bf603001e0b6a682552",
+      "sha256": "331e2e5465882105bc57f888abb7c789c066a7ff557a3f77851d854d9cb6be03",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.local_dependence_pilot_protocol_preflight.v1",
@@ -421,7 +421,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "1e452421162b0ab0b534bddf63cd016178408b108d10c0271387401188eb0698",
+      "sha256": "f9f72d65368399cc8bd0a85dc935eae2f716d144febafc5177843f40d5c1bceb",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.local_dependence_pilot_batch_execution_harness.v3",
@@ -610,7 +610,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "f1e43e960036c608c9b04602e8c50c65c3bb94d14b6d96ab8e1e0fd76a861ca7",
+      "sha256": "708051c4af763837062ab0b935ec03cfe6de989dda10933a46de59d6273e8c65",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
@@ -1931,8 +1931,8 @@
     {
       "path": "test/local_dependence_pilot_batch_execution_harness.jl",
       "exists": true,
-      "sha256": "371c070dbf1ac64e7fa4f34b9f94a4e1a67e24b776bef006f1eab3c2de0b767f",
-      "line_count": 4148
+      "sha256": "53fba7d49ffbdb8c7d0b6411b64a7cf67fc4a5b78328460abb7de28367c69acc",
+      "line_count": 4171
     },
     {
       "path": "test/local_dependence_pilot_bounded_canonical_smoke.jl",
@@ -2165,8 +2165,8 @@
     {
       "path": "scripts/generate_local_dependence_pilot_batch_execution_harness.jl",
       "exists": true,
-      "sha256": "a1ba1adc2fc48023584e0e2fd837a6a273043a8c1a94a7aed60475377a513405",
-      "line_count": 151
+      "sha256": "924fc48d68c9f737a0d152cd3c89c7def16a95cfb22456fe3100b2cc56eb5313",
+      "line_count": 181
     },
     {
       "path": "scripts/local_dependence_pilot_attempt_archive.jl",

@@ -2035,6 +2035,29 @@ end
     end
 end
 
+@testset "LD1b1 tracked harness canonicalizes portable path separators" begin
+    generator = LD1B1HarnessGenerator
+    windows_shaped = (;
+        path = raw"scripts\run_local_dependence_calibration_pilot_batch.jl",
+        command = raw"'julia' 'scripts\run_local_dependence_calibration_pilot_batch.jl'",
+        attempt_roots = [raw"repro\attempts", raw"repro\bounded-smoke"],
+        nested = ((;
+            attempt_directory = raw"repro\attempts\job-0001",
+        ),),
+        note = raw"preserve\nonpath",
+    )
+    portable = generator.ld1b1_portable_harness_value(windows_shaped)
+    @test portable.path ==
+        "scripts/run_local_dependence_calibration_pilot_batch.jl"
+    @test portable.command ==
+        "'julia' 'scripts/run_local_dependence_calibration_pilot_batch.jl'"
+    @test portable.attempt_roots ==
+        ["repro/attempts", "repro/bounded-smoke"]
+    @test only(portable.nested).attempt_directory ==
+        "repro/attempts/job-0001"
+    @test portable.note == raw"preserve\nonpath"
+end
+
 @testset "LD1b1 tracked harness ignores dynamic smoke state" begin
     generator = LD1B1HarnessGenerator
     mktempdir() do directory

@@ -91,7 +91,7 @@
       {
         "role": "batch_harness_generator",
         "path": "scripts/generate_local_dependence_pilot_batch_execution_harness.jl",
-        "sha256": "a1ba1adc2fc48023584e0e2fd837a6a273043a8c1a94a7aed60475377a513405"
+        "sha256": "924fc48d68c9f737a0d152cd3c89c7def16a95cfb22456fe3100b2cc56eb5313"
       }
     ],
     "checks": {
@@ -119,7 +119,7 @@
     },
     "pin_id": {
       "algorithm": "sha256",
-      "value": "f9c9ecdbef1bc3730a8433620187dc51a937637a0b14e9f18d38605610fefb20",
+      "value": "681751f720f2e8b4aff9424476ea6b3401215fff0fb2bf4d334861d0617e5725",
       "covers": "canonical_executor_source_pin_without_pin_id",
       "canonical_format": "local_json_sorted_compact"
     }
@@ -16798,7 +16798,7 @@
   },
   "content_hash": {
     "algorithm": "sha256",
-    "value": "48686a19323d40b29a35a4f970eaf5e5dd81defeda8f2aed4e74078b35000ec5",
+    "value": "d34c7403debf1ead25218bac05f6fdf580cdbc47b58a8580ab388d770e47f16b",
     "covers": "artifact_without_content_hash",
     "canonical_format": "local_json_sorted_compact"
   }

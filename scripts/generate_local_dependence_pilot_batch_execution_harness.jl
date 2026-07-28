@@ -55,7 +55,37 @@ function ld1b1_portable_harness_command(command::AbstractString)
     portable = replace(portable, LD1B1_ROOT => ".")
     occursin(LD1B1_ROOT, portable) &&
         error("portable harness command retains the repository absolute path")
-    return portable
+    return replace(portable, '\\' => '/')
+end
+
+function ld1b1_portable_harness_value(value, field::Union{Nothing,String} = nothing)
+    if value isa NamedTuple
+        names = keys(value)
+        return NamedTuple{names}(Tuple(
+            ld1b1_portable_harness_value(
+                getproperty(value, name), String(name))
+            for name in names
+        ))
+    elseif value isa AbstractDict
+        return Dict(
+            key => ld1b1_portable_harness_value(element, String(key))
+            for (key, element) in pairs(value)
+        )
+    elseif value isa Tuple
+        return Tuple(ld1b1_portable_harness_value(element, field)
+            for element in value)
+    elseif value isa AbstractArray
+        return map(element ->
+            ld1b1_portable_harness_value(element, field), value)
+    elseif value isa AbstractString && field !== nothing
+        path_field = occursin(
+            r"(?:^|_)(?:path|paths|root|roots|directory|directories)(?:$|_)",
+            field,
+        )
+        return field == "command" || path_field ?
+            replace(String(value), '\\' => '/') : String(value)
+    end
+    return value
 end
 
 function ld1b1_without_content_hash(artifact::NamedTuple)
@@ -71,7 +101,7 @@ function ld1b1_portable_harness(artifact::NamedTuple)
         ld1b1_without_content_hash(artifact),
         (; command_rows),
     )
-    return ld1b1_with_content_hash(base)
+    return ld1b1_with_content_hash(ld1b1_portable_harness_value(base))
 end
 
 function ld1b1_assert_tracked_harness(value, path::String = "artifact")
