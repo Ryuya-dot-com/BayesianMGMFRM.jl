@@ -9,7 +9,7 @@
   },
   "generator": {
     "script": "scripts/generate_local_dependence_pilot_protocol_preflight.jl",
-    "script_source_sha256": "7998e06702c3a6f0254994f2362a82219ed8c6c1e7f8a6c496a6ce63a1c59d80",
+    "script_source_sha256": "4993953bc0c0589f4c7dd61ae46a3d12e7181631caebca52d4f3e020af62578d",
     "pilot_source": "src/local_dependence_calibration_pilot.jl",
     "pilot_source_sha256": "6caba29c7b5f7ab54c4d5b4d3ffc7d455e22283d348369fc4ca82952f890ec5b",
     "diagnostic_source": "src/bayesian_fit.jl",
@@ -61,7 +61,7 @@
       {
         "role": "batch_controller",
         "path": "scripts/run_local_dependence_calibration_pilot_batch.jl",
-        "sha256": "f4f206e7fbe3cdaa4d1d9325a0d1e0d3d99dfca5fb1a1ea2f1444516c3e3f6ee"
+        "sha256": "a4a941961b77eee6b27d60e042ddde6d8351ea7cbe97b0b8ac13bd5789443d08"
       },
       {
         "role": "canonical_json",
@@ -119,7 +119,7 @@
     },
     "pin_id": {
       "algorithm": "sha256",
-      "value": "781bb1aebfda5c16c662b60939a33bde97664cdce6f385ea7bddb25a72353793",
+      "value": "f9c9ecdbef1bc3730a8433620187dc51a937637a0b14e9f18d38605610fefb20",
       "covers": "canonical_executor_source_pin_without_pin_id",
       "canonical_format": "local_json_sorted_compact"
     }
@@ -16798,7 +16798,7 @@
   },
   "content_hash": {
     "algorithm": "sha256",
-    "value": "6444fc5edea1be325541c1cf84fa3c34346f5a9efab483938e8f52d6335837b4",
+    "value": "48686a19323d40b29a35a4f970eaf5e5dd81defeda8f2aed4e74078b35000ec5",
     "covers": "artifact_without_content_hash",
     "canonical_format": "local_json_sorted_compact"
   }

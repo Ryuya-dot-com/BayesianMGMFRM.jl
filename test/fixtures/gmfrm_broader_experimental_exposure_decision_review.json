@@ -71,7 +71,7 @@
       "path": "test/fixtures/gmfrm_claim_recovery_reproduction_archive.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "7c6a582edaa6dc72770b4fd947d61eb6346c80aa2273c24da3532dfa86ded381",
+      "sha256": "f1e43e960036c608c9b04602e8c50c65c3bb94d14b6d96ab8e1e0fd76a861ca7",
       "expected_schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
       "schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
       "schema_matches": true,

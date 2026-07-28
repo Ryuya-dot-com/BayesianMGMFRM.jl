@@ -1037,6 +1037,18 @@ function ld1b1_source_identity(protocol)
     )
 end
 
+function ld1b1_is_canonical_repository_relative_path(path::AbstractString)
+    value = String(path)
+    isempty(value) && return false
+    startswith(value, "/") && return false
+    occursin('\\', value) && return false
+    occursin(r"^[A-Za-z]:", value) && return false
+    segments = split(value, '/'; keepempty = true)
+    return all(segment ->
+        !isempty(segment) && segment != "." && segment != "..",
+        segments)
+end
+
 function ld1b1_validate_canonical_executor_source_pin(protocol)
     haskey(protocol, :canonical_executor_source_pin) || error(
         "protocol does not contain the canonical executor source pin")
@@ -1071,8 +1083,7 @@ function ld1b1_validate_canonical_executor_source_pin(protocol)
             "$label has the wrong role")
         path == expected.path || error(
             "$label has the wrong canonical path")
-        !isabspath(path) && normpath(path) == path &&
-            !startswith(path, "..") || error(
+        ld1b1_is_canonical_repository_relative_path(path) || error(
             "$label is not repository relative")
         absolute = joinpath(LD1B1_ROOT, path)
         isfile(absolute) && !islink(absolute) || error(

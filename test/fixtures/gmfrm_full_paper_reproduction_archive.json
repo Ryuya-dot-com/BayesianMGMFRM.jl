@@ -400,7 +400,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "42738cfabc0a73101043593da1a3c1824cbff56af48263fa260a3ed948a6cbc9",
+      "sha256": "c32905980fd82ef1a36894aa1903867e2f6497cd895e6bf603001e0b6a682552",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.local_dependence_pilot_protocol_preflight.v1",
@@ -421,7 +421,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "1afde641277e2219d4f0bbdb8a2665201876ff1f34a97b29a81a5adb67dd363d",
+      "sha256": "1e452421162b0ab0b534bddf63cd016178408b108d10c0271387401188eb0698",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.local_dependence_pilot_batch_execution_harness.v3",
@@ -610,7 +610,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "7c6a582edaa6dc72770b4fd947d61eb6346c80aa2273c24da3532dfa86ded381",
+      "sha256": "f1e43e960036c608c9b04602e8c50c65c3bb94d14b6d96ab8e1e0fd76a861ca7",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
@@ -1901,8 +1901,8 @@
     {
       "path": "test/local_dependence_pilot_protocol_artifact.jl",
       "exists": true,
-      "sha256": "2f735049efbf0dd2060e757bed12ba4e8da711156cf5e2d9d43727f7d09fee2b",
-      "line_count": 653
+      "sha256": "ae1d977a6df23404953edd8737ee033cf6a2781b8da8f4ebb79e1dcaa9a8a2cc",
+      "line_count": 684
     },
     {
       "path": "test/local_dependence_pilot_attempt_archive.jl",
@@ -1931,8 +1931,8 @@
     {
       "path": "test/local_dependence_pilot_batch_execution_harness.jl",
       "exists": true,
-      "sha256": "9960f34bd11e63ad2559c4a729868659e6703b6d54a1c386c1282e93e32b1267",
-      "line_count": 4125
+      "sha256": "371c070dbf1ac64e7fa4f34b9f94a4e1a67e24b776bef006f1eab3c2de0b767f",
+      "line_count": 4148
     },
     {
       "path": "test/local_dependence_pilot_bounded_canonical_smoke.jl",
@@ -2159,8 +2159,8 @@
     {
       "path": "scripts/generate_local_dependence_pilot_protocol_preflight.jl",
       "exists": true,
-      "sha256": "7998e06702c3a6f0254994f2362a82219ed8c6c1e7f8a6c496a6ce63a1c59d80",
-      "line_count": 495
+      "sha256": "4993953bc0c0589f4c7dd61ae46a3d12e7181631caebca52d4f3e020af62578d",
+      "line_count": 505
     },
     {
       "path": "scripts/generate_local_dependence_pilot_batch_execution_harness.jl",
@@ -2195,8 +2195,8 @@
     {
       "path": "scripts/run_local_dependence_calibration_pilot_batch.jl",
       "exists": true,
-      "sha256": "f4f206e7fbe3cdaa4d1d9325a0d1e0d3d99dfca5fb1a1ea2f1444516c3e3f6ee",
-      "line_count": 8956
+      "sha256": "a4a941961b77eee6b27d60e042ddde6d8351ea7cbe97b0b8ac13bd5789443d08",
+      "line_count": 8967
     },
     {
       "path": "scripts/generate_source_bridge_fixtures.py",

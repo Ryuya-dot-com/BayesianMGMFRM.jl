@@ -17,6 +17,13 @@ end
 
 const LD1B1ScientificPayloadDigest = ScientificPayloadDigest
 
+module LD1B1PilotProtocolGeneratorForTest
+
+include(joinpath(@__DIR__, "..", "scripts",
+    "generate_local_dependence_pilot_protocol_preflight.jl"))
+
+end
+
 function ld1b1_artifact_native(value)
     if value isa AbstractDict
         return Dict(String(key) => ld1b1_artifact_native(element)
@@ -53,6 +60,30 @@ function ld1b1_wilson_reference(successes::Int, trials::Int)
     ) / denominator
     return (lower = max(0.0, center - half),
         upper = min(1.0, center + half))
+end
+
+@testset "LD1b1 canonical repository-relative source paths" begin
+    generator = LD1B1PilotProtocolGeneratorForTest
+    for path in (
+            "src/bayesian_fit.jl",
+            "scripts/local_json.jl",
+        )
+        @test generator.is_canonical_repository_relative_path(path)
+    end
+    for path in (
+            "",
+            ".",
+            "..",
+            "../src/bayesian_fit.jl",
+            "src/../src/bayesian_fit.jl",
+            "src//bayesian_fit.jl",
+            "/src/bayesian_fit.jl",
+            "C:/src/bayesian_fit.jl",
+            "C:src/bayesian_fit.jl",
+            raw"src\bayesian_fit.jl",
+        )
+        @test !generator.is_canonical_repository_relative_path(path)
+    end
 end
 
 @testset "LD1b1 committed pilot protocol preflight artifact" begin

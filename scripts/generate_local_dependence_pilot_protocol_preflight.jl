@@ -106,11 +106,22 @@ function json_native(value)
     return value
 end
 
+function is_canonical_repository_relative_path(path::AbstractString)
+    value = String(path)
+    isempty(value) && return false
+    startswith(value, "/") && return false
+    occursin('\\', value) && return false
+    occursin(r"^[A-Za-z]:", value) && return false
+    segments = split(value, '/'; keepempty = true)
+    return all(segment ->
+        !isempty(segment) && segment != "." && segment != "..",
+        segments)
+end
+
 function canonical_executor_source_pin()
     source_rows = Tuple((function ()
         relative = row.path
-        !isabspath(relative) && normpath(relative) == relative &&
-            !startswith(relative, "..") || error(
+        is_canonical_repository_relative_path(relative) || error(
             "canonical executor source path is not repository relative: $relative")
         absolute = joinpath(ROOT, relative)
         isfile(absolute) && !islink(absolute) || error(
@@ -133,9 +144,8 @@ function canonical_executor_source_pin()
             for row in CANONICAL_EXECUTOR_SOURCE_PATHS),
         unique_roles = length(unique(roles)) == length(roles),
         unique_paths = length(unique(paths)) == length(paths),
-        repository_relative_paths = all(path ->
-            !isabspath(path) && normpath(path) == path &&
-                !startswith(path, ".."), paths),
+        repository_relative_paths =
+            all(is_canonical_repository_relative_path, paths),
         regular_files_present = all(row -> begin
             path = joinpath(ROOT, row.path)
             isfile(path) && !islink(path)

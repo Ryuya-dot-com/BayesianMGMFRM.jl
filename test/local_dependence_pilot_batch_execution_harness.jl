@@ -148,6 +148,29 @@ end
 
 @testset "LD1b1 canonical executor source pin is exact and fail-closed" begin
     runner = LD1B1HarnessRunner
+    canonical_paths = (
+        "src/bayesian_fit.jl",
+        "scripts/local_json.jl",
+    )
+    noncanonical_paths = (
+        "",
+        ".",
+        "..",
+        "../src/bayesian_fit.jl",
+        "src/../src/bayesian_fit.jl",
+        "src//bayesian_fit.jl",
+        "/src/bayesian_fit.jl",
+        "C:/src/bayesian_fit.jl",
+        "C:src/bayesian_fit.jl",
+        raw"src\bayesian_fit.jl",
+    )
+    for path in canonical_paths
+        @test runner.ld1b1_is_canonical_repository_relative_path(path)
+    end
+    for path in noncanonical_paths
+        @test !runner.ld1b1_is_canonical_repository_relative_path(path)
+    end
+
     protocol_native = deepcopy(LD1B1_HARNESS_TEST_PROTOCOL)
     as_json_object = value -> JSON3.read(JSON3.write(value))
     protocol = as_json_object(protocol_native)
