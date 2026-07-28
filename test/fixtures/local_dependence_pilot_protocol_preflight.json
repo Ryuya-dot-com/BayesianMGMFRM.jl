@@ -33,10 +33,10 @@
       "artifact": "local_dependence_known_truth_preflight",
       "path": "test/fixtures/local_dependence_known_truth_preflight.json",
       "expected_schema": "bayesianmgmfrm.local_dependence_known_truth_preflight.v1",
-      "file_sha256": "dbfbdf635c6363c0fe5b460b97e09feaf40d139f8e5b331c370c75bc05504255",
+      "file_sha256": "9941256c6a2d833824c49e8e2c8da95afb23b0434a12c0ce3a45891fb4986a9b",
       "content_hash": {
         "algorithm": "sha256",
-        "value": "f56e8cca169d5303c73bda1b99896674a71111ca0c2559d019fdb89d3d9834f1",
+        "value": "5714a48caedc930d1a8f07719eced2cb47b729206c00be9fa2cf7358945677a1",
         "verified": true,
         "canonical_format": "local_json_sorted_compact"
       }
@@ -45,10 +45,10 @@
       "artifact": "local_dependence_calibration_scorer_preflight",
       "path": "test/fixtures/local_dependence_calibration_scorer_preflight.json",
       "expected_schema": "bayesianmgmfrm.local_dependence_calibration_scorer_preflight.v1",
-      "file_sha256": "1e2bf155f8c0d04cbc99cef940d3c3cd94efbee134a782151b14de3e0f178893",
+      "file_sha256": "2d768c1a98eb4014c3906a4627e1069a3a12f6253b3000d76828ac85c517005e",
       "content_hash": {
         "algorithm": "sha256",
-        "value": "d964dccf6ee64948d8c9e3132ffdad34f8353bd3cd5a9c33a49a40ed99932c12",
+        "value": "179f1765d5786c289924d622fe9b9323d7adb77caeac5ff566b8a2b7151b93c5",
         "verified": true,
         "canonical_format": "local_json_sorted_compact"
       }
@@ -16798,7 +16798,7 @@
   },
   "content_hash": {
     "algorithm": "sha256",
-    "value": "25654f229ef5133b45d73a8126e9319ba4fda2256239092c72677fc9cd7fecda",
+    "value": "a724cbf2c70642a8136a2bbdf1ea3bb84e3f0738c9bf5cff2d769a3179c0cd9b",
     "covers": "artifact_without_content_hash",
     "canonical_format": "local_json_sorted_compact"
   }

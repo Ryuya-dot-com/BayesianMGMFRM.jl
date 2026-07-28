@@ -18,7 +18,7 @@
     "julia_version": "1.10.8",
     "project_toml_sha256": "fa903c793a1c67b66ec61e8ccd732d3e2169503a856e2c4902b01d98fb5ec45f",
     "manifest_file": "Manifest-v1.10.toml",
-    "manifest_toml_sha256": "b57f6381e5c8ac151359b3f6d6f62f98377248c8ff9a9abc624a4ecb64c85d47",
+    "manifest_toml_sha256": "0e56ce537ef547df436126a352791cec530ae0bd6dc6127d8ec889544b872291",
     "source_files": [
       {
         "path": "src/BayesianMGMFRM.jl",
@@ -25644,7 +25644,7 @@
   },
   "content_hash": {
     "algorithm": "sha256",
-    "value": "f175e3ed9e037d704760fc7c54b5349a5efc3173750ec6794ca9e9548138bccf",
+    "value": "a623f732c60782cbff814d3d46a10a5df85b6c3e7e5d70238758b13c6badba0f",
     "covers": "artifact_without_content_hash"
   }
 }
