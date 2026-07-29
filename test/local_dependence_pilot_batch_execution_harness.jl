@@ -3648,7 +3648,7 @@ end
             dangling_target = joinpath(attempt_root, "missing_jobs_target")
             symlink(dangling_target, jobs_root)
             @test islink(jobs_root)
-            @test !ispath(jobs_root)
+            @test !ispath(dangling_target)
             scan = runner.ld1b1_scan_attempts(
                 [job],
                 checked.identity,
