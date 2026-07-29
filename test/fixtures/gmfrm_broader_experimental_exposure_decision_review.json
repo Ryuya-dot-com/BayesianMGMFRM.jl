@@ -11,7 +11,7 @@
   "package": {
     "name": "BayesianMGMFRM",
     "version": "0.1.2",
-    "julia_version": "1.12.5"
+    "julia_version": "1.10.8"
   },
   "protocol": {
     "protocol_id": "gmfrm_broader_experimental_exposure_decision_review_v1",
@@ -71,7 +71,7 @@
       "path": "test/fixtures/gmfrm_claim_recovery_reproduction_archive.json",
       "exists": true,
       "hash_policy": "sha256",
-      "sha256": "bc3df7b5cd2ada02d7e2969e4f459f89c341fdc0539c9ee0bb16b5e5d2e4e866",
+      "sha256": "8bfe4415d113329266542b65bbdfc078fbd1091f30af04ec31aafd348e004815",
       "expected_schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
       "schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
       "schema_matches": true,

@@ -10,7 +10,7 @@
   "package": {
     "name": "BayesianMGMFRM",
     "version": "0.1.2",
-    "julia_version": "1.12.5"
+    "julia_version": "1.10.8"
   },
   "protocol": {
     "protocol_id": "scalar_gmfrm_claim_recovery_reproduction_archive_v1",
@@ -295,7 +295,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "1318daed82a1f80c1ffc8a72edbdc04fc4aa79164a3c00146cff3ad4e33228fc",
+      "sha256": "52781c0ae07db9027d89bfb39932324bc9e82d07e4dd213decbb6b5c3eff11fd",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.local_dependence_pilot_protocol_preflight.v1",
@@ -316,7 +316,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "e9489d1dbc723a1060fb99b68d102bbf4ca0903b99d0c6e72a18c7a000c8f1fc",
+      "sha256": "ecdd71cc475d70523fa22389c94966aad3ab9bb41a15d4950d147311219c2a0c",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.local_dependence_pilot_batch_execution_harness.v3",
@@ -749,7 +749,7 @@
     {
       "path": "test/local_dependence_pilot_batch_execution_harness.jl",
       "exists": true,
-      "sha256": "b83bffa95e8a5c4db31a4d081dcd44e0f0b62d38b0b00a11b8222e95e94e36b5"
+      "sha256": "ca71683ec722bc356b09ce95493b72dc2602096c1f5e4239120158fe8bc431a1"
     },
     {
       "path": "test/local_dependence_pilot_bounded_canonical_smoke.jl",
@@ -914,7 +914,7 @@
     {
       "path": "scripts/run_local_dependence_calibration_pilot_batch.jl",
       "exists": true,
-      "sha256": "9b8643aed462635a8fea315c15cac40d708688c5056e13a3fec4df2102724c89"
+      "sha256": "0735bf6a9cd0066cc3ad0adb6fc9ca53ddac1851597ad24ae63296f71d09ed90"
     },
     {
       "path": "scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl",

@@ -2649,12 +2649,9 @@ end
 function ld1b1_expected_manifest_directories(paths)
     directories = Set{String}()
     for relative in paths
-        parent = dirname(relative)
-        while !isempty(parent) && parent != "."
-            push!(directories, parent)
-            next_parent = dirname(parent)
-            next_parent == parent && break
-            parent = next_parent
+        components = split(String(relative), '/'; keepempty = false)
+        for depth in 1:(length(components) - 1)
+            push!(directories, join(components[1:depth], '/'))
         end
     end
     return directories
@@ -4143,10 +4140,11 @@ function ld1b1_validate_manifest_files(result, result_path::AbstractString,
         normalized = normpath(relative)
         (normalized == "." || startswith(normalized, "..")) &&
             error("file-manifest path escapes its attempt directory")
-        normalized == "job_result.json" &&
+        portable = ld1b1_portable_inventory_relative_path(normalized)
+        portable == "job_result.json" &&
             error("job-result file must not appear in its own manifest")
-        normalized in seen && error("file-manifest paths must be unique")
-        push!(seen, normalized)
+        portable in seen && error("file-manifest paths must be unique")
+        push!(seen, portable)
         absolute = normpath(joinpath(attempt_dir, normalized))
         ld1b1_path_within(absolute, attempt_dir) ||
             error("file-manifest path escapes its attempt directory")
@@ -4170,10 +4168,10 @@ function ld1b1_validate_manifest_files(result, result_path::AbstractString,
             ; execution_context,
         )
         evidence_by_role[role] = validated_evidence
-        snapshots[normalized] = validated_evidence.snapshot
+        snapshots[portable] = validated_evidence.snapshot
         push!(evidence_rows, (;
             role,
-            path = normalized,
+            path = portable,
             bytes = expected_bytes,
             sha256 = expected_sha256,
             content_hash = validated_evidence.content_hash,
@@ -4207,11 +4205,12 @@ function ld1b1_validate_manifest_files(result, result_path::AbstractString,
         normalized = normpath(relative)
         (normalized == "." || startswith(normalized, "..")) &&
             error("source-member path escapes its attempt directory")
-        normalized == "job_result.json" &&
+        portable = ld1b1_portable_inventory_relative_path(normalized)
+        portable == "job_result.json" &&
             error("job-result file cannot be an evidence source member")
-        normalized in seen &&
+        portable in seen &&
             error("source-member and evidence paths must be unique")
-        push!(seen, normalized)
+        push!(seen, portable)
         absolute = normpath(joinpath(attempt_dir, normalized))
         ld1b1_path_within(absolute, attempt_dir) ||
             error("source-member path escapes its attempt directory")
@@ -4221,7 +4220,7 @@ function ld1b1_validate_manifest_files(result, result_path::AbstractString,
             error("source-member byte count mismatch: $relative")
         member_snapshot.sha256 == ld1b1_string(member[:sha256]) ||
             error("source-member SHA-256 mismatch: $relative")
-        snapshots[normalized] = member_snapshot
+        snapshots[portable] = member_snapshot
         source_value = ld1b1_validate_source_member_json(
             member_snapshot.bytes, role, job, validated.payload,
             terminal_status)
@@ -4232,7 +4231,7 @@ function ld1b1_validate_manifest_files(result, result_path::AbstractString,
         index = findfirst(row -> row.role === role, evidence_rows)
         evidence_rows[index] = merge(evidence_rows[index], (;
             source_member_role = member_role,
-            source_member_path = normalized,
+            source_member_path = portable,
             source_member_bytes = member_snapshot.nbytes,
             source_member_sha256 = member_snapshot.sha256,
             dependency_chain_sha256 = ld1b1_canonical_sha256(

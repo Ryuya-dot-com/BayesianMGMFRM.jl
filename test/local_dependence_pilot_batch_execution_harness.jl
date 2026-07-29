@@ -2259,6 +2259,18 @@ end
         raw"evidence\summary.json", "\\") == "evidence/summary.json"
     @test runner.ld1b1_portable_inventory_relative_path(
         "evidence/summary.json", '/') == "evidence/summary.json"
+    windows_manifest_paths = Set([
+        runner.ld1b1_portable_inventory_relative_path(
+            raw"members\generated_data.json", "\\"),
+        runner.ld1b1_portable_inventory_relative_path(
+            raw"members\nested\metadata.json", "\\"),
+        runner.ld1b1_portable_inventory_relative_path(
+            raw"evidence\summary.json", "\\"),
+        "job_result.json",
+    ])
+    @test runner.ld1b1_expected_manifest_directories(
+        windows_manifest_paths) ==
+        Set(["members", "members/nested", "evidence"])
 end
 
 @testset "LD1b1 pilot batch immutable attempts and resume scan" begin
