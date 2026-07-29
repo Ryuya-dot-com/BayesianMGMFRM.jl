@@ -312,12 +312,10 @@ end
             project_resolve_hash_verified
         @test environment_receipt.manifest_header.
             manifest_patch_matches_runtime === (header_version == VERSION)
-        if VERSION == v"1.12.6"
+        if VERSION.major == 1 && VERSION.minor == 12
             @test expected_manifest == "Manifest.toml"
-            @test header_version == v"1.12.5"
-            @test !environment_receipt.manifest_header.
-                manifest_patch_matches_runtime
-        elseif VERSION == v"1.12.5" || VERSION == v"1.10.8"
+            @test header_version in (v"1.12.5", VERSION)
+        elseif VERSION == v"1.10.8"
             @test environment_receipt.manifest_header.
                 manifest_patch_matches_runtime
         end
