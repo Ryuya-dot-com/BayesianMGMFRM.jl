@@ -1285,9 +1285,9 @@ end
 
             long_parent = joinpath(
                 root,
-                repeat("long-a", 12),
-                repeat("long-b", 12),
-                repeat("long-c", 12),
+                repeat("long-a", 16),
+                repeat("long-b", 16),
+                repeat("long-c", 16),
             )
             long_target = joinpath(long_parent, "long-path-target.json")
             if Sys.iswindows()

@@ -32833,8 +32833,21 @@ include("mgmfrm_free_latent_correlation_2d_study.jl")
         "JULIA_LOAD_PATH" => join(
             ("@", "@stdlib"), Sys.iswindows() ? ';' : ':'),
     )
-    process = run(command; wait = false)
-    wait(process)
+    process = mktemp() do _, log_io
+        child = run(pipeline(
+            command;
+            stdout = log_io,
+            stderr = log_io,
+        ); wait = false)
+        wait(child)
+        if !success(child)
+            flush(log_io)
+            seekstart(log_io)
+            write(stderr, read(log_io))
+            println(stderr, "\nsubprocess exit code: ", child.exitcode)
+        end
+        child
+    end
     @test success(process)
 end
 include("publication_grade_policy_contract.jl")

@@ -610,7 +610,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "35c80716845e80bfe9da343cce9f3a9ef0fdbd385aab99301c5ba637dae15701",
+      "sha256": "547d1229a95208d9349b99008c00f348136b8d8570bfa36f6e5a9be97f8129d5",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
@@ -1853,8 +1853,8 @@
     {
       "path": "test/runtests.jl",
       "exists": true,
-      "sha256": "35fa07e27774182f90999bd1d9e4f42fb5951909ef235d0be24d02eaaea08cfa",
-      "line_count": 32872
+      "sha256": "b40447813ddc342f66398b6d26fdcbd4360702bb781b58a8a5e76ac058920232",
+      "line_count": 32885
     },
     {
       "path": "test/model_contract.jl",
