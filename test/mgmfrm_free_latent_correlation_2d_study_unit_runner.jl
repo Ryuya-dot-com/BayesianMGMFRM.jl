@@ -201,9 +201,10 @@ end
             ) &&
             occursin("--project=\$(dirname(@__DIR__))", runtests_text) &&
             occursin(
-                "\"JULIA_LOAD_PATH\" => \"@:@stdlib\"",
+                "\"JULIA_LOAD_PATH\" => join(",
                 runtests_text,
-            )
+            ) &&
+            occursin("Sys.iswindows() ? ';' : ':'", runtests_text)
     end
 
     @testset "strict JSON and canonical content hashes" begin

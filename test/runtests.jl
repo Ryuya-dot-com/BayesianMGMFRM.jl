@@ -32830,7 +32830,8 @@ include("mgmfrm_free_latent_correlation_2d_study.jl")
     )
     command = addenv(
         `$(Base.julia_cmd()) --project=$(dirname(@__DIR__)) $runner_test_path`,
-        "JULIA_LOAD_PATH" => "@:@stdlib",
+        "JULIA_LOAD_PATH" => join(
+            ("@", "@stdlib"), Sys.iswindows() ? ';' : ':'),
     )
     process = run(command; wait = false)
     wait(process)
