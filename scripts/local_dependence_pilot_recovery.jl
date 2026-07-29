@@ -1019,6 +1019,20 @@ function ld1b_inventory_before_interruption_review(
     )
 end
 
+function _portable_inventory_relative_path(value, label::AbstractString;
+        separator = Base.Filesystem.path_separator)
+    path = _string(value, label)
+    isabspath(path) && error("inventory path must be relative")
+    separator != "/" && occursin(separator, path) &&
+        error("inventory path escapes the attempt")
+    components = split(path, '/'; keepempty = true)
+    !isempty(components) && all(component ->
+        !isempty(component) && component != "." && component != "..",
+        components) ||
+        error("inventory path escapes the attempt")
+    return path
+end
+
 function _validate_inventory(value;
         expected_exclusions = _REVIEW_INVENTORY_EXCLUSIONS,
         label::AbstractString = "pre-review inventory")
@@ -1036,13 +1050,8 @@ function _validate_inventory(value;
         row = _exact(value,
             ("path", "kind", "bytes", "sha256", "link_count"),
             "inventory row $index")
-        path = _string(row["path"], "inventory path")
-        isabspath(path) && error("inventory path must be relative")
-        normalized = normpath(path)
-        normalized == path && normalized != ".." &&
-            !startswith(normalized,
-                string("..", Base.Filesystem.path_separator)) ||
-            error("inventory path escapes the attempt")
+        path = _portable_inventory_relative_path(
+            row["path"], "inventory path")
         kind = _symbol(row["kind"], "inventory kind")
         kind in (:file, :directory) || error("unsupported inventory kind")
         key = (path, kind)

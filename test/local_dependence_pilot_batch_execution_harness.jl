@@ -2271,6 +2271,16 @@ end
     @test runner.ld1b1_expected_manifest_directories(
         windows_manifest_paths) ==
         Set(["members", "members/nested", "evidence"])
+    recovery = runner.LD1B1Recovery
+    @test recovery._portable_inventory_relative_path(
+        "members/generated_data.json", "inventory path";
+        separator = "\\") == "members/generated_data.json"
+    @test_throws ErrorException recovery._portable_inventory_relative_path(
+        raw"members\generated_data.json", "inventory path";
+        separator = "\\")
+    @test_throws ErrorException recovery._portable_inventory_relative_path(
+        "members/../job_result.json", "inventory path";
+        separator = "\\")
 end
 
 @testset "LD1b1 pilot batch immutable attempts and resume scan" begin

@@ -400,7 +400,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "52781c0ae07db9027d89bfb39932324bc9e82d07e4dd213decbb6b5c3eff11fd",
+      "sha256": "5b1de5c757d50083455dca322477d94be32460e0e42546be2a7a65f70c30dd2f",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.local_dependence_pilot_protocol_preflight.v1",
@@ -421,7 +421,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "ecdd71cc475d70523fa22389c94966aad3ab9bb41a15d4950d147311219c2a0c",
+      "sha256": "7d0c7f637ba558459bef9781f0bf99372882122fe8caee8e2061ccbd2fff8f66",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.local_dependence_pilot_batch_execution_harness.v3",
@@ -610,7 +610,7 @@
       "immutable": false,
       "regeneration_policy": "generator_replay",
       "hash_policy": "sha256",
-      "sha256": "8bfe4415d113329266542b65bbdfc078fbd1091f30af04ec31aafd348e004815",
+      "sha256": "9572fbbe0afd03898fc5dbd3c0e9aa640778b0c125d177f6d8cb04dbd35d5be4",
       "expected_sha256": null,
       "sha256_matches": true,
       "expected_schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
@@ -1931,8 +1931,8 @@
     {
       "path": "test/local_dependence_pilot_batch_execution_harness.jl",
       "exists": true,
-      "sha256": "ca71683ec722bc356b09ce95493b72dc2602096c1f5e4239120158fe8bc431a1",
-      "line_count": 4196
+      "sha256": "eca56c9edfd0fea69aacfc08226b2596be19c0b818211e90377bec528ce424dd",
+      "line_count": 4206
     },
     {
       "path": "test/local_dependence_pilot_bounded_canonical_smoke.jl",
@@ -2183,8 +2183,8 @@
     {
       "path": "scripts/local_dependence_pilot_recovery.jl",
       "exists": true,
-      "sha256": "4e2638495e7fbaa1e2d9a040fc6812ce26df228bc29d60cc2ea3acba59b52e1a",
-      "line_count": 2273
+      "sha256": "aa4464e347072dfa0363ab9e1fff18553af1b0f5468146466a02d305421baf3b",
+      "line_count": 2282
     },
     {
       "path": "scripts/run_local_dependence_calibration_pilot_job.jl",
