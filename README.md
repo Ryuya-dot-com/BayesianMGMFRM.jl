@@ -39,7 +39,7 @@ Pin a commit or tag instead of `main` for reproducible analyses.
 | Broader discrimination structures | Not supported | Specification review only where documented |
 | Exploratory multidimensional loadings or free latent correlations | Not supported | No fitting API |
 | Fitted DFF effects | Not supported | Screening and design diagnostics only |
-| Testlet, response-cluster, or rater-halo effects | Not supported | Metadata, design audit, report-only residual summaries, and simulation/protocol preflight only |
+| Testlet, response-cluster, or rater-halo effects | Not supported | Metadata checks, report-only residual summaries, and simulation/protocol validation only |
 
 The experimental GMFRM configuration is one-dimensional, uses partial-credit
 steps and rater consistency, and does not accept anchors or fitted DFF terms.
@@ -138,13 +138,13 @@ Useful reporting functions include:
   draw-wise severity contrasts with optional ROPEs and separately labelled
   shared-unit overlap versus model-identification support;
 - `rater_diagnostics`, `residual_summary`, `fit_stats`, and `wright_map_data`;
-- `testlet_design_audit`, `predictive_standardized_residuals`, the provisional
+- `predictive_standardized_residuals`, the provisional
   `local_dependence_contract`, and the report-only `local_dependence_summary`
-  for clustered-response design and residual-association work, with explicit
-  audit-pair, shared-unit, pair-by-draw, and predictive-cell resource
-  preflights;
+  for clustered-response design and residual-association work, including
+  selected-pair, shared-unit, pair-by-draw, and predictive-cell resource
+  checks;
 - `local_dependence_simulation_grid` and `simulate_local_dependence` for the
-  22-scenario LD1a known-truth generator and design preflight. Its ordinal
+  22-scenario LD1a known-truth generator and design validation. Its ordinal
   response kernel is coded independently of the fitted likelihood, and its
   zero/near-zero/small/moderate/large magnitudes are study-local simulation
   settings rather than universal diagnostic cutoffs. Separate scenarios stress
@@ -211,74 +211,14 @@ guessable labels can be matched and equal labels remain linkable across bundles.
 
 LD1a provides known-truth simulation and structural checks, LD1b0 validates the
 calibration scorer, and LD1b1 freezes a 30-replication pilot plan for each of 22
-scenarios. The LD1b1 sampler contract uses the executable MFRM
-`ForwardDiff` route; its preflight now rejects a sampler, algorithm, or gradient
-route that the MFRM target cannot execute. These planning and validation layers
-run no MCMC and provide no
-repeated-calibration, power, diagnostic-decision, or mechanism-identification
-evidence. Testlet, response-cluster, halo, rater-by-task, multidimensional, and
-temporal effects remain unsupported for fitting.
+scenarios (`30 × 22 = 660` planned jobs). The plan accepts only the supported
+MFRM `ForwardDiff` route and does not execute any of those jobs. No official
+pilot result is included in this release.
 
-The current `v0.1.2` LD1b integration checklist is `7/9` gates (`77.8%`).
-Gates 3--7 are supported only by the current local worktree pending tracked
-release-lineage verification; this is an integration score, not scientific
-progress, and the official pilot remains `0/660`.
-
-The LD1b1 batch controller also fails before attempt-directory creation unless
-protocol authorization, canonical source/root binding, bounded-smoke, sealed-
-archive, and interrupted-attempt recovery gates all pass. The protocol now
-records an ordered seven-source SHA-256 pin, and the controller compares every
-digest with the repository files before deriving authorization, harness, all
-660 command, and checkpoint identities. This source-pin/dependent-identity gate
-is complete in the local worktree. The worker reconstructs readiness on its
-execute path, so a CLI authorization flag alone cannot bypass missing smoke or
-review evidence. Gate 7 is complete in the local worktree: the isolated
-verification-only path ran canonical row 5 (`null_support_at_minimum`) against
-the final pin with 4 chains, 500 warmup and 500 retained iterations per chain,
-and published a strictly validated completed-attempt seal and smoke receipt.
-An initial replacement receipt was rerun after a harness-portability fix changed
-the pinned source; MCMC-free harness generation now explicitly ignores local
-smoke state, so its tracked bytes do not depend on whether the raw receipt is
-present. A subsequent clean `Pkg.test()` exposed `Sockets` missing from the test
-extras. Adding its test-only target and compatibility bound changed the Project
-hash, so the intermediate `d2d716…` receipt was archived and the `7c8e49…`
-smoke was rerun. That Project change also made the upstream
-known-truth Project SHA stale. Regenerating the known-truth -> scorer ->
-protocol chain and the Julia 1.10.8 robustness fixture archived `7c8e49…`; the
-final `4e32bb…` smoke was rerun against the refreshed provenance.
-The separate smoke namespace is ineligible for the official denominator, and
-the canonical pilot root remained unchanged. Gate 8, the independent pinned
-recovery/readiness review, is the only remaining pre-pilot blocker;
-operational readiness is therefore still false and the pilot remains `0/660`.
-Completed-attempt seal support now passes MCMC-free synthetic mutation and
-denominator-boundary tests;
-the controller now also validates owner/launch receipt lineage plus either a
-validated exit receipt or an externally prepared process-identity review,
-publishes a mutually exclusive append-only retirement marker, and keeps every
-retired attempt nonterminal and outside the scientific numerator. The canonical
-worker now binds controller-owned reservation, owner, launch, and exit receipts,
-publishes status-specific source/evidence/result records with CREATE_NEW
-semantics, and covers reservation-before-precommit recovery in MCMC-free local
-tests. The active bounded-smoke receipt is verification evidence only: no pilot
-job or official pilot MCMC has been executed. Its sealed raw bundle remains local,
-and tracked release-lineage verification and independent pinned review remain
-pending.
-
-Each of the five LD1b1 terminal statuses now requires a public-schema
-calibration source row, and a mixed-status public-constructor test preserves
-the full planned denominator. Generation-failure rows are now reconstructed
-from the public frozen 660-row plan and must exactly match the archived member
-after public-summary validation; the validator source is pinned in execution
-identity. All five terminal statuses now require an explicit semantic context
-and exact replay through the canonical public calibration constructor/summary;
-the protocol file identity is revalidated and the complete 660-row plan and
-public preflight are reconstructed and compared exactly before replay.
-Completed outcomes additionally require exact pair/family/global diagnostic
-linkage. The reserved nonterminal `sampler_diagnostics_unavailable` and
-`final_calibration_serialization_failed` codes cannot pass the canonical runner
-validation required for a completed seal or terminal admission. This is local-
-worktree schema/test hardening, not pilot execution; tracked release-lineage
-verification remains pending.
+These planning and validation functions provide no repeated-calibration,
+power, diagnostic-decision, or mechanism-identification evidence. Testlet,
+response-cluster, halo, rater-by-task, multidimensional, and temporal effects
+remain unsupported for fitting.
 
 ## Experimental Fixed-Q MGMFRM
 

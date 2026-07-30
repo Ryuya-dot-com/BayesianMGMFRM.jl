@@ -2,6 +2,7 @@
 
 using SHA
 using TOML
+using JSON3
 
 const ROOT = normpath(joinpath(@__DIR__, ".."))
 const DEFAULT_OUTPUT =
@@ -262,158 +263,72 @@ function read_fixture_text(relpath::AbstractString)
     return read(fixture_path(relpath), String)
 end
 
-function parse_json_string_literal(chars::Vector{Char}, index::Int)
-    chars[index] == '"' || error("expected JSON string at character $index")
-    io = IOBuffer()
-    escaped = false
-    index += 1
-    while index <= length(chars)
-        char = chars[index]
-        if escaped
-            if char == '"' || char == '\\' || char == '/'
-                print(io, char)
-            elseif char == 'n'
-                print(io, '\n')
-            elseif char == 'r'
-                print(io, '\r')
-            elseif char == 't'
-                print(io, '\t')
-            else
-                error("unsupported JSON escape sequence \\$char")
-            end
-            escaped = false
-        elseif char == '\\'
-            escaped = true
-        elseif char == '"'
-            return String(take!(io)), index + 1
-        else
-            print(io, char)
-        end
-        index += 1
-    end
-    error("unterminated JSON string")
-end
-
-function skip_ws(chars::Vector{Char}, index::Int)
-    while index <= length(chars) && chars[index] in (' ', '\n', '\r', '\t')
-        index += 1
-    end
-    return index
-end
-
-function json_value_end(chars::Vector{Char}, index::Int)
-    index = skip_ws(chars, index)
-    depth = 0
-    in_string = false
-    escaped = false
-    while index <= length(chars)
-        char = chars[index]
-        if in_string
-            if escaped
-                escaped = false
-            elseif char == '\\'
-                escaped = true
-            elseif char == '"'
-                in_string = false
-            end
-        elseif char == '"'
-            in_string = true
-        elseif char == '{' || char == '['
-            depth += 1
-        elseif char == '}' || char == ']'
-            depth == 0 && return index - 1
-            depth -= 1
-        elseif char == ',' && depth == 0
-            return index - 1
-        end
-        index += 1
-    end
-    return length(chars)
-end
-
-function json_value_for_key(text::AbstractString, key::AbstractString)
-    chars = collect(text)
-    index = skip_ws(chars, 1)
-    index <= length(chars) || error("expected JSON object, got empty input")
-    chars[index] == '{' || error("expected JSON object")
-    index += 1
-    while index <= length(chars)
-        index = skip_ws(chars, index)
-        index > length(chars) && break
-        chars[index] == '}' && break
-        parsed_key, index = parse_json_string_literal(chars, index)
-        index = skip_ws(chars, index)
-        chars[index] == ':' || error("expected ':' after JSON key $parsed_key")
-        index = skip_ws(chars, index + 1)
-        value_start = index
-        value_stop = json_value_end(chars, value_start)
-        parsed_key == key && return strip(String(chars[value_start:value_stop]))
-        index = skip_ws(chars, value_stop + 1)
-        if index <= length(chars) && chars[index] == ','
-            index += 1
-        end
-    end
+function json_value_for_key(object, key::AbstractString)
+    symbol_key = Symbol(key)
+    haskey(object, symbol_key) && return object[symbol_key]
+    haskey(object, key) && return object[key]
     return nothing
 end
 
-function required_value(text::AbstractString, key::AbstractString)
-    value = json_value_for_key(text, key)
+function required_value(object, key::AbstractString)
+    value = json_value_for_key(object, key)
     value === nothing && error("JSON field `$key` not found")
     return value
 end
 
-function json_string(text::AbstractString, key::AbstractString)
-    value = required_value(text, key)
-    parsed, next_index = parse_json_string_literal(collect(value), 1)
-    next_index == length(collect(value)) + 1 ||
-        error("JSON field `$key` is not a string literal")
-    return parsed
+function json_string(object, key::AbstractString)
+    value = required_value(object, key)
+    value isa AbstractString || error("JSON field `$key` is not a string")
+    return String(value)
 end
 
-function json_optional_string(text::AbstractString, key::AbstractString)
-    value = json_value_for_key(text, key)
+function json_optional_string(object, key::AbstractString)
+    value = json_value_for_key(object, key)
     value === nothing && return missing
-    value == "null" && return missing
-    parsed, _ = parse_json_string_literal(collect(value), 1)
-    return parsed
+    value isa AbstractString ||
+        error("JSON field `$key` is not a string or null")
+    return String(value)
 end
 
-function json_bool(text::AbstractString, key::AbstractString)
-    value = required_value(text, key)
-    value == "true" && return true
-    value == "false" && return false
+function json_bool(object, key::AbstractString)
+    value = required_value(object, key)
+    value isa Bool && return value
     error("JSON field `$key` is not boolean")
 end
 
-function json_optional_bool(text::AbstractString, key::AbstractString)
-    value = json_value_for_key(text, key)
+function json_optional_bool(object, key::AbstractString)
+    value = json_value_for_key(object, key)
     value === nothing && return missing
-    value == "null" && return missing
-    value == "true" && return true
-    value == "false" && return false
+    value isa Bool && return value
     error("JSON field `$key` is not boolean or null")
 end
 
-json_int(text::AbstractString, key::AbstractString) =
-    parse(Int, required_value(text, key))
-
-json_float(text::AbstractString, key::AbstractString) =
-    parse(Float64, required_value(text, key))
-
-function json_summary(text::AbstractString)
-    return required_value(text, "summary")
+function json_int(object, key::AbstractString)
+    value = required_value(object, key)
+    value isa Integer && !(value isa Bool) ||
+        error("JSON field `$key` is not an integer")
+    return Int(value)
 end
 
-function summary_passed(summary::AbstractString)
+function json_float(object, key::AbstractString)
+    value = required_value(object, key)
+    value isa Real && !(value isa Bool) ||
+        error("JSON field `$key` is not numeric")
+    return Float64(value)
+end
+
+json_summary(object) = required_value(object, "summary")
+
+function summary_passed(summary)
     passed = json_value_for_key(summary, "passed")
-    passed !== nothing && return passed == "true"
+    passed !== nothing && return passed === true
     overall = json_value_for_key(summary, "overall_passed")
-    overall !== nothing && return overall == "true"
+    overall !== nothing && return overall === true
     return false
 end
 
-function artifact_summary(name::Symbol, text::AbstractString)
-    summary = json_summary(text)
+function artifact_summary(name::Symbol, document)
+    summary = json_summary(document)
     name === :candidate_chain_study && return (;
         overall_passed = json_bool(summary, "overall_passed"),
         max_rhat = json_float(summary, "max_rhat"),
@@ -1640,7 +1555,7 @@ function artifact_summary(name::Symbol, text::AbstractString)
                 value = json_value_for_key(summary,
                     "mgmfrm_external_construct_public_blocker_count")
                 value === nothing ? json_int(summary, "n_blockers") :
-                    parse(Int, value)
+                    Int(value)
             end,
         prediction_target_and_model_weight_policy_passed =
             json_bool(summary,
@@ -1661,8 +1576,8 @@ end
 function artifact_record(spec)
     path = fixture_path(spec.path)
     isfile(path) || error("review artifact is missing: $(spec.path)")
-    text = read_fixture_text(spec.path)
-    schema = json_string(text, "schema")
+    document = JSON3.read(read_fixture_text(spec.path))
+    schema = json_string(document, "schema")
     schema == spec.expected_schema ||
         error("unexpected schema for $(spec.path): $schema")
     return (;
@@ -1670,13 +1585,14 @@ function artifact_record(spec)
         path = spec.path,
         sha256 = file_sha256(path),
         schema,
-        family = json_optional_string(text, "family"),
-        scope = json_optional_string(text, "scope"),
-        status = json_optional_string(text, "status"),
-        public_fit = json_optional_bool(text, "public_fit"),
-        experimental_public = json_optional_bool(text, "experimental_public"),
-        fit_ready = json_optional_bool(text, "fit_ready"),
-        summary = artifact_summary(spec.name, text),
+        family = json_optional_string(document, "family"),
+        scope = json_optional_string(document, "scope"),
+        status = json_optional_string(document, "status"),
+        public_fit = json_optional_bool(document, "public_fit"),
+        experimental_public =
+            json_optional_bool(document, "experimental_public"),
+        fit_ready = json_optional_bool(document, "fit_ready"),
+        summary = artifact_summary(spec.name, document),
     )
 end
 
@@ -1691,13 +1607,12 @@ function artifact_passed(record)
     return false
 end
 
-function best_model_counts(grid_text::AbstractString)
-    summary = json_summary(grid_text)
-    array = required_value(summary, "best_model_counts")
-    rows = NamedTuple[]
-    for matched in eachmatch(r"\{\s*\"model\"\s*:\s*\"([^\"]+)\"\s*,\s*\"n\"\s*:\s*(\d+)\s*\}", array)
-        push!(rows, (model = matched.captures[1], n = parse(Int, matched.captures[2])))
-    end
+function best_model_counts(document)
+    entries = required_value(json_summary(document), "best_model_counts")
+    rows = [
+        (model = json_string(entry, "model"), n = json_int(entry, "n"))
+        for entry in entries
+    ]
     isempty(rows) && error("best_model_counts rows not found")
     return rows
 end
@@ -2151,7 +2066,8 @@ function build_artifact()
     records = [artifact_record(spec) for spec in REVIEWED_ARTIFACTS]
     rows = review_rows(records)
     blockers = blocking_rows(rows)
-    grid_text = read_fixture_text("test/fixtures/gmfrm_baseline_calibration_grid.json")
+    grid_document = JSON3.read(read_fixture_text(
+        "test/fixtures/gmfrm_baseline_calibration_grid.json"))
     baseline = artifact_by_name(records, :baseline_comparison)
     grid = artifact_by_name(records, :baseline_calibration_grid)
     interval_grid = artifact_by_name(records, :interval_decision_grid)
@@ -2248,7 +2164,8 @@ function build_artifact()
         ),
         protocol = PROTOCOL,
         reviewed_artifacts = records,
-        baseline_calibration_best_model_counts = best_model_counts(grid_text),
+        baseline_calibration_best_model_counts =
+            best_model_counts(grid_document),
         review_rows = rows,
         blocker_rows = blockers,
         decision_record = (;

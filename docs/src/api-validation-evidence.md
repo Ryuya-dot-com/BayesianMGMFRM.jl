@@ -31,7 +31,7 @@ only for a private reproduction record whose access controls and retention
 policy permit complete local paths and free-form execution notes.
 
 `local_dependence_simulation_grid` and `simulate_local_dependence` form the
-completed LD1a generator and design-preflight surface. The 22 frozen scenarios
+completed LD1a generator and design-validation surface. The 22 frozen scenarios
 use a standalone adjacent-category ordinal kernel rather than the fitted
 likelihood implementation and record the complete generating truth. Their
 magnitude labels are study-local simulation settings. LD1b pilot execution and
@@ -50,48 +50,13 @@ pairwise power under alternative mechanisms, and does not change the
 report-only status of `local_dependence_summary`.
 `local_dependence_calibration_pilot_contract` and
 `local_dependence_calibration_pilot_preflight` form the LD1b1 pilot execution-
-protocol preflight. They freeze a 30-replication pilot plan for each of the 22
-scenarios and validate its study-specific sampler and diagnostic requirements.
-The frozen MFRM route is AdvancedHMC/NUTS with `ForwardDiff`; the capability
-record rejects a backend, algorithm, or gradient route that the MFRM target
-cannot execute. The batch controller separately requires canonical source/root
-binding, a bounded-smoke receipt, completed-attempt seal support, and an
-independent interrupted-attempt recovery-control readiness review before it may
-create an execution attempt. Completed-attempt seal support now passes its
-MCMC-free synthetic boundary tests. Receipt-bearing launched-attempt recovery
-and retirement are integrated with the v3 scanner/checkpoint contract,
-including its primary-disposition digest, in synthetic tests. The canonical
-worker now binds controller-owned execute-path receipts and covers reservation-
-before-precommit recovery in local MCMC-free tests. Final source pinning,
-dependent identity regeneration, and bounded canonical smoke are complete in
-the local worktree. The smoke used canonical row 5 with 4 chains, 500 warmup
-and 500 retained iterations per chain in a separate verification-only
-namespace; its sealed result contributes zero to the official `0/660` pilot
-denominator. The smoke was first rerun after a harness-portability fix changed
-the source pin; MCMC-free fixture generation now explicitly disables smoke-
-receipt consumption and remains independent of local raw smoke state. A clean
-`Pkg.test()` then exposed `Sockets` missing from the test extras. Adding its
-test-only target and compatibility bound changed the Project hash, so that
-intermediate receipt was archived and the smoke was rerun. The Project change
-also made the upstream known-truth Project SHA stale; after regenerating the
-known-truth -> scorer -> protocol chain and the Julia 1.10.8 robustness fixture,
-that receipt was archived and the final smoke was rerun again.
-Independent pinned recovery/readiness review remains incomplete,
-so operational readiness is false. These checks do not execute the pilot plan,
-and retirement contributes no scientific outcome. The smoke raw archive remains
-local pending tracked release-lineage verification.
-This places the local `v0.1.2` LD1b integration checklist at `7/9` gates
-(`77.8%`); Gate 8 review is the only remaining pre-pilot blocker.
-The job-evidence schema requires a `local_dependence_calibration_row.v1` source
-member for completed, planned-rejection, generation-failure, fit-failure, and
-diagnostic-failure outcomes. A mixed-status public-constructor test preserves
-the scientific denominator. Generation failures are now reconstructed from the
-frozen public 660-row plan and compared exactly after public-summary validation;
-the semantic-validator source is pinned in execution identity. Full semantic
-replay of completed diagnostic contents and the other source-backed statuses
-passes local tests; tracked release-lineage verification remains pending.
+protocol check. They freeze 30 replications for each of 22 scenarios
+(`30 × 22 = 660` planned jobs) and validate the study-specific sampler and
+diagnostic requirements. The supported route is AdvancedHMC/NUTS with
+`ForwardDiff`; unsupported backend, algorithm, or gradient choices are
+rejected. These functions validate the plan but do not execute it.
 
-The package-level capability behind that gate exposes rank-normalized split
+The related diagnostic functions expose rank-normalized split
 R-hat, bulk ESS, and tail ESS as the primary diagnostic fields. Classical
 `rhat` and `ess` remain compatibility fields. For odd split chains, bulk ranks
 exclude the center draw, folding uses the untrimmed pooled median before that
@@ -105,6 +70,6 @@ extrema or failure counts. A reconstructed coordinate that varies with free raw
 coordinates remains gated. Cache identity records the versioned diagnostic
 contract.
 
-The pilot and evaluation remain unrun. These APIs therefore provide no
+No official pilot result is included in this release. These APIs therefore provide no
 repeated-calibration, power, diagnostic-decision, or mechanism-identification
 evidence and do not make clustered effects available for fitting.
