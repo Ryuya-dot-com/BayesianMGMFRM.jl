@@ -10,20 +10,28 @@ on:
 
 jobs:
   test:
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }}
+    name: Full package tests - Julia ${{ matrix.version }} - Ubuntu
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ['1.10.8', '1']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.version }}
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@v1
+      - uses: julia-actions/julia-runtest@v1
+
+  platform-smoke:
+    name: Platform smoke - Julia 1 - ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - version: '1.10.8'
-            os: ubuntu-latest
-          - version: '1'
-            os: ubuntu-latest
-          - version: '1'
-            os: macos-latest
-          - version: '1'
-            os: windows-latest
+        os: [macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       - name: Use a short Windows temporary directory
@@ -35,10 +43,11 @@ jobs:
           "TEMP=D:\t" >> $env:GITHUB_ENV
       - uses: julia-actions/setup-julia@v2
         with:
-          version: ${{ matrix.version }}
+          version: '1'
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
-      - uses: julia-actions/julia-runtest@v1
+      - name: Run portable package smoke
+        run: julia --startup-file=no --project=. scripts/platform_smoke.jl
 
   research-evidence:
     name: Research evidence and SHA lineage

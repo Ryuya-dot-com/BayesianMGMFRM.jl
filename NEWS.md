@@ -83,9 +83,10 @@
   failed optional-command stderr into ordinary output.
 - Streamline the runnable fixed-Q MGMFRM example around data validation,
   fitting, diagnostics, posterior summaries, and posterior predictive checks.
-- Reduce routine CI from the six-cell Julia/OS Cartesian matrix to four
-  compatibility lanes, remove duplicate digest execution, and stop making
-  byte-exact legacy archive drift a normal release gate.
+- Run the full package suite on current and minimum Julia under Linux, use
+  focused package-load/validation/likelihood/minimal-fit smokes on macOS and
+  Windows, remove duplicate digest execution, and stop making byte-exact legacy
+  archive drift a normal release gate.
 - Treat execution-environment SHA values as provenance rather than requiring
   every replicated free-correlation study unit to come from one machine, and
   run the 90 optional SHA-chained research fixtures only when

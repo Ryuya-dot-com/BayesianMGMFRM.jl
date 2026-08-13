@@ -424,10 +424,12 @@ The remaining categories are:
 | Generated research-fixture chains in `test/runtests.jl` | Remove from ordinary `Pkg.test()` by default. The 90 optional fixture entry points run only with `BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true`; manual CI owns their exact lineage checks. |
 | Frozen LD1b1 and publication/reproduction scripts | Keep isolated as research protocols, not package runtime dependencies. Their source pins must not control package import, ordinary fitting, or routine CI. |
 
-Routine CI therefore tests supported Julia/OS package behavior without first
-requiring the tracked research harness to regenerate byte-for-byte. Manual
-workflow dispatch retains a Linux research-evidence run and a Windows harness
-portability check. The next cleanup is to move the remaining research protocol
+Routine CI therefore runs the full package suite on supported Julia versions
+under Linux and focused package-load/validation/likelihood/minimal-fit smokes
+on current Julia under macOS and Windows, without first requiring the tracked
+research harness to regenerate byte-for-byte. Manual workflow dispatch retains
+a Linux research-evidence run and a Windows harness portability check. The next
+cleanup is to move the remaining research protocol
 includes out of the monolithic `runtests.jl` file into a named test entry point;
 until then, the explicit environment flag is the compatibility boundary.
 
@@ -2139,10 +2141,13 @@ an informal command. Split the suite into named `core`, `generalized`,
 `reporting`, `evidence`, `external_bridge`, and `slow_mcmc` groups and record
 group duration and peak resources. Use the following feedback budgets:
 
-CI now runs the current Julia 1.x release on Ubuntu, macOS, and Windows, plus
-the Julia 1.10.8 minimum-version lane on Ubuntu (4 full jobs rather than the
-previous 6-way Cartesian matrix). The separate experimental-boundary job reruns
-only the guarded-fit smokes whose execution flags are not enabled by the normal
+CI now runs the full package suite on Ubuntu with current Julia 1.x and the
+Julia 1.10.8 minimum version. Current-Julia macOS and Windows jobs run a focused
+portable-package smoke covering load, validation, design compilation,
+likelihood evaluation, a minimal stable fit, and non-blocking environment
+metadata. This keeps cross-platform evidence while avoiding multi-hour repeats
+of the same monolithic suite. The separate experimental-boundary job reruns only
+the guarded-fit smokes whose execution flags are not enabled by the normal
 suite. Named changed-surface shards remain a later improvement once the
 monolithic test file is split safely.
 
