@@ -1771,22 +1771,14 @@ end
     @test authorized_ledger.summary.n_planned_units == 525
     @test authorized_ledger.summary.primary_evaluation_fixed_denominator == 500
 
-    cross_ledger_authorization = experimental.
+    @test_throws ArgumentError experimental.
         free_latent_correlation_2d_study_apply_result(
             feasibility_adverse,
             authorized_evaluation_result;
             authorization = decision_covered,
         )
-    cross_ledger_row = only(row for row in
-        cross_ledger_authorization.unit_rows
-        if row.unit.unit_id == first_evaluation_unit.unit_id)
-    @test isequal(cross_ledger_row.result, authorized_evaluation_result)
-    @test ismissing(cross_ledger_row.authorization_artifact)
-    @test cross_ledger_row.protocol_violations ==
-        (:evaluation_result_without_valid_execution_authorization,)
-    @test cross_ledger_authorization.summary.n_protocol_violations == 1
-    @test cross_ledger_authorization.summary.
-        primary_evaluation_fixed_denominator == 500
+    @test feasibility_adverse.summary.n_results_recorded == 25
+    @test feasibility_adverse.summary.n_protocol_violations == 0
 
     @test_throws ArgumentError experimental.
         free_latent_correlation_2d_study_feasibility_decision(ledger0)
@@ -1997,6 +1989,12 @@ end
         decision_covered,
         (; decision_fingerprint = "tampered-decision-fingerprint"),
     )
+    @test_throws ArgumentError experimental.
+        free_latent_correlation_2d_study_apply_result(
+            feasibility_covered,
+            authorized_evaluation_result;
+            authorization = tampered_decision,
+        )
     @test_throws ArgumentError experimental.
         free_latent_correlation_2d_study_unit_preflight(
             plan,

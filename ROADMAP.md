@@ -356,10 +356,11 @@ an untyped mega-helper.
 Julia `try/catch` is not currently a blanket error-suppression mechanism: core
 parameter checks, AD construction, parsers, and bridge readers usually rethrow
 or convert failures to explicit `ArgumentError`s, and `fit_report` records
-`status = :error`. Two patterns still require tightening. Optional environment
-metadata currently uses naked catches that return `nothing`, and invalid
-free-correlation authorization is collapsed to `nothing` before it becomes a
-protocol violation. The policy is:
+`status = :error`. Supplied invalid free-correlation authorization now fails
+with an explicit `ArgumentError`; only an actually absent authorization is
+retained as a visible protocol-violation row. Optional environment metadata
+still uses naked catches that return `nothing` and requires typed status,
+stage, and reason records. The policy is:
 
 - no naked `catch` in likelihood, transform, sampler, cache-integrity, or
   authorization code;

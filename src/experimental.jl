@@ -376,9 +376,10 @@ end
 
 Return a new ledger with one primary unit result recorded. Planned units are
 never removed, including categorized failures and unauthorized evaluation
-executions. A valid frozen feasibility decision may be supplied as
-`authorization`; missing or invalid authorization is retained as a visible
-protocol violation instead of dropping the result.
+executions supplied without an authorization artifact. A supplied malformed,
+non-authorizing, cross-ledger, or result-mismatched authorization artifact is
+rejected with `ArgumentError`; it is never treated as if it were absent. A
+valid frozen feasibility decision may be supplied as `authorization`.
 """
 function free_latent_correlation_2d_study_apply_result(
         ledger,

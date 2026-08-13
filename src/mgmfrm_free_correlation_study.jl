@@ -2108,6 +2108,29 @@ function _validate_free_correlation_study_ledger(ledger)
     return ledger
 end
 
+function _free_correlation_study_bind_evaluation_authorization(
+        authorization,
+        current_feasibility_sha256::AbstractString,
+        result_authorization_fingerprint)
+    authorization.evaluation_execution_authorized ||
+        throw(ArgumentError(
+            "evaluation authorization does not permit execution",
+        ))
+    authorization.protocol_integrity_evidence.passed ||
+        throw(ArgumentError(
+            "evaluation authorization did not pass protocol integrity",
+        ))
+    authorization.feasibility_result_set_sha256 ==
+        current_feasibility_sha256 || throw(ArgumentError(
+        "evaluation authorization is bound to a different feasibility result set",
+    ))
+    result_authorization_fingerprint == authorization.decision_fingerprint ||
+        throw(ArgumentError(
+            "evaluation result is bound to a different authorization decision",
+        ))
+    return authorization
+end
+
 function _mgmfrm_free_latent_correlation_2d_study_apply_result(
         ledger,
         result;
@@ -2139,26 +2162,21 @@ function _mgmfrm_free_latent_correlation_2d_study_apply_result(
     elseif authorization === nothing
         nothing
     else
-        try
-            candidate_authorization =
-                _validate_free_correlation_study_feasibility_decision(
-                    authorization,
-                    plan,
-                )
-            candidate_authorization.evaluation_execution_authorized &&
-                candidate_authorization.protocol_integrity_evidence.passed &&
-                candidate_authorization.feasibility_result_set_sha256 ==
-                    artifact_content_hash(
-                        _free_correlation_study_feasibility_result_rows(
-                            checked_ledger.unit_rows,
-                        ),
-                    ) &&
-                checked_result.authorization_decision_fingerprint ==
-                    candidate_authorization.decision_fingerprint ?
-                candidate_authorization : nothing
-        catch
-            nothing
-        end
+        candidate_authorization =
+            _validate_free_correlation_study_feasibility_decision(
+                authorization,
+                plan,
+            )
+        current_feasibility_sha256 = artifact_content_hash(
+            _free_correlation_study_feasibility_result_rows(
+                checked_ledger.unit_rows,
+            ),
+        )
+        _free_correlation_study_bind_evaluation_authorization(
+            candidate_authorization,
+            current_feasibility_sha256,
+            checked_result.authorization_decision_fingerprint,
+        )
     end
     protocol_violations = unit.phase === :evaluation &&
         checked_authorization === nothing ?
