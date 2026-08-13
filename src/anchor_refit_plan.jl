@@ -394,7 +394,7 @@ The version-1 `source_scale` and `sign` fields describe the already transformed
 anchor value in destination logit coordinates. Original source scale/sign and
 the applied transform must be preserved in the artifact named by `source_hash`.
 Only the lowercase SHA-256 string format is checked; source bytes are not
-verified by this preflight.
+verified by this declaration check.
 
 An explicit hard anchor must not also declare `scale`, `sd`, or `prior_scale`.
 A soft anchor on the current first-level-zero rater/item reference is rejected

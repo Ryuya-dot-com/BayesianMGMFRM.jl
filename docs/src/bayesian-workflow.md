@@ -18,7 +18,7 @@ Create [`FacetData`](@ref) from long-format ratings and run
 
 [`coverage_summary`](@ref), [`coverage_matrix`](@ref),
 [`rater_overlap`](@ref), [`anchor_linking_summary`](@ref), and
-[`rating_design_audit`](@ref) provide additional review rows. These checks do
+[`rating_design_check`](@ref) provide additional review rows. These checks do
 not make non-random rater assignment ignorable. The current optional
 `occasion` column is categorical metadata; it does not by itself encode exact
 within-rater order, timestamps, active duration, or randomized presentation.
@@ -28,7 +28,7 @@ rating sequence. Time-varying severity, fatigue, or learning claims therefore
 require a separate process-data and temporal-identification design.
 
 If ratings share an answer, prompt, or item cluster, record `response_id` and
-`testlet_id` separately and run [`testlet_design_audit`](@ref). The audit keeps
+`testlet_id` separately and run [`testlet_design_check`](@ref). The check keeps
 ordinary rating-graph connectivity separate from person-by-testlet,
 rater-by-response, rater-by-task, and fixed-Q dimension support. Passing it
 establishes only conservative structural eligibility for a candidate that is
@@ -145,8 +145,8 @@ single-rating stratum. Sparse or undefined pairs with at least one common unit
 remain structured pair rows with missing evidence values;
 zero-overlap combinations remain visible in family counts and testlet support
 graphs. Family-wide and testlet-specific support statuses are reported
-separately. Before large work or allocations, the API checks explicit audit-
-pair rows, audit/shared-unit links, positive-pair-by-draw cells,
+separately. Before large work or allocations, the API counts candidate-pair
+rows, shared-unit links, positive-pair-by-draw cells,
 pair/common-unit-by-draw cells, and draw-by-observation-by-category cells.
 Posterior predictive tail fractions, BH-adjusted values, and the all-family
 maximum statistic are calibration-pending references; none is a decision label
@@ -166,7 +166,7 @@ multidimensional mechanisms, randomized drift, ability-confounded no-drift
 order, ability-informed rater assignment, and a testlet-plus-sequence mixture.
 The ordinal sampling kernel is
 separate from the fitted likelihood, and each bundle records complete truth,
-semantic event-keyed uniforms, sequence positions, and structural-audit
+semantic event-keyed uniforms, sequence positions, and structural-check
 results. The
 ability-confounded scenario is an order/case-mix negative control; it is not a
 substitute for a study that distributes controlled benchmark responses across
@@ -191,54 +191,14 @@ surface does not itself run a pilot or evaluation study and does not modify the
 decision-disabled observed-data diagnostic.
 
 LD1b1 adds `local_dependence_calibration_pilot_contract` and
-`local_dependence_calibration_pilot_preflight`. They freeze a 30-replication
+`local_dependence_calibration_pilot_check`. They freeze a 30-replication
 pilot plan for each of the 22 scenarios and validate its study-specific sampler
 and diagnostic requirements. The frozen MFRM gradient route is `ForwardDiff`,
 and authorization checks that route together with the AdvancedHMC/NUTS and
-diagnostic capabilities. The controller also fails before attempt creation
-until canonical source/root binding, bounded-smoke, completed-attempt seal, and
-interrupted-attempt recovery gates pass. Completed-attempt seal support now
-passes MCMC-free synthetic boundary tests, and receipt-bearing launched-attempt
-recovery and retirement are integrated with the v3 scanner/checkpoint contract,
-including its primary-disposition digest, in synthetic tests. The canonical
-worker now binds controller-owned execute-path receipts and covers reservation-
-before-precommit recovery in local MCMC-free tests. Final source pinning,
-dependent identity regeneration, and the bounded canonical smoke are complete
-in the local worktree. The verification-only smoke ran canonical row 5 with 4
-chains, 500 warmup and 500 retained iterations per chain in a separate,
-denominator-ineligible namespace. An initial replacement receipt was rerun after
-a harness-portability fix changed the source pin; MCMC-free harness generation
-explicitly does not consume local smoke evidence. A later clean `Pkg.test()`
-found `Sockets` missing from the test extras; its test-only addition changed the
-Project hash, so the intermediate receipt was archived and the next smoke was
-rerun. The same Project change made the upstream known-truth Project SHA stale;
-the known-truth -> scorer -> protocol chain and Julia 1.10.8 robustness fixture
-were regenerated, the prior receipt was archived, and the final smoke was rerun
-again. Independent pinned recovery/readiness review
-remains open, so operational readiness is false. A retired
-attempt stays nonterminal and outside the scientific
-numerator. The preflight runs no fit or MCMC; the pilot and evaluation remain
-unrun. Consequently, these layers provide no
+diagnostic capabilities. The check runs no fit or MCMC; the pilot and
+evaluation remain unrun. Consequently, these layers provide no
 repeated-calibration, power, diagnostic-decision, or mechanism-identification
 evidence, and they do not make clustered effects available for fitting.
-The local `v0.1.2` LD1b integration checklist is therefore `7/9` gates
-(`77.8%`), while scientific pilot progress remains `0/660`.
-Every existing terminal outcome, including the three categorized failures,
-must retain a `local_dependence_calibration_row.v1` source member. A mixed-
-status public-constructor test preserves the full planned denominator.
-Generation-failure rows are reconstructed from the frozen public 660-row plan
-and must exactly match the archived member after public-summary validation;
-all five terminal statuses now require an explicit semantic context and exact
-replay through the canonical public calibration constructor/summary. The
-protocol file identity is revalidated and the complete 660-row plan and public
-preflight are reconstructed and compared exactly before replay. Completed
-outcomes additionally require exact pair/family/global diagnostic linkage. The
-reserved nonterminal `sampler_diagnostics_unavailable` and
-`final_calibration_serialization_failed` codes cannot pass the canonical runner
-validation required for a completed seal or terminal admission. This gate is
-complete in the local worktree; tracked release-lineage verification remains
-pending, and the bounded-smoke sealed raw bundle remains local. The smoke
-contributes zero to the official `0/660` pilot denominator.
 
 Observation-row LOO does not validate
 prediction for a wholly unseen response whose shared effect was informed by

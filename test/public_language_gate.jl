@@ -116,12 +116,14 @@ const PublicLanguagePolicy = PublicLanguageGateContractForTest.PublicLanguageGat
     mktempdir() do temp_root
         sample = joinpath(temp_root, "multiline.md")
         write(sample,
-            "```julia\n_private_helper()\n_θ()\n```\nregistration\nhandoff\n")
+            "```julia\n_private_helper()\n_θ()\n```\nregistration\n" *
+            "handoff\nRun the internal_preflight harness for auditing.\n")
         violations = PublicLanguagePolicy.public_language_violations(
             temp_root; paths = [sample])
         rules = Set(violation.rule for violation in violations)
         @test :private_identifier in rules
         @test :maintainer_workflow_wording in rules
+        @test :maintainer_review_wording in rules
 
         allowed = joinpath(temp_root, "allowed.md")
         write(allowed,
@@ -146,13 +148,14 @@ const PublicLanguagePolicy = PublicLanguageGateContractForTest.PublicLanguageGat
         restricted = joinpath(temp_root, "restricted.html")
         write(restricted,
             "<html><body><code>_private_helper</code> registration handoff" *
-            "</body></html>\n")
+            " <code>legacy_audit</code></body></html>\n")
         violations = PublicLanguagePolicy.rendered_language_violations(
             temp_root; paths = [restricted])
         rules = Set(violation.rule for violation in violations)
         @test :private_identifier in rules
         @test :rendered_private_identifier in rules
         @test :maintainer_workflow_wording in rules
+        @test :rendered_maintainer_review_wording in rules
     end
 
     mktempdir() do temp_root

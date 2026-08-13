@@ -156,7 +156,7 @@ Useful reporting functions include:
   completed replication counts; keep pooled pair fractions descriptive; and
   attach Wilson intervals only to replication-level binary rates;
 - `local_dependence_calibration_pilot_contract` and
-  `local_dependence_calibration_pilot_preflight` for the MCMC-free LD1b1 pilot
+  `local_dependence_calibration_pilot_check` for the MCMC-free LD1b1 pilot
   execution-protocol check. The frozen plan contains 30 replications for each
   of 22 scenarios (`30 × 22 = 660`): 540 eligible fitting jobs and 120 planned
   structural rejections. It does not execute those jobs;

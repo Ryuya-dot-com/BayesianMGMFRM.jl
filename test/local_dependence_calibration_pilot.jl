@@ -226,10 +226,22 @@ end
         plan;
         contract,
     )
+    check = local_dependence_calibration_pilot_check(plan; contract)
 
     @test preflight.schema ==
         "bayesianmgmfrm.local_dependence_calibration_pilot_preflight.v1"
     @test preflight.object === :local_dependence_calibration_pilot_preflight
+    @test check.schema ==
+        "bayesianmgmfrm.local_dependence_calibration_pilot_check.v1"
+    @test check.object === :local_dependence_calibration_pilot_check
+    @test check.status === :pilot_plan_check_passed
+    @test check.contract.status === :pilot_protocol_plan_only
+    @test check.contract.calibration_contract.status === :protocol_plan_only
+    @test check.contract.planning.planning_profile === :ld1_plan_v1
+    @test check.planning_profile === :ld1_plan_v1
+    @test check.caveats[1] === :planning_check_is_not_pilot_execution
+    @test check.plan_checks == preflight.plan_checks
+    @test !occursin("preflight", _ld1b1_reader_text(check))
     @test preflight.profile === contract.profile
     @test preflight.status === :pilot_plan_preflight_passed
     @test preflight.contract == contract

@@ -760,3 +760,47 @@ function local_dependence_calibration_pilot_preflight(
         ),
     )
 end
+
+"""
+    local_dependence_calibration_pilot_check(plan_rows;
+        contract = local_dependence_calibration_pilot_contract())
+
+Check the complete 660-job LD1b1 pilot plan without generating scores or
+fitting models. The result records workload counts, seed separation, resource
+limits, precision references, and sampler-diagnostic capability.
+"""
+function local_dependence_calibration_pilot_check(
+        plan_rows::AbstractVector;
+        contract = local_dependence_calibration_pilot_contract())
+    legacy = local_dependence_calibration_pilot_preflight(
+        plan_rows;
+        contract,
+    )
+    status = legacy.pilot_execution_authorized ?
+        :pilot_plan_check_passed :
+        :pilot_plan_check_blocked_by_sampler_capability
+    caveats = Tuple(
+        caveat === :planning_preflight_is_not_pilot_execution ?
+        :planning_check_is_not_pilot_execution : caveat
+        for caveat in legacy.caveats
+    )
+    calibration_contract = merge(legacy.contract.calibration_contract, (;
+        status = :protocol_plan_only,
+    ))
+    planning = merge(legacy.contract.planning, (;
+        planning_profile = :ld1_plan_v1,
+    ))
+    return merge(legacy, (;
+        schema =
+            "bayesianmgmfrm.local_dependence_calibration_pilot_check.v1",
+        object = :local_dependence_calibration_pilot_check,
+        status,
+        contract = merge(legacy.contract, (;
+            status = :pilot_protocol_plan_only,
+            calibration_contract,
+            planning,
+        )),
+        planning_profile = :ld1_plan_v1,
+        caveats,
+    ))
+end

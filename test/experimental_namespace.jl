@@ -222,6 +222,21 @@ end
     @test public_rating_audit.anchor_linking.schema ==
         "bayesianmgmfrm.anchor_linking_summary_public.v1"
     @test !occursin(private_anchor_path, sprint(show, public_rating_audit))
+    public_rating_check = rating_design_check(anchored_spec; view = :public)
+    @test public_rating_check.schema ==
+        "bayesianmgmfrm.rating_design_check_public.v1"
+    @test public_rating_check.object === :rating_design_check
+    @test all(row -> haskey(row, :check) && !haskey(row, :audit),
+        public_rating_check.rows)
+    @test public_rating_check.summary == public_rating_audit.summary
+    @test !occursin("audit", lowercase(sprint(show, public_rating_check)))
+    @test model_surface_check(stable_spec; view = :public) ==
+        model_surface_audit(stable_spec; view = :public)
+    full_surface_check = model_surface_check(stable_spec)
+    @test all(row -> row.schema ==
+        "bayesianmgmfrm.model_surface_check_row.v1",
+        full_surface_check)
+    @test !occursin("audit", lowercase(sprint(show, full_surface_check)))
     @test model_manifest(anchored_spec; view = :public).rating_design.schema ==
         "bayesianmgmfrm.rating_design_audit_public.v1"
 
@@ -241,6 +256,7 @@ end
     @test_throws ArgumentError model_ladder(view = :bad)
     @test_throws ArgumentError anchor_linking_summary(stable_spec; view = :bad)
     @test_throws ArgumentError rating_design_audit(stable_spec; view = :bad)
+    @test_throws ArgumentError rating_design_check(stable_spec; view = :bad)
     @test_throws ArgumentError related_software_capability_matrix(view = :bad)
 
     gmfrm_candidate =

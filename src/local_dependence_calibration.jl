@@ -40,7 +40,7 @@ end
         candidate_family_alpha = 0.05,
         candidate_global_alpha = 0.05)
 
-Return the LD1b0 protocol-preflight contract for repeated calibration of the
+Return the LD1b0 protocol-validation contract for repeated calibration of the
 existing report-only local-dependence diagnostic. The four alphas define
 candidate decisions computed from finite-sample-corrected unadjusted pair
 tails, within-family BH-adjusted tails, family maximum-statistic tails, and the
@@ -973,7 +973,7 @@ end
 Summarize LD1b0 result rows against the complete set of planned rows. Missing
 and failed replications remain explicit. Wilson intervals are used only for
 replication-level binary candidate rates; pooled pair rates are descriptive.
-The result remains protocol-preflight evidence and does not enable public
+The result remains protocol-validation evidence and does not enable public
 diagnostic decisions or mechanism labels.
 """
 function local_dependence_calibration_summary(

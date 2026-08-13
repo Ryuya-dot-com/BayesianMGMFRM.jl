@@ -424,7 +424,7 @@ a convergence policy and direct comparison artifact. Only after those layers
 resolve stable destination targets should a second-stage bridge compile
 anchors for the exact returned design. The current bridge still does not
 perform that second stage;
-[`anchor_refit_plan`](@ref) remains a destination-side preflight and does not
+[`anchor_refit_plan`](@ref) remains a destination-side plan and does not
 execute either an external anchored calibration or a package
 anchor-constrained refit.
 
@@ -480,7 +480,7 @@ Use the following migration rules:
    and threshold convention. Do not substitute one global RSM or independent
    item PCMs without a new model decision.
 3. If additional facets or interactions affect the source likelihood, retain
-   their columns as metadata for auditing, but do not describe the destination
+   their columns as metadata for review, but do not describe the destination
    fit as equivalent. Collapsing an interaction into a compound item changes
    the estimand and requires a separate justification.
 4. If source anchors or user scaling are active, transform them to the
@@ -499,7 +499,7 @@ soft anchor into a prior, estimate a linking constant, or run anchor-sensitivity
 refits. A specification with nonempty `anchors` is inspection-only under the
 minimal fitting compiler.
 
-[`anchor_refit_plan`](@ref) is the public fail-closed preflight for the first
+[`anchor_refit_plan`](@ref) is the public fail-closed check for the first
 planned numerical scope. It checks explicit individual rater/item hard anchors,
 finite and representable values, observed targets, duplicate/conflicting
 declarations, and typed source/hash/scale/sign provenance. It is deliberately
@@ -546,7 +546,7 @@ Version 1 accepts only the following normalized declaration contract:
 | `source_version` | A nonempty, printable string of at most 128 bytes, without leading or trailing whitespace |
 | `source_model` | `:mfrm_rsm` for `thresholds = :rating_scale`, or `:mfrm_pcm` for `:partial_credit` |
 | `source_estimator` | One of `:jml`, `:pmle`, `:mml`, or `:mcmc` |
-| `source_hash` | A lowercase 64-hex SHA-256 string, optionally prefixed by `sha256:`; the preflight checks format, not source-byte correspondence |
+| `source_hash` | A lowercase 64-hex SHA-256 string, optionally prefixed by `sha256:`; the plan checks format, not source-byte correspondence |
 | `source_scale` | `:logit` |
 | `sign` | `:severity_positive` for a rater anchor or `:difficulty_positive` for an item anchor |
 
@@ -562,7 +562,7 @@ the original source scale/sign and transformation fields rather than overload
 these names.
 
 `source_hash_format_valid = true` means only that the declaration has the
-accepted lowercase SHA-256 shape. The preflight does not receive the source
+accepted lowercase SHA-256 shape. The plan does not receive the source
 bytes and therefore always reports `source_bytes_verified = false`; callers
 must verify and preserve the byte-to-digest correspondence outside this plan.
 Likewise, `provenance_complete = true` means the required fields are present
@@ -695,7 +695,7 @@ constraint map, and the exact source bytes should each have their own hash.
 
 An exported anchored fit should preserve the original import record unchanged
 and add the destination package version, data/model/prior/sampler identities,
-fixed/free status, direct fitted labels, constraint-rank audit, and fit-artifact
+fixed/free status, direct fitted labels, constraint-rank check, and fit-artifact
 hash. A round trip passes only when reimport reproduces the same semantic target
 and normalized content hash. Equality of printed decimal text alone is not a
 round-trip guarantee.

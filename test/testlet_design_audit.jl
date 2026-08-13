@@ -194,7 +194,21 @@ end
         data;
         independent_ratings_declared = true,
     )
+    checked = testlet_design_check(
+        data;
+        independent_ratings_declared = true,
+    )
     @test supported.schema == "bayesianmgmfrm.testlet_design_audit.v1"
+    @test checked.schema == "bayesianmgmfrm.testlet_design_check.v1"
+    @test checked.object === :testlet_design_check
+    @test checked.caveat ===
+        :design_check_does_not_establish_a_cluster_effect
+    @test all(row -> row.schema ==
+        "bayesianmgmfrm.testlet_design_check_row.v1", checked.rows)
+    @test getproperty.(checked.rows, :check) ==
+        getproperty.(supported.rows, :check)
+    @test !occursin("audit", lowercase(sprint(show, checked)))
+    @test !occursin("preflight", lowercase(sprint(show, checked)))
     @test supported.status === :ok
     @test supported.schema_valid
     @test supported.structural_identification_supported

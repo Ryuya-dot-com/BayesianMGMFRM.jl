@@ -67,16 +67,16 @@ are unique only within person, construct a composite identifier before calling
 does not silently reinterpret task metadata as a testlet. All three fields are
 metadata in the current likelihood and add no fitted parameter.
 
-Use [`testlet_design_audit`](@ref) to examine the intended clustered effect:
+Use [`testlet_design_check`](@ref) to examine the intended clustered effect:
 
 ```julia
-audit = testlet_design_audit(clustered_data;
+design_check = testlet_design_check(clustered_data;
     target = :scalar_shared_cluster,
     independent_ratings_declared = true,
 )
 ```
 
-The audit separates identifier validity, structural identification, the scope
+The check separates identifier validity, structural identification, the scope
 of the named candidate, the frozen structural profile, current fitting support,
 and pair-family-specific diagnostic support. The fields
 `structurally_eligible_for_candidate`, `structural_profile_met`, and
@@ -132,14 +132,14 @@ least one common unit; zero-overlap combinations are retained in aggregate
 family counts and testlet-stratified support graphs rather than materialized as
 quadratically many empty rows. `family_status` and `testlet_status` distinguish
 global family support from a sparse individual testlet; single-rating
-applicability is also testlet-specific. Audit-pair rows, shared-unit links,
+applicability is also testlet-specific. Candidate-pair rows, shared-unit links,
 positive-pair-by-draw cells, pair/common-unit-by-draw cells, and predictive
-cells have separate preflight counts and fail with an actionable error before
+cells have separate resource counts and fail with an actionable error before
 large work begins. The package still does not enable FDR/FWER decision labels,
 declare local dependence, identify its mechanism, or fit a testlet random
 effect.
 
-## Known-Truth Local-Dependence Preflight
+## Known-Truth Local-Dependence Validation
 
 LD1a adds a sampler-free way to exercise those structural contracts:
 
@@ -158,14 +158,14 @@ adjacent-category kernel
 implemented separately from the fitted likelihood. Each result retains the
 intended category scale even when a realized sample omits an extreme category,
 and records semantic event-keyed uniforms, component truth, sequence position,
-design audits, and pre-allocation rating, probability, and truth-cell counts.
+design checks, and pre-allocation rating, probability, and truth-cell counts.
 
 `max_ratings`, `max_probability_cells`, and `max_truth_cells` are checked from
 the requested design before latent or row-level arrays are allocated. Facet
 truth and response uniforms use stable semantic integer keys, so adding a
 person or item does not renumber the common truth. The recorded engine is
 Julia's `MersenneTwister`; bit-for-bit portability across Julia RNG
-implementations is not claimed, and the versioned preflight records project
+implementations is not claimed, and the versioned plan record includes project
 and manifest fingerprints for its reproduction environment.
 
 The ability-confounded no-drift scenario tests whether case mix and presentation
@@ -176,9 +176,9 @@ studies. LD1a establishes generator and pre-fit behavior. LD1b0 adds an
 MCMC-free protocol and scorer validation layer that keeps missing, failed,
 rejected, unsupported, and completed replications distinct. LD1b1 adds
 `local_dependence_calibration_pilot_contract` and
-`local_dependence_calibration_pilot_preflight`, which freeze a 30-replication
+`local_dependence_calibration_pilot_check`, which freeze a 30-replication
 pilot plan for each of the 22 scenarios and validate its study-specific sampler
-and diagnostic requirements. The preflight runs no fit or MCMC, and the pilot
+and diagnostic requirements. The check runs no fit or MCMC, and the pilot
 and evaluation remain unrun. It supplies no repeated-calibration, power,
 diagnostic-decision, or mechanism-identification evidence. Clustered effects
 remain unsupported for fitting.
@@ -302,7 +302,7 @@ coverage = coverage_summary(spec)
 heatmap_data = coverage_matrix(data; rows = :rater, columns = :person)
 overlap = rater_overlap(data; unit = :person_item)
 linking = anchor_linking_summary(spec; unit = :person_item, view = :public)
-rating_design = rating_design_audit(spec; unit = :person_item, view = :public)
+rating_design = rating_design_check(spec; unit = :person_item, view = :public)
 thresholds = threshold_map_data(design; params = zeros(length(design.parameter_names)))
 ```
 
@@ -313,13 +313,13 @@ Jaccard overlap for the chosen rated unit. With clustered metadata, units also
 include `:response_id`, `:testlet_id`, `:person_testlet`, and
 `:response_item`. The two testlet-based units are marked as descriptive
 coverage: sharing only a testlet label does not establish shared-response
-rater linking, so `anchor_linking_summary` and `rating_design_audit` reject
+rater linking, so `anchor_linking_summary` and `rating_design_check` reject
 them as linking units. The response-based units are explicitly marked as
 common-response linking candidates. `anchor_linking_summary` combines
 declared hard/soft anchor rows, anchor target checks, rater overlap
 connectedness, and optional anchor-axis sensitivity coverage; it is a
 diagnostic report, not an anchor refit or linking-constant estimator.
-`rating_design_audit` packages the observed rating-graph components, weak
+`rating_design_check` packages the observed rating-graph components, weak
 rater links, anchor coverage, complete-grid coverage, repeated ratings, sparse
 person-rater-item cells, optional time/order metadata, and nonignorable rater
 assignment limitation into report rows. Because the current `FacetData`

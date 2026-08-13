@@ -14,7 +14,7 @@ path, diagnostics, and user-facing examples are covered together.
 | Broader generalized discrimination structures | Not supported | No stable fitting claim is made. |
 | Exploratory or freely estimated multidimensional loading structures | Not supported | Availability of the experimental fixed-Q configuration does not imply exploratory MGMFRM support. |
 | Group and differential facet functioning effects | Not supported for fitting | Design validation may describe these terms, but estimation is not yet exposed. |
-| Testlet, response-cluster, and rater-halo effects | Not supported for fitting | Explicit identifiers, structural auditing, standardized residual inputs, known-truth simulation, calibration-scorer validation, and MCMC-free pilot-plan validation are available; pilot execution, repeated calibration, and fitted cluster effects are not. |
+| Testlet, response-cluster, and rater-halo effects | Not supported for fitting | Explicit identifiers, structural checks, standardized residual inputs, known-truth simulation, calibration-scorer validation, and MCMC-free pilot-plan validation are available; pilot execution, repeated calibration, and fitted cluster effects are not. |
 
 Experimental features may change in a compatible minor release and should be
 used with sensitivity checks. They must not be described as stable equivalents

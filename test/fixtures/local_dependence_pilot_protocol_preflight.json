@@ -11,13 +11,13 @@
     "script": "scripts/generate_local_dependence_pilot_protocol_preflight.jl",
     "script_source_sha256": "4993953bc0c0589f4c7dd61ae46a3d12e7181631caebca52d4f3e020af62578d",
     "pilot_source": "src/local_dependence_calibration_pilot.jl",
-    "pilot_source_sha256": "6caba29c7b5f7ab54c4d5b4d3ffc7d455e22283d348369fc4ca82952f890ec5b",
+    "pilot_source_sha256": "395cc320e3575faee92437c9be8d2b7d962e96eb22cdc77586551aa55fbf898e",
     "diagnostic_source": "src/bayesian_fit.jl",
-    "diagnostic_source_sha256": "77cf5c4df82f6fefb8d42f948a8fc081c22d0621898b08a6bb31574d9a9fe6d6",
+    "diagnostic_source_sha256": "b103b03d1f58ef8de70fc6b4ca894bd8dd663557c147d0ba5d710abd1553c389",
     "calibration_source": "src/local_dependence_calibration.jl",
-    "calibration_source_sha256": "d50e1dc0ead880ce5a450008c05998f034f45a15f87fbb295ff464690eecfac5",
+    "calibration_source_sha256": "f0c9a5f82a1807f9a5af936c5cc9f02c17431785deecc9dc9ec6d3eddd3b8e8a",
     "simulation_source": "src/local_dependence_simulation.jl",
-    "simulation_source_sha256": "006cb3d2514eacdf9606db303c80460efa095772691772f63defbe11fd362ae8",
+    "simulation_source_sha256": "4b39b617e0f14fc6842e0dec7ec5ced7622c070406ed72f6054867cd5bfee46d",
     "environment_provenance": {
       "project": "Project.toml",
       "project_sha256": "fa903c793a1c67b66ec61e8ccd732d3e2169503a856e2c4902b01d98fb5ec45f",
@@ -33,10 +33,10 @@
       "artifact": "local_dependence_known_truth_preflight",
       "path": "test/fixtures/local_dependence_known_truth_preflight.json",
       "expected_schema": "bayesianmgmfrm.local_dependence_known_truth_preflight.v1",
-      "file_sha256": "9941256c6a2d833824c49e8e2c8da95afb23b0434a12c0ce3a45891fb4986a9b",
+      "file_sha256": "8220de1f3844859385831d4174c3796ca79c3471f728447171220c16f085e578",
       "content_hash": {
         "algorithm": "sha256",
-        "value": "5714a48caedc930d1a8f07719eced2cb47b729206c00be9fa2cf7358945677a1",
+        "value": "1b9f651f4919a09091f1d9c4d8f4e644e39c976c24fe55bd927b37f6e6de95d9",
         "verified": true,
         "canonical_format": "local_json_sorted_compact"
       }
@@ -45,10 +45,10 @@
       "artifact": "local_dependence_calibration_scorer_preflight",
       "path": "test/fixtures/local_dependence_calibration_scorer_preflight.json",
       "expected_schema": "bayesianmgmfrm.local_dependence_calibration_scorer_preflight.v1",
-      "file_sha256": "2d768c1a98eb4014c3906a4627e1069a3a12f6253b3000d76828ac85c517005e",
+      "file_sha256": "2f4204766433b1240bfd27dc5ab015c435d0d4daed43d8c4bfbbc406c6ff2f6f",
       "content_hash": {
         "algorithm": "sha256",
-        "value": "179f1765d5786c289924d622fe9b9323d7adb77caeac5ff566b8a2b7151b93c5",
+        "value": "d80fad0741272c8815d94a7468f1cf8786dd42017d95fbc7d9f2c0673a056b90",
         "verified": true,
         "canonical_format": "local_json_sorted_compact"
       }
@@ -61,7 +61,7 @@
       {
         "role": "batch_controller",
         "path": "scripts/run_local_dependence_calibration_pilot_batch.jl",
-        "sha256": "0735bf6a9cd0066cc3ad0adb6fc9ca53ddac1851597ad24ae63296f71d09ed90"
+        "sha256": "3cf7e2de32021e9bfcaff1e847487169b6f86a63cf6a84e67dd8105dffc9d671"
       },
       {
         "role": "canonical_json",
@@ -119,7 +119,7 @@
     },
     "pin_id": {
       "algorithm": "sha256",
-      "value": "60ecf567e3d506ed381ef615a765c5708f8252c184fadbb9155696efd3edd99a",
+      "value": "4daaf9a23d4d03a86b8ee3e5bd9caf55d777e98c05efa65b6a79c368acc0c8df",
       "covers": "canonical_executor_source_pin_without_pin_id",
       "canonical_format": "local_json_sorted_compact"
     }
@@ -16798,7 +16798,7 @@
   },
   "content_hash": {
     "algorithm": "sha256",
-    "value": "cfa1b414848eb8cf791792201297840800719e064c8f0641af318b4643950304",
+    "value": "353ee653a30725d98b3bca1bfef35e69e59cce3db4c5da613924e1fececbd015",
     "covers": "artifact_without_content_hash",
     "canonical_format": "local_json_sorted_compact"
   }

@@ -10,7 +10,7 @@
   "package": {
     "name": "BayesianMGMFRM",
     "version": "0.1.2",
-    "julia_version": "1.10.8"
+    "julia_version": "1.12.5"
   },
   "protocol": {
     "protocol_id": "scalar_gmfrm_guarded_exposure_review_v1",
@@ -614,7 +614,7 @@
     {
       "artifact": "claim_recovery_reproduction_archive",
       "path": "test/fixtures/gmfrm_claim_recovery_reproduction_archive.json",
-      "sha256": "547d1229a95208d9349b99008c00f348136b8d8570bfa36f6e5a9be97f8129d5",
+      "sha256": "cba40943ec2c307f5a98107c7c1127c388ec59bde69c0e531c7a7a6bd0013259",
       "schema": "bayesianmgmfrm.gmfrm_claim_recovery_reproduction_archive.v1",
       "family": "gmfrm",
       "scope": "scalar_gmfrm_fit_ready_candidate",
@@ -654,7 +654,7 @@
     {
       "artifact": "broader_experimental_exposure_decision_review",
       "path": "test/fixtures/gmfrm_broader_experimental_exposure_decision_review.json",
-      "sha256": "50b3bb013bfb5510404852f567c2ddbbd9bf86b12a646855cd67db43ca80c06e",
+      "sha256": "97cca801277569818789245a699d215f62f13ac01d9745b13686f5affce37535",
       "schema": "bayesianmgmfrm.gmfrm_broader_experimental_exposure_decision_review.v1",
       "family": "gmfrm",
       "scope": "broader_generalized_exposure_decision",
@@ -1110,7 +1110,7 @@
     {
       "artifact": "full_paper_reproduction_archive",
       "path": "test/fixtures/gmfrm_full_paper_reproduction_archive.json",
-      "sha256": "148a51f074a06069e4352394497377d10e0bee2c65a3c4559b11d4e33072d265",
+      "sha256": "6062dd940b76d2ce27274dc6c585fa3838978dd346042b3bb43d15cfe77bc688",
       "schema": "bayesianmgmfrm.gmfrm_full_paper_reproduction_archive.v1",
       "family": "gmfrm",
       "scope": "full_paper_reproduction_archive",

@@ -1697,6 +1697,58 @@ function _public_rating_design_audit(audit)
     )
 end
 
+function _rating_design_check_row(row)
+    return (;
+        schema = "bayesianmgmfrm.rating_design_check_row.v1",
+        check = row.audit,
+        status = row.status,
+        severity = row.severity,
+        facets = row.facets,
+        unit = row.unit,
+        n_expected = row.n_expected,
+        n_observed = row.n_observed,
+        n_missing = row.n_missing,
+        n_sparse = row.n_sparse,
+        n_repeated = row.n_repeated,
+        n_components = row.n_components,
+        min_count = row.min_count,
+        max_count = row.max_count,
+        note = row.note,
+        details = row.details,
+    )
+end
+
+"""
+    rating_design_check(data_or_spec_or_design; unit = :person_item,
+        min_shared_units = 1, min_sparse_cell_count = 2, view = :full)
+
+Check the observed rating design before fitting. The result describes graph
+connectivity, overlap, coverage, repeated ratings, sparse cells, optional
+time/order fields, and assignment limitations. Use `view = :public` for the
+reader-facing projection.
+"""
+function rating_design_check(data_or_spec_or_design;
+        unit::Symbol = :person_item,
+        min_shared_units::Int = 1,
+        min_sparse_cell_count::Int = 2,
+        view::Symbol = :full)
+    legacy = rating_design_audit(
+        data_or_spec_or_design;
+        unit,
+        min_shared_units,
+        min_sparse_cell_count,
+        view,
+    )
+    schema = view === :public ?
+        "bayesianmgmfrm.rating_design_check_public.v1" :
+        "bayesianmgmfrm.rating_design_check.v1"
+    return merge(legacy, (;
+        schema,
+        object = :rating_design_check,
+        rows = Tuple(_rating_design_check_row(row) for row in legacy.rows),
+    ))
+end
+
 const _EXPERIMENTAL_CANONICAL_ENTRYPOINT =
     "BayesianMGMFRM.Experimental.fit(spec)"
 const _EXPERIMENTAL_LEGACY_ENTRYPOINT =
@@ -7404,6 +7456,33 @@ function model_surface_audit(design::FacetDesign;
         rows,
         _public_model_availability(design.spec),
     ) : rows
+end
+
+function _model_surface_check_rows(rows)
+    return [merge(row, (;
+        schema = "bayesianmgmfrm.model_surface_check_row.v1",
+    )) for row in rows]
+end
+
+"""
+    model_surface_check(spec_or_design; preview = nothing, view = :full)
+
+Check how each declared model block maps to parameters, constraints, priors,
+report labels, and execution availability. Use `view = :public` for the
+reader-facing projection.
+"""
+function model_surface_check(spec::FacetSpec;
+        preview::Union{Nothing,Bool} = nothing,
+        view::Symbol = :full)
+    rows = model_surface_audit(spec; preview, view)
+    return view === :full ? _model_surface_check_rows(rows) : rows
+end
+
+function model_surface_check(design::FacetDesign;
+        preview::Bool = false,
+        view::Symbol = :full)
+    rows = model_surface_audit(design; preview, view)
+    return view === :full ? _model_surface_check_rows(rows) : rows
 end
 
 function _source_transform_declarations(family::Symbol)

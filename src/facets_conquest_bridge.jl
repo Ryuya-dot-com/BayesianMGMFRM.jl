@@ -1399,8 +1399,8 @@ Write a bundle returned by [`facets_bridge_bundle`](@ref) or
 protected unless `overwrite = true`. Overwrite accepts only an unexecuted
 directory whose existing paths are declared by the new bundle; `results` must be
 absent or empty. Every written input is verified before the function returns.
-Writing to a fresh directory is preferred because overwrite is preflight-safe
-but not an atomic recovery mechanism for an interrupted filesystem write.
+Writing to a fresh directory is preferred because guarded overwrite is not an
+atomic recovery mechanism for an interrupted filesystem write.
 """
 function save_external_bridge_bundle(directory::AbstractString, bundle;
         overwrite::Bool = false)

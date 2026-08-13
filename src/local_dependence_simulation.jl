@@ -426,7 +426,7 @@ ability-confounded order and ability-informed rater assignment. Scenarios
 within a replication share component seed streams so comparisons use common
 random numbers.
 
-These rows are a generator and design-preflight plan. They are not repeated
+These rows are a generator and design-validation plan. They are not repeated
 calibration evidence, do not supply diagnostic cutoffs or decision labels, and
 do not identify an observed-data mechanism. At most 10,000,000 replications are
 accepted per phase so the reserved `:smoke`, `:pilot`, and `:evaluation` seed
@@ -749,7 +749,7 @@ sampling does not depend on a fitted model's probability or likelihood
 implementation. The bundle keeps the intended category scale even when a
 random realization omits an extreme category, and records exact sequence
 positions, event-keyed uniforms, every additive truth component, requested
-design audits, and resource counts.
+design checks, and resource counts.
 
 `max_ratings`, `max_probability_cells`, and `max_truth_cells` bound the number
 of generated ratings, category-probability cells, and dense truth-surface cells

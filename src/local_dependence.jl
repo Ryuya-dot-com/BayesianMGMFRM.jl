@@ -1499,7 +1499,6 @@ end
         ndraws = nothing, draw_indices = nothing,
         rng = Random.default_rng(), max_pair_draw_cells = 2_000_000,
         max_prediction_cells = 10_000_000,
-        max_audit_pair_rows = 200_000,
         max_common_unit_draw_cells = 2_000_000)
 
 Return report-only residual-association summaries for a fitted MFRM, guarded
@@ -1517,9 +1516,9 @@ with at least one common unit remain in the pair rows with structured support
 reasons and missing evidence values; they are not converted to zero
 association. Zero-overlap combinations remain visible through family counts
 and testlet-stratified support graphs. Before large allocations,
-`max_audit_pair_rows` bounds materialized audit pair rows,
+the materialized candidate-pair row guard bounds candidate-pair rows,
 `max_pair_draw_cells` bounds positive-overlap pair-by-draw cells, and
-`max_common_unit_draw_cells` bounds both audit pair/common-unit links and the
+`max_common_unit_draw_cells` bounds both candidate-pair/common-unit links and the
 pair/common-unit-by-draw correlation work; `max_prediction_cells` bounds
 draw-by-observation-by-category cells. Reduce `ndraws` or prespecify separate
 strata when a guard is exceeded.

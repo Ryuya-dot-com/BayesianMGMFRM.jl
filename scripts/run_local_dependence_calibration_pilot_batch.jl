@@ -2623,7 +2623,9 @@ function ld1b1_observed_helper_inventory_sha256(
     try
         return LD1B1AttemptArchive.ld1b_attempt_inventory_sha256(
             attempt_dir)
-    catch
+    catch error
+        message = portable_error_message(error)
+        @debug "helper inventory hash is unavailable" attempt_dir message
         return missing
     end
 end
@@ -2632,7 +2634,9 @@ function ld1b1_observed_semantic_inventory_sha256(
         attempt_dir::AbstractString)
     try
         return ld1b1_attempt_inventory_sha256(attempt_dir)
-    catch
+    catch error
+        message = portable_error_message(error)
+        @debug "semantic inventory hash is unavailable" attempt_dir message
         return missing
     end
 end

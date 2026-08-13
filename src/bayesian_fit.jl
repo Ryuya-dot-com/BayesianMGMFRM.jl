@@ -3589,6 +3589,13 @@ model_surface_audit(fit::GMFRMFit; view::Symbol = :full) =
 model_surface_audit(fit::MGMFRMFit; view::Symbol = :full) =
     _fit_model_surface_audit(fit; view)
 
+function model_surface_check(
+        fit::Union{MFRMFit,GMFRMFit,MGMFRMFit};
+        view::Symbol = :full)
+    rows = model_surface_audit(fit; view)
+    return view === :full ? _model_surface_check_rows(rows) : rows
+end
+
 """
     fit_metadata(fit::MFRMFit; view = :full)
 
@@ -14129,7 +14136,7 @@ external comparison table.
 
 The summary records observed axes, missing required axes, per-axis model and
 baseline coverage, criteria used, and whether every required axis has both a
-baseline and at least one candidate row. It audits declared comparison rows; it
+baseline and at least one candidate row. It checks declared comparison rows; it
 does not create refits, fit unsupported generalized/DFF/anchor models, or
 replace predeclared simulation and case-study protocols.
 `view = :public` returns the compact reader-facing projection; `:full`
@@ -16268,7 +16275,7 @@ values raise `ArgumentError`; they are never counted as low-variance exclusions.
 These residuals are a low-level diagnostic input. They do not by themselves
 establish local independence, a testlet effect, rater halo, or a universal Q3
 cutoff. Use [`local_dependence_contract`](@ref) and
-[`testlet_design_audit`](@ref) to inspect the planned matching and design
+[`testlet_design_check`](@ref) to inspect the planned matching and design
 requirements before forming pairwise dependence statistics.
 """
 function predictive_standardized_residuals(

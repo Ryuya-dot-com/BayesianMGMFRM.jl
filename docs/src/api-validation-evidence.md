@@ -9,7 +9,7 @@ local_dependence_calibration_contract
 local_dependence_calibration_row
 local_dependence_calibration_summary
 local_dependence_calibration_pilot_contract
-local_dependence_calibration_pilot_preflight
+local_dependence_calibration_pilot_check
 falsification_rules
 falsification_rule_summary
 simulate_responses
@@ -49,8 +49,8 @@ This protocol-validation surface does not run MCMC, does not yet provide
 pairwise power under alternative mechanisms, and does not change the
 report-only status of `local_dependence_summary`.
 `local_dependence_calibration_pilot_contract` and
-`local_dependence_calibration_pilot_preflight` form the LD1b1 pilot execution-
-protocol check. They freeze 30 replications for each of 22 scenarios
+`local_dependence_calibration_pilot_check` validate the LD1b1 pilot plan. They
+freeze 30 replications for each of 22 scenarios
 (`30 × 22 = 660` planned jobs) and validate the study-specific sampler and
 diagnostic requirements. The supported route is AdvancedHMC/NUTS with
 `ForwardDiff`; unsupported backend, algorithm, or gradient choices are

@@ -1740,6 +1740,57 @@ function testlet_design_audit(data_or_spec_or_design;
     )
 end
 
+function _testlet_design_check_support(support)
+    return (;
+        schema = "bayesianmgmfrm.testlet_pair_row_check.v1",
+        single_rating_item_all_testlets_applicable =
+            support.single_rating_item_all_testlets_applicable,
+        single_rating_item_any_testlet_applicable =
+            support.single_rating_item_any_testlet_applicable,
+        single_rating_item_applicable_by_testlet =
+            support.single_rating_item_applicable_by_testlet,
+        n_diagnostic_candidate_pairs = support.n_diagnostic_candidate_pairs,
+        n_projected_rater_pairs = support.n_projected_rater_pairs,
+        n_materialized_pair_rows = support.n_materialized_pair_rows,
+        max_materialized_pair_rows = support.max_materialized_pair_rows,
+        n_single_rating_common_unit_links =
+            support.n_single_rating_common_unit_links,
+        n_within_rater_common_unit_links =
+            support.n_within_rater_common_unit_links,
+        n_rater_common_unit_links = support.n_rater_common_unit_links,
+        n_pair_common_unit_links = support.n_pair_common_unit_links,
+        n_projected_rater_response_links =
+            support.n_projected_rater_response_links,
+        projected_rater_min_indicators_per_response =
+            support.projected_rater_min_indicators_per_response,
+        n_check_pair_common_unit_links =
+            support.n_audit_pair_common_unit_links,
+        max_pair_common_unit_links = support.max_pair_common_unit_links,
+    )
+end
+
+"""
+    testlet_design_check(data_or_spec_or_design; kwargs...)
+
+Check whether clustered-response metadata support the requested testlet or
+local-dependence design. The result separates structural identification,
+candidate scope, current fitting support, and calibration status.
+"""
+function testlet_design_check(data_or_spec_or_design; kwargs...)
+    legacy = testlet_design_audit(data_or_spec_or_design; kwargs...)
+    rows = Tuple(merge(row, (;
+        schema = "bayesianmgmfrm.testlet_design_check_row.v1",
+    )) for row in legacy.rows)
+    return merge(legacy, (;
+        schema = "bayesianmgmfrm.testlet_design_check.v1",
+        object = :testlet_design_check,
+        computational_support =
+            _testlet_design_check_support(legacy.computational_support),
+        rows,
+        caveat = :design_check_does_not_establish_a_cluster_effect,
+    ))
+end
+
 """
     local_dependence_contract(; profile = :ld0_v1,
         min_common_units = 20, min_eligible_draws = 100,

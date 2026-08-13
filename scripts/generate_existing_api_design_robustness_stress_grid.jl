@@ -4158,7 +4158,9 @@ function _score_repeated_recovery_aggregate(aggregate;
         try
             _validated_pilot_artifact_content_hash(pilot_artifact) ==
                 freeze_payload.pilot_artifact_content_sha256
-        catch
+        catch error
+            message = portable_error_message(error)
+            @debug "pilot artifact contract check failed" message
             false
         end
     pilot_threshold_source_exact = pilot_artifact_contract_consistent &&
@@ -4178,7 +4180,9 @@ function _score_repeated_recovery_aggregate(aggregate;
                     :statistical_gate_policy,
                     nothing,
                 )) == freeze_payload.pilot_statistical_gate_policy_sha256
-        catch
+        catch error
+            message = portable_error_message(error)
+            @debug "pilot threshold source check failed" message
             false
         end
     uncertainty_complete = !isempty(aggregate.uncertainty_rows) &&

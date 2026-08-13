@@ -11,7 +11,7 @@
   },
   "generator": {
     "script": "scripts/generate_existing_api_design_robustness_stress_grid.jl",
-    "source_sha256": "9e0a435f87cae3fecd4b390609883a497e78c2da2b1d205fe812eab60365c6eb",
+    "source_sha256": "58609f06afa14c4b85d0febb30056a6e01f937de058250f143c05e9a6763e177",
     "deterministic_without_mcmc": true
   },
   "runtime_provenance": {
@@ -22,15 +22,15 @@
     "source_files": [
       {
         "path": "src/BayesianMGMFRM.jl",
-        "sha256": "f76be5ac76aa89ef62c27858dd226247755a3b9ed22e9fd9390776b954cd70b2"
+        "sha256": "118929a84e442af95004691c3d6548c20e6e26bdcf618a4f6ff995c2dcb15442"
       },
       {
         "path": "src/anchor_refit_plan.jl",
-        "sha256": "9790314751373f5a65c160396b39dbcbbfba682258785bea7b90e0560d6b081b"
+        "sha256": "e4219ebe3436ed2659a185b262b144f21fe5c2adc3f06e421b7e6202b5adaf96"
       },
       {
         "path": "src/bayesian_fit.jl",
-        "sha256": "77cf5c4df82f6fefb8d42f948a8fc081c22d0621898b08a6bb31574d9a9fe6d6"
+        "sha256": "b103b03d1f58ef8de70fc6b4ca894bd8dd663557c147d0ba5d710abd1553c389"
       },
       {
         "path": "src/evidence_metadata.jl",
@@ -42,23 +42,23 @@
       },
       {
         "path": "src/facet_workflow.jl",
-        "sha256": "e91f8d1173f2239ebb82f58f52efb78cd6a1c6f8efb192edf2b1407d5501a69d"
+        "sha256": "fdaef8780f022f6d8e4bf99f65021a525b9805dfce4aa67dfe85159c4b491594"
       },
       {
         "path": "src/facets_conquest_bridge.jl",
-        "sha256": "d67ab8d963c3fa964a854c5aae3758c151a39b34694bbbbf3f4ed0d91c3deb18"
+        "sha256": "f24b16ffaca30ff1f4234de7fd606888698cc616d642953a502cab01dc0411e4"
       },
       {
         "path": "src/local_dependence.jl",
-        "sha256": "3b8b7615f3c9bf2adf2a58888b27dbcb1651d8007c658ee567d2ba12d351ed26"
+        "sha256": "0f5f9f22eba8c70168a2e3ca9682a310e9254c0b3f19a376839487166727ffcd"
       },
       {
         "path": "src/local_dependence_calibration.jl",
-        "sha256": "d50e1dc0ead880ce5a450008c05998f034f45a15f87fbb295ff464690eecfac5"
+        "sha256": "f0c9a5f82a1807f9a5af936c5cc9f02c17431785deecc9dc9ec6d3eddd3b8e8a"
       },
       {
         "path": "src/local_dependence_calibration_pilot.jl",
-        "sha256": "6caba29c7b5f7ab54c4d5b4d3ffc7d455e22283d348369fc4ca82952f890ec5b"
+        "sha256": "395cc320e3575faee92437c9be8d2b7d962e96eb22cdc77586551aa55fbf898e"
       },
       {
         "path": "src/local_dependence_known_truth_dgp.jl",
@@ -66,7 +66,7 @@
       },
       {
         "path": "src/local_dependence_simulation.jl",
-        "sha256": "006cb3d2514eacdf9606db303c80460efa095772691772f63defbe11fd362ae8"
+        "sha256": "4b39b617e0f14fc6842e0dec7ec5ced7622c070406ed72f6054867cd5bfee46d"
       },
       {
         "path": "src/mgmfrm_free_correlation_candidate.jl",
@@ -102,10 +102,10 @@
       },
       {
         "path": "src/testlet_design_audit.jl",
-        "sha256": "ad3b7963c8a871d9278d17be6fd708b7ab2fa01c6f2866b73c4c02043da855f9"
+        "sha256": "508c7c000f787e03afb71fff9b6ad6d96091eaee2782dddc0a1bf0c0c7ace1d6"
       }
     ],
-    "source_tree_sha256": "57016a5e08935acdc74c447fddfa41fd3744cffb511776097dc445ee9b86f43a",
+    "source_tree_sha256": "6b583c9152deaa44da85d7fe16b140c541e35ba04c09da57b316cb78cc127356",
     "immutable_vcs_revision_verified": false,
     "clean_worktree_verified": false,
     "raw_draw_cache_identity_verified": false,
@@ -8762,7 +8762,7 @@
   ],
   "all_requested_replication_skeleton_preflight": {
     "schema": "bayesianmgmfrm.existing_api_design_skeleton_preflight.v2",
-    "generator_source_sha256": "9e0a435f87cae3fecd4b390609883a497e78c2da2b1d205fe812eab60365c6eb",
+    "generator_source_sha256": "58609f06afa14c4b85d0febb30056a6e01f937de058250f143c05e9a6763e177",
     "profile": "smoke",
     "requested_replications": 1,
     "scope": "design_only_before_score_generation_and_family_fit",
@@ -25644,7 +25644,7 @@
   },
   "content_hash": {
     "algorithm": "sha256",
-    "value": "a623f732c60782cbff814d3d46a10a5df85b6c3e7e5d70238758b13c6badba0f",
+    "value": "f850674faca5fd670ac649c931ce0ca35f2e0d76e693fd9cf303911016ba5915",
     "covers": "artifact_without_content_hash"
   }
 }

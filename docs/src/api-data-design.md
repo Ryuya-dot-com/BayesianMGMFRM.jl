@@ -8,7 +8,7 @@ reader-facing records use a `view` keyword. Existing calls retain
 layout = fit_ready_parameter_layout(spec; preview = true, view = :public)
 domain_rows = domain_compilation_summary(spec; preview = true, view = :public)
 ladder = model_ladder(view = :public)
-rating_audit = rating_design_audit(spec; view = :public)
+rating_check = rating_design_check(spec; view = :public)
 software = related_software_capability_matrix(view = :public)
 ```
 
@@ -37,7 +37,7 @@ identification_declarations
 model_ladder
 model_manifest
 model_equation
-model_surface_audit
+model_surface_check
 q_matrix_validation
 fit_ready_parameter_layout
 domain_compilation_summary
@@ -62,6 +62,6 @@ validate_external_bridge_bundle
 load_conquest_parameter_export
 load_conquest_semantic_parameters
 external_bridge_result_receipt
-rating_design_audit
-testlet_design_audit
+rating_design_check
+testlet_design_check
 ```
