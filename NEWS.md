@@ -80,6 +80,8 @@
   violation for ledger checks.
 - Keep evidence metadata usable when optional environment probes fail and
   expose concise collection status, stage, and reason records.
+- Streamline the runnable fixed-Q MGMFRM example around data validation,
+  fitting, diagnostics, posterior summaries, and posterior predictive checks.
 - Harden FACETS/ConQuest transfer validation, returned-file checking, and the
   version-specific ConQuest semantic reader without claiming product
   equivalence or independent replication.

@@ -257,6 +257,15 @@ this provisional surface from the stable MFRM workflow. The older
 `fit(spec; experimental = true)` spelling remains available as a compatibility
 path, but new experimental work should use the namespace.
 
+Run the small end-to-end execution example with:
+
+```bash
+julia --project=. examples/guarded_mgmfrm.jl
+```
+
+The example uses two draws and one chain to keep the execution check small;
+those controls are not suitable for substantive inference.
+
 ## Documentation
 
 - [Data validation](docs/src/data-validation.md)

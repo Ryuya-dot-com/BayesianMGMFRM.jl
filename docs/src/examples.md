@@ -44,12 +44,14 @@ runs the guarded fixed-Q confirmatory MGMFRM path. It covers:
 
 - a compact two-dimensional example of the `family = :mgmfrm` guarded path,
   using a fixed item-by-dimension `q_matrix`;
+- data validation plus explicit Q-row and dimension-label inspection;
 - preview design and constraint inspection before fitting;
 - opt-in fitting through `BayesianMGMFRM.Experimental.fit(spec)`;
-- guarded [`MGMFRMFit`](@ref) metadata, fit artifacts, fit reports, sampler
-  diagnostics, posterior summaries, WAIC rows, and posterior predictive
-  summaries.
+- guarded [`MGMFRMFit`](@ref) metadata, sampler diagnostics, posterior
+  summaries, and posterior predictive summaries.
 
 Use this script to learn the narrow experimental MGMFRM entrypoint. It
 does not support exploratory loadings, free latent correlations, model-weight
-claims, or sparse-superiority claims.
+claims, or sparse-superiority claims. Its two-draw, one-chain controls are an
+execution smoke only; use predeclared substantive controls before interpreting
+posterior results.
