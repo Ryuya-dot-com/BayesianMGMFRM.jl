@@ -35,7 +35,7 @@ function _evidence_try_read(cmd;
         stage::Symbol = :command_read)
     return _evidence_optional(stage; issues) do
         resolved = dir === nothing ? cmd : Cmd(cmd; dir)
-        readchomp(resolved)
+        readchomp(pipeline(resolved; stderr = devnull))
     end
 end
 

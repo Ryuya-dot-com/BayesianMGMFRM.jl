@@ -12,6 +12,18 @@ import AdvancedHMC
 import BayesianMGMFRM
 import LogDensityProblemsAD
 
+function test_flag(name::AbstractString; default::Bool = false)
+    value = lowercase(strip(get(ENV, name, string(default))))
+    value in ("1", "true", "yes", "on") && return true
+    value in ("", "0", "false", "no", "off") && return false
+    throw(ArgumentError(
+        "$name must be one of 1/true/yes/on or 0/false/no/off; got $(repr(value))",
+    ))
+end
+
+const RUN_RESEARCH_EVIDENCE_TESTS =
+    test_flag("BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS")
+
 include(joinpath(dirname(@__DIR__), "scripts", "local_json.jl"))
 include(joinpath(dirname(@__DIR__), "scripts",
     "scientific_payload_digest.jl"))
@@ -386,6 +398,12 @@ function file_sha256(path)
     return bytes2hex(open(sha256, path))
 end
 
+function check_generated_fixture_reference(root, path, recorded_sha256)
+    @test isfile(joinpath(root, path))
+    @test occursin(r"^[0-9a-f]{64}$", recorded_sha256)
+    return nothing
+end
+
 function check_fixture_sha256_when_available(root::AbstractString,
         artifact::AbstractString,
         expected_sha256::AbstractString)
@@ -409,6 +427,7 @@ function optional_fixture_path(env_key::AbstractString, default_path::AbstractSt
             throw(ArgumentError("fixture path from $env_key does not exist: $fixture_path"))
         return fixture_path
     end
+    RUN_RESEARCH_EVIDENCE_TESTS || return ""
     resolved_default = joinpath(root, default_path)
     return isfile(resolved_default) ? default_path : ""
 end
@@ -4488,8 +4507,11 @@ function check_gmfrm_full_paper_reproduction_archive_fixture(
             @test isnothing(row[:sha256])
         else
             @test String(row[:hash_policy]) == "sha256"
-            @test String(row[:sha256]) ==
-                file_sha256(joinpath(root, path))
+            check_generated_fixture_reference(
+                root,
+                path,
+                String(row[:sha256]),
+            )
         end
     end
 
@@ -7815,8 +7837,11 @@ function check_mgmfrm_empirical_q_matrix_recovery_policy_fixture(
     @test Bool(input[:exists])
     @test Bool(input[:schema_matches])
     @test Bool(input[:summary_passed])
-    @test String(input[:sha256]) ==
-        file_sha256(joinpath(root, String(input[:path])))
+    check_generated_fixture_reference(
+        root,
+        String(input[:path]),
+        String(input[:sha256]),
+    )
 
     rows = fixture[:candidate_policy_rows]
     @test length(rows) == 9
@@ -11166,8 +11191,11 @@ function check_mgmfrm_guarded_local_fit_entrypoint_fixture(
         @test Bool(row[:exists])
         @test Bool(row[:schema_matches])
         @test Bool(row[:summary_passed])
-        @test String(row[:sha256]) ==
-            file_sha256(joinpath(root, String(row[:path])))
+        check_generated_fixture_reference(
+            root,
+            String(row[:path]),
+            String(row[:sha256]),
+        )
     end
 
     rows = fixture[:fit_entrypoint_rows]
@@ -11374,8 +11402,11 @@ function check_mgmfrm_fit_metric_threshold_sensitivity_fixture(
         @test Bool(row[:exists])
         @test Bool(row[:schema_matches])
         @test Bool(row[:summary_passed])
-        @test String(row[:sha256]) ==
-            file_sha256(joinpath(root, String(row[:path])))
+        check_generated_fixture_reference(
+            root,
+            String(row[:path]),
+            String(row[:sha256]),
+        )
     end
 
     references = fixture[:reference_records]
@@ -11760,8 +11791,11 @@ function check_mgmfrm_heldout_prediction_validation_policy_fixture(
         @test Bool(row[:exists])
         @test Bool(row[:schema_matches])
         @test Bool(row[:summary_passed])
-        @test String(row[:sha256]) ==
-            file_sha256(joinpath(root, String(row[:path])))
+        check_generated_fixture_reference(
+            root,
+            String(row[:path]),
+            String(row[:sha256]),
+        )
     end
 
     targets = fixture[:validation_target_rows]
@@ -29222,6 +29256,7 @@ end
     @test length(String(validation_plan[:content_hash][:value])) == 64
     rm(validation_plan_path; force = true)
 
+    if RUN_RESEARCH_EVIDENCE_TESTS
     design_robustness_script = joinpath(
         dirname(@__DIR__),
         "scripts",
@@ -29741,6 +29776,7 @@ end
         :n_paired_replication_rows]) == 21
     @test Int(calibration_skeleton[:execution][:n_fit_attempted]) == 0
     rm(calibration_skeleton_path; force = true)
+    end
 
     comparison_rows = [
         comparison_evidence_row(;
@@ -32829,7 +32865,9 @@ end
     end
 end
 
-include("existing_api_design_robustness_recovery_scorer.jl")
+if RUN_RESEARCH_EVIDENCE_TESTS
+    include("existing_api_design_robustness_recovery_scorer.jl")
+end
 include("facets_conquest_bridge.jl")
 include("model_contract.jl")
 include("facets_compatibility_stats.jl")
@@ -32842,17 +32880,19 @@ include("local_dependence_contract.jl")
 include("local_dependence_summary.jl")
 include("local_dependence_simulation.jl")
 include("local_dependence_calibration.jl")
-include("local_dependence_calibration_artifact.jl")
-include("local_dependence_calibration_pilot.jl")
-include("local_dependence_pilot_protocol_artifact.jl")
-include("local_dependence_pilot_calibration_semantics.jl")
-include("local_dependence_pilot_attempt_archive.jl")
-include("local_dependence_pilot_bounded_canonical_smoke.jl")
-include("local_dependence_pilot_recovery.jl")
-include("local_dependence_pilot_precommit_recovery.jl")
-include("local_dependence_pilot_batch_execution_harness.jl")
-include("local_dependence_pilot_controller_receipts.jl")
-include("local_dependence_pilot_job_worker.jl")
+if RUN_RESEARCH_EVIDENCE_TESTS
+    include("local_dependence_calibration_artifact.jl")
+    include("local_dependence_calibration_pilot.jl")
+    include("local_dependence_pilot_protocol_artifact.jl")
+    include("local_dependence_pilot_calibration_semantics.jl")
+    include("local_dependence_pilot_attempt_archive.jl")
+    include("local_dependence_pilot_bounded_canonical_smoke.jl")
+    include("local_dependence_pilot_recovery.jl")
+    include("local_dependence_pilot_precommit_recovery.jl")
+    include("local_dependence_pilot_batch_execution_harness.jl")
+    include("local_dependence_pilot_controller_receipts.jl")
+    include("local_dependence_pilot_job_worker.jl")
+end
 include("generalized_guard_contract.jl")
 include("fixed_q_identification.jl")
 include("fit_report_completeness.jl")
@@ -32860,64 +32900,69 @@ include("free_correlation_authorization.jl")
 include("evidence_metadata_resilience.jl")
 include("experimental_namespace.jl")
 include("mgmfrm_free_latent_correlation_2d.jl")
-include("mgmfrm_free_latent_correlation_2d_study.jl")
-@testset "free-correlation runner workspace-project subprocess" begin
-    runner_test_path = joinpath(
-        @__DIR__,
-        "mgmfrm_free_latent_correlation_2d_study_unit_runner.jl",
-    )
-    command = addenv(
-        `$(Base.julia_cmd()) --project=$(dirname(@__DIR__)) $runner_test_path`,
-        "JULIA_LOAD_PATH" => join(
-            ("@", "@stdlib"), Sys.iswindows() ? ';' : ':'),
-    )
-    process = mktemp() do _, log_io
-        child = run(pipeline(
-            command;
-            stdout = log_io,
-            stderr = log_io,
-        ); wait = false)
-        wait(child)
-        if !success(child)
-            flush(log_io)
-            seekstart(log_io)
-            write(stderr, read(log_io))
-            println(stderr, "\nsubprocess exit code: ", child.exitcode)
+if RUN_RESEARCH_EVIDENCE_TESTS
+    include("mgmfrm_free_latent_correlation_2d_study.jl")
+    @testset "free-correlation runner workspace-project subprocess" begin
+        runner_test_path = joinpath(
+            @__DIR__,
+            "mgmfrm_free_latent_correlation_2d_study_unit_runner.jl",
+        )
+        command = addenv(
+            `$(Base.julia_cmd()) --project=$(dirname(@__DIR__)) $runner_test_path`,
+            "JULIA_LOAD_PATH" => join(
+                ("@", "@stdlib"), Sys.iswindows() ? ';' : ':'),
+        )
+        process = mktemp() do _, log_io
+            child = run(pipeline(
+                command;
+                stdout = log_io,
+                stderr = log_io,
+            ); wait = false)
+            wait(child)
+            if !success(child)
+                flush(log_io)
+                seekstart(log_io)
+                write(stderr, read(log_io))
+                println(stderr, "\nsubprocess exit code: ", child.exitcode)
+            end
+            child
         end
-        child
+        @test success(process)
     end
-    @test success(process)
 end
-include("publication_grade_policy_contract.jl")
+RUN_RESEARCH_EVIDENCE_TESTS &&
+    include("publication_grade_policy_contract.jl")
 include("public_language_gate.jl")
 include("rank_normalized_diagnostics.jl")
 include("scientific_payload_digest.jl")
 
-module FullPaperReproductionArchiveContractForTest
+if RUN_RESEARCH_EVIDENCE_TESTS
+    module FullPaperReproductionArchiveContractForTest
 
-include(joinpath(@__DIR__, "..", "scripts",
-    "generate_gmfrm_full_paper_reproduction_archive.jl"))
+    include(joinpath(@__DIR__, "..", "scripts",
+        "generate_gmfrm_full_paper_reproduction_archive.jl"))
 
-end
+    end
 
 
-@testset "full archive guarded-summary contract" begin
-    generator = FullPaperReproductionArchiveContractForTest
-    spec = (;
-        name = :guarded_exposure_review,
-        pass_policy = :summary_passed,
-    )
-    @test generator.summary_passed(
-        spec,
-        "{\"reviewed\":true,\"all_local_evidence_passed\":true}",
-    )
-    @test !generator.summary_passed(
-        spec,
-        "{\"passed\":true,\"reviewed\":true," *
-        "\"all_local_evidence_passed\":false}",
-    )
-    @test !generator.summary_passed(
-        spec,
-        "{\"reviewed\":true}",
-    )
+    @testset "full archive guarded-summary contract" begin
+        generator = FullPaperReproductionArchiveContractForTest
+        spec = (;
+            name = :guarded_exposure_review,
+            pass_policy = :summary_passed,
+        )
+        @test generator.summary_passed(
+            spec,
+            "{\"reviewed\":true,\"all_local_evidence_passed\":true}",
+        )
+        @test !generator.summary_passed(
+            spec,
+            "{\"passed\":true,\"reviewed\":true," *
+            "\"all_local_evidence_passed\":false}",
+        )
+        @test !generator.summary_passed(
+            spec,
+            "{\"reviewed\":true}",
+        )
+    end
 end

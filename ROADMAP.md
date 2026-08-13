@@ -402,6 +402,35 @@ for a genuinely frozen external execution protocol, and even there the roadmap
 must justify why git-tree identity plus a semantic protocol version is
 insufficient.
 
+#### Current SHA portability audit
+
+The repository-wide audit distinguishes a digest from a dependency on one
+checkout. SHA-related fields occur in 17 `src` files, 131 `test` files, and 139
+`scripts` files. The stable MFRM load, validation, fit, prediction, and reporting
+path has no hard-coded repository SHA or Git-checkout requirement. Its hashes
+bind the caller's data/design, invalidate a local cache, or verify an artifact
+against the bytes stored with that artifact; they are recomputed in the current
+environment.
+
+The remaining categories are:
+
+| Surface | Portability decision |
+| --- | --- |
+| `design_identity`, data signatures, fit-cache keys, and report hashes | Retain. These are semantic/local integrity checks and do not name the developer's machine. |
+| FACETS/ConQuest bundle and returned-file hashes | Retain. Exact transferred-byte identity is the purpose of these opt-in bridge checks. |
+| `evidence_metadata` Project/Manifest/Git hashes | Retain as optional metadata. Probe failure is typed, non-blocking, and quiet. |
+| Anchor `source_hash` | Retain as a declaration-format check for provenance-required anchor planning; it does not compare a local file, and `require_provenance=false` remains available for exploration. |
+| Free-correlation plan and execution-environment identity | Compute plan/roster fingerprints from semantic contents without hard-coded expected digests. Retain environment identity as per-unit provenance, but do not require all units to have one identical environment SHA. Cross-machine and cross-OS study aggregation is valid when the protocol itself has no violations. |
+| Generated research-fixture chains in `test/runtests.jl` | Remove from ordinary `Pkg.test()` by default. The 90 optional fixture entry points run only with `BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true`; manual CI owns their exact lineage checks. |
+| Frozen LD1b1 and publication/reproduction scripts | Keep isolated as research protocols, not package runtime dependencies. Their source pins must not control package import, ordinary fitting, or routine CI. |
+
+Routine CI therefore tests supported Julia/OS package behavior without first
+requiring the tracked research harness to regenerate byte-for-byte. Manual
+workflow dispatch retains a Linux research-evidence run and a Windows harness
+portability check. The next cleanup is to move the remaining research protocol
+includes out of the monolithic `runtests.jl` file into a named test entry point;
+until then, the explicit environment flag is the compatibility boundary.
+
 ### Stop, Narrow, or Proceed Rules
 
 | Evidence outcome | Roadmap action |

@@ -20,10 +20,6 @@ const _FREE_CORRELATION_STUDY_DRY_RUN_SCHEMA =
     "bayesianmgmfrm.mgmfrm_free_latent_correlation_2d_study_dry_run.v2"
 const _FREE_CORRELATION_STUDY_PLAN_ID =
     "mgmfrm_free_latent_correlation_2d_recovery_study_v2"
-const _FREE_CORRELATION_STUDY_V2_EXPECTED_PLAN_FINGERPRINT =
-    "d3f39355bf16c8ae984b58f5b2c52b5ab81ccbbe26a68379e31d0281b2beb4e3"
-const _FREE_CORRELATION_STUDY_V2_EXPECTED_UNIT_ROSTER_SHA256 =
-    "0c4939ab76a0e5f78c2dd13896446c51a7faecdff65288b5b94c9c957cc62d08"
 const _FREE_CORRELATION_STUDY_RHO_GRID = (-0.6, -0.3, 0.0, 0.3, 0.6)
 const _FREE_CORRELATION_STUDY_FEASIBILITY_REPLICATIONS = 5
 const _FREE_CORRELATION_STUDY_EVALUATION_REPLICATIONS = 100
@@ -226,11 +222,6 @@ function _mgmfrm_free_latent_correlation_2d_study_plan()
     n_feasibility = count(unit -> unit.phase === :feasibility, units)
     n_evaluation = count(unit -> unit.phase === :evaluation, units)
     unit_roster_sha256 = artifact_content_hash(units)
-    unit_roster_sha256 ==
-        _FREE_CORRELATION_STUDY_V2_EXPECTED_UNIT_ROSTER_SHA256 ||
-        throw(AssertionError(
-            "frozen free-correlation study v2 unit roster changed",
-        ))
     design = (;
         dimensions = 2,
         n_persons = 300,
@@ -605,10 +596,6 @@ function _mgmfrm_free_latent_correlation_2d_study_plan()
         fixed_protocol...,
     )
     plan_fingerprint = artifact_content_hash(fingerprint_material)
-    plan_fingerprint == _FREE_CORRELATION_STUDY_V2_EXPECTED_PLAN_FINGERPRINT ||
-        throw(AssertionError(
-            "frozen free-correlation study v2 fingerprint changed",
-        ))
     return (;
         schema = _FREE_CORRELATION_STUDY_PLAN_SCHEMA,
         object = :mgmfrm_free_latent_correlation_2d_study_plan,
@@ -1878,8 +1865,12 @@ function _free_correlation_study_ledger_summary(unit_rows, plan)
     evaluation_rows = [row for row in phase_rho_rows
         if row.phase === :evaluation]
     evaluation_all_terminal = all(row -> row.n_pending == 0, evaluation_rows)
-    protocol_integrity_passed = n_protocol_violations == 0 &&
-        execution_environment_homogeneous
+    # Environment identities are provenance, not an execution lock. A
+    # replicated study may legitimately distribute units across Julia
+    # versions, operating systems, architectures, or machines. Keep the
+    # diversity visible, but reserve protocol failure for actual protocol
+    # violations.
+    protocol_integrity_passed = n_protocol_violations == 0
     scorer_implemented_validated_frozen =
         plan.recovery_analysis.fixed_evaluation_thresholds.scorer_status ===
             :contract_frozen_scorer_implemented_and_validated
@@ -2242,8 +2233,7 @@ function _free_correlation_study_protocol_integrity_evidence(
     execution_environment_identity = execution_environment_homogeneous ?
         only(identities) : missing
     passed = n_protocol_violations_at_freeze == 0 &&
-        n_evaluation_results_recorded_at_freeze == 0 &&
-        execution_environment_homogeneous
+        n_evaluation_results_recorded_at_freeze == 0
     return (;
         n_protocol_violations_at_freeze,
         n_evaluation_results_recorded_at_freeze,
@@ -2506,7 +2496,6 @@ function _validate_free_correlation_study_feasibility_decision(
     expected_integrity_passed =
         integrity_evidence.n_protocol_violations_at_freeze == 0 &&
         integrity_evidence.n_evaluation_results_recorded_at_freeze == 0 &&
-        expected_environment_homogeneous &&
         sort(application_indices) == collect(1:length(rows))
     integrity_evidence.passed === expected_integrity_passed ||
         throw(ArgumentError(

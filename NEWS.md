@@ -79,12 +79,19 @@
   them as absent; truly absent authorization remains a visible protocol
   violation for ledger checks.
 - Keep evidence metadata usable when optional environment probes fail and
-  expose concise collection status, stage, and reason records.
+  expose concise collection status, stage, and reason records without leaking
+  failed optional-command stderr into ordinary output.
 - Streamline the runnable fixed-Q MGMFRM example around data validation,
   fitting, diagnostics, posterior summaries, and posterior predictive checks.
 - Reduce routine CI from the six-cell Julia/OS Cartesian matrix to four
   compatibility lanes, remove duplicate digest execution, and stop making
   byte-exact legacy archive drift a normal release gate.
+- Treat execution-environment SHA values as provenance rather than requiring
+  every replicated free-correlation study unit to come from one machine, and
+  run the 90 optional SHA-chained research fixtures only when
+  `BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true` is explicitly requested.
+- Compute the free-correlation plan and unit-roster fingerprints from their
+  semantic contents without comparing them with hard-coded source constants.
 - Harden FACETS/ConQuest transfer validation, returned-file checking, and the
   version-specific ConQuest semantic reader without claiming product
   equivalence or independent replication.

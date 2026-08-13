@@ -444,10 +444,9 @@ end
     @test plan.plan_id ==
         "mgmfrm_free_latent_correlation_2d_recovery_study_v2"
     @test plan.version == 2
-    @test plan.plan_fingerprint ==
-        "d3f39355bf16c8ae984b58f5b2c52b5ab81ccbbe26a68379e31d0281b2beb4e3"
-    @test plan.unit_roster_sha256 ==
-        "0c4939ab76a0e5f78c2dd13896446c51a7faecdff65288b5b94c9c957cc62d08"
+    @test occursin(r"^[0-9a-f]{64}$", plan.plan_fingerprint)
+    @test occursin(r"^[0-9a-f]{64}$", plan.unit_roster_sha256)
+    @test plan.unit_roster_sha256 == artifact_content_hash(plan.units)
     @test plan.lineage.predecessor_plan_id ==
         "mgmfrm_free_latent_correlation_2d_recovery_study_v1"
     @test plan.lineage.predecessor_plan_fingerprint ==
@@ -1704,7 +1703,7 @@ end
     @test ismissing(mixed_environment_ledger.summary.
         execution_environment_identity)
     @test mixed_environment_ledger.summary.feasibility_gate.passed
-    @test !mixed_environment_ledger.summary.protocol_integrity_passed
+    @test mixed_environment_ledger.summary.protocol_integrity_passed
     @test !mixed_environment_ledger.summary.aggregate_ready
     mixed_environment_decision = experimental.
         free_latent_correlation_2d_study_feasibility_decision(
@@ -1714,17 +1713,17 @@ end
         validate_feasibility_decision(mixed_environment_decision, plan),
         mixed_environment_decision,
     )
-    @test !mixed_environment_decision.protocol_integrity_at_freeze
-    @test !mixed_environment_decision.protocol_integrity_evidence.passed
+    @test mixed_environment_decision.protocol_integrity_at_freeze
+    @test mixed_environment_decision.protocol_integrity_evidence.passed
     @test mixed_environment_decision.protocol_integrity_evidence.
         execution_environment_identity_count == 2
     @test !mixed_environment_decision.protocol_integrity_evidence.
         execution_environment_homogeneous
     @test ismissing(mixed_environment_decision.protocol_integrity_evidence.
         execution_environment_identity)
-    @test !mixed_environment_decision.evaluation_execution_authorized
+    @test mixed_environment_decision.evaluation_execution_authorized
     @test mixed_environment_decision.status ===
-        :evaluation_execution_not_authorized
+        :evaluation_execution_authorized
 
     early_evaluation_ledger = unauthorized_ledger
     for unit in feasibility_units

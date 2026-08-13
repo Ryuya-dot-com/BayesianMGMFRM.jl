@@ -19,6 +19,11 @@ Documenter with a 100 KiB rendered-page hard limit, Aqua package hygiene,
 the hygiene subset in a lighter mode because the matrix test and documentation
 jobs cover `Pkg.test()` and the docs build separately, while the stricter
 reader-facing wording scan remains part of final local release verification.
+SHA-chained research archives are deliberately outside ordinary `Pkg.test()`;
+they can be audited separately with
+`BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true` or the manually dispatched
+research-evidence workflow. Their historical byte identity is not a package
+installation requirement.
 
 The machine-readable release boundary is available from
 [`release_scope_summary`](@ref):

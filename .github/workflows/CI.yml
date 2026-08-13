@@ -38,14 +38,41 @@ jobs:
           version: ${{ matrix.version }}
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
-      - name: Check tracked harness portability
-        if: runner.os == 'Windows'
+      - uses: julia-actions/julia-runtest@v1
+
+  research-evidence:
+    name: Research evidence and SHA lineage
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: Run opt-in research-evidence fixtures
+        env:
+          BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS: "true"
+        run: julia --startup-file=no --project=. -e 'using Pkg; Pkg.test()'
+
+  research-harness-portability:
+    name: Research harness portability
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.10.8'
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: Regenerate the tracked research harness
         shell: pwsh
         run: |
           $GeneratedHarness = Join-Path $env:RUNNER_TEMP 'local_dependence_pilot_batch_execution_harness.json'
           julia --startup-file=no --project=. scripts/generate_local_dependence_pilot_batch_execution_harness.jl --output $GeneratedHarness
           git diff --no-index --exit-code -- test/fixtures/local_dependence_pilot_batch_execution_harness.json $GeneratedHarness
-      - uses: julia-actions/julia-runtest@v1
 
   docs:
     name: Documentation

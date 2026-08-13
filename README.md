@@ -293,6 +293,17 @@ julia --project=. -e 'using Pkg; Pkg.test()'
 julia --startup-file=no --project=docs docs/build.jl
 ```
 
+Ordinary `Pkg.test()` checks package behavior and portable artifact contracts.
+The long SHA-chained research-evidence archive is intentionally opt-in:
+
+```bash
+BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true \
+  julia --project=. -e 'using Pkg; Pkg.test()'
+```
+
+Use that mode when reviewing or regenerating frozen study evidence, not as a
+prerequisite for installing or fitting the package on another computer.
+
 The test matrix runs the latest Julia 1.x release on Ubuntu, macOS, and Windows,
 plus the Julia 1.10.8 minimum-version lane on Ubuntu. Separate jobs build the
 documentation and verify examples and release-facing language. The root

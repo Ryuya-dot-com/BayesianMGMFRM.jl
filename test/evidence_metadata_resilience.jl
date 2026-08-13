@@ -5,6 +5,10 @@ const _run_evidence_optional = getfield(
     BayesianMGMFRM,
     :_evidence_optional,
 )
+const _try_read_evidence_command = getfield(
+    BayesianMGMFRM,
+    :_evidence_try_read,
+)
 
 @testset "evidence metadata remains usable after optional probe failure" begin
     issues = Any[]
@@ -27,6 +31,25 @@ const _run_evidence_optional = getfield(
         stage = :unit_probe,
         reason = :invalid_value,
     )
+
+    noisy_issues = Any[]
+    noisy_command = `$(Base.julia_cmd()) --startup-file=no -e "println(stderr, \"optional probe noise\"); exit(1)"`
+    noisy_result, stderr_text = mktemp() do _, captured_stderr
+        result = redirect_stderr(captured_stderr) do
+            _try_read_evidence_command(
+                noisy_command;
+                issues = noisy_issues,
+                stage = :noisy_command,
+            )
+        end
+        flush(captured_stderr)
+        seekstart(captured_stderr)
+        return result, read(captured_stderr, String)
+    end
+    @test isnothing(noisy_result)
+    @test isempty(stderr_text)
+    @test only(noisy_issues).stage === :noisy_command
+    @test only(noisy_issues).reason === :command_failed
 
     metadata = evidence_metadata(; include_packages = false)
     @test metadata["collection"]["status"] in (:complete, :partial)
