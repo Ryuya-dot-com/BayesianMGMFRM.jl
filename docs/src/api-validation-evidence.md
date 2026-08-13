@@ -28,7 +28,9 @@ evidence_metadata
 `evidence_metadata()` returns portable environment, package, project, and git
 metadata without machine-local paths by default. Set `include_paths = true`
 only for a private reproduction record whose access controls and retention
-policy permit complete local paths and free-form execution notes.
+policy permit complete local paths and free-form execution notes. Environment
+discovery is best-effort: an unavailable optional command or file does not stop
+report creation, and `collection.issues` records its stage and short reason.
 
 `local_dependence_simulation_grid` and `simulate_local_dependence` form the
 completed LD1a generator and design-validation surface. The 22 frozen scenarios

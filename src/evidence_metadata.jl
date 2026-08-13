@@ -5,29 +5,55 @@ using LinearAlgebra
 using Pkg
 using SHA
 
-function _evidence_try_read(cmd; dir = nothing)
+function _evidence_failure_reason(error)
+    error isa Base.ProcessFailedException && return :command_failed
+    error isa Base.IOError && return :io_error
+    error isa ArgumentError && return :invalid_value
+    return :unexpected_error
+end
+
+function _evidence_optional(operation::F, stage::Symbol;
+        issues = nothing,
+        fallback = nothing) where {F}
     try
-        resolved = dir === nothing ? cmd : Cmd(cmd; dir)
-        return readchomp(resolved)
-    catch
-        return nothing
+        return operation()
+    catch error
+        if issues !== nothing
+            push!(issues, (;
+                status = :unavailable,
+                stage,
+                reason = _evidence_failure_reason(error),
+            ))
+        end
+        return fallback
     end
 end
 
-function _evidence_total_memory()
-    if isdefined(Sys, :total_memory)
-        try
-            return Sys.total_memory()
-        catch
-            return nothing
-        end
+function _evidence_try_read(cmd;
+        dir = nothing,
+        issues = nothing,
+        stage::Symbol = :command_read)
+    return _evidence_optional(stage; issues) do
+        resolved = dir === nothing ? cmd : Cmd(cmd; dir)
+        readchomp(resolved)
     end
-    value = _evidence_try_read(`sysctl -n hw.memsize`)
-    isnothing(value) && return nothing
-    try
-        return parse(Int, value)
-    catch
-        return nothing
+end
+
+function _evidence_total_memory(; issues = nothing)
+    if isdefined(Sys, :total_memory)
+        memory = _evidence_optional(:total_memory; issues) do
+            Sys.total_memory()
+        end
+        !isnothing(memory) && return memory
+    end
+    command = _evidence_try_read(
+        `sysctl -n hw.memsize`;
+        issues,
+        stage = :total_memory_command,
+    )
+    isnothing(command) && return nothing
+    return _evidence_optional(:total_memory_parse; issues) do
+        parse(Int, command)
     end
 end
 
@@ -75,13 +101,13 @@ function _evidence_package_status(;
     return out
 end
 
-function _evidence_file_sha256(path)
+function _evidence_file_sha256(path;
+        issues = nothing,
+        stage::Symbol = :file_read)
     path isa AbstractString || return nothing
     isfile(path) || return nothing
-    try
-        return bytes2hex(sha256(read(path)))
-    catch
-        return nothing
+    return _evidence_optional(stage; issues) do
+        bytes2hex(sha256(read(path)))
     end
 end
 
@@ -98,11 +124,18 @@ function _evidence_manifest_path(project_dir;
     return index === nothing ? nothing : candidates[index]
 end
 
-function _evidence_git_metadata(; include_paths::Bool = false)
+function _evidence_git_metadata(;
+        include_paths::Bool = false,
+        issues = nothing)
     project = Base.active_project()
     project_dir = isnothing(project) ? nothing : dirname(project)
     root = isnothing(project_dir) ? nothing :
-        _evidence_try_read(`git rev-parse --show-toplevel`; dir = project_dir)
+        _evidence_try_read(
+            `git rev-parse --show-toplevel`;
+            dir = project_dir,
+            issues,
+            stage = :git_root,
+        )
     isnothing(root) && return Dict{String,Any}(
         "available" => false,
         "root" => nothing,
@@ -112,33 +145,64 @@ function _evidence_git_metadata(; include_paths::Bool = false)
         "dirty" => nothing,
         "status_short_sha256" => nothing,
     )
-    status_short = _evidence_try_read(`git status --short`; dir = root)
+    status_short = _evidence_try_read(
+        `git status --short`;
+        dir = root,
+        issues,
+        stage = :git_status,
+    )
+    commit = _evidence_try_read(
+        `git rev-parse HEAD`;
+        dir = root,
+        issues,
+        stage = :git_commit,
+    )
+    branch = _evidence_try_read(
+        `git rev-parse --abbrev-ref HEAD`;
+        dir = root,
+        issues,
+        stage = :git_branch,
+    )
     return Dict{String,Any}(
         "available" => true,
         "root" => include_paths ? root : nothing,
         "root_basename" => _evidence_path_basename(root),
-        "commit" => _evidence_try_read(`git rev-parse HEAD`; dir = root),
-        "branch" => _evidence_try_read(
-            `git rev-parse --abbrev-ref HEAD`;
-            dir = root,
-        ),
+        "commit" => commit,
+        "branch" => branch,
         "dirty" => isnothing(status_short) ? nothing : !isempty(status_short),
         "status_short_sha256" => isnothing(status_short) ?
             nothing : bytes2hex(sha256(codeunits(status_short))),
     )
 end
 
-function _evidence_project_hashes(; include_paths::Bool = false)
+function _evidence_project_hashes(;
+        include_paths::Bool = false,
+        issues = nothing)
     project = Base.active_project()
     project_dir = isnothing(project) ? nothing : dirname(project)
     manifest = _evidence_manifest_path(project_dir)
     return Dict{String,Any}(
         "active_project" => include_paths ? project : nothing,
         "active_project_basename" => _evidence_path_basename(project),
-        "active_project_sha256" => _evidence_file_sha256(project),
+        "active_project_sha256" => _evidence_file_sha256(
+            project;
+            issues,
+            stage = :active_project_read,
+        ),
         "manifest" => include_paths ? manifest : nothing,
         "manifest_basename" => _evidence_path_basename(manifest),
-        "manifest_sha256" => _evidence_file_sha256(manifest),
+        "manifest_sha256" => _evidence_file_sha256(
+            manifest;
+            issues,
+            stage = :manifest_read,
+        ),
+    )
+end
+
+function _evidence_collection_report(issues)
+    return Dict{String,Any}(
+        "status" => isempty(issues) ? :complete : :partial,
+        "issues" => Tuple(issues),
     )
 end
 
@@ -150,19 +214,50 @@ OS, BLAS, optional R/CmdStan discovery, git/project hashes, and direct package
 status. Machine-local paths are omitted by default while safe basenames and
 content hashes are retained. Set `include_paths = true` only when a private
 reproduction record explicitly requires complete local paths and free-form
-execution notes.
+execution notes. Optional probe failures do not stop metadata creation;
+`collection.issues` records their stage and short reason.
 """
 function evidence_metadata(;
         include_packages::Bool = true,
         include_paths::Bool = false)
+    issues = Any[]
     cpu = Sys.cpu_info()
     cpu_model = isempty(cpu) ? nothing : getproperty(first(cpu), :model)
+    memory = _evidence_total_memory(; issues)
+    r_version = _evidence_try_read(
+        `Rscript -e "cat(R.version.string)"`;
+        issues,
+        stage = :r_version,
+    )
+    git = _evidence_git_metadata(; include_paths, issues)
+    hashes = _evidence_project_hashes(; include_paths, issues)
+    cmdstan = _evidence_optional(
+        :cmdstan_discovery;
+        issues,
+        fallback = Dict{String,Any}(
+            "path" => nothing,
+            "path_basename" => nothing,
+            "version" => nothing,
+        ),
+    ) do
+        _evidence_cmdstan_metadata(; include_paths)
+    end
+    packages = include_packages ?
+        _evidence_optional(
+            :package_status;
+            issues,
+            fallback = Dict{String,Any}(),
+        ) do
+            _evidence_package_status(; include_paths)
+        end :
+        Dict{String,Any}()
     return Dict{String,Any}(
         "captured_at" => string(now()),
+        "collection" => _evidence_collection_report(issues),
         "hardware" => Dict{String,Any}(
             "cpu_model" => cpu_model,
             "cpu_threads" => length(cpu),
-            "total_memory_bytes" => _evidence_total_memory(),
+            "total_memory_bytes" => memory,
         ),
         "software" => Dict{String,Any}(
             "os" => Dict{String,Any}(
@@ -184,16 +279,16 @@ function evidence_metadata(;
                     [_evidence_path_basename(path) for path in LOAD_PATH],
             ),
             "r" => Dict{String,Any}(
-                "version" => _evidence_try_read(`Rscript -e "cat(R.version.string)"`),
+                "version" => r_version,
             ),
-            "cmdstan" => _evidence_cmdstan_metadata(; include_paths),
+            "cmdstan" => cmdstan,
             "blas" => Dict{String,Any}(
                 "threads" => BLAS.get_num_threads(),
                 "config" => string(BLAS.get_config()),
             ),
         ),
-        "git" => _evidence_git_metadata(; include_paths),
-        "hashes" => _evidence_project_hashes(; include_paths),
+        "git" => git,
+        "hashes" => hashes,
         "execution" => Dict{String,Any}(
             "julia_num_threads_env" => get(ENV, "JULIA_NUM_THREADS", nothing),
             "omp_num_threads" => get(ENV, "OMP_NUM_THREADS", nothing),
@@ -204,8 +299,7 @@ function evidence_metadata(;
             "power_thermal_notes_recorded" =>
                 haskey(ENV, "GMFRM_POWER_NOTES"),
         ),
-        "packages" => include_packages ?
-            _evidence_package_status(; include_paths) : Dict{String,Any}(),
+        "packages" => packages,
     )
 end
 

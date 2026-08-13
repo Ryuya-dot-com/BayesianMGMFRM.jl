@@ -358,9 +358,9 @@ parameter checks, AD construction, parsers, and bridge readers usually rethrow
 or convert failures to explicit `ArgumentError`s, and `fit_report` records
 `status = :error`. Supplied invalid free-correlation authorization now fails
 with an explicit `ArgumentError`; only an actually absent authorization is
-retained as a visible protocol-violation row. Optional environment metadata
-still uses naked catches that return `nothing` and requires typed status,
-stage, and reason records. The policy is:
+retained as a visible protocol-violation row. Optional environment discovery
+is best-effort and records typed status, stage, and reason values without
+blocking report creation. The policy is:
 
 - no naked `catch` in likelihood, transform, sampler, cache-integrity, or
   authorization code;

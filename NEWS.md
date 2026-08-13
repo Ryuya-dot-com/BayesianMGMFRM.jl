@@ -78,6 +78,8 @@
   free-correlation study authorization artifacts instead of silently treating
   them as absent; truly absent authorization remains a visible protocol
   violation for ledger checks.
+- Keep evidence metadata usable when optional environment probes fail and
+  expose concise collection status, stage, and reason records.
 - Harden FACETS/ConQuest transfer validation, returned-file checking, and the
   version-specific ConQuest semantic reader without claiming product
   equivalence or independent replication.
