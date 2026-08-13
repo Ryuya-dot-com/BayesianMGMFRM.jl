@@ -21168,20 +21168,17 @@ end
     @test evidence_policy.schema ==
         "bayesianmgmfrm.evidence_artifact_schema_policy.v1"
     @test evidence_policy.object === :evidence_artifact_schema_policy
-    @test evidence_policy.environment_policy.
+    @test !evidence_policy.environment_policy.
         record_project_hash_when_available
-    @test evidence_policy.environment_policy.
+    @test !evidence_policy.environment_policy.
         record_git_status_hash_when_available
     @test evidence_policy.environment_policy.allow_missing_git_checkout
-    environment_omitted_policy = evidence_artifact_schema_policy(
-        :unit_test;
-        include_environment = false,
-    )
-    @test !environment_omitted_policy.environment_policy.
+    environment_included_policy = evidence_artifact_schema_policy(:unit_test)
+    @test environment_included_policy.environment_policy.
         record_project_hash_when_available
-    @test !environment_omitted_policy.environment_policy.
+    @test environment_included_policy.environment_policy.
         record_git_status_hash_when_available
-    @test environment_omitted_policy.environment_policy.
+    @test environment_included_policy.environment_policy.
         allow_missing_git_checkout
     @test evidence_policy.artifact_kind === :unit_test
     @test evidence_policy.hash_policy.algorithm === :sha256
