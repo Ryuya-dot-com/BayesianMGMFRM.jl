@@ -193,9 +193,11 @@
     score_q_validation =
         BayesianMGMFRM.q_matrix_validation(heldout_score_design)
     @test !score_q_validation.passed
-    @test all(row -> row.severity !== :error ||
-            row.check === :dimension_facet_subgraph_coverage,
-        score_q_validation.rows)
+    @test Set(row.check for row in score_q_validation.rows
+        if row.severity === :error) == Set((
+        :dimension_facet_subgraph_coverage,
+        :fixed_q_identification_gate,
+    ))
     @test BayesianMGMFRM._q_matrix_guarded_structure_passed(
         score_q_validation)
     @test !BayesianMGMFRM._q_matrix_guarded_structure_passed((;
