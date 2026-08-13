@@ -3840,6 +3840,100 @@ function _q_matrix_duplicate_column_groups(mat::Matrix{Bool})
     return Tuple(out)
 end
 
+function _q_matrix_structural_matching(
+        mat::Matrix{Bool}, item_indices = axes(mat, 1))
+    items = sort(unique(Int(item) for item in item_indices))
+    all(item -> item in axes(mat, 1), items) ||
+        throw(ArgumentError("Q-matrix structural matching received an invalid item index"))
+    matched_item_by_dimension = zeros(Int, size(mat, 2))
+
+    function augment(item::Int, seen_dimensions::AbstractVector{Bool})
+        for dimension in axes(mat, 2)
+            mat[item, dimension] || continue
+            seen_dimensions[dimension] && continue
+            seen_dimensions[dimension] = true
+            previous_item = matched_item_by_dimension[dimension]
+            if previous_item == 0 || augment(previous_item, seen_dimensions)
+                matched_item_by_dimension[dimension] = item
+                return true
+            end
+        end
+        return false
+    end
+
+    structural_rank = 0
+    for item in items
+        structural_rank += augment(item, falses(size(mat, 2))) ? 1 : 0
+    end
+    unmatched_dimensions = Tuple(findall(iszero, matched_item_by_dimension))
+    return (;
+        structural_rank,
+        full_column_rank = structural_rank == size(mat, 2),
+        matched_item_by_dimension = Tuple(matched_item_by_dimension),
+        matched_pairs = Tuple(
+            (item = item, dimension = dimension)
+            for (dimension, item) in pairs(matched_item_by_dimension)
+            if item != 0
+        ),
+        unmatched_dimensions,
+    )
+end
+
+function _q_matrix_pure_items_per_dimension(mat::Matrix{Bool})
+    return Tuple(
+        Tuple(item for item in axes(mat, 1)
+            if mat[item, dimension] && count(@view mat[item, :]) == 1)
+        for dimension in axes(mat, 2)
+    )
+end
+
+function _q_matrix_person_dimension_support(
+        data::FacetData,
+        mat::Matrix{Bool},
+        dimension_labels::Vector{String})
+    rows = NamedTuple[]
+    observation_counts = zeros(Int, length(data.person_levels))
+    observed_item_sets = [Set{Int}() for _ in eachindex(data.person_levels)]
+    for observation in 1:data.n
+        person = data.person[observation]
+        observation_counts[person] += 1
+        push!(observed_item_sets[person], data.item[observation])
+    end
+    for person in eachindex(data.person_levels)
+        observed_items = sort!(collect(observed_item_sets[person]))
+        matching = _q_matrix_structural_matching(mat, observed_items)
+        observed_dimensions = Tuple(
+            dimension for dimension in axes(mat, 2)
+            if any(item -> mat[item, dimension], observed_items)
+        )
+        unobserved_dimensions = Tuple(
+            dimension for dimension in axes(mat, 2)
+            if dimension ∉ observed_dimensions
+        )
+        push!(rows, (;
+            person,
+            person_label = data.person_levels[person],
+            n_observations = observation_counts[person],
+            n_observed_items = length(observed_items),
+            observed_item_indices = Tuple(observed_items),
+            observed_item_labels =
+                Tuple(data.item_levels[item] for item in observed_items),
+            observed_dimensions,
+            unobserved_dimensions,
+            unobserved_dimension_labels =
+                Tuple(dimension_labels[dimension]
+                    for dimension in unobserved_dimensions),
+            structural_rank = matching.structural_rank,
+            full_column_rank = matching.full_column_rank,
+            example_unmatched_dimensions = matching.unmatched_dimensions,
+            example_unmatched_dimension_labels =
+                Tuple(dimension_labels[dimension]
+                    for dimension in matching.unmatched_dimensions),
+        ))
+    end
+    return Tuple(rows)
+end
+
 function _q_matrix_component_rows(data::FacetData,
         mat::Matrix{Bool},
         dimension_labels::Vector{String})
@@ -3995,6 +4089,7 @@ function _q_matrix_validation_manifest(data::FacetData,
             cross_loading_policy,
             q_matrix = nothing,
             matrix = include_matrix ? mat : nothing,
+            identification = nothing,
             passed,
             rows = Tuple(rows),
             summary = (;
@@ -4030,6 +4125,7 @@ function _q_matrix_validation_manifest(data::FacetData,
             cross_loading_policy,
             q_matrix = nothing,
             matrix = include_matrix ? mat : nothing,
+            identification = nothing,
             passed,
             rows = Tuple(rows),
             summary = (;
@@ -4066,6 +4162,7 @@ function _q_matrix_validation_manifest(data::FacetData,
             cross_loading_policy,
             q_matrix = nothing,
             matrix = include_matrix ? mat : nothing,
+            identification = nothing,
             passed,
             rows = Tuple(rows),
             summary = (;
@@ -4135,6 +4232,7 @@ function _q_matrix_validation_manifest(data::FacetData,
             cross_loading_policy,
             q_matrix = nothing,
             matrix = include_matrix ? mat : nothing,
+            identification = nothing,
             passed,
             rows = Tuple(rows),
             summary = (;
@@ -4206,6 +4304,70 @@ function _q_matrix_validation_manifest(data::FacetData,
         ),
     ))
 
+    structural_matching = _q_matrix_structural_matching(mat)
+    push!(rows, _q_matrix_validation_row(;
+        check = :global_loading_structural_rank,
+        status = structural_matching.full_column_rank ?
+            :full_column_structural_rank : :structurally_rank_deficient,
+        severity = structural_matching.full_column_rank ? :info : :error,
+        n_items = size(mat, 1),
+        n_dimensions = size(mat, 2),
+        n_active = structural_matching.structural_rank,
+        note = structural_matching.full_column_rank ?
+            :q_zero_pattern_can_generically_support_all_loading_dimensions :
+            :q_zero_pattern_cannot_support_a_full_column_rank_loading_matrix,
+        details = (;
+            structural_rank = structural_matching.structural_rank,
+            matched_item_by_dimension =
+                structural_matching.matched_item_by_dimension,
+            matched_pairs = structural_matching.matched_pairs,
+            unmatched_dimension_indices =
+                structural_matching.unmatched_dimensions,
+            unmatched_dimension_labels = Tuple(
+                dimension_labels[dimension]
+                for dimension in structural_matching.unmatched_dimensions
+            ),
+        ),
+    ))
+
+    person_dimension_support =
+        _q_matrix_person_dimension_support(data, mat, dimension_labels)
+    incomplete_person_support = Tuple(
+        row for row in person_dimension_support if !row.full_column_rank
+    )
+    person_support_status = if !structural_matching.full_column_rank
+        :not_separately_assessed_global_rank_deficient
+    elseif isempty(incomplete_person_support)
+        :every_person_has_full_dimension_structural_support
+    else
+        :some_person_dimensions_are_prior_anchored
+    end
+    push!(rows, _q_matrix_validation_row(;
+        check = :person_dimension_likelihood_support,
+        status = person_support_status,
+        severity = structural_matching.full_column_rank &&
+            !isempty(incomplete_person_support) ? :warning : :info,
+        n_items = size(mat, 1),
+        n_dimensions = size(mat, 2),
+        n_active = length(person_dimension_support) -
+            length(incomplete_person_support),
+        note = !structural_matching.full_column_rank ?
+            :global_loading_structure_must_be_fixed_before_person_support_review :
+        isempty(incomplete_person_support) ?
+            :each_person_observes_an_item_pattern_with_full_dimension_structural_rank :
+            :some_person_dimension_coordinates_rely_on_the_population_prior,
+        details = (;
+            n_persons = length(person_dimension_support),
+            n_persons_full_column_rank = length(person_dimension_support) -
+                length(incomplete_person_support),
+            n_persons_incomplete = length(incomplete_person_support),
+            minimum_person_structural_rank =
+                minimum(row.structural_rank for row in person_dimension_support),
+            person_rows = person_dimension_support,
+            incomplete_person_rows = incomplete_person_support,
+        ),
+    ))
+
     cross_loading_items = [item for item in axes(mat, 1) if count(@view mat[item, :]) > 1]
     cross_loading_status =
         isempty(cross_loading_items) ? :simple_structure : :fixed_confirmatory_cross_loadings
@@ -4238,12 +4400,9 @@ function _q_matrix_validation_manifest(data::FacetData,
         ),
     ))
 
-    single_loading_missing = Int[]
-    for dim in axes(mat, 2)
-        has_single_loading_anchor =
-            any(item -> mat[item, dim] && count(@view mat[item, :]) == 1, axes(mat, 1))
-        has_single_loading_anchor || push!(single_loading_missing, dim)
-    end
+    pure_items_per_dimension = _q_matrix_pure_items_per_dimension(mat)
+    single_loading_missing =
+        findall(isempty, pure_items_per_dimension)
     push!(rows, _q_matrix_validation_row(;
         check = :positive_loading_identification,
         status = isempty(single_loading_missing) ? :single_loading_anchor_present :
@@ -4258,6 +4417,28 @@ function _q_matrix_validation_manifest(data::FacetData,
         details = (;
             dimension_indices = Tuple(single_loading_missing),
             dimension_labels = Tuple(dimension_labels[dim] for dim in single_loading_missing),
+            pure_item_indices_per_dimension = pure_items_per_dimension,
+            pure_item_labels_per_dimension = Tuple(
+                Tuple(data.item_levels[item] for item in items)
+                for items in pure_items_per_dimension
+            ),
+        ),
+    ))
+
+    push!(rows, _q_matrix_validation_row(;
+        check = :ability_population_identification_anchor,
+        status = :standard_normal_identity_correlation_prior_anchor,
+        severity = :info,
+        n_items = size(mat, 1),
+        n_dimensions = size(mat, 2),
+        n_active = size(mat, 2),
+        note = :origin_scale_and_latent_rotation_are_prior_anchored_not_likelihood_only,
+        details = (;
+            population_prior = :standard_normal_by_dimension,
+            latent_correlation = :identity_fixed,
+            ability_location = :zero_prior_mean,
+            ability_scale = :unit_prior_standard_deviation,
+            likelihood_only_identification_claim = false,
         ),
     ))
 
@@ -4313,7 +4494,96 @@ function _q_matrix_validation_manifest(data::FacetData,
         ))
     end
 
+    all_persons_full_dimension_rank =
+        all(row -> row.full_column_rank, person_dimension_support)
+    all_dimensions_have_pure_items =
+        all(!isempty, pure_items_per_dimension)
+    guarded_fit_structure_ready =
+        !any(row -> row.severity === :error, rows)
+    conservative_stable_structure_ready =
+        guarded_fit_structure_ready &&
+        structural_matching.full_column_rank &&
+        all_persons_full_dimension_rank &&
+        all_dimensions_have_pure_items &&
+        n_disconnected_dimension_subgraphs == 0
+    promotion_blockers = Symbol[]
+    guarded_fit_structure_ready || push!(promotion_blockers, :q_validation_errors)
+    structural_matching.full_column_rank ||
+        push!(promotion_blockers, :global_loading_structural_rank)
+    all_persons_full_dimension_rank ||
+        push!(promotion_blockers, :person_dimension_likelihood_support)
+    all_dimensions_have_pure_items ||
+        push!(promotion_blockers, :pure_item_interpretation_support)
+    n_disconnected_dimension_subgraphs == 0 ||
+        push!(promotion_blockers, :dimension_facet_subgraph_connectivity)
+    identification_status = if !guarded_fit_structure_ready
+        :rejected_fixed_q_structure
+    elseif conservative_stable_structure_ready
+        :conservative_stable_structure_ready
+    elseif !all_persons_full_dimension_rank
+        :guarded_prior_anchored_person_dimensions
+    elseif !all_dimensions_have_pure_items
+        :guarded_generic_fixed_q_review_required
+    else
+        :guarded_connectivity_review_required
+    end
+    push!(rows, _q_matrix_validation_row(;
+        check = :fixed_q_identification_gate,
+        status = identification_status,
+        severity = !guarded_fit_structure_ready ? :error :
+            conservative_stable_structure_ready ? :info : :warning,
+        n_items = size(mat, 1),
+        n_dimensions = size(mat, 2),
+        n_active = structural_matching.structural_rank,
+        note = conservative_stable_structure_ready ?
+            :fixed_q_structure_meets_the_conservative_stable_support_rule :
+        guarded_fit_structure_ready ?
+            :fixed_q_structure_is_guarded_only_and_requires_promotion_evidence :
+            :fixed_q_structure_fails_guarded_prefit_validation,
+        details = (;
+            guarded_fit_structure_ready,
+            conservative_stable_structure_ready,
+            promotion_blockers = Tuple(unique(promotion_blockers)),
+        ),
+    ))
+
     passed = !any(row -> row.severity === :error, rows)
+    identification = (;
+        schema = "bayesianmgmfrm.fixed_q_identification.v1",
+        object = :fixed_q_identification,
+        status = identification_status,
+        likelihood_support = (;
+            q_structural_rank = structural_matching.structural_rank,
+            q_full_column_structural_rank =
+                structural_matching.full_column_rank,
+            matched_item_by_dimension =
+                structural_matching.matched_item_by_dimension,
+            all_persons_full_dimension_rank,
+            minimum_person_structural_rank =
+                minimum(row.structural_rank for row in person_dimension_support),
+            n_persons_incomplete = length(incomplete_person_support),
+            person_rows = person_dimension_support,
+        ),
+        interpretation_support = (;
+            pure_item_indices_per_dimension = pure_items_per_dimension,
+            pure_item_counts_per_dimension =
+                Tuple(length(items) for items in pure_items_per_dimension),
+            all_dimensions_have_pure_items,
+            fixed_dimension_labels = true,
+            positive_q_masked_loadings = true,
+        ),
+        prior_anchor = (;
+            population_prior = :standard_normal_by_dimension,
+            latent_correlation = :identity_fixed,
+            ability_location = :zero_prior_mean,
+            ability_scale = :unit_prior_standard_deviation,
+            likelihood_only_identification_claim = false,
+        ),
+        guarded_fit_structure_ready = passed,
+        conservative_stable_structure_ready =
+            passed && conservative_stable_structure_ready,
+        promotion_blockers = Tuple(unique(promotion_blockers)),
+    )
     return (;
         schema = "bayesianmgmfrm.q_matrix_validation.v1",
         object = :q_matrix_validation,
@@ -4323,6 +4593,7 @@ function _q_matrix_validation_manifest(data::FacetData,
         cross_loading_policy,
         q_matrix = _q_matrix_manifest(mat),
         matrix = include_matrix ? mat : nothing,
+        identification,
         passed,
         rows = Tuple(rows),
         summary = (;
@@ -4336,6 +4607,24 @@ function _q_matrix_validation_manifest(data::FacetData,
             n_duplicate_dimension_groups = length(duplicate_groups),
             n_dimension_facet_subgraphs_disconnected =
                 n_disconnected_dimension_subgraphs,
+            q_structural_rank = structural_matching.structural_rank,
+            q_full_column_structural_rank =
+                structural_matching.full_column_rank,
+            all_persons_full_dimension_rank,
+            minimum_person_structural_rank =
+                identification.likelihood_support.minimum_person_structural_rank,
+            n_persons_incomplete_dimension_support =
+                length(incomplete_person_support),
+            pure_item_counts_per_dimension =
+                identification.interpretation_support.
+                    pure_item_counts_per_dimension,
+            all_dimensions_have_pure_items,
+            identification_status,
+            guarded_fit_structure_ready = passed,
+            conservative_stable_structure_ready =
+                identification.conservative_stable_structure_ready,
+            identification_promotion_blockers =
+                identification.promotion_blockers,
         ),
     )
 end
@@ -4350,9 +4639,14 @@ end
 Validate the fixed confirmatory Q-matrix contract used by guarded MGMFRM
 specifications. The returned manifest records binary mask schema checks,
 item/dimension coverage, duplicate or aliased dimension columns, fixed
-cross-loading policy, simple loading anchors, and dimension-specific
-person-rater-item subgraph coverage. Error rows make `passed = false`; warning
-rows remain actionable review evidence without rejecting the fixed-Q spec.
+cross-loading policy, the generic structural rank of the Q zero pattern,
+person-specific dimension support, simple loading anchors, the standard-normal
+identity-correlation prior anchor, and dimension-specific person-rater-item
+subgraph coverage. Error rows make `passed = false`; warning rows remain
+actionable review evidence without rejecting the guarded fixed-Q spec.
+`identification.conservative_stable_structure_ready` is a stricter sufficient
+promotion screen; it is not by itself evidence of empirical recovery or stable
+public readiness.
 """
 function q_matrix_validation(data::FacetData;
         family::Symbol = :mgmfrm,

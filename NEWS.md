@@ -31,6 +31,12 @@
 
 ### Changed
 
+- Extend `q_matrix_validation` with generic zero-pattern structural rank,
+  person-specific dimension-support rows, pure-item counts, and an explicit
+  standard-normal/identity-correlation prior-anchor record. Structurally
+  rank-deficient Q patterns now fail before fitting; person-level support gaps
+  and pure-item gaps remain guarded warnings and block the conservative stable-
+  structure screen.
 - Use rank-normalized split R-hat, bulk ESS, and tail ESS as the primary MCMC
   diagnostics while retaining classical R-hat and ESS as compatibility fields.
   E-BFMI thresholds apply only when every expected chain supplies a finite

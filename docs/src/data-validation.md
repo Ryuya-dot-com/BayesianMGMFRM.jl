@@ -208,9 +208,28 @@ and multidimensional Q-mask gauge declarations.
 For fixed-Q MGMFRM work, call [`q_matrix_validation`](@ref) before or after
 `mfrm_spec`. It reports binary-mask schema checks, empty item rows, empty
 dimensions, duplicate or aliased dimension columns, fixed cross-loading policy,
-positive-loading anchor warnings, and dimension-specific person-rater-item
+the generic structural rank allowed by the Q zero pattern, person-specific
+dimension support, positive-loading/pure-item warnings, the standard-normal
+identity-correlation prior anchor, and dimension-specific person-rater-item
 subgraph coverage. Invalid fixed-Q specs throw an actionable error that points
 back to this manifest.
+
+Inspect `validation.identification` to keep three claims separate:
+
+- `likelihood_support.q_full_column_structural_rank` asks whether some loading
+  matrix with the declared zero pattern can generically have full column rank;
+- `likelihood_support.person_rows` asks the same question for the items actually
+  observed for each person, so an incomplete row is reported as relying on the
+  population prior for at least one ability direction; and
+- `prior_anchor` records that the current origin, scale, and latent rotation are
+  anchored by standard-normal abilities and fixed identity correlation, rather
+  than identified by the likelihood alone.
+
+`guarded_fit_structure_ready` retains the current experimental pre-fit boundary.
+`conservative_stable_structure_ready` is stricter: it additionally requires
+full person-level dimension support, at least one pure item per dimension, and
+connected dimension-specific facet graphs. It is a sufficient structural
+screen only; it does not replace recovery, sensitivity, or external validation.
 
 For a specified-only GMFRM/MGMFRM, use `getdesign(spec; preview = true)` to
 inspect the source-aligned generalized blocks without enabling fitting. GMFRM

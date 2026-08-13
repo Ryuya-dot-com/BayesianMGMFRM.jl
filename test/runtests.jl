@@ -7607,7 +7607,7 @@ function check_mgmfrm_q_matrix_validation_expansion_fixture(
     @test String(protocol[:review_kind]) ==
         "local_confirmatory_mgmfrm_q_matrix_validation_expansion"
     @test Bool(protocol[:publication_or_registration_action]) == false
-    @test Int(protocol[:scenario_count]) == 13
+    @test Int(protocol[:scenario_count]) == 15
     @test Bool(thresholds[:require_all_expected_validation_outcomes])
     @test Bool(thresholds[:require_all_expected_spec_outcomes])
     @test Bool(thresholds[
@@ -7632,7 +7632,7 @@ function check_mgmfrm_q_matrix_validation_expansion_fixture(
     @test all(row -> !isempty(String(row[:doi])), research_basis)
 
     scenarios = fixture[:scenarios]
-    @test length(scenarios) == 13
+    @test length(scenarios) == 15
     @test Set(String(row[:scenario]) for row in scenarios) == Set([
         "valid_simple_2d",
         "valid_confirmatory_cross_loading",
@@ -7646,6 +7646,8 @@ function check_mgmfrm_q_matrix_validation_expansion_fixture(
         "duplicate_dimension_columns",
         "blocked_cross_loading_policy",
         "warning_no_single_loading_anchor",
+        "structurally_rank_deficient_nonduplicate_columns",
+        "warning_person_dimension_prior_anchored",
         "warning_dimension_facet_disconnected",
     ])
     for scenario in scenarios
@@ -7681,6 +7683,15 @@ function check_mgmfrm_q_matrix_validation_expansion_fixture(
         "warning_dimension_facet_disconnected" &&
         "dimension_facet_subgraph_coverage" in String.(row[:warning_checks]),
         scenarios)
+    @test any(row -> String(row[:scenario]) ==
+        "structurally_rank_deficient_nonduplicate_columns" &&
+        "global_loading_structural_rank" in String.(row[:error_checks]),
+        scenarios)
+    @test any(row -> String(row[:scenario]) ==
+        "warning_person_dimension_prior_anchored" &&
+        "person_dimension_likelihood_support" in
+            String.(row[:warning_checks]),
+        scenarios)
 
     decision = fixture[:decision_record]
     @test Bool(decision[:public_fit_allowed])
@@ -7692,12 +7703,12 @@ function check_mgmfrm_q_matrix_validation_expansion_fixture(
     @test Bool(summary[:passed])
     @test Int(summary[:n_scenarios]) == length(scenarios)
     @test Int(summary[:n_passed_scenarios]) == length(scenarios)
-    @test Int(summary[:n_validation_passed]) == 4
-    @test Int(summary[:n_validation_failed]) == 9
+    @test Int(summary[:n_validation_passed]) == 5
+    @test Int(summary[:n_validation_failed]) == 10
     @test Bool(summary[:all_expected_validation_outcomes])
     @test Bool(summary[:all_expected_spec_outcomes])
     @test Bool(summary[:all_invalid_default_q_scenarios_blocked_before_fit])
-    @test Int(summary[:n_invalid_default_q_scenarios]) == 8
+    @test Int(summary[:n_invalid_default_q_scenarios]) == 9
     @test Bool(summary[:policy_validation_scenarios_recorded])
     @test Int(summary[:n_policy_validation_scenarios]) == 1
     @test Bool(summary[:warning_scenarios_not_rejected])
@@ -7713,8 +7724,12 @@ function check_mgmfrm_q_matrix_validation_expansion_fixture(
         "empty_item_rows",
         "empty_dimensions",
         "duplicate_dimension_columns",
+        "global_loading_structural_rank",
+        "person_dimension_likelihood_support",
         "cross_loading_policy",
         "positive_loading_identification",
+        "ability_population_identification_anchor",
+        "fixed_q_identification_gate",
         "dimension_facet_subgraph_coverage",
     ]), structural_checks)
     @test Set(String(blocker) for blocker in summary[:remaining_public_blockers]) ==
@@ -32824,6 +32839,7 @@ include("local_dependence_pilot_batch_execution_harness.jl")
 include("local_dependence_pilot_controller_receipts.jl")
 include("local_dependence_pilot_job_worker.jl")
 include("generalized_guard_contract.jl")
+include("fixed_q_identification.jl")
 include("experimental_namespace.jl")
 include("mgmfrm_free_latent_correlation_2d.jl")
 include("mgmfrm_free_latent_correlation_2d_study.jl")

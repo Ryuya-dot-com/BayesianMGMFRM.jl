@@ -6219,6 +6219,7 @@ function fit_report(fit::_ModelComparisonFit;
                 n_initialization_rows = length(initialization_rows),
                 fixed_q_invariance_rows,
                 n_fixed_q_invariance_rows = length(fixed_q_invariance_rows),
+                identification = validation.identification,
                 summary = validation.summary,
                 validation,
             )

@@ -63,7 +63,7 @@ const PROTOCOL = (;
     protocol_id = "confirmatory_mgmfrm_q_matrix_validation_expansion_v1",
     review_kind = :local_confirmatory_mgmfrm_q_matrix_validation_expansion,
     publication_or_registration_action = false,
-    scenario_count = 13,
+    scenario_count = 15,
     thresholds = (;
         require_all_expected_validation_outcomes = true,
         require_all_expected_spec_outcomes = true,
@@ -244,6 +244,38 @@ const SCENARIOS = [
             :positive_loading_identification],
     ),
     (;
+        scenario = :structurally_rank_deficient_nonduplicate_columns,
+        data_kind = :connected_full_crossed,
+        dimensions = 4,
+        q_matrix = Bool[
+            1 0 1 0
+            0 1 1 0
+            0 0 0 1
+            0 0 0 1
+        ],
+        cross_loading_policy = :confirmatory_fixed,
+        expected_validation_passed = false,
+        expected_spec_default = :throws,
+        expected_error_checks = [:global_loading_structural_rank],
+        expected_warning_checks = [:cross_loading_policy,
+            :positive_loading_identification],
+    ),
+    (;
+        scenario = :warning_person_dimension_prior_anchored,
+        data_kind = :person_dimension_incomplete,
+        dimensions = 2,
+        q_matrix = Bool[
+            1 0
+            0 1
+        ],
+        cross_loading_policy = :confirmatory_fixed,
+        expected_validation_passed = true,
+        expected_spec_default = :succeeded,
+        expected_error_checks = Symbol[],
+        expected_warning_checks = [:person_dimension_likelihood_support,
+            :fixed_q_identification_gate],
+    ),
+    (;
         scenario = :warning_dimension_facet_disconnected,
         data_kind = :dimension_disconnected,
         dimensions = 2,
@@ -328,9 +360,33 @@ function dimension_disconnected_table()
     )
 end
 
+function person_dimension_incomplete_table()
+    return (;
+        examinee = [
+            "E1", "E1", "E1", "E1",
+            "E2", "E2",
+            "E3", "E3", "E3", "E3",
+        ],
+        rater = [
+            "R1", "R1", "R2", "R2",
+            "R1", "R2",
+            "R1", "R1", "R2", "R2",
+        ],
+        item = [
+            "I1", "I2", "I1", "I2",
+            "I1", "I1",
+            "I1", "I2", "I1", "I2",
+        ],
+        score = [0, 1, 1, 2, 1, 2, 2, 0, 0, 1],
+    )
+end
+
 function table_for_scenario(scenario)
     if scenario.data_kind === :dimension_disconnected
         return dimension_disconnected_table()
+    end
+    if scenario.data_kind === :person_dimension_incomplete
+        return person_dimension_incomplete_table()
     end
     if scenario.scenario === :item_shape_mismatch
         return connected_full_crossed_table(2)

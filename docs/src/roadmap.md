@@ -63,6 +63,122 @@ exposure/evidence status, introduce shared prior and sampler-control contracts,
 and then make release-facing reports public by construction. Completion
 percentages remain unchanged until both execution and evidence gates pass.
 
+## Why the Generalized Fit Is Guarded
+
+The guard is an evidence and contract boundary, not a synonym for a missing
+feature list. The current confirmatory MGMFRM candidate deliberately fixes Q,
+dimension labels, latent correlation to identity, and ability distributions to
+standard normal by dimension. Positive Q-masked loadings fix signs; rater
+severity sums to zero; rater consistency has geometric mean one; item steps and
+the source `1.7` scale complete the declared gauge.
+
+Exploratory loadings and a public free-correlation model remain unsupported.
+DFF is screening-only, while testlet, halo, and rater-by-task mechanisms are
+diagnosed or simulated but not fitted. Their absence blocks claims about those
+mechanisms; it does not by itself prevent promotion of a sufficiently
+validated no-DFF, locally independent, fixed-Q model. The actual promotion
+blockers are repeated sparse-design and prediction/decision evidence, an
+exchangeable direct-scale prior decision, external/independent validation of
+matching targets, stable failure/report/cache behavior, and maintainable code
+boundaries.
+
+## Julia, R, and Stan Roles
+
+Julia is used so the design compiler, typed parameter layouts, AD log density,
+HMC backends, simulation, diagnostics, and evidence artifacts share one
+language and one model contract. This is not a claim that R is unable to fit
+these models. R's Facets/TAM/mirt/sirt/immer ecosystem remains the breadth,
+migration, and overlap-comparison baseline, while Julia's compilation latency
+and smaller psychometric ecosystem remain real costs.
+
+CmdStan is not the canonical runtime because that would require maintaining a
+second model compiler and synchronizing parameter names, validation, reports,
+and caches across Julia and Stan. Stan/BridgeStan instead serves as an
+independent log-density and gradient oracle. An optional CmdStan fit backend is
+reconsidered only if same-target diagnostics, ESS/sec, memory, failure behavior,
+and maintenance cost show a benefit; no Julia-versus-R/Stan speed claim is
+currently supported.
+
+## Identification, Priors, and Engineering Debt
+
+Stable fixed-Q promotion requires machine-readable and prose agreement on Q
+rank/connectivity, minimum pure-item and observation support per dimension,
+positive loading signs, the prior-anchored standard-normal ability scale,
+identity correlation, rater and step constraints, and all direct transforms.
+The roadmap separates structural/likelihood identification from identification
+supplied by the population prior. A future free-correlation model requires an
+LKJ-Cholesky contract and a joint loading/correlation gauge decision.
+
+The current guarded validator intentionally accepts a three-dimensional cyclic
+cross-loading Q (`110`, `011`, `101`) with no pure item as warning-only. Stable
+exposure must either prove and delimit that class or reject it before fitting.
+The isolated 2D free-correlation candidate is already narrower: simple Q, at
+least two pure items per dimension, and person-level coverage of both
+dimensions.
+
+`q_matrix_validation` now makes this boundary executable. A maximum-matching
+structural-rank check rejects Q zero patterns that cannot generically support
+all loading dimensions, while person-specific ranks show when an ability
+direction is supported only by the population prior. The conservative
+structure flag additionally requires pure-item support and connected
+dimension-specific facet graphs; it remains only one input to promotion.
+
+The current MFRM/MGMFRM baseline artifact remains smoke evidence: one
+4-person, 2-item, 3-rater, 24-observation dataset, 2 chains with 32 warmup and
+32 retained draws, permissive R-hat/ESS thresholds, and high-variance WAIC.
+MGMFRM ranks third while rating-scale MFRM ranks first. `passed` records finite
+comparison mechanics, not multidimensional superiority or model-selection
+validity.
+
+The generalized defaults currently use independent raw-coordinate normals:
+scale `1.0` for person, rater, item, and step coordinates and `0.5` for log
+loading/discrimination and log-consistency coordinates. Promotion requires
+prior-predictive implications, exchangeable alternatives to last-coordinate
+sum/product transforms, refit-based weak/reference/strong scale sensitivity,
+and focal-decision stability. Every MGMFRM simulation also includes public
+unidimensional MFRM on the same ratings and reports blockwise recovery,
+classification/ranking, heldout prediction, diagnostics, and cost.
+
+The implementation audit confirms that the final coordinate under the current
+sum-to-zero transform has variance `(k - 1)s^2`, not `s^2`, when the preceding
+raw coordinates are independent with variance `s^2`; the same asymmetry occurs
+on the log scale for the geometric-mean-one transform. It also confirms that
+the existing GMFRM sensitivity grid is a 24-draw importance-reweighting screen,
+not a refit study. Its minimum weight ESS rate is about 5.94% and its maximum
+single weight about 0.835. Its local `passed` label must not satisfy the
+stable-public prior-robustness gate.
+
+Because the guarded fit currently rejects custom generalized prior objects,
+promotion must either retain one explicitly justified fixed prior or expose a
+typed, cache- and report-aware prior API. Public documentation must not imply
+that users can perform generalized refit sensitivity through the current
+keyword surface.
+
+The August 2026 audit records 20,470 lines in `src/bayesian_fit.jl`, 9,413 in
+`src/facet_workflow.jl`, and 32,889 in `test/runtests.jl`. These counts establish
+a reviewability risk. A direct comparison also finds more than 300 shared lines
+across the roughly 358-line GMFRM and 368-line MGMFRM sampler-diagnostic
+functions. Extract their common AdvancedHMC execution and diagnostic
+aggregation while keeping family transforms, initialization/invariance audits,
+schemas, and policy rows explicit. Split compiler, density/transform, sampler,
+diagnostic, reporting, cache, and evidence code; consolidate repeated
+traversal/hash/artifact helpers; and use small dispatch or capability rows where
+they clarify family-specific branches.
+Core numerical and authorization code must not use naked `catch`. Optional
+metadata failures and captured report errors must expose structured status and
+reason rows.
+
+No current false-positive report artifact was found: the one evidence generator
+that calls `fit_report` fails when required section fields are absent. The API
+nevertheless lacks a top-level completeness/error count, so this caller-specific
+safety is not yet a reusable report contract.
+
+SHA-256 is retained for external bytes, sealed archives, and immutable handoff
+bundles. New ordinary fixtures use semantic scientific-payload hashes plus one
+git/project/manifest provenance record rather than deep transitive source-file
+hash chains. Existing archives remain verifiable, and exact multi-source pins
+are reserved for genuinely frozen external execution protocols.
+
 ## Not Yet Public API
 
 The following are planned but not yet exposed:
@@ -142,6 +258,17 @@ targets; these are experimental doses, not a universal recommended anchor
 percentage. It reports multiply-scored, common-set, controlled-benchmark, and
 rating-event-burden quantities separately; a double-rated baseline is 100%
 multiply scored even when it has no special common set.
+
+The Zotero-traced design literature makes the next refinement more specific.
+Wind and Jones (2018) found rater estimates more sensitive than examinee/task
+estimates as the link set shrank; McEwen (2018) identified rater coverage as the
+largest incomplete-design influence and greater rater-order variability in
+sparser conditions; Wind, Jones, and Grajeda (2023) compare MFRM and
+generalizability theory under sparse designs. The grid therefore crosses link
+percentage with absolute and per-rater/per-dimension coverage, represented
+score range, assignment/order, and controlled model fit. Outcomes are scored
+separately for person, item/task, and rater blocks and include a G-theory/
+D-study design comparison.
 
 The corresponding MCMC-free stress-grid artifact now passes for 24
 model-design cells and 21 paired datasets. It covers all three current fit
@@ -782,6 +909,26 @@ SHA scan should run before the full test suite. Full `Pkg.test()` runs remain
 mandatory for milestone slices, supported-Julia release checks, and the final
 tag candidate, but they should not be the first feedback loop for every small
 edit.
+
+Because the current monolithic runner has no general test-group selector, add
+named `core`, `generalized`, `reporting`, `evidence`, `external_bridge`, and
+`slow_mcmc` groups with recorded duration and resource use.
+
+The current pull-request workflow runs 6 full-suite OS/version cells and then
+reruns three already-included experimental files in a seventh job. Ordinary
+pull requests move to one primary Linux full suite plus changed-surface and
+portability shards; the full 6-cell matrix remains scheduled or release-gated.
+
+| Tier | Feedback target | Default scope |
+| --- | --- | --- |
+| T0 | <= 2 minutes after precompilation | Diff/load plus the smallest affected group; no HMC for documentation-only edits. |
+| T1 | <= 10 minutes | All groups mapped to the changed contract, deterministic fixtures first. |
+| T2 | <= 30 minutes per PR shard | Primary Julia/Linux integration, changed-surface smoke, docs, and public-language checks. |
+| T3 | Scheduled/manual | Full suite and supported Julia/OS matrix for milestone merge, release candidate, or tag. |
+
+Groups that exceed their target in three consecutive runs are split or
+reclassified. MCMC evidence is regenerated only when its model, design,
+sampler, seed, schema, or scientific scoring contract changes.
 
 ### Verification Ladder
 
