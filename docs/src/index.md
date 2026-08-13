@@ -33,7 +33,8 @@ correlations, and fitted DFF effects are not supported. See
 7. Inspect posterior, predictive, calibration, residual, and sensitivity rows.
 8. Export `fit_report(fit; view = :public)` or
    [`fit_report_public`](@ref) for reader-facing structured data, or use
-   [`fit_report_markdown`](@ref) for Markdown.
+   [`fit_report_markdown`](@ref) for Markdown. Evidence exports should inspect
+   [`fit_report_health`](@ref) or set `require_complete = true`.
 
 ## Documentation
 

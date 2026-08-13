@@ -373,12 +373,15 @@ protocol violation. The policy is:
 
 The current evidence audit did not find a false-positive report artifact: the
 only simulation generator that builds `fit_report` reads the required section
-fields, so a captured section error would make that generator fail. This is a
-property of that caller, not of the report schema. `fit_report` still has no
-top-level completeness/error count, and its top-level status vocabulary refers
-to estimation exposure rather than report health. The schema change above is
-therefore preventive and remains required before additional evidence callers
-are added.
+fields, so a captured section error would already have made that generator
+fail. The preventive schema slice is now implemented: `fit_report` records a
+separate `report_status` and structured `report_health`, public reports and
+dossiers preserve or aggregate that health, legacy version-1 reports derive it
+on demand, and `require_complete = true` is available on report, export, load,
+and dossier paths. The MGMFRM report-shape evidence generator now combines
+`on_section_error = :throw` with `require_complete = true`. Remaining work is
+to audit each future promotion/release caller for the same explicit fail-closed
+policy rather than relying on incidental field access.
 
 SHA-256 remains appropriate for external bytes, sealed raw-draw archives, and
 immutable handoff bundles. It is over-engineering when ordinary source edits

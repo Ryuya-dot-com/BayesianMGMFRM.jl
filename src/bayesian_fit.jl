@@ -5943,9 +5943,11 @@ GMFRM, or guarded MGMFRM object. The report combines fit metadata, provenance,
 diagnostics, prior, pooling, and MGMFRM local MCMC-budget guidance rows,
 posterior summaries, posterior predictive summaries, calibration rows,
 WAIC/LOO summaries and diagnostics, optional DFF rows, and a compact archive
-manifest. Section-level failures are captured by default with
-`status = :error`; use `on_section_error = :throw` to make the first failing
-section raise.
+manifest. Section-level failures are captured by default with `status =
+:error` and make the top-level `report_status = :incomplete`. Use
+`on_section_error = :throw` to make the first failing section raise, or
+`require_complete = true` to evaluate all captured sections and then reject an
+incomplete report.
 
 Set `include_prior_predictive = true` for MFRM fits to include prior predictive
 summary rows. Use `include_full_artifact = true` to embed the full compact
@@ -6001,7 +6003,8 @@ function fit_report(fit::_ModelComparisonFit;
         split_chains::Bool = true,
         rhat_threshold::Real = 1.01,
         ess_threshold::Real = 400,
-        on_section_error::Symbol = :capture)
+        on_section_error::Symbol = :capture,
+        require_complete::Bool = false)
     view in (:full, :public) ||
         throw(ArgumentError("view must be :full or :public"))
     checked_on_error = _fit_report_on_section_error(on_section_error)
@@ -6292,6 +6295,7 @@ function fit_report(fit::_ModelComparisonFit;
             include_artifact,
             include_full_artifact,
             on_section_error = checked_on_error,
+            require_complete,
         ),
         metadata,
         manifest,
@@ -6312,6 +6316,12 @@ function fit_report(fit::_ModelComparisonFit;
         dff,
         artifact,
     )
+    health = fit_report_health(report)
+    report = merge(report, (;
+        report_status = health.status,
+        report_health = health,
+    ))
+    require_complete && _require_complete_fit_report(report, :fit_report)
     return view === :full ? report : fit_report_public(report)
 end
 
@@ -6434,18 +6444,23 @@ function _fit_report_export_record(report;
 end
 
 """
-    save_fit_report(path, report; overwrite = false, label = nothing)
-    save_fit_report(path, fit; overwrite = false, label = nothing, kwargs...)
+    save_fit_report(path, report; overwrite = false, label = nothing,
+        require_complete = false)
+    save_fit_report(path, fit; overwrite = false, label = nothing,
+        require_complete = false, kwargs...)
 
 Write a `fit_report` bundle to a JSON export record at `path`. Passing a fit
 object first builds `fit_report(fit; kwargs...)`. The saved record includes the
 original report content hash and a JSON-payload hash that [`load_fit_report`](@ref)
-verifies by default.
+verifies by default. Set `require_complete = true` to reject a report containing
+any captured section error before writing.
 """
 function save_fit_report(path::AbstractString,
         report;
         overwrite::Bool = false,
-        label = nothing)
+        label = nothing,
+        require_complete::Bool = false)
+    require_complete && _require_complete_fit_report(report, :save_fit_report)
     isfile(path) && !overwrite &&
         throw(ArgumentError("fit report export already exists at $path; pass overwrite = true to replace it"))
     record = _fit_report_export_record(report;
@@ -6463,9 +6478,13 @@ function save_fit_report(path::AbstractString,
         fit::_ModelComparisonFit;
         overwrite::Bool = false,
         label = nothing,
+        require_complete::Bool = false,
         kwargs...)
-    report = fit_report(fit; kwargs...)
-    return save_fit_report(path, report; overwrite = overwrite, label = label)
+    report = fit_report(fit; require_complete, kwargs...)
+    return save_fit_report(path, report;
+        overwrite,
+        label,
+        require_complete)
 end
 
 function _check_fit_report_export_hash_record(record,
@@ -6524,22 +6543,29 @@ function _verify_fit_report_export_record(record, path)
 end
 
 """
-    load_fit_report(path; verify_hash = true, return_record = false)
+    load_fit_report(path; verify_hash = true, return_record = false,
+        require_complete = false)
 
 Load a JSON fit-report export written by [`save_fit_report`](@ref). The JSON
 payload hash is verified by default, and the export/hash metadata shape is
 always checked. The report payload is returned as `Dict{String,Any}` /
 `Vector{Any}` data; set `return_record = true` to inspect the export metadata
 and hash records as well.
+
+Set `require_complete = true` to verify report completeness after the payload
+and hashes have been checked.
 """
 function load_fit_report(path::AbstractString;
         verify_hash::Bool = true,
-        return_record::Bool = false)
+        return_record::Bool = false,
+        require_complete::Bool = false)
     isfile(path) ||
         throw(ArgumentError("fit report export does not exist at $path"))
     record = JSON3.read(read(path, String), Dict{String,Any})
     record = _check_fit_report_export_record(record, path)
     verify_hash && _verify_fit_report_export_record(record, path)
+    require_complete &&
+        _require_complete_fit_report(record["report"], :load_fit_report)
     return return_record ? record : record["report"]
 end
 
@@ -6631,6 +6657,17 @@ function _check_fit_report_payload(report)
             "bayesianmgmfrm.fit_report_public.v1 payload"))
     schema == _FIT_REPORT_PUBLIC_SCHEMA &&
         _assert_public_fit_report_language(report)
+    recorded_status = _report_lookup(report, :report_status,
+        _FIT_REPORT_LOOKUP_MISSING)
+    recorded_health = _report_lookup(report, :report_health,
+        _FIT_REPORT_LOOKUP_MISSING)
+    if recorded_status !== _FIT_REPORT_LOOKUP_MISSING ||
+            recorded_health !== _FIT_REPORT_LOOKUP_MISSING
+        _check_recorded_fit_report_health(
+            report,
+            _derive_fit_report_health(report),
+        )
+    end
     return report
 end
 
@@ -7127,7 +7164,7 @@ function _public_fit_report_output_field_allowed(field::Symbol,
         return field in (
             :schema, :object, :created_at, :source_report, :family,
             :thresholds, :dimensions, :dimension_labels, :status,
-            :content_hash,
+            :report_status, :report_health, :content_hash,
         ) || field in _PUBLIC_FIT_REPORT_TOP_LEVEL_SECTIONS
     elseif path == (:source_report,)
         return field in (:schema, :content_hash)
@@ -7189,6 +7226,11 @@ function _check_public_fit_report_hash(report)
     status isa Symbol &&
         status in (:supported, :experimental, :not_supported, :unknown) ||
         throw(ArgumentError("invalid fit_report_public status label"))
+    report_status = _report_lookup(report, :report_status,
+        _FIT_REPORT_LOOKUP_MISSING)
+    report_status === _FIT_REPORT_LOOKUP_MISSING ||
+        _report_symbol_value(report_status) in (:complete, :incomplete) ||
+        throw(ArgumentError("invalid fit_report_public report_status label"))
     source_report = _report_lookup(report, :source_report, missing)
     isequal(_report_lookup(source_report, :schema, missing),
         _FIT_REPORT_FULL_SCHEMA) ||
@@ -7247,6 +7289,7 @@ function fit_report_public(report)
         return _assert_public_fit_report_language(report)
     end
     _check_full_fit_report_payload(report)
+    health = fit_report_health(report)
     section_pairs = Pair{Symbol,Any}[]
     for section in _PUBLIC_FIT_REPORT_TOP_LEVEL_SECTIONS
         value = _report_lookup(report, section, _FIT_REPORT_LOOKUP_MISSING)
@@ -7280,6 +7323,10 @@ function fit_report_public(report)
             _report_lookup(report, :dimension_labels, Any[]);
             preserve_user_text = true),
         status = _public_fit_report_status(public_status_source),
+        report_status = health.status,
+        report_health = _public_fit_report_project_value(
+            health;
+            path = (:report_health,)),
     ), (; section_pairs...))
     public_report = merge(payload, (;
         content_hash = _public_fit_report_content_hash_record(payload),
@@ -7369,6 +7416,148 @@ function fit_report_sections(report)
         ))
     end
     return summaries
+end
+
+const _FIT_REPORT_HEALTH_SCHEMA = "bayesianmgmfrm.fit_report_health.v1"
+
+function _fit_report_health_error_row(section_name::Symbol, section)
+    return (;
+        section = section_name,
+        exception = _report_symbol_value(
+            _report_lookup(section, :exception, missing)),
+        message = _report_lookup(section, :message, missing),
+    )
+end
+
+function _derive_fit_report_health(report)
+    n_sections = 0
+    n_computed_sections = 0
+    n_not_requested_sections = 0
+    n_unsupported_sections = 0
+    n_unclassified_sections = 0
+    error_sections = NamedTuple[]
+    for section_name in _FIT_REPORT_SECTION_ORDER
+        section = _report_lookup(report, section_name,
+            _FIT_REPORT_LOOKUP_MISSING)
+        section === _FIT_REPORT_LOOKUP_MISSING && continue
+        n_sections += 1
+        status = _report_status(section)
+        if status === :computed
+            n_computed_sections += 1
+        elseif status === :not_requested
+            n_not_requested_sections += 1
+        elseif status === :unsupported
+            n_unsupported_sections += 1
+        elseif status === :error
+            push!(error_sections,
+                _fit_report_health_error_row(section_name, section))
+        else
+            n_unclassified_sections += 1
+        end
+    end
+    n_error_sections = length(error_sections)
+    complete = n_error_sections == 0
+    return (;
+        schema = _FIT_REPORT_HEALTH_SCHEMA,
+        object = :fit_report_health,
+        status = complete ? :complete : :incomplete,
+        complete,
+        n_sections,
+        n_computed_sections,
+        n_not_requested_sections,
+        n_unsupported_sections,
+        n_error_sections,
+        n_unclassified_sections,
+        error_sections = Tuple(error_sections),
+    )
+end
+
+function _fit_report_health_error_signatures(rows)
+    (rows isa Tuple || rows isa AbstractVector) ||
+        throw(ArgumentError("fit report health error_sections must be a tuple or vector"))
+    return Tuple((;
+        section = _report_symbol_value(_report_lookup(row, :section, missing)),
+        exception = _report_symbol_value(_report_lookup(row, :exception, missing)),
+        message = _report_lookup(row, :message, missing),
+    ) for row in rows)
+end
+
+function _check_recorded_fit_report_health(report, derived)
+    recorded_status = _report_lookup(report, :report_status,
+        _FIT_REPORT_LOOKUP_MISSING)
+    if recorded_status !== _FIT_REPORT_LOOKUP_MISSING
+        _report_symbol_value(recorded_status) === derived.status ||
+            throw(ArgumentError(
+                "fit report report_status is inconsistent with its sections"))
+    end
+    recorded = _report_lookup(report, :report_health,
+        _FIT_REPORT_LOOKUP_MISSING)
+    recorded === _FIT_REPORT_LOOKUP_MISSING && return derived
+    schema = _report_lookup(recorded, :schema, _FIT_REPORT_LOOKUP_MISSING)
+    schema === _FIT_REPORT_LOOKUP_MISSING || schema == _FIT_REPORT_HEALTH_SCHEMA ||
+        throw(ArgumentError("fit report health has an unsupported schema"))
+    object = _report_lookup(recorded, :object, _FIT_REPORT_LOOKUP_MISSING)
+    object === _FIT_REPORT_LOOKUP_MISSING ||
+        _report_symbol_value(object) === :fit_report_health ||
+        throw(ArgumentError("fit report health has an unsupported object"))
+    for field in (
+            :status,
+            :complete,
+            :n_sections,
+            :n_computed_sections,
+            :n_not_requested_sections,
+            :n_unsupported_sections,
+            :n_error_sections,
+            :n_unclassified_sections,
+        )
+        recorded_value = _report_lookup(recorded, field,
+            _FIT_REPORT_LOOKUP_MISSING)
+        recorded_value === _FIT_REPORT_LOOKUP_MISSING &&
+            throw(ArgumentError("fit report health is missing field $field"))
+        expected = getproperty(derived, field)
+        normalized = field === :status ?
+            _report_symbol_value(recorded_value) : recorded_value
+        isequal(normalized, expected) || throw(ArgumentError(
+            "fit report health field $field is inconsistent with its sections"))
+    end
+    recorded_errors = _report_lookup(recorded, :error_sections,
+        _FIT_REPORT_LOOKUP_MISSING)
+    recorded_errors === _FIT_REPORT_LOOKUP_MISSING &&
+        throw(ArgumentError("fit report health is missing error_sections"))
+    _fit_report_health_error_signatures(recorded_errors) ==
+        _fit_report_health_error_signatures(derived.error_sections) ||
+        throw(ArgumentError(
+            "fit report health error_sections are inconsistent with its sections"))
+    return derived
+end
+
+"""
+    fit_report_health(report)
+
+Derive the completeness of a full or public fit report from its section
+statuses. A report is `:incomplete` when at least one section has
+`status = :error`; `:not_requested`, `:unsupported`, and status-bearing
+diagnostic sections do not by themselves make it incomplete. New reports store
+the same result in `report_status` and `report_health`; recorded values are
+validated against the sections. Legacy v1 reports without these fields remain
+readable because their health is derived on demand.
+"""
+function fit_report_health(report)
+    _check_fit_report_payload(report)
+    return _check_recorded_fit_report_health(
+        report,
+        _derive_fit_report_health(report),
+    )
+end
+
+function _require_complete_fit_report(report, caller::Symbol)
+    health = fit_report_health(report)
+    health.complete && return health
+    failed = Tuple(row.section for row in health.error_sections)
+    throw(ArgumentError(
+        "$(String(caller)) requires a complete fit report; " *
+        "error_sections=$(repr(failed))",
+    ))
 end
 
 """
@@ -7529,21 +7718,27 @@ function _write_json_record(path::AbstractString, record)
 end
 
 """
-    save_fit_report_tables(directory, report; overwrite = false, label = nothing)
-    save_fit_report_tables(directory, fit; overwrite = false, label = nothing, kwargs...)
+    save_fit_report_tables(directory, report; overwrite = false, label = nothing,
+        require_complete = false)
+    save_fit_report_tables(directory, fit; overwrite = false, label = nothing,
+        require_complete = false, kwargs...)
 
 Write every tabular row field from a `fit_report` payload into a directory of
 portable JSON table files plus `manifest.json`. The returned manifest records
 the exported table filenames, row counts, and table content hashes. `report` may
 be an in-memory `fit_report` `NamedTuple` or a JSON-loaded report payload from
 [`load_fit_report`](@ref). Passing a fit object first builds
-`fit_report(fit; kwargs...)`.
+`fit_report(fit; kwargs...)`. Set `require_complete = true` to reject captured
+section errors before creating the export directory.
 """
 function save_fit_report_tables(directory::AbstractString,
         report;
         overwrite::Bool = false,
-        label = nothing)
+        label = nothing,
+        require_complete::Bool = false)
     _check_fit_report_payload(report)
+    require_complete &&
+        _require_complete_fit_report(report, :save_fit_report_tables)
     table_records = _fit_report_table_records(report)
     _check_fit_report_table_export_directory(directory, table_records;
         overwrite)
@@ -7564,9 +7759,13 @@ function save_fit_report_tables(directory::AbstractString,
         fit::_ModelComparisonFit;
         overwrite::Bool = false,
         label = nothing,
+        require_complete::Bool = false,
         kwargs...)
-    report = fit_report(fit; kwargs...)
-    return save_fit_report_tables(directory, report; overwrite = overwrite, label = label)
+    report = fit_report(fit; require_complete, kwargs...)
+    return save_fit_report_tables(directory, report;
+        overwrite,
+        label,
+        require_complete)
 end
 
 function _fit_report_markdown_hash_record(markdown::AbstractString)
@@ -7752,7 +7951,8 @@ end
 
 function _fit_report_metadata_rows(report)
     fields = (:schema, :object, :created_at, :family, :thresholds,
-        :dimensions, :dimension_labels, :estimation_status, :status)
+        :dimensions, :dimension_labels, :estimation_status, :status,
+        :report_status)
     rows = NamedTuple[]
     for field in fields
         value = _report_lookup(report, field, _FIT_REPORT_LOOKUP_MISSING)
@@ -7867,14 +8067,16 @@ end
 """
     save_fit_report_markdown(path, report; overwrite = false,
         title = "BayesianMGMFRM fit report", max_rows = 6,
-        include_empty = false, label = nothing)
+        include_empty = false, label = nothing, require_complete = false)
     save_fit_report_markdown(path, fit; overwrite = false,
         title = "BayesianMGMFRM fit report", max_rows = 6,
-        include_empty = false, label = nothing, kwargs...)
+        include_empty = false, label = nothing, require_complete = false,
+        kwargs...)
 
 Write a Markdown review draft for a `fit_report` payload and return an export
 record with report and Markdown content hashes. Passing a fit object first
-builds `fit_report(fit; kwargs...)`.
+builds `fit_report(fit; kwargs...)`. Set `require_complete = true` to reject
+captured section errors before writing.
 """
 function save_fit_report_markdown(path::AbstractString,
         report;
@@ -7882,7 +8084,10 @@ function save_fit_report_markdown(path::AbstractString,
         title::AbstractString = "BayesianMGMFRM fit report",
         max_rows::Integer = 6,
         include_empty::Bool = false,
-        label = nothing)
+        label = nothing,
+        require_complete::Bool = false)
+    require_complete &&
+        _require_complete_fit_report(report, :save_fit_report_markdown)
     isfile(path) && !overwrite &&
         throw(ArgumentError("fit report markdown already exists at $path; pass overwrite = true to replace it"))
     markdown = fit_report_markdown(report;
@@ -7907,14 +8112,16 @@ function save_fit_report_markdown(path::AbstractString,
         max_rows::Integer = 6,
         include_empty::Bool = false,
         label = nothing,
+        require_complete::Bool = false,
         kwargs...)
-    report = fit_report(fit; kwargs...)
+    report = fit_report(fit; require_complete, kwargs...)
     return save_fit_report_markdown(path, report;
         overwrite,
         title,
         max_rows,
         include_empty,
-        label)
+        label,
+        require_complete)
 end
 
 function _check_fit_report_bundle_directory(directory::AbstractString;
@@ -7999,16 +8206,18 @@ end
 """
     save_fit_report_bundle(directory, report; overwrite = false,
         label = nothing, title = "BayesianMGMFRM fit report",
-        max_rows = 6, include_empty = false)
+        max_rows = 6, include_empty = false, require_complete = false)
     save_fit_report_bundle(directory, fit; overwrite = false,
         label = nothing, title = "BayesianMGMFRM fit report",
-        max_rows = 6, include_empty = false, kwargs...)
+        max_rows = 6, include_empty = false, require_complete = false,
+        kwargs...)
 
 Write a portable fit-report bundle directory containing a JSON report export,
 JSON table files, a Markdown review draft, and a bundle `manifest.json` with
 the nested content hashes. `report` may be the in-memory [`fit_report`](@ref)
 payload or a JSON-loaded payload from [`load_fit_report`](@ref). Passing a fit
-object first builds `fit_report(fit; kwargs...)`.
+object first builds `fit_report(fit; kwargs...)`. Set `require_complete = true`
+to reject captured section errors before creating the bundle directory.
 """
 function save_fit_report_bundle(directory::AbstractString,
         report;
@@ -8016,8 +8225,11 @@ function save_fit_report_bundle(directory::AbstractString,
         label = nothing,
         title::AbstractString = "BayesianMGMFRM fit report",
         max_rows::Integer = 6,
-        include_empty::Bool = false)
+        include_empty::Bool = false,
+        require_complete::Bool = false)
     _check_fit_report_payload(report)
+    require_complete &&
+        _require_complete_fit_report(report, :save_fit_report_bundle)
     _check_fit_report_bundle_directory(directory; overwrite)
     mkpath(directory)
     report_path = joinpath(directory, "fit_report.json")
@@ -8025,16 +8237,19 @@ function save_fit_report_bundle(directory::AbstractString,
     markdown_path = joinpath(directory, "fit_report.md")
     report_export = save_fit_report(report_path, report;
         overwrite = true,
-        label)
+        label,
+        require_complete)
     table_manifest = save_fit_report_tables(table_directory, report;
         overwrite = true,
-        label)
+        label,
+        require_complete)
     markdown_export = save_fit_report_markdown(markdown_path, report;
         overwrite = true,
         title,
         max_rows,
         include_empty,
-        label)
+        label,
+        require_complete)
     manifest = _fit_report_bundle_manifest(directory, report_export,
         table_manifest, markdown_export;
         label)
@@ -8049,14 +8264,16 @@ function save_fit_report_bundle(directory::AbstractString,
         title::AbstractString = "BayesianMGMFRM fit report",
         max_rows::Integer = 6,
         include_empty::Bool = false,
+        require_complete::Bool = false,
         kwargs...)
-    report = fit_report(fit; kwargs...)
+    report = fit_report(fit; require_complete, kwargs...)
     return save_fit_report_bundle(directory, report;
         overwrite,
         label,
         title,
         max_rows,
-        include_empty)
+        include_empty,
+        require_complete)
 end
 
 function _fit_report_bundle_manifest_path(directory::AbstractString)
@@ -8281,17 +8498,19 @@ end
 
 """
     load_fit_report_bundle(directory; verify_hash = true,
-        return_manifest = false)
+        return_manifest = false, require_complete = false)
 
 Load a fit-report bundle written by [`save_fit_report_bundle`](@ref). By
 default this verifies the bundle manifest hash, JSON report export hash, table
 manifest and table-file hashes, and Markdown content hash before returning the
 loaded `fit_report` payload. Set `return_manifest = true` to inspect the
-bundle manifest instead.
+bundle manifest instead. Set `require_complete = true` to reject a report
+containing captured section errors.
 """
 function load_fit_report_bundle(directory::AbstractString;
         verify_hash::Bool = true,
-        return_manifest::Bool = false)
+        return_manifest::Bool = false,
+        require_complete::Bool = false)
     isdir(directory) ||
         throw(ArgumentError("fit report bundle directory does not exist at $directory"))
     manifest_path = _fit_report_bundle_manifest_path(directory)
@@ -8299,10 +8518,15 @@ function load_fit_report_bundle(directory::AbstractString;
     manifest = _check_fit_report_bundle_manifest(manifest, manifest_path)
     verify_hash &&
         _verify_fit_report_bundle_manifest(manifest, directory, manifest_path)
-    return_manifest && return manifest
     report_path = _fit_report_bundle_report_path(directory, manifest,
         manifest_path)
-    return load_fit_report(report_path; verify_hash)
+    if return_manifest
+        require_complete && load_fit_report(report_path;
+            verify_hash,
+            require_complete = true)
+        return manifest
+    end
+    return load_fit_report(report_path; verify_hash, require_complete)
 end
 
 const _FIT_REPORT_DOSSIER_TOP_LEVEL_FIELDS = Set((
@@ -8311,7 +8535,11 @@ const _FIT_REPORT_DOSSIER_TOP_LEVEL_FIELDS = Set((
     :created_at,
     :label,
     :report_policy,
+    :report_status,
+    :complete,
     :n_reports,
+    :n_incomplete_reports,
+    :n_error_sections,
     :models,
     :n_report_rows,
     :n_section_rows,
@@ -8337,7 +8565,7 @@ const _FIT_REPORT_DOSSIER_HASH_FIELDS = Set((
 function _fit_report_dossier_output_field_allowed(field::Symbol, path::Tuple)
     isempty(path) && return field in _FIT_REPORT_DOSSIER_TOP_LEVEL_FIELDS
     path == (:report_policy,) &&
-        return field in (:include_reports, :rendering_scope)
+        return field in (:include_reports, :rendering_scope, :require_complete)
     if last(path) in _FIT_REPORT_DOSSIER_HASH_FIELDS
         return field in (
             :algorithm, :value, :scope, :canonicalization,
@@ -8404,7 +8632,75 @@ end
 function _check_fit_report_dossier_payload(dossier)
     _check_fit_report_dossier_compatibility_payload(dossier)
     _assert_fit_report_dossier_value(dossier)
+    _fit_report_dossier_health(dossier)
     return dossier
+end
+
+function _fit_report_dossier_health(dossier)
+    _check_fit_report_dossier_compatibility_payload(dossier)
+    rows = _report_lookup(dossier, :report_rows, _FIT_REPORT_LOOKUP_MISSING)
+    (rows isa Tuple || rows isa AbstractVector) ||
+        throw(ArgumentError("fit report dossier does not contain report_rows"))
+    n_incomplete_reports = 0
+    n_error_sections = 0
+    for row in rows
+        row_errors = _report_lookup(row, :n_error_sections, 0)
+        row_errors isa Integer && !(row_errors isa Bool) && row_errors >= 0 ||
+            throw(ArgumentError(
+                "fit report dossier report row has invalid n_error_sections"))
+        row_status = _report_lookup(row, :report_status,
+            _FIT_REPORT_LOOKUP_MISSING)
+        row_complete = _report_lookup(row, :report_complete,
+            _FIT_REPORT_LOOKUP_MISSING)
+        derived_complete = row_errors == 0
+        if row_status !== _FIT_REPORT_LOOKUP_MISSING
+            _report_symbol_value(row_status) ===
+                (derived_complete ? :complete : :incomplete) ||
+                throw(ArgumentError(
+                    "fit report dossier report_status is inconsistent with its section errors"))
+        end
+        if row_complete !== _FIT_REPORT_LOOKUP_MISSING
+            row_complete isa Bool ||
+                throw(ArgumentError(
+                    "fit report dossier report_complete must be Boolean"))
+            row_complete == derived_complete ||
+                throw(ArgumentError(
+                    "fit report dossier report_complete is inconsistent with its section errors"))
+        end
+        n_error_sections += row_errors
+        n_incomplete_reports += !derived_complete
+    end
+    complete = n_incomplete_reports == 0
+    for (field, expected) in (
+            (:report_status, complete ? :complete : :incomplete),
+            (:complete, complete),
+            (:n_incomplete_reports, n_incomplete_reports),
+            (:n_error_sections, n_error_sections))
+        recorded = _report_lookup(dossier, field, _FIT_REPORT_LOOKUP_MISSING)
+        recorded === _FIT_REPORT_LOOKUP_MISSING && continue
+        normalized = field === :report_status ?
+            _report_symbol_value(recorded) : recorded
+        isequal(normalized, expected) ||
+            throw(ArgumentError(
+                "fit report dossier field $field is inconsistent with its report rows"))
+    end
+    return (;
+        status = complete ? :complete : :incomplete,
+        complete,
+        n_reports = length(rows),
+        n_incomplete_reports,
+        n_error_sections,
+    )
+end
+
+function _require_complete_fit_report_dossier(dossier, caller::Symbol)
+    health = _fit_report_dossier_health(dossier)
+    health.complete && return health
+    throw(ArgumentError(
+        "$(String(caller)) requires a complete fit report dossier; " *
+        "n_incomplete_reports=$(health.n_incomplete_reports), " *
+        "n_error_sections=$(health.n_error_sections)",
+    ))
 end
 
 function _fit_report_dossier_public_projection(value, path::Tuple = ();
@@ -8464,9 +8760,13 @@ function _fit_report_dossier_loaded_projection(dossier)
     projected isa AbstractDict ||
         throw(ArgumentError("expected a JSON-loaded fit_report_dossier payload"))
     reports = get(projected, "reports", nothing)
+    projected_policy = get(projected, "report_policy", Dict{String,Any}())
+    recorded_require_complete = get(projected_policy,
+        "require_complete", false)
     projected["report_policy"] = Dict{String,Any}(
         "include_reports" => reports !== nothing,
         "rendering_scope" => "review_dossier",
+        "require_complete" => recorded_require_complete,
     )
     return _check_fit_report_dossier_payload(projected)
 end
@@ -8519,12 +8819,13 @@ function _fit_report_dossier_report_and_section_rows(
     section_rows = NamedTuple[]
     for (label, report) in zip(labels, reports)
         sections = fit_report_sections(report)
+        health = fit_report_health(report)
         report_hash = _fit_report_content_hash_record(report)
         estimation_status_value = _report_lookup(
             report, :estimation_status, _FIT_REPORT_LOOKUP_MISSING)
         estimation_status_value === _FIT_REPORT_LOOKUP_MISSING &&
             (estimation_status_value = _report_lookup(report, :status, missing))
-        n_error_sections = count(row -> row.status === :error, sections)
+        n_error_sections = health.n_error_sections
         n_computed_sections = count(row -> row.status === :computed, sections)
         n_not_requested_sections = count(row -> row.status === :not_requested, sections)
         n_rows = sum(row.n_rows for row in sections)
@@ -8538,6 +8839,8 @@ function _fit_report_dossier_report_and_section_rows(
             dimensions = _report_lookup(report, :dimensions, missing),
             estimation_status =
                 _report_symbol_value(estimation_status_value),
+            report_status = health.status,
+            report_complete = health.complete,
             diagnostic_flag = _fit_report_dossier_diagnostic_flag(report),
             n_sections = length(sections),
             n_computed_sections,
@@ -8562,7 +8865,7 @@ end
 """
     fit_report_dossier(reports::Pair...; comparison_rows = (),
         sensitivity_rows = (), evidence_rows = (), include_reports = false,
-        label = nothing)
+        require_complete = false, label = nothing)
     fit_report_dossier(report1, report2, ...; names = nothing, kwargs...)
 
 Build a reader-facing review dossier from one or more [`fit_report`](@ref)
@@ -8570,12 +8873,15 @@ payloads. Inputs are normalized through [`fit_report_public`](@ref), including
 reports embedded with `include_reports = true`. Supplied comparison,
 sensitivity, and evidence rows are projected through the same field-aware
 language boundary, and the portable dossier retains only reader-facing fields.
+Each dossier records aggregate report health. Set `require_complete = true` to
+reject any input report containing a captured section error.
 """
 function fit_report_dossier(reports::Pair...;
         comparison_rows = (),
         sensitivity_rows = (),
         evidence_rows = (),
         include_reports::Bool = false,
+        require_complete::Bool = false,
         label = nothing)
     labels, payloads = _fit_report_dossier_pairs(reports)
     return _fit_report_dossier(labels, payloads;
@@ -8583,6 +8889,7 @@ function fit_report_dossier(reports::Pair...;
         sensitivity_rows,
         evidence_rows,
         include_reports,
+        require_complete,
         label)
 end
 
@@ -8594,6 +8901,7 @@ function fit_report_dossier(
         sensitivity_rows = (),
         evidence_rows = (),
         include_reports::Bool = false,
+        require_complete::Bool = false,
         label = nothing)
     labels, payloads = _fit_report_dossier_named_reports((first, rest...), names)
     return _fit_report_dossier(labels, payloads;
@@ -8601,6 +8909,7 @@ function fit_report_dossier(
         sensitivity_rows,
         evidence_rows,
         include_reports,
+        require_complete,
         label)
 end
 
@@ -8614,10 +8923,19 @@ function _fit_report_dossier(labels::AbstractVector{<:AbstractString},
         sensitivity_rows,
         evidence_rows,
         include_reports::Bool,
+        require_complete::Bool,
         label)
     reader_reports = Any[fit_report_public(report) for report in reports]
+    if require_complete
+        for report in reader_reports
+            _require_complete_fit_report(report, :fit_report_dossier)
+        end
+    end
     report_rows, section_rows =
         _fit_report_dossier_report_and_section_rows(labels, reader_reports)
+    n_incomplete_reports = count(row -> !row.report_complete, report_rows)
+    n_error_sections = sum(row.n_error_sections for row in report_rows)
+    complete = n_incomplete_reports == 0
     checked_comparison_rows = _public_fit_report_project_value(
         _fit_report_dossier_rows(comparison_rows, :comparison_rows);
         path = (:comparison_rows,))
@@ -8635,8 +8953,13 @@ function _fit_report_dossier(labels::AbstractVector{<:AbstractString},
         report_policy = (;
             include_reports,
             rendering_scope = :review_dossier,
+            require_complete,
         ),
+        report_status = complete ? :complete : :incomplete,
+        complete,
         n_reports = length(reader_reports),
+        n_incomplete_reports,
+        n_error_sections,
         models = Tuple(labels),
         n_report_rows = length(report_rows),
         n_section_rows = length(section_rows),
@@ -8654,7 +8977,8 @@ function _fit_report_dossier(labels::AbstractVector{<:AbstractString},
 end
 
 function _fit_report_dossier_metadata_rows(dossier)
-    fields = (:schema, :object, :created_at, :label, :n_reports,
+    fields = (:schema, :object, :created_at, :label, :report_status,
+        :complete, :n_reports, :n_incomplete_reports, :n_error_sections,
         :n_report_rows, :n_section_rows, :n_comparison_rows,
         :n_sensitivity_rows, :n_evidence_rows)
     rows = NamedTuple[]
@@ -8808,16 +9132,22 @@ function _fit_report_dossier_export_record(path::AbstractString,
 end
 
 """
-    save_fit_report_dossier(path, dossier; overwrite = false, label = nothing)
+    save_fit_report_dossier(path, dossier; overwrite = false, label = nothing,
+        require_complete = false)
 
 Write a [`fit_report_dossier`](@ref) to a JSON export record. The export stores
 both the dossier content hash and a JSON-payload hash so
-[`load_fit_report_dossier`](@ref) can verify the saved payload.
+[`load_fit_report_dossier`](@ref) can verify the saved payload. Set
+`require_complete = true` to reject a dossier containing any report-section
+error before writing.
 """
 function save_fit_report_dossier(path::AbstractString,
         dossier;
         overwrite::Bool = false,
-        label = nothing)
+        label = nothing,
+        require_complete::Bool = false)
+    require_complete && _require_complete_fit_report_dossier(
+        dossier, :save_fit_report_dossier)
     isfile(path) && !overwrite &&
         throw(ArgumentError("fit report dossier export already exists at $path; pass overwrite = true to replace it"))
     record = _fit_report_dossier_export_record(path, dossier; label)
@@ -8864,7 +9194,8 @@ function _verify_fit_report_dossier_export_record(record, path)
 end
 
 """
-    load_fit_report_dossier(path; verify_hash = true, return_record = false)
+    load_fit_report_dossier(path; verify_hash = true, return_record = false,
+        require_complete = false)
 
 Load a JSON fit-report dossier export written by
 [`save_fit_report_dossier`](@ref). Hash metadata is checked, the JSON payload is
@@ -8878,11 +9209,14 @@ content hashes then describe the projected payload.
 """
 function load_fit_report_dossier(path::AbstractString;
         verify_hash::Bool = true,
-        return_record::Bool = false)
+        return_record::Bool = false,
+        require_complete::Bool = false)
     record = _read_json_dict(path, "fit report dossier export")
     record = _check_fit_report_dossier_export_record(record, path)
     verify_hash && _verify_fit_report_dossier_export_record(record, path)
     dossier = _fit_report_dossier_loaded_projection(record["dossier"])
+    require_complete && _require_complete_fit_report_dossier(
+        dossier, :load_fit_report_dossier)
     current_record = _json_export_value(_fit_report_dossier_export_record(
         path,
         dossier;
@@ -8922,10 +9256,11 @@ end
 """
     save_fit_report_dossier_markdown(path, dossier; overwrite = false,
         title = "BayesianMGMFRM fit report dossier", max_rows = 6,
-        include_empty = false, label = nothing)
+        include_empty = false, label = nothing, require_complete = false)
 
 Write a Markdown review draft for a [`fit_report_dossier`](@ref) payload and
-return an export record with dossier and Markdown content hashes.
+return an export record with dossier and Markdown content hashes. Set
+`require_complete = true` to reject an incomplete dossier before writing.
 """
 function save_fit_report_dossier_markdown(path::AbstractString,
         dossier;
@@ -8933,7 +9268,10 @@ function save_fit_report_dossier_markdown(path::AbstractString,
         title::AbstractString = "BayesianMGMFRM fit report dossier",
         max_rows::Integer = 6,
         include_empty::Bool = false,
-        label = nothing)
+        label = nothing,
+        require_complete::Bool = false)
+    require_complete && _require_complete_fit_report_dossier(
+        dossier, :save_fit_report_dossier_markdown)
     isfile(path) && !overwrite &&
         throw(ArgumentError("fit report dossier markdown already exists at $path; pass overwrite = true to replace it"))
     markdown = fit_report_dossier_markdown(dossier;

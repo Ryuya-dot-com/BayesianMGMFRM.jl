@@ -113,6 +113,10 @@
   version-1 report payloads remain unchanged for compatibility. Public report
   hashes use JSON-normalized content so they remain stable after save/load,
   while user-supplied labels remain unchanged.
+- Fit reports now distinguish model exposure from report-generation health.
+  Captured section errors produce `report_status = :incomplete` and a
+  structured `fit_report_health` summary; `require_complete = true` makes
+  report, export, load, and dossier paths fail closed for evidence workflows.
 
 ### Fixed
 

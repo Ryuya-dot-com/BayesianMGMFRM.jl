@@ -16,6 +16,7 @@ fit_cache_key
 save_fit_cache
 load_fit_cache
 fit_report
+fit_report_health
 fit_report_public
 fit_report_markdown
 fit_report_dossier

@@ -228,6 +228,16 @@ the complete machine-oriented sections. Use `fit_report(fit; view = :public)`
 or [`fit_report_public`](@ref) for a reader-facing structured projection, and
 [`fit_report_markdown`](@ref) for a Markdown preview.
 
+The top-level `status` describes model exposure (`:supported` or
+`:experimental`); it does not certify that every requested report section was
+computed. [`fit_report_health`](@ref) derives report-generation health from the
+section statuses. A captured `status = :error` section sets
+`report_status = :incomplete`, while `:not_requested` and `:unsupported` do not.
+Use `require_complete = true` on `fit_report`, report exporters, or
+`fit_report_dossier` for evidence and release jobs that must fail closed. Use
+`on_section_error = :throw` when the first failing section should abort
+immediately.
+
 A report should state:
 
 - model family, threshold regime, dimensions, and constraints;

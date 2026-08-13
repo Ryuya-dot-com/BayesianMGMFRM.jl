@@ -104,6 +104,12 @@ and repeat important conclusions under defensible prior and model choices.
 6. Export `fit_report(fit; view = :public)` for a portable reader-facing
    structured report, or use a human-readable Markdown summary.
 
+`fit_report` keeps model exposure (`status`) separate from report-generation
+health (`report_status`). Inspect `fit_report_health(report)` before treating a
+report as complete. Evidence and release exports should use
+`require_complete = true`; exploratory workflows may retain the default
+captured error section for diagnosis.
+
 `mcmc_diagnostics` uses rank-normalized split R-hat, bulk ESS, and tail ESS as
 its primary convergence fields. Classical `rhat` and `ess` remain available
 for compatibility only. Odd-draw rank/fold/tail operation order and ESS lag
@@ -164,9 +170,10 @@ Useful reporting functions include:
   `calibration_table`;
 - `waic`, `loo`, `psis_loo`, and K-fold helpers with an explicitly stated
   prediction target;
-- `fit_report`, `fit_report_public`, `fit_report_markdown`, and report-bundle
-  exporters. The full version-1 report remains available for compatibility;
-  use the public view for material shared with report readers.
+- `fit_report`, `fit_report_health`, `fit_report_public`,
+  `fit_report_markdown`, and report-bundle exporters. The full version-1 report
+  remains available for compatibility; use the public view for material shared
+  with report readers and `require_complete = true` for evidence exports.
 
 `facets_report` (also available as `facets_compatibility_stats`) returns an
 explicitly approximate, unit-weighted posterior-mean plugin table for supported

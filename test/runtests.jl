@@ -135,6 +135,7 @@ using BayesianMGMFRM:
     fit_artifact,
     fit_cache_key,
     fit_report,
+    fit_report_health,
     fit_report_public,
     fit_report_dossier,
     fit_report_dossier_markdown,
@@ -20807,6 +20808,7 @@ end
             :prior_likelihood_sensitivity, :prior_predict, :prior_predictive_check,
             :q_matrix_validation,
             :fit_report_dossier, :fit_report_dossier_markdown,
+            :fit_report_health,
             :fit_report_markdown, :fit_report_section, :fit_report_sections,
             :fit_report_rows,
             :load_fit_cache, :load_fit_report, :load_fit_report_dossier,
@@ -27504,6 +27506,10 @@ end
         rng = MersenneTwister(20260625),
         calibration_bins = 2,
         artifact_include_environment = false)
+    @test report.report_status === :complete
+    @test report.report_health.complete
+    @test report.report_health.n_error_sections == 0
+    @test fit_report_health(report) == report.report_health
     report_hash_before_public_projection = artifact_content_hash(report)
     public_report = fit_report_public(report)
     @test public_report.schema == "bayesianmgmfrm.fit_report_public.v1"
@@ -28076,7 +28082,8 @@ end
     @test dossier.label === :minimal_dossier
     @test dossier.report_policy.rendering_scope === :review_dossier
     @test propertynames(dossier.report_policy) ==
-        (:include_reports, :rendering_scope)
+        (:include_reports, :rendering_scope, :require_complete)
+    @test !dossier.report_policy.require_complete
     @test dossier.n_reports == 2
     @test dossier.models == ("minimal", "loaded")
     @test dossier.n_report_rows == 2
@@ -28214,10 +28221,11 @@ end
     end
     loaded_legacy_dossier = load_fit_report_dossier(legacy_dossier_path)
     @test Set(keys(loaded_legacy_dossier["report_policy"])) ==
-        Set(["include_reports", "rendering_scope"])
+        Set(["include_reports", "rendering_scope", "require_complete"])
     @test loaded_legacy_dossier["report_policy"]["include_reports"]
     @test loaded_legacy_dossier["report_policy"]["rendering_scope"] ==
         "review_dossier"
+    @test !loaded_legacy_dossier["report_policy"]["require_complete"]
     @test only(loaded_legacy_dossier["reports"])["schema"] ==
         "bayesianmgmfrm.fit_report_public.v1"
     @test only(loaded_legacy_dossier["reports"])["object"] ==
@@ -28526,10 +28534,17 @@ end
     @test too_short_report.loo.exception === :ArgumentError
     @test occursin("LOO requires at least three posterior draws",
         too_short_report.loo.message)
+    @test too_short_report.report_status === :incomplete
+    @test !too_short_report.report_health.complete
+    @test too_short_report.report_health.n_error_sections == 1
+    @test only(too_short_report.report_health.error_sections).section === :loo
     @test_throws ArgumentError fit_report(result; on_section_error = :invalid)
     @test_throws ArgumentError fit_report(spec_result;
         artifact_include_environment = false,
         on_section_error = :throw)
+    @test_throws ArgumentError fit_report(spec_result;
+        artifact_include_environment = false,
+        require_complete = true)
 
     cache_key = fit_cache_key(design;
         prior,
@@ -32840,6 +32855,7 @@ include("local_dependence_pilot_controller_receipts.jl")
 include("local_dependence_pilot_job_worker.jl")
 include("generalized_guard_contract.jl")
 include("fixed_q_identification.jl")
+include("fit_report_completeness.jl")
 include("experimental_namespace.jl")
 include("mgmfrm_free_latent_correlation_2d.jl")
 include("mgmfrm_free_latent_correlation_2d_study.jl")
