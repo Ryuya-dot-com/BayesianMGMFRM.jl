@@ -24720,10 +24720,32 @@ end
         row.dimension_label == "dim=1" &&
         row.status === :connected_dimension_subgraph,
         mgmfrm_q_validation.rows)
+    coverage_limited_data = BayesianMGMFRM._loo_refit_score_data(
+        identified_data,
+        identified_data,
+        [1],
+    )
+    coverage_limited_spec = BayesianMGMFRM._replace_spec_data(
+        mgmfrm_spec,
+        coverage_limited_data,
+    )
+    coverage_limited_validation = q_matrix_validation(coverage_limited_spec)
+    @test !coverage_limited_validation.passed
+    @test Set(row.check for row in coverage_limited_validation.rows
+        if row.severity === :error) == Set((
+        :dimension_facet_subgraph_coverage,
+        :fixed_q_identification_gate,
+    ))
+    @test BayesianMGMFRM._q_matrix_guarded_structure_passed(
+        coverage_limited_validation,
+    )
     invalid_q_validation = q_matrix_validation(identified_data;
         dimensions = 2,
         q_matrix = Bool[1 1; 1 1])
     @test !invalid_q_validation.passed
+    @test !BayesianMGMFRM._q_matrix_guarded_structure_passed(
+        invalid_q_validation,
+    )
     @test any(row -> row.check === :duplicate_dimension_columns &&
         row.status === :aliased_columns &&
         row.severity === :error,

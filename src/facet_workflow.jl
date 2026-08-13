@@ -4690,12 +4690,18 @@ q_matrix_validation(design::FacetDesign; kwargs...) =
 const _Q_MATRIX_OBSERVATION_COVERAGE_CHECKS =
     (:dimension_facet_subgraph_coverage,)
 
+const _Q_MATRIX_DERIVED_VALIDATION_CHECKS =
+    (:fixed_q_identification_gate,)
+
 function _q_matrix_guarded_structure_passed(validation)
-    # Keep this as a small coverage denylist: every unclassified current or
-    # future error remains blocking, so mutable Q inputs fail closed.
+    # The identification gate only summarizes the primary rows above it. Ignore
+    # that derived row here so an allowed observation-coverage error is not
+    # counted twice; every primary, unclassified current or future error remains
+    # blocking, so mutable Q inputs still fail closed.
     return all(
         row -> row.severity !== :error ||
-            row.check in _Q_MATRIX_OBSERVATION_COVERAGE_CHECKS,
+            row.check in _Q_MATRIX_OBSERVATION_COVERAGE_CHECKS ||
+            row.check in _Q_MATRIX_DERIVED_VALIDATION_CHECKS,
         validation.rows,
     )
 end
