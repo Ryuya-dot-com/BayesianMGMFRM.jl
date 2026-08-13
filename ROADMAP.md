@@ -2098,9 +2098,9 @@ packet before any external construct scoring or public-scope claim review is
 allowed.
 
 Verification should be staged. Use load checks and targeted fixture scripts for
-small edits; regenerate low-level fixtures before review/archive fixtures; run
-the fixture SHA scan before the full suite; and reserve full `Pkg.test()` runs
-for milestone slices and release candidates. Tagging a release commit requires
+small edits; regenerate affected fixtures before review artifacts; run schema
+and content checks before the full suite; and reserve full `Pkg.test()` runs for
+milestone slices and release candidates. Tagging a release commit requires
 `Pkg.test()` on supported Julia versions, the docs build with the page-size
 gate, example scripts, and release-scope checks.
 
@@ -2110,22 +2110,19 @@ an informal command. Split the suite into named `core`, `generalized`,
 `reporting`, `evidence`, `external_bridge`, and `slow_mcmc` groups and record
 group duration and peak resources. Use the following feedback budgets:
 
-CI currently runs the monolithic suite on 2 Julia-version selectors across
-Ubuntu, macOS, and Windows (6 full jobs) for every pull request. The separate
-experimental-boundary job then reruns `scientific_payload_digest.jl`,
-`experimental_namespace.jl`, and `mgmfrm_free_latent_correlation_2d.jl`, even
-though all three are included by `runtests.jl`. Preserve the 6-way matrix for
-scheduled/release confidence, but use one primary Linux full-suite job plus
-changed-surface shards on ordinary pull requests; use the remaining OS/version
-cells for a deterministic core/portability contract unless a release or label
-requests the full matrix.
+CI now runs the current Julia 1.x release on Ubuntu, macOS, and Windows, plus
+the Julia 1.10.8 minimum-version lane on Ubuntu (4 full jobs rather than the
+previous 6-way Cartesian matrix). The separate experimental-boundary job reruns
+only the guarded-fit smokes whose execution flags are not enabled by the normal
+suite. Named changed-surface shards remain a later improvement once the
+monolithic test file is split safely.
 
 | Tier | Target budget | Default trigger |
 | --- | --- | --- |
 | T0 edit loop | <= 2 minutes after precompilation | Diff check, parsing/load, and the smallest affected unit group; documentation-only edits do not trigger HMC. |
 | T1 change suite | <= 10 minutes | Every group mapped to the changed compiler, transform, report, bridge, or evidence contract; deterministic fixtures first. |
 | T2 PR integration | <= 30 minutes per CI shard | Primary Julia/Linux integration, changed-surface smoke, docs/public-language checks, and explicit shard timings. |
-| T3 full/release | Scheduled or manually dispatched, not a routine local requirement | Full suite, supported Julia/OS matrix, sealed archives, and predeclared MCMC/recovery jobs before milestone merge or tag. |
+| T3 full/release | Scheduled or manually dispatched, not a routine local requirement | Full suite, supported Julia/OS matrix, versioned artifacts, and predeclared MCMC/recovery jobs before milestone merge or tag. |
 
 If a group exceeds its target in three consecutive runs, split or reclassify it
 instead of normalizing the delay. Regenerate MCMC evidence only when its model,

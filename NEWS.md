@@ -82,6 +82,9 @@
   expose concise collection status, stage, and reason records.
 - Streamline the runnable fixed-Q MGMFRM example around data validation,
   fitting, diagnostics, posterior summaries, and posterior predictive checks.
+- Reduce routine CI from the six-cell Julia/OS Cartesian matrix to four
+  compatibility lanes, remove duplicate digest execution, and stop making
+  byte-exact legacy archive drift a normal release gate.
 - Harden FACETS/ConQuest transfer validation, returned-file checking, and the
   version-specific ConQuest semantic reader without claiming product
   equivalence or independent replication.

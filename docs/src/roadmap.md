@@ -173,11 +173,10 @@ that calls `fit_report` fails when required section fields are absent. The API
 nevertheless lacks a top-level completeness/error count, so this caller-specific
 safety is not yet a reusable report contract.
 
-SHA-256 is retained for external bytes, sealed archives, and immutable handoff
-bundles. New ordinary fixtures use semantic scientific-payload hashes plus one
-git/project/manifest provenance record rather than deep transitive source-file
-hash chains. Existing archives remain verifiable, and exact multi-source pins
-are reserved for genuinely frozen external execution protocols.
+Hashes remain available as provenance metadata for external inputs and handoff
+bundles, but ordinary code or documentation drift is not a byte-exact release
+gate. Routine verification prioritizes schema validation, scientific fields,
+and executable tests over deep transitive source-file hash chains.
 
 ## Not Yet Public API
 

@@ -293,15 +293,15 @@ julia --project=. -e 'using Pkg; Pkg.test()'
 julia --startup-file=no --project=docs docs/build.jl
 ```
 
-The test matrix runs package tests on Julia 1.10.8 and the latest Julia 1.x
-release across Ubuntu, macOS, and Windows. Separate jobs build the documentation
-and verify examples and release-facing language. The root `Manifest.toml` and
-`docs/Manifest.toml` are ignored, machine-local files. The versioned
-`Manifest-v1.10.toml` is the tracked lockfile for the Julia 1.10.8
+The test matrix runs the latest Julia 1.x release on Ubuntu, macOS, and Windows,
+plus the Julia 1.10.8 minimum-version lane on Ubuntu. Separate jobs build the
+documentation and verify examples and release-facing language. The root
+`Manifest.toml` and `docs/Manifest.toml` are ignored, machine-local files. The
+versioned `Manifest-v1.10.toml` is the tracked lockfile for the Julia 1.10.8
 minimum-version lane; Julia 1.10 selects it while the latest-1.x lane resolves
 from `Project.toml` compatibility bounds as the forward-drift check. A study
-that binds any manifest must archive its exact bytes or hash with the study
-outputs.
+should record the package version and relevant environment information with its
+outputs; exact manifest-byte equality is not an ordinary package gate.
 
 ## Citation
 
