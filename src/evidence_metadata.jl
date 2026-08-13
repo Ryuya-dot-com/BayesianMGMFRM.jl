@@ -386,8 +386,9 @@ function evidence_artifact_schema_policy(artifact_kind::Symbol = :general;
         ),
         environment_policy = (;
             include_environment,
-            require_project_hash = true,
-            require_git_status_hash = true,
+            record_project_hash_when_available = include_environment,
+            record_git_status_hash_when_available = include_environment,
+            allow_missing_git_checkout = true,
             require_package_status_or_omission_flag = true,
         ),
         execution_policy = (;

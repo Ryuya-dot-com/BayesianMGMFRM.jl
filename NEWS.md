@@ -80,7 +80,9 @@
   violation for ledger checks.
 - Keep evidence metadata usable when optional environment probes fail and
   expose concise collection status, stage, and reason records without leaking
-  failed optional-command stderr into ordinary output.
+  failed optional-command stderr into ordinary output. Its artifact policy now
+  states explicitly that project/Git hashes are recorded only when available
+  and that a package installation without a Git checkout is supported.
 - Streamline the runnable fixed-Q MGMFRM example around data validation,
   fitting, diagnostics, posterior summaries, and posterior predictive checks.
 - Run the full package suite on current and minimum Julia under Linux, use
