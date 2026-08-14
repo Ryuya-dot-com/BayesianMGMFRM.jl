@@ -58,8 +58,9 @@ The experimental generalized configurations default to their documented
 raw-coordinate priors. Use
 `BayesianMGMFRM.Experimental.GeneralizedPrior` for typed scale sensitivity and
 actual refits. Its values apply to raw unconstrained coordinates, not directly
-to transformed parameters. A generalized prior-predictive operation remains a
-separate roadmap item.
+to transformed parameters. Run
+`BayesianMGMFRM.Experimental.prior_predictive_check` before fitting; it reports
+raw/direct parameter draws, replicated scores, and prior-implication warnings.
 
 ## 4. Fit and Diagnose
 

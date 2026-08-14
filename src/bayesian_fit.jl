@@ -18878,6 +18878,120 @@ function _prior_parameter_draws(design::FacetDesign,
     return draws
 end
 
+function _guarded_generalized_prior_target(design::FacetDesign, prior)
+    if design.spec.family === :gmfrm
+        checked_prior = _experimental_gmfrm_prior(prior)
+        return _gmfrm_promotion_candidate_logdensity(design;
+            prior = checked_prior)
+    elseif design.spec.family === :mgmfrm
+        checked_prior = _guarded_mgmfrm_prior(prior)
+        return _mgmfrm_guarded_local_fit_logdensity(design;
+            prior = checked_prior)
+    end
+    throw(ArgumentError(
+        "experimental generalized prior prediction requires family = :gmfrm " *
+        "or :mgmfrm",
+    ))
+end
+
+function _guarded_generalized_direct_params(
+        target::_GMFRMPromotionCandidateLogDensity,
+        raw_params::AbstractVector)
+    return _gmfrm_source_constrained_params_from_unconstrained(
+        target.design,
+        raw_params,
+    )
+end
+
+function _guarded_generalized_direct_params(
+        target::_MGMFRMGuardedLocalFitLogDensity,
+        raw_params::AbstractVector)
+    return _mgmfrm_source_constrained_params_from_unconstrained(
+        target.design,
+        raw_params,
+    )
+end
+
+function _guarded_generalized_prior_draw_bundle(
+        spec::FacetSpec,
+        caller::AbstractString;
+        prior = nothing,
+        ndraws::Int = 1000,
+        rng::AbstractRNG = Random.default_rng())
+    ndraws >= 1 || throw(ArgumentError("ndraws must be positive"))
+    _check_guarded_generalized_spec(
+        spec,
+        caller,
+    )
+    design = getdesign(spec; preview = true)
+    target = _guarded_generalized_prior_target(design, prior)
+    nraw = target.blueprint.n_parameters
+    ndirect = length(target.design.parameter_names)
+    raw_draws = Matrix{Float64}(undef, ndraws, nraw)
+    direct_draws = Matrix{Float64}(undef, ndraws, ndirect)
+    for draw in 1:ndraws
+        for parameter in 1:nraw
+            raw_draws[draw, parameter] =
+                _source_fixture_prior_sd(target, parameter) * randn(rng)
+        end
+        direct = _guarded_generalized_direct_params(
+            target,
+            @view(raw_draws[draw, :]),
+        )
+        length(direct) == ndirect || throw(ArgumentError(
+            "generalized raw-to-direct transform returned $(length(direct)) " *
+            "parameters; expected $ndirect",
+        ))
+        direct_draws[draw, :] .= direct
+    end
+    return (;
+        design = target.design,
+        prior = target.prior,
+        raw_draws,
+        direct_draws,
+        raw_parameter_names = copy(target.blueprint.parameter_names),
+        direct_parameter_names = copy(target.design.parameter_names),
+    )
+end
+
+function _guarded_generalized_replicate_scores(bundle, rng::AbstractRNG,
+        caller::AbstractString)
+    bundle.design.spec.family === :gmfrm &&
+        return _replicate_scores_gmfrm_direct(
+            bundle.design,
+            bundle.direct_draws,
+            rng,
+            caller,
+        )
+    bundle.design.spec.family === :mgmfrm &&
+        return _replicate_scores_mgmfrm_direct(
+            bundle.design,
+            bundle.direct_draws,
+            rng,
+            caller,
+        )
+    throw(ArgumentError("$caller requires family = :gmfrm or :mgmfrm"))
+end
+
+function _experimental_generalized_prior_predict(
+        spec::FacetSpec;
+        prior = nothing,
+        ndraws::Int = 1000,
+        rng::AbstractRNG = Random.default_rng())
+    bundle = _guarded_generalized_prior_draw_bundle(
+        spec,
+        "Experimental.prior_predict";
+        prior,
+        ndraws,
+        rng,
+    )
+    return _guarded_generalized_replicate_scores(
+        bundle,
+        rng,
+        "Experimental.prior_predict",
+    )
+end
+
 """
     prior_predict(spec_or_design; prior = MFRMPrior(), ndraws = 1000,
         rng = Random.default_rng())
@@ -19584,6 +19698,72 @@ end
 
 prior_predictive_check(spec::FacetSpec; kwargs...) =
     prior_predictive_check(getdesign(spec); kwargs...)
+
+function _experimental_generalized_prior_predictive_check(
+        spec::FacetSpec;
+        prior = nothing,
+        ndraws::Int = 1000,
+        rng::AbstractRNG = Random.default_rng(),
+        min_category_probability::Real = 0.01,
+        prior_warning_probability::Real = 0.95,
+        wide_facet_range_fraction::Real = 0.8)
+    bundle = _guarded_generalized_prior_draw_bundle(
+        spec,
+        "Experimental.prior_predictive_check";
+        prior,
+        ndraws,
+        rng,
+    )
+    replicated = _guarded_generalized_replicate_scores(
+        bundle,
+        rng,
+        "Experimental.prior_predictive_check",
+    )
+    data = bundle.design.spec.data
+    observed = _predictive_summary(data, data.score)
+    replicated_summary = _replicated_summaries(data, replicated)
+    grouped = _predictive_grouped_summary(bundle.design.spec, replicated)
+    implication_diagnostics = _prior_predictive_implication_diagnostics(
+        data,
+        observed,
+        replicated_summary;
+        min_category_probability,
+        prior_warning_probability,
+        wide_facet_range_fraction,
+    )
+    prior_record = (;
+        parameter_space = :raw_unconstrained_coordinates,
+        family = :independent_zero_centered_normal,
+        scales = _source_fixture_prior_values(bundle.prior),
+        jacobian_policy = :none_raw_coordinate_density,
+    )
+    return (;
+        schema =
+            "bayesianmgmfrm.experimental_generalized_prior_predictive_check.v1",
+        model_family = bundle.design.spec.family,
+        stability = :experimental,
+        observed,
+        replicated = replicated_summary,
+        grouped,
+        replicated_scores = replicated,
+        parameter_draws = bundle.raw_draws,
+        parameter_space = :raw_unconstrained_coordinates,
+        raw_parameter_draws = bundle.raw_draws,
+        direct_parameter_draws = bundle.direct_draws,
+        raw_parameter_names = bundle.raw_parameter_names,
+        direct_parameter_names = bundle.direct_parameter_names,
+        prior = prior_record,
+        implication_diagnostics,
+        category_levels = copy(data.category_levels),
+        person_levels = copy(data.person_levels),
+        rater_levels = copy(data.rater_levels),
+        item_levels = copy(data.item_levels),
+        optional_levels = Dict(
+            facet => copy(levels)
+            for (facet, levels) in data.optional_levels
+        ),
+    )
+end
 
 """
     posterior_predictive_check(fit::MFRMFit; ndraws = nothing,

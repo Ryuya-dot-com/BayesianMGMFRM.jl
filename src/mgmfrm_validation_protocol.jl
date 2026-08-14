@@ -59,9 +59,9 @@ function _mgmfrm_validation_prior_regimes()
                 step_sd = 1.0,
             ),
             fit_executable = true,
-            prior_predictive_executable = false,
-            executable = false,
-            note = :fit_executable_generalized_prior_predictive_pending,
+            prior_predictive_executable = true,
+            executable = true,
+            note = :typed_refit_and_prior_predictive_available,
         ),
         (;
             regime = :source_aligned,
@@ -75,9 +75,9 @@ function _mgmfrm_validation_prior_regimes()
                 step_sd = 1.0,
             ),
             fit_executable = true,
-            prior_predictive_executable = false,
-            executable = false,
-            note = :generalized_prior_predictive_path_pending,
+            prior_predictive_executable = true,
+            executable = true,
+            note = :typed_refit_and_prior_predictive_available,
         ),
         (;
             regime = :strong_regularizing,
@@ -91,9 +91,9 @@ function _mgmfrm_validation_prior_regimes()
                 step_sd = 0.5,
             ),
             fit_executable = true,
-            prior_predictive_executable = false,
-            executable = false,
-            note = :generalized_prior_predictive_path_pending,
+            prior_predictive_executable = true,
+            executable = true,
+            note = :typed_refit_and_prior_predictive_available,
         ),
     )
 end
@@ -140,7 +140,6 @@ independent review.
 """
 function mgmfrm_validation_protocol()
     blockers = (
-        :generalized_prior_predictive_execution,
         :fresh_seed_attempt_complete_evaluation_runner,
         :prediction_and_decision_stability_scorers,
         :independent_scientific_threshold_review,

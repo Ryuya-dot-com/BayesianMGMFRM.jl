@@ -37,6 +37,7 @@ Inspect the executable contract before building an experimental workflow:
 
 ```julia
 using BayesianMGMFRM
+using Random
 
 contract = BayesianMGMFRM.Experimental.surface_contract()
 contract.families.mgmfrm
@@ -83,6 +84,12 @@ source_aligned_prior = BayesianMGMFRM.Experimental.GeneralizedPrior(;
     step_sd = 1.0,
 )
 
+prior_check = BayesianMGMFRM.Experimental.prior_predictive_check(spec;
+    prior = source_aligned_prior,
+    ndraws = 500,
+    rng = Random.MersenneTwister(20260813),
+)
+
 sensitivity_fit = BayesianMGMFRM.Experimental.fit(spec;
     prior = source_aligned_prior,
     backend = :advancedhmc,
@@ -95,9 +102,10 @@ sensitivity_fit = BayesianMGMFRM.Experimental.fit(spec;
 
 The same resolved scale values enter experimental fit-cache keys. Direct-scale
 generalized priors remain unsupported because they would require a separately
-specified transform and change-of-variables policy. Generalized prior
-predictive simulation is also not yet a public experimental operation; a
-successful refit alone does not complete prior sensitivity validation.
+specified transform and change-of-variables policy. The prior-predictive result
+contains raw and constrained direct parameter draws, replicated scores, and
+implication diagnostics. Use it before fitting, then use actual refits—not only
+importance reweighting—to assess posterior sensitivity.
 
 If sampler counts are omitted, both guarded families currently use 100 warm-up
 iterations and retain 100 draws per chain across two chains. Thus warm-up is
@@ -190,6 +198,8 @@ BayesianMGMFRM.Experimental.GeneralizedPrior
 BayesianMGMFRM.Experimental.surface_contract
 BayesianMGMFRM.Experimental.free_latent_correlation_2d_contract
 BayesianMGMFRM.Experimental.preview
+BayesianMGMFRM.Experimental.prior_predict
+BayesianMGMFRM.Experimental.prior_predictive_check
 BayesianMGMFRM.Experimental.free_latent_correlation_2d_candidate
 BayesianMGMFRM.Experimental.free_latent_correlation_2d_state
 BayesianMGMFRM.Experimental.free_latent_correlation_2d_diagnostics

@@ -58,12 +58,13 @@ automatic requirement to execute the full factorial grid.
 
 The draft remains explicitly blocked. Source-aligned and stronger regularizing
 refits are now expressible through
-`BayesianMGMFRM.Experimental.GeneralizedPrior`, but generalized prior-predictive
-execution is not yet public. The fresh-seed runner must retain every attempted
-fit and typed failure, prediction/decision-stability scoring remains
-incomplete, and final scientific thresholds require independent review. Until
-those blockers are removed, `protocol_frozen == false`, evaluation must not
-start, and earlier pilot values cannot define acceptance rules.
+`BayesianMGMFRM.Experimental.GeneralizedPrior`, and their score/category/facet
+implications can be inspected through the experimental prior-predictive check.
+The fresh-seed runner must still retain every attempted fit and typed failure,
+prediction/decision-stability scoring remains incomplete, and final scientific
+thresholds require independent review. Until those three blockers are removed,
+`protocol_frozen == false`, evaluation must not start, and earlier pilot values
+cannot define acceptance rules.
 
 ## Generalized Partial-Credit and Multidimensional Structure
 

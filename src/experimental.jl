@@ -6,6 +6,7 @@ experimental configurations but are not part of the stable MFRM fitting
 contract.
 
 Use [`BayesianMGMFRM.Experimental.preview`](@ref),
+[`BayesianMGMFRM.Experimental.prior_predictive_check`](@ref),
 [`BayesianMGMFRM.Experimental.fit`](@ref), and
 [`BayesianMGMFRM.Experimental.cached_fit`](@ref) instead of adding
 `experimental = true` to the stable entry points. The legacy keyword remains
@@ -85,6 +86,8 @@ function _family_surface_contract(family::Symbol)
             parameter_space = :raw_unconstrained_coordinates,
             family = :independent_zero_centered_normal,
             custom_scales_allowed = true,
+            prior_predict_available = true,
+            prior_predictive_check_available = true,
             direct_scale_prior_allowed = false,
             jacobian_policy = :none_raw_coordinate_density,
         ),
@@ -211,6 +214,44 @@ configuration is executable; inspect [`surface_contract`](@ref) or
 function preview(spec)
     checked = _require_generalized_spec(spec, "Experimental.preview")
     return getfield(_PACKAGE, :getdesign)(checked; preview = true)
+end
+
+"""
+    prior_predict(spec; prior = GeneralizedPrior(), ndraws = 1000,
+        rng = Random.default_rng())
+
+Generate score replications from the raw-coordinate prior of a supported
+guarded GMFRM or MGMFRM specification. This operation does not fit a posterior.
+"""
+function prior_predict(spec; kwargs...)
+    checked = _require_generalized_spec(spec, "Experimental.prior_predict")
+    _reject_legacy_keyword(kwargs, "Experimental.prior_predict")
+    return getfield(
+        _PACKAGE,
+        :_experimental_generalized_prior_predict,
+    )(checked; kwargs...)
+end
+
+"""
+    prior_predictive_check(spec; prior = GeneralizedPrior(), ndraws = 1000,
+        rng = Random.default_rng(), min_category_probability = 0.01,
+        prior_warning_probability = 0.95, wide_facet_range_fraction = 0.8)
+
+Generate prior parameter draws and replicated score data for a supported
+guarded GMFRM or MGMFRM specification. The result separates raw and constrained
+direct parameter draws, records the resolved prior scales, and is compatible
+with `BayesianMGMFRM.predictive_check_summary`.
+"""
+function prior_predictive_check(spec; kwargs...)
+    checked = _require_generalized_spec(
+        spec,
+        "Experimental.prior_predictive_check",
+    )
+    _reject_legacy_keyword(kwargs, "Experimental.prior_predictive_check")
+    return getfield(
+        _PACKAGE,
+        :_experimental_generalized_prior_predictive_check,
+    )(checked; kwargs...)
 end
 
 """

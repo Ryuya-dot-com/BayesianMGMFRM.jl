@@ -160,7 +160,8 @@ uses `discrimination = :rater`; fixed-Q MGMFRM uses the compatibility selector
 `discrimination = :none`. Use
 `BayesianMGMFRM.Experimental.GeneralizedPrior` to vary the independent normal
 scales on raw unconstrained coordinates. Direct-scale generalized priors remain
-unsupported.
+unsupported. Run `BayesianMGMFRM.Experimental.prior_predictive_check` before
+fitting to inspect score, category-use, and facet-range implications.
 The legacy
 `fit(spec; experimental = true)` form remains source-compatible, but
 `BayesianMGMFRM.Experimental.fit` is the canonical entry point for new work.
