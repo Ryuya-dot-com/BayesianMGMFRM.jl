@@ -143,6 +143,26 @@ prior sensitivity, and scientific decisions remain explicitly unassessed.
 `profile = :analysis` is rejected before execution until the Stage-A analysis
 contract and independently reviewed thresholds are frozen.
 
+Use the non-executing contract to inspect that boundary directly:
+
+```julia
+analysis_contract = mgmfrm_validation_analysis_contract()
+
+analysis_contract.status
+analysis_contract.fixed_components
+analysis_contract.open_decisions
+analysis_contract.next_work_order
+```
+
+Ten structural and computational components are recorded as fixed in the
+Stage-A draft. Seven decisions still block execution: final primary grid
+cells, evaluation replications, the structure-preserving held-out response
+split, exact stratified sensitivity cells, retry rules, analysis resource caps,
+and independently reviewed scientific thresholds. Until the grid subsets and
+replications are frozen, even the analysis attempt denominator is deliberately
+reported as not computable. Runtime pilots may inform cost and batching, not
+scientific cutoffs or backend rankings.
+
 ## Clustered Responses and Testlet Identity
 
 When multiple criteria, items, or raters refer to the same response, map the

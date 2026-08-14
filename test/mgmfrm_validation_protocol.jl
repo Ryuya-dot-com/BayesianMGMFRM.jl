@@ -105,7 +105,9 @@ using BayesianMGMFRM
         :completed,
     )
     @test design.response_pattern_stress.analysis_profile ===
-        :blocked_until_protocol_and_thresholds_are_frozen
+        :draft_contract_implemented_execution_blocked
+    @test design.response_pattern_stress.analysis_contract_function ===
+        :mgmfrm_validation_analysis_contract
     @test design.response_pattern_stress.global_single_category_action ===
         :reject_before_fit
     @test design.response_pattern_stress.no_automatic_scientific_failure_from_pattern_alone
@@ -202,5 +204,9 @@ using BayesianMGMFRM
         fit_and_diagnostic_attempt_phases ===
         :wiring_smoke_implemented_analysis_pending
     @test protocol.readiness.completed_enablers.
-        attempt_complete_analysis_profile === :pending
+        attempt_complete_analysis_contract ===
+        :implemented_execution_blocked
+    @test protocol.readiness.completed_enablers.
+        attempt_complete_analysis_profile ===
+        :draft_contract_implemented_execution_blocked
 end

@@ -31,6 +31,10 @@
   exceptions and partial fit results, and output-integrity diagnostics. Its
   four-warmup/four-draw profile cannot make convergence or scientific claims;
   the analysis profile remains blocked.
+- Add a non-executing MGMFRM analysis-profile contract that separates ten
+  specified structural/computational components from seven unresolved
+  execution and scientific decisions. It preserves the fresh-seed block and
+  refuses to infer an attempt count or thresholds from runtime pilots.
 - Add `BayesianMGMFRM.Experimental` as the explicit namespace for the
   documented scalar rater-consistency GMFRM and fixed-Q confirmatory MGMFRM
   configurations. These configurations can be fitted with

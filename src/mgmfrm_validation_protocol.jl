@@ -308,7 +308,9 @@ function mgmfrm_validation_protocol()
                     :completed,
                 ),
                 analysis_profile =
-                    :blocked_until_protocol_and_thresholds_are_frozen,
+                    :draft_contract_implemented_execution_blocked,
+                analysis_contract_function =
+                    :mgmfrm_validation_analysis_contract,
                 global_single_category_action = :reject_before_fit,
                 local_boundary_pattern_action =
                     :fit_with_proper_priors_report_separately_and_refit_prior_regimes,
@@ -488,7 +490,10 @@ function mgmfrm_validation_protocol()
                 bounded_fit_and_diagnostic_wiring_smoke = :implemented,
                 fit_and_diagnostic_attempt_phases =
                     :wiring_smoke_implemented_analysis_pending,
-                attempt_complete_analysis_profile = :pending,
+                attempt_complete_analysis_contract =
+                    :implemented_execution_blocked,
+                attempt_complete_analysis_profile =
+                    :draft_contract_implemented_execution_blocked,
             ),
             next_work_order = blockers,
             next_gate = :implement_blockers_then_freeze_before_fresh_evaluation,

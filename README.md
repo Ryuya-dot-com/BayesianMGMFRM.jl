@@ -144,6 +144,22 @@ diagnostic failures, but deliberately does not assess convergence, recovery,
 backend agreement, prior sensitivity, or scientific validity. The analysis
 profile remains blocked until its protocol and thresholds are frozen.
 
+The remaining boundary can be inspected without starting an analysis:
+
+```julia
+analysis_contract = mgmfrm_validation_analysis_contract()
+analysis_contract.fixed_components
+analysis_contract.open_decisions
+analysis_contract.readiness
+```
+
+This draft fixes the four-chain sampler, computational gate, estimands,
+interval and scale policies, prior regimes, backend subset, seeds, terminal
+statuses, and all-attempt denominator. It explicitly blocks execution while
+the exact primary and sensitivity cells, replication count, held-out split,
+retry triggers and limits, resource caps, and independently reviewed scientific
+thresholds remain unresolved. It generates no data and runs no MCMC.
+
 Stable MFRM/RSM/PCM designs also support `backend = :cmdstan`. CmdStan is an
 optional external runtime, discovered with `cmdstan_backend_check()`; it is not
 required to load the package or use Julia backends. Both guarded generalized

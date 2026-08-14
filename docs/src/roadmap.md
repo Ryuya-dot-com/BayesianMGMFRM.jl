@@ -87,7 +87,7 @@ The ordered program is:
 | Stage | Priority and scope | Exit condition |
 | --- | --- | --- |
 | 0. Freeze the MGMFRM family skeleton | **P0, completed.** `model_family_contract()` records between-item, within-item, and mixed fixed-Q structures; source terminology versus algebraic dimension aggregation; PCM/GPCM kernels; step-sharing ownership; latent-correlation policy; facet roles; and executable/specified-only/blocked status. No new sampler was added. | Met: the public machine-readable skeleton, exact spec/design resolver, prose, and boundary tests distinguish implemented, guarded, specified-only, and blocked branches. |
-| A. Freeze the validation protocol | **P0, in progress.** `mgmfrm_validation_protocol()` now records identified-block and heldout-response estimands; the source-literal `1.7` versus reference `1.702` scale policy; primary between-item Q, boundary within/mixed Q, and Q-misspecification scope; connected sparse design; actual prior refits; a paired CmdStan subset; layered structural, computational, scientific, and robustness criteria; and five-category response-pattern stress. `ordinal_response_pattern_audit()` supplies the per-dataset audit; the response-stress plan, generator, and preflight implement the nine-attempt MCMC-free layer; and `mgmfrm_response_stress_fit_attempts()` adds a one-attempt-default fit/diagnostic wiring smoke with typed terminal failures. No embedded scientific threshold is inferred from pilots. The attempt-complete analysis profile and independent threshold review remain blockers. | A reviewable, portable protocol and commands exist; the analysis runner retains every attempt and stress stratum, and independently reviewed scientific thresholds are frozen before any fresh evaluation starts. |
+| A. Freeze the validation protocol | **P0, in progress.** `mgmfrm_validation_protocol()` now records identified-block and heldout-response estimands; the source-literal `1.7` versus reference `1.702` scale policy; primary between-item Q, boundary within/mixed Q, and Q-misspecification scope; connected sparse design; actual prior refits; a paired CmdStan subset; layered structural, computational, scientific, and robustness criteria; and five-category response-pattern stress. The response-stress preflight and bounded wiring smoke preserve typed outcomes without scientific scoring. `mgmfrm_validation_analysis_contract()` now separates ten specified components from seven unresolved decisions and keeps execution blocked. No embedded scientific threshold is inferred from pilots. Exact analysis cells, replications, held-out/retry/resource rules, the executor, and independent threshold review remain blockers. | A reviewable, portable protocol and commands exist; the analysis runner retains every attempt and stress stratum, and independently reviewed scientific thresholds are frozen before any fresh evaluation starts. |
 | B. Run fresh-seed known-truth validation | **P0.** Run repeated dense and connected-sparse recovery, prior sensitivity, prediction/calibration, and nested unidimensional MFRM comparisons. Use one predeclared primary backend for the full grid and both backends on a stratified conformance subset. | Predeclared parameter-block and focal-decision criteria pass, or the supported domain is narrowed and the surface remains experimental. |
 | C. Add external and independent evidence | **P0 before stable promotion.** Reproduce a matching public benchmark, analyze one provenance- and licence-cleared external dataset when available, and obtain review of equations, Q, priors, transforms, diagnostics, and claims from someone other than the implementer. | The exact overlapping targets reproduce in a separate environment and the reviewer records claim-level allow/block decisions. |
 | D. Harden the user workflow | **P1, in parallel only where it enables B/C.** Add an explicit intended-category-scale/endpoints input, bounded parallel chains, CmdStan cache integration, resolved sampler profiles, fit persistence, concise summaries/warnings, visualization rows, and maintainable source boundaries. | A non-maintainer can preserve an intended ordinal scale and fit, diagnose, summarize, save, reload, and report the narrow model without repository-specific paths or hidden state. |
@@ -156,7 +156,9 @@ the two exact constraints contradict each other in shared fully crossed cells.
 Passing this preflight is generation and structural evidence only. A separate
 one-attempt-default wiring smoke now preserves outcomes through fitting and
 output-integrity diagnostics, but its four-warmup/four-draw chain cannot assess
-convergence or recovery. The attempt-complete analysis profile remains open.
+convergence or recovery. The non-executing analysis contract records the fixed
+four-chain profile and all-attempt denominator, while exposing seven unresolved
+decisions. The attempt-complete analysis executor remains open.
 
 External validation uses simulation and observed data for different purposes.
 Known-truth simulation evaluates recovery, coverage, and false-decision rates.
@@ -564,12 +566,13 @@ one bound decision record. A passing q95/q99 result is labelled
 well-specified-static distributional contract success rather than recovery of
 every cell or parameter. External chronology attestation remains a separate
 unmet evidence requirement. No repeated MCMC has yet been executed. The core
-threshold-free predictive-recovery and decision-stability scorers now exist,
-but the older stress runner is not wired to them, so the full gate stays
-closed. The next gate is independent threshold review plus an attempt-complete
-runner; pilots remain limited to operability/runtime and must not freeze
-scientific thresholds from their outcomes. Evaluation then uses untouched
-seeds.
+threshold-free predictive-recovery and decision-stability scorers now exist.
+The bounded stress runner intentionally stops at output integrity, and the
+analysis contract exposes the unresolved grid, replication, held-out,
+sensitivity, retry, resource, and threshold decisions, so the full gate stays
+closed. The next gate is to freeze those decisions after runtime-only resource
+work and independent threshold review, then implement the attempt-complete
+executor. Evaluation then uses untouched seeds.
 
 The next parallel gate addresses local independence and clustered ratings. The
 current likelihood is conditionally row-independent; observation residuals,
