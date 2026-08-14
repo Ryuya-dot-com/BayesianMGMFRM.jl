@@ -157,6 +157,11 @@ using BayesianMGMFRM
     @test !portability.artifact_byte_identity_required
     @test :kfold_refit in portability.package_api_surface
     @test portability.cmdstan_required_only_for_reference_cells
+    @test contract.resource_probe.operation ===
+        :forwarddiff_logdensity_and_gradient
+    @test !contract.resource_probe.mcmc_allowed
+    @test !contract.resource_probe.
+        final_resource_policy_may_be_frozen_from_this_probe_alone
     @test !contract.scientific_thresholds_frozen
     @test !contract.validation_evidence_available
 end

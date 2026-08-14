@@ -60,7 +60,7 @@ function _mgmfrm_analysis_open_decisions(protocol)
             code = :final_primary_grid_cells,
             current_state = protocol.design_domain.final_sample_size_cells,
             required_resolution =
-                :freeze_exact_sample_size_q_and_design_cells_after_runtime_only_probe,
+                :freeze_exact_cells_after_bounded_short_nuts_and_resource_review,
             pilot_role = :runtime_and_operability_only,
             blocks_execution = true,
         ),
@@ -207,12 +207,18 @@ function mgmfrm_validation_analysis_contract()
         ),
         pilot_policy = (;
             role = :runtime_and_operability_only,
+            function_name = :mgmfrm_validation_resource_probe,
+            initial_gradient_probe_implemented = true,
+            mcmc_executed = false,
+            bounded_short_nuts_probe_required = true,
+            gradient_timing_may_freeze_final_resource_policy = false,
             values_may_define_scientific_thresholds = false,
             values_may_rank_backends = false,
             values_are_validation_evidence = false,
         ),
         next_work_order = (
-            :run_runtime_only_resource_probe,
+            :run_initial_gradient_resource_probe,
+            :run_bounded_short_nuts_resource_probe,
             :freeze_primary_grid_replications_and_resource_caps,
             :obtain_independent_scientific_threshold_review,
             :freeze_analysis_profile,

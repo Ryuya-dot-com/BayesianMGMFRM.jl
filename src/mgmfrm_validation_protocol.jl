@@ -327,7 +327,8 @@ function mgmfrm_validation_protocol()
                 items = (5, 15),
                 raters = (5, 15),
             ),
-            final_sample_size_cells = :pending_runtime_only_resource_probe,
+            final_sample_size_cells =
+                :pending_bounded_short_nuts_and_resource_review,
             evaluation_replications = :pending_coverage_precision_review,
             anchor_proportion_axis = :excluded_until_anchor_fit_contract_exists,
         ),
@@ -429,6 +430,11 @@ function mgmfrm_validation_protocol()
             retry_primary_outcome_overwritable = false,
             n_exact_sensitivity_role_cells = 24,
             role_cells_are_fit_attempt_count = false,
+            resource_probe_function =
+                :mgmfrm_validation_resource_probe,
+            initial_gradient_resource_probe =
+                :implemented_optional_measurement_not_validation_evidence,
+            bounded_short_nuts_resource_probe = :pending,
             repository_or_sha_identity_required = false,
         ),
         seeds = (;
@@ -507,6 +513,8 @@ function mgmfrm_validation_protocol()
                     :implemented_execution_blocked,
                 heldout_retry_and_sensitivity_design =
                     :frozen_before_evaluation,
+                initial_gradient_resource_probe_surface =
+                    :implemented_measurement_optional,
                 attempt_complete_analysis_profile =
                     :draft_contract_implemented_execution_blocked,
             ),

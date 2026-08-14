@@ -40,6 +40,11 @@
   role-cells spanning priors, response patterns, Q structure, unidimensional
   MFRM comparison, and paired CmdStan roles. No repository path, commit, or
   fixture hash is required.
+- Add an explicit, MCMC-free MGMFRM resource probe with hard cell and
+  observation bounds. It measures local generation and warmed ForwardDiff
+  gradient cost while prohibiting scientific, backend-ranking, and full-NUTS
+  runtime claims; a bounded short-NUTS probe remains required before resource
+  caps can be frozen.
 - Add `BayesianMGMFRM.Experimental` as the explicit namespace for the
   documented scalar rater-consistency GMFRM and fixed-Q confirmatory MGMFRM
   configurations. These configurations can be fitted with

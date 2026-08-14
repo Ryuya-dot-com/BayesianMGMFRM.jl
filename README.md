@@ -149,6 +149,7 @@ The remaining boundary can be inspected without starting an analysis:
 ```julia
 execution_design = mgmfrm_validation_execution_design_contract()
 analysis_contract = mgmfrm_validation_analysis_contract()
+resource_probe_plan = mgmfrm_validation_resource_probe()
 
 execution_design.heldout
 execution_design.retry
@@ -167,6 +168,14 @@ while the final primary grid, replication count, resource caps, and
 independently reviewed scientific thresholds are unresolved. These contracts
 use package APIs and semantic identifiers, not repository paths, commits, or
 fixture hashes; they generate no data and run no MCMC.
+
+The first resource-planning surface is also MCMC-free by default. Calling
+`mgmfrm_validation_resource_probe()` only returns the bounded dense/sparse
+plan. Set `execute_measurement = true` explicitly to measure local generation,
+ForwardDiff gradient time, allocation, and free memory. These values may guide
+the cells and batch size for a later bounded short-NUTS probe, but they are not
+convergence, recovery, backend, or performance evidence and are not
+extrapolated into a full-fit runtime.
 
 Stable MFRM/RSM/PCM designs also support `backend = :cmdstan`. CmdStan is an
 optional external runtime, discovered with `cmdstan_backend_check()`; it is not

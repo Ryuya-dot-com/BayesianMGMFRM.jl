@@ -176,6 +176,25 @@ cost and batching, not scientific cutoffs or backend rankings. The design
 contract has no repository-path, commit, fixture-hash, or byte-identity
 dependency.
 
+Initial resource profiling is explicit and inert by default:
+
+```julia
+probe_plan = mgmfrm_validation_resource_probe()
+
+# Executes no MCMC; hard cell/observation bounds are checked first.
+probe = mgmfrm_validation_resource_probe(execute_measurement = true)
+probe.rows
+probe.runtime
+```
+
+The measured operation is a warmed ForwardDiff log-density/gradient evaluation
+for one dense and one connected-sparse regular-response cell. It records typed
+failures and preserves the planned denominator without returning fit objects.
+The timings are local operational metadata only: they cannot choose priors, Q,
+scientific thresholds, or a preferred backend, and they cannot be extrapolated
+to four-chain NUTS. A bounded short-NUTS resource probe and an explicit memory
+review remain necessary before final grid and resource caps are frozen.
+
 ## Clustered Responses and Testlet Identity
 
 When multiple criteria, items, or raters refer to the same response, map the

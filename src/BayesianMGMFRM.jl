@@ -120,6 +120,7 @@ export FacetData,
     mgmfrm_validation_analysis_contract,
     mgmfrm_validation_execution_design_contract,
     mgmfrm_validation_protocol,
+    mgmfrm_validation_resource_probe,
     mcmc_diagnostics,
     model_manifest,
     model_ladder,
@@ -211,6 +212,7 @@ include("mgmfrm_free_correlation_study_scoring.jl")
 include("experimental.jl")
 include("mgmfrm_response_stress.jl")
 include("mgmfrm_response_stress_fit.jl")
+include("mgmfrm_validation_resource_probe.jl")
 include("mgmfrm_validation_execution_design.jl")
 include("mgmfrm_validation_analysis_contract.jl")
 include("anchor_refit_plan.jl")

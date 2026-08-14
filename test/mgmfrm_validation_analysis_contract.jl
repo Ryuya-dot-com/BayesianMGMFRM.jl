@@ -58,7 +58,7 @@ using BayesianMGMFRM
     @test contract.workload.structure_comparison_cells == 9
     @test contract.workload.sensitivity_role_cells == 24
     @test contract.workload.final_primary_grid_cells ===
-        :pending_runtime_only_resource_probe
+        :pending_bounded_short_nuts_and_resource_review
     @test contract.workload.evaluation_replications ===
         :pending_coverage_precision_review
     @test !contract.workload.full_cartesian_expansion_allowed
@@ -82,8 +82,16 @@ using BayesianMGMFRM
     @test !contract.pilot_policy.values_may_define_scientific_thresholds
     @test !contract.pilot_policy.values_may_rank_backends
     @test !contract.pilot_policy.values_are_validation_evidence
+    @test contract.pilot_policy.initial_gradient_probe_implemented
+    @test !contract.pilot_policy.mcmc_executed
+    @test contract.pilot_policy.bounded_short_nuts_probe_required
+    @test !contract.pilot_policy.
+        gradient_timing_may_freeze_final_resource_policy
     @test contract.execution_design.design_choices_frozen
     @test contract.execution_design.sensitivity.n_sensitivity_role_cells == 24
-    @test first(contract.next_work_order) === :run_runtime_only_resource_probe
+    @test first(contract.next_work_order) ===
+        :run_initial_gradient_resource_probe
+    @test contract.next_work_order[2] ===
+        :run_bounded_short_nuts_resource_probe
     @test last(contract.next_work_order) === :start_fresh_seed_evaluation
 end

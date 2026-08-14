@@ -175,6 +175,12 @@ using BayesianMGMFRM
     @test !protocol.execution_design.retry_primary_outcome_overwritable
     @test protocol.execution_design.n_exact_sensitivity_role_cells == 24
     @test !protocol.execution_design.role_cells_are_fit_attempt_count
+    @test protocol.execution_design.resource_probe_function ===
+        :mgmfrm_validation_resource_probe
+    @test protocol.execution_design.initial_gradient_resource_probe ===
+        :implemented_optional_measurement_not_validation_evidence
+    @test protocol.execution_design.bounded_short_nuts_resource_probe ===
+        :pending
     @test !protocol.execution_design.repository_or_sha_identity_required
 
     @test protocol.failure_accounting.denominator ===
@@ -219,6 +225,9 @@ using BayesianMGMFRM
     @test protocol.readiness.completed_enablers.
         heldout_retry_and_sensitivity_design ===
         :frozen_before_evaluation
+    @test protocol.readiness.completed_enablers.
+        initial_gradient_resource_probe_surface ===
+        :implemented_measurement_optional
     @test protocol.readiness.completed_enablers.
         attempt_complete_analysis_profile ===
         :draft_contract_implemented_execution_blocked
