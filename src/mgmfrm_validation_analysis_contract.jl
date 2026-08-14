@@ -223,6 +223,8 @@ function mgmfrm_validation_analysis_contract()
         next_work_order = (
             :run_initial_gradient_resource_probe,
             :run_memory_guarded_bounded_short_nuts_resource_probe,
+            :run_scaled_resource_cells_sequentially,
+            :review_process_isolated_peak_rss,
             :freeze_primary_grid_replications_and_resource_caps,
             :obtain_independent_scientific_threshold_review,
             :freeze_analysis_profile,

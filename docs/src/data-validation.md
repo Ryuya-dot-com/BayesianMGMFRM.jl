@@ -214,6 +214,29 @@ and records elapsed time, cumulative Julia allocations, and endpoint free
 memory. It does not claim peak memory or convergence and cannot freeze the
 final analysis resource policy by itself.
 
+Scaled profiling is a separate MCMC-free plan:
+
+```julia
+scaled = mgmfrm_validation_scaled_resource_plan()
+
+# After the default sparse probe succeeds, submit exactly one row.
+next_probe = mgmfrm_validation_short_nuts_resource_probe(
+    scaled.rows[1],
+    execute_measurement = true,
+)
+```
+
+The four ordered cells contain 144, 600, 600, and 2,000 observations. The two
+600-observation cells deliberately contrast connected-sparse and dense layouts
+instead of assuming observation count alone determines cost. Any memory,
+generation, fit, diagnostic, or unexpected-allocation problem stops manual
+progression. These cells are not the final scientific sample-size grid.
+
+`Sys.maxrss()` is recorded before and after short-NUTS as process-lifetime
+maximum resident memory. In a reused Julia process it is not attributable to
+the probe interval, even when it increases. An isolated process remains
+necessary before reporting probe-specific peak RSS.
+
 ## Clustered Responses and Testlet Identity
 
 When multiple criteria, items, or raters refer to the same response, map the

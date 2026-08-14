@@ -151,6 +151,7 @@ execution_design = mgmfrm_validation_execution_design_contract()
 analysis_contract = mgmfrm_validation_analysis_contract()
 resource_probe_plan = mgmfrm_validation_resource_probe()
 short_nuts_plan = mgmfrm_validation_short_nuts_resource_probe()
+scaled_resource_plan = mgmfrm_validation_scaled_resource_plan()
 
 execution_design.heldout
 execution_design.retry
@@ -185,6 +186,14 @@ only after the workload check and a 2 GiB free-memory preflight pass. The
 minimum cannot be lowered below 1 GiB. A failed memory preflight starts neither
 generation nor MCMC. Even a completed probe is short-chain operability metadata
 only; convergence, peak memory, and full-analysis runtime remain unassessed.
+
+After the default sparse short-NUTS cell succeeds in a suitable environment,
+`mgmfrm_validation_scaled_resource_plan()` provides four ordered cells with
+144, 600, 600, and 2,000 observations. Pass exactly one row at a time to the
+short-NUTS probe; automatic progression is prohibited. `Sys.maxrss()` is
+recorded as process-lifetime maxRSS before and after a run, not as probe-
+attributable peak memory. Isolated-process measurement is still required for
+that stronger claim.
 
 Stable MFRM/RSM/PCM designs also support `backend = :cmdstan`. CmdStan is an
 optional external runtime, discovered with `cmdstan_backend_check()`; it is not

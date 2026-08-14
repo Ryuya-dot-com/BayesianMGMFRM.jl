@@ -169,6 +169,11 @@ using BayesianMGMFRM
     @test contract.short_nuts_resource_probe.
         explicit_execution_required
     @test !contract.short_nuts_resource_probe.convergence_assessed
+    @test contract.short_nuts_resource_probe.
+        scaled_resource_plan_function ===
+        :mgmfrm_validation_scaled_resource_plan
+    @test :mgmfrm_validation_scaled_resource_plan in
+        contract.portability.package_api_surface
     @test !contract.scientific_thresholds_frozen
     @test !contract.validation_evidence_available
 end

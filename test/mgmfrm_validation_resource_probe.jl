@@ -93,6 +93,7 @@ end
     @test measured.summary.denominator_preserved
     @test measured.runtime.n_threads >= 1
     @test measured.runtime.cpu_threads >= 1
+    @test measured.runtime.process_lifetime_maxrss_bytes >= 0
     @test !measured.mcmc_executed
     @test !measured.final_resource_policy_frozen
     @test measured.next_gate === :bounded_short_nuts_resource_probe
@@ -203,6 +204,10 @@ end
     @test policy.hard_minimum_free_memory_bytes == 1024^3
     @test !policy.convergence_assessed
     @test !policy.peak_memory_measured
+    @test policy.maxrss_measurement ===
+        :process_lifetime_before_and_after
+    @test !policy.maxrss_is_probe_attributable
+    @test policy.isolated_process_required_for_peak_attribution
     @test :full_nuts_runtime_extrapolation in policy.prohibited_uses
 
     sparse_plan = mgmfrm_response_stress_plan(
@@ -246,6 +251,7 @@ end
         ),
     )
     free_values = Int64[4 * 1024^3, 3 * 1024^3]
+    maxrss_values = Int64[200_000_000, 250_000_000]
     completed =
         BayesianMGMFRM._mgmfrm_validation_short_nuts_resource_probe(
             sparse_plan;
@@ -254,6 +260,7 @@ end
             maximum_observations_per_cell = 1_000,
             truth_scale = 0.15,
             free_memory_provider = () -> popfirst!(free_values),
+            maxrss_provider = () -> popfirst!(maxrss_values),
             runner_executor = fake_runner,
         )
     @test completed.status ===
@@ -268,12 +275,19 @@ end
     @test completed.measurement.minimum_endpoint_free_memory_bytes ==
         3 * 1024^3
     @test !completed.measurement.peak_memory_measured
+    @test completed.measurement.process_lifetime_maxrss_bytes_before ==
+        200_000_000
+    @test completed.measurement.process_lifetime_maxrss_bytes_after ==
+        250_000_000
+    @test completed.measurement.process_lifetime_maxrss_increased
+    @test !completed.measurement.maxrss_is_probe_attributable
     @test !completed.fit_objects_returned
     @test completed.next_gate ===
         :review_scaled_resource_cells_and_peak_memory
 
     failing_runner = (plan, truth_scale) -> error("injected runner failure")
     failure_memory = Int64[4 * 1024^3, 4 * 1024^3]
+    failure_maxrss = Int64[200_000_000, 200_000_000]
     failed = BayesianMGMFRM._mgmfrm_validation_short_nuts_resource_probe(
         sparse_plan;
         execute_measurement = true,
@@ -281,6 +295,7 @@ end
         maximum_observations_per_cell = 1_000,
         truth_scale = 0.15,
         free_memory_provider = () -> popfirst!(failure_memory),
+        maxrss_provider = () -> popfirst!(failure_maxrss),
         runner_executor = failing_runner,
     )
     @test failed.status === :short_nuts_resource_probe_runner_failed
@@ -306,4 +321,30 @@ end
     )
     @test_throws ArgumentError mgmfrm_validation_short_nuts_resource_probe(
         dense_and_sparse)
+
+    scaled = mgmfrm_validation_scaled_resource_plan()
+    @test scaled.schema ==
+        "bayesianmgmfrm.mgmfrm_validation_scaled_resource_plan.v1"
+    @test scaled.object === :mgmfrm_validation_scaled_resource_plan
+    @test scaled.status === :predeclared_not_run
+    @test length(scaled.rows) == 4
+    @test scaled.expected_observations == (144, 600, 600, 2_000)
+    @test length(unique(row.attempt_id for row in scaled.rows)) == 4
+    @test all(row -> row.object ===
+        :mgmfrm_response_stress_plan_row, scaled.rows)
+    @test all(row -> row.response_pattern ===
+        :regular_all_categories, scaled.rows)
+    @test scaled.execution_mode === :one_cell_per_explicit_invocation
+    @test !scaled.automatic_progression_allowed
+    @test !scaled.final_analysis_grid_selected
+    @test !scaled.mcmc_executed
+    @test !scaled.primary_evaluation_seed_used
+    @test scaled.scientific_decision === :not_applied
+    first_scaled = mgmfrm_validation_short_nuts_resource_probe(
+        first(scaled.rows))
+    @test first_scaled.summary.n_planned_cells == 1
+    @test first_scaled.plan[1].attempt_id ===
+        :scaled_resource_01_dense_small
+    @test_throws ArgumentError mgmfrm_validation_short_nuts_resource_probe(
+        scaled.rows)
 end

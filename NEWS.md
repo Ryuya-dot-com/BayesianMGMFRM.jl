@@ -50,6 +50,10 @@
   enforces workload and free-memory gates before generation, discards fit
   objects, and cannot make convergence, recovery, peak-memory, or performance
   claims.
+- Add a four-cell sequential resource-scaling plan with matched-observation
+  sparse/dense cells and no automatic progression. Short-NUTS results now
+  distinguish process-lifetime `Sys.maxrss()` from probe-attributable peak
+  memory, which still requires isolated-process measurement.
 - Add `BayesianMGMFRM.Experimental` as the explicit namespace for the
   documented scalar rater-consistency GMFRM and fixed-Q confirmatory MGMFRM
   configurations. These configurations can be fitted with

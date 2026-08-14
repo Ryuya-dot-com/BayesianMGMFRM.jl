@@ -97,5 +97,8 @@ using BayesianMGMFRM
         :run_initial_gradient_resource_probe
     @test contract.next_work_order[2] ===
         :run_memory_guarded_bounded_short_nuts_resource_probe
+    @test :run_scaled_resource_cells_sequentially in
+        contract.next_work_order
+    @test :review_process_isolated_peak_rss in contract.next_work_order
     @test last(contract.next_work_order) === :start_fresh_seed_evaluation
 end

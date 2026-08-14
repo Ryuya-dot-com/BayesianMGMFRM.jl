@@ -61,9 +61,14 @@ function _mgmfrm_validation_short_nuts_resource_probe_policy()
         hard_maximum_probability_cells_per_cell = 10_000,
         default_minimum_free_memory_bytes = Int64(2 * 1024^3),
         hard_minimum_free_memory_bytes = Int64(1024^3),
+        scaled_resource_plan_function =
+            :mgmfrm_validation_scaled_resource_plan,
         explicit_execution_required = true,
         convergence_assessed = false,
         peak_memory_measured = false,
+        maxrss_measurement = :process_lifetime_before_and_after,
+        maxrss_is_probe_attributable = false,
+        isolated_process_required_for_peak_attribution = true,
         measurement_thresholds_applied = false,
         final_resource_policy_may_be_frozen_from_this_probe_alone = false,
         permitted_uses = (
@@ -104,6 +109,98 @@ function _mgmfrm_validation_default_short_nuts_resource_probe_plan()
         replications = 1,
         base_seed = 20260817,
     ))
+end
+
+function _mgmfrm_validation_scaled_resource_cell(
+        cell_id::Symbol,
+        sequence::Int,
+        design::Symbol,
+        n_persons::Int,
+        n_items::Int,
+        n_raters::Int,
+        role::Symbol,
+        seed::Int)
+    source = only(mgmfrm_response_stress_plan(
+        design_strata = (design,),
+        response_patterns = (:regular_all_categories,),
+        replications = 1,
+        base_seed = seed,
+        n_persons = n_persons,
+        n_items = n_items,
+        n_raters = n_raters,
+    ))
+    return merge(source, (;
+        attempt_id = cell_id,
+        attempt_index = sequence,
+        resource_sequence = sequence,
+        resource_role = role,
+        resource_claim_scope = :operational_scaling_only,
+        prerequisite = sequence == 1 ?
+            :default_sparse_short_nuts_completed_operationally :
+            :all_previous_resource_cells_completed_operationally,
+    ))
+end
+
+"""
+    mgmfrm_validation_scaled_resource_plan()
+
+Return four ordered, non-executing resource cells for the fixed-Q MGMFRM
+short-NUTS probe. The sequence adds a small dense cell, matched-observation
+sparse and dense cells, then a larger sparse cell. Every row remains compatible
+with [`mgmfrm_validation_short_nuts_resource_probe`](@ref), but must be passed
+and executed one at a time.
+
+The plan is operational rather than scientific. It does not select the final
+sample-size grid, run MCMC, use evaluation seeds, or authorize automatic
+progression after a failure or memory rejection.
+"""
+function mgmfrm_validation_scaled_resource_plan()
+    rows = (
+        _mgmfrm_validation_scaled_resource_cell(
+            :scaled_resource_01_dense_small,
+            1, :dense_fully_crossed, 12, 4, 3,
+            :density_boundary_after_sparse_baseline, 20260818),
+        _mgmfrm_validation_scaled_resource_cell(
+            :scaled_resource_02_sparse_medium,
+            2, :connected_sparse_systematic_link, 50, 6, 5,
+            :increase_parameter_and_observation_scale, 20260819),
+        _mgmfrm_validation_scaled_resource_cell(
+            :scaled_resource_03_dense_medium,
+            3, :dense_fully_crossed, 20, 6, 5,
+            :match_sparse_medium_observation_count, 20260820),
+        _mgmfrm_validation_scaled_resource_cell(
+            :scaled_resource_04_sparse_large,
+            4, :connected_sparse_systematic_link, 100, 10, 15,
+            :upper_bounded_sparse_operational_shape, 20260821),
+    )
+    expected_observations = Tuple(
+        _mgmfrm_validation_probe_expected_observations(row) for row in rows)
+    expected_observations == (144, 600, 600, 2_000) ||
+        throw(ArgumentError(
+            "scaled resource plan observation counts are inconsistent",
+        ))
+    return (;
+        schema =
+            "bayesianmgmfrm.mgmfrm_validation_scaled_resource_plan.v1",
+        object = :mgmfrm_validation_scaled_resource_plan,
+        status = :predeclared_not_run,
+        rows,
+        expected_observations,
+        execution_order = Tuple(row.attempt_id for row in rows),
+        execution_mode = :one_cell_per_explicit_invocation,
+        automatic_progression_allowed = false,
+        stop_conditions = (
+            :memory_preflight_rejected,
+            :generation_or_fit_failure,
+            :diagnostic_failure,
+            :unexpected_allocation_growth,
+        ),
+        final_analysis_grid_selected = false,
+        mcmc_executed = false,
+        primary_evaluation_seed_used = false,
+        scientific_decision = :not_applied,
+        claim_scope = :mcmc_free_operational_scaling_plan,
+    )
 end
 
 function _mgmfrm_validation_probe_integer(value::Integer,
@@ -183,6 +280,7 @@ function _mgmfrm_validation_resource_probe_runtime()
         os = string(Sys.KERNEL),
         arch = string(Sys.ARCH),
         total_memory_bytes = Int64(Sys.total_memory()),
+        process_lifetime_maxrss_bytes = Int64(Sys.maxrss()),
     )
 end
 
@@ -611,6 +709,7 @@ function _mgmfrm_validation_short_nuts_resource_probe(
         maximum_observations_per_cell::Integer,
         truth_scale::Real,
         free_memory_provider = () -> Int64(Sys.free_memory()),
+        maxrss_provider = () -> Int64(Sys.maxrss()),
         runner_executor = _mgmfrm_validation_default_short_nuts_runner)
     policy = _mgmfrm_validation_short_nuts_resource_probe_policy()
     checked_minimum_memory = _mgmfrm_validation_probe_integer(
@@ -688,6 +787,7 @@ function _mgmfrm_validation_short_nuts_resource_probe(
     end
 
     free_memory_before = free_memory
+    process_maxrss_before = Int64(maxrss_provider())
     timed_run = try
         @timed begin
             run = runner_executor(checked_plan, Float64(truth_scale))
@@ -702,6 +802,7 @@ function _mgmfrm_validation_short_nuts_resource_probe(
         err
     end
     free_memory_after = Int64(free_memory_provider())
+    process_maxrss_after = Int64(maxrss_provider())
     if timed_run isa Exception
         return merge(base, (;
             status = :short_nuts_resource_probe_runner_failed,
@@ -725,7 +826,12 @@ function _mgmfrm_validation_short_nuts_resource_probe(
                 free_memory_bytes_after = free_memory_after,
                 minimum_endpoint_free_memory_bytes =
                     min(free_memory_before, free_memory_after),
+                process_lifetime_maxrss_bytes_before =
+                    process_maxrss_before,
+                process_lifetime_maxrss_bytes_after =
+                    process_maxrss_after,
                 peak_memory_measured = false,
+                maxrss_is_probe_attributable = false,
             ),
             blockers = (:short_nuts_runner_failed,),
             error_type = string(typeof(timed_run)),
@@ -770,7 +876,12 @@ function _mgmfrm_validation_short_nuts_resource_probe(
             free_memory_bytes_after = free_memory_after,
             minimum_endpoint_free_memory_bytes =
                 min(free_memory_before, free_memory_after),
+            process_lifetime_maxrss_bytes_before = process_maxrss_before,
+            process_lifetime_maxrss_bytes_after = process_maxrss_after,
+            process_lifetime_maxrss_increased =
+                process_maxrss_after > process_maxrss_before,
             peak_memory_measured = false,
+            maxrss_is_probe_attributable = false,
         ),
         blockers = (:scaled_resource_cells_and_peak_memory_review_pending,),
         error_type = missing,
@@ -810,8 +921,14 @@ function mgmfrm_validation_short_nuts_resource_probe(
         minimum_free_memory_bytes::Integer = 2 * 1024^3,
         maximum_observations_per_cell::Integer = 1_000,
         truth_scale::Real = 0.15)
-    selected_plan = isnothing(plan) ?
-        _mgmfrm_validation_default_short_nuts_resource_probe_plan() : plan
+    selected_plan = if isnothing(plan)
+        _mgmfrm_validation_default_short_nuts_resource_probe_plan()
+    elseif plan isa NamedTuple && hasproperty(plan, :object) &&
+            plan.object === :mgmfrm_response_stress_plan_row
+        (plan,)
+    else
+        plan
+    end
     return _mgmfrm_validation_short_nuts_resource_probe(
         selected_plan;
         execute_measurement,

@@ -181,6 +181,12 @@ using BayesianMGMFRM
         :implemented_optional_measurement_not_validation_evidence
     @test protocol.execution_design.bounded_short_nuts_resource_probe ===
         :implemented_explicit_execution_memory_guarded
+    @test protocol.execution_design.scaled_resource_plan_function ===
+        :mgmfrm_validation_scaled_resource_plan
+    @test protocol.execution_design.scaled_resource_plan ===
+        :implemented_sequential_execution_not_started
+    @test protocol.execution_design.peak_memory_attribution ===
+        :isolated_process_pending
     @test !protocol.execution_design.repository_or_sha_identity_required
 
     @test protocol.failure_accounting.denominator ===
@@ -231,6 +237,9 @@ using BayesianMGMFRM
     @test protocol.readiness.completed_enablers.
         bounded_short_nuts_resource_probe_surface ===
         :implemented_execution_memory_guarded
+    @test protocol.readiness.completed_enablers.
+        scaled_resource_plan_surface ===
+        :implemented_sequential_execution_pending
     @test protocol.readiness.completed_enablers.
         attempt_complete_analysis_profile ===
         :draft_contract_implemented_execution_blocked

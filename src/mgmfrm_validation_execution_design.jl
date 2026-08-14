@@ -272,6 +272,7 @@ function _mgmfrm_validation_execution_design_contract(protocol)
                     :mgmfrm_response_stress_plan,
                     :mgmfrm_response_stress_fit_attempts,
                     :mgmfrm_validation_resource_probe,
+                    :mgmfrm_validation_scaled_resource_plan,
                     :mgmfrm_validation_short_nuts_resource_probe),
             cmdstan_required_only_for_reference_cells = true,
         ),
