@@ -454,7 +454,6 @@ function mgmfrm_validation_protocol()
                 :implemented_sequential_execution_not_started,
             peak_memory_attribution =
                 :dedicated_worker_surface_implemented_execution_pending,
-            repository_or_sha_identity_required = false,
         ),
         seeds = (;
             evaluation_seed_family = :fresh_not_used_by_prior_pilots,

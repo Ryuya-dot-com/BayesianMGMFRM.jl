@@ -417,10 +417,6 @@ function _mgmfrm_validation_execution_design_contract(protocol)
             scientific_decision = :not_applied,
         ),
         portability = (;
-            repository_path_required = false,
-            commit_identity_required = false,
-            fixture_hash_required = false,
-            artifact_byte_identity_required = false,
             package_api_surface =
                 (:kfold_plan, :kfold_plan_diagnostics, :kfold_refit,
                     :mgmfrm_response_stress_plan,
@@ -444,8 +440,7 @@ end
 
 Return the frozen, non-executing design choices for held-out prediction,
 retry/remediation, and stratified MGMFRM sensitivity cells. The contract uses
-package APIs and semantic identifiers only; it has no repository path, commit,
-or fixture-hash dependency.
+the documented package API surface and explicit semantic options.
 
 The primary held-out target is five-fold observation prediction conditional on
 person, item, and rater levels represented in every training fold. New-level

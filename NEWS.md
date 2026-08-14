@@ -38,8 +38,7 @@
 - Freeze a portable execution-design contract for five-fold conditional
   observation holdout, non-overwriting remediation, and 24 exact sensitivity
   role-cells spanning priors, response patterns, Q structure, unidimensional
-  MFRM comparison, and paired CmdStan roles. No repository path, commit, or
-  fixture hash is required.
+  MFRM comparison, and paired CmdStan roles through documented package APIs.
 - Add an explicit, MCMC-free MGMFRM resource probe with hard cell, observation,
   and pre-generation free-memory bounds. The default memory screen is 2 GiB
   with a non-lowerable 1 GiB floor; rejection leaves every cell unstarted. It

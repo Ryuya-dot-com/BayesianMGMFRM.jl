@@ -199,7 +199,6 @@ using BayesianMGMFRM
         :implemented_sequential_execution_not_started
     @test protocol.execution_design.peak_memory_attribution ===
         :dedicated_worker_surface_implemented_execution_pending
-    @test !protocol.execution_design.repository_or_sha_identity_required
 
     @test protocol.failure_accounting.denominator ===
         :all_predeclared_attempts

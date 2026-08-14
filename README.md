@@ -172,8 +172,8 @@ non-overwriting remediation, and 24 exact sensitivity role-cells. New-person,
 new-item, and new-rater prediction are not claimed. Execution remains blocked
 while the final primary grid, replication count, resource caps, and
 independently reviewed scientific thresholds are unresolved. These contracts
-use package APIs and semantic identifiers, not repository paths, commits, or
-fixture hashes; they generate no data and run no MCMC.
+use documented package APIs and explicit semantic options; they generate no
+data and run no MCMC.
 
 `primary_grid_candidates` enumerates 16 non-executing source-anchored cells:
 two designs crossed with 50/100 persons, 5/15 items, and 5/15 raters. Expected
@@ -216,9 +216,8 @@ execution, repeats the memory preflight in both parent and child, and enforces
 a wall-time limit. The worker uses one Julia thread. Its peak RSS includes
 Julia startup, package loading, compilation, generation, and diagnostics as
 well as sampling; it is not sampler-only memory. The receipt records
-Julia/OS/architecture/thread and basic
-memory context, but no repository path, commit hash, or byte-level identity is
-part of the contract. Completed or rejected invocations can be passed to
+Julia/OS/architecture/thread and basic memory context. Completed or rejected
+invocations can be passed to
 `mgmfrm_validation_isolated_resource_review()` for a threshold-free table of
 both memory preflights, elapsed time, child status, and worker peak RSS. The
 review never launches the next cell or freezes a resource policy.

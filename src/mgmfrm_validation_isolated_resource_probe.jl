@@ -16,8 +16,6 @@ function _mgmfrm_validation_isolated_resource_probe_policy()
         child_stderr = :captured_diagnostic_text,
         worker_threads = 1,
         project_resolution = :active_project_at_invocation,
-        repository_path_identity_required = false,
-        source_or_commit_hash_required = false,
         process_peak_rss_scope =
             :dedicated_worker_including_startup_compilation_and_probe,
         process_peak_rss_attributable_to_sampler_only = false,
@@ -445,9 +443,9 @@ small JSON receipt through stdout; stderr is retained separately.
 
 The recorded peak RSS belongs to the dedicated worker process as a whole,
 including startup, package loading, compilation, generation, sampling, and
-diagnostics. It is not sampler-only peak memory. No repository path, commit
-hash, or byte-identity check is required, and the result cannot establish
-convergence, recovery, performance superiority, or scientific thresholds.
+diagnostics. It is not sampler-only peak memory, and the result cannot
+establish convergence, recovery, performance superiority, or scientific
+thresholds.
 """
 function mgmfrm_validation_isolated_resource_probe(
         cell_id = :default_sparse_short_nuts;

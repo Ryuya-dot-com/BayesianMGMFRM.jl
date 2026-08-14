@@ -158,10 +158,6 @@ using BayesianMGMFRM
     @test !aliased_q_report.identification.guarded_fit_structure_ready
 
     portability = contract.portability
-    @test !portability.repository_path_required
-    @test !portability.commit_identity_required
-    @test !portability.fixture_hash_required
-    @test !portability.artifact_byte_identity_required
     @test :kfold_refit in portability.package_api_surface
     @test :mgmfrm_validation_primary_grid_candidates in
         portability.package_api_surface
@@ -191,8 +187,6 @@ using BayesianMGMFRM
         parent_memory_preflight_required
     @test contract.isolated_resource_probe.
         child_memory_preflight_required
-    @test !contract.isolated_resource_probe.
-        source_or_commit_hash_required
     @test contract.isolated_resource_review.function_name ===
         :mgmfrm_validation_isolated_resource_review
     @test !contract.isolated_resource_review.execution_allowed

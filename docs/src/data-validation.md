@@ -185,8 +185,7 @@ replications, analysis resource caps, and independently reviewed scientific
 thresholds. Until the grid and replications are frozen, the analysis attempt
 denominator remains deliberately not computable. Runtime pilots may inform
 cost and batching, not scientific cutoffs or backend rankings. The design
-contract has no repository-path, commit, fixture-hash, or byte-identity
-dependency.
+contract is expressed through documented package APIs and semantic options.
 
 Initial resource profiling is explicit and inert by default:
 

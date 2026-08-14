@@ -92,8 +92,6 @@ end
     @test policy.child_stdout === :single_json_receipt
     @test policy.worker_threads == 1
     @test policy.project_resolution === :active_project_at_invocation
-    @test !policy.repository_path_identity_required
-    @test !policy.source_or_commit_hash_required
     @test policy.process_peak_rss_scope ===
         :dedicated_worker_including_startup_compilation_and_probe
     @test !policy.process_peak_rss_attributable_to_sampler_only
