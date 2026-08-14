@@ -74,8 +74,50 @@ end
     @test !policy.measurement_thresholds_applied
     @test !policy.final_resource_policy_may_be_frozen_from_this_probe_alone
     @test policy.bounded_short_nuts_probe_required_next
+    @test policy.primary_short_nuts_adapter_required
     @test :performance_claim in policy.prohibited_uses
     @test :choose_batch_size in policy.permitted_uses
+    @test :mgmfrm_validation_primary_grid_candidate in
+        policy.accepted_plan_objects
+
+    primary_resource = mgmfrm_validation_primary_resource_plan()
+    primary_small = first(primary_resource.rows)
+    primary_planned = mgmfrm_validation_resource_probe(primary_small)
+    @test primary_planned.summary.n_planned_cells == 1
+    @test only(primary_planned.rows).source_object ===
+        :mgmfrm_validation_primary_grid_candidate
+    @test only(primary_planned.rows).expected_observations == 500
+    @test only(primary_planned.rows).expected_probability_cells == 2_000
+    @test only(primary_planned.rows).n_categories == 4
+    @test primary_planned.post_measurement_gate ===
+        :implement_primary_short_nuts_resource_adapter
+    inconsistent_primary = merge(primary_small, (;
+        expected_observations = primary_small.expected_observations + 1,
+    ))
+    @test_throws ArgumentError mgmfrm_validation_resource_probe(
+        inconsistent_primary,
+    )
+
+    primary_measured =
+        BayesianMGMFRM._mgmfrm_validation_resource_probe(
+            (primary_small,);
+            execute_measurement = true,
+            repetitions = 1,
+            maximum_cells = 1,
+            maximum_observations_per_cell = 10_000,
+            minimum_free_memory_bytes = 2 * 1024^3,
+            truth_scale = 0.15,
+            free_memory_provider = () -> Int64(4 * 1024^3),
+            measurement_executor = _fake_mgmfrm_resource_measurement,
+        )
+    @test primary_measured.status ===
+        :runtime_probe_complete_operational_metadata_only
+    @test primary_measured.summary.n_completed == 1
+    @test primary_measured.next_gate ===
+        :implement_primary_short_nuts_resource_adapter
+    @test only(primary_measured.rows).actual_observations == 500
+    @test only(primary_measured.rows).measurement.
+        initial_parameter_dimension > 0
 
     sparse_plan = mgmfrm_response_stress_plan(
         design_strata = (:connected_sparse_systematic_link,),
@@ -256,6 +298,8 @@ end
 
     policy = planned.policy
     @test policy.profile === :short_nuts_resource_probe
+    @test policy.accepted_plan_objects ==
+        (:mgmfrm_response_stress_plan_row,)
     @test policy.controls.warmup == 25
     @test policy.controls.ndraws == 25
     @test policy.controls.chains == 1
@@ -409,4 +453,6 @@ end
         :scaled_resource_01_dense_small
     @test_throws ArgumentError mgmfrm_validation_short_nuts_resource_probe(
         scaled.rows)
+    @test_throws ArgumentError mgmfrm_validation_short_nuts_resource_probe(
+        first(mgmfrm_validation_primary_resource_plan().rows))
 end

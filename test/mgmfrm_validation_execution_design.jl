@@ -163,6 +163,8 @@ using BayesianMGMFRM
         portability.package_api_surface
     @test :mgmfrm_validation_primary_grid_preflight in
         portability.package_api_surface
+    @test :mgmfrm_validation_primary_resource_plan in
+        portability.package_api_surface
     @test :simulate_mgmfrm_validation_primary_candidate in
         portability.package_api_surface
     @test portability.cmdstan_required_only_for_reference_cells

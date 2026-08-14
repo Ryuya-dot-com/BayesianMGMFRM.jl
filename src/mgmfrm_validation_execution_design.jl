@@ -282,6 +282,7 @@ function _mgmfrm_validation_execution_design_contract(protocol)
                     :mgmfrm_response_stress_fit_attempts,
                     :mgmfrm_validation_primary_grid_candidates,
                     :mgmfrm_validation_primary_grid_preflight,
+                    :mgmfrm_validation_primary_resource_plan,
                     :mgmfrm_validation_resource_probe,
                     :mgmfrm_validation_isolated_resource_probe,
                     :mgmfrm_validation_isolated_resource_review,

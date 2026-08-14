@@ -156,6 +156,10 @@ primary_candidate = simulate_mgmfrm_validation_primary_candidate(
 primary_grid_preflight = mgmfrm_validation_primary_grid_preflight(
     primary_grid_candidates,
 )
+primary_resource_plan = mgmfrm_validation_primary_resource_plan()
+primary_resource_probe = mgmfrm_validation_resource_probe(
+    first(primary_resource_plan.rows),
+)
 
 execution_design.heldout
 execution_design.retry
@@ -187,6 +191,13 @@ short-NUTS bound. The four-category known-truth generator and MCMC-free
 structural preflight are implemented. They expose whether each candidate can
 be generated and structurally compiled, but do not resolve resource coverage,
 freeze cells, authorize execution, or provide recovery evidence.
+
+The primary resource plan selects four ordered 4-category representatives with
+500, 1,250, 3,750, and 7,500 observations. Pass only one row at a time to
+`mgmfrm_validation_resource_probe`; execution remains explicit and
+memory-guarded. These gradient cells do not span every primary axis. The
+current short-NUTS runner intentionally rejects primary candidates because its
+fit orchestration is still coupled to the five-category response-stress path.
 
 Four decisions still block execution: final primary grid cells, evaluation
 replications, analysis resource caps, and independently reviewed scientific

@@ -438,6 +438,10 @@ function mgmfrm_validation_protocol()
                 :simulate_mgmfrm_validation_primary_candidate,
             primary_grid_preflight_function =
                 :mgmfrm_validation_primary_grid_preflight,
+            primary_gradient_resource_plan_function =
+                :mgmfrm_validation_primary_resource_plan,
+            primary_gradient_resource_plan =
+                :implemented_sequential_execution_pending,
             primary_grid_candidates =
                 :implemented_generation_preflight_execution_blocked,
             initial_gradient_resource_probe =
@@ -537,6 +541,8 @@ function mgmfrm_validation_protocol()
                     :frozen_before_evaluation,
                 primary_grid_candidate_surface =
                     :implemented_generation_preflight_execution_blocked,
+                primary_gradient_resource_plan_surface =
+                    :implemented_sequential_execution_pending,
                 initial_gradient_resource_probe_surface =
                     :implemented_execution_memory_guarded,
                 bounded_short_nuts_resource_probe_surface =

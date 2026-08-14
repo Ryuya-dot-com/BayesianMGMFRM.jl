@@ -25,6 +25,10 @@ function _mgmfrm_validation_resource_probe_policy()
         warmup_evaluations = 1,
         gc_before_each_timed_evaluation = true,
         response_pattern = :regular_all_categories,
+        accepted_plan_objects = (
+            :mgmfrm_response_stress_plan_row,
+            :mgmfrm_validation_primary_grid_candidate,
+        ),
         prior_regime = :implementation_reference,
         backend = :advancedhmc_target_only,
         mcmc_allowed = false,
@@ -32,6 +36,7 @@ function _mgmfrm_validation_resource_probe_policy()
         measurement_thresholds_applied = false,
         final_resource_policy_may_be_frozen_from_this_probe_alone = false,
         bounded_short_nuts_probe_required_next = true,
+        primary_short_nuts_adapter_required = true,
         permitted_uses = (
             :estimate_local_gradient_cost,
             :choose_bounded_short_nuts_cells,
@@ -58,6 +63,7 @@ function _mgmfrm_validation_short_nuts_resource_probe_policy()
         backend = :advancedhmc,
         prior_regime = :implementation_reference,
         response_pattern = :regular_all_categories,
+        accepted_plan_objects = (:mgmfrm_response_stress_plan_row,),
         default_design = :connected_sparse_systematic_link,
         maximum_cells = 1,
         default_maximum_observations_per_cell = 1_000,
@@ -214,11 +220,42 @@ function _mgmfrm_validation_probe_integer(value::Integer,
     return checked
 end
 
+function _mgmfrm_validation_probe_cell_id(row)
+    row.object === :mgmfrm_response_stress_plan_row &&
+        return Symbol(row.attempt_id)
+    row.object === :mgmfrm_validation_primary_grid_candidate &&
+        return Symbol(row.cell_id)
+    throw(ArgumentError("unsupported resource-probe row object"))
+end
+
+function _mgmfrm_validation_probe_integer_field(row, stress_field::Symbol,
+        primary_field::Symbol)
+    row.object === :mgmfrm_response_stress_plan_row &&
+        return Int(getproperty(row, stress_field))
+    row.object === :mgmfrm_validation_primary_grid_candidate &&
+        return Int(getproperty(row, primary_field))
+    throw(ArgumentError("unsupported resource-probe row object"))
+end
+
+_mgmfrm_validation_probe_persons(row) =
+    _mgmfrm_validation_probe_integer_field(row, :n_persons, :persons)
+_mgmfrm_validation_probe_items(row) =
+    _mgmfrm_validation_probe_integer_field(row, :n_items, :items)
+_mgmfrm_validation_probe_raters(row) =
+    _mgmfrm_validation_probe_integer_field(row, :n_raters, :raters)
+_mgmfrm_validation_probe_categories(row) =
+    _mgmfrm_validation_probe_integer_field(
+        row, :n_categories, :categories)
+_mgmfrm_validation_probe_seed(row) =
+    _mgmfrm_validation_probe_integer_field(row, :seed, :preflight_seed)
+
 function _mgmfrm_validation_probe_expected_observations(row)
+    persons = _mgmfrm_validation_probe_persons(row)
+    items = _mgmfrm_validation_probe_items(row)
     if row.design === :dense_fully_crossed
-        return Int(row.n_persons) * Int(row.n_items) * Int(row.n_raters)
+        return persons * items * _mgmfrm_validation_probe_raters(row)
     elseif row.design === :connected_sparse_systematic_link
-        return Int(row.n_persons) * Int(row.n_items) *
+        return persons * items *
             Int(row.raters_per_person)
     end
     throw(ArgumentError(
@@ -239,39 +276,56 @@ function _mgmfrm_validation_checked_resource_probe_plan(
     ids = Symbol[]
     for row in rows
         hasproperty(row, :object) &&
-            row.object === :mgmfrm_response_stress_plan_row ||
+            row.object in policy.accepted_plan_objects ||
             throw(ArgumentError(
-                "resource-probe rows must come from mgmfrm_response_stress_plan",
+                "resource-probe row object is not accepted by this probe",
             ))
         row.response_pattern === policy.response_pattern ||
             throw(ArgumentError(
                 "resource probing is restricted to regular response cells",
             ))
-        row.q_structure === :pure_between_item_two_dimensions ||
+        expected_q_structure = row.object ===
+            :mgmfrm_response_stress_plan_row ?
+            :pure_between_item_two_dimensions :
+            :pure_between_item_one_active_dimension_per_item
+        row.q_structure === expected_q_structure ||
             throw(ArgumentError(
                 "resource probing currently requires the pure fixed-Q branch",
             ))
         expected_observations =
             _mgmfrm_validation_probe_expected_observations(row)
+        cell_id = _mgmfrm_validation_probe_cell_id(row)
+        if row.object === :mgmfrm_validation_primary_grid_candidate
+            expected_observations == Int(row.expected_observations) ||
+                throw(ArgumentError(
+                    "primary resource-probe observation count is inconsistent"))
+        end
         expected_observations <= maximum_observations_per_cell ||
             throw(ArgumentError(
-                "resource-probe cell $(row.attempt_id) has " *
+                "resource-probe cell $cell_id has " *
                 "$expected_observations observations, exceeding " *
                 "maximum_observations_per_cell = " *
                 "$maximum_observations_per_cell",
             ))
         expected_probability_cells =
-            expected_observations * Int(row.n_categories)
+            expected_observations *
+            _mgmfrm_validation_probe_categories(row)
+        if row.object === :mgmfrm_validation_primary_grid_candidate
+            expected_probability_cells ==
+                Int(row.expected_probability_cells) ||
+                throw(ArgumentError(
+                    "primary resource-probe probability-cell count is inconsistent"))
+        end
         expected_probability_cells <=
             policy.hard_maximum_probability_cells_per_cell ||
             throw(ArgumentError(
-                "resource-probe cell $(row.attempt_id) exceeds the hard " *
+                "resource-probe cell $cell_id exceeds the hard " *
                 "probability-cell bound",
             ))
-        push!(ids, Symbol(row.attempt_id))
+        push!(ids, cell_id)
     end
     length(unique(ids)) == length(ids) || throw(ArgumentError(
-        "resource-probe attempt_id values must be unique",
+        "resource-probe cell identifiers must be unique",
     ))
     return rows
 end
@@ -404,19 +458,32 @@ function _mgmfrm_validation_resource_probe_base_row(row, index::Int)
     expected_observations =
         _mgmfrm_validation_probe_expected_observations(row)
     return (;
-        cell_id = row.attempt_id,
+        cell_id = _mgmfrm_validation_probe_cell_id(row),
         cell_index = index,
+        source_object = row.object,
         design = row.design,
         response_pattern = row.response_pattern,
-        n_persons = Int(row.n_persons),
-        n_items = Int(row.n_items),
-        n_raters = Int(row.n_raters),
-        n_categories = Int(row.n_categories),
+        n_persons = _mgmfrm_validation_probe_persons(row),
+        n_items = _mgmfrm_validation_probe_items(row),
+        n_raters = _mgmfrm_validation_probe_raters(row),
+        n_categories = _mgmfrm_validation_probe_categories(row),
         expected_observations,
         expected_probability_cells =
-            expected_observations * Int(row.n_categories),
-        simulation_seed = Int(row.seed),
+            expected_observations *
+            _mgmfrm_validation_probe_categories(row),
+        simulation_seed = _mgmfrm_validation_probe_seed(row),
     )
+end
+
+function _mgmfrm_validation_resource_probe_generate(row, truth_scale::Real)
+    row.object === :mgmfrm_response_stress_plan_row &&
+        return simulate_mgmfrm_response_stress(row; truth_scale)
+    row.object === :mgmfrm_validation_primary_grid_candidate &&
+        return simulate_mgmfrm_validation_primary_candidate(
+            row;
+            truth_scale,
+        )
+    throw(ArgumentError("unsupported resource-probe row object"))
 end
 
 function _mgmfrm_validation_resource_probe_row(base;
@@ -491,6 +558,10 @@ function _mgmfrm_validation_resource_probe(
         checked_maximum_cells,
         checked_maximum_observations,
     )
+    next_operational_gate = any(row -> row.object ===
+        :mgmfrm_validation_primary_grid_candidate, rows) ?
+        :implement_primary_short_nuts_resource_adapter :
+        :bounded_short_nuts_resource_probe
     free_memory = Int64(free_memory_provider())
     free_memory >= 0 || throw(ArgumentError(
         "free_memory_provider returned a negative value",
@@ -546,6 +617,7 @@ function _mgmfrm_validation_resource_probe(
             final_resource_policy_frozen = false,
             claim_scope = :planning_only_no_measurement,
             next_gate = :execute_initial_gradient_resource_probe,
+            post_measurement_gate = next_operational_gate,
         )
     end
 
@@ -596,7 +668,10 @@ function _mgmfrm_validation_resource_probe(
     for (index, row) in pairs(rows)
         base = _mgmfrm_validation_resource_probe_base_row(row, index)
         generated = try
-            @timed simulate_mgmfrm_response_stress(row; truth_scale)
+            @timed _mgmfrm_validation_resource_probe_generate(
+                row,
+                truth_scale,
+            )
         catch err
             _mgmfrm_stress_fatal_exception(err) && rethrow()
             err
@@ -704,7 +779,7 @@ function _mgmfrm_validation_resource_probe(
         primary_evaluation_seed_used = false,
         final_resource_policy_frozen = false,
         claim_scope = :local_operational_metadata_not_validation_evidence,
-        next_gate = :bounded_short_nuts_resource_probe,
+        next_gate = next_operational_gate,
     )
 end
 
@@ -727,6 +802,9 @@ paths, commit IDs, source hashes, or fit objects. It cannot assess convergence,
 recovery, coverage, priors, Q, backend superiority, or scientific thresholds.
 Gradient timings are not extrapolated to full NUTS runtime; a separate bounded
 short-NUTS probe remains required before final resource caps can be frozen.
+Rows returned by [`mgmfrm_validation_primary_resource_plan`](@ref) are accepted
+one at a time for four-category primary-grid measurement; the primary
+short-NUTS adapter remains a separate prerequisite.
 """
 function mgmfrm_validation_resource_probe(
         plan = nothing;
@@ -736,8 +814,17 @@ function mgmfrm_validation_resource_probe(
         maximum_observations_per_cell::Integer = 10_000,
         minimum_free_memory_bytes::Integer = 2 * 1024^3,
         truth_scale::Real = 0.15)
-    selected_plan = isnothing(plan) ?
-        _mgmfrm_validation_default_resource_probe_plan() : plan
+    selected_plan = if isnothing(plan)
+        _mgmfrm_validation_default_resource_probe_plan()
+    elseif plan isa NamedTuple && hasproperty(plan, :object) &&
+            plan.object in (
+                :mgmfrm_response_stress_plan_row,
+                :mgmfrm_validation_primary_grid_candidate,
+            )
+        (plan,)
+    else
+        plan
+    end
     return _mgmfrm_validation_resource_probe(
         selected_plan;
         execute_measurement,
@@ -1016,6 +1103,12 @@ function mgmfrm_validation_short_nuts_resource_probe(
         minimum_free_memory_bytes::Integer = 2 * 1024^3,
         maximum_observations_per_cell::Integer = 1_000,
         truth_scale::Real = 0.15)
+    if plan isa NamedTuple && hasproperty(plan, :object) &&
+            plan.object === :mgmfrm_validation_primary_grid_candidate
+        throw(ArgumentError(
+            "four-category primary candidates are not yet supported by " *
+            "the short-NUTS resource probe"))
+    end
     selected_plan = if isnothing(plan)
         _mgmfrm_validation_default_short_nuts_resource_probe_plan()
     elseif plan isa NamedTuple && hasproperty(plan, :object) &&

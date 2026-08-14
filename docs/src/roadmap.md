@@ -175,6 +175,13 @@ all-candidate structural preflight are available. Resource coverage, final cell
 selection, and evaluation replications remain unresolved; generation preflight
 is not validation evidence.
 
+`mgmfrm_validation_primary_resource_plan()` now selects four ordered
+four-category representatives (500, 1,250, 3,750, and 7,500 observations) for
+the existing MCMC-free gradient probe. Automatic progression is prohibited.
+The short-NUTS runner still accepts only five-category response-stress rows;
+adapting that runner to the actual primary DGP precedes any resource-envelope
+or final-grid decision.
+
 External validation uses simulation and observed data for different purposes.
 Known-truth simulation evaluates recovery, coverage, and false-decision rates.
 A public synthetic or literature benchmark evaluates reproducible overlap. A

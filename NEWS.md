@@ -60,6 +60,11 @@
   operability rather than recovery or scientific evidence. The all-candidate
   materialization check is kept outside the default test entry point because
   it is substantially more expensive than representative-cell smoke coverage.
+- Add an ordered four-cell primary gradient resource plan using the actual
+  four-category DGP. The generic MCMC-free gradient probe now accepts those
+  rows while the short-NUTS probe rejects them explicitly until a primary
+  fitting adapter exists. The plan prohibits automatic progression and does
+  not claim full axis coverage or freeze the resource envelope.
 - Add a separate explicit-execution short-NUTS resource probe. It admits only
   one connected-sparse AdvancedHMC cell, uses 25 warmup and 25 retained draws,
   enforces workload and free-memory gates before generation, discards fit

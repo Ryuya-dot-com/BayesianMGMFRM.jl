@@ -159,6 +159,11 @@ primary_candidate = simulate_mgmfrm_validation_primary_candidate(
 primary_grid_preflight = mgmfrm_validation_primary_grid_preflight(
     primary_grid_candidates,
 )
+primary_resource_plan = mgmfrm_validation_primary_resource_plan()
+# Explicit gradient measurement, one cell at a time:
+primary_resource_probe = mgmfrm_validation_resource_probe(
+    first(primary_resource_plan.rows),
+)
 resource_probe_plan = mgmfrm_validation_resource_probe()
 short_nuts_plan = mgmfrm_validation_short_nuts_resource_probe()
 scaled_resource_plan = mgmfrm_validation_scaled_resource_plan()
@@ -189,6 +194,13 @@ observation short-NUTS bound. A public four-category known-truth generator and
 MCMC-free structural preflight are available, but resource coverage, final
 cell selection, and evaluation replications remain unresolved. This is not yet
 the frozen evaluation grid.
+
+`primary_resource_plan` selects four ordered 4-category cells with 500, 1,250,
+3,750, and 7,500 observations for explicit, one-cell-at-a-time gradient
+profiling. It does not cover every primary axis and does not progress
+automatically. The current short-NUTS runner remains tied to the five-category
+stress workflow and rejects primary-grid rows, so a primary short-NUTS adapter
+is required before the resource envelope can be frozen.
 
 The first resource-planning surface is also MCMC-free by default. Calling
 `mgmfrm_validation_resource_probe()` only returns the bounded dense/sparse

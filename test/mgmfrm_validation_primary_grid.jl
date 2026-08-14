@@ -76,6 +76,39 @@ using BayesianMGMFRM
     @test :extend_resource_envelope_or_narrow_candidate_grid in
         contract.blockers
 
+    resource_plan = mgmfrm_validation_primary_resource_plan()
+    @test resource_plan.schema ==
+        "bayesianmgmfrm.mgmfrm_validation_primary_resource_plan.v1"
+    @test resource_plan.object ===
+        :mgmfrm_validation_primary_resource_plan
+    @test resource_plan.status === :predeclared_not_run
+    @test resource_plan.expected_observations ==
+        (500, 1_250, 3_750, 7_500)
+    @test resource_plan.expected_probability_cells ==
+        (2_000, 5_000, 15_000, 30_000)
+    @test length(resource_plan.rows) == 4
+    @test all(row -> row.object ===
+        :mgmfrm_validation_primary_grid_candidate, resource_plan.rows)
+    @test all(row -> row.categories == 4, resource_plan.rows)
+    @test length(unique(row.source_candidate_cell_id
+        for row in resource_plan.rows)) == 4
+    @test all(row -> row.within_current_gradient_probe_bound,
+        resource_plan.rows)
+    @test all(row -> row.within_current_short_nuts_probe_bound,
+        resource_plan.rows[1:2])
+    @test all(row -> !row.within_current_short_nuts_probe_bound,
+        resource_plan.rows[3:4])
+    @test resource_plan.execution_mode ===
+        :one_cell_per_explicit_invocation
+    @test !resource_plan.automatic_progression_allowed
+    @test !resource_plan.all_primary_axes_covered
+    @test !resource_plan.all_primary_candidates_measured
+    @test !resource_plan.short_nuts_compatible
+    @test !resource_plan.final_analysis_grid_selected
+    @test !resource_plan.mcmc_executed
+    @test !resource_plan.primary_evaluation_seed_used
+    @test resource_plan.scientific_decision === :not_applied
+
     smallest_case = simulate_mgmfrm_validation_primary_candidate(
         sparse_smallest,
     )

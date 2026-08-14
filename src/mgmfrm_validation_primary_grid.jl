@@ -146,6 +146,115 @@ function mgmfrm_validation_primary_grid_candidates()
     )
 end
 
+function _mgmfrm_validation_primary_resource_cell(
+        candidates,
+        cell_id::Symbol,
+        sequence::Int,
+        design::Symbol,
+        persons::Int,
+        items::Int,
+        raters::Int,
+        resource_role::Symbol)
+    source = only(row for row in candidates.cells
+        if row.design === design && row.persons == persons &&
+            row.items == items && row.raters == raters)
+    return merge(source, (;
+        source_candidate_cell_id = source.cell_id,
+        cell_id,
+        resource_sequence = sequence,
+        resource_role,
+        resource_claim_scope = :primary_gradient_operability_only,
+        prerequisite = sequence == 1 ? :none :
+            :all_previous_primary_resource_cells_completed_operationally,
+    ))
+end
+
+"""
+    mgmfrm_validation_primary_resource_plan()
+
+Return four ordered, non-executing four-category primary-grid cells for
+MCMC-free gradient resource profiling. The cells cover the minimum sparse
+shape, the only dense shape inside the current short-NUTS observation bound,
+an intermediate dense shape, and one of the largest shapes inside the current
+gradient bound.
+
+Pass one row at a time to [`mgmfrm_validation_resource_probe`](@ref). The plan
+does not authorize automatic progression, short-NUTS execution, final grid
+selection, or scientific interpretation.
+"""
+function mgmfrm_validation_primary_resource_plan()
+    candidates = mgmfrm_validation_primary_grid_candidates()
+    rows = (
+        _mgmfrm_validation_primary_resource_cell(
+            candidates,
+            :primary_resource_01_sparse_minimum,
+            1,
+            :connected_sparse_systematic_link,
+            50, 5, 5,
+            :minimum_observation_candidate,
+        ),
+        _mgmfrm_validation_primary_resource_cell(
+            candidates,
+            :primary_resource_02_dense_short_bound,
+            2,
+            :dense_fully_crossed,
+            50, 5, 5,
+            :dense_candidate_inside_current_short_nuts_bound,
+        ),
+        _mgmfrm_validation_primary_resource_cell(
+            candidates,
+            :primary_resource_03_dense_intermediate,
+            3,
+            :dense_fully_crossed,
+            50, 15, 5,
+            :intermediate_observation_and_item_scale,
+        ),
+        _mgmfrm_validation_primary_resource_cell(
+            candidates,
+            :primary_resource_04_dense_upper_gradient,
+            4,
+            :dense_fully_crossed,
+            100, 15, 5,
+            :largest_observation_count_inside_current_gradient_bound,
+        ),
+    )
+    expected_observations =
+        Tuple(row.expected_observations for row in rows)
+    expected_observations == (500, 1_250, 3_750, 7_500) ||
+        throw(ArgumentError(
+            "primary resource-plan observation counts are inconsistent"))
+    expected_probability_cells =
+        Tuple(row.expected_probability_cells for row in rows)
+    expected_probability_cells == (2_000, 5_000, 15_000, 30_000) ||
+        throw(ArgumentError(
+            "primary resource-plan probability-cell counts are inconsistent"))
+    return (;
+        schema =
+            "bayesianmgmfrm.mgmfrm_validation_primary_resource_plan.v1",
+        object = :mgmfrm_validation_primary_resource_plan,
+        status = :predeclared_not_run,
+        rows,
+        expected_observations,
+        expected_probability_cells,
+        execution_order = Tuple(row.cell_id for row in rows),
+        execution_mode = :one_cell_per_explicit_invocation,
+        automatic_progression_allowed = false,
+        stop_conditions = (
+            :memory_preflight_rejected,
+            :generation_or_gradient_failure,
+            :unexpected_allocation_growth,
+        ),
+        all_primary_axes_covered = false,
+        all_primary_candidates_measured = false,
+        short_nuts_compatible = false,
+        final_analysis_grid_selected = false,
+        mcmc_executed = false,
+        primary_evaluation_seed_used = false,
+        scientific_decision = :not_applied,
+        claim_scope = :mcmc_free_primary_gradient_scaling_plan,
+    )
+end
+
 function _mgmfrm_validation_primary_generation_plan(candidate, seed)
     hasproperty(candidate, :object) &&
         candidate.object === :mgmfrm_validation_primary_grid_candidate ||
