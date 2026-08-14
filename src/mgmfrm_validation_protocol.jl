@@ -434,8 +434,12 @@ function mgmfrm_validation_protocol()
                 :mgmfrm_validation_resource_probe,
             primary_grid_candidate_function =
                 :mgmfrm_validation_primary_grid_candidates,
+            primary_grid_generator_function =
+                :simulate_mgmfrm_validation_primary_candidate,
+            primary_grid_preflight_function =
+                :mgmfrm_validation_primary_grid_preflight,
             primary_grid_candidates =
-                :implemented_enumeration_execution_blocked,
+                :implemented_generation_preflight_execution_blocked,
             initial_gradient_resource_probe =
                 :implemented_explicit_execution_memory_guarded,
             bounded_short_nuts_resource_probe =
@@ -532,7 +536,7 @@ function mgmfrm_validation_protocol()
                 heldout_retry_and_sensitivity_design =
                     :frozen_before_evaluation,
                 primary_grid_candidate_surface =
-                    :implemented_enumeration_execution_blocked,
+                    :implemented_generation_preflight_execution_blocked,
                 initial_gradient_resource_probe_surface =
                     :implemented_execution_memory_guarded,
                 bounded_short_nuts_resource_probe_surface =

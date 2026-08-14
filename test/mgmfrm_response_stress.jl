@@ -70,6 +70,7 @@ using BayesianMGMFRM
             length(generated.design.parameter_names)
         @test all(isfinite, generated.raw_truth)
         @test all(isfinite, generated.direct_truth)
+        @test generated.truth_parameters_valid
         @test size(generated.truth_category_probabilities) ==
             (1, generated.data.n, 5)
         @test all(isfinite, generated.truth_category_probabilities)
@@ -130,6 +131,7 @@ using BayesianMGMFRM
     @test all(row -> row.terminal_status === :preflight_passed,
         preflight.rows)
     @test all(row -> row.truth_probabilities_valid, preflight.rows)
+    @test all(row -> row.truth_parameters_valid, preflight.rows)
     @test preflight.fit_evidence === :not_run
     @test preflight.next_gate ===
         :implement_attempt_complete_fit_and_diagnostic_phases

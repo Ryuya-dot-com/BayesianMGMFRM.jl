@@ -161,6 +161,10 @@ using BayesianMGMFRM
     @test :kfold_refit in portability.package_api_surface
     @test :mgmfrm_validation_primary_grid_candidates in
         portability.package_api_surface
+    @test :mgmfrm_validation_primary_grid_preflight in
+        portability.package_api_surface
+    @test :simulate_mgmfrm_validation_primary_candidate in
+        portability.package_api_surface
     @test portability.cmdstan_required_only_for_reference_cells
     @test contract.resource_probe.operation ===
         :forwarddiff_logdensity_and_gradient

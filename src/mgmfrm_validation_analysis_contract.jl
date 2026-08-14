@@ -72,7 +72,7 @@ function _mgmfrm_analysis_open_decisions(protocol, primary_grid_candidates)
                         primary_four_category_generator_implemented,
             ),
             required_resolution =
-                :implement_primary_generator_then_freeze_exact_cells_after_resource_review,
+                :freeze_exact_cells_after_resource_review,
             pilot_role = :runtime_and_operability_only,
             blocks_execution = true,
         ),

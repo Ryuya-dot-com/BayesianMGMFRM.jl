@@ -152,6 +152,13 @@ The remaining boundary can be inspected without starting an analysis:
 execution_design = mgmfrm_validation_execution_design_contract()
 analysis_contract = mgmfrm_validation_analysis_contract()
 primary_grid_candidates = mgmfrm_validation_primary_grid_candidates()
+primary_candidate = simulate_mgmfrm_validation_primary_candidate(
+    first(primary_grid_candidates.cells),
+)
+# Explicit and heavier: materializes all 16 candidate datasets.
+primary_grid_preflight = mgmfrm_validation_primary_grid_preflight(
+    primary_grid_candidates,
+)
 resource_probe_plan = mgmfrm_validation_resource_probe()
 short_nuts_plan = mgmfrm_validation_short_nuts_resource_probe()
 scaled_resource_plan = mgmfrm_validation_scaled_resource_plan()
@@ -172,14 +179,16 @@ non-overwriting remediation, and 24 exact sensitivity role-cells. New-person,
 new-item, and new-rater prediction are not claimed. Execution remains blocked
 while the final primary grid, replication count, resource caps, and
 independently reviewed scientific thresholds are unresolved. These contracts
-use documented package APIs and explicit semantic options; they generate no
-data and run no MCMC.
+use documented package APIs and explicit semantic options. Candidate generation
+and preflight run no MCMC and do not authorize evaluation.
 
 `primary_grid_candidates` enumerates 16 non-executing source-anchored cells:
 two designs crossed with 50/100 persons, 5/15 items, and 5/15 raters. Expected
 observations range from 500 to 22,500. Nine cells exceed the current 2,000-
-observation short-NUTS bound, and the four-category primary known-truth
-generator is still pending, so this is not yet the frozen evaluation grid.
+observation short-NUTS bound. A public four-category known-truth generator and
+MCMC-free structural preflight are available, but resource coverage, final
+cell selection, and evaluation replications remain unresolved. This is not yet
+the frozen evaluation grid.
 
 The first resource-planning surface is also MCMC-free by default. Calling
 `mgmfrm_validation_resource_probe()` only returns the bounded dense/sparse

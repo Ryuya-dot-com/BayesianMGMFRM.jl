@@ -179,8 +179,12 @@ using BayesianMGMFRM
         :mgmfrm_validation_resource_probe
     @test protocol.execution_design.primary_grid_candidate_function ===
         :mgmfrm_validation_primary_grid_candidates
+    @test protocol.execution_design.primary_grid_generator_function ===
+        :simulate_mgmfrm_validation_primary_candidate
+    @test protocol.execution_design.primary_grid_preflight_function ===
+        :mgmfrm_validation_primary_grid_preflight
     @test protocol.execution_design.primary_grid_candidates ===
-        :implemented_enumeration_execution_blocked
+        :implemented_generation_preflight_execution_blocked
     @test protocol.execution_design.initial_gradient_resource_probe ===
         :implemented_explicit_execution_memory_guarded
     @test protocol.execution_design.bounded_short_nuts_resource_probe ===
@@ -244,7 +248,7 @@ using BayesianMGMFRM
         :frozen_before_evaluation
     @test protocol.readiness.completed_enablers.
         primary_grid_candidate_surface ===
-        :implemented_enumeration_execution_blocked
+        :implemented_generation_preflight_execution_blocked
     @test protocol.readiness.completed_enablers.
         initial_gradient_resource_probe_surface ===
         :implemented_execution_memory_guarded

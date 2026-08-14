@@ -217,9 +217,10 @@ open.
 source-anchored envelope explicit without freezing it: dense/sparse design is
 crossed with 50/100 persons, 5/15 items, and 5/15 raters. Expected observations
 range from 500 to 22,500. Nine candidates exceed the current 2,000-observation
-short-NUTS bound, and the four-category primary known-truth generator remains
-unimplemented. Resource coverage and a real primary generator must therefore
-precede final cell selection; this enumeration is not validation evidence.
+short-NUTS bound. A four-category known-truth generator and MCMC-free
+all-candidate structural preflight are available. Resource coverage, final cell
+selection, and evaluation replications remain unresolved; generation preflight
+is not validation evidence.
 
 External validation uses simulation and observed data for different purposes.
 Known-truth simulation is required for parameter recovery, coverage, and false-

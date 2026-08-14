@@ -122,6 +122,7 @@ export FacetData,
     mgmfrm_validation_isolated_resource_probe,
     mgmfrm_validation_isolated_resource_review,
     mgmfrm_validation_primary_grid_candidates,
+    mgmfrm_validation_primary_grid_preflight,
     mgmfrm_validation_protocol,
     mgmfrm_validation_resource_probe,
     mgmfrm_validation_scaled_resource_plan,
@@ -184,6 +185,7 @@ export FacetData,
     simulation_grid_summary,
     simulate_local_dependence,
     simulate_mgmfrm_response_stress,
+    simulate_mgmfrm_validation_primary_candidate,
     simulate_responses,
     stan_validation_row,
     stan_validation_summary,
@@ -218,6 +220,7 @@ include("experimental.jl")
 include("mgmfrm_response_stress.jl")
 include("mgmfrm_response_stress_fit.jl")
 include("mgmfrm_validation_resource_probe.jl")
+include("mgmfrm_validation_primary_grid.jl")
 include("mgmfrm_validation_isolated_resource_probe.jl")
 include("mgmfrm_validation_isolated_resource_review.jl")
 include("mgmfrm_validation_execution_design.jl")

@@ -52,8 +52,14 @@
 - Add a non-executing 16-cell primary-grid candidate contract spanning the two
   planned designs and source-anchored person, item, and rater sizes. It exposes
   the 500--22,500 observation range, the nine cells above the current 2,000-
-  observation short-NUTS bound, and the missing four-category primary generator
-  without freezing a grid or authorizing evaluation.
+  observation short-NUTS bound without freezing a grid or authorizing
+  evaluation.
+- Add a four-category known-truth generator and MCMC-free primary-grid
+  preflight. They share the fixed-Q generation core with the five-category
+  response-stress path, preserve explicit seed roles, and establish structural
+  operability rather than recovery or scientific evidence. The all-candidate
+  materialization check is kept outside the default test entry point because
+  it is substantially more expensive than representative-cell smoke coverage.
 - Add a separate explicit-execution short-NUTS resource probe. It admits only
   one connected-sparse AdvancedHMC cell, uses 25 warmup and 25 retained draws,
   enforces workload and free-memory gates before generation, discards fit

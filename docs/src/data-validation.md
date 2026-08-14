@@ -149,6 +149,13 @@ Use the non-executing contract to inspect that boundary directly:
 execution_design = mgmfrm_validation_execution_design_contract()
 analysis_contract = mgmfrm_validation_analysis_contract()
 primary_grid_candidates = mgmfrm_validation_primary_grid_candidates()
+primary_candidate = simulate_mgmfrm_validation_primary_candidate(
+    first(primary_grid_candidates.cells),
+)
+# Explicit and heavier: materializes all 16 candidate datasets.
+primary_grid_preflight = mgmfrm_validation_primary_grid_preflight(
+    primary_grid_candidates,
+)
 
 execution_design.heldout
 execution_design.retry
@@ -176,9 +183,10 @@ and 15-item candidates do not require a false equal-count identification rule.
 The candidate contract enumerates 16 source-anchored primary cells from two
 designs, 50/100 persons, 5/15 items, and 5/15 raters. Their expected observation
 counts range from 500 to 22,500. Nine exceed the present 2,000-observation
-short-NUTS bound, and the four-category primary known-truth generator remains
-unimplemented. The enumeration therefore exposes planning gaps without
-freezing cells or authorizing execution.
+short-NUTS bound. The four-category known-truth generator and MCMC-free
+structural preflight are implemented. They expose whether each candidate can
+be generated and structurally compiled, but do not resolve resource coverage,
+freeze cells, authorize execution, or provide recovery evidence.
 
 Four decisions still block execution: final primary grid cells, evaluation
 replications, analysis resource caps, and independently reviewed scientific

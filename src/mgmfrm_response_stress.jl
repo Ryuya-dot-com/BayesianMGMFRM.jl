@@ -178,7 +178,7 @@ function mgmfrm_response_stress_plan(;
     return rows
 end
 
-function _mgmfrm_stress_q_matrix(n_items::Int)
+function _mgmfrm_known_truth_q_matrix(n_items::Int)
     q = falses(n_items, 2)
     split = n_items ÷ 2
     q[1:split, 1] .= true
@@ -188,7 +188,7 @@ end
 
 # Known-truth generation and deterministic response-pattern interventions.
 
-function _mgmfrm_stress_columns(plan_row)
+function _mgmfrm_known_truth_columns(plan_row)
     persons = String[]
     raters = String[]
     items = String[]
@@ -203,20 +203,22 @@ function _mgmfrm_stress_columns(plan_row)
             (first_rater, second_rater)
         else
             throw(ArgumentError(
-                "unsupported response-stress design :$(plan_row.design)"))
+                "unsupported MGMFRM known-truth design " *
+                ":$(plan_row.design)"))
         end
         for item in 1:Int(plan_row.n_items), rater in selected_raters
             row_index += 1
             push!(persons, "P$person")
             push!(raters, "R$rater")
             push!(items, "I$item")
-            push!(scores, 1 + mod(row_index - 1, 5))
+            push!(scores,
+                1 + mod(row_index - 1, Int(plan_row.n_categories)))
         end
     end
     return (; person = persons, rater = raters, item = items, score = scores)
 end
 
-function _mgmfrm_stress_spec(data::FacetData, q_matrix;
+function _mgmfrm_known_truth_spec(data::FacetData, q_matrix;
         validation_report = validate_design(data))
     return mfrm_spec(
         data;
@@ -229,11 +231,56 @@ function _mgmfrm_stress_spec(data::FacetData, q_matrix;
     )
 end
 
-function _mgmfrm_stress_truth(design::FacetDesign, truth_scale::Float64)
+function _mgmfrm_known_truth_parameters(
+        design::FacetDesign, truth_scale::Float64)
     target = _mgmfrm_guarded_local_fit_logdensity(design)
     raw = [truth_scale * sin(index) for index in eachindex(initial_params(target))]
     direct = _mgmfrm_source_constrained_params_from_unconstrained(design, raw)
     return (; raw, direct)
+end
+
+function _mgmfrm_known_truth_baseline(plan_row, truth_scale::Float64)
+    source_data = FacetData(
+        _mgmfrm_known_truth_columns(plan_row);
+        person = :person,
+        rater = :rater,
+        item = :item,
+        score = :score,
+    )
+    q_matrix = _mgmfrm_known_truth_q_matrix(Int(plan_row.n_items))
+    source_spec = _mgmfrm_known_truth_spec(source_data, q_matrix)
+    source_design = getdesign(source_spec; preview = true)
+    truth = _mgmfrm_known_truth_parameters(source_design, truth_scale)
+    truth_parameters_valid =
+        all(isfinite, truth.raw) && all(isfinite, truth.direct)
+    truth_probabilities = _mgmfrm_predictive_probabilities_direct(
+        source_design,
+        reshape(truth.direct, 1, :),
+    )
+    probability_sums = dropdims(
+        sum(truth_probabilities; dims = 3);
+        dims = 3,
+    )
+    maximum_probability_sum_error =
+        maximum(abs.(probability_sums .- 1.0))
+    truth_probabilities_valid = all(isfinite, truth_probabilities) &&
+        maximum_probability_sum_error <= 1e-10
+    data = simulate_responses(
+        source_design,
+        truth.raw;
+        rng = MersenneTwister(Int(plan_row.seed)),
+        parameter_space = :raw,
+    )
+    return (;
+        data,
+        q_matrix,
+        raw_truth = truth.raw,
+        direct_truth = truth.direct,
+        truth_parameters_valid,
+        truth_category_probabilities = truth_probabilities,
+        truth_probabilities_valid,
+        maximum_probability_sum_error,
+    )
 end
 
 function _mgmfrm_apply_response_pattern(data::FacetData, pattern::Symbol,
@@ -327,43 +374,22 @@ function simulate_mgmfrm_response_stress(plan_row; truth_scale::Real = 0.15)
     Int(plan_row.n_categories) == 5 ||
         throw(ArgumentError("response-stress plan rows must use five categories"))
 
-    source_data = FacetData(
-        _mgmfrm_stress_columns(plan_row);
-        person = :person,
-        rater = :rater,
-        item = :item,
-        score = :score,
-    )
-    q_matrix = _mgmfrm_stress_q_matrix(Int(plan_row.n_items))
-    source_spec = _mgmfrm_stress_spec(source_data, q_matrix)
-    source_design = getdesign(source_spec; preview = true)
-    truth = _mgmfrm_stress_truth(source_design, Float64(truth_scale))
-    truth_probabilities = _mgmfrm_predictive_probabilities_direct(
-        source_design,
-        reshape(truth.direct, 1, :),
-    )
-    probability_sums = dropdims(
-        sum(truth_probabilities; dims = 3);
-        dims = 3,
-    )
-    maximum_probability_sum_error =
-        maximum(abs.(probability_sums .- 1.0))
-    truth_probabilities_valid = all(isfinite, truth_probabilities) &&
-        maximum_probability_sum_error <= 1e-10
-    baseline_data = simulate_responses(
-        source_design,
-        truth.raw;
-        rng = MersenneTwister(Int(plan_row.seed)),
-        parameter_space = :raw,
+    baseline = _mgmfrm_known_truth_baseline(
+        plan_row,
+        Float64(truth_scale),
     )
     intervention = _mgmfrm_apply_response_pattern(
-        baseline_data,
+        baseline.data,
         Symbol(plan_row.response_pattern),
         plan_row.expected_pattern,
     )
     data = intervention.data
     validation = validate_design(data)
-    spec = _mgmfrm_stress_spec(data, q_matrix; validation_report = validation)
+    spec = _mgmfrm_known_truth_spec(
+        data,
+        baseline.q_matrix;
+        validation_report = validation,
+    )
     design = getdesign(spec; preview = true)
     q_validation = q_matrix_validation(spec)
     audit = ordinal_response_pattern_audit(data)
@@ -372,7 +398,8 @@ function simulate_mgmfrm_response_stress(plan_row; truth_scale::Real = 0.15)
         plan_row.expected_pattern,
     )
     preflight_passed = validation.passed && q_validation.passed &&
-        pattern_check.passed && truth_probabilities_valid
+        pattern_check.passed && baseline.truth_parameters_valid &&
+        baseline.truth_probabilities_valid
 
     return (;
         schema = "bayesianmgmfrm.mgmfrm_response_stress_case.v1",
@@ -384,13 +411,16 @@ function simulate_mgmfrm_response_stress(plan_row; truth_scale::Real = 0.15)
         data,
         spec,
         design,
-        q_matrix,
-        raw_truth = truth.raw,
-        direct_truth = truth.direct,
-        truth_category_probabilities = truth_probabilities,
-        truth_probabilities_valid,
-        maximum_probability_sum_error,
-        baseline_scores = copy(baseline_data.score),
+        q_matrix = baseline.q_matrix,
+        raw_truth = baseline.raw_truth,
+        direct_truth = baseline.direct_truth,
+        truth_parameters_valid = baseline.truth_parameters_valid,
+        truth_category_probabilities =
+            baseline.truth_category_probabilities,
+        truth_probabilities_valid = baseline.truth_probabilities_valid,
+        maximum_probability_sum_error =
+            baseline.maximum_probability_sum_error,
+        baseline_scores = copy(baseline.data.score),
         changed_rows = intervention.changed_rows,
         validation,
         q_validation,
@@ -480,6 +510,7 @@ function mgmfrm_response_stress_preflight(
                 response_pattern_passed = generated.pattern_check.passed,
                 truth_probabilities_valid =
                     generated.truth_probabilities_valid,
+                truth_parameters_valid = generated.truth_parameters_valid,
                 fit_eligible = generated.fit_eligible,
                 fit_evidence = :not_run,
             ))
@@ -501,6 +532,7 @@ function mgmfrm_response_stress_preflight(
                 q_validation_passed = missing,
                 response_pattern_passed = missing,
                 truth_probabilities_valid = missing,
+                truth_parameters_valid = missing,
                 fit_eligible = false,
                 fit_evidence = :not_run,
             ))
