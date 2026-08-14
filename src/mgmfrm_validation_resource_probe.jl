@@ -17,6 +17,10 @@ function _mgmfrm_validation_resource_probe_policy()
         default_maximum_observations_per_cell = 10_000,
         hard_maximum_observations_per_cell = 10_000,
         hard_maximum_probability_cells_per_cell = 50_000,
+        default_minimum_free_memory_bytes = Int64(2 * 1024^3),
+        hard_minimum_free_memory_bytes = Int64(1024^3),
+        explicit_execution_required = true,
+        memory_preflight_required = true,
         adapter_validation_evaluations = 1,
         warmup_evaluations = 1,
         gc_before_each_timed_evaluation = true,
@@ -445,6 +449,8 @@ function _mgmfrm_validation_resource_probe(
         maximum_cells::Integer,
         maximum_observations_per_cell::Integer,
         truth_scale::Real,
+        minimum_free_memory_bytes::Integer,
+        free_memory_provider = () -> Int64(Sys.free_memory()),
         measurement_executor =
             _mgmfrm_validation_resource_probe_measure)
     policy = _mgmfrm_validation_resource_probe_policy()
@@ -471,6 +477,11 @@ function _mgmfrm_validation_resource_probe(
         throw(ArgumentError(
             "maximum_observations_per_cell exceeds the hard resource bound",
         ))
+    checked_minimum_memory = _mgmfrm_validation_probe_integer(
+        minimum_free_memory_bytes,
+        "minimum_free_memory_bytes";
+        minimum = Int(policy.hard_minimum_free_memory_bytes),
+    )
     isfinite(truth_scale) && truth_scale > 0 || throw(ArgumentError(
         "truth_scale must be finite and positive",
     ))
@@ -479,6 +490,19 @@ function _mgmfrm_validation_resource_probe(
         policy,
         checked_maximum_cells,
         checked_maximum_observations,
+    )
+    free_memory = Int64(free_memory_provider())
+    free_memory >= 0 || throw(ArgumentError(
+        "free_memory_provider returned a negative value",
+    ))
+    preflight = (;
+        free_memory_bytes_observed = free_memory,
+        minimum_free_memory_bytes_required = Int64(checked_minimum_memory),
+        memory_preflight_passed =
+            free_memory >= Int64(checked_minimum_memory),
+        workload_preflight_passed = true,
+        maximum_cells = checked_maximum_cells,
+        maximum_observations_per_cell = checked_maximum_observations,
     )
 
     if !execute_measurement
@@ -499,6 +523,10 @@ function _mgmfrm_validation_resource_probe(
             maximum_cells = checked_maximum_cells,
             maximum_observations_per_cell =
                 checked_maximum_observations,
+            preflight,
+            operational_execution_eligible =
+                preflight.memory_preflight_passed,
+            gradient_execution_state = :not_started,
             runtime = missing,
             rows = planned_rows,
             summary = (;
@@ -506,6 +534,8 @@ function _mgmfrm_validation_resource_probe(
                 n_terminal_cells = 0,
                 n_completed = 0,
                 n_failed = 0,
+                n_gradient_attempted = 0,
+                n_gradient_completed = 0,
                 denominator_preserved = true,
             ),
             mcmc_executed = false,
@@ -516,6 +546,49 @@ function _mgmfrm_validation_resource_probe(
             final_resource_policy_frozen = false,
             claim_scope = :planning_only_no_measurement,
             next_gate = :execute_initial_gradient_resource_probe,
+        )
+    end
+
+    if !preflight.memory_preflight_passed
+        rejected_rows = Tuple(
+            _mgmfrm_validation_resource_probe_row(
+                _mgmfrm_validation_resource_probe_base_row(row, index);
+                status = :not_started_memory_preflight_rejected,
+                terminal = false,
+            ) for (index, row) in pairs(rows)
+        )
+        return (;
+            schema = _MGMFRM_VALIDATION_RESOURCE_PROBE_SCHEMA,
+            object = :mgmfrm_validation_resource_probe,
+            status = :resource_probe_memory_preflight_rejected,
+            execute_measurement = true,
+            policy,
+            repetitions = checked_repetitions,
+            maximum_cells = checked_maximum_cells,
+            maximum_observations_per_cell = checked_maximum_observations,
+            preflight,
+            operational_execution_eligible = false,
+            gradient_execution_state = :not_started,
+            runtime = _mgmfrm_validation_resource_probe_runtime(),
+            rows = rejected_rows,
+            summary = (;
+                n_planned_cells = length(rows),
+                n_terminal_cells = 0,
+                n_completed = 0,
+                n_failed = 0,
+                n_gradient_attempted = 0,
+                n_gradient_completed = 0,
+                denominator_preserved = true,
+            ),
+            blockers = (:insufficient_free_memory,),
+            mcmc_executed = false,
+            fit_objects_returned = false,
+            recovery_evidence_available = false,
+            scientific_execution_authorized = false,
+            primary_evaluation_seed_used = false,
+            final_resource_policy_frozen = false,
+            claim_scope = :operational_preflight_not_validation_evidence,
+            next_gate = :rerun_in_environment_with_sufficient_free_memory,
         )
     end
 
@@ -586,6 +659,19 @@ function _mgmfrm_validation_resource_probe(
 
     completed = count(row -> row.status === :completed, result_rows)
     failed = length(result_rows) - completed
+    gradient_attempted = count(
+        row -> row.status in (:completed, :gradient_measurement_failed),
+        result_rows,
+    )
+    gradient_execution_state = if gradient_attempted == 0
+        :not_started
+    elseif completed == length(result_rows)
+        :executed
+    elseif any(row -> row.status === :gradient_measurement_failed, result_rows)
+        :attempted_with_recorded_failures
+    else
+        :partially_executed_after_generation_or_prefit_failures
+    end
     return (;
         schema = _MGMFRM_VALIDATION_RESOURCE_PROBE_SCHEMA,
         object = :mgmfrm_validation_resource_probe,
@@ -597,6 +683,9 @@ function _mgmfrm_validation_resource_probe(
         repetitions = checked_repetitions,
         maximum_cells = checked_maximum_cells,
         maximum_observations_per_cell = checked_maximum_observations,
+        preflight,
+        operational_execution_eligible = true,
+        gradient_execution_state,
         runtime = _mgmfrm_validation_resource_probe_runtime(),
         rows = Tuple(result_rows),
         summary = (;
@@ -604,6 +693,8 @@ function _mgmfrm_validation_resource_probe(
             n_terminal_cells = count(row -> row.terminal, result_rows),
             n_completed = completed,
             n_failed = failed,
+            n_gradient_attempted = gradient_attempted,
+            n_gradient_completed = completed,
             denominator_preserved = length(result_rows) == length(rows),
         ),
         mcmc_executed = false,
@@ -621,13 +712,15 @@ end
     mgmfrm_validation_resource_probe(
         plan = nothing; execute_measurement = false, repetitions = 3,
         maximum_cells = 2, maximum_observations_per_cell = 10_000,
-        truth_scale = 0.15)
+        minimum_free_memory_bytes = 2 * 1024^3, truth_scale = 0.15)
 
 Plan or execute a portable, MCMC-free resource probe for fixed-Q MGMFRM.
 The default plan contains one dense and one connected-sparse regular-response
 cell. Execution measures generation and repeated ForwardDiff log-density/
 gradient evaluations after one untimed warmup. Hard cell and observation bounds
-are checked before generation.
+and a free-memory preflight are checked before generation. The memory threshold
+cannot be lowered below 1 GiB. This preflight is a screening check, not a memory
+reservation or a guarantee that measurement will complete.
 
 The result records local runtime and allocation metadata without repository
 paths, commit IDs, source hashes, or fit objects. It cannot assess convergence,
@@ -641,6 +734,7 @@ function mgmfrm_validation_resource_probe(
         repetitions::Integer = 3,
         maximum_cells::Integer = 2,
         maximum_observations_per_cell::Integer = 10_000,
+        minimum_free_memory_bytes::Integer = 2 * 1024^3,
         truth_scale::Real = 0.15)
     selected_plan = isnothing(plan) ?
         _mgmfrm_validation_default_resource_probe_plan() : plan
@@ -650,6 +744,7 @@ function mgmfrm_validation_resource_probe(
         repetitions,
         maximum_cells,
         maximum_observations_per_cell,
+        minimum_free_memory_bytes,
         truth_scale,
     )
 end

@@ -44,9 +44,13 @@ end
     @test !planned.execute_measurement
     @test planned.summary.n_planned_cells == 2
     @test planned.summary.n_terminal_cells == 0
+    @test planned.summary.n_gradient_attempted == 0
+    @test planned.summary.n_gradient_completed == 0
     @test planned.summary.denominator_preserved
     @test all(row -> row.status === :planned_not_measured, planned.rows)
     @test all(row -> !row.terminal, planned.rows)
+    @test planned.preflight.minimum_free_memory_bytes_required == 2 * 1024^3
+    @test planned.gradient_execution_state === :not_started
     @test ismissing(planned.runtime)
     @test !planned.mcmc_executed
     @test !planned.fit_objects_returned
@@ -61,6 +65,10 @@ end
     @test policy.default_repetitions == 3
     @test policy.maximum_repetitions == 5
     @test policy.hard_maximum_cells == 4
+    @test policy.default_minimum_free_memory_bytes == 2 * 1024^3
+    @test policy.hard_minimum_free_memory_bytes == 1024^3
+    @test policy.explicit_execution_required
+    @test policy.memory_preflight_required
     @test !policy.mcmc_allowed
     @test !policy.fit_runtime_extrapolation_allowed
     @test !policy.measurement_thresholds_applied
@@ -80,7 +88,9 @@ end
         repetitions = 3,
         maximum_cells = 1,
         maximum_observations_per_cell = 10_000,
+        minimum_free_memory_bytes = 2 * 1024^3,
         truth_scale = 0.15,
+        free_memory_provider = () -> Int64(4 * 1024^3),
         measurement_executor = _fake_mgmfrm_resource_measurement,
     )
     @test measured.status ===
@@ -90,10 +100,15 @@ end
     @test measured.summary.n_terminal_cells == 1
     @test measured.summary.n_completed == 1
     @test measured.summary.n_failed == 0
+    @test measured.summary.n_gradient_attempted == 1
+    @test measured.summary.n_gradient_completed == 1
     @test measured.summary.denominator_preserved
     @test measured.runtime.n_threads >= 1
     @test measured.runtime.cpu_threads >= 1
     @test measured.runtime.process_lifetime_maxrss_bytes >= 0
+    @test measured.preflight.memory_preflight_passed
+    @test measured.operational_execution_eligible
+    @test measured.gradient_execution_state === :executed
     @test !measured.mcmc_executed
     @test !measured.final_resource_policy_frozen
     @test measured.next_gate === :bounded_short_nuts_resource_probe
@@ -118,7 +133,9 @@ end
         repetitions = 1,
         maximum_cells = 1,
         maximum_observations_per_cell = 10_000,
+        minimum_free_memory_bytes = 2 * 1024^3,
         truth_scale = 0.15,
+        free_memory_provider = () -> Int64(4 * 1024^3),
         measurement_executor = failing_executor,
     )
     failed_row = only(failed.rows)
@@ -130,6 +147,10 @@ end
     @test failed_row.error isa ErrorException
     @test failed_row.error_type == "ErrorException"
     @test occursin("injected gradient failure", failed_row.error_message)
+    @test failed.gradient_execution_state ===
+        :attempted_with_recorded_failures
+    @test failed.summary.n_gradient_attempted == 1
+    @test failed.summary.n_gradient_completed == 0
 
     malformed_executor = (case, repetitions, policy) -> (; wrong = true)
     malformed = BayesianMGMFRM._mgmfrm_validation_resource_probe(
@@ -138,11 +159,50 @@ end
         repetitions = 1,
         maximum_cells = 1,
         maximum_observations_per_cell = 10_000,
+        minimum_free_memory_bytes = 2 * 1024^3,
         truth_scale = 0.15,
+        free_memory_provider = () -> Int64(4 * 1024^3),
         measurement_executor = malformed_executor,
     )
     @test only(malformed.rows).status === :gradient_measurement_failed
     @test only(malformed.rows).error isa ArgumentError
+    @test malformed.gradient_execution_state ===
+        :attempted_with_recorded_failures
+
+    measurement_calls = Ref(0)
+    forbidden_measurement = (case, repetitions, policy) -> begin
+        measurement_calls[] += 1
+        error("measurement must not be called")
+    end
+    memory_rejected = BayesianMGMFRM._mgmfrm_validation_resource_probe(
+        sparse_plan;
+        execute_measurement = true,
+        repetitions = 3,
+        maximum_cells = 1,
+        maximum_observations_per_cell = 10_000,
+        minimum_free_memory_bytes = 2 * 1024^3,
+        truth_scale = 0.15,
+        free_memory_provider = () -> Int64(512 * 1024^2),
+        measurement_executor = forbidden_measurement,
+    )
+    @test memory_rejected.status ===
+        :resource_probe_memory_preflight_rejected
+    @test !memory_rejected.preflight.memory_preflight_passed
+    @test !memory_rejected.operational_execution_eligible
+    @test memory_rejected.gradient_execution_state === :not_started
+    @test memory_rejected.summary.n_terminal_cells == 0
+    @test memory_rejected.summary.n_gradient_attempted == 0
+    @test memory_rejected.summary.n_gradient_completed == 0
+    @test memory_rejected.summary.denominator_preserved
+    @test all(row -> row.status ===
+        :not_started_memory_preflight_rejected, memory_rejected.rows)
+    @test all(row -> !row.terminal, memory_rejected.rows)
+    @test all(row -> ismissing(row.actual_observations),
+        memory_rejected.rows)
+    @test :insufficient_free_memory in memory_rejected.blockers
+    @test measurement_calls[] == 0
+    @test memory_rejected.next_gate ===
+        :rerun_in_environment_with_sufficient_free_memory
 
     @test_throws ArgumentError mgmfrm_validation_resource_probe(
         maximum_cells = 1)
@@ -156,6 +216,8 @@ end
         maximum_observations_per_cell = 95)
     @test_throws ArgumentError mgmfrm_validation_resource_probe(
         truth_scale = 0.0)
+    @test_throws ArgumentError mgmfrm_validation_resource_probe(
+        minimum_free_memory_bytes = 1024^3 - 1)
 
     nonregular = mgmfrm_response_stress_plan(
         design_strata = (:connected_sparse_systematic_link,),

@@ -40,11 +40,12 @@
   role-cells spanning priors, response patterns, Q structure, unidimensional
   MFRM comparison, and paired CmdStan roles. No repository path, commit, or
   fixture hash is required.
-- Add an explicit, MCMC-free MGMFRM resource probe with hard cell and
-  observation bounds. It measures local generation and warmed ForwardDiff
-  gradient cost while prohibiting scientific, backend-ranking, and full-NUTS
-  runtime claims; a bounded short-NUTS probe remains required before resource
-  caps can be frozen.
+- Add an explicit, MCMC-free MGMFRM resource probe with hard cell, observation,
+  and pre-generation free-memory bounds. The default memory screen is 2 GiB
+  with a non-lowerable 1 GiB floor; rejection leaves every cell unstarted. It
+  measures local generation and warmed ForwardDiff gradient cost while
+  prohibiting scientific, backend-ranking, and full-NUTS runtime claims; a
+  bounded short-NUTS probe remains required before resource caps can be frozen.
 - Add a separate explicit-execution short-NUTS resource probe. It admits only
   one connected-sparse AdvancedHMC cell, uses 25 warmup and 25 retained draws,
   enforces workload and free-memory gates before generation, discards fit

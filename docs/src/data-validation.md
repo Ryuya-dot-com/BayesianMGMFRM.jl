@@ -181,7 +181,7 @@ Initial resource profiling is explicit and inert by default:
 ```julia
 probe_plan = mgmfrm_validation_resource_probe()
 
-# Executes no MCMC; hard cell/observation bounds are checked first.
+# Executes no MCMC; workload and free-memory bounds are checked first.
 probe = mgmfrm_validation_resource_probe(execute_measurement = true)
 probe.rows
 probe.runtime
@@ -190,6 +190,10 @@ probe.runtime
 The measured operation is a warmed ForwardDiff log-density/gradient evaluation
 for one dense and one connected-sparse regular-response cell. It records typed
 failures and preserves the planned denominator without returning fit objects.
+The explicit path uses a 2 GiB free-memory screen with a non-lowerable 1 GiB
+floor before data generation or gradient evaluation. Rejection preserves every
+cell as unstarted. The screen is operational risk control, not a memory
+reservation or validation threshold.
 The timings are local operational metadata only: they cannot choose priors, Q,
 scientific thresholds, or a preferred backend, and they cannot be extrapolated
 to four-chain NUTS. A bounded short-NUTS resource probe and an explicit memory

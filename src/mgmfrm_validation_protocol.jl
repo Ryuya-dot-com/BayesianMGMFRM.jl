@@ -433,7 +433,7 @@ function mgmfrm_validation_protocol()
             resource_probe_function =
                 :mgmfrm_validation_resource_probe,
             initial_gradient_resource_probe =
-                :implemented_optional_measurement_not_validation_evidence,
+                :implemented_explicit_execution_memory_guarded,
             bounded_short_nuts_resource_probe =
                 :implemented_explicit_execution_memory_guarded,
             isolated_resource_probe_function =
@@ -529,7 +529,7 @@ function mgmfrm_validation_protocol()
                 heldout_retry_and_sensitivity_design =
                     :frozen_before_evaluation,
                 initial_gradient_resource_probe_surface =
-                    :implemented_measurement_optional,
+                    :implemented_execution_memory_guarded,
                 bounded_short_nuts_resource_probe_surface =
                     :implemented_execution_memory_guarded,
                 scaled_resource_plan_surface =

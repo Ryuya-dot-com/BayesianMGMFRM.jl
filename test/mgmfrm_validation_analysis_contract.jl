@@ -83,6 +83,9 @@ using BayesianMGMFRM
     @test !contract.pilot_policy.values_may_rank_backends
     @test !contract.pilot_policy.values_are_validation_evidence
     @test contract.pilot_policy.initial_gradient_probe_implemented
+    @test !contract.pilot_policy.initial_gradient_probe_executed
+    @test contract.pilot_policy.
+        initial_gradient_memory_preflight_required
     @test contract.pilot_policy.short_nuts_probe_implemented
     @test !contract.pilot_policy.short_nuts_probe_executed
     @test contract.pilot_policy.short_nuts_function_name ===

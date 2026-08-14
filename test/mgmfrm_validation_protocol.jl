@@ -178,7 +178,7 @@ using BayesianMGMFRM
     @test protocol.execution_design.resource_probe_function ===
         :mgmfrm_validation_resource_probe
     @test protocol.execution_design.initial_gradient_resource_probe ===
-        :implemented_optional_measurement_not_validation_evidence
+        :implemented_explicit_execution_memory_guarded
     @test protocol.execution_design.bounded_short_nuts_resource_probe ===
         :implemented_explicit_execution_memory_guarded
     @test protocol.execution_design.isolated_resource_probe_function ===
@@ -241,7 +241,7 @@ using BayesianMGMFRM
         :frozen_before_evaluation
     @test protocol.readiness.completed_enablers.
         initial_gradient_resource_probe_surface ===
-        :implemented_measurement_optional
+        :implemented_execution_memory_guarded
     @test protocol.readiness.completed_enablers.
         bounded_short_nuts_resource_probe_surface ===
         :implemented_execution_memory_guarded

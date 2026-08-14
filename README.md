@@ -175,10 +175,13 @@ fixture hashes; they generate no data and run no MCMC.
 The first resource-planning surface is also MCMC-free by default. Calling
 `mgmfrm_validation_resource_probe()` only returns the bounded dense/sparse
 plan. Set `execute_measurement = true` explicitly to measure local generation,
-ForwardDiff gradient time, allocation, and free memory. These values may guide
-the cells and batch size for a later bounded short-NUTS probe, but they are not
-convergence, recovery, backend, or performance evidence and are not
-extrapolated into a full-fit runtime.
+ForwardDiff gradient time, allocation, and free memory. Before generation, the
+explicit path applies a 2 GiB free-memory screen with a non-lowerable 1 GiB
+floor; a rejection leaves every planned cell unstarted. This screen is not a
+memory reservation or a guarantee that a later measurement will complete.
+Measured values may guide the cells and batch size for a later bounded
+short-NUTS probe, but they are not convergence, recovery, backend, or
+performance evidence and are not extrapolated into a full-fit runtime.
 
 `mgmfrm_validation_short_nuts_resource_probe()` similarly plans one connected-
 sparse AdvancedHMC cell without executing it. An explicit

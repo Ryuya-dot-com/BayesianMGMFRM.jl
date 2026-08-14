@@ -159,6 +159,11 @@ using BayesianMGMFRM
     @test portability.cmdstan_required_only_for_reference_cells
     @test contract.resource_probe.operation ===
         :forwarddiff_logdensity_and_gradient
+    @test contract.resource_probe.explicit_execution_required
+    @test contract.resource_probe.memory_preflight_required
+    @test contract.resource_probe.default_minimum_free_memory_bytes ==
+        2 * 1024^3
+    @test contract.resource_probe.hard_minimum_free_memory_bytes == 1024^3
     @test !contract.resource_probe.mcmc_allowed
     @test !contract.resource_probe.
         final_resource_policy_may_be_frozen_from_this_probe_alone

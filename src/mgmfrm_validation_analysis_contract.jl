@@ -209,6 +209,8 @@ function mgmfrm_validation_analysis_contract()
             role = :runtime_and_operability_only,
             function_name = :mgmfrm_validation_resource_probe,
             initial_gradient_probe_implemented = true,
+            initial_gradient_probe_executed = false,
+            initial_gradient_memory_preflight_required = true,
             short_nuts_function_name =
                 :mgmfrm_validation_short_nuts_resource_probe,
             short_nuts_probe_implemented = true,
