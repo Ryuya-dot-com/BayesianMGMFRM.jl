@@ -32998,6 +32998,7 @@ end
 if test_group_enabled(:generalized)
     include("model_family_contract.jl")
     include("mgmfrm_validation_protocol.jl")
+    include("generalized_prior.jl")
     include("generalized_guard_contract.jl")
     include("fixed_q_identification.jl")
 end

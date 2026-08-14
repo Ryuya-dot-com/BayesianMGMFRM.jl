@@ -56,13 +56,14 @@ times. Its later sparse experiment assigned two raters per person through a
 systematic-link design. These are source anchors, not package results or an
 automatic requirement to execute the full factorial grid.
 
-The draft remains explicitly blocked. Only the current generalized prior is
-executable; source-aligned and stronger regularizing refits need a public prior
-constructor. The fresh-seed runner must retain every attempted fit and typed
-failure, prediction/decision-stability scoring remains incomplete, and final
-scientific thresholds require independent review. Until those blockers are
-removed, `protocol_frozen == false`, evaluation must not start, and earlier
-pilot values cannot define acceptance rules.
+The draft remains explicitly blocked. Source-aligned and stronger regularizing
+refits are now expressible through
+`BayesianMGMFRM.Experimental.GeneralizedPrior`, but generalized prior-predictive
+execution is not yet public. The fresh-seed runner must retain every attempted
+fit and typed failure, prediction/decision-stability scoring remains
+incomplete, and final scientific thresholds require independent review. Until
+those blockers are removed, `protocol_frozen == false`, evaluation must not
+start, and earlier pilot values cannot define acceptance rules.
 
 ## Generalized Partial-Credit and Multidimensional Structure
 
@@ -89,7 +90,7 @@ model.
 The guarded MGMFRM kernel follows the conditional response form in Uto (2021):
 
 ```math
-P(Y_{pir}=k \mid \boldsymbol{\theta}_p)
+P(Y_{pir}=k \mid \boldsymbol{\theta}_{p})
 \propto
 \exp\left\{
 \sum_{m=1}^{k} 1.7\,\alpha_r

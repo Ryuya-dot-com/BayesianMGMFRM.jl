@@ -118,7 +118,7 @@ The ordered program is:
 | Stage | Priority and scope | Exit condition |
 | --- | --- | --- |
 | 0. Freeze the MGMFRM family skeleton | **P0, completed.** `model_family_contract()` records between-item, within-item, and mixed fixed-Q structures; source terminology versus algebraic dimension aggregation; PCM/GPCM category kernels; step-sharing ownership; latent-correlation policy; facet roles; and executable/specified-only/blocked status. No new sampler was added. | Met: the public machine-readable skeleton, exact spec/design resolver, prose, and boundary tests distinguish implemented, guarded, specified-only, and blocked branches. |
-| A. Freeze the validation protocol | **P0, in progress.** `mgmfrm_validation_protocol()` now records the narrow estimands, source anchors, `1.7`/`1.702` policy, between-item promotion target, boundary Q structures, interval policy, default sampler/backend budgets, prior regimes, fresh-seed rule, and all-attempt denominator. It remains deliberately unfrozen while four executable/review blockers remain. | A reviewable, portable protocol and commands exist; all prior variants, attempt-complete runner paths, prediction/decision scorers, and independently reviewed scientific thresholds are executable before any fresh evaluation starts. |
+| A. Freeze the validation protocol | **P0, in progress.** `mgmfrm_validation_protocol()` now records the narrow estimands, source anchors, `1.7`/`1.702` policy, between-item promotion target, boundary Q structures, interval policy, default sampler/backend budgets, prior regimes, fresh-seed rule, and all-attempt denominator. Typed raw-coordinate prior variants can drive actual refits, but the protocol remains deliberately unfrozen while generalized prior-predictive execution and three further execution/review blockers remain. | A reviewable, portable protocol and commands exist; all prior variants, attempt-complete runner paths, prediction/decision scorers, and independently reviewed scientific thresholds are executable before any fresh evaluation starts. |
 | B. Run fresh-seed known-truth validation | **P0.** Run repeated dense and connected-sparse recovery, prior sensitivity, prediction/calibration, and nested unidimensional MFRM comparisons. Use one predeclared primary backend for the full grid and both backends on a stratified conformance subset. | Predeclared parameter-block and focal-decision criteria pass, or the supported domain is narrowed and the surface remains experimental. |
 | C. Add external and independent evidence | **P0 before stable promotion.** Reproduce a matching public benchmark, analyze one provenance- and licence-cleared external dataset when available, and obtain review of equations, Q, priors, transforms, diagnostics, and claims from someone other than the implementer. | The exact overlapping targets reproduce in a separate environment and the reviewer records claim-level allow/block decisions. |
 | D. Harden the user workflow | **P1, in parallel only where it enables B/C.** Add bounded parallel chains, CmdStan cache integration, resolved sampler profiles, fit persistence, concise summaries/warnings, visualization rows, and maintainable source boundaries. | A non-maintainer can fit, diagnose, summarize, save, reload, and report the narrow model without repository-specific paths or hidden state. |
@@ -447,13 +447,13 @@ Its `passed` result therefore establishes finite local reweighting within the
 declared guarded screen; it is not evidence of practical prior robustness and
 must not satisfy the stable-public sensitivity gate.
 
-The guarded public fit also rejects custom generalized prior objects; only the
-private source-fixture prior can be supplied internally. Promotion must choose
-one explicit contract: either keep a fixed, scientifically justified prior and
-label sensitivity as package-maintainer evidence, or expose a typed prior API
-whose transforms, cache identity, reports, and refit tests are all public. It
-must not imply that users can reproduce a scale-sensitivity refit through the
-current public keyword surface.
+The guarded public fit now accepts
+`BayesianMGMFRM.Experimental.GeneralizedPrior`. It exposes only the existing
+raw-coordinate scale contract, preserves those scales in cache identity, and
+allows users to reproduce scale-sensitivity refits. It does not create a
+direct-parameter prior or make the induced constrained coordinates
+exchangeable. Generalized prior-predictive execution and report integration
+remain promotion work.
 
 Before promotion:
 
@@ -622,7 +622,7 @@ currently unsupported for `GMFRMFit` and `MGMFRMFit`.
 
 Before generalized promotion:
 
-1. expose or formally freeze a typed generalized prior contract;
+1. document and stress-test the typed raw-coordinate generalized prior contract;
 2. generate raw- and direct-scale prior summaries, including discrimination,
    consistency, step, expected-score, and category-probability implications;
 3. add guarded GMFRM/MGMFRM prior predictive replication without borrowing

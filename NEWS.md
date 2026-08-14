@@ -4,6 +4,10 @@
 
 ### Added
 
+- Add `BayesianMGMFRM.Experimental.GeneralizedPrior` as a typed,
+  cache-aware raw-coordinate scale contract for guarded GMFRM and MGMFRM
+  refits. Direct-scale generalized priors and generalized prior-predictive
+  simulation remain outside this change.
 - Add `mgmfrm_validation_protocol()` as a non-executing Stage-A draft for the
   narrow fixed-Q promotion study. It records Uto source anchors, the
   between-item primary domain, boundary Q structures, estimands, interval and

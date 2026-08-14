@@ -38,6 +38,13 @@ Julia type identity during the namespace migration.
 """
 const MGMFRMFit = getfield(_PACKAGE, :MGMFRMFit)
 
+"""
+Experimental prior-scale type for guarded GMFRM and MGMFRM fits. Its six
+standard deviations apply to independent normal priors on raw unconstrained
+coordinates, not directly to transformed model parameters.
+"""
+const GeneralizedPrior = getfield(_PACKAGE, :GeneralizedPrior)
+
 # Intentionally export no bindings. Fully qualified access is the quarantine
 # boundary while the package-root compatibility names remain available.
 
@@ -73,6 +80,14 @@ function _family_surface_contract(family::Symbol)
         step_constraint = :first_step_zero_remaining_steps_sum_to_zero,
         expected_blocks = capability.expected_blocks,
         latent_correlation = family === :mgmfrm ? :identity_fixed : :not_applicable,
+        prior = (;
+            constructor = :GeneralizedPrior,
+            parameter_space = :raw_unconstrained_coordinates,
+            family = :independent_zero_centered_normal,
+            custom_scales_allowed = true,
+            direct_scale_prior_allowed = false,
+            jacobian_policy = :none_raw_coordinate_density,
+        ),
         backend = :advancedhmc,
         supported_backends = (:advancedhmc, :cmdstan),
         sampler_defaults = (;

@@ -157,7 +157,10 @@ and migration guidance.
 Both configurations require `thresholds = :partial_credit`.
 Both configurations require no anchors and no fitted DFF terms. Scalar GMFRM
 uses `discrimination = :rater`; fixed-Q MGMFRM uses the compatibility selector
-`discrimination = :none`. Custom generalized prior objects are not supported.
+`discrimination = :none`. Use
+`BayesianMGMFRM.Experimental.GeneralizedPrior` to vary the independent normal
+scales on raw unconstrained coordinates. Direct-scale generalized priors remain
+unsupported.
 The legacy
 `fit(spec; experimental = true)` form remains source-compatible, but
 `BayesianMGMFRM.Experimental.fit` is the canonical entry point for new work.

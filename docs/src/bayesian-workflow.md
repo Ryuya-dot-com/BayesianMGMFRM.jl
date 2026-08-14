@@ -54,8 +54,12 @@ Choose [`MFRMPrior`](@ref) scales that match the analysis context and run
 [`prior_predictive_check`](@ref). Look for implausible score distributions,
 category use, or facet ranges before inspecting the observed-data posterior.
 
-The experimental generalized configurations use their documented built-in
-raw-coordinate priors. Custom generalized prior objects are not supported.
+The experimental generalized configurations default to their documented
+raw-coordinate priors. Use
+`BayesianMGMFRM.Experimental.GeneralizedPrior` for typed scale sensitivity and
+actual refits. Its values apply to raw unconstrained coordinates, not directly
+to transformed parameters. A generalized prior-predictive operation remains a
+separate roadmap item.
 
 ## 4. Fit and Diagnose
 

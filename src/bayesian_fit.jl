@@ -383,6 +383,85 @@ _SourceFixturePrior(; person_sd::Real = 1.0,
         step_sd,
     )
 
+"""
+    BayesianMGMFRM.Experimental.GeneralizedPrior(;
+        person_sd = 1.0,
+        rater_sd = 1.0,
+        item_sd = 1.0,
+        log_discrimination_sd = 0.5,
+        log_consistency_sd = 0.5,
+        step_sd = 1.0,
+    )
+
+Construct the typed prior-scale contract accepted by the guarded GMFRM and
+MGMFRM fitting APIs. Every argument is the standard deviation of an independent
+zero-centered normal prior on the model's **raw unconstrained coordinates**.
+In particular, `log_discrimination_sd` and `log_consistency_sd` act on log
+coordinates before the positive identification transforms.
+
+This experimental contract does not define priors directly on transformed
+item discrimination, rater consistency, sum-to-zero severity, or constrained
+step parameters, and therefore does not add a change-of-variables Jacobian.
+All scales must be finite and strictly positive.
+"""
+struct GeneralizedPrior
+    person_sd::Float64
+    rater_sd::Float64
+    item_sd::Float64
+    log_discrimination_sd::Float64
+    log_consistency_sd::Float64
+    step_sd::Float64
+
+    function GeneralizedPrior(person_sd::Real,
+            rater_sd::Real,
+            item_sd::Real,
+            log_discrimination_sd::Real,
+            log_consistency_sd::Real,
+            step_sd::Real)
+        internal = _SourceFixturePrior(
+            person_sd,
+            rater_sd,
+            item_sd,
+            log_discrimination_sd,
+            log_consistency_sd,
+            step_sd,
+        )
+        return new(
+            internal.person_sd,
+            internal.rater_sd,
+            internal.item_sd,
+            internal.log_discrimination_sd,
+            internal.log_consistency_sd,
+            internal.step_sd,
+        )
+    end
+end
+
+GeneralizedPrior(; person_sd::Real = 1.0,
+    rater_sd::Real = 1.0,
+    item_sd::Real = 1.0,
+    log_discrimination_sd::Real = 0.5,
+    log_consistency_sd::Real = 0.5,
+    step_sd::Real = 1.0) =
+    GeneralizedPrior(
+        person_sd,
+        rater_sd,
+        item_sd,
+        log_discrimination_sd,
+        log_consistency_sd,
+        step_sd,
+    )
+
+_source_fixture_prior(prior::GeneralizedPrior) =
+    _SourceFixturePrior(
+        prior.person_sd,
+        prior.rater_sd,
+        prior.item_sd,
+        prior.log_discrimination_sd,
+        prior.log_consistency_sd,
+        prior.step_sd,
+    )
+
 function _source_fixture_prior_values(prior::_SourceFixturePrior)
     return (;
         person_sd = prior.person_sd,
@@ -1123,8 +1202,10 @@ and for the fixed-Q confirmatory MGMFRM candidate with `family = :mgmfrm`,
 fitted validation-bias/DFF terms. Multidimensional GMFRM, rating-scale
 generalized kernels, exploratory MGMFRM loadings, free latent correlations,
 non-rater GMFRM discrimination, non-default generic MGMFRM discrimination,
-and public `MFRMPrior` priors for generalized raw-coordinate fits are rejected
-before compilation or cache lookup.
+and `MFRMPrior` priors for generalized raw-coordinate fits are rejected before
+compilation or cache lookup. Guarded generalized fits accept
+`BayesianMGMFRM.Experimental.GeneralizedPrior`; its scales apply only to raw
+unconstrained coordinates.
 """
 function fit(design::FacetDesign;
         prior::MFRMPrior = MFRMPrior(),
@@ -3405,12 +3486,14 @@ end
 function _experimental_gmfrm_prior(prior)
     prior === nothing && return _SourceFixturePrior()
     prior isa _SourceFixturePrior && return prior
+    prior isa GeneralizedPrior && return _source_fixture_prior(prior)
     throw(_guarded_gmfrm_unsupported_error(
         :prior,
         Symbol(nameof(typeof(prior))),
         :scalar_gmfrm_prior_likelihood_sensitivity_grid,
-        "The experimental scalar GMFRM fit uses its built-in raw-coordinate " *
-        "prior. Omit `prior`; custom prior objects are not supported.",
+        "The experimental scalar GMFRM fit accepts only " *
+        "BayesianMGMFRM.Experimental.GeneralizedPrior, which defines scales " *
+        "on raw unconstrained coordinates. Omit `prior` to use its default.",
     ))
 end
 
@@ -3514,13 +3597,15 @@ end
 function _guarded_mgmfrm_prior(prior)
     prior === nothing && return _SourceFixturePrior()
     prior isa _SourceFixturePrior && return prior
+    prior isa GeneralizedPrior && return _source_fixture_prior(prior)
     throw(_guarded_generalized_unsupported_error(
         "experimental MGMFRM fit",
         :mgmfrm,
         :prior,
         Symbol(nameof(typeof(prior))),
-        "The experimental MGMFRM fit uses its built-in raw-coordinate prior. " *
-        "Omit `prior`; custom prior objects are not supported.";
+        "The experimental MGMFRM fit accepts only " *
+        "BayesianMGMFRM.Experimental.GeneralizedPrior, which defines scales " *
+        "on raw unconstrained coordinates. Omit `prior` to use its default.";
         next_gate = :mgmfrm_raw_prior_contract,
     ))
 end

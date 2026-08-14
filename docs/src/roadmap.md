@@ -87,7 +87,7 @@ The ordered program is:
 | Stage | Priority and scope | Exit condition |
 | --- | --- | --- |
 | 0. Freeze the MGMFRM family skeleton | **P0, completed.** `model_family_contract()` records between-item, within-item, and mixed fixed-Q structures; source terminology versus algebraic dimension aggregation; PCM/GPCM kernels; step-sharing ownership; latent-correlation policy; facet roles; and executable/specified-only/blocked status. No new sampler was added. | Met: the public machine-readable skeleton, exact spec/design resolver, prose, and boundary tests distinguish implemented, guarded, specified-only, and blocked branches. |
-| A. Freeze the validation protocol | **P0, in progress.** `mgmfrm_validation_protocol()` now records the narrow estimands, source anchors, `1.7`/`1.702` policy, between-item promotion target, boundary Q structures, interval policy, default sampler/backend budgets, prior regimes, fresh-seed rule, and all-attempt denominator. It remains deliberately unfrozen while four executable/review blockers remain. | A reviewable, portable protocol and commands exist; all prior variants, attempt-complete runner paths, prediction/decision scorers, and independently reviewed scientific thresholds are executable before any fresh evaluation starts. |
+| A. Freeze the validation protocol | **P0, in progress.** `mgmfrm_validation_protocol()` now records the narrow estimands, source anchors, `1.7`/`1.702` policy, between-item promotion target, boundary Q structures, interval policy, default sampler/backend budgets, prior regimes, fresh-seed rule, and all-attempt denominator. Typed raw-coordinate prior variants can drive actual refits, but the protocol remains deliberately unfrozen while generalized prior-predictive execution and three further execution/review blockers remain. | A reviewable, portable protocol and commands exist; all prior variants, attempt-complete runner paths, prediction/decision scorers, and independently reviewed scientific thresholds are executable before any fresh evaluation starts. |
 | B. Run fresh-seed known-truth validation | **P0.** Run repeated dense and connected-sparse recovery, prior sensitivity, prediction/calibration, and nested unidimensional MFRM comparisons. Use one predeclared primary backend for the full grid and both backends on a stratified conformance subset. | Predeclared parameter-block and focal-decision criteria pass, or the supported domain is narrowed and the surface remains experimental. |
 | C. Add external and independent evidence | **P0 before stable promotion.** Reproduce a matching public benchmark, analyze one provenance- and licence-cleared external dataset when available, and obtain review of equations, Q, priors, transforms, diagnostics, and claims from someone other than the implementer. | The exact overlapping targets reproduce in a separate environment and the reviewer records claim-level allow/block decisions. |
 | D. Harden the user workflow | **P1, in parallel only where it enables B/C.** Add bounded parallel chains, CmdStan cache integration, resolved sampler profiles, fit persistence, concise summaries/warnings, visualization rows, and maintainable source boundaries. | A non-maintainer can fit, diagnose, summarize, save, reload, and report the narrow model without repository-specific paths or hidden state. |
@@ -282,11 +282,11 @@ not a refit study. Its minimum weight ESS rate is about 5.94% and its maximum
 single weight about 0.835. Its local `passed` label must not satisfy the
 stable-public prior-robustness gate.
 
-Because the guarded fit currently rejects custom generalized prior objects,
-promotion must either retain one explicitly justified fixed prior or expose a
-typed, cache- and report-aware prior API. Public documentation must not imply
-that users can perform generalized refit sensitivity through the current
-keyword surface.
+The guarded fit now accepts the typed, cache-aware
+`BayesianMGMFRM.Experimental.GeneralizedPrior` for raw-coordinate scale
+variants, so sensitivity must use actual refits rather than the earlier
+importance-reweighting screen. Direct-scale generalized priors remain blocked,
+and prior-predictive execution must be added before Stage A can freeze.
 
 The August 2026 audit records 20,470 lines in `src/bayesian_fit.jl`, 9,413 in
 `src/facet_workflow.jl`, and 32,889 in `test/runtests.jl`. These counts establish
@@ -379,11 +379,12 @@ are not exchangeable with the free coordinates.
 
 Stable MFRM already implements `prior_predict` and `prior_predictive_check` for
 category use, facet ranges, grouped DFF cells, and observed sparse blocks.
-Generalized prior predictive checks remain missing. Promotion requires a typed
-or explicitly frozen generalized prior contract, raw/direct prior summaries,
-GMFRM/MGMFRM prior predictive replication, and actual weak/reference/strong
-prior refits. Importance or power reweighting remains screening evidence that
-requires ESS/Pareto diagnostics and refit follow-up.
+Generalized prior predictive checks remain missing. The typed raw-coordinate
+`BayesianMGMFRM.Experimental.GeneralizedPrior` now enables cache-aware
+weak/reference/strong refits, but promotion still requires raw/direct prior
+summaries and GMFRM/MGMFRM prior predictive replication. Importance or power
+reweighting remains screening evidence that requires ESS/Pareto diagnostics
+and refit follow-up.
 
 Bias reporting separates known-truth repeated-simulation bias, bias caused by
 model/design misspecification, DFF/fairness screening, and prior-driven

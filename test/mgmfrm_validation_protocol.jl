@@ -73,10 +73,9 @@ using BayesianMGMFRM
         :source_aligned,
         :strong_regularizing,
     )
-    @test only(row for row in regimes
-        if row.regime === :implementation_reference).executable
-    @test !only(row for row in regimes
-        if row.regime === :source_aligned).executable
+    @test all(row.fit_executable for row in regimes)
+    @test all(!row.prior_predictive_executable for row in regimes)
+    @test all(!row.executable for row in regimes)
     @test only(row for row in regimes
         if row.regime === :implementation_reference).
             scales.log_discrimination_sd == 0.5
@@ -109,7 +108,7 @@ using BayesianMGMFRM
     @test !protocol.readiness.stage_a_complete
     @test protocol.readiness.n_blockers == 4
     @test Set(protocol.readiness.blockers) == Set((
-        :public_generalized_prior_variants,
+        :generalized_prior_predictive_execution,
         :fresh_seed_attempt_complete_evaluation_runner,
         :prediction_and_decision_stability_scorers,
         :independent_scientific_threshold_review,

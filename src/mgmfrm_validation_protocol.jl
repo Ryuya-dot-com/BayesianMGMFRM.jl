@@ -58,8 +58,10 @@ function _mgmfrm_validation_prior_regimes()
                 log_consistency_sd = 0.5,
                 step_sd = 1.0,
             ),
-            executable = true,
-            note = :current_guarded_default,
+            fit_executable = true,
+            prior_predictive_executable = false,
+            executable = false,
+            note = :fit_executable_generalized_prior_predictive_pending,
         ),
         (;
             regime = :source_aligned,
@@ -72,8 +74,10 @@ function _mgmfrm_validation_prior_regimes()
                 log_consistency_sd = 1.0,
                 step_sd = 1.0,
             ),
+            fit_executable = true,
+            prior_predictive_executable = false,
             executable = false,
-            note = :requires_public_generalized_prior_constructor,
+            note = :generalized_prior_predictive_path_pending,
         ),
         (;
             regime = :strong_regularizing,
@@ -86,8 +90,10 @@ function _mgmfrm_validation_prior_regimes()
                 log_consistency_sd = 0.25,
                 step_sd = 0.5,
             ),
+            fit_executable = true,
+            prior_predictive_executable = false,
             executable = false,
-            note = :requires_public_generalized_prior_constructor,
+            note = :generalized_prior_predictive_path_pending,
         ),
     )
 end
@@ -134,7 +140,7 @@ independent review.
 """
 function mgmfrm_validation_protocol()
     blockers = (
-        :public_generalized_prior_variants,
+        :generalized_prior_predictive_execution,
         :fresh_seed_attempt_complete_evaluation_runner,
         :prediction_and_decision_stability_scorers,
         :independent_scientific_threshold_review,
@@ -217,6 +223,8 @@ function mgmfrm_validation_protocol()
         priors = (;
             parameter_space = :raw_unconstrained_coordinates,
             jacobian_policy = :none_raw_coordinate_density,
+            constructor =
+                "BayesianMGMFRM.Experimental.GeneralizedPrior",
             prior_predictive_required_before_refits = true,
             regimes = _mgmfrm_validation_prior_regimes(),
             importance_reweighting_is_final_evidence = false,

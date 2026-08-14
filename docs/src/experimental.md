@@ -69,6 +69,36 @@ fit_result = BayesianMGMFRM.Experimental.fit(spec;
 )
 ```
 
+The guarded fit accepts a typed sensitivity prior. Its scales are standard
+deviations of independent zero-centered normal priors on the raw unconstrained
+coordinates; they are not priors on the transformed direct parameters:
+
+```julia
+source_aligned_prior = BayesianMGMFRM.Experimental.GeneralizedPrior(;
+    person_sd = 1.0,
+    rater_sd = 1.0,
+    item_sd = 1.0,
+    log_discrimination_sd = 1.0,
+    log_consistency_sd = 1.0,
+    step_sd = 1.0,
+)
+
+sensitivity_fit = BayesianMGMFRM.Experimental.fit(spec;
+    prior = source_aligned_prior,
+    backend = :advancedhmc,
+    ndraws = 500,
+    warmup = 500,
+    chains = 4,
+    seed = 20260814,
+)
+```
+
+The same resolved scale values enter experimental fit-cache keys. Direct-scale
+generalized priors remain unsupported because they would require a separately
+specified transform and change-of-variables policy. Generalized prior
+predictive simulation is also not yet a public experimental operation; a
+successful refit alone does not complete prior sensitivity validation.
+
 If sampler counts are omitted, both guarded families currently use 100 warm-up
 iterations and retain 100 draws per chain across two chains. Thus warm-up is
 50% of the 200 iterations per chain and is discarded before the returned draw
@@ -156,6 +186,7 @@ authenticity, or external validation.
 BayesianMGMFRM.Experimental
 BayesianMGMFRM.Experimental.GMFRMFit
 BayesianMGMFRM.Experimental.MGMFRMFit
+BayesianMGMFRM.Experimental.GeneralizedPrior
 BayesianMGMFRM.Experimental.surface_contract
 BayesianMGMFRM.Experimental.free_latent_correlation_2d_contract
 BayesianMGMFRM.Experimental.preview
