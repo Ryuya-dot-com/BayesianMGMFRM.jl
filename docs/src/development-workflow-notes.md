@@ -103,9 +103,10 @@ The current `backend = :julia` sampler is a random-walk Metropolis path for
 small validation examples. `backend = :advancedhmc` provides a direct
 AdvancedHMC/NUTS path for the minimal design using [`MFRMLogDensity`](@ref),
 and `backend = :turing` wraps the same target in a Turing model with a flat
-vector parameter and `Turing.@addlogprob!`. `backend = :cmdstan` runs the
-package-owned stable MFRM model through an external CmdStan installation and
-returns the same `MFRMFit` type. The direct AdvancedHMC path routes
+vector parameter and `Turing.@addlogprob!`. `backend = :cmdstan` runs
+package-owned stable and guarded generalized models through an external
+CmdStan installation and returns the corresponding common fit type. The
+direct AdvancedHMC path routes
 through a shared gradient target adapter, with target-provided analytic
 gradients used when explicitly selected and otherwise AD-backed gradients
 selected by `ad_backend`; the Turing path currently uses ForwardDiff.

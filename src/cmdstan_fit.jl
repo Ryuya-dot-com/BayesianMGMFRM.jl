@@ -3,7 +3,7 @@
 import JSON3
 
 function _cmdstan_model_source(family::Symbol)
-    family in (:mfrm, :gmfrm) || throw(ArgumentError(
+    family in (:mfrm, :gmfrm, :mgmfrm) || throw(ArgumentError(
         "CmdStan has no package-owned model for family = $(repr(family))",
     ))
     module_path = pathof(BayesianMGMFRM)
@@ -17,6 +17,7 @@ end
 
 _cmdstan_mfrm_source() = _cmdstan_model_source(:mfrm)
 _cmdstan_gmfrm_source() = _cmdstan_model_source(:gmfrm)
+_cmdstan_mgmfrm_source() = _cmdstan_model_source(:mgmfrm)
 
 function _cmdstan_failure_reason(error)
     error isa Base.ProcessFailedException && return :command_failed
@@ -153,6 +154,69 @@ function _cmdstan_gmfrm_data(
     )
 end
 
+function _cmdstan_mgmfrm_data(
+        target::_MGMFRMGuardedLocalFitLogDensity)
+    design = target.design
+    data = design.spec.data
+    q = design.spec.q_matrix
+    q === nothing && throw(CmdStanError(
+        :data_encode,
+        :q_matrix_missing,
+        "the guarded MGMFRM CmdStan adapter requires a fixed Q matrix",
+    ))
+    J = length(data.person_levels)
+    R = length(data.rater_levels)
+    I = length(data.item_levels)
+    K = length(data.category_levels)
+    D = design.spec.dimensions
+    free_steps = K - 2
+    LoadingItem = Int[]
+    LoadingDim = Int[]
+    for item in axes(q, 1), dimension in axes(q, 2)
+        q[item, dimension] || continue
+        push!(LoadingItem, item)
+        push!(LoadingDim, dimension)
+    end
+    NLoadings = length(LoadingItem)
+    expected_parameters = J * D + (R - 1) + I + NLoadings +
+        (R - 1) + I * free_steps
+    expected_parameters == target.blueprint.n_parameters ||
+        throw(CmdStanError(
+            :data_encode,
+            :parameter_layout_mismatch,
+            "Stan expected $expected_parameters MGMFRM raw parameters; " *
+            "the Julia target has $(target.blueprint.n_parameters)",
+        ))
+    NLoadings == length(design.blocks[:item_dimension_discrimination]) ||
+        throw(CmdStanError(
+            :data_encode,
+            :q_loading_layout_mismatch,
+            "fixed-Q active cells do not match the Julia loading block",
+        ))
+    prior_sd = [
+        _source_fixture_prior_sd(target, index)
+        for index in 1:expected_parameters
+    ]
+    return (;
+        J,
+        R,
+        I,
+        K,
+        D,
+        N = data.n,
+        P = expected_parameters,
+        NLoadings,
+        free_steps,
+        PersonID = copy(data.person),
+        RaterID = copy(data.rater),
+        ItemID = copy(data.item),
+        X = copy(data.category),
+        LoadingItem,
+        LoadingDim,
+        prior_sd,
+    )
+end
+
 function _cmdstan_write_json(path::AbstractString, value, stage::Symbol)
     try
         open(path, "w") do io
@@ -266,6 +330,9 @@ _cmdstan_compile_mfrm(check; cache_dir = nothing) =
 
 _cmdstan_compile_gmfrm(check; cache_dir = nothing) =
     _cmdstan_compile_model(check, :gmfrm; cache_dir)
+
+_cmdstan_compile_mgmfrm(check; cache_dir = nothing) =
+    _cmdstan_compile_model(check, :mgmfrm; cache_dir)
 
 function _cmdstan_parse_number(value::AbstractString, row::Int, column::Int)
     normalized = lowercase(strip(value))
@@ -492,6 +559,30 @@ function _cmdstan_gmfrm_chain_result(path::AbstractString,
         ndraws::Int)
     evaluate_draw = function(raw)
         pointwise = _gmfrm_source_pointwise_loglikelihood_from_unconstrained(
+            target.design,
+            raw,
+        )
+        return (;
+            pointwise,
+            logposterior = LogDensityProblems.logdensity(target, raw),
+        )
+    end
+    return _cmdstan_raw_chain_result(
+        path,
+        target.blueprint.n_parameters,
+        target.design.spec.data.n,
+        chain,
+        ndraws,
+        evaluate_draw,
+    )
+end
+
+function _cmdstan_mgmfrm_chain_result(path::AbstractString,
+        target::_MGMFRMGuardedLocalFitLogDensity,
+        chain::Int,
+        ndraws::Int)
+    evaluate_draw = function(raw)
+        pointwise = _mgmfrm_source_pointwise_loglikelihood_from_unconstrained(
             target.design,
             raw,
         )
@@ -742,8 +833,29 @@ function _fit_cmdstan(design::FacetDesign,
     )
 end
 
-function _cmdstan_gmfrm_sampler_diagnostics(
+_cmdstan_generalized_family(::_GMFRMPromotionCandidateLogDensity) = :gmfrm
+_cmdstan_generalized_family(::_MGMFRMGuardedLocalFitLogDensity) = :mgmfrm
+
+_cmdstan_generalized_data(target::_GMFRMPromotionCandidateLogDensity) =
+    _cmdstan_gmfrm_data(target)
+
+_cmdstan_generalized_data(target::_MGMFRMGuardedLocalFitLogDensity) =
+    _cmdstan_mgmfrm_data(target)
+
+_cmdstan_generalized_chain_result(path::AbstractString,
         target::_GMFRMPromotionCandidateLogDensity,
+        chain::Int,
+        ndraws::Int) =
+    _cmdstan_gmfrm_chain_result(path, target, chain, ndraws)
+
+_cmdstan_generalized_chain_result(path::AbstractString,
+        target::_MGMFRMGuardedLocalFitLogDensity,
+        chain::Int,
+        ndraws::Int) =
+    _cmdstan_mgmfrm_chain_result(path, target, chain, ndraws)
+
+function _cmdstan_generalized_candidate_run(
+        target::_GeneralizedCandidateLogDensity,
         raw_initial::AbstractVector = initial_params(target);
         ndraws::Int = _GENERALIZED_DEFAULT_RETAINED_DRAWS_PER_CHAIN,
         warmup::Int = _GENERALIZED_DEFAULT_WARMUP_PER_CHAIN,
@@ -796,16 +908,17 @@ function _cmdstan_gmfrm_sampler_diagnostics(
         include_paths = true,
         require_ready = true,
     )
-    executable = _cmdstan_compile_gmfrm(
-        check;
+    executable = _cmdstan_compile_model(
+        check,
+        _cmdstan_generalized_family(target);
         cache_dir = cmdstan_cache_dir,
     )
-    payload = _cmdstan_gmfrm_data(target)
+    payload = _cmdstan_generalized_data(target)
     nparams = target.blueprint.n_parameters
     total_draws = ndraws * chains
     evaluate_initial = raw -> LogDensityProblems.logdensity(target, raw)
     parse_chain = (path, chain, count) ->
-        _cmdstan_gmfrm_chain_result(path, target, chain, count)
+        _cmdstan_generalized_chain_result(path, target, chain, count)
     sampled = _cmdstan_sample_chains(
         executable,
         payload,
@@ -868,5 +981,26 @@ function _cmdstan_gmfrm_sampler_diagnostics(
         split_chains_requested = split_chains,
         actual_split = split_chains && chains >= 2 && ndraws >= 4,
     )
+    return run
+end
+
+function _cmdstan_gmfrm_sampler_diagnostics(
+        target::_GMFRMPromotionCandidateLogDensity,
+        raw_initial::AbstractVector = initial_params(target);
+        kwargs...)
+    run = _cmdstan_generalized_candidate_run(target, raw_initial; kwargs...)
     return _gmfrm_promotion_candidate_diagnostic_surface(target, run)
+end
+
+function _cmdstan_mgmfrm_sampler_diagnostics(
+        target::_MGMFRMGuardedLocalFitLogDensity,
+        raw_initial::AbstractVector = initial_params(target);
+        initial_source::Symbol = :sampler_raw_initial_argument,
+        kwargs...)
+    run = _cmdstan_generalized_candidate_run(target, raw_initial; kwargs...)
+    return _mgmfrm_guarded_local_fit_diagnostic_surface(
+        target,
+        run;
+        initial_source,
+    )
 end

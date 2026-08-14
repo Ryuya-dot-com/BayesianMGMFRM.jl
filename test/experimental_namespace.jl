@@ -75,7 +75,7 @@ end
         :item_specific_shared_across_raters_and_dimensions
     @test mgmfrm_contract.step_constraint ===
         :first_step_zero_remaining_steps_sum_to_zero
-    @test mgmfrm_contract.supported_backends == (:advancedhmc,)
+    @test mgmfrm_contract.supported_backends == (:advancedhmc, :cmdstan)
     @test mgmfrm_contract.sampler_defaults == gmfrm_contract.sampler_defaults
     @test mgmfrm_contract.fixed_q_required
     @test_throws ArgumentError experimental.surface_contract(:mfrm)

@@ -51,9 +51,9 @@ Inspect [`constraint_table`](@ref), [`identification_declarations`](@ref), and
 - `backend = :julia` for a simple random-walk Metropolis implementation;
 - `backend = :advancedhmc` for direct AdvancedHMC/NUTS sampling;
 - `backend = :turing` for the package target wrapped in Turing/NUTS;
-- `backend = :cmdstan` for stable MFRM/RSM/PCM and guarded scalar GMFRM
-  sampling through an external CmdStan installation. Use
-  `BayesianMGMFRM.Experimental.fit` for the GMFRM route.
+- `backend = :cmdstan` for stable MFRM/RSM/PCM and both guarded generalized
+  configurations through an external CmdStan installation. Use
+  `BayesianMGMFRM.Experimental.fit` for GMFRM/MGMFRM.
 
 Run `cmdstan_backend_check()` to inspect CmdStan, `stanc`, `make`, and C++
 compiler availability without compiling a model. The first fit for a supported
@@ -64,10 +64,11 @@ against Julia at every retained draw. `target_accept` maps to CmdStan's
 `adapt delta`; thinning remains one. CmdStan failures raise `CmdStanError`
 instead of being converted to a missing result.
 
-For scalar GMFRM, every retained raw draw is transformed through the Julia
-identification map before the common `GMFRMFit`, diagnostics, and prediction
-interfaces are built. Fixed-Q MGMFRM, `cached_fit`, and parallel chain
-execution are not yet connected to CmdStan. CmdStan remains optional for package
+For both guarded generalized families, every retained raw draw is transformed
+through the Julia identification map before the common fit, diagnostics, and
+prediction interfaces are built. MGMFRM remains fixed-Q and
+identity-correlation only. `cached_fit` and parallel chain execution are not
+yet connected to CmdStan. CmdStan remains optional for package
 installation, and no backend is declared faster or more accurate without a
 same-target analysis.
 

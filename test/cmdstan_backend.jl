@@ -16,9 +16,9 @@ end
     contract = BayesianMGMFRM.cmdstan_backend_contract()
     @test contract.release_requirement === :required_before_stable_promotion
     @test !contract.release_gate_satisfied
-    @test !contract.fit_backend_implemented
+    @test contract.fit_backend_implemented
     @test !contract.core_install_requires_cmdstan
-    @test contract.implemented_families == (:mfrm, :gmfrm)
+    @test contract.implemented_families == (:mfrm, :gmfrm, :mgmfrm)
     @test contract.model_source_status.gmfrm === :package_model_and_cli_adapter
     mfrm_contract = BayesianMGMFRM.cmdstan_backend_contract(:mfrm)
     @test mfrm_contract.model_source_status === :package_model_and_cli_adapter
@@ -26,6 +26,10 @@ end
     gmfrm_contract = BayesianMGMFRM.cmdstan_backend_contract(:gmfrm)
     @test gmfrm_contract.model_source_status === :package_model_and_cli_adapter
     @test gmfrm_contract.fit_backend_implemented
+    mgmfrm_contract = BayesianMGMFRM.cmdstan_backend_contract(:mgmfrm)
+    @test mgmfrm_contract.model_source_status ===
+        :package_model_and_cli_adapter
+    @test mgmfrm_contract.fit_backend_implemented
     @test_throws ArgumentError BayesianMGMFRM.cmdstan_backend_contract(
         :exploratory,
     )
@@ -43,6 +47,7 @@ end
     @test :root_directory in missing.failed_checks
     @test missing.stable_mfrm_fit_implemented
     @test missing.guarded_gmfrm_fit_implemented
+    @test missing.guarded_mgmfrm_fit_implemented
     error = captured_cmdstan_error() do
         BayesianMGMFRM.cmdstan_backend_check(;
             cmdstan_path = missing_root,
@@ -113,6 +118,43 @@ end
     @test gmfrm_payload.free_steps == 1
     @test gmfrm_payload.prior_sd ==
         [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.5, 0.5, 0.5, 1.0, 1.0]
+    mgmfrm_spec = BayesianMGMFRM.mfrm_spec(
+        data;
+        family = :mgmfrm,
+        dimensions = 2,
+        thresholds = :partial_credit,
+        discrimination = :none,
+        q_matrix = Bool[1 0; 0 1],
+    )
+    mgmfrm_design = BayesianMGMFRM.getdesign(mgmfrm_spec; preview = true)
+    mgmfrm_target = BayesianMGMFRM._mgmfrm_guarded_local_fit_logdensity(
+        mgmfrm_design,
+    )
+    mgmfrm_payload = BayesianMGMFRM._cmdstan_mgmfrm_data(mgmfrm_target)
+    @test mgmfrm_payload.P == mgmfrm_target.blueprint.n_parameters == 14
+    @test mgmfrm_payload.NLoadings == 2
+    @test mgmfrm_payload.LoadingItem == [1, 2]
+    @test mgmfrm_payload.LoadingDim == [1, 2]
+    @test mgmfrm_payload.prior_sd ==
+        [fill(1.0, 9); fill(0.5, 3); fill(1.0, 2)]
+    crossloading_spec = BayesianMGMFRM.mfrm_spec(
+        data;
+        family = :mgmfrm,
+        dimensions = 2,
+        thresholds = :partial_credit,
+        discrimination = :none,
+        q_matrix = Bool[1 1; 0 1],
+    )
+    crossloading_target =
+        BayesianMGMFRM._mgmfrm_guarded_local_fit_logdensity(
+            BayesianMGMFRM.getdesign(crossloading_spec; preview = true),
+        )
+    crossloading_payload =
+        BayesianMGMFRM._cmdstan_mgmfrm_data(crossloading_target)
+    @test crossloading_payload.NLoadings == 3
+    @test crossloading_payload.LoadingItem == [1, 1, 2]
+    @test crossloading_payload.LoadingDim == [1, 2, 2]
+    @test crossloading_payload.P == 15
     @test BayesianMGMFRM._cmdstan_chain_seeds(MersenneTwister(71), 4) ==
         BayesianMGMFRM._cmdstan_chain_seeds(MersenneTwister(71), 4)
     @test length(unique(BayesianMGMFRM._cmdstan_chain_seeds(
@@ -123,6 +165,7 @@ end
         cd(directory) do
             @test isfile(BayesianMGMFRM._cmdstan_mfrm_source())
             @test isfile(BayesianMGMFRM._cmdstan_gmfrm_source())
+            @test isfile(BayesianMGMFRM._cmdstan_mgmfrm_source())
             @test BayesianMGMFRM._cmdstan_mfrm_data(pcm_design, prior).P == 7
         end
     end
@@ -172,6 +215,52 @@ end
             gmfrm_zero,
         )]
         @test only(parsed.stats).stan_lp == -2.0
+    end
+
+    mgmfrm_zero = zeros(mgmfrm_target.blueprint.n_parameters)
+    mgmfrm_pointwise =
+        BayesianMGMFRM._mgmfrm_source_pointwise_loglikelihood_from_unconstrained(
+            mgmfrm_design,
+            mgmfrm_zero,
+        )
+    mgmfrm_header = [
+        "lp__",
+        "accept_stat__",
+        "stepsize__",
+        "treedepth__",
+        "n_leapfrog__",
+        "divergent__",
+        "energy__",
+        ["beta.$index" for index in eachindex(mgmfrm_zero)]...,
+        ["log_lik.$observation" for observation in 1:data.n]...,
+    ]
+    mgmfrm_csv_values = [
+        -3.0,
+        0.8,
+        0.04,
+        1.0,
+        1.0,
+        0.0,
+        7.0,
+        mgmfrm_zero...,
+        mgmfrm_pointwise...,
+    ]
+    mktempdir() do directory
+        csv_path = joinpath(directory, "mgmfrm-chain.csv")
+        write(csv_path, join(mgmfrm_header, ',') * "\n" *
+            join(mgmfrm_csv_values, ',') * "\n")
+        parsed = BayesianMGMFRM._cmdstan_mgmfrm_chain_result(
+            csv_path,
+            mgmfrm_target,
+            1,
+            1,
+        )
+        @test parsed.draws == permutedims(mgmfrm_zero)
+        @test parsed.logps == [BayesianMGMFRM.LogDensityProblems.logdensity(
+            mgmfrm_target,
+            mgmfrm_zero,
+        )]
+        @test only(parsed.stats).stan_lp == -3.0
     end
 
     zero_params = zeros(length(pcm_design.parameter_names))
@@ -257,6 +346,17 @@ end
     end
     @test gmfrm_fit_error isa BayesianMGMFRM.CmdStanError
     @test gmfrm_fit_error.stage === :runtime_check
+    mgmfrm_fit_error = captured_cmdstan_error() do
+        BayesianMGMFRM.Experimental.fit(
+            mgmfrm_spec;
+            backend = :cmdstan,
+            ndraws = 1,
+            warmup = 1,
+            cmdstan_path = missing_root,
+        )
+    end
+    @test mgmfrm_fit_error isa BayesianMGMFRM.CmdStanError
+    @test mgmfrm_fit_error.stage === :runtime_check
     @test_throws ArgumentError BayesianMGMFRM.fit(
         pcm_design;
         backend = :julia,

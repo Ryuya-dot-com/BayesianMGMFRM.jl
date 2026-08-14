@@ -28,7 +28,7 @@ implemented public slice covers:
   `discrimination = :rater`, and the fixed-Q confirmatory MGMFRM candidate
   with `dimensions >= 2`; the older `fit(spec; experimental = true)` spelling
   remains a compatibility route; scalar GMFRM accepts both AdvancedHMC and an
-  external CmdStan backend, while fixed-Q MGMFRM remains AdvancedHMC-only;
+  external CmdStan backend for both guarded configurations;
 - cached-fit artifacts, sampler diagnostics, R-hat/ESS rows, parameter-block
   diagnostics, stable-MFRM prior predictive replication, fit-family posterior
   predictive replication, calibration
@@ -214,22 +214,22 @@ work from package-owned, relocatable assets rather than `test/` fixtures:
 2. faithful Stan programs plus data/initialization encoders for the stable MFRM
    and each generalized family proposed for promotion, with the same fixed-Q,
    constraints, priors, and direct-parameter names as the Julia contract; the
-   stable MFRM/RSM/PCM and guarded scalar GMFRM models and encoders are
-   implemented, while the fixed-Q MGMFRM adapter remains pending;
+   stable MFRM/RSM/PCM and both guarded generalized models and encoders are
+   implemented;
 3. explicit chain seeds, warmup, retained draws, `adapt_delta`, tree depth, and
    bounded parallel execution through the CmdStan command line, with command
-   failures and malformed outputs propagated as typed errors; stable MFRM and
-   guarded scalar GMFRM have sequential chains and typed errors, while bounded
-   parallel chains remain;
+   failures and malformed outputs propagated as typed errors; all three
+   supported family routes have sequential chains and typed errors, while
+   bounded parallel chains remain;
 4. CmdStan CSV parsing into the common fit, diagnostics, summary, cache, report,
    and posterior-predictive interfaces without hiding sampler columns; stable
-   MFRM and guarded scalar GMFRM return common fit/diagnostic/prediction
-   objects now, but cache integration still rejects CmdStan; and
+   all supported family routes return common fit/diagnostic/prediction objects
+   now, but cache integration still rejects CmdStan; and
 5. same-target log density, generated pointwise likelihood, posterior-summary,
    diagnostics, recovery, sparse-design, and failure-behavior comparisons;
-   retained stable-MFRM and guarded-GMFRM draws now enforce pointwise
-   Julia/Stan agreement, while recovery, sparse-design, independent review,
-   and analysis-scale comparisons remain pending.
+   retained draws for all three family routes now enforce pointwise Julia/Stan
+   agreement, while recovery, sparse-design, independent review, and
+   analysis-scale comparisons remain pending.
 
 BridgeStan remains an equation and gradient oracle; it is not evidence that the
 sampling adapter is complete. The Julia and Stan implementations must be kept

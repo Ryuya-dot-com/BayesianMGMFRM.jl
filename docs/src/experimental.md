@@ -78,13 +78,14 @@ example; choose and report a larger budget when diagnostics or the inferential
 target require it. The stable MFRM `fit` entry point has a separate default of
 1,000 warm-up plus 1,000 retained draws per chain.
 
-Scalar GMFRM accepts either `backend = :advancedhmc` or
-`backend = :cmdstan`. The CmdStan route uses a package-owned Stan model,
+Both guarded configurations accept either `backend = :advancedhmc` or
+`backend = :cmdstan`. Each CmdStan route uses a package-owned Stan model,
 samples the same raw-coordinate prior, applies the Julia identification
 transform, and checks Stan's generated pointwise log likelihood against Julia
-at every retained draw. Fixed-Q MGMFRM and experimental `cached_fit` currently
-remain AdvancedHMC-only. CmdStan is an optional external runtime; inspect it
-with `cmdstan_backend_check()` before requesting that backend.
+at every retained draw. The MGMFRM route remains fixed-Q and
+identity-correlation only. Experimental `cached_fit` remains AdvancedHMC-only.
+CmdStan is an optional external runtime; inspect it with
+`cmdstan_backend_check()` before requesting that backend.
 
 The older `fit(spec; experimental = true)` form remains available during the
 migration, but new code should not depend on it. Passing `experimental` inside

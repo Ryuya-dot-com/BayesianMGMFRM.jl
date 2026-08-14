@@ -48,10 +48,10 @@ The current package supports:
 The current `backend = :julia` sampler is a random-walk Metropolis path for
 small validation examples. `backend = :turing` is a NUTS interface limited to
 the current minimal MFRM/RSM/PCM design. `backend = :cmdstan` supports those
-stable models plus the guarded scalar GMFRM through the experimental namespace
-and requires an external CmdStan installation; it is not yet available through
-`cached_fit`. `backend = :advancedhmc` also backs the guarded scalar GMFRM and
-fixed-Q confirmatory MGMFRM candidates.
+stable models plus both guarded generalized configurations through the
+experimental namespace and requires an external CmdStan installation; it is
+not yet available through `cached_fit`. `backend = :advancedhmc` also backs
+both guarded configurations.
 
 ## Active Core Integrity Gate
 
@@ -106,11 +106,12 @@ compiler without compiling or sampling. Stable MFRM/RSM/PCM designs now have a
 package-owned Stan model, data/initialization encoder, explicit chain seeds and
 controls, direct CLI execution, standard sampler-column import, a common
 `MFRMFit` result, typed failures, and per-draw Julia/Stan pointwise-likelihood
-agreement checks. The guarded scalar GMFRM now has the same vertical route into
-`GMFRMFit`, including raw-to-direct Julia transformation and per-draw
-pointwise checks. This does not yet satisfy the release gate: fixed-Q MGMFRM,
-cache integration, bounded parallel chains, recovery, sparse-design,
-independent review, and analysis-scale comparisons remain. BridgeStan remains
+agreement checks. Both guarded generalized configurations now have the same
+vertical route into `GMFRMFit`/`MGMFRMFit`, including raw-to-direct Julia
+transformation and per-draw pointwise checks. This does not yet satisfy the
+release gate: cache integration, bounded parallel chains, recovery,
+sparse-design, independent review, and analysis-scale comparisons remain.
+BridgeStan remains
 an equation/gradient oracle rather than evidence that every sampling adapter is
 complete. No Julia-versus-R/Stan speed or accuracy superiority claim is
 supported without predeclared evidence.

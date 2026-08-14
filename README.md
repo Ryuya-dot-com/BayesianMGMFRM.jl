@@ -94,10 +94,12 @@ and repeat important conclusions under defensible prior and model choices.
 
 Stable MFRM/RSM/PCM designs also support `backend = :cmdstan`. CmdStan is an
 optional external runtime, discovered with `cmdstan_backend_check()`; it is not
-required to load the package or use Julia backends. The guarded scalar GMFRM
-also supports `BayesianMGMFRM.Experimental.fit(spec; backend = :cmdstan)` with
-the same raw-coordinate priors and identification transform as its Julia
-target. Fixed-Q MGMFRM and `cached_fit` are not yet connected to CmdStan.
+required to load the package or use Julia backends. Both guarded generalized
+families also support
+`BayesianMGMFRM.Experimental.fit(spec; backend = :cmdstan)` with the same
+raw-coordinate priors and identification transforms as their Julia targets.
+The MGMFRM route remains limited to the fixed-Q, identity-correlation
+confirmatory contract. `cached_fit` is not yet connected to CmdStan.
 
 ## Main Workflow
 

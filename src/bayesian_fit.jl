@@ -1095,11 +1095,11 @@ installation. Supplying `seed` uses a local `MersenneTwister(seed)` and records 
 seed in `sampler_controls`; otherwise the supplied `rng` is used without a
 replayable seed record.
 
-The experimental scalar GMFRM configuration accepts `:advancedhmc` and
-`:cmdstan`; the fixed-Q MGMFRM configuration currently accepts only
-`:advancedhmc`. The GMFRM CmdStan adapter samples the same raw-coordinate
-target, applies the Julia direct-parameter transform, and checks generated
-pointwise log likelihoods against Julia at every retained draw.
+Both guarded generalized configurations accept `:advancedhmc` and `:cmdstan`.
+Their CmdStan adapters sample the same raw-coordinate targets, apply the Julia
+direct-parameter transforms, and check generated pointwise log likelihoods
+against Julia at every retained draw. MGMFRM remains limited to its fixed-Q,
+identity-correlation confirmatory contract.
 
 The AdvancedHMC backend accepts `ad_backend = :ForwardDiff` by default.
 `ad_backend = :ReverseDiff` can be used when the corresponding AD package is
@@ -3229,7 +3229,21 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
         ess_threshold,
         progress,
     )
+    return _mgmfrm_guarded_local_fit_diagnostic_surface(
+        target,
+        run;
+        initial_source,
+    )
+end
+
+function _mgmfrm_guarded_local_fit_diagnostic_surface(
+        target::_MGMFRMGuardedLocalFitLogDensity,
+        run::NamedTuple;
+        initial_source::Symbol = :sampler_raw_initial_argument)
     checked = run.checked
+    chains = run.controls.chains
+    ndraws = run.controls.ndraws
+    split_chains = run.split_chains_requested
     nparams = run.nparams
     initial = run.initial
     initial_logdensity = run.initial_logdensity
@@ -3294,8 +3308,8 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
         target = :_mgmfrm_guarded_local_fit_logdensity,
         density_space = :raw_unconstrained,
         parameter_layout = fit_ready_parameter_layout(target.design),
-        backend = :advancedhmc,
-        sampler = :nuts,
+        backend = run.backend,
+        sampler = run.sampler,
         raw_parameter_names = copy(target.blueprint.parameter_names),
         raw_blocks = _candidate_block_value_rows(
             target.blueprint.blocks,
@@ -3561,25 +3575,35 @@ function _fit_guarded_mgmfrm(spec::FacetSpec;
         init = nothing,
         kwargs...)
     _check_guarded_mgmfrm_spec(spec)
-    backend === :advancedhmc ||
+    backend in (:advancedhmc, :cmdstan) ||
         throw(_guarded_generalized_unsupported_error(
             "experimental MGMFRM fit",
             :mgmfrm,
             :backend,
             backend,
-            "guarded MGMFRM fitting currently supports only backend = :advancedhmc";
+            "guarded MGMFRM fitting supports backend = :advancedhmc or :cmdstan";
             next_gate = :advancedhmc_guarded_sampler_policy,
         ))
     mgmfrm_prior = _guarded_mgmfrm_prior(prior)
     design = getdesign(spec; preview = true)
     target = _mgmfrm_guarded_local_fit_logdensity(design; prior = mgmfrm_prior)
     raw_initial = _guarded_mgmfrm_initial(target, init)
-    diagnostic_surface = _mgmfrm_guarded_local_fit_sampler_diagnostics(
-        target,
-        raw_initial;
-        initial_source = init === nothing ? :default_zero_raw : :user_supplied_raw,
-        kwargs...,
-    )
+    initial_source = init === nothing ? :default_zero_raw : :user_supplied_raw
+    diagnostic_surface = if backend === :advancedhmc
+        _mgmfrm_guarded_local_fit_sampler_diagnostics(
+            target,
+            raw_initial;
+            initial_source,
+            kwargs...,
+        )
+    else
+        _cmdstan_mgmfrm_sampler_diagnostics(
+            target,
+            raw_initial;
+            initial_source,
+            kwargs...,
+        )
+    end
     return _mgmfrm_fit_from_sampler_diagnostics(
         target.design,
         mgmfrm_prior,

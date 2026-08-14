@@ -117,11 +117,11 @@ end
 function _cmdstan_model_source_status(family::Symbol)
     family === :mfrm && return :package_model_and_cli_adapter
     family === :gmfrm && return :package_model_and_cli_adapter
-    family === :mgmfrm && return :validation_reference_only
+    family === :mgmfrm && return :package_model_and_cli_adapter
     return (
         mfrm = :package_model_and_cli_adapter,
         gmfrm = :package_model_and_cli_adapter,
-        mgmfrm = :validation_reference_only,
+        mgmfrm = :package_model_and_cli_adapter,
     )
 end
 
@@ -135,10 +135,10 @@ The contract deliberately distinguishes a working CmdStan installation from a
 working package backend. CmdStan fitting is a required gate before stable
 promotion, but CmdStan remains an optional external runtime so loading and
 using Julia-only package features does not depend on a machine-local install.
-Stable MFRM/RSM/PCM designs and the guarded scalar GMFRM configuration can be
-sampled through CmdStan. Fixed-Q MGMFRM is not yet connected, and broader
-same-target recovery, sparse-design, cache, and analysis-scale evidence is
-still required; `release_gate_satisfied` is therefore `false`.
+Stable MFRM/RSM/PCM designs and both guarded generalized configurations can be
+sampled through CmdStan. Broader same-target recovery, sparse-design, cache,
+parallel-chain, independent-review, and analysis-scale evidence is still
+required; `release_gate_satisfied` is therefore `false`.
 """
 function cmdstan_backend_contract(family::Symbol = :all)
     family === :all || family in _CMDSTAN_BACKEND_FAMILIES ||
@@ -152,19 +152,19 @@ function cmdstan_backend_contract(family::Symbol = :all)
         supported_families = _CMDSTAN_BACKEND_FAMILIES,
         release_requirement = :required_before_stable_promotion,
         release_gate_satisfied = false,
-        implementation_stage = :stable_mfrm_and_guarded_gmfrm_fit_available,
-        implemented_families = (:mfrm, :gmfrm),
-        fit_backend_implemented = family in (:mfrm, :gmfrm),
+        implementation_stage = :stable_mfrm_and_guarded_generalized_fit_available,
+        implemented_families = (:mfrm, :gmfrm, :mgmfrm),
+        fit_backend_implemented = true,
         default_backend = false,
         core_install_requires_cmdstan = false,
         model_source_status = _cmdstan_model_source_status(family),
         remaining_capability = family === :all ?
-            :mgmfrm_cache_parallel_recovery_and_analysis_scale_evidence :
+            :cache_parallel_recovery_and_analysis_scale_evidence :
             family === :mfrm ?
             :analysis_scale_validation_and_cache_integration :
             family === :gmfrm ?
             :guarded_recovery_sparse_validation_and_cache_integration :
-            :mgmfrm_model_data_csv_fit_adapter,
+            :fixed_q_recovery_sparse_validation_and_cache_integration,
     )
 end
 
@@ -228,10 +228,11 @@ function cmdstan_backend_check(;
         stanc_path = include_paths && stanc_present ? stanc : nothing,
         checks,
         failed_checks,
-        implementation_stage = :stable_mfrm_and_guarded_gmfrm_fit_available,
-        implemented_families = (:mfrm, :gmfrm),
+        implementation_stage = :stable_mfrm_and_guarded_generalized_fit_available,
+        implemented_families = (:mfrm, :gmfrm, :mgmfrm),
         stable_mfrm_fit_implemented = true,
         guarded_gmfrm_fit_implemented = true,
+        guarded_mgmfrm_fit_implemented = true,
         release_gate_satisfied = false,
     )
     if require_ready && !runtime_ready

@@ -37,10 +37,10 @@ report creation, and `collection.issues` records its stage and short reason.
 
 `cmdstan_backend_check()` validates local runtime/toolchain availability
 without compiling a model or running MCMC, and omits local paths by default.
-Stable MFRM/RSM/PCM and the guarded scalar GMFRM now have executable
-`backend = :cmdstan` routes. `cmdstan_backend_contract()` distinguishes those
-implemented families from fixed-Q MGMFRM and from the remaining recovery,
-sparse-design, cache, and analysis-scale evidence.
+Stable MFRM/RSM/PCM and both guarded generalized configurations now have
+executable `backend = :cmdstan` routes. `cmdstan_backend_contract()` keeps this
+implementation status separate from the remaining recovery, sparse-design,
+cache, parallel-chain, independent-review, and analysis-scale evidence.
 
 `local_dependence_simulation_grid` and `simulate_local_dependence` form the
 completed LD1a generator and design-validation surface. The 22 frozen scenarios

@@ -6,9 +6,9 @@ priors on the identified parameter vector. `backend = :julia` uses a
 random-walk Metropolis kernel for small validation examples, while
 `backend = :advancedhmc` uses the package's `MFRMLogDensity` target with
 AdvancedHMC/NUTS and `backend = :turing` wraps the same target in a
-Turing/NUTS model. `backend = :cmdstan` uses the package-owned stable MFRM Stan
-model and direct CmdStan CLI adapter; generalized models and cache integration
-remain outside that route.
+Turing/NUTS model. `backend = :cmdstan` uses package-owned Stan models and a
+direct CmdStan CLI adapter for the stable target and the two guarded
+generalized targets; cache integration remains outside that route.
 
 ## Guarded Generalized Model Caveats
 
@@ -612,13 +612,12 @@ dff_report(fit_result; terms = (:rater, :item))
 ```
 
 The random-walk sampler is intended for small validation examples and API
-stabilization. The AdvancedHMC/NUTS and Turing/NUTS backends are
-gradient-based sampler paths for the minimal design; AdvancedHMC also backs the
-guarded experimental GMFRM and fixed-Q MGMFRM candidates, but it is not yet a
-broad GMFRM/MGMFRM fitting backend. The package does not yet expose Stan/CmdStan
-sampling or broad refit-managed model-comparison workflows outside the
-fit-supported shared-plan comparison slice and guarded generalized refits that
-are explicitly requested with `experimental = true`.
+stabilization. AdvancedHMC/NUTS, Turing/NUTS, and CmdStan/NUTS are
+gradient-based sampler paths for the minimal design; AdvancedHMC and CmdStan
+also back the guarded experimental GMFRM and fixed-Q MGMFRM candidates, but
+neither is a broad GMFRM/MGMFRM fitting backend. CmdStan cache integration,
+bounded parallel chains, and broad refit-managed model-comparison workflows
+remain outside the current CmdStan route.
 [`loo_refit_plan`](@ref) constructs deterministic one-observation-heldout
 plans for exact LOO follow-up, optionally restricted to selected observations
 or Pareto-k flagged rows from raw LOO summaries, and [`loo_refit`](@ref)

@@ -37,10 +37,11 @@
   designs. The adapter compiles a package-owned Stan model, preserves the
   identified Julia parameter order, imports CmdStan sampler diagnostics, checks
   generated pointwise log likelihoods, and raises typed failures. Extend the
-  same CLI path to the guarded scalar GMFRM raw-coordinate target, including
-  its Julia identification transform, common `GMFRMFit` diagnostics, and
-  prediction interface. Fixed-Q MGMFRM, cache integration, and analysis-scale
-  comparison evidence remain pending.
+  same CLI path to both guarded generalized raw-coordinate targets, including
+  their Julia identification transforms, common `GMFRMFit`/`MGMFRMFit`
+  diagnostics, and prediction interfaces. MGMFRM remains fixed-Q and
+  identity-correlation only. Cache integration and analysis-scale comparison
+  evidence remain pending.
 - Add an analysis-facing roadmap program for unified sampler profiles,
   four-chain substantive defaults, chain-level seeds, integrated summaries and
   warnings, simple fit persistence, visualization rows, interval/HDI policy,

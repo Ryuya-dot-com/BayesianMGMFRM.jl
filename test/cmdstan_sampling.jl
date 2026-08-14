@@ -100,4 +100,44 @@ using BayesianMGMFRM
         rng = MersenneTwister(4111),
     )
     @test size(gmfrm_ppc.replicated_scores) == (1, data.n)
+
+    mgmfrm_spec = mfrm_spec(
+        data;
+        family = :mgmfrm,
+        dimensions = 2,
+        thresholds = :partial_credit,
+        discrimination = :none,
+        q_matrix = Bool[1 0; 0 1],
+    )
+    mgmfrm_design = BayesianMGMFRM.Experimental.preview(mgmfrm_spec)
+    mgmfrm_fit = BayesianMGMFRM.Experimental.fit(
+        mgmfrm_spec;
+        backend = :cmdstan,
+        ndraws = 2,
+        warmup = 2,
+        chains = 1,
+        seed = 4112,
+        metric = :unit,
+    )
+    @test mgmfrm_fit isa MGMFRMFit
+    @test mgmfrm_fit.backend === :cmdstan
+    @test mgmfrm_fit.sampler === :nuts
+    @test size(mgmfrm_fit.draws) ==
+        (2, mgmfrm_fit.diagnostic_surface.summary.n_parameters)
+    @test size(mgmfrm_fit.direct_draws) ==
+        (2, length(mgmfrm_design.parameter_names))
+    @test size(mgmfrm_fit.direct_pointwise_loglikelihood) == (2, data.n)
+    @test all(isfinite, mgmfrm_fit.log_posterior)
+    @test fit_metadata(mgmfrm_fit).backend === :cmdstan
+    @test all(row -> row.backend === :cmdstan,
+        sampler_diagnostics(mgmfrm_fit))
+    @test mgmfrm_fit.diagnostic_surface.summary.n_failed_direct_constraints == 0
+    @test mgmfrm_fit.sampler_controls.thinning == 1
+    @test mgmfrm_fit.sampler_controls.gradient_backend === :stan_autodiff
+    mgmfrm_ppc = posterior_predictive_check(
+        mgmfrm_fit;
+        ndraws = 1,
+        rng = MersenneTwister(4113),
+    )
+    @test size(mgmfrm_ppc.replicated_scores) == (1, data.n)
 end
