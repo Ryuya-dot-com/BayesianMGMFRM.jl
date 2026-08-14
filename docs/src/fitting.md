@@ -77,6 +77,29 @@ of chains, warmup, retained draws, target acceptance, tree depth, metric, and
 initialization strategy before examining the results. Record a seed when exact
 replay is part of the analysis plan.
 
+For one consolidated wiring check across stable MFRM, guarded scalar GMFRM,
+and guarded fixed-Q MGMFRM, run:
+
+```sh
+julia --project=. scripts/run_cmdstan_backend_validation.jl smoke
+```
+
+This fits the same simulated response data with AdvancedHMC and CmdStan under
+both a fully crossed layout and a connected sparse layout. The smoke profile
+uses one very short chain and therefore checks execution, finite outputs,
+identification constraints, pointwise likelihood construction, and predictive
+probabilities only. It prints sampler warnings and descriptive backend
+differences, but does not label them as convergence, backend-equivalence, or
+parameter-recovery evidence. The larger `pilot` profile uses two chains with
+100 warmup and 100 retained draws per chain and computes the existing R-hat/ESS
+diagnostics; it is still a local diagnostic pilot rather than a repeated
+simulation study. Printed elapsed times include Julia compilation and the
+current CmdStan executable-cache state, so they are resource observations, not
+backend benchmarks. Errors are not swallowed: the runner stops with the
+original typed failure. Set
+`BAYESIANMGMFRM_CMDSTAN_PAIRED_TESTS=true` to opt this 12-fit smoke matrix into
+the test suite; it is excluded from routine tests to control compute cost.
+
 Sampler success is necessary but not sufficient. Review:
 
 - [`sampler_diagnostics`](@ref) for acceptance and HMC warnings;

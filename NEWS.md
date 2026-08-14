@@ -42,6 +42,10 @@
   diagnostics, and prediction interfaces. MGMFRM remains fixed-Q and
   identity-correlation only. Cache integration and analysis-scale comparison
   evidence remain pending.
+- Add a resource-bounded, opt-in AdvancedHMC/CmdStan validation runner covering
+  stable MFRM, guarded scalar GMFRM, and guarded fixed-Q MGMFRM under fully
+  crossed and connected sparse layouts. Its short-chain output is explicitly
+  execution evidence, not backend-equivalence or parameter-recovery evidence.
 - Add an analysis-facing roadmap program for unified sampler profiles,
   four-chain substantive defaults, chain-level seeds, integrated summaries and
   warnings, simple fit persistence, visualization rows, interval/HDI policy,

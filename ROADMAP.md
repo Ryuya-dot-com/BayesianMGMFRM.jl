@@ -228,8 +228,11 @@ work from package-owned, relocatable assets rather than `test/` fixtures:
 5. same-target log density, generated pointwise likelihood, posterior-summary,
    diagnostics, recovery, sparse-design, and failure-behavior comparisons;
    retained draws for all three family routes now enforce pointwise Julia/Stan
-   agreement, while recovery, sparse-design, independent review, and
-   analysis-scale comparisons remain pending.
+   agreement. A resource-bounded paired runner now exercises AdvancedHMC and
+   CmdStan for all three models under fully crossed and connected sparse
+   layouts, without treating its short chains as recovery or equivalence
+   evidence. Repeated recovery, independent review, and analysis-scale
+   comparisons remain pending.
 
 BridgeStan remains an equation and gradient oracle; it is not evidence that the
 sampling adapter is complete. The Julia and Stan implementations must be kept

@@ -20915,8 +20915,11 @@ end
 end
 
 include("cmdstan_backend.jl")
+include("cmdstan_validation_contract.jl")
 test_flag("BAYESIANMGMFRM_CMDSTAN_TESTS") &&
     include("cmdstan_sampling.jl")
+test_flag("BAYESIANMGMFRM_CMDSTAN_PAIRED_TESTS") &&
+    include("cmdstan_paired_validation.jl")
 
 @testset "FacetData long-format indexing" begin
     table = (
