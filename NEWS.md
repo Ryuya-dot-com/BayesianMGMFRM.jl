@@ -46,8 +46,9 @@
   and pre-generation available-memory bounds. The default memory screen is 2 GiB
   with a non-lowerable 1 GiB floor; rejection leaves every cell unstarted. It
   measures local generation and warmed ForwardDiff gradient cost while
-  prohibiting scientific, backend-ranking, and full-NUTS runtime claims; a
-  bounded short-NUTS probe remains required before resource caps can be frozen.
+  prohibiting scientific, backend-ranking, and full-NUTS runtime claims.
+  Bounded short-NUTS execution is available for a specifically reviewed cell,
+  but it is no longer an automatic prerequisite or progression rule.
 - Correct the MGMFRM resource preflight on macOS so Julia/libuv's raw free-page
   count is not mislabeled as available memory. Preserve the raw value for
   compatibility, record a separate conservative reclaimable-page estimate and
@@ -62,6 +63,12 @@
   the 500--22,500 observation range, the nine cells above the current 2,000-
   observation short-NUTS bound without freezing a grid or authorizing
   evaluation.
+- Add a provisional three-stage review inside the primary-grid contract: a
+  minimum operability pair, a larger-support design pair, and a sparse
+  rater-coverage extension. Its five cells are minimal only for the three
+  listed contrasts; the contract explicitly rejects factorial, separate
+  person/item, isolated rater-count, recovery-from-Stage-1, and universal
+  sparse-percentage interpretations.
 - Add a four-category known-truth generator and MCMC-free primary-grid
   preflight. They share the fixed-Q generation core with the five-category
   response-stress path, preserve explicit seed roles, and establish structural

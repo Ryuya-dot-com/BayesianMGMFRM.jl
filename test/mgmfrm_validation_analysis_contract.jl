@@ -67,6 +67,10 @@ using BayesianMGMFRM
     @test !contract.workload.primary_grid_resource_envelope_complete
     @test contract.workload.
         primary_four_category_generator_implemented
+    @test contract.workload.provisional_primary_grid_stages == 3
+    @test contract.workload.provisional_primary_grid_cells == 5
+    @test !contract.workload.
+        provisional_primary_grid_supports_factorial_inference
     @test contract.workload.evaluation_replications ===
         :pending_coverage_precision_review
     @test !contract.workload.full_cartesian_expansion_allowed
@@ -92,6 +96,10 @@ using BayesianMGMFRM
     @test !grid_decision.current_state.
         resource_envelope_covers_all_candidates
     @test grid_decision.current_state.primary_generator_implemented
+    @test grid_decision.current_state.staged_review_status ===
+        :provisional_staged_subset_not_frozen
+    @test grid_decision.current_state.n_provisional_staged_review_cells == 5
+    @test !grid_decision.current_state.staged_review_cells_frozen
     @test grid_decision.required_resolution ===
         :freeze_exact_cells_after_resource_review
 
@@ -115,17 +123,22 @@ using BayesianMGMFRM
         :mgmfrm_validation_isolated_resource_review
     @test contract.pilot_policy.isolated_review_implemented
     @test !contract.pilot_policy.mcmc_executed
-    @test contract.pilot_policy.short_nuts_execution_required
+    @test !contract.pilot_policy.short_nuts_execution_required
+    @test !contract.pilot_policy.
+        additional_short_nuts_execution_automatically_required
+    @test contract.pilot_policy.
+        new_sampling_requires_a_cell_specific_resource_decision
     @test !contract.pilot_policy.
         gradient_timing_may_freeze_final_resource_policy
     @test contract.execution_design.design_choices_frozen
     @test contract.execution_design.sensitivity.n_sensitivity_role_cells == 24
     @test first(contract.next_work_order) ===
-        :run_primary_gradient_resource_cells_sequentially
+        :review_provisional_stage_contrasts_and_existing_resource_records
     @test contract.next_work_order[2] ===
-        :run_isolated_primary_short_nuts_resource_cells_sequentially
-    @test :run_isolated_primary_short_nuts_resource_cells_sequentially in
+        :decide_the_narrowest_scientifically_defensible_stage
+    @test contract.next_work_order[3] ===
+        :review_later_stage_resource_feasibility_without_automatic_sampling
+    @test :run_isolated_primary_short_nuts_resource_cells_sequentially ∉
         contract.next_work_order
-    @test :review_worker_process_peak_rss in contract.next_work_order
     @test last(contract.next_work_order) === :start_fresh_seed_evaluation
 end

@@ -70,6 +70,13 @@ function _mgmfrm_analysis_open_decisions(protocol, primary_grid_candidates)
                 primary_generator_implemented =
                     primary_grid_candidates.summary.
                         primary_four_category_generator_implemented,
+                staged_review_status =
+                    primary_grid_candidates.staged_review.status,
+                n_provisional_staged_review_cells =
+                    primary_grid_candidates.staged_review.
+                        n_provisional_cells,
+                staged_review_cells_frozen =
+                    primary_grid_candidates.staged_review.cells_frozen,
             ),
             required_resolution =
                 :freeze_exact_cells_after_resource_review,
@@ -120,7 +127,9 @@ scientific thresholds.
 
 This function generates no data, runs no sampler, and cannot authorize an
 analysis. Runtime pilots may inform resource choices only; they cannot set
-scientific thresholds.
+scientific thresholds. The provisional staged primary-grid review narrows the
+next decisions but does not freeze cells or require automatic short-NUTS
+progression.
 """
 function mgmfrm_validation_analysis_contract()
     protocol = mgmfrm_validation_protocol()
@@ -210,6 +219,13 @@ function mgmfrm_validation_analysis_contract()
             primary_four_category_generator_implemented =
                 primary_grid_candidates.summary.
                     primary_four_category_generator_implemented,
+            provisional_primary_grid_stages =
+                length(primary_grid_candidates.staged_review.stages),
+            provisional_primary_grid_cells =
+                primary_grid_candidates.staged_review.n_provisional_cells,
+            provisional_primary_grid_supports_factorial_inference =
+                primary_grid_candidates.staged_review.limitations.
+                    full_factorial_inference_supported,
             evaluation_replications =
                 protocol.design_domain.evaluation_replications,
             response_stress_source_cases,
@@ -256,16 +272,18 @@ function mgmfrm_validation_analysis_contract()
                 :mgmfrm_validation_isolated_resource_review,
             isolated_review_implemented = true,
             mcmc_executed = false,
-            short_nuts_execution_required = true,
+            short_nuts_execution_required = false,
+            additional_short_nuts_execution_automatically_required = false,
+            new_sampling_requires_a_cell_specific_resource_decision = true,
             gradient_timing_may_freeze_final_resource_policy = false,
             values_may_define_scientific_thresholds = false,
             values_may_rank_backends = false,
             values_are_validation_evidence = false,
         ),
         next_work_order = (
-            :run_primary_gradient_resource_cells_sequentially,
-            :run_isolated_primary_short_nuts_resource_cells_sequentially,
-            :review_worker_process_peak_rss,
+            :review_provisional_stage_contrasts_and_existing_resource_records,
+            :decide_the_narrowest_scientifically_defensible_stage,
+            :review_later_stage_resource_feasibility_without_automatic_sampling,
             :freeze_primary_grid_replications_and_resource_caps,
             :obtain_independent_scientific_threshold_review,
             :freeze_analysis_profile,

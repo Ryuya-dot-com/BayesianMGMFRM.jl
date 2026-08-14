@@ -975,8 +975,9 @@ reservation or a guarantee that measurement will complete.
 The result records local runtime and allocation metadata without repository
 paths, commit IDs, source hashes, or fit objects. It cannot assess convergence,
 recovery, coverage, priors, Q, backend superiority, or scientific thresholds.
-Gradient timings are not extrapolated to full NUTS runtime; a separate bounded
-short-NUTS probe remains required before final resource caps can be frozen.
+Gradient timings are not extrapolated to full NUTS runtime. A separate bounded
+short-NUTS probe is available when a cell-specific resource decision requires
+one, but no result authorizes automatic progression to it.
 Rows returned by [`mgmfrm_validation_primary_resource_plan`](@ref) are accepted
 one at a time for four-category primary-grid measurement. The first two rows
 also fit inside the current primary short-NUTS workload bound.

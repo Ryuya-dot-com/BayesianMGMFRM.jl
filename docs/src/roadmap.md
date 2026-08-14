@@ -175,6 +175,18 @@ all-candidate structural preflight are available. Resource coverage, final cell
 selection, and evaluation replications remain unresolved; generation preflight
 is not validation evidence.
 
+The candidate contract now also records a provisional three-stage review. It
+starts with the two minimum-support dense/sparse cells for operability, adds a
+matched larger-support dense/sparse pair, and only then adds one sparse cell
+that changes the rater pool and per-rater information while holding observations
+fixed. Those three declared contrasts require five unique endpoints, but this
+is not a globally minimal or factorial validation grid: person and item sample
+size are jointly changed, and rater count is not separable from per-rater
+information. No stage is frozen, Stage 1 cannot establish recovery, and later
+cells require explicit resource review rather than automatic short-NUTS
+progression. Both Stage 1 cells are inside the current short-NUTS workload
+bound; all three later additions are outside it.
+
 `mgmfrm_validation_primary_resource_plan()` now selects four ordered
 four-category representatives (500, 1,250, 3,750, and 7,500 observations) for
 the existing MCMC-free gradient probe. Automatic progression is prohibited.

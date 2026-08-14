@@ -204,6 +204,20 @@ precision justification; sparse robustness also requires link-size,
 represented-range, model-fit, and assignment-order sensitivity rather than a
 universal anchor percentage.
 
+Its `staged_review` field reduces the immediate decision to three cumulative
+levels without authorizing execution: two minimum-support dense/sparse cells
+for operability and scoring, two additional 100-person/15-item cells repeating
+that contrast at larger joint support, and one additional sparse 15-rater cell
+for a fixed-observation rater-pool/per-rater-information contrast. The five
+unique cells are minimal only as the union of these three exact contrasts.
+They do not form a factorial design, separate person from item sample-size
+effects, isolate rater count from per-rater information, or establish a
+universal sparse or anchor percentage. Stage 1 is explicitly not recovery
+evidence. New sampling is not an automatic next step; each later cell first
+requires a cell-specific scientific and resource decision. Both Stage 1 cells
+are inside the current short-NUTS workload bound; none of the three cells added
+by Stages 2--3 is.
+
 `primary_resource_plan` selects four ordered 4-category cells with 500, 1,250,
 3,750, and 7,500 observations for explicit, one-cell-at-a-time gradient
 profiling. It does not cover every primary axis and does not progress

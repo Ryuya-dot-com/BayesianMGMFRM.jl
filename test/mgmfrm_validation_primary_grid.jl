@@ -31,6 +31,75 @@ using BayesianMGMFRM
     @test !contract.summary.
         current_resource_envelope_covers_all_candidates
     @test contract.summary.primary_four_category_generator_implemented
+    @test contract.summary.n_provisional_staged_review_cells == 5
+
+    review = contract.staged_review
+    @test review.schema ==
+        "bayesianmgmfrm.mgmfrm_validation_primary_grid_staged_review.v1"
+    @test review.object === :mgmfrm_validation_primary_grid_staged_review
+    @test review.status === :provisional_staged_subset_not_frozen
+    @test length(review.stages) == 3
+    @test length(review.contrasts) == 3
+    @test length(review.provisional_cell_ids) == 5
+    @test length(unique(review.provisional_cell_ids)) == 5
+    @test review.minimality.exact_contrast_union_size == 5
+    @test review.minimality.minimal_for_declared_exact_contrasts
+    @test !review.minimality.globally_minimal_validation_grid
+    @test !review.limitations.full_factorial_inference_supported
+    @test !review.limitations.separate_person_and_item_main_effects_supported
+    @test !review.limitations.
+        independent_rater_count_and_per_rater_information_effects_supported
+    @test !review.limitations.universal_sparse_or_anchor_percentage_supported
+    @test !review.limitations.stage_1_is_recovery_evidence
+    @test !review.cells_selected
+    @test !review.cells_frozen
+    @test !review.execution_allowed
+    @test !review.mcmc_executed
+    @test review.scientific_decision === :not_applied
+    @test review.claim_scope === :staged_grid_review_not_validation_evidence
+
+    stage_1, stage_2, stage_3 = review.stages
+    @test length(stage_1.new_cell_ids) == 2
+    @test length(stage_1.cumulative_cell_ids) == 2
+    @test stage_1.maximum_claim === :operability_not_parameter_recovery
+    @test stage_1.n_new_cells_within_current_short_nuts_bound == 2
+    @test length(stage_2.new_cell_ids) == 2
+    @test length(stage_2.cumulative_cell_ids) == 4
+    @test stage_2.maximum_claim ===
+        :two_design_contrasts_not_separate_sample_size_main_effects
+    @test stage_2.n_new_cells_within_current_short_nuts_bound == 0
+    @test length(stage_3.new_cell_ids) == 1
+    @test stage_3.cumulative_cell_ids == review.provisional_cell_ids
+    @test stage_3.maximum_claim ===
+        :listed_sparse_coverage_contrast_not_universal_anchor_rate
+    @test stage_3.n_new_cells_within_current_short_nuts_bound == 0
+
+    minimum_contrast, larger_contrast, coverage_contrast = review.contrasts
+    @test minimum_contrast.code === :minimum_dense_vs_sparse
+    @test minimum_contrast.held_constant == (;
+        persons = 50,
+        items = 5,
+        raters = 5,
+        dimensions = 2,
+        categories = 4,
+        q_structure = :pure_between_item_one_active_dimension_per_item,
+    )
+    @test larger_contrast.code === :larger_dense_vs_sparse
+    @test coverage_contrast.code === :sparse_rater_coverage
+    @test coverage_contrast.held_constant.expected_observations == 3_000
+    @test Set(coverage_contrast.varied_axes) == Set((
+        :raters,
+        :rater_coverage_fraction,
+        :mean_person_assignments_per_rater,
+        :mean_ratings_per_rater,
+    ))
+    @test Set(review.provisional_cell_ids) == Set((
+        :primary_candidate_01,
+        :primary_candidate_07,
+        :primary_candidate_09,
+        :primary_candidate_15,
+        :primary_candidate_16,
+    ))
 
     @test Set(row.design for row in rows) == Set((
         :dense_fully_crossed,

@@ -1,5 +1,187 @@
 # Four-category known-truth generation for the blocked MGMFRM primary grid.
 
+function _mgmfrm_validation_primary_grid_staged_review(cells)
+    select_cell(design, persons, items, raters) = only(row for row in cells
+        if row.design === design && row.persons == persons &&
+            row.items == items && row.raters == raters)
+
+    dense_minimum = select_cell(:dense_fully_crossed, 50, 5, 5)
+    sparse_minimum = select_cell(
+        :connected_sparse_systematic_link,
+        50,
+        5,
+        5,
+    )
+    dense_larger = select_cell(:dense_fully_crossed, 100, 15, 5)
+    sparse_larger = select_cell(
+        :connected_sparse_systematic_link,
+        100,
+        15,
+        5,
+    )
+    sparse_low_coverage = select_cell(
+        :connected_sparse_systematic_link,
+        100,
+        15,
+        15,
+    )
+
+    contrasts = (
+        (;
+            code = :minimum_dense_vs_sparse,
+            cell_ids = (dense_minimum.cell_id, sparse_minimum.cell_id),
+            held_constant = (;
+                persons = 50,
+                items = 5,
+                raters = 5,
+                dimensions = 2,
+                categories = 4,
+                q_structure =
+                    :pure_between_item_one_active_dimension_per_item,
+            ),
+            varied_axes = (:design, :raters_per_person),
+            interpretation =
+                :minimum_support_design_and_rating_density_contrast,
+        ),
+        (;
+            code = :larger_dense_vs_sparse,
+            cell_ids = (dense_larger.cell_id, sparse_larger.cell_id),
+            held_constant = (;
+                persons = 100,
+                items = 15,
+                raters = 5,
+                dimensions = 2,
+                categories = 4,
+                q_structure =
+                    :pure_between_item_one_active_dimension_per_item,
+            ),
+            varied_axes = (:design, :raters_per_person),
+            interpretation =
+                :larger_support_design_and_rating_density_contrast,
+        ),
+        (;
+            code = :sparse_rater_coverage,
+            cell_ids = (sparse_larger.cell_id,
+                sparse_low_coverage.cell_id),
+            held_constant = (;
+                design = :connected_sparse_systematic_link,
+                persons = 100,
+                items = 15,
+                raters_per_person = 2,
+                expected_observations = 3_000,
+                dimensions = 2,
+                categories = 4,
+                q_structure =
+                    :pure_between_item_one_active_dimension_per_item,
+            ),
+            varied_axes = (
+                :raters,
+                :rater_coverage_fraction,
+                :mean_person_assignments_per_rater,
+                :mean_ratings_per_rater,
+            ),
+            interpretation =
+                :sparse_rater_pool_and_per_rater_information_contrast,
+        ),
+    )
+    stage_1_ids = contrasts[1].cell_ids
+    stage_2_ids = contrasts[2].cell_ids
+    stage_3_ids = (sparse_low_coverage.cell_id,)
+    provisional_ids = (
+        stage_1_ids...,
+        stage_2_ids...,
+        stage_3_ids...,
+    )
+    length(unique(provisional_ids)) == 5 || throw(ArgumentError(
+        "the staged primary-grid review must reference five unique cells",
+    ))
+
+    stages = (
+        (;
+            stage = :stage_1_minimum_operability,
+            new_cell_ids = stage_1_ids,
+            cumulative_cell_ids = stage_1_ids,
+            required_contrasts = (:minimum_dense_vs_sparse,),
+            purpose =
+                :end_to_end_operability_and_scoring_at_minimum_support,
+            maximum_claim = :operability_not_parameter_recovery,
+            n_new_cells_within_current_short_nuts_bound = count(
+                row -> row.within_current_short_nuts_probe_bound,
+                (dense_minimum, sparse_minimum),
+            ),
+            resource_gate =
+                :link_and_review_existing_cell_specific_resource_records,
+        ),
+        (;
+            stage = :stage_2_larger_support,
+            new_cell_ids = stage_2_ids,
+            cumulative_cell_ids = (stage_1_ids..., stage_2_ids...),
+            required_contrasts = (
+                :minimum_dense_vs_sparse,
+                :larger_dense_vs_sparse,
+            ),
+            purpose =
+                :repeat_the_design_contrast_at_larger_joint_person_item_support,
+            maximum_claim =
+                :two_design_contrasts_not_separate_sample_size_main_effects,
+            n_new_cells_within_current_short_nuts_bound = count(
+                row -> row.within_current_short_nuts_probe_bound,
+                (dense_larger, sparse_larger),
+            ),
+            resource_gate =
+                :resource_feasibility_review_before_any_new_sampling,
+        ),
+        (;
+            stage = :stage_3_sparse_coverage_robustness,
+            new_cell_ids = stage_3_ids,
+            cumulative_cell_ids = provisional_ids,
+            required_contrasts = Tuple(row.code for row in contrasts),
+            purpose =
+                :add_sparse_rater_pool_and_per_rater_information_robustness,
+            maximum_claim =
+                :listed_sparse_coverage_contrast_not_universal_anchor_rate,
+            n_new_cells_within_current_short_nuts_bound = count(
+                row -> row.within_current_short_nuts_probe_bound,
+                (sparse_low_coverage,),
+            ),
+            resource_gate =
+                :resource_feasibility_review_before_any_new_sampling,
+        ),
+    )
+
+    return (;
+        schema =
+            "bayesianmgmfrm.mgmfrm_validation_primary_grid_staged_review.v1",
+        object = :mgmfrm_validation_primary_grid_staged_review,
+        status = :provisional_staged_subset_not_frozen,
+        stages,
+        contrasts,
+        provisional_cell_ids = provisional_ids,
+        n_provisional_cells = length(provisional_ids),
+        minimality = (;
+            basis =
+                :union_of_endpoints_for_three_declared_exact_contrasts,
+            exact_contrast_union_size = length(provisional_ids),
+            minimal_for_declared_exact_contrasts = true,
+            globally_minimal_validation_grid = false,
+        ),
+        limitations = (;
+            full_factorial_inference_supported = false,
+            separate_person_and_item_main_effects_supported = false,
+            independent_rater_count_and_per_rater_information_effects_supported =
+                false,
+            universal_sparse_or_anchor_percentage_supported = false,
+            stage_1_is_recovery_evidence = false,
+        ),
+        cells_selected = false,
+        cells_frozen = false,
+        execution_allowed = false,
+        mcmc_executed = false,
+        scientific_decision = :not_applied,
+        claim_scope = :staged_grid_review_not_validation_evidence,
+    )
+end
+
 function _mgmfrm_validation_primary_grid_candidate_contract(protocol)
     sizes = protocol.design_domain.source_sample_size_candidates
     gradient_policy = _mgmfrm_validation_resource_probe_policy()
@@ -87,6 +269,7 @@ function _mgmfrm_validation_primary_grid_candidate_contract(protocol)
         row -> row.within_current_short_nuts_probe_bound,
         cells,
     )
+    staged_review = _mgmfrm_validation_primary_grid_staged_review(cells)
     return (;
         schema =
             "bayesianmgmfrm.mgmfrm_validation_primary_grid_candidates.v1",
@@ -115,6 +298,8 @@ function _mgmfrm_validation_primary_grid_candidate_contract(protocol)
             current_resource_envelope_covers_all_candidates =
                 n_within_short_nuts == length(cells),
             primary_four_category_generator_implemented = true,
+            n_provisional_staged_review_cells =
+                staged_review.n_provisional_cells,
         ),
         source_anchor = (;
             study = protocol.source_anchor.source,
@@ -131,6 +316,7 @@ function _mgmfrm_validation_primary_grid_candidate_contract(protocol)
             dimensions = (protocol.claim_target.dimensions,),
             categories = (protocol.design_domain.categories,),
         ),
+        staged_review,
         cells_frozen = false,
         evaluation_replications_frozen = false,
         execution_allowed = false,
@@ -152,11 +338,15 @@ dense/sparse designs and the source-anchored person, item, and rater sample
 sizes. Each row can be passed to
 [`simulate_mgmfrm_validation_primary_candidate`](@ref).
 
-These rows are candidates, not a frozen analysis grid. Their seeds are only
-for structural generation preflight. The function runs no sampler, applies no
-scientific thresholds, and cannot authorize evaluation. Final cell selection,
-evaluation replications, and a resource envelope covering the selected cells
-remain unresolved.
+These rows are candidates, not a frozen analysis grid. `staged_review`
+provisionally separates a minimum operability pair, a larger-support design
+pair, and a sparse rater-coverage extension. Its five-cell union is minimal
+only for those three declared contrasts; it is not a globally minimal or
+factorial validation design. Candidate seeds are only for structural
+generation preflight. The function runs no sampler, applies no scientific
+thresholds, and cannot authorize evaluation. Final cell selection, evaluation
+replications, and a resource envelope covering the selected cells remain
+unresolved.
 """
 function mgmfrm_validation_primary_grid_candidates()
     return _mgmfrm_validation_primary_grid_candidate_contract(
