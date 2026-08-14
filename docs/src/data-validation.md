@@ -111,6 +111,38 @@ references for robustness stress—not well-specified recovery truth. The
 preflight does not fit a model, apply the convergence gate, or provide recovery
 evidence.
 
+A separate, explicitly resource-bounded function checks that generation,
+pre-fit validation, fitting, and output-integrity diagnostics are connected:
+
+```julia
+one_case = mgmfrm_response_stress_plan(
+    design_strata = (:connected_sparse_systematic_link,),
+    response_patterns = (:regular_all_categories,),
+)
+fit_smoke = mgmfrm_response_stress_fit_attempts(one_case)
+
+fit_smoke.summary
+fit_smoke.rows
+```
+
+By default, `maximum_attempts = 1`; expanding the plan across more source
+cases, backends, or prior regimes requires an explicit larger bound before any
+generation or fitting starts. Each admitted attempt terminates as
+`:generation_failed`, `:pre_fit_rejected`, `:fit_failed`,
+`:diagnostic_failed`, or `:completed`. Exceptions retain their object, concrete
+type, message, and phase, and a successful fit is retained when only its
+diagnostic phase fails.
+
+The executable `:wiring_smoke` profile uses one chain with four warmup and four
+retained draws. Its integrity checks cover finite draws, log densities,
+pointwise log likelihoods, predictive probabilities and expected scores,
+probability normalization, and direct-parameter constraints. Sampler flags are
+recorded but not adjudicated. Consequently, completion establishes only
+operability of this path: convergence, recovery, coverage, backend agreement,
+prior sensitivity, and scientific decisions remain explicitly unassessed.
+`profile = :analysis` is rejected before execution until the Stage-A analysis
+contract and independently reviewed thresholds are frozen.
+
 ## Clustered Responses and Testlet Identity
 
 When multiple criteria, items, or raters refer to the same response, map the

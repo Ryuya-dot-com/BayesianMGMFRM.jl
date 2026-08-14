@@ -127,6 +127,23 @@ preflight establishes only that the nine default dense/sparse category-gap and
 boundary-pattern cases can be generated and structurally checked; repeated-fit
 recovery evidence remains unrun.
 
+Fit wiring can be checked separately with one explicitly selected case:
+
+```julia
+one_case = mgmfrm_response_stress_plan(
+    design_strata = (:connected_sparse_systematic_link,),
+    response_patterns = (:regular_all_categories,),
+)
+smoke = mgmfrm_response_stress_fit_attempts(one_case)
+smoke.summary
+```
+
+The default resource bound admits one fit attempt and uses one chain with four
+warmup and four retained draws. It preserves generation, pre-fit, fit, and
+diagnostic failures, but deliberately does not assess convergence, recovery,
+backend agreement, prior sensitivity, or scientific validity. The analysis
+profile remains blocked until its protocol and thresholds are frozen.
+
 Stable MFRM/RSM/PCM designs also support `backend = :cmdstan`. CmdStan is an
 optional external runtime, discovered with `cmdstan_backend_check()`; it is not
 required to load the package or use Julia backends. Both guarded generalized

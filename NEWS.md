@@ -26,6 +26,11 @@
   and denominator-preserving preflight. It covers dense and connected-sparse
   five-category gaps and boundary patterns, records typed generation failures,
   and keeps all repeated-fit and scientific decisions explicitly unrun.
+- Add an explicit-plan MGMFRM response-stress fit-wiring runner with a
+  one-attempt default resource bound, typed terminal failures, retained
+  exceptions and partial fit results, and output-integrity diagnostics. Its
+  four-warmup/four-draw profile cannot make convergence or scientific claims;
+  the analysis profile remains blocked.
 - Add `BayesianMGMFRM.Experimental` as the explicit namespace for the
   documented scalar rater-consistency GMFRM and fixed-Q confirmatory MGMFRM
   configurations. These configurations can be fitted with

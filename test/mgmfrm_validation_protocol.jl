@@ -92,12 +92,28 @@ using BayesianMGMFRM
         :simulate_mgmfrm_response_stress
     @test design.response_pattern_stress.attempt_preflight_function ===
         :mgmfrm_response_stress_preflight
+    @test design.response_pattern_stress.fit_attempt_function ===
+        :mgmfrm_response_stress_fit_attempts
+    @test design.response_pattern_stress.fit_attempt_profile ===
+        :wiring_smoke_only
+    @test design.response_pattern_stress.fit_attempt_default_resource_bound == 1
+    @test design.response_pattern_stress.fit_attempt_terminal_statuses == (
+        :generation_failed,
+        :pre_fit_rejected,
+        :fit_failed,
+        :diagnostic_failed,
+        :completed,
+    )
+    @test design.response_pattern_stress.analysis_profile ===
+        :blocked_until_protocol_and_thresholds_are_frozen
     @test design.response_pattern_stress.global_single_category_action ===
         :reject_before_fit
     @test design.response_pattern_stress.no_automatic_scientific_failure_from_pattern_alone
     @test design.response_pattern_stress.repeated_fit_evidence === :not_run
     @test design.response_pattern_stress.generation_status ===
         :sampler_free_generator_implemented
+    @test design.response_pattern_stress.fit_and_diagnostic_attempt_status ===
+        :bounded_wiring_smoke_implemented_without_convergence_or_scientific_scoring
     @test design.anchor_proportion_axis ===
         :excluded_until_anchor_fit_contract_exists
 
@@ -181,5 +197,10 @@ using BayesianMGMFRM
     @test protocol.readiness.completed_enablers.
         attempt_complete_sampler_free_preflight === :implemented
     @test protocol.readiness.completed_enablers.
-        fit_and_diagnostic_attempt_phases === :pending
+        bounded_fit_and_diagnostic_wiring_smoke === :implemented
+    @test protocol.readiness.completed_enablers.
+        fit_and_diagnostic_attempt_phases ===
+        :wiring_smoke_implemented_analysis_pending
+    @test protocol.readiness.completed_enablers.
+        attempt_complete_analysis_profile === :pending
 end

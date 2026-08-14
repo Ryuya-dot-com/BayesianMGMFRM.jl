@@ -296,6 +296,19 @@ function mgmfrm_validation_protocol()
                 generator_function = :simulate_mgmfrm_response_stress,
                 attempt_preflight_function =
                     :mgmfrm_response_stress_preflight,
+                fit_attempt_function =
+                    :mgmfrm_response_stress_fit_attempts,
+                fit_attempt_profile = :wiring_smoke_only,
+                fit_attempt_default_resource_bound = 1,
+                fit_attempt_terminal_statuses = (
+                    :generation_failed,
+                    :pre_fit_rejected,
+                    :fit_failed,
+                    :diagnostic_failed,
+                    :completed,
+                ),
+                analysis_profile =
+                    :blocked_until_protocol_and_thresholds_are_frozen,
                 global_single_category_action = :reject_before_fit,
                 local_boundary_pattern_action =
                     :fit_with_proper_priors_report_separately_and_refit_prior_regimes,
@@ -303,6 +316,8 @@ function mgmfrm_validation_protocol()
                 generation_status = :sampler_free_generator_implemented,
                 preflight_status =
                     :attempt_denominator_and_typed_generation_failures_implemented,
+                fit_and_diagnostic_attempt_status =
+                    :bounded_wiring_smoke_implemented_without_convergence_or_scientific_scoring,
                 repeated_fit_evidence = :not_run,
             ),
             source_sample_size_candidates = (;
@@ -470,7 +485,10 @@ function mgmfrm_validation_protocol()
                 response_stress_plan = :implemented,
                 response_stress_generator = :implemented,
                 attempt_complete_sampler_free_preflight = :implemented,
-                fit_and_diagnostic_attempt_phases = :pending,
+                bounded_fit_and_diagnostic_wiring_smoke = :implemented,
+                fit_and_diagnostic_attempt_phases =
+                    :wiring_smoke_implemented_analysis_pending,
+                attempt_complete_analysis_profile = :pending,
             ),
             next_work_order = blockers,
             next_gate = :implement_blockers_then_freeze_before_fresh_evaluation,

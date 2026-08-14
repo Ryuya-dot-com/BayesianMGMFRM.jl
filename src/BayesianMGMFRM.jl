@@ -115,6 +115,7 @@ export FacetData,
     mgmfrm_decision_stability_score,
     mgmfrm_predictive_recovery_score,
     mgmfrm_response_stress_plan,
+    mgmfrm_response_stress_fit_attempts,
     mgmfrm_response_stress_preflight,
     mgmfrm_validation_protocol,
     mcmc_diagnostics,
@@ -207,6 +208,7 @@ include("mgmfrm_free_correlation_resource_probe.jl")
 include("mgmfrm_free_correlation_study_scoring.jl")
 include("experimental.jl")
 include("mgmfrm_response_stress.jl")
+include("mgmfrm_response_stress_fit.jl")
 include("anchor_refit_plan.jl")
 include("facets_conquest_bridge.jl")
 include("practitioner_diagnostics.jl")
