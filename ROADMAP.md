@@ -231,8 +231,13 @@ work from package-owned, relocatable assets rather than `test/` fixtures:
    agreement. A resource-bounded paired runner now exercises AdvancedHMC and
    CmdStan for all three models under fully crossed and connected sparse
    layouts, without treating its short chains as recovery or equivalence
-   evidence. Repeated recovery, independent review, and analysis-scale
-   comparisons remain pending.
+   evidence. A separate small paired recovery runner now uses nonzero known
+   truth and common direct-scale MAE/RMSE/coverage summaries. The local pilot
+   verifies that the workflow and diagnostic collection execute; its R-hat,
+   ESS, timing, and recovery values are resource-planning descriptions, not
+   pass/fail evidence. A separate protocol must freeze the analysis budget and
+   decision rules before running fresh seeds. Repeated recovery, independent
+   review, and analysis-scale comparisons remain pending.
 
 BridgeStan remains an equation and gradient oracle; it is not evidence that the
 sampling adapter is complete. The Julia and Stan implementations must be kept

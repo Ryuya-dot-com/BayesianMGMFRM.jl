@@ -6,6 +6,7 @@ isdefined(Main, :CmdStanBackendValidation) ||
 @testset "paired AdvancedHMC and CmdStan dense/sparse validation" begin
     result = CmdStanBackendValidation.run_validation(; profile = :smoke)
     @test result.execution_passed
+    @test result.operability_passed
     @test length(result.rows) == 12
     @test length(result.pairs) == 6
     @test all(row -> row.execution_passed, result.rows)
@@ -15,6 +16,8 @@ isdefined(Main, :CmdStanBackendValidation) ||
         result.pairs)
     @test result.caveat ===
         :not_repeated_parameter_recovery_or_backend_equivalence_evidence
+    @test result.diagnostic_decision ===
+        :not_applied_in_smoke_or_pilot
     @test result.timing_caveat ===
         :single_run_times_include_jit_and_cache_state_not_benchmark_evidence
 end

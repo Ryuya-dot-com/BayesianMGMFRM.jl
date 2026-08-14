@@ -100,6 +100,31 @@ original typed failure. Set
 `BAYESIANMGMFRM_CMDSTAN_PAIRED_TESTS=true` to opt this 12-fit smoke matrix into
 the test suite; it is excluded from routine tests to control compute cost.
 
+After the wiring smoke succeeds, a small known-truth recovery pilot can be run
+separately:
+
+```sh
+julia --project=. scripts/run_cmdstan_recovery_pilot.jl 2
+```
+
+The optional integer is the number of paired replications. The runner uses a
+nonzero deterministic truth, simulates one sparse dataset per model and
+replication, fits that same dataset with both backends, and evaluates MAE,
+RMSE, interval coverage, and block error on the common identified direct
+scale. It also reports divergence, maximum tree-depth, R-hat, bulk ESS, and
+tail ESS separately. No pilot threshold or backend ranking is applied.
+`BAYESIANMGMFRM_CMDSTAN_RECOVERY_PILOT_TESTS=true` opts a one-replication run
+into the test suite; routine tests only check its simulation and aggregation
+contract without running MCMC.
+
+The current two-chain, 100-warmup/100-retained budget is deliberately a
+resource and operability probe rather than analysis guidance. R-hat, ESS,
+sampler warnings, and recovery errors are printed so a later validation
+protocol can choose a feasible budget; they do not change the pilot's status
+and are not pass/fail criteria. Any later recovery evaluation must freeze its
+budget and decision rules first and use fresh simulation seeds rather than
+reusing this pilot as evidence.
+
 Sampler success is necessary but not sufficient. Review:
 
 - [`sampler_diagnostics`](@ref) for acceptance and HMC warnings;

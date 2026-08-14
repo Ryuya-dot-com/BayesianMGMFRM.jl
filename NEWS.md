@@ -46,6 +46,10 @@
   stable MFRM, guarded scalar GMFRM, and guarded fixed-Q MGMFRM under fully
   crossed and connected sparse layouts. Its short-chain output is explicitly
   execution evidence, not backend-equivalence or parameter-recovery evidence.
+- Add a separate opt-in paired known-truth recovery pilot with nonzero truth,
+  common direct-scale MAE/RMSE/coverage summaries, and separate sampler,
+  R-hat, bulk-ESS, and tail-ESS reporting. It applies no pilot-derived pass
+  threshold or backend ranking.
 - Add an analysis-facing roadmap program for unified sampler profiles,
   four-chain substantive defaults, chain-level seeds, integrated summaries and
   warnings, simple fit persistence, visualization rows, interval/HDI policy,

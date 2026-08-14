@@ -12,9 +12,9 @@ const _Q_MATRIX = Bool[1 0; 1 0; 0 1; 0 1]
 """
     validation_controls(profile)
 
-Return the resource budget for the paired AdvancedHMC/CmdStan validation
-runner. `:smoke` checks execution wiring only. `:pilot` is a larger local
-diagnostic run, but is still not repeated parameter-recovery evidence.
+Return a resource budget for paired AdvancedHMC/CmdStan validation. `:smoke`
+checks execution wiring and `:pilot` measures local behavior with a small
+budget. Neither is repeated parameter-recovery evidence.
 """
 function validation_controls(profile::Symbol)
     profile === :smoke && return (;
@@ -146,12 +146,16 @@ function _model_spec(data::FacetData, family::Symbol)
     throw(ArgumentError("family must be :mfrm, :gmfrm, or :mgmfrm"))
 end
 
-function _simulation_source(spec::FacetSpec, family::Symbol)
+function _truth_pattern(n_parameters::Int, scale::Float64)
+    return [scale * sin(index) for index in 1:n_parameters]
+end
+
+function _simulation_source(spec::FacetSpec, family::Symbol, truth_scale::Float64)
     if family === :mfrm
         design = getdesign(spec)
         return (;
             design,
-            truth = initial_params(design),
+            truth = _truth_pattern(length(initial_params(design)), truth_scale),
             parameter_space = :direct,
         )
     end
@@ -162,25 +166,46 @@ function _simulation_source(spec::FacetSpec, family::Symbol)
         BayesianMGMFRM._mgmfrm_guarded_local_fit_logdensity(design)
     return (;
         design,
-        truth = initial_params(target),
+        truth = _truth_pattern(length(initial_params(target)), truth_scale),
         parameter_space = :raw,
     )
 end
 
+_direct_truth(family::Symbol, design::FacetDesign, truth) =
+    family === :mfrm ? copy(truth) :
+    family === :gmfrm ?
+        BayesianMGMFRM._gmfrm_source_constrained_params_from_unconstrained(
+            design,
+            truth,
+        ) :
+        BayesianMGMFRM._mgmfrm_source_constrained_params_from_unconstrained(
+            design,
+            truth,
+        )
+
 """
-    simulated_case(family, scenario; seed)
+    simulated_case(family, scenario; seed, truth_scale = 0.15)
 
 Create one known-truth response dataset while retaining the intended 0:2
 category scale even when a simulated sample does not use every category.
 The returned truth is for simulation bookkeeping; a single short-chain run
 must not be interpreted as parameter-recovery evidence.
 """
-function simulated_case(family::Symbol, scenario::Symbol; seed::Integer)
+function simulated_case(family::Symbol, scenario::Symbol;
+        seed::Integer,
+        truth_scale::Real = 0.15)
     family in _FAMILIES ||
         throw(ArgumentError("family must be :mfrm, :gmfrm, or :mgmfrm"))
+    isfinite(truth_scale) && truth_scale >= 0 ||
+        throw(ArgumentError("truth_scale must be finite and non-negative"))
     source_data = scenario_data(scenario)
     source_spec = _model_spec(source_data, family)
-    simulation = _simulation_source(source_spec, family)
+    simulation = _simulation_source(source_spec, family, Float64(truth_scale))
+    direct_truth = _direct_truth(
+        family,
+        simulation.design,
+        simulation.truth,
+    )
     simulated_data = simulate_responses(
         simulation.design,
         simulation.truth;
@@ -193,7 +218,9 @@ function simulated_case(family::Symbol, scenario::Symbol; seed::Integer)
         scenario,
         spec = fitted_spec,
         truth = simulation.truth,
+        direct_truth,
         truth_parameter_space = simulation.parameter_space,
+        truth_scale = Float64(truth_scale),
         simulation_seed = Int(seed),
         n_observations = simulated_data.n,
         rating_fraction = rating_fraction(simulated_data),
@@ -241,6 +268,17 @@ function _diagnostic_total(rows, field::Symbol)
     return isempty(values) ? missing : sum(values)
 end
 
+function _diagnostic_extreme(rows, field::Symbol, reducer)
+    values = Float64[]
+    for row in rows
+        value = getproperty(row, field)
+        ismissing(value) && continue
+        converted = Float64(value)
+        isfinite(converted) && push!(values, converted)
+    end
+    return isempty(values) ? NaN : reducer(values)
+end
+
 function _fit_record(case, backend::Symbol, controls, fit_result, elapsed_seconds)
     direct_draws = _direct_draws(fit_result)
     pointwise = pointwise_loglikelihood_matrix(fit_result)
@@ -278,6 +316,13 @@ function _fit_record(case, backend::Symbol, controls, fit_result, elapsed_second
         execution_passed,
         convergence_assessed = controls.convergence_assessed,
         n_mcmc_warning_parameters,
+        max_rank_normalized_rhat = _diagnostic_extreme(
+            mcmc_rows,
+            :rank_normalized_rhat,
+            maximum,
+        ),
+        min_bulk_ess = _diagnostic_extreme(mcmc_rows, :bulk_ess, minimum),
+        min_tail_ess = _diagnostic_extreme(mcmc_rows, :tail_ess, minimum),
         n_failed_direct_constraints,
         n_divergences = _diagnostic_total(sampler_rows, :n_divergences),
         n_max_treedepth = _diagnostic_total(sampler_rows, :n_max_treedepth),
@@ -386,13 +431,11 @@ function run_validation(;
         rows = Tuple(rows),
         pairs = Tuple(pairs),
         execution_passed,
+        operability_passed = execution_passed,
         n_sampler_warning_rows,
         n_convergence_warning_rows,
-        status = execution_passed ?
-            (n_sampler_warning_rows + n_convergence_warning_rows == 0 ?
-                :completed_without_diagnostic_warning :
-                :completed_with_diagnostic_warnings) :
-            :failed,
+        status = execution_passed ? :completed_operability_check : :failed,
+        diagnostic_decision = :not_applied_in_smoke_or_pilot,
         caveat = :not_repeated_parameter_recovery_or_backend_equivalence_evidence,
         timing_caveat = :single_run_times_include_jit_and_cache_state_not_benchmark_evidence,
     )
@@ -427,6 +470,7 @@ function print_summary(result; io::IO = stdout)
     end
     println(io, "status\t", result.status)
     println(io, "claim_scope\t", result.claim_scope)
+    println(io, "diagnostic_decision\t", result.diagnostic_decision)
     println(io, "caveat\t", result.caveat)
     println(io, "timing_caveat\t", result.timing_caveat)
     return nothing

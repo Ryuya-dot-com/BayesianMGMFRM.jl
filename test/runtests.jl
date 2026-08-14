@@ -20920,6 +20920,8 @@ test_flag("BAYESIANMGMFRM_CMDSTAN_TESTS") &&
     include("cmdstan_sampling.jl")
 test_flag("BAYESIANMGMFRM_CMDSTAN_PAIRED_TESTS") &&
     include("cmdstan_paired_validation.jl")
+test_flag("BAYESIANMGMFRM_CMDSTAN_RECOVERY_PILOT_TESTS") &&
+    include("cmdstan_recovery_pilot.jl")
 
 @testset "FacetData long-format indexing" begin
     table = (
