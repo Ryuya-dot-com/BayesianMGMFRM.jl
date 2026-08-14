@@ -40,6 +40,30 @@ contract.support.implementation_status
 See [API](api.md) for the rendered [`model_equation`](@ref) and
 [`model_family_contract`](@ref) docstrings.
 
+## Stage-A Validation Protocol
+
+[`mgmfrm_validation_protocol`](@ref) records the current scientific-validation
+draft without running MCMC. Its promotion target is deliberately narrower than
+the whole family: the primary domain is the two-dimensional between-item,
+fixed-Q, positive-loading, identity-correlation branch. Fixed within-item and
+mixed Q structures remain boundary evidence; they are not silently included in
+the first promotion claim.
+
+The protocol also records Uto's simulation conditions separately from the
+package plan. Uto (2021) varied 50/100 persons, 5/15 items, 5/15 raters, and
+1/2/3 dimensions, used four categories, and repeated recovery experiments 30
+times. Its later sparse experiment assigned two raters per person through a
+systematic-link design. These are source anchors, not package results or an
+automatic requirement to execute the full factorial grid.
+
+The draft remains explicitly blocked. Only the current generalized prior is
+executable; source-aligned and stronger regularizing refits need a public prior
+constructor. The fresh-seed runner must retain every attempted fit and typed
+failure, prediction/decision-stability scoring remains incomplete, and final
+scientific thresholds require independent review. Until those blockers are
+removed, `protocol_frozen == false`, evaluation must not start, and earlier
+pilot values cannot define acceptance rules.
+
 ## Generalized Partial-Credit and Multidimensional Structure
 
 The guarded scalar GMFRM kernel follows Uto and Ueno (2020), Eq. 9. Its

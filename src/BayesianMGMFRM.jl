@@ -112,6 +112,7 @@ export FacetData,
     local_dependence_summary,
     model_equation,
     model_family_contract,
+    mgmfrm_validation_protocol,
     mcmc_diagnostics,
     model_manifest,
     model_ladder,
@@ -186,6 +187,7 @@ include("cmdstan_backend.jl")
 include("evidence_metadata.jl")
 include("facet_workflow.jl")
 include("model_family_contract.jl")
+include("mgmfrm_validation_protocol.jl")
 include("model_contract.jl")
 include("testlet_design_audit.jl")
 include("bayesian_fit.jl")

@@ -4,6 +4,11 @@
 
 ### Added
 
+- Add `mgmfrm_validation_protocol()` as a non-executing Stage-A draft for the
+  narrow fixed-Q promotion study. It records Uto source anchors, the
+  between-item primary domain, boundary Q structures, estimands, interval and
+  sampler policy, prior regimes, paired backend role, all-attempt failure
+  accounting, and the remaining blockers without treating pilots as evidence.
 - Add `BayesianMGMFRM.Experimental` as the explicit namespace for the
   documented scalar rater-consistency GMFRM and fixed-Q confirmatory MGMFRM
   configurations. These configurations can be fitted with
