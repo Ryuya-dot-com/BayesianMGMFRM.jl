@@ -129,6 +129,8 @@ Sampler success is necessary but not sufficient. Review:
 
 - [`sampler_diagnostics`](@ref) for acceptance and HMC warnings;
 - [`mcmc_diagnostics`](@ref) for parameter-level R-hat and ESS;
+- [`posterior_mcse`](@ref) for on-demand mean, SD, and quantile simulation
+  error after convergence review;
 - [`parameter_block_diagnostics`](@ref) for block-level summaries;
 - [`diagnostics`](@ref) for the compact overall status;
 - prior and posterior predictive checks, calibration, and sensitivity results.

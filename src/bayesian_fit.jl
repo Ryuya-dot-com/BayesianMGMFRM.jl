@@ -11094,6 +11094,184 @@ function direct_posterior_summary(fit::MGMFRMFit;
     )
 end
 
+function _posterior_mcse_value(samples, kind)
+    value = MCMCDiagnosticTools.mcse(samples; kind, split_chains = 2)
+    if ismissing(value)
+        return missing
+    end
+    converted = Float64(value)
+    return isfinite(converted) && converted >= 0 ? converted : missing
+end
+
+function _posterior_mcse_rows(draws::AbstractMatrix{<:Real},
+        parameter_names,
+        chains::Integer;
+        probabilities = (0.025, 0.5, 0.975),
+        parameter_space::Symbol,
+        structurally_fixed_parameters = Set{String}())
+    checked_chains = Int(chains)
+    checked_chains >= 1 || throw(ArgumentError("chains must be positive"))
+    names = String.(collect(parameter_names))
+    size(draws, 2) == length(names) || throw(ArgumentError(
+        "parameter name count does not match draw columns",
+    ))
+    checked_probabilities = _posterior_interval_probabilities(probabilities)
+    values = _draw_matrix_to_chain_array(draws, checked_chains)
+    draws_per_chain = size(values, 1)
+    total_draws = size(draws, 1)
+    rows = NamedTuple[]
+    for parameter_index in axes(values, 3)
+        parameter = names[parameter_index]
+        samples = @view values[:, :, parameter_index]
+        flat_samples = vec(samples)
+        sorted = sort(Float64.(flat_samples))
+        structurally_fixed = parameter in structurally_fixed_parameters
+        finite_draws = all(isfinite, flat_samples)
+        degenerate_draws = finite_draws && allequal(flat_samples)
+        status = !finite_draws ? :nonfinite_draws :
+            structurally_fixed && degenerate_draws ? :structurally_fixed :
+            structurally_fixed ? :fixed_parameter_varied :
+            checked_chains < 2 ? :insufficient_chains :
+            draws_per_chain < 10 ? :insufficient_draws :
+            degenerate_draws ? :degenerate_draws : :available
+        mean_mcse = status === :structurally_fixed ? 0.0 :
+            status === :available ?
+                _posterior_mcse_value(samples, Statistics.mean) : missing
+        sd_mcse = status === :structurally_fixed ? 0.0 :
+            status === :available ?
+                _posterior_mcse_value(samples, Statistics.std) : missing
+        quantile_rows = Tuple((;
+            probability,
+            estimate = _quantile_sorted(sorted, probability),
+            mcse = status === :structurally_fixed ? 0.0 :
+                status === :available ? _posterior_mcse_value(
+                    samples,
+                    Base.Fix2(Statistics.quantile, probability),
+                ) : missing,
+        ) for probability in checked_probabilities)
+        all_mcse_available = !ismissing(mean_mcse) && !ismissing(sd_mcse) &&
+            all(row -> !ismissing(row.mcse), quantile_rows)
+        mcse_status = status === :available && !all_mcse_available ?
+            :mcse_unavailable : status
+        push!(rows, (;
+            parameter,
+            parameter_space,
+            mean_mcse,
+            sd_mcse,
+            quantiles = quantile_rows,
+            n_chains = checked_chains,
+            draws_per_chain,
+            total_draws,
+            mcse_status,
+            mcse_method =
+                :mcmcdiagnostictools_ess_asymptotic_variance,
+            split_chains = 2,
+            minimum_draws_per_chain = 10,
+            convergence_review_required =
+                mcse_status !== :structurally_fixed,
+            precision_threshold_applied = false,
+            precision_decision = :not_applied,
+        ))
+    end
+    return rows
+end
+
+function _posterior_mcse_generalized_input(
+        fit::Union{GMFRMFit,MGMFRMFit},
+        parameter_space::Symbol)
+    selected = parameter_space === :auto ?
+        :direct_constrained : parameter_space
+    if selected === :raw_unconstrained
+        return (;
+            draws = fit.draws,
+            parameter_names = fit.diagnostic_surface.raw_parameter_names,
+            parameter_space = selected,
+            structurally_fixed_parameters = Set{String}(),
+        )
+    elseif selected === :direct_constrained
+        fixed = Set(String(row.parameter)
+            for row in fit.diagnostic_surface.direct_parameter_rows
+            if hasproperty(row, :quality_gate_applicable) &&
+                !row.quality_gate_applicable)
+        return (;
+            draws = fit.direct_draws,
+            parameter_names = fit.diagnostic_surface.direct_parameter_names,
+            parameter_space = selected,
+            structurally_fixed_parameters = fixed,
+        )
+    end
+    throw(ArgumentError(
+        "generalized posterior_mcse parameter_space must be :auto, " *
+        ":raw_unconstrained, or :direct_constrained",
+    ))
+end
+
+"""
+    posterior_mcse(fit; probabilities = (0.025, 0.5, 0.975),
+                   parameter_space = :auto)
+    posterior_mcse(draws; chains, parameter_names,
+                   probabilities = (0.025, 0.5, 0.975),
+                   parameter_space = :user_defined_estimand)
+
+Estimate Monte Carlo standard errors for posterior means, standard deviations,
+and requested quantiles. Fit-based calls use identified parameters for MFRM
+fits and direct constrained parameters for generalized fits by default; pass
+`parameter_space = :raw_unconstrained` to inspect generalized sampling
+coordinates.
+
+The matrix method supports derived estimands: arrange rows in contiguous chain
+blocks, transform each draw to the quantities of interest, and supply one name
+per column. MCSE measures simulation precision only. Every non-fixed row keeps
+`convergence_review_required = true`, and no universal precision threshold or
+scientific decision is applied. Calls with fewer than two chains or fewer than
+10 retained draws per chain return typed unavailable rows instead of presenting
+short-chain MCSE as usable evidence.
+"""
+function posterior_mcse(fit::MFRMFit;
+        probabilities = (0.025, 0.5, 0.975),
+        parameter_space::Symbol = :auto)
+    selected = parameter_space === :auto ? :identified : parameter_space
+    selected === :identified || throw(ArgumentError(
+        "MFRM posterior_mcse parameter_space must be :auto or :identified",
+    ))
+    return _posterior_mcse_rows(
+        fit.draws,
+        fit.design.parameter_names,
+        length(fit.chain_acceptance_rate);
+        probabilities,
+        parameter_space = selected,
+    )
+end
+
+function posterior_mcse(fit::Union{GMFRMFit,MGMFRMFit};
+        probabilities = (0.025, 0.5, 0.975),
+        parameter_space::Symbol = :auto)
+    input = _posterior_mcse_generalized_input(fit, parameter_space)
+    return _posterior_mcse_rows(
+        input.draws,
+        input.parameter_names,
+        length(fit.chain_acceptance_rate);
+        probabilities,
+        parameter_space = input.parameter_space,
+        structurally_fixed_parameters =
+            input.structurally_fixed_parameters,
+    )
+end
+
+function posterior_mcse(draws::AbstractMatrix{<:Real};
+        chains::Integer,
+        parameter_names = ["estimand_$index" for index in axes(draws, 2)],
+        probabilities = (0.025, 0.5, 0.975),
+        parameter_space::Symbol = :user_defined_estimand)
+    return _posterior_mcse_rows(
+        draws,
+        parameter_names,
+        chains;
+        probabilities,
+        parameter_space,
+    )
+end
+
 function _mfrm_pointwise_loglikelihood_matrix_unchecked(
         design::FacetDesign,
         draws::AbstractMatrix)

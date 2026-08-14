@@ -342,6 +342,16 @@ end
         gmfrm_fit = experimental.fit(gmfrm_spec; smoke_controls...)
         @test gmfrm_fit isa experimental.GMFRMFit
         @test fit_metadata(gmfrm_fit).experimental_public
+        gmfrm_mcse = posterior_mcse(gmfrm_fit)
+        @test all(row -> row.parameter_space === :direct_constrained,
+            gmfrm_mcse)
+        @test all(row -> row.mcse_status in
+            (:insufficient_chains, :structurally_fixed), gmfrm_mcse)
+        @test all(row -> row.parameter_space === :raw_unconstrained,
+            posterior_mcse(
+                gmfrm_fit;
+                parameter_space = :raw_unconstrained,
+            ))
 
         namespaced_fit = experimental.fit(
             mgmfrm_spec;
@@ -349,6 +359,13 @@ end
         )
         @test namespaced_fit isa experimental.MGMFRMFit
         @test fit_metadata(namespaced_fit).experimental_public
+        mgmfrm_mcse = posterior_mcse(namespaced_fit)
+        @test all(row -> row.parameter_space === :direct_constrained,
+            mgmfrm_mcse)
+        @test_throws ArgumentError posterior_mcse(
+            namespaced_fit;
+            parameter_space = :identified,
+        )
         mgmfrm_artifact = fit_artifact(
             namespaced_fit;
             include_environment = false,

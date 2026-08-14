@@ -279,8 +279,8 @@ confirmatory contract. `cached_fit` is not yet connected to CmdStan.
 4. Fit the supported model with `fit` or use `cached_fit` when the cache
    identity is part of the reproducibility plan.
 5. Review `sampler_diagnostics`, `mcmc_diagnostics`,
-   `parameter_block_diagnostics`, posterior predictive checks, calibration,
-   and sensitivity results.
+   `parameter_block_diagnostics`, and estimand-specific `posterior_mcse`, then
+   inspect posterior predictive checks, calibration, and sensitivity results.
 6. Export `fit_report(fit; view = :public)` for a portable reader-facing
    structured report, or use a human-readable Markdown summary.
 
@@ -314,6 +314,16 @@ must not be reinterpreted as modern diagnostics. The primary `flag` aliases
 `rank_normalized_flag`; `classical_compatibility_flag` reports the legacy check.
 Publication-grade MCMC gate rows fail closed when that contract identifier is
 missing or different.
+
+Use `posterior_mcse(fit)` for on-demand Monte Carlo standard errors of
+posterior means, standard deviations, and the default 2.5%, 50%, and 97.5%
+quantiles. Generalized fits default to interpretable direct constrained
+parameters; raw sampling coordinates remain available with
+`parameter_space = :raw_unconstrained`. The matrix method accepts
+chain-blocked draw columns for derived contrasts or other estimands. MCSE rows
+apply no universal threshold and explicitly require a separate convergence
+review. Fewer than two chains or 10 retained draws per chain produce typed
+unavailable rows rather than apparently precise short-chain results.
 
 Useful reporting functions include:
 

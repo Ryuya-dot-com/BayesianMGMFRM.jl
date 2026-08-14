@@ -111,6 +111,22 @@ A completed run is not automatically a trustworthy run. Divergences,
 tree-depth saturation, low ESS, unstable R-hat, non-finite evaluations, or
 constraint failures require investigation.
 
+After that convergence review, use [`posterior_mcse`](@ref) to quantify the
+simulation error of reported means, standard deviations, and quantiles:
+
+```julia
+mcse_rows = posterior_mcse(fit_result;
+    probabilities = (0.025, 0.5, 0.975),
+)
+```
+
+For a derived estimand, compute one value per posterior draw while preserving
+the contiguous chain blocks, place the values in matrix columns, and call the
+matrix method with `chains` and `parameter_names`. The function deliberately
+does not turn MCSE into a universal pass/fail threshold. Required precision
+depends on the reported estimand and substantive decision; MCSE also cannot
+repair or certify non-converged chains.
+
 ## 5. Examine Predictions and Residuals
 
 Use [`posterior_predictive_check`](@ref),

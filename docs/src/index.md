@@ -30,7 +30,8 @@ correlations, and fitted DFF effects are not supported. See
 5. Fit the supported design with [`fit`](@ref).
 6. Review [`sampler_diagnostics`](@ref), [`mcmc_diagnostics`](@ref),
    [`parameter_block_diagnostics`](@ref), and [`diagnostics`](@ref).
-7. Inspect posterior, predictive, calibration, residual, and sensitivity rows.
+7. Inspect estimand-specific [`posterior_mcse`](@ref), posterior, predictive,
+   calibration, residual, and sensitivity rows.
 8. Export `fit_report(fit; view = :public)` or
    [`fit_report_public`](@ref) for reader-facing structured data, or use
    [`fit_report_markdown`](@ref) for Markdown. Evidence exports should inspect

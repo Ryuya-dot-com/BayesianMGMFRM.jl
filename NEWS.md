@@ -83,6 +83,11 @@
   divergences, maximum-depth hits, mean leapfrog steps, mean and maximum tree
   depth, mean step size, and complete-chain E-BFMI availability. The bounded
   single-chain probe still makes no convergence or scientific decision.
+- Add on-demand `posterior_mcse` rows for posterior means, standard
+  deviations, and requested quantiles. The function supports identified MFRM
+  parameters, generalized raw/direct coordinates, and chain-blocked matrices
+  of user-defined estimands; short or single-chain inputs fail visibly as
+  unavailable, and no universal precision threshold is applied.
 - Reduce guarded MGMFRM gradient allocation without changing the fixed-Q
   likelihood: build the Q-to-loading index matrix once per evaluation, avoid
   row-level predictor arrays in the fit path, and accumulate total likelihood

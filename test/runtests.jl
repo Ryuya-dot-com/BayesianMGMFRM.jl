@@ -33055,6 +33055,7 @@ test_group_enabled(:generalized) && RUN_RESEARCH_EVIDENCE_TESTS &&
     include("publication_grade_policy_contract.jl")
 if test_group_enabled(:fitting)
     include("public_language_gate.jl")
+    include("posterior_mcse.jl")
     include("rank_normalized_diagnostics.jl")
     include("scientific_payload_digest.jl")
 end
