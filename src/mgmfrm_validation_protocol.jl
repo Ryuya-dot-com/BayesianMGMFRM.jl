@@ -418,6 +418,19 @@ function mgmfrm_validation_protocol()
             disagreement_action =
                 :investigate_parameterization_or_implementation_before_scientific_scoring,
         ),
+        execution_design = (;
+            function_name =
+                :mgmfrm_validation_execution_design_contract,
+            status =
+                :heldout_retry_and_stratified_sensitivity_choices_frozen,
+            primary_heldout_target =
+                :conditional_existing_level_heldout_response,
+            primary_heldout_folds = 5,
+            retry_primary_outcome_overwritable = false,
+            n_exact_sensitivity_role_cells = 24,
+            role_cells_are_fit_attempt_count = false,
+            repository_or_sha_identity_required = false,
+        ),
         seeds = (;
             evaluation_seed_family = :fresh_not_used_by_prior_pilots,
             deterministic_by = (:scenario, :replication, :model, :chain),
@@ -492,6 +505,8 @@ function mgmfrm_validation_protocol()
                     :wiring_smoke_implemented_analysis_pending,
                 attempt_complete_analysis_contract =
                     :implemented_execution_blocked,
+                heldout_retry_and_sensitivity_design =
+                    :frozen_before_evaluation,
                 attempt_complete_analysis_profile =
                     :draft_contract_implemented_execution_blocked,
             ),

@@ -42,6 +42,15 @@ function _mgmfrm_analysis_fixed_components()
         (code = :attempt_denominator_and_seed_policy,
             state = :fixed_in_stage_a_draft,
             source = :failure_accounting_and_seeds),
+        (code = :heldout_prediction_design,
+            state = :fixed_before_evaluation,
+            source = :mgmfrm_validation_execution_design_contract),
+        (code = :retry_and_remediation_design,
+            state = :fixed_before_evaluation,
+            source = :mgmfrm_validation_execution_design_contract),
+        (code = :stratified_sensitivity_cells,
+            state = :fixed_before_evaluation,
+            source = :mgmfrm_validation_execution_design_contract),
     )
 end
 
@@ -61,31 +70,6 @@ function _mgmfrm_analysis_open_decisions(protocol)
             required_resolution =
                 :freeze_from_monte_carlo_precision_and_resource_review,
             pilot_role = :runtime_and_operability_only,
-            blocks_execution = true,
-        ),
-        (;
-            code = :heldout_response_split,
-            current_state = :not_declared,
-            required_resolution =
-                :freeze_conditional_prediction_target_fraction_and_structure_preserving_split,
-            pilot_role = :not_applicable,
-            blocks_execution = true,
-        ),
-        (;
-            code = :stratified_sensitivity_cells,
-            current_state = :axes_declared_exact_cells_pending,
-            required_resolution =
-                :freeze_exact_prior_q_response_and_unidimensional_comparison_cells,
-            pilot_role = :runtime_and_operability_only,
-            blocks_execution = true,
-        ),
-        (;
-            code = :retry_policy,
-            current_state =
-                :primary_nonoverwriting_rule_drafted_triggers_and_limits_pending,
-            required_resolution =
-                :freeze_eligible_failures_max_attempts_and_allowed_sampler_changes,
-            pilot_role = :failure_mode_discovery_only,
             blocks_execution = true,
         ),
         (;
@@ -116,11 +100,11 @@ MGMFRM validation program. The result separates Stage-A components that are
 already specified from decisions that still block fresh-seed evaluation.
 
 The contract fixes the four-chain sampler controls, computational diagnostics,
-estimands, interval and scale policies, prior regimes, backend-conformance
+estimands, interval and scale policies, prior regimes, held-out design,
+retry/remediation rules, stratified sensitivity cells, backend-conformance
 cells, terminal statuses, seed rules, and all-attempt denominator. It does not
-choose unresolved sample-size cells, replication counts, held-out splitting,
-sensitivity cells, complete retry rules, resource caps, or scientific
-thresholds.
+choose unresolved sample-size cells, replication counts, resource caps, or
+scientific thresholds.
 
 This function generates no data, runs no sampler, and cannot authorize an
 analysis. Runtime pilots may inform resource choices only; they cannot set
@@ -128,6 +112,7 @@ scientific thresholds.
 """
 function mgmfrm_validation_analysis_contract()
     protocol = mgmfrm_validation_protocol()
+    execution_design = _mgmfrm_validation_execution_design_contract(protocol)
     fixed_components = _mgmfrm_analysis_fixed_components()
     open_decisions = _mgmfrm_analysis_open_decisions(protocol)
     blocking_decisions = Tuple(
@@ -165,6 +150,7 @@ function mgmfrm_validation_analysis_contract()
         seeds = protocol.seeds,
         scoring = protocol.scoring,
         scientific_decision = protocol.scientific_decision,
+        execution_design,
         attempts = (;
             unit = (:scenario, :replication, :model, :backend, :prior_regime),
             initial_status = :not_started,
@@ -176,9 +162,10 @@ function mgmfrm_validation_analysis_contract()
                 protocol.failure_accounting.successful_fits_only_summary_allowed,
             original_error_preserved =
                 protocol.failure_accounting.original_error_preserved,
-            primary_attempt = 1,
-            primary_outcome_overwritable_by_retry = false,
-            retry_role = :separate_remediation_record_only,
+            primary_attempt = execution_design.retry.primary_attempt,
+            primary_outcome_overwritable_by_retry =
+                execution_design.retry.primary_outcome_overwritable,
+            retry_role = execution_design.retry.remediation_role,
             completed_implies_computational_pass = false,
             completed_implies_scientific_pass = false,
             wiring_function = :mgmfrm_response_stress_fit_attempts,
@@ -195,6 +182,12 @@ function mgmfrm_validation_analysis_contract()
             response_stress_source_cases,
             backend_conformance_cells = length(
                 protocol.backends.reference_subset.paired_stratum_cells),
+            prior_response_sensitivity_cells =
+                execution_design.sensitivity.n_prior_response_cells,
+            structure_comparison_cells =
+                execution_design.sensitivity.n_structure_comparison_cells,
+            sensitivity_role_cells =
+                execution_design.sensitivity.n_sensitivity_role_cells,
             exact_analysis_attempts =
                 :not_computable_until_grid_subsets_and_replications_are_frozen,
             full_cartesian_expansion_allowed = false,
@@ -219,7 +212,6 @@ function mgmfrm_validation_analysis_contract()
             values_are_validation_evidence = false,
         ),
         next_work_order = (
-            :freeze_heldout_retry_and_exact_sensitivity_cell_contracts,
             :run_runtime_only_resource_probe,
             :freeze_primary_grid_replications_and_resource_caps,
             :obtain_independent_scientific_threshold_review,

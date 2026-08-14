@@ -167,6 +167,16 @@ using BayesianMGMFRM
     @test protocol.backends.disagreement_action ===
         :investigate_parameterization_or_implementation_before_scientific_scoring
 
+    @test protocol.execution_design.function_name ===
+        :mgmfrm_validation_execution_design_contract
+    @test protocol.execution_design.primary_heldout_target ===
+        :conditional_existing_level_heldout_response
+    @test protocol.execution_design.primary_heldout_folds == 5
+    @test !protocol.execution_design.retry_primary_outcome_overwritable
+    @test protocol.execution_design.n_exact_sensitivity_role_cells == 24
+    @test !protocol.execution_design.role_cells_are_fit_attempt_count
+    @test !protocol.execution_design.repository_or_sha_identity_required
+
     @test protocol.failure_accounting.denominator ===
         :all_predeclared_attempts
     @test !protocol.failure_accounting.successful_fits_only_summary_allowed
@@ -206,6 +216,9 @@ using BayesianMGMFRM
     @test protocol.readiness.completed_enablers.
         attempt_complete_analysis_contract ===
         :implemented_execution_blocked
+    @test protocol.readiness.completed_enablers.
+        heldout_retry_and_sensitivity_design ===
+        :frozen_before_evaluation
     @test protocol.readiness.completed_enablers.
         attempt_complete_analysis_profile ===
         :draft_contract_implemented_execution_blocked

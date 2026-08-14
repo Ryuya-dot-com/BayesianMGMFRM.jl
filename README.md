@@ -147,7 +147,12 @@ profile remains blocked until its protocol and thresholds are frozen.
 The remaining boundary can be inspected without starting an analysis:
 
 ```julia
+execution_design = mgmfrm_validation_execution_design_contract()
 analysis_contract = mgmfrm_validation_analysis_contract()
+
+execution_design.heldout
+execution_design.retry
+execution_design.sensitivity
 analysis_contract.fixed_components
 analysis_contract.open_decisions
 analysis_contract.readiness
@@ -155,10 +160,13 @@ analysis_contract.readiness
 
 This draft fixes the four-chain sampler, computational gate, estimands,
 interval and scale policies, prior regimes, backend subset, seeds, terminal
-statuses, and all-attempt denominator. It explicitly blocks execution while
-the exact primary and sensitivity cells, replication count, held-out split,
-retry triggers and limits, resource caps, and independently reviewed scientific
-thresholds remain unresolved. It generates no data and runs no MCMC.
+statuses, all-attempt denominator, five-fold conditional observation holdout,
+non-overwriting remediation, and 24 exact sensitivity role-cells. New-person,
+new-item, and new-rater prediction are not claimed. Execution remains blocked
+while the final primary grid, replication count, resource caps, and
+independently reviewed scientific thresholds are unresolved. These contracts
+use package APIs and semantic identifiers, not repository paths, commits, or
+fixture hashes; they generate no data and run no MCMC.
 
 Stable MFRM/RSM/PCM designs also support `backend = :cmdstan`. CmdStan is an
 optional external runtime, discovered with `cmdstan_backend_check()`; it is not

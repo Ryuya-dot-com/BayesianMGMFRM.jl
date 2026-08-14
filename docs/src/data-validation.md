@@ -146,22 +146,35 @@ contract and independently reviewed thresholds are frozen.
 Use the non-executing contract to inspect that boundary directly:
 
 ```julia
+execution_design = mgmfrm_validation_execution_design_contract()
 analysis_contract = mgmfrm_validation_analysis_contract()
 
+execution_design.heldout
+execution_design.retry
+execution_design.sensitivity
 analysis_contract.status
 analysis_contract.fixed_components
 analysis_contract.open_decisions
 analysis_contract.next_work_order
 ```
 
-Ten structural and computational components are recorded as fixed in the
-Stage-A draft. Seven decisions still block execution: final primary grid
-cells, evaluation replications, the structure-preserving held-out response
-split, exact stratified sensitivity cells, retry rules, analysis resource caps,
-and independently reviewed scientific thresholds. Until the grid subsets and
-replications are frozen, even the analysis attempt denominator is deliberately
-reported as not computable. Runtime pilots may inform cost and batching, not
-scientific cutoffs or backend rankings.
+Thirteen structural, computational, and execution-design components are now
+recorded as fixed in the Stage-A draft. The primary predictive target is a
+seeded five-fold observation split conditional on person, item, and rater
+levels retained in every training fold; `kfold_plan_diagnostics(...;
+facets = :all)` must pass before refitting. This does not estimate prediction
+for unseen persons, items, or raters. Primary results cannot be overwritten by
+remediation, and the 24 sensitivity role-cells cover prior/response, Q
+boundary/misspecification, unidimensional MFRM comparison, and paired CmdStan
+roles without treating their count as a fit workload.
+
+Four decisions still block execution: final primary grid cells, evaluation
+replications, analysis resource caps, and independently reviewed scientific
+thresholds. Until the grid and replications are frozen, the analysis attempt
+denominator remains deliberately not computable. Runtime pilots may inform
+cost and batching, not scientific cutoffs or backend rankings. The design
+contract has no repository-path, commit, fixture-hash, or byte-identity
+dependency.
 
 ## Clustered Responses and Testlet Identity
 

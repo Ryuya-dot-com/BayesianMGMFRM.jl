@@ -118,6 +118,7 @@ export FacetData,
     mgmfrm_response_stress_fit_attempts,
     mgmfrm_response_stress_preflight,
     mgmfrm_validation_analysis_contract,
+    mgmfrm_validation_execution_design_contract,
     mgmfrm_validation_protocol,
     mcmc_diagnostics,
     model_manifest,
@@ -210,6 +211,7 @@ include("mgmfrm_free_correlation_study_scoring.jl")
 include("experimental.jl")
 include("mgmfrm_response_stress.jl")
 include("mgmfrm_response_stress_fit.jl")
+include("mgmfrm_validation_execution_design.jl")
 include("mgmfrm_validation_analysis_contract.jl")
 include("anchor_refit_plan.jl")
 include("facets_conquest_bridge.jl")

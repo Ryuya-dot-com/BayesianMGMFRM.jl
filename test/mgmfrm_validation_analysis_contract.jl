@@ -39,8 +39,7 @@ using BayesianMGMFRM
     @test contract.attempts.original_error_preserved
     @test contract.attempts.primary_attempt == 1
     @test !contract.attempts.primary_outcome_overwritable_by_retry
-    @test contract.attempts.retry_role ===
-        :separate_remediation_record_only
+    @test contract.attempts.retry_role === :separate_nonpromotional_record
     @test !contract.attempts.completed_implies_computational_pass
     @test !contract.attempts.completed_implies_scientific_pass
     @test contract.attempts.analysis_executor === :not_implemented
@@ -55,15 +54,18 @@ using BayesianMGMFRM
 
     @test contract.workload.response_stress_source_cases == 9
     @test contract.workload.backend_conformance_cells == 5
+    @test contract.workload.prior_response_sensitivity_cells == 10
+    @test contract.workload.structure_comparison_cells == 9
+    @test contract.workload.sensitivity_role_cells == 24
     @test contract.workload.final_primary_grid_cells ===
         :pending_runtime_only_resource_probe
     @test contract.workload.evaluation_replications ===
         :pending_coverage_precision_review
     @test !contract.workload.full_cartesian_expansion_allowed
 
-    @test contract.readiness.fixed_component_count == 10
-    @test contract.readiness.open_decision_count == 7
-    @test contract.readiness.n_blockers == 7
+    @test contract.readiness.fixed_component_count == 13
+    @test contract.readiness.open_decision_count == 4
+    @test contract.readiness.n_blockers == 4
     @test !contract.readiness.protocol_frozen
     @test !contract.readiness.scientific_thresholds_frozen
     @test !contract.readiness.analysis_executor_implemented
@@ -71,9 +73,6 @@ using BayesianMGMFRM
     @test Set(contract.readiness.blocking_decisions) == Set((
         :final_primary_grid_cells,
         :evaluation_replications,
-        :heldout_response_split,
-        :stratified_sensitivity_cells,
-        :retry_policy,
         :analysis_resource_policy,
         :scientific_thresholds_and_independent_review,
     ))
@@ -83,5 +82,8 @@ using BayesianMGMFRM
     @test !contract.pilot_policy.values_may_define_scientific_thresholds
     @test !contract.pilot_policy.values_may_rank_backends
     @test !contract.pilot_policy.values_are_validation_evidence
+    @test contract.execution_design.design_choices_frozen
+    @test contract.execution_design.sensitivity.n_sensitivity_role_cells == 24
+    @test first(contract.next_work_order) === :run_runtime_only_resource_probe
     @test last(contract.next_work_order) === :start_fresh_seed_evaluation
 end
