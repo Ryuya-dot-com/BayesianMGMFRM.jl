@@ -137,7 +137,7 @@ usually wants to see.
 **Bayesian fitting**
 
 - `fit` supports minimal MFRM/RSM/PCM models with `backend = :julia`,
-  `backend = :advancedhmc`, or `backend = :turing`.
+  `backend = :advancedhmc`, `backend = :turing`, or `backend = :cmdstan`.
 - `cached_fit`, `fit_cache_key`, `save_fit_cache`, and `load_fit_cache` provide
   same-environment recomputation control.
 - `MFRMPrior`, `MFRMLogDensity`, `initial_params`, `loglikelihood`,

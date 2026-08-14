@@ -1078,14 +1078,19 @@ end
         warmup = 1000, chains = 1, step_size = 0.05, init = nothing,
         rng = Random.default_rng(), seed = nothing, target_accept = 0.8,
         max_depth = 10, max_energy_error = 1000.0, metric = :diagonal,
-        ad_backend = :ForwardDiff, init_jitter = 0.0, progress = false)
+        ad_backend = :ForwardDiff, init_jitter = 0.0, progress = false,
+        cmdstan_path = nothing, cmdstan_cache_dir = nothing)
     BayesianMGMFRM.Experimental.fit(spec; backend = :advancedhmc, ...)
 
 Fit the current minimal Bayesian MFRM/RSM/PCM scaffold with the selected
 backend. `backend = :julia` uses a random-walk Metropolis kernel,
 `backend = :advancedhmc` uses AdvancedHMC/NUTS directly, and
 `backend = :turing` wraps the same `MFRMLogDensity` target in a Turing/NUTS
-model. Supplying `seed` uses a local `MersenneTwister(seed)` and records the
+model. `backend = :cmdstan` compiles the package-owned stable MFRM Stan model,
+runs CmdStan's NUTS command-line interface, and converts its retained draws and
+sampler columns to the same `MFRMFit` result. CmdStan is discovered through
+`cmdstan_path`, `CMDSTAN`, `CMDSTAN_HOME`, or a versioned `~/.cmdstan`
+installation. Supplying `seed` uses a local `MersenneTwister(seed)` and records the
 seed in `sampler_controls`; otherwise the supplied `rng` is used without a
 replayable seed record.
 
@@ -1130,12 +1135,20 @@ function fit(design::FacetDesign;
         metric::Symbol = :diagonal,
         ad_backend::Symbol = :ForwardDiff,
         init_jitter::Real = 0.0,
-        progress::Bool = false)
+        progress::Bool = false,
+        cmdstan_path::Union{Nothing,AbstractString} = nothing,
+        cmdstan_cache_dir::Union{Nothing,AbstractString} = nothing)
     ndraws >= 1 || throw(ArgumentError("ndraws must be positive"))
     warmup >= 0 || throw(ArgumentError("warmup must be non-negative"))
     chains >= 1 || throw(ArgumentError("chains must be positive"))
     isfinite(step_size) && step_size > 0 ||
         throw(ArgumentError("step_size must be finite and positive"))
+    if backend !== :cmdstan &&
+            (cmdstan_path !== nothing || cmdstan_cache_dir !== nothing)
+        throw(ArgumentError(
+            "cmdstan_path and cmdstan_cache_dir apply only to backend = :cmdstan",
+        ))
+    end
     execution_design = _validated_design_snapshot(design, "fit")
     initial = _fit_initial_params(execution_design, init)
     fit_rng, rng_control = _fit_rng(rng, seed)
@@ -1163,8 +1176,22 @@ function fit(design::FacetDesign;
             ad_backend,
             init_jitter,
             progress)
+    elseif backend === :cmdstan
+        return _fit_cmdstan(execution_design, prior, ndraws, warmup, chains,
+            Float64(step_size), initial, fit_rng, rng_control;
+            target_accept,
+            max_depth,
+            max_energy_error,
+            metric,
+            ad_backend,
+            init_jitter,
+            progress,
+            cmdstan_path,
+            cmdstan_cache_dir)
     else
-        throw(ArgumentError("backend must be :julia, :advancedhmc, or :turing"))
+        throw(ArgumentError(
+            "backend must be :julia, :advancedhmc, :turing, or :cmdstan",
+        ))
     end
 end
 

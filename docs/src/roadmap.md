@@ -26,8 +26,8 @@ The current package supports:
 - small-example Bayesian fitting for the minimal identified design via
   [`fit`](@ref), [`MFRMPrior`](@ref), and [`MFRMFit`](@ref), including
   random-walk Metropolis, an AdvancedHMC/NUTS backend with a shared analytic/AD
-  gradient adapter, and a Turing/NUTS wrapper around the same
-  `MFRMLogDensity` target;
+  gradient adapter, a Turing/NUTS wrapper around the same `MFRMLogDensity`
+  target, and a direct CmdStan/NUTS route using a package-owned stable model;
 - guarded experimental generalized fitting via
   `BayesianMGMFRM.Experimental.fit(spec)`, returning [`GMFRMFit`](@ref) for the scalar
   rater-consistency GMFRM candidate, configured with the compatibility keyword
@@ -47,8 +47,10 @@ The current package supports:
 
 The current `backend = :julia` sampler is a random-walk Metropolis path for
 small validation examples. `backend = :turing` is a NUTS interface limited to
-the current minimal MFRM/RSM/PCM design. `backend = :advancedhmc` also backs the
-guarded scalar GMFRM and fixed-Q confirmatory MGMFRM candidates when
+the current minimal MFRM/RSM/PCM design. `backend = :cmdstan` is likewise
+limited to stable MFRM/RSM/PCM and requires an external CmdStan installation;
+it is not yet available through `cached_fit`. `backend = :advancedhmc` also
+backs the guarded scalar GMFRM and fixed-Q confirmatory MGMFRM candidates when
 `experimental = true`.
 
 ## Active Core Integrity Gate
@@ -92,13 +94,24 @@ these models. R's Facets/TAM/mirt/sirt/immer ecosystem remains the breadth,
 migration, and overlap-comparison baseline, while Julia's compilation latency
 and smaller psychometric ecosystem remain real costs.
 
-CmdStan is not the canonical runtime because that would require maintaining a
-second model compiler and synchronizing parameter names, validation, reports,
-and caches across Julia and Stan. Stan/BridgeStan instead serves as an
-independent log-density and gradient oracle. An optional CmdStan fit backend is
-reconsidered only if same-target diagnostics, ESS/sec, memory, failure behavior,
-and maintenance cost show a benefit; no Julia-versus-R/Stan speed claim is
-currently supported.
+CmdStan fitting is now required before stable promotion, while remaining an
+optional external runtime rather than a hard dependency for loading the
+package. Julia stays the canonical model/data contract and Julia-only features
+must work on machines without CmdStan, but the stable fitting claim must include
+an explicit working `backend = :cmdstan` route. This is a required independent
+execution path, not a declaration that Stan is the sole or default backend.
+
+`cmdstan_backend_check()` checks a local CmdStan root, `stanc`, `make`, and C++
+compiler without compiling or sampling. Stable MFRM/RSM/PCM designs now have a
+package-owned Stan model, data/initialization encoder, explicit chain seeds and
+controls, direct CLI execution, standard sampler-column import, a common
+`MFRMFit` result, typed failures, and per-draw Julia/Stan pointwise-likelihood
+agreement checks. This does not yet satisfy the release gate: generalized
+models, cache integration, bounded parallel chains, recovery, sparse-design,
+independent review, and analysis-scale comparisons remain. BridgeStan remains
+an equation/gradient oracle rather than evidence that every sampling adapter is
+complete. No Julia-versus-R/Stan speed or accuracy superiority claim is
+supported without predeclared evidence.
 
 ## Identification, Priors, and Engineering Debt
 
@@ -204,10 +217,11 @@ The next ordered program is:
 
 1. Add one typed sampler-profile resolver shared by `fit`,
    `BayesianMGMFRM.Experimental.fit`, `fit_cache_key`, and `cached_fit`. The
-   candidate `:analysis` profile uses AdvancedHMC/NUTS with 4 chains, 1,000
-   warmup iterations and 1,000 retained draws per chain; `:quick` keeps the
-   current 2-chain 100/100 computational budget. Tests and research fixtures
-   request their short controls explicitly.
+   candidate `:analysis` profile uses an explicit supported NUTS backend with 4
+   chains, 1,000 warmup iterations and 1,000 retained draws per chain; CmdStan
+   support is required before stable promotion, but is not silently made the
+   default. `:quick` keeps the current 2-chain 100/100 computational budget.
+   Tests and research fixtures request their short controls explicitly.
 2. Derive and record deterministic chain-level seeds from one fit seed, add
    resource-bounded optional parallel chains, map `target_accept` explicitly to
    Stan/brms `adapt_delta`, and reject backend-inapplicable controls. Keep

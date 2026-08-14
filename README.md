@@ -92,6 +92,11 @@ Small sampler settings are useful for smoke tests only. Substantive analyses
 should predeclare sampler controls, inspect convergence and HMC diagnostics,
 and repeat important conclusions under defensible prior and model choices.
 
+Stable MFRM/RSM/PCM designs also support `backend = :cmdstan`. CmdStan is an
+optional external runtime, discovered with `cmdstan_backend_check()`; it is not
+required to load the package or use Julia backends. The CmdStan route currently
+does not extend to experimental GMFRM/MGMFRM fitting or `cached_fit`.
+
 ## Main Workflow
 
 1. Create `FacetData` from long-format ratings.

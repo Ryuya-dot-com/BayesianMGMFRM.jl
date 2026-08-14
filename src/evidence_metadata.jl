@@ -61,23 +61,12 @@ _evidence_path_basename(path) =
     path isa AbstractString && !isempty(path) ? basename(normpath(path)) : nothing
 
 function _evidence_cmdstan_metadata(; include_paths::Bool = false)
-    path = get(ENV, "CMDSTAN", get(ENV, "CMDSTAN_HOME", ""))
-    if isempty(path)
-        root = joinpath(homedir(), ".cmdstan")
-        if isdir(root)
-            dirs = sort(filter(d -> startswith(d, "cmdstan-"), readdir(root)))
-            if !isempty(dirs)
-                path = joinpath(root, last(dirs))
-            end
-        end
-    end
-    version = nothing
-    if !isempty(path)
-        m = match(r"cmdstan-([0-9.]+)", basename(path))
-        version = isnothing(m) ? nothing : m.captures[1]
-    end
+    path = _cmdstan_resolve_root(nothing).path
+    version_number = path === nothing ? nothing :
+        _cmdstan_version_from_name(path)
+    version = version_number === nothing ? nothing : string(version_number)
     return Dict{String,Any}(
-        "path" => include_paths && !isempty(path) ? path : nothing,
+        "path" => include_paths ? path : nothing,
         "path_basename" => _evidence_path_basename(path),
         "version" => version,
     )

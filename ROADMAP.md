@@ -195,17 +195,46 @@ interchange where targets genuinely match. Julia's compilation latency,
 smaller psychometric ecosystem, and narrower reviewer pool are explicit costs;
 no language-superiority claim is in scope.
 
-CmdStan is likewise not rejected. It is not the primary runtime because making
-Stan code the canonical model would create a second compiler target and split
-the package's design validation, parameter naming, reporting, and cache
-contracts across Julia and Stan. The current architecture instead keeps one
-Julia `LogDensityProblems` target, samples it with AdvancedHMC or Turing, and
-uses Stan/BridgeStan as an independent equation and gradient oracle. This is a
-maintainability choice, not evidence that the Julia sampler is more accurate or
-faster. An optional CmdStan end-to-end backend should be reconsidered only if
-same-target draw diagnostics, ESS/sec, memory, failure behavior, and adapter
-maintenance show a clear benefit; until then CmdStan belongs in validation and
-benchmark lanes rather than the default user path.
+CmdStan fitting is now a required release capability, not an optional future
+experiment. This does not make CmdStan a hard dependency for loading the
+package, make Stan the sole/default backend, or replace the Julia model
+contract. A machine without CmdStan must retain Julia-only data validation,
+simulation, diagnostics, and supported fitting; a stable release claim must
+also include a working explicit `backend = :cmdstan` path. This provides a
+widely reviewed reference sampler and a genuine second execution route while
+keeping installation portability.
+
+The CmdStan gate is complete only when all of the following vertical slices
+work from package-owned, relocatable assets rather than `test/` fixtures:
+
+1. runtime discovery and a typed check for the CmdStan root, `stanc`, `make`,
+   and a C++ compiler, with optional external-runtime failure kept distinct
+   from package failure; this slice is implemented;
+2. faithful Stan programs plus data/initialization encoders for the stable MFRM
+   and each generalized family proposed for promotion, with the same fixed-Q,
+   constraints, priors, and direct-parameter names as the Julia contract; the
+   stable MFRM/RSM/PCM model and encoder are implemented, while GMFRM/MGMFRM
+   adapters remain pending;
+3. explicit chain seeds, warmup, retained draws, `adapt_delta`, tree depth, and
+   bounded parallel execution through the CmdStan command line, with command
+   failures and malformed outputs propagated as typed errors; stable MFRM has
+   sequential chains and typed errors, while bounded parallel chains remain;
+4. CmdStan CSV parsing into the common fit, diagnostics, summary, cache, report,
+   and posterior-predictive interfaces without hiding sampler columns; stable
+   MFRM returns the common fit and diagnostics now, but cache integration still
+   rejects CmdStan; and
+5. same-target log density, generated pointwise likelihood, posterior-summary,
+   diagnostics, recovery, sparse-design, and failure-behavior comparisons;
+   retained stable-MFRM draws now enforce pointwise Julia/Stan agreement, while
+   recovery, sparse-design, independent review, and analysis-scale comparisons
+   remain pending.
+
+BridgeStan remains an equation and gradient oracle; it is not evidence that the
+sampling adapter is complete. The Julia and Stan implementations must be kept
+independently reviewable enough that agreement is informative. No backend is
+declared more accurate or faster without predeclared, same-target evidence, and
+the default backend is not changed merely because CmdStan support becomes
+available.
 
 ### Fixed-Q Identification, Priors, and Nested Comparison Program
 
@@ -350,7 +379,7 @@ The candidate profiles are:
 
 | Profile | Intended use | Backend | Chains | Warmup per chain | Retained draws per chain | Target acceptance | Thinning |
 |:--|:--|:--|--:|--:|--:|--:|--:|
-| `:analysis` | substantive estimation and report examples | AdvancedHMC/NUTS | 4 | 1,000 | 1,000 | 0.8 initially, changed only with family-specific evidence | 1 |
+| `:analysis` | substantive estimation and report examples | explicit supported NUTS backend; CmdStan required before stable promotion | 4 | 1,000 | 1,000 | 0.8 initially, changed only with family-specific evidence | 1 |
 | `:quick` | interactive wiring and local smoke checks | supported family backend | 2 | 100 | 100 | 0.8 | 1 |
 | explicit fixture controls | unit, recovery, and evidence protocols | declared by the fixture | explicit | explicit | explicit | explicit | 1 unless a sensitivity study says otherwise |
 

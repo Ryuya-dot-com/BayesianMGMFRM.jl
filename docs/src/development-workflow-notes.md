@@ -43,8 +43,9 @@ without changing the data layer.
 8. Fit the current minimal model with [`fit`](@ref), or use
    [`cached_fit`](@ref) with a stable `cache_path` and integer `seed` to avoid
    recomputation when [`fit_cache_key`](@ref) still matches. Use
-   `backend = :advancedhmc` or `backend = :turing` for NUTS paths and
-   `chains >= 2` when convergence diagnostics are needed. The default gradient
+   `backend = :advancedhmc`, `backend = :turing`, or `backend = :cmdstan` for
+   NUTS paths and `chains >= 2` when convergence diagnostics are needed.
+   `cached_fit` does not yet accept CmdStan. The default gradient
    path is `ad_backend = :ForwardDiff`; `:ReverseDiff` can be selected for the
    direct AdvancedHMC backend when that AD package is available, and
    `:analytic` is reserved for AdvancedHMC targets that expose a native
@@ -102,7 +103,9 @@ The current `backend = :julia` sampler is a random-walk Metropolis path for
 small validation examples. `backend = :advancedhmc` provides a direct
 AdvancedHMC/NUTS path for the minimal design using [`MFRMLogDensity`](@ref),
 and `backend = :turing` wraps the same target in a Turing model with a flat
-vector parameter and `Turing.@addlogprob!`. The direct AdvancedHMC path routes
+vector parameter and `Turing.@addlogprob!`. `backend = :cmdstan` runs the
+package-owned stable MFRM model through an external CmdStan installation and
+returns the same `MFRMFit` type. The direct AdvancedHMC path routes
 through a shared gradient target adapter, with target-provided analytic
 gradients used when explicitly selected and otherwise AD-backed gradients
 selected by `ad_backend`; the Turing path currently uses ForwardDiff.

@@ -1,6 +1,7 @@
 # Validation and Evidence API
 
 ```@docs
+CmdStanError
 simulation_grid
 simulation_grid_summary
 local_dependence_simulation_grid
@@ -18,6 +19,8 @@ parameter_recovery_plot_data
 parameter_recovery_summary
 stan_validation_row
 stan_validation_summary
+cmdstan_backend_contract
+cmdstan_backend_check
 comparison_evidence_row
 comparison_evidence_summary
 benchmark_result_row
@@ -31,6 +34,12 @@ only for a private reproduction record whose access controls and retention
 policy permit complete local paths and free-form execution notes. Environment
 discovery is best-effort: an unavailable optional command or file does not stop
 report creation, and `collection.issues` records its stage and short reason.
+
+`cmdstan_backend_check()` validates local runtime/toolchain availability
+without compiling a model or running MCMC, and omits local paths by default.
+Stable MFRM/RSM/PCM designs now have an executable `backend = :cmdstan` route;
+`cmdstan_backend_contract()` distinguishes that implemented family from the
+still-unconnected generalized families and remaining analysis-scale evidence.
 
 `local_dependence_simulation_grid` and `simulate_local_dependence` form the
 completed LD1a generator and design-validation surface. The 22 frozen scenarios

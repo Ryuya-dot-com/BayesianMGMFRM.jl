@@ -20848,10 +20848,12 @@ end
 
 @testset "public docstrings" begin
     for name in (:FacetData, :ValidationIssue, :ValidationReport, :FacetSpec, :FacetDesign,
+            :CmdStanError,
             :MFRMPrior, :MFRMLogDensity, :MFRMFit, :GMFRMFit, :MGMFRMFit,
             :anchor_linking_summary, :artifact_content_hash, :cached_fit,
             :benchmark_result_row, :benchmark_summary, :calibration_plot_data,
             :case_study_provenance_manifest,
+            :cmdstan_backend_contract, :cmdstan_backend_check,
             :constraint_table, :dff_report, :domain_compilation_summary,
             :conquest_bridge_bundle, :facets_bridge_bundle,
             :external_bridge_result_receipt,
@@ -20911,6 +20913,10 @@ end
     @test !isdefined(BayesianMGMFRM, :AuditIssue)
     @test !isdefined(BayesianMGMFRM, :AuditReport)
 end
+
+include("cmdstan_backend.jl")
+test_flag("BAYESIANMGMFRM_CMDSTAN_TESTS") &&
+    include("cmdstan_sampling.jl")
 
 @testset "FacetData long-format indexing" begin
     table = (

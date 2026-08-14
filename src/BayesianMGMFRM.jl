@@ -19,6 +19,7 @@ module BayesianMGMFRM
 export FacetData,
     FacetDesign,
     FacetSpec,
+    CmdStanError,
     GMFRMFit,
     MGMFRMFit,
     MFRMLogDensity,
@@ -43,6 +44,8 @@ export FacetData,
     case_study_provenance_manifest,
     comparison_evidence_row,
     comparison_evidence_summary,
+    cmdstan_backend_contract,
+    cmdstan_backend_check,
     conquest_bridge_bundle,
     diagnostic_map_data,
     design_identity,
@@ -178,11 +181,13 @@ export FacetData,
     waic,
     waic_diagnostics
 
+include("cmdstan_backend.jl")
 include("evidence_metadata.jl")
 include("facet_workflow.jl")
 include("model_contract.jl")
 include("testlet_design_audit.jl")
 include("bayesian_fit.jl")
+include("cmdstan_fit.jl")
 include("mgmfrm_free_correlation_candidate.jl")
 include("mgmfrm_free_correlation_recovery.jl")
 include("mgmfrm_free_correlation_study.jl")

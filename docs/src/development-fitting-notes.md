@@ -6,7 +6,9 @@ priors on the identified parameter vector. `backend = :julia` uses a
 random-walk Metropolis kernel for small validation examples, while
 `backend = :advancedhmc` uses the package's `MFRMLogDensity` target with
 AdvancedHMC/NUTS and `backend = :turing` wraps the same target in a
-Turing/NUTS model.
+Turing/NUTS model. `backend = :cmdstan` uses the package-owned stable MFRM Stan
+model and direct CmdStan CLI adapter; generalized models and cache integration
+remain outside that route.
 
 ## Guarded Generalized Model Caveats
 

@@ -31,6 +31,14 @@
 
 ### Changed
 
+- Make an explicit CmdStan fitting backend a required gate before stable
+  promotion while keeping CmdStan an optional external runtime. Add a portable
+  runtime/toolchain check and a direct CLI adapter for stable MFRM/RSM/PCM
+  designs. The adapter compiles a package-owned Stan model, preserves the
+  identified Julia parameter order, imports CmdStan sampler diagnostics, checks
+  generated pointwise log likelihoods, and raises typed failures. Generalized
+  fitting, cache integration, and analysis-scale comparison evidence remain
+  pending.
 - Add an analysis-facing roadmap program for unified sampler profiles,
   four-chain substantive defaults, chain-level seeds, integrated summaries and
   warnings, simple fit persistence, visualization rows, interval/HDI policy,

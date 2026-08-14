@@ -50,7 +50,23 @@ Inspect [`constraint_table`](@ref), [`identification_declarations`](@ref), and
 
 - `backend = :julia` for a simple random-walk Metropolis implementation;
 - `backend = :advancedhmc` for direct AdvancedHMC/NUTS sampling;
-- `backend = :turing` for the package target wrapped in Turing/NUTS.
+- `backend = :turing` for the package target wrapped in Turing/NUTS;
+- `backend = :cmdstan` for stable MFRM/RSM/PCM sampling through an external
+  CmdStan installation.
+
+Run `cmdstan_backend_check()` to inspect CmdStan, `stanc`, `make`, and C++
+compiler availability without compiling a model. The first CmdStan fit compiles
+the package-owned stable MFRM model into a temporary machine-local cache. It
+uses the same identified Julia parameter order and prior scales, imports the
+standard CmdStan sampler columns, and checks generated pointwise log likelihoods
+against Julia at every retained draw. `target_accept` maps to CmdStan's
+`adapt delta`; thinning remains one. CmdStan failures raise `CmdStanError`
+instead of being converted to a missing result.
+
+This backend does not yet cover experimental GMFRM/MGMFRM models,
+`cached_fit`, or parallel chain execution. CmdStan remains optional for package
+installation, and no backend is declared faster or more accurate without a
+same-target analysis.
 
 Use short runs only to verify wiring. For substantive work, choose the number
 of chains, warmup, retained draws, target acceptance, tree depth, metric, and
