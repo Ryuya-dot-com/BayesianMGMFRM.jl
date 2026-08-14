@@ -196,8 +196,12 @@ The primary resource plan selects four ordered 4-category representatives with
 500, 1,250, 3,750, and 7,500 observations. Pass only one row at a time to
 `mgmfrm_validation_resource_probe`; execution remains explicit and
 memory-guarded. These gradient cells do not span every primary axis. The
-current short-NUTS runner intentionally rejects primary candidates because its
-fit orchestration is still coupled to the five-category response-stress path.
+shared bounded short-NUTS adapter accepts either one five-category stress row
+or one four-category primary row without duplicating fit and diagnostic
+orchestration. The first two primary resource rows meet the current workload
+bound; the later rows remain gradient-only under the present policy. All four
+use resource-only seeds, distinct in role from structural-preflight and future
+evaluation seeds.
 
 Four decisions still block execution: final primary grid cells, evaluation
 replications, analysis resource caps, and independently reviewed scientific

@@ -187,6 +187,8 @@ using BayesianMGMFRM
         :mgmfrm_validation_primary_resource_plan
     @test protocol.execution_design.primary_gradient_resource_plan ===
         :implemented_sequential_execution_pending
+    @test protocol.execution_design.primary_short_nuts_resource_adapter ===
+        :implemented_execution_memory_guarded
     @test protocol.execution_design.primary_grid_candidates ===
         :implemented_generation_preflight_execution_blocked
     @test protocol.execution_design.initial_gradient_resource_probe ===
@@ -256,6 +258,9 @@ using BayesianMGMFRM
     @test protocol.readiness.completed_enablers.
         primary_gradient_resource_plan_surface ===
         :implemented_sequential_execution_pending
+    @test protocol.readiness.completed_enablers.
+        primary_short_nuts_resource_adapter_surface ===
+        :implemented_execution_memory_guarded
     @test protocol.readiness.completed_enablers.
         initial_gradient_resource_probe_surface ===
         :implemented_execution_memory_guarded

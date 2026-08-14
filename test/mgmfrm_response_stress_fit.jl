@@ -1,7 +1,7 @@
 using Test
 using BayesianMGMFRM
 
-@testset "bounded MGMFRM response-stress fit attempts" begin
+@testset "bounded MGMFRM fit attempts" begin
     plan = mgmfrm_response_stress_plan(
         design_strata = (:connected_sparse_systematic_link,),
         response_patterns = (:regular_all_categories,),
@@ -31,7 +31,7 @@ using BayesianMGMFRM
         diagnostic_decision = :not_applied_short_chain,
     )
 
-    completed = BayesianMGMFRM._mgmfrm_stress_fit_attempts(
+    completed = BayesianMGMFRM._mgmfrm_bounded_fit_attempts(
         plan;
         profile = :wiring_smoke,
         backends = (:advancedhmc, :cmdstan),
@@ -44,6 +44,9 @@ using BayesianMGMFRM
         diagnostic_executor = fake_diagnostics,
     )
     @test completed.status === :wiring_smoke_complete
+    @test completed.schema ==
+        "bayesianmgmfrm.mgmfrm_response_stress_fit_attempts.v1"
+    @test completed.object === :mgmfrm_response_stress_fit_attempts
     @test completed.summary.n_planned_source_cases == 1
     @test completed.summary.n_attempts == 4
     @test completed.summary.n_terminal_attempts == 4
@@ -60,6 +63,8 @@ using BayesianMGMFRM
     @test completed.scientific_decision === :not_applied
     @test completed.recovery_evidence === :not_established
     @test all(row -> row.terminal_status === :completed, completed.rows)
+    @test all(row -> row.object ===
+        :mgmfrm_response_stress_fit_attempt_row, completed.rows)
     @test all(row -> row.output_integrity_passed, completed.rows)
     @test length(unique(row.attempt_id for row in completed.rows)) == 4
     @test Set(row.backend for row in completed.rows) ==
@@ -75,7 +80,7 @@ using BayesianMGMFRM
             case, backend, prior, controls, fit_seed;
             cmdstan_path, cmdstan_cache_dir)
     end
-    fit_failed = BayesianMGMFRM._mgmfrm_stress_fit_attempts(
+    fit_failed = BayesianMGMFRM._mgmfrm_bounded_fit_attempts(
         plan;
         profile = :wiring_smoke,
         backends = (:advancedhmc, :cmdstan),
@@ -103,7 +108,7 @@ using BayesianMGMFRM
 
     failing_diagnostics = (fit, controls) ->
         error("injected diagnostic failure")
-    diagnostic_failed = BayesianMGMFRM._mgmfrm_stress_fit_attempts(
+    diagnostic_failed = BayesianMGMFRM._mgmfrm_bounded_fit_attempts(
         plan;
         profile = :wiring_smoke,
         backends = (:advancedhmc,),
@@ -125,7 +130,7 @@ using BayesianMGMFRM
     malformed = merge(first(plan), (;
         response_pattern = :not_a_response_pattern,
     ))
-    generation_failed = BayesianMGMFRM._mgmfrm_stress_fit_attempts(
+    generation_failed = BayesianMGMFRM._mgmfrm_bounded_fit_attempts(
         [malformed];
         profile = :wiring_smoke,
         backends = (:advancedhmc,),
@@ -150,7 +155,7 @@ using BayesianMGMFRM
     rejected_plan = [merge(first(plan), (;
         expected_pattern = incompatible_expected,
     ))]
-    rejected = BayesianMGMFRM._mgmfrm_stress_fit_attempts(
+    rejected = BayesianMGMFRM._mgmfrm_bounded_fit_attempts(
         rejected_plan;
         profile = :wiring_smoke,
         backends = (:advancedhmc,),
@@ -180,7 +185,7 @@ using BayesianMGMFRM
         plan; cmdstan_path = "/not/used")
     @test_throws ArgumentError mgmfrm_response_stress_fit_attempts(
         plan; maximum_attempts = 0)
-    int32_bound = BayesianMGMFRM._mgmfrm_stress_fit_attempts(
+    int32_bound = BayesianMGMFRM._mgmfrm_bounded_fit_attempts(
         plan;
         profile = :wiring_smoke,
         backends = (:advancedhmc,),
@@ -194,7 +199,7 @@ using BayesianMGMFRM
     )
     @test int32_bound.maximum_attempts === 1
 
-    short_probe = BayesianMGMFRM._mgmfrm_stress_fit_attempts(
+    short_probe = BayesianMGMFRM._mgmfrm_bounded_fit_attempts(
         plan;
         profile = :short_nuts_resource_probe,
         backends = (:advancedhmc,),
@@ -214,4 +219,56 @@ using BayesianMGMFRM
     @test short_probe.controls.metric === :diagonal
     @test !short_probe.controls.convergence_assessed
     @test short_probe.claim_scope === :runtime_and_operability_only
+
+    primary_row = first(mgmfrm_validation_primary_resource_plan().rows)
+    primary_fake_fit = (case, backend, prior, controls, fit_seed;
+            cmdstan_path, cmdstan_cache_dir) -> (;
+        case_id = case.cell_id,
+        backend,
+        prior,
+        controls,
+        fit_seed,
+        cmdstan_path,
+        cmdstan_cache_dir,
+    )
+    primary_short = BayesianMGMFRM._mgmfrm_bounded_fit_attempts(
+        (primary_row,);
+        profile = :short_nuts_resource_probe,
+        backends = (:advancedhmc,),
+        prior_regimes = (:implementation_reference,),
+        maximum_attempts = 1,
+        truth_scale = 0.15,
+        cmdstan_path = nothing,
+        cmdstan_cache_dir = nothing,
+        fit_executor = primary_fake_fit,
+        diagnostic_executor = fake_diagnostics,
+    )
+    @test primary_short.schema ==
+        "bayesianmgmfrm.mgmfrm_validation_primary_fit_attempts.v1"
+    @test primary_short.object ===
+        :mgmfrm_validation_primary_fit_attempts
+    @test primary_short.status === :short_nuts_resource_probe_complete
+    @test primary_short.summary.n_completed == 1
+    @test only(primary_short.rows).object ===
+        :mgmfrm_validation_primary_fit_attempt_row
+    @test only(primary_short.rows).source_object ===
+        :mgmfrm_validation_primary_grid_candidate
+    @test only(primary_short.rows).simulation_seed ==
+        primary_row.resource_seed
+    @test ismissing(only(primary_short.rows).replication)
+    @test only(primary_short.cases).data.category_levels == [1, 2, 3, 4]
+    @test !ismissing(only(primary_short.fits))
+
+    @test_throws ArgumentError BayesianMGMFRM._mgmfrm_bounded_fit_attempts(
+        (first(plan), primary_row);
+        profile = :short_nuts_resource_probe,
+        backends = (:advancedhmc,),
+        prior_regimes = (:implementation_reference,),
+        maximum_attempts = 2,
+        truth_scale = 0.15,
+        cmdstan_path = nothing,
+        cmdstan_cache_dir = nothing,
+        fit_executor = primary_fake_fit,
+        diagnostic_executor = fake_diagnostics,
+    )
 end

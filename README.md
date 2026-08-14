@@ -198,9 +198,13 @@ the frozen evaluation grid.
 `primary_resource_plan` selects four ordered 4-category cells with 500, 1,250,
 3,750, and 7,500 observations for explicit, one-cell-at-a-time gradient
 profiling. It does not cover every primary axis and does not progress
-automatically. The current short-NUTS runner remains tied to the five-category
-stress workflow and rejects primary-grid rows, so a primary short-NUTS adapter
-is required before the resource envelope can be frozen.
+automatically. The shared bounded fit adapter now accepts either the original
+five-category stress row or one four-category primary row while retaining
+source-specific schemas and failure records. Two primary resource cells fit
+inside the current short-NUTS workload bound. The representative cells use
+resource-only seeds rather than structural-preflight or evaluation seeds.
+Execution remains explicitly memory-guarded and cannot freeze the resource
+envelope by itself.
 
 The first resource-planning surface is also MCMC-free by default. Calling
 `mgmfrm_validation_resource_probe()` only returns the bounded dense/sparse

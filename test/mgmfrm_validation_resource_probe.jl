@@ -74,7 +74,7 @@ end
     @test !policy.measurement_thresholds_applied
     @test !policy.final_resource_policy_may_be_frozen_from_this_probe_alone
     @test policy.bounded_short_nuts_probe_required_next
-    @test policy.primary_short_nuts_adapter_required
+    @test policy.primary_short_nuts_adapter_implemented
     @test :performance_claim in policy.prohibited_uses
     @test :choose_batch_size in policy.permitted_uses
     @test :mgmfrm_validation_primary_grid_candidate in
@@ -89,8 +89,10 @@ end
     @test only(primary_planned.rows).expected_observations == 500
     @test only(primary_planned.rows).expected_probability_cells == 2_000
     @test only(primary_planned.rows).n_categories == 4
+    @test only(primary_planned.rows).simulation_seed ==
+        primary_small.resource_seed
     @test primary_planned.post_measurement_gate ===
-        :implement_primary_short_nuts_resource_adapter
+        :bounded_primary_short_nuts_resource_probe
     inconsistent_primary = merge(primary_small, (;
         expected_observations = primary_small.expected_observations + 1,
     ))
@@ -114,7 +116,7 @@ end
         :runtime_probe_complete_operational_metadata_only
     @test primary_measured.summary.n_completed == 1
     @test primary_measured.next_gate ===
-        :implement_primary_short_nuts_resource_adapter
+        :bounded_primary_short_nuts_resource_probe
     @test only(primary_measured.rows).actual_observations == 500
     @test only(primary_measured.rows).measurement.
         initial_parameter_dimension > 0
@@ -298,8 +300,10 @@ end
 
     policy = planned.policy
     @test policy.profile === :short_nuts_resource_probe
-    @test policy.accepted_plan_objects ==
-        (:mgmfrm_response_stress_plan_row,)
+    @test policy.accepted_plan_objects == (
+        :mgmfrm_response_stress_plan_row,
+        :mgmfrm_validation_primary_grid_candidate,
+    )
     @test policy.controls.warmup == 25
     @test policy.controls.ndraws == 25
     @test policy.controls.chains == 1
@@ -453,6 +457,38 @@ end
         :scaled_resource_01_dense_small
     @test_throws ArgumentError mgmfrm_validation_short_nuts_resource_probe(
         scaled.rows)
-    @test_throws ArgumentError mgmfrm_validation_short_nuts_resource_probe(
-        first(mgmfrm_validation_primary_resource_plan().rows))
+    primary_short =
+        BayesianMGMFRM._mgmfrm_validation_short_nuts_resource_probe(
+            (first(mgmfrm_validation_primary_resource_plan().rows),);
+            execute_measurement = false,
+            minimum_free_memory_bytes = 2 * 1024^3,
+            maximum_observations_per_cell = 1_000,
+            truth_scale = 0.15,
+            free_memory_provider = () -> Int64(4 * 1024^3),
+        )
+    @test primary_short.status ===
+        :short_nuts_resource_probe_planned_not_executed
+    @test primary_short.summary.n_planned_cells == 1
+    @test primary_short.next_gate ===
+        :explicitly_execute_bounded_primary_short_nuts_probe
+
+    primary_free_values = Int64[4 * 1024^3, 3 * 1024^3]
+    primary_maxrss_values = Int64[200_000_000, 250_000_000]
+    primary_completed =
+        BayesianMGMFRM._mgmfrm_validation_short_nuts_resource_probe(
+            (first(mgmfrm_validation_primary_resource_plan().rows),);
+            execute_measurement = true,
+            minimum_free_memory_bytes = 2 * 1024^3,
+            maximum_observations_per_cell = 1_000,
+            truth_scale = 0.15,
+            free_memory_provider = () -> popfirst!(primary_free_values),
+            maxrss_provider = () -> popfirst!(primary_maxrss_values),
+            runner_executor = fake_runner,
+        )
+    @test primary_completed.status ===
+        :short_nuts_resource_probe_complete_operational_metadata_only
+    @test primary_completed.blockers ==
+        (:primary_resource_cells_and_peak_memory_review_pending,)
+    @test primary_completed.next_gate ===
+        :review_primary_resource_cells_and_peak_memory
 end

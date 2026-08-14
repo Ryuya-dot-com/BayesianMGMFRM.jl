@@ -62,9 +62,14 @@
   it is substantially more expensive than representative-cell smoke coverage.
 - Add an ordered four-cell primary gradient resource plan using the actual
   four-category DGP. The generic MCMC-free gradient probe now accepts those
-  rows while the short-NUTS probe rejects them explicitly until a primary
-  fitting adapter exists. The plan prohibits automatic progression and does
-  not claim full axis coverage or freeze the resource envelope.
+  rows. The plan prohibits automatic progression and does not claim full axis
+  coverage or freeze the resource envelope; its seeds are explicitly
+  resource-only rather than structural-preflight or evaluation seeds.
+- Extend the denominator-preserving bounded fit adapter to one four-category
+  primary candidate at a time. Primary short-NUTS attempts reuse the existing
+  fit, diagnostic, and typed-failure loop, return primary-specific schemas, and
+  route successful operational probes to primary resource review rather than
+  the five-category stress scaling plan.
 - Add a separate explicit-execution short-NUTS resource probe. It admits only
   one connected-sparse AdvancedHMC cell, uses 25 warmup and 25 retained draws,
   enforces workload and free-memory gates before generation, discards fit

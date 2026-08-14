@@ -36,7 +36,7 @@ function _mgmfrm_validation_resource_probe_policy()
         measurement_thresholds_applied = false,
         final_resource_policy_may_be_frozen_from_this_probe_alone = false,
         bounded_short_nuts_probe_required_next = true,
-        primary_short_nuts_adapter_required = true,
+        primary_short_nuts_adapter_implemented = true,
         permitted_uses = (
             :estimate_local_gradient_cost,
             :choose_bounded_short_nuts_cells,
@@ -63,7 +63,10 @@ function _mgmfrm_validation_short_nuts_resource_probe_policy()
         backend = :advancedhmc,
         prior_regime = :implementation_reference,
         response_pattern = :regular_all_categories,
-        accepted_plan_objects = (:mgmfrm_response_stress_plan_row,),
+        accepted_plan_objects = (
+            :mgmfrm_response_stress_plan_row,
+            :mgmfrm_validation_primary_grid_candidate,
+        ),
         default_design = :connected_sparse_systematic_link,
         maximum_cells = 1,
         default_maximum_observations_per_cell = 1_000,
@@ -246,8 +249,14 @@ _mgmfrm_validation_probe_raters(row) =
 _mgmfrm_validation_probe_categories(row) =
     _mgmfrm_validation_probe_integer_field(
         row, :n_categories, :categories)
-_mgmfrm_validation_probe_seed(row) =
-    _mgmfrm_validation_probe_integer_field(row, :seed, :preflight_seed)
+function _mgmfrm_validation_probe_seed(row)
+    row.object === :mgmfrm_response_stress_plan_row &&
+        return Int(row.seed)
+    row.object === :mgmfrm_validation_primary_grid_candidate &&
+        return Int(hasproperty(row, :resource_seed) ?
+            row.resource_seed : row.preflight_seed)
+    throw(ArgumentError("unsupported resource-probe row object"))
+end
 
 function _mgmfrm_validation_probe_expected_observations(row)
     persons = _mgmfrm_validation_probe_persons(row)
@@ -482,6 +491,7 @@ function _mgmfrm_validation_resource_probe_generate(row, truth_scale::Real)
         return simulate_mgmfrm_validation_primary_candidate(
             row;
             truth_scale,
+            seed = _mgmfrm_validation_probe_seed(row),
         )
     throw(ArgumentError("unsupported resource-probe row object"))
 end
@@ -560,7 +570,7 @@ function _mgmfrm_validation_resource_probe(
     )
     next_operational_gate = any(row -> row.object ===
         :mgmfrm_validation_primary_grid_candidate, rows) ?
-        :implement_primary_short_nuts_resource_adapter :
+        :bounded_primary_short_nuts_resource_probe :
         :bounded_short_nuts_resource_probe
     free_memory = Int64(free_memory_provider())
     free_memory >= 0 || throw(ArgumentError(
@@ -803,8 +813,8 @@ recovery, coverage, priors, Q, backend superiority, or scientific thresholds.
 Gradient timings are not extrapolated to full NUTS runtime; a separate bounded
 short-NUTS probe remains required before final resource caps can be frozen.
 Rows returned by [`mgmfrm_validation_primary_resource_plan`](@ref) are accepted
-one at a time for four-category primary-grid measurement; the primary
-short-NUTS adapter remains a separate prerequisite.
+one at a time for four-category primary-grid measurement. The first two rows
+also fit inside the current primary short-NUTS workload bound.
 """
 function mgmfrm_validation_resource_probe(
         plan = nothing;
@@ -839,7 +849,7 @@ end
 # Explicit-execution, memory-guarded short-NUTS profiling.
 
 function _mgmfrm_validation_default_short_nuts_runner(plan, truth_scale)
-    return _mgmfrm_stress_fit_attempts(
+    return _mgmfrm_bounded_fit_attempts(
         plan;
         profile = :short_nuts_resource_probe,
         backends = (:advancedhmc,),
@@ -917,6 +927,17 @@ function _mgmfrm_validation_short_nuts_resource_probe(
         policy.maximum_cells,
         checked_maximum_observations,
     )
+    primary_plan = any(row -> row.object ===
+        :mgmfrm_validation_primary_grid_candidate, checked_plan)
+    explicit_execution_gate = primary_plan ?
+        :explicitly_execute_bounded_primary_short_nuts_probe :
+        :explicitly_execute_bounded_short_nuts_probe
+    review_blocker = primary_plan ?
+        :primary_resource_cells_and_peak_memory_review_pending :
+        :scaled_resource_cells_and_peak_memory_review_pending
+    review_gate = primary_plan ?
+        :review_primary_resource_cells_and_peak_memory :
+        :review_scaled_resource_cells_and_peak_memory
     runtime = _mgmfrm_validation_resource_probe_runtime()
     free_memory = Int64(free_memory_provider())
     free_memory >= 0 || throw(ArgumentError(
@@ -963,7 +984,7 @@ function _mgmfrm_validation_short_nuts_resource_probe(
             final_resource_policy_frozen = false,
             claim_scope = :operational_preflight_not_validation_evidence,
             next_gate = base.preflight.memory_preflight_passed ?
-                :explicitly_execute_bounded_short_nuts_probe :
+                explicit_execution_gate :
                 :rerun_in_environment_with_sufficient_free_memory,
         ))
     end
@@ -1065,7 +1086,7 @@ function _mgmfrm_validation_short_nuts_resource_probe(
             peak_memory_measured = false,
             maxrss_is_probe_attributable = false,
         ),
-        blockers = (:scaled_resource_cells_and_peak_memory_review_pending,),
+        blockers = (review_blocker,),
         error_type = missing,
         error_message = missing,
         error = missing,
@@ -1075,7 +1096,7 @@ function _mgmfrm_validation_short_nuts_resource_probe(
         fit_objects_returned = false,
         final_resource_policy_frozen = false,
         claim_scope = :short_chain_operational_metadata_not_validation_evidence,
-        next_gate = :review_scaled_resource_cells_and_peak_memory,
+        next_gate = review_gate,
     ))
 end
 
@@ -1091,7 +1112,9 @@ probe for fixed-Q MGMFRM. The default cell is connected-sparse with one chain,
 run before data generation or MCMC; the minimum memory requirement cannot be
 lowered below 1 GiB.
 
-This probe assesses only local short-chain operability. It does not assess
+The probe accepts one five-category response-stress row or one four-category
+primary-grid row. This probe assesses only local short-chain operability. It
+does not assess
 convergence, recovery, coverage, backend performance, prior choice, Q choice,
 or scientific thresholds. Returned fit-attempt rows preserve typed failures,
 but fit objects are discarded. Cumulative Julia allocations and endpoint free
@@ -1103,16 +1126,13 @@ function mgmfrm_validation_short_nuts_resource_probe(
         minimum_free_memory_bytes::Integer = 2 * 1024^3,
         maximum_observations_per_cell::Integer = 1_000,
         truth_scale::Real = 0.15)
-    if plan isa NamedTuple && hasproperty(plan, :object) &&
-            plan.object === :mgmfrm_validation_primary_grid_candidate
-        throw(ArgumentError(
-            "four-category primary candidates are not yet supported by " *
-            "the short-NUTS resource probe"))
-    end
     selected_plan = if isnothing(plan)
         _mgmfrm_validation_default_short_nuts_resource_probe_plan()
     elseif plan isa NamedTuple && hasproperty(plan, :object) &&
-            plan.object === :mgmfrm_response_stress_plan_row
+            plan.object in (
+                :mgmfrm_response_stress_plan_row,
+                :mgmfrm_validation_primary_grid_candidate,
+            )
         (plan,)
     else
         plan

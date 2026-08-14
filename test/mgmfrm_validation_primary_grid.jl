@@ -92,6 +92,9 @@ using BayesianMGMFRM
     @test all(row -> row.categories == 4, resource_plan.rows)
     @test length(unique(row.source_candidate_cell_id
         for row in resource_plan.rows)) == 4
+    @test length(unique(row.resource_seed for row in resource_plan.rows)) == 4
+    @test all(row -> row.seed_role ===
+        :resource_probe_only_not_evaluation, resource_plan.rows)
     @test all(row -> row.within_current_gradient_probe_bound,
         resource_plan.rows)
     @test all(row -> row.within_current_short_nuts_probe_bound,
@@ -103,7 +106,8 @@ using BayesianMGMFRM
     @test !resource_plan.automatic_progression_allowed
     @test !resource_plan.all_primary_axes_covered
     @test !resource_plan.all_primary_candidates_measured
-    @test !resource_plan.short_nuts_compatible
+    @test resource_plan.short_nuts_adapter_available
+    @test resource_plan.n_current_short_nuts_eligible_cells == 2
     @test !resource_plan.final_analysis_grid_selected
     @test !resource_plan.mcmc_executed
     @test !resource_plan.primary_evaluation_seed_used

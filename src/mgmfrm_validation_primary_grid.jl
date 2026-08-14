@@ -163,6 +163,8 @@ function _mgmfrm_validation_primary_resource_cell(
         cell_id,
         resource_sequence = sequence,
         resource_role,
+        resource_seed = 2_026_082_300 + sequence,
+        seed_role = :resource_probe_only_not_evaluation,
         resource_claim_scope = :primary_gradient_operability_only,
         prerequisite = sequence == 1 ? :none :
             :all_previous_primary_resource_cells_completed_operationally,
@@ -246,7 +248,11 @@ function mgmfrm_validation_primary_resource_plan()
         ),
         all_primary_axes_covered = false,
         all_primary_candidates_measured = false,
-        short_nuts_compatible = false,
+        short_nuts_adapter_available = true,
+        n_current_short_nuts_eligible_cells = count(
+            row -> row.within_current_short_nuts_probe_bound,
+            rows,
+        ),
         final_analysis_grid_selected = false,
         mcmc_executed = false,
         primary_evaluation_seed_used = false,

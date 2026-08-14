@@ -442,6 +442,8 @@ function mgmfrm_validation_protocol()
                 :mgmfrm_validation_primary_resource_plan,
             primary_gradient_resource_plan =
                 :implemented_sequential_execution_pending,
+            primary_short_nuts_resource_adapter =
+                :implemented_execution_memory_guarded,
             primary_grid_candidates =
                 :implemented_generation_preflight_execution_blocked,
             initial_gradient_resource_probe =
@@ -543,6 +545,8 @@ function mgmfrm_validation_protocol()
                     :implemented_generation_preflight_execution_blocked,
                 primary_gradient_resource_plan_surface =
                     :implemented_sequential_execution_pending,
+                primary_short_nuts_resource_adapter_surface =
+                    :implemented_execution_memory_guarded,
                 initial_gradient_resource_probe_surface =
                     :implemented_execution_memory_guarded,
                 bounded_short_nuts_resource_probe_surface =

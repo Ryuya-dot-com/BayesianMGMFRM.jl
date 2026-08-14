@@ -1,4 +1,5 @@
-# Resource-bounded, denominator-preserving fit wiring for MGMFRM stress cases.
+# Shared resource-bounded, denominator-preserving fit wiring for generated
+# MGMFRM stress cases and primary-grid candidates.
 
 const _MGMFRM_STRESS_BACKENDS = (:advancedhmc, :cmdstan)
 const _MGMFRM_STRESS_PRIOR_REGIMES = (
@@ -151,28 +152,100 @@ function _mgmfrm_stress_expanded_attempt_id(source_id, backend::Symbol,
     return Symbol(source_id, "__", backend, "__", prior_regime)
 end
 
+function _mgmfrm_fit_source_id(plan_row)
+    plan_row.object === :mgmfrm_response_stress_plan_row &&
+        return Symbol(plan_row.attempt_id)
+    plan_row.object === :mgmfrm_validation_primary_grid_candidate &&
+        return Symbol(plan_row.cell_id)
+    throw(ArgumentError("unsupported bounded MGMFRM fit source"))
+end
+
+function _mgmfrm_fit_simulation_seed(plan_row)
+    plan_row.object === :mgmfrm_response_stress_plan_row &&
+        return Int(plan_row.seed)
+    plan_row.object === :mgmfrm_validation_primary_grid_candidate &&
+        return Int(hasproperty(plan_row, :resource_seed) ?
+            plan_row.resource_seed : plan_row.preflight_seed)
+    throw(ArgumentError("unsupported bounded MGMFRM fit source"))
+end
+
+function _mgmfrm_fit_replication(plan_row)
+    plan_row.object === :mgmfrm_response_stress_plan_row &&
+        return plan_row.replication
+    plan_row.object === :mgmfrm_validation_primary_grid_candidate &&
+        return missing
+    throw(ArgumentError("unsupported bounded MGMFRM fit source"))
+end
+
+function _mgmfrm_fit_generate(plan_row, truth_scale::Real)
+    plan_row.object === :mgmfrm_response_stress_plan_row &&
+        return simulate_mgmfrm_response_stress(plan_row; truth_scale)
+    plan_row.object === :mgmfrm_validation_primary_grid_candidate &&
+        return simulate_mgmfrm_validation_primary_candidate(
+            plan_row;
+            truth_scale,
+            seed = _mgmfrm_fit_simulation_seed(plan_row),
+        )
+    throw(ArgumentError("unsupported bounded MGMFRM fit source"))
+end
+
+function _mgmfrm_fit_response_pattern_passed(case)
+    case.object === :mgmfrm_response_stress_case &&
+        return case.pattern_check.passed
+    case.object === :mgmfrm_validation_primary_candidate_case &&
+        return case.category_support_passed
+    throw(ArgumentError("unsupported bounded MGMFRM generated case"))
+end
+
+function _mgmfrm_fit_result_identity(plan_rows)
+    source_objects = unique(row.object for row in plan_rows)
+    length(source_objects) == 1 || throw(ArgumentError(
+        "bounded MGMFRM fit plan cannot mix source row types"))
+    source_object = only(source_objects)
+    source_object === :mgmfrm_response_stress_plan_row && return (;
+        schema =
+            "bayesianmgmfrm.mgmfrm_response_stress_fit_attempts.v1",
+        object = :mgmfrm_response_stress_fit_attempts,
+        row_schema =
+            "bayesianmgmfrm.mgmfrm_response_stress_fit_attempt_row.v1",
+        row_object = :mgmfrm_response_stress_fit_attempt_row,
+    )
+    source_object === :mgmfrm_validation_primary_grid_candidate && return (;
+        schema =
+            "bayesianmgmfrm.mgmfrm_validation_primary_fit_attempts.v1",
+        object = :mgmfrm_validation_primary_fit_attempts,
+        row_schema =
+            "bayesianmgmfrm.mgmfrm_validation_primary_fit_attempt_row.v1",
+        row_object = :mgmfrm_validation_primary_fit_attempt_row,
+    )
+    throw(ArgumentError("unsupported bounded MGMFRM fit source"))
+end
+
 function _mgmfrm_stress_fit_seed(plan_row, backend_index::Int,
         prior_index::Int)
-    return Int(plan_row.seed) + 100_000 + 1_000 * prior_index + backend_index
+    return _mgmfrm_fit_simulation_seed(plan_row) + 100_000 +
+        1_000 * prior_index + backend_index
 end
 
 function _mgmfrm_stress_fit_base_row(plan_row, expanded_index::Int,
         backend::Symbol, prior_regime::Symbol, fit_seed::Int, controls,
-        generation_seconds::Float64)
+        generation_seconds::Float64, identity)
+    source_id = _mgmfrm_fit_source_id(plan_row)
     return (;
-        schema = "bayesianmgmfrm.mgmfrm_response_stress_fit_attempt_row.v1",
-        object = :mgmfrm_response_stress_fit_attempt_row,
+        schema = identity.row_schema,
+        object = identity.row_object,
         attempt_id = _mgmfrm_stress_expanded_attempt_id(
-            plan_row.attempt_id, backend, prior_regime),
-        source_attempt_id = plan_row.attempt_id,
+            source_id, backend, prior_regime),
+        source_attempt_id = source_id,
+        source_object = plan_row.object,
         attempt_index = expanded_index,
         design = plan_row.design,
         response_pattern = plan_row.response_pattern,
-        replication = plan_row.replication,
+        replication = _mgmfrm_fit_replication(plan_row),
         backend,
         prior_regime,
         profile = controls.profile,
-        simulation_seed = plan_row.seed,
+        simulation_seed = _mgmfrm_fit_simulation_seed(plan_row),
         fit_seed,
         generation_seconds,
         convergence_assessed = controls.convergence_assessed,
@@ -240,7 +313,7 @@ function _mgmfrm_stress_fit_terminal_row(base;
     ))
 end
 
-function _mgmfrm_stress_fit_attempts(plan;
+function _mgmfrm_bounded_fit_attempts(plan;
         profile::Symbol,
         backends,
         prior_regimes,
@@ -269,9 +342,12 @@ function _mgmfrm_stress_fit_attempts(plan;
         throw(ArgumentError("truth_scale must be finite and positive"))
     plan_rows = collect(plan)
     isempty(plan_rows) && throw(ArgumentError("plan must not be empty"))
-    source_ids = [row.attempt_id for row in plan_rows]
+    all(row -> hasproperty(row, :object), plan_rows) ||
+        throw(ArgumentError("bounded MGMFRM fit rows must declare object"))
+    identity = _mgmfrm_fit_result_identity(plan_rows)
+    source_ids = [_mgmfrm_fit_source_id(row) for row in plan_rows]
     length(unique(source_ids)) == length(source_ids) ||
-        throw(ArgumentError("plan attempt_id values must be unique"))
+        throw(ArgumentError("plan source identifiers must be unique"))
     expanded_attempts = length(plan_rows) * length(selected_backends) *
         length(selected_priors)
     expanded_attempts <= maximum_attempts_value || throw(ArgumentError(
@@ -287,7 +363,7 @@ function _mgmfrm_stress_fit_attempts(plan;
     for plan_row in plan_rows
         generation_started = time_ns()
         generated = try
-            simulate_mgmfrm_response_stress(plan_row; truth_scale)
+            _mgmfrm_fit_generate(plan_row, truth_scale)
         catch err
             _mgmfrm_stress_fatal_exception(err) && rethrow()
             err
@@ -307,6 +383,7 @@ function _mgmfrm_stress_fit_attempts(plan;
                 fit_seed,
                 controls,
                 generation_seconds,
+                identity,
             )
             if generated isa Exception
                 push!(rows, _mgmfrm_stress_fit_terminal_row(
@@ -329,7 +406,8 @@ function _mgmfrm_stress_fit_attempts(plan;
                     validation_passed = generated.validation.passed,
                     validation_issue_codes,
                     q_validation_passed = generated.q_validation.passed,
-                    response_pattern_passed = generated.pattern_check.passed,
+                    response_pattern_passed =
+                        _mgmfrm_fit_response_pattern_passed(generated),
                     fit_eligible = generated.fit_eligible,
                 ))
                 push!(cases, generated)
@@ -430,8 +508,8 @@ function _mgmfrm_stress_fit_attempts(plan;
         :wiring_smoke_complete_with_recorded_failures :
         :short_nuts_resource_probe_complete_with_recorded_failures
     return (;
-        schema = "bayesianmgmfrm.mgmfrm_response_stress_fit_attempts.v1",
-        object = :mgmfrm_response_stress_fit_attempts,
+        schema = identity.schema,
+        object = identity.object,
         status = all_completed ? completed_status : failure_status,
         profile,
         controls,
@@ -498,7 +576,7 @@ function mgmfrm_response_stress_fit_attempts(plan;
         "mgmfrm_validation_short_nuts_resource_probe, which enforces the " *
         "memory and workload preflight",
     ))
-    return _mgmfrm_stress_fit_attempts(
+    return _mgmfrm_bounded_fit_attempts(
         plan;
         profile,
         backends,
