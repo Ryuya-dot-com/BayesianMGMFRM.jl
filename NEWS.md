@@ -85,10 +85,12 @@
   and that a package installation without a Git checkout is supported.
 - Streamline the runnable fixed-Q MGMFRM example around data validation,
   fitting, diagnostics, posterior summaries, and posterior predictive checks.
-- Run the full package suite on current and minimum Julia under Linux, use
-  focused package-load/validation/likelihood/minimal-fit smokes on macOS and
-  Windows, remove duplicate digest execution, and stop making byte-exact legacy
-  archive drift a normal release gate.
+- Run complete ordinary package coverage under Linux: once as a full suite on
+  minimum Julia and through named current-Julia `core`, `fitting`,
+  `local_dependence`, and `generalized` shards. Use focused package-load/
+  validation/likelihood/minimal-fit smokes on macOS and Windows, remove
+  duplicate digest execution, and stop making byte-exact legacy archive drift
+  a normal release gate. Plain `Pkg.test()` still runs every ordinary group.
 - Treat execution-environment SHA values as provenance rather than requiring
   every replicated free-correlation study unit to come from one machine, and
   run the 90 optional SHA-chained research fixtures only when

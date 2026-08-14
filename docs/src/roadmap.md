@@ -909,14 +909,12 @@ mandatory for milestone slices, supported-Julia release checks, and the final
 tag candidate, but they should not be the first feedback loop for every small
 edit.
 
-Because the current monolithic runner has no general test-group selector, add
-named `core`, `generalized`, `reporting`, `evidence`, `external_bridge`, and
-`slow_mcmc` groups with recorded duration and resource use.
-
-The current pull-request workflow runs 6 full-suite OS/version cells and then
-reruns three already-included experimental files in a seventh job. Ordinary
-pull requests move to one primary Linux full suite plus changed-surface and
-portability shards; the full 6-cell matrix remains scheduled or release-gated.
+The shared test runner now selects named `core`, `fitting`, `local_dependence`,
+and `generalized` groups while plain `Pkg.test()` defaults to `all`. Ordinary
+pull requests run complete coverage as one full minimum-Julia suite and four
+current-Julia shards, plus focused macOS and Windows portability smokes. Record
+duration and resource use before deciding whether finer groups or physical
+helper extraction are justified.
 
 | Tier | Feedback target | Default scope |
 | --- | --- | --- |

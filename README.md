@@ -304,12 +304,15 @@ BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true \
 Use that mode when reviewing or regenerating frozen study evidence, not as a
 prerequisite for installing or fitting the package on another computer.
 
-The full package suite runs on Ubuntu with the latest Julia 1.x release and the
-Julia 1.10.8 minimum version. Focused current-Julia smokes on macOS and Windows
-verify package loading, design validation and compilation, likelihood
-evaluation, a minimal stable Bayesian fit, and non-blocking environment
-metadata collection. Separate jobs build the documentation and verify examples
-and release-facing language. The root
+The complete package suite runs once on Ubuntu with the Julia 1.10.8 minimum
+version. On the latest Julia 1.x release, the same ordinary test coverage is
+partitioned into named `core`, `fitting`, `local_dependence`, and `generalized`
+shards. Running `Pkg.test()` locally still selects all groups; a single group can
+be selected with `BAYESIANMGMFRM_TEST_GROUP=<group>`. Focused current-Julia
+smokes on macOS and Windows verify package loading, design validation and
+compilation, likelihood evaluation, a minimal stable Bayesian fit, and
+non-blocking environment metadata collection. Separate jobs build the
+documentation and verify examples and release-facing language. The root
 `Manifest.toml` and `docs/Manifest.toml` are ignored, machine-local files. The
 versioned `Manifest-v1.10.toml` is the tracked lockfile for the Julia 1.10.8
 minimum-version lane; Julia 1.10 selects it while the latest-1.x lane resolves

@@ -24,6 +24,36 @@ end
 const RUN_RESEARCH_EVIDENCE_TESTS =
     test_flag("BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS")
 
+const TEST_GROUPS = (:core, :fitting, :local_dependence, :generalized)
+
+function selected_test_group()
+    value = lowercase(strip(get(
+        ENV,
+        "BAYESIANMGMFRM_TEST_GROUP",
+        "all",
+    )))
+    value in ("", "all") && return :all
+    group = Symbol(value)
+    group in TEST_GROUPS || throw(ArgumentError(
+        "BAYESIANMGMFRM_TEST_GROUP must be all, core, fitting, " *
+        "local_dependence, or generalized; got $(repr(value))",
+    ))
+    return group
+end
+
+const ACTIVE_TEST_GROUP = selected_test_group()
+
+test_group_enabled(group::Symbol) =
+    ACTIVE_TEST_GROUP === :all || ACTIVE_TEST_GROUP === group
+
+RUN_RESEARCH_EVIDENCE_TESTS && ACTIVE_TEST_GROUP !== :all &&
+    throw(ArgumentError(
+        "BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true requires " *
+        "BAYESIANMGMFRM_TEST_GROUP=all",
+    ))
+
+println("BayesianMGMFRM test group: ", ACTIVE_TEST_GROUP)
+
 include(joinpath(dirname(@__DIR__), "scripts", "local_json.jl"))
 include(joinpath(dirname(@__DIR__), "scripts",
     "scientific_payload_digest.jl"))
@@ -20755,6 +20785,7 @@ function check_scalar_validation_stan_pair(known_fixture_path::AbstractString,
     )
 end
 
+if test_group_enabled(:core)
 @testset "local JSON writer handles JSON3 dictionaries" begin
     source = JSON3.read("{\"z\":null,\"b\":[2,1],\"a\":{\"x\":true}}")
     io = IOBuffer()
@@ -26918,7 +26949,9 @@ end
     stale_data = FacetData(disconnected_same_n; person = :examinee, rater = :rater, item = :item, score = :score)
     @test_throws ArgumentError mfrm_spec(stale_data; thresholds = :partial_credit, validation_report = validate_design(identified_data))
 end
+end
 
+if test_group_enabled(:fitting)
 @testset "minimal Bayesian MFRM fitting" begin
     table = (
         examinee = ["E1", "E1", "E1", "E2", "E2", "E2", "E3", "E3", "E3"],
@@ -32898,23 +32931,28 @@ end
         end
     end
 end
+end
 
-if RUN_RESEARCH_EVIDENCE_TESTS
+if test_group_enabled(:generalized) && RUN_RESEARCH_EVIDENCE_TESTS
     include("existing_api_design_robustness_recovery_scorer.jl")
 end
-include("facets_conquest_bridge.jl")
-include("model_contract.jl")
-include("facets_compatibility_stats.jl")
-include("practitioner_diagnostics.jl")
-include("anchor_refit_plan.jl")
-include("testlet_design_audit.jl")
-include("testlet_overlap_contract.jl")
-include("predictive_standardized_residuals.jl")
-include("local_dependence_contract.jl")
-include("local_dependence_summary.jl")
-include("local_dependence_simulation.jl")
-include("local_dependence_calibration.jl")
-if RUN_RESEARCH_EVIDENCE_TESTS
+if test_group_enabled(:fitting)
+    include("facets_conquest_bridge.jl")
+    include("model_contract.jl")
+    include("facets_compatibility_stats.jl")
+    include("practitioner_diagnostics.jl")
+    include("anchor_refit_plan.jl")
+end
+if test_group_enabled(:local_dependence)
+    include("testlet_design_audit.jl")
+    include("testlet_overlap_contract.jl")
+    include("predictive_standardized_residuals.jl")
+    include("local_dependence_contract.jl")
+    include("local_dependence_summary.jl")
+    include("local_dependence_simulation.jl")
+    include("local_dependence_calibration.jl")
+end
+if test_group_enabled(:local_dependence) && RUN_RESEARCH_EVIDENCE_TESTS
     include("local_dependence_calibration_artifact.jl")
     include("local_dependence_calibration_pilot.jl")
     include("local_dependence_pilot_protocol_artifact.jl")
@@ -32927,14 +32965,20 @@ if RUN_RESEARCH_EVIDENCE_TESTS
     include("local_dependence_pilot_controller_receipts.jl")
     include("local_dependence_pilot_job_worker.jl")
 end
-include("generalized_guard_contract.jl")
-include("fixed_q_identification.jl")
-include("fit_report_completeness.jl")
-include("free_correlation_authorization.jl")
-include("evidence_metadata_resilience.jl")
-include("experimental_namespace.jl")
-include("mgmfrm_free_latent_correlation_2d.jl")
-if RUN_RESEARCH_EVIDENCE_TESTS
+if test_group_enabled(:generalized)
+    include("generalized_guard_contract.jl")
+    include("fixed_q_identification.jl")
+end
+test_group_enabled(:fitting) && include("fit_report_completeness.jl")
+if test_group_enabled(:generalized)
+    include("free_correlation_authorization.jl")
+end
+test_group_enabled(:fitting) && include("evidence_metadata_resilience.jl")
+if test_group_enabled(:generalized)
+    include("experimental_namespace.jl")
+    include("mgmfrm_free_latent_correlation_2d.jl")
+end
+if test_group_enabled(:generalized) && RUN_RESEARCH_EVIDENCE_TESTS
     include("mgmfrm_free_latent_correlation_2d_study.jl")
     @testset "free-correlation runner workspace-project subprocess" begin
         runner_test_path = joinpath(
@@ -32964,11 +33008,13 @@ if RUN_RESEARCH_EVIDENCE_TESTS
         @test success(process)
     end
 end
-RUN_RESEARCH_EVIDENCE_TESTS &&
+test_group_enabled(:generalized) && RUN_RESEARCH_EVIDENCE_TESTS &&
     include("publication_grade_policy_contract.jl")
-include("public_language_gate.jl")
-include("rank_normalized_diagnostics.jl")
-include("scientific_payload_digest.jl")
+if test_group_enabled(:fitting)
+    include("public_language_gate.jl")
+    include("rank_normalized_diagnostics.jl")
+    include("scientific_payload_digest.jl")
+end
 
-RUN_RESEARCH_EVIDENCE_TESTS &&
+test_group_enabled(:generalized) && RUN_RESEARCH_EVIDENCE_TESTS &&
     include("full_paper_reproduction_archive_contract.jl")

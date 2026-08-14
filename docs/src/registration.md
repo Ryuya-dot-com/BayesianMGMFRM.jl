@@ -62,9 +62,10 @@ publication endpoint.
 - License: MIT
 - Local gate:
   `julia --startup-file=no scripts/pre_registration_gate.jl --expected-version=0.1.2`
-- CI gate: documentation and release-verification gates, full Julia 1 / 1.10
-  package tests on Ubuntu, and current-Julia package smokes on macOS and Windows
-  pass on the version-update commit.
+- CI gate: documentation and release-verification gates, complete ordinary
+  package coverage through current-Julia shards and the full Julia 1.10 suite
+  on Ubuntu, and current-Julia package smokes on macOS and Windows pass on the
+  version-update commit.
 - Trigger template:
   `julia --project=. scripts/registration_handoff.jl --strict --expected-version=0.1.2`
   runs from `main` with no tracked worktree changes.

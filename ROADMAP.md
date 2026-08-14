@@ -424,14 +424,14 @@ The remaining categories are:
 | Generated research-fixture chains in `test/runtests.jl` | Remove from ordinary `Pkg.test()` by default. The 90 optional fixture entry points run only with `BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true`; manual CI owns their exact lineage checks. |
 | Frozen LD1b1 and publication/reproduction scripts | Keep isolated as research protocols, not package runtime dependencies. Their source pins must not control package import, ordinary fitting, or routine CI. |
 
-Routine CI therefore runs the full package suite on supported Julia versions
-under Linux and focused package-load/validation/likelihood/minimal-fit smokes
-on current Julia under macOS and Windows, without first requiring the tracked
-research harness to regenerate byte-for-byte. Manual workflow dispatch retains
-a Linux research-evidence run and a Windows harness portability check. The next
-cleanup is to move the remaining research protocol
-includes out of the monolithic `runtests.jl` file into a named test entry point;
-until then, the explicit environment flag is the compatibility boundary.
+Routine CI therefore runs complete ordinary package coverage under Linux: one
+full minimum-Julia suite and four named current-Julia shards. Focused package-
+load/validation/likelihood/minimal-fit smokes run on current Julia under macOS
+and Windows, without first requiring the tracked research harness to regenerate
+byte-for-byte. Manual workflow dispatch retains a Linux research-evidence run
+and a Windows harness portability check. Optional research protocols remain
+behind `BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true`, require the `all` test
+group, and are candidates for later physical extraction from `runtests.jl`.
 
 ### Stop, Narrow, or Proceed Rules
 
@@ -2135,21 +2135,24 @@ milestone slices and release candidates. Tagging a release commit requires
 `Pkg.test()` on supported Julia versions, the docs build with the page-size
 gate, example scripts, and release-scope checks.
 
-The current 32,889-line `test/runtests.jl` has no general-purpose test-group
-selector, so targeted verification must become a package contract rather than
-an informal command. Split the suite into named `core`, `generalized`,
-`reporting`, `evidence`, `external_bridge`, and `slow_mcmc` groups and record
-group duration and peak resources. Use the following feedback budgets:
+`test/runtests.jl` now provides a general-purpose selector for the named `core`,
+`fitting`, `local_dependence`, and `generalized` groups while defaulting to
+`all`. This makes targeted verification a package contract rather than an
+informal command. Record group duration and peak resources before deciding
+whether physical helper extraction or finer groups are justified. Use the
+following feedback budgets:
 
-CI now runs the full package suite on Ubuntu with current Julia 1.x and the
-Julia 1.10.8 minimum version. Current-Julia macOS and Windows jobs run a focused
-portable-package smoke covering load, validation, design compilation,
-likelihood evaluation, a minimal stable fit, and non-blocking environment
-metadata. This keeps cross-platform evidence while avoiding multi-hour repeats
-of the same monolithic suite. The separate experimental-boundary job reruns only
-the guarded-fit smokes whose execution flags are not enabled by the normal
-suite. Named changed-surface shards remain a later improvement once the
-monolithic test file is split safely.
+CI runs the complete package suite once on Ubuntu with the Julia 1.10.8 minimum
+version. Current Julia 1.x runs the same ordinary coverage through named `core`,
+`fitting`, `local_dependence`, and `generalized` shards selected without moving
+the shared fixture helpers out of `runtests.jl`. Current-Julia macOS and Windows
+jobs run a focused portable-package smoke covering load, validation, design
+compilation, likelihood evaluation, a minimal stable fit, and non-blocking
+environment metadata. This keeps cross-platform evidence while avoiding
+multi-hour repeats of the same monolithic suite. The separate experimental-
+boundary job reruns only the guarded-fit smokes whose execution flags are not
+enabled by the normal suite. Physical extraction of the shared helpers and
+finer changed-surface routing remain later improvements.
 
 | Tier | Target budget | Default trigger |
 | --- | --- | --- |

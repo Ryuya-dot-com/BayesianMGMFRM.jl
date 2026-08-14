@@ -9,21 +9,44 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
-    name: Full package tests - Julia ${{ matrix.version }} - Ubuntu
+  minimum-version-test:
+    name: Full package tests - Julia 1.10.8 - Ubuntu
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ['1.10.8', '1']
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
         with:
-          version: ${{ matrix.version }}
+          version: '1.10.8'
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
+
+  current-version-test:
+    name: Current Julia - ${{ matrix.label }} - Ubuntu
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: core
+            label: Core and design
+          - group: fitting
+            label: Fitting and reporting
+          - group: local_dependence
+            label: Local dependence
+          - group: generalized
+            label: Generalized models
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: Run ${{ matrix.label }} test shard
+        env:
+          BAYESIANMGMFRM_TEST_GROUP: ${{ matrix.group }}
+        run: julia --startup-file=no --project=. -e 'using Pkg; Pkg.test()'
 
   platform-smoke:
     name: Platform smoke - Julia 1 - ${{ matrix.os }}
