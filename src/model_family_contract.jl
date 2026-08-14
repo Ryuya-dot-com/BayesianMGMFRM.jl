@@ -230,17 +230,24 @@ function _model_family_category_contract(spec::FacetSpec)
         :multidimensional_generalized_partial_credit
     end
     source_scale = family === :mgmfrm ? 1.7 : 1.0
+    normal_ogive_reference = family === :mgmfrm ? 1.702 : nothing
     return (;
         family = kernel,
         probability_form = :adjacent_category_cumulative_softmax,
         threshold_regime = spec.thresholds,
         n_categories = length(spec.data.category_levels),
         source_scale_constant = source_scale,
+        implementation_scale_constant = source_scale,
+        normal_ogive_minimax_reference_constant = normal_ogive_reference,
         source_scale_contract = family === :mgmfrm ?
             :uto_2021_equation_6_uses_1_7 :
             family === :gmfrm ?
                 :uto_and_ueno_2020_equation_9_has_no_1_7 :
                 :unit_rasch_scale,
+        scale_precision_policy = family === :mgmfrm ?
+            :implement_published_1_7_literal_not_1_702_reference :
+            :not_applicable,
+        source_literal_matches_implementation = true,
         cross_family_scale_comparison = family in (:gmfrm, :mgmfrm) ?
             :requires_explicit_harmonization : :reference_unit_scale,
         generalized_discrimination = family in (:gmfrm, :mgmfrm),

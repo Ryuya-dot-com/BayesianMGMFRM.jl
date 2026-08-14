@@ -63,6 +63,9 @@ end
     @test gmfrm_contract.category.family === :generalized_partial_credit
     @test gmfrm_contract.branch === :gmfrm_rater_step_gpcm
     @test gmfrm_contract.category.source_scale_constant == 1.0
+    @test gmfrm_contract.category.implementation_scale_constant == 1.0
+    @test isnothing(gmfrm_contract.category.
+        normal_ogive_minimax_reference_constant)
     @test gmfrm_contract.category.source_scale_contract ===
         :uto_and_ueno_2020_equation_9_has_no_1_7
     @test gmfrm_contract.category.cross_family_scale_comparison ===
@@ -91,6 +94,12 @@ end
         :multidimensional_generalized_partial_credit
     @test between_contract.branch === :mgmfrm_fixed_q_between_item_gpcm
     @test between_contract.category.source_scale_constant == 1.7
+    @test between_contract.category.implementation_scale_constant == 1.7
+    @test between_contract.category.normal_ogive_minimax_reference_constant ==
+        1.702
+    @test between_contract.category.scale_precision_policy ===
+        :implement_published_1_7_literal_not_1_702_reference
+    @test between_contract.category.source_literal_matches_implementation
     @test between_contract.category.cross_family_scale_comparison ===
         :requires_explicit_harmonization
     @test between_contract.dimensionality.classification === :between_item

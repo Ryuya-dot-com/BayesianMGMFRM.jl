@@ -51,6 +51,17 @@ convention explicit in `category.source_scale_contract`. Direct numerical
 comparison of discrimination parameters across those families therefore
 requires a predeclared scale harmonization rather than an implicit comparison.
 
+The related constants `1.7` and `1.702` have different contractual roles.
+`1.702` is the conventional minimax scaling constant used to approximate a
+normal-ogive response curve with a logistic curve; `1.7` is its commonly
+rounded form and is the literal value printed in Uto (2021), Eqs. 4 and 6.
+Consequently, the source-reproduction likelihood uses exactly `1.7`, not
+`1.702`. The family contract records `1.702` only as
+`normal_ogive_minimax_reference_constant`. Changing the executable constant
+would define a new likelihood version and require regenerated reference
+results; it is not a numerical-precision correction to the current source
+model.
+
 The guarded MGMFRM kernel follows the conditional response form in Uto (2021):
 
 ```math

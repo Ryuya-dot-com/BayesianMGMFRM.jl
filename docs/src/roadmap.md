@@ -116,12 +116,16 @@ shared rating-scale steps or item-specific PCM steps. Adding a facet does not
 automatically add a step vector. Arbitrary facet-specific or crossed step blocks
 remain unsupported.
 
-Stage A then freezes the structural-versus-prior identification statement, focal
-direct-scale estimands, parameter-block bias/RMSE/coverage and decision metrics,
-connected dense/sparse and misspecification cells, actual weak/reference/strong
-prior refits, and complete attempted-fit failure accounting. Failed fits are not
-removed from the scientific denominator. Acceptance rules must be fixed before
-fresh evaluation results are inspected.
+Stage A first locks the source-reproduction multiplier to the published `1.7`
+and records `1.702` only as the normal-ogive minimax reference; changing the
+likelihood or comparing parameter scales requires an explicit conversion or
+sensitivity contract. It then freezes the structural-versus-prior
+identification statement, focal direct-scale estimands, parameter-block
+bias/RMSE/coverage and decision metrics, connected dense/sparse and
+misspecification cells, actual weak/reference/strong prior refits, and complete
+attempted-fit failure accounting. Failed fits are not removed from the
+scientific denominator. Acceptance rules must be fixed before fresh evaluation
+results are inspected.
 
 External validation uses simulation and observed data for different purposes.
 Known-truth simulation evaluates recovery, coverage, and false-decision rates.

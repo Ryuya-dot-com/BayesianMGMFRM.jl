@@ -156,18 +156,22 @@ pooling contract.
 
 Stage A must then make these scientific choices explicit before Stage B:
 
-1. distinguish structural likelihood identification from scale/location
+1. lock the source-reproduction multiplier to the published `1.7`, record
+   `1.702` as the normal-ogive minimax reference rather than silently changing
+   the likelihood, and predeclare any cross-family scale conversion or
+   sensitivity comparison;
+2. distinguish structural likelihood identification from scale/location
    identification supplied by the standard-normal ability prior;
-2. define focal direct-scale estimands and parameter-block metrics, including
+3. define focal direct-scale estimands and parameter-block metrics, including
    bias, RMSE, interval coverage/width, empirical versus posterior uncertainty,
    ranking/classification stability, prediction, and calibration;
-3. predeclare connected dense and sparse design cells, Q structures within the
+4. predeclare connected dense and sparse design cells, Q structures within the
    claimed domain, deliberate misspecification controls, and unidimensional
    MFRM comparisons where the target is genuinely nested or overlapping;
-4. evaluate prior implications before fitting and then run actual weak,
+5. evaluate prior implications before fitting and then run actual weak,
    reference, and strong prior refits rather than treating importance
    reweighting as final sensitivity evidence; and
-5. record all attempted fits and typed failure reasons. Excluding failed fits
+6. record all attempted fits and typed failure reasons. Excluding failed fits
    from recovery summaries is not permitted.
 
 External validation uses simulation and observed data for different purposes.
