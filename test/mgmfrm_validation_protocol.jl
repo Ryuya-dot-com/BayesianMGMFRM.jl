@@ -31,8 +31,26 @@ using BayesianMGMFRM
     @test source.parameter_recovery_axes.raters == (5, 15)
     @test source.parameter_recovery_axes.dimensions == (1, 2, 3)
     @test source.parameter_recovery_axes.replications == 30
+    @test source.parameter_recovery_evidence.primary_reported_summaries ==
+        (:rmse, :bias)
+    @test source.parameter_recovery_evidence.
+        base_generating_distribution_matches_source_prior
+    @test source.parameter_recovery_evidence.
+        first_dimension_markers_overwritten_for_alignment
+    @test !source.parameter_recovery_evidence.
+        replications_are_package_requirement
+    @test !source.parameter_recovery_evidence.
+        replications_are_package_precision_justification
+    @test source.parameter_recovery_evidence.
+        interval_coverage_precision_not_inherited
+    @test source.parameter_recovery_evidence.
+        decision_rate_precision_not_inherited
     @test source.category_count == 4
     @test source.sparse_design_anchor.raters_per_person == 2
+    @test source.sparse_design_anchor.source_role ===
+        :separate_ability_accuracy_model_comparison
+    @test !source.sparse_design_anchor.full_parameter_recovery_design_claim
+    @test !source.source_convergence_reference.modern_package_gate_inherited
     @test source.overlap_with_package === :partial_not_exact
     @test :source_unrestricted_item_dimension_loading_surface in
         source.nonoverlap
@@ -81,6 +99,15 @@ using BayesianMGMFRM
     @test design.sparse_design.connectivity_and_location_rank_must_pass_before_fit
     @test design.sparse_design.disconnected_negative_control ===
         :must_be_rejected_before_fit
+    @test :rater_coverage in
+        design.sparse_design.literature_sensitivity_axes
+    @test :assignment_order in
+        design.sparse_design.literature_sensitivity_axes
+    @test :rater_coverage_fraction in
+        design.sparse_design.required_exposure_reporting
+    @test !design.sparse_design.universal_anchor_percentage_supported
+    @test !design.sparse_design.
+        fixed_two_raters_per_person_is_complete_robustness_test
     @test :unused_interior_category_3 in
         design.response_pattern_stress.scenarios
     @test design.response_pattern_stress.dense_combined_pattern_excluded

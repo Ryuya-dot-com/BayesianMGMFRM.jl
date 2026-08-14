@@ -56,6 +56,16 @@ times. Its later sparse experiment assigned two raters per person through a
 systematic-link design. These are source anchors, not package results or an
 automatic requirement to execute the full factorial grid.
 
+The 30 source repetitions summarize RMSE and bias after generating base
+parameters from the same distributions used as estimation priors, overwriting
+marker discriminations, and aligning exchangeable dimensions post hoc. They do
+not determine this package's MCSE
+for interval coverage, failures, or decision rates. Likewise, the two-rater
+sparse experiment is a separate ability-accuracy model comparison, not a full
+parameter-recovery study of linking-set size, rater coverage, and assignment
+order. The package therefore records effective persons and ratings per rater
+and the rater-coverage fraction for every primary-grid candidate.
+
 The draft remains explicitly blocked. Source-aligned and stronger regularizing
 refits are now expressible through
 `BayesianMGMFRM.Experimental.GeneralizedPrior`, and their score/category/facet

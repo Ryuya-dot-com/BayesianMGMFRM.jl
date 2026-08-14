@@ -15,6 +15,10 @@ function _mgmfrm_validation_primary_grid_candidate_contract(protocol)
                             protocol.design_domain.sparse_raters_per_person
         observations = persons * items * raters_per_person
         probability_cells = observations * protocol.design_domain.categories
+        mean_person_assignments_per_rater =
+            persons * raters_per_person / raters
+        mean_ratings_per_rater = observations / raters
+        rater_coverage_fraction = raters_per_person / raters
         within_gradient_bound = observations <=
             gradient_policy.hard_maximum_observations_per_cell &&
             probability_cells <=
@@ -36,6 +40,9 @@ function _mgmfrm_validation_primary_grid_candidate_contract(protocol)
             items,
             raters,
             raters_per_person,
+            mean_person_assignments_per_rater,
+            mean_ratings_per_rater,
+            rater_coverage_fraction,
             expected_observations = observations,
             expected_probability_cells = probability_cells,
             dimensions = protocol.claim_target.dimensions,
@@ -44,6 +51,17 @@ function _mgmfrm_validation_primary_grid_candidate_contract(protocol)
                 :pure_between_item_one_active_dimension_per_item,
             pure_items_per_dimension =
                 (items ÷ 2, items - items ÷ 2),
+            dimension_support_role = items == minimum(sizes.items) ?
+                :package_fixed_q_minimum_support_stress :
+                :package_fixed_q_larger_support_candidate,
+            rater_information_role = persons == minimum(sizes.persons) ?
+                :source_minimum_person_support :
+                :source_larger_person_support,
+            rater_coverage_role = design === :dense_fully_crossed ?
+                :complete_coverage_reference :
+                raters == maximum(sizes.raters) ?
+                    :lowest_sparse_per_rater_coverage_candidate :
+                    :higher_sparse_per_rater_coverage_candidate,
             latent_correlation = protocol.claim_target.latent_correlation,
             response_pattern = :regular_all_categories,
             prior_regime = :implementation_reference,

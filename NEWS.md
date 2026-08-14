@@ -141,6 +141,10 @@
 
 ### Changed
 
+- Separate Uto's 30-repetition RMSE/bias study and two-rater ability comparison
+  from package precision and sparse-robustness requirements. Primary-grid rows
+  now report effective per-rater exposure and coverage roles, while the
+  protocol requires link, coverage, fit, and assignment-order sensitivity.
 - Reframe the active MGMFRM roadmap around a narrow fixed-Q scientific
   promotion decision. The new sequence separates pilot operability from
   fresh-seed validation, external/independent evidence, and user-workflow

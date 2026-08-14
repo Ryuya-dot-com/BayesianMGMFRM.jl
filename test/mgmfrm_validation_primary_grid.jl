@@ -47,6 +47,15 @@ using BayesianMGMFRM
         :pure_between_item_one_active_dimension_per_item, rows)
     @test all(row -> row.pure_items_per_dimension ==
         (row.items ÷ 2, row.items - row.items ÷ 2), rows)
+    @test all(row -> row.mean_person_assignments_per_rater ==
+        row.persons * row.raters_per_person / row.raters, rows)
+    @test all(row -> row.mean_ratings_per_rater ==
+        row.expected_observations / row.raters, rows)
+    @test all(row -> row.rater_coverage_fraction ==
+        row.raters_per_person / row.raters, rows)
+    @test all(row -> row.dimension_support_role ===
+        (row.items == 5 ? :package_fixed_q_minimum_support_stress :
+         :package_fixed_q_larger_support_candidate), rows)
     @test all(row -> row.generator_status ===
         :public_primary_four_category_known_truth_generator, rows)
     @test all(row -> row.seed_role ===
@@ -67,9 +76,21 @@ using BayesianMGMFRM
         if row.design === :connected_sparse_systematic_link &&
             row.persons == 50 && row.items == 5 && row.raters == 5)
     @test sparse_smallest.raters_per_person == 2
+    @test sparse_smallest.rater_coverage_fraction == 0.4
+    @test sparse_smallest.rater_coverage_role ===
+        :higher_sparse_per_rater_coverage_candidate
     @test sparse_smallest.expected_observations == 500
     @test sparse_smallest.within_current_gradient_probe_bound
     @test sparse_smallest.within_current_short_nuts_probe_bound
+
+    sparse_lowest_coverage = only(row for row in rows
+        if row.design === :connected_sparse_systematic_link &&
+            row.persons == 50 && row.items == 5 && row.raters == 15)
+    @test sparse_lowest_coverage.rater_coverage_fraction == 2 / 15
+    @test sparse_lowest_coverage.mean_person_assignments_per_rater ==
+        100 / 15
+    @test sparse_lowest_coverage.rater_coverage_role ===
+        :lowest_sparse_per_rater_coverage_candidate
 
     @test :implement_primary_four_category_known_truth_generator ∉
         contract.blockers

@@ -197,7 +197,12 @@ observations range from 500 to 22,500. Nine cells exceed the current 2,000-
 observation short-NUTS bound. A public four-category known-truth generator and
 MCMC-free structural preflight are available, but resource coverage, final
 cell selection, and evaluation replications remain unresolved. This is not yet
-the frozen evaluation grid.
+the frozen evaluation grid. Candidate rows expose persons and ratings per
+rater, rater-coverage fraction, dimension-support role, and sparse-coverage
+role. Uto's 30 repetitions remain a source-comparison value, not a package
+precision justification; sparse robustness also requires link-size,
+represented-range, model-fit, and assignment-order sensitivity rather than a
+universal anchor percentage.
 
 `primary_resource_plan` selects four ordered 4-category cells with 500, 1,250,
 3,750, and 7,500 observations for explicit, one-cell-at-a-time gradient

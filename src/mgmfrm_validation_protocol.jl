@@ -14,6 +14,17 @@ function _mgmfrm_validation_source_anchor()
             dimensions = (1, 2, 3),
             replications = 30,
         ),
+        parameter_recovery_evidence = (;
+            primary_reported_summaries = (:rmse, :bias),
+            point_estimator = :posterior_mean_eap,
+            base_generating_distribution_matches_source_prior = true,
+            first_dimension_markers_overwritten_for_alignment = true,
+            dimension_alignment = :posthoc_discrimination_sorting,
+            replications_are_package_requirement = false,
+            replications_are_package_precision_justification = false,
+            interval_coverage_precision_not_inherited = true,
+            decision_rate_precision_not_inherited = true,
+        ),
         source_prior = (;
             parameter_space = :declared_parameter_and_log_parameter_blocks,
             family = :normal,
@@ -30,9 +41,17 @@ function _mgmfrm_validation_source_anchor()
         ),
         estimator = :nuts_via_rstan,
         retained_periods = 2000:4000,
+        source_convergence_reference = (;
+            reported_rhat_upper = 1.1,
+            modern_package_gate_inherited = false,
+        ),
         sparse_design_anchor = (;
             design = :systematic_link,
             raters_per_person = 2,
+            source_role =
+                :separate_ability_accuracy_model_comparison,
+            full_parameter_recovery_design_claim = false,
+            package_sparse_robustness_complete = false,
         ),
         overlap_with_package = :partial_not_exact,
         nonoverlap = (
@@ -272,6 +291,22 @@ function mgmfrm_validation_protocol()
                 disconnected_negative_control = :must_be_rejected_before_fit,
                 arbitrary_missingness_assumed_ignorable = false,
                 additional_missingness_mechanism = :not_in_primary_scope,
+                literature_sensitivity_axes = (
+                    :rater_coverage,
+                    :absolute_linking_set_size,
+                    :linking_set_latent_location,
+                    :linking_set_model_fit,
+                    :assignment_order,
+                ),
+                required_exposure_reporting = (
+                    :raters_per_person,
+                    :persons_per_rater,
+                    :rater_coverage_fraction,
+                    :absolute_link_count,
+                    :link_fraction,
+                ),
+                universal_anchor_percentage_supported = false,
+                fixed_two_raters_per_person_is_complete_robustness_test = false,
                 report = (:graph_components, :location_rank,
                     :rater_overlap, :category_support),
             ),
