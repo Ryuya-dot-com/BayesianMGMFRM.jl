@@ -38,6 +38,12 @@
   defers anchor-dose and broader model studies until their fitted contracts
   exist; and replaces routine SHA-oriented gates with resource-aware executable
   checks.
+- Add a bounded Stage 0 model-family skeleton before scientific protocol
+  freezing. It separates between-item, within-item, and mixed fixed-Q
+  structures; the source's non-compensatory label from its additive weighted-
+  sum predictor; GPCM-form category kernels; model-specific step ownership;
+  and executable versus unsupported branches without proposing a generic
+  sampler framework.
 - Make an explicit CmdStan fitting backend a required gate before stable
   promotion while keeping CmdStan an optional external runtime. Add a portable
   runtime/toolchain check and a direct CLI adapter for stable MFRM/RSM/PCM

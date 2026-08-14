@@ -58,10 +58,12 @@ both guarded configurations.
 
 This section is the authoritative work order. The detailed ledgers below
 preserve history, but they do not override this sequence. The immediate goal is
-not a generic MGMFRM implementation. It is a defensible promotion decision for
-the declared fixed-Q, positive-loading, identity-correlation confirmatory
-candidate. Broader mechanisms proceed as separate research programs only after
-that decision.
+not a generic MGMFRM engine. First freeze a thin model-family skeleton that
+distinguishes response kernel, dimensional structure, dimension aggregation,
+loading policy, latent covariance, step sharing, facet roles, and
+identification. Then make a defensible promotion decision for one declared
+fixed-Q, positive-loading, identity-correlation confirmatory branch. Broader
+mechanisms proceed as separate research programs only after that decision.
 
 Maturity is tracked on separate axes rather than collapsed into one completion
 percentage:
@@ -84,13 +86,37 @@ The ordered program is:
 
 | Stage | Priority and scope | Exit condition |
 | --- | --- | --- |
+| 0. Freeze the MGMFRM family skeleton | **P0, immediate and bounded.** Record between-item, within-item, and mixed fixed-Q structures; source terminology versus algebraic dimension aggregation; PCM/GPCM kernels; step-sharing ownership; latent-correlation policy; facet roles; and executable/specified-only/blocked status. Do not add samplers for all branches. | One source-reviewed, machine-readable family contract and matching prose make unsupported combinations impossible to mistake for implemented ones. |
 | A. Freeze the validation protocol | **P0, now.** Freeze the narrow estimands, supported Q/design domain, prior variants, design cells, primary backend, cross-backend subset, sampler budgets, fresh evaluation seeds, failure accounting, and decision rules before inspecting evaluation results. | A reviewable, portable protocol and commands exist; no scientific claim is released. |
 | B. Run fresh-seed known-truth validation | **P0.** Run repeated dense and connected-sparse recovery, prior sensitivity, prediction/calibration, and nested unidimensional MFRM comparisons. Use one predeclared primary backend for the full grid and both backends on a stratified conformance subset. | Predeclared parameter-block and focal-decision criteria pass, or the supported domain is narrowed and the surface remains experimental. |
 | C. Add external and independent evidence | **P0 before stable promotion.** Reproduce a matching public benchmark, analyze one provenance- and licence-cleared external dataset when available, and obtain review of equations, Q, priors, transforms, diagnostics, and claims from someone other than the implementer. | The exact overlapping targets reproduce in a separate environment and the reviewer records claim-level allow/block decisions. |
 | D. Harden the user workflow | **P1, in parallel only where it enables B/C.** Add bounded parallel chains, CmdStan cache integration, resolved sampler profiles, fit persistence, concise summaries/warnings, visualization rows, and maintainable source boundaries. | A non-maintainer can fit, diagnose, summarize, save, reload, and report the narrow model without repository-specific paths or hidden state. |
 | E. Make the promotion decision | **Release gate.** Review the narrow candidate only; choose stable, remain experimental, or narrow further. | Stable wording is allowed only for the domain that passed A-D. Missing broader mechanisms are stated as non-goals rather than hidden caveats. |
 
-Stage A freezes the structural-versus-prior identification statement, focal
+Stage 0 records source classification separately from algebra. Uto (2021)
+calls the multidimensional GPCM basis and proposed MGMFRM non-compensatory, but
+the conditional predictor uses the additive weighted sum
+`sum_l alpha[i,l] * theta[p,l]`. The package must preserve both facts and avoid
+inferring an operational compensation claim from the summation sign alone.
+
+Fixed Q defines item dimensionality: one active dimension per item is between-
+item, multiple active dimensions are within-item, and a Q with both is mixed.
+The current kernel can execute validated fixed-mask branches, but not Uto's
+unrestricted within-item-capable `alpha[i,l]` surface. An all-active Q is not
+automatically an identified replacement for that source model. The current
+branch also lacks a non-additive conjunctive/product/minimum aggregator.
+Conditional response probabilities contain no ability integral; HMC samples
+explicit person abilities, and posterior marginalization over draws is a
+separate operation.
+
+The generalized kernel is GPCM-form. Scalar GMFRM uses rater-specific step
+vectors shared across items and persons; MGMFRM uses item-specific vectors
+shared across raters and dimensions. Stable MFRM separately supports globally
+shared rating-scale steps or item-specific PCM steps. Adding a facet does not
+automatically add a step vector. Arbitrary facet-specific or crossed step blocks
+remain unsupported.
+
+Stage A then freezes the structural-versus-prior identification statement, focal
 direct-scale estimands, parameter-block bias/RMSE/coverage and decision metrics,
 connected dense/sparse and misspecification cells, actual weak/reference/strong
 prior refits, and complete attempted-fit failure accounting. Failed fits are not
@@ -146,11 +172,12 @@ mechanisms, and multiple discrimination components within a facet with an
 explicit threshold-sharing contract. Broader brms-like ergonomics follows the
 statistical contracts rather than defining them.
 
-Do not next add free correlation to the public fit, infer an anchor percentage
-from current sparse fixtures, make CmdStan the default, tune decision rules
-after seeing fresh results, compare backend speed from warmed pilots, or expand
-source-hash machinery. Failures should first narrow the claim or supported
-design domain, not automatically increase model complexity.
+Do not turn Stage 0 into a generic sampler framework, add free correlation to
+the public fit, infer an anchor percentage from current sparse fixtures, make
+CmdStan the default, tune decision rules after seeing fresh results, compare
+backend speed from warmed pilots, or expand source-hash machinery. Failures
+should first narrow the claim or supported design domain, not automatically
+increase model complexity.
 
 ## Why the Generalized Fit Is Guarded
 
