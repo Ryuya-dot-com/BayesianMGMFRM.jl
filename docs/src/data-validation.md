@@ -320,8 +320,11 @@ resource_review.summary
 The review requires unique cells in the declared contiguous order beginning
 with either the default sparse stress cell or the first eligible primary cell.
 Stress and primary collections cannot be mixed into a passing sequence. The
-review preserves incomplete and rejected results, applies no thresholds, and
-never advances automatically.
+review preserves incomplete and rejected results together with divergences,
+tree depth, leapfrog-step count, step size, and E-BFMI chain coverage. These
+short-chain geometry fields are operational observations, not convergence or
+scientific decisions. The review applies no thresholds and never advances
+automatically.
 
 ## Clustered Responses and Testlet Identity
 

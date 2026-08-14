@@ -253,8 +253,12 @@ memory estimate and its basis, and memory pressure when the OS supplies it.
 Completed or rejected
 invocations can be passed to
 `mgmfrm_validation_isolated_resource_review()` for a threshold-free table of
-both memory preflights, elapsed time, child status, and worker peak RSS. The
-review never launches the next cell or freezes a resource policy.
+both memory preflights, elapsed time, child status, worker peak RSS, and the
+retained short-NUTS geometry: divergences, tree depth, leapfrog-step count,
+step size, and per-chain E-BFMI coverage. These short-chain fields help review
+computational cost and pathological geometry; they are not convergence or
+scientific pass/fail evidence. The review never launches the next cell or
+freezes a resource policy.
 
 Stable MFRM/RSM/PCM designs also support `backend = :cmdstan`. CmdStan is an
 optional external runtime, discovered with `cmdstan_backend_check()`; it is not

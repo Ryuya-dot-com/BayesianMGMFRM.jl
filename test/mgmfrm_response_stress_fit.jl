@@ -26,6 +26,15 @@ using BayesianMGMFRM
         n_failed_direct_constraints = 0,
         n_divergences = 0,
         n_max_treedepth = 0,
+        mean_n_steps = 31.5,
+        mean_tree_depth = 4.5,
+        max_tree_depth = 6,
+        mean_step_size = 0.0125,
+        e_bfmi = 0.55,
+        n_e_bfmi_expected = 1,
+        n_e_bfmi_available = 1,
+        n_e_bfmi_unavailable = 0,
+        e_bfmi_complete = true,
         sampler_flags = (),
         convergence_assessed = false,
         diagnostic_decision = :not_applied_short_chain,
@@ -66,6 +75,12 @@ using BayesianMGMFRM
     @test all(row -> row.object ===
         :mgmfrm_response_stress_fit_attempt_row, completed.rows)
     @test all(row -> row.output_integrity_passed, completed.rows)
+    @test all(row -> row.mean_n_steps == 31.5, completed.rows)
+    @test all(row -> row.mean_tree_depth == 4.5, completed.rows)
+    @test all(row -> row.max_tree_depth == 6, completed.rows)
+    @test all(row -> row.mean_step_size == 0.0125, completed.rows)
+    @test all(row -> row.e_bfmi == 0.55, completed.rows)
+    @test all(row -> row.e_bfmi_complete, completed.rows)
     @test length(unique(row.attempt_id for row in completed.rows)) == 4
     @test Set(row.backend for row in completed.rows) ==
         Set((:advancedhmc, :cmdstan))

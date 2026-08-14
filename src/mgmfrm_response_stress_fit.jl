@@ -117,6 +117,7 @@ function _mgmfrm_stress_default_diagnostics(fit::MGMFRMFit, controls)
     sampler_flags = Tuple(sort(unique(
         row.flag for row in sampler_rows if row.flag !== :ok
     ); by = string))
+    e_bfmi = _ebfmi_coverage(sampler_rows)
     n_failed_direct_constraints =
         Int(fit.diagnostic_surface.summary.n_failed_direct_constraints)
     integrity_passed = all(isfinite, direct_draws) &&
@@ -141,10 +142,24 @@ function _mgmfrm_stress_default_diagnostics(fit::MGMFRMFit, controls)
             sampler_rows, :n_divergences),
         n_max_treedepth = _mgmfrm_stress_diagnostic_total(
             sampler_rows, :n_max_treedepth),
+        mean_n_steps = _maybe_mean(sampler_rows, :mean_n_steps),
+        mean_tree_depth = _maybe_mean(sampler_rows, :mean_tree_depth),
+        max_tree_depth = _maybe_max_int(sampler_rows, :max_tree_depth),
+        mean_step_size = _maybe_mean(sampler_rows, :mean_step_size),
+        e_bfmi = e_bfmi.e_bfmi,
+        n_e_bfmi_expected = e_bfmi.n_e_bfmi_expected,
+        n_e_bfmi_available = e_bfmi.n_e_bfmi_available,
+        n_e_bfmi_unavailable = e_bfmi.n_e_bfmi_unavailable,
+        e_bfmi_complete = e_bfmi.e_bfmi_complete,
         sampler_flags,
         convergence_assessed = controls.convergence_assessed,
         diagnostic_decision = controls.diagnostic_decision,
     )
+end
+
+function _mgmfrm_stress_optional_diagnostic(diagnostics, field::Symbol)
+    return ismissing(diagnostics) || !hasproperty(diagnostics, field) ?
+        missing : getproperty(diagnostics, field)
 end
 
 function _mgmfrm_stress_expanded_attempt_id(source_id, backend::Symbol,
@@ -280,10 +295,27 @@ function _mgmfrm_stress_fit_terminal_row(base;
         diagnostics.maximum_probability_sum_error
     n_failed_direct_constraints = ismissing(diagnostics) ? missing :
         diagnostics.n_failed_direct_constraints
-    n_divergences = ismissing(diagnostics) ? missing :
-        diagnostics.n_divergences
-    n_max_treedepth = ismissing(diagnostics) ? missing :
-        diagnostics.n_max_treedepth
+    n_divergences = _mgmfrm_stress_optional_diagnostic(
+        diagnostics, :n_divergences)
+    n_max_treedepth = _mgmfrm_stress_optional_diagnostic(
+        diagnostics, :n_max_treedepth)
+    mean_n_steps = _mgmfrm_stress_optional_diagnostic(
+        diagnostics, :mean_n_steps)
+    mean_tree_depth = _mgmfrm_stress_optional_diagnostic(
+        diagnostics, :mean_tree_depth)
+    max_tree_depth = _mgmfrm_stress_optional_diagnostic(
+        diagnostics, :max_tree_depth)
+    mean_step_size = _mgmfrm_stress_optional_diagnostic(
+        diagnostics, :mean_step_size)
+    e_bfmi = _mgmfrm_stress_optional_diagnostic(diagnostics, :e_bfmi)
+    n_e_bfmi_expected = _mgmfrm_stress_optional_diagnostic(
+        diagnostics, :n_e_bfmi_expected)
+    n_e_bfmi_available = _mgmfrm_stress_optional_diagnostic(
+        diagnostics, :n_e_bfmi_available)
+    n_e_bfmi_unavailable = _mgmfrm_stress_optional_diagnostic(
+        diagnostics, :n_e_bfmi_unavailable)
+    e_bfmi_complete = _mgmfrm_stress_optional_diagnostic(
+        diagnostics, :e_bfmi_complete)
     sampler_flags = ismissing(diagnostics) ? () : diagnostics.sampler_flags
     return merge(base, (;
         terminal_status,
@@ -309,6 +341,15 @@ function _mgmfrm_stress_fit_terminal_row(base;
         n_failed_direct_constraints,
         n_divergences,
         n_max_treedepth,
+        mean_n_steps,
+        mean_tree_depth,
+        max_tree_depth,
+        mean_step_size,
+        e_bfmi,
+        n_e_bfmi_expected,
+        n_e_bfmi_available,
+        n_e_bfmi_unavailable,
+        e_bfmi_complete,
         sampler_flags,
     ))
 end

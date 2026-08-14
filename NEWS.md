@@ -79,6 +79,10 @@
   select the two primary resource rows inside the current short-NUTS bound.
   Primary and legacy stress/scaling receipts retain separate ordered
   collections and cannot be mixed into a passing review.
+- Preserve short-NUTS geometry in isolated worker receipts and reviews:
+  divergences, maximum-depth hits, mean leapfrog steps, mean and maximum tree
+  depth, mean step size, and complete-chain E-BFMI availability. The bounded
+  single-chain probe still makes no convergence or scientific decision.
 - Reduce guarded MGMFRM gradient allocation without changing the fixed-Q
   likelihood: build the Q-to-loading index matrix once per evaluation, avoid
   row-level predictor arrays in the fit path, and accumulate total likelihood

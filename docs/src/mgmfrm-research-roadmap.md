@@ -1437,6 +1437,25 @@ and runnable-example subset; unfinished items continue under `v0.1.2` or later.
   follows `rank_normalized_flag`, and `classical_compatibility_flag` remains
   separate. A versioned diagnostic contract protects cached generalized
   surfaces and distinguishes modern rows from pre-modern version-1 wrappers.
+
+#### Five-layer diagnostic promotion policy
+
+Diagnostic coverage is prioritized by the failure mode it can detect. A long
+list of statistics is not itself evidence that the generalized model works.
+
+| Layer | Current implementation | Promotion requirement |
+|---|---|---|
+| Chain convergence and Monte Carlo precision | Rank-normalized split and folded R-hat plus bulk/tail ESS are implemented. | Use at least four independent analysis chains; add estimand-specific mean and quantile MCSE. Treat ESS 400 as a screening floor, not a substitute for a precision target. Nested R-hat is conditional on a declared many-short-chain superchain design; R* remains an optional complementary research diagnostic rather than a core dependency or release gate. |
+| HMC/NUTS geometry | Chain rows contain divergences, maximum-depth hits, leapfrog steps, tree depth, step size, and E-BFMI with complete-chain accounting. Isolated resource receipts retain these fields. | Require zero unexplained divergences and complete finite E-BFMI for analysis fits; inspect depth/step behavior and pairs geometry. Raising target acceptance is a recorded remediation, not proof that reparameterization is unnecessary. Short resource probes remain unscored. |
+| Algorithm and implementation validation | Fixed-truth recovery grids and independent likelihood fixtures exist. | Add prior-drawn SBC with rank/ECDF diagnostics and decision-relevant test quantities. Do not relabel conditional fixed-truth recovery as SBC, and retain every failed fit in the planned denominator. |
+| Predictive fit and influence | Prior/PPC summaries, WAIC, raw importance LOO, PSIS-like LOO, Pareto-k rows, and exact-refit planning exist. | Add ordinal-aware randomized LOO-PIT, use a sample-size-aware Pareto-k policy with its approximation stated, and require exact refit or K-fold fallback when importance sampling is unreliable. Keep DIC out of scope and prefer PSIS-LOO over WAIC for model comparison. A posterior-predictive p-value is discrepancy-specific; closeness to 0.5 is not a universal fit criterion. |
+| Prior/likelihood sensitivity | Prior predictive checks, explicit prior refits, and a local power-scaling importance grid with weight ESS are implemented. | Report focal direct-scale shifts and importance reliability; add Pareto-k or refit fallback for unstable reweighting. Do not translate sensitivity patterns automatically into prior-data conflict or nonidentification without model-specific review. |
+
+Rank plots, divergence-overlaid pairs plots, energy plots, and simultaneous
+ECDF-difference displays are P1 reporting surfaces after the P0 numerical
+quantities above are preserved. Geweke, Heidelberger-Welch, Raftery-Lewis, and
+DIC are not core deliverables. They would add surface area without addressing
+the present fixed-Q MGMFRM validation blockers.
 - Add a binary-response interpretation note to the docs and reports: the
   two-category MFRM is a many-facet Rasch/1PL IRT model, while binary
   GMFRM/MGMFRM variants with item discrimination, rater consistency, or

@@ -28,6 +28,18 @@ function _isolated_review_receipt_json(
         memory_preflight_passed,
         process_peak_rss_bytes = 456_789,
         process_peak_rss_attributable_to_worker = true,
+        n_divergences = mcmc_executed ? 0 : nothing,
+        n_max_treedepth = mcmc_executed ? 0 : nothing,
+        mean_n_steps = mcmc_executed ? 31.5 : nothing,
+        mean_tree_depth = mcmc_executed ? 4.5 : nothing,
+        max_tree_depth = mcmc_executed ? 6 : nothing,
+        mean_step_size = mcmc_executed ? 0.0125 : nothing,
+        e_bfmi = mcmc_executed ? 0.55 : nothing,
+        n_e_bfmi_expected = mcmc_executed ? 1 : nothing,
+        n_e_bfmi_available = mcmc_executed ? 1 : nothing,
+        n_e_bfmi_unavailable = mcmc_executed ? 0 : nothing,
+        e_bfmi_complete = mcmc_executed ? true : nothing,
+        sampler_flags = (),
         julia_version = string(VERSION),
         os = string(Sys.KERNEL),
         arch = string(Sys.ARCH),
@@ -150,6 +162,17 @@ end
         :injected_available_memory_bytes
     @test row.child_memory_pressure_preflight_passed
     @test row.process_peak_rss_bytes == 456_789
+    @test row.n_divergences == 0
+    @test row.n_max_treedepth == 0
+    @test row.mean_n_steps == 31.5
+    @test row.mean_tree_depth == 4.5
+    @test row.max_tree_depth == 6
+    @test row.mean_step_size == 0.0125
+    @test row.e_bfmi == 0.55
+    @test row.n_e_bfmi_expected == 1
+    @test row.n_e_bfmi_available == 1
+    @test row.n_e_bfmi_unavailable == 0
+    @test row.e_bfmi_complete
     @test row.worker_elapsed_seconds == 0.25
     @test row.julia_version == string(VERSION)
     @test row.n_threads == 1

@@ -3,6 +3,10 @@
 const _MGMFRM_VALIDATION_ISOLATED_RESOURCE_REVIEW_SCHEMA =
     "bayesianmgmfrm.mgmfrm_validation_isolated_resource_review.v1"
 
+function _mgmfrm_validation_review_optional(value)
+    return isnothing(value) || ismissing(value) ? missing : value
+end
+
 function _mgmfrm_validation_isolated_resource_review_result(result)
     hasproperty(result, :schema) &&
         String(result.schema) ==
@@ -60,6 +64,18 @@ function _mgmfrm_validation_isolated_resource_review_result(result)
         :minimum_free_memory_bytes_required,
         :memory_preflight_passed,
         :process_peak_rss_bytes,
+        :n_divergences,
+        :n_max_treedepth,
+        :mean_n_steps,
+        :mean_tree_depth,
+        :max_tree_depth,
+        :mean_step_size,
+        :e_bfmi,
+        :n_e_bfmi_expected,
+        :n_e_bfmi_available,
+        :n_e_bfmi_unavailable,
+        :e_bfmi_complete,
+        :sampler_flags,
     )
     receipt_recorded &&
         !all(field -> hasproperty(receipt, field), receipt_required) &&
@@ -118,6 +134,40 @@ function _mgmfrm_validation_isolated_resource_review_result(result)
         mcmc_executed = result.mcmc_executed,
         process_peak_rss_bytes = receipt_recorded ?
             receipt.process_peak_rss_bytes : missing,
+        n_divergences = receipt_recorded ?
+            _mgmfrm_validation_review_optional(receipt.n_divergences) :
+            missing,
+        n_max_treedepth = receipt_recorded ?
+            _mgmfrm_validation_review_optional(receipt.n_max_treedepth) :
+            missing,
+        mean_n_steps = receipt_recorded ?
+            _mgmfrm_validation_review_optional(receipt.mean_n_steps) :
+            missing,
+        mean_tree_depth = receipt_recorded ?
+            _mgmfrm_validation_review_optional(receipt.mean_tree_depth) :
+            missing,
+        max_tree_depth = receipt_recorded ?
+            _mgmfrm_validation_review_optional(receipt.max_tree_depth) :
+            missing,
+        mean_step_size = receipt_recorded ?
+            _mgmfrm_validation_review_optional(receipt.mean_step_size) :
+            missing,
+        e_bfmi = receipt_recorded ?
+            _mgmfrm_validation_review_optional(receipt.e_bfmi) : missing,
+        n_e_bfmi_expected = receipt_recorded ?
+            _mgmfrm_validation_review_optional(receipt.n_e_bfmi_expected) :
+            missing,
+        n_e_bfmi_available = receipt_recorded ?
+            _mgmfrm_validation_review_optional(receipt.n_e_bfmi_available) :
+            missing,
+        n_e_bfmi_unavailable = receipt_recorded ?
+            _mgmfrm_validation_review_optional(receipt.n_e_bfmi_unavailable) :
+            missing,
+        e_bfmi_complete = receipt_recorded ?
+            _mgmfrm_validation_review_optional(receipt.e_bfmi_complete) :
+            missing,
+        sampler_flags = receipt_recorded ?
+            Tuple(Symbol(flag) for flag in receipt.sampler_flags) : (),
         julia_version = receipt_recorded &&
             hasproperty(receipt, :julia_version) ?
             String(receipt.julia_version) : missing,
@@ -236,8 +286,9 @@ end
 
 Summarize a tuple or vector of results returned by
 [`mgmfrm_validation_isolated_resource_probe`](@ref). The review preserves each
-parent/child memory preflight, worker outcome, elapsed time, and worker-process
-peak RSS. It checks submitted cell order within either the stress/scaling
+parent/child memory preflight, worker outcome, elapsed time, worker-process
+peak RSS, and the retained short-NUTS geometry fields. It checks submitted cell
+order within either the stress/scaling
 sequence or the primary short-NUTS subset. Duplicate cell IDs are rejected;
 mixed collections are retained as requiring attention.
 

@@ -50,6 +50,18 @@ function _isolated_probe_receipt_json(
         memory_preflight_passed,
         process_peak_rss_bytes = 123_456,
         process_peak_rss_attributable_to_worker = true,
+        n_divergences = mcmc_executed ? 0 : nothing,
+        n_max_treedepth = mcmc_executed ? 0 : nothing,
+        mean_n_steps = mcmc_executed ? 31.5 : nothing,
+        mean_tree_depth = mcmc_executed ? 4.5 : nothing,
+        max_tree_depth = mcmc_executed ? 6 : nothing,
+        mean_step_size = mcmc_executed ? 0.0125 : nothing,
+        e_bfmi = mcmc_executed ? 0.55 : nothing,
+        n_e_bfmi_expected = mcmc_executed ? 1 : nothing,
+        n_e_bfmi_available = mcmc_executed ? 1 : nothing,
+        n_e_bfmi_unavailable = mcmc_executed ? 0 : nothing,
+        e_bfmi_complete = mcmc_executed ? true : nothing,
+        sampler_flags = (),
         scientific_execution_authorized = false,
         final_resource_policy_frozen = false,
     )))
@@ -307,6 +319,18 @@ end
         mcmc_executed = true,
         fit_attempt_rows = ((;
             terminal_status = :completed,
+            n_divergences = 0,
+            n_max_treedepth = 0,
+            mean_n_steps = 31.5,
+            mean_tree_depth = 4.5,
+            max_tree_depth = 6,
+            mean_step_size = 0.0125,
+            e_bfmi = 0.55,
+            n_e_bfmi_expected = 1,
+            n_e_bfmi_available = 1,
+            n_e_bfmi_unavailable = 0,
+            e_bfmi_complete = true,
+            sampler_flags = (),
             error_type = missing,
             error_message = missing,
         ),),
@@ -348,6 +372,14 @@ end
     @test !worker_receipt.process_peak_rss_attributable_to_sampler_only
     @test worker_receipt.elapsed_seconds == 1.25
     @test worker_receipt.cumulative_allocated_bytes == 4096
+    @test worker_receipt.n_divergences == 0
+    @test worker_receipt.n_max_treedepth == 0
+    @test worker_receipt.mean_n_steps == 31.5
+    @test worker_receipt.mean_tree_depth == 4.5
+    @test worker_receipt.max_tree_depth == 6
+    @test worker_receipt.mean_step_size == 0.0125
+    @test worker_receipt.e_bfmi == 0.55
+    @test worker_receipt.e_bfmi_complete
     @test worker_receipt.memory_preflight_passed
     @test worker_receipt.free_memory_bytes_observed == 4 * 1024^3
     @test worker_receipt.available_memory_bytes_observed == 4 * 1024^3

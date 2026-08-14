@@ -99,6 +99,28 @@ function _mgmfrm_validation_isolated_worker_receipt(
         mcmc_executed = result.mcmc_executed,
         terminal_status = attempt === nothing ? missing :
             attempt.terminal_status,
+        n_divergences = attempt === nothing ? missing :
+            attempt.n_divergences,
+        n_max_treedepth = attempt === nothing ? missing :
+            attempt.n_max_treedepth,
+        mean_n_steps = attempt === nothing ? missing :
+            attempt.mean_n_steps,
+        mean_tree_depth = attempt === nothing ? missing :
+            attempt.mean_tree_depth,
+        max_tree_depth = attempt === nothing ? missing :
+            attempt.max_tree_depth,
+        mean_step_size = attempt === nothing ? missing :
+            attempt.mean_step_size,
+        e_bfmi = attempt === nothing ? missing : attempt.e_bfmi,
+        n_e_bfmi_expected = attempt === nothing ? missing :
+            attempt.n_e_bfmi_expected,
+        n_e_bfmi_available = attempt === nothing ? missing :
+            attempt.n_e_bfmi_available,
+        n_e_bfmi_unavailable = attempt === nothing ? missing :
+            attempt.n_e_bfmi_unavailable,
+        e_bfmi_complete = attempt === nothing ? missing :
+            attempt.e_bfmi_complete,
+        sampler_flags = attempt === nothing ? () : attempt.sampler_flags,
         n_completed = result.summary.n_completed,
         denominator_preserved = result.summary.denominator_preserved,
         free_memory_bytes_observed =
@@ -317,6 +339,24 @@ function _mgmfrm_validation_isolated_receipt(stdout::AbstractString,
         receipt.process_peak_rss_attributable_to_worker === true ||
         throw(ArgumentError(
             "isolated worker receipt changed the worker RSS attribution",
+        ))
+    sampler_fields = (
+        :n_divergences,
+        :n_max_treedepth,
+        :mean_n_steps,
+        :mean_tree_depth,
+        :max_tree_depth,
+        :mean_step_size,
+        :e_bfmi,
+        :n_e_bfmi_expected,
+        :n_e_bfmi_available,
+        :n_e_bfmi_unavailable,
+        :e_bfmi_complete,
+        :sampler_flags,
+    )
+    all(field -> hasproperty(receipt, field), sampler_fields) ||
+        throw(ArgumentError(
+            "isolated worker receipt is missing sampler geometry",
         ))
     return receipt
 end
