@@ -49,11 +49,32 @@ end
     @test gmfrm_contract.minimum_dimensions == 1
     @test gmfrm_contract.maximum_dimensions == 1
     @test gmfrm_contract.discrimination == (:rater,)
+    @test gmfrm_contract.discrimination_structure ===
+        :item_discrimination_times_rater_consistency
+    @test gmfrm_contract.step_sharing ===
+        :rater_specific_shared_across_items_and_persons
+    @test gmfrm_contract.step_constraint ===
+        :first_step_zero_remaining_steps_sum_to_zero
+    @test gmfrm_contract.sampler_defaults == (;
+        warmup_per_chain = 100,
+        retained_draws_per_chain = 100,
+        chains = 2,
+        total_iterations_per_chain = 200,
+        warmup_fraction = 0.5,
+        profile = :computational_default_not_analysis_guidance,
+    )
     @test !gmfrm_contract.fixed_q_required
     @test mgmfrm_contract.scope === :fixed_q_confirmatory_mgmfrm
     @test mgmfrm_contract.minimum_dimensions == 2
     @test mgmfrm_contract.maximum_dimensions === nothing
     @test mgmfrm_contract.discrimination == (:none,)
+    @test mgmfrm_contract.discrimination_structure ===
+        :fixed_q_item_dimension_discrimination_with_rater_consistency
+    @test mgmfrm_contract.step_sharing ===
+        :item_specific_shared_across_raters_and_dimensions
+    @test mgmfrm_contract.step_constraint ===
+        :first_step_zero_remaining_steps_sum_to_zero
+    @test mgmfrm_contract.sampler_defaults == gmfrm_contract.sampler_defaults
     @test mgmfrm_contract.fixed_q_required
     @test_throws ArgumentError experimental.surface_contract(:mfrm)
     @test experimental.GMFRMFit === BayesianMGMFRM.GMFRMFit

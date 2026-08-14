@@ -43,6 +43,12 @@ const MGMFRMFit = getfield(_PACKAGE, :MGMFRMFit)
 
 function _family_surface_contract(family::Symbol)
     capability = getfield(_PACKAGE, :_guarded_generalized_fit_capability)(family)
+    retained_draws = getfield(
+        _PACKAGE,
+        :_GENERALIZED_DEFAULT_RETAINED_DRAWS_PER_CHAIN,
+    )
+    warmup = getfield(_PACKAGE, :_GENERALIZED_DEFAULT_WARMUP_PER_CHAIN)
+    chains = getfield(_PACKAGE, :_GENERALIZED_DEFAULT_CHAINS)
     return (
         family = capability.family,
         status = :experimental,
@@ -58,9 +64,24 @@ function _family_surface_contract(family::Symbol)
         fitted_dff_allowed = capability.allows_validation_bias_terms,
         kernel_discrimination = capability.kernel_discrimination,
         kernel_threshold_block = capability.kernel_threshold_block,
+        discrimination_structure = family === :gmfrm ?
+            :item_discrimination_times_rater_consistency :
+            :fixed_q_item_dimension_discrimination_with_rater_consistency,
+        step_sharing = family === :gmfrm ?
+            :rater_specific_shared_across_items_and_persons :
+            :item_specific_shared_across_raters_and_dimensions,
+        step_constraint = :first_step_zero_remaining_steps_sum_to_zero,
         expected_blocks = capability.expected_blocks,
         latent_correlation = family === :mgmfrm ? :identity_fixed : :not_applicable,
         backend = :advancedhmc,
+        sampler_defaults = (;
+            warmup_per_chain = warmup,
+            retained_draws_per_chain = retained_draws,
+            chains,
+            total_iterations_per_chain = warmup + retained_draws,
+            warmup_fraction = warmup / (warmup + retained_draws),
+            profile = :computational_default_not_analysis_guidance,
+        ),
         claim_scope = family === :gmfrm ?
             :scalar_rater_consistency_only :
             :fixed_q_confirmatory_only,

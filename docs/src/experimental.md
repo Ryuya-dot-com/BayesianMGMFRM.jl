@@ -9,7 +9,9 @@ GMFRM or MGMFRM support.
 
 The namespace currently admits only two surfaces:
 
-- one-dimensional scalar rater-consistency GMFRM with partial-credit steps;
+- one-dimensional source-aligned scalar GMFRM with positive item/task
+  discrimination multiplied by positive rater consistency and rater-specific
+  partial-credit steps;
 - fixed-Q confirmatory MGMFRM with at least two dimensions, partial-credit
   steps, and fixed identity latent correlation.
 
@@ -21,6 +23,15 @@ The compatibility selector `discrimination = :none` on MGMFRM means that no
 broader generic discrimination family is selected. The experimental kernel still
 estimates positive item-by-dimension discriminations at the active cells of
 the fixed Q-matrix.
+
+Likewise, the GMFRM compatibility selector `discrimination = :rater` does not
+mean that item/task discrimination is absent. Its source-aligned kernel uses
+the effective multiplier `item_discrimination[i] * rater_consistency[r]`.
+Each rater has one step vector that is shared across items and persons on the
+direct parameter scale. With `K` categories, the first step is fixed to zero,
+`K - 2` steps per rater are free, and the final step is reconstructed so the
+remaining steps sum to zero. The effective response-scale spacing also depends
+on the item-by-rater discrimination product.
 
 Inspect the executable contract before building an experimental workflow:
 
@@ -57,6 +68,15 @@ fit_result = BayesianMGMFRM.Experimental.fit(spec;
     seed = 20260722,
 )
 ```
+
+If sampler counts are omitted, both guarded families currently use 100 warm-up
+iterations and retain 100 draws per chain across two chains. Thus warm-up is
+50% of the 200 iterations per chain and is discarded before the returned draw
+matrix is constructed. This is a computational default, not analysis guidance.
+The explicit 500 warm-up plus 500 retained draws in the example is also only an
+example; choose and report a larger budget when diagnostics or the inferential
+target require it. The stable MFRM `fit` entry point has a separate default of
+1,000 warm-up plus 1,000 retained draws per chain.
 
 The older `fit(spec; experimental = true)` form remains available during the
 migration, but new code should not depend on it. Passing `experimental` inside

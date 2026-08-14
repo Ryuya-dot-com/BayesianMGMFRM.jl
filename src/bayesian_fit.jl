@@ -2591,6 +2591,10 @@ const _GeneralizedCandidateLogDensity = Union{
     _MGMFRMGuardedLocalFitLogDensity,
 }
 
+const _GENERALIZED_DEFAULT_RETAINED_DRAWS_PER_CHAIN = 100
+const _GENERALIZED_DEFAULT_WARMUP_PER_CHAIN = 100
+const _GENERALIZED_DEFAULT_CHAINS = 2
+
 function _run_generalized_candidate_advancedhmc(
         target::_GeneralizedCandidateLogDensity,
         raw_initial::AbstractVector;
@@ -2940,9 +2944,9 @@ end
 function _gmfrm_promotion_candidate_sampler_diagnostics(
         target::_GMFRMPromotionCandidateLogDensity,
         raw_initial::AbstractVector = initial_params(target);
-        ndraws::Int = 100,
-        warmup::Int = 100,
-        chains::Int = 2,
+        ndraws::Int = _GENERALIZED_DEFAULT_RETAINED_DRAWS_PER_CHAIN,
+        warmup::Int = _GENERALIZED_DEFAULT_WARMUP_PER_CHAIN,
+        chains::Int = _GENERALIZED_DEFAULT_CHAINS,
         step_size::Real = 0.03,
         rng::AbstractRNG = Random.default_rng(),
         seed = nothing,
@@ -3119,9 +3123,9 @@ end
 function _mgmfrm_guarded_local_fit_sampler_diagnostics(
         target::_MGMFRMGuardedLocalFitLogDensity,
         raw_initial::AbstractVector = initial_params(target);
-        ndraws::Int = 100,
-        warmup::Int = 100,
-        chains::Int = 2,
+        ndraws::Int = _GENERALIZED_DEFAULT_RETAINED_DRAWS_PER_CHAIN,
+        warmup::Int = _GENERALIZED_DEFAULT_WARMUP_PER_CHAIN,
+        chains::Int = _GENERALIZED_DEFAULT_CHAINS,
         step_size::Real = 0.03,
         rng::AbstractRNG = Random.default_rng(),
         seed = nothing,

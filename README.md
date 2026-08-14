@@ -34,15 +34,18 @@ Pin a commit or tag instead of `main` for reproducible analyses.
 | Model surface | Status | Entry point |
 |:--|:--|:--|
 | MFRM with rating-scale or partial-credit steps | Supported | `mfrm_spec`, `getdesign`, `fit` |
-| Scalar rater-consistency GMFRM | Experimental | `BayesianMGMFRM.Experimental.fit(spec)` |
+| Scalar GMFRM: item discrimination × rater consistency | Experimental | `BayesianMGMFRM.Experimental.fit(spec)` |
 | Fixed-Q confirmatory MGMFRM | Experimental | `BayesianMGMFRM.Experimental.fit(spec)` |
 | Broader discrimination structures | Not supported | Specification review only where documented |
 | Exploratory multidimensional loadings or free latent correlations | Not supported | No fitting API |
 | Fitted DFF effects | Not supported | Screening and design diagnostics only |
 | Testlet, response-cluster, or rater-halo effects | Not supported | Metadata checks, report-only residual summaries, and simulation/protocol validation only |
 
-The experimental GMFRM configuration is one-dimensional, uses partial-credit
-steps and rater consistency, and does not accept anchors or fitted DFF terms.
+The experimental GMFRM configuration is one-dimensional and estimates positive
+item/task discrimination multiplied by positive rater consistency. Its
+partial-credit step vector is rater-specific and shared across items and
+persons on the direct parameter scale. It does not accept anchors or fitted DFF
+terms.
 The experimental MGMFRM configuration requires at least two dimensions, a
 fixed confirmatory Q-matrix, partial-credit steps, identity latent correlation,
 no anchors, and no fitted DFF terms.

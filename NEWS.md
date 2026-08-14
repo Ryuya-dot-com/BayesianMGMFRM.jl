@@ -31,6 +31,10 @@
 
 ### Changed
 
+- Clarify that guarded scalar GMFRM fitting uses item/task discrimination
+  multiplied by rater consistency with rater-specific step vectors, and expose
+  this sharing structure plus the computational sampler defaults in the
+  experimental surface contract.
 - Extend `q_matrix_validation` with generic zero-pattern structural rank,
   person-specific dimension-support rows, pure-item counts, and an explicit
   standard-normal/identity-correlation prior-anchor record. Structurally
