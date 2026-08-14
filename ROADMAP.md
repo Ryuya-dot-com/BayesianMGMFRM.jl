@@ -76,37 +76,132 @@ functions. Each release must separate five claim tiers:
    predeclared controls, and failures are visible in report rows.
 4. **Substantively interpretable**: parameters, contrasts, DFF screens, and
    rater summaries have practical-magnitude and design-support context.
-5. **Externally validated**: post-`v0.2.0` comparisons against overlapping R
-   package targets or real-data workflows support broader public claims.
+5. **Externally validated**: predeclared comparisons against genuinely
+   overlapping R-package targets, separate-environment reproduction, and
+   provenance-cleared observed-data workflows support only the reviewed
+   claim domain.
 
 Only the lowest satisfied tier should be advertised. A feature that runs but
 does not pass source-alignment or sampler gates remains experimental or
 internal, even if its API is convenient.
 
-### Active Core Integrity Gate
+### Active Decision Roadmap
 
-Further model expansion is subordinate to a shared model-identity boundary.
-The first completed slice adds a canonical `design_identity`, rejects stale
-data/spec/design objects at public compilation and numerical entry points, and
-stores validated deep design snapshots in fit targets and results. Fingerprint
-generation streams the encoded contract into SHA-256 and avoids row-count-
-specialized tuple compilation.
+This section is the authoritative work order. Later progress ledgers preserve
+history, but they do not override this sequence. The immediate goal is not a
+generic MGMFRM implementation. It is a defensible promotion decision for the
+declared fixed-Q, positive-loading, identity-correlation confirmatory candidate.
+Broader mechanisms proceed as separate research programs only after that
+decision.
 
-The remaining dependency order is:
+Maturity is tracked on separate axes rather than collapsed into one completion
+percentage:
 
-1. bind serialized fit contents, cache keys, artifact hashes, and a cache-
-   envelope hash in a backward-readable cache schema;
-2. separate compilation status, fit exposure, and executed-evidence status in
-   one capability registry;
-3. introduce shared public generalized-prior and sampler-control contracts;
-4. make public report projections the release-facing path while retaining an
-   explicit developer payload;
-5. split numerical kernels, sampling, diagnostics, reports, and cache code only
-   after the contracts above have regression coverage.
+| Axis | Current reading | Evidence still needed |
+| --- | --- | --- |
+| Executable implementation | Advanced: the narrow candidate runs through Julia/AdvancedHMC and an external CmdStan route. | Analysis-scale controls, bounded parallel chains, cache/persistence integration, and ordinary-user failure paths. |
+| Mathematical alignment | Moderately advanced: constraints, raw/direct transforms, gradients, and retained-draw pointwise likelihood checks exist. | Independent equation/indexing review and repeatable cross-backend checks on more than tiny fixtures. |
+| Computational credibility | Preliminary: short pilots establish operability and estimate cost. | Fresh-seed repeated recovery, calibrated diagnostics, failure denominators, and sparse-design stress evidence. |
+| Scientific validation | Early: local fixtures and narrow overlap studies cannot validate the multidimensional claim. | Prior predictive and refit sensitivity studies, known-truth recovery, nested MFRM comparisons, external data, and independent review. |
+| Portable public workflow | Intermediate: package-owned Stan assets are relocatable and CmdStan is optional at load time. | Reproduction on a separate environment, coherent fit-to-report workflow, and release-level cross-platform checks. |
 
-Percent-complete estimates do not increase for additive code alone. Each stage
-must also pass identity, execution, evidence, public-output, and operational
-gates.
+The pilot boundary is strict: a pilot answers only whether the planned program
+can execute and what resources it is likely to require. Pilot R-hat, ESS,
+recovery, coverage, or backend differences are descriptive planning data. They
+must not become acceptance thresholds, model rankings, or evidence for
+promotion.
+
+The ordered program is:
+
+| Stage | Priority and scope | Exit condition |
+| --- | --- | --- |
+| A. Freeze the validation protocol | **P0, now.** Freeze the narrow estimands, supported Q/design domain, prior variants, design cells, primary backend, cross-backend subset, sampler budgets, fresh evaluation seeds, failure accounting, and decision rules before inspecting evaluation results. | A reviewable, portable protocol and commands exist; no scientific claim is released. |
+| B. Run fresh-seed known-truth validation | **P0.** Run repeated dense and connected-sparse recovery, prior sensitivity, prediction/calibration, and nested unidimensional MFRM comparisons. Use one predeclared primary backend for the full grid and both backends on a stratified conformance subset. | Predeclared parameter-block and focal-decision criteria pass, or the supported domain is narrowed and the surface remains experimental. |
+| C. Add external and independent evidence | **P0 before stable promotion.** Reproduce a matching public benchmark, analyze one provenance- and licence-cleared external dataset when available, and obtain review of equations, Q, priors, transforms, diagnostics, and claims from someone other than the implementer. | The exact overlapping targets reproduce in a separate environment and the reviewer records claim-level allow/block decisions. |
+| D. Harden the user workflow | **P1, in parallel only where it enables B/C.** Add bounded parallel chains, CmdStan cache integration, resolved sampler profiles, fit persistence, concise summaries/warnings, visualization rows, and maintainable source boundaries. | A non-maintainer can fit, diagnose, summarize, save, reload, and report the narrow model without repository-specific paths or hidden state. |
+| E. Make the promotion decision | **Release gate.** Review the narrow candidate only; choose stable, remain experimental, or narrow further. | Stable wording is allowed only for the domain that passed A-D. Missing broader mechanisms are stated as non-goals rather than hidden caveats. |
+
+Stage A must make these scientific choices explicit before Stage B:
+
+1. distinguish structural likelihood identification from scale/location
+   identification supplied by the standard-normal ability prior;
+2. define focal direct-scale estimands and parameter-block metrics, including
+   bias, RMSE, interval coverage/width, empirical versus posterior uncertainty,
+   ranking/classification stability, prediction, and calibration;
+3. predeclare connected dense and sparse design cells, Q structures within the
+   claimed domain, deliberate misspecification controls, and unidimensional
+   MFRM comparisons where the target is genuinely nested or overlapping;
+4. evaluate prior implications before fitting and then run actual weak,
+   reference, and strong prior refits rather than treating importance
+   reweighting as final sensitivity evidence; and
+5. record all attempted fits and typed failure reasons. Excluding failed fits
+   from recovery summaries is not permitted.
+
+External validation uses simulation and observed data for different purposes.
+Known-truth simulation is required for parameter recovery, coverage, and false-
+decision rates. A public synthetic or literature benchmark tests reproducible
+overlap. A licence-cleared existing-study or independently curated observed
+dataset tests workflow portability and substantive plausibility, but cannot
+establish estimator bias because its truth is unknown. Wind/Jones-style linking
+conditions and McEwen-style sparse coverage should inform the design grid; they
+do not substitute for a package-specific recovery study.
+
+Anchor proportions are not part of the present MGMFRM promotion grid because
+the guarded generalized fit does not yet estimate under a declared hard- or
+soft-anchor contract. First implement and validate the anchor estimand,
+constraint, uncertainty propagation, and failure behavior. Only then freeze a
+separate dose study that crosses linking proportion with absolute common-target
+count, per-rater/per-dimension coverage, range, and rating burden. Values such
+as 0%, 2%, 5%, 10%, and 20% remain experimental design cells, not a universal
+recommended percentage.
+
+CmdStan is a required reference backend for stable promotion, not the sole or
+automatic default. Julia owns the domain objects, design validation, parameter
+semantics, reporting, and a native execution path. Stan supplies an independently
+implemented target and widely understood sampler diagnostics. The conformance
+subset must detect equation, transform, initialization, or draw-import drift;
+feature-for-feature backend parity and speed superiority are not goals. The
+package must continue to load and provide Julia-only supported workflows when
+CmdStan is absent.
+
+Verification follows a resource-aware ladder:
+
+| Tier | Trigger | Typical checks |
+| --- | --- | --- |
+| T0: static | Every change | Formatting/diff checks, schema and documentation consistency, no repository-specific paths. |
+| T1: focused | Every implementation slice | Unit and contract tests for the touched compiler, transform, likelihood, diagnostic, or report path. |
+| T2: family integration | Before merging a model slice | Small deterministic MFRM/GMFRM/MGMFRM integration fixtures for the affected family. |
+| T3: real sampler smoke | Opt-in or sampler/backend changes | Short Julia and/or CmdStan execution proving operability only. |
+| T4: scientific evaluation | Only after Stage A is frozen | Fresh-seed repeated simulations and the predeclared cross-backend subset. |
+| T5: release regression | Release/integration boundary | Full suite, docs build, package tests, cross-platform checks, and separate-environment reproduction. |
+
+Routine changes should not rerun T4/T5. Normal Git history, versioned portable
+configuration, explicit seeds and controls, schemas, and executable behavior
+provide the working record. Byte-exact source snapshots, transitive SHA chains,
+or cache identities are retained only where needed for external-input provenance
+or cache correctness; they are not scientific promotion gates.
+
+The following remain separate post-decision research tracks, in this order of
+dependency rather than as one bundled "general MGMFRM" milestone:
+
+1. free latent correlation with an LKJ-Cholesky prior and a joint
+   loading/correlation gauge;
+2. fitted hard/soft anchors and the linking-dose study above;
+3. exploratory loadings, rotation, label switching, and dimension discovery;
+4. fitted DFF, testlet, halo, and rater-by-task mechanisms with competing-
+   generator calibration;
+5. multiple discrimination components within one facet, with an explicit
+   decision about whether thresholds remain facet-level, component-level, or
+   partially pooled; and
+6. broader brms-like ergonomics only after the underlying statistical
+   contracts are stable.
+
+Do not next add free correlation to the public fit, infer an anchor percentage
+from current sparse fixtures, make CmdStan the default, tune acceptance rules
+after viewing fresh evaluation results, compare backend speed from warmed
+pilots, or expand source-hash machinery. Any failure in Stages A-C should first
+narrow the claim or design domain, not trigger an automatic increase in model
+complexity.
 
 ### Experimental Namespace Boundary
 
@@ -705,10 +800,11 @@ group, and are candidates for later physical extraction from `runtests.jl`.
 
 Evidence should be accumulated in this order: source fixtures, raw/direct
 transform checks, AD gradients, HMC smoke checks, block-level chain diagnostics,
-known-truth simulations, sensitivity grids, compact workflow demonstrations,
-post-`v0.2.0` R-package simulation comparisons, and only then real-data
-validation claims. Real data are useful for workflow ergonomics, but they should
-not compensate for failed identification, source-equation, or sampler gates.
+predeclared known-truth simulations, refit sensitivity, matching external-
+software simulation comparisons, separate-environment reproduction, and only
+then observed-data plausibility claims. Real data are useful for workflow and
+substantive plausibility, but they should not compensate for failed
+identification, source-equation, recovery, or sampler gates.
 
 ### Current Literature-Grounded Priority Stack
 
@@ -727,9 +823,9 @@ expanding the public API immediately:
    indicators must be compared with MGMFRM PPC, calibration, WAIC/LOO, heldout
    ELPD, parameter-shift, and decision-reversal behavior under known-truth
    simulations before threshold language becomes public.
-5. Keep external software comparisons as post-`v0.2.0` known-truth simulation
-   work unless the target model, estimator, constraints, and prediction target
-   genuinely overlap.
+5. Run external-software comparisons before stable promotion when the target
+   model, estimator, constraints, and prediction target genuinely overlap;
+   otherwise record the comparison as non-overlap rather than validation.
 6. Before adding a time parameter, run a paired known-truth design-robustness
    grid against the existing public MFRM and guarded GMFRM/MGMFRM APIs. Cross
    common-linking-response amount and range with rater-link topology,
@@ -1440,9 +1536,11 @@ than as a feature wish list:
    private paths, temporary reviewer instructions, placeholders, and execution
    diary language stay in developer evidence records rather than release text.
 
-## Current Roadmap Checkpoint
+## Historical Evidence-Archive Checkpoint
 
-As of the local evidence archive that records `78` fixture artifacts, `124`
+This checkpoint records an earlier evidence-archive program and is not the
+active work order; the Active Decision Roadmap above governs new work. At that
+checkpoint, the local archive recorded `78` fixture artifacts, `124`
 code/doc references, `77` full regeneration commands, and `5606`
 manuscript-scale evidence cells, the practical boundary has moved from
 "execute the MGMFRM publication-grade batch" to "attach valid external
@@ -1453,7 +1551,7 @@ The completed local chain now includes the full
 external-construct requirement gate, attachment intake preflight, and
 external-attachment request packet.
 
-This checkpoint creates two separate work tracks:
+That checkpoint created two separate work tracks:
 
 - **External-dependent track**: wait for user-supplied external construct
   dataset and independent public-scope review manifests. The package must not
@@ -1871,16 +1969,17 @@ rater-consistency candidate and fixed-Q confirmatory MGMFRM candidate with
 | PSIS/exact LOO and model weights | Public diagnostic and guarded refit surfaces; model weights blocked | Raw and PSIS-smoothed LOO with Pareto-k diagnostics are available for the minimal fit path, guarded generalized fit objects, and guarded preview-design likelihood matrices. Exact one-row LOO and shared-plan K-fold refits/comparisons execute for fit-supported or explicitly guarded candidates after their coverage checks pass. These remain prediction-target-specific diagnostic/refit surfaces; public model weights and superiority claims remain blocked. |
 | Manuscript claims about sparse MGMFRM superiority | Blocked | Prediction-target/model-weight policy, manual public-scope review, and a guarded local MGMFRM fit artifact path are recorded, but sparse-superiority claims still require broader reproducible validation and a separate public-scope release decision. |
 
-## Progress Ledger and Canonical Maturity Dashboard
+## Historical Progress Ledger and Maturity Snapshot
 
-This dashboard is the canonical interpretation of completion percentages.
-Every percentage has its own named denominator; values from different rows
-must not be averaged or treated as interchangeable.
+This dashboard preserves earlier workstream denominators. It is not the active
+schedule or a package-completion score. Every percentage has its own named
+denominator; values from different rows must not be averaged or treated as
+interchangeable.
 
 | Progress axis | Current estimate | Denominator | What remains outside or incomplete |
 | --- | ---: | --- | --- |
 | Historical mechanical roadmap snapshot | **160/189 (84.7%)** | Frozen count of the existing Markdown checkboxes in the historical/workstream ledger, including historical delivery, documentation, evidence, and future research infrastructure. | This legacy value is retained for continuity and is not the current `v0.1.2` workstream score or the implementation rate of MFRM, GMFRM, or MGMFRM. The independent current checklist below is excluded from this denominator. |
-| Current `v0.1.2` LD1b integration checklist | **7/9 gates attained (77.8%; current dirty-worktree snapshot)** | Nine ordered integration-acceptance gates in the checklist below. | This is gate attainment, not effort completed or scientific progress. The third through seventh gates currently rest on local-worktree evidence pending tracked release-lineage verification; official LD1b execution remains `0/660`. |
+| Historical `v0.1.2` LD1b integration checklist snapshot | **7/9 gates recorded (77.8% at capture)** | Nine integration-acceptance gates in the historical checklist below. | This is retained gate bookkeeping, not current effort, implementation maturity, or scientific progress. Official LD1b execution recorded by this snapshot remains `0/660`. |
 | Minimal MFRM/RSM/PCM core implementation | **implemented with remaining gaps** | The declared Bayesian scope: long-format data/specification, identified RSM/PCM likelihoods, priors, HMC fitting, diagnostics, PPC/calibration, category/rater practitioner summaries, reporting rows, cache/reproduction support, tests, and examples. | Remaining work is actual hard-anchor refitting, report integration for the new practitioner summaries, and edge-case hardening. FACETS feature parity, JMLE/MMLE backends, generalized discrimination, and external construct validation are not part of this denominator. |
 | Minimal MFRM/RSM/PCM validation maturity | **partial** | Evidence needed to call the narrow Bayesian implementation externally validated and production-ready under stated design conditions. | The repeated recovery scorer, design preflights, narrow TAM evidence, and a version-specific ConQuest RSM/PCM known-truth execution fixture exist. Staged repeated MCMC, FACETS execution, independent ConQuest/TAM re-execution and review, external construct data, and comparative performance evidence remain open. |
 | TAM narrow-overlap evidence for MFRM | **partial; locally reproduced** | The fully crossed unit-discrimination MFRM/PCM target currently shared by the package and TAM, with aligned signs, constraints, known truth, and direct parameter blocks. | Local direct agreement and recovery evidence are recorded, but independent re-execution, signed review, and chronology adjudication remain open; the result does not transfer to GMFRM/MGMFRM. |
@@ -1892,18 +1991,16 @@ must not be averaged or treated as interchangeable.
 | Quarantined 2D free-correlation operational prerequisites | **0/3 passed; initial-gradient profile measured but failed** | Three conjunctive pre-scientific gates: a passing MCMC-free initial-gradient resource profile, a passing bounded short-NUTS resource profile, and an atomic single-unit scientific worker with a separately verifiable raw-draw archive and external digest anchor. | The fixed three-repetition receipt passed the gradient, dimension, fixture/oracle, runtime, allocation, GC, and projected-time checks, but observed only 3.91 GiB free against the unchanged 8 GiB minimum. Short-NUTS profiling and the atomic scientific worker remain pending; no threshold is relaxed in place. |
 | Quarantined 2D free-correlation scientific execution | **0/525 (0.0%)** | The frozen version-2 roster: 25 computation-only feasibility units followed, only after authorization, by 500 separately seeded recovery-evaluation units. | Resource probes, dry runs, and test-only receipts are outside this denominator. Feasibility remains 0/25, evaluation remains 0/500, and `recovery_verified` remains false. |
 | LD1b local-dependence pilot execution | **0/660 (0.0%)** | The frozen 30-replication pilot: 540 eligible fitting jobs and 120 planned structural rejections across 22 scenarios. | The MCMC-free controller harness, completed-attempt seal boundary, receipt-bearing launched-attempt retirement integration, context-bound five-status semantic replay, receipt- and precommit-capable canonical worker, seven-source pin/dependent identity regeneration, and one verification-only bounded canonical smoke are complete in the local worktree. Remaining order: independent pinned review; then pilot. Harness dry runs and the smoke's zero-contribution verification outcome are outside this denominator. |
-| Broad stable-public generalized claim maturity | **blocked** | Evidence required for broader release or manuscript claims, rather than callable experimental implementations. | Valid external construct attachments, independent signed public-scope review, generalized diagnostics/reporting hardening, and compatible post-`v0.2.0` external comparisons remain open. |
+| Broad stable-public generalized claim maturity | **blocked** | Evidence required for broader release or manuscript claims, rather than callable experimental implementations. | Matching external evidence, independent claim-level review, generalized diagnostics/reporting hardening, and separate promotion programs for broader mechanisms remain open. |
 | Generic MGMFRM research target | **research only** | A broader engine including exploratory/estimated structure, free latent correlations, generalized kernels and priors, and wider validation. | Major mathematical, computational, identification, reporting, and validation milestones remain downstream. |
 
-### Current v0.1.2 LD1b Integration Checklist
+### Historical v0.1.2 LD1b Integration Checklist
 
-This active checklist records nine ordered integration-acceptance gates. In the
-current dirty-worktree snapshot, `7/9` gates are attained; this is not an
-estimate of effort completed or scientific progress. The third through seventh
-gates are backed by local-worktree evidence and become release-lineage evidence
-only after the new files are tracked and the complete gate passes. This score is independent
-of the historical `160/189` snapshot, the official `0/660` pilot denominator,
-and full `v0.1.2` release readiness.
+This frozen checklist records nine former integration-acceptance gates. Its
+`7/9` snapshot is retained for provenance only; it is not an estimate of current
+effort, implementation maturity, scientific progress, or release readiness.
+The Active Decision Roadmap governs whether any related pilot or evaluation is
+run.
 
 | Gate | Status | Completion evidence or next condition |
 | --- | --- | --- |
@@ -2030,7 +2127,7 @@ Every major model surface should move through the same status levels:
 | `internal_promotion_candidate` | The target is close to fit-ready but private. | Raw/constrained manifest, AD gradient checks, HMC diagnostics, BridgeStan checks. |
 | `experimental_public` | Users may fit a narrow model with explicit warnings. | Public docs, fit artifact support, diagnostics, recovery smoke study, fallback rejection for unsupported options. |
 | `stable_public` | The surface supports ordinary package examples and package claims. | Predeclared internal simulation grid, sensitivity checks, reproducibility archive. |
-| `external_validated` | Post-`v0.2.0` external validation claims are supported. | Known-truth comparisons against overlapping R-package targets and, only after those comparisons are understood, real-data validation evidence. |
+| `external_validated` | A reviewed external-validation claim is supported for a named domain. | Known-truth comparisons against overlapping targets, separate-environment reproduction, and only then provenance-cleared observed-data plausibility evidence. |
 
 Promotion should be explicit in `model_manifest`, `constraint_table`, docs, and
 tests. A target may not skip levels because each level answers a different

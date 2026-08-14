@@ -5,8 +5,9 @@ reviewer's point of view. It is intentionally conservative: features move
 forward only when their identification, diagnostics, validation, and reporting
 contracts are clear.
 
-The progress ledger below separates the historical mechanical checkbox snapshot
-from the current ordered `v0.1.2` LD1b integration-acceptance checklist.
+The Active Decision Roadmap below governs new work. Later progress ledgers and
+LD1b checklists are retained as historical snapshots, not as the current work
+order or package-completion scores.
 
 ## Current Public Slice
 
@@ -53,18 +54,103 @@ experimental namespace and requires an external CmdStan installation; it is
 not yet available through `cached_fit`. `backend = :advancedhmc` also backs
 both guarded configurations.
 
-## Active Core Integrity Gate
+## Active Decision Roadmap
 
-The current implementation sequence pauses broader model expansion until the
-same validated model contract is used by compilation, fitting, cache requests,
-diagnostics, and reports. The first completed slice provides
-[`design_identity`](@ref), stale-object rejection, canonical compiler checks,
-streaming SHA-256 fingerprints, and validated deep execution snapshots.
+This section is the authoritative work order. The detailed ledgers below
+preserve history, but they do not override this sequence. The immediate goal is
+not a generic MGMFRM implementation. It is a defensible promotion decision for
+the declared fixed-Q, positive-loading, identity-correlation confirmatory
+candidate. Broader mechanisms proceed as separate research programs only after
+that decision.
 
-The next slices bind fit contents and cache envelopes, unify compilation/
-exposure/evidence status, introduce shared prior and sampler-control contracts,
-and then make release-facing reports public by construction. Completion
-percentages remain unchanged until both execution and evidence gates pass.
+Maturity is tracked on separate axes rather than collapsed into one completion
+percentage:
+
+| Axis | Current reading | Evidence still needed |
+| --- | --- | --- |
+| Executable implementation | Advanced: the narrow candidate runs through Julia/AdvancedHMC and an external CmdStan route. | Analysis-scale controls, bounded parallel chains, cache/persistence integration, and ordinary-user failure paths. |
+| Mathematical alignment | Moderately advanced: constraints, raw/direct transforms, gradients, and retained-draw pointwise likelihood checks exist. | Independent equation/indexing review and repeatable cross-backend checks on more than tiny fixtures. |
+| Computational credibility | Preliminary: short pilots establish operability and estimate cost. | Fresh-seed repeated recovery, calibrated diagnostics, failure denominators, and sparse-design stress evidence. |
+| Scientific validation | Early: local fixtures and narrow overlap studies cannot validate the multidimensional claim. | Prior predictive and refit sensitivity studies, known-truth recovery, nested MFRM comparisons, external data, and independent review. |
+| Portable public workflow | Intermediate: package-owned Stan assets are relocatable and CmdStan is optional at load time. | Reproduction on a separate environment, coherent fit-to-report workflow, and release-level cross-platform checks. |
+
+The pilot boundary is strict: a pilot answers only whether the planned program
+can execute and what resources it is likely to require. Pilot R-hat, ESS,
+recovery, coverage, or backend differences are descriptive planning data. They
+must not become acceptance thresholds, model rankings, or evidence for
+promotion.
+
+The ordered program is:
+
+| Stage | Priority and scope | Exit condition |
+| --- | --- | --- |
+| A. Freeze the validation protocol | **P0, now.** Freeze the narrow estimands, supported Q/design domain, prior variants, design cells, primary backend, cross-backend subset, sampler budgets, fresh evaluation seeds, failure accounting, and decision rules before inspecting evaluation results. | A reviewable, portable protocol and commands exist; no scientific claim is released. |
+| B. Run fresh-seed known-truth validation | **P0.** Run repeated dense and connected-sparse recovery, prior sensitivity, prediction/calibration, and nested unidimensional MFRM comparisons. Use one predeclared primary backend for the full grid and both backends on a stratified conformance subset. | Predeclared parameter-block and focal-decision criteria pass, or the supported domain is narrowed and the surface remains experimental. |
+| C. Add external and independent evidence | **P0 before stable promotion.** Reproduce a matching public benchmark, analyze one provenance- and licence-cleared external dataset when available, and obtain review of equations, Q, priors, transforms, diagnostics, and claims from someone other than the implementer. | The exact overlapping targets reproduce in a separate environment and the reviewer records claim-level allow/block decisions. |
+| D. Harden the user workflow | **P1, in parallel only where it enables B/C.** Add bounded parallel chains, CmdStan cache integration, resolved sampler profiles, fit persistence, concise summaries/warnings, visualization rows, and maintainable source boundaries. | A non-maintainer can fit, diagnose, summarize, save, reload, and report the narrow model without repository-specific paths or hidden state. |
+| E. Make the promotion decision | **Release gate.** Review the narrow candidate only; choose stable, remain experimental, or narrow further. | Stable wording is allowed only for the domain that passed A-D. Missing broader mechanisms are stated as non-goals rather than hidden caveats. |
+
+Stage A freezes the structural-versus-prior identification statement, focal
+direct-scale estimands, parameter-block bias/RMSE/coverage and decision metrics,
+connected dense/sparse and misspecification cells, actual weak/reference/strong
+prior refits, and complete attempted-fit failure accounting. Failed fits are not
+removed from the scientific denominator. Acceptance rules must be fixed before
+fresh evaluation results are inspected.
+
+External validation uses simulation and observed data for different purposes.
+Known-truth simulation evaluates recovery, coverage, and false-decision rates.
+A public synthetic or literature benchmark evaluates reproducible overlap. A
+licence-cleared existing-study or independently curated observed dataset
+evaluates workflow portability and substantive plausibility, but cannot
+establish bias because its truth is unknown. Wind/Jones-style linking conditions
+and McEwen-style sparse coverage inform the design grid; they do not replace a
+package-specific recovery study.
+
+Anchor proportions are not part of the current MGMFRM promotion grid because
+the guarded generalized fit has no declared hard- or soft-anchor estimation
+contract. First implement and validate the estimand, constraint, uncertainty,
+and failure behavior. Then freeze a separate dose study crossing linking
+proportion with absolute common-target count, per-rater/per-dimension coverage,
+range, and rating burden. The existing 0%, 2%, 5%, 10%, and 20% cells remain
+experimental doses, not a recommended universal percentage.
+
+CmdStan is a required reference backend for stable promotion, not the sole or
+automatic default. Julia owns domain objects, validation, parameter semantics,
+reporting, and a native execution path. Stan supplies an independently
+implemented target and familiar sampler diagnostics. A stratified conformance
+subset checks equation, transform, initialization, and draw-import drift;
+feature parity and speed superiority are not goals. The package must continue
+to load and provide supported Julia-only workflows when CmdStan is absent.
+
+Verification follows a resource-aware ladder:
+
+| Tier | Trigger | Typical checks |
+| --- | --- | --- |
+| T0: static | Every change | Formatting/diff checks, schema and documentation consistency, no repository-specific paths. |
+| T1: focused | Every implementation slice | Unit and contract tests for the touched path. |
+| T2: family integration | Before merging a model slice | Small deterministic fixtures for the affected family. |
+| T3: real sampler smoke | Opt-in or sampler/backend changes | Short Julia and/or CmdStan execution proving operability only. |
+| T4: scientific evaluation | Only after Stage A is frozen | Fresh-seed repeated simulations and the predeclared cross-backend subset. |
+| T5: release regression | Release/integration boundary | Full suite, docs build, cross-platform checks, and separate-environment reproduction. |
+
+Routine changes do not rerun T4/T5. Normal Git history, portable versioned
+configuration, explicit seeds and controls, schemas, and executable behavior
+are the working record. Byte-exact source snapshots and transitive SHA chains
+remain only where external-input provenance or cache correctness genuinely
+requires them; they are not scientific promotion gates.
+
+After the narrow promotion decision, independent research tracks address free
+latent correlation with an LKJ-Cholesky gauge, fitted anchors and linking dose,
+exploratory loading/rotation policy, fitted DFF/testlet/halo/rater-by-task
+mechanisms, and multiple discrimination components within a facet with an
+explicit threshold-sharing contract. Broader brms-like ergonomics follows the
+statistical contracts rather than defining them.
+
+Do not next add free correlation to the public fit, infer an anchor percentage
+from current sparse fixtures, make CmdStan the default, tune decision rules
+after seeing fresh results, compare backend speed from warmed pilots, or expand
+source-hash machinery. Failures should first narrow the claim or supported
+design domain, not automatically increase model complexity.
 
 ## Why the Generalized Fit Is Guarded
 
@@ -907,10 +993,11 @@ The issue-sized implementation checklist is maintained in
    fixed-Q loading recovery, compact workflow demonstrations, prior-scale
    sensitivity rows, prior/likelihood power-scaling sensitivity with
    weight-ESS or Pareto-k/refit follow-up flags, and versioned evidence
-   artifacts. Defer real-data validation and overlapping R-package comparison
-   until after `v0.2.0`, and run the R comparison first as a known-truth
-   simulation study. Include missingness, weak linking, skipped categories,
-   and rater-specific category compression in the simulation pathologies.
+   artifacts. Before stable promotion, run genuinely overlapping R-package
+   targets first as known-truth simulation comparisons, followed by separate-
+   environment reproduction and provenance-cleared observed-data plausibility
+   work. Include missingness, weak linking, skipped categories, and rater-
+   specific category compression in the simulation pathologies.
 6. **Interpretation policy**: keep model comparison diagnostic rather than
    claim-making, stabilize plotting-data schemas before backend-specific
    visualization recipes, keep DFF/bias effects validation-only, add rater
@@ -1004,11 +1091,10 @@ statements.
 | Release | Claim budget | Explicitly not in budget |
 | --- | --- | --- |
 | `v0.1.1` | Delivered: existing guarded scalar GMFRM and fixed-Q MGMFRM paths became more auditable; status, priors, diagnostics, Q/gauge, rating-design, report, and artifact wording became harder to overinterpret. | Broader generalized fitting, exploratory loading, free latent correlations, fitted DFF effects, model weights, external validation, performance claims. |
-| `v0.1.2` | Fixed-Q confirmatory dimensionality expands only if Q validation, source checks, initialization, diagnostics, recovery, and report schemas scale cleanly. | Free latent correlations, exploratory loading, broad MGMFRM, real-data validation claims. |
-| `v0.1.3` | Free latent correlation receives a proceed/narrow/stop decision with parameterization, prior, diagnostics, and sensitivity evidence. | Automatic promotion of free correlations or exploratory loadings. |
-| `v0.1.4` | Exploratory loading and rotation policy is designed and stress-tested as a reporting problem before exposure. | Stable exploratory MGMFRM claims without rotation/sign/permutation evidence. |
-| `v0.2.0` | A narrower stable-public MGMFRM candidate may ship if every exposed option passes source, transform, computation, simulation, sensitivity, and reporting gates. | R-package validation and real-data validation as prerequisites for v0.2.0; those are post-v0.2.0 evidence. |
-| Post-`v0.2.0` | Compatible known-truth simulation comparisons against overlapping R package targets can support external validation language. | Treating non-overlap targets or single real-data examples as validation. |
+| `v0.1.2` | Freeze and begin the scientific-validation protocol for the existing narrow fixed-Q candidate while hardening only the workflow needed to execute it. | Free latent correlations, exploratory loading, broad MGMFRM, or stable-validation claims. |
+| Later `v0.1.x` | Complete fresh-seed validation, matching external overlap, separate-environment reproduction, and independent review without assuming that a version number guarantees promotion. | Automatic promotion of a mechanism because its code or pilot runs. |
+| `v0.2.0` candidate | A narrow stable-public MGMFRM surface may ship only if Stages A-D pass for its named domain. Otherwise it remains experimental without delaying unrelated stable MFRM work. | Generic MGMFRM, non-overlap validation, or superiority claims. |
+| After the narrow promotion decision | Free correlation, fitted anchors, exploratory loading, and dependence mechanisms receive separate proceed/narrow/stop programs. | Bundling all extensions into one broad MGMFRM milestone. |
 
 ### Runtime-Aware Verification
 
@@ -1100,10 +1186,10 @@ the [model-equations page](model-equations.md) for the DOI-backed source list.
    agree. Repeat that gate for a minimal confirmatory MGMFRM with a fixed Q-mask
    and fixed latent identity correlation before expanding options.
 6. **Evidence before claims**: use predeclared simulation grids, recovery
-   metrics, calibration, posterior predictive checks, and Stan comparisons
-   before `v0.2.0`. Defer real-data validation and overlapping R-package
-   comparison until after `v0.2.0`, using known-truth simulations before any
-   external validation claims.
+   metrics, calibration, posterior predictive checks, Stan comparisons, and
+   genuinely overlapping R-package known-truth comparisons before stable
+   promotion. Observed data follow recovery and separate-environment
+   reproduction and support plausibility, not known-truth bias claims.
 
 Current exposure is deliberately conservative: MFRM/RSM/PCM fitting and
 simulation/recovery helpers are public; GMFRM/MGMFRM manifests and compiler
@@ -1136,16 +1222,17 @@ the destination gauge or establish convergence. The macOS fixtures and adapter
 remain version-specific single-operator evidence rather than independent
 external validation.
 
-## Progress Ledger and Canonical Maturity Dashboard
+## Historical Progress Ledger and Maturity Snapshot
 
-This dashboard is the canonical interpretation of completion percentages.
-Every percentage has its own named denominator; values from different rows
-must not be averaged or treated as interchangeable.
+This dashboard preserves earlier workstream denominators. It is not the active
+schedule or a package-completion score. Every percentage has its own named
+denominator; values from different rows must not be averaged or treated as
+interchangeable.
 
 | Progress axis | Current estimate | Denominator | What remains outside or incomplete |
 | --- | ---: | --- | --- |
 | Historical mechanical roadmap snapshot | **160/189 (84.7%)** | Frozen count of the existing Markdown checkboxes in the historical/workstream ledger, including historical delivery, documentation, evidence, and future research infrastructure. | This legacy value is retained for continuity and is not the current `v0.1.2` workstream score or the implementation rate of MFRM, GMFRM, or MGMFRM. The independent current checklist below is excluded from this denominator. |
-| Current `v0.1.2` LD1b integration checklist | **7/9 gates attained (77.8%; current dirty-worktree snapshot)** | Nine ordered integration-acceptance gates in the checklist below. | This is gate attainment, not effort completed or scientific progress. The third through seventh gates currently rest on local-worktree evidence pending tracked release-lineage verification; official LD1b execution remains `0/660`. |
+| Historical `v0.1.2` LD1b integration checklist snapshot | **7/9 gates recorded (77.8% at capture)** | Nine integration-acceptance gates in the historical checklist below. | This is retained gate bookkeeping, not current effort, implementation maturity, or scientific progress. Official LD1b execution recorded by this snapshot remains `0/660`. |
 | Minimal MFRM/RSM/PCM core implementation | **implemented with remaining gaps** | The declared Bayesian scope: long-format data/specification, identified RSM/PCM likelihoods, priors, HMC fitting, diagnostics, PPC/calibration, category/rater practitioner summaries, reporting rows, cache/reproduction support, tests, and examples. | Remaining work is actual hard-anchor refitting, report integration for the new practitioner summaries, and edge-case hardening. FACETS feature parity, JMLE/MMLE backends, generalized discrimination, and external construct validation are not part of this denominator. |
 | Minimal MFRM/RSM/PCM validation maturity | **partial** | Evidence needed to call the narrow Bayesian implementation externally validated and production-ready under stated design conditions. | The repeated recovery scorer, design preflights, narrow TAM evidence, and a version-specific ConQuest RSM/PCM known-truth execution fixture exist. Staged repeated MCMC, FACETS execution, independent ConQuest/TAM re-execution and review, external construct data, and comparative performance evidence remain open. |
 | TAM narrow-overlap evidence for MFRM | **partial; locally reproduced** | The fully crossed unit-discrimination MFRM/PCM target currently shared by the package and TAM, with aligned signs, constraints, known truth, and direct parameter blocks. | Local direct agreement and recovery evidence are recorded, but independent re-execution, signed review, and chronology adjudication remain open; the result does not transfer to GMFRM/MGMFRM. |
@@ -1157,18 +1244,16 @@ must not be averaged or treated as interchangeable.
 | Quarantined 2D free-correlation operational prerequisites | **0/3 passed; initial-gradient profile measured but failed** | Three conjunctive pre-scientific gates: a passing MCMC-free initial-gradient resource profile, a passing bounded short-NUTS resource profile, and an atomic single-unit scientific worker with a separately verifiable raw-draw archive and external digest anchor. | The fixed three-repetition receipt passed the gradient, dimension, fixture/oracle, runtime, allocation, GC, and projected-time checks, but observed only 3.91 GiB free against the unchanged 8 GiB minimum. Short-NUTS profiling and the atomic scientific worker remain pending; no threshold is relaxed in place. |
 | Quarantined 2D free-correlation scientific execution | **0/525 (0.0%)** | The frozen version-2 roster: 25 computation-only feasibility units followed, only after authorization, by 500 separately seeded recovery-evaluation units. | Resource probes, dry runs, and test-only receipts are outside this denominator. Feasibility remains 0/25, evaluation remains 0/500, and `recovery_verified` remains false. |
 | LD1b local-dependence pilot execution | **0/660 (0.0%)** | The frozen 30-replication pilot: 540 eligible fitting jobs and 120 planned structural rejections across 22 scenarios. | The MCMC-free controller harness, completed-attempt seal boundary, receipt-bearing launched-attempt retirement integration, context-bound five-status semantic replay, receipt- and precommit-capable canonical worker, seven-source pin/dependent identity regeneration, and the final verification-only bounded canonical smoke are complete in the local worktree. Remaining order: independent pinned review, then pilot. Harness dry runs and the smoke receipt are outside this denominator. |
-| Broad stable-public generalized claim maturity | **blocked** | Evidence required for broader release or manuscript claims, rather than callable experimental implementations. | Valid external construct attachments, independent signed public-scope review, generalized diagnostics/reporting hardening, and compatible post-`v0.2.0` external comparisons remain open. |
+| Broad stable-public generalized claim maturity | **blocked** | Evidence required for broader release or manuscript claims, rather than callable experimental implementations. | Matching external evidence, independent claim-level review, generalized diagnostics/reporting hardening, and separate promotion programs for broader mechanisms remain open. |
 | Generic MGMFRM research target | **research only** | A broader engine including exploratory/estimated structure, free latent correlations, generalized kernels and priors, and wider validation. | Major mathematical, computational, identification, reporting, and validation milestones remain downstream. |
 
-### Current v0.1.2 LD1b Integration Checklist
+### Historical v0.1.2 LD1b Integration Checklist
 
-This active checklist records nine ordered integration-acceptance gates. In the
-current dirty-worktree snapshot, `7/9` gates are attained (`77.8%`); this is not
-an estimate of effort completed or scientific progress. The third through seventh
-gates are backed by local-worktree evidence and become release-lineage evidence
-only after the new files are tracked and the complete gate passes. This score is independent
-of the historical `160/189` snapshot, the official `0/660` pilot denominator,
-and full `v0.1.2` release readiness.
+This frozen checklist records nine former integration-acceptance gates. Its
+`7/9` snapshot is retained for provenance only; it is not an estimate of current
+effort, implementation maturity, scientific progress, or release readiness.
+The Active Decision Roadmap governs whether any related pilot or evaluation is
+run.
 
 | Gate | Status | Completion evidence or next condition |
 | --- | --- | --- |
@@ -1286,7 +1371,7 @@ Model surfaces should move through explicit levels:
 | Private validation candidate | Private target with raw/constrained manifests, AD checks, HMC diagnostics, and BridgeStan evidence. |
 | `experimental_public` | Narrow user-facing fit path with explicit warnings, diagnostics, and recovery smoke evidence. |
 | `stable_public` | Ordinary examples and package claims are supported by internal simulation, sensitivity checks, and reproduction artifacts. |
-| `external_validated` | Post-`v0.2.0` claims supported by known-truth R-package simulation comparisons and, only after that, real-data validation evidence. |
+| `external_validated` | A reviewed named-domain claim supported by overlapping known-truth comparisons, separate-environment reproduction, and only then observed-data plausibility evidence. |
 
 Scalar GMFRM can become `experimental_public` only after fit-ready raw and
 constrained compiler maps exist, the raw-prior/Jacobian policy is recorded,

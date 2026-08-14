@@ -31,6 +31,13 @@
 
 ### Changed
 
+- Reframe the active MGMFRM roadmap around a narrow fixed-Q scientific
+  promotion decision. The new sequence separates pilot operability from
+  fresh-seed validation, external/independent evidence, and user-workflow
+  hardening; keeps Stan as a required reference rather than a default backend;
+  defers anchor-dose and broader model studies until their fitted contracts
+  exist; and replaces routine SHA-oriented gates with resource-aware executable
+  checks.
 - Make an explicit CmdStan fitting backend a required gate before stable
   promotion while keeping CmdStan an optional external runtime. Add a portable
   runtime/toolchain check and a direct CLI adapter for stable MFRM/RSM/PCM
