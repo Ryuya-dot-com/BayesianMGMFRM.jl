@@ -434,7 +434,8 @@ function mgmfrm_validation_protocol()
                 :mgmfrm_validation_resource_probe,
             initial_gradient_resource_probe =
                 :implemented_optional_measurement_not_validation_evidence,
-            bounded_short_nuts_resource_probe = :pending,
+            bounded_short_nuts_resource_probe =
+                :implemented_explicit_execution_memory_guarded,
             repository_or_sha_identity_required = false,
         ),
         seeds = (;
@@ -515,6 +516,8 @@ function mgmfrm_validation_protocol()
                     :frozen_before_evaluation,
                 initial_gradient_resource_probe_surface =
                     :implemented_measurement_optional,
+                bounded_short_nuts_resource_probe_surface =
+                    :implemented_execution_memory_guarded,
                 attempt_complete_analysis_profile =
                     :draft_contract_implemented_execution_blocked,
             ),

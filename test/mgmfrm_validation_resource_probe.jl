@@ -167,3 +167,143 @@ end
     @test execution.resource_probe == policy
     @test !execution.resource_probe.mcmc_allowed
 end
+
+@testset "MGMFRM short-NUTS resource probe" begin
+    planned = mgmfrm_validation_short_nuts_resource_probe()
+    @test planned.schema ==
+        "bayesianmgmfrm.mgmfrm_validation_short_nuts_resource_probe.v1"
+    @test planned.object ===
+        :mgmfrm_validation_short_nuts_resource_probe
+    @test planned.status ===
+        :short_nuts_resource_probe_planned_not_executed
+    @test !planned.execute_measurement
+    @test !planned.execution_started
+    @test planned.mcmc_execution_state === :not_started
+    @test !planned.mcmc_executed
+    @test isempty(planned.fit_attempt_rows)
+    @test planned.summary.n_planned_cells == 1
+    @test planned.summary.n_started == 0
+    @test planned.summary.denominator_preserved
+    @test !planned.convergence_assessed
+    @test !planned.scientific_execution_authorized
+    @test !planned.recovery_evidence_available
+    @test !planned.fit_objects_returned
+    @test !planned.final_resource_policy_frozen
+    @test :explicit_execution_not_requested in planned.blockers
+
+    policy = planned.policy
+    @test policy.profile === :short_nuts_resource_probe
+    @test policy.controls.warmup == 25
+    @test policy.controls.ndraws == 25
+    @test policy.controls.chains == 1
+    @test policy.controls.metric === :diagonal
+    @test policy.default_design === :connected_sparse_systematic_link
+    @test policy.maximum_cells == 1
+    @test policy.default_minimum_free_memory_bytes == 2 * 1024^3
+    @test policy.hard_minimum_free_memory_bytes == 1024^3
+    @test !policy.convergence_assessed
+    @test !policy.peak_memory_measured
+    @test :full_nuts_runtime_extrapolation in policy.prohibited_uses
+
+    sparse_plan = mgmfrm_response_stress_plan(
+        design_strata = (:connected_sparse_systematic_link,),
+        response_patterns = (:regular_all_categories,),
+        base_seed = 20260817,
+    )
+    runner_calls = Ref(0)
+    forbidden_runner = (plan, truth_scale) -> begin
+        runner_calls[] += 1
+        error("runner must not be called")
+    end
+    memory_rejected =
+        BayesianMGMFRM._mgmfrm_validation_short_nuts_resource_probe(
+            sparse_plan;
+            execute_measurement = true,
+            minimum_free_memory_bytes = 2 * 1024^3,
+            maximum_observations_per_cell = 1_000,
+            truth_scale = 0.15,
+            free_memory_provider = () -> Int64(512 * 1024^2),
+            runner_executor = forbidden_runner,
+        )
+    @test memory_rejected.status ===
+        :short_nuts_resource_probe_memory_preflight_rejected
+    @test !memory_rejected.execution_started
+    @test !memory_rejected.mcmc_executed
+    @test :insufficient_free_memory in memory_rejected.blockers
+    @test runner_calls[] == 0
+
+    fake_runner = (plan, truth_scale) -> (;
+        controls = policy.controls,
+        rows = ((;
+            terminal_status = :completed,
+            fit_seconds = 1.0,
+            diagnostic_seconds = 0.1,
+        ),),
+        summary = (;
+            n_attempts = 1,
+            n_terminal_attempts = 1,
+            n_completed = 1,
+        ),
+    )
+    free_values = Int64[4 * 1024^3, 3 * 1024^3]
+    completed =
+        BayesianMGMFRM._mgmfrm_validation_short_nuts_resource_probe(
+            sparse_plan;
+            execute_measurement = true,
+            minimum_free_memory_bytes = 2 * 1024^3,
+            maximum_observations_per_cell = 1_000,
+            truth_scale = 0.15,
+            free_memory_provider = () -> popfirst!(free_values),
+            runner_executor = fake_runner,
+        )
+    @test completed.status ===
+        :short_nuts_resource_probe_complete_operational_metadata_only
+    @test completed.execution_started
+    @test completed.mcmc_execution_state === :executed
+    @test completed.mcmc_executed
+    @test completed.summary.n_terminal == 1
+    @test completed.summary.n_completed == 1
+    @test completed.summary.denominator_preserved
+    @test completed.measurement.allocated_bytes >= 0
+    @test completed.measurement.minimum_endpoint_free_memory_bytes ==
+        3 * 1024^3
+    @test !completed.measurement.peak_memory_measured
+    @test !completed.fit_objects_returned
+    @test completed.next_gate ===
+        :review_scaled_resource_cells_and_peak_memory
+
+    failing_runner = (plan, truth_scale) -> error("injected runner failure")
+    failure_memory = Int64[4 * 1024^3, 4 * 1024^3]
+    failed = BayesianMGMFRM._mgmfrm_validation_short_nuts_resource_probe(
+        sparse_plan;
+        execute_measurement = true,
+        minimum_free_memory_bytes = 2 * 1024^3,
+        maximum_observations_per_cell = 1_000,
+        truth_scale = 0.15,
+        free_memory_provider = () -> popfirst!(failure_memory),
+        runner_executor = failing_runner,
+    )
+    @test failed.status === :short_nuts_resource_probe_runner_failed
+    @test failed.execution_started
+    @test !failed.summary.denominator_preserved
+    @test ismissing(failed.mcmc_executed)
+    @test failed.error isa ErrorException
+    @test occursin("injected runner failure", failed.error_message)
+    @test failed.next_gate === :inspect_preserved_runner_failure
+
+    @test_throws ArgumentError mgmfrm_validation_short_nuts_resource_probe(
+        minimum_free_memory_bytes = 1024^3 - 1)
+    @test_throws ArgumentError mgmfrm_validation_short_nuts_resource_probe(
+        maximum_observations_per_cell = 2_001)
+    @test_throws ArgumentError mgmfrm_validation_short_nuts_resource_probe(
+        truth_scale = 0.0)
+    dense_and_sparse = mgmfrm_response_stress_plan(
+        design_strata = (
+            :dense_fully_crossed,
+            :connected_sparse_systematic_link,
+        ),
+        response_patterns = (:regular_all_categories,),
+    )
+    @test_throws ArgumentError mgmfrm_validation_short_nuts_resource_probe(
+        dense_and_sparse)
+end

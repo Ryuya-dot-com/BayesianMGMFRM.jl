@@ -248,6 +248,8 @@ function _mgmfrm_validation_execution_design_contract(protocol)
     retry = _mgmfrm_analysis_retry_design()
     sensitivity = _mgmfrm_analysis_sensitivity_design(protocol)
     resource_probe = _mgmfrm_validation_resource_probe_policy()
+    short_nuts_resource_probe =
+        _mgmfrm_validation_short_nuts_resource_probe_policy()
     return (;
         schema =
             "bayesianmgmfrm.mgmfrm_validation_execution_design_contract.v1",
@@ -259,6 +261,7 @@ function _mgmfrm_validation_execution_design_contract(protocol)
         retry,
         sensitivity,
         resource_probe,
+        short_nuts_resource_probe,
         portability = (;
             repository_path_required = false,
             commit_identity_required = false,
@@ -268,7 +271,8 @@ function _mgmfrm_validation_execution_design_contract(protocol)
                 (:kfold_plan, :kfold_plan_diagnostics, :kfold_refit,
                     :mgmfrm_response_stress_plan,
                     :mgmfrm_response_stress_fit_attempts,
-                    :mgmfrm_validation_resource_probe),
+                    :mgmfrm_validation_resource_probe,
+                    :mgmfrm_validation_short_nuts_resource_probe),
             cmdstan_required_only_for_reference_cells = true,
         ),
         scientific_thresholds_frozen = false,

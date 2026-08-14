@@ -45,6 +45,11 @@
   gradient cost while prohibiting scientific, backend-ranking, and full-NUTS
   runtime claims; a bounded short-NUTS probe remains required before resource
   caps can be frozen.
+- Add a separate explicit-execution short-NUTS resource probe. It admits only
+  one connected-sparse AdvancedHMC cell, uses 25 warmup and 25 retained draws,
+  enforces workload and free-memory gates before generation, discards fit
+  objects, and cannot make convergence, recovery, peak-memory, or performance
+  claims.
 - Add `BayesianMGMFRM.Experimental` as the explicit namespace for the
   documented scalar rater-consistency GMFRM and fixed-Q confirmatory MGMFRM
   configurations. These configurations can be fitted with

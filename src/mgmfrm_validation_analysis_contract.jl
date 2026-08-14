@@ -209,8 +209,12 @@ function mgmfrm_validation_analysis_contract()
             role = :runtime_and_operability_only,
             function_name = :mgmfrm_validation_resource_probe,
             initial_gradient_probe_implemented = true,
+            short_nuts_function_name =
+                :mgmfrm_validation_short_nuts_resource_probe,
+            short_nuts_probe_implemented = true,
+            short_nuts_probe_executed = false,
             mcmc_executed = false,
-            bounded_short_nuts_probe_required = true,
+            short_nuts_execution_required = true,
             gradient_timing_may_freeze_final_resource_policy = false,
             values_may_define_scientific_thresholds = false,
             values_may_rank_backends = false,
@@ -218,7 +222,7 @@ function mgmfrm_validation_analysis_contract()
         ),
         next_work_order = (
             :run_initial_gradient_resource_probe,
-            :run_bounded_short_nuts_resource_probe,
+            :run_memory_guarded_bounded_short_nuts_resource_probe,
             :freeze_primary_grid_replications_and_resource_caps,
             :obtain_independent_scientific_threshold_review,
             :freeze_analysis_profile,

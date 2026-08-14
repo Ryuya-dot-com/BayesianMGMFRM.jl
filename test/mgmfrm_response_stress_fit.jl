@@ -171,6 +171,8 @@ using BayesianMGMFRM
     @test_throws ArgumentError mgmfrm_response_stress_fit_attempts(
         plan; profile = :analysis)
     @test_throws ArgumentError mgmfrm_response_stress_fit_attempts(
+        plan; profile = :short_nuts_resource_probe)
+    @test_throws ArgumentError mgmfrm_response_stress_fit_attempts(
         plan; backends = (:unknown,))
     @test_throws ArgumentError mgmfrm_response_stress_fit_attempts(
         plan; prior_regimes = (:unknown,))
@@ -191,4 +193,25 @@ using BayesianMGMFRM
         diagnostic_executor = fake_diagnostics,
     )
     @test int32_bound.maximum_attempts === 1
+
+    short_probe = BayesianMGMFRM._mgmfrm_stress_fit_attempts(
+        plan;
+        profile = :short_nuts_resource_probe,
+        backends = (:advancedhmc,),
+        prior_regimes = (:implementation_reference,),
+        maximum_attempts = 1,
+        truth_scale = 0.15,
+        cmdstan_path = nothing,
+        cmdstan_cache_dir = nothing,
+        fit_executor = fake_fit,
+        diagnostic_executor = fake_diagnostics,
+    )
+    @test short_probe.status === :short_nuts_resource_probe_complete
+    @test short_probe.controls.warmup == 25
+    @test short_probe.controls.ndraws == 25
+    @test short_probe.controls.chains == 1
+    @test short_probe.controls.target_accept == 0.90
+    @test short_probe.controls.metric === :diagonal
+    @test !short_probe.controls.convergence_assessed
+    @test short_probe.claim_scope === :runtime_and_operability_only
 end

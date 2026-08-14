@@ -180,7 +180,7 @@ using BayesianMGMFRM
     @test protocol.execution_design.initial_gradient_resource_probe ===
         :implemented_optional_measurement_not_validation_evidence
     @test protocol.execution_design.bounded_short_nuts_resource_probe ===
-        :pending
+        :implemented_explicit_execution_memory_guarded
     @test !protocol.execution_design.repository_or_sha_identity_required
 
     @test protocol.failure_accounting.denominator ===
@@ -228,6 +228,9 @@ using BayesianMGMFRM
     @test protocol.readiness.completed_enablers.
         initial_gradient_resource_probe_surface ===
         :implemented_measurement_optional
+    @test protocol.readiness.completed_enablers.
+        bounded_short_nuts_resource_probe_surface ===
+        :implemented_execution_memory_guarded
     @test protocol.readiness.completed_enablers.
         attempt_complete_analysis_profile ===
         :draft_contract_implemented_execution_blocked

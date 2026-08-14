@@ -162,6 +162,13 @@ using BayesianMGMFRM
     @test !contract.resource_probe.mcmc_allowed
     @test !contract.resource_probe.
         final_resource_policy_may_be_frozen_from_this_probe_alone
+    @test contract.short_nuts_resource_probe.profile ===
+        :short_nuts_resource_probe
+    @test contract.short_nuts_resource_probe.controls.warmup == 25
+    @test contract.short_nuts_resource_probe.controls.ndraws == 25
+    @test contract.short_nuts_resource_probe.
+        explicit_execution_required
+    @test !contract.short_nuts_resource_probe.convergence_assessed
     @test !contract.scientific_thresholds_frozen
     @test !contract.validation_evidence_available
 end

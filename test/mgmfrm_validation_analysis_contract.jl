@@ -83,8 +83,12 @@ using BayesianMGMFRM
     @test !contract.pilot_policy.values_may_rank_backends
     @test !contract.pilot_policy.values_are_validation_evidence
     @test contract.pilot_policy.initial_gradient_probe_implemented
+    @test contract.pilot_policy.short_nuts_probe_implemented
+    @test !contract.pilot_policy.short_nuts_probe_executed
+    @test contract.pilot_policy.short_nuts_function_name ===
+        :mgmfrm_validation_short_nuts_resource_probe
     @test !contract.pilot_policy.mcmc_executed
-    @test contract.pilot_policy.bounded_short_nuts_probe_required
+    @test contract.pilot_policy.short_nuts_execution_required
     @test !contract.pilot_policy.
         gradient_timing_may_freeze_final_resource_policy
     @test contract.execution_design.design_choices_frozen
@@ -92,6 +96,6 @@ using BayesianMGMFRM
     @test first(contract.next_work_order) ===
         :run_initial_gradient_resource_probe
     @test contract.next_work_order[2] ===
-        :run_bounded_short_nuts_resource_probe
+        :run_memory_guarded_bounded_short_nuts_resource_probe
     @test last(contract.next_work_order) === :start_fresh_seed_evaluation
 end

@@ -21,11 +21,26 @@ function _mgmfrm_stress_fit_controls(profile::Symbol)
         diagnostic_decision = :not_applied_short_chain,
         claim_scope = :fit_and_diagnostic_wiring_only,
     )
+    profile === :short_nuts_resource_probe && return (;
+        profile,
+        ndraws = 25,
+        warmup = 25,
+        chains = 1,
+        step_size = 0.03,
+        target_accept = 0.90,
+        max_depth = 10,
+        metric = :diagonal,
+        convergence_assessed = false,
+        diagnostic_decision = :not_applied_resource_probe_short_chain,
+        claim_scope = :runtime_and_operability_only,
+    )
     profile === :analysis && throw(ArgumentError(
         "profile = :analysis is blocked until its attempt-complete analysis " *
         "contract and independently reviewed scientific thresholds are frozen",
     ))
-    throw(ArgumentError("profile must be :wiring_smoke or :analysis"))
+    throw(ArgumentError(
+        "profile must be :wiring_smoke, :short_nuts_resource_probe, or :analysis",
+    ))
 end
 
 function _mgmfrm_stress_prior(regime::Symbol)
@@ -111,7 +126,7 @@ function _mgmfrm_stress_default_diagnostics(fit::MGMFRMFit, controls)
         maximum_probability_sum_error <= 1e-10 &&
         n_failed_direct_constraints == 0
     integrity_passed || throw(ArgumentError(
-        "MGMFRM wiring-smoke output failed finite, probability-simplex, " *
+        "bounded MGMFRM output failed finite, probability-simplex, " *
         "or direct-constraint integrity checks",
     ))
     return (;
@@ -409,12 +424,15 @@ function _mgmfrm_stress_fit_attempts(plan;
     n_fit_failed = count(==(:fit_failed), statuses)
     n_diagnostic_failed = count(==(:diagnostic_failed), statuses)
     all_completed = n_completed == expanded_attempts
+    completed_status = profile === :wiring_smoke ?
+        :wiring_smoke_complete : :short_nuts_resource_probe_complete
+    failure_status = profile === :wiring_smoke ?
+        :wiring_smoke_complete_with_recorded_failures :
+        :short_nuts_resource_probe_complete_with_recorded_failures
     return (;
         schema = "bayesianmgmfrm.mgmfrm_response_stress_fit_attempts.v1",
         object = :mgmfrm_response_stress_fit_attempts,
-        status = all_completed ?
-            :wiring_smoke_complete :
-            :wiring_smoke_complete_with_recorded_failures,
+        status = all_completed ? completed_status : failure_status,
         profile,
         controls,
         maximum_attempts = maximum_attempts_value,
@@ -440,8 +458,10 @@ function _mgmfrm_stress_fit_attempts(plan;
         computational_decision = :not_applied_short_chain,
         scientific_decision = :not_applied,
         recovery_evidence = :not_established,
-        claim_scope = :bounded_fit_and_diagnostic_wiring_only,
-        next_gate = :freeze_attempt_complete_analysis_profile_and_thresholds,
+        claim_scope = controls.claim_scope,
+        next_gate = profile === :wiring_smoke ?
+            :freeze_attempt_complete_analysis_profile_and_thresholds :
+            :review_short_nuts_runtime_and_memory_without_scientific_scoring,
     )
 end
 
@@ -473,6 +493,11 @@ function mgmfrm_response_stress_fit_attempts(plan;
         truth_scale::Real = 0.15,
         cmdstan_path::Union{Nothing,AbstractString} = nothing,
         cmdstan_cache_dir::Union{Nothing,AbstractString} = nothing)
+    profile === :short_nuts_resource_probe && throw(ArgumentError(
+        "profile = :short_nuts_resource_probe is available only through " *
+        "mgmfrm_validation_short_nuts_resource_probe, which enforces the " *
+        "memory and workload preflight",
+    ))
     return _mgmfrm_stress_fit_attempts(
         plan;
         profile,

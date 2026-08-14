@@ -150,6 +150,7 @@ The remaining boundary can be inspected without starting an analysis:
 execution_design = mgmfrm_validation_execution_design_contract()
 analysis_contract = mgmfrm_validation_analysis_contract()
 resource_probe_plan = mgmfrm_validation_resource_probe()
+short_nuts_plan = mgmfrm_validation_short_nuts_resource_probe()
 
 execution_design.heldout
 execution_design.retry
@@ -176,6 +177,14 @@ ForwardDiff gradient time, allocation, and free memory. These values may guide
 the cells and batch size for a later bounded short-NUTS probe, but they are not
 convergence, recovery, backend, or performance evidence and are not
 extrapolated into a full-fit runtime.
+
+`mgmfrm_validation_short_nuts_resource_probe()` similarly plans one connected-
+sparse AdvancedHMC cell without executing it. An explicit
+`execute_measurement = true` request starts its 25-warmup/25-draw single chain
+only after the workload check and a 2 GiB free-memory preflight pass. The
+minimum cannot be lowered below 1 GiB. A failed memory preflight starts neither
+generation nor MCMC. Even a completed probe is short-chain operability metadata
+only; convergence, peak memory, and full-analysis runtime remain unassessed.
 
 Stable MFRM/RSM/PCM designs also support `backend = :cmdstan`. CmdStan is an
 optional external runtime, discovered with `cmdstan_backend_check()`; it is not

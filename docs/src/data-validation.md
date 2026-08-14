@@ -195,6 +195,25 @@ scientific thresholds, or a preferred backend, and they cannot be extrapolated
 to four-chain NUTS. A bounded short-NUTS resource probe and an explicit memory
 review remain necessary before final grid and resource caps are frozen.
 
+The next probe is also inert unless execution is explicit:
+
+```julia
+short_plan = mgmfrm_validation_short_nuts_resource_probe()
+
+# Runs only when the workload and free-memory preflight pass.
+short_probe = mgmfrm_validation_short_nuts_resource_probe(
+    execute_measurement = true,
+)
+```
+
+Its only cell is connected-sparse and uses one AdvancedHMC chain with 25
+warmup transitions and 25 retained draws. The default free-memory requirement
+is 2 GiB with a non-lowerable 1 GiB floor. Rejection occurs before generation
+or MCMC. A successful run discards fit objects, preserves typed attempt rows,
+and records elapsed time, cumulative Julia allocations, and endpoint free
+memory. It does not claim peak memory or convergence and cannot freeze the
+final analysis resource policy by itself.
+
 ## Clustered Responses and Testlet Identity
 
 When multiple criteria, items, or raters refer to the same response, map the

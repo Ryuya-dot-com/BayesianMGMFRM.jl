@@ -2,6 +2,8 @@
 
 const _MGMFRM_VALIDATION_RESOURCE_PROBE_SCHEMA =
     "bayesianmgmfrm.mgmfrm_validation_resource_probe.v1"
+const _MGMFRM_VALIDATION_SHORT_NUTS_RESOURCE_PROBE_SCHEMA =
+    "bayesianmgmfrm.mgmfrm_validation_short_nuts_resource_probe.v1"
 
 function _mgmfrm_validation_resource_probe_policy()
     return (;
@@ -43,6 +45,46 @@ function _mgmfrm_validation_resource_probe_policy()
     )
 end
 
+function _mgmfrm_validation_short_nuts_resource_probe_policy()
+    controls = _mgmfrm_stress_fit_controls(:short_nuts_resource_probe)
+    return (;
+        phase = :bounded_short_nuts_resource_probe,
+        profile = controls.profile,
+        controls,
+        backend = :advancedhmc,
+        prior_regime = :implementation_reference,
+        response_pattern = :regular_all_categories,
+        default_design = :connected_sparse_systematic_link,
+        maximum_cells = 1,
+        default_maximum_observations_per_cell = 1_000,
+        hard_maximum_observations_per_cell = 2_000,
+        hard_maximum_probability_cells_per_cell = 10_000,
+        default_minimum_free_memory_bytes = Int64(2 * 1024^3),
+        hard_minimum_free_memory_bytes = Int64(1024^3),
+        explicit_execution_required = true,
+        convergence_assessed = false,
+        peak_memory_measured = false,
+        measurement_thresholds_applied = false,
+        final_resource_policy_may_be_frozen_from_this_probe_alone = false,
+        permitted_uses = (
+            :verify_short_nuts_operability,
+            :measure_local_short_chain_runtime,
+            :measure_cumulative_julia_allocations,
+            :choose_next_scaled_resource_cell,
+        ),
+        prohibited_uses = (
+            :scientific_threshold_selection,
+            :convergence_claim,
+            :recovery_or_coverage_evidence,
+            :backend_ranking,
+            :prior_selection,
+            :q_selection,
+            :performance_claim,
+            :full_nuts_runtime_extrapolation,
+        ),
+    )
+end
+
 function _mgmfrm_validation_default_resource_probe_plan()
     return Tuple(mgmfrm_response_stress_plan(
         design_strata = (
@@ -52,6 +94,15 @@ function _mgmfrm_validation_default_resource_probe_plan()
         response_patterns = (:regular_all_categories,),
         replications = 1,
         base_seed = 20260816,
+    ))
+end
+
+function _mgmfrm_validation_default_short_nuts_resource_probe_plan()
+    return Tuple(mgmfrm_response_stress_plan(
+        design_strata = (:connected_sparse_systematic_link,),
+        response_patterns = (:regular_all_categories,),
+        replications = 1,
+        base_seed = 20260817,
     ))
 end
 
@@ -500,6 +551,271 @@ function mgmfrm_validation_resource_probe(
         execute_measurement,
         repetitions,
         maximum_cells,
+        maximum_observations_per_cell,
+        truth_scale,
+    )
+end
+
+# Explicit-execution, memory-guarded short-NUTS profiling.
+
+function _mgmfrm_validation_default_short_nuts_runner(plan, truth_scale)
+    return _mgmfrm_stress_fit_attempts(
+        plan;
+        profile = :short_nuts_resource_probe,
+        backends = (:advancedhmc,),
+        prior_regimes = (:implementation_reference,),
+        maximum_attempts = 1,
+        truth_scale,
+        cmdstan_path = nothing,
+        cmdstan_cache_dir = nothing,
+    )
+end
+
+function _mgmfrm_validation_short_nuts_execution_state(rows)
+    statuses = Tuple(row.terminal_status for row in rows)
+    any(status -> status in (:completed, :diagnostic_failed), statuses) &&
+        return :executed
+    any(==(:fit_failed), statuses) && return :attempted_state_unknown
+    return :not_started
+end
+
+function _mgmfrm_validation_short_nuts_base_result(
+        plan,
+        policy,
+        runtime,
+        free_memory_bytes::Int64,
+        minimum_free_memory_bytes::Int64,
+        maximum_observations_per_cell::Int)
+    memory_preflight_passed =
+        free_memory_bytes >= minimum_free_memory_bytes
+    return (;
+        schema = _MGMFRM_VALIDATION_SHORT_NUTS_RESOURCE_PROBE_SCHEMA,
+        object = :mgmfrm_validation_short_nuts_resource_probe,
+        policy,
+        plan,
+        runtime,
+        preflight = (;
+            free_memory_bytes_observed = free_memory_bytes,
+            minimum_free_memory_bytes_required = minimum_free_memory_bytes,
+            memory_preflight_passed,
+            maximum_observations_per_cell,
+            workload_preflight_passed = true,
+        ),
+    )
+end
+
+function _mgmfrm_validation_short_nuts_resource_probe(
+        plan;
+        execute_measurement::Bool,
+        minimum_free_memory_bytes::Integer,
+        maximum_observations_per_cell::Integer,
+        truth_scale::Real,
+        free_memory_provider = () -> Int64(Sys.free_memory()),
+        runner_executor = _mgmfrm_validation_default_short_nuts_runner)
+    policy = _mgmfrm_validation_short_nuts_resource_probe_policy()
+    checked_minimum_memory = _mgmfrm_validation_probe_integer(
+        minimum_free_memory_bytes,
+        "minimum_free_memory_bytes";
+        minimum = Int(policy.hard_minimum_free_memory_bytes),
+    )
+    checked_maximum_observations = _mgmfrm_validation_probe_integer(
+        maximum_observations_per_cell,
+        "maximum_observations_per_cell",
+    )
+    checked_maximum_observations <=
+        policy.hard_maximum_observations_per_cell ||
+        throw(ArgumentError(
+            "maximum_observations_per_cell exceeds the short-NUTS hard bound",
+        ))
+    isfinite(truth_scale) && truth_scale > 0 || throw(ArgumentError(
+        "truth_scale must be finite and positive",
+    ))
+    checked_plan = _mgmfrm_validation_checked_resource_probe_plan(
+        plan,
+        policy,
+        policy.maximum_cells,
+        checked_maximum_observations,
+    )
+    runtime = _mgmfrm_validation_resource_probe_runtime()
+    free_memory = Int64(free_memory_provider())
+    free_memory >= 0 || throw(ArgumentError(
+        "free_memory_provider returned a negative value",
+    ))
+    base = _mgmfrm_validation_short_nuts_base_result(
+        checked_plan,
+        policy,
+        runtime,
+        free_memory,
+        Int64(checked_minimum_memory),
+        checked_maximum_observations,
+    )
+
+    if !execute_measurement || !base.preflight.memory_preflight_passed
+        memory_blocker = base.preflight.memory_preflight_passed ? () :
+            (:insufficient_free_memory,)
+        execution_blocker = execute_measurement ? () :
+            (:explicit_execution_not_requested,)
+        return merge(base, (;
+            status = !execute_measurement ?
+                :short_nuts_resource_probe_planned_not_executed :
+                :short_nuts_resource_probe_memory_preflight_rejected,
+            execute_measurement,
+            operational_execution_eligible =
+                base.preflight.memory_preflight_passed,
+            execution_started = false,
+            mcmc_execution_state = :not_started,
+            mcmc_executed = false,
+            fit_attempt_rows = (),
+            summary = (;
+                n_planned_cells = length(checked_plan),
+                n_started = 0,
+                n_terminal = 0,
+                n_completed = 0,
+                denominator_preserved = true,
+            ),
+            measurement = missing,
+            blockers = (execution_blocker..., memory_blocker...),
+            convergence_assessed = false,
+            scientific_execution_authorized = false,
+            recovery_evidence_available = false,
+            fit_objects_returned = false,
+            final_resource_policy_frozen = false,
+            claim_scope = :operational_preflight_not_validation_evidence,
+            next_gate = base.preflight.memory_preflight_passed ?
+                :explicitly_execute_bounded_short_nuts_probe :
+                :rerun_in_environment_with_sufficient_free_memory,
+        ))
+    end
+
+    free_memory_before = free_memory
+    timed_run = try
+        @timed begin
+            run = runner_executor(checked_plan, Float64(truth_scale))
+            hasproperty(run, :rows) && hasproperty(run, :summary) &&
+                hasproperty(run, :controls) || throw(ArgumentError(
+                "short-NUTS runner returned an invalid result",
+            ))
+            run
+        end
+    catch err
+        _mgmfrm_stress_fatal_exception(err) && rethrow()
+        err
+    end
+    free_memory_after = Int64(free_memory_provider())
+    if timed_run isa Exception
+        return merge(base, (;
+            status = :short_nuts_resource_probe_runner_failed,
+            execute_measurement = true,
+            operational_execution_eligible = true,
+            execution_started = true,
+            mcmc_execution_state = :unknown_after_runner_failure,
+            mcmc_executed = missing,
+            fit_attempt_rows = (),
+            summary = (;
+                n_planned_cells = length(checked_plan),
+                n_started = 1,
+                n_terminal = 0,
+                n_completed = 0,
+                denominator_preserved = false,
+            ),
+            measurement = (;
+                elapsed_seconds = missing,
+                allocated_bytes = missing,
+                free_memory_bytes_before = free_memory_before,
+                free_memory_bytes_after = free_memory_after,
+                minimum_endpoint_free_memory_bytes =
+                    min(free_memory_before, free_memory_after),
+                peak_memory_measured = false,
+            ),
+            blockers = (:short_nuts_runner_failed,),
+            error_type = string(typeof(timed_run)),
+            error_message = sprint(showerror, timed_run),
+            error = timed_run,
+            convergence_assessed = false,
+            scientific_execution_authorized = false,
+            recovery_evidence_available = false,
+            fit_objects_returned = false,
+            final_resource_policy_frozen = false,
+            claim_scope = :failed_operational_probe_not_validation_evidence,
+            next_gate = :inspect_preserved_runner_failure,
+        ))
+    end
+
+    run = timed_run.value
+    execution_state =
+        _mgmfrm_validation_short_nuts_execution_state(run.rows)
+    return merge(base, (;
+        status = run.summary.n_completed == length(checked_plan) ?
+            :short_nuts_resource_probe_complete_operational_metadata_only :
+            :short_nuts_resource_probe_complete_with_recorded_failures,
+        execute_measurement = true,
+        operational_execution_eligible = true,
+        execution_started = true,
+        mcmc_execution_state = execution_state,
+        mcmc_executed = execution_state === :executed,
+        fit_attempt_rows = run.rows,
+        summary = (;
+            n_planned_cells = length(checked_plan),
+            n_started = run.summary.n_attempts,
+            n_terminal = run.summary.n_terminal_attempts,
+            n_completed = run.summary.n_completed,
+            denominator_preserved =
+                run.summary.n_terminal_attempts == length(checked_plan),
+        ),
+        measurement = (;
+            elapsed_seconds = Float64(timed_run.time),
+            allocated_bytes = Int(timed_run.bytes),
+            gc_seconds = Float64(timed_run.gctime),
+            free_memory_bytes_before = free_memory_before,
+            free_memory_bytes_after = free_memory_after,
+            minimum_endpoint_free_memory_bytes =
+                min(free_memory_before, free_memory_after),
+            peak_memory_measured = false,
+        ),
+        blockers = (:scaled_resource_cells_and_peak_memory_review_pending,),
+        error_type = missing,
+        error_message = missing,
+        error = missing,
+        convergence_assessed = false,
+        scientific_execution_authorized = false,
+        recovery_evidence_available = false,
+        fit_objects_returned = false,
+        final_resource_policy_frozen = false,
+        claim_scope = :short_chain_operational_metadata_not_validation_evidence,
+        next_gate = :review_scaled_resource_cells_and_peak_memory,
+    ))
+end
+
+"""
+    mgmfrm_validation_short_nuts_resource_probe(
+        plan = nothing; execute_measurement = false,
+        minimum_free_memory_bytes = 2 * 1024^3,
+        maximum_observations_per_cell = 1_000, truth_scale = 0.15)
+
+Plan or explicitly execute one memory-guarded, short AdvancedHMC/NUTS resource
+probe for fixed-Q MGMFRM. The default cell is connected-sparse with one chain,
+25 warmup transitions, and 25 retained draws. The memory and workload gates
+run before data generation or MCMC; the minimum memory requirement cannot be
+lowered below 1 GiB.
+
+This probe assesses only local short-chain operability. It does not assess
+convergence, recovery, coverage, backend performance, prior choice, Q choice,
+or scientific thresholds. Returned fit-attempt rows preserve typed failures,
+but fit objects are discarded. Cumulative Julia allocations and endpoint free
+memory are recorded; peak memory is not claimed.
+"""
+function mgmfrm_validation_short_nuts_resource_probe(
+        plan = nothing;
+        execute_measurement::Bool = false,
+        minimum_free_memory_bytes::Integer = 2 * 1024^3,
+        maximum_observations_per_cell::Integer = 1_000,
+        truth_scale::Real = 0.15)
+    selected_plan = isnothing(plan) ?
+        _mgmfrm_validation_default_short_nuts_resource_probe_plan() : plan
+    return _mgmfrm_validation_short_nuts_resource_probe(
+        selected_plan;
+        execute_measurement,
+        minimum_free_memory_bytes,
         maximum_observations_per_cell,
         truth_scale,
     )
