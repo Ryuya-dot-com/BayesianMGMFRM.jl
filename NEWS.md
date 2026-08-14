@@ -79,6 +79,12 @@
   select the two primary resource rows inside the current short-NUTS bound.
   Primary and legacy stress/scaling receipts retain separate ordered
   collections and cannot be mixed into a passing review.
+- Reduce guarded MGMFRM gradient allocation without changing the fixed-Q
+  likelihood: build the Q-to-loading index matrix once per evaluation, avoid
+  row-level predictor arrays in the fit path, and accumulate total likelihood
+  directly instead of materializing a pointwise vector that is immediately
+  summed. Explicit tests compare every primary-row predictor and the total
+  versus pointwise likelihood.
 - Add a separate explicit-execution short-NUTS resource probe. It admits only
   one connected-sparse AdvancedHMC cell, uses 25 warmup and 25 retained draws,
   enforces workload and available-memory gates before generation, discards fit

@@ -96,6 +96,37 @@ end
         primary_small.resource_seed
     @test primary_planned.post_measurement_gate ===
         :bounded_primary_short_nuts_resource_probe
+    primary_case = simulate_mgmfrm_validation_primary_candidate(
+        primary_small;
+        seed = primary_small.resource_seed,
+    )
+    primary_target = BayesianMGMFRM.
+        _mgmfrm_guarded_local_fit_logdensity(primary_case.design)
+    raw = primary_case.raw_truth
+    primary_pointwise = BayesianMGMFRM.
+        _mgmfrm_source_pointwise_loglikelihood_from_unconstrained(
+            primary_case.design,
+            raw,
+        )
+    implied_pointwise = [
+        log(primary_case.truth_category_probabilities[
+            1,
+            row,
+            primary_case.data.category[row],
+        ]) for row in 1:primary_case.data.n
+    ]
+    @test maximum(abs.(primary_pointwise .- implied_pointwise)) <= 1e-10
+    primary_streaming_loglikelihood = BayesianMGMFRM.
+        _mgmfrm_source_loglikelihood_from_unconstrained(
+            primary_case.design,
+            raw,
+        )
+    @test primary_streaming_loglikelihood ≈ sum(primary_pointwise) atol =
+        1e-10 rtol = 0
+    @test BayesianMGMFRM._source_fixture_loglikelihood(
+        primary_target,
+        raw,
+    ) ≈ sum(primary_pointwise) atol = 1e-10 rtol = 0
     inconsistent_primary = merge(primary_small, (;
         expected_observations = primary_small.expected_observations + 1,
     ))

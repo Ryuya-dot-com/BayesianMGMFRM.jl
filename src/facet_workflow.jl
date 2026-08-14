@@ -5960,6 +5960,26 @@ function _loading_parameter_indices(design::FacetDesign, index_by_name, item_ind
     return indices
 end
 
+function _mgmfrm_source_loading_index_matrix(design::FacetDesign)
+    spec = design.spec
+    spec.family === :mgmfrm || throw(ArgumentError(
+        "MGMFRM loading indices require an MGMFRM design"))
+    q = spec.q_matrix
+    q === nothing && throw(ArgumentError(
+        "MGMFRM loading indices require a fixed Q-matrix"))
+    indices = zeros(Int, size(q))
+    loading_block = design.blocks[:item_dimension_discrimination]
+    loading_offset = 0
+    for item_index in axes(q, 1), dim in axes(q, 2)
+        q[item_index, dim] || continue
+        loading_offset += 1
+        indices[item_index, dim] = loading_block[loading_offset]
+    end
+    loading_offset == length(loading_block) || throw(ArgumentError(
+        "MGMFRM Q-mask and loading block have inconsistent sizes"))
+    return indices
+end
+
 function _item_discrimination_parameter_index(design::FacetDesign, item_index::Int)
     haskey(design.blocks, :item_discrimination) || return missing
     return design.blocks[:item_discrimination][item_index]
@@ -6698,20 +6718,61 @@ end
 
 function _mgmfrm_source_linear_predictors!(etas::AbstractVector,
         design::FacetDesign,
-        index_by_name,
+        _index_by_name,
         params::AbstractVector,
         row::Int)
+    return _mgmfrm_source_linear_predictors!(
+        etas,
+        design,
+        params,
+        row,
+        _mgmfrm_source_loading_index_matrix(design),
+    )
+end
+
+function _mgmfrm_source_linear_predictors!(etas::AbstractVector,
+        design::FacetDesign,
+        params::AbstractVector,
+        row::Int,
+        loading_indices::AbstractMatrix{Int})
     data = design.spec.data
+    dims = design.spec.dimensions
     K = length(data.category_levels)
-    length(etas) == K ||
-        throw(ArgumentError("eta vector has length $(length(etas)); expected $K"))
-    terms = _mgmfrm_source_row_terms(design, index_by_name, params, row)
-    etas[1] = zero(terms.scale_value * terms.location_value)
-    cumulative = zero(etas[1])
+    length(etas) == K || throw(ArgumentError(
+        "eta vector has length $(length(etas)); expected $K"))
+    size(loading_indices) ==
+        (length(data.item_levels), dims) || throw(ArgumentError(
+        "MGMFRM loading-index matrix has the wrong size"))
+
+    person_offset = (data.person[row] - 1) * dims
+    person_block = design.blocks[:person]
     item_index = data.item[row]
+    ability_score = _param_zero(params)
+    for dim in 1:dims
+        loading_index = loading_indices[item_index, dim]
+        iszero(loading_index) && continue
+        ability_score += params[loading_index] *
+            params[person_block[person_offset + dim]]
+    end
+    rater_index = data.rater[row]
+    rater_value = params[design.blocks[:rater][rater_index]]
+    item_value = params[design.blocks[:item][item_index]]
+    rater_consistency =
+        params[design.blocks[:rater_consistency][rater_index]]
+    scale_value = 1.7 * rater_consistency
+    location_value = ability_score - item_value - rater_value
+
+    etas[1] = zero(scale_value * location_value)
+    cumulative = zero(etas[1])
     for category_index in 2:K
-        step_value = _source_step_value(design, params, :item_steps, item_index, category_index)
-        cumulative += terms.scale_value * (terms.location_value - step_value)
+        step_value = _source_step_value(
+            design,
+            params,
+            :item_steps,
+            item_index,
+            category_index,
+        )
+        cumulative += scale_value * (location_value - step_value)
         etas[category_index] = cumulative
     end
     return etas
@@ -6733,9 +6794,15 @@ function _mgmfrm_source_pointwise_loglikelihood(
     T = typeof(_param_zero(params) + 0.0)
     etas = Vector{T}(undef, K)
     out = Vector{T}(undef, data.n)
-    index_by_name = _parameter_index_map(design)
+    loading_indices = _mgmfrm_source_loading_index_matrix(design)
     for row in 1:data.n
-        _mgmfrm_source_linear_predictors!(etas, design, index_by_name, params, row)
+        _mgmfrm_source_linear_predictors!(
+            etas,
+            design,
+            params,
+            row,
+            loading_indices,
+        )
         out[row] = etas[data.category[row]] - _logsumexp(etas)
     end
     return out
@@ -6751,8 +6818,27 @@ end
 function _mgmfrm_source_loglikelihood_from_unconstrained(
         design::FacetDesign,
         raw_params::AbstractVector)
-    pointwise = _mgmfrm_source_pointwise_loglikelihood_from_unconstrained(design, raw_params)
-    return sum(pointwise; init = _param_zero(pointwise))
+    params = _mgmfrm_source_constrained_params_from_unconstrained(
+        design,
+        raw_params,
+    )
+    data = design.spec.data
+    K = length(data.category_levels)
+    T = typeof(_param_zero(params) + 0.0)
+    etas = Vector{T}(undef, K)
+    loading_indices = _mgmfrm_source_loading_index_matrix(design)
+    total = _param_zero(params)
+    for row in 1:data.n
+        _mgmfrm_source_linear_predictors!(
+            etas,
+            design,
+            params,
+            row,
+            loading_indices,
+        )
+        total += etas[data.category[row]] - _logsumexp(etas)
+    end
+    return total
 end
 
 function _mgmfrm_source_fixture_values(design::FacetDesign, params::AbstractVector)
@@ -6764,9 +6850,16 @@ function _mgmfrm_source_fixture_values(design::FacetDesign, params::AbstractVect
     T = typeof(_param_zero(params) + 0.0)
     etas = Vector{T}(undef, K)
     index_by_name = _parameter_index_map(design)
+    loading_indices = _mgmfrm_source_loading_index_matrix(design)
     rows = NamedTuple[]
     for row in 1:data.n
-        _mgmfrm_source_linear_predictors!(etas, design, index_by_name, params, row)
+        _mgmfrm_source_linear_predictors!(
+            etas,
+            design,
+            params,
+            row,
+            loading_indices,
+        )
         log_denominator = _logsumexp(etas)
         terms = _mgmfrm_source_row_terms(design, index_by_name, params, row)
         for category_index in eachindex(data.category_levels)

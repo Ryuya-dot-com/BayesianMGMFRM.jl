@@ -231,7 +231,13 @@ diagnostic loop. The first two representative cells meet the current workload
 bound and can be selected by cell ID in the dedicated one-cell worker. Its
 threshold-free review enforces the primary order separately from the legacy
 stress/scaling sequence. Actual primary worker execution and receipt review
-still precede any resource-envelope or final-grid decision.
+still precede any resource-envelope or final-grid decision. The first isolated
+500-observation operability run completed, but its cumulative allocation was
+too large to justify automatic progression. The fixed-Q likelihood now reuses
+a Q-to-loading index matrix and streams the likelihood sum; row-level and
+pointwise-sum equivalence tests pass. Re-profile before attempting the second
+primary cell, and treat local timing/allocation changes only as resource
+engineering metadata.
 
 External validation uses simulation and observed data for different purposes.
 Known-truth simulation is required for parameter recovery, coverage, and false-

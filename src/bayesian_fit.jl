@@ -15681,10 +15681,16 @@ end
 
 function _mgmfrm_category_probabilities!(probs::AbstractVector{Float64},
         design::FacetDesign,
-        index_by_name,
+        loading_indices::AbstractMatrix{Int},
         direct_params::AbstractVector,
         row::Int)
-    _mgmfrm_source_linear_predictors!(probs, design, index_by_name, direct_params, row)
+    _mgmfrm_source_linear_predictors!(
+        probs,
+        design,
+        direct_params,
+        row,
+        loading_indices,
+    )
     return _softmax_eta!(probs)
 end
 
@@ -15725,12 +15731,18 @@ function _mgmfrm_predictive_probabilities_direct(
     K = length(data.category_levels)
     out = Array{Float64}(undef, size(checked, 1), data.n, K)
     probs = zeros(Float64, K)
-    index_by_name = _parameter_index_map(design)
+    loading_indices = _mgmfrm_source_loading_index_matrix(design)
 
     for draw in axes(checked, 1)
         direct_params = @view checked[draw, :]
         for row in 1:data.n
-            _mgmfrm_category_probabilities!(probs, design, index_by_name, direct_params, row)
+            _mgmfrm_category_probabilities!(
+                probs,
+                design,
+                loading_indices,
+                direct_params,
+                row,
+            )
             for category in 1:K
                 out[draw, row, category] = probs[category]
             end
@@ -18852,12 +18864,18 @@ function _replicate_scores_mgmfrm_direct(
     K = length(data.category_levels)
     replicated = Matrix{Int}(undef, size(checked, 1), data.n)
     probs = zeros(Float64, K)
-    index_by_name = _parameter_index_map(design)
+    loading_indices = _mgmfrm_source_loading_index_matrix(design)
 
     for replication in axes(checked, 1)
         direct_params = @view checked[replication, :]
         for row in 1:data.n
-            _mgmfrm_category_probabilities!(probs, design, index_by_name, direct_params, row)
+            _mgmfrm_category_probabilities!(
+                probs,
+                design,
+                loading_indices,
+                direct_params,
+                row,
+            )
             category = _sample_category_index(rng, probs)
             replicated[replication, row] = data.category_levels[category]
         end
