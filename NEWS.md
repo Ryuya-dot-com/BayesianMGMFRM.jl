@@ -36,9 +36,11 @@
   runtime/toolchain check and a direct CLI adapter for stable MFRM/RSM/PCM
   designs. The adapter compiles a package-owned Stan model, preserves the
   identified Julia parameter order, imports CmdStan sampler diagnostics, checks
-  generated pointwise log likelihoods, and raises typed failures. Generalized
-  fitting, cache integration, and analysis-scale comparison evidence remain
-  pending.
+  generated pointwise log likelihoods, and raises typed failures. Extend the
+  same CLI path to the guarded scalar GMFRM raw-coordinate target, including
+  its Julia identification transform, common `GMFRMFit` diagnostics, and
+  prediction interface. Fixed-Q MGMFRM, cache integration, and analysis-scale
+  comparison evidence remain pending.
 - Add an analysis-facing roadmap program for unified sampler profiles,
   four-chain substantive defaults, chain-level seeds, integrated summaries and
   warnings, simple fit persistence, visualization rows, interval/HDI policy,

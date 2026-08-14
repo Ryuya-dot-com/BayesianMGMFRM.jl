@@ -18,11 +18,14 @@ end
     @test !contract.release_gate_satisfied
     @test !contract.fit_backend_implemented
     @test !contract.core_install_requires_cmdstan
-    @test contract.implemented_families == (:mfrm,)
-    @test contract.model_source_status.gmfrm === :validation_reference_only
+    @test contract.implemented_families == (:mfrm, :gmfrm)
+    @test contract.model_source_status.gmfrm === :package_model_and_cli_adapter
     mfrm_contract = BayesianMGMFRM.cmdstan_backend_contract(:mfrm)
     @test mfrm_contract.model_source_status === :package_model_and_cli_adapter
     @test mfrm_contract.fit_backend_implemented
+    gmfrm_contract = BayesianMGMFRM.cmdstan_backend_contract(:gmfrm)
+    @test gmfrm_contract.model_source_status === :package_model_and_cli_adapter
+    @test gmfrm_contract.fit_backend_implemented
     @test_throws ArgumentError BayesianMGMFRM.cmdstan_backend_contract(
         :exploratory,
     )
@@ -39,6 +42,7 @@ end
     @test missing.cmdstan_root_basename === basename(missing_root)
     @test :root_directory in missing.failed_checks
     @test missing.stable_mfrm_fit_implemented
+    @test missing.guarded_gmfrm_fit_implemented
     error = captured_cmdstan_error() do
         BayesianMGMFRM.cmdstan_backend_check(;
             cmdstan_path = missing_root,
@@ -94,6 +98,21 @@ end
     @test pcm_payload.prior_sd == [1.5, 1.5, 1.5, 1.0, 1.0, 1.0, 1.0]
     @test rsm_payload.threshold_model == 1
     @test rsm_payload.P == length(rsm_design.parameter_names) == 6
+    gmfrm_spec = BayesianMGMFRM.mfrm_spec(
+        data;
+        family = :gmfrm,
+        thresholds = :partial_credit,
+        discrimination = :rater,
+    )
+    gmfrm_design = BayesianMGMFRM.getdesign(gmfrm_spec; preview = true)
+    gmfrm_target = BayesianMGMFRM._gmfrm_promotion_candidate_logdensity(
+        gmfrm_design,
+    )
+    gmfrm_payload = BayesianMGMFRM._cmdstan_gmfrm_data(gmfrm_target)
+    @test gmfrm_payload.P == gmfrm_target.blueprint.n_parameters == 11
+    @test gmfrm_payload.free_steps == 1
+    @test gmfrm_payload.prior_sd ==
+        [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.5, 0.5, 0.5, 1.0, 1.0]
     @test BayesianMGMFRM._cmdstan_chain_seeds(MersenneTwister(71), 4) ==
         BayesianMGMFRM._cmdstan_chain_seeds(MersenneTwister(71), 4)
     @test length(unique(BayesianMGMFRM._cmdstan_chain_seeds(
@@ -103,8 +122,56 @@ end
     mktempdir() do directory
         cd(directory) do
             @test isfile(BayesianMGMFRM._cmdstan_mfrm_source())
+            @test isfile(BayesianMGMFRM._cmdstan_gmfrm_source())
             @test BayesianMGMFRM._cmdstan_mfrm_data(pcm_design, prior).P == 7
         end
+    end
+
+
+    gmfrm_zero = zeros(gmfrm_target.blueprint.n_parameters)
+    gmfrm_pointwise =
+        BayesianMGMFRM._gmfrm_source_pointwise_loglikelihood_from_unconstrained(
+            gmfrm_design,
+            gmfrm_zero,
+        )
+    gmfrm_header = [
+        "lp__",
+        "accept_stat__",
+        "stepsize__",
+        "treedepth__",
+        "n_leapfrog__",
+        "divergent__",
+        "energy__",
+        ["beta.$index" for index in eachindex(gmfrm_zero)]...,
+        ["log_lik.$observation" for observation in 1:data.n]...,
+    ]
+    gmfrm_csv_values = [
+        -2.0,
+        0.85,
+        0.05,
+        1.0,
+        1.0,
+        0.0,
+        6.0,
+        gmfrm_zero...,
+        gmfrm_pointwise...,
+    ]
+    mktempdir() do directory
+        csv_path = joinpath(directory, "gmfrm-chain.csv")
+        write(csv_path, join(gmfrm_header, ',') * "\n" *
+            join(gmfrm_csv_values, ',') * "\n")
+        parsed = BayesianMGMFRM._cmdstan_gmfrm_chain_result(
+            csv_path,
+            gmfrm_target,
+            1,
+            1,
+        )
+        @test parsed.draws == permutedims(gmfrm_zero)
+        @test parsed.logps == [BayesianMGMFRM.LogDensityProblems.logdensity(
+            gmfrm_target,
+            gmfrm_zero,
+        )]
+        @test only(parsed.stats).stan_lp == -2.0
     end
 
     zero_params = zeros(length(pcm_design.parameter_names))
@@ -179,6 +246,17 @@ end
     end
     @test fit_error isa BayesianMGMFRM.CmdStanError
     @test fit_error.stage === :runtime_check
+    gmfrm_fit_error = captured_cmdstan_error() do
+        BayesianMGMFRM.Experimental.fit(
+            gmfrm_spec;
+            backend = :cmdstan,
+            ndraws = 1,
+            warmup = 1,
+            cmdstan_path = missing_root,
+        )
+    end
+    @test gmfrm_fit_error isa BayesianMGMFRM.CmdStanError
+    @test gmfrm_fit_error.stage === :runtime_check
     @test_throws ArgumentError BayesianMGMFRM.fit(
         pcm_design;
         backend = :julia,

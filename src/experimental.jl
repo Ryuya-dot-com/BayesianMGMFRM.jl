@@ -74,6 +74,8 @@ function _family_surface_contract(family::Symbol)
         expected_blocks = capability.expected_blocks,
         latent_correlation = family === :mgmfrm ? :identity_fixed : :not_applicable,
         backend = :advancedhmc,
+        supported_backends = family === :gmfrm ?
+            (:advancedhmc, :cmdstan) : (:advancedhmc,),
         sampler_defaults = (;
             warmup_per_chain = warmup,
             retained_draws_per_chain = retained_draws,
@@ -523,7 +525,9 @@ end
 
 Fit a supported generalized specification through the experimental namespace.
 Callers should not pass an `experimental` keyword. Family-specific structural
-constraints are validated before numerical execution.
+constraints are validated before numerical execution. Scalar GMFRM accepts
+`backend = :advancedhmc` or `:cmdstan`; fixed-Q MGMFRM currently accepts only
+`:advancedhmc`.
 """
 function fit(spec; kwargs...)
     checked = _require_generalized_spec(spec, "Experimental.fit")

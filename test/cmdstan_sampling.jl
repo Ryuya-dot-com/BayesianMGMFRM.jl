@@ -3,7 +3,7 @@ using Random
 
 using BayesianMGMFRM
 
-@testset "CmdStan stable MFRM sampling" begin
+@testset "CmdStan supported MFRM-family sampling" begin
     runtime = cmdstan_backend_check(; require_ready = true)
     @test runtime.runtime_ready
 
@@ -62,4 +62,42 @@ using BayesianMGMFRM
     @test rsm_fit.backend === :cmdstan
     @test size(rsm_fit.draws) == (3, length(rsm_design.parameter_names))
     @test all(isfinite, rsm_fit.log_posterior)
+
+    gmfrm_spec = mfrm_spec(
+        data;
+        family = :gmfrm,
+        thresholds = :partial_credit,
+        discrimination = :rater,
+    )
+    gmfrm_design = BayesianMGMFRM.Experimental.preview(gmfrm_spec)
+    gmfrm_fit = BayesianMGMFRM.Experimental.fit(
+        gmfrm_spec;
+        backend = :cmdstan,
+        ndraws = 2,
+        warmup = 2,
+        chains = 1,
+        seed = 4110,
+        metric = :unit,
+    )
+    @test gmfrm_fit isa GMFRMFit
+    @test gmfrm_fit.backend === :cmdstan
+    @test gmfrm_fit.sampler === :nuts
+    @test size(gmfrm_fit.draws) ==
+        (2, gmfrm_fit.diagnostic_surface.summary.n_parameters)
+    @test size(gmfrm_fit.direct_draws) ==
+        (2, length(gmfrm_design.parameter_names))
+    @test size(gmfrm_fit.direct_pointwise_loglikelihood) == (2, data.n)
+    @test all(isfinite, gmfrm_fit.log_posterior)
+    @test fit_metadata(gmfrm_fit).backend === :cmdstan
+    @test all(row -> row.backend === :cmdstan,
+        sampler_diagnostics(gmfrm_fit))
+    @test gmfrm_fit.diagnostic_surface.summary.n_failed_direct_constraints == 0
+    @test gmfrm_fit.sampler_controls.thinning == 1
+    @test gmfrm_fit.sampler_controls.gradient_backend === :stan_autodiff
+    gmfrm_ppc = posterior_predictive_check(
+        gmfrm_fit;
+        ndraws = 1,
+        rng = MersenneTwister(4111),
+    )
+    @test size(gmfrm_ppc.replicated_scores) == (1, data.n)
 end

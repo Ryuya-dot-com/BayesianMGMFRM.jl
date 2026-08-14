@@ -1081,6 +1081,7 @@ end
         ad_backend = :ForwardDiff, init_jitter = 0.0, progress = false,
         cmdstan_path = nothing, cmdstan_cache_dir = nothing)
     BayesianMGMFRM.Experimental.fit(spec; backend = :advancedhmc, ...)
+    BayesianMGMFRM.Experimental.fit(spec; backend = :cmdstan, ...)
 
 Fit the current minimal Bayesian MFRM/RSM/PCM scaffold with the selected
 backend. `backend = :julia` uses a random-walk Metropolis kernel,
@@ -1093,6 +1094,12 @@ sampler columns to the same `MFRMFit` result. CmdStan is discovered through
 installation. Supplying `seed` uses a local `MersenneTwister(seed)` and records the
 seed in `sampler_controls`; otherwise the supplied `rng` is used without a
 replayable seed record.
+
+The experimental scalar GMFRM configuration accepts `:advancedhmc` and
+`:cmdstan`; the fixed-Q MGMFRM configuration currently accepts only
+`:advancedhmc`. The GMFRM CmdStan adapter samples the same raw-coordinate
+target, applies the Julia direct-parameter transform, and checks generated
+pointwise log likelihoods against Julia at every retained draw.
 
 The AdvancedHMC backend accepts `ad_backend = :ForwardDiff` by default.
 `ad_backend = :ReverseDiff` can be used when the corresponding AD package is
@@ -2144,6 +2151,63 @@ function _candidate_chain_sampler_summary(rows, max_depth::Int)
     )
 end
 
+function _generalized_candidate_sampler_rows(
+        logdensities::AbstractVector,
+        iterations::AbstractVector{<:Integer},
+        chain_acceptance::AbstractVector,
+        sampler_stats,
+        controls::NamedTuple,
+        backend::Symbol;
+        sampler::Symbol = :nuts)
+    rows = NamedTuple[]
+    for chain in 1:controls.chains
+        draw_rows = ((chain - 1) * controls.ndraws + 1):(chain * controls.ndraws)
+        logps = @view logdensities[draw_rows]
+        logdensity_summary = _finite_log_posterior_summary(logps)
+        n_finite = count(isfinite, logps)
+        n_nonfinite = length(logps) - n_finite
+        chain_stats = [row for row in sampler_stats if row.chain == chain]
+        sampler_summary = _candidate_chain_sampler_summary(
+            chain_stats,
+            controls.max_depth,
+        )
+        push!(rows, (;
+            diagnostic_row = :sampler_chain,
+            parameter_space = :raw_unconstrained,
+            diagnostic_method = :sampler_chain_summary,
+            diagnostic_status = :recorded,
+            chain,
+            backend,
+            sampler,
+            n_draws = controls.ndraws,
+            warmup = controls.warmup,
+            step_size = Float64(controls.step_size),
+            first_iteration = first(@view iterations[draw_rows]),
+            last_iteration = last(@view iterations[draw_rows]),
+            acceptance_rate = chain_acceptance[chain],
+            mean_logdensity = logdensity_summary.mean,
+            minimum_logdensity = logdensity_summary.minimum,
+            maximum_logdensity = logdensity_summary.maximum,
+            n_finite_logdensity = n_finite,
+            n_nonfinite_logdensity = n_nonfinite,
+            n_divergences = sampler_summary.n_divergences,
+            n_max_treedepth = sampler_summary.n_max_treedepth,
+            mean_n_steps = sampler_summary.mean_n_steps,
+            mean_tree_depth = sampler_summary.mean_tree_depth,
+            max_tree_depth = sampler_summary.max_tree_depth,
+            mean_step_size = sampler_summary.mean_step_size,
+            e_bfmi = sampler_summary.e_bfmi,
+            flag = _sampler_diagnostic_flag(
+                chain_acceptance[chain],
+                n_nonfinite,
+                sampler_summary.n_divergences,
+                sampler_summary.n_max_treedepth,
+            ),
+        ))
+    end
+    return rows
+end
+
 function _gmfrm_candidate_direct_draw_values(
         target::_GMFRMPromotionCandidateLogDensity,
         raw_draws::AbstractMatrix{<:Real})
@@ -2744,49 +2808,14 @@ function _run_generalized_candidate_advancedhmc(
         chain_acceptance[chain] = _stat_mean(chain_stats, :acceptance_rate)
     end
 
-    sampler_rows = NamedTuple[]
-    for chain in 1:chains
-        draw_rows = ((chain - 1) * ndraws + 1):(chain * ndraws)
-        logps = @view logdensities[draw_rows]
-        logdensity_summary = _finite_log_posterior_summary(logps)
-        n_finite = count(isfinite, logps)
-        n_nonfinite = length(logps) - n_finite
-        chain_stats = [row for row in sampler_stats if row.chain == chain]
-        sampler_summary = _candidate_chain_sampler_summary(chain_stats, max_depth)
-        push!(sampler_rows, (;
-            diagnostic_row = :sampler_chain,
-            parameter_space = :raw_unconstrained,
-            diagnostic_method = :sampler_chain_summary,
-            diagnostic_status = :recorded,
-            chain,
-            backend = :advancedhmc,
-            sampler = :nuts,
-            n_draws = ndraws,
-            warmup,
-            step_size = Float64(step_size),
-            first_iteration = first(@view iterations[draw_rows]),
-            last_iteration = last(@view iterations[draw_rows]),
-            acceptance_rate = chain_acceptance[chain],
-            mean_logdensity = logdensity_summary.mean,
-            minimum_logdensity = logdensity_summary.minimum,
-            maximum_logdensity = logdensity_summary.maximum,
-            n_finite_logdensity = n_finite,
-            n_nonfinite_logdensity = n_nonfinite,
-            n_divergences = sampler_summary.n_divergences,
-            n_max_treedepth = sampler_summary.n_max_treedepth,
-            mean_n_steps = sampler_summary.mean_n_steps,
-            mean_tree_depth = sampler_summary.mean_tree_depth,
-            max_tree_depth = sampler_summary.max_tree_depth,
-            mean_step_size = sampler_summary.mean_step_size,
-            e_bfmi = sampler_summary.e_bfmi,
-            flag = _sampler_diagnostic_flag(
-                chain_acceptance[chain],
-                n_nonfinite,
-                sampler_summary.n_divergences,
-                sampler_summary.n_max_treedepth,
-            ),
-        ))
-    end
+    sampler_rows = _generalized_candidate_sampler_rows(
+        logdensities,
+        iterations,
+        chain_acceptance,
+        sampler_stats,
+        controls,
+        :advancedhmc,
+    )
 
     return (;
         checked,
@@ -2802,6 +2831,8 @@ function _run_generalized_candidate_advancedhmc(
         sampler_stats,
         controls,
         sampler_rows,
+        backend = :advancedhmc,
+        sampler = :nuts,
         split_chains_requested = split_chains,
         actual_split = split_chains && chains >= 2 && ndraws >= 4,
     )
@@ -3007,7 +3038,16 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
         ess_threshold,
         progress,
     )
+    return _gmfrm_promotion_candidate_diagnostic_surface(target, run)
+end
+
+function _gmfrm_promotion_candidate_diagnostic_surface(
+        target::_GMFRMPromotionCandidateLogDensity,
+        run::NamedTuple)
     checked = run.checked
+    chains = run.controls.chains
+    ndraws = run.controls.ndraws
+    split_chains = run.split_chains_requested
     nparams = run.nparams
     initial = run.initial
     initial_logdensity = run.initial_logdensity
@@ -3056,8 +3096,8 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
         target = :_gmfrm_promotion_candidate_logdensity,
         density_space = :raw_unconstrained,
         parameter_layout = fit_ready_parameter_layout(target.design),
-        backend = :advancedhmc,
-        sampler = :nuts,
+        backend = run.backend,
+        sampler = run.sampler,
         raw_parameter_names = copy(target.blueprint.parameter_names),
         raw_blocks = _candidate_block_value_rows(
             target.blueprint.blocks,
@@ -3425,22 +3465,31 @@ function _fit_experimental_gmfrm(spec::FacetSpec;
         init = nothing,
         kwargs...)
     _check_experimental_gmfrm_spec(spec)
-    backend === :advancedhmc ||
+    backend in (:advancedhmc, :cmdstan) ||
         throw(_guarded_gmfrm_unsupported_error(
             :backend,
             backend,
             :advancedhmc_guarded_sampler_policy,
-            "guarded scalar GMFRM fitting currently supports only backend = :advancedhmc",
+            "guarded scalar GMFRM fitting supports backend = :advancedhmc " *
+            "or :cmdstan",
         ))
     gmfrm_prior = _experimental_gmfrm_prior(prior)
     design = getdesign(spec; preview = true)
     target = _gmfrm_promotion_candidate_logdensity(design; prior = gmfrm_prior)
     raw_initial = _experimental_gmfrm_initial(target, init)
-    diagnostic_surface = _gmfrm_promotion_candidate_sampler_diagnostics(
-        target,
-        raw_initial;
-        kwargs...,
-    )
+    diagnostic_surface = if backend === :advancedhmc
+        _gmfrm_promotion_candidate_sampler_diagnostics(
+            target,
+            raw_initial;
+            kwargs...,
+        )
+    else
+        _cmdstan_gmfrm_sampler_diagnostics(
+            target,
+            raw_initial;
+            kwargs...,
+        )
+    end
     return _gmfrm_fit_from_sampler_diagnostics(
         target.design,
         gmfrm_prior,
