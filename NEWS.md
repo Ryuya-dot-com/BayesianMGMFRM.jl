@@ -75,6 +75,10 @@
   fit, diagnostic, and typed-failure loop, return primary-specific schemas, and
   route successful operational probes to primary resource review rather than
   the five-category stress scaling plan.
+- Allow the process-isolated resource worker and threshold-free reviewer to
+  select the two primary resource rows inside the current short-NUTS bound.
+  Primary and legacy stress/scaling receipts retain separate ordered
+  collections and cannot be mixed into a passing review.
 - Add a separate explicit-execution short-NUTS resource probe. It admits only
   one connected-sparse AdvancedHMC cell, uses 25 warmup and 25 retained draws,
   enforces workload and available-memory gates before generation, discards fit

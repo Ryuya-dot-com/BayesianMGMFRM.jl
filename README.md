@@ -203,8 +203,10 @@ five-category stress row or one four-category primary row while retaining
 source-specific schemas and failure records. Two primary resource cells fit
 inside the current short-NUTS workload bound. The representative cells use
 resource-only seeds rather than structural-preflight or evaluation seeds.
-Execution remains explicitly memory-guarded and cannot freeze the resource
-envelope by itself.
+The first two rows can now be selected by cell ID in the dedicated isolated
+worker; the later two remain gradient-only under the current workload bound.
+Execution remains explicitly memory-guarded, requires one cell per invocation,
+and cannot freeze the resource envelope by itself.
 
 The first resource-planning surface is also MCMC-free by default. Calling
 `mgmfrm_validation_resource_probe()` only returns the bounded dense/sparse

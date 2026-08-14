@@ -92,6 +92,10 @@ end
 
     policy = planned.policy
     @test policy.cell_execution === :exactly_one
+    @test policy.accepted_cell_collections == (
+        :stress_default_and_scaled,
+        :primary_resource_short_nuts_subset,
+    )
     @test policy.parent_memory_preflight_required
     @test policy.child_memory_preflight_required
     @test policy.child_stdout === :single_json_receipt
@@ -138,6 +142,29 @@ end
         @test !selected.worker_process_started
     end
 
+    primary = mgmfrm_validation_primary_resource_plan()
+    primary_short_rows = Tuple(
+        row for row in primary.rows
+        if row.within_current_short_nuts_probe_bound
+    )
+    @test length(primary_short_rows) == 2
+    for row in primary_short_rows
+        selected = mgmfrm_validation_isolated_resource_probe(
+            row.cell_id;
+            maximum_observations_per_cell = row.expected_observations,
+        )
+        @test selected.cell.cell_id === row.cell_id
+        @test selected.resource_collection ===
+            :primary_resource_short_nuts_subset
+        @test selected.parent_preflight.workload_preflight_passed
+        @test !selected.worker_process_started
+        @test occursin(string(row.cell_id), join(selected.command.exec, " "))
+    end
+    @test_throws ArgumentError mgmfrm_validation_isolated_resource_probe(
+        primary.rows[3].cell_id;
+        maximum_observations_per_cell = 2_000,
+    )
+
     launcher_calls = Ref(0)
     forbidden_launcher = (command, timeout) -> begin
         launcher_calls[] += 1
@@ -172,6 +199,20 @@ end
         "default_sparse_short_nuts"
     @test !completed.scientific_execution_authorized
     @test !completed.final_resource_policy_frozen
+
+    primary_cell_id = first(primary_short_rows).cell_id
+    primary_completed = _isolated_probe_internal(
+        cell_id = primary_cell_id,
+        launcher = (command, timeout) ->
+            _isolated_probe_launch_result(
+                stdout = _isolated_probe_receipt_json(primary_cell_id),
+            ),
+    )
+    @test primary_completed.child_probe_completed
+    @test primary_completed.resource_collection ===
+        :primary_resource_short_nuts_subset
+    @test :primary_resource_review_pending in primary_completed.blockers
+    @test !(:scaled_resource_review_pending in primary_completed.blockers)
 
     child_rejected = _isolated_probe_internal(
         launcher = (command, timeout) ->

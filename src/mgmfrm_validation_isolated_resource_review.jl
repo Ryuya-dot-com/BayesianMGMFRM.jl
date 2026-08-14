@@ -36,9 +36,10 @@ function _mgmfrm_validation_isolated_resource_review_result(result)
 
     cell_id = Symbol(result.cell_id)
     expected = _mgmfrm_validation_isolated_resource_cell(cell_id)
-    Symbol(result.cell.attempt_id) === cell_id || throw(ArgumentError(
+    _mgmfrm_validation_probe_cell_id(result.cell) === cell_id ||
+        throw(ArgumentError(
         "isolated resource-probe cell does not match its cell_id",
-    ))
+        ))
     result.scientific_execution_authorized === false || throw(ArgumentError(
         "isolated resource-probe result changed the scientific guard",
     ))
@@ -69,6 +70,8 @@ function _mgmfrm_validation_isolated_resource_review_result(result)
     return (;
         cell_id,
         resource_sequence = expected.resource_sequence,
+        resource_collection =
+            _mgmfrm_validation_isolated_resource_collection(expected),
         result_status = Symbol(result.status),
         worker_process_started = result.worker_process_started,
         timed_out = result.timed_out,
@@ -131,6 +134,39 @@ function _mgmfrm_validation_isolated_resource_review_result(result)
     )
 end
 
+function _mgmfrm_validation_isolated_review_sequence(cell_ids)
+    stress_sequence = (
+        :default_sparse_short_nuts,
+        mgmfrm_validation_scaled_resource_plan().execution_order...,
+    )
+    primary_sequence = Tuple(
+        row.cell_id for row in mgmfrm_validation_primary_resource_plan().rows
+        if row.within_current_short_nuts_probe_bound
+    )
+    isempty(cell_ids) && return (;
+        resource_collection = :not_applicable,
+        full_sequence = (),
+        submitted_order_matches_plan = true,
+    )
+    collection = all(cell_id -> cell_id in stress_sequence, cell_ids) ?
+        :stress_default_and_scaled :
+        all(cell_id -> cell_id in primary_sequence, cell_ids) ?
+            :primary_resource_short_nuts_subset :
+            :mixed_or_unknown
+    full_sequence = collection === :stress_default_and_scaled ?
+        stress_sequence :
+        collection === :primary_resource_short_nuts_subset ?
+            primary_sequence : ()
+    prefix_matches = collection !== :mixed_or_unknown &&
+        length(cell_ids) <= length(full_sequence) &&
+        cell_ids == full_sequence[1:length(cell_ids)]
+    return (;
+        resource_collection = collection,
+        full_sequence,
+        submitted_order_matches_plan = prefix_matches,
+    )
+end
+
 function _mgmfrm_validation_isolated_resource_review(results)
     results isa Tuple || results isa AbstractVector || throw(ArgumentError(
         "results must be a tuple or vector of isolated resource-probe results",
@@ -143,14 +179,11 @@ function _mgmfrm_validation_isolated_resource_review(results)
     length(unique(cell_ids)) == length(cell_ids) || throw(ArgumentError(
         "isolated resource review cell_id values must be unique",
     ))
-    sequences = Tuple(row.resource_sequence for row in rows)
-    full_sequence = (
-        :default_sparse_short_nuts,
-        mgmfrm_validation_scaled_resource_plan().execution_order...,
-    )
+    sequence = _mgmfrm_validation_isolated_review_sequence(cell_ids)
     submitted_order_matches_plan =
-        sequences == ntuple(index -> index - 1, length(sequences))
-    full_resource_sequence_complete = cell_ids == full_sequence
+        sequence.submitted_order_matches_plan
+    full_resource_sequence_complete =
+        !isempty(cell_ids) && cell_ids == sequence.full_sequence
     n_receipts_recorded = count(row -> row.receipt_recorded, rows)
     n_child_completed = count(row -> row.child_completed, rows)
     n_attention_required = count(row -> row.stop_before_next_cell, rows)
@@ -171,6 +204,8 @@ function _mgmfrm_validation_isolated_resource_review(results)
         rows,
         submitted_order = cell_ids,
         submitted_order_matches_plan,
+        resource_collection = sequence.resource_collection,
+        full_resource_sequence = sequence.full_sequence,
         summary = (;
             n_submitted = length(rows),
             n_worker_processes_started = count(
@@ -202,7 +237,9 @@ end
 Summarize a tuple or vector of results returned by
 [`mgmfrm_validation_isolated_resource_probe`](@ref). The review preserves each
 parent/child memory preflight, worker outcome, elapsed time, and worker-process
-peak RSS. It checks submitted cell order and rejects duplicate cell IDs.
+peak RSS. It checks submitted cell order within either the stress/scaling
+sequence or the primary short-NUTS subset. Duplicate cell IDs are rejected;
+mixed collections are retained as requiring attention.
 
 This function runs no process or MCMC, applies no resource or scientific
 threshold, and never advances automatically to another cell. Peak RSS remains

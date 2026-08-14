@@ -91,6 +91,7 @@ end
     @test empty_review.summary.denominator_preserved
     @test empty_review.summary.denominator_scope === :submitted_results
     @test !empty_review.summary.full_resource_sequence_complete
+    @test empty_review.resource_collection === :not_applicable
     @test empty_review.next_gate ===
         :run_isolated_default_short_nuts_resource_probe
 
@@ -120,6 +121,7 @@ end
         :scaled_resource_01_dense_small,
     )
     @test review.submitted_order_matches_plan
+    @test review.resource_collection === :stress_default_and_scaled
     @test review.summary.n_submitted == 2
     @test review.summary.n_worker_processes_started == 2
     @test review.summary.n_receipts_recorded == 2
@@ -170,6 +172,38 @@ end
     @test full_review.summary.full_resource_sequence_complete
     @test full_review.summary.n_submitted == 5
     @test full_review.summary.n_child_completed == 5
+
+    primary_order = Tuple(
+        row.cell_id for row in mgmfrm_validation_primary_resource_plan().rows
+        if row.within_current_short_nuts_probe_bound
+    )
+    @test length(primary_order) == 2
+    primary_review = mgmfrm_validation_isolated_resource_review(Tuple(
+        _isolated_review_result(cell_id) for cell_id in primary_order
+    ))
+    @test primary_review.resource_collection ===
+        :primary_resource_short_nuts_subset
+    @test primary_review.submitted_order == primary_order
+    @test primary_review.submitted_order_matches_plan
+    @test primary_review.summary.full_resource_sequence_complete
+    @test all(row -> row.resource_collection ===
+        :primary_resource_short_nuts_subset, primary_review.rows)
+    @test primary_review.summary.n_child_completed == 2
+
+    primary_second_only = mgmfrm_validation_isolated_resource_review((
+        _isolated_review_result(primary_order[2]),
+    ))
+    @test !primary_second_only.submitted_order_matches_plan
+    @test primary_second_only.status ===
+        :isolated_resource_results_require_attention
+    mixed_review = mgmfrm_validation_isolated_resource_review((
+        default_result,
+        _isolated_review_result(primary_order[1]),
+    ))
+    @test mixed_review.resource_collection === :mixed_or_unknown
+    @test !mixed_review.submitted_order_matches_plan
+    @test mixed_review.status ===
+        :isolated_resource_results_require_attention
 
     reversed = mgmfrm_validation_isolated_resource_review(
         (scaled_result, default_result),

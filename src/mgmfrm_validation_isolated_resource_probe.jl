@@ -10,6 +10,10 @@ function _mgmfrm_validation_isolated_resource_probe_policy()
         default_timeout_seconds = 300.0,
         maximum_timeout_seconds = 900.0,
         cell_execution = :exactly_one,
+        accepted_cell_collections = (
+            :stress_default_and_scaled,
+            :primary_resource_short_nuts_subset,
+        ),
         parent_memory_preflight_required = true,
         child_memory_preflight_required = true,
         child_stdout = :single_json_receipt,
@@ -35,10 +39,24 @@ function _mgmfrm_validation_isolated_resource_cell(cell_id::Symbol)
     end
     scaled = mgmfrm_validation_scaled_resource_plan()
     index = findfirst(row -> row.attempt_id === cell_id, scaled.rows)
-    index === nothing && throw(ArgumentError(
+    index === nothing || return scaled.rows[index]
+    primary = mgmfrm_validation_primary_resource_plan()
+    primary_index = findfirst(
+        row -> row.cell_id === cell_id,
+        primary.rows,
+    )
+    primary_index === nothing && throw(ArgumentError(
         "unknown isolated resource cell :$cell_id",
     ))
-    return scaled.rows[index]
+    return primary.rows[primary_index]
+end
+
+function _mgmfrm_validation_isolated_resource_collection(cell)
+    cell.object === :mgmfrm_validation_primary_grid_candidate &&
+        return :primary_resource_short_nuts_subset
+    cell.object === :mgmfrm_response_stress_plan_row &&
+        return :stress_default_and_scaled
+    throw(ArgumentError("unsupported isolated resource cell object"))
 end
 
 function _mgmfrm_validation_isolated_resource_command(
@@ -340,6 +358,8 @@ function _mgmfrm_validation_isolated_resource_probe(
         object = :mgmfrm_validation_isolated_resource_probe,
         cell_id = checked_cell_id,
         cell,
+        resource_collection =
+            _mgmfrm_validation_isolated_resource_collection(cell),
         policy,
         command,
         timeout_seconds = Float64(timeout_seconds),
@@ -442,6 +462,10 @@ function _mgmfrm_validation_isolated_resource_probe(
         ))
     end
     child_probe_completed = receipt.n_completed == 1
+    review_blocker = cell.object ===
+        :mgmfrm_validation_primary_grid_candidate ?
+        :primary_resource_review_pending :
+        :scaled_resource_review_pending
     return merge(base, (;
         status = :isolated_resource_probe_receipt_recorded,
         execute_measurement = true,
@@ -455,7 +479,7 @@ function _mgmfrm_validation_isolated_resource_probe(
         child_probe_status = Symbol(receipt.status),
         child_probe_completed,
         blockers = child_probe_completed ?
-            (:scaled_resource_review_pending,) :
+            (review_blocker,) :
             (:child_probe_not_completed,),
         error_type = missing,
         error_message = missing,
@@ -474,10 +498,16 @@ end
         minimum_free_memory_bytes = 2 * 1024^3,
         maximum_observations_per_cell = 1_000, truth_scale = 0.15)
 
-Plan or explicitly launch one short-NUTS resource cell in a dedicated Julia
-process. Parent and child memory preflights run before MCMC, and the parent
+Plan or explicitly launch one stress/scaling or primary-grid short-NUTS
+resource cell in a dedicated Julia process. Parent and child memory preflights
+run before MCMC, and the parent
 terminates a worker that exceeds the wall-time bound. The child returns one
 small JSON receipt through stdout; stderr is retained separately.
+
+Primary rows are selected by the cell identifiers returned from
+[`mgmfrm_validation_primary_resource_plan`](@ref). Only rows inside the current
+short-NUTS workload bound can execute; larger gradient-only rows fail before a
+worker is started.
 
 The recorded peak RSS belongs to the dedicated worker process as a whole,
 including startup, package loading, compilation, generation, sampling, and

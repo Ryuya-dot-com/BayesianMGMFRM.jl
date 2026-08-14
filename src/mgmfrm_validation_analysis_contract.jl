@@ -263,9 +263,8 @@ function mgmfrm_validation_analysis_contract()
             values_are_validation_evidence = false,
         ),
         next_work_order = (
-            :run_initial_gradient_resource_probe,
-            :run_isolated_default_short_nuts_resource_probe,
-            :run_isolated_scaled_resource_cells_sequentially,
+            :run_primary_gradient_resource_cells_sequentially,
+            :run_isolated_primary_short_nuts_resource_cells_sequentially,
             :review_worker_process_peak_rss,
             :freeze_primary_grid_replications_and_resource_caps,
             :obtain_independent_scientific_threshold_review,

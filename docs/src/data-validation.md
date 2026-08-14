@@ -201,7 +201,9 @@ or one four-category primary row without duplicating fit and diagnostic
 orchestration. The first two primary resource rows meet the current workload
 bound; the later rows remain gradient-only under the present policy. All four
 use resource-only seeds, distinct in role from structural-preflight and future
-evaluation seeds.
+evaluation seeds. The first two rows can be passed by `cell_id` to
+`mgmfrm_validation_isolated_resource_probe`; the later two fail the current
+short-NUTS workload bound before a worker starts.
 
 Four decisions still block execution: final primary grid cells, evaluation
 replications, analysis resource caps, and independently reviewed scientific
@@ -247,12 +249,18 @@ short_plan = mgmfrm_validation_short_nuts_resource_probe()
 isolated_default = mgmfrm_validation_isolated_resource_probe(
     execute_measurement = true,
 )
+
+# Primary work order: one eligible primary cell in its own worker.
+isolated_primary = mgmfrm_validation_isolated_resource_probe(
+    first(primary_resource_plan.rows).cell_id,
+    execute_measurement = true,
+)
 ```
 
 Its only cell is connected-sparse and uses one AdvancedHMC chain with 25
 warmup transitions and 25 retained draws. The default available-memory
-requirement is 2 GiB with a non-lowerable 1 GiB floor. Rejection occurs before generation
-or MCMC. A successful run discards fit objects, preserves typed attempt rows,
+requirement is 2 GiB with a non-lowerable 1 GiB floor. Rejection occurs before
+generation or MCMC. A successful run discards fit objects, preserves typed attempt rows,
 and records elapsed time, cumulative Julia allocations, and endpoint free
 memory. It does not claim peak memory or convergence and cannot freeze the
 final analysis resource policy by itself. Calling the direct primitive with
@@ -271,7 +279,8 @@ next_probe = mgmfrm_validation_isolated_resource_probe(
 )
 ```
 
-The four ordered cells contain 144, 600, 600, and 2,000 observations. The two
+The legacy stress/scaling sequence contains 144, 600, 600, and 2,000
+observations. The two
 600-observation cells deliberately contrast connected-sparse and dense layouts
 instead of assuming observation count alone determines cost. Any memory,
 generation, fit, diagnostic, or unexpected-allocation problem stops manual
@@ -283,8 +292,8 @@ the probe interval, even when it increases. The isolated surface above starts
 one child only after the parent available-memory check passes.
 
 The child repeats the workload and available-memory checks and returns one
-compact JSON receipt; its fit object is discarded. A wall-time timeout terminates the
-single-threaded worker and is retained as a typed terminal state. The recorded
+compact JSON receipt; its fit object is discarded. A wall-time timeout
+terminates the single-threaded worker and is retained as a typed terminal state. The recorded
 peak RSS is attributable to that dedicated worker process, but includes
 startup, package loading, compilation, generation, sampling, and diagnostics.
 It is therefore not a sampler-only measurement. Julia, OS, architecture,
@@ -309,8 +318,10 @@ resource_review.summary
 ```
 
 The review requires unique cells in the declared contiguous order beginning
-with the default sparse cell. It preserves incomplete and rejected results,
-applies no thresholds, and never advances automatically.
+with either the default sparse stress cell or the first eligible primary cell.
+Stress and primary collections cannot be mixed into a passing sequence. The
+review preserves incomplete and rejected results, applies no thresholds, and
+never advances automatically.
 
 ## Clustered Responses and Testlet Identity
 

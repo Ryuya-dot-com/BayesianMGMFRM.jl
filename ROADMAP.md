@@ -228,8 +228,10 @@ the existing MCMC-free gradient probe. Automatic progression is prohibited.
 The bounded short-NUTS adapter now accepts one actual four-category primary row
 and retains primary-specific result schemas without duplicating the fit and
 diagnostic loop. The first two representative cells meet the current workload
-bound. Memory-guarded execution and primary-specific resource review still
-precede any resource-envelope or final-grid decision.
+bound and can be selected by cell ID in the dedicated one-cell worker. Its
+threshold-free review enforces the primary order separately from the legacy
+stress/scaling sequence. Actual primary worker execution and receipt review
+still precede any resource-envelope or final-grid decision.
 
 External validation uses simulation and observed data for different purposes.
 Known-truth simulation is required for parameter recovery, coverage, and false-

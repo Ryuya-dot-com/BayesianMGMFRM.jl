@@ -198,7 +198,7 @@ using BayesianMGMFRM
     @test protocol.execution_design.isolated_resource_probe_function ===
         :mgmfrm_validation_isolated_resource_probe
     @test protocol.execution_design.isolated_resource_probe ===
-        :implemented_explicit_execution_parent_child_memory_guarded
+        :implemented_for_stress_and_primary_parent_child_memory_guarded
     @test protocol.execution_design.isolated_resource_review_function ===
         :mgmfrm_validation_isolated_resource_review
     @test protocol.execution_design.isolated_resource_review ===

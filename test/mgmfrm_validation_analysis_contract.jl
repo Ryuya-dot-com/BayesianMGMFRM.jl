@@ -121,12 +121,10 @@ using BayesianMGMFRM
     @test contract.execution_design.design_choices_frozen
     @test contract.execution_design.sensitivity.n_sensitivity_role_cells == 24
     @test first(contract.next_work_order) ===
-        :run_initial_gradient_resource_probe
+        :run_primary_gradient_resource_cells_sequentially
     @test contract.next_work_order[2] ===
-        :run_isolated_default_short_nuts_resource_probe
-    @test :run_isolated_default_short_nuts_resource_probe in
-        contract.next_work_order
-    @test :run_isolated_scaled_resource_cells_sequentially in
+        :run_isolated_primary_short_nuts_resource_cells_sequentially
+    @test :run_isolated_primary_short_nuts_resource_cells_sequentially in
         contract.next_work_order
     @test :review_worker_process_peak_rss in contract.next_work_order
     @test last(contract.next_work_order) === :start_fresh_seed_evaluation

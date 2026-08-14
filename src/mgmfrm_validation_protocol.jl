@@ -453,7 +453,7 @@ function mgmfrm_validation_protocol()
             isolated_resource_probe_function =
                 :mgmfrm_validation_isolated_resource_probe,
             isolated_resource_probe =
-                :implemented_explicit_execution_parent_child_memory_guarded,
+                :implemented_for_stress_and_primary_parent_child_memory_guarded,
             isolated_resource_review_function =
                 :mgmfrm_validation_isolated_resource_review,
             isolated_resource_review =
