@@ -168,10 +168,19 @@ Core numerical and authorization code must not use naked `catch`. Optional
 metadata failures and captured report errors must expose structured status and
 reason rows.
 
-No current false-positive report artifact was found: the one evidence generator
-that calls `fit_report` fails when required section fields are absent. The API
-nevertheless lacks a top-level completeness/error count, so this caller-specific
-safety is not yet a reusable report contract.
+The current narrow-error-handling slice catches table lookup failures only
+around `getindex`; iteration or conversion failures from a returned column
+propagate unchanged. Generalized experimental-fit capability returns an
+explicit typed support issue rather than catching arbitrary `ArgumentError`s,
+and specified-only MFRM domain layout selection uses a direct family/status
+branch. Missing authorization remains visible protocol state, while supplied
+malformed or non-authorizing evidence throws.
+
+No current false-positive report artifact was found. `fit_report` now records
+separate `report_status` and structured `report_health`; public reports and
+dossiers preserve or aggregate that health, and `require_complete = true` is
+available on report, export, load, and dossier paths. Promotion and release
+callers must continue to opt into the explicit fail-closed policy.
 
 Hashes remain available as provenance metadata for external inputs and handoff
 bundles, but ordinary code or documentation drift is not a byte-exact release

@@ -372,6 +372,16 @@ blocking report creation. The policy is:
 - tests must cover both the original exception and the structured captured
   representation.
 
+The current narrow-error-handling slice removes three ambiguous paths. Table
+column fallback now catches only lookup failures raised by `getindex`, while
+iteration or conversion failures from a returned column propagate unchanged.
+Guarded generalized fit capability returns an explicit typed support issue
+instead of catching arbitrary `ArgumentError`s. Specified-only MFRM domain
+layout selection is now a direct family/status branch rather than an
+exception-driven fallback. Authorization behavior remains deliberately
+separate: absent authorization is reportable protocol state, whereas supplied
+malformed or non-authorizing evidence throws.
+
 The current evidence audit did not find a false-positive report artifact: the
 only simulation generator that builds `fit_report` reads the required section
 fields, so a captured section error would already have made that generator

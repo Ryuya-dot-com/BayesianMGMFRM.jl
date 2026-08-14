@@ -172,8 +172,8 @@ function _is_missing_getindex_method(err, table, args)
 end
 
 function _try_column_getindex(table, args...)
-    try
-        return collect(getindex(table, args...))
+    column = try
+        getindex(table, args...)
     catch err
         if err isa MethodError
             _is_missing_getindex_method(err, table, args) || rethrow()
@@ -182,6 +182,7 @@ function _try_column_getindex(table, args...)
         _is_column_lookup_error(err) || rethrow()
         return nothing
     end
+    return collect(column)
 end
 
 function _column(table, name::Symbol)
@@ -4871,100 +4872,136 @@ function _guarded_generalized_unsupported_error(
     )
 end
 
-function _check_guarded_generalized_spec(
-        spec::FacetSpec,
-        caller::AbstractString;
+struct _GuardedGeneralizedSupportIssue{T}
+    option::Symbol
+    value::T
+    reason::String
+    next_gate::Symbol
+end
+
+function _guarded_generalized_support_issue(
+        family::Symbol,
+        option::Symbol,
+        value,
+        reason::AbstractString)
+    return _GuardedGeneralizedSupportIssue(
+        option,
+        value,
+        String(reason),
+        _guarded_generalized_next_gate(family, option, value),
+    )
+end
+
+function _guarded_generalized_spec_status(
+        spec::FacetSpec;
         require_q_observation_coverage::Bool = true)
     capability = _guarded_generalized_fit_capability(spec.family)
-    spec.dimensions >= capability.minimum_dimensions &&
-        (capability.maximum_dimensions === nothing ||
-            spec.dimensions <= capability.maximum_dimensions) ||
-        throw(_guarded_generalized_unsupported_error(
-            caller,
+    issue(option, value, reason) = (;
+        supported = false,
+        capability,
+        issue = _guarded_generalized_support_issue(
             spec.family,
+            option,
+            value,
+            reason,
+        ),
+    )
+
+    if spec.dimensions < capability.minimum_dimensions ||
+            (capability.maximum_dimensions !== nothing &&
+                spec.dimensions > capability.maximum_dimensions)
+        return issue(
             :dimensions,
             spec.dimensions,
             "the guarded surface has a family-specific dimensionality contract",
-        ))
-    spec.thresholds in capability.threshold_regimes ||
-        throw(_guarded_generalized_unsupported_error(
-            caller,
-            spec.family,
+        )
+    end
+    if !(spec.thresholds in capability.threshold_regimes)
+        return issue(
             :thresholds,
             spec.thresholds,
             "the compiled generalized kernel uses $(capability.kernel_threshold_block); " *
             "unsupported threshold labels are not silently reinterpreted",
-        ))
-    spec.discrimination in capability.spec_discrimination ||
-        throw(_guarded_generalized_unsupported_error(
-            caller,
-            spec.family,
+        )
+    end
+    if !(spec.discrimination in capability.spec_discrimination)
+        return issue(
             :discrimination,
             spec.discrimination,
             "the guarded surface requires its family-specific generic discrimination selector",
-        ))
+        )
+    end
     if capability.requires_fixed_q
-        spec.q_matrix === nothing &&
-            throw(_guarded_generalized_unsupported_error(
-                caller,
-                spec.family,
-                :q_matrix,
-                nothing,
-                "the guarded MGMFRM surface requires a fixed confirmatory q_matrix",
-            ))
+        spec.q_matrix === nothing && return issue(
+            :q_matrix,
+            nothing,
+            "the guarded MGMFRM surface requires a fixed confirmatory q_matrix",
+        )
         q_validation = q_matrix_validation(spec)
         q_validation_passed = require_q_observation_coverage ?
             q_validation.passed :
             _q_matrix_guarded_structure_passed(q_validation)
-        q_validation_passed ||
-            throw(_guarded_generalized_unsupported_error(
-                caller,
-                spec.family,
+        if !q_validation_passed
+            return issue(
                 :q_matrix,
                 spec.q_matrix,
                 "the fixed q_matrix no longer passes confirmatory " *
                 (require_q_observation_coverage ? "validation; " :
                     "structural validation; ") *
                 "mutable specification inputs are revalidated before numerical execution",
-            ))
+            )
+        end
     end
-    !capability.allows_validation_bias_terms &&
-        !isempty(spec.validation_bias_terms) &&
-        throw(_guarded_generalized_unsupported_error(
-            caller,
-            spec.family,
+    if !capability.allows_validation_bias_terms &&
+            !isempty(spec.validation_bias_terms)
+        return issue(
             :dff_effects,
             spec.validation_bias_terms,
             "DFF/bias terms are validation and reporting rows only; they are not fitted model effects",
-        ))
-    !capability.allows_anchors && !isempty(spec.anchors) &&
-        throw(_guarded_generalized_unsupported_error(
-            caller,
-            spec.family,
+        )
+    end
+    if !capability.allows_anchors && !isempty(spec.anchors)
+        return issue(
             :anchors,
             spec.anchors,
             "declared anchors are not yet applied by the generalized likelihood or raw-coordinate transform",
-        ))
-    spec.estimation_status === :specified_only ||
-        throw(_guarded_generalized_unsupported_error(
-            caller,
-            spec.family,
+        )
+    end
+    if spec.estimation_status !== :specified_only
+        return issue(
             :estimation_status,
             spec.estimation_status,
             "guarded generalized fitting expects the specified-only manifest path",
+        )
+    end
+    return (; supported = true, capability, issue = nothing)
+end
+
+function _check_guarded_generalized_spec(
+        spec::FacetSpec,
+        caller::AbstractString;
+        require_q_observation_coverage::Bool = true)
+    status = _guarded_generalized_spec_status(
+        spec;
+        require_q_observation_coverage,
+    )
+    if !status.supported
+        issue = status.issue
+        throw(_guarded_generalized_unsupported_error(
+            caller,
+            spec.family,
+            issue.option,
+            issue.value,
+            issue.reason;
+            next_gate = issue.next_gate,
         ))
-    return capability
+    end
+    return status.capability
 end
 
 function _experimental_generalized_fit_supported(spec::FacetSpec)
     spec.family in (:gmfrm, :mgmfrm) || return false
-    try
-        _check_guarded_generalized_spec(spec, "experimental fit capability")
-        return true
-    catch err
-        err isa ArgumentError || rethrow()
-        return false
-    end
+    return _guarded_generalized_spec_status(spec).supported
 end
 
 function _spec_scope(family::Symbol, status::Symbol)
@@ -7210,15 +7247,11 @@ function _specified_only_preview_parameter_layout(design::FacetDesign)
 end
 
 function _domain_compilation_layout(design::FacetDesign)
-    try
-        return fit_ready_parameter_layout(design)
-    catch err
-        err isa ArgumentError || rethrow()
-        design.spec.family === :mfrm &&
-            design.spec.estimation_status === :specified_only ||
-            rethrow()
+    if design.spec.family === :mfrm &&
+            design.spec.estimation_status === :specified_only
         return _specified_only_preview_parameter_layout(design)
     end
+    return fit_ready_parameter_layout(design)
 end
 
 _domain_nt_get(row::NamedTuple, key::Symbol, default) =

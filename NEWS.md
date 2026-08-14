@@ -74,6 +74,11 @@
 - Make generalized numerical paths and diagnostic quality gates fail closed on
   inconsistent design identity, unsupported options, incomplete chain-level
   diagnostics, or incompatible cached records.
+- Narrow table-column fallback handling to lookup failures raised by
+  `getindex`; errors while materializing a returned column now propagate
+  unchanged. Generalized experimental-fit capability and specified-only MFRM
+  preview layout selection now use explicit status/branch logic instead of
+  treating broad `ArgumentError`s as control flow.
 - Reject malformed, non-authorizing, cross-ledger, or result-mismatched
   free-correlation study authorization artifacts instead of silently treating
   them as absent; truly absent authorization remains a visible protocol

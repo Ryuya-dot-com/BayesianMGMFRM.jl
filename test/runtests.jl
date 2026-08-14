@@ -321,6 +321,14 @@ struct InternalMethodErrorTable end
 _method_error_trigger(::Int) = nothing
 Base.getindex(::InternalMethodErrorTable, args...) = _method_error_trigger("not an Int")
 
+struct CollectionFailureTable end
+struct CollectionFailureColumn end
+Base.getindex(::CollectionFailureTable, args...) = CollectionFailureColumn()
+Base.IteratorSize(::Type{CollectionFailureColumn}) = Base.SizeUnknown()
+Base.eltype(::Type{CollectionFailureColumn}) = Any
+Base.iterate(::CollectionFailureColumn, state = 1) =
+    throw(ArgumentError("column storage not found during collection"))
+
 function central_difference(logp, x, i; eps = 1e-5)
     xp = copy(x)
     xm = copy(x)
@@ -21004,6 +21012,17 @@ end
 
     @test_throws ErrorException FacetData(ExplodingTable(); person = :examinee, rater = :rater, item = :item, score = :score)
     @test_throws MethodError FacetData(InternalMethodErrorTable(); person = :examinee, rater = :rater, item = :item, score = :score)
+    collection_error = argument_error_message() do
+        FacetData(
+            CollectionFailureTable();
+            person = :examinee,
+            rater = :rater,
+            item = :item,
+            score = :score,
+        )
+    end
+    @test collection_error ==
+        "ArgumentError: column storage not found during collection"
 end
 
 @testset "pre-fit validation" begin

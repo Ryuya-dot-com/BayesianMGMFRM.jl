@@ -77,6 +77,9 @@ end
     )
 
     for spec in (gmfrm_spec, mgmfrm_spec)
+        support = BayesianMGMFRM._guarded_generalized_spec_status(spec)
+        @test support.supported
+        @test support.issue === nothing
         equation = model_equation(spec)
         @test !equation.fit_ready
         @test equation.experimental_fit_available
@@ -360,6 +363,16 @@ end
         thresholds = :rating_scale,
         discrimination = :rater,
     )
+    unsupported_status =
+        BayesianMGMFRM._guarded_generalized_spec_status(unsupported)
+    @test !unsupported_status.supported
+    @test unsupported_status.issue isa
+        BayesianMGMFRM._GuardedGeneralizedSupportIssue
+    @test unsupported_status.issue.option === :thresholds
+    @test unsupported_status.issue.value === :rating_scale
+    @test unsupported_status.issue.next_gate ===
+        :guarded_generalized_threshold_contract
+    @test !model_equation(unsupported).experimental_fit_available
     @test_throws ArgumentError experimental.fit(
         unsupported;
         ndraws = 1,
