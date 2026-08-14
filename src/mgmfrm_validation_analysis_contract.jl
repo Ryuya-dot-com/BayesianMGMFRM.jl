@@ -54,13 +54,25 @@ function _mgmfrm_analysis_fixed_components()
     )
 end
 
-function _mgmfrm_analysis_open_decisions(protocol)
+function _mgmfrm_analysis_open_decisions(protocol, primary_grid_candidates)
     return (
         (;
             code = :final_primary_grid_cells,
-            current_state = protocol.design_domain.final_sample_size_cells,
+            current_state = (;
+                protocol_state =
+                    protocol.design_domain.final_sample_size_cells,
+                n_candidate_cells = primary_grid_candidates.summary.
+                    n_candidate_cells,
+                cells_frozen = primary_grid_candidates.cells_frozen,
+                resource_envelope_covers_all_candidates =
+                    primary_grid_candidates.summary.
+                        current_resource_envelope_covers_all_candidates,
+                primary_generator_implemented =
+                    primary_grid_candidates.summary.
+                        primary_four_category_generator_implemented,
+            ),
             required_resolution =
-                :freeze_exact_cells_after_bounded_short_nuts_and_resource_review,
+                :implement_primary_generator_then_freeze_exact_cells_after_resource_review,
             pilot_role = :runtime_and_operability_only,
             blocks_execution = true,
         ),
@@ -114,7 +126,11 @@ function mgmfrm_validation_analysis_contract()
     protocol = mgmfrm_validation_protocol()
     execution_design = _mgmfrm_validation_execution_design_contract(protocol)
     fixed_components = _mgmfrm_analysis_fixed_components()
-    open_decisions = _mgmfrm_analysis_open_decisions(protocol)
+    primary_grid_candidates = execution_design.primary_grid_candidates
+    open_decisions = _mgmfrm_analysis_open_decisions(
+        protocol,
+        primary_grid_candidates,
+    )
     blocking_decisions = Tuple(
         row.code for row in open_decisions if row.blocks_execution)
     sampler = merge(protocol.sampler, (;
@@ -177,6 +193,23 @@ function mgmfrm_validation_analysis_contract()
                 protocol.design_domain.source_sample_size_candidates,
             final_primary_grid_cells =
                 protocol.design_domain.final_sample_size_cells,
+            primary_grid_candidate_cells =
+                primary_grid_candidates.summary.n_candidate_cells,
+            primary_grid_candidate_observation_range = (
+                primary_grid_candidates.summary.
+                    minimum_expected_observations,
+                primary_grid_candidates.summary.
+                    maximum_expected_observations,
+            ),
+            primary_grid_candidates_above_current_short_nuts_bound =
+                primary_grid_candidates.summary.
+                    n_above_current_short_nuts_probe_bound,
+            primary_grid_resource_envelope_complete =
+                primary_grid_candidates.summary.
+                    current_resource_envelope_covers_all_candidates,
+            primary_four_category_generator_implemented =
+                primary_grid_candidates.summary.
+                    primary_four_category_generator_implemented,
             evaluation_replications =
                 protocol.design_domain.evaluation_replications,
             response_stress_source_cases,

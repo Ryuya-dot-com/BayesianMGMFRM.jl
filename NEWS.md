@@ -46,6 +46,15 @@
   measures local generation and warmed ForwardDiff gradient cost while
   prohibiting scientific, backend-ranking, and full-NUTS runtime claims; a
   bounded short-NUTS probe remains required before resource caps can be frozen.
+- Allow the fixed-Q response-stress generator to use odd item counts. Pure
+  items are split between the two dimensions with a count difference of one,
+  so the source-anchored 5- and 15-item candidates are no longer rejected by
+  an unnecessary equal-count restriction.
+- Add a non-executing 16-cell primary-grid candidate contract spanning the two
+  planned designs and source-anchored person, item, and rater sizes. It exposes
+  the 500--22,500 observation range, the nine cells above the current 2,000-
+  observation short-NUTS bound, and the missing four-category primary generator
+  without freezing a grid or authorizing evaluation.
 - Add a separate explicit-execution short-NUTS resource probe. It admits only
   one connected-sparse AdvancedHMC cell, uses 25 warmup and 25 retained draws,
   enforces workload and free-memory gates before generation, discards fit

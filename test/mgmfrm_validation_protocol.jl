@@ -177,6 +177,10 @@ using BayesianMGMFRM
     @test !protocol.execution_design.role_cells_are_fit_attempt_count
     @test protocol.execution_design.resource_probe_function ===
         :mgmfrm_validation_resource_probe
+    @test protocol.execution_design.primary_grid_candidate_function ===
+        :mgmfrm_validation_primary_grid_candidates
+    @test protocol.execution_design.primary_grid_candidates ===
+        :implemented_enumeration_execution_blocked
     @test protocol.execution_design.initial_gradient_resource_probe ===
         :implemented_explicit_execution_memory_guarded
     @test protocol.execution_design.bounded_short_nuts_resource_probe ===
@@ -239,6 +243,9 @@ using BayesianMGMFRM
     @test protocol.readiness.completed_enablers.
         heldout_retry_and_sensitivity_design ===
         :frozen_before_evaluation
+    @test protocol.readiness.completed_enablers.
+        primary_grid_candidate_surface ===
+        :implemented_enumeration_execution_blocked
     @test protocol.readiness.completed_enablers.
         initial_gradient_resource_probe_surface ===
         :implemented_execution_memory_guarded

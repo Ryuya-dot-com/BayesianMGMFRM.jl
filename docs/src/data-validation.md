@@ -148,6 +148,7 @@ Use the non-executing contract to inspect that boundary directly:
 ```julia
 execution_design = mgmfrm_validation_execution_design_contract()
 analysis_contract = mgmfrm_validation_analysis_contract()
+primary_grid_candidates = mgmfrm_validation_primary_grid_candidates()
 
 execution_design.heldout
 execution_design.retry
@@ -167,6 +168,17 @@ for unseen persons, items, or raters. Primary results cannot be overwritten by
 remediation, and the 24 sensitivity role-cells cover prior/response, Q
 boundary/misspecification, unidimensional MFRM comparison, and paired CmdStan
 roles without treating their count as a fit workload.
+
+The fixed-Q stress generator accepts odd item totals. It assigns pure items to
+the two dimensions with a count difference of one, so the source-anchored 5-
+and 15-item candidates do not require a false equal-count identification rule.
+
+The candidate contract enumerates 16 source-anchored primary cells from two
+designs, 50/100 persons, 5/15 items, and 5/15 raters. Their expected observation
+counts range from 500 to 22,500. Nine exceed the present 2,000-observation
+short-NUTS bound, and the four-category primary known-truth generator remains
+unimplemented. The enumeration therefore exposes planning gaps without
+freezing cells or authorizing execution.
 
 Four decisions still block execution: final primary grid cells, evaluation
 replications, analysis resource caps, and independently reviewed scientific

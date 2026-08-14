@@ -22,7 +22,6 @@ using BayesianMGMFRM
     @test_throws ArgumentError mgmfrm_response_stress_plan(
         response_patterns = (:all_maximum_person, :all_maximum_person),
     )
-    @test_throws ArgumentError mgmfrm_response_stress_plan(n_items = 5)
     @test_throws ArgumentError mgmfrm_response_stress_plan(n_raters = 2)
     @test_throws ArgumentError mgmfrm_response_stress_plan(
         n_persons = 4, n_raters = 5,
@@ -32,6 +31,24 @@ using BayesianMGMFRM
         response_patterns =
             (:combined_unused_category_and_boundary_patterns,),
     )
+
+    for n_items in (5, 15)
+        odd_plan = mgmfrm_response_stress_plan(
+            design_strata = (:connected_sparse_systematic_link,),
+            response_patterns = (:regular_all_categories,),
+            n_items = n_items,
+        )
+        odd_row = only(odd_plan)
+        @test odd_row.pure_items_per_dimension ==
+            (n_items ÷ 2, n_items - n_items ÷ 2)
+        @test odd_row.pure_item_balance_rule ===
+            :dimension_count_difference_at_most_one
+        odd_case = simulate_mgmfrm_response_stress(odd_row)
+        @test odd_case.preflight_passed
+        @test odd_case.fit_eligible
+        @test Tuple(vec(sum(odd_case.q_matrix; dims = 1))) ==
+            odd_row.pure_items_per_dimension
+    end
 
     cases = Dict{Tuple{Symbol,Symbol},Any}()
     for row in plan

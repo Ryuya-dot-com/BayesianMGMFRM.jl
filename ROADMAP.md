@@ -183,6 +183,10 @@ only persons are reported separately rather than forced through an individual
 hard-recovery gate. The primary Q has one active dimension per item. Fixed
 cross-loading and mixed Q are boundary evidence; omitted true and added false
 Q entries are misspecification cells, not exploratory-Q estimation.
+The two-dimensional stress generator permits odd item totals and assigns pure
+items with a dimension-count difference of one. Equal item counts per
+dimension are therefore not misrepresented as an identification condition,
+and the source-anchored 5- and 15-item candidates remain executable.
 
 Sparse validation uses a connected systematic link with two raters per person,
 plus a disconnected negative control that must fail before sampling. It does
@@ -208,6 +212,14 @@ five-fold existing-level observation target, non-overwriting remediation, and
 24 sensitivity role-cells; the analysis contract records 13 fixed components
 and four unresolved decisions. The attempt-complete analysis executor remains
 open.
+
+`mgmfrm_validation_primary_grid_candidates()` now makes the implied 16-cell
+source-anchored envelope explicit without freezing it: dense/sparse design is
+crossed with 50/100 persons, 5/15 items, and 5/15 raters. Expected observations
+range from 500 to 22,500. Nine candidates exceed the current 2,000-observation
+short-NUTS bound, and the four-category primary known-truth generator remains
+unimplemented. Resource coverage and a real primary generator must therefore
+precede final cell selection; this enumeration is not validation evidence.
 
 External validation uses simulation and observed data for different purposes.
 Known-truth simulation is required for parameter recovery, coverage, and false-

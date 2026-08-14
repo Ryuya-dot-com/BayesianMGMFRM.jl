@@ -81,7 +81,10 @@ observation; exact all-maximum and all-minimum constraints cannot coexist in a
 fully crossed person-rater design.
 
 Rows are planning records, not fitted attempts or scientific evidence. Seeds
-are assigned by row order without repository paths or source hashes.
+are assigned by row order without repository paths or source hashes. Odd item
+counts are supported: pure items are divided between the two fixed dimensions
+with a count difference of one, rather than imposing equal counts as an
+identification condition.
 """
 function mgmfrm_response_stress_plan(;
         design_strata = _MGMFRM_RESPONSE_STRESS_DESIGNS,
@@ -109,8 +112,6 @@ function mgmfrm_response_stress_plan(;
         n_items, "n_items"; minimum = 4)
     checked_raters = _mgmfrm_stress_positive_integer(
         n_raters, "n_raters"; minimum = 2)
-    iseven(checked_items) ||
-        throw(ArgumentError("n_items must be even so both dimensions have equal pure-item support"))
     :connected_sparse_systematic_link in designs &&
         checked_persons < checked_raters && throw(ArgumentError(
             "n_persons must be at least n_raters for the systematic-link " *
@@ -147,6 +148,11 @@ function mgmfrm_response_stress_plan(;
             n_items = checked_items,
             n_raters = checked_raters,
             n_categories = 5,
+            pure_items_per_dimension = (
+                checked_items ÷ 2,
+                checked_items - checked_items ÷ 2,
+            ),
+            pure_item_balance_rule = :dimension_count_difference_at_most_one,
             raters_per_person = design === :dense_fully_crossed ?
                 checked_raters : 2,
             q_structure = :pure_between_item_two_dimensions,

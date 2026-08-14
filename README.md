@@ -63,7 +63,9 @@ Generalized fitting is GPCM-form. This fixed-Q branch is a restricted candidate,
 not Uto's unrestricted item-dimension loading surface. Step vectors belong only
 to the declared threshold owner: the rater for guarded GMFRM and the item for
 guarded MGMFRM. Adding arbitrary facets does not automatically add facet-
-specific steps.
+specific steps. The fixed-Q stress generator accepts odd item counts: pure
+items are allocated across the two dimensions with a count difference of one;
+equal item counts per dimension are not treated as an identification condition.
 
 ## Quick Start
 
@@ -149,6 +151,7 @@ The remaining boundary can be inspected without starting an analysis:
 ```julia
 execution_design = mgmfrm_validation_execution_design_contract()
 analysis_contract = mgmfrm_validation_analysis_contract()
+primary_grid_candidates = mgmfrm_validation_primary_grid_candidates()
 resource_probe_plan = mgmfrm_validation_resource_probe()
 short_nuts_plan = mgmfrm_validation_short_nuts_resource_probe()
 scaled_resource_plan = mgmfrm_validation_scaled_resource_plan()
@@ -171,6 +174,12 @@ while the final primary grid, replication count, resource caps, and
 independently reviewed scientific thresholds are unresolved. These contracts
 use package APIs and semantic identifiers, not repository paths, commits, or
 fixture hashes; they generate no data and run no MCMC.
+
+`primary_grid_candidates` enumerates 16 non-executing source-anchored cells:
+two designs crossed with 50/100 persons, 5/15 items, and 5/15 raters. Expected
+observations range from 500 to 22,500. Nine cells exceed the current 2,000-
+observation short-NUTS bound, and the four-category primary known-truth
+generator is still pending, so this is not yet the frozen evaluation grid.
 
 The first resource-planning surface is also MCMC-free by default. Calling
 `mgmfrm_validation_resource_probe()` only returns the bounded dense/sparse

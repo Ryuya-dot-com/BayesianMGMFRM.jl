@@ -91,6 +91,13 @@ using BayesianMGMFRM
     @test !sensitivity.raw_cross_family_discrimination_comparison_allowed
     @test !sensitivity.scientific_thresholds_applied
 
+    primary_candidates = contract.primary_grid_candidates
+    @test primary_candidates.summary.n_candidate_cells == 16
+    @test !primary_candidates.execution_allowed
+    @test !primary_candidates.cells_frozen
+    @test !primary_candidates.summary.
+        current_resource_envelope_covers_all_candidates
+
     @test Set(row.prior_regime for row in
         sensitivity.prior_response_cells) ==
         Set((:source_aligned, :strong_regularizing))
@@ -156,6 +163,8 @@ using BayesianMGMFRM
     @test !portability.fixture_hash_required
     @test !portability.artifact_byte_identity_required
     @test :kfold_refit in portability.package_api_surface
+    @test :mgmfrm_validation_primary_grid_candidates in
+        portability.package_api_surface
     @test portability.cmdstan_required_only_for_reference_cells
     @test contract.resource_probe.operation ===
         :forwarddiff_logdensity_and_gradient

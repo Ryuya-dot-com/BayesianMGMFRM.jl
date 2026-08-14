@@ -59,6 +59,14 @@ using BayesianMGMFRM
     @test contract.workload.sensitivity_role_cells == 24
     @test contract.workload.final_primary_grid_cells ===
         :pending_bounded_short_nuts_and_resource_review
+    @test contract.workload.primary_grid_candidate_cells == 16
+    @test contract.workload.primary_grid_candidate_observation_range ==
+        (500, 22_500)
+    @test contract.workload.
+        primary_grid_candidates_above_current_short_nuts_bound == 9
+    @test !contract.workload.primary_grid_resource_envelope_complete
+    @test !contract.workload.
+        primary_four_category_generator_implemented
     @test contract.workload.evaluation_replications ===
         :pending_coverage_precision_review
     @test !contract.workload.full_cartesian_expansion_allowed
@@ -77,6 +85,13 @@ using BayesianMGMFRM
         :scientific_thresholds_and_independent_review,
     ))
     @test all(row -> row.blocks_execution, contract.open_decisions)
+    grid_decision = only(row for row in contract.open_decisions
+        if row.code === :final_primary_grid_cells)
+    @test grid_decision.current_state.n_candidate_cells == 16
+    @test !grid_decision.current_state.cells_frozen
+    @test !grid_decision.current_state.
+        resource_envelope_covers_all_candidates
+    @test !grid_decision.current_state.primary_generator_implemented
 
     @test contract.pilot_policy.role === :runtime_and_operability_only
     @test !contract.pilot_policy.values_may_define_scientific_thresholds

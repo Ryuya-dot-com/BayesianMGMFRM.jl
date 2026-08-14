@@ -243,10 +243,153 @@ function _mgmfrm_analysis_sensitivity_design(protocol)
     )
 end
 
+function _mgmfrm_validation_primary_grid_candidate_contract(protocol)
+    sizes = protocol.design_domain.source_sample_size_candidates
+    gradient_policy = _mgmfrm_validation_resource_probe_policy()
+    short_nuts_policy = _mgmfrm_validation_short_nuts_resource_probe_policy()
+    cells = NamedTuple[]
+    for design in (:dense_fully_crossed,
+            :connected_sparse_systematic_link),
+            persons in sizes.persons,
+            items in sizes.items,
+            raters in sizes.raters
+        cell_index = length(cells) + 1
+        raters_per_person = design === :dense_fully_crossed ? raters :
+                            protocol.design_domain.sparse_raters_per_person
+        observations = persons * items * raters_per_person
+        probability_cells = observations * protocol.design_domain.categories
+        within_gradient_bound = observations <=
+            gradient_policy.hard_maximum_observations_per_cell &&
+            probability_cells <=
+            gradient_policy.hard_maximum_probability_cells_per_cell
+        within_short_nuts_bound = observations <=
+            short_nuts_policy.hard_maximum_observations_per_cell &&
+            probability_cells <=
+            short_nuts_policy.hard_maximum_probability_cells_per_cell
+        push!(cells, (;
+            cell_id = Symbol(
+                "primary_candidate_",
+                lpad(string(cell_index), 2, '0'),
+            ),
+            design,
+            persons,
+            items,
+            raters,
+            raters_per_person,
+            expected_observations = observations,
+            expected_probability_cells = probability_cells,
+            dimensions = protocol.claim_target.dimensions,
+            categories = protocol.design_domain.categories,
+            q_structure =
+                :pure_between_item_one_active_dimension_per_item,
+            pure_items_per_dimension =
+                (items ÷ 2, items - items ÷ 2),
+            latent_correlation = protocol.claim_target.latent_correlation,
+            response_pattern = :regular_all_categories,
+            prior_regime = :implementation_reference,
+            backend = protocol.backends.primary,
+            scientific_role = :well_specified_primary_candidate,
+            within_current_gradient_probe_bound = within_gradient_bound,
+            within_current_short_nuts_probe_bound = within_short_nuts_bound,
+            generator_status =
+                :primary_four_category_known_truth_generator_pending,
+            status = :candidate_not_frozen,
+            execution_authorized = false,
+        ))
+    end
+
+    observation_counts = Tuple(row.expected_observations for row in cells)
+    n_within_gradient = count(
+        row -> row.within_current_gradient_probe_bound,
+        cells,
+    )
+    n_within_short_nuts = count(
+        row -> row.within_current_short_nuts_probe_bound,
+        cells,
+    )
+    return (;
+        schema =
+            "bayesianmgmfrm.mgmfrm_validation_primary_grid_candidates.v1",
+        object = :mgmfrm_validation_primary_grid_candidates,
+        status = :candidate_grid_enumerated_execution_blocked,
+        cells = Tuple(cells),
+        summary = (;
+            n_candidate_cells = length(cells),
+            n_dense_cells = count(
+                row -> row.design === :dense_fully_crossed,
+                cells,
+            ),
+            n_sparse_cells = count(
+                row -> row.design ===
+                    :connected_sparse_systematic_link,
+                cells,
+            ),
+            minimum_expected_observations = minimum(observation_counts),
+            maximum_expected_observations = maximum(observation_counts),
+            n_within_current_gradient_probe_bound = n_within_gradient,
+            n_above_current_gradient_probe_bound =
+                length(cells) - n_within_gradient,
+            n_within_current_short_nuts_probe_bound = n_within_short_nuts,
+            n_above_current_short_nuts_probe_bound =
+                length(cells) - n_within_short_nuts,
+            current_resource_envelope_covers_all_candidates =
+                n_within_short_nuts == length(cells),
+            primary_four_category_generator_implemented = false,
+        ),
+        source_anchor = (;
+            study = protocol.source_anchor.source,
+            persons = sizes.persons,
+            items = sizes.items,
+            raters = sizes.raters,
+        ),
+        axes = (;
+            design = (:dense_fully_crossed,
+                :connected_sparse_systematic_link),
+            persons = sizes.persons,
+            items = sizes.items,
+            raters = sizes.raters,
+            dimensions = (protocol.claim_target.dimensions,),
+            categories = (protocol.design_domain.categories,),
+        ),
+        cells_frozen = false,
+        evaluation_replications_frozen = false,
+        execution_allowed = false,
+        blockers = (
+            :select_final_primary_cells_after_resource_review,
+            :extend_resource_envelope_or_narrow_candidate_grid,
+            :implement_primary_four_category_known_truth_generator,
+            :freeze_evaluation_replications,
+        ),
+        claim_scope = :candidate_enumeration_not_validation_evidence,
+    )
+end
+
+"""
+    mgmfrm_validation_primary_grid_candidates()
+
+Enumerate the 16 non-executing fixed-Q MGMFRM primary-grid candidates implied
+by the two dense/sparse designs and the source-anchored person, item, and rater
+sample sizes. The result makes observation counts and current gradient/
+short-NUTS resource-bound coverage explicit.
+
+These rows are candidates, not a frozen analysis grid. The function generates
+no data, runs no sampler, applies no scientific thresholds, and cannot
+authorize evaluation. In particular, the four-category primary generator,
+replication count, final cell selection, and a resource envelope covering the
+selected cells remain unresolved.
+"""
+function mgmfrm_validation_primary_grid_candidates()
+    return _mgmfrm_validation_primary_grid_candidate_contract(
+        mgmfrm_validation_protocol(),
+    )
+end
+
 function _mgmfrm_validation_execution_design_contract(protocol)
     heldout = _mgmfrm_analysis_heldout_design()
     retry = _mgmfrm_analysis_retry_design()
     sensitivity = _mgmfrm_analysis_sensitivity_design(protocol)
+    primary_grid_candidates =
+        _mgmfrm_validation_primary_grid_candidate_contract(protocol)
     resource_probe = _mgmfrm_validation_resource_probe_policy()
     short_nuts_resource_probe =
         _mgmfrm_validation_short_nuts_resource_probe_policy()
@@ -262,6 +405,7 @@ function _mgmfrm_validation_execution_design_contract(protocol)
         heldout,
         retry,
         sensitivity,
+        primary_grid_candidates,
         resource_probe,
         short_nuts_resource_probe,
         isolated_resource_probe,
@@ -281,6 +425,7 @@ function _mgmfrm_validation_execution_design_contract(protocol)
                 (:kfold_plan, :kfold_plan_diagnostics, :kfold_refit,
                     :mgmfrm_response_stress_plan,
                     :mgmfrm_response_stress_fit_attempts,
+                    :mgmfrm_validation_primary_grid_candidates,
                     :mgmfrm_validation_resource_probe,
                     :mgmfrm_validation_isolated_resource_probe,
                     :mgmfrm_validation_isolated_resource_review,
@@ -306,7 +451,8 @@ The primary held-out target is five-fold observation prediction conditional on
 person, item, and rater levels represented in every training fold. New-level
 person, item, or rater prediction remains unsupported. Remediation never
 overwrites a primary attempt, and the listed sensitivity cells are role cells,
-not a workload count. The resource surface includes an inert-by-default,
+not a workload count. The 16 primary-grid rows are non-executing candidates,
+not frozen cells. The resource surface includes an inert-by-default,
 single-cell Julia worker for process-level peak-RSS attribution; it does not
 authorize execution. No data are generated and no model is fitted.
 """

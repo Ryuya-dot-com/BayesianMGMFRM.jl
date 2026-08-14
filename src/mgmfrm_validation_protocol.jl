@@ -432,6 +432,10 @@ function mgmfrm_validation_protocol()
             role_cells_are_fit_attempt_count = false,
             resource_probe_function =
                 :mgmfrm_validation_resource_probe,
+            primary_grid_candidate_function =
+                :mgmfrm_validation_primary_grid_candidates,
+            primary_grid_candidates =
+                :implemented_enumeration_execution_blocked,
             initial_gradient_resource_probe =
                 :implemented_explicit_execution_memory_guarded,
             bounded_short_nuts_resource_probe =
@@ -528,6 +532,8 @@ function mgmfrm_validation_protocol()
                     :implemented_execution_blocked,
                 heldout_retry_and_sensitivity_design =
                     :frozen_before_evaluation,
+                primary_grid_candidate_surface =
+                    :implemented_enumeration_execution_blocked,
                 initial_gradient_resource_probe_surface =
                     :implemented_execution_memory_guarded,
                 bounded_short_nuts_resource_probe_surface =
