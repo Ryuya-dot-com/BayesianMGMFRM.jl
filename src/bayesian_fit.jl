@@ -2565,7 +2565,7 @@ function _mgmfrm_fixed_q_invariance_rows(
     ]
 end
 
-function _gmfrm_promotion_candidate_summary_flag(n_sampler_warnings::Int,
+function _generalized_candidate_summary_flag(n_sampler_warnings::Int,
         n_nonfinite_logdensity::Int,
         n_failed_direct_constraints::Int,
         n_nonfinite_direct_loglikelihood::Int,
@@ -2586,25 +2586,30 @@ function _gmfrm_promotion_candidate_summary_flag(n_sampler_warnings::Int,
     return :ok
 end
 
-function _gmfrm_promotion_candidate_sampler_diagnostics(
-        target::_GMFRMPromotionCandidateLogDensity,
-        raw_initial::AbstractVector = initial_params(target);
-        ndraws::Int = 100,
-        warmup::Int = 100,
-        chains::Int = 2,
-        step_size::Real = 0.03,
-        rng::AbstractRNG = Random.default_rng(),
-        seed = nothing,
-        target_accept::Real = 0.8,
-        max_depth::Int = 10,
-        max_energy_error::Real = 1000.0,
-        metric::Symbol = :diagonal,
-        ad_backend::Symbol = :ForwardDiff,
-        init_jitter::Real = 0.0,
-        split_chains::Bool = true,
-        rhat_threshold::Real = 1.01,
-        ess_threshold::Real = 400,
-        progress::Bool = false)
+const _GeneralizedCandidateLogDensity = Union{
+    _GMFRMPromotionCandidateLogDensity,
+    _MGMFRMGuardedLocalFitLogDensity,
+}
+
+function _run_generalized_candidate_advancedhmc(
+        target::_GeneralizedCandidateLogDensity,
+        raw_initial::AbstractVector;
+        ndraws::Int,
+        warmup::Int,
+        chains::Int,
+        step_size::Real,
+        rng::AbstractRNG,
+        seed,
+        target_accept::Real,
+        max_depth::Int,
+        max_energy_error::Real,
+        metric::Symbol,
+        ad_backend::Symbol,
+        init_jitter::Real,
+        split_chains::Bool,
+        rhat_threshold::Real,
+        ess_threshold::Real,
+        progress::Bool)
     ndraws >= 1 || throw(ArgumentError("ndraws must be positive"))
     warmup >= 0 || throw(ArgumentError("warmup must be non-negative"))
     chains >= 1 || throw(ArgumentError("chains must be positive"))
@@ -2622,7 +2627,8 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
     _check_source_fixture_raw_vector(target, raw_initial)
 
     nparams = LogDensityProblems.dimension(target)
-    nparams >= 1 || throw(ArgumentError("at least one parameter is required for AdvancedHMC diagnostics"))
+    nparams >= 1 ||
+        throw(ArgumentError("at least one parameter is required for AdvancedHMC diagnostics"))
     initial = Float64.(collect(raw_initial))
     initial_logdensity = LogDensityProblems.logdensity(target, initial)
     isfinite(initial_logdensity) ||
@@ -2655,7 +2661,8 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
         chain_logdensity = LogDensityProblems.logdensity(target, chain_initial)
         isfinite(chain_logdensity) ||
             throw(ArgumentError("chain $chain initial raw parameter vector has non-finite log density"))
-        gradient_target = _logdensity_gradient_target(target, chain_initial, ad_backend).target
+        gradient_target =
+            _logdensity_gradient_target(target, chain_initial, ad_backend).target
         metric_object = _advancedhmc_metric(metric, nparams)
         hamiltonian = AdvancedHMC.Hamiltonian(
             metric_object,
@@ -2663,10 +2670,15 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
             x -> LogDensityProblems.logdensity_and_gradient(gradient_target, x),
         )
         integrator = AdvancedHMC.Leapfrog(Float64(step_size))
-        kernel = AdvancedHMC.HMCKernel(AdvancedHMC.Trajectory{AdvancedHMC.MultinomialTS}(
-            integrator,
-            AdvancedHMC.GeneralisedNoUTurn(max_depth, Float64(max_energy_error)),
-        ))
+        kernel = AdvancedHMC.HMCKernel(
+            AdvancedHMC.Trajectory{AdvancedHMC.MultinomialTS}(
+                integrator,
+                AdvancedHMC.GeneralisedNoUTurn(
+                    max_depth,
+                    Float64(max_energy_error),
+                ),
+            ),
+        )
         adaptor = warmup > 0 ?
             AdvancedHMC.StanHMCAdaptor(
                 AdvancedHMC.MassMatrixAdaptor(metric_object),
@@ -2736,16 +2748,66 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
             max_tree_depth = sampler_summary.max_tree_depth,
             mean_step_size = sampler_summary.mean_step_size,
             e_bfmi = sampler_summary.e_bfmi,
-            flag = _sampler_diagnostic_flag(chain_acceptance[chain],
+            flag = _sampler_diagnostic_flag(
+                chain_acceptance[chain],
                 n_nonfinite,
                 sampler_summary.n_divergences,
-                sampler_summary.n_max_treedepth),
+                sampler_summary.n_max_treedepth,
+            ),
         ))
     end
 
-    actual_split = split_chains && chains >= 2 && ndraws >= 4
-    parameter_rows = _candidate_mcmc_diagnostic_rows(
+    return (;
+        checked,
+        nparams,
+        initial,
+        initial_logdensity,
+        total_draws,
         draws,
+        logdensities,
+        chain_ids,
+        iterations,
+        chain_acceptance,
+        sampler_stats,
+        controls,
+        sampler_rows,
+        split_chains_requested = split_chains,
+        actual_split = split_chains && chains >= 2 && ndraws >= 4,
+    )
+end
+
+_generalized_candidate_direct_draw_values(
+        target::_GMFRMPromotionCandidateLogDensity,
+        draws::AbstractMatrix{<:Real}) =
+    _gmfrm_candidate_direct_draw_values(target, draws)
+
+_generalized_candidate_direct_draw_values(
+        target::_MGMFRMGuardedLocalFitLogDensity,
+        draws::AbstractMatrix{<:Real}) =
+    _mgmfrm_guarded_local_fit_direct_draw_values(target, draws)
+
+_generalized_candidate_direct_draw_constraint_rows(
+        target::_GMFRMPromotionCandidateLogDensity,
+        direct_draws::AbstractMatrix{<:Real}) =
+    _gmfrm_candidate_direct_draw_constraint_rows(target.design, direct_draws)
+
+_generalized_candidate_direct_draw_constraint_rows(
+        target::_MGMFRMGuardedLocalFitLogDensity,
+        direct_draws::AbstractMatrix{<:Real}) =
+    _mgmfrm_guarded_local_fit_direct_draw_constraint_rows(
+        target.design,
+        direct_draws,
+    )
+
+function _generalized_candidate_diagnostic_tables(
+        target::_GeneralizedCandidateLogDensity,
+        run::NamedTuple)
+    checked = run.checked
+    chains = run.controls.chains
+    ndraws = run.controls.ndraws
+    split_chains = run.split_chains_requested
+    parameter_rows = _candidate_mcmc_diagnostic_rows(
+        run.draws,
         target.blueprint.parameter_names,
         chains;
         parameter_space = :raw_unconstrained,
@@ -2760,24 +2822,28 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
         parameter_space = :raw_unconstrained,
         chains,
         draws_per_chain = ndraws,
-        total_draws,
-        split_chains = actual_split,
+        total_draws = run.total_draws,
+        split_chains = run.actual_split,
         split_chains_requested = split_chains,
         rhat_threshold = checked.rhat_threshold,
         ess_threshold = checked.ess_threshold,
     )
-    direct_values = _gmfrm_candidate_direct_draw_values(target, draws)
+    direct_values = _generalized_candidate_direct_draw_values(
+        target,
+        run.draws,
+    )
     direct_constraint_rows =
-        _gmfrm_candidate_direct_draw_constraint_rows(target.design, direct_values.direct_draws)
+        _generalized_candidate_direct_draw_constraint_rows(
+            target,
+            direct_values.direct_draws,
+        )
     direct_parameter_rows = _candidate_mcmc_diagnostic_rows(
         direct_values.direct_draws,
         target.blueprint.constrained_parameter_names,
         chains;
         parameter_space = :direct_constrained,
         structurally_fixed_parameters =
-            _structurally_fixed_constrained_parameter_names(
-                target.blueprint,
-            ),
+            _structurally_fixed_constrained_parameter_names(target.blueprint),
         split_chains,
         rhat_threshold = checked.rhat_threshold,
         ess_threshold = checked.ess_threshold,
@@ -2789,30 +2855,36 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
         parameter_space = :direct_constrained,
         chains,
         draws_per_chain = ndraws,
-        total_draws,
-        split_chains = actual_split,
+        total_draws = run.total_draws,
+        split_chains = run.actual_split,
         split_chains_requested = split_chains,
         rhat_threshold = checked.rhat_threshold,
         ess_threshold = checked.ess_threshold,
     )
 
-    n_sampler_warnings = count(row -> row.flag !== :ok, sampler_rows)
-    n_block_warnings = count(row -> row.flag in
-        (:insufficient_chains, :insufficient_draws, :nonfinite_draws,
-            :degenerate_draws,
-            :mcmc_warning), block_rows)
-    n_direct_block_warnings = count(row -> row.flag in
-        (:insufficient_chains, :insufficient_draws, :nonfinite_draws,
-            :degenerate_draws,
-            :mcmc_warning), direct_block_rows)
-    n_nonfinite_logdensity = sum(row.n_nonfinite_logdensity for row in sampler_rows)
+    warning_flags = (
+        :insufficient_chains,
+        :insufficient_draws,
+        :nonfinite_draws,
+        :degenerate_draws,
+        :mcmc_warning,
+    )
+    n_sampler_warnings = count(row -> row.flag !== :ok, run.sampler_rows)
+    n_block_warnings = count(row -> row.flag in warning_flags, block_rows)
+    n_direct_block_warnings =
+        count(row -> row.flag in warning_flags, direct_block_rows)
+    n_nonfinite_logdensity =
+        sum(row.n_nonfinite_logdensity for row in run.sampler_rows)
     n_nonfinite_direct_loglikelihood =
         count(!isfinite, direct_values.loglikelihood) +
         count(!isfinite, direct_values.pointwise_loglikelihood)
-    n_failed_direct_constraints = sum(row.n_failed for row in direct_constraint_rows)
-    n_divergences = _sum_nonmissing(row.n_divergences for row in sampler_rows)
-    n_max_treedepth = _sum_nonmissing(row.n_max_treedepth for row in sampler_rows)
-    e_bfmi_coverage = _ebfmi_coverage(sampler_rows)
+    n_failed_direct_constraints =
+        sum(row.n_failed for row in direct_constraint_rows)
+    n_divergences =
+        _sum_nonmissing(row.n_divergences for row in run.sampler_rows)
+    n_max_treedepth =
+        _sum_nonmissing(row.n_max_treedepth for row in run.sampler_rows)
+    e_bfmi_coverage = _ebfmi_coverage(run.sampler_rows)
     raw_metrics = _mcmc_metric_summary(
         parameter_rows,
         checked.rhat_threshold,
@@ -2833,7 +2905,7 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
         direct_metrics,
         combined_metrics,
     )
-    flag = _gmfrm_promotion_candidate_summary_flag(
+    flag = _generalized_candidate_summary_flag(
         n_sampler_warnings,
         n_nonfinite_logdensity,
         n_failed_direct_constraints,
@@ -2841,6 +2913,106 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
         raw_metrics,
         direct_metrics,
     )
+    return (;
+        direct_values,
+        direct_constraint_rows,
+        parameter_rows,
+        block_rows,
+        direct_parameter_rows,
+        direct_block_rows,
+        raw_metrics,
+        direct_metrics,
+        combined_metrics,
+        metric_fields,
+        flag,
+        n_sampler_warnings,
+        n_block_warnings,
+        n_direct_block_warnings,
+        n_nonfinite_logdensity,
+        n_nonfinite_direct_loglikelihood,
+        n_failed_direct_constraints,
+        n_divergences,
+        n_max_treedepth,
+        e_bfmi_coverage,
+    )
+end
+
+function _gmfrm_promotion_candidate_sampler_diagnostics(
+        target::_GMFRMPromotionCandidateLogDensity,
+        raw_initial::AbstractVector = initial_params(target);
+        ndraws::Int = 100,
+        warmup::Int = 100,
+        chains::Int = 2,
+        step_size::Real = 0.03,
+        rng::AbstractRNG = Random.default_rng(),
+        seed = nothing,
+        target_accept::Real = 0.8,
+        max_depth::Int = 10,
+        max_energy_error::Real = 1000.0,
+        metric::Symbol = :diagonal,
+        ad_backend::Symbol = :ForwardDiff,
+        init_jitter::Real = 0.0,
+        split_chains::Bool = true,
+        rhat_threshold::Real = 1.01,
+        ess_threshold::Real = 400,
+        progress::Bool = false)
+    run = _run_generalized_candidate_advancedhmc(
+        target,
+        raw_initial;
+        ndraws,
+        warmup,
+        chains,
+        step_size,
+        rng,
+        seed,
+        target_accept,
+        max_depth,
+        max_energy_error,
+        metric,
+        ad_backend,
+        init_jitter,
+        split_chains,
+        rhat_threshold,
+        ess_threshold,
+        progress,
+    )
+    checked = run.checked
+    nparams = run.nparams
+    initial = run.initial
+    initial_logdensity = run.initial_logdensity
+    total_draws = run.total_draws
+    draws = run.draws
+    logdensities = run.logdensities
+    chain_ids = run.chain_ids
+    iterations = run.iterations
+    chain_acceptance = run.chain_acceptance
+    sampler_stats = run.sampler_stats
+    controls = run.controls
+    sampler_rows = run.sampler_rows
+    actual_split = run.actual_split
+    diagnostic_tables = _generalized_candidate_diagnostic_tables(target, run)
+    direct_values = diagnostic_tables.direct_values
+    direct_constraint_rows = diagnostic_tables.direct_constraint_rows
+    parameter_rows = diagnostic_tables.parameter_rows
+    block_rows = diagnostic_tables.block_rows
+    direct_parameter_rows = diagnostic_tables.direct_parameter_rows
+    direct_block_rows = diagnostic_tables.direct_block_rows
+    raw_metrics = diagnostic_tables.raw_metrics
+    direct_metrics = diagnostic_tables.direct_metrics
+    combined_metrics = diagnostic_tables.combined_metrics
+    metric_fields = diagnostic_tables.metric_fields
+    flag = diagnostic_tables.flag
+    n_sampler_warnings = diagnostic_tables.n_sampler_warnings
+    n_block_warnings = diagnostic_tables.n_block_warnings
+    n_direct_block_warnings = diagnostic_tables.n_direct_block_warnings
+    n_nonfinite_logdensity = diagnostic_tables.n_nonfinite_logdensity
+    n_nonfinite_direct_loglikelihood =
+        diagnostic_tables.n_nonfinite_direct_loglikelihood
+    n_failed_direct_constraints =
+        diagnostic_tables.n_failed_direct_constraints
+    n_divergences = diagnostic_tables.n_divergences
+    n_max_treedepth = diagnostic_tables.n_max_treedepth
+    e_bfmi_coverage = diagnostic_tables.e_bfmi_coverage
     initial_direct = _gmfrm_source_constrained_params_from_unconstrained(target.design, initial)
 
     return (;
@@ -2966,245 +3138,63 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
         initial_source::Symbol = :sampler_raw_initial_argument)
     target.blueprint.family === :mgmfrm ||
         throw(ArgumentError("_mgmfrm_guarded_local_fit_sampler_diagnostics requires an MGMFRM guarded target"))
-    ndraws >= 1 || throw(ArgumentError("ndraws must be positive"))
-    warmup >= 0 || throw(ArgumentError("warmup must be non-negative"))
-    chains >= 1 || throw(ArgumentError("chains must be positive"))
-    isfinite(step_size) && step_size > 0 ||
-        throw(ArgumentError("step_size must be finite and positive"))
-    0 < target_accept < 1 ||
-        throw(ArgumentError("target_accept must be in (0, 1)"))
-    max_depth >= 1 || throw(ArgumentError("max_depth must be positive"))
-    isfinite(max_energy_error) && max_energy_error > 0 ||
-        throw(ArgumentError("max_energy_error must be finite and positive"))
-    isfinite(init_jitter) && init_jitter >= 0 ||
-        throw(ArgumentError("init_jitter must be finite and non-negative"))
-    gradient_backend = _gradient_backend_kind(ad_backend)
-    checked = _check_diagnostic_thresholds(rhat_threshold, ess_threshold)
-    _check_source_fixture_raw_vector(target, raw_initial)
-
-    nparams = LogDensityProblems.dimension(target)
-    nparams >= 1 || throw(ArgumentError("at least one parameter is required for AdvancedHMC diagnostics"))
-    initial = Float64.(collect(raw_initial))
-    initial_logdensity = LogDensityProblems.logdensity(target, initial)
-    isfinite(initial_logdensity) ||
-        throw(ArgumentError("initial raw parameter vector has non-finite log density"))
-    fit_rng, rng_control = _fit_rng(rng, seed)
-    total_draws = ndraws * chains
-    draws = Matrix{Float64}(undef, total_draws, nparams)
-    logdensities = Vector{Float64}(undef, total_draws)
-    chain_ids = Vector{Int}(undef, total_draws)
-    iterations = Vector{Int}(undef, total_draws)
-    chain_acceptance = Vector{Float64}(undef, chains)
-    sampler_stats = NamedTuple[]
-    controls = (;
+    run = _run_generalized_candidate_advancedhmc(
+        target,
+        raw_initial;
         ndraws,
         warmup,
         chains,
-        step_size = Float64(step_size),
-        target_accept = Float64(target_accept),
+        step_size,
+        rng,
+        seed,
+        target_accept,
         max_depth,
-        max_energy_error = Float64(max_energy_error),
+        max_energy_error,
         metric,
         ad_backend,
-        gradient_backend,
-        rng = rng_control,
-        init_jitter = Float64(init_jitter),
-    )
-
-    for chain in 1:chains
-        chain_initial = _advancedhmc_initial(initial, fit_rng, Float64(init_jitter))
-        chain_logdensity = LogDensityProblems.logdensity(target, chain_initial)
-        isfinite(chain_logdensity) ||
-            throw(ArgumentError("chain $chain initial raw parameter vector has non-finite log density"))
-        gradient_target = _logdensity_gradient_target(target, chain_initial, ad_backend).target
-        metric_object = _advancedhmc_metric(metric, nparams)
-        hamiltonian = AdvancedHMC.Hamiltonian(
-            metric_object,
-            x -> LogDensityProblems.logdensity(gradient_target, x),
-            x -> LogDensityProblems.logdensity_and_gradient(gradient_target, x),
-        )
-        integrator = AdvancedHMC.Leapfrog(Float64(step_size))
-        kernel = AdvancedHMC.HMCKernel(AdvancedHMC.Trajectory{AdvancedHMC.MultinomialTS}(
-            integrator,
-            AdvancedHMC.GeneralisedNoUTurn(max_depth, Float64(max_energy_error)),
-        ))
-        adaptor = warmup > 0 ?
-            AdvancedHMC.StanHMCAdaptor(
-                AdvancedHMC.MassMatrixAdaptor(metric_object),
-                AdvancedHMC.StepSizeAdaptor(Float64(target_accept), integrator),
-            ) :
-            AdvancedHMC.NoAdaptation()
-        samples, stats = AdvancedHMC.sample(
-            fit_rng,
-            hamiltonian,
-            kernel,
-            chain_initial,
-            warmup + ndraws,
-            adaptor,
-            warmup;
-            drop_warmup = warmup > 0,
-            verbose = false,
-            progress,
-        )
-        length(samples) == ndraws ||
-            throw(ArgumentError("AdvancedHMC returned $(length(samples)) draw(s); expected $ndraws"))
-        chain_stats = NamedTuple[]
-        for iteration in 1:ndraws
-            row = (chain - 1) * ndraws + iteration
-            draws[row, :] .= samples[iteration]
-            stat_row = _advancedhmc_stat_row(stats[iteration], chain, iteration)
-            logdensities[row] = stat_row.log_density
-            chain_ids[row] = chain
-            iterations[row] = iteration
-            push!(chain_stats, stat_row)
-            push!(sampler_stats, stat_row)
-        end
-        chain_acceptance[chain] = _stat_mean(chain_stats, :acceptance_rate)
-    end
-
-    sampler_rows = NamedTuple[]
-    for chain in 1:chains
-        draw_rows = ((chain - 1) * ndraws + 1):(chain * ndraws)
-        logps = @view logdensities[draw_rows]
-        logdensity_summary = _finite_log_posterior_summary(logps)
-        n_finite = count(isfinite, logps)
-        n_nonfinite = length(logps) - n_finite
-        chain_stats = [row for row in sampler_stats if row.chain == chain]
-        sampler_summary = _candidate_chain_sampler_summary(chain_stats, max_depth)
-        push!(sampler_rows, (;
-            diagnostic_row = :sampler_chain,
-            parameter_space = :raw_unconstrained,
-            diagnostic_method = :sampler_chain_summary,
-            diagnostic_status = :recorded,
-            chain,
-            backend = :advancedhmc,
-            sampler = :nuts,
-            n_draws = ndraws,
-            warmup,
-            step_size = Float64(step_size),
-            first_iteration = first(@view iterations[draw_rows]),
-            last_iteration = last(@view iterations[draw_rows]),
-            acceptance_rate = chain_acceptance[chain],
-            mean_logdensity = logdensity_summary.mean,
-            minimum_logdensity = logdensity_summary.minimum,
-            maximum_logdensity = logdensity_summary.maximum,
-            n_finite_logdensity = n_finite,
-            n_nonfinite_logdensity = n_nonfinite,
-            n_divergences = sampler_summary.n_divergences,
-            n_max_treedepth = sampler_summary.n_max_treedepth,
-            mean_n_steps = sampler_summary.mean_n_steps,
-            mean_tree_depth = sampler_summary.mean_tree_depth,
-            max_tree_depth = sampler_summary.max_tree_depth,
-            mean_step_size = sampler_summary.mean_step_size,
-            e_bfmi = sampler_summary.e_bfmi,
-            flag = _sampler_diagnostic_flag(chain_acceptance[chain],
-                n_nonfinite,
-                sampler_summary.n_divergences,
-                sampler_summary.n_max_treedepth),
-        ))
-    end
-
-    actual_split = split_chains && chains >= 2 && ndraws >= 4
-    parameter_rows = _candidate_mcmc_diagnostic_rows(
-        draws,
-        target.blueprint.parameter_names,
-        chains;
-        parameter_space = :raw_unconstrained,
+        init_jitter,
         split_chains,
-        rhat_threshold = checked.rhat_threshold,
-        ess_threshold = checked.ess_threshold,
+        rhat_threshold,
+        ess_threshold,
+        progress,
     )
-    block_rows = _candidate_parameter_block_diagnostics(
-        target.blueprint.blocks,
-        target.blueprint.parameter_names,
-        parameter_rows;
-        parameter_space = :raw_unconstrained,
-        chains,
-        draws_per_chain = ndraws,
-        total_draws,
-        split_chains = actual_split,
-        split_chains_requested = split_chains,
-        rhat_threshold = checked.rhat_threshold,
-        ess_threshold = checked.ess_threshold,
-    )
-    direct_values = _mgmfrm_guarded_local_fit_direct_draw_values(target, draws)
-    direct_constraint_rows =
-        _mgmfrm_guarded_local_fit_direct_draw_constraint_rows(
-            target.design,
-            direct_values.direct_draws,
-        )
-    direct_parameter_rows = _candidate_mcmc_diagnostic_rows(
-        direct_values.direct_draws,
-        target.blueprint.constrained_parameter_names,
-        chains;
-        parameter_space = :direct_constrained,
-        structurally_fixed_parameters =
-            _structurally_fixed_constrained_parameter_names(
-                target.blueprint,
-            ),
-        split_chains,
-        rhat_threshold = checked.rhat_threshold,
-        ess_threshold = checked.ess_threshold,
-    )
-    direct_block_rows = _candidate_parameter_block_diagnostics(
-        target.blueprint.constrained_blocks,
-        target.blueprint.constrained_parameter_names,
-        direct_parameter_rows;
-        parameter_space = :direct_constrained,
-        chains,
-        draws_per_chain = ndraws,
-        total_draws,
-        split_chains = actual_split,
-        split_chains_requested = split_chains,
-        rhat_threshold = checked.rhat_threshold,
-        ess_threshold = checked.ess_threshold,
-    )
-
-    n_sampler_warnings = count(row -> row.flag !== :ok, sampler_rows)
-    n_block_warnings = count(row -> row.flag in
-        (:insufficient_chains, :insufficient_draws, :nonfinite_draws,
-            :degenerate_draws,
-            :mcmc_warning), block_rows)
-    n_direct_block_warnings = count(row -> row.flag in
-        (:insufficient_chains, :insufficient_draws, :nonfinite_draws,
-            :degenerate_draws,
-            :mcmc_warning), direct_block_rows)
-    n_nonfinite_logdensity = sum(row.n_nonfinite_logdensity for row in sampler_rows)
+    checked = run.checked
+    nparams = run.nparams
+    initial = run.initial
+    initial_logdensity = run.initial_logdensity
+    total_draws = run.total_draws
+    draws = run.draws
+    logdensities = run.logdensities
+    chain_ids = run.chain_ids
+    iterations = run.iterations
+    chain_acceptance = run.chain_acceptance
+    sampler_stats = run.sampler_stats
+    controls = run.controls
+    sampler_rows = run.sampler_rows
+    actual_split = run.actual_split
+    diagnostic_tables = _generalized_candidate_diagnostic_tables(target, run)
+    direct_values = diagnostic_tables.direct_values
+    direct_constraint_rows = diagnostic_tables.direct_constraint_rows
+    parameter_rows = diagnostic_tables.parameter_rows
+    block_rows = diagnostic_tables.block_rows
+    direct_parameter_rows = diagnostic_tables.direct_parameter_rows
+    direct_block_rows = diagnostic_tables.direct_block_rows
+    raw_metrics = diagnostic_tables.raw_metrics
+    direct_metrics = diagnostic_tables.direct_metrics
+    combined_metrics = diagnostic_tables.combined_metrics
+    metric_fields = diagnostic_tables.metric_fields
+    flag = diagnostic_tables.flag
+    n_sampler_warnings = diagnostic_tables.n_sampler_warnings
+    n_block_warnings = diagnostic_tables.n_block_warnings
+    n_direct_block_warnings = diagnostic_tables.n_direct_block_warnings
+    n_nonfinite_logdensity = diagnostic_tables.n_nonfinite_logdensity
     n_nonfinite_direct_loglikelihood =
-        count(!isfinite, direct_values.loglikelihood) +
-        count(!isfinite, direct_values.pointwise_loglikelihood)
-    n_failed_direct_constraints = sum(row.n_failed for row in direct_constraint_rows)
-    n_divergences = _sum_nonmissing(row.n_divergences for row in sampler_rows)
-    n_max_treedepth = _sum_nonmissing(row.n_max_treedepth for row in sampler_rows)
-    e_bfmi_coverage = _ebfmi_coverage(sampler_rows)
-    raw_metrics = _mcmc_metric_summary(
-        parameter_rows,
-        checked.rhat_threshold,
-        checked.ess_threshold,
-    )
-    direct_metrics = _mcmc_metric_summary(
-        direct_parameter_rows,
-        checked.rhat_threshold,
-        checked.ess_threshold,
-    )
-    combined_metrics = _mcmc_metric_summary(
-        vcat(parameter_rows, direct_parameter_rows),
-        checked.rhat_threshold,
-        checked.ess_threshold,
-    )
-    metric_fields = _generalized_mcmc_metric_fields(
-        raw_metrics,
-        direct_metrics,
-        combined_metrics,
-    )
-    flag = _gmfrm_promotion_candidate_summary_flag(
-        n_sampler_warnings,
-        n_nonfinite_logdensity,
-        n_failed_direct_constraints,
-        n_nonfinite_direct_loglikelihood,
-        raw_metrics,
-        direct_metrics,
-    )
+        diagnostic_tables.n_nonfinite_direct_loglikelihood
+    n_failed_direct_constraints =
+        diagnostic_tables.n_failed_direct_constraints
+    n_divergences = diagnostic_tables.n_divergences
+    n_max_treedepth = diagnostic_tables.n_max_treedepth
+    e_bfmi_coverage = diagnostic_tables.e_bfmi_coverage
     initial_direct = _mgmfrm_source_constrained_params_from_unconstrained(
         target.design,
         initial,

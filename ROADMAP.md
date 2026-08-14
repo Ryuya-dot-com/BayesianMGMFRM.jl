@@ -339,12 +339,24 @@ builder (about 402 lines) are separate orchestration hotspots. Refactoring must
 preserve family-specific transforms and policy rows rather than hiding them in
 an untyped mega-helper.
 
+The generalized sampler hotspot is now narrowed. A typed shared runner owns
+sampler-control validation, RNG setup, AdvancedHMC execution, retained draws,
+and chain-level rows; a second helper owns raw/direct diagnostic tables and
+warning aggregation. Four small dispatch methods select the family-specific
+direct transform and constraint checks. The GMFRM and MGMFRM orchestration
+functions are now about 161 and 183 lines, respectively, while their schemas,
+direct transforms, MGMFRM initialization/fixed-Q invariance policy, and status
+rows remain explicit. Fixed-seed pre/post comparisons preserved draws, log
+density, acceptance, and constraint counts exactly. This closes the identified
+sampler duplication slice, not the broader file-splitting gate.
+
 1. split compiler/constraints, log-density/transforms, sampling, diagnostics,
    reporting/export, cache/reproduction, and evidence-policy code along stable
    contract boundaries;
-2. extract a shared generalized AdvancedHMC runner and diagnostic aggregator,
-   with explicit family hooks for raw/direct transforms, initialization audit,
-   invariance rows, schema, scope, and status;
+2. keep the shared generalized AdvancedHMC runner and diagnostic aggregator
+   narrow, with explicit family dispatch for direct transforms and constraints
+   and family-owned initialization audit, invariance rows, schema, scope, and
+   status;
 3. consolidate repeated raw/direct block traversal, hash validation, JSON
    projection, and artifact boilerplate into named helpers with unit tests;
 4. replace family-wide condition pyramids with small dispatch or explicit

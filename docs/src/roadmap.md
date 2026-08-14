@@ -158,10 +158,14 @@ The August 2026 audit records 20,470 lines in `src/bayesian_fit.jl`, 9,413 in
 `src/facet_workflow.jl`, and 32,889 in `test/runtests.jl`. These counts establish
 a reviewability risk. A direct comparison also finds more than 300 shared lines
 across the roughly 358-line GMFRM and 368-line MGMFRM sampler-diagnostic
-functions. Extract their common AdvancedHMC execution and diagnostic
-aggregation while keeping family transforms, initialization/invariance audits,
-schemas, and policy rows explicit. Split compiler, density/transform, sampler,
-diagnostic, reporting, cache, and evidence code; consolidate repeated
+functions. Their common sampler-control validation, RNG setup, AdvancedHMC
+execution, chain rows, and raw/direct diagnostic aggregation now live in typed
+shared helpers. Four small dispatch methods retain the family-specific direct
+transforms and constraint checks; the approximately 161-line GMFRM and 183-line
+MGMFRM wrappers still own their schemas, statuses, and MGMFRM-specific
+initialization/fixed-Q invariance rows. Fixed-seed pre/post checks preserve the
+numerical outputs. The broader gate remains: split compiler, density/transform,
+sampler, diagnostic, reporting, cache, and evidence code; consolidate repeated
 traversal/hash/artifact helpers; and use small dispatch or capability rows where
 they clarify family-specific branches.
 Core numerical and authorization code must not use naked `catch`. Optional

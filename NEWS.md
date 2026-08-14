@@ -52,6 +52,10 @@
   documenting the new reader-facing check names.
 - Clarify the boundary between stable MFRM/RSM/PCM fitting and the executable
   but provisional generalized configurations in the experimental namespace.
+- Share the guarded GMFRM/MGMFRM AdvancedHMC execution and diagnostic-table
+  aggregation through typed internal helpers. Family-specific direct
+  transforms, constraint checks, MGMFRM initialization/invariance policy, and
+  public result schemas remain explicit in their family wrappers.
 - Improve performance of the experimental two-dimensional correlation
   likelihood by caching its fixed simple-Q layout. The effect is
   workload- and environment-dependent; no general speedup is guaranteed.
