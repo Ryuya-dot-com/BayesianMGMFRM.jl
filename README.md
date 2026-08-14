@@ -210,9 +210,14 @@ The first resource-planning surface is also MCMC-free by default. Calling
 `mgmfrm_validation_resource_probe()` only returns the bounded dense/sparse
 plan. Set `execute_measurement = true` explicitly to measure local generation,
 ForwardDiff gradient time, allocation, and free memory. Before generation, the
-explicit path applies a 2 GiB free-memory screen with a non-lowerable 1 GiB
-floor; a rejection leaves every planned cell unstarted. This screen is not a
-memory reservation or a guarantee that a later measurement will complete.
+explicit path applies a 2 GiB available-memory screen with a non-lowerable
+1 GiB floor; a rejection leaves every planned cell unstarted. On macOS, the
+screen does not mistake Julia/libuv's raw free-page count for usable memory:
+it records that legacy raw value separately, estimates conservatively
+reclaimable memory from free, inactive, and speculative pages, and also checks
+the system memory-pressure percentage. Other platforms record the observation
+basis used. This screen is not a memory reservation or a guarantee that a
+later measurement will complete.
 Measured values may guide the cells and batch size for a later bounded
 short-NUTS probe, but they are not convergence, recovery, backend, or
 performance evidence and are not extrapolated into a full-fit runtime.
@@ -220,7 +225,7 @@ performance evidence and are not extrapolated into a full-fit runtime.
 `mgmfrm_validation_short_nuts_resource_probe()` similarly plans one connected-
 sparse AdvancedHMC cell without executing it. An explicit
 `execute_measurement = true` request starts its 25-warmup/25-draw single chain
-only after the workload check and a 2 GiB free-memory preflight pass. The
+only after the workload check and a 2 GiB available-memory preflight pass. The
 minimum cannot be lowered below 1 GiB. A failed memory preflight starts neither
 generation nor MCMC. Even a completed probe is short-chain operability metadata
 only; convergence, peak memory, and full-analysis runtime remain unassessed.
@@ -241,7 +246,9 @@ execution, repeats the memory preflight in both parent and child, and enforces
 a wall-time limit. The worker uses one Julia thread. Its peak RSS includes
 Julia startup, package loading, compilation, generation, and diagnostics as
 well as sampling; it is not sampler-only memory. The receipt records
-Julia/OS/architecture/thread and basic memory context. Completed or rejected
+Julia/OS/architecture/thread context, raw free memory, the distinct available-
+memory estimate and its basis, and memory pressure when the OS supplies it.
+Completed or rejected
 invocations can be passed to
 `mgmfrm_validation_isolated_resource_review()` for a threshold-free table of
 both memory preflights, elapsed time, child status, and worker peak RSS. The

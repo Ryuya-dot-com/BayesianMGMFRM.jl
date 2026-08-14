@@ -21,6 +21,9 @@ function _mgmfrm_validation_resource_probe_policy()
         hard_minimum_free_memory_bytes = Int64(1024^3),
         explicit_execution_required = true,
         memory_preflight_required = true,
+        macos_reclaimable_page_classes =
+            (:free, :inactive, :speculative),
+        macos_minimum_memory_pressure_free_percent = 10,
         adapter_validation_evaluations = 1,
         warmup_evaluations = 1,
         gc_before_each_timed_evaluation = true,
@@ -74,6 +77,9 @@ function _mgmfrm_validation_short_nuts_resource_probe_policy()
         hard_maximum_probability_cells_per_cell = 10_000,
         default_minimum_free_memory_bytes = Int64(2 * 1024^3),
         hard_minimum_free_memory_bytes = Int64(1024^3),
+        macos_reclaimable_page_classes =
+            (:free, :inactive, :speculative),
+        macos_minimum_memory_pressure_free_percent = 10,
         scaled_resource_plan_function =
             :mgmfrm_validation_scaled_resource_plan,
         explicit_execution_required = true,
@@ -221,6 +227,145 @@ function _mgmfrm_validation_probe_integer(value::Integer,
     checked = Int(value)
     checked >= minimum || throw(ArgumentError("$label must be >= $minimum"))
     return checked
+end
+
+function _mgmfrm_validation_macos_memory_observation()
+    vm_output = read(setenv(`/usr/bin/vm_stat`, "LC_ALL" => "C"), String)
+    pressure_output = read(
+        setenv(`/usr/bin/memory_pressure -Q`, "LC_ALL" => "C"),
+        String,
+    )
+    page_size_match = match(r"page size of ([0-9]+) bytes", vm_output)
+    page_size_match === nothing && throw(ArgumentError(
+        "macOS vm_stat output is missing the page size"))
+    page_size = parse(Int64, only(page_size_match.captures))
+    function page_count(label::AbstractString)
+        result = match(
+            Regex("^Pages " * label * ":\\s+([0-9]+)\\.", "m"),
+            vm_output,
+        )
+        result === nothing && throw(ArgumentError(
+            "macOS vm_stat output is missing Pages $label"))
+        return parse(Int64, only(result.captures))
+    end
+    free_pages = page_count("free")
+    inactive_pages = page_count("inactive")
+    speculative_pages = page_count("speculative")
+    pressure_match = match(
+        r"System-wide memory free percentage:\s*([0-9]+)%",
+        pressure_output,
+    )
+    pressure_match === nothing && throw(ArgumentError(
+        "macOS memory_pressure output is missing the free percentage"))
+    pressure_percent = parse(Int, only(pressure_match.captures))
+    available_bytes = Base.checked_mul(
+        page_size,
+        Base.checked_add(
+            free_pages,
+            Base.checked_add(inactive_pages, speculative_pages),
+        ),
+    )
+    return (;
+        available_memory_bytes = available_bytes,
+        raw_free_memory_bytes = Int64(Sys.free_memory()),
+        memory_availability_basis =
+            :macos_free_inactive_and_speculative_pages,
+        memory_pressure_free_percent = pressure_percent,
+    )
+end
+
+function _mgmfrm_validation_default_memory_observation()
+    if Sys.isapple()
+        try
+            return _mgmfrm_validation_macos_memory_observation()
+        catch err
+            _mgmfrm_stress_fatal_exception(err) && rethrow()
+            raw_free = Int64(Sys.free_memory())
+            return (;
+                available_memory_bytes = raw_free,
+                raw_free_memory_bytes = raw_free,
+                memory_availability_basis =
+                    :sys_free_memory_fallback_after_macos_probe_failure,
+                memory_pressure_free_percent = missing,
+                observation_error_type = string(typeof(err)),
+                observation_error_message = sprint(showerror, err),
+            )
+        end
+    end
+    raw_free = Int64(Sys.free_memory())
+    return (;
+        available_memory_bytes = raw_free,
+        raw_free_memory_bytes = raw_free,
+        memory_availability_basis = :sys_free_memory,
+        memory_pressure_free_percent = missing,
+    )
+end
+
+function _mgmfrm_validation_checked_memory_observation(value, policy)
+    observation = if value isa Integer
+        checked = Int64(value)
+        (;
+            available_memory_bytes = checked,
+            raw_free_memory_bytes = checked,
+            memory_availability_basis = :injected_available_memory_bytes,
+            memory_pressure_free_percent = missing,
+        )
+    elseif value isa NamedTuple
+        required = (
+            :available_memory_bytes,
+            :raw_free_memory_bytes,
+            :memory_availability_basis,
+            :memory_pressure_free_percent,
+        )
+        all(field -> hasproperty(value, field), required) ||
+            throw(ArgumentError("memory observation is incomplete"))
+        value
+    else
+        throw(ArgumentError(
+            "memory provider must return an Integer or NamedTuple"))
+    end
+    available = Int64(observation.available_memory_bytes)
+    raw_free = Int64(observation.raw_free_memory_bytes)
+    available >= 0 || throw(ArgumentError(
+        "memory provider returned negative available memory"))
+    raw_free >= 0 || throw(ArgumentError(
+        "memory provider returned negative raw free memory"))
+    pressure = observation.memory_pressure_free_percent
+    if !ismissing(pressure)
+        pressure isa Integer && 0 <= pressure <= 100 ||
+            throw(ArgumentError(
+                "memory-pressure free percentage must be in 0:100"))
+    end
+    pressure_passed = ismissing(pressure) ? true : pressure >=
+        policy.macos_minimum_memory_pressure_free_percent
+    observation_status = value isa Integer ? :injected :
+        hasproperty(observation, :observation_error_type) ? :fallback :
+        :complete
+    return (;
+        available_memory_bytes = available,
+        raw_free_memory_bytes = raw_free,
+        memory_availability_basis =
+            Symbol(observation.memory_availability_basis),
+        memory_pressure_free_percent = pressure,
+        memory_pressure_threshold_applied = !ismissing(pressure),
+        memory_pressure_preflight_passed = pressure_passed,
+        memory_observation_status = observation_status,
+        memory_observation_error_type =
+            hasproperty(observation, :observation_error_type) ?
+                observation.observation_error_type : missing,
+        memory_observation_error_message =
+            hasproperty(observation, :observation_error_message) ?
+                observation.observation_error_message : missing,
+    )
+end
+
+function _mgmfrm_validation_memory_preflight_blockers(preflight)
+    blockers = Symbol[]
+    preflight.available_memory_preflight_passed ||
+        push!(blockers, :insufficient_available_memory)
+    preflight.memory_pressure_preflight_passed ||
+        push!(blockers, :memory_pressure_too_high)
+    return Tuple(blockers)
 end
 
 function _mgmfrm_validation_probe_cell_id(row)
@@ -527,7 +672,7 @@ function _mgmfrm_validation_resource_probe(
         maximum_observations_per_cell::Integer,
         truth_scale::Real,
         minimum_free_memory_bytes::Integer,
-        free_memory_provider = () -> Int64(Sys.free_memory()),
+        free_memory_provider = _mgmfrm_validation_default_memory_observation,
         measurement_executor =
             _mgmfrm_validation_resource_probe_measure)
     policy = _mgmfrm_validation_resource_probe_policy()
@@ -572,15 +717,34 @@ function _mgmfrm_validation_resource_probe(
         :mgmfrm_validation_primary_grid_candidate, rows) ?
         :bounded_primary_short_nuts_resource_probe :
         :bounded_short_nuts_resource_probe
-    free_memory = Int64(free_memory_provider())
-    free_memory >= 0 || throw(ArgumentError(
-        "free_memory_provider returned a negative value",
-    ))
+    memory = _mgmfrm_validation_checked_memory_observation(
+        free_memory_provider(),
+        policy,
+    )
     preflight = (;
-        free_memory_bytes_observed = free_memory,
+        free_memory_bytes_observed = memory.raw_free_memory_bytes,
+        available_memory_bytes_observed = memory.available_memory_bytes,
+        raw_free_memory_bytes_observed = memory.raw_free_memory_bytes,
+        memory_availability_basis = memory.memory_availability_basis,
+        memory_pressure_free_percent =
+            memory.memory_pressure_free_percent,
+        memory_pressure_threshold_applied =
+            memory.memory_pressure_threshold_applied,
+        memory_pressure_preflight_passed =
+            memory.memory_pressure_preflight_passed,
+        memory_observation_status = memory.memory_observation_status,
+        memory_observation_error_type =
+            memory.memory_observation_error_type,
+        memory_observation_error_message =
+            memory.memory_observation_error_message,
         minimum_free_memory_bytes_required = Int64(checked_minimum_memory),
+        available_memory_preflight_passed =
+            memory.available_memory_bytes >=
+                Int64(checked_minimum_memory),
         memory_preflight_passed =
-            free_memory >= Int64(checked_minimum_memory),
+            memory.available_memory_bytes >=
+                Int64(checked_minimum_memory) &&
+            memory.memory_pressure_preflight_passed,
         workload_preflight_passed = true,
         maximum_cells = checked_maximum_cells,
         maximum_observations_per_cell = checked_maximum_observations,
@@ -662,7 +826,8 @@ function _mgmfrm_validation_resource_probe(
                 n_gradient_completed = 0,
                 denominator_preserved = true,
             ),
-            blockers = (:insufficient_free_memory,),
+            blockers =
+                _mgmfrm_validation_memory_preflight_blockers(preflight),
             mcmc_executed = false,
             fit_objects_returned = false,
             recovery_evidence_available = false,
@@ -670,7 +835,7 @@ function _mgmfrm_validation_resource_probe(
             primary_evaluation_seed_used = false,
             final_resource_policy_frozen = false,
             claim_scope = :operational_preflight_not_validation_evidence,
-            next_gate = :rerun_in_environment_with_sufficient_free_memory,
+            next_gate = :rerun_after_memory_preflight_is_safe,
         )
     end
 
@@ -803,7 +968,7 @@ Plan or execute a portable, MCMC-free resource probe for fixed-Q MGMFRM.
 The default plan contains one dense and one connected-sparse regular-response
 cell. Execution measures generation and repeated ForwardDiff log-density/
 gradient evaluations after one untimed warmup. Hard cell and observation bounds
-and a free-memory preflight are checked before generation. The memory threshold
+and an available-memory preflight are checked before generation. The threshold
 cannot be lowered below 1 GiB. This preflight is a screening check, not a memory
 reservation or a guarantee that measurement will complete.
 
@@ -873,11 +1038,12 @@ function _mgmfrm_validation_short_nuts_base_result(
         plan,
         policy,
         runtime,
-        free_memory_bytes::Int64,
+        memory,
         minimum_free_memory_bytes::Int64,
         maximum_observations_per_cell::Int)
     memory_preflight_passed =
-        free_memory_bytes >= minimum_free_memory_bytes
+        memory.available_memory_bytes >= minimum_free_memory_bytes &&
+        memory.memory_pressure_preflight_passed
     return (;
         schema = _MGMFRM_VALIDATION_SHORT_NUTS_RESOURCE_PROBE_SCHEMA,
         object = :mgmfrm_validation_short_nuts_resource_probe,
@@ -885,8 +1051,27 @@ function _mgmfrm_validation_short_nuts_base_result(
         plan,
         runtime,
         preflight = (;
-            free_memory_bytes_observed = free_memory_bytes,
+            free_memory_bytes_observed = memory.raw_free_memory_bytes,
+            available_memory_bytes_observed =
+                memory.available_memory_bytes,
+            raw_free_memory_bytes_observed =
+                memory.raw_free_memory_bytes,
+            memory_availability_basis =
+                memory.memory_availability_basis,
+            memory_pressure_free_percent =
+                memory.memory_pressure_free_percent,
+            memory_pressure_threshold_applied =
+                memory.memory_pressure_threshold_applied,
+            memory_pressure_preflight_passed =
+                memory.memory_pressure_preflight_passed,
+            memory_observation_status = memory.memory_observation_status,
+            memory_observation_error_type =
+                memory.memory_observation_error_type,
+            memory_observation_error_message =
+                memory.memory_observation_error_message,
             minimum_free_memory_bytes_required = minimum_free_memory_bytes,
+            available_memory_preflight_passed =
+                memory.available_memory_bytes >= minimum_free_memory_bytes,
             memory_preflight_passed,
             maximum_observations_per_cell,
             workload_preflight_passed = true,
@@ -900,7 +1085,7 @@ function _mgmfrm_validation_short_nuts_resource_probe(
         minimum_free_memory_bytes::Integer,
         maximum_observations_per_cell::Integer,
         truth_scale::Real,
-        free_memory_provider = () -> Int64(Sys.free_memory()),
+        free_memory_provider = _mgmfrm_validation_default_memory_observation,
         maxrss_provider = () -> Int64(Sys.maxrss()),
         runner_executor = _mgmfrm_validation_default_short_nuts_runner)
     policy = _mgmfrm_validation_short_nuts_resource_probe_policy()
@@ -939,22 +1124,20 @@ function _mgmfrm_validation_short_nuts_resource_probe(
         :review_primary_resource_cells_and_peak_memory :
         :review_scaled_resource_cells_and_peak_memory
     runtime = _mgmfrm_validation_resource_probe_runtime()
-    free_memory = Int64(free_memory_provider())
-    free_memory >= 0 || throw(ArgumentError(
-        "free_memory_provider returned a negative value",
-    ))
+    memory_before = _mgmfrm_validation_checked_memory_observation(
+        free_memory_provider(),
+        policy,
+    )
     base = _mgmfrm_validation_short_nuts_base_result(
         checked_plan,
         policy,
         runtime,
-        free_memory,
+        memory_before,
         Int64(checked_minimum_memory),
         checked_maximum_observations,
     )
 
     if !execute_measurement || !base.preflight.memory_preflight_passed
-        memory_blocker = base.preflight.memory_preflight_passed ? () :
-            (:insufficient_free_memory,)
         execution_blocker = execute_measurement ? () :
             (:explicit_execution_not_requested,)
         return merge(base, (;
@@ -976,7 +1159,12 @@ function _mgmfrm_validation_short_nuts_resource_probe(
                 denominator_preserved = true,
             ),
             measurement = missing,
-            blockers = (execution_blocker..., memory_blocker...),
+            blockers = (
+                execution_blocker...,
+                _mgmfrm_validation_memory_preflight_blockers(
+                    base.preflight,
+                )...,
+            ),
             convergence_assessed = false,
             scientific_execution_authorized = false,
             recovery_evidence_available = false,
@@ -985,11 +1173,12 @@ function _mgmfrm_validation_short_nuts_resource_probe(
             claim_scope = :operational_preflight_not_validation_evidence,
             next_gate = base.preflight.memory_preflight_passed ?
                 explicit_execution_gate :
-                :rerun_in_environment_with_sufficient_free_memory,
+                :rerun_after_memory_preflight_is_safe,
         ))
     end
 
-    free_memory_before = free_memory
+    free_memory_before = memory_before.raw_free_memory_bytes
+    available_memory_before = memory_before.available_memory_bytes
     process_maxrss_before = Int64(maxrss_provider())
     timed_run = try
         @timed begin
@@ -1004,7 +1193,12 @@ function _mgmfrm_validation_short_nuts_resource_probe(
         _mgmfrm_stress_fatal_exception(err) && rethrow()
         err
     end
-    free_memory_after = Int64(free_memory_provider())
+    memory_after = _mgmfrm_validation_checked_memory_observation(
+        free_memory_provider(),
+        policy,
+    )
+    free_memory_after = memory_after.raw_free_memory_bytes
+    available_memory_after = memory_after.available_memory_bytes
     process_maxrss_after = Int64(maxrss_provider())
     if timed_run isa Exception
         return merge(base, (;
@@ -1027,8 +1221,23 @@ function _mgmfrm_validation_short_nuts_resource_probe(
                 allocated_bytes = missing,
                 free_memory_bytes_before = free_memory_before,
                 free_memory_bytes_after = free_memory_after,
+                available_memory_bytes_before =
+                    available_memory_before,
+                available_memory_bytes_after = available_memory_after,
+                raw_free_memory_bytes_before =
+                    memory_before.raw_free_memory_bytes,
+                raw_free_memory_bytes_after =
+                    memory_after.raw_free_memory_bytes,
+                memory_availability_basis_before =
+                    memory_before.memory_availability_basis,
+                memory_availability_basis_after =
+                    memory_after.memory_availability_basis,
                 minimum_endpoint_free_memory_bytes =
                     min(free_memory_before, free_memory_after),
+                minimum_endpoint_available_memory_bytes = min(
+                    available_memory_before,
+                    available_memory_after,
+                ),
                 process_lifetime_maxrss_bytes_before =
                     process_maxrss_before,
                 process_lifetime_maxrss_bytes_after =
@@ -1077,8 +1286,22 @@ function _mgmfrm_validation_short_nuts_resource_probe(
             gc_seconds = Float64(timed_run.gctime),
             free_memory_bytes_before = free_memory_before,
             free_memory_bytes_after = free_memory_after,
+            available_memory_bytes_before = available_memory_before,
+            available_memory_bytes_after = available_memory_after,
+            raw_free_memory_bytes_before =
+                memory_before.raw_free_memory_bytes,
+            raw_free_memory_bytes_after =
+                memory_after.raw_free_memory_bytes,
+            memory_availability_basis_before =
+                memory_before.memory_availability_basis,
+            memory_availability_basis_after =
+                memory_after.memory_availability_basis,
             minimum_endpoint_free_memory_bytes =
                 min(free_memory_before, free_memory_after),
+            minimum_endpoint_available_memory_bytes = min(
+                available_memory_before,
+                available_memory_after,
+            ),
             process_lifetime_maxrss_bytes_before = process_maxrss_before,
             process_lifetime_maxrss_bytes_after = process_maxrss_after,
             process_lifetime_maxrss_increased =

@@ -52,6 +52,10 @@ function _mgmfrm_validation_isolated_resource_review_result(result)
         :n_completed,
         :denominator_preserved,
         :free_memory_bytes_observed,
+        :available_memory_bytes_observed,
+        :raw_free_memory_bytes_observed,
+        :memory_availability_basis,
+        :memory_pressure_preflight_passed,
         :minimum_free_memory_bytes_required,
         :memory_preflight_passed,
         :process_peak_rss_bytes,
@@ -72,6 +76,16 @@ function _mgmfrm_validation_isolated_resource_review_result(result)
         worker_elapsed_seconds = result.worker_elapsed_seconds,
         parent_free_memory_bytes_observed =
             result.parent_preflight.free_memory_bytes_observed,
+        parent_available_memory_bytes_observed =
+            result.parent_preflight.available_memory_bytes_observed,
+        parent_raw_free_memory_bytes_observed =
+            result.parent_preflight.raw_free_memory_bytes_observed,
+        parent_memory_availability_basis =
+            result.parent_preflight.memory_availability_basis,
+        parent_memory_pressure_free_percent =
+            result.parent_preflight.memory_pressure_free_percent,
+        parent_memory_pressure_preflight_passed =
+            result.parent_preflight.memory_pressure_preflight_passed,
         parent_minimum_free_memory_bytes_required =
             result.parent_preflight.minimum_free_memory_bytes_required,
         parent_memory_preflight_passed =
@@ -80,6 +94,17 @@ function _mgmfrm_validation_isolated_resource_review_result(result)
         child_status = receipt_recorded ? Symbol(receipt.status) : missing,
         child_free_memory_bytes_observed = receipt_recorded ?
             receipt.free_memory_bytes_observed : missing,
+        child_available_memory_bytes_observed = receipt_recorded ?
+            receipt.available_memory_bytes_observed : missing,
+        child_raw_free_memory_bytes_observed = receipt_recorded ?
+            receipt.raw_free_memory_bytes_observed : missing,
+        child_memory_availability_basis = receipt_recorded ?
+            Symbol(receipt.memory_availability_basis) : missing,
+        child_memory_pressure_free_percent = receipt_recorded &&
+            hasproperty(receipt, :memory_pressure_free_percent) ?
+            receipt.memory_pressure_free_percent : missing,
+        child_memory_pressure_preflight_passed = receipt_recorded ?
+            receipt.memory_pressure_preflight_passed : missing,
         child_minimum_free_memory_bytes_required = receipt_recorded ?
             receipt.minimum_free_memory_bytes_required : missing,
         child_memory_preflight_passed = receipt_recorded ?

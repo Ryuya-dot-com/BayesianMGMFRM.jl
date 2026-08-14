@@ -40,11 +40,16 @@
   role-cells spanning priors, response patterns, Q structure, unidimensional
   MFRM comparison, and paired CmdStan roles through documented package APIs.
 - Add an explicit, MCMC-free MGMFRM resource probe with hard cell, observation,
-  and pre-generation free-memory bounds. The default memory screen is 2 GiB
+  and pre-generation available-memory bounds. The default memory screen is 2 GiB
   with a non-lowerable 1 GiB floor; rejection leaves every cell unstarted. It
   measures local generation and warmed ForwardDiff gradient cost while
   prohibiting scientific, backend-ranking, and full-NUTS runtime claims; a
   bounded short-NUTS probe remains required before resource caps can be frozen.
+- Correct the MGMFRM resource preflight on macOS so Julia/libuv's raw free-page
+  count is not mislabeled as available memory. Preserve the raw value for
+  compatibility, record a separate conservative reclaimable-page estimate and
+  system memory pressure, and propagate both through isolated worker receipts
+  and threshold-free reviews.
 - Allow the fixed-Q response-stress generator to use odd item counts. Pure
   items are split between the two dimensions with a count difference of one,
   so the source-anchored 5- and 15-item candidates are no longer rejected by
@@ -72,7 +77,7 @@
   the five-category stress scaling plan.
 - Add a separate explicit-execution short-NUTS resource probe. It admits only
   one connected-sparse AdvancedHMC cell, uses 25 warmup and 25 retained draws,
-  enforces workload and free-memory gates before generation, discards fit
+  enforces workload and available-memory gates before generation, discards fit
   objects, and cannot make convergence, recovery, peak-memory, or performance
   claims.
 - Add a four-cell sequential resource-scaling plan with matched-observation

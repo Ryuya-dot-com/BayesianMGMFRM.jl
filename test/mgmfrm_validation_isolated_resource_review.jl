@@ -19,6 +19,11 @@ function _isolated_review_receipt_json(
         n_completed,
         denominator_preserved = true,
         free_memory_bytes_observed,
+        available_memory_bytes_observed = free_memory_bytes_observed,
+        raw_free_memory_bytes_observed = free_memory_bytes_observed,
+        memory_availability_basis = :injected_available_memory_bytes,
+        memory_pressure_free_percent = nothing,
+        memory_pressure_preflight_passed = true,
         minimum_free_memory_bytes_required = Int64(2 * 1024^3),
         memory_preflight_passed,
         process_peak_rss_bytes = 456_789,
@@ -137,6 +142,11 @@ end
     @test row.parent_memory_preflight_passed
     @test row.child_memory_preflight_passed
     @test row.child_free_memory_bytes_observed == 4 * 1024^3
+    @test row.child_available_memory_bytes_observed == 4 * 1024^3
+    @test row.child_raw_free_memory_bytes_observed == 4 * 1024^3
+    @test row.child_memory_availability_basis ===
+        :injected_available_memory_bytes
+    @test row.child_memory_pressure_preflight_passed
     @test row.process_peak_rss_bytes == 456_789
     @test row.worker_elapsed_seconds == 0.25
     @test row.julia_version == string(VERSION)

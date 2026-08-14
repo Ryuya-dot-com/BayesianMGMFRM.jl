@@ -69,6 +69,9 @@ end
     @test policy.hard_minimum_free_memory_bytes == 1024^3
     @test policy.explicit_execution_required
     @test policy.memory_preflight_required
+    @test policy.macos_reclaimable_page_classes ==
+        (:free, :inactive, :speculative)
+    @test policy.macos_minimum_memory_pressure_free_percent == 10
     @test !policy.mcmc_allowed
     @test !policy.fit_runtime_extrapolation_allowed
     @test !policy.measurement_thresholds_applied
@@ -243,10 +246,77 @@ end
     @test all(row -> !row.terminal, memory_rejected.rows)
     @test all(row -> ismissing(row.actual_observations),
         memory_rejected.rows)
-    @test :insufficient_free_memory in memory_rejected.blockers
+    @test :insufficient_available_memory in memory_rejected.blockers
     @test measurement_calls[] == 0
     @test memory_rejected.next_gate ===
-        :rerun_in_environment_with_sufficient_free_memory
+        :rerun_after_memory_preflight_is_safe
+
+    macos_like_observation = (;
+        available_memory_bytes = Int64(4 * 1024^3),
+        raw_free_memory_bytes = Int64(256 * 1024^2),
+        memory_availability_basis = :test_reclaimable_pages,
+        memory_pressure_free_percent = 75,
+    )
+    reclaimable_planned =
+        BayesianMGMFRM._mgmfrm_validation_resource_probe(
+            sparse_plan;
+            execute_measurement = false,
+            repetitions = 1,
+            maximum_cells = 1,
+            maximum_observations_per_cell = 10_000,
+            minimum_free_memory_bytes = 2 * 1024^3,
+            truth_scale = 0.15,
+            free_memory_provider = () -> macos_like_observation,
+            measurement_executor = forbidden_measurement,
+        )
+    @test reclaimable_planned.preflight.free_memory_bytes_observed ==
+        256 * 1024^2
+    @test reclaimable_planned.preflight.raw_free_memory_bytes_observed ==
+        256 * 1024^2
+    @test reclaimable_planned.preflight.available_memory_bytes_observed ==
+        4 * 1024^3
+    @test reclaimable_planned.preflight.memory_availability_basis ===
+        :test_reclaimable_pages
+    @test reclaimable_planned.preflight.memory_pressure_free_percent == 75
+    @test reclaimable_planned.preflight.available_memory_preflight_passed
+    @test reclaimable_planned.preflight.memory_pressure_preflight_passed
+    @test reclaimable_planned.preflight.memory_preflight_passed
+
+    pressure_rejected =
+        BayesianMGMFRM._mgmfrm_validation_resource_probe(
+            sparse_plan;
+            execute_measurement = true,
+            repetitions = 1,
+            maximum_cells = 1,
+            maximum_observations_per_cell = 10_000,
+            minimum_free_memory_bytes = 2 * 1024^3,
+            truth_scale = 0.15,
+            free_memory_provider = () -> merge(
+                macos_like_observation,
+                (; memory_pressure_free_percent = 5),
+            ),
+            measurement_executor = forbidden_measurement,
+        )
+    @test pressure_rejected.preflight.available_memory_preflight_passed
+    @test !pressure_rejected.preflight.memory_pressure_preflight_passed
+    @test !pressure_rejected.preflight.memory_preflight_passed
+    @test :memory_pressure_too_high in pressure_rejected.blockers
+    @test measurement_calls[] == 0
+
+    @test_throws ArgumentError BayesianMGMFRM.
+        _mgmfrm_validation_resource_probe(
+            sparse_plan;
+            execute_measurement = false,
+            repetitions = 1,
+            maximum_cells = 1,
+            maximum_observations_per_cell = 10_000,
+            minimum_free_memory_bytes = 2 * 1024^3,
+            truth_scale = 0.15,
+            free_memory_provider = () -> merge(
+                macos_like_observation,
+                (; memory_pressure_free_percent = 101),
+            ),
+        )
 
     @test_throws ArgumentError mgmfrm_validation_resource_probe(
         maximum_cells = 1)
@@ -312,6 +382,9 @@ end
     @test policy.maximum_cells == 1
     @test policy.default_minimum_free_memory_bytes == 2 * 1024^3
     @test policy.hard_minimum_free_memory_bytes == 1024^3
+    @test policy.macos_reclaimable_page_classes ==
+        (:free, :inactive, :speculative)
+    @test policy.macos_minimum_memory_pressure_free_percent == 10
     @test !policy.convergence_assessed
     @test !policy.peak_memory_measured
     @test policy.maxrss_measurement ===
@@ -344,7 +417,7 @@ end
         :short_nuts_resource_probe_memory_preflight_rejected
     @test !memory_rejected.execution_started
     @test !memory_rejected.mcmc_executed
-    @test :insufficient_free_memory in memory_rejected.blockers
+    @test :insufficient_available_memory in memory_rejected.blockers
     @test runner_calls[] == 0
 
     fake_runner = (plan, truth_scale) -> (;
@@ -383,6 +456,8 @@ end
     @test completed.summary.denominator_preserved
     @test completed.measurement.allocated_bytes >= 0
     @test completed.measurement.minimum_endpoint_free_memory_bytes ==
+        3 * 1024^3
+    @test completed.measurement.minimum_endpoint_available_memory_bytes ==
         3 * 1024^3
     @test !completed.measurement.peak_memory_measured
     @test completed.measurement.process_lifetime_maxrss_bytes_before ==

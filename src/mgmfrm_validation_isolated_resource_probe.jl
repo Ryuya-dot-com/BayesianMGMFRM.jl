@@ -85,6 +85,18 @@ function _mgmfrm_validation_isolated_worker_receipt(
         denominator_preserved = result.summary.denominator_preserved,
         free_memory_bytes_observed =
             result.preflight.free_memory_bytes_observed,
+        available_memory_bytes_observed =
+            result.preflight.available_memory_bytes_observed,
+        raw_free_memory_bytes_observed =
+            result.preflight.raw_free_memory_bytes_observed,
+        memory_availability_basis =
+            result.preflight.memory_availability_basis,
+        memory_pressure_free_percent =
+            result.preflight.memory_pressure_free_percent,
+        memory_pressure_preflight_passed =
+            result.preflight.memory_pressure_preflight_passed,
+        memory_observation_status =
+            result.preflight.memory_observation_status,
         minimum_free_memory_bytes_required =
             result.preflight.minimum_free_memory_bytes_required,
         memory_preflight_passed =
@@ -99,6 +111,8 @@ function _mgmfrm_validation_isolated_worker_receipt(
             measurement.allocated_bytes,
         endpoint_free_memory_bytes = measurement === nothing ? missing :
             measurement.free_memory_bytes_after,
+        endpoint_available_memory_bytes = measurement === nothing ? missing :
+            measurement.available_memory_bytes_after,
         julia_version = runtime.julia_version,
         os = runtime.os,
         arch = runtime.arch,
@@ -235,8 +249,30 @@ function _mgmfrm_validation_isolated_receipt(stdout::AbstractString,
     hasproperty(receipt, :free_memory_bytes_observed) &&
         receipt.free_memory_bytes_observed isa Integer &&
         receipt.free_memory_bytes_observed >= 0 || throw(ArgumentError(
-        "isolated worker receipt has invalid observed free memory",
+            "isolated worker receipt has invalid observed free memory",
     ))
+    hasproperty(receipt, :available_memory_bytes_observed) &&
+        receipt.available_memory_bytes_observed isa Integer &&
+        receipt.available_memory_bytes_observed >= 0 || throw(ArgumentError(
+            "isolated worker receipt has invalid observed available memory",
+        ))
+    hasproperty(receipt, :raw_free_memory_bytes_observed) &&
+        receipt.raw_free_memory_bytes_observed isa Integer &&
+        receipt.raw_free_memory_bytes_observed >= 0 || throw(ArgumentError(
+            "isolated worker receipt has invalid observed raw free memory",
+        ))
+    receipt.free_memory_bytes_observed ==
+        receipt.raw_free_memory_bytes_observed || throw(ArgumentError(
+            "isolated worker receipt has inconsistent raw free memory",
+        ))
+    hasproperty(receipt, :memory_availability_basis) || throw(ArgumentError(
+        "isolated worker receipt has no memory-availability basis",
+    ))
+    hasproperty(receipt, :memory_pressure_preflight_passed) &&
+        receipt.memory_pressure_preflight_passed isa Bool ||
+        throw(ArgumentError(
+            "isolated worker receipt has invalid memory-pressure state",
+        ))
     hasproperty(receipt, :minimum_free_memory_bytes_required) &&
         receipt.minimum_free_memory_bytes_required isa Integer &&
         receipt.minimum_free_memory_bytes_required >= 0 ||
@@ -248,8 +284,9 @@ function _mgmfrm_validation_isolated_receipt(stdout::AbstractString,
         "isolated worker receipt has invalid memory-preflight state",
     ))
     receipt.memory_preflight_passed ==
-        (receipt.free_memory_bytes_observed >=
-            receipt.minimum_free_memory_bytes_required) ||
+        (receipt.available_memory_bytes_observed >=
+            receipt.minimum_free_memory_bytes_required &&
+        receipt.memory_pressure_preflight_passed) ||
         throw(ArgumentError(
             "isolated worker receipt has inconsistent memory preflight",
         ))
@@ -274,7 +311,8 @@ function _mgmfrm_validation_isolated_resource_probe(
         maximum_observations_per_cell::Integer,
         truth_scale::Real,
         launcher = _mgmfrm_validation_launch_isolated_command,
-        parent_free_memory_provider = () -> Int64(Sys.free_memory()))
+        parent_free_memory_provider =
+            _mgmfrm_validation_default_memory_observation)
     checked_cell_id = Symbol(cell_id)
     cell = _mgmfrm_validation_isolated_resource_cell(checked_cell_id)
     policy = _mgmfrm_validation_isolated_resource_probe_policy()
@@ -322,7 +360,7 @@ function _mgmfrm_validation_isolated_resource_probe(
             stdout = "",
             stderr = "",
             blockers = execute_measurement ?
-                (:insufficient_parent_free_memory,) :
+                (:unsafe_parent_memory_preflight,) :
                 (:explicit_execution_not_requested,),
             mcmc_executed = false,
             scientific_execution_authorized = false,

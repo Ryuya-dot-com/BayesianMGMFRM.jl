@@ -1629,10 +1629,13 @@ artifact retains `recovery_verified = false`.
 three-repetition initial-gradient profile was measured for
 `mgmfrm_freecorr_feasibility_rho_m060_rep_001`. Finite-gradient, raw-dimension,
 fixture/oracle identity, median runtime, allocated-memory, GC-fraction, and
-estimated-full-unit-time checks passed. The conjunctive profile failed because
-the observed minimum free memory was 3.91 GiB and did not meet the unchanged
-8 GiB requirement. The measured medians were 0.0366 seconds per gradient,
-86,564,144 allocated bytes, and zero GC-time fraction; the projected full-unit
+estimated-full-unit-time checks passed. The historical 3.91 GiB field was the
+raw Julia/libuv free-page signal, not a defensible available-memory observation
+on macOS. Its memory adjudication is therefore invalidated: it establishes
+neither pass nor fail against the unchanged 8 GiB requirement and must be
+re-measured with raw free pages, a conservative available-memory estimate, and
+memory pressure separated. The measured medians were 0.0366 seconds per
+gradient, 86,564,144 allocated bytes, and zero GC-time fraction; the projected full-unit
 time was 4,678.64 seconds. Before measurement, the pre-execution runner now
 publishes a create-new reservation, then publishes either a terminal receipt
 or an operational-failure marker outside the scientific attempt tree. It
@@ -1644,8 +1647,8 @@ to weaken the version-2 threshold.
 
 | Free-correlation execution-control gate | Current state | Scientific denominator effect |
 | --- | --- | --- |
-| MCMC-free initial-gradient measurement and receipt | **Measured; create-new reservation and threshold-failure receipt recorded** | None; the passing-prerequisite count remains 0/3. |
-| Unchanged version-2 initial-gradient threshold | **Failed on minimum free memory** | None; short-NUTS and scientific execution remain blocked. |
+| MCMC-free initial-gradient measurement and receipt | **Measured; historical threshold-failure receipt retained, memory adjudication invalidated** | None; the passing-prerequisite count remains 0/3. |
+| Unchanged version-2 initial-gradient threshold | **Memory adjudication invalidated; re-measurement required** | None; short-NUTS and scientific execution remain blocked. |
 | Bounded short-NUTS resource profile | **Pending** | None. |
 | Atomic scientific worker, raw-draw archive, and external digest anchor | **Pending** | None. |
 | Computation-only feasibility roster | **0/25** | No terminal scientific attempt exists. |

@@ -41,6 +41,11 @@ function _isolated_probe_receipt_json(
         n_completed,
         denominator_preserved = true,
         free_memory_bytes_observed,
+        available_memory_bytes_observed = free_memory_bytes_observed,
+        raw_free_memory_bytes_observed = free_memory_bytes_observed,
+        memory_availability_basis = :injected_available_memory_bytes,
+        memory_pressure_free_percent = nothing,
+        memory_pressure_preflight_passed = true,
         minimum_free_memory_bytes_required = Int64(2 * 1024^3),
         memory_preflight_passed,
         process_peak_rss_bytes = 123_456,
@@ -146,7 +151,7 @@ end
         :isolated_resource_probe_parent_memory_rejected
     @test !rejected.worker_process_started
     @test !rejected.mcmc_executed
-    @test :insufficient_parent_free_memory in rejected.blockers
+    @test :unsafe_parent_memory_preflight in rejected.blockers
     @test launcher_calls[] == 0
 
     successful_launcher = (command, timeout) ->
@@ -270,6 +275,12 @@ end
         ),
         preflight = (;
             free_memory_bytes_observed = Int64(4 * 1024^3),
+            available_memory_bytes_observed = Int64(4 * 1024^3),
+            raw_free_memory_bytes_observed = Int64(4 * 1024^3),
+            memory_availability_basis = :injected_available_memory_bytes,
+            memory_pressure_free_percent = missing,
+            memory_pressure_preflight_passed = true,
+            memory_observation_status = :injected,
             minimum_free_memory_bytes_required = Int64(2 * 1024^3),
             memory_preflight_passed = true,
             maximum_observations_per_cell = 1_000,
@@ -279,6 +290,7 @@ end
             elapsed_seconds = 1.25,
             allocated_bytes = 4096,
             free_memory_bytes_after = Int64(3 * 1024^3),
+            available_memory_bytes_after = Int64(3 * 1024^3),
         ),
     )
     worker_receipt =
@@ -297,6 +309,8 @@ end
     @test worker_receipt.cumulative_allocated_bytes == 4096
     @test worker_receipt.memory_preflight_passed
     @test worker_receipt.free_memory_bytes_observed == 4 * 1024^3
+    @test worker_receipt.available_memory_bytes_observed == 4 * 1024^3
+    @test worker_receipt.raw_free_memory_bytes_observed == 4 * 1024^3
     @test worker_receipt.claim_scope ===
         :isolated_process_operational_metadata_only
     @test BayesianMGMFRM._mgmfrm_validation_isolated_receipt(

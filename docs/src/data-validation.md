@@ -215,7 +215,7 @@ Initial resource profiling is explicit and inert by default:
 ```julia
 probe_plan = mgmfrm_validation_resource_probe()
 
-# Executes no MCMC; workload and free-memory bounds are checked first.
+# Executes no MCMC; workload and available-memory bounds are checked first.
 probe = mgmfrm_validation_resource_probe(execute_measurement = true)
 probe.rows
 probe.runtime
@@ -224,10 +224,15 @@ probe.runtime
 The measured operation is a warmed ForwardDiff log-density/gradient evaluation
 for one dense and one connected-sparse regular-response cell. It records typed
 failures and preserves the planned denominator without returning fit objects.
-The explicit path uses a 2 GiB free-memory screen with a non-lowerable 1 GiB
-floor before data generation or gradient evaluation. Rejection preserves every
-cell as unstarted. The screen is operational risk control, not a memory
-reservation or validation threshold.
+The explicit path uses a 2 GiB available-memory screen with a non-lowerable
+1 GiB floor before data generation or gradient evaluation. Rejection preserves
+every cell as unstarted. On macOS, `Sys.free_memory()` is retained as a raw
+free-page observation but is not used alone as available memory. The probe
+separately records a conservative `free + inactive + speculative` estimate and
+the system memory-pressure percentage; both the byte floor and pressure check
+must pass. The observation basis is explicit, and a failed macOS observation
+falls back visibly rather than silently. The screen is operational risk
+control, not a memory reservation or validation threshold.
 The timings are local operational metadata only: they cannot choose priors, Q,
 scientific thresholds, or a preferred backend, and they cannot be extrapolated
 to four-chain NUTS. A bounded short-NUTS resource probe and an explicit memory
@@ -245,8 +250,8 @@ isolated_default = mgmfrm_validation_isolated_resource_probe(
 ```
 
 Its only cell is connected-sparse and uses one AdvancedHMC chain with 25
-warmup transitions and 25 retained draws. The default free-memory requirement
-is 2 GiB with a non-lowerable 1 GiB floor. Rejection occurs before generation
+warmup transitions and 25 retained draws. The default available-memory
+requirement is 2 GiB with a non-lowerable 1 GiB floor. Rejection occurs before generation
 or MCMC. A successful run discards fit objects, preserves typed attempt rows,
 and records elapsed time, cumulative Julia allocations, and endpoint free
 memory. It does not claim peak memory or convergence and cannot freeze the
@@ -275,15 +280,16 @@ progression. These cells are not the final scientific sample-size grid.
 `Sys.maxrss()` is recorded before and after short-NUTS as process-lifetime
 maximum resident memory. In a reused Julia process it is not attributable to
 the probe interval, even when it increases. The isolated surface above starts
-one child only after the parent free-memory check passes.
+one child only after the parent available-memory check passes.
 
-The child repeats the workload and free-memory checks and returns one compact
-JSON receipt; its fit object is discarded. A wall-time timeout terminates the
+The child repeats the workload and available-memory checks and returns one
+compact JSON receipt; its fit object is discarded. A wall-time timeout terminates the
 single-threaded worker and is retained as a typed terminal state. The recorded
 peak RSS is attributable to that dedicated worker process, but includes
 startup, package loading, compilation, generation, sampling, and diagnostics.
 It is therefore not a sampler-only measurement. Julia, OS, architecture,
-thread, wall-time, and basic memory context are retained without requiring a
+thread, wall-time, raw free memory, the distinct available-memory estimate and
+its observation basis, and memory pressure are retained without requiring a
 repository or commit
 identity. Run the cells sequentially, inspect each receipt before continuing,
 and use
