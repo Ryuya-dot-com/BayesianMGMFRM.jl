@@ -31,6 +31,10 @@
 
 ### Changed
 
+- Add an analysis-facing roadmap program for unified sampler profiles,
+  four-chain substantive defaults, chain-level seeds, integrated summaries and
+  warnings, simple fit persistence, visualization rows, interval/HDI policy,
+  prior predictive checks, bias analysis, and a guarded Bayes-factor boundary.
 - Clarify that guarded scalar GMFRM fitting uses item/task discrimination
   multiplied by rater consistency with rater-specific step vectors, and expose
   this sharing structure plus the computational sampler defaults in the

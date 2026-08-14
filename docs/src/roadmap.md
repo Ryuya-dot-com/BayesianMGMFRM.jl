@@ -35,7 +35,8 @@ The current package supports:
   confirmatory MGMFRM candidate with `dimensions >= 2`; the older
   `fit(spec; experimental = true)` spelling is compatibility-only;
 - fit metadata, chain summaries, R-hat/ESS summaries, posterior summaries,
-  prior/posterior predictive checks, calibration summaries, fair-average
+  stable-MFRM prior predictive checks, fit-family posterior predictive checks,
+  calibration summaries, fair-average
   summaries, separation/reliability summaries, rater diagnostics, Wright-map
   rows, DFF screening rows, infit/outfit, WAIC, raw and PSIS-smoothed LOO with
   Pareto-k diagnostics, exact one-row LOO refits, supplied or package-executed
@@ -190,6 +191,88 @@ Hashes remain available as provenance metadata for external inputs and handoff
 bundles, but ordinary code or documentation drift is not a byte-exact release
 gate. Routine verification prioritizes schema validation, scientific fields,
 and executable tests over deep transitive source-file hash chains.
+
+## Analysis-Facing Workflow Program
+
+The numerical workflow is feature-rich but not yet one brms-like user
+contract. Stable MFRM defaults to one chain, guarded direct fitting defaults to
+two short chains, and guarded cached fitting currently inherits a different
+one-chain root-cache default. Posterior summaries, convergence diagnostics,
+reports, plotting rows, and serialized caches also remain separate operations.
+
+The next ordered program is:
+
+1. Add one typed sampler-profile resolver shared by `fit`,
+   `BayesianMGMFRM.Experimental.fit`, `fit_cache_key`, and `cached_fit`. The
+   candidate `:analysis` profile uses AdvancedHMC/NUTS with 4 chains, 1,000
+   warmup iterations and 1,000 retained draws per chain; `:quick` keeps the
+   current 2-chain 100/100 computational budget. Tests and research fixtures
+   request their short controls explicitly.
+2. Derive and record deterministic chain-level seeds from one fit seed, add
+   resource-bounded optional parallel chains, map `target_accept` explicitly to
+   Stan/brms `adapt_delta`, and reject backend-inapplicable controls. Keep
+   sampler thinning at one; a future storage stride is not a convergence fix.
+3. Add `summary(fit)` and concise fit-time warnings that combine direct-scale
+   estimates, interval summaries, R-hat, bulk/tail ESS, divergences,
+   tree-depth, and E-BFMI coverage. `fit_report_health` continues to describe
+   report-construction completeness rather than convergence.
+4. Add simple `save_fit`/`load_fit` wrappers for ordinary RDS-like local use,
+   while retaining keyed caches for recomputation and portable JSON/table
+   reports for interchange.
+5. Stabilize trace, density, rank, autocorrelation, pairs/divergence, and
+   energy plotting rows before optional Makie or Plots extensions. Extend
+   direct-scale generalized facet and threshold maps without coupling the core
+   package to one plotting backend.
+
+`posterior_summary` already returns legacy 95% central interval columns and
+66%, 90%, and 95% nested central intervals. The primary table interval remains
+95% for compatibility; 66% is an optional inner plot band and 90% is an
+explicitly selectable primary interval. Add
+`interval_method = :equal_tailed | :hdi`, retaining equal-tailed intervals as
+the default because they are equivariant under a monotone re-expression of the
+same scalar estimand, while an HDI is not transformation invariant. HDI rows
+for raw coordinates or derived direct-scale parameters must name the reported
+scale and finite-draw algorithm and warn about multimodality. ROPEs remain
+estimand-specific and user-declared.
+
+The stable default prior is zero-centered independent normal on identified
+coordinates, with standard deviation 1.5 for persons and 1.0 for rater, item,
+and step blocks. Guarded generalized defaults use raw-coordinate standard
+deviations 1.0 for person/rater/item/step and 0.5 for log
+discrimination/loading and log consistency. These are computational defaults,
+not universally validated priors; the current constrained final coordinates
+are not exchangeable with the free coordinates.
+
+Stable MFRM already implements `prior_predict` and `prior_predictive_check` for
+category use, facet ranges, grouped DFF cells, and observed sparse blocks.
+Generalized prior predictive checks remain missing. Promotion requires a typed
+or explicitly frozen generalized prior contract, raw/direct prior summaries,
+GMFRM/MGMFRM prior predictive replication, and actual weak/reference/strong
+prior refits. Importance or power reweighting remains screening evidence that
+requires ESS/Pareto diagnostics and refit follow-up.
+
+Bias reporting separates known-truth repeated-simulation bias, bias caused by
+model/design misspecification, DFF/fairness screening, and prior-driven
+displacement. Existing recovery rows compute bias, absolute bias, coverage,
+and interval width when truth is known. Promotion additionally requires Monte
+Carlo uncertainty, failed/unattempted-fit denominators, empirical-versus-
+posterior uncertainty, and rank/classification stability. Unknown-truth real
+data support sensitivity and predictive-discrepancy language, not an estimator-
+bias claim.
+
+Bayes factors remain outside the default workflow. They are marginal-
+likelihood ratios that require priors, not summaries derivable from posterior
+draws alone. Any future research-only implementation must use preregistered
+nested hypotheses, compatible nuisance priors, a declared bridge/marginal-
+likelihood or valid Savage--Dickey route, Monte Carlo error, prior sensitivity,
+and null/alternative calibration. Posterior direction, ROPE probability, and
+interval exclusion are not Bayes factors; posterior contrasts/ROPEs remain the
+practical-decision path and PSIS-LOO/K-fold remain the predictive-comparison
+path.
+
+The exit criterion is a coherent fit--diagnose--summarize--save--visualize
+workflow with identical resolved sampler controls at every entry point and
+explicit interval, prior, bias, and evidence semantics.
 
 ## Not Yet Public API
 

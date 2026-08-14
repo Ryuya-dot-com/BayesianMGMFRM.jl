@@ -29,7 +29,8 @@ implemented public slice covers:
   with `dimensions >= 2`; the older `fit(spec; experimental = true)` spelling
   remains a compatibility route;
 - cached-fit artifacts, sampler diagnostics, R-hat/ESS rows, parameter-block
-  diagnostics, prior and posterior predictive replication, calibration
+  diagnostics, stable-MFRM prior predictive replication, fit-family posterior
+  predictive replication, calibration
   summaries, observation-level predictive quantities, fair-average summaries,
   separation/reliability summaries, rater diagnostics, infit/outfit summaries,
   WAIC, raw and PSIS-smoothed LOO with Pareto-k diagnostics, exact one-row LOO
@@ -318,6 +319,200 @@ of MGMFRM superiority nor an adequate model-selection study. The sparse
 recovery artifact likewise uses three four-person scenarios, permissive smoke
 thresholds, and no replication distribution. Both remain T1/T2 engineering
 evidence rather than promotion evidence.
+
+### Analysis-Facing Sampler, Summary, and Evidence Workflow
+
+The package now has most of the numerical pieces needed for a brms-like
+analysis workflow, but they are not yet one coherent user contract. The August
+2026 audit found three immediate inconsistencies:
+
+- stable MFRM fitting defaults to one chain, guarded direct fitting defaults to
+  two short chains, and guarded fitting through `Experimental.cached_fit`
+  inherits the root cache defaults of one longer chain when counts are omitted;
+- convergence diagnostics are structured and detailed, but fitting and the
+  compact fit display do not surface a brms-like warning summary automatically;
+- posterior summaries, diagnostics, reports, plotting-data rows, and serialized
+  caches exist as separate operations rather than one analysis-facing result
+  workflow.
+
+The response is not to copy the breadth of brms. It is to make the sampler,
+posterior-decision, predictive-check, and reporting contracts coherent for the
+small set of MFRM-family models this package actually supports.
+
+#### Sampler profiles, seeds, and execution
+
+Introduce one typed sampler-profile resolver used by `fit`,
+`Experimental.fit`, `fit_cache_key`, `cached_fit`, fit metadata, and the
+experimental surface contract. No entry point may silently substitute a
+different chain, warmup, draw, backend, or diagnostic configuration.
+
+The candidate profiles are:
+
+| Profile | Intended use | Backend | Chains | Warmup per chain | Retained draws per chain | Target acceptance | Thinning |
+|:--|:--|:--|--:|--:|--:|--:|--:|
+| `:analysis` | substantive estimation and report examples | AdvancedHMC/NUTS | 4 | 1,000 | 1,000 | 0.8 initially, changed only with family-specific evidence | 1 |
+| `:quick` | interactive wiring and local smoke checks | supported family backend | 2 | 100 | 100 | 0.8 | 1 |
+| explicit fixture controls | unit, recovery, and evidence protocols | declared by the fixture | explicit | explicit | explicit | explicit | 1 unless a sensitivity study says otherwise |
+
+Changing the public default to four chains is gated on the following work:
+
+1. derive and record a deterministic seed for every chain from one fit-level
+   integer seed, without tying seeds to repository state or machine paths;
+2. add optional parallel-chain execution with resource bounds and preserve the
+   same chain draws under sequential and parallel scheduling where the backend
+   permits it;
+3. keep `seed` an execution control supplied per fit, record it in metadata,
+   and require an explicit independent RNG/seed for posterior or prior
+   predictive replication;
+4. document that `target_accept` is the package analogue of Stan/brms
+   `adapt_delta`, and reject or clearly mark controls that do not apply to the
+   selected backend instead of silently ignoring them; and
+5. keep sampler-level thinning out of the primary remediation path. If a
+   memory-only retained-draw stride is later added, label it as storage policy,
+   preserve the unthinned iteration indices, and never present thinning as a
+   convergence repair.
+
+The default flip is complete only when tests request `:quick` explicitly and
+routine package checks do not run four analysis-grade chains accidentally.
+
+#### Integrated summary, warnings, persistence, and visualization
+
+Add a Julia-native `summary(fit)` result and display that joins:
+
+- model family, observations, parameters, backend, chains, warmup, retained
+  draws, seed status, and sampler controls;
+- direct-scale posterior location and uncertainty rows;
+- rank-normalized R-hat, bulk ESS, tail ESS, divergences, maximum-tree-depth
+  hits, and complete-chain E-BFMI availability; and
+- one overall diagnostic status with concise remediation pointers.
+
+Fitting should emit a short, suppressible convergence warning when the stored
+diagnostic surface is not usable, while the full machine-readable rows remain
+available through `diagnostics`. `fit_report_health` must continue to mean
+report-construction completeness; it must not be used as a synonym for sampler
+convergence.
+
+Add simple `save_fit` and `load_fit` wrappers for ordinary RDS-like local use.
+Keep the existing keyed `save_fit_cache`, `load_fit_cache`, and `cached_fit`
+path for recomputation avoidance, but do not require users who only want to
+save a fitted object to reason about cache identities or archive hashes.
+Portable JSON/table reports remain the cross-environment interchange path;
+Julia serialization is not a language-neutral long-term format.
+
+Stabilize plotting-data contracts before adding optional Makie or Plots
+extensions. The missing core rows are trace, marginal density, rank,
+autocorrelation, pairs/divergence, and energy/E-BFMI data, plus direct-scale
+GMFRM/MGMFRM facet and threshold maps. Existing Wright-map, diagnostic-map,
+calibration, predictive-check, and recovery rows remain backend-independent.
+
+#### Credible intervals, HDIs, and practical decisions
+
+The current `posterior_summary` already returns legacy 95% central interval
+columns and nested 66%, 90%, and 95% central credible intervals by default.
+The roadmap therefore does not replace 95% silently. It standardizes the
+policy:
+
+- `primary_interval = 0.95` remains the compatibility and primary table
+  default;
+- 66% may be used as a clearly labelled inner visualization band, but never as
+  the only uncertainty interval supporting a substantive claim;
+- 90% is an available alternative primary interval when it is declared before
+  inspecting results, with the chosen probability carried in every row; and
+- every summary and plot records interval probability, interval method,
+  parameter space, and transformation scale.
+
+Add `interval_method = :equal_tailed | :hdi`, with equal-tailed intervals as
+the default. Equal-tailed intervals are equivariant under a monotone
+re-expression of the same scalar estimand; HDIs do not generally retain their
+defining property after nonlinear transformation. Because generalized reports
+contain both raw coordinates and derived direct-scale parameters, the HDI path
+must compute on the reported parameter scale, name its finite-draw algorithm,
+detect or warn about multimodality, and avoid presenting one contiguous
+shortest interval as a complete description of a multimodal posterior. ROPE
+bounds remain user-declared and estimand-specific; neither a 66% interval nor a
+point-null exclusion is evidence of practical importance.
+
+#### Default priors and prior predictive checks
+
+The stable `MFRMPrior` currently assigns independent zero-centered normals to
+the identified parameter vector, with standard deviations `1.5` for persons
+and `1.0` for rater, item, and step blocks. The guarded generalized fits use
+built-in raw-coordinate normals with standard deviations `1.0` for person,
+rater, item, and step coordinates and `0.5` for log discrimination/loading and
+log consistency. These are computational defaults, not universally validated
+weakly informative priors. The constrained final coordinates induced by the
+current sum/product transforms are not exchangeable with the free raw
+coordinates.
+
+Stable MFRM already provides `prior_predict` and `prior_predictive_check`,
+including category-use, facet-range, grouped DFF-cell, and observed sparse-
+block summaries. Prior predictive reporting is opt-in in `fit_report` and is
+currently unsupported for `GMFRMFit` and `MGMFRMFit`.
+
+Before generalized promotion:
+
+1. expose or formally freeze a typed generalized prior contract;
+2. generate raw- and direct-scale prior summaries, including discrimination,
+   consistency, step, expected-score, and category-probability implications;
+3. add guarded GMFRM/MGMFRM prior predictive replication without borrowing
+   posterior draws;
+4. cross weak, reference, and stronger defensible priors through actual refits,
+   treating importance/power reweighting as a screen that requires ESS/Pareto
+   diagnostics and refit follow-up; and
+5. carry prior-predictive warnings and prior-sensitivity status into
+   `summary(fit)` and `fit_report` without turning study-specific thresholds
+   into universal pass/fail rules.
+
+#### Bias analysis
+
+"Bias" must remain split into distinct estimands:
+
+- **known-truth estimator bias**: posterior point summary minus generating
+  truth over repeated simulations;
+- **model-misspecification bias**: displacement under omitted dimensions,
+  wrong Q, sparse/nonrandom assignment, weak linking, category compression,
+  or omitted rater processes;
+- **DFF/fairness screening**: supported group-by-facet contrasts and predictive
+  discrepancies, not proof of unfairness or causal bias; and
+- **prior-driven displacement**: focal decision changes over defensible prior
+  and likelihood regimes.
+
+The existing `parameter_recovery` rows already compute bias, absolute bias,
+RMSE-oriented summaries, interval coverage, and interval width when truth is
+known. Promotion requires repeated-replication distributions by parameter
+block, Monte Carlo uncertainty for bias/coverage rates, failed-fit and
+unattempted-fit denominators, empirical-versus-posterior uncertainty, rank and
+classification stability, and paired comparisons with the unidimensional
+MFRM baseline. A real dataset with unknown truth may support sensitivity or
+predictive-discrepancy analysis, but it must not report estimator bias as if
+truth were observed.
+
+#### Bayes-factor boundary
+
+Bayes factors are not functions of posterior draws alone: they compare
+marginal likelihoods and necessarily depend on the model prior. Posterior odds,
+probability of direction, ROPE probability, and interval exclusion must not be
+relabeled as Bayes factors.
+
+Keep Bayes factors outside the default workflow. Any future implementation is
+an optional research surface and must:
+
+1. be limited to preregistered, genuinely nested hypotheses with compatible
+   nuisance-parameter priors and identified parameterizations;
+2. state whether it uses marginal-likelihood integration, bridge sampling, or
+   a valid Savage--Dickey special case, and reject boundary or constrained
+   cases where that identity does not apply;
+3. report Monte Carlo error and sensitivity to multiple defensible prior
+   scales, with simulation calibration under null and alternative generators;
+4. avoid point-null Bayes factors as the default decision target for continuous
+   rater, loading, DFF, or variance parameters; and
+5. remain secondary to posterior contrasts/ROPEs for practical decisions and
+   PSIS-LOO/K-fold for declared predictive comparisons.
+
+Exit criterion: a user can fit, diagnose, summarize, save, reload, visualize,
+and run prior/posterior predictive checks without reconciling contradictory
+defaults, while every interval, bias, prior-sensitivity, and optional evidence
+measure retains its estimand and claim boundary.
 
 ### Engineering Sustainability Gate
 
