@@ -52,8 +52,12 @@
   claims.
 - Add a four-cell sequential resource-scaling plan with matched-observation
   sparse/dense cells and no automatic progression. Short-NUTS results now
-  distinguish process-lifetime `Sys.maxrss()` from probe-attributable peak
-  memory, which still requires isolated-process measurement.
+  distinguish reused-process lifetime `Sys.maxrss()` from dedicated-worker
+  peak memory.
+- Add an inert-by-default, single-cell isolated resource probe with parent and
+  child memory gates, a bounded wall time, compact JSON receipts, and typed
+  launch/timeout/child/receipt failures. Worker peak RSS includes Julia startup
+  and compilation and is explicitly not labelled sampler-only memory.
 - Add `BayesianMGMFRM.Experimental` as the explicit namespace for the
   documented scalar rater-consistency GMFRM and fixed-Q confirmatory MGMFRM
   configurations. These configurations can be fitted with

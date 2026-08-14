@@ -250,6 +250,8 @@ function _mgmfrm_validation_execution_design_contract(protocol)
     resource_probe = _mgmfrm_validation_resource_probe_policy()
     short_nuts_resource_probe =
         _mgmfrm_validation_short_nuts_resource_probe_policy()
+    isolated_resource_probe =
+        _mgmfrm_validation_isolated_resource_probe_policy()
     return (;
         schema =
             "bayesianmgmfrm.mgmfrm_validation_execution_design_contract.v1",
@@ -262,6 +264,7 @@ function _mgmfrm_validation_execution_design_contract(protocol)
         sensitivity,
         resource_probe,
         short_nuts_resource_probe,
+        isolated_resource_probe,
         portability = (;
             repository_path_required = false,
             commit_identity_required = false,
@@ -272,6 +275,7 @@ function _mgmfrm_validation_execution_design_contract(protocol)
                     :mgmfrm_response_stress_plan,
                     :mgmfrm_response_stress_fit_attempts,
                     :mgmfrm_validation_resource_probe,
+                    :mgmfrm_validation_isolated_resource_probe,
                     :mgmfrm_validation_scaled_resource_plan,
                     :mgmfrm_validation_short_nuts_resource_probe),
             cmdstan_required_only_for_reference_cells = true,
@@ -294,7 +298,9 @@ The primary held-out target is five-fold observation prediction conditional on
 person, item, and rater levels represented in every training fold. New-level
 person, item, or rater prediction remains unsupported. Remediation never
 overwrites a primary attempt, and the listed sensitivity cells are role cells,
-not a workload count. No data are generated and no model is fitted.
+not a workload count. The resource surface includes an inert-by-default,
+single-cell Julia worker for process-level peak-RSS attribution; it does not
+authorize execution. No data are generated and no model is fitted.
 """
 function mgmfrm_validation_execution_design_contract()
     return _mgmfrm_validation_execution_design_contract(

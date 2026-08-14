@@ -172,7 +172,16 @@ using BayesianMGMFRM
     @test contract.short_nuts_resource_probe.
         scaled_resource_plan_function ===
         :mgmfrm_validation_scaled_resource_plan
+    @test contract.isolated_resource_probe.cell_execution === :exactly_one
+    @test contract.isolated_resource_probe.
+        parent_memory_preflight_required
+    @test contract.isolated_resource_probe.
+        child_memory_preflight_required
+    @test !contract.isolated_resource_probe.
+        source_or_commit_hash_required
     @test :mgmfrm_validation_scaled_resource_plan in
+        contract.portability.package_api_surface
+    @test :mgmfrm_validation_isolated_resource_probe in
         contract.portability.package_api_surface
     @test !contract.scientific_thresholds_frozen
     @test !contract.validation_evidence_available

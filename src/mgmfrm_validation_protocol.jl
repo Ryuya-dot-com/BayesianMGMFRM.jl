@@ -436,11 +436,16 @@ function mgmfrm_validation_protocol()
                 :implemented_optional_measurement_not_validation_evidence,
             bounded_short_nuts_resource_probe =
                 :implemented_explicit_execution_memory_guarded,
+            isolated_resource_probe_function =
+                :mgmfrm_validation_isolated_resource_probe,
+            isolated_resource_probe =
+                :implemented_explicit_execution_parent_child_memory_guarded,
             scaled_resource_plan_function =
                 :mgmfrm_validation_scaled_resource_plan,
             scaled_resource_plan =
                 :implemented_sequential_execution_not_started,
-            peak_memory_attribution = :isolated_process_pending,
+            peak_memory_attribution =
+                :dedicated_worker_surface_implemented_execution_pending,
             repository_or_sha_identity_required = false,
         ),
         seeds = (;
@@ -525,6 +530,8 @@ function mgmfrm_validation_protocol()
                     :implemented_execution_memory_guarded,
                 scaled_resource_plan_surface =
                     :implemented_sequential_execution_pending,
+                isolated_resource_probe_surface =
+                    :implemented_execution_pending,
                 attempt_complete_analysis_profile =
                     :draft_contract_implemented_execution_blocked,
             ),

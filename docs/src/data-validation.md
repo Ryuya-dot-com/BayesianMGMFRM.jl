@@ -195,13 +195,13 @@ scientific thresholds, or a preferred backend, and they cannot be extrapolated
 to four-chain NUTS. A bounded short-NUTS resource probe and an explicit memory
 review remain necessary before final grid and resource caps are frozen.
 
-The next probe is also inert unless execution is explicit:
+The direct short-NUTS primitive is also inert unless execution is explicit:
 
 ```julia
 short_plan = mgmfrm_validation_short_nuts_resource_probe()
 
-# Runs only when the workload and free-memory preflight pass.
-short_probe = mgmfrm_validation_short_nuts_resource_probe(
+# The planned validation route runs it once in a dedicated worker.
+isolated_default = mgmfrm_validation_isolated_resource_probe(
     execute_measurement = true,
 )
 ```
@@ -212,16 +212,18 @@ is 2 GiB with a non-lowerable 1 GiB floor. Rejection occurs before generation
 or MCMC. A successful run discards fit objects, preserves typed attempt rows,
 and records elapsed time, cumulative Julia allocations, and endpoint free
 memory. It does not claim peak memory or convergence and cannot freeze the
-final analysis resource policy by itself.
+final analysis resource policy by itself. Calling the direct primitive with
+`execute_measurement = true` remains useful for debugging, but the validation
+work order does not duplicate that MCMC run before the isolated invocation.
 
 Scaled profiling is a separate MCMC-free plan:
 
 ```julia
 scaled = mgmfrm_validation_scaled_resource_plan()
 
-# After the default sparse probe succeeds, submit exactly one row.
-next_probe = mgmfrm_validation_short_nuts_resource_probe(
-    scaled.rows[1],
+# After the isolated default sparse probe succeeds, submit one cell identifier.
+next_probe = mgmfrm_validation_isolated_resource_probe(
+    scaled.execution_order[1],
     execute_measurement = true,
 )
 ```
@@ -234,8 +236,22 @@ progression. These cells are not the final scientific sample-size grid.
 
 `Sys.maxrss()` is recorded before and after short-NUTS as process-lifetime
 maximum resident memory. In a reused Julia process it is not attributable to
-the probe interval, even when it increases. An isolated process remains
-necessary before reporting probe-specific peak RSS.
+the probe interval, even when it increases. The isolated surface above starts
+one child only after the parent free-memory check passes.
+
+The child repeats the workload and free-memory checks and returns one compact
+JSON receipt; its fit object is discarded. A wall-time timeout terminates the
+single-threaded worker and is retained as a typed terminal state. The recorded
+peak RSS is attributable to that dedicated worker process, but includes
+startup, package loading, compilation, generation, sampling, and diagnostics.
+It is therefore
+not a sampler-only measurement. Julia, OS, architecture, thread, wall-time,
+and basic memory context are retained without requiring a repository or commit
+identity. Run the cells sequentially, inspect each receipt before continuing,
+and use
+`maximum_observations_per_cell = 2_000` explicitly for the final 2,000-row
+scaled cell. These operational receipts neither assess convergence nor freeze
+scientific or resource thresholds.
 
 ## Clustered Responses and Testlet Identity
 

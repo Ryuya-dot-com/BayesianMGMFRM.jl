@@ -87,6 +87,10 @@ using BayesianMGMFRM
     @test !contract.pilot_policy.short_nuts_probe_executed
     @test contract.pilot_policy.short_nuts_function_name ===
         :mgmfrm_validation_short_nuts_resource_probe
+    @test contract.pilot_policy.isolated_function_name ===
+        :mgmfrm_validation_isolated_resource_probe
+    @test contract.pilot_policy.isolated_probe_implemented
+    @test !contract.pilot_policy.isolated_probe_executed
     @test !contract.pilot_policy.mcmc_executed
     @test contract.pilot_policy.short_nuts_execution_required
     @test !contract.pilot_policy.
@@ -96,9 +100,11 @@ using BayesianMGMFRM
     @test first(contract.next_work_order) ===
         :run_initial_gradient_resource_probe
     @test contract.next_work_order[2] ===
-        :run_memory_guarded_bounded_short_nuts_resource_probe
-    @test :run_scaled_resource_cells_sequentially in
+        :run_isolated_default_short_nuts_resource_probe
+    @test :run_isolated_default_short_nuts_resource_probe in
         contract.next_work_order
-    @test :review_process_isolated_peak_rss in contract.next_work_order
+    @test :run_isolated_scaled_resource_cells_sequentially in
+        contract.next_work_order
+    @test :review_worker_process_peak_rss in contract.next_work_order
     @test last(contract.next_work_order) === :start_fresh_seed_evaluation
 end

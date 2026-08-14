@@ -152,6 +152,7 @@ analysis_contract = mgmfrm_validation_analysis_contract()
 resource_probe_plan = mgmfrm_validation_resource_probe()
 short_nuts_plan = mgmfrm_validation_short_nuts_resource_probe()
 scaled_resource_plan = mgmfrm_validation_scaled_resource_plan()
+isolated_resource_plan = mgmfrm_validation_isolated_resource_probe()
 
 execution_design.heldout
 execution_design.retry
@@ -186,14 +187,26 @@ only after the workload check and a 2 GiB free-memory preflight pass. The
 minimum cannot be lowered below 1 GiB. A failed memory preflight starts neither
 generation nor MCMC. Even a completed probe is short-chain operability metadata
 only; convergence, peak memory, and full-analysis runtime remain unassessed.
+The validation work order executes this primitive through the isolated wrapper
+below, rather than running the same cell once directly and once in a worker.
 
-After the default sparse short-NUTS cell succeeds in a suitable environment,
+After the isolated default sparse short-NUTS receipt succeeds in a suitable
+environment,
 `mgmfrm_validation_scaled_resource_plan()` provides four ordered cells with
-144, 600, 600, and 2,000 observations. Pass exactly one row at a time to the
-short-NUTS probe; automatic progression is prohibited. `Sys.maxrss()` is
-recorded as process-lifetime maxRSS before and after a run, not as probe-
-attributable peak memory. Isolated-process measurement is still required for
-that stronger claim.
+144, 600, 600, and 2,000 observations. Pass exactly one cell identifier at a
+time to the isolated probe; automatic progression is prohibited.
+`Sys.maxrss()` is recorded as process-lifetime maxRSS before and after a reused-
+process run, not as interval-attributable peak memory. For stronger worker-
+level attribution,
+`mgmfrm_validation_isolated_resource_probe()` can launch exactly one selected
+cell in a dedicated Julia process. It is inert by default, requires explicit
+execution, repeats the memory preflight in both parent and child, and enforces
+a wall-time limit. The worker uses one Julia thread. Its peak RSS includes
+Julia startup, package loading, compilation, generation, and diagnostics as
+well as sampling; it is not
+sampler-only memory. The receipt records Julia/OS/architecture/thread and basic
+memory context, but no repository path, commit hash, or byte-level identity is
+part of the contract.
 
 Stable MFRM/RSM/PCM designs also support `backend = :cmdstan`. CmdStan is an
 optional external runtime, discovered with `cmdstan_backend_check()`; it is not
