@@ -217,6 +217,9 @@ function mgmfrm_validation_analysis_contract()
                 :mgmfrm_validation_isolated_resource_probe,
             isolated_probe_implemented = true,
             isolated_probe_executed = false,
+            isolated_review_function_name =
+                :mgmfrm_validation_isolated_resource_review,
+            isolated_review_implemented = true,
             mcmc_executed = false,
             short_nuts_execution_required = true,
             gradient_timing_may_freeze_final_resource_policy = false,

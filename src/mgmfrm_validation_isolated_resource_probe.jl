@@ -85,6 +85,16 @@ function _mgmfrm_validation_isolated_worker_receipt(
             attempt.terminal_status,
         n_completed = result.summary.n_completed,
         denominator_preserved = result.summary.denominator_preserved,
+        free_memory_bytes_observed =
+            result.preflight.free_memory_bytes_observed,
+        minimum_free_memory_bytes_required =
+            result.preflight.minimum_free_memory_bytes_required,
+        memory_preflight_passed =
+            result.preflight.memory_preflight_passed,
+        maximum_observations_per_cell =
+            result.preflight.maximum_observations_per_cell,
+        workload_preflight_passed =
+            result.preflight.workload_preflight_passed,
         elapsed_seconds = measurement === nothing ? missing :
             measurement.elapsed_seconds,
         cumulative_allocated_bytes = measurement === nothing ? missing :
@@ -215,9 +225,36 @@ function _mgmfrm_validation_isolated_receipt(stdout::AbstractString,
     hasproperty(receipt, :mcmc_executed) || throw(ArgumentError(
         "isolated worker receipt has no MCMC execution state",
     ))
-    hasproperty(receipt, :n_completed) || throw(ArgumentError(
-        "isolated worker receipt has no completion count",
+    hasproperty(receipt, :n_completed) &&
+        receipt.n_completed isa Integer && 0 <= receipt.n_completed <= 1 ||
+        throw(ArgumentError(
+            "isolated worker receipt has invalid completion count",
+        ))
+    hasproperty(receipt, :denominator_preserved) &&
+        receipt.denominator_preserved isa Bool || throw(ArgumentError(
+        "isolated worker receipt has invalid denominator state",
     ))
+    hasproperty(receipt, :free_memory_bytes_observed) &&
+        receipt.free_memory_bytes_observed isa Integer &&
+        receipt.free_memory_bytes_observed >= 0 || throw(ArgumentError(
+        "isolated worker receipt has invalid observed free memory",
+    ))
+    hasproperty(receipt, :minimum_free_memory_bytes_required) &&
+        receipt.minimum_free_memory_bytes_required isa Integer &&
+        receipt.minimum_free_memory_bytes_required >= 0 ||
+        throw(ArgumentError(
+            "isolated worker receipt has invalid required free memory",
+        ))
+    hasproperty(receipt, :memory_preflight_passed) &&
+        receipt.memory_preflight_passed isa Bool || throw(ArgumentError(
+        "isolated worker receipt has invalid memory-preflight state",
+    ))
+    receipt.memory_preflight_passed ==
+        (receipt.free_memory_bytes_observed >=
+            receipt.minimum_free_memory_bytes_required) ||
+        throw(ArgumentError(
+            "isolated worker receipt has inconsistent memory preflight",
+        ))
     hasproperty(receipt, :process_peak_rss_bytes) &&
         receipt.process_peak_rss_bytes isa Integer &&
         receipt.process_peak_rss_bytes >= 0 || throw(ArgumentError(

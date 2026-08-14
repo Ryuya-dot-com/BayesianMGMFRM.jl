@@ -179,9 +179,16 @@ using BayesianMGMFRM
         child_memory_preflight_required
     @test !contract.isolated_resource_probe.
         source_or_commit_hash_required
+    @test contract.isolated_resource_review.function_name ===
+        :mgmfrm_validation_isolated_resource_review
+    @test !contract.isolated_resource_review.execution_allowed
+    @test !contract.isolated_resource_review.automatic_progression_allowed
+    @test !contract.isolated_resource_review.thresholds_applied
     @test :mgmfrm_validation_scaled_resource_plan in
         contract.portability.package_api_surface
     @test :mgmfrm_validation_isolated_resource_probe in
+        contract.portability.package_api_surface
+    @test :mgmfrm_validation_isolated_resource_review in
         contract.portability.package_api_surface
     @test !contract.scientific_thresholds_frozen
     @test !contract.validation_evidence_available

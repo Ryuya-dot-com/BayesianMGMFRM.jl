@@ -185,6 +185,10 @@ using BayesianMGMFRM
         :mgmfrm_validation_isolated_resource_probe
     @test protocol.execution_design.isolated_resource_probe ===
         :implemented_explicit_execution_parent_child_memory_guarded
+    @test protocol.execution_design.isolated_resource_review_function ===
+        :mgmfrm_validation_isolated_resource_review
+    @test protocol.execution_design.isolated_resource_review ===
+        :implemented_threshold_free_manual_progression_only
     @test protocol.execution_design.scaled_resource_plan_function ===
         :mgmfrm_validation_scaled_resource_plan
     @test protocol.execution_design.scaled_resource_plan ===
@@ -247,6 +251,9 @@ using BayesianMGMFRM
     @test protocol.readiness.completed_enablers.
         isolated_resource_probe_surface ===
         :implemented_execution_pending
+    @test protocol.readiness.completed_enablers.
+        isolated_resource_review_surface ===
+        :implemented_threshold_free
     @test protocol.readiness.completed_enablers.
         attempt_complete_analysis_profile ===
         :draft_contract_implemented_execution_blocked

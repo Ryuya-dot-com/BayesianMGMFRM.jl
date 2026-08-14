@@ -265,6 +265,13 @@ function _mgmfrm_validation_execution_design_contract(protocol)
         resource_probe,
         short_nuts_resource_probe,
         isolated_resource_probe,
+        isolated_resource_review = (;
+            function_name = :mgmfrm_validation_isolated_resource_review,
+            execution_allowed = false,
+            automatic_progression_allowed = false,
+            thresholds_applied = false,
+            scientific_decision = :not_applied,
+        ),
         portability = (;
             repository_path_required = false,
             commit_identity_required = false,
@@ -276,6 +283,7 @@ function _mgmfrm_validation_execution_design_contract(protocol)
                     :mgmfrm_response_stress_fit_attempts,
                     :mgmfrm_validation_resource_probe,
                     :mgmfrm_validation_isolated_resource_probe,
+                    :mgmfrm_validation_isolated_resource_review,
                     :mgmfrm_validation_scaled_resource_plan,
                     :mgmfrm_validation_short_nuts_resource_probe),
             cmdstan_required_only_for_reference_cells = true,

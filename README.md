@@ -203,10 +203,13 @@ cell in a dedicated Julia process. It is inert by default, requires explicit
 execution, repeats the memory preflight in both parent and child, and enforces
 a wall-time limit. The worker uses one Julia thread. Its peak RSS includes
 Julia startup, package loading, compilation, generation, and diagnostics as
-well as sampling; it is not
-sampler-only memory. The receipt records Julia/OS/architecture/thread and basic
+well as sampling; it is not sampler-only memory. The receipt records
+Julia/OS/architecture/thread and basic
 memory context, but no repository path, commit hash, or byte-level identity is
-part of the contract.
+part of the contract. Completed or rejected invocations can be passed to
+`mgmfrm_validation_isolated_resource_review()` for a threshold-free table of
+both memory preflights, elapsed time, child status, and worker peak RSS. The
+review never launches the next cell or freezes a resource policy.
 
 Stable MFRM/RSM/PCM designs also support `backend = :cmdstan`. CmdStan is an
 optional external runtime, discovered with `cmdstan_backend_check()`; it is not

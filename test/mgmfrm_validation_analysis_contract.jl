@@ -91,6 +91,9 @@ using BayesianMGMFRM
         :mgmfrm_validation_isolated_resource_probe
     @test contract.pilot_policy.isolated_probe_implemented
     @test !contract.pilot_policy.isolated_probe_executed
+    @test contract.pilot_policy.isolated_review_function_name ===
+        :mgmfrm_validation_isolated_resource_review
+    @test contract.pilot_policy.isolated_review_implemented
     @test !contract.pilot_policy.mcmc_executed
     @test contract.pilot_policy.short_nuts_execution_required
     @test !contract.pilot_policy.

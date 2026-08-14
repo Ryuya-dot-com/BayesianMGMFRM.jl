@@ -27,6 +27,8 @@ function _isolated_probe_receipt_json(
         cell_id = :default_sparse_short_nuts;
         mcmc_executed = true,
         n_completed = 1,
+        memory_preflight_passed = true,
+        free_memory_bytes_observed = Int64(4 * 1024^3),
         status =
             :short_nuts_resource_probe_complete_operational_metadata_only)
     return String(BayesianMGMFRM.JSON3.write((;
@@ -37,6 +39,10 @@ function _isolated_probe_receipt_json(
         status,
         mcmc_executed,
         n_completed,
+        denominator_preserved = true,
+        free_memory_bytes_observed,
+        minimum_free_memory_bytes_required = Int64(2 * 1024^3),
+        memory_preflight_passed,
         process_peak_rss_bytes = 123_456,
         process_peak_rss_attributable_to_worker = true,
         scientific_execution_authorized = false,
@@ -238,6 +244,18 @@ end
     @test invalid_receipt.error isa Exception
     @test :invalid_worker_receipt in invalid_receipt.blockers
 
+    inconsistent_memory = _isolated_probe_internal(
+        launcher = (command, timeout) ->
+            _isolated_probe_launch_result(stdout =
+                _isolated_probe_receipt_json(
+                    memory_preflight_passed = false,
+                )),
+    )
+    @test inconsistent_memory.status ===
+        :isolated_resource_probe_receipt_invalid
+    @test occursin("inconsistent memory preflight",
+        inconsistent_memory.error_message)
+
     fake_short_result = (;
         status = :short_nuts_resource_probe_complete_operational_metadata_only,
         execution_started = true,
@@ -251,6 +269,13 @@ end
         summary = (;
             n_completed = 1,
             denominator_preserved = true,
+        ),
+        preflight = (;
+            free_memory_bytes_observed = Int64(4 * 1024^3),
+            minimum_free_memory_bytes_required = Int64(2 * 1024^3),
+            memory_preflight_passed = true,
+            maximum_observations_per_cell = 1_000,
+            workload_preflight_passed = true,
         ),
         measurement = (;
             elapsed_seconds = 1.25,
@@ -272,6 +297,8 @@ end
     @test !worker_receipt.process_peak_rss_attributable_to_sampler_only
     @test worker_receipt.elapsed_seconds == 1.25
     @test worker_receipt.cumulative_allocated_bytes == 4096
+    @test worker_receipt.memory_preflight_passed
+    @test worker_receipt.free_memory_bytes_observed == 4 * 1024^3
     @test worker_receipt.claim_scope ===
         :isolated_process_operational_metadata_only
     @test BayesianMGMFRM._mgmfrm_validation_isolated_receipt(

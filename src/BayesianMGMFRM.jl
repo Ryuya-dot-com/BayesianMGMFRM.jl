@@ -120,6 +120,7 @@ export FacetData,
     mgmfrm_validation_analysis_contract,
     mgmfrm_validation_execution_design_contract,
     mgmfrm_validation_isolated_resource_probe,
+    mgmfrm_validation_isolated_resource_review,
     mgmfrm_validation_protocol,
     mgmfrm_validation_resource_probe,
     mgmfrm_validation_scaled_resource_plan,
@@ -217,6 +218,7 @@ include("mgmfrm_response_stress.jl")
 include("mgmfrm_response_stress_fit.jl")
 include("mgmfrm_validation_resource_probe.jl")
 include("mgmfrm_validation_isolated_resource_probe.jl")
+include("mgmfrm_validation_isolated_resource_review.jl")
 include("mgmfrm_validation_execution_design.jl")
 include("mgmfrm_validation_analysis_contract.jl")
 include("anchor_refit_plan.jl")

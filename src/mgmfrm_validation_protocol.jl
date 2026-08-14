@@ -440,6 +440,10 @@ function mgmfrm_validation_protocol()
                 :mgmfrm_validation_isolated_resource_probe,
             isolated_resource_probe =
                 :implemented_explicit_execution_parent_child_memory_guarded,
+            isolated_resource_review_function =
+                :mgmfrm_validation_isolated_resource_review,
+            isolated_resource_review =
+                :implemented_threshold_free_manual_progression_only,
             scaled_resource_plan_function =
                 :mgmfrm_validation_scaled_resource_plan,
             scaled_resource_plan =
@@ -532,6 +536,8 @@ function mgmfrm_validation_protocol()
                     :implemented_sequential_execution_pending,
                 isolated_resource_probe_surface =
                     :implemented_execution_pending,
+                isolated_resource_review_surface =
+                    :implemented_threshold_free,
                 attempt_complete_analysis_profile =
                     :draft_contract_implemented_execution_blocked,
             ),

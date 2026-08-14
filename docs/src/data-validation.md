@@ -244,14 +244,29 @@ JSON receipt; its fit object is discarded. A wall-time timeout terminates the
 single-threaded worker and is retained as a typed terminal state. The recorded
 peak RSS is attributable to that dedicated worker process, but includes
 startup, package loading, compilation, generation, sampling, and diagnostics.
-It is therefore
-not a sampler-only measurement. Julia, OS, architecture, thread, wall-time,
-and basic memory context are retained without requiring a repository or commit
+It is therefore not a sampler-only measurement. Julia, OS, architecture,
+thread, wall-time, and basic memory context are retained without requiring a
+repository or commit
 identity. Run the cells sequentially, inspect each receipt before continuing,
 and use
 `maximum_observations_per_cell = 2_000` explicitly for the final 2,000-row
 scaled cell. These operational receipts neither assess convergence nor freeze
 scientific or resource thresholds.
+
+Review any collected results without rerunning them:
+
+```julia
+resource_review = mgmfrm_validation_isolated_resource_review((
+    isolated_default,
+    next_probe,
+))
+resource_review.rows
+resource_review.summary
+```
+
+The review requires unique cells in the declared contiguous order beginning
+with the default sparse cell. It preserves incomplete and rejected results,
+applies no thresholds, and never advances automatically.
 
 ## Clustered Responses and Testlet Identity
 

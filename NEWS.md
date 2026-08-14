@@ -58,6 +58,10 @@
   child memory gates, a bounded wall time, compact JSON receipts, and typed
   launch/timeout/child/receipt failures. Worker peak RSS includes Julia startup
   and compilation and is explicitly not labelled sampler-only memory.
+- Add a threshold-free isolated-resource review that preserves parent and
+  child preflights, rejected or incomplete cells, worker time, environment,
+  and peak RSS while prohibiting automatic progression and resource-policy
+  decisions.
 - Add `BayesianMGMFRM.Experimental` as the explicit namespace for the
   documented scalar rater-consistency GMFRM and fixed-Q confirmatory MGMFRM
   configurations. These configurations can be fitted with
