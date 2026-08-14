@@ -104,6 +104,26 @@ end
     @test empty_review.summary.denominator_scope === :submitted_results
     @test !empty_review.summary.full_resource_sequence_complete
     @test empty_review.resource_collection === :not_applicable
+    @test empty_review.stage_1_operability.status ===
+        :stage_1_operability_records_incomplete
+    @test empty_review.stage_1_operability.n_required == 2
+    @test empty_review.stage_1_operability.n_submitted == 0
+    @test Set(empty_review.stage_1_operability.required_candidate_cell_ids) ==
+        Set((:primary_candidate_01, :primary_candidate_09))
+    @test Set(empty_review.stage_1_operability.required_resource_cell_ids) ==
+        Set((:primary_resource_01_sparse_minimum,
+            :primary_resource_02_dense_short_bound))
+    @test Set(empty_review.stage_1_operability.missing_candidate_cell_ids) ==
+        Set((:primary_candidate_01, :primary_candidate_09))
+    @test !empty_review.stage_1_operability.all_required_submitted
+    @test !empty_review.stage_1_operability.
+        records_complete_in_submitted_review
+    @test empty_review.stage_1_operability.
+        existing_receipt_recovery_preferred_before_rerun
+    @test !empty_review.stage_1_operability.automatic_rerun_authorized
+    @test !empty_review.stage_1_operability.operability_milestone_closed
+    @test empty_review.stage_1_operability.next_gate ===
+        :recover_or_submit_existing_stage_1_receipts_before_rerun
     @test empty_review.next_gate ===
         :run_isolated_default_short_nuts_resource_probe
 
@@ -212,6 +232,33 @@ end
     @test all(row -> row.resource_collection ===
         :primary_resource_short_nuts_subset, primary_review.rows)
     @test primary_review.summary.n_child_completed == 2
+    @test primary_review.stage_1_operability.status ===
+        :stage_1_operability_records_complete_in_submitted_review
+    @test primary_review.stage_1_operability.n_submitted == 2
+    @test isempty(primary_review.stage_1_operability.
+        missing_candidate_cell_ids)
+    @test isempty(primary_review.stage_1_operability.
+        unexpected_candidate_cell_ids)
+    @test primary_review.stage_1_operability.all_required_submitted
+    @test primary_review.stage_1_operability.
+        all_required_receipts_recorded
+    @test primary_review.stage_1_operability.all_required_child_completed
+    @test primary_review.stage_1_operability.all_required_mcmc_executed
+    @test primary_review.stage_1_operability.
+        all_required_denominators_preserved
+    @test primary_review.stage_1_operability.
+        records_complete_in_submitted_review
+    @test !primary_review.stage_1_operability.
+        portable_receipt_file_persistence_assessed
+    @test primary_review.stage_1_operability.
+        may_close_operability_milestone_after_manual_scope_review
+    @test !primary_review.stage_1_operability.operability_milestone_closed
+    @test !primary_review.stage_1_operability.convergence_assessed
+    @test !primary_review.stage_1_operability.recovery_assessed
+    @test !primary_review.stage_1_operability.
+        performance_portability_assessed
+    @test primary_review.stage_1_operability.next_gate ===
+        :manual_scope_review_may_close_stage_1_operability_only
 
     primary_second_only = mgmfrm_validation_isolated_resource_review((
         _isolated_review_result(primary_order[2]),
@@ -219,6 +266,10 @@ end
     @test !primary_second_only.submitted_order_matches_plan
     @test primary_second_only.status ===
         :isolated_resource_results_require_attention
+    @test primary_second_only.stage_1_operability.n_submitted == 1
+    @test !primary_second_only.stage_1_operability.all_required_submitted
+    @test !primary_second_only.stage_1_operability.
+        records_complete_in_submitted_review
     mixed_review = mgmfrm_validation_isolated_resource_review((
         default_result,
         _isolated_review_result(primary_order[1]),

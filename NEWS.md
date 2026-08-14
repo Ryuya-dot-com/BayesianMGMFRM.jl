@@ -89,6 +89,11 @@
   select the two primary resource rows inside the current short-NUTS bound.
   Primary and legacy stress/scaling receipts retain separate ordered
   collections and cannot be mixed into a passing review.
+- Link those two primary receipts to the provisional Stage 1 candidate cells
+  in the threshold-free review. Missing records remain visible and prefer
+  recovery before rerun; a complete submitted pair permits only a manual
+  operability-scope decision and cannot establish convergence, recovery,
+  portable performance, or scientific validity.
 - Preserve short-NUTS geometry in isolated worker receipts and reviews:
   divergences, maximum-depth hits, mean leapfrog steps, mean and maximum tree
   depth, mean step size, and complete-chain E-BFMI availability. The bounded

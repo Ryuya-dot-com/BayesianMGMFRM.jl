@@ -14,6 +14,16 @@ using BayesianMGMFRM
     @test !contract.evaluation_started
     @test contract.claim_scope === :planning_contract_not_validation_evidence
 
+    @test contract.stage_1_operability.status ===
+        :stage_1_operability_records_incomplete
+    @test contract.stage_1_operability.n_required == 2
+    @test contract.stage_1_operability.n_submitted == 0
+    @test !contract.stage_1_operability.records_complete_in_submitted_review
+    @test !contract.stage_1_operability.automatic_rerun_authorized
+    @test !contract.stage_1_operability.operability_milestone_closed
+    @test contract.stage_1_operability.next_gate ===
+        :recover_or_submit_existing_stage_1_receipts_before_rerun
+
     @test contract.sampler.chains == 4
     @test contract.sampler.warmup_per_chain == 1000
     @test contract.sampler.retained_per_chain == 1000

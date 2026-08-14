@@ -315,6 +315,7 @@ resource_review = mgmfrm_validation_isolated_resource_review((
 ))
 resource_review.rows
 resource_review.summary
+resource_review.stage_1_operability
 ```
 
 The review requires unique cells in the declared contiguous order beginning
@@ -324,7 +325,13 @@ review preserves incomplete and rejected results together with divergences,
 tree depth, leapfrog-step count, step size, and E-BFMI chain coverage. These
 short-chain geometry fields are operational observations, not convergence or
 scientific decisions. The review applies no thresholds and never advances
-automatically.
+automatically. For primary-grid receipts, `stage_1_operability` maps the two
+minimum-support candidate cells to their resource records and reports whether
+both completed receipts and denominators are present. Complete submission only
+permits a manual operability-scope decision; the milestone remains open and no
+convergence, recovery, portable-performance, or scientific claim is made.
+When receipts are absent, recovery or submission of existing records precedes
+any consideration of a rerun.
 
 ## Clustered Responses and Testlet Identity
 

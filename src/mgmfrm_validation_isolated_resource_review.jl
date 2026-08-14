@@ -217,6 +217,99 @@ function _mgmfrm_validation_isolated_review_sequence(cell_ids)
     )
 end
 
+function _mgmfrm_validation_stage_1_operability_summary(rows, sequence)
+    stage_1 = first(
+        mgmfrm_validation_primary_grid_candidates().staged_review.stages,
+    )
+    resource_plan = mgmfrm_validation_primary_resource_plan()
+    required_pairs = Tuple((;
+        candidate_cell_id,
+        resource_cell_id = only(row.cell_id for row in resource_plan.rows
+            if row.source_candidate_cell_id === candidate_cell_id),
+    ) for candidate_cell_id in stage_1.cumulative_cell_ids)
+    primary_rows = Tuple(row for row in rows
+        if row.resource_collection === :primary_resource_short_nuts_subset)
+    submitted_pairs = Tuple((;
+        candidate_cell_id = only(
+            plan_row.source_candidate_cell_id for plan_row in resource_plan.rows
+            if plan_row.cell_id === row.cell_id
+        ),
+        resource_cell_id = row.cell_id,
+    ) for row in primary_rows)
+    submitted_candidate_cell_ids =
+        Tuple(pair.candidate_cell_id for pair in submitted_pairs)
+    required_candidate_cell_ids =
+        Tuple(pair.candidate_cell_id for pair in required_pairs)
+    missing_candidate_cell_ids = Tuple(cell_id
+        for cell_id in required_candidate_cell_ids
+        if cell_id ∉ submitted_candidate_cell_ids)
+    unexpected_candidate_cell_ids = Tuple(cell_id
+        for cell_id in submitted_candidate_cell_ids
+        if cell_id ∉ required_candidate_cell_ids)
+    all_required_submitted = isempty(missing_candidate_cell_ids)
+    required_row(resource_cell_id) = only(row for row in primary_rows
+        if row.cell_id === resource_cell_id)
+    all_required_receipts_recorded = all_required_submitted && all(
+        pair -> required_row(pair.resource_cell_id).receipt_recorded,
+        required_pairs,
+    )
+    all_required_child_completed = all_required_submitted && all(
+        pair -> required_row(pair.resource_cell_id).child_completed,
+        required_pairs,
+    )
+    all_required_mcmc_executed = all_required_submitted && all(
+        pair -> required_row(pair.resource_cell_id).mcmc_executed === true,
+        required_pairs,
+    )
+    all_required_denominators_preserved = all_required_submitted && all(
+        pair -> required_row(pair.resource_cell_id).
+            child_denominator_preserved === true,
+        required_pairs,
+    )
+    records_complete = all_required_submitted &&
+        isempty(unexpected_candidate_cell_ids) &&
+        sequence.resource_collection === :primary_resource_short_nuts_subset &&
+        sequence.submitted_order_matches_plan &&
+        all_required_receipts_recorded && all_required_child_completed &&
+        all_required_mcmc_executed && all_required_denominators_preserved
+
+    return (;
+        status = records_complete ?
+            :stage_1_operability_records_complete_in_submitted_review :
+            :stage_1_operability_records_incomplete,
+        required_candidate_cell_ids,
+        required_resource_cell_ids =
+            Tuple(pair.resource_cell_id for pair in required_pairs),
+        submitted_candidate_cell_ids,
+        missing_candidate_cell_ids,
+        unexpected_candidate_cell_ids,
+        n_required = length(required_pairs),
+        n_submitted = length(primary_rows),
+        all_required_submitted,
+        all_required_receipts_recorded,
+        all_required_child_completed,
+        all_required_mcmc_executed,
+        all_required_denominators_preserved,
+        submitted_order_matches_resource_plan =
+            sequence.submitted_order_matches_plan,
+        records_complete_in_submitted_review = records_complete,
+        portable_receipt_file_persistence_assessed = false,
+        existing_receipt_recovery_preferred_before_rerun = true,
+        automatic_rerun_authorized = false,
+        may_close_operability_milestone_after_manual_scope_review =
+            records_complete,
+        operability_milestone_closed = false,
+        convergence_assessed = false,
+        recovery_assessed = false,
+        performance_portability_assessed = false,
+        scientific_decision = :not_applied,
+        next_gate = records_complete ?
+            :manual_scope_review_may_close_stage_1_operability_only :
+            :recover_or_submit_existing_stage_1_receipts_before_rerun,
+        claim_scope = :receipt_completeness_not_scientific_evidence,
+    )
+end
+
 function _mgmfrm_validation_isolated_resource_review(results)
     results isa Tuple || results isa AbstractVector || throw(ArgumentError(
         "results must be a tuple or vector of isolated resource-probe results",
@@ -247,6 +340,8 @@ function _mgmfrm_validation_isolated_resource_review(results)
         all_completed && submitted_order_matches_plan ?
             :manually_review_worker_metrics_before_next_cell_or_policy :
             :stop_and_review_incomplete_or_out_of_order_results
+    stage_1_operability =
+        _mgmfrm_validation_stage_1_operability_summary(rows, sequence)
     return (;
         schema = _MGMFRM_VALIDATION_ISOLATED_RESOURCE_REVIEW_SCHEMA,
         object = :mgmfrm_validation_isolated_resource_review,
@@ -269,6 +364,7 @@ function _mgmfrm_validation_isolated_resource_review(results)
             denominator_scope = :submitted_results,
             full_resource_sequence_complete,
         ),
+        stage_1_operability,
         automatic_progression_allowed = false,
         manual_review_required = true,
         resource_thresholds_applied = false,
@@ -295,7 +391,11 @@ mixed collections are retained as requiring attention.
 This function runs no process or MCMC, applies no resource or scientific
 threshold, and never advances automatically to another cell. Peak RSS remains
 whole-worker memory, including startup and compilation, rather than sampler-
-only memory.
+only memory. `stage_1_operability` checks whether both provisional Stage 1
+primary cells have complete submitted receipts. Even a complete pair remains
+operability metadata pending manual scope review; it cannot establish
+convergence, recovery, portable performance, or scientific validity. Missing
+receipts request recovery or submission of existing records before any rerun.
 """
 function mgmfrm_validation_isolated_resource_review(results)
     return _mgmfrm_validation_isolated_resource_review(results)

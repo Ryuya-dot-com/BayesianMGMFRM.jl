@@ -149,6 +149,8 @@ function mgmfrm_validation_analysis_contract()
             protocol.sampler.chains * protocol.sampler.retained_per_chain,
     ))
     response_stress_source_cases = length(mgmfrm_response_stress_plan())
+    stage_1_operability =
+        mgmfrm_validation_isolated_resource_review(()).stage_1_operability
 
     return (;
         schema =
@@ -176,6 +178,7 @@ function mgmfrm_validation_analysis_contract()
         scoring = protocol.scoring,
         scientific_decision = protocol.scientific_decision,
         execution_design,
+        stage_1_operability,
         attempts = (;
             unit = (:scenario, :replication, :model, :backend, :prior_regime),
             initial_status = :not_started,

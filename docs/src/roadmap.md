@@ -196,6 +196,15 @@ diagnostic loop. The first two representative cells meet the current workload
 bound. Memory-guarded execution and primary-specific resource review still
 precede any resource-envelope or final-grid decision.
 
+The threshold-free receipt review now exposes a Stage 1 operability section
+linking candidate cells 01/09 to their two resource-cell records. A complete
+submitted pair may be considered manually for an operability-only milestone;
+it never closes the milestone automatically and never implies convergence,
+recovery, or portable performance. The previously observed run values remain
+outside the package contract because no durable machine-readable Stage 1
+receipts are currently ingested. Recovering those existing receipts is
+therefore the next step; rerunning the cells is not automatically authorized.
+
 External validation uses simulation and observed data for different purposes.
 Known-truth simulation evaluates recovery, coverage, and false-decision rates.
 A public synthetic or literature benchmark evaluates reproducible overlap. A

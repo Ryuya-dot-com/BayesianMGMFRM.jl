@@ -288,7 +288,14 @@ retained short-NUTS geometry: divergences, tree depth, leapfrog-step count,
 step size, and per-chain E-BFMI coverage. These short-chain fields help review
 computational cost and pathological geometry; they are not convergence or
 scientific pass/fail evidence. The review never launches the next cell or
-freezes a resource policy.
+freezes a resource policy. Its `stage_1_operability` section maps the two
+minimum-support candidate cells to their primary resource-cell IDs and reports
+missing, submitted, completed, and denominator-preserving receipts. A complete
+submitted pair only permits a manual decision to close Stage 1 as operability;
+it does not close the milestone automatically or establish convergence,
+recovery, portable performance, or scientific validity. If receipts are
+missing, recovering the existing records is preferred and no rerun is
+authorized automatically.
 
 Stable MFRM/RSM/PCM designs also support `backend = :cmdstan`. CmdStan is an
 optional external runtime, discovered with `cmdstan_backend_check()`; it is not
