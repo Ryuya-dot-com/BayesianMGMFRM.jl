@@ -83,12 +83,21 @@ using BayesianMGMFRM
         :must_be_rejected_before_fit
     @test :unused_interior_category_3 in
         design.response_pattern_stress.scenarios
+    @test design.response_pattern_stress.dense_combined_pattern_excluded
     @test design.response_pattern_stress.sampler_free_preflight ===
         :ordinal_response_pattern_audit
+    @test design.response_pattern_stress.plan_function ===
+        :mgmfrm_response_stress_plan
+    @test design.response_pattern_stress.generator_function ===
+        :simulate_mgmfrm_response_stress
+    @test design.response_pattern_stress.attempt_preflight_function ===
+        :mgmfrm_response_stress_preflight
     @test design.response_pattern_stress.global_single_category_action ===
         :reject_before_fit
     @test design.response_pattern_stress.no_automatic_scientific_failure_from_pattern_alone
     @test design.response_pattern_stress.repeated_fit_evidence === :not_run
+    @test design.response_pattern_stress.generation_status ===
+        :sampler_free_generator_implemented
     @test design.anchor_proportion_axis ===
         :excluded_until_anchor_fit_contract_exists
 
@@ -169,4 +178,8 @@ using BayesianMGMFRM
         :fresh_seed_attempt_complete_evaluation_runner,
         :independent_scientific_threshold_review,
     ))
+    @test protocol.readiness.completed_enablers.
+        attempt_complete_sampler_free_preflight === :implemented
+    @test protocol.readiness.completed_enablers.
+        fit_and_diagnostic_attempt_phases === :pending
 end

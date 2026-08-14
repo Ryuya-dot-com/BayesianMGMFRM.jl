@@ -114,6 +114,8 @@ export FacetData,
     model_family_contract,
     mgmfrm_decision_stability_score,
     mgmfrm_predictive_recovery_score,
+    mgmfrm_response_stress_plan,
+    mgmfrm_response_stress_preflight,
     mgmfrm_validation_protocol,
     mcmc_diagnostics,
     model_manifest,
@@ -172,6 +174,7 @@ export FacetData,
     simulation_grid,
     simulation_grid_summary,
     simulate_local_dependence,
+    simulate_mgmfrm_response_stress,
     simulate_responses,
     stan_validation_row,
     stan_validation_summary,
@@ -203,6 +206,7 @@ include("mgmfrm_free_correlation_study.jl")
 include("mgmfrm_free_correlation_resource_probe.jl")
 include("mgmfrm_free_correlation_study_scoring.jl")
 include("experimental.jl")
+include("mgmfrm_response_stress.jl")
 include("anchor_refit_plan.jl")
 include("facets_conquest_bridge.jl")
 include("practitioner_diagnostics.jl")

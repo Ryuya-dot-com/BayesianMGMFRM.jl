@@ -4,6 +4,9 @@
 CmdStanError
 simulation_grid
 simulation_grid_summary
+mgmfrm_response_stress_plan
+simulate_mgmfrm_response_stress
+mgmfrm_response_stress_preflight
 local_dependence_simulation_grid
 simulate_local_dependence
 local_dependence_calibration_contract

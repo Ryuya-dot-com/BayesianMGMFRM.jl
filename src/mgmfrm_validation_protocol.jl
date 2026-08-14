@@ -285,13 +285,24 @@ function mgmfrm_validation_protocol()
                     :all_minimum_rater,
                     :combined_unused_category_and_boundary_patterns,
                 ),
+                combined_pattern_design =
+                    :connected_sparse_with_nonintersecting_target_person_and_rater,
+                dense_combined_pattern_excluded = true,
+                dense_exclusion_reason =
+                    :all_maximum_person_and_all_minimum_rater_conflict_in_their_shared_cells,
                 missing_category_is_missing_response = false,
                 sampler_free_preflight = :ordinal_response_pattern_audit,
+                plan_function = :mgmfrm_response_stress_plan,
+                generator_function = :simulate_mgmfrm_response_stress,
+                attempt_preflight_function =
+                    :mgmfrm_response_stress_preflight,
                 global_single_category_action = :reject_before_fit,
                 local_boundary_pattern_action =
                     :fit_with_proper_priors_report_separately_and_refit_prior_regimes,
                 no_automatic_scientific_failure_from_pattern_alone = true,
-                generation_status = :attempt_complete_runner_pending,
+                generation_status = :sampler_free_generator_implemented,
+                preflight_status =
+                    :attempt_denominator_and_typed_generation_failures_implemented,
                 repeated_fit_evidence = :not_run,
             ),
             source_sample_size_candidates = (;
@@ -455,6 +466,12 @@ function mgmfrm_validation_protocol()
             stage_a_complete = false,
             blockers,
             n_blockers = length(blockers),
+            completed_enablers = (;
+                response_stress_plan = :implemented,
+                response_stress_generator = :implemented,
+                attempt_complete_sampler_free_preflight = :implemented,
+                fit_and_diagnostic_attempt_phases = :pending,
+            ),
             next_work_order = blockers,
             next_gate = :implement_blockers_then_freeze_before_fresh_evaluation,
         ),

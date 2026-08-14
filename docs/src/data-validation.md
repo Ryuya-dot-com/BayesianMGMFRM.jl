@@ -83,6 +83,34 @@ intended endpoint outside that realized range. Preserve such endpoint intent
 in source-data provenance until a declared-category-scale constructor is
 available; do not infer endpoint use from this audit.
 
+For the fixed-Q MGMFRM validation program, the same cases can now be generated
+and checked across dense and connected-sparse layouts without running MCMC:
+
+```julia
+stress_plan = mgmfrm_response_stress_plan()
+stress_preflight = mgmfrm_response_stress_preflight(stress_plan)
+
+stress_preflight.summary
+stress_preflight.rows
+```
+
+The default plan has nine attempts: four separate patterns under a fully
+crossed layout and five under the connected systematic-link layout. The exact
+combination of an all-maximum person and all-minimum rater is not generated in
+the fully crossed design because their shared cells would require both scores
+simultaneously. In the sparse combined case, the target person and target rater
+have no common observation.
+
+Each attempt terminates as `:preflight_passed`, `:pre_fit_rejected`, or
+`:generation_failed`, and the returned denominator must equal the planned
+attempt count. A generation exception is retained as an exception object plus
+its type, message, phase, and elapsed time; it is not converted to `nothing`.
+Non-baseline patterns are declared deterministic interventions after a model-
+generated response draw, so their retained probabilities are pre-intervention
+references for robustness stress—not well-specified recovery truth. The
+preflight does not fit a model, apply the convergence gate, or provide recovery
+evidence.
+
 ## Clustered Responses and Testlet Identity
 
 When multiple criteria, items, or raters refer to the same response, map the

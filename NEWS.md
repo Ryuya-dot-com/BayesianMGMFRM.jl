@@ -22,6 +22,10 @@
   person patterns and constant-score raters. Skipped interior categories,
   local boundary patterns, and globally single-category data now have distinct
   sampler-free interpretations.
+- Add a nine-attempt, MCMC-free fixed-Q MGMFRM response-stress plan, generator,
+  and denominator-preserving preflight. It covers dense and connected-sparse
+  five-category gaps and boundary patterns, records typed generation failures,
+  and keeps all repeated-fit and scientific decisions explicitly unrun.
 - Add `BayesianMGMFRM.Experimental` as the explicit namespace for the
   documented scalar rater-consistency GMFRM and fixed-Q confirmatory MGMFRM
   configurations. These configurations can be fitted with

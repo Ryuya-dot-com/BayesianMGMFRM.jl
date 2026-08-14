@@ -114,6 +114,19 @@ rater is warning-level stress evidence rather than an automatic fit failure;
 inspect `response_patterns` and repeat those cases under predeclared priors.
 One category across the entire dataset remains a pre-fit error.
 
+The guarded fixed-Q MGMFRM validation program also provides a bounded MCMC-free
+stress preflight:
+
+```julia
+stress = mgmfrm_response_stress_preflight()
+stress.summary
+```
+
+It retains every planned attempt and typed generation failure. Passing this
+preflight establishes only that the nine default dense/sparse category-gap and
+boundary-pattern cases can be generated and structurally checked; repeated-fit
+recovery evidence remains unrun.
+
 Stable MFRM/RSM/PCM designs also support `backend = :cmdstan`. CmdStan is an
 optional external runtime, discovered with `cmdstan_backend_check()`; it is not
 required to load the package or use Julia backends. Both guarded generalized
