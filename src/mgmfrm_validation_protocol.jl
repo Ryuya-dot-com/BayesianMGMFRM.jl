@@ -141,7 +141,6 @@ independent review.
 function mgmfrm_validation_protocol()
     blockers = (
         :fresh_seed_attempt_complete_evaluation_runner,
-        :prediction_and_decision_stability_scorers,
         :independent_scientific_threshold_review,
     )
     return (;
@@ -261,6 +260,28 @@ function mgmfrm_validation_protocol()
             typed_terminal_status_required = true,
             original_error_preserved = true,
             retry_policy_must_be_predeclared = true,
+        ),
+        scoring = (;
+            predictive_recovery = (;
+                function_name = :mgmfrm_predictive_recovery_score,
+                targets = (
+                    :category_probability_error,
+                    :expected_score_error,
+                    :proper_log_score_regret,
+                ),
+                known_truth_required = true,
+                thresholds_applied = false,
+            ),
+            decision_stability = (;
+                function_name = :mgmfrm_decision_stability_score,
+                targets = (
+                    :absolute_shift,
+                    :pairwise_order_disagreement,
+                    :classification_flip,
+                ),
+                caller_supplied_cutpoints = true,
+                thresholds_applied = false,
+            ),
         ),
         computation_gate = (;
             max_rank_normalized_rhat = 1.01,

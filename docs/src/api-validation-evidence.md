@@ -17,6 +17,8 @@ simulate_responses
 parameter_recovery
 parameter_recovery_plot_data
 parameter_recovery_summary
+mgmfrm_predictive_recovery_score
+mgmfrm_decision_stability_score
 stan_validation_row
 stan_validation_summary
 cmdstan_backend_contract

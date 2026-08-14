@@ -98,6 +98,14 @@ using BayesianMGMFRM
         :all_predeclared_attempts
     @test !protocol.failure_accounting.successful_fits_only_summary_allowed
     @test protocol.failure_accounting.typed_terminal_status_required
+    @test protocol.scoring.predictive_recovery.function_name ===
+        :mgmfrm_predictive_recovery_score
+    @test protocol.scoring.predictive_recovery.known_truth_required
+    @test !protocol.scoring.predictive_recovery.thresholds_applied
+    @test protocol.scoring.decision_stability.function_name ===
+        :mgmfrm_decision_stability_score
+    @test protocol.scoring.decision_stability.caller_supplied_cutpoints
+    @test !protocol.scoring.decision_stability.thresholds_applied
     @test protocol.computation_gate.max_rank_normalized_rhat == 1.01
     @test protocol.computation_gate.min_bulk_ess == 400.0
     @test protocol.computation_gate.max_divergences == 0
@@ -106,10 +114,9 @@ using BayesianMGMFRM
     @test !protocol.scientific_decision.pilot_values_may_define_thresholds
     @test !protocol.scientific_decision.complexity_increase_is_automatic
     @test !protocol.readiness.stage_a_complete
-    @test protocol.readiness.n_blockers == 3
+    @test protocol.readiness.n_blockers == 2
     @test Set(protocol.readiness.blockers) == Set((
         :fresh_seed_attempt_complete_evaluation_runner,
-        :prediction_and_decision_stability_scorers,
         :independent_scientific_threshold_review,
     ))
 end

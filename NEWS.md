@@ -10,6 +10,9 @@
 - Add experimental generalized `prior_predict` and `prior_predictive_check`
   operations that retain raw/direct prior draws and reuse the existing score,
   category-use, facet-range, and sparse-design summaries without running MCMC.
+- Add threshold-free MGMFRM validation scorers for known-truth category
+  probabilities, expected scores, proper log-score regret, pairwise ordering,
+  and caller-defined classification stability.
 - Add `mgmfrm_validation_protocol()` as a non-executing Stage-A draft for the
   narrow fixed-Q promotion study. It records Uto source anchors, the
   between-item primary domain, boundary Q structures, estimands, interval and

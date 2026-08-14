@@ -112,6 +112,8 @@ export FacetData,
     local_dependence_summary,
     model_equation,
     model_family_contract,
+    mgmfrm_decision_stability_score,
+    mgmfrm_predictive_recovery_score,
     mgmfrm_validation_protocol,
     mcmc_diagnostics,
     model_manifest,
@@ -188,6 +190,7 @@ include("evidence_metadata.jl")
 include("facet_workflow.jl")
 include("model_family_contract.jl")
 include("mgmfrm_validation_protocol.jl")
+include("mgmfrm_validation_scoring.jl")
 include("model_contract.jl")
 include("testlet_design_audit.jl")
 include("bayesian_fit.jl")
