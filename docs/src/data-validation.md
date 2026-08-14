@@ -36,12 +36,52 @@ maximum observed score, and optional metadata roles.
 `ValidationIssue.code` values and human-readable messages. Current checks cover:
 
 - observed and skipped score categories;
+- all-minimum/all-maximum person patterns and constant-score raters with at
+  least two ratings;
 - singleton person, rater, item, and optional metadata levels;
 - connectedness of the person-rater-item graph;
 - rank of the current reference-constrained minimal location design;
 - item/category support warnings for weakly informed partial-credit thresholds;
 - empty, sparse, and potentially confounded DFF cells for requested `bias`
   terms.
+
+## Ordinal Response-Pattern Stress
+
+Use [`ordinal_response_pattern_audit`](@ref) before fitting when category use
+or boundary responses are part of the design risk:
+
+```julia
+audit = ordinal_response_pattern_audit(data)
+audit.status
+audit.category_scale.unobserved_interior_categories
+audit.flags.extreme_person_levels
+audit.flags.constant_rater_levels
+```
+
+If a five-category dataset contains scores 1, 2, 4, and 5, `FacetData` retains
+the contiguous `1:5` range and the audit reports category 3 as an unobserved
+interior category. This is not a missing response row and is not automatically
+a fit error; its adjacent step transitions can be weakly separated and belong
+in prior-sensitivity and category-use checks. Literal missing score values are
+different: the current `missing_policy = :error` rejects them during data
+construction.
+
+A person rated 5 on every observed response supplies one-sided information
+about ability, and dimension-specific Q coverage must also be inspected. A
+rater assigning 1 on every observed response can weakly
+separate severity from the generalized rater-consistency parameter, depending
+on assignment overlap. Both patterns produce pre-fit warnings when the level
+has at least two ratings, but neither is converted into an infinite parameter
+or an automatic scientific failure. Proper priors keep finite posteriors; the
+levels must be reported separately and refitted under predeclared prior
+regimes. If the entire dataset contains only one score category, the ordered-
+response likelihood is not estimable and `validate_design` returns an error.
+
+The ordinary `FacetData` constructor infers the scale from the observed
+minimum through maximum. It can detect skipped interior categories, but not an
+intended endpoint outside that realized range. Preserve such endpoint intent
+in source-data provenance until a declared-category-scale constructor is
+available; do not infer endpoint use from this audit.
 
 ## Clustered Responses and Testlet Identity
 

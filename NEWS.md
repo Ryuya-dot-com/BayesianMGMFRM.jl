@@ -18,6 +18,10 @@
   between-item primary domain, boundary Q structures, estimands, interval and
   sampler policy, prior regimes, paired backend role, all-attempt failure
   accounting, and the remaining blockers without treating pilots as evidence.
+- Add `ordinal_response_pattern_audit()` and pre-fit warnings for all-boundary
+  person patterns and constant-score raters. Skipped interior categories,
+  local boundary patterns, and globally single-category data now have distinct
+  sampler-free interpretations.
 - Add `BayesianMGMFRM.Experimental` as the explicit namespace for the
   documented scalar rater-consistency GMFRM and fixed-Q confirmatory MGMFRM
   configurations. These configurations can be fitted with
@@ -52,6 +56,10 @@
   defers anchor-dose and broader model studies until their fitted contracts
   exist; and replaces routine SHA-oriented gates with resource-aware executable
   checks.
+- Refine the Stage-A contract with explicit estimand units, Q and sparse-design
+  scope, executable prior-refit sensitivity, `1.7`/`1.702` scale
+  harmonization, a paired CmdStan comparison subset, layered decision rules,
+  and five-category response-pattern stress scenarios.
 - Add a bounded Stage 0 model-family skeleton before scientific protocol
   freezing. It separates between-item, within-item, and mixed fixed-Q
   structures; the source's non-compensatory label from its additive weighted-

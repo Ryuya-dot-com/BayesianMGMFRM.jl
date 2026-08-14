@@ -121,6 +121,7 @@ export FacetData,
     model_surface_check,
     model_surface_audit,
     mfrm_spec,
+    ordinal_response_pattern_audit,
     parameter_block_diagnostics,
     parameter_recovery,
     parameter_recovery_plot_data,
@@ -188,6 +189,7 @@ export FacetData,
 include("cmdstan_backend.jl")
 include("evidence_metadata.jl")
 include("facet_workflow.jl")
+include("ordinal_response_patterns.jl")
 include("model_family_contract.jl")
 include("mgmfrm_validation_protocol.jl")
 include("mgmfrm_validation_scoring.jl")

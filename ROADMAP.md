@@ -118,10 +118,10 @@ The ordered program is:
 | Stage | Priority and scope | Exit condition |
 | --- | --- | --- |
 | 0. Freeze the MGMFRM family skeleton | **P0, completed.** `model_family_contract()` records between-item, within-item, and mixed fixed-Q structures; source terminology versus algebraic dimension aggregation; PCM/GPCM category kernels; step-sharing ownership; latent-correlation policy; facet roles; and executable/specified-only/blocked status. No new sampler was added. | Met: the public machine-readable skeleton, exact spec/design resolver, prose, and boundary tests distinguish implemented, guarded, specified-only, and blocked branches. |
-| A. Freeze the validation protocol | **P0, in progress.** `mgmfrm_validation_protocol()` now records the narrow estimands, source anchors, `1.7`/`1.702` policy, between-item promotion target, boundary Q structures, interval policy, default sampler/backend budgets, prior regimes, fresh-seed rule, and all-attempt denominator. Typed raw-coordinate priors support prior-predictive simulation and actual refits; descriptive predictive-recovery and decision-stability scorers are implemented without embedded thresholds. The protocol remains deliberately unfrozen while the attempt-complete runner and independent threshold review remain. | A reviewable, portable protocol and commands exist; the runner retains every attempt, and independently reviewed scientific thresholds are frozen before any fresh evaluation starts. |
+| A. Freeze the validation protocol | **P0, in progress.** `mgmfrm_validation_protocol()` now records identified-block and heldout-response estimands; the source-literal `1.7` versus reference `1.702` scale policy; primary between-item Q, boundary within/mixed Q, and Q-misspecification scope; connected sparse design; actual prior refits; a paired CmdStan subset; layered structural, computational, scientific, and robustness criteria; and five-category response-pattern stress. `ordinal_response_pattern_audit()` supplies the MCMC-free preflight. No embedded scientific threshold is inferred from pilots. The protocol remains deliberately unfrozen while the attempt-complete runner and independent threshold review remain. | A reviewable, portable protocol and commands exist; the runner retains every attempt and stress stratum, and independently reviewed scientific thresholds are frozen before any fresh evaluation starts. |
 | B. Run fresh-seed known-truth validation | **P0.** Run repeated dense and connected-sparse recovery, prior sensitivity, prediction/calibration, and nested unidimensional MFRM comparisons. Use one predeclared primary backend for the full grid and both backends on a stratified conformance subset. | Predeclared parameter-block and focal-decision criteria pass, or the supported domain is narrowed and the surface remains experimental. |
 | C. Add external and independent evidence | **P0 before stable promotion.** Reproduce a matching public benchmark, analyze one provenance- and licence-cleared external dataset when available, and obtain review of equations, Q, priors, transforms, diagnostics, and claims from someone other than the implementer. | The exact overlapping targets reproduce in a separate environment and the reviewer records claim-level allow/block decisions. |
-| D. Harden the user workflow | **P1, in parallel only where it enables B/C.** Add bounded parallel chains, CmdStan cache integration, resolved sampler profiles, fit persistence, concise summaries/warnings, visualization rows, and maintainable source boundaries. | A non-maintainer can fit, diagnose, summarize, save, reload, and report the narrow model without repository-specific paths or hidden state. |
+| D. Harden the user workflow | **P1, in parallel only where it enables B/C.** Add an explicit intended-category-scale/endpoints input, bounded parallel chains, CmdStan cache integration, resolved sampler profiles, fit persistence, concise summaries/warnings, visualization rows, and maintainable source boundaries. | A non-maintainer can preserve an intended ordinal scale and fit, diagnose, summarize, save, reload, and report the narrow model without repository-specific paths or hidden state. |
 | E. Make the promotion decision | **Release gate.** Review the narrow candidate only; choose stable, remain experimental, or narrow further. | Stable wording is allowed only for the domain that passed A-D. Missing broader mechanisms are stated as non-goals rather than hidden caveats. |
 
 Stage 0 does not classify the Uto equation from its summation sign alone. Uto
@@ -174,6 +174,26 @@ Stage A must then make these scientific choices explicit before Stage B:
 6. record all attempted fits and typed failure reasons. Excluding failed fits
    from recovery summaries is not permitted.
 
+The primary inference units are identified parameter blocks and heldout
+responses, not unconstrained coordinates. Raw discriminations are compared
+only when Q, constraints, and the `1.7` likelihood scale agree; otherwise the
+harmonized targets are the linear predictor, category probabilities, expected
+score, and heldout log score. Person ability remains secondary, and boundary-
+only persons are reported separately rather than forced through an individual
+hard-recovery gate. The primary Q has one active dimension per item. Fixed
+cross-loading and mixed Q are boundary evidence; omitted true and added false
+Q entries are misspecification cells, not exploratory-Q estimation.
+
+Sparse validation uses a connected systematic link with two raters per person,
+plus a disconnected negative control that must fail before sampling. It does
+not assume arbitrary missingness is ignorable. A separate five-category stress
+axis covers an unused interior category, an all-maximum person, an all-minimum
+rater, and their combination. These patterns trigger separate reporting and a
+predeclared, non-Cartesian prior-sensitivity subset spanning every pattern and
+prior regime; their presence alone is not failure. A globally single-category
+outcome is structurally rejected, and
+pooled means cannot hide a failed stress stratum.
+
 External validation uses simulation and observed data for different purposes.
 Known-truth simulation is required for parameter recovery, coverage, and false-
 decision rates. A public synthetic or literature benchmark tests reproducible
@@ -200,6 +220,13 @@ subset must detect equation, transform, initialization, or draw-import drift;
 feature-for-feature backend parity and speed superiority are not goals. The
 package must continue to load and provide Julia-only supported workflows when
 CmdStan is absent.
+
+AdvancedHMC runs the primary grid. CmdStan covers the smallest predeclared
+paired subset that spans dense/sparse designs, ordinary/category-gap/boundary
+patterns, and reference/source-aligned priors. The comparison targets density,
+gradient, identified summaries, probabilities, diagnostics, and terminal
+status—not speed. Agreement is necessary implementation evidence, not a
+scientific validation result.
 
 Verification follows a resource-aware ladder:
 

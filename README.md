@@ -87,6 +87,9 @@ data = FacetData(ratings;
 validation = validate_design(data)
 validation.passed || error(validation)
 
+# Sampler-free category-gap and boundary-response audit
+response_patterns = ordinal_response_pattern_audit(data)
+
 spec = mfrm_spec(data; thresholds = :partial_credit,
     validation_report = validation)
 design = getdesign(spec)
@@ -106,6 +109,10 @@ posterior_summary(fit_result)
 Small sampler settings are useful for smoke tests only. Substantive analyses
 should predeclare sampler controls, inspect convergence and HMC diagnostics,
 and repeat important conclusions under defensible prior and model choices.
+An unused interior score category, an all-maximum person, or a constant-score
+rater is warning-level stress evidence rather than an automatic fit failure;
+inspect `response_patterns` and repeat those cases under predeclared priors.
+One category across the entire dataset remains a pre-fit error.
 
 Stable MFRM/RSM/PCM designs also support `backend = :cmdstan`. CmdStan is an
 optional external runtime, discovered with `cmdstan_backend_check()`; it is not

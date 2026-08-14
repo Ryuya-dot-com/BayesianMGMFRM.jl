@@ -29,6 +29,7 @@ FacetSpec
 FacetDesign
 validate_design
 validation_suggestions
+ordinal_response_pattern_audit
 mfrm_spec
 getdesign
 design_identity

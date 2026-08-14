@@ -51,9 +51,9 @@ ValidationIssue(code::Symbol, severity::Symbol, message::AbstractString; context
     ValidationReport
 
 Structured result returned by `validate_design`, including pass/fail status,
-category and facet counts, graph components, item/category support warnings,
-requested DFF cell counts, and data signatures used to prevent stale report
-reuse.
+category and facet counts, graph components, item/category and boundary-pattern
+warnings, requested DFF cell counts, and data signatures used to prevent stale
+report reuse.
 """
 struct ValidationReport
     n::Int
@@ -687,9 +687,9 @@ end
 """
     validate_design(data::FacetData; bias = Tuple{Symbol,Symbol}[], min_cell_count = 2)
 
-Run pre-fit validation checks for category use, singleton facet levels,
-person-rater-item connectedness, minimal location-design rank, item/category
-support, and optional DFF/bias cell counts.
+Run pre-fit validation checks for category use, singleton and extreme response
+patterns, person-rater-item connectedness, minimal location-design rank,
+item/category support, and optional DFF/bias cell counts.
 """
 function validate_design(data::FacetData; bias = Tuple{Symbol,Symbol}[], min_cell_count::Int = 2)
     min_cell_count >= 1 || throw(ArgumentError("min_cell_count must be positive"))
@@ -712,6 +712,7 @@ function validate_design(data::FacetData; bias = Tuple{Symbol,Symbol}[], min_cel
         end
     end
     _validate_item_category_support!(issues, data)
+    _validate_ordinal_response_patterns!(issues, data)
 
     facet_counts = Dict{Symbol,Dict{Any,Int}}(
         :person => _counts(data.person, data.person_levels),
@@ -784,6 +785,14 @@ function _suggestion_for_issue(issue::ValidationIssue)
     code === :unobserved_item_category && return (
         action = :check_threshold_support,
         suggestion = "Unobserved item/category cells can make partial-credit thresholds weakly informed; inspect category coverage before fitting item-specific steps.",
+    )
+    code === :extreme_person_score_pattern && return (
+        action = :run_extreme_response_prior_sensitivity,
+        suggestion = "Treat all-minimum or all-maximum person patterns as finite but one-sided information; inspect posterior/prior overlap and repeat the fit under predeclared priors.",
+    )
+    code === :constant_rater_score_pattern && return (
+        action = :inspect_rater_assignment_and_prior_sensitivity,
+        suggestion = "Inspect assignment overlap and severity; for generalized families, also check separation from rater consistency under predeclared prior regimes.",
     )
     code === :singleton_facet_level && return (
         action = :collect_more_linking_data,

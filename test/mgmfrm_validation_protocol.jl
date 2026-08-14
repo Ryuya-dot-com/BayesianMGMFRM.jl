@@ -53,6 +53,16 @@ using BayesianMGMFRM
         :item_steps,
         :prediction,
     ))
+    @test protocol.estimand_policy.primary_inference_units ==
+        (:identified_parameter_block, :heldout_response)
+    @test protocol.estimand_policy.person_ability_role ===
+        :secondary_no_hard_individual_recovery_gate
+    @test !protocol.estimand_policy.raw_parameter_pooling_across_incompatible_scales
+    @test protocol.scale_harmonization.primary.constant == 1.7
+    @test protocol.scale_harmonization.normal_ogive_reference.constant == 1.702
+    @test protocol.scale_harmonization.normal_ogive_reference.likelihood_refit_status ===
+        :not_currently_executable
+    @test !protocol.scale_harmonization.normal_ogive_reference.required_for_primary_promotion
     @test protocol.intervals.primary ==
         (probability = 0.90, kind = :equal_tailed)
     @test protocol.intervals.hdi_role ===
@@ -64,6 +74,21 @@ using BayesianMGMFRM
     @test :q_misspecification in design.required_axes
     @test design.categories == 4
     @test design.sparse_raters_per_person == 2
+    @test design.q_scope.primary ===
+        :pure_between_item_one_active_dimension_per_item
+    @test design.q_scope.misspecification ==
+        (:omit_true_active_dimension, :add_false_active_dimension)
+    @test design.sparse_design.connectivity_and_location_rank_must_pass_before_fit
+    @test design.sparse_design.disconnected_negative_control ===
+        :must_be_rejected_before_fit
+    @test :unused_interior_category_3 in
+        design.response_pattern_stress.scenarios
+    @test design.response_pattern_stress.sampler_free_preflight ===
+        :ordinal_response_pattern_audit
+    @test design.response_pattern_stress.global_single_category_action ===
+        :reject_before_fit
+    @test design.response_pattern_stress.no_automatic_scientific_failure_from_pattern_alone
+    @test design.response_pattern_stress.repeated_fit_evidence === :not_run
     @test design.anchor_proportion_axis ===
         :excluded_until_anchor_fit_contract_exists
 
@@ -84,6 +109,13 @@ using BayesianMGMFRM
             scales.log_discrimination_sd == 1.0
     @test protocol.priors.actual_refits_required
     @test !protocol.priors.importance_reweighting_is_final_evidence
+    @test protocol.priors.sensitivity_contract.full_primary_grid_regime ===
+        :implementation_reference
+    @test protocol.priors.sensitivity_contract.all_regime_refit_scope ===
+        :predeclared_stratified_subset_not_full_cartesian
+    @test protocol.priors.sensitivity_contract.required_prior_regimes == (
+        :implementation_reference, :source_aligned, :strong_regularizing)
+    @test !protocol.priors.sensitivity_contract.select_regime_from_pilot_results
 
     @test protocol.sampler.chains == 4
     @test protocol.sampler.warmup_per_chain == 1000
@@ -93,6 +125,20 @@ using BayesianMGMFRM
     @test protocol.backends.primary === :advancedhmc
     @test protocol.backends.reference === :cmdstan
     @test !protocol.backends.speed_ranking_allowed
+    @test :connected_sparse_systematic_link in
+        protocol.backends.reference_subset.required_design_strata
+    @test protocol.backends.reference_subset.selection ===
+        :five_predeclared_paired_stratum_cells_not_full_cartesian
+    @test length(protocol.backends.reference_subset.paired_stratum_cells) == 5
+    @test Set(row.response for row in
+        protocol.backends.reference_subset.paired_stratum_cells) == Set((
+            :regular_all_categories,
+            :unused_interior_category_3,
+            :all_maximum_person,
+            :all_minimum_rater,
+        ))
+    @test protocol.backends.disagreement_action ===
+        :investigate_parameterization_or_implementation_before_scientific_scoring
 
     @test protocol.failure_accounting.denominator ===
         :all_predeclared_attempts
@@ -113,6 +159,10 @@ using BayesianMGMFRM
     @test !protocol.scientific_decision.thresholds_frozen
     @test !protocol.scientific_decision.pilot_values_may_define_thresholds
     @test !protocol.scientific_decision.complexity_increase_is_automatic
+    @test protocol.scientific_decision.criterion_layers.structural ===
+        :prefit_pass_or_reject_without_sampling
+    @test protocol.scientific_decision.averaging_cannot_hide_failed_stress_stratum
+    @test !protocol.scientific_decision.stress_pattern_presence_is_automatic_failure
     @test !protocol.readiness.stage_a_complete
     @test protocol.readiness.n_blockers == 2
     @test Set(protocol.readiness.blockers) == Set((
