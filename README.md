@@ -55,9 +55,10 @@ active dimensions; it contains no latent-ability integral. A simple fixed Q
 represents between-item multidimensionality, while fixed cross-loaded rows
 represent within-item structure and a Q containing both is mixed. The source
 paper labels the model non-compensatory, while its predictor is an additive
-weighted sum. The documentation keeps those facts separate; the roadmap's
-Stage 0 will make the distinction machine-readable. The package does not
-implement an alternative conjunctive/product/minimum response rule.
+weighted sum. The documentation keeps those facts separate, and
+`model_family_contract(spec)` makes the distinction machine-readable. The
+package does not implement an alternative conjunctive/product/minimum response
+rule.
 Generalized fitting is GPCM-form. This fixed-Q branch is a restricted candidate,
 not Uto's unrestricted item-dimension loading surface. Step vectors belong only
 to the declared threshold owner: the rater for guarded GMFRM and the item for

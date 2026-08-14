@@ -37,6 +37,7 @@ identification_declarations
 model_ladder
 model_manifest
 model_equation
+model_family_contract
 model_surface_check
 q_matrix_validation
 fit_ready_parameter_layout

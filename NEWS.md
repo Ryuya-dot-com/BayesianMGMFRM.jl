@@ -43,7 +43,11 @@
   structures; the source's non-compensatory label from its additive weighted-
   sum predictor; GPCM-form category kernels; model-specific step ownership;
   and executable versus unsupported branches without proposing a generic
-  sampler framework.
+  sampler framework. The public `model_family_contract()` API returns that
+  skeleton, while `model_family_contract(spec_or_design)` resolves the exact
+  branch and its fitting boundary. It also records the original scalar GMFRM
+  unit-scale convention separately from the MGMFRM `1.7` convention and marks
+  cross-family discrimination comparisons as requiring explicit harmonization.
 - Make an explicit CmdStan fitting backend a required gate before stable
   promotion while keeping CmdStan an optional external runtime. Add a portable
   runtime/toolchain check and a direct CLI adapter for stable MFRM/RSM/PCM

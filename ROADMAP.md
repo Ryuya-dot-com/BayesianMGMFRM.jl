@@ -89,10 +89,10 @@ internal, even if its API is convenient.
 
 This section is the authoritative work order. Later progress ledgers preserve
 history, but they do not override this sequence. The immediate goal is not a
-generic MGMFRM engine. First freeze a thin model-family skeleton that
-distinguishes response kernel, dimensional structure, dimension aggregation,
-loading policy, latent covariance, step sharing, facet roles, and
-identification. Then make a defensible promotion decision for one declared
+generic MGMFRM engine. A thin model-family skeleton now freezes response
+kernel, dimensional structure, dimension aggregation, loading policy, latent
+covariance, step sharing, facet roles, and identification. The next task is to
+freeze a defensible validation protocol for one declared
 fixed-Q, positive-loading, identity-correlation confirmatory branch. Broader
 mechanisms proceed as separate research programs only after that decision.
 
@@ -117,17 +117,17 @@ The ordered program is:
 
 | Stage | Priority and scope | Exit condition |
 | --- | --- | --- |
-| 0. Freeze the MGMFRM family skeleton | **P0, immediate and bounded.** Record between-item, within-item, and mixed fixed-Q structures; source terminology versus algebraic dimension aggregation; PCM/GPCM category kernels; step-sharing ownership; latent-correlation policy; facet roles; and executable/specified-only/blocked status for every branch. Do not add samplers for all branches. | One source-reviewed, machine-readable family contract and matching prose make unsupported combinations impossible to mistake for implemented ones. |
-| A. Freeze the validation protocol | **P0, now.** Freeze the narrow estimands, supported Q/design domain, prior variants, design cells, primary backend, cross-backend subset, sampler budgets, fresh evaluation seeds, failure accounting, and decision rules before inspecting evaluation results. | A reviewable, portable protocol and commands exist; no scientific claim is released. |
+| 0. Freeze the MGMFRM family skeleton | **P0, completed.** `model_family_contract()` records between-item, within-item, and mixed fixed-Q structures; source terminology versus algebraic dimension aggregation; PCM/GPCM category kernels; step-sharing ownership; latent-correlation policy; facet roles; and executable/specified-only/blocked status. No new sampler was added. | Met: the public machine-readable skeleton, exact spec/design resolver, prose, and boundary tests distinguish implemented, guarded, specified-only, and blocked branches. |
+| A. Freeze the validation protocol | **P0, now.** Freeze the narrow estimands, source-scale harmonization across the original scalar GMFRM and MGMFRM equations, supported Q/design domain, prior variants, design cells, primary backend, cross-backend subset, sampler budgets, fresh evaluation seeds, failure accounting, and decision rules before inspecting evaluation results. | A reviewable, portable protocol and commands exist; no scientific claim is released. |
 | B. Run fresh-seed known-truth validation | **P0.** Run repeated dense and connected-sparse recovery, prior sensitivity, prediction/calibration, and nested unidimensional MFRM comparisons. Use one predeclared primary backend for the full grid and both backends on a stratified conformance subset. | Predeclared parameter-block and focal-decision criteria pass, or the supported domain is narrowed and the surface remains experimental. |
 | C. Add external and independent evidence | **P0 before stable promotion.** Reproduce a matching public benchmark, analyze one provenance- and licence-cleared external dataset when available, and obtain review of equations, Q, priors, transforms, diagnostics, and claims from someone other than the implementer. | The exact overlapping targets reproduce in a separate environment and the reviewer records claim-level allow/block decisions. |
 | D. Harden the user workflow | **P1, in parallel only where it enables B/C.** Add bounded parallel chains, CmdStan cache integration, resolved sampler profiles, fit persistence, concise summaries/warnings, visualization rows, and maintainable source boundaries. | A non-maintainer can fit, diagnose, summarize, save, reload, and report the narrow model without repository-specific paths or hidden state. |
 | E. Make the promotion decision | **Release gate.** Review the narrow candidate only; choose stable, remain experimental, or narrow further. | Stable wording is allowed only for the domain that passed A-D. Missing broader mechanisms are stated as non-goals rather than hidden caveats. |
 
-Stage 0 must not classify the Uto equation from its summation sign alone. Uto
+Stage 0 does not classify the Uto equation from its summation sign alone. Uto
 (2021) calls the multidimensional GPCM basis and proposed MGMFRM
 *non-compensatory*, while its conditional predictor contains the additive
-weighted sum `sum_l alpha[i,l] * theta[p,l]`. The family contract must preserve
+weighted sum `sum_l alpha[i,l] * theta[p,l]`. The family contract preserves
 both facts as separate fields: a source classification and an algebraic
 aggregation rule. Any stronger operational claim about whether one high ability
 can offset another requires a separately defined response-surface criterion.

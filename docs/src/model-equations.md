@@ -24,9 +24,32 @@ under development as described in [Scope and Releases](scope.md).
 - Multidimensional generalized MFRM target: Uto (2021), DOI
   [`10.1007/s41237-021-00144-w`](https://doi.org/10.1007/s41237-021-00144-w).
 
-See [API](api.md) for the rendered [`model_equation`](@ref) docstring.
+The Stage-0 [`model_family_contract`](@ref) complements this equation manifest.
+Calling it without an argument returns the family skeleton; calling it with a
+specification or design returns the exact category kernel, multidimensional
+structure, aggregation rule, loading policy, step owner, latent-correlation
+policy, identification status, and fitting boundary for that object.
+
+```julia
+contract = model_family_contract(spec)
+contract.dimensionality.classification
+contract.steps.owner
+contract.support.implementation_status
+```
+
+See [API](api.md) for the rendered [`model_equation`](@ref) and
+[`model_family_contract`](@ref) docstrings.
 
 ## Generalized Partial-Credit and Multidimensional Structure
+
+The guarded scalar GMFRM kernel follows Uto and Ueno (2020), Eq. 9. Its
+multiplier is `alpha_i * alpha_r`; that original equation does not include a
+fixed `1.7` factor. Uto (2021), Eq. 4 restates the scalar model with `1.7`,
+whereas the multidimensional Eq. 6 below also uses `1.7`. The implementation
+keeps the original 2020 scalar convention and the 2021 multidimensional
+convention explicit in `category.source_scale_contract`. Direct numerical
+comparison of discrimination parameters across those families therefore
+requires a predeclared scale harmonization rather than an implicit comparison.
 
 The guarded MGMFRM kernel follows the conditional response form in Uto (2021):
 
@@ -76,10 +99,12 @@ valid substitute: the current validator also requires distinguishable Q columns
 and adequate identification/design support. The guarded branch is therefore a
 restricted Uto-equation candidate, not the complete source loading model.
 
-The current `q_matrix_validation` already distinguishes simple structure from
-fixed cross-loadings and records pure-item support. It does not yet expose the
-between-item/within-item/mixed taxonomy as one explicit model-family contract;
-that is the bounded Stage 0 roadmap task.
+The [`model_family_contract`](@ref) now exposes this taxonomy directly as
+`:between_item`, `:within_item`, or `:mixed_between_and_within_item`, while
+`q_matrix_validation` continues to record the lower-level Q rank, person
+support, pure-item, and connectivity evidence. A missing Q is rejected during
+specification construction; an empty-row Q is rejected by validation and is
+never classified as a valid multidimensional structure.
 
 Step sharing is not generated once for every facet:
 
