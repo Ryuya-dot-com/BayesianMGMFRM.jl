@@ -160,6 +160,10 @@ primary_grid_preflight = mgmfrm_validation_primary_grid_preflight(
     primary_grid_candidates,
 )
 primary_resource_plan = mgmfrm_validation_primary_resource_plan()
+# Planning candidates only; these are not recommended or frozen counts.
+replication_precision = mgmfrm_validation_replication_precision(
+    (50, 100, 200, 400),
+)
 # Explicit gradient measurement, one cell at a time:
 primary_resource_probe = mgmfrm_validation_resource_probe(
     first(primary_resource_plan.rows),
@@ -207,6 +211,13 @@ The first two rows can now be selected by cell ID in the dedicated isolated
 worker; the later two remain gradient-only under the current workload bound.
 Execution remains explicitly memory-guarded, requires one cell per invocation,
 and cannot freeze the resource envelope by itself.
+
+`mgmfrm_validation_replication_precision` separates nominal-coverage MCSE,
+worst-case binary decision/failure-rate MCSE, and bias MCSE. Bias precision is
+left unresolved unless the caller supplies a predeclared replication-error SD;
+optional precision targets show required counts but never select or freeze a
+count. Failed fits remain in the planned denominator and require separate
+failure-rate reporting and bias-sensitivity handling.
 
 The first resource-planning surface is also MCMC-free by default. Calling
 `mgmfrm_validation_resource_probe()` only returns the bounded dense/sparse

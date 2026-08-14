@@ -6,6 +6,7 @@ sampler_diagnostics
 mcmc_diagnostics
 parameter_block_diagnostics
 posterior_mcse
+mgmfrm_validation_replication_precision
 posterior_summary
 BayesianMGMFRM.pointwise_loglikelihood
 pointwise_loglikelihood_matrix

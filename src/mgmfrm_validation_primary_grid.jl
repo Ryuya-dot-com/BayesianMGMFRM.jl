@@ -146,6 +146,189 @@ function mgmfrm_validation_primary_grid_candidates()
     )
 end
 
+function _mgmfrm_validation_optional_positive(value, name::AbstractString)
+    value === nothing && return nothing
+    value isa Real || throw(ArgumentError(
+        "$name must be a real number when supplied",
+    ))
+    converted = Float64(value)
+    isfinite(converted) && converted > 0 || throw(ArgumentError(
+        "$name must be finite and positive when supplied",
+    ))
+    return converted
+end
+
+function _mgmfrm_validation_minimum_replications(variance::Float64,
+        target::Union{Nothing,Float64})
+    target === nothing && return missing
+    ratio = variance / target^2
+    isfinite(ratio) && ratio <= typemax(Int) || throw(ArgumentError(
+        "the requested MCSE target implies an unsupported replication count",
+    ))
+    nearest_integer = round(ratio)
+    adjusted = isapprox(
+        ratio,
+        nearest_integer;
+        rtol = 8eps(Float64),
+        atol = 0.0,
+    ) ? nearest_integer : ratio
+    return max(1, ceil(Int, adjusted))
+end
+
+function _mgmfrm_validation_mcse_target_met(value::Float64,
+        target::Union{Nothing,Float64})
+    target === nothing && return missing
+    return value <= target || isapprox(
+        value,
+        target;
+        rtol = 8eps(Float64),
+        atol = 0.0,
+    )
+end
+
+"""
+    mgmfrm_validation_replication_precision(replications;
+        nominal_coverage = 0.95,
+        coverage_mcse_target = nothing,
+        binary_rate_mcse_target = nothing,
+        bias_error_sd_reference = nothing,
+        bias_mcse_target = nothing)
+
+Return an MCMC-free Monte Carlo precision reference for proposed independent
+simulation replication counts. Coverage-rate MCSE is evaluated at
+`nominal_coverage`; decision, calibration, and failure rates use the
+conservative Bernoulli variance `0.25`. Bias MCSE is available only when an
+external or predeclared replication-error standard deviation is supplied.
+
+Optional targets report the algebraic minimum replication count and whether
+each proposed count reaches it. The function does not select a count, freeze a
+study, authorize execution, or define scientific thresholds. Bias precision is
+conditional on replications that produce numeric errors; an attempt-complete
+study must still report failures on the full planned denominator and specify a
+failure-sensitivity analysis rather than dropping failed fits silently.
+"""
+function mgmfrm_validation_replication_precision(replications;
+        nominal_coverage::Real = 0.95,
+        coverage_mcse_target = nothing,
+        binary_rate_mcse_target = nothing,
+        bias_error_sd_reference = nothing,
+        bias_mcse_target = nothing)
+    source = replications isa Integer ? (replications,) :
+             Tuple(replications)
+    isempty(source) && throw(ArgumentError(
+        "replications must contain at least one proposed count",
+    ))
+    all(value -> value isa Integer, source) || throw(ArgumentError(
+        "replications must contain integers",
+    ))
+    counts = Tuple(Int(value) for value in source)
+    all(>(0), counts) || throw(ArgumentError(
+        "replication counts must be positive",
+    ))
+    length(unique(counts)) == length(counts) || throw(ArgumentError(
+        "replication counts must be unique",
+    ))
+
+    coverage_probability = Float64(nominal_coverage)
+    isfinite(coverage_probability) && 0 < coverage_probability < 1 ||
+        throw(ArgumentError("nominal_coverage must lie strictly between 0 and 1"))
+    coverage_target = _mgmfrm_validation_optional_positive(
+        coverage_mcse_target,
+        "coverage_mcse_target",
+    )
+    binary_target = _mgmfrm_validation_optional_positive(
+        binary_rate_mcse_target,
+        "binary_rate_mcse_target",
+    )
+    bias_sd = _mgmfrm_validation_optional_positive(
+        bias_error_sd_reference,
+        "bias_error_sd_reference",
+    )
+    bias_target = _mgmfrm_validation_optional_positive(
+        bias_mcse_target,
+        "bias_mcse_target",
+    )
+
+    coverage_variance = coverage_probability * (1 - coverage_probability)
+    binary_worst_case_variance = 0.25
+    bias_variance = bias_sd === nothing ? nothing : bias_sd^2
+    requirements = (;
+        coverage = _mgmfrm_validation_minimum_replications(
+            coverage_variance,
+            coverage_target,
+        ),
+        binary_rate_worst_case = _mgmfrm_validation_minimum_replications(
+            binary_worst_case_variance,
+            binary_target,
+        ),
+        bias = bias_variance === nothing ? missing :
+            _mgmfrm_validation_minimum_replications(
+                bias_variance,
+                bias_target,
+            ),
+    )
+    rows = Tuple((;
+        replications = count,
+        nominal_coverage_mcse = sqrt(coverage_variance / count),
+        coverage_target_met = _mgmfrm_validation_mcse_target_met(
+            sqrt(coverage_variance / count),
+            coverage_target,
+        ),
+        binary_rate_worst_case_mcse = sqrt(
+            binary_worst_case_variance / count,
+        ),
+        binary_rate_target_met = _mgmfrm_validation_mcse_target_met(
+            sqrt(binary_worst_case_variance / count),
+            binary_target,
+        ),
+        bias_mcse_reference = bias_sd === nothing ? missing :
+            bias_sd / sqrt(count),
+        bias_target_met = bias_target === nothing || bias_sd === nothing ?
+            missing : _mgmfrm_validation_mcse_target_met(
+                bias_sd / sqrt(count),
+                bias_target,
+            ),
+    ) for count in counts)
+
+    return (;
+        schema =
+            "bayesianmgmfrm.mgmfrm_validation_replication_precision.v1",
+        object = :mgmfrm_validation_replication_precision,
+        status = :precision_reference_not_replication_freeze,
+        rows,
+        assumptions = (;
+            independent_replications = true,
+            adaptive_stopping_allowed = false,
+            binary_rate_variance = :bernoulli_worst_case_one_quarter,
+            coverage_probability,
+            bias_error_sd_reference = bias_sd === nothing ? missing : bias_sd,
+            bias_error_sd_source = bias_sd === nothing ?
+                :not_supplied : :caller_supplied_reference,
+        ),
+        targets = (;
+            coverage_mcse = coverage_target === nothing ? missing :
+                coverage_target,
+            binary_rate_mcse = binary_target === nothing ? missing :
+                binary_target,
+            bias_mcse = bias_target === nothing ? missing : bias_target,
+        ),
+        minimum_replications = requirements,
+        bias_precision_status = bias_sd === nothing ?
+            :reference_sd_required : :reference_available,
+        failure_accounting = (;
+            binary_failure_rate_covered = true,
+            bias_mcse_conditional_on_numeric_errors = true,
+            failed_fits_may_be_dropped_from_planned_denominator = false,
+            failure_sensitivity_policy_required = true,
+        ),
+        replication_count_selected = false,
+        precision_targets_selected = false,
+        execution_authorized = false,
+        scientific_decision = :not_applied,
+        claim_scope = :mcse_planning_not_validation_evidence,
+    )
+end
+
 function _mgmfrm_validation_primary_resource_cell(
         candidates,
         cell_id::Symbol,

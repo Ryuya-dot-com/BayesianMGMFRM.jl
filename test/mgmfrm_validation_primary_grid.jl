@@ -76,6 +76,65 @@ using BayesianMGMFRM
     @test :extend_resource_envelope_or_narrow_candidate_grid in
         contract.blockers
 
+    precision = mgmfrm_validation_replication_precision(
+        (50, 100, 200, 400);
+        coverage_mcse_target = 0.02,
+        binary_rate_mcse_target = 0.025,
+        bias_error_sd_reference = 0.20,
+        bias_mcse_target = 0.01,
+    )
+    @test precision.schema ==
+        "bayesianmgmfrm.mgmfrm_validation_replication_precision.v1"
+    @test precision.object === :mgmfrm_validation_replication_precision
+    @test precision.status ===
+        :precision_reference_not_replication_freeze
+    @test precision.minimum_replications.coverage == 119
+    @test precision.minimum_replications.binary_rate_worst_case == 400
+    @test precision.minimum_replications.bias == 400
+    @test precision.rows[2].nominal_coverage_mcse ≈
+        sqrt(0.95 * 0.05 / 100)
+    @test precision.rows[2].binary_rate_worst_case_mcse == 0.05
+    @test precision.rows[2].bias_mcse_reference == 0.02
+    @test !precision.rows[2].coverage_target_met
+    @test precision.rows[3].coverage_target_met
+    @test !precision.rows[3].binary_rate_target_met
+    @test precision.rows[4].binary_rate_target_met
+    @test precision.rows[4].bias_target_met
+    @test precision.assumptions.bias_error_sd_source ===
+        :caller_supplied_reference
+    @test precision.failure_accounting.binary_failure_rate_covered
+    @test precision.failure_accounting.bias_mcse_conditional_on_numeric_errors
+    @test !precision.failure_accounting.
+        failed_fits_may_be_dropped_from_planned_denominator
+    @test precision.failure_accounting.failure_sensitivity_policy_required
+    @test !precision.replication_count_selected
+    @test !precision.precision_targets_selected
+    @test !precision.execution_authorized
+    @test precision.scientific_decision === :not_applied
+    @test precision.claim_scope ===
+        :mcse_planning_not_validation_evidence
+
+    unresolved_bias = mgmfrm_validation_replication_precision(100;
+        bias_mcse_target = 0.01,
+    )
+    @test unresolved_bias.bias_precision_status === :reference_sd_required
+    @test ismissing(unresolved_bias.rows[1].bias_mcse_reference)
+    @test ismissing(unresolved_bias.rows[1].bias_target_met)
+    @test ismissing(unresolved_bias.minimum_replications.bias)
+    @test ismissing(unresolved_bias.targets.coverage_mcse)
+    @test_throws ArgumentError mgmfrm_validation_replication_precision(())
+    @test_throws ArgumentError mgmfrm_validation_replication_precision((50, 50))
+    @test_throws ArgumentError mgmfrm_validation_replication_precision((50, 50.0))
+    @test_throws ArgumentError mgmfrm_validation_replication_precision(0)
+    @test_throws ArgumentError mgmfrm_validation_replication_precision(
+        100;
+        nominal_coverage = 1.0,
+    )
+    @test_throws ArgumentError mgmfrm_validation_replication_precision(
+        100;
+        binary_rate_mcse_target = 0.0,
+    )
+
     resource_plan = mgmfrm_validation_primary_resource_plan()
     @test resource_plan.schema ==
         "bayesianmgmfrm.mgmfrm_validation_primary_resource_plan.v1"

@@ -4,6 +4,9 @@
 
 ### Added
 
+- Add `mgmfrm_validation_replication_precision` to compare proposed fixed-Q
+  MGMFRM simulation counts using separate coverage, worst-case binary-rate,
+  and reference-SD bias MCSE calculations without freezing a study.
 - Add `BayesianMGMFRM.Experimental.GeneralizedPrior` as a typed,
   cache-aware raw-coordinate scale contract for guarded GMFRM and MGMFRM
   refits. Direct-scale generalized priors remain outside this change.
