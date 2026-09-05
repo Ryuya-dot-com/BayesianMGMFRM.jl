@@ -427,7 +427,8 @@ function _ld1_ordered_events(cells, config, abilities, design_seed::Int)
     return sequence
 end
 
-function _ld1_pcm_probabilities(location::Real, steps::AbstractVector)
+function _ld1_pcm_probabilities(location::Real, steps::AbstractVector;
+        log_probabilities::Bool = false)
     categories = length(steps) + 1
     logweights = Vector{Float64}(undef, categories)
     logweights[1] = 0.0
@@ -440,6 +441,17 @@ function _ld1_pcm_probabilities(location::Real, steps::AbstractVector)
     total = sum(weights)
     isfinite(total) && total > 0 ||
         throw(ArgumentError("standalone category weights are not finite"))
+    if log_probabilities
+        shifted = logweights .- maximum_logweight
+        isfinite(Float64(location)) && all(isfinite, shifted) ||
+            throw(ArgumentError("standalone log weights must be finite and representable"))
+        # Retain log support before exp underflows. Exclude exactly one mode;
+        # log1p retains a small tail even when 1 + tail rounds to 1.
+        mode = argmax(logweights)
+        log_total = log1p(sum((weights[k] for k in eachindex(weights) if k != mode);
+            init = 0.0))
+        return shifted .- log_total
+    end
     return weights ./ total
 end
 

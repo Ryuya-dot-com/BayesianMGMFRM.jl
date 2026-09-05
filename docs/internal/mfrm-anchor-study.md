@@ -22,7 +22,7 @@ design, scorer, and thresholds. No reviewer is currently assigned.
 | M1-02 — open, sharing/replay draft below | Declare pilot/evaluation and component RNG lineage, state ownership, data sharing, and any cross-design common random numbers; freeze the actual root/state roster | Reproduce one dataset without fitting; method order/addition cannot alter responses. Check non-overlapping allocation, not just distinct seed labels; fixed primary truth is not a fresh draw |
 | M1-03 — open | Choose interval levels, practical tolerances, Monte Carlo precision, replications, and per-stratum decision rules for parameter and predictive targets | Justify numerical values before evaluation; distinguish MCMC error from across-dataset error and true-probability regret from heldout log loss |
 | M1-04 — open | Choose the primary backend, actual prior scales, ordinary non-truth starts/jitter, chain settings, diagnostic policy, bounded cost probe, time/memory/output caps, and remediation allowance | Review the probe budget before running it; record resource evidence and keep all probes outside evaluation counts. The provisional 6,400 primary fits is not a budget authorization |
-| M1-05 — open, log-input scoring implemented | Reuse the recovery/predictive scorer; the denominator/applicability draft below specifies failures, paired Monte Carlo error, and non-overwriting remediation | Synthetic checks cover failures, applicability, pairing, and all-category log scoring. The full attempt/label adapter, independent extreme-truth log producer, and final decision rules remain required |
+| M1-05 — open, log-truth/scoring primitives checked | Reuse the recovery/predictive scorer; the denominator/applicability draft below specifies failures, paired Monte Carlo error, and non-overwriting remediation | Synthetic checks cover failures, applicability, pairing, and independent all-category log truth/scoring. Labelled truth persistence, the full attempt/label adapter, and final decision rules remain required |
 | M1-06 — open | Hand off the single protocol with exact source revision, cell roster, settings, scorer checks, unresolved questions, and claim limits | A person other than the implementer records accept/request-revision decisions. Review cannot be replaced by an implementer-authored receipt |
 
 M1-01 now has the finite anchor-placement/error candidate subset below; nested
@@ -137,8 +137,9 @@ conformance limit, not a statistical acceptance threshold. The check is also
 included in the ordinary `fitting_reports` shard. The initial 2,518 conformance
 assertions and the 308 reference-declaration/estimand checks below are retained.
 The additional 951 finite-candidate, 131 serial-response replay, 50 denominator,
-28 predictive-boundary, and 216 all-category log checks bring the focused file
-to eight testsets / 4,202 assertions, passing locally on Julia 1.10.8 and 1.12.5.
+28 predictive-boundary, 216 all-category log, and 277 independent-log-truth
+checks bring the focused file to nine testsets / 4,479 assertions, passing
+locally on Julia 1.10.8 and 1.12.5.
 The command contributes **zero evaluation replications**.
 It establishes implementation separation from the fitting kernel, not
 independent authorship, independent review, or posterior calibration. The old
@@ -656,15 +657,50 @@ Each has two synthetic parameter vectors, not fitted posterior draws.
 All 216 assertions pass, including agreement with a separate 256-bit category
 equation oracle where the probability-array route reports infinity.
 
-Both files pass on Julia 1.10.8 and 1.12.5: 4,202 anchor checks plus 103 scorer
-checks. No MCMC or evaluation replications are added; the historical 80-fit
-pilot and fixtures are unchanged. Reuse of the metadata-rich inspection output
-is sufficient for this check; measure its cost before any lean producer is
-justified. The independent DGP still returns Float64 probabilities, so a
-production extreme-truth log producer must preserve support before that step;
-the fitted-model kernel cannot substitute as the independent truth generator.
-The full attempt/label adapter, that truth producer, diagnostic policy,
-thresholds, and independent review remain open.
+That revision passed 4,202 anchor checks plus 103 scorer checks on Julia 1.10.8
+and 1.12.5. The 24-scenario check now receives truth logs directly from the
+standalone primitive below, without taking logs of rounded probabilities.
+Reuse of the metadata-rich predictor inspection output is sufficient for this
+check; measure its cost before any lean producer is justified. No fitted
+posterior or evaluation responses are generated.
+
+### Independent log-truth boundaries
+
+The existing `_ld1_pcm_probabilities(...; log_probabilities = true)` now
+returns normalized natural-log probabilities directly from its standalone
+category recurrence. Its default probability calculation is unchanged.
+[Blanchard et al. (2021)](https://doi.org/10.1093/imanum/draa038), Section 4,
+Eq. 4.1 and Algorithm 4.1, motivate shifting by a maximum and using `log1p`
+on the remaining exponential sum. Exclude exactly one maximum, including when
+several categories tie. Subtract this small log normalizer from the shifted
+weights, rather than taking logs after exponentiation. This preserves finite
+log support even where the corresponding Float64 probability is zero, and
+tiny negative log probabilities where the ordinary probability rounds to one.
+Nonfinite locations or overflowed cumulative/shifted log weights are rejected
+in log mode, not represented as structural zeros or silently clipped.
+
+The 277 added checks cover 42 location/step combinations against a separate
+512-bit category-equation oracle, normalization, adjacent log odds, tied modes,
+non-centered steps, and invalid/overflow inputs. The empty-step case checks
+only the primitive's existing one-category boundary, not a supported fitted
+model. A stdlib-only child process verifies the log path's isolation. Generated
+binary truth/prediction logs at locations -800/-1e308 give a finite positive
+KL of approximately `3.67e-40`, matching the high-precision oracle; both ordinary
+probability vectors round to `[1, 0]` and would incorrectly suggest zero regret.
+Replacing a finite prediction log with structural -Inf instead gives infinity.
+Memory-only mutations using `log(1 + tail)`, excluding every tied mode, or
+taking logs after exponentiation trigger 12, 10, and 46 failures with no errors.
+
+All 4,479 anchor, 103 scorer, and 2,168 existing LD checks pass on Julia 1.10.8
+and 1.12.5. A separate memory-only comparison against `49871e3` confirms exact
+equality of all raw outputs for the existing 22 LD smoke scenarios within each
+environment, not cross-version bitwise portability. LD output schemas, response
+RNG allocation, resource accounting, historical fixtures, and their recorded
+source digests are unchanged; the raw LD table still stores ordinary probabilities.
+This closes the independent log-probability primitive, not labelled truth/state
+persistence, a full attempt/label adapter, diagnostic policy, thresholds, or
+independent review. All six freeze decisions remain open. No MCMC, new fixture,
+dependency, export, or evaluation replication is added.
 
 ## M1 allocation and budget decision draft
 

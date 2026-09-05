@@ -247,8 +247,10 @@ end
             name = thresholds === :rating_scale ? "step[$s]" : "step[item=I$i,$s]"
             values[name] = steps[i][s]
         end
-        truth = reduce(vcat, [permutedims(MFRMAnchorStandaloneDGP._ld1_pcm_probabilities(
-            theta[p] - rho[r] - beta[i], steps[i])) for (p, r, i) in events])
+        truth_logs = reduce(vcat, [permutedims(MFRMAnchorStandaloneDGP._ld1_pcm_probabilities(
+            theta[p] - rho[r] - beta[i], steps[i]; log_probabilities = true))
+            for (p, r, i) in events])
+        truth = exp.(truth_logs)
         for shift in (0.2, -1_000.0, 1_000.0)
             shifts = (shift, shift + 0.3)
             params = repeat(reshape([values[name] for name in design.parameter_names], 1, :), 2, 1)
@@ -265,7 +267,7 @@ end
                     (table.person[r.row], table.rater[r.row], table.item[r.row]) for r in records)
                 logs[draw, :, :] = [keyed[(n, category)] for n in 1:data.n, category in levels]
             end
-            scored = mgmfrm_predictive_recovery_score(logs, log.(truth);
+            scored = mgmfrm_predictive_recovery_score(logs, truth_logs;
                 log_probabilities = true, category_levels = levels)
             oracle = setprecision(256) do
                 [Float64(sum(BigFloat(truth[n, k]) * log(BigFloat(truth[n, k]) /
@@ -286,6 +288,71 @@ end
             end
         end
     end
+end
+
+@testset "M1 independent log truth and underflow boundaries" begin
+    probability = MFRMAnchorStandaloneDGP._ld1_pcm_probabilities
+    # Blanchard, Higham & Higham (2021), Sec. 4, Algorithm 4.1:
+    # https://doi.org/10.1093/imanum/draa038 (shift plus log1p).
+    for location in (-1_000.0, -50.0, -0.7, 0.0, 0.8, 50.0, 1_000.0),
+            steps in (Float64[], [0.0], [-0.3, 0.7], [-0.6, 0.1, 0.5],
+                zeros(4), [-1.0, 0.0, 2.0, 1.0])
+        logs = probability(location, steps; log_probabilities = true)
+        # Separate category equation, not the production recurrence/normalizer.
+        oracle = setprecision(512) do
+            weights = [exp(k * BigFloat(location) - sum(BigFloat.(steps[1:k]);
+                init = BigFloat(0))) for k in 0:length(steps)]
+            Float64.(log.(weights ./ sum(weights)))
+        end
+        @test all(isfinite, logs)
+        @test all(<=(0), logs)
+        @test all(isapprox.(logs, oracle; rtol = 2e-13, atol = 0))
+        @test exp.(logs) ≈ probability(location, steps) atol = 1e-14
+        @test sum(exp.(logs)) ≈ 1 atol = 1e-14
+        @test diff(logs) ≈ location .- steps atol = 1e-12 rtol = 1e-12
+    end
+    # Tiny dominant-category log probabilities must not round to zero just
+    # because the ordinary probability has rounded to one.
+    for location in (-50.0, 50.0)
+        mode = location < 0 ? 1 : 2
+        @test probability(location, [0.0])[mode] == 1.0
+        @test probability(location, [0.0]; log_probabilities = true)[mode] ≈
+            -log1p(exp(-50.0)) rtol = 1e-14 atol = 0
+    end
+    @test probability(0.0, zeros(3); log_probabilities = true) == fill(-log(4.0), 4)
+    for (location, steps) in ((NaN, [0.0]), (Inf, [0.0]), (-Inf, [0.0]),
+            (NaN, Float64[]), (Inf, Float64[]), (-Inf, Float64[]),
+            (0.0, [NaN]), (0.0, [Inf]), (0.0, [-Inf]),
+            (1e308, zeros(3)), (-1e308, zeros(3)),
+            (0.0, [1e308, -1e308, -1e308]))
+        # Arithmetic overflow is not a structural zero and must not be clipped.
+        @test_throws ArgumentError probability(location, steps; log_probabilities = true)
+    end
+
+    score = mgmfrm_predictive_recovery_score
+    truth = permutedims(probability(-800.0, [0.0]; log_probabilities = true))
+    prediction = permutedims(probability(-1e308, [0.0]; log_probabilities = true))
+    @test all(isfinite, truth) && all(isfinite, prediction)
+    @test exp.(truth) == exp.(prediction) == [1.0 0.0]
+    actual = score(prediction, truth; log_probabilities = true)
+    expected = setprecision(512) do
+        tail = exp(BigFloat(-800))
+        p = [inv(1 + tail), tail / (1 + tail)]
+        logp = [-log1p(tail), BigFloat(-800) - log1p(tail)]
+        Float64(sum(p .* (logp .- BigFloat.([0.0, -1e308]))))
+    end
+    @test actual.status === :scored
+    @test actual.summary.mean_log_score_regret > 0
+    @test actual.summary.mean_log_score_regret ≈ expected rtol = 1e-12 atol = 0
+    @test score(exp.(prediction), exp.(truth)).summary.mean_log_score_regret == 0.0
+    @test score([0.0 -Inf], truth; log_probabilities = true).summary.mean_log_score_regret == Inf
+
+    source = joinpath(@__DIR__, "..", "src", "local_dependence_known_truth_dgp.jl")
+    code = "include(ARGS[1]); @assert !isdefined(Main, :BayesianMGMFRM); " *
+        "print(_ld1_pcm_probabilities(-1000.0, [0.0]; log_probabilities = true))"
+    command = addenv(`$(Base.julia_cmd()) --startup-file=no -e $code $source`,
+        "JULIA_LOAD_PATH" => "@stdlib")
+    @test read(command, String) == "[0.0, -1000.0]"
 end
 
 @testset "M1 serial response blocks and replay" begin

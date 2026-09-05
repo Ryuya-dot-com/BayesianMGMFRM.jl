@@ -108,18 +108,26 @@ is the runtime attribution in order 2; do not restart the closed inventories.
   passed all 12 ordinary jobs: `fitting_reports` passed 28 / 7,662,
   `generalized` 19 / 2,461, and the full Julia 1.10.8 job 94 / 18,733 in
   26m06s. Both manual research jobs were skipped.
-- The current [all-category log integration](docs/internal/mfrm-anchor-study.md#all-category-log-input-and-integration)
-  adds explicit log input to the existing research scorer, retaining its
-  default probability input and output schema. The existing predictor-inspection
-  output supplies category logs; no new export or probability kernel is added.
-  All 4,202 anchor and 103 scorer checks pass on Julia 1.10.8 and 1.12.5;
-  two memory-only numerical mistakes are detected. The full attempt/label
-  adapter, independent extreme-truth log producer, thresholds, and review
-  remain open. Candidate CI is required: expected totals are 29 / 7,878 in
-  `fitting_reports`, 20 / 2,508 in `generalized`, and 96 / 18,996 in the full
-  suite. No sampler, dependency, fixture, or evaluation replication is added.
-  Other shards gain no assertions, but this is a new source revision; prior
-  CI results and changed-workload timing medians do not certify it.
+- `49871e3`'s [all-category log integration](docs/internal/mfrm-anchor-study.md#all-category-log-input-and-integration)
+  adds explicit log input to the existing scorer, retaining its default input
+  and result schema. All 4,202 anchor and 103 scorer checks passed on both local
+  Julia versions; two memory-only numerical mistakes were detected.
+  [CI 33968517600](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33968517600)
+  passed all 12 ordinary jobs: `fitting_reports` 29 / 7,878, `generalized`
+  20 / 2,508, and the full Julia 1.10.8 job 96 / 18,996 in 26m00s. Both
+  manual research jobs were skipped. This does not certify later changes.
+- The current [independent log-truth check](docs/internal/mfrm-anchor-study.md#independent-log-truth-boundaries)
+  extends the existing standalone primitive and feeds its logs into the
+  24-scenario scoring check. No probability-kernel copy or export is added.
+  The 277 new assertions bring the anchor file to 4,479; together with 103
+  scorer and 2,168 unchanged LD assertions, 6,750 pass on Julia 1.10.8 and
+  1.12.5. All 22 legacy LD raw outputs match the preceding revision within
+  each environment; three memory-only numerical mistakes are detected.
+  Candidate CI is required: expected totals are 30 / 8,155 in `fitting_reports`
+  and 97 / 19,273 in the full suite. Other shards gain no assertions.
+  Labelled truth persistence, the full attempt adapter, thresholds, and review
+  remain open. No sampler, dependency, fixture, or evaluation replication is
+  added; changed-workload timing medians do not close M0.
 - The earlier anchor pilot completed 80 fits but only two independent datasets
   per cell, with PCM-only truth, favorable initialization, and a shared
   generation/fitting kernel. None of its fits enters the new evaluation count.
