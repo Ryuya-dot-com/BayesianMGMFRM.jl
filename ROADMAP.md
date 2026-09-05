@@ -149,8 +149,12 @@ is the runtime attribution in order 2; do not restart the closed inventories.
 - `2f4f431`'s [attempt-identity/native-replay check](docs/internal/mfrm-anchor-study.md#attempt-identity-join-and-native-replay)
   adds 76 identity assertions and four native-save/replay assertions, reusing
   existing code and stdlib Serialization. The 4,611 anchor and 103 scorer
-  assertions pass locally on Julia 1.10.8 and 1.12.5. Candidate CI remains
-  required: expected `fitting_reports` 32 / 8,287 and full suite 99 / 19,405.
+  assertions pass locally on Julia 1.10.8 and 1.12.5.
+  [CI 33973824420](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33973824420)
+  passed all 12 ordinary jobs: `fitting_reports` 32 / 8,287 and the full
+  Julia 1.10.8 suite 99 / 19,405 in 33m11s. Both manual research jobs were skipped.
+  [PR #98](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/pull/98) merged as
+  `4b2c5a4` on 2026-09-06 JST; this does not certify the following revision.
   Payload/source binding, labelled durable archives, crash-safe publication,
   a persistent all-attempt ledger, and all scientific freeze decisions remain open.
 - The [response-byte binding check](docs/internal/mfrm-anchor-study.md#byte-bound-labelled-response-restoration)
