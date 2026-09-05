@@ -89,18 +89,27 @@ is the runtime attribution in order 2; do not restart the closed inventories.
 - `5f58701` added the [response-sharing draft](docs/internal/mfrm-anchor-study.md#m1-data-sharing-and-rng-ownership-draft)
   and 131 smoke assertions. The focused file passed five testsets / 3,908
   assertions on Julia 1.10.8 and 1.12.5. [CI 33964790537](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33964790537)
-  is still running at this review; expected report/full counts are 26 / 7,584
-  and 92 / 18,639. No whole-run result is claimed yet.
-- The current [scoring draft](docs/internal/mfrm-anchor-study.md#m1-scoring-applicability-and-denominator-draft)
-  adds 50 assertions for applicability, primary-attempt denominators, and
+  passed all 12 ordinary jobs: `fitting_reports` passed 26 / 7,584 and the
+  full Julia 1.10.8 job passed 92 / 18,639 in 30m54s. Both manual research
+  jobs were skipped. These results do not accept a subsequent source revision.
+- `8cd32ff` extended the [scoring draft](docs/internal/mfrm-anchor-study.md#m1-scoring-applicability-and-denominator-draft)
+  with 50 assertions for applicability, primary-attempt denominators, and
   paired finite-subset comparisons. All six focused testsets / 3,958 assertions
   pass locally on Julia 1.10.8 and 1.12.5; two memory-only mistakes are detected.
-  Candidate CI is still required: expected totals become 27 / 7,634 in
-  `fitting_reports` and 93 / 18,689 in the full suite. The all-attempt adapter,
-  predictive edge checks, thresholds, and review remain open. Other shards,
-  especially `fitting_core`, gain no test work.
-  Do not transfer an earlier green result or unchanged-workload report/full
-  timing median to this addition. No evaluation replications are added.
+  [CI 33965531472](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33965531472)
+  is still running; expected report/full counts are 27 / 7,634 and 93 / 18,689.
+- The current [predictive-boundary check](docs/internal/mfrm-anchor-study.md#predictive-scoring-boundaries-checked)
+  fixes a shared KL overflow for positive subnormal probabilities and adds
+  16 scorer / 28 M1 assertions. Locally, all 56 scorer and 3,986 anchor checks
+  pass on Julia 1.10.8 and 1.12.5; the old KL formula fails three regressions.
+  Category alignment, event weights, mean-before-log, and a finite-log heldout
+  route are checked. The all-attempt adapter, all-category log-domain recovery,
+  thresholds, and review remain open. Candidate CI is still required; expected
+  totals are 28 / 7,662 in `fitting_reports`, 19 / 2,461 in `generalized`, and
+  94 / 18,733 in the full suite. No new API, sampler, dependency, fixture, or
+  evaluation replication is added. Other shards gain no assertions, but the
+  source revision changes; do not transfer an earlier green result or a
+  changed-workload report/generalized/full timing median to this addition.
 - The earlier anchor pilot completed 80 fits but only two independent datasets
   per cell, with PCM-only truth, favorable initialization, and a shared
   generation/fitting kernel. None of its fits enters the new evaluation count.

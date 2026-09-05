@@ -22,7 +22,7 @@ design, scorer, and thresholds. No reviewer is currently assigned.
 | M1-02 — open, sharing/replay draft below | Declare pilot/evaluation and component RNG lineage, state ownership, data sharing, and any cross-design common random numbers; freeze the actual root/state roster | Reproduce one dataset without fitting; method order/addition cannot alter responses. Check non-overlapping allocation, not just distinct seed labels; fixed primary truth is not a fresh draw |
 | M1-03 — open | Choose interval levels, practical tolerances, Monte Carlo precision, replications, and per-stratum decision rules for parameter and predictive targets | Justify numerical values before evaluation; distinguish MCMC error from across-dataset error and true-probability regret from heldout log loss |
 | M1-04 — open | Choose the primary backend, actual prior scales, ordinary non-truth starts/jitter, chain settings, diagnostic policy, bounded cost probe, time/memory/output caps, and remediation allowance | Review the probe budget before running it; record resource evidence and keep all probes outside evaluation counts. The provisional 6,400 primary fits is not a budget authorization |
-| M1-05 — open, scoring smoke checked | Reuse the recovery/predictive scorer; the denominator/applicability draft below specifies failures, paired Monte Carlo error, and non-overwriting remediation | The synthetic check includes failed fits, fixed/partially estimated contrasts, and paired methods. A validated all-attempt adapter, predictive scoring edges, and final decision rules remain required |
+| M1-05 — open, scoring boundaries checked | Reuse the recovery/predictive scorer; the denominator/applicability draft below specifies failures, paired Monte Carlo error, and non-overwriting remediation | Synthetic checks cover failures, contrast applicability, paired methods, probability boundaries, and finite-log heldout scoring. The all-attempt adapter, all-category log-domain recovery path, and final decision rules remain required |
 | M1-06 — open | Hand off the single protocol with exact source revision, cell roster, settings, scorer checks, unresolved questions, and claim limits | A person other than the implementer records accept/request-revision decisions. Review cannot be replaced by an implementer-authored receipt |
 
 M1-01 now has the finite anchor-placement/error candidate subset below; nested
@@ -72,10 +72,10 @@ Before M2, the single M1 protocol must resolve all of the following:
    applicable. More chains/draws or anchor fits on one dataset do not increase
    this replication count. Paired comparisons retain dataset-level pairing;
    Monte Carlo error across datasets is separate from within-fit MCMC error.
-3. **Scoring readiness.** Reuse the pilot probability/log-score calculations and
-   existing recovery scorer after checking their truth/gauge contracts against
-   the independent generator. The broader design-robustness scorer's predictive
-   and decision gates are still unimplemented. Either implement the smallest
+3. **Scoring readiness.** Reuse the existing probability/recovery scorers, not
+   the historical pilot's inline KL formula, and check their truth/gauge
+   contracts against the independent generator. The broader design-robustness
+   scorer's predictive and decision gates are still unimplemented. Either implement the smallest
    analysis needed for a declared primary metric or remove that claim before
    freezing the study; do not count planning fields as a working scorer.
 4. **Failure and decision policy.** Specify per-chain/block diagnostics,
@@ -136,8 +136,8 @@ oracle but differ from the original truth. Tolerance `1e-12` is a numerical
 conformance limit, not a statistical acceptance threshold. The check is also
 included in the ordinary `fitting_reports` shard. The initial 2,518 conformance
 assertions and the 308 reference-declaration/estimand checks below are retained.
-The additional 951 finite-candidate, 131 serial-response replay, and 50 scoring
-checks described below bring the focused file to six testsets / 3,958
+The additional 951 finite-candidate, 131 serial-response replay, 50 denominator,
+and 28 predictive-boundary checks bring the focused file to seven testsets / 3,986
 assertions, passing locally on Julia 1.10.8 and 1.12.5. The command contributes
 **zero evaluation replications**.
 It establishes implementation separation from the fitting kernel, not
@@ -541,19 +541,20 @@ finite, diagnostic-valid subset (m>=2 for MCSE). Never subtract separately
 filtered marginal means, or use independent-method variances for shared data.
 Report the common subset size and each method's missing/nonfinite/invalid counts.
 An infinite log loss is a meaningful extended-real outcome when predicted mass
-at the observed category is zero, not an ordinary missing finite loss. Preserve
-it and flag the all-planned comparison as unresolved or extended-real as
+at the observed category is truly zero, not an ordinary missing finite loss.
+A supplied Float64 probability array alone cannot distinguish structural zero
+from underflow; retain that numerical qualification. Preserve the array score
+and flag the all-planned comparison as unresolved or extended-real as
 appropriate; a finite-subset MCSE must not hide it. Reject NaN/invalid probability
 rows. Do not silently clip probabilities or cap losses.
 
 For the declared point-predictive targets, use posterior-mean category
 probabilities before the logarithm, not mean draw-wise log probabilities.
-For KL regret, sum
-`p*log(p/q)` only where truth p>0; q=0 there gives infinity, while p=0 contributes
-zero. Heldout loss uses `-log(q[y])` on the stored heldout responses, never the
-training scores. Keep event weights and the 20/60/60/180 strata declared above.
-These predictive edge rules still require a runnable adapter check before
-M1-05 closes; the old pilot formulas alone do not establish them.
+For KL regret, sum `p*(log(p)-log(q))` only where truth p>0; q=0 there gives
+infinity, while p=0 contributes zero. The difference of logs avoids overflow
+of the mathematically equivalent ratio. Heldout loss uses `-log(q[y])` on the
+stored heldout responses, never the training scores. Keep event weights and
+the 20/60/60/180 strata declared above.
 
 The focused file now checks 50 assertions with hand-constructed draws/outcomes:
 an eight-dataset plan has 6 fit entries, 5 completions, 4 diagnostic-valid fits,
@@ -566,10 +567,53 @@ A four-method loss example retains two complete finite quartets with interaction
 mean -1.5 and MCSE 0.5, while explicitly retaining one missing and one infinite
 loss outside that subset. Memory-only mutations admitting retry rows to the
 primary summary or inferring applicability from draw SD trigger 15 and 2
-assertion failures, respectively, with no errors. The unmodified file passes
-all 3,958 assertions on Julia 1.10.8 and 1.12.5. No MCMC or evaluation dataset
-is involved. This checks arithmetic/applicability, not the full roster adapter,
-diagnostic policy, predictive scorer, or independent review; M1-05 stays open.
+assertion failures, respectively, with no errors. That revision passed
+3,958 assertions on Julia 1.10.8 and 1.12.5. These checks establish
+arithmetic/applicability, not the full roster adapter or diagnostic policy.
+
+### Predictive scoring boundaries checked
+
+[Gneiting and Raftery (2007)](https://doi.org/10.1198/016214506000001437),
+Section 3.1, Example 3, p. 363 (Zotero `B7CHD4RK`, indexed text checked),
+connect the categorical logarithmic score with KL divergence. Their score is
+maximized; this study minimizes negative log score and uses truth-to-prediction
+KL. Section 2.3, p. 362, requires the same forecast situations for direct score
+comparisons. These support the scoring definitions and paired event set, not
+an anchor-calibration threshold.
+
+Reuse `mgmfrm_predictive_recovery_score` for validated probability arrays;
+its historical name does not make this array calculation model-specific.
+One-hot **heldout** outcomes as its truth input give `KL(onehot(y) || q) =
+-log(q[y])`; only this log-score field is the heldout loss. Its other fields
+against realized outcomes are not known-truth probability recovery. Match
+outcomes to declared `FacetData.category_levels`, not `score + 1`, and jointly
+reorder labels and probability columns. Validate each draw before averaging;
+an invalid draw is not repaired by a valid average. No clipping or implicit
+renormalization is introduced.
+
+The shared KL calculation now uses a difference of logs. For p=(0.5,0.5) and
+q=(smallest positive Float64,1), the old ratio overflowed and returned infinity;
+the corrected result matches a 256-bit oracle at about 371.52688878013066.
+The existing scorer test adds 16 checks for this case, zero terms, invalid
+truth/prediction rows, empty draws, and invalid draws with a valid mean.
+Before the fix, three assertions failed without errors; after it, all 56 pass.
+
+The 28 new M1 checks cover mean-before-log, category alignment/permutation,
+unknown outcomes, zero support, and event-weighted versus equal-stratum means
+(3.25 versus 2.5 in the synthetic example). A finite-parameter MFRM example
+also produces underflowed zero probabilities but finite heldout log probabilities
+(-3000 and -3003 across two draws). Existing `pointwise_loglikelihood` on the
+heldout design and `_logmeanexp` recover the finite mixture loss without
+clipping; the training responses instead score zero in this example.
+`_logmeanexp` currently rejects nonfinite inputs, including structural -Inf.
+This checks a finite-log heldout route, not a completed all-category log-domain
+KL adapter; the latter must preserve finite logs before exponentiation loses
+support. Do not infer mathematical impossibility from an underflowed array.
+
+Both files pass on Julia 1.10.8 and 1.12.5: 3,986 anchor checks plus 56 scorer
+checks. The full attempt/label adapter, extreme-log recovery path, diagnostic
+policy, thresholds, and independent review remain open. No MCMC or evaluation
+replications are added; the historical 80-fit pilot and fixtures are unchanged.
 
 ## M1 allocation and budget decision draft
 

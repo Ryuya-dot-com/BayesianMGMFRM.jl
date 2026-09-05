@@ -38,6 +38,33 @@ using BayesianMGMFRM
     @test !zero_support.summary.finite_log_score_regret
     @test isinf(zero_support.summary.mean_log_score_regret)
 
+    # Positive subnormal support has finite KL even when truth / predicted
+    # overflows. Compare with an independent high-precision calculation.
+    tiny_truth = [0.5 0.5]
+    tiny_prediction = [nextfloat(0.0) 1.0]
+    tiny = mgmfrm_predictive_recovery_score(tiny_prediction, tiny_truth)
+    oracle = setprecision(256) do
+        Float64(sum(BigFloat(tiny_truth[i]) *
+            log(BigFloat(tiny_truth[i]) / BigFloat(tiny_prediction[i]))
+            for i in eachindex(tiny_truth)))
+    end
+    @test isfinite(oracle)
+    @test tiny.status === :scored
+    @test tiny.summary.finite_log_score_regret
+    @test tiny.summary.mean_log_score_regret ≈ oracle
+    for (p, q, expected) in (([0.0 1.0], [0.0 1.0], 0.0),
+            ([0.0 1.0], [0.5 0.5], log(2.0)))
+        @test mgmfrm_predictive_recovery_score(q, p).summary.mean_log_score_regret ≈ expected
+    end
+    for invalid in ([NaN 1.0], [-0.1 1.1], [0.2 0.2], [Inf 0.0])
+        @test_throws ArgumentError mgmfrm_predictive_recovery_score(invalid, tiny_truth)
+        @test_throws ArgumentError mgmfrm_predictive_recovery_score(tiny_prediction, invalid)
+    end
+    @test_throws ArgumentError mgmfrm_predictive_recovery_score(zeros(0, 1, 2), tiny_truth)
+    # A valid average cannot excuse invalid individual draw rows.
+    @test_throws ArgumentError mgmfrm_predictive_recovery_score(
+        reshape([-0.1, 1.1, 1.1, -0.1], 2, 1, 2), tiny_truth)
+
     @test_throws ArgumentError mgmfrm_predictive_recovery_score(
         [0.7 0.4; 0.2 0.8],
         truth,

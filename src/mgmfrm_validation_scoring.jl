@@ -73,7 +73,8 @@ function _mgmfrm_truth_log_score_regret(truth_row, predicted_row)
         truth == 0 && continue
         predicted = Float64(predicted_row[category])
         predicted == 0 && return Inf
-        regret += truth * log(truth / predicted)
+        # Forming the ratio first can overflow for positive subnormal support.
+        regret += truth * (log(truth) - log(predicted))
     end
     return regret
 end

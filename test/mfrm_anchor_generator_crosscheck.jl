@@ -132,6 +132,90 @@ end
     # No all-attempt executor or acceptance gate is implemented by this smoke.
 end
 
+@testset "M1 predictive score boundaries and event weights" begin
+    # Reuse the array scorer, not the historical pilot's inline KL formula.
+    # Gneiting & Raftery (2007), Sec. 3.1, Example 3: negative log score
+    # and truth-to-prediction KL. No fitted posterior or evaluation responses.
+    score = mgmfrm_predictive_recovery_score
+    levels = [-2, -1, 0, 1]
+    onehot(y, labels) = Float64.([value == label for value in y, label in labels])
+    truth = [0.25 0.25 0.5 0.0; 0.1 0.2 0.3 0.4]
+    draws = zeros(2, 2, 4)
+    draws[1, :, :] = [0.8 0.1 0.1 0.0; 0.1 0.2 0.3 0.4]
+    draws[2, :, :] = [0.2 0.3 0.5 0.0; 0.3 0.1 0.2 0.4]
+    averaged = dropdims(mean(draws; dims = 1); dims = 1)
+    recovery = score(draws, truth; category_levels = levels)
+    expected_kl = [sum(truth[n, k] * (log(truth[n, k]) - log(averaged[n, k]))
+        for k in 1:4 if truth[n, k] > 0) for n in 1:2]
+    @test recovery.summary.n_prediction_draws == 2
+    @test [r.log_score_regret for r in recovery.rows] ≈ expected_kl
+    @test recovery.summary.mean_log_score_regret ≈ mean(expected_kl)
+    @test score(truth, truth).summary.mean_log_score_regret == 0.0
+    observed = onehot([-2, 1], levels)
+    heldout = score(draws, observed; category_levels = levels)
+    # Only the one-hot KL field is a heldout loss; probability/expected-score
+    # errors against observed outcomes are not known-truth recovery metrics.
+    @test [r.log_score_regret for r in heldout.rows] ≈ -log.([0.5, 0.4])
+    @test heldout.summary.mean_log_score_regret ≈ -mean(log.([0.5, 0.4]))
+    @test heldout.rows[1].log_score_regret < -mean(log.(draws[:, 1, 1]))
+    permutation = [4, 2, 1, 3]
+    relabelled = score(draws[:, :, permutation], truth[:, permutation];
+        category_levels = levels[permutation])
+    @test relabelled.summary.mean_log_score_regret ≈ recovery.summary.mean_log_score_regret
+    @test relabelled.summary.mean_absolute_expected_score_error ≈
+        recovery.summary.mean_absolute_expected_score_error
+    @test score(draws[:, :, permutation], onehot([-2, 1], levels[permutation])).summary.mean_log_score_regret ≈
+        heldout.summary.mean_log_score_regret
+    @test_throws ArgumentError score(draws, onehot([-3, 1], levels))
+    @test score(draws, onehot([1, 1], levels)).status === :nonfinite_log_score_regret
+
+    events, _ = mfrm_anchor_test_panel(true)
+    strata = [findall(e -> (e[2] == 4, e[3] == 4) == pattern, events)
+        for pattern in ((true, true), (true, false), (false, true), (false, false))]
+    @test length.(strata) == [20, 60, 60, 180]
+    predicted = zeros(length(events), 4)
+    for (s, rows) in pairs(strata)
+        predicted[rows, 1] .= exp(-s)
+        predicted[rows, 2:4] .= (1 - exp(-s)) / 3
+    end
+    losses = score(predicted, onehot(fill(-2, length(events)), levels))
+    stratum_means = [mean(losses.rows[n].log_score_regret for n in rows) for rows in strata]
+    @test stratum_means ≈ 1:4
+    @test losses.summary.n_observations == 320
+    @test losses.summary.mean_log_score_regret ≈ sum(length.(strata) .* stratum_means) / 320
+    @test losses.summary.mean_log_score_regret ≈ 3.25
+    @test !isapprox(losses.summary.mean_log_score_regret, mean(stratum_means))
+
+    # A Float64 zero can be representational, not structural. Score actual
+    # heldout categories from finite model log probabilities when available.
+    table = (; person = ["P1", "P2"], rater = ["R1", "R1"],
+        item = ["I1", "I1"], score = [1, -2])
+    design_for(t) = getdesign(mfrm_spec(FacetData(t; person = :person,
+        rater = :rater, item = :item, score = :score, category_levels = levels)))
+    training = design_for(table)
+    heldout_design = design_for(merge(table, (; score = [-2, 1])))
+    @test training.parameter_names == heldout_design.parameter_names
+    @test heldout_design.spec.data.category_levels == levels
+    params = zeros(2, length(training.parameter_names))
+    for (label, sign) in (("P1", 1), ("P2", -1))
+        person = only(findall(==("person[$label]"), training.parameter_names))
+        params[:, person] = sign .* [1_000.0, 1_001.0]
+    end
+    probabilities = predictive_probabilities(heldout_design, params)
+    @test all(iszero, probabilities[:, 1, 1])
+    @test score(probabilities, onehot([-2, 1], heldout_design.spec.data.category_levels)).summary.mean_log_score_regret == Inf
+    logs = [first(pointwise_loglikelihood(heldout_design, row)) for row in eachrow(params)]
+    @test logs == [-3_000.0, -3_003.0]
+    log_loss = -BayesianMGMFRM._logmeanexp(logs)
+    @test isfinite(log_loss)
+    @test log_loss ≈ 3_000 + log(2) - log1p(exp(-3))
+    @test log_loss < -mean(logs)
+    @test all(all(iszero, pointwise_loglikelihood(training, row)) for row in eachrow(params))
+    @test_throws ArgumentError BayesianMGMFRM._logmeanexp([-Inf, -1.0])
+    # This establishes the finite-log path, not support for structural -Inf
+    # inputs or an all-category log-probability adapter for KL recovery.
+end
+
 @testset "M1 serial response blocks and replay" begin
     # Smoke only, not a pilot/evaluation seed or a production generator.
     # One advancing RNG; checkpoint at whole-block boundaries, never reseed
