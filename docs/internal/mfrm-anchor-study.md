@@ -340,13 +340,86 @@ The arithmetic is `16 + 114 = 130` distinct candidate fit cells, not 130 new
 data-generating cells. Extending the provisional 400 replications to all of
 them would mean **52,000 fits**, before the other sensitivity factors,
 cross-backend checks, failures, or remediation. That is a cost warning, not an
-approved replication allocation. M1-03/04 must justify either that budget or
-a smaller predeclared subset/allocation with corresponding narrower claims.
+approved replication allocation. The alternatives below separate scenario
+coverage from Monte Carlo precision; M1-03/04 must justify the chosen allocation
+and its claim limits before any execution.
 Existing conformance checks cover the probability mechanism, not every new
 cell ID, asymmetric error pair, control, or scorer stratum here. Their concrete
 enumeration and bounded MCMC-free checks remain prerequisites to freezing;
 no new fitting controller, fixture, or evaluation run is introduced by this
 draft. All six freeze decisions remain open.
+
+## M1 allocation and budget decision draft
+
+Prioritize the 16 primary cells for the main recovery/calibration questions.
+The 114 sensitivity candidates comprise **50 compatible cells** (S/P/F/C:
+`2 x (9 + 16)`) and **64 incompatible-contrast cells** (D:
+`2 x (8 + 8 + 16)`). Compatible cells retain conditional recovery targets
+where estimated; fixed contrasts remain N/A. D cells assess distortion and
+failures, not recovery of an excluded truth. This division sets analysis
+priorities; it does not make the third group optional or authorize deleting
+unfavorable results. No scenario is removed by the following alternatives.
+
+| Review alternative | Replications per primary / compatible / D fit cell | Planned fits | Precision/claim consequence |
+| --- | --- | --- | --- |
+| A — lower-cost descriptive sensitivity | 400 / 100 / 100 | 17,800 | Retains all 130 cells; sensitivity estimates have lower precision and do not inherit primary calibration or rare-failure claims |
+| B — retain compatible-cell precision | 400 / 400 / 100 | 32,800 | Compatible-cell precision matches the primary allocation; D loss/failure precision still needs its own justification |
+| C — uniform reference | 400 / 400 / 400 | 52,000 | Uniform replication count, not uniformly sufficient precision for every metric |
+
+Review A first if descriptive sensitivity results are sufficient; otherwise
+review B/C or explicitly narrow the intended domain before freezing. None is
+selected here. These totals exclude the still-open linking, information,
+category, prior/start, and response-misspecification subsets, cross-backend
+checks, probes, and additional attempts. They are not whole-study budgets.
+Keep the same 1,600 primary training datasets: a 100-replication sensitivity
+uses a fixed, outcome-independent subset of 100 of its sparse data cell's 400
+replication IDs. Pair every comparison/control on that same subset, including
+clean methods already fitted for the primary panel. Do not compare its 100
+losses against a clean mean over all 400 or count shared controls twice.
+Select IDs before generating outcomes; this does not resolve the RNG namespace.
+
+[Morris et al. (2019)](https://doi.org/10.1002/sim.8086), Sections 5.1--5.3,
+Table 6 and p. 2089 Eq. 1 (Zotero `PKQMUBH7`), motivate choosing repetitions
+from performance-measure precision and treating missing fits explicitly.
+Those indexed full-text sections were checked; they do not recommend this
+400/100 split. Reusing `mgmfrm_validation_replication_precision` confirms that
+the candidate 90% coverage MCSE is 3.0 versus 1.5 percentage points at 100
+versus 400 independent complete outcomes; worst-case binary-rate MCSE is 5.0
+versus 2.5 points. These are marginal per-cell references, not simultaneous
+guarantees across targets/cells, nor tolerances for accepting the model.
+
+Rare failures need a separate precision check. With zero failures in N
+independent, fully observed Bernoulli attempts at a fixed, nonadaptive N,
+solving `(1 - p)^N = 0.05` gives the exact one-sided 95% upper bound
+`p = 1 - 0.05^(1/N)`: **2.95% at N=100**, versus **0.746% at N=400**.
+Thus zero of 100 does not establish a below-1% failure rate by this criterion.
+This is an illustrative mathematical bound, not adoption of a 1% acceptance
+threshold. Unattempted or unclassified outcomes cannot be counted as successes.
+
+Continuous loss precision cannot be obtained from that binary calculation.
+For each replication form the paired loss difference d, or the four-cell
+interaction d defined above; its mean has estimated MCSE `sd(d) / sqrt(m)`
+over m complete finite pairs/quartets (m >= 2; otherwise unavailable).
+Do not sum independent-method variances: the shared-data covariances matter.
+When fits are missing/diagnostic-invalid, label this estimate conditional on
+that common valid subset and report its size against the planned denominator;
+M1-05's failure-sensitivity policy remains required. A predeclared SD reference
+from an authorized pilot or external evidence is needed to plan precision for
+these losses. No such reference is supplied by a CI test duration or by the
+Bernoulli helper, and this draft does not authorize pilot execution or increasing
+replications after inspecting evaluation results.
+
+Before accepting any allocation, M1-04 must fix sampler/prior/start settings
+and a separately reviewed cost-probe cap. Bound total serial attempt-hours by
+`sum((N_j + A_j) * t_cap_j) / 3600`, plus shared setup/probe allowances: N_j
+counts planned fits, A_j caps additional attempts, and t_cap_j covers the whole
+attempt, including all chains, warmup, diagnostics, and per-attempt startup.
+Also bound concurrent aggregate memory and retained output, not just one
+process's RSS. None of these caps or a concurrency level is selected yet.
+The engineering fit shard includes extensive compilation and many test fits;
+its job time is not an estimate of the study's per-fit cost. Use measured,
+setting-matched probe costs and retain failures/additional attempts in the
+budget instead of silently replacing them.
 
 After each milestone, record only: which uncertainty decreased, which claim
 that changes, and what now blocks the next decision. Missing review or external
