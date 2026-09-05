@@ -17,7 +17,7 @@ prediction remain separate, deferred programs.
 | Milestone | Status | Responsible role and concrete exit |
 | --- | --- | --- |
 | M0 — Package baseline | Implementation, placement/load review, and all 12 lane baselines recorded; runtime acceptance remains open | Maintainer: explain or remediate the `fitting_core` rolling-median increase of 23.4%; preserve the reviewed 0.1.x boundaries |
-| M1 — Anchor-study protocol | Draft: 16 primary + 114 sensitivity candidates; candidate constraints/controls checked, allocations unfrozen | Analyst: finish the decision table in the [study draft](docs/internal/mfrm-anchor-study.md#freeze-decisions); independent reviewer checks equations, cells, scoring, thresholds, and resource limits |
+| M1 — Anchor-study protocol | Draft: candidate constraints checked; response sharing/state ownership specified, full RNG roster and budgets unfrozen | Analyst: finish the decision table in the [study draft](docs/internal/mfrm-anchor-study.md#freeze-decisions); independent reviewer checks equations, cells, scoring, thresholds, and resource limits |
 | M2 — Fresh evaluation | Not started; zero evaluation replications | Analyst: execute the reviewed roster, retain every attempt, and report per-cell recovery/calibration with Monte Carlo uncertainty and failure denominators |
 | M3 — External review and domain decision | Matching-source inventory only; independent review outstanding | Maintainer and independent reviewer: separate-environment matched reproduction and claim-level allow, narrow, reject, or inconclusive decisions |
 
@@ -80,13 +80,21 @@ is the runtime attribution in order 2; do not restart the closed inventories.
   Their Julia 1.10.8 full jobs passed 90 testsets / 17,557 assertions in
   33m15s, 30m57s, and 22m24s, respectively. These are engineering observations,
   not fresh anchor-study replications or acceptance of a later revision.
-- The current M1 test addition contributes 951 MCMC-free assertions. Its focused
-  file passes four testsets / 3,777 assertions on Julia 1.10.8 and 1.12.5;
-  a deliberately malformed paired control is detected. Candidate CI is still
-  required: expected totals become 25 / 7,453 in `fitting_reports` and
-  91 / 18,508 in the full suite. Other shards, especially `fitting_core`, gain
-  no test work. Do not reuse the older workload's report/full timing median
-  as an unchanged-workload measurement of this addition.
+- `46f8d92` added 951 MCMC-free assertions. Its focused file passed four
+  testsets / 3,777 assertions on Julia 1.10.8 and 1.12.5, and a deliberately
+  malformed paired control was detected. [CI 33963553257](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33963553257)
+  has passed 11 ordinary jobs, including the expected 25 / 7,453 in
+  `fitting_reports`; the full Julia 1.10.8 job is still pending at this review.
+  Both manual research jobs were skipped. This is not a whole-run pass yet.
+- The current [response-sharing draft](docs/internal/mfrm-anchor-study.md#m1-data-sharing-and-rng-ownership-draft)
+  prioritizes serial pre-generation and saved block states over unproven
+  independent-stream claims from distinct seeds. Its 131 additional smoke
+  assertions bring the focused file to five testsets / 3,908 assertions,
+  passing locally on Julia 1.10.8 and 1.12.5. Candidate CI is still required:
+  expected totals become 26 / 7,584 in `fitting_reports` and 92 / 18,639 in the
+  full suite. Other shards, especially `fitting_core`, gain no test work.
+  Do not transfer an earlier green result or unchanged-workload report/full
+  timing median to this addition. No evaluation replications are added.
 - The earlier anchor pilot completed 80 fits but only two independent datasets
   per cell, with PCM-only truth, favorable initialization, and a shared
   generation/fitting kernel. None of its fits enters the new evaluation count.

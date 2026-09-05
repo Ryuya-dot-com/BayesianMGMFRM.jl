@@ -1,4 +1,5 @@
 using Test
+using Random
 
 # M1 preparation only: reuse the standalone generator, not the fitting kernel.
 # No MCMC, evaluation seeds, research fixtures, or new package API are needed.
@@ -19,6 +20,60 @@ function mfrm_anchor_test_panel(sparse)
     ); person = :person, rater = :rater, item = :item,
         score = :score, category_levels = 0:3)
     return events, data
+end
+
+@testset "M1 serial response blocks and replay" begin
+    # Smoke only, not a pilot/evaluation seed or a production generator.
+    # One advancing RNG; checkpoint at whole-block boundaries, never reseed
+    # each event or derive overlapping starts by advancing just one draw.
+    rng = MersenneTwister(17)
+    blocks = NamedTuple[]
+    theta = collect(range(-1.2, 1.2; length = 40)) .+ 1.35
+    rho, beta = (0.0, 0.5, 1.0, 1.5), (0.0, 0.4, 0.8, 1.2)
+    pcm_steps = ([-0.6, 0.0, 0.6], [-0.4, 0.1, 0.3],
+        [-0.8, 0.3, 0.5], [-0.2, -0.1, 0.3])
+    probability = MFRMAnchorStandaloneDGP._ld1_pcm_probabilities
+    draw = MFRMAnchorStandaloneDGP._ld1_inverse_cdf
+    for replication in 1:2, family in 1:2, sparse in (false, true),
+            role in (:train, :heldout)
+        events, _ = mfrm_anchor_test_panel(sparse)
+        steps = family == 1 ? ntuple(_ -> pcm_steps[1], 4) : pcm_steps
+        probabilities = Dict(e => probability(theta[e[1]] - rho[e[2]] - beta[e[3]],
+            steps[e[3]]) for e in events)
+        start = copy(rng)
+        uniforms = [rand(rng) for _ in events] # Scalar calls are part of replay.
+        stop = copy(rng)
+        uniform_by_event = Dict(zip(events, uniforms))
+        scores = Dict(e => draw(uniform_by_event[e], probabilities[e], 0:3) for e in events)
+        push!(blocks, (; id = (replication, family, sparse, role), events,
+            start, stop, uniforms, uniform_by_event, probabilities, scores))
+    end
+    @test length(unique(b.id for b in blocks)) == 16
+    @test sum(length(b.events) for b in blocks) == 7_680
+    replay = MersenneTwister(17)
+    @test reduce(vcat, [b.uniforms for b in blocks]) == [rand(replay) for _ in 1:7_680]
+    @test rng == replay
+    for (previous, following) in zip(blocks[1:end-1], blocks[2:end])
+        @test previous.stop == following.start
+    end
+    # Replay any block without generating its predecessors. Row/subset access
+    # uses immutable event identities, not new draws or the consumer's row index.
+    for b in reverse(blocks)
+        replay = copy(b.start)
+        @test [rand(replay) for _ in b.events] == b.uniforms
+        @test replay == b.stop
+        @test issorted(b.events) && length(unique(b.events)) == length(b.events)
+        @test all(score -> score in 0:3, values(b.scores))
+        @test [draw(u, b.probabilities[e], 0:3) for (e, u) in zip(b.events, b.uniforms)] ==
+            [b.scores[e] for e in b.events]
+        for selected in (reverse(b.events), b.events[2:2:end])
+            actual = Dict(e => draw(b.uniform_by_event[e], b.probabilities[e], 0:3)
+                for e in selected)
+            @test actual == Dict(e => b.scores[e] for e in selected)
+        end
+    end
+    # Equality of scores across roles is possible; disjoint draw positions,
+    # not forced score inequality, are the implementation property under test.
 end
 
 @testset "reference-valued anchor declarations share sampling targets" begin

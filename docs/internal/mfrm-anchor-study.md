@@ -19,7 +19,7 @@ design, scorer, and thresholds. No reviewer is currently assigned.
 | ID / status | Decision and required output | Review or runnable check before closure |
 | --- | --- | --- |
 | M1-01 — open | Enumerate the finite sensitivity cells and controls, including anchor placement/count aliases, shifts, crossed contamination signs/magnitudes, priors, nested links, category support, and information levels; name the estimand and pairing for each | Every required factor below maps to a cell or an explicit reviewed exclusion. Fixed contrasts are N/A for interval coverage; composite design changes are labelled |
-| M1-02 — open | Declare separate pilot/evaluation truth, response, holdout, and sampler seed namespaces; specify dataset sharing across anchor regimes and any common random numbers across designs | Reproduce one dataset without fitting; changes in anchor order or extra method cells must not alter its response stream. Fixed primary truth is not falsely counted as a fresh draw |
+| M1-02 — open, sharing/replay draft below | Declare pilot/evaluation and component RNG lineage, state ownership, data sharing, and any cross-design common random numbers; freeze the actual root/state roster | Reproduce one dataset without fitting; method order/addition cannot alter responses. Check non-overlapping allocation, not just distinct seed labels; fixed primary truth is not a fresh draw |
 | M1-03 — open | Choose interval levels, practical tolerances, Monte Carlo precision, replications, and per-stratum decision rules for parameter and predictive targets | Justify numerical values before evaluation; distinguish MCMC error from across-dataset error and true-probability regret from heldout log loss |
 | M1-04 — open | Choose the primary backend, actual prior scales, ordinary non-truth starts/jitter, chain settings, diagnostic policy, bounded cost probe, time/memory/output caps, and remediation allowance | Review the probe budget before running it; record resource evidence and keep all probes outside evaluation counts. The provisional 6,400 primary fits is not a budget authorization |
 | M1-05 — open | Reuse the recovery/predictive scorer and specify planned/attempted/completed/diagnostic-valid counts, structural rejections, paired Monte Carlo error, and non-overwriting failure/remediation summaries | A bounded synthetic scoring check must include a failed fit, a fixed contrast, and paired methods; remove an unimplemented metric claim before freezing rather than treating a planning field as a scorer |
@@ -85,7 +85,8 @@ Before M2, the single M1 protocol must resolve all of the following:
    and predeclared failure-sensitivity summaries. Assess criteria per stress
    stratum; pooled success must not hide a failed domain. Any ranking or
    classification claim needs its own practical threshold and scored rule.
-5. **Controls and cost.** Freeze cell IDs, disjoint pilot/evaluation seeds,
+5. **Controls and cost.** Freeze cell IDs, non-overlapping pilot/evaluation
+   response allocations and separate recorded sampler seeds,
    sampler settings, initialization/prior subsets, timeout and memory caps,
    and the smallest cross-implementation subset covering each claimed model
    and constraint. Cost probes contribute zero evaluation replications. An
@@ -93,7 +94,7 @@ Before M2, the single M1 protocol must resolve all of the following:
    silently replaced by an unanchored fit.
 6. **Terminal review.** Freeze the acceptance rules before fresh outcomes are
    inspected. A failed domain is narrowed or rejected; an unresolved estimate
-   remains inconclusive. Any extension uses a declared new stage and seeds,
+   remains inconclusive. Any extension uses a declared new stage and RNG allocation,
    preserving the original results instead of increasing the sample until it
    passes. Independent equation/threshold review remains required; another
    implementer-authored receipt cannot satisfy it.
@@ -135,9 +136,9 @@ oracle but differ from the original truth. Tolerance `1e-12` is a numerical
 conformance limit, not a statistical acceptance threshold. The check is also
 included in the ordinary `fitting_reports` shard. The initial 2,518 conformance
 assertions and the 308 reference-declaration/estimand checks below are retained.
-The additional 951 finite-candidate checks described below bring the focused
-file to four testsets / 3,777 assertions, passing locally on Julia 1.10.8 and
-1.12.5. The command contributes
+The additional 951 finite-candidate checks and 131 serial-response replay
+checks described below bring the focused file to five testsets / 3,908
+assertions, passing locally on Julia 1.10.8 and 1.12.5. The command contributes
 **zero evaluation replications**.
 It establishes implementation separation from the fitting kernel, not
 independent authorship, independent review, or posterior calibration. The old
@@ -222,7 +223,7 @@ Generate responses with the standalone recurrence, and use identical training
 data for B/R/I/RI within each data cell and replication. Independent heldout
 responses use the same observed facet tuples and fixed truth. Pair data by
 replication for method comparisons; no anchor-regime identifier enters the
-response RNG key. RSM and PCM truth differs, so shared uniforms would not make
+response allocation. RSM and PCM truth differs, so shared uniforms would not make
 their scores identical. Dense versus sparse changes rating burden and exposure;
 do not advertise it as an isolated topology effect or compare their raw
 predictive losses as if they used the same event-weighting distribution.
@@ -266,6 +267,101 @@ cost probe and the precision/threshold review. Ordinary starts must use
 the pilot's truth/projection initialization does not transfer. Next resolve
 the finite sensitivity-cell/seed table, sampler and resource settings, and
 scorer/decision thresholds before requesting the independent freeze review.
+
+## M1 data sharing and RNG ownership draft
+
+This is the preferred **review candidate**, not a frozen seed roster or a new
+execution command. Reuse the standalone probability recurrence/inverse CDF,
+but do not adopt either the old pilot's arithmetic seed offsets or LD1's
+event-keyed reseeding as a proven independent-stream construction.
+[Morris et al. (2019)](https://doi.org/10.1002/sim.8086), Sections 4.1--4.1.1,
+pp. 2081--2084 (Zotero `PKQMUBH7`, indexed full text checked), recommend saving
+RNG states and warn that arbitrarily different seeds can start overlapping
+streams. Their example of saving successive one-draw states is not a valid
+way to allocate multi-draw replications. Distinct IDs, distinct seeds, and a
+collision-free finite key check do not establish statistical independence.
+
+Prefer **serial response generation before fitting**, with one explicitly
+owned `MersenneTwister` advanced across complete, non-overlapping blocks. Save
+the start and end state of every block; replay uses a copy of its start state,
+not the live allocator. The allocation unit is `(stage, data_cell, replication,
+role)`, where role is training or heldout. Within a stage, order replication
+IDs first, then `RSM-D, RSM-S, PCM-D, PCM-S`, then training/heldout. Within each
+block use the lexicographic labelled event order `(person, rater, item)` from
+the primary panel, one scalar `rand(rng)` per event. Never use method/anchor
+IDs, worker numbers, task schedules, discovered level order, or outcome-based
+sorting to allocate response randomness. Retain these labelled tables before
+the fitting layer recodes levels. Selecting/reordering rows reads the stored
+event map; it must not consume a new response stream. Disjoint draw positions
+prevent accidental reuse; this is not a proof of statistical independence or
+a validation of the PRNG's statistical quality.
+
+| Randomness/data owner | Sharing and separation contract |
+| --- | --- |
+| Fixed truth and event design | Store their version and labelled values; truth/design RNG is N/A in the primary panel. Random truth or random designs need their own reviewed allocation, not a hidden extra draw |
+| Training responses | One stored dataset per stage/data-cell/replication, reused by all B/R/I/RI, sensitivity, prior/start, and backend comparisons that retain that DGP. Anchor contamination changes fitted inputs, not generating truth or responses |
+| Heldout responses | A separate block on the same observed facet tuples and truth, shared by the same methods. Never feed heldout outcomes to fitting, initialization, diagnostics-based remediation, or subset selection; this is not new-facet prediction |
+| Across RSM/PCM or dense/sparse | No intentional common random numbers in this primary candidate: allocate separate blocks. A sparse response table is not a subset of the dense response table. Equal replication numbers alone do not make a cross-design paired comparison |
+| Sampler and initialization | Separate from response allocation. Identify each fit by dataset ID, canonical method, backend, prior/start setting, and attempt ID; reuse one control fit across comparisons. Record the actual replay seed/settings, not its loop position |
+
+Training and heldout scores can coincide by chance; require different allocated
+draw positions, not forced score inequality. Never redraw to fill missing score
+categories or rescue a failed fit; retain the declared `0:3` scale and the
+original planned denominator. Paired losses/quartets join by the
+same stored dataset and heldout IDs, not merely matching seed integers. If the
+100-of-400 sensitivity allocation is selected, use the prespecified first 100
+replication IDs of each relevant sparse cell and those IDs' already fitted
+clean controls. This outcome-independent prefix needs no subset-selection RNG;
+it is a candidate rule, not authorization of allocation A or B. All four cells
+of an interaction must use the same complete-case subset and report failures.
+
+Keep smoke, pilot/cost-probe, evaluation, and later amendments distinguishable
+in IDs and records. For the new response lineage, fix phase draw allocations
+before any phase is generated and place later phases after the reserved end
+state of the earlier allocation, even if some pilot blocks are unused. Do not
+reset the root at each phase or let an early-stopped pilot choose evaluation's
+starting position. Evaluation blocks remain ungenerated until authorization.
+Actual root seed, all phase/block sizes, persistence format, and any additional
+DGP allocations remain M1-02/04 decisions; no numeric evaluation seed is minted
+here. Adding a method cannot change these blocks. Adding a data-generating
+cell requires an appended, reviewed allocation, never insertion that moves
+existing blocks. The old 80-fit pilot stays outside the new lineage and counts.
+Do not parallelize response allocation without a reviewed non-overlapping
+stream mechanism; distributing already generated datasets for fits is separate.
+
+The current `fit(seed=...)` owns a local `MersenneTwister`, with a seed that
+must fit `Int`. AdvancedHMC/Turing consume that fit RNG for initial jitter and
+successive chains; there is no separately exposed per-chain/jitter seed option.
+CmdStan derives and records additional chain seeds. Do not promise unchanged
+later chains after changing earlier chain work, or the same trajectories from
+equal seeds across backends/dimensions. Freeze the actual attempt-seed roster
+and backend behavior with M1-04, audit duplicates against other roles, and
+retain all original attempts. Exact replay keeps the original settings/seed;
+authorized remediation gets a new attempt ID and seed on the **same data**,
+not a replacement dataset or an extra independent replication. Unique sampler
+seeds are bookkeeping, not a proof of independent substreams. No sampler change
+or sampler-independence claim is made by the response smoke below.
+
+[Julia's Random documentation](https://docs.julialang.org/en/v1/stdlib/Random/#Reproducibility)
+notes that seeded sequences may change across releases and recommends saving
+random data for exact reproduction. Retain generated labelled training/heldout
+tables with category declarations, fixed truth, RNG engine/root/block states,
+source revision, exact Julia version, and dependency manifest. Saved state is
+an environment-bound replay aid, not a portable substitute for the data.
+Test invariance within each supported environment; do not pin arbitrary score
+bytes across Julia releases or substitute a checksum for the saved tables.
+
+The existing focused test now adds a bounded two-replication **smoke only**:
+16 training/heldout blocks across the four data cells, 7,680 scalar uniforms,
+131 assertions. It checks contiguous allocation against a single serial draw
+sequence, block replay in reverse request order, valid scores, and event-keyed
+row reversal/subsetting. Memory-only mutations that alias the start checkpoint
+or reverse uniform-to-event attachment trigger 47 and 16 assertion failures,
+respectively, with no errors. The unmodified file passes all 3,908 assertions
+on Julia 1.10.8 and 1.12.5. This checks primitives and the stated construction,
+not a production executor, on-disk replay, stage reservation, sampler streams,
+or posterior calibration. It uses test seed 17 only; no fit or evaluation
+replication is run. M1-02 stays open for those unchecked boundaries and review.
 
 ## M1 candidate anchor-placement and error subset
 
@@ -354,7 +450,7 @@ They include all asymmetric error pairs and verify that joint-error controls
 retain the same fixed sets/free-coordinate priors; D-R/D-I are not substitutes.
 A memory-only mutation dropping the item anchors from `D-RI-u+0.2-v0` produced
 20 assertion failures and no errors, confirming that this mistake is detected;
-the unmodified file passes all 3,777 assertions on both local Julia versions.
+the then-current file passed all 3,777 assertions on both local Julia versions.
 The 1e-12/1e-4 checks test numerical agreement/non-equality, not statistical or
 practical acceptance. Scores are deterministic scaffolding, not fresh responses.
 This verifies the candidate constraints and projection algebra, **not** an
@@ -389,7 +485,8 @@ uses a fixed, outcome-independent subset of 100 of its sparse data cell's 400
 replication IDs. Pair every comparison/control on that same subset, including
 clean methods already fitted for the primary panel. Do not compare its 100
 losses against a clean mean over all 400 or count shared controls twice.
-Select IDs before generating outcomes; this does not resolve the RNG namespace.
+Select IDs before generating outcomes; the candidate first-100 rule and
+remaining RNG gates are in the [sharing draft](#m1-data-sharing-and-rng-ownership-draft).
 
 [Morris et al. (2019)](https://doi.org/10.1002/sim.8086), Sections 5.1--5.3,
 Table 6 and p. 2089 Eq. 1 (Zotero `PKQMUBH7`), motivate choosing repetitions
