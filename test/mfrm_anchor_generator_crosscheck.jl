@@ -8,6 +8,74 @@ end
 
 using BayesianMGMFRM
 
+@testset "reference-valued anchor declarations share sampling targets" begin
+    hard(block, level, value) = (; block, level, value, type = :hard)
+    r1, r4 = hard(:rater, "R1", 0.0), hard(:rater, "R4", 1.5)
+    i1, i4 = hard(:item, "I1", 0.0), hard(:item, "I4", 1.2)
+    baseline = NamedTuple[]
+    rater_pair, item_pair = [r1, r4], [i1, i4]
+    equivalent_declarations = (
+        (baseline, [r1]), (baseline, [i1]), (baseline, [r1, i1]),
+        (rater_pair, [r1, r4, i1]), (item_pair, [i1, i4, r1]),
+    )
+    for thresholds in (:rating_scale, :partial_credit), sparse in (false, true)
+        events = [(p, r, i) for p in 1:40 for r in 1:4 for i in 1:4
+            if !sparse || r in (mod1(p, 4), mod1(p + 1, 4))]
+        data = FacetData((;
+            person = ["P$(lpad(string(p), 2, '0'))" for (p, r, i) in events],
+            rater = ["R$r" for (p, r, i) in events],
+            item = ["I$i" for (p, r, i) in events],
+            score = [mod(p + r + i, 4) for (p, r, i) in events],
+        ); person = :person, rater = :rater, item = :item,
+            score = :score, category_levels = 0:3)
+        @test data.n == (sparse ? 320 : 640)
+        @test all(count(==(rater), data.rater) == (sparse ? 80 : 160)
+            for rater in 1:4)
+        for (canonical, declared) in equivalent_declarations
+            reference = getdesign(mfrm_spec(data; thresholds, anchors = canonical))
+            alias = getdesign(mfrm_spec(data; thresholds, anchors = declared))
+            @test alias.parameter_names == reference.parameter_names
+            n = length(reference.parameter_names)
+            for params in (zeros(n), collect(range(-0.5, 0.5; length = n)),
+                    collect(range(1.5, -1.5; length = n)))
+                @test loglikelihood(alias, params) == loglikelihood(reference, params)
+                for scale in (0.5, 1.0, 2.0)
+                    prior = MFRMPrior(; person_sd = 1.5scale,
+                        rater_sd = scale, item_sd = scale, step_sd = scale)
+                    @test logprior(alias, params, prior) == logprior(reference, params, prior)
+                end
+            end
+        end
+        # R3-R2 and I3-I2 stay estimated in all four primary regimes. Endpoint
+        # or fully fixed contrasts must not be scored as posterior coverage.
+        for anchors in (baseline, rater_pair, item_pair, [r1, r4, i1, i4])
+            design = getdesign(mfrm_spec(data; thresholds, anchors))
+            @test all(name -> name in design.parameter_names,
+                ("rater[R2]", "rater[R3]", "item[I2]", "item[I3]",
+                    "person[P10]", "person[P30]"))
+        end
+        for (block, prefix, endpoints, interior) in (
+                (:rater, "R", rater_pair,
+                    [hard(:rater, "R2", 0.5), hard(:rater, "R3", 1.0)]),
+                (:item, "I", item_pair,
+                    [hard(:item, "I2", 0.4), hard(:item, "I3", 0.8)]))
+            for anchors in (endpoints, interior)
+                design = getdesign(mfrm_spec(data; thresholds, anchors))
+                # The alternate 2-1 contrast is partially estimated under
+                # either placement; it is not the fixed interior 3-2 contrast.
+                @test count(level -> "$block[$prefix$level]" in design.parameter_names,
+                    (1, 2)) == 1
+                if anchors === interior
+                    @test all(level -> "$block[$prefix$level]" ∉ design.parameter_names,
+                        (2, 3))
+                end
+            end
+        end
+    end
+    # This does not equate reports/cache metadata, shifted anchor values,
+    # different reference levels, or priors in different coordinates.
+end
+
 @testset "MFRM anchor generator equation and category checks" begin
     probability = MFRMAnchorStandaloneDGP._ld1_pcm_probabilities
     draw = MFRMAnchorStandaloneDGP._ld1_inverse_cdf

@@ -399,7 +399,7 @@ decision, not on the number of scripts, tests, or checklist entries added.
 | Milestone / current state | Owner and dependency | Deliverable and exit decision |
 | --- | --- | --- |
 | M0. Fix the validation baseline — **local closeout and split CI complete; medians pending** | Maintainer; package distribution gate. | The finite review maps behavior to checks, classifies documentation/fixture exceptions, and adds the archive-size guard. Candidate CI is green at `101b791`; comparable whole-lane medians remain required. |
-| M1. Freeze the anchor study — **draft; generator cross-check prepared** | Study analyst prepares; independent reviewer checks equations, design, scoring, and thresholds. | Reuse the standalone generator checked below. One compact protocol, enumerated cell/seed table, statistical tolerances, replication counts, resource caps, and all-attempt scoring must still be filled and reviewed before M2. |
+| M1. Freeze the anchor study — **draft; primary contrasts and 16 candidate cells specified** | Study analyst prepares; independent reviewer checks equations, design, scoring, and thresholds. | Reuse the standalone generator and equivalent-target checks below. Complete the targeted sensitivity cells, seed table, statistical tolerances, replication counts, resource caps, and all-attempt scoring before independent review and M2. |
 | M2. Execute and score — **pending M0 and M1** | Study analyst; reviewed protocol and supported execution budget. | Fresh-seed results with planned/attempted/completed/diagnostic-valid denominators, per-cell estimates and Monte Carlo uncertainty, and retained failures. Decide adequate evidence, narrower domain, failed criterion, or insufficient precision; do not force a pass/fail from an imprecise estimate. |
 | M3. External comparison and scope decision — **pending M2; source/overlap inventory can start earlier** | Maintainer and independent reviewer; compatible external target and access to required software/data. | Reproduce matched known-truth cases in a separate environment; review claim-level allow/narrow/reject decisions. Observed data support portability/plausibility separately. Missing external input leaves that claim pending without invalidating completed local evidence. |
 
@@ -520,6 +520,16 @@ target remain open; old combined lanes and reused rerun jobs cannot fill the
 new denominator. Later generator cross-check assertions are not included in
 this recorded baseline count.
 
+The generator follow-up at `9668383` has all six current-Julia shards passing in
+[run 33949682122](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33949682122),
+attempt 1: 89 testsets and 17,249 checks, including the initial 2,518 generator
+checks. Shard times in the table's order were 22m05s, 21m53s, 24m54s, 24m25s,
+17m45s, and 13m24s. At the 2026-09-05 06:52 UTC observation, eleven ordinary
+jobs had passed and the full Julia 1.10.8 job was still running; do not infer
+whole-suite agreement or a fully green candidate yet. Manual research jobs
+were skipped. This remains short of three comparable timing observations;
+the later 308 reference-declaration checks are not included in this CI count.
+
 #### M1 design and analysis decisions
 
 Use the existing [mathematical and literature crosswalk](docs/src/migration-facets-conquest.md#implemented-stage-individual-hard-anchors-for-the-minimal-model)
@@ -622,8 +632,10 @@ scales. Another 96 configurations cross two differential-error magnitudes
 with both signs in each facet; their probabilities match the constrained
 oracle but differ from the original truth. Tolerance `1e-12` is a numerical
 conformance limit, not a statistical acceptance threshold. The check is also
-included in the ordinary `fitting_reports` shard. Its 2,518 assertions passed
-locally on Julia 1.10.8 and 1.12.5; the command contributes **zero evaluation replications**.
+included in the ordinary `fitting_reports` shard. The initial 2,518 conformance
+assertions and the 308 reference-declaration/estimand checks below pass locally
+on Julia 1.10.8 and 1.12.5 (2,826 total). The command contributes
+**zero evaluation replications**.
 It establishes implementation separation from the fitting kernel, not
 independent authorship, independent review, or posterior calibration. The old
 80-fit pilot remains unchanged and still used the shared fitting kernel.
@@ -650,6 +662,107 @@ identity guaranteed by a Bayesian credible interval. Bias precision still
 needs a justified error-SD reference, and diagnostic-invalid fits need the
 predeclared failure sensitivity. Neither a replication count nor a complete
 evaluation grid is frozen by this calculation.
+
+#### M1 candidate primary panel and comparison contract
+
+The following is a **review draft, not an execution authorization or a frozen
+study**. It reduces duplicated fitting without removing the required anchor
+declaration cases. All numbers in this panel are package-specific synthetic
+design choices, not recommended operational anchor counts. The distinction
+between estimands, methods, and performance measures follows
+[Morris et al. (2019), Sections 3.3--3.5](https://doi.org/10.1002/sim.8086)
+(Zotero item `PKQMUBH7`); the target-equivalence deduction below is specific to
+this package's reference constraints and priors, not a result asserted by that
+paper.
+
+Use 40 persons (`P01`--`P40`), four raters (`R1`--`R4`), four items
+(`I1`--`I4`), and the declared category scale `0:3`. Keep the labelled truth
+fixed across data replications: person locations are
+`range(-1.2, 1.2; length = 40) .+ 1.35`, rater severities are
+`(0, 0.5, 1.0, 1.5)`, and item difficulties are `(0, 0.4, 0.8, 1.2)`.
+This preserves the pilot's location range and rater/item values, translated
+into the default R1/I1 reference coordinates, while increasing the fixed person
+grid from 20 to 40. It is not a prior draw or a random-facet population.
+The candidate RSM full step vector is `(-0.6, 0, 0.6)`; PCM uses, by item,
+`(-0.6, 0, 0.6)`, `(-0.4, 0.1, 0.3)`, `(-0.8, 0.3, 0.5)`, and
+`(-0.2, -0.1, 0.3)`. Each sums to zero. Unlike the pilot's repeated item-step
+vector, the PCM primary truth is not a shared-step RSM special case.
+
+| Regime | Declared exact anchors | Scientific comparison |
+| --- | --- | --- |
+| B | None; R1 and I1 retain their default zero references | Baseline identified model |
+| R | R1 = 0, R4 = 1.5 | Add one known rater contrast |
+| I | I1 = 0, I4 = 1.2 | Add one known item contrast |
+| RI | Union of R and I | Add both contrasts and assess their interaction |
+
+At these coordinates, declaring R1 = 0 alone, I1 = 0 alone, or both does not
+change B's free coordinates, likelihood, or prior density. Likewise, adding
+I1 = 0 to R or R1 = 0 to I leaves its sampling target unchanged. Thus the nine
+0/1/2-anchor-count combinations have **four distinct posterior targets** in
+this restricted panel. `test/mfrm_anchor_generator_crosscheck.jl` checks all
+five aliases on the 40-person dense/sparse RSM/PCM designs at three parameter
+vectors and three prior-scale settings, and checks rating counts, balanced
+rater exposure, and which contrasts remain estimated.
+Keep report/provenance/cache distinctions; equal
+sampling targets do not mean equal metadata. Shifted values, a different
+reference level, interior anchors, and different priors are **not** covered by
+this reduction and must remain sensitivity cases.
+
+| Data cell | Observed training events | Candidate fit-cell IDs |
+| --- | --- | --- |
+| RSM-D | All 40 x 4 x 4 person/rater/item events: 640 ratings | RSM-D-B, RSM-D-R, RSM-D-I, RSM-D-RI |
+| RSM-S | For person p, raters `mod1(p,4)` and `mod1(p+1,4)` score every item: 320 ratings | RSM-S-B, RSM-S-R, RSM-S-I, RSM-S-RI |
+| PCM-D | Same dense event design, item-specific step truth | PCM-D-B, PCM-D-R, PCM-D-I, PCM-D-RI |
+| PCM-S | Same connected-sparse event design, item-specific step truth | PCM-S-B, PCM-S-R, PCM-S-I, PCM-S-RI |
+
+Generate responses with the standalone recurrence, and use identical training
+data for B/R/I/RI within each data cell and replication. Independent heldout
+responses use the same observed facet tuples and fixed truth. Pair data by
+replication for method comparisons; no anchor-regime identifier enters the
+response RNG key. RSM and PCM truth differs, so shared uniforms would not make
+their scores identical. Dense versus sparse changes rating burden and exposure;
+do not advertise it as an isolated topology effect or compare their raw
+predictive losses as if they used the same event-weighting distribution.
+
+Primary parameter targets are `R3 - R2`, `I3 - I2`, and `P30 - P10`.
+All remain estimated under B/R/I/RI. Score bias, RMSE, interval coverage/width,
+and posterior-versus-empirical uncertainty separately for each target; do not
+pool the three as independent replications. Prediction targets are the true
+category probabilities and expected scores on each data cell's declared event
+set, with equal event weights. Keep true-probability KL regret distinct from
+finite-sample heldout log loss. Rater comparisons are R minus B and RI minus I;
+item comparisons are I minus B and RI minus R. Evaluate an interaction, if
+retained, as RI minus R minus I plus B on a predeclared dataset-level error or
+loss, with paired Monte Carlo error, not by assuming independent fits.
+
+Moving a two-anchor set from endpoints `{1,4}` to interior levels `{2,3}`
+fixes the primary contrast `3 - 2` itself. Label its posterior coverage not
+applicable, never perfectly covered. Placement sensitivity retains common
+prediction/person targets and prespecifies `R2 - R1` or `I2 - I1` as the
+affected facet's secondary contrast: exactly one endpoint is estimated under
+either placement. Mark this as partially estimated, and do not substitute it
+for a failed primary metric after observing results. Only a requirement that
+**both** contrast endpoints remain free under both disjoint anchor sets would
+need a larger design (at least six levels for two free endpoints). Fully fixed
+facet controls have no estimated within-facet contrasts. Contaminated fixed
+contrasts and extremity-response truth remain distortion/warning tests rather
+than recovery of excluded truth.
+
+All these are conditional hard-anchor comparisons under the declared priors:
+changing the fixed coordinates also changes which parameters receive priors.
+The placement comparison is not a claim about anchor location alone under an
+unchanged joint prior on all facet coordinates.
+
+The candidate 400 independent datasets per data cell would require
+`4 x 400 = 1,600` generated training datasets and `16 x 400 = 6,400` primary
+fits, not 14,400 fits for the nine declarations. These are planned costs, not
+executed evidence; sensitivity, cross-backend, failed-attempt, and remediation
+costs are additional. Replication counts remain provisional until a bounded
+cost probe and the precision/threshold review. Ordinary starts must use
+`init = nothing` (the package's zero vector) with a declared non-truth jitter;
+the pilot's truth/projection initialization does not transfer. Next resolve
+the finite sensitivity-cell/seed table, sampler and resource settings, and
+scorer/decision thresholds before requesting the independent freeze review.
 
 After each milestone, record only: which uncertainty decreased, which claim
 that changes, and what now blocks the next decision. Missing review or external
