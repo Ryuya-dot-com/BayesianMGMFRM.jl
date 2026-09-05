@@ -22,7 +22,7 @@ design, scorer, and thresholds. No reviewer is currently assigned.
 | M1-02 — open, sharing/replay draft below | Declare pilot/evaluation and component RNG lineage, state ownership, data sharing, and any cross-design common random numbers; freeze the actual root/state roster | Reproduce one dataset without fitting; method order/addition cannot alter responses. Check non-overlapping allocation, not just distinct seed labels; fixed primary truth is not a fresh draw |
 | M1-03 — open | Choose interval levels, practical tolerances, Monte Carlo precision, replications, and per-stratum decision rules for parameter and predictive targets | Justify numerical values before evaluation; distinguish MCMC error from across-dataset error and true-probability regret from heldout log loss |
 | M1-04 — open | Choose the primary backend, actual prior scales, ordinary non-truth starts/jitter, chain settings, diagnostic policy, bounded cost probe, time/memory/output caps, and remediation allowance | Review the probe budget before running it; record resource evidence and keep all probes outside evaluation counts. The provisional 6,400 primary fits is not a budget authorization |
-| M1-05 — open | Reuse the recovery/predictive scorer and specify planned/attempted/completed/diagnostic-valid counts, structural rejections, paired Monte Carlo error, and non-overwriting failure/remediation summaries | A bounded synthetic scoring check must include a failed fit, a fixed contrast, and paired methods; remove an unimplemented metric claim before freezing rather than treating a planning field as a scorer |
+| M1-05 — open, scoring smoke checked | Reuse the recovery/predictive scorer; the denominator/applicability draft below specifies failures, paired Monte Carlo error, and non-overwriting remediation | The synthetic check includes failed fits, fixed/partially estimated contrasts, and paired methods. A validated all-attempt adapter, predictive scoring edges, and final decision rules remain required |
 | M1-06 — open | Hand off the single protocol with exact source revision, cell roster, settings, scorer checks, unresolved questions, and claim limits | A person other than the implementer records accept/request-revision decisions. Review cannot be replaced by an implementer-authored receipt |
 
 M1-01 now has the finite anchor-placement/error candidate subset below; nested
@@ -136,8 +136,8 @@ oracle but differ from the original truth. Tolerance `1e-12` is a numerical
 conformance limit, not a statistical acceptance threshold. The check is also
 included in the ordinary `fitting_reports` shard. The initial 2,518 conformance
 assertions and the 308 reference-declaration/estimand checks below are retained.
-The additional 951 finite-candidate checks and 131 serial-response replay
-checks described below bring the focused file to five testsets / 3,908
+The additional 951 finite-candidate, 131 serial-response replay, and 50 scoring
+checks described below bring the focused file to six testsets / 3,958
 assertions, passing locally on Julia 1.10.8 and 1.12.5. The command contributes
 **zero evaluation replications**.
 It establishes implementation separation from the fitting kernel, not
@@ -357,7 +357,7 @@ The existing focused test now adds a bounded two-replication **smoke only**:
 sequence, block replay in reverse request order, valid scores, and event-keyed
 row reversal/subsetting. Memory-only mutations that alias the start checkpoint
 or reverse uniform-to-event attachment trigger 47 and 16 assertion failures,
-respectively, with no errors. The unmodified file passes all 3,908 assertions
+respectively, with no errors. The then-current file passed all 3,908 assertions
 on Julia 1.10.8 and 1.12.5. This checks primitives and the stated construction,
 not a production executor, on-disk replay, stage reservation, sampler streams,
 or posterior calibration. It uses test seed 17 only; no fit or evaluation
@@ -457,6 +457,119 @@ This verifies the candidate constraints and projection algebra, **not** an
 evaluation executor, RNG policy, interval/failure scorer, posterior calibration,
 or independent review. No new controller, fixture, or fit is introduced.
 All six freeze decisions remain open, including the other factor subsets.
+
+## M1 scoring applicability and denominator draft
+
+This is a bounded scoring design and check, not an implemented all-attempt
+executor or an acceptance rule. [Morris et al. (2019)](https://doi.org/10.1002/sim.8086),
+Section 5.1 and Table 6, pp. 2085--2086 (Zotero `PKQMUBH7`, previously retrieved
+indexed full text rechecked), treat missing estimates as a performance outcome
+and warn against assuming they are missing completely at random. This motivates
+the separation below; the exact status scheme is package-specific.
+
+Start with the planned dataset-by-method roster, not the set of files that
+happened to finish. Within one phase/data cell, keep one primary disposition
+per planned dataset/method, plus additional attempts under distinct attempt
+IDs. Preserve the dataset/heldout IDs, settings, and failure reason; reject
+duplicate attempt keys, unplanned IDs, and mismatched data or target definitions
+before aggregation. Missing output is unresolved, never silently successful.
+
+| Quantity | Counting rule |
+| --- | --- |
+| Planned | Every prespecified primary dataset/method, including unstarted, running, generation-failed, and unexpectedly structurally rejected cases |
+| Fit entered | The fit call was actually entered; generation/preflight rejection does not count as a sampler attempt |
+| Completed | A fit result was returned; timeout/exception is not completion, and completion does not imply valid diagnostics |
+| Diagnostic-valid | Completed fits passing the frozen full diagnostic policy; missing diagnostics cannot pass |
+| Metric-valid | Diagnostic-valid fits with an applicable, correctly aligned and valid target summary; this can differ by metric |
+| Additional attempts | Report separately by original dataset/method and reason; they do not enlarge independent N or replace the primary disposition |
+
+Report nested counts `metric-valid <= diagnostic-valid <= completed <=
+fit-entered <= planned` for the **primary** attempt. Additional attempts have
+their own workload denominator. Count statuses/reasons alongside these totals,
+including pending work; do not equate every unresolved case with an observed
+fit failure. If a sequential fallback strategy is later evaluated as a method,
+freeze its full rule and report both initial-method and strategy performance.
+Do not select whichever attempt happens to have the best recovery or prediction.
+
+Applicability is structural and predeclared per cell/target. Both endpoints
+fixed means interval coverage is N/A; one free endpoint remains an estimated
+contrast. Zero empirical draw SD does **not** establish that a contrast is
+fixed. Incompatible-anchor and response-misspecification cells retain
+distortion/failure targets, not a nominal-coverage gate for excluded truth.
+Known unsupported negative controls belong to a separate expected-rejection
+panel. Unexpected rejection in a planned applicable cell remains in its
+denominator. N/A targets are not unresolved coverage trials and must not be
+sent to a positive-N binary summary with artificial zero-width intervals.
+
+For one applicable target at fixed truth, let N be planned datasets, m be
+primary metric-valid datasets, and c be covered intervals. Report all three:
+conditional coverage `c/m` (missing if m=0), the joint operational rate
+`c/N` (valid **and** covered), and extreme binary-completion scenarios
+`[c/N, (c + N - m)/N]`. The joint rate is not nominal coverage. The last range
+is neither a confidence interval nor evidence that a nonexistent interval has
+a defined latent coverage outcome. It shows sensitivity to assigning unresolved
+binary outcomes as all false/all true; it cannot establish calibrated recovery
+when failures make the target unavailable. Report Monte Carlo uncertainty
+separately. Fixed targets have no such range.
+
+Reuse `_parameter_recovery_rows` for draw-wise contrasts and
+`parameter_recovery_summary` on eligible rows. The latter's `n_parameters` is
+the number of supplied rows, **not** the planned independent dataset count;
+its `flag` comparing coverage to nominal is not the study acceptance gate.
+Within one fixed target/method, errors `e = posterior_mean - truth` give
+`bias = mean(e)`, `MSE = mean(e^2)`, and `RMSE = sqrt(MSE)` over m valid datasets.
+Use `sd(e)/sqrt(m)` and `sd(e^2)/sqrt(m)` for bias/MSE MCSE, with corrected sample
+SD and m>=2; otherwise MCSE is unavailable, not zero. These are across-dataset
+errors, not posterior SDs or within-chain MCMC errors. Report empirical SD of
+point estimates and root-mean posterior variance on the same subset if retained.
+Do not count several contrasts from one dataset as independent observations.
+
+The existing `_free_correlation_study_binary_summary` can supply the binary
+counts/rates/extreme scenarios without importing its study protocol or gates.
+Its Wilson records are labelled 95%; the smoke uses the corresponding normal
+quantile, not a new selected coverage level or acceptance threshold. The
+free-correlation scorer's bounded correlation-error machinery does **not**
+transfer to unbounded MFRM contrasts or log losses. Without a justified bounded
+metric/support assumption there is no finite worst-case upper bound for missing
+log loss or squared contrast error; report unresolved/conditional status rather
+than imputing zero or borrowing a correlation bound.
+
+For paired differences or four-method interactions, join on the same
+dataset **and heldout** IDs within the predeclared comparison subset. Form each
+dataset-level difference first, then `mean(d)` and `sd(d)/sqrt(m)` on the common
+finite, diagnostic-valid subset (m>=2 for MCSE). Never subtract separately
+filtered marginal means, or use independent-method variances for shared data.
+Report the common subset size and each method's missing/nonfinite/invalid counts.
+An infinite log loss is a meaningful extended-real outcome when predicted mass
+at the observed category is zero, not an ordinary missing finite loss. Preserve
+it and flag the all-planned comparison as unresolved or extended-real as
+appropriate; a finite-subset MCSE must not hide it. Reject NaN/invalid probability
+rows. Do not silently clip probabilities or cap losses.
+
+For the declared point-predictive targets, use posterior-mean category
+probabilities before the logarithm, not mean draw-wise log probabilities.
+For KL regret, sum
+`p*log(p/q)` only where truth p>0; q=0 there gives infinity, while p=0 contributes
+zero. Heldout loss uses `-log(q[y])` on the stored heldout responses, never the
+training scores. Keep event weights and the 20/60/60/180 strata declared above.
+These predictive edge rules still require a runnable adapter check before
+M1-05 closes; the old pilot formulas alone do not establish them.
+
+The focused file now checks 50 assertions with hand-constructed draws/outcomes:
+an eight-dataset plan has 6 fit entries, 5 completions, 4 diagnostic-valid fits,
+3 scored intervals and 2 covered intervals. Thus conditional coverage is 2/3,
+joint valid-and-covered rate is 2/8, and the extreme-completion range is
+[2/8, 7/8]. A successful second attempt stays outside the primary summary.
+Actual anchor designs check estimated, partially estimated, and fixed contrasts,
+including a structurally estimated contrast with constant synthetic draws.
+A four-method loss example retains two complete finite quartets with interaction
+mean -1.5 and MCSE 0.5, while explicitly retaining one missing and one infinite
+loss outside that subset. Memory-only mutations admitting retry rows to the
+primary summary or inferring applicability from draw SD trigger 15 and 2
+assertion failures, respectively, with no errors. The unmodified file passes
+all 3,958 assertions on Julia 1.10.8 and 1.12.5. No MCMC or evaluation dataset
+is involved. This checks arithmetic/applicability, not the full roster adapter,
+diagnostic policy, predictive scorer, or independent review; M1-05 stays open.
 
 ## M1 allocation and budget decision draft
 

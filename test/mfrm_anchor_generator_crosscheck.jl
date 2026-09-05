@@ -1,5 +1,6 @@
 using Test
 using Random
+using Statistics
 
 # M1 preparation only: reuse the standalone generator, not the fitting kernel.
 # No MCMC, evaluation seeds, research fixtures, or new package API are needed.
@@ -20,6 +21,115 @@ function mfrm_anchor_test_panel(sparse)
     ); person = :person, rater = :rater, item = :item,
         score = :score, category_levels = 0:3)
     return events, data
+end
+
+@testset "M1 scoring applicability, failures, and paired denominators" begin
+    # Hand-constructed scoring smoke, not posterior draws from a fitted model.
+    recovery_rows = BayesianMGMFRM._parameter_recovery_rows
+    binary_summary = BayesianMGMFRM._free_correlation_study_binary_summary
+    score(error) = only(recovery_rows(["R3 - R2"], Dict(:rater_contrast => 1:1),
+        reshape(0.5 .+ error .+ [-2.0, -1.0, 0.0, 1.0, 2.0], :, 1), [0.5];
+        interval = 0.8, metadata = (; scope = :synthetic_scoring_check)))
+    _, data = mfrm_anchor_test_panel(true)
+    for fixed in ((1, 4), (2, 3), (1, 2, 3, 4))
+        anchors = [(; block = :rater, level = "R$r", value = 0.5(r - 1), type = :hard)
+            for r in fixed]
+        design = getdesign(mfrm_spec(data; anchors))
+        draws = zeros(4, length(design.parameter_names))
+        for r in 1:4
+            r in fixed && continue
+            index = only(findall(==("rater[R$r]"), design.parameter_names))
+            draws[:, index] .= 0.5(r - 1) .+ (0:3)
+        end
+        for (left, right) in ((3, 2), (2, 1))
+            values = [BayesianMGMFRM._stable_facet_value(design, row, :rater, left) -
+                BayesianMGMFRM._stable_facet_value(design, row, :rater, right)
+                for row in eachrow(draws)]
+            # Structural applicability, never inferred from an empirical SD.
+            applicable = left ∉ fixed || right ∉ fixed
+            @test applicable == (length(fixed) == 2 && (left == 2 || fixed == (1, 4)))
+            scored = applicable ? only(recovery_rows(["R$left - R$right"],
+                Dict(:rater_contrast => 1:1), reshape(values, :, 1), [0.5];
+                interval = 0.8, metadata = (; scope = :synthetic_scoring_check))) : missing
+            if applicable
+                @test scored.interval_probability == 0.8
+                @test scored.posterior_mean ≈ mean(values)
+            else
+                @test ismissing(scored) # N/A, not an unresolved coverage trial.
+            end
+            if fixed == (1, 4) && left == 3
+                @test values == fill(0.5, 4)
+                @test applicable && scored.covered # Zero sample SD is not a fixed anchor.
+            end
+        end
+    end
+
+    planned = 1:8
+    states = (:completed, :completed, :completed, :completed, :completed,
+        :fit_failed, :structurally_rejected, :not_started)
+    attempts = [(; id, attempt = 1, status = states[id], diagnostic_valid = id <= 4,
+        recovery = id <= 3 ? score((-1.0, 1.0, 2.0)[id]) : id == 5 ? score(0.0) : missing)
+        for id in planned]
+    push!(attempts, (; id = 6, attempt = 2, status = :completed,
+        diagnostic_valid = true, recovery = score(0.0)))
+    primary = [r for r in attempts if r.attempt == 1]
+    @test sort([r.id for r in primary]) == collect(planned)
+    @test length(unique((r.id, r.attempt) for r in attempts)) == length(attempts) == 9
+    @test count(r -> r.status in (:completed, :fit_failed), primary) == 6
+    @test count(r -> r.status === :completed, primary) == 5
+    @test count(r -> r.status === :completed && r.diagnostic_valid, primary) == 4
+    valid = [r for r in primary if r.status === :completed && r.diagnostic_valid &&
+        !ismissing(r.recovery)]
+    @test [r.id for r in valid] == [1, 2, 3] # Excludes retry success and invalid diagnostics.
+    summary = only(parameter_recovery_summary([r.recovery for r in valid]; by = :all))
+    @test summary.n_parameters == 3 # Row count, not all eight planned datasets.
+    @test summary.mean_bias ≈ 2 / 3
+    @test summary.rmse ≈ sqrt(2)
+    @test summary.coverage_rate ≈ 2 / 3
+    @test summary.mean_interval_width ≈ 3.2
+    errors = [r.recovery.bias for r in valid]
+    @test std(errors) / sqrt(length(errors)) ≈ sqrt(7) / 3
+    @test std(abs2.(errors)) / sqrt(length(errors)) ≈ 1.0
+    coverage = binary_summary(summary.n_covered, length(valid), length(planned), 1.959963984540054)
+    @test coverage.conditional_rate_among_valid ≈ 2 / 3
+    @test coverage.joint_fixed_denominator_rate == 2 / 8
+    @test coverage.n_unresolved == 5
+    @test (coverage.unresolved_bounds.lower, coverage.unresolved_bounds.upper) == (2 / 8, 7 / 8)
+    unresolved = binary_summary(0, 0, 8, 1.959963984540054)
+    @test ismissing(unresolved.conditional_rate_among_valid)
+    @test (unresolved.unresolved_bounds.lower, unresolved.unresolved_bounds.upper) == (0.0, 1.0)
+    @test_throws ArgumentError binary_summary(2, 1, 8, 1.959963984540054)
+    @test_throws ArgumentError binary_summary(0, 0, 0, 1.959963984540054)
+
+    # Four methods on the same dataset/heldout IDs; one missing result and one
+    # infinite log loss must not silently become ordinary finite outcomes.
+    methods = (:B, :R, :I, :RI)
+    losses = [10.0 8.0 9.0 6.0; 20.0 17.0 19.0 14.0;
+        30.0 27.0 28.0 missing; 40.0 Inf 39.0 34.0]
+    rows = [(; dataset = ("RSM-S", id), heldout = ("RSM-S", id, :heldout),
+        method, loss = losses[id, column]) for id in 1:4 for (column, method) in pairs(methods)]
+    keyed = Dict((r.dataset, r.heldout, r.method) => r.loss for r in rows)
+    @test length(keyed) == length(rows) == 16
+    @test isequal(keyed, Dict((r.dataset, r.heldout, r.method) => r.loss for r in reverse(rows)))
+    @test ismissing(get(keyed, (("RSM-S", 1), ("RSM-S", 2, :heldout), :B), missing))
+    finite(x) = !ismissing(x) && isfinite(x)
+    complete = [id for id in 1:4 if all(finite, [keyed[(("RSM-S", id),
+        ("RSM-S", id, :heldout), method)] for method in methods])]
+    @test complete == [1, 2]
+    @test count(ismissing, losses) == 1
+    @test count(x -> !ismissing(x) && isinf(x), losses) == 1
+    differences = [losses[id, 4] - losses[id, 2] - losses[id, 3] + losses[id, 1]
+        for id in complete]
+    @test differences == [-1.0, -2.0]
+    @test mean(differences) == -1.5
+    @test std(differences) / sqrt(length(differences)) ≈ 0.5
+    marginal = [mean(filter(finite, losses[:, column])) for column in 1:4]
+    @test !isapprox(marginal[4] - marginal[2] - marginal[3] + marginal[1], mean(differences))
+    for incomplete in (Float64[], [1.0])
+        mcse = length(incomplete) < 2 ? missing : std(incomplete) / sqrt(length(incomplete))
+        @test ismissing(mcse)
+    end
+    # No all-attempt executor or acceptance gate is implemented by this smoke.
 end
 
 @testset "M1 serial response blocks and replay" begin

@@ -17,7 +17,7 @@ prediction remain separate, deferred programs.
 | Milestone | Status | Responsible role and concrete exit |
 | --- | --- | --- |
 | M0 — Package baseline | Implementation, placement/load review, and all 12 lane baselines recorded; runtime acceptance remains open | Maintainer: explain or remediate the `fitting_core` rolling-median increase of 23.4%; preserve the reviewed 0.1.x boundaries |
-| M1 — Anchor-study protocol | Draft: candidate constraints checked; response sharing/state ownership specified, full RNG roster and budgets unfrozen | Analyst: finish the decision table in the [study draft](docs/internal/mfrm-anchor-study.md#freeze-decisions); independent reviewer checks equations, cells, scoring, thresholds, and resource limits |
+| M1 — Anchor-study protocol | Draft: anchor, response-replay, and scoring primitives checked; full roster, adapters, and decision rules unfrozen | Analyst: finish the decision table in the [study draft](docs/internal/mfrm-anchor-study.md#freeze-decisions); independent reviewer checks equations, cells, scoring, thresholds, and resource limits |
 | M2 — Fresh evaluation | Not started; zero evaluation replications | Analyst: execute the reviewed roster, retain every attempt, and report per-cell recovery/calibration with Monte Carlo uncertainty and failure denominators |
 | M3 — External review and domain decision | Matching-source inventory only; independent review outstanding | Maintainer and independent reviewer: separate-environment matched reproduction and claim-level allow, narrow, reject, or inconclusive decisions |
 
@@ -83,16 +83,22 @@ is the runtime attribution in order 2; do not restart the closed inventories.
 - `46f8d92` added 951 MCMC-free assertions. Its focused file passed four
   testsets / 3,777 assertions on Julia 1.10.8 and 1.12.5, and a deliberately
   malformed paired control was detected. [CI 33963553257](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33963553257)
-  has passed 11 ordinary jobs, including the expected 25 / 7,453 in
-  `fitting_reports`; the full Julia 1.10.8 job is still pending at this review.
-  Both manual research jobs were skipped. This is not a whole-run pass yet.
-- The current [response-sharing draft](docs/internal/mfrm-anchor-study.md#m1-data-sharing-and-rng-ownership-draft)
-  prioritizes serial pre-generation and saved block states over unproven
-  independent-stream claims from distinct seeds. Its 131 additional smoke
-  assertions bring the focused file to five testsets / 3,908 assertions,
-  passing locally on Julia 1.10.8 and 1.12.5. Candidate CI is still required:
-  expected totals become 26 / 7,584 in `fitting_reports` and 92 / 18,639 in the
-  full suite. Other shards, especially `fitting_core`, gain no test work.
+  passed all 12 ordinary jobs: `fitting_reports` passed 25 / 7,453 and the
+  full Julia 1.10.8 job passed 91 / 18,508 in 30m14s. Both manual research
+  jobs were skipped. This verifies that revision, not subsequent changes.
+- `5f58701` added the [response-sharing draft](docs/internal/mfrm-anchor-study.md#m1-data-sharing-and-rng-ownership-draft)
+  and 131 smoke assertions. The focused file passed five testsets / 3,908
+  assertions on Julia 1.10.8 and 1.12.5. [CI 33964790537](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33964790537)
+  is still running at this review; expected report/full counts are 26 / 7,584
+  and 92 / 18,639. No whole-run result is claimed yet.
+- The current [scoring draft](docs/internal/mfrm-anchor-study.md#m1-scoring-applicability-and-denominator-draft)
+  adds 50 assertions for applicability, primary-attempt denominators, and
+  paired finite-subset comparisons. All six focused testsets / 3,958 assertions
+  pass locally on Julia 1.10.8 and 1.12.5; two memory-only mistakes are detected.
+  Candidate CI is still required: expected totals become 27 / 7,634 in
+  `fitting_reports` and 93 / 18,689 in the full suite. The all-attempt adapter,
+  predictive edge checks, thresholds, and review remain open. Other shards,
+  especially `fitting_core`, gain no test work.
   Do not transfer an earlier green result or unchanged-workload report/full
   timing median to this addition. No evaluation replications are added.
 - The earlier anchor pilot completed 80 fits but only two independent datasets
