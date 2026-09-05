@@ -1,6 +1,7 @@
 using Test
 using Random
 using Serialization
+using SHA
 using Statistics
 using JSON3
 
@@ -506,6 +507,97 @@ end
     end
 end
 
+@testset "M1 byte-bound labelled response data" begin
+    decode = BayesianMGMFRM._mfrm_anchor_response_data
+    rows = [(; person = "受験者/2", rater = "-Inf", item = "null", score = 0),
+        (; person = "受験者/1", rater = "-Inf", item = "null", score = -2)]
+    record = (; dataset_id = "smoke-response/1", role = "train",
+        category_levels = [-2, -1, 0, 1], rows)
+    raw(value) = collect(codeunits(JSON3.write(value)))
+    reference(bytes) = (; record.dataset_id, record.role, sha256 = bytes2hex(sha256(bytes)))
+    restore(value) = let bytes = raw(value)
+        decode(bytes, reference(bytes))
+    end
+    bytes = raw(record)
+    bound = reference(bytes)
+    data = decode(bytes, bound)
+    @test data.n == 2 && data.score == [0, -2]
+    @test data.category_levels == [-2, -1, 0, 1] && data.category == [3, 1]
+    @test data.person_levels[data.person] == [row.person for row in rows]
+    @test data.rater_levels[data.rater] == ["-Inf", "-Inf"]
+    @test data.item_levels[data.item] == ["null", "null"]
+    @test restore(merge(record, (; rows = reverse(rows)))).score == [-2, 0]
+    @test decode(bytes, JSON3.read(JSON3.write(bound))).score == data.score
+    @test decode(bytes, Dict(pairs(bound))).score == data.score
+    # Heldout data are valid separately, never accepted under the train reference.
+    heldout = merge(record, (; dataset_id = "smoke-heldout/1", role = "heldout"))
+    heldout_bytes = raw(heldout)
+    heldout_ref = (; heldout.dataset_id, heldout.role, sha256 = bytes2hex(sha256(heldout_bytes)))
+    @test decode(heldout_bytes, heldout_ref).score == data.score
+    @test_throws ArgumentError decode(heldout_bytes, bound)
+    @test_throws ArgumentError decode(bytes, heldout_ref)
+    for changed in (merge(record, (; rows = reverse(rows))),
+            merge(record, (; rows = [merge(rows[1], (; score = 1)), rows[2]])),
+            merge(record, (; category_levels = [-2, -1, 0])))
+        @test_throws ArgumentError decode(raw(changed), bound)
+    end
+    @test_throws ArgumentError decode(vcat(bytes, UInt8[0x20]), bound) # Byte identity, not semantic hash.
+    @test_throws ArgumentError decode(UInt8[0xff], bound) # Reject hash before JSON parsing.
+    mktempdir() do directory
+        path = joinpath(directory, "responses.json")
+        BayesianMGMFRM._write_json_record(path, record)
+        filename = collect(codeunits(path))
+        @test_throws ArgumentError decode(filename, reference(filename)) # Never open a path encoded as bytes.
+    end
+    for invalid in (nothing, missing, 1, :digest, "", "0"^63, "g"^64, "A"^64, bound.sha256 * "\n")
+        @test_throws ArgumentError decode(bytes, merge(bound, (; sha256 = invalid)))
+    end
+    for field in (:dataset_id, :role), value in (nothing, missing, 1, true, "", :train, "other")
+        @test_throws ArgumentError decode(bytes, merge(bound, NamedTuple{(field,)}((value,))))
+    end
+    @test_throws ArgumentError decode(bytes, (; bound.dataset_id, bound.role))
+    for invalid in (nothing, missing, 1, "reference")
+        @test_throws ArgumentError decode(bytes, invalid)
+    end
+    # Rehash malformed payloads so these exercise semantic validation, not just SHA rejection.
+    for invalid in (merge(record, (; dataset_id = "wrong")), merge(record, (; role = "heldout")),
+            merge(record, (; extra = true)), Dict(:dataset_id => record.dataset_id),
+            nothing, [record], merge(record, (; rows = nothing)), merge(record, (; rows = [])),
+            merge(record, (; rows = [rows[1], rows[1]])),
+            merge(record, (; rows = [merge(rows[1], (; extra = true)), rows[2]])),
+            merge(record, (; rows = [nothing, rows[2]])))
+        @test_throws ArgumentError restore(invalid)
+    end
+    for levels in (nothing, 2, [], [0], [-2, -2], [1, 0, -1, -2], [-2, 0, 1],
+            [-2.0, -1.0, 0.0, 1.0], Any[-2, -1, false, 1],
+            [typemin(Int), typemax(Int)])
+        @test_throws ArgumentError restore(merge(record, (; category_levels = levels)))
+    end
+    for field in (:person, :rater, :item), value in (nothing, "", 1, true)
+        bad = [merge(rows[1], NamedTuple{(field,)}((value,))), rows[2]]
+        @test_throws ArgumentError restore(merge(record, (; rows = bad)))
+    end
+    for value in (nothing, true, false, "0", 0.0, 0.5, -3, 2, typemax(UInt64))
+        bad = [merge(rows[1], (; score = value)), rows[2]]
+        @test_throws ArgumentError restore(merge(record, (; rows = bad)))
+    end
+    for token in ("1.0000000000000000001", "0e0", "9007199254740993.0")
+        changed = collect(codeunits(replace(String(copy(bytes)), "\"score\":0" => "\"score\":" * token)))
+        @test changed != bytes
+        @test_throws ArgumentError decode(changed, reference(changed))
+    end
+    # Genuine integer tokens above Float64's exact range must not be rounded.
+    large = Int64(9_007_199_254_740_992)
+    wide = merge(record, (; category_levels = [large, large + 1],
+        rows = [merge(rows[1], (; score = large + 1)), merge(rows[2], (; score = large))]))
+    if typemax(Int) >= large + 1
+        @test restore(wide).score == [large + 1, large]
+        @test restore(wide).category_levels == [large, large + 1]
+    else
+        @test_throws ArgumentError restore(wide)
+    end
+end
+
 @testset "M1 serial response blocks and replay" begin
     # Smoke only, not a pilot/evaluation seed or a production generator.
     # One advancing RNG; checkpoint at whole-block boundaries, never reseed
@@ -549,6 +641,24 @@ end
         @test saved.julia_version == VERSION
         @test saved.rng_engine == "MersenneTwister"
         @test saved.blocks == blocks
+        # The existing blocks also cross the labelled JSON -> FacetData boundary.
+        # Native RNG checkpoints are not a substitute for the response tables.
+        for (n, b) in pairs(saved.blocks)
+            _, template = mfrm_anchor_test_panel(b.id[3])
+            rows = [(; person = template.person_levels[p], rater = template.rater_levels[r],
+                item = template.item_levels[i], score = b.scores[(p, r, i)]) for (p, r, i) in b.events]
+            record = (; dataset_id = "smoke-response-$n", role = string(b.id[4]),
+                category_levels = collect(0:3), rows)
+            response_path = joinpath(directory, "response-$n.json")
+            BayesianMGMFRM._write_json_record(response_path, record)
+            bytes = read(response_path)
+            reference = (; record.dataset_id, record.role, sha256 = bytes2hex(sha256(bytes)))
+            data = BayesianMGMFRM._mfrm_anchor_response_data(bytes, reference)
+            @test data.person_levels[data.person] == [row.person for row in rows]
+            @test data.rater_levels[data.rater] == [row.rater for row in rows]
+            @test data.item_levels[data.item] == [row.item for row in rows]
+            @test data.score == [b.scores[e] for e in b.events] && data.category_levels == collect(0:3)
+        end
         # A fresh stdlib-only process can replay without the live RNG or fits.
         code = """
             using Random, Serialization

@@ -294,6 +294,60 @@ function _mfrm_anchor_primary_attempts(plan::AbstractVector, attempts::AbstractV
     return primary
 end
 
+function _mfrm_anchor_event_key(row)
+    labels = Tuple(_report_lookup(row, field, nothing)
+        for field in (:person, :rater, :item))
+    all(label -> label isa AbstractString && !isempty(label), labels) ||
+        throw(ArgumentError("event labels must be nonempty strings"))
+    return labels
+end
+
+# M1 preparation only: the caller supplies bytes and a separately trusted
+# reference. Hash exactly the bytes parsed, never a second read of a path.
+# This binds content, not authority, and is not an untrusted JSON importer.
+function _mfrm_anchor_response_data(bytes::AbstractVector{UInt8}, reference)
+    id = _report_lookup(reference, :dataset_id, nothing)
+    role = _report_lookup(reference, :role, nothing)
+    digest = _report_lookup(reference, :sha256, nothing)
+    id isa AbstractString && !isempty(id) || throw(ArgumentError(
+        "response reference dataset_id must be a nonempty string"))
+    role isa AbstractString && role in ("train", "heldout") || throw(ArgumentError(
+        "response reference role must be train or heldout"))
+    digest isa AbstractString && occursin(r"\A[0-9a-f]{64}\z", digest) ||
+        throw(ArgumentError("response reference sha256 must be lowercase 64-hex"))
+    bytes2hex(sha256(bytes)) == digest || throw(ArgumentError(
+        "response bytes do not match the trusted reference"))
+    record = JSON3.read(bytes)
+    record isa AbstractDict && Set(keys(record)) ==
+        Set((:dataset_id, :role, :category_levels, :rows)) || throw(ArgumentError(
+            "response record must contain dataset_id, role, category_levels, and rows only"))
+    record.dataset_id == id && record.role == role || throw(ArgumentError(
+        "response dataset_id/role does not match the trusted reference"))
+    levels, rows = record.category_levels, record.rows
+    levels isa AbstractVector && rows isa AbstractVector && !isempty(rows) ||
+        throw(ArgumentError("response categories/rows must be arrays with nonempty rows"))
+    all(row -> row isa AbstractDict && Set(keys(row)) ==
+        Set((:person, :rater, :item, :score)), rows) || throw(ArgumentError(
+            "response rows must contain person, rater, item, and score only"))
+    events = _mfrm_anchor_event_key.(rows)
+    length(unique(events)) == length(events) || throw(ArgumentError(
+        "response person/rater/item tuples must be unique"))
+    # Untyped JSON3 can round decimal tokens to integers. After checking all
+    # required fields, parse numerical fields directly as Int, not via Float64.
+    row_type = NamedTuple{(:person, :rater, :item, :score), Tuple{String, String, String, Int}}
+    record_type = NamedTuple{(:dataset_id, :role, :category_levels, :rows),
+        Tuple{String, String, Vector{Int}, Vector{row_type}}}
+    typed = JSON3.read(bytes, record_type)
+    levels = typed.category_levels
+    scores = [row.score for row in typed.rows]
+    length(levels) >= 2 && all(i -> levels[i] > levels[i - 1] &&
+        levels[i] - levels[i - 1] == 1, 2:length(levels)) || throw(ArgumentError(
+            "response categories must be consecutive increasing integers"))
+    return FacetData((; person = first.(events), rater = getindex.(events, 2),
+        item = last.(events), score = scores); person = :person, rater = :rater,
+        item = :item, score = :score, category_levels = levels)
+end
+
 # M1 preparation: align one labelled draw (or truth) before array scoring.
 # Repeated occasions need explicit event IDs; this panel permits one event
 # per person/rater/item tuple and rejects duplicates instead of pooling them.
@@ -306,14 +360,7 @@ function _mfrm_anchor_log_probability_matrix(records::AbstractVector,
     all(level -> level isa Integer && !(level isa Bool), levels) &&
         length(unique(levels)) == length(levels) || throw(ArgumentError(
             "category labels must be distinct integers"))
-    function event_key(row)
-        labels = Tuple(_report_lookup(row, field, nothing)
-            for field in (:person, :rater, :item))
-        all(label -> label isa AbstractString && !isempty(label), labels) ||
-            throw(ArgumentError("event labels must be nonempty strings"))
-        return labels
-    end
-    keys = event_key.(events)
+    keys = _mfrm_anchor_event_key.(events)
     length(unique(keys)) == length(keys) || throw(ArgumentError(
         "event person/rater/item tuples must be unique"))
     divrem(length(records), length(levels)) == (length(events), 0) ||
@@ -322,7 +369,7 @@ function _mfrm_anchor_log_probability_matrix(records::AbstractVector,
     category_index = Dict(level => index for (index, level) in pairs(levels))
     logs = fill(NaN, length(events), length(levels))
     for record in records
-        row = get(event_index, event_key(record), 0)
+        row = get(event_index, _mfrm_anchor_event_key(record), 0)
         category = _report_lookup(record, :category, nothing)
         category isa Integer && !(category isa Bool) || throw(ArgumentError(
             "record category labels must be integers"))

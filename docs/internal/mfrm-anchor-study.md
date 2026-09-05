@@ -19,7 +19,7 @@ design, scorer, and thresholds. No reviewer is currently assigned.
 | ID / status | Decision and required output | Review or runnable check before closure |
 | --- | --- | --- |
 | M1-01 — open | Enumerate the finite sensitivity cells and controls, including anchor placement/count aliases, shifts, crossed contamination signs/magnitudes, priors, nested links, category support, and information levels; name the estimand and pairing for each | Every required factor below maps to a cell or an explicit reviewed exclusion. Fixed contrasts are N/A for interval coverage; composite design changes are labelled |
-| M1-02 — open, native replay checked | Declare pilot/evaluation and component RNG lineage, state ownership, data sharing, and any cross-design common random numbers; freeze the actual root/state roster | Synthetic response blocks replay from saved state in a fresh same-environment process. Labelled durable data, source/environment binding, actual allocation, and review remain required |
+| M1-02 — open, native replay and response-byte binding checked | Declare pilot/evaluation and component RNG lineage, state ownership, data sharing, and any cross-design common random numbers; freeze the actual root/state roster | Synthetic blocks replay from saved state and labelled JSON restores their responses. Durable data/state/source binding, actual allocation, and review remain required |
 | M1-03 — open | Choose interval levels, practical tolerances, Monte Carlo precision, replications, and per-stratum decision rules for parameter and predictive targets | Justify numerical values before evaluation; distinguish MCMC error from across-dataset error and true-probability regret from heldout log loss |
 | M1-04 — open | Choose the primary backend, actual prior scales, ordinary non-truth starts/jitter, chain settings, diagnostic policy, bounded cost probe, time/memory/output caps, and remediation allowance | Review the probe budget before running it; record resource evidence and keep all probes outside evaluation counts. The provisional 6,400 primary fits is not a budget authorization |
 | M1-05 — open, label/identity joins checked | Reuse the recovery/predictive scorer; the denominator/applicability draft below specifies failures, paired Monte Carlo error, and non-overwriting remediation | Synthetic checks cover independent log truth/scoring, labelled JSON, and exact planned attempt identities. Payload/source binding, a persistent all-attempt ledger, and final decision rules remain required |
@@ -136,10 +136,11 @@ oracle but differ from the original truth. Tolerance `1e-12` is a numerical
 conformance limit, not a statistical acceptance threshold. The check is also
 included in the ordinary `fitting_reports` shard. The initial 2,518 conformance
 assertions and the 308 reference-declaration/estimand checks below are retained.
-The additional 951 finite-candidate, 135 serial-response replay, 50 denominator,
+The additional 951 finite-candidate, 199 serial-response replay, 50 denominator,
 28 predictive-boundary, 216 all-category log, 277 independent-log-truth,
-52 labelled-roundtrip, and 76 attempt-identity checks bring the focused file
-to eleven testsets / 4,611 assertions, passing locally on Julia 1.10.8 and 1.12.5.
+52 labelled-roundtrip, 76 attempt-identity, and 95 response-byte-binding checks
+bring the focused file to twelve testsets / 4,770 assertions, passing locally
+on Julia 1.10.8 and 1.12.5.
 The command contributes **zero evaluation replications**.
 It establishes implementation separation from the fitting kernel, not
 independent authorship, independent review, or posterior calibration. The old
@@ -785,6 +786,43 @@ fit, or evaluation replication. Durable labelled truth/data plus state and
 source/environment binding, crash-safe stage reservation/publication, and
 the persistent all-attempt ledger remain required before execution. M1-02,
 M1-05, and all other freeze decisions remain open.
+
+### Byte-bound labelled response restoration
+
+The private `_mfrm_anchor_response_data(bytes, reference)` accepts a separately
+trusted `(dataset_id, role, sha256)` reference and checks the SHA-256 of the
+exact bytes it parses. The digest is lowercase 64-hex; role is `train` or
+`heldout`. The JSON record contains only `dataset_id`, `role`, `category_levels`,
+and `rows`; each row contains only string `person/rater/item` labels and an
+integer `score`. IDs/roles must match, rows must be nonempty with unique facet
+tuples, and the declared scale must be increasing consecutive integers. The
+existing `FacetData` then checks scores against that scale and preserves row
+order and unobserved declared categories. The existing log adapter shares the
+same label check; its broader nonconsecutive category labels are unchanged.
+
+JSON3's untyped path can round decimal tokens to integers, including a value
+such as `1.0000000000000000001`. After required-field checks, its existing typed
+reader decodes scores/categories directly as `Int`. Decimal/exponent tokens,
+numeric strings, booleans, overflow, and out-of-scale scores are rejected;
+representable integer tokens above Float64's exact range are retained. No
+custom parser or change to general `FacetData`/JSON export behavior is added.
+
+The 95 boundary checks cover wrong bytes, changed rows/scores/scales, role
+swaps, malformed references/records, and numeric edge cases. All 16 existing
+response blocks also pass through temporary labelled JSON files and back to
+`FacetData`, adding 64 checks for labels, scores, and declared categories.
+All 4,770 anchor and 103 scorer assertions pass on Julia 1.10.8 and 1.12.5;
+memory-only SHA-bypass and untyped-decoding mutations trigger four and five
+assertion failures, respectively, with no test errors.
+
+This is byte identity relative to a trusted reference, not authentication,
+semantic hashing, an untrusted-JSON importer, or proof that a fit consumed
+those bytes. Whitespace/reordering changes require a new reference. Tests
+create their references locally; a frozen plan must retain them independently
+and bind truth, native state, source/environment, and every attempt to the
+same data. Durable create-new publication, the persistent all-attempt ledger,
+and all freeze decisions remain open. No dependency, export, retained fixture,
+fit, or evaluation replication is added.
 
 ## M1 allocation and budget decision draft
 
