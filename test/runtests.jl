@@ -26955,6 +26955,10 @@ end
 end
 
 if test_group_enabled(:fitting_core)
+println("fitting_core runtime: CPU target=", Sys.CPU_NAME,
+    "; Julia threads=", Threads.nthreads(), "; BLAS threads=", BLAS.get_num_threads())
+# Include compilation of the large test expression, not only its timed body.
+@time "fitting_core compile + execute" @eval begin
 @testset "minimal Bayesian MFRM fitting" begin
     table = (
         examinee = ["E1", "E1", "E1", "E2", "E2", "E2", "E3", "E3", "E3"],
@@ -32933,6 +32937,7 @@ end
             @test maximum(abs.(g_julia .- g_stan)) < max(tol, 1e-6)
         end
     end
+end
 end
 end
 

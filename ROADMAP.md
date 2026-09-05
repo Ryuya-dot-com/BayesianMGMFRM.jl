@@ -32,7 +32,7 @@ Work on the highest unfinished decision, not the largest collection of scripts.
 | Order / task | Next deliverable | Verification and stop condition |
 | --- | --- | --- |
 | 1. M0-DOC — Complete at `bd22c01` | Short root roadmap, one active anchor-study draft, archived old roadmaps, and the directory map below | Both archived bodies preserved with rebased links; 34 local links/fragments, the Git-free install/load/example/manual smoke, and all 12 ordinary candidate-CI jobs passed |
-| 2. M0-CI — All lane/phase baselines recorded; one regression trigger open | Attribute the `fitting_core` increase using existing logs, then bounded startup/testset/runner measurements if needed | Explain or remediate 17m41s -> 21m49s before acceptance; do not raise the 30-minute ceiling, remove tests, or substitute an isolated rerun for three observations |
+| 2. M0-CI — All lane/phase baselines recorded; attribution instrumentation added | Read the next ordinary `fitting_core` job's CPU/RSS and compile/GC timings; logged dependency versions and the PR target commit match across prior runs | Explain or remediate 17m41s -> 21m49s before acceptance; preserve the 30-minute ceiling and all assertions. Instrumented observations do not silently replace the original timing window |
 | 3. M0-BOUNDARY — Placement/load review complete | [123 fixtures classified](docs/internal/fixture-boundary.md); [35 source includes and seven ordinary script includes reviewed](docs/internal/code-load-boundary.md). Retain the declared 0.1.x compatibility surface and archival records | Isolated definition loads passed on Julia 1.10.8 and 1.12.5 without research trees. No relocation, regeneration, dependency removal, or lazy loader. Reopen for changed dependencies/consumers or measured budget pressure |
 | 4. M1-FREEZE — Resolve the study draft | Finite sensitivity cells, seed policy, estimands/thresholds, sampler/resource budget, all-attempt scorer, and reviewer handoff | No fresh evaluation while any freeze decision is open; no new generic controller or evidence framework without a demonstrated gap |
 
@@ -125,10 +125,48 @@ queue time is excluded. No timing here measures sampler speed.
 The `fitting_core` trigger is localized but **not explained**. All three jobs
 restored their lane cache. Their test-command steps took 15m04s, 21m44s, and
 21m10s; the 2,641-assertion fitting testset itself took 9m51.3s, 14m59.6s, and
-14m29.8s. Thus job setup alone cannot explain the increase. Unchanged test/code
-bytes do not identify its cause: existing logs do not separate compilation,
-execution, and runner contention sufficiently. Keep this as the bounded M0
-residual, not a reason to raise limits or claim a confirmed algorithm slowdown.
+14m29.8s. Thus job setup alone cannot explain the increase. The later
+[`0881fd4` fit job](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33956618271/job/101280994109)
+passed the same 2,755 assertions in 22m01s; its fitting testset took 14m42.6s.
+This is follow-up evidence, not a replacement of the fixed window above.
+
+Across all six fit jobs from `9668383` through `0881fd4`, the 187 logged
+versioned package entries match, the PR target commit is `6e8291c`, and
+`runtests.jl`, package sources, and the workflow are unchanged. Slow fitting
+testsets (14m29.8s--14m59.6s) already occur at `9668383`, before the document
+reorganization; the two faster observations are 9m23.5s and 9m51.3s. The gap
+between the group announcement and the inferred testset start is about
+378--381s in the slower jobs versus 273--292s in the faster ones. This gap is
+not a pure import or compilation timer. Identical logged versions do not prove
+identical binaries, hardware, or scheduling; cache restoration does not prove
+zero compilation. Existing logs cannot attribute the two timing ranges.
+
+The existing fitting block now uses Julia's `@time ... @eval begin ... end`
+to include compilation of the large expression, while preserving both original
+testset trees, seeds, draw counts, and assertions. Its CPU target and Julia/BLAS
+thread counts are logged without changing them. Only the Linux `fitting_core`
+command adds `lscpu`, `free --mebi`, and
+[`/usr/bin/time -v`](https://www.gnu.org/software/time/manual/time.html)
+around the unchanged `Pkg.test()` call. Treat CPU time, RSS, GC, and compilation
+as command/block diagnostics, not sampler-only performance or a system-wide
+memory bound. The extra evaluation boundary makes this an instrumented series:
+do not claim a speedup by mixing it with uninstrumented timings. Accept an
+explanation only when these observations support it; retain the trigger if
+they do not. No dependency, sampler, threshold, or timeout changes are bundled
+with this measurement.
+
+Local verification on Julia 1.12.5/macOS passed both fitting testsets unchanged
+(2,641 + 114 assertions). The timed block took 677.526s: 78.16% compilation,
+1.26% GC, and 32.437 GiB cumulatively allocated, **not peak resident memory**.
+The testset summaries alone were 9m07.8s and 4.4s and omit part of the enclosing
+block cost. One 1-second native sample during that run found compilation frames
+in all 72 observed main-thread stacks; sampling perturbed this diagnostic run.
+This supports investigating compilation locally, not attributing the historical
+CI increase or pooling local and Linux timings. All 11 inline testset expression
+trees match before/after instrumentation; selection checks passed 45/45 on
+Julia 1.10.8 and 1.12.5. The minimum-version timing/failure smoke and the four
+stubbed Bash routing/exit-status cases passed; native Linux resource reporting
+still requires the next candidate CI. Keep M0 open pending that evidence.
 
 The remaining lanes use the same three runs, except macOS uses `fa7ffc9`,
 `9a4d180`, and the completed macOS job of

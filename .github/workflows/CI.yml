@@ -62,9 +62,17 @@ jobs:
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
       - name: Run ${{ matrix.label }} test shard
+        shell: bash
         env:
           BAYESIANMGMFRM_TEST_GROUP: ${{ matrix.group }}
-        run: julia --startup-file=no --project=. -e 'using Pkg; Pkg.test()'
+        run: |
+          timer=()
+          if [[ "$BAYESIANMGMFRM_TEST_GROUP" == fitting_core ]]; then
+            lscpu
+            free --mebi
+            timer=(/usr/bin/time -v)
+          fi
+          "${timer[@]}" julia --startup-file=no --project=. -e 'using Pkg; Pkg.test()'
 
   platform-smoke:
     name: Platform smoke - Julia 1 - ${{ matrix.os }}
