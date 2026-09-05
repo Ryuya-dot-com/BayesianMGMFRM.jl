@@ -381,7 +381,7 @@ percentage:
 
 | Axis | Current reading | Evidence still needed |
 | --- | --- | --- |
-| Package integration | Local ordinary tests, candidate install/load/fit/docs, and public-boundary checks pass. | A tracked baseline, comparable CI medians, and closure of the remaining distribution items. |
+| Package integration | A tracked baseline, passing local checks, and nine passing ordinary candidate-CI jobs. | Successful split-lane CI, comparable medians, and closure of the remaining distribution items. |
 | Stable MFRM implementation | Individual hard anchors, intended category scale, fixed-coordinate reports, and persistence are implemented. | A finite edge-case review and workflow replay against the baseline. |
 | Anchor mathematics | Exact checks distinguish location-gauge changes, coordinate-prior effects, fixed contrasts, and incompatible anchor pairs. | Independent equation/indexing review; no attribution of a contaminated anchor from likelihood alone. |
 | Statistical performance | PCM pilot operability is established only in its small declared cells. | Independent RSM/PCM generation, ordinary initialization, repeated recovery, uncertainty calibration, and design/anchor sensitivity. |
@@ -406,7 +406,7 @@ decision, not on the number of scripts, tests, or checklist entries added.
 M0 has a finite closure list. Reuse passing checks unless code or a specific
 unresolved concern changes what they cover:
 
-- Bind the candidate to ordinary Git history, including the currently untracked
+- The candidate is bound to ordinary Git history at `fb4db39`, including the
   hard-anchor/category/provenance tests, root API contract, and distribution and
   pilot scripts. Keep large research results in a versioned research bundle;
   ordinary install/tests must not need that bundle.
@@ -468,21 +468,47 @@ passed eight ordinary jobs, including core (25m37s), fitting (25m25s),
 generalized (12m21s), and release hygiene (22m24s). Minimum Julia 1.10.8 failed
 on a trailing comma after a filtered generator in the CmdStan validation
 script; `d24dfc8` removes it. All 255 tracked Julia files then parsed on 1.10.8,
-and the affected contract passed 68/68 checks locally. Its candidate CI is
-still in progress; the local check does not replace the full minimum-version
-suite.
+and the affected contract passed 68/68 checks locally. The subsequent full
+minimum-version CI result is recorded below; parsing and targeted checks alone
+were not sufficient.
 
 The first candidate's local-dependence job exceeded its 30-minute ceiling;
 the completed testsets passed, but the final provenance/resource checks did
 not complete. Three earlier successful lanes took 34m32s, 33m10s, and 33m21s
 (median 33m21s), on versions predating the changed ordinary/research boundary.
-Use a **provisional 45-minute completion ceiling for this shard only**, with
-all tests retained. This is headroom to observe completion, not a new target
-or evidence that performance passed. The T2 target remains 30 minutes, the
-three-consecutive-over-target split/reclassification rule remains in force,
-and the runtime P0 item stays open. Candidate success and comparable
-same-OS/Julia/lane three-run medians are still required; neither the timeout
-nor the historical median supplies a successful current baseline.
+A provisional 45-minute ceiling was used to observe completion without removing
+tests. In [run 33942480971](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33942480971)
+at `60279dc`, local dependence passed 2,956 checks in 37m26s, and the full
+Julia 1.10.8 suite passed in 21m40s. Nine of ten ordinary jobs passed; fitting/
+reporting exceeded 30 minutes in both its initial attempt and one isolated
+rerun. The completed testsets passed, but the remaining checks were not reached.
+That rerun does not create another measurement of the nine reused jobs.
+
+The follow-up partition retains all assertions, seeds, and fixtures. The shared
+selector is covered by 45 checks, including disjoint shard membership, the two
+legacy combined aliases, and rejection of research evidence outside `all`.
+On Julia 1.12.3, isolated `Pkg.test()` runs passed 3,688 reporting/anchor checks
+and 52 integrity checks. These concurrent local runs verify independence from
+the preceding groups, not CI timing. The existing test macro trees were
+unchanged, and all 257 Julia files parsed on Julia 1.10.8.
+
+| Current-Julia shard | Scope | Hard ceiling |
+| --- | --- | --- |
+| `core` | Existing core/design checks plus selector regression checks | 35 minutes |
+| `fitting_core` | Existing large MFRM fit integration and scalar-gradient checks | 30 minutes |
+| `fitting_reports` | Existing bridge, practitioner, anchor, report, and diagnostic checks | 30 minutes |
+| `local_dependence_core` | Existing diagnostics/simulation and calibration checks through replication weighting | 30 minutes |
+| `local_dependence_integrity` | Existing calibration provenance/duplicate/protocol-mixing and resource guards | 30 minutes |
+| `generalized` | Existing generalized-model checks | 30 minutes |
+
+Plain `Pkg.test()` still runs `all`. The old `fitting` and `local_dependence`
+selectors remain aliases for both of their respective shards; standalone
+calibration checks use the same selector. No test body or sampling budget is
+shortened. The temporary 45-minute ceiling is removed. This partitions work;
+it is not a claim that model computation became faster, and duplicated setup
+may increase total runner time. New whole-lane results and comparable three-run
+medians remain outstanding. The runtime P0 item and the 30-minute T2 target
+remain open; timings from the old combined lanes cannot substitute for them.
 
 #### M1 design and analysis decisions
 
@@ -1367,7 +1393,7 @@ The remaining categories are:
 | Frozen LD1b1 and publication/reproduction scripts | Keep isolated as research protocols, not package runtime dependencies. Their source pins must not control package import, ordinary fitting, or routine CI. |
 
 Routine CI therefore runs complete ordinary package coverage under Linux: one
-full minimum-Julia suite and four named current-Julia shards. Focused package-
+full minimum-Julia suite and six named current-Julia shards. Focused package-
 load/validation/likelihood/minimal-fit smokes run on current Julia under macOS
 and Windows, without first requiring the tracked research harness to regenerate
 byte-for-byte. Manual workflow dispatch retains a Linux research-evidence run
@@ -3095,17 +3121,16 @@ milestone slices and release candidates. Tagging a release commit requires
 `Pkg.test()` on supported Julia versions, the docs build with the page-size
 gate, example scripts, and release-scope checks.
 
-`test/runtests.jl` now provides a general-purpose selector for the named `core`,
-`fitting`, `local_dependence`, and `generalized` groups while defaulting to
-`all`. This makes targeted verification a package contract rather than an
-informal command. Record group duration and peak resources before deciding
-whether physical helper extraction or finer groups are justified. Use the
+`test/runtests.jl` uses the shared selector in `test/test_groups.jl`, defaulting
+to `all`. The six shards are listed in the active M0 partition above; `fitting`
+and `local_dependence` remain combined aliases. Record group duration and peak
+resources before further splitting or physical helper extraction. Use the
 following feedback budgets:
 
 CI runs the complete package suite once on Ubuntu with the Julia 1.10.8 minimum
-version. Current Julia 1.x runs the same ordinary coverage through named `core`,
-`fitting`, `local_dependence`, and `generalized` shards selected without moving
-the shared fixture helpers out of `runtests.jl`. Current-Julia macOS and Windows
+version. Current Julia 1.x runs the same ordinary coverage through six shards
+without moving the shared fixture helpers out of `runtests.jl`.
+Current-Julia macOS and Windows
 jobs run a focused portable-package smoke covering load, validation, design
 compilation, likelihood evaluation, a minimal stable fit, and non-blocking
 environment metadata. This keeps cross-platform evidence while avoiding

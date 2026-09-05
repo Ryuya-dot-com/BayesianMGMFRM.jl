@@ -12,45 +12,7 @@ import AdvancedHMC
 import BayesianMGMFRM
 import LogDensityProblemsAD
 
-function test_flag(name::AbstractString; default::Bool = false)
-    value = lowercase(strip(get(ENV, name, string(default))))
-    value in ("1", "true", "yes", "on") && return true
-    value in ("", "0", "false", "no", "off") && return false
-    throw(ArgumentError(
-        "$name must be one of 1/true/yes/on or 0/false/no/off; got $(repr(value))",
-    ))
-end
-
-const RUN_RESEARCH_EVIDENCE_TESTS =
-    test_flag("BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS")
-
-const TEST_GROUPS = (:core, :fitting, :local_dependence, :generalized)
-
-function selected_test_group()
-    value = lowercase(strip(get(
-        ENV,
-        "BAYESIANMGMFRM_TEST_GROUP",
-        "all",
-    )))
-    value in ("", "all") && return :all
-    group = Symbol(value)
-    group in TEST_GROUPS || throw(ArgumentError(
-        "BAYESIANMGMFRM_TEST_GROUP must be all, core, fitting, " *
-        "local_dependence, or generalized; got $(repr(value))",
-    ))
-    return group
-end
-
-const ACTIVE_TEST_GROUP = selected_test_group()
-
-test_group_enabled(group::Symbol) =
-    ACTIVE_TEST_GROUP === :all || ACTIVE_TEST_GROUP === group
-
-RUN_RESEARCH_EVIDENCE_TESTS && ACTIVE_TEST_GROUP !== :all &&
-    throw(ArgumentError(
-        "BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true requires " *
-        "BAYESIANMGMFRM_TEST_GROUP=all",
-    ))
+include("test_groups.jl")
 
 println("BayesianMGMFRM test group: ", ACTIVE_TEST_GROUP)
 
@@ -20798,6 +20760,7 @@ function check_scalar_validation_stan_pair(known_fixture_path::AbstractString,
 end
 
 if test_group_enabled(:core)
+include("test_group_selection.jl")
 include("intended_category_scale.jl")
 @testset "optional research fixture boundary" begin
     fixture_env = "MFRM_TEST_OPTIONAL_RESEARCH_FIXTURE"
@@ -26991,7 +26954,7 @@ end
 end
 end
 
-if test_group_enabled(:fitting)
+if test_group_enabled(:fitting_core)
 @testset "minimal Bayesian MFRM fitting" begin
     table = (
         examinee = ["E1", "E1", "E1", "E2", "E2", "E2", "E3", "E3", "E3"],
@@ -32976,7 +32939,7 @@ end
 if test_group_enabled(:generalized) && RUN_RESEARCH_EVIDENCE_TESTS
     include("existing_api_design_robustness_recovery_scorer.jl")
 end
-if test_group_enabled(:fitting)
+if test_group_enabled(:fitting_reports)
     include("facets_conquest_bridge.jl")
     include("model_contract.jl")
     include("facets_compatibility_stats.jl")
@@ -32984,13 +32947,16 @@ if test_group_enabled(:fitting)
     include("anchor_refit_plan.jl")
     include("hard_anchor_fit.jl")
 end
-if test_group_enabled(:local_dependence)
+if test_group_enabled(:local_dependence_core)
     include("testlet_design_audit.jl")
     include("testlet_overlap_contract.jl")
     include("predictive_standardized_residuals.jl")
     include("local_dependence_contract.jl")
     include("local_dependence_summary.jl")
     include("local_dependence_simulation.jl")
+end
+if test_group_enabled(:local_dependence_core) ||
+        test_group_enabled(:local_dependence_integrity)
     include("local_dependence_calibration.jl")
 end
 if test_group_enabled(:local_dependence) && RUN_RESEARCH_EVIDENCE_TESTS
@@ -33023,11 +32989,11 @@ if test_group_enabled(:generalized)
     include("generalized_guard_contract.jl")
     include("fixed_q_identification.jl")
 end
-test_group_enabled(:fitting) && include("fit_report_completeness.jl")
+test_group_enabled(:fitting_reports) && include("fit_report_completeness.jl")
 if test_group_enabled(:generalized)
     include("free_correlation_authorization.jl")
 end
-test_group_enabled(:fitting) && include("evidence_metadata_resilience.jl")
+test_group_enabled(:fitting_reports) && include("evidence_metadata_resilience.jl")
 if test_group_enabled(:generalized)
     include("experimental_namespace.jl")
     include("mgmfrm_free_latent_correlation_2d.jl")
@@ -33064,7 +33030,7 @@ if test_group_enabled(:generalized) && RUN_RESEARCH_EVIDENCE_TESTS
 end
 test_group_enabled(:generalized) && RUN_RESEARCH_EVIDENCE_TESTS &&
     include("publication_grade_policy_contract.jl")
-if test_group_enabled(:fitting)
+if test_group_enabled(:fitting_reports)
     include("public_language_gate.jl")
     include("posterior_mcse.jl")
     include("rank_normalized_diagnostics.jl")

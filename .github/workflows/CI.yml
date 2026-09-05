@@ -39,12 +39,18 @@ jobs:
           - group: core
             label: Core and design
             timeout_minutes: 35
-          - group: fitting
-            label: Fitting and reporting
+          - group: fitting_core
+            label: MFRM fit integration
             timeout_minutes: 30
-          - group: local_dependence
-            label: Local dependence
-            timeout_minutes: 45
+          - group: fitting_reports
+            label: Reports and hard anchors
+            timeout_minutes: 30
+          - group: local_dependence_core
+            label: Local-dependence diagnostics and calibration
+            timeout_minutes: 30
+          - group: local_dependence_integrity
+            label: Local-dependence provenance and resource guards
+            timeout_minutes: 30
           - group: generalized
             label: Generalized models
             timeout_minutes: 30

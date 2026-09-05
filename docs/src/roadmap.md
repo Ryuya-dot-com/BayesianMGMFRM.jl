@@ -118,7 +118,7 @@ budget, stable-workflow, API, or repository-separation boxes.
 The ordinary-CI budget item remains open, but its first enforceable boundary is
 in place. CI defaults research evidence to off; any non-empty optional research-
 fixture path is rejected without the explicit opt-in. Ordinary shards now have
-30--45 minute hard limits, the full minimum-Julia suite has a 75 minute limit,
+30--35 minute hard limits, the full minimum-Julia suite has a 75 minute limit,
 and the remaining ordinary jobs have 20--35 minute limits. The manual research
 lane alone enables the flag and has its own 300 minute ceiling. Warm-depot local
 testset observations (8m19s core design, 5m48s fitting, and 2m02s/2m18s for the
@@ -128,10 +128,11 @@ design set in 7m58s. The review rule uses
 the median of three comparable successful CI runs and requires explanation or
 remediation above 20% growth. Comparable CI whole-lane baselines and three-run
 medians are still required before checking the runtime P0 box.
-The local-dependence ceiling was raised provisionally from 30 to 45 minutes
-after the 2026-09-05 candidate timed out while its completed testsets passed.
-This permits completion measurement; it does not satisfy the 30-minute target
-or close the performance item. See the root roadmap for the run and decision.
+The 2026-09-05 candidate completed local dependence in 37m26s under a temporary
+45-minute ceiling, while fitting/reporting timed out twice at 30 minutes.
+Both lanes are now split in two without removing checks; each new shard has a
+30-minute ceiling. The split needs its own CI measurements before closing the
+performance item. See the root roadmap for the run, partition, and decision.
 
 The clean-source item is complete on the current 2026-08-15 evidence. A
 temporary 420-file, roughly 27.7-MB Git-visible candidate excluded ignored
@@ -1447,12 +1448,13 @@ mandatory for milestone slices, supported-Julia release checks, and the final
 tag candidate, but they should not be the first feedback loop for every small
 edit.
 
-The shared test runner now selects named `core`, `fitting`, `local_dependence`,
-and `generalized` groups while plain `Pkg.test()` defaults to `all`. Ordinary
-pull requests run complete coverage as one full minimum-Julia suite and four
-current-Julia shards, plus focused macOS and Windows portability smokes. Record
-duration and resource use before deciding whether finer groups or physical
-helper extraction are justified.
+The shared test runner selects six shards: `core`, `fitting_core`,
+`fitting_reports`, `local_dependence_core`, `local_dependence_integrity`, and
+`generalized`. Plain `Pkg.test()` defaults to `all`; the legacy `fitting` and
+`local_dependence` names each select both corresponding shards. Ordinary pull
+requests retain one full minimum-Julia suite and focused macOS/Windows smokes.
+Measure the new partition before deciding whether physical helper extraction
+is necessary.
 
 | Tier | Feedback target | Default scope |
 | --- | --- | --- |

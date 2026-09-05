@@ -4,9 +4,11 @@
 
 ### Changed
 
-- Give the local-dependence CI shard a provisional 45-minute completion ceiling
-  after the candidate exceeded 30 minutes; retain all tests and the unresolved
-  30-minute performance target.
+- Split ordinary fitting and local-dependence CI into two shards each, retaining
+  every check and the legacy combined group names. Restore a 30-minute ceiling
+  for each local-dependence shard after measuring the combined lane at 37m26s
+  under its temporary 45-minute ceiling. Comparable split-lane timings remain
+  required before closing the performance item.
 - Keep the paired CmdStan validation script parseable on Julia 1.10 by removing
   a trailing comma after its filtered generator expression.
 - Support exact individual rater/item hard anchors in the stable MFRM/RSM/PCM

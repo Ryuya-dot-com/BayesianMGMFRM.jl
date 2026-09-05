@@ -580,9 +580,11 @@ silently turn an ordinary package test into a study-result check.
 
 The complete package suite runs once on Ubuntu with the Julia 1.10.8 minimum
 version. On the latest Julia 1.x release, the same ordinary test coverage is
-partitioned into named `core`, `fitting`, `local_dependence`, and `generalized`
-shards. Running `Pkg.test()` locally still selects all groups; a single group can
-be selected with `BAYESIANMGMFRM_TEST_GROUP=<group>`. Focused current-Julia
+partitioned into `core`, `fitting_core`, `fitting_reports`,
+`local_dependence_core`, `local_dependence_integrity`, and `generalized` shards.
+Running `Pkg.test()` locally still selects all groups; a single group can be
+selected with `BAYESIANMGMFRM_TEST_GROUP=<group>`. The legacy `fitting` and
+`local_dependence` names each select both of their new shards. Focused current-Julia
 smokes on macOS and Windows verify package loading, design validation and
 compilation, likelihood evaluation, a minimal stable Bayesian fit, and
 non-blocking environment metadata collection. Every CI job has an explicit hard

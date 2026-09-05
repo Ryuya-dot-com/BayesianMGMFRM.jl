@@ -2,6 +2,13 @@ using Test
 using Random
 using BayesianMGMFRM
 
+if !isdefined(@__MODULE__, :test_group_enabled)
+    include("test_groups.jl")
+end
+test_group_enabled(:local_dependence_core) ||
+    test_group_enabled(:local_dependence_integrity) ||
+    throw(ArgumentError("local-dependence calibration requires a local-dependence group or all"))
+
 function _ld1b_fixture_fit(data; n_draws::Int = 4)
     design = getdesign(mfrm_spec(data; thresholds = :partial_credit))
     draws = zeros(n_draws, length(design.parameter_names))
@@ -158,6 +165,7 @@ function _ld1b_global_row(summary, scenario_id::Symbol)
         if row.scenario_id === scenario_id)
 end
 
+if test_group_enabled(:local_dependence_core)
 @testset "LD1b phase seed namespaces remain deterministic" begin
     smoke = _ld1b_plan_row(:null_same_rater; phase = :smoke)
     pilot = _ld1b_plan_row(:null_same_rater; phase = :pilot)
@@ -784,6 +792,9 @@ end
     @test isequal(summary, reversed)
 end
 
+end
+
+if test_group_enabled(:local_dependence_integrity)
 @testset "LD1b provenance, duplicates, and protocol mixing" begin
     plan = _ld1b_plan_row(:null_same_rater)
     diagnostic_contract = _ld1b_diagnostic_contract()
@@ -1061,4 +1072,5 @@ end
         contract,
         max_result_rows = 1,
     )
+end
 end
