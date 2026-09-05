@@ -1,0 +1,9 @@
+1       -0.35313        /* raterid R000001 */
+2       -0.04979        /* raterid R000002 */
+3       -0.58169        /* itemid I000001 */
+4       -0.12919        /* itemid I000002 */
+5        0.16438        /* itemid I000003 */
+6       -0.68676        /* itemid I000001 category 1 */
+7       -0.49813        /* itemid I000002 category 1 */
+8       -0.42007        /* itemid I000003 category 1 */
+9       -0.10561        /* itemid I000004 category 1 */

@@ -2,6 +2,7 @@
 
 using SHA
 using TOML
+using JSON3
 
 const ROOT = normpath(joinpath(@__DIR__, ".."))
 const DEFAULT_OUTPUT =
@@ -170,6 +171,7 @@ const PROTOCOL = (;
         require_tam_direct_execution_recorded = true,
         require_tam_raw_archive_integrity_passed = true,
         require_tam_post_execution_packet_integrity_passed = true,
+        require_tam_execution_input_lineage_exact = true,
         require_tam_evidence_nontransfer_to_gmfrm_mgmfrm = true,
         require_tam_independent_review_pending_recorded = true,
         require_tam_pre_execution_lineage_mismatch_recorded = true,
@@ -261,158 +263,72 @@ function read_fixture_text(relpath::AbstractString)
     return read(fixture_path(relpath), String)
 end
 
-function parse_json_string_literal(chars::Vector{Char}, index::Int)
-    chars[index] == '"' || error("expected JSON string at character $index")
-    io = IOBuffer()
-    escaped = false
-    index += 1
-    while index <= length(chars)
-        char = chars[index]
-        if escaped
-            if char == '"' || char == '\\' || char == '/'
-                print(io, char)
-            elseif char == 'n'
-                print(io, '\n')
-            elseif char == 'r'
-                print(io, '\r')
-            elseif char == 't'
-                print(io, '\t')
-            else
-                error("unsupported JSON escape sequence \\$char")
-            end
-            escaped = false
-        elseif char == '\\'
-            escaped = true
-        elseif char == '"'
-            return String(take!(io)), index + 1
-        else
-            print(io, char)
-        end
-        index += 1
-    end
-    error("unterminated JSON string")
-end
-
-function skip_ws(chars::Vector{Char}, index::Int)
-    while index <= length(chars) && chars[index] in (' ', '\n', '\r', '\t')
-        index += 1
-    end
-    return index
-end
-
-function json_value_end(chars::Vector{Char}, index::Int)
-    index = skip_ws(chars, index)
-    depth = 0
-    in_string = false
-    escaped = false
-    while index <= length(chars)
-        char = chars[index]
-        if in_string
-            if escaped
-                escaped = false
-            elseif char == '\\'
-                escaped = true
-            elseif char == '"'
-                in_string = false
-            end
-        elseif char == '"'
-            in_string = true
-        elseif char == '{' || char == '['
-            depth += 1
-        elseif char == '}' || char == ']'
-            depth == 0 && return index - 1
-            depth -= 1
-        elseif char == ',' && depth == 0
-            return index - 1
-        end
-        index += 1
-    end
-    return length(chars)
-end
-
-function json_value_for_key(text::AbstractString, key::AbstractString)
-    chars = collect(text)
-    index = skip_ws(chars, 1)
-    index <= length(chars) || error("expected JSON object, got empty input")
-    chars[index] == '{' || error("expected JSON object")
-    index += 1
-    while index <= length(chars)
-        index = skip_ws(chars, index)
-        index > length(chars) && break
-        chars[index] == '}' && break
-        parsed_key, index = parse_json_string_literal(chars, index)
-        index = skip_ws(chars, index)
-        chars[index] == ':' || error("expected ':' after JSON key $parsed_key")
-        index = skip_ws(chars, index + 1)
-        value_start = index
-        value_stop = json_value_end(chars, value_start)
-        parsed_key == key && return strip(String(chars[value_start:value_stop]))
-        index = skip_ws(chars, value_stop + 1)
-        if index <= length(chars) && chars[index] == ','
-            index += 1
-        end
-    end
+function json_value_for_key(object, key::AbstractString)
+    symbol_key = Symbol(key)
+    haskey(object, symbol_key) && return object[symbol_key]
+    haskey(object, key) && return object[key]
     return nothing
 end
 
-function required_value(text::AbstractString, key::AbstractString)
-    value = json_value_for_key(text, key)
+function required_value(object, key::AbstractString)
+    value = json_value_for_key(object, key)
     value === nothing && error("JSON field `$key` not found")
     return value
 end
 
-function json_string(text::AbstractString, key::AbstractString)
-    value = required_value(text, key)
-    parsed, next_index = parse_json_string_literal(collect(value), 1)
-    next_index == length(collect(value)) + 1 ||
-        error("JSON field `$key` is not a string literal")
-    return parsed
+function json_string(object, key::AbstractString)
+    value = required_value(object, key)
+    value isa AbstractString || error("JSON field `$key` is not a string")
+    return String(value)
 end
 
-function json_optional_string(text::AbstractString, key::AbstractString)
-    value = json_value_for_key(text, key)
+function json_optional_string(object, key::AbstractString)
+    value = json_value_for_key(object, key)
     value === nothing && return missing
-    value == "null" && return missing
-    parsed, _ = parse_json_string_literal(collect(value), 1)
-    return parsed
+    value isa AbstractString ||
+        error("JSON field `$key` is not a string or null")
+    return String(value)
 end
 
-function json_bool(text::AbstractString, key::AbstractString)
-    value = required_value(text, key)
-    value == "true" && return true
-    value == "false" && return false
+function json_bool(object, key::AbstractString)
+    value = required_value(object, key)
+    value isa Bool && return value
     error("JSON field `$key` is not boolean")
 end
 
-function json_optional_bool(text::AbstractString, key::AbstractString)
-    value = json_value_for_key(text, key)
+function json_optional_bool(object, key::AbstractString)
+    value = json_value_for_key(object, key)
     value === nothing && return missing
-    value == "null" && return missing
-    value == "true" && return true
-    value == "false" && return false
+    value isa Bool && return value
     error("JSON field `$key` is not boolean or null")
 end
 
-json_int(text::AbstractString, key::AbstractString) =
-    parse(Int, required_value(text, key))
-
-json_float(text::AbstractString, key::AbstractString) =
-    parse(Float64, required_value(text, key))
-
-function json_summary(text::AbstractString)
-    return required_value(text, "summary")
+function json_int(object, key::AbstractString)
+    value = required_value(object, key)
+    value isa Integer && !(value isa Bool) ||
+        error("JSON field `$key` is not an integer")
+    return Int(value)
 end
 
-function summary_passed(summary::AbstractString)
+function json_float(object, key::AbstractString)
+    value = required_value(object, key)
+    value isa Real && !(value isa Bool) ||
+        error("JSON field `$key` is not numeric")
+    return Float64(value)
+end
+
+json_summary(object) = required_value(object, "summary")
+
+function summary_passed(summary)
     passed = json_value_for_key(summary, "passed")
-    passed !== nothing && return passed == "true"
+    passed !== nothing && return passed === true
     overall = json_value_for_key(summary, "overall_passed")
-    overall !== nothing && return overall == "true"
+    overall !== nothing && return overall === true
     return false
 end
 
-function artifact_summary(name::Symbol, text::AbstractString)
-    summary = json_summary(text)
+function artifact_summary(name::Symbol, document)
+    summary = json_summary(document)
     name === :candidate_chain_study && return (;
         overall_passed = json_bool(summary, "overall_passed"),
         max_rhat = json_float(summary, "max_rhat"),
@@ -871,6 +787,28 @@ function artifact_summary(name::Symbol, text::AbstractString)
         recommendation = json_string(summary, "recommendation"),
         next_gate = json_string(summary, "next_gate"),
     )
+    name === :tam_direct_agreement_post_execution_review_packet && return (;
+        passed = json_bool(summary, "passed"),
+        packet_integrity_passed =
+            json_bool(summary, "packet_integrity_passed"),
+        execution_refinement_snapshot_sha256_matches_pinned =
+            json_bool(summary,
+                "execution_refinement_snapshot_sha256_matches_pinned"),
+        aggregate_wrapper_lineage_exact =
+            json_bool(summary, "aggregate_wrapper_lineage_exact"),
+        aggregate_selected_execution_input_lineage_exact =
+            json_bool(summary,
+                "aggregate_selected_execution_input_lineage_exact"),
+        raw_job_execution_input_lineage_exact =
+            json_bool(summary, "raw_job_execution_input_lineage_exact"),
+        aggregate_selected_and_raw_retained_lineage_independently_exact =
+            json_bool(summary,
+                "aggregate_selected_and_raw_retained_lineage_independently_exact"),
+        independent_review_completed =
+            json_bool(summary, "independent_review_completed"),
+        pre_execution_packet_exact_input_lineage =
+            json_bool(summary, "pre_execution_packet_exact_input_lineage"),
+    )
     name === :claim_recovery_reproduction_archive && return (;
         passed = json_bool(summary, "passed"),
         publication_or_registration_action =
@@ -907,6 +845,8 @@ function artifact_summary(name::Symbol, text::AbstractString)
             json_bool(summary, "tam_raw_archive_integrity_passed"),
         tam_post_packet_integrity_passed =
             json_bool(summary, "tam_post_packet_integrity_passed"),
+        tam_execution_input_lineage_exact =
+            json_bool(summary, "tam_execution_input_lineage_exact"),
         tam_independent_review_completed =
             json_bool(summary, "tam_independent_review_completed"),
         tam_pre_execution_exact_input_lineage =
@@ -967,6 +907,8 @@ function artifact_summary(name::Symbol, text::AbstractString)
             json_bool(summary, "tam_raw_archive_integrity_passed"),
         tam_post_packet_integrity_passed =
             json_bool(summary, "tam_post_packet_integrity_passed"),
+        tam_execution_input_lineage_exact =
+            json_bool(summary, "tam_execution_input_lineage_exact"),
         tam_independent_review_completed =
             json_bool(summary, "tam_independent_review_completed"),
         tam_pre_execution_exact_input_lineage =
@@ -1394,6 +1336,10 @@ function artifact_summary(name::Symbol, text::AbstractString)
     )
     name === :full_paper_reproduction_archive && return (;
         passed = json_bool(summary, "passed"),
+        pass_scope = coalesce(json_optional_string(summary, "pass_scope"),
+            "legacy_unspecified"),
+        artifact_contract_valid = Bool(coalesce(json_optional_bool(summary,
+            "artifact_contract_valid"), json_bool(summary, "passed"))),
         publication_or_registration_action =
             json_bool(summary, "publication_or_registration_action"),
         local_only = json_bool(summary, "local_only"),
@@ -1402,6 +1348,10 @@ function artifact_summary(name::Symbol, text::AbstractString)
         all_expected_schemas = json_bool(summary, "all_expected_schemas"),
         all_fixture_summaries_passed =
             json_bool(summary, "all_fixture_summaries_passed"),
+        all_fixture_artifact_contracts_valid =
+            Bool(coalesce(json_optional_bool(summary,
+                "all_fixture_artifact_contracts_valid"),
+                json_bool(summary, "all_fixture_summaries_passed"))),
         all_generator_scripts_present =
             json_bool(summary, "all_generator_scripts_present"),
         all_code_doc_references_present =
@@ -1418,6 +1368,8 @@ function artifact_summary(name::Symbol, text::AbstractString)
             json_bool(summary, "tam_raw_archive_integrity_passed"),
         tam_post_packet_integrity_passed =
             json_bool(summary, "tam_post_packet_integrity_passed"),
+        tam_execution_input_lineage_exact =
+            json_bool(summary, "tam_execution_input_lineage_exact"),
         tam_independent_review_completed =
             json_bool(summary, "tam_independent_review_completed"),
         tam_pre_execution_exact_input_lineage =
@@ -1534,12 +1486,77 @@ function artifact_summary(name::Symbol, text::AbstractString)
         mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed =
             json_bool(summary,
                 "mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed"),
+        mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed_semantics =
+            coalesce(json_optional_string(summary,
+                "mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed_semantics"),
+                "legacy_unspecified"),
+        mgmfrm_external_construct_dataset_and_independent_public_scope_review_artifact_contract_valid =
+            Bool(coalesce(json_optional_bool(summary,
+                "mgmfrm_external_construct_dataset_and_independent_public_scope_review_artifact_contract_valid"),
+                json_bool(summary,
+                    "mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed"))),
         mgmfrm_external_construct_attachment_intake_preflight_passed =
             json_bool(summary,
                 "mgmfrm_external_construct_attachment_intake_preflight_passed"),
+        mgmfrm_external_construct_attachment_intake_preflight_passed_semantics =
+            coalesce(json_optional_string(summary,
+                "mgmfrm_external_construct_attachment_intake_preflight_passed_semantics"),
+                "legacy_unspecified"),
+        mgmfrm_external_construct_attachment_intake_preflight_artifact_contract_valid =
+            Bool(coalesce(json_optional_bool(summary,
+                "mgmfrm_external_construct_attachment_intake_preflight_artifact_contract_valid"),
+                json_bool(summary,
+                    "mgmfrm_external_construct_attachment_intake_preflight_passed"))),
         mgmfrm_external_construct_attachment_request_packet_passed =
             json_bool(summary,
                 "mgmfrm_external_construct_attachment_request_packet_passed"),
+        mgmfrm_external_construct_attachment_request_packet_passed_semantics =
+            coalesce(json_optional_string(summary,
+                "mgmfrm_external_construct_attachment_request_packet_passed_semantics"),
+                "legacy_unspecified"),
+        mgmfrm_external_construct_attachment_request_packet_artifact_contract_valid =
+            Bool(coalesce(json_optional_bool(summary,
+                "mgmfrm_external_construct_attachment_request_packet_artifact_contract_valid"),
+                json_bool(summary,
+                    "mgmfrm_external_construct_attachment_request_packet_passed"))),
+        mgmfrm_external_construct_dataset_manifest_attached_and_valid =
+            Bool(coalesce(json_optional_bool(summary,
+                "mgmfrm_external_construct_dataset_manifest_attached_and_valid"),
+                false)),
+        mgmfrm_external_construct_dataset_file_integrity_verified =
+            Bool(coalesce(json_optional_bool(summary,
+                "mgmfrm_external_construct_dataset_file_integrity_verified"),
+                false)),
+        mgmfrm_external_construct_validation_evidence_attached_and_valid =
+            Bool(coalesce(json_optional_bool(summary,
+                "mgmfrm_external_construct_validation_evidence_attached_and_valid"),
+                false)),
+        mgmfrm_external_construct_validation_evidence_passed =
+            Bool(coalesce(json_optional_bool(summary,
+                "mgmfrm_external_construct_validation_evidence_passed"),
+                false)),
+        mgmfrm_independent_public_scope_review_attached_and_valid =
+            Bool(coalesce(json_optional_bool(summary,
+                "mgmfrm_independent_public_scope_review_attached_and_valid"),
+                false)),
+        mgmfrm_independent_public_scope_review_gate_passed =
+            Bool(coalesce(json_optional_bool(summary,
+                "mgmfrm_independent_public_scope_review_gate_passed"),
+                false)),
+        mgmfrm_public_claim_release_decision_signed =
+            Bool(coalesce(json_optional_bool(summary,
+                "mgmfrm_public_claim_release_decision_signed"), false)),
+        mgmfrm_external_construct_public_claim_release_gate_passed =
+            Bool(coalesce(json_optional_bool(summary,
+                "mgmfrm_external_construct_public_claim_release_gate_passed"),
+                false)),
+        mgmfrm_external_construct_public_blocker_count =
+            begin
+                value = json_value_for_key(summary,
+                    "mgmfrm_external_construct_public_blocker_count")
+                value === nothing ? json_int(summary, "n_blockers") :
+                    Int(value)
+            end,
         prediction_target_and_model_weight_policy_passed =
             json_bool(summary,
                 "prediction_target_and_model_weight_policy_passed"),
@@ -1559,8 +1576,8 @@ end
 function artifact_record(spec)
     path = fixture_path(spec.path)
     isfile(path) || error("review artifact is missing: $(spec.path)")
-    text = read_fixture_text(spec.path)
-    schema = json_string(text, "schema")
+    document = JSON3.read(read_fixture_text(spec.path))
+    schema = json_string(document, "schema")
     schema == spec.expected_schema ||
         error("unexpected schema for $(spec.path): $schema")
     return (;
@@ -1568,13 +1585,14 @@ function artifact_record(spec)
         path = spec.path,
         sha256 = file_sha256(path),
         schema,
-        family = json_optional_string(text, "family"),
-        scope = json_optional_string(text, "scope"),
-        status = json_optional_string(text, "status"),
-        public_fit = json_optional_bool(text, "public_fit"),
-        experimental_public = json_optional_bool(text, "experimental_public"),
-        fit_ready = json_optional_bool(text, "fit_ready"),
-        summary = artifact_summary(spec.name, text),
+        family = json_optional_string(document, "family"),
+        scope = json_optional_string(document, "scope"),
+        status = json_optional_string(document, "status"),
+        public_fit = json_optional_bool(document, "public_fit"),
+        experimental_public =
+            json_optional_bool(document, "experimental_public"),
+        fit_ready = json_optional_bool(document, "fit_ready"),
+        summary = artifact_summary(spec.name, document),
     )
 end
 
@@ -1589,13 +1607,12 @@ function artifact_passed(record)
     return false
 end
 
-function best_model_counts(grid_text::AbstractString)
-    summary = json_summary(grid_text)
-    array = required_value(summary, "best_model_counts")
-    rows = NamedTuple[]
-    for matched in eachmatch(r"\{\s*\"model\"\s*:\s*\"([^\"]+)\"\s*,\s*\"n\"\s*:\s*(\d+)\s*\}", array)
-        push!(rows, (model = matched.captures[1], n = parse(Int, matched.captures[2])))
-    end
+function best_model_counts(document)
+    entries = required_value(json_summary(document), "best_model_counts")
+    rows = [
+        (model = json_string(entry, "model"), n = json_int(entry, "n"))
+        for entry in entries
+    ]
     isempty(rows) && error("best_model_counts rows not found")
     return rows
 end
@@ -1942,21 +1959,45 @@ function review_rows(records)
             finding =
                 :publication_grade_threshold_model_weight_policy_review_recorded_claims_blocked),
         (gate = :confirmatory_mgmfrm_external_construct_dataset_and_independent_public_scope_review,
-            status = :passed_with_policy_blocker,
+            status = :contract_valid_claims_blocked,
             evidence = Bool(getproperty(full_archive.summary,
+                :mgmfrm_external_construct_dataset_and_independent_public_scope_review_artifact_contract_valid)),
+            compatibility_passed = Bool(getproperty(full_archive.summary,
                 :mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed)),
+            compatibility_passed_semantics = Symbol(getproperty(
+                full_archive.summary,
+                :mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed_semantics)),
+            external_construct_validation_evidence_passed = Bool(getproperty(
+                full_archive.summary,
+                :mgmfrm_external_construct_validation_evidence_passed)),
+            independent_public_scope_review_gate_passed = Bool(getproperty(
+                full_archive.summary,
+                :mgmfrm_independent_public_scope_review_gate_passed)),
+            public_claim_release_gate_passed = Bool(getproperty(
+                full_archive.summary,
+                :mgmfrm_external_construct_public_claim_release_gate_passed)),
             finding =
                 :external_construct_and_independent_public_scope_requirements_recorded_claims_blocked),
         (gate = :confirmatory_mgmfrm_external_construct_attachment_intake_preflight,
-            status = :passed_with_policy_blocker,
+            status = :contract_valid_claims_blocked,
             evidence = Bool(getproperty(full_archive.summary,
+                :mgmfrm_external_construct_attachment_intake_preflight_artifact_contract_valid)),
+            compatibility_passed = Bool(getproperty(full_archive.summary,
                 :mgmfrm_external_construct_attachment_intake_preflight_passed)),
+            compatibility_passed_semantics = Symbol(getproperty(
+                full_archive.summary,
+                :mgmfrm_external_construct_attachment_intake_preflight_passed_semantics)),
             finding =
                 :external_construct_attachment_intake_preflight_recorded_claims_blocked),
         (gate = :confirmatory_mgmfrm_external_construct_attachment_request_packet,
-            status = :passed_with_policy_blocker,
+            status = :contract_valid_claims_blocked,
             evidence = Bool(getproperty(full_archive.summary,
+                :mgmfrm_external_construct_attachment_request_packet_artifact_contract_valid)),
+            compatibility_passed = Bool(getproperty(full_archive.summary,
                 :mgmfrm_external_construct_attachment_request_packet_passed)),
+            compatibility_passed_semantics = Symbol(getproperty(
+                full_archive.summary,
+                :mgmfrm_external_construct_attachment_request_packet_passed_semantics)),
             finding =
                 :external_construct_attachment_request_packet_recorded_claims_blocked),
         (gate = :dff_estimand_and_validation_grid, status = :passed,
@@ -1986,6 +2027,10 @@ function review_rows(records)
             status = :passed_with_policy_blocker,
             evidence = Bool(tam_post.summary.passed) &&
                 Bool(full_archive.summary.tam_post_packet_integrity_passed) &&
+                Bool(tam_post.summary.raw_job_execution_input_lineage_exact) &&
+                Bool(claim_archive.summary.tam_execution_input_lineage_exact) &&
+                Bool(broader_review.summary.tam_execution_input_lineage_exact) &&
+                Bool(full_archive.summary.tam_execution_input_lineage_exact) &&
                 !Bool(full_archive.summary.tam_independent_review_completed) &&
                 !Bool(full_archive.summary.tam_pre_execution_exact_input_lineage),
             finding =
@@ -2021,7 +2066,8 @@ function build_artifact()
     records = [artifact_record(spec) for spec in REVIEWED_ARTIFACTS]
     rows = review_rows(records)
     blockers = blocking_rows(rows)
-    grid_text = read_fixture_text("test/fixtures/gmfrm_baseline_calibration_grid.json")
+    grid_document = JSON3.read(read_fixture_text(
+        "test/fixtures/gmfrm_baseline_calibration_grid.json"))
     baseline = artifact_by_name(records, :baseline_comparison)
     grid = artifact_by_name(records, :baseline_calibration_grid)
     interval_grid = artifact_by_name(records, :interval_decision_grid)
@@ -2073,7 +2119,23 @@ function build_artifact()
         records, :tam_direct_agreement_post_execution_review_packet)
     full_archive =
         artifact_by_name(records, :full_paper_reproduction_archive)
-    all_local_evidence_passed = all(artifact_passed, records)
+    Bool(full_archive.summary.
+        mgmfrm_external_construct_validation_evidence_passed) &&
+        !Bool(full_archive.summary.
+            mgmfrm_external_construct_validation_evidence_attached_and_valid) &&
+        error("external construct evidence cannot pass without a valid attachment")
+    Bool(full_archive.summary.
+        mgmfrm_external_construct_public_claim_release_gate_passed) &&
+        Int(full_archive.summary.
+            mgmfrm_external_construct_public_blocker_count) != 0 &&
+        error("external public claim release cannot pass with unresolved blockers")
+    tam_execution_input_lineage_exact =
+        Bool(tam_post.summary.raw_job_execution_input_lineage_exact) &&
+        Bool(claim_archive.summary.tam_execution_input_lineage_exact) &&
+        Bool(broader_review.summary.tam_execution_input_lineage_exact) &&
+        Bool(full_archive.summary.tam_execution_input_lineage_exact)
+    all_local_evidence_passed =
+        all(artifact_passed, records) && tam_execution_input_lineage_exact
     any_high_variance_waic =
         Bool(baseline.summary.any_high_variance_waic) ||
         Bool(grid.summary.any_high_variance_waic) ||
@@ -2102,7 +2164,8 @@ function build_artifact()
         ),
         protocol = PROTOCOL,
         reviewed_artifacts = records,
-        baseline_calibration_best_model_counts = best_model_counts(grid_text),
+        baseline_calibration_best_model_counts =
+            best_model_counts(grid_document),
         review_rows = rows,
         blocker_rows = blockers,
         decision_record = (;
@@ -2115,6 +2178,7 @@ function build_artifact()
             tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm = false,
             tam_independent_review_completed =
                 Bool(full_archive.summary.tam_independent_review_completed),
+            tam_execution_input_lineage_exact,
             publication_grade_pilot_runner_materialized =
                 Bool(manuscript_grid.summary.publication_grade_pilot_runner_materialized),
             required_followup = publication_grade_followup,
@@ -2249,12 +2313,57 @@ function build_artifact()
             mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed =
                 Bool(getproperty(full_archive.summary,
                     :mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed)),
+            mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed_semantics =
+                Symbol(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_dataset_and_independent_public_scope_review_passed_semantics)),
+            mgmfrm_external_construct_dataset_and_independent_public_scope_review_artifact_contract_valid =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_dataset_and_independent_public_scope_review_artifact_contract_valid)),
             mgmfrm_external_construct_attachment_intake_preflight_passed =
                 Bool(getproperty(full_archive.summary,
                     :mgmfrm_external_construct_attachment_intake_preflight_passed)),
+            mgmfrm_external_construct_attachment_intake_preflight_passed_semantics =
+                Symbol(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_attachment_intake_preflight_passed_semantics)),
+            mgmfrm_external_construct_attachment_intake_preflight_artifact_contract_valid =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_attachment_intake_preflight_artifact_contract_valid)),
             mgmfrm_external_construct_attachment_request_packet_passed =
                 Bool(getproperty(full_archive.summary,
                     :mgmfrm_external_construct_attachment_request_packet_passed)),
+            mgmfrm_external_construct_attachment_request_packet_passed_semantics =
+                Symbol(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_attachment_request_packet_passed_semantics)),
+            mgmfrm_external_construct_attachment_request_packet_artifact_contract_valid =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_attachment_request_packet_artifact_contract_valid)),
+            mgmfrm_external_construct_dataset_manifest_attached_and_valid =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_dataset_manifest_attached_and_valid)),
+            mgmfrm_external_construct_dataset_file_integrity_verified =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_dataset_file_integrity_verified)),
+            mgmfrm_external_construct_validation_evidence_attached_and_valid =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_validation_evidence_attached_and_valid)),
+            mgmfrm_external_construct_validation_evidence_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_validation_evidence_passed)),
+            mgmfrm_independent_public_scope_review_attached_and_valid =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_independent_public_scope_review_attached_and_valid)),
+            mgmfrm_independent_public_scope_review_gate_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_independent_public_scope_review_gate_passed)),
+            mgmfrm_public_claim_release_decision_signed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_public_claim_release_decision_signed)),
+            mgmfrm_external_construct_public_claim_release_gate_passed =
+                Bool(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_public_claim_release_gate_passed)),
+            mgmfrm_external_construct_public_blocker_count =
+                Int(getproperty(full_archive.summary,
+                    :mgmfrm_external_construct_public_blocker_count)),
             prediction_target_and_model_weight_policy_passed =
                 Bool(prediction_policy.summary.passed),
             mgmfrm_manual_public_scope_review_for_fit_passed =
@@ -2279,6 +2388,7 @@ function build_artifact()
                 Bool(full_archive.summary.tam_post_packet_integrity_passed),
             tam_independent_review_completed =
                 Bool(full_archive.summary.tam_independent_review_completed),
+            tam_execution_input_lineage_exact,
             tam_pre_execution_exact_input_lineage =
                 Bool(full_archive.summary.tam_pre_execution_exact_input_lineage),
             tam_direct_evidence_transfers_to_gmfrm_or_mgmfrm = false,

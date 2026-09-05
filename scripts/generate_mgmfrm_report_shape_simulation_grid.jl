@@ -436,6 +436,8 @@ function scenario_record(scenario, scenario_index::Int)
         draw_indices,
         include_loo = false,
         artifact_include_environment = false,
+        on_section_error = :throw,
+        require_complete = true,
     )
     diagnostics = BayesianMGMFRM.diagnostics(fit)
     artifact = BayesianMGMFRM.fit_artifact(fit; include_environment = false)

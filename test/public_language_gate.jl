@@ -18,9 +18,23 @@ const PublicLanguagePolicy = PublicLanguageGateContractForTest.PublicLanguageGat
     @test result.n_language_violations == 0
     @test result.n_navigation_violations == 0
     @test result.n_workflow_violations == 0
-    @test result.n_public_files == 17
+    @test result.n_public_files == 19
+    @test "experimental.md" in PublicLanguagePolicy.PUBLIC_DOCUMENTATION_PAGES
     @test "scope.md" in PublicLanguagePolicy.PUBLIC_DOCUMENTATION_PAGES
     @test "roadmap.md" in PublicLanguagePolicy.DEVELOPER_DOCUMENTATION_PAGES
+    @test PublicLanguagePolicy._rendered_build_root(root) ==
+        joinpath(root, "docs", "build")
+    mktempdir() do temp_root
+        absolute_build = joinpath(temp_root, "rendered")
+        withenv("BAYESIANMGMFRM_DOCS_BUILD" => absolute_build) do
+            @test PublicLanguagePolicy._rendered_build_root(root) ==
+                abspath(absolute_build)
+        end
+        withenv("BAYESIANMGMFRM_DOCS_BUILD" => "alternate-build") do
+            @test PublicLanguagePolicy._rendered_build_root(root) ==
+                joinpath(root, "docs", "alternate-build")
+        end
+    end
     for maintainer_name in (
             :case_study_provenance_manifest,
             :evidence_artifact_schema_policy,
@@ -102,12 +116,20 @@ const PublicLanguagePolicy = PublicLanguageGateContractForTest.PublicLanguageGat
     mktempdir() do temp_root
         sample = joinpath(temp_root, "multiline.md")
         write(sample,
-            "```julia\n_private_helper()\n_θ()\n```\nregistration\nhandoff\n")
+            "```julia\n_private_helper()\n_θ()\n```\nregistration\n" *
+            "handoff\nRun the internal_preflight harness for auditing.\n")
         violations = PublicLanguagePolicy.public_language_violations(
             temp_root; paths = [sample])
         rules = Set(violation.rule for violation in violations)
         @test :private_identifier in rules
         @test :maintainer_workflow_wording in rules
+        @test !(:maintainer_review_wording in rules)
+
+        public_api_terms = joinpath(temp_root, "public-api-terms.md")
+        write(public_api_terms,
+            "Use `ordinal_response_pattern_audit` before the stress preflight.\n")
+        @test isempty(PublicLanguagePolicy.public_language_violations(
+            temp_root; paths = [public_api_terms]))
 
         allowed = joinpath(temp_root, "allowed.md")
         write(allowed,
@@ -132,13 +154,14 @@ const PublicLanguagePolicy = PublicLanguageGateContractForTest.PublicLanguageGat
         restricted = joinpath(temp_root, "restricted.html")
         write(restricted,
             "<html><body><code>_private_helper</code> registration handoff" *
-            "</body></html>\n")
+            " <code>legacy_audit</code></body></html>\n")
         violations = PublicLanguagePolicy.rendered_language_violations(
             temp_root; paths = [restricted])
         rules = Set(violation.rule for violation in violations)
         @test :private_identifier in rules
         @test :rendered_private_identifier in rules
         @test :maintainer_workflow_wording in rules
+        @test !(:rendered_maintainer_review_wording in rules)
     end
 
     mktempdir() do temp_root

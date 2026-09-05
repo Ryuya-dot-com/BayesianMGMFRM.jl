@@ -9,14 +9,14 @@
   "fit_ready": true,
   "package": {
     "name": "BayesianMGMFRM",
-    "version": "0.1.0",
+    "version": "0.1.2",
     "julia_version": "1.12.5"
   },
   "protocol": {
     "protocol_id": "confirmatory_mgmfrm_q_matrix_validation_expansion_v1",
     "review_kind": "local_confirmatory_mgmfrm_q_matrix_validation_expansion",
     "publication_or_registration_action": false,
-    "scenario_count": 13,
+    "scenario_count": 15,
     "thresholds": {
       "require_all_expected_validation_outcomes": true,
       "require_all_expected_spec_outcomes": true,
@@ -178,6 +178,32 @@
           "note": "dimension_columns_have_distinct_item_masks"
         },
         {
+          "check": "global_loading_structural_rank",
+          "status": "full_column_structural_rank",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "q_zero_pattern_can_generically_support_all_loading_dimensions"
+        },
+        {
+          "check": "person_dimension_likelihood_support",
+          "status": "every_person_has_full_dimension_structural_support",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": 3,
+          "n_components": null,
+          "note": "each_person_observes_an_item_pattern_with_full_dimension_structural_rank"
+        },
+        {
           "check": "cross_loading_policy",
           "status": "simple_structure",
           "severity": "info",
@@ -202,6 +228,19 @@
           "n_active": 2,
           "n_components": null,
           "note": "positive_loadings_have_simple_anchor_items"
+        },
+        {
+          "check": "ability_population_identification_anchor",
+          "status": "standard_normal_identity_correlation_prior_anchor",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "origin_scale_and_latent_rotation_are_prior_anchored_not_likelihood_only"
         },
         {
           "check": "dimension_item_graph_components",
@@ -241,14 +280,23 @@
           "n_active": 6,
           "n_components": 1,
           "note": "dimension_specific_person_rater_item_subgraph_connected"
+        },
+        {
+          "check": "fixed_q_identification_gate",
+          "status": "conservative_stable_structure_ready",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "fixed_q_structure_meets_the_conservative_stable_support_rule"
         }
       ],
-      "error_checks": [
-
-      ],
-      "warning_checks": [
-
-      ],
+      "error_checks": [],
+      "warning_checks": [],
       "validation_summary": {
         "passed": true,
         "n_items": 2,
@@ -258,7 +306,21 @@
         "fixed_q_confirmatory": true,
         "n_cross_loading_items": 0,
         "n_duplicate_dimension_groups": 0,
-        "n_dimension_facet_subgraphs_disconnected": 0
+        "n_dimension_facet_subgraphs_disconnected": 0,
+        "q_structural_rank": 2,
+        "q_full_column_structural_rank": true,
+        "all_persons_full_dimension_rank": true,
+        "minimum_person_structural_rank": 2,
+        "n_persons_incomplete_dimension_support": 0,
+        "pure_item_counts_per_dimension": [
+          1,
+          1
+        ],
+        "all_dimensions_have_pure_items": true,
+        "identification_status": "conservative_stable_structure_ready",
+        "guarded_fit_structure_ready": true,
+        "conservative_stable_structure_ready": true,
+        "identification_promotion_blockers": []
       },
       "spec_default": {
         "outcome": "succeeded",
@@ -396,6 +458,32 @@
           "note": "dimension_columns_have_distinct_item_masks"
         },
         {
+          "check": "global_loading_structural_rank",
+          "status": "full_column_structural_rank",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 3,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "q_zero_pattern_can_generically_support_all_loading_dimensions"
+        },
+        {
+          "check": "person_dimension_likelihood_support",
+          "status": "every_person_has_full_dimension_structural_support",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 3,
+          "n_dimensions": 2,
+          "n_active": 3,
+          "n_components": null,
+          "note": "each_person_observes_an_item_pattern_with_full_dimension_structural_rank"
+        },
+        {
           "check": "cross_loading_policy",
           "status": "fixed_confirmatory_cross_loadings",
           "severity": "warning",
@@ -420,6 +508,19 @@
           "n_active": 2,
           "n_components": null,
           "note": "positive_loadings_have_simple_anchor_items"
+        },
+        {
+          "check": "ability_population_identification_anchor",
+          "status": "standard_normal_identity_correlation_prior_anchor",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 3,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "origin_scale_and_latent_rotation_are_prior_anchored_not_likelihood_only"
         },
         {
           "check": "dimension_item_graph_components",
@@ -459,11 +560,22 @@
           "n_active": 12,
           "n_components": 1,
           "note": "dimension_specific_person_rater_item_subgraph_connected"
+        },
+        {
+          "check": "fixed_q_identification_gate",
+          "status": "conservative_stable_structure_ready",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 3,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "fixed_q_structure_meets_the_conservative_stable_support_rule"
         }
       ],
-      "error_checks": [
-
-      ],
+      "error_checks": [],
       "warning_checks": [
         "cross_loading_policy"
       ],
@@ -476,7 +588,21 @@
         "fixed_q_confirmatory": true,
         "n_cross_loading_items": 1,
         "n_duplicate_dimension_groups": 0,
-        "n_dimension_facet_subgraphs_disconnected": 0
+        "n_dimension_facet_subgraphs_disconnected": 0,
+        "q_structural_rank": 2,
+        "q_full_column_structural_rank": true,
+        "all_persons_full_dimension_rank": true,
+        "minimum_person_structural_rank": 2,
+        "n_persons_incomplete_dimension_support": 0,
+        "pure_item_counts_per_dimension": [
+          1,
+          1
+        ],
+        "all_dimensions_have_pure_items": true,
+        "identification_status": "conservative_stable_structure_ready",
+        "guarded_fit_structure_ready": true,
+        "conservative_stable_structure_ready": true,
+        "identification_promotion_blockers": []
       },
       "spec_default": {
         "outcome": "succeeded",
@@ -539,9 +665,7 @@
       "error_checks": [
         "required_q_matrix"
       ],
-      "warning_checks": [
-
-      ],
+      "warning_checks": [],
       "validation_summary": {
         "passed": false,
         "n_items": 2,
@@ -614,9 +738,7 @@
       "error_checks": [
         "matrix_schema"
       ],
-      "warning_checks": [
-
-      ],
+      "warning_checks": [],
       "validation_summary": {
         "passed": false,
         "n_items": 2,
@@ -724,9 +846,7 @@
       "error_checks": [
         "binary_mask_schema"
       ],
-      "warning_checks": [
-
-      ],
+      "warning_checks": [],
       "validation_summary": {
         "passed": false,
         "n_items": 2,
@@ -830,9 +950,7 @@
       "error_checks": [
         "shape"
       ],
-      "warning_checks": [
-
-      ],
+      "warning_checks": [],
       "validation_summary": {
         "passed": false,
         "n_items": 2,
@@ -942,9 +1060,7 @@
       "error_checks": [
         "shape"
       ],
-      "warning_checks": [
-
-      ],
+      "warning_checks": [],
       "validation_summary": {
         "passed": false,
         "n_items": 2,
@@ -1092,6 +1208,32 @@
           "note": "dimension_columns_have_distinct_item_masks"
         },
         {
+          "check": "global_loading_structural_rank",
+          "status": "full_column_structural_rank",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 3,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "q_zero_pattern_can_generically_support_all_loading_dimensions"
+        },
+        {
+          "check": "person_dimension_likelihood_support",
+          "status": "every_person_has_full_dimension_structural_support",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 3,
+          "n_dimensions": 2,
+          "n_active": 3,
+          "n_components": null,
+          "note": "each_person_observes_an_item_pattern_with_full_dimension_structural_rank"
+        },
+        {
           "check": "cross_loading_policy",
           "status": "simple_structure",
           "severity": "info",
@@ -1116,6 +1258,19 @@
           "n_active": 2,
           "n_components": null,
           "note": "positive_loadings_have_simple_anchor_items"
+        },
+        {
+          "check": "ability_population_identification_anchor",
+          "status": "standard_normal_identity_correlation_prior_anchor",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 3,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "origin_scale_and_latent_rotation_are_prior_anchored_not_likelihood_only"
         },
         {
           "check": "dimension_item_graph_components",
@@ -1155,31 +1310,59 @@
           "n_active": 6,
           "n_components": 1,
           "note": "dimension_specific_person_rater_item_subgraph_connected"
+        },
+        {
+          "check": "fixed_q_identification_gate",
+          "status": "rejected_fixed_q_structure",
+          "severity": "error",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 3,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "fixed_q_structure_fails_guarded_prefit_validation"
         }
       ],
       "error_checks": [
-        "empty_item_rows"
+        "empty_item_rows",
+        "fixed_q_identification_gate"
       ],
-      "warning_checks": [
-
-      ],
+      "warning_checks": [],
       "validation_summary": {
         "passed": false,
         "n_items": 3,
         "n_dimensions": 2,
-        "n_error_rows": 1,
+        "n_error_rows": 2,
         "n_warning_rows": 0,
         "fixed_q_confirmatory": true,
         "n_cross_loading_items": 0,
         "n_duplicate_dimension_groups": 0,
-        "n_dimension_facet_subgraphs_disconnected": 0
+        "n_dimension_facet_subgraphs_disconnected": 0,
+        "q_structural_rank": 2,
+        "q_full_column_structural_rank": true,
+        "all_persons_full_dimension_rank": true,
+        "minimum_person_structural_rank": 2,
+        "n_persons_incomplete_dimension_support": 0,
+        "pure_item_counts_per_dimension": [
+          1,
+          1
+        ],
+        "all_dimensions_have_pure_items": true,
+        "identification_status": "rejected_fixed_q_structure",
+        "guarded_fit_structure_ready": false,
+        "conservative_stable_structure_ready": false,
+        "identification_promotion_blockers": [
+          "q_validation_errors"
+        ]
       },
       "spec_default": {
         "outcome": "throws",
         "error_contains_invalid_q": true,
         "preview_design_succeeded": false,
         "n_parameters": 0,
-        "message": "ArgumentError: invalid fixed-Q MGMFRM q_matrix; failing_checks=((check = :empty_item_rows, status = :empty_rows, note = :each_item_must_load_on_at_least_one_dimension),); inspect q_matrix_validation(...) for actionable rows"
+        "message": "ArgumentError: invalid fixed-Q MGMFRM q_matrix; failing_checks=((check = :empty_item_rows, status = :empty_rows, note = :each_item_must_load_on_at_least_one_dimension), (check = :fixed_q_identification_gate, status = :rejected_fixed_q_structure, note = :fixed_q_structure_fails_guarded_prefit_validation)); inspect q_matrix_validation(...) for actionable rows"
       },
       "summary": {
         "passed": true,
@@ -1190,7 +1373,7 @@
         "policy_validation_only": false,
         "warning_only": false,
         "valid_no_warning": false,
-        "n_error_checks": 1,
+        "n_error_checks": 2,
         "n_warning_checks": 0
       }
     },
@@ -1306,6 +1489,32 @@
           "note": "dimension_columns_have_distinct_item_masks"
         },
         {
+          "check": "global_loading_structural_rank",
+          "status": "structurally_rank_deficient",
+          "severity": "error",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": 1,
+          "n_components": null,
+          "note": "q_zero_pattern_cannot_support_a_full_column_rank_loading_matrix"
+        },
+        {
+          "check": "person_dimension_likelihood_support",
+          "status": "not_separately_assessed_global_rank_deficient",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": 0,
+          "n_components": null,
+          "note": "global_loading_structure_must_be_fixed_before_person_support_review"
+        },
+        {
           "check": "cross_loading_policy",
           "status": "simple_structure",
           "severity": "info",
@@ -1330,6 +1539,19 @@
           "n_active": 1,
           "n_components": null,
           "note": "dimension_has_only_cross_loading_items_review_interpretation"
+        },
+        {
+          "check": "ability_population_identification_anchor",
+          "status": "standard_normal_identity_correlation_prior_anchor",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "origin_scale_and_latent_rotation_are_prior_anchored_not_likelihood_only"
         },
         {
           "check": "dimension_item_graph_components",
@@ -1369,11 +1591,26 @@
           "n_active": 0,
           "n_components": 0,
           "note": "dimension_has_no_observed_ratings_for_active_items"
+        },
+        {
+          "check": "fixed_q_identification_gate",
+          "status": "rejected_fixed_q_structure",
+          "severity": "error",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": 1,
+          "n_components": null,
+          "note": "fixed_q_structure_fails_guarded_prefit_validation"
         }
       ],
       "error_checks": [
         "dimension_facet_subgraph_coverage",
-        "empty_dimensions"
+        "empty_dimensions",
+        "fixed_q_identification_gate",
+        "global_loading_structural_rank"
       ],
       "warning_checks": [
         "positive_loading_identification"
@@ -1382,19 +1619,38 @@
         "passed": false,
         "n_items": 2,
         "n_dimensions": 2,
-        "n_error_rows": 2,
+        "n_error_rows": 4,
         "n_warning_rows": 1,
         "fixed_q_confirmatory": true,
         "n_cross_loading_items": 0,
         "n_duplicate_dimension_groups": 0,
-        "n_dimension_facet_subgraphs_disconnected": 0
+        "n_dimension_facet_subgraphs_disconnected": 0,
+        "q_structural_rank": 1,
+        "q_full_column_structural_rank": false,
+        "all_persons_full_dimension_rank": false,
+        "minimum_person_structural_rank": 1,
+        "n_persons_incomplete_dimension_support": 3,
+        "pure_item_counts_per_dimension": [
+          2,
+          0
+        ],
+        "all_dimensions_have_pure_items": false,
+        "identification_status": "rejected_fixed_q_structure",
+        "guarded_fit_structure_ready": false,
+        "conservative_stable_structure_ready": false,
+        "identification_promotion_blockers": [
+          "q_validation_errors",
+          "global_loading_structural_rank",
+          "person_dimension_likelihood_support",
+          "pure_item_interpretation_support"
+        ]
       },
       "spec_default": {
         "outcome": "throws",
         "error_contains_invalid_q": true,
         "preview_design_succeeded": false,
         "n_parameters": 0,
-        "message": "ArgumentError: invalid fixed-Q MGMFRM q_matrix; failing_checks=((check = :empty_dimensions, status = :empty_dimensions, note = :each_dimension_must_have_at_least_one_item), (check = :dimension_facet_subgraph_coverage, status = :no_observed_ratings, note = :dimension_has_no_observed_ratings_for_active_items)); inspect q_matrix_validation(...) for actionable rows"
+        "message": "ArgumentError: invalid fixed-Q MGMFRM q_matrix; failing_checks=((check = :empty_dimensions, status = :empty_dimensions, note = :each_dimension_must_have_at_least_one_item), (check = :global_loading_structural_rank, status = :structurally_rank_deficient, note = :q_zero_pattern_cannot_support_a_full_column_rank_loading_matrix), (check = :dimension_facet_subgraph_coverage, status = :no_observed_ratings, note = :dimension_has_no_observed_ratings_for_active_items), (check = :fixed_q_identification_gate, status = :rejected_fixed_q_structure, note = :fixed_q_structure_fails_guarded_prefit_validation)); inspect q_matrix_validation(...) for actionable rows"
       },
       "summary": {
         "passed": true,
@@ -1405,7 +1661,7 @@
         "policy_validation_only": false,
         "warning_only": false,
         "valid_no_warning": false,
-        "n_error_checks": 2,
+        "n_error_checks": 4,
         "n_warning_checks": 1
       }
     },
@@ -1521,6 +1777,32 @@
           "note": "duplicate_q_columns_alias_dimensions"
         },
         {
+          "check": "global_loading_structural_rank",
+          "status": "full_column_structural_rank",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "q_zero_pattern_can_generically_support_all_loading_dimensions"
+        },
+        {
+          "check": "person_dimension_likelihood_support",
+          "status": "every_person_has_full_dimension_structural_support",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": 3,
+          "n_components": null,
+          "note": "each_person_observes_an_item_pattern_with_full_dimension_structural_rank"
+        },
+        {
           "check": "cross_loading_policy",
           "status": "fixed_confirmatory_cross_loadings",
           "severity": "warning",
@@ -1545,6 +1827,19 @@
           "n_active": 0,
           "n_components": null,
           "note": "dimension_has_only_cross_loading_items_review_interpretation"
+        },
+        {
+          "check": "ability_population_identification_anchor",
+          "status": "standard_normal_identity_correlation_prior_anchor",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "origin_scale_and_latent_rotation_are_prior_anchored_not_likelihood_only"
         },
         {
           "check": "dimension_item_graph_components",
@@ -1584,10 +1879,24 @@
           "n_active": 12,
           "n_components": 1,
           "note": "dimension_specific_person_rater_item_subgraph_connected"
+        },
+        {
+          "check": "fixed_q_identification_gate",
+          "status": "rejected_fixed_q_structure",
+          "severity": "error",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "fixed_q_structure_fails_guarded_prefit_validation"
         }
       ],
       "error_checks": [
-        "duplicate_dimension_columns"
+        "duplicate_dimension_columns",
+        "fixed_q_identification_gate"
       ],
       "warning_checks": [
         "cross_loading_policy",
@@ -1597,19 +1906,36 @@
         "passed": false,
         "n_items": 2,
         "n_dimensions": 2,
-        "n_error_rows": 1,
+        "n_error_rows": 2,
         "n_warning_rows": 2,
         "fixed_q_confirmatory": true,
         "n_cross_loading_items": 2,
         "n_duplicate_dimension_groups": 1,
-        "n_dimension_facet_subgraphs_disconnected": 0
+        "n_dimension_facet_subgraphs_disconnected": 0,
+        "q_structural_rank": 2,
+        "q_full_column_structural_rank": true,
+        "all_persons_full_dimension_rank": true,
+        "minimum_person_structural_rank": 2,
+        "n_persons_incomplete_dimension_support": 0,
+        "pure_item_counts_per_dimension": [
+          0,
+          0
+        ],
+        "all_dimensions_have_pure_items": false,
+        "identification_status": "rejected_fixed_q_structure",
+        "guarded_fit_structure_ready": false,
+        "conservative_stable_structure_ready": false,
+        "identification_promotion_blockers": [
+          "q_validation_errors",
+          "pure_item_interpretation_support"
+        ]
       },
       "spec_default": {
         "outcome": "throws",
         "error_contains_invalid_q": true,
         "preview_design_succeeded": false,
         "n_parameters": 0,
-        "message": "ArgumentError: invalid fixed-Q MGMFRM q_matrix; failing_checks=((check = :duplicate_dimension_columns, status = :aliased_columns, note = :duplicate_q_columns_alias_dimensions),); inspect q_matrix_validation(...) for actionable rows"
+        "message": "ArgumentError: invalid fixed-Q MGMFRM q_matrix; failing_checks=((check = :duplicate_dimension_columns, status = :aliased_columns, note = :duplicate_q_columns_alias_dimensions), (check = :fixed_q_identification_gate, status = :rejected_fixed_q_structure, note = :fixed_q_structure_fails_guarded_prefit_validation)); inspect q_matrix_validation(...) for actionable rows"
       },
       "summary": {
         "passed": true,
@@ -1620,7 +1946,7 @@
         "policy_validation_only": false,
         "warning_only": false,
         "valid_no_warning": false,
-        "n_error_checks": 1,
+        "n_error_checks": 2,
         "n_warning_checks": 2
       }
     },
@@ -1736,6 +2062,32 @@
           "note": "dimension_columns_have_distinct_item_masks"
         },
         {
+          "check": "global_loading_structural_rank",
+          "status": "full_column_structural_rank",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "q_zero_pattern_can_generically_support_all_loading_dimensions"
+        },
+        {
+          "check": "person_dimension_likelihood_support",
+          "status": "every_person_has_full_dimension_structural_support",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": 3,
+          "n_components": null,
+          "note": "each_person_observes_an_item_pattern_with_full_dimension_structural_rank"
+        },
+        {
           "check": "cross_loading_policy",
           "status": "blocked_cross_loading",
           "severity": "error",
@@ -1760,6 +2112,19 @@
           "n_active": 1,
           "n_components": null,
           "note": "dimension_has_only_cross_loading_items_review_interpretation"
+        },
+        {
+          "check": "ability_population_identification_anchor",
+          "status": "standard_normal_identity_correlation_prior_anchor",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "origin_scale_and_latent_rotation_are_prior_anchored_not_likelihood_only"
         },
         {
           "check": "dimension_item_graph_components",
@@ -1799,10 +2164,24 @@
           "n_active": 12,
           "n_components": 1,
           "note": "dimension_specific_person_rater_item_subgraph_connected"
+        },
+        {
+          "check": "fixed_q_identification_gate",
+          "status": "rejected_fixed_q_structure",
+          "severity": "error",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "fixed_q_structure_fails_guarded_prefit_validation"
         }
       ],
       "error_checks": [
-        "cross_loading_policy"
+        "cross_loading_policy",
+        "fixed_q_identification_gate"
       ],
       "warning_checks": [
         "positive_loading_identification"
@@ -1811,12 +2190,29 @@
         "passed": false,
         "n_items": 2,
         "n_dimensions": 2,
-        "n_error_rows": 1,
+        "n_error_rows": 2,
         "n_warning_rows": 1,
         "fixed_q_confirmatory": true,
         "n_cross_loading_items": 1,
         "n_duplicate_dimension_groups": 0,
-        "n_dimension_facet_subgraphs_disconnected": 0
+        "n_dimension_facet_subgraphs_disconnected": 0,
+        "q_structural_rank": 2,
+        "q_full_column_structural_rank": true,
+        "all_persons_full_dimension_rank": true,
+        "minimum_person_structural_rank": 2,
+        "n_persons_incomplete_dimension_support": 0,
+        "pure_item_counts_per_dimension": [
+          0,
+          1
+        ],
+        "all_dimensions_have_pure_items": false,
+        "identification_status": "rejected_fixed_q_structure",
+        "guarded_fit_structure_ready": false,
+        "conservative_stable_structure_ready": false,
+        "identification_promotion_blockers": [
+          "q_validation_errors",
+          "pure_item_interpretation_support"
+        ]
       },
       "spec_default": {
         "outcome": "succeeded",
@@ -1834,7 +2230,7 @@
         "policy_validation_only": true,
         "warning_only": false,
         "valid_no_warning": false,
-        "n_error_checks": 1,
+        "n_error_checks": 2,
         "n_warning_checks": 1
       }
     },
@@ -1957,6 +2353,32 @@
           "note": "dimension_columns_have_distinct_item_masks"
         },
         {
+          "check": "global_loading_structural_rank",
+          "status": "full_column_structural_rank",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 3,
+          "n_dimensions": 3,
+          "n_active": 3,
+          "n_components": null,
+          "note": "q_zero_pattern_can_generically_support_all_loading_dimensions"
+        },
+        {
+          "check": "person_dimension_likelihood_support",
+          "status": "every_person_has_full_dimension_structural_support",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 3,
+          "n_dimensions": 3,
+          "n_active": 3,
+          "n_components": null,
+          "note": "each_person_observes_an_item_pattern_with_full_dimension_structural_rank"
+        },
+        {
           "check": "cross_loading_policy",
           "status": "fixed_confirmatory_cross_loadings",
           "severity": "warning",
@@ -1981,6 +2403,19 @@
           "n_active": 0,
           "n_components": null,
           "note": "dimension_has_only_cross_loading_items_review_interpretation"
+        },
+        {
+          "check": "ability_population_identification_anchor",
+          "status": "standard_normal_identity_correlation_prior_anchor",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 3,
+          "n_dimensions": 3,
+          "n_active": 3,
+          "n_components": null,
+          "note": "origin_scale_and_latent_rotation_are_prior_anchored_not_likelihood_only"
         },
         {
           "check": "dimension_item_graph_components",
@@ -2033,13 +2468,25 @@
           "n_active": 12,
           "n_components": 1,
           "note": "dimension_specific_person_rater_item_subgraph_connected"
+        },
+        {
+          "check": "fixed_q_identification_gate",
+          "status": "guarded_generic_fixed_q_review_required",
+          "severity": "warning",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 3,
+          "n_dimensions": 3,
+          "n_active": 3,
+          "n_components": null,
+          "note": "fixed_q_structure_is_guarded_only_and_requires_promotion_evidence"
         }
       ],
-      "error_checks": [
-
-      ],
+      "error_checks": [],
       "warning_checks": [
         "cross_loading_policy",
+        "fixed_q_identification_gate",
         "positive_loading_identification"
       ],
       "validation_summary": {
@@ -2047,17 +2494,646 @@
         "n_items": 3,
         "n_dimensions": 3,
         "n_error_rows": 0,
-        "n_warning_rows": 2,
+        "n_warning_rows": 3,
         "fixed_q_confirmatory": true,
         "n_cross_loading_items": 3,
         "n_duplicate_dimension_groups": 0,
-        "n_dimension_facet_subgraphs_disconnected": 0
+        "n_dimension_facet_subgraphs_disconnected": 0,
+        "q_structural_rank": 3,
+        "q_full_column_structural_rank": true,
+        "all_persons_full_dimension_rank": true,
+        "minimum_person_structural_rank": 3,
+        "n_persons_incomplete_dimension_support": 0,
+        "pure_item_counts_per_dimension": [
+          0,
+          0,
+          0
+        ],
+        "all_dimensions_have_pure_items": false,
+        "identification_status": "guarded_generic_fixed_q_review_required",
+        "guarded_fit_structure_ready": true,
+        "conservative_stable_structure_ready": false,
+        "identification_promotion_blockers": [
+          "pure_item_interpretation_support"
+        ]
       },
       "spec_default": {
         "outcome": "succeeded",
         "error_contains_invalid_q": false,
         "preview_design_succeeded": true,
         "n_parameters": 25,
+        "message": ""
+      },
+      "summary": {
+        "passed": true,
+        "validation_outcome_matches": true,
+        "spec_outcome_matches": true,
+        "default_prefit_block_required": false,
+        "default_prefit_blocked": null,
+        "policy_validation_only": false,
+        "warning_only": true,
+        "valid_no_warning": false,
+        "n_error_checks": 0,
+        "n_warning_checks": 3
+      }
+    },
+    {
+      "scenario": "structurally_rank_deficient_nonduplicate_columns",
+      "data_kind": "connected_full_crossed",
+      "dimensions": 4,
+      "q_matrix": [
+        [
+          true,
+          false,
+          true,
+          false
+        ],
+        [
+          false,
+          true,
+          true,
+          false
+        ],
+        [
+          false,
+          false,
+          false,
+          true
+        ],
+        [
+          false,
+          false,
+          false,
+          true
+        ]
+      ],
+      "q_matrix_repr": "Bool[1 0 1 0; 0 1 1 0; 0 0 0 1; 0 0 0 1]",
+      "cross_loading_policy": "confirmatory_fixed",
+      "expected_validation_passed": false,
+      "expected_spec_default": "throws",
+      "validation_passed": false,
+      "validation_rows": [
+        {
+          "check": "family_applicability",
+          "status": "applicable",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 4,
+          "n_dimensions": 4,
+          "n_active": null,
+          "n_components": null,
+          "note": "q_matrix_required_for_mgmfrm"
+        },
+        {
+          "check": "matrix_schema",
+          "status": "matrix",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 4,
+          "n_dimensions": 4,
+          "n_active": null,
+          "n_components": null,
+          "note": "two_dimensional_matrix_supplied"
+        },
+        {
+          "check": "binary_mask_schema",
+          "status": "binary_bool_or_zero_one",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 4,
+          "n_dimensions": 4,
+          "n_active": null,
+          "n_components": null,
+          "note": "q_matrix_entries_are_binary_mask_values"
+        },
+        {
+          "check": "shape",
+          "status": "matches_items_by_dimensions",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 4,
+          "n_dimensions": 4,
+          "n_active": null,
+          "n_components": null,
+          "note": "one_row_per_item_one_column_per_dimension"
+        },
+        {
+          "check": "empty_item_rows",
+          "status": "passed",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 4,
+          "n_dimensions": 4,
+          "n_active": 4,
+          "n_components": null,
+          "note": "each_item_loads_on_at_least_one_dimension"
+        },
+        {
+          "check": "empty_dimensions",
+          "status": "passed",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 4,
+          "n_dimensions": 4,
+          "n_active": 4,
+          "n_components": null,
+          "note": "each_dimension_has_at_least_one_item"
+        },
+        {
+          "check": "duplicate_dimension_columns",
+          "status": "passed",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 4,
+          "n_dimensions": 4,
+          "n_active": 4,
+          "n_components": null,
+          "note": "dimension_columns_have_distinct_item_masks"
+        },
+        {
+          "check": "global_loading_structural_rank",
+          "status": "structurally_rank_deficient",
+          "severity": "error",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 4,
+          "n_dimensions": 4,
+          "n_active": 3,
+          "n_components": null,
+          "note": "q_zero_pattern_cannot_support_a_full_column_rank_loading_matrix"
+        },
+        {
+          "check": "person_dimension_likelihood_support",
+          "status": "not_separately_assessed_global_rank_deficient",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 4,
+          "n_dimensions": 4,
+          "n_active": 0,
+          "n_components": null,
+          "note": "global_loading_structure_must_be_fixed_before_person_support_review"
+        },
+        {
+          "check": "cross_loading_policy",
+          "status": "fixed_confirmatory_cross_loadings",
+          "severity": "warning",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 4,
+          "n_dimensions": 4,
+          "n_active": 2,
+          "n_components": null,
+          "note": "cross_loadings_are_fixed_confirmatory_not_exploratory"
+        },
+        {
+          "check": "positive_loading_identification",
+          "status": "no_single_loading_anchor",
+          "severity": "warning",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 4,
+          "n_dimensions": 4,
+          "n_active": 1,
+          "n_components": null,
+          "note": "dimension_has_only_cross_loading_items_review_interpretation"
+        },
+        {
+          "check": "ability_population_identification_anchor",
+          "status": "standard_normal_identity_correlation_prior_anchor",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 4,
+          "n_dimensions": 4,
+          "n_active": 4,
+          "n_components": null,
+          "note": "origin_scale_and_latent_rotation_are_prior_anchored_not_likelihood_only"
+        },
+        {
+          "check": "dimension_item_graph_components",
+          "status": "recorded",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 4,
+          "n_dimensions": 4,
+          "n_active": null,
+          "n_components": 2,
+          "note": "q_item_dimension_graph_recorded_for_review"
+        },
+        {
+          "check": "dimension_facet_subgraph_coverage",
+          "status": "connected_dimension_subgraph",
+          "severity": "info",
+          "item": null,
+          "dimension": 1,
+          "dimension_label": "dim=1",
+          "n_items": 1,
+          "n_dimensions": 4,
+          "n_active": 6,
+          "n_components": 1,
+          "note": "dimension_specific_person_rater_item_subgraph_connected"
+        },
+        {
+          "check": "dimension_facet_subgraph_coverage",
+          "status": "connected_dimension_subgraph",
+          "severity": "info",
+          "item": null,
+          "dimension": 2,
+          "dimension_label": "dim=2",
+          "n_items": 1,
+          "n_dimensions": 4,
+          "n_active": 6,
+          "n_components": 1,
+          "note": "dimension_specific_person_rater_item_subgraph_connected"
+        },
+        {
+          "check": "dimension_facet_subgraph_coverage",
+          "status": "connected_dimension_subgraph",
+          "severity": "info",
+          "item": null,
+          "dimension": 3,
+          "dimension_label": "dim=3",
+          "n_items": 2,
+          "n_dimensions": 4,
+          "n_active": 12,
+          "n_components": 1,
+          "note": "dimension_specific_person_rater_item_subgraph_connected"
+        },
+        {
+          "check": "dimension_facet_subgraph_coverage",
+          "status": "connected_dimension_subgraph",
+          "severity": "info",
+          "item": null,
+          "dimension": 4,
+          "dimension_label": "dim=4",
+          "n_items": 2,
+          "n_dimensions": 4,
+          "n_active": 12,
+          "n_components": 1,
+          "note": "dimension_specific_person_rater_item_subgraph_connected"
+        },
+        {
+          "check": "fixed_q_identification_gate",
+          "status": "rejected_fixed_q_structure",
+          "severity": "error",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 4,
+          "n_dimensions": 4,
+          "n_active": 3,
+          "n_components": null,
+          "note": "fixed_q_structure_fails_guarded_prefit_validation"
+        }
+      ],
+      "error_checks": [
+        "fixed_q_identification_gate",
+        "global_loading_structural_rank"
+      ],
+      "warning_checks": [
+        "cross_loading_policy",
+        "positive_loading_identification"
+      ],
+      "validation_summary": {
+        "passed": false,
+        "n_items": 4,
+        "n_dimensions": 4,
+        "n_error_rows": 2,
+        "n_warning_rows": 2,
+        "fixed_q_confirmatory": true,
+        "n_cross_loading_items": 2,
+        "n_duplicate_dimension_groups": 0,
+        "n_dimension_facet_subgraphs_disconnected": 0,
+        "q_structural_rank": 3,
+        "q_full_column_structural_rank": false,
+        "all_persons_full_dimension_rank": false,
+        "minimum_person_structural_rank": 3,
+        "n_persons_incomplete_dimension_support": 3,
+        "pure_item_counts_per_dimension": [
+          0,
+          0,
+          0,
+          2
+        ],
+        "all_dimensions_have_pure_items": false,
+        "identification_status": "rejected_fixed_q_structure",
+        "guarded_fit_structure_ready": false,
+        "conservative_stable_structure_ready": false,
+        "identification_promotion_blockers": [
+          "q_validation_errors",
+          "global_loading_structural_rank",
+          "person_dimension_likelihood_support",
+          "pure_item_interpretation_support"
+        ]
+      },
+      "spec_default": {
+        "outcome": "throws",
+        "error_contains_invalid_q": true,
+        "preview_design_succeeded": false,
+        "n_parameters": 0,
+        "message": "ArgumentError: invalid fixed-Q MGMFRM q_matrix; failing_checks=((check = :global_loading_structural_rank, status = :structurally_rank_deficient, note = :q_zero_pattern_cannot_support_a_full_column_rank_loading_matrix), (check = :fixed_q_identification_gate, status = :rejected_fixed_q_structure, note = :fixed_q_structure_fails_guarded_prefit_validation)); inspect q_matrix_validation(...) for actionable rows"
+      },
+      "summary": {
+        "passed": true,
+        "validation_outcome_matches": true,
+        "spec_outcome_matches": true,
+        "default_prefit_block_required": true,
+        "default_prefit_blocked": true,
+        "policy_validation_only": false,
+        "warning_only": false,
+        "valid_no_warning": false,
+        "n_error_checks": 2,
+        "n_warning_checks": 2
+      }
+    },
+    {
+      "scenario": "warning_person_dimension_prior_anchored",
+      "data_kind": "person_dimension_incomplete",
+      "dimensions": 2,
+      "q_matrix": [
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          true
+        ]
+      ],
+      "q_matrix_repr": "Bool[1 0; 0 1]",
+      "cross_loading_policy": "confirmatory_fixed",
+      "expected_validation_passed": true,
+      "expected_spec_default": "succeeded",
+      "validation_passed": true,
+      "validation_rows": [
+        {
+          "check": "family_applicability",
+          "status": "applicable",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": null,
+          "n_components": null,
+          "note": "q_matrix_required_for_mgmfrm"
+        },
+        {
+          "check": "matrix_schema",
+          "status": "matrix",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": null,
+          "n_components": null,
+          "note": "two_dimensional_matrix_supplied"
+        },
+        {
+          "check": "binary_mask_schema",
+          "status": "binary_bool_or_zero_one",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": null,
+          "n_components": null,
+          "note": "q_matrix_entries_are_binary_mask_values"
+        },
+        {
+          "check": "shape",
+          "status": "matches_items_by_dimensions",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": null,
+          "n_components": null,
+          "note": "one_row_per_item_one_column_per_dimension"
+        },
+        {
+          "check": "empty_item_rows",
+          "status": "passed",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "each_item_loads_on_at_least_one_dimension"
+        },
+        {
+          "check": "empty_dimensions",
+          "status": "passed",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "each_dimension_has_at_least_one_item"
+        },
+        {
+          "check": "duplicate_dimension_columns",
+          "status": "passed",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "dimension_columns_have_distinct_item_masks"
+        },
+        {
+          "check": "global_loading_structural_rank",
+          "status": "full_column_structural_rank",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "q_zero_pattern_can_generically_support_all_loading_dimensions"
+        },
+        {
+          "check": "person_dimension_likelihood_support",
+          "status": "some_person_dimensions_are_prior_anchored",
+          "severity": "warning",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "some_person_dimension_coordinates_rely_on_the_population_prior"
+        },
+        {
+          "check": "cross_loading_policy",
+          "status": "simple_structure",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": 0,
+          "n_components": null,
+          "note": "simple_structure_q_matrix"
+        },
+        {
+          "check": "positive_loading_identification",
+          "status": "single_loading_anchor_present",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "positive_loadings_have_simple_anchor_items"
+        },
+        {
+          "check": "ability_population_identification_anchor",
+          "status": "standard_normal_identity_correlation_prior_anchor",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "origin_scale_and_latent_rotation_are_prior_anchored_not_likelihood_only"
+        },
+        {
+          "check": "dimension_item_graph_components",
+          "status": "recorded",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": null,
+          "n_components": 2,
+          "note": "q_item_dimension_graph_recorded_for_review"
+        },
+        {
+          "check": "dimension_facet_subgraph_coverage",
+          "status": "connected_dimension_subgraph",
+          "severity": "info",
+          "item": null,
+          "dimension": 1,
+          "dimension_label": "dim=1",
+          "n_items": 1,
+          "n_dimensions": 2,
+          "n_active": 6,
+          "n_components": 1,
+          "note": "dimension_specific_person_rater_item_subgraph_connected"
+        },
+        {
+          "check": "dimension_facet_subgraph_coverage",
+          "status": "connected_dimension_subgraph",
+          "severity": "info",
+          "item": null,
+          "dimension": 2,
+          "dimension_label": "dim=2",
+          "n_items": 1,
+          "n_dimensions": 2,
+          "n_active": 4,
+          "n_components": 1,
+          "note": "dimension_specific_person_rater_item_subgraph_connected"
+        },
+        {
+          "check": "fixed_q_identification_gate",
+          "status": "guarded_prior_anchored_person_dimensions",
+          "severity": "warning",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 2,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "fixed_q_structure_is_guarded_only_and_requires_promotion_evidence"
+        }
+      ],
+      "error_checks": [],
+      "warning_checks": [
+        "fixed_q_identification_gate",
+        "person_dimension_likelihood_support"
+      ],
+      "validation_summary": {
+        "passed": true,
+        "n_items": 2,
+        "n_dimensions": 2,
+        "n_error_rows": 0,
+        "n_warning_rows": 2,
+        "fixed_q_confirmatory": true,
+        "n_cross_loading_items": 0,
+        "n_duplicate_dimension_groups": 0,
+        "n_dimension_facet_subgraphs_disconnected": 0,
+        "q_structural_rank": 2,
+        "q_full_column_structural_rank": true,
+        "all_persons_full_dimension_rank": false,
+        "minimum_person_structural_rank": 1,
+        "n_persons_incomplete_dimension_support": 1,
+        "pure_item_counts_per_dimension": [
+          1,
+          1
+        ],
+        "all_dimensions_have_pure_items": true,
+        "identification_status": "guarded_prior_anchored_person_dimensions",
+        "guarded_fit_structure_ready": true,
+        "conservative_stable_structure_ready": false,
+        "identification_promotion_blockers": [
+          "person_dimension_likelihood_support"
+        ]
+      },
+      "spec_default": {
+        "outcome": "succeeded",
+        "error_contains_invalid_q": false,
+        "preview_design_succeeded": true,
+        "n_parameters": 16,
         "message": ""
       },
       "summary": {
@@ -2189,6 +3265,32 @@
           "note": "dimension_columns_have_distinct_item_masks"
         },
         {
+          "check": "global_loading_structural_rank",
+          "status": "full_column_structural_rank",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 3,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "q_zero_pattern_can_generically_support_all_loading_dimensions"
+        },
+        {
+          "check": "person_dimension_likelihood_support",
+          "status": "some_person_dimensions_are_prior_anchored",
+          "severity": "warning",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 3,
+          "n_dimensions": 2,
+          "n_active": 0,
+          "n_components": null,
+          "note": "some_person_dimension_coordinates_rely_on_the_population_prior"
+        },
+        {
           "check": "cross_loading_policy",
           "status": "simple_structure",
           "severity": "info",
@@ -2213,6 +3315,19 @@
           "n_active": 2,
           "n_components": null,
           "note": "positive_loadings_have_simple_anchor_items"
+        },
+        {
+          "check": "ability_population_identification_anchor",
+          "status": "standard_normal_identity_correlation_prior_anchor",
+          "severity": "info",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 3,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "origin_scale_and_latent_rotation_are_prior_anchored_not_likelihood_only"
         },
         {
           "check": "dimension_item_graph_components",
@@ -2252,24 +3367,54 @@
           "n_active": 2,
           "n_components": 1,
           "note": "dimension_specific_person_rater_item_subgraph_connected"
+        },
+        {
+          "check": "fixed_q_identification_gate",
+          "status": "guarded_prior_anchored_person_dimensions",
+          "severity": "warning",
+          "item": null,
+          "dimension": null,
+          "dimension_label": null,
+          "n_items": 3,
+          "n_dimensions": 2,
+          "n_active": 2,
+          "n_components": null,
+          "note": "fixed_q_structure_is_guarded_only_and_requires_promotion_evidence"
         }
       ],
-      "error_checks": [
-
-      ],
+      "error_checks": [],
       "warning_checks": [
-        "dimension_facet_subgraph_coverage"
+        "dimension_facet_subgraph_coverage",
+        "fixed_q_identification_gate",
+        "person_dimension_likelihood_support"
       ],
       "validation_summary": {
         "passed": true,
         "n_items": 3,
         "n_dimensions": 2,
         "n_error_rows": 0,
-        "n_warning_rows": 1,
+        "n_warning_rows": 3,
         "fixed_q_confirmatory": true,
         "n_cross_loading_items": 0,
         "n_duplicate_dimension_groups": 0,
-        "n_dimension_facet_subgraphs_disconnected": 1
+        "n_dimension_facet_subgraphs_disconnected": 1,
+        "q_structural_rank": 2,
+        "q_full_column_structural_rank": true,
+        "all_persons_full_dimension_rank": false,
+        "minimum_person_structural_rank": 1,
+        "n_persons_incomplete_dimension_support": 3,
+        "pure_item_counts_per_dimension": [
+          2,
+          1
+        ],
+        "all_dimensions_have_pure_items": true,
+        "identification_status": "guarded_prior_anchored_person_dimensions",
+        "guarded_fit_structure_ready": true,
+        "conservative_stable_structure_ready": false,
+        "identification_promotion_blockers": [
+          "person_dimension_likelihood_support",
+          "dimension_facet_subgraph_connectivity"
+        ]
       },
       "spec_default": {
         "outcome": "throws",
@@ -2288,7 +3433,7 @@
         "warning_only": true,
         "valid_no_warning": false,
         "n_error_checks": 0,
-        "n_warning_checks": 1
+        "n_warning_checks": 3
       }
     }
   ],
@@ -2302,22 +3447,23 @@
   "summary": {
     "passed": true,
     "publication_or_registration_action": false,
-    "n_scenarios": 13,
-    "n_passed_scenarios": 13,
-    "n_validation_passed": 4,
-    "n_validation_failed": 9,
-    "n_spec_default_succeeded": 4,
-    "n_spec_default_threw": 9,
+    "n_scenarios": 15,
+    "n_passed_scenarios": 15,
+    "n_validation_passed": 5,
+    "n_validation_failed": 10,
+    "n_spec_default_succeeded": 5,
+    "n_spec_default_threw": 10,
     "all_expected_validation_outcomes": true,
     "all_expected_spec_outcomes": true,
     "all_invalid_default_q_scenarios_blocked_before_fit": true,
-    "n_invalid_default_q_scenarios": 8,
+    "n_invalid_default_q_scenarios": 9,
     "policy_validation_scenarios_recorded": true,
     "n_policy_validation_scenarios": 1,
     "warning_scenarios_not_rejected": true,
     "valid_scenarios_preview_design": true,
     "research_basis_recorded": true,
     "structural_checks_covered": [
+      "ability_population_identification_anchor",
       "binary_mask_schema",
       "cross_loading_policy",
       "dimension_facet_subgraph_coverage",
@@ -2326,7 +3472,10 @@
       "empty_dimensions",
       "empty_item_rows",
       "family_applicability",
+      "fixed_q_identification_gate",
+      "global_loading_structural_rank",
       "matrix_schema",
+      "person_dimension_likelihood_support",
       "positive_loading_identification",
       "required_q_matrix",
       "shape"

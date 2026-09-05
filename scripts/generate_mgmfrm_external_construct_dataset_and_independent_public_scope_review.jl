@@ -72,6 +72,9 @@ const PROTOCOL = (;
         require_no_public_model_weight_claim = true,
         require_no_sparse_superiority_claim = true,
         require_no_publication_or_registration_action = true,
+        require_pass_scope_contract_and_blocker_preservation_only = true,
+        require_external_evidence_pass_implies_attached_and_valid = true,
+        require_public_claim_release_gate_requires_zero_blockers = true,
     ),
 )
 
@@ -167,6 +170,14 @@ function json_get(object, key::Symbol, default = missing)
            default
 end
 
+function summary_bool(parsed, key::Symbol)
+    summary = json_get(parsed, :summary, missing)
+    summary === missing && return false
+    value = json_get(summary, key, missing)
+    value === missing && return false
+    return as_bool(value)
+end
+
 function artifact_record(artifact::Symbol, path::AbstractString,
         expected_schema::AbstractString)
     exists = isfile(path)
@@ -209,6 +220,13 @@ function attachment_record(artifact::Symbol, path::AbstractString,
             schema = missing,
             schema_matches = false,
             summary_passed = false,
+            artifact_contract_valid = false,
+            attachment_and_valid = false,
+            external_construct_dataset_file_integrity_verified = false,
+            external_construct_validation_evidence_attached_and_valid = false,
+            external_construct_validation_evidence_passed = false,
+            independent_public_scope_review_gate_passed = false,
+            public_claim_release_decision_signed = false,
             attachment_required = true,
             purpose,
         )
@@ -218,6 +236,28 @@ function attachment_record(artifact::Symbol, path::AbstractString,
     summary = json_get(parsed, :summary, missing)
     summary_passed =
         summary === missing ? false : as_bool(summary[:passed])
+    artifact_contract_valid = schema == expected_schema && summary_passed
+    attachment_and_valid = artifact_contract_valid
+    external_construct_dataset_file_integrity_verified =
+        artifact === :external_construct_dataset_manifest &&
+        attachment_and_valid &&
+        summary_bool(parsed, :external_construct_dataset_file_integrity_verified)
+    external_construct_validation_evidence_attached_and_valid =
+        artifact === :external_construct_dataset_manifest &&
+        attachment_and_valid &&
+        summary_bool(parsed,
+            :external_construct_validation_evidence_attached_and_valid)
+    external_construct_validation_evidence_passed =
+        external_construct_validation_evidence_attached_and_valid &&
+        external_construct_dataset_file_integrity_verified &&
+        summary_bool(parsed, :external_construct_validation_evidence_passed)
+    independent_public_scope_review_gate_passed =
+        artifact === :independent_public_scope_review_manifest &&
+        attachment_and_valid &&
+        summary_bool(parsed, :independent_public_scope_review_gate_passed)
+    public_claim_release_decision_signed =
+        independent_public_scope_review_gate_passed &&
+        summary_bool(parsed, :public_claim_release_decision_signed)
     return (;
         artifact,
         path = rel(path),
@@ -227,6 +267,13 @@ function attachment_record(artifact::Symbol, path::AbstractString,
         schema,
         schema_matches = schema == expected_schema,
         summary_passed,
+        artifact_contract_valid,
+        attachment_and_valid,
+        external_construct_dataset_file_integrity_verified,
+        external_construct_validation_evidence_attached_and_valid,
+        external_construct_validation_evidence_passed,
+        independent_public_scope_review_gate_passed,
+        public_claim_release_decision_signed,
         attachment_required = true,
         purpose,
     )
@@ -461,23 +508,43 @@ function build_artifact(options)
         if row.artifact === :external_construct_dataset_manifest)
     independent_record = only(row for row in attachments
         if row.artifact === :independent_public_scope_review_manifest)
+    external_construct_dataset_manifest_attached_and_valid =
+        external_record.attachment_and_valid
     external_construct_dataset_attached =
-        external_record.exists && external_record.schema_matches &&
-        external_record.summary_passed
+        external_construct_dataset_manifest_attached_and_valid
+    external_construct_dataset_file_integrity_verified =
+        external_record.external_construct_dataset_file_integrity_verified
+    external_construct_validation_evidence_attached_and_valid =
+        external_record.
+            external_construct_validation_evidence_attached_and_valid
+    independent_public_scope_review_attached_and_valid =
+        independent_record.attachment_and_valid
+    independent_public_scope_review_gate_passed =
+        independent_record.independent_public_scope_review_gate_passed
+    public_claim_release_decision_signed =
+        independent_record.public_claim_release_decision_signed
     independent_public_scope_review_completed =
-        independent_record.exists && independent_record.schema_matches &&
-        independent_record.summary_passed
+        independent_public_scope_review_gate_passed
     external_construct_validation_completed =
         as_bool(full_summary[:external_construct_validation_completed]) &&
-        external_construct_dataset_attached
+        external_construct_dataset_manifest_attached_and_valid
+    external_construct_validation_evidence_passed =
+        external_construct_dataset_manifest_attached_and_valid &&
+        external_construct_dataset_file_integrity_verified &&
+        external_construct_validation_evidence_attached_and_valid &&
+        external_construct_validation_completed &&
+        external_record.external_construct_validation_evidence_passed
 
     external_rows = external_construct_requirement_rows(full_review)
     attachment_requirements = attachment_requirement_rows()
     independent_rows = independent_review_requirement_rows()
     claim_rows = claim_release_rows()
-    blockers = blocker_rows(external_record.exists,
-        external_construct_validation_completed, independent_record.exists,
-        independent_public_scope_review_completed)
+    blockers = blocker_rows(
+        external_construct_dataset_manifest_attached_and_valid,
+        external_construct_validation_evidence_passed,
+        independent_public_scope_review_attached_and_valid,
+        independent_public_scope_review_gate_passed &&
+            public_claim_release_decision_signed)
     evidence_rows = evidence_link_rows(threshold_review, full_review,
         batch_review, manual_review, attachments)
 
@@ -529,6 +596,25 @@ function build_artifact(options)
         no_public_model_weight_claim &&
         no_sparse_superiority_claim
 
+    artifact_contract_valid = passed
+    all_claim_release_rows_allow =
+        all(row -> row.public_claim_allowed, claim_rows)
+    public_claim_release_gate_passed =
+        external_construct_validation_evidence_passed &&
+        independent_public_scope_review_gate_passed &&
+        public_claim_release_decision_signed &&
+        isempty(remaining_public_blockers) &&
+        all_claim_release_rows_allow
+    external_construct_validation_evidence_passed &&
+        !external_construct_dataset_manifest_attached_and_valid && error(
+            "external construct evidence cannot pass without a valid attachment")
+    external_construct_validation_evidence_passed &&
+        !external_construct_validation_evidence_attached_and_valid && error(
+            "external construct evidence cannot pass without attached evidence")
+    public_claim_release_gate_passed &&
+        !isempty(remaining_public_blockers) && error(
+            "public claim release cannot pass with unresolved blockers")
+
     next_gate = isempty(remaining_public_blockers) ?
         :independent_public_claim_release_decision :
         :provide_external_construct_dataset_manifest_and_independent_public_scope_review
@@ -551,8 +637,16 @@ function build_artifact(options)
         local_only = true,
         publication_or_registration_action = false,
         external_construct_dataset_attached,
+        external_construct_dataset_manifest_attached_and_valid,
+        external_construct_dataset_file_integrity_verified,
         external_construct_validation_completed,
+        external_construct_validation_evidence_attached_and_valid,
+        external_construct_validation_evidence_passed,
         independent_public_scope_review_completed,
+        independent_public_scope_review_attached_and_valid,
+        independent_public_scope_review_gate_passed,
+        public_claim_release_decision_signed,
+        public_claim_release_gate_passed,
         public_fit_metric_claim = false,
         public_q_revision_claim = false,
         public_model_weight_claim = false,
@@ -581,8 +675,16 @@ function build_artifact(options)
             local_manual_scope_review_satisfied =
                 as_bool(manual_summary[:manual_public_scope_review_satisfied]),
             external_construct_dataset_attached,
+            external_construct_dataset_manifest_attached_and_valid,
+            external_construct_dataset_file_integrity_verified,
             external_construct_validation_completed,
+            external_construct_validation_evidence_attached_and_valid,
+            external_construct_validation_evidence_passed,
             independent_public_scope_review_completed,
+            independent_public_scope_review_attached_and_valid,
+            independent_public_scope_review_gate_passed,
+            public_claim_release_decision_signed,
+            public_claim_release_gate_passed,
             public_fit_metric_claim_allowed = false,
             public_q_revision_claim_allowed = false,
             public_model_weight_claim_allowed = false,
@@ -591,6 +693,8 @@ function build_artifact(options)
         ),
         summary = (;
             passed,
+            pass_scope = :contract_and_blocker_preservation_only,
+            artifact_contract_valid,
             publication_or_registration_action = false,
             local_only = true,
             all_input_artifacts_present,
@@ -622,8 +726,16 @@ function build_artifact(options)
             independent_public_scope_review_manifest_present =
                 Bool(independent_record.exists),
             external_construct_dataset_attached,
+            external_construct_dataset_manifest_attached_and_valid,
+            external_construct_dataset_file_integrity_verified,
             external_construct_validation_completed,
+            external_construct_validation_evidence_attached_and_valid,
+            external_construct_validation_evidence_passed,
             independent_public_scope_review_completed,
+            independent_public_scope_review_attached_and_valid,
+            independent_public_scope_review_gate_passed,
+            public_claim_release_decision_signed,
+            public_claim_release_gate_passed,
             all_public_claims_blocked,
             no_public_fit_metric_claim,
             no_public_q_revision_claim,

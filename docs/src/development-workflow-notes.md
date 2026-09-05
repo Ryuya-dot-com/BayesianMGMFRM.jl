@@ -43,8 +43,9 @@ without changing the data layer.
 8. Fit the current minimal model with [`fit`](@ref), or use
    [`cached_fit`](@ref) with a stable `cache_path` and integer `seed` to avoid
    recomputation when [`fit_cache_key`](@ref) still matches. Use
-   `backend = :advancedhmc` or `backend = :turing` for NUTS paths and
-   `chains >= 2` when convergence diagnostics are needed. The default gradient
+   `backend = :advancedhmc`, `backend = :turing`, or `backend = :cmdstan` for
+   NUTS paths and `chains >= 2` when convergence diagnostics are needed.
+   `cached_fit` does not yet accept CmdStan. The default gradient
    path is `ad_backend = :ForwardDiff`; `:ReverseDiff` can be selected for the
    direct AdvancedHMC backend when that AD package is available, and
    `:analytic` is reserved for AdvancedHMC targets that expose a native
@@ -102,17 +103,38 @@ The current `backend = :julia` sampler is a random-walk Metropolis path for
 small validation examples. `backend = :advancedhmc` provides a direct
 AdvancedHMC/NUTS path for the minimal design using [`MFRMLogDensity`](@ref),
 and `backend = :turing` wraps the same target in a Turing model with a flat
-vector parameter and `Turing.@addlogprob!`. The direct AdvancedHMC path routes
+vector parameter and `Turing.@addlogprob!`. `backend = :cmdstan` runs
+package-owned stable and guarded generalized models through an external
+CmdStan installation and returns the corresponding common fit type. The
+direct AdvancedHMC path routes
 through a shared gradient target adapter, with target-provided analytic
 gradients used when explicitly selected and otherwise AD-backed gradients
 selected by `ad_backend`; the Turing path currently uses ForwardDiff.
 [`sampler_diagnostics`](@ref) reports chain-level acceptance rates,
 log-posterior summaries, divergent-transition counts, max-tree-depth hits, and
-E-BFMI when available, and
-[`mcmc_diagnostics`](@ref) provides classical split R-hat and
-autocorrelation-based ESS when at least two chains are available.
+E-BFMI coverage. It retains the minimum finite available `e_bfmi` for
+compatibility and reports expected, available, and unavailable chain counts
+plus `e_bfmi_complete`; the threshold is gated only when every chain is
+available. A missing or non-finite energy value within a chain makes that chain
+unavailable.
+[`mcmc_diagnostics`](@ref) provides rank-normalized split R-hat, bulk ESS, and
+tail ESS when at least two original independent chains and enough finite,
+nondegenerate draws are available. Odd-draw rank/fold/tail operation order and
+all-valid split-chain lags for ESS match Stan/posterior semantics. Classical
+split `rhat` and autocorrelation `ess` remain compatibility fields only.
 [`parameter_block_diagnostics`](@ref) aggregates those parameter rows by
-identified design block.
+identified design block. Guarded generalized diagnostics gate both raw
+unconstrained and direct constrained rows. Direct coordinates fixed by a
+zero-raw-dimension transform remain report rows with
+`diagnostic_status = :structurally_fixed`, `flag = :structurally_fixed`, and
+`quality_gate_applicable = false`; they do not enter extrema or failure counts.
+Reconstructed direct coordinates that vary with free raw coordinates remain
+gated. The versioned diagnostic contract is part of automatic cache identity.
+Version-1 result, diagnostic, and heldout wrappers remain unchanged: their
+`diagnostic_contract` field is the migration boundary, so rows without
+`rank_normalized_rhat_bulk_tail_ess_v1` stay pre-modern. For modern rows,
+`flag` aliases `rank_normalized_flag`; `classical_compatibility_flag` retains
+the legacy check.
 [`diagnostics`](@ref) combines those rows into a single pass/fail summary and
 includes HMC/NUTS fields when the selected backend produces them. The package
 exposes raw importance-sampling [`loo`](@ref), PSIS-smoothed

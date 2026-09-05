@@ -24,7 +24,6 @@ ratings = (
     examinee = ["E1", "E1", "E1", "E2", "E2", "E2"],
     rater = ["R1", "R2", "R1", "R1", "R2", "R1"],
     item = ["I1", "I1", "I2", "I1", "I2", "I2"],
-    task = ["T1", "T1", "T2", "T1", "T2", "T2"],
     score = [0, 1, 2, 1, 0, 2],
 )
 
@@ -33,15 +32,21 @@ data = FacetData(ratings;
     rater = :rater,
     item = :item,
     score = :score,
-    task = :task,
 )
+validation = validate_design(data)
+validation.passed || error(validation)
 
+# Q rows follow `data.item_levels`; columns follow `dimension_labels`.
 q_matrix = Bool[1 0; 0 1]
 spec = mfrm_spec(data;
     thresholds = :partial_credit,
     family = :mgmfrm,
     dimensions = 2,
+    dimension_labels = ["reasoning", "communication"],
+    discrimination = :none,
     q_matrix,
+    anchors = [],
+    validation_report = validation,
 )
 design = getdesign(spec; preview = true)
 
@@ -49,18 +54,19 @@ print_header("Guarded MGMFRM Design")
 println(data)
 println(spec)
 println(design)
+println("Validation passed: ", validation.passed)
+println("Q row order: ", data.item_levels)
 println("Q-matrix: ", q_matrix)
 println("Parameters: ", join(design.parameter_names, ", "))
 print_rows("Constraints", constraint_table(spec);
     fields = (:block, :constraint, :status, :note))
-manifest = model_manifest(spec)
+manifest = model_manifest(spec; view = :public)
 println("Manifest: object=", manifest.object,
     ", family=", manifest.spec.family,
     ", dimensions=", manifest.spec.dimensions,
     ", status=experimental preview")
 
-fit_result = fit(spec;
-    experimental = true,
+smoke_controls = (;
     seed = 20260630,
     ndraws = 2,
     warmup = 0,
@@ -69,35 +75,22 @@ fit_result = fit(spec;
     max_depth = 8,
     metric = :unit,
 )
+fit_result = BayesianMGMFRM.Experimental.fit(spec; smoke_controls...)
 
 print_header("Guarded MGMFRM Fit")
 println(fit_result)
-metadata = fit_metadata(fit_result)
+metadata = fit_metadata(fit_result; view = :public)
 println("Fit metadata: backend=", metadata.backend,
     ", sampler=", metadata.sampler,
     ", draws=", metadata.n_draws,
     ", chains=", metadata.n_chains,
     ", status=experimental")
-artifact = fit_artifact(fit_result; include_environment = false)
-println("Fit artifact: schema=", artifact.schema,
-    ", q_matrix=", artifact.q_matrix,
-    ", diagnostics=", artifact.diagnostics.summary.flag)
-report = fit_report(fit_result;
-    view = :public,
-    draw_indices = [1, 2],
-    include_loo = false,
-    rng = MersenneTwister(20260632),
-    artifact_include_environment = false)
-println("Fit report: schema=", report.schema,
-    ", direct_posterior_rows=", report.direct_posterior.n_rows,
-    ", calibration_rows=", report.calibration.n_rows,
-    ", loo_status=", report.loo.status)
+diagnostic_surface = diagnostics(fit_result; view = :public)
+println("Overall diagnostics: ", diagnostic_surface.summary.flag)
 print_rows("Sampler diagnostics", sampler_diagnostics(fit_result);
     fields = (:chain, :acceptance_rate, :n_nonfinite_logdensity, :flag))
 print_rows("Posterior summary", posterior_summary(fit_result);
     fields = (:parameter, :mean, :sd, :lower, :upper))
-print_rows("WAIC diagnostics", waic_diagnostics(fit_result);
-    fields = (:observation, :person, :rater, :item, :waic, :flag))
 
 ppc = posterior_predictive_check(fit_result;
     draw_indices = [1, 2],
@@ -105,3 +98,6 @@ ppc = posterior_predictive_check(fit_result;
 )
 print_rows("Posterior predictive rows", predictive_check_summary(ppc);
     fields = (:statistic, :level, :observed, :replicated_mean, :flag))
+
+println()
+println("Smoke completed. Two draws and one chain are not suitable for inference.")

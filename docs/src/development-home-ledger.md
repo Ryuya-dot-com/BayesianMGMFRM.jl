@@ -123,13 +123,13 @@ The current public slice focuses on:
   MGMFRM gauge manifest with BridgeStan confirmatory-candidate and local
   candidate-chain/recovery-smoke evidence.
 
-Stan/CmdStan sampling, broad production refit-management outside the
-fit-supported shared-plan comparison slice, generalized discrimination
-likelihoods beyond the guarded scalar rater-consistency candidate, group/DFF
-model terms, and broad Multidimensional Generalized Many-Facet Rasch Model
-(MGMFRM) fitting APIs beyond the guarded fixed-Q confirmatory candidate are
-planned work and are not exposed yet. The Turing/NUTS backend is currently
-limited to the minimal MFRM/RSM/PCM `MFRMLogDensity` target.
+CmdStan/NUTS sampling is exposed for stable MFRM/RSM/PCM and the two guarded
+generalized configurations. CmdStan cache integration, bounded parallel
+chains, broad production refit-management outside the fit-supported shared
+plan, generalized discrimination beyond the guarded scalar candidate,
+group/DFF model terms, and MGMFRM APIs beyond the guarded fixed-Q confirmatory
+candidate remain planned work. The Turing/NUTS backend is currently limited to
+the minimal MFRM/RSM/PCM `MFRMLogDensity` target.
 Specified-only GMFRM/MGMFRM configs are available for constraint and manifest
 review, with estimation currently limited to the guarded scalar GMFRM
 rater-consistency candidate and the fixed-Q confirmatory MGMFRM candidate.

@@ -6,7 +6,9 @@ priors on the identified parameter vector. `backend = :julia` uses a
 random-walk Metropolis kernel for small validation examples, while
 `backend = :advancedhmc` uses the package's `MFRMLogDensity` target with
 AdvancedHMC/NUTS and `backend = :turing` wraps the same target in a
-Turing/NUTS model.
+Turing/NUTS model. `backend = :cmdstan` uses package-owned Stan models and a
+direct CmdStan CLI adapter for the stable target and the two guarded
+generalized targets; cache integration remains outside that route.
 
 ## Guarded Generalized Model Caveats
 
@@ -444,6 +446,14 @@ It embeds the same 25 user-supplied fields, ten attachment checklist rows, and
 six rejection conditions, but it still writes no external manifest files and
 does not mark any placeholder value as valid.
 
+The `passed` field on each of these three v1 artifacts is retained only as a
+compatibility alias for a valid artifact contract with blockers preserved. Its
+`pass_scope` is `contract_and_blocker_preservation_only`; it is not an external
+evidence result. Attachment validity, file integrity, validation evidence,
+independent review, and public claim release are separate fail-closed fields.
+The current artifacts have `artifact_contract_valid = true` but all external
+evidence, review, and release gates remain false.
+
 These numbers are local diagnostic evidence only. They should not be cited as
 public fit thresholds, model weights, Q-revision evidence, sparse-superiority
 evidence, or a stable-public MGMFRM validation claim.
@@ -602,13 +612,12 @@ dff_report(fit_result; terms = (:rater, :item))
 ```
 
 The random-walk sampler is intended for small validation examples and API
-stabilization. The AdvancedHMC/NUTS and Turing/NUTS backends are
-gradient-based sampler paths for the minimal design; AdvancedHMC also backs the
-guarded experimental GMFRM and fixed-Q MGMFRM candidates, but it is not yet a
-broad GMFRM/MGMFRM fitting backend. The package does not yet expose Stan/CmdStan
-sampling or broad refit-managed model-comparison workflows outside the
-fit-supported shared-plan comparison slice and guarded generalized refits that
-are explicitly requested with `experimental = true`.
+stabilization. AdvancedHMC/NUTS, Turing/NUTS, and CmdStan/NUTS are
+gradient-based sampler paths for the minimal design; AdvancedHMC and CmdStan
+also back the guarded experimental GMFRM and fixed-Q MGMFRM candidates, but
+neither is a broad GMFRM/MGMFRM fitting backend. CmdStan cache integration,
+bounded parallel chains, and broad refit-managed model-comparison workflows
+remain outside the current CmdStan route.
 [`loo_refit_plan`](@ref) constructs deterministic one-observation-heldout
 plans for exact LOO follow-up, optionally restricted to selected observations
 or Pareto-k flagged rows from raw LOO summaries, and [`loo_refit`](@ref)
@@ -703,8 +712,11 @@ registration action is performed.
 `cached_fit` is the RDS-like recomputation guard: it serializes the fitted
 object with Julia's standard `Serialization` format and only reuses the file
 when [`fit_cache_key`](@ref) still matches the current data/spec/design, prior,
-sampler controls, seed, Julia version, and initialization hash. This is intended
-for same-environment analysis caches. Automatic cache keys require an integer
+sampler controls, seed, Julia version, initialization hash, and versioned
+diagnostic contract. This is intended for same-environment analysis caches.
+Changing the diagnostic contract invalidates a generalized automatic cache;
+stored generalized diagnostic surfaces are also checked before their modern
+policy is reported. Automatic cache keys require an integer
 `seed`; use `fit` plus manual [`save_fit_cache`](@ref) for unseeded exploratory
 fits. The cache helpers also accept guarded experimental [`GMFRMFit`](@ref) and
 [`MGMFRMFit`](@ref) objects. Automatic generalized caches are available only
@@ -720,13 +732,32 @@ with AdvancedHMC/NUTS fields such as divergent-transition counts,
 max-tree-depth hits, and E-BFMI when available.
 `sampler_diagnostics` returns chain-level draw counts, acceptance rates, and
 log-posterior summaries.
-`mcmc_diagnostics` returns classical split R-hat and autocorrelation-based ESS
-when a fit has at least two chains, and marks row-level `:mcmc_warning` flags
-when R-hat or ESS fails the supplied thresholds. `posterior_summary` returns
-mean, standard deviation, median, the requested lower/upper interval, central
-credible-interval rows, probability of direction relative to a reference value,
+`mcmc_diagnostics` returns rank-normalized split R-hat, bulk ESS, and tail ESS
+when a fit has at least two original independent chains and enough finite,
+nondegenerate draws. These are the primary row and block quality fields. The
+odd-draw rank/fold/tail operation order and all-valid-lag ESS policy match
+Stan/posterior semantics rather than using a fixed 250-lag truncation. The
+classical split `rhat` and autocorrelation `ess` fields are retained only for
+compatibility. Guarded generalized summaries require both raw unconstrained and
+direct constrained rows to pass when they are applicable. Direct coordinates
+fixed by zero-raw-dimension transforms remain visible as
+`:structurally_fixed`, have `quality_gate_applicable = false`, and are excluded
+from extrema and failure counts. Reconstructed direct coordinates that vary
+with free raw coordinates remain gated. Either applicable surface can raise the
+diagnostic warning. Sampler summaries preserve the minimum available `e_bfmi`
+for compatibility and add expected, available, and unavailable chain counts
+plus `e_bfmi_complete`; the publication threshold applies only when every
+chain supplies a finite value. Version-1 result, diagnostic, and heldout
+wrappers are not renamed. Their migration rule is the `diagnostic_contract`
+field: records without `rank_normalized_rhat_bulk_tail_ess_v1` remain
+pre-modern, `flag`
+aliases `rank_normalized_flag` for modern rows, and
+`classical_compatibility_flag` remains the legacy check. `posterior_summary`
+returns mean, standard deviation, median, the requested lower/upper interval,
+central credible-interval rows, probability of direction relative to a reference value,
 and optional ROPE/practical-equivalence probabilities. `parameter_block_diagnostics`
-aggregates R-hat/ESS rows for person, rater, item, and threshold blocks. The current prior and
+aggregates modern and compatibility diagnostic rows for person, rater, item,
+and threshold blocks. The current prior and
 posterior predictive checks return compact observed-vs-replicated summaries for
 overall mean score, category proportions, person-level mean scores, rater-level
 mean scores, item-level mean scores, and optional facet mean scores;

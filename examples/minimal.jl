@@ -39,6 +39,7 @@ data = FacetData(ratings;
     rater = :rater,
     item = :item,
     score = :score,
+    category_levels = 0:2,
     group = :group,
 )
 
@@ -63,6 +64,7 @@ manifest = model_manifest(design)
 println("Manifest: schema=", manifest.schema,
     ", object=", manifest.object,
     ", observations=", manifest.data.n_observations,
+    ", intended_categories=", manifest.data.category_scale.intended_levels,
     ", parameters=", length(design.parameter_names),
     ", validation_issues=", manifest.validation.n_issues)
 coverage = coverage_summary(spec)

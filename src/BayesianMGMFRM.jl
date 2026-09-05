@@ -1,29 +1,25 @@
 """
     BayesianMGMFRM
 
-Tools for preparing long-format many-facet Rasch rating data.
+Tools for validating long-format many-facet rating data, compiling MFRM-family
+designs, fitting Bayesian models, and producing predictive, diagnostic, and
+model-comparison summaries.
 
-The current public API is intentionally limited to deterministic indexing,
-pre-fit data validation, MFRM/GMFRM/MGMFRM specification manifests, minimal
-RSM/PCM design scaffolding, and initial Bayesian fitting, predictive-check, and
-WAIC / raw or PSIS-smoothed importance-sampling LOO paths for small validation
-examples. The minimal MFRM/RSM/PCM design can be fit with a random-walk example
-backend, an initial AdvancedHMC/NUTS backend, or a Turing/NUTS backend. Guarded
-experimental generalized paths are available through
-`fit(spec; experimental = true)` for source-aligned `thresholds = :partial_credit`
-specs without anchors or fitted DFF terms. The scalar rater-consistency GMFRM
-configuration requires `discrimination = :rater`; the fixed-Q confirmatory MGMFRM
-configuration requires `dimensions >= 2` and the generic compatibility selector
-`discrimination = :none`. Unsupported manifest options are rejected before
-numerical execution rather than silently reinterpreted. Broader generalized
-discrimination likelihoods, group/DFF model effects, anchors, rating-scale
-generalized kernels, and exploratory MGMFRM fitting remain planned work.
+The stable fitting surface supports the documented MFRM/RSM/PCM configurations.
+`BayesianMGMFRM.Experimental.fit(spec)` additionally supports a limited
+partial-credit scalar GMFRM configuration and a fixed-Q, identity-correlation
+confirmatory MGMFRM configuration. Unsupported generalized options are rejected
+before numerical execution. The experimental namespace also provides
+diagnostic operations for an exactly two-dimensional free-latent-correlation
+density; that diagnostic surface has no fit result or cache integration and
+does not establish replicated recovery.
 """
 module BayesianMGMFRM
 
 export FacetData,
     FacetDesign,
     FacetSpec,
+    CmdStanError,
     GMFRMFit,
     MGMFRMFit,
     MFRMLogDensity,
@@ -32,10 +28,12 @@ export FacetData,
     ValidationIssue,
     ValidationReport,
     anchor_linking_summary,
+    anchor_refit_plan,
     artifact_content_hash,
     benchmark_result_row,
     benchmark_summary,
     calibration_table,
+    category_functioning_summary,
     constraint_table,
     coverage_matrix,
     coverage_summary,
@@ -46,14 +44,20 @@ export FacetData,
     case_study_provenance_manifest,
     comparison_evidence_row,
     comparison_evidence_summary,
+    cmdstan_backend_contract,
+    cmdstan_backend_check,
+    conquest_bridge_bundle,
     diagnostic_map_data,
+    design_identity,
     design_row_table,
     dff_report,
     domain_compilation_summary,
     evidence_metadata,
     evidence_artifact_schema_policy,
+    external_bridge_result_receipt,
     expected_scores,
     facets_compatibility_stats,
+    facets_bridge_bundle,
     facets_report,
     facet_response_table,
     fair_average_summary,
@@ -65,6 +69,7 @@ export FacetData,
     fit_cache_key,
     fit_metadata,
     fit_report,
+    fit_report_health,
     fit_report_public,
     fit_report_dossier,
     fit_report_dossier_markdown,
@@ -96,12 +101,41 @@ export FacetData,
     logprior,
     linear_predictor_table,
     linear_predictor_values,
+    local_dependence_calibration_contract,
+    local_dependence_calibration_pilot_check,
+    local_dependence_calibration_pilot_contract,
+    local_dependence_calibration_pilot_preflight,
+    local_dependence_calibration_row,
+    local_dependence_calibration_summary,
+    local_dependence_contract,
+    local_dependence_simulation_grid,
+    local_dependence_summary,
     model_equation,
+    model_family_contract,
+    mgmfrm_decision_stability_score,
+    mgmfrm_predictive_recovery_score,
+    mgmfrm_response_stress_plan,
+    mgmfrm_response_stress_fit_attempts,
+    mgmfrm_response_stress_preflight,
+    mgmfrm_validation_analysis_contract,
+    mgmfrm_validation_execution_design_contract,
+    mgmfrm_validation_isolated_resource_probe,
+    mgmfrm_validation_isolated_resource_review,
+    mgmfrm_validation_primary_grid_candidates,
+    mgmfrm_validation_primary_grid_preflight,
+    mgmfrm_validation_replication_precision,
+    mgmfrm_validation_primary_resource_plan,
+    mgmfrm_validation_protocol,
+    mgmfrm_validation_resource_probe,
+    mgmfrm_validation_scaled_resource_plan,
+    mgmfrm_validation_short_nuts_resource_probe,
     mcmc_diagnostics,
     model_manifest,
     model_ladder,
+    model_surface_check,
     model_surface_audit,
     mfrm_spec,
+    ordinal_response_pattern_audit,
     parameter_block_diagnostics,
     parameter_recovery,
     parameter_recovery_plot_data,
@@ -110,28 +144,34 @@ export FacetData,
     pointwise_loglikelihood_matrix,
     posterior_predict,
     posterior_predictive_check,
+    posterior_mcse,
     posterior_summary,
     psis_loo,
     prior_likelihood_sensitivity,
     predictive_check_summary,
     predictive_probabilities,
     predictive_residuals,
+    predictive_standardized_residuals,
     predictive_variances,
     prior_predict,
     prior_predictive_check,
     q_matrix_validation,
     rater_diagnostics,
+    rater_homogeneity_summary,
     rater_overlap,
+    rating_design_check,
     rating_design_audit,
     related_software_capability_matrix,
     residual_summary,
     release_gate_check,
     release_scope_summary,
+    load_conquest_semantic_parameters,
     load_fit_cache,
     load_fit_report_dossier,
     load_fit_report,
     load_fit_report_bundle,
     load_fit_report_tables,
+    load_conquest_parameter_export,
     sampler_diagnostics,
     save_fit_cache,
     save_fit_report_dossier,
@@ -140,27 +180,67 @@ export FacetData,
     save_fit_report_bundle,
     save_fit_report_markdown,
     save_fit_report_tables,
+    save_external_bridge_bundle,
     sensitivity_comparison,
     sensitivity_comparison_summary,
     separation_reliability_summary,
     simulation_grid,
     simulation_grid_summary,
+    simulate_local_dependence,
+    simulate_mgmfrm_response_stress,
+    simulate_mgmfrm_validation_primary_candidate,
     simulate_responses,
     stan_validation_row,
     stan_validation_summary,
     threshold_map_data,
+    testlet_design_check,
+    testlet_design_audit,
     validate_design,
+    validate_external_bridge_bundle,
     validation_suggestions,
     predictive_check_plot_data,
     wright_map_data,
     waic,
     waic_diagnostics
 
+include("cmdstan_backend.jl")
 include("evidence_metadata.jl")
 include("facet_workflow.jl")
+include("ordinal_response_patterns.jl")
+include("model_family_contract.jl")
+include("mgmfrm_validation_protocol.jl")
+include("mgmfrm_validation_scoring.jl")
+include("model_contract.jl")
+include("testlet_design_audit.jl")
 include("bayesian_fit.jl")
+include("cmdstan_fit.jl")
+include("mgmfrm_free_correlation_candidate.jl")
+include("mgmfrm_free_correlation_recovery.jl")
+include("mgmfrm_free_correlation_study.jl")
+include("mgmfrm_free_correlation_resource_probe.jl")
+include("mgmfrm_free_correlation_study_scoring.jl")
+include("experimental.jl")
+include("mgmfrm_response_stress.jl")
+include("mgmfrm_response_stress_fit.jl")
+include("mgmfrm_validation_resource_probe.jl")
+include("mgmfrm_validation_primary_grid.jl")
+include("mgmfrm_validation_isolated_resource_probe.jl")
+include("mgmfrm_validation_isolated_resource_review.jl")
+include("mgmfrm_validation_execution_design.jl")
+include("mgmfrm_validation_analysis_contract.jl")
+include("anchor_refit_plan.jl")
+include("facets_conquest_bridge.jl")
+include("practitioner_diagnostics.jl")
+include("local_dependence.jl")
+include("local_dependence_known_truth_dgp.jl")
+include("local_dependence_simulation.jl")
+include("local_dependence_calibration.jl")
+include("local_dependence_calibration_pilot.jl")
 
 # Scalar validation target used by the analytic-gradient test suite.
 include("scalar_validation_logp.jl")
+
+# Exact 0.1.x root-export classification and growth boundary.
+include("root_api_contract.jl")
 
 end

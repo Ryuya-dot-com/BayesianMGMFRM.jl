@@ -1,17 +1,21 @@
 # Version Update Handoff
 
 This page records the manual handoff boundary for the BayesianMGMFRM.jl
-version `0.1.1` update in Julia General. It does not publish anything, update
+version `0.1.2` update in Julia General. It does not publish anything, update
 the registry, or approve research claims.
 
 Before requesting the version update, run the full local gate from the
 repository root:
 
 ```bash
-julia --startup-file=no scripts/pre_registration_gate.jl --expected-version=0.1.1
+julia --startup-file=no scripts/distribution_archive_smoke.jl
+julia --startup-file=no scripts/pre_registration_gate.jl --expected-version=0.1.2
 ```
 
-The gate checks project metadata, General AutoMerge-facing package and origin
+The distribution smoke first verifies instantiate, first/warm load, the minimal
+stable fit, and the manual from a Git-free, non-ignored source candidate with
+optional research evidence and CmdStan/R environment hooks disabled. The full
+gate then checks project metadata, General AutoMerge-facing package and origin
 URL shape, clean temporary-environment import, `Pkg.test()`, the minimal
 example, the guarded scalar GMFRM example, the guarded fixed-Q MGMFRM example,
 Documenter with a 100 KiB rendered-page hard limit, Aqua package hygiene,
@@ -19,6 +23,11 @@ Documenter with a 100 KiB rendered-page hard limit, Aqua package hygiene,
 the hygiene subset in a lighter mode because the matrix test and documentation
 jobs cover `Pkg.test()` and the docs build separately, while the stricter
 reader-facing wording scan remains part of final local release verification.
+SHA-chained research archives are deliberately outside ordinary `Pkg.test()`;
+they can be audited separately with
+`BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true` or the manually dispatched
+research-evidence workflow. Their historical byte identity is not a package
+installation requirement.
 
 The machine-readable release boundary is available from
 [`release_scope_summary`](@ref):
@@ -40,7 +49,7 @@ After the version-update commit has been merged to `main` and CI is green,
 print the manual Registrator trigger message:
 
 ```bash
-julia --project=. scripts/registration_handoff.jl --strict --expected-version=0.1.1
+julia --project=. scripts/registration_handoff.jl --strict --expected-version=0.1.2
 ```
 
 The script verifies the local release boundary and prints a copy-paste
@@ -53,14 +62,17 @@ publication endpoint.
 - Repository name for General: `BayesianMGMFRM.jl`
 - Origin URL shape: resolves to `BayesianMGMFRM.jl` with or without a `.git`
   suffix
-- Release version: `0.1.1`
+- Release version: `0.1.2`
 - License: MIT
 - Local gate:
-  `julia --startup-file=no scripts/pre_registration_gate.jl --expected-version=0.1.1`
-- CI gate: documentation, release-verification gate, and Julia 1 / 1.10 tests
-  on Ubuntu, macOS, and Windows pass on the version-update commit.
+  `julia --startup-file=no scripts/distribution_archive_smoke.jl`, then
+  `julia --startup-file=no scripts/pre_registration_gate.jl --expected-version=0.1.2`
+- CI gate: clean-distribution, documentation, and release-verification gates,
+  complete ordinary package coverage through current-Julia shards and the full
+  Julia 1.10 suite on Ubuntu, and current-Julia package smokes on macOS and
+  Windows pass on the version-update commit.
 - Trigger template:
-  `julia --project=. scripts/registration_handoff.jl --strict --expected-version=0.1.1`
+  `julia --project=. scripts/registration_handoff.jl --strict --expected-version=0.1.2`
   runs from `main` with no tracked worktree changes.
 - Registry and publication actions: performed only by the user; the scripts do
   not contact external services.
@@ -76,11 +88,12 @@ should be posted by the user on the green `main` version-update commit:
 
 Release notes:
 
-Release 0.1.1 of BayesianMGMFRM.jl. This release provides a
+Release 0.1.2 of BayesianMGMFRM.jl. This release provides a
 conservative Bayesian many-facet Rasch workflow scaffold covering
 long-format data validation, design inspection, minimal MFRM/RSM/PCM
-fitting, and guarded scalar GMFRM / fixed-Q confirmatory MGMFRM
-experiments. Broader GMFRM/MGMFRM fitting, fitted DFF effects,
+fitting. The documented scalar GMFRM and fixed-Q confirmatory MGMFRM
+configurations are executable only through the experimental namespace;
+broader GMFRM/MGMFRM fitting, fitted DFF effects,
 model-weight or sparse-superiority claims, manuscript claims, and
 publication actions remain out of scope.
 ```
@@ -93,12 +106,13 @@ before triggering the request:
 
 ## Scope Boundary
 
-Registration of version `0.1.1` in General should be treated as an update to
+Registration of version `0.1.2` in General should be treated as an update to
 the current public package slice: data validation, design inspection, minimal
-MFRM/RSM/PCM fitting, and guarded scalar GMFRM / fixed-Q confirmatory MGMFRM
-experiments. It is not a claim of broad GMFRM/MGMFRM fitting support, DFF model
+MFRM/RSM/PCM fitting, and executable but provisional scalar GMFRM / fixed-Q
+confirmatory MGMFRM configurations in the experimental namespace. It is not a
+claim of stable or broad GMFRM/MGMFRM fitting support, DFF model
 effects, model-weight superiority, sparse-design superiority, or manuscript
 readiness.
 
-After General accepts version `0.1.1`, verify that a fresh Julia environment
+After General accepts version `0.1.2`, verify that a fresh Julia environment
 resolves the registered version before announcing the update.

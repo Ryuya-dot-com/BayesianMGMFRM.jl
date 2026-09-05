@@ -116,12 +116,17 @@ const PROTOCOL = (;
         :preflight_before_external_construct_or_independent_review_attachment_is_accepted,
     thresholds = (;
         require_external_construct_gate_review_passed = true,
+        external_construct_gate_review_passed_semantics =
+            :artifact_contract_and_blocker_preservation_only,
+        require_external_construct_gate_artifact_contract_valid = true,
         require_external_construct_gate_next_gate_matched = true,
         require_external_manifest_field_spec_recorded = true,
         require_independent_review_field_spec_recorded = true,
         require_missing_manifest_paths_recorded = true,
         require_no_public_claim_release_without_valid_manifests = true,
         require_no_publication_or_registration_action = true,
+        require_external_evidence_pass_implies_attached_and_valid = true,
+        require_public_claim_release_gate_requires_zero_blockers = true,
     ),
 )
 
@@ -202,6 +207,14 @@ function summary_passed(parsed)
     return as_bool(value)
 end
 
+function summary_bool(parsed, key::Symbol)
+    summary = json_get(parsed, :summary, missing)
+    summary === missing && return false
+    value = json_get(summary, key, missing)
+    value === missing && return false
+    return as_bool(value)
+end
+
 function present_value(value)
     value === nothing && return false
     ismissing(value) && return false
@@ -228,6 +241,13 @@ function manifest_record(artifact::Symbol, path::AbstractString,
             all_required_fields_present = false,
             summary_passed = false,
             manifest_valid = false,
+            artifact_contract_valid = false,
+            attachment_and_valid = false,
+            external_construct_dataset_file_integrity_verified = false,
+            external_construct_validation_evidence_attached_and_valid = false,
+            external_construct_validation_evidence_passed = false,
+            independent_public_scope_review_gate_passed = false,
+            public_claim_release_decision_signed = false,
         )
     end
     parsed = load_json(path)
@@ -238,6 +258,29 @@ function manifest_record(artifact::Symbol, path::AbstractString,
     all_required_fields_present = present_count == length(required_fields)
     schema_matches = schema == expected_schema
     passed = summary_passed(parsed)
+    artifact_contract_valid =
+        schema_matches && all_required_fields_present && passed
+    attachment_and_valid = artifact_contract_valid
+    external_construct_dataset_file_integrity_verified =
+        artifact === :external_construct_dataset_manifest &&
+        attachment_and_valid &&
+        summary_bool(parsed, :external_construct_dataset_file_integrity_verified)
+    external_construct_validation_evidence_attached_and_valid =
+        artifact === :external_construct_dataset_manifest &&
+        attachment_and_valid &&
+        summary_bool(parsed,
+            :external_construct_validation_evidence_attached_and_valid)
+    external_construct_validation_evidence_passed =
+        external_construct_validation_evidence_attached_and_valid &&
+        external_construct_dataset_file_integrity_verified &&
+        summary_bool(parsed, :external_construct_validation_evidence_passed)
+    independent_public_scope_review_gate_passed =
+        artifact === :independent_public_scope_review_manifest &&
+        attachment_and_valid &&
+        summary_bool(parsed, :independent_public_scope_review_gate_passed)
+    public_claim_release_decision_signed =
+        independent_public_scope_review_gate_passed &&
+        summary_bool(parsed, :public_claim_release_decision_signed)
     return (;
         artifact,
         path = rel(path),
@@ -250,7 +293,14 @@ function manifest_record(artifact::Symbol, path::AbstractString,
         present_required_field_count = present_count,
         all_required_fields_present,
         summary_passed = passed,
-        manifest_valid = schema_matches && all_required_fields_present && passed,
+        manifest_valid = artifact_contract_valid,
+        artifact_contract_valid,
+        attachment_and_valid,
+        external_construct_dataset_file_integrity_verified,
+        external_construct_validation_evidence_attached_and_valid,
+        external_construct_validation_evidence_passed,
+        independent_public_scope_review_gate_passed,
+        public_claim_release_decision_signed,
     )
 end
 
@@ -260,6 +310,7 @@ function gate_record(path::AbstractString)
     parsed = load_json(path)
     schema = as_string(parsed[:schema])
     summary = parsed[:summary]
+    compatibility_summary_passed = as_bool(summary[:passed])
     return (;
         artifact =
             :mgmfrm_external_construct_dataset_and_independent_public_scope_review,
@@ -269,7 +320,33 @@ function gate_record(path::AbstractString)
         expected_schema = GATE_SCHEMA,
         schema,
         schema_matches = schema == GATE_SCHEMA,
-        summary_passed = as_bool(summary[:passed]),
+        summary_passed = compatibility_summary_passed,
+        pass_scope = as_string(json_get(summary, :pass_scope, "legacy_unspecified")),
+        artifact_contract_valid =
+            as_bool(json_get(summary, :artifact_contract_valid,
+                compatibility_summary_passed)),
+        external_construct_dataset_manifest_attached_and_valid =
+            as_bool(json_get(summary,
+                :external_construct_dataset_manifest_attached_and_valid,
+                false)),
+        external_construct_dataset_file_integrity_verified =
+            as_bool(json_get(summary,
+                :external_construct_dataset_file_integrity_verified,
+                false)),
+        external_construct_validation_evidence_passed =
+            as_bool(json_get(summary,
+                :external_construct_validation_evidence_passed,
+                false)),
+        independent_public_scope_review_attached_and_valid =
+            as_bool(json_get(summary,
+                :independent_public_scope_review_attached_and_valid,
+                false)),
+        independent_public_scope_review_gate_passed =
+            as_bool(json_get(summary,
+                :independent_public_scope_review_gate_passed,
+                false)),
+        public_claim_release_gate_passed =
+            as_bool(json_get(summary, :public_claim_release_gate_passed, false)),
         next_gate = as_string(summary[:next_gate]),
         n_blockers = Int(summary[:n_blockers]),
     )
@@ -308,6 +385,14 @@ function preflight_check_rows(gate, external_record, independent_record)
         (check = :external_construct_gate_review_passed,
             satisfied = gate.summary_passed,
             status = gate.summary_passed ? :passed : :failed,
+            pass_scope = :contract_and_blocker_preservation_only,
+            compatibility_field = true,
+            public_claim_release_allowed = false),
+        (check = :external_construct_gate_artifact_contract_valid,
+            satisfied = gate.artifact_contract_valid,
+            status = gate.artifact_contract_valid ? :passed : :failed,
+            pass_scope = :artifact_contract_only,
+            compatibility_field = false,
             public_claim_release_allowed = false),
         (check = :external_construct_gate_next_gate_matched,
             satisfied = gate_next_matched,
@@ -352,6 +437,13 @@ function claim_release_preflight_rows(external_record, independent_record)
                 external_record.manifest_valid,
             independent_public_scope_review_manifest_valid =
                 independent_record.manifest_valid,
+            external_construct_dataset_file_integrity_verified =
+                external_record.
+                    external_construct_dataset_file_integrity_verified,
+            external_construct_validation_evidence_passed =
+                external_record.external_construct_validation_evidence_passed,
+            independent_public_scope_review_gate_passed =
+                independent_record.independent_public_scope_review_gate_passed,
             public_claim_release_allowed = false,
             status =
                 :blocked_until_valid_external_inputs_and_independent_release_decision)
@@ -365,16 +457,17 @@ function blocker_rows(external_record, independent_record)
             resolved = external_record.manifest_valid,
             blocks = :construct_q_revision_model_weight_and_sparse_claims),
         (blocker = :external_construct_dataset_file_integrity_unverified,
-            resolved = external_record.manifest_valid,
+            resolved = external_record.
+                external_construct_dataset_file_integrity_verified,
             blocks = :external_construct_validation),
         (blocker = :independent_public_scope_review_manifest_missing_or_invalid,
             resolved = independent_record.manifest_valid,
             blocks = :all_public_mgmfrm_claims),
         (blocker = :independent_public_scope_review_signature_missing,
-            resolved = independent_record.manifest_valid,
+            resolved = independent_record.independent_public_scope_review_gate_passed,
             blocks = :all_public_mgmfrm_claims),
         (blocker = :public_claim_release_decision_not_signed,
-            resolved = independent_record.manifest_valid,
+            resolved = independent_record.public_claim_release_decision_signed,
             blocks = :fit_metric_model_weight_q_revision_construct_and_sparse_claims),
     ]
 end
@@ -409,12 +502,49 @@ function build_artifact(options)
         gate.next_gate ==
         "provide_external_construct_dataset_manifest_and_independent_public_scope_review"
     passed =
-        gate.summary_passed &&
+        gate.artifact_contract_valid &&
         gate.schema_matches &&
         gate_next_matched &&
         field_specs_recorded &&
         missing_manifest_paths_recorded &&
         no_public_claim_release
+    artifact_contract_valid = passed
+    external_construct_dataset_manifest_attached_and_valid =
+        external_record.attachment_and_valid
+    external_construct_dataset_file_integrity_verified =
+        external_record.external_construct_dataset_file_integrity_verified
+    external_construct_validation_evidence_attached_and_valid =
+        external_record.
+            external_construct_validation_evidence_attached_and_valid
+    external_construct_validation_evidence_passed =
+        external_construct_dataset_manifest_attached_and_valid &&
+        external_construct_dataset_file_integrity_verified &&
+        external_construct_validation_evidence_attached_and_valid &&
+        external_record.external_construct_validation_evidence_passed
+    independent_public_scope_review_attached_and_valid =
+        independent_record.attachment_and_valid
+    independent_public_scope_review_gate_passed =
+        independent_public_scope_review_attached_and_valid &&
+        independent_record.independent_public_scope_review_gate_passed
+    public_claim_release_decision_signed =
+        independent_public_scope_review_gate_passed &&
+        independent_record.public_claim_release_decision_signed
+    all_claim_release_rows_allow =
+        all(row -> row.public_claim_release_allowed, claim_rows)
+    public_claim_release_gate_passed =
+        external_construct_validation_evidence_passed &&
+        independent_public_scope_review_gate_passed &&
+        public_claim_release_decision_signed &&
+        isempty(remaining_blockers) &&
+        all_claim_release_rows_allow
+    external_construct_validation_evidence_passed &&
+        !external_construct_dataset_manifest_attached_and_valid && error(
+            "external construct evidence cannot pass without a valid attachment")
+    external_construct_validation_evidence_passed &&
+        !external_construct_validation_evidence_attached_and_valid && error(
+            "external construct evidence cannot pass without attached evidence")
+    public_claim_release_gate_passed && !isempty(remaining_blockers) && error(
+        "public claim release cannot pass with unresolved blockers")
 
     return (;
         schema =
@@ -432,6 +562,14 @@ function build_artifact(options)
             external_record.manifest_valid,
         independent_public_scope_review_manifest_valid =
             independent_record.manifest_valid,
+        external_construct_dataset_manifest_attached_and_valid,
+        external_construct_dataset_file_integrity_verified,
+        external_construct_validation_evidence_attached_and_valid,
+        external_construct_validation_evidence_passed,
+        independent_public_scope_review_attached_and_valid,
+        independent_public_scope_review_gate_passed,
+        public_claim_release_decision_signed,
+        public_claim_release_gate_passed,
         public_fit_metric_claim = false,
         public_q_revision_claim = false,
         public_model_weight_claim = false,
@@ -455,15 +593,29 @@ function build_artifact(options)
                 external_record.manifest_valid,
             independent_public_scope_review_manifest_valid =
                 independent_record.manifest_valid,
+            external_construct_dataset_manifest_attached_and_valid,
+            external_construct_dataset_file_integrity_verified,
+            external_construct_validation_evidence_attached_and_valid,
+            external_construct_validation_evidence_passed,
+            independent_public_scope_review_attached_and_valid,
+            independent_public_scope_review_gate_passed,
+            public_claim_release_decision_signed,
+            public_claim_release_gate_passed,
             public_claim_release_allowed = false,
             required_followup =
                 :attach_valid_external_construct_dataset_manifest_and_independent_public_scope_review_manifest,
         ),
         summary = (;
             passed,
+            pass_scope = :contract_and_blocker_preservation_only,
+            artifact_contract_valid,
             publication_or_registration_action = false,
             local_only = true,
             external_construct_gate_review_passed = gate.summary_passed,
+            external_construct_gate_review_passed_semantics =
+                :artifact_contract_and_blocker_preservation_only,
+            external_construct_gate_artifact_contract_valid =
+                gate.artifact_contract_valid,
             external_construct_gate_next_gate_matched = gate_next_matched,
             external_manifest_field_spec_recorded =
                 length(EXTERNAL_MANIFEST_FIELDS) == 13,
@@ -478,6 +630,14 @@ function build_artifact(options)
                 external_record.manifest_valid,
             independent_public_scope_review_manifest_valid =
                 independent_record.manifest_valid,
+            external_construct_dataset_manifest_attached_and_valid,
+            external_construct_dataset_file_integrity_verified,
+            external_construct_validation_evidence_attached_and_valid,
+            external_construct_validation_evidence_passed,
+            independent_public_scope_review_attached_and_valid,
+            independent_public_scope_review_gate_passed,
+            public_claim_release_decision_signed,
+            public_claim_release_gate_passed,
             no_public_claim_release,
             no_public_fit_metric_claim = true,
             no_public_q_revision_claim = true,

@@ -16,7 +16,8 @@ experimental opt-in:
 
 Broader discrimination structures, exploratory loadings, free latent
 correlations, and fitted DFF effects are not supported. See
-[Scope and Releases](scope.md) for the exact boundary.
+[Scope and Releases](scope.md) for the exact boundary and
+[Experimental Generalized Models](experimental.md) for the limited API.
 
 ## Recommended Path
 
@@ -29,10 +30,12 @@ correlations, and fitted DFF effects are not supported. See
 5. Fit the supported design with [`fit`](@ref).
 6. Review [`sampler_diagnostics`](@ref), [`mcmc_diagnostics`](@ref),
    [`parameter_block_diagnostics`](@ref), and [`diagnostics`](@ref).
-7. Inspect posterior, predictive, calibration, residual, and sensitivity rows.
+7. Inspect estimand-specific [`posterior_mcse`](@ref), posterior, predictive,
+   calibration, residual, and sensitivity rows.
 8. Export `fit_report(fit; view = :public)` or
    [`fit_report_public`](@ref) for reader-facing structured data, or use
-   [`fit_report_markdown`](@ref) for Markdown.
+   [`fit_report_markdown`](@ref) for Markdown. Evidence exports should inspect
+   [`fit_report_health`](@ref) or set `require_complete = true`.
 
 ## Documentation
 
@@ -44,7 +47,12 @@ correlations, and fitted DFF effects are not supported. See
   interpretation checks.
 - [Bayesian Fitting](fitting.md) covers backends, experimental restrictions,
   diagnostics, and reports.
+- [Experimental Generalized Models](experimental.md) documents the provisional
+  namespace and its stability boundary.
 - [Examples](examples.md) points to runnable scripts.
+- [Migrating from FACETS and ACER ConQuest](migration-facets-conquest.md)
+  maps the overlapping RSM/PCM models, sign and identification conventions,
+  estimator differences, and the staged anchor-refitting policy.
 - [Scope and Releases](scope.md) states supported and unsupported surfaces.
 - [API](api.md) lists the public functions by workflow.
 
@@ -54,7 +62,9 @@ Pages = [
     "model-equations.md",
     "bayesian-workflow.md",
     "fitting.md",
+    "experimental.md",
     "examples.md",
+    "migration-facets-conquest.md",
     "scope.md",
     "api.md",
     "api-data-design.md",

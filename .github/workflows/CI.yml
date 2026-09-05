@@ -8,32 +8,138 @@ on:
   pull_request:
   workflow_dispatch:
 
+env:
+  # Ordinary jobs are distribution checks, not consumers of optional study results.
+  BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS: "false"
+
 jobs:
-  test:
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        version:
-          - '1.10.8'
-          - '1'
-        os:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
+  minimum-version-test:
+    name: Full package tests - Julia 1.10.8 - Ubuntu
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      BAYESIANMGMFRM_TEST_GROUP: all
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
         with:
-          version: ${{ matrix.version }}
+          version: '1.10.8'
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
 
+  current-version-test:
+    name: Current Julia - ${{ matrix.label }} - Ubuntu
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ matrix.timeout_minutes }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: core
+            label: Core and design
+            timeout_minutes: 35
+          - group: fitting_core
+            label: MFRM fit integration
+            timeout_minutes: 30
+          - group: fitting_reports
+            label: Reports and hard anchors
+            timeout_minutes: 30
+          - group: local_dependence_core
+            label: Local-dependence diagnostics and calibration
+            timeout_minutes: 30
+          - group: local_dependence_integrity
+            label: Local-dependence provenance and resource guards
+            timeout_minutes: 30
+          - group: generalized
+            label: Generalized models
+            timeout_minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: Run ${{ matrix.label }} test shard
+        shell: bash
+        env:
+          BAYESIANMGMFRM_TEST_GROUP: ${{ matrix.group }}
+        run: |
+          timer=()
+          if [[ "$BAYESIANMGMFRM_TEST_GROUP" == fitting_core ]]; then
+            lscpu
+            free --mebi
+            timer=(/usr/bin/time -v)
+          fi
+          "${timer[@]}" julia --startup-file=no --project=. -e 'using Pkg; Pkg.test()'
+
+  platform-smoke:
+    name: Platform smoke - Julia 1 - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use a short Windows temporary directory
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path 'D:\t' | Out-Null
+          "TMP=D:\t" >> $env:GITHUB_ENV
+          "TEMP=D:\t" >> $env:GITHUB_ENV
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: Run portable package smoke
+        run: julia --startup-file=no --project=. scripts/platform_smoke.jl
+
+  research-evidence:
+    name: Research evidence and SHA lineage
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS: "true"
+      BAYESIANMGMFRM_TEST_GROUP: all
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: Run opt-in research-evidence fixtures
+        run: julia --startup-file=no --project=. -e 'using Pkg; Pkg.test()'
+
+  research-harness-portability:
+    name: Research harness portability
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.10.8'
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: Regenerate the tracked research harness
+        shell: pwsh
+        run: |
+          $GeneratedHarness = Join-Path $env:RUNNER_TEMP 'local_dependence_pilot_batch_execution_harness.json'
+          julia --startup-file=no --project=. scripts/generate_local_dependence_pilot_batch_execution_harness.jl --output $GeneratedHarness
+          git diff --no-index --exit-code -- test/fixtures/local_dependence_pilot_batch_execution_harness.json $GeneratedHarness
+
   docs:
     name: Documentation
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
@@ -42,18 +148,50 @@ jobs:
       - uses: julia-actions/cache@v2
       - name: Build documentation
         run: |
-          julia --project=docs -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate(); include("docs/make.jl")'
+          julia --startup-file=no --project=docs docs/build.jl
           julia --startup-file=no scripts/public_language_gate.jl --rendered
 
-  release-hygiene-gate:
-    name: Release hygiene gate
+  experimental-boundary:
+    name: Experimental namespace boundary and lightweight guarded-fit smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
         with:
+          version: '1.10.8'
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: Test the experimental 2D free-correlation contract and bounded diagnostic smoke
+        env:
+          BAYESIANMGMFRM_FREE_CORRELATION_SMOKE: "true"
+          BAYESIANMGMFRM_FREE_CORRELATION_RECOVERY_SMOKE: "true"
+          JULIA_NUM_THREADS: "1"
+          OPENBLAS_NUM_THREADS: "1"
+        run: julia --startup-file=no --project=. test/mgmfrm_free_latent_correlation_2d.jl
+      - name: Test the experimental boundary and guarded fits
+        env:
+          BAYESIANMGMFRM_EXPERIMENTAL_BOUNDARY_SMOKE: "true"
+        run: julia --startup-file=no --project=. test/experimental_namespace.jl
+
+  release-hygiene-gate:
+    name: Release hygiene gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check compressed source archive budget
+        shell: bash
+        run: |
+          source_archive_bytes=$(git archive --format=tar.gz HEAD | wc -c)
+          printf 'Compressed source archive: %s bytes (limit 4194304)\n' "$source_archive_bytes"
+          test "$source_archive_bytes" -le 4194304
+      - uses: julia-actions/setup-julia@v2
+        with:
           version: '1'
       - uses: julia-actions/cache@v2
+      - name: Verify the clean distribution candidate
+        run: julia --startup-file=no scripts/distribution_archive_smoke.jl
       - name: Run release hygiene gate
         run: |
-          julia --startup-file=no scripts/pre_registration_gate.jl --skip-tests --skip-docs --expected-version=0.1.1
+          julia --startup-file=no scripts/pre_registration_gate.jl --skip-tests --skip-docs --expected-version=0.1.2

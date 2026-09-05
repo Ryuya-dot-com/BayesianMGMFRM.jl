@@ -1,5 +1,13 @@
 # Test Fixtures
 
+This directory retains both ordinary numerical references and historical
+research evidence. Classification follows the test consumer, not file size
+or a filename prefix. Directory organization does not authorize regeneration,
+deletion, or a scientific run; see the [active roadmap](../../ROADMAP.md).
+The [fixture placement review](../../docs/internal/fixture-boundary.md)
+classifies all 123 tracked files: 23 ordinary references, 99 research records,
+and this guide, including the retain decisions for 11 JSON files above 250 KiB.
+
 `scalar_validation_known_value.json` and
 `scalar_validation_medium_known_value.json` are Julia analytic known-answer
 fixtures for the scalar `ScalarValidationData` target used in the test suite.
@@ -45,12 +53,78 @@ The scalar Stan reference model used to generate such fixtures is
 `propto=false` and `jacobian=true` to match the Julia scalar log-density. The
 scalar reference includes the Uto-Ueno logistic scaling constant `1.7`.
 
-Large GMFRM/MGMFRM promotion, stress-chain, recovery, exposure-review, and
+GMFRM/MGMFRM promotion, stress-chain, recovery, exposure-review, and
 BridgeStan oracle artifacts are treated as optional local evidence files. The
-default test suite checks them only when the corresponding file exists under
-`test/fixtures/` or when its documented `MFRM_*_FIXTURE` environment variable
-points to a file. If an environment variable is set to a missing path, the test
-suite errors so local evidence jobs cannot silently skip a requested fixture.
+ordinary suite does **not** use these optional artifacts as numerical oracles,
+even when their files exist. Checks routed through `optional_fixture_path`
+require `BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true` and test group `all`.
+In that opt-in mode, an existing default file or its documented
+`MFRM_*_FIXTURE` override is checked. A non-empty override without opt-in is
+rejected; an explicitly missing path also errors. An empty override disables
+that optional fixture. Ordinary source/privacy checks may still scan committed
+JSON text; that is distinct from interpreting it as scientific evidence.
+The scalar analytic/Stan fixtures above, the ConQuest bridge fixture below,
+and `local_dependence_known_truth_preflight.json` retain ordinary behavioral
+checks. The LD fixture checks the generator contract, not repeated calibration.
+Do not relocate them by filename alone. Preserve source-pinned research files
+until their consumers and a recoverable destination have been reviewed.
+
+`existing_api_design_robustness_plan.json` freezes the study that precedes the
+dynamic-rater extension. Its deterministic layer checks row-order and
+categorical-`occasion` invariance, rejects an ability-nested no-link design,
+materializes separate 5% and 10% all-rater common-linking conditions, and
+verifies that parameter anchors, multiply-scored targets, controlled
+benchmarks, and the generic planning-grid `anchor_size` field are not
+conflated. A double-rated baseline is explicitly recorded as 100%
+multiply-scored but 0% designated common-linking. These seven checks pass; no
+paired MFRM/GMFRM/MGMFRM recovery simulation or design-robustness claim is
+recorded.
+Regenerate it with:
+
+```bash
+julia --project=. scripts/generate_existing_api_design_robustness_plan.jl
+```
+
+`existing_api_design_robustness_stress_grid.json` is the default MCMC-free
+execution of that plan. It materializes 24 model-design cells and 21 paired
+well-specified/omitted-order-effect datasets across MFRM, scalar GMFRM, and
+fixed-Q MGMFRM; checks additive and fixed-total-target-displacement budgets;
+records explicit planned and observed denominators, target displacement,
+requested-versus-achieved fit eligibility, ability/order and
+assignment/severity diagnostics, achieved score dispersion, and MGMFRM
+dimension/Q-active-source order diagnostics; and verifies six pure row
+permutations across the C0/C2A controls plus three C2P same-event
+early-versus-distributed placement contracts. Replication seeds resample
+assignment and order skeletons while each
+paired A/B comparison shares one skeleton, truth, response uniforms, and
+sampler seed. Full-range common-link selection is seeded but constrained to
+include an ability-by-item corner pair whenever at least two targets are
+available, guaranteeing achieved ability and item range ratios of at least
+0.75. Before score generation, pilot/calibration dry profiles inspect every
+requested replication skeleton for every fit-candidate family and record pass
+counts and failure rows; the same check is a hard gate before `--execute`. It
+never resamples scores to force category use: zero-count
+declared categories remain in the artifact. Condition A uses the same package
+likelihood kernel for generation and fitting, so this is a design-robustness
+pilot rather than an independent kernel cross-check. The small 2% smoke cell is
+recorded as underresolved and fit-ineligible. The default fixture attempts no
+MCMC and supports no recovery or anchor-rate claim. The committed reference is
+generated with Julia 1.10.8 and the tracked `Manifest-v1.10.toml`; its
+`runtime_provenance` records both explicitly. Regenerate it with Julia 1.10.8:
+
+```bash
+julia --project=. scripts/generate_existing_api_design_robustness_stress_grid.jl
+```
+
+Sampling requires `--execute` and an explicit non-fixture `--output` path; a
+normalized or resolved path to the committed default fixture is rejected.
+Executed multi-replication jobs additionally require `--allow-heavy`. Pilot
+and calibration MCMC remain blocked until the declared full gate scorer is
+implemented; their MCMC-free profiles can still audit achieved designs. Across
+supported Julia versions, tests compare semantic contracts. Byte-for-byte
+regeneration and exact seeded-stream SHA values are same-environment maintainer
+checks, not cross-version CI invariants; CI instead verifies the within-artifact
+C2P equality relations.
 
 `mgmfrm_literature_anchored_synthetic_benchmark.json` materializes two
 DOI-traced, deterministic known-truth pilot datasets: the smallest Uto and Ueno
@@ -73,6 +147,216 @@ julia --project=. scripts/generate_mgmfrm_literature_anchored_synthetic_benchmar
 
 An alternate artifact can be checked with
 `MFRM_MGMFRM_LITERATURE_ANCHORED_SYNTHETIC_BENCHMARK_FIXTURE`.
+
+`conquest_5_47_5/` is a privacy-reduced, version-specific execution fixture for
+the minimal ConQuest bridge. It freezes the executed control, input manifest,
+hardened macOS verifier, macOS runner, receipt, parameter export, design matrix,
+iteration history, and zero-byte labels file from one RSM and one PCM known-
+truth run made with ACER ConQuest 5.47.5 Demonstration on macOS. The expectation
+manifest records the bundle, verifier, runner, executable, receipt, and fixture-
+file hashes; known truth; reconstructed sum-to-zero estimates; selected
+minimum-deviance iterations; and block RMSE. Tests rebuild the bundle and
+receipt identities, compare all 15 receipt output records with the manifest,
+parse the real commented parameter rows, check the 12-by-3 generalized-item/
+category grids and full design ranks, link the selected history parameters to
+the export, reconstruct constrained rater/item/step coordinates, and recompute
+recovery. The public semantic-adapter tests place the retained parameter and
+design outputs into newly generated, complete hash-bound RSM/PCM test bundles;
+this exercises exact identifier-map, category-map, control, comment-order, and
+design-basis checks without claiming a second external execution. The retained
+fixture alone cannot bind original facet labels because its row-level bundle
+inputs and identifier map are deliberately omitted. The directory deliberately
+omits row-level ratings, person estimates,
+original labels, the other 11 raw outputs per model, the ConQuest executable,
+and activation material. The seed and truth are operator-recorded because the
+row-level generation stream is omitted. This is single-run transport and
+known-truth evidence, not an independent replication, convergence adjudication,
+a direct package comparison, or product equivalence.
+
+`local_dependence_known_truth_preflight.json` records the RNG-contract-scoped,
+MCMC-free LD1a preflight for the standalone ordinal known-truth generator. It
+materializes all 22 frozen scenarios, records the generator and adapter source
+hashes, verifies that the probability kernel source can be loaded with only the
+`Random` standard library, and checks exact-zero/null identity, event-matched
+ability/order invariance, ability-informed assignment, declared additive
+mechanism components, mixed
+testlet applicability, pair-support thresholds, and structural rejection
+controls. This fixture establishes only the generator and design-preflight
+contract. It does not run a model fit or `local_dependence_summary`, complete
+repeated calibration, assign diagnostic decisions, estimate power or error
+rates, or classify an observed-data mechanism. Regenerate it with:
+
+```bash
+julia --project=. scripts/generate_local_dependence_known_truth_preflight.jl
+```
+
+`local_dependence_calibration_scorer_preflight.json` records the MCMC-free
+LD1b0 scorer and protocol preflight. It retains all 22 planning scenarios in
+the denominator, materializes the four declared pre-fit rejection rows, freezes
+candidate pair, family-maximum, and all-family-maximum scoring rules, and checks
+that unresolved replications remain unresolved rather than being counted as
+non-declarations. Wilson intervals apply only to replication-level binary
+rates; pooled pair rates remain descriptive. The artifact runs no model fit,
+no MCMC, and no completed diagnostic row. Pilot and evaluation replications
+remain pending, so calibration evidence, diagnostic decision labels, pairwise
+power, and mechanism interpretation remain unavailable. Regenerate it with:
+
+```bash
+julia --project=. scripts/generate_local_dependence_calibration_scorer_preflight.jl
+```
+
+`local_dependence_pilot_protocol_preflight.json` records the deterministic,
+MCMC-free LD1b1 pilot execution-protocol preflight. It expands the 22 frozen
+scenarios to 30 pilot replications, yielding 660 compact planning jobs: 540 structurally
+eligible fit-and-diagnostic jobs and 120 planned pre-fit rejections. It also
+reserves the disjoint 50- and 100-replication evaluation seed namespaces and
+records Wilson-interval precision reference rows without storing observed
+performance rates. The artifact binds the LD1a generator and LD1b0 scorer
+preflights by both file and canonical content hashes. It generates no response
+data, fits no model, runs no MCMC or local-dependence diagnostic, and does not
+freeze a threshold profile. Rank-normalized R-hat and bulk/tail ESS capability
+is now available, so the artifact authorizes the pilot execution protocol. It
+also records an ordered seven-source SHA-256 pin covering the batch controller,
+canonical JSON helper, single-job worker, attempt archive, interruption
+recovery, calibration semantics, and harness generator. The pilot remains
+unrun; calibration evidence, diagnostic decision labels, and mechanism
+interpretation therefore remain unavailable. Regenerate it with:
+
+```bash
+julia --project=. scripts/generate_local_dependence_pilot_protocol_preflight.jl
+```
+
+`local_dependence_pilot_bounded_canonical_smoke_receipt.json` is the immutable
+final Gate 7 receipt for a successful verification-only execution of canonical
+row 5, `ld1b1_pilot__rep01__s05__null_support_at_minimum`, against the exact
+pinned source. It binds parent plan
+`197d91c65b89b669dcff6a0813b73f727acf57da90191fbda56c497a05544329`,
+source pin
+`781bb1aebfda5c16c662b60939a33bde97664cdce6f385ea7bddb25a72353793`,
+and smoke plan
+`4e32bbbaae5dafda795ccca1ddaf819cc1bd715568206134278a878f8c8b19a9`;
+its file SHA-256 is
+`de7f1ffab4002e99b75c86d64efbe73deca695b97ac45b0cf177afa5398b58c3`.
+It used the frozen AdvancedHMC/NUTS controls: 4 chains with 500 warmup and 500
+retained iterations per chain. The bounded child exited successfully after
+387.724 seconds; measured peak RSS was 3,131,703,296 bytes and peak archive
+size was 4,936,558 bytes, both below their frozen caps. The strict receipt
+revalidates the controller receipts, source pin, evidence lineage, completed-
+attempt seal, resource limits, and unchanged official pilot state.
+The smoke runs in a separate verification namespace, is scanner-ineligible for
+the canonical pilot, and contributes zero to the official `0/660` denominator.
+Its sealed raw bundle remains local, so tracked release-lineage verification is
+still pending; the compact receipt is a fixed evidence snapshot and has no
+routine regeneration command.
+
+Two earlier verification-only plan identities failed closed before
+`job_result` or evidence publication, first on a native-`UInt64` JSON projection
+bug and then on a String-key lineage bug. Both defects were fixed and covered by
+regression tests before the first successful receipt was published. Those failed
+plans also contribute zero scientifically.
+
+The earlier successful smoke plan
+`d4c6ed67958f47094efb68d4995b75846866f8c41f5d6c1d89687ac19ddd06c8`
+receipt was archived after a portability audit found that the tracked dry-run
+harness consumed local raw smoke state. The harness build and generator now
+explicitly set `consume_bounded_smoke_receipt = false`; generator output is
+byte-identical before and after a local receipt, with SHA-256
+`1afde641277e2219d4f0bbdb8a2665201876ff1f34a97b29a81a5adb67dd363d`.
+Because the fix changed the pinned source, smoke plan
+`d2d7169629d21a5ff49d35eeafac30bc5a342cc699b0029b9cfbf1c9366f8119`
+was rerun instead of reusing the archived `d4c6ed…` receipt. A subsequent clean
+`Pkg.test()` found `Sockets` missing from the test extras. Adding `Sockets` to
+the test target with its compatibility bound changed the Project hash, so the
+`d2d716…` receipt was archived and `7c8e49…` was rerun. Clean testing then found
+the known-truth fixture's Project SHA stale. Regenerating the known-truth ->
+scorer -> protocol chain and the Julia 1.10.8 robustness fixture archived
+`7c8e49…`; the final `4e32bb…` smoke above was rerun. The canonical executor
+source pin remained unchanged across this final provenance refresh.
+
+`local_dependence_pilot_batch_execution_harness.json` records the deterministic,
+MCMC-free LD1b1 batch execution-harness dry run for the same 660 planning jobs:
+540 eligible fitting jobs and 120 planned pre-fit rejections. It binds the
+protocol identity and ordered seven-source pin to deterministic plan and job
+identifiers. The controller compares each recorded source digest with the
+current repository file before deriving authorization, harness, all 660
+command, and checkpoint identities. The worker reconstructs readiness on its
+execute path, so a CLI authorization flag alone cannot bypass missing smoke or
+review evidence. Gates 6 and 7 are complete in the local worktree; Gate 7 is
+represented by the separate immutable bounded-smoke receipt above. Tracked
+release-lineage verification remains pending. The dry run records the relative
+attempt layout without materializing attempt outcomes. A terminal result must
+carry exactly the semantic evidence
+roles required by its status. Every evidence envelope is checked against the
+plan, executor, job, seeds, attempt, status, payload schema, file size, and
+SHA-256 digest. It must also bind one role-specific source artifact and the
+exact content hashes of its upstream evidence. The frozen `pilot_contract` and
+ordered 660 job rows are checked against canonical SHA-256 values. A
+`pre_fit_rejected` terminal record requires the exact `generated_data` ->
+`structural_rejection_audit` -> `calibration_row` chain; the calibration member
+uses the existing public calibration-row contract. Simulation members validate
+response data, table columns, probability cells, truth and row-truth arrays,
+and data/score/design signatures. Fit members use the structured
+`local_dependence_pilot_fit_artifact_export.v1` JSON wrapper, containing
+retained draws, log posterior values, and sampler statistics. The pinned local
+canonical worker verifies the package-native content hash before JSON
+projection, and the batch runner separately recomputes the canonical JSON
+payload hash and verifies the exact file SHA-256. The JSON projection cannot
+soundly reconstruct the native typed hash. Generated resource counts are
+matched to the frozen job, while sampler records must satisfy the fixed
+4-chain, 500-draw controls
+and the individual R-hat, bulk/tail ESS, divergence, depth, and complete-chain
+E-BFMI gates. Data, design, fit-artifact, retained-draw, chain, and iteration
+provenance must agree across fit, sampler, local-dependence, and calibration
+members. The custom `local_dependence_pilot_summary_bundle.v1` directly records
+the draw-selection and posterior-predictive seeds; the runner compares both
+with its evidence payload, the frozen job, and the calibration execution seeds.
+Draw selection uses the frozen `sha256_seeded_rank_without_replacement_v1`
+algorithm, and the runner recomputes its ordered draw indices from the frozen
+seed. The posterior-predictive seed is source-bound, and its recorded lineage
+passes the bounded smoke on the final pinned source. Independent
+recovery/readiness review remains pending.
+For `diagnostic_failed`, `sampler_quality_gate` requires a failed
+sampler gate, while `local_dependence_summary` requires a passing sampler gate.
+Extra files, symbolic links, and hard links are rejected, and file snapshots
+are rechecked against the attempt
+inventory. This is a static consistency check, not an atomic completed-attempt
+seal. Aggregate and checkpoint state retain the ordered primary-result,
+evidence-manifest, and attempt-inventory digests. A primary attempt cannot be
+overwritten. Any remediation attempt is a separate, append-only record and does
+not replace the
+primary outcome or its scientific denominator role. Invalid remediation blocks
+attempt-archive integrity but does not replace or remove a valid primary
+outcome. A checkpoint is a derived resume index only. Resume first rescans the
+complete attempt archive as the source of truth, then verifies and compares the
+checkpoint, and skips only verified terminal primary records. Because the
+generated dry run does not perform that scan, its archive assessment is
+`not_assessed`, its outcome counts and state digest are `null`, and its pass is
+limited to the harness contract. The
+artifact generates no response data, fits no model, and runs no MCMC; pilot
+results, calibration or power estimates, diagnostic decisions, and mechanism
+interpretations remain unavailable.
+
+The artifact is generated by
+`scripts/generate_local_dependence_pilot_batch_execution_harness.jl`. The
+companion `scripts/run_local_dependence_calibration_pilot_batch.jl` provides
+status, dry-run, execute-primary, execute-retry, aggregate-only, and receipt-
+verified `retire-interrupted` modes; `--resume` verifies the derived v3
+checkpoint after a fresh archive scan. Execute modes remain fail-closed until
+independent pinned recovery/readiness review is accepted.
+Completed-attempt seals and receipt-bearing launched-attempt retirement pass
+synthetic boundary tests. Controller-owned execute-path receipt binding and
+reservation-before-precommit recovery also pass local MCMC-free tests. The
+current `v0.1.2` LD1b integration checkpoint is `7/9` (`77.8%`); Gates 3--7
+remain local-worktree evidence pending tracked release-lineage verification.
+Gate 8, independent pinned recovery/readiness review, is the only remaining
+pre-pilot blocker; operational readiness is false. No pilot job or official
+pilot MCMC has occurred, so the scientific count remains `0/660`.
+
+Regenerate the versioned artifact with:
+
+```bash
+julia --project=. scripts/generate_local_dependence_pilot_batch_execution_harness.jl
+```
 
 `mgmfrm_literature_anchored_independent_review_packet.json` freezes the
 literature-anchored synthetic benchmark for independent review. It records the
@@ -189,16 +473,15 @@ julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_policy.jl
 An alternate artifact can be checked with
 `MFRM_MGMFRM_TAM_DIRECT_AGREEMENT_POLICY_FIXTURE`.
 
-`mgmfrm_tam_direct_agreement_policy_refinement.json` is a prospective sidecar
-to the frozen policy, not a replacement for it. It verifies the parent-policy
-hash and unchanged threshold tables, fixes fresh disjoint seeds and complete
-package/TAM execution contracts, makes the 4-of-5 aggregation, small-block
-discreteness, failed-fit disposition, and no-replacement rules explicit, and
-adds a secondary truth-recovery qualifier. The qualifier cannot rescue or veto
-the frozen direct-agreement decision; it distinguishes agreement with recovery
-support from agreement without recovery support. The existing descriptive
-item-step pilot falls in the latter category. The committed refinement is also
-retained unchanged as a pre-execution snapshot. Its original deterministic
+`mgmfrm_tam_direct_agreement_policy_refinement.json` is the current prospective
+sidecar to the frozen policy, not a replacement for it. It verifies the
+parent-policy hash and unchanged threshold tables, fixes fresh disjoint seeds
+and complete package/TAM execution contracts, makes the 4-of-5 aggregation,
+small-block discreteness, failed-fit disposition, and no-replacement rules
+explicit, and adds a secondary truth-recovery qualifier. The qualifier cannot
+rescue or veto the frozen direct-agreement decision; it distinguishes agreement
+with recovery support from agreement without recovery support. The existing
+descriptive item-step pilot falls in the latter category. Its deterministic
 generation command is:
 
 ```bash
@@ -207,6 +490,22 @@ julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_policy_refinement
 
 An alternate artifact can be checked with
 `MFRM_MGMFRM_TAM_DIRECT_AGREEMENT_POLICY_REFINEMENT_FIXTURE`.
+
+`mgmfrm_tam_direct_agreement_policy_refinement_execution_snapshot.json` is the
+byte-exact refinement used by the retained direct-agreement jobs. It is an
+immutable historical input, has SHA-256
+`03fe1a903d4fd218b5ab3e5ad51f5133ec1d8f274fafcea0bf8ac330876d8f4e`,
+and is not regenerated. Its scientific policy, thresholds, and seed registry
+match the current refinement; the differences are package and environment
+metadata. The aggregate and all-attempt audit verify selected-job and retained-
+attempt lineage against this snapshot, including the fixed-truth checksum,
+three seed streams, and captured Project/Manifest hashes. The one retained
+result-writer failure did not record a truth field, so its truth lineage
+is resolved through the exact pinned baseline checksum and is labeled as such
+in the audit. This closes the execution-input hash chain without rerunning
+MCMC. It does not erase the older refinement hash in
+the immutable pre-execution review packet; that separate chronology difference
+continues to require independent adjudication.
 
 `mgmfrm_tam_direct_agreement_multireplication.json` is the completed execution
 record for that unchanged policy and refinement. It contains five fresh
@@ -225,7 +524,7 @@ TAM validation, generalized-model validation, or public claim release.
 Regenerate only the committed aggregation after the ten raw jobs exist with:
 
 ```bash
-julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_multireplication.jl --aggregate-only
+julia --project=. scripts/generate_mgmfrm_tam_direct_agreement_multireplication_aggregate.jl --aggregate-only
 ```
 
 An alternate artifact can be checked with
@@ -436,6 +735,16 @@ MGMFRM diagnostics: `4` chains, `1000` warmup draws per chain, and `1000`
 retained draws per chain. This is a report-facing guidance setting, not a
 package-wide `fit` default change.
 
+Historical publication-grade runner artifacts described below predate the
+versioned rank-normalized diagnostic contract. They do not contain
+`max_rank_normalized_rhat`, `min_bulk_ess`, `min_tail_ess`, or a
+`diagnostic_contract` field. Some historical gate rows used modern diagnostic
+labels while receiving the then-current classical `max_rhat`/`min_ess` values;
+those files are retained as pre-modern local execution evidence and must not be
+relabelled as modern convergence evidence. New runner output records the
+explicit modern fields and contract identifier. Promotion evidence requires a
+new fit under that contract, not an in-place rewrite of historical results.
+
 `mgmfrm_publication_grade_refit_gate.json` records the next local
 publication-grade refit gate after descriptive 125-unit scoring. It freezes the
 NUTS chain/draw/warmup controls, R-hat/ESS/HMC diagnostic thresholds,
@@ -590,6 +899,14 @@ actionable local handoff for the missing external attachments. It embeds the 25
 user-supplied manifest fields, ten attachment checklist rows, and six rejection
 conditions while keeping external manifest files unwritten and all public claim
 release switches blocked.
+
+For all three artifacts, `summary.passed` is a v1 compatibility field with
+`pass_scope = contract_and_blocker_preservation_only`; it means that the local
+artifact contract is valid and the blockers were preserved. It does **not**
+mean that external evidence passed. Use the explicit attachment, file-integrity,
+validation-evidence, independent-review, and public-claim-release gate fields;
+in the committed fixtures the artifact contracts are valid, while every one of
+those evidence/release gates remains false.
 
 `mgmfrm_fit_threshold_q_heldout_linkage.json` links the literature-motivated
 fit-threshold sensitivity grid, empirical Q-matrix recovery simulation, heldout

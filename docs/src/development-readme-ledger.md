@@ -137,7 +137,9 @@ usually wants to see.
 **Bayesian fitting**
 
 - `fit` supports minimal MFRM/RSM/PCM models with `backend = :julia`,
-  `backend = :advancedhmc`, or `backend = :turing`.
+  `backend = :advancedhmc`, `backend = :turing`, or `backend = :cmdstan`.
+- `BayesianMGMFRM.Experimental.fit` supports its guarded GMFRM/MGMFRM
+  configurations with `backend = :advancedhmc` or `backend = :cmdstan`.
 - `cached_fit`, `fit_cache_key`, `save_fit_cache`, and `load_fit_cache` provide
   same-environment recomputation control.
 - `MFRMPrior`, `MFRMLogDensity`, `initial_params`, `loglikelihood`,
@@ -481,6 +483,12 @@ recovered after MCMC across replicated seeds and internal prior profiles:
   handoff for that preflight. It embeds the 25 user-supplied manifest fields,
   ten attachment checklist rows, and six rejection conditions while explicitly
   avoiding creation of external evidence or manifest files.
+- The three external-attachment artifacts now label their legacy `passed`
+  fields with `pass_scope = contract_and_blocker_preservation_only` and expose
+  `artifact_contract_valid` separately from attachment, integrity, validation,
+  independent-review, and public-release gates. Thus the committed structural
+  packets pass their contracts while all external evidence/release gates remain
+  false.
 - The current compact Null-win batch still shows large structured-model losses:
   the analytic null/reference ranked first in 24/25 heldout folds, and Current Q
   had total dELPD vs Null `-153.200`. These failures should be diagnosed
@@ -542,7 +550,7 @@ For ordinary local verification:
 
 ```bash
 julia --project=. -e 'using Pkg; Pkg.test()'
-julia --project=docs docs/make.jl
+julia --startup-file=no --project=docs docs/build.jl
 ```
 
 Before cutting a release or requesting a Julia General update, run the stricter
@@ -569,9 +577,14 @@ call GitHub, Registrator, General, or any publication endpoint.
 
 ## Manifest and Cache Policy
 
-Package `Manifest.toml` files are intentionally ignored for Julia General
-registration. The package gate develops the repository in fresh temporary
-environments so local manifests do not affect registration checks.
+The root `Manifest.toml` and `docs/Manifest.toml` are ignored, machine-local
+files. The versioned `Manifest-v1.10.toml` is the tracked lockfile for the Julia
+1.10.8 minimum-version lane; Julia 1.10 selects it while the latest Julia 1.x
+lane resolves from `Project.toml` compatibility bounds to detect forward drift.
+A study should record the package version and relevant environment information
+with its outputs. Exact manifest-byte equality is not an ordinary package gate.
+The package gate develops the repository in fresh temporary environments, so
+the local root and docs manifests do not affect registration checks.
 
 Serialized fit caches from `cached_fit` are for same-environment recomputation
 avoidance. For durable review, keep the `model_manifest`, `fit_artifact`,
