@@ -402,9 +402,14 @@ because its prior would be constant under that gauge; an anchor-aware estimator
 must reparameterize the reference or transform the source anchor to an identified
 contrast.
 
-This function performs no fit and does not change `FacetSpec.estimation_status`.
-It validates declarations and records the identification constraints that a
-separate anchor-aware estimator must satisfy.
+This function performs no fit. Semantically valid individual hard anchors are
+accepted by the stable `mfrm_spec`/`getdesign`/`fit` route; provenance remains
+an optional audit layer and is not a numerical fitting prerequisite. Use
+`require_provenance = false` for a distribution-oriented declaration check
+that does not require source hashes or external artifact metadata. Input data
+must already pass the ordinary connectedness and rank gates: individual
+parameter anchors do not create observed graph links, and group-anchored
+alignment of disconnected components is not implemented.
 """
 function anchor_refit_plan(spec_or_design; require_provenance::Bool = true)
     spec = _anchor_refit_spec(spec_or_design)
@@ -419,6 +424,9 @@ function anchor_refit_plan(spec_or_design; require_provenance::Bool = true)
     n_failed = count(row -> row.status !== :candidate_supported, rows)
     candidate_supported = !isempty(rows) && isempty(family_issues) &&
         n_failed == 0 && n_soft == 0
+    numerical_fit_supported = spec.estimation_status === :fit_supported &&
+        !isempty(rows) && n_soft == 0 &&
+        _stable_hard_anchor_map(spec.data, spec.anchors) !== nothing
     status = isempty(rows) ? :no_anchors_declared :
         candidate_supported ? :hard_anchor_candidate_ready : :preflight_failed
 
@@ -430,8 +438,13 @@ function anchor_refit_plan(spec_or_design; require_provenance::Bool = true)
         dimensions = spec.dimensions,
         discrimination = spec.discrimination,
         estimation_status = spec.estimation_status,
-        capability = :declaration_validation_only,
+        capability = numerical_fit_supported ?
+            :stable_hard_anchor_fit_available : :declaration_validation_only,
         executes_refit = false,
+        numerical_fit_supported,
+        fit_entrypoint = numerical_fit_supported ?
+            "BayesianMGMFRM.fit(spec)" : missing,
+        provenance_required_for_fit = false,
         require_provenance,
         n_anchors = length(rows),
         n_hard_anchors = n_hard,
@@ -462,9 +475,22 @@ function anchor_refit_plan(spec_or_design; require_provenance::Bool = true)
             accepted_type = :hard_anchor,
             coordinate_strategy = :affine_direct_parameter_map,
             identification_policy = :replace_reference_gauge_not_stack_constraints,
+            disconnected_component_policy =
+                :reject_individual_anchors_do_not_create_observed_links,
             prior_scale_declaration_allowed = false,
+            source_value_uncertainty = :not_propagated_exact_fixed_values,
             fixed_coordinates_must_not_be_sampled = true,
             full_direct_draw_restoration_required = true,
+            fixed_coordinates_sampled = false,
+            fixed_coordinates_exposed_in_design_manifest =
+                numerical_fit_supported,
+            fixed_coordinates_exposed_in_wright_map =
+                numerical_fit_supported,
+            fixed_coordinates_exposed_in_fit_report =
+                numerical_fit_supported,
+            hard_anchor_warning_exposed_in_fit_report =
+                numerical_fit_supported,
+            full_direct_draws_restored_for_reports = false,
             exact_fixed_value_check_required = true,
             rank_and_overconstraint_check_required = true,
         ),

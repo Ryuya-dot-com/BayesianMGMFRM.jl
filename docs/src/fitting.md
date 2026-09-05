@@ -21,6 +21,7 @@ data = FacetData(ratings;
     rater = :rater,
     item = :item,
     score = :score,
+    category_levels = 0:2,
 )
 validation = validate_design(data)
 validation.passed || error(validation)
@@ -41,8 +42,80 @@ fit_result = fit(design;
 ```
 
 The rating-scale and partial-credit threshold regimes share the same workflow.
+Declaring `category_levels` preserves the form's intended threshold count when
+an endpoint is absent from the realized sample. Inspect
+`ordinal_response_pattern_audit(data).category_scale` and validation warnings
+before fitting; do not reduce the scale merely to remove an empty category.
 Inspect [`constraint_table`](@ref), [`identification_declarations`](@ref), and
 [`model_manifest`](@ref) when reviewing the parameterization.
+
+For a stable MFRM fit with exact item or rater hard anchors, inspect the public
+report directly:
+
+```julia
+report = fit_report(fit_result; view = :public)
+report.fixed_coordinates.rows
+report.fixed_coordinates.warning_rows
+```
+
+The rows include both default reference coordinates and declared hard anchors.
+Every row states that the coordinate is unsampled, prior-free, and not a
+posterior estimate. A hard-anchor fit contributes two baseline warnings to the
+structured report and to the prominent `Warnings` block in
+`fit_report_markdown(report)`: one marks fixed coordinates as constants, and
+the other states that `MFRMPrior` remains zero-centered on free identified
+coordinates. Thus changing an anchor value can change prior and posterior
+predictions even when a likelihood-equivalent reparameterization exists. The
+fixed-value warning also states that uncertainty from an externally estimated
+anchor is not propagated into this fit.
+When two or more anchors occur in the same facet, a third warning states that
+within-facet contrasts have been fixed and require contamination or drift
+sensitivity; one rater plus one item anchor does not trigger that warning.
+Posterior-summary rows continue to contain only estimated coordinates.
+
+The same stable MFRM report includes practitioner-facing category and rater
+sections by default:
+
+```julia
+report = fit_report(
+    fit_result;
+    view = :public,
+    category_functioning_min_count = 5,
+    rater_severity_rope = nothing,
+)
+report.category_functioning.usage_rows
+report.category_functioning.threshold_rows
+report.rater_homogeneity.contrast_rows
+```
+
+Category flags are review prompts, not an automatic category-collapse,
+recoding, or refitting rule; any flagged rows contribute one aggregate warning.
+No universal severity ROPE is assumed for rater contrasts. The default
+`rater_overlap_unit = :person_item` is a proxy rather than proof that two raters
+scored the identical response when repeated occasions exist; use
+`:response_id` or `:response_item` with declared response identifiers when
+common-response linking is the intended claim. Each contrast labels its rater
+coordinates as `reference_zero`, `hard_anchor`, or `estimated`. A contrast
+between two fixed coordinates is an exact constant rather than a posterior
+estimate: `n_uncertainty_draws` is zero, the interval is not applicable, and
+its interval probability and quantile-probability fields are missing;
+sign/ROPE probabilities are deterministic. With one fixed coordinate,
+posterior uncertainty comes only from the estimated coordinate. Set
+`include_category_functioning = false` or
+`include_rater_homogeneity = false` to disable either section independently.
+For a one-rater fit, the rater section is still computed but contains zero
+contrast rows and reports `not_applicable_single_rater`; an empty comparison is
+not evidence of rater homogeneity. Generalized fits do not request these
+stable-only sections by default, and an explicit request returns `unsupported`.
+Public JSON, table, and bundle exports preserve the zero-row contrast table.
+Markdown keeps the section summary but omits empty table previews by default;
+use `fit_report_markdown(report; include_empty = true)` when an explicit
+zero-row table marker is required.
+
+With `thresholds = :partial_credit`, a declared but unobserved endpoint remains
+in category usage rows as `observed_flag = :skipped`, while item-specific step
+rows continue to cover the complete declared scale. This is a review prompt,
+not authorization to narrow the scale or collapse the category.
 
 ## Backends and Sampler Controls
 
@@ -182,7 +255,8 @@ scientific superiority claim.
 ## Reports and Reproducibility
 
 [`fit_report`](@ref) collects metadata, diagnostics, design checks, posterior
-summaries, predictive results, calibration, and optional comparison rows.
+summaries, predictive results, calibration, stable-MFRM category/rater
+practitioner rows, and optional comparison rows.
 The complete version-1 payload retains its fields for machine compatibility.
 Use `fit_report(fit; view = :public)` or [`fit_report_public`](@ref) for a
 portable report shared with readers. [`fit_report_markdown`](@ref) applies the

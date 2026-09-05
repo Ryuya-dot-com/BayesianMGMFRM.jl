@@ -19,20 +19,6 @@ const LEGACY_MAINTENANCE_EXPORTS = Set((
     :release_scope_summary,
 ))
 
-const EXPERIMENTAL_READER_FACING_DOCSTRINGS = Set((
-    :GMFRMFit,
-    :MGMFRMFit,
-    :cached_fit,
-    :fit,
-    :fit_cache_key,
-    :free_latent_correlation_2d_candidate,
-    :free_latent_correlation_2d_contract,
-    :free_latent_correlation_2d_diagnostics,
-    :free_latent_correlation_2d_state,
-    :preview,
-    :surface_contract,
-))
-
 # These fully qualified functions support developer research workflows. They
 # are intentionally absent from the published manual. Exact study-ledger and
 # recorded-output payloads remain unchanged.
@@ -68,12 +54,23 @@ end
 
 function experimental_public_docstring_names()
     documented = Set(experimental_documented_names())
+    contract = BayesianMGMFRM.Experimental.surface_contract()
+    hasproperty(contract, :reader_facing_bindings) || error(
+        "Experimental surface contract must declare reader_facing_bindings")
+    declared = contract.reader_facing_bindings
+    declared isa Tuple || error(
+        "Experimental reader_facing_bindings must be a tuple")
+    all(name -> name isa Symbol, declared) || error(
+        "Experimental reader_facing_bindings must contain only symbols")
+    length(unique(declared)) == length(declared) || error(
+        "Experimental reader_facing_bindings contains duplicates")
+    reader_facing = Set(declared)
     classified = union(
-        EXPERIMENTAL_READER_FACING_DOCSTRINGS,
+        reader_facing,
         EXPERIMENTAL_DEVELOPER_DOCSTRINGS,
     )
     overlap = intersect(
-        EXPERIMENTAL_READER_FACING_DOCSTRINGS,
+        reader_facing,
         EXPERIMENTAL_DEVELOPER_DOCSTRINGS,
     )
     isempty(overlap) || error(
@@ -82,7 +79,7 @@ function experimental_public_docstring_names()
         "Experimental documented bindings must be classified exactly; " *
         "unclassified=$(sort!(collect(setdiff(documented, classified)); by=String)) " *
         "missing=$(sort!(collect(setdiff(classified, documented)); by=String))")
-    return sort!(collect(EXPERIMENTAL_READER_FACING_DOCSTRINGS); by = String)
+    return sort!(collect(reader_facing); by = String)
 end
 
 function exported_docstring_outputs()

@@ -31,6 +31,22 @@ end
     @test contract.entrypoint == "BayesianMGMFRM.Experimental.fit(spec)"
     @test contract.legacy_entrypoint ==
         "BayesianMGMFRM.fit(spec; experimental = true)"
+    @test Set(contract.reader_facing_bindings) == Set((
+        :GMFRMFit,
+        :MGMFRMFit,
+        :GeneralizedPrior,
+        :cached_fit,
+        :fit,
+        :fit_cache_key,
+        :free_latent_correlation_2d_candidate,
+        :free_latent_correlation_2d_contract,
+        :free_latent_correlation_2d_diagnostics,
+        :free_latent_correlation_2d_state,
+        :preview,
+        :prior_predict,
+        :prior_predictive_check,
+        :surface_contract,
+    ))
     @test all(name -> name ∉ names(experimental),
         (:fit, :cached_fit, :fit_cache_key, :GMFRMFit, :MGMFRMFit))
     release_scope = release_scope_summary()
@@ -151,6 +167,8 @@ end
     @test stable_layout_public.fit_available
     @test stable_layout_public.entrypoint == "BayesianMGMFRM.fit(spec)"
     @test stable_layout_public.claim_scope === :minimal_mfrm_rsm_pcm
+    @test all(row -> row.status === :reference_zero,
+        stable_layout_public.fixed_coordinates)
     for layout in (gmfrm_layout_public, mgmfrm_layout_public)
         @test layout.stability === :experimental
         @test layout.fit_available

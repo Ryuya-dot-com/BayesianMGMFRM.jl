@@ -240,4 +240,7 @@ include("local_dependence_calibration_pilot.jl")
 # Scalar validation target used by the analytic-gradient test suite.
 include("scalar_validation_logp.jl")
 
+# Exact 0.1.x root-export classification and growth boundary.
+include("root_api_contract.jl")
+
 end

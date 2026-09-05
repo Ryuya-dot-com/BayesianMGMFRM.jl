@@ -1,48 +1,68 @@
 # Validation and Evidence API
 
+## User-facing runtime and provenance utilities
+
+These bindings support ordinary package workflows. CmdStan remains an optional
+runtime detected when requested; it is not required to install or load the
+package.
+
 ```@docs
 CmdStanError
-simulation_grid
-simulation_grid_summary
-mgmfrm_response_stress_plan
-simulate_mgmfrm_response_stress
-mgmfrm_response_stress_preflight
-mgmfrm_response_stress_fit_attempts
-mgmfrm_validation_resource_probe
-mgmfrm_validation_isolated_resource_probe
-mgmfrm_validation_isolated_resource_review
-mgmfrm_validation_scaled_resource_plan
-mgmfrm_validation_short_nuts_resource_probe
-mgmfrm_validation_primary_grid_candidates
-simulate_mgmfrm_validation_primary_candidate
-mgmfrm_validation_primary_grid_preflight
-mgmfrm_validation_primary_resource_plan
-mgmfrm_validation_execution_design_contract
-mgmfrm_validation_analysis_contract
-local_dependence_simulation_grid
-simulate_local_dependence
+cmdstan_backend_contract
+cmdstan_backend_check
+evidence_metadata
+simulate_responses
+```
+
+## Research-only planning and evidence helpers
+
+The bindings below remain package-root exports for `0.1.x` source
+compatibility. They plan, score, or record package research and release
+evidence; they are not part of the stable MFRM user workflow, and their
+presence is not validation of GMFRM, MGMFRM, or local-dependence claims. New
+research orchestration should not expand this root surface.
+
+```@docs
+benchmark_result_row
+benchmark_summary
+comparison_evidence_row
+comparison_evidence_summary
+falsification_rule_summary
+falsification_rules
 local_dependence_calibration_contract
+local_dependence_calibration_pilot_check
+local_dependence_calibration_pilot_contract
+local_dependence_calibration_pilot_preflight
 local_dependence_calibration_row
 local_dependence_calibration_summary
-local_dependence_calibration_pilot_contract
-local_dependence_calibration_pilot_check
-falsification_rules
-falsification_rule_summary
-simulate_responses
+local_dependence_simulation_grid
+mgmfrm_decision_stability_score
+mgmfrm_predictive_recovery_score
+mgmfrm_response_stress_fit_attempts
+mgmfrm_response_stress_plan
+mgmfrm_response_stress_preflight
+mgmfrm_validation_analysis_contract
+mgmfrm_validation_execution_design_contract
+mgmfrm_validation_isolated_resource_probe
+mgmfrm_validation_isolated_resource_review
+mgmfrm_validation_primary_grid_candidates
+mgmfrm_validation_primary_grid_preflight
+mgmfrm_validation_primary_resource_plan
+mgmfrm_validation_protocol
+mgmfrm_validation_replication_precision
+mgmfrm_validation_resource_probe
+mgmfrm_validation_scaled_resource_plan
+mgmfrm_validation_short_nuts_resource_probe
 parameter_recovery
 parameter_recovery_plot_data
 parameter_recovery_summary
-mgmfrm_predictive_recovery_score
-mgmfrm_decision_stability_score
+simulate_local_dependence
+simulate_mgmfrm_response_stress
+simulate_mgmfrm_validation_primary_candidate
+simulation_grid
+simulation_grid_summary
 stan_validation_row
 stan_validation_summary
-cmdstan_backend_contract
-cmdstan_backend_check
-comparison_evidence_row
-comparison_evidence_summary
-benchmark_result_row
-benchmark_summary
-evidence_metadata
 ```
 
 `evidence_metadata()` returns portable environment, package, project, and git

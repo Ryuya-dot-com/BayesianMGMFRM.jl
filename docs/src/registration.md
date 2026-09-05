@@ -8,10 +8,14 @@ Before requesting the version update, run the full local gate from the
 repository root:
 
 ```bash
+julia --startup-file=no scripts/distribution_archive_smoke.jl
 julia --startup-file=no scripts/pre_registration_gate.jl --expected-version=0.1.2
 ```
 
-The gate checks project metadata, General AutoMerge-facing package and origin
+The distribution smoke first verifies instantiate, first/warm load, the minimal
+stable fit, and the manual from a Git-free, non-ignored source candidate with
+optional research evidence and CmdStan/R environment hooks disabled. The full
+gate then checks project metadata, General AutoMerge-facing package and origin
 URL shape, clean temporary-environment import, `Pkg.test()`, the minimal
 example, the guarded scalar GMFRM example, the guarded fixed-Q MGMFRM example,
 Documenter with a 100 KiB rendered-page hard limit, Aqua package hygiene,
@@ -61,11 +65,12 @@ publication endpoint.
 - Release version: `0.1.2`
 - License: MIT
 - Local gate:
+  `julia --startup-file=no scripts/distribution_archive_smoke.jl`, then
   `julia --startup-file=no scripts/pre_registration_gate.jl --expected-version=0.1.2`
-- CI gate: documentation and release-verification gates, complete ordinary
-  package coverage through current-Julia shards and the full Julia 1.10 suite
-  on Ubuntu, and current-Julia package smokes on macOS and Windows pass on the
-  version-update commit.
+- CI gate: clean-distribution, documentation, and release-verification gates,
+  complete ordinary package coverage through current-Julia shards and the full
+  Julia 1.10 suite on Ubuntu, and current-Julia package smokes on macOS and
+  Windows pass on the version-update commit.
 - Trigger template:
   `julia --project=. scripts/registration_handoff.jl --strict --expected-version=0.1.2`
   runs from `main` with no tracked worktree changes.

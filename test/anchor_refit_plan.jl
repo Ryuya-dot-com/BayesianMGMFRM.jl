@@ -32,19 +32,29 @@ using BayesianMGMFRM
     @test plan.schema == "bayesianmgmfrm.anchor_refit_plan.v1"
     @test plan.status === :hard_anchor_candidate_ready
     @test plan.candidate_supported
-    @test plan.capability === :declaration_validation_only
+    @test plan.capability === :stable_hard_anchor_fit_available
     @test !plan.executes_refit
-    @test plan.estimation_status === :specified_only
+    @test plan.numerical_fit_supported
+    @test plan.fit_entrypoint == "BayesianMGMFRM.fit(spec)"
+    @test !plan.provenance_required_for_fit
+    @test plan.estimation_status === :fit_supported
     @test plan.hard_anchor_contract.coordinate_strategy ===
         :affine_direct_parameter_map
     @test plan.hard_anchor_contract.identification_policy ===
         :replace_reference_gauge_not_stack_constraints
+    @test plan.hard_anchor_contract.disconnected_component_policy ===
+        :reject_individual_anchors_do_not_create_observed_links
     @test !plan.hard_anchor_contract.prior_scale_declaration_allowed
+    @test plan.hard_anchor_contract.source_value_uncertainty ===
+        :not_propagated_exact_fixed_values
     @test plan.hard_anchor_contract.fixed_coordinates_must_not_be_sampled
     @test plan.hard_anchor_contract.full_direct_draw_restoration_required
-    @test :fixed_coordinates_sampled ∉ keys(plan.hard_anchor_contract)
-    @test :full_direct_draws_restored_for_reports ∉
-        keys(plan.hard_anchor_contract)
+    @test !plan.hard_anchor_contract.fixed_coordinates_sampled
+    @test plan.hard_anchor_contract.fixed_coordinates_exposed_in_design_manifest
+    @test plan.hard_anchor_contract.fixed_coordinates_exposed_in_wright_map
+    @test plan.hard_anchor_contract.fixed_coordinates_exposed_in_fit_report
+    @test plan.hard_anchor_contract.hard_anchor_warning_exposed_in_fit_report
+    @test !plan.hard_anchor_contract.full_direct_draws_restored_for_reports
     @test plan.provenance_contract.source_scale_semantics ===
         :normalized_anchor_value_destination_scale
     @test plan.provenance_contract.sign_semantics ===

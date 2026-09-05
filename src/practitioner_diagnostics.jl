@@ -423,7 +423,8 @@ function _rater_overlap_network(data::FacetData,
         overlap_by_pair,
         component,
         n_components,
-        network_status = n_components <= 1 ? :connected : :disconnected,
+        network_status = n_raters == 1 ? :single_rater :
+            n_components <= 1 ? :connected : :disconnected,
     )
 end
 
@@ -484,6 +485,61 @@ function _rater_common_response_status(overlap_unit::Symbol)
     return :not_verified_by_requested_unit
 end
 
+function _rater_severity_coordinate_metadata(design::FacetDesign,
+        rater_index::Int)
+    parameter_index = _stable_facet_parameter_index(
+        design,
+        :rater,
+        rater_index,
+    )
+    anchored = haskey(
+        _stable_hard_anchor_map(design)[:rater],
+        rater_index,
+    )
+    status = parameter_index === missing ?
+        (anchored ? :hard_anchor : :reference_zero) : :estimated
+    is_fixed = status in (:hard_anchor, :reference_zero)
+    return (;
+        parameter_index,
+        parameter_name = parameter_index === missing ? missing :
+            design.parameter_names[parameter_index],
+        status,
+        is_fixed,
+        fixed_value = is_fixed ?
+            _stable_facet_fixed_value(design, :rater, rater_index) : missing,
+        reference = status === :reference_zero,
+        posterior_estimated = !is_fixed,
+    )
+end
+
+function _rater_contrast_estimation_metadata(coordinate_a, coordinate_b)
+    n_fixed = Int(coordinate_a.is_fixed) + Int(coordinate_b.is_fixed)
+    return n_fixed == 2 ? (;
+        contrast_estimation_status = :fixed_contrast,
+        contrast_is_fixed = true,
+        contrast_posterior_estimated = false,
+        contrast_interval_type = :not_applicable_fixed_contrast,
+        contrast_uncertainty_status = :not_applicable_both_coordinates_fixed,
+        probability_basis = :fixed_contrast,
+    ) : n_fixed == 1 ? (;
+        contrast_estimation_status = :partially_estimated_contrast,
+        contrast_is_fixed = false,
+        contrast_posterior_estimated = true,
+        contrast_interval_type = :central_posterior,
+        contrast_uncertainty_status =
+            :posterior_uncertainty_from_estimated_coordinate_only,
+        probability_basis = :posterior_draws,
+    ) : (;
+        contrast_estimation_status = :posterior_estimated_contrast,
+        contrast_is_fixed = false,
+        contrast_posterior_estimated = true,
+        contrast_interval_type = :central_posterior,
+        contrast_uncertainty_status =
+            :posterior_uncertainty_from_both_estimated_coordinates,
+        probability_basis = :posterior_draws,
+    )
+end
+
 function _rater_model_identification_pair(a::Int, b::Int, network)
     connected = network.rater_component[a] != 0 &&
         network.rater_component[a] == network.rater_component[b]
@@ -523,18 +579,26 @@ end
 
 Return draw-wise pairwise rater-severity contrasts for the minimal MFRM. Each
 unordered pair reports `severity_a - severity_b` on the logit scale; a positive
-contrast means rater A is more severe. Rows include a central posterior
-interval, probability of direction, optional ROPE probabilities and practical-
-equivalence classification, and direct/network/disconnected overlap under the
-requested `overlap_unit`. This shared-unit overlap is reported separately from
-identification by the full reference-constrained additive MFRM location
-design. With the default `overlap_unit = :person_item`, overlap is a person-item
-proxy and is not proof that two raters scored the identical response when
-repeated responses or occasions exist. Use `:response_id` or `:response_item`
-with declared response identifiers for verified common-response linking.
+contrast means rater A is more severe. Each coordinate is labelled
+`:reference_zero`, `:hard_anchor`, or `:estimated`. A contrast between two fixed
+coordinates is an exact constant, not a posterior estimate: its interval and
+uncertainty statuses are explicitly not applicable and its sign/ROPE
+probabilities are deterministic. A contrast with one fixed coordinate has
+posterior uncertainty only from the estimated coordinate. Other rows include a
+central posterior interval, probability of direction, optional ROPE
+probabilities and practical-equivalence classification, and
+direct/network/disconnected overlap under the requested `overlap_unit`. This
+shared-unit overlap is reported separately from identification by the full
+reference-constrained additive MFRM location design. With the default
+`overlap_unit = :person_item`, overlap is a person-item proxy and is not proof
+that two raters scored the identical response when repeated responses or
+occasions exist. Use `:response_id` or `:response_item` with declared response
+identifiers for verified common-response linking.
 Raters linked through shared persons, shared items, or a connected facet
 network are not labelled unidentified merely because their requested shared-
-unit overlap graph is disconnected.
+unit overlap graph is disconnected. A single-rater fit returns zero contrast
+rows and explicit `:single_rater` / `:not_applicable_single_rater` statuses; it
+is not reported as evidence of connected pairwise homogeneity.
 
 `severity_rope` is deliberately `nothing` by default because no universal
 practical-equivalence margin exists. Supply a preregistered symmetric radius or
@@ -574,6 +638,10 @@ function rater_homogeneity_summary(design::FacetDesign,
         _rater_mfrm_severity_draws(design, selected_draws, rater_index)
         for rater_index in eachindex(data.rater_levels)
     ]
+    severity_coordinates = [
+        _rater_severity_coordinate_metadata(design, rater_index)
+        for rater_index in eachindex(data.rater_levels)
+    ]
     rater_counts = [count(==(index), data.rater)
         for index in eachindex(data.rater_levels)]
     rows = NamedTuple[]
@@ -604,6 +672,12 @@ function rater_homogeneity_summary(design::FacetDesign,
                 controls.severity_rope,
                 controls.rope_probability_threshold,
             )
+            coordinate_a = severity_coordinates[a]
+            coordinate_b = severity_coordinates[b]
+            estimation = _rater_contrast_estimation_metadata(
+                coordinate_a,
+                coordinate_b,
+            )
             push!(rows, (;
                 schema = "bayesianmgmfrm.rater_homogeneity_contrast_row.v1",
                 object = :rater_homogeneity_contrast_row,
@@ -616,18 +690,41 @@ function rater_homogeneity_summary(design::FacetDesign,
                 rater_b = data.rater_levels[b],
                 rater_a_index = a,
                 rater_b_index = b,
-                rater_a_reference = a == 1,
-                rater_b_reference = b == 1,
+                rater_a_parameter_index = coordinate_a.parameter_index,
+                rater_b_parameter_index = coordinate_b.parameter_index,
+                rater_a_parameter_name = coordinate_a.parameter_name,
+                rater_b_parameter_name = coordinate_b.parameter_name,
+                rater_a_status = coordinate_a.status,
+                rater_b_status = coordinate_b.status,
+                rater_a_is_fixed = coordinate_a.is_fixed,
+                rater_b_is_fixed = coordinate_b.is_fixed,
+                rater_a_fixed_value = coordinate_a.fixed_value,
+                rater_b_fixed_value = coordinate_b.fixed_value,
+                rater_a_reference = coordinate_a.reference,
+                rater_b_reference = coordinate_b.reference,
+                rater_a_posterior_estimated =
+                    coordinate_a.posterior_estimated,
+                rater_b_posterior_estimated =
+                    coordinate_b.posterior_estimated,
+                estimation...,
                 n_observations_a = rater_counts[a],
                 n_observations_b = rater_counts[b],
                 n_draws = length(contrast_values),
+                n_uncertainty_draws = estimation.contrast_is_fixed ? 0 :
+                    length(contrast_values),
+                draw_role = estimation.contrast_is_fixed ?
+                    :fixed_value_replication_not_uncertainty :
+                    :posterior_uncertainty,
                 severity_difference_mean = contrast_summary.mean,
                 severity_difference_median = contrast_summary.median,
                 severity_difference_lower = contrast_summary.lower,
                 severity_difference_upper = contrast_summary.upper,
-                interval_probability = controls.interval,
-                lower_probability = controls.lower_probability,
-                upper_probability = controls.upper_probability,
+                interval_probability = estimation.contrast_is_fixed ?
+                    missing : controls.interval,
+                lower_probability = estimation.contrast_is_fixed ?
+                    missing : controls.lower_probability,
+                upper_probability = estimation.contrast_is_fixed ?
+                    missing : controls.upper_probability,
                 interval_excludes_zero = contrast_summary.lower > 0 ||
                     contrast_summary.upper < 0,
                 direction.reference,
@@ -677,6 +774,11 @@ function rater_homogeneity_summary(design::FacetDesign,
                     :posterior_contrast_reported_but_additive_model_identification_unsupported :
                     support === :disconnected ?
                     :additive_model_identified_without_requested_shared_unit_overlap :
+                    estimation.contrast_is_fixed ?
+                    :fixed_contrast_not_posterior_uncertainty_or_score_agreement :
+                    estimation.contrast_estimation_status ===
+                        :partially_estimated_contrast ?
+                    :posterior_contrast_includes_one_fixed_coordinate_not_score_agreement_or_bias_proof :
                     :posterior_contrast_not_score_agreement_or_bias_proof,
             ))
         end
@@ -686,6 +788,7 @@ function rater_homogeneity_summary(design::FacetDesign,
         row -> !row.model_identification_supported,
         rows,
     )
+    pairwise_contrasts_available = !isempty(rows)
     return (;
         schema = "bayesianmgmfrm.rater_homogeneity_summary.v1",
         object = :rater_homogeneity_summary,
@@ -700,9 +803,23 @@ function rater_homogeneity_summary(design::FacetDesign,
         summary = (;
             n_raters = length(data.rater_levels),
             n_contrasts = length(rows),
+            pairwise_contrasts_available,
+            contrast_availability = pairwise_contrasts_available ?
+                :available : :not_applicable_single_rater,
             n_direct_contrasts = count(row -> row.support === :direct, rows),
             n_network_contrasts = count(row -> row.support === :network, rows),
             n_disconnected_contrasts = n_disconnected,
+            n_fixed_contrasts = count(row ->
+                row.contrast_estimation_status === :fixed_contrast, rows),
+            n_partially_estimated_contrasts = count(row ->
+                row.contrast_estimation_status ===
+                    :partially_estimated_contrast, rows),
+            n_posterior_estimated_contrasts = count(row ->
+                row.contrast_estimation_status ===
+                    :posterior_estimated_contrast, rows),
+            contains_fixed_contrasts = any(row -> row.contrast_is_fixed, rows),
+            contains_fixed_coordinate_contrasts = any(row ->
+                row.rater_a_is_fixed || row.rater_b_is_fixed, rows),
             n_rater_network_components = network.n_components,
             rater_network_status = network.network_status,
             shared_unit_overlap_unit = overlap_unit,
@@ -721,6 +838,8 @@ function rater_homogeneity_summary(design::FacetDesign,
             n_shared_unit_overlap_components = network.n_components,
             shared_unit_overlap_network_status = network.network_status,
             model_identification_status =
+                length(data.rater_levels) == 1 ?
+                :not_applicable_single_rater :
                 model_identification.n_components == 1 &&
                     model_identification.location_full_rank ?
                 :full_rank_connected :
@@ -749,10 +868,18 @@ function rater_homogeneity_summary(design::FacetDesign,
                 row -> row.practical_equivalence === :mixed,
                 rows,
             ),
-            interpretation_supported = n_model_unsupported == 0,
+            interpretation_supported = pairwise_contrasts_available &&
+                n_model_unsupported == 0,
+            interpretation_status = !pairwise_contrasts_available ?
+                :not_applicable_single_rater :
+                n_model_unsupported == 0 ? :supported : :unsupported,
         ),
         policy = (;
             interval_type = :central_posterior,
+            interval_type_scope = :nonfixed_contrasts_only,
+            fixed_contrast_interval_type =
+                :not_applicable_fixed_contrast,
+            fixed_contrast_interval_probabilities = :not_applicable,
             contrast_pairing = :draw_wise,
             shared_unit_overlap_role =
                 :descriptive_requested_unit_overlap,
@@ -766,8 +893,17 @@ function rater_homogeneity_summary(design::FacetDesign,
                 :not_requested : :user_declared,
             absence_of_evidence_is_not_practical_equivalence = true,
             bayes_factor = :not_computed,
+            fixed_coordinate_contrast_policy =
+                :label_fixed_partially_estimated_and_posterior_contrasts,
+            fixed_contrast_uncertainty = :not_applicable,
         ),
-        caveat = :severity_homogeneity_is_not_observed_score_agreement,
+        caveat = !pairwise_contrasts_available ?
+            :pairwise_rater_homogeneity_not_applicable_single_rater :
+            all(row -> row.contrast_is_fixed, rows) ?
+            :fixed_severity_contrasts_are_not_posterior_uncertainty_or_score_agreement :
+            any(row -> row.rater_a_is_fixed || row.rater_b_is_fixed, rows) ?
+            :severity_contrasts_include_fixed_coordinates_not_observed_score_agreement :
+            :severity_homogeneity_is_not_observed_score_agreement,
     )
 end
 

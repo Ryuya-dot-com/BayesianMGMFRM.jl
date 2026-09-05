@@ -54,11 +54,11 @@ patterns by person, rater, and item. The audit distinguishes a structural
 ordered-response failure (only one category in the whole dataset) from stress
 conditions that can be fitted with proper priors but may be weakly informed.
 
-`FacetData` currently infers the intended category scale as the contiguous
-integer range between the observed minimum and maximum. Therefore an omitted
-interior category such as 3 in an observed 1, 2, 4, 5 scale is detectable, but
-an unobserved endpoint outside that realized range is not. The audit records
-this limitation explicitly rather than pretending the endpoint was observed.
+By default, `FacetData` infers the category scale as the contiguous integer
+range between the observed minimum and maximum. Pass `category_levels` to the
+constructor when an intended endpoint or other structurally possible category
+may be absent from the realized data. The audit then reports intended,
+observed, interior-unobserved, and endpoint-unobserved categories separately.
 """
 function ordinal_response_pattern_audit(
         object;
@@ -68,10 +68,11 @@ function ordinal_response_pattern_audit(
     data = _facet_data(object)
     categories = data.category_levels
     counts = _category_counts(data)
-    observed = [category for category in categories if counts[category] > 0]
-    unused = [category for category in categories if counts[category] == 0]
-    interior = length(categories) <= 2 ? Int[] : collect(categories[2:(end - 1)])
-    unused_interior = [category for category in unused if category in interior]
+    category_scale = _category_scale_contract(data)
+    observed = category_scale.observed_levels
+    unused = category_scale.unobserved_levels
+    unused_interior = category_scale.unobserved_interior_levels
+    unused_endpoints = category_scale.unobserved_endpoint_levels
 
     person_rows = _ordinal_pattern_rows(data, :person)
     rater_rows = _ordinal_pattern_rows(data, :rater)
@@ -101,10 +102,16 @@ function ordinal_response_pattern_audit(
         stress_required,
         category_scale = (;
             levels = Tuple(categories),
-            source = :contiguous_observed_minimum_to_maximum,
+            source = category_scale.source,
+            intended_levels = Tuple(category_scale.intended_levels),
+            observed_levels = Tuple(observed),
             unobserved_interior_categories = Tuple(unused_interior),
-            unobserved_endpoints_detectable = false,
-            note = :declare_endpoints_outside_the_realized_range_in_source_provenance,
+            unobserved_endpoint_categories = Tuple(unused_endpoints),
+            unobserved_endpoints_detectable =
+                category_scale.endpoints_explicitly_declared,
+            note = category_scale.endpoints_explicitly_declared ?
+                :declared_scale_preserved :
+                :declare_category_levels_to_detect_unobserved_endpoints,
         ),
         overall = (;
             n_observations = data.n,

@@ -9,8 +9,9 @@ weights, anchors, and estimator must be checked before comparing any numbers.
 The fit-supported destination on this page is the one-dimensional additive
 MFRM with either shared rating-scale steps or item-specific partial-credit
 steps. Arbitrary facets, multiple rating-scale groups, observation weights,
-fitted interactions, and anchor-constrained refits are not silently
-approximated by the current stable API.
+fitted interactions, soft anchors, threshold anchors, and group-mean anchors
+are not silently approximated by the current stable API. Exact individual
+rater/item hard anchors are supported in the minimal MFRM path.
 
 ## Source features worth preserving
 
@@ -455,7 +456,7 @@ the package rows instead of joining only by row order.
 | --- | --- | --- | --- |
 | Estimator | Primarily JMLE/UCON, with a specialized PMLE path | Marginal maximum likelihood using EM and numerical integration by default; JML and other methods are selectable | Bayesian joint posterior with explicit priors, sampled by the selected package backend |
 | Person treatment | Person is another measured facet | Person/case ability is latent under MML, or jointly estimated under JML | One parameter per observed person with a proper prior in the minimal model |
-| Identification | Centering, non-centering, individual anchors, group anchors, and user scaling are configurable | Constraints follow the generated/imported design; fixed parameter, covariance, regression, score, or case anchors are available | First rater and first item fixed to zero; threshold steps sum to zero |
+| Identification | Centering, non-centering, individual anchors, group anchors, and user scaling are configurable | Constraints follow the generated/imported design; fixed parameter, covariance, regression, score, or case anchors are available | First rater/item fixed to zero by default; exact individual rater/item hard anchors replace that block gauge; threshold steps sum to zero |
 | Threshold sharing | Common, element-specific, or named scale structures | Controlled by `step` interactions | One common RSM structure or item-specific PCM structures per fit |
 | Weights | Model, element, and observation weights multiply as replications | `caseweight` changes item-response-model estimation | Unit-weighted likelihood only; weighted source analyses are not an exact overlap |
 | Interactions | Secondary residual-based bias analysis is available | Interactions can be columns of the main design matrix | DFF/bias output is screening-only; fitted interaction effects are not supported in the stable minimal fit |
@@ -485,34 +486,26 @@ Use the following migration rules:
    the estimand and requires a separate justification.
 4. If source anchors or user scaling are active, transform them to the
    destination logit direction and identification before any comparison. The
-   current stable fit does not yet apply declared anchors.
+   stable fit applies only exact individual rater/item hard anchors; soft,
+   threshold, and group-mean anchors remain unsupported.
 5. Compare source and destination results only after matching observed rows,
    response categories, signs, constraints, threshold sharing, and parameter
    labels. Compare point recovery separately from uncertainty calibration.
 
 ## Anchor-constrained refitting policy
 
-The current [`anchor_linking_summary`](@ref) surface checks declared hard and
-soft anchors, target labels, rater-linking connectedness, and supplied
-sensitivity coverage. It does **not** fix parameters during fitting, convert a
-soft anchor into a prior, estimate a linking constant, or run anchor-sensitivity
-refits. A specification with nonempty `anchors` is inspection-only under the
-minimal fitting compiler.
+The stable minimal path accepts exact individual rater/item hard anchors. The
+anchored level is removed from the sampled coordinates and restored at its
+declared value in the likelihood, prediction, Wright-map rows, rater
+diagnostics, and design manifest. This replaces the default first-level-zero
+gauge for that block; it is not stacked on top of it.
 
-[`anchor_refit_plan`](@ref) is the public fail-closed check for the first
-planned numerical scope. It checks explicit individual rater/item hard anchors,
-finite and representable values, observed targets, duplicate/conflicting
-declarations, and typed source/hash/scale/sign provenance. It is deliberately
-plan-only:
+The numerical declaration is intentionally small: `block`, an explicit
+`level` (or `target`), a finite logit `value`, and `type = :hard`. Source hashes
+and external artifact metadata are not fitting prerequisites for a distributed
+package:
 
 ```julia
-using SHA
-
-# This self-contained string makes the example runnable. In an actual
-# migration, hash the exact source-file bytes returned by read(path).
-source_anchor_bytes = "FACETS example; rater=R1; value=0.0; scale=logit\n"
-source_anchor_hash = bytes2hex(sha256(source_anchor_bytes))
-
 anchored_spec = mfrm_spec(data;
     thresholds = :rating_scale,
     anchors = [(
@@ -520,24 +513,21 @@ anchored_spec = mfrm_spec(data;
         level = "R1",
         value = 0.0,
         type = :hard,
-        source = :facets,
-        source_version = "4.5.1",
-        source_model = :mfrm_rsm,
-        source_estimator = :jml,
-        source_hash = source_anchor_hash,
-        source_scale = :logit,
-        sign = :severity_positive,
     )],
 )
 
-plan = anchor_refit_plan(anchored_spec)
+plan = anchor_refit_plan(anchored_spec; require_provenance = false)
 @assert plan.status == :hard_anchor_candidate_ready
 @assert plan.candidate_supported
-@assert !plan.executes_refit
-@assert plan.capability == :declaration_validation_only
+@assert plan.numerical_fit_supported
+@assert plan.capability == :stable_hard_anchor_fit_available
+
+anchored_fit = fit(anchored_spec; backend = :advancedhmc)
 ```
 
-Version 1 accepts only the following normalized declaration contract:
+[`anchor_refit_plan`](@ref) remains a non-mutating declaration check; it does
+not itself run a fit. With `require_provenance = true`, it can additionally
+audit the following optional handoff metadata:
 
 | Field | Accepted contract |
 | --- | --- |
@@ -550,16 +540,11 @@ Version 1 accepts only the following normalized declaration contract:
 | `source_scale` | `:logit` |
 | `sign` | `:severity_positive` for a rater anchor or `:difficulty_positive` for an item anchor |
 
-Here `source_scale` and `sign` describe the **already transformed numeric
-anchor value accepted by this version-1 plan**, despite their legacy field
-names. A FACETS user scale, reversed source orientation, or any nonidentity
-location/scale transformation must be applied explicitly before constructing
-the declaration. Preserve the original value, scale, sign, transformation, and
-source bytes in the artifact identified by `source_hash`. The plan rejects a
-non-logit or oppositely oriented value; it does not infer or apply a conversion.
-A later interchange schema should split the normalized value scale/sign from
-the original source scale/sign and transformation fields rather than overload
-these names.
+Here `source_scale` and `sign` describe the already transformed numeric anchor
+value. A FACETS user scale, reversed orientation, or nonidentity transformation
+must be resolved before constructing the declaration. The optional provenance
+audit never converts the value and never controls whether the stable numerical
+fit is available.
 
 `source_hash_format_valid = true` means only that the declaration has the
 accepted lowercase SHA-256 shape. The plan does not receive the source
@@ -569,9 +554,9 @@ Likewise, `provenance_complete = true` means the required fields are present
 and satisfy their field contracts, not that the external artifact is authentic
 or substantively correct.
 
-`require_provenance = false` permits all provenance fields to be absent for
-local exploratory inspection. It never makes a supplied but invalid field
-acceptable. Every row records `normalized_value`, `value_issue`,
+`require_provenance = false` permits all provenance fields to be absent. It
+never makes a supplied but invalid audit field acceptable for a strict audit.
+Every row records `normalized_value`, `value_issue`,
 `declared_scale`, `normalized_scale`, `scale_issue`,
 `missing_provenance_fields`, `invalid_provenance_fields`, and
 `provenance_issues` so rejection is machine-readable.
@@ -580,65 +565,145 @@ A hard anchor carrying `scale`, `sd`, or `prior_scale` is ambiguous and is
 rejected; uncertainty metadata must not silently turn an exact constraint into
 a soft prior. Conversely, a soft anchor requires a positive finite, non-Boolean
 prior scale that remains positive and finite after `Float64` conversion.
-If a soft anchor targets the current first rater or item level, that coordinate
-is already fixed to zero and its prior would be constant. Version 1 therefore
-rejects that declaration with
-`:soft_anchor_on_reference_level_requires_reparameterization`; a future fitted
-implementation must change the gauge or transform the source anchor to an
-identified contrast before applying the prior.
-
-Do not pass this inspection-only specification to `fit`. A ready plan means
-that the declaration satisfies the planned hard-anchor contract; it does not
-mean that an anchor-constrained posterior has been sampled.
-
-Anchor fitting should be introduced in the following order.
-
-### Stage 0: strengthen the declaration contract
-
-Before any anchored likelihood is exposed, each fitted anchor should require:
-
-- a supported parameter block, an explicit stable level label, and a non-Boolean
-  logit value representable as a finite `Float64` coordinate;
-- an explicit `:hard` or `:soft` type, no prior-scale field for a hard anchor,
-  and a positive finite scale for a soft anchor;
-- typed source software and version, canonical source model/estimator, normalized
-  value direction and scale, and a lowercase SHA-256 source-artifact hash;
-- preservation of the original source value/direction/scale and applied
-  sign/location/scale transformation in the hashed artifact until the
-  interchange schema exposes those as distinct required fields;
-- rejection of unknown levels, duplicate or conflicting anchors, incompatible
-  hard/soft declarations, and rank-deficient or contradictory constraints.
+Soft anchors remain inspection-only. In particular, a soft anchor on the
+default reference would otherwise create a constant prior; the package rejects
+that boundary rather than silently pretending it is informative.
 
 The existing distinction between parameter anchors and common-response linking
 must remain. A larger number of common responses does not turn them into fixed
-parameter anchors, and no universal anchor percentage should be recommended.
+parameter anchors, and fixed parameter anchors do not create observed links.
+They do not waive the ordinary connectedness/rank validation gate. This package
+therefore rejects disconnected person-rater-item graphs even when an individual
+hard anchor is declared in every component. FACETS-style group anchoring instead
+sets a facet-group mean and assumes the anchored groups are exchangeable; that
+is a different, currently unsupported model. [Wind and Stager
+(2019)](https://www.psychologie-aktuell.com/fileadmin/Redaktion/Journale/ptam-2019-1/03_Wind.pdf)
+show that within-component design and misfit affect estimates under group
+anchoring, while [Myford and Wolfe
+(2000)](https://doi.org/10.1002/j.2333-8504.2000.tb01832.x) distinguish minimal
+connectivity from link quality. No universal anchor percentage should be
+recommended.
 
-### Stage 1: individual hard anchors for the minimal model
+### Implemented stage: individual hard anchors for the minimal model
 
-Implement exact item and rater anchors first. Compile all location constraints
-jointly as an affine map
+Exact item and rater anchors use the affine selection map
 
 ```math
 \beta=b+Cz,
 ```
 
-where `b` contains fixed values, `C` maps free sampling coordinates to direct
-parameters, and `z` is sampled. A hard anchor must replace or jointly solve the
-relevant default reference constraint; it must not be naively added on top of
-the existing first-level-zero parameterization. The compiler should verify the
-rank of the combined constraint system before evaluating a likelihood.
+where `b` contains fixed values, `C` selects free coordinates, and `z` is
+sampled. Unknown levels, missing targets, Boolean/nonfinite/unrepresentable
+values, duplicate targets, hard anchors carrying a prior scale, and unsupported
+blocks fail closed before stable compilation. Multiple exact anchors are
+allowed; each fixed coordinate is omitted from the prior and sampler.
 
-Fixed direct parameters should remain visible in posterior summaries and
-reports with `is_fixed`, `anchor_value`, source provenance, and a structurally
-fixed diagnostic status. They should not be assigned artificial R-hat or ESS
-values. Cache and reproduction identities must include the normalized anchor
-manifest and the compiled constraint-map hash.
+At the likelihood level, one exact anchor in a rater or item block only chooses
+that block's location gauge: shifting the anchor can be offset by the free facet
+coordinates and person locations without changing response probabilities. Two
+or more anchors in the same block additionally fix within-block contrasts. A
+contaminated multi-anchor contrast is therefore a substantive model restriction,
+not a harmless change of origin. Sensitivity work should cross anchor count,
+facet location, and plausible value perturbations; adding anchors is not
+automatically stabilizing. The zero-centered-prior qualification appears below.
 
-Numerical support requires known-truth recovery under unanchored and anchored refits,
-row-order invariance, multiple valid choices of anchor level, incompatible-
-anchor rejection, and posterior predictive checks. Report the change in every
-nonanchored parameter and in decision-relevant expected scores, not only the
-anchored coordinate.
+Keep this parameter-anchor question separate from common-response linking.
+[Wind and Jones (2018)](https://doi.org/10.1177/0013164417703733) vary linking-
+set size, location, and model-data fit, but explicitly do not provide parameter-
+recovery evidence and did not manipulate rater effects. [Uto
+(2021)](https://doi.org/10.3758/s13428-020-01498-x) fixes common-rater and
+common-task values from a base test and shows that required commonality changes
+with missingness, test scale, population differences, and drift. Neither
+establishes a universal exact-parameter anchor count, and this package's within-
+test hard-anchor pilot is not a two-test linking validation.
+[Kopf et al. (2015)](https://doi.org/10.1177/0013164414529792) provide indirect
+motivation for the contamination stress from a DIF-anchor context, not direct
+validation of this MFRM implementation. Likewise, [Robitzsch
+(2024)](https://doi.org/10.3390/appliedmath4030063) analytically derives bias
+and linking error for fixed-item-parameter calibration under random uniform DIF
+in a 2PL model. It supports treating fixed-parameter contamination as a model
+risk, but it is not direct validation of this package's polytomous MFRM path.
+[Robitzsch (2024)](https://doi.org/10.3390/stats7030036) further separates
+person-sampling standard error from item-selection linking error and compares
+robust and nonrobust linking under DIF. This supports keeping anchor-set
+sensitivity separate from ordinary posterior uncertainty; its dichotomous 2PL
+results do not supply a robust-linking method for the present MFRM.
+
+The local descriptive MCMC pilot can be reproduced with:
+
+```bash
+julia --project=. scripts/run_mfrm_anchor_recovery_pilot.jl
+```
+
+It uses two replications, four chains, known-truth/projection initialization,
+and pilot-only diagnostic thresholds. Eighty fits cross fully crossed,
+rotating-pair sparse, and two 10%-common-response nested designs; fitted-family
+and R4 extremity-response generators; and true or shifted single anchors, true
+endpoint or interior multi-anchors, and contaminated endpoint multi-anchors.
+Named events share deterministic response uniforms across topologies, while
+every within-topology anchor comparison uses identical training and independent
+same-facet holdout responses. All 80 fits pass the pilot diagnostics with no
+divergences or maximum-tree-depth hits.
+
+Contamination worsens true-probability log-score regret in 16/16 pairs (mean
+`+0.00862`) but finite-sample holdout log loss in only 10/16 (mean `+0.00335`).
+Changing only the value of one rater and one item anchor has maximum absolute
+regret difference `0.00624`; this is not expected to be exactly zero because
+the likelihood gauge transformation does not also translate the fixed zero-
+centered priors. Correct interior anchors are worse than correct endpoints in
+10/16 pairs with a near-zero mean regret difference (`-0.00094`), so neither
+location is generally preferred by this pilot.
+
+An exact dense/sparse design check isolates this coordinate effect without
+MCMC: the default and shifted single-anchor encodings have equal likelihood,
+but unequal prior density. If every `MFRMPrior` standard deviation is multiplied
+by `c`, their log-prior difference scales as `1/c^2`. Diffuse priors therefore
+attenuate this difference but do not make finite-scale posterior comparisons
+between gauges invariant or justify choosing a prior for that purpose.
+
+A second exact check exhausts all 12 ordered clean/contaminated two-anchor
+pairs across rater and item facets, with the contaminated position ranging over
+both endpoints and the interior. Every pair changes response probabilities in
+both dense and sparse designs. Removing either member, however, leaves a single
+anchor whose value can be absorbed by a location-gauge shift and restores the
+same true probabilities. Leave-one-anchor-out sensitivity can therefore expose
+an incompatible pair but cannot identify the contaminated member from the
+response likelihood alone; that attribution requires external provenance or a
+model for source uncertainty.
+
+The distributed nested-link design is worse than the early design in all 20
+anchor/condition/replication contrasts, but this is deliberately recorded as a
+composite stress, not a placement effect: early links balance items but have
+rater loads `20/28/28/28`, whereas distributed links have loads `26/26/26/26`
+and item counts `3/1/1/3`. The base simulator still shares the package
+likelihood kernel, only two replications were run, and the holdout contains no
+new facet levels. New-person, new-item, or new-rater prediction remains
+unsupported because the fixed-effect MFRM has no hierarchical facet population
+to marginalize. The output is not recovery calibration, independent-kernel
+validation, or a public-release gate.
+
+Fixed coordinates are recorded as unsampled in the design/fit manifest and as
+`is_fixed = true` with `status = :hard_anchor` in Wright-map rows. They receive
+exact zero-width intervals there, not artificial R-hat or ESS values. The
+normalized anchor declaration participates in the semantic model identity.
+Cache keys use that identity, so reordering the same declarations does not
+create a different cache request; changing an anchor or its recorded provenance
+still does.
+
+`fit_report(fit; view = :public)` keeps those constants in the dedicated
+`fixed_coordinates.rows` table and out of posterior-summary rows. Each report
+row states `sampled = false`, `prior_applied = false`, and
+`posterior_estimated = false`. When at least one declared hard anchor is
+present, `fixed_coordinates.warning_rows` contains two baseline warnings: the
+listed values have no posterior, prior, or sampling uncertainty, and the
+zero-centered prior on free identified coordinates is not shifted with the
+anchor. Any estimation or linking error in externally obtained anchor values is
+therefore not propagated. Consequently, likelihood-equivalent anchor changes
+need not be prior- or posterior-invariant. The Markdown renderer places both
+warnings near the top of the report before the section summary. If two or more anchors occur in the
+same facet, a third warning marks the resulting within-facet contrast
+restriction and requests contamination or drift sensitivity. Anchoring one
+rater and one item still selects one gauge per block and does not trigger it.
 
 ### Stage 2: threshold and group-mean hard anchors
 

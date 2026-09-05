@@ -114,6 +114,7 @@ function _current_spec_components(spec::FacetSpec)
         discrimination,
         q_matrix,
         anchors,
+        data,
     )
     constraints = _constraint_rows(;
         family,
@@ -203,6 +204,9 @@ function _design_identity_payload(design::FacetDesign)
     block_names = sort!(collect(keys(design.blocks)); by = string)
     identification_names =
         sort!(collect(keys(design.identification)); by = string)
+    anchors = sort!(copy(design.spec.anchors); by = _model_contract_sort_key)
+    constraints =
+        sort!(copy(design.spec.constraints); by = _model_contract_sort_key)
     return (;
         schema = _MODEL_CONTRACT_SCHEMA,
         data = (;
@@ -237,8 +241,8 @@ function _design_identity_payload(design::FacetDesign)
             discrimination = design.spec.discrimination,
             q_matrix = design.spec.q_matrix,
             validation_bias_terms = design.spec.validation_bias_terms,
-            anchors = design.spec.anchors,
-            constraints = design.spec.constraints,
+            anchors,
+            constraints,
             prior_blocks = design.spec.prior_blocks,
             estimation_status = design.spec.estimation_status,
         ),

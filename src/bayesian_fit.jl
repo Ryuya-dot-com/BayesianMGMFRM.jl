@@ -18,9 +18,12 @@ const LOG2PI_BAYES = log(2 * pi)
     MFRMPrior(; person_sd = 1.5, rater_sd = 1.0, item_sd = 1.0, step_sd = 1.0)
 
 Independent zero-centered normal priors for the identified minimal MFRM
-parameter vector returned by `getdesign`. The scales apply to person, rater,
-item, and threshold-step blocks after the current reference and sum-to-zero
-constraints have been imposed.
+parameter vector returned by `getdesign`. The scales apply to free person,
+rater, item, and threshold-step coordinates after reference, exact hard-anchor,
+and sum-to-zero constraints have been imposed. Fixed anchors receive no prior
+density contribution. The prior centers are not shifted when a hard-anchor
+value changes, so likelihood-equivalent anchor reparameterizations are not in
+general prior- or posterior-invariant.
 """
 struct MFRMPrior
     person_sd::Float64
@@ -3801,6 +3804,7 @@ function fit_metadata(fit::MFRMFit; view::Symbol = :full)
         n_items = length(data.item_levels),
         n_categories = length(data.category_levels),
         category_levels = copy(data.category_levels),
+        category_scale = _category_scale_contract(data),
         optional_facets = sort(collect(keys(data.optional)); by = string),
         family = fit.design.spec.family,
         dimensions = fit.design.spec.dimensions,
@@ -3857,6 +3861,7 @@ function fit_metadata(fit::GMFRMFit; view::Symbol = :full)
         n_items = length(data.item_levels),
         n_categories = length(data.category_levels),
         category_levels = copy(data.category_levels),
+        category_scale = _category_scale_contract(data),
         optional_facets = sort(collect(keys(data.optional)); by = string),
         family = fit.design.spec.family,
         dimensions = fit.design.spec.dimensions,
@@ -3918,6 +3923,7 @@ function fit_metadata(fit::MGMFRMFit; view::Symbol = :full)
         n_items = length(data.item_levels),
         n_categories = length(data.category_levels),
         category_levels = copy(data.category_levels),
+        category_scale = _category_scale_contract(data),
         optional_facets = sort(collect(keys(data.optional)); by = string),
         family = fit.design.spec.family,
         dimensions = fit.design.spec.dimensions,
@@ -5536,6 +5542,236 @@ function _fit_report_unsupported(reason::AbstractString)
     )
 end
 
+function _fit_report_fixed_coordinate_row(row)
+    block = getproperty(row, :block)
+    level = getproperty(row, :level)
+    return (;
+        parameter = string(block, "[", level, "]"),
+        facet = block,
+        level_index = getproperty(row, :level_index),
+        level,
+        fixed_value = getproperty(row, :value),
+        constraint = getproperty(row, :status),
+        source = getproperty(row, :source),
+        sampled = false,
+        prior_applied = false,
+        posterior_estimated = false,
+        uncertainty_status = :not_applicable_fixed_by_identification,
+    )
+end
+
+function _fit_report_fixed_coordinates(fit::MFRMFit, manifest,
+        on_section_error::Symbol)
+    return _fit_report_section(on_section_error) do
+        design_manifest = manifest.design
+        hasproperty(design_manifest, :fixed_coordinates) ||
+            throw(ArgumentError(
+                "MFRM design manifest does not expose fixed coordinates"))
+        source_rows = design_manifest.fixed_coordinates
+        rows = [_fit_report_fixed_coordinate_row(row) for row in source_rows]
+        hard_anchor_rows = [row for row in rows
+            if row.constraint === :hard_anchor]
+        reference_rows = [row for row in rows
+            if row.constraint === :reference_zero]
+        n_hard_anchors = length(hard_anchor_rows)
+        hard_anchor_counts = (;
+            rater = count(row -> row.facet === :rater, hard_anchor_rows),
+            item = count(row -> row.facet === :item, hard_anchor_rows),
+        )
+        multi_anchor_facets = Tuple(facet for facet in (:rater, :item)
+            if getproperty(hard_anchor_counts, facet) >= 2)
+        n_multi_anchor_coordinates = sum(
+            getproperty(hard_anchor_counts, facet)
+            for facet in multi_anchor_facets;
+            init = 0,
+        )
+        warning_rows = n_hard_anchors == 0 ? NamedTuple[] : [
+            (;
+                code = :hard_anchor_fixed_not_estimated,
+                severity = :warning,
+                n_coordinates = n_hard_anchors,
+                n_affected_rows = n_hard_anchors,
+                action = :interpret_fixed_coordinate_rows_as_constants,
+                message = string(
+                    n_hard_anchors,
+                    n_hard_anchors == 1 ?
+                        " hard-anchored facet coordinate is" :
+                        " hard-anchored facet coordinates are",
+                    " fixed by design; ",
+                    n_hard_anchors == 1 ? "it is" : "they are",
+                    " excluded from posterior summaries and receive no prior or sampling uncertainty. ",
+                    "Uncertainty in externally estimated anchor values is not propagated.",
+                ),
+            ),
+            (;
+                code = :hard_anchor_zero_centered_prior_coordinate_dependence,
+                severity = :warning,
+                n_coordinates = n_hard_anchors,
+                n_affected_rows = n_hard_anchors,
+                action = :treat_anchor_and_free_coordinate_prior_as_joint_model_assumption,
+                message = string(
+                    "MFRMPrior remains zero-centered on the free identified ",
+                    "coordinates and is not shifted with hard-anchor values; ",
+                    "changing an anchor can therefore change prior and posterior ",
+                    "predictions even when a likelihood-equivalent reparameterization exists.",
+                ),
+            ),
+        ]
+        if !isempty(multi_anchor_facets)
+            push!(warning_rows, (;
+                code = :multiple_hard_anchors_fix_within_facet_contrasts,
+                severity = :warning,
+                n_coordinates = n_multi_anchor_coordinates,
+                n_affected_rows = n_multi_anchor_coordinates,
+                action = :validate_anchor_contrasts_and_run_contamination_sensitivity,
+                message = string(
+                    "Multiple hard anchors occur within the ",
+                    join(string.(multi_anchor_facets), " and "),
+                    length(multi_anchor_facets) == 1 ? " facet; " : " facets; ",
+                    "they fix within-facet contrasts rather than only location gauges. ",
+                    "Validate source invariance and run predeclared contamination or drift sensitivity.",
+                ),
+            ))
+        end
+        (;
+            schema = "bayesianmgmfrm.fit_report_fixed_coordinates.v1",
+            rows,
+            n_rows = length(rows),
+            warning_rows,
+            n_warning_rows = length(warning_rows),
+            summary = (;
+                n_fixed_coordinates = length(rows),
+                n_hard_anchors,
+                hard_anchor_counts,
+                n_default_reference_coordinates = length(reference_rows),
+                n_sampled_coordinates = 0,
+                n_posterior_estimated_coordinates = 0,
+                hard_anchor_warning = n_hard_anchors > 0,
+                hard_anchor_value_uncertainty_status = n_hard_anchors > 0 ?
+                    :not_propagated_exact_fixed_values : :not_applicable,
+                hard_anchor_prior_coordinate_dependence =
+                    n_hard_anchors > 0,
+                within_facet_anchor_contrast_restriction =
+                    !isempty(multi_anchor_facets),
+                fixed_coordinates_in_posterior_rows = false,
+                interpretation =
+                    :fixed_identification_constants_not_posterior_estimates,
+            ),
+        )
+    end
+end
+
+function _fit_report_fixed_coordinates(fit::Union{GMFRMFit,MGMFRMFit},
+        manifest, on_section_error::Symbol)
+    return _fit_report_unsupported(
+        "individual item/rater fixed-coordinate reporting is available for stable MFRM fits; generalized gauge coordinates remain in their dedicated report sections",
+    )
+end
+
+function _fit_report_category_functioning(fit::MFRMFit;
+        include_category_functioning::Bool,
+        interval::Real,
+        min_count::Int,
+        min_proportion::Real,
+        order_probability_threshold::Real,
+        draw_indices,
+        rng::AbstractRNG,
+        on_section_error::Symbol)
+    include_category_functioning || return _fit_report_not_requested()
+    return _fit_report_section(on_section_error) do
+        result = category_functioning_summary(fit;
+            interval,
+            min_count,
+            min_proportion,
+            order_probability_threshold,
+            draw_indices,
+            rng,
+        )
+        n_review_rows = result.summary.n_review_rows
+        warning_rows = n_review_rows == 0 ? NamedTuple[] : [(;
+            code = :category_functioning_review_recommended,
+            severity = :warning,
+            n_affected_rows = n_review_rows,
+            action = :review_category_usage_and_step_rows_before_recode_or_refit,
+            message = string(
+                n_review_rows,
+                n_review_rows == 1 ?
+                    " category-functioning row requires" :
+                    " category-functioning rows require",
+                " review; the report does not automatically collapse, recode, or refit categories.",
+            ),
+        )]
+        return merge(result, (;
+            usage_rows = collect(result.usage_rows),
+            threshold_rows = collect(result.threshold_rows),
+            warning_rows,
+            n_warning_rows = length(warning_rows),
+        ))
+    end
+end
+
+function _fit_report_category_functioning(fit::Union{GMFRMFit,MGMFRMFit};
+        include_category_functioning::Bool,
+        kwargs...)
+    include_category_functioning || return _fit_report_not_requested()
+    return _fit_report_unsupported(
+        "category-functioning report rows are currently available for stable MFRM/RSM/PCM fits only",
+    )
+end
+
+function _fit_report_rater_homogeneity(fit::MFRMFit;
+        include_rater_homogeneity::Bool,
+        interval::Real,
+        severity_rope,
+        rope_probability_threshold::Real,
+        overlap_unit::Symbol,
+        min_shared_units::Int,
+        draw_indices,
+        rng::AbstractRNG,
+        on_section_error::Symbol)
+    include_rater_homogeneity || return _fit_report_not_requested()
+    return _fit_report_section(on_section_error) do
+        result = rater_homogeneity_summary(fit;
+            interval,
+            severity_rope,
+            rope_probability_threshold,
+            overlap_unit,
+            min_shared_units,
+            draw_indices,
+            rng,
+        )
+        n_unsupported =
+            result.summary.n_model_identification_unsupported_contrasts
+        warning_rows = n_unsupported == 0 ? NamedTuple[] : [(;
+            code = :rater_homogeneity_identification_unsupported,
+            severity = :warning,
+            n_affected_rows = n_unsupported,
+            action = :do_not_interpret_unsupported_rater_contrasts,
+            message = string(
+                n_unsupported,
+                n_unsupported == 1 ?
+                    " rater contrast lacks" :
+                    " rater contrasts lack",
+                " supported additive-model identification and must not be interpreted.",
+            ),
+        )]
+        return merge(result, (;
+            contrast_rows = collect(result.contrast_rows),
+            warning_rows,
+            n_warning_rows = length(warning_rows),
+        ))
+    end
+end
+
+function _fit_report_rater_homogeneity(fit::Union{GMFRMFit,MGMFRMFit};
+        include_rater_homogeneity::Bool,
+        kwargs...)
+    include_rater_homogeneity || return _fit_report_not_requested()
+    return _fit_report_unsupported(
+        "rater-homogeneity report rows are currently available for stable MFRM/RSM/PCM fits only",
+    )
+end
+
 function _fit_report_prior_predictive(fit::MFRMFit;
         include_prior_predictive::Bool,
         prior_predictive_ndraws::Int,
@@ -6119,11 +6355,18 @@ end
 
 Build a compact, machine-readable report bundle for a fitted MFRM, guarded
 GMFRM, or guarded MGMFRM object. The report combines fit metadata, provenance,
-diagnostics, prior, pooling, and MGMFRM local MCMC-budget guidance rows,
-posterior summaries, posterior predictive summaries, calibration rows,
+diagnostics, fixed-coordinate identification rows, prior, pooling, and MGMFRM
+local MCMC-budget guidance rows, posterior summaries, posterior predictive
+summaries, category-functioning and rater-homogeneity rows, calibration rows,
 WAIC/LOO summaries and diagnostics, optional DFF rows, and a compact archive
-manifest. Section-level failures are captured by default with `status =
-:error` and make the top-level `report_status = :incomplete`. Use
+manifest. Stable MFRM category/rater practitioner sections are included by
+default and can be disabled independently. Stable MFRM fixed-coordinate rows state
+explicitly that reference and hard-anchor values are constants rather than
+posterior estimates; hard anchors also produce concise fixed-coordinate and
+coordinate-dependent-prior warnings, plus a within-facet contrast warning when
+two or more anchors occur in the same facet.
+Section-level failures are captured by default with `status = :error` and make
+the top-level `report_status = :incomplete`. Use
 `on_section_error = :throw` to make the first failing section raise, or
 `require_complete = true` to evaluate all captured sections and then reject an
 incomplete report.
@@ -6144,6 +6387,17 @@ function fit_report(fit::_ModelComparisonFit;
         include_posterior_predictive::Bool = true,
         include_grouped_predictive::Bool = true,
         predictive_interval::Real = 0.9,
+        include_category_functioning::Bool = fit isa MFRMFit,
+        category_functioning_interval::Real = 0.95,
+        category_functioning_min_count::Int = 5,
+        category_functioning_min_proportion::Real = 0.01,
+        category_order_probability_threshold::Real = 0.8,
+        include_rater_homogeneity::Bool = fit isa MFRMFit,
+        rater_homogeneity_interval::Real = 0.95,
+        rater_severity_rope = nothing,
+        rater_rope_probability_threshold::Real = 0.95,
+        rater_overlap_unit::Symbol = :person_item,
+        rater_min_shared_units::Int = 1,
         ndraws::Union{Nothing,Int} = nothing,
         draw_indices = nothing,
         rng::AbstractRNG = Random.default_rng(),
@@ -6260,6 +6514,29 @@ function fit_report(fit::_ModelComparisonFit;
         end :
         _fit_report_not_requested()
 
+    category_functioning = _fit_report_category_functioning(fit;
+        include_category_functioning,
+        interval = category_functioning_interval,
+        min_count = category_functioning_min_count,
+        min_proportion = category_functioning_min_proportion,
+        order_probability_threshold = category_order_probability_threshold,
+        draw_indices = report_draw_indices,
+        rng,
+        on_section_error = checked_on_error,
+    )
+
+    rater_homogeneity = _fit_report_rater_homogeneity(fit;
+        include_rater_homogeneity,
+        interval = rater_homogeneity_interval,
+        severity_rope = rater_severity_rope,
+        rope_probability_threshold = rater_rope_probability_threshold,
+        overlap_unit = rater_overlap_unit,
+        min_shared_units = rater_min_shared_units,
+        draw_indices = report_draw_indices,
+        rng,
+        on_section_error = checked_on_error,
+    )
+
     calibration = include_calibration ?
         _fit_report_section(checked_on_error) do
             rows = calibration_table(fit;
@@ -6340,6 +6617,11 @@ function fit_report(fit::_ModelComparisonFit;
     pooling_policy = _fit_report_pooling_policy(fit)
     mcmc_budget_guidance =
         _fit_report_mcmc_budget_guidance(fit, metadata, diagnostic_surface)
+    fixed_coordinates = _fit_report_fixed_coordinates(
+        fit,
+        manifest,
+        checked_on_error,
+    )
     rating_design = _fit_report_section(checked_on_error) do
         audit = manifest.rating_design
         rows = collect(audit.rows)
@@ -6444,6 +6726,22 @@ function fit_report(fit::_ModelComparisonFit;
             include_posterior_predictive,
             include_grouped_predictive,
             predictive_interval = Float64(predictive_interval),
+            include_category_functioning,
+            category_functioning_interval =
+                Float64(category_functioning_interval),
+            category_functioning_min_count,
+            category_functioning_min_proportion =
+                Float64(category_functioning_min_proportion),
+            category_order_probability_threshold =
+                Float64(category_order_probability_threshold),
+            include_rater_homogeneity,
+            rater_homogeneity_interval =
+                Float64(rater_homogeneity_interval),
+            rater_severity_rope,
+            rater_rope_probability_threshold =
+                Float64(rater_rope_probability_threshold),
+            rater_overlap_unit,
+            rater_min_shared_units,
             ndraws,
             draw_indices = draw_indices === nothing ? nothing : collect(draw_indices),
             resolved_draw_indices = report_draw_indices === nothing ?
@@ -6480,6 +6778,7 @@ function fit_report(fit::_ModelComparisonFit;
         manifest,
         model_surface_audit = manifest.model_surface_audit,
         rating_design,
+        fixed_coordinates,
         q_matrix,
         diagnostics = diagnostic_surface,
         mcmc_budget_guidance,
@@ -6489,6 +6788,8 @@ function fit_report(fit::_ModelComparisonFit;
         posterior,
         direct_posterior,
         posterior_predictive,
+        category_functioning,
+        rater_homogeneity,
         calibration,
         waic = waic_section,
         loo = loo_section,
@@ -6752,6 +7053,9 @@ const _FIT_REPORT_LOOKUP_MISSING = Ref(:fit_report_lookup_missing)
 const _FIT_REPORT_SECTION_ORDER = (
     :diagnostics,
     :rating_design,
+    :fixed_coordinates,
+    :category_functioning,
+    :rater_homogeneity,
     :q_matrix,
     :mcmc_budget_guidance,
     :prior_policy,
@@ -6768,6 +7072,10 @@ const _FIT_REPORT_SECTION_ORDER = (
 )
 const _FIT_REPORT_ROW_FIELD_ORDER = (
     :rows,
+    :usage_rows,
+    :threshold_rows,
+    :contrast_rows,
+    :warning_rows,
     :diagnostic_rows,
     :sampler_rows,
     :parameter_rows,
@@ -6874,6 +7182,7 @@ const _PUBLIC_FIT_REPORT_HIDDEN_FIELDS = Set((
     :cache_path,
     :caveat_docs_artifact,
     :chain_type,
+    :data_signature,
     :environment,
     :evidence,
     :evidence_artifact_schema_policy,
@@ -6910,6 +7219,9 @@ const _PUBLIC_FIT_REPORT_HIDDEN_FIELDS = Set((
 const _PUBLIC_FIT_REPORT_TOP_LEVEL_SECTIONS = (
     :metadata,
     :rating_design,
+    :fixed_coordinates,
+    :category_functioning,
+    :rater_homogeneity,
     :q_matrix,
     :diagnostics,
     :mcmc_budget_guidance,
@@ -8141,14 +8453,51 @@ function _fit_report_metadata_rows(report)
     return rows
 end
 
+function _fit_report_warning_rows(report)
+    rows = NamedTuple[]
+    for section_name in _FIT_REPORT_SECTION_ORDER
+        section = _report_lookup(report, section_name,
+            _FIT_REPORT_LOOKUP_MISSING)
+        section === _FIT_REPORT_LOOKUP_MISSING && continue
+        warning_rows = _report_lookup(section, :warning_rows,
+            _FIT_REPORT_LOOKUP_MISSING)
+        warning_rows isa AbstractVector || continue
+        for row in warning_rows
+            push!(rows, (;
+                section = section_name,
+                code = _report_symbol_value(
+                    _report_lookup(row, :code, missing)),
+                severity = _report_symbol_value(
+                    _report_lookup(row, :severity, :warning)),
+                n_coordinates = _report_lookup(
+                    row, :n_coordinates, missing),
+                n_affected_rows = _report_lookup(
+                    row,
+                    :n_affected_rows,
+                    _report_lookup(row, :n_coordinates, missing),
+                ),
+                message = _report_lookup(row, :message, missing),
+                action = _report_symbol_value(
+                    _report_lookup(row, :action, missing)),
+            ))
+        end
+    end
+    return rows
+end
+
 """
     fit_report_markdown(report; title = "BayesianMGMFRM fit report",
         max_rows = 6, include_empty = false)
 
 Render a portable Markdown review draft from a `fit_report` payload. The output
-includes report metadata, section status/row counts, and table previews for
-each tabular row field. `report` may be the in-memory `NamedTuple` returned by
+includes report metadata, a prominent warning summary when a section supplies
+warning rows, section status/row counts, and table previews for each tabular
+row field. `report` may be the in-memory `NamedTuple` returned by
 [`fit_report`](@ref) or a JSON-loaded payload from [`load_fit_report`](@ref).
+Empty row fields remain visible in the section summary but their table previews
+are omitted by default; set `include_empty = true` to render an explicit
+zero-row preview. JSON, table, and bundle exports retain empty row fields
+regardless of this Markdown presentation choice.
 """
 function fit_report_markdown(report;
         title::AbstractString = "BayesianMGMFRM fit report",
@@ -8176,6 +8525,19 @@ function fit_report_markdown(report;
         public_view = true,
         path = (:metadata_table,))
     println(io)
+    warning_rows = _fit_report_warning_rows(report)
+    if !isempty(warning_rows)
+        println(io, "## Warnings")
+        println(io)
+        _write_markdown_table(io, warning_rows;
+            fields = (:section, :code, :severity, :n_affected_rows, :message,
+                :action),
+            max_rows = typemax(Int),
+            max_cell_chars = 240,
+            public_view = true,
+            path = (:warning_summary,))
+        println(io)
+    end
     println(io, "## Section Summary")
     println(io)
     _write_markdown_table(io, fit_report_sections(report);
@@ -10391,7 +10753,10 @@ function _fit_cache_request(design::FacetDesign;
         schema = "bayesianmgmfrm.fit_request.v2",
         julia_version = string(VERSION),
         data_signature = design.spec.validation.data_signature,
-        manifest = model_manifest(design),
+        manifest = isempty(design.spec.anchors) ? model_manifest(design) : (;
+            schema = "bayesianmgmfrm.anchor_fit_cache_identity.v1",
+            design_identity = design_identity(design),
+        ),
         experimental,
         parameter_space = experimental ? :raw_unconstrained : :direct_identified,
         diagnostic_contract = _mcmc_diagnostic_contract_record(),
@@ -10410,6 +10775,8 @@ diagnostic contract. The `progress`
 keyword is accepted for API symmetry with [`fit`](@ref) but is not included in
 the key because it does not affect posterior draws. Cache keys require
 `seed = <integer>` so automatic cache reuse is tied to a replayable fit request.
+Anchored designs use the canonical semantic design identity, so reordering
+otherwise identical anchor declarations does not change the key.
 """
 function fit_cache_key(design::FacetDesign; kwargs...)
     return _cache_hash(_fit_cache_request(design; kwargs...))
@@ -12266,6 +12633,7 @@ function _loo_refit_training_data(data::FacetData, observations::AbstractVector{
         rater = :rater,
         item = :item,
         score = :score,
+        category_levels = data.category_levels,
         optional_kwargs...,
     )
 end
@@ -16074,8 +16442,8 @@ function _hypothetical_mfrm_category_probabilities!(
     length(probs) == length(design.spec.data.category_levels) ||
         throw(ArgumentError("probability work vector has the wrong length"))
     person_value = params[design.blocks[:person][person]]
-    rater_value = _reference_value(params, design.blocks[:rater], rater)
-    item_value = _reference_value(params, design.blocks[:item], item)
+    rater_value = _stable_facet_value(design, params, :rater, rater)
+    item_value = _stable_facet_value(design, params, :item, item)
     location = person_value - rater_value - item_value
     step_sum = _param_zero(params)
     for category_index in eachindex(probs)
@@ -16260,9 +16628,9 @@ function _mfrm_facet_value(design::FacetDesign,
     if facet === :person
         return Float64(params[design.blocks[:person][level_index]])
     elseif facet === :rater
-        return Float64(_reference_value(params, design.blocks[:rater], level_index))
+        return Float64(_stable_facet_value(design, params, :rater, level_index))
     elseif facet === :item
-        return Float64(_reference_value(params, design.blocks[:item], level_index))
+        return Float64(_stable_facet_value(design, params, :item, level_index))
     end
     throw(ArgumentError("separation_reliability_summary supports facets :person, :rater, and :item"))
 end
@@ -16506,30 +16874,48 @@ function _wright_map_facet_parameter(design::FacetDesign,
             parameter_index,
             parameter_name = design.parameter_names[parameter_index],
             status = :estimated,
+            is_fixed = false,
+            fixed_value = missing,
         )
     elseif facet === :rater
-        level_index == 1 && return (;
-            parameter_index = missing,
-            parameter_name = missing,
-            status = :reference_zero,
-        )
-        parameter_index = design.blocks[:rater][level_index - 1]
+        parameter_index = _stable_facet_parameter_index(design, :rater, level_index)
+        if parameter_index === missing
+            fixed_value = _stable_facet_fixed_value(design, :rater, level_index)
+            anchored = haskey(_stable_hard_anchor_map(design)[:rater], level_index)
+            return (;
+                parameter_index = missing,
+                parameter_name = missing,
+                status = anchored ? :hard_anchor : :reference_zero,
+                is_fixed = true,
+                fixed_value,
+            )
+        end
         return (;
             parameter_index,
             parameter_name = design.parameter_names[parameter_index],
             status = :estimated,
+            is_fixed = false,
+            fixed_value = missing,
         )
     elseif facet === :item
-        level_index == 1 && return (;
-            parameter_index = missing,
-            parameter_name = missing,
-            status = :reference_zero,
-        )
-        parameter_index = design.blocks[:item][level_index - 1]
+        parameter_index = _stable_facet_parameter_index(design, :item, level_index)
+        if parameter_index === missing
+            fixed_value = _stable_facet_fixed_value(design, :item, level_index)
+            anchored = haskey(_stable_hard_anchor_map(design)[:item], level_index)
+            return (;
+                parameter_index = missing,
+                parameter_name = missing,
+                status = anchored ? :hard_anchor : :reference_zero,
+                is_fixed = true,
+                fixed_value,
+            )
+        end
         return (;
             parameter_index,
             parameter_name = design.parameter_names[parameter_index],
             status = :estimated,
+            is_fixed = false,
+            fixed_value = missing,
         )
     end
     throw(ArgumentError("wright_map_data supports facets :person, :rater, and :item"))
@@ -16602,6 +16988,8 @@ function _wright_map_facet_row(design::FacetDesign,
         threshold_parameter_index = missing,
         threshold_parameter_name = missing,
         status = parameter.status,
+        is_fixed = parameter.is_fixed,
+        fixed_value = parameter.fixed_value,
         n_observations,
         n_draws = size(draws, 1),
         scale = :logit,
@@ -16660,6 +17048,14 @@ function _wright_map_threshold_row(design::FacetDesign,
         threshold_parameter_index = metadata.parameter_index,
         threshold_parameter_name = metadata.parameter_name,
         status = metadata.status,
+        is_fixed = metadata.parameter_index === missing,
+        fixed_value = metadata.parameter_index === missing ?
+            Float64(_threshold_step(
+                design,
+                @view(draws[first(axes(draws, 1)), :]),
+                item_index,
+                step,
+            )) : missing,
         n_observations = missing,
         n_draws = size(draws, 1),
         scale = :logit,
@@ -18679,9 +19075,10 @@ function _rater_mfrm_severity_draws(design::FacetDesign,
         rater_index::Int)
     values = Vector{Float64}(undef, size(draws, 1))
     for draw in axes(draws, 1)
-        values[draw] = Float64(_reference_value(
+        values[draw] = Float64(_stable_facet_value(
+            design,
             @view(draws[draw, :]),
-            design.blocks[:rater],
+            :rater,
             rater_index,
         ))
     end
@@ -18735,6 +19132,8 @@ function _rater_diagnostic_row(;
         lower_probability::Float64,
         upper_probability::Float64,
         severity_parameter_name,
+        severity_status::Symbol,
+        severity_fixed_value,
         severity_values,
         discrimination_modeled::Bool,
         discrimination_parameter,
@@ -18789,7 +19188,10 @@ function _rater_diagnostic_row(;
         observed.central_category_count,
         observed.central_category_proportion,
         severity_parameter_name,
-        severity_reference = severity_parameter_name === missing,
+        severity_status,
+        severity_is_fixed = severity_status in (:reference_zero, :hard_anchor),
+        severity_fixed_value,
+        severity_reference = severity_status === :reference_zero,
         severity_mean = severity_summary.mean,
         severity_median = severity_summary.median,
         severity_lower = severity_summary.lower,
@@ -18868,8 +19270,18 @@ function rater_diagnostics(design::FacetDesign,
 
     for (level_index, level) in pairs(data.rater_levels)
         severity_values = _rater_mfrm_severity_draws(design, draws, level_index)
-        severity_parameter_name = level_index == 1 ? missing :
-            design.parameter_names[design.blocks[:rater][level_index - 1]]
+        severity_parameter_index =
+            _stable_facet_parameter_index(design, :rater, level_index)
+        severity_parameter_name = severity_parameter_index === missing ? missing :
+            design.parameter_names[severity_parameter_index]
+        severity_anchored = haskey(
+            _stable_hard_anchor_map(design)[:rater],
+            level_index,
+        )
+        severity_status = severity_parameter_index === missing ?
+            (severity_anchored ? :hard_anchor : :reference_zero) : :estimated
+        severity_fixed_value = severity_parameter_index === missing ?
+            _stable_facet_fixed_value(design, :rater, level_index) : missing
         push!(rows, _rater_diagnostic_row(;
             data,
             model_family = :mfrm,
@@ -18880,6 +19292,8 @@ function rater_diagnostics(design::FacetDesign,
             lower_probability,
             upper_probability,
             severity_parameter_name,
+            severity_status,
+            severity_fixed_value,
             severity_values,
             discrimination_modeled = false,
             discrimination_parameter = missing,
@@ -18955,6 +19369,8 @@ function rater_diagnostics(fit::GMFRMFit;
             lower_probability,
             upper_probability,
             severity_parameter_name = fit.design.parameter_names[severity_index],
+            severity_status = :estimated,
+            severity_fixed_value = missing,
             severity_values,
             discrimination_modeled,
             discrimination_parameter = discrimination_modeled ?

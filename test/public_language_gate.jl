@@ -123,7 +123,13 @@ const PublicLanguagePolicy = PublicLanguageGateContractForTest.PublicLanguageGat
         rules = Set(violation.rule for violation in violations)
         @test :private_identifier in rules
         @test :maintainer_workflow_wording in rules
-        @test :maintainer_review_wording in rules
+        @test !(:maintainer_review_wording in rules)
+
+        public_api_terms = joinpath(temp_root, "public-api-terms.md")
+        write(public_api_terms,
+            "Use `ordinal_response_pattern_audit` before the stress preflight.\n")
+        @test isempty(PublicLanguagePolicy.public_language_violations(
+            temp_root; paths = [public_api_terms]))
 
         allowed = joinpath(temp_root, "allowed.md")
         write(allowed,
@@ -155,7 +161,7 @@ const PublicLanguagePolicy = PublicLanguageGateContractForTest.PublicLanguageGat
         @test :private_identifier in rules
         @test :rendered_private_identifier in rules
         @test :maintainer_workflow_wording in rules
-        @test :rendered_maintainer_review_wording in rules
+        @test !(:rendered_maintainer_review_wording in rules)
     end
 
     mktempdir() do temp_root

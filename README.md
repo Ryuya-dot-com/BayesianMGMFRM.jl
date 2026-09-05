@@ -84,6 +84,7 @@ data = FacetData(ratings;
     rater = :rater,
     item = :item,
     score = :score,
+    category_levels = 0:2,
 )
 
 validation = validate_design(data)
@@ -115,6 +116,12 @@ An unused interior score category, an all-maximum person, or a constant-score
 rater is warning-level stress evidence rather than an automatic fit failure;
 inspect `response_patterns` and repeat those cases under predeclared priors.
 One category across the entire dataset remains a pre-fit error.
+Pass `category_levels` when the score form defines the intended ordinal scale.
+For example, `category_levels = 0:2` preserves all three PCM categories even
+when a realized sample happens to contain only scores 1 and 2; validation then
+warns that endpoint 0 is unobserved instead of silently fitting a two-category
+model. Without the keyword, the backward-compatible default remains the
+contiguous range from the observed minimum through maximum.
 
 The guarded fixed-Q MGMFRM validation program also provides a bounded MCMC-free
 stress preflight:
@@ -368,8 +375,11 @@ Useful reporting functions include:
   `separation_reliability_summary`;
 - `category_functioning_summary` for observed and posterior-predictive category
   use plus RSM/PCM step uncertainty, and `rater_homogeneity_summary` for
-  draw-wise severity contrasts with optional ROPEs and separately labelled
-  shared-unit overlap versus model-identification support;
+  severity contrasts with optional ROPEs, explicit fixed/partially estimated/
+  posterior-estimated status, and separately labelled shared-unit overlap
+  versus model-identification support; a contrast between two fixed rater
+  coordinates is reported as an exact constant with no interval probability or
+  posterior uncertainty;
 - `rater_diagnostics`, `residual_summary`, `fit_stats`, and `wright_map_data`;
 - `predictive_standardized_residuals`, the provisional
   `local_dependence_contract`, and the report-only `local_dependence_summary`
@@ -401,6 +411,19 @@ Useful reporting functions include:
   `fit_report_markdown`, and report-bundle exporters. The full version-1 report
   remains available for compatibility; use the public view for material shared
   with report readers and `require_complete = true` for evidence exports.
+  Stable MFRM reports contain a `fixed_coordinates` section: reference and
+  hard-anchor values are labelled as fixed constants, not posterior estimates.
+  They also include `category_functioning` usage/threshold rows and
+  `rater_homogeneity` pairwise severity-contrast rows by default. Category
+  review flags add one aggregate warning and never trigger automatic collapse,
+  recoding, or refitting; a hard-anchor fit adds aggregate fixed-value and
+  coordinate-dependent-prior warnings, plus a conditional warning when two or
+  more anchors fix contrasts within the same facet. Either
+  practitioner section can be disabled independently. A one-rater fit records zero pairwise contrasts as
+  `not_applicable_single_rater`, rather than treating the absence of a contrast
+  as evidence of homogeneity. JSON, table, and bundle exports retain that empty
+  contrast table; Markdown omits empty previews by default and exposes them
+  with `include_empty = true`.
 
 `facets_report` (also available as `facets_compatibility_stats`) returns an
 explicitly approximate, unit-weighted posterior-mean plugin table for supported
@@ -408,9 +431,21 @@ MFRM/RSM/PCM fits. It does not claim numerical equivalence with FACETS and is
 not available for generalized fits.
 
 For migration, see the [FACETS and ACER ConQuest crosswalk](docs/src/migration-facets-conquest.md).
-`anchor_refit_plan` checks candidate anchor provenance and the proposed affine
-hard-anchor strategy, but numerical anchor-constrained refitting is not yet an
-implemented fitting path.
+Exact individual rater/item hard anchors are supported by the stable MFRM path:
+pass `anchors = [(block = :rater, level = "R1", value = 0.0, type = :hard)]`
+to `mfrm_spec`, then call `fit` normally. The fixed coordinate is not sampled
+or assigned a prior; manifests, predictor rows, Wright-map rows, and rater
+diagnostics expose it as structurally fixed. `fit_report(fit; view = :public)`
+also exposes the exact value under `fixed_coordinates.rows`, excludes it from
+posterior-summary rows, and records the no-prior/no-sampling interpretation in
+`fixed_coordinates.warning_rows`; uncertainty from an externally estimated
+anchor value is not propagated. `anchor_refit_plan(...;
+require_provenance = false)` checks the minimal distributed-package contract;
+its source/hash provenance audit is optional and does not gate fitting. Soft,
+threshold, and group-mean anchors remain unsupported for numerical fitting.
+Individual parameter anchors do not create observed rating-graph links, so a
+disconnected design remains rejected rather than being silently aligned by its
+anchor declarations.
 
 The package can also prepare manual-syntax FACETS or ConQuest bridge bundles on
 a Mac with `facets_bridge_bundle` or `conquest_bridge_bundle`, save them with a
@@ -518,10 +553,19 @@ For ordinary repository verification:
 ```bash
 julia --project=. -e 'using Pkg; Pkg.test()'
 julia --startup-file=no --project=docs docs/build.jl
+julia --startup-file=no scripts/distribution_archive_smoke.jl
 ```
 
+The distribution smoke copies only Git-visible, non-ignored worktree files to a
+temporary source candidate. From that Git-free copy it instantiates, measures
+first and warm loads, runs the minimal stable fit, and builds the manual with
+optional research evidence disabled and CmdStan/R environment hooks removed.
+Each phase has a hard elapsed-time budget; the surrounding CI job also has a
+30-minute timeout.
+
 Ordinary `Pkg.test()` checks package behavior and portable artifact contracts.
-The long SHA-chained research-evidence archive is intentionally opt-in:
+The long SHA-chained research-evidence archive, including legacy code/document
+provenance traversal, is intentionally opt-in:
 
 ```bash
 BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true \
@@ -529,7 +573,10 @@ BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true \
 ```
 
 Use that mode when reviewing or regenerating frozen study evidence, not as a
-prerequisite for installing or fitting the package on another computer.
+prerequisite for installing or fitting the package on another computer. The
+optional research-fixture path variables are ignored when empty and rejected
+when non-empty unless this flag is true, so a stray CI or shell variable cannot
+silently turn an ordinary package test into a study-result check.
 
 The complete package suite runs once on Ubuntu with the Julia 1.10.8 minimum
 version. On the latest Julia 1.x release, the same ordinary test coverage is
@@ -538,7 +585,9 @@ shards. Running `Pkg.test()` locally still selects all groups; a single group ca
 be selected with `BAYESIANMGMFRM_TEST_GROUP=<group>`. Focused current-Julia
 smokes on macOS and Windows verify package loading, design validation and
 compilation, likelihood evaluation, a minimal stable Bayesian fit, and
-non-blocking environment metadata collection. Separate jobs build the
+non-blocking environment metadata collection. Every CI job has an explicit hard
+timeout; ordinary Ubuntu test shards are capped at 30--35 minutes and the full
+minimum-Julia suite at 75 minutes. Separate jobs build the
 documentation and verify examples and release-facing language. The root
 `Manifest.toml` and `docs/Manifest.toml` are ignored, machine-local files. The
 versioned `Manifest-v1.10.toml` is the tracked lockfile for the Julia 1.10.8

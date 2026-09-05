@@ -2,8 +2,94 @@
 
 ## 0.1.2 (unreleased)
 
+### Changed
+
+- Support exact individual rater/item hard anchors in the stable MFRM/RSM/PCM
+  compiler and fitting path. Fixed coordinates replace the block's default
+  reference gauge, are omitted from sampling and prior density, and remain
+  visible in predictor metadata, Wright-map rows, rater diagnostics, and model
+  manifests. Stable fit reports now expose them in a dedicated fixed-coordinate
+  section, keep them out of posterior-summary rows, and add concise fixed-value
+  and coordinate-dependent-prior warnings when declared hard anchors are
+  present. The latter makes explicit that the zero-centered prior on free
+  identified coordinates is not shifted with the anchor, so a
+  likelihood-equivalent anchor change need not be posterior-invariant. The
+  report adds a third warning when two or more anchors in the same facet fix
+  within-facet contrasts. Fixed external values do not propagate their source
+  estimation or linking uncertainty. The public, Markdown, JSON, and
+  table-report paths preserve this contract. Optional
+  provenance/hash auditing does not gate fitting. Semantic design/cache
+  identity is invariant to anchor declaration order but remains sensitive to
+  anchor content. Known-truth checks distinguish likelihood-equivalent single-
+  anchor gauge shifts from contaminated multi-anchor contrasts that change
+  response probabilities and expected log score, while retaining the prior-
+  coordinate caveat for the former. An exact dense/sparse check confirms equal
+  likelihood under a shifted single-anchor gauge and shows that its log-prior
+  difference scales as the inverse square of a common prior-scale multiplier.
+  Exhaustive ordered two-anchor deletion checks also show that an incompatible
+  clean/contaminated pair changes probabilities, while deleting either member
+  restores a likelihood-equivalent single-anchor gauge; response likelihood
+  alone cannot attribute which source value is contaminated.
+  Reader-facing parameter-layout rows now omit compiler-only statuses while
+  preserving reference and hard-anchor statuses on fixed coordinates.
+  Disconnected rating graphs remain rejected:
+  individual parameter anchors do not create observed graph links or implement
+  FACETS-style group anchoring.
+- Include the existing category-functioning and pairwise rater-homogeneity
+  summaries in stable MFRM fit reports by default, with independent opt-out
+  controls. Category usage and step-order review rows produce one aggregate
+  warning without automatic score recoding. Rater rows keep shared-unit overlap
+  separate from full additive-model identification and assume no universal
+  severity ROPE. Public, Markdown, JSON, and table exports preserve the rows
+  while omitting the reproduction-only data signature. Single-rater reports
+  now mark pairwise contrasts and interpretation as not applicable instead of
+  labelling the empty comparison graph connected and fully interpretable.
+  Zero-row contrast tables survive public JSON, table, and bundle round trips;
+  Markdown can show them explicitly with `include_empty = true`. Declared but
+  unobserved category endpoints also remain visible in PCM usage rows alongside
+  the full item-specific threshold-row set. Rater contrasts now distinguish
+  default fixed references, hard anchors, and estimated coordinates. Two-fixed-
+  coordinate differences are labelled exact constants with no posterior
+  uncertainty or interval probabilities; one-fixed-coordinate differences
+  attribute uncertainty only to the estimated side. These statuses survive
+  public reports and JSON round trips.
+- Preserve an explicitly declared consecutive ordinal scale through
+  `FacetData(...; category_levels = ...)`, validation, likelihood and
+  prediction design, refit subsets, fit/model metadata, and fit-cache reloads.
+  The existing observed-minimum-to-maximum inference remains the default.
+  Declared but unobserved endpoints now produce an actionable warning instead
+  of silently reducing the fitted category universe.
+- Freeze the `0.1.x` package-root API by classifying every exported binding as
+  stable, compatibility-only, or research-only. Tests reject overlaps and
+  unclassified export growth, while the docs build rejects missing stable or
+  compatibility references; published compatibility and research surfaces are
+  visibly separated from the stable workflow.
+- Make the ordinary/research test boundary fail closed: non-empty optional
+  research-fixture paths now require the explicit research-evidence flag, CI
+  keeps that flag off outside the manual research lane, and every CI job has a
+  documented hard timeout.
+- Add a release-hygiene smoke that assembles a Git-free candidate from visible,
+  non-ignored files, rejects current-machine paths, disables research evidence
+  and optional CmdStan/R environment hooks, and budget-checks instantiate,
+  first/warm load, the minimal stable fit, and the docs build from that copy.
+  Documenter now has an explicit package remote and `main` edit target, so its
+  source-link setup no longer requires local Git metadata.
+  The release-hygiene CI job also enforces a 4 MiB compressed Git source-archive
+  budget before installing Julia.
+
 ### Added
 
+- Add a fixed, two-replication MFRM hard-anchor pilot crossing four connected
+  designs, a fitted-family versus R4 extremity-response generator, and five
+  anchor regimes: true and shifted single anchors, true endpoint and interior
+  multi-anchors, and contaminated endpoint multi-anchors. All 80 four-chain
+  fits pass the pilot diagnostics with no divergences or maximum-tree-depth
+  hits. Contamination worsens true-probability regret in 16/16 pairs but
+  finite-sample holdout log loss in only 10/16; correct interior-versus-endpoint
+  direction splits 10/16. The paired nested-link comparison is explicitly a
+  composite ability-range, item-mix, and rater-load stress rather than an
+  isolated placement effect. The result remains descriptive operability
+  evidence, not calibrated recovery, new-level prediction, or a public claim.
 - Add `mgmfrm_validation_replication_precision` to compare proposed fixed-Q
   MGMFRM simulation counts using separate coverage, worst-case binary-rate,
   and reference-SD bias MCSE calculations without freezing a study.
@@ -153,6 +239,26 @@
 
 ### Changed
 
+- Make the release-scope check depend on required package-document presence and
+  the existing structured support manifest instead of exact README or roadmap
+  sentences. Public API names containing `audit` or `preflight` no longer fail
+  a stylistic regex gate, while public-boundary, private-path, runtime-output,
+  example, and Documenter checks remain. The experimental surface contract now
+  declares its reader-facing bindings, removing a duplicated runtime-gate list.
+  Legacy code/document archive SHA traversal now runs only in the opt-in
+  research-evidence lane. The committed local-dependence preflight artifact
+  continues to verify its own content digest and provenance-field shapes, but
+  ordinary tests no longer require its historical source digests to equal the
+  current working tree.
+- Reorder the active roadmap around a distribution-first gate. Ordinary package
+  behavior, clean-clone release checks, stable-MFRM usability, root-API and
+  dependency budgets, and separation of research fixtures now precede new
+  generalized mechanisms or large simulation programs. An axis-lock checklist
+  now requires a named outcome and the weakest sufficient identity mechanism,
+  while making digest-only work and unfalsifiable evidence accumulation explicit
+  stop/move conditions. Exact digests remain for cache correctness and genuine
+  external-byte boundaries, but transitive source-hash chains are no longer
+  roadmap progress or scientific evidence.
 - Separate Uto's 30-repetition RMSE/bias study and two-rater ability comparison
   from package precision and sparse-robustness requirements. Primary-grid rows
   now report effective per-rater exposure and coverage roles, while the
@@ -275,8 +381,9 @@
   minimum Julia and through named current-Julia `core`, `fitting`,
   `local_dependence`, and `generalized` shards. Use focused package-load/
   validation/likelihood/minimal-fit smokes on macOS and Windows, remove
-  duplicate digest execution, and stop making byte-exact legacy archive drift
-  a normal release gate. Plain `Pkg.test()` still runs every ordinary group.
+  duplicate digest execution, and move byte-exact legacy code/document archive
+  traversal out of ordinary `Pkg.test()` and into the opt-in research-evidence
+  lane. Plain `Pkg.test()` still runs every ordinary behavioral group.
 - Treat execution-environment SHA values as provenance rather than requiring
   every replicated free-correlation study unit to come from one machine, and
   run the 90 optional SHA-chained research fixtures only when

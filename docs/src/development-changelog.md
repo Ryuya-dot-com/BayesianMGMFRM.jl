@@ -2,6 +2,37 @@
 
 ## Unreleased
 
+- Add the existing category-functioning and rater-homogeneity summaries to
+  stable MFRM fit reports by default. Their row contracts now survive public,
+  Markdown, JSON, and table projection; public output omits the internal data
+  signature. Category review rows produce one aggregate warning without
+  automatic collapse or recoding, while rater overlap remains distinct from
+  additive-model identification and no universal severity ROPE is imposed.
+  Correct the one-rater boundary so zero available contrasts are explicitly not
+  applicable rather than vacuously connected and interpretable; add extreme
+  sparse-overlap, invalid-control, and combined category/anchor-warning tests.
+  Freeze zero-row public JSON, table, Markdown, and bundle behavior without
+  adding another persistence mechanism, and cover declared-unobserved PCM
+  endpoints together with the complete item-specific threshold-row universe.
+  Distinguish fixed-reference, hard-anchor, and estimated rater coordinates in
+  every contrast; report two-fixed-coordinate differences as exact constants
+  with no posterior uncertainty or interval probabilities, and one-fixed-
+  coordinate differences as uncertain only through the estimated side.
+  Preserve these semantics through stable fit reports, public projection, and
+  JSON round trips.
+- Add stable exact individual rater/item hard-anchor fitting with a selection
+  affine map. Fixed coordinates are unsampled, prior-free, and restored in
+  likelihood, prediction, diagnostics, and manifest surfaces; the existing
+  provenance/hash declaration audit is optional for numerical fitting. Add a
+  dedicated fit-report section that separates those constants from posterior
+  estimates, emits aggregate fixed-value and coordinate-dependent-prior
+  warnings plus a conditional within-facet contrast warning, and survives public,
+  Markdown, JSON, and table projections. Exact dense/sparse checks separate
+  likelihood gauge invariance from the zero-centered prior effect and verify
+  that the between-gauge log-prior difference scales as the inverse square of a
+  common prior-scale multiplier. Ordered deletion checks over every two-anchor
+  rater/item pair establish the boundary between detecting an incompatible
+  contrast and attributing which fixed source value is contaminated.
 - Make guarded GMFRM/MGMFRM numerical execution fail closed: a shared
   family-specific capability contract now rejects unsupported threshold,
   discrimination, anchor, DFF, mutated-Q, cache, refit, and direct numerical

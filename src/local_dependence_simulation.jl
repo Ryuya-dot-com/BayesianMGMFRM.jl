@@ -521,36 +521,8 @@ function local_dependence_simulation_grid(;
     return rows
 end
 
-function _ld1_preserve_category_scale(data::FacetData, intended_levels)
-    levels = collect(Int, intended_levels)
-    isempty(levels) && throw(ArgumentError(
-        "intended category levels must not be empty"))
-    levels == collect(first(levels):last(levels)) || throw(ArgumentError(
-        "intended category levels must be consecutive integers"))
-    all(score -> score in levels, data.score) || throw(ArgumentError(
-        "generated score is outside the intended category scale"))
-    data.category_levels == levels && return data
-    level_index = Dict(level => index for (index, level) in pairs(levels))
-    category = [level_index[score] for score in data.score]
-    return FacetData(
-        data.n,
-        data.person,
-        data.rater,
-        data.item,
-        data.score,
-        category,
-        data.person_levels,
-        data.rater_levels,
-        data.item_levels,
-        levels,
-        data.optional,
-        data.optional_levels,
-        data.columns,
-    )
-end
-
 function _ld1_facet_data(raw)
-    data = FacetData(
+    return FacetData(
         raw.table;
         person = :person,
         rater = :rater,
@@ -560,9 +532,8 @@ function _ld1_facet_data(raw)
         occasion = :occasion,
         response_id = :response_id,
         testlet_id = :testlet_id,
+        category_levels = raw.truth.intended_category_levels,
     )
-    return _ld1_preserve_category_scale(
-        data, raw.truth.intended_category_levels)
 end
 
 function _ld1_audit_for_target(audits, target::Symbol)

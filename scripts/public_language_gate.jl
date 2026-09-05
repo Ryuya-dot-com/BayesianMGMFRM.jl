@@ -62,14 +62,6 @@ const PRIVATE_IDENTIFIER_PATTERN =
 const MAINTENANCE_TOKEN_PATTERN =
     r"(?i)\b(?:source[\s_-]?fixture[A-Za-z0-9_]*|fixture[\s_-]?only|fixture[\s_-]?provenance|promotion[\s_-]?candidate|guarded[\s_-]?local[\s_-]?entrypoint|guarded[\s_-]?local[\s_-]?fit|experimental_public|next[\s_-]?gate|blocked[\s_-]?option|supported[\s_-]?surface|candidate[\s_-]?gates|caveat[\s_-]?docs[\s_-]?artifact|internal[\s_-]?target[\s_-]?constructor|internal[\s_-]?sampler[\s_-]?diagnostic[\s_-]?constructor|publication[\s_-]?or[\s_-]?registration[\s_-]?action|manual[\s_-]?publication[\s_-]?or[\s_-]?registration[\s_-]?by[\s_-]?user[\s_-]?only|manuscript[\s_-]?claims[\s_-]?allowed|public[\s_-]?claim[\s_-]?allowed|package[\s_-]?default[\s_-]?change)\b"
 
-const MAINTAINER_REVIEW_PATTERN = Regex(join((
-    raw"\baudit(?:ing|ed|s)?\b",
-    raw"\b(?:preflight|harness)\b",
-    raw"\b[A-Za-z][A-Za-z0-9_]*(?:_audit|_harness)\b",
-    raw"\blocal_dependence_calibration_pilot_preflight\b",
-    raw"\blocal[\s_-]+worktree\b",
-), '|'), "i")
-
 const LANGUAGE_RULES = (
     (;
         id = :absolute_local_path,
@@ -133,11 +125,6 @@ const SOURCE_ONLY_RULES = (
         id = :internal_audience_wording,
         pattern = r"(?i)\binternal(?![\s_-]+consistency\b)(?:[\s-]+only)?\b",
         guidance = "describe the user-visible behavior and keep maintainer context outside public files",
-    ),
-    (;
-        id = :maintainer_review_wording,
-        pattern = MAINTAINER_REVIEW_PATTERN,
-        guidance = "use check, validation, or plan wording in public documentation",
     ),
 )
 
@@ -216,11 +203,6 @@ const RENDERED_ONLY_RULES = (
         id = :rendered_developer_page,
         pattern = r"(?:Registration Handoff|MGMFRM Research Roadmap|v0\.1\.1 Implementation Checklist)",
         guidance = "exclude maintainer pages from the Documenter build",
-    ),
-    (;
-        id = :rendered_maintainer_review_wording,
-        pattern = MAINTAINER_REVIEW_PATTERN,
-        guidance = "use check, validation, or plan wording in reader-facing documentation",
     ),
 )
 

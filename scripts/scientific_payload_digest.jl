@@ -336,8 +336,9 @@ end
     strict_archive_sha_enabled()
 
 Return whether exact archive byte matching was explicitly requested through
-`BAYESIANMGMFRM_STRICT_ARCHIVE_SHA`. Ordinary unit tests may classify code and
-documentation drift; release reproduction runs should enable strict mode.
+`BAYESIANMGMFRM_STRICT_ARCHIVE_SHA`. Code/document provenance traversal belongs
+to the opt-in research-evidence lane; an exact reproduction run should also
+enable strict mode.
 """
 function strict_archive_sha_enabled()
     value = lowercase(strip(get(

@@ -39,7 +39,6 @@ model_ladder
 model_manifest
 model_equation
 model_family_contract
-mgmfrm_validation_protocol
 model_surface_check
 q_matrix_validation
 fit_ready_parameter_layout
@@ -67,4 +66,18 @@ load_conquest_semantic_parameters
 external_bridge_result_receipt
 rating_design_check
 testlet_design_check
+```
+
+## Compatibility diagnostic names
+
+`rating_design_audit`, `model_surface_audit`, and `testlet_design_audit` are
+retained at package root for source compatibility in the `0.1.x` line. New
+reader-facing workflows should use `rating_design_check`,
+`model_surface_check`, and `testlet_design_check`. Retention does not make the
+detailed audit payloads a new stable extension surface.
+
+```@docs
+rating_design_audit
+model_surface_audit
+testlet_design_audit
 ```

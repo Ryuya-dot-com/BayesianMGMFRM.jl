@@ -162,6 +162,8 @@ function metadata_check()
     isfile(joinpath(ROOT, "docs", "make.jl")) || error("docs/make.jl is missing")
     isfile(joinpath(ROOT, "scripts", "generate_validation_plan.jl")) ||
         error("scripts/generate_validation_plan.jl is missing")
+    isfile(joinpath(ROOT, "scripts", "distribution_archive_smoke.jl")) ||
+        error("scripts/distribution_archive_smoke.jl is missing")
     isfile(joinpath(ROOT, "scripts", "registration_handoff.jl")) ||
         error("scripts/registration_handoff.jl is missing")
     return nothing

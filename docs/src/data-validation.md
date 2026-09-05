@@ -21,6 +21,7 @@ data = FacetData(ratings;
     rater = :rater,
     item = :item,
     score = :score,
+    category_levels = 0:2,
     group = :group,
 )
 
@@ -30,8 +31,10 @@ design = getdesign(spec)
 ```
 
 `FacetData` records deterministic integer indexes and stable label maps for
-persons, raters, items, the contiguous integer score range from the minimum to
-maximum observed score, and optional metadata roles.
+persons, raters, items, the intended consecutive integer score scale, and
+optional metadata roles. Pass `category_levels` when the form defines that
+scale. If the keyword is omitted, the backward-compatible default is the
+contiguous integer range from the observed minimum through maximum.
 `validate_design` returns a `ValidationReport` with machine-readable
 `ValidationIssue.code` values and human-readable messages. Current checks cover:
 
@@ -53,7 +56,10 @@ or boundary responses are part of the design risk:
 ```julia
 audit = ordinal_response_pattern_audit(data)
 audit.status
+audit.category_scale.intended_levels
+audit.category_scale.observed_levels
 audit.category_scale.unobserved_interior_categories
+audit.category_scale.unobserved_endpoint_categories
 audit.flags.extreme_person_levels
 audit.flags.constant_rater_levels
 ```
@@ -78,10 +84,15 @@ regimes. If the entire dataset contains only one score category, the ordered-
 response likelihood is not estimable and `validate_design` returns an error.
 
 The ordinary `FacetData` constructor infers the scale from the observed
-minimum through maximum. It can detect skipped interior categories, but not an
-intended endpoint outside that realized range. Preserve such endpoint intent
-in source-data provenance until a declared-category-scale constructor is
-available; do not infer endpoint use from this audit.
+minimum through maximum unless `category_levels` is supplied. For example,
+`category_levels = 0:4` preserves five intended categories even when the
+realized data contain only scores 1 through 4. `validate_design` then returns
+the warning code `:unobserved_declared_endpoint`, and the response-pattern
+audit separates the intended, observed, interior-unobserved, and endpoint-
+unobserved categories. The likelihood, predictions, refit subsets, model and
+fit metadata, and serialized fit cache retain the declared scale. The package
+does not silently collapse it; deciding whether a category is structurally
+possible or should be collapsed remains an analysis decision.
 
 For the fixed-Q MGMFRM validation program, the same cases can now be generated
 and checked across dense and connected-sparse layouts without running MCMC:
@@ -494,6 +505,17 @@ Use [`model_ladder`](@ref) to inspect the package's fit-supported and
 specified-only model ladder, and [`constraint_table`](@ref) to inspect
 constraints, transforms, prior-block declarations, DFF validation-only rows,
 and multidimensional Q-mask gauge declarations.
+
+The stable MFRM slice also accepts exact individual rater/item hard anchors.
+Each declaration needs a supported block, explicit observed level, finite
+non-Boolean logit value, and `type = :hard`. The anchor replaces that block's
+default first-level-zero gauge and is omitted from the sampled/prior vector.
+Multiple exact anchors may be combined across rater and item blocks, but they
+do not waive the ordinary connectedness/rank validation gate and do not by
+themselves establish common-response linking. Group anchoring of disconnected
+subsets is outside the stable numerical scope.
+Soft anchors and malformed or duplicate hard-anchor declarations remain
+`specified_only` and fail closed at `getdesign`.
 
 For fixed-Q MGMFRM work, call [`q_matrix_validation`](@ref) before or after
 `mfrm_spec`. It reports binary-mask schema checks, empty item rows, empty

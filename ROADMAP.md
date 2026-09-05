@@ -5,6 +5,10 @@ measurement reviewer. Its purpose is to keep the package's implementation
 sequence aligned with claims that can be defended in documentation, examples,
 registration review, and a future software paper.
 
+For current internal work, start at the [Active Decision Roadmap](#active-decision-roadmap).
+It owns milestone status and execution order; later model programs and historical
+ledgers supply detail, not additional concurrent priorities.
+
 ## Current Scope
 
 `BayesianMGMFRM.jl` is currently a many-facet Rasch workflow scaffold. The
@@ -85,27 +89,471 @@ Only the lowest satisfied tier should be advertised. A feature that runs but
 does not pass source-alignment or sampler gates remains experimental or
 internal, even if its API is convenient.
 
+### Distribution-First Adversarial Reset
+
+This repository is first a package that strangers must be able to install,
+understand, run, and remove. It is not primarily an evidence database, workflow
+engine, or append-only laboratory notebook. A research control is justified in
+the package repository only when it protects a shipped behavior, a user-visible
+claim, an external byte boundary, or a cache that could otherwise return the
+wrong result.
+
+#### Axis-Lock Checklist
+
+Apply this checklist before accepting any roadmap item, pull request, or release
+exception. Reset the **ACCEPT** boxes for each proposal. A proposal proceeds only
+when every ACCEPT box can be checked. Any checked **STOP/MOVE** condition rejects
+it from the package roadmap. Generalized-model expansion remains on hold until
+every **P0 RELEASE** box is checked with current evidence.
+
+**ACCEPT — all required for a new task**
+
+- [ ] It names one shipped user behavior, correctness risk, privacy/security
+  boundary, or predeclared scientific claim that it changes.
+- [ ] This package repository is the smallest correct home; a companion research
+  repository, external dataset, or versioned bundle would not be more honest.
+- [ ] It addresses the highest unfinished tier: distributable core, then stable
+  MFRM workflow, then independent scientific validation, then generalized scope.
+- [ ] Success is observable through a focused behavior, schema, performance,
+  portability, or privacy check rather than file count or document volume.
+- [ ] Any new root export, mandatory dependency, fixture above 250 KiB, or public
+  compatibility promise has a named user benefit and maintenance owner.
+- [ ] The weakest sufficient identity mechanism is used: semantic identity by
+  default, and one exact digest only where byte identity or cache correctness is
+  the actual claim.
+
+**P0 RELEASE — all required before generalized expansion**
+
+- [x] A clean source archive, without `.git`, ignored artifacts, private paths,
+  CmdStan, or R, can install, load, run the stable example, and build the manual.
+- [ ] Ordinary CI reads no optional research results; instantiate, first/warm
+  load, minimal fit, docs, and ordinary-test budgets are recorded and enforced.
+- [ ] Stable MFRM supports intended category scale and actual individual
+  rater/item hard-anchor fitting. Fixed-coordinate warnings, report integration,
+  persistence coverage, the short anchor workflow, and category/rater
+  practitioner-report integration are complete; final stable edge-case
+  hardening still governs this composite box.
+- [x] Root exports are frozen, every stable export is documented, and research
+  or experimental entry points are visibly quarantined.
+- [x] Release checks fail on behavior, schema, performance, portability, or
+  privacy—not unrelated prose tokens or transitive source digests.
+- [ ] The active work order is short; completed ledgers and large study outputs
+  are archival or external and are not prerequisites for `Pkg.test()`.
+
+Evidence recorded on 2026-08-15 for the checked item: `release_gate_check()`
+passes 10 package-document presence rows and 28 structured manifest rows with
+zero failures; a reader-facing prose-only edit remains accepted while a changed
+structured GMFRM status fails. The public-language check passes all 19 declared
+files without outlawing exported `audit`/`preflight` names. Full `Pkg.test()`
+passes, and the 45-reference legacy code/document SHA traversal now runs only in
+the opt-in research-evidence lane. This does not mark the remaining runtime-
+budget, stable-workflow, API, or repository-separation boxes.
+
+Partial evidence for the still-open ordinary-CI budget item is also recorded on
+2026-08-15. CI now defaults the research-evidence flag to `false`; its four
+current-Julia ordinary shards have 30--35 minute hard timeouts, the full
+minimum-Julia suite has a 75 minute timeout, and platform, docs, experimental-
+boundary, and release-hygiene jobs have 20--35 minute timeouts. Only the manual
+research job overrides the flag and it requires the `all` group. A regression
+test rejects every non-empty optional research-fixture path unless that flag is
+true. Warm-depot local observations from the complete suite place the dominant
+core design testset at 8m19s, the dominant fitting testset at 5m48s, and the two
+slowest local-dependence testsets at 2m02s and 2m18s. These are diagnostic
+observations, not portable baselines. After the boundary change, an isolated
+ordinary core shard passed with the new boundary test at 5/5 and the same
+dominant design testset at 2,422/2,422 in 7m58s. For the same OS, Julia line,
+and CI lane, compare the median of the last three successful runs; a rise above
+20% requires an explanation or remediation, while exceeding the hard timeout
+fails the job. The ordinary-CI runtime P0 box stays open until comparable CI
+whole-lane baselines and three-run medians are available rather than inferred
+from nested testset timings or one local machine.
+
+Evidence recorded on 2026-08-15 for the clean-source item: the distribution
+smoke assembled 420 Git-visible, non-ignored files (about 27.7 MB) in a
+temporary tree, rejected current-machine path leakage, exposed only an
+allow-listed process environment with research evidence disabled and no
+external command path, and ran without `.git`. The first attempt correctly
+failed because Documenter was inferring its remote from Git metadata. After the
+manual declared its GitHub remote and `main` edit target explicitly, repeated
+complete runs passed. A recorded privacy-restricted run observed assembly
+0.21s, instantiate 5.16s, first load 9.69s, warm load 1.98s, minimal stable fit
+13.16s, and docs 14.76s. Each step is checked against a hard 30--600s phase budget
+inside the 30-minute release-hygiene job.
+This is one current-Julia/macOS warm-depot observation; the ordinary-CI budget
+box remains open until comparable CI lane baselines are recorded rather than
+inferred from this single machine.
+
+Evidence recorded on 2026-08-15 for the root-API item: all 186 exported
+bindings are assigned exactly once to a semantic contract with 137 stable, 5
+compatibility-only, and 44 research-only bindings. The test compares the named
+union with Julia's actual export set, rejects overlap and unclassified growth,
+and requires a docstring for every binding; it does not hash source files. The
+docs pre-build check rejects a stable or compatibility binding missing from the
+API reference, while maintainer-only release controls remain unpublished. The
+complete manual build passes after placing compatibility audits and published
+research helpers under explicit non-stable headings. Experimental generalized
+workflow entry points remain fully qualified under
+`BayesianMGMFRM.Experimental`; the two root fit types are classified
+compatibility-only for serialized-cache type identity.
+
+Additional evidence for the still-open stable-MFRM workflow item is recorded on
+2026-08-16. `FacetData(...; category_levels = ...)` now preserves an intended
+consecutive integer scale through validation, PCM threshold construction,
+likelihood and prediction, LOO/K-fold training subsets, model and fit metadata,
+and fit-cache reloads. The default observed-range inference is unchanged.
+Declared but unobserved endpoints have a distinct actionable warning, and the
+short stable workflow declares its scale. The focused regression set passes
+45/45 checks. Exact individual rater/item hard anchors now replace the default
+reference gauge, omit fixed coordinates from sampling and priors, and propagate
+through likelihoods, predictions, diagnostics, manifests, fitting, and cache
+identity, and stable fit reports without adding a second digest layer. Public,
+Markdown, JSON, and table reports keep fixed constants out of posterior-summary
+rows and show aggregate fixed-value, coordinate-dependent-prior, and conditional
+within-facet contrast warnings.
+Pairwise rater contrasts
+distinguish fixed references, hard anchors, and estimated coordinates: two-
+fixed-coordinate contrasts are exact constants with no posterior uncertainty,
+interval probability, or quantile-probability labels, while one-fixed-
+coordinate contrasts inherit uncertainty only from the estimated side. These
+statuses survive public and JSON projections. Focused
+anchor declaration and numerical/report checks pass 2,091/2,091. Stable reports
+now include category
+usage/threshold and pairwise rater-contrast rows by default, keep their public,
+Markdown, JSON, and table projections aligned, and issue one aggregate category
+review warning without automatic recoding. The focused practitioner regression
+set passes 258/258. It now covers zero-contrast single-rater semantics, an
+all-disconnected requested-overlap graph that remains distinct from full-model
+identification, invalid rater controls, and simultaneous aggregate category and
+hard-anchor warnings. Zero-row contrasts survive public JSON, table, and bundle
+round trips and can be rendered explicitly in Markdown. Declared-unobserved PCM
+endpoints remain in usage rows alongside all item-specific step rows. This does
+not check the P0 box: further stable edge-case hardening and ordinary-CI budget
+evidence remain open.
+
+**STOP/MOVE — any one is sufficient**
+
+- [ ] The deliverable only regenerates hashes, receipts, copied status prose, or
+  another local evidence layer without changing a shipped behavior or claim.
+- [ ] It adds a mandatory dependency, root export, large fixture, or compatibility
+  surface for an optional or one-off research workflow.
+- [ ] It optimizes raw repository bytes without a measured install, test, review,
+  portability, or privacy benefit.
+- [ ] It continues local simulation or ceremony after independent review,
+  external data, or a promotion decision has become the real blocker.
+- [ ] Its completion criterion is “more evidence” without a frozen estimand,
+  acceptance rule, owner, and terminal allow/narrow/reject decision.
+
+The 2026-08-15 working snapshot provides a useful warning without implying that
+raw size alone is the problem. The repository tracks about 415 files and 27 MiB
+uncompressed; tests account for about 19 MiB, fixed fixtures for about 16 MiB,
+and 150 research scripts for about 5 MiB. The compressed Git archive is only
+about 3.1 MiB, however. The adversarial concern is therefore not download size
+by itself. It is review cost, ordinary-test latency, stale generated state,
+ambiguous authority, and the risk that a package change is blocked by an
+unrelated research ledger. The root module exposes 186 exported bindings (187
+names when the module binding itself is counted), while the main fitting,
+workflow, and test files remain unusually large.
+
+Treat the following skeptical readers as release stakeholders:
+
+| Reader | Adversarial question | Required response |
+| --- | --- | --- |
+| New user | Can I identify the supported model, fit it, and interpret failure without reading a research roadmap? | One short supported workflow, one experimental boundary, concise errors, and no repository-specific prerequisites. |
+| Registry or release maintainer | Does a clean source archive install, load, test, and build docs without local artifacts, Git metadata, CmdStan, R, or private data? | Clean-environment release checks with optional tools detected rather than required at load time. |
+| Package maintainer | Does a local code or prose edit force unrelated fixture regeneration or hash-chain repair? | Behavioral and schema tests first; source-byte coupling only at a justified external boundary. |
+| Scientific reviewer | Does the volume of manifests and receipts exceed the amount of independent recovery evidence? | One claim-to-evidence table that distinguishes execution, numerical agreement, scientific validation, and independent review. |
+| Cross-platform user | Does the default install pay for an optional backend or research workflow that I never call? | Measure dependency and latency cost; move materially expensive optional integrations behind extensions or separate environments. |
+| Data steward | Can a report, fixture, or provenance record reveal row-level identifiers or private paths? | Public outputs omit them by default and external research bundles have an explicit privacy review. |
+
+The distribution gate precedes new generalized mechanisms and large new
+simulation programs:
+
+1. **Restore a green clean-clone release path.** Replace brittle prose-token
+   checks with structured support/status checks. `Pkg.test()`, package load,
+   docs, and the three public examples must agree on the stable and experimental
+   surface. A stale sentence must not masquerade as a numerical failure.
+2. **Define the package/research boundary.** Ordinary tests retain only compact
+   fixtures needed to protect shipped behavior. Large study results, execution
+   ledgers, batch controllers, and historical result matrices move to a
+   companion repository or versioned research bundle when they are not needed
+   by `Pkg.test()`. Keep a small generator, schema, and representative fixture
+   in this repository when that is sufficient.
+3. **Freeze root API growth.** No new package-root export is added in `0.1.x`
+   without a documented end-user workflow and a compatibility commitment.
+   Research planning, resource measurement, and evidence-scoring entry points
+   should move behind an explicit research namespace or companion environment;
+   existing names require a deprecation cycle rather than abrupt removal.
+4. **Measure dependency cost.** Record clean instantiate, first load, warm load,
+   minimal fit, docs, and ordinary-test times on supported Julia versions.
+   Turing and other optional adapters become extension candidates if they add
+   material installation or load cost relative to their ordinary-user value.
+5. **Split by shipped responsibility.** Compiler/validation, likelihood,
+   sampling, diagnostics, reports, persistence, and optional research policy
+   receive separate source and test boundaries. A change to one layer should
+   have a focused test command and should not require loading an unrelated
+   evidence corpus.
+6. **Finish the stable MFRM journey before widening the model family.**
+   Finish stable edge-case hardening before another generalized mechanism is
+   proposed for public exposure. Intended category-scale handling, exact
+   individual rater/item hard anchors, fixed-coordinate warnings/reports,
+   persistence propagation, the short example, and category/rater practitioner
+   report integration are now in place.
+
+Identity mechanisms receive an explicit budget:
+
+| Boundary | Identity mechanism | Default policy |
+| --- | --- | --- |
+| In-memory data/design and fit cache | Versioned semantic identity over the fields that change the result | Retain; a wrong cache hit is a user-facing correctness bug. |
+| External input, binary/raw output, signed handoff | One exact digest for the transferred object or bundle | Retain; byte identity is the claim. |
+| Scientific payload | Versioned schema, explicit estimands, seeds, controls, and semantic projection | Prefer semantic comparison; add one bundle digest only when distributing an immutable archive. |
+| Source checkout | Git commit/tree plus package and protocol versions at a reproduction boundary | Do not pin every transitive source file. |
+| Ordinary source, test, or prose edit | Focused behavior, schema, and documentation checks | Do not regenerate a hash-of-hash chain. |
+
+Legacy archives remain readable. New source-pin chains are prohibited unless a
+short threat model explains why Git identity, a protocol version, and semantic
+payload checks are insufficient. A digest proves identity, not correctness,
+calibration, reproducibility across implementations, or scientific validity.
+
+The distribution gate exits only when all of the following are true:
+
+- a clean archive with no `.git`, ignored artifacts, or private paths can
+  install, load, run the minimal workflow, and build the public manual;
+- ordinary CI does not read optional research results and has recorded runtime
+  budgets; a change above 20% requires explanation or remediation;
+- no single ordinary fixture above 250 KiB remains without a documented reason
+  that a smaller semantic fixture cannot protect the same shipped behavior;
+- the compressed source archive is measured and guarded against growth, but no
+  byte-reduction work is accepted without a demonstrated install, test, review,
+  or privacy benefit;
+- root exports do not increase, every stable export appears in the public
+  manual, and experimental/research entry points are visibly quarantined;
+- the active roadmap fits in a short decision document; completed ledgers and
+  historical receipts live in archival documentation rather than the active
+  work order; and
+- release checks report actionable behavioral failures rather than asking a
+  maintainer to repair unrelated prose or transitive digests.
+
+Cancel or move a task out of the package repository when it only updates
+digests, receipts, or duplicated prose; cannot name the user-visible behavior
+or scientific claim it unlocks; adds a mandatory dependency for an optional
+workflow; adds another root export for a one-off study; or grows local evidence
+after independent review has been identified as the actual blocker. If the
+narrow MGMFRM claim still lacks independent evidence after the package gate is
+green, it remains experimental indefinitely rather than accumulating more
+local ceremony.
+
 ### Active Decision Roadmap
 
-This section is the authoritative work order. Later progress ledgers preserve
-history, but they do not override this sequence. The immediate goal is not a
-generic MGMFRM engine. A thin model-family skeleton now freezes response
-kernel, dimensional structure, dimension aggregation, loading policy, latent
-covariance, step sharing, facet roles, and identification. The next task is to
-freeze a defensible validation protocol for one declared
-fixed-Q, positive-loading, identity-correlation confirmatory branch. Broader
-mechanisms proceed as separate research programs only after that decision.
+This is the authoritative internal work order, reviewed on 2026-09-05. The
+immediate sequence is **M0: fix the validation baseline -> M1: freeze the MFRM
+anchor study -> M2: run independent known-truth evaluation -> M3: review external
+agreement and the supported domain**. M1 drafting and external-data/source
+inventory can proceed during M0; fresh evaluation waits for both M0 and M1.
+The distribution requirements above remain in force. The fixed-Q program below
+is downstream; its existing implementation and evidence are retained.
+
+#### Current baseline and limits
+
+The latest local integration run passed all four ordinary test groups:
+`core` 2,856, `fitting` 6,427, `local_dependence` 2,956, and `generalized` 2,445,
+for 14,684 checks. The 2,091 hard-anchor checks are part of that total.
+The Git-free candidate smoke passed with 421 files, and the runtime public-
+language gate covered 351 surfaces. The pre-registration gate passed with
+`--skip-tests --skip-docs`, supported by those separately executed test groups
+and the candidate docs build. These are local execution records, not remote-CI
+medians or independent scientific review. At the initial M0 review, the worktree
+contained uncommitted changes and required untracked files; no released baseline
+is implied by these test counts.
+
+The [anchor pilot](scripts/run_mfrm_anchor_recovery_pilot.jl) has 80/80 fits
+passing its diagnostics, with no divergences or maximum-tree-depth hits. Its
+denominator is four designs, two generators, five joint rater/item anchor
+regimes, and **two independent data replications per cell**. It is PCM-only,
+uses favorable truth/projection initialization, shares the base likelihood
+kernel with the package, and holds out responses only at existing facet levels.
+It neither establishes RSM recovery nor isolates rater-only and item-only
+anchor effects. The early/distributed link contrast also changes item mix and
+rater exposure. Preserve this pilot as descriptive evidence; none of its rows
+enter the future evaluation denominator.
 
 Maturity is tracked on separate axes rather than collapsed into one completion
 percentage:
 
 | Axis | Current reading | Evidence still needed |
 | --- | --- | --- |
-| Executable implementation | Advanced: the narrow candidate runs through Julia/AdvancedHMC and an external CmdStan route. | Analysis-scale controls, bounded parallel chains, cache/persistence integration, and ordinary-user failure paths. |
-| Mathematical alignment | Moderately advanced: constraints, raw/direct transforms, gradients, and retained-draw pointwise likelihood checks exist. | Independent equation/indexing review and repeatable cross-backend checks on more than tiny fixtures. |
-| Computational credibility | Preliminary: short pilots establish operability and estimate cost. | Fresh-seed repeated recovery, calibrated diagnostics, failure denominators, and sparse-design stress evidence. |
-| Scientific validation | Early: local fixtures and narrow overlap studies cannot validate the multidimensional claim. | Prior predictive and refit sensitivity studies, known-truth recovery, nested MFRM comparisons, external data, and independent review. |
-| Portable public workflow | Intermediate: package-owned Stan assets are relocatable and CmdStan is optional at load time. | Reproduction on a separate environment, coherent fit-to-report workflow, and release-level cross-platform checks. |
+| Package integration | Local ordinary tests, candidate install/load/fit/docs, and public-boundary checks pass. | A tracked baseline, comparable CI medians, and closure of the remaining distribution items. |
+| Stable MFRM implementation | Individual hard anchors, intended category scale, fixed-coordinate reports, and persistence are implemented. | A finite edge-case review and workflow replay against the baseline. |
+| Anchor mathematics | Exact checks distinguish location-gauge changes, coordinate-prior effects, fixed contrasts, and incompatible anchor pairs. | Independent equation/indexing review; no attribution of a contaminated anchor from likelihood alone. |
+| Statistical performance | PCM pilot operability is established only in its small declared cells. | Independent RSM/PCM generation, ordinary initialization, repeated recovery, uncertainty calibration, and design/anchor sensitivity. |
+| External validation | Narrow local TAM and version-specific ConQuest evidence exist. | Matched estimands, separate-environment reproduction, independent review, and external observed-data plausibility where available. |
+| Generalized scope | Scalar GMFRM and fixed-Q MGMFRM remain executable experimental branches. | Their own protocol, computational, recovery, and external-evidence gates; MFRM results do not transfer automatically. |
+
+#### Immediate milestones
+
+Owner roles below are responsibilities, not evidence of an assigned reviewer:
+the maintainer owns integration, the study analyst owns generation/scoring, and
+an independent reviewer must be someone other than the implementer. Independent
+review is currently outstanding. A milestone closes on the named artifact and
+decision, not on the number of scripts, tests, or checklist entries added.
+
+| Milestone / current state | Owner and dependency | Deliverable and exit decision |
+| --- | --- | --- |
+| M0. Fix the validation baseline — **local closeout complete; candidate CI pending** | Maintainer; package distribution gate. | The reviewed Git baseline includes the required new files. The finite review below maps behavior to checks, classifies documentation/fixture exceptions, and adds the archive-size guard. Exit still requires candidate CI and comparable whole-lane medians; local checks alone are insufficient. |
+| M1. Freeze the anchor study — **draft; may proceed alongside M0** | Study analyst prepares; independent reviewer checks equations, design, scoring, and thresholds. | One compact protocol, enumerated cell/seed table, independent generator cross-check, and runnable commands covering the decisions below. Numeric tolerances, replication counts, resource caps, and all-attempt accounting must be filled and reviewed before M2. |
+| M2. Execute and score — **pending M0 and M1** | Study analyst; reviewed protocol and supported execution budget. | Fresh-seed results with planned/attempted/completed/diagnostic-valid denominators, per-cell estimates and Monte Carlo uncertainty, and retained failures. Decide adequate evidence, narrower domain, failed criterion, or insufficient precision; do not force a pass/fail from an imprecise estimate. |
+| M3. External comparison and scope decision — **pending M2; source/overlap inventory can start earlier** | Maintainer and independent reviewer; compatible external target and access to required software/data. | Reproduce matched known-truth cases in a separate environment; review claim-level allow/narrow/reject decisions. Observed data support portability/plausibility separately. Missing external input leaves that claim pending without invalidating completed local evidence. |
+
+M0 has a finite closure list. Reuse passing checks unless code or a specific
+unresolved concern changes what they cover:
+
+- Bind the candidate to ordinary Git history, including the currently untracked
+  hard-anchor/category/provenance tests, root API contract, and distribution and
+  pilot scripts. Keep large research results in a versioned research bundle;
+  ordinary install/tests must not need that bundle.
+- Review the remaining distribution requirements: same-OS/Julia/lane three-run
+  CI medians and existing timeouts, reasons for ordinary fixtures above 250 KiB,
+  archive-growth monitoring, and the actual package/research boundary. The local
+  green run does not close these items. Triage the four existing missing-
+  docstring warnings to a fix or a documented non-stable scope decision.
+- Close stable-workflow review with a finite table of supported outcomes:
+  declared-but-unused categories through refit subsets; rater-only, item-only,
+  joint, and fully fixed facet blocks; anchor-order/content cache behavior;
+  fixed-versus-estimated contrasts through report/save/reload; and disconnected
+  rejection. Map each row to an existing check, one demonstrated gap, or an
+  explicit unsupported boundary. Do not leave “more edge-case hardening” as
+  an unbounded release task.
+
+M0 review on 2026-09-05 resolves the local scope as follows:
+
+| Required behavior | Verification and limit |
+| --- | --- |
+| Declared but unobserved category endpoints survive fitting, training subsets, and persistence | `test/intended_category_scale.jl` covers the declared scale, shared refit-data constructor, metadata, predictions, and cache reload. Single-observed-category data remain rejected. |
+| Rater-only, item-only, joint, and fully fixed facet blocks | `test/hard_anchor_fit.jl` checks all 8 rater masks by 8 item masks for both RSM and PCM (128 compiler/probability cases), plus a bounded sampler check. This is implementation coverage, not repeated recovery. |
+| Anchor ordering and content determine the correct cache behavior | The combination stress test preserves design/cache identity under anchor reordering and changes it when a value changes; row-order likelihood equivalence uses parameter labels. |
+| Fixed and estimated report rows survive persistence | Existing report tests distinguish exact and partially estimated rater contrasts. The added RSM/PCM all-fixed roundtrip saves/reloads real fit objects, compares fixed coordinates/draws/probabilities, and reloads the public report with all six anchors. |
+| Disconnected data are rejected | Exact graph-disconnection tests retain rejection even when individual anchors are present; common-response overlap remains distinct from full-model connectedness. |
+
+The closeout's focused anchor run passed 2,107/2,107 checks, including the 16 new
+all-fixed persistence assertions; the public-language policy passed 178/178.
+The earlier 14,684-test total above remains the previous full ordinary run,
+not a claim that all four shards were rerun for this test/CI/documentation edit.
+
+The four Documenter warnings concern `case_study_provenance_manifest`,
+`evidence_artifact_schema_policy`, `release_gate_check`, and
+`release_scope_summary`. All four are classified as research-only in
+`src/root_api_contract.jl`; their docstrings exist, but they are intentionally
+absent from the public manual. Retain these warnings under the existing
+`warnonly = [:missing_docs]` policy. Stable/compatibility reference completeness
+and exported docstring existence remain checked separately; this decision does
+not suppress their checks or promote the four helpers.
+
+The fixture-size scan found 11 JSON files above 250 KiB. Their substantive
+archive/protocol checks are behind the research flag or `optional_fixture_path`;
+none needs an ordinary numerical-fixture exception. The ordinary core's
+source-location lint still scans committed JSON bytes for leaked `.jl:line`
+text. Retain that small privacy/portability check and distinguish it from reading
+scientific results as test oracles. Physical research-archive relocation remains
+a packaging follow-up; preservation is preferable to deleting study records.
+
+The release-hygiene CI job now checks a **4 MiB compressed Git source archive**
+before installing Julia. The pre-closeout HEAD archive measured 3,096,715 bytes;
+the visible worktree tar/gzip probe was about 3.3 MB. These use different archive
+encodings and are not a regression ratio. The 4 MiB cap is an engineering
+growth-review trigger with headroom, not a scientific criterion; changes above
+it need a stated shipped benefit. CI measures the actual checked-out revision.
+
+Remote CI inspected on 2026-09-05 still points to
+[run 31796343982](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/31796343982)
+at `0cfb032`, predating the local baseline. Three earlier successful local-
+dependence lanes took 34m32s, 33m10s, and 33m21s (median 33m21s), but those
+versions do not establish a baseline for the changed ordinary/research boundary.
+Keep the current 30-minute limit provisional and review the first candidate run;
+do not infer either pass or failure from the old lane. Candidate CI results and
+same-OS/Julia/lane three-run medians remain open. No remote run was launched by
+this review.
+
+#### M1 design and analysis decisions
+
+Use the existing [mathematical and literature crosswalk](docs/src/migration-facets-conquest.md#implemented-stage-individual-hard-anchors-for-the-minimal-model)
+and [exact anchor tests](test/hard_anchor_fit.jl). For each selected design
+factor, record the source equation/page and DOI or existing Zotero key, and
+whether it is direct model evidence, an analogy from another IRT model, or a
+package-specific stress hypothesis. Reading a paper does not close a recovery
+criterion. The following is a required coverage map, **not a frozen full
+Cartesian grid**; M1 must enumerate primary cells and targeted sensitivity
+subsets with the contrast each cell identifies.
+
+| Factor | Required contrast or boundary | Confounding control / interpretation |
+| --- | --- | --- |
+| Response model | RSM and PCM; fitted-family truth and the existing extremity-response misspecification. | Independently code response probabilities from equations without calling package simulation, predictor, probability, or likelihood helpers. Verify hand-computed fixtures and normalization before fitting. A mismatch is fixed before M2. |
+| Anchor count and facet | No declared anchors (default references), rater-only, item-only, and joint anchors; 1 versus 2 per affected facet, plus a fully fixed boundary. | Vary facet counts separately. The existing five joint regimes cannot identify separate rater and item contributions. Unsupported soft, threshold, and group-mean anchors stay rejection/inspection controls. |
+| Anchor placement and error | Endpoints versus interior; clean values, common shifts within a facet, and differential contamination with both signs and more than one magnitude. | Separate prior-coordinate sensitivity from constrained contrast error; cross rater/item contamination signs on a targeted subset to expose cancellation. Leave-one-out flags incompatibility, not the guilty source. |
+| Rating design and linking | Dense, connected sparse, and nested links varying absolute common-target count and score range; disconnected negative controls. | Record rater/item exposure and rating-event burden. Hold these fixed for a claimed placement effect, or label the contrast composite. Parameter anchors and common-response links have separate denominators. |
+| Information and category support | Small versus larger information levels; unused endpoints/interior categories and boundary response patterns on a declared subset. | Keep scale declarations fixed and record affected strata; changes in population size, item count, and rater exposure must not masquerade as one isolated factor. |
+| Prior and initialization | Actual weak/reference/strong prior refits; ordinary non-truth initial values and a bounded dispersed-start sensitivity subset. | Record prior predictive implications in the declared coordinates. Truth-initialized runs may diagnose computation but cannot replace ordinary-initialization evaluation. |
+| Anchor source and prediction | Exact known anchors versus perturbed fixed inputs; independent heldout responses at existing persons/items/raters. | Hard-anchor intervals are conditional on supplied values. Source-estimation uncertainty and new-facet prediction need separate models and are outside this study's calibration claim. |
+
+Before M2, the single M1 protocol must resolve all of the following:
+
+1. **Estimands and criteria.** Primary targets are identified, estimated facet
+   contrasts and true category probabilities/expected scores; prespecify bias,
+   RMSE, interval coverage/width, posterior versus empirical uncertainty, and
+   log-score regret. Fix interval levels and numeric tolerances per target and
+   stratum, with a practical or source-based justification. Exact constants
+   have no interval-coverage gate. Across gauges, use comparable contrasts and
+   predictions and explicitly retain the prior-coordinate qualification.
+   Recovery/nominal-coverage acceptance applies to correctly specified,
+   compatible-anchor cells. For incompatible fixed contrasts or response-model
+   misspecification, score probability/decision distortion and warning behavior;
+   do not require recovery of a truth excluded by the fitted constraints. Any
+   pseudo-true parameter target needs its own definition before execution.
+2. **Precision and denominator.** Select independent dataset replications per
+   primary cell from stated Monte Carlo precision targets for coverage, failure
+   rates, and bias; reuse the existing replication-precision calculation where
+   applicable. More chains/draws or anchor fits on one dataset do not increase
+   this replication count. Paired comparisons retain dataset-level pairing;
+   Monte Carlo error across datasets is separate from within-fit MCMC error.
+3. **Scoring readiness.** Reuse the pilot probability/log-score calculations and
+   existing recovery scorer after checking their truth/gauge contracts against
+   the independent generator. The broader design-robustness scorer's predictive
+   and decision gates are still unimplemented. Either implement the smallest
+   analysis needed for a declared primary metric or remove that claim before
+   freezing the study; do not count planning fields as a working scorer.
+4. **Failure and decision policy.** Specify per-chain/block diagnostics,
+   resource failures, structural rejections, and remediation before execution.
+   Preserve the planned denominator and original attempts; numeric recovery
+   among valid fits is labelled conditional and accompanied by failure-rate
+   and predeclared failure-sensitivity summaries. Assess criteria per stress
+   stratum; pooled success must not hide a failed domain. Any ranking or
+   classification claim needs its own practical threshold and scored rule.
+5. **Controls and cost.** Freeze cell IDs, disjoint pilot/evaluation seeds,
+   sampler settings, initialization/prior subsets, timeout and memory caps,
+   and the smallest cross-implementation subset covering each claimed model
+   and constraint. Cost probes contribute zero evaluation replications. An
+   incompatible external anchor contract is recorded as non-overlap, not
+   silently replaced by an unanchored fit.
+6. **Terminal review.** Freeze the acceptance rules before fresh outcomes are
+   inspected. A failed domain is narrowed or rejected; an unresolved estimate
+   remains inconclusive. Any extension uses a declared new stage and seeds,
+   preserving the original results instead of increasing the sample until it
+   passes. Independent equation/threshold review remains required; another
+   implementer-authored receipt cannot satisfy it.
+
+After each milestone, record only: which uncertainty decreased, which claim
+that changes, and what now blocks the next decision. Missing review or external
+data should trigger a concrete handoff and work on an independent open item,
+not repeated local simulations of the same question. Generalized validation,
+LD1b, free correlation, soft/group anchors, and new-facet prediction keep their
+own prerequisites and denominators. This roadmap revision changes planning,
+not API support, completed evidence, or execution status.
+
+### Downstream Fixed-Q Program
+
+After the M0-M3 scope decision, resume the existing narrow fixed-Q,
+positive-loading, identity-correlation confirmatory program below. Its family
+skeleton already records kernel, dimensional structure, aggregation, loading,
+latent covariance, step sharing, facet roles, and identification. Stages A-E
+remain the generalized branch's gates; basic MFRM evidence cannot close them.
 
 The pilot boundary is strict: a pilot answers only whether the planned program
 can execute and what resources it is likely to require. Pilot R-hat, ESS,
@@ -113,7 +561,7 @@ recovery, coverage, or backend differences are descriptive planning data. They
 must not become acceptance thresholds, model rankings, or evidence for
 promotion.
 
-The ordered program is:
+The downstream generalized program is:
 
 | Stage | Priority and scope | Exit condition |
 | --- | --- | --- |
@@ -121,7 +569,7 @@ The ordered program is:
 | A. Freeze the validation protocol | **P0, in progress.** `mgmfrm_validation_protocol()` now records identified-block and heldout-response estimands; the source-literal `1.7` versus reference `1.702` scale policy; primary between-item Q, boundary within/mixed Q, and Q-misspecification scope; connected sparse design; actual prior refits; a paired CmdStan subset; layered criteria; and five-category stress. The bounded wiring smoke preserves typed outcomes without scientific scoring. `mgmfrm_validation_execution_design_contract()` freezes five-fold conditional observation holdout, non-overwriting remediation, and 24 portable sensitivity role-cells. The explicit-execution memory-guarded MCMC-free gradient and short-NUTS probes, four-cell sequential scaling plan, single-cell isolated worker, and threshold-free receipt review provide bounded local resource surfaces without authorizing convergence or full-runtime claims. The macOS preflight separates raw free pages from a conservative reclaimable-memory estimate and memory pressure; it no longer treats `Sys.free_memory()` alone as usable memory. Worker peak RSS includes startup and compilation and is not sampler-only memory. `mgmfrm_validation_analysis_contract()` separates 13 specified components from four unresolved decisions. Final primary cells, replications, resource caps, the executor, and independent threshold review remain blockers. | A reviewable, portable protocol and commands exist; the analysis runner retains every attempt and stress stratum, and independently reviewed scientific thresholds are frozen before any fresh evaluation starts. |
 | B. Run fresh-seed known-truth validation | **P0.** Run repeated dense and connected-sparse recovery, prior sensitivity, prediction/calibration, and nested unidimensional MFRM comparisons. Use one predeclared primary backend for the full grid and both backends on a stratified conformance subset. | Predeclared parameter-block and focal-decision criteria pass, or the supported domain is narrowed and the surface remains experimental. |
 | C. Add external and independent evidence | **P0 before stable promotion.** Reproduce a matching public benchmark, analyze one provenance- and licence-cleared external dataset when available, and obtain review of equations, Q, priors, transforms, diagnostics, and claims from someone other than the implementer. | The exact overlapping targets reproduce in a separate environment and the reviewer records claim-level allow/block decisions. |
-| D. Harden the user workflow | **P1, in parallel only where it enables B/C.** Add an explicit intended-category-scale/endpoints input, bounded parallel chains, CmdStan cache integration, resolved sampler profiles, fit persistence, concise summaries/warnings, visualization rows, and maintainable source boundaries. | A non-maintainer can preserve an intended ordinal scale and fit, diagnose, summarize, save, reload, and report the narrow model without repository-specific paths or hidden state. |
+| D. Harden the generalized user workflow | **P1, only where it enables B/C or a reviewed user need.** Reuse the stable workflow closed under M0; address bounded chains, optional-backend persistence, sampler profiles, and report failures only for the supported generalized branch. A new stable-MFRM regression returns to M0's finite gap list. | A non-maintainer can fit, diagnose, save, reload, and report the declared generalized model with clear unsupported boundaries. Its convenience does not close the scientific gates. |
 | E. Make the promotion decision | **Release gate.** Review the narrow candidate only; choose stable, remain experimental, or narrow further. | Stable wording is allowed only for the domain that passed A-D. Missing broader mechanisms are stated as non-goals rather than hidden caveats. |
 
 Stage 0 does not classify the Uto equation from its summation sign alone. Uto
@@ -302,7 +750,7 @@ Verification follows a resource-aware ladder:
 | T1: focused | Every implementation slice | Unit and contract tests for the touched compiler, transform, likelihood, diagnostic, or report path. |
 | T2: family integration | Before merging a model slice | Small deterministic MFRM/GMFRM/MGMFRM integration fixtures for the affected family. |
 | T3: real sampler smoke | Opt-in or sampler/backend changes | Short Julia and/or CmdStan execution proving operability only. |
-| T4: scientific evaluation | Only after Stage A is frozen | Fresh-seed repeated simulations and the predeclared cross-backend subset. |
+| T4: scientific evaluation | After M0/M1 for the anchor study, or the downstream prerequisites and Stage A for MGMFRM | Fresh-seed repeated simulations and the predeclared cross-backend subset. |
 | T5: release regression | Release/integration boundary | Full suite, docs build, package tests, cross-platform checks, and separate-environment reproduction. |
 
 Routine changes should not rerun T4/T5. Normal Git history, versioned portable
@@ -903,7 +1351,7 @@ The remaining categories are:
 | `evidence_metadata` Project/Manifest/Git hashes | Retain as optional metadata. Probe failure is typed, non-blocking, and quiet. |
 | Anchor `source_hash` | Retain as a declaration-format check for provenance-required anchor planning; it does not compare a local file, and `require_provenance=false` remains available for exploration. |
 | Free-correlation plan and execution-environment identity | Compute plan/roster fingerprints from semantic contents without hard-coded expected digests. Retain environment identity as per-unit provenance, but do not require all units to have one identical environment SHA. Cross-machine and cross-OS study aggregation is valid when the protocol itself has no violations. |
-| Generated research-fixture chains in `test/runtests.jl` | Remove from ordinary `Pkg.test()` by default. The 90 optional fixture entry points run only with `BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true`; manual CI owns their exact lineage checks. |
+| Generated research-fixture chains and legacy code/document archive traversal | Remove from ordinary `Pkg.test()` by default. The 90 optional fixture entry points and transitive provenance scan run only with `BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true`; manual CI owns their exact lineage checks. |
 | Frozen LD1b1 and publication/reproduction scripts | Keep isolated as research protocols, not package runtime dependencies. Their source pins must not control package import, ordinary fitting, or routine CI. |
 
 Routine CI therefore runs complete ordinary package coverage under Linux: one
@@ -939,8 +1387,8 @@ identification, source-equation, recovery, or sampler gates.
 
 ### Current Literature-Grounded Priority Stack
 
-The current literature-backed roadmap update sharpens the next work rather than
-expanding the public API immediately:
+This literature-backed stack supplies rationale for the corresponding tracks.
+The immediate M0-M3 work order above determines when they become active:
 
 1. Use MRCML, ConQuest, and multidimensional Rasch/MIRT sources to keep the
    next MGMFRM step fixed-Q and confirmatory.
@@ -1648,6 +2096,7 @@ helpers earlier than it can make claims about them.
 | Claim surface | Minimum evidence before public wording | If evidence is missing |
 | --- | --- | --- |
 | Minimal MFRM/RSM/PCM workflow is usable | Load check, deterministic design rows, identified constraints, narrow examples, diagnostics, PPC/calibration rows, and report metadata. | Call it a small-example workflow, not a production workflow. |
+| Individual hard-anchor choices support stable inference in a named design domain | M1-M3 evidence: independent RSM/PCM truth, separately varied rater/item anchors, gauge-aware estimands, contamination and prior refits, repeated calibration, all-attempt failure accounting, and independent review. | Describe exact fixed-value support and conditional uncertainty only; the 80-fit pilot establishes no universal anchor count, placement rule, or source-error propagation. |
 | Scalar rater-consistency GMFRM is fit-supported | Source-aligned log density, raw/direct transform checks, AD gradient checks, block diagnostics, prior-policy rows, and sensitivity rows for rater consistency. | Keep `fit(...; experimental = true)` guarded and label outputs experimental. |
 | Fixed-Q confirmatory MGMFRM is interpretable | Q validation, fixed gauge, positive interpreted loading checks, initialization fallback reporting, dimension labels, direct-constraint checks, block diagnostics, and recovery evidence. | Keep it as a fixed-Q guarded path; do not broaden into exploratory loading, free correlation, or generic MGMFRM claims. |
 | Existing static fits are robust to sparse or nonrandom rating designs | Paired known-truth recovery over topology, assignment, order invariance, linking-target amount and range, and latent dispersion; empirical-versus-posterior uncertainty; heldout prediction and decision stability; disconnected rejection controls; and frozen seed/threshold policy. | Retain only small connected-design evidence; do not recommend an anchor percentage or claim robustness to ability-informed assignment. |
@@ -2126,7 +2575,7 @@ interchangeable.
 | --- | ---: | --- | --- |
 | Historical mechanical roadmap snapshot | **160/189 (84.7%)** | Frozen count of the existing Markdown checkboxes in the historical/workstream ledger, including historical delivery, documentation, evidence, and future research infrastructure. | This legacy value is retained for continuity and is not the current `v0.1.2` workstream score or the implementation rate of MFRM, GMFRM, or MGMFRM. The independent current checklist below is excluded from this denominator. |
 | Historical `v0.1.2` LD1b integration checklist snapshot | **7/9 gates recorded (77.8% at capture)** | Nine integration-acceptance gates in the historical checklist below. | This is retained gate bookkeeping, not current effort, implementation maturity, or scientific progress. Official LD1b execution recorded by this snapshot remains `0/660`. |
-| Minimal MFRM/RSM/PCM core implementation | **implemented with remaining gaps** | The declared Bayesian scope: long-format data/specification, identified RSM/PCM likelihoods, priors, HMC fitting, diagnostics, PPC/calibration, category/rater practitioner summaries, reporting rows, cache/reproduction support, tests, and examples. | Remaining work is actual hard-anchor refitting, report integration for the new practitioner summaries, and edge-case hardening. FACETS feature parity, JMLE/MMLE backends, generalized discrimination, and external construct validation are not part of this denominator. |
+| Minimal MFRM/RSM/PCM core implementation | **implemented with remaining gaps** | The declared Bayesian scope: long-format data/specification, identified RSM/PCM likelihoods, exact individual rater/item hard anchors, priors, HMC fitting, diagnostics, PPC/calibration, category/rater practitioner summaries, fixed-coordinate report rows/warnings, cache/reproduction support, tests, and examples. | Fixed-coordinate and category/rater practitioner-report integration are complete. Remaining work is stable edge-case hardening. Soft, threshold, and group-mean anchors remain outside the stable numerical slice. FACETS feature parity, JMLE/MMLE backends, generalized discrimination, and external construct validation are not part of this denominator. |
 | Minimal MFRM/RSM/PCM validation maturity | **partial** | Evidence needed to call the narrow Bayesian implementation externally validated and production-ready under stated design conditions. | The repeated recovery scorer, design preflights, narrow TAM evidence, and a version-specific ConQuest RSM/PCM known-truth execution fixture exist. Staged repeated MCMC, FACETS execution, independent ConQuest/TAM re-execution and review, external construct data, and comparative performance evidence remain open. |
 | TAM narrow-overlap evidence for MFRM | **partial; locally reproduced** | The fully crossed unit-discrimination MFRM/PCM target currently shared by the package and TAM, with aligned signs, constraints, known truth, and direct parameter blocks. | Local direct agreement and recovery evidence are recorded, but independent re-execution, signed review, and chronology adjudication remain open; the result does not transfer to GMFRM/MGMFRM. |
 | FACETS compatibility and validation bridge | **input workflow implemented; execution evidence pending** | Familiar MFRM summaries plus a matched known-truth comparison with FACETS under aligned model, scale, anchoring, weighting, and reporting conventions. | The migration crosswalk and deterministic manual-syntax input/return-integrity bundle are implemented. Actual Windows PowerShell 5.1 verification, a licensed-host execution, version-specific output samples, semantic result adapter, gauge-aligned comparison, anchored second stage, and independent numerical review remain open. |
@@ -2177,11 +2626,11 @@ cannot silently reduce the declared Bayesian implementation score:
 
 1. **Bayesian core-to-complete:** finish the predictive and decision-stability
    portions of the paired sparse/nonrandom scorer, execute the staged repeated
-   fits, integrate the completed MFRM category/rater summaries into
-   `fit_report`, and implement the affine hard-anchor refit map. The new
-   `anchor_refit_plan` is a provenance, identifiability, and numerical-strategy
-   preflight; it does not yet perform a constrained refit or estimate linking
-   constants.
+   fits, and harden the remaining stable-MFRM edge cases. Category/rater
+   summaries are integrated into `fit_report`, and the affine selection map for
+   exact individual rater/item hard anchors is implemented. `anchor_refit_plan`
+   remains a non-mutating semantic and optional-provenance check; it is not a
+   linking-constant estimator.
 2. **Practitioner and external bridges:** the FACETS/ConQuest migration guide
    now freezes sign, scale, constraint, threshold, anchor, and estimator
    non-equivalence rules. The deterministic version-1 bridge prepares
@@ -2327,7 +2776,7 @@ for the literature-grounded rationale and detailed gates.
 | Version | Scope | Release gate |
 | --- | --- | --- |
 | `v0.1.1` | Completed fixed-Q confirmatory MGMFRM refinement for the existing guarded path. | Guarded scalar GMFRM and fixed-Q MGMFRM are easier to audit and harder to overinterpret. |
-| current `v0.1.2` integration checkpoint | Fixed-Q productionization plus core-integrity and minimal-MFRM completion, not initial multidimensional compiler implementation. | Canonical model identity and authenticated fit/cache envelopes remain aligned; hard-anchor refit, practitioner-report integration, repeated sparse/nonrandom recovery, and the existing 2D/3D sparse-Q source/AD/HMC, allocation/performance, Q-misspecification, and report-shape gates must pass. LD1b follows its independent nine-gate checklist without changing the fixed-Q release boundary. |
+| current `v0.1.2` integration checkpoint | Fixed-Q productionization plus core-integrity and minimal-MFRM completion, not initial multidimensional compiler implementation. | Canonical model identity and authenticated fit/cache envelopes remain aligned; exact individual hard-anchor fitting, its fixed-coordinate report contract, and category/rater practitioner-report integration are implemented, while stable edge-case hardening, repeated sparse/nonrandom recovery, and the existing 2D/3D sparse-Q source/AD/HMC, allocation/performance, Q-misspecification, and report-shape gates must still pass. LD1b follows its independent nine-gate checklist without changing the fixed-Q release boundary. |
 | `v0.1.3` | Free latent correlation decision. | Free correlation is either kept blocked, promoted internally, or exposed narrowly with diagnostics and prior policy. |
 | `v0.1.4` | Exploratory loading and rotation policy design. | Rotation, sign, permutation, and reporting rules are documented and validated before exposure. |
 | `v0.2.0` | Intentional stable API boundary for the subset that has passed all gates; not an automatic generic-MGMFRM claim. | Source, transform, prior, internal simulation/recovery, external known-truth overlap where available, performance, reporting, and rejection gates pass for every exposed surface. |

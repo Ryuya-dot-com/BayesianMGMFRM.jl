@@ -460,6 +460,10 @@ function optional_fixture_path(env_key::AbstractString, default_path::AbstractSt
     if haskey(ENV, env_key)
         fixture_path = ENV[env_key]
         isempty(fixture_path) && return ""
+        RUN_RESEARCH_EVIDENCE_TESTS || throw(ArgumentError(
+            "$env_key names an optional research-evidence fixture; set " *
+            "BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true before supplying it",
+        ))
         resolved_path = isabspath(fixture_path) ? fixture_path : joinpath(root, fixture_path)
         isfile(resolved_path) ||
             throw(ArgumentError("fixture path from $env_key does not exist: $fixture_path"))
@@ -20794,6 +20798,43 @@ function check_scalar_validation_stan_pair(known_fixture_path::AbstractString,
 end
 
 if test_group_enabled(:core)
+include("intended_category_scale.jl")
+@testset "optional research fixture boundary" begin
+    fixture_env = "MFRM_TEST_OPTIONAL_RESEARCH_FIXTURE"
+    withenv(fixture_env => nothing) do
+        @test isempty(optional_fixture_path(
+            fixture_env,
+            joinpath("test", "fixtures", "not-present.json"),
+        ))
+    end
+    withenv(fixture_env => "") do
+        @test isempty(optional_fixture_path(
+            fixture_env,
+            joinpath("test", "fixtures", "not-present.json"),
+        ))
+    end
+    mktemp() do fixture_path, io
+        close(io)
+        withenv(fixture_env => fixture_path) do
+            if RUN_RESEARCH_EVIDENCE_TESTS
+                @test optional_fixture_path(
+                    fixture_env,
+                    joinpath("test", "fixtures", "not-present.json"),
+                ) == fixture_path
+            else
+                message = argument_error_message() do
+                    optional_fixture_path(
+                        fixture_env,
+                        joinpath("test", "fixtures", "not-present.json"),
+                    )
+                end
+                @test occursin("optional research-evidence fixture", message)
+                @test occursin("BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true", message)
+            end
+        end
+    end
+end
+
 @testset "local JSON writer handles JSON3 dictionaries" begin
     source = JSON3.read("{\"z\":null,\"b\":[2,1],\"a\":{\"x\":true}}")
     io = IOBuffer()
@@ -20846,7 +20887,37 @@ if test_group_enabled(:core)
     @test isempty(location_bearing_fixtures)
 end
 
-@testset "public docstrings" begin
+@testset "root API classification and docstrings" begin
+    contract = BayesianMGMFRM._root_api_contract()
+    @test contract.schema == "bayesianmgmfrm.root_api_contract.v1"
+    @test contract.release_line == "0.1.x"
+    @test contract.growth_policy === :frozen
+    @test contract.owner === :package_maintainers
+    @test contract.manual_policy == (;
+        stable = :required,
+        compatibility = :required_with_migration_guidance,
+        research = :optional_explicitly_nonstable,
+    )
+
+    groups = (contract.stable, contract.compatibility, contract.research)
+    @test all(group -> all(name -> name isa Symbol, group), groups)
+    @test all(group -> length(group) == length(unique(group)), groups)
+    @test all(group -> issorted(group; by = String), groups)
+    @test isempty(intersect(Set(contract.stable), Set(contract.compatibility)))
+    @test isempty(intersect(Set(contract.stable), Set(contract.research)))
+    @test isempty(intersect(Set(contract.compatibility), Set(contract.research)))
+
+    classified = union((Set(group) for group in groups)...)
+    exported = Set(names(BayesianMGMFRM;
+        all = false,
+        imported = false,
+    ))
+    delete!(exported, :BayesianMGMFRM)
+    @test exported == classified
+    @test all(name -> has_doc(BayesianMGMFRM, name), classified)
+end
+
+@testset "representative public docstrings" begin
     for name in (:FacetData, :ValidationIssue, :ValidationReport, :FacetSpec, :FacetDesign,
             :CmdStanError,
             :MFRMPrior, :MFRMLogDensity, :MFRMFit, :GMFRMFit, :MGMFRMFit,
@@ -21636,51 +21707,21 @@ end
         :manual_publication_or_registration_by_user_only
     @test any(row -> row.source === :documentation &&
         row.target === :readme_public_surface &&
-        row.check === :required_text &&
-        row.expected == "| Scalar rater-consistency GMFRM | Experimental |" &&
+        row.check === :document_present &&
         row.status === :passed,
         release_gate.rows)
     @test any(row -> row.source === :documentation &&
-        row.target === :news_public_changes &&
-        row.check === :required_text &&
-        row.expected == "## 0.1.1" &&
+        row.target === :docs_scope_public_surface &&
+        row.check === :document_present &&
         row.status === :passed,
         release_gate.rows)
-    @test any(row -> row.source === :documentation &&
-        row.target === :developer_roadmap_release_scope &&
-        row.expected ==
-            "`v$(release_scope.summary.development_version)` integration checkpoint" &&
-        row.status === :passed,
+    @test all(row -> row.source !== :documentation ||
+        row.check === :document_present,
         release_gate.rows)
-    @test any(row -> row.source === :documentation &&
-        row.target === :developer_roadmap_release_scope &&
-        row.expected ==
-            "current dirty-worktree snapshot, `7/9` gates are attained" &&
-        row.status === :passed,
-        release_gate.rows)
-    @test any(row -> row.source === :documentation &&
-        row.target === :developer_roadmap_release_scope &&
-        row.expected ==
-            "| Quarantined 2D free-correlation operational prerequisites | **0/3 passed;" &&
-        row.status === :passed,
-        release_gate.rows)
-    @test any(row -> row.source === :documentation &&
-        row.target === :research_roadmap_release_scope &&
-        row.expected ==
-            "`v$(release_scope.summary.development_version)` integration checkpoint: stay fixed-Q and confirmatory" &&
-        row.status === :passed,
-        release_gate.rows)
-    @test any(row -> row.source === :documentation &&
-        row.target === :research_roadmap_release_scope &&
-        row.expected ==
-            "current dirty-worktree snapshot, `7/9` gates are attained" &&
-        row.status === :passed,
-        release_gate.rows)
-    @test any(row -> row.source === :documentation &&
-        row.target === :research_roadmap_release_scope &&
-        row.expected == "Broad exploratory MGMFRM remains blocked." &&
-        row.status === :passed,
-        release_gate.rows)
+    document_specs = BayesianMGMFRM._release_gate_document_specs()
+    @test !any(spec -> spec.path == "ROADMAP.md" ||
+        spec.path == joinpath("docs", "src", "mgmfrm-research-roadmap.md"),
+        document_specs)
     @test any(row -> row.source === :manifest &&
         row.target === :post_v0_2_external_validation_blocked &&
         row.status === :passed,
@@ -21711,84 +21752,38 @@ end
         throw_on_failure = true)
     copy_release_gate_documents = function(destination)
         package_root = normpath(joinpath(@__DIR__, ".."))
-        for document_spec in BayesianMGMFRM._release_gate_document_specs()
+        for document_spec in document_specs
             source = joinpath(package_root, document_spec.path)
             target = joinpath(destination, document_spec.path)
             mkpath(dirname(target))
             cp(source, target)
         end
     end
-    mktempdir() do drift_root
-        copy_release_gate_documents(drift_root)
-        roadmap_path = joinpath(drift_root, "ROADMAP.md")
-        version_token =
-            "`v$(release_scope.summary.development_version)` integration checkpoint"
-        roadmap_text = read(roadmap_path, String)
-        @test occursin(version_token, roadmap_text)
-        write(roadmap_path, replace(
-            roadmap_text,
-            version_token => "`v9.9.9` integration checkpoint";
-            count = 1,
-        ))
-        roadmap_drift_gate = release_gate_check(; root = drift_root)
-        @test roadmap_drift_gate.status === :failed
-        @test any(row -> row.target === :developer_roadmap_release_scope &&
-            row.check === :required_text &&
-            row.expected == version_token &&
-            row.status === :failed,
-            roadmap_drift_gate.rows)
-        @test_throws ArgumentError release_gate_check(;
-            root = drift_root,
-            throw_on_failure = true)
+    mktempdir() do prose_root
+        copy_release_gate_documents(prose_root)
+        readme_path = joinpath(prose_root, "README.md")
+        write(readme_path,
+            read(readme_path, String) *
+            "\nReader-facing wording may evolve without changing support status.\n")
+        prose_edit_gate = release_gate_check(; root = prose_root)
+        @test prose_edit_gate.status === :passed
+        @test prose_edit_gate.summary.passed
     end
-    mktempdir() do drift_root
-        copy_release_gate_documents(drift_root)
-        roadmap_path = joinpath(drift_root, "ROADMAP.md")
-        progress_token = "current dirty-worktree snapshot, `" *
-            "$(ld1b_integration_progress.numerator)/" *
-            "$(ld1b_integration_progress.denominator)` gates are attained"
-        drift_token = "current dirty-worktree snapshot, `" *
-            "$(ld1b_integration_progress.numerator + 1)/" *
-            "$(ld1b_integration_progress.denominator)` gates are attained"
-        roadmap_text = read(roadmap_path, String)
-        @test occursin(progress_token, roadmap_text)
-        write(roadmap_path, replace(
-            roadmap_text,
-            progress_token => drift_token;
-            count = 1,
-        ))
-        progress_drift_gate = release_gate_check(; root = drift_root)
-        @test progress_drift_gate.status === :failed
-        @test any(row -> row.target === :developer_roadmap_release_scope &&
-            row.check === :required_text &&
-            row.expected == progress_token &&
-            row.status === :failed,
-            progress_drift_gate.rows)
-    end
-    mktempdir() do drift_root
-        copy_release_gate_documents(drift_root)
-        research_path = joinpath(
-            drift_root,
-            "docs",
-            "src",
-            "mgmfrm-research-roadmap.md",
-        )
-        blocked_claim = "Broad exploratory MGMFRM remains blocked."
-        research_text = read(research_path, String)
-        @test occursin(blocked_claim, research_text)
-        write(research_path, replace(
-            research_text,
-            blocked_claim => "Broad exploratory MGMFRM is available.";
-            count = 1,
-        ))
-        research_drift_gate = release_gate_check(; root = drift_root)
-        @test research_drift_gate.status === :failed
-        @test any(row -> row.target === :research_roadmap_release_scope &&
-            row.check === :required_text &&
-            row.expected == blocked_claim &&
-            row.status === :failed,
-            research_drift_gate.rows)
-    end
+    structured_surfaces = Tuple(
+        row.surface === :scalar_gmfrm_guarded_experimental ?
+            merge(row, (; experimental_public = false)) : row
+        for row in release_scope_with_evidence.public_fit_surfaces
+    )
+    structured_drift_scope = merge(
+        release_scope_with_evidence,
+        (; public_fit_surfaces = structured_surfaces),
+    )
+    structured_drift_rows = BayesianMGMFRM._release_gate_manifest_rows(
+        structured_drift_scope)
+    @test any(row -> row.target === :scalar_gmfrm_experimental_public &&
+        row.check === :manifest_consistency &&
+        row.status === :failed,
+        structured_drift_rows)
     case_provenance = case_study_provenance_manifest()
     @test case_provenance.schema ==
         "bayesianmgmfrm.case_study_provenance_manifest.v1"
@@ -24357,6 +24352,19 @@ end
     @test gmfrm_public_report.status === :experimental
     @test gmfrm_public_report.source_report.content_hash ==
         BayesianMGMFRM._public_fit_report_content_hash_record(gmfrm_report).value
+    @test gmfrm_report.category_functioning.status === :not_requested
+    @test gmfrm_report.rater_homogeneity.status === :not_requested
+    gmfrm_practitioner_report = fit_report(gmfrm_experimental_fit;
+        include_category_functioning = true,
+        include_rater_homogeneity = true,
+        include_posterior_predictive = false,
+        include_calibration = false,
+        include_waic = false,
+        include_loo = false,
+        include_artifact = false)
+    @test gmfrm_practitioner_report.report_status === :complete
+    @test gmfrm_practitioner_report.category_functioning.status === :unsupported
+    @test gmfrm_practitioner_report.rater_homogeneity.status === :unsupported
     @test artifact_content_hash(gmfrm_report) == gmfrm_report_hash
     @test !hasproperty(gmfrm_public_report, :status_policy)
     @test !hasproperty(gmfrm_public_report, :manifest)
@@ -25825,6 +25833,8 @@ end
     @test mgmfrm_public_report.status === :experimental
     @test mgmfrm_public_report.source_report.content_hash ==
         BayesianMGMFRM._public_fit_report_content_hash_record(mgmfrm_report).value
+    @test mgmfrm_report.category_functioning.status === :not_requested
+    @test mgmfrm_report.rater_homogeneity.status === :not_requested
     @test artifact_content_hash(mgmfrm_report) == mgmfrm_report_hash
     @test !hasproperty(mgmfrm_public_report, :status_policy)
     @test !hasproperty(mgmfrm_public_report, :model_surface_audit)
@@ -32972,6 +32982,7 @@ if test_group_enabled(:fitting)
     include("facets_compatibility_stats.jl")
     include("practitioner_diagnostics.jl")
     include("anchor_refit_plan.jl")
+    include("hard_anchor_fit.jl")
 end
 if test_group_enabled(:local_dependence)
     include("testlet_design_audit.jl")
@@ -33058,6 +33069,8 @@ if test_group_enabled(:fitting)
     include("posterior_mcse.jl")
     include("rank_normalized_diagnostics.jl")
     include("scientific_payload_digest.jl")
+    RUN_RESEARCH_EVIDENCE_TESTS &&
+        include("legacy_archive_provenance.jl")
 end
 
 test_group_enabled(:generalized) && RUN_RESEARCH_EVIDENCE_TESTS &&
