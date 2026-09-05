@@ -16,7 +16,7 @@ prediction remain separate, deferred programs.
 
 | Milestone | Status | Responsible role and concrete exit |
 | --- | --- | --- |
-| M0 — Package baseline | Implementation and placement/load-boundary review complete; final runtime acceptance remains open | Maintainer: finish comparable CI/distribution runtime assessment; preserve the reviewed 0.1.x boundaries |
+| M0 — Package baseline | Implementation, placement/load review, and all 12 lane baselines recorded; runtime acceptance remains open | Maintainer: explain or remediate the `fitting_core` rolling-median increase of 23.4%; preserve the reviewed 0.1.x boundaries |
 | M1 — Anchor-study protocol | Draft: 16 primary candidate cells and comparable estimands specified | Analyst: finish the decision table in the [study draft](docs/internal/mfrm-anchor-study.md#freeze-decisions); independent reviewer checks equations, cells, scoring, thresholds, and resource limits |
 | M2 — Fresh evaluation | Not started; zero evaluation replications | Analyst: execute the reviewed roster, retain every attempt, and report per-cell recovery/calibration with Monte Carlo uncertainty and failure denominators |
 | M3 — External review and domain decision | Matching-source inventory only; independent review outstanding | Maintainer and independent reviewer: separate-environment matched reproduction and claim-level allow, narrow, reject, or inconclusive decisions |
@@ -32,7 +32,7 @@ Work on the highest unfinished decision, not the largest collection of scripts.
 | Order / task | Next deliverable | Verification and stop condition |
 | --- | --- | --- |
 | 1. M0-DOC — Complete at `bd22c01` | Short root roadmap, one active anchor-study draft, archived old roadmaps, and the directory map below | Both archived bodies preserved with rebased links; 34 local links/fragments, the Git-free install/load/example/manual smoke, and all 12 ordinary candidate-CI jobs passed |
-| 2. M0-CI — Six shard and minimum-version full-suite medians established; other lanes open | Complete the remaining CI/distribution runtime assessment without mixing changed workloads | Preserve timeouts and tests; investigate >20% median growth. A changed lane/workload or an isolated rerun cannot silently fill the denominator |
+| 2. M0-CI — All lane/phase baselines recorded; one regression trigger open | Attribute the `fitting_core` increase using existing logs, then bounded startup/testset/runner measurements if needed | Explain or remediate 17m41s -> 21m49s before acceptance; do not raise the 30-minute ceiling, remove tests, or substitute an isolated rerun for three observations |
 | 3. M0-BOUNDARY — Placement/load review complete | [123 fixtures classified](docs/internal/fixture-boundary.md); [35 source includes and seven ordinary script includes reviewed](docs/internal/code-load-boundary.md). Retain the declared 0.1.x compatibility surface and archival records | Isolated definition loads passed on Julia 1.10.8 and 1.12.5 without research trees. No relocation, regeneration, dependency removal, or lazy loader. Reopen for changed dependencies/consumers or measured budget pressure |
 | 4. M1-FREEZE — Resolve the study draft | Finite sensitivity cells, seed policy, estimands/thresholds, sampler/resource budget, all-attempt scorer, and reviewer handoff | No fresh evaluation while any freeze decision is open; no new generic controller or evidence framework without a demonstrated gap |
 
@@ -41,7 +41,7 @@ Physical relocation of research fixtures, large source-file decomposition,
 and optional-dependency changes are separate tasks and are not bundled into it.
 M0-BOUNDARY accepts the current compatibility-line placement, not minimum
 startup cost or scientific validation. The next unfinished engineering decision
-is the runtime assessment in order 2; do not restart the closed inventories.
+is the runtime attribution in order 2; do not restart the closed inventories.
 
 ## Evidence baseline and claim limits
 
@@ -69,6 +69,10 @@ is the runtime assessment in order 2; do not restart the closed inventories.
   Julia 1.10.8 job passed 90 testsets / 17,557 assertions in 29m56s. This closes
   the missing test-lane median observations below, not all runtime conditions
   or the later complete-fixture classification's candidate CI.
+- `9a4d180`: [CI 33955509722](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33955509722)
+  passed all 12 ordinary jobs; two manual research jobs were skipped. The full
+  Julia 1.10.8 job passed the same 90 testsets / 17,557 assertions in 31m28s.
+  The updated medians below expose a runtime investigation, not a test failure.
 - The earlier anchor pilot completed 80 fits but only two independent datasets
   per cell, with PCM-only truth, favorable initialization, and a shared
   generation/fitting kernel. None of its fits enters the new evaluation count.
@@ -87,37 +91,104 @@ tests, generated files, or historical checkboxes is a project-completion score.
 
 ### Comparable CI timings
 
-The following are complete successful jobs from attempt 1 of runs
-`33949682122` (`9668383`), `33951073887` (`ed4185f`), and
+The following are complete successful jobs from attempt 1 of
 [`33952439772`](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33952439772)
-(`bd22c01`), in that order for the first five rows. The last two rows instead
-use `ed4185f`, `bd22c01`, and
+(`bd22c01`),
 [`33953993916`](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33953993916)
-(`fa7ffc9`). Current-Julia rows use Julia 1.12.7; the full-suite row uses
-Julia 1.10.8. All logs agree on Ubuntu 24.04, runner image `20260831.293.1`,
-and provisioner `20260828.587`. Within each accepted row,
-testset names and per-set assertion counts match exactly. The reports row
-excludes `9668383` (23 testsets / 6,194 assertions; 24m54s), before the 308-check
-anchor addition; the other source changes are documentation only.
+(`fa7ffc9`), and
+[`33955509722`](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33955509722)
+(`9a4d180`), in that order. The review window ends at `9a4d180`; later
+completions do not retroactively enter it. Current-Julia rows use Julia 1.12.7; the full-suite row
+uses Julia 1.10.8. All logs agree on Ubuntu 24.04, runner image
+`20260831.293.1`, and provisioner `20260828.587`. Testset names and per-set
+assertion counts match exactly within every row. Only the root roadmap,
+internal fixture inventory, and fixture README changed across these revisions;
+workflow, package/test code, dependency declarations, examples, and published
+manual sources did not change.
 
-| Lane | Testsets / assertions | Three whole-job times | Baseline median |
+| Lane | Testsets / assertions | Three whole-job times | Median | Change from initial median |
+| --- | --- | --- | --- | --- |
+| `core` | 11 / 2,899 | 20m46s, 22m30s, 17m05s | 20m46s | 0.0% |
+| `fitting_core` | 2 / 2,755 | 15m41s, 22m15s, 21m49s | 21m49s | +23.4% — investigate |
+| `local_dependence_core` | 32 / 2,904 | 23m35s, 23m29s, 23m36s | 23m35s | 0.0% |
+| `local_dependence_integrity` | 2 / 52 | 13m57s, 12m05s, 11m19s | 12m05s | -31.9% |
+| `generalized` | 19 / 2,445 | 11m19s, 8m26s, 13m26s | 11m19s | -12.9% |
+| `fitting_reports` | 24 / 6,502 | 20m37s, 21m08s, 20m18s | 20m37s | -1.7% |
+| Full suite, Julia 1.10.8 | 90 / 17,557 | 30m17s, 29m56s, 31m28s | 30m17s | +1.2% |
+
+Initial medians are retained in the
+[roadmap at `0881fd4`](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/blob/0881fd4276d5e960152a627b378145f8a63b43ee/ROADMAP.md#comparable-ci-timings).
+The windows overlap: percentage changes are monitoring triggers, not independent
+estimates of an optimization or regression. Setup/cache variation is included;
+queue time is excluded. No timing here measures sampler speed.
+
+The `fitting_core` trigger is localized but **not explained**. All three jobs
+restored their lane cache. Their test-command steps took 15m04s, 21m44s, and
+21m10s; the 2,641-assertion fitting testset itself took 9m51.3s, 14m59.6s, and
+14m29.8s. Thus job setup alone cannot explain the increase. Unchanged test/code
+bytes do not identify its cause: existing logs do not separate compilation,
+execution, and runner contention sufficiently. Keep this as the bounded M0
+residual, not a reason to raise limits or claim a confirmed algorithm slowdown.
+
+The remaining lanes use the same three runs, except macOS uses `fa7ffc9`,
+`9a4d180`, and the completed macOS job of
+[`33956618271`](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33956618271)
+(`0881fd4`; attempt 1). That run's other jobs were still in progress at review;
+this observation does not transfer a green result to its whole candidate.
+
+| Lane | Matched check | Three whole-job times | Baseline median |
 | --- | --- | --- | --- |
-| `core` | 11 / 2,899 | 22m05s, 20m32s, 20m46s | 20m46s |
-| `fitting_core` | 2 / 2,755 | 21m53s, 17m41s, 15m41s | 17m41s |
-| `local_dependence_core` | 32 / 2,904 | 24m25s, 22m46s, 23m35s | 23m35s |
-| `local_dependence_integrity` | 2 / 52 | 17m45s, 17m59s, 13m57s | 17m45s |
-| `generalized` | 19 / 2,445 | 13m24s, 13m00s, 11m19s | 13m00s |
-| `fitting_reports` | 24 / 6,502 | 20m59s, 20m37s, 21m08s | 20m59s |
-| Full suite, Julia 1.10.8 | 90 / 17,557 | 21m47s, 30m17s, 29m56s | 29m56s |
+| macOS smoke | Same portable-package script, Julia 1.12.7 | 1m09s, 1m08s, 0m55s | 1m08s |
+| Windows smoke | Same portable-package script, Julia 1.12.7 | 2m00s, 2m01s, 2m05s | 2m01s |
+| Documentation | 19 public sources / 14 rendered HTML files | 3m26s, 3m59s, 0m58s | 3m26s |
+| Experimental boundary | 2 testsets / 1,123 assertions, Julia 1.10.8 | 6m36s, 3m02s, 2m35s | 3m02s |
+| Release hygiene | Same gate; Aqua 7 testsets / 10 assertions; 351 runtime-language surfaces | 18m29s, 18m20s, 13m13s | 18m20s |
 
-These are an initial lane baseline, not sampler-speed measurements or a
-completed >20% regression comparison. Setup/cache variation is included; queue
-time is excluded. The full suite includes the changed reports workload, so
-`9668383` is also excluded from that row. Remaining lanes are macOS/Windows
-smoke, documentation, experimental-boundary smoke, and release hygiene; assess
-the distribution smoke's individual phases separately. Their comparable
-medians and the sustained runtime target remain open, so this table does not
-close the runtime P0 condition.
+Ubuntu versions match the first table; docs/hygiene use Julia 1.12.7,
+Documenter 1.19.0, and Aqua 0.8.16 where applicable. Windows uses
+`windows-2025-vs2026` image `20260824.214.3`, provisioner `20260819.586`.
+The accepted macOS observations use `macos-26-arm64` image `20260728.0273.1`,
+provisioner `20260707.563`; exclude `bd22c01`'s 1m05s because its image and
+provisioner differ. Platform and experimental fits remain bounded engineering
+smokes, not new scientific evaluation.
+
+### Distribution phases and budget interpretation
+
+The hygiene jobs above ran the same
+[`distribution_archive_smoke.jl`](scripts/distribution_archive_smoke.jl).
+Seconds below follow `bd22c01`, `fa7ffc9`, `9a4d180`; all observations passed.
+
+| Phase | Three times (seconds) | Median (seconds) | Budget (seconds) |
+| --- | --- | --- | --- |
+| Assemble and inspect | 0.171, 0.143, 0.136 | 0.143 | 30 |
+| Instantiate | 5.205, 4.657, 4.670 | 4.670 | 600 |
+| First load | 15.419, 14.709, 12.174 | 14.709 | 300 |
+| Warm load | 2.798, 2.580, 2.297 | 2.580 | 120 |
+| Minimal fit | 33.062, 31.839, 26.043 | 31.839 | 300 |
+| Manual build | 25.059, 22.853, 19.489 | 22.853 | 600 |
+
+These are operational baselines across documented internal-text changes, not
+a byte-fixed archive benchmark. Candidate inventories were 427 / 428 / 428
+files and 27,959,685 / 27,970,739 / 27,976,891 bytes; compressed Git archives
+were 3,176,414 / 3,180,291 / 3,182,326 bytes, all below 4 MiB. The assembly and
+privacy scan therefore process slightly different text. Other commands and
+published build inputs are unchanged. Each candidate is Git-free and excludes
+ignored local outputs, but uses the runner's existing depot: neither
+instantiate nor first load is a cold-depot measurement. The separately
+[classified research records](docs/internal/fixture-boundary.md) remain shipped;
+passing this smoke alone does not prove their removal or non-use. The separate
+fixture review establishes which ordinary checks consume them and how.
+
+Phase budgets are **post-completion elapsed-time checks**, not process-killing
+timeouts. The hard cancellation boundary is the 30-minute hygiene CI job;
+standalone local use has no equivalent outer deadline. Preserve this distinction
+when interpreting the older archived wording. Existing job ceilings remain
+35 minutes for core/experimental, 30 for the other current-Julia shards/hygiene,
+20 for platforms/docs, and 75 for the minimum-version full suite. Every current-
+Julia shard observation above meets the 30-minute T2 target; the full suite is
+a separate T3 job, not a 30-minute shard. A target exceeded three consecutive
+times requires splitting or reclassification. Baseline collection is complete;
+the >20% fitting trigger still prevents runtime P0 acceptance.
 
 ## Package release conditions
 
@@ -143,8 +214,8 @@ M0–M3 domain decision. A checked engineering item is not scientific validation
   research definitions still have parsing/load cost and are not promoted APIs.
 
 Keep the existing 4 MiB compressed Git archive growth guard, the documented
-250 KiB fixture-review threshold, and per-phase/per-job timeouts. A size or
-timing exception needs a stated user benefit; do not inflate limits silently.
+250 KiB fixture-review threshold, phase elapsed-time gates, and CI job timeouts.
+A size or timing exception needs a stated user benefit; do not inflate limits silently.
 The four documented research-only missing-docstring warnings stay classified
 under the existing Documenter policy; stable API completeness is checked
 separately.
