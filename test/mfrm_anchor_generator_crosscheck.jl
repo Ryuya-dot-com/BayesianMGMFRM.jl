@@ -1,5 +1,6 @@
 using Test
 using Random
+using Serialization
 using Statistics
 using JSON3
 
@@ -401,13 +402,11 @@ end
             restored_truth; log_probabilities = true).summary.mean_log_score_regret ≈
             score(prediction, truth; log_probabilities = true).summary.mean_log_score_regret
 
-        # Join the stored plan, not just available result files. This is a
-        # synthetic persistence/scoring check, not the full attempt validator.
-        key(row) = (row.dataset_id, row.heldout_id, row.method)
-        primary = Dict(key(row) => row for row in loaded.attempts if row.attempt == 1)
-        joined = [get(primary, key(row), nothing) for row in loaded.plan]
+        # Validate every attempt before joining the stored plan; successful
+        # retries cannot replace failures or silently create a smaller plan.
+        joined = BayesianMGMFRM._mfrm_anchor_primary_attempts(loaded.plan, loaded.attempts)
         @test length(joined) == 8 && joined[8] === nothing
-        @test length(loaded.attempts) == 8 && length(primary) == 7
+        @test length(loaded.attempts) == 8 && count(!isnothing, joined) == 7
         @test count(row -> row !== nothing && row.status in ("completed", "fit_failed"), joined) == 6
         @test count(row -> row !== nothing && row.status == "completed", joined) == 5
         valid = [row for row in joined if row !== nothing && row.status == "completed" &&
@@ -457,6 +456,56 @@ end
     @test_throws ArgumentError align(NamedTuple[], NamedTuple[], levels)
 end
 
+@testset "M1 planned identities and non-overwriting primary attempts" begin
+    join_primary = BayesianMGMFRM._mfrm_anchor_primary_attempts
+    # Tuple identities, not delimiter-concatenated strings; shared datasets
+    # across methods are allowed, and the plan's order owns the denominator.
+    plan = [(; dataset_id = "d/1", heldout_id = "h", method = "A"),
+        (; dataset_id = "d", heldout_id = "1/h", method = "A"),
+        (; dataset_id = "d/1", heldout_id = "h", method = "B"),
+        (; dataset_id = "未実行", heldout_id = "-Inf", method = "null")]
+    attempts = [merge(plan[n], (; attempt = 1, status = :fit_failed)) for n in 1:3]
+    retry = merge(plan[1], (; attempt = 2, status = :completed))
+    push!(attempts, retry)
+    expected = Any[attempts[1:3]..., nothing]
+    @test join_primary(plan, attempts) == expected
+    @test join_primary(plan, reverse(attempts)) == expected
+    @test join_primary(reverse(plan), attempts) == reverse(expected)
+    @test attempts[end] == retry && length(attempts) == 4
+    @test join_primary(plan, NamedTuple[]) == fill(nothing, 4)
+    @test isempty(join_primary(NamedTuple[], NamedTuple[]))
+    dict_rows(rows) = [Dict(string(k) => v for (k, v) in pairs(row)) for row in rows]
+    @test join_primary(dict_rows(plan), dict_rows(attempts))[1]["status"] == :fit_failed
+    loaded = JSON3.read(JSON3.write((; plan, attempts)))
+    @test join_primary(loaded.plan, reverse(loaded.attempts))[1].status == "fit_failed"
+
+    @test_throws ArgumentError join_primary(vcat(plan, plan[1:1]), attempts)
+    @test_throws ArgumentError join_primary(NamedTuple[], attempts)
+    for duplicate in (attempts[1], merge(attempts[1], (; status = :completed)), retry)
+        @test_throws ArgumentError join_primary(plan, vcat(attempts, [duplicate]))
+    end
+    @test_throws ArgumentError join_primary(plan, [retry])
+    for value in (0, -1, true, false, 1.0, 1.5, "1", nothing, missing, Inf, NaN)
+        @test_throws ArgumentError join_primary(plan, [merge(attempts[1], (; attempt = value))])
+    end
+    @test_throws ArgumentError join_primary(plan, [plan[1]]) # Missing attempt number.
+    for field in (:dataset_id, :heldout_id, :method)
+        for value in ("", nothing, missing, 1, true, :A)
+            replacement = NamedTuple{(field,)}((value,))
+            @test_throws ArgumentError join_primary([merge(plan[1], replacement)], NamedTuple[])
+            @test_throws ArgumentError join_primary(plan, [merge(attempts[1], replacement)])
+        end
+        @test_throws ArgumentError join_primary(plan,
+            [merge(attempts[1], NamedTuple{(field,)}(("unplanned",)))])
+        omitted = Dict(k => v for (k, v) in pairs(attempts[1]) if k != field)
+        @test_throws ArgumentError join_primary(plan, [omitted])
+    end
+    for invalid_row in (nothing, missing, 1, "record")
+        @test_throws ArgumentError join_primary([invalid_row], NamedTuple[])
+        @test_throws ArgumentError join_primary(plan, [invalid_row])
+    end
+end
+
 @testset "M1 serial response blocks and replay" begin
     # Smoke only, not a pilot/evaluation seed or a production generator.
     # One advancing RNG; checkpoint at whole-block boundaries, never reseed
@@ -491,9 +540,35 @@ end
     for (previous, following) in zip(blocks[1:end-1], blocks[2:end])
         @test previous.stop == following.start
     end
-    # Replay any block without generating its predecessors. Row/subset access
+    # Trusted, self-produced temporary files only. Native Serialization is an
+    # environment-bound replay aid, not the portable truth/data archive.
+    restored = mktempdir() do directory
+        path = joinpath(directory, "response-blocks.jls")
+        serialize(path, (; julia_version = VERSION, rng_engine = string(typeof(rng)), blocks))
+        saved = deserialize(path)
+        @test saved.julia_version == VERSION
+        @test saved.rng_engine == "MersenneTwister"
+        @test saved.blocks == blocks
+        # A fresh stdlib-only process can replay without the live RNG or fits.
+        code = """
+            using Random, Serialization
+            saved = deserialize(ARGS[1])
+            @assert saved.julia_version == VERSION
+            for b in reverse(saved.blocks)
+                replay = copy(b.start)
+                @assert [rand(replay) for _ in b.events] == b.uniforms
+                @assert replay == b.stop
+            end
+            print(length(saved.blocks))
+            """
+        command = addenv(`$(Base.julia_cmd()) --startup-file=no -e $code $path`,
+            "JULIA_LOAD_PATH" => "@stdlib")
+        @test read(command, String) == "16"
+        saved.blocks
+    end
+    # Replay any saved block without generating its predecessors. Row/subset access
     # uses immutable event identities, not new draws or the consumer's row index.
-    for b in reverse(blocks)
+    for b in reverse(restored)
         replay = copy(b.start)
         @test [rand(replay) for _ in b.events] == b.uniforms
         @test replay == b.stop

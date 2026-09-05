@@ -19,10 +19,10 @@ design, scorer, and thresholds. No reviewer is currently assigned.
 | ID / status | Decision and required output | Review or runnable check before closure |
 | --- | --- | --- |
 | M1-01 — open | Enumerate the finite sensitivity cells and controls, including anchor placement/count aliases, shifts, crossed contamination signs/magnitudes, priors, nested links, category support, and information levels; name the estimand and pairing for each | Every required factor below maps to a cell or an explicit reviewed exclusion. Fixed contrasts are N/A for interval coverage; composite design changes are labelled |
-| M1-02 — open, sharing/replay draft below | Declare pilot/evaluation and component RNG lineage, state ownership, data sharing, and any cross-design common random numbers; freeze the actual root/state roster | Reproduce one dataset without fitting; method order/addition cannot alter responses. Check non-overlapping allocation, not just distinct seed labels; fixed primary truth is not a fresh draw |
+| M1-02 — open, native replay checked | Declare pilot/evaluation and component RNG lineage, state ownership, data sharing, and any cross-design common random numbers; freeze the actual root/state roster | Synthetic response blocks replay from saved state in a fresh same-environment process. Labelled durable data, source/environment binding, actual allocation, and review remain required |
 | M1-03 — open | Choose interval levels, practical tolerances, Monte Carlo precision, replications, and per-stratum decision rules for parameter and predictive targets | Justify numerical values before evaluation; distinguish MCMC error from across-dataset error and true-probability regret from heldout log loss |
 | M1-04 — open | Choose the primary backend, actual prior scales, ordinary non-truth starts/jitter, chain settings, diagnostic policy, bounded cost probe, time/memory/output caps, and remediation allowance | Review the probe budget before running it; record resource evidence and keep all probes outside evaluation counts. The provisional 6,400 primary fits is not a budget authorization |
-| M1-05 — open, predictive-label adapter checked | Reuse the recovery/predictive scorer; the denominator/applicability draft below specifies failures, paired Monte Carlo error, and non-overwriting remediation | Synthetic checks cover independent log truth/scoring and labelled JSON roundtrips. Full dataset/attempt binding, a persistent all-attempt ledger, and final decision rules remain required |
+| M1-05 — open, label/identity joins checked | Reuse the recovery/predictive scorer; the denominator/applicability draft below specifies failures, paired Monte Carlo error, and non-overwriting remediation | Synthetic checks cover independent log truth/scoring, labelled JSON, and exact planned attempt identities. Payload/source binding, a persistent all-attempt ledger, and final decision rules remain required |
 | M1-06 — open | Hand off the single protocol with exact source revision, cell roster, settings, scorer checks, unresolved questions, and claim limits | A person other than the implementer records accept/request-revision decisions. Review cannot be replaced by an implementer-authored receipt |
 
 M1-01 now has the finite anchor-placement/error candidate subset below; nested
@@ -136,10 +136,10 @@ oracle but differ from the original truth. Tolerance `1e-12` is a numerical
 conformance limit, not a statistical acceptance threshold. The check is also
 included in the ordinary `fitting_reports` shard. The initial 2,518 conformance
 assertions and the 308 reference-declaration/estimand checks below are retained.
-The additional 951 finite-candidate, 131 serial-response replay, 50 denominator,
-28 predictive-boundary, 216 all-category log, 277 independent-log-truth, and
-52 labelled-roundtrip checks bring the focused file to ten testsets / 4,531
-assertions, passing locally on Julia 1.10.8 and 1.12.5.
+The additional 951 finite-candidate, 135 serial-response replay, 50 denominator,
+28 predictive-boundary, 216 all-category log, 277 independent-log-truth,
+52 labelled-roundtrip, and 76 attempt-identity checks bring the focused file
+to eleven testsets / 4,611 assertions, passing locally on Julia 1.10.8 and 1.12.5.
 The command contributes **zero evaluation replications**.
 It establishes implementation separation from the fitting kernel, not
 independent authorship, independent review, or posterior calibration. The old
@@ -360,9 +360,10 @@ row reversal/subsetting. Memory-only mutations that alias the start checkpoint
 or reverse uniform-to-event attachment trigger 47 and 16 assertion failures,
 respectively, with no errors. The then-current file passed all 3,908 assertions
 on Julia 1.10.8 and 1.12.5. This checks primitives and the stated construction,
-not a production executor, on-disk replay, stage reservation, sampler streams,
-or posterior calibration. It uses test seed 17 only; no fit or evaluation
-replication is run. M1-02 stays open for those unchecked boundaries and review.
+not a production executor, stage reservation, sampler streams, or posterior
+calibration. On-disk replay is now checked separately below. It uses test seed
+17 only; no fit or evaluation replication is run. M1-02 stays open for the
+remaining boundaries and review.
 
 ## M1 candidate anchor-placement and error subset
 
@@ -729,8 +730,9 @@ and malformed inputs. Stored prediction records feed the existing scorer after
 reload, retaining a tiny positive KL, an infinite loss, and a missing prediction
 as different outcomes. A synthetic eight-case plan retains an absent result and
 a successful retry: six primary fit entries, five completions, three scoreable
-cases, and only two finite losses. This verifies the illustrated join/count
-arithmetic, not a complete validator of dataset IDs, attempt IDs, or diagnostics.
+cases, and only two finite losses. At `fe80126` this verified the illustrated
+join/count arithmetic; the identity checks below now replace its inline join.
+Neither check validates diagnostic decisions or prediction/source binding.
 The existing 24-scenario RSM/PCM integration also uses the new label adapter.
 All 4,531 anchor and 103 scorer assertions pass on Julia 1.10.8 and 1.12.5.
 Memory-only event-order and numeric-string coercion mistakes trigger three and
@@ -739,11 +741,50 @@ one assertion failures, respectively, without errors.
 This is a checked representation/scoring path, not a frozen archive schema,
 untrusted-JSON importer, or crash-safe create-new publisher. Source/environment
 binding, labelled training/heldout tables with RNG checkpoints, stage reservation,
-duplicate/unplanned attempt rejection, and the persistent all-attempt ledger
-remain required. Do not serialize RNG objects through the JSON fallback that
+and the persistent all-attempt ledger remain required. The identity rejection
+and bounded native replay checks below do not close those storage requirements.
+Do not serialize RNG objects through the JSON fallback that
 stringifies unknown types. All six freeze decisions, diagnostic policy,
 thresholds, and independent review remain open. No new repository file, dependency, export,
 MCMC run, retained fixture, or evaluation replication is added.
+
+### Attempt identity join and native replay
+
+The private `_mfrm_anchor_primary_attempts` validates exact nonempty string
+`(dataset_id, heldout_id, method)` keys against the declared plan, rejects
+duplicate plan keys, and checks every attempt's positive non-Boolean integer
+number and unique full key. A retry requires a retained primary record, but
+input order is irrelevant. Only attempt 1 is returned, in plan order, with
+`nothing` for absent planned cases; the input keeps every retry unchanged.
+No delimiter concatenation, success filtering, or retry replacement is used.
+The existing eight-case JSON/scoring check now consumes this join. The 76
+identity assertions also cover shared datasets across methods, reordered
+records/plans, missing or malformed keys, unplanned records, orphan retries,
+and duplicates with changed payloads. This checks identifiers, not whether
+payloads actually contain the declared data, valid diagnostics, or authorized
+settings. Separate phases need separately bound plans; the final roster and
+its source/data fingerprints are still unfrozen.
+
+The response smoke uses stdlib `serialize`/`deserialize` on its own fresh
+temporary file, saving the Julia version, RNG engine, and all 16 existing
+blocks with their states, uniforms, event keys, probabilities, and scores.
+Reloaded blocks equal the originals and replay in reverse order in a fresh
+stdlib-only process; the existing row/subset checks also use the reloaded
+blocks. Four additional assertions bring that testset to 135. This is native
+same-environment replay, not a portable labelled-data archive or a no-overwrite,
+crash-safe publisher. [Julia's Serialization documentation](https://docs.julialang.org/en/v1/stdlib/Serialization/)
+warns that compatibility can depend on type definitions/platform and that
+deserialization does not validate malformed bytes. Only trusted self-produced
+files are read here; no untrusted import or cross-version guarantee is added.
+
+All 4,611 anchor and 103 scorer assertions pass on Julia 1.10.8 and 1.12.5.
+Memory-only mutations that remove duplicate rejection or replace the primary
+with a retry each trigger three assertion failures and no errors.
+There is no new writer, controller, export, dependency, retained artifact,
+fit, or evaluation replication. Durable labelled truth/data plus state and
+source/environment binding, crash-safe stage reservation/publication, and
+the persistent all-attempt ledger remain required before execution. M1-02,
+M1-05, and all other freeze decisions remain open.
 
 ## M1 allocation and budget decision draft
 
