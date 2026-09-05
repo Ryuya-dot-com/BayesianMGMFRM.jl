@@ -32,7 +32,7 @@ Work on the highest unfinished decision, not the largest collection of scripts.
 | Order / task | Next deliverable | Verification and stop condition |
 | --- | --- | --- |
 | 1. M0-DOC — Complete at `bd22c01` | Short root roadmap, one active anchor-study draft, archived old roadmaps, and the directory map below | Both archived bodies preserved with rebased links; 34 local links/fragments, the Git-free install/load/example/manual smoke, and all 12 ordinary candidate-CI jobs passed |
-| 2. M0-CI — Compilation-heavy fits; runner CPU heterogeneity observed | Separate ordinary observations by CPU/target and version/threads; three CPU/target pairs currently have one observation each, not a hardware-matched median | Explain or remediate 17m41s -> 21m49s before acceptance; preserve the 30-minute ceiling and all assertions. Instrumented observations do not silently replace the original timing window |
+| 2. M0-CI — CPU/cache/dependency strata reviewed; acceptance open | [16-job review](docs/internal/fitting-core-runtime-review.md): four source/version/CPU-matched observations, median 22m12s; choose a bounded fixed-environment comparison separating package-cache reuse from block compilation | Explain or remediate 17m41s -> 21m49s before acceptance; preserve the 30-minute ceiling and all assertions. Instrumented observations do not silently replace the original timing window |
 | 3. M0-BOUNDARY — Placement/load review complete | [123 fixtures classified](docs/internal/fixture-boundary.md); [35 source includes and seven ordinary script includes reviewed](docs/internal/code-load-boundary.md). Retain the declared 0.1.x compatibility surface and archival records | Isolated definition loads passed on Julia 1.10.8 and 1.12.5 without research trees. No relocation, regeneration, dependency removal, or lazy loader. Reopen for changed dependencies/consumers or measured budget pressure |
 | 4. M1-FREEZE — Resolve the study draft | Finite sensitivity cells, seed policy, estimands/thresholds, sampler/resource budget, all-attempt scorer, and reviewer handoff | No fresh evaluation while any freeze decision is open; no new generic controller or evidence framework without a demonstrated gap |
 
@@ -162,10 +162,18 @@ is the runtime attribution in order 2; do not restart the closed inventories.
   It adds 95 boundary assertions plus 64 labelled-table checks on the existing
   16 smoke blocks. All 4,770 anchor and 103 scorer assertions pass on Julia
   1.10.8 and 1.12.5; SHA-bypass and decimal-rounding mutations are detected.
-  Candidate CI is required: expected `fitting_reports` 33 / 8,446 and full
-  suite 100 / 19,564. Trusted reference retention, data/state/source/attempt
+  [CI 33975779252](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33975779252)
+  at `ac31b41` passed all 12 ordinary jobs: `fitting_reports` 33 / 8,446 and
+  the full Julia 1.10.8 suite 100 / 19,564 in 31m46s. Both manual research
+  jobs were skipped. Trusted reference retention, data/state/source/attempt
   binding, durable publication, the persistent ledger, and scientific review
   remain open. No fresh fit/evaluation or new dependency/export is added.
+- [PR #99](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/pull/99) merged
+  verified `ac31b41` into `main` as `ad57606` on 2026-09-06 JST; their complete
+  Git trees match. [Main CI 33997276971](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33997276971)
+  passed all 12 ordinary jobs: `fitting_reports` 33 / 8,446 and the full
+  Julia 1.10.8 suite 100 / 19,564 in 30m50s. Both manual research jobs were
+  skipped. Integration does not close M0/M1 or authorize a release/evaluation.
 - The earlier anchor pilot completed 80 fits but only two independent datasets
   per cell, with PCM-only truth, favorable initialization, and a shared
   generation/fitting kernel. None of its fits enters the new evaluation count.
@@ -289,13 +297,18 @@ are not run-long traces. Testset summaries exclude part of the enclosing
 compilation-inclusive block cost. These successful runs precede the later
 951-assertion M1 addition and do not verify that candidate.
 
-The current observations are compilation-heavy and demonstrate runner
+These initial observations are compilation-heavy and demonstrate runner
 heterogeneity. They do **not** isolate the CPU's causal contribution, establish
 a documentation-induced speedup, or identify the CPU of any older job. Those
 older logs cannot support retrospective hardware stratification. Keep M0 open;
 separate subsequent ordinary observations by CPU/target, version, and threads
 before forming a comparable window or choosing a measured compilation remedy.
-There is only one observation per CPU/target, not a three-run matched median.
+In that initial window there is only one observation per CPU/target, not a
+three-run matched median. The [16-job follow-up through `ad57606`](docs/internal/fitting-core-runtime-review.md)
+now finds four source/version/CPU-matched observations (median 22m12s),
+precompilation despite cache restoration, and a resolved JSON version change.
+It localizes one later job-time change outside the fitting block, without
+attributing the original trigger or claiming a sampler improvement.
 Do not pool these observations into the original median, add research
 execution, or inflate the timeout to close the trigger.
 
@@ -398,6 +411,7 @@ separately.
 | `ROADMAP.md` | Current priorities, owners, exit decisions, and a compact evidence baseline |
 | [`docs/internal/mfrm-anchor-study.md`](docs/internal/mfrm-anchor-study.md) | Active M1 methods draft; the only place to edit its cell/estimand/seed/threshold decisions |
 | [`fixture-boundary.md`](docs/internal/fixture-boundary.md), [`code-load-boundary.md`](docs/internal/code-load-boundary.md) | Finite 0.1.x placement decisions and their verification limits; revisit only when the recorded boundary changes |
+| [`fitting-core-runtime-review.md`](docs/internal/fitting-core-runtime-review.md) | Fixed-window M0 timing observations and comparison limits; acceptance and next work remain in this roadmap |
 | [`docs/internal/archive/`](docs/internal/archive/) | Preserved roadmap snapshots and deferred rationale; outside the manual source tree and not an execution authority |
 | `docs/src/development-*.md`, `docs/src/mgmfrm-research-roadmap.md` | Existing non-published ledgers and deferred research detail; not competing work orders |
 | `test/`, [`test/fixtures/`](test/fixtures/README.md) | Behavioral regressions and numerical references; ordinary versus opt-in behavior is documented in the fixture guide |
