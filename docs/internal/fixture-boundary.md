@@ -1,15 +1,20 @@
-# Large-fixture boundary review
+# Fixture boundary review
 
-Reviewed 2026-09-05 against `bd22c01`. The [active roadmap](../../ROADMAP.md)
+Reviewed 2026-09-05 against `fa7ffc9`; the large-file size baseline is
+`bd22c01`. The [active roadmap](../../ROADMAP.md)
 owns execution priority. This is a finite file-placement decision, not a new
 scientific result, a signature validation, or a reason to regenerate evidence.
 
 ## Scope and result
 
-The tracked `test/fixtures/` tree contains 123 files / 16,164,587 bytes,
-including 108 JSON files. All **11 JSON files above 250 KiB** were reviewed;
-they total 11,684,830 bytes (11.14 MiB). This does not classify the remaining
-112 files or ignored local outputs, and does not imply an archive-size saving.
+At `bd22c01`, the tracked `test/fixtures/` tree contains 123 files /
+16,164,587 bytes, including 108 JSON files. All 123 files are now classified:
+**23 ordinary-test references, 99 research records, and one guide**. The
+subsequent guide edit changes total bytes, not fixture membership or data.
+Ignored local outputs are outside this review; no archive-size saving is claimed.
+
+The **11 JSON files above 250 KiB** total 11,684,830 bytes (11.14 MiB) and
+are a subset of the 99 research records, not an additional class.
 
 | Placement class | Result within these 11 files | Decision |
 | --- | --- | --- |
@@ -21,15 +26,48 @@ they total 11,684,830 bytes (11.14 MiB). This does not classify the remaining
 decision is to retain this batch, not to make a symbolic directory move that
 requires copied fixtures, compatibility links, or an additional path resolver.
 
+## Complete tracked-file partition
+
+Paths below are relative to `test/fixtures/`. Patterns describe the reviewed
+revision only, not a rule for classifying future files. Counts are disjoint;
+the existing [fixture guide](../../test/fixtures/README.md) owns the longer
+artifact descriptions and reproduction commands.
+
+| Membership | Files / bytes, excluding guide bytes | Actual consumer and retain decision |
+| --- | --- | --- |
+| `scalar_validation_{known_value,medium_known_value,stan_logdensity,medium_stan_logdensity}.json` | 4 / 14,420 | Ordinary `fitting_core`: analytic log-density/gradient checks and two frozen Stan comparisons. Keep these numerical oracles; ordinary checks do not launch Stan |
+| All files in `conquest_5_47_5/` | 18 / 47,435 | Ordinary `fitting_reports`: parser, constraint reconstruction, history, manifest/receipt identity, and byte-integrity checks. Keep the complete version-specific bundle, including the two deliberately empty labels files; no licensed ConQuest execution is needed |
+| `local_dependence_known_truth_preflight.json` | 1 / 92,011 | Ordinary `local_dependence_core`: the committed generator-contract test reads its scenario roster, claim boundaries, provenance shape, and canonical content hash. Retain as a behavioral reference, **not** a recovery/calibration result |
+| All top-level `gmfrm_*.json`; all `mgmfrm_*.json` except the two indirect records below; both `source_*_bridge_logdensity.json` | 90 / 10,307,420 | 24 GMFRM + 64 MGMFRM + 2 source-bridge records. Each has a direct optional selector and a nonempty-path guard in the core design test. Retain for opt-in research checks; the source bridges also check the default Stan source's presence |
+| `existing_api_design_robustness_{plan,stress_grid}.json` | 2 / 1,008,989 | Explicit research block in `fitting_core`. Preserve the linked plan/grid and protected generator defaults |
+| `local_dependence_{calibration_scorer_preflight,pilot_protocol_preflight,pilot_batch_execution_harness,pilot_bounded_canonical_smoke_receipt}.json` | 4 / 4,559,713 | Research-only LD includes, runner/protocol inputs, and archive references. Keep the source-pinned chain and immutable canonical-smoke receipt; ordinary LD generator tests do not consume these four as result oracles |
+| `mgmfrm_manual_public_scope_review_for_fit.json`; `mgmfrm_tam_direct_agreement_policy_refinement_execution_snapshot.json` | 2 / 73,837 | Indirect research inputs, not direct optional-selector entries. Threshold/external-scope reviews read/hash the former; TAM aggregation/audit/review and reproduction archives retain the immutable latter. Neither is an unreferenced orphan |
+| `mgmfrm_tam_overlap_baseline.csv` | 1 / 7,044 | Research TAM baseline checker reads its 800 observations plus header and checks its digest; execution-review checks also hash it. Keep beside the baseline JSON; CSV is not read by the ordinary JSON privacy lint |
+| `README.md` | 1 / not frozen | Maintained guide; not a numerical oracle. Historical research archives may record an older guide hash; documentation edits do not authorize updating those records |
+
+Thus the remaining 112 files add 23 ordinary references, 88 research records,
+and one guide to the earlier large-file review. Of the 108 JSON files, ten
+belong to ordinary references and 98 to research records. Ordinary references
+total 153,866 bytes; research records total 15,957,003 bytes, excluding the guide.
+
+The ordinary ConQuest consumers are in
+[the bridge tests](../../test/facets_conquest_bridge.jl#L1085); the LD exception
+is explicit in [the committed preflight test](../../test/local_dependence_simulation.jl#L792).
+The latter checks 22 stored scenarios but does not refit them or estimate an
+error rate. These actual consumers, not size or a `local_dependence_` prefix,
+are why those files remain ordinary dependencies.
+
 ## Ordinary versus research consumers
 
 The [ordinary fixture selector](../../test/runtests.jl#L420) returns an empty
 path without research opt-in, even when a default file exists. Non-empty
 explicit overrides without opt-in are rejected. The
 [test-group contract](../../test/test_groups.jl) requires `all` when research
-evidence is enabled. Relevant routes in the table are:
+evidence is enabled. Routes in the large-file table below are:
 
-- **G**: generalized numerical checks use `optional_fixture_path`; seven files.
+- **G**: generalized-topic checks in the core design test use
+  `optional_fixture_path`; seven large files. This is not the CI shard named
+  `generalized`.
 - **D**: design-robustness generation and checks are inside the explicit
   `RUN_RESEARCH_EVIDENCE_TESTS` block; one file.
 - **L**: LD artifact/protocol/harness test files are included only with that
@@ -89,22 +127,35 @@ bounded change. Do not weaken overwrite checks or replace frozen provenance
 with current hashes to make a move pass. The other ten files need coordinated
 consumer-batch review; do not relocate them individually.
 
-The next boundary task is to classify the remaining tracked fixtures by their
-actual ordinary versus research consumers, starting with the small numerical
-oracles that must remain. Reuse the [fixture guide](../../test/fixtures/README.md)
-and current test routing. A reviewed retain decision closes a file-placement
-question; it is not a blanket approval of the whole package/research layout.
+The tracked-fixture classification is complete at the reviewed revision. Do
+not repeat it unless membership or consumers change. Next inspect which
+research-related modules are loaded by the package and ordinary test runner,
+and whether each inclusion has a shipped behavioral purpose. That code-load
+boundary, optional dependencies, and distribution budgets remain separate
+decisions. Retaining the 99 research records assigns an archival role; it does
+not establish that all of them must ship in a future package distribution.
 
 ## Verification and limits
 
 - Read-only tracked-file size scan; filename references across source,
   scripts, tests, CI, and documentation; research guards and the candidate's
   overwrite/source-pin path were inspected.
-- A stdlib-only probe evaluated the current `optional_fixture_path` definition
-  for all 11 paths with opt-in off/on, absent overrides, explicit overrides,
-  and empty overrides: 66 assertions passed on Julia 1.12.5. The probe did not
-  read JSON payloads or launch research tests. Inspection of JSON metadata for
-  this inventory was a separate read-only action.
+- The complete partition was checked against `git ls-files test/fixtures`:
+  123 entries, no omissions or overlaps. All 90 direct optional-selector paths
+  exist and their check calls have nonempty-path guards. This is a finite
+  source review, not a general static dependency analyzer.
+- The earlier large-file selector probe passed 66 assertions on Julia 1.12.5.
+  The expanded probe reuses the actual `optional_fixture_path` definition for
+  all 90 direct optional paths, with opt-in off/on and absent, explicit, or
+  empty overrides: 540 assertions passed on both Julia 1.10.8 and 1.12.5.
+  Selector probes do not read research JSON payloads or launch research tests.
+- Existing scalar/Stan-pair checks passed 45 assertions, and the existing LD
+  committed-preflight test passed 49, on both Julia 1.10.8 and 1.12.5. The full
+  bridge test file passed 504 assertions on macOS / Julia 1.12.5, using a fake
+  executable for its runner checks, not licensed ConQuest. Its platform-specific count must
+  not replace the 492-assertion Linux CI count.
+- All 122 fixture data files are byte-identical to `fa7ffc9`; only the guide
+  changed within `test/fixtures/`. No stored history was regenerated.
 - No MCMC, fixture regeneration, source-pin refresh, deletion, relocation,
   independent review, or scientific-denominator change was performed. This
   is a static consumer review plus a selector check, not a whole-program

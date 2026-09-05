@@ -32,8 +32,8 @@ Work on the highest unfinished decision, not the largest collection of scripts.
 | Order / task | Next deliverable | Verification and stop condition |
 | --- | --- | --- |
 | 1. M0-DOC — Complete at `bd22c01` | Short root roadmap, one active anchor-study draft, archived old roadmaps, and the directory map below | Both archived bodies preserved with rebased links; 34 local links/fragments, the Git-free install/load/example/manual smoke, and all 12 ordinary candidate-CI jobs passed |
-| 2. M0-CI — Five current-Julia shard medians established; remaining lanes open | Complete the comparable runtime table below without mixing changed test workloads | Preserve timeouts and tests; investigate >20% median growth. A changed lane/workload or an isolated rerun cannot silently fill the denominator |
-| 3. M0-BOUNDARY — Large-fixture review complete; broader inventory open | [11 large JSON files classified](docs/internal/fixture-boundary.md); all retained because relocation requires consumer/provenance changes. Next classify the remaining tracked fixtures, starting with required numerical oracles | No standalone move candidate found. Preserve paths/bytes; do not regenerate scientific records or add a resolver solely for directory cosmetics |
+| 2. M0-CI — Six shard and minimum-version full-suite medians established; other lanes open | Complete the remaining CI/distribution runtime assessment without mixing changed workloads | Preserve timeouts and tests; investigate >20% median growth. A changed lane/workload or an isolated rerun cannot silently fill the denominator |
+| 3. M0-BOUNDARY — Tracked-fixture classification complete; code-load boundary open | [All 123 fixtures classified](docs/internal/fixture-boundary.md): 23 ordinary references, 99 research records, one guide. Next review research-related modules included by the package and ordinary runner against their shipped behavioral purposes | Retain current fixture paths/bytes. Do not repeat the inventory without changed membership/consumers, regenerate scientific records, or add a resolver solely for directory cosmetics |
 | 4. M1-FREEZE — Resolve the study draft | Finite sensitivity cells, seed policy, estimands/thresholds, sampler/resource budget, all-attempt scorer, and reviewer handoff | No fresh evaluation while any freeze decision is open; no new generic controller or evidence framework without a demonstrated gap |
 
 M0-DOC is a bounded documentation/layout change, not completion of all M0.
@@ -61,6 +61,11 @@ and optional-dependency changes are separate tasks and are not bundled into it.
   both manual research jobs were skipped. The full Julia 1.10.8 job took
   30m17s. The fixture inventory and median assessment are later documentation
   changes, not additional scientific evaluation.
+- `fa7ffc9`: [CI 33953993916](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33953993916)
+  passed all 12 ordinary jobs; two manual research jobs were skipped. The full
+  Julia 1.10.8 job passed 90 testsets / 17,557 assertions in 29m56s. This closes
+  the missing test-lane median observations below, not all runtime conditions
+  or the later complete-fixture classification's candidate CI.
 - The earlier anchor pilot completed 80 fits but only two independent datasets
   per cell, with PCM-only truth, favorable initialization, and a shared
   generation/fitting kernel. None of its fits enters the new evaluation count.
@@ -77,31 +82,37 @@ Its older “pending” observations are historical; the status above governs.
 Track scientific readiness separately from engineering readiness. No count of
 tests, generated files, or historical checkboxes is a project-completion score.
 
-### Comparable current-Julia shard timings
+### Comparable CI timings
 
 The following are complete successful jobs from attempt 1 of runs
 `33949682122` (`9668383`), `33951073887` (`ed4185f`), and
 [`33952439772`](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33952439772)
-(`bd22c01`), in that order. Logs agree on Julia 1.12.7, Ubuntu 24.04, runner
-image `20260831.293.1`, and provisioner `20260828.587`. For the five accepted
-rows, testset names and per-set assertion counts match exactly, and the source
-diff changes only documentation and the reports shard's anchor test.
+(`bd22c01`), in that order for the first five rows. The last two rows instead
+use `ed4185f`, `bd22c01`, and
+[`33953993916`](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33953993916)
+(`fa7ffc9`). Current-Julia rows use Julia 1.12.7; the full-suite row uses
+Julia 1.10.8. All logs agree on Ubuntu 24.04, runner image `20260831.293.1`,
+and provisioner `20260828.587`. Within each accepted row,
+testset names and per-set assertion counts match exactly. The reports row
+excludes `9668383` (23 testsets / 6,194 assertions; 24m54s), before the 308-check
+anchor addition; the other source changes are documentation only.
 
-| Shard | Testsets / assertions | Three whole-job times | Baseline median |
+| Lane | Testsets / assertions | Three whole-job times | Baseline median |
 | --- | --- | --- | --- |
 | `core` | 11 / 2,899 | 22m05s, 20m32s, 20m46s | 20m46s |
 | `fitting_core` | 2 / 2,755 | 21m53s, 17m41s, 15m41s | 17m41s |
 | `local_dependence_core` | 32 / 2,904 | 24m25s, 22m46s, 23m35s | 23m35s |
 | `local_dependence_integrity` | 2 / 52 | 17m45s, 17m59s, 13m57s | 17m45s |
 | `generalized` | 19 / 2,445 | 13m24s, 13m00s, 11m19s | 13m00s |
-| `fitting_reports` | 23 / 6,194 -> 24 / 6,502 | 24m54s excluded; 20m59s, 20m37s | Pending a third matching-workload run |
+| `fitting_reports` | 24 / 6,502 | 20m59s, 20m37s, 21m08s | 20m59s |
+| Full suite, Julia 1.10.8 | 90 / 17,557 | 21m47s, 30m17s, 29m56s | 29m56s |
 
 These are an initial lane baseline, not sampler-speed measurements or a
 completed >20% regression comparison. Setup/cache variation is included; queue
-time is excluded. The full Julia 1.10.8 suite includes the changed reports
-workload and needs its own three comparable results. Other CI/distribution
-lanes and the sustained runtime target remain separate open checks; this table
-does not close the runtime P0 condition.
+time is excluded. The full suite includes the changed reports workload, so
+`9668383` is also excluded from that row. Other CI/distribution lanes and the
+sustained runtime target remain separate open checks; this table does not close
+the runtime P0 condition.
 
 ## Package release conditions
 
