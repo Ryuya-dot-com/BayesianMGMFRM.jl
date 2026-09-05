@@ -16,7 +16,7 @@ prediction remain separate, deferred programs.
 
 | Milestone | Status | Responsible role and concrete exit |
 | --- | --- | --- |
-| M0 — Package baseline | Implementation closeout and candidate CI passed; runtime and research-boundary closeout remain open | Maintainer: comparable three-run CI medians, bounded distribution checks, and a reviewed package/research boundary |
+| M0 — Package baseline | Implementation and placement/load-boundary review complete; final runtime acceptance remains open | Maintainer: finish comparable CI/distribution runtime assessment; preserve the reviewed 0.1.x boundaries |
 | M1 — Anchor-study protocol | Draft: 16 primary candidate cells and comparable estimands specified | Analyst: finish the decision table in the [study draft](docs/internal/mfrm-anchor-study.md#freeze-decisions); independent reviewer checks equations, cells, scoring, thresholds, and resource limits |
 | M2 — Fresh evaluation | Not started; zero evaluation replications | Analyst: execute the reviewed roster, retain every attempt, and report per-cell recovery/calibration with Monte Carlo uncertainty and failure denominators |
 | M3 — External review and domain decision | Matching-source inventory only; independent review outstanding | Maintainer and independent reviewer: separate-environment matched reproduction and claim-level allow, narrow, reject, or inconclusive decisions |
@@ -33,12 +33,15 @@ Work on the highest unfinished decision, not the largest collection of scripts.
 | --- | --- | --- |
 | 1. M0-DOC — Complete at `bd22c01` | Short root roadmap, one active anchor-study draft, archived old roadmaps, and the directory map below | Both archived bodies preserved with rebased links; 34 local links/fragments, the Git-free install/load/example/manual smoke, and all 12 ordinary candidate-CI jobs passed |
 | 2. M0-CI — Six shard and minimum-version full-suite medians established; other lanes open | Complete the remaining CI/distribution runtime assessment without mixing changed workloads | Preserve timeouts and tests; investigate >20% median growth. A changed lane/workload or an isolated rerun cannot silently fill the denominator |
-| 3. M0-BOUNDARY — Tracked-fixture classification complete; code-load boundary open | [All 123 fixtures classified](docs/internal/fixture-boundary.md): 23 ordinary references, 99 research records, one guide. Next review research-related modules included by the package and ordinary runner against their shipped behavioral purposes | Retain current fixture paths/bytes. Do not repeat the inventory without changed membership/consumers, regenerate scientific records, or add a resolver solely for directory cosmetics |
+| 3. M0-BOUNDARY — Placement/load review complete | [123 fixtures classified](docs/internal/fixture-boundary.md); [35 source includes and seven ordinary script includes reviewed](docs/internal/code-load-boundary.md). Retain the declared 0.1.x compatibility surface and archival records | Isolated definition loads passed on Julia 1.10.8 and 1.12.5 without research trees. No relocation, regeneration, dependency removal, or lazy loader. Reopen for changed dependencies/consumers or measured budget pressure |
 | 4. M1-FREEZE — Resolve the study draft | Finite sensitivity cells, seed policy, estimands/thresholds, sampler/resource budget, all-attempt scorer, and reviewer handoff | No fresh evaluation while any freeze decision is open; no new generic controller or evidence framework without a demonstrated gap |
 
 M0-DOC is a bounded documentation/layout change, not completion of all M0.
 Physical relocation of research fixtures, large source-file decomposition,
 and optional-dependency changes are separate tasks and are not bundled into it.
+M0-BOUNDARY accepts the current compatibility-line placement, not minimum
+startup cost or scientific validation. The next unfinished engineering decision
+is the runtime assessment in order 2; do not restart the closed inventories.
 
 ## Evidence baseline and claim limits
 
@@ -110,9 +113,11 @@ anchor addition; the other source changes are documentation only.
 These are an initial lane baseline, not sampler-speed measurements or a
 completed >20% regression comparison. Setup/cache variation is included; queue
 time is excluded. The full suite includes the changed reports workload, so
-`9668383` is also excluded from that row. Other CI/distribution lanes and the
-sustained runtime target remain separate open checks; this table does not close
-the runtime P0 condition.
+`9668383` is also excluded from that row. Remaining lanes are macOS/Windows
+smoke, documentation, experimental-boundary smoke, and release hygiene; assess
+the distribution smoke's individual phases separately. Their comparable
+medians and the sustained runtime target remain open, so this table does not
+close the runtime P0 condition.
 
 ## Package release conditions
 
@@ -130,9 +135,12 @@ M0–M3 domain decision. A checked engineering item is not scientific validation
   privacy rather than unrelated prose or transitive source digests.
 - [ ] Ordinary research-result isolation and enforced runtime budgets have
   comparable whole-lane evidence and three-run medians.
-- [ ] The full package/research boundary is reviewed: active documents are short,
+- [x] The current 0.1.x package/research placement and load boundary is reviewed:
+  active documents are short,
   retained fixtures have a shipped purpose or an explicit archival role, and
-  research outputs are not numerical prerequisites for ordinary tests.
+  research records are not numerical prerequisites for ordinary tests. Retained
+  ordinary numerical/behavioral references are identified separately; shared
+  research definitions still have parsing/load cost and are not promoted APIs.
 
 Keep the existing 4 MiB compressed Git archive growth guard, the documented
 250 KiB fixture-review threshold, and per-phase/per-job timeouts. A size or
@@ -149,6 +157,7 @@ separately.
 | `examples/`, `README.md`, `docs/src/` | User workflows and manual sources; `docs/make.jl` explicitly selects published pages |
 | `ROADMAP.md` | Current priorities, owners, exit decisions, and a compact evidence baseline |
 | [`docs/internal/mfrm-anchor-study.md`](docs/internal/mfrm-anchor-study.md) | Active M1 methods draft; the only place to edit its cell/estimand/seed/threshold decisions |
+| [`fixture-boundary.md`](docs/internal/fixture-boundary.md), [`code-load-boundary.md`](docs/internal/code-load-boundary.md) | Finite 0.1.x placement decisions and their verification limits; revisit only when the recorded boundary changes |
 | [`docs/internal/archive/`](docs/internal/archive/) | Preserved roadmap snapshots and deferred rationale; outside the manual source tree and not an execution authority |
 | `docs/src/development-*.md`, `docs/src/mgmfrm-research-roadmap.md` | Existing non-published ledgers and deferred research detail; not competing work orders |
 | `test/`, [`test/fixtures/`](test/fixtures/README.md) | Behavioral regressions and numerical references; ordinary versus opt-in behavior is documented in the fixture guide |

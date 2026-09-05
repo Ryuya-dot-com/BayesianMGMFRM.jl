@@ -128,12 +128,12 @@ with current hashes to make a move pass. The other ten files need coordinated
 consumer-batch review; do not relocate them individually.
 
 The tracked-fixture classification is complete at the reviewed revision. Do
-not repeat it unless membership or consumers change. Next inspect which
-research-related modules are loaded by the package and ordinary test runner,
-and whether each inclusion has a shipped behavioral purpose. That code-load
-boundary, optional dependencies, and distribution budgets remain separate
-decisions. Retaining the 99 research records assigns an archival role; it does
-not establish that all of them must ship in a future package distribution.
+not repeat it unless membership or consumers change. The subsequent
+[code-load review](code-load-boundary.md) records the retained source/API and
+ordinary-runner include purposes. Current 0.1.x placement is accepted; runtime
+and distribution-cost acceptance remain separate. Retaining the 99 research
+records assigns an archival role, not a requirement that all must ship in every
+future package distribution.
 
 ## Verification and limits
 
