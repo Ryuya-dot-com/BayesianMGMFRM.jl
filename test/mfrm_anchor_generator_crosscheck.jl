@@ -8,6 +8,19 @@ end
 
 using BayesianMGMFRM
 
+function mfrm_anchor_test_panel(sparse)
+    events = [(p, r, i) for p in 1:40 for r in 1:4 for i in 1:4
+        if !sparse || r in (mod1(p, 4), mod1(p + 1, 4))]
+    data = FacetData((;
+        person = ["P$(lpad(string(p), 2, '0'))" for (p, r, i) in events],
+        rater = ["R$r" for (p, r, i) in events],
+        item = ["I$i" for (p, r, i) in events],
+        score = [mod(p + r + i, 4) for (p, r, i) in events],
+    ); person = :person, rater = :rater, item = :item,
+        score = :score, category_levels = 0:3)
+    return events, data
+end
+
 @testset "reference-valued anchor declarations share sampling targets" begin
     hard(block, level, value) = (; block, level, value, type = :hard)
     r1, r4 = hard(:rater, "R1", 0.0), hard(:rater, "R4", 1.5)
@@ -19,15 +32,7 @@ using BayesianMGMFRM
         (rater_pair, [r1, r4, i1]), (item_pair, [i1, i4, r1]),
     )
     for thresholds in (:rating_scale, :partial_credit), sparse in (false, true)
-        events = [(p, r, i) for p in 1:40 for r in 1:4 for i in 1:4
-            if !sparse || r in (mod1(p, 4), mod1(p + 1, 4))]
-        data = FacetData((;
-            person = ["P$(lpad(string(p), 2, '0'))" for (p, r, i) in events],
-            rater = ["R$r" for (p, r, i) in events],
-            item = ["I$i" for (p, r, i) in events],
-            score = [mod(p + r + i, 4) for (p, r, i) in events],
-        ); person = :person, rater = :rater, item = :item,
-            score = :score, category_levels = 0:3)
+        _, data = mfrm_anchor_test_panel(sparse)
         @test data.n == (sparse ? 320 : 640)
         @test all(count(==(rater), data.rater) == (sparse ? 80 : 160)
             for rater in 1:4)
@@ -74,6 +79,129 @@ using BayesianMGMFRM
     end
     # This does not equate reports/cache metadata, shifted anchor values,
     # different reference levels, or priors in different coordinates.
+end
+
+@testset "M1 sensitivity candidate constraints and paired controls" begin
+    # Encode the finite review draft, not an evaluation runner or seed roster.
+    # Scores are deterministic input scaffolding; no responses or fits are sampled.
+    cell(id, kind, raters, items, u = 0.0, v = 0.0) =
+        (; id, kind, raters, items, u, v)
+    shift_label(x) = iszero(x) ? "0" : x > 0 ? "+$x" : string(x)
+    error_id(u, v) = "D-RI-u$(shift_label(u))-v$(shift_label(v))"
+    hard(block, level, value) = (; block, level, value, type = :hard)
+    U = (-0.8, -0.2, 0.2, 0.8)
+    cells = NamedTuple[cell("B", :E, (), ())]
+    for facet in ("R", "I", "RI")
+        rs, its = facet == "I" ? () : (1, 4), facet == "R" ? () : (1, 4)
+        push!(cells, cell(facet, :E, rs, its))
+        for (kind, locations) in ((:S, (4,)), (:P, (2, 3)), (:F, (1, 2, 3, 4)))
+            push!(cells, cell("$kind-$facet", kind,
+                isempty(rs) ? () : locations, isempty(its) ? () : locations))
+        end
+        for kind in (:C, :D)
+            shifts = facet == "R" ? [(u, 0.0) for u in U] :
+                facet == "I" ? [(0.0, v) for v in U] :
+                kind === :C ? [(u, v) for u in U for v in U if abs(u) == abs(v)] :
+                [(u, v) for u in (0.0, U...) for v in (0.0, U...)
+                    if !iszero(u) || !iszero(v)]
+            for (u, v) in shifts
+                suffix = facet == "R" ? "-u$(shift_label(u))" :
+                    facet == "I" ? "-v$(shift_label(v))" :
+                    "-u$(shift_label(u))-v$(shift_label(v))"
+                push!(cells, cell("$kind-$facet$suffix", kind, rs, its, u, v))
+            end
+        end
+    end
+    @test length(cells) == length(unique(c.id for c in cells)) == 61
+    @test Tuple(count(c -> c.kind === kind, cells) for kind in (:E, :S, :P, :F, :C, :D)) ==
+        (4, 3, 3, 3, 16, 32) # Four clean comparators + 57 sensitivities.
+
+    events, data = mfrm_anchor_test_panel(true)
+    strata = [findall(e -> (e[2] == 4, e[3] == 4) == pattern, events)
+        for pattern in ((true, true), (true, false), (false, true), (false, false))]
+    @test length.(strata) == [20, 60, 60, 180]
+    theta = collect(range(-1.2, 1.2; length = 40)) .+ 1.35
+    rho, beta = (0.0, 0.5, 1.0, 1.5), (0.0, 0.4, 0.8, 1.2)
+    pcm_steps = ([-0.6, 0.0, 0.6], [-0.4, 0.1, 0.3],
+        [-0.8, 0.3, 0.5], [-0.2, -0.1, 0.3])
+    probability = MFRMAnchorStandaloneDGP._ld1_pcm_probabilities
+    for thresholds in (:rating_scale, :partial_credit)
+        prefix = thresholds === :rating_scale ? "RSM-S" : "PCM-S"
+        steps = thresholds === :rating_scale ? ntuple(_ -> pcm_steps[1], 4) : pcm_steps
+        results = Dict{String,NamedTuple}()
+        signatures = []
+        for c in cells
+            @testset "$prefix-$(c.id)" begin
+                # A common shift translates all free facet/person coordinates.
+                # A differential error changes only the fixed fourth endpoint.
+                ru, iv = c.kind === :C ? (c.u, c.v) : (0.0, 0.0)
+                dr, di = c.kind === :D ? (c.u, c.v) : (0.0, 0.0)
+                rvalues = [rho[r] + ru + (r == 4 ? dr : 0.0) for r in 1:4]
+                ivalues = [beta[i] + iv + (i == 4 ? di : 0.0) for i in 1:4]
+                anchors = vcat([hard(:rater, "R$r", rvalues[r]) for r in c.raters],
+                    [hard(:item, "I$i", ivalues[i]) for i in c.items])
+                rfixed = isempty(c.raters) ? (1,) : c.raters
+                ifixed = isempty(c.items) ? (1,) : c.items
+                push!(signatures, (Tuple((r, rvalues[r]) for r in rfixed),
+                    Tuple((i, ivalues[i]) for i in ifixed)))
+                design = getdesign(mfrm_spec(data; thresholds, anchors))
+                values = Dict("person[P$(lpad(string(p), 2, '0'))]" => theta[p] + ru + iv
+                    for p in 1:40)
+                merge!(values, Dict("rater[R$r]" => rho[r] + ru for r in 1:4 if r ∉ rfixed))
+                merge!(values, Dict("item[I$i]" => beta[i] + iv for i in 1:4 if i ∉ ifixed))
+                for i in (thresholds === :rating_scale ? (1,) : (1, 2, 3, 4)), s in 1:2
+                    name = thresholds === :rating_scale ? "step[$s]" : "step[item=I$i,$s]"
+                    values[name] = steps[i][s]
+                end
+                @test Set(design.parameter_names) == Set(keys(values))
+                # These are estimation masks, not implemented interval scores.
+                @test length(design.blocks[:rater]) == 4 - length(rfixed)
+                @test length(design.blocks[:item]) == 4 - length(ifixed)
+                params = [values[name] for name in design.parameter_names]
+                expected = reduce(vcat, [permutedims(probability(
+                    theta[p] - rho[r] - beta[i] - (r == 4 ? dr : 0.0) -
+                    (i == 4 ? di : 0.0), steps[i])) for (p, r, i) in events])
+                actual = dropdims(predictive_probabilities(design, reshape(params, 1, :)); dims = 1)
+                @test actual ≈ expected atol = 1e-12 rtol = 0
+                expected_loglikelihood = [log(expected[row, mod(p + r + i, 4) + 1])
+                    for (row, (p, r, i)) in pairs(events)]
+                @test pointwise_loglikelihood(design, params) ≈ expected_loglikelihood atol = 1e-12 rtol = 0
+                results[c.id] = (; names = Tuple(design.parameter_names), probabilities = actual,
+                    prior = logprior(design, params))
+            end
+        end
+        @test length(unique(signatures)) == 61
+        for c in cells
+            c.kind === :C || continue
+            facet = isempty(c.raters) ? "I" : isempty(c.items) ? "R" : "RI"
+            @test results[c.id].probabilities ≈ results[facet].probabilities atol = 1e-12 rtol = 0
+            # At these truth vectors the unchanged zero-centered prior differs;
+            # likelihood equality alone does not establish posterior equality.
+            @test !isapprox(results[c.id].prior, results[facet].prior; atol = 1e-12, rtol = 0)
+        end
+        for u in U, v in U
+            joint, ronly, ionly, clean = results[error_id(u, v)],
+                results[error_id(u, 0.0)], results[error_id(0.0, v)], results["RI"]
+            @test joint.names == ronly.names == ionly.names == clean.names
+            @test joint.prior == ronly.prior == ionly.prior == clean.prior
+            intersection, rrows, irows, untouched = strata
+            @test joint.probabilities[rrows, :] ≈ ronly.probabilities[rrows, :] atol = 1e-12 rtol = 0
+            @test joint.probabilities[irows, :] ≈ ionly.probabilities[irows, :] atol = 1e-12 rtol = 0
+            @test joint.probabilities[untouched, :] ≈ clean.probabilities[untouched, :] atol = 1e-12 rtol = 0
+            # Numerical non-equality checks, not practical distortion thresholds.
+            @test maximum(abs.(joint.probabilities[rrows, :] .- clean.probabilities[rrows, :])) > 1e-4
+            @test maximum(abs.(joint.probabilities[irows, :] .- clean.probabilities[irows, :])) > 1e-4
+            if iszero(u + v)
+                @test joint.probabilities[intersection, :] ≈ clean.probabilities[intersection, :] atol = 1e-12 rtol = 0
+            else
+                @test maximum(abs.(joint.probabilities[intersection, :] .- clean.probabilities[intersection, :])) > 1e-4
+            end
+        end
+        for u in U
+            @test results[error_id(u, 0.0)].names != results["D-R-u$(shift_label(u))"].names
+            @test results[error_id(0.0, u)].names != results["D-I-v$(shift_label(u))"].names
+        end
+    end
 end
 
 @testset "MFRM anchor generator equation and category checks" begin

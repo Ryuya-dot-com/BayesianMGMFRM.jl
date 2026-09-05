@@ -134,8 +134,10 @@ with both signs in each facet; their probabilities match the constrained
 oracle but differ from the original truth. Tolerance `1e-12` is a numerical
 conformance limit, not a statistical acceptance threshold. The check is also
 included in the ordinary `fitting_reports` shard. The initial 2,518 conformance
-assertions and the 308 reference-declaration/estimand checks below pass locally
-on Julia 1.10.8 and 1.12.5 (2,826 total). The command contributes
+assertions and the 308 reference-declaration/estimand checks below are retained.
+The additional 951 finite-candidate checks described below bring the focused
+file to four testsets / 3,777 assertions, passing locally on Julia 1.10.8 and
+1.12.5. The command contributes
 **zero evaluation replications**.
 It establishes implementation separation from the fitting kernel, not
 independent authorship, independent review, or posterior calibration. The old
@@ -343,11 +345,22 @@ cross-backend checks, failures, or remediation. That is a cost warning, not an
 approved replication allocation. The alternatives below separate scenario
 coverage from Monte Carlo precision; M1-03/04 must justify the chosen allocation
 and its claim limits before any execution.
-Existing conformance checks cover the probability mechanism, not every new
-cell ID, asymmetric error pair, control, or scorer stratum here. Their concrete
-enumeration and bounded MCMC-free checks remain prerequisites to freezing;
-no new fitting controller, fixture, or evaluation run is introduced by this
-draft. All six freeze decisions remain open.
+The existing generator-check file now explicitly enumerates all 57 sensitivity
+regimes and four clean sparse comparators per family (114 + 8 configurations).
+Its 951 added assertions check unique IDs/constraint sets, free parameter names
+and block sizes, independent-oracle probabilities and pointwise likelihoods,
+common-shift prior non-invariance at these vectors, and the four event strata.
+They include all asymmetric error pairs and verify that joint-error controls
+retain the same fixed sets/free-coordinate priors; D-R/D-I are not substitutes.
+A memory-only mutation dropping the item anchors from `D-RI-u+0.2-v0` produced
+20 assertion failures and no errors, confirming that this mistake is detected;
+the unmodified file passes all 3,777 assertions on both local Julia versions.
+The 1e-12/1e-4 checks test numerical agreement/non-equality, not statistical or
+practical acceptance. Scores are deterministic scaffolding, not fresh responses.
+This verifies the candidate constraints and projection algebra, **not** an
+evaluation executor, RNG policy, interval/failure scorer, posterior calibration,
+or independent review. No new controller, fixture, or fit is introduced.
+All six freeze decisions remain open, including the other factor subsets.
 
 ## M1 allocation and budget decision draft
 

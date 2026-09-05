@@ -17,7 +17,7 @@ prediction remain separate, deferred programs.
 | Milestone | Status | Responsible role and concrete exit |
 | --- | --- | --- |
 | M0 — Package baseline | Implementation, placement/load review, and all 12 lane baselines recorded; runtime acceptance remains open | Maintainer: explain or remediate the `fitting_core` rolling-median increase of 23.4%; preserve the reviewed 0.1.x boundaries |
-| M1 — Anchor-study protocol | Draft: 16 primary + 114 sensitivity candidates; three precision/cost allocations compared, none authorized | Analyst: finish the decision table in the [study draft](docs/internal/mfrm-anchor-study.md#freeze-decisions); independent reviewer checks equations, cells, scoring, thresholds, and resource limits |
+| M1 — Anchor-study protocol | Draft: 16 primary + 114 sensitivity candidates; candidate constraints/controls checked, allocations unfrozen | Analyst: finish the decision table in the [study draft](docs/internal/mfrm-anchor-study.md#freeze-decisions); independent reviewer checks equations, cells, scoring, thresholds, and resource limits |
 | M2 — Fresh evaluation | Not started; zero evaluation replications | Analyst: execute the reviewed roster, retain every attempt, and report per-cell recovery/calibration with Monte Carlo uncertainty and failure denominators |
 | M3 — External review and domain decision | Matching-source inventory only; independent review outstanding | Maintainer and independent reviewer: separate-environment matched reproduction and claim-level allow, narrow, reject, or inconclusive decisions |
 
@@ -32,7 +32,7 @@ Work on the highest unfinished decision, not the largest collection of scripts.
 | Order / task | Next deliverable | Verification and stop condition |
 | --- | --- | --- |
 | 1. M0-DOC — Complete at `bd22c01` | Short root roadmap, one active anchor-study draft, archived old roadmaps, and the directory map below | Both archived bodies preserved with rebased links; 34 local links/fragments, the Git-free install/load/example/manual smoke, and all 12 ordinary candidate-CI jobs passed |
-| 2. M0-CI — Compilation-heavy fits; runner CPU heterogeneity observed | Separate ordinary instrumented observations by CPU/target as well as version/threads; EPYC 7763/znver3 and 9V74/znver4 observations are not a matched pair | Explain or remediate 17m41s -> 21m49s before acceptance; preserve the 30-minute ceiling and all assertions. Instrumented observations do not silently replace the original timing window |
+| 2. M0-CI — Compilation-heavy fits; runner CPU heterogeneity observed | Separate ordinary observations by CPU/target and version/threads; three CPU/target pairs currently have one observation each, not a hardware-matched median | Explain or remediate 17m41s -> 21m49s before acceptance; preserve the 30-minute ceiling and all assertions. Instrumented observations do not silently replace the original timing window |
 | 3. M0-BOUNDARY — Placement/load review complete | [123 fixtures classified](docs/internal/fixture-boundary.md); [35 source includes and seven ordinary script includes reviewed](docs/internal/code-load-boundary.md). Retain the declared 0.1.x compatibility surface and archival records | Isolated definition loads passed on Julia 1.10.8 and 1.12.5 without research trees. No relocation, regeneration, dependency removal, or lazy loader. Reopen for changed dependencies/consumers or measured budget pressure |
 | 4. M1-FREEZE — Resolve the study draft | Finite sensitivity cells, seed policy, estimands/thresholds, sampler/resource budget, all-attempt scorer, and reviewer handoff | No fresh evaluation while any freeze decision is open; no new generic controller or evidence framework without a demonstrated gap |
 
@@ -73,12 +73,20 @@ is the runtime attribution in order 2; do not restart the closed inventories.
   passed all 12 ordinary jobs; two manual research jobs were skipped. The full
   Julia 1.10.8 job passed the same 90 testsets / 17,557 assertions in 31m28s.
   The updated medians below expose a runtime investigation, not a test failure.
-- `04daa4d` and `a13399c`: [CI 33958936886](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33958936886)
-  and [CI 33960125413](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33960125413)
+- `04daa4d`, `a13399c`, and `27fb7d7`: [CI 33958936886](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33958936886),
+  [CI 33960125413](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33960125413),
+  and [CI 33961918446](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33961918446)
   each passed all 12 ordinary jobs; both manual research jobs were skipped.
-  Their Julia 1.10.8 full jobs passed 90 testsets / 17,557 assertions in 33m15s
-  and 30m57s. The instrumented fit observations below are engineering evidence,
+  Their Julia 1.10.8 full jobs passed 90 testsets / 17,557 assertions in
+  33m15s, 30m57s, and 22m24s, respectively. These are engineering observations,
   not fresh anchor-study replications or acceptance of a later revision.
+- The current M1 test addition contributes 951 MCMC-free assertions. Its focused
+  file passes four testsets / 3,777 assertions on Julia 1.10.8 and 1.12.5;
+  a deliberately malformed paired control is detected. Candidate CI is still
+  required: expected totals become 25 / 7,453 in `fitting_reports` and
+  91 / 18,508 in the full suite. Other shards, especially `fitting_core`, gain
+  no test work. Do not reuse the older workload's report/full timing median
+  as an unchanged-workload measurement of this addition.
 - The earlier anchor pilot completed 80 fits but only two independent datasets
   per cell, with PCM-only truth, favorable initialization, and a shared
   generation/fitting kernel. None of its fits enters the new evaluation count.
@@ -111,6 +119,10 @@ assertion counts match exactly within every row. Only the root roadmap,
 internal fixture inventory, and fixture README changed across these revisions;
 workflow, package/test code, dependency declarations, examples, and published
 manual sources did not change.
+
+These are workload/image-matched operational windows, not hardware-matched
+benchmarks: CPU models were not logged in those jobs. The later instrumentation
+below demonstrates why an unchanged runner-image label is insufficient.
 
 | Lane | Testsets / assertions | Three whole-job times | Median | Change from initial median |
 | --- | --- | --- | --- | --- |
@@ -174,7 +186,7 @@ Julia 1.10.8 and 1.12.5. The minimum-version timing/failure smoke and the four
 stubbed Bash routing/exit-status cases passed. Native Linux resource reporting
 was subsequently verified by the first instrumented CI observation below.
 
-Both ordinary instrumented fit jobs passed the same 2,755 assertions. They use
+Three ordinary instrumented fit jobs passed the same 2,755 assertions. They use
 Julia 1.12.7, the same Ubuntu image/provisioner, four exposed logical CPUs, one
 Julia thread, and two BLAS threads, but **different CPU models and targets**.
 
@@ -182,18 +194,21 @@ Julia thread, and two BLAS threads, but **different CPU models and targets**.
 | --- | --- | --- | --- | --- | --- | --- |
 | [`04daa4d`](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33958936886/job/101287242614) | AMD EPYC 7763 / `znver3` | 22m36s | 1,317.54s | 1,121.871s | 80.45% | 2,555,816 KiB |
 | [`a13399c`](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33960125413/job/101290451261) | AMD EPYC 9V74 / `znver4` | 17m42s | 1,026.77s | 895.140s | 83.45% | 2,671,352 KiB |
+| [`27fb7d7`](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33961918446/job/101295159486) | Intel Xeon 6973P-C / `graniterapids` | 13m04s | 748.13s | 621.888s | 76.70% | 2,589,148 KiB |
 
-The 180 extracted unique logged package/version entries match; both PR merges
+The 180 extracted unique logged package/version entries match; all three PR merges
 target `6e8291c`. Only the root roadmap and study draft changed between heads.
-Both restored their lane cache, but from different predecessor runs: cache
-restoration does not establish identical effective precompilation. Both blocks
-report 679.74 million allocations / 31.977 GiB cumulative allocation, not peak
-memory; GC is 0.84% / 0.99%. Testset summaries are 15m20.2s + 9.2s and
-12m42.8s + 6.7s, not the enclosing compilation-inclusive block times. Command
-user/system CPU times are 1,315.19/2.67s and 1,024.56/2.52s; both report 100%
-CPU (about one CPU's capacity on average, not saturation of all four). Reported
-max RSS is about 2.44/2.55 GiB, not simultaneous process-tree memory; major
-page faults are zero and startup memory snapshots are not run-long traces.
+All restored their lane cache, but from different predecessor runs: cache
+restoration does not establish identical effective precompilation. The first
+two blocks report 679.74 million allocations / 31.977 GiB cumulative allocation;
+the third reports 680.05 million / 31.992 GiB. These are not peak memory. GC
+is 0.84% / 0.99% / 1.89%. Command user/system CPU times are 1,315.19/2.67s,
+1,024.56/2.52s, and 745.73/2.29s; 99--100% CPU means about one CPU's capacity
+on average, not saturation of all four. Reported max RSS is not simultaneous
+process-tree memory; major page faults are zero and startup memory snapshots
+are not run-long traces. Testset summaries exclude part of the enclosing
+compilation-inclusive block cost. These successful runs precede the later
+951-assertion M1 addition and do not verify that candidate.
 
 The current observations are compilation-heavy and demonstrate runner
 heterogeneity. They do **not** isolate the CPU's causal contribution, establish
@@ -201,7 +216,8 @@ a documentation-induced speedup, or identify the CPU of any older job. Those
 older logs cannot support retrospective hardware stratification. Keep M0 open;
 separate subsequent ordinary observations by CPU/target, version, and threads
 before forming a comparable window or choosing a measured compilation remedy.
-Do not pool these two observations into the original median, add research
+There is only one observation per CPU/target, not a three-run matched median.
+Do not pool these observations into the original median, add research
 execution, or inflate the timeout to close the trigger.
 
 The remaining lanes use the same three runs, except macOS uses `fa7ffc9`,
