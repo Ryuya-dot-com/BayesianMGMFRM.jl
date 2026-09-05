@@ -32946,6 +32946,7 @@ if test_group_enabled(:fitting_reports)
     include("practitioner_diagnostics.jl")
     include("anchor_refit_plan.jl")
     include("hard_anchor_fit.jl")
+    include("mfrm_anchor_generator_crosscheck.jl")
 end
 if test_group_enabled(:local_dependence_core)
     include("testlet_design_audit.jl")

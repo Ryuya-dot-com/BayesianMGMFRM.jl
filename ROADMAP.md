@@ -128,11 +128,11 @@ every **P0 RELEASE** box is checked with current evidence.
   CmdStan, or R, can install, load, run the stable example, and build the manual.
 - [ ] Ordinary CI reads no optional research results; instantiate, first/warm
   load, minimal fit, docs, and ordinary-test budgets are recorded and enforced.
-- [ ] Stable MFRM supports intended category scale and actual individual
-  rater/item hard-anchor fitting. Fixed-coordinate warnings, report integration,
-  persistence coverage, the short anchor workflow, and category/rater
-  practitioner-report integration are complete; final stable edge-case
-  hardening still governs this composite box.
+- [x] Stable MFRM supports intended category scale and actual individual
+  rater/item hard-anchor fitting. Fixed-coordinate warnings, reports,
+  persistence, the short workflow, and the finite M0 edge-case review passed
+  candidate CI at `101b791`. This is engineering closeout, not independent
+  recovery or uncertainty-calibration evidence.
 - [x] Root exports are frozen, every stable export is documented, and research
   or experimental entry points are visibly quarantined.
 - [x] Release checks fail on behavior, schema, performance, portability, or
@@ -381,8 +381,8 @@ percentage:
 
 | Axis | Current reading | Evidence still needed |
 | --- | --- | --- |
-| Package integration | A tracked baseline, passing local checks, and nine passing ordinary candidate-CI jobs. | Successful split-lane CI, comparable medians, and closure of the remaining distribution items. |
-| Stable MFRM implementation | Individual hard anchors, intended category scale, fixed-coordinate reports, and persistence are implemented. | A finite edge-case review and workflow replay against the baseline. |
+| Package integration | The tracked six-shard baseline at `101b791` passed all twelve ordinary candidate-CI jobs. | Comparable medians and closure of the remaining distribution items; later changes need their own checks. |
+| Stable MFRM implementation | Individual hard anchors, intended category scale, fixed-coordinate reports, and persistence passed the finite M0 review and candidate CI. | Preserve the bounded regression coverage; this is not independent recovery evidence. |
 | Anchor mathematics | Exact checks distinguish location-gauge changes, coordinate-prior effects, fixed contrasts, and incompatible anchor pairs. | Independent equation/indexing review; no attribution of a contaminated anchor from likelihood alone. |
 | Statistical performance | PCM pilot operability is established only in its small declared cells. | Independent RSM/PCM generation, ordinary initialization, repeated recovery, uncertainty calibration, and design/anchor sensitivity. |
 | External validation | Narrow local TAM and version-specific ConQuest evidence exist. | Matched estimands, separate-environment reproduction, independent review, and external observed-data plausibility where available. |
@@ -398,8 +398,8 @@ decision, not on the number of scripts, tests, or checklist entries added.
 
 | Milestone / current state | Owner and dependency | Deliverable and exit decision |
 | --- | --- | --- |
-| M0. Fix the validation baseline — **local closeout complete; candidate CI pending** | Maintainer; package distribution gate. | The reviewed Git baseline includes the required new files. The finite review below maps behavior to checks, classifies documentation/fixture exceptions, and adds the archive-size guard. Exit still requires candidate CI and comparable whole-lane medians; local checks alone are insufficient. |
-| M1. Freeze the anchor study — **draft; may proceed alongside M0** | Study analyst prepares; independent reviewer checks equations, design, scoring, and thresholds. | One compact protocol, enumerated cell/seed table, independent generator cross-check, and runnable commands covering the decisions below. Numeric tolerances, replication counts, resource caps, and all-attempt accounting must be filled and reviewed before M2. |
+| M0. Fix the validation baseline — **local closeout and split CI complete; medians pending** | Maintainer; package distribution gate. | The finite review maps behavior to checks, classifies documentation/fixture exceptions, and adds the archive-size guard. Candidate CI is green at `101b791`; comparable whole-lane medians remain required. |
+| M1. Freeze the anchor study — **draft; generator cross-check prepared** | Study analyst prepares; independent reviewer checks equations, design, scoring, and thresholds. | Reuse the standalone generator checked below. One compact protocol, enumerated cell/seed table, statistical tolerances, replication counts, resource caps, and all-attempt scoring must still be filled and reviewed before M2. |
 | M2. Execute and score — **pending M0 and M1** | Study analyst; reviewed protocol and supported execution budget. | Fresh-seed results with planned/attempted/completed/diagnostic-valid denominators, per-cell estimates and Monte Carlo uncertainty, and retained failures. Decide adequate evidence, narrower domain, failed criterion, or insufficient precision; do not force a pass/fail from an imprecise estimate. |
 | M3. External comparison and scope decision — **pending M2; source/overlap inventory can start earlier** | Maintainer and independent reviewer; compatible external target and access to required software/data. | Reproduce matched known-truth cases in a separate environment; review claim-level allow/narrow/reject decisions. Observed data support portability/plausibility separately. Missing external input leaves that claim pending without invalidating completed local evidence. |
 
@@ -506,9 +506,19 @@ selectors remain aliases for both of their respective shards; standalone
 calibration checks use the same selector. No test body or sampling budget is
 shortened. The temporary 45-minute ceiling is removed. This partitions work;
 it is not a claim that model computation became faster, and duplicated setup
-may increase total runner time. New whole-lane results and comparable three-run
-medians remain outstanding. The runtime P0 item and the 30-minute T2 target
-remain open; timings from the old combined lanes cannot substitute for them.
+may increase total runner time. The first complete six-shard result is
+[run 33946739309](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33946739309),
+attempt 1 at `101b791`: all twelve ordinary jobs passed. The six shard times,
+in the table's order, were 20m49s, 25m24s, 19m23s, 27m10s, 24m18s, and 12m06s.
+Minimum Julia 1.10.8 passed in 29m09s. Its full suite and the six shards have
+the same multiset of 87 testset names and per-set assertion counts, totaling
+14,731 checks. Release hygiene measured 3,154,620 compressed archive bytes and
+passed the Git-free candidate smoke and 351 runtime public-language surfaces.
+Manual research jobs remained skipped. This is one timing observation per
+lane, not a three-run median. The runtime P0 item and sustained 30-minute T2
+target remain open; old combined lanes and reused rerun jobs cannot fill the
+new denominator. Later generator cross-check assertions are not included in
+this recorded baseline count.
 
 #### M1 design and analysis decisions
 
@@ -576,6 +586,70 @@ Before M2, the single M1 protocol must resolve all of the following:
    preserving the original results instead of increasing the sample until it
    passes. Independent equation/threshold review remains required; another
    implementer-authored receipt cannot satisfy it.
+
+#### M1 preparation: reuse and check the independent generator
+
+The existing `src/local_dependence_known_truth_dgp.jl` already supplies a
+standalone adjacent-category probability recurrence and inverse-CDF sampler.
+Reuse those primitives; do not copy another probability kernel or adopt the
+LD study's design, seeds, mechanisms, or scientific claims. RSM passes one
+shared full step vector; PCM passes an item-specific full vector. The MFRM
+adapter must explicitly construct its sum-to-zero steps and identified facet
+coordinates from labelled truth, without reading them back through the fitting
+kernel. The generating recurrence itself does not impose this gauge.
+
+[Wind and Jones (2018)](https://doi.org/10.1177/0013164417703733), p. 686,
+Eq. 1 (Zotero item `F3CVK9EA`), gives the RSM adjacent-category log odds
+`theta - severity - difficulty - step`. [Linacre (2000)](https://www.rasch.org/rmt/rmt143k.htm)
+distinguishes shared RSM from item-specific PCM step structures. These support
+the equation and step ownership, not an optimal anchor count or a recovery
+threshold. The existing anchor literature crosswalk retains the distinction
+between parameter anchors and common-response links.
+
+Run the bounded, MCMC-free conformance check with:
+
+```bash
+julia --startup-file=no --project=. test/mfrm_anchor_generator_crosscheck.jl
+```
+
+It checks hand-computed probabilities, binary and extreme-location limits,
+half-open inverse-CDF bins including zero-probability categories, and loading
+the generator in a separate stdlib-only process. A label-based adapter then
+checks 768 compatible configurations: two model families, 2/3/5 categories,
+dense/reversed-row connected-sparse designs, and all 8-by-8 masks of three
+rater and three item anchors. Category labels include negative and one-based
+scales. Another 96 configurations cross two differential-error magnitudes
+with both signs in each facet; their probabilities match the constrained
+oracle but differ from the original truth. Tolerance `1e-12` is a numerical
+conformance limit, not a statistical acceptance threshold. The check is also
+included in the ordinary `fitting_reports` shard. Its 2,518 assertions passed
+locally on Julia 1.10.8 and 1.12.5; the command contributes **zero evaluation replications**.
+It establishes implementation separation from the fitting kernel, not
+independent authorship, independent review, or posterior calibration. The old
+80-fit pilot remains unchanged and still used the shared fitting kernel.
+
+Replication planning reuses `mgmfrm_validation_replication_precision`, despite
+its historical generalized-model name. Its Bernoulli calculation is not a
+model-specific validation claim. [Morris, White, and Crowther (2019)](https://doi.org/10.1002/sim.8086),
+Sections 5.1--5.3, especially Eq. 1 on p. 2089 (Zotero item `PKQMUBH7`),
+supports checking failed estimates and selecting replications using Monte
+Carlo precision. For a **candidate**, not yet adopted, 90% interval:
+
+| Independent datasets per cell | Coverage MCSE at 90% | Worst-case binary-rate MCSE |
+| --- | --- | --- |
+| 100 | 3.00 percentage points | 5.00 percentage points |
+| 400 | 1.50 percentage points | 2.50 percentage points |
+| 1,000 | 0.95 percentage points | 1.58 percentage points |
+
+These are standard errors, not confidence-interval half-widths. Anchor refits
+on the same dataset and multiple facet contrasts do not multiply this dataset
+count. For pooled contrasts use dataset-level summaries or clustered Monte
+Carlo uncertainty, not a falsely enlarged Bernoulli denominator. Nominal
+frequentist coverage at fixed truth is an operating target to examine, not an
+identity guaranteed by a Bayesian credible interval. Bias precision still
+needs a justified error-SD reference, and diagnostic-invalid fits need the
+predeclared failure sensitivity. Neither a replication count nor a complete
+evaluation grid is frozen by this calculation.
 
 After each milestone, record only: which uncertainty decreased, which claim
 that changes, and what now blocks the next decision. Missing review or external

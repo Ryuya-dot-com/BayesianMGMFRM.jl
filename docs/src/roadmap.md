@@ -94,11 +94,11 @@ every **P0 RELEASE** box is checked with current evidence.
   CmdStan, or R, can install, load, run the stable example, and build the manual.
 - [ ] Ordinary CI reads no optional research results; instantiate, first/warm
   load, minimal fit, docs, and ordinary-test budgets are recorded and enforced.
-- [ ] Stable MFRM supports intended category scale and actual individual
-  rater/item hard-anchor fitting. Fixed-coordinate warnings, report integration,
-  persistence coverage, the short anchor workflow, and category/rater
-  practitioner-report integration are complete; final stable edge-case
-  hardening still governs this composite box.
+- [x] Stable MFRM supports intended category scale and actual individual
+  rater/item hard-anchor fitting. Fixed-coordinate warnings, reports,
+  persistence, the short workflow, and the finite M0 edge-case review passed
+  candidate CI at `101b791`. This is engineering closeout, not independent
+  recovery or uncertainty-calibration evidence.
 - [x] Root exports are frozen, every stable export is documented, and research
   or experimental entry points are visibly quarantined.
 - [x] Release checks fail on behavior, schema, performance, portability, or
@@ -274,6 +274,12 @@ Its immediate order is M0: fix the validation baseline; M1: freeze the MFRM
 anchor study; M2: execute independent known-truth evaluation; and M3: review
 external agreement and the supported domain. Protocol drafting can proceed
 alongside integration; fresh evaluation requires both to be complete.
+
+The six-shard candidate baseline passed all twelve ordinary CI jobs; comparable
+three-run timing medians remain outstanding. An MCMC-free RSM/PCM anchor check
+now reuses the existing standalone generator, without calling the fitting
+probability kernel to construct truth. This is equation/indexing conformance,
+not independent scientific review or recovery calibration.
 
 Local integration checks and the 80-fit PCM anchor pilot have passed, but the
 pilot has two data replications per cell, joint rater/item interventions,
