@@ -1,6 +1,7 @@
 using Test
 using Random
 using Statistics
+using JSON3
 
 # M1 preparation only: reuse the standalone generator, not the fitting kernel.
 # No MCMC, evaluation seeds, research fixtures, or new exports are needed.
@@ -265,7 +266,9 @@ end
                 @test length(keyed) == length(records) == data.n * 4
                 @test all((r.person, r.rater, r.item) ==
                     (table.person[r.row], table.rater[r.row], table.item[r.row]) for r in records)
-                logs[draw, :, :] = [keyed[(n, category)] for n in 1:data.n, category in levels]
+                logs[draw, :, :] = BayesianMGMFRM._mfrm_anchor_log_probability_matrix(
+                    records, [(; person = table.person[n], rater = table.rater[n],
+                        item = table.item[n]) for n in 1:data.n], levels)
             end
             scored = mgmfrm_predictive_recovery_score(logs, truth_logs;
                 log_probabilities = true, category_levels = levels)
@@ -353,6 +356,105 @@ end
     command = addenv(`$(Base.julia_cmd()) --startup-file=no -e $code $source`,
         "JULIA_LOAD_PATH" => "@stdlib")
     @test read(command, String) == "[0.0, -1000.0]"
+end
+
+@testset "M1 labelled log truth JSON roundtrip and primary dispositions" begin
+    align = BayesianMGMFRM._mfrm_anchor_log_probability_matrix
+    probability = MFRMAnchorStandaloneDGP._ld1_pcm_probabilities
+    score = mgmfrm_predictive_recovery_score
+    events = [(; person = "受験者/2", rater = "-Inf", item = "null"),
+        (; person = "受験者/1", rater = "-Inf", item = "null")]
+    levels = [-2, 1]
+    truth = reduce(vcat, [permutedims(probability(location, [0.0];
+        log_probabilities = true)) for location in (-800.0, 801.0)])
+    prediction = [0.0 -1e308; -1e308 0.0]
+    records(matrix) = [merge(events[n], (; category = levels[k],
+        log_probability = matrix[n, k])) for n in 1:2 for k in 1:2]
+    truth_records = records(truth)
+    @test align(reverse(truth_records), events, levels) == truth
+    @test align(truth_records, reverse(events), reverse(levels)) == reverse(truth; dims = (1, 2))
+    @test align([merge(row, (; row = 999)) for row in truth_records], events, levels) == truth
+
+    plan = [(; dataset_id = "smoke-d$id", heldout_id = "smoke-h$id", method = "B") for id in 1:8]
+    states = (:completed, :completed, :completed, :completed, :completed,
+        :fit_failed, :structurally_rejected)
+    attempts = [merge(plan[id], (; attempt = 1, status = states[id],
+        diagnostic_valid = id <= 4,
+        prediction = id in (1, 2, 3, 5) ? records(id == 2 ? [0.0 -Inf; -Inf 0.0] :
+            id == 3 ? truth : prediction) : nothing)) for id in 1:7]
+    push!(attempts, merge(plan[6], (; attempt = 2, status = :completed,
+        diagnostic_valid = true, prediction = records(truth))))
+    bundle = (; scope = :synthetic_roundtrip_only, category_levels = levels,
+        events, log_truth = truth, truth_records, plan, attempts)
+    mktempdir() do directory
+        path = joinpath(directory, "labelled-truth.json")
+        BayesianMGMFRM._write_json_record(path, bundle)
+        loaded = JSON3.read(read(path, String))
+        @test length(loaded.log_truth) == 2 && all(length(row) == 2 for row in loaded.log_truth)
+        @test loaded.log_truth[1][2] == -800.0 && loaded.log_truth[2][1] == -801.0
+        @test loaded.events[1].rater == "-Inf" && loaded.events[1].item == "null"
+        @test loaded.attempts[2].prediction[2].log_probability == "-Inf"
+        @test loaded.attempts[4].prediction === nothing
+        restored_truth = align(loaded.truth_records, loaded.events, loaded.category_levels)
+        @test restored_truth == truth
+        @test score(align(loaded.attempts[1].prediction, loaded.events, loaded.category_levels),
+            restored_truth; log_probabilities = true).summary.mean_log_score_regret ≈
+            score(prediction, truth; log_probabilities = true).summary.mean_log_score_regret
+
+        # Join the stored plan, not just available result files. This is a
+        # synthetic persistence/scoring check, not the full attempt validator.
+        key(row) = (row.dataset_id, row.heldout_id, row.method)
+        primary = Dict(key(row) => row for row in loaded.attempts if row.attempt == 1)
+        joined = [get(primary, key(row), nothing) for row in loaded.plan]
+        @test length(joined) == 8 && joined[8] === nothing
+        @test length(loaded.attempts) == 8 && length(primary) == 7
+        @test count(row -> row !== nothing && row.status in ("completed", "fit_failed"), joined) == 6
+        @test count(row -> row !== nothing && row.status == "completed", joined) == 5
+        valid = [row for row in joined if row !== nothing && row.status == "completed" &&
+            row.diagnostic_valid && row.prediction !== nothing]
+        @test [row.dataset_id for row in valid] == ["smoke-d1", "smoke-d2", "smoke-d3"]
+        losses = [score(align(row.prediction, loaded.events, loaded.category_levels),
+            restored_truth; log_probabilities = true).summary.mean_log_score_regret for row in valid]
+        @test isfinite(losses[1]) && losses[1] > 0
+        @test losses[2] == Inf && losses[3] == 0.0
+        @test count(isfinite, losses) == 2 # Not all eight planned cases or all three scored cases.
+        summary_path = joinpath(directory, "summary.json")
+        BayesianMGMFRM._write_json_record(summary_path, (; losses, missing_loss = missing))
+        saved = JSON3.read(read(summary_path, String))
+        @test saved.losses[1] == losses[1] && saved.losses[2] == "Inf" && saved.missing_loss === nothing
+    end
+
+    for bad_events in (events[1:1], [events[1], events[1]],
+            [merge(events[1], (; person = nothing)), events[2]],
+            [merge(events[1], (; rater = "")), events[2]])
+        @test_throws ArgumentError align(truth_records, bad_events, levels)
+    end
+    for bad_levels in ([-2], [-2, -2], [-2.0, 1.0], Any[-2, true])
+        @test_throws ArgumentError align(truth_records, events, bad_levels)
+    end
+    for bad_records in (truth_records[1:3], vcat(truth_records, truth_records[1:1]),
+            vcat(truth_records[1:3], truth_records[1:1]),
+            [merge(row, (; category = 7)) for row in truth_records],
+            [merge(row, (; category = false)) for row in truth_records],
+            [merge(row, (; person = "unknown")) for row in truth_records])
+        @test_throws ArgumentError align(bad_records, events, levels)
+    end
+    for invalid in (nothing, missing, "null", "NaN", "Inf", "-800", true,
+            NaN, Inf, 0.1, -big(10)^400)
+        bad = [merge(row, (; log_probability = invalid)) for row in truth_records]
+        @test_throws ArgumentError align(bad, events, levels)
+    end
+    # These would remain normalized if coerced to ordinary numeric values.
+    for (index, invalid) in ((1, false), (2, "-800"), (2, -big(10)^400))
+        bad = [n == index ? merge(row, (; log_probability = invalid)) : row
+            for (n, row) in pairs(truth_records)]
+        @test_throws ArgumentError align(bad, events, levels)
+    end
+    for invalid in (0.0, -Inf, -1.0)
+        @test_throws ArgumentError align(records(fill(invalid, 2, 2)), events, levels)
+    end
+    @test_throws ArgumentError align(truth_records, events, levels; probability_tolerance = NaN)
+    @test_throws ArgumentError align(NamedTuple[], NamedTuple[], levels)
 end
 
 @testset "M1 serial response blocks and replay" begin

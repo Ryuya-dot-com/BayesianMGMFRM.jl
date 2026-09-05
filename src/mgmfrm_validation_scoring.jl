@@ -261,6 +261,59 @@ function mgmfrm_predictive_recovery_score(
     )
 end
 
+# M1 preparation: align one labelled draw (or truth) before array scoring.
+# Repeated occasions need explicit event IDs; this panel permits one event
+# per person/rater/item tuple and rejects duplicates instead of pooling them.
+function _mfrm_anchor_log_probability_matrix(records::AbstractVector,
+        events::AbstractVector, category_levels; probability_tolerance::Real = 1e-8)
+    tolerance = _mgmfrm_probability_tolerance(probability_tolerance)
+    levels = collect(category_levels)
+    !isempty(events) && length(levels) >= 2 || throw(ArgumentError(
+        "labelled log probabilities need events and at least two categories"))
+    all(level -> level isa Integer && !(level isa Bool), levels) &&
+        length(unique(levels)) == length(levels) || throw(ArgumentError(
+            "category labels must be distinct integers"))
+    function event_key(row)
+        labels = Tuple(_report_lookup(row, field, nothing)
+            for field in (:person, :rater, :item))
+        all(label -> label isa AbstractString && !isempty(label), labels) ||
+            throw(ArgumentError("event labels must be nonempty strings"))
+        return labels
+    end
+    keys = event_key.(events)
+    length(unique(keys)) == length(keys) || throw(ArgumentError(
+        "event person/rater/item tuples must be unique"))
+    divrem(length(records), length(levels)) == (length(events), 0) ||
+        throw(ArgumentError("records must cover every event/category exactly once"))
+    event_index = Dict(key => index for (index, key) in pairs(keys))
+    category_index = Dict(level => index for (index, level) in pairs(levels))
+    logs = fill(NaN, length(events), length(levels))
+    for record in records
+        row = get(event_index, event_key(record), 0)
+        category = _report_lookup(record, :category, nothing)
+        category isa Integer && !(category isa Bool) || throw(ArgumentError(
+            "record category labels must be integers"))
+        column = get(category_index, category, 0)
+        row > 0 && column > 0 || throw(ArgumentError(
+            "record event/category is outside the declared panel"))
+        isnan(logs[row, column]) || throw(ArgumentError(
+            "duplicate event/category record"))
+        value = _report_lookup(record, :log_probability, nothing)
+        # Decode only the numeric field's explicit JSON zero-support token;
+        # strings such as "null" or "-Inf" in facet labels stay literal labels.
+        value isa AbstractString && value == "-Inf" && (value = -Inf)
+        value isa Real && !(value isa Bool) || throw(ArgumentError(
+            "log_probability must be numeric or the string -Inf"))
+        converted = Float64(value)
+        converted <= 0 && (isfinite(converted) || value == -Inf) ||
+            throw(ArgumentError("log_probability must be representable in [-Inf, 0]"))
+        logs[row, column] = converted
+    end
+    _mgmfrm_check_probability_rows(logs, "labelled log probabilities", tolerance;
+        log_probabilities = true)
+    return logs
+end
+
 function _mgmfrm_decision_cutpoints(cutpoints)
     values = Float64.(collect(cutpoints))
     all(isfinite, values) ||

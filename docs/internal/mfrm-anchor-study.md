@@ -22,7 +22,7 @@ design, scorer, and thresholds. No reviewer is currently assigned.
 | M1-02 — open, sharing/replay draft below | Declare pilot/evaluation and component RNG lineage, state ownership, data sharing, and any cross-design common random numbers; freeze the actual root/state roster | Reproduce one dataset without fitting; method order/addition cannot alter responses. Check non-overlapping allocation, not just distinct seed labels; fixed primary truth is not a fresh draw |
 | M1-03 — open | Choose interval levels, practical tolerances, Monte Carlo precision, replications, and per-stratum decision rules for parameter and predictive targets | Justify numerical values before evaluation; distinguish MCMC error from across-dataset error and true-probability regret from heldout log loss |
 | M1-04 — open | Choose the primary backend, actual prior scales, ordinary non-truth starts/jitter, chain settings, diagnostic policy, bounded cost probe, time/memory/output caps, and remediation allowance | Review the probe budget before running it; record resource evidence and keep all probes outside evaluation counts. The provisional 6,400 primary fits is not a budget authorization |
-| M1-05 — open, log-truth/scoring primitives checked | Reuse the recovery/predictive scorer; the denominator/applicability draft below specifies failures, paired Monte Carlo error, and non-overwriting remediation | Synthetic checks cover failures, applicability, pairing, and independent all-category log truth/scoring. Labelled truth persistence, the full attempt/label adapter, and final decision rules remain required |
+| M1-05 — open, predictive-label adapter checked | Reuse the recovery/predictive scorer; the denominator/applicability draft below specifies failures, paired Monte Carlo error, and non-overwriting remediation | Synthetic checks cover independent log truth/scoring and labelled JSON roundtrips. Full dataset/attempt binding, a persistent all-attempt ledger, and final decision rules remain required |
 | M1-06 — open | Hand off the single protocol with exact source revision, cell roster, settings, scorer checks, unresolved questions, and claim limits | A person other than the implementer records accept/request-revision decisions. Review cannot be replaced by an implementer-authored receipt |
 
 M1-01 now has the finite anchor-placement/error candidate subset below; nested
@@ -137,9 +137,9 @@ conformance limit, not a statistical acceptance threshold. The check is also
 included in the ordinary `fitting_reports` shard. The initial 2,518 conformance
 assertions and the 308 reference-declaration/estimand checks below are retained.
 The additional 951 finite-candidate, 131 serial-response replay, 50 denominator,
-28 predictive-boundary, 216 all-category log, and 277 independent-log-truth
-checks bring the focused file to nine testsets / 4,479 assertions, passing
-locally on Julia 1.10.8 and 1.12.5.
+28 predictive-boundary, 216 all-category log, 277 independent-log-truth, and
+52 labelled-roundtrip checks bring the focused file to ten testsets / 4,531
+assertions, passing locally on Julia 1.10.8 and 1.12.5.
 The command contributes **zero evaluation replications**.
 It establishes implementation separation from the fitting kernel, not
 independent authorship, independent review, or posterior calibration. The old
@@ -697,10 +697,53 @@ equality of all raw outputs for the existing 22 LD smoke scenarios within each
 environment, not cross-version bitwise portability. LD output schemas, response
 RNG allocation, resource accounting, historical fixtures, and their recorded
 source digests are unchanged; the raw LD table still stores ordinary probabilities.
-This closes the independent log-probability primitive, not labelled truth/state
-persistence, a full attempt/label adapter, diagnostic policy, thresholds, or
-independent review. All six freeze decisions remain open. No MCMC, new fixture,
-dependency, export, or evaluation replication is added.
+That revision closed the independent log-probability primitive, not truth/state
+persistence or the full attempt adapter. The next check addresses only the
+labelled JSON/scoring boundary below; no freeze decision is closed.
+
+### Labelled JSON roundtrip and scoring boundary
+
+The private `_mfrm_anchor_log_probability_matrix` aligns one truth/draw record
+set to declared event and category order, then reuses the normalized-log row
+validator. It joins on exact string `(person, rater, item)` labels and integer
+category labels, never a record's row number or inferred/sorted label order.
+Every declared event/category must occur exactly once. Missing, duplicate,
+unknown, non-normalized, or invalid-valued records are rejected. This panel
+requires one event per facet tuple; repeated occasions need explicit event
+identities before this adapter can be extended, not silent pooling.
+
+Reuse `_write_json_record` and its existing `_json_export_value` conversion:
+matrices have explicit nested rows, finite Float64 values stay numeric, and
+nonfinite values use strings while missing values use JSON null. The adapter
+decodes only `"-Inf"` in the numeric log-probability field; literal facet labels
+such as `"-Inf"` and `"null"` are untouched. Other numeric strings, booleans, and
+finite values that would overflow to -Inf are rejected. The legacy script
+`write_json`/`write_canonical_json` behavior is unchanged; those writers alone
+flatten matrices and collapse nonfinite numbers to null, so do not send these
+raw scoring records through them. No shared writer or historical artifact is
+migrated by this check.
+
+The 52 new assertions use temporary files, asymmetric log-truth rows, Unicode
+labels, negative/nonconsecutive categories, reversed records/events/categories,
+and malformed inputs. Stored prediction records feed the existing scorer after
+reload, retaining a tiny positive KL, an infinite loss, and a missing prediction
+as different outcomes. A synthetic eight-case plan retains an absent result and
+a successful retry: six primary fit entries, five completions, three scoreable
+cases, and only two finite losses. This verifies the illustrated join/count
+arithmetic, not a complete validator of dataset IDs, attempt IDs, or diagnostics.
+The existing 24-scenario RSM/PCM integration also uses the new label adapter.
+All 4,531 anchor and 103 scorer assertions pass on Julia 1.10.8 and 1.12.5.
+Memory-only event-order and numeric-string coercion mistakes trigger three and
+one assertion failures, respectively, without errors.
+
+This is a checked representation/scoring path, not a frozen archive schema,
+untrusted-JSON importer, or crash-safe create-new publisher. Source/environment
+binding, labelled training/heldout tables with RNG checkpoints, stage reservation,
+duplicate/unplanned attempt rejection, and the persistent all-attempt ledger
+remain required. Do not serialize RNG objects through the JSON fallback that
+stringifies unknown types. All six freeze decisions, diagnostic policy,
+thresholds, and independent review remain open. No new repository file, dependency, export,
+MCMC run, retained fixture, or evaluation replication is added.
 
 ## M1 allocation and budget decision draft
 

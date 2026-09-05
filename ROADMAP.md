@@ -116,18 +116,28 @@ is the runtime attribution in order 2; do not restart the closed inventories.
   passed all 12 ordinary jobs: `fitting_reports` 29 / 7,878, `generalized`
   20 / 2,508, and the full Julia 1.10.8 job 96 / 18,996 in 26m00s. Both
   manual research jobs were skipped. This does not certify later changes.
-- The current [independent log-truth check](docs/internal/mfrm-anchor-study.md#independent-log-truth-boundaries)
+- `bc36adc`'s [independent log-truth check](docs/internal/mfrm-anchor-study.md#independent-log-truth-boundaries)
   extends the existing standalone primitive and feeds its logs into the
   24-scenario scoring check. No probability-kernel copy or export is added.
   The 277 new assertions bring the anchor file to 4,479; together with 103
   scorer and 2,168 unchanged LD assertions, 6,750 pass on Julia 1.10.8 and
   1.12.5. All 22 legacy LD raw outputs match the preceding revision within
   each environment; three memory-only numerical mistakes are detected.
-  Candidate CI is required: expected totals are 30 / 8,155 in `fitting_reports`
-  and 97 / 19,273 in the full suite. Other shards gain no assertions.
-  Labelled truth persistence, the full attempt adapter, thresholds, and review
-  remain open. No sampler, dependency, fixture, or evaluation replication is
-  added; changed-workload timing medians do not close M0.
+  [CI 33970171857](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33970171857)
+  passed all 12 ordinary jobs: `fitting_reports` at 30 / 8,155 and the full
+  Julia 1.10.8 job at 97 / 19,273 in 30m10s. Both manual research jobs were
+  skipped. Its CI does not certify subsequent revisions or close M0.
+- The current [labelled JSON/scoring check](docs/internal/mfrm-anchor-study.md#labelled-json-roundtrip-and-scoring-boundary)
+  reuses the existing JSON conversion and array scorer, adding one private
+  label-alignment helper. All 4,531 anchor and 103 scorer assertions pass on
+  Julia 1.10.8 and 1.12.5. The 52 new checks preserve tiny finite values,
+  structural zero/infinite loss, missing records, and primary-attempt counts
+  through temporary-file roundtrips; two memory-only mistakes are detected.
+  Candidate CI is required: expected totals are 31 / 8,207 in `fitting_reports`
+  and 98 / 19,325 in the full suite. Other shards gain no assertions.
+  Durable truth/RNG storage, full dataset/attempt binding, the persistent ledger,
+  thresholds, and review remain open. No export, dependency, retained fixture,
+  sampler, or evaluation replication is added; runtime acceptance stays open.
 - The earlier anchor pilot completed 80 fits but only two independent datasets
   per cell, with PCM-only truth, favorable initialization, and a shared
   generation/fitting kernel. None of its fits enters the new evaluation count.
