@@ -261,6 +261,39 @@ function mgmfrm_predictive_recovery_score(
     )
 end
 
+# M1 preparation: validate identities before joining the complete planned
+# denominator. This does not validate payloads or authorize retry/fit settings.
+function _mfrm_anchor_primary_attempts(plan::AbstractVector, attempts::AbstractVector)
+    function identity_key(row)
+        labels = Tuple(_report_lookup(row, field, nothing)
+            for field in (:dataset_id, :heldout_id, :method))
+        all(label -> label isa AbstractString && !isempty(label), labels) ||
+            throw(ArgumentError("dataset_id, heldout_id, and method must be nonempty strings"))
+        return labels
+    end
+    keys = identity_key.(plan)
+    length(unique(keys)) == length(keys) || throw(ArgumentError(
+        "duplicate planned dataset/heldout/method identity"))
+    index = Dict(key => n for (n, key) in pairs(keys))
+    primary = Any[nothing for _ in keys]
+    seen = Set{Tuple}()
+    for row in attempts
+        key = identity_key(row)
+        n = get(index, key, 0)
+        n > 0 || throw(ArgumentError("attempt identity is outside the declared plan"))
+        attempt = _report_lookup(row, :attempt, nothing)
+        attempt isa Integer && !(attempt isa Bool) && attempt > 0 ||
+            throw(ArgumentError("attempt must be a positive integer"))
+        id = (key, attempt)
+        id in seen && throw(ArgumentError("duplicate dataset/heldout/method/attempt identity"))
+        push!(seen, id)
+        attempt == 1 && (primary[n] = row)
+    end
+    all(id -> (id[1], 1) in seen, seen) || throw(ArgumentError(
+        "a retry requires its retained primary attempt"))
+    return primary
+end
+
 # M1 preparation: align one labelled draw (or truth) before array scoring.
 # Repeated occasions need explicit event IDs; this panel permits one event
 # per person/rater/item tuple and rejects duplicates instead of pooling them.

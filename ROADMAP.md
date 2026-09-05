@@ -1,6 +1,6 @@
 # BayesianMGMFRM.jl — Internal Roadmap
 
-Reviewed 2026-09-05. This is the **single current work order**, not a public
+Reviewed 2026-09-06. This is the **single current work order**, not a public
 feature catalogue or a completion percentage. Start with the decision below;
 do not reconstruct priorities from historical checkboxes.
 
@@ -127,17 +127,29 @@ is the runtime attribution in order 2; do not restart the closed inventories.
   passed all 12 ordinary jobs: `fitting_reports` at 30 / 8,155 and the full
   Julia 1.10.8 job at 97 / 19,273 in 30m10s. Both manual research jobs were
   skipped. Its CI does not certify subsequent revisions or close M0.
-- The current [labelled JSON/scoring check](docs/internal/mfrm-anchor-study.md#labelled-json-roundtrip-and-scoring-boundary)
+- `fe80126`'s [labelled JSON/scoring check](docs/internal/mfrm-anchor-study.md#labelled-json-roundtrip-and-scoring-boundary)
   reuses the existing JSON conversion and array scorer, adding one private
   label-alignment helper. All 4,531 anchor and 103 scorer assertions pass on
   Julia 1.10.8 and 1.12.5. The 52 new checks preserve tiny finite values,
   structural zero/infinite loss, missing records, and primary-attempt counts
   through temporary-file roundtrips; two memory-only mistakes are detected.
-  Candidate CI is required: expected totals are 31 / 8,207 in `fitting_reports`
-  and 98 / 19,325 in the full suite. Other shards gain no assertions.
+  [CI 33971936154](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33971936154)
+  passed all 12 ordinary jobs: `fitting_reports` 31 / 8,207 and the full
+  Julia 1.10.8 suite 98 / 19,325 in 20m13s. Both manual research jobs were skipped.
   Durable truth/RNG storage, full dataset/attempt binding, the persistent ledger,
   thresholds, and review remain open. No export, dependency, retained fixture,
   sampler, or evaluation replication is added; runtime acceptance stays open.
+- [PR #97](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/pull/97) merged
+  the verified `fe80126` head into `main` as `e8bc648` on 2026-09-06 JST,
+  preserving individual source commits. This is engineering integration only:
+  no release/tag/registration, research dispatch, or M0/M1 acceptance was made.
+- The separate [attempt-identity/native-replay check](docs/internal/mfrm-anchor-study.md#attempt-identity-join-and-native-replay)
+  adds 76 identity assertions and four native-save/replay assertions, reusing
+  existing code and stdlib Serialization. The 4,611 anchor and 103 scorer
+  assertions pass locally on Julia 1.10.8 and 1.12.5. Candidate CI remains
+  required: expected `fitting_reports` 32 / 8,287 and full suite 99 / 19,405.
+  Payload/source binding, labelled durable archives, crash-safe publication,
+  a persistent all-attempt ledger, and all scientific freeze decisions remain open.
 - The earlier anchor pilot completed 80 fits but only two independent datasets
   per cell, with PCM-only truth, favorable initialization, and a shared
   generation/fitting kernel. None of its fits enters the new evaluation count.
