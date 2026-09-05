@@ -288,7 +288,7 @@ function _fit_record(case, backend::Symbol, controls, fit_result, elapsed_second
     mcmc_rows = controls.convergence_assessed ?
         mcmc_diagnostics(fit_result) : NamedTuple[]
     sampler_flags = Tuple(sort(unique(
-        row.flag for row in sampler_rows if row.flag !== :ok,
+        row.flag for row in sampler_rows if row.flag !== :ok
     ); by = string))
     n_mcmc_warning_parameters = count(
         row -> row.flag !== :ok,

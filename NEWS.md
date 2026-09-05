@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Keep the paired CmdStan validation script parseable on Julia 1.10 by removing
+  a trailing comma after its filtered generator expression.
 - Support exact individual rater/item hard anchors in the stable MFRM/RSM/PCM
   compiler and fitting path. Fixed coordinates replace the block's default
   reference gauge, are omitted from sampling and prior density, and remain
