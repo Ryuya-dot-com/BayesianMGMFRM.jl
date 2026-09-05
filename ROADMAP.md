@@ -143,13 +143,25 @@ is the runtime attribution in order 2; do not restart the closed inventories.
   the verified `fe80126` head into `main` as `e8bc648` on 2026-09-06 JST,
   preserving individual source commits. This is engineering integration only:
   no release/tag/registration, research dispatch, or M0/M1 acceptance was made.
-- The separate [attempt-identity/native-replay check](docs/internal/mfrm-anchor-study.md#attempt-identity-join-and-native-replay)
+  Its [main CI 33973332148](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33973332148)
+  passed all 12 ordinary jobs; the full Julia 1.10.8 suite passed 98 / 19,325
+  in 33m36s. Both manual research jobs were skipped.
+- `2f4f431`'s [attempt-identity/native-replay check](docs/internal/mfrm-anchor-study.md#attempt-identity-join-and-native-replay)
   adds 76 identity assertions and four native-save/replay assertions, reusing
   existing code and stdlib Serialization. The 4,611 anchor and 103 scorer
   assertions pass locally on Julia 1.10.8 and 1.12.5. Candidate CI remains
   required: expected `fitting_reports` 32 / 8,287 and full suite 99 / 19,405.
   Payload/source binding, labelled durable archives, crash-safe publication,
   a persistent all-attempt ledger, and all scientific freeze decisions remain open.
+- The [response-byte binding check](docs/internal/mfrm-anchor-study.md#byte-bound-labelled-response-restoration)
+  reuses SHA, JSON3's typed reader, the event-label check, and `FacetData`.
+  It adds 95 boundary assertions plus 64 labelled-table checks on the existing
+  16 smoke blocks. All 4,770 anchor and 103 scorer assertions pass on Julia
+  1.10.8 and 1.12.5; SHA-bypass and decimal-rounding mutations are detected.
+  Candidate CI is required: expected `fitting_reports` 33 / 8,446 and full
+  suite 100 / 19,564. Trusted reference retention, data/state/source/attempt
+  binding, durable publication, the persistent ledger, and scientific review
+  remain open. No fresh fit/evaluation or new dependency/export is added.
 - The earlier anchor pilot completed 80 fits but only two independent datasets
   per cell, with PCM-only truth, favorable initialization, and a shared
   generation/fitting kernel. None of its fits enters the new evaluation count.
