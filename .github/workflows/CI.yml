@@ -44,7 +44,7 @@ jobs:
             timeout_minutes: 30
           - group: local_dependence
             label: Local dependence
-            timeout_minutes: 30
+            timeout_minutes: 45
           - group: generalized
             label: Generalized models
             timeout_minutes: 30

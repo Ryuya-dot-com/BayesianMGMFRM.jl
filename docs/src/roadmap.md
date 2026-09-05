@@ -118,7 +118,7 @@ budget, stable-workflow, API, or repository-separation boxes.
 The ordinary-CI budget item remains open, but its first enforceable boundary is
 in place. CI defaults research evidence to off; any non-empty optional research-
 fixture path is rejected without the explicit opt-in. Ordinary shards now have
-30--35 minute hard limits, the full minimum-Julia suite has a 75 minute limit,
+30--45 minute hard limits, the full minimum-Julia suite has a 75 minute limit,
 and the remaining ordinary jobs have 20--35 minute limits. The manual research
 lane alone enables the flag and has its own 300 minute ceiling. Warm-depot local
 testset observations (8m19s core design, 5m48s fitting, and 2m02s/2m18s for the
@@ -128,6 +128,10 @@ design set in 7m58s. The review rule uses
 the median of three comparable successful CI runs and requires explanation or
 remediation above 20% growth. Comparable CI whole-lane baselines and three-run
 medians are still required before checking the runtime P0 box.
+The local-dependence ceiling was raised provisionally from 30 to 45 minutes
+after the 2026-09-05 candidate timed out while its completed testsets passed.
+This permits completion measurement; it does not satisfy the 30-minute target
+or close the performance item. See the root roadmap for the run and decision.
 
 The clean-source item is complete on the current 2026-08-15 evidence. A
 temporary 420-file, roughly 27.7-MB Git-visible candidate excluded ignored

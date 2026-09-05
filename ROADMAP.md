@@ -462,15 +462,27 @@ encodings and are not a regression ratio. The 4 MiB cap is an engineering
 growth-review trigger with headroom, not a scientific criterion; changes above
 it need a stated shipped benefit. CI measures the actual checked-out revision.
 
-Remote CI inspected on 2026-09-05 still points to
-[run 31796343982](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/31796343982)
-at `0cfb032`, predating the local baseline. Three earlier successful local-
-dependence lanes took 34m32s, 33m10s, and 33m21s (median 33m21s), but those
-versions do not establish a baseline for the changed ordinary/research boundary.
-Keep the current 30-minute limit provisional and review the first candidate run;
-do not infer either pass or failure from the old lane. Candidate CI results and
-same-OS/Julia/lane three-run medians remain open. No remote run was launched by
-this review.
+The tracked baseline `fb4db39` was pushed to draft PR #97 on 2026-09-05.
+[Candidate run 33940944292](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33940944292)
+passed eight ordinary jobs, including core (25m37s), fitting (25m25s),
+generalized (12m21s), and release hygiene (22m24s). Minimum Julia 1.10.8 failed
+on a trailing comma after a filtered generator in the CmdStan validation
+script; `d24dfc8` removes it. All 255 tracked Julia files then parsed on 1.10.8,
+and the affected contract passed 68/68 checks locally. Its candidate CI is
+still in progress; the local check does not replace the full minimum-version
+suite.
+
+The first candidate's local-dependence job exceeded its 30-minute ceiling;
+the completed testsets passed, but the final provenance/resource checks did
+not complete. Three earlier successful lanes took 34m32s, 33m10s, and 33m21s
+(median 33m21s), on versions predating the changed ordinary/research boundary.
+Use a **provisional 45-minute completion ceiling for this shard only**, with
+all tests retained. This is headroom to observe completion, not a new target
+or evidence that performance passed. The T2 target remains 30 minutes, the
+three-consecutive-over-target split/reclassification rule remains in force,
+and the runtime P0 item stays open. Candidate success and comparable
+same-OS/Julia/lane three-run medians are still required; neither the timeout
+nor the historical median supplies a successful current baseline.
 
 #### M1 design and analysis decisions
 
