@@ -1,6 +1,77 @@
 using Test
 using BayesianMGMFRM
 
+@testset "Predictive recovery from normalized log probabilities" begin
+    score = mgmfrm_predictive_recovery_score
+    truth = [0.75 0.25 0.0; 0.2 0.3 0.5]
+    predicted = [0.6 0.4 0.0; 0.3 0.2 0.5]
+    draws = repeat(reshape(predicted, 1, 2, 3), 2, 1, 1)
+    draws[2, :, :] = [0.4 0.6 0.0; 0.1 0.1 0.8]
+    for input in (predicted, draws)
+        ordinary = score(input, truth; category_levels = [-2, 0, 3])
+        logged = score(log.(input), log.(truth);
+            category_levels = [-2, 0, 3], log_probabilities = true)
+        @test ordinary.schema == logged.schema
+        @test ordinary.status === logged.status === :scored
+        @test !logged.thresholds_applied && !logged.validation_claim_allowed
+        @test all(isapprox(getproperty(ordinary.summary, field), getproperty(logged.summary, field);
+            atol = 1e-14) for field in propertynames(ordinary.summary))
+        @test all(isapprox(getproperty(a, field), getproperty(b, field); atol = 1e-14)
+            for (a, b) in zip(ordinary.rows, logged.rows) for field in propertynames(a))
+    end
+    @test score(log.(truth), log.(truth); log_probabilities = true).summary.mean_log_score_regret == 0.0
+
+    # Zero-probability draws stay in the mixture denominator; an all-zero
+    # category stays -Inf, not NaN, and only matters where truth has support.
+    mixed = reshape([0.0, 0.25, 1.0, 0.75, 0.0, 0.0], 2, 1, 3)
+    observed = [1.0 0.0 0.0]
+    mixture = score(log.(mixed), log.(observed); log_probabilities = true)
+    @test mixture.summary.n_prediction_draws == 2
+    @test mixture.summary.mean_log_score_regret ≈ log(8)
+    @test score(log.(mixed), log.([0.0 0.0 1.0]); log_probabilities = true).status === :nonfinite_log_score_regret
+    @test score(log.([0.0 1.0]), log.([0.0 1.0]); log_probabilities = true).summary.mean_log_score_regret == 0.0
+
+    log_truth, log_predicted = [-800.0 0.0], [-1e308 0.0]
+    oracle = setprecision(256) do
+        Float64(exp(BigFloat(-800)) * (BigFloat(-800) - BigFloat(-1e308)))
+    end
+    tiny = score(log_predicted, log_truth; log_probabilities = true)
+    @test exp(-800.0) == 0.0
+    @test isfinite(oracle) && oracle > 0
+    @test tiny.summary.mean_log_score_regret > 0
+    @test tiny.summary.mean_log_score_regret ≈ oracle rtol = 1e-12
+    @test score(exp.(log_predicted), exp.(log_truth)).summary.mean_log_score_regret == 0.0
+    @test score([-Inf 0.0], log_truth; log_probabilities = true).summary.mean_log_score_regret == Inf
+    huge = score(repeat(log_predicted, 3, 1), repeat([0.0 -Inf], 3, 1);
+        log_probabilities = true)
+    @test huge.summary.finite_log_score_regret
+    @test isfinite(huge.summary.mean_log_score_regret)
+    @test huge.summary.mean_log_score_regret ≈ 1e308 rtol = 1e-12
+    smallest = nextfloat(0.0)
+    subnormal = score(repeat([-smallest log(smallest)], 2, 1),
+        repeat([0.0 -Inf], 2, 1); log_probabilities = true)
+    @test all(row.log_score_regret == smallest for row in subnormal.rows)
+    @test subnormal.summary.mean_log_score_regret == smallest
+    for log_p in ([0.0 -Inf; -Inf 0.0], [-Inf 0.0; 0.0 -Inf], [0.0 -Inf; 0.0 -Inf])
+        @test score([-Inf 0.0; -Inf 0.0], log_p;
+            log_probabilities = true).summary.mean_log_score_regret == Inf
+    end
+
+    for invalid in ([NaN 0.0], [Inf 0.0], [0.01 -Inf], [-Inf -Inf],
+            log.([0.2 0.2]), [0.0 0.0])
+        @test_throws ArgumentError score(invalid, log_truth; log_probabilities = true)
+        @test_throws ArgumentError score(log_predicted, invalid; log_probabilities = true)
+    end
+    invalid_draws = reshape(log.([0.25, 0.75, 0.25, 0.75]), 2, 1, 2)
+    @test_throws ArgumentError score(invalid_draws, log_truth; log_probabilities = true)
+    @test_throws ArgumentError score(zeros(0, 1, 2), log_truth; log_probabilities = true)
+    @test_throws ArgumentError score(zeros(0, 2), zeros(0, 2); log_probabilities = true)
+    @test_throws ArgumentError score(zeros(1, 1), zeros(1, 1); log_probabilities = true)
+    @test_throws ArgumentError score(log_predicted, log.(truth); log_probabilities = true)
+    @test_throws ArgumentError score(log_predicted, log_truth; log_probabilities = true,
+        probability_tolerance = NaN)
+end
+
 @testset "MGMFRM Stage-A predictive and decision scoring" begin
     truth = [0.75 0.25; 0.20 0.80]
     identical_draws = repeat(reshape(truth, 1, 2, 2), 3, 1, 1)

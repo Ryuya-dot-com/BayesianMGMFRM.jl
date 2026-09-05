@@ -3,7 +3,7 @@ using Random
 using Statistics
 
 # M1 preparation only: reuse the standalone generator, not the fitting kernel.
-# No MCMC, evaluation seeds, research fixtures, or new package API are needed.
+# No MCMC, evaluation seeds, research fixtures, or new exports are needed.
 module MFRMAnchorStandaloneDGP
 include(joinpath(@__DIR__, "..", "src", "local_dependence_known_truth_dgp.jl"))
 end
@@ -212,8 +212,80 @@ end
     @test log_loss < -mean(logs)
     @test all(all(iszero, pointwise_loglikelihood(training, row)) for row in eachrow(params))
     @test_throws ArgumentError BayesianMGMFRM._logmeanexp([-Inf, -1.0])
-    # This establishes the finite-log path, not support for structural -Inf
-    # inputs or an all-category log-probability adapter for KL recovery.
+    # The shared finite-only helper is unchanged. The scorer's explicit log
+    # input handles structural zeros separately; see the checks below.
+end
+
+@testset "M1 all-category log scoring through existing predictor values" begin
+    events = [(p, r, i) for p in 1:2 for r in 1:2 for i in 1:2]
+    levels = [-2, -1, 0, 1]
+    table = (; person = ["P$p" for (p, r, i) in events],
+        rater = ["R$r" for (p, r, i) in events], item = ["I$i" for (p, r, i) in events],
+        score = [levels[mod1(p + r + i, 4)] for (p, r, i) in events])
+    data = FacetData(table; person = :person, rater = :rater, item = :item,
+        score = :score, category_levels = levels)
+    theta, rho, beta = [0.4, -0.8], [0.0, 0.5], [0.0, 0.4]
+    # Independent high-precision equation oracle, not a new DGP or fitter.
+    function big_probability(location, steps)
+        weights = [exp(k * BigFloat(location) - sum(BigFloat.(steps[1:k]);
+            init = BigFloat(0))) for k in 0:3]
+        return weights / sum(weights)
+    end
+    for thresholds in (:rating_scale, :partial_credit),
+            fixed_raters in (false, true), fixed_items in (false, true)
+        steps = ([-0.6, 0.0, 0.6], thresholds === :rating_scale ?
+            [-0.6, 0.0, 0.6] : [-0.4, 0.1, 0.3])
+        anchors = vcat([(; block = :rater, level = "R$r", value = rho[r], type = :hard)
+                for r in 1:2 if fixed_raters],
+            [(; block = :item, level = "I$i", value = beta[i], type = :hard)
+                for i in 1:2 if fixed_items])
+        design = getdesign(mfrm_spec(data; thresholds, anchors))
+        values = Dict("person[P$p]" => theta[p] for p in 1:2)
+        merge!(values, Dict("rater[R$r]" => rho[r] for r in 1:2),
+            Dict("item[I$i]" => beta[i] for i in 1:2))
+        for i in (thresholds === :rating_scale ? (1,) : (1, 2)), s in 1:2
+            name = thresholds === :rating_scale ? "step[$s]" : "step[item=I$i,$s]"
+            values[name] = steps[i][s]
+        end
+        truth = reduce(vcat, [permutedims(MFRMAnchorStandaloneDGP._ld1_pcm_probabilities(
+            theta[p] - rho[r] - beta[i], steps[i])) for (p, r, i) in events])
+        for shift in (0.2, -1_000.0, 1_000.0)
+            shifts = (shift, shift + 0.3)
+            params = repeat(reshape([values[name] for name in design.parameter_names], 1, :), 2, 1)
+            for p in 1:2
+                index = only(findall(==("person[P$p]"), design.parameter_names))
+                params[:, index] = theta[p] .+ collect(shifts)
+            end
+            logs = zeros(2, data.n, 4)
+            for draw in 1:2
+                records = reverse(linear_predictor_values(design, params[draw, :]))
+                keyed = Dict((r.row, r.category) => r.log_probability for r in records)
+                @test length(keyed) == length(records) == data.n * 4
+                @test all((r.person, r.rater, r.item) ==
+                    (table.person[r.row], table.rater[r.row], table.item[r.row]) for r in records)
+                logs[draw, :, :] = [keyed[(n, category)] for n in 1:data.n, category in levels]
+            end
+            scored = mgmfrm_predictive_recovery_score(logs, log.(truth);
+                log_probabilities = true, category_levels = levels)
+            oracle = setprecision(256) do
+                [Float64(sum(BigFloat(truth[n, k]) * log(BigFloat(truth[n, k]) /
+                    mean(big_probability(theta[p] + s - rho[r] - beta[i], steps[i])[k]
+                        for s in shifts)) for k in 1:4))
+                    for (n, (p, r, i)) in pairs(events)]
+            end
+            @test scored.status === :scored
+            @test [r.log_score_regret for r in scored.rows] ≈ oracle rtol = 1e-11 atol = 1e-12
+            @test scored.summary.mean_log_score_regret ≈ mean(oracle) rtol = 1e-11 atol = 1e-12
+            probabilities = predictive_probabilities(design, params)
+            @test exp.(logs) ≈ probabilities atol = 1e-12
+            ordinary = mgmfrm_predictive_recovery_score(probabilities, truth)
+            if abs(shift) < 1
+                @test ordinary.summary.mean_log_score_regret ≈ scored.summary.mean_log_score_regret
+            else
+                @test ordinary.summary.mean_log_score_regret == Inf
+            end
+        end
+    end
 end
 
 @testset "M1 serial response blocks and replay" begin

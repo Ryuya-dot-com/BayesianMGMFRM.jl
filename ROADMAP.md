@@ -97,19 +97,29 @@ is the runtime attribution in order 2; do not restart the closed inventories.
   paired finite-subset comparisons. All six focused testsets / 3,958 assertions
   pass locally on Julia 1.10.8 and 1.12.5; two memory-only mistakes are detected.
   [CI 33965531472](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33965531472)
-  is still running; expected report/full counts are 27 / 7,634 and 93 / 18,689.
-- The current [predictive-boundary check](docs/internal/mfrm-anchor-study.md#predictive-scoring-boundaries-checked)
+  passed all 12 ordinary jobs; the full Julia 1.10.8 job passed 93 / 18,689
+  in 20m00s. Both manual research jobs were skipped.
+- `8f9be52`'s [predictive-boundary check](docs/internal/mfrm-anchor-study.md#predictive-scoring-boundaries-checked)
   fixes a shared KL overflow for positive subnormal probabilities and adds
   16 scorer / 28 M1 assertions. Locally, all 56 scorer and 3,986 anchor checks
   pass on Julia 1.10.8 and 1.12.5; the old KL formula fails three regressions.
   Category alignment, event weights, mean-before-log, and a finite-log heldout
-  route are checked. The all-attempt adapter, all-category log-domain recovery,
-  thresholds, and review remain open. Candidate CI is still required; expected
-  totals are 28 / 7,662 in `fitting_reports`, 19 / 2,461 in `generalized`, and
-  94 / 18,733 in the full suite. No new API, sampler, dependency, fixture, or
-  evaluation replication is added. Other shards gain no assertions, but the
-  source revision changes; do not transfer an earlier green result or a
-  changed-workload report/generalized/full timing median to this addition.
+  route were checked. [CI 33966444116](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33966444116)
+  passed all 12 ordinary jobs: `fitting_reports` passed 28 / 7,662,
+  `generalized` 19 / 2,461, and the full Julia 1.10.8 job 94 / 18,733 in
+  26m06s. Both manual research jobs were skipped.
+- The current [all-category log integration](docs/internal/mfrm-anchor-study.md#all-category-log-input-and-integration)
+  adds explicit log input to the existing research scorer, retaining its
+  default probability input and output schema. The existing predictor-inspection
+  output supplies category logs; no new export or probability kernel is added.
+  All 4,202 anchor and 103 scorer checks pass on Julia 1.10.8 and 1.12.5;
+  two memory-only numerical mistakes are detected. The full attempt/label
+  adapter, independent extreme-truth log producer, thresholds, and review
+  remain open. Candidate CI is required: expected totals are 29 / 7,878 in
+  `fitting_reports`, 20 / 2,508 in `generalized`, and 96 / 18,996 in the full
+  suite. No sampler, dependency, fixture, or evaluation replication is added.
+  Other shards gain no assertions, but this is a new source revision; prior
+  CI results and changed-workload timing medians do not certify it.
 - The earlier anchor pilot completed 80 fits but only two independent datasets
   per cell, with PCM-only truth, favorable initialization, and a shared
   generation/fitting kernel. None of its fits enters the new evaluation count.

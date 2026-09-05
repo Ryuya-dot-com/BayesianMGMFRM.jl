@@ -22,7 +22,7 @@ design, scorer, and thresholds. No reviewer is currently assigned.
 | M1-02 — open, sharing/replay draft below | Declare pilot/evaluation and component RNG lineage, state ownership, data sharing, and any cross-design common random numbers; freeze the actual root/state roster | Reproduce one dataset without fitting; method order/addition cannot alter responses. Check non-overlapping allocation, not just distinct seed labels; fixed primary truth is not a fresh draw |
 | M1-03 — open | Choose interval levels, practical tolerances, Monte Carlo precision, replications, and per-stratum decision rules for parameter and predictive targets | Justify numerical values before evaluation; distinguish MCMC error from across-dataset error and true-probability regret from heldout log loss |
 | M1-04 — open | Choose the primary backend, actual prior scales, ordinary non-truth starts/jitter, chain settings, diagnostic policy, bounded cost probe, time/memory/output caps, and remediation allowance | Review the probe budget before running it; record resource evidence and keep all probes outside evaluation counts. The provisional 6,400 primary fits is not a budget authorization |
-| M1-05 — open, scoring boundaries checked | Reuse the recovery/predictive scorer; the denominator/applicability draft below specifies failures, paired Monte Carlo error, and non-overwriting remediation | Synthetic checks cover failures, contrast applicability, paired methods, probability boundaries, and finite-log heldout scoring. The all-attempt adapter, all-category log-domain recovery path, and final decision rules remain required |
+| M1-05 — open, log-input scoring implemented | Reuse the recovery/predictive scorer; the denominator/applicability draft below specifies failures, paired Monte Carlo error, and non-overwriting remediation | Synthetic checks cover failures, applicability, pairing, and all-category log scoring. The full attempt/label adapter, independent extreme-truth log producer, and final decision rules remain required |
 | M1-06 — open | Hand off the single protocol with exact source revision, cell roster, settings, scorer checks, unresolved questions, and claim limits | A person other than the implementer records accept/request-revision decisions. Review cannot be replaced by an implementer-authored receipt |
 
 M1-01 now has the finite anchor-placement/error candidate subset below; nested
@@ -137,9 +137,9 @@ conformance limit, not a statistical acceptance threshold. The check is also
 included in the ordinary `fitting_reports` shard. The initial 2,518 conformance
 assertions and the 308 reference-declaration/estimand checks below are retained.
 The additional 951 finite-candidate, 131 serial-response replay, 50 denominator,
-and 28 predictive-boundary checks bring the focused file to seven testsets / 3,986
-assertions, passing locally on Julia 1.10.8 and 1.12.5. The command contributes
-**zero evaluation replications**.
+28 predictive-boundary, and 216 all-category log checks bring the focused file
+to eight testsets / 4,202 assertions, passing locally on Julia 1.10.8 and 1.12.5.
+The command contributes **zero evaluation replications**.
 It establishes implementation separation from the fitting kernel, not
 independent authorship, independent review, or posterior calibration. The old
 80-fit pilot remains unchanged and still used the shared fitting kernel.
@@ -606,14 +606,65 @@ also produces underflowed zero probabilities but finite heldout log probabilitie
 heldout design and `_logmeanexp` recover the finite mixture loss without
 clipping; the training responses instead score zero in this example.
 `_logmeanexp` currently rejects nonfinite inputs, including structural -Inf.
-This checks a finite-log heldout route, not a completed all-category log-domain
-KL adapter; the latter must preserve finite logs before exponentiation loses
-support. Do not infer mathematical impossibility from an underflowed array.
+That revision checked a finite-log heldout route, with 3,986 anchor checks
+plus 56 scorer checks passing on both Julia versions. The implementation below
+now extends the existing array scorer without changing those default inputs.
 
-Both files pass on Julia 1.10.8 and 1.12.5: 3,986 anchor checks plus 56 scorer
-checks. The full attempt/label adapter, extreme-log recovery path, diagnostic
-policy, thresholds, and independent review remain open. No MCMC or evaluation
-replications are added; the historical 80-fit pilot and fixtures are unchanged.
+### All-category log input and integration
+
+`mgmfrm_predictive_recovery_score(...; log_probabilities = true)` takes
+**both** truth and prediction as normalized natural-log probabilities. This is
+an optional argument on the existing research scorer, not a new export or model
+family. The default probability input and result schema are unchanged. Input
+rows must have finite nonpositive logs or -Inf, with total mass within the
+declared probability tolerance; NaN, positive logs, `-Inf`-only rows, empty
+draws, and invalid individual draws are rejected. Raw logits are not accepted.
+
+The scorer reuses the shifted `_logsumexp` calculation for draw mixtures;
+[Blanchard, Higham, and Higham (2021)](https://doi.org/10.1093/imanum/draa038),
+Eq. 1.3 and its subsequent analysis, provide the numerical reference.
+The mixture retains every draw in its denominator, including zero-mass draws;
+a category with no mass in any draw stays -Inf. This extension does not alter
+the shared `_logsumexp` or finite-only `_logmeanexp` contracts.
+
+For a finite log-truth value `a` and log prediction `b`, the KL term uses
+`sign(a-b)*exp(a + log(abs(a-b)))`, with an explicit zero-difference case.
+This package-specific implementation avoids prematurely underflowing
+`exp(a)` when the complete term is still representable. Structural truth zero
+contributes zero; finite log truth with predicted -Inf still gives infinity,
+even if exponentiating that truth would round to zero. An online mean preserves
+both huge finite regrets and equal subnormal regrets without summing to infinity
+or dividing every tiny term to zero. These are floating-point safeguards, not
+exact-arithmetic or calibrated-recovery guarantees. Other probability and
+expected-score metrics still use Float64 probabilities.
+
+The 47 new scorer assertions cover ordinary/log agreement, support and input
+boundaries, a 256-bit oracle for the approximately `3.67e-40` KL contribution
+whose truth probability underflows, huge finite means, and subnormal means.
+Memory-only mutations replacing the stable product by `exp(a)*(a-b)` or
+dropping zero-mass draws from the denominator trigger two and one assertion
+failures, respectively, without errors. The provisional divide-before-sum
+implementation also failed the subnormal-mean check and was replaced.
+
+The existing `linear_predictor_values` already returns all-category log
+probabilities with observation/category/facet metadata. A bounded integration
+check reorders those records, joins on row/category labels, and feeds their
+logs directly to the scorer. It checks 24 scenarios: RSM/PCM, four combinations
+of no/rater/item/joint declarations (the anchored facets are fully fixed in
+this small panel), and moderate/negative-extreme/positive-extreme shifts.
+Each has two synthetic parameter vectors, not fitted posterior draws.
+All 216 assertions pass, including agreement with a separate 256-bit category
+equation oracle where the probability-array route reports infinity.
+
+Both files pass on Julia 1.10.8 and 1.12.5: 4,202 anchor checks plus 103 scorer
+checks. No MCMC or evaluation replications are added; the historical 80-fit
+pilot and fixtures are unchanged. Reuse of the metadata-rich inspection output
+is sufficient for this check; measure its cost before any lean producer is
+justified. The independent DGP still returns Float64 probabilities, so a
+production extreme-truth log producer must preserve support before that step;
+the fitted-model kernel cannot substitute as the independent truth generator.
+The full attempt/label adapter, that truth producer, diagnostic policy,
+thresholds, and independent review remain open.
 
 ## M1 allocation and budget decision draft
 

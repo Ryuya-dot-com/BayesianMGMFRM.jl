@@ -7,19 +7,26 @@ function _mgmfrm_probability_tolerance(value::Real)
 end
 
 function _mgmfrm_check_probability_rows(values, name::AbstractString,
-        tolerance::Float64)
-    all(value -> isfinite(Float64(value)) && 0 <= value <= 1, values) ||
-        throw(ArgumentError("$name must contain finite probabilities in [0, 1]"))
+        tolerance::Float64; log_probabilities::Bool = false)
+    if log_probabilities
+        all(value -> Float64(value) <= 0, values) || throw(ArgumentError(
+            "$name must contain log probabilities in [-Inf, 0]"))
+    else
+        all(value -> isfinite(Float64(value)) && 0 <= value <= 1, values) ||
+            throw(ArgumentError("$name must contain finite probabilities in [0, 1]"))
+    end
+    mass_error(row) = log_probabilities ?
+        abs(expm1(_logsumexp(Float64.(row)))) : abs(sum(row) - 1)
     if ndims(values) == 2
         for observation in axes(values, 1)
-            abs(sum(@view values[observation, :]) - 1) <= tolerance ||
-                throw(ArgumentError("each $name observation must sum to one"))
+            mass_error(@view values[observation, :]) <= tolerance ||
+                throw(ArgumentError("each $name observation must have total probability mass one"))
         end
     elseif ndims(values) == 3
         for draw in axes(values, 1), observation in axes(values, 2)
-            abs(sum(@view values[draw, observation, :]) - 1) <= tolerance ||
+            mass_error(@view values[draw, observation, :]) <= tolerance ||
                 throw(ArgumentError(
-                    "each $name draw-observation row must sum to one",
+                    "each $name draw-observation row must have total probability mass one",
                 ))
         end
     else
@@ -29,14 +36,14 @@ function _mgmfrm_check_probability_rows(values, name::AbstractString,
 end
 
 function _mgmfrm_mean_predicted_probabilities(predicted,
-        tolerance::Float64)
+        tolerance::Float64; log_probabilities::Bool = false)
     ndims(predicted) in (2, 3) || throw(ArgumentError(
         "predicted_probabilities must be a 2D or 3D probability array",
     ))
     _mgmfrm_check_probability_rows(
         predicted,
         "predicted_probabilities",
-        tolerance,
+        tolerance; log_probabilities,
     )
     if ndims(predicted) == 2
         return Float64.(predicted), 1
@@ -46,6 +53,14 @@ function _mgmfrm_mean_predicted_probabilities(predicted,
     ))
     means = Matrix{Float64}(undef, size(predicted, 2), size(predicted, 3))
     for observation in axes(predicted, 2), category in axes(predicted, 3)
+        if log_probabilities
+            column = Float64.(@view predicted[:, observation, category])
+            # Preserve a category with zero support in every draw. Other
+            # columns may mix finite logs and -Inf; do not drop zero-mass draws.
+            means[observation, category] = all(==(-Inf), column) ? -Inf :
+                _logsumexp(column) - log(length(column))
+            continue
+        end
         total = 0.0
         for draw in axes(predicted, 1)
             total += Float64(predicted[draw, observation, category])
@@ -66,15 +81,24 @@ function _mgmfrm_category_values(category_levels, n_categories::Int)
     return Float64.(levels)
 end
 
-function _mgmfrm_truth_log_score_regret(truth_row, predicted_row)
+function _mgmfrm_truth_log_score_regret(truth_row, predicted_row;
+        log_probabilities::Bool = false)
     regret = 0.0
     for category in eachindex(truth_row)
         truth = Float64(truth_row[category])
-        truth == 0 && continue
+        truth == (log_probabilities ? -Inf : 0.0) && continue
         predicted = Float64(predicted_row[category])
-        predicted == 0 && return Inf
-        # Forming the ratio first can overflow for positive subnormal support.
-        regret += truth * (log(truth) - log(predicted))
+        predicted == (log_probabilities ? -Inf : 0.0) && return Inf
+        if log_probabilities
+            difference = truth - predicted
+            # exp(truth) can underflow even when its product with the log
+            # ratio is representable. Keep that product in the log domain.
+            iszero(difference) ||
+                (regret += copysign(exp(truth + log(abs(difference))), difference))
+        else
+            # Forming the ratio first can overflow for positive subnormal support.
+            regret += truth * (log(truth) - log(predicted))
+        end
     end
     return regret
 end
@@ -85,12 +109,21 @@ end
         truth_probabilities;
         category_levels = nothing,
         probability_tolerance = 1e-8,
+        log_probabilities = false,
     )
 
 Score known-truth predictive recovery without applying a scientific pass/fail
 threshold. `truth_probabilities` is an observations-by-categories matrix.
 `predicted_probabilities` may have the same shape or may add a leading posterior
 draw dimension; posterior draws are averaged before scoring.
+
+With `log_probabilities = true`, **both** arrays contain normalized natural-log
+probabilities, not unnormalized logits. `-Inf` denotes exact zero support;
+NaN, positive entries, and rows with no mass are rejected. Draws are averaged
+in probability space using log-sum-exp, and KL is evaluated without first
+exponentiating its inputs. The tolerance still measures deviation of row mass
+from one. Category-probability and expected-score errors use Float64
+probabilities and may round vanishing contributions to zero.
 
 The result reports category-probability MAE/RMSE, expected-score MAE/RMSE, and
 mean proper log-score regret (the mean KL divergence from truth to prediction),
@@ -102,7 +135,8 @@ function mgmfrm_predictive_recovery_score(
         predicted_probabilities,
         truth_probabilities;
         category_levels = nothing,
-        probability_tolerance::Real = 1e-8)
+        probability_tolerance::Real = 1e-8,
+        log_probabilities::Bool = false)
     tolerance = _mgmfrm_probability_tolerance(probability_tolerance)
     ndims(truth_probabilities) == 2 || throw(ArgumentError(
         "truth_probabilities must be an observations-by-categories matrix",
@@ -110,10 +144,12 @@ function mgmfrm_predictive_recovery_score(
     _mgmfrm_check_probability_rows(
         truth_probabilities,
         "truth_probabilities",
-        tolerance,
+        tolerance; log_probabilities,
     )
-    predicted, n_prediction_draws =
-        _mgmfrm_mean_predicted_probabilities(predicted_probabilities, tolerance)
+    mean_predictions, n_prediction_draws = _mgmfrm_mean_predicted_probabilities(
+        predicted_probabilities, tolerance; log_probabilities)
+    predicted = log_probabilities ? exp.(mean_predictions) : mean_predictions
+    truth = log_probabilities ? exp.(Float64.(truth_probabilities)) : truth_probabilities
     size(predicted) == size(truth_probabilities) || throw(ArgumentError(
         "predicted and truth probability dimensions must match after draw averaging",
     ))
@@ -137,7 +173,7 @@ function mgmfrm_predictive_recovery_score(
     finite_log_score_regret = true
 
     for observation in 1:n_observations
-        truth_row = @view truth_probabilities[observation, :]
+        truth_row = @view truth[observation, :]
         predicted_row = @view predicted[observation, :]
         probability_abs_sum = 0.0
         probability_squared_sum = 0.0
@@ -157,7 +193,8 @@ function mgmfrm_predictive_recovery_score(
         end
         expected_score_error = predicted_expected_score - truth_expected_score
         log_score_regret =
-            _mgmfrm_truth_log_score_regret(truth_row, predicted_row)
+            _mgmfrm_truth_log_score_regret(@view(truth_probabilities[observation, :]),
+                @view(mean_predictions[observation, :]); log_probabilities)
         finite_log_score_regret &= isfinite(log_score_regret)
         total_abs_probability_error += probability_abs_sum
         total_squared_probability_error += probability_squared_sum
@@ -167,7 +204,14 @@ function mgmfrm_predictive_recovery_score(
         total_squared_expected_score_error += expected_score_error^2
         maximum_abs_expected_score_error =
             max(maximum_abs_expected_score_error, abs(expected_score_error))
-        total_log_score_regret += log_score_regret
+        if log_probabilities
+            # Online mean avoids overflowing a sum or underflowing each
+            # contribution by dividing it before summation. Retain true Inf.
+            total_log_score_regret = isinf(total_log_score_regret) || isinf(log_score_regret) ?
+                Inf : total_log_score_regret + (log_score_regret - total_log_score_regret) / observation
+        else
+            total_log_score_regret += log_score_regret
+        end
         push!(rows, (;
             observation,
             mean_absolute_category_probability_error =
@@ -201,7 +245,8 @@ function mgmfrm_predictive_recovery_score(
             sqrt(total_squared_expected_score_error / n_observations),
         maximum_absolute_expected_score_error =
             maximum_abs_expected_score_error,
-        mean_log_score_regret = total_log_score_regret / n_observations,
+        mean_log_score_regret = log_probabilities ? total_log_score_regret :
+            total_log_score_regret / n_observations,
         finite_log_score_regret,
     )
     return (;
