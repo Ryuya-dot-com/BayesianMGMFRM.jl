@@ -1,5 +1,10 @@
 # Test Fixtures
 
+This directory retains both ordinary numerical references and historical
+research evidence. Classification follows the test consumer, not file size
+or a filename prefix. Directory organization does not authorize regeneration,
+deletion, or a scientific run; see the [active roadmap](../../ROADMAP.md).
+
 `scalar_validation_known_value.json` and
 `scalar_validation_medium_known_value.json` are Julia analytic known-answer
 fixtures for the scalar `ScalarValidationData` target used in the test suite.
@@ -47,10 +52,18 @@ scalar reference includes the Uto-Ueno logistic scaling constant `1.7`.
 
 Large GMFRM/MGMFRM promotion, stress-chain, recovery, exposure-review, and
 BridgeStan oracle artifacts are treated as optional local evidence files. The
-default test suite checks them only when the corresponding file exists under
-`test/fixtures/` or when its documented `MFRM_*_FIXTURE` environment variable
-points to a file. If an environment variable is set to a missing path, the test
-suite errors so local evidence jobs cannot silently skip a requested fixture.
+ordinary suite does **not** use these optional artifacts as numerical oracles,
+even when their files exist. Checks routed through `optional_fixture_path`
+require `BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true` and test group `all`.
+In that opt-in mode, an existing default file or its documented
+`MFRM_*_FIXTURE` override is checked. A non-empty override without opt-in is
+rejected; an explicitly missing path also errors. An empty override disables
+that optional fixture. Ordinary source/privacy checks may still scan committed
+JSON text; that is distinct from interpreting it as scientific evidence.
+The scalar analytic/Stan fixtures above and the ConQuest bridge fixture below
+retain their ordinary behavioral checks. Do not relocate them by filename
+alone. Preserve source-pinned research files until their consumers and a
+recoverable destination have been reviewed.
 
 `existing_api_design_robustness_plan.json` freezes the study that precedes the
 dynamic-rater extension. Its deterministic layer checks row-order and
