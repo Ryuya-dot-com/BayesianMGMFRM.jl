@@ -25,9 +25,11 @@ design, scorer, and thresholds. No reviewer is currently assigned.
 | M1-05 — open | Reuse the recovery/predictive scorer and specify planned/attempted/completed/diagnostic-valid counts, structural rejections, paired Monte Carlo error, and non-overwriting failure/remediation summaries | A bounded synthetic scoring check must include a failed fit, a fixed contrast, and paired methods; remove an unimplemented metric claim before freezing rather than treating a planning field as a scorer |
 | M1-06 — open | Hand off the single protocol with exact source revision, cell roster, settings, scorer checks, unresolved questions, and claim limits | A person other than the implementer records accept/request-revision decisions. Review cannot be replaced by an implementer-authored receipt |
 
-The next writing task is M1-01. Seed choices, numerical acceptance thresholds,
-and replication budgets remain deliberately unresolved here; directory cleanup
-does not select them. M2 starts only after M0 and all freeze decisions close.
+M1-01 now has the finite anchor-placement/error candidate subset below; nested
+links, information/category support, prior/start subsets, and response-model
+misspecification still need cell assignments or reviewed exclusions. Seed
+choices, numerical acceptance thresholds, and replication budgets remain open.
+M2 starts only after M0 and all freeze decisions close.
 
 ## M1 design and analysis decisions
 
@@ -262,6 +264,89 @@ cost probe and the precision/threshold review. Ordinary starts must use
 the pilot's truth/projection initialization does not transfer. Next resolve
 the finite sensitivity-cell/seed table, sampler and resource settings, and
 scorer/decision thresholds before requesting the independent freeze review.
+
+## M1 candidate anchor-placement and error subset
+
+This is a **finite review candidate, not a frozen roster**. Apply the following
+57 additional anchor regimes to each of `RSM-S` and `PCM-S`, using that cell's
+unchanged truth, observed events, and paired training/holdout datasets. Do not
+regenerate responses when anchor inputs change. Dense sensitivity interactions
+and differential errors on interior anchors are not covered by this subset.
+Clean B/R/I/RI comparators already exist in the primary panel and are not
+counted again.
+
+Let `U = {-0.8, -0.2, +0.2, +0.8}` logits. These synthetic magnitudes reuse the
+existing deterministic contamination check's 0.2/0.8 levels; they are neither
+practical cutoffs nor values recommended by the literature. A cell ID is its
+data-cell prefix plus the regime and signed values, for example
+`PCM-S-D-RI-u+0.2-v-0.8`. Exact values without a shift refer to the labelled
+primary truth. An unaffected facet retains its default zero reference unless
+the row explicitly retains its clean two-anchor set.
+
+| Regime suffix | Fixed inputs / finite values | Cells per data cell | Paired comparison and target |
+| --- | --- | --- | --- |
+| `S-R`, `S-I`, `S-RI` | One non-reference anchor: R4, I4, or both at truth | 3 | Compare with B for reference/prior-coordinate sensitivity, and with R/I/RI for the added known contrast; retain primary contrasts and predictions |
+| `P-R`, `P-I`, `P-RI` | Replace the affected endpoint pair by its interior pair R2/R3, I2/I3, or both, at truth | 3 | Compare with R/I/RI; use predictions/person contrast and the predeclared partially estimated `2 - 1` facet contrast, not coverage of fixed `3 - 2` |
+| `F-R`, `F-I`, `F-RI` | Fix all four levels of the affected facet(s) at truth | 3 | Compare with R/I/RI as a known-facet boundary; fixed within-facet contrasts have no interval-coverage score |
+| `C-R(u)`, `C-I(v)` | Add u to both R anchors, or v to both I anchors; u or v in U | 4 + 4 | Compare with clean R or I; common-shift likelihood gauge with unchanged declared priors |
+| `C-RI(u,v)` | Shift both R anchors by u and both I anchors by v; u,v in U with `abs(u) = abs(v)` | 8 | Compare with clean RI; same/opposite signs, including zero net person-location shift |
+| `D-R(u)`, `D-I(v)` | Keep anchor 1 at truth; perturb only anchor 4 by u or v in U | 4 + 4 | Compare with clean R or I; incompatible within-facet contrast, score distortion/warnings |
+| `D-RI(u,0)`, `D-RI(0,v)` | Keep both endpoint anchor sets; perturb only R4 or I4, with the nonzero value in U | 4 + 4 | Same-constraint single-perturbation controls for the crossed error interaction |
+| `D-RI(u,v)` | Keep R1/I1 at truth; perturb R4 by u and I4 by v for all `(u,v)` in `U x U` | 16 | Compare with clean RI; use the same-constraint controls to distinguish the two perturbations |
+
+Reuse each `D-RI(u,0)` and `D-RI(0,v)` control across the crossed cells with that
+nonzero value. They retain **both** clean two-anchor sets except for the named
+perturbation; they are not D-R/D-I, which leave the other facet unanchored.
+On a predeclared dataset-level loss, the
+interaction is `L(u,v) - L(u,0) - L(0,v) + L(0,0)`, with paired Monte Carlo
+error. The table totals **57 regimes per data cell**, or **114 additional fit
+cells** across the two families. The controls are required if this interaction
+is retained; do not infer it from fits with different clean anchor constraints.
+
+The distinction between C and D follows the adjacent-category predictor
+`eta = theta_p - rho_r - beta_i`. For C, translating every rater coordinate
+by u, every item coordinate by v, and every person coordinate by `u + v`
+preserves the likelihood (take the unaffected facet's shift as zero). The
+package's zero-centered free-coordinate priors do not undergo that translation.
+Even when `u + v = 0`, free facet priors can change; this is not a posterior
+invariance claim. Score contrasts/predictions, not unaligned absolute person
+locations. S and P likewise change which coordinates receive those priors.
+
+For D-RI, at the original free coordinates before refitting, the imposed
+predictor change is `-u * 1[r = R4] - v * 1[i = I4]`. Equal opposite errors
+cancel only on the R4/I4 intersection, not on R4/other-item or other-rater/I4
+events; both event types occur in the sparse design. Unequal magnitudes test
+partial cancellation as well. This algebra is a generator/projection check,
+not a claim that a refitted posterior must retain the same local distortion.
+For D-RI and its paired controls, keep these three event strata and the
+unaffected stratum separate in predictive summaries: their event counts are
+20/60/60/180, summing to the same 320-event primary total. Do not average the
+four stratum means equally and call that the equal-event-weight total. Do not
+require nominal recovery of a truth excluded by an incompatible fixed contrast.
+
+[Kopf et al. (2015)](https://doi.org/10.1177/0013164414529792), pp. 36--37
+(Zotero `4CEIQCQX`), vary DIF proportion and balanced/unbalanced direction in a
+dichotomous Rasch simulation with a **constant 0.4** DIF magnitude. This is an
+analogy motivating directional contamination controls, not evidence for our
+two magnitudes, cross-facet design, or a Bayesian polytomous recovery threshold.
+[Wind and Jones (2018)](https://doi.org/10.1177/0013164417703733), pp. 683--686
+(Zotero `F3CVK9EA`), vary common-response linking-set size (3/6/8), location,
+and fit. Those are observed linking persons, not fixed parameter anchors.
+Their study motivates the still-open link-size/location/misfit subset, not
+using 3/6/8 as a parameter-anchor prescription. These source-method sections
+were checked in indexed Zotero full text; neither source supplies this roster.
+
+The arithmetic is `16 + 114 = 130` distinct candidate fit cells, not 130 new
+data-generating cells. Extending the provisional 400 replications to all of
+them would mean **52,000 fits**, before the other sensitivity factors,
+cross-backend checks, failures, or remediation. That is a cost warning, not an
+approved replication allocation. M1-03/04 must justify either that budget or
+a smaller predeclared subset/allocation with corresponding narrower claims.
+Existing conformance checks cover the probability mechanism, not every new
+cell ID, asymmetric error pair, control, or scorer stratum here. Their concrete
+enumeration and bounded MCMC-free checks remain prerequisites to freezing;
+no new fitting controller, fixture, or evaluation run is introduced by this
+draft. All six freeze decisions remain open.
 
 After each milestone, record only: which uncertainty decreased, which claim
 that changes, and what now blocks the next decision. Missing review or external

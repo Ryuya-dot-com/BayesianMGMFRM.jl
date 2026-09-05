@@ -17,7 +17,7 @@ prediction remain separate, deferred programs.
 | Milestone | Status | Responsible role and concrete exit |
 | --- | --- | --- |
 | M0 — Package baseline | Implementation, placement/load review, and all 12 lane baselines recorded; runtime acceptance remains open | Maintainer: explain or remediate the `fitting_core` rolling-median increase of 23.4%; preserve the reviewed 0.1.x boundaries |
-| M1 — Anchor-study protocol | Draft: 16 primary candidate cells and comparable estimands specified | Analyst: finish the decision table in the [study draft](docs/internal/mfrm-anchor-study.md#freeze-decisions); independent reviewer checks equations, cells, scoring, thresholds, and resource limits |
+| M1 — Anchor-study protocol | Draft: 16 primary cells plus 114 targeted anchor-sensitivity candidates; no replication budget authorized | Analyst: finish the decision table in the [study draft](docs/internal/mfrm-anchor-study.md#freeze-decisions); independent reviewer checks equations, cells, scoring, thresholds, and resource limits |
 | M2 — Fresh evaluation | Not started; zero evaluation replications | Analyst: execute the reviewed roster, retain every attempt, and report per-cell recovery/calibration with Monte Carlo uncertainty and failure denominators |
 | M3 — External review and domain decision | Matching-source inventory only; independent review outstanding | Maintainer and independent reviewer: separate-environment matched reproduction and claim-level allow, narrow, reject, or inconclusive decisions |
 
@@ -32,7 +32,7 @@ Work on the highest unfinished decision, not the largest collection of scripts.
 | Order / task | Next deliverable | Verification and stop condition |
 | --- | --- | --- |
 | 1. M0-DOC — Complete at `bd22c01` | Short root roadmap, one active anchor-study draft, archived old roadmaps, and the directory map below | Both archived bodies preserved with rebased links; 34 local links/fragments, the Git-free install/load/example/manual smoke, and all 12 ordinary candidate-CI jobs passed |
-| 2. M0-CI — All lane/phase baselines recorded; attribution instrumentation added | Read the next ordinary `fitting_core` job's CPU/RSS and compile/GC timings; logged dependency versions and the PR target commit match across prior runs | Explain or remediate 17m41s -> 21m49s before acceptance; preserve the 30-minute ceiling and all assertions. Instrumented observations do not silently replace the original timing window |
+| 2. M0-CI — All lane/phase baselines recorded; first instrumented fit is compilation-heavy | Compare subsequent ordinary `fitting_core` observations at matching CPU/version/thread settings; first measured block reports 80.45% compilation | Explain or remediate 17m41s -> 21m49s before acceptance; preserve the 30-minute ceiling and all assertions. Instrumented observations do not silently replace the original timing window |
 | 3. M0-BOUNDARY — Placement/load review complete | [123 fixtures classified](docs/internal/fixture-boundary.md); [35 source includes and seven ordinary script includes reviewed](docs/internal/code-load-boundary.md). Retain the declared 0.1.x compatibility surface and archival records | Isolated definition loads passed on Julia 1.10.8 and 1.12.5 without research trees. No relocation, regeneration, dependency removal, or lazy loader. Reopen for changed dependencies/consumers or measured budget pressure |
 | 4. M1-FREEZE — Resolve the study draft | Finite sensitivity cells, seed policy, estimands/thresholds, sampler/resource budget, all-attempt scorer, and reviewer handoff | No fresh evaluation while any freeze decision is open; no new generic controller or evidence framework without a demonstrated gap |
 
@@ -165,8 +165,30 @@ This supports investigating compilation locally, not attributing the historical
 CI increase or pooling local and Linux timings. All 11 inline testset expression
 trees match before/after instrumentation; selection checks passed 45/45 on
 Julia 1.10.8 and 1.12.5. The minimum-version timing/failure smoke and the four
-stubbed Bash routing/exit-status cases passed; native Linux resource reporting
-still requires the next candidate CI. Keep M0 open pending that evidence.
+stubbed Bash routing/exit-status cases passed. Native Linux resource reporting
+was subsequently verified by the first instrumented CI observation below.
+
+The [`04daa4d` instrumented fit job](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33958936886/job/101287242614)
+passed the same 2,755 assertions in 22m36s. It used Julia 1.12.7 on the same
+Ubuntu image/provisioner, with four exposed logical CPUs, model AMD EPYC 7763,
+Julia CPU target `znver3`, one Julia thread, and two BLAS threads. The timed
+block took 1,121.871s: **80.45% compilation** (approximately 902.5s), 0.84% GC,
+and 31.977 GiB cumulatively allocated. Testset summaries were 15m20.2s and
+9.2s, not the enclosing compilation-inclusive block time. The whole `Pkg.test()`
+command took 1,317.54s, with 1,315.19s user and 2.67s system CPU time (reported
+100% CPU: about one CPU's capacity on average, not saturation of all four).
+Its reported maximum RSS was 2,555,816 KiB (about 2.44 GiB), not the sum of
+simultaneous process-tree memory. Major page faults were zero; the startup
+memory snapshot is not a run-long memory-pressure trace.
+
+This identifies a CPU-bound, compilation-heavy **current observation**, not
+the cause of the historical faster/slower ranges. Those older jobs lack CPU
+and compilation telemetry; matching image/version labels cannot fill that
+gap. Keep M0 open. Use subsequent ordinary CI for matching instrumented
+observations before attributing variability or choosing a measured compilation
+remedy; do not add a separate research run, inflate the timeout, or pool this
+observation into the original median. A successful fit shard does not imply
+completion of this revision's minimum-version full job.
 
 The remaining lanes use the same three runs, except macOS uses `fa7ffc9`,
 `9a4d180`, and the completed macOS job of
