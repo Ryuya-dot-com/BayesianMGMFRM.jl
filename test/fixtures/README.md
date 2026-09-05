@@ -4,6 +4,8 @@ This directory retains both ordinary numerical references and historical
 research evidence. Classification follows the test consumer, not file size
 or a filename prefix. Directory organization does not authorize regeneration,
 deletion, or a scientific run; see the [active roadmap](../../ROADMAP.md).
+The [large-fixture placement review](../../docs/internal/fixture-boundary.md)
+records the consumers and retain decisions for all 11 JSON files above 250 KiB.
 
 `scalar_validation_known_value.json` and
 `scalar_validation_medium_known_value.json` are Julia analytic known-answer
