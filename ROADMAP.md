@@ -17,7 +17,7 @@ prediction remain separate, deferred programs.
 | Milestone | Status | Responsible role and concrete exit |
 | --- | --- | --- |
 | M0 — Package baseline | Implementation, placement/load review, and all 12 lane baselines recorded; runtime acceptance remains open | Maintainer: explain or remediate the `fitting_core` rolling-median increase of 23.4%; preserve the reviewed 0.1.x boundaries |
-| M1 — Anchor-study protocol | Draft: anchor, response-replay, and scoring primitives checked; full roster, adapters, and decision rules unfrozen | Analyst: finish the decision table in the [study draft](docs/internal/mfrm-anchor-study.md#freeze-decisions); independent reviewer checks equations, cells, scoring, thresholds, and resource limits |
+| M1 — Anchor-study protocol | Draft: anchor, response-replay, and scoring primitives checked; all six freeze decisions remain open | Analyst: finish the decision table in the [study draft](docs/internal/mfrm-anchor-study.md#freeze-decisions); independent reviewer checks equations, cells, scoring, thresholds, and resource limits |
 | M2 — Fresh evaluation | Not started; zero evaluation replications | Analyst: execute the reviewed roster, retain every attempt, and report per-cell recovery/calibration with Monte Carlo uncertainty and failure denominators |
 | M3 — External review and domain decision | Matching-source inventory only; independent review outstanding | Maintainer and independent reviewer: separate-environment matched reproduction and claim-level allow, narrow, reject, or inconclusive decisions |
 
@@ -27,21 +27,52 @@ the same author or another local receipt cannot satisfy that review.
 
 ## Immediate work and stop conditions
 
-Work on the highest unfinished decision, not the largest collection of scripts.
+M0 is the first acceptance gate, but it need not occupy every drafting task.
+Run bounded engineering work alongside M1 decision preparation. The subsequent
+measurement-repair request authorizes the single regression verification below,
+not scientific evaluation, another cold/warm pair, or external reviewer contact.
 
-| Order / task | Next deliverable | Verification and stop condition |
+| Task / owner role | Next deliverable | Verification and stop condition |
 | --- | --- | --- |
-| 1. M0-DOC — Complete at `bd22c01` | Short root roadmap, one active anchor-study draft, archived old roadmaps, and the directory map below | Both archived bodies preserved with rebased links; 34 local links/fragments, the Git-free install/load/example/manual smoke, and all 12 ordinary candidate-CI jobs passed |
-| 2. M0-CI — Compilation-heavy fits; runner CPU heterogeneity observed | Separate ordinary observations by CPU/target and version/threads; three CPU/target pairs currently have one observation each, not a hardware-matched median | Explain or remediate 17m41s -> 21m49s before acceptance; preserve the 30-minute ceiling and all assertions. Instrumented observations do not silently replace the original timing window |
-| 3. M0-BOUNDARY — Placement/load review complete | [123 fixtures classified](docs/internal/fixture-boundary.md); [35 source includes and seven ordinary script includes reviewed](docs/internal/code-load-boundary.md). Retain the declared 0.1.x compatibility surface and archival records | Isolated definition loads passed on Julia 1.10.8 and 1.12.5 without research trees. No relocation, regeneration, dependency removal, or lazy loader. Reopen for changed dependencies/consumers or measured budget pressure |
-| 4. M1-FREEZE — Resolve the study draft | Finite sensitivity cells, seed policy, estimands/thresholds, sampler/resource budget, all-attempt scorer, and reviewer handoff | No fresh evaluation while any freeze decision is open; no new generic controller or evidence framework without a demonstrated gap |
+| M0 observer integration — maintainer; local verification passed, candidate CI not run | Review the [permission-independent guard and native preflight correction](docs/internal/fitting-core-runtime-review.md#observer-correction-and-verification-scope), then obtain candidate CI before integration; 21 guard cases, native no-fit preflight, and all 2,755 assertions in verification C passed | C completed in 20m38s with child/guard exit 0, unchanged source/locks, and no remaining owned-group process. Linux/macOS guard checks are wired into existing CI jobs, not yet remote-verified. This repairs local measurement, not the historical +23.4% acceptance trigger |
+| M0 runtime acceptance — maintainer; open | Review existing evidence against the original 17m41s -> 21m49s trigger; record an evidenced explanation/remediation or an explicit insufficient-evidence decision | Preserve both historical windows. A newer fast run, observer correction, or green CI does not explain +23.4% or close M0. If the criterion cannot be met from identifiable evidence, request explicit criterion review instead of collecting indefinitely; no criterion change is approved here |
+| M1 decision preparation — analyst and maintainer; may proceed now | Follow the [M1 preparation order](docs/internal/mfrm-anchor-study.md#preparation-order-and-handoff): first complete the missing cell/exclusion proposal and identify a willing independent reviewer; then resolve precision/cost choices and execution/scoring bindings | Keep all six decisions open until their closure evidence is reviewed. Roles are not accepted assignments. Missing reviewer or budget input prompts a concrete handoff, not additional simulation |
 
-M0-DOC is a bounded documentation/layout change, not completion of all M0.
-Physical relocation of research fixtures, large source-file decomposition,
-and optional-dependency changes are separate tasks and are not bundled into it.
-M0-BOUNDARY accepts the current compatibility-line placement, not minimum
-startup cost or scientific validation. The next unfinished engineering decision
-is the runtime attribution in order 2; do not restart the closed inventories.
+Completed work stays out of the active queue. **M0-DOC** closed at `bd22c01`:
+both archived bodies were preserved with rebased links; 34 local links/fragments,
+the Git-free install/load/example/manual smoke, and all 12 ordinary candidate-CI
+jobs passed. **M0-BOUNDARY** retains the [123-fixture classification](docs/internal/fixture-boundary.md)
+and [35 source / seven ordinary-script include review](docs/internal/code-load-boundary.md);
+isolated loads passed on Julia 1.10.8 and 1.12.5 without research trees.
+Reopen only for changed boundaries/consumers or measured budget pressure, not
+to accumulate more completed checks. Relocation, large source decomposition,
+optional-dependency changes, and new generic controllers remain out of scope.
+The single additional **verification C** is complete and is not a cache
+experiment. Cold A remains a consumed attempt with observer exit 1; B never
+ran. C neither resets nor completes that pair, and no further fit is queued.
+
+### Decision handoff and progress accounting
+
+The engineering handoff is the **observer correction and verification C** in
+the existing runtime review, followed by candidate CI and review before
+integration. The parallel scientific deliverable remains the **M1-01
+cell/exclusion proposal** in the study draft. The maintainer must supply the
+acceptable study-claim scope, resource envelope, and reviewer nomination;
+the analyst prepares justified options rather
+than treating missing choices as defaults. No actual owner, deadline, or budget
+is assigned by this edit. Record an accepted assignment when a person confirms it.
+
+For each decision, retain only the proposal, missing input, linked evidence,
+named decision-maker, and accept/request-revision outcome tied to a source
+revision in its owning document. Do not create another task registry. Review
+M1-06 against review-ready M1-01--05 proposals and checks; **M2 requires both
+accepted M0 and independently accepted M1**. M3 still requires matched external
+reproduction and claim-level decisions, not another implementation-authored receipt.
+
+Report engineering acceptance, the six M1 decisions, fresh independent
+evaluation replications, and external review separately. No weighted overall
+completion percentage is defined; conversational estimates, test counts, and
+document revisions are not evidence that a scientific gate has closed.
 
 ## Evidence baseline and claim limits
 
@@ -162,10 +193,24 @@ is the runtime attribution in order 2; do not restart the closed inventories.
   It adds 95 boundary assertions plus 64 labelled-table checks on the existing
   16 smoke blocks. All 4,770 anchor and 103 scorer assertions pass on Julia
   1.10.8 and 1.12.5; SHA-bypass and decimal-rounding mutations are detected.
-  Candidate CI is required: expected `fitting_reports` 33 / 8,446 and full
-  suite 100 / 19,564. Trusted reference retention, data/state/source/attempt
+  [CI 33975779252](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33975779252)
+  at `ac31b41` passed all 12 ordinary jobs: `fitting_reports` 33 / 8,446 and
+  the full Julia 1.10.8 suite 100 / 19,564 in 31m46s. Both manual research
+  jobs were skipped. Trusted reference retention, data/state/source/attempt
   binding, durable publication, the persistent ledger, and scientific review
   remain open. No fresh fit/evaluation or new dependency/export is added.
+- [PR #99](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/pull/99) merged
+  verified `ac31b41` into `main` as `ad57606` on 2026-09-06 JST; their complete
+  Git trees match. [Main CI 33997276971](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33997276971)
+  passed all 12 ordinary jobs: `fitting_reports` 33 / 8,446 and the full
+  Julia 1.10.8 suite 100 / 19,564 in 30m50s. Both manual research jobs were
+  skipped. Integration does not close M0/M1 or authorize a release/evaluation.
+- The runtime-review and no-fit preflight documentation at `b19eeec` passed all
+  12 ordinary jobs in
+  [CI 34001839651](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/34001839651):
+  `fitting_reports` 33 / 8,446 and the full Julia 1.10.8 suite 100 / 19,564
+  in 31m16s. Both manual research jobs were skipped. This does not certify the
+  subsequent cold-A report, enlarge the fixed timing window, or close M0.
 - The earlier anchor pilot completed 80 fits but only two independent datasets
   per cell, with PCM-only truth, favorable initialization, and a shared
   generation/fitting kernel. None of its fits enters the new evaluation count.
@@ -289,13 +334,18 @@ are not run-long traces. Testset summaries exclude part of the enclosing
 compilation-inclusive block cost. These successful runs precede the later
 951-assertion M1 addition and do not verify that candidate.
 
-The current observations are compilation-heavy and demonstrate runner
+These initial observations are compilation-heavy and demonstrate runner
 heterogeneity. They do **not** isolate the CPU's causal contribution, establish
 a documentation-induced speedup, or identify the CPU of any older job. Those
 older logs cannot support retrospective hardware stratification. Keep M0 open;
 separate subsequent ordinary observations by CPU/target, version, and threads
 before forming a comparable window or choosing a measured compilation remedy.
-There is only one observation per CPU/target, not a three-run matched median.
+In that initial window there is only one observation per CPU/target, not a
+three-run matched median. The [16-job follow-up through `ad57606`](docs/internal/fitting-core-runtime-review.md)
+now finds four source/version/CPU-matched observations (median 22m12s),
+precompilation despite cache restoration, and a resolved JSON version change.
+It localizes one later job-time change outside the fitting block, without
+attributing the original trigger or claiming a sampler improvement.
 Do not pool these observations into the original median, add research
 execution, or inflate the timeout to close the trigger.
 
@@ -373,8 +423,9 @@ M0–M3 domain decision. A checked engineering item is not scientific validation
   experimental and research entry points remain visibly separated.
 - [x] Release checks protect behavior, schema, performance, portability, and
   privacy rather than unrelated prose or transitive source digests.
-- [ ] Ordinary research-result isolation and enforced runtime budgets have
-  comparable whole-lane evidence and three-run medians.
+- [ ] Runtime P0 acceptance resolves the retained >20% fitting trigger.
+  Research-result isolation, whole-lane evidence, and three-run baseline
+  collection are recorded above; they do not substitute for that decision.
 - [x] The current 0.1.x package/research placement and load boundary is reviewed:
   active documents are short,
   retained fixtures have a shipped purpose or an explicit archival role, and
@@ -398,6 +449,7 @@ separately.
 | `ROADMAP.md` | Current priorities, owners, exit decisions, and a compact evidence baseline |
 | [`docs/internal/mfrm-anchor-study.md`](docs/internal/mfrm-anchor-study.md) | Active M1 methods draft; the only place to edit its cell/estimand/seed/threshold decisions |
 | [`fixture-boundary.md`](docs/internal/fixture-boundary.md), [`code-load-boundary.md`](docs/internal/code-load-boundary.md) | Finite 0.1.x placement decisions and their verification limits; revisit only when the recorded boundary changes |
+| [`fitting-core-runtime-review.md`](docs/internal/fitting-core-runtime-review.md) | Fixed-window M0 timing observations and comparison limits; acceptance and next work remain in this roadmap |
 | [`docs/internal/archive/`](docs/internal/archive/) | Preserved roadmap snapshots and deferred rationale; outside the manual source tree and not an execution authority |
 | `docs/src/development-*.md`, `docs/src/mgmfrm-research-roadmap.md` | Existing non-published ledgers and deferred research detail; not competing work orders |
 | `test/`, [`test/fixtures/`](test/fixtures/README.md) | Behavioral regressions and numerical references; ordinary versus opt-in behavior is documented in the fixture guide |

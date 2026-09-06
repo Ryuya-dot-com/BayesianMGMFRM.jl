@@ -84,6 +84,9 @@ jobs:
         os: [macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
+      - name: Check local POSIX measurement guard
+        if: runner.os == 'macOS'
+        run: python3 scripts/measure_command.py --self-test
       - name: Use a short Windows temporary directory
         if: runner.os == 'Windows'
         shell: pwsh
@@ -180,6 +183,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - name: Check local POSIX measurement guard
+        run: python3 scripts/measure_command.py --self-test
       - name: Check compressed source archive budget
         shell: bash
         run: |
