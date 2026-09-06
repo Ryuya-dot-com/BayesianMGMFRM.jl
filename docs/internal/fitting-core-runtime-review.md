@@ -123,13 +123,82 @@ execution, nor proof that restoring a package cache removes block compilation.
    observed jobs meet the existing 30-minute ceiling, but passing that ceiling
    alone does not close the trigger.
 
-## Next decision
+## Controlled comparison protocol
 
-Stop broad log collection for this window. The next useful comparison should
-hold the current source, resolved environment, CPU/target, and threads fixed,
-and explicitly distinguish effective package-cache reuse from timed-block
-compilation. Choose that bounded comparison before modifying cache settings or
-compilation structure; do not infer the effect from cross-runner job totals.
-No profiler framework, dependency pin, sampler change, timeout increase, cache
-deletion, rerun/dispatch, or fresh fit/evaluation was introduced by this review.
-The historical timing windows and the M1 independent-review gate remain intact.
+The next diagnostic is **one ordered cold/warm pair**, not another pooled CI
+window. No pair has run. Use the available macOS / Homebrew Julia 1.12.5 / Apple
+M4 Max host first; this is explicitly separate from Linux / Julia 1.12.7 CI.
+The question is whether effective package-cache reuse changes preparation
+cost while the compilation-inclusive test block remains expensive.
+
+| Control | Fixed choice and verification |
+| --- | --- |
+| Source and workload | One temporary, Git-free copy of `ad57606`; identical package, test, script, and fixture bytes for both attempts. Preserve both fitting testsets, all 2,755 assertions, seeds, and draws. Only local diagnostic environment files may be added |
+| Resolved environment | Prepare once, outside measurement; retain the root and effective test Project/Manifest files, preferences, exact Julia build, and package identities/versions/tree hashes. Include test-only ReverseDiff and its dependencies. Require `Pkg.test(; allow_reresolve=false)` and check the effective graph in each attempt, not only the root file |
+| Process settings | Fresh Julia process each time; one default thread, zero interactive threads, one GC thread, two effective BLAS threads in the test child, and `JULIA_NUM_PRECOMPILE_TASKS=2`. Record the BLAS provider, native CPU target, and all subprocess flags; keep them fixed, including bounds checking |
+| Depot isolation | A task-owned depot and restricted load path; no fallback to the user's compiled caches or global environment. Keep bundled Julia resources identical. Prepare packages/artifacts/registry data before measurement; do not update or download during the pair |
+| Cold A | Start with no third-party compiled package cache in the task depot. This is not a cold OS page cache or a Julia build without bundled caches |
+| Warm B | At the same source/depot paths, restore the prepared non-compiled baseline and reuse only the compiled cache produced by successful A. Do not reuse A's Julia process, draws, or fit-result files. A continuing precompile/rebuild in B is a result to retain, not a reason to silently retry |
+| Resource bound | At most two measured commands, each with a 30-minute process-tree deadline; preparation capped at 15 minutes. Verify cancellation before starting. These diagnostic bounds do not change any ordinary CI timeout |
+
+The standard [Pkg test API](https://pkgdocs.julialang.org/v1/api/#Pkg.test)
+uses a separate test environment and a fresh process with bounds checking.
+The Pkg source shipped with Julia 1.12.5 also resolves the merged test environment
+when `allow_reresolve=false`; that option disallows its fallback re-resolution,
+but cannot by itself freeze versions absent from the input manifests. Inspect the complete
+test graph before accepting the pair. The existing plan subprocess additionally
+activates the copied package root in
+[generate_validation_plan.jl](../../scripts/generate_validation_plan.jl), so
+locking only the test environment would miss that second resolution context.
+
+Use [Julia's depot/load-path controls](https://docs.julialang.org/en/v1/manual/environment-variables/#JULIA_DEPOT_PATH)
+with care: a task depot followed by `:` retains bundled resources but excludes
+the default user depot; prepending the user depot as a fallback would also
+expose its compiled caches. Inspect the expanded paths. Do not run
+[distribution_archive_smoke.jl](../../scripts/distribution_archive_smoke.jl)
+as the comparison controller: it performs additional fits/builds, inherits an
+existing depot, and checks phase budgets only after completion. Its elapsed-time
+checks are not the required hard deadline.
+
+### Preflight result and execution gate
+
+The MCMC-free local probe passed **12 checks** for isolated depot/load paths,
+explicit Julia/BLAS thread settings, the existing `fitting_core` selector, and
+rejection of invalid/research-enabled shard combinations. TOML inspection found
+ReverseDiff absent from both the local Julia 1.12.5 root manifest and the tracked
+Julia 1.10.8 manifest. Neither file was changed.
+
+An earlier negative probe caught an important local mismatch:
+`OPENBLAS_NUM_THREADS=2` alone reported 14 BLAS threads with the Homebrew
+ILP64 OpenBLAS 0.3.32 library. Calling `BLAS.set_num_threads(2)` in that process
+reported two. This establishes the need to verify effective settings, not the
+library-level cause of the environment-variable behavior. A parent-process
+setting does not configure a fresh `Pkg.test()` child or the plan subprocess;
+verify control/inheritance there before measurement. Do not infer that the
+historical CI thread logs are wrong.
+
+**Execution gate remains open:** the complete isolated test environment,
+effective child/subprocess settings, and process-tree deadline still need a
+no-fit verification. The 12 checks are not an end-to-end dry run. Retain all
+preflight failures; do not start A merely because the source tree is clean.
+
+### Interpretation and stop rule
+
+Record command elapsed time, block time/compilation/GC, emitted precompile
+count/time, resource diagnostics, and both testset results for every attempt.
+Compare command-minus-block separately from block time. An absent precompile
+summary is not zero JIT compilation. A version/source/thread mismatch, timeout,
+or test failure makes the pair incomplete: retain it and stop, with no automatic
+retry or replacement observation. Never reinterpret a timeout as a completed
+30-minute measurement.
+
+A then B has order/page-cache/host-load confounding and only one observation
+per condition. It can locate work and expose failed cache reuse; it cannot
+estimate a causal speedup, establish a median, identify an optimal cache policy,
+explain the older CPU identities, or close M0. If verified reuse reduces only
+preparation, the next engineering target is the separately timed compilation
+block; if reuse fails, inspect that failure before proposing a cache change.
+Either result needs review before further repetitions or implementation.
+No profiler framework, package/CI change, cache deletion, manual dispatch, or
+fresh fit/evaluation has been introduced. The fixed 16-job window and the M1
+independent-review gate remain intact.

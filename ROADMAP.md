@@ -32,7 +32,7 @@ Work on the highest unfinished decision, not the largest collection of scripts.
 | Order / task | Next deliverable | Verification and stop condition |
 | --- | --- | --- |
 | 1. M0-DOC — Complete at `bd22c01` | Short root roadmap, one active anchor-study draft, archived old roadmaps, and the directory map below | Both archived bodies preserved with rebased links; 34 local links/fragments, the Git-free install/load/example/manual smoke, and all 12 ordinary candidate-CI jobs passed |
-| 2. M0-CI — CPU/cache/dependency strata reviewed; acceptance open | [16-job review](docs/internal/fitting-core-runtime-review.md): four source/version/CPU-matched observations, median 22m12s; choose a bounded fixed-environment comparison separating package-cache reuse from block compilation | Explain or remediate 17m41s -> 21m49s before acceptance; preserve the 30-minute ceiling and all assertions. Instrumented observations do not silently replace the original timing window |
+| 2. M0-CI — Controlled pair specified; execution gate open | [Cold/warm protocol](docs/internal/fitting-core-runtime-review.md#controlled-comparison-protocol): complete test-environment lock, effective child-thread controls, and hard-deadline preflight before at most two measured commands; 12 local no-fit checks passed | Explain or remediate 17m41s -> 21m49s before acceptance; preserve the 30-minute ceiling and all assertions. Neither the fixed 16-job review nor the planned local pair replaces the original timing window |
 | 3. M0-BOUNDARY — Placement/load review complete | [123 fixtures classified](docs/internal/fixture-boundary.md); [35 source includes and seven ordinary script includes reviewed](docs/internal/code-load-boundary.md). Retain the declared 0.1.x compatibility surface and archival records | Isolated definition loads passed on Julia 1.10.8 and 1.12.5 without research trees. No relocation, regeneration, dependency removal, or lazy loader. Reopen for changed dependencies/consumers or measured budget pressure |
 | 4. M1-FREEZE — Resolve the study draft | Finite sensitivity cells, seed policy, estimands/thresholds, sampler/resource budget, all-attempt scorer, and reviewer handoff | No fresh evaluation while any freeze decision is open; no new generic controller or evidence framework without a demonstrated gap |
 
@@ -174,6 +174,11 @@ is the runtime attribution in order 2; do not restart the closed inventories.
   passed all 12 ordinary jobs: `fitting_reports` 33 / 8,446 and the full
   Julia 1.10.8 suite 100 / 19,564 in 30m50s. Both manual research jobs were
   skipped. Integration does not close M0/M1 or authorize a release/evaluation.
+- The 16-job runtime review at `0a0f385` passed all 12 ordinary jobs in
+  [CI 33999072381](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/33999072381):
+  `fitting_reports` 33 / 8,446 and the full Julia 1.10.8 suite 100 / 19,564
+  in 24m22s. Both manual research jobs were skipped. This does not certify the
+  subsequent comparison-protocol edit, enlarge the fixed timing window, or close M0.
 - The earlier anchor pilot completed 80 fits but only two independent datasets
   per cell, with PCM-only truth, favorable initialization, and a shared
   generation/fitting kernel. None of its fits enters the new evaluation count.
