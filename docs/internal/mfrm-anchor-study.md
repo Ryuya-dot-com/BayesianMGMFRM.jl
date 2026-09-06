@@ -16,20 +16,56 @@ script. The analyst prepares scientific choices, the maintainer checks the
 execution budget, and an independent reviewer must accept the equations,
 design, scorer, and thresholds. No reviewer is currently assigned.
 
-| ID / status | Decision and required output | Review or runnable check before closure |
+| ID / status | Decision and required output | Owner, needed input, and closure evidence |
 | --- | --- | --- |
-| M1-01 — open | Enumerate the finite sensitivity cells and controls, including anchor placement/count aliases, shifts, crossed contamination signs/magnitudes, priors, nested links, category support, and information levels; name the estimand and pairing for each | Every required factor below maps to a cell or an explicit reviewed exclusion. Fixed contrasts are N/A for interval coverage; composite design changes are labelled |
-| M1-02 — open, native replay and response-byte binding checked | Declare pilot/evaluation and component RNG lineage, state ownership, data sharing, and any cross-design common random numbers; freeze the actual root/state roster | Synthetic blocks replay from saved state and labelled JSON restores their responses. Durable data/state/source binding, actual allocation, and review remain required |
-| M1-03 — open | Choose interval levels, practical tolerances, Monte Carlo precision, replications, and per-stratum decision rules for parameter and predictive targets | Justify numerical values before evaluation; distinguish MCMC error from across-dataset error and true-probability regret from heldout log loss |
-| M1-04 — open | Choose the primary backend, actual prior scales, ordinary non-truth starts/jitter, chain settings, diagnostic policy, bounded cost probe, time/memory/output caps, and remediation allowance | Review the probe budget before running it; record resource evidence and keep all probes outside evaluation counts. The provisional 6,400 primary fits is not a budget authorization |
-| M1-05 — open, label/identity joins checked | Reuse the recovery/predictive scorer; the denominator/applicability draft below specifies failures, paired Monte Carlo error, and non-overwriting remediation | Synthetic checks cover independent log truth/scoring, labelled JSON, and exact planned attempt identities. Payload/source binding, a persistent all-attempt ledger, and final decision rules remain required |
-| M1-06 — open | Hand off the single protocol with exact source revision, cell roster, settings, scorer checks, unresolved questions, and claim limits | A person other than the implementer records accept/request-revision decisions. Review cannot be replaced by an implementer-authored receipt |
+| M1-01 — open | Enumerate the finite sensitivity cells and controls, including anchor placement/count aliases, shifts, crossed contamination signs/magnitudes, priors, nested links, category support, and information levels; name the estimand and pairing for each | Analyst, with maintainer-supplied claim scope: every required factor maps to a cell or an explicit reviewed exclusion. Fixed contrasts are N/A for interval coverage; composite design changes are labelled |
+| M1-02 — open, native replay and response-byte binding checked | Declare pilot/evaluation and component RNG lineage, state ownership, data sharing, and any cross-design common random numbers; freeze the actual root/state roster | Analyst, using the M1-01 roster and M1-03/04 allocation/settings: synthetic replay and labelled response restoration are checked; durable data/state/source binding, actual allocation, and review remain required |
+| M1-03 — open | Choose interval levels, practical tolerances, Monte Carlo precision, replications, and per-stratum decision rules for parameter and predictive targets | Analyst proposes values from M1-01 estimands and intended claims for independent review before evaluation. Distinguish MCMC error from across-dataset error and true-probability regret from heldout log loss; reconcile precision with M1-04 cost before accepting an allocation |
+| M1-04 — open | Choose the primary backend, actual prior scales, ordinary non-truth starts/jitter, chain settings, diagnostic policy, bounded cost probe, time/memory/output caps, and remediation allowance | Analyst proposes; maintainer reviews the resource envelope using M1-01/03 candidates. Review the probe cap before execution; keep probes outside evaluation counts. Neither 6,400 primary fits nor the allocation alternatives below authorize a budget |
+| M1-05 — open, label/identity joins checked | Reuse the recovery/predictive scorer; the denominator/applicability draft below specifies failures, paired Monte Carlo error, and non-overwriting remediation | Analyst, using M1-01--04: synthetic scoring and identity joins are checked. Payload/source binding, a persistent all-attempt ledger, and final decision rules must cover every retained claim before review; an unimplemented metric requires implementation or an explicit scope decision |
+| M1-06 — open | Hand off the single protocol with exact source revision, cell roster, settings, scorer checks, unresolved questions, and claim limits | Maintainer obtains a willing independent reviewer; terminal review needs review-ready M1-01--05 proposals and checks. A person other than the implementer records accept/request-revision decisions. Nomination, availability, and implementer-authored receipts are not acceptance |
 
 M1-01 now has the finite anchor-placement/error candidate subset below; nested
 links, information/category support, prior/start subsets, and response-model
 misspecification still need cell assignments or reviewed exclusions. Seed
 choices, numerical acceptance thresholds, and replication budgets remain open.
 M2 starts only after M0 and all freeze decisions close.
+
+### Preparation order and handoff
+
+These are drafting dependencies, not new execution permissions. All six
+decisions remain open; owner roles above are unassigned until a person accepts.
+
+1. **Prepare M1-01 and reviewer assignment now, during M0.** The next analyst
+   deliverable is the missing cell/exclusion proposal for linking, information,
+   category support, prior/start, and response misspecification. Each row names
+   its question, control, estimand/applicability, data pairing, and source or
+   stress-test rationale. Reuse the 16 primary and 114 sensitivity candidates;
+   do not treat them as a complete roster or add combinations without a question.
+   The maintainer supplies the intended claims and seeks reviewer agreement on
+   scope and availability; this document sends no invitation or assigns a person.
+2. **Resolve M1-03 and M1-04 together.** Propose justified tolerances/precision
+   and fixed sampler/prior/start settings, then reconcile replication counts
+   with a reviewed cost-probe and total resource envelope. The existing
+   [allocation alternatives](#m1-allocation-and-budget-decision-draft) remain
+   alternatives, not a selected budget. M0's regression-shard time is not a
+   per-fit study cost. If precision and cost conflict, return a scope/allocation
+   decision; do not silently relax tolerances, omit strata, or start a probe.
+3. **Finalize M1-02/05 bindings, then request M1-06 review.** Tie the actual
+   allocation and RNG roster to the retained attempts, truth, responses, source,
+   and scorer decisions. Resolve each required binding or scorer gap with the
+   existing primitives and focused checks. The handoff is this single protocol
+   plus evidence links and one source revision, with an accept/request-revision
+   disposition for each decision; do not create another controller or ledger
+   format merely to track drafting. Changing the roster or settings reopens
+   affected downstream decisions before terminal acceptance.
+
+Reviewer availability and a resource envelope are external inputs, not work
+that more local tests can complete. Until they exist, record the specific
+missing input here and continue only independent drafting/checks. Fresh M2
+evaluation remains blocked until M0 and all independently reviewed M1 decisions
+are accepted; this preparation order changes no model, cell, threshold, seed,
+replication count, or scientific claim.
 
 ## M1 design and analysis decisions
 

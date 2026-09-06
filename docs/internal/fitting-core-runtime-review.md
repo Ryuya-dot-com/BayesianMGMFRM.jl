@@ -257,6 +257,110 @@ of this pair. No package, sampler, test, dependency declaration, or CI change is
 indicated by this permission failure. The temporary raw A log is retained with
 SHA-256 `fa92aac05ce66064f8b885119fa6a72bd28ac7345987f4d4f16f965ab030fbc8`.
 
+### Observer correction and verification scope
+
+The subsequent request to investigate and repair the measurement failure
+authorizes local implementation and regression verification, not a reset of
+the failed pair or closure of the historical runtime trigger. Cold A and the
+unexecuted B remain unchanged. The correction is the small POSIX
+[measurement guard](../../scripts/measure_command.py), reusing the temporary
+deadline's monotonic clock and owned-process-group cleanup. Invoke it directly
+around the command, without `time -l` or another resource-reporting wrapper.
+
+The failure reproduces without Julia: in the same sandbox, `time -l true`
+returns 1 and `time -l sh -c 'exit 7'` also returns 1; plain `time` preserves
+0 and 7 respectively. Apple's [published time implementation](https://github.com/apple-oss-distributions/shell_cmds/blob/main/time/time.c)
+waits for the child, prints elapsed/CPU time, then calls `getstathz()` for `-l`.
+Its denied `kern.clockrate` query calls `err(1, ...)` before returning the
+child's status. This matches the observed error; it does not establish the
+exact source revision of the installed macOS binary. The missing exact-wrapper
+permission preflight allowed this observer failure to surface only after A.
+
+Required local measurements are now monotonic elapsed seconds, the direct
+child's raw return code, and the guard's outcome/exit code. A completed command
+with child exit 124 is distinguishable from a guard timeout; launch, cleanup,
+and cancellation failures cannot become successful tests. Elapsed includes
+launch, wait, and cleanup, not just fitting; no maximum RSS or resource-counter
+report is claimed. [Python's monotonic clock](https://docs.python.org/3/library/time.html#time.monotonic)
+does not depend on wall-clock adjustments. The guard preserves argv, inherited
+environment, stdout/stderr, and the 1,800-second upper bound; it adds no package
+dependency, cache policy, sampler change, or automatic retry.
+
+Before a fit, run `python3 scripts/measure_command.py --self-test` in the same
+permission context, then run the native no-fit launch with that guard. The
+self-test covers actual subprocess outcomes, invalid bounds, launch failures,
+SIGINT/SIGTERM/SIGHUP cancellation, timeouts, and parent/child cleanup, including
+a child left by a normally exiting parent. Controlled workers keep an inherited
+pipe open until exit, so EOF checks cleanup without requiring sandbox-sensitive
+`ps`. The same check is
+wired into the existing Linux hygiene and macOS smoke jobs; it is not a Windows
+runner or a dependency of Julia package loading. Containment remains an owned
+POSIX group: deliberately detached descendants and a guard killed by SIGKILL
+or another unhandled fatal signal require OS-level supervision, not an assertion
+of full tree safety.
+
+Verification C is limited to **one additional ordinary fitting command**,
+with the existing 30-minute deadline and all 2,755 assertions unchanged, after
+the no-fit gate passes. It uses the retained isolated `ad57606` source and
+frozen root/test environments; these package/test bytes also match the current
+worktree. Retained caches may be reused and warmed by preflight. C is therefore
+an integration check of the repaired observer, **not warm B**, a fresh cold/warm
+pair, a controlled cache effect, or a scientific evaluation. No baseline restore,
+retry, shared-depot change, CI timeout increase, or external publication is
+part of this verification. Retain failure and stop if C does not pass.
+
+The first corrected-guard native preflight failed in **22.647311s**, before any
+fit, and correctly retained child/outer exit 1. The old unconditional `--load`
+no-fit hook was also applied to Pkg's auto-precompile cache-flags probe when
+`JULIA_PKG_PRECOMPILE_AUTO=1`; its diagnostic text reached a stdout channel that
+Pkg parses as an integer. The earlier preflight had used auto-precompile 0.
+This is a preflight-hook defect, not a model failure or an observer-status
+regression. The corrected one-off hook is guarded by the exact Julia/Pkg build
+and native test payload: it leaves cache-flags/compile workers untouched, exits
+only before the intended test payload, and rejects unexpected commands. The
+second native preflight passed in **23.509134s**, with auto-precompile still 1,
+the native test and plan children in the owned group, effective graph/thread
+checks passed, and all copied source/manifest bytes unchanged. Neither preflight
+ran fitting assertions. Both outcomes are retained; together they used 46.156445s
+of the 900s no-fit preparation allowance. The guard's standalone self-test now
+also injects a cleanup-observer failure, retaining child exit 7 separately from
+observer exit 125.
+
+The unchanged baseline revision `a916346` has now completed
+[CI 34004236027](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/34004236027):
+all 12 ordinary jobs succeeded and both manual research jobs were skipped.
+That baseline result does not validate this guard or its new CI steps;
+candidate CI and review remain required before integration.
+
+### Verification C result
+
+On **2026-09-06 JST**, C ran once under the new guard, without sandbox escalation
+or an external timer. The launch was `python3 scripts/measure_command.py 1800 --
+/bin/bash <task>/launch.sh --verify`; the task-local launcher retained the
+environment controls above and invoked the unchanged original `measure.jl`.
+The guard reported **1,237.862374s (20m38s)**, `status=completed`, `child_exit=0`,
+and `exit=0`. The native testsets passed **2,641 + 114 = 2,755 assertions**.
+Final source/manifest checks passed, and a separate directory comparison matched
+the retained pre-A source baseline. An approved read-only post-run process check
+found no remaining member of C's owned group; that inspection is not a required
+permission of the guard itself.
+
+The compilation-inclusive block was **1,033.745311s**, with reported compilation
+77.13%, GC 1.12%, and 32.421 GiB cumulatively allocated, not maximum RSS.
+No package-precompile summary was emitted; this is not zero compilation.
+These observations establish a successful end-to-end measurement, not a speedup,
+a completed cold/warm pair, or an explanation of the historical CI trigger.
+The 21-case guard self-test passed with local Python **3.9.6 and 3.14.3**;
+the native preflight also preserved the cache-flags reply and rejected an
+unexpected payload before execution. No package dependency or scientific
+test assertion was changed. There is no further fit queued for this repair.
+
+The temporary `verification-C.log` has SHA-256
+`ab2439a860c67c4b7fef6e0ed4ab6dc39c9213a1d1a4d0f2f1a11b93d5f98cb9`;
+the executed guard has SHA-256
+`e7418fa37b665c6eb9c361e9f83fc2c16e2608fccb71f82fabbc778ae78d6ae4`.
+Both earlier preflight outcomes and the cold A receipt remain retained.
+
 ### Interpretation and stop rule
 
 Record command elapsed time, block time/compilation/GC, emitted precompile
@@ -274,7 +378,9 @@ explain the older CPU identities, or close M0. If verified reuse reduces only
 preparation, the next engineering target is the separately timed compilation
 block; if reuse fails, inspect that failure before proposing a cache change.
 Either result needs review before further repetitions or implementation.
-No profiler framework, package/CI change, cache deletion, manual dispatch, or
-scientific evaluation has been introduced. Only the existing fitting regression
-tests ran in A. The fixed 16-job window and the M1 independent-review gate remain
-intact; the observer stop does not close M0 or authorize another pair.
+Through cold A, no profiler framework, package/CI change, cache deletion, manual
+dispatch, or scientific evaluation was introduced. The correction above adds
+only the local guard and its no-fit CI checks, not a change to the measured Linux
+fitting command. The fixed 16-job window and the M1 independent-review gate
+remain intact; neither the observer stop nor its repair closes M0 or authorizes
+another cold/warm pair.
