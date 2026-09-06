@@ -125,9 +125,10 @@ execution, nor proof that restoring a package cache removes block compilation.
 
 ## Controlled comparison protocol
 
-The next diagnostic is **one ordered cold/warm pair**, not another pooled CI
-window. No pair has run. Use the available macOS / Homebrew Julia 1.12.5 / Apple
-M4 Max host first; this is explicitly separate from Linux / Julia 1.12.7 CI.
+The diagnostic specifies **one ordered cold/warm pair**, not another pooled CI
+window. Cold A ran; an observer failure stopped the pair before B (receipt below).
+The macOS / Homebrew Julia 1.12.5 / Apple M4 Max host is explicitly separate
+from Linux / Julia 1.12.7 CI.
 The question is whether effective package-cache reuse changes preparation
 cost while the compilation-inclusive test block remains expensive.
 
@@ -199,16 +200,62 @@ OpenMP code. The manifest labels OpenBLAS_jll **0.3.29+0**, so record the loaded
 binary as well as the dependency graph. This does not explain the historical
 CI regression or invalidate its thread logs.
 
-**No-fit preflight passed; A/B have not run.** Before A, retain the frozen
-environment and source, exclude the preflight-generated compiled cache from
-the cold depot without deleting user caches, and capture the non-compiled
-baseline for B's restoration. The preflight used `JULIA_PKG_PRECOMPILE_AUTO=0`
-only to suppress Pkg's automatic preparation pass; import-time compilation
-still occurred. Set it to `1` for both measured commands and record the final
-flags; automatic precompilation is not yet a measured or verified reuse result.
-The no-fit `Pkg.test()` success message is **not** a pass of the 2,755 assertions.
-Retain the earlier failures and these temporary local receipts; no measured
-attempt was consumed or retried.
+**The no-fit preflight passed; its success was not a pass of the 2,755 assertions.**
+It used `JULIA_PKG_PRECOMPILE_AUTO=0` only to suppress Pkg's automatic preparation
+pass; import-time compilation still occurred. A later used `1`, with the no-fit
+exit hook removed. Retain the earlier failures separately from the measured
+attempt below; preflight cache contents are not eligible as cold input.
+
+### Cold A result and observer stop
+
+On **2026-09-06 JST**, cold A ran once against the same `ad57606` source and
+frozen root/test environments. The preflight cache was moved aside, not deleted;
+the initial task depot had no compiled cache. Source bytes matched a fresh Git
+archive plus the two diagnostic manifests. Non-compiled source/depot snapshots
+were retained for B, but **restoration and B were not executed**.
+
+The initial depot `diff` emitted directory-loop warnings for macOS framework
+symlinks despite returning zero. A checksum-based `rsync` **dry run**, comparing
+links rather than following them, found no content/link/entry differences.
+The 664.443s environment preflight, 56.311s snapshot step, and 59.042s link-aware
+check total **779.796s**, within the 900s preparation allowance; these are
+executed preparation-command times, not elapsed time between conversation turns.
+No preparation job or measured attempt was silently restarted.
+
+| Cold A observation | Retained result |
+| --- | --- |
+| Native tests | `minimal Bayesian MFRM fitting`: 2,641 / 2,641; `scalar validation analytic gradient`: 114 / 114; all 2,755 passed |
+| Command elapsed | `/usr/bin/time`: 1,505.55s; deadline wrapper: 1,505.555s, no timeout; approximately 25m06s |
+| Existing compilation-inclusive block | 888.559782s; reported compilation 80.69%, GC 1.76%; 32.421 GiB allocated, not resident memory |
+| Command minus block | 616.990218s; includes other command work, not a sampler-only measurement |
+| Emitted precompile summaries | 26 dependencies / 92s and 292 / 364s; rounded summaries, not counts of unique packages or a complete additive profiler |
+| Integrity and controls | Native test graph matched all 180 frozen entries; source and both manifests remained byte-identical after tests. Actual test command retained bounds checking, Julia threads 1/0 and GC 1; the test log reported BLAS 2 |
+| Overall command outcome | Julia tests and final integrity checks succeeded, then `time -l` failed: `sysctl kern.clockrate: Operation not permitted`; outer exit **1**, no surviving owned-group process |
+| Warm B / inference | Not run. No cache-reuse effect, speedup, or complete pair is available |
+
+The 24-dependency "different versions currently loaded" warning is retained.
+The local Julia precompiler increments that warning count for an already-loaded
+module that it recompiles; the text alone is not evidence of dependency-version
+drift. All 178 shared root/test package UUIDs, versions, and source hashes match;
+the extra test entries are ReverseDiff and StaticArrays. A direct dictionary
+comparison was too strict because the manifests encode local paths and weak
+dependencies differently; path/UUID-aware checks confirmed their equivalence.
+Each environment also matched its own frozen representation exactly during A.
+
+The observer failure reproduced without fitting: sandboxed `time -l true`
+returned 1, ordinary `time true` returned 0, and `time -l true` with approved
+unsandboxed read access returned 0. Thus the failure belongs to the local
+resource observer, not the model tests. The complete `time -l` resource report
+is unavailable; later probes do not fill it in retroactively. The existing
+warm-launch guard requires a successful **outer command**, so B stayed closed.
+Do not relabel A as an entirely successful measurement or rerun it automatically.
+
+Next, review using the existing deadline elapsed time and plain `time` instead
+of `-l`; require an exact launch-context no-fit observer check before any further
+measurement. Another fit needs a reviewed attempt-budget decision, not a reset
+of this pair. No package, sampler, test, dependency declaration, or CI change is
+indicated by this permission failure. The temporary raw A log is retained with
+SHA-256 `fa92aac05ce66064f8b885119fa6a72bd28ac7345987f4d4f16f965ab030fbc8`.
 
 ### Interpretation and stop rule
 
@@ -228,5 +275,6 @@ preparation, the next engineering target is the separately timed compilation
 block; if reuse fails, inspect that failure before proposing a cache change.
 Either result needs review before further repetitions or implementation.
 No profiler framework, package/CI change, cache deletion, manual dispatch, or
-fresh fit/evaluation has been introduced. The fixed 16-job window and the M1
-independent-review gate remain intact.
+scientific evaluation has been introduced. Only the existing fitting regression
+tests ran in A. The fixed 16-job window and the M1 independent-review gate remain
+intact; the observer stop does not close M0 or authorize another pair.
