@@ -135,7 +135,7 @@ cost while the compilation-inclusive test block remains expensive.
 | --- | --- |
 | Source and workload | One temporary, Git-free copy of `ad57606`; identical package, test, script, and fixture bytes for both attempts. Preserve both fitting testsets, all 2,755 assertions, seeds, and draws. Only local diagnostic environment files may be added |
 | Resolved environment | Prepare once, outside measurement; retain the root and effective test Project/Manifest files, preferences, exact Julia build, and package identities/versions/tree hashes. Include test-only ReverseDiff and its dependencies. Require `Pkg.test(; allow_reresolve=false)` and check the effective graph in each attempt, not only the root file |
-| Process settings | Fresh Julia process each time; one default thread, zero interactive threads, one GC thread, two effective BLAS threads in the test child, and `JULIA_NUM_PRECOMPILE_TASKS=2`. Record the BLAS provider, native CPU target, and all subprocess flags; keep them fixed, including bounds checking |
+| Process settings | Fresh Julia process each time; one default thread, zero interactive threads, one GC thread, two effective BLAS threads in the test and plan children, and `JULIA_NUM_PRECOMPILE_TASKS=2`. On this OpenMP host, set both `OPENBLAS_NUM_THREADS=2` and `OMP_NUM_THREADS=2`. Record the actual BLAS binary, native CPU target, and all subprocess flags; keep them fixed, including bounds checking |
 | Depot isolation | A task-owned depot and restricted load path; no fallback to the user's compiled caches or global environment. Keep bundled Julia resources identical. Prepare packages/artifacts/registry data before measurement; do not update or download during the pair |
 | Cold A | Start with no third-party compiled package cache in the task depot. This is not a cold OS page cache or a Julia build without bundled caches |
 | Warm B | At the same source/depot paths, restore the prepared non-compiled baseline and reuse only the compiled cache produced by successful A. Do not reuse A's Julia process, draws, or fit-result files. A continuing precompile/rebuild in B is a result to retain, not a reason to silently retry |
@@ -162,25 +162,53 @@ checks are not the required hard deadline.
 
 ### Preflight result and execution gate
 
-The MCMC-free local probe passed **12 checks** for isolated depot/load paths,
+The initial MCMC-free local probe passed **12 checks** for isolated depot/load paths,
 explicit Julia/BLAS thread settings, the existing `fitting_core` selector, and
 rejection of invalid/research-enabled shard combinations. TOML inspection found
 ReverseDiff absent from both the local Julia 1.12.5 root manifest and the tracked
 Julia 1.10.8 manifest. Neither file was changed.
 
-An earlier negative probe caught an important local mismatch:
-`OPENBLAS_NUM_THREADS=2` alone reported 14 BLAS threads with the Homebrew
-ILP64 OpenBLAS 0.3.32 library. Calling `BLAS.set_num_threads(2)` in that process
-reported two. This establishes the need to verify effective settings, not the
-library-level cause of the environment-variable behavior. A parent-process
-setting does not configure a fresh `Pkg.test()` child or the plan subprocess;
-verify control/inheritance there before measurement. Do not infer that the
-historical CI thread logs are wrong.
+The native-path follow-up on **2026-09-06 JST** completed successfully in
+**664.443 seconds (11m04s)**, within the 15-minute preparation cap. It used an
+isolated copy of `ad57606`, Homebrew Julia 1.12.5 / bundled Pkg 1.12.1, offline
+task-owned package/artifact/registry copies, and no user-depot fallback.
 
-**Execution gate remains open:** the complete isolated test environment,
-effective child/subprocess settings, and process-tree deadline still need a
-no-fit verification. The 12 checks are not an end-to-end dry run. Retain all
-preflight failures; do not start A merely because the source tree is clean.
+| No-fit check | Observed result |
+| --- | --- |
+| Complete environment | Root graph: 178 entries; native merged test graph: 180, including ReverseDiff 1.17.0. Saved the native test Project/Manifest, added the latter only to the temporary copy's `test/Manifest.toml`, and replayed `Pkg.test(; allow_reresolve=false)` with exact graph/project equality |
+| Actual test child | Fresh native `Pkg.test()` child loaded the package and test dependencies: Julia default/interactive 1/0, GC 1, BLAS 2; effective graph and shard selector matched |
+| Actual plan child | The existing plan script ran with `--help`, after a startup check of its root activation: the same effective thread counts, isolated depot, and root graph; no plan generation or fit |
+| Cancellation | Stdlib deadline self-check covered success, nonzero exit, and timeout of a parent/child pair that ignored SIGTERM. Both stopped. The preparation Julia, native test child, observed precompiler, and plan child shared the owned process group |
+| Integrity and scope | All tracked copied source bytes and the prepared root manifest were unchanged. The startup hook exited before the original `test/runtests.jl`; no fitting testset or scientific evaluation ran |
+
+The one-off environment capture uses the audited private `test_fn` hook in
+**Pkg 1.12.1**, guarded by exact Julia/Pkg version assertions; it is not a public
+package API or a portable new runner. Deadline handling uses Python stdlib
+[`start_new_session` / timeout waiting](https://docs.python.org/3/library/subprocess.html)
+and [`os.killpg`](https://docs.python.org/3/library/os.html#os.killpg), including
+group cleanup on exit. Its ceiling is an owned POSIX process group, not arbitrary
+daemonizing descendants; the observed Julia path remained in that group.
+
+The earlier negative BLAS probe (`OPENBLAS_NUM_THREADS=2` alone yielded 14)
+now has a local explanation: the loaded ILP64 OpenBLAS **0.3.32** binary reports
+parallel mode **2 (OpenMP)**. This build uses `OMP_NUM_THREADS`, as documented by
+[OpenBLAS](https://www.openmathlib.org/OpenBLAS/docs/runtime_variables/).
+Both variables set to two produced BLAS 2 in the actual children without a
+parent-only setter. Keep the OpenMP setting fixed too: it can affect other
+OpenMP code. The manifest labels OpenBLAS_jll **0.3.29+0**, so record the loaded
+binary as well as the dependency graph. This does not explain the historical
+CI regression or invalidate its thread logs.
+
+**No-fit preflight passed; A/B have not run.** Before A, retain the frozen
+environment and source, exclude the preflight-generated compiled cache from
+the cold depot without deleting user caches, and capture the non-compiled
+baseline for B's restoration. The preflight used `JULIA_PKG_PRECOMPILE_AUTO=0`
+only to suppress Pkg's automatic preparation pass; import-time compilation
+still occurred. Set it to `1` for both measured commands and record the final
+flags; automatic precompilation is not yet a measured or verified reuse result.
+The no-fit `Pkg.test()` success message is **not** a pass of the 2,755 assertions.
+Retain the earlier failures and these temporary local receipts; no measured
+attempt was consumed or retried.
 
 ### Interpretation and stop rule
 
