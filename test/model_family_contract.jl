@@ -31,7 +31,6 @@ end
         :guarded_experimental_warning_bearing,
         :blocked,
         :density_diagnostics_only_fit_blocked,
-        :specified_only,
     ))
 
     data = _model_family_test_data(4)

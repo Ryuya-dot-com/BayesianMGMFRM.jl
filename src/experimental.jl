@@ -1,7 +1,7 @@
 """
     BayesianMGMFRM.Experimental
 
-Namespace for generalized model surfaces that are available in limited,
+Namespace for multidimensional MFRM and generalized models available in limited,
 experimental configurations but are not part of the stable MFRM fitting
 contract.
 
@@ -10,7 +10,10 @@ Use [`BayesianMGMFRM.Experimental.preview`](@ref),
 [`BayesianMGMFRM.Experimental.fit`](@ref), and
 [`BayesianMGMFRM.Experimental.cached_fit`](@ref) instead of adding
 `experimental = true` to the stable entry points. The legacy keyword remains
-available for source compatibility during the namespace migration.
+available for source compatibility for GMFRM/MGMFRM. Fixed-coefficient
+multidimensional MFRM uses `Experimental.fit` and manual
+`save_fit_cache`/`load_fit_cache`; preview, prior prediction and automatic cache
+entries in this namespace still accept only GMFRM/MGMFRM.
 
 The narrower
 [`BayesianMGMFRM.Experimental.free_latent_correlation_2d_candidate`](@ref)
@@ -38,6 +41,13 @@ type remains at package root so existing serialized fit caches keep their
 Julia type identity during the namespace migration.
 """
 const MGMFRMFit = getfield(_PACKAGE, :MGMFRMFit)
+
+"""
+Result of experimental fixed-coefficient multidimensional MFRM fitting.
+Use `Experimental.fit(spec)` to estimate; the defining type stays at package
+root so existing serialized results retain their identity.
+"""
+const MultidimensionalMFRMFit = getfield(_PACKAGE, :MultidimensionalMFRMFit)
 
 """
 Experimental prior-scale type for guarded GMFRM and MGMFRM fits. Its six
@@ -107,6 +117,30 @@ function _family_surface_contract(family::Symbol)
     )
 end
 
+function _mfrm_surface_contract()
+    return (;
+        family = :mfrm, status = :experimental,
+        scope = :fixed_coefficient_multidimensional_mfrm,
+        minimum_dimensions = 2, maximum_dimensions = nothing,
+        threshold_regimes = (:partial_credit,), discrimination = (:none,),
+        fixed_q_required = true, anchors_allowed = false, fitted_dff_allowed = false,
+        kernel_discrimination = :fixed_q_coefficients, rater_consistency = :fixed_one,
+        step_sharing = :item_specific_shared_across_raters_dimensions_and_persons,
+        step_constraint = :first_step_zero_remaining_steps_sum_to_zero,
+        expected_blocks = (:person, :rater_free, :item, :item_steps),
+        latent_correlation = :identity_fixed, location = :prior_anchored,
+        scale_convention = :unit_logit,
+        prior = (; constructor = :MFRMPrior, parameter_space = :unit_logit_free,
+            family = :independent_zero_centered_normal, custom_scales_allowed = true,
+            prior_predict_available = false, prior_predictive_check_available = false,
+            jacobian_policy = :none_declared_free_coordinate_density),
+        backend = :advancedhmc, supported_backends = (:advancedhmc, :cmdstan),
+        sampler_defaults = _family_surface_contract(:mgmfrm).sampler_defaults,
+        record_warmup_default = true, fit_enabled = true, automatic_cache_enabled = false,
+        manual_cache_operations = (:save_fit_cache, :load_fit_cache),
+        claim_scope = :fixed_coefficient_multidimensional_mfrm)
+end
+
 function _free_latent_correlation_2d_contract()
     return (;
         family = :mgmfrm,
@@ -164,8 +198,8 @@ end
 
 Return the machine-readable stability boundary for the experimental namespace.
 The zero-argument form describes the executable configurations and constraints
-for both generalized families. Pass `:gmfrm` or `:mgmfrm` for one family
-contract.
+for fixed-coefficient multidimensional MFRM and both generalized families.
+Pass `:mfrm`, `:gmfrm` or `:mgmfrm` for one family contract.
 """
 function surface_contract()
     return (
@@ -178,6 +212,7 @@ function surface_contract()
         reader_facing_bindings = (
             :GMFRMFit,
             :MGMFRMFit,
+            :MultidimensionalMFRMFit,
             :GeneralizedPrior,
             :cached_fit,
             :fit,
@@ -192,6 +227,7 @@ function surface_contract()
             :surface_contract,
         ),
         families = (
+            mfrm = _mfrm_surface_contract(),
             gmfrm = _family_surface_contract(:gmfrm),
             mgmfrm = _family_surface_contract(:mgmfrm),
         ),
@@ -214,8 +250,9 @@ free_latent_correlation_2d_contract() =
     _free_latent_correlation_2d_contract()
 
 function surface_contract(family::Symbol)
+    family === :mfrm && return _mfrm_surface_contract()
     family in (:gmfrm, :mgmfrm) ||
-        throw(ArgumentError("family must be :gmfrm or :mgmfrm"))
+        throw(ArgumentError("family must be :mfrm, :gmfrm or :mgmfrm"))
     return _family_surface_contract(family)
 end
 
@@ -594,14 +631,28 @@ end
 """
     fit(spec; kwargs...)
 
-Fit a supported generalized specification through the experimental namespace.
+Fit a supported multidimensional MFRM or generalized specification experimentally.
 Callers should not pass an `experimental` keyword. Family-specific structural
-constraints are validated before numerical execution. Both guarded families
+constraints are validated before numerical execution. Supported configurations
 accept `backend = :advancedhmc` or `:cmdstan`.
+
+Also accepts fixed-coefficient multidimensional MFRM (`family = :mfrm`,
+`dimensions >= 2`, fixed `q_matrix`, partial-credit thresholds). Use `MFRMPrior`
+for independent normal priors on free unit-logit coordinates. Q coefficients
+and rater consistency are fixed; latent correlation is identity and locations
+are prior-anchored. Both backends return `MultidimensionalMFRMFit`, with warmup
+sampler statistics recorded by default (`record_warmup = true`). Save and reload
+with `save_fit_cache`/`load_fit_cache`; automatic request caching is unavailable.
+Shared sampler controls include `ndraws`, `warmup`, `chains`, `seed`, `init`,
+`step_size`, `target_accept`, `max_depth`, and stored diagnostic thresholds.
+CmdStan additionally accepts `cmdstan_path` and `cmdstan_cache_dir`.
 """
 function fit(spec; kwargs...)
-    checked = _require_generalized_spec(spec, "Experimental.fit")
     _reject_legacy_keyword(kwargs, "Experimental.fit")
+    if spec isa _FacetSpec && getfield(_PACKAGE, :_is_mfrm_fixed_q)(spec)
+        return getfield(_PACKAGE, :_mfrm_fixed_q_fit)(spec; kwargs...)
+    end
+    checked = _require_generalized_spec(spec, "Experimental.fit")
     return getfield(_PACKAGE, :_fit_guarded_generalized)(checked; kwargs...)
 end
 

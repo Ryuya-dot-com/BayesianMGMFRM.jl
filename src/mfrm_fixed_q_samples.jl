@@ -1,4 +1,4 @@
-# Canonical fixed-coefficient specification; fitting remains private.
+# Canonical fixed-coefficient specification; stable fitting remains separate.
 function _check_mfrm_fixed_q_options(family, dimensions, thresholds, discrimination, bias, anchors)
     _is_mfrm_fixed_q(family, dimensions) || return nothing
     thresholds === :partial_credit && discrimination === :none && isempty(bias) && isempty(anchors) ||
@@ -67,8 +67,8 @@ end
 
 function _reject_mfrm_fixed_q_fit(spec::FacetSpec, caller::AbstractString)
     _is_mfrm_fixed_q(spec) && throw(ArgumentError(
-        "$caller does not yet support multidimensional MFRM fitting or fit caches. " *
-        "Use getdesign(spec; preview = true) for inspection; the experimental fitting workflow is not available yet."))
+        "$caller does not support multidimensional MFRM. " *
+        "Use BayesianMGMFRM.Experimental.fit(spec), then save_fit_cache/load_fit_cache; automatic request caching is unavailable."))
     return nothing
 end
 
@@ -236,7 +236,7 @@ function _load_mfrm_fixed_q_samples(path::AbstractString; expected_identity::Abs
     return _restore_mfrm_fixed_q_samples(open(deserialize, path); expected_identity)
 end
 
-# Root type identity is reserved for persistence; construction and fitting stay private.
+# Root type identity is preserved for persistence; fitting uses Experimental.fit.
 struct MultidimensionalMFRMFit
     record::NamedTuple
 
@@ -252,7 +252,7 @@ _mfrm_fixed_q_fit(result::NamedTuple) = MultidimensionalMFRMFit(result.record;
 
 function _mfrm_fixed_q_fit(spec::FacetSpec; prior::MFRMPrior = MFRMPrior(),
         backend::Symbol = :advancedhmc, init = nothing, kwargs...)
-    _is_mfrm_fixed_q(spec) || throw(ArgumentError("private multidimensional MFRM fitting requires family = :mfrm and dimensions >= 2"))
+    _is_mfrm_fixed_q(spec) || throw(ArgumentError("multidimensional MFRM fitting requires family = :mfrm and dimensions >= 2"))
     target = _MFRMFixedQReferenceLogDensity(spec; prior)
     initial = _fit_initial_params(target.design, init)
     return _mfrm_fixed_q_fit(_mfrm_fixed_q_sample(target, initial; backend, kwargs...))
@@ -281,6 +281,14 @@ end
 
 function fit_metadata(fit::MultidimensionalMFRMFit; view::Symbol = :full)
     view === :full || throw(ArgumentError("multidimensional MFRM result metadata currently supports view = :full only"))
+    metadata = _mfrm_fixed_q_legacy_fit_metadata(fit)
+    return _is_mfrm_fixed_q(fit.record.spec) ? merge(metadata, (;
+        estimation_status = :experimental, public_fit = true, experimental_public = true,
+        fitting_available = true)) : metadata
+end
+
+# Frozen v1 persistence metadata; existing cache artifacts must rebuild exactly.
+function _mfrm_fixed_q_legacy_fit_metadata(fit::MultidimensionalMFRMFit)
     checked = _mfrm_fixed_q_samples(fit)
     spec, run = checked.record.spec, checked.record.run
     return deepcopy(merge(_mfrm_fixed_q_metadata(checked), (;
@@ -303,7 +311,7 @@ function Base.show(io::IO, fit::MultidimensionalMFRMFit)
     metadata = fit_metadata(fit)
     print(io, metadata.model_label, " (", metadata.dimensions, " dimensions, ",
         metadata.n_draws, " retained draws, ", metadata.backend_label,
-        "; unit logits; private result)")
+        "; unit logits; ", metadata.experimental_public ? "experimental)" : "private result)")
 end
 
 function posterior_summary(fit::MultidimensionalMFRMFit;
@@ -344,7 +352,7 @@ end
 
 function _mfrm_fixed_q_artifact_payload(fit::MultidimensionalMFRMFit;
         include_draws::Bool, include_log_posterior::Bool, include_sampler_stats::Bool,
-        include_environment::Bool, include_packages::Bool,
+        include_environment::Bool, include_packages::Bool, legacy::Bool = false,
         split_chains::Bool = fit.record.run.split_chains_requested,
         rhat_threshold::Real = fit.record.run.checked.rhat_threshold,
         ess_threshold::Real = fit.record.run.checked.ess_threshold)
@@ -353,18 +361,25 @@ function _mfrm_fixed_q_artifact_payload(fit::MultidimensionalMFRMFit;
     _is_mfrm_fixed_q(record.spec) || throw(ArgumentError(
         "fit artifacts and fit caches require canonical multidimensional MFRM samples; use the private loader for legacy samples"))
     diagnostic = diagnostics(fit; split_chains, rhat_threshold, ess_threshold)
-    metadata = fit_metadata(fit)
+    metadata = legacy ? _mfrm_fixed_q_legacy_fit_metadata(fit) : fit_metadata(fit)
     rng = get(run.controls, :rng, (; algorithm = missing, seed = missing, replayable = false))
     manifest = merge(model_manifest(getdesign(record.spec; preview = true)),
         (; object = :fit, fit = metadata, diagnostics = diagnostic.summary))
+    if legacy
+        equation = merge(manifest.spec.equation, (;
+            implementation_gaps = [:experimental_fit_cache_report_workflow],
+            experimental_fit_available = false, experimental_fit_entrypoint = nothing))
+        manifest = merge(manifest, (; spec = merge(manifest.spec, (; equation))))
+    end
     policy = (; draws = _artifact_inclusion_flag(include_draws),
         log_posterior = _artifact_inclusion_flag(include_log_posterior),
         sampler_stats = _artifact_inclusion_flag(include_sampler_stats),
         environment = _artifact_inclusion_flag(include_environment),
         package_status = _artifact_inclusion_flag(include_environment && include_packages))
-    return (; schema = "bayesianmgmfrm.mfrm_fixed_q_fit_artifact.v1",
+    return (; schema = legacy ? "bayesianmgmfrm.mfrm_fixed_q_fit_artifact.v1" :
+            "bayesianmgmfrm.mfrm_fixed_q_fit_artifact.v2",
         object = :fit_artifact, family = :mfrm, model = :mfrm_fixed_q,
-        status = :private_reference, manifest, diagnostics = diagnostic,
+        status = legacy ? :private_reference : :experimental, manifest, diagnostics = diagnostic,
         posterior_summary = posterior_summary(fit),
         direct_posterior_summary = direct_posterior_summary(fit),
         reproducibility = (; data_signature = record.spec.validation.data_signature,
@@ -396,7 +411,7 @@ end
 
 function _public_fit_artifact_projection(artifact, fit::MultidimensionalMFRMFit)
     metadata = merge(fit_metadata(fit), (; estimation_status = :experimental,
-        fitting_available = false))
+        fitting_available = true))
     manifest = merge(model_manifest(getdesign(fit.record.spec; preview = true); view = :public),
         (; object = :fit, fit = _public_fit_report_project_value(metadata)))
     payload = merge(_public_fit_report_project_value(_artifact_hash_payload(artifact)), (;
@@ -462,6 +477,9 @@ Base.@nospecializeinfer function _check_mfrm_fixed_q_cache_record(@nospecialize(
         serialization.portability === :same_julia_major_minor_recommended ||
         throw(ArgumentError("invalid multidimensional MFRM serialization metadata at $path"))
     artifact = record.artifact
+    _nt_get(artifact, :schema, nothing) in ("bayesianmgmfrm.mfrm_fixed_q_fit_artifact.v1",
+        "bayesianmgmfrm.mfrm_fixed_q_fit_artifact.v2") ||
+        throw(ArgumentError("unsupported multidimensional MFRM artifact schema at $path"))
     reproducibility = _nt_get(artifact, :reproducibility, nothing)
     policy = reproducibility isa NamedTuple ? _nt_get(reproducibility, :artifact_policy, nothing) : nothing
     policy isa NamedTuple && keys(policy) == (:draws, :log_posterior, :sampler_stats, :environment, :package_status) &&
@@ -471,6 +489,7 @@ Base.@nospecializeinfer function _check_mfrm_fixed_q_cache_record(@nospecialize(
     (policy.environment === :included ? artifact.environment isa AbstractDict : artifact.environment === nothing) ||
         throw(ArgumentError("multidimensional MFRM artifact environment policy mismatch at $path"))
     expected = _mfrm_fixed_q_artifact_payload(record.fit;
+        legacy = artifact.schema == "bayesianmgmfrm.mfrm_fixed_q_fit_artifact.v1",
         include_draws = policy.draws === :included, include_log_posterior = policy.log_posterior === :included,
         include_sampler_stats = policy.sampler_stats === :included, include_environment = policy.environment === :included,
         include_packages = policy.package_status === :included)
@@ -725,8 +744,8 @@ Report a saved fixed-coefficient multidimensional MFRM result, including its
 rating-design audit and reproducibility artifact summary. Use
 `include_full_artifact = true` to embed the full artifact, or `view = :public`
 for reader-facing output. This experimental result uses unit logits, fixed Q
-coefficients and fixed identity latent correlation; its fitting entry remains
-unavailable. Other unsupported analyses are labelled in the report.
+coefficients and fixed identity latent correlation. Estimate it with
+`BayesianMGMFRM.Experimental.fit`. Unsupported analyses are labelled in the report.
 
 Posterior bounds must be central and strictly inside `(0, 1)`. Prediction uses
 the existing rating rows and a local `seed`; posterior summaries and diagnostics
@@ -779,8 +798,8 @@ function fit_report(fit::MultidimensionalMFRMFit; view::Symbol = :full,
     report = merge(base, (; family = :mfrm, model = :mfrm_fixed_q,
         estimation_status = :experimental,
         metadata = merge(fit_metadata(fit), (; estimation_status = :experimental,
-            fitting_available = false,
-            interpretation = "Experimental saved-result reporting; the fitting entry is not available yet.")),
+            fitting_available = true,
+            interpretation = "Experimental fixed-coefficient multidimensional MFRM reporting in unit logits.")),
         manifest, rating_design, artifact,
         report_policy = merge(base.report_policy, (; posterior_lower = lower, posterior_upper = upper,
             include_artifact, include_full_artifact, require_complete))))

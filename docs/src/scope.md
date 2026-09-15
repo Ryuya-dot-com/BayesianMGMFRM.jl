@@ -8,7 +8,8 @@ path, diagnostics, and user-facing examples are covered together.
 
 | Model surface | Status | Notes |
 |:--|:--|:--|
-| MFRM with rating-scale or partial-credit steps | Supported | Available through the documented design, fitting, diagnostic, and reporting workflow. |
+| One-dimensional MFRM with rating-scale or partial-credit steps | Supported | Available through the documented design, fitting, diagnostic, and reporting workflow. |
+| Fixed-coefficient multidimensional MFRM | Experimental | `Experimental.fit` on Julia or CmdStan; fixed Q coefficients, unit logits and identity latent correlation. Manual caches and report/figure bundles are available. |
 | Scalar GMFRM: item discrimination × rater consistency | Experimental | Enter through `BayesianMGMFRM.Experimental`; the documented structural restrictions remain mandatory. |
 | Fixed-Q confirmatory MGMFRM | Experimental | Enter through `BayesianMGMFRM.Experimental`; requires at least two dimensions and a fixed confirmatory loading design. |
 | Broader generalized discrimination structures | Not supported | No stable fitting claim is made. |

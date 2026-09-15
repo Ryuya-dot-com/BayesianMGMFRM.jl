@@ -5522,7 +5522,9 @@ a reader-facing, path-free projection with its own verifiable content hash.
 Stored fixed-coefficient multidimensional MFRM results support both views and
 use their recorded diagnostic settings. Their artifact retains both free and
 reconstructed unit-logit summaries and the source sample identity. The public
-view labels saved-result support experimental; fitting remains unavailable.
+view labels support experimental. Estimate with `BayesianMGMFRM.Experimental.fit`.
+New full artifacts use `mfrm_fixed_q_fit_artifact.v2`; cache readers also validate
+old v1 artifacts with their original metadata and hashes unchanged.
 """
 function fit_artifact(fit::MFRMFit;
         view::Symbol = :full,
@@ -9211,7 +9213,7 @@ Saved fixed-coefficient multidimensional MFRM fits support posterior,
 diagnostics and predictive figures with their stored diagnostic settings.
 Their plots use model coordinates in unit logits; `seed` defaults to 1 for
 both figure and report-only bundles. These saved-result outputs remain
-experimental; their fitting entry is not yet available.
+experimental; estimate with `BayesianMGMFRM.Experimental.fit`.
 
 All optional figures render before destination exports are written. A figure
 bundle uses manifest schema v2, with hashes for every PDF, SVG and JSON input;

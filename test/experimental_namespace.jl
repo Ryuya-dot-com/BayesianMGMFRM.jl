@@ -34,6 +34,7 @@ end
     @test Set(contract.reader_facing_bindings) == Set((
         :GMFRMFit,
         :MGMFRMFit,
+        :MultidimensionalMFRMFit,
         :GeneralizedPrior,
         :cached_fit,
         :fit,
@@ -59,6 +60,14 @@ end
         generalized_surfaces)
     @test all(row -> row.legacy_entrypoint == contract.legacy_entrypoint,
         generalized_surfaces)
+    mfrm_surface = only(row for row in release_scope.public_fit_surfaces
+        if row.surface === :fixed_coefficient_multidimensional_mfrm)
+    @test mfrm_surface.public_fit && mfrm_surface.experimental_public
+    @test mfrm_surface.entrypoint == contract.entrypoint
+    @test mfrm_surface.q_matrix_policy === :fixed_coefficients
+    mfrm_ladder = only(row for row in model_ladder(; view=:public)
+        if row.claim_scope === :fixed_coefficient_multidimensional_mfrm)
+    @test mfrm_ladder.fit_available && mfrm_ladder.stability === :experimental
     gmfrm_contract = experimental.surface_contract(:gmfrm)
     mgmfrm_contract = experimental.surface_contract(:mgmfrm)
     @test gmfrm_contract.scope === :scalar_rater_consistency_gmfrm
@@ -94,7 +103,20 @@ end
     @test mgmfrm_contract.supported_backends == (:advancedhmc, :cmdstan)
     @test mgmfrm_contract.sampler_defaults == gmfrm_contract.sampler_defaults
     @test mgmfrm_contract.fixed_q_required
-    @test_throws ArgumentError experimental.surface_contract(:mfrm)
+    mfrm_contract = experimental.surface_contract(:mfrm)
+    @test mfrm_contract == contract.families.mfrm
+    @test mfrm_contract.scope === :fixed_coefficient_multidimensional_mfrm
+    @test mfrm_contract.fit_enabled && !mfrm_contract.automatic_cache_enabled
+    @test mfrm_contract.minimum_dimensions == 2 && mfrm_contract.maximum_dimensions === nothing
+    @test mfrm_contract.supported_backends == (:advancedhmc, :cmdstan)
+    @test mfrm_contract.prior.constructor === :MFRMPrior
+    @test mfrm_contract.prior.jacobian_policy === :none_declared_free_coordinate_density
+    @test mfrm_contract.scale_convention === :unit_logit
+    @test mfrm_contract.latent_correlation === :identity_fixed
+    @test mfrm_contract.sampler_defaults == gmfrm_contract.sampler_defaults
+    @test mfrm_contract.record_warmup_default
+    @test experimental.MultidimensionalMFRMFit === BayesianMGMFRM.MultidimensionalMFRMFit
+    @test_throws ArgumentError experimental.surface_contract(:unknown)
     @test experimental.GMFRMFit === BayesianMGMFRM.GMFRMFit
     @test experimental.MGMFRMFit === BayesianMGMFRM.MGMFRMFit
 
@@ -249,7 +271,7 @@ end
     @test isequal(model_ladder(), model_ladder(view = :full))
     public_ladder = model_ladder(view = :public)
     @test count(row -> row.stability === :experimental && row.fit_available,
-        public_ladder) == 2
+        public_ladder) == 3
     @test all(row -> all(field -> !haskey(row, field),
         (:scope, :estimation_status, :public_fit, :experimental_public)),
         public_ladder)

@@ -58,9 +58,9 @@ function _model_family_branch_rows()
             category_kernel = :multidimensional_partial_credit,
             loading_policy = :fixed_q_coefficients,
             step_owner = :item,
-            implementation_status = :specified_only,
-            fit_available = false,
-            entrypoint = nothing,
+            implementation_status = :guarded_experimental,
+            fit_available = true,
+            entrypoint = experimental_entrypoint,
             claim_scope = :fixed_coefficient_multidimensional_mfrm,
         ),
         _model_family_branch_row(;

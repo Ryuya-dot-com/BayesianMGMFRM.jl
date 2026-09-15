@@ -76,7 +76,7 @@ end
             @test manifest.spec.q_matrix_validation.passed
             @test manifest.design.raw_parameterization.density_space === :unit_logit_free
             layout = fit_ready_parameter_layout(design; view)
-            @test !(view === :full ? layout.fit_ready : layout.fit_available)
+            @test view === :full ? !layout.fit_ready : layout.fit_available
         end
         contract = model_family_contract(spec)
         @test contract.branch === :mfrm_fixed_q
@@ -85,9 +85,9 @@ end
         @test contract.category.implementation_scale_constant == 1
         @test !contract.category.generalized_discrimination
         @test contract.steps.constraint === :first_step_zero_remaining_steps_sum_to_zero
-        @test !contract.support.fit_available && !contract.support.scientific_validation_implied
-        @test !model_equation(spec).fit_ready && !model_equation(spec).experimental_fit_available
-        @test model_manifest(spec; view=:public).spec.availability.fit_available === false
+        @test contract.support.fit_available && !contract.support.scientific_validation_implied
+        @test !model_equation(spec).fit_ready && model_equation(spec).experimental_fit_available
+        @test model_manifest(spec; view=:public).spec.availability.fit_available === true
         surface = model_surface_audit(spec; view=:public)
         @test any(row.block === :q_matrix && row.constraint === :fixed_mask && isempty(row.parameter_names) for row in surface)
         @test any(row.block === :item_steps && row.prior === :normal for row in surface)
@@ -97,7 +97,7 @@ end
         for backend in (:julia,:advancedhmc,:cmdstan)
             @test_throws ArgumentError fit(spec; backend)
             @test_throws ArgumentError fit(design; backend)
-            @test_throws ArgumentError B.Experimental.fit(spec; backend)
+            @test_throws ArgumentError B.Experimental.fit(spec; backend, ndraws=0)
             @test_throws ArgumentError fit_cache_key(spec; backend, seed=1)
             @test_throws ArgumentError fit_cache_key(design; backend, seed=1)
             @test_throws ArgumentError B._mfrm_fixed_q_sample(target; backend, ndraws=0)
@@ -116,7 +116,15 @@ end
     end
     spec = fixture(2,4)
     branch = only(row for row in model_family_contract().branches if row.branch === :mfrm_fixed_q)
-    @test !branch.fit_available && branch.implementation_status === :specified_only
+    @test branch.fit_available && branch.implementation_status === :guarded_experimental
+    for options in ((; experimental=true), (; init=[0.0]), (; backend=:julia))
+        @test_throws ArgumentError B.Experimental.fit(spec; options...)
+    end
+    for backend in (:advancedhmc, :cmdstan)
+        @test_throws ArgumentError B.Experimental.fit(spec; backend, init=fill(NaN, length(getdesign(spec; preview=true).parameter_names)))
+    end
+    @test_throws ArgumentError B.Experimental.cached_fit(spec; seed=1)
+    @test_throws ArgumentError B.Experimental.fit_cache_key(spec; seed=1)
     for kwargs in ((; thresholds=:rating_scale), (; discrimination=:rater),
             (; bias=[(:item,:rater)]), (; anchors=[(; block=:rater,level=1,value=0.0)]))
         @test_throws ArgumentError mfrm_spec(spec.data; dimensions=2,q_matrix=spec.q_matrix,kwargs...)

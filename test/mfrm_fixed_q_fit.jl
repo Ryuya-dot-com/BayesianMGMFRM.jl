@@ -24,7 +24,7 @@ function check_canonical_fit(dimensions, backend, directory)
         target.blueprint.parameter_names[1] = "stale"
         B._mfrm_fixed_q_fit(B._mfrm_fixed_q_sample(target; controls...))
     else
-        B._mfrm_fixed_q_fit(spec; prior, controls..., options...)
+        B.Experimental.fit(spec; prior, controls..., options...)
     end
     record, run = fit.record, fit.record.run
     @test record.schema == "bayesianmgmfrm.fixed_q_mfrm_samples.v2"
@@ -70,7 +70,7 @@ function check_canonical_fit(dimensions, backend, directory)
     @test report.report_status === :complete
     for options in ((; backend=:julia),(; init=[0.0]),(; init=fill(NaN,size(run.draws,2))),
             (; backend=:advancedhmc,ndraws=0),(; backend=:cmdstan,ndraws=0,cmdstan_cache_dir=joinpath(directory,"never-compile")))
-        @test_throws ArgumentError B._mfrm_fixed_q_fit(spec;options...)
+        @test_throws ArgumentError B.Experimental.fit(spec;options...)
     end
     @test !ispath(joinpath(directory,"never-compile"))
     @test_throws ArgumentError B._mfrm_fixed_q_fit(B._mfrm_fixed_q_reference_spec(spec))

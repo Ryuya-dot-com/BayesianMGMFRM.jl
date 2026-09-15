@@ -18,7 +18,7 @@ const PublicLanguagePolicy = PublicLanguageGateContractForTest.PublicLanguageGat
     @test result.n_language_violations == 0
     @test result.n_navigation_violations == 0
     @test result.n_workflow_violations == 0
-    @test result.n_public_files == 19
+    @test result.n_public_files == 20
     @test "experimental.md" in PublicLanguagePolicy.PUBLIC_DOCUMENTATION_PAGES
     @test "scope.md" in PublicLanguagePolicy.PUBLIC_DOCUMENTATION_PAGES
     @test "roadmap.md" in PublicLanguagePolicy.DEVELOPER_DOCUMENTATION_PAGES

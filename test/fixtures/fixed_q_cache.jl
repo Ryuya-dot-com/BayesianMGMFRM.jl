@@ -5,9 +5,9 @@ function check_fixed_q_cache(fit; directory = nothing)
     path = joinpath(directory, "fit.jls")
     before = record.content_hash
     artifact = fit_artifact(fit; include_environment = false)
-    @test artifact.schema == "bayesianmgmfrm.mfrm_fixed_q_fit_artifact.v1"
+    @test artifact.schema == "bayesianmgmfrm.mfrm_fixed_q_fit_artifact.v2"
     @test artifact.family === :mfrm && artifact.model === :mfrm_fixed_q
-    @test artifact.status === :private_reference
+    @test artifact.status === :experimental
     @test artifact.reproducibility.target_identity == record.target_identity
     @test artifact.reproducibility.source_sample_content_hash == before
     @test isequal(artifact.manifest.fit, fit_metadata(fit))
@@ -62,8 +62,17 @@ function check_fixed_q_cache(fit; directory = nothing)
     wrong = B._with_archive_metadata(wrong; label = :mfrm_fixed_q_fit_artifact)
     @test_throws ArgumentError save_fit_cache(path, fit; artifact = wrong, overwrite = true)
     @test read(path) == bytes
+    # Frozen full v1 artifacts remain readable without rewriting their meaning.
+    legacy = fit_artifact(fit; include_environment = false, legacy = true)
+    @test legacy.schema == "bayesianmgmfrm.mfrm_fixed_q_fit_artifact.v1"
+    @test legacy.status === legacy.manifest.fit.estimation_status === :private_reference
+    legacy_path = joinpath(directory, "legacy-artifact.jls")
+    save_fit_cache(legacy_path, fit; artifact = legacy)
+    @test isequal(load_fit_cache(legacy_path; return_record = true).artifact, legacy)
+    @test fit_metadata(load_fit_cache(legacy_path)).fitting_available
     bad_path = joinpath(directory, "invalid.jls")
-    variants = [merge(saved, (; model = :mgmfrm)),
+    variants = [merge(saved, (; artifact = merge(artifact, (; schema = "unsupported")))),
+        merge(saved, (; model = :mgmfrm)),
         merge(saved, (; target_identity = "wrong")), merge(saved, (; source_sample_schema = "wrong")),
         merge(saved, (; source_sample_content_hash = missing)), merge(saved, (; artifact = wrong)),
         merge(saved, (; schema = "bayesianmgmfrm.fit_cache.v1")),

@@ -11,7 +11,7 @@ function check_fixed_q_report(fit; directory = nothing)
     @test report.family === :mfrm && report.model === :mfrm_fixed_q
     @test report.estimation_status === :experimental
     @test report.report_status === :complete && fit_report_health(report).complete
-    @test report.metadata.fitting_available === false
+    @test report.metadata.fitting_available === true
     @test report.metadata.dimension_labels == record.spec.dimension_labels
     @test report.metadata.target_identity == record.target_identity
     @test report.metadata.source_sample_content_hash == record.content_hash
@@ -27,8 +27,8 @@ function check_fixed_q_report(fit; directory = nothing)
     artifact = report.artifact.artifact
     @test artifact.reproducibility.source_sample_content_hash == record.content_hash
     @test report.artifact.content_hash.value == artifact_content_hash(artifact)
-    @test artifact.status === :private_reference # Full v1 artifacts keep their original meaning.
-    @test artifact.manifest.fit.estimation_status === :private_reference
+    @test artifact.status === :experimental
+    @test artifact.manifest.fit.estimation_status === :experimental
     @test artifact.draws === nothing
     @test all(row.n_draws == size(run.draws, 1) for row in report.posterior.rows)
     @test report.posterior_predictive.draw_indices == options.draw_indices
@@ -47,7 +47,7 @@ function check_fixed_q_report(fit; directory = nothing)
     public = fit_report_public(report)
     @test public.status === :experimental
     @test public.metadata.estimation_status === :experimental
-    @test public.metadata.fitting_available === false
+    @test public.metadata.fitting_available === true
     @test public.metadata.prior.scales == record.prior.scales
     @test public.metadata.diagnostic_settings == report.metadata.diagnostic_settings
     @test public.source_report.content_hash == B._public_fit_report_content_hash_record(report).value

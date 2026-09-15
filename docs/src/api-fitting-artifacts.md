@@ -70,7 +70,10 @@ artifact = fit_artifact(restored; view = :public)
 
 Posterior bounds must define a central interval strictly inside `(0, 1)`.
 This experimental model uses unit logits, fixed Q coefficients and identity
-latent correlation. Its fitting entry is not yet available.
+latent correlation. Estimate with `BayesianMGMFRM.Experimental.fit`; see the
+[multidimensional example](examples.md#fixed-coefficient-multidimensional-mfrm).
+New full artifacts use `mfrm_fixed_q_fit_artifact.v2`. Existing cache files with
+v1 full artifacts remain readable with their original metadata and hashes.
 These saved-result reports need neither sampling nor CairoMakie. A complete
 report means that its requested sections ran successfully; inspect the MCMC
 diagnostics separately.

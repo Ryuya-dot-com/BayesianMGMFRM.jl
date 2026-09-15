@@ -2558,7 +2558,9 @@ renderer-absence assertion) and passed the 25 existing report-only/figure-reques
 checks (37.61 seconds combined). Markdown column checks passed 75 assertions.
 Fresh Documenter output built in 22.96 seconds and passed the source-language
 19-file and rendered-language 14-page checks; the same four pre-existing
-omitted-maintenance-docstring warnings remain.
+omitted-maintenance-docstring warnings remain. The standalone Julia 1.10.8 namespace
+check also passed 182 assertions (44.69 seconds), including the existing
+GMFRM/MGMFRM actual-fit and automatic-cache smoke paths.
 
 Selected Julia posterior/diagnostic/predictive and CmdStan diagnostic PDFs were
 rendered with Poppler and inspected. Julia posterior and CmdStan predictive
@@ -2575,20 +2577,79 @@ No sampling, Stan compilation, statistical acceptance or full-suite claim was
 made. The previously recorded large-driver Julia 1.12 compilation follow-up
 and unfamiliar-reader acceptance remain open.
 
+## Experimental fixed-coefficient fitting, 2026-09-15
+
+`Experimental.fit` now accepts canonical `family = :mfrm, dimensions >= 2`
+specifications and calls the existing fixed-Q sampler adapter. Julia/AdvancedHMC
+and CmdStan return the same dedicated result type, also available as
+`Experimental.MultidimensionalMFRMFit`; its defining root type and serialized
+field layout stay unchanged. The namespace, model-family contract, ladder,
+release-scope rows, README and installed help describe the restricted model.
+The stored specification's compatibility status stays unchanged because it
+participates in design and target identity; current availability comes from
+those explicit contracts. Generalized legacy entry points retain their scope.
+
+The generic [example](../../examples/multidimensional_mfrm.jl) runs either
+backend and reaches diagnostics, manual save/reload and a public report, with
+optional named-dimension posterior/trace and predictive figures. It uses the
+existing result/report/figure machinery without another sampler, result class
+or dependency. Active Q coefficients and rater consistency stay one, logits
+have unit scale, person/item locations are prior-anchored and latent correlation
+is identity. `MFRMPrior` records independent normal priors on the declared free
+coordinates; warmup statistics are recorded by default. Unsupported options,
+automatic request caching and stable fitting remain guarded.
+
+New full artifacts use `mfrm_fixed_q_fit_artifact.v2` to describe experimental
+fitting availability. The outer manual cache remains v2. Its reader accepts
+both full-artifact versions and reconstructs v1 with its frozen metadata and
+model-equation availability fields, retaining exact content and target checks.
+Old files are never rewritten. Legacy private sample-family records retain
+private metadata and remain rejected by canonical report/plot/artifact entries.
+
+The [local receipt](../../results/workflows/20260915-experimental-fixed-q-01/receipt.json)
+records commands, hashes and outputs. Julia 1.10.8 synthetic result/cache/report
+checks passed 2,608 assertions (492.94 seconds), including both artifact versions,
+malformed records and legacy sample-family rejection. The exact generic example
+ran on Julia 1.12.5 with Julia/AdvancedHMC and CmdStan, including figures, cache
+reload and bundle verification (144.80 and 150.42 seconds). Each uses two chains
+with 50 warmup and 50 retained draws. Both report MCMC warnings, so these runs
+establish operability only. Their elapsed times include compilation/rendering
+and concurrent checks; they are not benchmark or backend-speed comparisons.
+
+The final Julia 1.12.5 specification/model-family/namespace, public-language,
+release-catalog and installed-help checks passed 1,085 assertions (121.29 seconds).
+Julia 1.10.8 actual 2D/3D sampling/replay checks passed 590 assertions (77.30
+seconds), including the new 2D public entry and existing stale-target rebuild
+case. A renderer-free Julia 1.12.5 process reopened both new figure bundles and
+caches (35 assertions, 77.14 seconds), checked all retained Julia/Stan densities,
+identical target identities, actual priors, warmup coverage and saved diagnostic
+settings. The five pre-existing canonical caches also reopened on their own
+Julia minor versions (25 assertions); all 18 previously recorded input hashes
+are unchanged. Fresh Documenter output built in 20.93 seconds; the 20-file
+source and 14-page rendered language checks pass. The four existing omitted
+maintenance-docstring warnings remain. The standalone Julia 1.10.8 namespace
+check also passed 182 assertions (44.69 seconds), including the existing
+GMFRM/MGMFRM actual-fit and automatic-cache smoke paths.
+
+Selected Julia posterior and CmdStan diagnostic PDFs were rendered and inspected:
+named dimensions, unit-logit axes, 90% central intervals, chain labels and
+whole-fit warnings remain legible. No plotting geometry or numerical summary
+semantics changed. Full-suite, independent-reader, recovery/coverage and broad
+model-acceptance claims remain outside this integration check.
+
 ## Next bounded work
 
-Expose restricted canonical fixed-coefficient fitting through `Experimental.fit`
-and the existing surface contract. Reuse the Julia/CmdStan sampler adapters,
-dedicated result, manual v2 cache and full/public report/figure outputs. Add one
-short generic specification -> fit -> diagnostics -> cache reload -> named
-figure/report workflow for each backend. Keep fixed Q coefficients, unit
-consistency, unit logits, prior-anchored locations and identity latent
-correlation explicit; reject unsupported options before sampling. Check the
-entry-to-reload path under a bounded operability run, stored priors/diagnostics
-and identity, invalid options, and agreement between installed help and examples.
-Preserve existing v2 caches and full artifact semantics; explicitly version any
-incompatible change. Automatic request caching, hard anchors, new-facet
-prediction and statistical acceptance remain separate.
+Specify a two-dimensional correlated-ability extension of the fixed-coefficient
+unit-logit model. Reuse the existing correlation-transform and diagnostic code
+where its measure matches, while keeping the generalized correlation candidate's
+target distinct. Record the ability covariance, correlation prior, free-coordinate
+transform/Jacobian, location/scale constraints, fixed-Q interpretation and a
+separate identity before adding a fitting route. Check Julia/CmdStan density
+differences and gradients in common coordinates, invalid/boundary behavior,
+and the unchanged independent-dimension baseline without sampling. A later
+fit/result/cache/report integration and target-specific statistical validation
+remain separate deliverables. No automatic request cache, hard anchors or
+application-specific predictors are prerequisites for this bounded core work.
 
 Separately, record an unfamiliar reader finding the supported model/backend, loading a fit,
 choosing a named dimension, interpreting diagnostic/interval labels and saving/

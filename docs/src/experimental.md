@@ -1,21 +1,23 @@
-# Experimental Generalized Models
+# Experimental Models
 
-`BayesianMGMFRM.Experimental` contains generalized models that are executable
+`BayesianMGMFRM.Experimental` contains multidimensional MFRM and generalized models executable
 only in the limited configurations documented below. They are not part of the
 stable MFRM fitting contract, and their availability does not imply broader
 GMFRM or MGMFRM support.
 
 ## Boundary
 
-The namespace currently admits only two surfaces:
+The fitting entry currently admits three configurations:
 
+- fixed-coefficient multidimensional MFRM with at least two dimensions, fixed Q
+  coefficients, item-specific partial-credit steps and identity latent correlation;
 - one-dimensional source-aligned scalar GMFRM with positive item/task
   discrimination multiplied by positive rater consistency and rater-specific
   partial-credit steps;
 - fixed-Q confirmatory MGMFRM with at least two dimensions, partial-credit
   steps, and fixed identity latent correlation.
 
-Both reject anchors and fitted DFF terms. Broader discrimination, rating-scale
+All three reject anchors and fitted DFF terms. Broader discrimination, rating-scale
 generalized kernels, exploratory or rotated loadings, and free latent
 correlations remain outside the fitting boundary.
 
@@ -40,10 +42,43 @@ using BayesianMGMFRM
 using Random
 
 contract = BayesianMGMFRM.Experimental.surface_contract()
+contract.families.mfrm
 contract.families.mgmfrm
 contract.families.gmfrm
 contract.candidate_surfaces.mgmfrm_free_latent_correlation_2d
 ```
+
+## Fixed-coefficient multidimensional MFRM
+
+Use `mfrm_spec(data; family = :mfrm, dimensions = 2, q_matrix,
+dimension_labels, thresholds = :partial_credit)` followed by
+`BayesianMGMFRM.Experimental.fit(spec; backend = :advancedhmc)` or
+`backend = :cmdstan`. Q rows follow `data.item_levels`. Multiple active cells in a row give
+an additive, compensatory within-item sum. Q is fixed, not estimated. Review
+`q_matrix_validation(spec)` for coverage and identification warnings, including
+dimensions with no single-loading indicators; an admitted Q is not evidence
+of statistical identification or recovery.
+
+`MFRMPrior` sets independent zero-centered normal priors on the free unit-logit
+coordinates. Person and item locations are prior-anchored; rater severities sum
+to zero. Active Q coefficients and rater consistency are one; latent correlation
+is identity. Item steps have a first zero step, `K - 2` free steps and a final
+step reconstructed so the remaining steps sum to zero. This declared free-coordinate
+density needs no Jacobian adjustment and has no 1.7/1.702 multiplier.
+
+Both backends return `Experimental.MultidimensionalMFRMFit`. Warmup telemetry is
+recorded by default; set `record_warmup = false` to omit it. The common default
+is 100 warmup and 100 retained draws per chain, with two chains. These are
+computational defaults, not evidence of adequate MCMC precision.
+
+Use `diagnostics(fit)`, `posterior_summary(fit)` and
+`BayesianMGMFRM.direct_posterior_summary(fit)` for free and reconstructed
+coordinates; `fit_metadata(fit)` records the prior, backend and target identity.
+`save_fit_cache`/`load_fit_cache` and `save_fit_report_bundle` support this result,
+including named-dimension figures. See the [runnable example](examples.md#fixed-coefficient-multidimensional-mfrm).
+Automatic request caching, `Experimental.preview`, and prior-predictive entries
+remain limited to GMFRM/MGMFRM; inspect this specification with
+`getdesign(spec; preview = true)`. Stable `fit(spec)` does not accept it.
 
 ## Dimension aggregation and item structure
 
@@ -322,6 +357,7 @@ authenticity, or external validation.
 BayesianMGMFRM.Experimental
 BayesianMGMFRM.Experimental.GMFRMFit
 BayesianMGMFRM.Experimental.MGMFRMFit
+BayesianMGMFRM.Experimental.MultidimensionalMFRMFit
 BayesianMGMFRM.Experimental.GeneralizedPrior
 BayesianMGMFRM.Experimental.surface_contract
 BayesianMGMFRM.Experimental.free_latent_correlation_2d_contract

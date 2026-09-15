@@ -65,7 +65,7 @@ makedocs(;
         "Model Equations" => "model-equations.md",
         "Bayesian Workflow" => "bayesian-workflow.md",
         "Bayesian Fitting" => "fitting.md",
-        "Experimental Generalized Models" => "experimental.md",
+        "Experimental Models" => "experimental.md",
         "Examples" => "examples.md",
         "Migrating from FACETS and ConQuest" => "migration-facets-conquest.md",
         "Scope and Releases" => "scope.md",

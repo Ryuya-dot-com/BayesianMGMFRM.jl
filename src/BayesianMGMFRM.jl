@@ -6,8 +6,9 @@ designs, fitting Bayesian models, and producing predictive, diagnostic, and
 model-comparison summaries.
 
 The stable fitting surface supports the documented MFRM/RSM/PCM configurations.
-`BayesianMGMFRM.Experimental.fit(spec)` additionally supports a limited
-partial-credit scalar GMFRM configuration and a fixed-Q, identity-correlation
+`BayesianMGMFRM.Experimental.fit(spec)` additionally supports fixed-coefficient
+multidimensional MFRM in unit logits, a limited partial-credit scalar GMFRM
+configuration and a fixed-Q, identity-correlation
 confirmatory MGMFRM configuration. Unsupported generalized options are rejected
 before numerical execution. The experimental namespace also provides
 diagnostic operations for an exactly two-dimensional free-latent-correlation

@@ -1916,6 +1916,19 @@ function model_ladder(; view::Symbol = :full)
             note = "implemented additive one-dimensional many-facet Rasch location model",
         ),
         (;
+            family = :mfrm,
+            scope = :fixed_coefficient_multidimensional_mfrm,
+            dimensions = ">= 2",
+            discrimination = :none,
+            threshold_regimes = (:partial_credit,),
+            estimation_status = :experimental_public,
+            public_fit = true,
+            experimental_public = true,
+            identification = (:fixed_q_coefficients, :identity_latent_correlation,
+                :prior_anchored_locations, :sum_to_zero_raters, :item_step_constraints),
+            note = "fixed-coefficient multidimensional MFRM in unit logits through BayesianMGMFRM.Experimental.fit(spec)",
+        ),
+        (;
             family = :gmfrm,
             scope = gmfrm_capability.scope,
             dimensions = "1",
@@ -1984,8 +1997,8 @@ function _public_model_ladder_row(row)
             stability = :experimental,
             fit_available = true,
             entrypoint = _EXPERIMENTAL_CANONICAL_ENTRYPOINT,
-            claim_scope = row.family === :gmfrm ?
-                :scalar_rater_consistency_only : :fixed_q_confirmatory_only,
+            claim_scope = row.family === :mfrm ? :fixed_coefficient_multidimensional_mfrm :
+                row.family === :gmfrm ? :scalar_rater_consistency_only : :fixed_q_confirmatory_only,
         )
     else
         (;
@@ -2028,6 +2041,22 @@ function _release_scope_fit_surface_rows()
             public_fit = true,
             claim_scope = :small_model_workflow_scaffold,
             note = "MFRM/RSM/PCM posterior fitting and report helpers for the minimal identified design",
+        ),
+        (;
+            surface = :fixed_coefficient_multidimensional_mfrm,
+            family = :mfrm,
+            scope = :fixed_coefficient_multidimensional_mfrm,
+            status = :guarded_experimental_public,
+            entrypoint = _EXPERIMENTAL_CANONICAL_ENTRYPOINT,
+            experimental_public = true,
+            public_fit = true,
+            claim_scope = :fixed_coefficient_multidimensional_mfrm,
+            threshold_regimes = (:partial_credit,),
+            spec_discrimination = (:none,),
+            q_matrix_policy = :fixed_coefficients,
+            anchors_allowed = false,
+            validation_bias_terms_allowed = false,
+            note = "unit-logit fixed-coefficient MFRM with identity latent correlation; operability does not imply scientific validation",
         ),
         (;
             surface = :scalar_gmfrm_guarded_experimental,
@@ -3134,6 +3163,14 @@ function _release_gate_manifest_rows(scope)
             observed = any(row -> row.surface === :minimal_mfrm_rsm_pcm &&
                 row.public_fit && !row.experimental_public,
                 surfaces)),
+        (target = :fixed_coefficient_mfrm_experimental_public,
+            expected = :experimental_public_guarded_fit,
+            observed = any(row -> row.surface === :fixed_coefficient_multidimensional_mfrm &&
+                row.public_fit && row.experimental_public &&
+                row.entrypoint == _EXPERIMENTAL_CANONICAL_ENTRYPOINT &&
+                row.q_matrix_policy === :fixed_coefficients &&
+                !row.anchors_allowed && !row.validation_bias_terms_allowed,
+                surfaces)),
         (target = :scalar_gmfrm_experimental_public,
             expected = :experimental_public_guarded_fit,
             observed = any(row -> row.surface === :scalar_gmfrm_guarded_experimental &&
@@ -3209,7 +3246,7 @@ function _release_gate_manifest_rows(scope)
                     :v0_1_2_fixed_q_productionization),
         (target = :guarded_experimental_surface_next_gate,
             expected = :v0_1_2_fixed_q_productionization,
-            observed = all(row -> !row.experimental_public ||
+            observed = all(row -> !(row.experimental_public && row.family in (:gmfrm, :mgmfrm)) ||
                 (haskey(row, :completed_gate) &&
                     row.completed_gate === :v0_1_1_generalized_refinement &&
                     haskey(row, :next_gate) &&
@@ -5150,7 +5187,7 @@ function _equation_identification(spec::FacetSpec)
 end
 
 function _equation_implementation_gaps(spec::FacetSpec)
-    _is_mfrm_fixed_q(spec) && return [:experimental_fit_cache_report_workflow]
+    _is_mfrm_fixed_q(spec) && return [:automatic_request_caching]
     gaps = Symbol[]
     spec.family === :mfrm && return gaps
     if spec.family === :gmfrm
@@ -5191,7 +5228,7 @@ boundary explicitly.
 function model_equation(spec::FacetSpec)
     _is_mfrm_fixed_q(spec) && _require_current_facet_spec(spec, "model_equation")
     implementation_gaps = _equation_implementation_gaps(spec)
-    experimental_fit_available = _experimental_generalized_fit_supported(spec)
+    experimental_fit_available = _is_mfrm_fixed_q(spec) || _experimental_generalized_fit_supported(spec)
     return (;
         schema = "bayesianmgmfrm.model_equation.v1",
         family = spec.family,
@@ -5447,8 +5484,9 @@ resolved. The default `family = :mfrm`, `dimensions = 1`, and
 `discrimination = :none` path is the minimal MFRM/RSM/PCM slice supported by
 `getdesign` and `fit`, including valid exact individual rater/item hard
 anchors. Multidimensional MFRM with explicit Q and named dimensions supports
-partial-credit specification and `getdesign(spec; preview = true)` inspection;
-its coefficients are fixed and its fitting workflow is not available yet.
+partial-credit specification and `getdesign(spec; preview = true)` inspection.
+Estimate its fixed-coefficient unit-logit model through
+`BayesianMGMFRM.Experimental.fit`, using Julia or CmdStan and `MFRMPrior`.
 GMFRM/MGMFRM configurations can be represented for
 manifest and constraint review with `estimation_status = :specified_only`.
 The guarded generalized numerical path is narrower than this representation
@@ -5566,7 +5604,7 @@ function _push_named_block!(names::Vector{String},
 end
 
 function _ensure_minimal_design_supported(spec::FacetSpec)
-    _is_mfrm_fixed_q(spec) && throw(ArgumentError("multidimensional MFRM currently supports design inspection only; use getdesign(spec; preview = true)"))
+    _is_mfrm_fixed_q(spec) && throw(ArgumentError("multidimensional MFRM design inspection requires getdesign(spec; preview = true); estimate with BayesianMGMFRM.Experimental.fit(spec)"))
     spec.estimation_status === :fit_supported ||
         throw(ArgumentError(
             "getdesign currently supports only the minimal fit-supported MFRM/RSM/PCM specification; " *
@@ -9657,6 +9695,10 @@ function _design_manifest(design::FacetDesign)
 end
 
 function _public_model_availability(spec::FacetSpec)
+    _is_mfrm_fixed_q(spec) && return (;
+        stability = :experimental, fit_available = true,
+        entrypoint = "BayesianMGMFRM.Experimental.fit(spec)",
+        claim_scope = :fixed_coefficient_multidimensional_mfrm)
     spec.estimation_status === :fit_supported && return (;
         stability = :stable,
         fit_available = true,

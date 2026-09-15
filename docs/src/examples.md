@@ -75,6 +75,39 @@ reuse is not attempted. See [backend setup](fitting.md#Backends-and-Sampler-Cont
 for runtime discovery and build requirements. Shared seeds do not imply identical
 draws across backends.
 
+## Fixed-coefficient multidimensional MFRM
+
+[`examples/multidimensional_mfrm.jl`](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/blob/main/examples/multidimensional_mfrm.jl)
+fits two named dimensions through `BayesianMGMFRM.Experimental.fit` and saves
+the fit and a report. Use either backend, optionally adding figures with CairoMakie:
+
+```sh
+julia --project=. examples/multidimensional_mfrm.jl
+julia --project=. examples/multidimensional_mfrm.jl --cmdstan --plots
+```
+
+Its fixed Q assigns items 1–2 to reasoning and items 3–4 to communication.
+Active coefficients and rater consistency are one; person/item locations use
+zero-centered priors, rater severities sum to zero, and latent correlation is
+identity. `MFRMPrior` sets standard deviations on free unit-logit coordinates.
+The [experimental guide](experimental.md#fixed-coefficient-multidimensional-mfrm)
+explains the model and limits.
+
+Each run prints a new directory under `results/multidimensional_mfrm/` containing
+`fit.jls` and `report/`. The script reloads the fit, checks its metadata and
+summaries, and reopens the report bundle. `--plots` adds reasoning posterior
+and chain figures plus category predictive figures in PDF/SVG and their JSON
+inputs. All figures use the reloaded fit; users need not reshape MCMC draws.
+The posterior intervals are central 90% intervals in unit logits. Fixed
+coefficients and derived coordinates are labelled; whole-fit diagnostic warnings
+remain visible. Report-only mode and subsequent bundle verification need no renderer.
+
+The 50 warmup and 50 retained draws per chain are solely a workflow demonstration.
+A completed report does not establish convergence or scientific validity. To
+select another dimension later, load `fit.jls` and follow the
+[saved-fit report example](api-fitting-artifacts.md#experimental-saved-multidimensional-mfrm-reports).
+Automatic request caching is unavailable for this model; manual save/reload is supported.
+
 ## Guarded Scalar GMFRM Workflow
 
 [`examples/guarded_gmfrm.jl`](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/blob/main/examples/guarded_gmfrm.jl)

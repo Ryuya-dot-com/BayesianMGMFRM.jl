@@ -6,14 +6,17 @@ function check_fixed_q_result(result)
     @test fieldnames(typeof(fit)) == (:record,)
     @test !(fit isa B._ModelComparisonFit)
     @test :MultidimensionalMFRMFit ∉ names(B)
-    @test !isdefined(B.Experimental, :MultidimensionalMFRMFit)
+    @test B.Experimental.MultidimensionalMFRMFit === B.MultidimensionalMFRMFit
     @test fit.record.content_hash == record.content_hash
     @test fit.record.run.draws !== run.draws
     @test fit.record.spec.dimension_labels !== record.spec.dimension_labels
     metadata = fit_metadata(fit)
     @test metadata.family === :mfrm && metadata.model === :mfrm_fixed_q
     @test metadata.model_label == "Multidimensional MFRM (fixed coefficients)"
-    @test !metadata.public_fit && metadata.estimation_status === :private_reference
+    canonical = record.spec.family === :mfrm
+    @test metadata.public_fit == metadata.experimental_public == canonical
+    @test metadata.estimation_status === (canonical ? :experimental : :private_reference)
+    canonical && @test metadata.fitting_available
     @test metadata.backend === run.backend && metadata.sampler === :nuts
     @test metadata.scale_convention === :unit_logit && metadata.parameter_space === :unit_logit_free
     @test metadata.location === :prior_anchored && metadata.latent_correlation === :identity_fixed
@@ -29,7 +32,7 @@ function check_fixed_q_result(result)
     @test metadata.n_draws == metadata.n_chains * metadata.draws_per_chain == size(run.draws, 1)
     @test occursin(metadata.model_label, sprint(show, fit))
     @test occursin(metadata.backend_label, sprint(show, fit))
-    @test occursin("unit logits; private result", sprint(show, fit))
+    @test occursin(canonical ? "unit logits; experimental" : "unit logits; private result", sprint(show, fit))
 
     options = (; lower = 0.1, upper = 0.8, intervals = (0.5, 0.8),
         reference = 0.2, rope = (-0.1, 0.3), rope_probability_threshold = 0.7)
