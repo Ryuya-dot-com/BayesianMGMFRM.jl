@@ -1,5 +1,6 @@
 using BayesianMGMFRM
 using Test
+using LinearAlgebra
 
 function _fixed_q_identification_data(person, rater, item, score)
     return FacetData((; person, rater, item, score);
@@ -43,6 +44,32 @@ end
     @test simple.identification.guarded_fit_structure_ready
     @test simple.identification.conservative_stable_structure_ready
     @test isempty(simple.identification.promotion_blockers)
+
+    # Source-style all-positive loadings are not an admitted fixed-Q fit.
+    # Full structural rank and identity ability covariance alone do not remove
+    # likelihood rotations; loading priors need not preserve the same symmetry.
+    dense = q_matrix_validation(simple_data; dimensions = 2, q_matrix = trues(2, 2))
+    @test dense.summary.q_structural_rank == 2
+    @test !dense.passed
+    @test any(row -> row.check === :duplicate_dimension_columns &&
+        row.status === :aliased_columns, dense.rows)
+    loadings = [2.0 1.0; 1.0 2.0]
+    abilities = [0.3 -0.7; -0.2 0.8]
+    angle = 0.1
+    rotation = [cos(angle) -sin(angle); sin(angle) cos(angle)]
+    rotated_loadings = loadings * rotation
+    rotated_abilities = abilities * rotation
+    @test rank(loadings) == 2
+    @test rotation * rotation' ≈ Matrix{Float64}(I, 2, 2)
+    @test all(>(0), rotated_loadings)
+    @test rotated_abilities * rotated_loadings' ≈ abilities * loadings'
+    @test sum(abs2, rotated_abilities) ≈ sum(abs2, abilities)
+    # Direct-loading measure: the orthogonal map has unit absolute Jacobian.
+    loading_logprior(values) = sum(BayesianMGMFRM._normal_logpdf(log(a), 1.0) - log(a)
+        for a in values)
+    @test !isapprox(loading_logprior(rotated_loadings), loading_logprior(loadings))
+    pure_loadings = [2.0 0.0; 0.0 1.0]
+    @test all(!iszero, (pure_loadings * rotation)[.!simple_q])
 
     cyclic_data = _fixed_q_identification_data(
         repeat(["P1", "P2", "P3"]; inner = 3),

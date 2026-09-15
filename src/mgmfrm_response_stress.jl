@@ -439,10 +439,7 @@ function simulate_mgmfrm_response_stress(plan_row; truth_scale::Real = 0.15)
     )
 end
 
-function _mgmfrm_stress_fatal_exception(err)
-    return err isa InterruptException || err isa OutOfMemoryError ||
-        err isa StackOverflowError
-end
+_mgmfrm_stress_fatal_exception(err) = _fatal_exception(err)
 
 # Attempt-complete sampler-free orchestration.
 

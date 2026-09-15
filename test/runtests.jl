@@ -21342,13 +21342,16 @@ end
     @test private_metadata["hashes"]["active_project"] ==
         Base.active_project()
     mktempdir() do directory
+        project = joinpath(directory, "Project.toml")
+        write(project, "")
         generic = joinpath(directory, "Manifest.toml")
         versioned = joinpath(directory,
             "Manifest-v$(VERSION.major).$(VERSION.minor).toml")
         write(generic, "generic")
-        @test BayesianMGMFRM._evidence_manifest_path(directory) == generic
+        @test BayesianMGMFRM._evidence_manifest_path(project) == generic
         write(versioned, "versioned")
-        @test BayesianMGMFRM._evidence_manifest_path(directory) == versioned
+        @test BayesianMGMFRM._evidence_manifest_path(project) ==
+            (basename(versioned) in Base.manifest_names ? versioned : generic)
     end
     @test release_scope.evidence_artifact_schema_policy.schema ==
         evidence_policy.schema
@@ -27406,7 +27409,8 @@ println("fitting_core runtime: CPU target=", Sys.CPU_NAME,
     @test turing_result.sampler_controls.turing_model ===
         :mfrm_logdensity_flat_parameter_model
     @test turing_result.sampler_controls.chain_type === :raw_transitions
-    @test turing_result.sampler_controls.discard_initial == 1
+    @test turing_result.sampler_controls.discard_initial == 2
+    @test turing_result.sampler_controls.nadapts == 1
     @test turing_result.sampler_controls.rng.seed == 20260623
     @test length(turing_result.sampler_stats) == 4
     @test all(row -> row.chain in (1, 2), turing_result.sampler_stats)
@@ -27424,7 +27428,7 @@ println("fitting_core runtime: CPU target=", Sys.CPU_NAME,
     @test turing_metadata.backend === :turing
     @test turing_metadata.sampler === :nuts
     @test turing_metadata.n_sampler_stats == 4
-    @test turing_metadata.sampler_controls.discard_initial == 1
+    @test turing_metadata.sampler_controls.discard_initial == 2
     turing_sampler_rows = sampler_diagnostics(turing_result)
     @test length(turing_sampler_rows) == 2
     @test all(row -> row.backend === :turing, turing_sampler_rows)
@@ -32941,6 +32945,10 @@ end
 end
 end
 
+test_group_enabled(:fitting_core) && include("fitting_boundaries.jl")
+test_group_enabled(:fitting_core) && include("warmup_diagnostics.jl")
+test_group_enabled(:fitting_core) && include("posterior_plot.jl")
+
 if test_group_enabled(:generalized) && RUN_RESEARCH_EVIDENCE_TESTS
     include("existing_api_design_robustness_recovery_scorer.jl")
 end
@@ -32952,6 +32960,7 @@ if test_group_enabled(:fitting_reports)
     include("anchor_refit_plan.jl")
     include("hard_anchor_fit.jl")
     include("mfrm_anchor_generator_crosscheck.jl")
+    include("mfrm_anchor_attempt_record.jl")
 end
 if test_group_enabled(:local_dependence_core)
     include("testlet_design_audit.jl")
@@ -32992,10 +33001,20 @@ if test_group_enabled(:generalized)
     include("mgmfrm_validation_execution_design.jl")
     include("mgmfrm_validation_analysis_contract.jl")
     include("generalized_prior.jl")
+    include("mgmfrm_density_measure.jl")
+    include("mgmfrm_prior_measure.jl")
+    include("mgmfrm_normalized_samples.jl")
+    include("mfrm_fixed_q_result.jl")
+    include("mfrm_fixed_q_spec.jl")
+    include("mfrm_fixed_q_fit.jl")
+    include("mfrm_fixed_q_samples.jl")
     include("generalized_guard_contract.jl")
     include("fixed_q_identification.jl")
 end
 test_group_enabled(:fitting_reports) && include("fit_report_completeness.jl")
+test_group_enabled(:fitting_reports) && include("report_columns.jl")
+test_group_enabled(:fitting_reports) && include("report_figures.jl")
+test_group_enabled(:fitting_reports) && include("warmup_report.jl")
 if test_group_enabled(:generalized)
     include("free_correlation_authorization.jl")
 end
@@ -33038,6 +33057,7 @@ test_group_enabled(:generalized) && RUN_RESEARCH_EVIDENCE_TESTS &&
     include("publication_grade_policy_contract.jl")
 if test_group_enabled(:fitting_reports)
     include("public_language_gate.jl")
+    include("cache_hash.jl")
     include("posterior_mcse.jl")
     include("rank_normalized_diagnostics.jl")
     include("scientific_payload_digest.jl")

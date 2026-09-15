@@ -24,13 +24,14 @@ end
     @test skeleton.status === :stage_0_contract_implemented
     @test !skeleton.conditional_ability_integral
     @test !skeleton.arbitrary_facet_steps_generated_automatically
-    @test length(skeleton.branches) == 9
+    @test length(skeleton.branches) == 10
     @test Set(row.implementation_status for row in skeleton.branches) == Set((
         :stable_supported,
         :guarded_experimental,
         :guarded_experimental_warning_bearing,
         :blocked,
         :density_diagnostics_only_fit_blocked,
+        :specified_only,
     ))
 
     data = _model_family_test_data(4)
@@ -200,4 +201,58 @@ end
         :rejected_fixed_q_structure
     @test invalid_q_contract.support.implementation_status === :specified_only
     @test !invalid_q_contract.support.fit_available
+end
+
+@testset "MGMFRM item-conditional compensation (no fitting)" begin
+    spec = mfrm_spec(_model_family_test_data(4);
+        family = :mgmfrm, dimensions = 2, thresholds = :partial_credit,
+        discrimination = :none, q_matrix = Bool[1 0; 0 1; 1 1; 1 0])
+    target = BayesianMGMFRM._mgmfrm_guarded_local_fit_logdensity(spec)
+    design = target.design
+    data = design.spec.data
+    params = BayesianMGMFRM._guarded_generalized_direct_params(
+        target, initial_params(target))
+    loadings = BayesianMGMFRM._mgmfrm_source_loading_index_matrix(design)
+    person = design.blocks[:person][1:2]
+    params[person] .= (0.0, 2.0)
+    params[loadings[3, 1]] = 2.0
+    params[design.blocks[:item][3]] = 0.4
+    params[design.blocks[:rater]] .= (0.2, -0.2)
+    params[design.blocks[:rater_consistency]] .= (1.5, 1 / 1.5)
+    params[design.blocks[:item_steps][3]] = 0.3
+    row_for(item, rater) = only(findall(row ->
+        data.person[row] == 1 && data.item[row] == item &&
+        data.rater[row] == rater, 1:data.n))
+    probabilities(p, row) = BayesianMGMFRM._mgmfrm_category_probabilities!(
+        zeros(3), design, loadings, p, row)
+
+    for rater in 1:2
+        row = row_for(3, rater)
+        actual = probabilities(params, row)
+        # Uto Eq. 6 / Appendix 1, after subtracting the common first logit.
+        location = 2.0 - 0.4 - params[design.blocks[:rater][rater]]
+        scale = 1.7 * params[design.blocks[:rater_consistency][rater]]
+        expected = exp.(scale .* ((0:2) .* location .- [0.0, 0.3, 0.0]))
+        @test actual ≈ expected ./ sum(expected) rtol = 1e-12
+        @test sum(actual) ≈ 1.0
+        for shift in (-0.5, 1.0, 2.0)
+            compensated = copy(params)
+            compensated[person] .= (shift, 2.0 - 2shift)
+            @test probabilities(compensated, row) ≈ actual rtol = 1e-12
+        end
+    end
+
+    # Same weighted sum on I3 does not imply invariance of other items/prior.
+    compensated = copy(params)
+    compensated[person] .= (1.0, 0.0)
+    for item in 1:2
+        row = row_for(item, 1)
+        @test !isapprox(probabilities(compensated, row), probabilities(params, row))
+    end
+    inactive_change = copy(params)
+    inactive_change[person[2]] = -2.0
+    @test probabilities(inactive_change, row_for(1, 1)) ≈
+        probabilities(params, row_for(1, 1))
+    inactive_change[person[1]] = 20.0
+    @test probabilities(inactive_change, row_for(3, 1))[end] > 1 - 1e-8
 end

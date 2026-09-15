@@ -283,8 +283,8 @@ and cancellation failures cannot become successful tests. Elapsed includes
 launch, wait, and cleanup, not just fitting; no maximum RSS or resource-counter
 report is claimed. [Python's monotonic clock](https://docs.python.org/3/library/time.html#time.monotonic)
 does not depend on wall-clock adjustments. The guard preserves argv, inherited
-environment, stdout/stderr, and the 1,800-second upper bound; it adds no package
-dependency, cache policy, sampler change, or automatic retry.
+environment, stdout/stderr, and the 1,800-second maximum deadline setting;
+it adds no package dependency, cache policy, sampler change, or automatic retry.
 
 Before a fit, run `python3 scripts/measure_command.py --self-test` in the same
 permission context, then run the native no-fit launch with that guard. The
@@ -298,6 +298,12 @@ runner or a dependency of Julia package loading. Containment remains an owned
 POSIX group: deliberately detached descendants and a guard killed by SIGKILL
 or another unhandled fatal signal require OS-level supervision, not an assertion
 of full tree safety.
+
+The deadline starts cleanup, not a hard upper bound on total elapsed time:
+[process creation may not be interruptible](https://docs.python.org/3/library/subprocess.html#timeout-behavior),
+and cleanup allows up to five seconds to wait for the direct child after sending
+SIGKILL to the owned group. Scheduling and cleanup overhead remain in the reported
+elapsed time. No strict real-time or detached-process containment is claimed.
 
 Verification C is limited to **one additional ordinary fitting command**,
 with the existing 30-minute deadline and all 2,755 assertions unchanged, after
@@ -329,8 +335,8 @@ observer exit 125.
 The unchanged baseline revision `a916346` has now completed
 [CI 34004236027](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/34004236027):
 all 12 ordinary jobs succeeded and both manual research jobs were skipped.
-That baseline result does not validate this guard or its new CI steps;
-candidate CI and review remain required before integration.
+That baseline result alone did not validate this guard or its new CI steps;
+the candidate result and bounded review are recorded below.
 
 ### Verification C result
 
@@ -360,6 +366,32 @@ The temporary `verification-C.log` has SHA-256
 the executed guard has SHA-256
 `e7418fa37b665c6eb9c361e9f83fc2c16e2608fccb71f82fabbc778ae78d6ae4`.
 Both earlier preflight outcomes and the cold A receipt remain retained.
+
+### Candidate CI and integration review
+
+On **2026-09-06 JST**, [CI 34006928912](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/34006928912)
+completed successfully for `5c4bff2782e99540d39933323a65f09b506dfff4`: all
+12 ordinary jobs passed and both manual research jobs were skipped. The CI
+checkout `30d8161` has the same complete Git tree as this head. The Linux
+hygiene and macOS smoke logs each report all **21 guard cases passed**;
+Windows intentionally skips this POSIX-only check. The unchanged `fitting_core`
+testsets passed **2,641 + 114 = 2,755 assertions**. This is candidate verification,
+not an addition to either historical runtime window.
+
+The implementer reviewed all guard call sites, CLI validation, raw child versus
+guard outcomes, cancellation, and owned-group cleanup, plus the retained
+version/payload-guarded native preflight. Both local Python 3.9.6 and 3.14.3
+self-tests passed again; the guard and verification-C log hashes still match
+the receipt above. No blocking issue was found for the documented local POSIX
+use. Package/test/dependency bytes and ordinary Julia test commands are unchanged;
+the only workflow additions are the two no-fit guard checks. The process and
+deadline limits above remain explicit; no new controller or fit was added.
+
+[PR #100](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/pull/100) remains
+draft and unmerged with auto-merge disabled. Publication of this documentation
+update and explicit merge approval remain pending; the recorded CI applies to
+`5c4bff2`, not later edits. This implementer review does not replace independent
+scientific review, explain the historical +23.4% trigger, or close M0/M1.
 
 ### Interpretation and stop rule
 

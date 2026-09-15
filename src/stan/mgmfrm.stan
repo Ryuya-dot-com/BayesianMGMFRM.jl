@@ -1,56 +1,5 @@
 functions {
-  vector mgmfrm_eta(
-      int person_id,
-      int rater_id,
-      int item_id,
-      int J,
-      int R,
-      int I,
-      int K,
-      int D,
-      int NLoadings,
-      int free_steps,
-      array[] int LoadingItem,
-      array[] int LoadingDim,
-      vector beta) {
-    vector[K] eta;
-    int rater_offset = J * D;
-    int item_offset = rater_offset + R - 1;
-    int loading_offset = item_offset + I;
-    int consistency_offset = loading_offset + NLoadings;
-    int step_offset = consistency_offset + R - 1;
-    real rater = rater_id < R
-      ? beta[rater_offset + rater_id]
-      : -sum(segment(beta, rater_offset + 1, R - 1));
-    real log_consistency = rater_id < R
-      ? beta[consistency_offset + rater_id]
-      : -sum(segment(beta, consistency_offset + 1, R - 1));
-    real item = beta[item_offset + item_id];
-    real ability_score = 0;
-    real cumulative = 0;
-    real scale = 1.7 * exp(log_consistency);
-
-    for (loading in 1:NLoadings) {
-      if (LoadingItem[loading] == item_id) {
-        int dimension = LoadingDim[loading];
-        real discrimination = exp(beta[loading_offset + loading]);
-        ability_score += discrimination *
-          beta[(person_id - 1) * D + dimension];
-      }
-    }
-
-    eta[1] = 0;
-    for (k in 2:K) {
-      int step_number = k - 1;
-      int first_step = step_offset + (item_id - 1) * free_steps + 1;
-      real step = step_number <= free_steps
-        ? beta[first_step + step_number - 1]
-        : -sum(segment(beta, first_step, free_steps));
-      cumulative += scale * (ability_score - item - rater - step);
-      eta[k] = cumulative;
-    }
-    return eta;
-  }
+#include mgmfrm_functions.stan
 }
 
 data {
@@ -70,16 +19,40 @@ data {
   array[NLoadings] int<lower=1, upper=I> LoadingItem;
   array[NLoadings] int<lower=1, upper=D> LoadingDim;
   vector<lower=0>[P] prior_sd;
+  int<lower=0, upper=2> prior_model; // 0: legacy raw, 1: source, 2: exchangeable
+  int<lower=0, upper=R> source_rater;
 }
 
 transformed data {
   int expected_parameters = J * D + 2 * (R - 1) + I +
     NLoadings + I * free_steps;
+  int rater_offset = J * D;
+  int consistency_offset = rater_offset + R - 1 + I + NLoadings;
+  int step_offset = consistency_offset + R - 1;
   if (free_steps != K - 2) {
     reject("free_steps must equal K - 2");
   }
   if (P != expected_parameters) {
     reject("P does not match the identified MGMFRM raw parameter count");
+  }
+  if ((prior_model == 1 && source_rater == 0) ||
+      (prior_model != 1 && source_rater != 0)) {
+    reject("source_rater must be set exactly for the source prior");
+  }
+  if (prior_model != 0) {
+    // The centered normal kernels require one common SD within each block.
+    array[3] int starts = {rater_offset + 1, consistency_offset + 1, step_offset + 1};
+    array[3] int counts = {R - 1, R - 1, I * free_steps};
+    for (block in 1:3) {
+      vector[counts[block]] scales = segment(prior_sd, starts[block], counts[block]);
+      if (min(scales) <= 0 || min(scales) != max(scales)) {
+        reject("normalized prior requires positive, common block SDs");
+      }
+    }
+    if (prior_model == 1 && is_inf(((R - 1.0) / (2 * R) *
+        prior_sd[consistency_offset + 1]) * prior_sd[consistency_offset + 1])) {
+      reject("source consistency scale gives a non-finite normalizer");
+    }
   }
 }
 
@@ -89,6 +62,23 @@ parameters {
 
 model {
   beta ~ normal(0, prior_sd);
+  if (prior_model != 0) {
+    target += 0.5 * log(R) - 0.5 * square(
+      sum(segment(beta, rater_offset + 1, R - 1)) / prior_sd[rater_offset + 1]);
+    target += 0.5 * log(R) - 0.5 * square(
+      sum(segment(beta, consistency_offset + 1, R - 1)) / prior_sd[consistency_offset + 1]);
+    for (i in 1:I) {
+      int first_step = step_offset + (i - 1) * free_steps + 1;
+      target += 0.5 * log(K - 1) - 0.5 * square(
+        sum(segment(beta, first_step, free_steps)) / prior_sd[first_step]);
+    }
+    if (prior_model == 1) {
+      real ell = source_rater < R ? beta[consistency_offset + source_rater]
+        : -sum(segment(beta, consistency_offset + 1, R - 1));
+      real sd = prior_sd[consistency_offset + 1];
+      target += -ell - ((R - 1.0) / (2 * R) * sd) * sd;
+    }
+  }
   for (n in 1:N) {
     X[n] ~ categorical_logit(mgmfrm_eta(
       PersonID[n], RaterID[n], ItemID[n], J, R, I, K, D,

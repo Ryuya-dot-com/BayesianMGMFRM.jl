@@ -14,7 +14,8 @@ function _checked_integer_lkj_eta(value)
         throw(ArgumentError("lkj_eta must be a positive integer"))
     original_is_positive_integer = try
         isfinite(value) && value > zero(value) && isinteger(value)
-    catch
+    catch err
+        _fatal_exception(err) && rethrow()
         false
     end
     original_is_positive_integer || throw(ArgumentError(
@@ -23,7 +24,8 @@ function _checked_integer_lkj_eta(value)
     ))
     eta_value = try
         Float64(value)
-    catch
+    catch err
+        _fatal_exception(err) && rethrow()
         throw(ArgumentError("lkj_eta must be convertible to Float64"))
     end
     isfinite(eta_value) && eta_value > 0 && isinteger(eta_value) ||
@@ -881,12 +883,12 @@ function initial_params(
         target::_MGMFRMFreeLatentCorrelation2DLogDensity;
         value::Real = 0.0,
         zrho::Real = 0.0)
-    isfinite(value) || throw(ArgumentError("value must be finite"))
     zrho isa Bool && throw(ArgumentError("zrho must be a finite real value"))
-    isfinite(zrho) || throw(ArgumentError("zrho must be finite"))
+    zrho = Float64(zrho)
+    isfinite(zrho) || throw(ArgumentError("zrho must be finite after Float64 conversion"))
     return vcat(
         initial_params(target.base; value),
-        Float64(zrho),
+        zrho,
     )
 end
 
@@ -1042,20 +1044,10 @@ function _mgmfrm_free_latent_correlation_2d_sample_bundle(
         init_jitter::Real = 0.0,
         chain_initials = nothing,
         progress::Bool = false)
-    ndraws >= 1 || throw(ArgumentError("ndraws must be positive"))
-    warmup >= 0 || throw(ArgumentError("warmup must be non-negative"))
-    chains >= 1 || throw(ArgumentError("chains must be positive"))
-    isfinite(step_size) && step_size > 0 ||
-        throw(ArgumentError("step_size must be finite and positive"))
-    0 < target_accept < 1 ||
-        throw(ArgumentError("target_accept must be in (0, 1)"))
-    max_depth >= 1 || throw(ArgumentError("max_depth must be positive"))
-    isfinite(max_energy_error) && max_energy_error > 0 ||
-        throw(ArgumentError(
-            "max_energy_error must be finite and positive",
-        ))
-    isfinite(init_jitter) && init_jitter >= 0 ||
-        throw(ArgumentError("init_jitter must be finite and non-negative"))
+    step_size = _check_fit_controls(ndraws, warmup, chains, step_size)
+    requested_init_jitter = init_jitter
+    target_accept, max_energy_error, init_jitter =
+        _check_nuts_controls(target_accept, max_depth, max_energy_error, init_jitter)
     gradient_backend = _gradient_backend_kind(ad_backend)
     _check_source_fixture_raw_vector(target, raw_initial)
     initial = Float64.(collect(raw_initial))
@@ -1076,12 +1068,13 @@ function _mgmfrm_free_latent_correlation_2d_sample_bundle(
             "chain_initials has size $(size(chain_initials)); expected " *
             "($chains, $nparams)",
         ))
-        iszero(init_jitter) || throw(ArgumentError(
+        iszero(requested_init_jitter) || throw(ArgumentError(
             "init_jitter must be zero when explicit chain_initials are supplied",
         ))
         converted = try
             Matrix{Float64}(chain_initials)
-        catch
+        catch err
+            _fatal_exception(err) && rethrow()
             throw(ArgumentError(
                 "chain_initials must contain values convertible to Float64",
             ))
@@ -1102,25 +1095,30 @@ function _mgmfrm_free_latent_correlation_2d_sample_bundle(
     sampler_stats = NamedTuple[]
 
     for chain in 1:chains
-        chain_initial = supplied_chain_initials === nothing ?
-            _advancedhmc_initial(
-                initial,
-                fit_rng,
-                Float64(init_jitter),
-            ) : copy(@view supplied_chain_initials[chain, :])
-        actual_chain_initials[chain, :] .= chain_initial
-        chain_initial_logdensity[chain] =
-            LogDensityProblems.logdensity(target, chain_initial)
-        isfinite(chain_initial_logdensity[chain]) ||
-            throw(ArgumentError(
-                "chain $chain initial raw parameter vector has non-finite " *
-                "log density",
-            ))
-        gradient_target = _logdensity_gradient_target(
-            target,
-            chain_initial,
-            ad_backend,
-        ).target
+        chain_initial = _with_sampler_context(:advancedhmc, chain, :initialization) do
+            values = supplied_chain_initials === nothing ?
+                _advancedhmc_initial(
+                    initial,
+                    fit_rng,
+                    Float64(init_jitter),
+                ) : copy(@view supplied_chain_initials[chain, :])
+            actual_chain_initials[chain, :] .= values
+            chain_initial_logdensity[chain] =
+                LogDensityProblems.logdensity(target, values)
+            isfinite(chain_initial_logdensity[chain]) ||
+                throw(ArgumentError(
+                    "chain $chain initial raw parameter vector has non-finite " *
+                    "log density",
+                ))
+            values
+        end
+        gradient_target = _with_sampler_context(:advancedhmc, chain, :initialization) do
+            _logdensity_gradient_target(
+                target,
+                chain_initial,
+                ad_backend,
+            ).target
+        end
         metric_object = _advancedhmc_metric(metric, nparams)
         hamiltonian = AdvancedHMC.Hamiltonian(
             metric_object,
@@ -1148,43 +1146,46 @@ function _mgmfrm_free_latent_correlation_2d_sample_bundle(
                     integrator,
                 ),
             ) : AdvancedHMC.NoAdaptation()
-        samples, stats = AdvancedHMC.sample(
-            fit_rng,
-            hamiltonian,
-            kernel,
-            chain_initial,
-            warmup + ndraws,
-            adaptor,
-            warmup;
-            drop_warmup = warmup > 0,
-            verbose = false,
-            progress,
-        )
-        length(samples) == ndraws || throw(ArgumentError(
-            "AdvancedHMC returned $(length(samples)) draw(s); " *
-            "expected $ndraws",
-        ))
-        length(stats) == ndraws || throw(ArgumentError(
-            "AdvancedHMC returned $(length(stats)) sampler-stat row(s); " *
-            "expected $ndraws",
-        ))
-        chain_stats = NamedTuple[]
-        for iteration in 1:ndraws
-            row = (chain - 1) * ndraws + iteration
-            draws[row, :] .= samples[iteration]
-            stat_row = _advancedhmc_stat_row(
-                stats[iteration],
-                chain,
-                iteration,
+        samples, stats = _with_sampler_context(:advancedhmc, chain, :sampling) do
+            AdvancedHMC.sample(
+                fit_rng,
+                hamiltonian,
+                kernel,
+                chain_initial,
+                warmup + ndraws,
+                adaptor,
+                warmup;
+                drop_warmup = warmup > 0,
+                verbose = false,
+                progress,
             )
-            logdensities[row] = stat_row.log_density
-            chain_ids[row] = chain
-            iterations[row] = iteration
-            push!(chain_stats, stat_row)
-            push!(sampler_stats, stat_row)
         end
-        chain_acceptance_rate[chain] =
-            _stat_mean(chain_stats, :acceptance_rate)
+        _with_sampler_context(:advancedhmc, chain, :output_validation) do
+            length(samples) == ndraws || throw(ArgumentError(
+                "AdvancedHMC returned $(length(samples)) draw(s); " *
+                "expected $ndraws",
+            ))
+            length(stats) == ndraws || throw(ArgumentError(
+                "AdvancedHMC returned $(length(stats)) sampler-stat row(s); " *
+                "expected $ndraws",
+            ))
+            chain_stats = NamedTuple[]
+            for iteration in 1:ndraws
+                row = (chain - 1) * ndraws + iteration
+                stat_row = _advancedhmc_stat_row(
+                    stats[iteration],
+                    chain,
+                    iteration,
+                )
+                _store_sampler_draw!(draws, logdensities, samples[iteration], stat_row, row)
+                chain_ids[row] = chain
+                iterations[row] = iteration
+                push!(chain_stats, stat_row)
+                push!(sampler_stats, stat_row)
+            end
+            chain_acceptance_rate[chain] =
+                _stat_mean(chain_stats, :acceptance_rate)
+        end
     end
 
     base_draws = Matrix(@view draws[:, target.blueprint.base_parameter_range])

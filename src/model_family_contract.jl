@@ -52,6 +52,18 @@ function _model_family_branch_rows()
             claim_scope = :minimal_mfrm_pcm,
         ),
         _model_family_branch_row(;
+            branch = :mfrm_fixed_q,
+            family = :mfrm,
+            dimensionality = :multidimensional,
+            category_kernel = :multidimensional_partial_credit,
+            loading_policy = :fixed_q_coefficients,
+            step_owner = :item,
+            implementation_status = :specified_only,
+            fit_available = false,
+            entrypoint = nothing,
+            claim_scope = :fixed_coefficient_multidimensional_mfrm,
+        ),
+        _model_family_branch_row(;
             branch = :gmfrm_rater_step_gpcm,
             family = :gmfrm,
             dimensionality = :unidimensional,
@@ -142,7 +154,7 @@ end
     model_family_contract()
     model_family_contract(spec_or_design)
 
-Return the Stage-0 machine-readable MGMFRM-family skeleton, or the exact branch
+Return a machine-readable overview of the model families, or the exact branch
 contract implied by a [`FacetSpec`](@ref) or [`FacetDesign`](@ref).
 
 The contract keeps the source's multidimensional classification separate from
@@ -177,7 +189,7 @@ function model_family_contract()
 end
 
 function _model_family_item_structure(spec::FacetSpec)
-    spec.family === :mgmfrm || return (;
+    spec.family === :mgmfrm || _is_mfrm_fixed_q(spec) || return (;
         classification = :unidimensional,
         active_dimensions_per_item = (),
         n_between_items = 0,
@@ -221,7 +233,9 @@ end
 
 function _model_family_category_contract(spec::FacetSpec)
     family = spec.family
-    kernel = if family === :mfrm
+    kernel = if _is_mfrm_fixed_q(spec)
+        :multidimensional_partial_credit
+    elseif family === :mfrm
         spec.thresholds === :rating_scale ?
             :rating_scale_pcm : :partial_credit
     elseif family === :gmfrm
@@ -257,7 +271,12 @@ end
 function _model_family_step_contract(spec::FacetSpec)
     family = spec.family
     n_categories = length(spec.data.category_levels)
-    if family === :mfrm && spec.thresholds === :rating_scale
+    if _is_mfrm_fixed_q(spec)
+        owner = :item
+        sharing = :item_specific_shared_across_raters_dimensions_and_persons
+        n_vectors = length(spec.data.item_levels)
+        constraint = :first_step_zero_remaining_steps_sum_to_zero
+    elseif family === :mfrm && spec.thresholds === :rating_scale
         owner = :global
         sharing = :shared_across_items_raters_and_persons
         n_vectors = 1
@@ -319,6 +338,7 @@ function _model_family_support_contract(spec::FacetSpec,
 end
 
 function _model_family_exact_branch(spec::FacetSpec, item_structure)
+    _is_mfrm_fixed_q(spec) && return :mfrm_fixed_q
     spec.family === :mfrm && return spec.thresholds === :rating_scale ?
         :mfrm_rating_scale : :mfrm_partial_credit
     spec.family === :gmfrm && return :gmfrm_rater_step_gpcm
@@ -334,7 +354,9 @@ function model_family_contract(spec::FacetSpec)
     equation = model_equation(spec)
     item_structure = _model_family_item_structure(spec)
     family = spec.family
-    q_validation = family === :mgmfrm ? q_matrix_validation(spec) : nothing
+    fixed_coefficients = _is_mfrm_fixed_q(spec)
+    multidimensional = family === :mgmfrm || fixed_coefficients
+    q_validation = multidimensional ? q_matrix_validation(spec) : nothing
     q_identification = q_validation === nothing ? nothing :
         q_validation.identification
     dimensionality = (;
@@ -342,13 +364,14 @@ function model_family_contract(spec::FacetSpec)
         item_structure...,
         source_classification = family === :mgmfrm ?
             :non_compensatory_per_uto_2021 : :not_applicable,
-        algebraic_aggregation = family === :mgmfrm ?
+        algebraic_aggregation = multidimensional ?
             :additive_weighted_sum : :single_dimension,
-        operational_compensation_status = family === :mgmfrm ?
+        operational_compensation_status = fixed_coefficients ?
+            :additive_compensation_where_cross_loaded : family === :mgmfrm ?
             :not_adjudicated : :not_applicable,
         conditional_ability_integral = false,
         ability_representation = :explicit_person_posterior_parameters,
-        current_loading_policy = family === :mgmfrm ?
+        current_loading_policy = fixed_coefficients ? :fixed_q_coefficients : family === :mgmfrm ?
             :fixed_q_positive_masked :
             family === :gmfrm ?
                 :item_discrimination_times_rater_consistency :
@@ -358,7 +381,7 @@ function model_family_contract(spec::FacetSpec)
             :not_applicable,
         nonadditive_aggregator_supported = false,
     )
-    latent_correlation = family === :mgmfrm ? :identity_fixed : :not_applicable
+    latent_correlation = multidimensional ? :identity_fixed : :not_applicable
     return (;
         schema = "bayesianmgmfrm.model_family_contract.v1",
         object = :model_family_contract,

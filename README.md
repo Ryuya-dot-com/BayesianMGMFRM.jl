@@ -5,7 +5,9 @@
 `BayesianMGMFRM.jl` provides conservative Bayesian workflows for many-facet
 Rasch measurement in Julia. It validates long-format rating designs, constructs
 identified MFRM/RSM/PCM models, fits them with Bayesian samplers, and produces
-diagnostic and reporting tables.
+diagnostic tables, portable reports, and optional figures directly from a fit.
+Figures cover posterior intervals, chain diagnostics, posterior predictions,
+and stable-MFRM Wright maps.
 
 The package deliberately distinguishes supported models from experimental
 ones. A successful experimental fit is evidence about that exact configuration;
@@ -27,19 +29,22 @@ using Pkg
 Pkg.add(url = "https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl", rev = "main")
 ```
 
-Pin a commit or tag instead of `main` for reproducible analyses.
+Pin a commit or tag instead of `main` for reproducible analyses. This README
+and its examples describe the same repository revision; a registered release
+may not include development features shown here. Use the documentation and
+examples for the version you install.
 
 ## Model Support
 
 | Model surface | Status | Entry point |
 |:--|:--|:--|
-| MFRM with rating-scale or partial-credit steps | Supported | `mfrm_spec`, `getdesign`, `fit` |
+| MFRM with rating-scale or partial-credit steps | Supported | `mfrm_spec`, `fit(spec)` |
 | Scalar GMFRM: item discrimination × rater consistency | Experimental | `BayesianMGMFRM.Experimental.fit(spec)` |
 | Fixed-Q confirmatory MGMFRM | Experimental | `BayesianMGMFRM.Experimental.fit(spec)` |
 | Broader discrimination structures | Not supported | Specification review only where documented |
 | Exploratory multidimensional loadings or free latent correlations | Not supported | No fitting API |
 | Fitted DFF effects | Not supported | Screening and design diagnostics only |
-| Testlet, response-cluster, or rater-halo effects | Not supported | Metadata checks, report-only residual summaries, and simulation/protocol validation only |
+| Testlet, response-cluster, or rater-halo effects | Not supported | Metadata checks and report-only residual summaries |
 
 The experimental GMFRM configuration is one-dimensional and estimates positive
 item/task discrimination multiplied by positive rater consistency. Its
@@ -50,24 +55,27 @@ The experimental MGMFRM configuration requires at least two dimensions, a
 fixed confirmatory Q-matrix, partial-credit steps, identity latent correlation,
 no anchors, and no fitted DFF terms.
 
-Its conditional ability term is the Uto (2021) additive weighted sum across
-active dimensions; it contains no latent-ability integral. A simple fixed Q
-represents between-item multidimensionality, while fixed cross-loaded rows
-represent within-item structure and a Q containing both is mixed. The source
-paper labels the model non-compensatory, while its predictor is an additive
-weighted sum. The documentation keeps those facts separate, and
-`model_family_contract(spec)` makes the distinction machine-readable. The
-package does not implement an alternative conjunctive/product/minimum response
-rule.
-Generalized fitting is GPCM-form. This fixed-Q branch is a restricted candidate,
-not Uto's unrestricted item-dimension loading surface. Step vectors belong only
-to the declared threshold owner: the rater for guarded GMFRM and the item for
-guarded MGMFRM. Adding arbitrary facets does not automatically add facet-
-specific steps. The fixed-Q stress generator accepts odd item counts: pure
-items are allocated across the two dimensions with a count difference of one;
-equal item counts per dimension are not treated as an identification condition.
+MGMFRM estimates a person ability vector and positive loadings in the active
+Q cells. Its response equation uses an additive weighted ability sum. See the
+[model equations](docs/src/model-equations.md) for the source terminology,
+between-/within-item distinction, and step sharing, and the
+[experimental guide](docs/src/experimental.md) for priors and identification.
 
 ## Quick Start
+
+For a short runnable demonstration from the repository root:
+
+```sh
+julia --project=. examples/minimal.jl
+```
+
+It fits in Julia with AdvancedHMC/NUTS, prints diagnostics and posterior
+summaries, and saves/reloads `fit.jls` in a new directory under `results/minimal/`.
+The small 50-warmup/50-retained-draw settings per chain demonstrate the workflow;
+they are not sufficient for inference. Add `--plots` with CairoMakie installed
+to generate all four figures from the reloaded fit. Add `--cmdstan` to use a
+configured CmdStan installation. See the [example guide](docs/src/examples.md#minimal-mfrm-workflow)
+for setup, output files and regeneration without refitting.
 
 ```julia
 using BayesianMGMFRM
@@ -95,9 +103,8 @@ response_patterns = ordinal_response_pattern_audit(data)
 
 spec = mfrm_spec(data; thresholds = :partial_credit,
     validation_report = validation)
-design = getdesign(spec)
 
-fit_result = fit(design;
+fit_result = fit(spec;
     backend = :advancedhmc,
     ndraws = 500,
     warmup = 500,
@@ -108,6 +115,48 @@ fit_result = fit(design;
 diagnostics(fit_result; view = :public)
 posterior_summary(fit_result)
 ```
+
+For editable analysis figures, install CairoMakie once with
+`Pkg.add("CairoMakie")`, then use:
+
+```julia
+using CairoMakie
+figure = BayesianMGMFRM.plot_posterior(fit_result; block = :rater)
+save("rater-posterior.pdf", figure)
+
+chains = BayesianMGMFRM.plot_diagnostics(fit_result; block = :rater)
+save("rater-chains.pdf", chains)
+
+predictive = BayesianMGMFRM.plot_predictive(fit_result; ndraws = 200, seed = 42)
+save("category-predictive.pdf", predictive)
+
+wright = BayesianMGMFRM.plot_wright(fit_result)
+save("wright-map.pdf", wright)
+```
+
+Save the fit once, then regenerate figures from it in a later Julia session:
+
+```julia
+save_fit_cache("analysis-fit.jls", fit_result)
+restored = load_fit_cache("analysis-fit.jls")
+wright = BayesianMGMFRM.plot_wright(restored)
+save("wright-map-reloaded.pdf", wright)
+```
+
+The interval figure shows medians and 95% central credible intervals. Fixed reference
+values and anchors appear as diamonds without intervals. See the
+[plotting guide](docs/src/fitting.md#posterior-interval-figures) for selection,
+editing, SVG output, and regenerating figures from saved fits.
+The diagnostic figure shows retained-chain traces and rank histograms, with
+R-hat/ESS and whole-fit warnings. Single-chain rank comparisons are explicitly
+unavailable; see the [diagnostic plotting guide](docs/src/fitting.md#chain-diagnostic-figures).
+The predictive figure compares observed category proportions with replicated
+ratings for the same fitted persons, items and raters. Its bars are predictive
+intervals. See the [predictive plotting guide](docs/src/fitting.md#posterior-predictive-figures)
+for draw selection and replay from a saved fit.
+The stable MFRM Wright map places ability, severity, difficulty and item-step
+boundaries on a shared logit scale. See the [Wright-map guide](docs/src/fitting.md#wright-map)
+for signs, boundary interpretation and fixed anchors.
 
 Small sampler settings are useful for smoke tests only. Substantive analyses
 should predeclare sampler controls, inspect convergence and HMC diagnostics,
@@ -123,410 +172,60 @@ warns that endpoint 0 is unobserved instead of silently fitting a two-category
 model. Without the keyword, the backward-compatible default remains the
 contiguous range from the observed minimum through maximum.
 
-The guarded fixed-Q MGMFRM validation program also provides a bounded MCMC-free
-stress preflight:
-
-```julia
-stress = mgmfrm_response_stress_preflight()
-stress.summary
-```
-
-It retains every planned attempt and typed generation failure. Passing this
-preflight establishes only that the nine default dense/sparse category-gap and
-boundary-pattern cases can be generated and structurally checked; repeated-fit
-recovery evidence remains unrun.
-
-Fit wiring can be checked separately with one explicitly selected case:
-
-```julia
-one_case = mgmfrm_response_stress_plan(
-    design_strata = (:connected_sparse_systematic_link,),
-    response_patterns = (:regular_all_categories,),
-)
-smoke = mgmfrm_response_stress_fit_attempts(one_case)
-smoke.summary
-```
-
-The default resource bound admits one fit attempt and uses one chain with four
-warmup and four retained draws. It preserves generation, pre-fit, fit, and
-diagnostic failures, but deliberately does not assess convergence, recovery,
-backend agreement, prior sensitivity, or scientific validity. The analysis
-profile remains blocked until its protocol and thresholds are frozen.
-
-The remaining boundary can be inspected without starting an analysis:
-
-```julia
-execution_design = mgmfrm_validation_execution_design_contract()
-analysis_contract = mgmfrm_validation_analysis_contract()
-primary_grid_candidates = mgmfrm_validation_primary_grid_candidates()
-primary_candidate = simulate_mgmfrm_validation_primary_candidate(
-    first(primary_grid_candidates.cells),
-)
-# Explicit and heavier: materializes all 16 candidate datasets.
-primary_grid_preflight = mgmfrm_validation_primary_grid_preflight(
-    primary_grid_candidates,
-)
-primary_resource_plan = mgmfrm_validation_primary_resource_plan()
-# Planning candidates only; these are not recommended or frozen counts.
-replication_precision = mgmfrm_validation_replication_precision(
-    (50, 100, 200, 400),
-)
-# Explicit gradient measurement, one cell at a time:
-primary_resource_probe = mgmfrm_validation_resource_probe(
-    first(primary_resource_plan.rows),
-)
-resource_probe_plan = mgmfrm_validation_resource_probe()
-short_nuts_plan = mgmfrm_validation_short_nuts_resource_probe()
-scaled_resource_plan = mgmfrm_validation_scaled_resource_plan()
-isolated_resource_plan = mgmfrm_validation_isolated_resource_probe()
-
-execution_design.heldout
-execution_design.retry
-execution_design.sensitivity
-analysis_contract.fixed_components
-analysis_contract.open_decisions
-analysis_contract.readiness
-```
-
-This draft fixes the four-chain sampler, computational gate, estimands,
-interval and scale policies, prior regimes, backend subset, seeds, terminal
-statuses, all-attempt denominator, five-fold conditional observation holdout,
-non-overwriting remediation, and 24 exact sensitivity role-cells. New-person,
-new-item, and new-rater prediction are not claimed. Execution remains blocked
-while the final primary grid, replication count, resource caps, and
-independently reviewed scientific thresholds are unresolved. These contracts
-use documented package APIs and explicit semantic options. Candidate generation
-and preflight run no MCMC and do not authorize evaluation.
-
-`primary_grid_candidates` enumerates 16 non-executing source-anchored cells:
-two designs crossed with 50/100 persons, 5/15 items, and 5/15 raters. Expected
-observations range from 500 to 22,500. Nine cells exceed the current 2,000-
-observation short-NUTS bound. A public four-category known-truth generator and
-MCMC-free structural preflight are available, but resource coverage, final
-cell selection, and evaluation replications remain unresolved. This is not yet
-the frozen evaluation grid. Candidate rows expose persons and ratings per
-rater, rater-coverage fraction, dimension-support role, and sparse-coverage
-role. Uto's 30 repetitions remain a source-comparison value, not a package
-precision justification; sparse robustness also requires link-size,
-represented-range, model-fit, and assignment-order sensitivity rather than a
-universal anchor percentage.
-
-Its `staged_review` field reduces the immediate decision to three cumulative
-levels without authorizing execution: two minimum-support dense/sparse cells
-for operability and scoring, two additional 100-person/15-item cells repeating
-that contrast at larger joint support, and one additional sparse 15-rater cell
-for a fixed-observation rater-pool/per-rater-information contrast. The five
-unique cells are minimal only as the union of these three exact contrasts.
-They do not form a factorial design, separate person from item sample-size
-effects, isolate rater count from per-rater information, or establish a
-universal sparse or anchor percentage. Stage 1 is explicitly not recovery
-evidence. New sampling is not an automatic next step; each later cell first
-requires a cell-specific scientific and resource decision. Both Stage 1 cells
-are inside the current short-NUTS workload bound; none of the three cells added
-by Stages 2--3 is.
-
-`primary_resource_plan` selects four ordered 4-category cells with 500, 1,250,
-3,750, and 7,500 observations for explicit, one-cell-at-a-time gradient
-profiling. It does not cover every primary axis and does not progress
-automatically. The shared bounded fit adapter now accepts either the original
-five-category stress row or one four-category primary row while retaining
-source-specific schemas and failure records. Two primary resource cells fit
-inside the current short-NUTS workload bound. The representative cells use
-resource-only seeds rather than structural-preflight or evaluation seeds.
-The first two rows can now be selected by cell ID in the dedicated isolated
-worker; the later two remain gradient-only under the current workload bound.
-Execution remains explicitly memory-guarded, requires one cell per invocation,
-and cannot freeze the resource envelope by itself.
-
-`mgmfrm_validation_replication_precision` separates nominal-coverage MCSE,
-worst-case binary decision/failure-rate MCSE, and bias MCSE. Bias precision is
-left unresolved unless the caller supplies a predeclared replication-error SD;
-optional precision targets show required counts but never select or freeze a
-count. Failed fits remain in the planned denominator and require separate
-failure-rate reporting and bias-sensitivity handling.
-
-The first resource-planning surface is also MCMC-free by default. Calling
-`mgmfrm_validation_resource_probe()` only returns the bounded dense/sparse
-plan. Set `execute_measurement = true` explicitly to measure local generation,
-ForwardDiff gradient time, allocation, and free memory. Before generation, the
-explicit path applies a 2 GiB available-memory screen with a non-lowerable
-1 GiB floor; a rejection leaves every planned cell unstarted. On macOS, the
-screen does not mistake Julia/libuv's raw free-page count for usable memory:
-it records that legacy raw value separately, estimates conservatively
-reclaimable memory from free, inactive, and speculative pages, and also checks
-the system memory-pressure percentage. Other platforms record the observation
-basis used. This screen is not a memory reservation or a guarantee that a
-later measurement will complete.
-Measured values may guide the cells and batch size for a later bounded
-short-NUTS probe, but they are not convergence, recovery, backend, or
-performance evidence and are not extrapolated into a full-fit runtime.
-
-`mgmfrm_validation_short_nuts_resource_probe()` similarly plans one connected-
-sparse AdvancedHMC cell without executing it. An explicit
-`execute_measurement = true` request starts its 25-warmup/25-draw single chain
-only after the workload check and a 2 GiB available-memory preflight pass. The
-minimum cannot be lowered below 1 GiB. A failed memory preflight starts neither
-generation nor MCMC. Even a completed probe is short-chain operability metadata
-only; convergence, peak memory, and full-analysis runtime remain unassessed.
-The validation work order executes this primitive through the isolated wrapper
-below, rather than running the same cell once directly and once in a worker.
-
-After the isolated default sparse short-NUTS receipt succeeds in a suitable
-environment,
-`mgmfrm_validation_scaled_resource_plan()` provides four ordered cells with
-144, 600, 600, and 2,000 observations. Pass exactly one cell identifier at a
-time to the isolated probe; automatic progression is prohibited.
-`Sys.maxrss()` is recorded as process-lifetime maxRSS before and after a reused-
-process run, not as interval-attributable peak memory. For stronger worker-
-level attribution,
-`mgmfrm_validation_isolated_resource_probe()` can launch exactly one selected
-cell in a dedicated Julia process. It is inert by default, requires explicit
-execution, repeats the memory preflight in both parent and child, and enforces
-a wall-time limit. The worker uses one Julia thread. Its peak RSS includes
-Julia startup, package loading, compilation, generation, and diagnostics as
-well as sampling; it is not sampler-only memory. The receipt records
-Julia/OS/architecture/thread context, raw free memory, the distinct available-
-memory estimate and its basis, and memory pressure when the OS supplies it.
-Completed or rejected
-invocations can be passed to
-`mgmfrm_validation_isolated_resource_review()` for a threshold-free table of
-both memory preflights, elapsed time, child status, worker peak RSS, and the
-retained short-NUTS geometry: divergences, tree depth, leapfrog-step count,
-step size, and per-chain E-BFMI coverage. These short-chain fields help review
-computational cost and pathological geometry; they are not convergence or
-scientific pass/fail evidence. The review never launches the next cell or
-freezes a resource policy. Its `stage_1_operability` section maps the two
-minimum-support candidate cells to their primary resource-cell IDs and reports
-missing, submitted, completed, and denominator-preserving receipts. A complete
-submitted pair only permits a manual decision to close Stage 1 as operability;
-it does not close the milestone automatically or establish convergence,
-recovery, portable performance, or scientific validity. If receipts are
-missing, recovering the existing records is preferred and no rerun is
-authorized automatically.
-
-Stable MFRM/RSM/PCM designs also support `backend = :cmdstan`. CmdStan is an
-optional external runtime, discovered with `cmdstan_backend_check()`; it is not
-required to load the package or use Julia backends. Both guarded generalized
-families also support
-`BayesianMGMFRM.Experimental.fit(spec; backend = :cmdstan)` with the same
-raw-coordinate priors and identification transforms as their Julia targets.
-The MGMFRM route remains limited to the fixed-Q, identity-correlation
-confirmatory contract. `cached_fit` is not yet connected to CmdStan.
+Stable MFRM and both experimental families accept `backend = :cmdstan` as
+an alternative to Julia sampling. CmdStan is optional; use
+`cmdstan_backend_check()` to inspect the local runtime. Each CmdStan fit
+currently needs a fresh empty `cmdstan_cache_dir`; automatic compiled-model
+reuse and `cached_fit` are unavailable for this backend. See the
+[backend guide](docs/src/fitting.md#backends-and-sampler-controls) for setup
+and build restrictions. Saved fits can still be reloaded for reporting.
 
 ## Main Workflow
 
-1. Create `FacetData` from long-format ratings.
-2. Run `validate_design` and inspect coverage, connectedness, category use,
-   anchors, and optional grouping fields.
-3. Create an `mfrm_spec` and inspect `getdesign`, `constraint_table`, and
-   `model_manifest` before fitting.
-4. Fit the supported model with `fit` or use `cached_fit` when the cache
-   identity is part of the reproducibility plan.
-5. Review `sampler_diagnostics`, `mcmc_diagnostics`,
-   `parameter_block_diagnostics`, and estimand-specific `posterior_mcse`, then
-   inspect posterior predictive checks, calibration, and sensitivity results.
-6. Export `fit_report(fit; view = :public)` for a portable reader-facing
-   structured report, or use a human-readable Markdown summary.
+1. Encode ratings with `FacetData`, run `validate_design`, and review category
+   use, connectedness, coverage, and any intended anchors.
+2. Choose a model with `mfrm_spec`. Review its constraints and prior-predictive
+   implications; `getdesign` is available for optional parameter inspection.
+3. Call `fit(spec)` and inspect `diagnostics(fit_result; view = :public)`.
+   Review convergence, sampler warnings, and `posterior_mcse` for the quantities
+   you intend to report.
+4. Examine posterior intervals, replicated ratings, residuals, and sensitivity
+   to defensible priors and model choices. Figures accept the fitted object
+   directly; their settings and interpretation are in the plotting guide above.
+5. Generate `report = fit_report(fit_result)` and render it with
+   `fit_report_markdown(report)`, or request `view = :public` for structured
+   reader-facing rows. Retain the saved fit, source data, analysis code, and
+   package/environment versions.
 
-`fit_report` keeps model exposure (`status`) separate from report-generation
-health (`report_status`). Inspect `fit_report_health(report)` before treating a
-report as complete. Evidence and release exports should use
-`require_complete = true`; exploratory workflows may retain the default
-captured error section for diagnosis.
+Check `fit_report_health(report)` before treating a report as complete. Set
+`require_complete = true` on report generation/export when a failed requested
+section should stop the export. Model status (`supported` or `experimental`)
+and report completeness are separate from convergence or scientific validity.
+See the [Bayesian workflow](docs/src/bayesian-workflow.md) for interpretation.
+To save selected figures, captions and numerical inputs with a report, pass
+`figures` to `save_fit_report_bundle` as shown in the
+[figure bundle guide](docs/src/fitting.md#reports-with-figures).
 
-`mcmc_diagnostics` uses rank-normalized split R-hat, bulk ESS, and tail ESS as
-its primary convergence fields. Classical `rhat` and `ess` remain available
-for compatibility only. Odd-draw rank/fold/tail operation order and ESS lag
-handling follow Stan/posterior semantics. Guarded generalized fits gate both
-raw unconstrained and direct constrained parameter rows, and their cache
-identity includes a versioned diagnostic contract. A direct coordinate fixed
-by a transform with zero raw dimension remains visible with `diagnostic_status`
-and `flag` equal to
-`:structurally_fixed` and `quality_gate_applicable = false`; it is excluded
-from diagnostic extrema and failure counts. A reconstructed direct coordinate
-that varies with free raw coordinates remains part of the gate.
+## Experimental Generalized Models
 
-Sampler summaries retain the minimum available `e_bfmi` value for
-compatibility and also report `n_e_bfmi_expected`, `n_e_bfmi_available`,
-`n_e_bfmi_unavailable`, and `e_bfmi_complete`. The quality gate applies the
-E-BFMI threshold only when every chain contributes a finite value; a missing or
-non-finite energy value within a chain makes that chain unavailable. Diagnostic
-wrapper schemas stay at version 1. Their migration boundary is the row-level
-`diagnostic_contract`:
-rows without `rank_normalized_rhat_bulk_tail_ess_v1` are pre-modern records and
-must not be reinterpreted as modern diagnostics. The primary `flag` aliases
-`rank_normalized_flag`; `classical_compatibility_flag` reports the legacy check.
-Publication-grade MCMC gate rows fail closed when that contract identifier is
-missing or different.
-
-Use `posterior_mcse(fit)` for on-demand Monte Carlo standard errors of
-posterior means, standard deviations, and the default 2.5%, 50%, and 97.5%
-quantiles. Generalized fits default to interpretable direct constrained
-parameters; raw sampling coordinates remain available with
-`parameter_space = :raw_unconstrained`. The matrix method accepts
-chain-blocked draw columns for derived contrasts or other estimands. MCSE rows
-apply no universal threshold and explicitly require a separate convergence
-review. Fewer than two chains or 10 retained draws per chain produce typed
-unavailable rows rather than apparently precise short-chain results.
-
-Useful reporting functions include:
-
-- `posterior_summary`, `fair_average_summary`, and
-  `separation_reliability_summary`;
-- `category_functioning_summary` for observed and posterior-predictive category
-  use plus RSM/PCM step uncertainty, and `rater_homogeneity_summary` for
-  severity contrasts with optional ROPEs, explicit fixed/partially estimated/
-  posterior-estimated status, and separately labelled shared-unit overlap
-  versus model-identification support; a contrast between two fixed rater
-  coordinates is reported as an exact constant with no interval probability or
-  posterior uncertainty;
-- `rater_diagnostics`, `residual_summary`, `fit_stats`, and `wright_map_data`;
-- `predictive_standardized_residuals`, the provisional
-  `local_dependence_contract`, and the report-only `local_dependence_summary`
-  for clustered-response design and residual-association work, including
-  selected-pair, shared-unit, pair-by-draw, and predictive-cell resource
-  checks;
-- `local_dependence_simulation_grid` and `simulate_local_dependence` for the
-  22-scenario LD1a known-truth generator and design validation. Its ordinal
-  response kernel is coded independently of the fitted likelihood, and its
-  zero/near-zero/small/moderate/large magnitudes are study-local simulation
-  settings rather than universal diagnostic cutoffs. Separate scenarios stress
-  ability-confounded order and ability-informed assignment;
-- `local_dependence_calibration_contract`,
-  `local_dependence_calibration_row`, and
-  `local_dependence_calibration_summary` for the MCMC-free LD1b0 protocol and
-  scorer validation. They preserve planned, failed, rejected, unsupported, and
-  completed replication counts; keep pooled pair fractions descriptive; and
-  attach Wilson intervals only to replication-level binary rates;
-- `local_dependence_calibration_pilot_contract` and
-  `local_dependence_calibration_pilot_check` for the MCMC-free LD1b1 pilot
-  execution-protocol check. The frozen plan contains 30 replications for each
-  of 22 scenarios (`30 × 22 = 660`): 540 eligible fitting jobs and 120 planned
-  structural rejections. It does not execute those jobs;
-- `prior_predictive_check`, `posterior_predictive_check`, and
-  `calibration_table`;
-- `waic`, `loo`, `psis_loo`, and K-fold helpers with an explicitly stated
-  prediction target;
-- `fit_report`, `fit_report_health`, `fit_report_public`,
-  `fit_report_markdown`, and report-bundle exporters. The full version-1 report
-  remains available for compatibility; use the public view for material shared
-  with report readers and `require_complete = true` for evidence exports.
-  Stable MFRM reports contain a `fixed_coordinates` section: reference and
-  hard-anchor values are labelled as fixed constants, not posterior estimates.
-  They also include `category_functioning` usage/threshold rows and
-  `rater_homogeneity` pairwise severity-contrast rows by default. Category
-  review flags add one aggregate warning and never trigger automatic collapse,
-  recoding, or refitting; a hard-anchor fit adds aggregate fixed-value and
-  coordinate-dependent-prior warnings, plus a conditional warning when two or
-  more anchors fix contrasts within the same facet. Either
-  practitioner section can be disabled independently. A one-rater fit records zero pairwise contrasts as
-  `not_applicable_single_rater`, rather than treating the absence of a contrast
-  as evidence of homogeneity. JSON, table, and bundle exports retain that empty
-  contrast table; Markdown omits empty previews by default and exposes them
-  with `include_empty = true`.
-
-`facets_report` (also available as `facets_compatibility_stats`) returns an
-explicitly approximate, unit-weighted posterior-mean plugin table for supported
-MFRM/RSM/PCM fits. It does not claim numerical equivalence with FACETS and is
-not available for generalized fits.
-
-For migration, see the [FACETS and ACER ConQuest crosswalk](docs/src/migration-facets-conquest.md).
-Exact individual rater/item hard anchors are supported by the stable MFRM path:
-pass `anchors = [(block = :rater, level = "R1", value = 0.0, type = :hard)]`
-to `mfrm_spec`, then call `fit` normally. The fixed coordinate is not sampled
-or assigned a prior; manifests, predictor rows, Wright-map rows, and rater
-diagnostics expose it as structurally fixed. `fit_report(fit; view = :public)`
-also exposes the exact value under `fixed_coordinates.rows`, excludes it from
-posterior-summary rows, and records the no-prior/no-sampling interpretation in
-`fixed_coordinates.warning_rows`; uncertainty from an externally estimated
-anchor value is not propagated. `anchor_refit_plan(...;
-require_provenance = false)` checks the minimal distributed-package contract;
-its source/hash provenance audit is optional and does not gate fitting. Soft,
-threshold, and group-mean anchors remain unsupported for numerical fitting.
-Individual parameter anchors do not create observed rating-graph links, so a
-disconnected design remains rejected rather than being silently aligned by its
-anchor declarations.
-
-The package can also prepare manual-syntax FACETS or ConQuest bridge bundles on
-a Mac with `facets_bridge_bundle` or `conquest_bridge_bundle`, save them with a
-SHA-256 input manifest, and verify the returned directory after an operator
-runs FACETS with the included Windows launcher or ConQuest with the included
-Windows or macOS launcher on an authorized host. Version 1 is unanchored and
-limited to the one-dimensional, unit-weighted additive MFRM/RSM/PCM overlap;
-unsupported interactions, generalized discrimination, and anchors fail closed.
-Category-universe checks require both scale endpoints globally for FACETS,
-within each FACETS PCM item, and within each observed ConQuest rater--item
-generalized item so the external response denominator cannot silently narrow.
-The returned `host_preflight` values support an out-of-band host-side hash
-comparison of the transferred verifier and runner; the transfer-contained
-launcher is not itself a trust anchor. A version-specific macOS execution
-fixture now records successful ConQuest 5.47.5 demonstration-build RSM and PCM
-known-truth runs, including constraint reconstruction and recovery checks. It
-is not independent replication or product equivalence.
-`load_conquest_semantic_parameters` now provides a fail-closed semantic layer
-for the exact ConQuest 5.47.5, three-category RSM/PCM boundary. It requires the
-complete hash-bound bundle, matches it back to the supplied specification, and
-jointly validates identifier/category maps, parameter comments, and the design
-matrix before reconstructing ConQuest's sum-to-zero rater, item, and step
-values. It deliberately does not align those values to the package's
-first-reference gauge. A return receipt binds a raw-file snapshot to hashes and
-records reported completion, but neither the receipt nor the semantic layer
-independently proves execution, convergence, numerical agreement, or
-equivalence with either product. See the migration guide for the complete host
-sequence and the remaining gauge-alignment and anchored second-stage work.
-The default identifier map still contains unsalted deterministic hashes of
-canonical label representations. That is pseudonymization, not anonymization;
-guessable labels can be matched and equal labels remain linkable across bundles.
-
-LD1a provides known-truth simulation and structural checks, LD1b0 validates the
-calibration scorer, and LD1b1 freezes a 30-replication pilot plan for each of 22
-scenarios (`30 × 22 = 660` planned jobs). The plan accepts only the supported
-MFRM `ForwardDiff` route and does not execute any of those jobs. No official
-pilot result is included in this release.
-
-These planning and validation functions provide no repeated-calibration,
-power, diagnostic-decision, or mechanism-identification evidence. Testlet,
-response-cluster, halo, rater-by-task, multidimensional, and temporal effects
-remain unsupported for fitting.
-
-## Experimental Fixed-Q MGMFRM
-
-```julia
-q_matrix = Bool[1 0; 0 1]
-
-mgmfrm_spec = mfrm_spec(data;
-    family = :mgmfrm,
-    dimensions = 2,
-    thresholds = :partial_credit,
-    discrimination = :none,
-    q_matrix,
-    anchors = [],
-)
-
-mgmfrm_fit = BayesianMGMFRM.Experimental.fit(mgmfrm_spec;
-    backend = :advancedhmc,
-    ndraws = 500,
-    warmup = 500,
-    chains = 4,
-    seed = 20260718,
-)
-```
-
-This path is confirmatory: the Q-matrix is fixed, dimension labels and gauge
-choices must be interpreted explicitly, and exploratory loading claims are out
-of scope. The `BayesianMGMFRM.Experimental` namespace deliberately separates
-this provisional surface from the stable MFRM workflow. The older
-`fit(spec; experimental = true)` spelling remains available as a compatibility
-path, but new experimental work should use the namespace.
+Use `BayesianMGMFRM.Experimental.fit(spec)` for the restricted scalar GMFRM
+and fixed-Q MGMFRM configurations. The [experimental guide](docs/src/experimental.md)
+explains model specification, named dimensions, raw versus model coordinates,
+and prior sensitivity.
 
 Run the small end-to-end execution example with:
 
 ```bash
+julia --project=. examples/guarded_gmfrm.jl
 julia --project=. examples/guarded_mgmfrm.jl
 ```
 
-The example uses two draws and one chain to keep the execution check small;
-those controls are not suitable for substantive inference.
+Both examples print model-scale summaries and diagnostics, then save and reload
+the fit. They use two chains with 50 warmup and 50 retained draws each; these
+short demonstrations are not suitable for substantive inference. Add `--plots`
+with CairoMakie installed to save three figures, or `--cmdstan` to select a
+configured CmdStan runtime. See the [example guide](docs/src/examples.md#saved-generalized-fits-and-figures)
+for named-dimension selection and editable figures from saved fits.
 
 ## Documentation
 
@@ -548,55 +247,15 @@ Runnable examples are available in
 
 ## Development
 
-For ordinary repository verification:
+Run the ordinary package tests with:
 
-```bash
+```sh
 julia --project=. -e 'using Pkg; Pkg.test()'
-julia --startup-file=no --project=docs docs/build.jl
-julia --startup-file=no scripts/distribution_archive_smoke.jl
 ```
 
-The distribution smoke copies only Git-visible, non-ignored worktree files to a
-temporary source candidate. From that Git-free copy it instantiates, measures
-first and warm loads, runs the minimal stable fit, and builds the manual with
-optional research evidence disabled and CmdStan/R environment hooks removed.
-Each phase has a hard elapsed-time budget; the surrounding CI job also has a
-30-minute timeout.
-
-Ordinary `Pkg.test()` checks package behavior and portable artifact contracts.
-The long SHA-chained research-evidence archive, including legacy code/document
-provenance traversal, is intentionally opt-in:
-
-```bash
-BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true \
-  julia --project=. -e 'using Pkg; Pkg.test()'
-```
-
-Use that mode when reviewing or regenerating frozen study evidence, not as a
-prerequisite for installing or fitting the package on another computer. The
-optional research-fixture path variables are ignored when empty and rejected
-when non-empty unless this flag is true, so a stray CI or shell variable cannot
-silently turn an ordinary package test into a study-result check.
-
-The complete package suite runs once on Ubuntu with the Julia 1.10.8 minimum
-version. On the latest Julia 1.x release, the same ordinary test coverage is
-partitioned into `core`, `fitting_core`, `fitting_reports`,
-`local_dependence_core`, `local_dependence_integrity`, and `generalized` shards.
-Running `Pkg.test()` locally still selects all groups; a single group can be
-selected with `BAYESIANMGMFRM_TEST_GROUP=<group>`. The legacy `fitting` and
-`local_dependence` names each select both of their new shards. Focused current-Julia
-smokes on macOS and Windows verify package loading, design validation and
-compilation, likelihood evaluation, a minimal stable Bayesian fit, and
-non-blocking environment metadata collection. Every CI job has an explicit hard
-timeout; ordinary Ubuntu test shards are capped at 30--35 minutes and the full
-minimum-Julia suite at 75 minutes. Separate jobs build the
-documentation and verify examples and release-facing language. The root
-`Manifest.toml` and `docs/Manifest.toml` are ignored, machine-local files. The
-versioned `Manifest-v1.10.toml` is the tracked lockfile for the Julia 1.10.8
-minimum-version lane; Julia 1.10 selects it while the latest-1.x lane resolves
-from `Project.toml` compatibility bounds as the forward-drift check. A study
-should record the package version and relevant environment information with its
-outputs; exact manifest-byte equality is not an ordinary package gate.
+Documentation builds, CI test groups, distribution checks, optional research
+checks, and environment policy are described in the existing
+[development notes](docs/src/development-readme-ledger.md#development-checks).
 
 ## Citation
 

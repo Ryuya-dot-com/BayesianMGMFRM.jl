@@ -122,7 +122,7 @@ spec = mfrm_spec(data;
 )
 design = getdesign(spec)
 
-# Freeze the compiled meaning before sampling.
+# Inspect the constraints and record the model before sampling.
 constraint_rows = constraint_table(design)
 manifest = model_manifest(design; view = :public)
 
@@ -373,36 +373,7 @@ does not turn receipt completion into convergence evidence. Versions other
 than 5.47.5 and category counts other than three fail closed until matching
 execution fixtures and structural tests are added.
 
-### Version-specific ConQuest 5.47.5 execution fixture
-
-The repository contains a privacy-reduced fixture from fresh RSM and PCM runs
-made with the generated, hardened macOS verifier/runner and ConQuest 5.47.5
-Demonstration. Both processes recorded exit code zero and both receipts bind 15
-declared output records. Four raw outputs per model are retained: parameter
-pairs, design matrix, estimation history, and the zero-byte labels file. The
-executed control, manifest, verifier, runner, and receipt are also retained;
-row-level ratings, person estimates, residuals, raw logs, the executable, and
-activation material are not.
-
-| Target | Persons | Ratings | Free design rank | Selected / final iteration | Rater RMSE | Item RMSE | Step RMSE |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| RSM | 120 | 1,440 | 6 | 13 / 18 | 0.03134 | 0.06592 | 0.11581 |
-| PCM | 160 | 1,920 | 9 | 13 / 17 | 0.06851 | 0.04868 | 0.09016 |
-
-The test suite recomputes every retained-file hash and receipt content hash,
-rebuilds each bundle ID from its manifest, checks the complete 12 generalized-
-item by 3-category design grids and matrix ranks, reconstructs the sum-to-zero
-rater/item/step coordinates, links the minimum-deviance history row to the
-parameter export, and recomputes RMSE. Selecting the final history row would be
-wrong in both fits; iteration 13 has the minimum recorded deviance.
-
-This is version-specific, single-run transport and known-truth recovery
-evidence. The seed and truth are operator-recorded because the row-level
-generation stream is intentionally omitted. Bytes for the other 11 raw outputs
-are likewise omitted, so their receipt records cannot be independently
-rehash-checked from the repository. The fixture is not independent execution,
-convergence adjudication, a direct comparison with the package posterior,
-construct validation, or product equivalence.
+### What a returned bundle establishes
 
 A valid receipt establishes input continuity, a zero recorded process exit,
 the presence and byte-exact hashes of the declared files, no undeclared root or
@@ -413,21 +384,12 @@ parameter labels, align gauges, demonstrate numerical agreement, or establish
 product equivalence. The bridge therefore does not turn a reported external
 run into validation evidence by itself.
 
-Anchoring is intentionally a later, two-stage extension. First run the
-unanchored control and return its declared labelled or score outputs together
-with the identifier maps; for ConQuest, the declared files also include its
-positional parameter export, design matrix, and labels. The transport stage,
-privacy-reduced output-sample freeze, and version-specific three-category
-source-gauge semantic adapter are now complete for ConQuest 5.47.5 RSM and
-PCM. The next step is a separately tested transformation from the ConQuest
-term-wise sum-to-zero gauge to the package's first-reference gauge, followed by
-a convergence policy and direct comparison artifact. Only after those layers
-resolve stable destination targets should a second-stage bridge compile
-anchors for the exact returned design. The current bridge still does not
-perform that second stage;
-[`anchor_refit_plan`](@ref) remains a destination-side plan and does not
-execute either an external anchored calibration or a package
-anchor-constrained refit.
+The current bridge accepts unanchored specifications only. The ConQuest
+semantic adapter reconstructs the supported source gauge; it does not align
+it to the package gauge or create anchors. [`anchor_refit_plan`](@ref) checks
+destination declarations separately and runs neither an external calibration
+nor a package refit. A supported numerical declaration can be passed to
+`fit`, as shown below.
 
 ## Parameter and output crosswalk
 
@@ -584,7 +546,7 @@ anchoring, while [Myford and Wolfe
 connectivity from link quality. No universal anchor percentage should be
 recommended.
 
-### Implemented stage: individual hard anchors for the minimal model
+### Individual hard anchors for the minimal model
 
 Exact item and rater anchors use the affine selection map
 
@@ -614,8 +576,7 @@ recovery evidence and did not manipulate rater effects. [Uto
 (2021)](https://doi.org/10.3758/s13428-020-01498-x) fixes common-rater and
 common-task values from a base test and shows that required commonality changes
 with missingness, test scale, population differences, and drift. Neither
-establishes a universal exact-parameter anchor count, and this package's within-
-test hard-anchor pilot is not a two-test linking validation.
+establishes a universal exact-parameter anchor count.
 [Kopf et al. (2015)](https://doi.org/10.1177/0013164414529792) provide indirect
 motivation for the contamination stress from a DIF-anchor context, not direct
 validation of this MFRM implementation. Likewise, [Robitzsch
@@ -629,58 +590,21 @@ robust and nonrobust linking under DIF. This supports keeping anchor-set
 sensitivity separate from ordinary posterior uncertainty; its dichotomous 2PL
 results do not supply a robust-linking method for the present MFRM.
 
-The local descriptive MCMC pilot can be reproduced with:
+Changing a single anchor can preserve the response likelihood after shifting
+free facet coordinates and person locations, but the fixed zero-centered
+priors are not translated with it. Thus a likelihood-equivalent change of
+origin need not preserve the posterior. More diffuse priors attenuate this
+coordinate effect; that fact alone does not justify choosing a diffuse prior.
 
-```bash
-julia --project=. scripts/run_mfrm_anchor_recovery_pilot.jl
-```
+For two incompatible anchors in one facet, removing either member leaves one
+anchor whose value can be absorbed by a location shift. Leave-one-anchor-out
+sensitivity can expose an incompatible pair but cannot identify the
+contaminated member from the response likelihood alone. That attribution
+requires external information or a model for source uncertainty.
 
-It uses two replications, four chains, known-truth/projection initialization,
-and pilot-only diagnostic thresholds. Eighty fits cross fully crossed,
-rotating-pair sparse, and two 10%-common-response nested designs; fitted-family
-and R4 extremity-response generators; and true or shifted single anchors, true
-endpoint or interior multi-anchors, and contaminated endpoint multi-anchors.
-Named events share deterministic response uniforms across topologies, while
-every within-topology anchor comparison uses identical training and independent
-same-facet holdout responses. All 80 fits pass the pilot diagnostics with no
-divergences or maximum-tree-depth hits.
-
-Contamination worsens true-probability log-score regret in 16/16 pairs (mean
-`+0.00862`) but finite-sample holdout log loss in only 10/16 (mean `+0.00335`).
-Changing only the value of one rater and one item anchor has maximum absolute
-regret difference `0.00624`; this is not expected to be exactly zero because
-the likelihood gauge transformation does not also translate the fixed zero-
-centered priors. Correct interior anchors are worse than correct endpoints in
-10/16 pairs with a near-zero mean regret difference (`-0.00094`), so neither
-location is generally preferred by this pilot.
-
-An exact dense/sparse design check isolates this coordinate effect without
-MCMC: the default and shifted single-anchor encodings have equal likelihood,
-but unequal prior density. If every `MFRMPrior` standard deviation is multiplied
-by `c`, their log-prior difference scales as `1/c^2`. Diffuse priors therefore
-attenuate this difference but do not make finite-scale posterior comparisons
-between gauges invariant or justify choosing a prior for that purpose.
-
-A second exact check exhausts all 12 ordered clean/contaminated two-anchor
-pairs across rater and item facets, with the contaminated position ranging over
-both endpoints and the interior. Every pair changes response probabilities in
-both dense and sparse designs. Removing either member, however, leaves a single
-anchor whose value can be absorbed by a location-gauge shift and restores the
-same true probabilities. Leave-one-anchor-out sensitivity can therefore expose
-an incompatible pair but cannot identify the contaminated member from the
-response likelihood alone; that attribution requires external provenance or a
-model for source uncertainty.
-
-The distributed nested-link design is worse than the early design in all 20
-anchor/condition/replication contrasts, but this is deliberately recorded as a
-composite stress, not a placement effect: early links balance items but have
-rater loads `20/28/28/28`, whereas distributed links have loads `26/26/26/26`
-and item counts `3/1/1/3`. The base simulator still shares the package
-likelihood kernel, only two replications were run, and the holdout contains no
-new facet levels. New-person, new-item, or new-rater prediction remains
-unsupported because the fixed-effect MFRM has no hierarchical facet population
-to marginalize. The output is not recovery calibration, independent-kernel
-validation, or a public-release gate.
+Predictions from this fixed-effect model concern the observed facet levels.
+New-person, new-item, or new-rater prediction is unsupported because the model
+has no hierarchical facet population to marginalize.
 
 Fixed coordinates are recorded as unsampled in the design/fit manifest and as
 `is_fixed = true` with `status = :hard_anchor` in Wright-map rows. They receive
@@ -705,65 +629,21 @@ same facet, a third warning marks the resulting within-facet contrast
 restriction and requests contamination or drift sensitivity. Anchoring one
 rater and one item still selects one gauge per block and does not trigger it.
 
-### Stage 2: threshold and group-mean hard anchors
+### Unsupported anchor types and imported records
 
-After individual item/rater anchors pass, add complete rating-scale/PCM
-threshold anchors and FACETS-style group-mean constraints. These require an
-explicit threshold convention and a full-rank affine constraint system.
-Imported threshold values must not be silently recentered to satisfy the
-package's sum-to-zero gauge; an incompatible source scale should be rejected or
-transformed by an explicit, recorded operation.
+Threshold, group-mean, and soft anchors are not supported for fitting. Do not
+silently recenter imported threshold values or replace a group-mean constraint
+with individual fixed values: those operations change the declared model.
+A soft anchor expresses uncertainty through an informative prior; the current
+exact-anchor path does not propagate that uncertainty.
 
-Group anchors constrain a declared weighted or unweighted group mean while
-allowing members to vary. The report must state group membership, treatment of
-extreme or unobserved levels, the mean definition, and the effective constraint
-rank.
-
-### Stage 3: soft anchors
-
-A soft anchor should be an explicit prior on an identified direct parameter,
-for example `Normal(anchor_value, anchor_scale)`. It must not be the sole
-structural identification rule. The deterministic gauge remains in force, and
-the report distinguishes the identification constraint from the informative
-linking prior.
-
-Under the current first-level-zero gauge, a soft prior on that fixed reference
-coordinate is constant and contributes no information. Such a declaration is
-invalid until the numerical compiler either reparameterizes the reference or
-converts the imported anchor into an explicitly identified contrast.
-
-Soft-anchor release evidence should vary the prior scale and source values,
-report prior-to-posterior movement, compare hard/soft/unanchored refits, and
-flag prior-dominated cells. A hard and soft anchor on the same direct parameter
-should be rejected unless a future contract defines a nonredundant role for
-both.
-
-## Round-trip provenance contract
-
-ConQuest warns that unidentified parameters can be removed, changing positional
-parameter numbers in later anchor files. A package interchange format should
-therefore use semantic identities rather than source row numbers as its primary
-key. At minimum, every imported anchor or starting value should record:
-
-```text
-schema, role = anchor|initial_value, anchor_type,
-block, level, step_or_category, value, scale_unit,
-source_software, source_version, source_model, source_estimator,
-source_sign, destination_sign, location_transform, scale_transform,
-source_file_sha256, source_data_hash, source_model_hash
-```
-
-Starting values and anchors remain separate objects. If both target the same
-parameter, the importer should report the conflict and apply an explicit policy;
-it should not depend on file order. The normalized imported record, the compiled
-constraint map, and the exact source bytes should each have their own hash.
-
-An exported anchored fit should preserve the original import record unchanged
-and add the destination package version, data/model/prior/sampler identities,
-fixed/free status, direct fitted labels, constraint-rank check, and fit-artifact
-hash. A round trip passes only when reimport reproduces the same semantic target
-and normalized content hash. Equality of printed decimal text alone is not a
-round-trip guarantee.
+Starting values and anchors serve different purposes. Resolve source labels,
+signs, location and scale conventions before declaring a destination anchor,
+and retain the original values and transformations with the analysis.
+`load_conquest_semantic_parameters` returns source-gauge records only. It does
+not import destination starting values or anchors, and the package does not
+provide a general anchor-file round trip. The optional provenance fields
+accepted by `anchor_refit_plan` are listed above.
 
 ## Migration acceptance checklist
 
