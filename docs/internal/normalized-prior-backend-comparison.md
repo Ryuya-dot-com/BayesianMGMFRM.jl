@@ -2637,19 +2637,144 @@ whole-fit warnings remain legible. No plotting geometry or numerical summary
 semantics changed. Full-suite, independent-reader, recovery/coverage and broad
 model-acceptance claims remain outside this integration check.
 
+## Correlated fixed-coefficient density, 2026-09-15
+
+The private `_MFRMFixedQCorrelated2DLogDensity` adds one Fisher coordinate to
+the canonical unit-logit MFRM. It reuses the existing fixed-coefficient
+likelihood and the numerically stabilized bivariate-normal routines from the
+generalized correlation candidate, without inheriting that candidate's
+raw-scale priors, estimated loadings or 1.7 model multiplier. There is no new
+public fitting, saved-result or plotting dispatch.
+
+The bounded design is exactly two named dimensions, fixed between-item Q,
+at least two pure items per dimension, and observations on both dimensions
+for every person. The constructor reuses the existing conservative Q/coverage
+checks and takes a detached validated specification. These checks restrict the
+implementation domain; they do not establish practical identification or
+correlation recovery. The independent model still admits its existing Q scope.
+
+The model/coordinate contract is:
+
+- The likelihood keeps `a[i,d] = Q[i,d]`, unit rater consistency and unit logits.
+  Person/item locations remain prior-anchored; rater severities sum to zero.
+  Item steps retain the first-zero/remaining-sum-to-zero convention, including
+  zero free steps for two categories.
+- Each ability vector is directly parameterized as
+  `theta[p] ~ Normal_2(0, person_sd^2 * R(rho))`, where
+  `R(rho) = [1 rho; rho 1]`. The common marginal SD is the fixed positive
+  `MFRMPrior.person_sd`; it is not estimated. Population correlation is shared
+  across persons and differs from dependence among posterior draws.
+- All other priors remain the canonical independent normal densities on the
+  existing free coordinates, with the actual `MFRMPrior` scales. In particular,
+  adding ability correlation does not change the last-reconstructed rater prior
+  into an exchangeable prior.
+- `rho = tanh(z)` and the prior is normalized LKJ(eta) on the one free
+  correlation coordinate `d rho`. The private implementation inherits the
+  existing integer-eta range 1–10,000, with default 2. This is an implementation
+  restriction, not the mathematical domain of the LKJ family.
+
+The [Stan 2.39 LKJ reference](https://mc-stan.org/docs/functions-reference/correlation_matrix_distributions.html)
+gives the determinant power `eta - 1`; the
+[transform reference](https://mc-stan.org/docs/reference-manual/transforms.html)
+describes the tanh correlation transform and change of variables. For this
+2D model, direct integration gives
+
+```math
+p(\rho)=\frac{(1-\rho^2)^{\eta-1}}{B(1/2,\eta)},\qquad -1<\rho<1,
+```
+
+and therefore, in the implemented `d beta d z` measure,
+
+```math
+\log p(z)=-\log B(1/2,\eta)+\eta\log(1-\tanh^2 z).
+```
+
+The final power is **eta**, including the manual log-Jacobian
+`log(1-rho^2)` exactly once. There is no theta transformation Jacobian: the
+bivariate-normal density includes its covariance determinant and is evaluated
+directly at theta. The likelihood's internal division by 1.7 only evaluates
+the existing response formula in unit logits; it changes neither the declared
+prior measure nor the model's scale. This is a centered ability parameterization;
+its sampler geometry has not yet been assessed.
+
+At `z = 0`, the beta-coordinate density equals the independent target minus
+`log B(1/2,eta)` and has the same beta gradient. The z gradient need not vanish:
+it is `sum_p theta[p,1]*theta[p,2]/person_sd^2`. A rho-zero slice is thus a
+baseline check, not a claim that the joint posterior is stationary there.
+
+The target identity hashes the independent target identity together with the
+new model tag, centered coordinates, covariance/scale, eta and measure/Jacobian
+contract. The attached base `FacetSpec` still describes the independent model;
+it must not be serialized as if it described a fitted free correlation. The
+existing independent sample/cache schemas cannot store this new target. Public
+`Experimental.fit` rejects the density object, and the generalized correlation
+entry still rejects canonical MFRM specifications.
+
+The private [Stan source](../../src/stan/mfrm_correlated_2d.stan) uses the same
+likelihood and an independently written sum/difference form of the bivariate
+normal quadratic. It computes log(1+rho) and log(1-rho) without subtracting a
+rounded endpoint. Julia reuses the existing stable conditional-normal form.
+Both parameter blocks are unconstrained; CmdStan's automatic-Jacobian selector
+must therefore leave the manually transformed target unchanged. The file has
+no generated quantities or sampling/result integration at this stage.
+
+The two-category comparison exposed an empty-segment error in the shared Stan
+step reconstruction. The shared function now directly sets steps to zero when
+there are no free steps, before indexing a segment. The independent fixed-Q
+Stan model's category lower bound is also corrected from three to two, matching
+its Julia specification. Its multi-category response equation and priors are
+unchanged. Generalized Stan model admission limits are unchanged; their shared
+multi-category path receives a separate regression check.
+
+Focused verification passed:
+
+- Julia 1.10.8: 275 new density/contract assertions, 649 canonical fixed-Q
+  specification assertions and 638 existing generalized-correlation assertions.
+- Julia 1.12.5 / CmdStan 2.39.0: the 275 new assertions plus 219 backend
+  assertions. The comparison covers two/four categories, eta 1/2/5, both
+  automatic-Jacobian modes, five moderate-correlation points and eight
+  zero/aligned-ability tail points per category/eta combination. At the checked
+  points, the maximum absolute difference is `5.45697e-12` for log density
+  and `5.32907e-15` for gradient coordinates.
+- The existing normalized-density suite passed all 1,206 assertions on
+  Julia 1.12.5 with actual CmdStan checks, including the shared generalized
+  likelihood and independent fixed-Q paths.
+- Five historical caches reopened in their original Julia major/minor series
+  (25 assertions), and both recent independent-model examples reopened with
+  their retained densities and report identities intact (35 assertions).
+  The public namespace boundary passed 165 assertions; the public source
+  language gate passed. All 18 historical input hashes, 84 previous receipt
+  artifacts and the previous receipt itself remain unchanged.
+
+The tail checks at z = +/-20 and +/-1,000 exercise representable zero/aligned
+ability vectors. They do not guarantee finite floating-point densities or
+gradients for arbitrary off-ridge vectors near a singular covariance. The
+two-category independent model is checked at zero/nonzero coordinates under
+both Jacobian modes. This work performs no new binary-response sampling.
+An attempted Julia 1.12 read of a Julia 1.10 cache was rejected because
+recomputed diagnostic/summary values differed in their final floating-point
+digits. The existing same-major/minor serialization recommendation remains;
+no integrity check was relaxed to admit that cross-minor read.
+
+Verification commands, failed attempts and retained artifacts are recorded in the
+[local receipt](../../results/workflows/20260915-correlated-fixed-q-density-01/receipt.json).
+No MCMC, correlation recovery, covariance-model promotion, independent review
+or full-suite acceptance is implied by these density/gradient checks.
+
 ## Next bounded work
 
-Specify a two-dimensional correlated-ability extension of the fixed-coefficient
-unit-logit model. Reuse the existing correlation-transform and diagnostic code
-where its measure matches, while keeping the generalized correlation candidate's
-target distinct. Record the ability covariance, correlation prior, free-coordinate
-transform/Jacobian, location/scale constraints, fixed-Q interpretation and a
-separate identity before adding a fitting route. Check Julia/CmdStan density
-differences and gradients in common coordinates, invalid/boundary behavior,
-and the unchanged independent-dimension baseline without sampling. A later
-fit/result/cache/report integration and target-specific statistical validation
-remain separate deliverables. No automatic request cache, hard anchors or
-application-specific predictors are prerequisites for this bounded core work.
+Connect this verified correlated target to bounded private Julia/CmdStan
+sampling and a separately tagged sample/reconstruction record. Reuse the existing
+sampler, telemetry and persistence primitives, with explicit beta/zrho column
+mapping, actual prior and correlation identity, chain/iteration labels and
+recomputed retained densities. Check a short save/reload path, invalid options
+and preservation of existing caches before exposing a fitting API. The result
+must distinguish unit-logit abilities/locations from dimensionless rho and
+retain fixed/derived parameter meanings. Do not pass a correlated record through
+the existing independent-model schema or silently reconstruct it with rho zero.
+Public report/figure integration and statistical validation follow their own
+checks. No automatic request cache, hard anchors or application-specific
+predictors are prerequisites for this bounded core work.
 
 Separately, record an unfamiliar reader finding the supported model/backend, loading a fit,
 choosing a named dimension, interpreting diagnostic/interval labels and saving/

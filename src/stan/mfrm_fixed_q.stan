@@ -13,7 +13,7 @@ data {
   int<lower=1> J;
   int<lower=2> R;
   int<lower=2> I;
-  int<lower=3> K;
+  int<lower=2> K;
   int<lower=2> D;
   int<lower=1> N;
   int<lower=1> NLoadings;

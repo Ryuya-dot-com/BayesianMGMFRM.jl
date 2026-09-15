@@ -42,9 +42,11 @@
     for (k in 2:K) {
       int step_number = k - 1;
       int first_step = step_offset + (item_id - 1) * free_steps + 1;
-      real step = step_number <= free_steps
-        ? beta[first_step + step_number - 1]
-        : -sum(segment(beta, first_step, free_steps));
+      real step = 0;
+      if (free_steps > 0)
+        step = step_number <= free_steps
+          ? beta[first_step + step_number - 1]
+          : -sum(segment(beta, first_step, free_steps));
       cumulative += scale * (ability_score - item - rater - step);
       eta[k] = cumulative;
     }
