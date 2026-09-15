@@ -70,10 +70,34 @@ artifact = fit_artifact(restored; view = :public)
 
 Posterior bounds must define a central interval strictly inside `(0, 1)`.
 This experimental model uses unit logits, fixed Q coefficients and identity
-latent correlation. Its fitting and plotting entry points are not yet available.
+latent correlation. Its fitting entry is not yet available.
 These saved-result reports need neither sampling nor CairoMakie. A complete
 report means that its requested sections ran successfully; inspect the MCMC
 diagnostics separately.
+
+Load CairoMakie to plot an ability dimension by its stored name and save a
+report with figures:
+
+```julia
+using CairoMakie
+dimension = fit_metadata(restored).dimension_labels[1]
+figure = BayesianMGMFRM.plot_posterior(restored; block = :person, dimension)
+save("ability.pdf", figure)
+save_fit_report_bundle("multidimensional-figures", restored; view = :public,
+    figures = (posterior = (; block = :person, dimension),
+        diagnostics = (; block = :person, dimension), predictive = (;)),
+    posterior_lower = 0.05, posterior_upper = 0.95,
+    predictive_interval = 0.9, seed = 42)
+reopened = load_fit_report_bundle("multidimensional-figures")
+```
+
+Posterior and trace/rank plots use model coordinates in unit logits. Fixed
+coefficients have no credible interval or convergence diagnostic. The predictive
+figure checks the observed rating design using the report's exact replicated
+category summaries. Bundles include PDF/SVG figures and their numerical JSON
+inputs; reopening and verifying a bundle does not require CairoMakie. For large
+fits, select a smaller set of exact parameter names or explicitly increase
+`max_parameters` and the figure size. Whole-fit MCMC warnings remain visible.
 
 ## Experimental model-scale summaries
 

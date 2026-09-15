@@ -9207,6 +9207,12 @@ keywords are rejected there. Other report-only calls retain their RNG behavior.
 Figure bundles keep the plotting diagnostic settings: stable defaults or the
 stored generalized settings. Conflicting report diagnostic overrides are rejected.
 
+Saved fixed-coefficient multidimensional MFRM fits support posterior,
+diagnostics and predictive figures with their stored diagnostic settings.
+Their plots use model coordinates in unit logits; `seed` defaults to 1 for
+both figure and report-only bundles. These saved-result outputs remain
+experimental; their fitting entry is not yet available.
+
 All optional figures render before destination exports are written. A figure
 bundle uses manifest schema v2, with hashes for every PDF, SVG and JSON input;
 report and table schemas are unchanged. Figure-free bundles retain v1. Current

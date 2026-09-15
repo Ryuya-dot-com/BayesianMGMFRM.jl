@@ -5,6 +5,7 @@ const B = BayesianMGMFRM
 include("fixtures/fixed_q_result.jl")
 include("fixtures/fixed_q_cache.jl")
 include("fixtures/fixed_q_report.jl")
+include("fixtures/fixed_q_report_bundle.jl")
 
 @testset "fixed-Q result contract (synthetic, no sampling)" begin
     for categories in (2, 4), backend in (:advancedhmc, :cmdstan), family in (:mgmfrm, :mfrm)
@@ -47,6 +48,7 @@ include("fixtures/fixed_q_report.jl")
         fit = check_fixed_q_result(result)
         family === :mfrm && check_fixed_q_cache(fit)
         family === :mfrm && check_fixed_q_report(fit)
+        family === :mfrm && mktempdir(d -> check_fixed_q_report_bundle(fit, d))
         wrong_schema = family === :mgmfrm ? "bayesianmgmfrm.fixed_q_mfrm_samples.v2" :
             "bayesianmgmfrm.fixed_q_mfrm_samples.v1"
         bad = merge(record, (; schema = wrong_schema))

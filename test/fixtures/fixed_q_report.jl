@@ -85,7 +85,11 @@ function check_fixed_q_report(fit; directory = nothing)
     for label in ("full", "public")
         payload = label == "full" ? report : public
         destination = joinpath(directory, label)
-        save_fit_report_bundle(destination, payload; require_complete = true)
+        if label == "full"
+            save_fit_report_bundle(destination, fit; options...)
+        else
+            save_fit_report_bundle(destination, payload; require_complete = true)
+        end
         loaded = load_fit_report_bundle(destination; require_complete = true)
         @test loaded["metadata"]["source_sample_content_hash"] == record.content_hash
         @test loaded["direct_posterior"]["rows"] == B._json_export_value(payload.direct_posterior.rows)

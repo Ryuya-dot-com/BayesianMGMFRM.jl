@@ -593,16 +593,30 @@ function _plot_mfrm_fixed_q_predictive(result::NamedTuple; size = nothing, kwarg
     return _render_mfrm_fixed_q(extension, :predictive, data; size)
 end
 
+function _canonical_mfrm_fixed_q_samples(fit::MultidimensionalMFRMFit)
+    checked = _mfrm_fixed_q_samples(fit)
+    _is_mfrm_fixed_q(checked.record.spec) || throw(ArgumentError(
+        "saved-result reporting and plotting require canonical multidimensional MFRM samples; legacy samples use the private entry points"))
+    return checked
+end
+
+plot_posterior(fit::MultidimensionalMFRMFit; kwargs...) =
+    _plot_mfrm_fixed_q(_canonical_mfrm_fixed_q_samples(fit); kwargs...)
+plot_diagnostics(fit::MultidimensionalMFRMFit; kwargs...) =
+    _plot_mfrm_fixed_q_diagnostics(_canonical_mfrm_fixed_q_samples(fit); kwargs...)
+plot_predictive(fit::MultidimensionalMFRMFit; kwargs...) =
+    _plot_mfrm_fixed_q_predictive(_canonical_mfrm_fixed_q_samples(fit); kwargs...)
+
 function _render_mfrm_fixed_q(extension, kind, data; size = nothing)
     backend = data.backend === :advancedhmc ? "Julia (AdvancedHMC)" : "CmdStan"
-    model = "Fixed-coefficient multidimensional MFRM"
+    model = "Experimental fixed-coefficient multidimensional MFRM"
     units = Dict(:item_dimension_discrimination => "Loading (dimensionless)",
         :rater_consistency => "Consistency (dimensionless)")
     kind === :posterior && return extension._render_posterior(data;
-        title = "$model\n$backend | unit-logit reference",
+        title = "$model\n$backend | unit logits",
         dimension_labels = data.dimension_labels, xlabel = units, size)
     kind === :diagnostics && return extension._render_diagnostics(data;
-        title = "$model chain diagnostics\n$backend | unit-logit reference", ylabel = units, size)
+        title = "$model chain diagnostics\n$backend | unit logits", ylabel = units, size)
     return extension._render_predictive(data;
         title = "$model\n$backend | unit-logit posterior predictive check\nCategory proportions", size)
 end
@@ -740,9 +754,7 @@ function fit_report(fit::MultidimensionalMFRMFit; view::Symbol = :full,
         artifact_include_log_posterior || artifact_include_sampler_stats ||
         artifact_include_environment || artifact_include_packages) &&
         throw(ArgumentError("artifact options require include_artifact = true"))
-    checked = _mfrm_fixed_q_samples(fit)
-    _is_mfrm_fixed_q(checked.record.spec) || throw(ArgumentError(
-        "fit_report requires canonical multidimensional MFRM samples; use the private report for legacy samples"))
+    checked = _canonical_mfrm_fixed_q_samples(fit)
     diagnostics(fit; split_chains, rhat_threshold, ess_threshold)
     policy = _fit_report_on_section_error(on_section_error)
     base = _mfrm_fixed_q_report(checked; posterior_interval = interval, predictive_interval,
@@ -781,7 +793,7 @@ end
 fit_report_public(fit::MultidimensionalMFRMFit; kwargs...) =
     fit_report_public(fit_report(fit; kwargs...))
 
-# Private sample bundle; canonical fit figure dispatch remains separate.
+# Private sample bundles and canonical saved fits share figure preparation and staging.
 function _save_mfrm_fixed_q_report_bundle(directory::AbstractString, result::NamedTuple;
         figures = (posterior = (;), diagnostics = (;), predictive = (;)),
         seed::Integer = 1, overwrite::Bool = false, label = nothing,
@@ -794,10 +806,38 @@ function _save_mfrm_fixed_q_report_bundle(directory::AbstractString, result::Nam
     checked = _restore_mfrm_fixed_q_samples(result.record;
         expected_identity = result.record.target_identity)
     report = _mfrm_fixed_q_report(checked; seed, require_complete, kwargs...)
+    return _write_mfrm_fixed_q_report_figures(directory, checked, report, figures, extension;
+        seed, overwrite, label, title, max_rows, include_empty, require_complete)
+end
+
+function save_fit_report_bundle(directory::AbstractString, fit::MultidimensionalMFRMFit;
+        figures = nothing, seed::Integer = 1, view::Symbol = :full,
+        overwrite::Bool = false, label = nothing,
+        title::AbstractString = "Multidimensional MFRM report", max_rows::Integer = 6,
+        include_empty::Bool = false, require_complete::Bool = false, kwargs...)
+    view in (:full, :public) || throw(ArgumentError("view must be :full or :public"))
+    if figures === nothing
+        report = fit_report(fit; view, seed, require_complete, kwargs...)
+        return _save_fit_report_bundle(directory, report;
+            overwrite, label, title, max_rows, include_empty, require_complete)
+    end
+    _fit_report_figure_options(figures)
+    haskey(figures, :wright) && throw(ArgumentError("multidimensional MFRM bundles support posterior, diagnostics and predictive figures"))
+    extension = _check_fit_report_figure_destination(directory, figures; overwrite, max_rows)
+    checked = _canonical_mfrm_fixed_q_samples(fit)
+    report = fit_report(fit; seed, require_complete, kwargs...)
+    exported_report = view === :public ? fit_report_public(report) : report
+    return _write_mfrm_fixed_q_report_figures(directory, checked, report, figures, extension;
+        exported_report, seed, overwrite, label, title, max_rows, include_empty, require_complete)
+end
+
+function _write_mfrm_fixed_q_report_figures(directory, checked, report, figures, extension;
+        exported_report = report, seed, overwrite, label, title, max_rows,
+        include_empty, require_complete)
     identity = (; report.family, report.dimension_labels, report.metadata.backend,
         report.metadata.scale_convention, report.metadata.target_identity,
         report.metadata.source_sample_schema, report.metadata.source_sample_content_hash)
-    return _write_fit_report_figures(directory, report, figures;
+    return _write_fit_report_figures(directory, exported_report, figures;
             identity, seed, overwrite, label, title, max_rows, include_empty, require_complete) do kind, numerical, size
         data = if kind === :posterior
             _mfrm_fixed_q_plot_data(checked; numerical..., interval = report.report_policy.posterior_interval)
@@ -810,7 +850,7 @@ function _save_mfrm_fixed_q_report_bundle(directory::AbstractString, result::Nam
             (; rows, interval = report.report_policy.predictive_interval,
                 section.draw_indices, section.chain_ids, section.iterations, section.rng,
                 section.n_replicates, section.n_observations, section.n_retained,
-                section.n_unique_draws, section.selection, model = report.family,
+                section.n_unique_draws, section.selection, model = checked.model,
                 report.metadata.backend, report.metadata.target_identity,
                 diagnostic = replace(_plot_diagnostic_note(report.diagnostics.summary),
                     "inspect diagnostics(fit)" => "inspect parameter and sampler diagnostics"))

@@ -117,9 +117,14 @@ function check_fixed_q_result(result)
     @test_throws ArgumentError diagnostics(fit; split_chains = !run.split_chains_requested)
     @test_throws ArgumentError diagnostics(fit; rhat_threshold = run.checked.rhat_threshold + 0.01)
     @test_throws ArgumentError diagnostics(fit; ess_threshold = run.checked.ess_threshold + 1)
-    for operation in (B.plot_posterior, B.plot_diagnostics, B.plot_predictive,
-            loo, waic)
+    for operation in (loo, waic)
         @test !applicable(operation, fit)
+    end
+    for operation in (B.plot_posterior, B.plot_diagnostics, B.plot_predictive)
+        @test applicable(operation, fit)
+        if record.spec.family === :mgmfrm || Base.get_extension(B, :BayesianMGMFRMCairoMakieExt) === nothing
+            @test_throws ArgumentError operation(fit)
+        end
     end
     @test applicable(fit_artifact, fit)
     @test applicable(save_fit_cache, "not-written.jls", fit)

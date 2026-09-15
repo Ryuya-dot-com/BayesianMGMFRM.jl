@@ -2520,20 +2520,75 @@ derived-summary validation policy before it can be advertised. No new MCMC,
 Stan compilation, figure rendering, full-suite run or statistical acceptance
 was performed.
 
+## Canonical saved-result figures, 2026-09-15
+
+`MultidimensionalMFRMFit` now supports the qualified `plot_posterior`,
+`plot_diagnostics` and `plot_predictive` entries and fitted-object
+`save_fit_report_bundle`, including full/public figure bundles. The three
+plot methods reuse the private numerical/rendering path. Private and canonical
+bundles share figure preparation and the existing staged writer; no renderer,
+numerical kernel, result container, dependency or model-comparison dispatch
+was added. The canonical guard rejects legacy sample-family records at these
+entries. Fitting remains unavailable.
+
+Named-dimension posterior/trace plots use model coordinates in unit logits.
+Figures identify experimental status and the backend, retain whole-fit MCMC
+warnings, and distinguish fixed coefficients from sampled/derived coordinates.
+Posterior intervals match the report's central bounds; predictive figures
+consume its exact replicated category rows without another simulation.
+Exports preserve draw order/repeats, chains/iterations, the actual prior and
+stored diagnostic settings in the report, plus source/target identity and the
+exported report hash in figure inputs. Existing full artifacts and v1/v2 caches
+are unchanged. Report-only calls accept the same local integer seed as the
+saved-result report and require no CairoMakie; readers need no renderer either.
+Figure selection/rendering failures preserve destination files. This does not
+add a transaction guarantee for arbitrary failures during final file copying.
+
+Verification uses the existing short, non-converged samples solely for output
+integration. The Julia 1.10.8 synthetic result/cache/report matrix passed 2,572
+assertions (471.15 seconds), including direct report-only bundle calls, legacy
+rejection and renderer-absence checks. On Julia 1.12.5, saved Julia full and
+CmdStan public figure bundles each passed 125 assertions (311.35 and 270.39
+seconds), using the fixture body as sequential top-level calls under normal
+compiler settings. These checks include standalone named-dimension plotting,
+exact report/figure equality, local RNG behavior, hashes, invalid options,
+destination byte preservation and predictive replay. A fresh process without
+CairoMakie reopened all four exported bundles (17 assertions, including the
+renderer-absence assertion) and passed the 25 existing report-only/figure-request
+checks (37.61 seconds combined). Markdown column checks passed 75 assertions.
+Fresh Documenter output built in 22.96 seconds and passed the source-language
+19-file and rendered-language 14-page checks; the same four pre-existing
+omitted-maintenance-docstring warnings remain.
+
+Selected Julia posterior/diagnostic/predictive and CmdStan diagnostic PDFs were
+rendered with Poppler and inspected. Julia posterior and CmdStan predictive
+SVGs were inspected through local HTML previews; labels, intervals, fixed
+markers and warning text fit. Quick Look's standalone SVG thumbnail cropped
+the right edge; embedding the unchanged SVG in HTML rendered the complete
+figure. This viewer check required no change to plot geometry or dependencies.
+The existing private saved-sample bundle callers also passed 226 assertions
+on both backends (130.98 seconds), covering the shared writer extraction.
+The [local receipt](../../results/workflows/20260915-canonical-fixed-q-figures-01/receipt.json)
+retains the bundles, render previews, scripts, source/output hashes and logs;
+all 18 previously recorded cache/sample/receipt hashes remain unchanged.
+No sampling, Stan compilation, statistical acceptance or full-suite claim was
+made. The previously recorded large-driver Julia 1.12 compilation follow-up
+and unfamiliar-reader acceptance remain open.
+
 ## Next bounded work
 
-Connect the dedicated result to the existing named-dimension posterior,
-trace/rank and conditional predictive plots and the staged figure bundle writer.
-Reuse the numerical report's exact rows and predictive simulation; preserve
-intervals, draw indices, chain identity, diagnostic warnings, actual prior/unit
-scale and source/report hashes after cache reload on both backends. Render and
-inspect selected PDF/SVG figures, reopen bundles and check failed-export
-destination preservation. Report-only use stays independent of CairoMakie.
-Then expose restricted experimental fitting and a short generic workflow for
-each backend. Preserve the existing v2 caches and full artifact semantics;
-explicitly version any incompatible change.
-Automatic request caching, hard anchors, new-facet prediction and statistical
-acceptance remain separate.
+Expose restricted canonical fixed-coefficient fitting through `Experimental.fit`
+and the existing surface contract. Reuse the Julia/CmdStan sampler adapters,
+dedicated result, manual v2 cache and full/public report/figure outputs. Add one
+short generic specification -> fit -> diagnostics -> cache reload -> named
+figure/report workflow for each backend. Keep fixed Q coefficients, unit
+consistency, unit logits, prior-anchored locations and identity latent
+correlation explicit; reject unsupported options before sampling. Check the
+entry-to-reload path under a bounded operability run, stored priors/diagnostics
+and identity, invalid options, and agreement between installed help and examples.
+Preserve existing v2 caches and full artifact semantics; explicitly version any
+incompatible change. Automatic request caching, hard anchors, new-facet
+prediction and statistical acceptance remain separate.
 
 Separately, record an unfamiliar reader finding the supported model/backend, loading a fit,
 choosing a named dimension, interpreting diagnostic/interval labels and saving/

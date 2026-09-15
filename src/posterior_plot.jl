@@ -24,6 +24,10 @@ figure sizing. The diagnostic note always covers the whole fit.
 
 This optional entry point is qualified, not exported. Generalized figures
 retain the experimental status of their fitted models.
+
+Saved fixed-coefficient multidimensional MFRM fits also support this entry
+point. They use only `scale = :model` in unit logits, including fixed Q
+coefficients and reconstructed constraints; dimensions accept stored labels.
 """
 function plot_posterior(fit::_ModelComparisonFit; kwargs...)
     extension = Base.get_extension(@__MODULE__, :BayesianMGMFRMCairoMakieExt)
@@ -230,6 +234,10 @@ settings are those stored with the fit; older incompatible records retain the
 existing diagnostic-contract rejection. Warmup parameter draws are not stored;
 inspect `sampler_diagnostics(fit; phase = :warmup)` for separate warmup summaries.
 This optional entry point is qualified, not exported.
+
+For saved fixed-coefficient multidimensional MFRM fits, the default and only
+scale is `:model` (unit logits). Stored diagnostic thresholds are preserved;
+warmup summaries are available in `fit_report(fit).warmup`.
 """
 function plot_diagnostics(fit::_ModelComparisonFit; kwargs...)
     extension = Base.get_extension(@__MODULE__, :BayesianMGMFRMCairoMakieExt)
@@ -339,6 +347,11 @@ in the same Julia/package environment to regenerate the same result after
 `load_fit_cache`. Numerical results are available through
 `posterior_predictive_check(fit; rng = MersenneTwister(seed), ...)` followed by
 `predictive_check_summary(...; interval)`.
+
+Saved fixed-coefficient multidimensional MFRM fits also support this plot.
+For their numerical output, use `fit_report(fit; seed, ndraws, draw_indices,
+predictive_interval = interval).posterior_predictive`, with the same selection
+options and seed.
 
 The whole-fit MCMC diagnostic note remains visible. This same-data check does
 not establish convergence or performance for new persons, items or raters.
