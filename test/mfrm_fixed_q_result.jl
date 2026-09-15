@@ -4,6 +4,7 @@ using Test, BayesianMGMFRM, Random, Statistics
 const B = BayesianMGMFRM
 include("fixtures/fixed_q_result.jl")
 include("fixtures/fixed_q_cache.jl")
+include("fixtures/fixed_q_report.jl")
 
 @testset "fixed-Q result contract (synthetic, no sampling)" begin
     for categories in (2, 4), backend in (:advancedhmc, :cmdstan), family in (:mgmfrm, :mfrm)
@@ -45,6 +46,7 @@ include("fixtures/fixed_q_cache.jl")
         result = B._restore_mfrm_fixed_q_samples(record; expected_identity = record.target_identity)
         fit = check_fixed_q_result(result)
         family === :mfrm && check_fixed_q_cache(fit)
+        family === :mfrm && check_fixed_q_report(fit)
         wrong_schema = family === :mgmfrm ? "bayesianmgmfrm.fixed_q_mfrm_samples.v2" :
             "bayesianmgmfrm.fixed_q_mfrm_samples.v1"
         bad = merge(record, (; schema = wrong_schema))

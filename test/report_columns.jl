@@ -55,6 +55,12 @@ end
         @test count("Coordinate units explained.", markdown) == 1
     end
     @test !occursin("Coordinate units explained.", fit_report_markdown(report))
+    noted = merge(report, (; artifact = (; status = :computed,
+        interpretation = "First note.", reason = "Second note.", message = "Third note.")))
+    for payload in (noted, B._json_export_value(noted))
+        @test occursin("### artifact\n\nFirst note.\n\nSecond note.\n\nThird note.\n\n",
+            fit_report_markdown(payload))
+    end
     mktempdir() do directory
         for (label, projected) in (("full", report), ("public", fit_report_public(report)))
             original_hash = B._fit_report_content_hash_record(projected)

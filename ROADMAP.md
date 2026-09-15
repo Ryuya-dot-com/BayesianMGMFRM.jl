@@ -1,7 +1,7 @@
 # BayesianMGMFRM.jl — Internal Roadmap
 
-Updated 2026-09-15 to connect the long-term model scope to concrete API handoffs,
-shared data/prediction requirements and staged application analyses. Julia
+Updated 2026-09-15 to connect canonical saved results to numerical reports and
+public artifacts, with named-dimension figures as the next API handoff. Julia
 remains primary, CmdStan remains its maintained counterpart, and Uchihara (2022)
 remains a secondary application.
 This is the **single current work order**, not a public feature catalogue or a
@@ -41,7 +41,7 @@ The subsequent Uchihara workflow discussion sharpens the reusable
 [specification and prediction contract](#shared-specification-and-prediction-contract).
 Implement each relevant part with its model extension; the application and a
 complete future specification language are not prerequisites for the
-[next three implementation handoffs](#next-implementation-handoffs).
+[implementation handoffs](#next-implementation-handoffs).
 
 The user's 2026-09-07 clarification corrects the previous work order's emphasis
 on the MFRM anchor study. MFRM is a reusable foundation and comparison branch,
@@ -79,9 +79,9 @@ the dated implementation checks below and from independent scientific review.
 | Milestone | Status | Responsible role and concrete exit |
 | --- | --- | --- |
 | M0 — Package baseline | Implementation, placement/load review, and all 12 lane baselines recorded; runtime acceptance open, further performance work deferred | Maintainer: retain the unexplained 23.4% trigger and release hold; revisit after research progress or evidence of an actual execution blocker. Correctness, integrity, and resource-safety defects are not deferred |
-| M1 — Julia model, implementation and validation contract | Existing generalized fits and focused numerical checks are available. Canonical fixed-coefficient multidimensional MFRM has private Julia/CmdStan fits, result reconstruction and manual v2 cache/full artifacts. Selected source/exchangeable priors, identification and validation scope remain unresolved | Analyst/maintainer: complete the current result/report handoff, reconcile equations, coordinates, priors, gradients and result semantics, and prepare independent review of the target-specific validation protocol. Implementation checks do not close M1; Uchihara preparation is not a dependency |
+| M1 — Julia model, implementation and validation contract | Existing generalized fits and focused numerical checks are available. Canonical fixed-coefficient multidimensional MFRM has private Julia/CmdStan fits, result reconstruction, manual v2 caches and full/public reports/artifacts. Selected source/exchangeable priors, identification and validation scope remain unresolved | Analyst/maintainer: complete the current figure/fitting handoff, reconcile equations, coordinates, priors, gradients and result semantics, and prepare independent review of the target-specific validation protocol. Implementation checks do not close M1; Uchihara preparation is not a dependency |
 | M2 — Core estimation evidence | Historical pilots and comparison assets retained; no fresh validation replication launched by this work order | Analyst: execute the reviewed bounded known-truth roster for the declared model/design domain, assess recovery/calibration, failures and prior sensitivity, and retain diagnostic-qualified Julia/CmdStan comparisons. A successful application fit does not close this milestone |
-| M3 — Usable package and supported-domain review | Existing public-model content and saved-fit figure/report integration are verified. The new fixed-coefficient result still needs public reporting/plots before experimental fitting exposure; unfamiliar-reader and scientific review remain pending | Maintainer and independent reviewer: reproduce selected numerical/scientific claims, verify the documented user workflow, and decide supported/narrowed/rejected/inconclusive scope. Application reports are secondary outputs, not package acceptance gates |
+| M3 — Usable package and supported-domain review | Existing public-model content and saved-fit figure/report integration are verified. The new fixed-coefficient result has numerical reports/public projections; named-dimension plots/bundles precede experimental fitting exposure. Unfamiliar-reader and scientific review remain pending | Maintainer and independent reviewer: reproduce selected numerical/scientific claims, verify the documented user workflow, and decide supported/narrowed/rejected/inconclusive scope. Application reports are secondary outputs, not package acceptance gates |
 
 Roles above do not imply that a person has accepted an assignment. In
 particular, an independent reviewer is not yet assigned. Implementation by
@@ -100,7 +100,7 @@ fitting engines, another roadmap, or a new generic model registry.
 | Core concern | Current implementation and next decision |
 | --- | --- |
 | Multidimensional generalized likelihood | The experimental fit has at least two ability dimensions, fixed-Q positive item-dimension discriminations, rater severity and positive consistency, and item-owned partial-credit steps. Review the existing Julia/Stan equation, transforms, priors, and parameter/report mappings together; MFRM or scalar GMFRM checks do not validate this joint model |
-| Fixed-coefficient multidimensional MFRM | Canonical specifications connect to private Julia/CmdStan fitting, dedicated results and manual v2 cache/full-artifact replay. Small 2D/3D fits and numerical checks establish operability, not recovery or coverage. Next connect the saved result to public reports and named-dimension plots before exposing experimental fitting. Unit logits, fixed loadings/consistencies and the prior-anchored location convention remain explicit; this branch does not select the generalized source/exchangeable prior |
+| Fixed-coefficient multidimensional MFRM | Canonical specifications connect to private Julia/CmdStan fitting, dedicated results and manual v2 cache/full-artifact replay. Small 2D/3D fits and numerical checks establish operability, not recovery or coverage. Numerical reports and public projections are implemented; connect named-dimension plots next, before exposing experimental fitting. Unit logits, fixed loadings/consistencies and the prior-anchored location convention remain explicit; this branch does not select the generalized source/exchangeable prior |
 | Identification and intended scope | The current fit fixes latent correlation to identity and rejects anchors and fitted DFF; the fitted facets are person, item, and rater. Establish the implemented domain and the contracts for fixed-coefficient and correlated-dimension extensions independently of any application. Fixed within-item/mixed Q structures remain warning-bearing; criterion-specific raters, recording effects, arbitrary facets and generalized anchors require separate scope decisions |
 | Bayesian practical decisions | Assess dimension-specific ability, discrimination, severity/consistency, category steps, and predictive uncertainty according to the user's intended use. Revisit the existing draft's secondary-only person-ability priority for individual decisions. Distinguish posterior uncertainty, prior sensitivity, model adequacy, and practical loss; neither a converged fit nor a finite interval alone establishes practical acceptability |
 | Stress and scientific evidence | Reuse the existing Q/design validation and [response-pattern stress plan](src/mgmfrm_response_stress.jl), including all-minimum raters. Separate well-specified recovery from deterministic response contamination; an all-1 pattern does not itself identify its cause or justify automatic exclusion/downweighting. Evaluate joint severity/consistency uncertainty and predictions under sparse overlap and Q misspecification, not only warning detection |
@@ -638,8 +638,26 @@ diagnostic settings survive replay. V2 integrity checks remain mandatory when
 Legacy private samples retain their loader and cannot be silently imported into
 the new cache. Automatic request caching, public fitting and result report/plot
 dispatch remain unavailable. The [owner](docs/internal/normalized-prior-backend-comparison.md#manual-fixed-coefficient-cache-contract-2026-09-15)
-records the contract and validation. The next step connects these saved results
-to the reporting workflow, without another sampler or saved-result type.
+records the contract and validation. The numerical reporting connection is
+recorded below; no additional sampler or saved-result type is introduced.
+
+#### Fixed-coefficient MFRM saved-result reports, 2026-09-15
+
+Canonical results now support `fit_report`, `fit_report_public` and
+`fit_artifact(view = :public)`. The dedicated adapter reuses the private report
+assembler, adds validated rating-design rows and the existing full artifact,
+and preserves actual priors, unit logits, named dimensions, fixed/derived
+coordinates, stored diagnostic settings and source/target identity. Public
+output is labelled experimental, with fitting still unavailable. Central
+posterior bounds use the existing interval semantics; unsupported analyses and
+captured errors remain distinct from MCMC warnings. Full v1 artifacts and
+v1/v2 fit-cache meanings are unchanged. See the
+[owner's verification](docs/internal/normalized-prior-backend-comparison.md#canonical-fixed-coefficient-saved-result-reports-2026-09-15).
+The next handoff connects the existing named-dimension figures and staged
+figure bundle writer, then the restricted experimental fitting entry. Individual
+saved-result checks pass; the combined Julia 1.12 assertion drivers still exceed
+the 600-second budget. Track that compilation cost separately and do not claim
+a complete 1.12 matrix or full-suite pass.
 
 ### Model axes and staged scope decisions
 
@@ -656,7 +674,7 @@ current raw-prior implementation remains a separately identified baseline.
 | --- | --- | --- |
 | Logistic scale constant | MGMFRM executes `1.7` in Julia and Stan; `1.702` is reference metadata. Stable MFRM and the implemented 2020 scalar GMFRM use unit scaling | Name the multiplier `c` separately from dimension count `D`. Retain literal `1.7` for source reproduction. Any alternative needs an explicit likelihood/parameter/prior mapping and versioned identity; changing the constant alone is not a precision fix or exact normal-ogive conversion |
 | Coordinate measure and Jacobians | Current generalized priors are normal densities on raw coordinates; deterministic positive transforms require no extra Jacobian for that target | Complete the blockwise measure/transform specification below. Distinguish Stan's automatic parameter-constraint transforms from manual changes of variables and from transformations of already sampled variables. Check density differences and gradients in common coordinates, including constrained-vector reconstruction; backend agreement alone does not establish source-prior fidelity |
-| Explicit ability vector and multidimensional MFRM | MGMFRM estimates every person's `theta[p,d]`. `family = :mfrm, dimensions >= 2` supports fixed-Q specification/design inspection, private Julia/CmdStan fitting and manual v2 cache/artifact replay; public fitting remains unavailable. MGMFRM `discrimination = :none` still estimates active loadings and rater consistency. Private fixed-Q MFRM has a dedicated result adapter, reconstructed summaries and report/figure bundles with `a[i,d] = Q[i,d]`, unit consistency, unit logits and explicit free-coordinate priors | Connect the saved result to artifact/rating-design reporting, public projections and named-dimension figures. Retain the prior-anchored location convention and identity-correlation ability prior as restrictions; hard anchors or another prior require a separately specified target. Private operability does not establish statistical acceptance |
+| Explicit ability vector and multidimensional MFRM | MGMFRM estimates every person's `theta[p,d]`. `family = :mfrm, dimensions >= 2` supports fixed-Q specification/design inspection, private Julia/CmdStan fitting and manual v2 cache/artifact replay; public fitting remains unavailable. MGMFRM `discrimination = :none` still estimates active loadings and rater consistency. Private fixed-Q MFRM has a dedicated result adapter, reconstructed summaries and report/figure bundles with `a[i,d] = Q[i,d]`, unit consistency, unit logits and explicit free-coordinate priors | Artifact/rating-design reports and public projections are implemented; connect the saved result to named-dimension figures next. Retain the prior-anchored location convention and identity-correlation ability prior as restrictions; hard anchors or another prior require a separately specified target. Private operability does not establish statistical acceptance |
 | Confirmatory versus exploratory | Current Q zero locations are fixed and active positive loadings are estimated. An all-active Q is rejected by the duplicate-column gate | First retain named confirmatory dimensions for the matched comparison. Full source loading reproduction needs its own identification/alignment treatment. Exploratory discovery additionally needs admissible rotations, signs/permutations and interpretation checks; a dense Q or estimated nonzero loadings alone does not supply that workflow |
 | Between-item versus within-item | One active Q entry per item gives between-item structure; multiple active entries give within-item structure. Admitted within/mixed designs are warning-bearing; the narrow evaluation candidate is between-item | Declare the tested Q geometry and person/item/rater coverage. Select within-item checks for named loading-direction or cross-loading questions; pure-item evidence cannot close them. Q acceptance and structural rank do not establish joint identification or recovery |
 | Compensatory versus non-compensatory | The weighted ability sum permits conditional compensation on cross-loaded items; no nonadditive ordinal kernel is implemented | Describe the response equation separately from the source author's label and the user's decision rule. Retain additive algebra and exact tradeoff checks for reproduction. A non-compensatory response alternative needs its own probability equation and claim; do not infer it from between-item structure, category accumulation or rater product constraints |
@@ -673,14 +691,14 @@ warnings. The preview retained eight ability coordinates for two persons.
 This establishes representation and guard behavior only; no posterior fit,
 Stan compilation, bifactor identification or scientific validation was performed.
 
-**Next bounded deliverable:** connect `MultidimensionalMFRMFit` to `fit_report`,
-including its reproducibility artifact and validated rating-design rows, and
-implement explicit public report/artifact projections. Preserve stored diagnostic
-settings, fixed/derived meanings, central interval semantics and source/target
-identity after cache reload on both backends. Unsupported numerical analyses
-remain explicit. Then connect the existing named-dimension plots/bundle before
-exposing experimental fitting; public projections must have the intended
-experimental status and verifiable hashes.
+**Next bounded deliverable:** connect `MultidimensionalMFRMFit` to the existing
+named-dimension posterior, trace/rank and conditional predictive figures and
+staged bundle writer. Reuse the numerical report's rows and predictive
+simulation; preserve stored diagnostic settings, central intervals and
+source/target identity after cache reload on both backends. Verify numerical
+agreement, render selected figures and preserve destinations on export failure.
+Numerical reports/public projections are implemented; experimental fitting
+follows figure integration.
 Automatic request caching and hard-anchor variants retain their separate contracts.
 The warmup recording slices above are verified. Interruption-time histories
 remain unavailable; adding them is deferred until a concrete failure-diagnosis
@@ -759,7 +777,7 @@ comparison can advance with the current additive model.
 
 | Order and purpose | Bounded deliverable | Evidence and user-facing completion condition |
 | --- | --- | --- |
-| 1. Finish the existing foundation — make an estimated ability vector reusable | Connect canonical fixed-coefficient results to full/public reports, rating-design rows and existing named-dimension figures after cache reload; then expose the experimental fitting entry. Preserve existing MFRM/GMFRM/MGMFRM meanings and v1/v2 records | Same model, prior, diagnostic settings, selected dimensions and intervals survive Julia/CmdStan save/reload and report/figure export. Complete target-specific validation and reader review for the advertised scope; short fits establish operability only |
+| 1. Finish the existing foundation — make an estimated ability vector reusable | Connect canonical fixed-coefficient results to existing named-dimension figures after cache reload, building on the implemented full/public reports and rating-design audit; then expose the experimental fitting entry. Preserve existing MFRM/GMFRM/MGMFRM meanings and v1/v2 records | Same model, prior, diagnostic settings, selected dimensions and intervals survive Julia/CmdStan save/reload and report/figure export. Complete target-specific validation and reader review for the advertised scope; short fits establish operability only |
 | 2. Correlated dimensions and within-item validation — distinguish related abilities and cross-loaded items | Reuse the correlation candidate for a declared fixed-Q model, initially two dimensions, then verify higher-dimensional covariance without making two traits a permanent API limit. Evaluate between-item, within-item and mixed Q separately. Change covariance and loading structure in separate contrasts; specify bifactor roles/constraints as a distinct extension | Recover ability, loading and population-correlation uncertainty under selected correlation, Q and coverage conditions; assess prior sensitivity and confusion between cross-loadings and correlations. Deliver correlation intervals/figures and named loading/ability summaries. Bifactor additionally requires general/specific score interpretation and its own recovery evidence |
 | 3. Configurable random effects — represent dependence at the actual grouping units | Begin with one justified extra grouping block and an estimated variance/hyperprior, e.g. task or recording. Extend the same design representation to nested/crossed intercepts, then predictor-specific random slopes and selected covariance blocks. Distinguish a modeled effect from an identifier retained only for reporting | Use replication/overlap conditions that can separate the effects; test weak/near-zero variance, omitted effects, shrinkage and confounding with abilities or facet severity. Deliver effect/variance/covariance summaries and plots. Define conditional existing-level and integrated new-level prediction separately; expose each only when implemented and checked |
 | 4. Non-compensatory response models — test a different ability-to-response mechanism | Select one scientifically justified ordinal response equation first; define category probabilities, thresholds, rater effects, scale/prior measures and its unidimensional behavior. Preserve the additive model as an explicit alternative with a distinct target identity | Verify normalized valid probabilities, intended monotonicity and the stated compensation behavior. Use known-truth fits under both generating mechanisms to assess ability/decision calibration and predictive discrimination. Report dimension-conditioned response surfaces; an operational pass rule or author label does not define the response kernel |
@@ -2468,11 +2486,11 @@ these checks add zero evaluation replications and do not replace M1/M3 review.
 
 ## Immediate work and stop conditions
 
-Prioritize the Julia foundation. Canonical fixed-coefficient fitting and manual
-cache/full-artifact replay are implemented. The next concrete output is
-`fit_report` and public artifact/report projections for those saved results,
-followed by the existing figure/bundle integration and experimental fitting
-entry. The [owner's handoff](docs/internal/normalized-prior-backend-comparison.md#next-bounded-work)
+Prioritize the Julia foundation. Canonical fixed-coefficient fitting, manual
+cache/full-artifact replay and numerical reports/public projections are
+implemented. The next concrete output is the existing figure/bundle integration,
+followed by the experimental fitting entry. The
+[owner's handoff](docs/internal/normalized-prior-backend-comparison.md#next-bounded-work)
 specifies the interval, identity and diagnostic-setting checks. Application data
 preparation and later extensions are not prerequisites. This work order does
 not change numerical defaults, run MCMC, launch a study or contact a reviewer.
@@ -2487,7 +2505,7 @@ priority follows the Julia user workflow, not the readiness of a paper dataset.
 
 | Task / owner role | Next deliverable | Verification and stop condition |
 | --- | --- | --- |
-| 1. Canonical fixed-coefficient result/report handoff — analyst/maintainer; private fits, dedicated results, manual v2 caches/full artifacts and private report/figure machinery are implemented | Complete the [three dependent outputs](#next-implementation-handoffs): numerical reports/public projections from saved results, existing named-dimension figures/bundles, then restricted experimental fitting and examples | Exit: actual prior/unit scale, fixed/derived parameters, stored diagnostic settings, central intervals, experimental status and source/target hashes remain consistent after reload/export. Unsupported report sections stay explicit. Preserve existing v1/v2 artifacts and old-model behavior; this closes the integration slice, not M1/M2 scientific acceptance |
+| 1. Canonical fixed-coefficient result/report handoff — analyst/maintainer; private fits, dedicated results, manual v2 caches and numerical reports/full-public artifacts are implemented | Complete the [remaining dependent outputs](#next-implementation-handoffs): existing named-dimension figures/bundles, then restricted experimental fitting and examples | Exit: actual prior/unit scale, fixed/derived parameters, stored diagnostic settings, central intervals, experimental status and source/target hashes remain consistent after reload/export. Unsupported report sections stay explicit. Preserve existing v1/v2 artifacts and old-model behavior; this closes the integration slice, not M1/M2 scientific acceptance |
 | 2. M1 Julia model-to-code contract and estimation path — analyst/maintainer | Resolve the relevant source/exchangeable-prior, identification and validation-scope decisions; correct demonstrated shared-path gaps and retain the [core trace's remaining failure boundaries](#first-julia-core-verification-slice). Prepare the next covariance/within-item slice under the [extension sequence](#long-term-extension-sequence), reusing existing components | Exit: equations, coordinates, scale constants, priors/Jacobians and parameter meanings have code/evidence mappings and explicit unresolved decisions. Check target/gradients, invalid inputs, initialization/sampling failures and result integrity as affected. Record actual runtime/resource limits; model changes have distinct identities. No copied fitting engine or blanket source refactor |
 | 3. CmdStan continuity — analyst/maintainer; accompanies each model slice | Maintain estimation of the same target under the [dual-backend contract](#julia-and-cmdstan-continuity-and-comparison); check common-coordinate densities, gradients and probabilities, then diagnostic-qualified posterior/predictive summaries under the execution budget | Exit: both routes preserve likelihood, priors, constraints, scale and saved-result meaning. Missing parity remains partial support; Julia work can advance incrementally without dropping this requirement. Backend agreement is implementation evidence, not model validity |
 | 4. M2 core statistical validation — analyst; execution not started | Reconcile Stage-A with the accepted package model/claim. Select known-truth conditions for identification, recovery/calibration, sparse coverage, prior sensitivity and numerical failure mechanisms; verify scoring, all-attempt accounting and resource stops before reviewed execution | Exit: target-specific M1 and execution readiness are accepted, the bounded roster is accounted for, and uncertainty/failure rates support a stated domain or an inconclusive result. Representative Julia/CmdStan comparisons accompany it; do not restrict the core domain to the Uchihara design or substitute an empirical fit for recovery evidence |
@@ -2519,16 +2537,16 @@ ran. C neither resets nor completes that pair, and no further fit is queued.
 
 ### Next implementation handoffs
 
-These three outputs expand row 1 of the work queue. Complete and check each
-before its dependent output; they introduce no new sampler, result container
-or application-specific API. The current implementation baseline is committed
-at `fcb282b`; its focused checks and earlier retained evidence do not constitute
-a full-suite pass or release acceptance.
+These outputs expand row 1 of the work queue. Numerical reporting is implemented;
+complete and check the two remaining dependent outputs in order. They introduce
+no new sampler, result container or application-specific API. The numerical
+report adapter builds on the `fcb282b` cache implementation. Focused checks and
+earlier retained evidence do not constitute a full-suite pass or release acceptance.
 
 | Output and dependency | Implementation boundary | Acceptance check |
 | --- | --- | --- |
-| Numerical reports — next, using existing saved fits | Add dedicated `fit_report` and public report/artifact projections for `MultidimensionalMFRMFit`. Reuse the private assembler, full artifact and validated design rows. Preserve central interval semantics and stored diagnostic settings; keep unsupported sections explicit | Use saved Julia/CmdStan results, including named dimensions, fixed/reconstructed coordinates and binary/multicategory cases. Compare before/after reload, validate public hashes and reject contradictory inputs or noncentral bounds. Full artifacts and old caches retain their meanings. No sampling or plotting dependency is needed |
-| Figure/report bundles — after numerical reports | Connect the existing named-dimension posterior, trace/rank and conditional predictive figures to this result and the staged bundle writer. Reuse the report's exact numerical rows and predictive simulation; retain optional CairoMakie loading | Render and inspect the selected PDF/SVG figures, verify numerical inputs and bundle hashes, reopen the bundle and regenerate figures from the saved fit without MCMC. Dimension, interval, chain, score direction and diagnostic warnings agree with the report; failed exports preserve existing output |
+| Numerical reports — implemented | Dedicated `fit_report` and public report/artifact projections reuse the private assembler, full artifact and validated design rows. Central interval semantics, stored diagnostic settings and explicit unsupported sections are preserved | [Saved-result checks](docs/internal/normalized-prior-backend-comparison.md#canonical-fixed-coefficient-saved-result-reports-2026-09-15) cover reload/export, public hashes, named/fixed/derived coordinates and invalid inputs. Full artifacts and old caches retain their meanings. No sampling or plotting dependency is needed |
+| Figure/report bundles — next | Connect the existing named-dimension posterior, trace/rank and conditional predictive figures to this result and the staged bundle writer. Reuse the report's exact numerical rows and predictive simulation; retain optional CairoMakie loading | Render and inspect the selected PDF/SVG figures, verify numerical inputs and bundle hashes, reopen the bundle and regenerate figures from the saved fit without MCMC. Dimension, interval, chain, score direction and diagnostic warnings agree with the report; failed exports preserve existing output |
 | Experimental fitting and usable examples — after reports/bundles and the relevant model contract | Add the restricted canonical fixed-coefficient route to `Experimental.fit` and the existing surface contract. Publish one short generic specification -> fit -> diagnostics -> saved report/figures example for each backend. Keep unsupported effects/correlations/predictors and automatic request caching unavailable | Run a bounded entry-to-reload integration and rejection checks for the declared configurations; verify README/help and the installed API agree. A short fit proves operability only. Record unfamiliar-reader review and statistical-domain acceptance separately; root-level stable promotion is a later decision |
 
 Keep the [detailed report handoff](docs/internal/normalized-prior-backend-comparison.md#next-bounded-work)
@@ -2546,8 +2564,8 @@ The bounded implementer review found no blocking issue for the documented
 local POSIX use; publication of this documentation update and integration
 remain pending. CI for `5c4bff2` does not certify later edits, and this review
 is not independent scientific acceptance. The active Julia handoff is now
-**canonical saved-result reporting and public projections, followed by
-named-dimension figure integration**, following row 1 above. The relevant
+**named-dimension figure integration for canonical saved results, followed by
+restricted experimental fitting**, following row 1 above. The relevant
 model/prior and validation-scope decisions continue under row 2.
 Application preparation does not precede this work. The existing
 M1-01--06 identifiers and their proposals remain local to the MFRM anchor

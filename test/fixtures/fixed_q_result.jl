@@ -117,7 +117,7 @@ function check_fixed_q_result(result)
     @test_throws ArgumentError diagnostics(fit; split_chains = !run.split_chains_requested)
     @test_throws ArgumentError diagnostics(fit; rhat_threshold = run.checked.rhat_threshold + 0.01)
     @test_throws ArgumentError diagnostics(fit; ess_threshold = run.checked.ess_threshold + 1)
-    for operation in (fit_report, B.plot_posterior, B.plot_diagnostics, B.plot_predictive,
+    for operation in (B.plot_posterior, B.plot_diagnostics, B.plot_predictive,
             loo, waic)
         @test !applicable(operation, fit)
     end
@@ -125,6 +125,7 @@ function check_fixed_q_result(result)
     @test applicable(save_fit_cache, "not-written.jls", fit)
     if record.spec.family === :mgmfrm
         @test_throws ArgumentError fit_artifact(fit; include_environment = false)
+        @test_throws ArgumentError fit_report(fit; include_artifact = false)
     end
     Random.seed!(73); expected = rand(); Random.seed!(73)
     fit_metadata(fit); posterior_summary(fit); B.direct_posterior_summary(fit); diagnostics(fit)

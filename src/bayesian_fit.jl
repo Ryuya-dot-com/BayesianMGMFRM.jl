@@ -5519,9 +5519,10 @@ path. Environment metadata omits machine-local paths by default;
 compatibility default `view = :full` retains the complete archive contract and
 is intended for private reproduction records. Use `view = :public` when sharing
 a reader-facing, path-free projection with its own verifiable content hash.
-Stored fixed-coefficient multidimensional MFRM results support `view = :full`
-and use their recorded diagnostic settings. Their artifact retains both free
-and reconstructed unit-logit summaries and the source sample identity.
+Stored fixed-coefficient multidimensional MFRM results support both views and
+use their recorded diagnostic settings. Their artifact retains both free and
+reconstructed unit-logit summaries and the source sample identity. The public
+view labels saved-result support experimental; fitting remains unavailable.
 """
 function fit_artifact(fit::MFRMFit;
         view::Symbol = :full,
@@ -8962,13 +8963,16 @@ function fit_report_markdown(report;
     wrote_preview = false
     for section in sections
         content = fit_report_section(report, section.section)
-        notes = [(field, _report_lookup(content, field, nothing))
-            for field in (:interpretation, :reason, :message)]
-        if any(note -> last(note) !== nothing, notes)
+        # Do not capture a potentially large embedded artifact in a generator.
+        notes = Tuple{Symbol,Any}[]
+        for field in (:interpretation, :reason, :message)
+            value = _report_lookup(content, field, nothing)
+            value === nothing || push!(notes, (field, value))
+        end
+        if !isempty(notes)
             wrote_preview = true
             println(io, "\n### ", String(section.section), "\n")
             for (field, value) in notes
-                value === nothing && continue
                 println(io, _public_markdown_value(value, field, (section.section,)), "\n")
             end
         end

@@ -51,6 +51,30 @@ BayesianMGMFRM.plot_predictive
 BayesianMGMFRM.plot_wright
 ```
 
+## Experimental saved multidimensional MFRM reports
+
+For an existing fixed-coefficient multidimensional MFRM cache, use
+`load_fit_cache` followed by `fit_report`. Reports include the rating-design
+audit, free and reconstructed parameter summaries, diagnostics, conditional
+predictive checks and reproducibility information. Fixed coefficients and
+derived coordinates are labelled separately; unsupported analyses state their
+reasons. Reporting uses the fit's saved diagnostic settings.
+
+```julia
+restored = load_fit_cache("multidimensional-fit.jls")
+report = fit_report(restored; posterior_lower = 0.05, posterior_upper = 0.95,
+    seed = 42)
+save_fit_report_bundle("multidimensional-report", fit_report_public(report))
+artifact = fit_artifact(restored; view = :public)
+```
+
+Posterior bounds must define a central interval strictly inside `(0, 1)`.
+This experimental model uses unit logits, fixed Q coefficients and identity
+latent correlation. Its fitting and plotting entry points are not yet available.
+These saved-result reports need neither sampling nor CairoMakie. A complete
+report means that its requested sections ran successfully; inspect the MCMC
+diagnostics separately.
+
 ## Experimental model-scale summaries
 
 Use this qualified function for transformed GMFRM/MGMFRM parameters.

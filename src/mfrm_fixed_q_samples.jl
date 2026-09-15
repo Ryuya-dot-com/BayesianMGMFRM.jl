@@ -384,13 +384,27 @@ function fit_artifact(fit::MultidimensionalMFRMFit; view::Symbol = :full,
         include_sampler_stats::Bool = false, include_environment::Bool = true,
         include_packages::Bool = false, include_environment_paths::Bool = false,
         kwargs...)
-    view === :full || throw(ArgumentError("multidimensional MFRM fit artifacts currently support view = :full only"))
+    view in (:full, :public) || throw(ArgumentError("view must be :full or :public"))
     payload = _mfrm_fixed_q_artifact_payload(fit; include_draws, include_log_posterior,
         include_sampler_stats, include_environment, include_packages, kwargs...)
     environment = include_environment ? evidence_metadata(;
         include_packages, include_paths = include_environment_paths) : nothing
-    return _with_archive_metadata(merge(payload, (; created_at = string(now()), environment));
+    artifact = _with_archive_metadata(merge(payload, (; created_at = string(now()), environment));
         label = :mfrm_fixed_q_fit_artifact)
+    return view === :full ? artifact : _public_fit_artifact_projection(artifact, fit)
+end
+
+function _public_fit_artifact_projection(artifact, fit::MultidimensionalMFRMFit)
+    metadata = merge(fit_metadata(fit), (; estimation_status = :experimental,
+        fitting_available = false))
+    manifest = merge(model_manifest(getdesign(fit.record.spec; preview = true); view = :public),
+        (; object = :fit, fit = _public_fit_report_project_value(metadata)))
+    payload = merge(_public_fit_report_project_value(_artifact_hash_payload(artifact)), (;
+        schema = "bayesianmgmfrm.fit_artifact_public.v1", object = :fit_artifact,
+        family = :mfrm, model = :mfrm_fixed_q, status = :experimental, stability = :experimental,
+        model_manifest = manifest,
+        source_artifact = (; schema = artifact.schema, hash = artifact.content_hash.value)))
+    return merge(payload, (; content_hash = _artifact_content_hash_record(payload)))
 end
 
 _fit_warmup_diagnostics(fit::MultidimensionalMFRMFit) =
@@ -593,7 +607,7 @@ function _render_mfrm_fixed_q(extension, kind, data; size = nothing)
         title = "$model\n$backend | unit-logit posterior predictive check\nCategory proportions", size)
 end
 
-# Full internal report only. Canonical samples remain separate from public fit caches.
+# Private sample-report assembler; canonical fit reporting reuses its numerical sections.
 function _mfrm_fixed_q_report(result::NamedTuple; posterior_interval::Real = 0.95,
         predictive_interval::Real = 0.9, include_posterior_predictive::Bool = true,
         ndraws::Union{Nothing,Int} = nothing, draw_indices = nothing, seed::Integer = 1,
@@ -689,7 +703,85 @@ function _mfrm_fixed_q_report(result::NamedTuple; posterior_interval::Real = 0.9
     return report
 end
 
-# Internal saved-result path; keep public fit/cache/projection dispatch unchanged.
+"""
+    fit_report(fit::MultidimensionalMFRMFit; view = :full,
+        posterior_lower = 0.025, posterior_upper = 0.975, seed = 1, ...)
+
+Report a saved fixed-coefficient multidimensional MFRM result, including its
+rating-design audit and reproducibility artifact summary. Use
+`include_full_artifact = true` to embed the full artifact, or `view = :public`
+for reader-facing output. This experimental result uses unit logits, fixed Q
+coefficients and fixed identity latent correlation; its fitting entry remains
+unavailable. Other unsupported analyses are labelled in the report.
+
+Posterior bounds must be central and strictly inside `(0, 1)`. Prediction uses
+the existing rating rows and a local `seed`; posterior summaries and diagnostics
+always use all retained draws. Diagnostic settings must match the saved fit.
+"""
+function fit_report(fit::MultidimensionalMFRMFit; view::Symbol = :full,
+        posterior_lower::Real = 0.025, posterior_upper::Real = 0.975,
+        predictive_interval::Real = 0.9, include_posterior_predictive::Bool = true,
+        ndraws::Union{Nothing,Int} = nothing, draw_indices = nothing, seed::Integer = 1,
+        include_artifact::Bool = true, include_full_artifact::Bool = false,
+        artifact_include_draws::Bool = false,
+        artifact_include_log_posterior::Bool = artifact_include_draws,
+        artifact_include_sampler_stats::Bool = false,
+        artifact_include_environment::Bool = false, artifact_include_packages::Bool = false,
+        split_chains::Bool = fit.record.run.split_chains_requested,
+        rhat_threshold::Real = fit.record.run.checked.rhat_threshold,
+        ess_threshold::Real = fit.record.run.checked.ess_threshold,
+        on_section_error::Symbol = :capture, require_complete::Bool = false)
+    view in (:full, :public) || throw(ArgumentError("view must be :full or :public"))
+    lower, upper = _check_posterior_summary_bounds(posterior_lower, posterior_upper)
+    interval = upper - lower
+    0 < interval < 1 && isapprox(lower + upper, 1; atol = 8eps(Float64), rtol = 0) ||
+        throw(ArgumentError("multidimensional MFRM reports require central posterior_lower/posterior_upper bounds strictly inside (0, 1)"))
+    !include_artifact && (include_full_artifact || artifact_include_draws ||
+        artifact_include_log_posterior || artifact_include_sampler_stats ||
+        artifact_include_environment || artifact_include_packages) &&
+        throw(ArgumentError("artifact options require include_artifact = true"))
+    checked = _mfrm_fixed_q_samples(fit)
+    _is_mfrm_fixed_q(checked.record.spec) || throw(ArgumentError(
+        "fit_report requires canonical multidimensional MFRM samples; use the private report for legacy samples"))
+    diagnostics(fit; split_chains, rhat_threshold, ess_threshold)
+    policy = _fit_report_on_section_error(on_section_error)
+    base = _mfrm_fixed_q_report(checked; posterior_interval = interval, predictive_interval,
+        include_posterior_predictive, ndraws, draw_indices, seed, on_section_error)
+    manifest = model_manifest(getdesign(checked.record.spec; preview = true))
+    rating_design = _fit_report_section(policy) do
+        audit = manifest.rating_design
+        rows = collect(audit.rows)
+        (; schema = audit.schema, rows, n_rows = length(rows), summary = audit.summary, audit)
+    end
+    artifact = include_artifact ? _fit_report_section(policy) do
+        value = fit_artifact(fit; include_draws = artifact_include_draws,
+            include_log_posterior = artifact_include_log_posterior,
+            include_sampler_stats = artifact_include_sampler_stats,
+            include_environment = artifact_include_environment,
+            include_packages = artifact_include_packages,
+            split_chains, rhat_threshold, ess_threshold)
+        (; schema = value.schema, content_hash = value.content_hash,
+            archive_manifest = value.archive_manifest,
+            artifact = include_full_artifact ? value : nothing)
+    end : _fit_report_not_requested()
+    report = merge(base, (; family = :mfrm, model = :mfrm_fixed_q,
+        estimation_status = :experimental,
+        metadata = merge(fit_metadata(fit), (; estimation_status = :experimental,
+            fitting_available = false,
+            interpretation = "Experimental saved-result reporting; the fitting entry is not available yet.")),
+        manifest, rating_design, artifact,
+        report_policy = merge(base.report_policy, (; posterior_lower = lower, posterior_upper = upper,
+            include_artifact, include_full_artifact, require_complete))))
+    health = _derive_fit_report_health(report)
+    report = merge(report, (; report_status = health.status, report_health = health))
+    require_complete && _require_complete_fit_report(report, :fit_report)
+    return view === :full ? report : fit_report_public(report)
+end
+
+fit_report_public(fit::MultidimensionalMFRMFit; kwargs...) =
+    fit_report_public(fit_report(fit; kwargs...))
+
+# Private sample bundle; canonical fit figure dispatch remains separate.
 function _save_mfrm_fixed_q_report_bundle(directory::AbstractString, result::NamedTuple;
         figures = (posterior = (;), diagnostics = (;), predictive = (;)),
         seed::Integer = 1, overwrite::Bool = false, label = nothing,

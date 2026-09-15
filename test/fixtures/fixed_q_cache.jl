@@ -38,7 +38,7 @@ function check_fixed_q_cache(fit; directory = nothing)
     @test read(path) == bytes
     @test_throws ArgumentError save_fit_cache(path, fit; artifact = "invalid", overwrite = true)
     @test read(path) == bytes
-    @test_throws ArgumentError fit_artifact(fit; view = :public, include_environment = false)
+    @test_throws ArgumentError fit_artifact(fit; view = :invalid, include_environment = false)
     @test_throws ArgumentError fit_artifact(fit; include_environment = false,
         rhat_threshold = record.run.checked.rhat_threshold + 0.01)
 

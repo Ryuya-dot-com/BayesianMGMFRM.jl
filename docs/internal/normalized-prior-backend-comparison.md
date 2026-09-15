@@ -2439,21 +2439,99 @@ README/manual pages are unchanged; artifact/cache docstrings describe v2
 behavior without presenting a fitting workflow that is not yet available.
 No full-suite run, new posterior sampling or figure rendering was performed.
 
+## Canonical fixed-coefficient saved-result reports, 2026-09-15
+
+Question: can an analyst reopen a canonical multidimensional MFRM fit and obtain
+its numerical report and reader-facing exports without reconstructing MCMC draws?
+`fit_report(::MultidimensionalMFRMFit)` now reuses the private report assembler
+and adds the validated rating-design audit and full reproducibility artifact.
+It supports the shared full/public report exports and explicit public artifact
+projection. Central `posterior_lower`/`posterior_upper` bounds translate to the
+existing private interval; noncentral bounds and changed diagnostic settings
+are rejected. Report completeness describes captured section errors, independently
+of unsupported analyses and MCMC warnings.
+
+Public output records experimental saved-result support and unavailable fitting,
+while retaining actual prior scales, unit logits, named dimensions, fixed and
+reconstructed coordinates, diagnostic settings and source/target identity.
+The public report uses the existing JSON-normalized hash; the public artifact
+uses the artifact hash and records the full source artifact's hash. Full artifact
+payloads keep their original schema and `:private_reference` status, so existing
+v2 cache validation and historical records retain their meanings. The broad
+fit union, numerical kernels, samplers, cache structures and plot dispatch are
+unchanged.
+
+The reusable [saved-report check](../../test/fixtures/fixed_q_report.jl) is also
+called by the existing [synthetic result check](../../test/mfrm_fixed_q_result.jl).
+It checks independent posterior quantiles, predictive draw order and local RNG,
+fixed/derived meanings, stored diagnostic settings, actual priors, rating-design
+rows, full/public hashes, cache/report-bundle replay and invalid-input/error
+policies. It accepts existing fits from either backend without sampling or
+loading CairoMakie.
+
+Direct public-API smokes on Julia 1.12.5 passed for saved Julia and CmdStan
+results (161.56 and 164.11 seconds): load an existing cache, build the full
+report and public report/artifact, then save and reopen the public bundle.
+These include first-use compilation; the Julia-result probe also enabled
+compiler tracing. They are operability checks, not latency benchmarks.
+The synthetic result/cache/report matrix passed 2,540 assertions on Julia
+1.10.8 (464.70 seconds), covering both backend shapes, binary/multicategory
+responses and legacy rejection. Saved two/three-dimensional Julia fits passed
+474 assertions on 1.10.8 (421.89 seconds; assertion-module optimization was
+disabled in this probe, with numerical-library defaults retained). These
+checks preceded the same-output Markdown-loop correction below; the final
+Markdown regression passed 75 assertions on each runtime (23.21 and 25.32
+seconds), including all three notes under one heading.
+On the final implementation, every saved-report assertion was also replayed
+as sequential top-level calls against the saved CmdStan result on Julia 1.12.5;
+all passed in 301.28 seconds, including full/public bundles, input rejection,
+local RNG, cache replay and modified stored diagnostic settings. This executes
+the same fixture body without a single large assertion function. The combined
+Julia 1.12 drivers still reached the 600-second budget; do not report a complete
+1.12 matrix or full-suite pass. Their compilation cost remains a bounded
+engineering follow-up, distinct from the passing individual API paths.
+The surrounding hash/column/specification/metadata checks passed 1,181
+assertions; source language checks passed for 19 files. Fresh Documenter output
+passed the 14-page rendered-language check (four existing omitted-maintenance
+docstring warnings remain). The timer self-test passed 21 cases and 18 existing
+cache/sample/receipt hashes were unchanged.
+
+Initial test-helper comparisons confused the typed artifact hash with the
+public report's JSON-normalized hash, and used `==` on rows containing
+`missing`; the corrected checks use the appropriate hash and `isequal`.
+Several aggregated attempts reached their 600-second limits. Read-only stack
+sampling showed LLVM compilation dominating a large assertion driver;
+inference-boundary and driver-compiler trials were insufficient. Replay
+comparisons now check exact exported values, avoiding deeply specialized
+in-memory report comparisons, and full/public payloads are selected without
+packing both large reports into one tuple. Compiler tracing also identified a shared
+Markdown note generator capturing the entire embedded artifact. A small loop
+now collects only the three optional note values, preserving their order and
+heading behavior without that capture. The 75-assertion Markdown check on both runtimes and the sequential
+full-artifact report-bundle replay cover this path. This local correction
+does not establish that the combined-driver compilation issue is resolved. Normal compiler defaults
+are restored; numerical tolerances are unchanged.
+An exploratory process-wide `--compile=min` replay changed several rebuilt
+means/standard deviations at floating-point rounding precision and was rejected
+by the existing exact cache validator. Standard-setting replay remains the
+compatibility check; no stored result, hash check or numerical tolerance was
+changed. Portability across compiler/optimization settings needs a separate
+derived-summary validation policy before it can be advertised. No new MCMC,
+Stan compilation, figure rendering, full-suite run or statistical acceptance
+was performed.
+
 ## Next bounded work
 
-Connect the dedicated result to `fit_report` with its full reproducibility
-artifact and validated rating-design rows. Reuse the private report assembler
-and existing validation summaries; do not activate unsupported numerical
-analyses through the broad fit union. Translate central public posterior bounds
-to the private interval and reject noncentral bounds initially. Implement
-explicit public report/artifact projections that preserve unit logits, actual
-priors, fixed/derived meanings, named dimensions, stored diagnostic gates,
-unsupported-section reasons and source/target identity, with experimental
-status and verifiable public hashes. Verify this path after manual cache reload
-on both backends without sampling or CairoMakie. Then connect the existing
-named-dimension plot/bundle workflow before exposing experimental fitting.
-Preserve the existing v2 caches and full artifact semantics while adding public
-projections; explicitly version any incompatible change.
+Connect the dedicated result to the existing named-dimension posterior,
+trace/rank and conditional predictive plots and the staged figure bundle writer.
+Reuse the numerical report's exact rows and predictive simulation; preserve
+intervals, draw indices, chain identity, diagnostic warnings, actual prior/unit
+scale and source/report hashes after cache reload on both backends. Render and
+inspect selected PDF/SVG figures, reopen bundles and check failed-export
+destination preservation. Report-only use stays independent of CairoMakie.
+Then expose restricted experimental fitting and a short generic workflow for
+each backend. Preserve the existing v2 caches and full artifact semantics;
+explicitly version any incompatible change.
 Automatic request caching, hard anchors, new-facet prediction and statistical
 acceptance remain separate.
 
