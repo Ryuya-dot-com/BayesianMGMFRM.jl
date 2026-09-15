@@ -1,8 +1,9 @@
 # BayesianMGMFRM.jl — Internal Roadmap
 
-Updated 2026-09-15 to align current implementation status and the long-term
-model scope. Julia remains primary, CmdStan remains its maintained counterpart,
-and Uchihara (2022) remains a secondary application.
+Updated 2026-09-15 to connect the long-term model scope to concrete API handoffs,
+shared data/prediction requirements and staged application analyses. Julia
+remains primary, CmdStan remains its maintained counterpart, and Uchihara (2022)
+remains a secondary application.
 This is the **single current work order**, not a public feature catalogue or a
 completion percentage. Start with the decision below;
 do not reconstruct priorities from historical checkboxes. The
@@ -36,6 +37,11 @@ choices, with validated combinations added incrementally. The
 [extension sequence](#long-term-extension-sequence) specifies their deliverables
 and evidence requirements; it is not a claim that those options are available
 today or that every combination belongs in the next release.
+The subsequent Uchihara workflow discussion sharpens the reusable
+[specification and prediction contract](#shared-specification-and-prediction-contract).
+Implement each relevant part with its model extension; the application and a
+complete future specification language are not prerequisites for the
+[next three implementation handoffs](#next-implementation-handoffs).
 
 The user's 2026-09-07 clarification corrects the previous work order's emphasis
 on the MFRM anchor study. MFRM is a reusable foundation and comparison branch,
@@ -811,6 +817,31 @@ not launch research runs, select numerical defaults or relax existing release
 conditions. Uchihara and external-software comparisons exercise the relevant
 supported slice; they do not define completion of the foundation or every
 extension.
+
+#### Shared specification and prediction contract
+
+Extend `FacetData`, `mfrm_spec`, the existing model/surface contracts and saved
+results only as the first relevant model block is implemented. These requirements
+define observable API behavior, not a new generic registry or a promise of
+particular keyword names. A workflow sketch using a future `spec` is not a
+currently executable example: preserve the documented `fit` versus
+`Experimental.fit` boundary until that family is deliberately exposed.
+
+| Concern | Required behavior | Smallest meaningful verification |
+| --- | --- | --- |
+| Observation and grouping units | Distinguish the response event, criterion, physical item, person, rater and optional response/recording group. Preserve a physical item's identity when measurement items are item × criterion. Declare outcome-specific uniqueness keys, category direction and missingness/inclusion rules | Pure row permutations and consistent level relabelling preserve aligned probabilities under explicit parameter/prior/reference mappings. Joining recording-level features cannot multiply observations; accidental duplicates are rejected under the declared event key. Repeated events remain representable with explicit IDs; missing outcomes are not replaced by the lowest category |
+| Effects and covariance | Specify which coefficients are fixed, estimated, shared across criteria or varying by group; record pooling, variance priors, scale constraints and the level of each covariance. Separate person-population correlation from shared-response dependence and posterior draw correlations | Check a minimal crossed/nested example and a deliberately confounded design. Verify known invalid structures fail before sampling; report unresolved identification limits. Fixed loadings/consistency are removed from sampled coordinates; a zero prior SD does not substitute for a fixed coefficient |
+| Predictors and transformations | Record each predictor's grouping level, coding, units, centering/scaling, missing-data treatment and criterion-specific effects. Retain transformations in the fitted specification and cache. Word/item-level predictors require a separately identified hierarchical effect or explicit constraint | Reproduce fitted predictions after reload and on transformed new rows. Detect redundant predictor/effect columns. During heldout evaluation, estimate transformations and any imputation from training data only. Explain whether person traits are total or conditional on the included predictors |
+| Comparison and prediction | Name the outcome, evaluation population, heldout unit and information available at prediction time. Separate predictions conditional on estimated existing levels from predictions integrating effects for new levels. Record which model block changes and which settings/data stay matched | Keep all criteria and raters for one heldout recording in the same split. Integrate its unknown effect when predicting a new recording; observed heldout ratings may be used only for a separately declared prediction task. Compare models on the same eligible observations with explicit scale/prior mappings and Monte Carlo uncertainty |
+| Saved results, capability and errors | The specification, backend, summaries, reports and plots must agree on fitted effects, dimensions, transformations, prediction target and experimental status. Use the existing artifact/report identities and compatible readers | Reload and regenerate the same named summaries/figures on both backends. Unimplemented covariance, effect, predictor or prediction requests fail explicitly; do not silently use independent dimensions, ignore columns or omit uncertainty. Extend automatic cache keys only when that model's automatic caching is implemented |
+
+Use synthetic examples with generic person/item/rater/group names for these
+checks. The Uchihara data shape is a later application of the same contract.
+For a composition such as correlated traits plus recording effects, test their
+separation jointly before advertising the combination; passing each block's
+isolated tests is insufficient. Retain the existing practical-acceptance and
+independent-review requirements without making every future combination a
+prerequisite for an ordinary implementation correction.
 
 ### Julia and CmdStan continuity and comparison
 
@@ -2456,14 +2487,14 @@ priority follows the Julia user workflow, not the readiness of a paper dataset.
 
 | Task / owner role | Next deliverable | Verification and stop condition |
 | --- | --- | --- |
-| 1. Canonical fixed-coefficient result/report handoff — analyst/maintainer; private fits, dedicated results, manual v2 caches/full artifacts and private report/figure machinery are implemented | Connect `MultidimensionalMFRMFit` to `fit_report`, including its artifact and validated rating-design rows; implement explicit public projections. Verify saved Julia/CmdStan results without new sampling, then connect named-dimension plots/bundles before exposing experimental fitting | Exit: actual prior/unit scale, fixed/derived parameters, stored diagnostic settings, central intervals, experimental status and source/target hashes remain consistent after reload/export. Unsupported report sections stay explicit. Preserve existing v1/v2 artifacts and old-model behavior; this closes the integration slice, not M1/M2 scientific acceptance |
+| 1. Canonical fixed-coefficient result/report handoff — analyst/maintainer; private fits, dedicated results, manual v2 caches/full artifacts and private report/figure machinery are implemented | Complete the [three dependent outputs](#next-implementation-handoffs): numerical reports/public projections from saved results, existing named-dimension figures/bundles, then restricted experimental fitting and examples | Exit: actual prior/unit scale, fixed/derived parameters, stored diagnostic settings, central intervals, experimental status and source/target hashes remain consistent after reload/export. Unsupported report sections stay explicit. Preserve existing v1/v2 artifacts and old-model behavior; this closes the integration slice, not M1/M2 scientific acceptance |
 | 2. M1 Julia model-to-code contract and estimation path — analyst/maintainer | Resolve the relevant source/exchangeable-prior, identification and validation-scope decisions; correct demonstrated shared-path gaps and retain the [core trace's remaining failure boundaries](#first-julia-core-verification-slice). Prepare the next covariance/within-item slice under the [extension sequence](#long-term-extension-sequence), reusing existing components | Exit: equations, coordinates, scale constants, priors/Jacobians and parameter meanings have code/evidence mappings and explicit unresolved decisions. Check target/gradients, invalid inputs, initialization/sampling failures and result integrity as affected. Record actual runtime/resource limits; model changes have distinct identities. No copied fitting engine or blanket source refactor |
 | 3. CmdStan continuity — analyst/maintainer; accompanies each model slice | Maintain estimation of the same target under the [dual-backend contract](#julia-and-cmdstan-continuity-and-comparison); check common-coordinate densities, gradients and probabilities, then diagnostic-qualified posterior/predictive summaries under the execution budget | Exit: both routes preserve likelihood, priors, constraints, scale and saved-result meaning. Missing parity remains partial support; Julia work can advance incrementally without dropping this requirement. Backend agreement is implementation evidence, not model validity |
 | 4. M2 core statistical validation — analyst; execution not started | Reconcile Stage-A with the accepted package model/claim. Select known-truth conditions for identification, recovery/calibration, sparse coverage, prior sensitivity and numerical failure mechanisms; verify scoring, all-attempt accounting and resource stops before reviewed execution | Exit: target-specific M1 and execution readiness are accepted, the bounded roster is accounted for, and uncertainty/failure rates support a stated domain or an inconclusive result. Representative Julia/CmdStan comparisons accompany it; do not restrict the core domain to the Uchihara design or substitute an empirical fit for recovery evidence |
 | 5. Julia user workflow and public documentation — maintainer with analyst input; runs alongside rows 1--4 | Existing public-model [documentation/help](#public-documentation-cleanup-2026-09-14), standard figures, short saved-fit examples and [figure/report integration](#report-bundle-figure-integration-2026-09-14) are verified; record the unfamiliar-reader walkthrough. Add the new fixed-coefficient workflow to public help/examples only when row 1 supplies it | Exit: source/help/fresh-HTML consistency and [figure/report acceptance](#figure-and-report-acceptance) pass for the advertised scope, including save/reload and an unfamiliar-reader walkthrough without manual draw reshaping. Test reusable examples; neither a paper-specific script nor plotting-data rows close this task |
 | 6. M3 supported-domain and package handoff — maintainer and independent reviewer | Reproduce selected model/numerical claims and the documented workflow in a separate environment at the recorded revision; make claim-level supported/narrowed/rejected/inconclusive decisions | Exit: usable Julia behavior, matching CmdStan evidence and independent scientific acceptance are reported separately. Public promotion retains its M0 gate and integration/release authority. Completion or publication of an application paper is not an exit condition |
 | Long-term model extensions — analyst/maintainer; sequenced after the relevant foundation slice | Follow the [single extension sequence](#long-term-extension-sequence): correlated dimensions/within-item validation, configurable random effects, a specified non-compensatory ordinal kernel, and staged Q structure inference. Fixed-Q comparison and identification work can precede full structure learning | Promote one declared combination at a time with model-specific evidence, both backends and a complete user workflow. Independent block validation does not certify their composition. These are long-term deliverables, not newly available options or an automatic batch of implementation/research jobs |
-| Uchihara reanalysis — analyst; secondary application, no fit completed | Use the [retained application plan](#uchihara-2022-secondary-application) when its required model slice is ready. Reconcile the paper/workbook, analyze with supported methods, and use the example to assess practical interpretation and UX | Keep data preparation, application-specific raters/recording effects/covariates, empirical fits and report progress separate from core milestones. A discovered reusable defect returns to the core queue; case completion or the expected substantive result never defines Julia acceptance |
+| Uchihara reanalysis — analyst; secondary application, no fit completed | Follow the [staged application sequence](#application-sequence-and-reusable-dependencies) when each required model slice is ready: reconcile data, fit unadjusted measurement, then named generalized/phonetic comparisons and secondary outcomes. Use the example to assess practical interpretation and UX | Keep data preparation, application-specific raters/recording effects/covariates, empirical fits and report progress separate from core milestones. A discovered reusable defect returns to the core queue; case completion or the expected substantive result never defines Julia acceptance |
 | ConQuest/TAM comparison — analyst/maintainer; supporting track | Complete the bounded [external-software handoffs](#conquest-and-tam-comparison-scope): ConQuest destination-scale mapping and estimator-aware comparison; TAM evidence reconciliation and independent-review handoff | Exit: scope, versions, parameter/uncertainty meanings and comparison decisions are explicit. Multidimensional comparisons wait for a matched model specification; historical MFRM evidence is not renamed MGMFRM validation. This is not a prerequisite for unrelated core implementation or a substitute for Julia/CmdStan verification |
 | MFRM anchor sub-study — analyst; supporting track | Retain its [six freeze decisions](docs/internal/mfrm-anchor-study.md#freeze-decisions), 266-cell draft, resource proposal and reusable response/scoring checks; advance a piece when it addresses a core dependency or a separately selected anchor claim | All six decisions remain open. The 400/100 allocation is not automatically adequate for practical acceptance; the historical 20-assertion ordinal audit is not recovery evidence. Completing this panel does not certify generalized anchoring, and the full panel is not the next automatic launch |
 | M0 observer integration — maintainer; local verification, candidate CI, and implementer review passed; unmerged | Use the [candidate CI and integration review](docs/internal/fitting-core-runtime-review.md#candidate-ci-and-integration-review) for the merge-approval handoff; no further fit is queued | At `5c4bff2`, all 12 ordinary CI jobs passed, including 21 guard cases on each of Linux/macOS; both manual research jobs were skipped. Verification C retains all 2,755 passing assertions and child/guard exit 0. PR #100 stays draft with auto-merge disabled; integration needs explicit approval. These checks repair local measurement, not the historical +23.4% acceptance trigger |
@@ -2485,6 +2516,27 @@ this roadmap refinement itself changes neither the load nor export boundary.
 The single additional **verification C** is complete and is not a cache
 experiment. Cold A remains a consumed attempt with observer exit 1; B never
 ran. C neither resets nor completes that pair, and no further fit is queued.
+
+### Next implementation handoffs
+
+These three outputs expand row 1 of the work queue. Complete and check each
+before its dependent output; they introduce no new sampler, result container
+or application-specific API. The current implementation baseline is committed
+at `fcb282b`; its focused checks and earlier retained evidence do not constitute
+a full-suite pass or release acceptance.
+
+| Output and dependency | Implementation boundary | Acceptance check |
+| --- | --- | --- |
+| Numerical reports — next, using existing saved fits | Add dedicated `fit_report` and public report/artifact projections for `MultidimensionalMFRMFit`. Reuse the private assembler, full artifact and validated design rows. Preserve central interval semantics and stored diagnostic settings; keep unsupported sections explicit | Use saved Julia/CmdStan results, including named dimensions, fixed/reconstructed coordinates and binary/multicategory cases. Compare before/after reload, validate public hashes and reject contradictory inputs or noncentral bounds. Full artifacts and old caches retain their meanings. No sampling or plotting dependency is needed |
+| Figure/report bundles — after numerical reports | Connect the existing named-dimension posterior, trace/rank and conditional predictive figures to this result and the staged bundle writer. Reuse the report's exact numerical rows and predictive simulation; retain optional CairoMakie loading | Render and inspect the selected PDF/SVG figures, verify numerical inputs and bundle hashes, reopen the bundle and regenerate figures from the saved fit without MCMC. Dimension, interval, chain, score direction and diagnostic warnings agree with the report; failed exports preserve existing output |
+| Experimental fitting and usable examples — after reports/bundles and the relevant model contract | Add the restricted canonical fixed-coefficient route to `Experimental.fit` and the existing surface contract. Publish one short generic specification -> fit -> diagnostics -> saved report/figures example for each backend. Keep unsupported effects/correlations/predictors and automatic request caching unavailable | Run a bounded entry-to-reload integration and rejection checks for the declared configurations; verify README/help and the installed API agree. A short fit proves operability only. Record unfamiliar-reader review and statistical-domain acceptance separately; root-level stable promotion is a later decision |
+
+Keep the [detailed report handoff](docs/internal/normalized-prior-backend-comparison.md#next-bounded-work)
+as the implementation reference. Correlation, random-effect and predictor
+extensions follow their own accepted specification after the relevant foundation
+slice; do not wait for Uchihara preprocessing or mixed outcomes to finish these
+three outputs. Once an output is complete, replace its current status and next
+action rather than adding another queue or duplicating the verification history.
 
 ### Decision handoff and progress accounting
 
@@ -2656,29 +2708,54 @@ implementation. A fixed-loading, unit-consistency MFRM reference and the selecte
 generalized extensions must agree conditionally when the extra coefficients
 are fixed under the same scaling; zero prior SD is not a fixed-parameter API.
 
-Gaps for this proposed application include correlated speaker abilities, a fixed-coefficient reference,
-criterion-specific rater effects, adequate shared-recording dependence and fitted
-phonetic covariates. Reuse the research-only two-dimensional correlation candidate
-and existing likelihood/transforms where they match the accepted equation.
-The current ordinary fit's identity correlation, common rater parameters and
-metadata-only extra columns cannot silently stand in for those features.
-Recording effects need their own hierarchy and uncertainty; recoding word ×
-criterion alone does not supply it. Choose the smallest supported dependence
-structure and use checks to justify any covariance restrictions; do not fit
-unrestricted covariance matrices at every level by default. A word-level
-syllable predictor requires an identified hierarchical word model or another
-explicit constraint, not a column collinear with unrestricted word effects.
+#### Application sequence and reusable dependencies
 
-Use the full ordinal ratings for the primary measurement model. Phonetic
-adjustment is a named extension with its own missing-data and estimand contract.
-Intelligibility/latency belong to this application's interpretation;
-their first analysis can use recording-level outcome models integrating the
-rating posterior. A fully joint binary/ordinal/continuous likelihood and a
-listener-specific dictation model are not prerequisites: the latter needs
-individual responses that the inspected workbook does not provide. Specify
-whether each secondary model permits feedback into the measurement model, and
-verify its computational target in both backends when it contributes fitted
-claims. Do not silently treat a posterior-propagation procedure as a joint model.
+The canonical fixed-coefficient reference already has private fitting and
+manual saved results. Its public workflow, correlated speaker abilities,
+criterion-specific rater effects, adequate recording dependence and fitted
+predictors still need the relevant extensions. Reuse the existing correlation
+candidate and likelihood/transforms where the accepted equation matches them.
+The ordinary fit's identity correlation, common rater parameters and
+metadata-only extra columns do not provide these features.
+
+| Analysis output | Reusable capability or application prerequisite | Comparison and reporting condition |
+| --- | --- | --- |
+| Analysis-ready views and sample flow | The retained data/measurement contract; outcome-specific event keys, physical IDs, score directions and inclusion rules. Keep ordinal ratings in a criterion-labelled long view and outcomes/features in a unique recording view | Reconcile the inspected counts and exclusions without multiplying outcomes through joins. Preserve missing productions and partially observed rating pairs. This application preparation is independent of, and lower priority than, the current report/API handoff |
+| Unadjusted joint measurement — primary application model | Public fixed-coefficient workflow plus correlated traits, identified word/criterion effects, criterion-specific rater severity and a justified shared-recording structure. Keep fixed loadings/unit consistency and fixed pure-Q as the reference | Fit the two-criterion ordinal ratings without requiring complete phonetic covariates. Compare a separately specified common-dimension reference where identifiable, using matched observations, score directions and nuisance structure. Report speaker profiles, population-correlation uncertainty, recording dependence, prior sensitivity and predictive adequacy |
+| Generalized scoring — named comparison | Explicitly selectable loading and rater-consistency blocks with the same dependence structure and a declared likelihood/parameter/prior scale mapping | Add one block at a time when attributing its effect, or label a joint change as a combined comparison. Unit-logit MFRM and the literal `1.7` MGMFRM baseline are not automatically a nested prior-matched comparison. Keep the same eligible observations, thresholds and intended prediction target |
+| Phonetic associations — adjusted model | Predictor coding/transformations and criterion-specific coefficients; an identified hierarchical word effect for syllable count and a declared treatment of missing annotations | Distinguish adjusted from total speaker traits. Compare adjusted/unadjusted models on matched eligible observations or under an explicit missing-data model, and retain the full-rating unadjusted analysis separately. Report predicted-category contrasts and uncertainty; changing the analysis population must not be attributed solely to phonetic adjustment |
+| Recognition and eligible latency — secondary outcomes | One published joint-correctness event and eligible latency per recording; a specified outcome model that propagates rating uncertainty and declares whether feedback is allowed | Choose a predictive task, available inputs and grouped heldout split before fitting. Train transformations, measurement/outcome relationships and any structural selection inside that split as required by the task. Integrate unknown heldout effects, retain both stages' provenance and compare the same computational target in Julia/CmdStan. No duplicated outcome trials or reconstructed individual dictation responses |
+| Reproducible answers and figures | Saved primary/comparison fits, diagnostic-qualified backend comparisons, application-specific validation and the existing report/figure bundle | Reopen in a separate environment and reproduce named contrasts, uncertainty and plots within stated tolerances. Explain each question's answer and limits. Broader Q learning, within-item, bifactor and non-compensatory models enter only for an explicit additional measurement question; their completion is not required for this application |
+
+Resolve the allocation of shared variation before fitting the primary model:
+retain the physical rater as well as criterion IDs, and define whether recording
+effects are shared scalars or criterion-specific vectors. Keep speaker-population
+correlation separate from recording-level covariance. Specify an identified
+word/criterion hierarchy rather than adding a redundant free word effect to
+unrestricted word × criterion difficulties. A word-level syllable predictor
+must use that hierarchy or another explicit identifying constraint. Choose the
+smallest justified dependence structure and assess its restrictions; do not add
+unrestricted covariance matrices at every level by default.
+
+The common-dimension reference needs its own equation and identification; do not
+implement it by sending a perfect correlation into a nonsingular covariance
+sampler. Report whether the data distinguish the proposed models under their
+priors, rather than treating one fit statistic as proof of construct independence.
+Thousands of rating rows do not increase the number of speaker-level units
+beyond 12. Application validation must separate uncertainty about speaker
+correlation from recording-level associations; a larger-speaker comparison
+answers a small-sample question rather than changing the empirical population.
+
+The first secondary-outcome implementation can propagate the rating posterior
+into a recording-level model with an explicitly specified no-feedback target.
+It must propagate model/parameter uncertainty rather than use posterior means
+as error-free predictors, and preserve the linkage between its saved stages.
+A fully joint binary/ordinal/continuous likelihood is a later alternative with
+different feedback semantics. Listener-specific dictation modeling additionally
+requires individual responses absent from the inspected workbook. Neither is
+a prerequisite for Julia core acceptance or the unadjusted ordinal analysis.
+Exact secondary likelihoods, missing-data choices and API signatures remain to
+be selected with their model contracts; this table does not implement them.
 
 When validating this application, target its 12-speaker/37-word/19-rater design and its
 observed sparse speaker–word coverage. Use a small set of known-truth conditions
