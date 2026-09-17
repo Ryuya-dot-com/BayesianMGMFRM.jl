@@ -1,7 +1,9 @@
 # BayesianMGMFRM.jl — Internal Roadmap
 
-Updated 2026-09-17 to connect independent/correlated fixed-coefficient prior
-inspection to saved-fit reports and figures. The final API migration away from
+Updated 2026-09-17 to document and check the fixed-coefficient prior's induced
+covariance, rater-label dependence and prior-anchored locations, and to define
+a separate exchangeable-rater reference as the next implementation slice.
+The final API migration away from
 development-status names remains a model-specific release requirement. The
 independent model retains its meaning and saved artifacts. Julia remains primary, CmdStan remains its maintained counterpart,
 and Uchihara (2022) remains a secondary application.
@@ -68,8 +70,10 @@ alter the ordinary independent specification. Reports default to a public view
 for correlated results, while scientific warnings and prior/coordinate meanings
 remain visible. The [implementation record](docs/internal/normalized-prior-backend-comparison.md#experimental-correlated-mfrm-api-2026-09-17)
 separates operability from statistical acceptance. Prior-predictive inspection
-now connects to optional saved-fit reports and figures. The next bounded work
-returns to the fixed-coefficient prior/identification contract described below.
+now connects to optional saved-fit reports and figures. The
+[prior/identification review](docs/internal/fixed-coefficient-prior-identification.md)
+characterizes the current model's rater-label dependence; the next bounded work
+is an explicitly identified exchangeable-rater prior reference.
 Recovery, coverage, prior sensitivity and diagnostic-qualified backend comparison require their
 reviewed protocol; the generalized correlation candidate keeps its own identity.
 LD1b execution, soft/group anchors, and new-facet prediction remain separate
@@ -712,16 +716,21 @@ Optional saved-fit report sections and figures now reuse that prior simulation
 with an explicit local RNG and draw budget; their
 [verification record](docs/internal/normalized-prior-backend-comparison.md#fixed-coefficient-prior-report-integration-2026-09-17)
 distinguishes this implementation handoff from scientific acceptance.
-**Next bounded deliverable:** reconcile the fixed-coefficient independent and
-correlated models' prior/identification contract before another model extension.
-Trace declared free-coordinate normal priors, reconstructed final-rater/step
-distributions, prior-anchored locations and fixed marginal ability scales to
-equations, density code and saved meanings. In particular, separate sampling a
-declared prior correctly from choosing an exchangeable prior over named facets.
-Use sampler-free relabelling and covariance checks to document which operations
-preserve the target and which change its scientific meaning. Record unresolved
-source/exchangeable-prior choices explicitly; do not silently change defaults
-or target identities. Recovery/coverage execution needs its reviewed protocol.
+The [prior/identification review](docs/internal/fixed-coefficient-prior-identification.md)
+now traces the current free-coordinate measure, unequal reconstructed variances,
+rater-label dependence and likelihood location freedom with sampler-free checks.
+This characterizes a limitation; it does not accept arbitrary label dependence
+as the final scientific default or close M1.
+**Next bounded deliverable:** add a private, explicitly identified
+exchangeable-rater prior reference for both independent and correlated
+fixed-coefficient MFRM. Reuse the normalized zero-sum correction and existing
+likelihood. State the kernel SD and induced common marginal/contrast SDs; hold
+the current item-step prior fixed for the first comparison so the rater-prior
+change is isolated. Step symmetry is a separate decision for ordered positions.
+Require normalized density/gradient checks, rater-relabelling invariance,
+Julia/CmdStan agreement and distinct saved identities. Preserve current priors,
+defaults and old artifacts. This is not a generalized source-prior selector or
+an authorization for recovery/coverage execution, which needs its reviewed protocol.
 Higher-dimensional covariance, within-item validation, automatic request caching
 and hard anchors remain separate.
 The warmup recording slices above are verified. Interruption-time histories
@@ -2561,8 +2570,9 @@ separates bounded operability from statistical acceptance. The correlated model'
 and [experimental API](docs/internal/normalized-prior-backend-comparison.md#experimental-correlated-mfrm-api-2026-09-17)
 now connect without changing historical independent artifacts. Prior-predictive
 inspection and direct figures are implemented; their optional integration into
-saved-fit reports is implemented. The fixed-coefficient prior/identification
-contract is the next concrete output. Application preparation and reader
+saved-fit reports is implemented. The current prior/identification contract is
+characterized, including its rater-label dependence; a separately identified
+exchangeable-rater reference is the next concrete output. Application preparation and reader
 recruitment do not block this core work.
 
 The numbered rows are bounded handoffs, not a requirement to finish every
@@ -2575,7 +2585,7 @@ priority follows the Julia user workflow, not the readiness of a paper dataset.
 
 | Task / owner role | Next deliverable | Verification and stop condition |
 | --- | --- | --- |
-| 1. Fixed-coefficient prior and identification contract — analyst/maintainer; prior inspection and report/figure integration implemented | Trace the independent/correlated model's declared prior measure, reconstructed facet distributions, location constraints and fixed ability scales. Document relabelling invariance versus changes of reference/prior meaning and reconcile the relevant source/exchangeable-prior decisions | Exit: equations, code, reproducible sampler-free checks and saved identities agree; current assumptions and unresolved scientific choices are explicit. Correctly generating a prior is not evidence that it is exchangeable or appropriate. No silent default migration, new sampler or unreviewed recovery study |
+| 1. Fixed-coefficient exchangeable-rater prior reference — analyst/maintainer; current prior/identification review complete as an implementation characterization | Add a private, distinct prior variant for both independent/correlated MFRM, reusing the normalized zero-sum correction and current likelihood. Declare kernel versus common marginal/contrast scales; retain current step priors for the initial rater-only comparison and keep the ordered-step decision separate | Exit: normalized densities/gradients, rater relabelling, Julia/CmdStan calculations and distinct saved identities agree. No public default migration or reinterpretation of old draws. This reference is not generalized source reproduction, statistical acceptance or a new recovery study |
 | 2. M1 Julia model-to-code contract and estimation path — analyst/maintainer | Resolve the relevant source/exchangeable-prior, identification and validation-scope decisions; correct demonstrated shared-path gaps and retain the [core trace's remaining failure boundaries](#first-julia-core-verification-slice). Prepare the next covariance/within-item slice under the [extension sequence](#long-term-extension-sequence), reusing existing components | Exit: equations, coordinates, scale constants, priors/Jacobians and parameter meanings have code/evidence mappings and explicit unresolved decisions. Check target/gradients, invalid inputs, initialization/sampling failures and result integrity as affected. Record actual runtime/resource limits; model changes have distinct identities. No copied fitting engine or blanket source refactor |
 | 3. CmdStan continuity — analyst/maintainer; accompanies each model slice | Maintain estimation of the same target under the [dual-backend contract](#julia-and-cmdstan-continuity-and-comparison); check common-coordinate densities, gradients and probabilities, then diagnostic-qualified posterior/predictive summaries under the execution budget | Exit: both routes preserve likelihood, priors, constraints, scale and saved-result meaning. Missing parity remains partial support; Julia work can advance incrementally without dropping this requirement. Backend agreement is implementation evidence, not model validity |
 | 4. M2 core statistical validation — analyst; execution not started | Reconcile Stage-A with the accepted package model/claim. Select known-truth conditions for identification, recovery/calibration, sparse coverage, prior sensitivity and numerical failure mechanisms; verify scoring, all-attempt accounting and resource stops before reviewed execution | Exit: target-specific M1 and execution readiness are accepted, the bounded roster is accounted for, and uncertainty/failure rates support a stated domain or an inconclusive result. Representative Julia/CmdStan comparisons accompany it; do not restrict the core domain to the Uchihara design or substitute an empirical fit for recovery evidence |

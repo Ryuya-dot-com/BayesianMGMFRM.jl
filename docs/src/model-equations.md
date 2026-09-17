@@ -15,6 +15,8 @@ uses independent abilities by default; `Experimental.correlated(spec)` explicitl
 selects population correlation for two between-item dimensions. See
 [Correlated ability dimensions](experimental.md#correlated-ability-dimensions)
 for its priors, coordinate transformation and fitting constraints.
+For both fixed-coefficient models, [prior scales and facet labels](@ref "Prior scales, facet labels and locations")
+explain the reconstructed rater/step distributions and prior-anchored locations.
 Broader GMFRM/MGMFRM specifications expose source-aligned manifests and preview
 compiler rows for review. Only the restricted generalized configurations in
 [Scope and Releases](scope.md) can be fitted.

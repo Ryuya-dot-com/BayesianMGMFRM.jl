@@ -68,6 +68,40 @@ is identity. Item steps have a first zero step, `K - 2` free steps and a final
 step reconstructed so the remaining steps sum to zero. This declared free-coordinate
 density needs no Jacobian adjustment and has no 1.7/1.702 multiplier.
 
+### Prior scales, facet labels and locations
+
+`rater_sd` and `step_sd` describe the **free-coordinate** standard deviations.
+They are not common marginal standard deviations of all reconstructed effects.
+With `R` raters, the first `R-1` severities have prior variance `rater_sd^2`,
+while the last has variance `(R-1)*rater_sd^2`. For three raters, their prior
+SDs are therefore `rater_sd`, `rater_sd`, and `sqrt(2)*rater_sd`. The last
+severity is negatively correlated with every free severity.
+
+The reconstructed rater is `data.rater_levels[end]`; facet levels are sorted
+by label. Reordering data rows preserves that choice. Renaming rater IDs can
+change it and, when `R>2`, can change the prior and posterior even if the rating
+design and likelihood are otherwise equivalent. Preserve facet IDs when
+reproducing an analysis. The current prior is not exchangeable over all raters
+when `R>2`; a zero-sum constraint alone does not provide exchangeability.
+
+For each item's `K` stored step contributions, the first is zero, `K-2` are
+independent normals with SD `step_sd`, and the last is their negative sum with
+variance `(K-2)*step_sd^2`. Both steps are zero for binary responses. The
+nonbaseline steps are dependent; their prior does not require ordered
+thresholds. Response categories still have their declared order, so permuting
+step positions generally changes response probabilities.
+
+Person and item locations are **prior-anchored**. Adding the same dimension
+vector `c` to each person's abilities and adding `dot(Q[i,:], c)` to each item's
+difficulty leaves the likelihood unchanged. The zero-centered priors determine
+locations along that direction. Fixed Q coefficients do not remove this
+location freedom, and finite posterior intervals do not by themselves establish
+identification from the data. `person_sd` is a fixed population-prior scale;
+the correlated model below estimates rho while keeping both marginal ability
+SDs fixed. These conventions apply to both backends.
+
+### Fitting and saved results
+
 Both backends return `Experimental.MultidimensionalMFRMFit`. Warmup telemetry is
 recorded by default; set `record_warmup = false` to omit it. The common default
 is 100 warmup and 100 retained draws per chain, with two chains. These are

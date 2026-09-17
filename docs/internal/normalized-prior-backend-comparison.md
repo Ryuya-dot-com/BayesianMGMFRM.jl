@@ -3090,16 +3090,59 @@ suite, CI and independent reader/scientific review remain outside this handoff.
 Commands, logs, preserved input hashes and visual-review artifacts are listed
 in the [local receipt](../../results/workflows/20260917-prior-report-01/receipt.json).
 
+## Fixed-coefficient prior and identification review (2026-09-17)
+
+The [equation/code review](fixed-coefficient-prior-identification.md) derives the
+current free-coordinate prior's full rater/step covariance and distinguishes
+rater relabelling, row order, chart transport and a change of prior. For R>2,
+renaming IDs can move the reconstructed rater and change the prior while all
+rating probabilities remain equal. Independent normal priors on the new free
+chart do not preserve the original full-vector distribution. The zero-sum
+constraint by itself does not imply exchangeability.
+
+The same review traces the joint ability/item location shift, the fixed ability
+marginal scales and the correlated model's one Fisher-z Jacobian. It separates
+the existing normalized zero-sum block reference from the generalized model's
+positive consistency/source-rater prior. Public documentation and newly
+computed report explanations state the current limitation. Likelihoods,
+priors, target/cache identities and saved draws are unchanged.
+
+Sampler-free checks passed 428 assertions on each Julia 1.10.8 and 1.12.5;
+the existing correlated density checks passed 275 assertions on 1.12.5.
+Fresh CmdStan builds passed 208 density/gradient assertions on relabelled and
+location-shifted cases (3/5 raters, 2/4 categories, both ability priors and both
+CmdStan Jacobian settings). No sampling was run. The checks use exact basis-image covariances, transported Gaussian densities,
+matched rater relabellings, row permutations, Q/dimension swaps and location
+shift derivatives. They characterize the declared prior, not its scientific
+appropriateness or statistical recovery. Historical fits and clarified public
+report save/reload passed 28 checks on Julia 1.10 and 42 on Julia 1.12, retaining
+all five saved input files. An existing portable report remains readable with
+its original explanation. The final manual built with four existing omitted
+research-docstring warnings; public policy tests passed 181 assertions, and
+language checks passed for 20 source files and 14 HTML pages.
+
+The documentation driver initially inherited a custom build-root setting into
+a test of the default root (180 passes, one failure); scoping that environment
+setting to the build resolved it without changing test expectations. Generated
+HTML inspection caught the new fragment link's case/punctuation mismatch; a
+Documenter title cross-reference now resolves to the actual heading. The full
+suite, CI and independent reader/scientific review were not run. Commands,
+logs, density inputs/outputs and retained hashes are in the
+[local receipt](../../results/workflows/20260917-prior-identification-01/receipt.json).
+
 ## Next bounded work
 
-Reconcile the fixed-coefficient prior and identification contract: free-coordinate
-normal priors versus reconstructed last-facet distributions, prior-anchored
-locations and fixed marginal ability scales. Use equations and sampler-free
-relabel/covariance checks to distinguish representation changes from changes
-to the prior; record the relevant source/exchangeable-prior decisions without
-silently changing defaults or identities. Prior generation correctness and
-plausibility are not recovery evidence. Higher-dimensional covariance, within-item validation,
-automatic request caching, hard anchors and application predictors are separate.
+Prepare a private, distinctly identified exchangeable-rater prior reference for
+both fixed-coefficient ability models, reusing the existing normalized zero-sum
+correction and likelihood. Specify kernel and induced marginal/contrast SDs;
+hold the current item-step prior fixed for the first comparison, with the
+ordered-step decision separate. Require normalized density/gradient checks,
+rater relabelling invariance, Julia/CmdStan agreement and saved-identity
+separation before exposing a fitting selector. Preserve the present prior and
+historical artifacts. This reference does not choose the generalized source
+prior or establish recovery. Higher-dimensional covariance, within-item
+validation, automatic request caching, hard anchors and application predictors
+remain separate.
 
 Separately, record an unfamiliar reader finding the supported model/backend, loading a fit,
 choosing a named dimension, interpreting diagnostic/interval labels and saving/

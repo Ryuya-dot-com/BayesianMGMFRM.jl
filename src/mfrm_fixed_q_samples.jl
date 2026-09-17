@@ -795,7 +795,8 @@ function _mfrm_fixed_q_report(result::NamedTuple; posterior_interval::Real = 0.9
             dimension_labels = copy(spec.dimension_labels),
             interpretation = correlated ? "Stored between-item Q entries are fixed coefficients. The two ability dimensions have an estimated population correlation rho; this is distinct from dependence among posterior draws." : "Stored confirmatory Q entries are fixed coefficients. Latent-population correlation is fixed to identity; posterior dependence is not an estimated population correlation."),
         prior_policy = (; status = :computed, rows = prior_rows, n_rows = length(prior_rows),
-            interpretation = correlated ? "Locations are prior-anchored. Each directly parameterized ability pair has a bivariate normal prior with covariance person_sd^2 * [1 rho; rho 1]. Other free coordinates retain independent normal priors; sum-constrained reconstructions are dependent. LKJ(eta) is declared on rho; rho = tanh(z) contributes log(1-rho^2) exactly once. The ability covariance determinant is part of the normal density, not another transformation Jacobian." : "Locations are prior-anchored. Normal priors are declared on free unit-logit coordinates. The last rater and last item steps are negative sums and have induced dependent priors; each baseline step is zero. Loadings and consistency have no sampled prior. Deterministic reconstruction adds no Jacobian to this declared free-coordinate density."),
+            interpretation = (correlated ? "Locations are prior-anchored. Each directly parameterized ability pair has a bivariate normal prior with covariance person_sd^2 * [1 rho; rho 1]. Other free coordinates retain independent normal priors; sum-constrained reconstructions are dependent. LKJ(eta) is declared on rho; rho = tanh(z) contributes log(1-rho^2) exactly once. The ability covariance determinant is part of the normal density, not another transformation Jacobian." : "Locations are prior-anchored. Normal priors are declared on free unit-logit coordinates. The last rater and last item steps are negative sums and have induced dependent priors; each baseline step is zero. Loadings and consistency have no sampled prior. Deterministic reconstruction adds no Jacobian to this declared free-coordinate density.") *
+                " For R raters and K categories, the last rater has prior variance (R-1)*rater_sd^2 and each last nonbaseline step (K-2)*step_sd^2. These SD inputs describe free coordinates. For R>2, renaming rater IDs can change which rater receives the reconstructed prior; row order alone does not. A joint shift of ability and Q-weighted item locations preserves the likelihood; their location is determined by the priors."),
         pooling_policy = (; status = :computed, rows = [correlated && row.block === :latent_correlation ?
             (; row.block, scale = missing, scale_estimated = false, shape_parameter = :eta,
                 shape = row.shape, shape_estimated = false, correlation_estimated = true) :
@@ -834,6 +835,8 @@ intervals and diagnostics. Estimate it with
 Posterior bounds must be central and strictly inside `(0, 1)`. Prediction uses
 the existing rating rows and a local `seed`; posterior summaries and diagnostics
 always use all retained draws. Diagnostic settings must match the saved fit.
+The prior section explains free-coordinate SDs, the last-rater/step induced
+variances, rater-label dependence and prior-anchored ability/item locations.
 
 Set `include_prior_predictive = true` to simulate from the saved model/prior,
 with `prior_predictive_ndraws = 100` and `prior_interval = 0.95` by default.
