@@ -33,22 +33,23 @@ function _fixed_q_prior_draws(target, ndraws::Int, rng::AbstractRNG)
     return draws
 end
 
-function _fixed_q_prior_bundle(spec; prior::MFRMPrior = MFRMPrior(),
+function _fixed_q_prior_bundle(spec; prior = MFRMPrior(),
         ndraws::Int = 1000, rng::AbstractRNG = Random.default_rng())
     target = _fixed_q_prior_target(spec, prior)
     draws = _fixed_q_prior_draws(target, ndraws, rng)
-    base = target isa _MFRMFixedQCorrelated2DLogDensity ? target.base : target
+    base = target isa _MFRMExchangeableRatersLogDensity ? _mfrm_exchangeable_rater_reference(target) :
+        target isa _MFRMFixedQCorrelated2DLogDensity ? target.base : target
     direct = _mfrm_fixed_q_predictive_draws(base, view(draws, :, 1:LogDensityProblems.dimension(base)))
     return (; target, base, draws, direct)
 end
 
-function _fixed_q_prior_predict(spec; prior::MFRMPrior = MFRMPrior(),
+function _fixed_q_prior_predict(spec; prior = MFRMPrior(),
         ndraws::Int = 1000, rng::AbstractRNG = Random.default_rng())
     bundle = _fixed_q_prior_bundle(spec; prior, ndraws, rng)
     return _replicate_scores_mgmfrm_direct(bundle.base.base.design, bundle.direct, rng)
 end
 
-function _fixed_q_prior_predictive_check(spec; prior::MFRMPrior = MFRMPrior(),
+function _fixed_q_prior_predictive_check(spec; prior = MFRMPrior(),
         ndraws::Int = 1000, rng::AbstractRNG = Random.default_rng(),
         min_category_probability::Real = 0.01, prior_warning_probability::Real = 0.95,
         wide_facet_range_fraction::Real = 0.8)
@@ -67,6 +68,14 @@ function _fixed_q_prior_check_from_bundle(bundle; rng::AbstractRNG, prior_record
     _check_prior_implication_controls(; min_category_probability,
         prior_warning_probability, wide_facet_range_fraction)
     target, base, draws = bundle.target, bundle.base, bundle.draws
+    if target isa _MFRMExchangeableRatersLogDensity
+        prior = _mfrm_exchangeable_rater_record(target)
+        check = _fixed_q_prior_check_from_bundle(merge(bundle, (; target = target.base));
+            rng, prior_record = prior, min_category_probability,
+            prior_warning_probability, wide_facet_range_fraction)
+        return merge(check, (; target_identity = _mfrm_exchangeable_rater_identity(target),
+            prior_label = _mfrm_exchangeable_prior_label(prior)))
+    end
     correlated = target isa _MFRMFixedQCorrelated2DLogDensity
     data = base.design.spec.data
     replicated = _replicate_scores_mgmfrm_direct(base.base.design, bundle.direct, rng)

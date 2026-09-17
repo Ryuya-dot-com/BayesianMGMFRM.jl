@@ -70,7 +70,7 @@ density needs no Jacobian adjustment and has no 1.7/1.702 multiplier.
 
 ### Prior scales, facet labels and locations
 
-`rater_sd` and `step_sd` describe the **free-coordinate** standard deviations.
+With the default `MFRMPrior`, `rater_sd` and `step_sd` describe the **free-coordinate** standard deviations.
 They are not common marginal standard deviations of all reconstructed effects.
 With `R` raters, the first `R-1` severities have prior variance `rater_sd^2`,
 while the last has variance `(R-1)*rater_sd^2`. For three raters, their prior
@@ -81,7 +81,7 @@ The reconstructed rater is `data.rater_levels[end]`; facet levels are sorted
 by label. Reordering data rows preserves that choice. Renaming rater IDs can
 change it and, when `R>2`, can change the prior and posterior even if the rating
 design and likelihood are otherwise equivalent. Preserve facet IDs when
-reproducing an analysis. The current prior is not exchangeable over all raters
+reproducing an analysis. This default prior is not exchangeable over all raters
 when `R>2`; a zero-sum constraint alone does not provide exchangeability.
 
 For each item's `K` stored step contributions, the first is zero, `K-2` are
@@ -100,9 +100,44 @@ identification from the data. `person_sd` is a fixed population-prior scale;
 the correlated model below estimates rho while keeping both marginal ability
 SDs fixed. These conventions apply to both backends.
 
+### Exchangeable rater prior
+
+When every rater should have the same prior severity distribution regardless of
+their ID, explicitly select `Experimental.ExchangeablePrior`. For example:
+
+```julia
+prior = BayesianMGMFRM.Experimental.ExchangeablePrior(
+    rater_kernel_sd = 0.4, person_sd = 0.7, item_sd = 0.6, step_sd = 0.5)
+check = BayesianMGMFRM.Experimental.prior_predictive_check(spec;
+    prior, ndraws = 1000, rng = MersenneTwister(42))
+fit_result = BayesianMGMFRM.Experimental.fit(spec; prior, backend = :advancedhmc)
+save_fit_cache("exchangeable-fit.jls", fit_result)
+restored = load_fit_cache("exchangeable-fit.jls")
+```
+
+The same prior supports `correlated(spec)` and `backend = :cmdstan`. The full
+zero-sum severity vector has covariance `rater_kernel_sd^2 * (I - 11'/R)`.
+Every rater's marginal SD is `rater_kernel_sd * sqrt((R-1)/R)`; any pairwise
+contrast has SD `sqrt(2) * rater_kernel_sd`. Thus with three raters and kernel
+SD 0.4, each marginal SD is about 0.327 and contrast SD about 0.566. Kernel SD
+is required and is **not** `MFRMPrior.rater_sd`; copying that value selects a
+different prior, rather than matching the old marginal or contrast variances.
+
+The free severities are dependent under this normalized joint prior. No extra
+Jacobian is needed for the deterministic last-rater reconstruction. Ability,
+item and free-step prior meanings and location constraints stay as described
+above. For correlated abilities, the LKJ prior and Fisher-z Jacobian also apply.
+These scales remain fixed inputs, not learned variance components.
+
+Both backends return `Experimental.ExchangeableMFRMFit`, supporting the same
+summaries, diagnostics, plots and manual cache operations. Reports default to
+reader-facing output and preserve kernel, marginal and contrast scales. Old
+saved fits retain their original priors; selecting this prior requires a new
+fit. Scalar MFRM, GMFRM and MGMFRM do not accept it.
+
 ### Fitting and saved results
 
-Both backends return `Experimental.MultidimensionalMFRMFit`. Warmup telemetry is
+With `MFRMPrior`, both backends return `Experimental.MultidimensionalMFRMFit`. Warmup telemetry is
 recorded by default; set `record_warmup = false` to omit it. The common default
 is 100 warmup and 100 retained draws per chain, with two chains. These are
 computational defaults, not evidence of adequate MCMC precision.
@@ -135,7 +170,7 @@ save_fit_report_bundle("correlated-report", restored)
 # BayesianMGMFRM.plot_posterior(restored; block = :latent_correlation)
 ```
 
-Choose `backend = :cmdstan` for the same model on CmdStan. Both routes return
+Choose `backend = :cmdstan` for the same model on CmdStan. With `MFRMPrior`, both routes return
 `Experimental.CorrelatedMFRMFit`. The original `spec` still denotes independent
 abilities. This model requires between-item Q, at least two pure items per
 dimension, and observations in both dimensions for every person. These checks
@@ -143,7 +178,7 @@ do not establish adequate information or recovery for a particular dataset.
 
 Each person's directly estimated ability pair has a bivariate normal prior with
 covariance `person_sd^2 * [1 rho; rho 1]`. The marginal standard deviation remains
-a fixed `MFRMPrior` input. `lkj_eta` is a fixed positive integer shape for the
+a fixed input in either prior constructor. `lkj_eta` is a fixed positive integer shape for the
 LKJ prior on rho, not a standard deviation. Sampling uses Fisher z with
 `rho = tanh(z)` and includes `log(1-rho^2)` exactly once as the transformation
 Jacobian. The covariance determinant belongs to the normal density. All other
@@ -511,6 +546,8 @@ BayesianMGMFRM.Experimental.MGMFRMFit
 BayesianMGMFRM.Experimental.MultidimensionalMFRMFit
 BayesianMGMFRM.Experimental.CorrelatedMFRMSpec
 BayesianMGMFRM.Experimental.CorrelatedMFRMFit
+BayesianMGMFRM.Experimental.ExchangeablePrior
+BayesianMGMFRM.Experimental.ExchangeableMFRMFit
 BayesianMGMFRM.Experimental.correlated
 BayesianMGMFRM.Experimental.GeneralizedPrior
 BayesianMGMFRM.Experimental.surface_contract

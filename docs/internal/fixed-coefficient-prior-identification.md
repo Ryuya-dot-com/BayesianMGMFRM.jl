@@ -389,13 +389,27 @@ completeness is distinct from convergence or scientific acceptance. Verification
 and the saved-draw illustration are recorded in the
 [reporting evidence](normalized-prior-backend-comparison.md#exchangeable-rater-prediction-and-reporting-2026-09-17).
 
+## Explicit opt-in fitting and persistence
+
+`Experimental.ExchangeablePrior(rater_kernel_sd=...)` now selects this target
+for independent fixed-coefficient MFRM or `Experimental.correlated(spec)`.
+`Experimental.fit` uses either maintained backend and returns the distinct
+`Experimental.ExchangeableMFRMFit`. The same prior object drives the existing
+prior-predictive entry points. Manual fit caches, public/full reports and figures
+preserve target identity and the explicit kernel/marginal/contrast scale labels.
+Neither `MFRMPrior` defaults nor old serialized types/schemas are reinterpreted.
+See the [API verification record](normalized-prior-backend-comparison.md#explicit-exchangeable-prior-api-2026-09-17).
+
 ## Next bounded implementation
 
-Define an explicit opt-in rater-prior specification for the public fitting and
-cache workflow, then connect it to both existing backends. Name the kernel versus
-marginal scale convention without ambiguity and use concise user-facing terms.
-Carry the verified target identity and prior meaning through fit types, cache,
-reports and figures. Preserve compatibility defaults, historical type/schema
-identities and old draws; no automatic conversion or default migration.
-Scientific default selection, ordered-step priors and target-specific
-recovery/coverage remain separate decisions.
+Prepare the fixed-coefficient target's validation protocol before a fresh
+statistical evaluation. Explain the question answered by each design condition,
+the estimands and location convention, why its comparisons identify the issue,
+and what evidence would count as an answer. Treat relabelling invariance,
+prior anchoring, contrast/prediction recovery and diagnostic-qualified backend
+agreement as distinct questions. Specify matching in any prior comparison;
+copying the same SD into different scale conventions is not a matched design.
+Record diagnostic failures as outcomes with predeclared handling, rather than
+silently removing them. Obtain independent review under M1 before recovery or
+coverage execution. Ordered-step priors, the scientific default and broader
+random-effect structure remain separate choices.

@@ -1,9 +1,10 @@
 # BayesianMGMFRM.jl — Internal Roadmap
 
-Updated 2026-09-17 with private exchangeable-rater posterior prediction,
-reports and figures from verified saved Julia/CmdStan results. The next slice
-defines and connects an explicit opt-in rater-prior specification to the public
-fitting/cache workflow, preserving prior scale meanings and compatibility defaults.
+Updated 2026-09-17 with an explicit opt-in `Experimental.ExchangeablePrior`
+for multidimensional MFRM on Julia/CmdStan, including prior inspection, saved
+fits, reports and figures. Compatibility defaults and historical records retain
+their meanings. The next slice prepares the target-specific validation protocol
+and its identification/estimand decisions before statistical evaluation.
 The final API migration away from
 development-status names remains a model-specific release requirement. The
 independent model retains its meaning and saved artifacts. Julia remains primary, CmdStan remains its maintained counterpart,
@@ -78,8 +79,10 @@ exchangeable-rater reference now passes normalized density, derivative,
 relabelling and Julia/CmdStan checks. A private prior-predictive comparison
 records explicit scale matching and reuses existing figures. Private sampling,
 diagnostics and save/reload retain the distinct prior identity, now carried into
-posterior prediction, reports and figures. The next bounded work defines an
-explicit opt-in rater-prior specification for the public fitting/cache workflow.
+posterior prediction, reports and figures. The explicit opt-in
+`Experimental.ExchangeablePrior(rater_kernel_sd=...)` now connects those paths
+to public experimental fitting and manual fit caches, with a distinct result
+type and artifact identity. This does not choose a scientific default.
 Recovery, coverage, prior sensitivity and diagnostic-qualified backend comparison require their
 reviewed protocol; the generalized correlation candidate keeps its own identity.
 LD1b execution, soft/group anchors, and new-facet prediction remain separate
@@ -755,12 +758,21 @@ and diagnostic warnings accompany regenerated outputs; incompatible records
 are rejected before reporting. The
 [reporting evidence](docs/internal/normalized-prior-backend-comparison.md#exchangeable-rater-prediction-and-reporting-2026-09-17)
 separates output verification from statistical acceptance.
-**Next bounded deliverable:** define and connect a concise explicit opt-in
-rater-prior specification to the public Julia/CmdStan fitting/cache workflow.
-Name kernel versus marginal scales explicitly and preserve target identity through
-fit types, cache, reports and figures. Retain compatibility defaults and historical
-type/schema identities; ordered-step priors, scientific default selection and
-recovery/coverage execution remain separate decisions.
+The opt-in `Experimental.ExchangeablePrior(rater_kernel_sd=...)` now connects
+both public experimental fitting routes to `Experimental.ExchangeableMFRMFit`,
+manual caches and the existing report/figure workflow. The selected kernel,
+marginal and contrast scales survive save/reload; old defaults and records are
+unchanged. See the [API evidence](docs/internal/normalized-prior-backend-comparison.md#explicit-exchangeable-prior-api-2026-09-17).
+**Next bounded deliverable:** prepare the target-specific validation protocol
+for this fixed-coefficient prior choice. Specify which questions concern
+likelihood identification, prior anchoring, rater relabelling, posterior
+precision and diagnostic-qualified Julia/CmdStan agreement; connect each to
+its estimands, design conditions and decision rules. Separate location-dependent
+absolute parameters from identifiable contrasts and predictions, and distinguish
+prior-predictive checks from repeated-data recovery/coverage. Freeze explicit
+scale-matching rules for any old/new-prior comparison. Reuse existing numerical
+checks; do not begin an unreviewed simulation grid or change the default.
+Ordered-step priors and scientific default selection remain separate decisions.
 Higher-dimensional covariance, within-item validation, automatic request caching
 and hard anchors remain separate.
 The warmup recording slices above are verified. Interruption-time histories
@@ -2605,8 +2617,10 @@ characterized, including its rater-label dependence. A separate exchangeable-rat
 reference and scale-matched prior-predictive comparison now pass their bounded
 checks. Private sampling/results and save/reload now preserve the new target
 identity. Saved results now drive posterior prediction, reports and figures.
-An explicit opt-in public rater-prior specification and fitting/cache connection
-is the next concrete output. Application preparation and reader
+The opt-in prior now reaches public experimental fitting, manual caches, reports
+and figures. A target-specific validation protocol with explicit estimands,
+identification assumptions and diagnostic decision rules is the next concrete
+output; it does not authorize fresh recovery/coverage execution. Application preparation and reader
 recruitment do not block this core work.
 
 The numbered rows are bounded handoffs, not a requirement to finish every
@@ -2619,11 +2633,11 @@ priority follows the Julia user workflow, not the readiness of a paper dataset.
 
 | Task / owner role | Next deliverable | Verification and stop condition |
 | --- | --- | --- |
-| 1. Fixed-coefficient rater-prior selection — analyst/maintainer; private prediction/reporting path verified | Define and connect a concise explicit opt-in rater-prior specification to the Julia/CmdStan public fitting/cache workflow. Preserve kernel/marginal scale meanings, target identity and diagnostics through saved fits and reports | Exit: both backends retain the declared target, wrong-prior records are rejected and old fit types/schemas remain readable. Compatibility defaults, ordered-step prior choice and scientific acceptance remain separate; no reinterpretation of old draws or automatic recovery study |
+| 1. Fixed-coefficient validation protocol — analyst/maintainer; opt-in prior API connected | Prepare explicit questions, estimands and location/identification assumptions for prior anchoring, relabelling, recovery of contrasts/predictions and diagnostic-qualified backend agreement. Tie design conditions and prior matching to those questions, with diagnostic failure accounting and uncertainty-based decision rules | Exit: the bounded protocol is concrete and ready for independent M1 review. Existing Julia/CmdStan numerical and API evidence remains operability evidence; no unreviewed recovery grid, automatic default migration or reinterpretation of old draws |
 | 2. M1 Julia model-to-code contract and estimation path — analyst/maintainer | Resolve the relevant source/exchangeable-prior, identification and validation-scope decisions; correct demonstrated shared-path gaps and retain the [core trace's remaining failure boundaries](#first-julia-core-verification-slice). Prepare the next covariance/within-item slice under the [extension sequence](#long-term-extension-sequence), reusing existing components | Exit: equations, coordinates, scale constants, priors/Jacobians and parameter meanings have code/evidence mappings and explicit unresolved decisions. Check target/gradients, invalid inputs, initialization/sampling failures and result integrity as affected. Record actual runtime/resource limits; model changes have distinct identities. No copied fitting engine or blanket source refactor |
 | 3. CmdStan continuity — analyst/maintainer; accompanies each model slice | Maintain estimation of the same target under the [dual-backend contract](#julia-and-cmdstan-continuity-and-comparison); check common-coordinate densities, gradients and probabilities, then diagnostic-qualified posterior/predictive summaries under the execution budget | Exit: both routes preserve likelihood, priors, constraints, scale and saved-result meaning. Missing parity remains partial support; Julia work can advance incrementally without dropping this requirement. Backend agreement is implementation evidence, not model validity |
 | 4. M2 core statistical validation — analyst; execution not started | Reconcile Stage-A with the accepted package model/claim. Select known-truth conditions for identification, recovery/calibration, sparse coverage, prior sensitivity and numerical failure mechanisms; verify scoring, all-attempt accounting and resource stops before reviewed execution | Exit: target-specific M1 and execution readiness are accepted, the bounded roster is accounted for, and uncertainty/failure rates support a stated domain or an inconclusive result. Representative Julia/CmdStan comparisons accompany it; do not restrict the core domain to the Uchihara design or substitute an empirical fit for recovery evidence |
-| 5. Julia user workflow and public documentation — maintainer with analyst input; runs alongside rows 1--4 | Existing public-model [documentation/help](#public-documentation-cleanup-2026-09-14), standard figures, short saved-fit examples and [figure/report integration](#report-bundle-figure-integration-2026-09-14) are verified; record the unfamiliar-reader walkthrough. The generic fixed-coefficient example now accepts `--correlated` on either backend; maintain source/help/fresh-HTML consistency and remove developer status language from user output | Exit: source/help/fresh-HTML consistency and [figure/report acceptance](#figure-and-report-acceptance) pass for the advertised scope, including save/reload and an unfamiliar-reader walkthrough without manual draw reshaping. Test reusable examples; neither a paper-specific script nor plotting-data rows close this task |
+| 5. Julia user workflow and public documentation — maintainer with analyst input; runs alongside rows 1--4 | Existing public-model [documentation/help](#public-documentation-cleanup-2026-09-14), standard figures, short saved-fit examples and [figure/report integration](#report-bundle-figure-integration-2026-09-14) are verified; record the unfamiliar-reader walkthrough. The generic fixed-coefficient example now accepts `--correlated` and `--exchangeable` on either backend; maintain source/help/fresh-HTML consistency and remove developer status language from user output | Exit: source/help/fresh-HTML consistency and [figure/report acceptance](#figure-and-report-acceptance) pass for the advertised scope, including save/reload and an unfamiliar-reader walkthrough without manual draw reshaping. Test reusable examples; neither a paper-specific script nor plotting-data rows close this task |
 | 6. M3 supported-domain and package handoff — maintainer and independent reviewer | Reproduce selected model/numerical claims and the documented workflow in a separate environment at the recorded revision; make claim-level supported/narrowed/rejected/inconclusive decisions | Exit: usable Julia behavior, matching CmdStan evidence and independent scientific acceptance are reported separately. Public promotion retains its M0 gate and integration/release authority. Completion or publication of an application paper is not an exit condition |
 | Long-term model extensions — analyst/maintainer; sequenced after the relevant foundation slice | Follow the [single extension sequence](#long-term-extension-sequence): correlated dimensions/within-item validation, configurable random effects, a specified non-compensatory ordinal kernel, and staged Q structure inference. Fixed-Q comparison and identification work can precede full structure learning | Promote one declared combination at a time with model-specific evidence, both backends and a complete user workflow. Independent block validation does not certify their composition. These are long-term deliverables, not newly available options or an automatic batch of implementation/research jobs |
 | Uchihara reanalysis — analyst; secondary application, no fit completed | Follow the [staged application sequence](#application-sequence-and-reusable-dependencies) when each required model slice is ready: reconcile data, fit unadjusted measurement, then named generalized/phonetic comparisons and secondary outcomes. Use the example to assess practical interpretation and UX | Keep data preparation, application-specific raters/recording effects/covariates, empirical fits and report progress separate from core milestones. A discovered reusable defect returns to the core queue; case completion or the expected substantive result never defines Julia acceptance |

@@ -60,6 +60,8 @@ audit, free and reconstructed parameter summaries, diagnostics, conditional
 predictive checks and reproducibility information. Fixed coefficients and
 derived coordinates are labelled separately; unsupported analyses state their
 reasons. Reporting uses the fit's saved diagnostic settings.
+Fits made with `Experimental.ExchangeablePrior` use these same operations;
+their saved prior supplies the kernel, marginal and contrast severity scales.
 
 Set `include_prior_predictive = true` to add simulation summaries from the
 saved model and priors. Control its draw budget with `prior_predictive_ndraws`,

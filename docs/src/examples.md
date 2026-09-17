@@ -86,6 +86,7 @@ julia --project=. examples/multidimensional_mfrm.jl
 julia --project=. examples/multidimensional_mfrm.jl --cmdstan --plots
 julia --project=. examples/multidimensional_mfrm.jl --correlated --plots
 julia --project=. examples/multidimensional_mfrm.jl --correlated --prior-only --plots
+julia --project=. examples/multidimensional_mfrm.jl --exchangeable --correlated --plots
 ```
 
 Its fixed Q assigns items 1–2 to reasoning and items 3–4 to communication.
@@ -96,6 +97,10 @@ The [experimental guide](experimental.md#fixed-coefficient-multidimensional-mfrm
 explains the model and limits. Add `--correlated` to estimate population rho
 with an LKJ(2) prior on either backend; its figures show rho and its chains.
 Ability-pair marginal standard deviations remain fixed prior inputs.
+Add `--exchangeable` to use an exchangeable zero-sum rater prior with kernel
+SD 0.4 for either model/backend. This selects
+[`Experimental.ExchangeablePrior`](experimental.md#exchangeable-rater-prior)
+for both the prior check and the fit; the default remains `MFRMPrior`.
 
 Before fitting, the script prints prior parameter and rating summaries. Add
 `--prior-only` to stop there. `--plots` also saves ability-prior and rating-prior

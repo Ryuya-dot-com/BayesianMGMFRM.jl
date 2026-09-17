@@ -22,8 +22,9 @@ function Base.show(io::IO, spec::CorrelatedMFRMSpec)
 end
 
 function _mfrm_correlated_2d_fit(spec::CorrelatedMFRMSpec;
-        prior::MFRMPrior = MFRMPrior(), backend::Symbol = :advancedhmc,
+        prior = MFRMPrior(), backend::Symbol = :advancedhmc,
         init = nothing, kwargs...)
+    prior isa _ExchangeablePrior && return _mfrm_exchangeable_fit(spec, prior; backend, init, kwargs...)
     target = _MFRMFixedQCorrelated2DLogDensity(spec.base_spec; prior, lkj_eta = spec.lkj_eta)
     init === nothing || init isa AbstractVector{<:Real} ||
         throw(ArgumentError("init must be a real vector of free coordinates, ending in Fisher z"))

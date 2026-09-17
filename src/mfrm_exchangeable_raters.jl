@@ -1,4 +1,83 @@
-# Private target, prior comparison and sample records; no public selector/default change.
+# Explicit prior selection; existing MFRMPrior defaults and target records are unchanged.
+struct _ExchangeablePrior
+    person_sd::Float64
+    rater_kernel_sd::Float64
+    item_sd::Float64
+    step_sd::Float64
+
+    function _ExchangeablePrior(; rater_kernel_sd, person_sd = 1.5, item_sd = 1.0, step_sd = 1.0)
+        all(x -> x isa Real && !(x isa Bool), (person_sd, rater_kernel_sd, item_sd, step_sd)) ||
+            throw(ArgumentError("prior scales must be finite positive real numbers, not Bool"))
+        checked = MFRMPrior(; person_sd, rater_sd = rater_kernel_sd, item_sd, step_sd)
+        return new(checked.person_sd, checked.rater_sd, checked.item_sd, checked.step_sd)
+    end
+end
+
+function Base.show(io::IO, prior::_ExchangeablePrior)
+    print(io, "Experimental.ExchangeablePrior(rater_kernel_sd = ", prior.rater_kernel_sd,
+        ", person_sd = ", prior.person_sd, ", item_sd = ", prior.item_sd,
+        ", step_sd = ", prior.step_sd, ")")
+end
+
+_fixed_q_prior_target(spec::Union{FacetSpec,CorrelatedMFRMSpec}, prior::_ExchangeablePrior) =
+    _MFRMExchangeableRatersLogDensity(spec; scales = (;
+        prior.person_sd, prior.rater_kernel_sd, prior.item_sd, prior.step_sd))
+
+function _mfrm_exchangeable_fit(spec, prior::_ExchangeablePrior;
+        backend::Symbol = :advancedhmc, init = nothing, kwargs...)
+    target = _fixed_q_prior_target(spec, prior)
+    init === nothing || init isa AbstractVector{<:Real} ||
+        throw(ArgumentError("init must be a real vector of free coordinates; correlated models end in Fisher z"))
+    initial = init === nothing ? initial_params(target) : Float64.(collect(init))
+    _check_source_fixture_raw_vector(target, initial)
+    result = _mfrm_exchangeable_rater_sample(target, initial; backend, kwargs...)
+    return _ExchangeableMFRMFit(result.record; expected_identity = result.record.target_identity)
+end
+
+_mfrm_fixed_q_samples(fit::_ExchangeableMFRMFit) =
+    _restore_mfrm_exchangeable_rater_samples(fit.record; expected_identity = fit.record.target_identity)
+_canonical_mfrm_fixed_q_samples(fit::_ExchangeableMFRMFit) = _mfrm_fixed_q_samples(fit)
+_fixed_q_fit_model(fit::_ExchangeableMFRMFit) = fit.record.spec isa CorrelatedMFRMSpec ?
+    :mfrm_correlated_2d_exchangeable_raters : :mfrm_fixed_q_exchangeable_raters
+_fixed_q_default_view(::_ExchangeableMFRMFit) = :public
+_fixed_q_artifact_schemas(::_ExchangeableMFRMFit) = ("bayesianmgmfrm.mfrm_exchangeable_raters_fit_artifact.v1",)
+
+function fit_metadata(fit::_ExchangeableMFRMFit; view::Symbol = :full)
+    view in (:full, :public) || throw(ArgumentError("view must be :full or :public"))
+    checked = _mfrm_fixed_q_samples(fit)
+    spec, run = _fixed_q_result_spec(checked), checked.record.run
+    value = merge(_mfrm_exchangeable_report_metadata(checked), (;
+        family = :mfrm, estimation_status = :experimental, public_fit = true,
+        fitting_available = true, cache_available = true,
+        thresholds = spec.thresholds, item_structure = _model_family_item_structure(spec),
+        location = :prior_anchored, loading_policy = :fixed_q_coefficients,
+        rater_consistency = :fixed_one,
+        n_parameters = length(checked.parameter_names), n_model_parameters = length(checked.model_coordinates),
+        parameter_names = copy(checked.parameter_names), n_draws = size(run.draws, 1),
+        n_chains = run.controls.chains, draws_per_chain = run.controls.ndraws))
+    return view === :full ? value : _public_fit_report_project_value(value)
+end
+
+function _fixed_q_model_manifest(fit::_ExchangeableMFRMFit; view::Symbol = :full)
+    view in (:full, :public) || throw(ArgumentError("view must be :full or :public"))
+    metadata = fit_metadata(fit)
+    spec = fit.record.spec isa CorrelatedMFRMSpec ? fit.record.spec.base_spec : fit.record.spec
+    audit = model_manifest(getdesign(spec; preview = true)).rating_design
+    value = (; schema = "bayesianmgmfrm.exchangeable_mfrm_model.v1", object = :model,
+        family = :mfrm, model = metadata.model, status = :experimental,
+        spec = (; metadata.dimension_labels, metadata.q_matrix, metadata.thresholds,
+            metadata.item_structure, metadata.loading_policy, metadata.rater_consistency,
+            metadata.scale_convention, metadata.location, metadata.latent_correlation,
+            metadata.lkj_eta, prior = metadata.prior), rating_design = audit)
+    return view === :full ? value : _public_fit_report_project_value(value)
+end
+
+function Base.show(io::IO, fit::_ExchangeableMFRMFit)
+    metadata = fit_metadata(fit)
+    print(io, metadata.model_label, " (", metadata.n_draws, " retained draws, ",
+        metadata.backend_label, "; exchangeable rater prior; experimental)")
+end
+
 struct _MFRMExchangeableRatersLogDensity{T}
     base::T
 
@@ -91,11 +170,7 @@ function _mfrm_exchangeable_prior_check(target::_MFRMExchangeableRatersLogDensit
     draws = _fixed_q_prior_draws(target, ndraws, rng)
     base = _mfrm_exchangeable_rater_reference(target)
     direct = _mfrm_fixed_q_predictive_draws(base, view(draws, :, 1:LogDensityProblems.dimension(base)))
-    prior = _mfrm_exchangeable_rater_record(target)
-    check = _fixed_q_prior_check_from_bundle((; target = target.base, base, draws, direct);
-        rng, prior_record = prior)
-    return merge(check, (; target_identity = _mfrm_exchangeable_rater_identity(target),
-        prior_label = _mfrm_exchangeable_prior_label(prior)))
+    return _fixed_q_prior_check_from_bundle((; target, base, draws, direct); rng)
 end
 
 # Private prior-only comparison. Matching is an explicit variance criterion,

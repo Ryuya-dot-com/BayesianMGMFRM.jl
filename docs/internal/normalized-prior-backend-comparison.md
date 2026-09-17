@@ -3370,16 +3370,89 @@ independent scientific/reader review or recovery/coverage study was run.
 Commands, saved reports, figure inputs/exports and hashes are in the
 [local receipt](../../results/workflows/20260917-exchangeable-reports-01/receipt.json).
 
+## Explicit exchangeable prior API (2026-09-17)
+
+`Experimental.ExchangeablePrior(rater_kernel_sd=..., person_sd=..., item_sd=...,
+step_sd=...)` now selects the distinct fixed-coefficient exchangeable-rater target
+through the existing `prior=` keyword. The kernel SD is required; other scale
+defaults match `MFRMPrior`. It is accepted for independent multidimensional MFRM
+and the explicit two-dimensional between-item correlated specification, on Julia
+and CmdStan. Scalar MFRM and generalized specifications remain outside this
+prior's fitting boundary. The same prior object supplies parameter/response
+prior prediction and its existing implication controls.
+
+The new result type is `Experimental.ExchangeableMFRMFit`, defined under a
+separate private root identity for Serialization. It validates and snapshots the
+existing strict target/sample record. Existing result helpers supply summaries,
+correlation-scale annotations, stored diagnostics, manual v2 fit caches,
+artifacts, reports and five figure kinds. The new artifact schema is
+`bayesianmgmfrm.mfrm_exchangeable_raters_fit_artifact.v1`; the model symbol and
+verified target distinguish independent/correlated fits. No density, coordinate,
+Stan program, historical fit type, old artifact schema or default is changed.
+Cache verification rebuilds model-dependent payloads, even with outer hash
+verification disabled. Public metadata/figures preserve the selected prior;
+public reports remove internal record schema fields while keeping their actual
+scales. A fresh fit is required to select a different prior.
+
+README, help, manual and the existing runnable example describe the optional
+prior. `--exchangeable` uses the same explicit scales for prior inspection and
+fitting on either backend, alongside `--correlated`, `--prior-only` and `--plots`.
+The documented defaults and unsupported scope are unchanged.
+
+The focused API checks cover scale validation, prior prediction, independent
+2D/3D and mixed-Q specifications, correlated 2D results, both backend record
+formats, saved diagnostics, public projection and artifact/cache corruption.
+Initial failures concerned test assumptions: generation times also enter public
+source-report digests; public metadata omits internal schema fields; bundle
+reload returns a dictionary; unsupported priors raise `ArgumentError`. The
+checks now compare numerical sections and verify that invalid inputs are rejected
+with valid sampling budgets as well. No target or sampler change was needed.
+
+The API checks passed 530 assertions on each of Julia 1.10.8 and 1.12.5,
+alongside 482 existing mathematical and 631 sample-integrity/parser/guard
+checks per runtime. The namespace checks passed 165 and language-policy checks
+181 assertions on Julia 1.12. Six fresh public-API fits cover independent and
+correlated models on Julia 1.10/1.12 and CmdStan via Julia 1.12. Each has two
+chains, ten warmup and twelve retained draws per chain, seed 20260917 and
+maximum depth four. All retain `sampler_warning`; none is accepted for scientific
+inference or posterior backend agreement. The live workflow checks passed 32
+assertions for each runtime/backend combination. CmdStan used two fresh build
+directories; no compile-cache guard was bypassed.
+
+Standalone process replay passed 151 historical-cache assertions on Julia
+1.10 and 225 on Julia 1.12, covering all five historical fits and their artifact
+semantics. A further 10/20 assertions reopened the six new caches in those
+separate processes. All 435 preceding artifacts, six private sample files and
+five historical fits retain their original bytes.
+
+Figure checks passed 76 assertions for independent Julia and correlated
+CmdStan public fits, including direct plotting methods and complete five-kind
+PDF/SVG/numerical-JSON bundles. Failed figure preparation preserves existing
+output bytes. Implementer inspection of severity intervals and rho chain/rank
+plots confirmed readable units, selected-prior scale labels and sampler warnings;
+this is not an independent reader walkthrough. The published prior-only example
+ran with `--exchangeable --correlated`. A fresh manual build and language gates
+passed for 20 source files and 14 HTML pages; the build retains four pre-existing
+missing-docstring warnings. No full suite, CI, independent review, recovery or
+coverage study was run.
+
+Verification results and limitations are recorded in the
+[local receipt](../../results/workflows/20260917-exchangeable-api-01/receipt.json).
+
 ## Next bounded work
 
-Define and connect an explicit opt-in rater-prior specification to the public
-Julia/CmdStan fitting/cache workflow. Keep names concise, distinguish kernel and
-marginal scales, and preserve the verified identity through fit types, reports,
-figures and saved fits. Retain compatibility defaults and historical type/schema
-identities; no automatic conversion of old draws. Scientific default selection,
-ordered-step priors and target-specific recovery protocols remain separate
-choices. Higher-dimensional covariance, within-item validation, automatic request
-caching, hard anchors and application predictors remain separate.
+Prepare the target-specific fixed-coefficient validation protocol. State the
+question, estimand, identification/location convention, design conditions,
+comparison rationale, diagnostic handling and decision rule for each analysis.
+Separate prior relabelling invariance from likelihood identification, and
+contrast/prediction recovery from prior-anchored absolute locations. Any prior
+comparison must declare its variance-matching criterion; identical numeric SDs
+do not create equal priors. Short API demonstrations cannot justify MCMC
+convergence, posterior backend agreement, recovery, coverage or a default prior.
+Reuse the existing mathematical checks and seek independent M1 review before
+statistical evaluation; do not expand into an unreviewed simulation grid.
+Ordered-step priors, higher-dimensional covariance, within-item validation,
+automatic request caching, hard anchors and application predictors remain separate.
 
 Separately, record an unfamiliar reader finding the supported model/backend, loading a fit,
 choosing a named dimension, interpreting diagnostic/interval labels and saving/
@@ -3391,5 +3464,5 @@ Julia remains primary and CmdStan its maintained counterpart. Interruption-time
 partial telemetry is deferred until a concrete failure-diagnosis need warrants
 it; failed sampling must still preserve original errors and existing caches,
 and must not publish a successful partial fit. Broader sampler failure handling,
-statistical validation and application work remain separate. The normalized-prior
-selector remains private.
+statistical validation and application work remain separate. The generalized
+normalized-prior selector remains private.

@@ -56,7 +56,9 @@ For two between-item dimensions, use `BayesianMGMFRM.Experimental.correlated(spe
 to estimate population correlation; see the [correlation guide](docs/src/experimental.md#correlated-ability-dimensions). Both Julia
 and CmdStan support the [fit, cache and figure/report example](docs/src/examples.md#fixed-coefficient-multidimensional-mfrm).
 Before fitting either model, use `Experimental.prior_predictive_check` with
-`MFRMPrior`, then `BayesianMGMFRM.plot_prior` and `BayesianMGMFRM.plot_predictive`
+`MFRMPrior` or the explicit
+[`Experimental.ExchangeablePrior(rater_kernel_sd=...)`](docs/src/experimental.md#exchangeable-rater-prior),
+then `BayesianMGMFRM.plot_prior` and `BayesianMGMFRM.plot_predictive`
 to inspect abilities, correlation and rating implications. See the
 [prior inspection example](docs/src/experimental.md#inspect-priors-before-fitting).
 Saved-fit reports can include the same checks with `include_prior_predictive = true`,

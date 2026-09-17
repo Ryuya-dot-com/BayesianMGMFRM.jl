@@ -269,7 +269,17 @@ struct _CorrelatedMFRMFit
     end
 end
 
-const _FixedQMFRMFit = Union{MultidimensionalMFRMFit,_CorrelatedMFRMFit}
+struct _ExchangeableMFRMFit
+    record::NamedTuple
+
+    function _ExchangeableMFRMFit(record::NamedTuple; expected_identity::AbstractString)
+        snapshot = deepcopy(record)
+        _restore_mfrm_exchangeable_rater_samples(snapshot; expected_identity)
+        return new(snapshot)
+    end
+end
+
+const _FixedQMFRMFit = Union{MultidimensionalMFRMFit,_CorrelatedMFRMFit,_ExchangeableMFRMFit}
 
 _fixed_q_fit_model(::MultidimensionalMFRMFit) = :mfrm_fixed_q
 _fixed_q_fit_model(::_CorrelatedMFRMFit) = :mfrm_fixed_q_correlated_2d
@@ -285,9 +295,10 @@ _fixed_q_model_manifest(fit::MultidimensionalMFRMFit; view::Symbol = :full) =
 _mfrm_fixed_q_fit(result::NamedTuple) = MultidimensionalMFRMFit(result.record;
     expected_identity = result.record.target_identity)
 
-function _mfrm_fixed_q_fit(spec::FacetSpec; prior::MFRMPrior = MFRMPrior(),
+function _mfrm_fixed_q_fit(spec::FacetSpec; prior = MFRMPrior(),
         backend::Symbol = :advancedhmc, init = nothing, kwargs...)
     _is_mfrm_fixed_q(spec) || throw(ArgumentError("multidimensional MFRM fitting requires family = :mfrm and dimensions >= 2"))
+    prior isa _ExchangeablePrior && return _mfrm_exchangeable_fit(spec, prior; backend, init, kwargs...)
     target = _MFRMFixedQReferenceLogDensity(spec; prior)
     initial = _fit_initial_params(target.design, init)
     return _mfrm_fixed_q_fit(_mfrm_fixed_q_sample(target, initial; backend, kwargs...))
@@ -388,28 +399,31 @@ function Base.show(io::IO, fit::MultidimensionalMFRMFit)
         "; unit logits; ", metadata.experimental_public ? "experimental)" : "private result)")
 end
 
-function posterior_summary(fit::MultidimensionalMFRMFit;
+function posterior_summary(fit::Union{MultidimensionalMFRMFit,_ExchangeableMFRMFit};
         lower::Real = 0.025, upper::Real = 0.975, intervals = (0.66, 0.9, 0.95),
         reference::Real = 0.0, rope = nothing, rope_probability_threshold::Real = 0.95)
     checked = _mfrm_fixed_q_samples(fit)
-    return _posterior_summary_rows(checked.record.run.draws, checked.parameter_names;
+    rows = _posterior_summary_rows(checked.record.run.draws, checked.parameter_names;
         lower, upper, intervals, reference, rope, rope_probability_threshold)
+    return _fixed_q_is_correlated(checked) ?
+        [merge(row, (; parameter_space = space)) for (row, space) in zip(rows, checked.parameter_spaces)] : rows
 end
 
-function direct_posterior_summary(fit::MultidimensionalMFRMFit;
+function direct_posterior_summary(fit::Union{MultidimensionalMFRMFit,_ExchangeableMFRMFit};
         lower::Real = 0.025, upper::Real = 0.975, intervals = (0.66, 0.9, 0.95),
         reference::Real = 0.0, rope = nothing, rope_probability_threshold::Real = 0.95)
     checked = _mfrm_fixed_q_samples(fit)
     coordinates = checked.model_coordinates
     rows = _posterior_summary_rows(hcat([row.values for row in coordinates]...),
         getproperty.(coordinates, :parameter); lower, upper, intervals, reference, rope, rope_probability_threshold)
-    labels = checked.record.spec.dimension_labels
+    labels = _fixed_q_result_spec(checked).dimension_labels
     return [merge(row, (; coordinate.block, coordinate.dimension, coordinate.fixed, coordinate.derived,
-        dimension_label = coordinate.dimension === nothing ? missing : labels[coordinate.dimension]))
+        dimension_label = coordinate.dimension === nothing ? missing : labels[coordinate.dimension]),
+        _fixed_q_is_correlated(checked) ? (; coordinate.parameter_space) : (;))
         for (row, coordinate) in zip(rows, coordinates)]
 end
 
-function diagnostics(fit::MultidimensionalMFRMFit; view::Symbol = :full,
+function diagnostics(fit::Union{MultidimensionalMFRMFit,_ExchangeableMFRMFit}; view::Symbol = :full,
         split_chains::Bool = fit.record.run.split_chains_requested,
         rhat_threshold::Real = fit.record.run.checked.rhat_threshold,
         ess_threshold::Real = fit.record.run.checked.ess_threshold)
@@ -419,7 +433,7 @@ function diagnostics(fit::MultidimensionalMFRMFit; view::Symbol = :full,
     thresholds = _check_diagnostic_thresholds(rhat_threshold, ess_threshold)
     split_chains == run.split_chains_requested && thresholds == run.checked ||
         throw(ArgumentError("diagnostics must use the stored split_chains, rhat_threshold and ess_threshold settings"))
-    return deepcopy(merge(checked.diagnostics, (; model = :mfrm_fixed_q, backend = run.backend,
+    return deepcopy(merge(checked.diagnostics, (; model = checked.model, backend = run.backend,
         diagnostic_settings = (; run.checked..., split_chains = run.split_chains_requested),
         warmup_rows = checked.warmup_diagnostics)))
 end
@@ -710,11 +724,11 @@ function _canonical_mfrm_fixed_q_samples(fit::MultidimensionalMFRMFit)
     return checked
 end
 
-plot_posterior(fit::MultidimensionalMFRMFit; kwargs...) =
+plot_posterior(fit::Union{MultidimensionalMFRMFit,_ExchangeableMFRMFit}; kwargs...) =
     _plot_mfrm_fixed_q(_canonical_mfrm_fixed_q_samples(fit); kwargs...)
-plot_diagnostics(fit::MultidimensionalMFRMFit; kwargs...) =
+plot_diagnostics(fit::Union{MultidimensionalMFRMFit,_ExchangeableMFRMFit}; kwargs...) =
     _plot_mfrm_fixed_q_diagnostics(_canonical_mfrm_fixed_q_samples(fit); kwargs...)
-plot_predictive(fit::MultidimensionalMFRMFit; kwargs...) =
+plot_predictive(fit::Union{MultidimensionalMFRMFit,_ExchangeableMFRMFit}; kwargs...) =
     _plot_mfrm_fixed_q_predictive(_canonical_mfrm_fixed_q_samples(fit); kwargs...)
 
 function _render_mfrm_fixed_q(extension, kind, data; size = nothing)
@@ -992,7 +1006,8 @@ end
 function save_fit_report_bundle(directory::AbstractString, fit::_FixedQMFRMFit;
         figures = nothing, seed::Integer = 1, view::Symbol = _fixed_q_default_view(fit),
         overwrite::Bool = false, label = nothing,
-        title::AbstractString = fit isa _CorrelatedMFRMFit ?
+        title::AbstractString = _fixed_q_fit_model(fit) in
+            (:mfrm_fixed_q_correlated_2d, :mfrm_correlated_2d_exchangeable_raters) ?
             "Correlated multidimensional MFRM report" : "Multidimensional MFRM report",
         max_rows::Integer = 6,
         include_empty::Bool = false, require_complete::Bool = false, kwargs...)

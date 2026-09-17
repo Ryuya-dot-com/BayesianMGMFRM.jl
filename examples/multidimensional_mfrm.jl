@@ -1,8 +1,8 @@
 using BayesianMGMFRM
 using Random
 
-all(arg -> arg in ("--plots", "--cmdstan", "--correlated", "--prior-only"), ARGS) ||
-    error("Usage: julia --project=. examples/multidimensional_mfrm.jl [--plots] [--cmdstan] [--correlated] [--prior-only]")
+all(arg -> arg in ("--plots", "--cmdstan", "--correlated", "--prior-only", "--exchangeable"), ARGS) ||
+    error("Usage: julia --project=. examples/multidimensional_mfrm.jl [--plots] [--cmdstan] [--correlated] [--prior-only] [--exchangeable]")
 if "--plots" in ARGS
     using CairoMakie
 end
@@ -21,7 +21,10 @@ q_matrix = Bool[1 0; 1 0; 0 1; 0 1]
 dimension_labels = ["reasoning", "communication"]
 spec = mfrm_spec(data; family = :mfrm, dimensions = 2, q_matrix, dimension_labels,
     thresholds = :partial_credit, validation_report = validation)
-prior = MFRMPrior(person_sd = 0.7, rater_sd = 0.4, item_sd = 0.6, step_sd = 0.5)
+prior = "--exchangeable" in ARGS ? BayesianMGMFRM.Experimental.ExchangeablePrior(
+    person_sd = 0.7, rater_kernel_sd = 0.4, item_sd = 0.6, step_sd = 0.5) :
+    MFRMPrior(person_sd = 0.7, rater_sd = 0.4, item_sd = 0.6, step_sd = 0.5)
+println("Prior: ", prior)
 println("Experimental multidimensional MFRM: Q coefficients and rater consistency fixed at one; unit logits.")
 correlated = "--correlated" in ARGS
 model = correlated ? BayesianMGMFRM.Experimental.correlated(spec; lkj_eta = 2) : spec

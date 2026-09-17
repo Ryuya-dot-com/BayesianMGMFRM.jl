@@ -69,11 +69,37 @@ be checked before interpreting estimates.
 const CorrelatedMFRMFit = getfield(_PACKAGE, :_CorrelatedMFRMFit)
 
 """
+    ExchangeablePrior(; rater_kernel_sd, person_sd = 1.5, item_sd = 1.0, step_sd = 1.0)
+
+Prior for fixed-coefficient multidimensional MFRM with exchangeable, zero-sum
+rater severities. Pass the same `prior` to `prior_predictive_check` and `fit`,
+with an independent specification or `correlated(spec)`, on either backend.
+All scales must be finite and positive. The rater scale is required: for R
+raters, marginal SD is `rater_kernel_sd * sqrt((R-1)/R)` and pairwise contrast
+SD is `sqrt(2) * rater_kernel_sd`. It is not the independent-free-coordinate
+`rater_sd` of `MFRMPrior`; choosing the same number does not match those priors.
+Ability, item and free-step scales keep their `MFRMPrior` meanings. Correlated
+abilities additionally use the LKJ shape specified by `correlated`. Scales are
+fixed inputs, not estimated hyperparameters. Unsupported for scalar MFRM,
+GMFRM and MGMFRM. The default prior remains `MFRMPrior()`.
+"""
+const ExchangeablePrior = getfield(_PACKAGE, :_ExchangeablePrior)
+
+"""
+Result of `Experimental.fit(...; prior = ExchangeablePrior(...))` for independent
+or correlated multidimensional MFRM. Supports summaries, diagnostics, report
+bundles, plots, and `save_fit_cache`/`load_fit_cache`. Reports default to
+reader-facing output and retain the selected prior and sampler warnings.
+"""
+const ExchangeableMFRMFit = getfield(_PACKAGE, :_ExchangeableMFRMFit)
+
+"""
     correlated(spec; lkj_eta = 2)
 
 Estimate population correlation between the two named ability dimensions of
 a fixed-coefficient MFRM. Pass the returned specification to `Experimental.fit`
-with `backend = :advancedhmc` (Julia) or `:cmdstan` and `prior = MFRMPrior(...)`.
+with `backend = :advancedhmc` (Julia) or `:cmdstan` and `prior = MFRMPrior(...)`
+or [`ExchangeablePrior`](@ref).
 The input specification is copied and retains its independent-model meaning.
 
 Requires `family = :mfrm`, exactly two dimensions, partial-credit thresholds,
@@ -98,6 +124,7 @@ function surface_contract(spec::CorrelatedMFRMSpec)
         expected_blocks = (:person, :rater_free, :item, :item_steps, :z_latent_correlation),
         latent_correlation = :free_2d,
         prior = (; constructor = :MFRMPrior, ability = :bivariate_normal,
+            exchangeable_constructor = :ExchangeablePrior, exchangeable_rater_scale = :kernel_sd,
             other_free_coordinates = :independent_normal, correlation = :lkj_2d,
             lkj_eta = spec.lkj_eta, maximum_lkj_eta = getfield(_PACKAGE, :_MAX_INTEGER_LKJ_ETA),
             density_measure = :d_beta_d_zrho,
@@ -182,6 +209,7 @@ function _mfrm_surface_contract()
         latent_correlation = :identity_fixed, location = :prior_anchored,
         scale_convention = :unit_logit,
         prior = (; constructor = :MFRMPrior, parameter_space = :unit_logit_free,
+            exchangeable_constructor = :ExchangeablePrior, exchangeable_rater_scale = :kernel_sd,
             family = :independent_zero_centered_normal, custom_scales_allowed = true,
             prior_predict_available = true, prior_predictive_check_available = true,
             jacobian_policy = :none_declared_free_coordinate_density),
@@ -268,6 +296,8 @@ function surface_contract()
             :MultidimensionalMFRMFit,
             :CorrelatedMFRMSpec,
             :CorrelatedMFRMFit,
+            :ExchangeablePrior,
+            :ExchangeableMFRMFit,
             :GeneralizedPrior,
             :cached_fit,
             :correlated,
@@ -331,7 +361,8 @@ end
 
 Generate score replications from the declared prior of a supported specification.
 Fixed-coefficient MFRM uses `MFRMPrior()` in unit logits; pass `correlated(spec)`
-to use its joint ability/LKJ prior. GMFRM/MGMFRM use `GeneralizedPrior()` on raw
+to use its joint ability/LKJ prior. Either MFRM specification also accepts
+`prior = ExchangeablePrior(rater_kernel_sd = ...)`. GMFRM/MGMFRM use `GeneralizedPrior()` on raw
 coordinates. Rows are independent replications of the existing rating design;
 this operation does not fit a posterior. Use a local `MersenneTwister` for
 reproducibility without advancing the global RNG.
@@ -356,6 +387,8 @@ end
 Generate prior parameter draws and replicated scores for a supported model.
 Fixed-coefficient MFRM uses `MFRMPrior()`; `correlated(spec)` also samples its
 LKJ correlation and conditional bivariate ability prior. The result includes
+the selected prior; pass `prior = ExchangeablePrior(rater_kernel_sd = ...)`
+to give all raters a common marginal severity distribution. It also includes
 free-coordinate draws, reconstructed `model_coordinates`, and a
 `parameter_summary` with central 95% prior intervals. Fixed Q coefficients,
 fixed marginal scales and reconstructed sum constraints retain their fitting
@@ -711,19 +744,24 @@ Fit a supported multidimensional MFRM or generalized specification experimentall
 Callers should not pass an `experimental` keyword. Family-specific structural
 constraints are validated before numerical execution. Pass `correlated(spec)`
 to estimate population correlation for two between-item MFRM dimensions; both
-backends then return `CorrelatedMFRMFit`. Supported configurations accept `backend = :advancedhmc` or `:cmdstan`.
+backends then return `CorrelatedMFRMFit` when using `MFRMPrior`.
+Supported configurations accept `backend = :advancedhmc` or `:cmdstan`.
 
 An unwrapped fixed-coefficient multidimensional MFRM (`family = :mfrm`,
 `dimensions >= 2`, fixed `q_matrix`, partial-credit thresholds) has independent
 abilities. Use `MFRMPrior`
 for independent normal priors on free unit-logit coordinates. Q coefficients
 and rater consistency are fixed; latent correlation is identity and locations
-are prior-anchored. Both backends return `MultidimensionalMFRMFit`, with warmup
+are prior-anchored. With `MFRMPrior`, both backends return `MultidimensionalMFRMFit`, with warmup
 sampler statistics recorded by default (`record_warmup = true`). Save and reload
 with `save_fit_cache`/`load_fit_cache`; automatic request caching is unavailable.
 Shared sampler controls include `ndraws`, `warmup`, `chains`, `seed`, `init`,
 `step_size`, `target_accept`, `max_depth`, and stored diagnostic thresholds.
 CmdStan additionally accepts `cmdstan_path` and `cmdstan_cache_dir`.
+For exchangeable zero-sum rater severities, explicitly pass
+`prior = ExchangeablePrior(rater_kernel_sd = ...)`. Both independent and
+correlated specifications then return `ExchangeableMFRMFit`, with the same
+summary, report, plotting and manual cache operations.
 """
 function fit(spec; kwargs...)
     _reject_legacy_keyword(kwargs, "Experimental.fit")
