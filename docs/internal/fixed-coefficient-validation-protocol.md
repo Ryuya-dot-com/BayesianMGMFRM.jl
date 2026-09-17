@@ -749,13 +749,102 @@ passed. The first Julia 1.10 invocation rejected the newer
 `--compiled-modules=existing` option; the corrected `--compiled-modules=no`
 invocation passed. All failed invocations remain in the local evidence directory.
 
+## Phase-separated Julia follow-up (2026-09-17)
+
+The follow-up asks whether the corrected Julia route completes the same C2
+workflow within the execution budget, and which public operation accounts for
+the remaining cost. `scripts/run_fixed_coefficient_followup.jl` uses the preserved
+panel, target, prior, initialization, seed and four-chain 1,000/1,000 controls.
+It permits one Julia fit, uses a new directory, and times fit, save, reload,
+structured report and diagnostic qualification separately. The existing external
+deadline remains 1,800 seconds; RSS/output are observed at ten-second intervals
+against the 8 GiB/5 GiB stop thresholds. First operation calls include their
+compilation through `invokelatest`, but earlier phases may warm later ones. The
+report timing excludes figure rendering. This is a same-seed computational
+follow-up, not another independent statistical replication or a backend benchmark.
+
+The companion location analysis asks why absolute item parameters mixed less
+well than the declared focal contrasts. For each dimension it compares the
+person mean, item mean, their difference, and item parameters centered by either
+mean, using all retained draws and the original diagnostic thresholds. A common
+shift of person and item locations leaves response probabilities unchanged; the
+proper prior still changes and anchors those locations. Centering is a post hoc
+diagnostic, not an added identification constraint or a change in the fitted
+prior. The original whole-fit gate continues to apply. The preserved CmdStan
+environment-recovery result supplies a second implementation's trace, without
+another Stan fit or replacing its original compiler failure.
+
+Local evidence is in `results/workflows/20260917-fixed-coefficient-followup-01/`.
+The fit retained all 4,000 draws; **every draw, log density, chain/iteration ID,
+retained sampler statistic and warmup statistic exactly matched the original
+Julia pilot**. The entire diagnostic/MCSE preparation also matched. This is
+numerical replay evidence for the computational correction, not new evidence of
+posterior calibration or backend agreement.
+
+| Operation | Seconds | Execution context |
+| --- | ---: | --- |
+| Fit | 548.09 | First call in the follow-up process |
+| Save, including draws/statistics in artifact | 81.38 | After fit |
+| Reload and canonical validation | 29.49 | After save |
+| Reload and canonical validation | 67.73 | Separate postprocessing process |
+| Public structured report, posterior/prior predictions | 87.37 | After that reload; 100 posterior / 200 prior draws for prediction |
+| Diagnostic/MCSE qualification | 18.06 | After report |
+
+The first process ended with exit 1 after 681.32 seconds: a new recipe assertion
+compared whole records with `isequal`, although copied specification objects
+have no value equality. Fit, save and reload had already completed. The recipe
+now compares the canonical content hash and numerical run; the original producing
+recipe and failure log are preserved. Postprocessing reused the saved fit,
+confirmed the object-equality issue and completed in a separate 181.88-second
+process, without another sampler call. Its timings are not presented as later
+phases of an uninterrupted cold run. The first process's reported peak RSS was
+2.33 GiB; periodic postprocessing observations peaked at 2.62 GiB. No resource
+stop was triggered. Unrelated host activity was not controlled, and the old
+timeout supplied no fit-only timing, so no whole-fit speed ratio is inferred.
+
+Whole-fit qualification remains false: Julia items I5–I8 fail R-hat, with maximum
+rank-normalized R-hat 1.0147; the ten predeclared focal quantities remain within
+the diagnostic thresholds. The structured report is complete and retains its
+`mcmc_warning`; report completeness does not imply convergence.
+
+The additional diagnostics identify a common-location mixing concern in both
+implementations. The person mean here is the finite-panel mean of the 48 fitted
+abilities, **not** an added population-mean parameter.
+
+| Diagnostic quantity | Julia max R-hat / min bulk ESS | Saved CmdStan max R-hat / min bulk ESS |
+| --- | ---: | ---: |
+| Person means, D1/D2 | 1.0179 / 357 | 1.0254 / 265 |
+| Item means, D1/D2 | 1.0170 / 381 | 1.0234 / 283 |
+| Item minus person mean of its dimension, all eight items | 1.0007 / 4,286 | 1.0014 / 4,725 |
+
+Within-chain correlations between the person and item means ranged from 0.922
+to 0.955. At three retained states per implementation, common location shifts
+changed pointwise log likelihoods by at most 1.78e-15 while changing the prior
+and posterior together. This connects the trace pattern to the known
+prior-anchored location geometry. It supports testing how the sampler handles
+correlated directions; it does not establish that a new metric or coordinate
+system will fix mixing. Derived contrasts passing the checks do not override
+the original whole-fit gate or the 30 inconclusive backend comparisons.
+
+The local `location-traces.{png,svg,pdf}` figure shows item I5, the D2 person
+mean and their difference for both implementations; the final PNG was visually
+checked. These derived location diagnostics are currently an internal analysis,
+not a new public API option. The saved-result integrity checks passed six
+assertions, and replay/location checks passed 26. Model/Stan sources are
+unchanged from the blueprint-reuse commit. No full suite, CI, new CmdStan fit,
+recovery study or SBC study was run for this follow-up.
+
 ## Next implementation and review handoff
 
-After the blueprint correction, use a separately bounded follow-up to time the
-cold fit, save, reload and report phases explicitly. Preserve the original C2
-attempts and settings; report any changed protocol as a new attempt. Investigate
-absolute item-location mixing against the already declared focal contrasts,
-without loosening the whole-fit diagnostic gate. Do not grow preparation machinery
+The next bounded computational comparison should test the existing dense-metric
+option against the diagonal-metric C2 result, with target, data, prior,
+initialization, draws and diagnostic criteria held fixed. Declare the new attempt
+before execution, retain its result even if worse, and do not select a passing
+retry or a new default from one panel. Carry finite-panel location summaries into
+the diagnostic UX so users can inspect collective slow directions without
+manually rearranging draws. Any later reparameterization must preserve the
+declared joint prior and transformation measure under both Julia and CmdStan;
+post hoc hard centering would change the model. Do not grow preparation machinery
 as a substitute for this evidence, automatically retry a primary call, or
 condition full evaluation on completing every MFRM cell before MGMFRM work.
 
