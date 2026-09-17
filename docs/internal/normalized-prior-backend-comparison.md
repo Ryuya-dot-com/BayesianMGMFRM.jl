@@ -3521,16 +3521,61 @@ The [local receipt](../../results/workflows/20260917-fixed-coefficient-sbc-01/re
 retains logs, input revision, limits and artifact hashes. No full suite, CI or
 independent scientific review was performed.
 
+## Fixed-coefficient diagnostic and comparison preparation (2026-09-17)
+
+The internal [preparation module](../../scripts/mfrm_validation_preparation.jl)
+now connects saved fixed-coefficient fits to explicit diagnostic qualification
+and statistic-specific Julia/CmdStan comparisons under the
+[validation protocol](fixed-coefficient-validation-protocol.md#sampler-free-diagnostic-and-comparison-preparation).
+Canonical record verification precedes raw/model/focal diagnostic reconstruction.
+Structural model constants are excluded, but empirically constant estimated
+quantities, unavailable energy diagnostics and incomplete chain/retained NUTS
+telemetry cannot pass. Supplied criteria govern qualification separately from
+the preserved original native diagnostic flag; no study thresholds are defaults.
+
+The comparison accepts a planned ID/target/primary-parameter roster and explicit
+numerical margins. It uses separate mean and endpoint MCSEs, combines backend
+uncertainty only under declared independent streams, and retains all 27/30
+planned statistics when records or precision are missing. It reports agreement,
+discrepancy and inconclusive outcomes at both statistic and pair levels, with
+backend failures and diagnostic reasons retained. Missing and failed pairs stay
+in the denominator; duplicate/replacement IDs and target/backend mismatches
+are rejected. The family adjustment is within a pair, not across datasets.
+
+The focused tests distinguish two kinds of evidence: hand-constructed decision
+inputs exercise exact thresholds, missing diagnostics, different quantile MCSEs
+and precision boundaries; eight short synthetic canonical records exercise all
+four prior/covariance targets across both saved backend formats. All those
+short records remain diagnostically unqualified and their comparisons remain
+inconclusive. They are not runs of either sampler or posterior agreement evidence.
+On Julia 1.10.8 and 1.12.5, **190 additional assertions** pass (123 diagnostic/
+canonical-record and 67 paired-comparison checks), together with all **1,566
+preceding focused checks**, for **1,756 per version**. The public-language gate
+passes for 20 files and all nine added local links resolve. Development runs
+exposed a test-fixture vector that rejected `missing`, then an incorrect
+distribution namespace in the new comparison code; both were corrected before
+the final version-specific runs. The corrected code uses the already loaded
+distribution implementation and adds no dependency.
+The [local receipt](../../results/workflows/20260917-fixed-coefficient-comparison-01/receipt.json)
+retains version-specific test logs, development failures, hashes and scope.
+
+No live fit, CmdStan execution, recovery/SBC evaluation replication, full suite,
+CI or independent scientific review was performed. No package/public API,
+dependency, persisted type or historical comparison policy changed. Supplied
+margins do not adopt the proposed pooled-SD/cap rule or scientific criteria;
+declared stream independence is not verified from seeds. These preparation
+checks cannot establish convergence, model validity, calibration or a default prior.
+
 ## Next bounded work
 
-Connect explicit diagnostic qualification and MCSE-based paired backend
-comparisons under the
+Bind planned SBC IDs, generating targets, selected draw identities and explicit
+diagnostic/dependence declarations to rank summaries and generation/fitting/
+scoring failure accounting under the
 [protocol handoff](fixed-coefficient-validation-protocol.md#next-implementation-and-review-handoff).
-Use supplied numerical margins and preserve failed/inconclusive pairs on
-synthetic/saved records; keep proposed criteria separate from adopted study
-decisions. Reuse existing diagnostics/MCSE and result types; no new engine,
-controller or full-grid launcher. These preparation checks cannot justify MCMC
-convergence, posterior backend agreement, recovery, coverage or a default prior.
+Retain missing ranks and reject replacement attempts on synthetic/saved records;
+include the joint-response log-likelihood quantity in diagnostic review.
+Reuse existing preparation/attempt helpers; no new engine, controller or full-grid
+launcher. Do not infer independent ranks from thinning, ESS or backend agreement.
 Independent target-specific M1 review precedes statistical evaluation.
 Ordered-step priors, higher-dimensional covariance, within-item validation,
 automatic request caching, hard anchors and application predictors remain separate.

@@ -415,7 +415,10 @@ now connects independent response generation, labelled truth/model coordinates,
 per-draw estimands, chain-aware MCSE and all-attempt denominators on synthetic
 records. The [SBC preparation](fixed-coefficient-validation-protocol.md#sampler-free-sbc-preparation)
 also connects joint-prior generation, data-dependent quantities and tie/missing-rank
-arithmetic. Next, connect explicit diagnostic qualification and MCSE-based
-paired backend comparisons on synthetic/saved records, without a fit grid. Ordered-step
+arithmetic. The [diagnostic/comparison preparation](fixed-coefficient-validation-protocol.md#sampler-free-diagnostic-and-comparison-preparation)
+now applies explicit criteria and statistic-specific precision to paired
+backend records while preserving failed/inconclusive comparisons. Next, bind
+planned SBC IDs, selected draws and failure/dependence declarations to rank
+summaries, without a fit grid. Ordered-step
 priors, the scientific default and broader random-effect structure remain
 separate choices.

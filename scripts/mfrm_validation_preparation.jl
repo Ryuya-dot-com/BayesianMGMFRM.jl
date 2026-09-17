@@ -356,11 +356,187 @@ function score_fit(panel, fit::B._FixedQMFRMFit; expected_target_identity::Abstr
         diagnostic_flag=checked.diagnostics.summary.flag, expected_target_identity)
 end
 
-"""Join primary attempts to one cell's full planned roster, retaining missing IDs.
-Each plan row has `id` and `target_identity`; each attempt also has `result`.
-No retries or replacement are accepted. Failure results have a status and no rows.
+_finite_number(x) = x isa Real && !(x isa Bool) && isfinite(x)
+
+function _comparison_criteria(criteria)
+    keys(criteria) == (:chains, :rhat, :ess, :ebfmi, :allow_treedepth_hits) &&
+        criteria.chains isa Integer && !(criteria.chains isa Bool) && criteria.chains >= 2 &&
+        all(_finite_number, (criteria.rhat, criteria.ess, criteria.ebfmi)) &&
+        criteria.rhat > 1 && criteria.ess > 0 && criteria.ebfmi > 0 &&
+        criteria.allow_treedepth_hits isa Bool || throw(ArgumentError("invalid explicit comparison criteria"))
+    return criteria
+end
+
+"""Apply supplied criteria to diagnostic rows; this low-level path trusts the
+caller's row/telemetry declarations. `prepare_comparison_fit` rebuilds them from
+a validated record. Qualification is conditional, never scientific acceptance.
 """
-function summarize_attempts(plan, attempts; parameter::AbstractString)
+function qualify_diagnostics(groups, sampler_rows; criteria, telemetry_complete::Bool)
+    _comparison_criteria(criteria)
+    keys(groups) == (:raw, :model, :focal) || throw(ArgumentError("raw, model and focal diagnostics required"))
+    failures = NamedTuple[]
+    fail(scope, name, reason) = push!(failures, (;scope, name=string(name), reason))
+    for (scope, rows) in pairs(groups)
+        isempty(rows) && fail(scope, "", :missing_parameters)
+        length(unique(r.parameter for r in rows)) == length(rows) || throw(ArgumentError("duplicate diagnostic parameter"))
+        for r in rows
+            r.quality_gate_applicable isa Bool || throw(ArgumentError("invalid fixed-parameter declaration"))
+            if !r.quality_gate_applicable
+                scope === :model && r.diagnostic_status === :structurally_fixed ||
+                    throw(ArgumentError("only structural model constants may be excluded"))
+                continue
+            end
+            r.n_chains == criteria.chains && r.split_chains === true || fail(scope, r.parameter, :chain_layout)
+            all(_finite_number, (r.rank_normalized_rhat, r.bulk_ess, r.tail_ess)) &&
+                0 < r.rank_normalized_rhat < criteria.rhat &&
+                r.bulk_ess >= criteria.ess && r.tail_ess >= criteria.ess || fail(scope, r.parameter, :parameter_diagnostics)
+        end
+    end
+    length(unique(r.chain for r in sampler_rows)) == length(sampler_rows) || throw(ArgumentError("duplicate sampler chain"))
+    sort([r.chain for r in sampler_rows]) == collect(1:criteria.chains) || fail(:sampler, "", :chain_coverage)
+    telemetry_complete || fail(:sampler, "", :incomplete_telemetry)
+    for r in sampler_rows
+        for field in (:n_nonfinite_logdensity, :n_divergences, :n_max_treedepth)
+            value = getproperty(r, field)
+            value isa Integer && !(value isa Bool) && value >= 0 || fail(:sampler, r.chain, :unavailable_counts)
+        end
+        r.n_nonfinite_logdensity === 0 || fail(:sampler, r.chain, :nonfinite_logdensity)
+        r.n_divergences === 0 || fail(:sampler, r.chain, :divergences)
+        (criteria.allow_treedepth_hits || r.n_max_treedepth === 0) || fail(:sampler, r.chain, :treedepth)
+        _finite_number(r.e_bfmi) && r.e_bfmi >= criteria.ebfmi || fail(:sampler, r.chain, :energy)
+    end
+    return (; qualified=isempty(failures), criteria, failures, sampler_rows,
+        scientific_acceptance=false, criteria_adopted=false)
+end
+
+"""Rebuild raw, constrained and focal diagnostics and statistic-specific MCSE
+from a canonical saved fit. No sampling, policy defaults or automatic rescue.
+"""
+function prepare_comparison_fit(panel, fit::B._FixedQMFRMFit;
+        expected_target_identity::AbstractString, criteria)
+    _comparison_criteria(criteria)
+    checked = B._canonical_mfrm_fixed_q_samples(fit)
+    checked.record.target_identity == expected_target_identity || throw(ArgumentError("fit target identity mismatch"))
+    run = checked.record.run
+    score = score_draws(panel, B._fixed_q_result_target(checked), run.draws;
+        parameter_names=checked.parameter_names, run.chain_ids, run.iterations,
+        diagnostic_flag=checked.diagnostics.summary.flag, expected_target_identity)
+    diagnostic(values, names; fixed=Set{String}()) = B._candidate_mcmc_diagnostic_rows(
+        values, names, run.controls.chains; split_chains=true,
+        structurally_fixed_parameters=fixed, rhat_threshold=Float64(criteria.rhat),
+        ess_threshold=Float64(criteria.ess))
+    coordinates = checked.model_coordinates
+    groups = (;
+        raw=diagnostic(run.draws, checked.parameter_names),
+        model=diagnostic(hcat([r.values for r in coordinates]...), [r.parameter for r in coordinates];
+            fixed=Set(r.parameter for r in coordinates if r.fixed)),
+        focal=diagnostic(score.estimand_draws, [r.parameter for r in score.rows]))
+    # Zero step/depth sentinels in historical records are not complete NUTS telemetry.
+    telemetry_complete = all(run.sampler_stats) do r
+        r.numerical_error isa Bool && r.n_steps isa Integer && !(r.n_steps isa Bool) && r.n_steps > 0 &&
+            r.tree_depth isa Integer && !(r.tree_depth isa Bool) && r.tree_depth > 0 && _finite_number(r.hamiltonian_energy)
+    end
+    qualification = qualify_diagnostics(groups, checked.diagnostics.sampler_rows; criteria, telemetry_complete)
+    return (; status=:comparison_prepared, target_identity=expected_target_identity,
+        backend=run.backend, rows=score.rows, qualification, diagnostic_rows=groups,
+        original_diagnostic_flag=score.diagnostic_flag, scientific_acceptance=false)
+end
+
+function _comparison_statistic(row, statistic)
+    row === nothing && return (; estimate=missing, mcse=missing, available=false)
+    row.mcse.parameter == row.parameter || throw(ArgumentError("MCSE parameter mismatch"))
+    estimate = statistic === :mean ? row.estimate : statistic === :q025 ? row.lower : row.upper
+    if statistic === :mean
+        mcse = row.mcse.mean_mcse
+    else
+        probability = statistic === :q025 ? 0.025 : 0.975
+        qs = filter(q -> q.probability == probability, row.mcse.quantiles)
+        length(qs) <= 1 || throw(ArgumentError("duplicate quantile MCSE"))
+        mcse = isempty(qs) ? missing : only(qs).mcse
+        isempty(qs) || (_finite_number(estimate) && _finite_number(only(qs).estimate) &&
+            isapprox(only(qs).estimate, estimate; atol=1e-12, rtol=1e-12)) ||
+            throw(ArgumentError("quantile estimate/MCSE mismatch"))
+    end
+    available = row.mcse.mcse_status === :available &&
+        all(_finite_number, (estimate, mcse, row.posterior_sd)) && mcse >= 0 && row.posterior_sd > 0
+    return (; estimate, mcse, available)
+end
+
+"""Compare a fixed roster of primary backend pairs. Plan rows contain `id`,
+`target_identity`, and ordered `margins` rows (`parameter`, `tolerance`). Attempt
+rows add `result=(julia=..., cmdstan=...)`; either result can be a failure status.
+Absent attempts, fits or scalar summaries retain all 27/30 planned comparisons.
+Supplied margins and independent-stream declarations are not study approval.
+"""
+function compare_backend_pairs(plan, attempts; alpha, independent_streams::Bool)
+    results = _attempt_results(plan, attempts)
+    _finite_number(alpha) && 0 < alpha < 1 || throw(ArgumentError("alpha must be between zero and one"))
+    pair_rows, rows = NamedTuple[], NamedTuple[]
+    for p in plan
+        names = [m.parameter for m in p.margins]
+        names in (vcat(FOCAL_NAMES, ["mean_Pr(Y>=2)"]), vcat(FOCAL_NAMES, ["rho", "mean_Pr(Y>=2)"])) ||
+            throw(ArgumentError("comparison plan must retain the complete primary estimand roster"))
+        all(m -> _finite_number(m.tolerance) && m.tolerance > 0, p.margins) ||
+            throw(ArgumentError("supply finite positive numerical margins"))
+        family_size = 3length(names)
+        z = quantile(B.Turing.Normal(), 1-alpha/(2family_size))
+        isfinite(z) || throw(ArgumentError("alpha is too small for a finite comparison interval"))
+        pair = get(results, p.id, nothing)
+        fits = pair === nothing ? (nothing, nothing) : (pair.julia, pair.cmdstan)
+        for (fit, backend) in zip(fits, (:advancedhmc, :cmdstan))
+            fit === nothing && continue
+            if fit.status === :comparison_prepared
+                fit.target_identity == p.target_identity && fit.backend === backend ||
+                    throw(ArgumentError("comparison target/backend mismatch"))
+                fitnames = [r.parameter for r in fit.rows]
+                length(unique(fitnames)) == length(fitnames) && all(in(names), fitnames) ||
+                    throw(ArgumentError("duplicate or unplanned comparison parameter"))
+                _comparison_criteria(fit.qualification.criteria)
+                fit.qualification.qualified === isempty(fit.qualification.failures) ||
+                    throw(ArgumentError("inconsistent diagnostic qualification"))
+            else
+                fit.status in (:generation_error, :fit_error, :scoring_error, :timeout, :interrupted,
+                    :missing_draws, :nonfinite_draws) || throw(ArgumentError("unknown comparison failure status"))
+                !hasproperty(fit, :rows) || fit.rows === nothing || throw(ArgumentError("failed fit has partial scores"))
+            end
+        end
+        prepared = map(f -> f !== nothing && f.status === :comparison_prepared, fits)
+        all(prepared) && fits[1].qualification.criteria != fits[2].qualification.criteria &&
+            throw(ArgumentError("backend qualification criteria differ"))
+        qualified = all(prepared) && all(f -> f.qualification.qualified, fits)
+        tables = map(f -> f !== nothing && f.status === :comparison_prepared ?
+            Dict(r.parameter => r for r in f.rows) : Dict(), fits)
+        first_row = length(rows)+1
+        for margin in p.margins, statistic in (:mean, :q025, :q975)
+            a, b = map(t -> _comparison_statistic(get(t, margin.parameter, nothing), statistic), tables)
+            delta = _finite_number(a.estimate) && _finite_number(b.estimate) ? a.estimate-b.estimate : missing
+            combined = a.available && b.available ? hypot(a.mcse, b.mcse) : missing
+            halfwidth = _finite_number(combined) ? z*combined : missing
+            reason = !all(prepared) ? :missing_or_failed_fit : !qualified ? :diagnostics :
+                !independent_streams ? :independence_undeclared :
+                !(a.available && b.available && _finite_number(delta) && _finite_number(halfwidth)) ? :unavailable_precision : :precision
+            status = reason !== :precision ? :inconclusive :
+                abs(delta)+halfwidth <= margin.tolerance ? :agreement :
+                abs(delta)-halfwidth > margin.tolerance ? :discrepancy : :inconclusive
+            push!(rows, (;id=p.id, p.target_identity, margin.parameter, statistic, family_size, z,
+                julia_estimate=a.estimate, cmdstan_estimate=b.estimate, delta,
+                combined_mcse=combined, halfwidth, margin.tolerance, status, reason))
+        end
+        statuses = [r.status for r in rows[first_row:end]]
+        status = :discrepancy in statuses ? :discrepancy : all(==(:agreement), statuses) ? :agreement : :inconclusive
+        push!(pair_rows, (;id=p.id, p.target_identity, status, family_size,
+            backend_statuses=map(f -> f === nothing ? :missing_attempt : f.status, fits),
+            qualifications=map(f -> f !== nothing && f.status === :comparison_prepared ? f.qualification : nothing, fits)))
+    end
+    counts(rs) = (;agreement=count(r -> r.status === :agreement, rs),
+        discrepancy=count(r -> r.status === :discrepancy, rs), inconclusive=count(r -> r.status === :inconclusive, rs))
+    return (; planned_pairs=length(plan), planned_statistics=length(rows), pair_counts=counts(pair_rows),
+        statistic_counts=counts(rows), pair_rows, rows, alpha, independent_streams_declared=independent_streams,
+        independence_verified=false, scientific_acceptance=false, margins_adopted=false,
+        multiplicity_scope=:within_pair)
+end
+
+function _attempt_results(plan, attempts)
     !isempty(plan) || throw(ArgumentError("planned denominator must be positive"))
     all(r -> r.id isa AbstractString && !isempty(r.id) && r.target_identity isa AbstractString &&
         !isempty(r.target_identity), [plan; attempts]) || throw(ArgumentError("attempt identities must be nonempty strings"))
@@ -369,7 +545,15 @@ function summarize_attempts(plan, attempts; parameter::AbstractString)
     planned = Dict(r.id => r.target_identity for r in plan)
     all(r -> get(planned, r.id, nothing) == r.target_identity, attempts) ||
         throw(ArgumentError("unplanned attempt or mismatched target"))
-    results = Dict(r.id => r.result for r in attempts)
+    return Dict(r.id => r.result for r in attempts)
+end
+
+"""Join primary attempts to one cell's full planned roster, retaining missing IDs.
+Each plan row has `id` and `target_identity`; each attempt also has `result`.
+No retries or replacement are accepted. Failure results have a status and no rows.
+"""
+function summarize_attempts(plan, attempts; parameter::AbstractString)
+    results = _attempt_results(plan, attempts)
     reasons = Dict{Symbol,Int}()
     usable = NamedTuple[]
     for p in plan

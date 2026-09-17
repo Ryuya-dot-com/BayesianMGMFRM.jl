@@ -456,15 +456,67 @@ per target, not posterior draws or evaluation replications. The
 [verification record](normalized-prior-backend-comparison.md#fixed-coefficient-sbc-preparation-2026-09-17)
 states the limits and retained evidence.
 
+## Sampler-free diagnostic and comparison preparation
+
+The same internal [preparation module](../../scripts/mfrm_validation_preparation.jl)
+now connects diagnostic qualification and paired backend comparison without
+running a sampler. `prepare_comparison_fit` validates the canonical saved record
+and target/data binding, reconstructs model coordinates and focal quantities,
+and recomputes split rank/folded R-hat and bulk/tail ESS for raw, model and focal
+coordinates. Only declared structural model constants are excluded; an
+empirically constant estimated quantity does not qualify. Per-chain divergence,
+tree-depth and energy diagnostics are retained. Missing chain coverage,
+unavailable E-BFMI and incomplete retained NUTS telemetry prevent qualification;
+historical zero step/depth sentinels cannot count as complete telemetry.
+
+The caller must supply `criteria=(chains=..., rhat=..., ess=..., ebfmi=...,
+allow_treedepth_hits=...)`. There are no study threshold defaults. Original
+native diagnostic warnings remain recorded separately from this conditional
+qualification. The low-level `qualify_diagnostics` routine accepts caller-declared
+diagnostic rows; use the canonical fit adapter to bind real evidence. A passing
+conditional rule is not proof of convergence or adoption of the proposed policy.
+
+`compare_backend_pairs` joins a full primary plan to attempted pairs. Each plan
+row has an ID, target identity and the ordered nine/ten primary parameters with
+explicit finite positive numerical tolerances. Each attempted pair supplies
+Julia and CmdStan preparation results or explicit failure statuses. It checks
+backend roles, target identity, common qualification criteria and scalar/MCSE
+labels. Mean and interval-endpoint comparisons use their own MCSEs; posterior
+SD must be finite and positive. The 27/30-comparison family and its normal
+multiplier stay fixed when a fit, parameter or quantile MCSE is missing.
+
+Agreement requires the entire approximate difference interval inside the
+supplied tolerance; discrepancy requires it entirely outside. All other cases,
+including insufficient precision and failed diagnostics, remain inconclusive.
+Pair and statistic counts both retain the full planned denominator. A pair
+with any resolved discrepancy is marked discrepancy even if other quantities
+are inconclusive; agreement requires every comparison to agree. Duplicate,
+replacement, unplanned or target-mismatched primary attempts are rejected.
+This implements the protocol's arithmetic, not the earlier normalized-prior
+experiment's different hard-coded comparison policy.
+
+Backend stream independence must be explicitly declared and is not verified
+from seeds. Without that declaration every decision is inconclusive. Numerical
+tolerances are supplied, not automatically derived from the proposed pooled-SD
+rule or adopted as scientific margins. Multiplicity is within each pair only.
+The [verification record](normalized-prior-backend-comparison.md#fixed-coefficient-diagnostic-and-comparison-preparation-2026-09-17)
+separates synthetic decision tests and canonical-record plumbing from actual
+posterior evidence. No fresh fit, SBC/recovery replication or public API was added.
+Focused checks on Julia 1.10.8 and 1.12.5 pass 190 additional assertions plus
+the 1,566 preceding checks, for 1,756 per version. All eight short synthetic
+canonical records remain unqualified; no actual backend agreement is claimed.
+
 ## Next implementation and review handoff
 
-Next, connect explicit diagnostic qualification and MCSE-based paired backend
-comparison on synthetic/saved records. Implement agreement/discrepancy/inconclusive
-classification under supplied numerical margins, preserving failed pairs and
-statistic-specific uncertainty. Keep proposed study thresholds distinguishable
-from adopted criteria. Actual SBC rank dependence, scientific margins and
-execution acceptance remain unresolved; do not add a sampler/controller or
-full-grid launcher to resolve these preparation tasks.
+Next, bind the SBC rank calculations to planned dataset IDs and generating
+targets, selected draw identities, explicit diagnostic/dependence declarations
+and generation/fitting/scoring failure statuses. Preserve missing ranks in the
+planned denominator and reject replacement attempts. Include the joint-response
+log-likelihood test quantity in diagnostic review; the backend comparison's
+primary focal roster alone is not the SBC quantity roster. Reuse the existing
+preparation and attempt-joining helpers on synthetic/saved records, without a
+controller or full-grid launcher. Do not infer independent SBC ranks from
+thinning, ESS, diagnostic qualification or backend agreement.
 
 Independent review must resolve target/identification interpretation, scientific
 margins or descriptive-only claims, allocation precision, SBC dependence policy,

@@ -389,4 +389,195 @@ end
     @test rank_laws[(:posterior,:parameter)] ≈ [0.5,0.5]
     @test rank_laws[(:posterior,:loglik)] ≈ [0.5,0.5]
 end
+
+# Hand-constructed decision inputs exercise thresholds, not sampling performance.
+const COMPARISON_CRITERIA = (;chains=4, rhat=1.01, ess=400., ebfmi=0.3, allow_treedepth_hits=false)
+function decision_inputs()
+    d=(;parameter="x",quality_gate_applicable=true,diagnostic_status=:rank_normalized_available,
+        n_chains=4,split_chains=true,rank_normalized_rhat=1.0,bulk_ess=400.,tail_ess=400.)
+    fixed=merge(d,(;parameter="fixed",quality_gate_applicable=false,diagnostic_status=:structurally_fixed,
+        rank_normalized_rhat=NaN,bulk_ess=NaN,tail_ess=NaN))
+    groups=(;raw=[d],model=[d,fixed],focal=[d])
+    sampler=[(;chain,n_nonfinite_logdensity=0,n_divergences=0,n_max_treedepth=0,e_bfmi=0.3) for chain in 1:4]
+    return groups,sampler
+end
+qualify(groups,sampler;kwargs...) = V.qualify_diagnostics(groups,sampler;
+    criteria=COMPARISON_CRITERIA,telemetry_complete=true,kwargs...)
+
+function comparison_record(p;correlated,exchangeable,backend)
+    spec=V.specification(p); model=correlated ? E.correlated(spec) : spec
+    t=target(p;correlated,exchangeable)
+    record=synthetic_record(target(p;correlated),model,backend)
+    exchangeable && return record,E.ExchangeableMFRMFit
+    run=record.run
+    lp=[B.LogDensityProblems.logdensity(t,x) for x in eachrow(run.draws)]
+    stats=[merge(s,(;log_density=v),backend===:cmdstan ? (;stan_lp=v) : (;)) for (s,v) in zip(run.sampler_stats,lp)]
+    run=merge(run,(;logdensities=lp,sampler_stats=stats,
+        initial_logdensity=B.LogDensityProblems.logdensity(t,run.initial),
+        sampler_rows=B._generalized_candidate_sampler_rows(lp,run.iterations,run.chain_acceptance,stats,run.controls,backend)))
+    record=correlated ? (;schema="bayesianmgmfrm.correlated_fixed_q_mfrm_samples.v1",
+        base_spec=spec,prior=B._mfrm_correlated_2d_prior_record(t),target_identity=V.target_identity(t),run) :
+        (;schema="bayesianmgmfrm.fixed_q_mfrm_samples.v2",spec,prior=B._mfrm_fixed_q_prior_record(t),target_identity=V.target_identity(t),run)
+    return merge(record,(;content_hash=B._mgmfrm_normalized_sample_hash(record))),
+        correlated ? E.CorrelatedMFRMFit : B.MultidimensionalMFRMFit
+end
+
+@testset "explicit fixed-coefficient diagnostic qualification" begin
+    groups,sampler=decision_inputs()
+    q=qualify(groups,sampler)
+    @test q.qualified && isempty(q.failures)
+    @test !q.scientific_acceptance && !q.criteria_adopted
+    for scope in (:raw,:model,:focal), change in
+            ((;rank_normalized_rhat=1.01),(;bulk_ess=399.),(;tail_ess=399.),
+             (;rank_normalized_rhat=NaN),(;bulk_ess=missing),(;n_chains=2),(;split_chains=false))
+        rows=NamedTuple[getproperty(groups,scope)...];rows[1]=merge(rows[1],change)
+        bad=qualify(merge(groups,NamedTuple{(scope,)}((rows,))),sampler)
+        @test !bad.qualified && any(r -> r.scope===scope,bad.failures)
+    end
+    for change in ((;n_nonfinite_logdensity=1),(;n_divergences=1),(;n_divergences=missing),
+            (;n_max_treedepth=1),(;n_max_treedepth=missing),(;e_bfmi=0.299),(;e_bfmi=missing),(;e_bfmi=NaN))
+        rows=NamedTuple[sampler...];rows[2]=merge(rows[2],change)
+        @test !qualify(groups,rows).qualified
+    end
+    @test !qualify(groups,sampler[1:3]).qualified
+    @test !V.qualify_diagnostics(groups,sampler;criteria=COMPARISON_CRITERIA,telemetry_complete=false).qualified
+    @test !qualify(merge(groups,(;focal=NamedTuple[])),sampler).qualified
+    hits=NamedTuple[merge(r,(;n_max_treedepth=1)) for r in sampler]
+    accepted=V.qualify_diagnostics(groups,hits;criteria=merge(COMPARISON_CRITERIA,(;allow_treedepth_hits=true)),telemetry_complete=true)
+    @test accepted.qualified && all(r.n_max_treedepth==1 for r in accepted.sampler_rows)
+    @test_throws ArgumentError qualify(groups,[sampler;sampler[1]])
+    @test_throws ArgumentError qualify(merge(groups,(;raw=groups.model)),sampler)
+    for change in ((;chains=true),(;chains=1),(;rhat=1.),(;ess=NaN),(;ebfmi=0.),(;allow_treedepth_hits=1))
+        @test_throws ArgumentError V.qualify_diagnostics(groups,sampler;
+            criteria=merge(COMPARISON_CRITERIA,change),telemetry_complete=true)
+    end
+    p=panel(); saved=Dict()
+    for correlated in (false,true), exchangeable in (false,true), backend in (:advancedhmc,:cmdstan)
+        record,fit_type=comparison_record(p;correlated,exchangeable,backend)
+        fit=fit_type(record;expected_identity=record.target_identity)
+        result=V.prepare_comparison_fit(p,fit;expected_target_identity=record.target_identity,criteria=COMPARISON_CRITERIA)
+        saved[(correlated,exchangeable,backend)]=result
+        @test result.status===:comparison_prepared && result.backend===backend
+        @test !result.qualification.qualified && result.original_diagnostic_flag!==:ok
+        @test length(result.rows)==(correlated ? 10 : 9)
+        @test length(result.diagnostic_rows.raw)==size(record.run.draws,2)
+        @test any(!r.quality_gate_applicable for r in result.diagnostic_rows.model)
+        @test all(r.quality_gate_applicable for r in result.diagnostic_rows.focal)
+        @test :incomplete_telemetry in [r.reason for r in result.qualification.failures]
+        @test_throws ArgumentError V.prepare_comparison_fit(p,fit;expected_target_identity="wrong",criteria=COMPARISON_CRITERIA)
+        @test_throws ArgumentError V.prepare_comparison_fit(panel(thin=true),fit;
+            expected_target_identity=record.target_identity,criteria=COMPARISON_CRITERIA)
+    end
+    for correlated in (false,true), exchangeable in (false,true)
+        julia=saved[(correlated,exchangeable,:advancedhmc)]
+        cmdstan=saved[(correlated,exchangeable,:cmdstan)]
+        plan=[(;id="saved",julia.target_identity,margins=[(;r.parameter,tolerance=0.1) for r in julia.rows])]
+        report=V.compare_backend_pairs(plan,[(;id="saved",julia.target_identity,result=(;julia,cmdstan))];
+            alpha=0.05,independent_streams=true)
+        @test report.statistic_counts.inconclusive==(correlated ? 30 : 27)
+        @test all(r.reason===:diagnostics for r in report.rows)
+    end
+end
+
+function comparison_fixture(;correlated=true)
+    names=vcat(V.FOCAL_NAMES,correlated ? ["rho","mean_Pr(Y>=2)"] : ["mean_Pr(Y>=2)"])
+    margins=[(;parameter,tolerance=0.1) for parameter in names]
+    p=(;id="pair1",target_identity="synthetic-decision-input",margins)
+    q=qualify(decision_inputs()...)
+    rows=[(;parameter,estimate=0.,lower=-1.,upper=1.,posterior_sd=1.,
+        mcse=(;parameter,mcse_status=:available,mean_mcse=0.001,sd_mcse=999.,
+            quantiles=((;probability=0.025,estimate=-1.,mcse=0.002),
+                (;probability=0.975,estimate=1.,mcse=0.003)))) for parameter in names]
+    julia=(;status=:comparison_prepared,p.target_identity,backend=:advancedhmc,qualification=q,rows)
+    cmdstan=merge(julia,(;backend=:cmdstan))
+    return p,julia,cmdstan
+end
+pair_report(p,julia,cmdstan;kwargs...) = V.compare_backend_pairs([p],
+    [(;p.id,p.target_identity,result=(;julia,cmdstan))];alpha=0.05,independent_streams=true,kwargs...)
+
+@testset "planned backend pairs and statistic-specific precision" begin
+    for correlated in (false,true)
+        p,j,c=comparison_fixture(;correlated)
+        report=pair_report(p,j,c)
+        n=correlated ? 30 : 27
+        @test report.planned_pairs==1 && report.planned_statistics==n
+        @test report.pair_counts == (;agreement=1,discrepancy=0,inconclusive=0)
+        @test all(r.family_size==n && r.status===:agreement for r in report.rows)
+        @test report.rows[1].combined_mcse ≈ sqrt(2)*0.001
+        @test report.rows[2].combined_mcse ≈ sqrt(2)*0.002
+        @test report.rows[3].combined_mcse ≈ sqrt(2)*0.003
+        @test report.rows[1].z ≈ quantile(B.Turing.Normal(),1-0.05/(2n))
+        @test !report.scientific_acceptance && !report.margins_adopted && !report.independence_verified
+        @test report.multiplicity_scope===:within_pair
+        absent=merge(c,(;rows=c.rows[2:end]))
+        partial=pair_report(p,j,absent)
+        @test partial.planned_statistics==n && partial.statistic_counts.inconclusive==3
+        @test all(r.family_size==n for r in partial.rows)
+        @test partial.pair_counts.inconclusive==1
+    end
+    p,j,c=comparison_fixture()
+    function change_first(fit, change)
+        rows=NamedTuple[fit.rows...];rows[1]=merge(rows[1],change)
+        return merge(fit,(;rows))
+    end
+    shifted=change_first(c,(;estimate=0.2))
+    different=pair_report(p,j,shifted)
+    @test first(different.rows).delta == -0.2
+    @test first(different.rows).status===:discrepancy && different.pair_counts.discrepancy==1
+    m=first(c.rows).mcse
+    noisy=change_first(c,(;mcse=merge(m,(;mean_mcse=0.1))))
+    @test first(pair_report(p,j,noisy).rows).status===:inconclusive
+    quantile_missing=change_first(c,(;mcse=merge(m,(;quantiles=(m.quantiles[1],)))))
+    mixed=pair_report(p,j,quantile_missing)
+    @test [r.status for r in mixed.rows[1:3]] == [:agreement,:agreement,:inconclusive]
+    for change in ((;posterior_sd=0.),(;posterior_sd=NaN),
+            (;mcse=merge(m,(;mean_mcse=missing))), (;mcse=merge(m,(;mean_mcse=-1.))),
+            (;mcse=merge(m,(;mcse_status=:degenerate_draws))))
+        @test first(pair_report(p,j,change_first(c,change)).rows).status===:inconclusive
+    end
+    halfwidth=first(pair_report(p,j,c).rows).halfwidth
+    boundary=merge(p,(;margins=[merge(m,(;tolerance=halfwidth)) for m in p.margins]))
+    @test first(pair_report(boundary,j,c).rows).status===:agreement # <= includes equality
+    # Zero MCSE is allowed only with nonzero posterior SD; the outer boundary is strict.
+    exact=change_first(j,(;estimate=0.1,mcse=merge(m,(;mean_mcse=0.))))
+    exactc=change_first(c,(;mcse=merge(m,(;mean_mcse=0.))))
+    @test first(pair_report(p,exact,exactc).rows).status===:agreement
+    @test first(pair_report(p,change_first(exact,(;estimate=nextfloat(0.1))),exactc).rows).status===:discrepancy
+    badq=merge(c.qualification,(;qualified=false,failures=[(;scope=:focal,name="x",reason=:parameter_diagnostics)]))
+    held=pair_report(p,j,merge(c,(;qualification=badq)))
+    @test held.statistic_counts.inconclusive==30 && first(held.rows).reason===:diagnostics
+    noind=V.compare_backend_pairs([p],[(;p.id,p.target_identity,result=(;julia=j,cmdstan=c))];alpha=0.05,independent_streams=false)
+    @test noind.statistic_counts.inconclusive==30 && first(noind.rows).reason===:independence_undeclared
+    plan=[merge(p,(;id="pair$i")) for i in 1:4]
+    attempts=[(;id="pair1",p.target_identity,result=(;julia=j,cmdstan=c)),
+        (;id="pair2",p.target_identity,result=(;julia=j,cmdstan=(;status=:timeout))),
+        (;id="pair3",p.target_identity,result=(;julia=j,cmdstan=merge(c,(;qualification=badq))))]
+    full=V.compare_backend_pairs(plan,attempts;alpha=0.05,independent_streams=true)
+    @test full.planned_pairs==4 && full.planned_statistics==120
+    @test full.pair_counts==(;agreement=1,discrepancy=0,inconclusive=3)
+    @test full.statistic_counts==(;agreement=30,discrepancy=0,inconclusive=90)
+    @test full.pair_rows[2].backend_statuses==(:comparison_prepared,:timeout)
+    @test full.pair_rows[4].backend_statuses==(:missing_attempt,:missing_attempt)
+    @test V.compare_backend_pairs(plan,NamedTuple[];alpha=0.05,independent_streams=true).statistic_counts.inconclusive==120
+    for status in (:generation_error,:fit_error,:scoring_error,:interrupted,:missing_draws,:nonfinite_draws)
+        @test pair_report(p,j,(;status)).statistic_counts.inconclusive==30
+    end
+    @test_throws ArgumentError pair_report(p,j,merge(c,(;backend=:advancedhmc)))
+    @test_throws ArgumentError pair_report(p,j,merge(c,(;target_identity="wrong")))
+    @test_throws ArgumentError pair_report(p,j,(;status=:timeout,rows=c.rows))
+    @test_throws ArgumentError pair_report(p,j,merge(c,(;rows=[c.rows;c.rows[1]])))
+    @test_throws ArgumentError pair_report(merge(p,(;margins=p.margins[2:end])),j,c)
+    @test_throws ArgumentError pair_report(merge(p,(;margins=[merge(m,(;tolerance=NaN)) for m in p.margins])),j,c)
+    @test_throws ArgumentError pair_report(p,j,change_first(c,(;mcse=merge(m,(;parameter="wrong")))))
+    @test_throws ArgumentError pair_report(p,j,change_first(c,(;lower=-2.)))
+    @test_throws ArgumentError pair_report(p,j,merge(c,(;qualification=merge(c.qualification,
+        (;criteria=merge(COMPARISON_CRITERIA,(;ess=200.)))))))
+    for bad_attempts in ([attempts;attempts[1]], [merge(attempts[1],(;id="replacement"))],
+            [merge(attempts[1],(;target_identity="wrong"))])
+        @test_throws ArgumentError V.compare_backend_pairs(plan,bad_attempts;alpha=0.05,independent_streams=true)
+    end
+    for alpha in (0.,1.,NaN,true,nextfloat(0.))
+        @test_throws ArgumentError V.compare_backend_pairs(plan,attempts;alpha,independent_streams=true)
+    end
+end
 end

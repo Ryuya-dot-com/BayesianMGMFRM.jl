@@ -1,14 +1,15 @@
 # BayesianMGMFRM.jl — Internal Roadmap
 
 Updated 2026-09-17 with verified
-[sampler-free SBC preparation](docs/internal/fixed-coefficient-validation-protocol.md#sampler-free-sbc-preparation)
-for fixed-coefficient MFRM, following fixed-facet generation/scoring preparation.
-All four declared targets have independent joint-prior generation, bound
-data-dependent test quantities, randomized ties and missing-rank envelopes.
-Focused checks pass on Julia 1.10.8 and 1.12.5; no live fit or evaluation
-replication was run. Next, connect diagnostic qualification and MCSE-based
-paired backend comparisons. Independent scientific review and execution
-acceptance remain open.
+[sampler-free diagnostic/comparison preparation](docs/internal/fixed-coefficient-validation-protocol.md#sampler-free-diagnostic-and-comparison-preparation)
+for fixed-coefficient MFRM, following fixed-facet and SBC preparation.
+Explicit diagnostic criteria and statistic-specific MCSE now distinguish
+agreement, discrepancy and inconclusive precision while retaining failed pairs.
+All four targets' synthetic canonical records are checked on both backends;
+this is comparison plumbing, not posterior agreement evidence. No live fit or
+evaluation replication was run. Next, bind planned SBC IDs and selected draws
+to rank/failure accounting. Independent scientific review, dependence policy
+and execution acceptance remain open.
 Compatibility defaults and historical records retain their meanings.
 The final API migration away from
 development-status names remains a model-specific release requirement. The
@@ -784,9 +785,11 @@ The [SBC preparation](docs/internal/fixed-coefficient-validation-protocol.md#sam
 now adds separate joint-prior generation, 12/13 bound test quantities, exact-tie
 randomization and full-denominator CDF envelopes. Prior moment checks and an
 enumerated prior-only negative control are preparation evidence, not MCMC SBC.
-**Next bounded deliverable:** connect explicit diagnostic qualification and
-MCSE-based paired backend comparisons on synthetic/saved records, with supplied
-numerical margins and failed/inconclusive pairs retained. Study criteria remain
+The [diagnostic/comparison preparation](docs/internal/fixed-coefficient-validation-protocol.md#sampler-free-diagnostic-and-comparison-preparation)
+now applies supplied criteria and numerical margins, retaining failed/inconclusive
+pairs and a fixed comparison family. **Next bounded deliverable:** bind planned
+SBC IDs, generating targets, selected draw identities and failure/dependence
+declarations to rank summaries on synthetic/saved records. Study criteria remain
 proposals; no fresh fit grid, sampler/controller or default change.
 Ordered-step priors and scientific default selection remain separate decisions.
 Higher-dimensional covariance, within-item validation, automatic request caching
@@ -2638,8 +2641,10 @@ and figures. The [target-specific validation protocol](docs/internal/fixed-coeff
 is now a concrete draft, with a sampler-free rank/scale/allocation audit and
 verified Julia generation/estimand/scoring preparation on synthetic inputs.
 Joint-prior SBC generation, data-dependent quantities and rank arithmetic are
-also verified. Diagnostic qualification and paired backend comparison are the
-next bounded implementation. Scientific margins and independent review remain open;
+also verified. Diagnostic qualification and paired backend comparison now retain
+all planned pairs under supplied criteria and numerical margins. Binding SBC
+IDs/draws to rank/failure accounting is the next bounded implementation.
+Scientific margins and independent review remain open;
 the proposed fit counts do not authorize execution. Application
 preparation and reader recruitment do not block this core work.
 
@@ -2653,7 +2658,7 @@ priority follows the Julia user workflow, not the readiness of a paper dataset.
 
 | Task / owner role | Next deliverable | Verification and stop condition |
 | --- | --- | --- |
-| 1. Fixed-coefficient diagnostic/comparison preparation — analyst/maintainer; recovery/SBC arithmetic verified | Implement the [protocol's next sampler-free handoff](docs/internal/fixed-coefficient-validation-protocol.md#next-implementation-and-review-handoff): explicit diagnostic qualification and statistic-specific MCSE-based paired Julia/CmdStan comparisons on synthetic/saved records, with supplied margins and failure accounting | Exit: agreement, discrepancy and inconclusive precision are distinguished; failed pairs retain planned denominators. Proposed thresholds are not silently adopted. Actual SBC dependence, independent scientific review and execution budgets remain open. Reuse existing components; no controller, full-grid launch, automatic default migration or reinterpretation of old draws |
+| 1. Fixed-coefficient SBC attempt binding — analyst/maintainer; diagnostic/comparison preparation verified | Implement the [protocol's next sampler-free handoff](docs/internal/fixed-coefficient-validation-protocol.md#next-implementation-and-review-handoff): bind planned SBC IDs, generating targets, selected draw identities and diagnostic/dependence declarations to rank summaries and failures on synthetic/saved records | Exit: failures and missing ranks retain planned denominators; replacement attempts are rejected; the full SBC quantity roster, including response log likelihood, enters diagnostic review. Independence is not inferred from thinning/ESS or backend agreement. Scientific review and execution budgets remain open. Reuse existing components; no controller, full-grid launch, automatic default migration or reinterpretation of old draws |
 | 2. M1 Julia model-to-code contract and estimation path — analyst/maintainer | Resolve the relevant source/exchangeable-prior, identification and validation-scope decisions; correct demonstrated shared-path gaps and retain the [core trace's remaining failure boundaries](#first-julia-core-verification-slice). Prepare the next covariance/within-item slice under the [extension sequence](#long-term-extension-sequence), reusing existing components | Exit: equations, coordinates, scale constants, priors/Jacobians and parameter meanings have code/evidence mappings and explicit unresolved decisions. Check target/gradients, invalid inputs, initialization/sampling failures and result integrity as affected. Record actual runtime/resource limits; model changes have distinct identities. No copied fitting engine or blanket source refactor |
 | 3. CmdStan continuity — analyst/maintainer; accompanies each model slice | Maintain estimation of the same target under the [dual-backend contract](#julia-and-cmdstan-continuity-and-comparison); check common-coordinate densities, gradients and probabilities, then diagnostic-qualified posterior/predictive summaries under the execution budget | Exit: both routes preserve likelihood, priors, constraints, scale and saved-result meaning. Missing parity remains partial support; Julia work can advance incrementally without dropping this requirement. Backend agreement is implementation evidence, not model validity |
 | 4. M2 core statistical validation — analyst; execution not started | Reconcile Stage-A with the accepted package model/claim. Select known-truth conditions for identification, recovery/calibration, sparse coverage, prior sensitivity and numerical failure mechanisms; verify scoring, all-attempt accounting and resource stops before reviewed execution | Exit: target-specific M1 and execution readiness are accepted, the bounded roster is accounted for, and uncertainty/failure rates support a stated domain or an inconclusive result. Representative Julia/CmdStan comparisons accompany it; do not restrict the core domain to the Uchihara design or substitute an empirical fit for recovery evidence |
