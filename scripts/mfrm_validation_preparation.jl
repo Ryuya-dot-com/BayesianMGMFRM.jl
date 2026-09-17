@@ -55,6 +55,27 @@ function _log_probabilities(data, state)
     return out
 end
 
+function _geometry(persons::Integer)
+    !(persons isa Bool) && 2 <= persons <= 144 ||
+        throw(ArgumentError("preparation persons must be an integer in 2:144"))
+    cells = [(p, i, r) for p in 1:persons for i in 1:8 for r in 1:4]
+    columns = (; person=["P$(lpad(p, 3, '0'))" for (p,i,r) in cells],
+        item=["I$i" for (p,i,r) in cells], rater=["R$r" for (p,i,r) in cells])
+    return (; cells, columns, data=_response_data(columns, zeros(Int, length(cells))))
+end
+
+_response_data(columns, scores) = B.FacetData(merge(columns, (;score=scores));
+    person=:person, item=:item, rater=:rater, score=:score, category_levels=0:3)
+
+function _response_panel(geometry, truth, response_rng; thin=false)
+    logs = _log_probabilities(geometry.data, truth)
+    scores = [B._ld1_inverse_cdf(rand(response_rng), exp.(row), 0:3) for row in eachrow(logs)]
+    keep = [!thin || r-1 in (mod(p+i-2, 4), mod(p+i-1, 4)) for (p,i,r) in geometry.cells]
+    cols = map(x -> x[keep], geometry.columns)
+    # Preserve even an all-one-category outcome; model validation is a later step.
+    return (; data=_response_data(cols, scores[keep]), truth)
+end
+
 """
     recovery_panel(person_rng, response_rng; persons, rho, thin=false)
 
@@ -65,8 +86,7 @@ This is not joint-prior SBC and never calls a sampler.
 """
 function recovery_panel(person_rng::AbstractRNG, response_rng::AbstractRNG;
         persons::Integer, rho::Real, thin::Bool=false)
-    !(persons isa Bool) && 2 <= persons <= 144 ||
-        throw(ArgumentError("preparation persons must be an integer in 2:144"))
+    geometry = _geometry(persons)
     !(rho isa Bool) && isfinite(rho) && abs(rho) < 1 ||
         throw(ArgumentError("rho must be finite and strictly between -1 and 1"))
     person_rng !== response_rng || throw(ArgumentError("person and response RNGs must be separate objects"))
@@ -75,30 +95,68 @@ function recovery_panel(person_rng::AbstractRNG, response_rng::AbstractRNG;
         z1, z2 = randn(person_rng), randn(person_rng)
         theta[p, :] = [z1, rho*z1 + sqrt(1-rho^2)*z2]
     end
-    cells = [(p, i, r) for p in 1:persons for i in 1:8 for r in 1:4]
-    columns = (; person=["P$(lpad(p, 3, '0'))" for (p,i,r) in cells],
-        item=["I$i" for (p,i,r) in cells], rater=["R$r" for (p,i,r) in cells])
-    make_data(cols, scores) = B.FacetData(merge(cols, (;score=scores));
-        person=:person, item=:item, rater=:rater, score=:score, category_levels=0:3)
-    geometry = make_data(columns, zeros(Int, length(cells)))
     steps = zeros(8, 4)
     for i in 1:8
         steps[i, 2] = -(0.35+0.05*(i-1))
         steps[i, 4] = -steps[i, 2]
     end
-    truth = merge(labels((;data=geometry, dimension_labels=["D1", "D2"])),
+    truth = merge(labels((;data=geometry.data, dimension_labels=["D1", "D2"])),
         (; theta, b=repeat([-1., -1/3, 1/3, 1.], 2),
         r=[-0.6, -0.2, 0.2, 0.6], steps, rho=Float64(rho)))
-    logs = _log_probabilities(geometry, truth)
-    scores = [B._ld1_inverse_cdf(rand(response_rng), exp.(row), 0:3) for row in eachrow(logs)]
-    keep = [!thin || r-1 in (mod(p+i-2, 4), mod(p+i-1, 4)) for (p,i,r) in cells]
-    cols = map(x -> x[keep], columns)
-    # Preserve even an all-one-category outcome; model validation is a later step.
-    return (; data=make_data(cols, scores[keep]), truth)
+    return _response_panel(geometry, truth, response_rng; thin)
 end
 
 specification(panel) = B.mfrm_spec(panel.data; family=:mfrm, dimensions=2,
     q_matrix=Q, dimension_labels=["D1", "D2"])
+
+function _prior_options(prior, correlated, lkj_eta)
+    prior isa Union{B.MFRMPrior,B._ExchangeablePrior} || throw(ArgumentError("unsupported rater prior"))
+    correlated isa Bool || throw(ArgumentError("correlated must be Bool"))
+    if correlated
+        B._checked_integer_lkj_eta(lkj_eta)
+    else
+        lkj_eta === nothing || throw(ArgumentError("independent abilities have no LKJ prior"))
+    end
+    return nothing
+end
+
+# Separate from _fixed_q_prior_draws: generate in full model coordinates.
+function _prior_state(geometry, rng, prior; correlated::Bool, lkj_eta)
+    _prior_options(prior, correlated, lkj_eta)
+    rho = correlated ? 2rand(rng, B.Turing.Beta(lkj_eta, lkj_eta))-1 : 0.0
+    abs(rho) < 1 || throw(ArgumentError("unrepresentable boundary prior correlation; retain this failure"))
+    theta = Matrix{Float64}(undef, length(geometry.data.person_levels), 2)
+    for p in axes(theta, 1)
+        z1, z2 = randn(rng), randn(rng)
+        theta[p, :] = prior.person_sd .* [z1, rho*z1+sqrt((1-rho)*(1+rho))*z2]
+    end
+    r = if prior isa B._ExchangeablePrior
+        z = randn(rng, 4)
+        prior.rater_kernel_sd .* (z .- mean(z))
+    else
+        free = prior.rater_sd .* randn(rng, 3)
+        [free; -sum(free)]
+    end
+    b = prior.item_sd .* randn(rng, 8)
+    free_steps = prior.step_sd .* randn(rng, 8, 2)
+    steps = [zeros(8) free_steps -sum(free_steps; dims=2)]
+    all(isfinite, (theta..., r..., b..., steps...)) ||
+        throw(ArgumentError("nonfinite prior coordinates; retain this failure"))
+    return merge(labels((; data=geometry.data, dimension_labels=["D1", "D2"])),
+        (; theta, b, r, steps, rho))
+end
+
+"""Generate one complete joint-prior panel; never reject/redraw or fit it.
+The selected prior/covariance is retained for binding later SBC test quantities.
+"""
+function prior_panel(prior_rng::AbstractRNG, response_rng::AbstractRNG;
+        persons::Integer, prior, correlated::Bool, lkj_eta=correlated ? 2 : nothing)
+    prior_rng !== response_rng || throw(ArgumentError("prior and response RNGs must be separate objects"))
+    geometry = _geometry(persons)
+    truth = _prior_state(geometry, prior_rng, prior; correlated, lkj_eta)
+    return merge(_response_panel(geometry, truth, response_rng),
+        (; generation=(; kind=:joint_prior, prior, correlated, lkj_eta)))
+end
 
 base_target(t::B._MFRMFixedQReferenceLogDensity) = t
 base_target(t::Union{B._MFRMFixedQCorrelated2DLogDensity,B._MFRMExchangeableRatersLogDensity}) = base_target(t.base)
@@ -153,6 +211,101 @@ function chain_order(chain_ids, iterations, n)
     return (; order=sortperm(collect(zip(chain_ids, iterations))), chains=length(chains))
 end
 
+function _check_draw_binding(panel, target, parameter_names, expected_target_identity)
+    target_identity(target) == expected_target_identity || throw(ArgumentError("target identity mismatch"))
+    spec = base_target(target).design.spec
+    B.design_identity(B.getdesign(specification(panel); preview=true)).value ==
+        B.design_identity(base_target(target).design).value || throw(ArgumentError("response/specification mismatch"))
+    parameter_names == B._mfrm_fixed_q_parameter_names(target) ||
+        throw(ArgumentError("free-coordinate names/order mismatch"))
+    check_state(spec, panel.truth)
+    return spec
+end
+
+function sbc_quantities(spec, state; correlated::Bool)
+    e = estimands(spec, state; correlated)
+    joint_loglik = sum(e.log_probabilities[n, spec.data.category[n]] for n in 1:spec.data.n)
+    values = [e.values; state.theta[1,1]; state.b[1]; joint_loglik]
+    all(isfinite, values) || throw(ArgumentError("nonfinite SBC test quantity"))
+    return (; names=[e.names; "theta11"; "b1"; "joint_log_likelihood"], values)
+end
+
+"""Bind SBC quantities to the generating prior and the retained chain IDs.
+The same explicit iterations are selected per chain. This does not qualify
+diagnostics or establish independent posterior draws; no ranks are inferred here.
+"""
+function sbc_draw_quantities(panel, target, draws::AbstractMatrix;
+        parameter_names, chain_ids, iterations, selected_iterations,
+        expected_target_identity::AbstractString)
+    hasproperty(panel, :generation) && panel.generation.kind === :joint_prior ||
+        throw(ArgumentError("SBC requires joint-prior generation, not fixed-facet recovery"))
+    g = panel.generation
+    _prior_options(g.prior, g.correlated, g.lkj_eta)
+    g.correlated || iszero(panel.truth.rho) || throw(ArgumentError("independent SBC truth must have rho=0"))
+    spec = _check_draw_binding(panel, target, parameter_names, expected_target_identity)
+    model = g.correlated ? B.Experimental.correlated(spec; lkj_eta=g.lkj_eta) : spec
+    target_identity(B._fixed_q_prior_target(model, g.prior)) == expected_target_identity ||
+        throw(ArgumentError("generating and fitted priors/covariances differ"))
+    layout = chain_order(chain_ids, iterations, size(draws, 1))
+    selected = collect(selected_iterations)
+    !isempty(selected) && all(x -> x isa Integer && !(x isa Bool) &&
+        1 <= x <= size(draws,1) ÷ layout.chains, selected) && issorted(selected) &&
+        length(unique(selected)) == length(selected) ||
+        throw(ArgumentError("selected iterations must be nonempty, increasing, unique retained IDs"))
+    # Validate every retained row, including rows not selected for ranks.
+    states = model_states(target, draws[layout.order, :])
+    chosen = findall(in(selected), iterations[layout.order])
+    truth = sbc_quantities(spec, panel.truth; correlated=g.correlated)
+    quantities = [sbc_quantities(spec, states[i]; correlated=g.correlated) for i in chosen]
+    return (; target_identity=expected_target_identity, names=truth.names, truth=truth.values,
+        draws=permutedims(hcat([q.values for q in quantities]...)),
+        selected_rows=layout.order[chosen], chain_ids=chain_ids[layout.order[chosen]],
+        iterations=iterations[layout.order[chosen]], n_chains=layout.chains,
+        independence_verified=false, diagnostic_qualification_applied=false,
+        scientific_acceptance=false)
+end
+
+"""Zero-based rank, with exact ties randomized uniformly in their rank interval."""
+function randomized_rank(truth::Real, draws::AbstractVector{<:Real}, rng::AbstractRNG)
+    !(truth isa Bool) && isfinite(truth) && !isempty(draws) &&
+        all(x -> !(x isa Bool) && isfinite(x), draws) ||
+        throw(ArgumentError("rank quantities must be finite real values with at least one draw"))
+    lower = count(<(truth), draws)
+    ties = count(==(truth), draws)
+    return (; rank=lower+(ties == 0 ? 0 : rand(rng, 0:ties)), lower, upper=lower+ties,
+        n_draws=length(draws), ties)
+end
+
+"""Conditional DKW screen for one quantity, with one rank or `missing` per
+planned dataset. T is the predeclared within-target quantity family size.
+This arithmetic assumes independent datasets and valid iid posterior ranks;
+it neither checks that assumption nor treats no departure as calibration.
+"""
+function rank_cdf(ranks::AbstractVector; n_draws::Integer, n_quantities::Integer, alpha::Real=0.05)
+    !(n_draws isa Bool) && n_draws > 0 && !(n_quantities isa Bool) && n_quantities > 0 &&
+        !(alpha isa Bool) && isfinite(alpha) && 0 < alpha < 1 && !isempty(ranks) ||
+        throw(ArgumentError("invalid rank support, quantity count, alpha or planned denominator"))
+    all(r -> ismissing(r) || (r isa Integer && !(r isa Bool) && 0 <= r <= n_draws), ranks) ||
+        throw(ArgumentError("each planned slot must contain a rank in 0:L or missing"))
+    valid = collect(skipmissing(ranks))
+    n, unresolved = length(ranks), count(ismissing, ranks)
+    epsilon = sqrt((log(2.0)+log(n_quantities)-log(alpha))/(2n))
+    rows = [begin
+        c = count(<=(k), valid)
+        lower = k == n_draws ? 1.0 : c/n
+        upper = k == n_draws ? 1.0 : (c+unresolved)/n
+        band_lower = k == n_draws ? 1.0 : max(0.0, lower-epsilon)
+        band_upper = k == n_draws ? 1.0 : min(1.0, upper+epsilon)
+        reference = (k+1)/(n_draws+1)
+        (; rank=k, reference, lower, upper, band_lower, band_upper,
+            resolved_departure=reference < band_lower || reference > band_upper)
+    end for k in 0:n_draws]
+    return (; planned=n, usable=length(valid), unresolved, n_draws, n_quantities, alpha, epsilon, rows,
+        conditional_screen=isempty(valid) ? :unresolved :
+            any(r -> r.resolved_departure, rows) ? :departure : :no_resolved_departure,
+        independence_verified=false, calibration_verified=false, scientific_acceptance=false)
+end
+
 """
 Prepare known-truth scores from explicitly labelled retained draws. The supplied
 diagnostic flag is a caller declaration on this low-level preparation path;
@@ -161,13 +314,7 @@ diagnostic flag is a caller declaration on this low-level preparation path;
 function score_draws(panel, target, draws::AbstractMatrix;
         parameter_names, chain_ids, iterations, diagnostic_flag::Symbol,
         expected_target_identity::AbstractString)
-    target_identity(target) == expected_target_identity || throw(ArgumentError("target identity mismatch"))
-    spec = base_target(target).design.spec
-    B.design_identity(B.getdesign(specification(panel); preview=true)).value ==
-        B.design_identity(base_target(target).design).value || throw(ArgumentError("response/specification mismatch"))
-    parameter_names == B._mfrm_fixed_q_parameter_names(target) ||
-        throw(ArgumentError("free-coordinate names/order mismatch"))
-    check_state(spec, panel.truth)
+    spec = _check_draw_binding(panel, target, parameter_names, expected_target_identity)
     layout = chain_order(chain_ids, iterations, size(draws, 1))
     correlated = is_correlated(target)
     truth = estimands(spec, panel.truth; correlated)

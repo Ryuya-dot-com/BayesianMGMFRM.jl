@@ -227,6 +227,8 @@ evaluation. It imports the package and standard libraries, with no other script
 includes. Its tests reuse the existing exchangeable synthetic-record helper.
 There is no package include/export, dependency, serialized fit type or public
 API change. The historical include counts below remain dated observations.
+The subsequent SBC preparation extends this same module/test with joint-prior
+generation and rank arithmetic; it adds no further include or import-time work.
 
 ## Anchor recording test addendum
 

@@ -419,16 +419,52 @@ This is a bounded, in-memory preparation module; it is not a grid executor or
 an accepted production memory budget. Paired-method aggregation, full byte/RNG
 provenance, resource stops and study qualification remain execution prerequisites.
 
+## Sampler-free SBC preparation
+
+The separate SBC preparation now uses `prior_panel` in the same internal
+module. It draws all stochastic coordinates in full model space, including
+population rho under the selected LKJ prior, before generating responses with
+the independent PCM routine. Exchangeable severities use projection of four
+iid normals; legacy severities use three free normals and negative-sum
+reconstruction. Item/free-step draws and uncentered abilities retain their
+declared priors. There is no call to the fitted target's prior-draw helper and
+no rejection/redraw loop for extreme or inconvenient outcomes.
+
+`sbc_draw_quantities` binds the generating prior/covariance and actual responses
+to the fitted target and named draw columns. It returns the 12/13 test quantities
+for explicitly selected retained iterations per chain. Selection keeps chain
+IDs and validates unselected retained rows too; it does not establish MCMC
+independence or apply diagnostic qualification. `randomized_rank` uses exact
+ties and returns their attainable zero-based rank interval. `rank_cdf` accepts
+one rank or `missing` per planned dataset and implements the full-denominator
+envelope and within-target DKW family adjustment above. The caller must preserve
+the planned ID roster; this vector calculation is not an attempt ledger.
+The terminal CDF at rank L is exactly one, including with missing ranks.
+
+An exact finite two-point PCM control illustrates the test-quantity choice:
+with equal prior masses at abilities +/-log(2), four-category probabilities
+are `(8,4,2,1)/15` and `(1,2,4,8)/15`. Returning one fresh prior draw yields
+parameter rank probabilities `(0.5,0.5)` but likelihood rank probabilities
+`(0.35,0.65)` after randomized ties. Exact posterior draws give `(0.5,0.5)` for
+both. This enumerated toy law tests rank arithmetic and sensitivity; it is not
+the package's Gaussian-prior target or a completed MFRM SBC experiment.
+
+Focused tests on Julia 1.10.8 and 1.12.5 pass 224 additional assertions for
+this preparation, alongside the 229 generation/scoring and 1,113 related
+existing checks. The prior moment checks use 4,000 independent parameter draws
+per target, not posterior draws or evaluation replications. The
+[verification record](normalized-prior-backend-comparison.md#fixed-coefficient-sbc-preparation-2026-09-17)
+states the limits and retained evidence.
+
 ## Next implementation and review handoff
 
-Next, prepare the separate joint-prior SBC path without MCMC: independently
-generate all stochastic coordinates under each of the four declared targets,
-connect raw ability/item and data-dependent log-likelihood test quantities, and
-exercise randomized ties and missing-rank envelopes with known cases. Preserve
-the distinction from the fixed-facet generator above. Rank dependence under
-actual MCMC, scientific margins and execution acceptance remain unresolved;
-synthetic uniform ranks alone cannot close them. Reuse the existing coordinate,
-probability and MCSE paths; do not add a sampler/controller or full-grid launcher.
+Next, connect explicit diagnostic qualification and MCSE-based paired backend
+comparison on synthetic/saved records. Implement agreement/discrepancy/inconclusive
+classification under supplied numerical margins, preserving failed pairs and
+statistic-specific uncertainty. Keep proposed study thresholds distinguishable
+from adopted criteria. Actual SBC rank dependence, scientific margins and
+execution acceptance remain unresolved; do not add a sampler/controller or
+full-grid launcher to resolve these preparation tasks.
 
 Independent review must resolve target/identification interpretation, scientific
 margins or descriptive-only claims, allocation precision, SBC dependence policy,

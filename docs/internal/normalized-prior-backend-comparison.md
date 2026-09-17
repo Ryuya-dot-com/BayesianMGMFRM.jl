@@ -3489,14 +3489,47 @@ and constructed draws were used: zero live fits, SBC/recovery evaluation
 replications, independent reviews or full-suite/CI runs. Study-specific
 qualification/precision rules, provenance and resource enforcement remain open.
 
+## Fixed-coefficient SBC preparation (2026-09-17)
+
+The [SBC preparation](fixed-coefficient-validation-protocol.md#sampler-free-sbc-preparation)
+extends the same manual module with independent joint-prior generation for all
+four targets. It preserves selected prior/covariance metadata and generated
+responses, and rejects fixed-facet inputs or a mismatched fitted prior. It
+computes the declared 12/13 per-draw quantities, including raw ability/item
+locations and joint response log likelihood. Explicit iteration selection
+preserves chain identity and does not qualify MCMC independence or diagnostics.
+
+Exact ties are randomized within their attainable rank interval. A rank or
+missing entry for each planned dataset supplies the full-denominator CDF
+envelope, with the proposed within-target DKW family adjustment. Missing entries
+cannot disappear from the denominator, and the terminal CDF is one even with
+missing ranks. This low-level arithmetic still needs a bound attempt ledger
+before execution; no detected departure is not a calibration certificate.
+
+On Julia 1.10.8 and 1.12.5, **224 additional assertions** passed: 177 joint-prior
+generation/quantity-binding, 43 rank/envelope and four exact negative-control
+checks. The prior distribution checks use 4,000 parameter draws for each target
+against analytic covariance and LKJ moments; these are not evaluation datasets.
+An enumerated two-point PCM example confirms that a prior-only procedure can
+have uniform parameter ranks while likelihood ranks are nonuniform. This toy
+prior is explicitly different from the package's Gaussian model.
+All **1,342 preceding focused checks** also pass on each version, including
+the unchanged fixed-facet generation/scoring path and synthetic backend records.
+There were zero live fits, CmdStan executions or SBC/recovery evaluation
+replications. No package/public API, dependency or persistence type changed.
+The [local receipt](../../results/workflows/20260917-fixed-coefficient-sbc-01/receipt.json)
+retains logs, input revision, limits and artifact hashes. No full suite, CI or
+independent scientific review was performed.
+
 ## Next bounded work
 
-Connect joint-prior generation and data-dependent SBC quantities under the
-[protocol handoff](fixed-coefficient-validation-protocol.md#next-implementation-and-review-handoff),
-with randomized ties and missing-rank envelopes checked without sampling.
-Keep the fixed-facet recovery generator separate. Reuse existing coordinate,
-probability, diagnostic and MCSE paths; no new engine/controller or full-grid
-launcher. Short API demonstrations and these preparation checks cannot justify MCMC
+Connect explicit diagnostic qualification and MCSE-based paired backend
+comparisons under the
+[protocol handoff](fixed-coefficient-validation-protocol.md#next-implementation-and-review-handoff).
+Use supplied numerical margins and preserve failed/inconclusive pairs on
+synthetic/saved records; keep proposed criteria separate from adopted study
+decisions. Reuse existing diagnostics/MCSE and result types; no new engine,
+controller or full-grid launcher. These preparation checks cannot justify MCMC
 convergence, posterior backend agreement, recovery, coverage or a default prior.
 Independent target-specific M1 review precedes statistical evaluation.
 Ordered-step priors, higher-dimensional covariance, within-item validation,

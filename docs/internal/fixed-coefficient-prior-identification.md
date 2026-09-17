@@ -413,7 +413,9 @@ settings remain proposals; independent M1 review and scientific margins are open
 The [sampler-free Julia preparation](fixed-coefficient-validation-protocol.md#sampler-free-julia-preparation)
 now connects independent response generation, labelled truth/model coordinates,
 per-draw estimands, chain-aware MCSE and all-attempt denominators on synthetic
-records. Next, connect joint-prior generation and data-dependent SBC quantities
-with tie/missing-rank checks, still without a recovery/SBC fit grid. Ordered-step
+records. The [SBC preparation](fixed-coefficient-validation-protocol.md#sampler-free-sbc-preparation)
+also connects joint-prior generation, data-dependent quantities and tie/missing-rank
+arithmetic. Next, connect explicit diagnostic qualification and MCSE-based
+paired backend comparisons on synthetic/saved records, without a fit grid. Ordered-step
 priors, the scientific default and broader random-effect structure remain
 separate choices.

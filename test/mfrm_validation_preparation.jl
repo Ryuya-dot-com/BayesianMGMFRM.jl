@@ -1,7 +1,7 @@
 isdefined(@__MODULE__, :MFRMExchangeableSampleChecks) || include("mfrm_exchangeable_samples.jl")
 
 module MFRMValidationPreparationChecks
-using Test, Random, Statistics, BayesianMGMFRM
+using Test, Random, Statistics, LinearAlgebra, BayesianMGMFRM
 using ..MFRMExchangeableSampleChecks: synthetic_record
 include(joinpath(@__DIR__, "..", "scripts", "mfrm_validation_preparation.jl"))
 const V = MFRMValidationPreparation
@@ -229,5 +229,164 @@ end
     partial=merge(failed,(;result=(;status=:interrupted,rows=score.rows)))
     @test_throws ArgumentError V.summarize_attempts(plan,[partial];parameter="r4-r1")
     @test_throws ArgumentError V.summarize_attempts(plan,[merge(good,(;result=(;status=:unknown)))];parameter="r4-r1")
+end
+
+struct BoundaryBeta <: AbstractRNG end
+Random.rand(::BoundaryBeta, ::B.Turing.Beta) = 1.0
+
+@testset "joint-prior generation and SBC quantity binding (no posterior sampling)" begin
+    geometry=V._geometry(4)
+    for correlated in (false,true), exchangeable in (false,true)
+        prior=exchangeable ? E.ExchangeablePrior(person_sd=0.9,rater_kernel_sd=0.4,item_sd=0.7,step_sd=0.25) :
+            MFRMPrior(person_sd=0.9,rater_sd=0.4/sqrt(2),item_sd=0.7,step_sd=0.25)
+        eta=correlated ? 2 : nothing
+        rng=MersenneTwister(821)
+        # Distribution/moment checks of prior draws only; no SBC evaluations.
+        states=[V._prior_state(geometry,rng,prior;correlated,lkj_eta=eta) for _ in 1:4000]
+        raters=permutedims(hcat([s.r for s in states]...))
+        C=[Matrix{Float64}(I,3,3); -ones(1,3)]
+        expected=exchangeable ? 0.4^2 .* (Matrix{Float64}(I,4,4)-ones(4,4)/4) : prior.rater_sd^2 .* (C*C')
+        se=sqrt.((diag(expected)*diag(expected)' + expected.^2)/4000)
+        @test all(abs.(cov(raters)-expected) .< 6se)
+        @test maximum(abs,vec(mean(raters;dims=1))) < 0.025
+        @test maximum(abs,vec(sum(raters;dims=2))) < 1e-12
+        @test var([s.b[1] for s in states]) ≈ 0.7^2 atol=0.065
+        @test var([s.steps[1,2] for s in states]) ≈ 0.25^2 atol=0.01
+        @test var([s.steps[1,4] for s in states]) ≈ 2*0.25^2 atol=0.02
+        @test all(s.steps[1,1]==0 && abs(sum(s.steps[1,:])) < 1e-12 for s in states)
+        @test var([s.theta[1,1] for s in states]) ≈ 0.9^2 atol=0.12
+        @test var([s.theta[1,2] for s in states]) ≈ 0.9^2 atol=0.12
+        @test abs(mean(s.theta[1,1]*s.theta[1,2]/0.9^2-s.rho for s in states)) < 0.08
+        @test mean(abs(mean(s.theta[:,1])) for s in states) > 0.1 # not recentered
+        if correlated
+            @test abs(mean(s.rho for s in states)) < 0.04
+            @test var([s.rho for s in states]) ≈ 1/5 atol=0.025
+        else
+            @test all(iszero(s.rho) for s in states)
+        end
+        make_panel()=V.prior_panel(MersenneTwister(831),MersenneTwister(832);
+            persons=4,prior,correlated)
+        p=make_panel(); spec=V.specification(p)
+        @test p.truth == make_panel().truth && p.data.score == make_panel().data.score
+        @test p.generation.kind === :joint_prior && p.generation.lkj_eta === eta
+        @test p.truth.b != panel().truth.b && p.truth.r != panel().truth.r
+        model=correlated ? E.correlated(spec;lkj_eta=2) : spec
+        t=B._fixed_q_prior_target(model,prior)
+        x=truth_vector(t,p.truth)
+        reconstructed=only(V.model_states(t,reshape(x,1,:)))
+        @test reconstructed.r ≈ p.truth.r
+        @test reconstructed.steps == p.truth.steps
+        @test isfinite(logprior(t,x))
+        quantities=V.sbc_quantities(spec,p.truth;correlated)
+        @test length(quantities.names)==(correlated ? 13 : 12)
+        @test quantities.names[end-2:end] == ["theta11","b1","joint_log_likelihood"]
+        @test quantities.values[end-2:end-1] == [p.truth.theta[1,1],p.truth.b[1]]
+        @test last(quantities.values) ≈ sum(B._mfrm_fixed_q_pointwise(V.base_target(t),x[1:end-Int(correlated)])) atol=1e-11
+        changed=deepcopy(p); changed.data.score .= mod.(changed.data.score .+ 1,4)
+        changed.data.category .= changed.data.score .+ 1
+        @test V.sbc_quantities(V.specification(changed),p.truth;correlated).values[1:end-1] == quantities.values[1:end-1]
+        @test V.sbc_quantities(V.specification(changed),p.truth;correlated).values[end] != quantities.values[end]
+        draws=permutedims(x) .+ 0.1randn(MersenneTwister(833),12,length(x))
+        opts=(;parameter_names=B._mfrm_fixed_q_parameter_names(t),chain_ids=repeat(1:4;inner=3),
+            iterations=repeat(1:3;outer=4),selected_iterations=[1,3],expected_target_identity=V.target_identity(t))
+        result=V.sbc_draw_quantities(p,t,draws;opts...)
+        @test size(result.draws)==(8,length(quantities.names))
+        @test result.truth == quantities.values
+        @test result.iterations == repeat([1,3];outer=4)
+        @test result.selected_rows == [1,3,4,6,7,9,10,12]
+        @test !result.independence_verified && !result.diagnostic_qualification_applied && !result.scientific_acceptance
+        shuffled=reverse(1:12)
+        other=V.sbc_draw_quantities(p,t,draws[shuffled,:];merge(opts,
+            (;chain_ids=opts.chain_ids[shuffled],iterations=opts.iterations[shuffled]))...)
+        @test result.draws == other.draws && result.chain_ids == other.chain_ids
+        for selection in (Int[],[1,1],[3,1],[0],[4],[true])
+            @test_throws ArgumentError V.sbc_draw_quantities(p,t,draws;merge(opts,(;selected_iterations=selection))...)
+        end
+        invalid=copy(draws);invalid[2,1]=NaN # invalid unselected draws also reject
+        @test_throws ArgumentError V.sbc_draw_quantities(p,t,invalid;opts...)
+        @test_throws ArgumentError V.sbc_draw_quantities((;p.data,p.truth),t,draws;opts...)
+        @test_throws ArgumentError V.sbc_draw_quantities(changed,t,draws;opts...)
+        wrong=merge(p,(;generation=merge(p.generation,(;prior=MFRMPrior()))))
+        @test_throws ArgumentError V.sbc_draw_quantities(wrong,t,draws;opts...)
+        wrong=merge(p,(;generation=merge(p.generation,(;correlated=!correlated,lkj_eta=correlated ? nothing : 2))))
+        @test_throws ArgumentError V.sbc_draw_quantities(wrong,t,draws;opts...)
+        if correlated
+            wrong=merge(p,(;generation=merge(p.generation,(;lkj_eta=3))))
+            @test_throws ArgumentError V.sbc_draw_quantities(wrong,t,draws;opts...)
+        end
+        single=V.prior_panel(MersenneTwister(831),ZeroUniform();persons=4,prior,correlated)
+        @test all(iszero,single.data.score) && single.generation.kind === :joint_prior
+    end
+    prior=E.ExchangeablePrior(rater_kernel_sd=0.4)
+    @test_throws ArgumentError V.prior_panel(BoundaryBeta(),ZeroUniform();persons=4,prior,correlated=true)
+    @test_throws ArgumentError V.prior_panel(MersenneTwister(1),ZeroUniform();persons=4,prior,correlated=false,lkj_eta=2)
+    @test_throws ArgumentError V.prior_panel(MersenneTwister(1),ZeroUniform();persons=4,prior,correlated=true,lkj_eta=true)
+    @test_throws ArgumentError V.prior_panel(MersenneTwister(1),ZeroUniform();persons=4,prior=:wrong,correlated=false)
+    rng=MersenneTwister(1)
+    @test_throws ArgumentError V.prior_panel(rng,rng;persons=4,prior,correlated=true)
+end
+
+@testset "randomized ranks and full-denominator CDF envelopes" begin
+    rng=MersenneTwister(841)
+    @test V.randomized_rank(0.,[-1.,1.],rng).rank == 1
+    @test V.randomized_rank(-2.,[-1.,1.],rng).rank == 0
+    @test V.randomized_rank(2.,[-1.,1.],rng).rank == 2
+    tie=V.randomized_rank(0.,[-1.,0.,0.,1.],rng)
+    @test tie.lower==1 && tie.upper==3 && tie.ties==2 && 1 <= tie.rank <= 3
+    @test V.randomized_rank(0.,[nextfloat(0.)],rng).rank == 0 # exact, not approximate ties
+    all_ties=[V.randomized_rank(0.,zeros(3),rng).rank for _ in 1:4000]
+    @test Set(all_ties)==Set(0:3)
+    @test all(abs(count(==(k),all_ties)-1000)<130 for k in 0:3)
+    @test V.randomized_rank(0.,zeros(3),MersenneTwister(42)) == V.randomized_rank(0.,zeros(3),MersenneTwister(42))
+    for (truth,draws) in ((NaN,[0.]),(0.,[Inf]),(0.,Float64[]),(true,[0.]),(0.,[true]))
+        @test_throws ArgumentError V.randomized_rank(truth,draws,rng)
+    end
+    balanced=V.rank_cdf(repeat(0:4;outer=100);n_draws=4,n_quantities=13)
+    @test balanced.conditional_screen === :no_resolved_departure
+    @test balanced.epsilon ≈ sqrt(log(520)/1000)
+    @test !balanced.calibration_verified && !balanced.independence_verified
+    biased=V.rank_cdf(zeros(Int,500);n_draws=4,n_quantities=13)
+    @test biased.conditional_screen === :departure
+    envelope=V.rank_cdf([0,missing,2,missing];n_draws=2,n_quantities=1)
+    @test [(r.lower,r.upper) for r in envelope.rows] == [(0.25,0.75),(0.25,0.75),(1.,1.)]
+    @test envelope.planned==4 && envelope.usable==2 && envelope.unresolved==2
+    @test last(envelope.rows).band_lower == last(envelope.rows).band_upper == 1
+    for a in 0:2,b in 0:2
+        completed=V.rank_cdf([0,a,2,b];n_draws=2,n_quantities=1)
+        @test all(lo.lower <= value.lower <= lo.upper for (lo,value) in zip(envelope.rows,completed.rows))
+    end
+    @test V.rank_cdf(fill(missing,500);n_draws=4,n_quantities=13).conditional_screen === :unresolved
+    @test V.rank_cdf([0;fill(missing,499)];n_draws=4,n_quantities=13).conditional_screen === :no_resolved_departure
+    @test V.rank_cdf([zeros(Int,250);fill(missing,250)];n_draws=4,n_quantities=13).conditional_screen === :departure
+    for ranks in (Int[],[-1],[3],[NaN],[true],[0.5])
+        @test_throws ArgumentError V.rank_cdf(ranks;n_draws=2,n_quantities=1)
+    end
+    for kwargs in ((;n_draws=0,n_quantities=1),(;n_draws=true,n_quantities=1),
+            (;n_draws=2,n_quantities=0),(;n_draws=2,n_quantities=1,alpha=0.),
+            (;n_draws=2,n_quantities=1,alpha=NaN))
+        @test_throws ArgumentError V.rank_cdf([0];kwargs...)
+    end
+end
+
+@testset "exact prior-only negative control for rank test quantities" begin
+    # Finite two-point prior with the PCM response kernel, not the Gaussian
+    # package target: enumerate the exact law, without MCMC or Monte Carlo error.
+    probabilities=[8. 4. 2. 1.; 1. 2. 4. 8.]/15
+    locations=[-log(2),log(2)]
+    rank_laws=Dict((method,quantity)=>zeros(2) for method in (:prior_only,:posterior),quantity in (:parameter,:loglik))
+    for truth in 1:2,y in 1:4,draw in 1:2,method in (:prior_only,:posterior),quantity in (:parameter,:loglik)
+        draw_probability=method===:prior_only ? 0.5 : probabilities[draw,y]/sum(probabilities[:,y])
+        weight=0.5*probabilities[truth,y]*draw_probability
+        a,b=quantity===:parameter ? (locations[truth],locations[draw]) :
+            (log(probabilities[truth,y]),log(probabilities[draw,y]))
+        rank=V.randomized_rank(a,[b],MersenneTwister(851))
+        for r in rank.lower:rank.upper
+            rank_laws[(method,quantity)][r+1] += weight/(rank.upper-rank.lower+1)
+        end
+    end
+    @test rank_laws[(:prior_only,:parameter)] ≈ [0.5,0.5]
+    @test rank_laws[(:prior_only,:loglik)] ≈ [0.35,0.65]
+    @test rank_laws[(:posterior,:parameter)] ≈ [0.5,0.5]
+    @test rank_laws[(:posterior,:loglik)] ≈ [0.5,0.5]
 end
 end
