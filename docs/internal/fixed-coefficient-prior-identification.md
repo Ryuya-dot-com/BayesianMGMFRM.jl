@@ -296,13 +296,53 @@ checks, numerical examples and saved figures are in the
 These synthetic comparisons inspect prior implications, not model fit,
 posterior performance or a scientifically preferred default.
 
+## Private sampling and saved results
+
+`_mfrm_exchangeable_rater_sample(target; backend=:advancedhmc, ...)` now reuses
+the existing AdvancedHMC and CmdStan NUTS runners. It rebuilds mutable numerical
+views from the validated design and explicit scales before sampling. The CmdStan
+adapter delegates initialization coordinates to the existing independent or
+correlated model, maps output by column name, and verifies pointwise likelihoods
+and full normalized log posterior values against the exchangeable Julia target.
+No new sampler or Stan response/target code is introduced in this slice.
+
+The result reuses existing posterior summaries, full-coordinate reconstruction,
+MCMC diagnostics and optional warmup telemetry. Correlated results continue to
+distinguish Fisher-z sampling coordinates from reported rho. Fixed coefficients
+and baseline steps remain fixed rather than estimated precision. A distinct
+`model` value and `rater_prior` flag accompany the full prior record; the result
+remains private (`public_fit=false`).
+
+The record schema is `bayesianmgmfrm.exchangeable_rater_mfrm_samples.v1`.
+It stores the independent or correlated specification, actual prior scales and
+measure, target identity, canonical run and content hash. The existing generic
+sample hash covers schema/prior/target/run; rebuilding and checking the target
+identity separately verifies the specification, including its Q/data and LKJ
+setting. The loaders check chain layout, controls, initial/retained densities,
+sampler statistics, Stan log posterior values when applicable and warmup
+coverage. Names, transformed coordinates, summaries and diagnostics are rebuilt
+from the canonical record rather than trusted as saved display fields.
+
+`_save_mfrm_exchangeable_rater_samples(path, result)` and
+`_load_mfrm_exchangeable_rater_samples(path; expected_identity=...)` use trusted
+same-environment Julia Serialization. Saving verifies the complete record before
+the existing atomic publication helper runs. Failed validation or overwrite
+attempts preserve the existing file. This is a separate private sample format;
+the compatibility sample loaders and public fit-cache loader reject it. No
+automatic conversion of historical draws or change of default is implied.
+
+The [implementation record](normalized-prior-backend-comparison.md#exchangeable-rater-sampling-and-result-persistence-2026-09-17)
+reports synthetic integrity tests and bounded live runs separately. Short runs
+exercise sampling/output/replay paths and retain diagnostic warnings. They do
+not establish convergence, posterior agreement between backends, recovery,
+coverage or a supported application domain.
+
 ## Next bounded implementation
 
-Connect the distinct exchangeable target to the existing Julia/CmdStan sampling
-and result machinery privately. Preserve its prior record and identity through
-draw reconstruction, diagnostics and save/reload, rejecting mismatched priors
-before reuse. Retain the current compatibility model and defaults. Establish
-this result contract before exposing a public fitting selector; public API
-design, ordered-step prior choice and target-specific recovery/coverage remain
-separate decisions. Do not reinterpret historical draws or treat these
-prior-predictive examples as evidence for statistical acceptance.
+Connect these verified saved results to existing posterior-predictive summaries,
+reports and figures privately, preserving the actual exchangeable prior and
+kernel/marginal scale meanings. Prevent fallback to compatibility-prior report
+text; confirm that save/reload regenerates the same numerical outputs and
+diagnostic warnings without refitting. Public fitting/cache API design,
+scientific default selection, ordered-step priors and target-specific
+recovery/coverage remain separate decisions.

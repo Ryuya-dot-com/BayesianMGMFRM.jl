@@ -144,6 +144,8 @@ function _mfrm_fixed_q_model_coordinates(target::_MFRMFixedQReferenceLogDensity,
     return rows
 end
 
+_mfrm_fixed_q_parameter_names(target) = target.blueprint.parameter_names
+
 function _mfrm_fixed_q_samples(target, record::NamedTuple;
         model::Symbol = :mfrm_fixed_q, parameter_space::Symbol = :unit_logit,
         model_parameter_space::Symbol = :unit_logit_with_fixed_coefficients)
@@ -154,7 +156,7 @@ function _mfrm_fixed_q_samples(target, record::NamedTuple;
             for (stat, lp) in zip(run.sampler_stats, run.logdensities)) ||
             throw(ArgumentError("fixed-Q MFRM retained Stan log posterior mismatch"))
     end
-    names = target.blueprint.parameter_names
+    names = _mfrm_fixed_q_parameter_names(target)
     # Location draws already use unit logits; reconstruct only the declared constraints.
     parameter_rows = _candidate_mcmc_diagnostic_rows(run.draws, names, run.controls.chains;
         parameter_space, split_chains = run.split_chains_requested,

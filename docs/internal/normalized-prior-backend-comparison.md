@@ -3246,16 +3246,72 @@ review were not run. Actual commands, figure checks, retained input hashes and
 raw CmdStan outputs are in the
 [local receipt](../../results/workflows/20260917-rater-prior-predictive-01/receipt.json).
 
+## Exchangeable-rater sampling and result persistence (2026-09-17)
+
+The private exchangeable-rater target now uses the existing AdvancedHMC and
+CmdStan NUTS runners for independent and correlated fixed-coefficient models.
+It rebuilds numerical views from the canonical design and actual prior scales
+before running. Named CmdStan columns feed the same coordinate reconstruction;
+pointwise likelihoods and the full normalized log posterior are checked against
+the exchangeable Julia target. Fisher-z sampling coordinates remain distinct
+from reported correlations, and fixed coefficients/steps stay outside estimated
+parameter quality gates. No sampler or Stan model source was duplicated.
+
+The distinct private sample schema carries its specification, prior record,
+target identity, canonical run and content hash. Save/reload verifies the target,
+initial/retained densities, chain layout, sampler statistics and recorded warmup
+coverage, then rebuilds summaries and diagnostics. Corrupted records, wrong
+scales, different specifications and compatibility-prior records are rejected;
+failed saves preserve an existing file. Old private sample loaders and the
+public fit-cache loader reject the new schema. The
+[result contract](fixed-coefficient-prior-identification.md#private-sampling-and-saved-results)
+uses trusted same-environment Serialization and adds no public fit/cache selector.
+
+New synthetic reconstruction/integrity tests passed 573 assertions, and sampler
+guards/named-column checks passed 58, on each Julia 1.10.8 and 1.12.5. The cases
+include independent 2D/3D, mixed within-item Q and correlated 2D coordinates,
+binary/polytomous responses and records from both backends. These are structural
+tests, not evidence for a statistically validated within-item domain. Existing
+exchangeable density/prior checks passed 482 assertions on each version.
+
+Live sampling/save-reload checks passed 160 assertions on each Julia version
+with AdvancedHMC and 166 with fresh CmdStan 2.39.0 builds on Julia 1.12.5. The
+CmdStan driver also repeated the 631 structural/guard and 482 density assertions.
+Each route ran an independent binary and a correlated four-category case with
+three raters and two dimensions (LKJ eta=3 for the correlated case). Every fit
+used two chains, ten warmup iterations and twelve retained draws per chain,
+seed 20260917 and maximum tree depth four: six fits, twelve chains, 120 warmup
+iterations and 144 retained draws in total. Prior records and target identities
+agree across runtimes/backends for each model; no posterior-agreement claim is
+made from these short runs.
+
+All six fits retain `sampler_warning` diagnostics. Correlated warmup records
+include one divergence per AdvancedHMC chain, no CmdStan warmup divergences,
+and tree-depth warnings. Independent warmup was deliberately not recorded and
+remains labelled as such. These runs establish execution and persistence only;
+they do not establish convergence, recovery, coverage or scientific acceptance.
+The saved records and JSON summaries retain the actual warnings and scales.
+
+Historical-fit checks passed 10 assertions on Julia 1.10 and 15 on 1.12. All
+five input fits retain their bytes, target identities and draws; all 121 artifacts
+from the preceding handoff retain their recorded hashes. Public-language policy
+checks passed 181 assertions, and the source-language gate passed for 20 files.
+Public API/help claims and compatibility defaults are unchanged. The full
+suite, CI, fresh rendered manual and independent reader/scientific review were
+not run. Commands, saved results, diagnostic summaries and retained hashes are
+in the [local receipt](../../results/workflows/20260917-exchangeable-samples-01/receipt.json).
+
 ## Next bounded work
 
-Connect the distinct exchangeable target privately to existing Julia/CmdStan
-sampling and result machinery. Carry its prior record and identity through
-coordinate reconstruction, diagnostics and save/reload; reject incompatible
-records before reuse. Establish this result contract before exposing a public
-fitting selector, retaining compatibility defaults and old artifacts. Scientific
-default selection, ordered-step priors and target-specific recovery protocols
-remain separate decisions. Higher-dimensional covariance, within-item validation,
-automatic request caching, hard anchors and application predictors remain separate.
+Connect the verified private saved results to existing posterior-predictive
+summaries, reports and figures. Preserve the exchangeable prior's actual kernel
+and marginal scale meanings, reject compatibility-prior fallback text, and
+verify numerical/report replay without refitting or losing diagnostic warnings.
+Retain compatibility defaults and old artifacts. Public fitting/cache API design,
+scientific default selection, ordered-step priors and target-specific recovery
+protocols remain separate decisions. Higher-dimensional covariance, within-item
+validation, automatic request caching, hard anchors and application predictors
+remain separate.
 
 Separately, record an unfamiliar reader finding the supported model/backend, loading a fit,
 choosing a named dimension, interpreting diagnostic/interval labels and saving/

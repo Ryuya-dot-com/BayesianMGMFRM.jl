@@ -1,4 +1,4 @@
-# Private prior reference/comparison. No fitting/cache selector or default change.
+# Private target, prior comparison and sample records; no public selector/default change.
 struct _MFRMExchangeableRatersLogDensity{T}
     base::T
 
@@ -139,3 +139,85 @@ function _mfrm_rater_prior_comparison(spec::Union{FacetSpec,CorrelatedMFRMSpec};
         rng = merge(rng_control, (; coupling = :shared_nonrater_draws_and_predictive_uniforms)),
         independent_free = old, exchangeable)
 end
+
+# The same coordinates now feed the existing samplers and diagnostic tables.
+_check_source_fixture_raw_vector(target::_MFRMExchangeableRatersLogDensity, values::AbstractVector) =
+    _check_source_fixture_raw_vector(target.base, values)
+_mfrm_fixed_q_parameter_names(target::_MFRMExchangeableRatersLogDensity) =
+    _mfrm_fixed_q_parameter_names(target.base)
+_mfrm_fixed_q_model_coordinates(target::_MFRMExchangeableRatersLogDensity, draws::AbstractMatrix{<:Real}) =
+    _mfrm_fixed_q_model_coordinates(target.base, draws)
+_cmdstan_generalized_initial(target::_MFRMExchangeableRatersLogDensity, values) =
+    _cmdstan_generalized_initial(target.base, values)
+
+function _cmdstan_generalized_chain_result(path::AbstractString,
+        target::_MFRMExchangeableRatersLogDensity, chain::Int, ndraws::Int; warmup::Int = 0)
+    reference = _mfrm_exchangeable_rater_reference(target)
+    p = LogDensityProblems.dimension(reference)
+    names = ["beta.$i" for i in 1:p]
+    target.base isa _MFRMFixedQCorrelated2DLogDensity && push!(names, "zrho")
+    evaluate = values -> (;
+        pointwise = _mfrm_fixed_q_pointwise(reference, view(values, 1:p)),
+        logposterior = LogDensityProblems.logdensity(target, values))
+    parsed = _cmdstan_raw_chain_result(path, LogDensityProblems.dimension(target),
+        reference.design.spec.data.n, chain, ndraws, evaluate; warmup, parameter_names = names)
+    all(isapprox(stat.stan_lp, lp; atol = 1e-8, rtol = 1e-8)
+        for (stat, lp) in zip(parsed.stats, parsed.logps)) || throw(CmdStanError(
+            :output_parse, :log_posterior_mismatch,
+            "CmdStan and Julia exchangeable-rater MFRM log posteriors disagree"))
+    return parsed
+end
+
+function _mfrm_exchangeable_rater_samples(target::_MFRMExchangeableRatersLogDensity,
+        record::NamedTuple)
+    correlated = target.base isa _MFRMFixedQCorrelated2DLogDensity
+    result = correlated ? _mfrm_correlated_2d_samples(target, record) : _mfrm_fixed_q_samples(target, record)
+    return merge(result, (;
+        model = correlated ? :mfrm_correlated_2d_exchangeable_raters : :mfrm_fixed_q_exchangeable_raters,
+        rater_prior = :normalized_zero_sum_normal))
+end
+
+function _mfrm_exchangeable_rater_sample(target::_MFRMExchangeableRatersLogDensity,
+        initial::AbstractVector = initial_params(target);
+        backend::Symbol = :advancedhmc, record_warmup::Bool = true, kwargs...)
+    runner = backend === :advancedhmc ? _run_generalized_candidate_advancedhmc :
+        backend === :cmdstan ? _cmdstan_generalized_candidate_run :
+        throw(ArgumentError("exchangeable-rater MFRM sampling supports :advancedhmc or :cmdstan"))
+    reference = _mfrm_exchangeable_rater_reference(target)
+    _require_canonical_design(reference.design, "exchangeable-rater MFRM sampling")
+    spec = target.base isa _MFRMFixedQCorrelated2DLogDensity ?
+        CorrelatedMFRMSpec(reference.design.spec; lkj_eta = target.base.lkj_eta) : reference.design.spec
+    # Rebuild mutable numerical views from the authoritative design and scales.
+    target = _MFRMExchangeableRatersLogDensity(spec;
+        scales = _mfrm_exchangeable_rater_record(target).scales)
+    run = runner(target, initial; record_warmup, kwargs...)
+    record = (; schema = "bayesianmgmfrm.exchangeable_rater_mfrm_samples.v1",
+        spec = deepcopy(spec), prior = _mfrm_exchangeable_rater_record(target),
+        target_identity = _mfrm_exchangeable_rater_identity(target), run)
+    record = merge(record, (; content_hash = _mgmfrm_normalized_sample_hash(record)))
+    return _mfrm_exchangeable_rater_samples(target, record)
+end
+
+function _restore_mfrm_exchangeable_rater_samples(record; expected_identity::AbstractString)
+    record isa NamedTuple && keys(record) ==
+        (:schema, :spec, :prior, :target_identity, :run, :content_hash) &&
+        record.schema == "bayesianmgmfrm.exchangeable_rater_mfrm_samples.v1" &&
+        record.spec isa Union{FacetSpec,CorrelatedMFRMSpec} && record.prior isa NamedTuple &&
+        record.run isa NamedTuple && record.target_identity == expected_identity ||
+        throw(ArgumentError("exchangeable-rater MFRM sample contract or target mismatch"))
+    record.content_hash == _mgmfrm_normalized_sample_hash(record) ||
+        throw(ArgumentError("exchangeable-rater MFRM sample content hash mismatch"))
+    target = _MFRMExchangeableRatersLogDensity(record.spec, record.prior; expected_identity)
+    return _mfrm_exchangeable_rater_samples(target, record)
+end
+
+# Trusted same-environment Serialization, separate from compatibility/public fit caches.
+function _save_mfrm_exchangeable_rater_samples(path::AbstractString, result::NamedTuple;
+        overwrite::Bool = false)
+    record = result.record
+    _restore_mfrm_exchangeable_rater_samples(record; expected_identity = record.target_identity)
+    return _save_serialized_record(path, record; overwrite)
+end
+
+_load_mfrm_exchangeable_rater_samples(path::AbstractString; expected_identity::AbstractString) =
+    _restore_mfrm_exchangeable_rater_samples(open(deserialize, path); expected_identity)
