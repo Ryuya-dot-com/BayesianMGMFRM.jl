@@ -410,9 +410,10 @@ handling. Its sampler-free rank audit distinguishes the usual two location
 directions from additional disconnected-design ambiguity. Numerical study
 settings remain proposals; independent M1 review and scientific margins are open.
 
-Next, implement the protocol's bounded sampler-free generation/scoring handoff:
-independent probabilities and truth reconstruction, per-draw estimands,
-chain-aware MCSE and all-attempt denominators on tiny synthetic records. Reuse
-the existing fit/result path; do not launch a recovery/SBC grid. Ordered-step
+The [sampler-free Julia preparation](fixed-coefficient-validation-protocol.md#sampler-free-julia-preparation)
+now connects independent response generation, labelled truth/model coordinates,
+per-draw estimands, chain-aware MCSE and all-attempt denominators on synthetic
+records. Next, connect joint-prior generation and data-dependent SBC quantities
+with tie/missing-rank checks, still without a recovery/SBC fit grid. Ordered-step
 priors, the scientific default and broader random-effect structure remain
 separate choices.

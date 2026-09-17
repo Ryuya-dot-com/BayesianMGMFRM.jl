@@ -3461,15 +3461,42 @@ and [verification receipt](../../results/workflows/20260917-fixed-coefficient-pr
 This slice generated no responses and ran zero fits, recovery or SBC replications.
 No public API, README/help or manual navigation was changed.
 
+## Fixed-coefficient Julia generation and scoring (2026-09-17)
+
+The [manual preparation module](../../scripts/mfrm_validation_preparation.jl)
+now connects the fixed-facet response generator, labelled truth/model coordinates,
+focal estimands, chain-aware matrix MCSE and predictive recovery scoring. It
+reuses the standalone PCM generator, existing model-coordinate reconstruction,
+log-probability scorer and Wilson calculation. All-one-category generated data
+survive until separate specification validation; no rejection/redraw loop is used.
+Primary-attempt aggregation retains missing/failed attempts and rejects duplicate
+or replacement IDs, incompatible targets and partial score rows on failures. No package export,
+load include, dependency, fit type or public user-facing output changed.
+
+On both Julia 1.10.8 and 1.12.5, **229 new checks** passed, alongside **1,113
+existing related checks**. The new tests cover exact probabilities and an
+independent high-precision oracle; paired prefix/thin data; independent/correlated
+and legacy/exchangeable targets; common-coordinate likelihood checks; gauge
+invariance of derived summaries; shuffled-chain MCSE; probability averaging;
+truth/category/response/column/target rejection; diagnostic/precision failures;
+and full-denominator aggregation. Synthetic exchangeable fit records from both
+backend layouts retain warnings through the scoring adapter. They are not live
+MCMC, CmdStan execution or evidence of backend posterior agreement.
+
+The [verification receipt](../../results/workflows/20260917-fixed-coefficient-preparation-01/receipt.json)
+records initial development failures and final checks. Only synthetic check data
+and constructed draws were used: zero live fits, SBC/recovery evaluation
+replications, independent reviews or full-suite/CI runs. Study-specific
+qualification/precision rules, provenance and resource enforcement remain open.
+
 ## Next bounded work
 
-Implement the protocol's sampler-free generation/scoring preparation on tiny
-known inputs: independent response probabilities and truth reconstruction,
-per-draw estimands, chain layout/MCSE binding and all-attempt failure accounting.
-Reuse existing fits, diagnostics, matrix MCSE, persistence and figures; do not
-create another sampling engine/controller or a full-grid launcher. Make the
-protocol and implementation evidence reviewable while scientific decisions
-remain open. Short API demonstrations and the rank audit cannot justify MCMC
+Connect joint-prior generation and data-dependent SBC quantities under the
+[protocol handoff](fixed-coefficient-validation-protocol.md#next-implementation-and-review-handoff),
+with randomized ties and missing-rank envelopes checked without sampling.
+Keep the fixed-facet recovery generator separate. Reuse existing coordinate,
+probability, diagnostic and MCSE paths; no new engine/controller or full-grid
+launcher. Short API demonstrations and these preparation checks cannot justify MCMC
 convergence, posterior backend agreement, recovery, coverage or a default prior.
 Independent target-specific M1 review precedes statistical evaluation.
 Ordered-step priors, higher-dimensional covariance, within-item validation,

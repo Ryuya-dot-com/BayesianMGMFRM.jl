@@ -3,8 +3,9 @@
 Draft, 2026-09-17. Owner: analyst/maintainer. Independent M1 review and
 execution acceptance are **open**. Numbers below are concrete review proposals,
 not adopted scientific criteria, package defaults or permission to run a grid.
-This preparation generated no responses and ran no fits, SBC or recovery
-replications. The [roadmap](../../ROADMAP.md#research-execution-prerequisites)
+Protocol drafting generated no responses. The subsequent Julia preparation
+uses synthetic check data and constructed draws, with no live fits, SBC or
+recovery evaluation replications. The [roadmap](../../ROADMAP.md#research-execution-prerequisites)
 governs execution; this document owns this target's proposed design.
 
 ## Question and scope
@@ -382,15 +383,52 @@ producer resources separately from later scoring metadata. The existing
 applies, without inheriting the anchor study's 266-cell roster or claiming its
 six review decisions are closed.
 
+## Sampler-free Julia preparation
+
+The manually included [preparation module](../../scripts/mfrm_validation_preparation.jl)
+now connects the fixed-facet generator, focal estimands and scorer. It adds no
+package include/export or execution at import. The
+[ordinary generalized tests](../../test/mfrm_validation_preparation.jl) exercise
+this path with explicit local RNGs and synthetic draw/fit records.
+
+- `recovery_panel` takes separate person/response RNGs and preserves the
+  generated `FacetData` and labelled truth before model validation.
+  `specification` constructs the fixed-Q model afterward; even all-one-category
+  generated data remain available if that validation rejects them. Complete
+  ratings are drawn before thinning, with stable person-prefix order.
+- Probabilities reuse the standalone PCM generator, independently of the
+  fitted likelihood. Existing model-coordinate reconstruction supplies full
+  abilities, raters, items, steps and rho for retained draws. Focal estimands
+  and derived centering are computed per draw without rewriting stored draws.
+- `score_draws` checks response/specification and target identity, truth labels,
+  free-coordinate column names and chain/iteration IDs. It puts shuffled rows
+  into equal contiguous chain blocks before matrix MCSE. `score_fit` first
+  restores the canonical fit and obtains its actual diagnostic flag; the raw
+  draw method's flag is an explicit caller declaration used in synthetic checks.
+- Predictive scoring reuses the log-probability scorer, averaging probabilities
+  before KL/Brier regret. `summarize_attempts` joins a single cell's planned
+  primary IDs, rejects duplicates/replacements and incompatible targets, and
+  retains failures or absent attempts in coverage bounds and Wilson envelopes.
+  Bias/RMSE remain conditional on usable attempts when any are unresolved.
+
+The result status `prepared` means that existing diagnostics were declared OK
+and scalar MCSE was available. It does **not** apply the proposed study-specific
+ESS/BFMI/tree-depth/precision rules or close scientific review. Low-level caller
+declarations and a matching target hash are not independent provenance review.
+This is a bounded, in-memory preparation module; it is not a grid executor or
+an accepted production memory budget. Paired-method aggregation, full byte/RNG
+provenance, resource stops and study qualification remain execution prerequisites.
+
 ## Next implementation and review handoff
 
-The next bounded change is a sampler-free Julia generation/scoring preparation:
-independent response probabilities and truth reconstruction, declared estimands,
-chain-aware MCSE binding, and failure/denominator checks on tiny synthetic
-records. Reuse existing fit types, diagnostics, matrix MCSE, result persistence
-and report figures. Do not add a sampling engine, generic controller, new public
-API or full-grid script. A reproducible data generator is not independently
-validated merely because it produces plausible-looking ratings.
+Next, prepare the separate joint-prior SBC path without MCMC: independently
+generate all stochastic coordinates under each of the four declared targets,
+connect raw ability/item and data-dependent log-likelihood test quantities, and
+exercise randomized ties and missing-rank envelopes with known cases. Preserve
+the distinction from the fixed-facet generator above. Rank dependence under
+actual MCMC, scientific margins and execution acceptance remain unresolved;
+synthetic uniform ranks alone cannot close them. Reuse the existing coordinate,
+probability and MCSE paths; do not add a sampler/controller or full-grid launcher.
 
 Independent review must resolve target/identification interpretation, scientific
 margins or descriptive-only claims, allocation precision, SBC dependence policy,

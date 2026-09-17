@@ -1,12 +1,13 @@
 # BayesianMGMFRM.jl — Internal Roadmap
 
-Updated 2026-09-17 with a concrete draft
-[fixed-coefficient validation protocol](docs/internal/fixed-coefficient-validation-protocol.md)
-following the explicit opt-in `Experimental.ExchangeablePrior` on Julia/CmdStan.
-The protocol separates identification, prior sensitivity, recovery, SBC and
-backend precision, with a completed sampler-free design-rank audit. Independent
-review and execution acceptance remain open. The next slice implements its
-bounded generator/estimand/scoring checks without launching statistical evaluation.
+Updated 2026-09-17 with verified
+[sampler-free Julia validation preparation](docs/internal/fixed-coefficient-validation-protocol.md#sampler-free-julia-preparation)
+for fixed-coefficient MFRM: independent response generation, labelled truth/draw
+alignment, per-draw estimands, chain-aware MCSE, predictive scores and retained
+failure denominators. Focused checks pass on Julia 1.10.8 and 1.12.5; no live
+fit or evaluation replication was run. Next, prepare joint-prior SBC generation
+and data-dependent test quantities without sampling. Independent scientific
+review and execution acceptance remain open.
 Compatibility defaults and historical records retain their meanings.
 The final API migration away from
 development-status names remains a model-specific release requirement. The
@@ -773,10 +774,15 @@ backend comparisons. Its complete and balanced-thin designs have only the two
 location null directions; disconnected and missing-dimension controls add more.
 This deterministic evidence is not posterior recovery. Allocations, margins and
 sampler/resource rules remain proposals awaiting target-specific review.
-**Next bounded deliverable:** implement independent response generation and
-estimand/scoring checks on tiny synthetic inputs, including truth/category
-alignment, chain-aware MCSE and failed-attempt denominators. Reuse existing
-fit/result/diagnostic components; no fresh recovery/SBC grid or default change.
+The [Julia preparation](docs/internal/fixed-coefficient-validation-protocol.md#sampler-free-julia-preparation)
+now implements independent response generation, truth/category/target alignment,
+per-draw estimands, chain-aware MCSE and failed-attempt denominators on synthetic
+inputs. New checks pass on both Julia versions; synthetic CmdStan-labelled
+records exercise result wiring, not live backend agreement.
+**Next bounded deliverable:** connect independent joint-prior generation and
+data-dependent SBC quantities, with randomized-tie and missing-rank checks.
+Reuse the existing coordinate/probability/MCSE paths; no fresh recovery/SBC fit
+grid, sampler/controller or default change.
 Ordered-step priors and scientific default selection remain separate decisions.
 Higher-dimensional covariance, within-item validation, automatic request caching
 and hard anchors remain separate.
@@ -2624,10 +2630,11 @@ checks. Private sampling/results and save/reload now preserve the new target
 identity. Saved results now drive posterior prediction, reports and figures.
 The opt-in prior now reaches public experimental fitting, manual caches, reports
 and figures. The [target-specific validation protocol](docs/internal/fixed-coefficient-validation-protocol.md)
-is now a concrete draft, with a sampler-free rank/scale/allocation audit.
-Its next implementation handoff is independent generation and estimand/scoring
-checks on tiny synthetic inputs. Scientific margins and independent review
-remain open; the proposed fit counts do not authorize execution. Application
+is now a concrete draft, with a sampler-free rank/scale/allocation audit and
+verified Julia generation/estimand/scoring preparation on synthetic inputs.
+Joint-prior SBC generation and data-dependent test quantities are the next
+bounded implementation. Scientific margins and independent review remain open;
+the proposed fit counts do not authorize execution. Application
 preparation and reader recruitment do not block this core work.
 
 The numbered rows are bounded handoffs, not a requirement to finish every
@@ -2640,7 +2647,7 @@ priority follows the Julia user workflow, not the readiness of a paper dataset.
 
 | Task / owner role | Next deliverable | Verification and stop condition |
 | --- | --- | --- |
-| 1. Fixed-coefficient validation preparation — analyst/maintainer; protocol draft and design-rank audit complete | Implement the [protocol's sampler-free handoff](docs/internal/fixed-coefficient-validation-protocol.md#next-implementation-and-review-handoff): independent response generation, truth/category alignment, per-draw estimands, chain-aware MCSE and failure/denominator checks on tiny synthetic records | Exit: generation/scoring preparation is reproducible with positive and negative controls; target-specific independent review, scientific margins and execution budgets remain separately visible. Reuse existing fit/result components; no new controller, unreviewed recovery/SBC grid, automatic default migration or reinterpretation of old draws |
+| 1. Fixed-coefficient calibration preparation — analyst/maintainer; fixed-facet generation/scoring checks verified | Implement the [protocol's next sampler-free handoff](docs/internal/fixed-coefficient-validation-protocol.md#next-implementation-and-review-handoff): independent joint-prior generation for each target, raw/data-dependent SBC quantities, randomized ties and missing-rank envelopes on known cases | Exit: prior-generated calibration inputs remain distinct from fixed-facet recovery, with positive/negative checks and no MCMC. Actual rank dependence, scientific margins, independent review and execution budgets remain separately open. Reuse existing components; no new controller, full-grid launch, automatic default migration or reinterpretation of old draws |
 | 2. M1 Julia model-to-code contract and estimation path — analyst/maintainer | Resolve the relevant source/exchangeable-prior, identification and validation-scope decisions; correct demonstrated shared-path gaps and retain the [core trace's remaining failure boundaries](#first-julia-core-verification-slice). Prepare the next covariance/within-item slice under the [extension sequence](#long-term-extension-sequence), reusing existing components | Exit: equations, coordinates, scale constants, priors/Jacobians and parameter meanings have code/evidence mappings and explicit unresolved decisions. Check target/gradients, invalid inputs, initialization/sampling failures and result integrity as affected. Record actual runtime/resource limits; model changes have distinct identities. No copied fitting engine or blanket source refactor |
 | 3. CmdStan continuity — analyst/maintainer; accompanies each model slice | Maintain estimation of the same target under the [dual-backend contract](#julia-and-cmdstan-continuity-and-comparison); check common-coordinate densities, gradients and probabilities, then diagnostic-qualified posterior/predictive summaries under the execution budget | Exit: both routes preserve likelihood, priors, constraints, scale and saved-result meaning. Missing parity remains partial support; Julia work can advance incrementally without dropping this requirement. Backend agreement is implementation evidence, not model validity |
 | 4. M2 core statistical validation — analyst; execution not started | Reconcile Stage-A with the accepted package model/claim. Select known-truth conditions for identification, recovery/calibration, sparse coverage, prior sensitivity and numerical failure mechanisms; verify scoring, all-attempt accounting and resource stops before reviewed execution | Exit: target-specific M1 and execution readiness are accepted, the bounded roster is accounted for, and uncertainty/failure rates support a stated domain or an inconclusive result. Representative Julia/CmdStan comparisons accompany it; do not restrict the core domain to the Uchihara design or substitute an empirical fit for recovery evidence |

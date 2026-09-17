@@ -215,6 +215,19 @@ script or sampler. In particular:
   `RUN_RESEARCH_EVIDENCE_TESTS` and the `all` group contract. Source/hash checks
   in ordinary tests are not independent research replication.
 
+## Fixed-coefficient validation preparation addendum
+
+On 2026-09-17, the ordinary `generalized` shard also includes
+[mfrm_validation_preparation.jl](../../test/mfrm_validation_preparation.jl), which
+manually loads one new script module,
+[mfrm_validation_preparation.jl](../../scripts/mfrm_validation_preparation.jl).
+The module defines a small fixed-facet generator and known-truth scoring helpers;
+importing it performs no data generation, fitting, file publication or research
+evaluation. It imports the package and standard libraries, with no other script
+includes. Its tests reuse the existing exchangeable synthetic-record helper.
+There is no package include/export, dependency, serialized fit type or public
+API change. The historical include counts below remain dated observations.
+
 ## Anchor recording test addendum
 
 On 2026-09-07, `fitting_reports` also includes
