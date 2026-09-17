@@ -3439,18 +3439,39 @@ coverage study was run.
 Verification results and limitations are recorded in the
 [local receipt](../../results/workflows/20260917-exchangeable-api-01/receipt.json).
 
+## Fixed-coefficient validation preparation (2026-09-17)
+
+The [target-specific protocol](fixed-coefficient-validation-protocol.md) now
+separates likelihood identification, prior anchoring/sensitivity, relabelling,
+fixed-facet recovery, joint-prior SBC and diagnostic-qualified backend agreement.
+It declares primary estimands, five primary/four secondary fit cells, mean
+rater-contrast variance matching, paired-data comparisons, diagnostic failures,
+MCSE and unresolved-result handling. Scientific margins, allocation and
+sampler/resource proposals await independent review; none is a launch decision.
+
+A deterministic adjacent-logit matrix audit found rank/nullity 121/2 for the
+48-person complete and balanced-thin designs, 313/2 for 144 persons, 118/5 for
+the disconnected control and 120/3 when one person lacks a dimension. The thin
+design remains balanced; a declared joint ability/item shift changes no logit.
+Exact covariance arithmetic confirms the proposed mean-contrast matching, and
+the proposed call/precision arithmetic is recorded. These checks do not exercise
+the future generator/scorer or establish population-correlation recovery.
+See the [local arithmetic record](../../results/workflows/20260917-fixed-coefficient-protocol-01/design-audit.json)
+and [verification receipt](../../results/workflows/20260917-fixed-coefficient-protocol-01/receipt.json).
+This slice generated no responses and ran zero fits, recovery or SBC replications.
+No public API, README/help or manual navigation was changed.
+
 ## Next bounded work
 
-Prepare the target-specific fixed-coefficient validation protocol. State the
-question, estimand, identification/location convention, design conditions,
-comparison rationale, diagnostic handling and decision rule for each analysis.
-Separate prior relabelling invariance from likelihood identification, and
-contrast/prediction recovery from prior-anchored absolute locations. Any prior
-comparison must declare its variance-matching criterion; identical numeric SDs
-do not create equal priors. Short API demonstrations cannot justify MCMC
+Implement the protocol's sampler-free generation/scoring preparation on tiny
+known inputs: independent response probabilities and truth reconstruction,
+per-draw estimands, chain layout/MCSE binding and all-attempt failure accounting.
+Reuse existing fits, diagnostics, matrix MCSE, persistence and figures; do not
+create another sampling engine/controller or a full-grid launcher. Make the
+protocol and implementation evidence reviewable while scientific decisions
+remain open. Short API demonstrations and the rank audit cannot justify MCMC
 convergence, posterior backend agreement, recovery, coverage or a default prior.
-Reuse the existing mathematical checks and seek independent M1 review before
-statistical evaluation; do not expand into an unreviewed simulation grid.
+Independent target-specific M1 review precedes statistical evaluation.
 Ordered-step priors, higher-dimensional covariance, within-item validation,
 automatic request caching, hard anchors and application predictors remain separate.
 

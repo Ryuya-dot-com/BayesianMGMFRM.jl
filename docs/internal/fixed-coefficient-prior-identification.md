@@ -8,7 +8,7 @@ replace their priors or constitute statistical acceptance of either model.
 
 Does a zero-sum constraint make raters exchangeable, and do fixed loadings
 identify the ability/item locations? Neither follows from the constraint alone.
-The current model assigns independent normal priors to the free coordinates,
+The default `MFRMPrior` assigns independent normal priors to the free coordinates,
 then reconstructs the last rater and the last nonbaseline item step. This gives
 the reconstructed coordinates different variances. For more than two raters,
 renaming IDs so that a different rater becomes last can change the prior and
@@ -118,8 +118,9 @@ with the [Stan sum-to-zero normal convention](https://mc-stan.org/docs/reference
 The scale tau is a kernel SD; a desired common marginal SD s requires
 `tau=s sqrt(n/(n-1))`. The correction from independent free normals is
 `log(n)/2 - sum(v)^2/(2 tau^2)`, already supplied by
-`_zero_sum_prior_correction`. The private fixed-coefficient reference below now
-uses this correction; it is not a public fitting option.
+`_zero_sum_prior_correction`. The fixed-coefficient reference below uses this
+correction and is now selectable through the explicit
+[`Experimental.ExchangeablePrior` API](#explicit-opt-in-fitting-and-persistence).
 For n>2, no single rescaling can match every marginal and contrast variance of
 the asymmetric current prior. A comparison must state what is matched.
 
@@ -162,7 +163,7 @@ would define another model rather than silently replace this convention.
 | Exact model-coordinate covariance | `_mfrm_fixed_q_model_coordinates` applied to scaled basis vectors; no simulated covariance estimate |
 | Correlated ability prior and one Jacobian | `src/mfrm_correlated_2d.jl`, existing independent matrix-density checks in `test/mfrm_correlated_2d.jl` |
 | Same target in CmdStan | `src/stan/mfrm_fixed_q.stan`, `src/stan/mfrm_correlated_2d.stan`, shared `mgmfrm_eta` |
-| Alternative normalized block | `_zero_sum_prior_correction` in `src/mgmfrm_normalized_prior.jl`; no new MFRM dispatch |
+| Alternative normalized block | `_zero_sum_prior_correction` in `src/mgmfrm_normalized_prior.jl`; explicit fixed-coefficient target and prior dispatch in `src/mfrm_exchangeable_raters.jl` |
 | Covariance, chart transport, label/row changes and location freedom | [sampler-free tests](../../test/mfrm_prior_identification.jl) |
 | Saved identity | Existing `fixed_q_mfrm_prior_v1`, sample records and target/cache identities retained; report wording is current interpretation only |
 
@@ -402,14 +403,16 @@ See the [API verification record](normalized-prior-backend-comparison.md#explici
 
 ## Next bounded implementation
 
-Prepare the fixed-coefficient target's validation protocol before a fresh
-statistical evaluation. Explain the question answered by each design condition,
-the estimands and location convention, why its comparisons identify the issue,
-and what evidence would count as an answer. Treat relabelling invariance,
-prior anchoring, contrast/prediction recovery and diagnostic-qualified backend
-agreement as distinct questions. Specify matching in any prior comparison;
-copying the same SD into different scale conventions is not a matched design.
-Record diagnostic failures as outcomes with predeclared handling, rather than
-silently removing them. Obtain independent review under M1 before recovery or
-coverage execution. Ordered-step priors, the scientific default and broader
-random-effect structure remain separate choices.
+The [target-specific validation protocol](fixed-coefficient-validation-protocol.md)
+now proposes explicit questions, estimands, data/fit conditions, mean-contrast
+variance matching, calibration versus recovery, and diagnostic/MCSE/failure
+handling. Its sampler-free rank audit distinguishes the usual two location
+directions from additional disconnected-design ambiguity. Numerical study
+settings remain proposals; independent M1 review and scientific margins are open.
+
+Next, implement the protocol's bounded sampler-free generation/scoring handoff:
+independent probabilities and truth reconstruction, per-draw estimands,
+chain-aware MCSE and all-attempt denominators on tiny synthetic records. Reuse
+the existing fit/result path; do not launch a recovery/SBC grid. Ordered-step
+priors, the scientific default and broader random-effect structure remain
+separate choices.
