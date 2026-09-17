@@ -299,11 +299,38 @@ _mfrm_fixed_q_samples(fit::MultidimensionalMFRMFit) =
 _save_mfrm_fixed_q_samples(path::AbstractString, fit::MultidimensionalMFRMFit; kwargs...) =
     _save_mfrm_fixed_q_samples(path, (; record = fit.record); kwargs...)
 
-_fixed_q_result_spec(checked) = checked.model === :mfrm_fixed_q_correlated_2d ?
-    checked.record.base_spec : checked.record.spec
+_fixed_q_is_correlated(checked) = checked.model in
+    (:mfrm_fixed_q_correlated_2d, :mfrm_correlated_2d_exchangeable_raters)
+_fixed_q_is_exchangeable(checked) = checked.model in
+    (:mfrm_fixed_q_exchangeable_raters, :mfrm_correlated_2d_exchangeable_raters)
+function _fixed_q_result_spec(checked)
+    spec = get(checked.record, :base_spec, get(checked.record, :spec, nothing))
+    return spec isa CorrelatedMFRMSpec ? spec.base_spec : spec
+end
+
+function _fixed_q_result_target(checked)
+    record = checked.record
+    _fixed_q_is_exchangeable(checked) && return _MFRMExchangeableRatersLogDensity(
+        record.spec, record.prior; expected_identity = record.target_identity)
+    correlated = _fixed_q_is_correlated(checked)
+    spec = _fixed_q_result_spec(checked)
+    prior = correlated ? record.prior.base : record.prior
+    return correlated ? _MFRMFixedQCorrelated2DLogDensity(spec;
+        prior = MFRMPrior(; prior.scales...), lkj_eta = record.prior.correlation.lkj_eta) :
+        _MFRMFixedQReferenceLogDensity(spec; prior = MFRMPrior(; prior.scales...))
+end
+
+_fixed_q_prior_labels(checked) = _fixed_q_is_exchangeable(checked) ?
+    (; prior_label = _mfrm_exchangeable_prior_label(checked.record.prior)) : (;)
+_fixed_q_report_metadata(checked) = _fixed_q_is_exchangeable(checked) ?
+    _mfrm_exchangeable_report_metadata(checked) : _fixed_q_is_correlated(checked) ?
+    _mfrm_correlated_2d_metadata(checked) : _mfrm_fixed_q_metadata(checked)
 
 function _fixed_q_report_samples(result::NamedTuple)
     record = result.record
+    if _nt_get(record, :schema, nothing) == "bayesianmgmfrm.exchangeable_rater_mfrm_samples.v1"
+        return _restore_mfrm_exchangeable_rater_samples(record; expected_identity = record.target_identity)
+    end
     if _nt_get(record, :schema, nothing) == "bayesianmgmfrm.correlated_fixed_q_mfrm_samples.v1"
         return _restore_mfrm_correlated_2d_samples(record; expected_identity = record.target_identity)
     end
@@ -313,7 +340,7 @@ end
 function _mfrm_fixed_q_metadata(checked)
     record, run = checked.record, checked.record.run
     data = _fixed_q_result_spec(checked).data
-    return (; model = checked.model, model_label = checked.model === :mfrm_fixed_q_correlated_2d ?
+    return (; model = checked.model, model_label = _fixed_q_is_correlated(checked) ?
             "Correlated fixed-coefficient multidimensional MFRM" : "Fixed-coefficient multidimensional MFRM",
         backend = run.backend, backend_label = run.backend === :advancedhmc ? "Julia (AdvancedHMC)" : "CmdStan",
         sampler = run.sampler, scale_convention = :unit_logit,
@@ -571,17 +598,18 @@ function _mfrm_fixed_q_plot_data(result::NamedTuple; interval::Real = 0.95, kwar
         :rater => "sum to zero", :item_steps => "first step zero sum to zero",
         :item_dimension_discrimination => "active Q loadings fixed at 1",
         :rater_consistency => "fixed at 1")
-    checked.model === :mfrm_fixed_q_correlated_2d &&
+    _fixed_q_is_correlated(checked) &&
         (constraints[:latent_correlation] = "population correlation; estimated")
     data = _posterior_interval_data(selected; interval, constraints,
         diagnostic = replace(_plot_diagnostic_note(checked.diagnostics.summary),
             "inspect diagnostics(fit)" => "inspect parameter and sampler diagnostics"))
     rows = [merge(row, (; coordinate.derived)) for (row, coordinate) in zip(data.rows, selected.rows)]
-    checked.model === :mfrm_fixed_q_correlated_2d &&
+    _fixed_q_is_correlated(checked) &&
         (rows = [merge(row, (; coordinate.parameter_space)) for (row, coordinate) in zip(rows, selected.rows)])
     return merge(data, (; rows, model = checked.model, dimension_labels = copy(labels),
         backend = checked.record.run.backend, target_identity = checked.record.target_identity,
-        fixed_note = "Diamonds: fixed coefficients or zero baseline steps. Inactive Q loadings are zero and omitted."))
+        fixed_note = "Diamonds: fixed coefficients or zero baseline steps. Inactive Q loadings are zero and omitted."),
+        _fixed_q_prior_labels(checked))
 end
 
 function _plot_mfrm_fixed_q(result::NamedTuple; size = nothing, kwargs...)
@@ -602,14 +630,15 @@ function _mfrm_fixed_q_diagnostic_plot_data(result::NamedTuple;
     data = _trace_rank_plot_data(selected, checked.diagnostics.model_parameter_rows,
         checked.diagnostics, run; bins, nchains = run.controls.chains, per_chain = run.controls.ndraws,
         fixed_status = "Fixed coefficient or baseline step; diagnostics not applicable")
-    if checked.model === :mfrm_fixed_q_correlated_2d
+    if _fixed_q_is_correlated(checked)
         rows = [merge(row, (; coordinate.parameter_space)) for (row, coordinate) in zip(data.rows, selected.rows)]
         data = merge(data, (; rows))
     end
     return merge(data, (; model = checked.model, dimension_labels = copy(labels),
         backend = run.backend, target_identity = checked.record.target_identity,
         diagnostic = replace(data.diagnostic,
-            "inspect diagnostics(fit)" => "inspect parameter and sampler diagnostics")))
+            "inspect diagnostics(fit)" => "inspect parameter and sampler diagnostics")),
+        _fixed_q_prior_labels(checked))
 end
 
 function _plot_mfrm_fixed_q_diagnostics(result::NamedTuple; size = nothing, kwargs...)
@@ -640,9 +669,9 @@ function _mfrm_fixed_q_predictive_check(result::NamedTuple;
     rng, rng_control = _fit_rng(Random.default_rng(), seed)
     indices = _posterior_draw_indices(run, ndraws, draw_indices, rng)
     spec = _fixed_q_result_spec(checked)
-    correlated = checked.model === :mfrm_fixed_q_correlated_2d
-    prior = correlated ? record.prior.base : record.prior
-    target = _MFRMFixedQReferenceLogDensity(spec; prior = MFRMPrior(; prior.scales...))
+    saved_target = _fixed_q_result_target(checked)
+    target = _fixed_q_is_exchangeable(checked) ? _mfrm_exchangeable_rater_reference(saved_target) :
+        _fixed_q_is_correlated(checked) ? saved_target.base : saved_target
     # Conditional rating probabilities depend on retained abilities, not rho separately.
     columns = 1:LogDensityProblems.dimension(target)
     direct = _mfrm_fixed_q_predictive_draws(target, view(run.draws, indices, columns))
@@ -653,7 +682,8 @@ function _mfrm_fixed_q_predictive_check(result::NamedTuple;
         chain_ids = run.chain_ids[indices], iterations = run.iterations[indices],
         rng = rng_control, diagnostics = checked.diagnostics,
         diagnostic = replace(_plot_diagnostic_note(checked.diagnostics.summary),
-            "inspect diagnostics(fit)" => "inspect parameter and sampler diagnostics")))
+            "inspect diagnostics(fit)" => "inspect parameter and sampler diagnostics")),
+        _fixed_q_prior_labels(checked))
 end
 
 function _mfrm_fixed_q_predictive_plot_data(result::NamedTuple; interval::Real = 0.9,
@@ -663,7 +693,7 @@ function _mfrm_fixed_q_predictive_plot_data(result::NamedTuple; interval::Real =
     data = _category_predictive_plot_data(check; interval, ndraws, draw_indices,
         n_retained = check.n_retained, rng = check.rng, diagnostic = check.diagnostic)
     return merge(data, (; check.model, check.backend, check.target_identity,
-        check.chain_ids, check.iterations))
+        check.chain_ids, check.iterations), hasproperty(check, :prior_label) ? (; check.prior_label) : (;))
 end
 
 function _plot_mfrm_fixed_q_predictive(result::NamedTuple; size = nothing, kwargs...)
@@ -689,7 +719,7 @@ plot_predictive(fit::MultidimensionalMFRMFit; kwargs...) =
 
 function _render_mfrm_fixed_q(extension, kind, data; size = nothing)
     backend = data.backend === :advancedhmc ? "Julia (AdvancedHMC)" : "CmdStan"
-    correlated = data.model === :mfrm_fixed_q_correlated_2d
+    correlated = _fixed_q_is_correlated(data)
     model = correlated ? "Experimental correlated MFRM (fixed coefficients)" :
         "Experimental fixed-coefficient multidimensional MFRM"
     scale_note = correlated ? "locations: unit logits | rho: correlation" : "unit logits"
@@ -704,16 +734,39 @@ function _render_mfrm_fixed_q(extension, kind, data; size = nothing)
         title = "$model\n$backend | unit-logit posterior predictive check\nCategory proportions", size)
 end
 
+function _fixed_q_report_prior_policy(checked)
+    _fixed_q_is_exchangeable(checked) && return _mfrm_exchangeable_report_prior_policy(checked)
+    record = checked.record
+    correlated = _fixed_q_is_correlated(checked)
+    prior_scales = correlated ? record.prior.base.scales : record.prior.scales
+    prior_rows = [_fit_report_prior_policy_row(; family = checked.model, block,
+        parameter_space = :unit_logit_free, prior_family = :normal, location = 0.0,
+        scale_parameter, scale = getproperty(prior_scales, scale_parameter), active = true,
+        direct_scale_prior = true, jacobian_policy = :none_declared_free_coordinate_density,
+        status = :active, note = "Independent zero-mean normal prior on the free unit-logit coordinates in this block.")
+        for (block, scale_parameter) in ((:person, :person_sd), (:rater_free, :rater_sd),
+            (:item, :item_sd), (:item_steps, :step_sd))]
+    if correlated
+        prior_rows = _mfrm_correlated_prior_rows(prior_rows, record.prior.correlation.lkj_eta)
+    end
+    return (; rows = prior_rows, interpretation = (correlated ? "Locations are prior-anchored. Each directly parameterized ability pair has a bivariate normal prior with covariance person_sd^2 * [1 rho; rho 1]. Other free coordinates retain independent normal priors; sum-constrained reconstructions are dependent. LKJ(eta) is declared on rho; rho = tanh(z) contributes log(1-rho^2) exactly once. The ability covariance determinant is part of the normal density, not another transformation Jacobian." : "Locations are prior-anchored. Normal priors are declared on free unit-logit coordinates. The last rater and last item steps are negative sums and have induced dependent priors; each baseline step is zero. Loadings and consistency have no sampled prior. Deterministic reconstruction adds no Jacobian to this declared free-coordinate density.") *
+                " For R raters and K categories, the last rater has prior variance (R-1)*rater_sd^2 and each last nonbaseline step (K-2)*step_sd^2. These SD inputs describe free coordinates. For R>2, renaming rater IDs can change which rater receives the reconstructed prior; row order alone does not. A joint shift of ability and Q-weighted item locations preserves the likelihood; their location is determined by the priors.",
+        pooling_interpretation = correlated ? "Marginal ability and other normal-prior scales and LKJ eta are fixed inputs. Population rho is estimated. Ability coordinates are jointly normal within each person; other free blocks retain independent priors and sum-constrained reconstructions are dependent." : "Prior scales are fixed inputs, not learned hyperparameters. Free coordinates have independent priors; sum-constrained reconstructions are dependent.")
+end
+
 # Private sample-report assembler; canonical fit reporting reuses its numerical sections.
 function _mfrm_fixed_q_report(result::NamedTuple; posterior_interval::Real = 0.95,
         predictive_interval::Real = 0.9, include_posterior_predictive::Bool = true,
         ndraws::Union{Nothing,Int} = nothing, draw_indices = nothing, seed::Integer = 1,
+        include_prior_predictive::Bool = false, prior_predictive_ndraws::Int = 100,
+        prior_interval::Real = 0.95,
         on_section_error::Symbol = :capture, require_complete::Bool = false)
+    _interval_probabilities(prior_interval)
     checked = _fixed_q_report_samples(result)
     record, run = checked.record, checked.record.run
     spec = _fixed_q_result_spec(checked)
     data = spec.data
-    correlated = checked.model === :mfrm_fixed_q_correlated_2d
+    correlated = _fixed_q_is_correlated(checked)
     lower, upper = _interval_probabilities(posterior_interval)
     _interval_probabilities(predictive_interval)
     policy = _fit_report_on_section_error(on_section_error)
@@ -755,17 +808,8 @@ function _mfrm_fixed_q_report(result::NamedTuple; posterior_interval::Real = 0.9
             message = replace(_plot_diagnostic_note(checked.diagnostics.summary),
                 "inspect diagnostics(fit)" => "inspect parameter and sampler diagnostics"),
             action = :inspect_parameter_and_sampler_diagnostics)]
-    prior_scales = correlated ? record.prior.base.scales : record.prior.scales
-    prior_rows = [_fit_report_prior_policy_row(; family = checked.model, block,
-        parameter_space = :unit_logit_free, prior_family = :normal, location = 0.0,
-        scale_parameter, scale = getproperty(prior_scales, scale_parameter), active = true,
-        direct_scale_prior = true, jacobian_policy = :none_declared_free_coordinate_density,
-        status = :active, note = "Independent zero-mean normal prior on the free unit-logit coordinates in this block.")
-        for (block, scale_parameter) in ((:person, :person_sd), (:rater_free, :rater_sd),
-            (:item, :item_sd), (:item_steps, :step_sd))]
-    if correlated
-        prior_rows = _mfrm_correlated_prior_rows(prior_rows, record.prior.correlation.lkj_eta)
-    end
+    prior_policy = _fixed_q_report_prior_policy(checked)
+    prior_rows = prior_policy.rows
     fixed_rows = [(; row.parameter, row.block, row.dimension,
         fixed = true, value = first(row.values)) for row in checked.model_coordinates if row.fixed]
     q_rows = [(; item = data.item_levels[i], dimension = d, dimension_label = spec.dimension_labels[d],
@@ -781,7 +825,7 @@ function _mfrm_fixed_q_report(result::NamedTuple; posterior_interval::Real = 0.9
         dimensions = spec.dimensions, dimension_labels = copy(spec.dimension_labels),
         estimation_status = :private_reference,
         interpretation = (correlated ? "Population rho has a separate correlation scale. " : "") * "Report completeness means no captured section errors; it does not certify MCMC quality or support for every analysis. Unsupported sections state their reasons. This report describes a fixed-coefficient model in unit logits and is not a fit cache or restart checkpoint.",
-        metadata = correlated ? _mfrm_correlated_2d_metadata(checked) : _mfrm_fixed_q_metadata(checked),
+        metadata = _fixed_q_report_metadata(checked),
         report_policy = (; posterior_interval = Float64(posterior_interval),
             predictive_interval = Float64(predictive_interval), include_posterior_predictive,
             ndraws, draw_indices = draw_indices === nothing ? nothing : collect(draw_indices),
@@ -797,13 +841,12 @@ function _mfrm_fixed_q_report(result::NamedTuple; posterior_interval::Real = 0.9
             dimension_labels = copy(spec.dimension_labels),
             interpretation = correlated ? "Stored between-item Q entries are fixed coefficients. The two ability dimensions have an estimated population correlation rho; this is distinct from dependence among posterior draws." : "Stored confirmatory Q entries are fixed coefficients. Latent-population correlation is fixed to identity; posterior dependence is not an estimated population correlation."),
         prior_policy = (; status = :computed, rows = prior_rows, n_rows = length(prior_rows),
-            interpretation = (correlated ? "Locations are prior-anchored. Each directly parameterized ability pair has a bivariate normal prior with covariance person_sd^2 * [1 rho; rho 1]. Other free coordinates retain independent normal priors; sum-constrained reconstructions are dependent. LKJ(eta) is declared on rho; rho = tanh(z) contributes log(1-rho^2) exactly once. The ability covariance determinant is part of the normal density, not another transformation Jacobian." : "Locations are prior-anchored. Normal priors are declared on free unit-logit coordinates. The last rater and last item steps are negative sums and have induced dependent priors; each baseline step is zero. Loadings and consistency have no sampled prior. Deterministic reconstruction adds no Jacobian to this declared free-coordinate density.") *
-                " For R raters and K categories, the last rater has prior variance (R-1)*rater_sd^2 and each last nonbaseline step (K-2)*step_sd^2. These SD inputs describe free coordinates. For R>2, renaming rater IDs can change which rater receives the reconstructed prior; row order alone does not. A joint shift of ability and Q-weighted item locations preserves the likelihood; their location is determined by the priors."),
+            interpretation = prior_policy.interpretation),
         pooling_policy = (; status = :computed, rows = [correlated && row.block === :latent_correlation ?
             (; row.block, scale = missing, scale_estimated = false, shape_parameter = :eta,
                 shape = row.shape, shape_estimated = false, correlation_estimated = true) :
             (; row.block, scale = row.scale, scale_estimated = false) for row in prior_rows], n_rows = length(prior_rows),
-            interpretation = correlated ? "Marginal ability and other normal-prior scales and LKJ eta are fixed inputs. Population rho is estimated. Ability coordinates are jointly normal within each person; other free blocks retain independent priors and sum-constrained reconstructions are dependent." : "Prior scales are fixed inputs, not learned hyperparameters. Free coordinates have independent priors; sum-constrained reconstructions are dependent."),
+            interpretation = prior_policy.pooling_interpretation),
         posterior, direct_posterior, posterior_predictive), unsupported)
     if correlated
         # Keep rho visible even when the human report previews only a few rows.
@@ -814,6 +857,13 @@ function _mfrm_fixed_q_report(result::NamedTuple; posterior_interval::Real = 0.9
             report = merge(report, (; direct_posterior = merge(direct_posterior, (;
                 correlation_rows = filter(row -> row.parameter == rho_name, direct_posterior.rows)))))
         end
+    end
+    if _fixed_q_is_exchangeable(checked) || include_prior_predictive
+        prior_predictive = _fixed_q_prior_report(checked; ndraws = prior_predictive_ndraws,
+            seed, interval = prior_interval, predictive_interval, include_prior_predictive,
+            on_section_error = policy)
+        report = merge(report, (; prior_predictive, report_policy = merge(report.report_policy,
+            (; include_prior_predictive, prior_predictive_ndraws, prior_interval = Float64(prior_interval)))))
     end
     health = fit_report_health(report)
     report = merge(report, (; report_status = health.status, report_health = health))
@@ -902,7 +952,7 @@ function fit_report(fit::_FixedQMFRMFit; view::Symbol = _fixed_q_default_view(fi
         estimation_status = :experimental,
         metadata = merge(fit_metadata(fit), (; estimation_status = :experimental,
             fitting_available = true,
-            interpretation = checked.model === :mfrm_fixed_q_correlated_2d ?
+            interpretation = _fixed_q_is_correlated(checked) ?
                 "Experimental correlated MFRM: locations and steps in unit logits; population rho on its correlation scale." :
                 "Experimental fixed-coefficient multidimensional MFRM reporting in unit logits.")),
         manifest, rating_design, artifact, prior_predictive,
@@ -987,13 +1037,14 @@ function _write_mfrm_fixed_q_report_figures(directory, checked, report, figures,
             section = report.posterior_predictive
             section.status === :computed || throw(ArgumentError("predictive figure requires a computed posterior_predictive report section"))
             rows = predictive_check_plot_data(filter(row -> row.statistic === :category_proportion, section.rows))
-            (; rows, interval = report.report_policy.predictive_interval,
+            merge((; rows, interval = report.report_policy.predictive_interval,
                 section.draw_indices, section.chain_ids, section.iterations, section.rng,
                 section.n_replicates, section.n_observations, section.n_retained,
                 section.n_unique_draws, section.selection, model = checked.model,
                 report.metadata.backend, report.metadata.target_identity,
                 diagnostic = replace(_plot_diagnostic_note(report.diagnostics.summary),
-                    "inspect diagnostics(fit)" => "inspect parameter and sampler diagnostics"))
+                    "inspect diagnostics(fit)" => "inspect parameter and sampler diagnostics")),
+                _fixed_q_prior_labels(checked))
         end
         (; data, figure = _render_mfrm_fixed_q(extension, kind, data; size))
     end

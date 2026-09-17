@@ -164,7 +164,7 @@ function _prior_caption(data)
 end
 
 function _render_fixed_q_prior(extension, data; size = nothing)
-    model = data.model === :mfrm_fixed_q_correlated_2d ? "Correlated MFRM" : "Multidimensional MFRM"
+    model = _fixed_q_is_correlated(data) ? "Correlated MFRM" : "Multidimensional MFRM"
     units = Dict(:item_dimension_discrimination => "Loading (dimensionless)",
         :rater_consistency => "Consistency (dimensionless)", :latent_correlation => "Population correlation (rho)")
     return extension._render_posterior(data; title = "$model prior intervals",
@@ -175,31 +175,37 @@ function _fixed_q_prior_report(checked; ndraws, seed, interval, predictive_inter
         include_prior_predictive, on_section_error)
     include_prior_predictive || return _fit_report_not_requested()
     return _fit_report_section(on_section_error) do
-        record = checked.record
-        correlated = checked.model === :mfrm_fixed_q_correlated_2d
         spec = _fixed_q_result_spec(checked)
-        model = correlated ? CorrelatedMFRMSpec(spec; lkj_eta = record.prior.correlation.lkj_eta) : spec
-        prior = MFRMPrior(; (correlated ? record.prior.base.scales : record.prior.scales)...)
+        target = _fixed_q_result_target(checked)
         rng, rng_control = _fit_rng(Random.default_rng(), seed)
-        check = _fixed_q_prior_predictive_check(model; prior, ndraws, rng)
+        check = if _fixed_q_is_exchangeable(checked)
+            _mfrm_exchangeable_prior_check(target; ndraws, rng)
+        else
+            correlated = _fixed_q_is_correlated(checked)
+            model = correlated ? CorrelatedMFRMSpec(spec; lkj_eta = target.lkj_eta) : spec
+            _fixed_q_prior_predictive_check(model; prior = correlated ? target.base.prior : target.prior, ndraws, rng)
+        end
         parameter_rows = _fixed_q_prior_parameter_rows(check.model_coordinates, check.dimension_labels; interval)
         rows = predictive_check_summary(check; interval = predictive_interval, include_grouped = true)
-        (; model = check.model, check.prior, check.stability, check.dimension_labels,
+        section = (; model = _fixed_q_is_exchangeable(checked) ? checked.model : check.model, check.prior, check.stability, check.dimension_labels,
             ndraws, n_observations = spec.data.n, rng = rng_control,
             rows, n_rows = length(rows), parameter_rows,
             correlation_rows = filter(row -> row.block === :latent_correlation, parameter_rows),
             parameter_interval = Float64(interval), predictive_interval = Float64(predictive_interval),
             implication_diagnostics = check.implication_diagnostics,
             interpretation = "Joint prior draws from the saved model and prior; observed scores are a comparison only. Locations and steps use unit logits; rho uses its correlation scale. Central prior intervals describe the prior, not posterior uncertainty. Replications reuse the supplied rating rows and facet levels; plausibility does not establish identification, convergence or recovery.")
+        return _fixed_q_is_exchangeable(checked) ? merge(section,
+            (; check.target_identity, check.prior_label)) : section
     end
 end
 
 function _report_prior_plot_data(section, kind; kwargs...)
     section.status === :computed || throw(ArgumentError("prior figures require include_prior_predictive = true and a computed prior_predictive report section"))
-    kind === :prior && return _prior_parameter_plot_data(section.parameter_rows,
-        section.dimension_labels, section.model, section.ndraws; interval = section.parameter_interval, kwargs...)
+    labels = hasproperty(section, :prior_label) ? (; section.prior_label) : (;)
+    kind === :prior && return merge(_prior_parameter_plot_data(section.parameter_rows,
+        section.dimension_labels, section.model, section.ndraws; interval = section.parameter_interval, kwargs...), labels)
     rows = predictive_check_plot_data(filter(row -> row.statistic === :category_proportion, section.rows))
-    return (; rows, interval = section.predictive_interval,
+    return merge((; rows, interval = section.predictive_interval,
         n_replicates = section.ndraws, section.n_observations, kind = :prior_predictive,
-        section.stability, implication_flag = section.implication_diagnostics.flag)
+        section.stability, implication_flag = section.implication_diagnostics.flag), labels)
 end

@@ -337,12 +337,65 @@ exercise sampling/output/replay paths and retain diagnostic warnings. They do
 not establish convergence, posterior agreement between backends, recovery,
 coverage or a supported application domain.
 
+## Private posterior prediction, reports and figures
+
+Verified exchangeable sample records now pass through the existing private
+fixed-coefficient reporting and plotting functions. `_fixed_q_report_samples`
+selects the strict loader from the saved schema before any output is computed;
+mutable display fields are not authoritative. Prediction reconstructs the saved
+target and uses its retained ability/item/rater/step draws with the existing
+unit-logit response kernel. Population rho affects the joint ability prior, not
+the conditional response probability once abilities are given.
+
+The report uses the actual exchangeable prior record. Its rater row names
+`rater_kernel_sd`, reports the common marginal and contrast SDs, and states that
+the free severities are dependent. It does not reuse the compatibility model's
+unequal last-rater variance or rater-ID dependence explanation. Other prior
+blocks retain their actual meaning, including the unchanged free-step prior,
+fixed Q coefficients, ability covariance and the single Fisher-z Jacobian.
+Prior scales remain fixed inputs, not estimated variance components.
+
+The existing private calls can consume the loaded result directly:
+
+```julia
+B = BayesianMGMFRM
+result = B._load_mfrm_exchangeable_rater_samples(path; expected_identity)
+report = B._mfrm_fixed_q_report(result; seed=47,
+    include_prior_predictive=true, prior_predictive_ndraws=100,
+    require_complete=true)
+save_fit_report_bundle("report", fit_report_public(report))
+
+# With CairoMakie loaded, include editable/exportable interval, chain and
+# predictive figures through the same staged bundle writer.
+B._save_mfrm_fixed_q_report_bundle("report-with-figures", result; seed=47,
+    include_prior_predictive=true, prior_predictive_ndraws=100,
+    figures=(posterior=(block=:rater,), diagnostics=(block=:rater,),
+             predictive=(;), prior=(block=:rater,), prior_predictive=(;)),
+    require_complete=true)
+```
+
+These underscore-prefixed calls are internal. No public fitting/cache selector
+or new public fit type is introduced. Human-facing report projection removes
+internal status fields while preserving prior explanations and diagnostic
+warnings. Numerical sections, Markdown, tables and figure data are generated
+from the same verified records; saved figure bundles include PDF/SVG and JSON
+inputs. Failed figure preparation leaves an existing bundle intact.
+
+Posterior prediction has a local RNG and preserves explicit draw ordering,
+repeats, chain IDs and iteration IDs. Optional prior simulation has a separate
+local RNG, so changing its draw budget does not change posterior summaries or
+predictions. MCMC and warmup warnings survive reload and figure export. Report
+completeness is distinct from convergence or scientific acceptance. Verification
+and the saved-draw illustration are recorded in the
+[reporting evidence](normalized-prior-backend-comparison.md#exchangeable-rater-prediction-and-reporting-2026-09-17).
+
 ## Next bounded implementation
 
-Connect these verified saved results to existing posterior-predictive summaries,
-reports and figures privately, preserving the actual exchangeable prior and
-kernel/marginal scale meanings. Prevent fallback to compatibility-prior report
-text; confirm that save/reload regenerates the same numerical outputs and
-diagnostic warnings without refitting. Public fitting/cache API design,
-scientific default selection, ordered-step priors and target-specific
+Define an explicit opt-in rater-prior specification for the public fitting and
+cache workflow, then connect it to both existing backends. Name the kernel versus
+marginal scale convention without ambiguity and use concise user-facing terms.
+Carry the verified target identity and prior meaning through fit types, cache,
+reports and figures. Preserve compatibility defaults, historical type/schema
+identities and old draws; no automatic conversion or default migration.
+Scientific default selection, ordered-step priors and target-specific
 recovery/coverage remain separate decisions.

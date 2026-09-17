@@ -211,14 +211,14 @@ end
 
 function _posterior_caption(data)
     percentage = round(100 * data.interval; digits = 4)
-    return "Medians and $(percentage)% central credible intervals; $(length(data.rows)) of $(data.total) coordinates shown.\n" *
+    return (hasproperty(data, :prior_label) ? data.prior_label * "\n" : "") * "Medians and $(percentage)% central credible intervals; $(length(data.rows)) of $(data.total) coordinates shown.\n" *
         get(data, :fixed_note, "Diamonds: fixed identification values; anchor uncertainty excluded.") * "\n" *
         data.diagnostic * " (whole fit). Intervals do not establish convergence."
 end
 
 function _diagnostics_caption(data)
     s = data.summary
-    return "$(length(data.rows)) of $(data.total) coordinates; all $(data.nchains) chains and $(data.per_chain) retained draws per chain. " *
+    return (hasproperty(data, :prior_label) ? data.prior_label * "\n" : "") * "$(length(data.rows)) of $(data.total) coordinates; all $(data.nchains) chains and $(data.per_chain) retained draws per chain. " *
         "$(data.bins) rank bins; ties use average ranks.\n" *
         data.diagnostic * " (whole fit). R-hat max $(B._plot_metric(s.max_rank_normalized_rhat)); " *
         "bulk/tail ESS min $(B._plot_metric(s.min_bulk_ess)) / $(B._plot_metric(s.min_tail_ess)).\n" *
@@ -226,7 +226,7 @@ function _diagnostics_caption(data)
 end
 
 function _predictive_caption(data)
-    return "$(data.n_replicates) replicated datasets of $(data.n_observations) ratings each; seed $(data.rng.seed).\n" *
+    return (hasproperty(data, :prior_label) ? data.prior_label * "\n" : "") * "$(data.n_replicates) replicated datasets of $(data.n_observations) ratings each; seed $(data.rng.seed).\n" *
         "$(data.n_unique_draws) distinct posterior draws from $(data.n_retained) retained; " * data.selection * ".\n" *
         "Same rating rows and fitted persons, items and raters.\n" *
         "Bars: pointwise central predictive intervals for category proportions.\n" *

@@ -3301,17 +3301,85 @@ suite, CI, fresh rendered manual and independent reader/scientific review were
 not run. Commands, saved results, diagnostic summaries and retained hashes are
 in the [local receipt](../../results/workflows/20260917-exchangeable-samples-01/receipt.json).
 
+## Exchangeable-rater prediction and reporting (2026-09-17)
+
+Verified private exchangeable samples now enter the existing fixed-coefficient
+posterior-predictive, coordinate/chain plotting and report/bundle paths. The
+schema selects the strict sample loader before any output. The conditional
+response kernel is unchanged; prediction uses retained abilities and excludes
+the separate Fisher-z correlation coordinate. Explicit draw order and repeats,
+chain/iteration IDs, source identity and whole-fit diagnostic warnings are
+preserved. Rebuilt outputs ignore stale caller-owned display fields.
+
+The report's rater-prior row explicitly describes a joint normalized zero-sum
+normal prior and distinguishes kernel, common marginal and contrast SDs. It
+replaces the compatibility model's unequal last-rater variance and rater-ID
+sensitivity explanation. The ability/item/step blocks retain their actual
+meaning; correlated reports retain the LKJ shape, rho scale and single
+Fisher-z Jacobian. Fixed coefficients stay outside convergence gates. Optional
+prior prediction uses the saved exchangeable target and a separate local RNG;
+its draw budget does not change posterior prediction or summaries.
+
+The existing human-facing projection, portable report/table/Markdown formats
+and staged figure writer are reused. Posterior intervals, trace/rank displays,
+posterior prediction, prior intervals and prior prediction carry the actual
+rater-prior scale labels. Numerical JSON and PDF/SVG outputs share report/source
+identities. Failed preparation preserves an existing bundle. The
+[private usage contract](fixed-coefficient-prior-identification.md#private-posterior-prediction-reports-and-figures)
+adds no public fit/cache selector, new sampler, response kernel or default.
+
+New prediction/report checks passed 646 assertions on each Julia 1.10.8 and
+1.12.5. They include an independent adjacent-category calculation for binary
+and polytomous responses, independent 2D/3D and mixed within-item Q fixtures,
+correlated 2D, records from both backends, explicit/repeated draw selection,
+local RNG behavior, prior-budget independence, strict identity/prior rejection,
+public-language projection and numerical report save/reload. These structural
+checks do not establish a statistically validated within-item application domain.
+The prior-density tests (482) and sample-integrity/parser tests (631) also passed
+on each version.
+
+The preceding slice's six actual sampled results were reopened in their matching
+Julia environments, without refitting: replay checks passed 22 assertions on
+1.10 and 44 on 1.12, including the two CmdStan results. All outputs retain their
+original sampling warnings. Historical-fit/prior-report checks passed 331
+assertions on 1.10 and 478 on 1.12; the five historical fits retain their bytes,
+identities and draws. All 23 preceding handoff artifacts, including the six
+exchangeable sample files, retain their hashes. There were zero new MCMC runs,
+zero new CmdStan compilations and zero statistical evaluation replications.
+
+Rendering/bundle checks passed 114 assertions for an independent Julia fit and
+a correlated CmdStan fit. Each bundle contains five figure kinds with PDF/SVG
+and numerical JSON; PNG previews were also saved. Figure data regenerated from
+reloaded samples agree exactly, captions retain the prior scale labels and
+whole-fit warnings, and failed figure preparation preserves every destination
+byte. The bounded illustration uses draw indices [24,1,24,2] (three distinct
+posterior draws), seed 20260917, 80% predictive intervals and 31 optional prior
+draws. These tiny budgets verify output semantics only. Implementer inspection
+confirmed readable severity/rho units, interval labels and diagnostic captions;
+this is not an independent reader walkthrough.
+
+An initial implementation error allocated a uniform row type before adding
+rater-specific marginal/contrast fields; a heterogeneous NamedTuple row vector
+resolved it. The next synthetic checks exposed test assumptions rather than
+numerical differences: diagnostic NaNs need `isequal`, the requested parameter
+limit must accommodate three selected raters, and insufficient-draw warnings
+must retain their actual text. The corrected checks passed; original failure
+logs are retained. Public-language policy checks passed 181 assertions and the
+source gate passed for 20 files. No full suite, CI, fresh rendered manual,
+independent scientific/reader review or recovery/coverage study was run.
+Commands, saved reports, figure inputs/exports and hashes are in the
+[local receipt](../../results/workflows/20260917-exchangeable-reports-01/receipt.json).
+
 ## Next bounded work
 
-Connect the verified private saved results to existing posterior-predictive
-summaries, reports and figures. Preserve the exchangeable prior's actual kernel
-and marginal scale meanings, reject compatibility-prior fallback text, and
-verify numerical/report replay without refitting or losing diagnostic warnings.
-Retain compatibility defaults and old artifacts. Public fitting/cache API design,
-scientific default selection, ordered-step priors and target-specific recovery
-protocols remain separate decisions. Higher-dimensional covariance, within-item
-validation, automatic request caching, hard anchors and application predictors
-remain separate.
+Define and connect an explicit opt-in rater-prior specification to the public
+Julia/CmdStan fitting/cache workflow. Keep names concise, distinguish kernel and
+marginal scales, and preserve the verified identity through fit types, reports,
+figures and saved fits. Retain compatibility defaults and historical type/schema
+identities; no automatic conversion of old draws. Scientific default selection,
+ordered-step priors and target-specific recovery protocols remain separate
+choices. Higher-dimensional covariance, within-item validation, automatic request
+caching, hard anchors and application predictors remain separate.
 
 Separately, record an unfamiliar reader finding the supported model/backend, loading a fit,
 choosing a named dimension, interpreting diagnostic/interval labels and saving/

@@ -30,7 +30,7 @@ function _mfrm_exchangeable_rater_correction(target::_MFRMExchangeableRatersLogD
 end
 
 # Evaluate the base first: it validates coordinates and retains the original
-# ability, item, ordered-step and (when present) correlation/Jacobian terms.
+# ability, item, step and (when present) correlation/Jacobian terms.
 logprior(target::_MFRMExchangeableRatersLogDensity, params::AbstractVector) =
     logprior(target.base, params) + _mfrm_exchangeable_rater_correction(target, params)
 LogDensityProblems.logdensity(target::_MFRMExchangeableRatersLogDensity, params::AbstractVector) =
@@ -95,7 +95,7 @@ function _mfrm_exchangeable_prior_check(target::_MFRMExchangeableRatersLogDensit
     check = _fixed_q_prior_check_from_bundle((; target = target.base, base, draws, direct);
         rng, prior_record = prior)
     return merge(check, (; target_identity = _mfrm_exchangeable_rater_identity(target),
-        prior_label = "Rater prior: exchangeable; kernel SD = $(round(prior.scales.rater_kernel_sd; sigdigits=5))."))
+        prior_label = _mfrm_exchangeable_prior_label(prior)))
 end
 
 # Private prior-only comparison. Matching is an explicit variance criterion,
@@ -221,3 +221,43 @@ end
 
 _load_mfrm_exchangeable_rater_samples(path::AbstractString; expected_identity::AbstractString) =
     _restore_mfrm_exchangeable_rater_samples(open(deserialize, path); expected_identity)
+
+_mfrm_exchangeable_prior_label(prior) =
+    "Rater prior: exchangeable; kernel SD = $(round(prior.scales.rater_kernel_sd; sigdigits=5)); marginal SD = $(round(prior.rater_marginal_sd; sigdigits=5))."
+
+function _mfrm_exchangeable_report_metadata(checked)
+    spec = _fixed_q_result_spec(checked)
+    correlated = _fixed_q_is_correlated(checked)
+    return merge(_mfrm_fixed_q_metadata(checked), (;
+        estimation_status = :private_reference, public_fit = false,
+        rater_prior = :normalized_zero_sum_normal, dimensions = spec.dimensions,
+        dimension_labels = copy(spec.dimension_labels), q_matrix = _q_matrix_manifest(spec.q_matrix),
+        parameter_space = correlated ? :unit_logit_and_fisher_z : :unit_logit_free,
+        latent_correlation = correlated ? :free_2d : :identity_fixed,
+        lkj_eta = correlated ? checked.record.spec.lkj_eta : nothing))
+end
+
+function _mfrm_exchangeable_report_prior_policy(checked)
+    prior = checked.record.prior
+    rows = NamedTuple[_fit_report_prior_policy_row(; family = checked.model, block,
+        parameter_space = :unit_logit_free, prior_family = :normal, location = 0.0,
+        scale_parameter, scale = getproperty(prior.scales, scale_parameter), active = true,
+        direct_scale_prior = true, jacobian_policy = :none_declared_free_coordinate_density,
+        status = :active, note = "Independent zero-mean normal prior on the free unit-logit coordinates in this block.")
+        for (block, scale_parameter) in ((:person, :person_sd), (:rater_free, :rater_kernel_sd),
+            (:item, :item_sd), (:item_steps, :step_sd))]
+    rows[2] = merge(rows[2], (; prior_family = :normalized_zero_sum_normal,
+        independent_by_parameter = false, direct_scale_prior = false,
+        rater_marginal_sd = prior.rater_marginal_sd, rater_contrast_sd = prior.rater_contrast_sd,
+        note = "Joint exchangeable zero-sum normal prior. Kernel SD is not a free-coordinate or marginal SD. Every rater has marginal SD $(prior.rater_marginal_sd); each pairwise contrast has SD $(prior.rater_contrast_sd)."))
+    correlated = _fixed_q_is_correlated(checked)
+    correlated && (rows = _mfrm_correlated_prior_rows(rows, checked.record.spec.lkj_eta))
+    interpretation = "Locations are prior-anchored. For R raters, the full severity covariance is rater_kernel_sd^2 * (I - 11'/R); marginal SD is rater_kernel_sd * sqrt((R-1)/R) and contrast SD is sqrt(2) * rater_kernel_sd. The R-1 free severities are jointly normal and dependent. The normalized density uses the declared free-coordinate measure; deterministic last-rater reconstruction adds no transformation Jacobian. Rater relabelling preserves this prior. Item and free-step priors are unchanged: for K categories the last nonbaseline step has variance (K-2)*step_sd^2; each baseline step is zero. A joint shift of ability and Q-weighted item locations preserves the likelihood; their location is determined by the priors. Loadings and consistency are fixed, with no sampled prior."
+    if correlated
+        interpretation *= " Direct ability pairs have covariance person_sd^2 * [1 rho; rho 1]. LKJ(eta) is declared on rho; rho = tanh(z) contributes log(1-rho^2) exactly once. The ability covariance determinant is part of the normal density, not another transformation Jacobian."
+    end
+    return (; rows, interpretation,
+        pooling_interpretation = "Prior scales are fixed inputs, not learned hyperparameters. The rater scale is a kernel SD; severities have a joint zero-sum prior with dependent free coordinates. " *
+            (correlated ? "Ability pairs are jointly normal conditional on estimated rho; LKJ eta is fixed." : "Ability dimensions have independent normal priors.") *
+            " Item and free-step priors are independent; reconstructed steps are dependent.")
+end

@@ -1,9 +1,9 @@
 # BayesianMGMFRM.jl — Internal Roadmap
 
-Updated 2026-09-17 with private exchangeable-rater sampling, diagnostic
-reconstruction and verified sample persistence through the existing Julia and
-CmdStan routes. The next slice connects these saved results to posterior
-prediction, reports and figures while preserving the actual prior semantics.
+Updated 2026-09-17 with private exchangeable-rater posterior prediction,
+reports and figures from verified saved Julia/CmdStan results. The next slice
+defines and connects an explicit opt-in rater-prior specification to the public
+fitting/cache workflow, preserving prior scale meanings and compatibility defaults.
 The final API migration away from
 development-status names remains a model-specific release requirement. The
 independent model retains its meaning and saved artifacts. Julia remains primary, CmdStan remains its maintained counterpart,
@@ -77,8 +77,9 @@ characterizes the current model's rater-label dependence. A distinct private
 exchangeable-rater reference now passes normalized density, derivative,
 relabelling and Julia/CmdStan checks. A private prior-predictive comparison
 records explicit scale matching and reuses existing figures. Private sampling,
-diagnostics and save/reload now retain the distinct prior identity; the next
-bounded work carries that identity into posterior prediction and reporting.
+diagnostics and save/reload retain the distinct prior identity, now carried into
+posterior prediction, reports and figures. The next bounded work defines an
+explicit opt-in rater-prior specification for the public fitting/cache workflow.
 Recovery, coverage, prior sensitivity and diagnostic-qualified backend comparison require their
 reviewed protocol; the generalized correlation candidate keeps its own identity.
 LD1b execution, soft/group anchors, and new-facet prediction remain separate
@@ -748,12 +749,18 @@ compatibility/public fit-cache loaders reject this new format. Bounded live
 runs and integrity checks are recorded in the
 [result-persistence evidence](docs/internal/normalized-prior-backend-comparison.md#exchangeable-rater-sampling-and-result-persistence-2026-09-17).
 These short runs establish operability and retain MCMC warnings.
-**Next bounded deliverable:** reuse posterior-predictive summaries, reports and
-figures from the verified private results, with the exchangeable prior's actual
-kernel/marginal scale meanings. Reject compatibility-prior fallback text and
-verify numerical/report replay without refitting. Retain compatibility defaults;
-public fitting/cache API design, ordered-step priors, scientific default selection
-and recovery/coverage execution remain separate decisions.
+The private reporting path now reuses posterior-predictive summaries and the
+staged report/figure writer. Actual exchangeable kernel/marginal/contrast scales
+and diagnostic warnings accompany regenerated outputs; incompatible records
+are rejected before reporting. The
+[reporting evidence](docs/internal/normalized-prior-backend-comparison.md#exchangeable-rater-prediction-and-reporting-2026-09-17)
+separates output verification from statistical acceptance.
+**Next bounded deliverable:** define and connect a concise explicit opt-in
+rater-prior specification to the public Julia/CmdStan fitting/cache workflow.
+Name kernel versus marginal scales explicitly and preserve target identity through
+fit types, cache, reports and figures. Retain compatibility defaults and historical
+type/schema identities; ordered-step priors, scientific default selection and
+recovery/coverage execution remain separate decisions.
 Higher-dimensional covariance, within-item validation, automatic request caching
 and hard anchors remain separate.
 The warmup recording slices above are verified. Interruption-time histories
@@ -2597,8 +2604,9 @@ saved-fit reports is implemented. The current prior/identification contract is
 characterized, including its rater-label dependence. A separate exchangeable-rater
 reference and scale-matched prior-predictive comparison now pass their bounded
 checks. Private sampling/results and save/reload now preserve the new target
-identity. Connecting those saved results to posterior prediction, reports and
-figures is the next concrete output. Application preparation and reader
+identity. Saved results now drive posterior prediction, reports and figures.
+An explicit opt-in public rater-prior specification and fitting/cache connection
+is the next concrete output. Application preparation and reader
 recruitment do not block this core work.
 
 The numbered rows are bounded handoffs, not a requirement to finish every
@@ -2611,7 +2619,7 @@ priority follows the Julia user workflow, not the readiness of a paper dataset.
 
 | Task / owner role | Next deliverable | Verification and stop condition |
 | --- | --- | --- |
-| 1. Fixed-coefficient exchangeable-prior reporting path — analyst/maintainer; private sampling/results and persistence verified | Connect verified private results to existing posterior-predictive summaries, reports and figures. Preserve actual prior/scale meanings and diagnostic warnings; reject compatibility-prior fallback text | Exit: saved draws reproduce numerical/figure/report outputs without refitting or changing target identity. Public fitting/cache API design, compatibility defaults, ordered-step prior choice and scientific acceptance remain separate; no reinterpretation of old draws or automatic recovery study |
+| 1. Fixed-coefficient rater-prior selection — analyst/maintainer; private prediction/reporting path verified | Define and connect a concise explicit opt-in rater-prior specification to the Julia/CmdStan public fitting/cache workflow. Preserve kernel/marginal scale meanings, target identity and diagnostics through saved fits and reports | Exit: both backends retain the declared target, wrong-prior records are rejected and old fit types/schemas remain readable. Compatibility defaults, ordered-step prior choice and scientific acceptance remain separate; no reinterpretation of old draws or automatic recovery study |
 | 2. M1 Julia model-to-code contract and estimation path — analyst/maintainer | Resolve the relevant source/exchangeable-prior, identification and validation-scope decisions; correct demonstrated shared-path gaps and retain the [core trace's remaining failure boundaries](#first-julia-core-verification-slice). Prepare the next covariance/within-item slice under the [extension sequence](#long-term-extension-sequence), reusing existing components | Exit: equations, coordinates, scale constants, priors/Jacobians and parameter meanings have code/evidence mappings and explicit unresolved decisions. Check target/gradients, invalid inputs, initialization/sampling failures and result integrity as affected. Record actual runtime/resource limits; model changes have distinct identities. No copied fitting engine or blanket source refactor |
 | 3. CmdStan continuity — analyst/maintainer; accompanies each model slice | Maintain estimation of the same target under the [dual-backend contract](#julia-and-cmdstan-continuity-and-comparison); check common-coordinate densities, gradients and probabilities, then diagnostic-qualified posterior/predictive summaries under the execution budget | Exit: both routes preserve likelihood, priors, constraints, scale and saved-result meaning. Missing parity remains partial support; Julia work can advance incrementally without dropping this requirement. Backend agreement is implementation evidence, not model validity |
 | 4. M2 core statistical validation — analyst; execution not started | Reconcile Stage-A with the accepted package model/claim. Select known-truth conditions for identification, recovery/calibration, sparse coverage, prior sensitivity and numerical failure mechanisms; verify scoring, all-attempt accounting and resource stops before reviewed execution | Exit: target-specific M1 and execution readiness are accepted, the bounded roster is accounted for, and uncertainty/failure rates support a stated domain or an inconclusive result. Representative Julia/CmdStan comparisons accompany it; do not restrict the core domain to the Uchihara design or substitute an empirical fit for recovery evidence |
