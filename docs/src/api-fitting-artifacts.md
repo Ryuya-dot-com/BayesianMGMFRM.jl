@@ -46,6 +46,7 @@ Figures and use the numerical summary functions documented in this manual.
 
 ```@docs
 BayesianMGMFRM.plot_posterior
+BayesianMGMFRM.plot_prior
 BayesianMGMFRM.plot_diagnostics
 BayesianMGMFRM.plot_predictive
 BayesianMGMFRM.plot_wright

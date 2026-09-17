@@ -12,7 +12,7 @@ Use [`BayesianMGMFRM.Experimental.preview`](@ref),
 `experimental = true` to the stable entry points. The legacy keyword remains
 available for source compatibility for GMFRM/MGMFRM. Fixed-coefficient
 multidimensional MFRM uses `Experimental.fit` and manual
-`save_fit_cache`/`load_fit_cache`; preview, prior prediction and automatic cache
+`save_fit_cache`/`load_fit_cache`, and both prior-predictive entries; preview and automatic cache
 entries in this namespace still accept only GMFRM/MGMFRM.
 
 The narrower
@@ -85,8 +85,8 @@ logits and zero-centered priors. Direct ability pairs have covariance
 on rho; it is not a standard deviation. Sampling uses `rho = tanh(z)` with
 the transformation Jacobian. A custom `init` ends in Fisher z, not rho.
 
-Use `save_fit_cache`/`load_fit_cache` to save and reopen results. Automatic
-request caching and prior prediction are unavailable for this specification.
+Use `prior_predictive_check` before fitting, and `save_fit_cache`/`load_fit_cache`
+to save and reopen results. Automatic request caching is unavailable.
 """
 correlated(spec::_FacetSpec; lkj_eta = 2) = CorrelatedMFRMSpec(spec; lkj_eta)
 
@@ -103,7 +103,7 @@ function surface_contract(spec::CorrelatedMFRMSpec)
             density_measure = :d_beta_d_zrho,
             correlation_prior_measure = :d_rho, correlation_transform = :tanh,
             correlation_log_jacobian = :log_one_minus_rho_squared,
-            prior_predict_available = false, prior_predictive_check_available = false),
+            prior_predict_available = true, prior_predictive_check_available = true),
         claim_scope = :two_dimensional_between_item_fixed_coefficient_mfrm))
 end
 
@@ -183,7 +183,7 @@ function _mfrm_surface_contract()
         scale_convention = :unit_logit,
         prior = (; constructor = :MFRMPrior, parameter_space = :unit_logit_free,
             family = :independent_zero_centered_normal, custom_scales_allowed = true,
-            prior_predict_available = false, prior_predictive_check_available = false,
+            prior_predict_available = true, prior_predictive_check_available = true,
             jacobian_policy = :none_declared_free_coordinate_density),
         backend = :advancedhmc, supported_backends = (:advancedhmc, :cmdstan),
         sampler_defaults = _family_surface_contract(:mgmfrm).sampler_defaults,
@@ -326,15 +326,22 @@ function preview(spec)
 end
 
 """
-    prior_predict(spec; prior = GeneralizedPrior(), ndraws = 1000,
+    prior_predict(spec; ndraws = 1000,
         rng = Random.default_rng())
 
-Generate score replications from the raw-coordinate prior of a supported
-guarded GMFRM or MGMFRM specification. This operation does not fit a posterior.
+Generate score replications from the declared prior of a supported specification.
+Fixed-coefficient MFRM uses `MFRMPrior()` in unit logits; pass `correlated(spec)`
+to use its joint ability/LKJ prior. GMFRM/MGMFRM use `GeneralizedPrior()` on raw
+coordinates. Rows are independent replications of the existing rating design;
+this operation does not fit a posterior. Use a local `MersenneTwister` for
+reproducibility without advancing the global RNG.
 """
 function prior_predict(spec; kwargs...)
-    checked = _require_generalized_spec(spec, "Experimental.prior_predict")
     _reject_legacy_keyword(kwargs, "Experimental.prior_predict")
+    if spec isa CorrelatedMFRMSpec || spec isa _FacetSpec && getfield(_PACKAGE, :_is_mfrm_fixed_q)(spec)
+        return getfield(_PACKAGE, :_fixed_q_prior_predict)(spec; kwargs...)
+    end
+    checked = _require_generalized_spec(spec, "Experimental.prior_predict")
     return getfield(
         _PACKAGE,
         :_experimental_generalized_prior_predict,
@@ -342,21 +349,34 @@ function prior_predict(spec; kwargs...)
 end
 
 """
-    prior_predictive_check(spec; prior = GeneralizedPrior(), ndraws = 1000,
+    prior_predictive_check(spec; ndraws = 1000,
         rng = Random.default_rng(), min_category_probability = 0.01,
         prior_warning_probability = 0.95, wide_facet_range_fraction = 0.8)
 
-Generate prior parameter draws and replicated score data for a supported
-guarded GMFRM or MGMFRM specification. The result separates raw and constrained
-direct parameter draws, records the resolved prior scales, and is compatible
-with `BayesianMGMFRM.predictive_check_summary`.
+Generate prior parameter draws and replicated scores for a supported model.
+Fixed-coefficient MFRM uses `MFRMPrior()`; `correlated(spec)` also samples its
+LKJ correlation and conditional bivariate ability prior. The result includes
+free-coordinate draws, reconstructed `model_coordinates`, and a
+`parameter_summary` with central 95% prior intervals. Fixed Q coefficients,
+fixed marginal scales and reconstructed sum constraints retain their fitting
+meaning. Generalized models instead separate raw and constrained direct draws
+under `GeneralizedPrior()`.
+
+All results work with `predictive_check_summary(check)` and
+`BayesianMGMFRM.plot_predictive(check)`; fixed-coefficient MFRM also supports
+`BayesianMGMFRM.plot_prior(check)`. Plotting requires CairoMakie. Observed ratings
+serve only as a comparison; they do not update the prior. Simulations reuse
+the supplied persons, items, raters and rating rows, not new facet levels.
 """
 function prior_predictive_check(spec; kwargs...)
+    _reject_legacy_keyword(kwargs, "Experimental.prior_predictive_check")
+    if spec isa CorrelatedMFRMSpec || spec isa _FacetSpec && getfield(_PACKAGE, :_is_mfrm_fixed_q)(spec)
+        return getfield(_PACKAGE, :_fixed_q_prior_predictive_check)(spec; kwargs...)
+    end
     checked = _require_generalized_spec(
         spec,
         "Experimental.prior_predictive_check",
     )
-    _reject_legacy_keyword(kwargs, "Experimental.prior_predictive_check")
     return getfield(
         _PACKAGE,
         :_experimental_generalized_prior_predictive_check,

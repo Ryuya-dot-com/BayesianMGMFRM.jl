@@ -16,7 +16,8 @@ function _render_posterior(fit, data; size = nothing)
         dimension_labels = fit.design.spec.dimension_labels, size)
 end
 
-function _render_posterior(data; title, dimension_labels, xlabel, size = nothing)
+function _render_posterior(data; title, dimension_labels, xlabel, size = nothing,
+        caption = _posterior_caption(data))
     groups = [[row for row in data.rows if (row.block, row.dimension) == key] for key in data.groups]
     figure_size = size === nothing ? (850, 30 * length(data.rows) + 95 * length(groups) + 160) : size
     fig = Figure(; size = figure_size, fontsize = 15)
@@ -54,7 +55,6 @@ function _render_posterior(data; title, dimension_labels, xlabel, size = nothing
         data.scale === :model && block === :latent_correlation && xlims!(ax, -1, 1)
         rowsize!(fig.layout, index + 1, Auto(length(rows)))
     end
-    caption = _posterior_caption(data)
     Label(fig[length(groups) + 2, 1], caption; fontsize = 12, tellwidth = false,
         justification = :left, halign = :left, word_wrap = true)
     return fig
@@ -141,11 +141,11 @@ function _render_predictive(fit, data; size = nothing)
     return _render_predictive(data; title = "$family posterior predictive check\nCategory proportions", size)
 end
 
-function _render_predictive(data; title, size = nothing)
+function _render_predictive(data; title, size = nothing, caption = _predictive_caption(data))
     n = length(data.rows)
     fig = Figure(; size = size === nothing ? (900, max(480, 50 * n + 300)) : size, fontsize = 15)
     Label(fig[1, 1], title;
-        fontsize = 21, font = :bold, tellwidth = false)
+        fontsize = 21, font = :bold, tellwidth = false, word_wrap = true)
     ax = Axis(fig[2, 1]; xlabel = "Proportion of ratings", ylabel = "Score category",
         yticks = (1:n, string.(getproperty.(data.rows, :level))), ygridvisible = false)
     positions = collect(1:n)
@@ -161,7 +161,6 @@ function _render_predictive(data; title, size = nothing)
     Legend(fig[3, 1], [observed, predicted, bars],
         ["Observed", "Replicated mean", "$(level)% predictive interval"];
         orientation = :horizontal, tellwidth = false)
-    caption = _predictive_caption(data)
     Label(fig[4, 1], caption; fontsize = 12, tellwidth = false,
         justification = :left, halign = :left, word_wrap = true)
     return fig

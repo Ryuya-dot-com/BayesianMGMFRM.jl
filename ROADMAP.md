@@ -1,8 +1,8 @@
 # BayesianMGMFRM.jl — Internal Roadmap
 
-Updated 2026-09-17 to connect explicit two-dimensional correlated MFRM
-specifications to experimental Julia/CmdStan fitting, manual saved fits and
-reader-facing reports. The independent model retains its meaning and saved
+Updated 2026-09-17 to add independent/correlated fixed-coefficient prior
+inspection and figures, and to specify the final API migration away from
+development-status names. The independent model retains its meaning and saved
 artifacts. Julia remains primary, CmdStan remains its maintained counterpart,
 and Uchihara (2022) remains a secondary application.
 This is the **single current work order**, not a public feature catalogue or a
@@ -701,14 +701,19 @@ warnings. The preview retained eight ability coordinates for two persons.
 This establishes representation and guard behavior only; no posterior fit,
 Stan compilation, bifactor identification or scientific validation was performed.
 
-**Next bounded deliverable:** provide prior-predictive inspection for independent
-and correlated fixed-coefficient MFRM using the declared priors and existing
-response kernel. Show plausible ability/correlation and rating implications before
-fitting, with the same scale and parameter roles as fitted reports. Keep prior
-simulation distinct from posterior convergence and known-truth recovery. Reuse
-existing checks and figures; do not add a second likelihood or launch an
-unreviewed simulation study. Higher-dimensional covariance, within-item
-validation, automatic request caching and hard anchors remain separate.
+**Current bounded deliverable:** prior-predictive inspection for independent
+and correlated fixed-coefficient MFRM now uses the declared joint priors and
+existing response kernel. Parameter summaries, `plot_prior(check)` and
+`plot_predictive(check)` provide ability/correlation and rating implications
+before fitting. Verification is recorded in the
+[owner's evidence](docs/internal/normalized-prior-backend-comparison.md#fixed-coefficient-prior-inspection-2026-09-17).
+**Next bounded deliverable:** connect these checks to optional saved-fit report
+sections and figures using the saved model/prior, explicit local RNG and
+draw budget. Keep prior simulation distinct from posterior convergence and
+known-truth recovery; an old cache must retain its target and sample identity.
+Reuse the current report and figure paths, with no second likelihood or new
+sampler. Higher-dimensional covariance, within-item validation, automatic
+request caching and hard anchors remain separate.
 The warmup recording slices above are verified. Interruption-time histories
 remain unavailable; adding them is deferred until a concrete failure-diagnosis
 need warrants it, while existing error and cache-preservation guarantees remain.
@@ -2057,11 +2062,53 @@ scientific margin or experiment budget is adopted by this proposal.
 
 ### User workflow, API naming, and visualization
 
+#### Final API and development-status wording
+
+The user's 2026-09-17 clarification makes `Experimental` a transitional
+development boundary, not the intended permanent analyst workflow. In the
+final supported release, ordinary model selection, fitting, prior inspection,
+plots and reports must use model names and explicit supported options rather
+than requiring a development-status namespace. Existing names such as `fit`,
+`prior_predictive_check`, `plot_prior`, `plot_predictive` and `fit_report` should
+remain the short workflow. Decide the final model constructor and correlation
+selector alongside their statistical contract; prospective signatures are not
+executable documentation until implemented.
+
+Promotion is a model-specific change, with four linked acceptance checks:
+
+1. Accept the model's equation, scale, prior measure/Jacobians, identification
+   and supported domain, with the required Julia/CmdStan evidence and the
+   existing release conditions below. Removing a word does not satisfy them.
+2. Expose the accepted model through the ordinary API and update examples,
+   README, live help, rendered navigation/search, displays, errors, plot titles
+   and report defaults together. Final figure/report headings describe the
+   model and quantities; relevant limitations, units and diagnostic warnings
+   remain visible. Retain status/provenance fields for reproducibility where
+   needed, without making development work orders part of user interpretation.
+3. Preserve `Experimental` calls as documented compatibility aliases for an
+   explicitly recorded transition period. Deprecations must name the replacement
+   and any real semantic difference. Do not change existing `FacetSpec` meanings,
+   serialized defining-type identities or historical payload hashes merely to
+   shorten a name. Verify old source calls and saved results on supported Julia
+   versions, and give materially different models different identities.
+4. Add release-scope checks for both source/help and freshly rendered/runtime
+   output of promoted models, including the ordinary prior-to-fit-to-report
+   walkthrough. A blanket ban on the token `Experimental` would also reject
+   necessary compatibility documentation and unpromoted models; scope checks to
+   the actual final user surfaces and preserve user-supplied labels.
+
+Today the namespace and experimental support metadata remain truthful. The
+new prior plots use quantity/model headings and state current support in the
+caption. Final promotion will remove that status caption together with the
+corresponding API migration. This is part of package handoff, independent of
+completion or publication of the Uchihara application.
+
 **Status: fit-taking posterior interval, trace/rank, category predictive and
 stable MFRM Wright-map figures implemented; the stable MFRM and both guarded
 generalized examples now run through save/reload and optional figures.
-Public-content corrections are verified below; report integration and the
-unfamiliar-reader walkthrough remain open.**
+Public-content corrections and posterior figure/report integration are verified
+below. Fixed-coefficient prior inspection and direct figures are implemented;
+their saved-fit report integration and the unfamiliar-reader walkthrough remain open.**
 The acceptance unit is a user's completed analysis task, not the number of
 exports, plotting-data helpers, report sections, or generated files. Keep
 scientific validity and usability as separate requirements: neither a polished
@@ -2076,7 +2123,7 @@ figure nor a complete numerical report satisfies both.
 | `fit(spec)` already delegates to `fit(getdesign(spec))`; [the minimal example](examples/minimal.jl) is now 56 lines, down from 181 | The default Julia NUTS route prints diagnostics and summaries, saves/reloads the fit, and optionally exports four figures. Design inspection and manual cache keys are optional; advanced reporting uses the existing manual |
 | Generalized `posterior_summary` uses raw coordinates; qualified `BayesianMGMFRM.direct_posterior_summary` uses transformed parameters; `fit_report` includes direct summaries by default | Both guarded examples now print model-scale summaries and generate model-scale intervals plus raw-coordinate diagnostics from the saved fit. MGMFRM preserves named dimension selection. Existing draws and serialized objects retain their meanings |
 | `wright_map_data` and `diagnostic_map_data` serve stable MFRM; calibration, predictive-check and recovery helpers return plotting rows | Category-proportion and stable MFRM Wright-map rows now feed finished figures; the remaining rows are reusable inputs. Do not advertise a generalized Wright map or MGMFRM rater report on the strength of stable-only methods |
-| [Report bundles](src/bayesian_fit.jl) contain JSON, JSON tables and Markdown; qualified `BayesianMGMFRM.plot_posterior(fit)`, `BayesianMGMFRM.plot_diagnostics(fit)`, `BayesianMGMFRM.plot_predictive(fit)` and `BayesianMGMFRM.plot_wright(fit)` return editable figures | The optional CairoMakie extension consumes existing fit draws, summaries and transforms; the Wright map is stable MFRM only. Report-bundle figure integration remains pending; the historical batch-specific SVG script is not the user plotting engine |
+| [Report bundles](src/bayesian_fit.jl) contain JSON, JSON tables and Markdown; qualified `BayesianMGMFRM.plot_posterior(fit)`, `BayesianMGMFRM.plot_diagnostics(fit)`, `BayesianMGMFRM.plot_predictive(fit)` and `BayesianMGMFRM.plot_wright(fit)` return editable figures | The optional CairoMakie extension consumes existing fit draws, summaries and transforms; the Wright map is stable MFRM only. Posterior figure/report integration is verified below. Prior inspection now has direct `plot_prior(check)` and `plot_predictive(check)` figures; its report integration remains next |
 
 The initial API/visualization inspection did not rerun package tests or fit
 models. Later figure checks and native example runs are recorded below; they
@@ -2503,7 +2550,8 @@ separates bounded operability from statistical acceptance. The correlated model'
 [saved samples](docs/internal/normalized-prior-backend-comparison.md#private-correlated-sampling-and-reconstruction-2026-09-17)
 and [experimental API](docs/internal/normalized-prior-backend-comparison.md#experimental-correlated-mfrm-api-2026-09-17)
 now connect without changing historical independent artifacts. Prior-predictive
-inspection is the next concrete output. Application preparation and reader
+inspection and direct figures are implemented; their optional integration into
+saved-fit reports is the next concrete output. Application preparation and reader
 recruitment do not block this core work.
 
 The numbered rows are bounded handoffs, not a requirement to finish every
@@ -2516,7 +2564,7 @@ priority follows the Julia user workflow, not the readiness of a paper dataset.
 
 | Task / owner role | Next deliverable | Verification and stop condition |
 | --- | --- | --- |
-| 1. Fixed-coefficient prior-predictive inspection — analyst/maintainer; independent and correlated fit/cache/report paths connected | Expose the actual ability, step, rater and correlation priors through reusable prior-predictive summaries and figures before fitting. Keep fixed marginal scales, LKJ shape, Q coefficients and reconstructed constraints explicit | Exit: declared-prior draws and rating predictions share the existing model kernel; seeded outputs, support/constraint checks and plot/summary agreement pass. State the current existing-facet prediction scope. No new sampler, unreviewed recovery study or model generalization is part of this slice |
+| 1. Fixed-coefficient prior-predictive report integration — analyst/maintainer; direct inspection and figures implemented | Reuse the new declared-prior simulation from an existing independent/correlated saved fit in optional report sections and figure exports. Restore the saved prior and model, retain explicit local RNG/draw budgets and show prior versus posterior meaning clearly | Exit: saved-fit and specification checks agree; report/figure numerical inputs agree; old target/sample identities and caches remain valid; failed exports preserve existing outputs. Existing-facet prediction scope stays explicit. No new sampler, recovery study or model generalization is part of this slice |
 | 2. M1 Julia model-to-code contract and estimation path — analyst/maintainer | Resolve the relevant source/exchangeable-prior, identification and validation-scope decisions; correct demonstrated shared-path gaps and retain the [core trace's remaining failure boundaries](#first-julia-core-verification-slice). Prepare the next covariance/within-item slice under the [extension sequence](#long-term-extension-sequence), reusing existing components | Exit: equations, coordinates, scale constants, priors/Jacobians and parameter meanings have code/evidence mappings and explicit unresolved decisions. Check target/gradients, invalid inputs, initialization/sampling failures and result integrity as affected. Record actual runtime/resource limits; model changes have distinct identities. No copied fitting engine or blanket source refactor |
 | 3. CmdStan continuity — analyst/maintainer; accompanies each model slice | Maintain estimation of the same target under the [dual-backend contract](#julia-and-cmdstan-continuity-and-comparison); check common-coordinate densities, gradients and probabilities, then diagnostic-qualified posterior/predictive summaries under the execution budget | Exit: both routes preserve likelihood, priors, constraints, scale and saved-result meaning. Missing parity remains partial support; Julia work can advance incrementally without dropping this requirement. Backend agreement is implementation evidence, not model validity |
 | 4. M2 core statistical validation — analyst; execution not started | Reconcile Stage-A with the accepted package model/claim. Select known-truth conditions for identification, recovery/calibration, sparse coverage, prior sensitivity and numerical failure mechanisms; verify scoring, all-attempt accounting and resource stops before reviewed execution | Exit: target-specific M1 and execution readiness are accepted, the bounded roster is accounted for, and uncertainty/failure rates support a stated domain or an inconclusive result. Representative Julia/CmdStan comparisons accompany it; do not restrict the core domain to the Uchihara design or substitute an empirical fit for recovery evidence |
@@ -3327,6 +3375,11 @@ the priority correction does not automatically restart the old benchmark program
   the finite M0 behavior review passed candidate CI.
 - [x] Root exports are frozen and classified; stable exports are documented;
   experimental and research entry points remain visibly separated.
+- [ ] Apply the [final API migration](#final-api-and-development-status-wording)
+  to each accepted model: ordinary calls and final report/figure headings no
+  longer require `Experimental`; compatibility aliases, old saved results,
+  model meanings and necessary limits remain intact. This is not satisfied by
+  removing a status string from the current development build.
 - [ ] Each advertised model has an accepted [seven-axis specification](#model-axes-and-staged-scope-decisions)
   and evidence for its declared domain. A fixed-Q or bifactor-shaped design,
   direct ability coordinates, or a correlation candidate does not imply

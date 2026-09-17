@@ -78,8 +78,8 @@ Use `diagnostics(fit)`, `posterior_summary(fit)` and
 coordinates; `fit_metadata(fit)` records the prior, backend and target identity.
 `save_fit_cache`/`load_fit_cache` and `save_fit_report_bundle` support this result,
 including named-dimension figures. See the [runnable example](examples.md#fixed-coefficient-multidimensional-mfrm).
-Automatic request caching, `Experimental.preview`, and prior-predictive entries
-remain limited to GMFRM/MGMFRM; inspect this specification with
+Automatic request caching and `Experimental.preview` remain limited to
+GMFRM/MGMFRM. Prior prediction also supports this MFRM model; inspect its design with
 `getdesign(spec; preview = true)`. Stable `fit(spec)` does not accept it.
 
 ## Correlated ability dimensions
@@ -121,7 +121,45 @@ before computing intervals. This population correlation is distinct from
 dependence among posterior draws. Reports and saved report bundles default to
 `view = :public`; `view = :full` retains additional reproducibility information.
 The report includes rho, its interval and its diagnostics without manual draw
-reshaping. Prior prediction and automatic request caching are unavailable.
+reshaping. Automatic request caching is unavailable.
+
+### Inspect priors before fitting
+
+Use the same `MFRMPrior` for prior inspection and subsequent fitting. Both the
+independent `spec` and the correlated `model` above are supported:
+
+```julia
+using Random
+prior = MFRMPrior(person_sd = 0.7, rater_sd = 0.4, item_sd = 0.6, step_sd = 0.5)
+prior_check = BayesianMGMFRM.Experimental.prior_predictive_check(model;
+    prior, ndraws = 1000, rng = MersenneTwister(42))
+prior_check.parameter_summary  # model-scale medians and central 95% prior intervals
+predictive_check_summary(prior_check; interval = 0.9)
+prior_check.implication_diagnostics  # category use and facet-score ranges
+
+using CairoMakie
+save("ability-prior.pdf", BayesianMGMFRM.plot_prior(prior_check;
+    block = :person, dimension = 2))
+save("correlation-prior.svg", BayesianMGMFRM.plot_prior(prior_check;
+    block = :latent_correlation)) # correlated model only
+save("prior-predictive.pdf", BayesianMGMFRM.plot_predictive(prior_check))
+```
+
+The figures reuse the simulated draws; no posterior sampling or manual draw
+reshaping is needed. For the correlated model, rho is sampled from its LKJ
+prior and each person's ability pair is sampled conditional on that rho, with
+fixed marginal `person_sd`. Rater and item-step sum constraints are reconstructed
+draw by draw. Locations and steps use unit logits; correlation uses its own scale.
+The seed is controlled by the supplied RNG and is reproducible in the same
+Julia/package environment.
+
+Assess whether the simulated ratings and facet differences are plausible for
+the measurement context before choosing prior scales. The observed scores are
+shown for comparison and do not update the prior. Replications use the supplied
+rating rows and facet levels; they do not predict newly introduced persons,
+items or raters. Plausible prior predictions do not establish identification,
+posterior convergence or parameter recovery. These checks currently run
+separately from saved-fit report bundles.
 
 ## Dimension aggregation and item structure
 

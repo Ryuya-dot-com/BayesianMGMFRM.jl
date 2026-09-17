@@ -390,6 +390,45 @@ function _category_predictive_plot_data(check; interval, ndraws, draw_indices,
         selection, rng, diagnostic)
 end
 
+function _prior_predictive_plot_data(check::NamedTuple; interval::Real = 0.9)
+    hasproperty(check, :parameter_draws) && hasproperty(check, :replicated_scores) ||
+        throw(ArgumentError("expected a prior_predictive_check result"))
+    scores = check.replicated_scores
+    scores isa AbstractMatrix{<:Integer} && size(scores, 1) > 0 && size(scores, 2) > 0 &&
+        size(check.parameter_draws, 1) == size(scores, 1) ||
+        throw(ArgumentError("prior prediction requires nonempty matching parameter and score draws"))
+    rows = predictive_check_plot_data(filter(row -> row.statistic === :category_proportion,
+        predictive_check_summary(check; interval)))
+    return (; rows, interval = Float64(interval), n_replicates = size(scores, 1),
+        n_observations = size(scores, 2), kind = :prior_predictive,
+        implication_flag = check.implication_diagnostics.flag)
+end
+
+"""
+    BayesianMGMFRM.plot_predictive(check::NamedTuple; interval = 0.9, size = nothing)
+
+Plot observed category proportions alongside prior-predictive means and central
+intervals from a `prior_predictive_check` result, including experimental models.
+Load CairoMakie first; returns an editable Figure for display or PDF/SVG saving.
+Uses all the already generated replications without further random draws.
+The numerical values are `predictive_check_summary(check; interval)` rows with
+`statistic = :category_proportion`. Ratings are a comparison, not an update to
+the prior. Prior plausibility does not establish posterior convergence, recovery
+or performance for new persons, items or raters.
+"""
+function plot_predictive(check::NamedTuple; interval::Real = 0.9, size = nothing)
+    data = _prior_predictive_plot_data(check; interval)
+    extension = Base.get_extension(@__MODULE__, :BayesianMGMFRMCairoMakieExt)
+    extension === nothing && throw(ArgumentError("plot_predictive requires `using CairoMakie`"))
+    caption = "$(data.n_replicates) prior-predictive datasets of $(data.n_observations) ratings each.\n" *
+        "Same rating rows, persons, items and raters; all generated replications.\n" *
+        "Bars: pointwise central predictive intervals for category proportions.\n" *
+        "Prior-implication status: $(replace(String(data.implication_flag), '_' => ' ')).\n" *
+        "Observed ratings are a comparison only; no posterior fitting."
+    get(check, :stability, :stable) === :experimental && (caption *= "\nModel support: experimental.")
+    return extension._render_predictive(data; title = "Prior predictive check\nCategory proportions", caption, size)
+end
+
 """
     BayesianMGMFRM.plot_wright(fit; facets = :all, include_thresholds = true,
         interval = 0.95, max_levels = 60, size = nothing)

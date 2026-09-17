@@ -85,6 +85,7 @@ the fit and a report. Use either backend, optionally adding figures with CairoMa
 julia --project=. examples/multidimensional_mfrm.jl
 julia --project=. examples/multidimensional_mfrm.jl --cmdstan --plots
 julia --project=. examples/multidimensional_mfrm.jl --correlated --plots
+julia --project=. examples/multidimensional_mfrm.jl --correlated --prior-only --plots
 ```
 
 Its fixed Q assigns items 1–2 to reasoning and items 3–4 to communication.
@@ -96,11 +97,15 @@ explains the model and limits. Add `--correlated` to estimate population rho
 with an LKJ(2) prior on either backend; its figures show rho and its chains.
 Ability-pair marginal standard deviations remain fixed prior inputs.
 
-Each run prints a new directory under `results/multidimensional_mfrm/` containing
+Before fitting, the script prints prior parameter and rating summaries. Add
+`--prior-only` to stop there. `--plots` also saves ability-prior and rating-prior
+figures, plus a correlation-prior figure when `--correlated` is selected.
+
+Each fitting run prints a new directory under `results/multidimensional_mfrm/` containing
 `fit.jls` and `report/`. The script reloads the fit, checks its metadata and
 summaries, and reopens the report bundle. `--plots` adds reasoning posterior
 and chain figures plus category predictive figures in PDF/SVG and their JSON
-inputs. All figures use the reloaded fit; users need not reshape MCMC draws.
+inputs. Posterior figures use the reloaded fit; users need not reshape MCMC draws.
 The posterior intervals are central 90% intervals in unit logits. Fixed
 coefficients and derived coordinates are labelled; whole-fit diagnostic warnings
 remain visible. Report-only mode and subsequent bundle verification need no renderer.

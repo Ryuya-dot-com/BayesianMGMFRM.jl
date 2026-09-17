@@ -1,7 +1,8 @@
 using BayesianMGMFRM
+using Random
 
-all(arg -> arg in ("--plots", "--cmdstan", "--correlated"), ARGS) ||
-    error("Usage: julia --project=. examples/multidimensional_mfrm.jl [--plots] [--cmdstan] [--correlated]")
+all(arg -> arg in ("--plots", "--cmdstan", "--correlated", "--prior-only"), ARGS) ||
+    error("Usage: julia --project=. examples/multidimensional_mfrm.jl [--plots] [--cmdstan] [--correlated] [--prior-only]")
 if "--plots" in ARGS
     using CairoMakie
 end
@@ -33,6 +34,20 @@ output_dir = mktempdir(mkpath("results/multidimensional_mfrm"); prefix = "$(back
 backend_options = backend === :cmdstan ?
     (; cmdstan_cache_dir = joinpath(output_dir, "cmdstan-build")) : (;)
 println("Output directory: ", abspath(output_dir))
+prior_check = BayesianMGMFRM.Experimental.prior_predictive_check(model;
+    prior, ndraws = 1000, rng = MersenneTwister(42))
+println("Prior-implication status: ", prior_check.implication_diagnostics.flag)
+display(prior_check.parameter_summary)
+display(predictive_check_summary(prior_check))
+if "--plots" in ARGS
+    save(joinpath(output_dir, "ability-prior.pdf"), BayesianMGMFRM.plot_prior(prior_check;
+        block = :person, dimension = "communication"))
+    correlated && save(joinpath(output_dir, "correlation-prior.svg"),
+        BayesianMGMFRM.plot_prior(prior_check; block = :latent_correlation))
+    save(joinpath(output_dir, "prior-predictive.pdf"), BayesianMGMFRM.plot_predictive(prior_check))
+end
+println("Review prior scales and score implications before interpreting a fit.")
+"--prior-only" in ARGS && exit(0)
 println("Short demonstration: 50 warmup + 50 retained draws per chain; not sufficient for inference.")
 fit_result = BayesianMGMFRM.Experimental.fit(model; backend, prior,
     ndraws = 50, warmup = 50, chains = 2, seed = 20260915, backend_options...)
