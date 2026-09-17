@@ -69,8 +69,23 @@ function check_samples(categories,backend,directory)
     # Mutated numerical views must be rebuilt from the validated base design and prior.
     target.blueprint.parameter_names[1]="stale"
     target.base.base.design.spec.q_matrix .= true
-    result = B._mfrm_correlated_2d_sample(target,initial;backend,ndraws=12,warmup=10,chains=2,
-        seed=20260917,step_size=0.03,max_depth=4,init_jitter=0.02,record_warmup,options...)
+    controls = (; backend, ndraws=12, warmup=10, chains=2,
+        seed=20260917, step_size=0.03, max_depth=4, init_jitter=0.02, record_warmup, options...)
+    result = if categories == 4
+        model = B.Experimental.correlated(specification(categories); lkj_eta=categories+1)
+        fit = B.Experimental.fit(model; prior=PRIOR, init=initial, controls...)
+        @test fit isa B.Experimental.CorrelatedMFRMFit
+        save_fit_cache(joinpath(directory, "fit.jls"), fit)
+        restored = load_fit_cache(joinpath(directory, "fit.jls"))
+        @test isequal(B.direct_posterior_summary(restored), B.direct_posterior_summary(fit))
+        @test restored.record.target_identity == identity
+        public = fit_report(restored; require_complete=true)
+        @test public.schema == "bayesianmgmfrm.fit_report_public.v1"
+        @test public.diagnostics.summary.flag == diagnostics(fit).summary.flag
+        B._mfrm_correlated_2d_samples(fit)
+    else
+        B._mfrm_correlated_2d_sample(target, initial; controls...)
+    end
     record,run=result.record,result.record.run
     target = B._MFRMFixedQCorrelated2DLogDensity(record.base_spec;prior=PRIOR,lkj_eta=categories+1)
     @test record.schema == "bayesianmgmfrm.correlated_fixed_q_mfrm_samples.v1"

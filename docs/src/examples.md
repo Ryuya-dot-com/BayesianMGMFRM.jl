@@ -84,6 +84,7 @@ the fit and a report. Use either backend, optionally adding figures with CairoMa
 ```sh
 julia --project=. examples/multidimensional_mfrm.jl
 julia --project=. examples/multidimensional_mfrm.jl --cmdstan --plots
+julia --project=. examples/multidimensional_mfrm.jl --correlated --plots
 ```
 
 Its fixed Q assigns items 1–2 to reasoning and items 3–4 to communication.
@@ -91,7 +92,9 @@ Active coefficients and rater consistency are one; person/item locations use
 zero-centered priors, rater severities sum to zero, and latent correlation is
 identity. `MFRMPrior` sets standard deviations on free unit-logit coordinates.
 The [experimental guide](experimental.md#fixed-coefficient-multidimensional-mfrm)
-explains the model and limits.
+explains the model and limits. Add `--correlated` to estimate population rho
+with an LKJ(2) prior on either backend; its figures show rho and its chains.
+Ability-pair marginal standard deviations remain fixed prior inputs.
 
 Each run prints a new directory under `results/multidimensional_mfrm/` containing
 `fit.jls` and `report/`. The script reloads the fit, checks its metadata and

@@ -11,6 +11,10 @@ end
 const PublicLanguagePolicy = PublicLanguageGateContractForTest.PublicLanguageGate
 
 @testset "public language release policy" begin
+    @test !isempty(PublicLanguagePolicy.runtime_language_violations(["plot" => "Private correlated MFRM"]))
+    @test !isempty(PublicLanguagePolicy.runtime_language_violations(["fit" => "private result"]))
+    @test !isempty(PublicLanguagePolicy.runtime_language_violations(["metadata" => "private_reference"]))
+
     root = abspath(normpath(joinpath(@__DIR__, "..")))
     result = PublicLanguagePolicy.check_public_language(root)
 

@@ -151,7 +151,7 @@ function _check_mgmfrm_free_latent_correlation_2d_design(
         failing = Tuple(row.check for row in validation.rows
             if row.severity === :error)
         throw(ArgumentError(
-            "the initial free latent-correlation candidate requires a " *
+            "the two-dimensional correlation model requires a " *
             "fixed simple-structure Q-matrix; failing_checks=$(repr(failing))",
         ))
     end
@@ -163,7 +163,7 @@ function _check_mgmfrm_free_latent_correlation_2d_design(
         for dimension in 1:2
     )
     all(>=(2), pure_items_per_dimension) || throw(ArgumentError(
-        "the initial free latent-correlation candidate requires at least " *
+        "the two-dimensional correlation model requires at least " *
         "two pure items per dimension; observed " *
         repr(pure_items_per_dimension),
     ))
@@ -182,14 +182,14 @@ function _check_mgmfrm_free_latent_correlation_2d_design(
         if !all(@view person_dimension_observed[person, :])
     )
     isempty(incomplete_people) || throw(ArgumentError(
-        "the initial free latent-correlation candidate requires every " *
+        "the two-dimensional correlation model requires every " *
         "person to have observations connected to both dimensions; " *
         "incomplete_people=$(repr(incomplete_people))",
     ))
     person_block = base.blueprint.blocks[:person]
     expected_people = length(spec.data.person_levels)
     length(person_block) == 2 * expected_people || throw(ArgumentError(
-        "unexpected 2D person block layout in free-correlation candidate",
+        "invalid ability-coordinate layout for the two-dimensional correlation model",
     ))
     return (;
         q_matrix_validation = validation,

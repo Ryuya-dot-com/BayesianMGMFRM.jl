@@ -9,16 +9,18 @@ models. Start with the [short runnable examples](examples.md).
 ## What Is Supported
 
 The stable fitting surface covers MFRM with rating-scale or partial-credit
-steps. Two generalized configurations are available only with explicit
+steps. Multidimensional configurations are available only with explicit
 experimental opt-in:
 
+- a fixed-coefficient multidimensional MFRM with independent abilities;
+- a two-dimensional between-item MFRM with estimated population correlation;
 - a one-dimensional scalar GMFRM with item discrimination and rater consistency;
 - a multidimensional fixed-Q confirmatory MGMFRM.
 
-Broader discrimination structures, exploratory loadings, free latent
-correlations, and fitted DFF effects are not supported. See
+Broader discrimination structures, exploratory loadings, higher-dimensional
+correlation estimation, and fitted DFF effects are not supported. See
 [Scope and Releases](scope.md) for the exact boundary and
-[Experimental Generalized Models](experimental.md) for the limited API.
+[Experimental Models](experimental.md) for the limited API.
 
 ## Recommended Path
 
@@ -49,7 +51,7 @@ correlations, and fitted DFF effects are not supported. See
   interpretation checks.
 - [Bayesian Fitting](fitting.md) covers backends, experimental restrictions,
   diagnostics, and reports.
-- [Experimental Generalized Models](experimental.md) documents the provisional
+- [Experimental Models](experimental.md) documents the provisional
   namespace and its stability boundary.
 - [Examples](examples.md) points to runnable scripts.
 - [Migrating from FACETS and ACER ConQuest](migration-facets-conquest.md)

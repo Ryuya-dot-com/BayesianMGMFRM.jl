@@ -40,17 +40,20 @@ examples for the version you install.
 |:--|:--|:--|
 | One-dimensional MFRM with rating-scale or partial-credit steps | Supported | `mfrm_spec`, `fit(spec)` |
 | Fixed-coefficient multidimensional MFRM | Experimental | `BayesianMGMFRM.Experimental.fit(spec)` |
+| Two-dimensional correlated MFRM (between-item, fixed coefficients) | Experimental | `Experimental.correlated(spec)` then `Experimental.fit` |
 | Scalar GMFRM: item discrimination × rater consistency | Experimental | `BayesianMGMFRM.Experimental.fit(spec)` |
 | Fixed-Q confirmatory MGMFRM | Experimental | `BayesianMGMFRM.Experimental.fit(spec)` |
 | Broader discrimination structures | Not supported | Specification review only where documented |
-| Exploratory multidimensional loadings or free latent correlations | Not supported | No fitting API |
+| Exploratory loadings or higher-dimensional correlation estimation | Not supported | No fitting API |
 | Fitted DFF effects | Not supported | Screening and design diagnostics only |
 | Testlet, response-cluster, or rater-halo effects | Not supported | Metadata checks and report-only residual summaries |
 
 The fixed-coefficient multidimensional MFRM estimates a person ability vector,
 item locations, rater severities and item-specific partial-credit steps in unit
 logits. It fixes active Q coefficients and rater consistency to one, with
-identity latent correlation and prior-anchored person/item locations. Both Julia
+independent abilities by default and prior-anchored person/item locations.
+For two between-item dimensions, use `BayesianMGMFRM.Experimental.correlated(spec)`
+to estimate population correlation; see the [correlation guide](docs/src/experimental.md#correlated-ability-dimensions). Both Julia
 and CmdStan support the [fit, cache and figure/report example](docs/src/examples.md#fixed-coefficient-multidimensional-mfrm).
 
 The experimental GMFRM configuration is one-dimensional and estimates positive

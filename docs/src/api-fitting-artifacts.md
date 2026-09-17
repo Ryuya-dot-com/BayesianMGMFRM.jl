@@ -69,11 +69,14 @@ artifact = fit_artifact(restored; view = :public)
 ```
 
 Posterior bounds must define a central interval strictly inside `(0, 1)`.
-This experimental model uses unit logits, fixed Q coefficients and identity
-latent correlation. Estimate with `BayesianMGMFRM.Experimental.fit`; see the
+These experimental models use unit logits and fixed Q coefficients. Abilities
+are independent by default; `Experimental.correlated(spec)` estimates population
+correlation for two between-item dimensions. Correlated reports default to
+`view = :public` and include rho intervals and diagnostics. Estimate with
+`BayesianMGMFRM.Experimental.fit`; see the
 [multidimensional example](examples.md#fixed-coefficient-multidimensional-mfrm).
-New full artifacts use `mfrm_fixed_q_fit_artifact.v2`. Existing cache files with
-v1 full artifacts remain readable with their original metadata and hashes.
+Earlier independent-model caches remain readable. Saving a correlated fit
+records its model and actual priors separately.
 These saved-result reports need neither sampling nor CairoMakie. A complete
 report means that its requested sections ran successfully; inspect the MCMC
 diagnostics separately.
@@ -113,11 +116,10 @@ BayesianMGMFRM.direct_posterior_summary
 
 ## Experimental compatibility types
 
-`GMFRMFit` and `MGMFRMFit` remain root-level compatibility bindings so that
-existing serialized fit caches retain their Julia type identity. New
-generalized workflows should access them through
+Earlier code may use `GMFRMFit` and `MGMFRMFit` at the package root. New
+generalized workflows should access these result types through
 `BayesianMGMFRM.Experimental`; see
-[Experimental Generalized Models](experimental.md).
+[Experimental Models](experimental.md).
 
 ```@docs
 GMFRMFit

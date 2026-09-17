@@ -2895,19 +2895,68 @@ The saved short-run inputs still carry their original sampler warnings.
 Public correlated fitting, a public saved-fit contract, recovery/coverage,
 posterior equivalence and an unfamiliar-reader review remain open.
 
+## Experimental correlated MFRM API (2026-09-17)
+
+`Experimental.correlated(spec; lkj_eta=2)` copies a canonical two-dimensional
+MFRM design and identifies free population correlation explicitly. The base
+`FacetSpec` retains its independent meaning. Between-item Q, two pure items per
+dimension and complete person/dimension observation coverage remain required.
+`Experimental.fit` uses the existing Julia/AdvancedHMC and CmdStan runners;
+there is no second sampler or likelihood implementation. Unsupported designs,
+initial values and controls are rejected before numerical execution.
+
+The dedicated result type connects to the existing v2 fit-cache envelope with
+model `mfrm_fixed_q_correlated_2d` and its own v1 artifact schema. Full artifact
+semantics, retained densities, target identity and both archive hashes are checked
+on load, including when optional hash verification is disabled. Failed overwrites
+preserve the previous file. Existing independent artifact v1/v2 meanings stay
+unchanged. Historical correlated target/sample v1 availability flags stay frozen
+inside saved provenance; current metadata states current availability separately.
+
+Correlated reports and report bundles default to `view=:public`; `view=:full`
+retains reproducibility details. The default report includes rho, its transformed
+intervals and diagnostics, named dimensions, design audit and prior/Jacobian
+explanations. Sampler warnings and unsupported-analysis explanations remain.
+Human display, live help and figure titles use model descriptions; language checks
+reject private-result status labels. Full-provenance records retain their identities.
+The existing runnable example adds `--correlated`, optionally with `--cmdstan`
+and `--plots`. README, model scope and the experimental guide describe the same
+bounded model.
+
+Verification passed: 772 synthetic result/cache/public-display assertions on
+each of Julia 1.10.8 and 1.12.5; 2,616 independent-model regression assertions;
+86 historical replay/cache checks across the two versions; 165 namespace and
+181 language-policy assertions; 355 runtime surfaces, 20 source files and 14
+fresh HTML pages. Separate-process cache checks passed (12 on 1.10, 24 on 1.12).
+Four bounded correlated runs (two backends, two category counts) completed;
+the four-category cases exercised the new public entry and manual cache.
+The first sandboxed CmdStan build failed before sampling, and was rerun in a
+fresh directory with the required shared-header write permission; Julia runs
+were not repeated. Two one-draw generalized fits belong to the existing runtime
+language check. No statistical evaluation replication was added.
+
+Report/figure integration passed 252 assertions. Implementer PDF/SVG inspection
+confirmed visible titles, correlation axes, intervals and MCMC warnings on both
+backends. The 779 retained historical artifact/input hashes are unchanged.
+Initial help-fallback/test-path errors and verification-driver environment/path
+errors are retained with the final passing runs. The full package suite and CI
+were not run. Verification commands, outputs and visual-review images are in the
+[local receipt](../../results/workflows/20260917-correlated-api-01/receipt.json).
+The bounded short fits establish API/cache operability only, not convergence,
+recovery, coverage or posterior equivalence. The unfamiliar-reader walkthrough
+and independent scientific acceptance remain pending. No CI, merge, release or
+application analysis is implied.
+
 ## Next bounded work
 
-Specify the explicit correlated model and experimental fitting/saved-fit contract.
-Users must request free 2D population correlation unambiguously; the ordinary
-independent `FacetSpec` keeps its meaning. Map that specification to the existing
-private target, both sampler runners and the now-connected result/report/figure
-path. Keep the current pure-Q/two-dimensional boundary and reject unsupported
-combinations before sampling. Define cache identity and prior/coordinate metadata
-before exposing a saved-fit entry; historical independent artifacts must still
-rebuild exactly. Once verified, provide one generic named-dimension/rho example
-for either backend. No paper-specific container or second sampler engine is needed.
-Statistical validation follows its own reviewed protocol. Automatic request
-caching, hard anchors and application predictors are not prerequisites.
+Connect prior-predictive inspection for independent and correlated fixed-coefficient
+MFRM to the existing result/figure conventions. Simulate from the actual declared
+free-coordinate priors and correlation prior, preserving reconstructed constraints
+and scale labels, then use the existing rating kernel. Make the implications of
+fixed marginal scales and LKJ shape inspectable before fitting. Verify numerical
+outputs and deterministic seed behavior without treating a plausible plot as
+recovery evidence. Higher-dimensional covariance, within-item validation,
+automatic request caching, hard anchors and application predictors are separate.
 
 Separately, record an unfamiliar reader finding the supported model/backend, loading a fit,
 choosing a named dimension, interpreting diagnostic/interval labels and saving/

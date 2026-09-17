@@ -10,10 +10,11 @@ path, diagnostics, and user-facing examples are covered together.
 |:--|:--|:--|
 | One-dimensional MFRM with rating-scale or partial-credit steps | Supported | Available through the documented design, fitting, diagnostic, and reporting workflow. |
 | Fixed-coefficient multidimensional MFRM | Experimental | `Experimental.fit` on Julia or CmdStan; fixed Q coefficients, unit logits and identity latent correlation. Manual caches and report/figure bundles are available. |
+| Two-dimensional correlated MFRM | Experimental | `Experimental.correlated(spec)` then `Experimental.fit`; between-item fixed Q, at least two pure items per dimension and both dimensions observed for each person. Julia/CmdStan, manual caches and report/figure bundles are available. |
 | Scalar GMFRM: item discrimination × rater consistency | Experimental | Enter through `BayesianMGMFRM.Experimental`; the documented structural restrictions remain mandatory. |
 | Fixed-Q confirmatory MGMFRM | Experimental | Enter through `BayesianMGMFRM.Experimental`; requires at least two dimensions and a fixed confirmatory loading design. |
 | Broader generalized discrimination structures | Not supported | No stable fitting claim is made. |
-| Exploratory loading patterns or free latent correlations | Not supported for fitting | Fixed-Q fits estimate positive active loadings but keep the zero pattern and identity latent correlation fixed. A separate two-dimensional correlation density has no public sampler. |
+| Exploratory loading patterns or higher-dimensional correlation estimation | Not supported for fitting | MGMFRM fits retain a fixed Q pattern and identity latent correlation. The correlated MFRM above has fixed coefficients and exactly two dimensions. |
 | Group and differential facet functioning effects | Not supported for fitting | Design validation may describe these terms, but estimation is not yet exposed. |
 | Testlet, response-cluster, and rater-halo effects | Not supported for fitting | Explicit identifiers, structural checks, and residual/predictive summaries are available. These report-only summaries provide no calibrated decision or mechanism classification. |
 

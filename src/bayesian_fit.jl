@@ -7623,6 +7623,7 @@ const _PUBLIC_FIT_REPORT_TOP_LEVEL_SECTIONS = (
 )
 
 const _PUBLIC_FIT_REPORT_UNSAFE_TEXT_PATTERNS = (
+    r"(?i)\bprivate[\s_-]+(?:reference|result|correlated)\b",
     r"(?i)\binternal(?![\s_-]+consistency\b)(?:[\s_-]+[A-Za-z0-9_-]+)*\b",
     r"(?<![\p{L}\p{N}_])_+[\p{L}][\p{L}\p{N}_!]*",
     r"(?:file://|(?<![A-Za-z0-9:/])/(?:Users|home|tmp|private/(?:tmp|var/folders)|var/(?:folders|tmp)|workspace|workspaces|Volumes|mnt)(?:/|\b)|(?<![A-Za-z0-9])[A-Za-z]:[\\/]+|\\\\[^\\/\s]+[\\/]+[^\\/\s]+)",

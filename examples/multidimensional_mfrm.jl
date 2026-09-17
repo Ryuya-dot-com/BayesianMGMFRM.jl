@@ -1,7 +1,7 @@
 using BayesianMGMFRM
 
-all(arg -> arg in ("--plots", "--cmdstan"), ARGS) ||
-    error("Usage: julia --project=. examples/multidimensional_mfrm.jl [--plots] [--cmdstan]")
+all(arg -> arg in ("--plots", "--cmdstan", "--correlated"), ARGS) ||
+    error("Usage: julia --project=. examples/multidimensional_mfrm.jl [--plots] [--cmdstan] [--correlated]")
 if "--plots" in ARGS
     using CairoMakie
 end
@@ -22,7 +22,10 @@ spec = mfrm_spec(data; family = :mfrm, dimensions = 2, q_matrix, dimension_label
     thresholds = :partial_credit, validation_report = validation)
 prior = MFRMPrior(person_sd = 0.7, rater_sd = 0.4, item_sd = 0.6, step_sd = 0.5)
 println("Experimental multidimensional MFRM: Q coefficients and rater consistency fixed at one; unit logits.")
-println("Latent correlation fixed to identity; person/item locations anchored by zero-centered priors.")
+correlated = "--correlated" in ARGS
+model = correlated ? BayesianMGMFRM.Experimental.correlated(spec; lkj_eta = 2) : spec
+println(correlated ? "Population correlation estimated with an LKJ(2) prior." : "Latent correlation fixed to identity.")
+println("Person/item locations anchored by zero-centered priors.")
 println("Q rows: ", data.item_levels, "; dimensions: ", dimension_labels)
 display(q_matrix)
 
@@ -31,7 +34,7 @@ backend_options = backend === :cmdstan ?
     (; cmdstan_cache_dir = joinpath(output_dir, "cmdstan-build")) : (;)
 println("Output directory: ", abspath(output_dir))
 println("Short demonstration: 50 warmup + 50 retained draws per chain; not sufficient for inference.")
-fit_result = BayesianMGMFRM.Experimental.fit(spec; backend, prior,
+fit_result = BayesianMGMFRM.Experimental.fit(model; backend, prior,
     ndraws = 50, warmup = 50, chains = 2, seed = 20260915, backend_options...)
 println(fit_result)
 check = diagnostics(fit_result)
@@ -45,9 +48,9 @@ restored = load_fit_cache(cache_path)
 @assert isequal(fit_metadata(restored), fit_metadata(fit_result))
 @assert isequal(BayesianMGMFRM.direct_posterior_summary(restored), BayesianMGMFRM.direct_posterior_summary(fit_result))
 
+selection = correlated ? (; block = :latent_correlation) : (; block = :person, dimension = "reasoning")
 figures = "--plots" in ARGS ? (
-    posterior = (; block = :person, dimension = "reasoning"),
-    diagnostics = (; block = :person, dimension = "reasoning"), predictive = (;)) : nothing
+    posterior = selection, diagnostics = selection, predictive = (;)) : nothing
 report_dir = joinpath(output_dir, "report")
 save_fit_report_bundle(report_dir, restored; view = :public, figures,
     posterior_lower = 0.05, posterior_upper = 0.95, ndraws = 100, seed = 42)

@@ -8,9 +8,13 @@ fit-ready. `fit_ready` describes the stable compiler route;
 `experimental_fit_available` separately identifies an executable generalized
 configuration.
 
-The current public fitting surface is the minimal MFRM/RSM/PCM slice plus
-guarded experimental generalized candidates: the scalar GMFRM path with item
-discrimination × rater consistency and the fixed-Q confirmatory MGMFRM path with `dimensions >= 2`.
+Fitting supports one-dimensional MFRM/RSM/PCM, experimental fixed-coefficient
+multidimensional MFRM, scalar GMFRM with item discrimination × rater consistency,
+and fixed-Q confirmatory MGMFRM with `dimensions >= 2`. Fixed-coefficient MFRM
+uses independent abilities by default; `Experimental.correlated(spec)` explicitly
+selects population correlation for two between-item dimensions. See
+[Correlated ability dimensions](experimental.md#correlated-ability-dimensions)
+for its priors, coordinate transformation and fitting constraints.
 Broader GMFRM/MGMFRM specifications expose source-aligned manifests and preview
 compiler rows for review. Only the restricted generalized configurations in
 [Scope and Releases](scope.md) can be fitted.

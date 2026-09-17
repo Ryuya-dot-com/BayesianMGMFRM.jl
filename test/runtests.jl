@@ -21389,7 +21389,7 @@ end
         :fixed_q_confirmatory_experimental_only
     @test package_row.v0_1_1_position ===
         :narrow_auditable_workflow_not_generic_irt_replacement
-    @test release_scope.summary.n_public_fit_surfaces == 4
+    @test release_scope.summary.n_public_fit_surfaces == 5
     @test release_scope.summary.n_guarded_experimental_surfaces == 3
     @test release_scope.summary.minimal_mfrm_fit_allowed
     @test release_scope.summary.scalar_gmfrm_guarded_fit_allowed

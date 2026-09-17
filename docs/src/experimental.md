@@ -7,19 +7,21 @@ GMFRM or MGMFRM support.
 
 ## Boundary
 
-The fitting entry currently admits three configurations:
+The fitting entry currently admits four configurations:
 
 - fixed-coefficient multidimensional MFRM with at least two dimensions, fixed Q
   coefficients, item-specific partial-credit steps and identity latent correlation;
+- two-dimensional between-item MFRM with fixed coefficients and an estimated
+  population correlation, selected with `Experimental.correlated(spec)`;
 - one-dimensional source-aligned scalar GMFRM with positive item/task
   discrimination multiplied by positive rater consistency and rater-specific
   partial-credit steps;
 - fixed-Q confirmatory MGMFRM with at least two dimensions, partial-credit
   steps, and fixed identity latent correlation.
 
-All three reject anchors and fitted DFF terms. Broader discrimination, rating-scale
-generalized kernels, exploratory or rotated loadings, and free latent
-correlations remain outside the fitting boundary.
+All four reject anchors and fitted DFF terms. Broader discrimination, rating-scale
+generalized kernels, exploratory or rotated loadings, and higher-dimensional
+correlation estimation remain outside the fitting boundary.
 
 The compatibility selector `discrimination = :none` on MGMFRM means that no
 broader generic discrimination family is selected. The experimental kernel still
@@ -79,6 +81,47 @@ including named-dimension figures. See the [runnable example](examples.md#fixed-
 Automatic request caching, `Experimental.preview`, and prior-predictive entries
 remain limited to GMFRM/MGMFRM; inspect this specification with
 `getdesign(spec; preview = true)`. Stable `fit(spec)` does not accept it.
+
+## Correlated ability dimensions
+
+When the two abilities may be related in the population, select that model
+explicitly. Starting from a two-dimensional MFRM `spec` as above:
+
+```julia
+model = BayesianMGMFRM.Experimental.correlated(spec; lkj_eta = 2)
+BayesianMGMFRM.Experimental.surface_contract(model)
+result = BayesianMGMFRM.Experimental.fit(model;
+    backend = :advancedhmc, prior = MFRMPrior(), seed = 42)
+diagnostics(result) # Review R-hat, ESS and sampler warnings before interpretation.
+BayesianMGMFRM.direct_posterior_summary(result)
+save_fit_cache("correlated-fit.jls", result)
+restored = load_fit_cache("correlated-fit.jls")
+save_fit_report_bundle("correlated-report", restored)
+# With CairoMakie loaded:
+# BayesianMGMFRM.plot_posterior(restored; block = :latent_correlation)
+```
+
+Choose `backend = :cmdstan` for the same model on CmdStan. Both routes return
+`Experimental.CorrelatedMFRMFit`. The original `spec` still denotes independent
+abilities. This model requires between-item Q, at least two pure items per
+dimension, and observations in both dimensions for every person. These checks
+do not establish adequate information or recovery for a particular dataset.
+
+Each person's directly estimated ability pair has a bivariate normal prior with
+covariance `person_sd^2 * [1 rho; rho 1]`. The marginal standard deviation remains
+a fixed `MFRMPrior` input. `lkj_eta` is a fixed positive integer shape for the
+LKJ prior on rho, not a standard deviation. Sampling uses Fisher z with
+`rho = tanh(z)` and includes `log(1-rho^2)` exactly once as the transformation
+Jacobian. The covariance determinant belongs to the normal density. All other
+location, step, loading and rater-consistency conventions above remain in effect.
+
+`posterior_summary` reports the sampled Fisher-z coordinate;
+`direct_posterior_summary` and correlation figures transform each draw to rho
+before computing intervals. This population correlation is distinct from
+dependence among posterior draws. Reports and saved report bundles default to
+`view = :public`; `view = :full` retains additional reproducibility information.
+The report includes rho, its interval and its diagnostics without manual draw
+reshaping. Prior prediction and automatic request caching are unavailable.
 
 ## Dimension aggregation and item structure
 
@@ -358,6 +401,9 @@ BayesianMGMFRM.Experimental
 BayesianMGMFRM.Experimental.GMFRMFit
 BayesianMGMFRM.Experimental.MGMFRMFit
 BayesianMGMFRM.Experimental.MultidimensionalMFRMFit
+BayesianMGMFRM.Experimental.CorrelatedMFRMSpec
+BayesianMGMFRM.Experimental.CorrelatedMFRMFit
+BayesianMGMFRM.Experimental.correlated
 BayesianMGMFRM.Experimental.GeneralizedPrior
 BayesianMGMFRM.Experimental.surface_contract
 BayesianMGMFRM.Experimental.free_latent_correlation_2d_contract

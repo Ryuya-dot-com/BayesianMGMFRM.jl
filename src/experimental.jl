@@ -29,32 +29,83 @@ const _PACKAGE = parentmodule(@__MODULE__)
 const _FacetSpec = getfield(_PACKAGE, :FacetSpec)
 
 """
-Compatibility alias for the experimental scalar GMFRM result type. The defining
-type remains at package root so existing serialized fit caches keep their
-Julia type identity during the namespace migration.
+Result of experimental scalar GMFRM fitting. Inspect estimates with
+`posterior_summary` and sampling quality with `diagnostics`.
 """
 const GMFRMFit = getfield(_PACKAGE, :GMFRMFit)
 
 """
-Compatibility alias for the experimental fixed-Q MGMFRM result type. The defining
-type remains at package root so existing serialized fit caches keep their
-Julia type identity during the namespace migration.
+Result of experimental fixed-Q MGMFRM fitting. Inspect estimates with
+`posterior_summary` and sampling quality with `diagnostics`.
 """
 const MGMFRMFit = getfield(_PACKAGE, :MGMFRMFit)
 
 """
 Result of experimental fixed-coefficient multidimensional MFRM fitting.
-Use `Experimental.fit(spec)` to estimate; the defining type stays at package
-root so existing serialized results retain their identity.
+Use `Experimental.fit(spec)` to estimate and `save_fit_cache`/`load_fit_cache`
+to save and reopen a result.
 """
 const MultidimensionalMFRMFit = getfield(_PACKAGE, :MultidimensionalMFRMFit)
 
 """
-Experimental prior-scale type for guarded GMFRM and MGMFRM fits. Its six
+Experimental prior-scale type for GMFRM and MGMFRM fits. Its six
 standard deviations apply to independent normal priors on raw unconstrained
 coordinates, not directly to transformed model parameters.
 """
 const GeneralizedPrior = getfield(_PACKAGE, :GeneralizedPrior)
+
+"""
+Two-dimensional MFRM specification with estimated population correlation.
+Construct with [`correlated`](@ref).
+"""
+const CorrelatedMFRMSpec = getfield(_PACKAGE, :CorrelatedMFRMSpec)
+
+"""
+Result of experimental correlated MFRM fitting. `direct_posterior_summary`
+and `plot_posterior(...; block = :latent_correlation)` report rho on its
+correlation scale. Reports default to reader-facing output; diagnostics must
+be checked before interpreting estimates.
+"""
+const CorrelatedMFRMFit = getfield(_PACKAGE, :_CorrelatedMFRMFit)
+
+"""
+    correlated(spec; lkj_eta = 2)
+
+Estimate population correlation between the two named ability dimensions of
+a fixed-coefficient MFRM. Pass the returned specification to `Experimental.fit`
+with `backend = :advancedhmc` (Julia) or `:cmdstan` and `prior = MFRMPrior(...)`.
+The input specification is copied and retains its independent-model meaning.
+
+Requires `family = :mfrm`, exactly two dimensions, partial-credit thresholds,
+between-item Q with at least two pure items per dimension, and observations in
+both dimensions for every person. Anchors and fitted bias terms are unavailable.
+Q coefficients and rater consistency are fixed at one; locations use unit
+logits and zero-centered priors. Direct ability pairs have covariance
+`person_sd^2 * [1 rho; rho 1]`. `lkj_eta` is a fixed positive integer LKJ shape
+on rho; it is not a standard deviation. Sampling uses `rho = tanh(z)` with
+the transformation Jacobian. A custom `init` ends in Fisher z, not rho.
+
+Use `save_fit_cache`/`load_fit_cache` to save and reopen results. Automatic
+request caching and prior prediction are unavailable for this specification.
+"""
+correlated(spec::_FacetSpec; lkj_eta = 2) = CorrelatedMFRMSpec(spec; lkj_eta)
+
+function surface_contract(spec::CorrelatedMFRMSpec)
+    return merge(_mfrm_surface_contract(), (;
+        scope = :correlated_fixed_coefficient_mfrm, maximum_dimensions = 2,
+        item_structure = :between_item, minimum_pure_items_per_dimension = 2,
+        person_dimension_observation_coverage = :complete,
+        expected_blocks = (:person, :rater_free, :item, :item_steps, :z_latent_correlation),
+        latent_correlation = :free_2d,
+        prior = (; constructor = :MFRMPrior, ability = :bivariate_normal,
+            other_free_coordinates = :independent_normal, correlation = :lkj_2d,
+            lkj_eta = spec.lkj_eta, maximum_lkj_eta = getfield(_PACKAGE, :_MAX_INTEGER_LKJ_ETA),
+            density_measure = :d_beta_d_zrho,
+            correlation_prior_measure = :d_rho, correlation_transform = :tanh,
+            correlation_log_jacobian = :log_one_minus_rho_squared,
+            prior_predict_available = false, prior_predictive_check_available = false),
+        claim_scope = :two_dimensional_between_item_fixed_coefficient_mfrm))
+end
 
 # Intentionally export no bindings. Fully qualified access is the quarantine
 # boundary while the package-root compatibility names remain available.
@@ -195,11 +246,13 @@ end
 """
     surface_contract()
     surface_contract(family)
+    surface_contract(correlated_spec)
 
 Return the machine-readable stability boundary for the experimental namespace.
 The zero-argument form describes the executable configurations and constraints
-for fixed-coefficient multidimensional MFRM and both generalized families.
-Pass `:mfrm`, `:gmfrm` or `:mgmfrm` for one family contract.
+for independent fixed-coefficient MFRM and both generalized families.
+Pass `:mfrm`, `:gmfrm` or `:mgmfrm` for one family contract, or a
+specification returned by `correlated` for its correlation model contract.
 """
 function surface_contract()
     return (
@@ -213,8 +266,11 @@ function surface_contract()
             :GMFRMFit,
             :MGMFRMFit,
             :MultidimensionalMFRMFit,
+            :CorrelatedMFRMSpec,
+            :CorrelatedMFRMFit,
             :GeneralizedPrior,
             :cached_fit,
+            :correlated,
             :fit,
             :fit_cache_key,
             :free_latent_correlation_2d_candidate,
@@ -633,11 +689,13 @@ end
 
 Fit a supported multidimensional MFRM or generalized specification experimentally.
 Callers should not pass an `experimental` keyword. Family-specific structural
-constraints are validated before numerical execution. Supported configurations
-accept `backend = :advancedhmc` or `:cmdstan`.
+constraints are validated before numerical execution. Pass `correlated(spec)`
+to estimate population correlation for two between-item MFRM dimensions; both
+backends then return `CorrelatedMFRMFit`. Supported configurations accept `backend = :advancedhmc` or `:cmdstan`.
 
-Also accepts fixed-coefficient multidimensional MFRM (`family = :mfrm`,
-`dimensions >= 2`, fixed `q_matrix`, partial-credit thresholds). Use `MFRMPrior`
+An unwrapped fixed-coefficient multidimensional MFRM (`family = :mfrm`,
+`dimensions >= 2`, fixed `q_matrix`, partial-credit thresholds) has independent
+abilities. Use `MFRMPrior`
 for independent normal priors on free unit-logit coordinates. Q coefficients
 and rater consistency are fixed; latent correlation is identity and locations
 are prior-anchored. Both backends return `MultidimensionalMFRMFit`, with warmup
@@ -649,6 +707,9 @@ CmdStan additionally accepts `cmdstan_path` and `cmdstan_cache_dir`.
 """
 function fit(spec; kwargs...)
     _reject_legacy_keyword(kwargs, "Experimental.fit")
+    if spec isa CorrelatedMFRMSpec
+        return getfield(_PACKAGE, :_mfrm_correlated_2d_fit)(spec; kwargs...)
+    end
     if spec isa _FacetSpec && getfield(_PACKAGE, :_is_mfrm_fixed_q)(spec)
         return getfield(_PACKAGE, :_mfrm_fixed_q_fit)(spec; kwargs...)
     end

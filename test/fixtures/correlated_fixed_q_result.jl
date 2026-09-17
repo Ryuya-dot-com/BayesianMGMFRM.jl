@@ -8,17 +8,18 @@ function check_correlated_fixed_q_result(result, directory; render = false)
     fixed = first(row.parameter for row in result.model_coordinates if row.fixed)
     selection = (; parameters = [person, rho.parameter, fixed])
     indices = [size(run.draws, 1), 1, size(run.draws, 1), 2]
-    options = (; posterior_interval = 0.8, predictive_interval = 0.8, draw_indices = indices, seed = 42)
+    options = (; view = :full, posterior_lower = 0.1, posterior_upper = 0.9, predictive_interval = 0.8, draw_indices = indices, seed = 42)
     metadata = fit_metadata(fit)
     @test metadata.model === :mfrm_fixed_q_correlated_2d
     @test metadata.latent_correlation === :free_2d
     @test metadata.dimension_labels == record.base_spec.dimension_labels
-    @test metadata.prior == record.prior
-    @test metadata.correlation == record.prior.correlation
+    @test metadata.prior.base == record.prior.base
+    @test metadata.prior.correlation == metadata.correlation
+    @test metadata.correlation == Base.structdiff(record.prior.correlation, (; fitting_available = nothing, cache_available = nothing))
     @test metadata.target_identity == record.target_identity
-    @test !metadata.public_fit
-    @test occursin("estimated rho; private result", sprint(show, fit))
-    @test_throws ArgumentError fit_metadata(fit; view = :public)
+    @test metadata.public_fit && metadata.fitting_available && metadata.cache_available
+    @test occursin("estimated rho; experimental", sprint(show, fit))
+    @test fit_metadata(fit; view = :public).latent_correlation === :free_2d
     @test_throws ArgumentError B.MultidimensionalMFRMFit(record; expected_identity = record.target_identity)
     @test_throws ArgumentError B._CorrelatedMFRMFit(record; expected_identity = "independent")
     @test isequal(posterior_summary(fit; intervals = ()), result.posterior_summary)
@@ -57,8 +58,8 @@ function check_correlated_fixed_q_result(result, directory; render = false)
     @test rand() == next_random
     @test isequal(run, before)
     @test report.report_status === :complete
-    @test report.family === :mfrm_fixed_q_correlated_2d
-    @test report.metadata == metadata
+    @test report.family === :mfrm && report.model === :mfrm_fixed_q_correlated_2d
+    @test Base.structdiff(report.metadata, (; interpretation = nothing)) == metadata
     @test isequal(only(report.direct_posterior.correlation_rows), last(report.direct_posterior.rows))
     @test isequal(only(report.diagnostics.correlation_rows), last(report.diagnostics.model_parameter_rows))
     @test occursin("direct_posterior / correlation_rows", fit_report_markdown(report))
@@ -85,7 +86,7 @@ function check_correlated_fixed_q_result(result, directory; render = false)
     predicted = B._mfrm_fixed_q_predictive_plot_data(result; interval = 0.8, draw_indices = indices, seed = 42)
     @test isequal(predicted, B._mfrm_fixed_q_predictive_plot_data(result; interval = 0.8, draw_indices = indices, seed = 42))
     @test predicted.diagnostic == plotdata.diagnostic == tracedata.diagnostic
-    @test_throws ArgumentError fit_report(fit; posterior_interval = 1.0)
+    @test_throws ArgumentError fit_report(fit; posterior_lower = 0.0, posterior_upper = 1.0)
     @test_throws ArgumentError fit_report(fit; ndraws = 0, require_complete = true)
     samplepath = joinpath(directory, "samples.jls")
     B._save_mfrm_correlated_2d_samples(samplepath, fit)
@@ -97,7 +98,7 @@ function check_correlated_fixed_q_result(result, directory; render = false)
     figures = render ? (; posterior = selection, diagnostics = selection, predictive = (;)) : nothing
     manifest = save_fit_report_bundle(path, restored; options..., figures, require_complete = true)
     loaded = load_fit_report_bundle(path; require_complete = true)
-    @test loaded["metadata"] == B._json_export_value(metadata)
+    @test loaded["metadata"] == B._json_export_value(report.metadata)
     @test loaded["direct_posterior"]["rows"] == B._json_export_value(report.direct_posterior.rows)
     @test loaded["posterior_predictive"] == B._json_export_value(report.posterior_predictive)
     @test loaded["prior_policy"] == B._json_export_value(report.prior_policy)
@@ -112,7 +113,7 @@ function check_correlated_fixed_q_result(result, directory; render = false)
     if render
         for entry in manifest.figures
             payload = json(joinpath(path, "figures", "$(entry.kind).json"))
-            @test payload["family"] == "mfrm_fixed_q_correlated_2d"
+            @test payload["family"] == "mfrm"
             @test payload["target_identity"] == record.target_identity
             @test payload["source_sample_content_hash"] == record.content_hash
             @test payload["report_content_hash"]["value"] == manifest.report_content_hash.value

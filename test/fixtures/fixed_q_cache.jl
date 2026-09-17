@@ -2,11 +2,14 @@
 function check_fixed_q_cache(fit; directory = nothing)
     directory === nothing && return mktempdir(d -> check_fixed_q_cache(fit; directory = d))
     record = fit.record
+    correlated = fit isa B.Experimental.CorrelatedMFRMFit
+    model = correlated ? :mfrm_fixed_q_correlated_2d : :mfrm_fixed_q
+    label = Symbol(model, :_fit_artifact)
     path = joinpath(directory, "fit.jls")
     before = record.content_hash
     artifact = fit_artifact(fit; include_environment = false)
-    @test artifact.schema == "bayesianmgmfrm.mfrm_fixed_q_fit_artifact.v2"
-    @test artifact.family === :mfrm && artifact.model === :mfrm_fixed_q
+    @test artifact.schema == (correlated ? "bayesianmgmfrm.mfrm_fixed_q_correlated_2d_fit_artifact.v1" : "bayesianmgmfrm.mfrm_fixed_q_fit_artifact.v2")
+    @test artifact.family === :mfrm && artifact.model === model
     @test artifact.status === :experimental
     @test artifact.reproducibility.target_identity == record.target_identity
     @test artifact.reproducibility.source_sample_content_hash == before
@@ -26,7 +29,7 @@ function check_fixed_q_cache(fit; directory = nothing)
     @test isequal(saved.artifact, artifact)
     bytes = read(path)
     loaded = load_fit_cache(path; expected_cache_key = "manual-label")
-    @test loaded isa B.MultidimensionalMFRMFit
+    @test loaded isa typeof(fit)
     @test isequal(fit_metadata(loaded), fit_metadata(fit))
     @test isequal(posterior_summary(loaded), posterior_summary(fit))
     @test isequal(B.direct_posterior_summary(loaded), B.direct_posterior_summary(fit))
@@ -53,26 +56,31 @@ function check_fixed_q_cache(fit; directory = nothing)
     @test load_fit_cache(full_path).record.content_hash == before
     @test full.artifact.draws !== full.fit.record.run.draws
 
-    corrupt = B._mfrm_fixed_q_fit(B._mfrm_fixed_q_samples(fit))
+    corrupt = typeof(fit)(record; expected_identity = record.target_identity)
     corrupt.record.run.draws[1,1] += 0.5
     @test_throws ArgumentError save_fit_cache(path, corrupt; overwrite = true)
     @test read(path) == bytes
     # A valid digest does not make incorrect model-dependent artifact values acceptable.
     wrong = merge(artifact, (; posterior_summary = reverse(artifact.posterior_summary)))
-    wrong = B._with_archive_metadata(wrong; label = :mfrm_fixed_q_fit_artifact)
+    wrong = B._with_archive_metadata(wrong; label)
     @test_throws ArgumentError save_fit_cache(path, fit; artifact = wrong, overwrite = true)
     @test read(path) == bytes
-    # Frozen full v1 artifacts remain readable without rewriting their meaning.
-    legacy = fit_artifact(fit; include_environment = false, legacy = true)
-    @test legacy.schema == "bayesianmgmfrm.mfrm_fixed_q_fit_artifact.v1"
-    @test legacy.status === legacy.manifest.fit.estimation_status === :private_reference
-    legacy_path = joinpath(directory, "legacy-artifact.jls")
-    save_fit_cache(legacy_path, fit; artifact = legacy)
-    @test isequal(load_fit_cache(legacy_path; return_record = true).artifact, legacy)
-    @test fit_metadata(load_fit_cache(legacy_path)).fitting_available
+    if !correlated
+        # Frozen full v1 artifacts remain readable without rewriting their meaning.
+        legacy = fit_artifact(fit; include_environment = false, legacy = true)
+        @test legacy.schema == "bayesianmgmfrm.mfrm_fixed_q_fit_artifact.v1"
+        @test legacy.status === legacy.manifest.fit.estimation_status === :private_reference
+        legacy_path = joinpath(directory, "legacy-artifact.jls")
+        save_fit_cache(legacy_path, fit; artifact = legacy)
+        @test isequal(load_fit_cache(legacy_path; return_record = true).artifact, legacy)
+        @test fit_metadata(load_fit_cache(legacy_path)).fitting_available
+    else
+        @test_throws ArgumentError fit_artifact(fit; legacy = true)
+    end
     bad_path = joinpath(directory, "invalid.jls")
     variants = [merge(saved, (; artifact = merge(artifact, (; schema = "unsupported")))),
         merge(saved, (; model = :mgmfrm)),
+        merge(saved, (; model = correlated ? :mfrm_fixed_q : :mfrm_fixed_q_correlated_2d)),
         merge(saved, (; target_identity = "wrong")), merge(saved, (; source_sample_schema = "wrong")),
         merge(saved, (; source_sample_content_hash = missing)), merge(saved, (; artifact = wrong)),
         merge(saved, (; schema = "bayesianmgmfrm.fit_cache.v1")),
