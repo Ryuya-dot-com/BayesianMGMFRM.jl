@@ -432,7 +432,8 @@ no rejection/redraw loop for extreme or inconvenient outcomes.
 
 `sbc_draw_quantities` binds the generating prior/covariance and actual responses
 to the fitted target and named draw columns. It returns the 12/13 test quantities
-for explicitly selected retained iterations per chain. Selection keeps chain
+for explicitly selected retained iterations per chain, now also retaining the
+complete quantity matrix for diagnostic review before selection. Selection keeps chain
 IDs and validates unselected retained rows too; it does not establish MCMC
 independence or apply diagnostic qualification. `randomized_rank` uses exact
 ties and returns their attainable zero-based rank interval. `rank_cdf` accepts
@@ -506,17 +507,69 @@ Focused checks on Julia 1.10.8 and 1.12.5 pass 190 additional assertions plus
 the 1,566 preceding checks, for 1,756 per version. All eight short synthetic
 canonical records remain unqualified; no actual backend agreement is claimed.
 
+## Sampler-free SBC attempt binding
+
+The [preparation module](../../scripts/mfrm_validation_preparation.jl) now joins
+the rank arithmetic to one target/backend's planned primary dataset roster.
+`sbc_plan` records explicit IDs, complete geometry, generating prior/covariance,
+backend, diagnostic criteria, selected iteration IDs and a dependence-policy
+reference. Its content identity exists before generation; an observed-data
+target identity need not yet exist. Changing that declaration invalidates its
+input/attempt bindings. There is no study launch, seed allocation or default
+diagnostic/dependence policy in this operation.
+
+`bind_sbc_panel` owns a snapshot of labelled truth and responses before model
+validation or fitting. It verifies the generating contract and complete
+geometry, and binds every encoded data field and truth coordinate. Even a
+single-category outcome remains available for a failure record. Input binding
+checks consistency with the declared generator; it does not prove that the
+caller actually sampled from that generator or used independent RNG streams.
+
+`prepare_sbc_fit` verifies the canonical saved fit, data/prior/covariance and
+backend before forming quantities. It reuses the backend-comparison diagnostic
+adapter with **all retained draws of all 12/13 SBC quantities**, including raw
+ability, raw difficulty and joint response log likelihood. Only the planned
+selected iterations enter ranks; their chain/iteration IDs, original row IDs,
+quantity matrices, target and source sample identities remain bound. Unselected
+retained quantities stay available for diagnosis and identity checks.
+
+There are two separate dependence declarations. Within an attempted dataset,
+unresolved dependence of selected posterior draws leaves primary ranks missing,
+even if the supplied diagnostic criteria pass. Across datasets, unresolved
+independence suppresses the DKW bands and statistical screen; the descriptive
+full-denominator missing-rank envelope stays available. Each declaration has a
+status and an evidence/reference string. The code records these caller
+declarations; it never verifies independence from their text, thinning, ESS or
+backend agreement. Eligible ranks use an explicit local tie RNG; held attempts
+do not consume it. Actual RNG algorithms/roots still need execution provenance.
+
+`sbc_failure` records observed generation/fitting/scoring failures, timeouts,
+interruptions or missing/nonfinite draws. Post-generation failures retain their
+bound input; a generation failure can precede any panel. It catches no exception,
+reruns nothing and does not archive a process automatically.
+`summarize_sbc_attempts` reuses the primary ID join, retains the complete roster
+and fixed 12/13-quantity family, and returns the ledger, reasons and CDF envelopes.
+Duplicate/unplanned/replacement IDs, changed inputs/results, reused generated
+panels or reused saved fits are rejected. Unique hashes do not prove independence.
+Rank bounds/ties are checked against the actual selected quantities, not just
+accepted as integers in 0:L. This is an in-memory preparation record, not a
+durable execution archive or a completed SBC study.
+
+The [verification record](normalized-prior-backend-comparison.md#fixed-coefficient-sbc-attempt-binding-2026-09-17)
+separates synthetic saved-record plumbing, deliberately loose-criterion positive
+controls and actual calibration evidence. Scientific acceptance remains false.
+Focused checks on Julia 1.10.8 and 1.12.5 pass 322 additional assertions and
+all 1,756 preceding checks, for 2,078 per version. No sampler was executed.
+
 ## Next implementation and review handoff
 
-Next, bind the SBC rank calculations to planned dataset IDs and generating
-targets, selected draw identities, explicit diagnostic/dependence declarations
-and generation/fitting/scoring failure statuses. Preserve missing ranks in the
-planned denominator and reject replacement attempts. Include the joint-response
-log-likelihood test quantity in diagnostic review; the backend comparison's
-primary focal roster alone is not the SBC quantity roster. Reuse the existing
-preparation and attempt-joining helpers on synthetic/saved records, without a
-controller or full-grid launcher. Do not infer independent SBC ranks from
-thinning, ESS, diagnostic qualification or backend agreement.
+Next, prepare the bounded pilot's execution-readiness declaration: map the
+supplied Julia/CmdStan sampler and initializer settings, record explicit RNG
+algorithms/stream keys, source/environment identities and resource/stop limits,
+and check those bindings without launching fits. Reuse existing execution and
+provenance helpers where applicable; do not build another controller or silently
+accept the proposed eight-call pilot or full evaluation allocation. Preserve
+the distinction between declared resource caps and measured/enforced limits.
 
 Independent review must resolve target/identification interpretation, scientific
 margins or descriptive-only claims, allocation precision, SBC dependence policy,

@@ -23,6 +23,11 @@ function check_state(spec, state)
         isempty(spec.anchors) && isempty(spec.validation_bias_terms) &&
         length(data.rater_levels) == 4 && data.category_levels == collect(0:3) ||
         throw(ArgumentError("preparation requires the two-dimensional, eight-item, four-rater protocol geometry"))
+    return _check_coordinates(spec, state)
+end
+
+function _check_coordinates(spec, state)
+    data = spec.data
     expected_labels = labels(spec)
     all(k -> getproperty(state, k) == getproperty(expected_labels, k), keys(expected_labels)) ||
         throw(ArgumentError("truth/draw facet, dimension or category labels do not match the specification"))
@@ -256,9 +261,10 @@ function sbc_draw_quantities(panel, target, draws::AbstractMatrix;
     states = model_states(target, draws[layout.order, :])
     chosen = findall(in(selected), iterations[layout.order])
     truth = sbc_quantities(spec, panel.truth; correlated=g.correlated)
-    quantities = [sbc_quantities(spec, states[i]; correlated=g.correlated) for i in chosen]
+    quantities = [sbc_quantities(spec, state; correlated=g.correlated) for state in states]
+    retained_draws = permutedims(hcat([q.values for q in quantities]...))
     return (; target_identity=expected_target_identity, names=truth.names, truth=truth.values,
-        draws=permutedims(hcat([q.values for q in quantities]...)),
+        draws=retained_draws[chosen, :], retained_draws,
         selected_rows=layout.order[chosen], chain_ids=chain_ids[layout.order[chosen]],
         iterations=iterations[layout.order[chosen]], n_chains=layout.chains,
         independence_verified=false, diagnostic_qualification_applied=false,
@@ -421,6 +427,14 @@ function prepare_comparison_fit(panel, fit::B._FixedQMFRMFit;
     score = score_draws(panel, B._fixed_q_result_target(checked), run.draws;
         parameter_names=checked.parameter_names, run.chain_ids, run.iterations,
         diagnostic_flag=checked.diagnostics.summary.flag, expected_target_identity)
+    diagnostics = _fit_qualification(checked, score.estimand_draws, [r.parameter for r in score.rows]; criteria)
+    return (; status=:comparison_prepared, target_identity=expected_target_identity,
+        backend=run.backend, rows=score.rows, diagnostics.qualification, diagnostics.diagnostic_rows,
+        original_diagnostic_flag=score.diagnostic_flag, scientific_acceptance=false)
+end
+
+function _fit_qualification(checked, focal_draws, focal_names; criteria)
+    run = checked.record.run
     diagnostic(values, names; fixed=Set{String}()) = B._candidate_mcmc_diagnostic_rows(
         values, names, run.controls.chains; split_chains=true,
         structurally_fixed_parameters=fixed, rhat_threshold=Float64(criteria.rhat),
@@ -430,16 +444,220 @@ function prepare_comparison_fit(panel, fit::B._FixedQMFRMFit;
         raw=diagnostic(run.draws, checked.parameter_names),
         model=diagnostic(hcat([r.values for r in coordinates]...), [r.parameter for r in coordinates];
             fixed=Set(r.parameter for r in coordinates if r.fixed)),
-        focal=diagnostic(score.estimand_draws, [r.parameter for r in score.rows]))
+        focal=diagnostic(focal_draws, focal_names))
     # Zero step/depth sentinels in historical records are not complete NUTS telemetry.
     telemetry_complete = all(run.sampler_stats) do r
         r.numerical_error isa Bool && r.n_steps isa Integer && !(r.n_steps isa Bool) && r.n_steps > 0 &&
             r.tree_depth isa Integer && !(r.tree_depth isa Bool) && r.tree_depth > 0 && _finite_number(r.hamiltonian_energy)
     end
     qualification = qualify_diagnostics(groups, checked.diagnostics.sampler_rows; criteria, telemetry_complete)
-    return (; status=:comparison_prepared, target_identity=expected_target_identity,
-        backend=run.backend, rows=score.rows, qualification, diagnostic_rows=groups,
-        original_diagnostic_flag=score.diagnostic_flag, scientific_acceptance=false)
+    return (; qualification, diagnostic_rows=groups)
+end
+
+function _sbc_generation(; persons, prior, correlated, lkj_eta)
+    _geometry(persons)
+    _prior_options(prior, correlated, lkj_eta)
+    prior_record = prior isa B.MFRMPrior ? B._prior_cache_record(prior) :
+        (; prior_contract=:exchangeable_zero_sum_normal, prior.person_sd,
+            prior.rater_kernel_sd, prior.item_sd, prior.step_sd)
+    return (; geometry=:complete_two_dimension_pcm, persons, q_matrix=copy(Q),
+        prior=prior_record, correlated, lkj_eta)
+end
+
+"""Declare one target/backend's primary SBC roster before generating data.
+IDs, complete geometry, prior, diagnostic criteria, selected iterations and a
+dependence-policy reference are explicit. This neither seeds nor runs a study.
+"""
+function sbc_plan(ids; persons, prior, correlated, lkj_eta=correlated ? 2 : nothing,
+        backend::Symbol, criteria, selected_iterations, dependence_policy::AbstractString)
+    generation = _sbc_generation(; persons, prior, correlated, lkj_eta)
+    _comparison_criteria(criteria)
+    ids = collect(ids); selected = collect(selected_iterations)
+    !isempty(ids) && all(x -> x isa AbstractString && !isempty(strip(x)), ids) &&
+        length(unique(ids)) == length(ids) || throw(ArgumentError("SBC IDs must be nonempty unique strings"))
+    !isempty(selected) && all(x -> x isa Integer && !(x isa Bool) && x > 0, selected) &&
+        issorted(selected) && length(unique(selected)) == length(selected) ||
+        throw(ArgumentError("SBC selection must be explicit increasing positive iteration IDs"))
+    backend in (:advancedhmc, :cmdstan) && !isempty(strip(dependence_policy)) ||
+        throw(ArgumentError("SBC requires a supported backend and dependence-policy reference"))
+    body = (; ids=String.(ids), generation, backend, criteria,
+        selected_iterations=Int.(selected), dependence_policy=String(dependence_policy))
+    return merge(body, (; identity=B._cache_hash(body)))
+end
+
+function _check_sbc_plan(plan)
+    plan.identity == B._cache_hash(Base.structdiff(plan, (;identity=nothing))) ||
+        throw(ArgumentError("SBC plan changed after declaration"))
+    return nothing
+end
+
+"""Own a snapshot of generated truth/responses before model validation or fitting.
+Even a single-category generated dataset can be bound and retained as a failure.
+"""
+function bind_sbc_panel(plan, id::AbstractString, panel)
+    _check_sbc_plan(plan)
+    id in plan.ids || throw(ArgumentError("unplanned SBC dataset ID"))
+    hasproperty(panel, :generation) && panel.generation.kind === :joint_prior ||
+        throw(ArgumentError("SBC input requires joint-prior generation"))
+    g = panel.generation
+    generation = _sbc_generation(; persons=length(panel.data.person_levels), g.prior, g.correlated, g.lkj_eta)
+    generation == plan.generation || throw(ArgumentError("SBC generating target differs from plan"))
+    geometry = _geometry(generation.persons)
+    data = panel.data
+    all(k -> getproperty(data, k) == getproperty(geometry.data, k),
+        (:n, :person, :rater, :item, :person_levels, :rater_levels, :item_levels,
+            :category_levels, :optional, :optional_levels, :columns)) &&
+        length(data.score) == data.n && all(in(0:3), data.score) && data.category == data.score .+ 1 ||
+        throw(ArgumentError("SBC responses must retain the planned complete labelled geometry"))
+    _check_coordinates((;data=geometry.data, dimension_labels=["D1", "D2"]), panel.truth)
+    g.correlated || iszero(panel.truth.rho) || throw(ArgumentError("independent SBC truth must have rho=0"))
+    data_payload = NamedTuple{fieldnames(B.FacetData)}(Tuple(getfield(data, k) for k in fieldnames(B.FacetData)))
+    panel_identity = B._cache_hash((; generation, data=data_payload, panel.truth))
+    return (; id=String(id), plan_identity=plan.identity, panel_identity, panel=deepcopy(panel))
+end
+
+function _checked_sbc_input(plan, input)
+    expected = bind_sbc_panel(plan, input.id, input.panel)
+    input.plan_identity == expected.plan_identity && input.panel_identity == expected.panel_identity ||
+        throw(ArgumentError("SBC input changed after binding"))
+    return expected
+end
+
+function _check_dependence(declaration)
+    keys(declaration) == (:status, :evidence) &&
+        declaration.status in (:unresolved, :declared_independent) &&
+        declaration.evidence isa AbstractString && !isempty(strip(declaration.evidence)) ||
+        throw(ArgumentError("supply an explicit dependence status and evidence/reference"))
+    return nothing
+end
+
+_sbc_status(qualification, dependence) = !qualification.qualified ? :diagnostic_warning :
+    dependence.status === :unresolved ? :dependence_unresolved : :rank_prepared
+_seal_sbc_attempt(body) = merge(body, (;content_hash=B._cache_hash(body)))
+
+"""Bind a canonical fit and all retained SBC quantity diagnostics to one input.
+The dependence declaration refers to this plan's selected draws; it is not
+inferred from diagnostics or thinning. Only eligible ranks consume `rank_rng`.
+"""
+function prepare_sbc_fit(plan, input, fit::B._FixedQMFRMFit;
+        dependence, rank_rng::AbstractRNG)
+    input = _checked_sbc_input(plan, input)
+    _check_dependence(dependence)
+    checked = B._canonical_mfrm_fixed_q_samples(fit)
+    run = checked.record.run
+    run.backend === plan.backend || throw(ArgumentError("SBC backend differs from plan"))
+    quantities = sbc_draw_quantities(input.panel, B._fixed_q_result_target(checked), run.draws;
+        parameter_names=checked.parameter_names, run.chain_ids, run.iterations,
+        plan.selected_iterations, expected_target_identity=checked.record.target_identity)
+    diagnostics = _fit_qualification(checked, quantities.retained_draws, quantities.names; criteria=plan.criteria)
+    status = _sbc_status(diagnostics.qualification, dependence)
+    ranks = status === :rank_prepared ? [merge((;parameter=name),
+        randomized_rank(quantities.truth[j], quantities.draws[:,j], rank_rng))
+        for (j,name) in pairs(quantities.names)] : nothing
+    sample_identity = checked.record.content_hash
+    draw_identity = B._cache_hash((; sample_identity, quantities))
+    return _seal_sbc_attempt((; input.id, input.plan_identity, status, input,
+        target_identity=checked.record.target_identity, sample_identity, draw_identity,
+        quantities, diagnostics.qualification, diagnostics.diagnostic_rows, dependence, ranks,
+        original_diagnostic_flag=checked.diagnostics.summary.flag,
+        independence_verified=false, scientific_acceptance=false))
+end
+
+"""Retain a primary failure, including one before a panel/fit identity exists.
+This records a caller-observed failure; it catches no exception and retries nothing.
+"""
+function sbc_failure(plan, id::AbstractString, status::Symbol; detail::AbstractString, input=nothing)
+    _check_sbc_plan(plan)
+    id in plan.ids && !isempty(strip(detail)) || throw(ArgumentError("planned SBC ID and failure detail required"))
+    status in (:generation_error, :fit_error, :scoring_error, :timeout, :interrupted,
+        :missing_draws, :nonfinite_draws) || throw(ArgumentError("unknown SBC failure status"))
+    input === nothing && !(status in (:generation_error, :timeout, :interrupted)) &&
+        throw(ArgumentError("post-generation SBC failures must retain the bound input"))
+    input = input === nothing ? nothing : _checked_sbc_input(plan, input)
+    input === nothing || input.id == id || throw(ArgumentError("failure/input dataset ID mismatch"))
+    return _seal_sbc_attempt((; id=String(id), plan_identity=plan.identity, status,
+        detail=String(detail), input, scientific_acceptance=false))
+end
+
+"""Join one frozen SBC roster to primary attempts and form full-denominator CDFs.
+The complete 12/13-quantity family is fixed. Dataset independence is a separate
+caller declaration; unresolved assumptions suppress the conditional DKW screen.
+"""
+function summarize_sbc_attempts(plan, attempts; alpha, dataset_independence)
+    _check_sbc_plan(plan)
+    _check_dependence(dataset_independence)
+    results = _attempt_results([(;id, target_identity=plan.identity) for id in plan.ids],
+        [(;r.id, target_identity=r.plan_identity, result=r) for r in attempts])
+    names = vcat(FOCAL_NAMES, plan.generation.correlated ? ["rho"] : String[],
+        ["mean_Pr(Y>=2)", "theta11", "b1", "joint_log_likelihood"])
+    n_draws = Base.checked_mul(plan.criteria.chains, length(plan.selected_iterations))
+    rank_columns = [Union{Missing,Int}[missing for _ in plan.ids] for _ in names]
+    ledger, reasons = NamedTuple[], Dict{Symbol,Int}()
+    seen_panels, seen_samples = Set{String}(), Set{String}()
+    for (i,id) in pairs(plan.ids)
+        r = get(results, id, nothing)
+        status = r === nothing ? :missing_attempt : r.status
+        if r !== nothing
+            r.content_hash == B._cache_hash(Base.structdiff(r, (;content_hash=nothing))) ||
+                throw(ArgumentError("SBC attempt changed after preparation"))
+            if r.input !== nothing
+                input = _checked_sbc_input(plan, r.input)
+                input.id == id || throw(ArgumentError("SBC attempt/input ID mismatch"))
+                input.panel_identity in seen_panels && throw(ArgumentError("SBC generated panel reused across primary IDs"))
+                push!(seen_panels, input.panel_identity)
+            end
+            if status in (:rank_prepared, :diagnostic_warning, :dependence_unresolved)
+                r.input !== nothing || throw(ArgumentError("SBC prepared result requires bound input"))
+                _check_dependence(r.dependence)
+                q = r.quantities
+                q.names == names && q.target_identity == r.target_identity &&
+                    r.qualification.criteria == plan.criteria &&
+                    r.qualification.qualified === isempty(r.qualification.failures) &&
+                    [d.parameter for d in r.diagnostic_rows.focal] == names &&
+                    status === _sbc_status(r.qualification, r.dependence) ||
+                    throw(ArgumentError("SBC quantity, diagnostic or status binding mismatch"))
+                r.draw_identity == B._cache_hash((;r.sample_identity, quantities=q)) &&
+                    q.chain_ids == repeat(1:q.n_chains; inner=length(plan.selected_iterations)) &&
+                    q.iterations == repeat(plan.selected_iterations; outer=q.n_chains) ||
+                    throw(ArgumentError("SBC selected draw identity mismatch"))
+                r.sample_identity in seen_samples && throw(ArgumentError("SBC saved fit reused across primary IDs"))
+                push!(seen_samples, r.sample_identity)
+                if status === :rank_prepared
+                    size(q.draws) == (n_draws, length(names)) &&
+                        [x.parameter for x in r.ranks] == names || throw(ArgumentError("SBC rank family/support mismatch"))
+                    for (j,rank) in pairs(r.ranks)
+                        lower = count(<(q.truth[j]), q.draws[:,j])
+                        ties = count(==(q.truth[j]), q.draws[:,j])
+                        rank.n_draws == n_draws && rank.lower == lower && rank.ties == ties &&
+                            rank.upper == lower+ties && rank.rank isa Integer && !(rank.rank isa Bool) &&
+                            lower <= rank.rank <= lower+ties || throw(ArgumentError("SBC rank differs from its selected draws/truth"))
+                        rank_columns[j][i] = rank.rank
+                    end
+                else
+                    r.ranks === nothing || throw(ArgumentError("unqualified SBC attempt must not supply primary ranks"))
+                end
+            else
+                expected = sbc_failure(plan, id, status; r.detail, r.input)
+                r.content_hash == expected.content_hash || throw(ArgumentError("SBC failure must not contain partial rank results"))
+            end
+        end
+        reasons[status] = get(reasons, status, 0)+1
+        push!(ledger, (;id, status, result=r))
+    end
+    cdfs = [begin
+        cdf = rank_cdf(ranks; n_draws, n_quantities=length(names), alpha)
+        # The descriptive missing-rank envelope remains available without an
+        # independence declaration; inferential bands/screens do not.
+        declared = dataset_independence.status === :declared_independent
+        if !declared
+            cdf = merge(cdf, (;epsilon=missing, conditional_screen=:assumptions_unresolved,
+                rows=[merge(row, (;band_lower=missing, band_upper=missing, resolved_departure=missing)) for row in cdf.rows]))
+        end
+        (;parameter=name, ranks, cdf)
+    end for (name,ranks) in zip(names,rank_columns)]
+    return (; plan_identity=plan.identity, planned=length(plan.ids), n_draws,
+        n_quantities=length(names), reasons, ledger, cdfs, dataset_independence,
+        independence_verified=false, calibration_verified=false, scientific_acceptance=false)
 end
 
 function _comparison_statistic(row, statistic)

@@ -3503,8 +3503,9 @@ Exact ties are randomized within their attainable rank interval. A rank or
 missing entry for each planned dataset supplies the full-denominator CDF
 envelope, with the proposed within-target DKW family adjustment. Missing entries
 cannot disappear from the denominator, and the terminal CDF is one even with
-missing ranks. This low-level arithmetic still needs a bound attempt ledger
-before execution; no detected departure is not a calibration certificate.
+missing ranks. This vector-level arithmetic alone does not bind attempts; the
+later [SBC attempt binding](#fixed-coefficient-sbc-attempt-binding-2026-09-17)
+adds that connection. No detected departure is not a calibration certificate.
 
 On Julia 1.10.8 and 1.12.5, **224 additional assertions** passed: 177 joint-prior
 generation/quantity-binding, 43 rank/envelope and four exact negative-control
@@ -3566,16 +3567,57 @@ margins do not adopt the proposed pooled-SD/cap rule or scientific criteria;
 declared stream independence is not verified from seeds. These preparation
 checks cannot establish convergence, model validity, calibration or a default prior.
 
+## Fixed-coefficient SBC attempt binding (2026-09-17)
+
+The [internal preparation](../../scripts/mfrm_validation_preparation.jl) now binds
+one target/backend's SBC plan, generated input, canonical fit, selected draw
+identities, diagnostics, dependence declarations and rank/failure results. The
+[protocol](fixed-coefficient-validation-protocol.md#sampler-free-sbc-attempt-binding)
+describes the explicit arguments and boundaries. A generation failure can be
+recorded before an observed-data target exists. A single-category generated
+panel is retained before model validation; a later fit/scoring failure retains
+that bound input. No inconvenient outcome is silently replaced.
+
+All retained draws of all 12/13 SBC quantities now enter the shared diagnostic
+adapter, including joint response log likelihood. Rank selection preserves
+original rows and chain/iteration IDs. Held attempts supply missing primary
+ranks and consume no tie randomness. Dataset-level independence is declared
+separately; unresolved independence hides inferential bands/screens while
+retaining the descriptive missing-rank envelope. Content/ID bindings reject
+altered inputs/results, reused panels/fits and duplicate/unplanned primary IDs.
+The report keeps a full ledger and fixed planned denominator and quantity family.
+
+On Julia 1.10.8 and 1.12.5, **322 additional assertions** pass: 91 plan/generation
+binding, 136 canonical-fit/full-quantity diagnostic checks, and 95 ledger/
+dependence/rank checks. All **1,756 preceding focused checks** pass too, for
+**2,078 per version**. Eight short synthetic records cover the four prior/
+covariance targets on both backend formats; all remain diagnostically
+unqualified. Two longer artificial Julia records provide positive plumbing
+controls under deliberately loose supplied criteria, including exact selected
+ties and dependence holds. Their IID numerical coordinates and artificial
+sampler telemetry are not MCMC output or posterior evidence.
+The public-language gate passes for 20 files and all 11 added local links resolve.
+
+The [local receipt](../../results/workflows/20260917-fixed-coefficient-sbc-binding-01/receipt.json)
+retains scoped logs, hashes, revision and limits. There were zero live fits,
+CmdStan executions or recovery/SBC evaluation replications. No public API,
+package dependency, persisted fit type, controller or execution archive changed.
+The new native plan/attempt records are internal, in-memory preparation objects;
+their identities do not prove authentic generation or random-stream independence.
+The supplied dependence policy/evidence strings and diagnostic criteria remain
+caller declarations, not independently reviewed decisions. No full suite, CI
+or independent scientific review was performed; calibration/scientific
+acceptance remains false.
+
 ## Next bounded work
 
-Bind planned SBC IDs, generating targets, selected draw identities and explicit
-diagnostic/dependence declarations to rank summaries and generation/fitting/
-scoring failure accounting under the
-[protocol handoff](fixed-coefficient-validation-protocol.md#next-implementation-and-review-handoff).
-Retain missing ranks and reject replacement attempts on synthetic/saved records;
-include the joint-response log-likelihood quantity in diagnostic review.
-Reuse existing preparation/attempt helpers; no new engine, controller or full-grid
-launcher. Do not infer independent ranks from thinning, ESS or backend agreement.
+Prepare the bounded pilot's execution-readiness declaration under the
+[protocol handoff](fixed-coefficient-validation-protocol.md#next-implementation-and-review-handoff):
+map supplied backend sampler/initializer settings and bind RNG algorithms/stream
+keys, source/environment identities and resource/stop limits. Check the
+declaration without launching fits; reuse existing execution/provenance helpers
+and distinguish proposed/declared caps from measured/enforced limits. This does
+not accept the eight-call pilot or full evaluation allocation.
 Independent target-specific M1 review precedes statistical evaluation.
 Ordered-step priors, higher-dimensional covariance, within-item validation,
 automatic request caching, hard anchors and application predictors remain separate.

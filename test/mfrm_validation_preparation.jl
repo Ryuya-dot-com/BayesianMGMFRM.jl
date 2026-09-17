@@ -580,4 +580,192 @@ pair_report(p,julia,cmdstan;kwargs...) = V.compare_backend_pairs([p],
         @test_throws ArgumentError V.compare_backend_pairs(plan,attempts;alpha,independent_streams=true)
     end
 end
+
+const SBC_UNRESOLVED=(;status=:unresolved,evidence="Synthetic preparation; dependence not assessed")
+const SBC_DECLARED=(;status=:declared_independent,evidence="Synthetic decision input only; not MCMC evidence")
+function sbc_fixture(;correlated=true,exchangeable=true,backend=:advancedhmc,ids=["a","b"],
+        criteria=COMPARISON_CRITERIA,selected_iterations=[1,3],seed=831)
+    prior=exchangeable ? E.ExchangeablePrior(person_sd=1,rater_kernel_sd=0.5,item_sd=1,step_sd=0.5) :
+        MFRMPrior(person_sd=1,rater_sd=0.5/sqrt(2),item_sd=1,step_sd=0.5)
+    plan=V.sbc_plan(ids;persons=4,prior,correlated,backend,criteria,selected_iterations,
+        dependence_policy="Synthetic selected-draw review reference")
+    p=V.prior_panel(MersenneTwister(seed),MersenneTwister(seed+1);persons=4,prior,correlated)
+    return plan,p
+end
+
+@testset "SBC plans and pre-fit generation binding" begin
+    for correlated in (false,true), exchangeable in (false,true)
+        plan,p=sbc_fixture(;correlated,exchangeable)
+        input=V.bind_sbc_panel(plan,"a",p)
+        @test input.plan_identity==plan.identity && input.id=="a"
+        @test input.panel.truth==p.truth && input.panel.data.score==p.data.score
+        @test input.panel.truth.theta !== p.truth.theta && input.panel.data.score !== p.data.score
+        @test V.bind_sbc_panel(plan,"b",p).panel_identity==input.panel_identity
+        changed=deepcopy(p); changed.truth.theta[1,1]+=0.1
+        @test V.bind_sbc_panel(plan,"a",changed).panel_identity != input.panel_identity
+        @test_throws ArgumentError V._checked_sbc_input(plan,merge(input,(;panel=changed)))
+        @test_throws ArgumentError V.bind_sbc_panel(plan,"replacement",p)
+        @test_throws ArgumentError V.bind_sbc_panel(plan,"a",panel())
+        @test_throws ArgumentError V.bind_sbc_panel(plan,"a",sbc_fixture(;correlated=!correlated,exchangeable)[2])
+        @test_throws ArgumentError V.bind_sbc_panel(plan,"a",sbc_fixture(;correlated,exchangeable=!exchangeable)[2])
+        bad=deepcopy(p);reverse!(bad.data.score)
+        @test_throws ArgumentError V.bind_sbc_panel(plan,"a",bad)
+        thin=merge(V._response_panel(V._geometry(4),p.truth,MersenneTwister(333);thin=true),(;p.generation))
+        @test_throws ArgumentError V.bind_sbc_panel(plan,"a",thin)
+        altered=deepcopy(plan);altered.selected_iterations[1]=2
+        @test_throws ArgumentError V.bind_sbc_panel(altered,"a",p)
+        single=V.prior_panel(MersenneTwister(831),ZeroUniform();persons=4,
+            p.generation.prior,correlated)
+        bound=V.bind_sbc_panel(plan,"a",single)
+        @test all(iszero,bound.panel.data.score)
+        @test_throws ArgumentError V.specification(bound.panel)
+        failure=V.sbc_failure(plan,"a",:fit_error;input=bound,detail="model validation rejected single-category outcome")
+        @test failure.input.panel.data.score==zeros(Int,128)
+        summary=V.summarize_sbc_attempts(plan,[failure];alpha=0.05,dataset_independence=SBC_DECLARED)
+        @test summary.planned==2 && summary.n_quantities==(correlated ? 13 : 12)
+        @test summary.reasons==Dict(:fit_error=>1,:missing_attempt=>1)
+        @test all(c.cdf.usable==0 && c.cdf.unresolved==2 for c in summary.cdfs)
+    end
+    plan,p=sbc_fixture();prior=p.generation.prior
+    opts=(;persons=4,prior,correlated=true,backend=:advancedhmc,criteria=COMPARISON_CRITERIA,
+        selected_iterations=[1,3],dependence_policy="test policy")
+    for ids in (String[],[""],["a","a"],[1,2])
+        @test_throws ArgumentError V.sbc_plan(ids;opts...)
+    end
+    for change in ((;selected_iterations=Int[]),(;selected_iterations=[3,1]),
+            (;selected_iterations=[1,1]),(;selected_iterations=[0]),(;selected_iterations=[true]),
+            (;backend=:unknown),(;dependence_policy=" "),(;lkj_eta=true))
+        @test_throws ArgumentError V.sbc_plan(["a"];merge(opts,change)...)
+    end
+    @test V.sbc_plan(["a"];opts...).identity != V.sbc_plan(["b"];opts...).identity
+    @test V.sbc_plan(["a"];opts...).identity != V.sbc_plan(["a"];merge(opts,(;backend=:cmdstan))...).identity
+    @test V.sbc_plan(["a"];opts...).identity != V.sbc_plan(["a"];merge(opts,(;selected_iterations=[2,4]))...).identity
+end
+
+@testset "SBC canonical fits retain all quantity diagnostics and selected IDs" begin
+    for correlated in (false,true), exchangeable in (false,true), backend in (:advancedhmc,:cmdstan)
+        plan,p=sbc_fixture(;correlated,exchangeable,backend)
+        input=V.bind_sbc_panel(plan,"a",p)
+        record,fit_type=comparison_record(p;correlated,exchangeable,backend)
+        fit=fit_type(record;expected_identity=record.target_identity)
+        rng=MersenneTwister(601);expected=rand(copy(rng))
+        r=V.prepare_sbc_fit(plan,input,fit;dependence=SBC_DECLARED,rank_rng=rng)
+        @test r.status===:diagnostic_warning && r.ranks===nothing
+        @test !r.qualification.qualified && !r.scientific_acceptance && !r.independence_verified
+        @test r.sample_identity==record.content_hash && r.target_identity==record.target_identity
+        @test r.quantities.names==[x.parameter for x in r.diagnostic_rows.focal]
+        @test last(r.quantities.names)=="joint_log_likelihood"
+        @test all(x.total_draws==8 for x in r.diagnostic_rows.focal)
+        @test size(r.quantities.retained_draws)==(8,correlated ? 13 : 12)
+        @test r.quantities.selected_rows==[1,3,5,7]
+        @test r.quantities.draws==r.quantities.retained_draws[[1,3,5,7],:]
+        @test r.quantities.chain_ids==[1,1,2,2] && r.quantities.iterations==[1,3,1,3]
+        @test rand(rng)==expected # held ranks consume no tie randomness
+        t=target(p;correlated,exchangeable)
+        state=V.model_states(t,record.run.draws)[2]
+        @test r.quantities.retained_draws[2,end] ≈ V.sbc_quantities(V.specification(p),state;correlated).values[end]
+        summary=V.summarize_sbc_attempts(plan,[r];alpha=0.05,dataset_independence=SBC_DECLARED)
+        @test summary.reasons==Dict(:diagnostic_warning=>1,:missing_attempt=>1)
+        @test summary.n_draws==8 && all(c.cdf.usable==0 for c in summary.cdfs)
+        @test all(c.cdf.conditional_screen===:unresolved for c in summary.cdfs)
+        otherplan,_=sbc_fixture(;correlated,exchangeable,backend=backend===:advancedhmc ? :cmdstan : :advancedhmc)
+        @test_throws ArgumentError V.prepare_sbc_fit(otherplan,V.bind_sbc_panel(otherplan,"a",p),fit;
+            dependence=SBC_DECLARED,rank_rng=MersenneTwister(601))
+        @test_throws ArgumentError V.prepare_sbc_fit(plan,merge(input,(;panel_identity="wrong")),fit;
+            dependence=SBC_DECLARED,rank_rng=MersenneTwister(601))
+    end
+end
+
+# IID numbers and artificial NUTS telemetry only. This is a positive plumbing
+# control under deliberately loose supplied criteria, never posterior evidence.
+function sbc_long_fit(p;ties=false)
+    record,fit_type=comparison_record(p;correlated=true,exchangeable=true,backend=:advancedhmc)
+    t=target(p);x=truth_vector(t,p.truth)
+    draws=permutedims(x) .+ 0.2randn(MersenneTwister(612),80,length(x))
+    ties && (draws[[1,3,21,23,41,43,61,63],:] .= permutedims(x))
+    lp=[B.LogDensityProblems.logdensity(t,row) for row in eachrow(draws)]
+    chain_ids=repeat(1:4;inner=20);iterations=repeat(1:20;outer=4)
+    controls=merge(record.run.controls,(;ndraws=20,chains=4,max_depth=10))
+    stats=[B._advancedhmc_stat_row((;log_density=lp[d],step_size=0.1,acceptance_rate=0.75,
+        hamiltonian_energy=isodd(d) ? 1. : -1.,n_steps=3,tree_depth=2,numerical_error=false),
+        chain_ids[d],iterations[d]) for d in 1:80]
+    chain_acceptance=fill(0.75,4)
+    run=merge(record.run,(;total_draws=80,draws,logdensities=lp,chain_ids,iterations,chain_acceptance,
+        sampler_stats=stats,controls,sampler_rows=B._generalized_candidate_sampler_rows(
+            lp,iterations,chain_acceptance,stats,controls,:advancedhmc)))
+    record=merge(record,(;run))
+    record=merge(record,(;content_hash=B._mgmfrm_normalized_sample_hash(record)))
+    return fit_type(record;expected_identity=record.target_identity)
+end
+
+@testset "SBC primary ledger, dependence holds and full-denominator ranks" begin
+    loose=merge(COMPARISON_CRITERIA,(;rhat=100.,ess=0.01,ebfmi=0.01))
+    plan,p=sbc_fixture(;criteria=loose,ids=["a","b","c","d","e"])
+    input=V.bind_sbc_panel(plan,"a",p);fit=sbc_long_fit(p;ties=true)
+    held_rng=MersenneTwister(620);expected=rand(copy(held_rng))
+    held=V.prepare_sbc_fit(plan,input,fit;dependence=SBC_UNRESOLVED,rank_rng=held_rng)
+    @test held.qualification.qualified && held.status===:dependence_unresolved && held.ranks===nothing
+    @test rand(held_rng)==expected
+    good=V.prepare_sbc_fit(plan,input,fit;dependence=SBC_DECLARED,rank_rng=MersenneTwister(621))
+    @test good.status===:rank_prepared && length(good.ranks)==13
+    @test good.ranks==V.prepare_sbc_fit(plan,input,fit;dependence=SBC_DECLARED,rank_rng=MersenneTwister(621)).ranks
+    theta=only(filter(r -> r.parameter=="theta11",good.ranks))
+    @test theta.ties==8 && theta.lower==0 && theta.upper==8 && 0 <= theta.rank <= 8
+    @test good.input.panel.truth.theta !== input.panel.truth.theta
+    @test !good.scientific_acceptance && !good.independence_verified
+    _,p2=sbc_fixture(;seed=851)
+    bound2=V.bind_sbc_panel(plan,"b",p2)
+    unresolved=V.prepare_sbc_fit(plan,bound2,sbc_long_fit(p2);dependence=SBC_UNRESOLVED,rank_rng=MersenneTwister(622))
+    @test unresolved.qualification.qualified && unresolved.status===:dependence_unresolved
+    generation_error=V.sbc_failure(plan,"c",:generation_error;detail="unrepresentable prior correlation")
+    single=V.prior_panel(MersenneTwister(861),ZeroUniform();persons=4,p.generation.prior,correlated=true)
+    failed=V.sbc_failure(plan,"d",:fit_error;input=V.bind_sbc_panel(plan,"d",single),detail="single-category data rejected")
+    attempts=[good,unresolved,generation_error,failed]
+    report=V.summarize_sbc_attempts(plan,attempts;alpha=0.05,dataset_independence=SBC_DECLARED)
+    @test report.planned==5 && report.n_draws==8 && report.n_quantities==13
+    @test report.reasons==Dict(:rank_prepared=>1,:dependence_unresolved=>1,:generation_error=>1,:fit_error=>1,:missing_attempt=>1)
+    @test [r.id for r in report.ledger]==plan.ids
+    @test report.ledger[3].result.input===nothing && report.ledger[4].result.detail==failed.detail
+    @test report.ledger[5].result===nothing
+    for (column,rank) in zip(report.cdfs,good.ranks)
+        @test isequal(column.ranks,[rank.rank,missing,missing,missing,missing])
+        @test column.cdf.usable==1 && column.cdf.unresolved==4
+        @test column.cdf.epsilon ≈ sqrt(log(2*13/0.05)/10)
+        @test [(r.lower,r.upper) for r in column.cdf.rows] ==
+            [(k==8 ? 1. : Int(rank.rank<=k)/5,k==8 ? 1. : (Int(rank.rank<=k)+4)/5) for k in 0:8]
+    end
+    @test !report.calibration_verified && !report.independence_verified && !report.scientific_acceptance
+    @test isequal(report,V.summarize_sbc_attempts(plan,reverse(attempts);alpha=0.05,dataset_independence=SBC_DECLARED))
+    unknown=V.summarize_sbc_attempts(plan,attempts;alpha=0.05,dataset_independence=SBC_UNRESOLVED)
+    @test all(c.cdf.conditional_screen===:assumptions_unresolved && ismissing(c.cdf.epsilon) for c in unknown.cdfs)
+    @test all(ismissing(r.band_lower) && ismissing(r.band_upper) && ismissing(r.resolved_departure) for c in unknown.cdfs for r in c.cdf.rows)
+    @test [r.lower for r in first(unknown.cdfs).cdf.rows]==[r.lower for r in first(report.cdfs).cdf.rows]
+    empty=V.summarize_sbc_attempts(plan,NamedTuple[];alpha=0.05,dataset_independence=SBC_DECLARED)
+    @test empty.reasons==Dict(:missing_attempt=>5) && all(c.cdf.unresolved==5 for c in empty.cdfs)
+    @test_throws ArgumentError V.summarize_sbc_attempts(plan,[attempts;good];alpha=0.05,dataset_independence=SBC_DECLARED)
+    for change in ((;id="replacement"),(;plan_identity="wrong"),(;draw_identity="wrong"))
+        @test_throws ArgumentError V.summarize_sbc_attempts(plan,[merge(good,change)];alpha=0.05,dataset_independence=SBC_DECLARED)
+    end
+    edited=deepcopy(good);edited.quantities.retained_draws[2,1]+=1
+    @test_throws ArgumentError V.summarize_sbc_attempts(plan,[edited];alpha=0.05,dataset_independence=SBC_DECLARED)
+    copied=V.prepare_sbc_fit(plan,V.bind_sbc_panel(plan,"b",p),fit;dependence=SBC_DECLARED,rank_rng=MersenneTwister(623))
+    @test_throws ArgumentError V.summarize_sbc_attempts(plan,[good,copied];alpha=0.05,dataset_independence=SBC_DECLARED)
+    for status in (:scoring_error,:missing_draws,:nonfinite_draws,:timeout,:interrupted)
+        failure=V.sbc_failure(plan,"a",status;input,detail="synthetic failure")
+        @test V.summarize_sbc_attempts(plan,[failure];alpha=0.05,dataset_independence=SBC_DECLARED).reasons[status]==1
+    end
+    @test_throws ArgumentError V.sbc_failure(plan,"a",:fit_error;detail="no bound data")
+    @test_throws ArgumentError V.sbc_failure(plan,"a",:unknown;input,detail="unknown status")
+    @test_throws ArgumentError V.sbc_failure(plan,"a",:fit_error;input,detail="")
+    @test_throws ArgumentError V.sbc_failure(plan,"b",:fit_error;input,detail="wrong ID")
+    partial=V._seal_sbc_attempt(merge(Base.structdiff(generation_error,(;content_hash=nothing)),(;ranks=good.ranks)))
+    @test_throws ArgumentError V.summarize_sbc_attempts(plan,[partial];alpha=0.05,dataset_independence=SBC_DECLARED)
+    for declaration in ((;status=:automatic,evidence="ESS"),(;status=:declared_independent,evidence=""))
+        @test_throws ArgumentError V.prepare_sbc_fit(plan,input,fit;dependence=declaration,rank_rng=MersenneTwister(624))
+        @test_throws ArgumentError V.summarize_sbc_attempts(plan,attempts;alpha=0.05,dataset_independence=declaration)
+    end
+    for alpha in (0.,1.,NaN,true)
+        @test_throws ArgumentError V.summarize_sbc_attempts(plan,attempts;alpha,dataset_independence=SBC_DECLARED)
+    end
+end
 end

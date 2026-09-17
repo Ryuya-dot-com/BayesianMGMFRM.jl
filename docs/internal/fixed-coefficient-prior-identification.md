@@ -417,8 +417,11 @@ records. The [SBC preparation](fixed-coefficient-validation-protocol.md#sampler-
 also connects joint-prior generation, data-dependent quantities and tie/missing-rank
 arithmetic. The [diagnostic/comparison preparation](fixed-coefficient-validation-protocol.md#sampler-free-diagnostic-and-comparison-preparation)
 now applies explicit criteria and statistic-specific precision to paired
-backend records while preserving failed/inconclusive comparisons. Next, bind
-planned SBC IDs, selected draws and failure/dependence declarations to rank
-summaries, without a fit grid. Ordered-step
+backend records while preserving failed/inconclusive comparisons. The
+[SBC attempt binding](fixed-coefficient-validation-protocol.md#sampler-free-sbc-attempt-binding)
+now preserves planned IDs, generating contracts, selected draws, full quantity
+diagnostics and failure/dependence declarations in rank summaries. Next, prepare
+the bounded pilot's settings/RNG/provenance/resource declaration and checks,
+without launching fits. Ordered-step
 priors, the scientific default and broader random-effect structure remain
 separate choices.
