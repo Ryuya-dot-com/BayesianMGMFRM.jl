@@ -27,6 +27,7 @@ data {
   int<lower=2> K;
   int<lower=2, upper=2> D;
   int<lower=1, upper=10000> lkj_eta;
+  int<lower=0, upper=1> exchangeable_raters;
   int<lower=1> N;
   int<lower=1> NLoadings;
   array[N] int<lower=1, upper=J> PersonID;
@@ -42,6 +43,10 @@ transformed data {
   int free_steps = K - 2;
   int n_steps = I * free_steps;
   int step_offset = locations + NLoadings + R - 1;
+  if (exchangeable_raters)
+    for (r in 1:(R-1))
+      if (reference_sd[J*D+r] != reference_sd[J*D+1])
+        reject("exchangeable rater kernel scales must be identical");
   if (min(reference_sd) <= 0)
     reject("reference_sd must be strictly positive");
   for (p in 1:(J * D))
@@ -63,6 +68,8 @@ model {
   for (p in (J*D+1):num_elements(beta))
     target += -0.5 * square(beta[p] / reference_sd[p])
       - log(reference_sd[p]) - 0.5 * log(2 * pi());
+  if (exchangeable_raters)
+    target += 0.5 * log(R) - 0.5 * square(sum(segment(beta, J*D+1, R-1)) / reference_sd[J*D+1]);
   for (n in 1:N) {
     target += categorical_logit_lpmf(X[n] | mgmfrm_eta(
       PersonID[n], RaterID[n], ItemID[n], J, R, I, K, D,

@@ -3130,19 +3130,63 @@ suite, CI and independent reader/scientific review were not run. Commands,
 logs, density inputs/outputs and retained hashes are in the
 [local receipt](../../results/workflows/20260917-prior-identification-01/receipt.json).
 
+## Fixed-coefficient exchangeable-rater reference (2026-09-17)
+
+The private `_MFRMExchangeableRatersLogDensity` changes only the rater prior
+of the independent or correlated fixed-coefficient target. It reuses the
+normalized zero-sum correction and all existing likelihood/other-prior terms.
+The required scale record names `rater_kernel_sd` explicitly and records its
+induced common marginal and contrast SDs. The distinct target schema/identity
+can be serialized and verified independently of a posterior fit; it does not
+add a public fitting selector or fit-cache format. The
+[equation/code review](fixed-coefficient-prior-identification.md#private-exchangeable-rater-reference)
+states the scale-matching rules and the unchanged location/step assumptions.
+
+CmdStan uses the existing fixed-coefficient sources with an explicit rater-prior
+flag, retaining flag 0 in all existing fitting adapters. Flag 1 adds the
+normalized correction and checks common rater kernel scales. Fresh compilation
+changes model-source/executable hashes; it does not change the compatibility
+target's distribution or historical fit identity. No sampler, loading block,
+consistency prior or response kernel was copied.
+
+New sampler-free tests passed 482 assertions on each Julia 1.10.8 and 1.12.5.
+They check an independently constructed Gaussian density, full covariance,
+gradients/Hessians, nonrater terms, rater-ID permutations, location shifts,
+scale conversion, invalid inputs and persisted target-identity separation.
+The previous prior/identification checks passed 428 assertions on each version,
+and existing correlated-density checks passed 275 on 1.12.5. Fresh CmdStan
+2.39.0 builds passed 434 assertions: full normalized density and gradient
+comparisons for both ability models and both rater priors, 2/3/5 raters, 2/4
+categories, original/reversed IDs and both automatic-Jacobian settings, plus
+rejection of inconsistent rater scales. These are 192 point evaluations, with
+no MCMC or statistical evaluation replications.
+
+All five historical fit files retain their bytes, target identities and draw
+records: cache verification passed 10 assertions on Julia 1.10 and 15 on 1.12.
+The preceding handoff's 195 evidence files retain their recorded hashes.
+Public-language policy tests passed 181 assertions, and the source-language
+gate passed for 20 files. No public API or help text was added for this private
+reference. The CmdStan grid used two dimensions; the independent 3D and
+within-item permutation cases were checked in Julia in this slice.
+
+The full suite, CI, independent scientific/reader review and statistical
+recovery/coverage were not run. Public documentation and supported API claims
+are unchanged. The local receipt records compatibility checks, input hashes,
+commands and raw CmdStan density outputs:
+[verification receipt](../../results/workflows/20260917-exchangeable-raters-01/receipt.json).
+
 ## Next bounded work
 
-Prepare a private, distinctly identified exchangeable-rater prior reference for
-both fixed-coefficient ability models, reusing the existing normalized zero-sum
-correction and likelihood. Specify kernel and induced marginal/contrast SDs;
-hold the current item-step prior fixed for the first comparison, with the
-ordered-step decision separate. Require normalized density/gradient checks,
-rater relabelling invariance, Julia/CmdStan agreement and saved-identity
-separation before exposing a fitting selector. Preserve the present prior and
-historical artifacts. This reference does not choose the generalized source
-prior or establish recovery. Higher-dimensional covariance, within-item
-validation, automatic request caching, hard anchors and application predictors
-remain separate.
+Add a private prior-draw adapter for the exchangeable-rater reference and reuse
+existing prior-predictive summaries/figures to compare rating implications.
+State contrast/common-marginal scale matching, distinguish the R=2 case, and
+hold ability, item and ordered-step priors fixed. Check the generated covariance
+against the declared target. Mathematical correctness alone does not choose
+the scientific default; public fitting/cache integration, ordered-step priors
+and target-specific recovery protocols remain separate decisions. Preserve
+the present prior and historical artifacts. Higher-dimensional covariance,
+within-item validation, automatic request caching, hard anchors and application
+predictors remain separate.
 
 Separately, record an unfamiliar reader finding the supported model/backend, loading a fit,
 choosing a named dimension, interpreting diagnostic/interval labels and saving/

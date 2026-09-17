@@ -15,6 +15,7 @@ data {
   int<lower=2> I;
   int<lower=2> K;
   int<lower=2> D;
+  int<lower=0, upper=1> exchangeable_raters;
   int<lower=1> N;
   int<lower=1> NLoadings;
   array[N] int<lower=1, upper=J> PersonID;
@@ -30,6 +31,12 @@ transformed data {
   int free_steps = K - 2;
   int n_steps = I * free_steps;
   int step_offset = locations + NLoadings + R - 1;
+  if (min(reference_sd) <= 0)
+    reject("reference_sd must be strictly positive");
+  if (exchangeable_raters)
+    for (r in 1:(R-1))
+      if (reference_sd[J*D+r] != reference_sd[J*D+1])
+        reject("exchangeable rater kernel scales must be identical");
 }
 parameters {
   vector[locations + n_steps] beta;
@@ -37,6 +44,8 @@ parameters {
 model {
   vector[step_offset + n_steps] raw = fixed_q_raw(beta, locations, n_steps, step_offset);
   target += normal_lpdf(beta | 0, reference_sd);
+  if (exchangeable_raters)
+    target += 0.5 * log(R) - 0.5 * square(sum(segment(beta, J*D+1, R-1)) / reference_sd[J*D+1]);
   for (n in 1:N) {
     target += categorical_logit_lpmf(X[n] | mgmfrm_eta(
       PersonID[n], RaterID[n], ItemID[n], J, R, I, K, D,

@@ -92,7 +92,7 @@ _mfrm_fixed_q_pointwise(target::_MFRMFixedQReferenceLogDensity, params::Abstract
 
 _cmdstan_generalized_family(::_MFRMFixedQReferenceLogDensity) = :mfrm_fixed_q
 _cmdstan_generalized_data(target::_MFRMFixedQReferenceLogDensity) =
-    merge(_cmdstan_mgmfrm_data(target.base), (; reference_sd =
+    merge(_cmdstan_mgmfrm_data(target.base), (; exchangeable_raters = 0, reference_sd =
         [_source_fixture_prior_sd(target, i) for i in 1:LogDensityProblems.dimension(target)]))
 
 function _cmdstan_generalized_chain_result(path::AbstractString,

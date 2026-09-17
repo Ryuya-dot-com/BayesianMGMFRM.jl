@@ -118,7 +118,8 @@ with the [Stan sum-to-zero normal convention](https://mc-stan.org/docs/reference
 The scale tau is a kernel SD; a desired common marginal SD s requires
 `tau=s sqrt(n/(n-1))`. The correction from independent free normals is
 `log(n)/2 - sum(v)^2/(2 tau^2)`, already supplied by
-`_zero_sum_prior_correction`. This is a reference here, not a new MFRM option.
+`_zero_sum_prior_correction`. The private fixed-coefficient reference below now
+uses this correction; it is not a public fitting option.
 For n>2, no single rescaling can match every marginal and contrast variance of
 the asymmetric current prior. A comparison must state what is matched.
 
@@ -180,19 +181,65 @@ and its local receipt. These checks characterize the current model and backend
 agreement. They do not determine a scientifically preferred prior or establish
 recovery, coverage, convergence or an accepted application domain.
 
-## Next bounded decision and implementation
+## Private exchangeable-rater reference
 
-Prepare an explicitly identified exchangeable-rater fixed-coefficient prior
-reference using the existing normalized block correction and response kernel.
-Specify kernel versus common marginal SDs before exposing a selector; document
-the resulting rater-contrast variance and the matching rule for comparisons.
-Keep the item-step prior decision separate because those positions are ordered.
-For the first comparison, holding the existing step prior fixed isolates the
-rater-prior change. Maintain both independent and correlated ability models,
-fixed marginal ability scales, prior-anchored locations and Julia/CmdStan parity.
+`_MFRMExchangeableRatersLogDensity` in `src/mfrm_exchangeable_raters.jl` wraps
+the existing independent or correlated fixed-coefficient target. It adds the
+normalized rater-block correction above to both the prior and posterior density.
+It retains the current ability, item and ordered-step priors, the response
+kernel, prior-anchored locations and the correlated model's single Fisher-z
+Jacobian. No ability marginal scale is estimated. The correlated reference
+keeps the existing conservative two-dimensional between-item design checks.
 
-Require normalized densities, derivatives, relabelling invariance and distinct
-saved identities before a public fitting option. Preserve the current target
-as an explicit compatibility model; do not migrate old draws or defaults. This
-is a bounded mathematical/implementation slice, not authorization for a new
-recovery study, arbitrary variance components or source-model reproduction.
+Its required `scales` record explicitly names `person_sd`, `rater_kernel_sd`,
+`item_sd` and `step_sd`. Internally `MFRMPrior` validates/stores these numbers;
+its rater value is the kernel SD tau used in the correction, not a promise of
+independent free severities. The new target record stores a distinct schema,
+the compatibility base identity, the kernel convention, actual scales, induced
+common marginal/contrast SDs and unchanged step-prior policy. Reconstructing a
+persisted target record verifies every field and the expected identity. This
+is mathematical target persistence, not new posterior-draw or fit-cache support.
+Old target identities cannot stand in for the new identity.
+
+For example, with three raters and `rater_kernel_sd=0.4`, every rater has
+marginal SD `0.4 sqrt(2/3)` (about 0.327), and every rater contrast has SD
+`0.4 sqrt(2)` (about 0.566). The old `rater_sd=0.4` model instead has marginal
+SDs `(0.4,0.4,0.4 sqrt(2))`; contrasts between free raters have SD 0.566, while
+those involving the reconstructed rater have SD `0.4 sqrt(5)` (about 0.894).
+Equal kernel scales therefore match the old free/free contrasts when R>2,
+not all contrasts or marginal SDs. At R=2 the old contrast SD is `2 rater_sd`,
+so that matching rule is unavailable. To match a specified contrast SD c
+use `tau=c/sqrt(2)`; to match common marginal SD s use `tau=s sqrt(R/(R-1))`.
+Neither rule is an automatic conversion of historical fitted draws.
+
+CmdStan reuses the two existing fixed-coefficient sources with an explicit
+`exchangeable_raters` data flag. Existing adapters send 0; only the new private
+reference sends 1. The added branch supplies the same normalized correction
+and checks for one common rater kernel scale. The sources and resulting build
+hashes change, while the mode-0 statistical target and historical identities
+remain unchanged. Both modes receive fresh full-density/gradient checks,
+including both CmdStan automatic-Jacobian settings; no duplicate sampler or
+response kernel was introduced.
+
+`test/mfrm_exchangeable_raters.jl` compares against a separately constructed
+multivariate normal, checks full-vector covariance, gradients and Hessians,
+relabelled likelihoods/priors, unchanged nonrater derivatives and location
+shifts, explicit scale matching, persisted identities and rejection of invalid
+inputs. It includes binary and ordinal responses, 2/3/5 raters, independent
+two/three-dimensional and fixed-Q within-item cases, and correlated 2D cases.
+These checks establish this reference's mathematical behavior, not statistical
+acceptance of those combinations. See the
+[implementation record](normalized-prior-backend-comparison.md#fixed-coefficient-exchangeable-rater-reference-2026-09-17)
+for executed checks and remaining limits.
+
+## Next bounded comparison
+
+Use existing prior-predictive summaries and figures to compare the current and
+exchangeable-rater references under explicitly stated contrast/marginal scale
+matching. Add a private prior-draw adapter before any fitting selector; verify
+that simulated rater covariance and rating probabilities agree with this
+declared target. Keep all nonrater priors fixed and distinguish R=2 from R>2.
+Record the resulting rating implications without selecting a scientific
+default merely because density tests pass. Ordered-step priors, target-specific
+recovery/coverage protocols and public fitting/cache integration remain separate
+decisions. Preserve historical draws and identities throughout.
