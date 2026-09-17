@@ -6810,8 +6810,10 @@ end
 
 function _mgmfrm_source_constrained_params_from_unconstrained(
         design::FacetDesign,
-        raw_params::AbstractVector)
-    blueprint = _mgmfrm_source_unconstrained_blueprint(design)
+        raw_params::AbstractVector,
+        blueprint::NamedTuple = _mgmfrm_source_unconstrained_blueprint(design))
+    # Numerical targets own a validated design snapshot and its blueprint.
+    # Standalone two-argument calls still validate and compile the design.
     length(raw_params) == blueprint.n_parameters ||
         throw(ArgumentError("MGMFRM source transform expected $(blueprint.n_parameters) raw parameter(s); got $(length(raw_params))"))
     T = typeof(_param_zero(raw_params) + 0.0)
@@ -6990,10 +6992,12 @@ end
 
 function _mgmfrm_source_loglikelihood_from_unconstrained(
         design::FacetDesign,
-        raw_params::AbstractVector)
+        raw_params::AbstractVector,
+        blueprint::NamedTuple = _mgmfrm_source_unconstrained_blueprint(design))
     params = _mgmfrm_source_constrained_params_from_unconstrained(
         design,
         raw_params,
+        blueprint,
     )
     data = design.spec.data
     K = length(data.category_levels)

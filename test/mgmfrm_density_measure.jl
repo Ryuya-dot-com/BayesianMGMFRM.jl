@@ -97,6 +97,46 @@ const NORMALIZED_CASES = [normalized_case(case, model, source_rater, unit_scales
         ((:exchangeable, nothing, false), (:source, "R1", false),
          (:source, "R2", false), (:source, "R3", false), (:source, "R1", true))]
 
+@testset "MGMFRM numerical snapshots and sampler-entry guards" begin
+    for case in CASES
+        design = deepcopy(case.target.design)
+        target = B._mgmfrm_guarded_local_fit_logdensity(design; prior=case.target.prior)
+        x = case.points[2]
+        expected = B.LogDensityProblems.logdensity(target, x)
+        design.spec.q_matrix .= false
+        @test B.LogDensityProblems.logdensity(target, x) == expected
+        @test_throws ArgumentError B._mgmfrm_guarded_local_fit_logdensity(design)
+        # Standalone transformations/likelihoods keep their checked entry path.
+        @test_throws ArgumentError B._mgmfrm_source_constrained_params_from_unconstrained(design, x)
+        @test_throws ArgumentError B._mgmfrm_source_loglikelihood_from_unconstrained(design, x)
+        for invalid in (x[1:end-1], fill(NaN, length(x)), fill(Inf, length(x)))
+            @test_throws ArgumentError B.LogDensityProblems.logdensity(target, invalid)
+        end
+        overflow = copy(x)
+        overflow[first(target.blueprint.blocks[:log_item_dimension_discrimination])] = 1000
+        @test_throws ArgumentError B.LogDensityProblems.logdensity(target, overflow)
+
+        # Modified owned designs must fail before either sampler or compiler runs.
+        for mutate! in (d -> (d.spec.q_matrix .= false),
+                d -> reverse!(d.parameter_names),
+                d -> (d.spec.data.category[1] = 0))
+            for runner in (B._mgmfrm_guarded_local_fit_sampler_diagnostics,
+                    B._cmdstan_mgmfrm_sampler_diagnostics)
+                bad = deepcopy(target)
+                mutate!(bad.design)
+                @test_throws ArgumentError runner(bad, x)
+            end
+            for backend in (:advancedhmc, :cmdstan)
+                bad = B._MGMFRMNormalizedPriorLogDensity(target.design.spec;
+                    prior_model=:exchangeable,
+                    scales=B._source_fixture_prior_values(target.prior))
+                mutate!(bad.base.design)
+                @test_throws ArgumentError B._mgmfrm_normalized_prior_sample(bad, x; backend)
+            end
+        end
+    end
+end
+
 @testset "MGMFRM blockwise raw measure and independent equation (no fitting)" begin
     for case in CASES
         (; target, names, ranges, sd, direct, pointwise, logprior, density, points) = case

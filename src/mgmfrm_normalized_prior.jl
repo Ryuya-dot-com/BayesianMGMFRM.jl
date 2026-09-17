@@ -226,6 +226,10 @@ function _mgmfrm_normalized_prior_sample(target::_MGMFRMNormalizedPriorLogDensit
     runner = backend === :advancedhmc ? _run_generalized_candidate_advancedhmc :
         backend === :cmdstan ? _cmdstan_generalized_candidate_run :
         throw(ArgumentError("normalized-prior sampling supports :advancedhmc or :cmdstan"))
+    # As in fixed-coefficient sampling, rebuild from the authoritative design/prior.
+    identity = _mgmfrm_normalized_prior_identity(target)
+    target = _MGMFRMNormalizedPriorLogDensity(target.base.design.spec,
+        _mgmfrm_normalized_prior_record(target); expected_identity = identity)
     run = runner(target, raw_initial; record_warmup, kwargs...)
     record = (;
         schema = record_warmup ? "bayesianmgmfrm.normalized_fixed_q_samples.v2" :

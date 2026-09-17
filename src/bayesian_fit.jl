@@ -785,7 +785,8 @@ function _source_fixture_loglikelihood(target, raw_params::AbstractVector)
     if target.blueprint.family === :gmfrm
         return _gmfrm_source_loglikelihood_from_unconstrained(target.design, raw_params)
     elseif target.blueprint.family === :mgmfrm
-        return _mgmfrm_source_loglikelihood_from_unconstrained(target.design, raw_params)
+        return _mgmfrm_source_loglikelihood_from_unconstrained(
+            target.design, raw_params, target.blueprint)
     end
     throw(ArgumentError("unsupported source-fixture family $(target.blueprint.family)"))
 end
@@ -3600,6 +3601,8 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
         initial_source::Symbol = :sampler_raw_initial_argument)
     target.blueprint.family === :mgmfrm ||
         throw(ArgumentError("_mgmfrm_guarded_local_fit_sampler_diagnostics requires an MGMFRM guarded target"))
+    # Validate once at entry and rebuild mutable numerical views before sampling.
+    target = _mgmfrm_guarded_local_fit_logdensity(target.design; prior = target.prior)
     run = _run_generalized_candidate_advancedhmc(
         target,
         raw_initial;

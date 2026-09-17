@@ -1209,6 +1209,7 @@ function _cmdstan_mgmfrm_sampler_diagnostics(
         raw_initial::AbstractVector = initial_params(target);
         initial_source::Symbol = :sampler_raw_initial_argument,
         kwargs...)
+    target = _mgmfrm_guarded_local_fit_logdensity(target.design; prior = target.prior)
     run = _cmdstan_generalized_candidate_run(target, raw_initial; kwargs...)
     return _mgmfrm_guarded_local_fit_diagnostic_surface(
         target,

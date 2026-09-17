@@ -693,10 +693,69 @@ migration, public API promotion, recovery study or SBC study is claimed. The loc
 `receipt.json` owns the complete attempt/status and artifact-hash inventory;
 the initial compiler, renderer-environment and postprocessing errors are retained.
 
+## Julia blueprint reuse after the C2 pilot (2026-09-17)
+
+The first computational correction reuses the validated raw-coordinate blueprint
+already owned by each MGMFRM numerical target. The shared likelihood no longer
+recompiles the design and rechecks Q coverage for every ForwardDiff chunk. This
+also benefits fixed-coefficient independent/correlated MFRM and normalized-prior
+MGMFRM targets that use that likelihood. The likelihood, parameter order, 1.7
+coordinate transport, priors and Jacobian terms are unchanged.
+
+The standalone design-to-transform/likelihood entry points still validate their
+designs. Numerical targets retain their private validated snapshots; parameter
+length, finite-coordinate, positivity and reconstructed-constraint checks remain
+in the evaluation path. Generalized and normalized-prior sampler entry points
+now revalidate/rebuild mutable numerical views, as the fixed-coefficient samplers
+already did. Sampling and saved-result integrity checks are not removed. Direct
+mutation of private target internals during a numerical evaluation is not a
+supported interface.
+
+Local evidence is in `results/workflows/20260917-blueprint-reuse-01/`.
+`measure.jl` reads the preserved C2 panel, verifies its hash and target identity,
+and records the actual source hashes. It does not reuse the old pilot's source
+declaration as if the implementation were unchanged. Before and after measurements
+use separate Julia 1.12.5 processes, the same three 124-coordinate points, two
+warm calls per point and the median of 30 subsequent ForwardDiff evaluations.
+
+| Evaluation point | Before, ms | After, ms | Before/after ratio |
+| --- | ---: | ---: | ---: |
+| Zero | 9.942 | 3.524 | 2.82 |
+| Zero + 0.1 normal jitter | 9.231 | 3.717 | 2.48 |
+| Zero + 0.3 normal jitter | 9.059 | 3.694 | 2.45 |
+
+Each evaluation allocated 14,588,592 bytes before and 1,018,816 bytes after
+(93.0% less). All three log densities and every gradient coordinate matched
+exactly. The jitter stream is `MersenneTwister(2026091806)`. These are local warm
+gradient measurements, not cold-start, whole-fit, memory-peak or backend timing
+claims; unrelated host activity was not controlled. No C2 MCMC rerun is included
+in this correction, and the original pilot's timeouts, diagnostic failures and
+inconclusive backend comparisons remain unchanged.
+
+Verification used the existing independent category-score/prior equations and
+production CmdStan models: 2,162 assertions passed under Julia 1.12.5/CmdStan
+2.39.0, including 796 CmdStan checks with the Jacobian switch both off and on.
+The logged generalized-model comparisons had maximum absolute density and
+gradient errors of 1.42e-14 and 7.11e-15, respectively. Julia 1.10.8 separately
+passed the 884 mathematical/snapshot/entry-guard assertions. An additional focused
+Julia regression run passed 1,911 assertions covering finite extremes, prior
+reporting, generalized guards, short NUTS fits, seeded warmup invariance and
+saved-result replay. Short regression fits establish operability, not convergence
+or recovery. The full test suite and CI were not run.
+
+The first two CmdStan checks stopped before model execution because the sandbox
+denied installation-header writes; a separately recorded environment recovery
+passed. The first Julia 1.10 invocation rejected the newer
+`--compiled-modules=existing` option; the corrected `--compiled-modules=no`
+invocation passed. All failed invocations remain in the local evidence directory.
+
 ## Next implementation and review handoff
 
-Use measured pilot diagnostics and MCSE to choose a specific computational
-correction or a bounded precision follow-up. Do not grow preparation machinery
+After the blueprint correction, use a separately bounded follow-up to time the
+cold fit, save, reload and report phases explicitly. Preserve the original C2
+attempts and settings; report any changed protocol as a new attempt. Investigate
+absolute item-location mixing against the already declared focal contrasts,
+without loosening the whole-fit diagnostic gate. Do not grow preparation machinery
 as a substitute for this evidence, automatically retry a primary call, or
 condition full evaluation on completing every MFRM cell before MGMFRM work.
 
