@@ -20,7 +20,7 @@ function _render_posterior(data; title, dimension_labels, xlabel, size = nothing
     groups = [[row for row in data.rows if (row.block, row.dimension) == key] for key in data.groups]
     figure_size = size === nothing ? (850, 30 * length(data.rows) + 95 * length(groups) + 160) : size
     fig = Figure(; size = figure_size, fontsize = 15)
-    Label(fig[1, 1], title; fontsize = 21, font = :bold, tellwidth = false)
+    Label(fig[1, 1], title; fontsize = 21, font = :bold, tellwidth = false, word_wrap = true)
     for (index, rows) in enumerate(groups)
         block, dimension = data.groups[index]
         heading = get(Dict(:person => "Person ability", :rater => "Rater severity",
@@ -51,6 +51,7 @@ function _render_posterior(data; title, dimension_labels, xlabel, size = nothing
             end
         end
         ylims!(ax, length(rows) + 0.6, 0.4)
+        data.scale === :model && block === :latent_correlation && xlims!(ax, -1, 1)
         rowsize!(fig.layout, index + 1, Auto(length(rows)))
     end
     caption = _posterior_caption(data)
@@ -100,6 +101,7 @@ function _render_diagnostics(data; title, ylabel = "Value", size = nothing)
             end
         end
         xlims!(trace, 0.5, data.per_chain + 0.5)
+        data.scale === :model && row.block === :latent_correlation && ylims!(trace, -1, 1)
         if row.ranks === nothing
             hidedecorations!(rank); hidespines!(rank)
             text!(rank, 0.5, 0.5; text = replace(row.rank_note, ": " => ":\n"), space = :relative,

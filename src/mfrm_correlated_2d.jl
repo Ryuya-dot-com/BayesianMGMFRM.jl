@@ -178,3 +178,109 @@ end
 
 _load_mfrm_correlated_2d_samples(path::AbstractString; expected_identity::AbstractString) =
     _restore_mfrm_correlated_2d_samples(open(deserialize, path); expected_identity)
+
+# Private saved-result adapter. The independent FacetSpec is never a correlated fit.
+struct _CorrelatedMFRMFit
+    record::NamedTuple
+
+    function _CorrelatedMFRMFit(record::NamedTuple; expected_identity::AbstractString)
+        snapshot = deepcopy(record)
+        _restore_mfrm_correlated_2d_samples(snapshot; expected_identity)
+        return new(snapshot)
+    end
+end
+
+_mfrm_correlated_2d_fit(result::NamedTuple) = _CorrelatedMFRMFit(result.record;
+    expected_identity = result.record.target_identity)
+_mfrm_correlated_2d_samples(fit::_CorrelatedMFRMFit) =
+    _restore_mfrm_correlated_2d_samples(fit.record; expected_identity = fit.record.target_identity)
+_save_mfrm_correlated_2d_samples(path::AbstractString, fit::_CorrelatedMFRMFit; kwargs...) =
+    _save_mfrm_correlated_2d_samples(path, (; fit.record); kwargs...)
+
+function _mfrm_correlated_2d_metadata(checked)
+    spec, run = checked.record.base_spec, checked.record.run
+    return merge(_mfrm_fixed_q_metadata(checked), (;
+        family = :mfrm, estimation_status = :private_reference, public_fit = false,
+        dimensions = 2, dimension_labels = copy(spec.dimension_labels), thresholds = spec.thresholds,
+        q_matrix = _q_matrix_manifest(spec.q_matrix), item_structure = :between_item,
+        parameter_space = :unit_logit_and_fisher_z, location = :prior_anchored,
+        latent_correlation = :free_2d, loading_policy = :fixed_q_coefficients,
+        rater_consistency = :fixed_one,
+        correlation = deepcopy(checked.record.prior.correlation),
+        n_parameters = length(checked.parameter_names), n_model_parameters = length(checked.model_coordinates),
+        parameter_names = copy(checked.parameter_names), n_draws = size(run.draws, 1),
+        n_chains = run.controls.chains, draws_per_chain = run.controls.ndraws))
+end
+
+function fit_metadata(fit::_CorrelatedMFRMFit; view::Symbol = :full)
+    view === :full || throw(ArgumentError("private correlated result metadata supports view = :full only"))
+    return _mfrm_correlated_2d_metadata(_mfrm_correlated_2d_samples(fit))
+end
+
+function Base.show(io::IO, fit::_CorrelatedMFRMFit)
+    metadata = fit_metadata(fit)
+    print(io, metadata.model_label, " (", metadata.n_draws, " retained draws, ",
+        metadata.backend_label, "; unit-logit locations; estimated rho; private result)")
+end
+
+function posterior_summary(fit::_CorrelatedMFRMFit;
+        lower::Real = 0.025, upper::Real = 0.975, intervals = (0.66, 0.9, 0.95),
+        reference::Real = 0.0, rope = nothing, rope_probability_threshold::Real = 0.95)
+    checked = _mfrm_correlated_2d_samples(fit)
+    rows = _posterior_summary_rows(checked.record.run.draws, checked.parameter_names;
+        lower, upper, intervals, reference, rope, rope_probability_threshold)
+    return [merge(row, (; parameter_space = space)) for (row, space) in zip(rows, checked.parameter_spaces)]
+end
+
+function direct_posterior_summary(fit::_CorrelatedMFRMFit;
+        lower::Real = 0.025, upper::Real = 0.975, intervals = (0.66, 0.9, 0.95),
+        reference::Real = 0.0, rope = nothing, rope_probability_threshold::Real = 0.95)
+    checked = _mfrm_correlated_2d_samples(fit)
+    coordinates = checked.model_coordinates
+    rows = _posterior_summary_rows(hcat([row.values for row in coordinates]...),
+        getproperty.(coordinates, :parameter); lower, upper, intervals, reference, rope, rope_probability_threshold)
+    labels = checked.record.base_spec.dimension_labels
+    return [merge(row, (; coordinate.block, coordinate.dimension, coordinate.fixed,
+        coordinate.derived, coordinate.parameter_space,
+        dimension_label = coordinate.dimension === nothing ? missing : labels[coordinate.dimension]))
+        for (row, coordinate) in zip(rows, coordinates)]
+end
+
+function diagnostics(fit::_CorrelatedMFRMFit; view::Symbol = :full,
+        split_chains::Bool = fit.record.run.split_chains_requested,
+        rhat_threshold::Real = fit.record.run.checked.rhat_threshold,
+        ess_threshold::Real = fit.record.run.checked.ess_threshold)
+    view === :full || throw(ArgumentError("private correlated result diagnostics supports view = :full only"))
+    checked = _mfrm_correlated_2d_samples(fit)
+    run = checked.record.run
+    thresholds = _check_diagnostic_thresholds(rhat_threshold, ess_threshold)
+    split_chains == run.split_chains_requested && thresholds == run.checked ||
+        throw(ArgumentError("diagnostics must use the stored split_chains, rhat_threshold and ess_threshold settings"))
+    return deepcopy(merge(checked.diagnostics, (; checked.model, backend = run.backend,
+        diagnostic_settings = (; run.checked..., split_chains = run.split_chains_requested),
+        warmup_rows = checked.warmup_diagnostics)))
+end
+
+plot_posterior(fit::_CorrelatedMFRMFit; kwargs...) =
+    _plot_mfrm_fixed_q(_mfrm_correlated_2d_samples(fit); kwargs...)
+plot_diagnostics(fit::_CorrelatedMFRMFit; kwargs...) =
+    _plot_mfrm_fixed_q_diagnostics(_mfrm_correlated_2d_samples(fit); kwargs...)
+plot_predictive(fit::_CorrelatedMFRMFit; kwargs...) =
+    _plot_mfrm_fixed_q_predictive(_mfrm_correlated_2d_samples(fit); kwargs...)
+fit_report(fit::_CorrelatedMFRMFit; kwargs...) =
+    _mfrm_fixed_q_report(_mfrm_correlated_2d_samples(fit); kwargs...)
+save_fit_report_bundle(directory::AbstractString, fit::_CorrelatedMFRMFit;
+        figures = nothing, title::AbstractString = "Correlated multidimensional MFRM fit report", kwargs...) =
+    _save_mfrm_fixed_q_report_bundle(directory, _mfrm_correlated_2d_samples(fit); figures, title, kwargs...)
+
+function _mfrm_correlated_prior_rows(rows, eta)
+    person = merge(first(rows), (; prior_family = :multivariate_normal,
+        independent_by_parameter = false,
+        note = "Direct ability pairs have covariance person_sd^2 * [1 rho; rho 1]; pairs are independent conditional on rho."))
+    correlation = merge(first(rows), (; block = :latent_correlation, parameter_space = :correlation,
+        prior_family = :lkj_2d, location = missing, scale_parameter = :not_applicable,
+        scale = missing, shape_parameter = :eta, shape = Float64(eta),
+        jacobian_policy = :log_one_minus_rho_squared,
+        note = "LKJ(eta) on rho in (-1, 1); eta is a fixed shape, not a standard deviation. The Fisher-z density includes log(1-rho^2) exactly once."))
+    return [person; rows[2:end]; correlation]
+end

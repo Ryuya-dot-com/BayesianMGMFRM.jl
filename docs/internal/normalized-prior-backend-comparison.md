@@ -2838,15 +2838,74 @@ artifacts belong to the
 Numerical/backend consistency and intact replay do not establish that these
 short chains estimate correlation adequately.
 
+## Private correlated results and figures (2026-09-17)
+
+The verified correlated sample record now has a private `_CorrelatedMFRMFit`
+adapter. Existing summary, diagnostic, report and CairoMakie rendering primitives
+supply named ability dimensions, draw-transformed population rho, fixed
+coefficients and reconstructed rater/step coordinates. The adapter owns a
+detached record and revalidates its identity, content and retained densities
+before deriving a result. It does not reinterpret an independent `FacetSpec`
+or become a public fit cache.
+
+Location/step summaries use unit logits, coefficient summaries are dimensionless,
+and rho has its own correlation scale and bounded plot axis. Dedicated rho
+summary/diagnostic tables remain visible in the default truncated Markdown
+previews. Raw z and transformed rho retain separate diagnostics. Reports distinguish the joint normal ability
+prior from independent normal priors on other free coordinates and the induced
+priors on sum-constrained coordinates. LKJ eta appears as a fixed **shape**, not
+as a standard deviation. The rho-to-z density correction is stated exactly once;
+the ability covariance determinant is a normal-density term, not another
+transformation Jacobian. The existing conditional rating-prediction path uses
+the retained abilities and preserves ordered/repeated draw selections; it does
+not predict new persons, items or raters.
+
+Numerical report bundles need no plotting dependency. Optional posterior,
+trace/rank and predictive figures reuse the staged PDF/SVG/JSON writer and its
+source/report hashes. The model/prior identity and whole-fit diagnostic warnings
+remain in saved reports and figures. A complete report means no captured section
+errors, not successful convergence or statistical acceptance; unsupported
+analyses remain explicitly marked.
+
+The final synthetic result checks pass 356 assertions on each of Julia 1.10.8
+and 1.12.5. Saved-input replay passes 178 assertions for the two Julia 1.10
+cases and 356 for the four Julia 1.12 cases, including CmdStan inputs. The two
+four-category figure bundles pass 232 assertions, covering numerical payloads,
+PDF/SVG/JSON hashes, repeated draw selections, failed-overwrite preservation
+and tamper rejection. Fresh processes pass 28/71 result/cache assertions;
+the experimental namespace and public-language policy pass 165/178 assertions.
+The existing independent synthetic result/cache/report matrix passes 2,608
+assertions, five historical caches reopen, and 354 historical input/artifact
+hashes are unchanged. These are focused local checks, not a full-suite or CI pass.
+
+Implementer inspection of selected PDF and SVG figures caught a clipped
+posterior title; the shared renderer now wraps the title. A saved independent
+fit also renders correctly with that change. SVG review uses an HTML wrapper
+because Quick Look's standalone SVG thumbnail clips the viewport; the source
+SVG and PDF bounds are intact. The receipt retains the initial failures:
+missing no-figure routing (corrected in code), a stale-process replay after
+tests changed, and test-driver mistakes in missing-value equality, JSON-reader
+arguments, exported diagnostic fields and an extra namespace lookup. Final
+checks use the corrected drivers; no numerical criterion was relaxed.
+
+Verification commands, outputs and visual-review images are recorded in the
+[local receipt](../../results/workflows/20260917-correlated-fixed-q-results-01/receipt.json).
+This slice runs no new MCMC and adds no statistical evaluation replications.
+The saved short-run inputs still carry their original sampler warnings.
+Public correlated fitting, a public saved-fit contract, recovery/coverage,
+posterior equivalence and an unfamiliar-reader review remain open.
+
 ## Next bounded work
 
-Connect the verified correlated sample record to a dedicated result object and
-its report/figure path. Reuse the existing summary, diagnostic and rendering
-primitives while retaining the separate model identity and actual correlation
-prior. Check rho intervals/diagnostics, named ability dimensions, fixed/derived
-coordinates and save/reload without manual draw reshaping. Keep public fitting
-guarded until its model specification and result path unambiguously describe
-free correlation; do not relabel an independent `FacetSpec` or fit-cache schema.
+Specify the explicit correlated model and experimental fitting/saved-fit contract.
+Users must request free 2D population correlation unambiguously; the ordinary
+independent `FacetSpec` keeps its meaning. Map that specification to the existing
+private target, both sampler runners and the now-connected result/report/figure
+path. Keep the current pure-Q/two-dimensional boundary and reject unsupported
+combinations before sampling. Define cache identity and prior/coordinate metadata
+before exposing a saved-fit entry; historical independent artifacts must still
+rebuild exactly. Once verified, provide one generic named-dimension/rho example
+for either backend. No paper-specific container or second sampler engine is needed.
 Statistical validation follows its own reviewed protocol. Automatic request
 caching, hard anchors and application predictors are not prerequisites.
 
