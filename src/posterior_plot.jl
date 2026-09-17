@@ -404,10 +404,11 @@ function _prior_predictive_plot_data(check::NamedTuple; interval::Real = 0.9)
         throw(ArgumentError("prior prediction requires nonempty matching parameter and score draws"))
     rows = predictive_check_plot_data(filter(row -> row.statistic === :category_proportion,
         predictive_check_summary(check; interval)))
-    return (; rows, interval = Float64(interval), n_replicates = size(scores, 1),
+    data = (; rows, interval = Float64(interval), n_replicates = size(scores, 1),
         n_observations = size(scores, 2), kind = :prior_predictive,
         stability = get(check, :stability, :stable),
         implication_flag = check.implication_diagnostics.flag)
+    return hasproperty(check, :prior_label) ? merge(data, (; check.prior_label)) : data
 end
 
 """
@@ -430,7 +431,8 @@ function plot_predictive(check::NamedTuple; interval::Real = 0.9, size = nothing
 end
 
 function _prior_predictive_caption(data)
-    caption = "$(data.n_replicates) prior-predictive datasets of $(data.n_observations) ratings each.\n" *
+    caption = (hasproperty(data, :prior_label) ? data.prior_label * "\n" : "") *
+        "$(data.n_replicates) prior-predictive datasets of $(data.n_observations) ratings each.\n" *
         "Same rating rows, persons, items and raters; all generated replications.\n" *
         "Bars: pointwise central predictive intervals for category proportions.\n" *
         "Prior-implication status: $(replace(String(data.implication_flag), '_' => ' ')).\n" *

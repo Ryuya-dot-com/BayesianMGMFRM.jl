@@ -55,6 +55,17 @@ function _fixed_q_prior_predictive_check(spec; prior::MFRMPrior = MFRMPrior(),
     _check_prior_implication_controls(; min_category_probability,
         prior_warning_probability, wide_facet_range_fraction)
     bundle = _fixed_q_prior_bundle(spec; prior, ndraws, rng)
+    return _fixed_q_prior_check_from_bundle(bundle; rng, min_category_probability,
+        prior_warning_probability, wide_facet_range_fraction)
+end
+
+# Shared reconstruction/response summaries; an alternative prior must supply
+# its own record, while bundle.target supplies the unchanged coordinate map.
+function _fixed_q_prior_check_from_bundle(bundle; rng::AbstractRNG, prior_record = nothing,
+        min_category_probability::Real = 0.01, prior_warning_probability::Real = 0.95,
+        wide_facet_range_fraction::Real = 0.8)
+    _check_prior_implication_controls(; min_category_probability,
+        prior_warning_probability, wide_facet_range_fraction)
     target, base, draws = bundle.target, bundle.base, bundle.draws
     correlated = target isa _MFRMFixedQCorrelated2DLogDensity
     data = base.design.spec.data
@@ -65,10 +76,12 @@ function _fixed_q_prior_predictive_check(spec; prior::MFRMPrior = MFRMPrior(),
         min_category_probability, prior_warning_probability, wide_facet_range_fraction)
     coordinates = _mfrm_fixed_q_model_coordinates(target, draws)
     parameter_summary = _fixed_q_prior_parameter_rows(coordinates, base.design.spec.dimension_labels)
-    prior_record = correlated ? (;
-        base = _mfrm_fixed_q_prior_record(base),
-        correlation = Base.structdiff(_mfrm_correlated_2d_contract(target),
-            (; fitting_available = nothing, cache_available = nothing))) : _mfrm_fixed_q_prior_record(base)
+    if prior_record === nothing
+        prior_record = correlated ? (;
+            base = _mfrm_fixed_q_prior_record(base),
+            correlation = Base.structdiff(_mfrm_correlated_2d_contract(target),
+                (; fitting_available = nothing, cache_available = nothing))) : _mfrm_fixed_q_prior_record(base)
+    end
     return (;
         schema = "bayesianmgmfrm.fixed_q_prior_predictive_check.v1",
         model = correlated ? :mfrm_fixed_q_correlated_2d : :mfrm_fixed_q,
@@ -102,8 +115,9 @@ function _fixed_q_prior_plot_data(check; interval::Real = 0.95, kwargs...)
     get(check, :schema, nothing) == "bayesianmgmfrm.fixed_q_prior_predictive_check.v1" ||
         throw(ArgumentError("plot_prior requires a fixed-coefficient MFRM prior_predictive_check result"))
     rows = _fixed_q_prior_parameter_rows(check.model_coordinates, check.dimension_labels; interval)
-    return _prior_parameter_plot_data(rows, check.dimension_labels, check.model,
+    data = _prior_parameter_plot_data(rows, check.dimension_labels, check.model,
         size(check.parameter_draws, 1); interval, kwargs...)
+    return hasproperty(check, :prior_label) ? merge(data, (; check.prior_label)) : data
 end
 
 function _prior_parameter_plot_data(rows, labels, model, n_draws; interval, kwargs...)
@@ -141,7 +155,8 @@ function plot_prior(check::NamedTuple; size = nothing, kwargs...)
 end
 
 function _prior_caption(data)
-    return "Medians and $(round(100data.interval; digits=4))% central prior intervals; " *
+    return (hasproperty(data, :prior_label) ? data.prior_label * "\n" : "") *
+        "Medians and $(round(100data.interval; digits=4))% central prior intervals; " *
         "$(length(data.rows)) of $(data.total) coordinates shown.\n" *
         "$(data.n_draws) independent joint prior draws; no posterior fitting.\n" *
         "Diamonds: fixed coefficients or baseline steps. Derived intervals use reconstructed draws.\n" *

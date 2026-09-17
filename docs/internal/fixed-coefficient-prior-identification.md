@@ -232,14 +232,77 @@ acceptance of those combinations. See the
 [implementation record](normalized-prior-backend-comparison.md#fixed-coefficient-exchangeable-rater-reference-2026-09-17)
 for executed checks and remaining limits.
 
-## Next bounded comparison
+## Private prior-predictive comparison
 
-Use existing prior-predictive summaries and figures to compare the current and
-exchangeable-rater references under explicitly stated contrast/marginal scale
-matching. Add a private prior-draw adapter before any fitting selector; verify
-that simulated rater covariance and rating probabilities agree with this
-declared target. Keep all nonrater priors fixed and distinguish R=2 from R>2.
-Record the resulting rating implications without selecting a scientific
-default merely because density tests pass. Ordered-step priors, target-specific
-recovery/coverage protocols and public fitting/cache integration remain separate
-decisions. Preserve historical draws and identities throughout.
+The exchangeable `_fixed_q_prior_draws` method transforms the existing free
+rater normal draws with a Cholesky factor of `I_(R-1)-11'/R`. The kernel SD is
+already present in those draws. This generates the declared free covariance
+`tau^2 (I_(R-1)-11'/R)`; negative-sum reconstruction yields the full covariance
+`tau^2 (I_R-11'/R)`. All nonrater coordinates and random-number consumption are
+unchanged. In particular, correlated abilities are still generated conditionally
+on a draw of rho from the declared LKJ distribution. Density Jacobians are not
+additional simulation weights.
+
+`_mfrm_rater_prior_comparison(spec; prior, matching, seed, ndraws=1000)` compares
+the compatibility prior and exchangeable reference without fitting. Its two
+explicit matching rules serve different questions:
+
+| Rule | Question held fixed | Exchangeable kernel SD |
+| --- | --- | --- |
+| `:mean_contrast_variance` | Does rater symmetry change predictions at the same average pairwise contrast variance? | `tau=sqrt(2) sigma` |
+| `:free_rater_marginal_sd` | What changes if every rater has the old free-rater marginal SD? | `tau=sigma sqrt(R/(R-1))` |
+
+Here sigma is the compatibility model's `rater_sd`. Its covariance has trace
+`2(R-1) sigma^2`. For any zero-sum vector, summing all pairwise contrast
+variances gives `R*trace(Cov)`, so the compatibility mean contrast variance is
+`4 sigma^2`. The exchangeable mean contrast variance is `2 tau^2`. Matching
+these unweighted averages over all unordered pairs/raters also matches the
+average marginal variance, but not every
+individual rater marginal or contrast when R>2. The second rule instead
+reduces average marginal/contrast variation for R>2; it therefore changes both
+symmetry and overall dispersion. At R=2, both rules give `tau=sqrt(2) sigma`
+and reproduce the entire compatibility distribution. There is no free/free
+pair then; comparison records mark its SD as missing.
+
+The comparison records both target identities, actual scales, the matching
+criterion and seeded RNG/coupling policy. Both paths share nonrater draws and
+the uniforms used for rating replication; each path remains an ordinary joint
+prior simulation. Shared randomness makes differences easier to inspect and
+does not remove Monte Carlo error. Observed scores are comparison data only;
+changing them does not change parameter or replicated-rating draws.
+
+The new private prior check reuses the existing response kernel, coordinate
+summaries, grouped predictive summaries and `plot_prior`/`plot_predictive`.
+The alternative prior's full record replaces the compatibility description;
+figure captions identify the rater prior, its scale and matching rule. Existing
+checks without a comparison label retain their previous fields and captions.
+No new public prior selector or fitted-result/cache format is introduced.
+
+Reproducible internal use (with an existing fixed-coefficient `spec`):
+
+```julia
+comparison = BayesianMGMFRM._mfrm_rater_prior_comparison(spec;
+    prior=MFRMPrior(person_sd=0.7, rater_sd=0.4, item_sd=0.6, step_sd=0.5),
+    matching=:mean_contrast_variance, seed=20260917, ndraws=2000)
+using CairoMakie
+save("exchangeable-raters.svg", BayesianMGMFRM.plot_prior(comparison.exchangeable; block=:rater))
+save("exchangeable-ratings.svg", BayesianMGMFRM.plot_predictive(comparison.exchangeable))
+predictive_check_summary(comparison.exchangeable; include_grouped=true)
+```
+
+The same call accepts `Experimental.correlated(spec; lkj_eta=3)`. Executed
+checks, numerical examples and saved figures are in the
+[implementation record](normalized-prior-backend-comparison.md#fixed-coefficient-rater-prior-prediction-2026-09-17).
+These synthetic comparisons inspect prior implications, not model fit,
+posterior performance or a scientifically preferred default.
+
+## Next bounded implementation
+
+Connect the distinct exchangeable target to the existing Julia/CmdStan sampling
+and result machinery privately. Preserve its prior record and identity through
+draw reconstruction, diagnostics and save/reload, rejecting mismatched priors
+before reuse. Retain the current compatibility model and defaults. Establish
+this result contract before exposing a public fitting selector; public API
+design, ordered-step prior choice and target-specific recovery/coverage remain
+separate decisions. Do not reinterpret historical draws or treat these
+prior-predictive examples as evidence for statistical acceptance.

@@ -3175,18 +3175,87 @@ are unchanged. The local receipt records compatibility checks, input hashes,
 commands and raw CmdStan density outputs:
 [verification receipt](../../results/workflows/20260917-exchangeable-raters-01/receipt.json).
 
+## Fixed-coefficient rater-prior prediction (2026-09-17)
+
+The private exchangeable reference now generates joint prior draws with the
+declared rater covariance, reusing the existing ability/item/step generation.
+The common prior-check builder retains the existing response kernel, numerical
+summaries and grouped predictions. `_mfrm_rater_prior_comparison` records two
+distinct targets and explicitly matches either mean pairwise contrast variance
+or the compatibility free-rater marginal SD. It shares nonrater draws and
+predictive uniforms across targets. At R=2 both matching rules reproduce the
+compatibility distribution; at R>2 their different dispersion implications are
+explicit. The [derivation and usage](fixed-coefficient-prior-identification.md#private-prior-predictive-comparison)
+state the exact matching quantities and their limits.
+
+Existing `plot_prior`/`plot_predictive` render the checks without reshaping
+draws. Optional comparison captions identify the rater prior, numeric scale
+and matching rule. Checks without those labels retain their fields/captions.
+The new target identity and prior record accompany the private checks; no public
+fitting selector, fit-cache format, default migration or new posterior fit is
+part of this handoff.
+
+New tests passed 1,492 assertions on each Julia 1.10.8 and 1.12.5, including
+30,000 joint draws per ability-model/rater-count combination (2/3/5 raters),
+covariance, normalized density, unchanged nonrater draws/RNG consumption,
+explicit matching, the R=2 equality case, independent PCM response calculations,
+observed-score independence and caption/summary behavior. These prior-draw
+checks are numerical implementation verification, not recovery replications.
+The previous reference-density tests passed 482, correlated-density tests 275
+and existing prior-predictive tests 880 assertions on each Julia version.
+Fresh CmdStan 2.39.0 builds passed 78 density/gradient assertions at 36 generated
+prior points across both ability models, 2/3/5 raters and both automatic
+Jacobian settings. No MCMC or statistical evaluation study was run.
+
+The reproducible synthetic illustration uses three persons, four between-item
+items, five raters, four categories, and 2,000 prior draws per target; correlated
+cases use LKJ eta=3. With compatibility `rater_sd=0.4`, the first four marginal
+SDs are 0.4 and the reconstructed rater's SD is 0.8. Mean-contrast matching gives
+every rater SD about 0.506, preserving mean contrast variance 0.64. Matching the
+old free-rater marginal instead gives every rater SD 0.4 and mean contrast
+variance 0.40. These are different scientific comparisons.
+
+For the independent illustration, predicted category-0 proportions average
+0.30938 under the compatibility prior, 0.30968 under mean-contrast matching and
+0.30596 under free-marginal matching. These are finite Monte Carlo summaries
+of this synthetic design, not estimated population differences or evidence for
+a preferred prior. Aggregate category plots can look similar despite different
+rater marginals; the rater-interval plots and grouped predictive rows retain
+that distinction. The exported comparisons cover both ability models and both
+matching rules, with prior intervals and category-proportion figures in
+PNG/PDF/SVG plus machine-readable summaries and trusted local comparison records.
+Rendering/save-reload checks passed 76 assertions. Visual inspection found that
+separate automatic severity axes hindered comparison, so a further 24 export
+checks produced paired rater plots with common limits from the stored summaries,
+without regenerating any draws. Implementer inspection confirmed readable
+intervals, units, matching labels and predictive captions. This is not an
+independent reader walkthrough.
+
+Historical fit verification passed 10 assertions on Julia 1.10 and 15 on 1.12;
+the five files retain their bytes, target identities and draw records, and all
+208 preceding handoff artifacts retain their hashes. Public
+language policy tests passed 181 assertions and the source gate passed for 20
+files. An initial rendering driver lacked direct access to the test fixture's
+ForwardDiff dependency; adding the existing workspace to its load path resolved
+it without installing packages or changing product code. A trailing language
+gate call used an unsupported argument after cache/policy tests had passed;
+the standalone CLI rerun passed. Both original logs are retained.
+
+The full suite, CI, fresh rendered manual and independent reader/scientific
+review were not run. Actual commands, figure checks, retained input hashes and
+raw CmdStan outputs are in the
+[local receipt](../../results/workflows/20260917-rater-prior-predictive-01/receipt.json).
+
 ## Next bounded work
 
-Add a private prior-draw adapter for the exchangeable-rater reference and reuse
-existing prior-predictive summaries/figures to compare rating implications.
-State contrast/common-marginal scale matching, distinguish the R=2 case, and
-hold ability, item and ordered-step priors fixed. Check the generated covariance
-against the declared target. Mathematical correctness alone does not choose
-the scientific default; public fitting/cache integration, ordered-step priors
-and target-specific recovery protocols remain separate decisions. Preserve
-the present prior and historical artifacts. Higher-dimensional covariance,
-within-item validation, automatic request caching, hard anchors and application
-predictors remain separate.
+Connect the distinct exchangeable target privately to existing Julia/CmdStan
+sampling and result machinery. Carry its prior record and identity through
+coordinate reconstruction, diagnostics and save/reload; reject incompatible
+records before reuse. Establish this result contract before exposing a public
+fitting selector, retaining compatibility defaults and old artifacts. Scientific
+default selection, ordered-step priors and target-specific recovery protocols
+remain separate decisions. Higher-dimensional covariance, within-item validation,
+automatic request caching, hard anchors and application predictors remain separate.
 
 Separately, record an unfamiliar reader finding the supported model/backend, loading a fit,
 choosing a named dimension, interpreting diagnostic/interval labels and saving/

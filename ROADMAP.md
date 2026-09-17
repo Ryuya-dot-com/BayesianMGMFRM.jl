@@ -1,9 +1,9 @@
 # BayesianMGMFRM.jl — Internal Roadmap
 
-Updated 2026-09-17 with a private, distinctly identified exchangeable-rater
-fixed-coefficient reference, normalized Julia/CmdStan checks and preservation
-of the current model. The next slice is an explicitly scale-matched
-prior-predictive comparison, before selecting any public fitting/default policy.
+Updated 2026-09-17 with explicit rater-prior scale matching, joint prior draws
+and reusable prior-predictive summaries/figures for the compatibility and
+exchangeable references. The next slice connects the distinct exchangeable
+target privately to existing sampling/results and save/reload semantics.
 The final API migration away from
 development-status names remains a model-specific release requirement. The
 independent model retains its meaning and saved artifacts. Julia remains primary, CmdStan remains its maintained counterpart,
@@ -75,8 +75,9 @@ now connects to optional saved-fit reports and figures. The
 [prior/identification review](docs/internal/fixed-coefficient-prior-identification.md)
 characterizes the current model's rater-label dependence. A distinct private
 exchangeable-rater reference now passes normalized density, derivative,
-relabelling and Julia/CmdStan checks. The next bounded work compares its
-prior-predictive implications under explicit scale matching.
+relabelling and Julia/CmdStan checks. A private prior-predictive comparison
+records explicit scale matching and reuses existing figures; the next bounded
+work preserves this prior's identity through sampling/results and save/reload.
 Recovery, coverage, prior sensitivity and diagnostic-qualified backend comparison require their
 reviewed protocol; the generalized correlation candidate keeps its own identity.
 LD1b execution, soft/group anchors, and new-facet prediction remain separate
@@ -732,14 +733,20 @@ persistable mathematical target identity are recorded in the
 [implementation evidence](docs/internal/normalized-prior-backend-comparison.md#fixed-coefficient-exchangeable-rater-reference-2026-09-17).
 Existing fitting adapters still choose the compatibility prior; no new public
 fit/cache selector or default migration is implied.
-**Next bounded deliverable:** add a private prior-draw adapter and compare the
-two rater priors using existing prior-predictive summaries/figures. State what
-contrast or marginal scale is matched, including the separate R=2 case, and
-hold other priors fixed. Check simulated covariance and rating implications
-against the declared target before exposing a fitting option. Ordered-step
-symmetry and scientific default selection remain separate decisions. Preserve
-historical draws and identities; this is not a generalized source-prior
-selector or authorization for recovery/coverage execution.
+The private prior-draw adapter and comparison now match either mean pairwise
+contrast variance or the compatibility free-rater marginal SD. They retain
+nonrater draws, share predictive uniforms, handle the R=2 equality case and
+label existing parameter/predictive figures with actual prior/matching meanings.
+The [implementation record](docs/internal/normalized-prior-backend-comparison.md#fixed-coefficient-rater-prior-prediction-2026-09-17)
+separates mathematical/backend checks and synthetic prior implications from
+statistical acceptance.
+**Next bounded deliverable:** connect the distinct target privately to the
+existing Julia/CmdStan samplers and result reconstruction. Carry its prior
+record and identity through diagnostics and save/reload, rejecting wrong-prior
+records before reuse. Reuse existing machinery and establish the result contract
+before a public fitting selector. Retain compatibility defaults; ordered-step
+priors, scientific default selection and recovery/coverage execution remain
+separate decisions.
 Higher-dimensional covariance, within-item validation, automatic request caching
 and hard anchors remain separate.
 The warmup recording slices above are verified. Interruption-time histories
@@ -2581,9 +2588,10 @@ now connect without changing historical independent artifacts. Prior-predictive
 inspection and direct figures are implemented; their optional integration into
 saved-fit reports is implemented. The current prior/identification contract is
 characterized, including its rater-label dependence. A separate exchangeable-rater
-reference now passes mathematical/backend checks; a scale-matched private
-prior-predictive comparison is the next concrete output. Application preparation
-and reader recruitment do not block this core work.
+reference and scale-matched prior-predictive comparison now pass their bounded
+checks. Preserving the new target identity through private sampling/results and
+save/reload is the next concrete output. Application preparation and reader
+recruitment do not block this core work.
 
 The numbered rows are bounded handoffs, not a requirement to finish every
 specification before making a routine correction. Work on an accepted model
@@ -2595,7 +2603,7 @@ priority follows the Julia user workflow, not the readiness of a paper dataset.
 
 | Task / owner role | Next deliverable | Verification and stop condition |
 | --- | --- | --- |
-| 1. Fixed-coefficient rater-prior comparison — analyst/maintainer; private normalized reference and Julia/CmdStan checks complete | Add private prior draws for the exchangeable reference and reuse existing prior-predictive summaries/figures. State contrast/common-marginal scale matching, distinguish R=2, and retain ability/item/step priors. Keep the ordered-step decision separate | Exit: simulated rater covariance and rating implications match the declared target; comparison records actual scales and distinct identities. Public fitting/cache selection and scientific default choice remain later decisions. No reinterpretation of old draws, generalized source-reproduction claim or new recovery study |
+| 1. Fixed-coefficient exchangeable-prior result path — analyst/maintainer; private reference and prior-predictive comparison verified | Reuse the Julia/CmdStan samplers, coordinate reconstruction and diagnostics for the distinct target. Preserve actual prior/scale records and identity through private result save/reload; reject incompatible records before reuse | Exit: draws, densities, parameter meanings and saved-result identities agree across the existing routes. Establish the result contract before exposing a public fitting selector. Compatibility defaults, ordered-step prior choice and scientific acceptance remain separate; no reinterpretation of old draws or automatic recovery study |
 | 2. M1 Julia model-to-code contract and estimation path — analyst/maintainer | Resolve the relevant source/exchangeable-prior, identification and validation-scope decisions; correct demonstrated shared-path gaps and retain the [core trace's remaining failure boundaries](#first-julia-core-verification-slice). Prepare the next covariance/within-item slice under the [extension sequence](#long-term-extension-sequence), reusing existing components | Exit: equations, coordinates, scale constants, priors/Jacobians and parameter meanings have code/evidence mappings and explicit unresolved decisions. Check target/gradients, invalid inputs, initialization/sampling failures and result integrity as affected. Record actual runtime/resource limits; model changes have distinct identities. No copied fitting engine or blanket source refactor |
 | 3. CmdStan continuity — analyst/maintainer; accompanies each model slice | Maintain estimation of the same target under the [dual-backend contract](#julia-and-cmdstan-continuity-and-comparison); check common-coordinate densities, gradients and probabilities, then diagnostic-qualified posterior/predictive summaries under the execution budget | Exit: both routes preserve likelihood, priors, constraints, scale and saved-result meaning. Missing parity remains partial support; Julia work can advance incrementally without dropping this requirement. Backend agreement is implementation evidence, not model validity |
 | 4. M2 core statistical validation — analyst; execution not started | Reconcile Stage-A with the accepted package model/claim. Select known-truth conditions for identification, recovery/calibration, sparse coverage, prior sensitivity and numerical failure mechanisms; verify scoring, all-attempt accounting and resource stops before reviewed execution | Exit: target-specific M1 and execution readiness are accepted, the bounded roster is accounted for, and uncertainty/failure rates support a stated domain or an inconclusive result. Representative Julia/CmdStan comparisons accompany it; do not restrict the core domain to the Uchihara design or substitute an empirical fit for recovery evidence |
