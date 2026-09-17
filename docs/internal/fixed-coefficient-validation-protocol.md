@@ -3,9 +3,10 @@
 Draft, 2026-09-17. Owner: analyst/maintainer. Independent M1 review and
 execution acceptance are **open**. Numbers below are concrete review proposals,
 not adopted scientific criteria, package defaults or permission to run a grid.
-Protocol drafting generated no responses. The subsequent Julia preparation
-uses synthetic check data and constructed draws, with no live fits, SBC or
-recovery evaluation replications. The [roadmap](../../ROADMAP.md#research-execution-prerequisites)
+Protocol drafting and sampler-free Julia preparation generated no live fits,
+SBC or recovery evaluation replications. The subsequent
+[one-condition pilot](#one-condition-computation-pilot-2026-09-17) is separate
+from that preparation and from evaluation. The [roadmap](../../ROADMAP.md#research-execution-prerequisites)
 governs execution; this document owns this target's proposed design.
 
 ## Question and scope
@@ -561,15 +562,143 @@ controls and actual calibration evidence. Scientific acceptance remains false.
 Focused checks on Julia 1.10.8 and 1.12.5 pass 322 additional assertions and
 all 1,756 preceding checks, for 2,078 per version. No sampler was executed.
 
+## One-condition computation pilot, 2026-09-17
+
+Following the user's strategic review and instruction to continue, narrow the
+next deliverable to one C2 pilot-only dataset and one primary call per backend.
+The question is whether the existing implementation produces usable diagnostics
+and sufficiently precise backend comparisons at a measured cost. It does not
+estimate repeated-sampling coverage, recovery bias or SBC calibration, and does
+not adopt the eight-call proposal or the full evaluation allocation above.
+
+The [bounded recipe](../../scripts/run_fixed_coefficient_comparison_pilot.jl)
+reuses the generator, canonical fit/cache path, diagnostic qualification,
+statistic-specific MCSE and comparison arithmetic. `prepare` preserves responses
+and truth before fitting; subsequent processes check their hash, source files,
+resolved Project/Manifest, Julia version and target identity. A pre-existing
+primary attempt is never overwritten. No sampler or package default changes.
+
+- C2: 48 persons, eight items, four raters, four categories, 1,536 observations;
+  true population correlation 0.6, fixed between-item Q.
+- Exchangeable rater kernel SD 0.5, person/item SD 1, step SD 0.5; LKJ(2).
+- Four chains; 1,000 warmup and 1,000 retained draws per chain; diagonal metric,
+  target acceptance 0.9, maximum tree depth 10, initial step size 0.03.
+- Zero raw starting vector plus Gaussian jitter SD 0.1; no truth initialization.
+  Separate MersenneTwister roots 2026091801/02 generate persons/responses;
+  2026091803/04 supply Julia/CmdStan host sampling streams. Julia consumes one
+  stream sequentially across chains. CmdStan draws distinct chain seeds before
+  host-side jitter; its sampler uses its own RNG. Actual controls retain those
+  chain seeds. Matching seeds would not mean matching sampler paths.
+- Prespecified diagnostic screen: all nonfixed raw, model and focal quantities
+  have R-hat <1.01 and bulk/tail ESS >=400; no retained divergences/nonfinite
+  densities/tree-depth hits; E-BFMI >=0.3 and complete sampler telemetry.
+- Retain all 30 mean/quantile comparisons and the protocol's proposed
+  MCSE-adjusted margins, including inconclusive results. Passing this pilot's
+  computational screen is not independent adoption of scientific criteria.
+- At most two primary calls, each under a 1,800-second external process deadline.
+  Observe process-tree RSS and output at intervals of at most 60 seconds;
+  interrupt at 8 GiB RSS or 5 GiB output. These are operator-observed stops,
+  not hard memory/storage containment. Native process peak RSS and sampled
+  tree RSS are different measurements. Compilation is included; timings are
+  descriptive, not controlled backend benchmarks.
+
+Local inputs, declaration, logs and saved fits are retained under
+`results/workflows/20260917-fixed-coefficient-paired-pilot-01/`.
+The existing POSIX deadline helper is self-tested in the execution context;
+CmdStan also owns separate process groups, which need its interrupt/cleanup
+path if a stop occurs. No new general execution controller is introduced.
+
+Observed execution differs from an entirely successful two-call plan:
+
+- The first CmdStan call failed before MCMC because the sandbox could not write
+  the installation's precompiled C++ header. Its failure is retained. A separately
+  declared, permission-enabled recovery used the identical data, prior, controls
+  and seed. It is an additional call, not replacement of the primary failure.
+- The Julia primary process reached the 1,800-second deadline after writing its
+  4,000-draw cache. Later processes validate and analyze those saved draws without
+  resampling. A valid saved fit does not turn the timed-out execution into a pass.
+- CmdStan recovery returned the fit in 112.57 seconds; its full process, including
+  cache save/reload and verification, took 353.74 seconds. Julia did not reach its
+  final timing-record write, so its fit-only time is unavailable. These runs
+  overlapped and include compilation; no backend speed ratio is inferred.
+- Initial RSS observations had one 66.73-second gap, exceeding the proposed
+  60-second interval. A subsequent observer sampled every 10 seconds. No observed
+  sample exceeded the stop criteria; sampled peaks do not prove a hard bound.
+  Output accounting covers the pilot directory, not the external compiler cache.
+- The installed CmdStan 2.39 source declares `boost::random::mixmax`; its actual
+  chain seeds are retained with the fit. The source/header hash is in the local
+  runtime notes. The Julia host/generator algorithm is MersenneTwister.
+
+CmdStan retained no divergences, nonfinite densities or maximum-depth hits, and
+all ten focal quantities passed the declared R-hat/ESS screen. All eight absolute
+item locations nevertheless had R-hat >=1.01 (maximum 1.01895); the minimum bulk
+ESS was 356.02. The whole-fit qualification therefore fails. This contrast is
+consistent with investigating the prior-anchored location directions separately
+from shift-invariant item contrasts; it does not establish a cause or justify
+dropping those diagnostics after observing the result.
+
+Separate-process restoration verified all 4,000 saved Julia draws. Its sampler
+also retained no divergences, nonfinite densities or maximum-depth hits. The
+primary process timeout remains in the execution accounting. The saved-result
+comparison uses that Julia primary cache and the explicitly separate CmdStan
+environment-recovery cache:
+
+| Diagnostic / descriptive estimate | Julia AdvancedHMC | CmdStan |
+| --- | --- | --- |
+| Maximum raw/model rank-normalized R-hat | 1.01474 | 1.01895 |
+| Minimum raw/model bulk ESS | 457.17 | 356.02 |
+| Maximum focal R-hat | 1.00207 | 1.00193 |
+| Minimum focal bulk ESS | 3,867.43 | 3,654.10 |
+| Item locations failing the R-hat screen | I5--I8 | I1--I8 |
+| Rho mean; 95% central interval | 0.43890; [0.16810, 0.65486] | 0.43157; [0.15422, 0.65079] |
+
+All ten focal quantities pass in each fit, but neither whole fit qualifies.
+The paired comparison therefore retains **30 inconclusive statistics**, with
+zero declared agreements and zero resolved discrepancies. Close point estimates
+do not override the diagnostic gate. The generating rho was 0.6; this one
+dataset cannot establish bias, interval coverage or calibration. Failure of the
+original CmdStan primary call is recorded separately from the saved-result
+comparison, which must not be described as a clean primary pair.
+
+The postprocessing recipe initially omitted the attempt's target identity when
+calling the existing comparison helper; the binding check rejected it. The
+corrected row supplies that identity, without changing fits or criteria. The
+producer recipe is archived verbatim alongside the declaration, so its original
+source hash is preserved after this postprocessing-only correction.
+
+A separate, sampler-free warm-gradient probe at a seeded jittered-zero point
+measured a median 9.33 ms and 14,588,592 allocated bytes per evaluation (20
+evaluations). A short Julia profile repeatedly enters Q/design validation via
+`_mgmfrm_source_constrained_params_from_unconstrained` and the reconstructed
+unconstrained blueprint. This identifies a concrete optimization candidate in
+the shared likelihood path. It is not an optimized benchmark or proof that
+removing a particular check is safe; preserve boundary validation and the same
+density/gradient before accepting a change.
+
+Both saved fits also completed the public save/reload-to-report workflow in
+separate Julia 1.12.5 processes using the existing CairoMakie 0.15.13 environment.
+Each produced five PDF/SVG figure pairs plus correlation, chain-diagnostic and
+rater PNGs; bundle hashes and cache bytes were checked. The selected correlation
+plots keep the whole-fit MCMC warning even though that coordinate passes.
+The Julia and CmdStan rendering processes took 404.13 and 399.89 seconds,
+respectively, including compilation and postprocessing; cold versus warm costs
+need separation before drawing a performance conclusion. No analyst reshaped
+draws for those figures. An unfamiliar-reader walkthrough remains open.
+
+Verification includes ten input/attempt-guard assertions, six assertions for the
+corrected comparison command on exact copied saved fits (no new fit), and the
+existing deadline helper's 21-case self-test. Model, Stan and preparation-module
+source hashes remained unchanged. No full test-suite or CI run, default-prior
+migration, public API promotion, recovery study or SBC study is claimed. The local
+`receipt.json` owns the complete attempt/status and artifact-hash inventory;
+the initial compiler, renderer-environment and postprocessing errors are retained.
+
 ## Next implementation and review handoff
 
-Next, prepare the bounded pilot's execution-readiness declaration: map the
-supplied Julia/CmdStan sampler and initializer settings, record explicit RNG
-algorithms/stream keys, source/environment identities and resource/stop limits,
-and check those bindings without launching fits. Reuse existing execution and
-provenance helpers where applicable; do not build another controller or silently
-accept the proposed eight-call pilot or full evaluation allocation. Preserve
-the distinction between declared resource caps and measured/enforced limits.
+Use measured pilot diagnostics and MCSE to choose a specific computational
+correction or a bounded precision follow-up. Do not grow preparation machinery
+as a substitute for this evidence, automatically retry a primary call, or
+condition full evaluation on completing every MFRM cell before MGMFRM work.
 
 Independent review must resolve target/identification interpretation, scientific
 margins or descriptive-only claims, allocation precision, SBC dependence policy,
