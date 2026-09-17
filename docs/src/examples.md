@@ -103,7 +103,8 @@ figures, plus a correlation-prior figure when `--correlated` is selected.
 
 Each fitting run prints a new directory under `results/multidimensional_mfrm/` containing
 `fit.jls` and `report/`. The script reloads the fit, checks its metadata and
-summaries, and reopens the report bundle. `--plots` adds reasoning posterior
+summaries, and reopens the report bundle, including prior parameter and rating
+summaries regenerated from the saved model. `--plots` adds prior figures and reasoning posterior
 and chain figures plus category predictive figures in PDF/SVG and their JSON
 inputs. Posterior figures use the reloaded fit; users need not reshape MCMC draws.
 The posterior intervals are central 90% intervals in unit logits. Fixed

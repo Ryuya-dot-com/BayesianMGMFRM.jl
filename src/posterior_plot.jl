@@ -132,13 +132,18 @@ function _posterior_plot_selection(fit::_ModelComparisonFit;
 end
 
 function _select_posterior_coordinates(rows::AbstractVector, dimension_labels;
+        kwargs...)
+    all(row -> !row.fixed || all(==(first(row.values)), row.values), rows) ||
+        throw(ArgumentError("a structurally fixed parameter varies in the stored draws"))
+    return _select_parameter_rows(rows, dimension_labels; kwargs...)
+end
+
+function _select_parameter_rows(rows::AbstractVector, dimension_labels;
         scale::Symbol = :model,
         block::Union{Nothing,Symbol} = nothing, dimension = nothing,
         parameters = nothing, max_parameters::Int = 60)
     scale in (:model, :raw) || throw(ArgumentError("scale must be :model or :raw"))
     max_parameters > 0 || throw(ArgumentError("max_parameters must be positive"))
-    all(row -> !row.fixed || all(==(first(row.values)), row.values), rows) ||
-        throw(ArgumentError("a structurally fixed parameter varies in the stored draws"))
     total = length(rows)
     if block !== nothing
         any(row -> row.block === block, rows) || throw(ArgumentError("unknown or empty parameter block: $block"))
@@ -401,6 +406,7 @@ function _prior_predictive_plot_data(check::NamedTuple; interval::Real = 0.9)
         predictive_check_summary(check; interval)))
     return (; rows, interval = Float64(interval), n_replicates = size(scores, 1),
         n_observations = size(scores, 2), kind = :prior_predictive,
+        stability = get(check, :stability, :stable),
         implication_flag = check.implication_diagnostics.flag)
 end
 
@@ -420,13 +426,22 @@ function plot_predictive(check::NamedTuple; interval::Real = 0.9, size = nothing
     data = _prior_predictive_plot_data(check; interval)
     extension = Base.get_extension(@__MODULE__, :BayesianMGMFRMCairoMakieExt)
     extension === nothing && throw(ArgumentError("plot_predictive requires `using CairoMakie`"))
+    return _render_prior_predictive(extension, data; size)
+end
+
+function _prior_predictive_caption(data)
     caption = "$(data.n_replicates) prior-predictive datasets of $(data.n_observations) ratings each.\n" *
         "Same rating rows, persons, items and raters; all generated replications.\n" *
         "Bars: pointwise central predictive intervals for category proportions.\n" *
         "Prior-implication status: $(replace(String(data.implication_flag), '_' => ' ')).\n" *
         "Observed ratings are a comparison only; no posterior fitting."
-    get(check, :stability, :stable) === :experimental && (caption *= "\nModel support: experimental.")
-    return extension._render_predictive(data; title = "Prior predictive check\nCategory proportions", caption, size)
+    data.stability === :experimental && (caption *= "\nModel support: experimental.")
+    return caption
+end
+
+function _render_prior_predictive(extension, data; size = nothing)
+    return extension._render_predictive(data; title = "Prior predictive check\nCategory proportions",
+        caption = _prior_predictive_caption(data), size)
 end
 
 """
@@ -481,7 +496,7 @@ function _wright_plot_data(fit::MFRMFit; facets = :all, include_thresholds::Bool
         n_draws = size(fit.draws, 1), diagnostic = _plot_diagnostic_note(diagnostics(fit).summary))
 end
 
-const _FIT_REPORT_FIGURE_KINDS = (:posterior, :diagnostics, :predictive, :wright)
+const _FIT_REPORT_FIGURE_KINDS = (:posterior, :diagnostics, :predictive, :wright, :prior, :prior_predictive)
 
 function _fit_report_figure_file_hash(bytes)
     return (; algorithm = :sha256, value = bytes2hex(sha256(bytes)),
@@ -496,8 +511,8 @@ function _check_fit_report_figure_entries(manifest, directory; verify_hash::Bool
         return nothing
     end
     rows = get(manifest, "figures", nothing)
-    rows isa AbstractVector && 1 <= length(rows) <= 4 ||
-        throw(ArgumentError("figure bundle must contain one to four figure entries"))
+    rows isa AbstractVector && 1 <= length(rows) <= length(_FIT_REPORT_FIGURE_KINDS) ||
+        throw(ArgumentError("figure bundle has an invalid number of figure entries"))
     seen = Set{Symbol}()
     for row in rows
         kind = _report_symbol_value(_report_lookup(row, :kind, nothing))
@@ -535,11 +550,13 @@ function _fit_report_figure_options(figures)
         posterior = (:scale, :block, :dimension, :parameters, :max_parameters, :size),
         diagnostics = (:scale, :block, :dimension, :parameters, :max_parameters, :bins, :size),
         predictive = (:size,),
+        prior = (:scale, :block, :dimension, :parameters, :max_parameters, :size),
+        prior_predictive = (:size,),
         wright = (:facets, :include_thresholds, :max_levels, :size))
     for (kind, options) in pairs(figures)
         kind in _FIT_REPORT_FIGURE_KINDS || throw(ArgumentError("unknown figure kind: $kind"))
         options isa NamedTuple && all(key -> key in getproperty(allowed, kind), keys(options)) ||
-            throw(ArgumentError("unsupported $kind figure options; set posterior_lower/posterior_upper, predictive_interval, ndraws/draw_indices and seed on save_fit_report_bundle"))
+            throw(ArgumentError("unsupported $kind figure options; set intervals, predictive draw budgets and seed on save_fit_report_bundle"))
     end
     return figures
 end
@@ -561,6 +578,8 @@ end
 function _save_fit_report_figure_bundle(directory, fit, figures;
         seed, report_kwargs, overwrite, label, title, max_rows, include_empty, require_complete)
     _fit_report_figure_options(figures)
+    any(kind -> haskey(figures, kind), (:prior, :prior_predictive)) &&
+        throw(ArgumentError("prior figure bundles currently require a fixed-coefficient multidimensional MFRM fit"))
     seed isa Integer && !(seed isa Bool) || throw(ArgumentError("figure seed must be an integer"))
     any(key -> haskey(report_kwargs, key), (:rng, :prior_predictive_rng)) &&
         throw(ArgumentError("use seed instead of rng/prior_predictive_rng for reproducible figure bundles"))
@@ -630,7 +649,9 @@ function _write_fit_report_figures(prepare, directory, report, figures;
         for (kind, options) in pairs(figures)
             numerical = Base.structdiff(options, (; size = nothing))
             data, figure = prepare(kind, numerical, get(options, :size, nothing))
-            caption = getproperty(extension, Symbol("_", kind, "_caption"))(data)
+            caption = kind === :prior ? _prior_caption(data) :
+                kind === :prior_predictive ? _prior_predictive_caption(data) :
+                getproperty(extension, Symbol("_", kind, "_caption"))(data)
             exported_data = kind === :diagnostics ? Base.structdiff(data, (; summary = nothing)) : data
             payload = (; schema = "bayesianmgmfrm.fit_report_figure_data.v1", kind,
                 identity...,
@@ -644,7 +665,7 @@ function _write_fit_report_figures(prepare, directory, report, figures;
                 content_hash = _fit_report_figure_file_hash(read(joinpath(staging, "figures", "$kind.$ext"))))
                 for ext in ("pdf", "svg", "json")]
             push!(entries, (; kind, caption, files))
-            heading = uppercasefirst(String(kind))
+            heading = kind === :prior ? "Prior parameters" : uppercasefirst(replace(String(kind), '_' => ' '))
             println(markdown, "### $heading\n\n![$heading figure](figures/$kind.svg)\n")
             println(markdown, caption, "\n\n[PDF](figures/$kind.pdf) · [SVG](figures/$kind.svg) · [Numerical inputs](figures/$kind.json)\n")
         end

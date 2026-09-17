@@ -3,6 +3,7 @@ using Test, BayesianMGMFRM, Random, Statistics
 const B = BayesianMGMFRM
 include("fixtures/correlated_fixed_q_result.jl")
 include("fixtures/fixed_q_cache.jl")
+include("fixtures/fixed_q_prior_report.jl")
 include("../scripts/public_language_gate.jl")
 
 @testset "correlated fixed-Q results (synthetic, no sampling)" begin
@@ -62,6 +63,7 @@ include("../scripts/public_language_gate.jl")
         mktempdir(directory -> check_correlated_fixed_q_result(result, directory))
         fit = B._mfrm_correlated_2d_fit(result)
         check_fixed_q_cache(fit)
+        check_fixed_q_prior_report(fit)
         public = fit_report(fit; require_complete = true)
         @test public.schema == "bayesianmgmfrm.fit_report_public.v1"
         @test public.metadata.correlation.latent_correlation === :free_2d

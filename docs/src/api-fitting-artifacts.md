@@ -61,6 +61,12 @@ predictive checks and reproducibility information. Fixed coefficients and
 derived coordinates are labelled separately; unsupported analyses state their
 reasons. Reporting uses the fit's saved diagnostic settings.
 
+Set `include_prior_predictive = true` to add simulation summaries from the
+saved model and priors. Control its draw budget with `prior_predictive_ndraws`,
+its parameter interval with `prior_interval`, and reproducibility with `seed`.
+Figure bundles additionally accept `prior` and `prior_predictive`; their
+PDF/SVG figures and numerical JSON use the same report summaries.
+
 ```julia
 restored = load_fit_cache("multidimensional-fit.jls")
 report = fit_report(restored; posterior_lower = 0.05, posterior_upper = 0.95,

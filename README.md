@@ -59,6 +59,9 @@ Before fitting either model, use `Experimental.prior_predictive_check` with
 `MFRMPrior`, then `BayesianMGMFRM.plot_prior` and `BayesianMGMFRM.plot_predictive`
 to inspect abilities, correlation and rating implications. See the
 [prior inspection example](docs/src/experimental.md#inspect-priors-before-fitting).
+Saved-fit reports can include the same checks with `include_prior_predictive = true`,
+including prior parameter and rating figures; see the
+[report example](docs/src/experimental.md#include-priors-in-a-saved-fit-report).
 
 The experimental GMFRM configuration is one-dimensional and estimates positive
 item/task discrimination multiplied by positive rater consistency. Its

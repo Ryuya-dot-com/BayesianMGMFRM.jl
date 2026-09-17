@@ -64,11 +64,7 @@ function _fixed_q_prior_predictive_check(spec; prior::MFRMPrior = MFRMPrior(),
     implication_diagnostics = _prior_predictive_implication_diagnostics(data, observed, replicated_summary;
         min_category_probability, prior_warning_probability, wide_facet_range_fraction)
     coordinates = _mfrm_fixed_q_model_coordinates(target, draws)
-    parameter_summary = [merge(_finite_draw_summary(row.values, 0.025, 0.975),
-        (; row.parameter, row.block, row.dimension, row.fixed, row.derived,
-            parameter_space = get(row, :parameter_space, row.fixed && row.block in
-                (:item_dimension_discrimination, :rater_consistency) ? :dimensionless : :unit_logit),
-            interval_probability = 0.95)) for row in coordinates]
+    parameter_summary = _fixed_q_prior_parameter_rows(coordinates, base.design.spec.dimension_labels)
     prior_record = correlated ? (;
         base = _mfrm_fixed_q_prior_record(base),
         correlation = Base.structdiff(_mfrm_correlated_2d_contract(target),
@@ -89,15 +85,39 @@ function _fixed_q_prior_predictive_check(spec; prior::MFRMPrior = MFRMPrior(),
     )
 end
 
+function _fixed_q_prior_parameter_rows(coordinates, labels; interval::Real = 0.95)
+    lower, upper = _interval_probabilities(interval)
+    all(row -> !isempty(row.values) && all(isfinite, row.values) &&
+        (!row.fixed || all(==(first(row.values)), row.values)), coordinates) ||
+        throw(ArgumentError("prior coordinates must be finite; fixed coordinates must be constant"))
+    return [merge(_finite_draw_summary(row.values, lower, upper),
+        (; row.parameter, row.block, row.dimension, row.fixed, row.derived,
+            dimension_label = row.dimension === nothing ? missing : labels[row.dimension],
+            parameter_space = get(row, :parameter_space, row.fixed && row.block in
+                (:item_dimension_discrimination, :rater_consistency) ? :dimensionless : :unit_logit),
+            interval_probability = Float64(interval))) for row in coordinates]
+end
+
 function _fixed_q_prior_plot_data(check; interval::Real = 0.95, kwargs...)
     get(check, :schema, nothing) == "bayesianmgmfrm.fixed_q_prior_predictive_check.v1" ||
         throw(ArgumentError("plot_prior requires a fixed-coefficient MFRM prior_predictive_check result"))
-    selected = _select_posterior_coordinates(copy(check.model_coordinates), check.dimension_labels; kwargs...)
+    rows = _fixed_q_prior_parameter_rows(check.model_coordinates, check.dimension_labels; interval)
+    return _prior_parameter_plot_data(rows, check.dimension_labels, check.model,
+        size(check.parameter_draws, 1); interval, kwargs...)
+end
+
+function _prior_parameter_plot_data(rows, labels, model, n_draws; interval, kwargs...)
+    selected = _select_parameter_rows(copy(rows), labels; kwargs...)
     selected.scale === :model || throw(ArgumentError("prior plots use scale = :model"))
+    all(row -> isfinite(row.lower) && isfinite(row.median) && isfinite(row.upper) &&
+        row.lower <= row.median <= row.upper, selected.rows) ||
+        throw(ArgumentError("prior intervals must be finite and ordered"))
     constraints = Dict(:person => "zero-centered prior; fixed marginal scale",
         :item => "zero-centered prior", :rater => "sum to zero",
         :item_steps => "first step zero sum to zero", :latent_correlation => "LKJ prior on population correlation")
-    return _posterior_interval_data(selected; interval, constraints, diagnostic = "Prior simulation")
+    return (; selected.rows, selected.total, selected.scale,
+        groups = unique([(row.block, row.dimension) for row in selected.rows]),
+        interval = Float64(interval), constraints, model, dimension_labels = copy(labels), n_draws)
 end
 
 """
@@ -117,14 +137,54 @@ function plot_prior(check::NamedTuple; size = nothing, kwargs...)
     data = _fixed_q_prior_plot_data(check; kwargs...)
     extension = Base.get_extension(@__MODULE__, :BayesianMGMFRMCairoMakieExt)
     extension === nothing && throw(ArgumentError("plot_prior requires `using CairoMakie`"))
-    model = check.model === :mfrm_fixed_q_correlated_2d ? "Correlated MFRM" : "Multidimensional MFRM"
-    caption = "Medians and $(round(100data.interval; digits=4))% central prior intervals; " *
+    return _render_fixed_q_prior(extension, data; size)
+end
+
+function _prior_caption(data)
+    return "Medians and $(round(100data.interval; digits=4))% central prior intervals; " *
         "$(length(data.rows)) of $(data.total) coordinates shown.\n" *
-        "$(Base.size(check.parameter_draws, 1)) independent joint prior draws; no posterior fitting.\n" *
+        "$(data.n_draws) independent joint prior draws; no posterior fitting.\n" *
         "Diamonds: fixed coefficients or baseline steps. Derived intervals use reconstructed draws.\n" *
         "Model support: experimental. Prior plausibility does not establish identification or recovery."
+end
+
+function _render_fixed_q_prior(extension, data; size = nothing)
+    model = data.model === :mfrm_fixed_q_correlated_2d ? "Correlated MFRM" : "Multidimensional MFRM"
     units = Dict(:item_dimension_discrimination => "Loading (dimensionless)",
         :rater_consistency => "Consistency (dimensionless)", :latent_correlation => "Population correlation (rho)")
     return extension._render_posterior(data; title = "$model prior intervals",
-        dimension_labels = check.dimension_labels, xlabel = units, caption, size)
+        dimension_labels = data.dimension_labels, xlabel = units, caption = _prior_caption(data), size)
+end
+
+function _fixed_q_prior_report(checked; ndraws, seed, interval, predictive_interval,
+        include_prior_predictive, on_section_error)
+    include_prior_predictive || return _fit_report_not_requested()
+    return _fit_report_section(on_section_error) do
+        record = checked.record
+        correlated = checked.model === :mfrm_fixed_q_correlated_2d
+        spec = _fixed_q_result_spec(checked)
+        model = correlated ? CorrelatedMFRMSpec(spec; lkj_eta = record.prior.correlation.lkj_eta) : spec
+        prior = MFRMPrior(; (correlated ? record.prior.base.scales : record.prior.scales)...)
+        rng, rng_control = _fit_rng(Random.default_rng(), seed)
+        check = _fixed_q_prior_predictive_check(model; prior, ndraws, rng)
+        parameter_rows = _fixed_q_prior_parameter_rows(check.model_coordinates, check.dimension_labels; interval)
+        rows = predictive_check_summary(check; interval = predictive_interval, include_grouped = true)
+        (; model = check.model, check.prior, check.stability, check.dimension_labels,
+            ndraws, n_observations = spec.data.n, rng = rng_control,
+            rows, n_rows = length(rows), parameter_rows,
+            correlation_rows = filter(row -> row.block === :latent_correlation, parameter_rows),
+            parameter_interval = Float64(interval), predictive_interval = Float64(predictive_interval),
+            implication_diagnostics = check.implication_diagnostics,
+            interpretation = "Joint prior draws from the saved model and prior; observed scores are a comparison only. Locations and steps use unit logits; rho uses its correlation scale. Central prior intervals describe the prior, not posterior uncertainty. Replications reuse the supplied rating rows and facet levels; plausibility does not establish identification, convergence or recovery.")
+    end
+end
+
+function _report_prior_plot_data(section, kind; kwargs...)
+    section.status === :computed || throw(ArgumentError("prior figures require include_prior_predictive = true and a computed prior_predictive report section"))
+    kind === :prior && return _prior_parameter_plot_data(section.parameter_rows,
+        section.dimension_labels, section.model, section.ndraws; interval = section.parameter_interval, kwargs...)
+    rows = predictive_check_plot_data(filter(row -> row.statistic === :category_proportion, section.rows))
+    return (; rows, interval = section.predictive_interval,
+        n_replicates = section.ndraws, section.n_observations, kind = :prior_predictive,
+        section.stability, implication_flag = section.implication_diagnostics.flag)
 end

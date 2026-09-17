@@ -9212,6 +9212,10 @@ stored generalized settings. Conflicting report diagnostic overrides are rejecte
 
 Saved fixed-coefficient multidimensional MFRM fits support posterior,
 diagnostics and predictive figures with their stored diagnostic settings.
+They additionally accept `prior` and `prior_predictive` figure keys when
+`include_prior_predictive = true`. Set `prior_predictive_ndraws` (default 100)
+and `prior_interval` (default 0.95) on the bundle call. Prior figures use the
+report's exact prior summaries; no second simulation occurs during rendering.
 Their plots use model coordinates in unit logits; `seed` defaults to 1 for
 both figure and report-only bundles. These saved-result outputs remain
 experimental; estimate with `BayesianMGMFRM.Experimental.fit`.

@@ -65,9 +65,11 @@ restored = load_fit_cache(cache_path)
 
 selection = correlated ? (; block = :latent_correlation) : (; block = :person, dimension = "reasoning")
 figures = "--plots" in ARGS ? (
+    prior = selection, prior_predictive = (;),
     posterior = selection, diagnostics = selection, predictive = (;)) : nothing
 report_dir = joinpath(output_dir, "report")
 save_fit_report_bundle(report_dir, restored; view = :public, figures,
+    include_prior_predictive = true, prior_predictive_ndraws = 1000, prior_interval = 0.95,
     posterior_lower = 0.05, posterior_upper = 0.95, ndraws = 100, seed = 42)
 load_fit_report_bundle(report_dir) # Verify exported files without refitting.
 println("Saved and verified fit and report: ", abspath(output_dir))

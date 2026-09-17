@@ -158,8 +158,44 @@ the measurement context before choosing prior scales. The observed scores are
 shown for comparison and do not update the prior. Replications use the supplied
 rating rows and facet levels; they do not predict newly introduced persons,
 items or raters. Plausible prior predictions do not establish identification,
-posterior convergence or parameter recovery. These checks currently run
-separately from saved-fit report bundles.
+posterior convergence or parameter recovery.
+
+### Include priors in a saved-fit report
+
+Reload either fixed-coefficient MFRM fit and request prior summaries explicitly.
+The saved model, prior scales and LKJ shape determine the simulation; no
+posterior fitting occurs and no prior specification needs to be repeated:
+
+```julia
+restored = load_fit_cache("correlated-fit.jls")
+report = fit_report(restored; include_prior_predictive = true,
+    prior_predictive_ndraws = 1000, prior_interval = 0.95,
+    predictive_interval = 0.9, seed = 42)
+report.prior_predictive.parameter_rows
+report.prior_predictive.correlation_rows # empty for independent dimensions
+
+using CairoMakie
+save_fit_report_bundle("report-with-priors", restored;
+    include_prior_predictive = true, prior_predictive_ndraws = 1000,
+    prior_interval = 0.95, predictive_interval = 0.9, seed = 42,
+    figures = (prior = (block = :person, dimension = 2),
+               prior_predictive = (;), posterior = (block = :person, dimension = 2),
+               predictive = (;)))
+load_fit_report_bundle("report-with-priors") # verifies tables, text and figure files
+```
+
+Use `prior = (block = :latent_correlation,)` for the correlated model's rho
+figure. `prior_interval` controls central parameter prior intervals;
+`predictive_interval` controls prior and posterior rating-prediction intervals.
+The default prior draw budget is 100; specify a larger value when needed for
+more precise simulation summaries. Prior and posterior simulation use separate
+local RNGs initialized from `seed`, so changing the prior budget does not change
+posterior prediction or MCMC diagnostics. Figures use the report's exact
+summaries; rendering does not simulate again. The report distinguishes prior
+intervals from posterior credible intervals, and preserves MCMC warnings.
+Set `include_posterior_predictive = false` to omit posterior prediction when
+only the prior check is needed. Without `include_prior_predictive = true`, the
+prior section is not requested and prior figure requests are rejected.
 
 ## Dimension aggregation and item structure
 

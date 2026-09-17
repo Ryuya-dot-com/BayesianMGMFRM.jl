@@ -3021,14 +3021,84 @@ The corrected cache-only driver passed. Commands/drivers, logs, numerical inputs
 figures, preserved-cache hashes and visual-review images are listed in the
 [local receipt](../../results/workflows/20260917-prior-predictive-01/receipt.json).
 
+## Fixed-coefficient prior report integration (2026-09-17)
+
+Saved independent and correlated MFRM fits now accept
+`include_prior_predictive=true` in `fit_report` and `save_fit_report_bundle`.
+The report reconstructs the accepted model and `MFRMPrior` from the checked
+record, including the correlated model's saved LKJ shape. It calls the same
+prior simulator used for pre-fit checks. The section is opt-in and reports
+parameter intervals, named dimensions, fixed/derived roles, rho separately,
+rating summaries, prior-implication diagnostics and the local RNG control.
+`prior_predictive_ndraws=100` and `prior_interval=0.95` are explicit defaults;
+`predictive_interval` controls the rating summaries. No posterior fit is run.
+
+Prior and posterior prediction start separate local RNGs from the report's
+`seed`. Prior draw budgets therefore cannot consume the posterior prediction
+stream or change posterior summaries/diagnostics. Invalid prior simulations
+follow the existing capture/throw/require-complete policies; omitted sections
+are now `not_requested` rather than `unsupported` in canonical fixed-Q fit
+reports. Historical saved reports retain their original meaning and bytes.
+
+Optional `prior` and `prior_predictive` figure keys render the already computed
+parameter and rating rows. Shared parameter selection and caption/rendering
+helpers also serve the standalone plots, avoiding a second simulation or a
+second interpretation of intervals. Five-figure fixed-Q bundles retain the v2
+envelope with an extended checked kind inventory, file-path checks and hashes.
+Old bundles remain readable. Stable/generalized bundles explicitly reject the
+new prior figure keys; their existing standalone prior-predictive plots remain
+available. No broader figure scope is implied.
+
+The same staged export path protects an existing report and unrelated files
+when a later figure selection fails. Current experimental support stays visible;
+the final API/status migration remains the roadmap's model-specific release
+condition. No default prior, density, sample/cache schema or target identity
+has changed.
+
+Historical-cache checks passed 325 assertions on Julia 1.10.8, alongside
+1,075 existing posterior/diagnostic/predictive/Wright plotting-data checks.
+The Julia 1.12.5 renderer run passed 541 assertions using independent Julia,
+correlated Julia and correlated CmdStan saved fits. It produced 15 figure sets
+(PDF/SVG/numerical JSON), reloaded public/full bundles, and checked exact prior
+summary/figure agreement, failure-safe overwrite, unrelated-file preservation
+and tamper detection. A pre-prior figure bundle remains readable. A report-only
+manual example with 1,000 prior draws produced two additional prior figures;
+the fitting example was not rerun. All five saved inputs retain their bytes.
+
+The existing prior tests passed on Julia 1.12.5: 275 density, 778 predictive,
+90 joint-prior and 12 existing-family assertions. Report-only compatibility
+and the stable/generalized prior-figure scope guards passed 43 assertions.
+Historical replay, rendering and these prior checks used normal compilation.
+
+The initial synthetic run had 1,264 passes and eight test-comparison errors:
+`==` on missing-valued rows returned `missing`, rather than a Boolean. The
+fixture was corrected to `isequal`; no implementation or tolerance was changed
+for this correction. A subsequent `--compile=min` attempt was interrupted after
+12m24.5s with 460 partial passes because interpreter execution was slow; its
+log and stack sample are retained. The normal-compilation rerun passed 1,272
+correlated and 3,092 independent synthetic-result assertions, 165 namespace
+assertions and 181 language-policy assertions. A late alternative `--optimize=0`
+attempt was stopped once that normal run completed; it is not counted as
+verification. Both stopped attempts are retained in the receipt.
+
+Implementer PDF/SVG inspection confirmed correlation units, prior versus
+posterior intervals/draw counts and visible captions; existing MCMC warnings
+remain. The fresh manual built with its four existing omitted research-docstring
+warnings. Public-language checks passed for 20 source files and 14 HTML pages.
+No new MCMC or statistical evaluation replication was run; the full package
+suite, CI and independent reader/scientific review remain outside this handoff.
+Commands, logs, preserved input hashes and visual-review artifacts are listed
+in the [local receipt](../../results/workflows/20260917-prior-report-01/receipt.json).
+
 ## Next bounded work
 
-Connect the implemented prior-predictive checks to optional saved-fit report
-sections and exported figures. Recover the declared model/prior from the saved
-result, use explicit local RNG and draw budgets, and reuse the existing report
-export path. Verify specification/saved-fit agreement, numerical figure inputs,
-unchanged historical caches and preservation on failed exports. Treat prior
-plausibility separately from recovery evidence. Higher-dimensional covariance, within-item validation,
+Reconcile the fixed-coefficient prior and identification contract: free-coordinate
+normal priors versus reconstructed last-facet distributions, prior-anchored
+locations and fixed marginal ability scales. Use equations and sampler-free
+relabel/covariance checks to distinguish representation changes from changes
+to the prior; record the relevant source/exchangeable-prior decisions without
+silently changing defaults or identities. Prior generation correctness and
+plausibility are not recovery evidence. Higher-dimensional covariance, within-item validation,
 automatic request caching, hard anchors and application predictors are separate.
 
 Separately, record an unfamiliar reader finding the supported model/backend, loading a fit,

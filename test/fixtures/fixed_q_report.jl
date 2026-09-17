@@ -40,10 +40,11 @@ function check_fixed_q_report(fit; directory = nothing)
         @test (row.fixed, row.derived, row.dimension) == (source.fixed, source.derived, source.dimension)
     end
     for section in (:category_functioning, :rater_homogeneity, :mcmc_budget_guidance,
-            :prior_predictive, :calibration, :waic, :loo, :dff)
+            :calibration, :waic, :loo, :dff)
         @test getproperty(report, section).status === :unsupported
         @test !isempty(getproperty(report, section).reason)
     end
+    @test report.prior_predictive.status === :not_requested
     public = fit_report_public(report)
     @test public.status === :experimental
     @test public.metadata.estimation_status === :experimental

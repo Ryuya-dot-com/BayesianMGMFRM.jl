@@ -834,10 +834,20 @@ intervals and diagnostics. Estimate it with
 Posterior bounds must be central and strictly inside `(0, 1)`. Prediction uses
 the existing rating rows and a local `seed`; posterior summaries and diagnostics
 always use all retained draws. Diagnostic settings must match the saved fit.
+
+Set `include_prior_predictive = true` to simulate from the saved model/prior,
+with `prior_predictive_ndraws = 100` and `prior_interval = 0.95` by default.
+This adds parameter and rating summaries, correlation intervals when applicable,
+and prior-implication diagnostics. Prior and posterior predictions use separate
+local RNGs initialized from `seed`; neither updates nor refits the saved result.
+`prior_interval` controls parameter prior intervals; `predictive_interval`
+controls rating prediction intervals for both prior and posterior checks.
 """
 function fit_report(fit::_FixedQMFRMFit; view::Symbol = _fixed_q_default_view(fit),
         posterior_lower::Real = 0.025, posterior_upper::Real = 0.975,
         predictive_interval::Real = 0.9, include_posterior_predictive::Bool = true,
+        include_prior_predictive::Bool = false, prior_predictive_ndraws::Int = 100,
+        prior_interval::Real = 0.95,
         ndraws::Union{Nothing,Int} = nothing, draw_indices = nothing, seed::Integer = 1,
         include_artifact::Bool = true, include_full_artifact::Bool = false,
         artifact_include_draws::Bool = false,
@@ -849,6 +859,7 @@ function fit_report(fit::_FixedQMFRMFit; view::Symbol = _fixed_q_default_view(fi
         ess_threshold::Real = fit.record.run.checked.ess_threshold,
         on_section_error::Symbol = :capture, require_complete::Bool = false)
     view in (:full, :public) || throw(ArgumentError("view must be :full or :public"))
+    _interval_probabilities(prior_interval)
     lower, upper = _check_posterior_summary_bounds(posterior_lower, posterior_upper)
     interval = upper - lower
     0 < interval < 1 && isapprox(lower + upper, 1; atol = 8eps(Float64), rtol = 0) ||
@@ -862,6 +873,9 @@ function fit_report(fit::_FixedQMFRMFit; view::Symbol = _fixed_q_default_view(fi
     policy = _fit_report_on_section_error(on_section_error)
     base = _mfrm_fixed_q_report(checked; posterior_interval = interval, predictive_interval,
         include_posterior_predictive, ndraws, draw_indices, seed, on_section_error)
+    prior_predictive = _fixed_q_prior_report(checked; ndraws = prior_predictive_ndraws,
+        seed, interval = prior_interval, predictive_interval, include_prior_predictive,
+        on_section_error = policy)
     manifest = _fixed_q_model_manifest(fit)
     rating_design = _fit_report_section(policy) do
         audit = manifest.rating_design
@@ -886,8 +900,9 @@ function fit_report(fit::_FixedQMFRMFit; view::Symbol = _fixed_q_default_view(fi
             interpretation = checked.model === :mfrm_fixed_q_correlated_2d ?
                 "Experimental correlated MFRM: locations and steps in unit logits; population rho on its correlation scale." :
                 "Experimental fixed-coefficient multidimensional MFRM reporting in unit logits.")),
-        manifest, rating_design, artifact,
+        manifest, rating_design, artifact, prior_predictive,
         report_policy = merge(base.report_policy, (; posterior_lower = lower, posterior_upper = upper,
+            include_prior_predictive, prior_predictive_ndraws, prior_interval = Float64(prior_interval),
             include_artifact, include_full_artifact, require_complete))))
     health = _derive_fit_report_health(report)
     report = merge(report, (; report_status = health.status, report_health = health))
@@ -933,7 +948,10 @@ function save_fit_report_bundle(directory::AbstractString, fit::_FixedQMFRMFit;
             overwrite, label, title, max_rows, include_empty, require_complete)
     end
     _fit_report_figure_options(figures)
-    haskey(figures, :wright) && throw(ArgumentError("multidimensional MFRM bundles support posterior, diagnostics and predictive figures"))
+    haskey(figures, :wright) && throw(ArgumentError("multidimensional MFRM bundles do not support Wright maps"))
+    any(kind -> haskey(figures, kind), (:prior, :prior_predictive)) &&
+        !get(kwargs, :include_prior_predictive, false) &&
+        throw(ArgumentError("prior figures require include_prior_predictive = true"))
     extension = _check_fit_report_figure_destination(directory, figures; overwrite, max_rows)
     checked = _canonical_mfrm_fixed_q_samples(fit)
     report = fit_report(fit; view = :full, seed, require_complete, kwargs...)
@@ -950,6 +968,12 @@ function _write_mfrm_fixed_q_report_figures(directory, checked, report, figures,
         report.metadata.source_sample_schema, report.metadata.source_sample_content_hash)
     return _write_fit_report_figures(directory, exported_report, figures;
             identity, seed, overwrite, label, title, max_rows, include_empty, require_complete) do kind, numerical, size
+        if kind in (:prior, :prior_predictive)
+            data = _report_prior_plot_data(report.prior_predictive, kind; numerical...)
+            figure = kind === :prior ? _render_fixed_q_prior(extension, data; size) :
+                _render_prior_predictive(extension, data; size)
+            return (; data, figure)
+        end
         data = if kind === :posterior
             _mfrm_fixed_q_plot_data(checked; numerical..., interval = report.report_policy.posterior_interval)
         elseif kind === :diagnostics

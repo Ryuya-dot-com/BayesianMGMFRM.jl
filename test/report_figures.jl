@@ -35,6 +35,18 @@ mkpath(directory)
         @test !ispath(path)
     end
     @test_throws ArgumentError save_fit_report_bundle(joinpath(directory, "bad-seed"), f; seed = 42, options...)
+    for family in (:mfrm, :gmfrm, :mgmfrm), kind in (:prior, :prior_predictive)
+        path = joinpath(directory, "unsupported-prior")
+        caught = try
+            save_fit_report_bundle(path, reporting_fit(family; ndraws = 8, chains = 2);
+                figures = NamedTuple{(kind,)}(((;),)), include_prior_predictive = true, options...)
+        catch error
+            error
+        end
+        @test caught isa ArgumentError
+        @test occursin("fixed-coefficient", sprint(showerror, caught))
+        @test !ispath(path)
+    end
     if Base.get_extension(B, :BayesianMGMFRMCairoMakieExt) === nothing
         @test_throws ArgumentError save_fit_report_bundle(joinpath(directory, "no-renderer"), f;
             figures = (posterior = (;),), options...)
