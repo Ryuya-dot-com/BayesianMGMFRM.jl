@@ -834,18 +834,85 @@ assertions, and replay/location checks passed 26. Model/Stan sources are
 unchanged from the blueprint-reuse commit. No full suite, CI, new CmdStan fit,
 recovery study or SBC study was run for this follow-up.
 
+## Dense-metric Julia comparison (2026-09-17)
+
+This comparison asked whether the existing dense metric improves the
+collective person/item location mixing observed above, at an acceptable observed
+cost. The follow-up recipe now accepts an explicit `diagonal` or `dense` argument;
+omitting it retains the diagonal setting. The new declaration in
+`results/workflows/20260917-fixed-coefficient-dense-01/advancedhmc/` permits one
+Julia fit and changes only `metric=:dense`. It retains the original panel,
+target identity, joint prior, zero base initialization with 0.1 jitter, seed,
+four-chain 1,000/1,000 controls, report options and pilot diagnostic thresholds.
+The 1,800-second deadline and 8 GiB/5 GiB observation thresholds are unchanged.
+No model, prior, Jacobian, sampler implementation or default is changed.
+
+The comparison was set up to use the preserved diagonal follow-up's fit and
+phase timings. Predeclared checks included the original raw/model/focal
+diagnostics, finite-panel person and item means, their differences, and centered
+item contrasts under the same R-hat/ESS thresholds, retaining both passing and
+failing results. Reusing a
+seed holds the host RNG policy fixed, not the realized trajectories: sequential
+chains consume one RNG stream, and different metric trajectories can also change
+later chains' jittered starts. Uncontrolled host activity and first-call
+compilation limit timing interpretation; this is one computational comparison,
+not an independent statistical replication, a default-selection study or a new
+Julia/CmdStan agreement decision.
+
+The one dense attempt reached the external deadline while the recorded phase
+was still `fit`: `elapsed=1800.043569`, `status=timeout`, `child_exit=-9`,
+`exit=124`. No fit cache, phase-completion timings, report or qualification was
+written. This is an external time stop, not a returned sampler error or an
+observed diagnostic failure. Whether sampling had completed internally is
+unknown; no retained dense draws are available for analysis. The enclosing fit
+marker does not separate compilation, warmup, retained sampling and in-fit
+diagnostic construction.
+
+| Evidence | Diagonal follow-up | Dense attempt |
+| --- | --- | --- |
+| Fit-only time | 548.09 s | Unavailable; enclosing process stopped at 1,800 s during `fit` |
+| Saved retained draws | 4,000 | No saved fit |
+| Original whole-fit diagnostic gate | Failed, maximum rank-normalized R-hat 1.0147 | Not evaluated |
+| Person-mean diagnostics | Maximum R-hat 1.0179, minimum bulk ESS 357 | Not evaluated |
+| Public report | Complete in separate postprocessing; warning retained | Not reached |
+
+The resource observer recorded 178 observations, beginning 6.73 seconds after
+the declaration's start marker, with a maximum gap of 10.011 seconds. Observed
+peak RSS was 1,445,953,536 bytes (1.35 GiB); observed output peaked at 117,329
+bytes. Neither resource threshold triggered. Both the timed process and observer
+exited, and no retry was launched. Declaration/source-integrity and execution
+boundary checks passed 22 assertions in `check-declaration.log`. Four additional
+hash checks confirmed that the original Julia/CmdStan fits, original comparison
+and diagonal follow-up fit were unchanged. The external deadline helper had
+passed its 21-case self-test before launch. The prepared posterior
+comparison and plotting recipes were **not executed** because their required
+dense fit does not exist. No dense R-hat, ESS, efficiency ratio, posterior
+agreement or scientific acceptance is inferred.
+
+This attempt did not demonstrate an operational improvement within the declared
+budget. It does not show that a dense metric is statistically inferior or that
+the model is invalid. The original diagonal and CmdStan results, their warnings,
+and all 30 inconclusive backend comparisons remain unchanged. No model source
+or default changed. No full test suite, CI, recovery evaluation or SBC evaluation
+was run, and no independent dataset was generated.
+
 ## Next implementation and review handoff
 
-The next bounded computational comparison should test the existing dense-metric
-option against the diagonal-metric C2 result, with target, data, prior,
-initialization, draws and diagnostic criteria held fixed. Declare the new attempt
-before execution, retain its result even if worse, and do not select a passing
-retry or a new default from one panel. Carry finite-panel location summaries into
-the diagnostic UX so users can inspect collective slow directions without
-manually rearranging draws. Any later reparameterization must preserve the
-declared joint prior and transformation measure under both Julia and CmdStan;
-post hoc hard centering would change the model. Do not grow preparation machinery
-as a substitute for this evidence, automatically retry a primary call, or
+Carry finite-panel location summaries into the existing diagnostics, reports and
+plots so users can inspect collective slow directions without manually
+rearranging draws. Start with the demonstrated between-item person/item means
+and location-invariant contrasts, preserve the original diagnostic records, and
+check the same saved-result behavior for Julia and CmdStan. These finite-panel
+means must not be labeled population-mean parameters or treated as new centering
+constraints. This concrete UX gap can be addressed without another long fit.
+
+Before another dense run, use a separately bounded cost probe to distinguish
+compilation, warmup, retained sampling and diagnostic construction, with actual
+trajectory work where available. Do not silently extend this attempt's deadline,
+retry until a fit passes, or choose a default from one panel. Any later
+reparameterization must preserve the declared joint prior and transformation
+measure under both Julia and CmdStan; post hoc hard centering would change the
+model. Do not grow preparation machinery as a substitute for this evidence or
 condition full evaluation on completing every MFRM cell before MGMFRM work.
 
 Independent review must resolve target/identification interpretation, scientific

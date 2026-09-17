@@ -1,9 +1,10 @@
 #!/usr/bin/env julia
 # One Julia follow-up of a preserved C2 panel; run under measure_command.py.
-# No retry, new dataset, changed controls, or replacement of the original pilot.
+# Only the explicitly selected metric may change; no retry or new dataset.
 include(joinpath(@__DIR__, "run_fixed_coefficient_comparison_pilot.jl"))
 
-function followup(pilot, root)
+function followup(pilot, root; metric=:diagonal)
+    metric in (:diagonal, :dense) || error("Follow-up metric must be diagonal or dense")
     ispath(root) && error("Use a new output directory; preserve previous attempts")
     original = deserialize(joinpath(pilot, "declaration.jls"))
     panel_path = joinpath(pilot, "panel.jls")
@@ -14,6 +15,7 @@ function followup(pilot, root)
     model = E.correlated(V.specification(panel); lkj_eta=original.lkj_eta)
     @assert V.target_identity(B._fixed_q_prior_target(model, original.prior)) == original.target_identity
     @assert original.controls == CONTROLS && original.criteria == CRITERIA
+    controls = merge(original.controls, (; metric))
     hashes = merge(source_hashes(), Dict(relpath(@__FILE__, REPO) => digest(@__FILE__)))
     report_options = (; view=:public, include_prior_predictive=true,
         prior_predictive_ndraws=200, ndraws=100, seed=2026091805, require_complete=true)
@@ -25,7 +27,9 @@ function followup(pilot, root)
         source_revision=strip(read(`git -C $REPO rev-parse HEAD`, String)),
         source_hashes=hashes, environment=original.environment,
         julia_version=string(VERSION), original.panel_sha256, original.target_identity,
-        original.prior, original.initial, original.lkj_eta, original.controls, original.criteria,
+        original.prior, original.initial, original.lkj_eta, controls, original.criteria,
+        original_controls=original.controls,
+        comparison_policy="Only metric may differ. Retain the original whole-fit gate; additionally inspect finite-panel person/item means and their location-invariant contrasts. One panel cannot select a default or establish scientific acceptance.",
         backend=:advancedhmc, seed=original.seeds.advancedhmc, report_options,
         planned_calls=1, automatic_retries=false, wall_seconds_per_process=1800,
         rss_stop_bytes=8*1024^3, output_stop_bytes=5*1024^3,
@@ -80,6 +84,7 @@ function followup(pilot, root)
 end
 
 if abspath(PROGRAM_FILE) == (@__FILE__)
-    length(ARGS) == 2 || error("Usage: script.jl ORIGINAL_PILOT NEW_OUTPUT_DIRECTORY")
-    followup(abspath(ARGS[1]), abspath(ARGS[2]))
+    length(ARGS) in (2, 3) || error("Usage: script.jl ORIGINAL_PILOT NEW_OUTPUT_DIRECTORY [diagonal|dense]")
+    followup(abspath(ARGS[1]), abspath(ARGS[2]);
+        metric=length(ARGS) == 3 ? Symbol(ARGS[3]) : :diagonal)
 end
