@@ -1,4 +1,4 @@
-// Private density-only correlated 2D fixed-coefficient MFRM; no fitting dispatch.
+// Private correlated 2D fixed-coefficient MFRM.
 functions {
   // Rotated bivariate-normal quadratic avoids subtracting rho rounded to +/-1.
   real scaled_square(real x, real log_scale) {
@@ -67,5 +67,16 @@ model {
     target += categorical_logit_lpmf(X[n] | mgmfrm_eta(
       PersonID[n], RaterID[n], ItemID[n], J, R, I, K, D,
       NLoadings, free_steps, LoadingItem, LoadingDim, raw));
+  }
+}
+generated quantities {
+  vector[N] log_lik;
+  {
+    vector[step_offset + n_steps] raw = fixed_q_raw(beta, locations, n_steps, step_offset);
+    for (n in 1:N) {
+      log_lik[n] = categorical_logit_lpmf(X[n] | mgmfrm_eta(
+        PersonID[n], RaterID[n], ItemID[n], J, R, I, K, D,
+        NLoadings, free_steps, LoadingItem, LoadingDim, raw));
+    }
   }
 }

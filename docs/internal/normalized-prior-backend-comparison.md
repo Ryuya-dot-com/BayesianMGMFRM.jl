@@ -2761,20 +2761,94 @@ Verification commands, failed attempts and retained artifacts are recorded in th
 No MCMC, correlation recovery, covariance-model promotion, independent review
 or full-suite acceptance is implied by these density/gradient checks.
 
+## Private correlated sampling and reconstruction, 2026-09-17
+
+The correlated fixed-coefficient target now connects to the existing
+AdvancedHMC and CmdStan NUTS runners through `_mfrm_correlated_2d_sample`.
+The model equation, prior, Jacobian and target identity are unchanged from the
+density contract above. This is private operability work; it does not select a
+supported correlation-estimation domain or provide recovery/coverage evidence.
+
+CmdStan keeps separate `beta` and `zrho` parameter blocks. Its initial JSON
+explicitly splits the Julia coordinate vector, and its CSV reader selects
+columns by name before restoring the same vector order. The shared adapters
+retain the old all-beta defaults for existing models. Generated quantities
+provide observation-level log likelihoods. Every retained Stan draw must match
+Julia's pointwise likelihood and normalized joint density before it is returned.
+
+The new `bayesianmgmfrm.correlated_fixed_q_mfrm_samples.v1` record contains
+`base_spec`, the actual MFRM prior scales and full correlation contract, target
+identity, sampler record and content hash. The field is deliberately named
+`base_spec`: it still represents the independent likelihood design, while the
+correlation contract defines the joint ability prior. Neither that base alone
+nor an independent-model sample schema can reconstruct the correlated target.
+The v1 density-contract availability flags remain frozen and false for public
+fitting/fit caches; the private sample record is a separate capability.
+
+On replay, the loader rebuilds the target and verifies the prior/measure,
+identity, content hash, initial and retained densities, chain/iteration layout,
+sampler summaries and warmup telemetry. Names, intervals and diagnostic tables
+are rebuilt from those verified samples. Saving verifies the record before
+using the existing atomic persistence routine. An invalid overwrite cannot
+replace a previously valid file. Serialization remains for trusted files in
+the same Julia major/minor environment; this work adds no portability claim.
+
+The reconstructed result distinguishes sampled unit-logit locations/steps,
+Fisher z, dimensionless fixed coefficients and transformed population rho.
+Rho is marked derived and non-fixed, with summaries and diagnostics computed
+from `tanh(z)` draws; its mean is not obtained by transforming the mean z.
+The existing fixed/derived rater and step meanings are retained. Warmup rows
+remain separate from posterior diagnostics, with recorded/not-recorded coverage
+explicit. No correlated public fit, fit-cache, report or figure entry is added.
+
+The focused checks pass on Julia 1.10.8 (542 assertions) and Julia 1.12.5
+with CmdStan 2.39.0 (964 assertions, including the density/gradient grid).
+The final sampling cases use two/four categories, eta 3/5 respectively,
+three persons, four pure-Q items and two raters. Each has two chains with
+10 warmup and 12 retained draws per chain, seed 20260917, initial z = 0.25,
+jitter 0.02, initial step size 0.03 and maximum tree depth 4. Two-category
+cases omit warmup recording; four-category cases retain it. All six final
+runtime/backend cases carry sampler warnings: retained maximum-depth hits
+range from 4 to 19 out of 24 draws. These budgets exercise the plumbing and
+do not establish convergence, posterior equivalence or correlation accuracy.
+
+Fresh processes reopen the two Julia 1.10 records (18 assertions) and four
+Julia 1.12 records (38 assertions), reproducing summaries, diagnostics,
+prior/target identities and retained densities. The independent fixed-Q
+Julia/CmdStan fitting checks pass 863 assertions; five historical caches
+reopen in their original Julia series (25 assertions). The shared fitting
+failure boundaries and experimental namespace pass 1,545 assertions, and
+the public source-language gate passes. The previous density receipt and its
+96 artifacts, 18 historical inputs and 84 preceding workflow artifacts retain
+their recorded hashes. No full-suite or CI acceptance is claimed.
+
+The retained initial failures are verification issues rather than waived
+criteria: the sample test initially used reference equality for detached
+`FacetSpec` objects, and the fresh-process driver initially compared JSON3
+symbol-key objects directly with string-key dictionaries. The final checks
+compare validated design identities and full saved/derived contents, using
+the existing typed JSON reader. The boundary run with compiled modules and
+package images set to `existing` also repeated the previously recorded
+DynamicPPL/Turing generated-function error. The unchanged boundary file passes
+with both flags set to `yes`; no dependency or Turing source patch was needed.
+
+Verification commands, short-run controls, actual warnings and retained
+artifacts belong to the
+[local receipt](../../results/workflows/20260917-correlated-fixed-q-samples-01/receipt.json).
+Numerical/backend consistency and intact replay do not establish that these
+short chains estimate correlation adequately.
+
 ## Next bounded work
 
-Connect this verified correlated target to bounded private Julia/CmdStan
-sampling and a separately tagged sample/reconstruction record. Reuse the existing
-sampler, telemetry and persistence primitives, with explicit beta/zrho column
-mapping, actual prior and correlation identity, chain/iteration labels and
-recomputed retained densities. Check a short save/reload path, invalid options
-and preservation of existing caches before exposing a fitting API. The result
-must distinguish unit-logit abilities/locations from dimensionless rho and
-retain fixed/derived parameter meanings. Do not pass a correlated record through
-the existing independent-model schema or silently reconstruct it with rho zero.
-Public report/figure integration and statistical validation follow their own
-checks. No automatic request cache, hard anchors or application-specific
-predictors are prerequisites for this bounded core work.
+Connect the verified correlated sample record to a dedicated result object and
+its report/figure path. Reuse the existing summary, diagnostic and rendering
+primitives while retaining the separate model identity and actual correlation
+prior. Check rho intervals/diagnostics, named ability dimensions, fixed/derived
+coordinates and save/reload without manual draw reshaping. Keep public fitting
+guarded until its model specification and result path unambiguously describe
+free correlation; do not relabel an independent `FacetSpec` or fit-cache schema.
+Statistical validation follows its own reviewed protocol. Automatic request
+caching, hard anchors and application predictors are not prerequisites.
 
 Separately, record an unfamiliar reader finding the supported model/backend, loading a fit,
 choosing a named dimension, interpreting diagnostic/interval labels and saving/

@@ -591,13 +591,16 @@ function _cmdstan_raw_chain_result(path::AbstractString,
         nobservations::Int,
         chain::Int,
         ndraws::Int,
-        evaluate_draw::Function; warmup::Int = 0)
+        evaluate_draw::Function; warmup::Int = 0,
+        parameter_names::AbstractVector{<:AbstractString} = ["beta.$i" for i in 1:nparams])
+    length(parameter_names) == nparams && allunique(parameter_names) ||
+        throw(ArgumentError("CmdStan parameter columns must be distinct and match nparams"))
     parsed = _cmdstan_read_csv(path, ndraws; warmup)
     header = parsed.header
     values = parsed.values
     beta_columns = [
-        _cmdstan_required_column(header, "beta.$index")
-        for index in 1:nparams
+        _cmdstan_required_column(header, name)
+        for name in parameter_names
     ]
     log_lik_columns = [
         _cmdstan_required_column(header, "log_lik.$observation")
@@ -846,7 +849,8 @@ function _cmdstan_sample_chains(
         max_depth::Int,
         metric::String,
         init_jitter::Float64,
-        progress::Bool, record_warmup::Bool = false)
+        progress::Bool, record_warmup::Bool = false,
+        initial_payload::Function = values -> (; beta = values))
     _cmdstan_executable_sha256(executable, :sampling) == expected_sha256 ||
         throw(CmdStanError(:sampling, :executable_changed,
             "the model executable does not match its observed compile-output SHA-256"))
@@ -878,7 +882,7 @@ function _cmdstan_sample_chains(
             init_path = _with_sampler_context(:cmdstan, chain, :initialization_write) do
                 _cmdstan_write_json(
                     joinpath(directory, "init-$chain.json"),
-                    (; beta = chain_initial),
+                    initial_payload(chain_initial),
                     :initialization_write,
                 )
             end
@@ -1042,6 +1046,8 @@ end
 _cmdstan_generalized_family(::_GMFRMPromotionCandidateLogDensity) = :gmfrm
 _cmdstan_generalized_family(::_MGMFRMGuardedLocalFitLogDensity) = :mgmfrm
 
+_cmdstan_generalized_initial(target, values) = (; beta = values)
+
 _cmdstan_generalized_data(target::_GMFRMPromotionCandidateLogDensity) =
     _cmdstan_gmfrm_data(target)
 
@@ -1138,6 +1144,7 @@ function _cmdstan_generalized_candidate_run(
         metric = metric_name,
         init_jitter = Float64(init_jitter),
         progress,
+        initial_payload = raw -> _cmdstan_generalized_initial(target, raw),
         (record_warmup ? (; record_warmup = true) : (;))...,
     )
 

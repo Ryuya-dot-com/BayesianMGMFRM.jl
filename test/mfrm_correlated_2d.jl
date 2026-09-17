@@ -74,7 +74,7 @@ end
         @test model_manifest(spec; view=:public).spec.latent_correlation === :identity_fixed
         @test_throws ArgumentError B.Experimental.fit(target)
         @test_throws ArgumentError B.Experimental.free_latent_correlation_2d_candidate(spec)
-        @test_throws MethodError B._cmdstan_generalized_family(target)
+        @test B._cmdstan_generalized_family(target) === :mfrm_correlated_2d
         for bad in (x[1:end-1], [x;0.0], fill(NaN,n),fill(Inf,n))
             @test_throws ArgumentError density(bad)
         end

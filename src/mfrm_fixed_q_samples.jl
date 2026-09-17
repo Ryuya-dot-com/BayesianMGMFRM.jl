@@ -144,7 +144,9 @@ function _mfrm_fixed_q_model_coordinates(target::_MFRMFixedQReferenceLogDensity,
     return rows
 end
 
-function _mfrm_fixed_q_samples(target, record::NamedTuple)
+function _mfrm_fixed_q_samples(target, record::NamedTuple;
+        model::Symbol = :mfrm_fixed_q, parameter_space::Symbol = :unit_logit,
+        model_parameter_space::Symbol = :unit_logit_with_fixed_coefficients)
     run = record.run
     _check_generalized_sample_run(target, run)
     if run.backend === :cmdstan
@@ -153,9 +155,9 @@ function _mfrm_fixed_q_samples(target, record::NamedTuple)
             throw(ArgumentError("fixed-Q MFRM retained Stan log posterior mismatch"))
     end
     names = target.blueprint.parameter_names
-    # No generalized direct-coordinate conversion: these draws already use unit logits.
+    # Location draws already use unit logits; reconstruct only the declared constraints.
     parameter_rows = _candidate_mcmc_diagnostic_rows(run.draws, names, run.controls.chains;
-        parameter_space = :unit_logit, split_chains = run.split_chains_requested,
+        parameter_space, split_chains = run.split_chains_requested,
         rhat_threshold = run.checked.rhat_threshold, ess_threshold = run.checked.ess_threshold)
     summary = _posterior_summary_rows(run.draws, names; lower = 0.025, upper = 0.975,
         intervals = (), reference = 0.0, rope = nothing, rope_probability_threshold = 0.95)
@@ -163,7 +165,7 @@ function _mfrm_fixed_q_samples(target, record::NamedTuple)
     model_names = [row.parameter for row in coordinates]
     model_draws = hcat([row.values for row in coordinates]...)
     model_rows = _candidate_mcmc_diagnostic_rows(model_draws, model_names, run.controls.chains;
-        parameter_space = :unit_logit_with_fixed_coefficients,
+        parameter_space = model_parameter_space,
         structurally_fixed_parameters = Set(row.parameter for row in coordinates if row.fixed),
         split_chains = run.split_chains_requested,
         rhat_threshold = run.checked.rhat_threshold, ess_threshold = run.checked.ess_threshold)
@@ -173,8 +175,8 @@ function _mfrm_fixed_q_samples(target, record::NamedTuple)
     flag = _generalized_candidate_summary_flag(count(row -> row.flag !== :ok, run.sampler_rows),
         sum(row.n_nonfinite_logdensity for row in run.sampler_rows), 0, 0, metrics, metrics)
     return (; record, public_fit = false, parameter_names = copy(names),
-        parameter_space = :unit_logit, posterior_summary = summary,
-        model = :mfrm_fixed_q, model_coordinates = coordinates,
+        parameter_space, posterior_summary = summary,
+        model, model_coordinates = coordinates,
         model_posterior_summary = [merge(row, (; coordinate.block, coordinate.dimension,
                 coordinate.fixed, coordinate.derived))
             for (row, coordinate) in zip(model_summary, coordinates)],
