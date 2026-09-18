@@ -1006,10 +1006,9 @@ the earlier dense fit. The complete targeted suite passed without changing its
 assertions under `-O0`, while the saved-fit and figure-bundle checks completed
 under ordinary optimization.
 
-Before another dense run, use a separately bounded cost probe to distinguish
-compilation, warmup, retained sampling and diagnostic construction, following
-the observed warmup-depth difference and retaining actual trajectory work where
-available. Do not silently extend an attempt's declared deadline,
+The subsequent bounded cost probe below distinguishes compilation, warmup,
+retained sampling and result construction while retaining actual trajectory
+work. Do not silently extend an attempt's declared deadline,
 retry until a fit passes, or choose a default from one panel. Any later
 reparameterization must preserve the declared joint prior and transformation
 measure under both Julia and CmdStan; post hoc hard centering would change the
@@ -1023,3 +1022,93 @@ Prepare code and reviewable evidence while those decisions are open. Report
 mathematical checks, operability, reviewed design, statistical evidence and
 scientific acceptance separately. Neither this protocol nor prior short API
 fits close M1/M2, choose a default prior, or qualify an application analysis.
+
+## Sampling cost localization (2026-09-18)
+
+Question: does the observed dense-fit cost arise mainly during compilation,
+warmup, retained sampling, or result construction? The two predeclared cost
+probes preserve C2's panel, target, prior, initial vector, seed and 1,000-step
+warmup. Each metric receives one fresh process, one chain and 100 retained
+draws, with a 1,200-second external deadline and no automatic retry. This
+shortened retained budget answers the runtime question without claiming
+posterior qualification or reconstructing the time of all four historical
+chains. The original diagnostic criteria remain unchanged.
+
+`scripts/profile_fixed_coefficient_sampling.jl` uses a private notification in
+the existing AdvancedHMC runner. It records elapsed/compilation/GC time and
+actual leapfrog counts per transition, with sampling profiler output. The
+sampler and adaptation loops, defaults, saved-run/cache schemas, and public
+reports are unchanged. Mutable metric objects are not retained by the observer.
+Compilation and GC are included in elapsed time, not additional time to sum.
+The first transition interval includes sampler initialization; the final
+construction interval includes validation, diagnostic tables and fit wrapping.
+A separate `diagnostics(fit)` call measures the subsequent user operation.
+
+The observer's 109 trajectory, RNG, event-order and failure/forwarding checks
+pass on Julia 1.12.5 and 1.10.8, accompanied by 275 density/gradient checks on
+each version (`-O0` for these regression checks). The cost probes use ordinary
+optimization. Artifacts, recipes and all attempts are retained in
+`results/workflows/20260918-sampling-cost-01/`. Resource observation occurs
+every 20 seconds after identifying each owned process, with an 8 GiB RSS and
+5 GiB output stop. These are external deadline and observed resource limits,
+not memory containment.
+
+The host is uncontrolled and each metric is measured once. The 49-second
+Julia 1.10.8 regression process overlaps diagonal startup and early fitting;
+no regression test is launched during the dense fit. Profiling also adds
+overhead. These observations localize work, not a controlled speed ratio or
+a default-metric decision.
+
+Both processes completed under their original deadline, without retries:
+
+| Observed quantity | Diagonal | Dense |
+| --- | ---: | ---: |
+| Whole process, seconds (including loading/profile export) | 129.04 | 844.58 |
+| Public fit call, seconds | 102.02 | 784.50 |
+| Setup before sampler entry, seconds | 9.02 | 8.30 |
+| Warmup, 1,000 transitions, seconds | 83.79 | 766.09 |
+| Retained sampling, 100 transitions, seconds | 5.59 | 6.27 |
+| Result construction, seconds | 3.57 | 3.78 |
+| Compilation within fit, seconds (already included above) | 12.31 | 11.65 |
+| Subsequent diagnostics call, seconds (outside fit) | 0.87 | 0.95 |
+| Warmup leapfrog steps | 22,778 | 214,048 |
+| Retained leapfrog steps | 1,500 | 1,532 |
+
+Observer work was approximately 0.047 seconds per fit; phase totals reconcile
+with the fit timer to less than one microsecond. Dense warmup accounts for
+97.7% of this fit call. Its iterations 101--450 consume 670.69 seconds and
+188,591 leapfrog steps. Warmup time per leapfrog step is approximately 3.68 ms
+for diagonal and 3.58 ms for dense, including adaptation and other transition
+work. Thus the large observed difference is concentrated in trajectory count
+during warmup. This aggregate is not an isolated leapfrog microbenchmark.
+Sampling profiles place most sampled work in ForwardDiff and the shared
+likelihood loop; matrix multiplication is a much smaller sampled component.
+
+The 26 ordinary-optimization saved-fit checks passed: both probes reproduce
+their historical fit's first-chain, first-100 retained draws, log densities
+and sampler statistics exactly, as well as all 1,000 saved warmup-stat rows.
+Historical files retain their hashes. This confirms the same numerical
+trajectory prefix; it does not supply missing historical phase timings or
+warmup step counts for the other three chains. Both one-chain probes correctly
+report insufficient chains for diagnostic qualification. The 22 deadline-helper
+checks and 20-file public-language source gate also pass. No full suite, new
+CmdStan fit, evaluation grid or scientific acceptance was added.
+
+The installed AdvancedHMC 0.8.5 source sets metric-update boundaries at
+100, 150, 250, 450 and 950 for this warmup, using covariance windows of
+25, 50, 100, 200 and 500 states. The first three empirical covariance matrices
+necessarily have rank below this target's 124 coordinates before the library's
+diagonal regularization. That is a concrete candidate explanation for the
+expensive early dense trajectories. Actual metric spectra were not recorded,
+and neither causation nor the benefit of a different schedule is established.
+
+Next, reduce demonstrated work in the existing likelihood/gradient path using
+the saved parameter points and profiles. Require density/gradient agreement,
+boundary checks and a bounded warm-gradient timing comparison before another
+fit; preserve the joint prior, Jacobian and backend target contract. Treat any
+change to dense adaptation windows as a separate, declared algorithm comparison
+with metric conditioning, trajectory work and diagnostic outcomes recorded.
+Do not shorten warmup, loosen tree-depth/diagnostic criteria, or promote dense
+by default on this evidence. This is a Julia computation finding, not completion
+of M1/M2 or a prerequisite to implementing an independently justified MGMFRM
+slice.

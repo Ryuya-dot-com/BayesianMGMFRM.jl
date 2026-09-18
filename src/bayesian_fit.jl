@@ -3085,7 +3085,10 @@ function _run_generalized_candidate_advancedhmc(
         rhat_threshold::Real = 1.01,
         ess_threshold::Real = 400,
         progress::Bool = false,
-        record_warmup::Bool = false)
+        record_warmup::Bool = false,
+        _sampling_observer = nothing)
+    _sampling_observer === nothing || _sampling_observer isa Function ||
+        throw(ArgumentError("_sampling_observer must be a function or nothing"))
     step_size = _check_fit_controls(ndraws, warmup, chains, step_size)
     target_accept, max_energy_error, init_jitter =
         _check_nuts_controls(target_accept, max_depth, max_energy_error, init_jitter)
@@ -3158,7 +3161,20 @@ function _run_generalized_candidate_advancedhmc(
             ) :
             AdvancedHMC.NoAdaptation()
         samples, stats = _with_sampler_context(:advancedhmc, chain, :sampling) do
-            AdvancedHMC.sample(
+            # Private timing hook: reuse AdvancedHMC's iteration notification,
+            # preserving its sampler/adaptation loop and the saved run schema.
+            options = if _sampling_observer === nothing
+                (; progress)
+            else
+                notify = function(pm, stat)
+                    _sampling_observer((; phase = :transition, chain, stat))
+                    progress && AdvancedHMC.pm_next!(pm, stat)
+                    return nothing
+                end
+                _sampling_observer((; phase = :sampling_start, chain))
+                (; progress = true, pm_next! = notify)
+            end
+            result = AdvancedHMC.sample(
                 fit_rng,
                 hamiltonian,
                 kernel,
@@ -3168,8 +3184,10 @@ function _run_generalized_candidate_advancedhmc(
                 warmup;
                 drop_warmup = warmup > 0 && !record_warmup,
                 verbose = false,
-                progress,
+                options...,
             )
+            _sampling_observer === nothing || _sampling_observer((; phase = :sampling_end, chain))
+            result
         end
         _with_sampler_context(:advancedhmc, chain, :output_validation) do
             offset = record_warmup ? warmup : 0
