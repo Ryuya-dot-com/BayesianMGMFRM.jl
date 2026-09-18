@@ -1,14 +1,14 @@
 module MGMFRMDensityMeasureChecks
 
-using Test, BayesianMGMFRM, ForwardDiff, LinearAlgebra
+using Test, BayesianMGMFRM, ForwardDiff, ReverseDiff, LinearAlgebra
 import JSON3
 const B = BayesianMGMFRM
 include("test_groups.jl")
 
 # Independent category-score equation; do not use the target's layout, prior,
 # transformation or likelihood helpers to construct the expected values.
-function reference_case(q)
-    J, I, R, K, D = 2, size(q, 1), 3, 4, size(q, 2)
+function reference_case(q; categories = 4)
+    J, I, R, K, D = 2, size(q, 1), 3, categories, size(q, 2)
     cells = [(p, i, r) for p in 1:J for i in 1:I for r in 1:R]
     data = FacetData((;
         person = ["P$p" for (p, i, r) in cells],
@@ -58,6 +58,27 @@ end
 
 const CASES = [reference_case(q) for q in
     (Bool[1 0; 1 0; 0 1; 0 1], Bool[1 0; 1 1; 0 1; 0 1])]
+
+@testset "MGMFRM threshold reuse preserves pointwise density and derivatives" begin
+    for categories in (2,3,4,5), q in (Bool[1 0; 1 0; 0 1; 0 1], Bool[1 0; 1 1; 0 1; 0 1])
+        case = reference_case(q; categories)
+        target = case.target
+        fast = x -> B._source_fixture_loglikelihood(target, x)
+        # The pointwise path constructs thresholds per observation. Sum in the
+        # same order to detect changes hidden by approximate total comparisons.
+        pointwise = x -> foldl(+, B._mgmfrm_source_pointwise_loglikelihood_from_unconstrained(
+            target.design, x); init=zero(eltype(x)))
+        for x in (case.points[1], case.points[2], 4 .* case.points[2], case.points[1])
+            @test fast(x) == pointwise(x)
+            @test ForwardDiff.gradient(fast,x) == ForwardDiff.gradient(pointwise,x)
+            @test fast(x) ≈ sum(case.pointwise(x)) atol=1e-11
+            @test ForwardDiff.gradient(fast,x) ≈ ForwardDiff.gradient(x -> sum(case.pointwise(x)),x) atol=1e-10
+            @test ReverseDiff.gradient(fast,x) ≈ ForwardDiff.gradient(fast,x) atol=1e-10
+        end
+        @test ForwardDiff.hessian(fast,case.points[2]) ≈
+            ForwardDiff.hessian(pointwise,case.points[2]) atol=1e-10
+    end
+end
 
 # Independent multivariate-normal reference, including its full normalizer.
 function centered_reference(v, sd, source_rater = 0)

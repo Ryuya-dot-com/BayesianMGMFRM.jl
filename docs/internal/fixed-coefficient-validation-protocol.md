@@ -1102,13 +1102,77 @@ diagonal regularization. That is a concrete candidate explanation for the
 expensive early dense trajectories. Actual metric spectra were not recorded,
 and neither causation nor the benefit of a different schedule is established.
 
-Next, reduce demonstrated work in the existing likelihood/gradient path using
-the saved parameter points and profiles. Require density/gradient agreement,
-boundary checks and a bounded warm-gradient timing comparison before another
-fit; preserve the joint prior, Jacobian and backend target contract. Treat any
+The likelihood-loop change below reduces demonstrated work using the saved
+parameter points and profiles, with density/gradient agreement, boundary checks
+and a bounded warm-gradient comparison before another fit. Preserve the joint
+prior, Jacobian and backend target contract. Treat any
 change to dense adaptation windows as a separate, declared algorithm comparison
 with metric conditioning, trajectory work and diagnostic outcomes recorded.
 Do not shorten warmup, loosen tree-depth/diagnostic criteria, or promote dense
 by default on this evidence. This is a Julia computation finding, not completion
 of M1/M2 or a prerequisite to implementing an independently justified MGMFRM
 slice.
+
+## Likelihood-loop reuse (2026-09-18)
+
+The shared MGMFRM likelihood now constructs the item/category threshold table
+once per evaluation and specializes the response loop on the transformed
+numeric element type. The table is rebuilt for every parameter vector and AD
+chunk; no state is cached across draws. The existing category predictor and
+threshold reconstruction are reused, with the same arithmetic and summation
+order. The pointwise path remains an independent per-observation comparison.
+This also serves fixed-coefficient MFRM targets that reuse the MGMFRM kernel.
+Likelihood, priors, coordinates, 1.7 mapping, Jacobians, identities, defaults,
+public API and result/cache schemas are unchanged.
+
+The original profile showed repeated threshold work in the response loop.
+A threshold-only prototype reduced time but increased gradient allocations
+from 1.02 MB to 6.39 MB: inference allowed Float64/AD array alternatives inside
+the loop. Moving that loop behind a function boundary and using the concrete
+transformed element type removes the extra dispatch/boxing. The type-boundary
+change alone gave little improvement, so the final change retains both pieces.
+All prototype recipes, measurements and discarded variants are preserved in
+`results/workflows/20260918-likelihood-reuse-01/`.
+
+The ordinary-optimization Julia 1.12.5 microbenchmark uses 30 warmed evaluations
+at each of nine unchanged C2 positions: zero, two seeded initial jitters and
+draws 1/50/100 from each preserved diagonal/dense cost probe. Input hashes and
+target identity are verified. Both the density and every gradient component
+match the baseline bit for bit, including signed zero.
+
+| Warm ForwardDiff gradient measurement | Before | Final change |
+| --- | ---: | ---: |
+| Per-point median time range, ms | 3.206--3.450 | 2.452--2.593 |
+| Allocated bytes per evaluation | 1,018,816 | 1,059,120 |
+
+The median of the nine pointwise speed ratios is 1.37 (range 1.24--1.39).
+The table requires 40,304 additional allocated bytes per gradient, a 3.96%
+increase; these are allocation totals, not peak resident memory. Measurements
+use separate processes on an uncontrolled host, with no concurrent verification
+jobs started during them. They support a local warm-gradient improvement, not
+a whole-fit speed ratio, general backend ranking or diagnostic qualification.
+
+Verification passed with `-O0`: 2,567 assertions on Julia 1.12.5, 1,327 on
+Julia 1.10.8, and 2,330 in the Julia/CmdStan numerical run (796 CmdStan-specific
+checks; `log_prob`, no CmdStan sampling). The new 168-check regression covers
+2--5 categories, between-item/mixed-within-item Q, sequentially changed/repeated
+parameter vectors, exact pointwise/total agreement, independent equations,
+ForwardDiff/ReverseDiff gradients and Hessians. Existing boundary, prior,
+unit-logit/Jacobian, rater-permutation and short sampler checks also pass.
+The public-language gate passes for 20 source files.
+
+Initial standalone regression commands failed before testing because the root
+project does not expose the test-only ReverseDiff dependency. The corrected
+commands stack a preserved test-dependency environment after the active root
+project and assert that the loaded package path is this working tree. Root
+manifests are unchanged; failed attempts remain recorded. Both sandboxed and
+escalated deadline-helper self-tests passed (22 cases each).
+
+Next, repeat the bounded first-chain cost comparison under the same warmup,
+retained budget, seed and metric controls, verify its historical trajectory
+prefix, and measure fit/phase time and allocation changes. Do not extrapolate
+the microbenchmark ratio to the historical 53-minute fit. Keep adaptation-window
+experiments separate from this arithmetic-preserving optimization. No new C2
+fit, full suite, evaluation grid, independent dataset or scientific acceptance
+was added in this implementation slice; only the existing small sampler
+regressions ran.

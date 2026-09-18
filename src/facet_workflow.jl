@@ -6909,7 +6909,8 @@ function _mgmfrm_source_linear_predictors!(etas::AbstractVector,
         design::FacetDesign,
         params::AbstractVector,
         row::Int,
-        loading_indices::AbstractMatrix{Int})
+        loading_indices::AbstractMatrix{Int},
+        step_values::Union{Nothing,AbstractMatrix} = nothing)
     data = design.spec.data
     dims = design.spec.dimensions
     K = length(data.category_levels)
@@ -6940,13 +6941,13 @@ function _mgmfrm_source_linear_predictors!(etas::AbstractVector,
     etas[1] = zero(scale_value * location_value)
     cumulative = zero(etas[1])
     for category_index in 2:K
-        step_value = _source_step_value(
+        step_value = step_values === nothing ? _source_step_value(
             design,
             params,
             :item_steps,
             item_index,
             category_index,
-        )
+        ) : step_values[category_index, item_index]
         cumulative += scale_value * (location_value - step_value)
         etas[category_index] = cumulative
     end
@@ -6999,12 +7000,22 @@ function _mgmfrm_source_loglikelihood_from_unconstrained(
         raw_params,
         blueprint,
     )
+    return _mgmfrm_source_loglikelihood(design, params)
+end
+
+# Specialize the response loop on the transformed element type. Otherwise the
+# Float64/AD transform union can cause dispatch and boxing for every response.
+function _mgmfrm_source_loglikelihood(design::FacetDesign,
+        params::AbstractVector{T}) where {T}
     data = design.spec.data
     K = length(data.category_levels)
-    T = typeof(_param_zero(params) + 0.0)
     etas = Vector{T}(undef, K)
     loading_indices = _mgmfrm_source_loading_index_matrix(design)
-    total = _param_zero(params)
+    total = zero(T)
+    # Item thresholds do not depend on the person or rater. Rebuild them once
+    # per evaluation (including each AD chunk), never across parameter vectors.
+    step_values = T[_source_step_value(design, params, :item_steps, item, category)
+        for category in 1:K, item in eachindex(data.item_levels)]
     for row in 1:data.n
         _mgmfrm_source_linear_predictors!(
             etas,
@@ -7012,6 +7023,7 @@ function _mgmfrm_source_loglikelihood_from_unconstrained(
             params,
             row,
             loading_indices,
+            step_values,
         )
         total += etas[data.category[row]] - _logsumexp(etas)
     end
