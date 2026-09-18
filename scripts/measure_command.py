@@ -4,6 +4,7 @@
 Usage: python3 scripts/measure_command.py SECONDS -- COMMAND [ARG ...]
 Run --self-test in the same permission context before an expensive command.
 No external timer, resource counters, shell, retries, or cache management.
+Explicit deadlines up to 3,600 seconds are supported.
 """
 
 import argparse
@@ -14,12 +15,14 @@ import subprocess
 import sys
 import time
 
+MAX_SECONDS = 3600
+
 
 def measure(seconds, argv):
     if os.name != "posix":
         raise ValueError("this diagnostic requires POSIX process groups")
-    if not math.isfinite(seconds) or not 0 < seconds <= 1800 or not argv:
-        raise ValueError("require a command and 0 < finite seconds <= 1800")
+    if not math.isfinite(seconds) or not 0 < seconds <= MAX_SECONDS or not argv:
+        raise ValueError(f"require a command and 0 < finite seconds <= {MAX_SECONDS}")
 
     cancelled = 0
 
@@ -116,7 +119,9 @@ def self_test():
                   "space value", "; exit 7", "--flag"])
     verify(result, "completed", 0, 0)
     assert result.stdout == "stdout kept\n" and "stderr kept\n" in result.stderr
-    for seconds in ("nan", "inf", "0", "-1", "1801"):
+    verify(run([str(MAX_SECONDS), "--", sys.executable, "-c", "raise SystemExit(0)"]),
+           "completed", 0, 0)
+    for seconds in ("nan", "inf", "0", "-1", str(MAX_SECONDS + 1)):
         result = run([seconds, "--", sys.executable, "-c", "print('MUST NOT RUN')"])
         assert result.returncode == 2 and not result.stdout, result
         checked += 1

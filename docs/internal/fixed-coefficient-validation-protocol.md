@@ -896,6 +896,81 @@ and all 30 inconclusive backend comparisons remain unchanged. No model source
 or default changed. No full test suite, CI, recovery evaluation or SBC evaluation
 was run, and no independent dataset was generated.
 
+## User-authorized deadline extension (2026-09-18)
+
+The user explicitly requested a longer execution limit after the timeout.
+A separate attempt in
+`results/workflows/20260918-fixed-coefficient-dense-extended-01/` extends the
+external process deadline to 3,600 seconds. The previous failed attempt has no
+saved fit to resume and remains unchanged; this is one newly authorized call,
+not an automatic retry. `extension-decision.json` records that relationship,
+the prior receipt/declaration hashes and the unchanged dense controls, seed,
+target and diagnostic criteria before launch. RSS/output stop thresholds remain
+8 GiB/5 GiB, with ten-second observations.
+
+The command guard now accepts explicit deadlines through 3,600 seconds. Its
+22-case self-test covers acceptance at that boundary and rejection above it,
+alongside the existing status/cancellation/cleanup checks. The follow-up recipe
+accepts an optional fourth CLI argument for the declared wall time; its omitted
+value remains 1,800 seconds. Five Julia checks verify invalid wall times and
+the existing-directory guard under both 1,800 and 3,600 seconds. The launch passes
+3,600 to both the external guard and the recipe. No numerical model or sampler
+source changes accompany this extension.
+
+The extended process **completed all phases with exit 0 in 3,433.39 seconds
+(57.22 minutes)**. It retained 4,000 draws and passed the exact numerical
+save/reload comparison. Fit took 3,214.28 seconds, save 76.84, reload 27.44,
+public structured report 79.00 and diagnostic qualification 16.31. These phases
+belong to one fresh process; startup and other surrounding work are included in
+the enclosing elapsed time. The originally failed 30-minute attempt remains a
+timeout, and neither its files nor the older fits/comparison were replaced.
+
+The extended dense fit meets the original pilot raw/model/focal and sampler
+thresholds. Retained divergences, maximum-depth hits and nonfinite log densities
+are all zero; minimum chain E-BFMI is 0.905. All 30 additional location-diagnostic
+rows also meet the same R-hat and bulk/tail ESS thresholds. This is a diagnostic
+result for one panel, not a proof of convergence or posterior calibration.
+
+| Measure | Preserved diagonal follow-up | Extended dense attempt |
+| --- | ---: | ---: |
+| Observed fit time, minutes | 9.13 | 53.57 |
+| Raw parameters: maximum rank-normalized R-hat | 1.0147 | 1.0033 |
+| Raw parameters: minimum bulk ESS | 457 | 4,589 |
+| Person means: maximum R-hat / minimum bulk ESS | 1.0179 / 357 | 1.0024 / 5,634 |
+| Item means: maximum R-hat / minimum bulk ESS | 1.0170 / 381 | 1.0021 / 5,636 |
+| Item minus person mean: maximum R-hat / minimum bulk ESS | 1.0007 / 4,286 | 1.0026 / 4,831 |
+
+The cost/mixing tradeoff depends on the quantity. Dividing minimum person-mean
+bulk ESS by the observed fit time gives 0.652 versus 1.753 per second; for
+already well-mixed item-minus-person contrasts it gives 7.819 versus 1.503.
+Those descriptive ratios include first-call compilation and all fit work, and
+host activity was not controlled. They do not select a universal metric default.
+
+Retained trajectory work is similar: 60,000 versus 61,776 recorded steps
+(15.00 versus 15.444 per draw). Warmup mean tree depth is 4.221 versus 6.381,
+with maxima 8 versus 10. Warmup step counts and separate compilation/warmup/
+retained-sampling times are not recorded, so the total cost difference cannot
+be allocated to a particular stage. Deeper warmup is a concrete lead for the
+next cost investigation, not a measured attribution of all additional time.
+
+The process-reported peak RSS was 2.84 GiB; the 341 periodic observations peaked
+at 2.50 GiB, with a first observation after 7.81 seconds and a maximum gap of
+10.058 seconds. No resource stop triggered. Saved-fit/target/location checks
+passed 69 assertions, including unchanged sampler settings relative to the
+earlier dense attempt, preserved joint-prior/likelihood shift behavior, and cache
+integrity. All 16 earlier timeout artifacts and four prior fit/comparison files
+matched their recorded hashes. The local comparison, resource records and
+figure recipes are retained with the new attempt. The rendered
+`location-traces.{png,svg,pdf}` compares item I5, the D2 person mean and their
+difference; the PNG was visually checked. These remain internal saved-fit
+analyses; the public location-diagnostic workflow is the next implementation.
+
+No new CmdStan fit or replacement backend comparison was run. The 30 original
+backend-statistic decisions therefore remain inconclusive; this new Julia result
+does not qualify the preserved CmdStan run retroactively. Model sources and
+defaults remain unchanged. No full suite, CI, independent dataset, recovery
+evaluation or SBC evaluation was added.
+
 ## Next implementation and review handoff
 
 Carry finite-panel location summaries into the existing diagnostics, reports and
@@ -907,8 +982,9 @@ means must not be labeled population-mean parameters or treated as new centering
 constraints. This concrete UX gap can be addressed without another long fit.
 
 Before another dense run, use a separately bounded cost probe to distinguish
-compilation, warmup, retained sampling and diagnostic construction, with actual
-trajectory work where available. Do not silently extend this attempt's deadline,
+compilation, warmup, retained sampling and diagnostic construction, following
+the observed warmup-depth difference and retaining actual trajectory work where
+available. Do not silently extend an attempt's declared deadline,
 retry until a fit passes, or choose a default from one panel. Any later
 reparameterization must preserve the declared joint prior and transformation
 measure under both Julia and CmdStan; post hoc hard centering would change the

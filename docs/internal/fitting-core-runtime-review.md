@@ -283,8 +283,11 @@ and cancellation failures cannot become successful tests. Elapsed includes
 launch, wait, and cleanup, not just fitting; no maximum RSS or resource-counter
 report is claimed. [Python's monotonic clock](https://docs.python.org/3/library/time.html#time.monotonic)
 does not depend on wall-clock adjustments. The guard preserves argv, inherited
-environment, stdout/stderr, and the 1,800-second maximum deadline setting;
-it adds no package dependency, cache policy, sampler change, or automatic retry.
+environment, stdout/stderr, and the original 1,800-second maximum deadline
+setting. On 2026-09-18, an explicit user request extended the permitted maximum
+to 3,600 seconds for the [dense-metric follow-up](fixed-coefficient-validation-protocol.md#user-authorized-deadline-extension-2026-09-18).
+Existing invocations retain their explicit deadlines. The guard adds no package
+dependency, cache policy, sampler change, or automatic retry.
 
 Before a fit, run `python3 scripts/measure_command.py --self-test` in the same
 permission context, then run the native no-fit launch with that guard. The

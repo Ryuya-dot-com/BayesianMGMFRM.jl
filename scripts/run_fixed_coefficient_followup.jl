@@ -3,8 +3,9 @@
 # Only the explicitly selected metric may change; no retry or new dataset.
 include(joinpath(@__DIR__, "run_fixed_coefficient_comparison_pilot.jl"))
 
-function followup(pilot, root; metric=:diagonal)
+function followup(pilot, root; metric=:diagonal, wall_seconds::Int=1800)
     metric in (:diagonal, :dense) || error("Follow-up metric must be diagonal or dense")
+    0 < wall_seconds <= 3600 || error("Follow-up wall time must be between 1 and 3600 seconds")
     ispath(root) && error("Use a new output directory; preserve previous attempts")
     original = deserialize(joinpath(pilot, "declaration.jls"))
     panel_path = joinpath(pilot, "panel.jls")
@@ -31,7 +32,7 @@ function followup(pilot, root; metric=:diagonal)
         original_controls=original.controls,
         comparison_policy="Only metric may differ. Retain the original whole-fit gate; additionally inspect finite-panel person/item means and their location-invariant contrasts. One panel cannot select a default or establish scientific acceptance.",
         backend=:advancedhmc, seed=original.seeds.advancedhmc, report_options,
-        planned_calls=1, automatic_retries=false, wall_seconds_per_process=1800,
+        planned_calls=1, automatic_retries=false, wall_seconds_per_process=wall_seconds,
         rss_stop_bytes=8*1024^3, output_stop_bytes=5*1024^3,
         resource_policy="External deadline; observe process RSS/output every <=60 s; interrupt on excess. Not hard memory/storage containment.",
         timing_policy="First public calls in one fresh process; invokelatest includes operation compilation. Earlier phases can warm later phases. Report is structured data, without figure rendering.",
@@ -84,7 +85,8 @@ function followup(pilot, root; metric=:diagonal)
 end
 
 if abspath(PROGRAM_FILE) == (@__FILE__)
-    length(ARGS) in (2, 3) || error("Usage: script.jl ORIGINAL_PILOT NEW_OUTPUT_DIRECTORY [diagonal|dense]")
+    length(ARGS) in (2, 3, 4) || error("Usage: script.jl ORIGINAL_PILOT NEW_OUTPUT_DIRECTORY [diagonal|dense] [WALL_SECONDS <= 3600]")
     followup(abspath(ARGS[1]), abspath(ARGS[2]);
-        metric=length(ARGS) == 3 ? Symbol(ARGS[3]) : :diagonal)
+        metric=length(ARGS) >= 3 ? Symbol(ARGS[3]) : :diagonal,
+        wall_seconds=length(ARGS) == 4 ? parse(Int, ARGS[4]) : 1800)
 end
