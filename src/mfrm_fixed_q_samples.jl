@@ -423,7 +423,65 @@ function direct_posterior_summary(fit::Union{MultidimensionalMFRMFit,_Exchangeab
         for (row, coordinate) in zip(rows, coordinates)]
 end
 
-function diagnostics(fit::Union{MultidimensionalMFRMFit,_ExchangeableMFRMFit}; view::Symbol = :full,
+# Only consume coordinates rebuilt from a validated record. These are equally
+# weighted finite-panel means, not extra population parameters or new constraints.
+function _fixed_q_location_coordinates(checked)
+    spec = _fixed_q_result_spec(checked)
+    all(==(1), sum(spec.q_matrix; dims = 2)) || return NamedTuple[]
+    items = filter(row -> row.block === :item, checked.model_coordinates)
+    rows = NamedTuple[]
+    for d in 1:spec.dimensions
+        persons = filter(row -> row.block === :person && row.dimension == d, checked.model_coordinates)
+        dimension_items = items[spec.q_matrix[:, d]]
+        person_mean = vec(mean(hcat(getproperty.(persons, :values)...); dims = 2))
+        item_mean = vec(mean(hcat(getproperty.(dimension_items, :values)...); dims = 2))
+        for (block, label, values) in ((:person_mean, "Mean ability", person_mean),
+                (:item_mean, "Mean item difficulty", item_mean),
+                (:person_minus_item_mean, "Mean ability minus mean item difficulty", person_mean - item_mean))
+            push!(rows, (; parameter = "$block[$(spec.dimension_labels[d])]", block,
+                label = "$label ($(spec.dimension_labels[d]))",
+                dimension = d, dimension_label = spec.dimension_labels[d], values,
+                fixed = false, derived = true, parameter_space = :derived_unit_logit))
+        end
+    end
+    return rows
+end
+
+const _FIXED_Q_LOCATION_INTERPRETATION = "Location diagnostics use equally weighted means across the fitted persons and, within each dimension, its items, computed at every retained draw in unit logits. These are finite-panel summaries, not population-mean parameters. A joint ability/item shift cancels in person_minus_item_mean; the priors still anchor the separate means. Slow mixing of the means can coexist with well-mixed differences. No centering is imposed on the fitted model. These additional checks use the stored thresholds and do not replace the parameter/sampler summary."
+
+function _fixed_q_location_diagnostics(checked, coordinates = _fixed_q_location_coordinates(checked))
+    isempty(coordinates) && return (; location_status = :unsupported,
+        location_rows = NamedTuple[], location_summary = nothing,
+        location_interpretation = "Finite-panel location diagnostics currently require between-item Q (exactly one active dimension per item); no dimension-specific item mean is defined here for within-item or mixed Q.")
+    run = checked.record.run
+    metrics = _candidate_mcmc_diagnostic_rows(hcat(getproperty.(coordinates, :values)...),
+        String[row.parameter for row in coordinates], run.controls.chains;
+        parameter_space = :derived_unit_logit, split_chains = run.split_chains_requested,
+        rhat_threshold = run.checked.rhat_threshold, ess_threshold = run.checked.ess_threshold)
+    rows = NamedTuple[merge((; row.parameter, coordinate.dimension_label, row.rank_normalized_rhat,
+            row.bulk_ess, row.tail_ess, row.flag), row,
+            (; coordinate.block, coordinate.dimension, coordinate.fixed, coordinate.derived))
+        for (row, coordinate) in zip(metrics, coordinates)]
+    summary = _mcmc_metric_summary(rows, run.checked.rhat_threshold, run.checked.ess_threshold)
+    flag = _generalized_candidate_summary_flag(0, 0, 0, 0, summary, summary)
+    return (; location_status = :computed, location_rows = rows,
+        location_summary = (; summary..., flag),
+        location_interpretation = _FIXED_Q_LOCATION_INTERPRETATION)
+end
+
+"""
+    diagnostics(fit::MultidimensionalMFRMFit; view = :full, ...)
+
+Return parameter, sampler and warmup diagnostics using the saved fit's settings.
+For between-item fixed-coefficient MFRM (including correlated and exchangeable
+rater models), `location_rows` adds rank-normalized R-hat and bulk/tail ESS for
+each dimension's finite-panel ability mean, item mean and their difference.
+`location_summary` summarizes these additional checks; `summary` retains the
+parameter/sampler assessment. The means equally weight fitted facet levels and
+are not population-mean parameters. Within-item or mixed Q returns
+`location_status = :unsupported` with an explanation. No sampling is performed.
+"""
+function diagnostics(fit::_FixedQMFRMFit; view::Symbol = :full,
         split_chains::Bool = fit.record.run.split_chains_requested,
         rhat_threshold::Real = fit.record.run.checked.rhat_threshold,
         ess_threshold::Real = fit.record.run.checked.ess_threshold)
@@ -433,7 +491,8 @@ function diagnostics(fit::Union{MultidimensionalMFRMFit,_ExchangeableMFRMFit}; v
     thresholds = _check_diagnostic_thresholds(rhat_threshold, ess_threshold)
     split_chains == run.split_chains_requested && thresholds == run.checked ||
         throw(ArgumentError("diagnostics must use the stored split_chains, rhat_threshold and ess_threshold settings"))
-    return deepcopy(merge(checked.diagnostics, (; model = checked.model, backend = run.backend,
+    return deepcopy(merge(checked.diagnostics, _fixed_q_location_diagnostics(checked),
+        (; model = checked.model, backend = run.backend,
         diagnostic_settings = (; run.checked..., split_chains = run.split_chains_requested),
         warmup_rows = checked.warmup_diagnostics)))
 end
@@ -450,7 +509,11 @@ function _mfrm_fixed_q_artifact_payload(fit::_FixedQMFRMFit;
     legacy && !(fit isa MultidimensionalMFRMFit) && throw(ArgumentError("legacy artifacts apply only to independent multidimensional MFRM"))
     _is_mfrm_fixed_q(spec) || throw(ArgumentError(
         "fit artifacts and fit caches require canonical multidimensional MFRM samples; use the private loader for legacy samples"))
-    diagnostic = diagnostics(fit; split_chains, rhat_threshold, ess_threshold)
+    # Preserve the existing artifact/cache schema. Additional finite-panel checks
+    # are derived on demand by diagnostics and reports, also for older caches.
+    diagnostic = Base.structdiff(diagnostics(fit; split_chains, rhat_threshold, ess_threshold),
+        (; location_status = nothing, location_rows = nothing, location_summary = nothing,
+            location_interpretation = nothing))
     metadata = legacy ? _mfrm_fixed_q_legacy_fit_metadata(fit) : fit_metadata(fit)
     rng = get(run.controls, :rng, (; algorithm = missing, seed = missing, replayable = false))
     manifest = merge(_fixed_q_model_manifest(fit),
@@ -634,21 +697,35 @@ function _plot_mfrm_fixed_q(result::NamedTuple; size = nothing, kwargs...)
 end
 
 function _mfrm_fixed_q_diagnostic_plot_data(result::NamedTuple;
-        max_parameters::Int = 12, bins = 20, kwargs...)
+        view::Symbol = :parameters, max_parameters::Int = 12, bins = 20, kwargs...)
+    view in (:parameters, :location) || throw(ArgumentError("diagnostic plot view must be :parameters or :location"))
     bins isa Integer && !(bins isa Bool) && bins > 0 || throw(ArgumentError("bins must be a positive integer"))
     checked = _fixed_q_report_samples(result)
     labels = _fixed_q_result_spec(checked).dimension_labels
-    selected = _select_posterior_coordinates(checked.model_coordinates, labels; max_parameters, kwargs...)
+    location_coordinates = _fixed_q_location_coordinates(checked)
+    location = _fixed_q_location_diagnostics(checked, location_coordinates)
+    view === :location && location.location_status !== :computed &&
+        throw(ArgumentError(location.location_interpretation))
+    coordinates = view === :location ? location_coordinates : checked.model_coordinates
+    selected = _select_posterior_coordinates(coordinates, labels; max_parameters, kwargs...)
     selected.scale === :model || throw(ArgumentError("fixed-Q MFRM diagnostic plots use scale = :model"))
     run = checked.record.run
-    data = _trace_rank_plot_data(selected, checked.diagnostics.model_parameter_rows,
+    metric_rows = view === :location ? location.location_rows : checked.diagnostics.model_parameter_rows
+    data = _trace_rank_plot_data(selected, metric_rows,
         checked.diagnostics, run; bins, nchains = run.controls.chains, per_chain = run.controls.ndraws,
         fixed_status = "Fixed coefficient or baseline step; diagnostics not applicable")
     if _fixed_q_is_correlated(checked)
         rows = [merge(row, (; coordinate.parameter_space)) for (row, coordinate) in zip(data.rows, selected.rows)]
         data = merge(data, (; rows))
     end
-    return merge(data, (; model = checked.model, dimension_labels = copy(labels),
+    location_note = location.location_status === :computed ?
+        "Finite-panel locations (all dimensions): $(replace(String(location.location_summary.flag), '_' => ' ')); " *
+        "R-hat max $(_plot_metric(location.location_summary.max_rank_normalized_rhat)), bulk/tail ESS min " *
+        "$(_plot_metric(location.location_summary.min_bulk_ess)) / $(_plot_metric(location.location_summary.min_tail_ess)). " *
+        "Equally weighted fitted-person/item means, not population means; their difference cancels a joint location shift. " *
+        "See diagnostics(fit).location_rows for all dimensions." :
+        location.location_interpretation
+    return merge(data, (; view, location_note, model = checked.model, dimension_labels = copy(labels),
         backend = run.backend, target_identity = checked.record.target_identity,
         diagnostic = replace(data.diagnostic,
             "inspect diagnostics(fit)" => "inspect parameter and sampler diagnostics")),
@@ -743,7 +820,8 @@ function _render_mfrm_fixed_q(extension, kind, data; size = nothing)
         title = "$model\n$backend | $scale_note",
         dimension_labels = data.dimension_labels, xlabel = units, size)
     kind === :diagnostics && return extension._render_diagnostics(data;
-        title = "$model chain diagnostics\n$backend | $scale_note", ylabel = units, size)
+        title = "$model chain diagnostics\n$backend | $scale_note" *
+            (data.view === :location ? " | finite-panel locations" : ""), ylabel = units, size)
     return extension._render_predictive(data;
         title = "$model\n$backend | unit-logit posterior predictive check\nCategory proportions", size)
 end
@@ -822,6 +900,12 @@ function _mfrm_fixed_q_report(result::NamedTuple; posterior_interval::Real = 0.9
             message = replace(_plot_diagnostic_note(checked.diagnostics.summary),
                 "inspect diagnostics(fit)" => "inspect parameter and sampler diagnostics"),
             action = :inspect_parameter_and_sampler_diagnostics)]
+    location = _fixed_q_location_diagnostics(checked)
+    if location.location_status === :computed && location.location_summary.flag !== :ok
+        push!(warning_rows, (; code = :location_mcmc_warning, severity = :warning,
+            message = "Finite-panel ability/item means or their differences need review under the stored MCMC thresholds. Inspect diagnostics(fit).location_rows and plot_diagnostics(fit; view = :location).",
+            action = :inspect_location_diagnostics))
+    end
     prior_policy = _fixed_q_report_prior_policy(checked)
     prior_rows = prior_policy.rows
     fixed_rows = [(; row.parameter, row.block, row.dimension,
@@ -845,8 +929,8 @@ function _mfrm_fixed_q_report(result::NamedTuple; posterior_interval::Real = 0.9
             ndraws, draw_indices = draw_indices === nothing ? nothing : collect(draw_indices),
             resolved_draw_indices = get(posterior_predictive, :draw_indices, nothing),
             rng = rng_control, on_section_error = policy, require_complete),
-        diagnostics = merge(checked.diagnostics, (; status = :computed, warning_rows,
-            interpretation = "Free and reconstructed parameter diagnostics use all retained draws and the stored thresholds. Fixed coordinates have no convergence gate; derived coordinates have their own diagnostics. Whole-model warnings remain even when prediction uses a subset.")),
+        diagnostics = merge(checked.diagnostics, location, (; status = :computed, warning_rows,
+            interpretation = "Free and reconstructed parameter diagnostics use all retained draws and the stored thresholds. Fixed coordinates have no convergence gate; derived coordinates have their own diagnostics. Whole-model warnings remain even when prediction uses a subset. " * location.location_interpretation)),
         warmup = (; status = :computed, rows = checked.warmup_diagnostics,
             n_rows = length(checked.warmup_diagnostics), interpretation = _FIT_REPORT_WARMUP_INTERPRETATION),
         fixed_coordinates = (; status = :computed, rows = fixed_rows, n_rows = length(fixed_rows),
@@ -903,6 +987,8 @@ the existing rating rows and a local `seed`; posterior summaries and diagnostics
 always use all retained draws. Diagnostic settings must match the saved fit.
 The prior section explains free-coordinate SDs, the last-rater/step induced
 variances, rater-label dependence and prior-anchored ability/item locations.
+For between-item Q, `diagnostics.location_rows` also reports finite-panel ability
+and item means and their difference, with a separate summary and warnings.
 
 Set `include_prior_predictive = true` to simulate from the saved model/prior,
 with `prior_predictive_ndraws = 100` and `prior_interval = 0.95` by default.

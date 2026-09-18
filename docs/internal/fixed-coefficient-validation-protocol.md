@@ -973,13 +973,38 @@ evaluation or SBC evaluation was added.
 
 ## Next implementation and review handoff
 
-Carry finite-panel location summaries into the existing diagnostics, reports and
-plots so users can inspect collective slow directions without manually
-rearranging draws. Start with the demonstrated between-item person/item means
-and location-invariant contrasts, preserve the original diagnostic records, and
-check the same saved-result behavior for Julia and CmdStan. These finite-panel
-means must not be labeled population-mean parameters or treated as new centering
-constraints. This concrete UX gap can be addressed without another long fit.
+The 2026-09-18 user-workflow slice connects between-item finite-panel person
+means, dimension-specific item means and their difference to
+`diagnostics(fit).location_rows`, full/public reports and
+`plot_diagnostics(fit; view = :location)`. All facet levels receive equal weight,
+all retained draws and stored thresholds are used, and both backends share the
+calculation. These are not population-mean parameters or new centering
+constraints. Within-item and mixed Q explicitly report unsupported location
+checks. `location_summary` is additional: original parameter/sampler rows,
+summary and cache/artifact schemas remain unchanged. Reports add a separate
+warning, and figures retain the parameter/sampler assessment as well as the
+location-check status for every dimension. The implementation uses existing
+rank-normalized diagnostics and trace/rank rendering, without a new sampler or
+model identity. Verification artifacts are in
+`results/workflows/20260918-location-diagnostics-01/`.
+
+Verification completed on Julia 1.12.5: 7,962 targeted regression assertions
+passed with `-O0`; the ordinary-optimization saved-result replay passed 114
+assertions across the diagonal Julia, dense Julia and preserved CmdStan fits.
+All six public location rows reproduce the earlier derived analysis, with
+separate statuses warning/ok/warning respectively. Existing cache validation,
+exact sample round trips and unchanged input file hashes passed. A further
+22 assertions verified the final sources, six-column Markdown previews,
+report reloads and a public location-figure bundle. PNG/SVG/PDF figures were
+generated and the three PNGs visually checked. Fresh documentation and the
+source/rendered language checks passed (20 source files, 14 HTML files).
+No new MCMC, full-suite/minimum-Julia-version run, recovery evaluation or
+scientific acceptance was added. Interrupted development checks remain in the
+artifact directory. A one-second stack sample of the slow default regression
+runner found LLVM register allocation; this is not a timing decomposition of
+the earlier dense fit. The complete targeted suite passed without changing its
+assertions under `-O0`, while the saved-fit and figure-bundle checks completed
+under ordinary optimization.
 
 Before another dense run, use a separately bounded cost probe to distinguish
 compilation, warmup, retained sampling and diagnostic construction, following

@@ -100,6 +100,38 @@ identification from the data. `person_sd` is a fixed population-prior scale;
 the correlated model below estimates rho while keeping both marginal ability
 SDs fixed. These conventions apply to both backends.
 
+For a between-item model (one active dimension per Q row), inspect the means
+of the fitted persons and items alongside their difference:
+
+```julia
+checks = diagnostics(fit_result)
+checks.location_rows      # named dimensions, rank-normalized R-hat, bulk/tail ESS
+checks.location_summary   # separate from the parameter/sampler summary
+
+using CairoMakie
+fig = BayesianMGMFRM.plot_diagnostics(fit_result; view = :location, dimension = 2)
+save("location-diagnostics.pdf", fig)
+# Include the same figure in a saved report bundle:
+save_fit_report_bundle("report", fit_result;
+    figures = (; diagnostics = (; view = :location, dimension = 2)))
+```
+
+Each mean equally weights the fitted facet levels, regardless of how many
+ratings they received. These are finite-panel summaries, not estimated
+population means. The ability-minus-item mean cancels a joint shift of ability
+and item locations. It can mix well even when the separate means mix slowly;
+review both before interpreting location estimates. This calculation imposes
+no centering constraint on the model.
+
+`fit_report(fit_result)` includes `diagnostics.location_rows`, an explanation
+and a warning when these additional checks need review. They also appear in
+public, Markdown, JSON and table exports. The existing parameter/sampler
+`summary` is preserved, so inspect `location_summary` as well. All retained
+draws and the saved diagnostic thresholds are used, including after
+`load_fit_cache`, for either backend. Within-item and mixed Q return
+`location_status = :unsupported` with a reason; `view = :location` rejects
+those models. Individual-coordinate diagnostics remain available.
+
 ### Exchangeable rater prior
 
 When every rater should have the same prior severity distribution regardless of

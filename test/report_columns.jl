@@ -8,6 +8,19 @@ function table_headers(markdown)
     return [lines[i - 1] for i in 2:length(lines) if startswith(lines[i], "| ---")]
 end
 
+@testset "finite-panel diagnostic Markdown preview" begin
+    rows = [(; parameter = "person_mean[D1]", dimension_label = "D1",
+        rank_normalized_rhat = 1.02, bulk_ess = 350.0, tail_ess = 700.0,
+        flag = :mcmc_warning, diagnostic_method = :rank_normalized_split_rhat_bulk_tail_ess,
+        rhat = 1.01, ess = 360.0, split_chains = true)]
+    for value in (rows, B._json_export_value(rows))
+        md = render(value; public_view = true, path = (:diagnostics, :location_rows))
+        @test only(table_headers(md)) == "| parameter | dimension_label | rank_normalized_rhat | bulk_ess | tail_ess | flag |"
+        @test !occursin("split_chains", md)
+        @test occursin("split_chains", render(value; public_view = true, path = (:diagnostics, :parameter_rows)))
+    end
+end
+
 @testset "shared Markdown column order" begin
     rows = [(; zebra = "最後", upper = 1.0, mean = 0.0, parameter = "θ[1]",
         lower = -1.0, sd = 0.2, median = missing, alpha = "先頭")]

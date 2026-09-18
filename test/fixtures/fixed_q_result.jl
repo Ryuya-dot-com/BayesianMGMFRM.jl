@@ -1,6 +1,8 @@
 # Adapter checks accept an existing result; they never start a sampler.
+include("fixed_q_locations.jl")
 function check_fixed_q_result(result)
     fit = B._mfrm_fixed_q_fit(result)
+    check_fixed_q_locations(fit)
     record, run = result.record, result.record.run
     @test fit isa B.MultidimensionalMFRMFit
     @test fieldnames(typeof(fit)) == (:record,)

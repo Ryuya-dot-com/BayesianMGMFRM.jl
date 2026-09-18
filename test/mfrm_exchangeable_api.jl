@@ -5,11 +5,13 @@ using ..MFRMExchangeableRaterChecks: specification, target, SCALES
 using ..MFRMExchangeableSampleChecks: synthetic_record, rehash
 const B = BayesianMGMFRM
 const E = B.Experimental
+include("fixtures/fixed_q_locations.jl")
 untimed(r) = Base.structdiff(r, (; created_at=nothing))
 
 function check_fit(fit; directory=nothing)
     directory === nothing && return mktempdir(d -> check_fit(fit; directory=d))
     record = fit.record
+    check_fixed_q_locations(fit)
     metadata = fit_metadata(fit)
     @test fit isa E.ExchangeableMFRMFit
     @test metadata.public_fit && metadata.fitting_available && metadata.cache_available
@@ -55,6 +57,7 @@ function check_fit(fit; directory=nothing)
     @test public.metadata.prior == B._public_fit_report_project_value(record.prior)
     @test full.metadata.public_fit && full.prior_predictive.prior == record.prior
     @test full.diagnostics.summary.flag === diagnostics(fit).summary.flag
+    @test isequal(full.diagnostics.location_rows, diagnostics(fit).location_rows)
     @test isequal(untimed(full),untimed(fit_report(restored;view=:full,options...)))
     for report in (public,full)
         md = fit_report_markdown(report;max_rows=0)

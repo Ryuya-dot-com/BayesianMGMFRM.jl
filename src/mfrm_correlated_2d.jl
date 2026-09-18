@@ -289,21 +289,6 @@ function direct_posterior_summary(fit::_CorrelatedMFRMFit;
         for (row, coordinate) in zip(rows, coordinates)]
 end
 
-function diagnostics(fit::_CorrelatedMFRMFit; view::Symbol = :full,
-        split_chains::Bool = fit.record.run.split_chains_requested,
-        rhat_threshold::Real = fit.record.run.checked.rhat_threshold,
-        ess_threshold::Real = fit.record.run.checked.ess_threshold)
-    view === :full || throw(ArgumentError("correlated MFRM diagnostics supports view = :full only"))
-    checked = _mfrm_correlated_2d_samples(fit)
-    run = checked.record.run
-    thresholds = _check_diagnostic_thresholds(rhat_threshold, ess_threshold)
-    split_chains == run.split_chains_requested && thresholds == run.checked ||
-        throw(ArgumentError("diagnostics must use the stored split_chains, rhat_threshold and ess_threshold settings"))
-    return deepcopy(merge(checked.diagnostics, (; checked.model, backend = run.backend,
-        diagnostic_settings = (; run.checked..., split_chains = run.split_chains_requested),
-        warmup_rows = checked.warmup_diagnostics)))
-end
-
 plot_posterior(fit::_CorrelatedMFRMFit; kwargs...) =
     _plot_mfrm_fixed_q(_mfrm_correlated_2d_samples(fit); kwargs...)
 plot_diagnostics(fit::_CorrelatedMFRMFit; kwargs...) =

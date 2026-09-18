@@ -1,7 +1,9 @@
 # Reuse synthetic or previously saved samples; never start a sampler here.
+include("fixed_q_locations.jl")
 function check_correlated_fixed_q_result(result, directory; render = false)
     json(path) = B._read_json_dict(path, "correlated figure verification")
     fit = B._mfrm_correlated_2d_fit(result)
+    check_fixed_q_locations(fit)
     record, run = result.record, result.record.run
     rho = last(result.model_coordinates)
     person = first(row.parameter for row in result.model_coordinates if row.block === :person && row.dimension == 2)
@@ -82,7 +84,10 @@ function check_correlated_fixed_q_result(result, directory; render = false)
     @test report.posterior_predictive.chain_ids == run.chain_ids[indices]
     @test report.posterior_predictive.n_unique_draws == 3
     @test report.diagnostics.summary.flag == diagnostic.summary.flag
-    @test length(report.diagnostics.warning_rows) == (diagnostic.summary.flag === :ok ? 0 : 1)
+    @test length(report.diagnostics.warning_rows) == Int(diagnostic.summary.flag !== :ok) +
+        Int(diagnostic.location_summary.flag !== :ok)
+    @test isequal(report.diagnostics.location_rows, diagnostic.location_rows)
+    @test occursin("diagnostics / location_rows", fit_report_markdown(report))
     predicted = B._mfrm_fixed_q_predictive_plot_data(result; interval = 0.8, draw_indices = indices, seed = 42)
     @test isequal(predicted, B._mfrm_fixed_q_predictive_plot_data(result; interval = 0.8, draw_indices = indices, seed = 42))
     @test predicted.diagnostic == plotdata.diagnostic == tracedata.diagnostic

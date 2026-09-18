@@ -19,6 +19,7 @@ function check_fixed_q_report(fit; directory = nothing)
     @test report.metadata.scale_convention === :unit_logit
     @test report.metadata.diagnostic_settings == diagnostics(fit).diagnostic_settings
     @test isequal(report.diagnostics.model_parameter_rows, diagnostics(fit).model_parameter_rows)
+    @test isequal(report.diagnostics.location_rows, diagnostics(fit).location_rows)
     @test report.rating_design.status === :computed
     audit = rating_design_audit(record.spec)
     @test isequal(report.rating_design.rows, collect(audit.rows))
@@ -94,6 +95,7 @@ function check_fixed_q_report(fit; directory = nothing)
         loaded = load_fit_report_bundle(destination; require_complete = true)
         @test loaded["metadata"]["source_sample_content_hash"] == record.content_hash
         @test loaded["direct_posterior"]["rows"] == B._json_export_value(payload.direct_posterior.rows)
+        @test loaded["diagnostics"]["location_rows"] == B._json_export_value(payload.diagnostics.location_rows)
         @test occursin("unit logits", fit_report_markdown(loaded))
     end
     light = fit_report(fit; include_artifact = false, include_posterior_predictive = false)

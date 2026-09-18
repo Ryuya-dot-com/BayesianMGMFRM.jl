@@ -14,7 +14,12 @@ function check_fixed_q_cache(fit; directory = nothing)
     @test artifact.reproducibility.target_identity == record.target_identity
     @test artifact.reproducibility.source_sample_content_hash == before
     @test isequal(artifact.manifest.fit, fit_metadata(fit))
-    @test isequal(artifact.diagnostics, diagnostics(fit))
+    # v1/v2 artifacts retain their original diagnostic payload; location checks
+    # are added on demand after loading, without invalidating historical caches.
+    @test !hasproperty(artifact.diagnostics, :location_rows)
+    current = diagnostics(fit)
+    @test isequal(artifact.diagnostics,
+        (; (key => getproperty(current, key) for key in keys(artifact.diagnostics))...))
     @test isequal(artifact.posterior_summary, posterior_summary(fit))
     @test isequal(artifact.direct_posterior_summary, B.direct_posterior_summary(fit))
     @test artifact.draws === artifact.log_posterior === artifact.sampler_stats === artifact.warmup_stats === nothing

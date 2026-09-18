@@ -243,6 +243,13 @@ This optional entry point is qualified, not exported.
 For saved fixed-coefficient multidimensional MFRM fits, the default and only
 scale is `:model` (unit logits). Stored diagnostic thresholds are preserved;
 warmup summaries are available in `fit_report(fit).warmup`.
+With between-item Q, `view = :location` shows each dimension's finite-panel
+ability mean, item mean and their difference. Select a dimension by index or
+label, or `block = :person_mean`, `:item_mean`, or `:person_minus_item_mean`.
+The default `view = :parameters` retains the individual coordinates. Both views
+show the separate location-check status alongside the whole-fit assessment.
+These equally weighted panel means are not population-mean parameters;
+within-item and mixed Q do not support the location view.
 """
 function plot_diagnostics(fit::_ModelComparisonFit; kwargs...)
     extension = Base.get_extension(@__MODULE__, :BayesianMGMFRMCairoMakieExt)
@@ -550,7 +557,7 @@ function _fit_report_figure_options(figures)
         throw(ArgumentError("figures must be a nonempty NamedTuple of plot options, such as (posterior = (block = :rater,),)"))
     allowed = (;
         posterior = (:scale, :block, :dimension, :parameters, :max_parameters, :size),
-        diagnostics = (:scale, :block, :dimension, :parameters, :max_parameters, :bins, :size),
+        diagnostics = (:view, :scale, :block, :dimension, :parameters, :max_parameters, :bins, :size),
         predictive = (:size,),
         prior = (:scale, :block, :dimension, :parameters, :max_parameters, :size),
         prior_predictive = (:size,),

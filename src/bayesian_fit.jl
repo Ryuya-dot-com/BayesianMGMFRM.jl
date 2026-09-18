@@ -8733,6 +8733,10 @@ const _PUBLIC_MARKDOWN_STRUCTURED_FIELDS = Set((
 
 function _public_markdown_field_allowed(field::Symbol, path::Tuple = ())
     _public_fit_report_projection_field_allowed(field, path) || return false
+    # Keep the finite-panel diagnostic preview readable; JSON/tables retain
+    # the complete diagnostic method and chain metadata.
+    path === (:diagnostics, :location_rows) && return field in
+        (:parameter, :dimension_label, :rank_normalized_rhat, :bulk_ess, :tail_ess, :flag)
     field in _PUBLIC_MARKDOWN_HIDDEN_FIELDS && return false
     name = String(field)
     startswith(name, "internal_") && return false

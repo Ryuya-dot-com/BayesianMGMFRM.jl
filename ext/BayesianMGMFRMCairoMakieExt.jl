@@ -72,7 +72,8 @@ function _render_diagnostics(fit, data; size = nothing)
 end
 
 function _render_diagnostics(data; title, ylabel = "Value", size = nothing)
-    fig = Figure(; size = size === nothing ? (1100, 285 * length(data.rows) + 310 + 22 * data.nchains) : size,
+    fig = Figure(; size = size === nothing ? (1100, 285 * length(data.rows) + 310 + 22 * data.nchains +
+        (hasproperty(data, :location_note) ? 90 : 0)) : size,
         fontsize = 14)
     Label(fig[1, 1:2], title; fontsize = 20,
         font = :bold, tellwidth = false)
@@ -80,7 +81,7 @@ function _render_diagnostics(data; title, ylabel = "Value", size = nothing)
     styles = (:solid, :dash, :dot, :dashdot, :dashdotdot)
     for (index, row) in enumerate(data.rows)
         position = 2 * index
-        Label(fig[position, 1:2], row.parameter * "\n" * row.status;
+        Label(fig[position, 1:2], get(row, :label, row.parameter) * "\n" * row.status;
             fontsize = 14, tellwidth = false, word_wrap = true)
         trace = Axis(fig[position + 1, 1]; xlabel = "Retained iteration (warmup excluded)",
             ylabel = ylabel isa AbstractDict ? get(ylabel, row.block, "Unit logits") : ylabel, title = "Trace")
@@ -218,11 +219,14 @@ end
 
 function _diagnostics_caption(data)
     s = data.summary
+    scope = hasproperty(data, :location_note) ? "parameters and sampler" : "whole fit"
     return (hasproperty(data, :prior_label) ? data.prior_label * "\n" : "") * "$(length(data.rows)) of $(data.total) coordinates; all $(data.nchains) chains and $(data.per_chain) retained draws per chain. " *
         "$(data.bins) rank bins; ties use average ranks.\n" *
-        data.diagnostic * " (whole fit). R-hat max $(B._plot_metric(s.max_rank_normalized_rhat)); " *
+        data.diagnostic * " ($scope). R-hat max $(B._plot_metric(s.max_rank_normalized_rhat)); " *
         "bulk/tail ESS min $(B._plot_metric(s.min_bulk_ess)) / $(B._plot_metric(s.min_tail_ess)).\n" *
-        join(data.sampler_notes, "\n") * "\nSimilar ranks do not establish convergence. Warmup parameter draws are not stored."
+        join(data.sampler_notes, "\n") * "\n" *
+        (hasproperty(data, :location_note) ? data.location_note * "\n" : "") *
+        "Similar ranks do not establish convergence. Warmup parameter draws are not stored."
 end
 
 function _predictive_caption(data)
