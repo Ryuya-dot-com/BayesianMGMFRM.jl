@@ -1168,11 +1168,87 @@ project and assert that the loaded package path is this working tree. Root
 manifests are unchanged; failed attempts remain recorded. Both sandboxed and
 escalated deadline-helper self-tests passed (22 cases each).
 
-Next, repeat the bounded first-chain cost comparison under the same warmup,
-retained budget, seed and metric controls, verify its historical trajectory
-prefix, and measure fit/phase time and allocation changes. Do not extrapolate
-the microbenchmark ratio to the historical 53-minute fit. Keep adaptation-window
-experiments separate from this arithmetic-preserving optimization. No new C2
-fit, full suite, evaluation grid, independent dataset or scientific acceptance
-was added in this implementation slice; only the existing small sampler
-regressions ran.
+The implementation slice above added no new C2 fit, full suite, evaluation
+grid, independent dataset or scientific acceptance; only the existing small
+sampler regressions ran. The bounded replay below measures the effect on actual
+fitting. Adaptation-window experiments remain separate from this
+arithmetic-preserving optimization.
+
+## Bounded likelihood replay (2026-09-18)
+
+Question: does the threshold/typed-loop improvement reduce actual C2 fitting
+time while preserving the numerical trajectory? At implementation commit
+`73895e7`, the existing cost-probe script ran unchanged in two sequential fresh
+processes: one diagonal and one dense, each with one chain, 1,000 warmup
+transitions, 100 retained draws and a 1,200-second deadline. The panel, target,
+prior, initial vector, seed, metric-specific controls, diagnostic criteria and
+Julia/project/manifest environment match the preceding cost probes. No sampler,
+adaptation, production source or public API change was made in this replay.
+All attempts and comparison/verification recipes are retained in
+`results/workflows/20260918-likelihood-replay-01/`.
+
+Both processes completed on their first declared attempt:
+
+| Observed quantity | Diagonal before | Diagonal after | Dense before | Dense after |
+| --- | ---: | ---: | ---: | ---: |
+| Whole process, seconds | 129.04 | 106.92 | 844.58 | 642.08 |
+| Fit call, seconds | 102.02 | 77.60 | 784.50 | 586.38 |
+| Setup, seconds | 9.02 | 8.97 | 8.30 | 8.60 |
+| Warmup, seconds | 83.79 | 60.82 | 766.09 | 569.84 |
+| Retained sampling, seconds | 5.59 | 3.98 | 6.27 | 4.30 |
+| Result construction, seconds | 3.57 | 3.79 | 3.78 | 3.59 |
+| Compilation within fit, seconds | 12.31 | 12.35 | 11.65 | 11.84 |
+| GC within fit, seconds | 1.47 | 1.62 | 9.66 | 10.40 |
+| Cumulative allocated bytes within fit, decimal GB | 29.039 | 30.064 | 226.878 | 235.613 |
+
+The observed fit-time reductions are 23.9% and 25.3% (before/after ratios
+1.31 and 1.34). Compilation and GC are included in fit/phase times; they are
+not additional stages. Observer work remains approximately 0.047 seconds per
+fit. Subsequent diagnostics take 0.88 and 0.85 seconds outside the fit timer.
+Allocation totals increase by 3.53% and 3.85%; they are not resident-memory
+requirements. Twenty-second resource observations remain within the 8 GiB RSS
+and 5 GiB output stops. Maximum observed RSS, including profile export, is
+1.21 GiB for diagonal and 1.73 GiB for dense; observation is not hard containment
+or an exact continuously measured peak.
+
+Both raw saved-fit files are byte-identical to their baseline probes, with the
+same SHA-256 values. The 36 ordinary-optimization checks also pass: historical
+first-chain prefixes retain exactly the first 100 draws, log densities and
+retained statistics, plus all 1,000 warmup-stat rows; baseline probes retain
+their complete saved run and content hash. Separately, all 2,200 per-transition
+work records agree exactly on chain, iteration, phase, leapfrog count, depth,
+divergence and step size. Source/input hashes and phase-time reconciliation
+pass, as do the deadline helper's 22 cases. The one-chain runs correctly retain
+their insufficient-chains diagnostic status. These are trajectory-preservation
+checks, not a new diagnostic-qualified posterior comparison.
+
+No other Julia verification job was launched during the new fitting processes.
+The baseline diagonal process did overlap a 49-second regression job during
+startup/early fitting. Each variant is still observed once on an uncontrolled
+host, with profiler overhead. The new diagonal log also contains one
+`profiler attempt to access an invalid memory location` warning; the process
+completed and its saved result matches exactly. New profiler samples are not
+used to claim exhaustive attribution; the comparisons above use elapsed-time
+records, transition statistics and saved results. These limitations preclude
+a general speed guarantee or extrapolation to the historical four-chain,
+53-minute fit. No new CmdStan sampling, full suite, evaluation replication,
+independent dataset or scientific acceptance was added.
+
+The remaining dense cost is still concentrated in warmup: its unchanged
+214,048 leapfrog steps take 569.84 seconds. Iterations 101--450 retain 188,591
+steps and take 501.20 seconds, about 88% of warmup. This optimization reduces
+the observed cost per step; it does not reduce the trajectory workload or
+explain why those early dense trajectories require so many steps.
+
+The next bounded investigation should record the adapted metric at the five
+known update boundaries, using the existing private observer's metric field.
+Read the inverse-mass matrix without mutating sampler state, retain scalar
+eigenvalue/conditioning summaries rather than mutable metric references, and
+align each post-update metric with subsequent transitions. Verify trajectory
+and RNG preservation before interpreting the observations. Actual conditioning
+has not yet been measured; short covariance windows remain a hypothesis.
+Only then specify a separate adaptation-window comparison if warranted, with
+unchanged target and diagnostic criteria, declared work/resource limits and
+all attempts retained. Neither a new default nor a full four-chain rerun is
+implied. This runtime work does not block an independently justified next
+MGMFRM covariance/within-item slice.
