@@ -3611,16 +3611,25 @@ acceptance remains false.
 
 ## Next bounded work
 
-Prepare the bounded pilot's execution-readiness declaration under the
-[protocol handoff](fixed-coefficient-validation-protocol.md#next-implementation-and-review-handoff):
-map supplied backend sampler/initializer settings and bind RNG algorithms/stream
-keys, source/environment identities and resource/stop limits. Check the
-declaration without launching fits; reuse existing execution/provenance helpers
-and distinguish proposed/declared caps from measured/enforced limits. This does
-not accept the eight-call pilot or full evaluation allocation.
-Independent target-specific M1 review precedes statistical evaluation.
-Ordered-step priors, higher-dimensional covariance, within-item validation,
-automatic request caching, hard anchors and application predictors remain separate.
+The fixed-coefficient pilot declaration, C2 execution and bounded Julia
+follow-ups are complete as engineering observations; failures and inconclusive
+original backend comparisons remain recorded in the
+[validation protocol](fixed-coefficient-validation-protocol.md#one-condition-computation-pilot-2026-09-17).
+The [likelihood replay](fixed-coefficient-validation-protocol.md#bounded-likelihood-replay-2026-09-18)
+confirms byte-identical saved results at lower observed cost. These observations
+are not recovery/SBC evaluation or a qualified C2 backend agreement.
+
+Use the roadmap's [current implementation handoffs](../../ROADMAP.md#next-implementation-handoffs)
+as the single work order: a bounded observation of adapted metric conditioning,
+then the existing 2D between-item generalized correlation target and its missing
+workflow connections. Keep the subsequent mixed-Q/identity-covariance review
+separate. Reuse the existing observer, target/sampling and result consumers;
+stop cost investigation at its declared output even if the mechanism remains
+unresolved. No new sampler, schedule sweep or full-chain rerun is implied.
+The [protocol review handoff](fixed-coefficient-validation-protocol.md#next-implementation-and-review-handoff)
+retains the independent target-specific decisions needed before statistical
+evaluation. Ordered-step priors, automatic request caching, hard anchors and
+application predictors remain separately scoped work.
 
 Separately, record an unfamiliar reader finding the supported model/backend, loading a fit,
 choosing a named dimension, interpreting diagnostic/interval labels and saving/

@@ -1,6 +1,7 @@
 # Fixed-coefficient MFRM validation protocol
 
-Draft, 2026-09-17. Owner: analyst/maintainer. Independent M1 review and
+Draft design dated 2026-09-17; execution evidence and handoff updated 2026-09-18.
+Owner: analyst/maintainer. Independent M1 review and
 execution acceptance are **open**. Numbers below are concrete review proposals,
 not adopted scientific criteria, package defaults or permission to run a grid.
 Protocol drafting and sampler-free Julia preparation generated no live fits,
@@ -1006,22 +1007,39 @@ the earlier dense fit. The complete targeted suite passed without changing its
 assertions under `-O0`, while the saved-fit and figure-bundle checks completed
 under ordinary optimization.
 
-The subsequent bounded cost probe below distinguishes compilation, warmup,
-retained sampling and result construction while retaining actual trajectory
-work. Do not silently extend an attempt's declared deadline,
-retry until a fit passes, or choose a default from one panel. Any later
-reparameterization must preserve the declared joint prior and transformation
-measure under both Julia and CmdStan; post hoc hard centering would change the
-model. Do not grow preparation machinery as a substitute for this evidence or
-condition full evaluation on completing every MFRM cell before MGMFRM work.
+The subsequent [cost localization](#sampling-cost-localization-2026-09-18)
+and [likelihood replay](#bounded-likelihood-replay-2026-09-18) below now provide
+phase timings, unchanged trajectory-work counts and exact saved results. The
+next cost deliverable is the bounded adapted-metric observation specified in
+the [current roadmap handoffs](../../ROADMAP.md#next-implementation-handoffs).
+Its exit is a recorded finding or unresolved mechanism, not a default choice
+or repeated attempts until a preferred schedule wins. The generalized model
+contract can proceed without completion of this fixed-coefficient study.
+Any later reparameterization must preserve the declared joint prior and
+transformation measure under both Julia and CmdStan; post hoc hard centering
+would change the model.
 
-Independent review must resolve target/identification interpretation, scientific
-margins or descriptive-only claims, allocation precision, SBC dependence policy,
-sampler/initializer mapping, and resource/failure stops before fresh evaluation.
-Prepare code and reviewable evidence while those decisions are open. Report
-mathematical checks, operability, reviewed design, statistical evidence and
-scientific acceptance separately. Neither this protocol nor prior short API
-fits close M1/M2, choose a default prior, or qualify an application analysis.
+The next scientific deliverable is a reviewable decision on this protocol's
+question/design/estimand mapping, using the existing proposals and execution
+evidence. Resolve the intended use and scientific margins (or explicitly retain
+descriptive-only claims), fixed-facet recovery versus joint-prior SBC, allocation
+precision, SBC within/across-dataset dependence, sampler/initializer mapping,
+and resource/failure stops. The proposed 400-replication recovery families and
+500-dataset SBC targets remain proposals; determine their adequacy for the
+accepted claims rather than increasing them merely to obtain a pass. Preserve
+all-attempt denominators, MCSE and inconclusive backend pairs. Review decisions
+must identify the target, source revision and accepted scope; fixed-coefficient
+between-item acceptance cannot cover estimated loadings, within-item covariance
+or a different prior by analogy.
+
+Independent target-specific acceptance precedes fresh evaluation. No independent
+reviewer is yet assigned; prepare the concrete packet while core implementation
+continues. Report mathematical checks, operability, reviewed design, statistical
+evidence and scientific acceptance separately. The dense Julia follow-up does
+not qualify the original CmdStan fit or resolve its 30 inconclusive comparisons;
+a future paired posterior claim requires qualification of both retained inputs.
+Neither this protocol nor short API fits close M1/M2, choose a default prior,
+or qualify an application analysis.
 
 ## Sampling cost localization (2026-09-18)
 

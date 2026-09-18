@@ -420,8 +420,13 @@ now applies explicit criteria and statistic-specific precision to paired
 backend records while preserving failed/inconclusive comparisons. The
 [SBC attempt binding](fixed-coefficient-validation-protocol.md#sampler-free-sbc-attempt-binding)
 now preserves planned IDs, generating contracts, selected draws, full quantity
-diagnostics and failure/dependence declarations in rank summaries. Next, prepare
-the bounded pilot's settings/RNG/provenance/resource declaration and checks,
-without launching fits. Ordered-step
-priors, the scientific default and broader random-effect structure remain
-separate choices.
+diagnostics and failure/dependence declarations in rank summaries. The
+[subsequent C2 pilot and Julia follow-ups](fixed-coefficient-validation-protocol.md#one-condition-computation-pilot-2026-09-17)
+now supply actual execution, diagnostic and cost evidence, not recovery/SBC
+calibration. The [current roadmap handoffs](../../ROADMAP.md#next-implementation-handoffs)
+replace the completed pilot-preparation task. Retain this document's prior and
+identification contract in the metric observation and the next generalized
+model review; the fixed-coefficient target does not validate that generalized
+extension. Ordered-step priors, the scientific default and broader random-effect
+structure remain separate choices. Independent review still determines the
+accepted target/domain and scientific margins before evaluation.

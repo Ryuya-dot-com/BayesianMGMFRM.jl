@@ -1,20 +1,23 @@
 # BayesianMGMFRM.jl — Internal Roadmap
 
-Updated 2026-09-17 with verified
-[sampler-free SBC attempt binding](docs/internal/fixed-coefficient-validation-protocol.md#sampler-free-sbc-attempt-binding)
-for fixed-coefficient MFRM, following diagnostic/comparison preparation.
-Planned IDs and generating contracts now bind to saved fits, selected draws,
-full SBC quantity diagnostics and rank/failure accounting. Missing ranks retain
-the planned denominator; unresolved dependence cannot silently pass a rank
-screen. This is synthetic preparation evidence, not MCMC calibration. No live
-fit or evaluation replication was run. Next, prepare the bounded pilot's
-settings/RNG/provenance/resource declaration and checks. Independent scientific
-review, dependence policy and execution acceptance remain open.
-Compatibility defaults and historical records retain their meanings.
-The final API migration away from
-development-status names remains a model-specific release requirement. The
-independent model retains its meaning and saved artifacts. Julia remains primary, CmdStan remains its maintained counterpart,
-and Uchihara (2022) remains a secondary application.
+Updated 2026-09-18 after the [bounded likelihood replay](docs/internal/fixed-coefficient-validation-protocol.md#bounded-likelihood-replay-2026-09-18)
+at implementation commit `73895e7` (evidence recorded in `5cc7ad8`). Julia fit
+time fell from 102.02 to 77.60 seconds with diagonal metric and from 784.50 to
+586.38 seconds with dense metric in the one-chain cost probes. Saved results
+are byte-identical; 36 replay checks and all 2,200 transition-work records
+agree. These single-condition observations preserve the target but do not
+establish a general speed ratio or scientific acceptance. Cumulative allocation
+increased by 3.53%/3.85%.
+
+The next work is a bounded observation of early dense adaptation, followed by
+the next reusable MGMFRM model contract and implementation slice. Performance
+investigation has a stopping rule; it does not replace model development.
+Fresh recovery/SBC evaluation, diagnostic-qualified C2 backend agreement,
+independent review and the unfamiliar-reader walkthrough remain open.
+Julia remains primary, CmdStan remains its maintained counterpart, and
+Uchihara (2022) remains a secondary application. The final migration away from
+development-status API names remains a model-specific release requirement;
+compatibility defaults and historical results retain their meanings.
 This is the **single current work order**, not a public feature catalogue or a
 completion percentage. Start with the decision below;
 do not reconstruct priorities from historical checkboxes. The
@@ -140,9 +143,10 @@ model block or user decision. The existing narrow fixed-Q/identity-correlation
 branch is a reusable numerical baseline; the first substantive validation target
 must follow the accepted package model and intended domain, with its restrictions
 explicit. The Uchihara design does not define that domain. The
-separate free-correlation density/gradient candidate and
-historical pilots are useful assets, not a promoted fitting API or fresh
-independent evaluation. This review does not change model code, protocol
+generalized free-correlation density/gradient candidate and historical pilots
+are useful assets. They are distinct from the connected fixed-coefficient
+correlation API and do not establish a promoted generalized correlation API or
+fresh independent evaluation. This review does not change model code, protocol
 constants, scientific acceptance, or execution permissions.
 
 ### First Julia core verification slice
@@ -721,7 +725,7 @@ warnings. The preview retained eight ability coordinates for two persons.
 This establishes representation and guard behavior only; no posterior fit,
 Stan compilation, bifactor identification or scientific validation was performed.
 
-**Current bounded deliverable:** prior-predictive inspection for independent
+**Completed foundation evidence:** prior-predictive inspection for independent
 and correlated fixed-coefficient MFRM now uses the declared joint priors and
 existing response kernel. Parameter summaries, `plot_prior(check)` and
 `plot_predictive(check)` provide ability/correlation and rating implications
@@ -742,8 +746,9 @@ response likelihood and existing ability/correlation terms. Explicit kernel,
 common marginal and contrast scales, unchanged item/step priors and a distinct
 persistable mathematical target identity are recorded in the
 [implementation evidence](docs/internal/normalized-prior-backend-comparison.md#fixed-coefficient-exchangeable-rater-reference-2026-09-17).
-Existing public fitting entry points still choose the compatibility prior;
-no new public fit/cache selector or default migration is implied.
+The reference-only implementation initially left public prior selection
+unchanged. The later explicit opt-in API below now supplies that selector;
+the compatibility default has not migrated.
 The private prior-draw adapter and comparison now match either mean pairwise
 contrast variance or the compatibility free-rater marginal SD. They retain
 nonrater draws, share predictive uniforms, handle the R=2 equality case and
@@ -789,13 +794,15 @@ The [diagnostic/comparison preparation](docs/internal/fixed-coefficient-validati
 now applies supplied criteria and numerical margins, retaining failed/inconclusive
 pairs and a fixed comparison family. The [SBC attempt binding](docs/internal/fixed-coefficient-validation-protocol.md#sampler-free-sbc-attempt-binding)
 now retains planned IDs, generating targets, selected draw identities and
-failure/dependence declarations in rank summaries. **Next bounded deliverable:**
-prepare the bounded pilot's sampler/initializer mapping, explicit RNG streams,
-source/environment and resource/stop declarations and checks. Study criteria
-remain proposals; no fresh fit grid, new controller or default change.
-Ordered-step priors and scientific default selection remain separate decisions.
-Higher-dimensional covariance, within-item validation, automatic request caching
-and hard anchors remain separate.
+failure/dependence declarations in rank summaries. The subsequent
+[C2 computation pilot and follow-ups](docs/internal/fixed-coefficient-validation-protocol.md#one-condition-computation-pilot-2026-09-17)
+now provide actual execution, diagnostic and cost evidence, including retained
+failures. The [current implementation handoffs](#next-implementation-handoffs)
+replace the former pilot-preparation task. Study criteria remain proposals;
+there is no new fit grid, controller or default change. Ordered-step priors and
+scientific default selection remain separate decisions. Higher-dimensional
+covariance, within-item validation, automatic request caching and hard anchors
+are not supplied by the C2 evidence.
 The warmup recording slices above are verified. Interruption-time histories
 remain unavailable; adding them is deferred until a concrete failure-diagnosis
 need warrants it, while existing error and cache-preservation guarantees remain.
@@ -869,12 +876,15 @@ implementation sequence; specification of independent later branches can
 proceed when it resolves a concrete model question. Non-compensatory models
 and Q structure inference are separately prioritized branches; neither requires
 the other to be implemented first. Fixed-Q identification and candidate
-comparison can advance with the current additive model.
+comparison can advance with the current additive model. This is an order of
+implementation focus: scientific completion of every earlier model is not a
+blanket prerequisite for later code/specification work. Each extension needs
+its relevant contract; domain promotion still needs its own evidence.
 
 | Order and purpose | Bounded deliverable | Evidence and user-facing completion condition |
 | --- | --- | --- |
-| 1. Finish the existing foundation — make an estimated ability vector reusable | Expose restricted experimental fitting on the implemented canonical fixed-coefficient result, cache, full/public report and named-dimension figure path. Preserve existing MFRM/GMFRM/MGMFRM meanings and v1/v2 records | Same model, prior, diagnostic settings, selected dimensions and intervals survive Julia/CmdStan save/reload and report/figure export. Complete target-specific validation and reader review for the advertised scope; short fits establish operability only |
-| 2. Correlated dimensions and within-item validation — distinguish related abilities and cross-loaded items | Reuse the correlation candidate for a declared fixed-Q model, initially two dimensions, then verify higher-dimensional covariance without making two traits a permanent API limit. Evaluate between-item, within-item and mixed Q separately. Change covariance and loading structure in separate contrasts; specify bifactor roles/constraints as a distinct extension | Recover ability, loading and population-correlation uncertainty under selected correlation, Q and coverage conditions; assess prior sensitivity and confusion between cross-loadings and correlations. Deliver correlation intervals/figures and named loading/ability summaries. Bifactor additionally requires general/specific score interpretation and its own recovery evidence |
+| 1. Accept the implemented foundation for a declared domain | Experimental fixed-coefficient fitting, prior inspection, manual persistence, reports and named-dimension figures are connected on both backends. Complete the remaining model/protocol decisions, diagnostic-qualified comparisons, statistical evidence and reader review; do not reimplement the completed workflow | Same model, prior, diagnostic settings, selected dimensions and intervals survive Julia/CmdStan save/reload and report/figure export. Complete target-specific validation and reader review for the advertised scope; short fits establish operability only |
+| 2. Correlated dimensions and within-item validation — distinguish related abilities and cross-loaded items | Follow the [concrete model handoff](#next-implementation-handoffs): first the existing 2D between-item generalized correlation candidate and its explicit prior/identification contract; separately examine a declared mixed fixed-Q geometry with covariance held at identity. After those separate checks, specify 2D correlation/cross-loading combinations and higher-dimensional positive-definite covariance as distinct extensions. Bifactor roles and constraints require a distinct specification; two dimensions are an initial slice, not the permanent API limit | Recover ability, loading and population-correlation uncertainty under selected correlation, Q and coverage conditions; assess prior sensitivity and confusion between cross-loadings and correlations. Deliver correlation intervals/figures and named loading/ability summaries. Bifactor additionally requires general/specific score interpretation and its own recovery evidence |
 | 3. Configurable random effects — represent dependence at the actual grouping units | Begin with one justified extra grouping block and an estimated variance/hyperprior, e.g. task or recording. Extend the same design representation to nested/crossed intercepts, then predictor-specific random slopes and selected covariance blocks. Distinguish a modeled effect from an identifier retained only for reporting | Use replication/overlap conditions that can separate the effects; test weak/near-zero variance, omitted effects, shrinkage and confounding with abilities or facet severity. Deliver effect/variance/covariance summaries and plots. Define conditional existing-level and integrated new-level prediction separately; expose each only when implemented and checked |
 | 4. Non-compensatory response models — test a different ability-to-response mechanism | Select one scientifically justified ordinal response equation first; define category probabilities, thresholds, rater effects, scale/prior measures and its unidimensional behavior. Preserve the additive model as an explicit alternative with a distinct target identity | Verify normalized valid probabilities, intended monotonicity and the stated compensation behavior. Use known-truth fits under both generating mechanisms to assess ability/decision calibration and predictive discrimination. Report dimension-conditioned response surfaces; an operational pass rule or author label does not define the response kernel |
 | 5. Q structure inference — quantify uncertainty about what each item measures | First improve fixed-Q identification explanations and compare a bounded, prespecified set of candidate Q matrices at a fixed dimension count. Next allow selected unknown cells with declared structural priors, then exploratory loading/rotation policies. Selection of dimension count is a separate decision | Check distinguishable/equivalent structures, weak cross-loadings, incorrect Q and sparse coverage; assess structure recovery and ability/interval calibration with alignment appropriate to the model. Report candidate support or cell-inclusion probabilities only for the implemented inferential method, plus loading/structure figures and sensitivity to Q. Conditional-on-Q results must remain labelled; selecting one Q does not account for structural uncertainty |
@@ -2218,16 +2228,17 @@ not prerequisites for the first delivery below.
 
 | Slice / responsible role | Concrete deliverable | Completion evidence and dependency |
 | --- | --- | --- |
-| Public content and ordinary workflow — maintainer, with analyst input | The [README/manual/help correction](#public-documentation-cleanup-2026-09-14) and short data -> specification -> fit -> diagnostics/summary -> figures -> save/reload route are implemented; retain their factual consistency during report integration. Record proposed spellings, old-to-new mappings, version/stability policy and affected callers only for actual API changes | Source, live-help and fresh-HTML checks now pass; unfamiliar-reader acceptance remains pending. The introductory path needs no custom printing helpers, private names, manual cache keys or compulsory design inspection. A user can identify the fitted family, restrictions and warning status. Preserve experimental boundaries and old calls; proposed figure operations stay out of runnable public examples until implemented |
+| Public content and ordinary workflow — maintainer, with analyst input | The [README/manual/help correction](#public-documentation-cleanup-2026-09-14) and short data -> specification -> fit -> diagnostics/summary -> figures -> save/reload route are implemented; retain their factual consistency as model support expands. Record proposed spellings, old-to-new mappings, version/stability policy and affected callers only for actual API changes | Source, live-help and fresh-HTML checks now pass; unfamiliar-reader acceptance remains pending. The introductory path needs no custom printing helpers, private names, manual cache keys or compulsory design inspection. A user can identify the fitted family, restrictions and warning status. Preserve experimental boundaries and old calls; proposed figure operations stay out of runnable public examples until implemented |
 | Draw and interpretation mapping — analyst/maintainer | Reuse fit draws, chain IDs, iterations, parameter layouts, direct transforms and existing report summaries behind the selected user operations. Allow selection by named parameter, facet/block and dimension, with explicit computational versus model scale | Stable MFRM and computational diagnostics can proceed without full M1 freeze. A generalized interpretation view needs the accepted model/scale slice, not completion of M2. Verify reconstruction of constrained coordinates, label/chain alignment, actual prior metadata and unchanged old-artifact interpretation; never silently change the existing raw-summary default |
-| Standard figures — maintainer | Deliver fit-taking MCMC diagnostics, posterior interval plots, posterior predictive/calibration plots, and the supported MFRM Wright map. Return editable figure objects with documented display and PDF/SVG saving. Reuse one plotting backend and existing numerical consumers | First exercise existing stable fits and explicit generalized cases with known scale metadata; new scientific-model figures follow their verified implementation. Check every advertised family/plot combination. A stable-only plot remains explicitly unavailable for unsupported generalized fits. Plotting must not trigger a refit or require research artifacts |
-| Integrated report and user walkthrough — maintainer, analyst and a reader unfamiliar with the implementation | Extend the existing report/bundle route with selected figures, captions and numerical tables from the same analysis settings. The stable minimal and both guarded examples now supply the short path | From a documented setup, the reader can fit, inspect a warning, select a rater/dimension, save/reload the fit through the existing cache/persistence route, and regenerate an editable figure and report without handling draw matrices. Record task outcomes and remaining friction. This is usability evidence, not independent scientific review |
+| Standard figures — maintainer | Posterior intervals, trace/rank diagnostics, category predictive figures and the stable MFRM Wright map are implemented for their documented scope. Extend those editable figures to each new model's named quantities, using the existing backend and numerical consumers; add further calibration views for a specified user task | First exercise existing stable fits and explicit generalized cases with known scale metadata; new scientific-model figures follow their verified implementation. Check every advertised family/plot combination. A stable-only plot remains explicitly unavailable for unsupported generalized fits. Plotting must not trigger a refit or require research artifacts |
+| Integrated report and user walkthrough — maintainer, analyst and a reader unfamiliar with the implementation | Selected figures, captions and numerical tables are integrated into reports/bundles. Use the existing stable, guarded and fixed-coefficient examples for the reader walkthrough; carry the same analysis settings through new-model consumers | From a documented setup, the reader can fit, inspect a warning, select a rater/dimension, save/reload the fit through the existing cache/persistence route, and regenerate an editable figure and report without handling draw matrices. Record task outcomes and remaining friction. This is usability evidence, not independent scientific review |
 
-**Immediate UX work:** integrate selected figures with the existing reports
-and bundles, then record the unfamiliar-reader walkthrough. Short stable and
-guarded workflows and public-content corrections are verified below. Preserve
-the existing qualified figure names and compatibility bindings; no new API
-registry or model decision is needed for the report integration.
+**Immediate UX work:** report/figure integration is implemented. Prepare and
+record the unfamiliar-reader walkthrough on the existing supported workflow,
+then correct observed friction. For each new model slice, extend that same
+workflow and verify its scale, warnings and save/reload behavior. Preserve the
+existing qualified figure names and compatibility bindings; final API promotion
+follows the model-specific migration requirements above.
 
 Select `BayesianMGMFRM.plot_predictive` in place of the earlier proposed
 abbreviation `plot_ppc`; no alias is added. It joins
@@ -2624,47 +2635,29 @@ these checks add zero evaluation replications and do not replace M1/M3 review.
 
 ## Immediate work and stop conditions
 
-Prioritize the Julia foundation. The canonical fixed-coefficient experimental
-fit, manual cache, report and figure workflow is connected. Its generic example
-covers both backends; the [owner's record](docs/internal/normalized-prior-backend-comparison.md#experimental-fixed-coefficient-fitting-2026-09-15)
-separates bounded operability from statistical acceptance. The correlated model's
-[density and Jacobian contract](docs/internal/normalized-prior-backend-comparison.md#correlated-fixed-coefficient-density-2026-09-15),
-[saved samples](docs/internal/normalized-prior-backend-comparison.md#private-correlated-sampling-and-reconstruction-2026-09-17)
-and [experimental API](docs/internal/normalized-prior-backend-comparison.md#experimental-correlated-mfrm-api-2026-09-17)
-now connect without changing historical independent artifacts. Prior-predictive
-inspection and direct figures are implemented; their optional integration into
-saved-fit reports is implemented. The current prior/identification contract is
-characterized, including its rater-label dependence. A separate exchangeable-rater
-reference and scale-matched prior-predictive comparison now pass their bounded
-checks. Private sampling/results and save/reload now preserve the new target
-identity. Saved results now drive posterior prediction, reports and figures.
-The opt-in prior now reaches public experimental fitting, manual caches, reports
-and figures. The [target-specific validation protocol](docs/internal/fixed-coefficient-validation-protocol.md)
-is now a concrete draft, with a sampler-free rank/scale/allocation audit and
-verified Julia generation/estimand/scoring preparation on synthetic inputs.
-Joint-prior SBC generation, data-dependent quantities and rank arithmetic are
-also verified. Diagnostic qualification and paired backend comparison now retain
-all planned pairs under supplied criteria and numerical margins. SBC IDs/draws
-now bind to rank/failure accounting with separate draw/dataset dependence holds.
-A [one-condition computation pilot](docs/internal/fixed-coefficient-validation-protocol.md#one-condition-computation-pilot-2026-09-17)
-now replaces further generic readiness work as the immediate evidence source.
-Both backends produced saved draws. The Julia process reached its 30-minute
-deadline after saving; CmdStan required a separately recorded compiler-permission
-recovery and retained item-location diagnostic warnings. A warm-gradient profile
-exposed repeated design/Q validation inside the likelihood path. Blueprint reuse
-has corrected that cost while preserving the target, boundary checks and exact
-diagonal-run replay. The first dense-metric attempt timed out after 30 minutes;
-an explicitly authorized 60-minute rerun completed and improved collective
-location diagnostics at higher observed cost. Those diagnostics are now visible in
-the public workflow. The bounded cost probe localizes dense cost to early/middle
-warmup trajectory work. Threshold reuse and a concrete numeric loop now reduce
-measured warm-gradient time while preserving the target. The bounded replay
-also records 23.9%/25.3% lower diagonal/dense fit time, with byte-identical saved
-results and unchanged trajectory work; these single observations are not a
-general speed guarantee. Next inspect adapted-metric conditioning before any
-separate schedule comparison. Scientific margins and independent
-review remain open; the proposed evaluation counts do not authorize execution. Application
-preparation and reader recruitment do not block this core work.
+Prioritize the Julia foundation through the next three
+[implementation handoffs](#next-implementation-handoffs). The fixed-coefficient
+independent/correlated and explicit exchangeable-prior workflows are connected
+on Julia and CmdStan, including prior inspection, fitting, diagnostics, figures
+and saved results. This is operational and numerical evidence; model-specific
+scientific acceptance is still open.
+
+The [C2 pilot](docs/internal/fixed-coefficient-validation-protocol.md#one-condition-computation-pilot-2026-09-17)
+retains execution failures and 30 inconclusive original backend comparisons.
+A separately authorized dense Julia follow-up passed the pilot and additional
+location thresholds on that one panel; it does not retroactively qualify the
+preserved CmdStan fit. The [cost/replay evidence](docs/internal/fixed-coefficient-validation-protocol.md#bounded-likelihood-replay-2026-09-18)
+shows an unchanged trajectory at lower observed cost. Most remaining dense
+work is in early/middle warmup, with its metric-conditioning mechanism unmeasured.
+
+Complete one bounded geometry observation and record whether a separate
+algorithm comparison is warranted. An inconclusive mechanism finding is a
+valid stopping point, not a reason for unlimited profiling or pass-seeking
+reruns. Move to the generalized model contract even if no faster adaptation is
+established; revisit cost only for a demonstrated blocker to that slice or a
+later release requirement. Review preparation and supported-workflow UX can
+proceed alongside these implementation handoffs. Neither reviewer recruitment,
+Uchihara readiness nor completion of every MFRM validation cell blocks them.
 
 The numbered rows are bounded handoffs, not a requirement to finish every
 specification before making a routine correction. Work on an accepted model
@@ -2676,11 +2669,11 @@ priority follows the Julia user workflow, not the readiness of a paper dataset.
 
 | Task / owner role | Next deliverable | Verification and stop condition |
 | --- | --- | --- |
-| 1. Localize the remaining Julia estimation cost — analyst/maintainer | Use the existing private observer to record adapted-metric eigenvalue/conditioning summaries at warmup update boundaries, aligned with subsequent trajectories. Verify trajectory/RNG preservation before interpreting the measurements; short initial covariance windows remain a hypothesis. The [bounded likelihood replay](docs/internal/fixed-coefficient-validation-protocol.md#bounded-likelihood-replay-2026-09-18) records diagonal/dense fit time of 77.60/586.38 s versus 102.02/784.50 s, byte-identical saved fits, 36 passing replay checks and 2,200 identical transition-work records. Cumulative allocation rises 3.53%/3.85%; single uncontrolled observations do not establish a general speed ratio. This follows the [verified kernel optimization](docs/internal/fixed-coefficient-validation-protocol.md#likelihood-loop-reuse-2026-09-18); it does not change the [historical four-chain diagnostic evidence](docs/internal/fixed-coefficient-validation-protocol.md#user-authorized-deadline-extension-2026-09-18). Specify a separate adaptation-schedule comparison only if the metric observations warrant it; no full four-chain rerun is queued | Exit: retain the same joint prior, likelihood, coordinates/Jacobian and diagnostic criteria. Label finite-panel means correctly and preserve original diagnostic records. One panel's diagnostic gains do not establish calibration, a universal speed advantage or a new default. Keep all attempts and their declared deadlines; do not hard-center the fitted model or start the grid. MFRM-wide validation is not a prerequisite for the next relevant MGMFRM slice |
-| 2. M1 Julia model-to-code contract and estimation path — analyst/maintainer | Resolve the relevant source/exchangeable-prior, identification and validation-scope decisions; correct demonstrated shared-path gaps and retain the [core trace's remaining failure boundaries](#first-julia-core-verification-slice). Prepare the next covariance/within-item slice under the [extension sequence](#long-term-extension-sequence), reusing existing components | Exit: equations, coordinates, scale constants, priors/Jacobians and parameter meanings have code/evidence mappings and explicit unresolved decisions. Check target/gradients, invalid inputs, initialization/sampling failures and result integrity as affected. Record actual runtime/resource limits; model changes have distinct identities. No copied fitting engine or blanket source refactor |
-| 3. CmdStan continuity — analyst/maintainer; accompanies each model slice | Maintain estimation of the same target under the [dual-backend contract](#julia-and-cmdstan-continuity-and-comparison); check common-coordinate densities, gradients and probabilities, then diagnostic-qualified posterior/predictive summaries under the execution budget | Exit: both routes preserve likelihood, priors, constraints, scale and saved-result meaning. Missing parity remains partial support; Julia work can advance incrementally without dropping this requirement. Backend agreement is implementation evidence, not model validity |
-| 4. M2 core statistical validation — analyst; evaluation not started, computation pilot recorded | Reconcile Stage-A with the accepted package model/claim. Select known-truth conditions for identification, recovery/calibration, sparse coverage, prior sensitivity and numerical failure mechanisms; verify scoring, all-attempt accounting and resource stops before reviewed execution | Exit: target-specific M1 and execution readiness are accepted, the bounded roster is accounted for, and uncertainty/failure rates support a stated domain or an inconclusive result. Representative Julia/CmdStan comparisons accompany it; do not restrict the core domain to the Uchihara design or substitute an empirical fit for recovery evidence |
-| 5. Julia user workflow and public documentation — maintainer with analyst input; runs alongside rows 1--4 | Existing public-model [documentation/help](#public-documentation-cleanup-2026-09-14), standard figures, short saved-fit examples and [figure/report integration](#report-bundle-figure-integration-2026-09-14) are verified; record the unfamiliar-reader walkthrough. The generic fixed-coefficient example now accepts `--correlated` and `--exchangeable` on either backend; maintain source/help/fresh-HTML consistency and remove developer status language from user output | Exit: source/help/fresh-HTML consistency and [figure/report acceptance](#figure-and-report-acceptance) pass for the advertised scope, including save/reload and an unfamiliar-reader walkthrough without manual draw reshaping. Test reusable examples; neither a paper-specific script nor plotting-data rows close this task |
+| 1. Bound the remaining Julia cost investigation — analyst/maintainer | Complete the [metric-observation handoff](#next-implementation-handoffs) using the existing observer; relate updated metric conditioning to subsequent transition work. Keep the completed [likelihood replay](docs/internal/fixed-coefficient-validation-protocol.md#bounded-likelihood-replay-2026-09-18) as the arithmetic-preservation baseline | Exit: exact trajectory/RNG preservation and a recorded mechanism finding or unresolved result. Any schedule comparison is a separate declared decision. Keep the joint prior, coordinates/Jacobian, criteria and all attempts; no automatic budget extension, new default or full-chain rerun. Then advance row 2 |
+| 2. M1 Julia model-to-code contract and estimation path — analyst/maintainer | Carry the existing 2D fixed-Q between-item generalized correlation candidate through a named target/measure/identification contract and a concrete gap review of Julia/CmdStan fitting and saved-result consumers. Separately assess a mixed-Q geometry with identity covariance; use the [implementation handoffs](#next-implementation-handoffs), not a blanket correlated-within-item guard removal | Exit: equation, 1.7 scale, priors/Jacobians, parameter meaning, identification limitations and affected failure boundaries map to code/evidence. Implement only demonstrated gaps in the existing paths, with explicit target identity and no silent scope expansion. The fixed-coefficient C2 study is reusable evidence, not MGMFRM acceptance |
+| 3. CmdStan continuity — analyst/maintainer; accompanies each model slice | First common-coordinate probabilities, density differences and gradients, then a bounded matched-target posterior/predictive comparison with declared MCSE margins. Maintain independent backend execution and the same report/figure meaning | Exit: both routes represent the same likelihood, prior measure, constraints and scale. A posterior agreement claim requires each fit to qualify; the original C2 pair remains inconclusive. Missing counterpart support stays partial. Numerical agreement is implementation evidence, not model adequacy |
+| 4. M2 core statistical validation — analyst; no fresh evaluation replications | Prepare the claim-to-design review in the [protocol handoff](docs/internal/fixed-coefficient-validation-protocol.md#next-implementation-and-review-handoff): separate fixed-facet recovery, joint-prior SBC, prior sensitivity and matched-backend precision. Map generalized extensions to their own target-specific questions rather than relabelling the C2 roster | Exit: independently accepted target/scope, scientific margins or descriptive-only conclusions, replication/MCSE rationale, dependence policy, failure accounting and execution budget. Then run only the reviewed roster. The proposed 400/500-dataset allocations are not launch instructions; a full Cartesian sweep is not required |
+| 5. Julia user workflow and public documentation — maintainer with analyst input; alongside rows 1--4 | Preserve the implemented fit-to-report/figure workflow; record an unfamiliar reader identifying model/backend, inspecting warnings, selecting a dimension and regenerating figures after reload. Extend consumers with each model slice. Prepare the actual naming/call-site migration for accepted models | Exit: supported-scope source/help/fresh-HTML and runtime output agree; readers need no manual draw reshaping or internal work orders. Final ordinary APIs/headings remove development-status wording with compatibility aliases and unchanged old-result interpretation; model limits and diagnostic warnings remain visible |
 | 6. M3 supported-domain and package handoff — maintainer and independent reviewer | Reproduce selected model/numerical claims and the documented workflow in a separate environment at the recorded revision; make claim-level supported/narrowed/rejected/inconclusive decisions | Exit: usable Julia behavior, matching CmdStan evidence and independent scientific acceptance are reported separately. Public promotion retains its M0 gate and integration/release authority. Completion or publication of an application paper is not an exit condition |
 | Long-term model extensions — analyst/maintainer; sequenced after the relevant foundation slice | Follow the [single extension sequence](#long-term-extension-sequence): correlated dimensions/within-item validation, configurable random effects, a specified non-compensatory ordinal kernel, and staged Q structure inference. Fixed-Q comparison and identification work can precede full structure learning | Promote one declared combination at a time with model-specific evidence, both backends and a complete user workflow. Independent block validation does not certify their composition. These are long-term deliverables, not newly available options or an automatic batch of implementation/research jobs |
 | Uchihara reanalysis — analyst; secondary application, no fit completed | Follow the [staged application sequence](#application-sequence-and-reusable-dependencies) when each required model slice is ready: reconcile data, fit unadjusted measurement, then named generalized/phonetic comparisons and secondary outcomes. Use the example to assess practical interpretation and UX | Keep data preparation, application-specific raters/recording effects/covariates, empirical fits and report progress separate from core milestones. A discovered reusable defect returns to the core queue; case completion or the expected substantive result never defines Julia acceptance |
@@ -2708,24 +2701,88 @@ ran. C neither resets nor completes that pair, and no further fit is queued.
 
 ### Next implementation handoffs
 
-These completed outputs record the fixed-coefficient workflow handoff.
-Experimental fitting, numerical reporting, figures and the generic example
-are connected. They introduce no new sampler, result container or application-specific API. The numerical
-report adapter builds on the `fcb282b` cache implementation. Focused checks and
-earlier retained evidence do not constitute a full-suite pass or release acceptance.
+The fixed-coefficient fit/report/figure/persistence handoff is complete; its
+[implementation record](docs/internal/normalized-prior-backend-comparison.md#explicit-exchangeable-prior-api-2026-09-17)
+retains the evidence. The following are the implementation details for work-queue
+rows 1--2, not an additional registry. Complete one bounded output, update its
+status here, and move on. Numerical checks, operability and scientific promotion
+have distinct exits.
 
-| Output and dependency | Implementation boundary | Acceptance check |
-| --- | --- | --- |
-| Numerical reports — implemented | Dedicated `fit_report` and public report/artifact projections reuse the private assembler, full artifact and validated design rows. Central interval semantics, stored diagnostic settings and explicit unsupported sections are preserved | [Saved-result checks](docs/internal/normalized-prior-backend-comparison.md#canonical-fixed-coefficient-saved-result-reports-2026-09-15) cover reload/export, public hashes, named/fixed/derived coordinates and invalid inputs. Full artifacts and old caches retain their meanings. No sampling or plotting dependency is needed |
-| Figure/report bundles — implemented | Dedicated plot and fitted-object bundle methods reuse the existing named-dimension figures and staged writer. Full/public exports share the numerical report's intervals and predictive simulation; CairoMakie remains optional | [Saved-result figure checks](docs/internal/normalized-prior-backend-comparison.md#canonical-saved-result-figures-2026-09-15) compare intervals, fixed/derived flags, chains, warning text, source/report hashes and exact predictive rows; verify selected PDF/SVG output and destination preservation on figure failure. Reader acceptance remains separate |
-| Experimental fitting and usable examples — implemented | The restricted canonical fixed-coefficient route uses `Experimental.fit` and the existing surface contract. One generic specification -> fit -> diagnostics -> saved report/figures example selects either backend. Keep unsupported effects/correlations/predictors and automatic request caching unavailable | See the [bounded entry-to-reload and rejection checks](docs/internal/normalized-prior-backend-comparison.md#experimental-fixed-coefficient-fitting-2026-09-15); README, help and example describe the same API. A short fit proves operability only. Record unfamiliar-reader review and statistical-domain acceptance separately; root-level stable promotion is a later decision |
+**1. Observe dense adaptation without changing it.** The question is whether
+poorly conditioned adapted geometry coincides with the expensive C2 warmup
+windows, rather than assuming that short windows are the cause. Reuse the
+private sampling observer and the [owned probe recipe](scripts/profile_fixed_coefficient_sampling.jl).
+At the installed library's five update boundaries (100, 150, 250, 450, 950),
+record finite/symmetric/positive-definite status, extreme eigenvalues and the
+condition number of the adapted inverse-mass matrix. Preserve matrix meaning
+and update timing: the callback's matrix is post-update, while its transition
+statistics describe the just-completed trajectory. Compare it with subsequent
+work and step sizes; copy only what the calculation needs and never mutate or
+retain mutable sampler state. Attribute observation overhead separately.
 
-Keep the [detailed implementation handoff](docs/internal/normalized-prior-backend-comparison.md#next-bounded-work)
-as the implementation reference. Correlation, random-effect and predictor
-extensions follow their own accepted specification after the relevant foundation
-slice; do not wait for Uchihara preprocessing or mixed outcomes to finish these
-three outputs. Once an output is complete, replace its current status and next
-action rather than adding another queue or duplicating the verification history.
+First verify event timing, unchanged draws/statistics and unchanged RNG on small
+fixtures under supported Julia versions. The resource proposal for an actual
+C2 observation is at most one call per metric, in sequential fresh processes,
+with the existing one-chain/1,000-warmup/100-draw controls, 1,200-second deadline
+per process and observed 8 GiB RSS/5 GiB output stops. Freeze the recipe,
+environment, inputs, seeds and attempt limits before execution; this roadmap
+edit launches none. A timeout or missing metric is retained as an unresolved
+observation. Stop after the declared observations and record whether the
+conditioning/work association is present, absent or unresolved. Association
+alone is not causation. If warranted, specify one separate adaptation contrast
+with matched total warmup and diagnostics before running it; no automatic
+schedule sweep, criterion relaxation, new default or four-chain rerun follows.
+
+**2. Complete the next generalized correlation contract.** The next model
+slice is the existing 2D, fixed-Q, between-item MGMFRM correlation candidate,
+with estimated positive active item loadings and rater consistency. It is
+separate from the fixed-coefficient MFRM correlation API. Begin with a compact
+equation-to-code gap review using the [candidate](src/mgmfrm_free_correlation_candidate.jl),
+[model contract](src/model_family_contract.jl) and
+[blockwise measures](#blockwise-specification-and-comparison-contract).
+Name the target, loading/ability scale and joint prior before extending the
+workflow. The candidate's raw-coordinate prior, normalized source reference
+and exchangeable-rater model must not be treated as synonyms or silently chosen
+as a new scientific default. Keep literal 1.7 for the corresponding likelihood;
+1.702 metadata and fixed-coefficient unit-logit adapters have their existing
+meanings. Account for every transform/Jacobian exactly once in common coordinates.
+
+Retain the candidate's pure-item and per-person dimension-coverage restrictions
+until a separately justified model replaces them. Distinguish likelihood
+identification, prior anchoring and population correlation from posterior draw
+correlation. Inventory which target, sampler, failure handling, result/cache,
+prior-predictive, diagnostic and figure consumers already work; implement only
+the missing connections in those paths. Exit the implementation slice with
+independent equation and Julia/CmdStan density/gradient checks, affected boundary
+checks, bounded fitting and named-quantity save/reload/report/figure agreement.
+Use explicit model/prior identities; preserve existing saved types and targets.
+A statistically qualified posterior comparison and domain acceptance remain
+separate requirements. Declare target-specific fit controls, attempt counts and
+resource stops; the fixed-coefficient C2 timing is not a cost estimate for
+estimated loadings. Neither this slice nor its contract waits for the full
+fixed-coefficient validation grid or an Uchihara analysis.
+
+**3. Isolate loading geometry before combining extensions.** The next geometry
+question concerns one declared 2D mixed fixed-Q design with pure items and
+cross-loaded items, holding latent covariance at identity. Assess fixed
+coefficients and estimated positive loadings as distinct targets; do not change
+both loading policy and covariance in one contrast. Check design/null directions,
+scale/orientation, sparse overlap and which ability/item/loading contrasts are
+interpretable. A fixed-coefficient logit-matrix rank check alone cannot establish
+joint identification of abilities and estimated loadings. The current Q admission
+warnings are not evidence of recovery. Specify model-appropriate diagnostics;
+the existing between-item finite-panel location display must not be relabelled as a within-item diagnostic.
+
+A new correlated-within-item target needs its own identification and interaction
+checks; deleting the between-item guard is not that implementation. Higher-
+dimensional covariance is a separate extension, not a prerequisite for the 2D
+combination. It needs a positive-definite parameterization, explicit prior
+measure/Jacobian and matching CmdStan target. Bifactor additionally needs
+named general/specific roles, covariance restrictions and score interpretation.
+The [extension sequence](#long-term-extension-sequence) retains these as staged
+combinations, followed by reusable random effects and the separately justified
+non-compensatory and Q-inference branches. No universal formula/parser or all-model
+capability expansion is required to complete these bounded slices.
 
 ### Decision handoff and progress accounting
 
@@ -2734,10 +2791,12 @@ successful candidate CI at `5c4bff2`** in the existing runtime review.
 The bounded implementer review found no blocking issue for the documented
 local POSIX use; publication of this documentation update and integration
 remain pending. CI for `5c4bff2` does not certify later edits, and this review
-is not independent scientific acceptance. The active Julia handoff is now
-**explicit correlated specification and experimental fitting/saved-fit contract**,
-following row 1 above. The relevant
-model/prior and validation-scope decisions continue under row 2.
+is not independent scientific acceptance. The active Julia handoff is now the
+**bounded metric observation followed by the generalized correlation
+target/workflow contract**, detailed above. The
+fixed-coefficient correlated specification and experimental saved-fit workflow
+are implemented. The remaining model/prior and validation-scope decisions
+continue under row 2.
 Application preparation does not precede this work. The existing
 M1-01--06 identifiers and their proposals remain local to the MFRM anchor
 sub-study; they do not become MGMFRM acceptance decisions by renaming them.
@@ -2772,13 +2831,14 @@ completion percentage is defined; conversational estimates, test counts, and
 document revisions are not evidence that a scientific gate has closed.
 Track UX specification, public-content correction, callable implementation,
 numerical/render verification and user walkthrough separately as well. The
-2026-09-15 refinement retains Julia foundation work as the priority and adds
-the explicit long-term extension sequence. Existing public-documentation and
-figure/report corrections have their dated verification records; the earlier
+2026-09-18 refinement retains Julia foundation work as the priority, bounds
+performance investigation and makes the next generalized/geometry slices
+explicit. Existing public-documentation and figure/report corrections have their dated verification records; the earlier
 failed source check and limited saved-HTML observation remain historical evidence.
-The new fixed-coefficient public workflow and independent reader walkthrough
-remain open. This roadmap edit adds no model implementation or statistical
-evidence and does not report a naming migration or reader walkthrough as passed.
+The fixed-coefficient experimental workflow is implemented; final API promotion
+and the independent reader walkthrough remain open. This roadmap edit adds no
+model implementation or statistical evidence and does not report a naming
+migration or reader walkthrough as passed.
 
 ### Research execution prerequisites
 
@@ -3492,7 +3552,7 @@ the priority correction does not automatically restart the old benchmark program
   longer require `Experimental`; compatibility aliases, old saved results,
   model meanings and necessary limits remain intact. This is not satisfied by
   removing a status string from the current development build.
-- [ ] Each advertised model has an accepted [seven-axis specification](#model-axes-and-staged-scope-decisions)
+- [ ] Each advertised model has an accepted [model-axis specification](#model-axes-and-staged-scope-decisions)
   and evidence for its declared domain. A fixed-Q or bifactor-shaped design,
   direct ability coordinates, or a correlation candidate does not imply
   support for every multidimensional MFRM/MGMFRM or factor structure.
