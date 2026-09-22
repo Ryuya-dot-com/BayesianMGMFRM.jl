@@ -1861,3 +1861,103 @@ different reviewer objection.
   default.
 - Do not present DFF screening rows as proof of unfairness.
 - Do not use one successful dataset as evidence of sparse-design superiority.
+
+## Migration evidence and deferred contracts, retained 2026-09-14
+
+The following evidence note and deferred requirements were moved from the
+public migration guide. They do not add implemented capabilities or authorize
+execution. Active priorities remain in [ROADMAP](../../ROADMAP.md), and the
+[hard-anchor study](../internal/mfrm-anchor-study.md) owns the current
+stable-anchor evaluation. The existing external-validation section above owns
+destination-gauge mapping, convergence review and subsequent anchored bridges.
+
+### Version-specific ConQuest 5.47.5 execution fixture
+
+The repository contains a privacy-reduced fixture from fresh RSM and PCM runs
+made with the generated, hardened macOS verifier/runner and ConQuest 5.47.5
+Demonstration. Both processes recorded exit code zero and both receipts bind 15
+declared output records. Four raw outputs per model are retained: parameter
+pairs, design matrix, estimation history, and the zero-byte labels file. The
+executed control, manifest, verifier, runner, and receipt are also retained;
+row-level ratings, person estimates, residuals, raw logs, the executable, and
+activation material are not.
+
+| Target | Persons | Ratings | Free design rank | Selected / final iteration | Rater RMSE | Item RMSE | Step RMSE |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| RSM | 120 | 1,440 | 6 | 13 / 18 | 0.03134 | 0.06592 | 0.11581 |
+| PCM | 160 | 1,920 | 9 | 13 / 17 | 0.06851 | 0.04868 | 0.09016 |
+
+The test suite recomputes every retained-file hash and receipt content hash,
+rebuilds each bundle ID from its manifest, checks the complete 12 generalized-
+item by 3-category design grids and matrix ranks, reconstructs the sum-to-zero
+rater/item/step coordinates, links the minimum-deviance history row to the
+parameter export, and recomputes RMSE. Selecting the final history row would be
+wrong in both fits; iteration 13 has the minimum recorded deviance.
+
+This is version-specific, single-run transport and known-truth recovery
+evidence. The seed and truth are operator-recorded because the row-level
+generation stream is intentionally omitted. Bytes for the other 11 raw outputs
+are likewise omitted, so their receipt records cannot be independently
+rehash-checked from the repository. The fixture is not independent execution,
+convergence adjudication, a direct comparison with the package posterior,
+construct validation, or product equivalence.
+
+### Stage 2: threshold and group-mean hard anchors
+
+After individual item/rater anchors pass, add complete rating-scale/PCM
+threshold anchors and FACETS-style group-mean constraints. These require an
+explicit threshold convention and a full-rank affine constraint system.
+Imported threshold values must not be silently recentered to satisfy the
+package's sum-to-zero gauge; an incompatible source scale should be rejected or
+transformed by an explicit, recorded operation.
+
+Group anchors constrain a declared weighted or unweighted group mean while
+allowing members to vary. The report must state group membership, treatment of
+extreme or unobserved levels, the mean definition, and the effective constraint
+rank.
+
+### Stage 3: soft anchors
+
+A soft anchor should be an explicit prior on an identified direct parameter,
+for example `Normal(anchor_value, anchor_scale)`. It must not be the sole
+structural identification rule. The deterministic gauge remains in force, and
+the report distinguishes the identification constraint from the informative
+linking prior.
+
+Under the current first-level-zero gauge, a soft prior on that fixed reference
+coordinate is constant and contributes no information. Such a declaration is
+invalid until the numerical compiler either reparameterizes the reference or
+converts the imported anchor into an explicitly identified contrast.
+
+Soft-anchor release evidence should vary the prior scale and source values,
+report prior-to-posterior movement, compare hard/soft/unanchored refits, and
+flag prior-dominated cells. A hard and soft anchor on the same direct parameter
+should be rejected unless a future contract defines a nonredundant role for
+both.
+
+## Round-trip provenance contract
+
+ConQuest warns that unidentified parameters can be removed, changing positional
+parameter numbers in later anchor files. A package interchange format should
+therefore use semantic identities rather than source row numbers as its primary
+key. At minimum, every imported anchor or starting value should record:
+
+```text
+schema, role = anchor|initial_value, anchor_type,
+block, level, step_or_category, value, scale_unit,
+source_software, source_version, source_model, source_estimator,
+source_sign, destination_sign, location_transform, scale_transform,
+source_file_sha256, source_data_hash, source_model_hash
+```
+
+Starting values and anchors remain separate objects. If both target the same
+parameter, the importer should report the conflict and apply an explicit policy;
+it should not depend on file order. The normalized imported record, the compiled
+constraint map, and the exact source bytes should each have their own hash.
+
+An exported anchored fit should preserve the original import record unchanged
+and add the destination package version, data/model/prior/sampler identities,
+fixed/free status, direct fitted labels, constraint-rank check, and fit-artifact
+hash. A round trip passes only when reimport reproduces the same semantic target
+and normalized content hash. Equality of printed decimal text alone is not a
+round-trip guarantee.

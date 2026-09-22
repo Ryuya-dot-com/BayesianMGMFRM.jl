@@ -1,181 +1,56 @@
 using BayesianMGMFRM
-using Random
 
-function compact_row(row, fields::Tuple)
-    return (; (field => getproperty(row, field) for field in fields)...)
+all(arg -> arg in ("--plots", "--cmdstan"), ARGS) ||
+    error("Usage: julia --project=. examples/minimal.jl [--plots] [--cmdstan]")
+if "--plots" in ARGS
+    using CairoMakie
 end
-
-function print_rows(label, rows; fields = nothing, limit::Int = 4)
-    row_vector = collect(rows)
-    println(label, " (", length(row_vector), " rows)")
-    for row in Iterators.take(row_vector, limit)
-        println("  ", fields === nothing ? row : compact_row(row, fields))
-    end
-    length(row_vector) > limit &&
-        println("  ... ", length(row_vector) - limit, " more")
-end
-
-function print_header(label)
-    println()
-    println("== ", label, " ==")
-end
-
-function reader_support_status(status)
-    status === :fit_supported && return :supported
-    occursin("experimental", String(status)) && return :experimental
-    return :not_supported
-end
+backend = "--cmdstan" in ARGS ? :cmdstan : :advancedhmc
 
 ratings = (
     examinee = ["E1", "E1", "E1", "E1", "E2", "E2", "E2", "E2"],
     rater = ["R1", "R2", "R1", "R2", "R1", "R2", "R1", "R2"],
     item = ["I1", "I1", "I2", "I2", "I1", "I1", "I2", "I2"],
-    group = ["A", "A", "B", "B", "B", "B", "A", "A"],
     score = [0, 1, 2, 0, 1, 2, 0, 2],
 )
-
-data = FacetData(ratings;
-    person = :examinee,
-    rater = :rater,
-    item = :item,
-    score = :score,
-    category_levels = 0:2,
-    group = :group,
-)
-
-validation = validate_design(data; bias = [(:rater, :group)])
-spec = mfrm_spec(data; thresholds = :partial_credit, validation_report = validation)
-design = getdesign(spec)
-
-print_header("Design")
-println(data)
+data = FacetData(ratings; person = :examinee, rater = :rater, item = :item,
+    score = :score, category_levels = 0:2)
+validation = validate_design(data)
 println(validation)
-println(spec)
-println(design)
-println("Parameters: ", join(design.parameter_names, ", "))
-ladder_rows = [(;
-    family = row.family,
-    status = reader_support_status(row.estimation_status),
-) for row in model_ladder()]
-print_rows("Model ladder", ladder_rows; fields = (:family, :status))
-print_rows("Constraints", constraint_table(design);
-    fields = (:block, :constraint, :status, :n_parameters))
-manifest = model_manifest(design)
-println("Manifest: schema=", manifest.schema,
-    ", object=", manifest.object,
-    ", observations=", manifest.data.n_observations,
-    ", intended_categories=", manifest.data.category_scale.intended_levels,
-    ", parameters=", length(design.parameter_names),
-    ", validation_issues=", manifest.validation.n_issues)
-coverage = coverage_summary(spec)
-println("Coverage: ratings=", coverage.n_ratings,
-    ", persons=", coverage.n_persons,
-    ", raters=", coverage.n_raters,
-    ", items=", coverage.n_items,
-    ", categories=", coverage.n_categories)
-println("Coverage matrix: ", coverage_matrix(data; rows = :rater, columns = :person))
-print_rows("Rater overlap", rater_overlap(data))
-print_rows("Threshold map", threshold_map_data(design; params = zeros(length(design.parameter_names)));
-    fields = (:thresholds, :item, :step, :status, :value))
+validation.passed || error("Resolve the data validation issues before fitting.")
+spec = mfrm_spec(data; thresholds = :partial_credit, validation_report = validation)
 
-prior = MFRMPrior()
-target = MFRMLogDensity(design; prior)
-init = initial_params(target)
-print_header("Target")
-println("Log-density target: ", target)
-println("Initial parameters: ", init)
-print_rows("Linear predictor rows at init", linear_predictor_values(design, init);
-    fields = (:row, :category, :observed, :eta, :log_probability),
-    limit = 6)
-println("Log likelihood at init: ", loglikelihood(design, init))
-println("Log prior at init: ", logprior(design, init, prior))
-println("Log posterior at init: ", logposterior(design, init, prior))
-prior_ppc = prior_predictive_check(spec; prior, ndraws = 4, rng = MersenneTwister(101))
-cache_path = joinpath(mktempdir(), "minimal_fit.jls")
-fit_result = cached_fit(spec;
-    cache_path,
-    prior,
-    ndraws = 4,
-    warmup = 4,
-    chains = 2,
-    step_size = 0.1,
-    seed = 102,
-)
-ppc = posterior_predictive_check(fit_result; ndraws = 4, rng = MersenneTwister(103))
+# Keep each run in its own directory, including a fresh CmdStan build if selected.
+output_dir = mktempdir(mkpath("results/minimal"); prefix = "$(backend)-", cleanup = false)
+println("Output directory: ", relpath(output_dir))
+println("Short demonstration: 50 warmup + 50 retained draws per chain; not sufficient for inference.")
+fit_result = fit(spec; backend, ndraws = 50, warmup = 50, chains = 2, seed = 102,
+    cmdstan_cache_dir = backend === :cmdstan ? joinpath(output_dir, "cmdstan-build") : nothing)
+println(fit_result)
+check = diagnostics(fit_result; view = :public)
+println("MCMC status: ", check.summary.flag, "; max R-hat: ", check.summary.max_rank_normalized_rhat,
+    "; min bulk/tail ESS: ", check.summary.min_bulk_ess, " / ", check.summary.min_tail_ess)
+check.summary.passed || println("Review diagnostics(fit_result) before interpreting estimates.")
+display([row[(:parameter, :median, :lower, :upper)] for row in posterior_summary(fit_result)])
 
-print_header("Fit")
-print_rows("Prior predictive rows", predictive_check_summary(prior_ppc);
-    fields = (:statistic, :level, :observed, :replicated_mean, :flag))
-println("Fit cache: created ", basename(cache_path))
-println("Fit cache key: ", fit_cache_key(spec; prior, ndraws = 4, warmup = 4, chains = 2, step_size = 0.1, seed = 102))
-metadata = fit_metadata(fit_result)
-println("Fit metadata: backend=", metadata.backend,
-    ", sampler=", metadata.sampler,
-    ", draws=", metadata.n_draws,
-    ", chains=", metadata.n_chains,
-    ", acceptance_rate=", round(metadata.acceptance_rate; digits = 3))
-fit_manifest = model_manifest(fit_result)
-println("Fit manifest: object=", fit_manifest.object,
-    ", parameters=", fit_manifest.design.n_parameters,
-    ", diagnostic_flag=", fit_manifest.diagnostics.flag)
-artifact = fit_artifact(fit_result; include_environment = false)
-println("Fit artifact: schema=", artifact.schema,
-    ", draws=", artifact.reproducibility.artifact_policy.draws,
-    ", diagnostics=", artifact.diagnostics.summary.flag)
-report = fit_report(fit_result;
-    view = :public,
-    include_prior_predictive = true,
-    prior_predictive_ndraws = 4,
-    ndraws = 4,
-    rng = MersenneTwister(106),
-    artifact_include_environment = false)
-println("Fit report: schema=", report.schema,
-    ", posterior_rows=", report.posterior.n_rows,
-    ", calibration_rows=", report.calibration.n_rows,
-    ", loo_status=", report.loo.status)
-report_path = joinpath(mktempdir(), "minimal_fit_report.json")
-report_export = save_fit_report(report_path, report)
-println("Fit report export: schema=", report_export.schema,
-    ", json_hash=", report_export.json_content_hash.value,
-    ", file=", basename(report_path))
-loaded_report = load_fit_report(report_path)
-posterior_rows = fit_report_rows(loaded_report, :posterior)
-println("Loaded fit report: sections=", length(fit_report_sections(loaded_report)),
-    ", posterior_rows=", length(posterior_rows))
-report_table_dir = joinpath(mktempdir(), "minimal_fit_report_tables")
-report_table_manifest = save_fit_report_tables(report_table_dir, loaded_report)
-println("Fit report tables: tables=", report_table_manifest.n_tables,
-    ", rows=", report_table_manifest.n_rows,
-    ", directory=", basename(report_table_dir))
-loaded_report_tables = load_fit_report_tables(report_table_dir)
-println("Loaded fit report tables: tables=", length(loaded_report_tables))
-report_markdown_path = joinpath(mktempdir(), "minimal_fit_report.md")
-report_markdown_export = save_fit_report_markdown(report_markdown_path, loaded_report;
-    max_rows = 3)
-println("Fit report markdown: bytes=", report_markdown_export.n_bytes,
-    ", file=", basename(report_markdown_path))
-report_bundle_dir = joinpath(mktempdir(), "minimal_fit_report_bundle")
-report_bundle_manifest = save_fit_report_bundle(report_bundle_dir, loaded_report;
-    max_rows = 3)
-println("Fit report bundle: tables=", report_bundle_manifest.n_tables,
-    ", rows=", report_bundle_manifest.n_rows,
-    ", directory=", basename(report_bundle_dir))
-loaded_bundle_report = load_fit_report_bundle(report_bundle_dir)
-println("Loaded bundle report: sections=", length(fit_report_sections(loaded_bundle_report)))
-diagnostic_surface = diagnostics(fit_result)
-println("Diagnostic summary: ", compact_row(diagnostic_surface.summary,
-    (:flag, :passed, :n_chains, :draws_per_chain, :max_rhat, :min_ess)))
-print_rows("Sampler diagnostics", diagnostic_surface.sampler_rows;
-    fields = (:chain, :acceptance_rate, :n_nonfinite_log_posterior, :flag))
-print_rows("MCMC diagnostics", diagnostic_surface.parameter_rows;
-    fields = (:parameter, :rhat, :ess, :flag))
-print_rows("Parameter block diagnostics", diagnostic_surface.block_rows;
-    fields = (:block, :max_rhat, :min_ess, :flag))
-print_rows("Posterior summary", posterior_summary(fit_result);
-    fields = (:parameter, :mean, :sd, :lower, :upper))
-print_rows("WAIC diagnostics", waic_diagnostics(fit_result);
-    fields = (:observation, :person, :rater, :item, :waic, :flag))
-print_rows("Calibration", calibration_table(fit_result; bins = 2);
-    fields = (:target, :bin, :observed_mean, :predicted_mean, :flag))
-print_rows("Posterior predictive rows", predictive_check_summary(ppc);
-    fields = (:statistic, :level, :observed, :replicated_mean, :flag))
+cache_path = joinpath(output_dir, "fit.jls")
+save_fit_cache(cache_path, fit_result)
+restored = load_fit_cache(cache_path)
+@assert isequal(posterior_summary(restored), posterior_summary(fit_result))
+println("Fit saved and reloaded: ", relpath(cache_path))
+
+# Regenerate all figures from the saved fit, without refitting or handling draw matrices.
+if "--plots" in ARGS
+    posterior = BayesianMGMFRM.plot_posterior(restored; block = :rater)
+    chains = BayesianMGMFRM.plot_diagnostics(restored; block = :rater)
+    predictive = BayesianMGMFRM.plot_predictive(restored; ndraws = 200, seed = 42)
+    wright = BayesianMGMFRM.plot_wright(restored)
+    for (name, figure) in (("rater-posterior", posterior), ("rater-chains", chains),
+            ("category-predictive", predictive), ("wright-map", wright))
+        save(joinpath(output_dir, "$name.pdf"), figure)
+    end
+    save(joinpath(output_dir, "wright-map.svg"), wright)
+    println("Saved four PDFs and wright-map.svg in ", relpath(output_dir))
+else
+    println("Add --plots after installing CairoMakie to generate figures; see docs/src/examples.md.")
+end

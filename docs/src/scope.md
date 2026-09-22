@@ -8,15 +8,18 @@ path, diagnostics, and user-facing examples are covered together.
 
 | Model surface | Status | Notes |
 |:--|:--|:--|
-| MFRM with rating-scale or partial-credit steps | Supported | Available through the documented design, fitting, diagnostic, and reporting workflow. |
-| Scalar rater-consistency GMFRM | Experimental | Enter through `BayesianMGMFRM.Experimental`; the documented structural restrictions remain mandatory. |
+| One-dimensional MFRM with rating-scale or partial-credit steps | Supported | Available through the documented design, fitting, diagnostic, and reporting workflow. |
+| Fixed-coefficient multidimensional MFRM | Experimental | `Experimental.fit` on Julia or CmdStan; fixed Q coefficients, unit logits and identity latent correlation. Manual caches and report/figure bundles are available. |
+| Two-dimensional correlated MFRM | Experimental | `Experimental.correlated(spec)` then `Experimental.fit`; between-item fixed Q, at least two pure items per dimension and both dimensions observed for each person. Julia/CmdStan, manual caches and report/figure bundles are available. |
+| Scalar GMFRM: item discrimination × rater consistency | Experimental | Enter through `BayesianMGMFRM.Experimental`; the documented structural restrictions remain mandatory. |
 | Fixed-Q confirmatory MGMFRM | Experimental | Enter through `BayesianMGMFRM.Experimental`; requires at least two dimensions and a fixed confirmatory loading design. |
+| Two-dimensional correlated MGMFRM | Experimental | Between-item Q, estimated positive loadings/consistency, `Experimental.correlated(spec)` and explicit `GeneralizedPrior`. Julia/CmdStan, prior/conditional posterior prediction, summaries, MCSE, diagnostics, manual caches and report/figure bundles are available. Scientific prior/domain acceptance remains open. |
 | Broader generalized discrimination structures | Not supported | No stable fitting claim is made. |
-| Exploratory or freely estimated multidimensional loading structures | Not supported | Availability of the experimental fixed-Q configuration does not imply exploratory MGMFRM support. |
+| Exploratory loading patterns or higher-dimensional correlation estimation | Not supported for fitting | MGMFRM retains a fixed Q pattern and independent abilities unless explicitly wrapped for the admitted 2D correlation model. Both correlated models above require exactly two dimensions. |
 | Group and differential facet functioning effects | Not supported for fitting | Design validation may describe these terms, but estimation is not yet exposed. |
-| Testlet, response-cluster, and rater-halo effects | Not supported for fitting | Explicit identifiers, structural checks, standardized residual inputs, known-truth simulation, calibration-scorer validation, and MCMC-free pilot-plan validation are available; pilot execution, repeated calibration, and fitted cluster effects are not. |
+| Testlet, response-cluster, and rater-halo effects | Not supported for fitting | Explicit identifiers, structural checks, and residual/predictive summaries are available. These report-only summaries provide no calibrated decision or mechanism classification. |
 
-Experimental features may change in a compatible minor release and should be
+Experimental features may change in a minor release and should be
 used with sensitivity checks. They must not be described as stable equivalents
 of external software or as evidence for broader MGMFRM support.
 The namespace is an explicit experimental stability boundary, not a maturity claim.
@@ -24,26 +27,18 @@ The namespace is an explicit experimental stability boundary, not a maturity cla
 configurations and constraints. The historical `experimental = true` keyword is a
 compatibility route and does not define the forward-looking API.
 
-LD1a supplies a 22-scenario known-truth generator, LD1b0 validates the
-calibration scorer and denominator rules, and LD1b1 freezes a 30-replication
-pilot plan for each scenario. These layers validate study design and scoring
-without running a fit or MCMC. They therefore provide no repeated-calibration,
-power, diagnostic-decision, or mechanism-identification evidence. Controlled
-benchmark-response placement remains a separate temporal-identification study,
-and clustered or dynamic effects remain unsupported for fitting.
+## Interpreting Support and Versions
 
-## Release Direction
-
-- The `0.1.x` series prioritizes reliability, diagnostics, reproducible reports,
-  and clearer separation between stable and experimental functionality.
-- A future minor release may stabilize a narrowly defined fixed-Q generalized
-  subset only after implementation, inference, documentation, and independent
-  validation checks all pass.
-- Broader generalized, exploratory multidimensional, and differential facet
-  functioning models remain later research and implementation work.
-- External validation and publication claims are evaluated separately from
-  package-version readiness.
+“Supported” describes the documented implementation boundary, not proof of
+convergence or validity for a new dataset. Experimental availability does not
+establish recovery, robustness, or external-software agreement. Known-truth
+simulation and protocol helpers have their own [research API
+reference](api-validation-evidence.md); their presence does not change the
+fitting boundary above.
 
 The registered release remains the default installation. Development versions
 may contain unreleased behavior and should be pinned to an explicit revision
 when used in reproducible work.
+
+Read the manual and examples for the installed revision. Development
+documentation can describe features absent from an earlier registered release.

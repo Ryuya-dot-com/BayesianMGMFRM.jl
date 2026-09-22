@@ -19,8 +19,12 @@ simulate_responses
 The bindings below remain package-root exports for `0.1.x` source
 compatibility. They plan, score, or record package research and release
 evidence; they are not part of the stable MFRM user workflow, and their
-presence is not validation of GMFRM, MGMFRM, or local-dependence claims. New
-research orchestration should not expand this root surface.
+presence is not validation of GMFRM, MGMFRM, or local-dependence claims.
+
+`comparison_evidence_summary`, `benchmark_summary`, `simulation_grid`,
+`simulation_grid_summary`, and `falsification_rule_summary` accept
+`view = :public` for compact reader-facing records. Their default full payloads
+remain available for research reproduction.
 
 ```@docs
 benchmark_result_row
@@ -80,15 +84,15 @@ implementation status separate from the remaining recovery, sparse-design,
 cache, parallel-chain, independent-review, and analysis-scale evidence.
 
 `local_dependence_simulation_grid` and `simulate_local_dependence` form the
-completed LD1a generator and design-validation surface. The 22 frozen scenarios
+known-truth generator and design-validation surface. The 22 declared scenarios
 use a standalone adjacent-category ordinal kernel rather than the fitted
 likelihood implementation and record the complete generating truth. Their
-magnitude labels are study-local simulation settings. LD1b pilot execution and
-evaluation remain pending, so these functions do not provide diagnostic
+magnitude labels are study-local simulation settings. These generators do not
+provide repeated-calibration evidence or diagnostic
 cutoffs, enable a decision in `local_dependence_summary`, or identify an
 observed-data dependence mechanism.
 
-The LD1b0 calibration-protocol functions validate one-result-per-planning-row
+The calibration-protocol functions validate one-result-per-planning-row
 provenance and summarize candidate pair, family, and global reference behavior
 across repeated known-truth simulations. They keep failed, rejected, missing,
 and unsupported replications visible in the denominator. Pair declarations
@@ -98,8 +102,8 @@ This protocol-validation surface does not run MCMC, does not yet provide
 pairwise power under alternative mechanisms, and does not change the
 report-only status of `local_dependence_summary`.
 `local_dependence_calibration_pilot_contract` and
-`local_dependence_calibration_pilot_check` validate the LD1b1 pilot plan. They
-freeze 30 replications for each of 22 scenarios
+`local_dependence_calibration_pilot_check` validate a pilot plan. They
+declare 30 replications for each of 22 scenarios
 (`30 × 22 = 660` planned jobs) and validate the study-specific sampler and
 diagnostic requirements. The supported route is AdvancedHMC/NUTS with
 `ForwardDiff`; unsupported backend, algorithm, or gradient choices are

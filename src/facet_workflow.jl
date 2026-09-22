@@ -1,4 +1,4 @@
-# facet_workflow.jl -- v0.1 long-format data, validation, and minimal spec layer
+# facet_workflow.jl -- long-format data, validation, and model specifications.
 
 using LinearAlgebra
 
@@ -10,7 +10,7 @@ using LinearAlgebra
 
 Encode long-format rating data into deterministic integer indexes for the
 required person, rater, item, and ordinal score columns. Optional columns are
-stored as indexed metadata and are not model terms in the v0.1 design scaffold.
+stored as indexed metadata; supplying them does not add fitted model terms.
 Use `response_id` for a globally unique scored response and `testlet_id` for
 its declared task or item-cluster identity. `occasion` remains categorical
 metadata; its encoded index must not be interpreted as elapsed time or row
@@ -762,7 +762,7 @@ function validate_design(data::FacetData; bias = Tuple{Symbol,Symbol}[], min_cel
             "at least one rating row is required"))
     elseif length(category_scale.observed_levels) < 2
         push!(issues, ValidationIssue(:single_observed_category, :error,
-            "at least two observed score categories are required to fit an ordered-response model"))
+            "this fitting interface requires at least two observed score categories; single-category data are outside its current support"))
     end
     if data.n > 0
         skipped = category_scale.unobserved_interior_levels
@@ -845,8 +845,8 @@ function _suggestion_for_issue(issue::ValidationIssue)
         suggestion = "Provide at least one complete long-format rating row before constructing a model specification.",
     )
     code === :single_observed_category && return (
-        action = :collect_or_recode_categories,
-        suggestion = "Use at least two observed score categories, or recode/collapse the outcome before fitting an ordered-response model.",
+        action = :review_single_category_fit_support,
+        suggestion = "Preserve the observed scores and intended category scale. The current fitting interface rejects single-category data; this does not establish that a posterior under proper priors is undefined. Record the rejection in simulation studies without redrawing or recoding to bypass it.",
     )
     code === :unused_interior_category && return (
         action = :inspect_scale_use,
@@ -1916,6 +1916,19 @@ function model_ladder(; view::Symbol = :full)
             note = "implemented additive one-dimensional many-facet Rasch location model",
         ),
         (;
+            family = :mfrm,
+            scope = :fixed_coefficient_multidimensional_mfrm,
+            dimensions = ">= 2",
+            discrimination = :none,
+            threshold_regimes = (:partial_credit,),
+            estimation_status = :experimental_public,
+            public_fit = true,
+            experimental_public = true,
+            identification = (:fixed_q_coefficients, :identity_latent_correlation,
+                :prior_anchored_locations, :sum_to_zero_raters, :item_step_constraints),
+            note = "fixed-coefficient multidimensional MFRM in unit logits through BayesianMGMFRM.Experimental.fit(spec)",
+        ),
+        (;
             family = :gmfrm,
             scope = gmfrm_capability.scope,
             dimensions = "1",
@@ -1984,8 +1997,8 @@ function _public_model_ladder_row(row)
             stability = :experimental,
             fit_available = true,
             entrypoint = _EXPERIMENTAL_CANONICAL_ENTRYPOINT,
-            claim_scope = row.family === :gmfrm ?
-                :scalar_rater_consistency_only : :fixed_q_confirmatory_only,
+            claim_scope = row.family === :mfrm ? :fixed_coefficient_multidimensional_mfrm :
+                row.family === :gmfrm ? :scalar_rater_consistency_only : :fixed_q_confirmatory_only,
         )
     else
         (;
@@ -2028,6 +2041,38 @@ function _release_scope_fit_surface_rows()
             public_fit = true,
             claim_scope = :small_model_workflow_scaffold,
             note = "MFRM/RSM/PCM posterior fitting and report helpers for the minimal identified design",
+        ),
+        (;
+            surface = :fixed_coefficient_multidimensional_mfrm,
+            family = :mfrm,
+            scope = :fixed_coefficient_multidimensional_mfrm,
+            status = :guarded_experimental_public,
+            entrypoint = _EXPERIMENTAL_CANONICAL_ENTRYPOINT,
+            experimental_public = true,
+            public_fit = true,
+            claim_scope = :fixed_coefficient_multidimensional_mfrm,
+            threshold_regimes = (:partial_credit,),
+            spec_discrimination = (:none,),
+            q_matrix_policy = :fixed_coefficients,
+            anchors_allowed = false,
+            validation_bias_terms_allowed = false,
+            note = "unit-logit fixed-coefficient MFRM with identity latent correlation; operability does not imply scientific validation",
+        ),
+        (;
+            surface = :correlated_fixed_coefficient_mfrm,
+            family = :mfrm,
+            scope = :correlated_fixed_coefficient_mfrm,
+            status = :guarded_experimental_public,
+            entrypoint = "BayesianMGMFRM.Experimental.fit(BayesianMGMFRM.Experimental.correlated(spec))",
+            experimental_public = true,
+            public_fit = true,
+            claim_scope = :two_dimensional_between_item_fixed_coefficient_mfrm,
+            threshold_regimes = (:partial_credit,),
+            spec_discrimination = (:none,),
+            q_matrix_policy = :fixed_between_item_coefficients,
+            anchors_allowed = false,
+            validation_bias_terms_allowed = false,
+            note = "two-dimensional unit-logit MFRM with estimated population correlation; operability does not imply scientific validation",
         ),
         (;
             surface = :scalar_gmfrm_guarded_experimental,
@@ -3134,6 +3179,14 @@ function _release_gate_manifest_rows(scope)
             observed = any(row -> row.surface === :minimal_mfrm_rsm_pcm &&
                 row.public_fit && !row.experimental_public,
                 surfaces)),
+        (target = :fixed_coefficient_mfrm_experimental_public,
+            expected = :experimental_public_guarded_fit,
+            observed = any(row -> row.surface === :fixed_coefficient_multidimensional_mfrm &&
+                row.public_fit && row.experimental_public &&
+                row.entrypoint == _EXPERIMENTAL_CANONICAL_ENTRYPOINT &&
+                row.q_matrix_policy === :fixed_coefficients &&
+                !row.anchors_allowed && !row.validation_bias_terms_allowed,
+                surfaces)),
         (target = :scalar_gmfrm_experimental_public,
             expected = :experimental_public_guarded_fit,
             observed = any(row -> row.surface === :scalar_gmfrm_guarded_experimental &&
@@ -3209,7 +3262,7 @@ function _release_gate_manifest_rows(scope)
                     :v0_1_2_fixed_q_productionization),
         (target = :guarded_experimental_surface_next_gate,
             expected = :v0_1_2_fixed_q_productionization,
-            observed = all(row -> !row.experimental_public ||
+            observed = all(row -> !(row.experimental_public && row.family in (:gmfrm, :mgmfrm)) ||
                 (haskey(row, :completed_gate) &&
                     row.completed_gate === :v0_1_1_generalized_refinement &&
                     haskey(row, :next_gate) &&
@@ -3653,11 +3706,11 @@ function _normalize_dimension_labels(dimensions::Int, dimension_labels)
     return out
 end
 
+_is_mfrm_fixed_q(family::Symbol, dimensions::Int) = family === :mfrm && dimensions >= 2
+_is_mfrm_fixed_q(spec::FacetSpec) = _is_mfrm_fixed_q(spec.family, spec.dimensions)
+
 function _check_dimensions(family::Symbol, dimensions::Int)
     dimensions >= 1 || throw(ArgumentError("dimensions must be positive"))
-    family === :mfrm && dimensions == 1 ||
-        family !== :mfrm ||
-        throw(ArgumentError("family = :mfrm currently requires dimensions = 1"))
     family === :gmfrm && dimensions == 1 ||
         family !== :gmfrm ||
         throw(ArgumentError(
@@ -3957,21 +4010,22 @@ function _q_matrix_validation_manifest(data::FacetData,
     rows = NamedTuple[]
     mat = nothing
 
+    applicable = family === :mgmfrm || _is_mfrm_fixed_q(family, dimensions)
     family_applicability_status =
-        family === :mgmfrm ? :applicable : :not_applicable
+        applicable ? :applicable : :not_applicable
     family_applicability_severity =
-        family === :mgmfrm || q_matrix === nothing ? :info : :error
+        applicable || q_matrix === nothing ? :info : :error
     push!(rows, _q_matrix_validation_row(;
         check = :family_applicability,
         status = family_applicability_status,
         severity = family_applicability_severity,
         n_items = length(data.item_levels),
         n_dimensions = dimensions,
-        note = family === :mgmfrm ?
+        note = _is_mfrm_fixed_q(family, dimensions) ? :q_matrix_required_for_multidimensional_mfrm : family === :mgmfrm ?
             :q_matrix_required_for_mgmfrm :
             :q_matrix_only_applies_to_mgmfrm,
     ))
-    if family !== :mgmfrm
+    if !applicable
         q_matrix === nothing || push!(rows, _q_matrix_validation_row(;
             check = :family_applicability,
             status = :rejected_for_family,
@@ -4612,8 +4666,8 @@ function _normalize_q_matrix(data::FacetData,
         dimensions::Int,
         q_matrix,
         dimension_labels::Vector{String})
-    if family !== :mgmfrm
-        q_matrix === nothing || throw(ArgumentError("q_matrix is only accepted for family = :mgmfrm"))
+    if family !== :mgmfrm && !_is_mfrm_fixed_q(family, dimensions)
+        q_matrix === nothing || throw(ArgumentError("q_matrix requires multidimensional family = :mfrm or :mgmfrm"))
         return nothing
     end
     validation = _q_matrix_validation_manifest(
@@ -4631,7 +4685,7 @@ function _normalize_q_matrix(data::FacetData,
             if row.severity === :error
         )
         throw(ArgumentError(
-            "invalid fixed-Q MGMFRM q_matrix; failing_checks=$(failing_checks); " *
+            "invalid fixed-Q $(family === :mgmfrm ? "MGMFRM" : "MFRM") q_matrix; failing_checks=$(failing_checks); " *
             "inspect q_matrix_validation(...) for actionable rows",
         ))
     end
@@ -5045,6 +5099,9 @@ function _spec_scope(family::Symbol, status::Symbol)
     return :unknown
 end
 
+_spec_scope(spec::FacetSpec) = _is_mfrm_fixed_q(spec) ? :fixed_coefficient_multidimensional_mfrm :
+    _spec_scope(spec.family, spec.estimation_status)
+
 function _equation_sources(family::Symbol, thresholds::Symbol)
     if family === :mfrm
         source = thresholds === :rating_scale ?
@@ -5073,6 +5130,7 @@ function _equation_source_urls(family::Symbol, thresholds::Symbol)
 end
 
 function _equation_kernel(spec::FacetSpec)
+    _is_mfrm_fixed_q(spec) && return "eta[1] = 0; eta[k] = sum_{m=2}^{k} (sum_d Q[i,d] * theta[p,d] - beta_i[i] - beta_r[r] - d[i,m]); d[i,1] = 0"
     if spec.family === :mfrm
         return spec.thresholds === :rating_scale ?
             "eta[k] = (k - 1) * (theta[p] - beta_r[r] - beta_i[i]) - sum_{m=1}^{k-1} d[m]" :
@@ -5086,6 +5144,8 @@ function _equation_kernel(spec::FacetSpec)
 end
 
 function _equation_required_blocks(spec::FacetSpec)
+    _is_mfrm_fixed_q(spec) && return (:person_location_by_dimension, :rater_severity,
+        :item_difficulty, :item_step, :fixed_q_coefficients, :fixed_rater_consistency)
     if spec.family === :mfrm
         return (:person_location, :rater_severity, :item_difficulty, :threshold_steps)
     elseif spec.family === :gmfrm
@@ -5111,6 +5171,10 @@ function _equation_required_blocks(spec::FacetSpec)
 end
 
 function _equation_identification(spec::FacetSpec)
+    _is_mfrm_fixed_q(spec) && return (:prior_anchored_person_and_item_locations,
+        :sum_rater_severity_equals_zero, :item_first_step_fixed_zero,
+        :item_step_sum_to_zero, :fixed_q_coefficients, :unit_rater_consistency,
+        :identity_latent_correlation)
     if spec.family === :mfrm
         return (
             :location_constraint_on_rater_and_item_blocks,
@@ -5139,6 +5203,7 @@ function _equation_identification(spec::FacetSpec)
 end
 
 function _equation_implementation_gaps(spec::FacetSpec)
+    _is_mfrm_fixed_q(spec) && return [:automatic_request_caching]
     gaps = Symbol[]
     spec.family === :mfrm && return gaps
     if spec.family === :gmfrm
@@ -5177,12 +5242,13 @@ the broader literature-alignment work that is outside that limited route;
 boundary explicitly.
 """
 function model_equation(spec::FacetSpec)
+    _is_mfrm_fixed_q(spec) && _require_current_facet_spec(spec, "model_equation")
     implementation_gaps = _equation_implementation_gaps(spec)
-    experimental_fit_available = _experimental_generalized_fit_supported(spec)
+    experimental_fit_available = _is_mfrm_fixed_q(spec) || _experimental_generalized_fit_supported(spec)
     return (;
         schema = "bayesianmgmfrm.model_equation.v1",
         family = spec.family,
-        scope = _spec_scope(spec.family, spec.estimation_status),
+        scope = _spec_scope(spec),
         thresholds = spec.thresholds,
         dimensions = spec.dimensions,
         dimension_labels = copy(spec.dimension_labels),
@@ -5196,7 +5262,7 @@ function model_equation(spec::FacetSpec)
         required_blocks = _equation_required_blocks(spec),
         identification = _equation_identification(spec),
         implementation_gaps,
-        implementation_gap_scope = spec.family === :mfrm ?
+        implementation_gap_scope = _is_mfrm_fixed_q(spec) ? :experimental_workflow : spec.family === :mfrm ?
             :none : :stable_compiler_and_broader_scope,
         fit_ready = spec.estimation_status === :fit_supported &&
             isempty(implementation_gaps),
@@ -5219,6 +5285,7 @@ function _constraint_rows(;
         validation_bias_terms,
         anchors,
         estimation_status::Symbol)
+    _is_mfrm_fixed_q(family, dimensions) && return _mfrm_fixed_q_constraints()
     implemented = estimation_status === :fit_supported ? :implemented : :specified_only
     rows = NamedTuple[]
     if family === :mfrm
@@ -5400,6 +5467,7 @@ function _constraint_rows(;
 end
 
 function _prior_rows(family::Symbol, dimensions::Int, discrimination::Symbol)
+    _is_mfrm_fixed_q(family, dimensions) && return _mfrm_fixed_q_prior_rows()
     rows = NamedTuple[
         (block = :person, prior = :normal, parameters = (location = 0.0, scale = :person_sd), status = :implemented),
         (block = :rater, prior = :normal, parameters = (location = 0.0, scale = :rater_sd), status = :implemented),
@@ -5431,7 +5499,11 @@ Construct a many-facet measurement specification after validation errors are
 resolved. The default `family = :mfrm`, `dimensions = 1`, and
 `discrimination = :none` path is the minimal MFRM/RSM/PCM slice supported by
 `getdesign` and `fit`, including valid exact individual rater/item hard
-anchors. GMFRM/MGMFRM configurations can be represented for
+anchors. Multidimensional MFRM with explicit Q and named dimensions supports
+partial-credit specification and `getdesign(spec; preview = true)` inspection.
+Estimate its fixed-coefficient unit-logit model through
+`BayesianMGMFRM.Experimental.fit`, using Julia or CmdStan and `MFRMPrior`.
+GMFRM/MGMFRM configurations can be represented for
 manifest and constraint review with `estimation_status = :specified_only`.
 The guarded generalized numerical path is narrower than this representation
 surface: it requires `thresholds = :partial_credit`, no anchors or fitted DFF
@@ -5481,6 +5553,8 @@ function mfrm_spec(data::FacetData;
     )
     checked_bias_terms = _normalize_bias_terms(bias, report)
     checked_anchors = _normalize_anchors(anchors)
+    _check_mfrm_fixed_q_options(checked_family, checked_dimensions, thresholds,
+        checked_discrimination, checked_bias_terms, checked_anchors)
     estimation_status = _estimation_status(
         checked_family,
         checked_dimensions,
@@ -5546,6 +5620,7 @@ function _push_named_block!(names::Vector{String},
 end
 
 function _ensure_minimal_design_supported(spec::FacetSpec)
+    _is_mfrm_fixed_q(spec) && throw(ArgumentError("multidimensional MFRM design inspection requires getdesign(spec; preview = true); estimate with BayesianMGMFRM.Experimental.fit(spec)"))
     spec.estimation_status === :fit_supported ||
         throw(ArgumentError(
             "getdesign currently supports only the minimal fit-supported MFRM/RSM/PCM specification; " *
@@ -5675,6 +5750,7 @@ end
 function _preview_design(spec::FacetSpec)
     spec.estimation_status === :specified_only ||
         throw(ArgumentError("preview design is only needed for specified-only configurations"))
+    _is_mfrm_fixed_q(spec) && return _mfrm_fixed_q_design(spec)
     data = spec.data
     names = String[]
     blocks = Dict{Symbol,UnitRange{Int}}()
@@ -5724,7 +5800,9 @@ end
 """
     getdesign(spec::FacetSpec; preview = false)
 
-Return the current minimal additive RSM/PCM design scaffold. Without anchors,
+Compile the identified additive MFRM/RSM/PCM parameter names, block ranges,
+and constraints. This inspection step is optional: `fit(spec)` compiles the
+stable specification internally. Without anchors,
 the first rater and first item levels are fixed to zero. An exact individual
 hard anchor replaces that default gauge for its block: anchored coordinates are
 fixed at their declared values and omitted from the sampled parameter vector.
@@ -6085,6 +6163,8 @@ function _predictor_components(design::FacetDesign,
         index_by_name,
         row::Int,
         category_index::Int)
+    _is_mfrm_fixed_q(design.spec) && throw(ArgumentError(
+        "row-level predictor inspection is not yet connected to multidimensional MFRM; use model_manifest and constraint_table"))
     data = design.spec.data
     person_indices = _person_parameter_indices(design, data.person[row])
     stable_mfrm = design.spec.family === :mfrm &&
@@ -6343,6 +6423,11 @@ function _check_positive_constraint(name::AbstractString, values)
     return nothing
 end
 
+# Avoid overflow/underflow of intermediate products when finite factors balance.
+# Invalid factors remain reportable as a failed constraint, without log-domain errors.
+_positive_product(values) = all(value -> isfinite(value) && value > 0, values) ?
+    exp(sum(log, values)) : NaN
+
 function _gmfrm_source_fixture_constraints(design::FacetDesign, params::AbstractVector)
     data = design.spec.data
     item_values = params[design.blocks[:item]]
@@ -6350,7 +6435,7 @@ function _gmfrm_source_fixture_constraints(design::FacetDesign, params::Abstract
     rater_consistencies = params[design.blocks[:rater_consistency]]
     _check_approx_constraint("sum(item difficulty)", sum(item_values), _param_zero(params))
     _check_positive_constraint("item discrimination", item_discriminations)
-    _check_approx_constraint("prod(item discrimination)", prod(item_discriminations), one(prod(item_discriminations)))
+    _check_approx_constraint("prod(item discrimination)", _positive_product(item_discriminations), 1.0)
     _check_positive_constraint("rater consistency", rater_consistencies)
     length(item_values) == length(data.item_levels) ||
         throw(ArgumentError("GMFRM source fixture expected one item difficulty per item level"))
@@ -6725,8 +6810,10 @@ end
 
 function _mgmfrm_source_constrained_params_from_unconstrained(
         design::FacetDesign,
-        raw_params::AbstractVector)
-    blueprint = _mgmfrm_source_unconstrained_blueprint(design)
+        raw_params::AbstractVector,
+        blueprint::NamedTuple = _mgmfrm_source_unconstrained_blueprint(design))
+    # Numerical targets own a validated design snapshot and its blueprint.
+    # Standalone two-argument calls still validate and compile the design.
     length(raw_params) == blueprint.n_parameters ||
         throw(ArgumentError("MGMFRM source transform expected $(blueprint.n_parameters) raw parameter(s); got $(length(raw_params))"))
     T = typeof(_param_zero(raw_params) + 0.0)
@@ -6758,7 +6845,7 @@ function _mgmfrm_source_fixture_constraints(design::FacetDesign, params::Abstrac
     _check_approx_constraint("sum(rater severity)", sum(rater_values), _param_zero(params))
     _check_positive_constraint("item-dimension discrimination", item_dimension_discriminations)
     _check_positive_constraint("rater consistency", rater_consistencies)
-    _check_approx_constraint("prod(rater consistency)", prod(rater_consistencies), one(prod(rater_consistencies)))
+    _check_approx_constraint("prod(rater consistency)", _positive_product(rater_consistencies), 1.0)
     length(rater_values) == length(data.rater_levels) ||
         throw(ArgumentError("MGMFRM source fixture expected one rater severity per rater level"))
     length(item_values) == length(data.item_levels) ||
@@ -6822,7 +6909,8 @@ function _mgmfrm_source_linear_predictors!(etas::AbstractVector,
         design::FacetDesign,
         params::AbstractVector,
         row::Int,
-        loading_indices::AbstractMatrix{Int})
+        loading_indices::AbstractMatrix{Int},
+        step_values::Union{Nothing,AbstractMatrix} = nothing)
     data = design.spec.data
     dims = design.spec.dimensions
     K = length(data.category_levels)
@@ -6853,13 +6941,13 @@ function _mgmfrm_source_linear_predictors!(etas::AbstractVector,
     etas[1] = zero(scale_value * location_value)
     cumulative = zero(etas[1])
     for category_index in 2:K
-        step_value = _source_step_value(
+        step_value = step_values === nothing ? _source_step_value(
             design,
             params,
             :item_steps,
             item_index,
             category_index,
-        )
+        ) : step_values[category_index, item_index]
         cumulative += scale_value * (location_value - step_value)
         etas[category_index] = cumulative
     end
@@ -6905,17 +6993,29 @@ end
 
 function _mgmfrm_source_loglikelihood_from_unconstrained(
         design::FacetDesign,
-        raw_params::AbstractVector)
+        raw_params::AbstractVector,
+        blueprint::NamedTuple = _mgmfrm_source_unconstrained_blueprint(design))
     params = _mgmfrm_source_constrained_params_from_unconstrained(
         design,
         raw_params,
+        blueprint,
     )
+    return _mgmfrm_source_loglikelihood(design, params)
+end
+
+# Specialize the response loop on the transformed element type. Otherwise the
+# Float64/AD transform union can cause dispatch and boxing for every response.
+function _mgmfrm_source_loglikelihood(design::FacetDesign,
+        params::AbstractVector{T}) where {T}
     data = design.spec.data
     K = length(data.category_levels)
-    T = typeof(_param_zero(params) + 0.0)
     etas = Vector{T}(undef, K)
     loading_indices = _mgmfrm_source_loading_index_matrix(design)
-    total = _param_zero(params)
+    total = zero(T)
+    # Item thresholds do not depend on the person or rater. Rebuild them once
+    # per evaluation (including each AD chunk), never across parameter vectors.
+    step_values = T[_source_step_value(design, params, :item_steps, item, category)
+        for category in 1:K, item in eachindex(data.item_levels)]
     for row in 1:data.n
         _mgmfrm_source_linear_predictors!(
             etas,
@@ -6923,6 +7023,7 @@ function _mgmfrm_source_loglikelihood_from_unconstrained(
             params,
             row,
             loading_indices,
+            step_values,
         )
         total += etas[data.category[row]] - _logsumexp(etas)
     end
@@ -7125,9 +7226,9 @@ function _q_matrix_manifest(q_matrix::Union{Nothing,Matrix{Bool}})
 end
 
 function _spec_manifest(spec::FacetSpec)
-    return (;
+    manifest = (;
         family = spec.family,
-        scope = _spec_scope(spec.family, spec.estimation_status),
+        scope = _spec_scope(spec),
         thresholds = spec.thresholds,
         dimensions = spec.dimensions,
         dimension_labels = copy(spec.dimension_labels),
@@ -7143,7 +7244,7 @@ function _spec_manifest(spec::FacetSpec)
             public_fit = spec.estimation_status === :fit_supported,
             experimental_public = false,
             fit_ready = spec.estimation_status === :fit_supported,
-            claim_scope = _spec_scope(spec.family, spec.estimation_status),
+            claim_scope = _spec_scope(spec),
         ),
         required_facets = (:person, :rater, :item),
         optional_facets = sort(collect(keys(spec.data.optional)); by = string),
@@ -7153,6 +7254,7 @@ function _spec_manifest(spec::FacetSpec)
         model_surface_audit = model_surface_audit(spec),
         prior_blocks = copy(spec.prior_blocks),
     )
+    return _is_mfrm_fixed_q(spec) ? merge(manifest, _mfrm_fixed_q_spec_metadata()) : manifest
 end
 
 function _design_block_rows(design::FacetDesign)
@@ -7259,7 +7361,7 @@ function _mfrm_fit_ready_parameter_layout(design::FacetDesign)
     return (;
         schema = "bayesianmgmfrm.fit_ready_parameter_layout.v1",
         family = :mfrm,
-        scope = _spec_scope(design.spec.family, design.spec.estimation_status),
+        scope = _spec_scope(design.spec),
         status = :fit_supported,
         compiler_stage = :fit_supported_design,
         likelihood = :mfrm_rsm_pcm,
@@ -7449,7 +7551,9 @@ function fit_ready_parameter_layout(design::FacetDesign;
         throw(ArgumentError("view must be :full or :public"))
     preview &&
         throw(ArgumentError("preview is only a FacetSpec compilation option; pass fit_ready_parameter_layout(spec; preview = true)"))
-    layout = if design.spec.family === :mfrm &&
+    layout = if _is_mfrm_fixed_q(design.spec)
+        _mfrm_fixed_q_parameter_layout(design)
+    elseif design.spec.family === :mfrm &&
             design.spec.estimation_status === :fit_supported
         _mfrm_fit_ready_parameter_layout(design)
     elseif design.spec.family === :gmfrm && design.spec.estimation_status === :specified_only
@@ -7473,7 +7577,7 @@ function _specified_only_preview_parameter_layout(design::FacetDesign)
     return (;
         schema = "bayesianmgmfrm.fit_ready_parameter_layout.v1",
         family = design.spec.family,
-        scope = _spec_scope(design.spec.family, design.spec.estimation_status),
+        scope = _spec_scope(design.spec),
         status = design.spec.estimation_status,
         compiler_stage = :specified_only_preview,
         likelihood = :not_fit_ready,
@@ -7498,6 +7602,7 @@ function _specified_only_preview_parameter_layout(design::FacetDesign)
 end
 
 function _domain_compilation_layout(design::FacetDesign)
+    _is_mfrm_fixed_q(design.spec) && return _mfrm_fixed_q_parameter_layout(design)
     if design.spec.family === :mfrm &&
             design.spec.estimation_status === :specified_only
         return _specified_only_preview_parameter_layout(design)
@@ -7554,7 +7659,7 @@ end
 
 function _domain_option_for_block(spec::FacetSpec, block::Symbol)
     block === :person && return :dimensions
-    block in (:rater, :item) && return :family
+    block in (:rater, :rater_free, :item) && return :family
     block in (:thresholds, :rater_steps, :item_steps) && return :thresholds
     block in (:discrimination, :item_discrimination, :rater_consistency) &&
         return :discrimination
@@ -7563,7 +7668,7 @@ function _domain_option_for_block(spec::FacetSpec, block::Symbol)
 end
 
 function _domain_role_for_block(block::Symbol)
-    block in (:person, :rater, :item) && return :additive_block
+    block in (:person, :rater, :rater_free, :item) && return :additive_block
     block in (:thresholds, :rater_steps, :item_steps) && return :scoring_block
     block === :item_dimension_discrimination && return :loading_block
     block in (:discrimination, :item_discrimination, :rater_consistency) &&
@@ -7572,6 +7677,7 @@ function _domain_role_for_block(block::Symbol)
 end
 
 function _domain_scoring_block(spec::FacetSpec)
+    _is_mfrm_fixed_q(spec) && return :item_steps
     spec.family === :gmfrm && return :rater_steps
     spec.family === :mgmfrm && return :item_steps
     return :thresholds
@@ -7822,7 +7928,7 @@ function domain_compilation_summary(design::FacetDesign;
         note = "observed ordinal categories used by row-by-category predictors",
     ))
     if spec.q_matrix !== nothing
-        q_block = :item_dimension_discrimination
+        q_block = _is_mfrm_fixed_q(spec) ? :q_matrix : :item_dimension_discrimination
         q_transform = _domain_transform_row(layout, q_block)
         q_constraint = _domain_constraint_row(design, q_block)
         q_names = begin
@@ -7864,12 +7970,15 @@ function _surface_status_policy_for_spec(spec::FacetSpec)
         public_fit = spec.estimation_status === :fit_supported,
         experimental_public = false,
         fit_ready = spec.estimation_status === :fit_supported,
-        claim_scope = _spec_scope(spec.family, spec.estimation_status),
+        claim_scope = _spec_scope(spec),
     )
 end
 
-function _surface_source_symbol(family::Symbol, block)
+function _surface_source_symbol(family::Symbol, block; dimensions::Int = 1)
     ismissing(block) && return missing
+    _is_mfrm_fixed_q(family, dimensions) && block === :person && return "theta_pd"
+    family === :mfrm && block === :rater_free && return "beta_r (last reconstructed)"
+    family === :mfrm && block === :item_steps && return "d_im"
     family === :mfrm && block === :person && return "theta_p"
     family === :mfrm && block === :rater && return "beta_r"
     family === :mfrm && block === :item && return "beta_i"
@@ -7893,10 +8002,12 @@ end
 
 function _surface_direct_interpretation(family::Symbol, block)
     ismissing(block) && return missing
+    family === :mfrm && block === :q_matrix && return "fixed item-by-dimension coefficients (zero or one)"
     block === :person && return family === :mgmfrm ?
         "person ability/location by dimension" :
         "person ability/location"
     block === :rater && return "rater severity"
+    block === :rater_free && return "free rater severity; last rater reconstructed by a sum-to-zero constraint"
     block === :item && return "item/task difficulty"
     block === :thresholds && return "ordinal category threshold or step"
     block === :item_discrimination && return "positive item/task discrimination"
@@ -7931,7 +8042,7 @@ function _surface_prior_scale(prior_block, block)
     ismissing(prior_block) && ismissing(block) && return missing
     prior_key = ismissing(prior_block) ? block : prior_block
     prior_key === :person && return :person_sd
-    prior_key === :rater && return :rater_sd
+    prior_key in (:rater, :rater_free) && return :rater_sd
     prior_key === :item && return :item_sd
     prior_key in (:thresholds, :rater_steps, :item_steps) && return :step_sd
     prior_key in (:item_discrimination, :log_item_discrimination,
@@ -7972,7 +8083,7 @@ function _model_surface_audit(design::FacetDesign; status_policy = _surface_stat
             external_validated = status_policy.external_validated,
             block,
             compiled_role = row.compiled_role,
-            source_symbol = _surface_source_symbol(spec.family, block),
+            source_symbol = _surface_source_symbol(spec.family, block; dimensions = spec.dimensions),
             direct_interpretation = _surface_direct_interpretation(spec.family, block),
             raw_coordinate = row.raw_block,
             constrained_block = row.constrained_block,
@@ -9561,6 +9672,7 @@ function _raw_parameterization_promotion_candidate(blueprint)
 end
 
 function _raw_parameterization_manifest(design::FacetDesign)
+    _is_mfrm_fixed_q(design.spec) && return _mfrm_fixed_q_parameter_layout(design)
     if design.spec.family === :gmfrm
         source_blueprint = _gmfrm_source_unconstrained_blueprint(design)
         candidate_blueprint = _gmfrm_fit_ready_candidate_blueprint(design)
@@ -9615,6 +9727,10 @@ function _design_manifest(design::FacetDesign)
 end
 
 function _public_model_availability(spec::FacetSpec)
+    _is_mfrm_fixed_q(spec) && return (;
+        stability = :experimental, fit_available = true,
+        entrypoint = "BayesianMGMFRM.Experimental.fit(spec)",
+        claim_scope = :fixed_coefficient_multidimensional_mfrm)
     spec.estimation_status === :fit_supported && return (;
         stability = :stable,
         fit_available = true,
@@ -9713,7 +9829,7 @@ function _public_anchor_manifest(anchor::NamedTuple)
 end
 
 function _public_spec_manifest(spec::FacetSpec)
-    return (;
+    manifest = (;
         family = spec.family,
         thresholds = spec.thresholds,
         dimensions = spec.dimensions,
@@ -9731,6 +9847,7 @@ function _public_spec_manifest(spec::FacetSpec)
         constraints = constraint_table(spec),
         prior_blocks = copy(spec.prior_blocks),
     )
+    return _is_mfrm_fixed_q(spec) ? merge(manifest, _mfrm_fixed_q_spec_metadata()) : manifest
 end
 
 function _public_design_manifest(design::FacetDesign)

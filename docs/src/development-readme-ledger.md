@@ -546,50 +546,65 @@ The guarded MGMFRM example is runnable at
 
 ## Development Checks
 
-For ordinary local verification:
+Updated from the public README on 2026-09-14. The earlier sections of this
+ledger are historical; current user instructions live in the published manual.
+
+For ordinary repository verification:
 
 ```bash
 julia --project=. -e 'using Pkg; Pkg.test()'
 julia --startup-file=no --project=docs docs/build.jl
+julia --startup-file=no scripts/distribution_archive_smoke.jl
 ```
 
-Before cutting a release or requesting a Julia General update, run the stricter
-release-verification gate:
+For quieter local output, prefix a command with
+`sh scripts/quiet_command.sh`. Success prints one line; failure prints the
+last 80 log lines and preserves the command's exit code. Both outcomes retain
+the complete, private temporary log at the printed path; remove it when no
+longer needed. This wrapper adds no retries, deadlines, or test selection.
+Check the wrapper without Julia using `python3 test/quiet_command.py`.
+
+The distribution smoke copies only Git-visible, non-ignored worktree files to a
+temporary source candidate. From that Git-free copy it instantiates, measures
+first and warm loads, runs the minimal stable fit, and builds the manual with
+optional research evidence disabled and CmdStan/R environment hooks removed.
+Each phase has a hard elapsed-time budget; the surrounding CI job also has a
+30-minute timeout.
+
+Ordinary `Pkg.test()` checks package behavior and portable artifact contracts.
+The long SHA-chained research-evidence archive, including legacy code/document
+provenance traversal, is intentionally opt-in:
 
 ```bash
-julia --startup-file=no scripts/pre_registration_gate.jl
+BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true \
+  julia --project=. -e 'using Pkg; Pkg.test()'
 ```
 
-The gate checks temporary-environment import, package tests, examples,
-documentation rendering, Aqua package hygiene, project metadata, whitespace,
-public language, and skipped-test scans. CI runs the hygiene subset in a lighter
-mode because package tests and docs are separate jobs, while the public-language
-gate remains mandatory.
+Use that mode when reviewing or regenerating frozen study evidence, not as a
+prerequisite for installing or fitting the package on another computer. The
+optional research-fixture path variables are ignored when empty and rejected
+when non-empty unless this flag is true, so a stray CI or shell variable cannot
+silently turn an ordinary package test into a study-result check.
 
-The repository also includes a manual handoff helper:
-
-```bash
-julia --project=. scripts/registration_handoff.jl --strict
-```
-
-It verifies the release boundary and prints the Registrator comment. It does not
-call GitHub, Registrator, General, or any publication endpoint.
-
-## Manifest and Cache Policy
-
-The root `Manifest.toml` and `docs/Manifest.toml` are ignored, machine-local
-files. The versioned `Manifest-v1.10.toml` is the tracked lockfile for the Julia
-1.10.8 minimum-version lane; Julia 1.10 selects it while the latest Julia 1.x
-lane resolves from `Project.toml` compatibility bounds to detect forward drift.
-A study should record the package version and relevant environment information
-with its outputs. Exact manifest-byte equality is not an ordinary package gate.
-The package gate develops the repository in fresh temporary environments, so
-the local root and docs manifests do not affect registration checks.
-
-Serialized fit caches from `cached_fit` are for same-environment recomputation
-avoidance. For durable review, keep the `model_manifest`, `fit_artifact`,
-exported summaries, report bundles, source data, and exact code version with
-the analysis.
+The complete package suite runs once on Ubuntu with the Julia 1.10.8 minimum
+version. On the latest Julia 1.x release, the same ordinary test coverage is
+partitioned into `core`, `fitting_core`, `fitting_reports`,
+`local_dependence_core`, `local_dependence_integrity`, and `generalized` shards.
+Running `Pkg.test()` locally still selects all groups; a single group can be
+selected with `BAYESIANMGMFRM_TEST_GROUP=<group>`. The legacy `fitting` and
+`local_dependence` names each select both of their new shards. Focused current-Julia
+smokes on macOS and Windows verify package loading, design validation and
+compilation, likelihood evaluation, a minimal stable Bayesian fit, and
+non-blocking environment metadata collection. Every CI job has an explicit hard
+timeout; ordinary Ubuntu test shards are capped at 30--35 minutes and the full
+minimum-Julia suite at 75 minutes. Separate jobs build the
+documentation and verify examples and release-facing language. The root
+`Manifest.toml` and `docs/Manifest.toml` are ignored, machine-local files. The
+versioned `Manifest-v1.10.toml` is the tracked lockfile for the Julia 1.10.8
+minimum-version lane; Julia 1.10 selects it while the latest-1.x lane resolves
+from `Project.toml` compatibility bounds as the forward-drift check. A study
+should record the package version and relevant environment information with its
+outputs; exact manifest-byte equality is not an ordinary package gate.
 
 ## Citation
 

@@ -108,6 +108,8 @@ function _current_spec_components(spec::FacetSpec)
     validation_bias_terms =
         _normalize_bias_terms(spec.validation_bias_terms, report)
     anchors = _normalize_anchors(spec.anchors)
+    _check_mfrm_fixed_q_options(family, dimensions, spec.thresholds, discrimination,
+        validation_bias_terms, anchors)
     estimation_status = _estimation_status(
         family,
         dimensions,

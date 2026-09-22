@@ -100,17 +100,13 @@ function _evidence_file_sha256(path;
     end
 end
 
-function _evidence_manifest_path(project_dir;
-        version::VersionNumber = VERSION)
-    project_dir isa AbstractString || return nothing
-    candidates = (
-        joinpath(project_dir,
-            "Manifest-v$(version.major).$(version.minor).toml"),
-        joinpath(project_dir, "Manifest-v$(version.major).toml"),
-        joinpath(project_dir, "Manifest.toml"),
-    )
-    index = findfirst(isfile, candidates)
-    return index === nothing ? nothing : candidates[index]
+function _evidence_manifest_path(project; issues = nothing)
+    project isa AbstractString && isfile(project) || return nothing
+    # Use the running loader's project, naming, and workspace rules. A guessed
+    # filename can hash a different environment from the one Julia resolves.
+    return _evidence_optional(:manifest_resolve; issues) do
+        Base.project_file_manifest_path(String(project))
+    end
 end
 
 function _evidence_git_metadata(;
@@ -168,8 +164,7 @@ function _evidence_project_hashes(;
         include_paths::Bool = false,
         issues = nothing)
     project = Base.active_project()
-    project_dir = isnothing(project) ? nothing : dirname(project)
-    manifest = _evidence_manifest_path(project_dir)
+    manifest = _evidence_manifest_path(project; issues)
     return Dict{String,Any}(
         "active_project" => include_paths ? project : nothing,
         "active_project_basename" => _evidence_path_basename(project),

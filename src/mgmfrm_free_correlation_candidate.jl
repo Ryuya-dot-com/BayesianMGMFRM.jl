@@ -14,7 +14,8 @@ function _checked_integer_lkj_eta(value)
         throw(ArgumentError("lkj_eta must be a positive integer"))
     original_is_positive_integer = try
         isfinite(value) && value > zero(value) && isinteger(value)
-    catch
+    catch err
+        _fatal_exception(err) && rethrow()
         false
     end
     original_is_positive_integer || throw(ArgumentError(
@@ -23,7 +24,8 @@ function _checked_integer_lkj_eta(value)
     ))
     eta_value = try
         Float64(value)
-    catch
+    catch err
+        _fatal_exception(err) && rethrow()
         throw(ArgumentError("lkj_eta must be convertible to Float64"))
     end
     isfinite(eta_value) && eta_value > 0 && isinteger(eta_value) ||
@@ -149,7 +151,7 @@ function _check_mgmfrm_free_latent_correlation_2d_design(
         failing = Tuple(row.check for row in validation.rows
             if row.severity === :error)
         throw(ArgumentError(
-            "the initial free latent-correlation candidate requires a " *
+            "the two-dimensional correlation model requires a " *
             "fixed simple-structure Q-matrix; failing_checks=$(repr(failing))",
         ))
     end
@@ -161,7 +163,7 @@ function _check_mgmfrm_free_latent_correlation_2d_design(
         for dimension in 1:2
     )
     all(>=(2), pure_items_per_dimension) || throw(ArgumentError(
-        "the initial free latent-correlation candidate requires at least " *
+        "the two-dimensional correlation model requires at least " *
         "two pure items per dimension; observed " *
         repr(pure_items_per_dimension),
     ))
@@ -180,14 +182,14 @@ function _check_mgmfrm_free_latent_correlation_2d_design(
         if !all(@view person_dimension_observed[person, :])
     )
     isempty(incomplete_people) || throw(ArgumentError(
-        "the initial free latent-correlation candidate requires every " *
+        "the two-dimensional correlation model requires every " *
         "person to have observations connected to both dimensions; " *
         "incomplete_people=$(repr(incomplete_people))",
     ))
     person_block = base.blueprint.blocks[:person]
     expected_people = length(spec.data.person_levels)
     length(person_block) == 2 * expected_people || throw(ArgumentError(
-        "unexpected 2D person block layout in free-correlation candidate",
+        "invalid ability-coordinate layout for the two-dimensional correlation model",
     ))
     return (;
         q_matrix_validation = validation,
@@ -307,6 +309,55 @@ function _mgmfrm_free_latent_correlation_2d_coordinates(
     base_raw = view(raw_params, target.blueprint.base_parameter_range)
     zrho = raw_params[target.blueprint.zrho_index]
     return base_raw, zrho
+end
+
+# Numerical target identity, not a fitted-result or public-fit capability flag.
+function _mgmfrm_correlated_2d_contract(target::_MGMFRMFreeLatentCorrelation2DLogDensity)
+    _check_mgmfrm_free_latent_correlation_2d_design(target.base)
+    return (; schema = "bayesianmgmfrm.mgmfrm_correlated_2d_raw_target.v1",
+        model = :mgmfrm_correlated_2d_raw_prior,
+        design = design_identity(target.base.design).value,
+        dimensions = 2, item_structure = :between_item, likelihood_scale = 1.7,
+        loadings = :estimated_positive_fixed_q, rater_consistency = :positive_product_one,
+        rater_severity = :zero_sum_last_reconstructed, item_steps = :baseline_zero_remaining_zero_sum,
+        location = :prior_anchored, ability_coordinates = :direct_centered,
+        base_prior = :independent_normal_raw_coordinates,
+        scales = _source_fixture_prior_values(target.base.prior),
+        latent_correlation = :free_2d, correlation_transform = :tanh,
+        correlation_prior = :normalized_lkj_2d, lkj_eta = target.prior.lkj_eta,
+        correlation_prior_measure = :d_rho, density_measure = :d_raw_d_zrho,
+        correlation_log_jacobian = :log_one_minus_rho_squared)
+end
+
+_mgmfrm_correlated_2d_identity(target::_MGMFRMFreeLatentCorrelation2DLogDensity) =
+    _cache_hash(_mgmfrm_correlated_2d_contract(target))
+
+_cmdstan_generalized_family(::_MGMFRMFreeLatentCorrelation2DLogDensity) = :mgmfrm_correlated_2d
+function _cmdstan_generalized_data(target::_MGMFRMFreeLatentCorrelation2DLogDensity)
+    _check_mgmfrm_free_latent_correlation_2d_design(target.base)
+    data = _cmdstan_mgmfrm_data(target.base)
+    return merge(Base.structdiff(data, (; prior_model = nothing, source_rater = nothing)),
+        (; lkj_eta = target.prior.lkj_eta))
+end
+
+function _cmdstan_generalized_initial(target::_MGMFRMFreeLatentCorrelation2DLogDensity, values)
+    beta, zrho = _mgmfrm_free_latent_correlation_2d_coordinates(target, values)
+    return (; beta = collect(beta), zrho)
+end
+
+function _cmdstan_generalized_chain_result(path::AbstractString,
+        target::_MGMFRMFreeLatentCorrelation2DLogDensity, chain::Int, ndraws::Int; warmup::Int = 0)
+    n = LogDensityProblems.dimension(target)
+    evaluate = params -> (; pointwise = _mgmfrm_free_latent_correlation_2d_pointwise_loglikelihood(target, params),
+        logposterior = LogDensityProblems.logdensity(target, params))
+    parsed = _cmdstan_raw_chain_result(path, n, target.base.design.spec.data.n,
+        chain, ndraws, evaluate; warmup,
+        parameter_names = [["beta.$i" for i in 1:(n-1)]; "zrho"])
+    all(isapprox(stat.stan_lp, lp; atol = 1e-8, rtol = 1e-8)
+        for (stat, lp) in zip(parsed.stats, parsed.logps)) || throw(CmdStanError(
+            :output_parse, :log_posterior_mismatch,
+            "CmdStan and Julia correlated MGMFRM log posteriors disagree"))
+    return parsed
 end
 
 @inline function _log_one_minus_tanh_squared(z::Real)
@@ -881,12 +932,12 @@ function initial_params(
         target::_MGMFRMFreeLatentCorrelation2DLogDensity;
         value::Real = 0.0,
         zrho::Real = 0.0)
-    isfinite(value) || throw(ArgumentError("value must be finite"))
     zrho isa Bool && throw(ArgumentError("zrho must be a finite real value"))
-    isfinite(zrho) || throw(ArgumentError("zrho must be finite"))
+    zrho = Float64(zrho)
+    isfinite(zrho) || throw(ArgumentError("zrho must be finite after Float64 conversion"))
     return vcat(
         initial_params(target.base; value),
-        Float64(zrho),
+        zrho,
     )
 end
 
@@ -1042,20 +1093,10 @@ function _mgmfrm_free_latent_correlation_2d_sample_bundle(
         init_jitter::Real = 0.0,
         chain_initials = nothing,
         progress::Bool = false)
-    ndraws >= 1 || throw(ArgumentError("ndraws must be positive"))
-    warmup >= 0 || throw(ArgumentError("warmup must be non-negative"))
-    chains >= 1 || throw(ArgumentError("chains must be positive"))
-    isfinite(step_size) && step_size > 0 ||
-        throw(ArgumentError("step_size must be finite and positive"))
-    0 < target_accept < 1 ||
-        throw(ArgumentError("target_accept must be in (0, 1)"))
-    max_depth >= 1 || throw(ArgumentError("max_depth must be positive"))
-    isfinite(max_energy_error) && max_energy_error > 0 ||
-        throw(ArgumentError(
-            "max_energy_error must be finite and positive",
-        ))
-    isfinite(init_jitter) && init_jitter >= 0 ||
-        throw(ArgumentError("init_jitter must be finite and non-negative"))
+    step_size = _check_fit_controls(ndraws, warmup, chains, step_size)
+    requested_init_jitter = init_jitter
+    target_accept, max_energy_error, init_jitter =
+        _check_nuts_controls(target_accept, max_depth, max_energy_error, init_jitter)
     gradient_backend = _gradient_backend_kind(ad_backend)
     _check_source_fixture_raw_vector(target, raw_initial)
     initial = Float64.(collect(raw_initial))
@@ -1076,12 +1117,13 @@ function _mgmfrm_free_latent_correlation_2d_sample_bundle(
             "chain_initials has size $(size(chain_initials)); expected " *
             "($chains, $nparams)",
         ))
-        iszero(init_jitter) || throw(ArgumentError(
+        iszero(requested_init_jitter) || throw(ArgumentError(
             "init_jitter must be zero when explicit chain_initials are supplied",
         ))
         converted = try
             Matrix{Float64}(chain_initials)
-        catch
+        catch err
+            _fatal_exception(err) && rethrow()
             throw(ArgumentError(
                 "chain_initials must contain values convertible to Float64",
             ))
@@ -1102,25 +1144,30 @@ function _mgmfrm_free_latent_correlation_2d_sample_bundle(
     sampler_stats = NamedTuple[]
 
     for chain in 1:chains
-        chain_initial = supplied_chain_initials === nothing ?
-            _advancedhmc_initial(
-                initial,
-                fit_rng,
-                Float64(init_jitter),
-            ) : copy(@view supplied_chain_initials[chain, :])
-        actual_chain_initials[chain, :] .= chain_initial
-        chain_initial_logdensity[chain] =
-            LogDensityProblems.logdensity(target, chain_initial)
-        isfinite(chain_initial_logdensity[chain]) ||
-            throw(ArgumentError(
-                "chain $chain initial raw parameter vector has non-finite " *
-                "log density",
-            ))
-        gradient_target = _logdensity_gradient_target(
-            target,
-            chain_initial,
-            ad_backend,
-        ).target
+        chain_initial = _with_sampler_context(:advancedhmc, chain, :initialization) do
+            values = supplied_chain_initials === nothing ?
+                _advancedhmc_initial(
+                    initial,
+                    fit_rng,
+                    Float64(init_jitter),
+                ) : copy(@view supplied_chain_initials[chain, :])
+            actual_chain_initials[chain, :] .= values
+            chain_initial_logdensity[chain] =
+                LogDensityProblems.logdensity(target, values)
+            isfinite(chain_initial_logdensity[chain]) ||
+                throw(ArgumentError(
+                    "chain $chain initial raw parameter vector has non-finite " *
+                    "log density",
+                ))
+            values
+        end
+        gradient_target = _with_sampler_context(:advancedhmc, chain, :initialization) do
+            _logdensity_gradient_target(
+                target,
+                chain_initial,
+                ad_backend,
+            ).target
+        end
         metric_object = _advancedhmc_metric(metric, nparams)
         hamiltonian = AdvancedHMC.Hamiltonian(
             metric_object,
@@ -1148,43 +1195,46 @@ function _mgmfrm_free_latent_correlation_2d_sample_bundle(
                     integrator,
                 ),
             ) : AdvancedHMC.NoAdaptation()
-        samples, stats = AdvancedHMC.sample(
-            fit_rng,
-            hamiltonian,
-            kernel,
-            chain_initial,
-            warmup + ndraws,
-            adaptor,
-            warmup;
-            drop_warmup = warmup > 0,
-            verbose = false,
-            progress,
-        )
-        length(samples) == ndraws || throw(ArgumentError(
-            "AdvancedHMC returned $(length(samples)) draw(s); " *
-            "expected $ndraws",
-        ))
-        length(stats) == ndraws || throw(ArgumentError(
-            "AdvancedHMC returned $(length(stats)) sampler-stat row(s); " *
-            "expected $ndraws",
-        ))
-        chain_stats = NamedTuple[]
-        for iteration in 1:ndraws
-            row = (chain - 1) * ndraws + iteration
-            draws[row, :] .= samples[iteration]
-            stat_row = _advancedhmc_stat_row(
-                stats[iteration],
-                chain,
-                iteration,
+        samples, stats = _with_sampler_context(:advancedhmc, chain, :sampling) do
+            AdvancedHMC.sample(
+                fit_rng,
+                hamiltonian,
+                kernel,
+                chain_initial,
+                warmup + ndraws,
+                adaptor,
+                warmup;
+                drop_warmup = warmup > 0,
+                verbose = false,
+                progress,
             )
-            logdensities[row] = stat_row.log_density
-            chain_ids[row] = chain
-            iterations[row] = iteration
-            push!(chain_stats, stat_row)
-            push!(sampler_stats, stat_row)
         end
-        chain_acceptance_rate[chain] =
-            _stat_mean(chain_stats, :acceptance_rate)
+        _with_sampler_context(:advancedhmc, chain, :output_validation) do
+            length(samples) == ndraws || throw(ArgumentError(
+                "AdvancedHMC returned $(length(samples)) draw(s); " *
+                "expected $ndraws",
+            ))
+            length(stats) == ndraws || throw(ArgumentError(
+                "AdvancedHMC returned $(length(stats)) sampler-stat row(s); " *
+                "expected $ndraws",
+            ))
+            chain_stats = NamedTuple[]
+            for iteration in 1:ndraws
+                row = (chain - 1) * ndraws + iteration
+                stat_row = _advancedhmc_stat_row(
+                    stats[iteration],
+                    chain,
+                    iteration,
+                )
+                _store_sampler_draw!(draws, logdensities, samples[iteration], stat_row, row)
+                chain_ids[row] = chain
+                iterations[row] = iteration
+                push!(chain_stats, stat_row)
+                push!(sampler_stats, stat_row)
+            end
+            chain_acceptance_rate[chain] =
+                _stat_mean(chain_stats, :acceptance_rate)
+        end
     end
 
     base_draws = Matrix(@view draws[:, target.blueprint.base_parameter_range])

@@ -64,6 +64,11 @@ const MAINTENANCE_TOKEN_PATTERN =
 
 const LANGUAGE_RULES = (
     (;
+        id = :private_result_status,
+        pattern = r"(?i)\bprivate[\s_-]+(?:reference|result|correlated)\b",
+        guidance = "describe the model and its availability without development status labels",
+    ),
+    (;
         id = :absolute_local_path,
         pattern = ABSOLUTE_LOCAL_PATH_PATTERN,
         guidance = "replace machine-specific paths with repository-relative links",

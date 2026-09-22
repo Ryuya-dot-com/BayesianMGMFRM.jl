@@ -1,24 +1,11 @@
 using BayesianMGMFRM
-using Random
 
-function compact_row(row, fields::Tuple)
-    return (; (field => getproperty(row, field) for field in fields)...)
+all(arg -> arg in ("--plots", "--cmdstan"), ARGS) ||
+    error("Usage: julia --project=. examples/guarded_mgmfrm.jl [--plots] [--cmdstan]")
+if "--plots" in ARGS
+    using CairoMakie
 end
-
-function print_rows(label, rows; fields = nothing, limit::Int = 4)
-    row_vector = collect(rows)
-    println(label, " (", length(row_vector), " rows)")
-    for row in Iterators.take(row_vector, limit)
-        println("  ", fields === nothing ? row : compact_row(row, fields))
-    end
-    length(row_vector) > limit &&
-        println("  ... ", length(row_vector) - limit, " more")
-end
-
-function print_header(label)
-    println()
-    println("== ", label, " ==")
-end
+backend = "--cmdstan" in ARGS ? :cmdstan : :advancedhmc
 
 ratings = (
     examinee = ["E1", "E1", "E1", "E2", "E2", "E2"],
@@ -26,78 +13,55 @@ ratings = (
     item = ["I1", "I1", "I2", "I1", "I2", "I2"],
     score = [0, 1, 2, 1, 0, 2],
 )
-
-data = FacetData(ratings;
-    person = :examinee,
-    rater = :rater,
-    item = :item,
-    score = :score,
-)
+data = FacetData(ratings; person = :examinee, rater = :rater, item = :item,
+    score = :score, category_levels = 0:2)
 validation = validate_design(data)
-validation.passed || error(validation)
+println(validation)
+validation.passed || error("Resolve the data validation issues before fitting.")
 
-# Q rows follow `data.item_levels`; columns follow `dimension_labels`.
+# Q rows follow data.item_levels; columns follow dimension_labels.
 q_matrix = Bool[1 0; 0 1]
-spec = mfrm_spec(data;
-    thresholds = :partial_credit,
-    family = :mgmfrm,
-    dimensions = 2,
-    dimension_labels = ["reasoning", "communication"],
-    discrimination = :none,
-    q_matrix,
-    anchors = [],
-    validation_report = validation,
-)
-design = getdesign(spec; preview = true)
+dimension_labels = ["reasoning", "communication"]
+spec = mfrm_spec(data; family = :mgmfrm, dimensions = 2, thresholds = :partial_credit,
+    discrimination = :none, q_matrix, dimension_labels, validation_report = validation)
+println("Experimental fixed-Q MGMFRM: active positive loadings estimated; latent correlation fixed to identity.")
+println("Q rows: ", data.item_levels, "; dimensions: ", dimension_labels)
+display(q_matrix)
 
-print_header("Guarded MGMFRM Design")
-println(data)
-println(spec)
-println(design)
-println("Validation passed: ", validation.passed)
-println("Q row order: ", data.item_levels)
-println("Q-matrix: ", q_matrix)
-println("Parameters: ", join(design.parameter_names, ", "))
-print_rows("Constraints", constraint_table(spec);
-    fields = (:block, :constraint, :status, :note))
-manifest = model_manifest(spec; view = :public)
-println("Manifest: object=", manifest.object,
-    ", family=", manifest.spec.family,
-    ", dimensions=", manifest.spec.dimensions,
-    ", status=experimental preview")
-
-smoke_controls = (;
-    seed = 20260630,
-    ndraws = 2,
-    warmup = 0,
-    chains = 1,
-    step_size = 0.02,
-    max_depth = 8,
-    metric = :unit,
-)
-fit_result = BayesianMGMFRM.Experimental.fit(spec; smoke_controls...)
-
-print_header("Guarded MGMFRM Fit")
+output_dir = mktempdir(mkpath("results/guarded_mgmfrm"); prefix = "$(backend)-", cleanup = false)
+# Only CmdStan takes a compiled-model directory; each run gets a fresh one.
+backend_options = backend === :cmdstan ?
+    (; cmdstan_cache_dir = joinpath(output_dir, "cmdstan-build")) : (;)
+println("Output directory: ", relpath(output_dir))
+println("Short demonstration: 50 warmup + 50 retained draws per chain; not sufficient for inference.")
+fit_result = BayesianMGMFRM.Experimental.fit(spec; backend, ndraws = 50,
+    warmup = 50, chains = 2, seed = 20260630, backend_options...)
 println(fit_result)
-metadata = fit_metadata(fit_result; view = :public)
-println("Fit metadata: backend=", metadata.backend,
-    ", sampler=", metadata.sampler,
-    ", draws=", metadata.n_draws,
-    ", chains=", metadata.n_chains,
-    ", status=experimental")
-diagnostic_surface = diagnostics(fit_result; view = :public)
-println("Overall diagnostics: ", diagnostic_surface.summary.flag)
-print_rows("Sampler diagnostics", sampler_diagnostics(fit_result);
-    fields = (:chain, :acceptance_rate, :n_nonfinite_logdensity, :flag))
-print_rows("Posterior summary", posterior_summary(fit_result);
-    fields = (:parameter, :mean, :sd, :lower, :upper))
+check = diagnostics(fit_result; view = :public)
+println("MCMC status: ", check.summary.flag, "; max R-hat: ", check.summary.max_rank_normalized_rhat,
+    "; min bulk/tail ESS: ", check.summary.min_bulk_ess, " / ", check.summary.min_tail_ess)
+check.summary.passed || println("Review diagnostics(fit_result) before interpreting estimates.")
+println("Model-scale summaries below; posterior_summary(fit_result) instead uses raw computational coordinates.")
+display([row[(:parameter, :median, :lower, :upper)] for row in BayesianMGMFRM.direct_posterior_summary(fit_result)])
 
-ppc = posterior_predictive_check(fit_result;
-    draw_indices = [1, 2],
-    rng = MersenneTwister(20260633),
-)
-print_rows("Posterior predictive rows", predictive_check_summary(ppc);
-    fields = (:statistic, :level, :observed, :replicated_mean, :flag))
+cache_path = joinpath(output_dir, "fit.jls")
+save_fit_cache(cache_path, fit_result)
+restored = load_fit_cache(cache_path)
+@assert isequal(BayesianMGMFRM.direct_posterior_summary(restored), BayesianMGMFRM.direct_posterior_summary(fit_result))
+println("Fit saved and reloaded: ", relpath(cache_path))
 
-println()
-println("Smoke completed. Two draws and one chain are not suitable for inference.")
+# These figures use the saved fit. Wright maps are supported only for stable MFRM.
+if "--plots" in ARGS
+    posterior = BayesianMGMFRM.plot_posterior(restored; scale = :model, block = :person)
+    chains = BayesianMGMFRM.plot_diagnostics(restored; scale = :raw,
+        block = :person, dimension = "reasoning")
+    predictive = BayesianMGMFRM.plot_predictive(restored; ndraws = 200, seed = 42)
+    for (name, figure) in (("ability-posterior", posterior), ("reasoning-chains", chains),
+            ("category-predictive", predictive))
+        save(joinpath(output_dir, "$name.pdf"), figure)
+    end
+    save(joinpath(output_dir, "ability-posterior.svg"), posterior)
+    println("Saved three PDFs and ability-posterior.svg in ", relpath(output_dir))
+else
+    println("Add --plots after installing CairoMakie to generate figures; see docs/src/examples.md.")
+end

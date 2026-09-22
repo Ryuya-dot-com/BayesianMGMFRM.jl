@@ -2,6 +2,10 @@
 
 const _CMDSTAN_BACKEND_FAMILIES = (:mfrm, :gmfrm, :mgmfrm)
 
+# These signals must escape error conversion and optional-result capture.
+_fatal_exception(err) = err isa InterruptException || err isa OutOfMemoryError ||
+    err isa StackOverflowError
+
 """
     CmdStanError
 
@@ -72,7 +76,9 @@ end
 function _cmdstan_configured_program(environment_name::AbstractString,
         defaults::Tuple)
     configured = strip(get(ENV, environment_name, ""))
-    candidates = isempty(configured) ? defaults : (first(split(configured)),)
+    # MAKE names one executable; CXX remains a first-program readiness probe.
+    candidates = isempty(configured) ? defaults :
+        (environment_name == "MAKE" ? configured : first(split(configured)),)
     for candidate in candidates
         path = Sys.which(candidate)
         path === nothing || return path
@@ -97,6 +103,7 @@ function _cmdstan_stanc_check(path)
             detail = isempty(output) ? nothing : output,
         )
     catch error
+        _fatal_exception(error) && rethrow()
         reason = error isa Base.ProcessFailedException ? :command_failed :
             error isa Base.IOError ? :io_error : :unexpected_error
         return _cmdstan_check(
@@ -182,6 +189,17 @@ The check validates the CmdStan root, makefile, `stanc --version`, `make`, and a
 C++ compiler. It does not compile a Stan model or run MCMC. Machine-local paths
 are omitted by default. Set `require_ready = true` to throw a
 [`CmdStanError`](@ref) when a check fails.
+
+`MAKE`, when set, selects one executable name or path, not a shell command;
+additional arguments are not parsed or silently dropped. A literal executable
+path may contain spaces. CXX discovery still checks only its first program;
+Make resolves the effective compiler command and options during a build.
+
+Readiness does not check the compile-time environment policy: compilation
+requires `MAKEFILES`, `MAKEFLAGS`, and `GNUMAKEFLAGS` each to be unset or exactly
+empty, including when inherited flags only control logging or parallelism.
+Nonempty values are rejected without clearing them. This check can report
+ready while compilation rejects those settings; it still runs `stanc --version`.
 """
 function cmdstan_backend_check(;
         cmdstan_path::Union{Nothing,AbstractString} = nothing,

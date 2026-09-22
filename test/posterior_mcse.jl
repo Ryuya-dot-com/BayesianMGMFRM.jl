@@ -127,6 +127,23 @@ using BayesianMGMFRM
     )
 end
 
+@testset "balanced two-point draws retain usable mean MCSE" begin
+    # The SD variance formula cancels at this boundary and can round negative,
+    # depending on Julia version/platform. The mean remains nondegenerate.
+    for amplitude in (0.01, 0.1, 0.3)
+        samples = shuffle(MersenneTwister(23),
+            [fill(-amplitude, 80); fill(amplitude, 80)])
+        row = only(posterior_mcse(reshape(samples, :, 1); chains = 4))
+        @test isfinite(row.mean_mcse) && row.mean_mcse > 0
+        @test row.mean_mcse ≈ MCMCDiagnosticTools.mcse(
+            reshape(samples, 40, 4); kind = mean, split_chains = 2)
+        @test ismissing(row.sd_mcse) || (isfinite(row.sd_mcse) && row.sd_mcse >= 0)
+        @test row.mcse_status === :mcse_unavailable
+        @test !ismissing(row.quantiles[2].mcse) && isfinite(row.quantiles[2].mcse)
+        @test row.convergence_review_required && !row.precision_threshold_applied
+    end
+end
+
 @testset "posterior MCSE MFRM fit dispatch" begin
     table = (
         examinee = ["E1", "E1", "E1", "E2", "E2", "E2"],

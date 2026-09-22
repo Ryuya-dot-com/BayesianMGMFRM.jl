@@ -256,7 +256,8 @@ function fixed_q_policy_records(design, target, diagnostics)
         initialization_rows =
             BayesianMGMFRM._mgmfrm_initialization_rows(initialization_policy),
         fixed_q_invariance_rows =
-            BayesianMGMFRM._mgmfrm_fixed_q_invariance_rows(design, diagnostics),
+            BayesianMGMFRM._mgmfrm_fixed_q_invariance_rows(design, diagnostics;
+                prior = target.prior),
     )
 end
 
@@ -307,7 +308,7 @@ function synthetic_fit_artifact(spec, design, target, diagnostics, decision)
         fixture_provenance = decision.fit_artifact_contract.provenance_rows,
         q_matrix = q_matrix_record(spec),
         latent_correlation = :identity_fixed,
-        ability_scale = :standard_normal_by_dimension,
+        BayesianMGMFRM._mgmfrm_ability_prior_metadata(target.prior)...,
         initialization_policy = fixed_q_policy.initialization_policy,
         initialization_rows = fixed_q_policy.initialization_rows,
         fixed_q_invariance_rows = fixed_q_policy.fixed_q_invariance_rows,
@@ -478,6 +479,7 @@ function build_artifact()
             q_matrix = artifact_preview.q_matrix,
             latent_correlation = artifact_preview.latent_correlation,
             ability_scale = artifact_preview.ability_scale,
+            ability_prior = artifact_preview.ability_prior,
             initialization_policy = artifact_preview.initialization_policy,
             initialization_rows = artifact_preview.initialization_rows,
             n_initialization_rows =

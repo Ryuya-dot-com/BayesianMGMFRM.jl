@@ -1,7 +1,7 @@
 """
     BayesianMGMFRM.Experimental
 
-Namespace for generalized model surfaces that are available in limited,
+Namespace for multidimensional MFRM and generalized models available in limited,
 experimental configurations but are not part of the stable MFRM fitting
 contract.
 
@@ -10,12 +10,17 @@ Use [`BayesianMGMFRM.Experimental.preview`](@ref),
 [`BayesianMGMFRM.Experimental.fit`](@ref), and
 [`BayesianMGMFRM.Experimental.cached_fit`](@ref) instead of adding
 `experimental = true` to the stable entry points. The legacy keyword remains
-available for source compatibility during the namespace migration.
+available for source compatibility for GMFRM/MGMFRM. Fixed-coefficient
+multidimensional MFRM uses `Experimental.fit` and manual
+`save_fit_cache`/`load_fit_cache`, and both prior-predictive entries; preview and automatic cache
+entries in this namespace still accept only GMFRM/MGMFRM.
 
 The narrower
 [`BayesianMGMFRM.Experimental.free_latent_correlation_2d_candidate`](@ref)
 entry point exposes a density-and-gradient target only. It has no fit result or
-cache path. Its reader-facing companion functions expose the transformed
+cache path through that density-only entry. Use `correlated(spec)` with an
+explicit `GeneralizedPrior` for the separate, limited correlated MGMFRM fitting
+and manual-cache workflow. The density target's companion functions expose the transformed
 correlation state and finite-difference gradient checks. Inspect
 [`BayesianMGMFRM.Experimental.surface_contract`](@ref) for the exact accepted
 configurations and constraints.
@@ -26,25 +31,169 @@ const _PACKAGE = parentmodule(@__MODULE__)
 const _FacetSpec = getfield(_PACKAGE, :FacetSpec)
 
 """
-Compatibility alias for the experimental scalar GMFRM result type. The defining
-type remains at package root so existing serialized fit caches keep their
-Julia type identity during the namespace migration.
+Result of experimental scalar GMFRM fitting. Inspect estimates with
+`posterior_summary` and sampling quality with `diagnostics`.
 """
 const GMFRMFit = getfield(_PACKAGE, :GMFRMFit)
 
 """
-Compatibility alias for the experimental fixed-Q MGMFRM result type. The defining
-type remains at package root so existing serialized fit caches keep their
-Julia type identity during the namespace migration.
+Result of experimental fixed-Q MGMFRM fitting. Inspect estimates with
+`posterior_summary` and sampling quality with `diagnostics`.
 """
 const MGMFRMFit = getfield(_PACKAGE, :MGMFRMFit)
 
 """
-Experimental prior-scale type for guarded GMFRM and MGMFRM fits. Its six
+Result of experimental fixed-coefficient multidimensional MFRM fitting.
+Use `Experimental.fit(spec)` to estimate and `save_fit_cache`/`load_fit_cache`
+to save and reopen a result.
+"""
+const MultidimensionalMFRMFit = getfield(_PACKAGE, :MultidimensionalMFRMFit)
+
+"""
+Experimental prior-scale type for GMFRM and MGMFRM fits. Its six
 standard deviations apply to independent normal priors on raw unconstrained
 coordinates, not directly to transformed model parameters.
+For an explicit correlated MGMFRM specification, ability pairs are conditionally
+bivariate normal with these marginal SDs and the specification's LKJ correlation;
+the other raw-coordinate priors retain their meanings.
 """
 const GeneralizedPrior = getfield(_PACKAGE, :GeneralizedPrior)
+
+"""
+Two-dimensional MFRM specification with estimated population correlation.
+Construct with [`correlated`](@ref).
+"""
+const CorrelatedMFRMSpec = getfield(_PACKAGE, :CorrelatedMFRMSpec)
+
+"""
+Result of experimental correlated MFRM fitting. `direct_posterior_summary`
+and `plot_posterior(...; block = :latent_correlation)` report rho on its
+correlation scale. Reports default to reader-facing output; diagnostics must
+be checked before interpreting estimates.
+"""
+const CorrelatedMFRMFit = getfield(_PACKAGE, :_CorrelatedMFRMFit)
+
+"""
+Two-dimensional between-item MGMFRM specification with estimated positive
+loadings, rater consistency and population correlation. Construct with
+`correlated(spec; lkj_eta = 2)` and explicitly supply `GeneralizedPrior` to `fit`.
+"""
+const CorrelatedMGMFRMSpec = getfield(_PACKAGE, :_CorrelatedMGMFRMSpec)
+
+"""
+Experimental correlated MGMFRM result. Supports raw/direct summaries, MCSE,
+diagnostics, metadata, full fit artifacts and manual `save_fit_cache`/`load_fit_cache`.
+Direct summaries and default MCSE report rho; raw summaries report Fisher z.
+Supports category probabilities and posterior prediction for existing rating
+rows, reader-facing reports, tables and optional CairoMakie figures. Report
+bundles preserve model identity, diagnostic warnings and figure inputs.
+"""
+const CorrelatedMGMFRMFit = getfield(_PACKAGE, :_CorrelatedMGMFRMFit)
+
+"""
+    ExchangeablePrior(; rater_kernel_sd, person_sd = 1.5, item_sd = 1.0, step_sd = 1.0)
+
+Prior for fixed-coefficient multidimensional MFRM with exchangeable, zero-sum
+rater severities. Pass the same `prior` to `prior_predictive_check` and `fit`,
+with an independent specification or `correlated(spec)`, on either backend.
+All scales must be finite and positive. The rater scale is required: for R
+raters, marginal SD is `rater_kernel_sd * sqrt((R-1)/R)` and pairwise contrast
+SD is `sqrt(2) * rater_kernel_sd`. It is not the independent-free-coordinate
+`rater_sd` of `MFRMPrior`; choosing the same number does not match those priors.
+Ability, item and free-step scales keep their `MFRMPrior` meanings. Correlated
+abilities additionally use the LKJ shape specified by `correlated`. Scales are
+fixed inputs, not estimated hyperparameters. Unsupported for scalar MFRM,
+GMFRM and MGMFRM. The default prior remains `MFRMPrior()`.
+"""
+const ExchangeablePrior = getfield(_PACKAGE, :_ExchangeablePrior)
+
+"""
+Result of `Experimental.fit(...; prior = ExchangeablePrior(...))` for independent
+or correlated multidimensional MFRM. Supports summaries, diagnostics, report
+bundles, plots, and `save_fit_cache`/`load_fit_cache`. Reports default to
+reader-facing output and retain the selected prior and sampler warnings.
+"""
+const ExchangeableMFRMFit = getfield(_PACKAGE, :_ExchangeableMFRMFit)
+
+"""
+    correlated(spec; lkj_eta = 2)
+
+Estimate population correlation between the two named ability dimensions of
+a fixed-coefficient MFRM or an estimated-loading MGMFRM.
+For MFRM, pass the returned specification to `Experimental.fit`
+with `backend = :advancedhmc` (Julia) or `:cmdstan` and `prior = MFRMPrior(...)`
+or [`ExchangeablePrior`](@ref).
+The input specification is copied and retains its independent-model meaning.
+
+Requires `family = :mfrm`, exactly two dimensions, partial-credit thresholds,
+between-item Q with at least two pure items per dimension, and observations in
+both dimensions for every person. Anchors and fitted bias terms are unavailable.
+Q coefficients and rater consistency are fixed at one; locations use unit
+logits and zero-centered priors. Direct ability pairs have covariance
+`person_sd^2 * [1 rho; rho 1]`. `lkj_eta` is a fixed positive integer LKJ shape
+on rho; it is not a standard deviation. Sampling uses `rho = tanh(z)` with
+the transformation Jacobian. A custom `init` ends in Fisher z, not rho.
+
+Use `prior_predictive_check` before fitting, and `save_fit_cache`/`load_fit_cache`
+to save and reopen MFRM results. Automatic request caching is unavailable.
+
+For `family = :mgmfrm`, the same 2D pure-Q and observation-coverage restrictions
+apply, with estimated positive active loadings and product-one rater consistency.
+Pass an explicit `prior = GeneralizedPrior(...)` to `Experimental.fit`; there is
+no implicit prior choice for this combined model. Locations/loading scales are
+prior-anchored and the response equation retains its literal 1.7 multiplier.
+Both backends return `CorrelatedMGMFRMFit`, supporting raw/direct summaries,
+MCSE, diagnostics, existing-row prediction, full fit artifacts and manual
+save/reload. Pass the same explicit prior to `prior_predictive_check` before
+fitting. Reports, exports and optional CairoMakie figures preserve the model,
+prior, diagnostic warnings and conditional prediction target after reload.
+"""
+correlated(spec::_FacetSpec; lkj_eta = 2) = spec.family === :mgmfrm ?
+    CorrelatedMGMFRMSpec(spec; lkj_eta) : CorrelatedMFRMSpec(spec; lkj_eta)
+
+function surface_contract(spec::CorrelatedMGMFRMSpec)
+    checked = CorrelatedMGMFRMSpec(spec.base_spec; lkj_eta = spec.lkj_eta)
+    return merge(_family_surface_contract(:mgmfrm), (;
+        scope = :correlated_2d_mgmfrm_raw_prior, maximum_dimensions = 2,
+        item_structure = :between_item, minimum_pure_items_per_dimension = 2,
+        person_dimension_observation_coverage = :complete,
+        latent_correlation = :free_2d, likelihood_scale = 1.7,
+        expected_blocks = (:person, :rater_free, :item, :log_item_dimension_discrimination,
+            :log_rater_consistency_free, :item_steps, :z_latent_correlation),
+        prior = (; constructor = :GeneralizedPrior, explicit_prior_required = true,
+            ability = :conditional_bivariate_normal, other_free_coordinates = :independent_normal_raw_coordinates,
+            correlation = :normalized_lkj_2d, lkj_eta = checked.lkj_eta,
+            maximum_lkj_eta = getfield(_PACKAGE, :_MAX_INTEGER_LKJ_ETA),
+            parameter_space = :raw_unconstrained_coordinates, density_measure = :d_raw_d_zrho,
+            correlation_prior_measure = :d_rho, correlation_transform = :tanh,
+            correlation_log_jacobian = :log_one_minus_rho_squared,
+            prior_predict_available = true, prior_predictive_check_available = true),
+        result_type = :CorrelatedMGMFRMFit, fit_enabled = true, manual_cache_enabled = true,
+        claim_scope = :two_dimensional_between_item_correlated_mgmfrm_raw_prior,
+        record_warmup_default = true,
+        automatic_cache_enabled = false, predictive_checks_available = true,
+        prediction_target = :existing_rating_rows, new_facet_levels = false,
+        predictive_probabilities_available = true, posterior_predict_available = true,
+        reports_available = true, plots_available = true, scientific_acceptance = :not_established))
+end
+
+function surface_contract(spec::CorrelatedMFRMSpec)
+    return merge(_mfrm_surface_contract(), (;
+        scope = :correlated_fixed_coefficient_mfrm, maximum_dimensions = 2,
+        item_structure = :between_item, minimum_pure_items_per_dimension = 2,
+        person_dimension_observation_coverage = :complete,
+        expected_blocks = (:person, :rater_free, :item, :item_steps, :z_latent_correlation),
+        latent_correlation = :free_2d,
+        prior = (; constructor = :MFRMPrior, ability = :bivariate_normal,
+            exchangeable_constructor = :ExchangeablePrior, exchangeable_rater_scale = :kernel_sd,
+            other_free_coordinates = :independent_normal, correlation = :lkj_2d,
+            lkj_eta = spec.lkj_eta, maximum_lkj_eta = getfield(_PACKAGE, :_MAX_INTEGER_LKJ_ETA),
+            density_measure = :d_beta_d_zrho,
+            correlation_prior_measure = :d_rho, correlation_transform = :tanh,
+            correlation_log_jacobian = :log_one_minus_rho_squared,
+            prior_predict_available = true, prior_predictive_check_available = true),
+        claim_scope = :two_dimensional_between_item_fixed_coefficient_mfrm))
+end
 
 # Intentionally export no bindings. Fully qualified access is the quarantine
 # boundary while the package-root compatibility names remain available.
@@ -107,6 +256,31 @@ function _family_surface_contract(family::Symbol)
     )
 end
 
+function _mfrm_surface_contract()
+    return (;
+        family = :mfrm, status = :experimental,
+        scope = :fixed_coefficient_multidimensional_mfrm,
+        minimum_dimensions = 2, maximum_dimensions = nothing,
+        threshold_regimes = (:partial_credit,), discrimination = (:none,),
+        fixed_q_required = true, anchors_allowed = false, fitted_dff_allowed = false,
+        kernel_discrimination = :fixed_q_coefficients, rater_consistency = :fixed_one,
+        step_sharing = :item_specific_shared_across_raters_dimensions_and_persons,
+        step_constraint = :first_step_zero_remaining_steps_sum_to_zero,
+        expected_blocks = (:person, :rater_free, :item, :item_steps),
+        latent_correlation = :identity_fixed, location = :prior_anchored,
+        scale_convention = :unit_logit,
+        prior = (; constructor = :MFRMPrior, parameter_space = :unit_logit_free,
+            exchangeable_constructor = :ExchangeablePrior, exchangeable_rater_scale = :kernel_sd,
+            family = :independent_zero_centered_normal, custom_scales_allowed = true,
+            prior_predict_available = true, prior_predictive_check_available = true,
+            jacobian_policy = :none_declared_free_coordinate_density),
+        backend = :advancedhmc, supported_backends = (:advancedhmc, :cmdstan),
+        sampler_defaults = _family_surface_contract(:mgmfrm).sampler_defaults,
+        record_warmup_default = true, fit_enabled = true, automatic_cache_enabled = false,
+        manual_cache_operations = (:save_fit_cache, :load_fit_cache),
+        claim_scope = :fixed_coefficient_multidimensional_mfrm)
+end
+
 function _free_latent_correlation_2d_contract()
     return (;
         family = :mgmfrm,
@@ -140,6 +314,11 @@ function _free_latent_correlation_2d_contract()
 end
 
 function _require_generalized_spec(spec, caller::AbstractString)
+    if spec isa CorrelatedMGMFRMSpec
+        detail = caller in ("Experimental.cached_fit", "Experimental.fit_cache_key") ?
+            "use Experimental.fit, then save_fit_cache/load_fit_cache" : "inspect surface_contract(spec) for available operations"
+        throw(ArgumentError("$caller is not yet available for correlated MGMFRM; $detail"))
+    end
     spec isa _FacetSpec ||
         throw(ArgumentError("$caller requires a FacetSpec"))
     spec.family in (:gmfrm, :mgmfrm) ||
@@ -161,11 +340,13 @@ end
 """
     surface_contract()
     surface_contract(family)
+    surface_contract(correlated_spec)
 
 Return the machine-readable stability boundary for the experimental namespace.
 The zero-argument form describes the executable configurations and constraints
-for both generalized families. Pass `:gmfrm` or `:mgmfrm` for one family
-contract.
+for independent fixed-coefficient MFRM and both generalized families.
+Pass `:mfrm`, `:gmfrm` or `:mgmfrm` for one family contract, or a
+specification returned by `correlated` for its correlation model contract.
 """
 function surface_contract()
     return (
@@ -178,8 +359,16 @@ function surface_contract()
         reader_facing_bindings = (
             :GMFRMFit,
             :MGMFRMFit,
+            :MultidimensionalMFRMFit,
+            :CorrelatedMFRMSpec,
+            :CorrelatedMFRMFit,
+            :CorrelatedMGMFRMSpec,
+            :CorrelatedMGMFRMFit,
+            :ExchangeablePrior,
+            :ExchangeableMFRMFit,
             :GeneralizedPrior,
             :cached_fit,
+            :correlated,
             :fit,
             :fit_cache_key,
             :free_latent_correlation_2d_candidate,
@@ -192,6 +381,7 @@ function surface_contract()
             :surface_contract,
         ),
         families = (
+            mfrm = _mfrm_surface_contract(),
             gmfrm = _family_surface_contract(:gmfrm),
             mgmfrm = _family_surface_contract(:mgmfrm),
         ),
@@ -214,8 +404,9 @@ free_latent_correlation_2d_contract() =
     _free_latent_correlation_2d_contract()
 
 function surface_contract(family::Symbol)
+    family === :mfrm && return _mfrm_surface_contract()
     family in (:gmfrm, :mgmfrm) ||
-        throw(ArgumentError("family must be :gmfrm or :mgmfrm"))
+        throw(ArgumentError("family must be :mfrm, :gmfrm or :mgmfrm"))
     return _family_surface_contract(family)
 end
 
@@ -233,15 +424,27 @@ function preview(spec)
 end
 
 """
-    prior_predict(spec; prior = GeneralizedPrior(), ndraws = 1000,
+    prior_predict(spec; ndraws = 1000,
         rng = Random.default_rng())
 
-Generate score replications from the raw-coordinate prior of a supported
-guarded GMFRM or MGMFRM specification. This operation does not fit a posterior.
+Generate score replications from the declared prior of a supported specification.
+Fixed-coefficient MFRM uses `MFRMPrior()` in unit logits; pass `correlated(spec)`
+to use its joint ability/LKJ prior. Either MFRM specification also accepts
+`prior = ExchangeablePrior(rater_kernel_sd = ...)`. GMFRM/MGMFRM use `GeneralizedPrior()` on raw
+coordinates. Correlated MGMFRM requires an explicit `GeneralizedPrior` and uses
+its joint ability/LKJ prior, including the literal 1.7 response multiplier.
+Rows are independent replications of the existing rating design;
+this operation does not fit a posterior. Use a local `MersenneTwister` for
+reproducibility without advancing the global RNG.
 """
 function prior_predict(spec; kwargs...)
-    checked = _require_generalized_spec(spec, "Experimental.prior_predict")
     _reject_legacy_keyword(kwargs, "Experimental.prior_predict")
+    spec isa CorrelatedMGMFRMSpec &&
+        return getfield(_PACKAGE, :_mgmfrm_correlated_2d_prior_predict)(spec; kwargs...)
+    if spec isa CorrelatedMFRMSpec || spec isa _FacetSpec && getfield(_PACKAGE, :_is_mfrm_fixed_q)(spec)
+        return getfield(_PACKAGE, :_fixed_q_prior_predict)(spec; kwargs...)
+    end
+    checked = _require_generalized_spec(spec, "Experimental.prior_predict")
     return getfield(
         _PACKAGE,
         :_experimental_generalized_prior_predict,
@@ -249,21 +452,41 @@ function prior_predict(spec; kwargs...)
 end
 
 """
-    prior_predictive_check(spec; prior = GeneralizedPrior(), ndraws = 1000,
+    prior_predictive_check(spec; ndraws = 1000,
         rng = Random.default_rng(), min_category_probability = 0.01,
         prior_warning_probability = 0.95, wide_facet_range_fraction = 0.8)
 
-Generate prior parameter draws and replicated score data for a supported
-guarded GMFRM or MGMFRM specification. The result separates raw and constrained
-direct parameter draws, records the resolved prior scales, and is compatible
-with `BayesianMGMFRM.predictive_check_summary`.
+Generate prior parameter draws and replicated scores for a supported model.
+Fixed-coefficient MFRM uses `MFRMPrior()`; `correlated(spec)` also samples its
+LKJ correlation and conditional bivariate ability prior. The result includes
+the selected prior; pass `prior = ExchangeablePrior(rater_kernel_sd = ...)`
+to give all raters a common marginal severity distribution. It also includes
+free-coordinate draws, reconstructed `model_coordinates`, and a
+`parameter_summary` with central 95% prior intervals. Fixed Q coefficients,
+fixed marginal scales and reconstructed sum constraints retain their fitting
+meaning. Generalized models instead separate raw and constrained direct draws
+under `GeneralizedPrior()`. Correlated MGMFRM requires the explicit prior used
+for fitting; its last raw column is Fisher z and its last direct column is rho.
+It draws the normalized LKJ prior on rho and conditional bivariate abilities;
+the other free raw coordinates retain their declared normal priors.
+
+All results work with `predictive_check_summary(check)` and
+`BayesianMGMFRM.plot_predictive(check)`; fixed-coefficient MFRM also supports
+`BayesianMGMFRM.plot_prior(check)`. Plotting requires CairoMakie. Observed ratings
+serve only as a comparison; they do not update the prior. Simulations reuse
+the supplied persons, items, raters and rating rows, not new facet levels.
 """
 function prior_predictive_check(spec; kwargs...)
+    _reject_legacy_keyword(kwargs, "Experimental.prior_predictive_check")
+    spec isa CorrelatedMGMFRMSpec &&
+        return getfield(_PACKAGE, :_mgmfrm_correlated_2d_prior_predictive_check)(spec; kwargs...)
+    if spec isa CorrelatedMFRMSpec || spec isa _FacetSpec && getfield(_PACKAGE, :_is_mfrm_fixed_q)(spec)
+        return getfield(_PACKAGE, :_fixed_q_prior_predictive_check)(spec; kwargs...)
+    end
     checked = _require_generalized_spec(
         spec,
         "Experimental.prior_predictive_check",
     )
-    _reject_legacy_keyword(kwargs, "Experimental.prior_predictive_check")
     return getfield(
         _PACKAGE,
         :_experimental_generalized_prior_predictive_check,
@@ -594,14 +817,46 @@ end
 """
     fit(spec; kwargs...)
 
-Fit a supported generalized specification through the experimental namespace.
+Fit a supported multidimensional MFRM or generalized specification experimentally.
 Callers should not pass an `experimental` keyword. Family-specific structural
-constraints are validated before numerical execution. Both guarded families
-accept `backend = :advancedhmc` or `:cmdstan`.
+constraints are validated before numerical execution. Pass `correlated(spec)`
+to estimate population correlation for two between-item MFRM dimensions; both
+backends then return `CorrelatedMFRMFit` when using `MFRMPrior`.
+Supported configurations accept `backend = :advancedhmc` or `:cmdstan`.
+For an MGMFRM `correlated(spec)`, an explicit `prior = GeneralizedPrior(...)`
+is required. Both backends return `CorrelatedMGMFRMFit`; summaries, MCSE,
+diagnostics, existing-row prediction and manual fit caches are available.
+Reports and optional CairoMakie figures preserve the saved prior and diagnostic
+warnings; automatic request caching remains unavailable.
+
+An unwrapped fixed-coefficient multidimensional MFRM (`family = :mfrm`,
+`dimensions >= 2`, fixed `q_matrix`, partial-credit thresholds) has independent
+abilities. Use `MFRMPrior`
+for independent normal priors on free unit-logit coordinates. Q coefficients
+and rater consistency are fixed; latent correlation is identity and locations
+are prior-anchored. With `MFRMPrior`, both backends return `MultidimensionalMFRMFit`, with warmup
+sampler statistics recorded by default (`record_warmup = true`). Save and reload
+with `save_fit_cache`/`load_fit_cache`; automatic request caching is unavailable.
+Shared sampler controls include `ndraws`, `warmup`, `chains`, `seed`, `init`,
+`step_size`, `target_accept`, `max_depth`, and stored diagnostic thresholds.
+CmdStan additionally accepts `cmdstan_path` and `cmdstan_cache_dir`.
+For exchangeable zero-sum rater severities, explicitly pass
+`prior = ExchangeablePrior(rater_kernel_sd = ...)`. Both independent and
+correlated specifications then return `ExchangeableMFRMFit`, with the same
+summary, report, plotting and manual cache operations.
 """
 function fit(spec; kwargs...)
-    checked = _require_generalized_spec(spec, "Experimental.fit")
     _reject_legacy_keyword(kwargs, "Experimental.fit")
+    if spec isa CorrelatedMGMFRMSpec
+        return getfield(_PACKAGE, :_mgmfrm_correlated_2d_fit)(spec; kwargs...)
+    end
+    if spec isa CorrelatedMFRMSpec
+        return getfield(_PACKAGE, :_mfrm_correlated_2d_fit)(spec; kwargs...)
+    end
+    if spec isa _FacetSpec && getfield(_PACKAGE, :_is_mfrm_fixed_q)(spec)
+        return getfield(_PACKAGE, :_mfrm_fixed_q_fit)(spec; kwargs...)
+    end
+    checked = _require_generalized_spec(spec, "Experimental.fit")
     return getfield(_PACKAGE, :_fit_guarded_generalized)(checked; kwargs...)
 end
 

@@ -3,7 +3,7 @@
 import JSON3
 
 function _cmdstan_model_source(family::Symbol)
-    family in (:mfrm, :gmfrm, :mgmfrm) || throw(ArgumentError(
+    family in (:mfrm, :gmfrm, :mgmfrm, :mfrm_fixed_q, :mfrm_correlated_2d, :mgmfrm_correlated_2d) || throw(ArgumentError(
         "CmdStan has no package-owned model for family = $(repr(family))",
     ))
     module_path = pathof(BayesianMGMFRM)
@@ -26,6 +26,13 @@ function _cmdstan_failure_reason(error)
     return :unexpected_error
 end
 
+function _cmdstan_error_detail(error)
+    # Base.showerror(CompositeException) hides every cause after the first.
+    return error isa CompositeException ?
+        join((sprint(showerror, cause) for cause in error.exceptions), "\nAdditional exception:\n") :
+        sprint(showerror, error)
+end
+
 function _cmdstan_short_detail(text::AbstractString; limit::Int = 2000)
     cleaned = strip(text)
     isempty(cleaned) && return "no command diagnostic was produced"
@@ -33,15 +40,100 @@ function _cmdstan_short_detail(text::AbstractString; limit::Int = 2000)
     return "…" * last(cleaned, limit)
 end
 
+const _CMDSTAN_ACTIVE_COMMANDS = Dict{Base.Process,Int}()
+const _CMDSTAN_PROCESS_LOCK = ReentrantLock()
+const _CMDSTAN_EXIT_HOOK = Ref(false)
+
+function _cmdstan_stop(process::Base.Process, group::Int)
+    if Sys.isunix()
+        # Never address Julia's group or POSIX's special all/current-process targets.
+        group > 1 && group != ccall(:getpgrp, Cint, ()) ||
+            throw(ArgumentError("invalid owned CmdStan process group"))
+        # ponytail: owned POSIX group; setsid/setpgid escape needs OS job containment.
+        code = ccall(:uv_kill, Cint, (Cint, Cint), -group, Base.SIGKILL)
+        code in (0, Base.UV_ESRCH) || throw(Base.IOError(
+            "could not terminate owned CmdStan process group", code))
+    else
+        kill(process, Base.SIGKILL)
+    end
+    wait(process)
+    return nothing
+end
+
+function _cmdstan_exit_cleanup()
+    active = lock(_CMDSTAN_PROCESS_LOCK) do
+        commands = collect(_CMDSTAN_ACTIVE_COMMANDS)
+        empty!(_CMDSTAN_ACTIVE_COMMANDS)
+        commands
+    end
+    failures = Any[]
+    for (process, group) in active
+        try
+            _cmdstan_stop(process, group)
+        catch err
+            push!(failures, CapturedException(err, catch_backtrace()))
+        end
+    end
+    isempty(failures) || throw(CompositeException(failures))
+    return nothing
+end
+
+function _cmdstan_wait(command::Cmd, output::IO, error_output::IO)
+    # Own/register the process before delivering SIGINT; protect cleanup from a second signal.
+    return Base.disable_sigint() do
+        owned = Sys.isunix() ? detach(command) : command
+        process = run(pipeline(ignorestatus(owned);
+            stdin = stdin, stdout = output, stderr = error_output); wait = false)
+        group = try
+            Sys.isunix() ? Int(getpid(process)) : 0
+        catch
+            kill(process, Base.SIGKILL)
+            wait(process)
+            rethrow()
+        end
+        try
+            try
+                lock(_CMDSTAN_PROCESS_LOCK) do
+                    if !_CMDSTAN_EXIT_HOOK[]
+                        atexit(_cmdstan_exit_cleanup)
+                        _CMDSTAN_EXIT_HOOK[] = true
+                    end
+                    _CMDSTAN_ACTIVE_COMMANDS[process] = group
+                end
+                Base.reenable_sigint() do
+                    wait(process)
+                end
+            catch err
+                original = CapturedException(err, catch_backtrace())
+                try
+                    _cmdstan_stop(process, group)
+                catch cleanup_error
+                    throw(CompositeException([original,
+                        CapturedException(cleanup_error, catch_backtrace())]))
+                end
+                rethrow()
+            end
+            # A wrapper may exit before its workers; clean the group on completion too.
+            _cmdstan_stop(process, group)
+            return process
+        finally
+            lock(_CMDSTAN_PROCESS_LOCK) do
+                delete!(_CMDSTAN_ACTIVE_COMMANDS, process)
+            end
+        end
+    end
+end
+
 function _cmdstan_run(command::Cmd, stage::Symbol; show_output::Bool = false)
     if show_output
         process = try
-            run(ignorestatus(command))
+            _cmdstan_wait(command, stdout, stderr)
         catch error
+            _fatal_exception(error) && rethrow()
             throw(CmdStanError(
                 stage,
                 _cmdstan_failure_reason(error),
-                sprint(showerror, error),
+                _cmdstan_error_detail(error),
             ))
         end
         success(process) || throw(CmdStanError(
@@ -55,19 +147,21 @@ function _cmdstan_run(command::Cmd, stage::Symbol; show_output::Bool = false)
         log_path = joinpath(directory, "command.log")
         process = try
             open(log_path, "w") do io
-                run(pipeline(ignorestatus(command); stdout = io, stderr = io))
+                _cmdstan_wait(command, io, io)
             end
         catch error
+            _fatal_exception(error) && rethrow()
             throw(CmdStanError(
                 stage,
                 _cmdstan_failure_reason(error),
-                sprint(showerror, error),
+                _cmdstan_error_detail(error),
             ))
         end
         success(process) && return nothing
         detail = try
             read(log_path, String)
         catch error
+            _fatal_exception(error) && rethrow()
             throw(CmdStanError(
                 stage,
                 _cmdstan_failure_reason(error),
@@ -214,6 +308,8 @@ function _cmdstan_mgmfrm_data(
         LoadingItem,
         LoadingDim,
         prior_sd,
+        prior_model = 0,
+        source_rater = 0,
     )
 end
 
@@ -223,6 +319,7 @@ function _cmdstan_write_json(path::AbstractString, value, stage::Symbol)
             JSON3.write(io, value)
         end
     catch error
+        _fatal_exception(error) && rethrow()
         throw(CmdStanError(
             stage,
             _cmdstan_failure_reason(error),
@@ -254,6 +351,35 @@ function _cmdstan_executable_path(model_stem::AbstractString)
     return Sys.iswindows() ? model_stem * ".exe" : model_stem
 end
 
+function _cmdstan_executable_sha256(executable::AbstractString, stage::Symbol)
+    # ponytail: observed file bytes, not build provenance; stable local paths only.
+    try
+        isabspath(executable) && !islink(executable) || throw(CmdStanError(
+            stage,
+            :executable_invalid,
+            "the model executable must have an absolute path without a symbolic-link leaf",
+        ))
+        ispath(executable) || throw(CmdStanError(
+            stage,
+            :executable_missing,
+            "the model executable is missing",
+        ))
+        isfile(executable) && filesize(executable) > 0 && Sys.isexecutable(executable) ||
+            throw(CmdStanError(
+                stage,
+                :executable_invalid,
+                "the model executable must be a nonempty regular file with executable permission",
+            ))
+        return open(executable, "r") do io
+            bytes2hex(sha256(io))
+        end
+    catch error
+        _fatal_exception(error) && rethrow()
+        error isa CmdStanError && rethrow()
+        throw(CmdStanError(stage, _cmdstan_failure_reason(error), sprint(showerror, error)))
+    end
+end
+
 function _cmdstan_compile_model(check, family::Symbol; cache_dir = nothing)
     source = _cmdstan_model_source(family)
     isfile(source) || throw(CmdStanError(
@@ -267,16 +393,44 @@ function _cmdstan_compile_model(check, family::Symbol; cache_dir = nothing)
         :runtime_unavailable,
         "CmdStan root was not retained by the runtime check",
     ))
+    # ponytail: reject inherited options, including jobserver flags; extend only for a reviewed build profile.
+    for name in ("MAKEFILES", "MAKEFLAGS", "GNUMAKEFLAGS")
+        isempty(get(ENV, name, "")) || throw(CmdStanError(
+            :model_compile,
+            :unsupported_make_environment,
+            "$name must be unset or empty; inherited Make settings are unsupported",
+        ))
+    end
     make_program = _cmdstan_configured_program("MAKE", ("make", "gmake"))
     make_program === nothing && throw(CmdStanError(
         :model_compile,
         :make_unavailable,
-        "make or gmake was not found",
+        "make or gmake was not found; MAKE must name one executable, not a command with arguments",
     ))
-    build_root = _cmdstan_cache_root(check, cache_dir)
+    # Strip trailing separators so a root symlink is still checked as a link.
+    build_root = joinpath(splitpath(_cmdstan_cache_root(check, cache_dir))...)
+    # ponytail: refuse reuse until build-input/binary evidence exists; stable local paths only.
+    cache_unverified = try
+        islink(build_root) || (ispath(build_root) &&
+            (!isdir(build_root) || !isempty(readdir(build_root))))
+    catch error
+        _fatal_exception(error) && rethrow()
+        throw(CmdStanError(
+            :model_compile,
+            _cmdstan_failure_reason(error),
+            sprint(showerror, error),
+        ))
+    end
+    cache_unverified && throw(CmdStanError(
+        :model_compile,
+        :cache_unverified,
+        "CmdStan cache reuse is disabled without verified build evidence; " *
+        "retain the existing path and explicitly select a new empty cmdstan_cache_dir",
+    ))
     try
         mkpath(build_root)
     catch error
+        _fatal_exception(error) && rethrow()
         throw(CmdStanError(
             :model_compile,
             _cmdstan_failure_reason(error),
@@ -286,43 +440,34 @@ function _cmdstan_compile_model(check, family::Symbol; cache_dir = nothing)
     model_stem = joinpath(build_root, "bayesian_mgmfrm_" * string(family))
     copied_source = model_stem * ".stan"
     executable = _cmdstan_executable_path(model_stem)
-    source_is_current = try
-        isfile(copied_source) && read(copied_source) == read(source)
-    catch error
-        throw(CmdStanError(
-            :model_compile,
-            _cmdstan_failure_reason(error),
-            sprint(showerror, error),
-        ))
-    end
-    executable_is_current = try
-        source_is_current && isfile(executable) &&
-            mtime(executable) >= mtime(copied_source)
-    catch error
-        throw(CmdStanError(
-            :model_compile,
-            _cmdstan_failure_reason(error),
-            sprint(showerror, error),
-        ))
-    end
-    executable_is_current && return executable
     try
-        cp(source, copied_source; force = true)
+        if family in (:mgmfrm, :mfrm_fixed_q, :mfrm_correlated_2d, :mgmfrm_correlated_2d)
+            # Flatten only these package-owned includes; no external search path.
+            contents = read(source, String)
+            for name in ("mgmfrm_functions.stan", "correlated_2d_functions.stan")
+                token = "#include $name\n"
+                occursin(token, contents) || continue
+                contents = replace(contents, token => read(joinpath(dirname(source), name), String))
+            end
+            mktemp() do path, io
+                write(io, contents)
+                close(io)
+                cp(path, copied_source; force = false)
+            end
+        else
+            cp(source, copied_source; force = false)
+        end
     catch error
+        _fatal_exception(error) && rethrow()
         throw(CmdStanError(
             :model_compile,
             _cmdstan_failure_reason(error),
             sprint(showerror, error),
         ))
     end
-    command = Cmd(`$make_program $model_stem`; dir = root)
+    command = Cmd(`$make_program -f makefile $model_stem`; dir = root)
     _cmdstan_run(command, :model_compile)
-    isfile(executable) || throw(CmdStanError(
-        :model_compile,
-        :executable_missing,
-        "CmdStan reported success without producing the model executable",
-    ))
-    return executable
+    return (; path = executable, sha256 = _cmdstan_executable_sha256(executable, :model_compile))
 end
 
 _cmdstan_compile_mfrm(check; cache_dir = nothing) =
@@ -348,13 +493,20 @@ function _cmdstan_parse_number(value::AbstractString, row::Int, column::Int)
     return parsed
 end
 
-function _cmdstan_read_csv(path::AbstractString, expected_draws::Int)
+function _cmdstan_read_csv(path::AbstractString, expected_draws::Int; warmup::Int = 0)
+    warmup >= 0 || throw(ArgumentError("warmup must be nonnegative"))
     header = nothing
     rows = Vector{Vector{Float64}}()
+    adaptation_end = nothing
     try
         for line in eachline(path)
             stripped = strip(line)
             isempty(stripped) && continue
+            if warmup > 0 && stripped == "# Adaptation terminated"
+                adaptation_end === nothing || throw(CmdStanError(
+                    :output_parse, :warmup_boundary_mismatch, "duplicate warmup boundary"))
+                adaptation_end = length(rows)
+            end
             startswith(stripped, '#') && continue
             fields = split(stripped, ',')
             if header === nothing
@@ -379,6 +531,7 @@ function _cmdstan_read_csv(path::AbstractString, expected_draws::Int)
             ])
         end
     catch error
+        _fatal_exception(error) && rethrow()
         error isa CmdStanError && rethrow()
         throw(CmdStanError(
             :output_parse,
@@ -391,16 +544,22 @@ function _cmdstan_read_csv(path::AbstractString, expected_draws::Int)
         :header_missing,
         "CmdStan CSV has no header",
     ))
-    length(rows) == expected_draws || throw(CmdStanError(
+    warmup == 0 || adaptation_end == warmup || throw(CmdStanError(
+        :output_parse, :warmup_boundary_mismatch,
+        "CmdStan CSV warmup boundary does not match $warmup iterations"))
+    length(rows) == expected_draws + warmup || throw(CmdStanError(
         :output_parse,
         :draw_count_mismatch,
-        "CmdStan CSV has $(length(rows)) retained draws; expected $expected_draws",
+        "CmdStan CSV has $(length(rows)) rows; expected $expected_draws retained and $warmup warmup",
     ))
-    return (;
+    parsed = (;
         header,
         values = isempty(rows) ? zeros(Float64, 0, length(header)) :
             reduce(vcat, permutedims.(rows)),
     )
+    warmup == 0 && return parsed
+    return (; header, values = parsed.values[(warmup + 1):end, :],
+        warmup_values = parsed.values[1:warmup, :])
 end
 
 function _cmdstan_required_column(header::Vector{String}, name::String)
@@ -422,6 +581,7 @@ function _cmdstan_integer_stat(value::Float64, name::String)
     try
         return Int(value)
     catch error
+        _fatal_exception(error) && rethrow()
         throw(CmdStanError(
             :output_parse,
             _cmdstan_failure_reason(error),
@@ -435,13 +595,16 @@ function _cmdstan_raw_chain_result(path::AbstractString,
         nobservations::Int,
         chain::Int,
         ndraws::Int,
-        evaluate_draw::Function)
-    parsed = _cmdstan_read_csv(path, ndraws)
+        evaluate_draw::Function; warmup::Int = 0,
+        parameter_names::AbstractVector{<:AbstractString} = ["beta.$i" for i in 1:nparams])
+    length(parameter_names) == nparams && allunique(parameter_names) ||
+        throw(ArgumentError("CmdStan parameter columns must be distinct and match nparams"))
+    parsed = _cmdstan_read_csv(path, ndraws; warmup)
     header = parsed.header
     values = parsed.values
     beta_columns = [
-        _cmdstan_required_column(header, "beta.$index")
-        for index in 1:nparams
+        _cmdstan_required_column(header, name)
+        for name in parameter_names
     ]
     log_lik_columns = [
         _cmdstan_required_column(header, "log_lik.$observation")
@@ -527,14 +690,25 @@ function _cmdstan_raw_chain_result(path::AbstractString,
             stan_lp = value("lp__"),
         ))
     end
-    return (; draws, logps, stats)
+    result = (; draws, logps, stats)
+    warmup == 0 && return result
+    warmup_stats = [begin
+        value(name) = parsed.warmup_values[iteration, stat_columns[name]]
+        divergent = _cmdstan_integer_stat(value("divergent__"), "divergent__")
+        divergent in (0, 1) || throw(CmdStanError(
+            :output_parse, :invalid_sampler_statistic, "warmup divergent__ must be 0 or 1"))
+        _warmup_stat_row((; is_adapt = true, numerical_error = divergent == 1,
+            tree_depth = _cmdstan_integer_stat(value("treedepth__"), "treedepth__"),
+            log_density = value("lp__")), chain, iteration)
+    end for iteration in 1:warmup]
+    return merge(result, (; warmup_stats))
 end
 
 function _cmdstan_chain_result(path::AbstractString,
         design::FacetDesign,
         prior::MFRMPrior,
         chain::Int,
-        ndraws::Int)
+        ndraws::Int; warmup::Int = 0)
     evaluate_draw = function(raw)
         pointwise = _pointwise_loglikelihood_unchecked(design, raw)
         return (;
@@ -549,14 +723,14 @@ function _cmdstan_chain_result(path::AbstractString,
         design.spec.data.n,
         chain,
         ndraws,
-        evaluate_draw,
+        evaluate_draw; warmup,
     )
 end
 
 function _cmdstan_gmfrm_chain_result(path::AbstractString,
         target::_GMFRMPromotionCandidateLogDensity,
         chain::Int,
-        ndraws::Int)
+        ndraws::Int; warmup::Int = 0)
     evaluate_draw = function(raw)
         pointwise = _gmfrm_source_pointwise_loglikelihood_from_unconstrained(
             target.design,
@@ -573,14 +747,15 @@ function _cmdstan_gmfrm_chain_result(path::AbstractString,
         target.design.spec.data.n,
         chain,
         ndraws,
-        evaluate_draw,
+        evaluate_draw; warmup,
     )
 end
 
 function _cmdstan_mgmfrm_chain_result(path::AbstractString,
         target::_MGMFRMGuardedLocalFitLogDensity,
         chain::Int,
-        ndraws::Int)
+        ndraws::Int;
+        density_target = target, warmup::Int = 0)
     evaluate_draw = function(raw)
         pointwise = _mgmfrm_source_pointwise_loglikelihood_from_unconstrained(
             target.design,
@@ -588,7 +763,7 @@ function _cmdstan_mgmfrm_chain_result(path::AbstractString,
         )
         return (;
             pointwise,
-            logposterior = LogDensityProblems.logdensity(target, raw),
+            logposterior = LogDensityProblems.logdensity(density_target, raw),
         )
     end
     return _cmdstan_raw_chain_result(
@@ -597,7 +772,7 @@ function _cmdstan_mgmfrm_chain_result(path::AbstractString,
         target.design.spec.data.n,
         chain,
         ndraws,
-        evaluate_draw,
+        evaluate_draw; warmup,
     )
 end
 
@@ -615,6 +790,7 @@ function _cmdstan_chain_seeds(rng::AbstractRNG, chains::Int)
 end
 
 function _cmdstan_sample_command(executable::AbstractString;
+        expected_sha256::AbstractString,
         ndraws::Int,
         warmup::Int,
         step_size::Float64,
@@ -626,13 +802,16 @@ function _cmdstan_sample_command(executable::AbstractString;
         output_path::AbstractString,
         seed::Int,
         chain::Int,
-        progress::Bool)
+        progress::Bool, record_warmup::Bool = false)
+    _cmdstan_executable_sha256(executable, :sampling) == expected_sha256 ||
+        throw(CmdStanError(:sampling, :executable_changed,
+            "the model executable does not match its observed compile-output SHA-256"))
     arguments = String[
         executable,
         "sample",
         "num_samples=$ndraws",
         "num_warmup=$warmup",
-        "save_warmup=0",
+        "save_warmup=$(record_warmup ? 1 : 0)",
         "thin=1",
         "adapt",
         "engaged=$(warmup > 0 ? 1 : 0)",
@@ -665,6 +844,7 @@ function _cmdstan_sample_chains(
         rng::AbstractRNG,
         evaluate_initial::Function,
         parse_chain::Function;
+        expected_sha256::AbstractString,
         ndraws::Int,
         warmup::Int,
         chains::Int,
@@ -673,7 +853,11 @@ function _cmdstan_sample_chains(
         max_depth::Int,
         metric::String,
         init_jitter::Float64,
-        progress::Bool)
+        progress::Bool, record_warmup::Bool = false,
+        initial_payload::Function = values -> (; beta = values))
+    _cmdstan_executable_sha256(executable, :sampling) == expected_sha256 ||
+        throw(CmdStanError(:sampling, :executable_changed,
+            "the model executable does not match its observed compile-output SHA-256"))
     chain_seeds = _cmdstan_chain_seeds(rng, chains)
     total_draws = ndraws * chains
     nparams = length(initial)
@@ -683,6 +867,7 @@ function _cmdstan_sample_chains(
     iterations = Vector{Int}(undef, total_draws)
     chain_acceptance = Vector{Float64}(undef, chains)
     sampler_stats = NamedTuple[]
+    warmup_stats = record_warmup ? NamedTuple[] : nothing
 
     mktempdir() do directory
         data_path = _cmdstan_write_json(
@@ -691,17 +876,23 @@ function _cmdstan_sample_chains(
             :data_write,
         )
         for chain in 1:chains
-            chain_initial = _advancedhmc_initial(initial, rng, init_jitter)
-            isfinite(evaluate_initial(chain_initial)) || throw(ArgumentError(
-                "chain $chain initial parameter vector has non-finite log density",
-            ))
-            init_path = _cmdstan_write_json(
-                joinpath(directory, "init-$chain.json"),
-                (; beta = chain_initial),
-                :initialization_write,
-            )
+            chain_initial = _with_sampler_context(:cmdstan, chain, :initialization) do
+                values = _advancedhmc_initial(initial, rng, init_jitter)
+                isfinite(evaluate_initial(values)) || throw(ArgumentError(
+                    "chain $chain initial parameter vector has non-finite log density",
+                ))
+                values
+            end
+            init_path = _with_sampler_context(:cmdstan, chain, :initialization_write) do
+                _cmdstan_write_json(
+                    joinpath(directory, "init-$chain.json"),
+                    initial_payload(chain_initial),
+                    :initialization_write,
+                )
+            end
             output_path = joinpath(directory, "chain-$chain.csv")
             command = _cmdstan_sample_command(executable;
+                expected_sha256,
                 ndraws,
                 warmup,
                 step_size,
@@ -714,20 +905,38 @@ function _cmdstan_sample_chains(
                 seed = chain_seeds[chain],
                 chain,
                 progress,
+                record_warmup,
             )
-            _cmdstan_run(command, :sampling; show_output = progress)
-            result = parse_chain(output_path, chain, ndraws)
-            rows = ((chain - 1) * ndraws + 1):(chain * ndraws)
-            draws[rows, :] .= result.draws
-            logdensities[rows] .= result.logps
-            chain_ids[rows] .= chain
-            iterations[rows] .= 1:ndraws
-            append!(sampler_stats, result.stats)
-            chain_acceptance[chain] =
-                _stat_mean(result.stats, :acceptance_rate)
+            _with_sampler_context(:cmdstan, chain, :sampling) do
+                _cmdstan_run(command, :sampling; show_output = progress)
+            end
+            result = _with_sampler_context(:cmdstan, chain, :output_parse) do
+                parse_chain(output_path, chain, ndraws)
+            end
+            _with_sampler_context(:cmdstan, chain, :output_validation) do
+                size(result.draws) == (ndraws, nparams) || throw(ArgumentError(
+                    "CmdStan draws have size $(size(result.draws)); expected ($ndraws, $nparams)"))
+                length(result.logps) == ndraws && length(result.stats) == ndraws ||
+                    throw(ArgumentError("CmdStan log density and sampler statistics must each have $ndraws rows"))
+                rows = ((chain - 1) * ndraws + 1):(chain * ndraws)
+                draws[rows, :] .= result.draws
+                logdensities[rows] .= result.logps
+                all(isfinite, @view draws[rows, :]) && all(isfinite, @view logdensities[rows]) ||
+                    throw(ArgumentError("CmdStan retained output contains non-finite values"))
+                chain_ids[rows] .= chain
+                iterations[rows] .= 1:ndraws
+                append!(sampler_stats, result.stats)
+                chain_acceptance[chain] =
+                    _stat_mean(result.stats, :acceptance_rate)
+                if record_warmup && warmup > 0
+                    length(result.warmup_stats) == warmup ||
+                        throw(ArgumentError("CmdStan warmup statistic count mismatch"))
+                    append!(warmup_stats, result.warmup_stats)
+                end
+            end
         end
     end
-    return (;
+    result = (;
         chain_seeds,
         draws,
         logdensities,
@@ -736,6 +945,7 @@ function _cmdstan_sample_chains(
         chain_acceptance,
         sampler_stats,
     )
+    return record_warmup ? merge(result, (; warmup_stats)) : result
 end
 
 function _fit_cmdstan(design::FacetDesign,
@@ -755,10 +965,8 @@ function _fit_cmdstan(design::FacetDesign,
         init_jitter::Real,
         progress::Bool,
         cmdstan_path,
-        cmdstan_cache_dir)
-    0 < target_accept < 1 ||
-        throw(ArgumentError("target_accept must be in (0, 1)"))
-    max_depth >= 1 || throw(ArgumentError("max_depth must be positive"))
+        cmdstan_cache_dir,
+        record_warmup::Bool = false)
     max_energy_error == 1000.0 || throw(ArgumentError(
         "backend = :cmdstan uses Stan's fixed divergence threshold; " *
         "max_energy_error must remain 1000.0",
@@ -767,26 +975,30 @@ function _fit_cmdstan(design::FacetDesign,
         "ad_backend does not select CmdStan's automatic differentiation; " *
         "leave ad_backend = :ForwardDiff for backend = :cmdstan",
     ))
-    isfinite(init_jitter) && init_jitter >= 0 ||
-        throw(ArgumentError("init_jitter must be finite and non-negative"))
+    target_accept, max_energy_error, init_jitter =
+        _check_nuts_controls(target_accept, max_depth, max_energy_error, init_jitter)
     metric_name = _cmdstan_metric(metric)
+    isfinite(_logposterior_unchecked(design, initial, prior)) ||
+        throw(ArgumentError("initial parameter vector has non-finite log posterior"))
     check = cmdstan_backend_check(;
         cmdstan_path,
         include_paths = true,
         require_ready = true,
     )
-    executable = _cmdstan_compile_mfrm(check; cache_dir = cmdstan_cache_dir)
+    compiled = _cmdstan_compile_mfrm(check; cache_dir = cmdstan_cache_dir)
     payload = _cmdstan_mfrm_data(design, prior)
     evaluate_initial = raw -> _logposterior_unchecked(design, raw, prior)
     parse_chain = (path, chain, count) ->
-        _cmdstan_chain_result(path, design, prior, chain, count)
+        _cmdstan_chain_result(path, design, prior, chain, count;
+            warmup = record_warmup ? warmup : 0)
     run = _cmdstan_sample_chains(
-        executable,
+        compiled.path,
         payload,
         initial,
         rng,
         evaluate_initial,
         parse_chain;
+        expected_sha256 = compiled.sha256,
         ndraws,
         warmup,
         chains,
@@ -796,6 +1008,7 @@ function _fit_cmdstan(design::FacetDesign,
         metric = metric_name,
         init_jitter = Float64(init_jitter),
         progress,
+        (record_warmup ? (; record_warmup = true) : NamedTuple())...,
     )
 
     controls = (;
@@ -813,6 +1026,7 @@ function _fit_cmdstan(design::FacetDesign,
         init_jitter = Float64(init_jitter),
         thinning = 1,
         cmdstan_version = check.cmdstan_version,
+        cmdstan_executable_sha256 = compiled.sha256,
         execution = :cmdstan_cli,
     )
     return MFRMFit(
@@ -829,12 +1043,14 @@ function _fit_cmdstan(design::FacetDesign,
         warmup,
         _stat_mean(run.sampler_stats, :step_size),
         run.sampler_stats,
-        controls,
+        record_warmup ? _with_warmup_diagnostics(controls, run.warmup_stats, :cmdstan) : controls,
     )
 end
 
 _cmdstan_generalized_family(::_GMFRMPromotionCandidateLogDensity) = :gmfrm
 _cmdstan_generalized_family(::_MGMFRMGuardedLocalFitLogDensity) = :mgmfrm
+
+_cmdstan_generalized_initial(target, values) = (; beta = values)
 
 _cmdstan_generalized_data(target::_GMFRMPromotionCandidateLogDensity) =
     _cmdstan_gmfrm_data(target)
@@ -845,17 +1061,17 @@ _cmdstan_generalized_data(target::_MGMFRMGuardedLocalFitLogDensity) =
 _cmdstan_generalized_chain_result(path::AbstractString,
         target::_GMFRMPromotionCandidateLogDensity,
         chain::Int,
-        ndraws::Int) =
-    _cmdstan_gmfrm_chain_result(path, target, chain, ndraws)
+        ndraws::Int; warmup::Int = 0) =
+    _cmdstan_gmfrm_chain_result(path, target, chain, ndraws; warmup)
 
 _cmdstan_generalized_chain_result(path::AbstractString,
         target::_MGMFRMGuardedLocalFitLogDensity,
         chain::Int,
-        ndraws::Int) =
-    _cmdstan_mgmfrm_chain_result(path, target, chain, ndraws)
+        ndraws::Int; warmup::Int = 0) =
+    _cmdstan_mgmfrm_chain_result(path, target, chain, ndraws; warmup)
 
 function _cmdstan_generalized_candidate_run(
-        target::_GeneralizedCandidateLogDensity,
+        target,
         raw_initial::AbstractVector = initial_params(target);
         ndraws::Int = _GENERALIZED_DEFAULT_RETAINED_DRAWS_PER_CHAIN,
         warmup::Int = _GENERALIZED_DEFAULT_WARMUP_PER_CHAIN,
@@ -874,15 +1090,10 @@ function _cmdstan_generalized_candidate_run(
         ess_threshold::Real = 400,
         progress::Bool = false,
         cmdstan_path::Union{Nothing,AbstractString} = nothing,
-        cmdstan_cache_dir::Union{Nothing,AbstractString} = nothing)
-    ndraws >= 1 || throw(ArgumentError("ndraws must be positive"))
-    warmup >= 0 || throw(ArgumentError("warmup must be non-negative"))
-    chains >= 1 || throw(ArgumentError("chains must be positive"))
-    isfinite(step_size) && step_size > 0 ||
-        throw(ArgumentError("step_size must be finite and positive"))
-    0 < target_accept < 1 ||
-        throw(ArgumentError("target_accept must be in (0, 1)"))
-    max_depth >= 1 || throw(ArgumentError("max_depth must be positive"))
+        cmdstan_cache_dir::Union{Nothing,AbstractString} = nothing,
+        record_warmup::Bool = false)
+    step_size = _check_fit_controls(ndraws, warmup, chains, step_size)
+
     max_energy_error == 1000.0 || throw(ArgumentError(
         "backend = :cmdstan uses Stan's fixed divergence threshold; " *
         "max_energy_error must remain 1000.0",
@@ -891,8 +1102,8 @@ function _cmdstan_generalized_candidate_run(
         "ad_backend does not select CmdStan's automatic differentiation; " *
         "leave ad_backend = :ForwardDiff for backend = :cmdstan",
     ))
-    isfinite(init_jitter) && init_jitter >= 0 ||
-        throw(ArgumentError("init_jitter must be finite and non-negative"))
+    target_accept, max_energy_error, init_jitter =
+        _check_nuts_controls(target_accept, max_depth, max_energy_error, init_jitter)
     checked = _check_diagnostic_thresholds(rhat_threshold, ess_threshold)
     _check_source_fixture_raw_vector(target, raw_initial)
     metric_name = _cmdstan_metric(metric)
@@ -908,24 +1119,26 @@ function _cmdstan_generalized_candidate_run(
         include_paths = true,
         require_ready = true,
     )
-    executable = _cmdstan_compile_model(
+    compiled = _cmdstan_compile_model(
         check,
         _cmdstan_generalized_family(target);
         cache_dir = cmdstan_cache_dir,
     )
     payload = _cmdstan_generalized_data(target)
-    nparams = target.blueprint.n_parameters
+    nparams = LogDensityProblems.dimension(target)
     total_draws = ndraws * chains
     evaluate_initial = raw -> LogDensityProblems.logdensity(target, raw)
     parse_chain = (path, chain, count) ->
-        _cmdstan_generalized_chain_result(path, target, chain, count)
+        _cmdstan_generalized_chain_result(path, target, chain, count;
+            warmup = record_warmup ? warmup : 0)
     sampled = _cmdstan_sample_chains(
-        executable,
+        compiled.path,
         payload,
         initial,
         fit_rng,
         evaluate_initial,
         parse_chain;
+        expected_sha256 = compiled.sha256,
         ndraws,
         warmup,
         chains,
@@ -935,6 +1148,8 @@ function _cmdstan_generalized_candidate_run(
         metric = metric_name,
         init_jitter = Float64(init_jitter),
         progress,
+        initial_payload = raw -> _cmdstan_generalized_initial(target, raw),
+        (record_warmup ? (; record_warmup = true) : (;))...,
     )
 
     controls = (;
@@ -952,6 +1167,7 @@ function _cmdstan_generalized_candidate_run(
         init_jitter = Float64(init_jitter),
         thinning = 1,
         cmdstan_version = check.cmdstan_version,
+        cmdstan_executable_sha256 = compiled.sha256,
         execution = :cmdstan_cli,
     )
     sampler_rows = _generalized_candidate_sampler_rows(
@@ -981,7 +1197,7 @@ function _cmdstan_generalized_candidate_run(
         split_chains_requested = split_chains,
         actual_split = split_chains && chains >= 2 && ndraws >= 4,
     )
-    return run
+    return record_warmup ? merge(run, (; warmup_stats = sampled.warmup_stats)) : run
 end
 
 function _cmdstan_gmfrm_sampler_diagnostics(
@@ -997,6 +1213,7 @@ function _cmdstan_mgmfrm_sampler_diagnostics(
         raw_initial::AbstractVector = initial_params(target);
         initial_source::Symbol = :sampler_raw_initial_argument,
         kwargs...)
+    target = _mgmfrm_guarded_local_fit_logdensity(target.design; prior = target.prior)
     run = _cmdstan_generalized_candidate_run(target, raw_initial; kwargs...)
     return _mgmfrm_guarded_local_fit_diagnostic_surface(
         target,

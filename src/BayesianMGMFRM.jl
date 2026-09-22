@@ -6,8 +6,9 @@ designs, fitting Bayesian models, and producing predictive, diagnostic, and
 model-comparison summaries.
 
 The stable fitting surface supports the documented MFRM/RSM/PCM configurations.
-`BayesianMGMFRM.Experimental.fit(spec)` additionally supports a limited
-partial-credit scalar GMFRM configuration and a fixed-Q, identity-correlation
+`BayesianMGMFRM.Experimental.fit(spec)` additionally supports fixed-coefficient
+multidimensional MFRM in unit logits, a limited partial-credit scalar GMFRM
+configuration and a fixed-Q, identity-correlation
 confirmatory MGMFRM configuration. Unsupported generalized options are rejected
 before numerical execution. The experimental namespace also provides
 diagnostic operations for an exactly two-dimensional free-latent-correlation
@@ -213,8 +214,17 @@ include("mgmfrm_validation_scoring.jl")
 include("model_contract.jl")
 include("testlet_design_audit.jl")
 include("bayesian_fit.jl")
+include("posterior_plot.jl")
 include("cmdstan_fit.jl")
+include("mgmfrm_normalized_prior.jl")
+include("mfrm_fixed_q_samples.jl")
 include("mgmfrm_free_correlation_candidate.jl")
+include("mgmfrm_correlated_2d_samples.jl")
+include("mgmfrm_correlated_2d_predictive.jl")
+include("mgmfrm_correlated_2d_reports.jl")
+include("mfrm_correlated_2d.jl")
+include("mfrm_prior_predictive.jl")
+include("mfrm_exchangeable_raters.jl")
 include("mgmfrm_free_correlation_recovery.jl")
 include("mgmfrm_free_correlation_study.jl")
 include("mgmfrm_free_correlation_resource_probe.jl")

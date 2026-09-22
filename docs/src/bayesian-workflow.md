@@ -42,9 +42,10 @@ Create an [`mfrm_spec`](@ref) and inspect:
 - [`model_equation`](@ref) for the likelihood and source contract;
 - [`constraint_table`](@ref) and [`identification_declarations`](@ref) for the
   gauge and reference rules;
-- [`getdesign`](@ref) for the identified parameter vector;
+- optionally, [`getdesign`](@ref) for the identified parameter vector;
 - [`model_manifest`](@ref) for a portable summary of data, model, and design.
 
+Call `fit(spec)` directly when no separate design inspection is needed.
 Specified configurations are not necessarily fit-supported. The support table
 in [Scope and Releases](scope.md) governs whether a fitting call is available.
 
@@ -76,14 +77,9 @@ Review:
 - [`diagnostics`](@ref) for the compact combined status.
 
 The primary convergence fields are rank-normalized split R-hat, bulk ESS, and
-tail ESS. The historical `rhat` and `ess` fields remain available for schema
-compatibility but do not define the modern quality gate. For odd split chains,
-bulk metrics remove the center draw before ranking, folded R-hat first folds
-around the untrimmed pooled median, and tail ESS first fixes the untrimmed
-pooled tail quantiles. ESS uses all available valid split-chain lags rather
-than a fixed 250-lag truncation. These choices match Stan/posterior semantics.
-At least two original independent chains and enough finite, nondegenerate draws
-are required.
+tail ESS. The historical `rhat` and `ess` fields remain available for
+compatibility. Use the rank-normalized fields for convergence review; at least
+two independent chains and enough finite, nondegenerate draws are required.
 
 For guarded GMFRM/MGMFRM fits, inspect both raw unconstrained and direct
 constrained parameter rows: the gate fails if either applicable surface fails.
@@ -96,16 +92,11 @@ that coordinate remains gated. The versioned diagnostic contract is part of
 generalized cache identity, so a cache written under the older provisional
 contract cannot silently supply a modern diagnostic status.
 
-The sampler summary retains the minimum finite available `e_bfmi` for
-compatibility and reports `n_e_bfmi_expected`, `n_e_bfmi_available`,
-`n_e_bfmi_unavailable`, and `e_bfmi_complete`. Any missing or non-finite energy
-value within a chain makes that chain unavailable. The publication gate applies
-the E-BFMI threshold only when every expected chain is available. Version-1
-result, diagnostic, and heldout wrappers are unchanged: only rows whose
-`diagnostic_contract` is
-`rank_normalized_rhat_bulk_tail_ess_v1` are modern. The general `flag` aliases
-the modern `rank_normalized_flag`; `classical_compatibility_flag` remains a
-legacy comparison field.
+The sampler summary also reports E-BFMI availability for every expected
+chain. An unavailable energy diagnostic is missing evidence, not a passing
+check. Use `sampler_diagnostics(fit_result; phase = :warmup)` to inspect
+recorded AdvancedHMC or CmdStan adaptation events separately from retained
+posterior diagnostics.
 
 A completed run is not automatically a trustworthy run. Divergences,
 tree-depth saturation, low ESS, unstable R-hat, non-finite evaluations, or
@@ -119,6 +110,12 @@ mcse_rows = posterior_mcse(fit_result;
     probabilities = (0.025, 0.5, 0.975),
 )
 ```
+
+For fixed-coefficient multidimensional MFRM, this call also supports correlated
+abilities and either rater prior, including reloaded fits from either backend.
+It reports reconstructed parameters and rho on their model scales by default;
+see [multidimensional precision summaries](experimental.md#fitting-and-saved-results)
+for coordinate selection and fixed/short-chain statuses.
 
 For a derived estimand, compute one value per posterior draw while preserving
 the contiguous chain blocks, place the values in matrix columns, and call the
@@ -152,7 +149,7 @@ When `response_id` and `testlet_id` are declared, use
 summaries:
 
 ```julia
-ld = local_dependence_summary(fit)
+ld = local_dependence_summary(fit_result)
 ```
 
 The function selects distinct posterior draws, generates one conditional
@@ -173,53 +170,11 @@ Posterior predictive tail fractions, BH-adjusted values, and the all-family
 maximum statistic are calibration-pending references; none is a decision label
 or evidence for a specific mechanism.
 
-For method development and reproducible design stress tests, LD1a provides an
-independent known-truth generator:
-
-```julia
-plan = local_dependence_simulation_grid()
-known_truth = simulate_local_dependence(first(plan))
-```
-
-The 22 scenarios exercise null and boundary behavior, study-local positive
-magnitudes, sparse and rejected designs, competing halo/rater-by-task/
-multidimensional mechanisms, randomized drift, ability-confounded no-drift
-order, ability-informed rater assignment, and a testlet-plus-sequence mixture.
-The ordinal sampling kernel is
-separate from the fitted likelihood, and each bundle records complete truth,
-semantic event-keyed uniforms, sequence positions, and structural-check
-results. The
-ability-confounded scenario is an order/case-mix negative control; it is not a
-substitute for a study that distributes controlled benchmark responses across
-early, middle, and late rating windows.
-
-Generator completion is not diagnostic calibration. Until repeated LD1b
-replications estimate false declarations, power, multiplicity behavior, and
-mechanism confusion, `local_dependence_summary` continues to provide neither a
-decision nor a mechanism label, and its report-only references must not be
-converted into user-defined universal cutoffs.
-
-LD1b0 provides a protocol-validation and aggregation layer through
-`local_dependence_calibration_contract`, `local_dependence_calibration_row`,
-and `local_dependence_calibration_summary`. It records expected structural
-rejections, generation or fitting failures, unsupported diagnostics, and
-completed replications separately. Complete-null simulations supply candidate
-Type-I and dataset-level FWER references. Competing-mechanism simulations are
-reported as detection signatures, not mechanism classifications. Because the
-current generator has no versioned pair-level null/non-null oracle, alternative
-pair declaration fractions are not labelled pairwise power or FDR. The LD1b0
-surface does not itself run a pilot or evaluation study and does not modify the
-decision-disabled observed-data diagnostic.
-
-LD1b1 adds `local_dependence_calibration_pilot_contract` and
-`local_dependence_calibration_pilot_check`. They freeze a 30-replication
-pilot plan for each of the 22 scenarios and validate its study-specific sampler
-and diagnostic requirements. The frozen MFRM gradient route is `ForwardDiff`,
-and authorization checks that route together with the AdvancedHMC/NUTS and
-diagnostic capabilities. The check runs no fit or MCMC; the pilot and
-evaluation remain unrun. Consequently, these layers provide no
-repeated-calibration, power, diagnostic-decision, or mechanism-identification
-evidence, and they do not make clustered effects available for fitting.
+These local-dependence summaries are uncalibrated diagnostic references. They
+provide no decision threshold or mechanism classification and do not make
+clustered effects available for fitting. The separate research helpers are
+documented in the [Validation and Evidence API](api-validation-evidence.md);
+running a simulation study is not a prerequisite for an ordinary analysis.
 
 Observation-row LOO does not validate
 prediction for a wholly unseen response whose shared effect was informed by
@@ -228,6 +183,21 @@ other rows from that response.
 DFF rows are screening information unless the fitted model explicitly supports
 the corresponding identified effect. Statistical differences should be
 reported separately from practical magnitude and substantive interpretation.
+
+For figures without assembling draw matrices, load CairoMakie and use:
+
+```julia
+BayesianMGMFRM.plot_posterior(fit_result; block = :rater)
+BayesianMGMFRM.plot_diagnostics(fit_result; block = :rater)
+BayesianMGMFRM.plot_predictive(fit_result; ndraws = 200, seed = 42)
+```
+
+The first shows parameter uncertainty, the second retained-chain behavior,
+and the third category proportions under conditional replications of the
+fitted rows. `BayesianMGMFRM.plot_wright(fit_result)` additionally displays the
+stable MFRM measures and item-step boundaries on a shared logit scale.
+Generalized fits require dimension/scale interpretation and do not support a
+Wright map. See [figures and export](fitting.md#Posterior-interval-figures).
 
 ## 6. Compare Models Carefully
 
@@ -255,9 +225,14 @@ computed. [`fit_report_health`](@ref) derives report-generation health from the
 section statuses. A captured `status = :error` section sets
 `report_status = :incomplete`, while `:not_requested` and `:unsupported` do not.
 Use `require_complete = true` on `fit_report`, report exporters, or
-`fit_report_dossier` for evidence and release jobs that must fail closed. Use
+`fit_report_dossier` when a failed requested section should stop export. Use
 `on_section_error = :throw` when the first failing section should abort
 immediately.
+
+Save the fit with `save_fit_cache` and reload it with `load_fit_cache` to
+regenerate tables and figures in the same environment without sampling again.
+Keep source data, analysis code, and environment/version information alongside
+portable reports; the serialized cache alone is not a durable analysis archive.
 
 A report should state:
 

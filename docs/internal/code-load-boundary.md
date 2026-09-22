@@ -41,8 +41,152 @@ No dependency removal or extension migration follows from this inventory.
 
 ## Ordinary test runner: includes versus execution
 
-The ordinary runner's direct script includes and their transitive closure are
-**seven distinct files**, with the following consumers:
+### Normalized-prior density and sampling addendum, 2026-09-13
+
+The package entry now also includes `mgmfrm_normalized_prior.jl`: 36 direct
+Julia includes, or 37 sources with the entry itself. This adds a private,
+explicitly configured fixed-Q density and its prior-record/data adapters;
+there is no new export, dependency, file read, subprocess or MCMC on import.
+The same three production Stan files remain. `mgmfrm.stan` gains explicit
+prior branches while its ordinary adapter continues to select the legacy
+raw prior. The subsequent private integration reuses the existing Julia NUTS,
+CmdStan chain, diagnostic and atomic serialization helpers, without changing
+the include count or public exports. Explicit save/load calls use trusted
+same-environment serialized records with a separate schema; no file is read
+or written by import. The generalized shard now also includes
+`test/mgmfrm_normalized_samples.jl`, which executes two short Julia fits and
+temporary save/load checks. Its actual CmdStan fits, like the earlier density
+compilation, require the existing CmdStan test flag. The preceding claim of
+sampler-free added tests applies only to the density slice. This is not a
+fresh isolated-load or distribution/runtime-budget receipt; see the
+[active roadmap](../../ROADMAP.md#normalized-prior-sampling-and-saved-results)
+for the measured verification scope and remaining sampling acceptance.
+
+The later manual [`run_normalized_prior_comparison.jl`](../../scripts/run_normalized_prior_comparison.jl)
+includes the existing backend-validation script solely to reuse its fixed-data
+generator. Its `PROGRAM_FILE` guard prevents the four-fit experiment from
+running on include. The separate
+[`normalized_prior_comparison.jl`](../../test/normalized_prior_comparison.jl)
+decision test is manual and is not added to `test/runtests.jl`. Package include
+counts, exports and the ordinary script closure are unchanged. The declared
+experiment, local execution receipt and remaining precision/runtime limits
+are recorded in the [comparison note](normalized-prior-backend-comparison.md);
+they are not a new CI or distribution runtime acceptance receipt.
+
+The subsequent saved-result profiling slice changes only SHA-256 input
+handling in existing fit/cache/report functions. It adds no package include,
+export or dependency. The manual
+[`profile_normalized_prior_results.jl`](../../scripts/profile_normalized_prior_results.jl)
+reuses the comparison definitions without fitting on include; explicit calls
+read trusted saved records and write to new profile/verification locations.
+The fitting-reports shard adds [`test/cache_hash.jl`](../../test/cache_hash.jl),
+which checks byte compatibility without sampling or reading research files.
+The 1,658-assertion manual regression and local before/after timing receipt
+are documented in the comparison note; package-load and CI/distribution
+runtime acceptance remain separate work.
+
+The following precision trial adds one explicit `--precision-followup` option
+to the same manual comparison runner. The initial invocation retains its
+original controls/seeds, and both fixed plans reuse the existing loop. Its
+predecessor-file verification runs only when the follow-up is explicitly
+requested; no research artifact is read on include. The manual decision test
+now passes 57 assertions. The four larger fits and independent arithmetic
+verification are recorded in the [comparison note](normalized-prior-backend-comparison.md#precision-follow-up-execution-receipt),
+without changing production sources, package includes, public exports,
+dependencies or ordinary test execution.
+
+The subsequent normalized-prior warmup slice adds compact event collection,
+phase summaries and CSV phase-boundary validation inside existing source files.
+In that initial slice, only the private normalized-prior sampler enabled
+recording by default; ordinary fit callers retained the previous policy. No package include, public
+export or dependency is added. Private samples gain schema v2, while v1
+remains readable with unavailable historical warmup coverage. The existing
+generalized-shard `test/mgmfrm_normalized_samples.jl` now runs seven short Julia
+fits instead of two, plus synthetic coverage/CSV checks. Seven matching native
+CmdStan fits require the existing explicit CmdStan test flag. The larger saved
+comparison is read only by a manual verification call, not ordinary tests.
+The [warmup receipt](normalized-prior-backend-comparison.md#warmup-telemetry-execution-receipt-2026-09-13)
+records 7,106 final assertions and historical-result compatibility; this is
+not a new package-load, CI runtime-budget or distribution acceptance receipt.
+
+The following public warmup integration enables recording in the existing
+AdvancedHMC and CmdStan `fit`/`Experimental.fit` routes. It reuses the same
+collectors and CSV parser, retains all fit struct layouts and stores only
+chain summaries in the existing `sampler_controls` metadata. The public
+`sampler_diagnostics` function gains `phase = :warmup`; its retained default
+and convergence surfaces are unchanged. Cache save/load validate the optional
+summary metadata without changing the v1 cache schema or rewriting old files.
+No package include, public export, dependency or production Stan file is added.
+
+The `fitting_core` shard additionally includes `test/warmup_diagnostics.jl`:
+nine short AdvancedHMC fits across the three fitted families and one fit each
+for Turing and random walk. Nine CmdStan counterparts require the existing
+explicit native-test flag. The saved pre-change cache comparison is a manual
+local check; ordinary tests do not read that receipt or research results.
+The [public-fit receipt](normalized-prior-backend-comparison.md#public-fit-warmup-integration-2026-09-13)
+records 322 focused plus 6,838 regression assertions. Its initial native setup
+failure and corrected fresh-directory rerun are retained separately; this is
+not an ordinary full-shard runtime or CI acceptance run.
+
+The subsequent warmup report slice only extends the existing report section,
+projection and Markdown paths. `test/warmup_report.jl` joins the `fitting_reports`
+shard and uses deterministic report inputs, with no MCMC, subprocess, CmdStan
+build or research-file read. The manual legacy check reads local pre-change
+report bundles and earlier saved fits only when explicitly run. No package
+include, public export or dependency changes. The
+[report receipt](normalized-prior-backend-comparison.md#warmup-report-presentation-2026-09-13)
+records 211 focused and 506 regression assertions; it does not close CI runtime
+or package-load acceptance.
+
+The subsequent column-order fix changes only the shared Markdown resolver and
+removes warmup's separate column list. `test/report_columns.jl` joins the existing
+`fitting_reports` shard; it uses small report/dossier payloads and temporary
+exports without sampling or reading research artifacts. The expanded warmup
+report checks also compare all table headers. Manual historical-bundle/fit
+reads remain outside the ordinary runner. The
+[column-order receipt](normalized-prior-backend-comparison.md#report-column-order-2026-09-13)
+records 516 assertions on Julia 1.12.5 with `--compile=min`; this does not
+establish CI runtime or package-load acceptance. No package include, public
+export or dependency changes.
+
+The subsequent sampling-failure audit extends only the existing
+`test/fitting_boundaries.jl` inclusion. The test-owned RNG drives real tiny
+AdvancedHMC transitions and injects delayed faults; its seeded test dispatch
+exercises automatic cache creation/refresh without changing production RNG
+methods. The existing synthetic CmdStan executable also fails during chain 2.
+The [receipt](normalized-prior-backend-comparison.md#sampling-failure-and-cache-publication-2026-09-13)
+records 1,380 assertions with normal compilation on Julia 1.12.5. The only
+package-source edit is a cache docstring clarification. No include, public
+export, dependency, sampler or cache-execution change; no CI runtime or load
+acceptance claim.
+
+The subsequent minimum-version slice reruns existing test files on Julia
+1.10.8 with its unchanged versioned manifest. The
+[receipt](normalized-prior-backend-comparison.md#minimum-version-verification-2026-09-13)
+records 2,852 final assertions, including 16 native CmdStan short fits with
+`--compile=min` and compiled modules enabled. Normal compilation passes the
+boundary file; the larger sampler run was manually stopped after about 25
+minutes while in LLVM and remains an unresolved execution observation. This
+does not establish its cause or accept CI runtime/load budgets. The follow-up
+below separates ordinary fitting from the combined test harness. No package include,
+public export, dependency, production source or ordinary test execution changes.
+
+The [2026-09-14 follow-up](normalized-prior-backend-comparison.md#cache-record-compilation-2026-09-14)
+localizes excessive specialization on nested record types to two private cache
+helpers in `bayesian_fit.jl`. Compiler annotations suppress specialization and
+inference on their record arguments; both function bodies, serialized bytes,
+hash rules and validation conditions are unchanged. The existing tests run with
+normal compilation on Julia 1.10.8; the Julia 1.12.5 run completes its first four
+files but reaches the 900-second limit in warmup reports. The remaining report
+checks pass separately with `--compile=min`. No include, export,
+dependency, fit layout or test inclusion changes; this bounded correction does
+not close M0 CI runtime/load acceptance.
+
+### Previously reviewed runner
+
+At the reviewed `9a4d180` revision, the ordinary runner's direct script includes
+and their transitive closure were **seven distinct files**, with the following
+consumers. The anchor-recording addendum below records the later bounded addition.
 
 | Script(s) | Consumer and execution boundary |
 | --- | --- |
@@ -71,6 +215,149 @@ script or sampler. In particular:
   `RUN_RESEARCH_EVIDENCE_TESTS` and the `all` group contract. Source/hash checks
   in ordinary tests are not independent research replication.
 
+## Fixed-coefficient validation preparation addendum
+
+On 2026-09-17, the ordinary `generalized` shard also includes
+[mfrm_validation_preparation.jl](../../test/mfrm_validation_preparation.jl), which
+manually loads one new script module,
+[mfrm_validation_preparation.jl](../../scripts/mfrm_validation_preparation.jl).
+The module defines a small fixed-facet generator and known-truth scoring helpers;
+importing it performs no data generation, fitting, file publication or research
+evaluation. It imports the package and standard libraries, with no other script
+includes. Its tests reuse the existing exchangeable synthetic-record helper.
+There is no package include/export, dependency, serialized fit type or public
+API change. The historical include counts below remain dated observations.
+The subsequent SBC preparation extends this same module/test with joint-prior
+generation and rank arithmetic; it adds no further include or import-time work.
+
+## Anchor recording test addendum
+
+On 2026-09-07, `fitting_reports` also includes
+[mfrm_anchor_attempt_record.jl](../../test/mfrm_anchor_attempt_record.jl).
+That test loads the new `scripts/mfrm_anchor_attempt_record.jl` module, which
+includes `scripts/local_dependence_pilot_attempt_archive.jl` and its existing
+`scripts/local_json.jl` dependency. This adds **two distinct scripts**, bringing
+the current ordinary include closure to **nine**, without adding a package
+include or export. No LD1 job/batch runner or research fixture is loaded by this
+path. The script now imports the package for its concrete, input-bound minimal
+fit call; the underlying LD1 archive module remains separately loadable. Its
+real calls reject before sampling; successful-return tests use
+synthetic results. Other checks cover temporary-file publication/recovery and
+interruption of owned stdlib-only child processes, not an executing fit observer.
+
+The publication/observation step passed 25,537 scoped assertions per version;
+input binding then passed 25,631, and returned-fit/scoring links passed 25,691.
+With pre-entry source/environment checks, the recording file passes 374
+assertions (93 publication/recovery + 52 observation + 99 input binding + 55
+result/scoring links + 75 source/environment) on Julia 1.10.8 and 1.12.5.
+The checks reuse the existing record readers, fit hash, read-only scorer,
+source-roster/digest primitives, and native Project/Manifest resolution;
+no additional include boundary or package-source change was introduced. The
+input transport v2 omits the redundant legacy UInt64 design signature to avoid
+JSON round-trip rounding, retaining the canonical SHA and labelled payload.
+The combined scoped regression passed 25,766 assertions across 29 testsets per version,
+rechecked 186 root exports, and verified the single `fitting_reports` inclusion
+by parsing, not executing, the full runner. Historical seven-script isolated-load
+receipts below are not fresh isolation checks of the added paths. This addition
+does not close M0's runtime hold or authorize CI.
+
+The later manual [CmdStan cache probe](../../scripts/probe_cmdstan_cache_identity.jl)
+is not included by the ordinary runner. It evaluates eight selected helpers in
+an isolated module with a fixed source lookup, command/JSON traps and a no-draw
+RNG. It never loads the package or runs a sampler/compiler. It now checks cache
+containment, invocation/environment rejection and output handoff with 4,617
+assertions per Julia 1.10.8/1.12.5; the earlier 68-check characterization,
+488-check containment, 704-check invocation and 4,110-check environment receipts are
+historical. None changes the nine-script ordinary closure or constitutes a
+package-load check. Cumulative production changes cover shared program discovery,
+compilation/output validation and both sampling consumers/fit-control routes,
+plus the discovery docstring; there are no new package imports or exports.
+
+The separate manual [synthetic output-wiring check](../../scripts/probe_cmdstan_output_wiring.jl)
+does load the installed project/package for real types and deterministic helpers.
+It selects four unchanged adapter definitions into its own module and replaces
+only local runtime/cache/command/sampler boundaries, leaving package methods and
+the stdlib-only probe unchanged. It passed 431 assertions per Julia 1.10.8/1.12.5,
+with four direct producer returns, four fixed-result routes and twenty injected
+compile failures; ten source/project/probe hashes and the caller environment
+were preserved. No native build, posterior draw or synthetic-result publication
+occurred. This manual package-dependent check is not an isolated distribution
+load, an ordinary-runner addition, a public generalized-fit integration or a
+rerun of the 4,617-check probe; the nine-script ordinary closure is unchanged.
+
+## Optional posterior-figure addendum, 2026-09-14
+
+The package now includes [posterior_plot.jl](../../src/posterior_plot.jl) after
+the existing fit implementation. Its numerical/selection helpers reuse fit
+summaries and constraint transforms; no graphics dependency loads on this path.
+CairoMakie 0.15 is a weak dependency whose
+[extension](../../ext/BayesianMGMFRMCairoMakieExt.jl) supplies the native editable
+Figure when the user loads CairoMakie. The qualified optional entry point adds
+no root export, serialized type or script include.
+
+`fitting_core` now includes [posterior_plot.jl](../../test/posterior_plot.jl),
+which loads a small deterministic reporting fixture shared with the existing
+warmup report check. It loads no research artifacts or samplers. The separate
+[rendering check](../../test/posterior_plot_render.jl) needs an optional CairoMakie
+environment and is not part of the ordinary test runner. Each of Julia 1.10.8
+and 1.12.5 passes 266 numerical/selection and 41 render/cache assertions with
+normal compilation. The root inference dependency graphs are preserved; only
+their project hashes reflect the weak-dependency declaration. These checks do
+not rerun the historical isolated-tree review or accept CI/distribution runtime.
+See the local ignored [receipt](../../results/posterior-plots/20260914-01/receipt.json).
+
+The subsequent trace/rank slice adds `BayesianMGMFRM.plot_diagnostics` inside
+the same source file and extension, with shared draw-coordinate selection.
+It expands the same test files and optionally supplies multiple synthetic chains
+through the existing fixture. No package/script include, root export, Project or
+manifest changes occur. The final scoped checks pass 266 interval, 128 trace/rank
+and 86 optional rendering/cache assertions per Julia 1.10.8 and 1.12.5, all with
+normal compilation. See the local ignored
+[trace/rank receipt](../../results/posterior-plots/20260914-trace-rank-01/receipt.json).
+These remain synthetic checks, with no native sampler or isolated-install trial;
+the existing CI/distribution runtime acceptance conditions remain open.
+
+The category predictive slice adds `BayesianMGMFRM.plot_predictive` in the same
+source file and extension, reusing existing predictive checks and summaries.
+The shared `_sample_category_index` in `bayesian_fit.jl` now rejects invalid
+probabilities instead of silently selecting the final category. Existing test
+files cover valid-sequence preservation, selection/replay and all three fit
+families; the fixture and include lists are unchanged. Final checks pass 266
+interval, 128 trace/rank, 294 predictive and 120 optional rendering/cache
+assertions per Julia 1.10.8 and 1.12.5. No root export, dependency, Project,
+manifest or serialized type changes occur. See the local ignored
+[predictive receipt](../../results/posterior-plots/20260914-predictive-01/receipt.json).
+Replicated responses use synthetic parameter draws; no native MCMC, isolated
+install, full-suite or runtime acceptance is claimed.
+
+The stable MFRM Wright-map slice adds qualified `BayesianMGMFRM.plot_wright`
+inside the same source file and extension, and extends the same two test files.
+It adds no package/script include, root export, dependency or serialized type;
+the shared reporting fixture is unchanged. In `bayesian_fit.jl`, threshold-row
+fixed metadata now refers to the full item-step position, and the shared position
+helper rejects derived overflow before numerical summarization. Both ordinary
+Wright-map rows and diagnostic-map rows use that correction. Scope and evidence
+are recorded in the local ignored
+[Wright-map receipt](../../results/posterior-plots/20260914-wright-01/receipt.json).
+These changes do not rerun isolated-install or CI/runtime acceptance.
+
+The short stable MFRM example now integrates existing fitting, diagnostics,
+cache reload and optional figures without changing any package source,
+extension, test or script file, Project/manifest, export or include list.
+CairoMakie loads only for the example's `--plots` flag; `--cmdstan` uses a fresh
+build directory. Actual native Julia/CmdStan example checks are recorded in the
+[workflow receipt](../../results/workflows/20260914-minimal-01/receipt.json).
+They do not rerun isolated-install or CI/runtime acceptance.
+
+The two guarded examples now use the same optional-figure/save-reload route,
+with qualified model-scale summaries and named MGMFRM dimensions. Their
+`--cmdstan` options stay in the existing backend; no wrapper or include is added.
+The [guarded workflow receipt](../../results/workflows/20260914-guarded-01/receipt.json)
+records this examples/documentation slice. The sole package-source edit adds
+the missing `direct_posterior_summary` docstring, also listed in the existing
+API reference. Executable source, extension/test/script trees, Projects/manifests,
+exports and serialized types are unchanged.
+
 ## Verification, decision, and stop condition
 
 A temporary probe copied only `src/` into one tree and only the seven scripts
@@ -97,3 +384,95 @@ unguarded execution/result dependency, an API migration, or measured budget
 pressure. **Next: finish the remaining CI/distribution runtime assessment**;
 profile a demonstrated hot path before extracting shared helpers or adding
 another loading layer.
+
+
+## Generalized correlation sample-record addendum, 2026-09-21
+
+The package entry adds `mgmfrm_correlated_2d_samples.jl`: 42 direct Julia
+includes, or 43 sources counting the entry itself, at this working tree.
+This adds private maintained-sampler records and summary/MCSE adapters for the
+explicit 2D estimated-loading correlation target. It adds no export, dependency,
+import-time file read/write, subprocess, MCMC or research-artifact dependency.
+Existing fit struct layouts and public fit-cache schemas remain unchanged.
+The eight current Stan sources include the earlier correlated target and shared
+function includes; this sample-record slice adds no Stan source or compile step
+on import.
+
+The generalized test shard now includes `mgmfrm_correlated_2d_samples.jl`.
+Its synthetic records test validation and replay; three short Julia sampling
+calls compare the maintained path, observer and warmup policy, and one deliberately
+failing Julia call checks contextual errors after two transitions. One short
+native CmdStan call remains behind `BAYESIANMGMFRM_CMDSTAN_TESTS=true`. Every
+successful call has two chains of 10 warmup and 12 retained draws. Tests use
+self-contained fixtures and temporary files, with no read of research results.
+These are ordinary engineering checks, not fresh recovery/SBC evaluation.
+The [implementation receipt](normalized-prior-backend-comparison.md#generalized-2d-correlation-maintained-sample-records-2026-09-21)
+records the verification scope; this is not a CI/runtime-budget or release
+acceptance decision.
+
+
+### Explicit experimental correlated MGMFRM result, 2026-09-21
+
+The same `mgmfrm_correlated_2d_samples.jl` now also defines the explicit specification,
+result and manual fit-cache adapters; the include count remains 42. The namespace
+adds two qualified type bindings and dispatches `correlated(spec)` by the base
+model family. The 186 package-root exports and old fit struct layouts are unchanged.
+The new schema is recognized by the existing loader with mandatory integrity
+checks; importing definitions performs no cache read or sampling.
+
+The generalized shard adds `test/mgmfrm_correlated_2d_result.jl`. It reuses the
+preceding fixture module, checks synthetic result/cache corruption, and adds one
+short public Julia fit. One corresponding CmdStan public fit requires the existing
+native-test flag. The four successful private/public Julia fixture calls each
+use two chains with 10 warmup and 12 retained draws; the prior fault-injection
+call still stops after two transitions. No research result is read by ordinary
+tests. `examples/correlated_mgmfrm.jl` is an explicit demonstration script, not a
+package include or an automatic test dependency. Documentation and regression
+receipts are in the [interface note](normalized-prior-backend-comparison.md#explicit-correlated-mgmfrm-interface-2026-09-21);
+no integration, runtime acceptance or release decision follows.
+
+### Correlated MGMFRM prediction, 2026-09-21
+
+The entry now includes `mgmfrm_correlated_2d_predictive.jl`: 43 direct Julia
+includes, or 44 sources including the entry, with the same eight Stan sources.
+The file supplies joint-prior simulation and existing-row posterior prediction
+for the explicit result. It reuses the installed probability distributions,
+raw-to-direct transforms, response kernel, draw selection and predictive
+summaries. No dependency, export, fit layout, Stan code, import-time execution
+or research-artifact read is added.
+
+`test/mgmfrm_correlated_2d_fixtures.jl` now holds the existing target/synthetic
+record helpers; both the previous sampling tests and the new prediction tests
+use that module. The new prediction file runs no MCMC. Existing bounded sampler
+regressions retain their original controls and native opt-in; the example still
+fits only when explicitly run. Previously saved real Julia/CmdStan fits were
+replayed in a separate local verification script, not added as ordinary test
+dependencies. Production-only copies load on Julia 1.10.8 and 1.12.5 with 186
+root exports. See the [prediction receipt](normalized-prior-backend-comparison.md#correlated-mgmfrm-prior-and-posterior-prediction-2026-09-21)
+for tests, runtime limits and the remaining scientific/workflow boundaries.
+
+### Correlated MGMFRM reports and figures, 2026-09-21
+
+The entry adds `mgmfrm_correlated_2d_reports.jl`: 44 direct Julia includes,
+or 45 sources including the entry, with the same eight Stan sources and 186
+root exports. It defines consumers of validated records: reports, model/raw
+plot inputs, optional CairoMakie rendering and portable bundles. It reuses
+the existing reporting, diagnostics, MCSE and figure-writing helpers. The
+optional extension is required only when a figure is requested. The shared
+JSON reader now preserves signed zeros and exact Int64 identities above 2^53;
+the canonical hash algorithm, fit layouts and artifact schemas are unchanged.
+
+The generalized shard adds `test/mgmfrm_correlated_2d_reports.jl`, which uses
+synthetic records and temporary bundles without sampling or research files.
+The optional `test/mgmfrm_correlated_2d_report_render.jl` defaults to synthetic
+records; only explicit cache arguments replay real fits. The generic example
+adds report save/reload and a `--figures` option, with no import-time execution.
+Its existing bounded Julia fit remains an explicit engineering demonstration.
+
+Production-only copies load on Julia 1.10.8 and 1.12.5, expose the report/plot
+methods and retain 186 root exports without `test/` or `results/`. This uses
+the resolved local environments, not a cold install, timing baseline or proof
+about every invoked function. The [report receipt](normalized-prior-backend-comparison.md#correlated-mgmfrm-reports-and-figures-2026-09-21)
+records the bounded regression runs, their timeout and visual-review scope.
+No new dependency, native compilation/sampling, MCMC-on-import or scientific
+evaluation is introduced by this slice.
