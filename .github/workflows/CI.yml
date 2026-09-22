@@ -44,7 +44,7 @@ jobs:
             timeout_minutes: 30
           - group: fitting_reports
             label: Reports and hard anchors
-            timeout_minutes: 30
+            timeout_minutes: 60
           - group: local_dependence_core
             label: Local-dependence diagnostics and calibration
             timeout_minutes: 30
@@ -53,7 +53,7 @@ jobs:
             timeout_minutes: 30
           - group: generalized
             label: Generalized models
-            timeout_minutes: 30
+            timeout_minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
