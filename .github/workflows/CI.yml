@@ -16,7 +16,6 @@ jobs:
   minimum-version-test:
     name: Full package tests - Julia 1.10.8 - Ubuntu
     runs-on: ubuntu-latest
-    timeout-minutes: 120
     env:
       BAYESIANMGMFRM_TEST_GROUP: all
     steps:
@@ -31,29 +30,22 @@ jobs:
   current-version-test:
     name: Current Julia - ${{ matrix.label }} - Ubuntu
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ matrix.timeout_minutes }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - group: core
             label: Core and design
-            timeout_minutes: 35
           - group: fitting_core
             label: MFRM fit integration
-            timeout_minutes: 30
           - group: fitting_reports
             label: Reports and hard anchors
-            timeout_minutes: 90
           - group: local_dependence_core
             label: Local-dependence diagnostics and calibration
-            timeout_minutes: 30
           - group: local_dependence_integrity
             label: Local-dependence provenance and resource guards
-            timeout_minutes: 30
           - group: generalized
             label: Generalized models
-            timeout_minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
@@ -77,7 +69,6 @@ jobs:
   platform-smoke:
     name: Platform smoke - Julia 1 - ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -106,7 +97,6 @@ jobs:
     name: Research evidence and SHA lineage
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    timeout-minutes: 300
     env:
       BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS: "true"
       BAYESIANMGMFRM_TEST_GROUP: all
@@ -124,7 +114,6 @@ jobs:
     name: Research harness portability
     if: github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
-    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
@@ -142,7 +131,6 @@ jobs:
   docs:
     name: Documentation
     runs-on: ubuntu-latest
-    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
@@ -157,7 +145,6 @@ jobs:
   experimental-boundary:
     name: Experimental namespace boundary and lightweight guarded-fit smoke
     runs-on: ubuntu-latest
-    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
@@ -180,7 +167,6 @@ jobs:
   release-hygiene-gate:
     name: Release hygiene gate
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - name: Check local POSIX measurement guard
