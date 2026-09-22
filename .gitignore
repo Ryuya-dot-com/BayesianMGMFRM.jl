@@ -5,6 +5,8 @@ Manifest.toml
 *.dylib
 *.dll
 .DS_Store
+__pycache__/
+*.py[cod]
 results/
 artifacts/
 docs/build/

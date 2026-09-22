@@ -135,6 +135,11 @@ if test_flag("BAYESIANMGMFRM_CMDSTAN_TESTS")
                 x=initial_params(target);x[end]=z;x[1:2:6].=level;x[2:2:6].=sign(z)*level
                 push!(points,x)
             end
+            # Shared Stan quadratic: underflowed value must retain its finite gradient.
+            for z in (-372.0,372.0)
+                x=initial_params(target);x[1]=nextfloat(0.0);x[end]=z
+                push!(points,x)
+            end
             data_path=joinpath(directory,"data-$categories-$eta.json")
             points_path=joinpath(directory,"points-$categories-$eta.json")
             write(data_path,JSON3.write(B._cmdstan_mfrm_correlated_2d_data(target)))

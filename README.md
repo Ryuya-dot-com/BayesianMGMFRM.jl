@@ -43,6 +43,7 @@ examples for the version you install.
 | Two-dimensional correlated MFRM (between-item, fixed coefficients) | Experimental | `Experimental.correlated(spec)` then `Experimental.fit` |
 | Scalar GMFRM: item discrimination × rater consistency | Experimental | `BayesianMGMFRM.Experimental.fit(spec)` |
 | Fixed-Q confirmatory MGMFRM | Experimental | `BayesianMGMFRM.Experimental.fit(spec)` |
+| Two-dimensional correlated MGMFRM (between-item, estimated loadings/consistency) | Experimental | `Experimental.correlated(spec)` with explicit `GeneralizedPrior`; Julia/CmdStan fits, prior/conditional posterior prediction, summaries, diagnostics, MCSE, manual caches and report/figure bundles |
 | Broader discrimination structures | Not supported | Specification review only where documented |
 | Exploratory loadings or higher-dimensional correlation estimation | Not supported | No fitting API |
 | Fitted DFF effects | Not supported | Screening and design diagnostics only |

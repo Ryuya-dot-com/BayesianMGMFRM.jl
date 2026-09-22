@@ -75,6 +75,41 @@ reuse is not attempted. See [backend setup](fitting.md#Backends-and-Sampler-Cont
 for runtime discovery and build requirements. Shared seeds do not imply identical
 draws across backends.
 
+## Synthetic paired-criterion ratings
+
+[`examples/synthetic_paired_ratings.jl`](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/blob/main/examples/synthetic_paired_ratings.jl)
+generates one pronunciation example with artificial persons, words, raters and
+responses. Run it from the repository root:
+
+```sh
+julia --project=. examples/synthetic_paired_ratings.jl
+```
+
+The example has 12 persons, 37 words, 19 raters and two criteria: ease of
+understanding and weak accent. Both scores range from 0 to 8, with higher scores
+indicating more of the named property. The design includes repeated ratings of
+the same recording, unequal word coverage, two sparsely covered words and a
+small amount of missingness in the first criterion. No empirical file is read.
+These counts and generating constants illustrate a design, rather than a
+recommended sample size or estimates from real speakers.
+
+The printed output directory contains `ratings.json` (observed long-form
+ratings), `recordings.json` (all possible person–word cells and their assignment),
+`truth.json` (generating effects, correlations, complete assigned ratings and
+category probabilities), and `manifest.json` (seeds, equation, counts and file
+checksums). Missing first-criterion scores leave the second criterion intact;
+absent recordings are not assigned score zero. An optional argument selects a
+new output directory; existing directories are not overwritten.
+
+Person correlation is 0.6 and residual recording correlation is 0.25. Recording
+effects are shared across raters, rater severity varies by criterion, and steps
+are shared across words within each criterion. These are generating conditions,
+not fitting priors. The realized correlation among 12 persons will differ from
+the population correlation. The script draws no posterior samples: the current
+MGMFRM fitting interface does not represent this complete recording/criterion
+structure. Use the example to inspect known truth and data handling; it does not
+establish parameter recovery or conclusions about real speakers.
+
 ## Fixed-coefficient multidimensional MFRM
 
 [`examples/multidimensional_mfrm.jl`](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/blob/main/examples/multidimensional_mfrm.jl)
@@ -166,7 +201,34 @@ Exploratory loadings, free latent correlations, validated bifactor support and
 model-weight claims are outside this fitting route. The
 [experimental model guide](experimental.md) explains these restrictions.
 
+## Correlated MGMFRM Workflow
+
+[`examples/correlated_mgmfrm.jl`](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/blob/main/examples/correlated_mgmfrm.jl)
+constructs a two-dimensional pure-Q panel, explicitly chooses `GeneralizedPrior`,
+simulates prior rating implications, fits the population correlation with
+estimated loadings/consistency, and prints diagnostics, rho precision and a
+conditional posterior-predictive comparison. It verifies the same MCSE,
+category probabilities and seeded score replications after save/reload, then
+saves and reopens a reader-facing report with tables.
+
+```sh
+julia --project=. examples/correlated_mgmfrm.jl
+```
+
+Add `--cmdstan` to use the matching backend. The example uses only 10 warmup and
+12 retained iterations in each of two chains; the resulting warnings must not
+be interpreted as inferential acceptance. Each run prints a new directory under
+`results/correlated_mgmfrm/` containing `fit.jls` and a `report/` bundle.
+Add `--figures` in an environment containing CairoMakie to include loading,
+rho-diagnostic, prior and predictive PDF/SVG figures with their numerical inputs.
+The result is `Experimental.CorrelatedMGMFRMFit`. Prediction concerns the existing
+rating design; agreement does not establish performance for new persons, items
+or raters. See the
+[model and prior explanation](experimental.md#correlated-mgmfrm-explicit-fitting-and-saved-results).
+
 ## Saved Generalized Fits and Figures
+
+This section applies to scalar GMFRM and independent fixed-Q `MGMFRMFit` results.
 
 Both guarded scripts default to Julia AdvancedHMC/NUTS with two chains, each
 using 50 warmup and 50 retained draws. These are short workflow demonstrations;

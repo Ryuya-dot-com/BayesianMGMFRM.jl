@@ -37,6 +37,8 @@ end
         :MultidimensionalMFRMFit,
         :CorrelatedMFRMSpec,
         :CorrelatedMFRMFit,
+        :CorrelatedMGMFRMSpec,
+        :CorrelatedMGMFRMFit,
         :ExchangeablePrior,
         :ExchangeableMFRMFit,
         :correlated,

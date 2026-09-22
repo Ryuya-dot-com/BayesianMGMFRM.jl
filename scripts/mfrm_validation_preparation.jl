@@ -777,7 +777,7 @@ function summarize_attempts(plan, attempts; parameter::AbstractString)
     for p in plan
         result = get(results, p.id, nothing)
         status = result === nothing ? :missing_attempt : result.status
-        status in (:missing_attempt, :generation_error, :fit_error, :scoring_error, :timeout, :interrupted, :missing_draws,
+        status in (:missing_attempt, :generation_error, :pre_fit_rejected, :fit_error, :scoring_error, :timeout, :interrupted, :missing_draws,
             :nonfinite_draws, :diagnostic_warning, :mcse_unavailable, :prepared) ||
             throw(ArgumentError("unknown preparation attempt status"))
         reasons[status] = get(reasons, status, 0)+1

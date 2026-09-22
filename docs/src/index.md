@@ -15,7 +15,10 @@ experimental opt-in:
 - a fixed-coefficient multidimensional MFRM with independent abilities;
 - a two-dimensional between-item MFRM with estimated population correlation;
 - a one-dimensional scalar GMFRM with item discrimination and rater consistency;
-- a multidimensional fixed-Q confirmatory MGMFRM.
+- a multidimensional fixed-Q confirmatory MGMFRM with independent abilities;
+- an explicit two-dimensional correlated MGMFRM, currently covering fitting,
+  summaries, diagnostics, MCSE, prior/conditional posterior prediction, manual
+  caches and report/figure bundles. This workflow remains experimental.
 
 Broader discrimination structures, exploratory loadings, higher-dimensional
 correlation estimation, and fitted DFF effects are not supported. See

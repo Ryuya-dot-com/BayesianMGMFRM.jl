@@ -311,6 +311,55 @@ function _mgmfrm_free_latent_correlation_2d_coordinates(
     return base_raw, zrho
 end
 
+# Numerical target identity, not a fitted-result or public-fit capability flag.
+function _mgmfrm_correlated_2d_contract(target::_MGMFRMFreeLatentCorrelation2DLogDensity)
+    _check_mgmfrm_free_latent_correlation_2d_design(target.base)
+    return (; schema = "bayesianmgmfrm.mgmfrm_correlated_2d_raw_target.v1",
+        model = :mgmfrm_correlated_2d_raw_prior,
+        design = design_identity(target.base.design).value,
+        dimensions = 2, item_structure = :between_item, likelihood_scale = 1.7,
+        loadings = :estimated_positive_fixed_q, rater_consistency = :positive_product_one,
+        rater_severity = :zero_sum_last_reconstructed, item_steps = :baseline_zero_remaining_zero_sum,
+        location = :prior_anchored, ability_coordinates = :direct_centered,
+        base_prior = :independent_normal_raw_coordinates,
+        scales = _source_fixture_prior_values(target.base.prior),
+        latent_correlation = :free_2d, correlation_transform = :tanh,
+        correlation_prior = :normalized_lkj_2d, lkj_eta = target.prior.lkj_eta,
+        correlation_prior_measure = :d_rho, density_measure = :d_raw_d_zrho,
+        correlation_log_jacobian = :log_one_minus_rho_squared)
+end
+
+_mgmfrm_correlated_2d_identity(target::_MGMFRMFreeLatentCorrelation2DLogDensity) =
+    _cache_hash(_mgmfrm_correlated_2d_contract(target))
+
+_cmdstan_generalized_family(::_MGMFRMFreeLatentCorrelation2DLogDensity) = :mgmfrm_correlated_2d
+function _cmdstan_generalized_data(target::_MGMFRMFreeLatentCorrelation2DLogDensity)
+    _check_mgmfrm_free_latent_correlation_2d_design(target.base)
+    data = _cmdstan_mgmfrm_data(target.base)
+    return merge(Base.structdiff(data, (; prior_model = nothing, source_rater = nothing)),
+        (; lkj_eta = target.prior.lkj_eta))
+end
+
+function _cmdstan_generalized_initial(target::_MGMFRMFreeLatentCorrelation2DLogDensity, values)
+    beta, zrho = _mgmfrm_free_latent_correlation_2d_coordinates(target, values)
+    return (; beta = collect(beta), zrho)
+end
+
+function _cmdstan_generalized_chain_result(path::AbstractString,
+        target::_MGMFRMFreeLatentCorrelation2DLogDensity, chain::Int, ndraws::Int; warmup::Int = 0)
+    n = LogDensityProblems.dimension(target)
+    evaluate = params -> (; pointwise = _mgmfrm_free_latent_correlation_2d_pointwise_loglikelihood(target, params),
+        logposterior = LogDensityProblems.logdensity(target, params))
+    parsed = _cmdstan_raw_chain_result(path, n, target.base.design.spec.data.n,
+        chain, ndraws, evaluate; warmup,
+        parameter_names = [["beta.$i" for i in 1:(n-1)]; "zrho"])
+    all(isapprox(stat.stan_lp, lp; atol = 1e-8, rtol = 1e-8)
+        for (stat, lp) in zip(parsed.stats, parsed.logps)) || throw(CmdStanError(
+            :output_parse, :log_posterior_mismatch,
+            "CmdStan and Julia correlated MGMFRM log posteriors disagree"))
+    return parsed
+end
+
 @inline function _log_one_minus_tanh_squared(z::Real)
     two = one(z) + one(z)
     logtwo = log(two)

@@ -3643,3 +3643,470 @@ it; failed sampling must still preserve original errors and existing caches,
 and must not publish a successful partial fit. Broader sampler failure handling,
 statistical validation and application work remain separate. The generalized
 normalized-prior selector remains private.
+
+## Generalized 2D correlation numerical target (2026-09-21)
+
+**Question and outcome.** Does the existing between-item generalized correlation
+candidate have a Stan counterpart with the same likelihood, raw-coordinate
+prior and derivative meaning? The private
+[MGMFRM Stan model](../../src/stan/mgmfrm_correlated_2d.stan) now supplies that
+counterpart. It estimates positive active loadings and rater consistency;
+it is not the fixed-coefficient correlated MFRM model. This is a numerical and
+transport handoff, with no MCMC sampling or statistical acceptance.
+
+The target contract and identity in
+[the existing candidate](../../src/mgmfrm_free_correlation_candidate.jl) bind
+the canonical design/data, named dimensions, literal 1.7 likelihood scale,
+six raw prior scales, constraints, LKJ eta and the `d raw d zrho` measure.
+Ability pairs have covariance `person_sd^2 * [1 rho; rho 1]`; other free
+coordinates retain independent centered normals. LKJ is normalized in `d rho`
+and the tanh Jacobian is added once in the unconstrained density. These choices
+characterize the existing raw-prior candidate, not the normalized source or
+exchangeable-rater reference and not a new scientific default. Proper priors
+anchor the conditional-likelihood scale/location symmetries; numerical
+agreement does not establish rating-only identification.
+
+The existing CLI compiler, data encoder and named-column reader are reused.
+The new private adapters carry beta and Fisher z separately, re-evaluate Julia
+pointwise likelihoods and the normalized posterior, and reject inconsistent
+CSV output. Stan validates exactly two dimensions, one loading per item, two
+pure items per dimension, observations in both dimensions for every person,
+parameter/step counts, eta and finite positive common scales within each prior
+block. The public `Experimental.fit` correlation-candidate guard remains.
+There is no new fitted-result/cache format, public export or dependency.
+
+**Numerical checks and a defect found.** The equation-level oracle in
+[the new tests](../../test/mgmfrm_correlated_2d_cmdstan.jl) reconstructs the
+response equation and priors separately, using an ordinary covariance solve
+away from saturation. Tests cover distinct eta/scales/design identities,
+rho=0 reduction, nonzero positive/negative rho, all category probabilities,
+named-coordinate transport and rejection of inconsistent records.
+
+The native comparison covers K=3/4, eta=1/2/5/10,000 and 15 declared points per
+combination: ordinary coordinates, z=0, z=+/-20 and +/-1,000 with zero/aligned
+abilities, and the smallest positive Float64 at z=+/-372. Both CmdStan
+`jacobian=0` and `jacobian=1` give identical output because the model parameters
+are unconstrained and the required Jacobian is already explicit. Density,
+density differences and every gradient component are compared in common
+coordinates. Standalone generated quantities check 104 points and the entire
+categorical probability vector without sampling.
+
+The initial shared Stan quadratic lost a finite ability derivative (about
+0.23 in the declared example) when its squared contribution underflowed to
+zero. The shared [correlation functions](../../src/stan/correlated_2d_functions.stan)
+now scale before squaring when the half-scale is representable, retaining a
+log-space fallback for extreme scales. The fixed-coefficient Stan model uses
+the same corrected function and has native regression checks for this case.
+This changes floating-point evaluation, not the probability model or prior.
+
+Stan 2.39's CSV reader maps the subnormal input's out-of-range lexical
+conversion to NaN; standalone generated quantities then emits NaN rows while
+returning process exit 0. These two points per combination retain JSON-based
+density/gradient checks and are explicitly excluded only from CSV-based GQ.
+The earlier GQ failures are retained, not relabelled successes. The package's
+ordinary named-column reader already rejects nonfinite draws/log likelihoods.
+
+**Verification.** Julia 1.10.8 passed 1,160 targeted assertions; Julia 1.12.5
+passed the same checks plus 78 backend-contract checks. The final equation/
+transport tests pass 247 on each version. Native CmdStan 2.39.0 via Julia
+1.12.5 passes 634 generalized checks and 243 fixed-coefficient regression
+checks, alongside their 247/275 Julia checks. The final generalized density
+checks use elementwise tolerances so large tail values cannot hide differences
+at ordinary points or in small gradient components. Maximum absolute gradient
+error is about 1.82e-12. Absolute log-density error reaches about 1.23e-7 with
+eta=10,000 and very large negative log density; each point must still meet
+atol=1e-8/rtol=1e-10. For eta<=5 the maximum is about 5.01e-11.
+
+The [local verification record](../../results/workflows/20260921-generalized-correlation-numerics-01/verification.json)
+retains successful and failed attempts, source/binary hashes, supplied points,
+CSV output and test logs. The default PCH build first failed because the
+installation directory is read-only in the sandbox; the successful build used
+`PRECOMPILED_HEADERS=false` and a byte-identical CmdStan main source copied into
+the task's writable directory, with ordinary optimization. This is not a clean
+installation, full package suite, fresh CI, sampling comparison or independent
+scientific review.
+
+**Next dependency.** Connect this explicit target to the maintained Julia
+sampler/observer and an explicitly correlated specification/result path.
+Preserve old MGMFRM saved types, carry eta/z/rho through diagnostics, MCSE,
+prediction, reports, figures and reload, and test these consumers before a
+bounded matched-backend pilot. Reuse the current numerical adapters and failure
+handling; the research sample bundle is not a complete fitted result. Select
+and independently review the scientific target/domain before fresh recovery or
+SBC evaluation. Mixed-Q and covariance extensions remain separate model slices.
+
+
+## Generalized 2D correlation maintained sample records (2026-09-21)
+
+**Question and implementation.** Can the numerically matched, estimated-loading
+correlation target use the maintained Julia/CmdStan sampling paths and retain
+its identity through diagnostics and save/reload? The private
+[sample-record adapter](../../src/mgmfrm_correlated_2d_samples.jl) now connects
+these paths. It reuses the existing NUTS runners, contextual sampling errors,
+warmup collector, constraint reconstruction, rank diagnostics, MCSE and atomic
+serialization. The older research sampling loop is unchanged. `MGMFRMFit`,
+its independent-covariance interpretation and its serialized layout are unchanged.
+There is no public correlated MGMFRM fitting/specification API in this handoff.
+
+The separate `bayesianmgmfrm.correlated_mgmfrm_samples.v1` record stores the
+canonical specification/data, six raw-coordinate prior scales, integer LKJ eta,
+target identity, full retained run and content hash. The identity binds the
+previously checked likelihood, constraints and prior measure. Mutable numerical
+views are rebuilt from the canonical design before sampling. Restoring checks
+the schema, design/prior identity, content hash, chain/iteration ordering,
+initial and every retained log density, sampler statistics and warmup coverage.
+CmdStan records additionally check the normalized `stan_lp` at each retained
+draw. A missing warmup history is explicitly `nothing`; it is never reported as
+zero divergences or recorded coverage. Serialization remains for trusted inputs
+in a compatible Julia environment, separate from public `save_fit_cache` files.
+
+Direct loading/consistency/rater/step reconstruction uses the existing generalized
+coordinate layout and observation order. The result appends population rho,
+computed as `tanh(z)` at every retained draw. The two spaces have distinct names
+and labels (`:fisher_z` and `:correlation`), parameter and block diagnostics, and
+both contribute to whole-result warnings. Structurally fixed direct coordinates
+retain their exclusion from diagnostic gates and zero MCSE convention. Private
+summary/MCSE adapters revalidate the record and reconstruct their inputs; changing
+an in-memory summary, parameter name or fixed-coordinate flag cannot change the
+saved truth. In particular, rho MCSE is computed from the transformed draws,
+not by transforming an MCSE for z. MCSE availability applies no scientific
+precision margin and does not imply convergence.
+
+**Verification design.** The
+[focused tests](../../test/mgmfrm_correlated_2d_samples.jl) cover binary and
+polytomous responses, one/multiple raters, eta 1/2/5, one/two chains and short/
+longer synthetic records. They check direct reconstruction, observation-ordered
+likelihoods, inclusion of z/rho in quality gates, degenerate rho, MCSE, corrupted
+and deliberately rehashed inconsistent records, cross-schema rejection, and
+preservation of an existing file when invalid replacement is requested. These
+synthetic records exercise interfaces; they are not MCMC replications.
+
+The bounded engineering fixture has three persons, four pure-Q items, three
+raters and four categories. Each successful fit requests two chains, 10 warmup
+and 12 retained iterations per chain, diagonal metric, step size 0.03, maximum
+tree depth 4, initial jitter 0.02 and seed 92141. Julia is checked with the
+observer, directly through the maintained runner, and with warmup recording
+disabled and a stale numerical view. The native CmdStan call uses the same
+target and controls; its own chain seeds remain in the record. These deliberately
+short runs must retain a non-OK diagnostic flag. They test operability, density
+consistency and replay, not posterior agreement, computational efficiency or
+recovery. A separate fault-injection test fails after the second transition and
+checks that backend/chain/phase and the original error survive.
+
+**Results.** The final focused file passes 1,160 assertions on Julia 1.10.8
+and 1.12.5: 1,036 record/precision checks, four failure-context checks and 120
+maintained Julia sampling/replay checks. Each version additionally passes 963
+regression checks for normalized-prior sampling, generalized numerical transport
+and raw-prior behavior (2,123 combined, with the minimum-version checks split
+across the initial regression run and final focused rerun). Native CmdStan
+2.39.0 via Julia 1.12.5 passes 111 sampling/replay checks. That native run
+preceded the final addition of overwrite-preservation and fault-injection
+assertions; it used the same final production sources. No convergence or
+posterior-equivalence claim is made from its 24 retained draws.
+
+The root module loads from a copy containing only production sources, optional
+extension sources and environment files on both Julia versions. The existing
+186 root exports and the public correlation-candidate guard are unchanged.
+The [load-boundary addendum](code-load-boundary.md#generalized-correlation-sample-record-addendum-2026-09-21)
+records ordinary test execution. These checks are not a full-suite, fresh-CI,
+clean-installation, package-runtime-budget or release acceptance run.
+
+The [local receipt](../../results/workflows/20260921-generalized-correlation-samples-01/verification.json)
+records commands, execution limits, final source hashes, saved samples, the
+native binary/source and both successful and failed development attempts.
+The native build again uses the unchanged installed CmdStan with PCH disabled
+and a byte-identical main source in a writable temporary directory. The existing
+runner's temporary chain CSV files are not retained; the validated saved record
+retains chain seeds, native log posterior/statistics and executable hash.
+Development tests first referred to a nonexistent public prior method and then
+to a nonexistent test-flag constant; both harness errors were corrected. No
+likelihood, prior or Stan arithmetic change was needed for this integration.
+The recorded short fits and regression fits are engineering test executions,
+not additional scientific evaluation replications.
+
+**Remaining dependency.** Next give the validated record an explicit experimental
+specification/result interface, then connect prior-predictive simulation,
+predictive checks, report/export and figures with named dimensions and z/rho
+semantics. Keep raw-prior, normalized-source and exchangeable targets distinct.
+A bounded, statistically qualified backend comparison needs its declared
+precision margins and target-specific budget/attempt stops. Scientific target
+selection, independent domain review and fresh recovery/SBC remain open; this
+engineering check does not launch or replace them.
+
+
+## Explicit correlated MGMFRM interface (2026-09-21)
+
+**Question and outcome.** Can users select the numerically matched generalized
+correlation model explicitly, inspect its diagnostics/precision and reopen its
+fit through the ordinary saved-result API? `Experimental.correlated(spec)` now
+returns `Experimental.CorrelatedMGMFRMSpec` for an admitted MGMFRM specification.
+`Experimental.fit(model; prior = Experimental.GeneralizedPrior(...))` returns
+`Experimental.CorrelatedMGMFRMFit` on either maintained backend. The original
+`FacetSpec`, old `MGMFRMFit` type and its independent-covariance meaning are
+unchanged. The older density-only candidate remains a distinct entry; passing
+that numerical target directly to `Experimental.fit` is still rejected.
+
+An explicit `GeneralizedPrior` is required for this new combined model. The six
+raw-coordinate scales retain their previous meanings, with ability pairs jointly
+normal conditional on the population rho and the specification's integer LKJ
+eta. Normalized source/exchangeable targets are not selected implicitly. Pure-Q,
+two-dimension and per-person observation-coverage guards are checked when
+constructing and fitting the copied specification. The literal 1.7 likelihood,
+existing density/gradient calculations and sampled parameterization are unchanged.
+This is availability of one explicit model, not selection of a scientifically
+accepted prior or evidence that the conditional likelihood alone identifies its
+locations/loading scales.
+
+The new result delegates summaries/MCSE and reconstruction to the validated
+sample-record adapters. `posterior_summary` reports raw coordinates including
+Fisher z; `direct_posterior_summary` and default `posterior_mcse` include rho.
+Parameter and block diagnostics include both coordinates, and retained/warmup
+sampler rows remain separate. Public metadata names the target, prior, dimensions,
+backend and operation boundary. Full artifacts include the same summaries and
+warnings. The first integration test exposed an incorrect retained-sampler-row
+lookup in the new result adapter; it was corrected to read the canonical run.
+No probability-model or sampler change was needed.
+
+Manual `save_fit_cache`/`load_fit_cache` use a separate
+`bayesianmgmfrm.correlated_mgmfrm_fit_cache.v1` envelope. Saving snapshots the
+validated result before atomic publication. Loading verifies the sample content,
+target identity, artifact agreement and both archive manifests even when
+`verify_hash=false`. Supplied artifacts cannot replace the actual posterior
+summary with another result or erase warnings. Ordinary v1 caches and
+fixed-coefficient v2 caches retain their previous dispatch and semantics.
+Trusted same-environment Julia Serialization remains the portability boundary;
+this is not a cross-version cache migration or a restart checkpoint.
+
+The [manual](../src/experimental.md#correlated-mgmfrm-explicit-fitting-and-saved-results),
+[runnable example](../../examples/correlated_mgmfrm.jl), namespace help and support
+tables distinguish this partial workflow from the existing complete fixed-coefficient
+workflow. Prior-predictive simulation, posterior-predictive checks, reports,
+figures and automatic request caching are explicitly unavailable for the new
+result. Its next implementation dependency is prior/predictive draws with the
+same joint prior and response meaning, then report/export and figure replay.
+A qualified matched-backend comparison, prior sensitivity, independent scientific
+review and fresh recovery/SBC still require their own declared decisions.
+
+
+**Verification and limits.** Julia 1.10.8 and 1.12.5 each pass 3,230 targeted
+assertions: 1,160 maintained-record checks, 301 explicit specification/result
+checks, 68 public Julia fit/cache checks, 165 existing namespace checks and
+1,536 existing correlated fixed-coefficient result/cache/report checks. The
+namespace regression also exercises the existing generalized automatic-cache
+route; the new model does not acquire that capability. The CmdStan 2.39.0 public
+entry passes 68 additional checks, using the same explicitly selected raw prior
+and two-chain, 10-warmup/12-retained, depth-4 engineering controls. Sampling
+qualifies neither a scientific comparison nor convergence; warnings remain.
+
+Normal-compilation runs completed within their declared 600-second limits
+(about 295 seconds on Julia 1.10.8 and 587 on Julia 1.12.5, including compilation
+and existing report regression). The latter is not evidence of an accepted
+package runtime budget. No performance claim or M0 criterion change follows.
+Native compilation uses the existing CmdStan installation with PCH disabled
+and a byte-identical main source in a writable task directory. This avoids
+writing build products into the installed toolchain and does not establish a
+clean-installation result.
+
+Both Julia versions load a production-only copy with no research trees, retain
+all 186 root exports, expose the two new types only through qualified access,
+and preserve the density-only candidate guard. The fresh Documenter build
+completes with the four pre-existing missing research-helper docstring warnings;
+the public-language checks cover 21 source/example files and 14 HTML pages.
+The runnable Julia example saves and reloads rho MCSE, while retaining its
+sampler warning. A display check caught its machine-specific absolute output
+path; the example now prints a repository-relative path.
+
+The [local verification record](../../results/workflows/20260921-generalized-correlation-fit-01/verification.json)
+retains source/artifact hashes, final and failed development checks, public
+fit caches, native binary/source and execution controls. The example is an
+implementer-run walkthrough, not an unfamiliar-reader assessment. Full-suite
+CI, independent scientific review, cross-version serialized-cache portability,
+qualified posterior comparison and release/integration approval remain open.
+
+## Correlated MGMFRM prior and posterior prediction, 2026-09-21
+
+**Question and scope.** Can the explicit estimated-loading correlated MGMFRM
+generate ratings from its declared joint prior and posterior, and reproduce
+those implications from already saved results? The implemented target is the
+existing rating rows, persons, items and raters. It is a conditional same-data
+check; it does not integrate new facet levels or estimate held-out accuracy.
+The literal 1.7 likelihood, positive active loadings, product-one consistencies,
+raw-coordinate prior, normalized LKJ shape and identification restrictions are
+unchanged. No new scientific default or backend-equivalence claim is selected.
+
+**Implemented path.** `Experimental.prior_predict` and `prior_predictive_check`
+now accept `CorrelatedMGMFRMSpec` with the same required `GeneralizedPrior` as
+fitting. A shared target constructor enforces that requirement. In two
+dimensions `(rho+1)/2 ~ Beta(eta,eta)`; conditional ability pairs use the selected
+marginal SD and covariance `person_sd^2 * [1 rho; rho 1]`. Other free coordinates
+are drawn from their declared normal priors before the existing transformations.
+Prior checks expose raw z and direct rho, parameter names, prior and target
+identity, category/facet/group comparisons and prior-implication diagnostics.
+Nonrepresentable correlation boundaries or nonfinite transformed coordinates
+raise errors rather than silently modifying the prior.
+
+`predictive_probabilities`, `posterior_predict` and `posterior_predictive_check`
+now accept the explicit result. They validate the saved sample and select joint
+draws using the existing controls. All draws are used by default, `ndraws`
+samples with replacement and explicit indices preserve order and duplicates.
+Posterior abilities already incorporate correlation; rho is not applied again.
+Checks preserve the selected indices, source hash, model/prior identity and
+whole-result sampling-quality flag. Both prior and posterior routes reuse the
+same generalized response kernel and existing score summaries.
+
+**Persistence and capabilities.** The v1 fit-artifact payload and its
+`supported_operations` introduction baseline remain unchanged. Live capabilities
+are declared by `Experimental.surface_contract(model)`; extending that matrix
+must not invalidate a previously saved artifact solely because more consumers
+are available. Real caches from the preceding interface handoff load without
+rewriting their bytes or weakening mandatory integrity/semantic checks. The
+saved prior reconstructs the same prior check, and seeded posterior predictions
+reproduce after another save/reload. This is same-version replay, not a claim
+of portable Julia Serialization across versions. Existing independent MGMFRM
+and fixed-coefficient MFRM interpretations remain unchanged.
+
+**Verification.** Julia 1.10.8 and 1.12.5 each pass 3,634 targeted assertions,
+including 785 new prediction checks, 1,529 existing correlated MGMFRM
+sample/result/fit checks, 165 namespace checks and 1,155 fixed-coefficient
+density/prior-prediction and shared prior-figure checks. The new tests cover
+binary/four-category models, one/three raters, independent adjacent-category
+calculations including raw transformations, normalized probability sums and
+agreement with the fitted pointwise likelihood. At eta 1, 2, 5 and 10,000,
+20,000 prior draws per shape check LKJ moments, marginal scales and whitened
+conditional abilities; independent distribution-library log densities include
+the rho-to-z Jacobian exactly once. These distribution-generator tests are not
+recovery or SBC evaluation replications. Changing observed scores leaves prior
+draws/replications unchanged; changing only posterior rho leaves conditional
+probabilities unchanged. Invalid inputs, local RNG behavior, record immutability,
+selection and synthetic-cache replay are covered.
+
+The two preceding Julia caches and one CmdStan cache pass 36 additional replay
+assertions with original bytes preserved (24 under Julia 1.12.5, 12 under
+1.10.8). The CmdStan fit was reused; this slice changes no Stan code and adds no
+native sampling or compilation. The final regression processes completed within
+600-second deadlines (about 116 and 250 seconds, including compilation); these
+are bounded verification observations, not runtime acceptance measurements.
+The revised Julia example completes its prior/fit/diagnostic/prediction/cache
+sequence and retains the short-run sampling warning. Production-only copies
+load on both versions with the same 186 root exports.
+
+The fresh documentation build passes with four pre-existing missing research
+docstring warnings. Public-language checks cover 21 source/example files,
+14 rendered pages, seven runtime help/example surfaces and two public
+metadata/diagnostic payloads. The new prior check also reproduces the existing
+category-figure numerical data. A fit-based report/figure adapter remains the
+next deliverable. Development failures were in verification code: a
+single-category fixture rejected by existing validation, comparison of copied
+specification objects by identity, a relative include path, and counting the
+module name as an export. Their corrected runs and failed logs remain in the
+[local receipt](../../results/workflows/20260921-generalized-correlation-predictive-01/verification.json).
+
+**Remaining acceptance.** Finish model-labelled reports, exports and
+dimension/rho/predictive figures with consistent intervals, selected draws and
+replay. Independently review prior/domain choices and the claim-to-design
+mapping before fresh recovery/SBC or a qualified backend comparison. The
+unfamiliar-reader walkthrough, ordinary API migration, full-suite CI, M0 runtime
+acceptance and integration/release decisions remain open. Implementer tests and
+same-data predictive agreement do not substitute for any of those decisions.
+
+## Correlated MGMFRM reports and figures (2026-09-21)
+
+**Implemented scope.** The explicit estimated-loading, estimated-consistency
+2D between-item result now supports public/full `fit_report`, portable
+Markdown/JSON/tables and optional posterior, trace/rank, posterior-predictive,
+prior and prior-predictive figures. The report reconstructs the validated
+target and explicit saved prior. It distinguishes raw Fisher z from model rho,
+positive loadings/consistencies from fixed Q zeros, reconstructed constraints
+from estimated coordinates, and posterior intervals from MCSE. Named
+dimensions select abilities/loadings without manually reshaping draws.
+
+The prior explanation retains fixed marginal SDs and LKJ eta, conditional
+bivariate ability covariance, the single Fisher-z Jacobian and the induced
+last-rater/step priors. It states prior anchoring and last-rater label dependence;
+this implementation does not choose a source/exchangeable scientific target.
+Parameter summaries and diagnostics use all retained draws. Only conditional
+posterior prediction uses the requested draw selection; duplicates/order,
+chain/iteration IDs, local seed and interval policy survive export/reload.
+Optional joint-prior draws use a separate local RNG and the saved scales, so
+requesting them does not change posterior predictions. Reports and figures
+retain whole-fit warnings even when one selected coordinate looks acceptable.
+
+`require_complete=true` rejects failed requested sections; it does not require
+every unsupported analysis or certify sampling quality. WAIC/LOO, DFF,
+calibration, category/rater analyses and MCMC-budget advice remain explicitly
+unsupported for this result. Trace/rank rows without stored diagnostics remain
+unavailable; no finite-panel location view or Wright map is implied. The live
+operation contract now advertises reports/plots. Stored fit metadata retains
+its introduction-time capability baseline so historical artifacts still match
+their fitted records. No old fit type, prior, response equation or cache/hash
+schema changes.
+
+**Observed defects and corrections.** A one-rater, two-category synthetic
+report exposed JSON round-trip loss of `-0.0`, which changed the report's
+content digest. The typed `Dict{String,Any}` JSON reader also rounded the Int64
+identity `9007199254740993` through Float64. The shared reader now materializes
+the default parser's containers, then restores only signed zeros using a
+Float64 parse when necessary. Mixed numeric arrays retain their exact Int64
+values and signs. The existing hash checks remain mandatory; their algorithm
+was not relaxed to accept corrupted values. The tested large-integer claim is
+limited to representable Int64 values, not arbitrary JSON integer precision.
+
+The first PDF inspection found that the long model title/footnote consumed
+the default interval panel, hiding a one-row rho interval and crowding two
+loading labels. The model-specific default dimensions now reserve space for
+both annotations and plotting. The final ten PDF panels and six standalone
+ability/rho/raw-rho PNGs were inspected for readable scales, intervals, labels
+and warnings. This is implementer visual QA, not an unfamiliar-reader study.
+
+**Verification.** Julia 1.10.8 passes 4,851 assertions: 920 new report/JSON
+checks, 785 preceding predictive checks, 1,529 maintained-record/explicit-fit
+checks, 1,536 existing fixed-coefficient result/cache/report checks and 81
+Markdown/table-column checks. Synthetic report cases cover two/four categories,
+one/three raters and both backend record formats, with no MCMC in the new
+report test. The retained sampler regressions and the standalone example use
+only their predeclared short engineering fits.
+
+Julia 1.12.5 passes the same 4,851 assertions in two bounded processes:
+3,315 generalized/prediction/column checks in about 378 seconds, and 1,536
+existing-model compatibility checks in about 402 seconds, each below its
+480-second deadline. The initial combined run reached 650 seconds with no
+flushed completion evidence and is retained as a timeout, with no assertions
+credited. Julia 1.10.8 completed the combined scope in about 383 seconds under
+its 600-second deadline. These runs include compilation and overlapping local
+work; they are not controlled timing comparisons, accepted CI-shard budgets
+or M0 runtime acceptance.
+
+Replaying the three previously saved correlated fits passes 45 additional
+checks (28 under Julia 1.12.5, 17 under 1.10.8), including historical exchangeable
+report bundles. Original cache/bundle bytes are preserved. Native CmdStan is
+not compiled or run in this slice. Each fit is read under its original Julia
+major/minor; this is not a cross-version Serialization portability claim.
+Optional CairoMakie tests pass 188 checks on the prior Julia/CmdStan caches:
+five figure kinds, report/input numerical agreement, target/report hashes,
+editable figure objects, rejected invalid selections and per-file corruption
+detection. All figures are prepared before replacing an existing bundle.
+
+The generic example now completes prior/fit/diagnostic/prediction/cache/report
+save and reload with sampling warnings visible. The fresh manual build passes
+with its four classified research-docstring warnings. Production-only load
+checks pass on both Julia versions. The execution records and output hashes
+are in the [local receipt](../../results/workflows/20260921-generalized-correlation-report-01/verification.json).
+
+Public-language checks cover 21 sources/examples, 14 fresh HTML pages, eight
+runtime help/example surfaces, three public report/metadata/diagnostic payloads
+and the rendered Markdown. A development probe initially inspected the private
+underlying type object rather than the documented public binding; checking
+`Base.Docs.Binding(Experimental, :CorrelatedMGMFRMFit)` follows the actual help
+entry and passes. Other retained development failures include the prior-section
+`view` keyword shadowing `Base.view`, missing-valued test equality, and
+intermediate signed-zero/large-integer test assumptions. The final corrected
+runs establish the reported scope; failed logs were not discarded.
+
+**Remaining acceptance.** This completes the declared experimental result-to-
+report workflow. The [next acceptance packet](../../ROADMAP.md#next-implementation-handoffs)
+must distinguish the proposed first MGMFRM domain from this correlated raw-prior
+target, connect each scientific claim to its estimands and design, and specify
+independent review, precision margins, costs, budget and stops. No recovery/SBC
+grid or diagnostic-qualified posterior comparison is launched here. Scientific
+M1/M2, the actual reader walkthrough, ordinary API migration, full-suite CI,
+retained M0 runtime acceptance and integration/release remain open.

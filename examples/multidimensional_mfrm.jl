@@ -65,6 +65,9 @@ save_fit_cache(cache_path, fit_result)
 restored = load_fit_cache(cache_path)
 @assert isequal(fit_metadata(restored), fit_metadata(fit_result))
 @assert isequal(BayesianMGMFRM.direct_posterior_summary(restored), BayesianMGMFRM.direct_posterior_summary(fit_result))
+precision = posterior_mcse(restored)
+println("MCSE availability: ", unique(row.mcse_status for row in precision))
+println("MCSE describes computation error; review convergence and precision before interpreting estimates.")
 
 selection = correlated ? (; block = :latent_correlation) : (; block = :person, dimension = "reasoning")
 figures = "--plots" in ARGS ? (

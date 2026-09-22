@@ -7,7 +7,7 @@ GMFRM or MGMFRM support.
 
 ## Boundary
 
-The fitting entry currently admits four configurations:
+The fitting entry currently admits five configurations:
 
 - fixed-coefficient multidimensional MFRM with at least two dimensions, fixed Q
   coefficients, item-specific partial-credit steps and identity latent correlation;
@@ -17,9 +17,13 @@ The fitting entry currently admits four configurations:
   discrimination multiplied by positive rater consistency and rater-specific
   partial-credit steps;
 - fixed-Q confirmatory MGMFRM with at least two dimensions, partial-credit
-  steps, and fixed identity latent correlation.
+  steps, and fixed identity latent correlation;
+- two-dimensional between-item MGMFRM with estimated positive loadings, rater
+  consistency and population correlation, selected with `Experimental.correlated(spec)`
+  and an explicit `GeneralizedPrior`. Its workflow covers summaries, diagnostics,
+  MCSE, prior/conditional posterior prediction, manual fit caches and report/figure bundles.
 
-All four reject anchors and fitted DFF terms. Broader discrimination, rating-scale
+All five reject anchors and fitted DFF terms. Broader discrimination, rating-scale
 generalized kernels, exploratory or rotated loadings, and higher-dimensional
 correlation estimation remain outside the fitting boundary.
 
@@ -182,6 +186,25 @@ including named-dimension figures. See the [runnable example](examples.md#fixed-
 Automatic request caching and `Experimental.preview` remain limited to
 GMFRM/MGMFRM. Prior prediction also supports this MFRM model; inspect its design with
 `getdesign(spec; preview = true)`. Stable `fit(spec)` does not accept it.
+
+After reviewing convergence, quantify the Monte Carlo error of reported values
+directly from the fit or a reloaded cache:
+
+```julia
+precision = posterior_mcse(fit_result; probabilities = (0.025, 0.5, 0.975))
+ability_precision = filter(row -> row.block == :person && row.dimension == 1, precision)
+```
+
+This works for independent and correlated models, either rater prior, and both
+backends. The default includes reconstructed rater severities and item steps,
+with `block`, `dimension_label`, `fixed` and `derived` fields for selection.
+Locations use unit logits, fixed coefficients are dimensionless, and estimated
+rho uses the correlation scale. Use `parameter_space = :raw_unconstrained` for
+free coordinates; the correlation coordinate is then Fisher z. Fixed quantities
+have zero MCSE; fewer than two chains or fewer than ten draws per chain leave
+nonfixed MCSE unavailable. An available MCSE estimates computation error, not
+posterior uncertainty or convergence, and applies no universal precision cutoff.
+User-defined contrasts still use the documented matrix method.
 
 ## Correlated ability dimensions
 
@@ -427,7 +450,7 @@ contains raw and constrained direct parameter draws, replicated scores, and
 implication diagnostics. Use it before fitting, then use actual refits—not only
 importance reweighting—to assess posterior sensitivity.
 
-For MGMFRM, the ability-scale row in `diagnostics` and `fit_report` records
+For independent MGMFRM, the ability-scale row in `diagnostics` and `fit_report` records
 the actual `person_sd` in `row.prior.sd`; `fit_artifact` also exposes it as
 `ability_prior.sd`. SD 1 retains the `:standard_normal_by_dimension` label;
 other scales use `:normal_by_dimension`. These describe independent
@@ -501,14 +524,175 @@ Both guarded configurations accept either `backend = :advancedhmc` or
 `backend = :cmdstan`. Each CmdStan route uses a package-owned Stan model,
 samples the same raw-coordinate prior, applies the Julia identification
 transform, and checks Stan's generated pointwise log likelihood against Julia
-at every retained draw. The MGMFRM route remains fixed-Q and
-identity-correlation only. Experimental `cached_fit` remains AdvancedHMC-only.
+at every retained draw. An unwrapped MGMFRM specification retains fixed Q and
+identity correlation; the explicit correlated workflow below has a separate result type.
+Experimental `cached_fit` remains AdvancedHMC-only for the unwrapped specifications.
 CmdStan is an optional external runtime; inspect it with
 `cmdstan_backend_check()` before requesting that backend.
 
 The older `fit(spec; experimental = true)` form remains available during the
 migration, but new code should not depend on it. Passing `experimental` inside
 the namespace is rejected because the namespace itself is the opt-in.
+
+## Correlated MGMFRM: explicit fitting and saved results
+
+Use this model when the two named ability dimensions should have an estimated
+population correlation while item loadings and rater consistency are also
+estimated. The Q pattern must be fixed and between-item, with at least two pure
+items per dimension and observations on both dimensions for every person.
+Within-item Q, additional dimensions, anchors and fitted bias terms are unavailable.
+The [runnable example](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/blob/main/examples/correlated_mgmfrm.jl)
+constructs its own small rating panel and checks save/reload. Its `--cmdstan`
+option selects the corresponding backend.
+
+```julia
+model = BayesianMGMFRM.Experimental.correlated(spec; lkj_eta = 2)
+prior = BayesianMGMFRM.Experimental.GeneralizedPrior(
+    person_sd = 0.7, rater_sd = 0.4, item_sd = 0.6,
+    log_discrimination_sd = 0.3, log_consistency_sd = 0.2, step_sd = 0.5,
+)
+result = BayesianMGMFRM.Experimental.fit(model;
+    prior, backend = :advancedhmc, ndraws = 100, warmup = 100, chains = 2, seed = 92141,
+)
+fit_metadata(result)
+diagnostics(result)
+sampler_diagnostics(result; phase = :warmup)
+BayesianMGMFRM.direct_posterior_summary(result) # includes rho
+posterior_mcse(result)                         # rho MCSE from transformed draws
+posterior_summary(result)                      # raw coordinates, including Fisher z
+save_fit_cache("correlated-mgmfrm-fit.jls", result)
+restored = load_fit_cache("correlated-mgmfrm-fit.jls")
+posterior_mcse(restored)
+```
+
+Here `spec` must be an admitted two-dimensional `family = :mgmfrm` specification;
+the original remains an independent model. The scales and small sampler budget
+above illustrate the API, not analysis recommendations. Inspect
+`Experimental.surface_contract(model)` for the exact operation boundary.
+An explicit `GeneralizedPrior` is required for both prior prediction and fitting
+this combined model.
+
+For pure item i, the adjacent-category logit is
+`1.7 * gamma_r * (a_i,d(i) * theta_p,d(i) - b_i - r_r - s_i,h)`.
+Active loadings are positive, rater consistencies have product one, severities
+sum to zero, and nonbaseline steps sum to zero. Ability pairs are jointly normal
+conditional on rho with covariance `person_sd^2 * [1 rho; rho 1]`; other free raw
+coordinates retain the selected normal priors. LKJ eta is a fixed integer shape
+from 1 to 10,000, not a standard deviation. Its prior is declared on rho and
+`rho = tanh(z)` contributes its Jacobian exactly once. A supplied `init` vector
+ends in Fisher z. Priors anchor locations/scales that the conditional likelihood
+alone does not identify; successful sampling does not resolve that distinction.
+
+Julia and `backend = :cmdstan` return `Experimental.CorrelatedMGMFRMFit`.
+Raw/direct summaries, MCSE, diagnostics, metadata, full `fit_artifact` and manual
+fit caches preserve the prior and z/rho meanings. `diagnostics` retains the fitted
+thresholds; MCSE applies no precision acceptance margin. The dedicated fit cache
+validates the sample, artifact and target even with `verify_hash = false`.
+Existing independent `MGMFRMFit` objects and caches retain their interpretation.
+Use trusted caches within a compatible Julia environment.
+
+Reports, exported tables and optional CairoMakie figures are available;
+automatic request caching remains unavailable for this result type.
+Its numerical and short-run engineering checks do not establish convergence,
+posterior agreement, recovery or a scientifically accepted prior/domain.
+
+### Prior and conditional posterior prediction
+
+Use the same explicit prior to examine implied ratings before fitting:
+
+```julia
+using Random
+before = BayesianMGMFRM.Experimental.prior_predictive_check(model;
+    prior, ndraws = 1000, rng = MersenneTwister(41))
+predictive_check_summary(before; include_grouped = true)
+
+after = posterior_predictive_check(result; rng = MersenneTwister(42))
+predictive_check_summary(after; include_grouped = true)
+probabilities = predictive_probabilities(result; draw_indices = [1, 4, 1])
+scores = posterior_predict(result; draw_indices = [1, 4, 1], rng = MersenneTwister(43))
+```
+
+The prior check samples `(rho + 1)/2` from `Beta(eta, eta)` and abilities from
+their joint normal prior. Its raw draws end in Fisher z, while its direct draws
+end in rho. Log-loadings and free log-consistencies follow the selected normal
+priors before transformation. Observed ratings provide the comparison, without
+updating the simulated prior. The existing `plot_predictive(before)` can display
+the generated category-proportion comparison when CairoMakie is loaded.
+
+Posterior prediction conditions on each joint draw of the existing abilities,
+loadings, difficulties, severities, consistencies and steps. Population rho
+affects their posterior distribution; applying it to sampled abilities again
+would change the model. Category probabilities retain the literal 1.7 factor.
+Their array is draws by observations by categories in the saved category order;
+score matrices use the original integer labels. With no selection all retained
+draws are used. `ndraws` selects with replacement; `draw_indices` preserves order
+and duplicates. Supply only one of those controls. A local seeded RNG reproduces
+selection and simulation after `load_fit_cache` in the same Julia environment.
+
+Both checks concern the existing rating rows and facet levels. Posterior checks
+return the selected indices, prior/model identity and sampling-quality flag;
+sampling warnings remain relevant even when observed and replicated summaries
+agree. These checks describe same-data implications, not held-out accuracy,
+parameter recovery or prediction for new persons, items or raters. Those targets
+require separately specified validation and, for new levels, integration over
+their unknown effects.
+
+### Reports and figures from saved results
+
+The report starts from the saved model and prior, retains sampling warnings,
+and separates raw coordinates from model-coordinate summaries. It labels
+ability/loading dimensions, reports rho intervals and MCSE prominently, and
+includes the reconstructed last-rater and item-step constraints. Q specifies
+structural zeros; an active Q entry is an estimated positive loading, not a
+coefficient fixed at one. Prior SDs and LKJ eta are fixed inputs; the last-rater
+and last-step priors are induced by the sum constraints. The report explains
+their rater-label dependence and the role of priors in setting location/scale.
+
+```julia
+report = fit_report(restored; include_prior_predictive = true,
+    prior_predictive_ndraws = 100, seed = 42, require_complete = true)
+println(fit_report_markdown(report))
+save_fit_report_bundle("correlated-report", restored;
+    include_prior_predictive = true, prior_predictive_ndraws = 100,
+    seed = 42, require_complete = true)
+reopened = load_fit_report_bundle("correlated-report"; require_complete = true)
+```
+
+Reports default to `view = :public`; `view = :full` retains reproduction details.
+Markdown previews selected rows, while JSON and table exports retain all rows.
+MCSE describes simulation precision and is distinct from credible intervals.
+Report completeness means no captured section errors; it does not mean that
+MCMC diagnostics passed or that every analysis is implemented. Unsupported
+analyses state their reasons. Optional prior checks use the saved prior without
+changing the posterior comparison. Failed requested sections remain visible;
+`require_complete = true` prevents exporting them as a complete report.
+
+```julia
+using CairoMakie
+BayesianMGMFRM.plot_posterior(restored; block = :person, dimension = "communication")
+BayesianMGMFRM.plot_posterior(restored; block = :latent_correlation)
+BayesianMGMFRM.plot_diagnostics(restored; block = :latent_correlation)
+BayesianMGMFRM.plot_predictive(restored; seed = 42)
+
+save_fit_report_bundle("correlated-report-with-figures", restored;
+    include_prior_predictive = true, prior_predictive_ndraws = 100,
+    posterior_lower = 0.1, posterior_upper = 0.9, predictive_interval = 0.8,
+    seed = 42, require_complete = true,
+    figures = (posterior = (block = :item_dimension_discrimination, dimension = "communication"),
+        diagnostics = (block = :latent_correlation,), predictive = NamedTuple(),
+        prior = (block = :latent_correlation,), prior_predictive = NamedTuple()))
+```
+
+Use the dimension labels in the fitted specification; `communication` belongs
+to the runnable example. Posterior/diagnostic figures default to model
+coordinates; `scale = :raw` shows Fisher z and the raw log coordinates instead.
+All retained draws enter parameter summaries and diagnostics. Only prediction
+uses optional `ndraws` or `draw_indices`. Figure bundles take their intervals,
+selection and seed from the report call and export PDF, SVG and numerical JSON.
+Prior figures use the report's already generated prior summaries. Reconstructed
+steps lacking stored convergence rows are labelled unavailable in trace/rank
+figures; fixed baselines are distinguished from estimated precision. No finite-panel
+location diagnostic view or Wright map is provided for this model.
 
 ## Two-dimensional correlation density
 
@@ -547,8 +731,9 @@ diagnostics = BayesianMGMFRM.Experimental.
 This exactly two-dimensional implementation accepts positive integer `lkj_eta` values.
 Its name deliberately retains `2d`: independently transforming pairwise
 correlations would not ensure a positive-definite matrix in higher dimensions,
-where an LKJ-Cholesky parameterization is required. The candidate has no public
-MCMC fit entry point, fit type, or cache key. Its public diagnostics evaluate
+where an LKJ-Cholesky parameterization is required. This density-only candidate
+does not itself accept fitting or cache operations; use the explicitly wrapped
+specification above for the separate fitting workflow. Its public diagnostics evaluate
 the density and selected gradient coordinates only; they do not assess sampler
 convergence or response-level recovery.
 
@@ -578,6 +763,8 @@ BayesianMGMFRM.Experimental.MGMFRMFit
 BayesianMGMFRM.Experimental.MultidimensionalMFRMFit
 BayesianMGMFRM.Experimental.CorrelatedMFRMSpec
 BayesianMGMFRM.Experimental.CorrelatedMFRMFit
+BayesianMGMFRM.Experimental.CorrelatedMGMFRMSpec
+BayesianMGMFRM.Experimental.CorrelatedMGMFRMFit
 BayesianMGMFRM.Experimental.ExchangeablePrior
 BayesianMGMFRM.Experimental.ExchangeableMFRMFit
 BayesianMGMFRM.Experimental.correlated

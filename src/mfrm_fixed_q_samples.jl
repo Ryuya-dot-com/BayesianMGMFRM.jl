@@ -423,6 +423,32 @@ function direct_posterior_summary(fit::Union{MultidimensionalMFRMFit,_Exchangeab
         for (row, coordinate) in zip(rows, coordinates)]
 end
 
+function posterior_mcse(fit::_FixedQMFRMFit;
+        probabilities = (0.025, 0.5, 0.975), parameter_space::Symbol = :auto)
+    selected = parameter_space === :auto ? :direct_constrained : parameter_space
+    selected in (:direct_constrained, :raw_unconstrained) || throw(ArgumentError(
+        "multidimensional MFRM posterior_mcse parameter_space must be :auto, :direct_constrained, or :raw_unconstrained"))
+    checked = _mfrm_fixed_q_samples(fit)
+    run = checked.record.run
+    if selected === :raw_unconstrained
+        rows = _posterior_mcse_rows(run.draws, checked.parameter_names, run.controls.chains;
+            probabilities, parameter_space = selected)
+        spaces = get(checked, :parameter_spaces, fill(:unit_logit, length(rows)))
+        return [merge(row, (; parameter_space = space)) for (row, space) in zip(rows, spaces)]
+    end
+    coordinates = checked.model_coordinates
+    rows = _posterior_mcse_rows(hcat(getproperty.(coordinates, :values)...),
+        getproperty.(coordinates, :parameter), run.controls.chains;
+        probabilities, parameter_space = selected,
+        structurally_fixed_parameters = Set(row.parameter for row in coordinates if row.fixed))
+    labels = _fixed_q_result_spec(checked).dimension_labels
+    return [merge(row, (; coordinate.block, coordinate.dimension, coordinate.fixed, coordinate.derived,
+        dimension_label = coordinate.dimension === nothing ? missing : labels[coordinate.dimension],
+        parameter_space = get(coordinate, :parameter_space,
+            coordinate.block in (:item_dimension_discrimination, :rater_consistency) ? :dimensionless : :unit_logit)))
+        for (row, coordinate) in zip(rows, coordinates)]
+end
+
 # Only consume coordinates rebuilt from a validated record. These are equally
 # weighted finite-panel means, not extra population parameters or new constraints.
 function _fixed_q_location_coordinates(checked)

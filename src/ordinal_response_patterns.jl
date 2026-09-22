@@ -50,9 +50,12 @@ end
                                    minimum_pattern_observations = 2)
 
 Return a sampler-free audit of category gaps and constant or boundary response
-patterns by person, rater, and item. The audit distinguishes a structural
-ordered-response failure (only one category in the whole dataset) from stress
-conditions that can be fitted with proper priors but may be weakly informed.
+patterns by person, rater, and item. The audit distinguishes inputs rejected
+by the current fitting interface (only one category in the whole dataset)
+from supported stress conditions that may be weakly informed. A rejection
+does not establish posterior impropriety under an explicitly declared scale
+and proper priors. The legacy `:structural_error` status denotes this input
+boundary, not a theorem about all Bayesian ordered-response models.
 
 By default, `FacetData` infers the category scale as the contiguous integer
 range between the observed minimum and maximum. Pass `category_levels` to the
@@ -137,7 +140,8 @@ function ordinal_response_pattern_audit(
             unused_interior_category = :adjacent_step_transitions_weakly_separated_check_prior_sensitivity,
             extreme_person = :one_sided_ability_information_do_not_interpret_as_infinite_ability,
             constant_rater = :severity_and_generalized_consistency_may_be_weakly_separated_check_assignment_and_priors,
-            global_single_category = :ordered_response_likelihood_not_estimable,
+            global_single_category = :unsupported_by_current_fit_validation,
+            posterior_propriety_assessed = false,
         ),
         decision_policy = :audit_and_stress_axis_not_scientific_pass_fail_threshold,
     )

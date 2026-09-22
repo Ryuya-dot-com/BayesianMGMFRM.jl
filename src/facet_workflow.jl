@@ -762,7 +762,7 @@ function validate_design(data::FacetData; bias = Tuple{Symbol,Symbol}[], min_cel
             "at least one rating row is required"))
     elseif length(category_scale.observed_levels) < 2
         push!(issues, ValidationIssue(:single_observed_category, :error,
-            "at least two observed score categories are required to fit an ordered-response model"))
+            "this fitting interface requires at least two observed score categories; single-category data are outside its current support"))
     end
     if data.n > 0
         skipped = category_scale.unobserved_interior_levels
@@ -845,8 +845,8 @@ function _suggestion_for_issue(issue::ValidationIssue)
         suggestion = "Provide at least one complete long-format rating row before constructing a model specification.",
     )
     code === :single_observed_category && return (
-        action = :collect_or_recode_categories,
-        suggestion = "Use at least two observed score categories, or recode/collapse the outcome before fitting an ordered-response model.",
+        action = :review_single_category_fit_support,
+        suggestion = "Preserve the observed scores and intended category scale. The current fitting interface rejects single-category data; this does not establish that a posterior under proper priors is undefined. Record the rejection in simulation studies without redrawing or recoding to bypass it.",
     )
     code === :unused_interior_category && return (
         action = :inspect_scale_use,

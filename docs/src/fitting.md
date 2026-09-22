@@ -352,8 +352,13 @@ readiness check does not enforce this compile-time policy. See
 
 For both guarded generalized families, every retained raw draw is transformed
 through the Julia identification map before the common fit, diagnostics, and
-prediction interfaces are built. MGMFRM remains fixed-Q and
-identity-correlation only. `cached_fit` and parallel chain execution are not
+prediction interfaces are built. Unwrapped MGMFRM specifications remain fixed-Q
+with identity correlation. The [explicit correlated MGMFRM](experimental.md#correlated-mgmfrm-explicit-fitting-and-saved-results)
+uses a separate result type and currently supports summaries, diagnostics, MCSE
+and manual caches, plus prior and conditional existing-row posterior prediction.
+Reader-facing reports, tables and optional CairoMakie figures retain the saved
+prior, model identity and sampling warnings.
+`cached_fit` and parallel chain execution are not
 yet connected to CmdStan. CmdStan remains optional for package
 installation, and no backend is declared faster or more accurate without a
 same-target analysis.

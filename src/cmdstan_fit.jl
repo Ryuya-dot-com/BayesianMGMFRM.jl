@@ -3,7 +3,7 @@
 import JSON3
 
 function _cmdstan_model_source(family::Symbol)
-    family in (:mfrm, :gmfrm, :mgmfrm, :mfrm_fixed_q, :mfrm_correlated_2d) || throw(ArgumentError(
+    family in (:mfrm, :gmfrm, :mgmfrm, :mfrm_fixed_q, :mfrm_correlated_2d, :mgmfrm_correlated_2d) || throw(ArgumentError(
         "CmdStan has no package-owned model for family = $(repr(family))",
     ))
     module_path = pathof(BayesianMGMFRM)
@@ -441,10 +441,14 @@ function _cmdstan_compile_model(check, family::Symbol; cache_dir = nothing)
     copied_source = model_stem * ".stan"
     executable = _cmdstan_executable_path(model_stem)
     try
-        if family in (:mgmfrm, :mfrm_fixed_q, :mfrm_correlated_2d)
-            # Flatten the one package-owned include; no external include search path.
-            shared = read(joinpath(dirname(source), "mgmfrm_functions.stan"), String)
-            contents = replace(read(source, String), "#include mgmfrm_functions.stan\n" => shared)
+        if family in (:mgmfrm, :mfrm_fixed_q, :mfrm_correlated_2d, :mgmfrm_correlated_2d)
+            # Flatten only these package-owned includes; no external search path.
+            contents = read(source, String)
+            for name in ("mgmfrm_functions.stan", "correlated_2d_functions.stan")
+                token = "#include $name\n"
+                occursin(token, contents) || continue
+                contents = replace(contents, token => read(joinpath(dirname(source), name), String))
+            end
             mktemp() do path, io
                 write(io, contents)
                 close(io)

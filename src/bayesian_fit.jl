@@ -3270,13 +3270,19 @@ _generalized_candidate_direct_draw_constraint_rows(
 function _generalized_candidate_diagnostic_tables(
         target::_GeneralizedCandidateLogDensity,
         run::NamedTuple)
+    return _generalized_candidate_diagnostic_tables(target, run, target.blueprint)
+end
+
+# The caller supplies the complete coordinate layout, including any extra
+# population parameters. Reconstruction remains target-specific.
+function _generalized_candidate_diagnostic_tables(target, run::NamedTuple, blueprint)
     checked = run.checked
     chains = run.controls.chains
     ndraws = run.controls.ndraws
     split_chains = run.split_chains_requested
     parameter_rows = _candidate_mcmc_diagnostic_rows(
         run.draws,
-        target.blueprint.parameter_names,
+        blueprint.parameter_names,
         chains;
         parameter_space = :raw_unconstrained,
         split_chains,
@@ -3284,8 +3290,8 @@ function _generalized_candidate_diagnostic_tables(
         ess_threshold = checked.ess_threshold,
     )
     block_rows = _candidate_parameter_block_diagnostics(
-        target.blueprint.blocks,
-        target.blueprint.parameter_names,
+        blueprint.blocks,
+        blueprint.parameter_names,
         parameter_rows;
         parameter_space = :raw_unconstrained,
         chains,
@@ -3307,18 +3313,18 @@ function _generalized_candidate_diagnostic_tables(
         )
     direct_parameter_rows = _candidate_mcmc_diagnostic_rows(
         direct_values.direct_draws,
-        target.blueprint.constrained_parameter_names,
+        blueprint.constrained_parameter_names,
         chains;
         parameter_space = :direct_constrained,
         structurally_fixed_parameters =
-            _structurally_fixed_constrained_parameter_names(target.blueprint),
+            _structurally_fixed_constrained_parameter_names(blueprint),
         split_chains,
         rhat_threshold = checked.rhat_threshold,
         ess_threshold = checked.ess_threshold,
     )
     direct_block_rows = _candidate_parameter_block_diagnostics(
-        target.blueprint.constrained_blocks,
-        target.blueprint.constrained_parameter_names,
+        blueprint.constrained_blocks,
+        blueprint.constrained_parameter_names,
         direct_parameter_rows;
         parameter_space = :direct_constrained,
         chains,
@@ -7444,7 +7450,7 @@ function load_fit_report(path::AbstractString;
         require_complete::Bool = false)
     isfile(path) ||
         throw(ArgumentError("fit report export does not exist at $path"))
-    record = JSON3.read(read(path, String), Dict{String,Any})
+    record = _read_json_dict(path, "fit report export")
     record = _check_fit_report_export_record(record, path)
     verify_hash && _verify_fit_report_export_record(record, path)
     require_complete &&
@@ -9348,9 +9354,32 @@ end
 function _read_json_dict(path::AbstractString, label::AbstractString)
     isfile(path) ||
         throw(ArgumentError("$label does not exist at $path"))
-    value = JSON3.read(read(path, String), Dict{String,Any})
+    source = read(path, String)
+    # Parse first, then materialize string-keyed containers: the typed Any
+    # reader rounds integers through Float64, including facet IDs above 2^53.
+    value = _json_export_value(JSON3.read(source))
+    # JSON3's default number inference converts -0.0 to integer 0. Preserve the
+    # writer's signed zero so existing content hashes survive a JSON round-trip.
+    # Keep the original integer parsing (including large IDs/counts) everywhere else.
+    occursin("-0.0", source) &&
+        _restore_json_signed_zeros!(value, JSON3.read(source; numbertype = Float64))
     value isa AbstractDict ||
         throw(ArgumentError("$label at $path does not contain a JSON object"))
+    return value
+end
+
+function _restore_json_signed_zeros!(value, exact)
+    if value isa AbstractDict
+        for key in keys(value)
+            value[key] = _restore_json_signed_zeros!(value[key], exact[key])
+        end
+    elseif value isa AbstractVector
+        # Preserve both signed zeros and exact integers in mixed numeric arrays.
+        return Any[_restore_json_signed_zeros!(value[i], exact[i]) for i in eachindex(value)]
+    elseif value isa Real && !(value isa Bool) && iszero(value) &&
+            exact isa AbstractFloat && iszero(exact) && signbit(exact)
+        return -0.0
+    end
     return value
 end
 
@@ -11391,6 +11420,8 @@ unless requested with the `artifact_include_*` keywords.
 Fixed-coefficient multidimensional MFRM results use the v2 cache format and
 require an artifact that agrees with their canonical sample. Existing MFRM,
 GMFRM and MGMFRM caches retain v1.
+Explicit correlated MGMFRM results use a separate
+`correlated_mgmfrm_fit_cache.v1` schema with mandatory sample/artifact agreement.
 
 The record is written to a temporary file in the destination directory before
 publication. A failed write leaves any existing cache intact. With
@@ -11465,6 +11496,8 @@ Base.@nospecializeinfer function _check_fit_cache_record(@nospecialize(record), 
     canonical_mfrm = isequal(_nt_get(record, :schema, nothing), "bayesianmgmfrm.fit_cache.v2")
     if canonical_mfrm
         _check_mfrm_fixed_q_cache_record(record, path)
+    elseif isequal(_nt_get(record, :schema, nothing), "bayesianmgmfrm.correlated_mgmfrm_fit_cache.v1")
+        _check_mgmfrm_correlated_2d_cache_record(record, path)
     else
         _nt_get(record, :schema, nothing) == "bayesianmgmfrm.fit_cache.v1" ||
         throw(ArgumentError("fit cache at $path has an unsupported schema"))
@@ -11568,6 +11601,8 @@ For fixed-coefficient multidimensional MFRM v2 caches, sample integrity,
 artifact agreement and archive hashes are always verified, including when
 `verify_hash = false` is supplied. Loading does not run a sampler or regenerate
 the saved environment metadata.
+Explicit correlated MGMFRM caches likewise always verify their sample,
+artifact and archive integrity, even with `verify_hash = false`.
 """
 function load_fit_cache(path::AbstractString;
         expected_cache_key = nothing,
@@ -11583,7 +11618,8 @@ function load_fit_cache(path::AbstractString;
     if expected_cache_key !== nothing && !isequal(record.cache_key, String(expected_cache_key))
         throw(ArgumentError("fit cache key mismatch for $path"))
     end
-    (verify_hash || record.schema == "bayesianmgmfrm.fit_cache.v2") &&
+    (verify_hash || record.schema in ("bayesianmgmfrm.fit_cache.v2",
+        "bayesianmgmfrm.correlated_mgmfrm_fit_cache.v1")) &&
         _verify_fit_cache_record(record, path)
     return return_record ? record : record.fit
 end
@@ -12198,10 +12234,20 @@ end
                    parameter_space = :user_defined_estimand)
 
 Estimate Monte Carlo standard errors for posterior means, standard deviations,
-and requested quantiles. Fit-based calls use identified parameters for MFRM
-fits and direct constrained parameters for generalized fits by default; pass
+and requested quantiles. Fit-based calls use identified parameters for scalar MFRM
+fits and direct constrained parameters for generalized and fixed-coefficient
+multidimensional MFRM fits by default; pass
 `parameter_space = :raw_unconstrained` to inspect generalized sampling
-coordinates.
+coordinates or multidimensional MFRM free coordinates.
+
+For fixed-coefficient multidimensional MFRM (independent or correlated, with
+either rater prior), the default reconstructs the last rater and item steps,
+retains fixed coefficients, and reports rho rather than Fisher z. Direct rows
+include block, dimension label, fixed/derived status and their actual
+`parameter_space`: `:unit_logit`, `:dimensionless` or `:correlation`.
+Free-coordinate rows use `:unit_logit` and, for correlated fits, `:fisher_z`.
+These labels describe units, not likelihood identification. Saved records and
+chain/iteration ordering are validated before computing MCSE.
 
 The matrix method supports derived estimands: arrange rows in contiguous chain
 blocks, transform each draw to the quantities of interest, and supply one name

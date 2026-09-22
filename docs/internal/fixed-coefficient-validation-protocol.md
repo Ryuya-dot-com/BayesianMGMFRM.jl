@@ -1,6 +1,7 @@
 # Fixed-coefficient MFRM validation protocol
 
-Draft design dated 2026-09-17; execution evidence and handoff updated 2026-09-18.
+Draft design dated 2026-09-17; execution evidence updated 2026-09-18 and
+precision-API handoff updated 2026-09-21. The scientific design remains a proposal.
 Owner: analyst/maintainer. Independent M1 review and
 execution acceptance are **open**. Numbers below are concrete review proposals,
 not adopted scientific criteria, package defaults or permission to run a grid.
@@ -26,6 +27,17 @@ existing `MFRMPrior` is a secondary compatibility/prior comparison. This panel
 does not validate estimated loadings, within-item Q, Q estimation, bifactor or
 non-compensatory models, new random effects, new-facet prediction, hard anchors
 or all category counts. Uchihara data are not required to prepare or run it.
+
+The [application-informed acceptance packet](applied-mgmfrm-acceptance.md)
+now connects the intended use to observed information limits, prediction units
+and a separate proposed application model. Its 12-speaker, 9-category,
+recording-dependent setting is not covered by the 48/144-person four-category
+reference panel below. Reuse the distinction between recovery, SBC, practical
+precision and all-attempt failure accounting; do not reuse this panel's truths,
+prior settings, replication counts or evidence as if they validated the new
+target. The packet's fixed-coefficient application A0 is a proposal requiring
+new effects/step-sharing support, not an already supported fit or a scientific
+default for MGMFRM.
 
 | Question | Comparison and reason | Answer to report |
 | --- | --- | --- |
@@ -310,13 +322,19 @@ draws. These choices build on [Stan's diagnostic guidance](https://mc-stan.org/l
 meeting them does not prove convergence. Check precision of each requested
 statistic: an adequate mean ESS does not ensure accurate 2.5% quantiles.
 
-Reuse the matrix form of `posterior_mcse`: verify saved chain/iteration IDs,
-form equal-length contiguous chain blocks of per-draw estimands, and supply
-`chains=4` and column names. The method takes a chain count, not an ID vector.
-There is currently no
-fit-taking overload for these fixed-Q result types; adding a claim that
-`posterior_mcse(fit)` already works would be incorrect. Quantile comparisons
-need quantile MCSE, not the mean's MCSE; the
+For ordinary model parameters, `posterior_mcse(fit)` now accepts independent
+and correlated fixed-coefficient results with either rater prior and from
+either backend, including manual-cache reload. It validates the saved record
+and chain/iteration ordering, reconstructs constrained parameters before MCSE,
+and distinguishes fixed, unavailable and usable precision. This implementation
+does not apply this study's qualification or practical margins.
+
+For the protocol's custom focal contrasts, continue to use the matrix form:
+verify saved chain/iteration IDs, form equal-length contiguous chain blocks of
+per-draw estimands, and supply the actual chain count and column names (`chains=4`
+for the proposed primary runs). The matrix method takes a count, not an ID
+vector; the existing scorer and frozen pilot results are unchanged. Quantile
+comparisons need quantile MCSE, not the mean's MCSE; the
 [posterior reference](https://mc-stan.org/posterior/reference/mcse_quantile.html)
 describes the distinction. Unavailable precision stays unavailable.
 
@@ -1040,6 +1058,15 @@ not qualify the original CmdStan fit or resolve its 30 inconclusive comparisons;
 a future paired posterior claim requires qualification of both retained inputs.
 Neither this protocol nor short API fits close M1/M2, choose a default prior,
 or qualify an application analysis.
+
+The 2026-09-21 [application packet](applied-mgmfrm-acceptance.md#7-次に渡す成果物と終了条件)
+provides a concrete parallel review handoff: data/measurement contract,
+speaker versus recording covariance, criterion-specific rater contrasts,
+fixed versus estimated coefficients, and grouped prediction without leakage.
+Its observed-data counts and minimum cost-pilot proposal inform prospective
+design; no empirical fit, new recovery/SBC run, practical margin or resource
+limit was adopted. Keep this protocol's target and retained pilot evidence
+unchanged while application-specific contracts are prepared.
 
 ## Sampling cost localization (2026-09-18)
 

@@ -1,31 +1,40 @@
 isdefined(@__MODULE__, :MFRMExchangeableRaterChecks) || include("mfrm_exchangeable_raters.jl")
 module MFRMExchangeableSampleChecks
-using Test, BayesianMGMFRM, Serialization, Statistics, SHA
+using Test, BayesianMGMFRM, Serialization, Statistics, SHA, Random
 using ..MFRMExchangeableRaterChecks: specification, target, reference, SCALES
 const B = BayesianMGMFRM
 include("test_groups.jl")
 
-function synthetic_record(t, spec, backend)
+function synthetic_record(t, spec, backend; ndraws=4, chains=2)
     initial = initial_params(t)
-    draws = [0.2sin(d+p) for d in 1:8, p in eachindex(initial)]
+    total_draws = ndraws * chains
+    draws = [0.2sin(d+p) for d in 1:total_draws, p in eachindex(initial)]
     logdensities = [B.LogDensityProblems.logdensity(t,row) for row in eachrow(draws)]
-    chain_ids, iterations = repeat(1:2;inner=4), repeat(1:4;outer=2)
-    controls = (;ndraws=4,chains=2,warmup=0,step_size=0.1,target_accept=0.8,
+    chain_ids, iterations = repeat(1:chains;inner=ndraws), repeat(1:ndraws;outer=chains)
+    controls = (;ndraws,chains,warmup=0,step_size=0.1,target_accept=0.8,
         max_depth=2,max_energy_error=1000.0,init_jitter=0.0,metric=:diagonal)
     controls = merge(controls,backend===:advancedhmc ?
         (;ad_backend=:ForwardDiff,gradient_backend=:ad) :
         (;ad_backend=:stan_reverse_mode,gradient_backend=:stan_autodiff,execution=:cmdstan_cli,thinning=1))
     stats = NamedTuple[B._advancedhmc_stat_row((;log_density=logdensities[d],
-        step_size=0.1,acceptance_rate=0.75,hamiltonian_energy=Float64(d)),chain_ids[d],iterations[d]) for d in 1:8]
+        step_size=0.1,acceptance_rate=0.75,hamiltonian_energy=Float64(d)),chain_ids[d],iterations[d]) for d in 1:total_draws]
     backend===:cmdstan && (stats=NamedTuple[merge(s,(;stan_lp=s.log_density)) for s in stats])
-    chain_acceptance=fill(0.75,2)
+    chain_acceptance=fill(0.75,chains)
     run=(;checked=B._check_diagnostic_thresholds(1.01,400),nparams=length(initial),initial,
-        initial_logdensity=B.LogDensityProblems.logdensity(t,initial),total_draws=8,
+        initial_logdensity=B.LogDensityProblems.logdensity(t,initial),total_draws,
         draws,logdensities,chain_ids,iterations,chain_acceptance,sampler_stats=stats,controls,
         sampler_rows=B._generalized_candidate_sampler_rows(logdensities,iterations,chain_acceptance,stats,controls,backend),
-        backend,sampler=:nuts,split_chains_requested=true,actual_split=true)
-    record=(;schema="bayesianmgmfrm.exchangeable_rater_mfrm_samples.v1",spec,
-        prior=B._mfrm_exchangeable_rater_record(t),target_identity=B._mfrm_exchangeable_rater_identity(t),run)
+        backend,sampler=:nuts,split_chains_requested=true,actual_split=chains>=2 && ndraws>=4)
+    record = if t isa B._MFRMExchangeableRatersLogDensity
+        (;schema="bayesianmgmfrm.exchangeable_rater_mfrm_samples.v1",spec,
+            prior=B._mfrm_exchangeable_rater_record(t),target_identity=B._mfrm_exchangeable_rater_identity(t),run)
+    elseif t isa B._MFRMFixedQCorrelated2DLogDensity
+        (;schema="bayesianmgmfrm.correlated_fixed_q_mfrm_samples.v1",base_spec=spec.base_spec,
+            prior=B._mfrm_correlated_2d_prior_record(t),target_identity=B._mfrm_correlated_2d_identity(t),run)
+    else
+        (;schema="bayesianmgmfrm.fixed_q_mfrm_samples.v2",spec,
+            prior=B._mfrm_fixed_q_prior_record(t),target_identity=B._mfrm_fixed_q_identity(t),run)
+    end
     return rehash(record)
 end
 rehash(r)=merge(r,(;content_hash=B._mgmfrm_normalized_sample_hash(r)))
@@ -154,6 +163,90 @@ end
             values[1]=B.LogDensityProblems.logdensity(t.base,x);write_csv()
             @test_throws CmdStanError B._cmdstan_generalized_chain_result(path,t,2,1)
         end
+    end
+end
+
+@testset "fixed-coefficient fit MCSE (synthetic, no sampling)" begin
+    cases = [(2,4,false,c,e,b) for c in (false,true) for e in (false,true) for b in (:advancedhmc,:cmdstan)]
+    append!(cases, [(2,2,false,false,false,:advancedhmc),
+        (2,2,false,true,true,:cmdstan), (3,4,true,false,true,:advancedhmc)])
+    for (D,K,mixed,correlated,exchangeable,backend) in cases
+        spec = specification(3,K;D,mixed)
+        model = correlated ? B.Experimental.correlated(spec;lkj_eta=3) : spec
+        prior = exchangeable ? B.Experimental.ExchangeablePrior(;SCALES...) : MFRMPrior()
+        t = B._fixed_q_prior_target(model,prior)
+        record = synthetic_record(t,model,backend;ndraws=32)
+        fit_type = exchangeable ? B._ExchangeableMFRMFit : correlated ? B._CorrelatedMFRMFit : B.MultidimensionalMFRMFit
+        fit = fit_type(record;expected_identity=record.target_identity)
+        original = IOBuffer(); serialize(original,fit.record)
+        Random.seed!(83); expected_random=rand(); Random.seed!(83)
+        rows = posterior_mcse(fit;probabilities=(0.1,0.9))
+        @test rand() == expected_random
+        @test isequal(rows,posterior_mcse(fit;probabilities=(0.1,0.9),parameter_space=:direct_constrained))
+        direct = B.direct_posterior_summary(fit;lower=0.1,upper=0.9,intervals=())
+        @test getproperty.(rows,:parameter) == getproperty.(direct,:parameter)
+        @test all(r.n_chains==2 && r.draws_per_chain==32 && !r.precision_threshold_applied for r in rows)
+        for (row,summary) in zip(rows,direct)
+            @test (row.block,row.dimension,row.fixed,row.derived) ==
+                (summary.block,summary.dimension,summary.fixed,summary.derived)
+            @test isequal(row.dimension_label,summary.dimension_label)
+            @test row.quantiles[1].estimate ≈ summary.lower
+            @test row.quantiles[2].estimate ≈ summary.upper
+            @test row.mcse_status === (row.fixed ? :structurally_fixed : :available)
+            @test row.convergence_review_required == !row.fixed
+            row.fixed && @test row.mean_mcse == row.sd_mcse == 0.0
+            @test row.parameter_space === (row.block === :latent_correlation ? :correlation :
+                row.block in (:item_dimension_discrimination,:rater_consistency) ? :dimensionless : :unit_logit)
+        end
+        base = exchangeable ? reference(t) : correlated ? t.base : t
+        # Compute the reconstructed rater directly from free draws, preserving chains.
+        values = -vec(sum(record.run.draws[:,base.blueprint.blocks[:rater_free]];dims=2))
+        rater = only(filter(r->r.block===:rater && r.derived,rows))
+        manual = only(posterior_mcse(reshape(values,:,1);chains=2,probabilities=(0.1,0.9)))
+        for field in (:mean_mcse,:sd_mcse,:quantiles,:mcse_status)
+            @test isequal(getproperty(rater,field),getproperty(manual,field))
+        end
+        raw = posterior_mcse(fit;parameter_space=:raw_unconstrained,probabilities=())
+        expected_raw = posterior_mcse(record.run.draws;chains=2,probabilities=())
+        @test getproperty.(raw,:parameter) == B._mfrm_fixed_q_parameter_names(t)
+        @test isequal(getproperty.(raw,:mean_mcse),getproperty.(expected_raw,:mean_mcse))
+        @test all(r.parameter_space===:unit_logit for r in raw[1:end-Int(correlated)])
+        if correlated
+            rho = only(filter(r->r.block===:latent_correlation,rows))
+            manual_rho = only(posterior_mcse(reshape(tanh.(record.run.draws[:,end]),:,1);
+                chains=2,probabilities=(0.1,0.9)))
+            @test last(raw).parameter_space === :fisher_z
+            @test rho.parameter != last(raw).parameter
+            for field in (:mean_mcse,:sd_mcse,:quantiles)
+                @test isequal(getproperty(rho,field),getproperty(manual_rho,field))
+            end
+        end
+        K==2 && @test all(r.fixed && r.mean_mcse==0 for r in rows if r.block===:item_steps)
+        mktempdir() do directory
+            path=joinpath(directory,"fit.jls")
+            save_fit_cache(path,fit)
+            bytes=read(path)
+            restored=load_fit_cache(path)
+            @test isequal(rows,posterior_mcse(restored;probabilities=(0.1,0.9)))
+            @test read(path)==bytes
+        end
+        for (chains,ndraws,status) in ((1,32,:insufficient_chains),(2,4,:insufficient_draws))
+            short=synthetic_record(t,model,backend;chains,ndraws)
+            result=fit_type(short;expected_identity=short.target_identity)
+            @test all(r.fixed ? r.mcse_status===:structurally_fixed :
+                r.mcse_status===status && ismissing(r.mean_mcse) for r in posterior_mcse(result))
+        end
+        @test_throws ArgumentError posterior_mcse(fit;parameter_space=:identified)
+        @test_throws ArgumentError posterior_mcse(fit;probabilities=(1.0,))
+        for field in (:chain_ids,:iterations)
+            bad=deepcopy(fit); getproperty(bad.record.run,field)[1]=99
+            @test_throws ArgumentError posterior_mcse(bad)
+            # Even a recomputed digest cannot legitimize an invalid chain layout.
+            bad_record=rehash(bad.record)
+            @test_throws ArgumentError fit_type(bad_record;expected_identity=record.target_identity)
+        end
+        after = IOBuffer(); serialize(after,fit.record)
+        @test take!(after) == take!(original)
     end
 end
 

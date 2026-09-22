@@ -65,6 +65,11 @@ issue_codes(report) = Set(issue.code for issue in report.issues)
     @test global_audit.status === :structural_error
     @test global_audit.fit_prohibited
     @test global_audit.overall.single_observed_category
+    @test global_audit.interpretation.global_single_category === :unsupported_by_current_fit_validation
+    @test !global_audit.interpretation.posterior_propriety_assessed
+    single_suggestion = only(row for row in validation_suggestions(validate_design(global_data))
+        if row.code === :single_observed_category)
+    @test single_suggestion.action === :review_single_category_fit_support
     global_codes = issue_codes(validate_design(global_data))
     @test :single_observed_category in global_codes
     @test :extreme_person_score_pattern ∉ global_codes

@@ -111,6 +111,12 @@ mcse_rows = posterior_mcse(fit_result;
 )
 ```
 
+For fixed-coefficient multidimensional MFRM, this call also supports correlated
+abilities and either rater prior, including reloaded fits from either backend.
+It reports reconstructed parameters and rho on their model scales by default;
+see [multidimensional precision summaries](experimental.md#fitting-and-saved-results)
+for coordinate selection and fixed/short-chain statuses.
+
 For a derived estimand, compute one value per posterior draw while preserving
 the contiguous chain blocks, place the values in matrix columns, and call the
 matrix method with `chains` and `parameter_names`. The function deliberately

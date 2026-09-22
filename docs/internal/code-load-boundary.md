@@ -384,3 +384,95 @@ unguarded execution/result dependency, an API migration, or measured budget
 pressure. **Next: finish the remaining CI/distribution runtime assessment**;
 profile a demonstrated hot path before extracting shared helpers or adding
 another loading layer.
+
+
+## Generalized correlation sample-record addendum, 2026-09-21
+
+The package entry adds `mgmfrm_correlated_2d_samples.jl`: 42 direct Julia
+includes, or 43 sources counting the entry itself, at this working tree.
+This adds private maintained-sampler records and summary/MCSE adapters for the
+explicit 2D estimated-loading correlation target. It adds no export, dependency,
+import-time file read/write, subprocess, MCMC or research-artifact dependency.
+Existing fit struct layouts and public fit-cache schemas remain unchanged.
+The eight current Stan sources include the earlier correlated target and shared
+function includes; this sample-record slice adds no Stan source or compile step
+on import.
+
+The generalized test shard now includes `mgmfrm_correlated_2d_samples.jl`.
+Its synthetic records test validation and replay; three short Julia sampling
+calls compare the maintained path, observer and warmup policy, and one deliberately
+failing Julia call checks contextual errors after two transitions. One short
+native CmdStan call remains behind `BAYESIANMGMFRM_CMDSTAN_TESTS=true`. Every
+successful call has two chains of 10 warmup and 12 retained draws. Tests use
+self-contained fixtures and temporary files, with no read of research results.
+These are ordinary engineering checks, not fresh recovery/SBC evaluation.
+The [implementation receipt](normalized-prior-backend-comparison.md#generalized-2d-correlation-maintained-sample-records-2026-09-21)
+records the verification scope; this is not a CI/runtime-budget or release
+acceptance decision.
+
+
+### Explicit experimental correlated MGMFRM result, 2026-09-21
+
+The same `mgmfrm_correlated_2d_samples.jl` now also defines the explicit specification,
+result and manual fit-cache adapters; the include count remains 42. The namespace
+adds two qualified type bindings and dispatches `correlated(spec)` by the base
+model family. The 186 package-root exports and old fit struct layouts are unchanged.
+The new schema is recognized by the existing loader with mandatory integrity
+checks; importing definitions performs no cache read or sampling.
+
+The generalized shard adds `test/mgmfrm_correlated_2d_result.jl`. It reuses the
+preceding fixture module, checks synthetic result/cache corruption, and adds one
+short public Julia fit. One corresponding CmdStan public fit requires the existing
+native-test flag. The four successful private/public Julia fixture calls each
+use two chains with 10 warmup and 12 retained draws; the prior fault-injection
+call still stops after two transitions. No research result is read by ordinary
+tests. `examples/correlated_mgmfrm.jl` is an explicit demonstration script, not a
+package include or an automatic test dependency. Documentation and regression
+receipts are in the [interface note](normalized-prior-backend-comparison.md#explicit-correlated-mgmfrm-interface-2026-09-21);
+no integration, runtime acceptance or release decision follows.
+
+### Correlated MGMFRM prediction, 2026-09-21
+
+The entry now includes `mgmfrm_correlated_2d_predictive.jl`: 43 direct Julia
+includes, or 44 sources including the entry, with the same eight Stan sources.
+The file supplies joint-prior simulation and existing-row posterior prediction
+for the explicit result. It reuses the installed probability distributions,
+raw-to-direct transforms, response kernel, draw selection and predictive
+summaries. No dependency, export, fit layout, Stan code, import-time execution
+or research-artifact read is added.
+
+`test/mgmfrm_correlated_2d_fixtures.jl` now holds the existing target/synthetic
+record helpers; both the previous sampling tests and the new prediction tests
+use that module. The new prediction file runs no MCMC. Existing bounded sampler
+regressions retain their original controls and native opt-in; the example still
+fits only when explicitly run. Previously saved real Julia/CmdStan fits were
+replayed in a separate local verification script, not added as ordinary test
+dependencies. Production-only copies load on Julia 1.10.8 and 1.12.5 with 186
+root exports. See the [prediction receipt](normalized-prior-backend-comparison.md#correlated-mgmfrm-prior-and-posterior-prediction-2026-09-21)
+for tests, runtime limits and the remaining scientific/workflow boundaries.
+
+### Correlated MGMFRM reports and figures, 2026-09-21
+
+The entry adds `mgmfrm_correlated_2d_reports.jl`: 44 direct Julia includes,
+or 45 sources including the entry, with the same eight Stan sources and 186
+root exports. It defines consumers of validated records: reports, model/raw
+plot inputs, optional CairoMakie rendering and portable bundles. It reuses
+the existing reporting, diagnostics, MCSE and figure-writing helpers. The
+optional extension is required only when a figure is requested. The shared
+JSON reader now preserves signed zeros and exact Int64 identities above 2^53;
+the canonical hash algorithm, fit layouts and artifact schemas are unchanged.
+
+The generalized shard adds `test/mgmfrm_correlated_2d_reports.jl`, which uses
+synthetic records and temporary bundles without sampling or research files.
+The optional `test/mgmfrm_correlated_2d_report_render.jl` defaults to synthetic
+records; only explicit cache arguments replay real fits. The generic example
+adds report save/reload and a `--figures` option, with no import-time execution.
+Its existing bounded Julia fit remains an explicit engineering demonstration.
+
+Production-only copies load on Julia 1.10.8 and 1.12.5, expose the report/plot
+methods and retain 186 root exports without `test/` or `results/`. This uses
+the resolved local environments, not a cold install, timing baseline or proof
+about every invoked function. The [report receipt](normalized-prior-backend-comparison.md#correlated-mgmfrm-reports-and-figures-2026-09-21)
+records the bounded regression runs, their timeout and visual-review scope.
+No new dependency, native compilation/sampling, MCMC-on-import or scientific
+evaluation is introduced by this slice.
