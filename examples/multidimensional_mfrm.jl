@@ -36,7 +36,7 @@ display(q_matrix)
 output_dir = mktempdir(mkpath("results/multidimensional_mfrm"); prefix = "$(backend)-", cleanup = false)
 backend_options = backend === :cmdstan ?
     (; cmdstan_cache_dir = joinpath(output_dir, "cmdstan-build")) : (;)
-println("Output directory: ", abspath(output_dir))
+println("Output directory: ", relpath(output_dir))
 prior_check = BayesianMGMFRM.Experimental.prior_predictive_check(model;
     prior, ndraws = 1000, rng = MersenneTwister(42))
 println("Prior-implication status: ", prior_check.implication_diagnostics.flag)
@@ -78,6 +78,6 @@ save_fit_report_bundle(report_dir, restored; view = :public, figures,
     include_prior_predictive = true, prior_predictive_ndraws = 1000, prior_interval = 0.95,
     posterior_lower = 0.05, posterior_upper = 0.95, ndraws = 100, seed = 42)
 load_fit_report_bundle(report_dir) # Verify exported files without refitting.
-println("Saved and verified fit and report: ", abspath(output_dir))
+println("Saved and verified fit and report: ", relpath(output_dir))
 println("The report labels fixed/derived coordinates; report completion does not imply MCMC convergence.")
 "--plots" in ARGS || println("Add --plots with CairoMakie installed to include PDF/SVG figures in the report bundle.")

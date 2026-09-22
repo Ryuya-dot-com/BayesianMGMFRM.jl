@@ -32,7 +32,7 @@ output_dir = mktempdir(mkpath("results/guarded_mgmfrm"); prefix = "$(backend)-",
 # Only CmdStan takes a compiled-model directory; each run gets a fresh one.
 backend_options = backend === :cmdstan ?
     (; cmdstan_cache_dir = joinpath(output_dir, "cmdstan-build")) : (;)
-println("Output directory: ", abspath(output_dir))
+println("Output directory: ", relpath(output_dir))
 println("Short demonstration: 50 warmup + 50 retained draws per chain; not sufficient for inference.")
 fit_result = BayesianMGMFRM.Experimental.fit(spec; backend, ndraws = 50,
     warmup = 50, chains = 2, seed = 20260630, backend_options...)
@@ -48,7 +48,7 @@ cache_path = joinpath(output_dir, "fit.jls")
 save_fit_cache(cache_path, fit_result)
 restored = load_fit_cache(cache_path)
 @assert isequal(BayesianMGMFRM.direct_posterior_summary(restored), BayesianMGMFRM.direct_posterior_summary(fit_result))
-println("Fit saved and reloaded: ", abspath(cache_path))
+println("Fit saved and reloaded: ", relpath(cache_path))
 
 # These figures use the saved fit. Wright maps are supported only for stable MFRM.
 if "--plots" in ARGS
@@ -61,7 +61,7 @@ if "--plots" in ARGS
         save(joinpath(output_dir, "$name.pdf"), figure)
     end
     save(joinpath(output_dir, "ability-posterior.svg"), posterior)
-    println("Saved three PDFs and ability-posterior.svg in ", abspath(output_dir))
+    println("Saved three PDFs and ability-posterior.svg in ", relpath(output_dir))
 else
     println("Add --plots after installing CairoMakie to generate figures; see docs/src/examples.md.")
 end
