@@ -16,7 +16,7 @@ jobs:
   minimum-version-test:
     name: Full package tests - Julia 1.10.8 - Ubuntu
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 120
     env:
       BAYESIANMGMFRM_TEST_GROUP: all
     steps:

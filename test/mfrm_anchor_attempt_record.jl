@@ -417,7 +417,7 @@ end
         catch error
             error
         end
-        @test err isa ArgumentError && err.msg == "target_accept must be in (0, 1)"
+        @test err isa ArgumentError && err.msg == "target_accept must be in (0, 1) after Float64 conversion"
         @test seen == [:fit_entered]
         @test isnan(actual_options.init[1]) && owned_design.parameter_names[1] == "corrupted by caller"
     end
