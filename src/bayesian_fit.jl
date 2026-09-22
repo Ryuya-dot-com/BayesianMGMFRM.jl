@@ -12115,7 +12115,15 @@ function direct_posterior_summary(fit::MGMFRMFit;
 end
 
 function _posterior_mcse_value(samples, kind)
-    value = MCMCDiagnosticTools.mcse(samples; kind, split_chains = 2)
+    value = try
+        MCMCDiagnosticTools.mcse(samples; kind, split_chains = 2)
+    catch err
+        # The SD asymptotic variance can round below zero for balanced
+        # two-point draws. Preserve unavailable precision instead of reporting
+        # zero or discarding the separately estimable mean/quantile MCSE.
+        kind === Statistics.std && err isa DomainError || rethrow()
+        return missing
+    end
     if ismissing(value)
         return missing
     end
@@ -12256,6 +12264,8 @@ per column. MCSE measures simulation precision only. Every non-fixed row keeps
 scientific decision is applied. Calls with fewer than two chains or fewer than
 10 retained draws per chain return typed unavailable rows instead of presenting
 short-chain MCSE as usable evidence.
+Numerically undefined standard-deviation MCSE is reported as `missing` with
+`:mcse_unavailable`; separately available mean and quantile MCSE are retained.
 """
 function posterior_mcse(fit::MFRMFit;
         probabilities = (0.025, 0.5, 0.975),
