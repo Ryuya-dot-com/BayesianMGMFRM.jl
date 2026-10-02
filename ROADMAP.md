@@ -12,9 +12,10 @@ MFRM reference nor an application alone completes that objective. See the
 
 ## Current decisions
 
-**2026-10-02: local ordinary integration is complete. The next engineering work is
-to publish the tested candidate, select tests by the changed behavior, and measure
-compilation, sampling and saved-result costs separately before optimizing.**
+**2026-10-02: local ordinary integration of the foundation baseline is complete,
+and draft PR #101 is published. A measured saved-result improvement now passes
+focused checks and exact before/after comparisons. Next confirm the revised
+candidate's hosted CI and complete independent workflow/scientific review.**
 The normalized coordinate route and the four-fit loading-prior comparison remain
 experimental. The six-fit R0/R1 rehearsal retains four numerical passes and two
 R-hat failures, with zero evaluation credit. Independent review and scientific
@@ -81,10 +82,10 @@ acceptance have separate exits; another implementation feature does not close al
 
 | Order / owner | Next deliverable | Completion evidence / dependency |
 | --- | --- | --- |
-| 1 — Maintainer: preserve and publish | Commit the tested source, examples, checks and evidence summaries on `work/mgmfrm-foundation-integration`, based on current `main`; prepare a new PR because #100 is merged | Clean Git status; whitespace, distribution contents and archive-size checks; distinguish reused local integration from new-head hosted CI. Restore Git transport authentication if needed; no merge or release implied |
+| 1 — Maintainer: confirm published candidate | Authentication is restored and [draft PR #101](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/pull/101) carries the foundation candidate. Publish the measured postprocessing and example-entry fixes, then inspect CI for that head | Clean Git status and archive/whitespace checks; distinguish baseline local integration, new focused checks and new-head hosted CI. No merge or release implied |
 | 2 — Maintainer: shorten feedback | Apply the [change-to-check table](test/README.md); use existing standalone checks and shards | Each change names its affected behavior and validation. Full local integration is reserved for combined/shared changes and release verification, not every commit. Before changing hosted routing, inspect required checks; documentation-only PRs must still produce the required statuses |
-| 3 — Numerical maintainer: measure the next bottleneck | Reuse the saved-result and fixed-coefficient profilers for one declared representative input; separate package load/JIT, warmed density/gradient work, warmup, retained sampling, diagnostics, save/reload and figures | Record Julia/dependency versions, hardware, threads, inputs and source. Compare warmed repeated kernel measurements separately from first-use cost. Identify the dominant phase before any implementation change; do not repeat the full suite as a benchmark |
-| 4 — Numerical maintainer: one measured improvement | Address the measured dominant phase: repeated compilation/validation, allocations, or parameter geometry. Investigate sharing a Julia process across no-fit checks only if startup/JIT dominates and module isolation is retained | Matched before/after evidence, unchanged target/gradient/cache contracts, affected regression tests. For sampling, compare elapsed cost at the same focal MCSE and acceptable diagnostics, retaining all 150 quantities and failures. No claimed general speedup from one favorable fit; the historical M0 regression hold needs its own matched evidence |
+| 3 — Numerical maintainer: measure costs separately | Saved-result profiling and its first measured improvement are complete below. For a remaining observed workflow cost, reuse the existing profilers to separate package load/JIT, warmed density/gradient work, warmup, retained sampling and figures | Record versions, hardware, threads, inputs and source. Compare warmed repeats separately from first-use cost; do not repeat the full suite as a benchmark or launch new fits solely to keep optimizing |
+| 4 — Numerical maintainer: completed scoped improvement; further changes conditional | Preparing design/Q information once per conversion call reduces measured diagnostic reconstruction from 1.988 to 0.232 s, with exact retained-result agreement and 6,315 focused assertions passing | This closes one postprocessing improvement. Sampling efficiency, compilation and the historical M0 hold need their own evidence. Further work needs an observed user cost; it must not displace independent workflow and scientific review |
 | 5 — Independent reader and scientific reviewer | Walk through fit → diagnostics/MCSE → saved result → figures/report; review the existing fixed-facet decision packet | Reader completes the documented workflow without manual draw reshaping. Separately choose the scientific purpose, prior/domain, finite sampling policy, precision target and N; retain N = 8 / 32 / 128 and ±2.5 / 5 / 7.5-point comparisons until that decision. No new evaluation cohort is launched by this roadmap |
 | 6 — Analyst / maintainer: evaluate and extend | Execute the agreed foundation design, then one declared model extension at a time | Count failures/unresolved outcomes in the planned denominator; distinguish within-fit Monte Carlo error from between-panel uncertainty. Promote a supported domain only after its numerical, statistical, backend and reader conditions pass |
 
@@ -201,19 +202,64 @@ ordinary user operation, and the stages are not an additive application timeline
 The warm stack profile points to repeated design/Q validation and parameter
 blueprint construction inside `_mgmfrm_guarded_local_fit_direct_draw_values`:
 each draw enters both the constrained-parameter conversion and the pointwise
-likelihood's checked design path. The next measured change should prepare
-target-owned design information once per call and reuse it in this loop, retaining
-boundary checks and per-draw constraint/density validation. Require exact
-saved-result agreement, malformed-input rejection and before/after warmed timing
-before adopting it. This is a specific postprocessing hypothesis, not a measured
-sampling speedup or closure of M0. Density/gradient, warmup/retained sampling and
-rendering costs remain separate work under priority 3.
+likelihood's checked design path. This motivated preparing target-owned design
+information once per call while retaining boundary checks and per-draw
+constraint/density validation; the completed comparison follows below.
+Density/gradient, warmup/retained sampling and rendering costs remain separate
+work under priority 3, and the historical M0 hold remains open.
 
 Local reproducible recipe, per-stage timings, stack profiles and verification:
 `results/workflows/20261002-saved-result-cost-02/`. Failed preparation and the
 stale-profiler attempt remain in `20261002-saved-result-cost-01`; they are not
 successful measurements. These ignored artifacts are local evidence, while the
 table and scope above travel with the source.
+
+**Saved-result improvement, verified 2026-10-02.** The batch converter now builds
+the existing validated parameter blueprint and Q loading indices once per call.
+Each draw still receives parameter-length and constraint checks; standalone and
+heldout likelihood entry points retain design validation. Preparation is rebuilt
+on each call so a mutated owned design cannot reuse stale validation. No density,
+gradient, sampling, cache-format or default change is intended.
+
+The same saved 6,000-draw input, Julia 1.12.6, dependency manifest, hardware,
+one Julia/BLAS thread and profiling script were used before and after. Each side
+has three warm repetitions in its own process with retained compiled caches;
+the host is uncontrolled. Source hashes differ only in `src/bayesian_fit.jl` and
+`src/facet_workflow.jl`. All four new runs, including first use, exactly match the
+prechange diagnostic tables, parameter summaries and retained draws, and verify
+unchanged input hashes and save/reload equality.
+
+| Phase | Before warm median (s) | After warm median (s), range | Local speed ratio | Cumulative allocation before → after (MiB) |
+| --- | ---: | --- | ---: | ---: |
+| Reconstruct diagnostics | 1.988 | 0.232, 0.227–0.243 | 8.56× | 1,920.5 → 250.1 |
+| Save with validation | 2.135 | 0.384, 0.379–0.402 | 5.56× | 2,095.0 → 423.7 |
+| Load with validation | 2.173 | 0.378, 0.372–0.390 | 5.74× | 2,097.2 → 425.9 |
+
+Diagnostic allocation falls 87.0%; comparison-summary time remains approximately
+0.261 s. Cumulative allocation is not peak memory. The complete instrumented
+process takes 44.73 s with sampled peak owned RSS 1.67 GiB; forced GC, repeated
+operations and first-use compilation prevent treating it as one user operation.
+This is a local postprocessing comparison, not a general or sampling speedup.
+
+Focused checks pass eight test sets / 6,315 assertions with zero failures,
+errors or broken checks, including 330 new batch boundary/equation assertions,
+the existing density/derivative checks, heldout-Q guards and synthetic saved-result
+workflows. They complete in 892.29 s with sampled peak RSS 1.60 GiB, without an
+elapsed-time cutoff. An isolated test environment supplies the existing test-only
+extras; root dependencies are unchanged. No full local suite or posterior fit is
+rerun. Recipes, hashes, timings and receipts remain locally under
+`results/workflows/20261002-draw-preparation-01/`; the table above is the portable
+summary. New-head hosted CI remains separate from these checks.
+
+The first PR CI run also exposed an example-entry defect: invoking the saved-review
+example with no arguments loaded optional CairoMakie before showing usage.
+Commit `77d8a6b` moves no-argument/`--help` handling before imports. Six checks in
+an empty package environment, 181 existing public-language checks and the 25-file
+wording gate pass; the help entry also works on Julia 1.10.8 without packages.
+Actual saved-fit review still requires the documented plotting environment.
+The distribution gate and optional-dependency policy are retained. Inspect the
+revised PR head's CI before considering integration complete; independent reader
+review and scientific acceptance remain outstanding.
 
 <details>
 <summary>Dated progress history — evidence retained; use Current decisions for the work order</summary>

@@ -2770,6 +2770,9 @@ end
 function _mgmfrm_guarded_local_fit_direct_draw_values(
         target::_MGMFRMGuardedLocalFitLogDensity,
         raw_draws::AbstractMatrix{<:Real})
+    # Rebuild once per call so changes to the owned design are rechecked.
+    blueprint = _mgmfrm_source_unconstrained_blueprint(target.design)
+    loading_indices = _mgmfrm_source_loading_index_matrix(target.design)
     n_draws = size(raw_draws, 1)
     n_direct = length(target.blueprint.constrained_parameter_names)
     n_observations = target.design.spec.data.n
@@ -2778,8 +2781,8 @@ function _mgmfrm_guarded_local_fit_direct_draw_values(
     loglikelihood = Vector{Float64}(undef, n_draws)
     for draw in 1:n_draws
         raw = collect(@view raw_draws[draw, :])
-        direct = _mgmfrm_source_constrained_params_from_unconstrained(target.design, raw)
-        direct_pointwise = _mgmfrm_source_pointwise_loglikelihood(target.design, direct)
+        direct = _mgmfrm_source_constrained_params_from_unconstrained(target.design, raw, blueprint)
+        direct_pointwise = _mgmfrm_source_pointwise_loglikelihood(target.design, direct, loading_indices)
         direct_draws[draw, :] .= direct
         pointwise[draw, :] .= direct_pointwise
         loglikelihood[draw] = sum(direct_pointwise; init = 0.0)
