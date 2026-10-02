@@ -37,6 +37,13 @@ effect. Custom thresholds are explicitly marked unvalidated.
 
 ## 2. Inspect the Model Before Fitting
 
+State the estimand first: for example, an ability difference within a named
+dimension, a rater-severity contrast, or predicted category proportions for a
+specified rating design. This determines which model assumptions, summaries,
+and precision checks matter. Use the [model comparison](scope.md#What-Changes-When-You-Choose-MGMFRM)
+to distinguish fixed coefficients from estimated loadings and fixed from
+estimated ability correlation.
+
 Create an [`mfrm_spec`](@ref) and inspect:
 
 - [`model_equation`](@ref) for the likelihood and source contract;
@@ -45,29 +52,43 @@ Create an [`mfrm_spec`](@ref) and inspect:
 - optionally, [`getdesign`](@ref) for the identified parameter vector;
 - [`model_manifest`](@ref) for a portable summary of data, model, and design.
 
-Call `fit(spec)` directly when no separate design inspection is needed.
-Specified configurations are not necessarily fit-supported. The support table
-in [Scope and Releases](scope.md) governs whether a fitting call is available.
+For stable one-dimensional MFRM, call `fit(spec)` when no separate design
+inspection is needed. Multidimensional MFRM and GMFRM/MGMFRM use
+`BayesianMGMFRM.Experimental.fit(spec)`. An estimated correlation requires
+`BayesianMGMFRM.Experimental.correlated(spec)` first, within the documented
+two-dimensional restrictions. Specified configurations are not necessarily
+fit-supported. The support table in [Scope and Releases](scope.md) governs
+whether a fitting call is available.
 
 ## 3. Check Prior Implications
 
-Choose [`MFRMPrior`](@ref) scales that match the analysis context and run
-[`prior_predictive_check`](@ref). Look for implausible score distributions,
-category use, or facet ranges before inspecting the observed-data posterior.
+Choose the prior for the actual model, and pass the same prior to the prior
+check and fitting call:
 
-The experimental generalized configurations default to their documented
-raw-coordinate priors. Use
-`BayesianMGMFRM.Experimental.GeneralizedPrior` for typed scale sensitivity and
-actual refits. Its values apply to raw unconstrained coordinates, not directly
-to transformed parameters. Run
-`BayesianMGMFRM.Experimental.prior_predictive_check` before fitting; it reports
-raw/direct parameter draws, replicated scores, and prior-implication warnings.
+| Model | Prior | Prior check |
+|:--|:--|:--|
+| Stable one-dimensional MFRM | [`MFRMPrior`](@ref) | [`prior_predictive_check`](@ref) |
+| Fixed-coefficient multidimensional MFRM, independent or correlated | `MFRMPrior`, or the explicit `BayesianMGMFRM.Experimental.ExchangeablePrior` alternative for rater severities | `BayesianMGMFRM.Experimental.prior_predictive_check` |
+| Scalar GMFRM or independent fixed-Q MGMFRM | `BayesianMGMFRM.Experimental.GeneralizedPrior` | `BayesianMGMFRM.Experimental.prior_predictive_check` |
+| Independent fixed-Q MGMFRM with normalized centered priors | Explicit `Experimental.NormalizedMGMFRMPrior`; all six scales and the prior family are required | `Experimental.prior_predictive_check` |
+| Two-dimensional correlated MGMFRM | An explicitly supplied `BayesianMGMFRM.Experimental.GeneralizedPrior`; the specification also declares the LKJ correlation prior | `BayesianMGMFRM.Experimental.prior_predictive_check` |
+
+Look for implausible score distributions, category use, or facet ranges before
+inspecting the observed-data posterior. Generalized prior SDs apply to raw
+unconstrained coordinates, including log-loadings and log-consistencies, not
+directly to the positive transformed parameters. `person_sd` fixes the marginal
+ability prior scale; it is not an estimated hyperparameter. The experimental
+prior check exposes raw/direct draws, replicated scores, and implication
+warnings. See [prior conventions](experimental.md#Workflow) before choosing
+scales or comparing them across models. Posterior sensitivity requires actual
+refits under defensible alternatives; repeatedly summarizing one saved fit
+does not evaluate it.
 
 ## 4. Fit and Diagnose
 
-Use [`fit`](@ref) for supported models. Set an integer seed when replay is
-required and record the sampler controls. Multiple chains are required for
-meaningful between-chain convergence checks.
+Use the fitting entry point for the selected model above. Set an integer seed
+when replay is required and record the sampler controls. Multiple chains are
+required for meaningful between-chain convergence checks.
 
 Review:
 
@@ -111,10 +132,18 @@ mcse_rows = posterior_mcse(fit_result;
 )
 ```
 
+For GMFRM/MGMFRM, [`BayesianMGMFRM.direct_posterior_summary`](@ref) and the default
+`posterior_mcse` summarize transformed model parameters. `posterior_summary`
+instead summarizes their raw coordinates, so match parameter names and scales
+before comparing intervals and MCSE. A credible interval describes parameter
+uncertainty conditional on the model and data; MCSE describes numerical
+uncertainty in an estimated posterior summary. A small MCSE does not imply a
+narrow credible interval, correct model assumptions, or accurate measurement.
+
 For fixed-coefficient multidimensional MFRM, this call also supports correlated
 abilities and either rater prior, including reloaded fits from either backend.
 It reports reconstructed parameters and rho on their model scales by default;
-see [multidimensional precision summaries](experimental.md#fitting-and-saved-results)
+see [multidimensional precision summaries](experimental.md#Fitting-and-saved-results)
 for coordinate selection and fixed/short-chain statuses.
 
 For a derived estimand, compute one value per posterior draw while preserving
@@ -123,6 +152,17 @@ matrix method with `chains` and `parameter_names`. The function deliberately
 does not turn MCSE into a universal pass/fail threshold. Required precision
 depends on the reported estimand and substantive decision; MCSE also cannot
 repair or certify non-converged chains.
+The [saved-fit contrast example](examples.md#Compare-abilities-or-raters-in-a-saved-MGMFRM-fit)
+implements this calculation for within-dimension ability differences, rater
+severity differences and log-consistency ratios, including optional practical
+ranges and the simulation error of their posterior probabilities.
+
+For independent fixed-Q MGMFRM, optionally inspect
+`diagnostics(fit_result; include_location = true)` for common ability/item
+location movement. Its location rows supplement the original diagnostic
+assessment and are not automatically included in the ordinary report. The
+[saved-fit walkthrough](examples.md#Review-a-saved-MGMFRM-fit-without-fitting)
+shows these checks, intervals and MCSE together without sampling again.
 
 ## 5. Examine Predictions and Residuals
 
@@ -132,6 +172,12 @@ observed and replicated outcomes. [`predictive_residuals`](@ref),
 [`predictive_standardized_residuals`](@ref), [`residual_summary`](@ref),
 [`fit_stats`](@ref), and
 [`rater_diagnostics`](@ref) help locate misfit.
+
+The generalized posterior predictions replicate the existing rating rows using
+the fitted persons, items, and raters. Agreement checks conditional model fit;
+it does not measure held-out accuracy or prediction for a new person, item, or
+rater. A category-proportion plot also cannot establish parameter recovery or
+interval coverage. Those questions need their own design and evidence.
 
 `predictive_standardized_residuals` reports draw-specific Pearson residuals
 and explicitly excludes rows with negligible predictive variance. Non-finite
@@ -214,8 +260,11 @@ interpretation.
 
 [`posterior_summary`](@ref), [`fair_average_summary`](@ref),
 [`separation_reliability_summary`](@ref), [`wright_map_data`](@ref), and other
-reporting helpers return table-oriented results. [`fit_report`](@ref) combines
-the complete machine-oriented sections. Use `fit_report(fit; view = :public)`
+reporting helpers return table-oriented results where the chosen model supports
+them. In particular, the stable MFRM Wright map is unavailable for generalized
+fits. Use model-scale summaries for the named dimension instead.
+[`fit_report`](@ref) assembles the requested machine-oriented sections.
+Use `fit_report(fit; view = :public)`
 or [`fit_report_public`](@ref) for a reader-facing structured projection, and
 [`fit_report_markdown`](@ref) for a Markdown preview.
 
@@ -228,6 +277,14 @@ Use `require_complete = true` on `fit_report`, report exporters, or
 `fit_report_dossier` when a failed requested section should stop export. Use
 `on_section_error = :throw` when the first failing section should abort
 immediately.
+
+Report completeness and diagnostic quality are separate: a complete report can
+preserve MCMC warnings or unsupported sections. Read the diagnostic assessment
+and the status of each section needed for the claim. For positive loadings or
+consistencies, a posterior probability above zero reflects the imposed positive
+support and is not evidence of an effect. Define meaningful comparisons before
+interpreting these rows. In MGMFRM, consistency one is the model's product-one
+reference, not a calibrated reliability threshold.
 
 Save the fit with `save_fit_cache` and reload it with `load_fit_cache` to
 regenerate tables and figures in the same environment without sampling again.

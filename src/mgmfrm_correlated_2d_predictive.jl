@@ -97,7 +97,7 @@ replacement, while `draw_indices` preserves the requested order and duplicates.
 Abilities already incorporate population correlation; it is not applied again.
 New persons, items and raters are outside this prediction target.
 """
-function predictive_probabilities(fit::_CorrelatedMGMFRMFit;
+function predictive_probabilities(fit::_RecordedMGMFRMFit;
         ndraws::Union{Nothing,Int} = nothing, draw_indices = nothing,
         rng::AbstractRNG = Random.default_rng())
     bundle = _mgmfrm_correlated_2d_prediction_bundle(fit, ndraws, draw_indices, rng)
@@ -112,7 +112,7 @@ the draw-selection controls of `predictive_probabilities`. Entries use the saved
 integer category labels; rows are replicated datasets. Use a local seeded RNG
 to reproduce both draw selection and score simulation after reloading a fit.
 """
-function posterior_predict(fit::_CorrelatedMGMFRMFit;
+function posterior_predict(fit::_RecordedMGMFRMFit;
         ndraws::Union{Nothing,Int} = nothing, draw_indices = nothing,
         rng::AbstractRNG = Random.default_rng())
     bundle = _mgmfrm_correlated_2d_prediction_bundle(fit, ndraws, draw_indices, rng)
@@ -129,7 +129,7 @@ resolved draw indices, model/prior identity and stored sampling-quality status.
 design-block summaries. Same-data agreement does not establish convergence,
 parameter recovery or predictive performance for new facet levels.
 """
-function posterior_predictive_check(fit::_CorrelatedMGMFRMFit;
+function posterior_predictive_check(fit::_RecordedMGMFRMFit;
         ndraws::Union{Nothing,Int} = nothing, draw_indices = nothing,
         rng::AbstractRNG = Random.default_rng())
     bundle = _mgmfrm_correlated_2d_prediction_bundle(fit, ndraws, draw_indices, rng)

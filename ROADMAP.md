@@ -1,6 +1,7 @@
 # BayesianMGMFRM.jl — Internal Roadmap
 
-Updated 2026-09-21 after a strategic review of checkout `9cf42fc`. The current
+Current decisions reviewed 2026-10-02; the 2026-09-21 assessment of checkout
+`9cf42fc` and subsequent dated evidence remain below. The current
 position is **working implementations with substantial numerical checks, before
 target-specific statistical acceptance**. The near-term finish is a declared
 MGMFRM domain that completes the Julia workflow, matching CmdStan checks,
@@ -8,6 +9,985 @@ statistical validation and independent/user review. The broader model catalogue
 remains the long-term direction; neither completion of the fixed-coefficient
 MFRM reference nor an application alone completes that objective. See the
 [progress assessment and decision sequence](#decision-handoff-and-progress-accounting).
+
+## Current decisions
+
+**2026-09-27: the experimental coordinate route is connected, and the bounded
+four-fit loading-prior comparison is complete. Some relative-ability and in-sample
+prediction summaries change beyond their MCMC error. The fixed-facet R0/R1
+engineering rehearsal has now completed six fits: four pass the declared numerical
+screens and two retain R-hat failures. One engineering pair provides no evaluation
+credit or between-panel precision estimate. A review-only decision packet now proposes
+descriptive recovery/sensitivity with explicit failure denominators and compares all
+three margins; independent review and scientific prior/domain choices remain open.** This section owns
+the current priority order; scheduling language in dated records below is
+historical. The [2026-09-30 strategic review](docs/internal/strategic-review-2026-09-30.md)
+keeps integration, independent usability review and scientific acceptance as distinct exits.
+The [2026-09-27 review](docs/internal/strategic-review-2026-09-27.md) retains the earlier evidence and decisions.
+
+- **Scope:** the user-selected 2D fixed-Q foundation. Candidate C is an explicit
+  normalized exchangeable prior for computational comparison, not an adopted
+  scientific prior or a new default. Preserve the distinct raw/source targets.
+- **Evidence:** transformed candidate-C fits pass their recorded diagnostics on
+  two independent datasets. Four same-data prior-sensitivity fits also pass the
+  original 150-quantity diagnostics and added 111-quantity precision screens;
+  prediction-tail warnings remain. The same-data raw failure and all shorter-window
+  diagnostic failures remain. This is computational evidence, not calibration,
+  predictive or supported-domain acceptance. The raw cohort stays 4 completed /
+  1 failed / 269 unstarted out of 274; neither cohort is pooled with the other.
+- **Criteria:** retain comparisons at ±2.5, ±5 and ±7.5 percentage points. The
+  all-150-quantity positive-acceptance claim remains open; do not drop difficult
+  quantities after observing results or make this claim a prerequisite for
+  every experimental workflow improvement.
+- **Ordinary-test runtime (user decision, 2026-10-02):** no per-run or batch
+  elapsed-time cutoff. Monitor progress and resources until completion; elapsed
+  time is a measurement, not a pass/fail or cancellation criterion. Use
+  `wall_seconds=None` and `batch_deadline=None` with the resource guard. Earlier
+  time-limited receipts remain historical evidence. Scientific replication and
+  sampling conditions remain separate from this ordinary-test policy.
+  The [runtime policy and guard verification](results/workflows/20261002-test-runtime-policy-01/policy.json)
+  record the controller change and 26 passing checks. The subsequent
+  [ordinary integration run](results/workflows/20261002-integration-01/verification.json)
+  completes all six current-version groups and the minimum-version all run.
+
+| Priority / responsible role | Concrete deliverable | Exit and boundary |
+| --- | --- | --- |
+| Completed engineering handoff — Maintainer | The existing normalized location transform now connects to explicit experimental fitting, diagnostics, canonical saved records and a documented example; the research adapter delegates to the same implementation | Density/Jacobian/gradient and bounded public fit/save/reload/report checks pass. CmdStan rejects this coordinate option; raw remains its supported route. No default change, automatic request cache, scientific promotion or new independent calibration dataset. See [the implementation receipt](docs/internal/mgmfrm-foundation-scale-acceptance.md) |
+| Completed evidence review — Analyst | Candidate C now has a C1–C6 claim/evidence table, a saved-draw absolute-versus-centered ability review and all three calibration-margin comparisons in the [foundation document](docs/internal/mgmfrm-foundation-scale-acceptance.md) | Two joint-prior datasets remain two datasets. The initial saved-draw review added no fits; its additional diagnostic/MCSE assessment is now recorded with C5 below. These exploratory error summaries do not establish fixed-facet recovery, calibration or heldout prediction |
+| Completed — Analyst: bounded exploratory C5 comparison | Four of four frozen attempts completed at log-loading SD 0.25 / 1.0 on the same two C panels, reusing the 0.5 baselines. All original 150-quantity diagnostics and extra 111-quantity precision screens pass. Paired differences/MCSE, all prediction warnings and independent arithmetic checks are in the [foundation record §13](docs/internal/mgmfrm-foundation-scale-acceptance.md) | 70.22 serial minutes, observed peak RSS 3.26 GiB; zero retries, redraws or extensions. Paired prediction comparisons retain 28 / 33 / 0 / 0 unresolved rows out of 5,000 each. This closes the bounded exploratory comparison, not general prior robustness, new independent-data evidence or formal M2 acceptance |
+| Completed design — Analyst; scientific review pending | The [fixed-facet design](docs/internal/mgmfrm-foundation-fixed-facet-design.md) retains C as a reference and proposes paired R0/R1 with loading SD 0.25 / 0.5 / 1.0. It states fixed truths, estimands, within-fit versus between-panel MCSE, failure denominators and 8 / 32 / 128-block cost/precision comparisons. Four disposable engineering panels verify the existing DGP; no new posterior fit or evaluation panel | R1 is an explicit weak-loading stress condition, especially for SD 0.25. No scientific prior, evaluation N or calibration margin is adopted. Independent review remains pending; existing 150-quantity claims and all three calibration margins remain |
+| Completed execution — Maintainer/analyst: bounded fixed-facet rehearsal | Fixed-facet inputs connect to explicit normalized targets and saved reviews; input/target checks pass 79 assertions. All six attempts completed in 81.92 serial minutes, with observed peak RSS 2.88 GiB; four pass the 150-quantity and extra 111-quantity screens | R0 / SD 0.5 and R1 / SD 1.0 retain R-hat failures. Zero retries, redraws or extensions; zero common qualified blocks across all six conditions out of one planned block. See the [execution and verification record](docs/internal/mgmfrm-foundation-fixed-facet-design.md). This engineering pair has no evaluation credit |
+| Review packet complete; independent decisions pending — Analyst and scientific reviewer | The [fixed-facet decision packet §10](docs/internal/mgmfrm-foundation-fixed-facet-design.md) proposes descriptive C3b/C5 plus finite-budget C2, retains R0/R1 and all three priors, specifies denominator/failure handling, and compares N = 8 / 32 / 128 with observed costs. Exact integer missing-coverage arithmetic passes 284 checks | This is an analyst proposal, not independent acceptance. Review purpose, stress scope, finite sampling policy, precision target and N/resource budget before a separate launch. All three margins remain; no adopted N, new fit or evaluation credit. Do not treat the descriptive bounds as confidence intervals or use 2/6 as a general failure probability |
+| Integration candidate and walkthrough available; broader checks and reader review pending — Maintainer and independent readers | The [self-contained normalized-prior example](examples/normalized_mgmfrm.jl) connects fit, diagnostics/MCSE, figures, save/reload and report verification. The same selected API tests pass 3,835 assertions on each of Julia 1.10.8 and 1.12.6; the walkthrough retains warnings and passes 13 saved-output checks | See [foundation record §§15–16](docs/internal/mgmfrm-foundation-scale-acceptance.md) for documentation and completed ordinary generalized results. Selected minimum-version checks do not establish a full minimum-version suite or hosted CI matrix pass. Unfamiliar-reader and scientific review remain unassigned; the small demonstration adds no evaluation credit |
+| Completed ordinary generalized verification — Maintainer, 2026-09-28 | The original saved-sample checks pass 547 assertions standalone; the unchanged integration candidate completes ordinary `Pkg.test` on Julia 1.12.6: 129 test sets / 46,442 assertions pass, with no failures or broken/skipped checks | 85 min 38 s, observed peak owned-process RSS 2.72 GiB. No source, assertion, dependency or default changes were needed. This resolves the previous 45-minute incomplete run; buffered output did not identify the active test. See [foundation record §16](docs/internal/mgmfrm-foundation-scale-acceptance.md) and [verified result](results/workflows/20260928-saved-test-integration-01/verification.json). Whole-package/minimum-version suites, hosted CI and independent review remain outside this result |
+| Local ordinary integration complete — Maintainer, 2026-10-02 | The repaired Julia 1.12.6 report shard completes 56 test sets / 92,315 passing assertions. Combined with five previously completed groups, all six ordinary groups are complete. Julia 1.10.8 all completes 256 test sets / 150,618 passing assertions. Both new runs have zero failures, errors or broken checks and no elapsed-time cutoff | See [foundation record §18](docs/internal/mgmfrm-foundation-scale-acceptance.md) and [verification](results/workflows/20261002-integration-01/verification.json). Pkg.test success and identified process termination confirm completion after the outer controllers disappeared during conversation interruption; their exit codes and continuous peak-RSS receipts remain unavailable. Earlier failures/time limits remain. Next confirm hosted CI and obtain independent reader/scientific review; local ordinary success alone does not close those gates |
+| Conditional — Analyst: assess remaining classification precision | If a retained claim needs it, compare conditional CDFs and raw indicators on the two saved transformed fits, preserving all 150 quantities | One bounded comparison; zero additional posterior fits. Report MCSE, cost, failures and any benefit or lack of benefit. The 36 location-invariant quantities and nuisance-chain error remain; no automatic reference-method or sampling escalation |
+| Later — Analyst/maintainer | Follow the existing model-extension sequence after the relevant foundation evidence | Validate one declared combination at a time. Existing correlation implementations need acceptance work; application completion and an all-options architecture are not prerequisites |
+
+Do not restart the remaining 269 raw attempts, the long same-data backend pair,
+the historical performance investigation, or a general Q/random-effects
+implementation merely to keep work moving. Their original evidence and release
+conditions remain; a named claim or observed blocker must justify reopening them.
+The strong global calibration claim can remain unresolved while experimental
+operability improves. Stable-public promotion still requires the
+[release conditions](#package-release-conditions), including the retained M0 hold.
+
+<details>
+<summary>Dated progress history — evidence retained; use Current decisions for the work order</summary>
+
+**Archived update, 2026-09-27 JST:** The [saved-window precision comparison](docs/internal/mgmfrm-foundation-scale-acceptance.md)
+recomputes all 150 quantities plus two exact pivots on four windows of each
+of the three saved fits. Both transformed full fits retain their pass; every
+short window fails the necessary focal diagnostics. There are no opposite
+resolved classifications, yet two ungated short-window D1 coverage risks are
+0.517%/0.744% against the exact normal pivot. Agreement is therefore not an
+error-rate audit, and short-window results do not replace the original gates.
+All 5,472 quantiles, 21,888 rank boundaries and 192 analytic risk components
+are checked. A named all-150 conditional-CDF design now separates 112 normal,
+36 location-invariant and two product quantities; implementation is next,
+initially using saved draws with zero new posterior fits. Nuisance-chain error
+remains, so this is not an exact marginal reference or certified e/u bound.
+The three requested margins and original raw cohort remain unchanged.
+
+**Previous update, 2026-09-27 JST:** The [replication-budget comparison](docs/internal/mgmfrm-foundation-scale-acceptance.md)
+keeps all three requested margins (2.5/5/7.5 percentage points) and all 150
+quantities. Fifteen conditional e/u scenarios are inverted by an exhaustive
+integer scan, preserving nonmonotone binomial thresholds. With unverified
+u <= 1% and e <= 0.1%, separately checked rounded counts of 35,000/4,200/1,600
+give joint nominal acceptance lower bounds >= 80%. At the unchanged pilot
+budget their serial-time references are 412.3/49.5/18.8 days, excluding review;
+these are not launch plans or minimum actual sample requirements. Current
+4,000-draw evidence does not establish the assumed 1% unresolved bound.
+Three tests and 36 independent binomial-tail sums pass. No margin is adopted,
+no new fit is launched, and the original raw cohort remains 4/1/269. The next
+bounded task is a full-roster reference/precision design to assess the e/u
+assumptions before choosing replication volume and an overall error budget.
+
+**Previous update, 2026-09-26 JST:** The [full-roster review and independent replication](docs/internal/mgmfrm-foundation-scale-acceptance.md)
+retain the original 150 quantities. Reusing the coordinate pair preserves the
+raw failure and transformed pass under the expanded diagnostics. One new,
+independently generated candidate-C dataset also passes with transformed
+coordinates at the same four-chain, 1,000 warmup + 1,000 retained budget:
+maximum focal R-hat 1.00737, minimum bulk ESS 771.43, minimum quantile ESS
+1,102.54, and zero retained divergences/depth hits. Actual k=2 classifications
+leave 5 median and 9 coverage events unresolved among the dependent 150 quantities.
+Exact conditional unresolved probabilities for the two location pivots remain
+about 3%; all-quantity error bounds and statistical acceptance remain open.
+No raw fit was added for the new dataset, so it does not replicate the earlier
+raw-versus-transformed effect estimate. One new fit, no retries/extensions,
+no public-default change, and the original raw cohort remains 4/1/269.
+
+**Previous update, 2026-09-26 JST:** The [fixed-budget coordinate comparison](docs/internal/mgmfrm-foundation-scale-acceptance.md)
+completed two AdvancedHMC fits on the same candidate-C dataset, each with four
+chains and 1,000 warmup plus 1,000 retained draws per chain. Raw coordinates fail
+the declared gate; transformed coordinates pass. D1/D2 location-pivot bulk ESS
+rises from 328/231 to 8,813/7,945 with nearly unchanged retained leapfrog counts
+(124,896/124,016). Negative lag-one correlation accompanies ESS estimates above
+the 4,000 retained draws; classifier effective counts remain capped at
+4,000. Conditional k=2 unresolved probabilities improve to about 3–4%, not 1%.
+Ninety-four saved-record checks and independent reconstruction of all 16,000
+pivot values/eight risk rows pass; 69 source/environment hashes stay unchanged.
+This supports the transformed research route on one previously inspected
+dataset, not general calibration acceptance. Next assess all 150 quantities
+and replication on independent data. No default/public-API change, draw
+extension or original raw-cohort change was made.
+
+**Previous update, 2026-09-26 JST:** A [normalized location-coordinate research adapter](docs/internal/mgmfrm-foundation-scale-acceptance.md)
+reuses the existing unit-Jacobian map while evaluating the complete normalized
+prior. It preserves raw-space initialization/jitter, canonical stored draws,
+target identity and manual saved-result consumers. Mathematical checks pass
+352 assertions, four tiny operability fits pass 172 checks, and 32 principal
+checks on the actual 128-coordinate foundation target confirm density, gradient
+and conditional Hessian agreement. The previous input and samples are unchanged.
+This is an AdvancedHMC research path, not a public fit option or evidence of
+improved mixing. Next design a fixed-budget raw/transformed comparison within
+AdvancedHMC; comparing only to the previous CmdStan run would confound backend
+and coordinate effects. Original cohort and scientific acceptance remain open.
+
+**Previous update, 2026-09-26 JST:** The [foundation location-oracle evaluation](docs/internal/mgmfrm-foundation-scale-acceptance.md)
+now connects two exact standard-normal posterior pivots to conditional
+classification-error and unresolved probabilities. One independently generated
+candidate-C dataset was fitted with CmdStan, four chains and 1,000 warmup plus
+1,000 retained draws per chain. Retained divergences/depth hits are zero, but
+the declared diagnostic gate fails (D2 location-pivot R-hat 1.01879, bulk ESS
+228.12); formal classifications remain unresolved. Ungated probability masses
+are explicitly descriptive, not bounds for all 150 quantities or future data.
+Eleven density/response checks, three new Python tests and seven rank-band
+regressions pass; independent arithmetic reproduces all 8,000 pivot values and
+four risk rows. The pre-MCMC sandbox compilation failure is retained separately.
+No sampling extension or original-cohort change occurred. Next verify a
+prior-preserving location coordinate map for the normalized target before
+designing another sampling comparison.
+
+**Previous update, 2026-09-26 JST:** The user-selected 2D fixed-Q foundation now has a
+[scale and acceptance worksheet](docs/internal/mgmfrm-foundation-scale-acceptance.md).
+Existing exchangeable case C supplies an explicit six-scale computational
+comparison candidate, with marginal, pairwise and whole-block prior widths.
+Conditional positive acceptance retains all 150 quantities: at ±5 percentage
+points, 274 datasets have an empty median acceptance region even with no
+classification errors or unresolved outcomes. The 45-setting design grid
+separates this obstruction from conservative joint-power lower bounds and the
+unverified finite-MCMC assumptions. No scientific tolerance/default is adopted
+and no sampler runs are added; the raw cohort remains 4/1/269. Next assess the
+candidate's numerical classification precision before commissioning a new cohort.
+
+**Previous update, 2026-09-26 JST:** The [normalized-prior public connection](docs/internal/mgmfrm-prior-choice.md)
+adds explicit `Experimental.NormalizedMGMFRMPrior` and `NormalizedMGMFRMFit`.
+One distribution, six declared scales and the source-rater identity now connect
+prior prediction, maintained Julia/CmdStan targets, summaries/MCSE, diagnostics,
+existing-row prediction, manual fit caches and report/figure bundles. Existing
+raw results, fixed-coefficient `ExchangeablePrior`, private v1/v2 sample formats
+and target identities keep their meanings. Correlated MGMFRM, non-raw sampling
+coordinates and automatic request caching remain outside this adapter.
+Sampler-free checks cover 2,238 existing prior assertions, 37 API/boundary
+assertions and 1,004 saved-result/report assertions; 1,870 shared correlated/API
+regressions also pass on Julia 1.12.6. Four tiny Julia/CmdStan fits pass 28
+operability checks while retaining sampler warnings. Five rendered figure
+kinds pass 40 checks; local HTML is built with Git links disabled because local
+Git reads stalled. No remote CI, minimum-version run or scientific acceptance
+is claimed. Scientific widths, claim-specific precision and statistical
+acceptance remain separate decisions; the original raw cohort remains 4/1/269.
+
+**Previous update, 2026-09-24 JST:** The [prior contract connection](docs/internal/mgmfrm-prior-choice.md)
+now gives the private normalized MGMFRM target direct Gaussian prior generation,
+existing prediction summaries/figure data, and the same derived prior metadata
+after loading either existing sample-record version. Actual kernel, marginal
+and contrast scales, source log-consistency means, rater identity and the
+estimated-loading scope come from the canonical prior record. Its serialization
+and identity definitions remain unchanged. Deterministic generator/density,
+independent response-equation and serialization checks pass 2,238 assertions;
+351 raw-prior and 967 prior-measure regression checks also pass, without fits.
+This completes the internal connection, not public normalized-prior fit/report
+integration or scientific scale selection. Public `ExchangeablePrior` remains
+fixed-coefficient MFRM-only, and the original raw cohort remains 4/1/269.
+
+**Previous update, 2026-09-24 JST:** The [prior-response review](docs/internal/mgmfrm-prior-responses.md)
+connects contrast widths to category predictions through deterministic examples
+and six joint-prior conditions, with 4,096 paired parameter panels per condition
+and no posterior fits. Matching average variance changes the interpretation of
+raw/exchangeable comparisons. Shrinking step variance reduces highly concentrated
+cells while increasing endpoint mass in the declared comparison; neither metric
+alone chooses a scientific prior. A score-reflection calculation exposes the
+raw step prior's directional asymmetry, with normalized-reference regression
+checks at K=2,3,4,6. Independent Python/Julia predictions, densities and generator
+covariances agree; 155 study checks and 967 prior-measure checks pass. No default,
+scientific SD, public-prior scope or original 4/1/269 cohort changes. Next make
+the MGMFRM prior's distribution, scale convention and model scope consistent
+across explicit specification, prediction, persistence and reporting; selecting
+scientific widths and statistical acceptance remain separate decisions.
+
+**Previous update, 2026-09-24 JST:** The [prior-choice review](docs/internal/mgmfrm-prior-choice.md)
+separates raw, normalized exchangeable and normalized source distributions,
+their exact moments, available APIs and scale-matching conventions. When rater
+IDs have no prior scientific distinction, exchangeability is the preferred
+structure for the next scientific candidate; no SDs or new default are adopted.
+The source reference has a nonzero log-consistency mean for its distinguished
+rater, not merely a different normalizer. The public `ExchangeablePrior` remains
+fixed-coefficient MFRM-only. A reproduced empty-step failure in the private
+normalized Julia density is repaired for K=2; the MGMFRM Stan K>=3 boundary is
+unchanged. Prior-measure checks pass 951 assertions without fits. The original
+raw cohort remains 4/1/269. Next relate interpretable prior-contrast widths to
+response predictions before deciding a scientific scale or public integration.
+
+**Previous update, 2026-09-24 JST:** The [estimand and identification review](docs/internal/mgmfrm-estimands-identification.md)
+derives the conditional response model's equivalence class for complete crossed,
+pure-Q designs with ability variation in each dimension. It distinguishes
+scale-dependent ability differences, origin-dependent item-location differences,
+and invariant comparisons. Proper-posterior existence is established separately
+for the declared proper raw prior and valid finite category observations.
+Deterministic probability reconstruction and counterexamples connect the algebra
+to the implementation without new fits. Sparse/mixed-Q identification, statistical
+acceptance and prior choice remain separate questions. The next priority is the
+scientific role of the existing priors and units; the 4/1/269 cohort is unchanged.
+
+**Previous update, 2026-09-24 JST:** A [claim-based scope review](results/workflows/20260924-core-sbc-scope-review-01/report.md)
+compares continuing the remaining 269 attempts with fresh, narrower studies.
+Preserving all facet roles, location checks and named-person sentinels gives
+54 quantities and a conditional detection design of 242 datasets. Adding the
+26 original scientific contrasts gives 80 quantities and 253 datasets, saving
+only 16 new fits relative to the existing remaining roster. Neither candidate
+is adopted; all original evidence and the 4/1/269 status remain unchanged.
+
+The review also separates global positive acceptance via intersection–union
+tests from departure detection and simultaneous interval reporting. Global
+false acceptance need not use Bonferroni over every required component, but
+joint power and finite-MCMC classification accuracy still need a design. Under
+the current conservative count procedure, a hypothetical ±5-point acceptance
+margin cannot support uniform 80% power over the allowed u=0.05, e=0.001
+mechanisms, regardless of dataset count. This is a conditional counterexample,
+not a universal impossibility result or an adopted margin. The priority is to
+connect computational precision/reference evidence to the intended claims,
+rather than substitute a smaller roster solely to save runtime. No new fits,
+scientific acceptance or changes to the frozen execution plan were made.
+
+**Previous update, 2026-09-24 JST:** [Decision preparation](docs/internal/mgmfrm-core-sbc-decision.md)
+now separates complete execution, conditional SBC departure screens, and positive
+statistical acceptance. A read-only reviewer recomputes the existing primary
+summary, checks all 274 ledger entries, separates reasons for unresolved outcomes,
+and reports conditional simultaneous probability envelopes. Complete non-rejection
+never becomes acceptance; the original plan, runtime, criteria and cohort remain
+unchanged at **4 completed, 1 failed, 269 unstarted**.
+
+The e=0.001 classification-error assumption supports Type-I error control and
+the new envelopes; u=0.05 is needed for the reference power, not for conservative
+missing-outcome accounting. Neither bound is verified for MGMFRM. Even hypothetical
+fully resolved nominal counts at n=274 give simultaneous conditional probability
+intervals of about [0.385, 0.615] for the median event and [0.816, 0.957] for 90%
+coverage. These illustrate precision, not newly chosen acceptance tolerances.
+The [review supplement and checks](results/workflows/20260924-core-sbc-decision-prep-01/report.md)
+also explain what an independent reference would need to establish the error
+bound. No new fit or data generation was performed. Broad C1–C6 acceptance and
+independent scientific review remain separate unfinished work.
+
+**Previous update, 2026-09-24 JST:** The [resumed independent-data batch](docs/internal/mgmfrm-first-acceptance.md#51-依存補完後の独立データ3件を完了する)
+completed joint-003 through joint-005 with the original seeds, orthogonal
+coordinates, four chains, 1,000 warmup and 4,000 retained iterations per chain.
+A prospectively recorded runtime supplement adds the missing include while
+preserving all original 71 source files. All three fits pass the declared
+diagnostics; their maximum R-hat is 1.002131, minimum bulk ESS is 3,706, and
+minimum quantile ESS is 5,238. Retained divergences and depth-limit hits are zero.
+
+The full ledger now contains **4 completed, 1 failed, 269 unstarted** out of
+274 slots. Joint-002 remains failed and was not retried. Despite sufficient
+quantile ESS, the new three datasets retain 6/450 unresolved median and 9/450
+unresolved coverage classifications under the primary rank bands. These are
+dependent quantity counts, not independent calibration trials or validated
+unresolved-rate bounds. The k=4 descriptive sensitivity is also retained.
+
+Julia replays all three archived caches, checking 6,144,000 raw values; Python
+reconstructs 1,408,000 derived values and 576,000 conditional residual values
+across all four completed datasets. The [report, figures and verification](results/workflows/20260924-core-sbc-batch-02/report.md)
+preserve the prior failure and every planned slot. This batch ends at its three
+declared fits. Calibration acceptance, the classification-error assumptions,
+the earlier raw/coordinate questions and 83 inconclusive comparisons remain open.
+
+**Previous update, 2026-09-24 JST:** The [independent-data batch](docs/internal/mgmfrm-first-acceptance.md#50-独立データ再開時の凍結環境不備を検出し修正する)
+stopped at joint-002 before sampling: the frozen runtime omitted a Julia helper
+included by the evaluation module. Package import and all recorded hashes had
+passed, exposing the gap between matching listed files and a runnable snapshot.
+One new dataset was generated; no new sampler or fit completed. The full ledger
+now retains **1 completed, 1 failed, 272 unstarted** out of 274 slots. Joint-003
+through joint-005 remain unstarted under the declared batch stop rule.
+
+Future launches now bind and copy the missing dependency, and load the saved
+Python/Julia worker before claiming an ID or generating data. Nine orchestration
+checks and actual complete/incomplete snapshot import checks pass. A separate
+copy of the original 71 files plus the missing helper also imports successfully;
+the original frozen runtime, launch, joint-001 and failed attempt remain intact.
+The [report and verification](results/workflows/20260924-core-sbc-batch-01/report.md)
+record this engineering repair, not a scientific continuation or calibration
+result. Resuming the remaining IDs requires a prospectively recorded runtime
+supplement; joint-002 is retained as failed. Statistical acceptance, the
+classification-error assumptions and earlier diagnostic questions remain open.
+
+**Previous update, 2026-09-24 JST:** The [saved-chain localization review](docs/internal/mgmfrm-first-acceptance.md#49-保存済みチェーンでraw警告の位置を絞る)
+locates the raw seed 9432404 warning mainly in D2 common-location scale mixing.
+The person mean's folded R-hat is 1.016253, while the item-I4 offset has R-hat
+0.999923 and the maximum over 50 centered D2 person quantities is 1.005154.
+Chain 2 has standardized-residual mean 0.0088 but SD 0.8488, with a second-moment
+deficit in both fixed halves. Other chains also vary between halves; no chain
+or retained prefix is removed and no original fit is requalified.
+
+Across all eight fits, orthogonal coordinates have smaller common-location
+MCSE but larger item-offset MCSE. This is an estimand-specific tradeoff, not
+uniform efficiency superiority or proof of a sampler defect. The existing
+independent-data cohort remains orthogonal, four chains, 1,000 warmup and
+**4,000 retained iterations per chain**, distinct from the shorter coordinate
+comparison. Its precision and classification-error assumptions still require
+validation. Python independently reconstructs 4,320,000 derived values and
+3,240 R-hat components; four diagnostic figures and the [decision report](results/workflows/20260924-raw-mixing-review-01/report.md)
+preserve every saved chain. No new fit, dataset, sampler/default change or
+cohort continuation was performed. The raw arm/coordinate contrast, 1/274
+cohort status, 83 inconclusive comparisons and statistical acceptance remain open.
+
+**Previous update, 2026-09-24 JST:** The [fixed-data coordinate comparison](docs/internal/mgmfrm-first-acceptance.md#48-同じデータと推定長で計算座標とseedを比較する)
+completed all eight declared scientific fits: four fresh seeds per raw/orthogonal
+coordinate path, holding the target, AdvancedHMC version, four chains and
+1,000 warmup/1,000 retained iterations per chain fixed. All four orthogonal fits
+qualified; their D2 standardized second-moment mean was 1.006436 with the
+predeclared approximate reference band [0.910980, 1.101892]. This detected no
+persistent deficit and does not establish equivalence or calibration.
+
+One raw fit failed the declared diagnostics, including primary-moment
+rank-normalized R-hat 1.016848. The raw arm and coordinate contrast therefore
+remain unresolved, retaining all four raw fits rather than pooling a qualified
+subset. Their descriptive estimates of the second moment and raw-minus-orthogonal
+difference are 1.001399 and -0.005038. All retained chains have zero recorded
+numerical errors and depth-limit hits; those facts do not cancel the R-hat
+warning. Python independently reconstructs 288,000 conditional residual values
+from 32,000 raw draws (maximum difference 1.42e-14) and checks 64,000 transition
+rows. The [report, figures and verification](results/workflows/20260924-coordinate-comparison-01/report.md)
+preserve every planned fit, its adaptation record and the pre-run protocol.
+All 77 bound source files and the historical fits remain unchanged. These are
+eight new fits of one existing dataset, not eight new SBC replications; the
+1/274 cohort status, 83 inconclusive comparisons and statistical acceptance
+remain unchanged. This comparison ends at its declared eight fits.
+
+**Previous update, 2026-09-24 JST:** [Saved adaptation review](docs/internal/mgmfrm-first-acceptance.md#47-保存した適応記録をfitと照合して読む)
+checks complete records against their fit caches and native files, then reports
+whole warmup, the final specified fraction, and retained telemetry separately.
+Both backends share the review entry point, while missing CmdStan metric history
+remains unavailable. No new fit or transition is needed. The existing short
+CmdStan engineering record has zero divergences in its final 40 warmup iterations
+per chain but reaches its configured depth limit in all 40; the report does not
+turn record integrity into a convergence or calibration verdict. Historical
+source hashes remain provenance, not a requirement to match today's checkout.
+The original cohort and scientific acceptance remain unchanged.
+
+The [actual AdvancedHMC integration follow-up](docs/internal/mgmfrm-first-acceptance.md#実advancedhmc出力による接続検証)
+now closes the previous synthetic-only review gap. The existing 18 paired
+conditions per Julia environment run through recording, cache reload and review,
+preserving ordinary/recorded draws, diagnostics and subsequent RNG values.
+Julia 1.10.8/AdvancedHMC 0.8.6 and Julia 1.12.5/AdvancedHMC 0.8.5 each pass
+9,469 assertions. All 36 saved records are retained; Python independently checks
+72 chains, 8,256 transition rows, window summaries and initial coordinate maps.
+This is 72 small engineering fits, not new scientific replications or a
+cross-version trajectory-equivalence claim. Recorder, reviewer and sampler
+sources remain unchanged. The maintained regression now covers the actual
+AdvancedHMC path; no further recording feature is needed to close this gap.
+
+**Previous update, 2026-09-24 JST:** [CmdStan adaptation provenance](docs/internal/mgmfrm-first-acceptance.md#46-cmdstanの適応記録を同じ保存経路へ接続する)
+extends the opt-in recorder to independent fixed-Q MGMFRM on raw CmdStan
+coordinates. Native CSV, data/init JSON and adapted metric JSON are preserved
+alongside the ordinary cache, with actual chain starts/seeds, commands,
+executable and file hashes. Rounded CSV metric comments are not treated as
+full-precision matrices; the helper requests the official metric JSON output.
+Dense matrices retain their original entries and report tiny numerical
+asymmetry rather than being silently symmetrized.
+
+Warmup metric history and energy errors remain unavailable on CmdStan and are
+explicitly missing. Native CSV preserves warmup parameter states, unlike the
+AdvancedHMC recorder. These are backend-specific observation boundaries, not
+matched posterior evidence. The native check uses isolated CmdStan 2.39.0,
+six paired sampler conditions and one ordinary/recorded public-fit pair on
+short synthetic data. Parser/failure checks run on Julia 1.10.8 and 1.12.5;
+AdvancedHMC recording and existing backend regressions remain protected.
+The final native run passes 174 sampler and 14 public-fit checks; the parser
+and failure tests pass 75 + 9 checks in both Julia environments. Python
+independently matches all 1,712 recorded rows in 14 chains to the native CSVs
+and verifies metric/init/CSV/cache hashes. Only `src/cmdstan_fit.jl` changed
+among this turn's 71 bound runtime files; the original frozen 71 files and
+three historical fits/exports remain intact. See the [engineering record](results/workflows/20260924-cmdstan-adaptation-01/)
+for attempts, native artifacts and final verification. No scientific refit,
+cohort alteration, hosted CI or full fit-suite run is implied. The original
+variance concern, 83 inconclusive comparisons, 1/274 cohort status and
+statistical acceptance remain open.
+
+**Preceding update, 2026-09-24 JST:** [Opt-in adaptation recording](docs/internal/mgmfrm-first-acceptance.md#45-今後のadvancedhmc-fitへ適応記録を接続する)
+now saves a separate JSON record alongside an ordinary fit cache for independent
+fixed-Q MGMFRM/AdvancedHMC. It records actual jittered chain starts, coordinate
+order, all warmup/retained sampler rows, copied inverse mass matrices when they
+change, the retained kernel and input/source provenance. Each row distinguishes
+the metric used by its transition from the metric after adaptation. Existing
+fit types, cache schemas and default recording behavior are preserved.
+
+Julia 1.10.8 and 1.12.5 each pass 18 paired synthetic-fit conditions (two
+coordinate systems, three metrics, warmup 0/120/200), with exact draw, density,
+statistics, diagnostic and subsequent RNG equality. Recording checks total
+9,108 assertions per environment; existing observer/density regressions and
+shard selection also pass. An initial test assumption about mass adaptation at
+120 iterations was corrected from the installed adaptor schedule, retaining
+that case and adding 200 iterations to exercise actual metric updates. Failed
+attempts and the amendment are preserved in the [engineering record](results/workflows/20260924-adaptation-record-01/).
+The test is registered in the ordinary fitting group, not the fit-free job;
+hosted CI and the full fit suite were not run.
+
+The helper is opt-in research tooling, not an exported API, an exact restart
+facility or a recovery of missing historical records. CmdStan recording remains
+outside this implementation. Only `src/bayesian_fit.jl` changed among the 71
+previously bound runtime files; the original frozen 71 files, three prior-002
+fits and their exports remain unchanged. No scientific refit or cohort change
+was made. The original variance concern, 83 inconclusive comparisons, 1/274
+cohort status and statistical acceptance remain open.
+
+**Preceding update, 2026-09-24 JST:** [Saved sampler-record audit](docs/internal/mgmfrm-first-acceptance.md#44-保存済みの適応探索記録で判別できる範囲を確定する)
+reproduces the existing per-chain summaries from all 24,000 retained rows
+in the three prior-002 fits. All 12 chains have constant retained step sizes,
+zero retained divergences/depth-limit hits and no exactly repeated adjacent
+full raw states. These facts do not resolve the original D2 variance deficit.
+The original AdvancedHMC retained step sizes are 0.15974–0.20133; the stored
+control value 0.03 is the requested initial value, not the adapted result.
+
+The audit identifies a concrete evidence gap: warmup survives only as chain
+totals, with no iteration history, warmup states or adapted inverse mass matrix.
+CmdStan energy-error fields are missing, not zero. The [record](results/workflows/20260924-sampler-records-01/analysis.json)
+preserves all exported statistics and their availability, retains the first
+CmdStan follow-up's diagnostic warnings, and makes no new hypothesis tests.
+Public fitting documentation now distinguishes summary coverage from full
+adaptation history and notes that refreshing a cache does not add unsupported
+history. The next implementation priority is explicit adaptation provenance
+for future comparisons; no logging mechanism, new fit, sampler change or
+frozen-cohort alteration is included in this audit. Scientific acceptance,
+the cause of prior-002, 83 inconclusive comparisons and 1/274 status remain open.
+
+**Preceding update, 2026-09-24 JST:** [All-coordinate gradients and coupled curvature](docs/internal/mgmfrm-first-acceptance.md#43-保存標本の全勾配と非線形座標変換の結合曲率を照合する)
+extend the saved prior-002 checks beyond its two mean coordinates. At six
+fixed saved states, all 128 raw and orthogonal-coordinate sampler gradients
+agree with the existing independent Python analytic score; maximum differences
+are `7.82e-14` and `9.59e-14`. Directional curvature includes the second
+derivative of the loading-dependent item translation, even though the map's
+Jacobian determinant has absolute value one. Independent finite differences
+at all three declared step sizes agree to `1.89e-9`; deliberately omitted
+Jacobian/curvature terms and incorrect independent offset priors are detected.
+
+The new cache-free regression has 66 assertions on each of Julia 1.10.8 and
+1.12.5, including mixed-Q and three-dimensional examples, and is registered
+in existing CI and generalized tests. Saved-state checks add 60 assertions
+per environment; these repeat the same six states, not independent posterior
+or calibration replications. The [record](results/workflows/20260924-coupled-geometry-01/verification.json)
+retains full gradients, Jacobians and directional results. Inference code,
+existing fit and both 71-file runtime sets are preserved. No new fit, random
+transition, dataset, full suite or GitHub update is added. The original
+variance concern and scientific acceptance remain open; this finite-point
+consistency evidence does not validate adaptive, full-dimensional exploration.
+
+**Preceding update, 2026-09-24 JST:** [Independent one-transition NUTS probes](docs/internal/mgmfrm-first-acceptance.md#42-既知分布からの独立1遷移でnutsの停止と状態選択を点検する)
+extend the previous deterministic checks to full momentum refreshment,
+tree building, generalized stopping and multinomial selection in the actual
+AdvancedHMC kernel. The prospectively fixed 36-cell experiment completed
+88,488 independent exact-normal-start transitions on fixed-nuisance Gaussian
+conditionals, without model fitting or adaptation. No cell rejected the
+declared D2 second-moment null after Bonferroni correction; observed moments
+ranged from 0.93427 to 1.07748. This is non-detection in a limited local test,
+not equivalence, an acceptable-bias bound or posterior calibration.
+
+Separate paired bridges (72 analytic plus 72 actual embedded-density
+transitions) agreed to `2.01e-14`, with matching step counts and tree depths.
+No primary transition reported a numerical error or reached maximum depth.
+All initial/output states and sampler statistics are retained, and independent
+Python arithmetic verifies the conditional parameters and reported quantities.
+The 27-assertion cache-free mechanics check passed on Julia 1.10.8 and 1.12.5
+and is registered in CI; the larger statistical experiment is not a CI gate.
+The [analysis record](results/workflows/20260924-location-nuts-01/verification.json)
+preserves the original fit, 71 current runtime files and 71 frozen copies.
+Full-dimensional coupled motion, adaptation, the prior-002 cause, 83
+inconclusive comparisons and 1/274 cohort status remain unresolved. No GitHub
+update or full fitting suite is claimed.
+
+**Preceding update, 2026-09-24 JST:** [Fixed-nuisance Gaussian location dynamics](docs/internal/mgmfrm-first-acceptance.md#41-既知の位置条件付き分布で計算座標と決定的な積分処理を照合する)
+now connect the analytic location conditional to the actual model density,
+existing orthogonal transform and installed AdvancedHMC leapfrog integrator.
+Mean, orthogonal and analysis-only whitened coordinates are checked against
+closed-form Gaussian updates, with matched momentum/metric transformations
+and deliberately incorrect controls. The cache-free check has 676 assertions
+on each of Julia 1.10.8 and 1.12.5 and is wired into the existing fit-free CI
+job and ordinary generalized group. Saved prior-002 snapshots are separate
+finite probes; they are not posterior replicas or a replay of the full NUTS
+trajectory. The [record](results/workflows/20260924-location-dynamics-01/verification.json)
+binds versions, independent Python arithmetic and input/runtime preservation.
+
+No new fit, RNG-driven transition, adaptation, NUTS tree or state selection
+is executed. Reversibility/volume alone can pass a wrong force, and invariance
+alone can pass a frozen state; these limitations are explicit test controls.
+The follow-up design separates independent one-transition stationarity probes
+from full-fit seed, coordinate and engine comparisons. Its 36-cell power
+reference is conditional, unadopted and not a launch instruction. The original
+prior-002 cause, 83 inconclusive comparisons, 1/274 cohort status and scientific
+acceptance remain open. Current inference sources and the original frozen
+runtime are preserved; no full suite or GitHub-hosted run is claimed.
+
+**Preceding update, 2026-09-24 JST:** [Conditional 3D item response surfaces](docs/src/fitting.md#3d-item-response-surfaces-for-mgmfrm)
+are implemented for saved independent fixed-Q MGMFRM fits.
+`BayesianMGMFRM.item_response_surface` returns the posterior mean and pointwise
+central intervals of all category probabilities by default, with explicit
+selection of one category or expected rating.
+`BayesianMGMFRM.plot_response_surface` adds an editable CairoMakie 3D mean
+view with numbered ability axes, category-colored wireframes and a legend,
+plus category-specific interval-width heatmaps on a shared scale. Category
+colors remain consistent across all/single-category views for the same scale.
+Item/rater labels, two ability axes,
+explicit fixed values for all remaining dimensions and the whole-fit warning
+are retained. All retained joint draws are evaluated by default; no fitting,
+random selection, population marginalization or parameter-mean substitution
+occurs. Curvature is not evidence of an ability interaction; pointwise
+intervals are not future-rating intervals or simultaneous bands. Pure-Q items
+remain flat along excluded dimensions. This does not extend supported models
+or add a report-bundle section.
+
+All 1,594 fit-free postprocessing checks pass locally on Julia 1.10.8 and
+1.12.5, including 371 numerical surface checks against the actual model
+kernel and a separate three-category formula. The ordinary test entry point
+and fit-free CI group both include the new checks. A further 67 renderer
+checks and 10 checks on the existing 16,000-draw fit pass; PNG/SVG outputs
+use numbered abilities and category legends. No new fit or calibration
+evidence is added. See the [task record](results/workflows/20260924-response-surface-01/verification.json)
+for rendering, saved-fit replay and documentation verification; GitHub-hosted
+CI and the full fitting suite have not been run.
+
+**Frozen-cohort execution:** Adding the new source include changes
+`src/BayesianMGMFRM.jl`; the current working tree is now a different package
+version from the 71-file frozen SBC runtime. The old setting/hashes were not
+resealed. All 71 original files are preserved in the verified
+[frozen runtime copy](results/workflows/20260924-response-surface-01/frozen-runtime-verification.json)
+at `results/workflows/20260924-response-surface-01/frozen-runtime`.
+Its controller validates the original cohort and reproduces the entire
+274-slot collection exactly (one completed, 273 unstarted). To continue that
+cohort, use that copy's `scripts/mgmfrm_core_sbc_cohort.py` with the original
+cohort directory, rather than the changed working-tree controller context.
+This is a source/context/collection check, not a new Julia fit or a change to
+the cohort target, budget, prior-002 concern or independent-review status.
+
+**Preceding update, 2026-09-23 JST:** The fit-free [prior-002 distribution review](docs/internal/mgmfrm-first-acceptance.md#40-prior-002の不足が分布のどこにあるかを保存標本から切り分ける)
+localizes the original D2 conditional second-moment deficit without resolving
+its cause. Fixed normal-reference bins show the largest deficits at absolute
+standardized residuals 1.5–2.5. Capping the squared residual at four retains a
+gap of -0.08198; omitting any one chain or fixed 250-draw block does not remove
+the negative full-moment gap. Independently computed lag-window MCSEs
+0.02586–0.02812 remain close to the historical 0.02789. These are exploratory
+saved-draw sensitivities, not calibrated tests or transition-bias attribution.
+All four equal-length windows of the existing longer CmdStan fit are retained;
+none has the original deficit's magnitude, but backend, coordinates and RNG
+are confounded. The warning-bearing first follow-up remains unqualified.
+
+Name-based reconstruction checks all 312,000 conditional values across the
+three existing fits; 132 summaries and 42 MCSE estimates pass separate
+arithmetic checks, including a convolution formulation of the lag-window
+variance. The [verification record](results/workflows/20260923-prior002-distribution-01/verification.json)
+preserves all 21 input artifacts and 71 frozen runtime hashes. No new fit,
+scientific acceptance, full-suite run or GitHub update occurred. Finite-sample
+fluctuation, unobserved slow mixing and transition bias remain unresolved;
+further tests of the same finite traces alone cannot identify the cause.
+
+**Preceding update, 2026-09-23 JST:** [Postprocessing checks](test/README.md)
+now have a single fit-free Julia entry point, `test/postprocessing.jl`, and an
+Ubuntu CI job for Julia 1.10.8 and current stable Julia. The entry point reuses
+the existing matrix MCSE and numerical figure-data checks. The matrix tests
+were moved verbatim; the actual-fit MCSE tests remain intact in the ordinary
+suite. The contrast checks now also reuse the deterministic reporting fixture
+to verify both named ability dimensions, the reconstructed last rater, warning
+preservation, invalid selectors/chain ordering and temporary-cache reload.
+No historical posterior cache, study result, renderer or external backend is
+needed. These synthetic inputs are not posterior or backend-validation evidence.
+All 1,223 checks pass locally on macOS with Julia 1.10.8 and 1.12.5. Both
+versions also pass from a 602-file source copy without `results/` or historical
+fit caches: 1.10.8 uses the tracked version-specific manifest; 1.12.5 uses an
+environment instantiated offline in the copy without importing the working-tree
+`Manifest.toml`. The [verification record](results/workflows/20260923-postprocessing-ci-01/verification.json)
+records the environments and confirms all 71 frozen runtime sources unchanged.
+Test selection passes 45 checks, CI YAML parses, and the source-language gate
+passes 24 files. No new fit, calibration evidence, full-suite execution or
+GitHub-hosted run was added; independent review remains open.
+
+**Preceding update, 2026-09-23 JST:** The [saved-draw contrast example](examples/saved_mgmfrm_contrasts.jl)
+now computes within-dimension ability differences, rater-severity differences
+and log-consistency ratios for independent fixed-Q MGMFRM. It preserves joint
+draw pairing and chain order, reports central intervals, summary/event MCSE and
+contrast R-hat/ESS, and retains the original whole-fit assessment. Optional ROPE
+bounds belong to the declared contrast scale; no practical-equivalence or rater
+reliability decision is imposed. Constant event indicators keep unavailable
+MCSE rather than treating observed fractions zero/one as certainty.
+
+All 41 fit-free synthetic checks pass, including posterior covariance,
+direction reversal, autocorrelated indicators and separated chains; this check
+is also wired into `fitting_reports`. Replaying the existing 16,000-draw
+AdvancedHMC fit and 4,000-draw warning-bearing CmdStan fit passes 56 checks.
+All three contrasts retain `mcmc_warning` on the latter. NumPy reconstructs
+the six sets of moments, intervals and event counts from every paired saved
+draw. This is arithmetic/workflow validation, not new calibration or a
+first-class generalized homogeneity API. No sampler, prior or runtime source
+change, new fit, full test suite, independent review or GitHub update occurred.
+The [verification record](results/workflows/20260923-saved-contrasts-01/verification.json)
+confirms both cache hashes and all 71 frozen runtime sources unchanged. The
+manual builds with four existing omitted-docstring warnings; language checks
+pass for 24 source surfaces and 14 HTML pages. All 108 local fragment links
+from the two edited manual pages resolve, including four repaired older links.
+
+**Preceding update, 2026-09-23 JST:** The public manual now connects the analysis
+question to [what MGMFRM estimates and fixes](docs/src/scope.md#what-changes-when-you-choose-mgmfrm)
+and the [model-specific prior and fitting routes](docs/src/bayesian-workflow.md).
+The entry pages distinguish fixed Q from fixed loadings, consistency from
+reliability, prior-anchored locations from likelihood identification, and raw
+from model-scale summaries. The workflow separates credible intervals from
+MCSE, existing-row prediction from held-out evidence, and report completeness
+from diagnostic quality; it also explains why positive support makes a
+probability above zero uninformative as evidence of an effect.
+These are interpretation and routing corrections grounded in the existing
+implementation, not new fitting capabilities or statistical validation.
+The manual builds with the four existing omitted-docstring warnings; language
+checks pass for 23 source surfaces and 14 HTML pages. All 257 local fragment
+links from the four changed pages resolve after correcting two old links.
+The [verification record](results/workflows/20260923-model-interpretation-01/verification.json)
+also confirms all 71 frozen runtime hashes unchanged. No new fit, full test
+suite, independent review or GitHub update was performed.
+
+**Preceding update, 2026-09-23 JST:** The [saved-MGMFRM walkthrough](examples/review_saved_mgmfrm.jl)
+now connects public cache loading, model/backend and dimension selection,
+whole-fit/location diagnostics, warmup history, 90% intervals, MCSE and report
+figures without fitting. The [reader instructions](docs/src/examples.md#review-a-saved-mgmfrm-fit-without-fitting)
+explain uncertainty and same-row prediction. Location diagnostics and MCSE are
+an explicit supplement; they are not automatically part of the ordinary report.
+
+Replay used three existing independent fixed-Q caches: two AdvancedHMC fits and
+the warning-bearing CmdStan follow-up. The 16,000-draw fit was also replayed in
+a separate Julia process: all 130 summary/MCSE rows and the numerical inputs for
+all three figures reproduce exactly. The CmdStan fit keeps `mcmc_warning` in its
+whole-fit/location assessments and all figure captions despite a complete report.
+The R0 cache initially selected for the warning check is the improved, qualified
+fit; that result is retained separately and is not counted as warning evidence.
+The [verification record](results/workflows/20260923-saved-mgmfrm-walkthrough-01/verification.json)
+checks interval/MCSE/figure agreement, complete retained chains, prediction
+settings and unchanged frozen runtime sources. Six representative PDFs were
+rendered and visually inspected. The manual builds, with the existing four
+omitted-docstring warnings, and language gates pass for 23 source surfaces and
+14 HTML pages. No new fit, calibration replication, full CI run or GitHub update
+was performed. Independent reader and scientific review remain open.
+
+**Preceding update, 2026-09-23 JST:** [Fit-free Python regression checks](test/README.md)
+now have an ordinary CI job and declared NumPy/SciPy dependencies. Runner and
+cohort tests construct synthetic settings instead of reading a local study
+manifest. Nine standalone test files cover arithmetic, classification,
+conditional integration, full-roster failure accounting, export binding and
+lossless storage; separate entry points avoid test/script module-name collisions.
+All 43 tests pass from a source copy without `results/` or the local
+`Manifest.toml`, in a fresh Python 3.14.3 environment on macOS with NumPy 2.4.2
+and SciPy 1.17.1. The exact CI test command was run locally, YAML syntax and
+Python dependencies checked, and all 71 frozen cohort runtime source hashes
+remain unchanged. No new fit or scientific replication was added. GitHub-hosted
+Ubuntu execution and the full Julia suite have not been rerun for this change.
+At that step, the next fit-free foundation task was a saved-result workflow walkthrough,
+including diagnostic warnings, uncertainty, reload and figure/report output;
+this does not replace calibration or independent scientific review.
+
+**Preceding update, 2026-09-23 JST:** [Byte-exact cache storage and serial cohort batches](docs/internal/mgmfrm-first-acceptance.md#39-元のcacheを完全復元できる圧縮保存と共通予定表の分割実行)
+now preserve the existing worker and all original cache bytes. Standard-library
+XZ/LZMA2 with a 256 MiB dictionary reduces the observed cache from 549.84 MB to
+156.30 MB (71.57%); decompression matches its original SHA256. The restored
+16,000-draw fit reproduces all 2.4 million quantity values, 144,000 conditional
+residuals, diagnostics and precision results in 12 Julia checks. Four Python
+tests cover corruption, original-copy preservation, unresolved slots, serial
+execution, duplicate attempts and failure handling. The entire 274-ID summary
+equals the previous summary, including the conditional error-rate screen.
+
+The shared cohort imports the completed `joint-001` without adding a replication.
+Only explicitly named unstarted IDs run, with an OS lock and per-ID claims.
+After each successful driver, the controller verifies an exact archive before
+removing its own uncompressed copy. Collection restores one cache at a time;
+corrupt evidence, failures, incomplete attempts and absent IDs remain in the
+full denominator. The old workflow and cache are retained. No new data or
+fits were started: one of 274 slots is complete, and calibration remains open.
+
+The single-cache reference is now about 42.83 GB for archives plus 5.58 GB for
+quantity/residual exports, or 48.40 GB for the whole roster; it is not a size
+bound. Free space increased during this work to about 339.95 GB; the user
+subsequently explained that Dropbox files had been made online-only. The
+earlier capacity shortage is not treated as current.
+Only a verified 550 MB working copy was removed by this implementation. The
+next execution can use explicit batches in the shared cohort, preserving the
+unchanged model, seeds, controls, full roster and all attempts.
+
+**Preceding update, 2026-09-23 JST:** The [first prospective SBC execution](docs/internal/mgmfrm-first-acceptance.md#38-実行設定から新規fit保存再読込み全予定表の集計をつなぐ)
+now completes generation, a fresh AdvancedHMC fit, validated save/reload,
+all 150 quantities and collection over the complete 274-ID roster. Only
+`joint-001` was selected before generation; its four chains retain 16,000 draws.
+The fixed diagnostic criteria pass: maximum rank R-hat 1.00128, minimum bulk ESS
+3,559, minimum tail ESS 6,057, and no retained divergences or depth hits.
+The 24 warmup divergences are retained separately. Nine conditional moment
+means are within 0.80 MCSE of zero on this one fit; the old prior-002 concern
+remains unresolved.
+
+Python reconstruction checks 352,000 derived values and 144,000 conditional
+residuals, plus all 450 quantiles and 900 boundary values. Focused runner tests
+pass, including 1,088 Julia assertions on a historical saved fit. The primary
+median/coverage classifications leave 1/2 of the 150 quantities unresolved on
+this dataset; these quantities are dependent, not 150 new replications.
+All 273 unstarted slots remain unresolved in each quantity's planned denominator.
+The earlier eight datasets are not pooled with this cohort. This is a completed
+execution path and one qualified fit, not calibration or protocol acceptance.
+
+Measured driver time is 26.88 minutes, child-process peak RSS about 6.61 GiB,
+and the fit cache is 524.37 MiB. A single-slot linear reference gives about
+122.8 hours and 150.7 GB of caches for 274 slots, without a timing guarantee or
+imposed cap. The measured destination had about 61.7 GB free. Continuing the
+roster needs a concrete storage arrangement and split execution that preserve
+IDs, settings and every attempt. No automatic full-roster launch, model/sampler
+change, old-artifact deletion, full-CI run or new GitHub update occurred.
+
+**Preceding update, 2026-09-23 JST:** The [prospective SBC setting](docs/internal/mgmfrm-first-acceptance.md#37-判定誤りを含む感度設計と保持数を結合した実行設定)
+binds 274 independent dataset IDs, 150 quantities, 600 one-sided screens and
+four chains with 4,000 retained draws each. The reference count now accounts
+for unresolved probability at most 5% AND unconditional resolved-error
+probability at most 0.1%, shifting both null thresholds and alternative power.
+It gives 81.08%/81.37% lower power in the two normal controls under those
+assumptions; neither bound is established for MGMFRM. Thus 274 is a concrete
+conditional sensitivity setting, not certified MGMFRM power or acceptance.
+
+The checker binds source hashes, controls, named quantities, seeds and rank-band
+construction while keeping failed/absent attempts in the whole roster. The
+Julia evaluation adapter now binds the declared retained length instead of a
+4,000-draw constant; existing calls retain their previous settings. Old saved
+4,000/16,000-draw fits provide a software replay, not new sampling. Focused
+Python tests and 2,810 independent Decimal power checks pass. Cost references
+from old fits are about 97 or 155 hours under two simple extrapolations, not a
+timing guarantee or an imposed timeout. Next connect this setting to a worker
+that completes generation, a fresh fit, saved-result checks and all-150-quantity
+collection, and measure the selected longer AdvancedHMC setting. No new data
+or fits, automatic large-batch launch, protocol promotion or default change.
+
+**Preceding update, 2026-09-23 JST:** The [rank-boundary implementation and comparison](docs/internal/mgmfrm-first-acceptance.md#36-順位に基づく境界判定を実装し既存sbc集計へ接続する)
+adds explicit order-statistic bands enlarged using quantile ESS. On the same
+frozen controls, paired normal/exp-normal classifications agree within numeric
+precision: at 16,000 draws both give 4.127% unresolved and 0.02063% resolved-wrong
+90% coverage decisions. Treating correlated draws as iid substantially increases
+errors, so rank ordering alone is insufficient. The candidate preserves the
+exact iid marginal band but claims no finite-MCMC or familywise guarantee.
+
+The existing full-roster SBC summary now accepts `classification_method="rank_band"`
+explicitly; its default remains `value_mcse`. Missing IDs, rejected fits and all
+150 quantities remain accounted for. Replaying the old eight MGMFRM fits gives
+52 median and 36 coverage unresolved decisions; retaining prior-002's open
+concern as unresolved gives 198 and 184. These are separate retrospective
+artifacts, not changed old results or calibration acceptance. All 21 focused
+Python test methods pass, 840,000 interval-mass comparisons agree within
+2.22e-16, and the old classifier's 168,000 probabilities are unchanged.
+Next bind method, band width, qualification, full attempt accounting, retained
+samples and replication into one prospective joint-prior execution setting.
+No new independent synthetic ensembles or actual MGMFRM fits were added.
+
+**Preceding update, 2026-09-23 JST:** The [finite-MCMC classification controls](docs/internal/mgmfrm-first-acceptance.md#35-有限mcmcの確定判定を正解が分かる分布で検証する)
+complete 1,000 chain ensembles for each of seven known-distribution scenarios,
+with three fixed prefixes and the existing classifier. Exact reference-CDF
+integration separates resolved errors from unresolved outcomes. At 4,000 iid
+normal draws, the 2-MCSE rule gives 0.01754% wrong 90%-coverage decisions and
+2.858% unresolved outcomes; neither rate establishes general error control.
+Common wrong-target and missing-mode controls pass limited R-hat/ESS checks
+while retaining large classification errors. More draws do not repair them.
+
+The paired normal/lognormal control also exposes coordinate dependence:
+quantile ESS agrees exactly, but the relative endpoint-MCSE rule leaves 4.03%
+versus 52.14% coverage decisions unresolved at 16,000 draws. Next compare a
+probability/rank-based boundary candidate on these known-answer controls,
+retaining outcome errors and unresolved cases, before selecting actual
+MGMFRM precision and replication budgets. No existing rule or old result was
+changed. A floating-point representative-point bug in the new integration
+helper was caught by separate interval arithmetic, repaired, and regression
+tested. The final 630,000 mass comparisons agree within 1.67e-16. New helper
+and existing SBC tests pass; no actual MGMFRM data or fits were added.
+
+**Preceding update, 2026-09-23 JST:** The [quantile-precision and replication review](docs/internal/mgmfrm-first-acceptance.md#34-分位点の精度と独立データ反復数を一緒に設計する)
+adds truth-blind quantile ESS and posterior boundary-mass diagnostics, using the
+existing MCSE implementation. Fixed windows of the old eight fits show that
+4,000 retained draws give mean boundary-mass proxies around 3.3%, with median
+proxies up to 7% for loadings. Good whole-draw R-hat does not establish this
+separate precision requirement. Projections to larger draw counts assume
+stationary mixing and are not future unresolved-rate bounds.
+
+A new power helper permits outcome-dependent unresolved status with a bounded
+per-dataset probability and independent datasets, without a deterministic cap
+on the realized count. Under the same two normal controls and correct resolved
+classifications, unresolved-rate bounds of 0%, 2.5%, 5% and 10% give first
+reference counts of 142, 189, 262 and 907 for both one-direction power bounds
+at least 80%. The preceding 255 assumes a different, deterministic count cap.
+These remain reference designs, not adopted MGMFRM cohorts. Next check the
+finite-MCMC classification error itself against known posterior answers and
+combine that evidence with precision and cost before fixing the actual roster.
+All attempts must remain in the denominator. No new fits or datasets were added;
+joint-prior calibration, prior-002's concern and independent acceptance remain
+open. Focused helper tests and saved-draw/probability arithmetic checks pass.
+
+**Preceding update, 2026-09-23 JST:** The [SBC sensitivity review](docs/internal/mgmfrm-first-acceptance.md#33-juliaの校正検証へ戻り検査自体の感度を確かめる)
+connects the existing full-draw interval reviews to median and 90% coverage
+screens, retaining all 150 quantities and a separately declared dataset roster.
+Absent attempts, failed fits and ambiguous quantile decisions stay unresolved
+on the full denominator. Analytic normal-model controls distinguish posterior
+location error, deficient spread and ignoring the data; parameter-only coverage
+misses the last error, while the observed-likelihood quantity detects it.
+
+With 600 one-sided tests and all outcomes resolved, 142 is the first replication
+count giving at least 80% power for both the declared 0.5-posterior-SD mean shift
+and 30% posterior-SD deficit in the normal controls. This is not universal
+MGMFRM power or a selected actual cohort size. With seven unresolved cases out
+of 142, mean-shift power is 49.3% under independent fixed missing positions;
+allowing outcome-dependent selection gives a worst-case lower bound of 34.1%.
+If at most floor(5% of n) outcomes are unresolved per quantity, 255 is the first
+reference count with both lower bounds above 80%, conditional on correct
+resolved classifications. Neither count guarantees finite-MCMC calibration.
+Precision and missing outcomes therefore belong in the design. Seven helper tests, separate probability
+integration/counting and 3,600 saved-draw quantile comparisons pass. The replay
+of the old eight panels is retrospective, not new calibration evidence; their
+original denominator and unresolved concerns remain. Julia 1.12.5 passes all
+134,678 ordinary assertions with `-O0`; the generalized shard also passes
+30,947 assertions with default optimization. The latter count overlaps the
+full suite. A stale metadata/refit expectation was repaired with acceptance
+and rejection checks; its 31 assertions pass separately and in the full run.
+Inactive test blocks now avoid unnecessary macro expansion. Full CI and new
+GitHub publication remain separate; no new calibration fits were added.
+
+**Preceding update, 2026-09-23 JST:** The [fresh 37-panel R1 coverage screen](docs/internal/mgmfrm-first-acceptance.md#32-新しい37パネルで負荷量区間の大きな過少被覆を点検する)
+completes all 37 fits and 592,000 retained draws with the original explicit prior.
+Every fit meets the numerical criteria, but the prospectively specified primary
+screen detects I2 loading undercoverage. Its raw 90% interval covers in 26/37
+panels (70.27%). Counting all three endpoint-sensitive cases as covered still
+gives at most 27/37; the conservative Bonferroni-adjusted one-sided p-value is
+0.01373 across the five loadings. The old eight panels are excluded. I1, which
+stood out in the exploratory cohort, covers in 33/37 new panels. The new result
+limits the original conditional-coverage claim without identifying a coding
+error or selecting a different prior.
+
+The sample size was fixed before generation to give 82.4% per-parameter power
+at true coverage .70 with family alpha .05; power is only 9.2% at .85 and assumes
+resolved outcomes. No flag is not fine-calibration acceptance. Secondary D1
+centered-person coverage averages 85.57% (descriptive t36 band 83.90–87.23%),
+using 37 panel means rather than 1,850 independent-person trials. The new helper
+retains unresolved outcomes in the full denominator and exact interval envelopes.
+Six unit-test methods, a 37-failure scorer fixture, 263 input/target checks,
+20 binding/density checks per fit and separate arithmetic verification pass.
+All attempts, data and source snapshots are preserved; no retries or extensions.
+Joint-prior SBC remains a separate question with its original denominator eight.
+Scientific acceptance, prior selection, the full package CI and new GitHub
+publication remain uncompleted.
+
+**Preceding sensitivity study, 2026-09-23 JST:** The [loading-prior sensitivity follow-up](docs/internal/mgmfrm-first-acceptance.md#31-同じ8パネルで負荷量事前への依存を調べる)
+completes eight additional fits on all eight existing R1 panels, with no new
+datasets, retry or draw extension. All meet the unchanged numerical criteria.
+Broadening the common log-loading prior SD from 0.5 to 1 changes centered D1
+person RMSE only slightly: 0.51535 to 0.51203, paired difference -0.00332,
+between-panel MCSE 0.00236, descriptive t7 band [-0.00890, 0.00226]. I1/I2
+upward errors decrease, person intervals widen, and D1 90% coverage rises from
+85.75% to 89.00%. I2 loading coverage nevertheless falls from 7/8 to 6/8.
+The result demonstrates prior dependence, not uniform improvement or adoption
+of the broader prior. All five loading priors change; D2 is not an untreated
+control, and there are no R0 refits to identify an interaction.
+
+This follow-up was chosen after inspecting the same panels. Its descriptive
+bands do not account for that selection; subsequent calibration needs separate
+new panels and declared precision. The explicit-prior prediction helper passes
+60 checks on Julia 1.12.5 and 1.10.8. Prior predictions, 273 saved-draw quantities,
+conditional moments and paired summaries have separate arithmetic checks.
+Zero observed between-panel variance no longer produces a zero-width t band.
+Original artifacts and unresolved claims remain preserved. No default prior,
+scientific-acceptance flag, full CI or new GitHub publication changes.
+
+**Preceding recovery cohort, 2026-09-23 JST:** The [paired R0/R1 recovery cohort](docs/internal/mgmfrm-first-acceptance.md#30-r0r1の人物回復を8組の反復で調べる)
+completes eight independent pairs and 16 fits, all meeting the declared numerical
+criteria. Weakening D1 loadings raises mean centered-person panel RMSE from
+0.31256 to 0.51535: paired difference 0.20279, replication MCSE 0.01477 and an
+approximate descriptive t7 interval [0.16787, 0.23770]. D2 changes are small.
+D1 90% person coverage is 87.25%/85.75%; the two D1 loadings average 75% in both
+conditions, with substantial replication uncertainty. This is a measured
+fixed-condition contrast, not calibration acceptance. The loadings move farther
+from the fixed prior's center as they weaken, so the contrast does not isolate
+information loss from prior dependence. Focus next on that dependence and
+replicated interval coverage. Primary-difference MCMC MCSE is only 0.000265;
+more draws for the same fits do not address the dominant between-panel variation.
+Fourteen pre-MCMC build-path failures are preserved and explicitly repaired using
+individual empty build directories. No completed fit or generated panel is
+replaced. The 273-quantity helper, all-attempt summaries, Python reconstruction,
+figure and source archive are complete. The final helper's 28 checks pass on
+Julia 1.12.5 and 1.10.8; ordinary CI and new GitHub publication remain unperformed.
+
+The [prior-002 follow-up](docs/internal/mgmfrm-first-acceptance.md#29-prior-002の位置分散を別backendと精度追試で照合する)
+preserves the original location-moment gap and adds two same-data CmdStan fits.
+The first, with 4,000 retained draws, misses the fixed R-hat criterion. A
+separately declared precision follow-up with 16,000 draws passes all fit and
+conditional-moment diagnostics. Its primary E[z²−1] estimate is 0.000901 with
+MCSE 0.028055; the approximate reference band includes zero and excludes the
+old point estimate −0.110720. Saved-draw and conditionally integrated person-mean
+SDs are 0.125766 and 0.125681. The downward departure is not detected again in
+this qualified follow-up. The original cause remains unidentified: backend,
+coordinates and random seed change together. Targeted checks of the original
+transform, actual gradient wrapper, Hessian and saved density pass at 25 points.
+No original draws, warning, prior, default or calibration denominator is changed.
+The subsequent paired recovery cohort retains these limitations.
+
+The [analytic location review](docs/internal/mgmfrm-first-acceptance.md#28-絶対位置の条件付き分布を解析し標本の整合性も確かめる)
+derives the exact normal conditional for the finite-panel person mean under the
+current independent normal raw priors. Applied to the eight saved datasets,
+E[V] accounts for 98.15–99.96% of the conditional-integration estimate of its
+posterior variance. This is uncertainty along a likelihood-invariant location
+direction, not a causal attribution of information to the prior. More ratings
+do not directly remove it at fixed centered persons, relative items and loadings.
+Absolute location, relative recovery and prediction now have separate claims.
+
+The review also detects an unresolved computational concern: prior-002, D2 has
+E[z²−1] estimated as −0.11072 (MCSE 0.02789), despite ordinary diagnostics passing.
+Paired second-moment differences and a separate batch-mean MCSE sensitivity
+check retain a roughly four-MCSE gap. The case was selected after inspecting
+the results; this is not a calibrated rejection or proof of sampler bias.
+The subsequent follow-up above narrows the computational concern without
+identifying its cause. Section 28 added no fits; Section 29 adds two fits and no
+datasets. There are now eleven fits for the same eight calibration datasets.
+
+The [tail-case follow-up](docs/internal/mgmfrm-first-acceptance.md#27-ゼロ件だった裾を別backendと条件付き積分で照合する)
+adds one same-data CmdStan fit for the I3 relative location identified in the
+eight-dataset interval review. All expanded diagnostics pass. The selected mean
+and four interval endpoints agree under the numerical comparison rule fixed
+before the new fit. Both backends have zero retained draws below the generating
+truth; conditional integration of item difficulty estimates a small positive
+probability, 0.03050% and 0.02676%. Relative MCSE is still 20.3% and 17.7%, with
+about 70% of each estimate supplied by its largest 1% of conditional values.
+This narrows a computational concern without establishing precise tail mass or
+repeated-dataset calibration. The original eight fits and their denominator are
+unchanged; the follow-up adds no independent calibration dataset.
+
+The [saved-draw interval review](docs/internal/mgmfrm-first-acceptance.md#26-保存した全標本で区間位置数値精度を直接点検する)
+checks 150 quantities at 90% and 95% using the original 32,000 draws. Even with
+endpoint MCSE at most 3.10% of width, fixed-half comparisons change 28 coverage
+decisions. Both this sensitivity and the original zero-count event are retained.
+
+Finite-panel person-mean posterior SDs average 0.137/0.134, close to their prior
+SD of 0.141. Better sampling coordinates have not established strong data-only
+identification of absolute location. Separate absolute and relative quantities,
+prior dependence, numerical precision and repeated-dataset calibration. An
+analytic control also shows that 225 replications can have poor power against
+roughly two-percentage-point undercoverage; MCSE and detection power are distinct.
+The earlier four-draw ranks and prior-only negative control remain unchanged.
+
+This builds on the [prior-preserving coordinate comparison](docs/internal/mgmfrm-first-acceptance.md#22-共同事前を保つ位置座標で混合を比較する),
+[public fit/cache integration](docs/internal/mgmfrm-first-acceptance.md#23-位置座標を公開fitと自動cacheへ接続する)
+and [one-panel R0 heldout evaluation](docs/internal/mgmfrm-first-acceptance.md#24-標準条件r0の未使用評定を5分割で予測する).
+Both R0/R1 coordinate fits and all five R0 heldout refits qualify. The original
+R0 warning, 83 inconclusive backend statistics, existing defaults, joint prior
+and canonical saved coordinates remain intact. Initial fixed-condition recovery
+is now measured; interval acceptance, repeated-dataset prediction, posterior prior-sensitivity and
+independent scientific review remain open. The [application portfolio](docs/internal/application-portfolio.md)
+keeps Uchihara, EVA and Chopin as secondary uses. Following the user's current
+priority, empirical analysis and dataset-specific adapters are deferred while
+the core model's supported inferential scope is established. The common refit
+metadata repair is complete; it is not statistical acceptance.
+
+Earlier evidence and preparation through 2026-09-21 are recorded below; their
+historical next-step statements are superseded by the current update and active
+work queue.
 
 The subsequent [critical self-review](docs/internal/strategic-review-2026-09-21.md)
 finds that recent application engineering has outpaced resolution of the core
@@ -156,7 +1136,13 @@ do not reconstruct priorities from historical checkboxes. The
 [ordered deliverables](#immediate-work-and-stop-conditions) are the work queue;
 the source reviews below are their evidence, not additional milestones.
 
+</details>
+
 ## Active Decision Roadmap
+
+The [current decisions](#current-decisions) control scheduling. The contracts and
+dated evidence below retain their scope; historical next-step wording is not a
+second execution queue.
 
 **Primary objective: establish a mathematically correct, reliable and reusable
 Julia foundation for Bayesian MGMFRM, preserving the existing MFRM/GMFRM
@@ -242,9 +1228,9 @@ the dated implementation checks below and from independent scientific review.
 | Milestone | Status | Responsible role and concrete exit |
 | --- | --- | --- |
 | M0 — Package baseline | Implementation, placement/load review, and all 12 lane baselines recorded; runtime acceptance open, further performance work deferred | Maintainer: retain the unexplained 23.4% trigger and release hold; revisit after research progress or evidence of an actual execution blocker. Correctness, integrity, and resource-safety defects are not deferred |
-| M1 — Julia model, implementation and validation contract | Existing generalized fits and focused numerical checks are available. Canonical fixed-coefficient multidimensional MFRM has experimental Julia/CmdStan fits, result reconstruction, manual v2 caches, full/public reports/artifacts and named-dimension figures. An explicit 2D between-item correlated MGMFRM now has Julia/CmdStan fitting, summaries, MCSE, diagnostics, prior/conditional posterior prediction, manual caches and report/figure bundles. Saved-result engineering replay is available; statistical acceptance remains pending. Selected source/exchangeable priors, identification and validation scope remain unresolved | Analyst/maintainer: reconcile fixed-coefficient prior/identification choices, equations, coordinates, gradients and result semantics, and prepare independent review of the target-specific validation protocol. Implementation checks do not close M1; Uchihara preparation is not a dependency |
-| M2 — Core estimation evidence | Historical assets retained; a [C2 computation pilot](docs/internal/fixed-coefficient-validation-protocol.md#one-condition-computation-pilot-2026-09-17) now has actual Julia/CmdStan saved draws, retained execution failures and diagnostic warnings. Fresh recovery/SBC evaluation replications remain unlaunched | Analyst: execute the reviewed bounded known-truth roster for the declared model/design domain, assess recovery/calibration, failures and prior sensitivity, and retain diagnostic-qualified Julia/CmdStan comparisons. A successful application fit does not close this milestone |
-| M3 — Usable package and supported-domain review | Existing public-model content and saved-fit figure/report integration have dated verification. Fixed-coefficient fits have reports, named-dimension plots/bundles, a two-backend example and fit-taking `posterior_mcse`, including reload. Unfamiliar-reader, scientific review and final API migration remain pending | Maintainer and independent reviewer: reproduce selected numerical/scientific claims, verify the documented user workflow, and decide supported/narrowed/rejected/inconclusive scope. Application reports are secondary outputs, not package acceptance gates |
+| M1 — Julia model, implementation and validation contract | Experimental fixed-Q, fixed-coefficient and explicit 2D correlated workflows have numerical checks and saved-result consumers. Explicit normalized source/exchangeable priors now connect to the public independent MGMFRM workflow; candidate C remains a computational scale choice. The normalized location transform now connects to explicit experimental AdvancedHMC fitting, sharing implementation with the research adapter | Analyst/maintainer: preserve the checked target, saved-coordinate and cache contracts; retain identification limits and obtain independent review of the target-specific scientific prior and protocol. Application preparation is not a dependency |
+| M2 — Core estimation evidence | The raw target has eight joint-prior fits, paired recovery evidence and a 37-panel fixed-condition screen with I2 undercoverage; its later 274-ID cohort remains 4 completed / 1 failed / 269 unstarted. Separate normalized candidate C has two independent datasets with diagnostic-qualified transformed fits. Neither record establishes broad calibration acceptance | Analyst: prepare claim-specific recovery/calibration, prior-sensitivity and prediction decisions, comparing all three margins. Keep target identities, failure denominators and diagnostic-qualified backend comparisons separate; run only a justified bounded roster. The application and computational diagnostic passes do not close M2 |
+| M3 — Usable package and supported-domain review | Public result/report/figure and save/reload paths have dated checks. Normalized transformed fitting now has public experimental fit/save/reload/report integration checks. Current integration verification, unfamiliar-reader and scientific review, and final API migration remain pending | Maintainer and independent reviewer: verify the complete selected workflow on a reviewable candidate, reproduce its numerical/scientific claims and decide supported/narrowed/rejected/inconclusive scope. Historical checks are not current CI; application reports are secondary outputs |
 
 Roles above do not imply that a person has accepted an assignment. In
 particular, an independent reviewer is not yet assigned. Implementation by
@@ -2778,14 +3764,97 @@ these checks add zero evaluation replications and do not replace M1/M3 review.
 
 ## Immediate work and stop conditions
 
-Prioritize the [first core acceptance candidate](docs/internal/mgmfrm-first-acceptance.md)
-through the model, computation and review work below. The numbered
-[implementation handoffs](#next-implementation-handoffs) retain their existing
-identifiers; the supporting cost investigation is not the next required task.
+**Current order, 2026-09-27:** Follow [Current decisions](#current-decisions):
+the normalized coordinate route now connects to the explicit experimental API;
+the [foundation evidence](docs/internal/mgmfrm-foundation-scale-acceptance.md) now
+separates claim-specific decisions. The four-fit loading-prior sensitivity comparison
+is complete, including added-quantity MCSE and independent saved-value arithmetic checks.
+The [fixed-facet design](docs/internal/mgmfrm-foundation-fixed-facet-design.md) now
+specifies paired R0/R1, scale rationale, estimands and precision/cost options. Its
+bounded rehearsal has completed all six fits, with four numerically qualified and
+two retaining R-hat failures. The single engineering pair adds no evaluation credit;
+zero blocks qualify jointly across all six conditions. The analyst's [decision packet
+in §10](docs/internal/mgmfrm-foundation-fixed-facet-design.md) now makes the claim,
+finite sampling/failure policy and precision/cost alternatives reviewable. Independent
+review, N and the formal launch remain pending. This planning task is closed; prepare
+the existing experimental API's integration candidate and relevant checks alongside
+scientific review, without adding another planning prerequisite or posterior batch.
+The existing two-panel comparisons and saved ability review remain exploratory.
+Workflow review proceeds alongside this work. Conditional-CDF refinement is a
+bounded optional aid, not a universal prerequisite. The
+[first raw candidate](docs/internal/mgmfrm-first-acceptance.md) remains a distinct
+historical target with unresolved findings, not the automatic next cohort.
+The numbered [implementation handoffs](#next-implementation-handoffs) retain
+their identifiers and evidence; their dated chronology does not set priority.
 
-**Current order after the strategic/local reassessment:** finite density,
-gradient and ID conformance for the exact candidate is now checked (candidate
-packet, section 10). Sections 11–12 now specify the scientific proposal and
+**Previous order, 2026-09-24:** Establish mathematical interpretation before
+adding long-running fits. The [estimand review](docs/internal/mgmfrm-estimands-identification.md)
+now gives the pure-Q conditional equivalence argument, interpretation table and
+proper-posterior existence proof. The [prior-choice review](docs/internal/mgmfrm-prior-choice.md)
+now connects raw/source/exchangeable structures to comparisons and units.
+The [prior-response review](docs/internal/mgmfrm-prior-responses.md) now checks
+the category implications of illustrative contrast widths, distinguishing
+label symmetry, score reflection, endpoint mass and concentration. The internal
+normalized route now connects the same prior record to generation, prediction
+and restored-sample explanations. The 2026-09-26 public connection now provides an explicit MGMFRM prior/result
+boundary and compatible report/cache dispatch, without extending the
+fixed-coefficient `ExchangeablePrior` or adopting scientific scales. Claim-specific precision and acceptance requirements remain separate work.
+Preserve the original data, frozen
+runtime, evaluation quantities and unresolved results. Completing the remaining
+269 attempts is neither a prerequisite for these derivations nor a proof of
+the broader foundation. The preceding execution sequence below is historical.
+
+**Previous order, 2026-09-23:** Sections 22–26 complete location-coordinate
+integration, one R0 heldout evaluation, eight joint-prior fits and saved-draw
+interval checks. Section 27 now checks the selected tail case with one same-data
+CmdStan fit and conditional integration. Its five focal summaries agree and its
+small positive tail probabilities are compatible at current MCSE; precise tail
+mass remains open. Preserve the original cohort, its zero-count observation and
+its eight-dataset denominator. Diagnostics, numerical agreement, information from
+data and repeated-dataset calibration remain separate forms of evidence.
+
+Section 28 now defines the distinct claims for absolute location, relative
+recovery and prediction, with a closed-form conditional under the declared priors.
+It also finds a roughly four-MCSE second-moment gap for prior-002 D2, which
+ordinary diagnostics miss. Section 29 preserves that result, a first CmdStan
+fit with a diagnostic warning, and a longer qualified follow-up that does not
+detect the same departure. Its source remains unidentified; this local result
+is not a global calibration claim or permission to repair the old draws.
+Sections 30–32 now complete the first paired fixed-condition recovery, paired
+prior-sensitivity follow-up and fresh 37-panel coverage screen. The latter finds
+I2 loading undercoverage under the declared fixed R1 condition; this limits the
+interval-performance claim without identifying a computational error. Preserve
+the data, priors, all attempts and the separate joint-prior denominator eight.
+
+Section 33 returns to calibration with full-draw median/coverage screens and
+analytic correct/error controls. The next core deliverable is an actual
+joint-prior replication and numerical-precision design informed by those controls:
+keep all 150 quantities, including the observed likelihood; specify the deviations
+to detect, resolved-classification assumptions, per-quantity unresolved outcomes
+and dependence treatment before generating new panels. The normal-reference
+counts 142 and 255 are sensitivity results, not an adopted MGMFRM roster or
+finite-MCMC guarantees. Aggregate unresolved rates from the old eight cannot
+justify a per-quantity 5% condition. Continue to distinguish sampler computation,
+joint-prior calibration and fixed-condition performance; a further fixed-condition
+mechanism contrast needs its own question. Repeated-dataset prediction follows.
+The targeted tail comparison is complete for its local question; it is not a
+calibration replication. Rank-based tests still need an explicit dependence
+design. Keep failure accounting and independent review explicit. Application
+readiness and execution-management machinery do not replace these outcomes;
+the old unreviewed 12-fit proposal is not a prerequisite for targeted progress.
+
+The [application inspection](docs/internal/application-portfolio.md) adds
+Uchihara, EVA and Chopin as complementary uses, with separate questions and
+input provenance. Grouped refits now permit heldout-only metadata IDs for the
+currently supported likelihoods, while still rejecting unseen fitted
+person/rater/item levels. Grouped splitting and joint predictive scoring are
+explicitly distinguished. This reusable repair does not launch empirical fits
+or supersede recovery/SBC and repeated-dataset evaluation. Dataset-specific
+adapters, heterogeneous scales, selection models and new latent dimensions are
+not prerequisites for the initial core candidate.
+
+The supporting preparation below is complete: finite density, gradient and ID
+conformance for the exact candidate is checked (candidate packet, section 10). Sections 11–12 now specify the scientific proposal and
 implement person-population generation, ID-sensitive scoring and SBC quantity/
 draw selection. Section 13 now binds complete cache bytes, training targets, recomputed
 diagnostics and primary IDs, with named recovery rows and complete-fold assembly.
@@ -2818,15 +3887,16 @@ runner. Section 19 now provides a [12-fit R0/R1 execution rehearsal proposal](do
 one matched dataset pair, two complete-data fits and ten heldout refits, fixed
 IDs/seeds, and proposed serial caps of eight hours and four GiB. Inputs and all
 12 training targets are bound, and fitting/scoring worker entry points are connected;
-new sampling remains zero. This one pair cannot estimate replication error,
+new sampling under that proposal remains zero. This one pair cannot estimate replication error,
 coverage or general condition effects. Section 20 now connects the serial batch
 controller with shared time/storage caps and immutable all-slot ledgers. Owned
 Python workers verify warnings, resource stops, interrupted or missing records;
 native Julia collection retains failed/missing/precision-unresolved denominators
 without sampling. Explicit post-stop collection has a separate 300-second budget
-and cannot refit. Actual twelve-fit execution remains untested. Next record
-independent review and the execution decision in a new frozen contract before
-running this finite rehearsal; do not add infrastructure as a substitute. The 444/819-fit alternatives remain
+and cannot refit. Actual twelve-fit execution remains untested. Before running
+that particular rehearsal, record its independent review and execution decision
+in a new frozen contract. It is not a prerequisite for the targeted engineering
+work above; do not add infrastructure as a substitute. The 444/819-fit alternatives remain
 unselected. Preserve the
 central pilot as computational evidence. The 40,000-draw pair is deferred unless
 closing its full numerical-comparison claim becomes necessary. Its 83 unresolved
@@ -2866,9 +3936,9 @@ priority follows the Julia user workflow, not the readiness of a paper dataset.
 | Task / owner role | Next deliverable | Verification and stop condition |
 | --- | --- | --- |
 | 1. Remaining Julia cost investigation — analyst/maintainer; supporting, deferred | If needed for a demonstrated blocker or release review, complete the [metric-observation handoff](#next-implementation-handoffs) using the existing observer; relate updated metric conditioning to subsequent transition work. Keep the completed [likelihood replay](docs/internal/fixed-coefficient-validation-protocol.md#bounded-likelihood-replay-2026-09-18) as the arithmetic-preservation baseline | Exit: exact trajectory/RNG preservation and a recorded mechanism finding or unresolved result. Any schedule comparison is a separate declared decision. Keep the joint prior, coordinates/Jacobian, criteria and all attempts; no automatic budget extension, new default or full-chain rerun. Do not block the already active row 2 model-workflow handoff |
-| 2. M1 Julia model-to-code contract and estimation path — analyst/maintainer | The 2026-09-21 [numerical handoff](docs/internal/normalized-prior-backend-comparison.md#generalized-2d-correlation-numerical-target-2026-09-21) and [maintained sample records](docs/internal/normalized-prior-backend-comparison.md#generalized-2d-correlation-maintained-sample-records-2026-09-21) connect the explicit target, Julia/CmdStan runners, warmup, diagnostics, private summary/MCSE and validated save/reload. The [explicit experimental interface](docs/internal/normalized-prior-backend-comparison.md#explicit-correlated-mgmfrm-interface-2026-09-21) now adds the specification/result wrapper, public summary/MCSE/diagnostic methods and manual fit caches without changing existing MGMFRM saved types. The [prediction handoff](docs/internal/normalized-prior-backend-comparison.md#correlated-mgmfrm-prior-and-posterior-prediction-2026-09-21) now connects the same joint prior and existing-row posterior response model. The report/figure handoff now completes saved-result consumers. The [initial independent-dimension acceptance packet](docs/internal/mgmfrm-first-acceptance.md) now has independent generation and diagnostic/precision-qualified Julia and CmdStan pilots, with the first launch failure retained. Reusing the Julia result in the separate CmdStan follow-up yields 220 primary-quantity statistics within allowance, 83 inconclusive and zero discrepancies. An all-statistic precision plan retains a conditional 40,000-draw pair, with batched prediction and nonduplicated full-fit caches checked. The reassessment defers that pair and its resource engineering: current-target density/gradient and full-row ID checks are now verified. The section 12 preparation now checks person-population generation, ID-sensitive scores and 138 SBC quantities with fixed terminal chain selection, including a finite sensitivity counterexample. Section 13 now binds cache contents, training targets, recomputed diagnostics and all planned IDs, including recovery rows and complete-fold assembly. Next finish CV-loss MCSE, paired-condition/person aggregation, prior prediction and a reviewed feasible roster. Preserve the 83 inconclusive comparisons. No additional sampling follows automatically. Correlated acceptance and mixed-Q geometry retain separate scopes | Exit: fit/cache/diagnostic/MCSE/predictive/report/figure consumers preserve eta and raw z versus model rho; old independent fits retain their meanings. Common-coordinate numerical checks and bounded engineering sampling are implemented; a qualified posterior comparison, scientific selection and domain acceptance remain open. The fixed-coefficient C2 study does not validate estimated loadings/consistencies |
+| 2. M1 Julia model-to-code contract and estimation path — analyst/maintainer; bounded connection implemented | The [normalized location adapter](scripts/mgmfrm_normalized_location.jl) now delegates to the package implementation used by explicit experimental fitting for the selected independent fixed-Q target. Preserve the explicit normalized prior identity, canonical raw records, diagnostics and report/cache consumers. Earlier correlated-model connections, raw-coordinate comparisons and numerical receipts remain in their dated records | Exit: target/gradient and initialization checks, coordinate-aware cache identity, compatibility with old records, an end-to-end fit/save/reload/report check and one user example. Reject unsupported combinations explicitly. Do not infer scientific prior adoption, matched CmdStan acceptance or broader model support from this engineering connection |
 | 3. CmdStan continuity — analyst/maintainer; accompanies each model slice | First common-coordinate probabilities, density differences and gradients, then a bounded matched-target posterior/predictive comparison with declared MCSE margins. Maintain independent backend execution and the same report/figure meaning | Exit: both routes represent the same likelihood, prior measure, constraints and scale. A posterior agreement claim requires each fit to qualify; the original C2 pair remains inconclusive. Missing counterpart support stays partial. Numerical agreement is implementation evidence, not model adequacy |
-| 4. M2 core statistical validation — analyst; no fresh evaluation replications | Use the [first core candidate](docs/internal/mgmfrm-first-acceptance.md), owned by the existing MGMFRM Stage-A protocol/analysis contract: one dense raw-prior target with six claim-to-evidence rows and explicit exclusions. Independent fixed-raw, joint-prior and R0/R1 person-population generation are implemented and checked; ID scoring and SBC quantities now have fit/attempt adapters, with one historical fixed-truth replay and explicit arithmetic fixtures. This adds no fitted joint-prior SBC or heldout results. The initial Julia result and separately bounded CmdStan follow-up both qualify, while 83 of 303 primary-quantity comparisons remain inconclusive. Retain the first pre-MCMC launch failure and the partial comparison result. The precision/resource design is now concrete but conditional, with the original execution limits retained. Resolve whether another long pair supplies necessary claim evidence and its executable budget, while specifying claim-specific generation choices and replication MCSE; local MCMC qualification does not establish coverage or prediction. Generated prior vectors are not fitted SBC evidence | Exit: independently accepted target/scope, scientific margins or descriptive-only conclusions, replication/MCSE rationale, dependence policy, failure accounting and measured execution budget. Then run only the reviewed roster. The proposed fixed-coefficient 5,780 calls are not a minimum completion requirement or launch instruction; narrow a claim/roster prospectively if necessary, preserving the evidence needed for the retained claim |
+| 4. M2 core statistical validation — analyst; current order in Current decisions | Retain the raw evidence in [first acceptance](docs/internal/mgmfrm-first-acceptance.md): one descriptive R0 five-fold evaluation, eight joint-prior fits, paired recovery, 37 fixed-condition panels and the later 4/1/269 cohort. Keep the I2 undercoverage finding, prior-002 D2 concern and 83 inconclusive backend comparisons. The distinct [normalized foundation](docs/internal/mgmfrm-foundation-scale-acceptance.md) now has two independent candidate-C datasets, transformed-fit diagnostics and three-margin conditional budget comparisons. Consolidate what each claim can and cannot establish; the all-150 positive-acceptance claim remains open | Exit: reviewed target/scope, scientific margins or descriptive-only conclusions, replication/MCSE rationale, dependence policy, failure accounting and an executable bounded budget. Do not automatically continue the 269 raw attempts, launch thousands of candidate-C fits, or require full conditional-CDF error certification before every workflow improvement. Archived preparations and storage estimates are not current execution orders |
 | 5. Julia user workflow and public documentation — maintainer with analyst input; alongside rows 1--4 | The fixed-coefficient fit-taking MCSE adapter is implemented with direct/raw coordinates and saved-record validation; see the verification below. Next record an unfamiliar reader identifying model/backend, inspecting warnings and precision, selecting a dimension and regenerating figures after reload. Extend consumers with each model slice and prepare naming/call-site migration for accepted models | Exit: demonstrated precision values and reload semantics remain covered. Supported-scope source/help/fresh-HTML and runtime output agree. The actual reader walkthrough and final ordinary API migration remain required, with compatibility aliases and unchanged old-result interpretation; model limits and diagnostic warnings remain visible |
 | 6. M3 supported-domain and package handoff — maintainer and independent reviewer | Reproduce selected model/numerical claims and the documented workflow in a separate environment at the recorded revision; make claim-level supported/narrowed/rejected/inconclusive decisions | Exit: usable Julia behavior, matching CmdStan evidence and independent scientific acceptance are reported separately. Public promotion retains its M0 gate and integration/release authority. Completion or publication of an application paper is not an exit condition |
 | Long-term model extensions — analyst/maintainer; sequenced after the relevant foundation slice | Follow the [single extension sequence](#long-term-extension-sequence): correlated dimensions/within-item validation, configurable random effects, a specified non-compensatory ordinal kernel, and staged Q structure inference. Fixed-Q comparison and identification work can precede full structure learning | Promote one declared combination at a time with model-specific evidence, both backends and a complete user workflow. Independent block validation does not certify their composition. These are long-term deliverables, not newly available options or an automatic batch of implementation/research jobs |
@@ -3088,7 +4158,8 @@ capability expansion is required to complete these bounded slices.
 
 ### Decision handoff and progress accounting
 
-**Assessment at `9cf42fc`, 2026-09-21.** The implementation is substantially
+**Assessment updated 2026-09-27; historical baseline at `9cf42fc`, 2026-09-21.**
+Use [Current decisions](#current-decisions) for scheduling. The implementation is substantially
 beyond a prototype, but the current core targets have not completed the chain
 from reviewed scientific specification to fresh evaluation and independently
 accepted scope. Measure progress by that chain for each model, not by file,
@@ -3100,7 +4171,7 @@ first accepted MGMFRM domain have different completion boundaries.
 | --- | --- | --- |
 | Stable one-dimensional MFRM | Supported fitting, design/anchor checks, diagnostics, persistence and figures in the existing contract | Preserve compatibility and verify the eventual integration candidate; this supporting branch does not complete MGMFRM |
 | Scalar GMFRM | Experimental item-discrimination times rater-consistency fitting, both backends and saved-result examples; historical research records remain available | Preserve its distinct unit-scale equation, rater-owned steps and restricted prior/scope. Its existing checks do not transfer to multidimensional MGMFRM |
-| Fixed-Q MGMFRM with identity latent correlation | Experimental Julia/CmdStan fitting and user outputs; numerical target checks. The separate normalized source/exchangeable references have 640/640 comparison statistics within declared resolution on one dataset | The [first review candidate](docs/internal/mgmfrm-first-acceptance.md) now specifies the public raw prior, dense 50/5/5 design and estimands, with 25 sampler-free checks. Independent generation and pilot preparation are now checked; the bounded pilot is running. Final replication/resource decisions and scientific review remain. Normalized references and the correlation model are not interchangeable with this target |
+| Fixed-Q MGMFRM with identity latent correlation | Experimental Julia/CmdStan workflows and explicit normalized priors; distinct raw and normalized comparison records. Candidate C has two independent datasets with qualified transformed fits; four same-data prior-sensitivity fits and their MCSE comparisons are now recorded | The transformed route now connects to the public experimental API. Fixed-facet input/result binding and the six-fit R0/R1 engineering rehearsal are complete; four fits pass and two retain numerical failures. The one pair adds no evaluation credit. Scientific prior/domain selection, claim-specific acceptance and independent review remain open. The raw cohort remains 4/1/269; it is not running or pooled with C. Earlier normalized backend checks do not certify this candidate across designs |
 | Fixed-coefficient independent/correlated MFRM | Both backends and explicit exchangeable-prior workflows are connected. A dense Julia C2 follow-up passes its one-panel diagnostic screen | Original C2 backend comparison retains 30 inconclusive statistics; diagnostic-qualified parity, reviewed recovery/SBC and prior sensitivity remain open. This reference cannot validate estimated loadings/consistencies |
 | Generalized 2D between-item correlation | Explicit specification/prior, maintained Julia/CmdStan fitting, numerical target checks, summaries/MCSE, diagnostics, prediction and cache/report/figure replay are connected; the old research sampler remains separate | Review this target’s prior/domain and estimands, freeze a bounded validation design, then evaluate it. Short warning-bearing fits and implementer figure review do not establish scientific or reader acceptance |
 | Within-item/mixed fixed Q | Some identity-covariance designs are executable with warnings | Establish joint identification and recovery for a declared geometry. Admission/rank checks and between-item evidence do not certify cross-loadings or their combination with free correlation |
@@ -3133,8 +4204,17 @@ schema, dependency, export or scientific default changed. The help, public
 manual, example and validation protocol now describe this scope; custom
 contrasts continue to use per-draw matrix input.
 
-Use the existing work queue with the following **decision sequence**, not a new
-registry or another unrestricted simulation grid:
+The raw target's Section 30 contains eight paired recovery panels; Sections
+31–32 add prior sensitivity and 37 fixed-condition panels with an I2 undercoverage
+finding. These results do not transfer to normalized candidate C, whose two
+independent datasets currently provide computation evidence. Follow the
+claim-specific evidence gaps without automatically increasing the same-fit draw
+count. Preserve the prior-only comparison as a post-design interpretive benchmark
+and the startup/metadata correction history.
+
+The following **decision sequence** records the earlier scientific handoff in
+more detail. Read it under [Current decisions](#current-decisions), not as a
+second queue or an instruction to launch an unrestricted simulation grid:
 
 1. **First candidate specified for review, 2026-09-21.** The
    [candidate packet](docs/internal/mgmfrm-first-acceptance.md) fixes an additive,
@@ -3327,7 +4407,22 @@ recovery evaluation; any timing comparison needs its own comparable conditions.
 This removes the former blanket M0-to-M2 dependency, not the M0 release hold,
 independent review, or research safety checks.
 
-### Uchihara 2022 secondary application
+### Secondary applications: Uchihara, EVA and Chopin
+
+The user's 2026-09-23 clarification makes all three datasets application
+examples of the MGMFRM foundation, not its defining objectives. The
+[application portfolio and inspection](docs/internal/application-portfolio.md)
+records 136,943 filtered EVA image-rater events and the four stages of the
+official Chopin score table. EVA adds sparse multi-attribute ratings and
+different response scales; Chopin adds raw versus corrected scores, recusal
+and selection, with no published criterion-level dimensions in the inspected
+table. None of these observations establish a new model's identification or
+scientific validity. Core validation retains its own known-truth designs;
+application fits and software integration checks do not count as evaluation
+replications. The detailed Uchihara plan below remains historical application
+evidence, with equal subordinate status.
+
+#### Uchihara 2022 secondary application
 
 This is a retained application plan, subordinate to the Julia foundation work.
 The user's 2026-09-21 clarification permits synthetic data for the current
@@ -4003,6 +5098,10 @@ target-specific M0–M3 domain decision. Core development and sampler-free
 validation need not wait for completion of the entire MFRM anchor study.
 A checked engineering item is not scientific validation.
 
+Checked items below retain their dated baseline meaning, not a claim that the
+2026-09-27 checkout has passed fresh full CI or minimum-version verification.
+The current integration candidate must supply the checks relevant to its changes.
+
 These conditions govern the primary Julia package deliverable, including its
 continuing CmdStan verification. The [Uchihara application](#uchihara-2022-secondary-application)
 is not an additional release gate, and its success does not waive any condition.
@@ -4048,12 +5147,14 @@ the priority correction does not automatically restart the old benchmark program
 - [ ] Runtime P0 acceptance resolves the retained >20% fitting trigger.
   Research-result isolation, whole-lane evidence, and three-run baseline
   collection are recorded above; they do not substitute for that decision.
-- [x] The current 0.1.x package/research placement and load boundary is reviewed:
-  active documents are short,
+- [x] The historical 0.1.x package/research placement and load boundary was reviewed:
   retained fixtures have a shipped purpose or an explicit archival role, and
   research records are not numerical prerequisites for ordinary tests. Retained
   ordinary numerical/behavioral references are identified separately; shared
   research definitions still have parsing/load cost and are not promoted APIs.
+- [ ] Confirm current decision/document navigation on the integration candidate.
+  The 2026-09-27 review separates the current work order from accumulated history;
+  this correction does not itself establish unfamiliar-reader acceptance.
 
 Keep the existing 4 MiB compressed Git archive growth guard, the documented
 250 KiB fixture-review threshold, phase elapsed-time gates, and CI job timeouts.

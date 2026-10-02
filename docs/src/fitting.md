@@ -1,7 +1,8 @@
 # Bayesian Fitting
 
-`BayesianMGMFRM.jl` fits identified MFRM/RSM/PCM designs and exposes two narrow
-generalized configurations behind explicit experimental opt-in. Validate data
+`BayesianMGMFRM.jl` fits identified MFRM/RSM/PCM designs and exposes the
+[documented multidimensional and generalized configurations](scope.md#Current-Support)
+behind explicit experimental opt-in. Validate data
 before sampling; inspect the compiled design when reviewing identification or
 model structure. The [minimal example](examples.md#Minimal-MFRM-Workflow) runs
 the ordinary fit, diagnostics, figures and save/reload sequence.
@@ -99,6 +100,87 @@ Plotting does not expand the supported model configurations.
 The [guarded examples](examples.md#Saved-Generalized-Fits-and-Figures) demonstrate
 model-scale intervals, raw-coordinate diagnostics and named-dimension selection
 from saved GMFRM/MGMFRM fits, with either Julia or CmdStan estimation.
+
+## 3D item response surfaces for MGMFRM
+
+For a saved independent fixed-Q MGMFRM fit, show the probability of each
+rating category as a function of two numbered abilities, for a selected item
+and rater:
+
+```julia
+using BayesianMGMFRM, CairoMakie
+
+restored = load_fit_cache("mgmfrm-fit.jls")
+figure = BayesianMGMFRM.plot_response_surface(restored;
+    item = "I1", rater = "R1", dimensions = (1, 2),
+    x = range(-2, 2; length = 31), y = range(-2, 2; length = 31),
+    interval = 0.9)
+display(figure)
+save("category-response-surfaces.png", figure)
+save("category-response-surfaces.svg", figure)
+
+# A single category, with the same color as in the all-category view.
+category_figure = BayesianMGMFRM.plot_response_surface(restored;
+    item = "I1", rater = "R1", category = 2, dimensions = (1, 2))
+# The expectation on the actual numeric rating scale is a separate quantity.
+expected_figure = BayesianMGMFRM.plot_response_surface(restored;
+    item = "I1", rater = "R1", category = nothing, dimensions = (1, 2))
+```
+
+The default `category = :all` uses a distinct, fixed color and legend entry for
+each stored rating value. All probability wireframes share a vertical scale
+from 0 to 1; color identifies the category, not probability height. The mapping
+uses the full fitted category scale even when displaying only one category,
+so changing item or rater within the same fit preserves category colors.
+`category = 2` means rating value 2, not the second category by position.
+Intermediate-category probabilities can rise and then fall with ability.
+For crowded wireframes, select a single category or change the viewing angle.
+
+Axes use θ₁, θ₂, and the actual selected dimension numbers. Stored dimension
+names remain available for selection and in the numerical result; they do
+not automatically become axis labels. A name such as “Technique” requires a
+substantive interpretation justified by the rubric and model. This display
+follows the numbered abilities and category-specific response surfaces in
+[Uto (2021), Fig. 2](https://doi.org/10.1007/s41237-021-00144-w).
+Here the curves are posterior means: the calculation evaluates each joint
+posterior draw and then averages the probabilities. It does not substitute
+posterior-mean parameters into the model. Curvature arises from the ordinal
+response link applied to weighted ability; it does not by itself imply an
+interaction between the two abilities.
+
+The companion heatmaps show the width of each category's pointwise central
+credible interval on a shared continuous color scale. Their category titles
+match the wireframe colors. For `category = nothing`, the surface and its
+interval summarize expected rating instead. These intervals describe
+uncertainty in a response probability or conditional expectation, not an
+individual future rating, a simultaneous band over the grid, or MCSE. The
+whole-fit diagnostic warning remains visible. Neither a smooth surface nor
+a narrow interval establishes convergence or calibration.
+
+The selected rater's severity and consistency remain part of the calculation.
+There is no implicit averaging over raters or a population of persons. If Q
+excludes an axis for this item, the surface is flat along that axis. With more
+than two dimensions, explicitly fix every remaining ability, for example
+`dimensions = (1, 2), fixed_abilities = Dict(3 => 0.0)` for a three-dimensional
+fit. Stored dimension names are also accepted as selectors. This produces a
+conditional slice, not a marginal surface. The grid is on the fitted ability
+scale; the default range −3 to 3 is a display choice and does not establish
+that observations support predictions throughout that range.
+
+For numbers without installing a renderer, use the same arguments with
+`BayesianMGMFRM.item_response_surface(restored; item = "I1", rater = "R1")`.
+The result includes `mean`, `lower`, `upper`, and `interval_width` arrays,
+indexed as `[x_index, y_index, category_index]` for `:all`, and as
+`[x_index, y_index]` for a single category or expected rating.
+`category_levels[category_index]` gives the actual rating value.
+All retained draws are used by default. An explicit, unique `draw_indices`
+selection is recorded in the result and the figure's draw count; reducing it
+changes the numerical approximation. Grid size affects computation time.
+
+Figures are editable CairoMakie Figures. `azimuth` and `elevation` set the
+static 3D viewing angle in radians; this entry point does not provide browser
+rotation controls. It supports the independent MGMFRM fit type and does not
+extend fitting support or automatically add figures to report bundles.
 
 ## Chain diagnostic figures
 
@@ -353,7 +435,7 @@ readiness check does not enforce this compile-time policy. See
 For both guarded generalized families, every retained raw draw is transformed
 through the Julia identification map before the common fit, diagnostics, and
 prediction interfaces are built. Unwrapped MGMFRM specifications remain fixed-Q
-with identity correlation. The [explicit correlated MGMFRM](experimental.md#correlated-mgmfrm-explicit-fitting-and-saved-results)
+with identity correlation. The [explicit correlated MGMFRM](experimental.md#Correlated-MGMFRM:-explicit-fitting-and-saved-results)
 uses a separate result type and currently supports summaries, diagnostics, MCSE
 and manual caches, plus prior and conditional existing-row posterior prediction.
 Reader-facing reports, tables and optional CairoMakie figures retain the saved
@@ -414,6 +496,117 @@ cache through a new fit. Manual loading preserves historical draws and metadata.
 
 `save_fit_cache` preserves these compact summaries and `load_fit_cache` restores
 them; warmup parameter draws are not saved. Existing caches remain readable.
+For GMFRM/MGMFRM, `coverage = :recorded` confirms these chain-level totals;
+it does not mean that an iteration-by-iteration adaptation history is available.
+The fit cache does not retain the adapted mass matrix or warmup step-size
+history. `sampler_controls.step_size` is the requested initial step size;
+the retained `sampler_stats` rows contain the step sizes actually used during
+sampling. A cache refresh collects the same supported summaries, not the
+missing adaptation history or metric.
+
+For future AdvancedHMC and CmdStan comparisons, the repository provides an opt-in research
+helper for independent fixed-Q MGMFRM. From the repository root, use the same
+fit options as the planned ordinary fit:
+
+```julia
+include("scripts/mgmfrm_adaptation_record.jl")
+fitted = MGMFRMAdaptationRecord.fit_recorded("adaptation-run-001", spec;
+    fit_options...)
+```
+
+`fit_options` is a named tuple of ordinary `Experimental.fit` keywords, including
+the prior, seed, warmup/retained lengths and other controls chosen for the study.
+The helper returns the ordinary fit and creates a new directory containing
+`fit.jls` and `adaptation.json`; an existing directory is an error. This is a
+repository helper, not an exported package API or an automatic cache refresh.
+AdvancedHMC supports raw and `:orthogonal_person_mean_item_offset` sampling
+coordinates; CmdStan supports raw coordinates. Both support unit, diagonal and
+dense metrics. Adapted metric recording needs CmdStan 2.34 or later. Correlated
+models and private sampler overrides are outside the helper's scope.
+
+The JSON records actual chain starts before and after the coordinate transform,
+every warmup and retained transition's sampler statistics,
+the retained kernel, coordinate order, model/data/prior
+identity, controls, environment/source hashes and the saved fit's SHA-256.
+AdvancedHMC copies inverse mass matrices when they change.
+`iteration` counts from one through warmup and retained sampling together;
+`phase` marks their boundary. For AdvancedHMC, `metric_used` and `metric_after`
+are one-based indices into `metrics`. The former was used by that transition;
+the latter follows its adaptation update and is used by the next transition.
+The row's `step_size` was used by the completed transition, so it must not be
+paired with `metric_after` as though both preceded adaptation. Dense matrices
+are JSON arrays of rows; diagonal/unit metrics are diagonal vectors, all in
+`sampling_names` order. Rotated person coordinates are numbered means/contrasts,
+not individually labelled person abilities. Item offsets are distinguished from
+raw item parameters. The prior remains defined on the original raw coordinates.
+The input signature is a decimal string; other integers outside the exact
+Float64 integer range, including large seeds or nested identifiers, are also
+decimal strings to prevent precision loss in JSON consumers.
+
+With `backend = :cmdstan`, the helper also preserves the native chain CSV files
+(including warmup parameter rows), input/init JSON and adapted metric JSON,
+each with a hash. CmdStan compilation uses a new `compile` subdirectory unless
+the caller supplies a different fresh `cmdstan_cache_dir`. The record retains
+actual per-chain seeds, command arguments and executable hashes. The
+[official metric JSON output](https://mc-stan.org/docs/cmdstan-guide/mcmc_config.html#adaptation)
+is requested with `save_metric=1` and 18 significant digits; rounded CSV metric
+comments are not treated as the exact adapted matrix. When warmup is zero,
+adaptation is disabled and the adapter supplies no metric file, so the record
+explicitly identifies the metric as the command's default identity.
+Dense metric entries are preserved as written, including tiny floating-point
+asymmetry. Parsing checks approximate symmetry with relative tolerance
+`sqrt(eps(Float64))`, positive definiteness using the lower triangle, and records
+the maximum asymmetry; it does not silently symmetrize the saved matrix.
+
+CmdStan's warmup metric history is unavailable: warmup `metric_used` and
+`metric_after` are `null`, while retained rows reference the final metric.
+Energy errors and `is_accept` remain unavailable. `stan_lp` is the native
+`lp__` value, which omits constants; the record's `log_density` remains `null`
+rather than representing it as the Julia-evaluated density saved in the fit.
+The original CSV is copied before result parsing, including partial output
+when a sampling command fails. Saving it does not make a failed attempt complete.
+
+A completed recording requires `status = "complete"`; this describes recording
+success, not convergence or calibration. Caught errors preserve a `failed`
+record and rethrow the error. Abrupt process termination may leave only the
+initial `started` record. AdvancedHMC warmup positions, tree states and RNG
+checkpoints are not recorded, so this is not an exact mid-chain restart facility. It cannot
+recover missing history from an old fit. Its additional records must be included
+explicitly in any new study specification; it does not change frozen cohorts.
+
+To inspect a completed record without fitting, use the repository review helper:
+
+```julia
+include("scripts/mgmfrm_adaptation_review.jl")
+review = MGMFRMAdaptationReview.review("adaptation-run-001"; tail_fraction=0.2)
+review.chains[1].late_warmup
+```
+
+For a JSON file, run
+`julia --project=. scripts/mgmfrm_adaptation_review.jl adaptation-run-001 review.json`.
+The command refuses an existing output file. Input records and caches are read
+only. As with `load_fit_cache`, use trusted local Julia caches.
+The review requires a complete v1 record and checks the cache hash before
+loading it, then compares model/data/prior identity, controls, coordinate order,
+initial-state transforms, chain layout, retained statistics, compact warmup
+counts and metric timing. CmdStan CSV/data/init/metric files are hash-checked and
+reparsed; their retained parameter values are compared with the cache.
+Historical environment/source hashes remain provenance and need not match the
+current checkout. This checks saved correspondence, not authenticity of an
+arbitrarily edited bundle or the availability of its original executable.
+
+Each chain reports whole warmup, its final `ceil(warmup * tail_fraction)`
+iterations, and retained sampling separately. The default final 20% is a
+descriptive window, not a claim that backend adaptation schedules align.
+Summaries include numerical errors, maximum-depth hits, step sizes and acceptance
+statistics, with separate counts for unavailable and nonfinite values.
+CmdStan density uses `stan_lp`; acceptance statistics are not proportions of
+states that moved. Missing warmup metric history remains `null` for update counts,
+even when warmup was zero. Zero warmup has empty windows, not a successful
+adaptation verdict. Final metric summaries refer to the recorded sampling
+coordinates. No warmup threshold, convergence verdict, or calibration acceptance
+is assigned; incomplete records and inconsistent bundles raise an error.
+
 Turing temporarily buffers warmup transitions to produce the counts, then
 keeps only the chain summaries. Recording preserves the corrected adaptation
 schedule, retained draws and RNG stream. A corrected Turing cache created before

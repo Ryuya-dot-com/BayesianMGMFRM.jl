@@ -9,8 +9,8 @@ models. Start with the [short runnable examples](examples.md).
 ## What Is Supported
 
 The stable fitting surface covers MFRM with rating-scale or partial-credit
-steps. Multidimensional configurations are available only with explicit
-experimental opt-in:
+steps. The following additional configurations require explicit experimental
+opt-in:
 
 - a fixed-coefficient multidimensional MFRM with independent abilities;
 - a two-dimensional between-item MFRM with estimated population correlation;
@@ -24,8 +24,14 @@ Broader discrimination structures, exploratory loadings, higher-dimensional
 correlation estimation, and fitted DFF effects are not supported. See
 [Scope and Releases](scope.md) for the exact boundary and
 [Experimental Models](experimental.md) for the limited API.
+Before choosing MGMFRM, review [what is estimated and what is fixed](scope.md#What-Changes-When-You-Choose-MGMFRM):
+its fixed Q pattern still has estimated active loadings, and its rater
+consistency parameter has a different meaning from reliability.
 
 ## Recommended Path
+
+The sequence below uses the stable MFRM entry points. For multidimensional MFRM
+or GMFRM/MGMFRM, follow the [model-specific fitting and prior routes](bayesian-workflow.md#2.-Inspect-the-Model-Before-Fitting).
 
 1. Build long-format ratings with [`FacetData`](@ref).
 2. Run [`validate_design`](@ref) and inspect coverage, connectedness, category

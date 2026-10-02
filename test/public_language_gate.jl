@@ -22,7 +22,6 @@ const PublicLanguagePolicy = PublicLanguageGateContractForTest.PublicLanguageGat
     @test result.n_language_violations == 0
     @test result.n_navigation_violations == 0
     @test result.n_workflow_violations == 0
-    @test result.n_public_files == 22
     @test "experimental.md" in PublicLanguagePolicy.PUBLIC_DOCUMENTATION_PAGES
     @test "scope.md" in PublicLanguagePolicy.PUBLIC_DOCUMENTATION_PAGES
     @test "roadmap.md" in PublicLanguagePolicy.DEVELOPER_DOCUMENTATION_PAGES
@@ -180,6 +179,11 @@ const PublicLanguagePolicy = PublicLanguageGateContractForTest.PublicLanguageGat
             write(joinpath(docs_root, page), "# Safe\n")
         end
         @test nested_example in PublicLanguagePolicy.public_surface_paths(temp_root)
+        # Added examples must be scanned; their growing count is not a policy.
+        write(nested_example, "println(\"Private correlated MFRM\")\n")
+        @test any(violation -> violation.path == relpath(nested_example, temp_root) &&
+            violation.rule === :private_result_status,
+            PublicLanguagePolicy.public_language_violations(temp_root))
     end
 
     mktempdir() do temp_root

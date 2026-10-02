@@ -13,6 +13,64 @@ env:
   BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS: "false"
 
 jobs:
+  postprocessing:
+    name: Postprocessing without fits - Julia ${{ matrix.julia }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        julia: ['1.10.8', '1']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.julia }}
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: Check summaries, figure data, contrasts and cache reload
+        run: julia --startup-file=no --project=. test/postprocessing.jl
+      - name: Check Gaussian conditional coordinates and deterministic integration
+        run: julia --startup-file=no --project=. test/mgmfrm_core_location_section.jl
+      - name: Check MGMFRM estimands and identification counterexamples without fits
+        run: julia --startup-file=no --project=. test/mgmfrm_estimand_invariance.jl
+      - name: Check MGMFRM prior measures, moments, empty steps and score reflection without fits
+        run: julia --startup-file=no --project=. test/mgmfrm_prior_measure.jl
+      - name: Check normalized MGMFRM prior generation and saved explanations without fits
+        run: julia --startup-file=no --project=. test/mgmfrm_normalized_prior_predictive.jl
+      - name: Check normalized location density and gradients without sampling
+        run: julia --startup-file=no --project=. test/mgmfrm_normalized_location.jl
+      - name: Check independent one-transition probe mechanics
+        run: julia --startup-file=no --project=. test/mgmfrm_core_nuts_stationarity.jl
+      - name: Check coupled gradients and nonlinear coordinate curvature
+        run: julia --startup-file=no --project=. test/mgmfrm_core_coupled_geometry.jl
+      - name: Check saved adaptation review without sampling
+        run: julia --startup-file=no --project=. test/mgmfrm_adaptation_review.jl
+
+  mgmfrm-core-python:
+    name: MGMFRM numerical and execution checks - no fits
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Install numerical check dependencies
+        run: python -m pip install -r test/requirements-mgmfrm-core.txt
+      - name: Check arithmetic, failure accounting and lossless storage
+        run: |
+          # Standalone entry points avoid test/script module-name collisions.
+          for check in coverage_review classifier_review rank_review item_conditional \
+            sbc_review sbc_error_budget sbc_plan sbc_decision sbc_runner sbc_cohort; do
+            python "test/mgmfrm_core_${check}.py" -v || exit 1
+          done
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: Load the saved SBC worker and reject incomplete snapshots without fits
+        run: python test/mgmfrm_core_sbc_runtime.py
+
   minimum-version-test:
     name: Full package tests - Julia 1.10.8 - Ubuntu
     runs-on: ubuntu-latest

@@ -50,6 +50,8 @@ BayesianMGMFRM.plot_prior
 BayesianMGMFRM.plot_diagnostics
 BayesianMGMFRM.plot_predictive
 BayesianMGMFRM.plot_wright
+BayesianMGMFRM.item_response_surface
+BayesianMGMFRM.plot_response_surface
 ```
 
 ## Experimental saved multidimensional MFRM reports
@@ -83,7 +85,7 @@ are independent by default; `Experimental.correlated(spec)` estimates population
 correlation for two between-item dimensions. Correlated reports default to
 `view = :public` and include rho intervals and diagnostics. Estimate with
 `BayesianMGMFRM.Experimental.fit`; see the
-[multidimensional example](examples.md#fixed-coefficient-multidimensional-mfrm).
+[multidimensional example](examples.md#Fixed-coefficient-multidimensional-MFRM).
 Earlier independent-model caches remain readable. Saving a correlated fit
 records its model and actual priors separately.
 These saved-result reports need neither sampling nor CairoMakie. A complete

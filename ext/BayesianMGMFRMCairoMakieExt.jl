@@ -3,6 +3,68 @@ module BayesianMGMFRMCairoMakieExt
 using BayesianMGMFRM, CairoMakie
 const B = BayesianMGMFRM
 
+# Category identity follows the full stored scale, even when only one is plotted.
+_response_category_colors(n) = n <= 7 ? Makie.wong_colors()[1:n] :
+    Makie.distinguishable_colors(n, [RGBf(1,1,1), RGBf(0,0,0)]; dropseed = true)
+_ability_axis(d) = "θ" * join(Char(0x2080 + Int(c - '0')) for c in string(d))
+
+function plot_response_surface(fit; size = nothing, azimuth = 1.275pi,
+        elevation = pi/7, kwargs...)
+    data = B.item_response_surface(fit; kwargs...)
+    all_categories = data.category === :all
+    probabilities = data.category !== nothing
+    category_indices = all_categories ? collect(eachindex(data.category_levels)) :
+        probabilities ? [findfirst(==(data.category), data.category_levels)] : [1]
+    colors = _response_category_colors(length(data.category_levels))
+    panels = length(category_indices)
+    plot_row = probabilities ? 3 : 2
+    fig = Figure(; size = something(size, (1200, all_categories ? max(800, 240cld(panels,2)+240) : 700)), fontsize = 14)
+    Label(fig[1, 1:2], "Experimental MGMFRM item response surface\nItem $(data.item) · Rater $(data.rater)";
+        fontsize = 21, tellwidth = false)
+    xlabel, ylabel = _ability_axis.(data.dimensions)
+    ax = Axis3(fig[plot_row, 1]; xlabel, ylabel, zlabel = data.quantity_label,
+        title = "Posterior mean", azimuth, elevation, protrusions = (80, 30, 50, 30))
+    bounds = probabilities ? (0.0, 1.0) : extrema(data.category_levels)
+    if all_categories
+        for k in category_indices
+            wireframe!(ax, data.x, data.y, data.mean[:,:,k]; color = colors[k], linewidth = 1.1)
+        end
+    elseif probabilities
+        surface!(ax, data.x, data.y, data.mean; color = colors[only(category_indices)])
+    else
+        surface!(ax, data.x, data.y, data.mean; colormap = :viridis, colorrange = bounds)
+    end
+    zlims!(ax, bounds...)
+    if probabilities
+        Legend(fig[2, 1:2], [LineElement(; color = colors[k], linewidth = 3) for k in category_indices],
+            ["Rating $(data.category_levels[k])" for k in category_indices];
+            orientation = :horizontal, nbanks = cld(panels, 6), tellwidth = false)
+    end
+    uncertainty = GridLayout(fig[plot_row, 2])
+    upper = maximum(data.interval_width)
+    for (panel, k) in enumerate(category_indices)
+        title = all_categories ? "Rating $(data.category_levels[k])" : "Pointwise uncertainty"
+        width = Axis(uncertainty[cld(panel, 2), mod1(panel, 2)]; xlabel, ylabel, title,
+            titlecolor = all_categories ? colors[k] : :black)
+        values = all_categories ? data.interval_width[:,:,k] : data.interval_width
+        heatmap!(width, data.x, data.y, values; colormap = :magma,
+            colorrange = (0.0, iszero(upper) ? 1.0 : upper))
+    end
+    Colorbar(uncertainty[cld(panels,2)+1, 1:min(panels,2)]; colormap = :magma,
+        limits = (0.0, iszero(upper) ? 1.0 : upper), vertical = false,
+        label = "$(round(100data.interval; digits=2))% pointwise interval width")
+    fixed = isempty(data.fixed_abilities) ? "No additional ability dimensions." :
+        "Fixed abilities: " * join(["$(_ability_axis(r.dimension))=$(r.value)" for r in data.fixed_abilities], ", ") * "."
+    inactive = [_ability_axis(data.dimensions[i]) for i in 1:2 if !data.active_dimensions[i]]
+    qnote = isempty(inactive) ? "" : " Q excludes " * join(inactive, ", ") * "; the surface is flat along that axis."
+    caption = "$(data.quantity_label); $(data.n_draws) of $(data.total_draws) retained joint draws. $fixed$qnote\n" *
+        "Pointwise intervals describe uncertainty in the conditional mean/probability, not future individual ratings.\n" *
+        "Ability ranges are display choices; they do not establish data support.\n" * data.diagnostic * " (whole fit)."
+    Label(fig[plot_row+1, 1:2], caption; fontsize = 12, tellwidth = false, word_wrap = true,
+        halign = :left, justification = :left)
+    fig
+end
+
 function plot_posterior(fit; size = nothing, kwargs...)
     return _render_posterior(fit, B._posterior_plot_data(fit; kwargs...); size)
 end
