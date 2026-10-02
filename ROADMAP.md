@@ -12,16 +12,16 @@ MFRM reference nor an application alone completes that objective. See the
 
 ## Current decisions
 
-**2026-09-27: the experimental coordinate route is connected, and the bounded
-four-fit loading-prior comparison is complete. Some relative-ability and in-sample
-prediction summaries change beyond their MCMC error. The fixed-facet R0/R1
-engineering rehearsal has now completed six fits: four pass the declared numerical
-screens and two retain R-hat failures. One engineering pair provides no evaluation
-credit or between-panel precision estimate. A review-only decision packet now proposes
-descriptive recovery/sensitivity with explicit failure denominators and compares all
-three margins; independent review and scientific prior/domain choices remain open.** This section owns
-the current priority order; scheduling language in dated records below is
-historical. The [2026-09-30 strategic review](docs/internal/strategic-review-2026-09-30.md)
+**2026-10-02: local ordinary integration is complete. The next engineering work is
+to publish the tested candidate, select tests by the changed behavior, and measure
+compilation, sampling and saved-result costs separately before optimizing.**
+The normalized coordinate route and the four-fit loading-prior comparison remain
+experimental. The six-fit R0/R1 rehearsal retains four numerical passes and two
+R-hat failures, with zero evaluation credit. Independent review and scientific
+prior/domain choices remain open; all three calibration margins remain in scope.
+The [execution priorities below](#execution-priorities-after-local-integration)
+own the next work order; scheduling language in dated records is historical.
+The [2026-09-30 strategic review](docs/internal/strategic-review-2026-09-30.md)
 keeps integration, independent usability review and scientific acceptance as distinct exits.
 The [2026-09-27 review](docs/internal/strategic-review-2026-09-27.md) retains the earlier evidence and decisions.
 
@@ -58,8 +58,8 @@ The [2026-09-27 review](docs/internal/strategic-review-2026-09-27.md) retains th
 | Completed design — Analyst; scientific review pending | The [fixed-facet design](docs/internal/mgmfrm-foundation-fixed-facet-design.md) retains C as a reference and proposes paired R0/R1 with loading SD 0.25 / 0.5 / 1.0. It states fixed truths, estimands, within-fit versus between-panel MCSE, failure denominators and 8 / 32 / 128-block cost/precision comparisons. Four disposable engineering panels verify the existing DGP; no new posterior fit or evaluation panel | R1 is an explicit weak-loading stress condition, especially for SD 0.25. No scientific prior, evaluation N or calibration margin is adopted. Independent review remains pending; existing 150-quantity claims and all three calibration margins remain |
 | Completed execution — Maintainer/analyst: bounded fixed-facet rehearsal | Fixed-facet inputs connect to explicit normalized targets and saved reviews; input/target checks pass 79 assertions. All six attempts completed in 81.92 serial minutes, with observed peak RSS 2.88 GiB; four pass the 150-quantity and extra 111-quantity screens | R0 / SD 0.5 and R1 / SD 1.0 retain R-hat failures. Zero retries, redraws or extensions; zero common qualified blocks across all six conditions out of one planned block. See the [execution and verification record](docs/internal/mgmfrm-foundation-fixed-facet-design.md). This engineering pair has no evaluation credit |
 | Review packet complete; independent decisions pending — Analyst and scientific reviewer | The [fixed-facet decision packet §10](docs/internal/mgmfrm-foundation-fixed-facet-design.md) proposes descriptive C3b/C5 plus finite-budget C2, retains R0/R1 and all three priors, specifies denominator/failure handling, and compares N = 8 / 32 / 128 with observed costs. Exact integer missing-coverage arithmetic passes 284 checks | This is an analyst proposal, not independent acceptance. Review purpose, stress scope, finite sampling policy, precision target and N/resource budget before a separate launch. All three margins remain; no adopted N, new fit or evaluation credit. Do not treat the descriptive bounds as confidence intervals or use 2/6 as a general failure probability |
-| Integration candidate and walkthrough available; broader checks and reader review pending — Maintainer and independent readers | The [self-contained normalized-prior example](examples/normalized_mgmfrm.jl) connects fit, diagnostics/MCSE, figures, save/reload and report verification. The same selected API tests pass 3,835 assertions on each of Julia 1.10.8 and 1.12.6; the walkthrough retains warnings and passes 13 saved-output checks | See [foundation record §§15–16](docs/internal/mgmfrm-foundation-scale-acceptance.md) for documentation and completed ordinary generalized results. Selected minimum-version checks do not establish a full minimum-version suite or hosted CI matrix pass. Unfamiliar-reader and scientific review remain unassigned; the small demonstration adds no evaluation credit |
-| Completed ordinary generalized verification — Maintainer, 2026-09-28 | The original saved-sample checks pass 547 assertions standalone; the unchanged integration candidate completes ordinary `Pkg.test` on Julia 1.12.6: 129 test sets / 46,442 assertions pass, with no failures or broken/skipped checks | 85 min 38 s, observed peak owned-process RSS 2.72 GiB. No source, assertion, dependency or default changes were needed. This resolves the previous 45-minute incomplete run; buffered output did not identify the active test. See [foundation record §16](docs/internal/mgmfrm-foundation-scale-acceptance.md) and [verified result](results/workflows/20260928-saved-test-integration-01/verification.json). Whole-package/minimum-version suites, hosted CI and independent review remain outside this result |
+| Integration candidate and walkthrough available; local integration complete, reader review pending — Maintainer and independent readers | The [self-contained normalized-prior example](examples/normalized_mgmfrm.jl) connects fit, diagnostics/MCSE, figures, save/reload and report verification. The same selected API tests pass 3,835 assertions on each of Julia 1.10.8 and 1.12.6; the walkthrough retains warnings and passes 13 saved-output checks | See [foundation record §§15–16](docs/internal/mgmfrm-foundation-scale-acceptance.md) for documentation and completed ordinary generalized results. Selected minimum-version checks do not establish a full minimum-version suite or hosted CI matrix pass. Unfamiliar-reader and scientific review remain unassigned; the small demonstration adds no evaluation credit |
+| Completed ordinary generalized verification — Maintainer, 2026-09-28 | The original saved-sample checks pass 547 assertions standalone; the unchanged integration candidate completes ordinary `Pkg.test` on Julia 1.12.6: 129 test sets / 46,442 assertions pass, with no failures or broken/skipped checks | 85 min 38 s, observed peak owned-process RSS 2.72 GiB. No source, assertion, dependency or default changes were needed. This resolves the previous 45-minute incomplete run; buffered output did not identify the active test. See [foundation record §16](docs/internal/mgmfrm-foundation-scale-acceptance.md) and [verified result](results/workflows/20260928-saved-test-integration-01/verification.json). Whole-package/minimum-version completion is recorded in the next row; hosted CI for the new candidate and independent review remain separate |
 | Local ordinary integration complete — Maintainer, 2026-10-02 | The repaired Julia 1.12.6 report shard completes 56 test sets / 92,315 passing assertions. Combined with five previously completed groups, all six ordinary groups are complete. Julia 1.10.8 all completes 256 test sets / 150,618 passing assertions. Both new runs have zero failures, errors or broken checks and no elapsed-time cutoff | See [foundation record §18](docs/internal/mgmfrm-foundation-scale-acceptance.md) and [verification](results/workflows/20261002-integration-01/verification.json). Pkg.test success and identified process termination confirm completion after the outer controllers disappeared during conversation interruption; their exit codes and continuous peak-RSS receipts remain unavailable. Earlier failures/time limits remain. Next confirm hosted CI and obtain independent reader/scientific review; local ordinary success alone does not close those gates |
 | Conditional — Analyst: assess remaining classification precision | If a retained claim needs it, compare conditional CDFs and raw indicators on the two saved transformed fits, preserving all 150 quantities | One bounded comparison; zero additional posterior fits. Report MCSE, cost, failures and any benefit or lack of benefit. The 36 location-invariant quantities and nuisance-chain error remain; no automatic reference-method or sampling escalation |
 | Later — Analyst/maintainer | Follow the existing model-extension sequence after the relevant foundation evidence | Validate one declared combination at a time. Existing correlation implementations need acceptance work; application completion and an all-options architecture are not prerequisites |
@@ -71,6 +71,98 @@ conditions remain; a named claim or observed blocker must justify reopening them
 The strong global calibration claim can remain unresolved while experimental
 operability improves. Stable-public promotion still requires the
 [release conditions](#package-release-conditions), including the retained M0 hold.
+
+## Execution priorities after local integration
+
+Reviewed 2026-10-02 in response to the performance, Git cleanup and long-term
+planning request. Completion is defined by the deliverables below, without a
+new elapsed-time limit. Engineering integration, usable workflows and scientific
+acceptance have separate exits; another implementation feature does not close all three.
+
+| Order / owner | Next deliverable | Completion evidence / dependency |
+| --- | --- | --- |
+| 1 — Maintainer: preserve and publish | Commit the tested source, examples, checks and evidence summaries on `work/mgmfrm-foundation-integration`, based on current `main`; prepare a new PR because #100 is merged | Clean Git status; whitespace, distribution contents and archive-size checks; distinguish reused local integration from new-head hosted CI. Restore Git transport authentication if needed; no merge or release implied |
+| 2 — Maintainer: shorten feedback | Apply the [change-to-check table](test/README.md); use existing standalone checks and shards | Each change names its affected behavior and validation. Full local integration is reserved for combined/shared changes and release verification, not every commit. Before changing hosted routing, inspect required checks; documentation-only PRs must still produce the required statuses |
+| 3 — Numerical maintainer: measure the next bottleneck | Reuse the saved-result and fixed-coefficient profilers for one declared representative input; separate package load/JIT, warmed density/gradient work, warmup, retained sampling, diagnostics, save/reload and figures | Record Julia/dependency versions, hardware, threads, inputs and source. Compare warmed repeated kernel measurements separately from first-use cost. Identify the dominant phase before any implementation change; do not repeat the full suite as a benchmark |
+| 4 — Numerical maintainer: one measured improvement | Address the measured dominant phase: repeated compilation/validation, allocations, or parameter geometry. Investigate sharing a Julia process across no-fit checks only if startup/JIT dominates and module isolation is retained | Matched before/after evidence, unchanged target/gradient/cache contracts, affected regression tests. For sampling, compare elapsed cost at the same focal MCSE and acceptable diagnostics, retaining all 150 quantities and failures. No claimed general speedup from one favorable fit; the historical M0 regression hold needs its own matched evidence |
+| 5 — Independent reader and scientific reviewer | Walk through fit → diagnostics/MCSE → saved result → figures/report; review the existing fixed-facet decision packet | Reader completes the documented workflow without manual draw reshaping. Separately choose the scientific purpose, prior/domain, finite sampling policy, precision target and N; retain N = 8 / 32 / 128 and ±2.5 / 5 / 7.5-point comparisons until that decision. No new evaluation cohort is launched by this roadmap |
+| 6 — Analyst / maintainer: evaluate and extend | Execute the agreed foundation design, then one declared model extension at a time | Count failures/unresolved outcomes in the planned denominator; distinguish within-fit Monte Carlo error from between-panel uncertainty. Promote a supported domain only after its numerical, statistical, backend and reader conditions pass |
+
+**Performance evidence and its limits.** The historical
+[fitting-core runtime review](docs/internal/fitting-core-runtime-review.md)
+reports 76.70–83.45% compilation in its measured enclosing block. That is neither
+the sampling fraction nor a decomposition of the October 2 full suite. The
+[saved-result profile](docs/internal/normalized-prior-backend-comparison.md)
+already found a non-sampling bottleneck: on the same saved 6,000-draw record,
+payload hashing changed from 68.720 to 0.087 seconds and validated loading from
+74.800 to 1.926 seconds after the prior fix. These are individual local profiles,
+not a repeated benchmark or a new speedup delivered by this review.
+
+Bayesian HMC repeatedly evaluates log density and gradients; difficult geometry
+can require more work per useful draw. Compilation and report/serialization work
+are additional costs, so “Bayesian” alone does not explain elapsed time. Assess
+sampling by diagnostic-qualified effective samples per second and focal Monte
+Carlo error, rather than iterations per second. Preallocation, compiled-code
+reuse and chain parallelism are candidates only after phase measurements; preserve
+RNG streams and avoid BLAS/thread oversubscription if parallelism is introduced.
+Approximate inference changes the accuracy contract and is a separate decision.
+See the official [Julia performance guidance](https://docs.julialang.org/en/v1/manual/performance-tips/),
+[Stan sampling description](https://mc-stan.org/docs/reference-manual/mcmc.html)
+and [ESS/MCSE definitions](https://mc-stan.org/docs/reference-manual/analysis.html#effective-sample-size).
+
+**Portable integration summary.** Commit `4443efa` records the accumulated
+foundation implementation. Before staging, all 638 execution-input hashes matched
+the completed local candidate. Staging exposed generated SVG trailing spaces and
+one extra final newline in `test/posterior_mcse_draws.jl`; cleanup preserves all
+SVG XML tokens/coordinates and all Julia non-terminal-newline bytes. The subsequent
+policy change touches this roadmap, `test/README.md` and the CI archive-size check,
+not product code or sampler settings. The completed local results remain:
+
+| Runtime / coverage | Passing assertions | Fail / error / broken |
+| --- | ---: | --- |
+| Julia 1.12.6, six ordinary groups combined | 150,627 | 0 / 0 / 0 |
+| Julia 1.12.6, report group within that total | 92,315 | 0 / 0 / 0 |
+| Julia 1.10.8, ordinary `all` | 150,618 | 0 / 0 / 0 |
+
+The two new runs completed despite loss of their outer controllers; their logs
+contain `Pkg.test` success and the identified processes ended, but the outer exit
+codes and continuous peak-RSS receipts are unavailable. See the retained
+[foundation evidence §18](docs/internal/mgmfrm-foundation-scale-acceptance.md).
+Raw logs, fit caches and hash receipts under `results/` remain ignored local
+artifacts; links to them are local evidence references, not downloadable GitHub
+attachments. The summary here travels with the source; it is not an independent
+reproduction. New-head hosted CI and independent scientific review remain separate.
+
+**Publication checks.** GitHub confirms that
+[PR #100](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/pull/100) was merged
+on September 22 and its [CI run 35709866645](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/35709866645)
+completed successfully, including the minimum-version all job. That validates
+`91210a5`, not the new candidate. Freshly fetched `origin/main` is `f3fdd65` with
+the same tree as that old branch head. A push to the old, now-closed PR branch
+would not trigger this workflow's main/master-push or open-PR events.
+The GitHub CLI currently reports HTTP 401; the connected GitHub reader works.
+The actual Git transport was also checked with `git push --dry-run`: it rejects
+the stored username/token. No branch was published by that check. Renew local
+GitHub credentials, then push the prepared branch and open a new PR; rerunning
+numerical tests cannot repair this authentication failure.
+
+The committed candidate's compressed Git archive is 4,529,311 bytes (4.32 MiB),
+versus 4,090,006 bytes for fetched main. This exceeds the repository's 4 MiB growth
+guard; it is not a GitHub file-size limit. The guard is explicitly revised to
+5 MiB for the normalized-fit, response-surface and deterministic-validation source,
+tests and documentation. Results, caches and current-machine paths remain absent
+from the candidate. The 250 KiB fixture-review rule remains; future increases
+still need a stated user benefit. Do not hide required files from archives or
+delete evidence to satisfy the old number. Hosted CI routing remains unchanged:
+[workflow-level path skipping can leave required checks pending](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
+
+Validation for this policy-only follow-up: parsed YAML comparison confirms that
+only the archive threshold and its shell comments changed; workflow triggers,
+matrices and test commands are identical. The public-language gate passes all
+25 files, current roadmap/test-guide link targets exist, and whitespace checks
+pass. The 638-input comparison identifies only CI, the test guide and the
+newline-only MCSE test cleanup as execution-input deltas. No full suite or new
+scientific fit was rerun for these changes.
 
 <details>
 <summary>Dated progress history — evidence retained; use Current decisions for the work order</summary>
@@ -5156,9 +5248,11 @@ the priority correction does not automatically restart the old benchmark program
   The 2026-09-27 review separates the current work order from accumulated history;
   this correction does not itself establish unfamiliar-reader acceptance.
 
-Keep the existing 4 MiB compressed Git archive growth guard, the documented
-250 KiB fixture-review threshold, phase elapsed-time gates, and CI job timeouts.
-A size or timing exception needs a stated user benefit; do not inflate limits silently.
+The compressed Git archive growth guard is 5 MiB following the explicit October 2
+source-growth review above; retain the documented 250 KiB fixture-review threshold.
+Ordinary tests have no custom elapsed-time cutoff under the October 2 user decision.
+Earlier timing gates are historical; separately declared scientific sampling
+conditions remain unchanged. Future size exceptions need a stated user benefit.
 The four documented research-only missing-docstring warnings stay classified
 under the existing Documenter policy; stable API completeness is checked
 separately.

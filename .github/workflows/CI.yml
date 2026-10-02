@@ -232,9 +232,11 @@ jobs:
       - name: Check compressed source archive budget
         shell: bash
         run: |
+          # 2026-10-02: normalized MGMFRM source/tests/docs bring the reviewed
+          # candidate to 4.32 MiB; results and caches remain excluded.
           source_archive_bytes=$(git archive --format=tar.gz HEAD | wc -c)
-          printf 'Compressed source archive: %s bytes (limit 4194304)\n' "$source_archive_bytes"
-          test "$source_archive_bytes" -le 4194304
+          printf 'Compressed source archive: %s bytes (limit 5242880)\n' "$source_archive_bytes"
+          test "$source_archive_bytes" -le 5242880
       - uses: julia-actions/setup-julia@v2
         with:
           version: '1'

@@ -1,4 +1,45 @@
-# Focused MGMFRM checks without fitting
+# Selecting checks for a change
+
+Use the smallest existing check that exercises the changed behavior, then expand
+only for shared dependencies or an observed failure. A local commit or push does
+not itself require another full suite. Reuse completed integration evidence when
+the relevant source, tests, environment and entry point are unchanged; state any
+documentation, CI or formatting delta explicitly. Never describe selected tests
+as a complete suite or old CI as validation of a new commit.
+
+| Change | First check | When to expand |
+| --- | --- | --- |
+| Internal prose / roadmap | Review links, claims and `git diff --check` | Public wording: `julia --startup-file=no scripts/public_language_gate.jl`; published manual/build changes: documentation build |
+| Saved-draw summaries, MCSE, contrasts, response surfaces | `julia --startup-file=no --project=. test/postprocessing.jl` | Renderer changes: `test/response_surface_render.jl`; shared report/cache changes: `fitting_reports` |
+| Normalized prior / location map | Relevant standalone density, gradient or prior check below | Public fit/save changes: explicit tiny smoke and `generalized` |
+| Sampler / shared likelihood / fit controls | Relevant deterministic regression and tiny fit | Affected fitting groups on supported Julia versions; shared numerical/dependency changes: ordinary integration |
+| Python arithmetic / orchestration | Explicit `python3 test/<changed_check>.py -v` | Shared helper changes: its dependent entry points; do not use ambiguous discovery |
+| CI / packaging | YAML structure and changed shell command; actual `git archive --format=tar.gz HEAD` size | Runtime/environment/matrix changes: corresponding hosted jobs |
+
+Run one ordinary group through the existing selector, for example:
+
+```sh
+BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=false BAYESIANMGMFRM_TEST_GROUP=generalized \
+  julia --startup-file=no --compiled-modules=yes --project=. -e 'using Pkg; Pkg.test()'
+```
+
+The six groups are `core`, `fitting_core`, `fitting_reports`,
+`local_dependence_core`, `local_dependence_integrity` and `generalized`;
+`all` remains the default. Full ordinary integration is appropriate for a
+substantial combined candidate, shared numerical/dependency changes and release
+verification. Avoid repeatedly running it between prose edits or already-covered
+commits. The October 2 candidate has completed all six Julia 1.12.6 groups and the
+Julia 1.10.8 all run; see the [current evidence and limits](../ROADMAP.md#execution-priorities-after-local-integration).
+
+This is the local selection policy. Hosted CI still runs its existing ordinary
+matrix for pull requests and main/master pushes. Changing that routing is separate
+work: required check names and skipped-workflow behavior must be checked first.
+No elapsed-time cutoff is imposed on ordinary local tests. Monitor progress and
+resources; do not reduce draw counts or relax numerical assertions to meet a clock.
+Use the normal compiled-module mode (`yes`), not restricted cache modes as a speed
+substitute. A no-fit test can still compile substantial Julia code.
+
+## Focused MGMFRM checks without fitting
 
 The deterministic foundation scale/acceptance worksheet has an additional
 standalone check (same Python dependencies; no Julia, saved fits or results needed):
@@ -30,7 +71,7 @@ With the explicit smoke flag, this command includes four tiny sampler runs
 only the deterministic density, coordinate map and gradients:
 
 ```sh
-BAYESIANMGMFRM_NORMALIZED_FIT_SMOKE=true julia --startup-file=no --compiled-modules=existing --project=. test/mgmfrm_normalized_location.jl
+BAYESIANMGMFRM_NORMALIZED_FIT_SMOKE=true julia --startup-file=no --compiled-modules=yes --project=. test/mgmfrm_normalized_location.jl
 ```
 
 It checks the full normalized density, unit Jacobian, derivatives, raw-space
@@ -203,7 +244,7 @@ has a separate reproducible calculation and production check:
 
 ```sh
 python3 scripts/mgmfrm_prior_response_review.py /tmp/new-mgmfrm-prior-response
-julia --startup-file=no --compiled-modules=existing --project=. scripts/check_mgmfrm_prior_response_review.jl /tmp/new-mgmfrm-prior-response
+julia --startup-file=no --compiled-modules=yes --project=. scripts/check_mgmfrm_prior_response_review.jl /tmp/new-mgmfrm-prior-response
 ```
 
 Use a new output directory; Python requires NumPy, SciPy and Matplotlib. It draws
