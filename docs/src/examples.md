@@ -324,6 +324,9 @@ JSON3 writes the diagnostic supplement. Find the
 stored dimension labels with `fit_metadata(load_fit_cache("analysis-fit.jls");
 view = :public).dimension_labels`, then pass one of those labels:
 
+Running the script without arguments or with `--help` prints usage without
+loading a cache or requiring the plotting packages.
+
 ```sh
 julia --project=. examples/review_saved_mgmfrm.jl \
   analysis-fit.jls results/saved_mgmfrm_review communication

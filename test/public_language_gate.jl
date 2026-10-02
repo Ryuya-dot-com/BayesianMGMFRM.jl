@@ -10,6 +10,21 @@ end
 
 const PublicLanguagePolicy = PublicLanguageGateContractForTest.PublicLanguageGate
 
+@testset "Saved-fit example usage needs no optional packages or cache" begin
+    example = joinpath(@__DIR__, "..", "examples", "review_saved_mgmfrm.jl")
+    mktempdir() do environment
+        write(joinpath(environment, "Project.toml"), "[deps]\n")
+        withenv("JULIA_LOAD_PATH" => "@:@stdlib") do
+            for args in (String[], ["--help"])
+                output = read(`$(Base.julia_cmd()) --startup-file=no --project=$environment $example $args`, String)
+                @test occursin("Usage:", output)
+                @test occursin("CairoMakie", output)
+                @test isempty(PublicLanguagePolicy.runtime_language_violations(["example" => output]))
+            end
+        end
+    end
+end
+
 @testset "public language release policy" begin
     @test !isempty(PublicLanguagePolicy.runtime_language_violations(["plot" => "Private correlated MFRM"]))
     @test !isempty(PublicLanguagePolicy.runtime_language_violations(["fit" => "private result"]))
