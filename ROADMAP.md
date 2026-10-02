@@ -140,11 +140,13 @@ completed successfully, including the minimum-version all job. That validates
 `91210a5`, not the new candidate. Freshly fetched `origin/main` is `f3fdd65` with
 the same tree as that old branch head. A push to the old, now-closed PR branch
 would not trigger this workflow's main/master-push or open-PR events.
-The GitHub CLI currently reports HTTP 401; the connected GitHub reader works.
-The actual Git transport was also checked with `git push --dry-run`: it rejects
-the stored username/token. No branch was published by that check. Renew local
-GitHub credentials, then push the prepared branch and open a new PR; rerunning
-numerical tests cannot repair this authentication failure.
+The initial GitHub CLI/transport checks rejected the stored token. Following the
+user's explicit authorization and browser authentication on October 2, Git
+authentication was configured and `4443efa` / `0c90531` were successfully pushed
+to `work/mgmfrm-foundation-integration`. A new draft PR carries the follow-up;
+the old PR remains merged. Main currently has neither classic branch protection
+nor applicable branch rules (read-only API checks); this does not waive review or
+the candidate's CI. No merge or release is implied.
 
 The committed candidate's compressed Git archive is 4,529,311 bytes (4.32 MiB),
 versus 4,090,006 bytes for fetched main. This exceeds the repository's 4 MiB growth
@@ -163,6 +165,55 @@ matrices and test commands are identical. The public-language gate passes all
 pass. The 638-input comparison identifies only CI, the test guide and the
 newline-only MCSE test cleanup as execution-input deltas. No full suite or new
 scientific fit was rerun for these changes.
+
+**Saved-result cost measurement, completed 2026-10-02.** The existing profiler
+had one stale private validator name; it now calls `_check_generalized_sample_run`,
+the same validator used by the maintained loader. Product code is unchanged.
+The corrected profiler completed one first-use run and three same-process warm
+repetitions on the existing normalized exchangeable AdvancedHMC 6,000-draw record.
+All four verify unchanged input/source hashes, exact save/reload results and,
+for the three repetitions, equality with the first run's reconstructed values.
+No posterior fit or full test suite was launched.
+
+| Phase | First call (s) | Warm median, 3 repetitions (s) | Warm cumulative allocation (MiB) |
+| --- | ---: | ---: | ---: |
+| Deserialize | 0.250 | 0.0046 | 3.7 |
+| Target identity | 1.995 | 0.0061 | 3.2 |
+| Payload hash | 0.132 | 0.0497 | 123.0 |
+| Validate retained run | 0.614 | 0.0716 | 43.3 |
+| Reconstruct diagnostics | 3.995 | 1.988 | 1,920.5 |
+| Comparison summaries | 2.593 | 0.261 | 526.1 |
+| Serialization alone | 0.761 | 0.0085 | 1.6 |
+| Save with validation | 2.384 | 2.135 | 2,095.0 |
+| Load with validation | 2.069 | 2.173 | 2,097.2 |
+
+Environment: Apple M1 Max, macOS 27.0.1, Julia 1.12.6, one Julia/BLAS thread,
+the existing project/manifest and retained compiled caches. The earlier failed
+profiler attempt spent 278.47 seconds in imports/includes with dependency
+precompilation; the corrected attempt reused those caches and took 4.14 seconds
+for setup. These observations are not a controlled cold/warm speedup estimate.
+The completed guarded process took 63.41 seconds with a sampled peak owned RSS of
+1.81 GiB, zero exit code and no elapsed-time cutoff. Allocations in the table
+are cumulative bytes, not peak memory. The profiler explicitly runs GC before
+stages and repeats validation inside save/load; its outer duration is not one
+ordinary user operation, and the stages are not an additive application timeline.
+
+The warm stack profile points to repeated design/Q validation and parameter
+blueprint construction inside `_mgmfrm_guarded_local_fit_direct_draw_values`:
+each draw enters both the constrained-parameter conversion and the pointwise
+likelihood's checked design path. The next measured change should prepare
+target-owned design information once per call and reuse it in this loop, retaining
+boundary checks and per-draw constraint/density validation. Require exact
+saved-result agreement, malformed-input rejection and before/after warmed timing
+before adopting it. This is a specific postprocessing hypothesis, not a measured
+sampling speedup or closure of M0. Density/gradient, warmup/retained sampling and
+rendering costs remain separate work under priority 3.
+
+Local reproducible recipe, per-stage timings, stack profiles and verification:
+`results/workflows/20261002-saved-result-cost-02/`. Failed preparation and the
+stale-profiler attempt remain in `20261002-saved-result-cost-01`; they are not
+successful measurements. These ignored artifacts are local evidence, while the
+table and scope above travel with the source.
 
 <details>
 <summary>Dated progress history — evidence retained; use Current decisions for the work order</summary>
