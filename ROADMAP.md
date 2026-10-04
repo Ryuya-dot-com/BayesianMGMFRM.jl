@@ -101,6 +101,21 @@ The mathematical mapping and saved-six-fit assessment below are addressed in
 the linked identification/protocol additions. Earlier proposed work order and
 unselected N options remain historical context, not a new permission barrier.
 
+**First interim interpretation, 2026-10-04.** A fixed snapshot of five completed
+R0 fits supports an initial paired recovery/sensitivity analysis and an actual
+phase-cost decomposition; see [foundation record §19](docs/internal/mgmfrm-foundation-scale-acceptance.md).
+All five pass the declared numerical screens, but only two paired blocks are
+available for SD 0.5 versus 0.25. The centered-D1 RMSE difference is −0.006095
+(replication MCSE 0.005069); no prior is selected. Repeated-worker scoring accounts
+for about 3.5–3.8% of attempt wall time, directing any later optimization toward
+the fitting work and effective sampling. Continue the unchanged 192-attempt plan.
+Even with no unresolved cases, N=32 cannot put a pointwise 95% exact-binomial
+coverage interval wholly inside any of the three chosen margins; this is a
+descriptive first study, not a calibration acceptance design. Next-stage prediction
+retains C4's known-level heldout-rating target and training-only five-fold fitting;
+joint-prior SBC remains a separate claim. The controller observation gap is
+recorded, supervision is restored, and no fit was restarted.
+
 Reordered 2026-10-04 following the user's instruction to establish the mathematical
 and analytical foundation before OS and distribution work. The October 2 engineering
 work remains completed evidence; its former order is superseded. No new elapsed-time
