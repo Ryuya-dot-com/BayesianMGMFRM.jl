@@ -91,6 +91,9 @@ and analytical foundation before OS and distribution work. The October 2 enginee
 work remains completed evidence; its former order is superseded. No new elapsed-time
 limit is introduced. Mathematical validity, computational accuracy, statistical
 evidence and delivery readiness have separate completion conditions.
+The rows below define the work order; the completion, mathematical-review and
+efficiency rules that follow specify how to carry it out. Update the existing
+documents and analysis helpers named here rather than creating another framework.
 
 | Order / owner | Next deliverable | Completion evidence / dependency |
 | --- | --- | --- |
@@ -101,22 +104,136 @@ evidence and delivery readiness have separate completion conditions.
 | 5 — Analyst: evaluate the declared foundation | Execute the selected design only after its question and protocol are fixed; report supported, contradicted and unresolved claims for the 2D fixed-Q domain | Evidence must address the specified estimands and conditions. An all-150 positive-calibration guarantee may remain unresolved without blocking a narrower, honestly stated result; it must not be reported as achieved. Independent scientific review remains a distinct acceptance condition |
 | 6 — Maintainer / independent reader: later delivery | Return to OS-dependent fixtures, distribution policy, complete CI, unfamiliar-reader workflow review and release conditions after the foundation assessment. Extend correlation, mixed-Q and other model combinations one at a time after the relevant foundation evidence | Keep current defects recorded; deferral is not a waiver or release approval. Preserve the M0 hold. Reopen optimization only for a measured obstacle to the selected analysis; reuse the completed postprocessing improvement |
 
-**Immediate analytical deliverable.** Update the existing identification/claim
-documents with the correspondence between the likelihood's origin/scale equivalence
-class, the prior's chosen coordinates and the proposed recovery quantities. The
-existing derivations are not restarted. Mark which conclusions are proved under
-the stated conditions, checked numerically, observed in saved fits or still open.
-Then inspect the retained R0 / SD 0.5 and R1 / SD 1.0 failures before proposing any
-additional computation. This supplies a concrete analytical question for the next
-step instead of another generic checklist or a new simulation batch.
+### Work products and completion decisions
 
-Here, establishing the foundation means resolving or explicitly bounding the
-claims for the selected complete-crossed, pure-Q, two-dimensional model. It does
-not require proving every future model combination or approving a universal prior.
-Mathematical derivation and saved-result analysis can proceed now; formal evaluation
-and scientific adoption retain their separate decision conditions. Necessary
-correctness checks follow the [change-to-check table](test/README.md); roadmap
-edits do not call for a fresh full local suite.
+The immediate domain is the existing complete-crossed 50-person / 5-item /
+5-rater, four-category, pure-Q, two-dimensional MGMFRM with identity latent
+correlation. Candidate C and its three loading-prior widths retain their stated
+computational roles. Existing proofs may cover a wider mathematical domain;
+empirical acceptance cannot inherit that wider scope without evidence.
+
+| Work / existing home | Method and concrete output | Complete when / consequence of an unmet condition |
+| --- | --- | --- |
+| Mathematical argument — [identification](docs/internal/mgmfrm-estimands-identification.md), [prior measures](docs/internal/mgmfrm-prior-choice.md) | For the declared response distribution, record support, constraints, free coordinates, normalized prior measure and transformations. Attach existing derivations/counterexamples and their exact assumptions; supply only a missing argument needed by a selected claim | Every mathematical assertion used by that claim has an argument under its stated assumptions; density/Jacobian and relevant derivative checks agree. Record excluded cases. A required unresolved assertion holds the dependent claim open; naming the gap does not complete the mathematical foundation |
+| Interpretation — [foundation claims](docs/internal/mgmfrm-foundation-scale-acceptance.md), [fixed-facet design](docs/internal/mgmfrm-foundation-fixed-facet-design.md) | Map absolute and centered ability, loading/log-ratio, severity/consistency, item position and prediction to their origin/unit, conditioning population and evaluation quantity. Reuse completed prior-predictive and sensitivity evidence | Every focal row has a formula, unit, prior dependence, permitted interpretation and applicable evidence. All original 150 quantities remain traceable. Centering is not called scale invariance; one favorable fit does not choose a scientific prior |
+| Numerical assessment — fixed-facet design §8 | Reuse all six saved fits. Produce one table of chain diagnostics, focal MCSE, sampler warnings and final eligibility; inspect the four flagged log-loadings and their related quantities using existing diagnostic/adaptation helpers | Every attempt and relevant quantity is accounted for, and observed facts are separated from mechanism hypotheses. The assessment can end with unresolved causes; a fit is usable for the declared comparison only if its original global and focal rules pass. Otherwise retain it as ineligible, and state the next discriminating check or why no further run is justified |
+| Efficiency assessment — the profile receipts below | Attribute the cost of the selected analysis to startup/JIT, density/gradient evaluation, transitions and postprocessing. If an actionable cost is found, compare one target-preserving change with the baseline under the same accuracy conditions | Record a measured benefit, no benefit or inconclusive result with correctness checks, spread, allocations and memory. Keep the baseline when benefit is unsupported. The exit is an adequate method for the declared analysis or an explicit unresolved cost/precision problem, not proof of the fastest possible implementation |
+| Statistical design — fixed-facet design §10 | Reuse the decision packet to specify the question, generator, estimands, methods, performance measures, independent unit, required precision and failure handling. Compare the existing N and margin options before selection | All fields that determine execution/scoring have explicit choices and rationale, including numerical and between-panel precision. Unset N, scientific tolerance or unresolved execution conditions mean the study is still designed for comparison, not ready to launch. Do not add another packet in place of resolving these decisions |
+| Statistical assessment — foundation C2–C5 evidence | After the separate execution decision, evaluate the selected protocol and report every planned attempt, uncertainty, paired comparison and claim result | The assessment is complete when the planned outcomes and unresolved results are accounted for. A scientific claim is accepted only when its predeclared criteria and independent scientific review pass. A negative or inconclusive assessment is a valid completed study, not positive acceptance |
+
+The first foundation milestone is a defensible **named set of claims** for this
+domain: mathematical validity, interpretable estimands, adequate numerical
+precision and statistical evidence for each claim actually made. Retain C3a
+joint-prior calibration and C4 heldout prediction as open if they have not been
+evaluated; do not describe the entire foundation as statistically validated in
+that case. A narrower descriptive result may finish independently. Required
+criteria cannot be removed after observing failures to manufacture that result.
+Scientific prior adoption and package release are further, separate decisions.
+
+### Mathematical appropriateness from several perspectives
+
+| Perspective | Question and way to check it | Evidence that would not settle the question |
+| --- | --- | --- |
+| Probability model and measure | Do the response probabilities, zero-sum/product constraints and proper prior define the intended joint law? Reuse the normalizers, support argument and change-of-variable derivations; check needed moments for reported means/variances | A finite log density at a few points, or a sampler that returns draws |
+| Identification and information | Which quantities are invariant to the pure-Q location/positive-scale transformations? Use the conditional-model derivation and degenerate counterexamples; keep structural identification separate from finite-data precision and marginal-model claims | A connected design, a nonsingular posterior Hessian or proper priors alone |
+| Prior and measurement meaning | Which origin/unit and rater symmetry are being assumed? Translate kernel scales into marginal/contrast distributions and connect the existing sensitivity results to the estimands | Equal numeric SD arguments across raw/source/exchangeable priors, or selecting the smallest observed RMSE |
+| Numerical realization | Does code compute that law and its derivatives in the relevant range? Reuse independent equations, invariant transformations and known-answer checks; target weak loadings, extreme predictors or near-boundary values only where they bear on the selected analysis | Self-comparison through the same helper, or backend agreement when both share the same mistaken definition |
+| Error and interpretation | Separate posterior uncertainty, finite-chain error, numerical integration/rounding error and between-panel error. Verify the uncertainty calculation for the actual mean, quantile, probability or paired contrast being reported | Treating posterior SD as MCSE, an empirical diagnostic threshold as a finite-sample guarantee, or a conditional CDF as an exact marginal posterior CDF |
+| Design and scientific scope | State what is fixed/generated, conditional independence, the role of weak-loading R1 and the prediction population. Evaluate recovery, prior sensitivity, calibration and heldout prediction as different questions | Treating in-sample probability reconstruction as heldout prediction, repeated fits as independent datasets or a valid model equation as evidence of real-data adequacy |
+
+Label each conclusion as a derivation under assumptions, a deterministic numerical
+check, an observation from specified fits, a hypothesis or an unresolved question.
+These are evidence descriptions, not interchangeable levels of proof. Analyst
+self-review can resolve algebra and implementation issues; it does not fill the
+independent scientific-review role.
+
+### Numerical precision and efficiency decisions
+
+Retain the rehearsal's existing numerical screens: rank-normalized R-hat ≤ 1.01,
+bulk/tail ESS ≥ 400, and for the additional focal quantities mean MCSE / posterior
+SD ≤ 0.05 and 90% interval-end MCSE / interval width ≤ 0.05, together with the
+existing sampler/global checks. These are screening rules for that protocol,
+not universal tolerances or a proof of convergence. A future scientific accuracy
+requirement must also be expressed in the reported quantity's units; no unchosen
+scientific tolerance is silently filled by these ratios. Finite-chain diagnostics
+and function-specific MCSE have distinct roles; see the official
+[Stan posterior-analysis reference](https://mc-stan.org/docs/reference-manual/analysis.html).
+
+The current inspection has a concrete starting point: R0 / SD 0.5 flags log a[I2]
+(R-hat 1.012266); R1 / SD 1.0 flags log a[I3], log a[I4] and log a[I5]
+(1.011470, 1.013397, 1.010387). Retain all six fits, not just these four rows.
+Inspect chain/rank behavior and relationships with dimension-specific ability
+scale and loading ratios; these are candidate explanations, not established
+causes. All six had zero recorded divergences and tree-depth hits, so those two
+warnings alone do not explain or dismiss the retained R-hat failures.
+
+| Measured cost or uncertainty | First action, reusing existing tools | Adoption / stopping rule |
+| --- | --- | --- |
+| Startup, compilation or repeated setup | Separate process/import/JIT cost from warm calls; reuse the existing profile recipes and source/environment records | Change setup only if it obstructs the selected analysis. Report first-use and warm costs separately; keep compilation out of a claimed sampling speedup |
+| Density/gradient kernel and allocations | Profile the representative target and count calls, active Q entries, observations and draws. Inspect repeated validation, intermediates and type instability before considering parallelism or another library | Preserve target/gradient and invalid-input behavior. Compare warm repetitions and actual end-to-end impact; a faster minor phase alone does not justify a broad rewrite |
+| Transition cost or poor effective sampling | Use retained step counts, adaptation and chain diagnostics to distinguish expensive transitions from poor mixing. Consider a mathematically equivalent parameterization only when the evidence points there | Verify transformed density/Jacobian first, then compare focal precision and diagnostics. Do not change priors or drop difficult quantities to claim a speed gain |
+| Postprocessing or classification precision | Reuse the completed batch-preparation optimization and saved draws. Consider conditional integration only for a named remaining error/cost problem | Account for integration cost and remaining nuisance-chain error. Preserve the unchanged 36 location-invariant quantities and original indicators; no automatic all-150 reference project |
+| Repeated numerical/reference work | Start with existing independent equations and exact location references; use fixed-state Julia/CmdStan comparisons when a cross-implementation question remains | A backend mismatch is investigated before additional fits. A fresh backend fit is justified only by a question that deterministic or saved-result checks cannot answer; neither backend is presumed ground truth |
+| Parallelism, storage or approximate inference | Reuse available chain controls only after profiling shows an opportunity; retain independent RNG streams, thread counts and memory measurements | Compare elapsed time, total compute and peak memory. Approximate inference needs its own error assessment; thinning or reduced precision is not a default speed fix |
+
+For deterministic comparisons, hold input, target, dependency versions, hardware
+and threads fixed; record first use plus repeated warm medians and spread, and
+interleave before/after measurements where practical. Require exact equality when
+arithmetic is unchanged, otherwise a declared absolute/relative tolerance checked
+against an independent reference. For sampler changes, trajectories need not be
+identical: require the same posterior target and assess summaries within their
+Monte Carlo uncertainty. Fix the comparison conditions and desired benefit before
+looking at candidate timing; if variation obscures it, report inconclusive rather
+than repeatedly measuring until a favorable number appears.
+
+Sampling comparisons report focal bulk/tail ESS per second, MCSE and total cost
+at comparable precision, with the full diagnostic roster and failures retained.
+Report retained-sampling cost separately from total analysis cost, including
+warmup, compilation, failures and postprocessing; no ranking based only on a
+selected successful chain or iterations per second. The documented kernel and
+geometry options follow [Julia's profiling/allocation guidance](https://docs.julialang.org/en/v1/manual/performance-tips/)
+and [Stan's efficiency guidance](https://mc-stan.org/docs/stan-users-guide/efficiency-tuning.html);
+their usefulness here remains a measurement question. The completed 8.56× saved
+diagnostic improvement does not estimate a sampling or whole-study speedup.
+
+### Statistical precision, handoff and the next concrete work
+
+Use the existing [fixed-facet protocol](docs/internal/mgmfrm-foundation-fixed-facet-design.md)
+and its aims/generator/estimands/methods/performance organization, consistent with
+[Morris, White and Crowther's simulation-study guidance](https://arxiv.org/abs/1712.03198).
+Before choosing N, identify the primary performance quantity and its needed
+between-panel precision. Keep N = 8 / 32 / 128 as comparisons, not automatic
+launch options, and compare ±2.5 / 5 / 7.5 percentage-point calibration margins.
+A margin is not an MCSE target. For a panel-level average use independent panels,
+and for a paired contrast form the within-pair difference first; do not count
+persons, draws, folds or prior variants as independent panels. Unresolved/failed
+attempts retain the planned denominator and conditional summaries retain their
+eligibility labels. Large N cannot repair a wrong estimand, biased computation
+or a persistent unresolved fraction.
+
+The next three work products are finite and require no new posterior fits:
+
+1. Update the existing identification and foundation-claim tables with the
+   formula, origin/unit, assumptions, evidence and permitted recovery statement
+   for every focal family. Completion is a reconciled argument and interpretation,
+   not another inventory of files; fix a discovered mathematical defect first.
+2. Add one saved-result assessment to the fixed-facet record: all six eligibility
+   outcomes, the four flagged loading quantities, related chain/scale evidence
+   and focal MCSE. End with a supported explanation, an explicitly unresolved
+   mechanism, or one concrete comparison capable of changing the decision.
+3. Revise the existing decision packet with what those findings change: retain
+   the current procedure, propose one equivalent computational change, or leave
+   a named claim open. If new sampling is needed, state its question, target,
+   attempts/draws, precision, failure handling and reuse plan before launch.
+
+No elapsed-time cutoff is introduced by this roadmap. Work ends at the stated
+deliverable or predeclared sampling design; elapsed cost is measured. Do not
+extend draws, replace failed seeds, relax thresholds or broaden the model roster
+after seeing results. Changed mathematical/numerical code receives the smallest
+relevant check under the [change-to-check table](test/README.md); prose changes
+receive link/consistency and whitespace checks. Full local suites, OS fixes,
+distribution policy and further report/UI work remain outside this work sequence.
+Formal evaluation retains the [research execution conditions](#research-execution-prerequisites).
 
 **Engineering status retained, checked 2026-10-04.** For PR head `cd46dfe`,
 [CI run 36980844893](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/36980844893)
