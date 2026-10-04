@@ -1,6 +1,6 @@
 # BayesianMGMFRM.jl — Internal Roadmap
 
-Current decisions reviewed 2026-10-02; the 2026-09-21 assessment of checkout
+Current decisions reviewed 2026-10-04; the 2026-09-21 assessment of checkout
 `9cf42fc` and subsequent dated evidence remain below. The current
 position is **working implementations with substantial numerical checks, before
 target-specific statistical acceptance**. The near-term finish is a declared
@@ -12,10 +12,13 @@ MFRM reference nor an application alone completes that objective. See the
 
 ## Current decisions
 
-**2026-10-02: local ordinary integration of the foundation baseline is complete,
-and draft PR #101 is published. A measured saved-result improvement now passes
-focused checks and exact before/after comparisons. Next confirm the revised
-candidate's hosted CI and complete independent workflow/scientific review.**
+**2026-10-04 user direction: prioritize mathematical foundations and the analysis
+contract before OS-specific tests and distribution policy.** Existing derivations,
+numerical checks and saved fits are the starting evidence. The immediate work is
+to connect assumptions and identification to the quantities being estimated,
+their prior dependence, computational precision and the claims an evaluation
+could support. Distribution readiness is a later milestone, not the next research
+dependency. Do not equate passing tests with statistical acceptance.
 The normalized coordinate route and the four-fit loading-prior comparison remain
 experimental. The six-fit R0/R1 rehearsal retains four numerical passes and two
 R-hat failures, with zero evaluation credit. Independent review and scientific
@@ -40,6 +43,14 @@ The [2026-09-27 review](docs/internal/strategic-review-2026-09-27.md) retains th
   all-150-quantity positive-acceptance claim remains open; do not drop difficult
   quantities after observing results or make this claim a prerequisite for
   every experimental workflow improvement.
+- **Work order:** mathematical and estimand assumptions → prior interpretation →
+  posterior-computation precision → claim-specific statistical assessment →
+  delivery and extensions. Reuse completed proofs and checks; add work only for a
+  named missing argument or an unresolved analytical question. A numerical defect
+  that invalidates an analysis remains urgent. OS fixtures, distribution gates,
+  presentation polish and further general optimization are deferred unless they
+  prevent this research work. Independent scientific review informs acceptance;
+  an unassigned reviewer does not prevent derivation or saved-result analysis.
 - **Ordinary-test runtime (user decision, 2026-10-02):** no per-run or batch
   elapsed-time cutoff. Monitor progress and resources until completion; elapsed
   time is a measurement, not a pass/fail or cancellation criterion. Use
@@ -75,19 +86,47 @@ operability improves. Stable-public promotion still requires the
 
 ## Execution priorities after local integration
 
-Reviewed 2026-10-02 in response to the performance, Git cleanup and long-term
-planning request. Completion is defined by the deliverables below, without a
-new elapsed-time limit. Engineering integration, usable workflows and scientific
-acceptance have separate exits; another implementation feature does not close all three.
+Reordered 2026-10-04 following the user's instruction to establish the mathematical
+and analytical foundation before OS and distribution work. The October 2 engineering
+work remains completed evidence; its former order is superseded. No new elapsed-time
+limit is introduced. Mathematical validity, computational accuracy, statistical
+evidence and delivery readiness have separate completion conditions.
 
 | Order / owner | Next deliverable | Completion evidence / dependency |
 | --- | --- | --- |
-| 1 — Maintainer: confirm published candidate | Authentication is restored and [draft PR #101](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/pull/101) carries the foundation candidate. Publish the measured postprocessing and example-entry fixes, then inspect CI for that head | Clean Git status and archive/whitespace checks; distinguish baseline local integration, new focused checks and new-head hosted CI. No merge or release implied |
-| 2 — Maintainer: shorten feedback | Apply the [change-to-check table](test/README.md); use existing standalone checks and shards | Each change names its affected behavior and validation. Full local integration is reserved for combined/shared changes and release verification, not every commit. Before changing hosted routing, inspect required checks; documentation-only PRs must still produce the required statuses |
-| 3 — Numerical maintainer: measure costs separately | Saved-result profiling and its first measured improvement are complete below. For a remaining observed workflow cost, reuse the existing profilers to separate package load/JIT, warmed density/gradient work, warmup, retained sampling and figures | Record versions, hardware, threads, inputs and source. Compare warmed repeats separately from first-use cost; do not repeat the full suite as a benchmark or launch new fits solely to keep optimizing |
-| 4 — Numerical maintainer: completed scoped improvement; further changes conditional | Preparing design/Q information once per conversion call reduces measured diagnostic reconstruction from 1.988 to 0.232 s, with exact retained-result agreement and 6,315 focused assertions passing | This closes one postprocessing improvement. Sampling efficiency, compilation and the historical M0 hold need their own evidence. Further work needs an observed user cost; it must not displace independent workflow and scientific review |
-| 5 — Independent reader and scientific reviewer | Walk through fit → diagnostics/MCSE → saved result → figures/report; review the existing fixed-facet decision packet | Reader completes the documented workflow without manual draw reshaping. Separately choose the scientific purpose, prior/domain, finite sampling policy, precision target and N; retain N = 8 / 32 / 128 and ±2.5 / 5 / 7.5-point comparisons until that decision. No new evaluation cohort is launched by this roadmap |
-| 6 — Analyst / maintainer: evaluate and extend | Execute the agreed foundation design, then one declared model extension at a time | Count failures/unresolved outcomes in the planned denominator; distinguish within-fit Monte Carlo error from between-panel uncertainty. Promote a supported domain only after its numerical, statistical, backend and reader conditions pass |
+| 1 — Analyst: assumptions and estimands | Reconcile the [identification derivation](docs/internal/mgmfrm-estimands-identification.md) with the [foundation claims](docs/internal/mgmfrm-foundation-scale-acceptance.md): response equation/support, constraints, prior measure, coordinate Jacobian and the origin/unit of each focal quantity | Each focal estimand has a stated domain, invariance or prior dependence, existing argument/check and explicit gap. Reuse the complete-crossed pure-Q result and propriety argument; do not infer sparse/mixed-Q or marginal-model identification from them, or treat a proper posterior as recovery evidence |
+| 2 — Analyst: role of the prior | Connect absolute/centered ability, loading ratios and panel-relative item positions to the declared scale. Reuse the completed C prior-predictive and SD 0.25 / 0.5 / 1.0 sensitivity results to distinguish a coordinate change from a changed prior | State which scientific comparisons require a chosen origin/unit and what the saved evidence supports. Candidate C stays a computational reference; neither easier sampling nor smaller observed RMSE adopts a scientific prior. Do not repeat the completed four-fit comparison |
+| 3 — Numerical analyst: posterior precision | Inspect the retained fixed-facet rehearsal's two R-hat failures by named quantity and chain, preserving all six outcomes. Use the existing exact location references, original 150 quantities and additional focal MCSE checks to separate numerical uncertainty from prior sensitivity | Retain unsupported quantities and uncertainty; diagnostic pass is not an error guarantee. The saved-draw conditional-CDF comparison is conditional on a named classification need, not a mandatory all-150 guarantee project. No automatic fit extension or new seed; new sampling needs a specific unresolved question and declared comparison |
+| 4 — Analyst / scientific reviewer: assessment matched to the claim | Use the existing [fixed-facet decision packet](docs/internal/mgmfrm-foundation-fixed-facet-design.md) to settle estimands, R0/R1's roles, numerical/failure rules and precision. The current proposal is descriptive recovery (C3b), prior sensitivity (C5) and finite-procedure performance (C2); joint-prior calibration (C3a) and heldout prediction (C4) remain separate | Retain N = 8 / 32 / 128 and ±2.5 / 5 / 7.5-point comparisons. Report within-fit and between-panel error separately, including failures in planned denominators. Existing panels and test assertions add no independent replication; purpose, precision and execution conditions precede a new cohort |
+| 5 — Analyst: evaluate the declared foundation | Execute the selected design only after its question and protocol are fixed; report supported, contradicted and unresolved claims for the 2D fixed-Q domain | Evidence must address the specified estimands and conditions. An all-150 positive-calibration guarantee may remain unresolved without blocking a narrower, honestly stated result; it must not be reported as achieved. Independent scientific review remains a distinct acceptance condition |
+| 6 — Maintainer / independent reader: later delivery | Return to OS-dependent fixtures, distribution policy, complete CI, unfamiliar-reader workflow review and release conditions after the foundation assessment. Extend correlation, mixed-Q and other model combinations one at a time after the relevant foundation evidence | Keep current defects recorded; deferral is not a waiver or release approval. Preserve the M0 hold. Reopen optimization only for a measured obstacle to the selected analysis; reuse the completed postprocessing improvement |
+
+**Immediate analytical deliverable.** Update the existing identification/claim
+documents with the correspondence between the likelihood's origin/scale equivalence
+class, the prior's chosen coordinates and the proposed recovery quantities. The
+existing derivations are not restarted. Mark which conclusions are proved under
+the stated conditions, checked numerically, observed in saved fits or still open.
+Then inspect the retained R0 / SD 0.5 and R1 / SD 1.0 failures before proposing any
+additional computation. This supplies a concrete analytical question for the next
+step instead of another generic checklist or a new simulation batch.
+
+Here, establishing the foundation means resolving or explicitly bounding the
+claims for the selected complete-crossed, pure-Q, two-dimensional model. It does
+not require proving every future model combination or approving a universal prior.
+Mathematical derivation and saved-result analysis can proceed now; formal evaluation
+and scientific adoption retain their separate decision conditions. Necessary
+correctness checks follow the [change-to-check table](test/README.md); roadmap
+edits do not call for a fresh full local suite.
+
+**Engineering status retained, checked 2026-10-04.** For PR head `cd46dfe`,
+[CI run 36980844893](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/actions/runs/36980844893)
+has 14 successful jobs, one failed release-hygiene job and two intentionally skipped
+optional research jobs. Ordinary minimum-version/all and current-version groups
+pass. The remaining failure is the static skipped-test scan rejecting the Windows
+branch's `@test_skip` in `test/cmdstan_adaptation_record.jl`; the prior optional
+plotting import failure is resolved. This is deferred distribution work, not a
+failed mathematical assertion or an all-green CI result. [PR #101](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/pull/101)
+remains draft and unmerged; no gate, test or workflow is changed by this reprioritization.
 
 **Performance evidence and its limits.** The historical
 [fitting-core runtime review](docs/internal/fitting-core-runtime-review.md)
