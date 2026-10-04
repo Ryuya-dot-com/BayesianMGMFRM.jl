@@ -139,6 +139,77 @@ step vectors. Arbitrary facet-specific, nested, crossed, or partially pooled
 step structures require a new likelihood, identification rule, prior, and
 reporting contract.
 
+## Estimands, origins and units
+
+For fixed-Q MGMFRM, positive loadings specify orientation but do not by
+themselves identify ability origins and units in the conditional response
+model. Write the predictor as `a_i' theta_p - b_i`, with the prime here denoting
+transpose. For arbitrary shifts `c_d` and positive scales `t_d`, the following
+simultaneous change preserves every category probability:
+
+```math
+\theta^*_{pd}=t_d\theta_{pd}+c_d,\qquad
+a^*_{id}=a_{id}/t_d,\qquad
+b^{*}_{i}=b_i+\sum_d a_{id}c_d/t_d.
+```
+
+Rater severities, consistencies and item steps are unchanged. This preserves
+the fixed zeros of Q, including mixed Q. The declared priors generally
+distinguish the transformed parameters; the invariance is a likelihood
+property, not equality of posterior targets with unchanged prior formulas.
+The normal population ability prior fixes a distributional origin and unit;
+it does not force the fitted persons' sample mean to zero or variance to one.
+
+For pure-Q items i and j in the same dimension, this has concrete consequences:
+
+| Quantity | Effect of the change | Interpretation |
+| --- | --- | --- |
+| Ability difference `theta_p - theta_q` | Multiplied by `t_d` | Sign and ordering are invariant; magnitude and nonzero practical-equivalence bounds require an ability unit. |
+| Loading ratio `a_i/a_j` | Unchanged | Same-dimension relative sensitivity; cross-dimension ratios have separate units. |
+| Item-location difference `b_i-b_j` | Adds `(a_i-a_j)c_d/t_d` | Generally origin-dependent, including its sign. |
+| Difference `b_i/a_i-b_j/a_j` | Multiplied by `t_d` | Difference between centers in ability coordinates; sign is invariant but magnitude needs a unit. |
+| Item location relative to the panel, `b_i-a_i*mean(theta_d)` | Unchanged | Refers to the same fitted-person panel; changing that panel changes the estimand. |
+| Rater severity difference or consistency ratio | Unchanged | Conditional on the specified zero-sum/product-one constraints; this does not remove prior sensitivity or establish rating reliability. |
+| Matched category probabilities | Unchanged | Person coordinates and item parameters must move together. |
+
+For example, loadings `(0.8,1.6)` and item locations `(0.2,0.1)` give an
+item-location difference of `0.1`. Shifting that ability dimension by one
+changes the locations to `(1.0,1.7)`, and the difference to `-0.7`, with exactly
+the same probabilities. A difference in b remains a valid estimand under a
+declared population origin; it is not automatically an origin-free item
+comparison. The existing [location diagnostics](experimental.md#Location-diagnostics-for-fixed-Q-MGMFRM)
+already report panel-relative locations, using draw-specific loadings.
+
+For a **complete crossed, pure-Q design**, with finite parameters, at least
+one item per dimension and nonconstant person abilities in every dimension,
+these location/positive-scale changes exhaust the conditional response
+model's ambiguity. To see this, take adjacent log odds divided by 1.7. A
+nonzero person difference is proportional to each rater's consistency; product
+one fixes all consistencies. Dividing them out, then averaging with the
+zero-sum rater and item-step constraints recovers severities, steps and the
+person-item predictors. Within each dimension, person differences in these
+predictors determine loadings and abilities up to a common positive scale;
+their levels leave one origin. This argument uses the entire probability
+table, not estimated cell frequencies from a single rating panel.
+
+If all persons have the same ability in a dimension, an individual item's
+loading and location can compensate each other, so even loading ratios need
+not be identified. The completeness claim does not extend here to sparse or
+cross-loaded designs, or to a model with abilities integrated out. Structural
+Q checks and invariance of a selected contrast alone do not establish those
+broader identifiability results or adequate finite-data precision.
+
+For the first core candidate's proper normal raw prior and a finite set of
+valid category observations, posterior existence follows separately: each
+likelihood is strictly positive and at most one, so its prior integral is in
+`(0,1]`. A normalized posterior therefore exists. This does not establish
+numerical representability, MCMC convergence, recovery, calibration, or the
+scientific appropriateness of the prior.
+
+The [MGMFRM prior comparison](@ref "MGMFRM prior choice and comparable scales")
+distinguishes the raw prior from explicit normalized priors, explains
+their rater asymmetry and gives explicit scale-matching conventions.
+
 ## Independent Known-Truth Ordinal Kernel
 
 The research helper [`simulate_local_dependence`](@ref) does not call the

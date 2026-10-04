@@ -802,7 +802,8 @@ function _cmdstan_sample_command(executable::AbstractString;
         output_path::AbstractString,
         seed::Int,
         chain::Int,
-        progress::Bool, record_warmup::Bool = false)
+        progress::Bool, record_warmup::Bool = false,
+        record_adaptation::Bool = false)
     _cmdstan_executable_sha256(executable, :sampling) == expected_sha256 ||
         throw(CmdStanError(:sampling, :executable_changed,
             "the model executable does not match its observed compile-output SHA-256"))
@@ -817,6 +818,7 @@ function _cmdstan_sample_command(executable::AbstractString;
         "engaged=$(warmup > 0 ? 1 : 0)",
     ]
     warmup > 0 && push!(arguments, "delta=$target_accept")
+    warmup > 0 && record_adaptation && push!(arguments, "save_metric=1")
     append!(arguments, (
         "algorithm=hmc",
         "engine=nuts",
@@ -854,7 +856,10 @@ function _cmdstan_sample_chains(
         metric::String,
         init_jitter::Float64,
         progress::Bool, record_warmup::Bool = false,
+        _sampling_observer = nothing,
         initial_payload::Function = values -> (; beta = values))
+    _sampling_observer === nothing || _sampling_observer isa Function ||
+        throw(ArgumentError("_sampling_observer must be a function or nothing"))
     _cmdstan_executable_sha256(executable, :sampling) == expected_sha256 ||
         throw(CmdStanError(:sampling, :executable_changed,
             "the model executable does not match its observed compile-output SHA-256"))
@@ -906,9 +911,22 @@ function _cmdstan_sample_chains(
                 chain,
                 progress,
                 record_warmup,
+                record_adaptation = _sampling_observer !== nothing,
             )
+            metric_path = splitext(output_path)[1] * "_metric.json"
+            _sampling_observer === nothing || _sampling_observer((;
+                phase = :sampling_start, chain, initial_raw = copy(chain_initial),
+                seed = chain_seeds[chain], command = copy(command.exec),
+                data_path, init_path, output_path, metric_path,
+                executable_sha256 = expected_sha256, ndraws, warmup, metric, record_warmup))
             _with_sampler_context(:cmdstan, chain, :sampling) do
-                _cmdstan_run(command, :sampling; show_output = progress)
+                try
+                    _cmdstan_run(command, :sampling; show_output = progress)
+                finally
+                    # Preserve even partial output before parsing or temporary cleanup.
+                    _sampling_observer === nothing || _sampling_observer((;
+                        phase = :sampling_output, chain, output_path, metric_path))
+                end
             end
             result = _with_sampler_context(:cmdstan, chain, :output_parse) do
                 parse_chain(output_path, chain, ndraws)
@@ -934,6 +952,7 @@ function _cmdstan_sample_chains(
                     append!(warmup_stats, result.warmup_stats)
                 end
             end
+            _sampling_observer === nothing || _sampling_observer((; phase = :sampling_end, chain))
         end
     end
     result = (;
@@ -1091,7 +1110,8 @@ function _cmdstan_generalized_candidate_run(
         progress::Bool = false,
         cmdstan_path::Union{Nothing,AbstractString} = nothing,
         cmdstan_cache_dir::Union{Nothing,AbstractString} = nothing,
-        record_warmup::Bool = false)
+        record_warmup::Bool = false,
+        _sampling_observer = nothing)
     step_size = _check_fit_controls(ndraws, warmup, chains, step_size)
 
     max_energy_error == 1000.0 || throw(ArgumentError(
@@ -1119,6 +1139,9 @@ function _cmdstan_generalized_candidate_run(
         include_paths = true,
         require_ready = true,
     )
+    _sampling_observer === nothing || warmup == 0 ||
+        (check.cmdstan_version !== nothing && VersionNumber(check.cmdstan_version) >= v"2.34") ||
+        throw(ArgumentError("CmdStan adaptation recording requires CmdStan 2.34 or later"))
     compiled = _cmdstan_compile_model(
         check,
         _cmdstan_generalized_family(target);
@@ -1148,6 +1171,7 @@ function _cmdstan_generalized_candidate_run(
         metric = metric_name,
         init_jitter = Float64(init_jitter),
         progress,
+        (_sampling_observer === nothing ? (;) : (; _sampling_observer))...,
         initial_payload = raw -> _cmdstan_generalized_initial(target, raw),
         (record_warmup ? (; record_warmup = true) : (;))...,
     )

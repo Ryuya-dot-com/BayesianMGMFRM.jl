@@ -474,22 +474,11 @@ positive coordinate `a = exp(z)`, `log p_a(a) = log p_z(log(a)) - log(a)`.
 This distinction follows the
 [Stan change-of-variables rule](https://mc-stan.org/docs/stan-users-guide/reparameterization.html#changes-of-variables).
 
-To inspect intervals without arranging draw matrices yourself, load CairoMakie
-and call `BayesianMGMFRM.plot_posterior(fit_result; block = :person)`.
-The interval figure defaults to model coordinates; `scale = :raw` selects
-computational coordinates. For MGMFRM, select a dimension by its index or declared
-label with `dimension = 2`. Dimensions have separate axes and retain their labels.
-Use `BayesianMGMFRM.plot_diagnostics(fit_result; block = :person)` for retained
-chain traces and rank histograms, defaulting to computational coordinates and
-using the fit's recorded diagnostic settings.
-
-`BayesianMGMFRM.plot_predictive(fit_result; ndraws = 200, seed = 42)` compares
-category proportions for the original rating rows with conditional posterior
-replications. It does not introduce new persons, items or raters.
-Generalized plots are marked experimental. The [plotting guide](fitting.md#Posterior-interval-figures)
-also covers editing, PDF/SVG output, and cache reload.
-`BayesianMGMFRM.plot_wright` supports stable MFRM only and rejects generalized
-fits; generalized loadings and scales need their own interpretation.
+With CairoMakie, generalized fits support experimental posterior intervals,
+chain diagnostics and conditional predictive plots for the original rating rows.
+See the [plotting guide](fitting.md#Posterior-interval-figures) for coordinate
+scales, dimension labels, editing and PDF/SVG export. `BayesianMGMFRM.plot_wright`
+supports stable MFRM only and rejects generalized fits.
 
 Equal raw scales do not imply exchangeable constrained priors. For MGMFRM,
 the last sorted rater severity is the negative sum of the other `R - 1`
@@ -505,11 +494,117 @@ rule or evidence that a particular rater is unreliable.
 Setting every raw scale to one is a sensitivity setting, not replication of
 the complete prior in [Uto (2021), Appendix 1](https://doi.org/10.1007/s41237-021-00144-w).
 For example, that code applies the severity normal density to the full
-constrained rater vector, including its reconstructed coordinate; the current
-package applies it only to the free coordinates. Matching the response equation
+constrained rater vector, including its reconstructed coordinate; the default
+raw-prior path applies it only to the free coordinates. Matching the response equation
 or the two package backends therefore does not establish source-posterior
-equivalence. An exchangeable alternative needs an explicit prior/scale decision
-and validation before it replaces this experimental policy.
+equivalence. The explicit normalized source and exchangeable MGMFRM routes
+below are separate targets. `Experimental.ExchangeablePrior` above remains
+fixed-coefficient MFRM-only. Choosing scientific scales and replacing the raw
+default remain separate decisions.
+
+### MGMFRM prior choice and comparable scales
+
+The current raw prior, normalized exchangeable reference and normalized source
+reference are distinct probability distributions, even with equal numerical
+scale settings:
+
+| Prior | Rater/step structure | Role |
+| --- | --- | --- |
+| Raw `GeneralizedPrior` | Independent free normals, with the last coordinate reconstructed | Public experimental MGMFRM workflow and the existing computational reference; retain IDs and the declared prior. |
+| Normalized exchangeable reference | Symmetric zero-sum severity, log-consistency and item-step blocks | Explicit `NormalizedMGMFRMPrior(prior_model=:exchangeable, ...)`; candidate when rater IDs carry no prior scientific distinction. |
+| Normalized source reference | Same severity/step blocks; log-consistency additionally distinguishes an explicit rater | Explicit `NormalizedMGMFRMPrior(prior_model=:source, source_rater=..., ...)`; comparison against a declared source target. |
+
+Use `Experimental.NormalizedMGMFRMPrior` to carry one explicit prior through
+prediction, fitting, manual caches and reports. Specify all six scales and the
+prior family; the constructor does not select scientific widths. This applies
+to fixed-Q MGMFRM with estimated loadings and identity latent correlation.
+The fixed-coefficient `ExchangeablePrior` keeps its separate MFRM meaning.
+The [normalized-prior walkthrough](examples.md#Explicit-normalized-prior-MGMFRM-workflow)
+provides a self-contained fit → diagnostics → save/reload → report script, with
+optional figures. Its illustrative scales and short sampling budget are not
+scientific recommendations; diagnostic warnings remain visible.
+
+For the source reference, supply `prior_model=:source` and `source_rater` equal
+to a rater ID in the data. That ID changes the log-consistency prior mean.
+Reports preserve the distribution, kernel/marginal/contrast scales, source
+identity and model scope. With CairoMakie loaded, optional bundle figures
+`posterior`, `diagnostics`, `predictive`, `prior` and `prior_predictive` use
+these same saved draws and prior; prior figures require `include_prior_predictive=true`.
+
+Both Julia/AdvancedHMC and CmdStan use the existing normalized targets. CmdStan
+retains its K≥3 boundary and requires `sampling_coordinates = :raw`. AdvancedHMC
+also accepts `:orthogonal_person_mean_item_offset`, as used in the walkthrough;
+the default remains `:raw`.
+The complete normalized prior and likelihood are preserved. Initial values and
+jitter use raw coordinates, as do stored samples and parameter diagnostics.
+Inspect `fit_metadata(restored).sampler_controls.sampling_coordinates` for the
+explicit transformed route; raw records may omit this field.
+Correlated MGMFRM and automatic request caching are not connected for this prior. Existing private
+v1/v2 sample records keep their formats and identities; the public result and
+manual fit cache have separate types/schemas. Existing raw fits keep their
+meaning. Numerical and workflow checks do not establish scientific acceptance
+or validate every mixed-Q design.
+
+For a symmetric zero-sum block of length n, kernel SD `tau` gives marginal
+SD `tau*sqrt((n-1)/n)` and pairwise contrast SD `sqrt(2)*tau`. The raw free SD
+`sigma` instead gives marginal SD `sigma` for free entries and
+`sigma*sqrt(n-1)` for the last entry. Contrast variances are `2sigma^2` between
+free entries and `(n+2)sigma^2` when the last entry is involved.
+
+Choosing `tau=sqrt(2)*sigma` matches the raw prior's **average** marginal
+variance and average pairwise contrast variance. For n>2 it does not match all
+individual distributions or covariances. Using the same numerical scale matches
+the free-to-free contrast variance, where such a pair exists, while changing
+the other contrasts. State what is held equal before attributing posterior
+changes to symmetry alone. Here n=R for rater blocks and n=K-1 for item steps.
+
+For the source reference, write `ell=log(gamma)` and let q denote the explicitly
+distinguished rater. Its mean is `tau^2*(1/R-e_q)`, with covariance
+`tau^2*(I-11'/R)`. Thus `ell_q-ell_j` has mean `-tau^2` for j≠q, whereas the
+exchangeable reference has mean zero. The source rater is not fixed at
+consistency one. A relabeling must carry that rater's identity along with the
+observations; choosing a different distinguished rater changes the prior.
+
+When no rater has a scientifically distinguished prior role, exchangeability
+is the preferred structure for a future scientific candidate. It does not
+determine the SDs or establish calibration. For an exchangeable prior, a
+declared 95% range `[-delta,delta]` for one severity difference gives
+`tau=delta/(sqrt(2)*z_0.975)`. A range `[1/C,C]` for one consistency ratio gives
+`tau=log(C)/(sqrt(2)*z_0.975)`. These specify individual prior contrasts, not a
+simultaneous guarantee or a recommended practical tolerance. Use prior
+predictions to inspect the resulting rating distributions before fitting.
+
+Inspect category probabilities as well as expected scores. With four categories,
+zero location and consistency one, steps `(-1,0,1)` and `(1,0,-1)` both give
+expected score 2.5, but their total endpoint probabilities are approximately
+0.1545 and 0.8455. Smaller step variance need not reduce endpoint mass when
+other facets vary. Concentration in one category, total endpoint probability
+and entropy answer different questions; none alone is a prior acceptance rule.
+
+Score direction also matters. Negating abilities, item locations and severities,
+and replacing each step vector by its negative reverse, reverses category
+probabilities while preserving positive loadings and consistencies. The centered
+normalized step prior preserves this transformation. For K>=4 the raw free-step
+prior generally does not: `(1,1,-2)` and its reflected `(2,-1,-1)` have equal
+full squared norms but different free-coordinate normal densities. Consequently,
+the raw prior can give different prior-predictive probabilities to the two middle
+categories. When neutrality to score direction is intended, state that requirement
+alongside rater exchangeability. This is a score relabeling, not an additional
+fixed-label likelihood equivalence or a silent change to `GeneralizedPrior`.
+
+Ability units need the same care. Scaling abilities by t without changing the
+response model requires dividing loadings by t and transforming their priors
+together. A zero-mean log-loading prior then has mean `-log(t)` in the new
+coordinates. `GeneralizedPrior` exposes SDs, with log-loading means fixed at
+zero, so changing only `person_sd` is a prior-sensitivity change, not merely a
+unit conversion. See [Estimands, origins and units](@ref "Estimands, origins and units").
+
+The normalized Julia reference density also handles binary responses, where
+there is no free step density. The current MGMFRM CmdStan model requires at
+least three categories; algebra for K=2 does not extend that backend's fitting
+boundary.
+
+### MGMFRM sampler defaults and backends
 
 If sampler counts are omitted, both guarded families currently use 100 warm-up
 iterations and retain 100 draws per chain across two chains. Thus warm-up is
@@ -533,6 +628,96 @@ CmdStan is an optional external runtime; inspect it with
 The older `fit(spec; experimental = true)` form remains available during the
 migration, but new code should not depend on it. Passing `experimental` inside
 the namespace is rejected because the namespace itself is the opt-in.
+
+## Sampling coordinates for independent MGMFRM
+
+To separate common ability/item location movement during sampling, an unwrapped
+fixed-Q MGMFRM can use orthogonal person coordinates and loading-weighted item
+offsets with AdvancedHMC:
+
+```julia
+coordinates = :orthogonal_person_mean_item_offset
+controls = (; chains = 4, warmup = 1000, ndraws = 1000, seed = 42, step_size = 0.03)
+fit_result = BayesianMGMFRM.Experimental.fit(spec;
+    sampling_coordinates = coordinates, controls...)
+check = diagnostics(fit_result; include_location = true)
+check.summary
+```
+
+The person coordinates include an estimated finite-panel mean in each dimension
+and orthogonal contrasts. The item coordinate subtracts the loading-weighted
+person mean from difficulty. The transform has unit absolute Jacobian, and the
+sampler evaluates the complete original joint prior and likelihood after mapping
+back to raw coordinates. It does not fix the person mean to zero or introduce
+independent priors on the item offsets. Positive loadings use the active cells
+of the admitted fixed Q, including within-item and mixed structures.
+
+`init` and `init_jitter` keep their raw-coordinate meanings. Returned `draws`,
+summaries, prediction and parameter diagnostics retain their existing parameter
+names and scales. The selected coordinates are recorded in
+`fit_result.sampler_controls.sampling_coordinates` for `GeneralizedPrior`, or
+`fit_metadata(fit_result).sampler_controls.sampling_coordinates` for
+`NormalizedMGMFRMPrior`; manual save/reload preserves
+that record. Inspect the full parameter and sampler diagnostics: a different
+coordinate choice does not guarantee better mixing or establish model adequacy.
+
+With the default raw `GeneralizedPrior`, automatic caching accepts the same option
+(`NormalizedMGMFRMPrior` uses manual save/reload only):
+
+```julia
+cached_result = BayesianMGMFRM.Experimental.cached_fit(spec;
+    cache_path = "mgmfrm-location.jls",
+    sampling_coordinates = coordinates, controls...)
+```
+
+Use the same explicit sampler controls when matching a direct fit to a cache
+request. Different coordinate choices have different computation/cache keys,
+while the model, prior and stored parameter spaces retain their identities.
+Requesting `:raw` from a file created with the alternative coordinates, or the
+reverse, raises a cache-key mismatch; choose a separate path or explicitly use
+`refresh = true` to replace it. Repeating the same request reloads the saved fit.
+
+The default `sampling_coordinates = :raw` preserves existing behavior and cache
+keys, including when explicitly supplied. The alternative is available only for
+independent fixed-Q MGMFRM with `backend = :advancedhmc`. CmdStan, correlated
+specifications and other model families do not support this coordinate option.
+
+## Location diagnostics for fixed-Q MGMFRM
+
+For an independent fixed-Q `MGMFRMFit`, inspect finite-panel locations when item
+difficulties or abilities mix slowly:
+
+```julia
+check = diagnostics(fit_result; include_location = true)
+check.location_rows
+check.location_summary
+check.summary # original parameter/sampler assessment, including all warnings
+```
+
+At each retained draw, these rows calculate the equally weighted ability mean
+over the fitted persons in each dimension. For each item they report its
+difficulty, the loading-weighted ability mean `sum(a[i,d] * mean(theta[:,d]))`
+over its active Q cells, and difficulty minus that weighted mean. The quantities
+precede multiplication by the response-scale constant and rater consistency.
+Using the actual draw-specific loadings matters: simply subtracting an
+unweighted ability mean does not cancel a location shift in MGMFRM.
+
+Adding a vector `c` to every person's abilities and adding `sum(a[i,d] * c[d])`
+to each item difficulty preserves response probabilities. The derived difference
+also stays unchanged, for between-item and within-item Q structures. The declared
+priors still distinguish those shifted parameter vectors. Consequently, the
+additional R-hat and ESS rows can reveal slow movement in a common location;
+they do not impose centering, establish likelihood identification, or change the
+original diagnostic decision. These means describe the fitted panel, not extra
+population-mean parameters. Good diagnostics for a derived difference do not
+clear a warning on the full fit.
+
+The calculation uses the saved diagnostic thresholds, validates the stored
+chain order and reconstructs model coordinates from raw draws. It works after
+`load_fit_cache` and is available in both `view = :full` and `view = :public`.
+The default `include_location = false` preserves existing diagnostic and report
+output. This option currently applies to `MGMFRMFit`; the separate correlated
+MGMFRM result type has not acquired this option.
 
 ## Correlated MGMFRM: explicit fitting and saved results
 
@@ -769,6 +954,8 @@ BayesianMGMFRM.Experimental.ExchangeablePrior
 BayesianMGMFRM.Experimental.ExchangeableMFRMFit
 BayesianMGMFRM.Experimental.correlated
 BayesianMGMFRM.Experimental.GeneralizedPrior
+BayesianMGMFRM.Experimental.NormalizedMGMFRMPrior
+BayesianMGMFRM.Experimental.NormalizedMGMFRMFit
 BayesianMGMFRM.Experimental.surface_contract
 BayesianMGMFRM.Experimental.free_latent_correlation_2d_contract
 BayesianMGMFRM.Experimental.preview

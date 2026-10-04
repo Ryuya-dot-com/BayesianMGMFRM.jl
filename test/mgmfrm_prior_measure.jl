@@ -1,6 +1,6 @@
 module MGMFRMPriorMeasureChecks
 
-using Test, BayesianMGMFRM, ForwardDiff, LinearAlgebra
+using Test, BayesianMGMFRM, ForwardDiff, LinearAlgebra, Statistics
 import JSON3
 const B = BayesianMGMFRM
 include("test_groups.jl")
@@ -115,6 +115,158 @@ end
         end
         @test mass ≈ 1 atol = 1e-9 rtol = 0
         @test abs(score) < 1e-9
+    end
+end
+
+@testset "Prior choices recover their declared joint Gaussian moments (no fitting)" begin
+    scales = (; person_sd = 1.2, rater_sd = .7, item_sd = .9,
+        log_discrimination_sd = .4, log_consistency_sd = .5, step_sd = .6)
+    for R in (2, 3, 5), K in (2, 4)
+        cells = [(p, i, r) for p in 1:2 for i in 1:2 for r in 1:R]
+        data = FacetData((; person = first.(cells), item = getindex.(cells, 2),
+            rater = ["R$r" for (_, _, r) in cells], score = mod.(eachindex(cells), K));
+            person = :person, item = :item, rater = :rater, score = :score,
+            category_levels = 0:(K - 1))
+        spec = mfrm_spec(data; family = :mgmfrm, dimensions = 2,
+            thresholds = :partial_credit, q_matrix = Bool[1 0; 0 1])
+        base = B._mgmfrm_guarded_local_fit_logdensity(spec;
+            prior = B._SourceFixturePrior(; scales...))
+        bp = base.blueprint
+        sd = zeros(bp.n_parameters)
+        for (block, scale) in zip((:person, :rater_free, :item,
+                :log_item_dimension_discrimination, :log_rater_consistency_free, :item_steps),
+                values(scales))
+            sd[bp.blocks[block]] .= scale
+        end
+        C = vcat(Matrix{Float64}(I, R - 1, R - 1), -ones(1, R - 1))
+        projection = Matrix{Float64}(I, R, R) - ones(R, R) / R
+        for (model, distinguished) in ((:raw, 0), (:exchangeable, 0), (:source, 1), (:source, R))
+            target = model === :raw ? base : B._MGMFRMNormalizedPriorLogDensity(spec;
+                prior_model = model, scales,
+                source_rater = distinguished == 0 ? nothing : data.rater_levels[distinguished])
+            lp = model === :raw ? x -> B._source_fixture_logprior(base, x) : x -> B.logprior(target, x)
+            covariance = Matrix(Diagonal(sd.^2))
+            mu = zeros(length(sd))
+            if model !== :raw
+                for (block, tau) in ((:rater_free, scales.rater_sd),
+                        (:log_rater_consistency_free, scales.log_consistency_sd))
+                    indices = bp.blocks[block]
+                    covariance[indices, indices] = tau^2 .* (
+                        Matrix{Float64}(I, R - 1, R - 1) - ones(R - 1, R - 1) / R)
+                end
+                H = K - 1
+                for i in 1:2
+                    indices = bp.blocks[:item_steps][((i - 1) * (H - 1) + 1):(i * (H - 1))]
+                    covariance[indices, indices] = scales.step_sd^2 .* (
+                        Matrix{Float64}(I, H - 1, H - 1) - ones(H - 1, H - 1) / H)
+                end
+                if model === :source
+                    full_mean = -scales.log_consistency_sd^2 .* projection[:, distinguished]
+                    mu[bp.blocks[:log_rater_consistency_free]] = full_mean[1:(R - 1)]
+                end
+            end
+            origin = zeros(length(sd))
+            observed_covariance = inv(-ForwardDiff.hessian(lp, origin))
+            observed_mean = observed_covariance * ForwardDiff.gradient(lp, origin)
+            @test observed_covariance ≈ covariance atol = 1e-12
+            @test observed_mean ≈ mu atol = 1e-12
+            for x in (origin, mu .+ [.13sin(j) for j in eachindex(mu)])
+                expected = -(dot(x - mu, covariance \ (x - mu)) +
+                    length(x) * log(2pi) + logdet(covariance)) / 2
+                @test lp(x) ≈ expected atol = 1e-11
+            end
+            for (block, tau) in ((:rater_free, scales.rater_sd),
+                    (:log_rater_consistency_free, scales.log_consistency_sd))
+                indices = bp.blocks[block]
+                full_covariance = C * observed_covariance[indices, indices] * C'
+                expected = tau^2 .* (model === :raw ? C * C' : projection)
+                @test full_covariance ≈ expected atol = 1e-12
+                if block === :log_rater_consistency_free
+                    full_mean = C * observed_mean[indices]
+                    variance = full_covariance[1, 1] + full_covariance[R, R] -
+                        2full_covariance[1, R]
+                    @test variance ≈ (model === :raw ? R + 2 : 2) * tau^2
+                    if model === :source
+                        q = distinguished
+                        j = q == 1 ? R : 1
+                        @test full_mean[q] - full_mean[j] ≈ -tau^2
+                        @test exp(full_mean[q] - full_mean[j] + variance / 2) ≈ 1
+                        @test exp(full_mean[q] + full_covariance[q, q] / 2) ≈
+                            exp(-tau^2 * (R - 1) / (2R))
+                    else
+                        @test full_mean ≈ zeros(R) atol = 1e-12
+                    end
+                end
+            end
+            if K == 2 && model !== :raw
+                # Regression: no step-size-zero range, and an unused SD cannot
+                # change the zero-dimensional step block's density or gradient.
+                changed = B._MGMFRMNormalizedPriorLogDensity(spec; prior_model = model,
+                    scales = merge(scales, (; step_sd = 3 * scales.step_sd)),
+                    source_rater = distinguished == 0 ? nothing : data.rater_levels[distinguished])
+                x = [.13sin(j) for j in eachindex(sd)]
+                @test B.logprior(changed, x) == lp(x)
+                @test ForwardDiff.gradient(z -> B.logprior(changed, z), x) ≈
+                    ForwardDiff.gradient(lp, x)
+            end
+        end
+    end
+end
+
+@testset "Matching average variance is distinct from matching every contrast" begin
+    for R in (2, 3, 5), sigma in (.5, 1., 2.)
+        C = vcat(Matrix{Float64}(I, R - 1, R - 1), -ones(1, R - 1))
+        raw = sigma^2 .* C * C'
+        exchangeable = 2sigma^2 .* (Matrix{Float64}(I, R, R) - ones(R, R) / R)
+        contrast_variances(S) = [S[i, i] + S[j, j] - 2S[i, j] for i in 1:R for j in (i + 1):R]
+        @test mean(diag(raw)) ≈ mean(diag(exchangeable))
+        @test mean(contrast_variances(raw)) ≈ mean(contrast_variances(exchangeable)) ≈ 4sigma^2
+        @test isapprox(raw, exchangeable) == (R == 2)
+    end
+end
+
+@testset "Score reflection separates response symmetry from raw-step prior symmetry" begin
+    # Y' = K-1-Y: theta,b,severity change sign and steps become -reverse(steps).
+    # This checks a category relabelling, not the fixed-label equivalence theorem.
+    for K in (2, 3, 4, 6)
+        cells = [(p, i, r) for p in 1:2 for i in 1:2 for r in 1:3]
+        data = FacetData((; person=first.(cells), item=getindex.(cells, 2),
+            rater=last.(cells), score=mod.(eachindex(cells), K));
+            person=:person, item=:item, rater=:rater, score=:score,
+            category_levels=0:(K-1))
+        spec = mfrm_spec(data; family=:mgmfrm, dimensions=2,
+            thresholds=:partial_credit, q_matrix=Bool[1 0; 0 1])
+        scales = (; person_sd=1., rater_sd=1., item_sd=1.,
+            log_discrimination_sd=.5, log_consistency_sd=.5, step_sd=1.)
+        base = B._mgmfrm_guarded_local_fit_logdensity(spec;
+            prior=B._SourceFixturePrior(; scales...))
+        bp = base.blueprint
+        raw = [.23sin(j) for j in 1:bp.n_parameters]
+        raw[bp.blocks[:item_steps]] .= 0
+        m = K-2
+        m > 0 && (raw[bp.blocks[:item_steps][1:m]] .= 1)
+        reflected = copy(raw)
+        for block in (:person, :item, :rater_free)
+            reflected[bp.blocks[block]] .*= -1
+        end
+        if m > 0
+            for i in 1:2
+                indices = bp.blocks[:item_steps][((i-1)*m+1):(i*m)]
+                full = vcat(raw[indices], -sum(raw[indices]))
+                reflected[indices] = -reverse(full)[1:m]
+            end
+        end
+        probability(x) = B._mgmfrm_predictive_probabilities_direct(base.design,
+            permutedims(B._mgmfrm_source_constrained_params_from_unconstrained(
+                base.design, x, bp)))[1, :, :]
+        @test probability(reflected) ≈ reverse(probability(raw); dims=2) atol=1e-12
+        difference = B._source_fixture_logprior(base, reflected)-B._source_fixture_logprior(base, raw)
+        @test difference ≈ (m > 0 ? -(m^2-1)/2 : 0.) atol=1e-12
+        for model in (:exchangeable, :source)
+            target = B._MGMFRMNormalizedPriorLogDensity(spec; prior_model=model, scales,
+                source_rater=model === :source ? 1 : nothing)
+            @test B.logprior(target, reflected) ≈ B.logprior(target, raw) atol=1e-12
+        end
     end
 end
 

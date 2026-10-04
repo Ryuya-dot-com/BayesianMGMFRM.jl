@@ -100,9 +100,18 @@ function review(spec,regime;ndraws,prior_seed,response_seed,batch_size=128)
     regime in REGIMES && ndraws isa Integer && !(ndraws isa Bool) && ndraws>=2 &&
         all(s -> s isa Integer && !(s isa Bool) && s>=0,(prior_seed,response_seed)) &&
         prior_seed!=response_seed || throw(ArgumentError("Declared regime, draws and distinct seeds required"))
+    return review(spec,B._mgmfrm_stress_prior(regime);label=regime,ndraws,prior_seed,response_seed,batch_size)
+end
+
+"""Prior prediction for an explicitly supplied prior; no empirical selection."""
+function review(spec,prior::B.GeneralizedPrior;label::Symbol=:custom,
+        ndraws,prior_seed,response_seed,batch_size=128)
+    ndraws isa Integer && !(ndraws isa Bool) && ndraws>=2 &&
+        all(s -> s isa Integer && !(s isa Bool) && s>=0,(prior_seed,response_seed)) &&
+        prior_seed!=response_seed || throw(ArgumentError("Draws and distinct nonnegative seeds required"))
     E.candidate_cells(spec.data)
     spec.q_matrix==P.Q || throw(ArgumentError("Wrong candidate Q matrix"))
-    prior=B._mgmfrm_stress_prior(regime)
+    regime=label
     # Reuse exactly the typed prior-prediction draw law and coordinate transforms.
     bundle=B._guarded_generalized_prior_draw_bundle(spec,"core prior review";
         prior,ndraws,rng=MersenneTwister(prior_seed))

@@ -1,4 +1,32 @@
-# Private complete fixed-Q targets and sample records; no public fit/cache dispatch.
+# Canonical fixed-Q targets and sample records, shared by private and public consumers.
+struct _NormalizedMGMFRMPrior
+    prior_model::Symbol
+    scales::NamedTuple
+    source_rater::Any
+    function _NormalizedMGMFRMPrior(; prior_model::Symbol, person_sd, rater_sd,
+            item_sd, log_discrimination_sd, log_consistency_sd, step_sd,
+            source_rater = nothing)
+        prior_model in (:exchangeable, :source) || throw(ArgumentError(
+            "prior_model must be :exchangeable or :source"))
+        (prior_model === :source) == (source_rater !== nothing) || throw(ArgumentError(
+            "source_rater is required only for the source prior"))
+        scales = (; person_sd, rater_sd, item_sd, log_discrimination_sd, log_consistency_sd, step_sd)
+        all(x -> x isa Real && !(x isa Bool), values(scales)) ||
+            throw(ArgumentError("prior scales must be finite positive real numbers, not Bool"))
+        checked = _source_fixture_prior_values(_SourceFixturePrior(; scales...))
+        return new(prior_model, checked, deepcopy(source_rater))
+    end
+end
+
+struct _NormalizedMGMFRMFit
+    record::NamedTuple
+    function _NormalizedMGMFRMFit(record::NamedTuple; expected_identity::AbstractString)
+        snapshot = deepcopy(record)
+        _restore_mgmfrm_normalized_prior_samples(snapshot; expected_identity)
+        return new(snapshot)
+    end
+end
+
 struct _MGMFRMNormalizedPriorLogDensity
     base::_MGMFRMGuardedLocalFitLogDensity
     prior_model::Symbol
@@ -31,6 +59,28 @@ struct _MGMFRMNormalizedPriorLogDensity
     end
 end
 
+# Reuse the location map, but evaluate the full normalized target (not its raw-prior base).
+struct _MGMFRMNormalizedLocationLogDensity
+    raw::_MGMFRMNormalizedPriorLogDensity
+    map::_MGMFRMLocationLogDensity
+end
+_MGMFRMNormalizedLocationLogDensity(raw::_MGMFRMNormalizedPriorLogDensity) =
+    _MGMFRMNormalizedLocationLogDensity(raw, _MGMFRMLocationLogDensity(raw.base))
+_mgmfrm_location_to_raw(t::_MGMFRMNormalizedLocationLogDensity, q) =
+    _mgmfrm_location_to_raw(t.map, q)
+_mgmfrm_location_from_raw(t::_MGMFRMNormalizedLocationLogDensity, x) =
+    _mgmfrm_location_from_raw(t.map, x)
+LogDensityProblems.dimension(t::_MGMFRMNormalizedLocationLogDensity) =
+    LogDensityProblems.dimension(t.raw)
+LogDensityProblems.capabilities(::Type{_MGMFRMNormalizedLocationLogDensity}) =
+    LogDensityProblems.LogDensityOrder{0}()
+initial_params(t::_MGMFRMNormalizedLocationLogDensity) =
+    _mgmfrm_location_from_raw(t, initial_params(t.raw))
+_check_source_fixture_raw_vector(t::_MGMFRMNormalizedLocationLogDensity, x::AbstractVector) =
+    _check_source_fixture_raw_vector(t.raw, x)
+LogDensityProblems.logdensity(t::_MGMFRMNormalizedLocationLogDensity, q) =
+    LogDensityProblems.logdensity(t.raw, _mgmfrm_location_to_raw(t, q))
+
 function _mgmfrm_normalized_prior_record(target::_MGMFRMNormalizedPriorLogDensity)
     return (;
         schema = Symbol("bayesianmgmfrm.normalized_fixed_q_prior.v1"),
@@ -48,6 +98,56 @@ function _mgmfrm_normalized_prior_identity(target::_MGMFRMNormalizedPriorLogDens
         design = design_identity(target.base.design).value,
         prior = _mgmfrm_normalized_prior_record(target),
     ))
+end
+
+# Derived explanation, never a second persisted mathematical target. Both prior
+# prediction and restored samples use the existing canonical record above.
+function _mgmfrm_normalized_log_consistency_mean(target::_MGMFRMNormalizedPriorLogDensity)
+    R = length(target.base.design.spec.data.rater_levels)
+    means = zeros(R)
+    if target.prior_model === :source && R > 1
+        tau = target.base.prior.log_consistency_sd
+        means .= (tau/R)*tau
+        means[target.source_rater_index] = -(((R-1)/R)*tau)*tau
+    end
+    return means
+end
+
+function _mgmfrm_normalized_prior_metadata(target::_MGMFRMNormalizedPriorLogDensity)
+    prior = _mgmfrm_normalized_prior_record(target)
+    spec = target.base.design.spec
+    R, H = length(spec.data.rater_levels), length(spec.data.category_levels)-1
+    scales = prior.scales
+    centered(n, sd) = (; distribution=:normalized_zero_sum_normal,
+        length=n, free_dimension=n-1, kernel_sd=sd,
+        marginal_sd=sd*sqrt((n-1)/n),
+        contrast_sd=n > 1 ? sqrt(2.0)*sd : missing,
+        scale_active=n > 1, constraint=:sum_zero)
+    log_means = _mgmfrm_normalized_log_consistency_mean(target)
+    label = prior.prior_model === :source ?
+        "MGMFRM normalized source prior; distinguished rater $(repr(prior.source_rater))" :
+        "MGMFRM normalized exchangeable prior"
+    return (;
+        schema="bayesianmgmfrm.normalized_mgmfrm_prior_metadata.v1",
+        target_identity=_mgmfrm_normalized_prior_identity(target), prior,
+        prior_label=label * "; zero-sum block scales are kernel SDs",
+        model_family=:mgmfrm, loading_policy=:estimated_positive_fixed_q,
+        latent_correlation=:identity_fixed, likelihood_scale=1.7,
+        dimension_labels=deepcopy(spec.dimension_labels), q_matrix=copy(spec.q_matrix),
+        rater_levels=deepcopy(spec.data.rater_levels), item_levels=deepcopy(spec.data.item_levels),
+        category_levels=copy(spec.data.category_levels),
+        blocks=(;
+            person=(; distribution=:independent_normal, mean=0.0, sd=scales.person_sd),
+            item=(; distribution=:independent_normal, mean=0.0, sd=scales.item_sd),
+            log_loading=(; distribution=:independent_normal, mean=0.0, sd=scales.log_discrimination_sd),
+            severity=merge(centered(R, scales.rater_sd), (; mean=zeros(R))),
+            log_consistency=merge(centered(R, scales.log_consistency_sd),
+                (; distribution=prior.prior_model === :source ? :tilted_zero_sum_normal : :normalized_zero_sum_normal,
+                    mean=log_means)),
+            item_steps=merge(centered(H, scales.step_sd),
+                (; mean=zeros(H), independent_item_blocks=true, baseline_step=0.0))),
+        public_fit=false, scientific_acceptance=:not_established,
+    )
 end
 
 # In-memory record verification; this does not read or reuse any fit cache.
@@ -83,8 +183,11 @@ function logprior(target::_MGMFRMNormalizedPriorLogDensity, raw::AbstractVector)
     lp += _zero_sum_prior_correction(consistency, prior.log_consistency_sd)
     nsteps = length(base.design.spec.data.category_levels) - 2
     steps = blocks[:item_steps]
-    for start in first(steps):nsteps:last(steps)
-        lp += _zero_sum_prior_correction(view(raw, start:(start + nsteps - 1)), prior.step_sd)
+    # Binary responses have one fixed zero step and no free step density.
+    if nsteps > 0
+        for start in first(steps):nsteps:last(steps)
+            lp += _zero_sum_prior_correction(view(raw, start:(start + nsteps - 1)), prior.step_sd)
+        end
     end
     if target.prior_model === :source
         R = length(consistency) + 1
@@ -101,6 +204,57 @@ LogDensityProblems.capabilities(::Type{_MGMFRMNormalizedPriorLogDensity}) =
 LogDensityProblems.logdensity(target::_MGMFRMNormalizedPriorLogDensity, raw) =
     _source_fixture_loglikelihood(target.base, raw) + logprior(target, raw)
 initial_params(target::_MGMFRMNormalizedPriorLogDensity) = initial_params(target.base)
+
+function _guarded_generalized_prior_draws(target::_MGMFRMNormalizedPriorLogDensity,
+        ndraws::Int, rng::AbstractRNG)
+    draws = _guarded_generalized_prior_draws(target.base, ndraws, rng)
+    blocks = target.base.blueprint.blocks
+    R = length(blocks[:rater_free])+1
+    H = length(target.base.design.spec.data.category_levels)-1
+    selected = [blocks[:rater_free], blocks[:log_rater_consistency_free]]
+    if H > 1
+        steps = blocks[:item_steps]
+        append!(selected, [start:(start+H-2) for start in first(steps):(H-1):last(steps)])
+    end
+    # In the last-reconstructed chart, the free Gaussian covariance is
+    # tau^2 * (I - 11'/n). Match the existing fixed-coefficient sampler's
+    # Cholesky construction; no density weighting or MCMC is involved.
+    for block in selected
+        m = length(block)
+        isempty(block) && continue
+        factor = cholesky(Symmetric(Matrix{Float64}(I, m, m)-ones(m, m)/(m+1))).L
+        for row in eachrow(draws)
+            row[block] .= factor * row[block]
+        end
+    end
+    means = _mgmfrm_normalized_log_consistency_mean(target)
+    draws[:, blocks[:log_rater_consistency_free]] .+= permutedims(means[1:(R-1)])
+    all(isfinite, draws) || throw(ArgumentError("normalized MGMFRM prior generated nonfinite coordinates"))
+    return draws
+end
+
+# Private, prior-only counterpart to the existing normalized sampling route.
+# It does not make the fixed-coefficient ExchangeablePrior accept MGMFRM.
+function _mgmfrm_normalized_prior_predictive_check(target::_MGMFRMNormalizedPriorLogDensity;
+        ndraws::Int = 1000, rng::AbstractRNG = Random.default_rng(),
+        min_category_probability::Real = 0.01, prior_warning_probability::Real = 0.95,
+        wide_facet_range_fraction::Real = 0.8)
+    _check_prior_implication_controls(; min_category_probability,
+        prior_warning_probability, wide_facet_range_fraction)
+    identity = _mgmfrm_normalized_prior_identity(target)
+    target = _MGMFRMNormalizedPriorLogDensity(target.base.design.spec,
+        _mgmfrm_normalized_prior_record(target); expected_identity=identity)
+    metadata = _mgmfrm_normalized_prior_metadata(target)
+    raw = _guarded_generalized_prior_draws(target, ndraws, rng)
+    bundle = _generalized_prior_bundle_from_draws(target.base, raw; prior_record=metadata.prior)
+    check = _generalized_prior_check_from_bundle(bundle;
+        prior_record=metadata.prior, rng, min_category_probability,
+        prior_warning_probability, wide_facet_range_fraction)
+    return merge(check, (;
+        schema="bayesianmgmfrm.normalized_mgmfrm_prior_predictive_check.v1",
+        target_identity=identity, prior_metadata=metadata, prior_label=metadata.prior_label,
+        public_fit=false))
+end
 
 function _cmdstan_mgmfrm_data(target::_MGMFRMNormalizedPriorLogDensity)
     return merge(_cmdstan_mgmfrm_data(target.base), (;
@@ -212,6 +366,7 @@ function _mgmfrm_normalized_prior_samples(target, record::NamedTuple)
     return (;
         record,
         public_fit = false,
+        prior_metadata = _mgmfrm_normalized_prior_metadata(target),
         raw_parameter_names = copy(target.base.blueprint.parameter_names),
         direct_parameter_names = copy(target.base.blueprint.constrained_parameter_names),
         diagnostics = tables,
@@ -222,7 +377,9 @@ end
 
 function _mgmfrm_normalized_prior_sample(target::_MGMFRMNormalizedPriorLogDensity,
         raw_initial::AbstractVector = initial_params(target);
-        backend::Symbol = :advancedhmc, record_warmup::Bool = true, kwargs...)
+        backend::Symbol = :advancedhmc, record_warmup::Bool = true,
+        sampling_coordinates::Symbol = :raw, kwargs...)
+    _check_mgmfrm_sampling_coordinates(target.base.design.spec, sampling_coordinates, backend, true)
     runner = backend === :advancedhmc ? _run_generalized_candidate_advancedhmc :
         backend === :cmdstan ? _cmdstan_generalized_candidate_run :
         throw(ArgumentError("normalized-prior sampling supports :advancedhmc or :cmdstan"))
@@ -230,7 +387,20 @@ function _mgmfrm_normalized_prior_sample(target::_MGMFRMNormalizedPriorLogDensit
     identity = _mgmfrm_normalized_prior_identity(target)
     target = _MGMFRMNormalizedPriorLogDensity(target.base.design.spec,
         _mgmfrm_normalized_prior_record(target); expected_identity = identity)
-    run = runner(target, raw_initial; record_warmup, kwargs...)
+    run = if sampling_coordinates === :raw
+        runner(target, raw_initial; record_warmup, kwargs...)
+    else
+        location = _MGMFRMNormalizedLocationLogDensity(target)
+        sampled = runner(location, raw_initial;
+            _initial_transform=x -> _mgmfrm_location_from_raw(location, x), record_warmup, kwargs...)
+        # Unit absolute Jacobian: log densities and energy telemetry stay valid.
+        merge(sampled, (; initial=Float64.(collect(raw_initial)),
+            draws=reduce(vcat, [permutedims(_mgmfrm_location_to_raw(location, q))
+                for q in eachrow(sampled.draws)]),
+            controls=merge(sampled.controls, (; sampling_coordinates,
+                stored_coordinates=:raw_unconstrained,
+                initialization_coordinates=:raw_unconstrained, coordinate_logabsdet=0.0))))
+    end
     record = (;
         schema = record_warmup ? "bayesianmgmfrm.normalized_fixed_q_samples.v2" :
             "bayesianmgmfrm.normalized_fixed_q_samples.v1",

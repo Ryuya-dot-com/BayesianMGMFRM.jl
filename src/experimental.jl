@@ -60,6 +60,33 @@ the other raw-coordinate priors retain their meanings.
 const GeneralizedPrior = getfield(_PACKAGE, :GeneralizedPrior)
 
 """
+    NormalizedMGMFRMPrior(; prior_model, person_sd, rater_sd, item_sd,
+        log_discrimination_sd, log_consistency_sd, step_sd, source_rater=nothing)
+
+Explicit normalized prior for independent fixed-Q MGMFRM with estimated positive
+loadings and rater consistency. All six scales and `prior_model` are required.
+Use `:exchangeable` for symmetric centered blocks, or `:source` with an explicit
+`source_rater` ID for the reference prior with shifted log-consistency means.
+Rater, log-consistency and item-step scales are kernel SDs: a block of length n
+has marginal SD `tau*sqrt((n-1)/n)` and pairwise contrast SD `sqrt(2)*tau`.
+Other scales are SDs of independent normal raw coordinates. No scientific
+scale or default is selected by this constructor. This is distinct from the
+fixed-coefficient MFRM `ExchangeablePrior` and the raw `GeneralizedPrior`.
+
+Use with `fit`, `prior_predict` and `prior_predictive_check`. Correlated models
+and automatic request caching are unavailable; use manual fit caches.
+"""
+const NormalizedMGMFRMPrior = getfield(_PACKAGE, :_NormalizedMGMFRMPrior)
+
+"""
+Result of `Experimental.fit(spec; prior=NormalizedMGMFRMPrior(...))`.
+Supports summaries, MCSE, diagnostics, existing-row prediction, manual fit
+caches, reports and optional figures. Its saved prior retains distribution,
+kernel scales and the source rater identity. Scientific acceptance is separate.
+"""
+const NormalizedMGMFRMFit = getfield(_PACKAGE, :_NormalizedMGMFRMFit)
+
+"""
 Two-dimensional MFRM specification with estimated population correlation.
 Construct with [`correlated`](@ref).
 """
@@ -240,6 +267,14 @@ function _family_surface_contract(family::Symbol)
             direct_scale_prior_allowed = false,
             jacobian_policy = :none_raw_coordinate_density,
         ),
+        normalized_prior = family === :mgmfrm ? (;
+            constructor=:NormalizedMGMFRMPrior, result_type=:NormalizedMGMFRMFit,
+            prior_models=(:exchangeable, :source), all_scales_required=true,
+            centered_scale_convention=:kernel_sd, source_rater_required_for=:source,
+            latent_correlation=:identity_fixed, sampling_coordinates=:raw,
+            advancedhmc_sampling_coordinates=(:raw, :orthogonal_person_mean_item_offset),
+            automatic_cache_enabled=false, manual_cache_operations=(:save_fit_cache, :load_fit_cache),
+            scientific_acceptance=:not_established) : nothing,
         backend = :advancedhmc,
         supported_backends = (:advancedhmc, :cmdstan),
         sampler_defaults = (;
@@ -367,6 +402,8 @@ function surface_contract()
             :ExchangeablePrior,
             :ExchangeableMFRMFit,
             :GeneralizedPrior,
+            :NormalizedMGMFRMPrior,
+            :NormalizedMGMFRMFit,
             :cached_fit,
             :correlated,
             :fit,
@@ -439,6 +476,10 @@ reproducibility without advancing the global RNG.
 """
 function prior_predict(spec; kwargs...)
     _reject_legacy_keyword(kwargs, "Experimental.prior_predict")
+    if get(kwargs, :prior, nothing) isa NormalizedMGMFRMPrior
+        options = Base.structdiff((; kwargs...), (; prior=nothing))
+        return getfield(_PACKAGE, :_normalized_mgmfrm_prior_check)(spec, kwargs[:prior]; options...).replicated_scores
+    end
     spec isa CorrelatedMGMFRMSpec &&
         return getfield(_PACKAGE, :_mgmfrm_correlated_2d_prior_predict)(spec; kwargs...)
     if spec isa CorrelatedMFRMSpec || spec isa _FacetSpec && getfield(_PACKAGE, :_is_mfrm_fixed_q)(spec)
@@ -478,6 +519,10 @@ the supplied persons, items, raters and rating rows, not new facet levels.
 """
 function prior_predictive_check(spec; kwargs...)
     _reject_legacy_keyword(kwargs, "Experimental.prior_predictive_check")
+    if get(kwargs, :prior, nothing) isa NormalizedMGMFRMPrior
+        options = Base.structdiff((; kwargs...), (; prior=nothing))
+        return getfield(_PACKAGE, :_normalized_mgmfrm_prior_check)(spec, kwargs[:prior]; options...)
+    end
     spec isa CorrelatedMGMFRMSpec &&
         return getfield(_PACKAGE, :_mgmfrm_correlated_2d_prior_predictive_check)(spec; kwargs...)
     if spec isa CorrelatedMFRMSpec || spec isa _FacetSpec && getfield(_PACKAGE, :_is_mfrm_fixed_q)(spec)
@@ -829,6 +874,23 @@ diagnostics, existing-row prediction and manual fit caches are available.
 Reports and optional CairoMakie figures preserve the saved prior and diagnostic
 warnings; automatic request caching remains unavailable.
 
+For independent fixed-Q MGMFRM, explicitly pass `NormalizedMGMFRMPrior(...)`
+to use normalized exchangeable/source priors and return `NormalizedMGMFRMFit`.
+Both backends support manual caches and saved-result reports/figures. This
+prior requires all six scales and, for `:source`, a distinguished rater ID.
+AdvancedHMC also accepts `sampling_coordinates = :orthogonal_person_mean_item_offset`;
+CmdStan requires `:raw`. Inspect coordinates with `fit_metadata(result).sampler_controls`.
+Automatic request caching is unavailable.
+
+An unwrapped independent MGMFRM with `GeneralizedPrior` accepts
+`sampling_coordinates = :orthogonal_person_mean_item_offset` with AdvancedHMC.
+This rotates person coordinates and shifts item coordinates while preserving
+the complete joint prior and likelihood. Initial values and jitter use raw
+coordinates; returned draws and diagnostics also retain their raw/model meanings.
+The default is `:raw`. Automatic request caching distinguishes the optional
+coordinates; default cache keys are unchanged. The option does not apply to
+correlated specifications or fixed-coefficient multidimensional MFRM.
+
 An unwrapped fixed-coefficient multidimensional MFRM (`family = :mfrm`,
 `dimensions >= 2`, fixed `q_matrix`, partial-credit thresholds) has independent
 abilities. Use `MFRMPrior`
@@ -847,6 +909,15 @@ summary, report, plotting and manual cache operations.
 """
 function fit(spec; kwargs...)
     _reject_legacy_keyword(kwargs, "Experimental.fit")
+    if get(kwargs, :prior, nothing) isa NormalizedMGMFRMPrior
+        options = Base.structdiff((; kwargs...), (; prior=nothing))
+        return getfield(_PACKAGE, :_normalized_mgmfrm_fit)(spec, kwargs[:prior]; options...)
+    end
+    if haskey(kwargs, :sampling_coordinates) &&
+            (spec isa CorrelatedMGMFRMSpec || spec isa CorrelatedMFRMSpec ||
+                (spec isa _FacetSpec && getfield(_PACKAGE, :_is_mfrm_fixed_q)(spec)))
+        throw(ArgumentError("sampling_coordinates is available for independent fixed-Q MGMFRM only"))
+    end
     if spec isa CorrelatedMGMFRMSpec
         return getfield(_PACKAGE, :_mgmfrm_correlated_2d_fit)(spec; kwargs...)
     end
@@ -868,6 +939,8 @@ The namespace records the experimental identity and selects the generalized
 backend unless the backend is overridden explicitly.
 """
 function fit_cache_key(spec; backend::Symbol = :advancedhmc, kwargs...)
+    get(kwargs, :prior, nothing) isa NormalizedMGMFRMPrior && throw(ArgumentError(
+        "normalized MGMFRM requires fit followed by save_fit_cache/load_fit_cache; automatic request caching is unavailable"))
     checked = _require_generalized_spec(spec, "Experimental.fit_cache_key")
     _reject_legacy_keyword(kwargs, "Experimental.fit_cache_key")
     return getfield(_PACKAGE, :fit_cache_key)(
@@ -886,6 +959,8 @@ keeping its experimental identity explicit in the cache contract. The
 generalized backend is selected by default.
 """
 function cached_fit(spec; backend::Symbol = :advancedhmc, kwargs...)
+    get(kwargs, :prior, nothing) isa NormalizedMGMFRMPrior && throw(ArgumentError(
+        "normalized MGMFRM requires fit followed by save_fit_cache/load_fit_cache; automatic request caching is unavailable"))
     checked = _require_generalized_spec(spec, "Experimental.cached_fit")
     _reject_legacy_keyword(kwargs, "Experimental.cached_fit")
     return getfield(_PACKAGE, :cached_fit)(

@@ -120,8 +120,8 @@ function _mgmfrm_correlated_2d_summary_input(result, parameter_space)
     selected = parameter_space === :auto ? :direct_constrained : parameter_space
     selected in (:direct_constrained, :raw_unconstrained) || throw(ArgumentError(
         "correlated MGMFRM parameter_space must be :auto, :direct_constrained, or :raw_unconstrained"))
-    checked = _restore_mgmfrm_correlated_2d_samples(result.record;
-        expected_identity = result.record.target_identity)
+    checked = result isa _RecordedMGMFRMFit ? _recorded_mgmfrm_samples(result) :
+        _restore_mgmfrm_correlated_2d_samples(result.record; expected_identity = result.record.target_identity)
     raw = selected === :raw_unconstrained
     return (; checked, selected,
         draws = raw ? checked.record.run.draws : checked.diagnostics.direct_values.direct_draws,
@@ -130,7 +130,7 @@ function _mgmfrm_correlated_2d_summary_input(result, parameter_space)
         fixed = raw ? Set{String}() : checked.structurally_fixed_parameters)
 end
 
-function _mgmfrm_correlated_2d_posterior_summary(result::NamedTuple;
+function _mgmfrm_correlated_2d_posterior_summary(result;
         parameter_space::Symbol = :auto, lower::Real = 0.025, upper::Real = 0.975,
         intervals = (0.66, 0.9, 0.95), reference::Real = 0.0, rope = nothing,
         rope_probability_threshold::Real = 0.95)
@@ -140,7 +140,7 @@ function _mgmfrm_correlated_2d_posterior_summary(result::NamedTuple;
     return [merge(row, (; parameter_space = space)) for (row, space) in zip(rows, input.spaces)]
 end
 
-function _mgmfrm_correlated_2d_posterior_mcse(result::NamedTuple;
+function _mgmfrm_correlated_2d_posterior_mcse(result;
         parameter_space::Symbol = :auto, probabilities = (0.025, 0.5, 0.975))
     input = _mgmfrm_correlated_2d_summary_input(result, parameter_space)
     rows = _posterior_mcse_rows(input.draws, input.names, input.checked.record.run.controls.chains;
@@ -167,6 +167,14 @@ struct _CorrelatedMGMFRMFit
         return new(snapshot)
     end
 end
+
+# These consumers use validated sample records, independent of the prior family.
+const _RecordedMGMFRMFit = Union{_CorrelatedMGMFRMFit,_NormalizedMGMFRMFit}
+_recorded_mgmfrm_samples(fit::_CorrelatedMGMFRMFit) = _mgmfrm_correlated_2d_samples(fit)
+_recorded_mgmfrm_schemas(::_CorrelatedMGMFRMFit) = (;
+    cache="bayesianmgmfrm.correlated_mgmfrm_fit_cache.v1",
+    artifact="bayesianmgmfrm.correlated_mgmfrm_fit_artifact.v1",
+    label=:correlated_mgmfrm_fit_artifact)
 
 function Base.show(io::IO, spec::_CorrelatedMGMFRMSpec)
     print(io, "Correlated MGMFRM (", join(spec.base_spec.dimension_labels, ", "),
@@ -240,21 +248,21 @@ function Base.show(io::IO, fit::_CorrelatedMGMFRMFit)
         metadata.backend, "; estimated rho; experimental)")
 end
 
-posterior_summary(fit::_CorrelatedMGMFRMFit; kwargs...) =
-    _mgmfrm_correlated_2d_posterior_summary((; record = fit.record);
+posterior_summary(fit::_RecordedMGMFRMFit; kwargs...) =
+    _mgmfrm_correlated_2d_posterior_summary(fit;
         parameter_space = :raw_unconstrained, kwargs...)
-direct_posterior_summary(fit::_CorrelatedMGMFRMFit; kwargs...) =
-    _mgmfrm_correlated_2d_posterior_summary((; record = fit.record);
+direct_posterior_summary(fit::_RecordedMGMFRMFit; kwargs...) =
+    _mgmfrm_correlated_2d_posterior_summary(fit;
         parameter_space = :direct_constrained, kwargs...)
-posterior_mcse(fit::_CorrelatedMGMFRMFit; kwargs...) =
-    _mgmfrm_correlated_2d_posterior_mcse((; record = fit.record); kwargs...)
+posterior_mcse(fit::_RecordedMGMFRMFit; kwargs...) =
+    _mgmfrm_correlated_2d_posterior_mcse(fit; kwargs...)
 
-function diagnostics(fit::_CorrelatedMGMFRMFit; view::Symbol = :full,
+function diagnostics(fit::_RecordedMGMFRMFit; view::Symbol = :full,
         split_chains::Bool = fit.record.run.split_chains_requested,
         rhat_threshold::Real = fit.record.run.checked.rhat_threshold,
         ess_threshold::Real = fit.record.run.checked.ess_threshold)
     view in (:full, :public) || throw(ArgumentError("view must be :full or :public"))
-    checked = _mgmfrm_correlated_2d_samples(fit)
+    checked = _recorded_mgmfrm_samples(fit)
     run, tables = checked.record.run, checked.diagnostics
     thresholds = _check_diagnostic_thresholds(rhat_threshold, ess_threshold)
     split_chains == run.split_chains_requested && thresholds == run.checked ||
@@ -277,15 +285,15 @@ function diagnostics(fit::_CorrelatedMGMFRMFit; view::Symbol = :full,
         schema = "bayesianmgmfrm.diagnostics_public.v1", family = :mgmfrm, stability = :experimental)
 end
 
-_fit_warmup_diagnostics(fit::_CorrelatedMGMFRMFit) =
-    _mgmfrm_correlated_2d_samples(fit).warmup_diagnostics
-function sampler_diagnostics(fit::_CorrelatedMGMFRMFit; phase::Symbol = :retained)
+_fit_warmup_diagnostics(fit::_RecordedMGMFRMFit) =
+    _recorded_mgmfrm_samples(fit).warmup_diagnostics
+function sampler_diagnostics(fit::_RecordedMGMFRMFit; phase::Symbol = :retained)
     phase in (:retained, :warmup) || throw(ArgumentError("phase must be :retained or :warmup"))
-    checked = _mgmfrm_correlated_2d_samples(fit)
+    checked = _recorded_mgmfrm_samples(fit)
     return deepcopy(phase === :warmup ? checked.warmup_diagnostics : checked.record.run.sampler_rows)
 end
 
-function _mgmfrm_correlated_2d_artifact_payload(fit::_CorrelatedMGMFRMFit;
+function _mgmfrm_correlated_2d_artifact_payload(fit::_RecordedMGMFRMFit;
         include_draws::Bool, include_log_posterior::Bool, include_sampler_stats::Bool,
         include_environment::Bool, include_packages::Bool, kwargs...)
     metadata = fit_metadata(fit)
@@ -296,7 +304,7 @@ function _mgmfrm_correlated_2d_artifact_payload(fit::_CorrelatedMGMFRMFit;
         sampler_stats = _artifact_inclusion_flag(include_sampler_stats),
         environment = _artifact_inclusion_flag(include_environment),
         package_status = _artifact_inclusion_flag(include_environment && include_packages))
-    return (; schema = "bayesianmgmfrm.correlated_mgmfrm_fit_artifact.v1",
+    return (; schema = _recorded_mgmfrm_schemas(fit).artifact,
         object = :fit_artifact, family = :mgmfrm, model = metadata.model, status = :experimental,
         manifest = (; object = :fit, family = :mgmfrm, model = metadata.target_contract,
             fit = metadata, diagnostics = diagnostic.summary),
@@ -310,48 +318,48 @@ function _mgmfrm_correlated_2d_artifact_payload(fit::_CorrelatedMGMFRMFit;
         draws = include_draws ? copy(run.draws) : nothing,
         log_posterior = include_log_posterior ? copy(run.logdensities) : nothing,
         sampler_stats = include_sampler_stats ? deepcopy(run.sampler_stats) : nothing,
-        warmup_stats = include_sampler_stats ? deepcopy(run.warmup_stats) : nothing)
+        warmup_stats = include_sampler_stats ? deepcopy(get(run, :warmup_stats, nothing)) : nothing)
 end
 
-function fit_artifact(fit::_CorrelatedMGMFRMFit; view::Symbol = :full,
+function fit_artifact(fit::_RecordedMGMFRMFit; view::Symbol = :full,
         include_draws::Bool = false, include_log_posterior::Bool = include_draws,
         include_sampler_stats::Bool = false, include_environment::Bool = true,
         include_packages::Bool = false, include_environment_paths::Bool = false, kwargs...)
-    view === :full || throw(ArgumentError("correlated MGMFRM fit_artifact currently supports view = :full only"))
+    view === :full || throw(ArgumentError("MGMFRM fit_artifact currently supports view = :full only"))
     payload = _mgmfrm_correlated_2d_artifact_payload(fit; include_draws, include_log_posterior,
         include_sampler_stats, include_environment, include_packages, kwargs...)
     environment = include_environment ? evidence_metadata(;
         include_packages, include_paths = include_environment_paths) : nothing
     return _with_archive_metadata(merge(payload, (; created_at = string(now()), environment));
-        label = :correlated_mgmfrm_fit_artifact)
+        label = _recorded_mgmfrm_schemas(fit).label)
 end
 
-function fit_archive_manifest(fit::_CorrelatedMGMFRMFit;
+function fit_archive_manifest(fit::_RecordedMGMFRMFit;
         label = nothing, source_path = nothing, artifact = nothing, kwargs...)
     value = artifact === nothing ? fit_artifact(fit; kwargs...) : artifact
     return fit_archive_manifest(value; label, source_path)
 end
 
-function save_fit_cache(path::AbstractString, fit::_CorrelatedMGMFRMFit;
+function save_fit_cache(path::AbstractString, fit::_RecordedMGMFRMFit;
         artifact_split_chains::Bool = fit.record.run.split_chains_requested,
         artifact_rhat_threshold::Real = fit.record.run.checked.rhat_threshold,
         artifact_ess_threshold::Real = fit.record.run.checked.ess_threshold, kwargs...)
-    snapshot = _CorrelatedMGMFRMFit(fit.record; expected_identity = fit.record.target_identity)
+    snapshot = typeof(fit)(fit.record; expected_identity = fit.record.target_identity)
     return _save_fit_cache(path, snapshot; artifact_split_chains,
         artifact_rhat_threshold, artifact_ess_threshold, kwargs...)
 end
 
-function _fit_cache_record(fit::_CorrelatedMGMFRMFit; cache_key, artifact, source_path = nothing)
-    artifact isa NamedTuple || throw(ArgumentError("correlated MGMFRM cache artifact must be a NamedTuple"))
+function _fit_cache_record(fit::_RecordedMGMFRMFit; cache_key, artifact, source_path = nothing)
+    artifact isa NamedTuple || throw(ArgumentError("MGMFRM cache artifact must be a NamedTuple"))
     archive_manifest = fit_archive_manifest(artifact; label = :fit_cache_artifact, source_path)
-    record = (; schema = "bayesianmgmfrm.correlated_mgmfrm_fit_cache.v1", object = :fit_cache,
+    record = (; schema = _recorded_mgmfrm_schemas(fit).cache, object = :fit_cache,
         created_at = string(now()), serialization = (; format = :julia_serialization,
             julia_version = string(VERSION), portability = :same_julia_major_minor_recommended),
         cache_key = cache_key === nothing ? missing : String(cache_key),
         target_identity = fit.record.target_identity,
         source_sample_content_hash = fit.record.content_hash,
         artifact_content_hash = archive_manifest.content_hash, archive_manifest, fit, artifact)
-    context = source_path === nothing ? "correlated MGMFRM fit cache" : String(source_path)
+    context = source_path === nothing ? "MGMFRM fit cache" : String(source_path)
     _check_fit_cache_record(record, context)
     return _verify_fit_cache_record(record, context)
 end
@@ -359,44 +367,45 @@ end
 Base.@nospecializeinfer function _check_mgmfrm_correlated_2d_cache_record(@nospecialize(record::NamedTuple), path)
     keys(record) == (:schema, :object, :created_at, :serialization, :cache_key,
         :target_identity, :source_sample_content_hash, :artifact_content_hash,
-        :archive_manifest, :fit, :artifact) && record.fit isa _CorrelatedMGMFRMFit &&
+        :archive_manifest, :fit, :artifact) && record.fit isa _RecordedMGMFRMFit &&
+        record.schema == _recorded_mgmfrm_schemas(record.fit).cache &&
         record.artifact isa NamedTuple && record.created_at isa AbstractString &&
         (ismissing(record.cache_key) || record.cache_key isa AbstractString) ||
-        throw(ArgumentError("invalid correlated MGMFRM fit-cache contract at $path"))
-    checked = _mgmfrm_correlated_2d_samples(record.fit)
+        throw(ArgumentError("invalid MGMFRM fit-cache contract at $path"))
+    checked = _recorded_mgmfrm_samples(record.fit)
     record.target_identity == checked.record.target_identity &&
         record.source_sample_content_hash == checked.record.content_hash ||
-        throw(ArgumentError("correlated MGMFRM cache source/target mismatch at $path"))
+        throw(ArgumentError("MGMFRM cache source/target mismatch at $path"))
     serialization = record.serialization
     serialization isa NamedTuple && keys(serialization) == (:format, :julia_version, :portability) &&
         serialization.format === :julia_serialization && serialization.julia_version isa AbstractString &&
         serialization.portability === :same_julia_major_minor_recommended ||
-        throw(ArgumentError("invalid correlated MGMFRM serialization metadata at $path"))
+        throw(ArgumentError("invalid MGMFRM serialization metadata at $path"))
     artifact = record.artifact
     reproducibility = _nt_get(artifact, :reproducibility, nothing)
     policy = reproducibility isa NamedTuple ? _nt_get(reproducibility, :artifact_policy, nothing) : nothing
     policy isa NamedTuple && keys(policy) == (:draws, :log_posterior, :sampler_stats, :environment, :package_status) &&
         all(flag -> flag isa Symbol && flag in (:included, :omitted), values(policy)) &&
         _nt_get(artifact, :created_at, nothing) isa AbstractString && hasproperty(artifact, :environment) ||
-        throw(ArgumentError("invalid correlated MGMFRM artifact policy at $path"))
+        throw(ArgumentError("invalid MGMFRM artifact policy at $path"))
     (policy.environment === :included ? artifact.environment isa AbstractDict : artifact.environment === nothing) ||
-        throw(ArgumentError("correlated MGMFRM artifact environment policy mismatch at $path"))
+        throw(ArgumentError("MGMFRM artifact environment policy mismatch at $path"))
     expected = _mgmfrm_correlated_2d_artifact_payload(record.fit;
         include_draws = policy.draws === :included, include_log_posterior = policy.log_posterior === :included,
         include_sampler_stats = policy.sampler_stats === :included, include_environment = policy.environment === :included,
         include_packages = policy.package_status === :included)
     excluded = (; created_at = nothing, environment = nothing, content_hash = nothing, archive_manifest = nothing)
     isequal(Base.structdiff(artifact, excluded), expected) ||
-        throw(ArgumentError("correlated MGMFRM artifact does not match its saved fit at $path"))
+        throw(ArgumentError("MGMFRM artifact does not match its saved fit at $path"))
     for (archive, label) in ((record.archive_manifest, :fit_cache_artifact),
-            (_nt_get(artifact, :archive_manifest, nothing), :correlated_mgmfrm_fit_artifact))
+            (_nt_get(artifact, :archive_manifest, nothing), _recorded_mgmfrm_schemas(record.fit).label))
         archive isa NamedTuple && _nt_get(archive, :created_at, nothing) isa AbstractString &&
             hasproperty(archive, :source_path) && (ismissing(archive.source_path) || archive.source_path isa AbstractString) ||
-            throw(ArgumentError("invalid correlated MGMFRM archive at $path"))
+            throw(ArgumentError("invalid MGMFRM archive at $path"))
         fields = (; created_at = nothing, source_path = nothing)
         isequal(Base.structdiff(archive, fields),
             Base.structdiff(fit_archive_manifest(artifact; label), fields)) ||
-            throw(ArgumentError("correlated MGMFRM archive does not match its artifact at $path"))
+            throw(ArgumentError("MGMFRM archive does not match its artifact at $path"))
     end
     return record
 end
