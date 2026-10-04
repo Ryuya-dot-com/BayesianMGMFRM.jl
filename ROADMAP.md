@@ -86,6 +86,21 @@ operability improves. Stable-public promotion still requires the
 
 ## Execution priorities after local integration
 
+**2026-10-04 authorization update.** The user authorized additional estimation
+through statistical validation, prioritizing recovery, prior sensitivity and
+estimation failures with precision, on measured local resources and with no wall
+cutoff. The [prospective fixed-facet protocol §11](docs/internal/mgmfrm-foundation-fixed-facet-design.md)
+now fixes 32 independent paired blocks / 192 attempts, all three loading-prior
+widths, existing draw counts and numerical screens, failure denominators and
+paired replication MCSE. Complete the focused input/scoring checks and freeze
+the plan before fitting. Reuse Julia worker processes; admit a second worker
+only under the documented measured memory rule. This authorization permits
+execution without an additional independent prelaunch approval; independent
+scientific review remains unassigned and no scientific acceptance is claimed.
+The mathematical mapping and saved-six-fit assessment below are addressed in
+the linked identification/protocol additions. Earlier proposed work order and
+unselected N options remain historical context, not a new permission barrier.
+
 Reordered 2026-10-04 following the user's instruction to establish the mathematical
 and analytical foundation before OS and distribution work. The October 2 engineering
 work remains completed evidence; its former order is superseded. No new elapsed-time

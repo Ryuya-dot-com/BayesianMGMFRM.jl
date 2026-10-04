@@ -14,13 +14,22 @@ digest(path) = bytes2hex(sha256(read(path)))
 
 function prepare(input)
     x = JSON3.read(read(input, String))
-    fixed = x.schema == "mgmfrm.foundation_fixed_facet_input.v1"
+    assessment = x.schema == "mgmfrm.foundation_fixed_facet_assessment_input.v1"
+    fixed = assessment || x.schema == "mgmfrm.foundation_fixed_facet_input.v1"
     (fixed || x.schema == "mgmfrm.foundation_oracle_input.v1") || error("Wrong input schema")
     Dict(String(k)=>Float64(v) for (k,v) in pairs(x.scales)) ==
         Dict(String(k)=>v for (k,v) in pairs(SCALES)) || error("Wrong scales")
     if fixed
-        x.scope == "engineering_fixed_facet_rehearsal" && x.evaluation_credit == 0 &&
-            x.scientific_acceptance === false || error("Wrong fixed-facet scope")
+        if assessment
+            x.scope == "prospective_fixed_facet_assessment" && x.evaluation_credit === 1 &&
+                x.scientific_acceptance === false && x.block isa Integer &&
+                !(x.block isa Bool) && x.block > 0 &&
+                occursin(r"^[A-Za-z0-9][A-Za-z0-9_-]*$",x.assessment_id) ||
+                error("Wrong assessment scope")
+        else
+            x.scope == "engineering_fixed_facet_rehearsal" && x.evaluation_credit == 0 &&
+                x.scientific_acceptance === false || error("Wrong fixed-facet scope")
+        end
         x.condition in ("R0", "R1") || error("Wrong fixed-facet condition")
         !haskey(x,:log_prior) && !haskey(x,:candidate_id) || error("Legacy raw metadata is not a normalized target")
         x.generator_sha256 == digest(joinpath(@__DIR__,"mgmfrm_core_reference.py")) ||

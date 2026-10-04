@@ -84,6 +84,38 @@ function extra_review(input,samples,core_review,output)
     return payload
 end
 
+function loading_review(input,samples,extra,output)
+    ispath(output) && error("Loading review output must be new")
+    p=F.prepare(input);record=open(deserialize,samples)
+    extra.input_sha256==F.digest(input) && extra.samples_sha256==F.digest(samples) &&
+        extra.target_identity==record.target_identity || error("Loading review binding mismatch")
+    B._restore_mgmfrm_normalized_prior_samples(record;expected_identity=record.target_identity)
+    target=B._MGMFRMNormalizedPriorLogDensity(p.spec,record.prior;expected_identity=record.target_identity)
+    q=R.quantities(target.base,record.run.draws)
+    t=R.quantities(target.base,permutedims(Float64.(p.x.raw_truth)))
+    selected=findall(r->r.block===:loading,q.roster)
+    subset(x)=(;names=x.names[selected],roster=x.roster[selected],draws=x.draws[:,selected])
+    q=subset(q);t=subset(t)
+    metrics=B._candidate_mcmc_diagnostic_rows(q.draws,q.names,4;
+        split_chains=true,rhat_threshold=1.01,ess_threshold=400.)
+    reviewed=R.review(q,t;chains=4)
+    finite(x)=x isa Real && isfinite(x) && x>=0
+    rows=map(eachindex(q.names)) do j
+        r=reviewed.rows[j];ci=only(filter(x->x.level==.9,r.intervals))
+        local90=r.posterior_sd>0 && finite(r.precision.mean_mcse) &&
+            r.precision.mean_mcse/r.posterior_sd<=.05 &&
+            finite(ci.maximum_endpoint_mcse_over_width) && ci.maximum_endpoint_mcse_over_width<=.05
+        qualified90=extra.primary_quantities_qualified && metrics[j].flag===:ok && local90
+        (;r...,diagnostic=metrics[j],qualified90,
+            coverage90_status=!qualified90 || ci.boundary_sensitivity!==false ? :unresolved :
+                (ci.covered ? :covered : :not_covered))
+    end
+    payload=(;rows,target_identity=record.target_identity,input_sha256=F.digest(input),
+        samples_sha256=F.digest(samples),evaluation_credit=p.x.evaluation_credit,scientific_acceptance=false)
+    B._write_json_record(output,payload)
+    return payload
+end
+
 end
 
 if abspath(PROGRAM_FILE)==@__FILE__

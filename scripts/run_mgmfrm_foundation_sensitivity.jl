@@ -22,6 +22,14 @@ function run(plan_path,id,output)
             plan.execution_allowed===true && attempt.panel==p.x.condition &&
             plan.person_seed==p.x.person_seed && plan.score_seed==p.x.score_seed ||
             error("Fixed-facet attempt/input scope mismatch")
+    elseif p.x.schema=="mgmfrm.foundation_fixed_facet_assessment_input.v1"
+        plan.schema=="mgmfrm.foundation_fixed_facet_assessment.v1" &&
+            plan.scope==p.x.scope && plan.execution_allowed===true && plan.evaluation_credit===1 &&
+            plan.scientific_acceptance===false && plan.assessment_id==p.x.assessment_id &&
+            attempt.panel==p.x.condition && attempt.block==p.x.block &&
+            1<=attempt.block<=plan.blocks &&
+            attempt.person_seed==p.x.person_seed && attempt.score_seed==p.x.score_seed ||
+            error("Assessment attempt/input scope mismatch")
     end
     for (key,value) in pairs(plan.controls)
         expected=getproperty(F.CONTROLS,Symbol(key))
@@ -70,6 +78,9 @@ function run(plan_path,id,output)
         roster=String.(JSON3.read(read(joinpath(repo,plan.roster),String)))
         core=S.C.review(input,samples,joinpath(output,"core"),roster;fitting_prior=prior)
         extra=S.extra_review(input,samples,joinpath(output,"core","review.json"),joinpath(output,"extra.json"))
+        if p.x.schema=="mgmfrm.foundation_fixed_facet_assessment_input.v1"
+            S.loading_review(input,samples,extra,joinpath(output,"loading-review.json"))
+        end
         all(F.digest(joinpath(repo,String(path)))==hash for (path,hash) in pairs(plan.source_sha256)) ||
             error("Source changed during execution")
         F.digest(input)==attempt.input_sha256 || error("Input changed during execution")

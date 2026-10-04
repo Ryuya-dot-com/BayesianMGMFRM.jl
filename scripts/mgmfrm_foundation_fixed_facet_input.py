@@ -5,6 +5,7 @@ import json
 import math
 from pathlib import Path
 import platform
+import re
 
 import mgmfrm_core_reference as reference
 
@@ -34,6 +35,20 @@ def pair(person_seed, score_seed):
     assert rows[0]['raw_truth'][111:] == rows[1]['raw_truth'][111:]
     d2 = lambda x: [r for r in x['observations'] if r['item'] in ('I3', 'I4', 'I5')]
     assert d2(rows[0]) == d2(rows[1]) and len(d2(rows[0])) == 750
+    return rows
+
+
+def assessment_pair(assessment_id, block, person_seed, score_seed):
+    """Fresh prospective pair; never relabel or reuse an engineering panel."""
+    if (not isinstance(assessment_id, str) or
+            not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]*', assessment_id) or
+            isinstance(block, bool) or not isinstance(block, int) or block < 1):
+        raise ValueError('Assessment ID and positive block number required')
+    rows = pair(person_seed, score_seed)
+    for row in rows:
+        row.update(schema='mgmfrm.foundation_fixed_facet_assessment_input.v1',
+                   scope='prospective_fixed_facet_assessment', evaluation_credit=1,
+                   assessment_id=assessment_id, block=block)
     return rows
 
 

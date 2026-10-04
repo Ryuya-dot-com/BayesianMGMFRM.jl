@@ -37,5 +37,36 @@ length(ARGS)==1 || error("usage: mgmfrm_foundation_fixed_facet.jl INPUT_DIRECTOR
         legacy["schema"]="mgmfrm.foundation_oracle_input.v1"
         write(file,JSON3.write(legacy))
         @test B._mgmfrm_normalized_prior_identity(F.prepare(file).target)==identities[5]
+        assessment=JSON3.read(original,Dict{String,Any})
+        merge!(assessment,Dict("schema"=>"mgmfrm.foundation_fixed_facet_assessment_input.v1",
+            "scope"=>"prospective_fixed_facet_assessment","evaluation_credit"=>1,
+            "assessment_id"=>"check-01","block"=>1))
+        write(file,JSON3.write(assessment))
+        @test B._mgmfrm_normalized_prior_identity(F.prepare(file).target)==identities[5]
+        for (key,value) in (("block",true),("block",0),("evaluation_credit",true),
+                            ("assessment_id","../bad"),("scientific_acceptance",true))
+            bad=copy(assessment);bad[key]=value;write(file,JSON3.write(bad))
+            @test_throws ErrorException F.prepare(file)
+        end
+        write(file,JSON3.write(assessment))
+        roster=joinpath(dir,"roster.json");write(roster,"[]")
+        attempt=Dict("id"=>"check","input"=>file,"input_sha256"=>F.digest(file),
+            "panel"=>"R1","block"=>1,"person_seed"=>assessment["person_seed"],
+            "score_seed"=>assessment["score_seed"])
+        plan=Dict("schema"=>"mgmfrm.foundation_fixed_facet_assessment.v1",
+            "scope"=>assessment["scope"],"execution_allowed"=>true,"evaluation_credit"=>1,
+            "scientific_acceptance"=>false,"assessment_id"=>"check-01","blocks"=>1,
+            "attempts"=>[attempt],"source_sha256"=>Dict(),"roster"=>roster,
+            "roster_sha256"=>F.digest(roster),"controls"=>Dict("warmup"=>2))
+        planpath=joinpath(dir,"plan.json");destination=joinpath(dir,"never-created")
+        # Valid binding reaches the forbidden control; malformed binding fails earlier.
+        write(planpath,JSON3.write(plan))
+        @test_throws "Unsupported control override" W.run(planpath,"check",destination)
+        for (key,value) in (("panel","R0"),("block",2),("person_seed",0),("score_seed",0))
+            bad=deepcopy(plan);bad["attempts"][1][key]=value
+            write(planpath,JSON3.write(bad))
+            @test_throws "Assessment attempt/input scope mismatch" W.run(planpath,"check",destination)
+        end
+        @test !ispath(destination)
     end
 end
