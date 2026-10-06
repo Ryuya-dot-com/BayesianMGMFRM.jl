@@ -1979,3 +1979,14 @@ R1・残りの独立ブロックは未完了で、本評価Nは引き続き未�
 `63dad89cd8c35c4877c316a5c4887cb61ab243aa1ffe81e3216959221665dfc9`、
 分類・局所精度の算術・予定分母の照合receipt `first-unqualified-fit-verification.json`は
 `7fb05658b95d6ccee74d49efd1dc58d633561f6d390ad34407c3b97c2f3bb429`。
+
+16:25 UTC、同じパネルの`B002-R0-100-F4`もI5のlog負荷量のR-hat **1.0104363400 > 1.01**で
+不適格となった。bulk/tail ESSは848.41 / 1,517.36、追加116量の局所精度基準は全て通過し、
+発散・最大木深度到達・推定例外は0だった。採点ファイルは作成されていない。
+31/240 fit完了中の不適格fitは2件になったが、**同じB002パネルなので、独立パネルの既知の不適格は1件**。
+予定分母8、適格1、残る6と失敗割合の区間が前の集計から変わらないことを照合した。
+このパネルは2foldを採点できていてもパネル値を持たず、SD 1.0 − 0.5の対応比較に追加されない。
+`second-unqualified-fit-summary.json`のSHA-256は
+`51778fbe2d61884fd7eb2a3ea4d6cba03c1cb457a1fb5f0d4c57d1dc312e741e`、
+分類と独立単位の照合receipt `second-unqualified-fit-verification.json`は
+`b3fdc5cc178fd41495f6ed56e021383a22572baf9ea043aec05bc1392c00c365`。
