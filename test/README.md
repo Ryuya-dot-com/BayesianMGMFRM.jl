@@ -118,6 +118,18 @@ sampler-free. Neither treats the longest window as truth nor supplies a
 complete diagnostic gate for each window. Historical exports are required
 by these research commands but not by the standalone Python test.
 
+The normalized-C prediction binding audit is also sampler-free. It uses the
+saved B01-R0/R1 inputs and B01-R0-050 full-data fit from a completed foundation
+assessment to check training-target isolation, wrong-input rejection, heldout
+IDs, log-domain scores and covariance-aware MCSE. It writes a new receipt and
+adds no independent evaluation panels:
+
+```sh
+julia --startup-file=no --project=. test/mgmfrm_foundation_prediction.jl \
+  results/workflows/20261004-foundation-fixed-facet-assessment-01 \
+  /tmp/new-foundation-prediction-binding.json
+```
+
 The `mgmfrm-core-python` job in [CI](../.github/workflows/CI.yml) runs the
 following checks on Ubuntu with Python 3.14. They also run on macOS; the
 execution helpers use POSIX process accounting and file locks, so this group
