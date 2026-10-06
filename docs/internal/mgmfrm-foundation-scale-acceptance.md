@@ -2089,3 +2089,32 @@ pilot全体・本評価・事前の科学的採用は未完了で、本評価N�
 `ecca79c3d3659bfe6cbdf9c0b6db8dcfc56670b578bce7d9c4df3b9e5935d5d5`、
 照合receipt `first-complete-block-verification.json`は
 `8df427cd09d10325d9f73727fd2c08cf308b9240a69a71595c7f09176e693127`。
+
+21:05 UTC、`B002-R1-050-F5`が終了した。元の150診断、location 17件、
+残差9件、sampler診断は適格で、追加116件のうち
+`centered_person[P4,dim=2]`のR-hatが1.010916581475342となり、
+固定閾値1.01を超えた。bulk側は0.9996069914765704、folded側は
+1.010916581475342で、bulk ESSは6191.097989236225、tail ESSは2297.0391091017023。
+追加116件の局所精度は全件通過し、最大mean MCSE / posterior SDは
+0.0259789763、最大端点MCSE / 区間幅は0.0220894289である。
+divergence・最大depth到達・sampler警告は0、最小E-BFMIは0.7446959772だった。
+
+保存結果・計画・入力・binding・sourceハッシュを集計時に照合し、
+前snapshotの保存出力が変わっていないことも確認した。
+このfitは数値不適格として完了し、採点ファイルと例外ファイルはない。
+B002 / R1 / SD 0.5は5fitすべて終了したが、適格foldは4/5で、
+パネル指標は欠測のまま保持する。残る4foldの再正規化は行わない。
+同条件の予定8パネルは、適格1・既知不適格1・その他未解決6である。
+失敗割合の記述的範囲は[0.125, 0.875]、pointwise 95% envelopeは
+[0.0031597235, 0.9968402765]となる。
+この条件を含む3比較はいずれも適格ブロック[1]のままで、
+平均・within-MCMC SEは前snapshotと一致し、反復SEは未計算である。
+
+このsnapshotは56/240 fit終了、9適格パネルである。
+**3不適格fitは同じB002内の2条件パネルに由来する**。
+再推定・閾値緩和は行わず、予定した後続fitを継続する。
+pilot・本評価は未完了で、本評価Nは未選択である。
+`second-terminal-unqualified-panel-summary.json`のSHA-256は
+`d9b3b5e246681c8b4672fd3a69cf87512695a1256d78517b064cf2ac169e366a`、
+照合receipt `second-terminal-unqualified-panel-verification.json`は
+`31330d3404629ae1245f1d56cffa1d6674ed5b2b3ddeda55ad8dcfde6faf64c0`。
