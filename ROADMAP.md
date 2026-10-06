@@ -79,7 +79,7 @@ fits is not a percentage of overall scientific readiness.
 | Mathematical target and interpretation | The [identification and estimand derivation](docs/internal/mgmfrm-estimands-identification.md), normalized prior, location transform and density/gradient checks cover the declared complete-crossed pure-Q setting under their stated assumptions | Centered abilities retain scale dependence. Posterior propriety does not establish mixing or coverage. Sparse training designs, mixed Q and free latent correlation do not inherit the dense identification result; independent scientific review remains open |
 | Recovery, prior sensitivity and numerical failures | The [completed assessment, foundation record §20](docs/internal/mgmfrm-foundation-scale-acceptance.md) accounts for 32 independent paired blocks, 192 completed fits, 184 numerical passes and eight retained loading R-hat failures | Continuous summaries condition on qualification; variants share datasets. Even 0/32 failures has a pointwise exact 95% upper limit of 10.89%, so low failure probability is not established |
 | Prior adequacy and calibration | Under R1 / loading-prior SD 0.25, all 32 fits qualify numerically, yet I1's nominal 90% interval covers the fixed truth in only 1/32 cases, with no unresolved classifications | This is a substantive limitation of this prior/condition, not a reason to choose another prior after observing its RMSE. N=32 cannot establish any of the three calibration margins under the retained exact-interval rule. Fixed-facet coverage and joint-prior SBC remain distinct claims |
-| Heldout prediction | The normalized-C training/score binding audit passes 543 checks across all 30 R0/R1 × prior × fold targets, reusing existing split/log-score/MCSE helpers; see [foundation record §23](docs/internal/mgmfrm-foundation-scale-acceptance.md) | No C heldout assessment is complete. The five-fold target uses 1,000 training ratings and known people/items/raters; new facet levels and performance after fitting all 1,250 ratings are not established |
+| Heldout prediction | The normalized-C binding audit passes 543 checks; saved diagnostic replay passes 660 checks and panel/planning arithmetic passes nine tests. The [separate eight-block pilot, §24](docs/internal/mgmfrm-foundation-scale-acceptance.md) has 240 frozen training targets and has started | Neither the pilot nor the main C heldout assessment is complete. The five-fold target uses 1,000 training ratings and known people/items/raters; new facet levels and performance after fitting all 1,250 ratings are not established |
 | Computational efficiency | Fitting accounts for 96.20% of summed attempt durations. The [four-fit comparison, §22](docs/internal/mgmfrm-foundation-scale-acceptance.md) preserves all saved numerical results, with measured time reductions of 26.24% and 2.12% | The fixed ≥5% improvement on each target was not met; retain Chunk 12. Shared-host timings without per-fit CPU time do not establish a general speed gain. No extra timing batch is scheduled |
 | Delivery and independent review | Local ordinary integration and the experimental fit/save/report workflow are complete | Hosted CI/OS/distribution, unfamiliar-reader review and independent scientific acceptance remain separate later exits; test counts do not substitute for them |
 
@@ -94,15 +94,16 @@ time cap is introduced.
 | Order / responsible role | Next deliverable | Complete when |
 | --- | --- | --- |
 | 1 — Completed: analyst/maintainer | Normalized-C training-only target and heldout-score binding audit; no new posterior fit | All 543 checks pass: training rows, facet IDs, prior, coordinates and scoring agree; full-data fits and wrong training rows/priors are rejected. Heldout-outcome changes leave the training target unchanged. This is not a sparse-design identification proof or a completed fitted-CV review |
-| 2 — Next: analyst | Freeze and execute a separate, finite prediction pilot | Specify the known-level prediction target, score/contrasts, priors, independent panels, splits, draw counts, numerical rules and failure handling before fitting. Account for every planned outcome and report score-specific variance, MCSE and cost; inadequate precision remains unresolved |
-| 3 — Analyst / scientific reviewer | Use the pilot to fix the subsequent heldout assessment and its claim-specific precision, then evaluate it | Justify N from predictive-score or paired-score variability, not recovery RMSE. Preserve all five folds as one panel and leave a panel unresolved if a required fold fails. Close with supported, contradicted or unresolved claims, without outcome-driven retries/extensions |
+| 2 — Running: analyst | Complete the separate eight-block, 240-fit prediction pilot | The known-level target, six means/seven contrasts, priors, blocks, splits, draws, numerical screens and failure handling are frozen in §24. Account for every planned outcome and report score-specific variance, MCSE and CPU/elapsed cost; inadequate precision remains unresolved |
+| 3 — Analyst / scientific reviewer | Apply the frozen pilot-based N rule, then execute a fresh main heldout assessment | Compare replication SE targets 0.005/0.01/0.02 nat; select 0.01 with at least 32 paired blocks using all 13 primary means/contrasts and qualification fractions. Every planning group needs at least three usable pilot blocks. Freeze the resulting N before main fitting. Preserve five folds as one panel, failures and actual achieved precision; no outcome-driven retries/extensions |
 | Across these steps — Analyst / scientific reviewer | Resolve scientific units, prior/domain interpretation and the purpose of a separate calibration study | Retain all three prior widths as comparisons until there is a scientific adoption rationale. Distinguish fixed-facet coverage from joint-prior SBC; retain all three margins and original quantity rosters. Independent review remains unassigned and is not replaced by self-checks |
 | Conditional, then later — Numerical analyst / maintainer | Reopen common-scale mixing work only for a named obstacle to the selected analysis; return to delivery and model extensions after relevant foundation evidence | Preserve failures and verify the posterior target before any coordinate comparison. OS/distribution and broader model work retain their existing release conditions |
 
-This review changes scheduling and interpretation only. It neither starts the
-prediction pilot nor alters frozen studies, priors, diagnostics or acceptance
-thresholds. Current decisions live here; dated receipts below preserve how they
-were reached instead of creating additional active work queues.
+The separately frozen prediction pilot is now running under the active C4 goal;
+the completed recovery assessment and its source hashes remain unchanged.
+Current decisions live here; dated receipts below preserve how they were reached
+instead of creating additional active work queues. Scientific acceptance and
+the subsequent main assessment remain open.
 
 ### Historical handoff evidence
 
@@ -229,12 +230,13 @@ Shared-host variation and first-use compilation remain measurement limitations;
 a future cost study should declare per-fit process CPU timing as well as elapsed
 time. The density/gradient and complete saved-result equivalence evidence is reusable.
 
-**Next concrete exit, after the binding audit:** fix the separate prediction
-pilot's independent replication count, seeds, score/contrast roster, numerical
-screens and failure handling, then execute and assess every planned fit. The
-[543-check binding receipt, §23](docs/internal/mgmfrm-foundation-scale-acceptance.md)
-adds no posterior fit or independent evaluation panel. Predictive-score variance
-from the pilot must determine any later precision-driven N.
+**Current concrete exit:** execute and assess all 240 fits in the frozen
+[eight-block prediction pilot, §24](docs/internal/mgmfrm-foundation-scale-acceptance.md).
+Its plan hash is `f64b476f7232bee2dd82f7a9c1d378ef173a75a7308d68f9412c556279d28428`.
+The earlier binding/diagnostic checks add no independent evaluation panels.
+Predictive-score variance and qualification fractions determine the fresh main
+assessment's N under the already fixed rule; pilot outcomes do not change its
+numerical thresholds or permit extra pilot blocks.
 No automatic extra timing fits or backend search follow the inconclusive adoption
 result. Mathematical/analytical work retains priority over OS and distribution.
 
@@ -359,9 +361,10 @@ heldout assessment remain in the [current table](#current-assessment-and-next-ex
 The new normalized-C adapter reuses log-domain scoring and covariance-aware MCSE;
 the old raw `check_fit` remains distinct. Five overlapping folds remain one
 panel; an incomplete or ineligible fold leaves the panel unresolved. A reporting
-resolution proposal is not an adopted scientific effect margin. Resolve the
-pilot's execution/scoring choices before launch, without making an all-quantity
-calibration guarantee a prerequisite for this narrower predictive question.
+resolution proposal is not an adopted scientific effect margin. Check the
+actual achieved precision against the frozen execution/scoring choices, without
+making an all-quantity calibration guarantee a prerequisite for this narrower
+predictive question.
 
 No elapsed-time cutoff is introduced by this roadmap. Work ends at the stated
 deliverable or predeclared sampling design; elapsed cost is measured. Do not

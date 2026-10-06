@@ -130,6 +130,24 @@ julia --startup-file=no --project=. test/mgmfrm_foundation_prediction.jl \
   /tmp/new-foundation-prediction-binding.json
 ```
 
+The companion saved-fit diagnostic replay checks the original 150 quantities,
+116 additional precision rows, target/seed rejection and local process CPU clock
+without fitting. It currently requires macOS, matching the local study runner:
+
+```sh
+julia --startup-file=no --project=. test/mgmfrm_foundation_prediction_run.jl \
+  results/workflows/20261004-foundation-fixed-facet-assessment-01 \
+  /tmp/new-foundation-prediction-run.json
+python3 test/mgmfrm_foundation_prediction_study.py -v
+```
+
+These passed 660 Julia assertions and nine Python tests. The Python checks cover
+five-fold aggregation, missing/failed/numerically unresolved outcomes, separate
+MCMC and replication uncertainty, and pilot-based main-N selection. The replay
+uses a historical full-data fit; actual training-posterior evidence comes from
+the frozen pilot, not these sampler-free checks. These research checks are
+standalone and do not trigger the ordinary integration suite.
+
 The `mgmfrm-core-python` job in [CI](../.github/workflows/CI.yml) runs the
 following checks on Ubuntu with Python 3.14. They also run on macOS; the
 execution helpers use POSIX process accounting and file locks, so this group
