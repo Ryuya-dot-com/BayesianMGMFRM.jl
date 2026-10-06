@@ -1,6 +1,6 @@
 # BayesianMGMFRM.jl — Internal Roadmap
 
-Current decisions reviewed 2026-10-04; the 2026-09-21 assessment of checkout
+Current decisions reviewed 2026-10-06; the 2026-09-21 assessment of checkout
 `9cf42fc` and subsequent dated evidence remain below. The current
 position is **working implementations with substantial numerical checks, before
 target-specific statistical acceptance**. The near-term finish is a declared
@@ -115,6 +115,40 @@ descriptive first study, not a calibration acceptance design. Next-stage predict
 retains C4's known-level heldout-rating target and training-only five-fold fitting;
 joint-prior SBC remains a separate claim. The controller observation gap is
 recorded, supervision is restored, and no fit was restarted.
+
+**Final assessment and efficiency decision, 2026-10-06.** All 192 planned fits
+finished on October 5 at about 09:49 JST: 184 numerical passes, eight retained
+loading R-hat failures, no sampler exceptions or unstarted attempts, and no
+retries, replacement seeds or extensions. The [foundation record §20](docs/internal/mgmfrm-foundation-scale-acceptance.md)
+closes this descriptive recovery/prior-sensitivity/finite-procedure study with
+six condition summaries, seven paired contrasts, replication MCSE and pointwise
+failure intervals. Shared blocks are not 192 independent replications.
+Narrow SD 0.25 was computationally easier but R1/I1 coverage was only 1/32
+with no unresolved classifications; speed does not choose the scientific prior.
+Calibration acceptance at the three margins, joint-prior SBC, heldout prediction
+and independent scientific review remain open. Do not extend this completed
+study in response to its outcomes.
+
+All-attempt costs locate 96.20% in fitting and 3.78% in scoring; median fit time
+was 759 seconds and observed two-worker elapsed time was about 21 h 45 min.
+The monitor gap prevents a full-period peak-RSS or original-controller exit-code
+claim. A saved-state density/gradient probe passes 100 checks. A single paired
+ForwardDiff Chunk 12 versus 16 comparison passes 56 checks, preserving the
+gradient exactly at all 12 points, with median gradient time reductions of
+13.47% and 27.49% on the two saved targets and 6.50% fewer allocated bytes.
+These are warmed microbenchmarks on a shared host, not whole-fit speedups.
+The default and frozen study sources remain unchanged; no whole suite was rerun.
+
+The immediate next deliverable is a declared same-target, same-input comparison
+of this one computational setting, retaining all diagnostics and precision
+rules, whole-fit cost and quantity-specific ESS/second. Adopt only a supported
+cost reduction without lost accuracy; retain the baseline if unsupported.
+Do not broaden the backend or handwritten-gradient search before this decision.
+Inspect a target-preserving common-scale coordinate change only if the retained
+mixing failures justify it. C4 then requires its existing training-only five-fold
+target/support checks and a separate precision/cost design; OS/distribution work
+remains deferred. The older ordering below describes dependencies, not a request
+to repeat the completed mathematical mapping or this 32-block study.
 
 Reordered 2026-10-04 following the user's instruction to establish the mathematical
 and analytical foundation before OS and distribution work. The October 2 engineering
