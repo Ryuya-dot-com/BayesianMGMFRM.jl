@@ -2000,3 +2000,26 @@ fold 1/3/5が適格、fold 2/4が不適格で、全fitが終了してもパネ�
 `73d9055153421c0caef42e1df1c0d9855099ae72a9eb3ae3c9141080ecfd37f5`、
 全fold終了後の照合receipt `first-terminal-unqualified-panel-verification.json`は
 `9d09a89dffd7a3d8cafe7a28cba09926404d4ca898a8375b9504e2e1e3053863`。
+
+17:09 UTC、`B001-R1-025-F5`が適格となり、SD 0.25で初めてR0/R1の全5foldがそろった。
+両パネルとも4つの数値screenを通過した。保存した各1,250評定を元の重みで合算し、
+4指標とfold間MCSEの合成を独立に再計算した。全5組で人物真値100座標・生成seed・分割・
+訓練/heldout ID・重み・事前の対応、条件別入力・target・真の確率・MCMC seedの相違を照合した。
+
+| SD 0.25、B001の指標 | R0 | R1 | R1 − R0 | 差のwithin-MCMC SE |
+| --- | ---: | ---: | ---: | ---: |
+| NLL | 0.9106876991 | 0.9343274054 | +0.0236397062 | 0.0002459022 |
+| category probability squared error | 0.0310774244 | 0.0294699724 | −0.0016074520 | 0.0000657581 |
+| expected score squared error | 0.0589849105 | 0.0486371994 | −0.0103477111 | 0.0001250190 |
+| log-score regret / KL | 0.0642030993 | 0.0604176403 | −0.0037854590 | 0.0001354124 |
+
+生成分布の重み付きentropyはR0で0.8708244146、R1で0.9265331686。
+固定した保存予測に対する真分布期待NLLはそれぞれ0.9350275139、0.9869508089で、
+entropy + KLと一致した。**有限評定での観測NLLはこの期待値とは異なる**。
+今回NLLとKLの差は逆方向であり、R0/R1のNLL差だけから推論・事前の優劣は判断しない。
+独立ブロックは1、予定分母は8のままで、反復SE・一般化・本評価Nの選択には使えない。
+この時点は35/240 fit完了、6適格パネル。既知の不適格2fitは同じ1パネルに保持されている。
+`first-r0-r1-panel-summary.json`のSHA-256は
+`0b8c4b86d0e93a9d45d91aba74585ea3879ab9a05422522ca48be0c7bc468897`、
+照合receipt `first-r0-r1-panel-verification.json`は
+`915beaa28dcd2cf956bd1510495e9922014fd17452bd2d0d364c19d0700205cc`。
