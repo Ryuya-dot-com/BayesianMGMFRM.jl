@@ -23,8 +23,8 @@ The normalized coordinate route and the four-fit loading-prior comparison remain
 experimental. The six-fit R0/R1 rehearsal retains four numerical passes and two
 R-hat failures, with zero evaluation credit. Independent review and scientific
 prior/domain choices remain open; all three calibration margins remain in scope.
-The [execution priorities below](#execution-priorities-after-local-integration)
-own the next work order; scheduling language in dated records is historical.
+The [current assessment](#current-assessment-and-next-exits) and its next exits
+own the work order; scheduling language in dated records is historical.
 The [2026-09-30 strategic review](docs/internal/strategic-review-2026-09-30.md)
 keeps integration, independent usability review and scientific acceptance as distinct exits.
 The [2026-09-27 review](docs/internal/strategic-review-2026-09-27.md) retains the earlier evidence and decisions.
@@ -65,7 +65,52 @@ The [2026-09-27 review](docs/internal/strategic-review-2026-09-27.md) retains th
   [ordinary integration run](results/workflows/20261002-integration-01/verification.json)
   completes all six current-version groups and the minimum-version all run.
 
-| Priority / responsible role | Concrete deliverable | Exit and boundary |
+### Current assessment and next exits
+
+**Strategic review, 2026-10-06.** The first prospective descriptive study and the
+selected computational comparison are complete. The project can now describe
+condition-specific recovery, prior sensitivity and numerical failures with
+replication uncertainty. Scientific acceptance of a useful MGMFRM domain remains
+open. Count completion against each declared study or claim; 192/192 finished
+fits is not a percentage of overall scientific readiness.
+
+| Question | Evidence reached | Remaining boundary |
+| --- | --- | --- |
+| Mathematical target and interpretation | The [identification and estimand derivation](docs/internal/mgmfrm-estimands-identification.md), normalized prior, location transform and density/gradient checks cover the declared complete-crossed pure-Q setting under their stated assumptions | Centered abilities retain scale dependence. Posterior propriety does not establish mixing or coverage. Sparse training designs, mixed Q and free latent correlation do not inherit the dense identification result; independent scientific review remains open |
+| Recovery, prior sensitivity and numerical failures | The [completed assessment, foundation record §20](docs/internal/mgmfrm-foundation-scale-acceptance.md) accounts for 32 independent paired blocks, 192 completed fits, 184 numerical passes and eight retained loading R-hat failures | Continuous summaries condition on qualification; variants share datasets. Even 0/32 failures has a pointwise exact 95% upper limit of 10.89%, so low failure probability is not established |
+| Prior adequacy and calibration | Under R1 / loading-prior SD 0.25, all 32 fits qualify numerically, yet I1's nominal 90% interval covers the fixed truth in only 1/32 cases, with no unresolved classifications | This is a substantive limitation of this prior/condition, not a reason to choose another prior after observing its RMSE. N=32 cannot establish any of the three calibration margins under the retained exact-interval rule. Fixed-facet coverage and joint-prior SBC remain distinct claims |
+| Heldout prediction | Existing fold/support, log-score and MCSE helpers are available; the raw-target binding still needs adaptation to normalized C | No C heldout assessment is complete. The target is additional ratings of known people/items/raters; new facet levels are outside scope |
+| Computational efficiency | Fitting accounts for 96.20% of summed attempt durations. The [four-fit comparison, §22](docs/internal/mgmfrm-foundation-scale-acceptance.md) preserves all saved numerical results, with measured time reductions of 26.24% and 2.12% | The fixed ≥5% improvement on each target was not met; retain Chunk 12. Shared-host timings without per-fit CPU time do not establish a general speed gain. No extra timing batch is scheduled |
+| Delivery and independent review | Local ordinary integration and the experimental fit/save/report workflow are complete | Hosted CI/OS/distribution, unfamiliar-reader review and independent scientific acceptance remain separate later exits; test counts do not substitute for them |
+
+The main remaining uncertainty is which scientific interpretations and predictive
+claims the declared prior/domain supports. More test assertions or another
+general speed search would not settle that question. The four-fit comparison
+answered its fixed adoption question; a negative or inconclusive decision closes
+that comparison. Future cost studies should record process CPU time and elapsed
+time from the start when a named analytical obstacle justifies them. No elapsed
+time cap is introduced.
+
+| Order / responsible role | Next deliverable | Complete when |
+| --- | --- | --- |
+| 1 — Analyst/maintainer | Audit normalized C's training-only target and heldout-score binding using existing helpers; no new posterior fit | Correct training rows, facet IDs, prior, coordinate mapping and score rows agree; full-data fits, wrong training rows and wrong priors are rejected. All folds retain facet and person-by-dimension support. Support is not presented as a sparse-design identification proof |
+| 2 — Analyst | Freeze and execute a separate, finite prediction pilot after step 1 | Specify the known-level prediction target, score/contrasts, priors, independent panels, splits, draw counts, numerical rules and failure handling before fitting. Account for every planned outcome and report score-specific variance, MCSE and cost; inadequate precision remains unresolved |
+| 3 — Analyst / scientific reviewer | Use the pilot to fix the subsequent heldout assessment and its claim-specific precision, then evaluate it | Justify N from predictive-score or paired-score variability, not recovery RMSE. Preserve all five folds as one panel and leave a panel unresolved if a required fold fails. Close with supported, contradicted or unresolved claims, without outcome-driven retries/extensions |
+| Across these steps — Analyst / scientific reviewer | Resolve scientific units, prior/domain interpretation and the purpose of a separate calibration study | Retain all three prior widths as comparisons until there is a scientific adoption rationale. Distinguish fixed-facet coverage from joint-prior SBC; retain all three margins and original quantity rosters. Independent review remains unassigned and is not replaced by self-checks |
+| Conditional, then later — Numerical analyst / maintainer | Reopen common-scale mixing work only for a named obstacle to the selected analysis; return to delivery and model extensions after relevant foundation evidence | Preserve failures and verify the posterior target before any coordinate comparison. OS/distribution and broader model work retain their existing release conditions |
+
+This review changes scheduling and interpretation only. It neither starts the
+prediction pilot nor alters frozen studies, priors, diagnostics or acceptance
+thresholds. Current decisions live here; dated receipts below preserve how they
+were reached instead of creating additional active work queues.
+
+### Historical handoff evidence
+
+These rows preserve earlier milestones and their then-open decisions. References
+to an unselected N, a six-fit next step or hosted CI as next work are superseded
+by the current assessment above and the completed records below.
+
+| Historical milestone / responsible role | Concrete deliverable | Exit and boundary at that milestone |
 | --- | --- | --- |
 | Completed engineering handoff — Maintainer | The existing normalized location transform now connects to explicit experimental fitting, diagnostics, canonical saved records and a documented example; the research adapter delegates to the same implementation | Density/Jacobian/gradient and bounded public fit/save/reload/report checks pass. CmdStan rejects this coordinate option; raw remains its supported route. No default change, automatic request cache, scientific promotion or new independent calibration dataset. See [the implementation receipt](docs/internal/mgmfrm-foundation-scale-acceptance.md) |
 | Completed evidence review — Analyst | Candidate C now has a C1–C6 claim/evidence table, a saved-draw absolute-versus-centered ability review and all three calibration-margin comparisons in the [foundation document](docs/internal/mgmfrm-foundation-scale-acceptance.md) | Two joint-prior datasets remain two datasets. The initial saved-draw review added no fits; its additional diagnostic/MCSE assessment is now recorded with C5 below. These exploratory error summaries do not establish fixed-facet recovery, calibration or heldout prediction |
@@ -142,16 +187,10 @@ gradient exactly at all 12 points, with median gradient time reductions of
 These are warmed microbenchmarks on a shared host, not whole-fit speedups.
 The default and frozen study sources remain unchanged; no whole suite was rerun.
 
-The immediate next deliverable is a declared same-target, same-input comparison
-of this one computational setting, retaining all diagnostics and precision
-rules, whole-fit cost and quantity-specific ESS/second. Adopt only a supported
-cost reduction without lost accuracy; retain the baseline if unsupported.
-Do not broaden the backend or handwritten-gradient search before this decision.
-Inspect a target-preserving common-scale coordinate change only if the retained
-mixing failures justify it. C4 then requires its existing training-only five-fold
-target/support checks and a separate precision/cost design; OS/distribution work
-remains deferred. The older ordering below describes dependencies, not a request
-to repeat the completed mathematical mapping or this 32-block study.
+This assessment led to the same-target computational comparison recorded below.
+That comparison is now complete; its closure and the current next-exit table
+supersede the earlier plan to launch it. The mathematical mapping and 32-block
+study are completed evidence, not a queue to repeat.
 
 **Whole-fit chunk comparison launched, 2026-10-06.** The [pre-result rules in
 foundation record §21](docs/internal/mgmfrm-foundation-scale-acceptance.md)
@@ -198,23 +237,12 @@ prediction pilot; its score variance must determine any later precision-driven N
 No automatic extra timing fits or backend search follow the inconclusive adoption
 result. Mathematical/analytical work retains priority over OS and distribution.
 
-Reordered 2026-10-04 following the user's instruction to establish the mathematical
-and analytical foundation before OS and distribution work. The October 2 engineering
-work remains completed evidence; its former order is superseded. No new elapsed-time
-limit is introduced. Mathematical validity, computational accuracy, statistical
-evidence and delivery readiness have separate completion conditions.
-The rows below define the work order; the completion, mathematical-review and
-efficiency rules that follow specify how to carry it out. Update the existing
-documents and analysis helpers named here rather than creating another framework.
-
-| Order / owner | Next deliverable | Completion evidence / dependency |
-| --- | --- | --- |
-| 1 — Analyst: assumptions and estimands | Reconcile the [identification derivation](docs/internal/mgmfrm-estimands-identification.md) with the [foundation claims](docs/internal/mgmfrm-foundation-scale-acceptance.md): response equation/support, constraints, prior measure, coordinate Jacobian and the origin/unit of each focal quantity | Each focal estimand has a stated domain, invariance or prior dependence, existing argument/check and explicit gap. Reuse the complete-crossed pure-Q result and propriety argument; do not infer sparse/mixed-Q or marginal-model identification from them, or treat a proper posterior as recovery evidence |
-| 2 — Analyst: role of the prior | Connect absolute/centered ability, loading ratios and panel-relative item positions to the declared scale. Reuse the completed C prior-predictive and SD 0.25 / 0.5 / 1.0 sensitivity results to distinguish a coordinate change from a changed prior | State which scientific comparisons require a chosen origin/unit and what the saved evidence supports. Candidate C stays a computational reference; neither easier sampling nor smaller observed RMSE adopts a scientific prior. Do not repeat the completed four-fit comparison |
-| 3 — Numerical analyst: posterior precision | Inspect the retained fixed-facet rehearsal's two R-hat failures by named quantity and chain, preserving all six outcomes. Use the existing exact location references, original 150 quantities and additional focal MCSE checks to separate numerical uncertainty from prior sensitivity | Retain unsupported quantities and uncertainty; diagnostic pass is not an error guarantee. The saved-draw conditional-CDF comparison is conditional on a named classification need, not a mandatory all-150 guarantee project. No automatic fit extension or new seed; new sampling needs a specific unresolved question and declared comparison |
-| 4 — Analyst / scientific reviewer: assessment matched to the claim | Use the existing [fixed-facet decision packet](docs/internal/mgmfrm-foundation-fixed-facet-design.md) to settle estimands, R0/R1's roles, numerical/failure rules and precision. The current proposal is descriptive recovery (C3b), prior sensitivity (C5) and finite-procedure performance (C2); joint-prior calibration (C3a) and heldout prediction (C4) remain separate | Retain N = 8 / 32 / 128 and ±2.5 / 5 / 7.5-point comparisons. Report within-fit and between-panel error separately, including failures in planned denominators. Existing panels and test assertions add no independent replication; purpose, precision and execution conditions precede a new cohort |
-| 5 — Analyst: evaluate the declared foundation | Execute the selected design only after its question and protocol are fixed; report supported, contradicted and unresolved claims for the 2D fixed-Q domain | Evidence must address the specified estimands and conditions. An all-150 positive-calibration guarantee may remain unresolved without blocking a narrower, honestly stated result; it must not be reported as achieved. Independent scientific review remains a distinct acceptance condition |
-| 6 — Maintainer / independent reader: later delivery | Return to OS-dependent fixtures, distribution policy, complete CI, unfamiliar-reader workflow review and release conditions after the foundation assessment. Extend correlation, mixed-Q and other model combinations one at a time after the relevant foundation evidence | Keep current defects recorded; deferral is not a waiver or release approval. Preserve the M0 hold. Reopen optimization only for a measured obstacle to the selected analysis; reuse the completed postprocessing improvement |
+The [current next-exit table](#current-assessment-and-next-exits) replaces the
+October 4 queue: its mathematical mapping, saved-fit review, protocol selection
+and descriptive assessment have completed records. The reusable completion and
+review rules below still apply. Update their existing documents and helpers
+rather than creating another framework. Mathematical validity, computational
+accuracy, statistical evidence and delivery readiness retain separate exits.
 
 ### Work products and completion decisions
 
@@ -228,9 +256,9 @@ empirical acceptance cannot inherit that wider scope without evidence.
 | --- | --- | --- |
 | Mathematical argument — [identification](docs/internal/mgmfrm-estimands-identification.md), [prior measures](docs/internal/mgmfrm-prior-choice.md) | For the declared response distribution, record support, constraints, free coordinates, normalized prior measure and transformations. Attach existing derivations/counterexamples and their exact assumptions; supply only a missing argument needed by a selected claim | Every mathematical assertion used by that claim has an argument under its stated assumptions; density/Jacobian and relevant derivative checks agree. Record excluded cases. A required unresolved assertion holds the dependent claim open; naming the gap does not complete the mathematical foundation |
 | Interpretation — [foundation claims](docs/internal/mgmfrm-foundation-scale-acceptance.md), [fixed-facet design](docs/internal/mgmfrm-foundation-fixed-facet-design.md) | Map absolute and centered ability, loading/log-ratio, severity/consistency, item position and prediction to their origin/unit, conditioning population and evaluation quantity. Reuse completed prior-predictive and sensitivity evidence | Every focal row has a formula, unit, prior dependence, permitted interpretation and applicable evidence. All original 150 quantities remain traceable. Centering is not called scale invariance; one favorable fit does not choose a scientific prior |
-| Numerical assessment — fixed-facet design §8 | Reuse all six saved fits. Produce one table of chain diagnostics, focal MCSE, sampler warnings and final eligibility; inspect the four flagged log-loadings and their related quantities using existing diagnostic/adaptation helpers | Every attempt and relevant quantity is accounted for, and observed facts are separated from mechanism hypotheses. The assessment can end with unresolved causes; a fit is usable for the declared comparison only if its original global and focal rules pass. Otherwise retain it as ineligible, and state the next discriminating check or why no further run is justified |
+| Numerical assessment — fixed-facet design §8 and foundation record §20 | Reuse the completed rehearsal and 192-fit assessment, including diagnostics, focal MCSE, sampler warnings and eligibility; the eight assessment failures and saved scale/ratio analysis remain recorded | Every attempt and relevant quantity is accounted for, and observed facts are separated from mechanism hypotheses. The assessment can end with unresolved causes; a fit is usable for the declared comparison only if its original global and focal rules pass. Otherwise retain it as ineligible, and state the next discriminating check or why no further run is justified |
 | Efficiency assessment — the profile receipts below | Attribute the cost of the selected analysis to startup/JIT, density/gradient evaluation, transitions and postprocessing. If an actionable cost is found, compare one target-preserving change with the baseline under the same accuracy conditions | Record a measured benefit, no benefit or inconclusive result with correctness checks, spread, allocations and memory. Keep the baseline when benefit is unsupported. The exit is an adequate method for the declared analysis or an explicit unresolved cost/precision problem, not proof of the fastest possible implementation |
-| Statistical design — fixed-facet design §10 | Reuse the decision packet to specify the question, generator, estimands, methods, performance measures, independent unit, required precision and failure handling. Compare the existing N and margin options before selection | All fields that determine execution/scoring have explicit choices and rationale, including numerical and between-panel precision. Unset N, scientific tolerance or unresolved execution conditions mean the study is still designed for comparison, not ready to launch. Do not add another packet in place of resolving these decisions |
+| Statistical design — fixed-facet design §§10–11 and C4 handoff | The N=32 descriptive protocol is complete. Reuse its question/generator/estimand/method/precision/failure structure for the separate C4 pilot and assessment; retain calibration-margin comparisons for their own claim | All fields that determine execution/scoring have explicit choices and rationale, including numerical and between-panel precision. Unset N, scientific tolerance or unresolved execution conditions keep that new study in design. Do not reopen the completed cohort or add another packet in place of resolving decisions |
 | Statistical assessment — foundation C2–C5 evidence | After the separate execution decision, evaluate the selected protocol and report every planned attempt, uncertainty, paired comparison and claim result | The assessment is complete when the planned outcomes and unresolved results are accounted for. A scientific claim is accepted only when its predeclared criteria and independent scientific review pass. A negative or inconclusive assessment is a valid completed study, not positive acceptance |
 
 The first foundation milestone is a defensible **named set of claims** for this
@@ -271,13 +299,13 @@ scientific tolerance is silently filled by these ratios. Finite-chain diagnostic
 and function-specific MCSE have distinct roles; see the official
 [Stan posterior-analysis reference](https://mc-stan.org/docs/reference-manual/analysis.html).
 
-The current inspection has a concrete starting point: R0 / SD 0.5 flags log a[I2]
-(R-hat 1.012266); R1 / SD 1.0 flags log a[I3], log a[I4] and log a[I5]
-(1.011470, 1.013397, 1.010387). Retain all six fits, not just these four rows.
-Inspect chain/rank behavior and relationships with dimension-specific ability
-scale and loading ratios; these are candidate explanations, not established
-causes. All six had zero recorded divergences and tree-depth hits, so those two
-warnings alone do not explain or dismiss the retained R-hat failures.
+The rehearsal's two failures remain in its six-fit denominator. In the completed
+192-fit assessment, eight fits retain loading R-hat failures (maximum 1.01757),
+with zero divergences or tree-depth hits. Saved loading/ability-scale associations
+and passing within-dimension loading-ratio diagnostics suggest a common-scale
+mixing issue; they do not establish its cause or reverse the original failures.
+The saved-result inspection is complete. Reopen a coordinate comparison only if
+this uncertainty obstructs a named subsequent analysis.
 
 | Measured cost or uncertainty | First action, reusing existing tools | Adoption / stopping rule |
 | --- | --- | --- |
@@ -313,9 +341,11 @@ diagnostic improvement does not estimate a sampling or whole-study speedup.
 Use the existing [fixed-facet protocol](docs/internal/mgmfrm-foundation-fixed-facet-design.md)
 and its aims/generator/estimands/methods/performance organization, consistent with
 [Morris, White and Crowther's simulation-study guidance](https://arxiv.org/abs/1712.03198).
-Before choosing N, identify the primary performance quantity and its needed
-between-panel precision. Keep N = 8 / 32 / 128 as comparisons, not automatic
-launch options, and compare ±2.5 / 5 / 7.5 percentage-point calibration margins.
+Before choosing N for a new study, identify the primary performance quantity and
+its needed between-panel precision. N = 8 / 32 / 128 were the descriptive-study
+comparisons; N=32 was selected and completed. A predictive N needs predictive
+variance. Continue comparing ±2.5 / 5 / 7.5 percentage-point calibration margins
+for the separate calibration claim.
 A margin is not an MCSE target. For a panel-level average use independent panels,
 and for a paired contrast form the within-pair difference first; do not count
 persons, draws, folds or prior variants as independent panels. Unresolved/failed
@@ -323,20 +353,15 @@ attempts retain the planned denominator and conditional summaries retain their
 eligibility labels. Large N cannot repair a wrong estimand, biased computation
 or a persistent unresolved fraction.
 
-The next three work products are finite and require no new posterior fits:
-
-1. Update the existing identification and foundation-claim tables with the
-   formula, origin/unit, assumptions, evidence and permitted recovery statement
-   for every focal family. Completion is a reconciled argument and interpretation,
-   not another inventory of files; fix a discovered mathematical defect first.
-2. Add one saved-result assessment to the fixed-facet record: all six eligibility
-   outcomes, the four flagged loading quantities, related chain/scale evidence
-   and focal MCSE. End with a supported explanation, an explicitly unresolved
-   mechanism, or one concrete comparison capable of changing the decision.
-3. Revise the existing decision packet with what those findings change: retain
-   the current procedure, propose one equivalent computational change, or leave
-   a named claim open. If new sampling is needed, state its question, target,
-   attempts/draws, precision, failure handling and reuse plan before launch.
+The next three exits are now the C4 binding audit, fixed prediction pilot and
+precision-driven heldout assessment in the [current table](#current-assessment-and-next-exits).
+Only the binding audit requires no new posterior fits. Existing log-domain
+scoring and covariance-aware MCSE helpers should be reused, but the old raw
+`check_fit` does not validate normalized C. Five overlapping folds remain one
+panel; an incomplete or ineligible fold leaves the panel unresolved. A reporting
+resolution proposal is not an adopted scientific effect margin. Resolve the
+pilot's execution/scoring choices before launch, without making an all-quantity
+calibration guarantee a prerequisite for this narrower predictive question.
 
 No elapsed-time cutoff is introduced by this roadmap. Work ends at the stated
 deliverable or predeclared sampling design; elapsed cost is measured. Do not
