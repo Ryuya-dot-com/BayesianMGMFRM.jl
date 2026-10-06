@@ -32,13 +32,16 @@ The [2026-09-27 review](docs/internal/strategic-review-2026-09-27.md) retains th
 - **Scope:** the user-selected 2D fixed-Q foundation. Candidate C is an explicit
   normalized exchangeable prior for computational comparison, not an adopted
   scientific prior or a new default. Preserve the distinct raw/source targets.
-- **Evidence:** transformed candidate-C fits pass their recorded diagnostics on
-  two independent datasets. Four same-data prior-sensitivity fits also pass the
-  original 150-quantity diagnostics and added 111-quantity precision screens;
-  prediction-tail warnings remain. The same-data raw failure and all shorter-window
-  diagnostic failures remain. This is computational evidence, not calibration,
-  predictive or supported-domain acceptance. The raw cohort stays 4 completed /
-  1 failed / 269 unstarted out of 274; neither cohort is pooled with the other.
+- **Evidence:** the completed 32-block fixed-facet assessment has 192 finished
+  fits, 184 numerical passes and eight retained loading R-hat failures, with
+  paired recovery/prior-sensitivity summaries, replication MCSE and condition-wise
+  failure intervals. Narrow SD 0.25 is computationally easier but shows strong
+  R1/I1 undercoverage (1/32 confirmed, none unresolved). Earlier two-panel C
+  checks, the four-fit sensitivity comparison and their warnings remain dated
+  evidence below. No calibration, heldout-prediction or supported-domain
+  acceptance is claimed. The same-data raw and shorter-window failures remain;
+  the raw cohort stays 4 completed / 1 failed / 269 unstarted out of 274.
+  The cohorts are not pooled, and computation-only replays add no replication.
 - **Criteria:** retain comparisons at ±2.5, ±5 and ±7.5 percentage points. The
   all-150-quantity positive-acceptance claim remains open; do not drop difficult
   quantities after observing results or make this claim a prerequisite for
@@ -149,6 +152,51 @@ mixing failures justify it. C4 then requires its existing training-only five-fol
 target/support checks and a separate precision/cost design; OS/distribution work
 remains deferred. The older ordering below describes dependencies, not a request
 to repeat the completed mathematical mapping or this 32-block study.
+
+**Whole-fit chunk comparison launched, 2026-10-06.** The [pre-result rules in
+foundation record §21](docs/internal/mgmfrm-foundation-scale-acceptance.md)
+fix four serial fits on the same two profiled targets, in Chunk 12→16 / 16→12
+order. The isolated research adapter passes 54 density/gradient/validation checks
+and delegates fitting/scoring to the existing runner. Inputs, seeds, 4-chain
+1000+1000 schedules and all diagnostics stay fixed; no product defaults change.
+Direct adoption from this small engineering comparison requires identical saved
+numerical results/precision and at least 5% lower whole-fit time on both targets.
+Otherwise retain baseline or report inconclusive, without extending this batch.
+Any original diagnostic failure stays a failure; independent evaluation credit
+is zero. One worker, 8 GiB RSS / 2 GiB output limits and no elapsed-time cutoff.
+
+**Prediction handoff clarified while the comparison runs.** The current study's
+recovery RMSE variance does not determine the replication variance of heldout
+negative log predictive density. For C4, first bind each training-only normalized
+target and preserve facet IDs/support; reuse the existing log-domain scoring,
+within-draw covariance and fold/panel aggregation helpers. The old raw-target
+`check_fit` binding cannot be applied unchanged to normalized C. Then obtain
+claim-specific pilot variance under a separate fixed design before selecting a
+precision-driven replication count. Five overlapping folds remain one panel,
+and a missing/unqualified fold leaves that panel unresolved. No CV fit has been
+launched during this cost comparison.
+
+**Whole-fit comparison closed, 2026-10-06.** All four planned attempts completed
+with exit code 0 in 88 min 17 s; observed peak RSS was 2.49 GiB. Both chunk
+settings reproduced byte-identical samples and identical diagnostics/MCSE on
+both saved targets, including the original R1 loading R-hat failure. The
+[final comparison, foundation record §22](docs/internal/mgmfrm-foundation-scale-acceptance.md)
+records full-fit time reductions of 26.24% for B01-R0-050 and 2.12% for B24-R1-050.
+The fixed requirement of at least 5% on **each** target was not met: retain the
+baseline setting 12 and leave general adoption of 16 unestablished. No default,
+prior or scientific acceptance changed; zero retries/extensions or new independent
+replications. Do not turn an average of the two cases into a replacement rule.
+Shared-host variation and first-use compilation remain measurement limitations;
+a future cost study should declare per-fit process CPU timing as well as elapsed
+time. The density/gradient and complete saved-result equivalence evidence is reusable.
+
+**Next concrete exit:** verify normalized C's training-only target, facet/row IDs
+and heldout scoring bindings using the existing five-fold/support/log-score/MCSE
+helpers, with explicit rejection of full-data fits, wrong training rows or wrong
+priors. This is a no-fit analytical/implementation check before a separate fixed
+prediction pilot; its score variance must determine any later precision-driven N.
+No automatic extra timing fits or backend search follow the inconclusive adoption
+result. Mathematical/analytical work retains priority over OS and distribution.
 
 Reordered 2026-10-04 following the user's instruction to establish the mathematical
 and analytical foundation before OS and distribution work. The October 2 engineering
