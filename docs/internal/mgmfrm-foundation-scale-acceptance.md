@@ -2064,3 +2064,28 @@ pilot・本評価は未完了で、本評価Nは未選択である。
 `bc548f6f4ade594ae5dec9f2e1e27a85c488ece274998891fa6a1f688f378b27`、
 照合receipt `r1-panel-comparisons-verification.json`は
 `69c03cb57382b13137429d99f0d0ab8fa630d3b7c0e4a9753ee2cbe649c011fa`。
+
+20:36 UTC、`B001-R1-100-F5`が適格となり、B001の全6条件・30fitが終了した。
+6パネルすべてが既定の数値基準を通過し、事前固定した7比較すべてにB001の値がそろった。
+既検証の5パネルはreceipt・summary・保存出力のハッシュ一致を確認して再利用し、
+新しいR1 / SD 1.0パネルは1,250評定から4指標とfold間MCSEを独立に再計算した。
+35組の対応foldの入力・分割・重み・事前・target・seedを照合した。
+**この6条件・30fit・35組は同じ1独立ブロックに由来する**。
+
+| B001 / R1、SD 1.0 − 0.5の指標 | 差 | 差のwithin-MCMC SE |
+| --- | ---: | ---: |
+| NLL | −0.0001198062 | 0.0002199274 |
+| category probability squared error | −0.0002039971 | 0.0000575227 |
+| expected score squared error | +0.0001522819 | 0.0000993089 |
+| log-score regret / KL | −0.0007159805 | 0.0001167262 |
+
+NLL差の絶対値はwithin-MCMC SEより小さく、この僅差から順位を判断しない。
+補助指標の点推定の方向も一致しない。独立反復は1で、反復SEは未計算である。
+新しくそろったSD 1.0でのR1 − R0比較もn=1で、NLL差は+0.0226987996、
+within-MCMC SEは0.0002393663。生成分布の違いを踏まえる解釈を維持する。
+このsnapshotは53/240 fit終了、計9適格パネルで、既知の不適格2fitは同じ1パネルに残る。
+pilot全体・本評価・事前の科学的採用は未完了で、本評価Nは未選択である。
+`first-complete-block-summary.json`のSHA-256は
+`ecca79c3d3659bfe6cbdf9c0b6db8dcfc56670b578bce7d9c4df3b9e5935d5d5`、
+照合receipt `first-complete-block-verification.json`は
+`8df427cd09d10325d9f73727fd2c08cf308b9240a69a71595c7f09176e693127`。
