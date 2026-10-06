@@ -1809,3 +1809,18 @@ SHA-256は`f64b476f7232bee2dd82f7a9c1d378ef173a75a7308d68f9412c556279d28428`。
 実稼働を照合した。起動前の空きメモリ約7.90 GiB・空きディスク約40.44 GiB。
 起動時点では本評価Nは未選択、pilot完了・科学的受入は未主張。実行中のsourceとplanは固定し、
 `preflight.json`、`controller.json`、各attempt、終了時のguard receiptと`summary.json`を証跡とする。
+
+11:12 UTC、最初の`B001-R0-025-F1`が保存・復元・訓練限定診断・heldout採点まで完了した。
+150量と追加116量の基準を通過し、発散0、元150量の最大rank-normalized R-hatは1.00613。
+Python側で観測ID・重み・確率正規化と4損失を独立に再計算して一致した。
+主損失のfold寄与は0.1803591352 nat、一次MCSEは0.0000637370 natで、
+これは全パネル重みを使う**一foldの寄与**であり、全パネル損失やその精度ではない。
+`first-completion-summary.json`のSHA-256は
+`e42a7388b0b6e7d3382b22c2782e20834b13fc6a3afbdba4f7b83dd9d2f3f46e`。
+この時点の完了fitは1/240、完了・適格パネルは0/48である。
+
+初回fitはCPU 500.86秒・経過909.67秒、保存/診断/採点を含むattemptはCPU 531.34秒・経過967.11秒。
+fit内のcompile時間は27.28秒。単一fit・初回使用・共有hostの実測なので、一般速度や全pilot費用の
+推定値として扱わない。workerの監視RSSピーク約1.97 GiB、空きメモリ約5.91 GiBが事前条件を満たし、
+`parallel-decision.json`に基づき2worker目を起動した。両workerの実稼働を確認済み。
+ソース・事前・標本数・数値基準は固定したまま、残りの予定fitを継続する。
