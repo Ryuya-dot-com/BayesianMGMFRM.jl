@@ -1960,3 +1960,22 @@ R1・残りの独立ブロックは未完了で、本評価Nは引き続き未�
 `afff18321200fd8682014663a75c2ce8d45088d35264e7bf6c1c87306a68b6c6`、
 独立照合receipt `first-wide-prior-panel-verification.json`は
 `5e9dd60efad9c30eb02516a84db6ea6a6c7837004341c87b2358f307718a9fdd`。
+
+### 最初のfit診断未達と予定分母の保持（15:31 UTC）
+
+`B002-R0-100-F2`は4chains×2,000遷移を完了したが、I4のlog負荷量のrank-normalized R-hatが
+**1.0100573046 > 1.01**となり、事前固定の診断に不適格だった。bulk ESSは837.80、tail ESSは1,733.69。
+発散・最大木深度到達・sampler警告は0で、位置座標・位置残差の診断も通過した。
+追加116量の局所精度基準も全て通過し、平均MCSE/SDの最大値は0.03551、区間端MCSE/区間幅は0.02413だった。
+追加量の`log_loading[I4]`と`a[I4]`にも同じR-hat未達があり、これは**1 fitの同じ負荷量の複数表現**である。
+3件の独立したfit失敗として数えず、閾値に近くても丸めて合格にしない。
+
+保存標本・実行記録・診断のhashと予定targetを照合した。推定例外はなく、`completion.json`は完了かつ
+数値不適格を記録し、`score.json`は作成されていない。27/240 fit完了中の数値不適格はこの1件で、
+5パネルは適格のまま。B002 / R0 / SD 1.0は未解決として予定分母に保持し、部分foldの再正規化はしない。
+この条件は予定8ブロック中、適格1・不適格が判明した1・残る6で、SD 1.0 − 0.5の比較に使えるのはB001だけである。
+再試行・延長・seed交換・閾値変更をせず、残りの予定fitを継続する。
+`first-unqualified-fit-summary.json`のSHA-256は
+`63dad89cd8c35c4877c316a5c4887cb61ab243aa1ffe81e3216959221665dfc9`、
+分類・局所精度の算術・予定分母の照合receipt `first-unqualified-fit-verification.json`は
+`7fb05658b95d6ccee74d49efd1dc58d633561f6d390ad34407c3b97c2f3bb429`。
