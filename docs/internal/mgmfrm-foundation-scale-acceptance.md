@@ -1990,3 +1990,13 @@ R1・残りの独立ブロックは未完了で、本評価Nは引き続き未�
 `51778fbe2d61884fd7eb2a3ea4d6cba03c1cb457a1fb5f0d4c57d1dc312e741e`、
 分類と独立単位の照合receipt `second-unqualified-fit-verification.json`は
 `b3fdc5cc178fd41495f6ed56e021383a22572baf9ea043aec05bc1392c00c365`。
+
+16:47 UTC、`B002-R0-100-F5`が適格となり、当該パネルの全5fitが終了した。
+fold 1/3/5が適格、fold 2/4が不適格で、全fitが終了してもパネル値は未作成、数値的には未解決のままである。
+3つの採点済みfoldの再正規化を行わず、予定分母・既知の不適格1パネル・対応比較の対象B001だけという
+集計が変わらないことを照合した。この時点は33/240 fit完了で、B001/B002の**R0部分30fit**が全て終了し、
+6予定パネル中5適格・1不適格。R1と残るブロックは未完了で、pilot全体の完了ではない。
+`first-terminal-unqualified-panel-summary.json`のSHA-256は
+`73d9055153421c0caef42e1df1c0d9855099ae72a9eb3ae3c9141080ecfd37f5`、
+全fold終了後の照合receipt `first-terminal-unqualified-panel-verification.json`は
+`9d09a89dffd7a3d8cafe7a28cba09926404d4ca898a8375b9504e2e1e3053863`。
