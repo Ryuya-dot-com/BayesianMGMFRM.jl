@@ -67,6 +67,25 @@ integration, reference PSIS validation, calibration and category-functioning
 consumers remain separate next steps. The prototype uses original training rows
 and existing levels; it adds no common-fold refitting or new-level prediction.
 
+**2026-10-09 shared effects, learned rater scales and new-level prediction:**
+the [implementation handoff](docs/internal/shared-effects-hierarchy-prediction.md)
+extends the four-facet design with one person–task/testlet shared effect first,
+then supported rater–response and rater–criterion blocks. Fixed-scale priors
+already shrink effects; estimating their scales learns the strength of pooling.
+Seven exact covariance-design cases distinguish crossed support from aliases,
+including the limits of full covariance rank without repeated indicators.
+Nine scale cases check normalized zero-sum densities, log-scale Jacobians and
+centered/noncentered agreement. Six lightweight tests also cover joint versus
+marginal scoring and the population assumptions missing from simply appending a
+new rater to a finite zero-sum panel. These are mathematical oracles, not new
+fitted mechanisms or ordinal-identification evidence. Preserve one draw of each
+shared effect within its prediction group, label fixed-prior versus learned
+population prediction, and match holdout and score units. Reuse the existing LD
+support/residual machinery; its broader-fit entry point, new likelihoods,
+population prediction and prospective statistical validation remain to be built.
+The ongoing pilot and the current-domain main assessment do not acquire these
+extensions as prerequisites.
+
 - **Scope:** the user-selected 2D fixed-Q foundation. Candidate C is an explicit
   normalized exchangeable prior for computational comparison, not an adopted
   scientific prior or a new default. Preserve the distinct raw/source targets.
@@ -138,6 +157,7 @@ No elapsed-time cap is introduced.
 | 4 — Analyst / scientific reviewer | Apply the frozen pilot-based N rule, then execute a fresh main heldout assessment with the selected implementation | Compare replication SE targets 0.005/0.01/0.02 nat; select 0.01 with at least 32 paired blocks using all 13 primary means/contrasts and qualification fractions. Every planning group needs at least three usable pilot blocks. Use the validated continuation summary; exclude comparison refits from pilot variance/counts. Freeze N, backend and source identities before main fitting. Report that planning variance/eligibility came from the baseline sampler, along with actual achieved precision and failures; no outcome-driven retries/extensions |
 | Analysis integration — Maintainer | After the pilot, connect existing results through the [shared observation/prediction contract](docs/internal/prediction-contract-four-facet-design.md); prepare specifications now without touching frozen sources | Aligned IDs, draw selections, stable log probabilities and pointwise likelihoods agree with native results and survive reload; mismatched conditioning/data/folds are rejected. Connect WAIC/LOO, calibration and category-functioning consumers separately; do not claim unsupported new-level prediction |
 | First model extension — Analyst / maintainer | Explicit person × task × rater × criterion, initially fixed coefficients and declared pure Q | Choose likelihood, location/scale reference and prior; verify constrained training-design rank and backend target agreement before prospective recovery/sensitivity/failure/prediction assessment. Do not add a redundant task term to unrestricted task × criterion difficulties or infer fitted terms from metadata |
+| Shared-effect / population extension — Analyst / maintainer | Follow the [shared-effect and hierarchy handoff](docs/internal/shared-effects-hierarchy-prediction.md): one person–task/testlet effect and scale, then rater-scale learning and supported halo/criterion deviations | Density/gradient/backend agreement and saved target identity precede fitting. Separate residual explanation from mechanism attribution; connect conditional and integrated prediction, training-only group refits and joint/marginal scoring. Preserve normalization, population-coordinate assumptions, failed fits and uncertainty in prospective recovery/prior-sensitivity/prediction checks |
 | Across these steps — Analyst / scientific reviewer | Resolve scientific units, prior/domain interpretation and the purpose of a separate calibration study | Retain all three prior widths as comparisons until there is a scientific adoption rationale. Distinguish fixed-facet coverage from joint-prior SBC; retain all three margins and original quantity rosters. Independent review remains unassigned and is not replaced by self-checks |
 | Conditional, then later — Numerical analyst / maintainer | Reopen common-scale mixing work only for a named obstacle to the selected analysis; return to delivery and model extensions after relevant foundation evidence | Preserve failures and verify the posterior target before any coordinate comparison. OS/distribution and broader model work retain their existing release conditions |
 
