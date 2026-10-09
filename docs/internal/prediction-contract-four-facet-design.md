@@ -270,3 +270,46 @@ MGMFRM_ADAPTER_REPLAY=results/workflows/20261006-foundation-prediction-pilot-01/
 MS5の終了証拠はAPI/互換性仕様、候補commit、上記public exampleの再現記録と型×操作の
 合否表である。MS6では実装者以外が再現・解釈を確認する。Chopin/Uchihara/EVAの入力準備は
 保存したまま、実データ推定はAPI確定と各応用が必要とする機能の受入後に行う。
+
+## 9. 設定・ヘルプ・具体例の整備時期
+
+**着手はMS4終了後まで待たない。** MS4は科学的に支持する用途・prior・主張を決める工程であり、
+関数の引数、出力、未対応入力、保存復元、警告の説明は現在の実装から整備できる。
+MS5の最終受入はMS4の支持表と整合する必要があるが、作業開始の依存関係とは分ける。
+
+| 時期 | 整備するもの | 完了を示す証拠 |
+| --- | --- | --- |
+| pilot中の現在 | 設定をデータ/モデル・事前・計算・予測/評価・出力へ分けた説明、既存docstringへの案内、保存結果を読む試作例、対応/未対応表 | 文書と実際の引数が一致。試作と公開APIを区別し、例が入力を変更せず、警告や予測単位を表示する |
+| MS1後、MS2/MS3と並行 | 分離した候補snapshotで共通入口をpackageへ統合し、同じ入口のdocstring・guide・合成データ例を更新 | 対応型のpublic workflowと限定テスト。help・例・runtimeで設定名/既定値/未対応時の挙動が一致。評価中snapshotのhashは不変 |
+| MS4後 | 支持するモデル/条件/予測対象、prior推奨の有無、数値上の既定値と科学的推奨の区別を確定 | 全ての科学的推奨がMS4の証拠行へ対応。未解決条件はhelp・report・例でも未解決として見える |
+| MS5→MS6 | 最終仕様と説明の整合、初見の利用者による再現、API版と互換性方針の固定 | private helperや手動draw整形なしの再現記録。診断警告の意味と予測対象を利用者が説明でき、blocking feedbackが解決済み |
+
+設定の説明は新しい万能Config型を増やす要求ではない。まず既存のkeywordを整理し、
+モデル/事前を変える選択と、計算精度/表示だけを変える選択を見分けられるようにする。
+`task`列を渡すだけで課題効果が増えた、保存recordの読込成功で診断が通った、という誤読を防ぐ。
+
+現在の利用者向け入口は[設定とヘルプ](../src/experimental.md#settings-and-help)、
+[具体例](../src/examples.md#common-saved-fit-prediction-preview)、
+[実行script](../../examples/common_prediction_observations.jl)である。
+既存のnormalized例は推定→診断/MCSE→保存復元→report/図を既に示す。新しい例はその保存結果と
+元の観測ID列を読み、8型に対応する試作から確率配列の軸・全drawのWAIC/raw IS-LOO・警告を表示する。
+これはpublic API全体の確定や参照PSIS検証ではない。新しい例自体は追加推定・ファイル書込みを行わない。
+
+元データの観測IDは読込時に保持し、欠測除外や行の並べ替えにも追従させる。利用者が最初に誤った
+IDと行の対応を渡したことまでは、試作のbinding hashから判別できない。共通抽出のequal-row得点と、
+foundation専用のglobal person×dimension重みのheldout得点も説明で区別する。
+実データへの適用は引き続きMS6と必要機能の受入後である。
+
+### 今回の利用例の検証
+
+[限定テスト](../../test/common_prediction_example.jl)の17項目で、合成MGMFRMの保存cacheからの
+読込、非辞書順の観測ID保持、配列軸、全drawのWAICと既存計算の数値一致、sampling warningの
+表示、入力cacheのSHA256不変、ID重複/欠落/空欄の拒否を確認した。合成drawの接続検査であり、
+追加MCMCや科学的受入の証拠ではない。8型の抽出自体は§7の既存検査を再利用する。
+
+後続の変更はCLIヘルプ/引数検査をimport前へ移すものに限定した。`JULIA_LOAD_PATH=@stdlib`で
+`--help`・引数なし・誤った引数の3ケースを実行し、packageをロードせずUsageを表示できた。
+`--help`の実測は約0.24秒、観測最大RSS約192MiB。推定本体の高速化率とは別の測定である。
+記録は`results/workflows/20261009-common-prediction-example-01/`。17項目の処理本体の検査は
+約177秒・最大RSS約1.30GiBで、Juliaのコンパイルを含む。全体テストと文書サイト全体のbuildは
+行わず、リンク先の存在、凍結ソース479件・保全成果物1,004件、効率比較の設計receiptの不変を確認した。

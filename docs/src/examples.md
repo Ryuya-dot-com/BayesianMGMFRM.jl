@@ -434,3 +434,71 @@ unavailable MCSE: an observed fraction of zero or one is not proof of exact
 posterior certainty. No equivalence decision, multiplicity adjustment, or rater
 reliability classification is made. A contrast still depends on the fitted
 model, prior and rating design; it does not establish agreement on future scores.
+
+## Common saved-fit prediction preview
+
+The repository example `examples/common_prediction_observations.jl` reads a fit
+cache through the **opt-in prototype** common adapter. It works with eight
+result types: `MFRMFit`, `GMFRMFit`, `MGMFRMFit`, `NormalizedMGMFRMFit`,
+`CorrelatedMGMFRMFit`, `MultidimensionalMFRMFit`, `CorrelatedMFRMFit` and
+`ExchangeableMFRMFit` (experimental types use the `Experimental` namespace).
+This adapter is not yet included or exported by the package;
+use a repository checkout. Its availability does not establish scientific
+acceptance of those models.
+
+```sh
+julia --project=. examples/common_prediction_observations.jl --help
+julia --project=. examples/common_prediction_observations.jl \
+  results/my-analysis/fit.jls study-A/ratings-v1 results/my-analysis/observation-ids.txt
+```
+
+Replace the paths and dataset version with your saved analysis. The cache must
+come from `save_fit_cache`, rather than a private `samples.jls` record. The ID
+file contains one unique, nonblank observation ID per line, **in the original
+fit row order**. Preserve IDs at data ingestion and carry them through filtering
+or reordering with the ratings; repeated person/item/rater combinations need
+distinct observation IDs. The adapter checks uniqueness, counts and bindings,
+but cannot discover whether a user supplied the wrong real-world ID-to-row map.
+Keep the ID file and dataset version alongside the fit cache.
+
+The example writes no files and runs no sampler. It prints category order,
+array dimensions, model scale, WAIC/raw IS-LOO scores, sampling warnings and
+problem observation IDs. One retained draw illustrates the probability-array
+axes; it is not a posterior mean or a precision assessment. Criteria use **all**
+original draws and chains, without creating the full category probability cube.
+Warnings remain visible even when a numerical score is returned.
+
+For use in a Julia session, run from the repository root:
+
+```julia
+using BayesianMGMFRM
+include("scripts/prediction_observation_adapter.jl")
+using .PredictionObservationAdapter
+
+restored = load_fit_cache("results/my-analysis/fit.jls")
+ids = readlines("results/my-analysis/observation-ids.txt")
+evaluation = prediction_criteria(restored;
+    dataset_id="study-A/ratings-v1", observation_ids=ids,
+    criteria=(:waic, :raw_loo))
+evaluation.sampling_warning
+evaluation.criterion_warnings
+evaluation.problem_observation_ids
+evaluation.uncertainty
+
+# Inspect the current prototype's arguments and output contract.
+@doc prediction_observations
+@doc prediction_criteria
+```
+
+The extraction target is the original training rows and existing facet levels;
+criterion aggregation gives equal weight to rating rows. This differs from the
+foundation study's heldout, globally person/dimension-weighted scoring. The
+raw IS-LOO target omits one rating with fixed specification/level maps. Neither
+operation predicts a new person/rater or performs grouped K-fold refits. Returned
+pointwise score SE is not MCMC MCSE, a cluster-adjusted SE or an independent-study
+replication SE. `:hill_smoothed_loo` remains a separate experimental option;
+reference PSIS equivalence is unverified. This example performs no model ranking.
+
+The normalized-prior walkthrough above provides the earlier fit → diagnostics →
+save/reload → report/figure sequence. Its short run and prior values demonstrate
+syntax; they do not prescribe adequate draws or an accepted scientific prior.

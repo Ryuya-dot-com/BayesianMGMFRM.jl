@@ -54,6 +54,39 @@ contract.families.gmfrm
 contract.candidate_surfaces.mgmfrm_free_latent_correlation_2d
 ```
 
+## Settings and help
+
+Keep model choices, prior assumptions, computational controls and prediction
+targets explicit. The current interfaces accept ordinary keyword arguments;
+the common analysis adapter remains a repository prototype, not a new universal
+configuration object. The following separates choices that change the target
+from choices that control computation or presentation.
+
+| Choice | Current entry and meaning | What to check |
+| --- | --- | --- |
+| Data/model | `FacetData`, `mfrm_spec`: roles, category order, thresholds, dimensions and Q; `Experimental.correlated` where supported | Q rows follow `data.item_levels`. Metadata such as `task` does not silently add a fitted effect. A changed model needs its own evidence |
+| Prior | An explicit supported prior, such as `Experimental.NormalizedMGMFRMPrior` with all scales | Free-coordinate SD, zero-sum kernel SD and transformed-effect SD differ. Fixed input scales are not learned population variances; a value in an example is not a recommended default |
+| Computation | `Experimental.fit`: backend, seed, chains, warmup, retained draws, target acceptance, depth and supported sampling coordinates | Record settings and actual diagnostics/MCSE. More draws do not repair a changed target. Current normalized CmdStan requires raw coordinates; the transformed-coordinate comparison is future work |
+| Prediction/evaluation | Native prediction methods; opt-in common adapter with dataset/observation IDs and explicit criterion names | Known fitted rows, heldout rows and unknown levels are different targets. Common criteria require all retained draws; a plotting subset cannot be passed as a full likelihood sample |
+| Output | `save_fit_cache`/`load_fit_cache`, `fit_report` and `save_fit_report_bundle` | Preserve model/prior metadata and warnings. Report completeness is not convergence or scientific acceptance; automatic request caching has narrower type coverage than manual save/reload |
+
+In Julia's help mode, inspect `?BayesianMGMFRM.Experimental.fit` and
+`?BayesianMGMFRM.Experimental.NormalizedMGMFRMPrior`. In a script or notebook:
+
+```julia
+@doc BayesianMGMFRM.Experimental.fit
+@doc BayesianMGMFRM.Experimental.NormalizedMGMFRMPrior
+@doc posterior_mcse
+```
+
+Start with the [normalized-prior walkthrough](examples.md#Explicit-normalized-prior-MGMFRM-workflow)
+for fitting, diagnostics and saved reports, and the
+[common saved-fit preview](examples.md#Common-saved-fit-prediction-preview)
+for the prototype adapter, its configuration, help and limitations. These guides
+describe current behavior. Recommendations about scientifically supported priors,
+prediction domains and final API stability await the corresponding evidence and
+review; documentation of existing behavior need not wait for those decisions.
+
 ## Fixed-coefficient multidimensional MFRM
 
 Use `mfrm_spec(data; family = :mfrm, dimensions = 2, q_matrix,
