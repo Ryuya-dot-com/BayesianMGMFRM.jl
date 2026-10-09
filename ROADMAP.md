@@ -35,6 +35,22 @@ fresh main assessment. Prefer the faster implementation only after target,
 diagnostic and precision checks pass. The [comparison handoff, foundation §26](docs/internal/mgmfrm-foundation-scale-acceptance.md)
 defines this new stage; no candidate fitting starts during the pilot.
 
+**2026-10-09 analysis integration and next model extension:** adopt the
+[shared prediction contract and four-facet design](docs/internal/prediction-contract-four-facet-design.md)
+as the implementation handoff. Common observation identities, category log
+probabilities, pointwise likelihoods, prediction conditioning and model/scale
+metadata should cover correlated and normalized MGMFRM as well as the legacy
+fit types; fixed-coefficient multidimensional results also need adapters.
+Implement extraction/alignment before connecting each analysis, preserving
+explicit comparison axes and training/heldout bindings. Separately distinguish
+person, physical task, rater and criterion in the first model extension.
+Thirteen exact-rank examples and five lightweight tests check its fixed-coefficient
+location design, including the failure of a single criterion zero-sum in the
+multidimensional case. These are design checks, not new model fitting or
+statistical acceptance. Pilot closure, matched efficiency comparison and the
+fresh current-domain assessment retain their order; neither the full four-facet
+extension nor every report feature is a prerequisite for that assessment.
+
 - **Scope:** the user-selected 2D fixed-Q foundation. Candidate C is an explicit
   normalized exchangeable prior for computational comparison, not an adopted
   scientific prior or a new default. Preserve the distinct raw/source targets.
@@ -104,6 +120,8 @@ No elapsed-time cap is introduced.
 | 2 — Running: analyst | Complete the separate eight-block, 240-fit prediction pilot | The known-level target, six means/seven contrasts, priors, blocks, splits, draws, numerical screens and failure handling are frozen in §24. Account for every planned outcome and report score-specific variance, MCSE and CPU/elapsed cost; inadequate precision remains unresolved |
 | 3 — Numerical analyst / maintainer | Compare an efficient candidate with the completed pilot's posterior targets and saved results; begin with a matched Stan route | Freeze a separate protocol before candidate sampling: cases, independent RNG streams, repeated/interleaved timing schedule, full quantity roster, agreement margins, numerical gates, cost measures and minimum useful benefit. Confirm the same likelihood/prior/coordinates/Jacobian, then comparable MCSE and qualified ESS per CPU/elapsed second. Retain all outcomes; accept, reject or report inconclusive without extending until favorable. Freeze the adopted implementation before main fitting; §26 is a handoff, not yet an executable benchmark protocol |
 | 4 — Analyst / scientific reviewer | Apply the frozen pilot-based N rule, then execute a fresh main heldout assessment with the selected implementation | Compare replication SE targets 0.005/0.01/0.02 nat; select 0.01 with at least 32 paired blocks using all 13 primary means/contrasts and qualification fractions. Every planning group needs at least three usable pilot blocks. Use the validated continuation summary; exclude comparison refits from pilot variance/counts. Freeze N, backend and source identities before main fitting. Report that planning variance/eligibility came from the baseline sampler, along with actual achieved precision and failures; no outcome-driven retries/extensions |
+| Analysis integration — Maintainer | After the pilot, connect existing results through the [shared observation/prediction contract](docs/internal/prediction-contract-four-facet-design.md); prepare specifications now without touching frozen sources | Aligned IDs, draw selections, stable log probabilities and pointwise likelihoods agree with native results and survive reload; mismatched conditioning/data/folds are rejected. Connect WAIC/LOO, calibration and category-functioning consumers separately; do not claim unsupported new-level prediction |
+| First model extension — Analyst / maintainer | Explicit person × task × rater × criterion, initially fixed coefficients and declared pure Q | Choose likelihood, location/scale reference and prior; verify constrained training-design rank and backend target agreement before prospective recovery/sensitivity/failure/prediction assessment. Do not add a redundant task term to unrestricted task × criterion difficulties or infer fitted terms from metadata |
 | Across these steps — Analyst / scientific reviewer | Resolve scientific units, prior/domain interpretation and the purpose of a separate calibration study | Retain all three prior widths as comparisons until there is a scientific adoption rationale. Distinguish fixed-facet coverage from joint-prior SBC; retain all three margins and original quantity rosters. Independent review remains unassigned and is not replaced by self-checks |
 | Conditional, then later — Numerical analyst / maintainer | Reopen common-scale mixing work only for a named obstacle to the selected analysis; return to delivery and model extensions after relevant foundation evidence | Preserve failures and verify the posterior target before any coordinate comparison. OS/distribution and broader model work retain their existing release conditions |
 
