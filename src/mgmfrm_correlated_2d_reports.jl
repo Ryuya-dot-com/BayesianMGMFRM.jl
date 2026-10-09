@@ -13,11 +13,11 @@ function _mgmfrm_correlated_2d_coordinates(target, raw, direct; scale::Symbol = 
     block_for = Dict(i => get(mapping, block, block) for (block, range) in blocks for i in range)
     fixed = Set(_structurally_fixed_constrained_parameter_names(base))
     rows = NamedTuple[]
+    loading_dimensions = [d for item in axes(spec.q_matrix, 1) for d in 1:spec.dimensions if spec.q_matrix[item, d]]
     for (i, name) in enumerate(names)
         block = block_for[i]
-        dimension = block === :person ? mod1(i - first(blocks[:person]) + 1, 2) :
-            block === :item_dimension_discrimination ? only(findall(spec.q_matrix[
-                i - first(blocks[model ? :item_dimension_discrimination : :log_item_dimension_discrimination]) + 1, :])) : nothing
+        dimension = block === :person ? mod1(i - first(blocks[:person]) + 1, spec.dimensions) :
+            block === :item_dimension_discrimination ? loading_dimensions[i - first(blocks[model ? :item_dimension_discrimination : :log_item_dimension_discrimination]) + 1] : nothing
         derived = model && ((block === :rater && i == last(blocks[:rater])) ||
             (block === :rater_consistency && i == last(blocks[:rater_consistency])))
         space = model ? (block in (:item_dimension_discrimination, :rater_consistency) ? :dimensionless : :model_coordinate) : :raw_unconstrained
@@ -37,6 +37,7 @@ function _mgmfrm_correlated_2d_coordinates(target, raw, direct; scale::Symbol = 
         rows = vcat(filter(row -> row.block !== :item_steps, rows),
             [steps["item_step[item=$item,m=$k]"] for item in data.item_levels for k in 1:K])
     end
+    target isa _MGMFRMNormalizedPriorLogDensity && return rows
     push!(rows, (; parameter = model ? only(target.blueprint.derived_parameter_names) : last(target.blueprint.parameter_names),
         values = model ? tanh.(raw[:, end]) : view(raw, :, size(raw, 2)),
         block = :latent_correlation, dimension = nothing, fixed = false, derived = model,
@@ -90,7 +91,7 @@ function _mgmfrm_correlated_2d_predictive_section(fit; interval, ndraws, draw_in
         rng = control, selection, n_replicates = length(check.draw_indices),
         n_unique_draws = length(unique(check.draw_indices)), n_retained = size(run.draws, 1),
         n_observations = fit.record.spec.data.n,
-        interpretation = "Conditional on joint posterior draws for the existing persons, items, raters and rating rows. Population rho is already reflected in sampled abilities and is not applied again. Central $(100interval)% pointwise intervals summarize replicated statistics, not parameter uncertainty or Monte Carlo error. Same-data agreement does not establish convergence, recovery or accuracy for new facet levels.")
+        interpretation = "Conditional on joint posterior draws for the existing persons, items, raters and rating rows. The saved joint abilities are used directly. Central $(100interval)% pointwise intervals summarize replicated statistics, not parameter uncertainty or Monte Carlo error. Same-data agreement does not establish convergence, recovery or accuracy for new facet levels.")
 end
 
 """
@@ -111,7 +112,7 @@ details. `on_section_error = :capture` exposes failed optional sections;
 MCMC quality, identification or scientific acceptance. Save portable Markdown,
 JSON and tables with `save_fit_report_bundle`; this report is not a fit cache.
 """
-function fit_report(fit::_CorrelatedMGMFRMFit; view::Symbol = :public,
+function fit_report(fit::_RecordedMGMFRMFit; view::Symbol = :public,
         posterior_lower::Real = 0.025, posterior_upper::Real = 0.975,
         predictive_interval::Real = 0.9, include_posterior_predictive::Bool = true,
         include_prior_predictive::Bool = false, prior_predictive_ndraws::Int = 100,
@@ -125,7 +126,7 @@ function fit_report(fit::_CorrelatedMGMFRMFit; view::Symbol = :public,
     lower, upper = _check_posterior_summary_bounds(posterior_lower, posterior_upper)
     interval = upper - lower
     0 < interval < 1 && isapprox(lower + upper, 1; atol = 8eps(Float64), rtol = 0) ||
-        throw(ArgumentError("correlated MGMFRM reports require central posterior bounds strictly inside (0, 1)"))
+        throw(ArgumentError("MGMFRM reports require central posterior bounds strictly inside (0, 1)"))
     _interval_probabilities(prior_interval); _interval_probabilities(predictive_interval)
     seed isa Bool && throw(ArgumentError("seed must be an integer, not Bool"))
     _, rng_control = _fit_rng(Random.default_rng(), seed)
@@ -134,17 +135,20 @@ function fit_report(fit::_CorrelatedMGMFRMFit; view::Symbol = :public,
     !include_artifact && include_full_artifact && throw(ArgumentError("include_full_artifact requires include_artifact"))
     policy = _fit_report_on_section_error(on_section_error)
     context = _mgmfrm_correlated_2d_report_context(fit)
+    normalized = fit isa _NormalizedMGMFRMFit
     diagnostics(fit; split_chains, rhat_threshold, ess_threshold)
     record, run = context.checked.record, context.checked.record.run
     spec = record.spec; labels = spec.dimension_labels
     coordinates = _mgmfrm_correlated_2d_report_coordinates(context)
     metadata = merge(fit_metadata(fit), (; backend_label = run.backend === :advancedhmc ? "Julia (AdvancedHMC)" : "CmdStan",
-        scale_convention = "Prior-anchored model coordinates; response multiplier 1.7; rho on correlation scale",
+        scale_convention = normalized ? "Prior-anchored model coordinates; response multiplier 1.7; identity latent correlation" :
+            "Prior-anchored model coordinates; response multiplier 1.7; rho on correlation scale",
         source_sample_schema = record.schema, source_sample_content_hash = record.content_hash,
-        interpretation = "Experimental correlated MGMFRM: positive loadings, product-one rater consistency and population rho are estimated. Q fixes the zero pattern, not active loading values. Supported operations do not establish scientific acceptance."))
+        interpretation = normalized ? "Experimental normalized-prior MGMFRM: positive loadings and product-one rater consistency are estimated; latent correlation is fixed to identity. Prior scales are explicit inputs. Scientific acceptance is not established." :
+            "Experimental correlated MGMFRM: positive loadings, product-one rater consistency and population rho are estimated. Q fixes the zero pattern, not active loading values. Supported operations do not establish scientific acceptance."))
     posterior = _fit_report_section(policy) do
         rows = posterior_summary(fit; lower, upper)
-        (; rows, n_rows = length(rows), interpretation = "Raw computational coordinates; the last coordinate is Fisher z. All retained draws; central $(100interval)% credible intervals. Use the model-coordinate section for positive loadings, consistencies and rho.")
+        (; rows, n_rows = length(rows), interpretation = normalized ? "Raw computational coordinates under the saved normalized prior. All retained draws; central $(100interval)% credible intervals. Positive loadings and consistencies are reported in model coordinates." : "Raw computational coordinates; the last coordinate is Fisher z. All retained draws; central $(100interval)% credible intervals. Use the model-coordinate section for positive loadings, consistencies and rho.")
     end
     direct_posterior = _fit_report_section(policy) do
         rows = _mgmfrm_correlated_2d_coordinate_summary(coordinates, labels; interval)
@@ -156,27 +160,26 @@ function fit_report(fit::_CorrelatedMGMFRMFit; view::Symbol = :public,
         (; rows, n_rows = length(rows), mcse_rows,
             correlation_rows = filter(row -> row.block === :latent_correlation, rows),
             correlation_mcse_rows = filter(row -> row.block === :latent_correlation, mcse_rows),
-            interpretation = "Named model coordinates, including reconstructed last-rater/step constraints and population rho. All retained draws; central $(100interval)% credible intervals. Rho intervals and MCSE use tanh-transformed draws. MCSE measures simulation precision, not posterior uncertainty; no precision acceptance margin is applied. Fixed point intervals are constants, not estimated certainty. Inactive Q loadings are structural zeros listed in the Q table.")
+            interpretation = normalized ? "Named model coordinates with reconstructed zero-sum severities/steps and product-one consistencies. All retained draws; central $(100interval)% credible intervals. MCSE measures simulation precision, not posterior uncertainty. Fixed intervals represent constraints; inactive Q loadings are structural zeros." : "Named model coordinates, including reconstructed last-rater/step constraints and population rho. All retained draws; central $(100interval)% credible intervals. Rho intervals and MCSE use tanh-transformed draws. MCSE measures simulation precision, not posterior uncertainty; no precision acceptance margin is applied. Fixed point intervals are constants, not estimated certainty. Inactive Q loadings are structural zeros listed in the Q table.")
     end
     posterior_predictive = include_posterior_predictive ? _fit_report_section(policy) do
         _mgmfrm_correlated_2d_predictive_section(fit; interval = predictive_interval, ndraws, draw_indices, seed)
     end : _fit_report_not_requested()
     prior_predictive = include_prior_predictive ? _fit_report_section(policy) do
-        model = _CorrelatedMGMFRMSpec(spec; lkj_eta = record.prior.lkj_eta)
-        prior = GeneralizedPrior(; record.prior.scales...)
-        check = _mgmfrm_correlated_2d_prior_predictive_check(model; prior, ndraws = prior_predictive_ndraws,
+        check = _recorded_mgmfrm_prior_check(context; ndraws = prior_predictive_ndraws,
             rng = first(_fit_rng(Random.default_rng(), seed)))
         prior_coordinates = _mgmfrm_correlated_2d_coordinates(context.target,
             check.raw_parameter_draws, Base.view(check.direct_parameter_draws, :, 1:size(context.direct, 2)))
         parameter_rows = _mgmfrm_correlated_2d_coordinate_summary(prior_coordinates, labels; interval = prior_interval)
         rows = predictive_check_summary(check; interval = predictive_interval, include_grouped = true)
         (; model = check.model, stability = :experimental, dimension_labels = copy(labels), check.prior,
+            (normalized ? (; check.prior_metadata, check.prior_label) : (;))...,
             check.target_identity, check.prediction_target, rows, n_rows = length(rows), parameter_rows,
             correlation_rows = filter(row -> row.block === :latent_correlation, parameter_rows),
             ndraws = prior_predictive_ndraws, n_observations = spec.data.n, rng = rng_control,
             parameter_interval = Float64(prior_interval), predictive_interval = Float64(predictive_interval),
             implication_diagnostics = check.implication_diagnostics,
-            interpretation = "Joint prior draws from the saved scales and LKJ shape. Observed scores are only a comparison and do not update the prior. Parameter intervals describe prior uncertainty; predictive intervals describe replicated statistics on the existing rating design. Prior plausibility does not establish identification, convergence, recovery or new-level accuracy.")
+            interpretation = normalized ? check.prior_label * ". Joint prior draws use the saved distribution, scales and rater identity. Observed scores do not update the prior. Prediction covers existing rating rows; plausibility does not establish statistical acceptance." : "Joint prior draws from the saved scales and LKJ shape. Observed scores are only a comparison and do not update the prior. Parameter intervals describe prior uncertainty; predictive intervals describe replicated statistics on the existing rating design. Prior plausibility does not establish identification, convergence, recovery or new-level accuracy.")
     end : _fit_report_not_requested()
     rating_design = _fit_report_section(policy) do
         audit = rating_design_audit(spec)
@@ -194,14 +197,14 @@ function fit_report(fit::_CorrelatedMGMFRMFit; view::Symbol = :public,
     fixed_rows = [(; row.parameter, row.block, value = first(row.values), fixed = true) for row in coordinates if row.fixed]
     q_rows = [(; item = spec.data.item_levels[i], dimension = d, dimension_label = labels[d],
         active = spec.q_matrix[i, d], loading = spec.q_matrix[i, d] ? :estimated_positive : :fixed_zero)
-        for i in axes(spec.q_matrix, 1) for d in 1:2]
-    unsupported = (; (name => _fit_report_unsupported("$label is not connected for this correlated MGMFRM result.")
+        for i in axes(spec.q_matrix, 1) for d in 1:spec.dimensions]
+    unsupported = (; (name => _fit_report_unsupported("$label is not connected for this MGMFRM result.")
         for (name, label) in ((:category_functioning, "Category-functioning analysis"),
             (:rater_homogeneity, "Rater-homogeneity analysis"), (:mcmc_budget_guidance, "MCMC-budget guidance"),
             (:calibration, "Calibration analysis"), (:waic, "WAIC"), (:loo, "LOO"), (:dff, "DFF analysis")))...)
     report = merge((; schema = "bayesianmgmfrm.fit_report.v1", object = :fit_report, created_at = string(now()),
         family = :mgmfrm, model = metadata.model, estimation_status = :experimental,
-        thresholds = spec.thresholds, dimensions = 2, dimension_labels = copy(labels), metadata,
+        thresholds = spec.thresholds, dimensions = spec.dimensions, dimension_labels = copy(labels), metadata,
         report_policy = (; posterior_lower = lower, posterior_upper = upper, posterior_interval = interval,
             predictive_interval = Float64(predictive_interval), include_posterior_predictive,
             include_prior_predictive, prior_predictive_ndraws, prior_interval = Float64(prior_interval),
@@ -209,16 +212,17 @@ function fit_report(fit::_CorrelatedMGMFRMFit; view::Symbol = :public,
             resolved_draw_indices = get(posterior_predictive, :draw_indices, nothing), rng = rng_control,
             include_artifact, include_full_artifact, on_section_error = policy, require_complete),
         diagnostics = merge(context.diagnostics, (; status = :computed, warning_rows,
-            correlation_rows = filter(row -> row.parameter == last(coordinates).parameter, context.diagnostics.direct_parameter_rows),
+            correlation_rows = normalized ? NamedTuple[] : filter(row -> row.parameter == last(coordinates).parameter, context.diagnostics.direct_parameter_rows),
             interpretation = "Whole-fit diagnostics use all retained draws and the saved thresholds, even when prediction selects a subset. Inspect raw and direct coordinates, divergences, tree depth and energy coverage before inference. Report completeness does not establish MCMC quality.")),
         warmup = (; status = :computed, rows = context.checked.warmup_diagnostics,
             n_rows = length(context.checked.warmup_diagnostics), interpretation = _FIT_REPORT_WARMUP_INTERPRETATION),
         fixed_coordinates = (; status = :computed, rows = fixed_rows, n_rows = length(fixed_rows),
             interpretation = "Baseline steps and any single-rater constraints are fixed. Active loadings are estimated; inactive Q entries are zero."),
         q_matrix = (; status = :computed, rows = q_rows, n_rows = length(q_rows), q_matrix = copy(spec.q_matrix),
-            dimension_labels = copy(labels), interpretation = "Between-item Q fixes the loading pattern. Each active loading is positive and estimated; rho is the estimated population correlation between dimensions."),
-        prior_policy = _mgmfrm_correlated_2d_report_prior_policy(record),
-        pooling_policy = (; status = :computed, rows = [(; parameter = :rho, estimated = true,
+            dimension_labels = copy(labels), interpretation = normalized ? "Fixed Q specifies the loading pattern. Active loadings are positive and estimated; latent correlation is identity. Representability does not establish identification or recovery for every Q geometry." : "Between-item Q fixes the loading pattern. Each active loading is positive and estimated; rho is the estimated population correlation between dimensions."),
+        prior_policy = normalized ? _normalized_mgmfrm_report_prior_policy(context.target) : _mgmfrm_correlated_2d_report_prior_policy(record),
+        pooling_policy = normalized ? (; status=:computed, rows=NamedTuple[], n_rows=0,
+            interpretation="Ability dimensions have independent priors with fixed scales. Centered prior blocks induce the saved dependence across raters and steps. No variance components or latent correlations are estimated.") : (; status = :computed, rows = [(; parameter = :rho, estimated = true,
             meaning = "Population correlation; marginal SDs and LKJ shape are fixed inputs")], n_rows = 1,
             interpretation = "Conditionally correlated ability pairs; other free coordinates have independent priors and reconstructed constraints induce dependence. No arbitrary grouping effects or learned variance components are fitted."),
         rating_design, artifact, posterior, direct_posterior, posterior_predictive, prior_predictive), unsupported)
@@ -228,10 +232,14 @@ function fit_report(fit::_CorrelatedMGMFRMFit; view::Symbol = :public,
     return view === :public ? fit_report_public(report) : report
 end
 
-fit_report_public(fit::_CorrelatedMGMFRMFit; kwargs...) = fit_report_public(fit_report(fit; kwargs...))
+fit_report_public(fit::_RecordedMGMFRMFit; kwargs...) = fit_report_public(fit_report(fit; kwargs...))
 
 function _mgmfrm_correlated_2d_plot_identity(context)
     record = context.checked.record
+    context.fit isa _NormalizedMGMFRMFit && return (; model=context.checked.model,
+        model_label="Experimental normalized-prior MGMFRM (estimated loadings and consistency)",
+        dimension_labels=copy(record.spec.dimension_labels), backend=record.run.backend,
+        target_identity=record.target_identity, prior_label=context.checked.prior_metadata.prior_label)
     return (; model = context.checked.model, dimension_labels = copy(record.spec.dimension_labels),
         backend = record.run.backend, target_identity = record.target_identity,
         prior_label = "Correlated MGMFRM | LKJ eta = $(record.prior.lkj_eta) | fixed raw-prior scales")
@@ -256,7 +264,7 @@ end
 
 function _mgmfrm_correlated_2d_diagnostic_plot_data(context; scale::Symbol = :model,
         max_parameters::Int = 12, bins = 20, view::Symbol = :parameters, kwargs...)
-    view === :parameters || throw(ArgumentError("correlated MGMFRM diagnostics support view = :parameters only"))
+    view === :parameters || throw(ArgumentError("MGMFRM diagnostics support view = :parameters only"))
     bins isa Integer && !(bins isa Bool) && bins > 0 || throw(ArgumentError("bins must be a positive integer"))
     selected = _select_posterior_coordinates(_mgmfrm_correlated_2d_report_coordinates(context; scale),
         context.checked.record.spec.dimension_labels; scale, max_parameters, kwargs...)
@@ -277,14 +285,14 @@ function _mgmfrm_correlated_2d_predictive_plot_data(context, section; interval)
 end
 
 function _render_mgmfrm_correlated_2d(extension, kind, data; size = nothing)
-    model = "Experimental correlated MGMFRM (estimated loadings and consistency)"
+    model = get(data, :model_label, "Experimental correlated MGMFRM (estimated loadings and consistency)")
     backend = data.backend === :advancedhmc ? "Julia (AdvancedHMC)" : "CmdStan"
     units = Dict(block => "Model coordinate (prior-anchored)" for block in (:person, :item, :rater, :item_steps))
     merge!(units, Dict(:item_dimension_discrimination => "Positive loading", :rater_consistency => "Positive consistency",
         :latent_correlation => "Population correlation (rho)"))
     if kind in (:posterior, :diagnostics, :prior)
         scale = get(data, :scale, :model)
-        xlabel = scale === :raw ? "Raw coordinate (correlation: Fisher z)" : units
+        xlabel = scale === :raw ? (hasproperty(data, :model_label) ? "Raw coordinate" : "Raw coordinate (correlation: Fisher z)") : units
         kind === :diagnostics && return extension._render_diagnostics(data;
             title = "$model chain diagnostics\n$backend", ylabel = xlabel, size)
         title = "$model\n$backend | $(kind === :prior ? "prior" : "posterior") intervals"
@@ -309,7 +317,7 @@ rho from a saved result. Use `block = :latent_correlation` for rho or
 (default) or `:raw`; raw correlation is Fisher z. Intervals use all retained
 draws and the footer retains whole-fit warnings. Requires `using CairoMakie`.
 """
-function plot_posterior(fit::_CorrelatedMGMFRMFit; size = nothing, kwargs...)
+function plot_posterior(fit::_RecordedMGMFRMFit; size = nothing, kwargs...)
     extension = _mgmfrm_correlated_2d_plot_extension()
     return _render_mgmfrm_correlated_2d(extension, :posterior,
         _mgmfrm_correlated_2d_plot_data(_mgmfrm_correlated_2d_report_context(fit); kwargs...); size)
@@ -323,7 +331,7 @@ block, named dimension or exact parameters as in `plot_posterior`. Derived
 steps without stored convergence diagnostics are labelled unavailable; whole-fit
 warnings remain visible. Only `view = :parameters` is supported. Requires CairoMakie.
 """
-function plot_diagnostics(fit::_CorrelatedMGMFRMFit; size = nothing, kwargs...)
+function plot_diagnostics(fit::_RecordedMGMFRMFit; size = nothing, kwargs...)
     extension = _mgmfrm_correlated_2d_plot_extension()
     return _render_mgmfrm_correlated_2d(extension, :diagnostics,
         _mgmfrm_correlated_2d_diagnostic_plot_data(_mgmfrm_correlated_2d_report_context(fit); kwargs...); size)
@@ -337,7 +345,7 @@ Plot conditional existing-row category proportions with pointwise predictive
 intervals and whole-fit warnings. A local seed reproduces draw selection and
 replications after reload; it leaves the global RNG unchanged. Requires CairoMakie.
 """
-function plot_predictive(fit::_CorrelatedMGMFRMFit; interval::Real = 0.9,
+function plot_predictive(fit::_RecordedMGMFRMFit; interval::Real = 0.9,
         ndraws::Union{Nothing,Int} = nothing, draw_indices = nothing, seed::Integer = 1, size = nothing)
     _interval_probabilities(interval)
     seed isa Bool && throw(ArgumentError("seed must be an integer, not Bool"))
@@ -350,7 +358,7 @@ end
 
 function _mgmfrm_correlated_2d_plot_extension()
     extension = Base.get_extension(@__MODULE__, :BayesianMGMFRMCairoMakieExt)
-    extension === nothing && throw(ArgumentError("correlated MGMFRM figures require `using CairoMakie`"))
+    extension === nothing && throw(ArgumentError("MGMFRM figures require `using CairoMakie`"))
     return extension
 end
 
@@ -366,9 +374,9 @@ this call so report and figures agree; figure-specific overrides are rejected.
 All figures are prepared before replacing a bundle. Requires CairoMakie only
 when figures are requested. No posterior sampling occurs.
 """
-function save_fit_report_bundle(directory::AbstractString, fit::_CorrelatedMGMFRMFit;
+function save_fit_report_bundle(directory::AbstractString, fit::_RecordedMGMFRMFit;
         figures = nothing, view::Symbol = :public, seed::Integer = 1, overwrite::Bool = false,
-        label = nothing, title::AbstractString = "Correlated MGMFRM report", max_rows::Integer = 6,
+        label = nothing, title::AbstractString = fit isa _NormalizedMGMFRMFit ? "Normalized-prior MGMFRM report" : "Correlated MGMFRM report", max_rows::Integer = 6,
         include_empty::Bool = false, require_complete::Bool = false, kwargs...)
     view in (:full, :public) || throw(ArgumentError("view must be :full or :public"))
     if figures === nothing
@@ -376,7 +384,7 @@ function save_fit_report_bundle(directory::AbstractString, fit::_CorrelatedMGMFR
         return _save_fit_report_bundle(directory, report; overwrite, label, title, max_rows, include_empty, require_complete)
     end
     _fit_report_figure_options(figures)
-    haskey(figures, :wright) && throw(ArgumentError("correlated MGMFRM bundles do not support Wright maps"))
+    haskey(figures, :wright) && throw(ArgumentError("MGMFRM bundles do not support Wright maps"))
     any(kind -> haskey(figures, kind), (:prior, :prior_predictive)) && !get(kwargs, :include_prior_predictive, false) &&
         throw(ArgumentError("prior figures require include_prior_predictive = true"))
     extension = _check_fit_report_figure_destination(directory, figures; overwrite, max_rows)
@@ -401,4 +409,14 @@ function save_fit_report_bundle(directory::AbstractString, fit::_CorrelatedMGMFR
         end
         (; data, figure = _render_mgmfrm_correlated_2d(extension, kind, data; size))
     end
+end
+
+function _recorded_mgmfrm_prior_check(context; kwargs...)
+    record = context.checked.record
+    if context.fit isa _NormalizedMGMFRMFit
+        return _normalized_mgmfrm_prior_check(context.target; kwargs...)
+    end
+    model = _CorrelatedMGMFRMSpec(record.spec; lkj_eta=record.prior.lkj_eta)
+    prior = GeneralizedPrior(; record.prior.scales...)
+    return _mgmfrm_correlated_2d_prior_predictive_check(model; prior, kwargs...)
 end

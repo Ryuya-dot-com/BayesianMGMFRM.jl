@@ -43,6 +43,8 @@ end
         :ExchangeableMFRMFit,
         :correlated,
         :GeneralizedPrior,
+        :NormalizedMGMFRMPrior,
+        :NormalizedMGMFRMFit,
         :cached_fit,
         :fit,
         :fit_cache_key,

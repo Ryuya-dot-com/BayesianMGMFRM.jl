@@ -81,6 +81,13 @@ Q cells. Its response equation uses an additive weighted ability sum. See the
 between-/within-item distinction, and step sharing, and the
 [experimental guide](docs/src/experimental.md) for priors and identification.
 
+Independent fixed-Q MGMFRM also accepts an explicit
+`Experimental.NormalizedMGMFRMPrior` for normalized exchangeable or source
+priors. The same distribution and scales flow through prior prediction,
+Julia/CmdStan fitting, manual fit caches and report/figure bundles. All scales
+must be supplied; existing defaults are unchanged. See
+[prior choice and the saved-result workflow](docs/src/experimental.md#mgmfrm-prior-choice-and-comparable-scales).
+
 ## Quick Start
 
 For a short runnable demonstration from the repository root:

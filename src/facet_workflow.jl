@@ -6963,6 +6963,15 @@ function _mgmfrm_source_pointwise_loglikelihood(
         "_mgmfrm_source_pointwise_loglikelihood";
         require_q_observation_coverage,
     )
+    return _mgmfrm_source_pointwise_loglikelihood(
+        design, params, _mgmfrm_source_loading_index_matrix(design))
+end
+
+# Batch consumers validate the design once and reuse its loading indices.
+# Parameter length and constraints remain checked for every draw.
+function _mgmfrm_source_pointwise_loglikelihood(
+        design::FacetDesign, params::AbstractVector,
+        loading_indices::AbstractMatrix{Int})
     _check_parameter_vector_length(design, params)
     _mgmfrm_source_fixture_constraints(design, params)
     data = design.spec.data
@@ -6970,7 +6979,6 @@ function _mgmfrm_source_pointwise_loglikelihood(
     T = typeof(_param_zero(params) + 0.0)
     etas = Vector{T}(undef, K)
     out = Vector{T}(undef, data.n)
-    loading_indices = _mgmfrm_source_loading_index_matrix(design)
     for row in 1:data.n
         _mgmfrm_source_linear_predictors!(
             etas,

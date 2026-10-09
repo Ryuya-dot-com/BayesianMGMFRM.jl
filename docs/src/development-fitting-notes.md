@@ -833,6 +833,17 @@ fit-supported MFRM/RSM/PCM slice and the guarded experimental GMFRM/MGMFRM
 slice when `experimental = true`, and `kfold_refit_comparison` runs the same
 shared plan across labeled candidate specs, designs, data objects, or existing
 MFRM/GMFRM/MGMFRM fits before returning comparison-ready rows. Use
+`group_by = :response_id` or another optional metadata role to hold out whole
+evaluation events. The current automatic refit likelihoods require training
+support for person, rater, item and score-category levels, but allow new
+optional metadata labels in the heldout rows. These labels remain available
+for reporting and do not add model effects. The general
+`kfold_plan_diagnostics` default continues to report all facets, so its
+optional-level warnings need to be interpreted against the fitted model.
+Grouped splits still produce pointwise marginal log scores; summing those
+scores is not a joint predictive log score for the whole group. The returned
+standard errors also use observation-level variation, without adjusting for
+within-group dependence. Use
 [`facet_response_table`](@ref) with a plan row's `training_observations` or
 `heldout_observations` when a role-normalized table is needed for external
 fold-specific fitting scripts.

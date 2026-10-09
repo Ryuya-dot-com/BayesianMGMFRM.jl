@@ -1,7 +1,7 @@
 # Deterministic reporting inputs, never posterior or backend-validation evidence.
 function reporting_fit(family; backend = :advancedhmc, warmup = 3, recorded = true,
         thresholds = :partial_credit, data = nothing, ndraws = 4, chains = 1,
-        rhat_threshold = 1.01, ess_threshold = 400, spec_kwargs...)
+        rhat_threshold = 1.01, ess_threshold = 400, amplitude = 0.01, spec_kwargs...)
     data === nothing && (data = FacetData((; person = [1, 1, 1, 2, 2, 2], item = [1, 1, 2, 1, 2, 2],
         rater = [1, 2, 1, 1, 2, 1], score = [0, 1, 2, 1, 0, 2]);
         person = :person, item = :item, rater = :rater, score = :score))
@@ -16,7 +16,7 @@ function reporting_fit(family; backend = :advancedhmc, warmup = 3, recorded = tr
     total_draws = ndraws * chains
     chain_ids = repeat(collect(1:chains); inner = ndraws)
     iterations = repeat(collect(1:ndraws), chains)
-    draws = [initial[p] + 0.01 * sin(d + p) for d in 1:total_draws, p in eachindex(initial)]
+    draws = [initial[p] + amplitude * sin(d + p) for d in 1:total_draws, p in eachindex(initial)]
     density = family === :mfrm ? x -> logposterior(design, x) : x -> B._source_fixture_logposterior(target, x)
     logdensities = density.(eachrow(draws))
     controls = (; ndraws, chains, warmup, step_size = 0.1, max_depth = 2, init_jitter = 0.0)
