@@ -325,6 +325,62 @@ extension of an already frozen cohort; any further investigation gets a separate
 question and prospective plan. New priors are not adopted simply because they
 mix faster or improve a chosen recovery statistic.
 
+#### Current claim-to-evidence register (MS4 preparation)
+
+**2026-10-09 review draft, not an MS4 acceptance.** Keep the existing C1–C6
+questions from [foundation §12](docs/internal/mgmfrm-foundation-scale-acceptance.md)
+and the original raw-model ledger. This register updates candidate C with the
+completed assessment; it does not overwrite dated receipts or transfer evidence
+between priors. The foundation document is also hash-bound to the MS2 design,
+so current decisions live here without changing that bound document.
+
+| Claim / decision | Evidence now available | Conclusion currently permitted | Evidence or decision still required |
+| --- | --- | --- | --- |
+| **C1 — Target, constraints and coordinates** | [Equation and invariance derivation](docs/internal/mgmfrm-estimands-identification.md); normalized-prior, location-coordinate and canonical-record checks in foundation §§1–11, plus training-only binding in §23 | Computational support within the checked model/coordinate domain. Proper priors anchor origin/scale; they do not establish likelihood identification or scientific appropriateness. The complete-crossing/pure-Q derivation is not a theorem for every training split or sparse design | Independent review of the declared estimands and scope. MS2 must separately verify the new Stan coordinate implementation before its outputs inherit this conclusion |
+| **C2 — Numerical estimation and cost** | [Completed 192-fit assessment](results/workflows/20261004-foundation-fixed-facet-assessment-01/summary.json): 184 qualified, 8 retained diagnostic failures; foundation §20. Chunk comparison §22 retained Chunk 12 after only one of two targets met its speed threshold | Report the measured qualification/failure frequencies and costs under the declared controls. Numerical success is not calibrated coverage; no universal convergence or new Stan speed claim | MS1's terminal fit/panel inventory and MS2's target/precision/cost decision. Do not count 192 fits as 192 independent panels or pool different budget/backend failure rates |
+| **C3a — Joint-prior calibration** | Earlier candidate-C joint-prior panels, full quantity roster, numerical classification work and the three margin calculations in foundation §§2, 9–12 | Positive joint-prior calibration at ±2.5/5/7.5 percentage points remains unestablished. The 32-block fixed-facet recovery study and heldout prediction do not supply this evidence | A separate prospective calibration design and justified classification/precision assumptions if this claim is retained. Otherwise explicitly exclude it from the accepted scope; a large conditional N calculation is not authorization to launch it |
+| **C3b — Fixed-facet recovery and interval coverage** | 32 independent paired blocks, six conditions and seven matched contrasts in foundation §20; bias/RMSE, replication MCSE, eligibility and unresolved coverage retained | Descriptive recovery and uncertainty for the tested R0/R1 conditions, conditional on numerical eligibility where stated. R1/SD 0.25 I1 (truth 0.35) has coverage confirmed in only 1/32, unresolved 0, despite 32/32 qualified fits: strong observed undercoverage, not a satisfactory general 90% coverage claim | Decide which recovery claims and conditions can be supported. Preserve pointwise versus simultaneous and fixed-facet versus joint-prior distinctions; no finite unconditional RMSE bounds have been established for numerical failures |
+| **C4 — Unused-rating prediction at known levels** | Training-only target/heldout binding verified; the frozen 8-block/240-fit pilot runs under foundation §§23–25 | The scoring path is checked and partial results are exploratory. Main-study predictive means, paired differences and their precision are not yet established. Existing-row WAIC/LOO is a different target | MS1 closeout, unchanged planning rule, MS2 implementation freeze, and fresh MS3 blocks. Report all six means/seven contrasts with panel eligibility, replication SE and MCMC MCSE; R0→R1 NLL changes also reflect different generating-distribution entropy |
+| **C5 — Prior sensitivity and recommendations** | Three loading-prior widths on the same 32 blocks; eligibility intersections for matched comparisons. R1 I1 coverage: SD 0.25 gives 1 confirmed / 0 unresolved; SD 0.5 gives 20 / 3; SD 1.0 gives 26 / 3, each out of 32 | Prior dependence is observable. The wider-prior descriptive coverage ranges are 62.5–71.875% and 81.25–90.625%; neither is itself a precision-backed calibration acceptance. No width becomes a recommended default because it mixes faster, has the lowest RMSE or wins a predictive comparison | MS4's explicit research-option/default decision with a stated use and joint recovery/precision/prediction rationale. A new prior prompted by these results needs a separate prospective plan |
+| **C6 — Consistent use and reproducibility** | [Eight-type adapter inventory and saved-fit example](docs/internal/prediction-contract-four-facet-design.md), existing native workflows, 1,087 adapter checks and 17 example checks plus three CLI checks | Implementation evidence for the tested paths; prototype availability does not mean public integration, scientific acceptance or unfamiliar-user reproducibility. No new-level prediction or reference-PSIS validation is implied | MS5's candidate public workflow, compatibility/help/report checks, then [MS6's independent review](docs/internal/prediction-contract-four-facet-design.md#10-ms6のレビュー資料と実施手順). Reviewer assignment remains open; OS/distribution completion remains a later milestone |
+
+For C2/C3b/C5, keep the six assessment denominators visible: R0 at SD
+0.25/0.5/1.0 has **32/29/30 qualified out of 32**; R1 has **32/31/30 out of 32**.
+Even 0 observed numerical failures in a condition has a pointwise 95% binomial
+upper bound of about **10.89%**, not a demonstrated zero failure probability.
+Recovery summary SHA256 remains
+`5070da90e6ab60e41c081447724ea9c39af4dd5686f3ffa47aad37be7d72e308`.
+Coverage classifications use the existing local numerical screens; they do not
+provide an all-quantity classification-error guarantee. Do not replace a
+quantile-boundary unresolved case with a successful-looking point estimate.
+
+Each final MS4 row must add its exact condition/estimand, evidence hashes and
+candidate implementation, supported/narrowed/rejected/inconclusive verdict,
+reason, permitted wording, exclusions and corresponding API/help behavior.
+A draft conclusion above is not independent sign-off. Correlation, mixed/sparse Q,
+learned rater scales, shared effects and unknown-level integration retain separate
+requirements; computational support for those prototypes does not inherit the
+present fixed-Q independent-dimension scientific evidence.
+
+#### Main-result reporting contract prepared before MS3
+
+The final report must retain all six condition rows and all seven paired-contrast
+rows, including unresolved ones. For each metric record planned independent
+blocks; eligible blocks and IDs (the intersection for a contrast); missingness
+by external interruption, fit failure, diagnostic or panel-precision failure;
+the estimate/direction/unit; replication SE; within-MCMC error and its ratio;
+and the target/source identity. Mark unavailable values as unavailable, not zero.
+Keep the four metric definitions and global person/dimension weights from
+foundation §24. Partial folds cannot be renormalized into a complete panel.
+Observed estimates conditional on eligibility are not unconditional performance
+over failed panels, and the unbounded primary loss has no invented finite missing-data bounds.
+
+This prepares the reporting structure only. Main N, scientific practical margins,
+backend adoption and study acceptance remain unset; no new columns become new
+gates, no pilot scores determine a preferred primary metric, and no main fit is
+launched by preparing this register. Reuse completed evidence rather than rerun
+the 192-fit study or unrelated test suites.
+
 #### Milestones after the foundation
 
 | Workstream | Entry | Its own completion condition |
@@ -349,7 +405,9 @@ percentage. Update this table and the existing linked evidence documents rather
 than creating another competing roadmap.
 
 While MS1 runs, the MS2 finite design and MS5 operation inventory are prepared.
-Next prepare MS4's claim/evidence mapping and the MS6 review packet/assignment;
+The current C1–C6 register and main-report schema are prepared above; MS6's
+review tasks and evidence handoff are specified in the API contract. Reviewer
+assignment, final candidate material and independent decisions remain open;
 keep native candidate construction and execution behind MS1. These are
 bounded preparation tasks with explicit outputs, not authorization to launch
 application fits, repeat completed suites or build unrelated extensions.
