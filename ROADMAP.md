@@ -35,6 +35,25 @@ fresh main assessment. Prefer the faster implementation only after target,
 diagnostic and precision checks pass. The [comparison handoff, foundation §26](docs/internal/mgmfrm-foundation-scale-acceptance.md)
 defines this new stage; no candidate fitting starts during the pilot.
 
+**2026-10-09 user correction: empirical fitting follows model API finalization.**
+Chopin, Uchihara and EVA are downstream applications. Preserve the completed
+input audits as requirements and future fixtures; do not advance their empirical
+fits, application-specific prior selection or analysis reports while the model
+API is unsettled. Develop and validate the selected foundation on synthetic data.
+Generic issues exposed by an application, such as reference-dependent priors,
+belong in that mathematical/API work with controlled examples.
+
+API finalization means a documented, versioned contract for the selected model
+scope: likelihood, constraints and prior measures; data/facet/category roles;
+fit and result types; diagnostic/MCSE and prediction semantics; and save/reload
+compatibility. The supported synthetic workflow must pass relevant numerical,
+statistical and integration checks with its limitations recorded. Existing
+application adapters do not establish this exit. Finalization does not require
+all future model extensions or OS/distribution completion, and each application
+must fit within the finalized supported scope. Keep pilot closure → matched
+efficiency comparison → adopted implementation → fresh main as the immediate
+scientific sequence; integrate and finalize the shared API before applications.
+
 **2026-10-09 application checkpoint:** the
 [updated portfolio](docs/internal/application-portfolio.md) separates the Chopin
 input audit, the synthetic Uchihara A0 workflow and the unstarted empirical
@@ -42,23 +61,27 @@ reanalyses. Chopin's [first-stage input and unidimensional specification](docs/i
 now preserve 84 performance names, 17 judge columns, 1,395 raw ratings, 33 recusals
 and PDF positions. An independent coordinate extraction agrees on names and all
 raw/corrected cells; 19 Julia checks preserve 25 categories and the existing
-123-parameter target. No empirical fit has started. Next review prior predictions,
-reference-judge dependence and the asymmetric derived last-step variance, then
-declare the scientific prior, sensitivity cases and focal precision conditions.
-The default free-coordinate prior is only an engineering candidate. This example
-does not need the full multidimensional/shared-effect extension.
+123-parameter target. No empirical fit has started. Preserve this input checkpoint
+until API finalization. Reference-judge dependence and asymmetric derived
+last-step variance are generic prior issues for controlled foundation checks;
+Chopin-specific prior selection and focal precision declarations follow the API
+exit. The default free-coordinate prior is only an engineering candidate. This
+example does not need the full multidimensional/shared-effect extension.
 Uchihara's existing A0 already has correlated speaker/recording effects, sparse
 paired ratings and limited new-recording integration. Reuse that implementation:
 its saved 16-draw engineering runs still have no qualified focal quantities.
 The new complete-crossing, scalar shared-task prototype is a different target,
 requires at least four criteria and does not replace A0 or fit the actual
-two-criterion data. Next complete a declared-precision synthetic analysis and
-keep real-data population/source/missingness reconciliation separate. Track
+two-criterion data. Reuse synthetic A0 only when it resolves a declared foundation
+or API question; a standalone application report is not the next deliverable.
+Real-data population/source/missingness reconciliation remains a later application
+task. Track
 application progress by reproducible answers and their uncertainty; more model
 code and passing checks alone add no application acceptance. The current pilot,
-matched efficiency comparison and fresh main retain priority. Lightweight input
-work can proceed during the pilot; neither application becomes a prerequisite
-for it, and EVA remains a later candidate. Historical time-limit proposals do
+matched efficiency comparison and fresh main retain priority. Completed input
+work is retained; further application work waits for the relevant API exit.
+Neither application becomes a prerequisite for foundation completion, and EVA
+remains a later candidate. Historical time-limit proposals do
 not override the user's current no-elapsed-time-limit direction.
 
 **2026-10-09 analysis integration and next model extension:** adopt the
@@ -221,6 +244,7 @@ No elapsed-time cap is introduced.
 | 3 — Numerical analyst / maintainer | Compare an efficient candidate with the completed pilot's posterior targets and saved results; begin with a matched Stan route | Freeze a separate protocol before candidate sampling: cases, independent RNG streams, repeated/interleaved timing schedule, full quantity roster, agreement margins, numerical gates, cost measures and minimum useful benefit. Confirm the same likelihood/prior/coordinates/Jacobian, then comparable MCSE and qualified ESS per CPU/elapsed second. Retain all outcomes; accept, reject or report inconclusive without extending until favorable. Freeze the adopted implementation before main fitting; §26 is a handoff, not yet an executable benchmark protocol |
 | 4 — Analyst / scientific reviewer | Apply the frozen pilot-based N rule, then execute a fresh main heldout assessment with the selected implementation | Compare replication SE targets 0.005/0.01/0.02 nat; select 0.01 with at least 32 paired blocks using all 13 primary means/contrasts and qualification fractions. Every planning group needs at least three usable pilot blocks. Use the validated continuation summary; exclude comparison refits from pilot variance/counts. Freeze N, backend and source identities before main fitting. Report that planning variance/eligibility came from the baseline sampler, along with actual achieved precision and failures; no outcome-driven retries/extensions |
 | Analysis integration — Maintainer | After the pilot, connect existing results through the [shared observation/prediction contract](docs/internal/prediction-contract-four-facet-design.md); prepare specifications now without touching frozen sources | Aligned IDs, draw selections, stable log probabilities and pointwise likelihoods agree with native results and survive reload; mismatched conditioning/data/folds are rejected. Connect WAIC/LOO, calibration and category-functioning consumers separately; do not claim unsupported new-level prediction |
+| API finalization, then applications — Maintainer / analyst | Finalize the selected model and common fit → diagnostics → prediction → save/reload contract on synthetic examples before empirical estimation | Record the supported scope, prior/constraint/conditioning semantics, API version and compatibility behavior with relevant mathematical, numerical, statistical and workflow evidence. Only then schedule Chopin/Uchihara/EVA within that scope; preserved inputs and adapter checks alone do not satisfy this exit. OS/distribution and unrelated future extensions are not prerequisites |
 | First model extension — Analyst / maintainer | Explicit person × task × rater × criterion, initially fixed coefficients and declared pure Q | Choose likelihood, location/scale reference and prior; verify constrained training-design rank and backend target agreement before prospective recovery/sensitivity/failure/prediction assessment. Do not add a redundant task term to unrestricted task × criterion difficulties or infer fitted terms from metadata |
 | Shared-effect / population extension — Analyst / maintainer | Follow the [shared-effect and hierarchy handoff](docs/internal/shared-effects-hierarchy-prediction.md): one person–task/testlet effect and scale, then rater-scale learning and supported halo/criterion deviations | Density/gradient/backend agreement and saved target identity precede fitting. Separate residual explanation from mechanism attribution; connect conditional and integrated prediction, training-only group refits and joint/marginal scoring. Preserve normalization, population-coordinate assumptions, failed fits and uncertainty in prospective recovery/prior-sensitivity/prediction checks |
 | Across these steps — Analyst / scientific reviewer | Resolve scientific units, prior/domain interpretation and the purpose of a separate calibration study | Retain all three prior widths as comparisons until there is a scientific adoption rationale. Distinguish fixed-facet coverage from joint-prior SBC; retain all three margins and original quantity rosters. Independent review remains unassigned and is not replaced by self-checks |
