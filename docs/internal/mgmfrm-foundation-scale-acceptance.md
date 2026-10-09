@@ -2233,3 +2233,74 @@ pilot・本評価は未完了で、本評価Nは未選択である。
 `4b08cac0e288850c333e3aa027fcce92b12da51f809df228ca5e2a0f56d26704`、
 照合receipt `four-r0-prior-pairs-three-r0-r1-pairs-verification.json`は
 `aac7260b3a7700513b6cf00083b8d33420c8332fa0dc43db1159aacf5c5679d7`。
+
+
+## 25. 容量不足による中断、保存済みdrawの復旧と未着手分の再開（2026-10-09）
+
+2026-10-07 06:15 UTC（15:15 JST）、pilotの`B005-R0-025-F3`は4チェーンを完了し、
+`samples.jls`と`execution.json`を保存した後、`review.json`の保存時に
+`No space left on device`となった。例外を記録する`failure.json`も保存できなかった。
+したがって、failure receiptが存在しないことを「例外なし」の根拠にしない。
+既存guardは残存workerを終了させ、`unjoined_descendants`・exit 1・生存子プロセス0を記録した。
+もう一方の`B004-R1-050-F4`はサンプルを保存できていない。
+ログの下限は3チェーン各2,000 transition、4番目は観測なしであり、厳密な途中回数は不明である。
+
+中断時の`summary.json`は115完了・2未完了・123未着手、19/48適格パネルだった。
+90-fit snapshot以降、`B004-R0-100-F5`のI5・次元2のraw log-loadingで
+rank-normalized R-hat 1.0108094569 > 1.01が加わった。
+bulk ESS 799.5195、tail ESS 1649.9985でも固定R-hat基準は緩和せず、
+これで数値不適格fitは4件、該当パネルは3件である。
+
+復旧・再開の記録はpilot配下`continuations/20261009-01/`に分離した。
+既存476ソース、元のplan・入力・binding・seed・controlsを照合し、
+元の1,004ファイルは個別SHA-256で保護する。
+新しいPython controllerとJulia runnerは凍結済みの診断・得点・attempt処理を呼び出す。
+既存コードや旧`summary.json`を置換せず、追加した3ソースも再開planで凍結した。
+
+最初に、事前指定した完了済み`B001-R0-025-F1`を保存drawから再診断・再採点した。
+`review.json`と`score.json`の両方が元のファイルと**バイト単位で一致**した。
+この照合後に`B005-R0-025-F3`を保存drawから復旧し、geometryとprimary lossの固定基準を通過した。
+新しいposterior fitは0件で、samples・executionは不変である。
+復旧したreview・score・completionだけを排他的に追加し、completionを最後に保存した。
+元のattempt全体の壁時計時間・CPU時間・最大RSSは不明のためnullとし、
+保存済みfit時間と今回の復旧時間を区別した。停止していた期間を計算時間へ加えない。
+復旧処理自体は13.50秒（CPU 13.30秒）、照合・起動等を含むguard全体は89.66秒だった。
+
+`B004-R1-050-F4`は`external_storage_interruption`として記録した。
+これは数値収束失敗とは原因が異なる。再推定・代替seed・チェーン延長は行わず、
+その5foldパネルは欠測指標・予定分母8を維持する。
+復旧後の固定snapshotは**116完了・外部中断1・未着手123、19適格パネル・4既知不適格パネル**である。
+元の115完了行は値まで不変で、数値不適格4件も保持された。
+
+未着手123件のIDを再開前に固定し、元のblock parityの割当てと順序で実行する。
+最初は1 workerとし、最初の新規fitが完了し、実測peak RSS ≤ 3,500 MiBかつ
+使用可能メモリ ≥ 5 GiBなら2 workerへ進む。最大2 worker、Julia/BLAS各1 thread、
+RSS/output各8 GiB、時間上限なしの既存条件を保持する。
+残出力の見込みは最大保存attempt × 124 × 1.25 + 64 MiB = 約0.785 GiBで、
+再開前にはこれに5 GiBの予備容量を加えた空きを要求する。
+実行中も空きを毎秒確認し、5 GiB未満ならcontrollerから既存guardへ失敗を伝え、子プロセスを停止する。
+これはディスク領域の予約ではなく、外部プロセスによる急激な消費を完全には防げない。
+
+追加8テストは容量境界・観測不能・起動拒否・実行中の容量不足・保存drawの完全性・
+未記録attemptの拒否・上書き防止・guardによる実子プロセス停止を確認した。
+既存のpanel/planning 9テストも通過した。凍結済みsamplerや得点計算を変更していないため、
+全体テストは再実行していない。
+
+再開後の最終集計は`continuations/20261009-01/summary.json`へ新規保存する。
+元のpilot直下`summary.json`は115-fit中断時の証拠として保持する。
+**本評価Nの選択には旧summaryを使わない**。全240件がterminalになった後、
+再開後summary・元plan・全出力のhashとguard終了状態を照合し、そのsummaryへの明示的な参照を
+次段階の選択・本評価準備へ渡す必要がある。既存`select-main`は旧summaryを固定参照するため、
+そのまま呼び出さない。13群の適格数・分散・3つのSE基準を既存ruleで評価し、
+新規ブロックの本評価Nを凍結してから本評価を開始する。
+
+記録（いずれもpilotの`continuations/20261009-01/`配下）:
+
+| 記録 | SHA-256 |
+| --- | --- |
+| 再開plan `plan.json` | `bf6106b1a38059d4c0908872481c5761b0346ba63658f69fbfedf2f366fdd1d1` |
+| 保存fitの照合 `replay-verification.json` | `20cc5da5c159bd65f9430497ea8d08a4e22e79ba3e28070591f8e1d6abe57671` |
+| 復旧receipt `recovery-receipt.json` | `d0bd2eb12f2ed46c55f7e86313eba265f2dd43f6fd58a66d792c1ecae8ede9aa` |
+| 復旧後snapshot `after-recovery-summary.json` | `3656ac6754ac134f68a05b514dd82fa2c2868de8eed4438dfd893c4eb817c6fc` |
+
+pilotも本評価も未完了であり、本評価Nの選択、科学的事前採用、較正受入、独立レビューは未達である。
