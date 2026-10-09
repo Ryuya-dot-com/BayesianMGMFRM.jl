@@ -6,9 +6,12 @@ includes while the prediction pilot's package sources are frozen.
 module PredictionObservationAdapter
 using BayesianMGMFRM, Random
 const B = BayesianMGMFRM
-export prediction_observations, observation_alignment
+export prediction_observations, observation_alignment, prediction_criteria
 
-const SupportedFit = Union{B.MFRMFit,B.GMFRMFit,B.MGMFRMFit,B._RecordedMGMFRMFit}
+const SupportedFit = Union{B.MFRMFit,B.GMFRMFit,B.MGMFRMFit,B._RecordedMGMFRMFit,B._FixedQMFRMFit}
+_fit_data(fit::B._ModelComparisonFit) = fit.design.spec.data
+_fit_data(fit::B._RecordedMGMFRMFit) = fit.record.spec.data
+_fit_data(fit::B._FixedQMFRMFit) = B._fixed_q_result_spec((; fit.record)).data
 
 function _context(fit::B._ModelComparisonFit, ndraws, draw_indices, rng)
     design = fit.design
@@ -27,7 +30,7 @@ function _context(fit::B._ModelComparisonFit, ndraws, draw_indices, rng)
         quality = fit.diagnostic_surface.summary
     end
     metadata = B.fit_metadata(fit)
-    return (; design, direct, indices, chain_ids=fit.chain_ids[indices],
+    return (; design, spec=design.spec, total_draws=size(fit.draws, 1), direct, indices, chain_ids=fit.chain_ids[indices],
         iterations=fit.iterations[indices], metadata, quality,
         source_sample_hash=nothing, source_hash_status=:not_available_for_legacy_fit,
         latent_correlation=fit isa B.MGMFRMFit ? :identity_fixed : :not_applicable,
@@ -40,12 +43,45 @@ function _context(fit::B._RecordedMGMFRMFit, ndraws, draw_indices, rng)
     run = checked.record.run
     metadata = B._mgmfrm_correlated_2d_prediction_metadata(target)
     contract = fit isa B._NormalizedMGMFRMFit ? checked.prior_metadata : checked.target_contract
-    return (; design=target.base.design, bundle.direct, indices,
+    return (; design=target.base.design, spec=target.base.design.spec, total_draws=run.total_draws, bundle.direct, indices,
         chain_ids=run.chain_ids[indices], iterations=run.iterations[indices],
         metadata=merge(metadata, (; backend=run.backend, sampler_controls=run.controls)),
         quality=(; flag=checked.diagnostics.flag, settings=run.checked),
         source_sample_hash=checked.record.content_hash, source_hash_status=:validated,
         metadata.latent_correlation, target_contract=contract)
+end
+
+function _context(fit::B._FixedQMFRMFit, ndraws, draw_indices, rng)
+    checked = B._fixed_q_report_samples((; fit.record))
+    record, run = checked.record, checked.record.run
+    saved = B._fixed_q_result_target(checked)
+    correlated = B._fixed_q_is_correlated(checked)
+    target = B._fixed_q_is_exchangeable(checked) ? B._mfrm_exchangeable_rater_reference(saved) :
+        correlated ? saved.base : saved
+    indices = B._posterior_draw_indices(run, ndraws, draw_indices, rng)
+    direct = B._mfrm_fixed_q_predictive_draws(target,
+        view(run.draws, indices, 1:B.LogDensityProblems.dimension(target)))
+    spec = B._fixed_q_result_spec(checked)
+    # Legacy v1 records used an MGMFRM spec to encode this fixed, unit-logit target.
+    if spec.family === :mgmfrm
+        spec = B.mfrm_spec(spec.data; family=:mfrm, dimensions=spec.dimensions,
+            thresholds=spec.thresholds, q_matrix=spec.q_matrix, dimension_labels=spec.dimension_labels)
+    end
+    latent_correlation = correlated ? :free_2d : :identity_fixed
+    correlation_target = B._fixed_q_is_exchangeable(checked) ? saved.base : saved
+    constraints = filter(row -> !(correlated && row.block === :latent_correlation), B._mfrm_fixed_q_constraints())
+    location = B._fixed_q_location_diagnostics(checked)
+    return (; design=target.base.design, spec, total_draws=run.total_draws, direct, indices,
+        chain_ids=run.chain_ids[indices], iterations=run.iterations[indices],
+        metadata=B._fixed_q_report_metadata(checked),
+        quality=merge(checked.diagnostics.summary, (; settings=run.checked,
+            location.location_status, location.location_summary)),
+        source_sample_hash=record.content_hash, source_hash_status=:validated, latent_correlation,
+        target_contract=(; record.target_identity,
+            parameter_space=correlated ? :unit_logit_and_fisher_z : :unit_logit_free,
+            loading_policy=:fixed_q_coefficients, rater_consistency=:fixed_one,
+            constraints, prior=record.prior, correlation=correlated ?
+                B._mfrm_correlated_2d_contract(correlation_target) : (; latent_correlation)))
 end
 
 function _ids(values, n, label)
@@ -71,7 +107,7 @@ end
         ndraws=nothing, draw_indices=nothing, rng=Random.default_rng(),
         include_probabilities=true)
 
-Extract conditional predictions for ALL original fitted rows of the five
+Extract conditional predictions for ALL original fitted rows of the eight
 supported fit types. Supply persistent observation IDs in that fit's row order;
 row numbers and response-group IDs are not automatically promoted to outcome IDs.
 `dataset_id` names the shared source dataset. IDs and native labels/scores are
@@ -93,10 +129,10 @@ function prediction_observations(fit::SupportedFit; dataset_id::AbstractString,
         rng::AbstractRNG=Random.default_rng(), include_probabilities::Bool=true)
     isempty(strip(dataset_id)) && throw(ArgumentError("dataset_id must be nonempty"))
     # Check identity arguments before restoring potentially large saved draws.
-    data = fit isa B._ModelComparisonFit ? fit.design.spec.data : fit.record.spec.data
+    data = _fit_data(fit)
     ids = _ids(observation_ids, data.n, "observation_ids")
     context = _context(fit, ndraws, draw_indices, rng)
-    design, direct = context.design, context.direct
+    design, direct, spec = context.design, context.direct, context.spec
     data = design.spec.data
     S, N, K = size(direct, 1), data.n, length(data.category_levels)
     S > 0 || throw(ArgumentError("at least one retained draw is required"))
@@ -126,7 +162,7 @@ function prediction_observations(fit::SupportedFit; dataset_id::AbstractString,
     end
     all(isfinite, pointwise) || throw(ArgumentError("nonfinite pointwise log likelihood"))
     observations = deepcopy(_observations(data))
-    category_contract = B.model_family_contract(design.spec).category
+    category_contract = B._model_family_category_contract(spec)
     order = sortperm(ids)
     binding = B._cache_hash((; dataset_id=String(dataset_id),
         category_levels=data.category_levels, observations=collect(zip(ids[order], observations[order]))))
@@ -137,11 +173,11 @@ function prediction_observations(fit::SupportedFit; dataset_id::AbstractString,
         prediction_target=:training_rows_existing_levels,
         conditioning=:joint_posterior_existing_levels, weighting=:equal_observation,
         probabilities, pointwise_loglikelihood=pointwise,
-        draw_indices=context.indices, chain_ids=copy(context.chain_ids),
+        draw_indices=context.indices, n_retained_draws=context.total_draws, chain_ids=copy(context.chain_ids),
         iterations=copy(context.iterations), sampling_quality=deepcopy(context.quality),
-        model=(; family, dimensions=design.spec.dimensions,
-            dimension_labels=copy(design.spec.dimension_labels),
-            q_matrix=deepcopy(design.spec.q_matrix), thresholds=design.spec.thresholds,
+        model=(; family=spec.family, dimensions=spec.dimensions,
+            dimension_labels=copy(spec.dimension_labels),
+            q_matrix=deepcopy(spec.q_matrix), thresholds=spec.thresholds,
             likelihood_scale=category_contract.implementation_scale_constant, category_contract,
             context.latent_correlation, target_contract=deepcopy(context.target_contract),
             native_metadata=deepcopy(context.metadata)),
@@ -178,5 +214,80 @@ function observation_alignment(reference, candidate)
     isequal(reference.observations, candidate.observations[order]) ||
         throw(ArgumentError("aligned native labels, metadata or scores differ"))
     return order
+end
+
+function _criterion_draws(prediction)
+    hasproperty(prediction, :n_retained_draws) ||
+        throw(ArgumentError("re-extract with the current adapter to retain full-draw provenance"))
+    observation_alignment(prediction, prediction)
+    prediction.prediction_target === :training_rows_existing_levels &&
+        prediction.conditioning === :joint_posterior_existing_levels &&
+        prediction.weighting === :equal_observation ||
+        throw(ArgumentError("criteria require original fitted rows with the declared conditional target"))
+    S = prediction.n_retained_draws
+    prediction.draw_indices == collect(1:S) && size(prediction.pointwise_loglikelihood, 1) == S ||
+        throw(ArgumentError("criteria require all retained draws in original order; no subset or resampling"))
+    chains, iterations = prediction.chain_ids, prediction.iterations
+    length(chains) == length(iterations) == S && S >= 2 ||
+        throw(ArgumentError("missing or inconsistent chain/iteration layout"))
+    labels = sort(unique(chains))
+    labels == collect(1:length(labels)) || throw(ArgumentError("chain IDs must be consecutive from one"))
+    S % length(labels) == 0 || throw(ArgumentError("chains must have equal retained lengths"))
+    n = div(S, length(labels))
+    chains == repeat(labels; inner=n) && iterations == repeat(1:n; outer=length(labels)) ||
+        throw(ArgumentError("retained chains must be complete, contiguous and ordered"))
+    return prediction.pointwise_loglikelihood
+end
+
+"""
+    prediction_criteria(prediction; criteria=(:waic, :raw_loo), ...)
+    prediction_criteria(fit; dataset_id, observation_ids, criteria=..., ...)
+
+Compute native criteria once from the common full retained log-likelihood matrix.
+Allowed names are :waic, :raw_loo (native loo), and :hill_smoothed_loo (native
+psis_loo). The latter is the repository's Hill-tail smoother, not an assertion
+of equivalence to the reference loo package. No refit or ranking is performed.
+
+All original chains and draws are required. Retain sampling and criterion
+warnings, including affected observation IDs. Native pointwise SE is not MCMC
+MCSE or a cluster/replication SE; native importance ESS is not autocorrelation
+adjusted. The LOO target omits one rating with specification/level maps fixed,
+not a person, response group, or new-level prediction task.
+"""
+function prediction_criteria(prediction::NamedTuple; criteria::Tuple=(:waic, :raw_loo),
+        pareto_k_threshold::Real=0.7, tail_fraction::Real=0.2, min_tail_draws::Int=5)
+    !isempty(criteria) && length(unique(criteria)) == length(criteria) &&
+        all(in((:waic, :raw_loo, :hill_smoothed_loo)), criteria) ||
+        throw(ArgumentError("choose unique criteria from :waic, :raw_loo, :hill_smoothed_loo"))
+    controls = B._check_loo_controls(; pareto_k_threshold, tail_fraction, min_tail_draws)
+    loglik = _criterion_draws(prediction)
+    values = map(criteria) do criterion
+        criterion === :waic ? B.waic(loglik) : criterion === :raw_loo ?
+            B.loo(loglik; controls...) : B.psis_loo(loglik; controls...)
+    end
+    scores = NamedTuple{criteria}(values)
+    problem_ids = NamedTuple{criteria}(map(criteria, values) do criterion, stat
+        selected = criterion === :waic ? findall(>(0.4), stat.pointwise.p_waic) :
+            findall(>(stat.pareto_k_threshold), stat.pointwise.pareto_k)
+        prediction.observation_ids[selected]
+    end)
+    quality = prediction.sampling_quality
+    location = get(quality, :location_summary, nothing)
+    return (; schema="bayesianmgmfrm.prediction_criteria.prototype.v1", status=:computed,
+        prediction, scores, problem_observation_ids=problem_ids,
+        sampling_warning=quality.flag !== :ok || (location !== nothing && location.flag !== :ok),
+        criterion_warnings=NamedTuple{criteria}(map(stat -> stat.warning, values)),
+        evaluation_unit=:single_rating_row, loo_target=:single_rating_omission_fixed_specification,
+        uncertainty=(; standard_errors=:native_pointwise_not_cluster_adjusted,
+            mcmc_mcse=:not_computed, relative_efficiency=:not_used,
+            importance_ess=:weight_only_not_mcmc_adjusted),
+        reference_psis_validation=:not_established, scientific_acceptance=:not_established)
+end
+
+function prediction_criteria(fit::SupportedFit; dataset_id::AbstractString, observation_ids,
+        criteria::Tuple=(:waic, :raw_loo), pareto_k_threshold::Real=0.7,
+        tail_fraction::Real=0.2, min_tail_draws::Int=5)
+    prediction = prediction_observations(fit; dataset_id, observation_ids, include_probabilities=false)
+    return prediction_criteria(prediction; criteria, pareto_k_threshold, tail_fraction, min_tail_draws)
 end
 end

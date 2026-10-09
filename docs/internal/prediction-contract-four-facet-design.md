@@ -36,7 +36,7 @@
 **接続する順序：**
 
 1. 検証済み標本・観測・予測条件のアダプタと数値的な一致検査。まず従来3型、相関MGMFRM、正規化MGMFRM。その後、固定係数の多次元MFRM結果群を同じ検査に通す。
-2. 学習行の観測別尤度からWAIC/PSIS-LOOと診断を接続。同時に既存行の較正を接続し、学習内の記述であることを表示。相関推定や事後予測が成功しただけでLOOが安定だとはしない。
+2. 学習行の観測別尤度からWAIC/LOOと診断を接続。通常の重要度サンプリング、既存のHill平滑化、参照PSISを区別する（§7）。同時に既存行の較正を接続し、学習内の記述であることを表示。相関推定や事後予測が成功しただけでLOOが安定だとはしない。
 3. 共通foldへの再推定・評価行の採点を接続。既存水準の評定留保と、新規人物・新規イベントの留保を別タスクにする。後者は適切な効果の積分とまとまり単位の分割が実装されるまで提供しない。
 4. カテゴリ機能は、カテゴリ利用状況・予測確率と、モデル固有のステップ/閾値の解釈を分けて実装する。確率アダプタができても閾値順序等の診断が自動的に同じ意味になるわけではない。
 
@@ -117,7 +117,7 @@ OS/配布方針は引き続き後段とする。4ファセット設計は[既存
 
 ## 6. 共通抽出の最初の実装（2026-10-09追記）
 
-[prediction_observation_adapter.jl](../../scripts/prediction_observation_adapter.jl) は、packageのinclude/exportを変更せず明示的に読み込む実験用モジュールである。凍結したpilotはこのファイルを読み込まない。従来3型と `Experimental.CorrelatedMGMFRMFit` / `Experimental.NormalizedMGMFRMFit` の合計5型を受け付け、**fit自身が学習した全観測行・既存水準への条件付き予測**を返す。固定係数の多次元MFRM結果群はこの段階の対象外。
+[prediction_observation_adapter.jl](../../scripts/prediction_observation_adapter.jl) は、packageのinclude/exportを変更せず明示的に読み込む実験用モジュールである。凍結したpilotはこのファイルを読み込まない。最初の実装では従来3型と `Experimental.CorrelatedMGMFRMFit` / `Experimental.NormalizedMGMFRMFit` の合計5型を受け付け、**fit自身が学習した全観測行・既存水準への条件付き予測**を返した。固定係数の多次元MFRMと評価指標への後続の接続は§7に記録する。
 
 リポジトリを作業ディレクトリとし、読み込み済みのfitと、元データ由来の一意な評定結果IDを使う。
 
@@ -168,3 +168,49 @@ MGMFRM_ADAPTER_REPLAY=results/workflows/20261006-foundation-prediction-pilot-01/
 ```
 
 実行記録は `results/workflows/20261009-prediction-adapter-01/test-02/`、検証の対応関係は同親ディレクトリの `verification.json` に保存。凍結中の `test/runtests.jl` へはまだ登録していない。
+
+## 7. 固定係数MFRMと評価指標への接続（2026-10-09追記）
+
+同じモジュールに `MultidimensionalMFRMFit`、`Experimental.CorrelatedMFRMFit`、`Experimental.ExchangeableMFRMFit` を加え、抽出対象は合計8型になった。交換可能な評定者事前では独立／相関の両方を扱う。旧fixed-Q v1記録も検証して読み込む。旧記録の内部仕様が `family=:mgmfrm` でも、意味上のモデルは固定係数MFRM、報告する倍率は1.0とする。保存したunit-logit座標を内部のMGMFRM計算へ変換し、条件付き予測へ相関を二重に掛けない。尺度・制約・事前・保存形式・位置診断を保持する。
+
+`prediction_criteria` は、全保存drawを使った共通対数尤度行列を一度作り、指定したネイティブ評価指標へ渡す。fitを直接渡す場合、カテゴリ確率配列は作らない。既に得た全drawの抽出結果も渡せる。元の順序、全chain、等しいchain長、chain内iterationの連続性を検査し、少数drawの選択・重複抽出・順序変更を拒否する。以前の抽出結果に全draw数の記録がなければ、現在のアダプタで抽出し直す。
+
+```julia
+evaluation = prediction_criteria(fit;
+    dataset_id="study-A/ratings-v1",
+    observation_ids=outcome_ids_in_fit_row_order,
+    criteria=(:waic, :raw_loo, :hill_smoothed_loo))
+evaluation.scores                   # ネイティブ指標と観測別の値
+evaluation.problem_observation_ids  # 高分散／高Pareto-kの観測ID
+evaluation.sampling_warning         # 元の標本・位置診断の警告
+evaluation.criterion_warnings       # 指標ごとの警告
+evaluation.uncertainty               # SE/ESSの定義と未計算事項
+```
+
+| 指定名 | 計算 | 解釈の境界 |
+| --- | --- | --- |
+| `:waic` | 既存 `waic` | 観測別対数尤度の標本分散を使う。0.4を超える行のIDを保持 |
+| `:raw_loo` | 既存 `loo` | 通常の重要度サンプリング。Hill推定のPareto-kと重みのESSを返す |
+| `:hill_smoothed_loo` | 既存 `psis_loo` | このリポジトリのHill推定による裾平滑化。参照PSISとの一致は未検証 |
+
+既定値は `(:waic, :raw_loo)` とする。アダプタでは曖昧な `:loo` / `:psis_loo` 指定を受け付けず、元の推定診断と高Pareto-kの行を落とさない。計算できたことを数値的／科学的受入と同一視しない。
+
+評価単位は単一評定行で、LOOは仕様と水準対応を固定してその一行を除く予測を狙う。新規人物・課題・応答イベントへの予測や、pilotの5分割再推定と同じ評価ではない。返すSEは既存の観測別SEで、人物等のクラスタ調整・独立反復SE・MCMC MCSEは含まない。重要度ESSもMCMC自己相関を補正していない。参照 `loo` はPSISと通常のISを区別し、MCMCの相対効率を扱うため、この接続だけで参照実装への一致や精度を主張しない（[公式loo資料](https://mc-stan.org/loo/reference/loo.html)、[PSIS資料](https://mc-stan.org/loo/reference/psis.html)）。
+
+次の分析統合では、参照PSISとの独立した数値照合と自己相関の扱いを定めたうえで、既存行の較正・カテゴリ機能・レポートへ接続する。共通の観測整列は利用できるが、`compare_models` による自動順位付け、任意foldへの再推定、新規水準、公開API化はまだ追加していない。この作業を本評価や同一ターゲットの効率比較の新たな前提にはしない。
+
+### 接続の検証結果
+
+[限定テスト](../../test/prediction_criteria_adapter.jl)は1,087項目を通過した。§6の560項目を再検査し、固定係数モデルの464項目と評価指標・警告・入力条件の63項目を追加した。固定係数では旧／現行独立、相関、交換可能な評定者事前の独立／相関を、AdvancedHMC/CmdStanの合成保存形式と2/4カテゴリで照合した。3次元とmixed Qも追加検査した。
+
+固定係数の確率は、productionの予測関数・1.7倍への変換を使わずunit-logitの式を組み立てた値と一致し、観測別尤度はネイティブ出力に一致した。評価指標はネイティブ出力との一致に加え、一定尤度の解析解と高分散／高Pareto-kの反例を検査した。少数・重複・順序不一致のdraw、chain/iteration不一致、変更した予測対象・重みを拒否する。これらは接続の検証であり、参照PSIS実装の検証ではない。
+
+完了済みpilotの `B001-R0-025-F1` について、1,000学習観測と4つの選択drawの再生を再確認し、元標本ファイルのSHA256は不変だった。この実標本の再生は確率・対数尤度の接続までで、評価指標の新しい実データ分析には数えない。新規推定・独立反復・native buildは0件。全体テストも再実行していない。
+
+実行時間424.46秒、観測最大RSS 1,992,065,024 bytes。コンパイルと復元を含むテストの費用で、推定本体の速度比較ではない。単一スレッド・低優先度・経過時間上限なしで実行した。凍結コード479ファイルと保全成果物1,004件は不変である。実行ログ・guard receiptは `results/workflows/20261009-prediction-criteria-01/test-01/`、対応する証拠は同親ディレクトリの `verification.json` に保存する。
+
+```sh
+MGMFRM_ADAPTER_REPLAY=results/workflows/20261006-foundation-prediction-pilot-01/attempts/B001-R0-025-F1/samples.jls \
+  JULIA_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 JULIA_PKG_PRECOMPILE_AUTO=0 \
+  julia --project=. --startup-file=no test/prediction_criteria_adapter.jl
+```

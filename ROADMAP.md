@@ -40,7 +40,7 @@ defines this new stage; no candidate fitting starts during the pilot.
 as the implementation handoff. Common observation identities, category log
 probabilities, pointwise likelihoods, prediction conditioning and model/scale
 metadata should cover correlated and normalized MGMFRM as well as the legacy
-fit types; fixed-coefficient multidimensional results also need adapters.
+and fixed-coefficient multidimensional fit types.
 Implement extraction/alignment before connecting each analysis, preserving
 explicit comparison axes and training/heldout bindings. Separately distinguish
 person, physical task, rater and criterion in the first model extension.
@@ -51,14 +51,21 @@ statistical acceptance. Pilot closure, matched efficiency comparison and the
 fresh current-domain assessment retain their order; neither the full four-facet
 extension nor every report feature is a prerequisite for that assessment.
 The [opt-in extraction prototype](scripts/prediction_observation_adapter.jl)
-now supports the legacy three fit types plus correlated and normalized MGMFRM,
-without changing any frozen package include. Its 560 focused checks include
-native probability/pointwise-likelihood agreement, ID alignment, rejected
-mismatches, cache replay, underflow and read-only replay of one completed
-1,000-observation pilot fit. No new posterior fit or replication was added.
-Package integration, fixed-coefficient multidimensional adapters and criterion/
-report consumers remain separate next steps; this prototype only extracts
-conditional predictions for original training rows.
+now supports eight fit types, including independent/correlated fixed-coefficient
+MFRM and its exchangeable-rater variants, without changing frozen package sources.
+The fixed-coefficient output retains unit-logit semantics even when a legacy
+record or internal calculation uses an MGMFRM reference. The common criterion
+consumer requires all retained chains/draws and explicitly distinguishes WAIC,
+raw importance-sampling LOO and the repository's Hill-tail smoother. It keeps
+sampling/criterion warnings and affected observation IDs. Native pointwise SE
+and importance ESS are not cluster-adjusted SE or autocorrelation-adjusted MCMC
+precision; reference PSIS agreement is not established. The initial 560-check
+extraction validation remains dated evidence in §6 of the handoff; its extension
+passes 1,087 focused checks, including the prior checks and read-only saved-pilot
+replay, as recorded in §7. No new posterior fit or replication was added. Package/report
+integration, reference PSIS validation, calibration and category-functioning
+consumers remain separate next steps. The prototype uses original training rows
+and existing levels; it adds no common-fold refitting or new-level prediction.
 
 - **Scope:** the user-selected 2D fixed-Q foundation. Candidate C is an explicit
   normalized exchangeable prior for computational comparison, not an adopted
