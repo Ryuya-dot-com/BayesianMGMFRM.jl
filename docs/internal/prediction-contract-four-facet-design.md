@@ -101,7 +101,7 @@ python3 -B scripts/four_facet_identification_audit.py
 python3 -B test/four_facet_identification_audit.py
 ```
 
-有限の合成設計での厳密な階数検査と確率の数値一致であり、実データの回復・較正・混合や事前の適切性を証明するものではない。新しいfit API、推定項、予測アダプタはまだ追加していない。
+有限の合成設計での厳密な階数検査と確率の数値一致であり、実データの回復・較正・混合や事前の適切性を証明するものではない。新しいfit APIや推定項は追加していない。共通抽出の後続実装は第6節に記録する。
 
 ## 5. 優先順位と終了判定
 
@@ -114,3 +114,57 @@ python3 -B test/four_facet_identification_audit.py
 | 必要性を検証して追加 | 課題×観点、評定者×観点、共有応答効果、自由識別力/一貫性、潜在相関 | 各追加項の目的・識別・事前・予測単位を指定。単独機能の合格だけでその組合せを受入済みにしない |
 
 OS/配布方針は引き続き後段とする。4ファセット設計は[既存の共有契約](../../ROADMAP.md#shared-specification-and-prediction-contract)と応用側の物理課題/観点/応答イベントの区別を具体化するもので、別々のモデル案を重複開発しない。追加の大規模推定や計算資源は今回使用しない。
+
+## 6. 共通抽出の最初の実装（2026-10-09追記）
+
+[prediction_observation_adapter.jl](../../scripts/prediction_observation_adapter.jl) は、packageのinclude/exportを変更せず明示的に読み込む実験用モジュールである。凍結したpilotはこのファイルを読み込まない。従来3型と `Experimental.CorrelatedMGMFRMFit` / `Experimental.NormalizedMGMFRMFit` の合計5型を受け付け、**fit自身が学習した全観測行・既存水準への条件付き予測**を返す。固定係数の多次元MFRM結果群はこの段階の対象外。
+
+リポジトリを作業ディレクトリとし、読み込み済みのfitと、元データ由来の一意な評定結果IDを使う。
+
+```julia
+include("scripts/prediction_observation_adapter.jl")
+using .PredictionObservationAdapter
+
+rows = prediction_observations(fit;
+    dataset_id="study-A/ratings-v1",
+    observation_ids=outcome_ids_in_fit_row_order,
+    draw_indices=[40, 1, 13, 1])
+rows.probabilities              # draw × observation × category
+rows.pointwise_loglikelihood    # draw × observation; prior/Jacobianなし
+rows.chain_ids, rows.iterations # 選択順と重複を保存
+rows.model                     # 尺度、D/Q、制約・事前のネイティブ記録
+rows.sampling_quality          # 警告を捨てない
+```
+
+`include_probabilities=false` ならカテゴリ確率配列を確保せず尤度のみを得る。両方を要求した場合も同じ線形予測子から計算する。記録型の標本検証・変換は一回の呼出し内で再利用する。ただしネイティブの復元検証自体は全保存drawを検査するので、少数drawの選択が復元コストまで省くわけではない。
+
+固定倍率は `model_family_contract` の実装値から取り出す。現在のscalar GMFRMは原式に従い1.0、多次元MGMFRMは1.7であり、一般化モデルというだけで同じ倍率と扱わない。モデル固有のステップ所有者・位置制約・事前の記録も保持する。
+
+`sampling_quality` は元の保存標本全体に対する診断であり、選択した少数drawの精度保証ではない。順序の変更や重複選択を許す抽出機能と、完全なchain情報を必要とするMCSE/PSIS等の分析条件は区別する。後続の分析機能でその条件を検査する。
+
+`observation_alignment(reference, candidate)` は、候補の列を基準の観測順へ並べるインデックスを返す。データの名前空間・カテゴリ・ID付き観測内容・学習集合・予測条件を照合する。D/Qの異なるモデルも観測を整列できるが、これは比較軸の選択、パラメータ尺度の同一性、モデル順位付けの承認を意味しない。カテゴリの再符号化やファセットIDの別名対応は自動推定せず拒否する。
+
+観測IDは呼出し側が元データの行へ正しく対応させる責任を持つ。共有 `response_id` を一意な評定結果IDへ自動昇格させない。記録型は検証済みsample hashを返す。従来型に同じ保存hashが存在するかのように装わず、`source_hash_status=:not_available_for_legacy_fit` と明記する。出力のbindingは観測の対応を検査するもので、mutableな数値配列全体の改ざん検知用アーカイブではない。
+
+別データ、新規水準、任意のfoldや重みは受け付けない。WAIC/LOO・較正・カテゴリ機能のレポート接続、heldout再推定、packageの公開API化は後続段階に残す。現在の `compare_models` の制限は変更しない。
+
+### 検証結果
+
+[限定テスト](../../test/prediction_observation_adapter.jl)は最終版で560項目を通過した。合成標本では5型、2/4カテゴリ、1/3評定者、正規化事前のsource/exchangeable、AdvancedHMC/CmdStanの保存形式を検査した。保存形式の合成検査はbackendの追加推定や新たな一致証拠ではない。確率・尤度・draw選択・元fit不変・キャッシュ再読込を照合し、変更された記録型標本、重複ID、違う観測値・カテゴリ・学習集合・条件づけを拒否した。
+
+加えて、完了済み `B001-R0-025-F1` の保存事後標本を読み、1,000学習観測と4つの選択drawでネイティブ出力に一致すること、chain/iterationの対応、元ファイルのSHA256不変を確認した。元標本全体の復元検査も通過した。新しい推定・独立反復・pilotの再試行には数えない。
+
+最終実行は286.34秒、観測した最大RSSは2,007,859,200 bytes。Juliaの初回コンパイル、合成結果のキャッシュ往復、実標本の復元を含むテスト所要時間であり、推定本体の高速化率ではない。経過時間の上限は設けず、単一スレッド・低優先度で実施した。全体テストは再実行していない。凍結コード479ファイルと保全成果物1,004件のハッシュ一致を別途確認した。
+
+```sh
+# 合成結果の限定検査（追加推定なし）
+JULIA_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 JULIA_PKG_PRECOMPILE_AUTO=0 \
+  julia --project=. --startup-file=no test/prediction_observation_adapter.jl
+
+# 同じ検査に、既存の保存結果1件の読み取り専用再生を追加
+MGMFRM_ADAPTER_REPLAY=results/workflows/20261006-foundation-prediction-pilot-01/attempts/B001-R0-025-F1/samples.jls \
+  JULIA_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 JULIA_PKG_PRECOMPILE_AUTO=0 \
+  julia --project=. --startup-file=no test/prediction_observation_adapter.jl
+```
+
+実行記録は `results/workflows/20261009-prediction-adapter-01/test-02/`、検証の対応関係は同親ディレクトリの `verification.json` に保存。凍結中の `test/runtests.jl` へはまだ登録していない。

@@ -50,6 +50,15 @@ multidimensional case. These are design checks, not new model fitting or
 statistical acceptance. Pilot closure, matched efficiency comparison and the
 fresh current-domain assessment retain their order; neither the full four-facet
 extension nor every report feature is a prerequisite for that assessment.
+The [opt-in extraction prototype](scripts/prediction_observation_adapter.jl)
+now supports the legacy three fit types plus correlated and normalized MGMFRM,
+without changing any frozen package include. Its 560 focused checks include
+native probability/pointwise-likelihood agreement, ID alignment, rejected
+mismatches, cache replay, underflow and read-only replay of one completed
+1,000-observation pilot fit. No new posterior fit or replication was added.
+Package integration, fixed-coefficient multidimensional adapters and criterion/
+report consumers remain separate next steps; this prototype only extracts
+conditional predictions for original training rows.
 
 - **Scope:** the user-selected 2D fixed-Q foundation. Candidate C is an explicit
   normalized exchangeable prior for computational comparison, not an adopted
