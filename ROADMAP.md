@@ -97,9 +97,20 @@ The input spec supplies data/Q, while this new target owns its constraints and
 priors. Its 77 focused checks cover density/AD, conditional prediction, facet
 relabeling, input ownership and target-record reconstruction; maximum observed
 gradient discrepancy is 1.54e-9 and native zero-effect likelihood discrepancy
-4.44e-16. These checks are separate from posterior inference. No sampler, Stan target,
-new-level prediction, residual adapter or scientific acceptance is added;
-the handoff's §7 records the evidence and remaining exits.
+4.44e-16. These checks are separate from posterior inference. The subsequent
+[opt-in Stan target](scripts/stan/four_facet_shared_task.stan) and
+[data/build bridge](scripts/four_facet_shared_stan.jl) now pass 227 focused checks:
+four crossed designs, 2–5 categories and 28 declared parameter vectors, including
+unequal Q groups, zero shared values, extreme logits and log-scale underflow.
+Complete normalized densities, both Jacobian modes, gradients, pointwise likelihoods
+and all-category probabilities agree; the maximum density and gradient differences
+are 2.80e-9 and 1.07e-14. Seven malformed native inputs are rejected. This uses
+CmdStan log_prob/generated quantities without sampling, separate from the frozen
+pilot's future efficiency comparison. No sampler, new-level prediction, residual
+adapter or scientific acceptance is added. The handoff's §§7–8 record the evidence;
+the next extension exit is an explicit small-scale prior-predictive/sampler check,
+followed by recovery, prior sensitivity and numerical-failure evaluation. Pilot
+closure, same-target efficiency comparison and fresh main retain priority.
 
 - **Scope:** the user-selected 2D fixed-Q foundation. Candidate C is an explicit
   normalized exchangeable prior for computational comparison, not an adopted
