@@ -1,6 +1,6 @@
 # 共有効果・尺度の階層化・未知水準への予測
 
-2026-10-09。ユーザーの局所依存・部分プーリング・新規水準への予測の提案を、[4ファセットと共通予測契約](prediction-contract-four-facet-design.md)の次の実装単位として具体化する。既存のLD設計監査・既知真値DGP・正規化事前の導出を再利用する。ここで追加したものは実行可能な数学検査と実装仕様であり、新しい推定モデルではない。現在のpilot → 同一ターゲットの効率比較 → 本評価の順序は維持する。
+2026-10-09。ユーザーの局所依存・部分プーリング・新規水準への予測の提案を、[4ファセットと共通予測契約](prediction-contract-four-facet-design.md)の次の実装単位として具体化する。既存のLD設計監査・既知真値DGP・正規化事前の導出を再利用する。§1〜6の数学検査と実装仕様に続き、§7で4ファセットと共有課題効果の対数密度を実装した。サンプリング・新モデルの統計的検証はまだ行っていない。現在のpilot → 同一ターゲットの効率比較 → 本評価の順序は維持する。
 
 ## 1. 現在の実装から何を追加するか
 
@@ -145,3 +145,64 @@
 低次元の未知効果は決定的求積を照合基準にできる。高次元では同時潜在drawを使い、内側の積分誤差・外側MCMC誤差・反復間誤差を分ける。効果の事後平均を代入して積分を省略しない。速度は必要な精度でのCPU時間・実時間・ESSとメモリで比較する。経過時間の上限や追加の有料資源は導入しない。
 
 実行方法は `python3 -B test/shared_effect_hierarchy_audit.py` と `python3 -B scripts/shared_effect_hierarchy_audit.py`。いずれも標準ライブラリと既存の有理数階数関数だけを使う。今回の検査はproductionのAD勾配・backend一致・MCMC・新モデルの回復をまだ検証していない。実行結果とsource hashは `results/workflows/20261009-shared-effects-hierarchy-01/` に保存する。
+
+## 7. 最初の対数密度コア（2026-10-09追記）
+
+[four_facet_shared_target.jl](../../scripts/four_facet_shared_target.jl)を明示的にincludeする試作を追加した。packageのinclude/export、既存 `fit`、pilotは変更しない。これは `LogDensityProblems` の対数密度インターフェースを持つ新しいターゲットであり、事後fit型や既存fitを装う変換ではない。
+
+### 今回固定した範囲と事前
+
+入力の `FacetSpec` からはデータ・カテゴリ・Q・次元ラベルを受け取る。`item` を評価観点として明示的に使い、`task` と `response_id` が必要になる。2次元pure Q、各次元2観点以上、2人物・2課題・2評定者以上、共通カテゴリのpartial-credit、全person×task×rater×criterionセルに1評定、person×taskごとに一つの一意な応答に限る。カテゴリを同じ向きにそろえたという `category_direction=:higher_is_more` の宣言を要求する。疎なデザイン・反復応答・mixed Q・anchor/bias項等は拒否する。
+
+実装する隣接logitは
+
+```math
+\theta_{p,d(c)}-b_t-v_c-s_r-\tau_{c,k}+\sigma_u z_{p,t},
+\qquad z_{p,t}\sim N(0,1),\quad\sigma_u\sim\mathrm{HalfNormal}(A).
+```
+
+倍率は1。課題b、評定者s、次元内の観点v、観点内のステップをそれぞれ和ゼロとし、Helmertの直交座標を使う。課題・評定者・観点・ステップの各自由直交座標に、利用者が明示したkernel SDの独立正規事前を置く。これは末尾再構成の自由座標へ独立正規事前を置くこととは異なる。能力θは固定SDの独立正規、潜在相関はidentityであり、評定者尺度の学習・相関・haloはまだ加えない。
+
+共有効果は非中心化し、自由パラメータはzとlogσ_u。hyperpriorにはlogσ_uへのJacobianを含める。これらを観測別尤度へ混ぜない。数値的にσ_uが0へunderflowする場合もlog尺度の事前項を残す。σ_uの上側overflowで対数事前が−Infになる場合は尤度評価前に返す。密度は通常の有限パラメータ空間でADを検証している。
+
+```julia
+include("scripts/four_facet_shared_target.jl")
+import LogDensityProblems as L
+const F = FourFacetSharedTarget
+
+# specはcriterionをitemとして保持する2D MFRM仕様。ここで新しい役割と事前を明示する。
+target = F.SharedTaskTarget(spec;
+    prior=(; person_sd=.8, task_kernel_sd=.4, rater_kernel_sd=.3,
+        criterion_kernel_sd=.5, step_kernel_sd=.6, shared_sd_scale=.7),
+    category_direction=:higher_is_more)
+x = zeros(L.dimension(target))
+L.logdensity(target, x)               # 観測尤度 + 正規化した事前
+F.pointwise_loglikelihood(target, x)  # 1ベクトルでの観測別尤度のみ
+F.category_logprobs(target, x)        # 元学習行の条件付きカテゴリlog確率
+F.target_record(target)              # データ/Qの識別情報と、この新しい密度の契約
+```
+
+例示のSDは限定テスト用で、科学的に採用した既定値ではない。入力specが持つ従来の制約・事前メタデータで、この新しいターゲットの制約・事前を代用しない。記録には双方を区別して残す。
+
+### 効率・保存・検証の境界
+
+構築時にperson×taskの整数indexと観点の次元対応を作り、各評価で再利用する。和ゼロ変換は各ブロックの自由度に比例する計算とメモリで実行し、密な共分散行列を作らない。対数密度の評価時にはN×Kの確率配列やN要素の尤度出力を確保せず、各行のlogitを再利用して総和する。個別の出力関数を呼んだ場合だけ必要な配列を作る。これは実装上の費用削減であり、推定全体の高速化を測定したものではない。
+
+構築時に入力をdeepcopyし、元specの変更から数値ターゲットを保護する。保存は現在ターゲットの契約だけであり、事後標本キャッシュではない。`target_record` は派生indexの整合性を再確認し、観測値・Q・水準・順序を結ぶ既存 `design_identity` を明示的に保存する。`restore_target(record; expected_identity=...)` は指定hashと再構築した契約を検査する。実行中の内部配列は読み取り専用として扱い、各勾配評価で大きなhashを再計算しない。
+
+ゼロ共有効果の尤度は、既存の多次元固定係数MFRMを `item=task×criterion`、難易度をb_t+v_c、同じ観点のステップを共通値として表現したものと照合する。これは**条件付き尤度の一致**であり、自由な複合項目モデルと事前／事後が同じという主張ではない。効果の値z=0での検査は、分散0の帰無モデルをフィットしたことにもならない。
+
+backend一致、サンプラー接続、事前予測、回復・事前感度・失敗率、残差診断、新規水準の積分、既存共通アダプタへのfit接続は未実施。次の密度側の完了条件は同じ座標・正規化を使うStanとの値／勾配照合であり、その後に別の明示した実験として小規模推定を行う。進行中pilotの比較対象や本評価の前提へ、この新モデルを混ぜない。
+
+### 最終検証記録
+
+[限定テスト](../../test/four_facet_shared_target.jl)の77項目が通過した。3人物×2課題×2評定者×4観点の48行で、2カテゴリ／17パラメータと4カテゴリ／25パラメータを検査した。独立した密なHelmert行列と確率式、和ゼロ制約、正規化、共有セルだけへの効果、事前と尤度の分離、極端なlogit、尺度変換、入力snapshot、行順変更、対応座標を用いた評定者／課題／観点の再ラベルを確認した。
+
+ForwardDiffと中心差分の最大絶対差は2カテゴリで8.69×10⁻¹⁰、4カテゴリで1.54×10⁻⁹。共有効果ゼロでの既存固定係数MFRM尤度との差はそれぞれ1.11×10⁻¹⁶、4.44×10⁻¹⁶だった。これらは指定点での数値検査で、全パラメータ空間の解析的勾配証明ではない。ターゲット契約の保存／再構築で同じ密度と確率を再現し、改変データ・不一致hash・未対応契約・変更された派生indexを拒否した。
+
+最終実行は27.66秒、観測最大RSS 930,463,744 bytes。初回コンパイルを含み、単一スレッド・低優先度・経過時間上限なしで実施した。新しい推定・統計的反復・native buildは0件、全体テストの再実行はなし。pilot凍結コード479ファイルと保全成果物1,004件は不変。最終ログは `results/workflows/20261009-four-facet-shared-target-01/test-03/`、source hash等は同親ディレクトリの `verification.json` に保存する。
+
+```sh
+JULIA_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 JULIA_PKG_PRECOMPILE_AUTO=0 \
+  julia --project=. --startup-file=no test/four_facet_shared_target.jl
+```

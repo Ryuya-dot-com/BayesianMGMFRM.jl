@@ -81,10 +81,25 @@ new rater to a finite zero-sum panel. These are mathematical oracles, not new
 fitted mechanisms or ordinal-identification evidence. Preserve one draw of each
 shared effect within its prediction group, label fixed-prior versus learned
 population prediction, and match holdout and score units. Reuse the existing LD
-support/residual machinery; its broader-fit entry point, new likelihoods,
+support/residual machinery; its broader-fit entry point, sampler/report integration,
 population prediction and prospective statistical validation remain to be built.
 The ongoing pilot and the current-domain main assessment do not acquire these
 extensions as prerequisites.
+
+The [opt-in shared-task density core](scripts/four_facet_shared_target.jl) now
+implements the first new likelihood and normalized prior: 2D pure-Q four-facet
+partial credit, separate physical task/criterion effects and a noncentered
+person–task effect with an explicit half-normal scale prior. The initial scope is
+complete crossing, one distinct response per person–task, consistent category
+direction and at least two criteria per dimension. Task/rater and within-dimension
+criterion means are zero; centered criterion steps use orthonormal coordinates.
+The input spec supplies data/Q, while this new target owns its constraints and
+priors. Its 77 focused checks cover density/AD, conditional prediction, facet
+relabeling, input ownership and target-record reconstruction; maximum observed
+gradient discrepancy is 1.54e-9 and native zero-effect likelihood discrepancy
+4.44e-16. These checks are separate from posterior inference. No sampler, Stan target,
+new-level prediction, residual adapter or scientific acceptance is added;
+the handoff's §7 records the evidence and remaining exits.
 
 - **Scope:** the user-selected 2D fixed-Q foundation. Candidate C is an explicit
   normalized exchangeable prior for computational comparison, not an adopted
