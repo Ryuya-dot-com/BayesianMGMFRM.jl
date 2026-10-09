@@ -106,11 +106,24 @@ Complete normalized densities, both Jacobian modes, gradients, pointwise likelih
 and all-category probabilities agree; the maximum density and gradient differences
 are 2.80e-9 and 1.07e-14. Seven malformed native inputs are rejected. This uses
 CmdStan log_prob/generated quantities without sampling, separate from the frozen
-pilot's future efficiency comparison. No sampler, new-level prediction, residual
-adapter or scientific acceptance is added. The handoff's §§7–8 record the evidence;
-the next extension exit is an explicit small-scale prior-predictive/sampler check,
-followed by recovery, prior sensitivity and numerical-failure evaluation. Pilot
-closure, same-target efficiency comparison and fresh main retain priority.
+pilot's future efficiency comparison. The subsequent
+[opt-in Julia workflow](scripts/four_facet_shared_workflow.jl) now adds joint prior
+draws, conditional replicated ratings, a maintained AdvancedHMC sampler connection,
+validated sample records, model/raw diagnostics and original-row posterior mean
+category probabilities. One declared 144-row/35-parameter engineering fit uses
+four chains of 500 warmup + 500 retained draws: retained divergences 0, maximum
+rank-normalized R-hat 1.0051, minimum bulk/tail ESS 616/714; 15 warmup divergences
+remain recorded. The positive shared SD has no directional evidence against zero
+by construction, so the report suppresses that misleading probability. Prior
+prediction compares explicit half-normal scales 0.35, 0.7 and 1.4 with Monte Carlo
+precision; it selects no scientific prior. Initial validation passes 65 checks;
+the report refinement passes 66 checks on the saved fit, without another MCMC run.
+The handoff's §§7–9 record the evidence. Public fit/report integration, a matched
+Stan posterior run, prediction MCSE, new levels and residual diagnostics remain
+open. Next declare independent recovery/prior-sensitivity/failure experiments
+with precision targets; this one fit adds no statistical acceptance or pilot
+replication. Pilot closure, same-target efficiency comparison and fresh main
+retain priority.
 
 - **Scope:** the user-selected 2D fixed-Q foundation. Candidate C is an explicit
   normalized exchangeable prior for computational comparison, not an adopted
