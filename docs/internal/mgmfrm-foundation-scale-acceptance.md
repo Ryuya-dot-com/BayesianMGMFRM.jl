@@ -2351,7 +2351,10 @@ StanとJuliaは別の乱数stream・遷移列を持つため、通常は標本�
 同じローカル環境で現行Juliaと候補を新たに測り、初回起動・コンパイルとwarmな反復を分け、
 実行順を交互にして事前固定した回数を測る。純粋な勾配費用と全推定費用を区別する。
 最初の比較は元の4 chains・warmup/保持各1,000・共通のsampler設定を保ち、
-同じ初期座標点と、独立に指定したRNG streamを用いる。バックエンド固有の適応の違いも記録する。
+同じrawの基準初期値・jitter分布と、独立に指定したRNG streamを用いる。
+実現したchain初期値を保存し、同一の初期drawだったとは仮定しない。
+実現初期値まで共有する比較なら、外部で固定したchain初期値を両経路へ渡せることを先に検証する。
+バックエンド固有の適応の違いも記録する。
 比較途中にdraw数やwarmupを減らして見かけの高速化にしない。
 
 全240件を自動的に再推定するのではなく、R0/R1・事前3幅・訓練分割をカバーする比較対象と、
@@ -2377,3 +2380,46 @@ pilot結果を見て選んだ難例は、その選定を開示し、独立な確
 精度を保証する計算ではないことを明記し、本評価で実現した精度・失敗・費用を報告する。
 本評価開始前にNと採用実装の両方を固定する。実装が変わる場合は§24の本評価側の実行条件を
 新planに明示し、pilotの凍結planは書き換えない。
+
+### pilot稼働中に用意した終了検査とStan接続の点検
+
+既存の`select-main`と`prepare-main`は、pilot直下の`summary.json`を参照する。
+§25で保持した中断時の集計を誤って引き継がないよう、
+[終了検査](../../scripts/mgmfrm_foundation_prediction_closeout.py)を別ファイルで追加した。
+元の476ソースと再開用3ソースには変更を加えていない。
+
+この処理は再開後の最終guardと`continuations/20261009-01/summary.json`を要求し、
+全予定ID・terminal状態・再試行なし・予備容量の監視結果を照合する。
+凍結済みの集計関数で保存結果から再計算し、最終summaryの全内容との一致を確認してからreceiptを作る。
+復旧したfitや外部中断の不明なattempt時間は欠測IDとして残し、0へ置換しない。
+診断不適格なfitも費用へ算入し、並列attemptの時間合計を全体の経過時間やCPU時間と呼ばない。
+元実装のpilotに基づく件数計算も保存するが、Nの正式選択や本評価起動は行わない。
+比較planの固定と採用実装の確定は、別の未完了工程である。
+
+```sh
+python3 scripts/mgmfrm_foundation_prediction_closeout.py \
+  results/workflows/20261006-foundation-prediction-pilot-01 \
+  results/workflows/20261006-foundation-prediction-pilot-01/continuations/20261009-01 \
+  --output results/workflows/20261006-foundation-prediction-pilot-01/continuations/20261009-01/closeout.json
+```
+
+pilot終了前はexit 2で保留し、receiptを作らない。既存receiptは上書きしない。
+[軽量テスト](../../test/mgmfrm_foundation_prediction_closeout.py)6件は、未完了・旧root集計の拒否、
+guardの異常・残存process・phase不一致、ID/状態不整合、欠測/失敗費用、再集計不一致、
+上書き防止と本評価起動無効を確認した。実pilotへの呼出しも予定どおり未完了として保留された。
+完成データでの終了検査はpilot終了後に実施する。追加推定・Stanビルド・全体テストは行っていない。
+
+ソース点検に基づくStan接続の作業範囲は以下の通り。既存のraw Stanモデルはnormalized priorを
+既に実装しており、主な不足は変換座標とその入出力・検証経路である。
+
+| 接続点 | 既存の根拠・再利用部分 | 比較実装で必要なこと |
+| --- | --- | --- |
+| 訓練データとprior | `fold_context`、`_cmdstan_mgmfrm_data`、`src/stan/mgmfrm.stan`の`prior_model=2`とzero-sum補正 | 同じ1,000行・128座標・Qのactive loading順・各prior SDを渡す。heldout応答がtargetへ入らないこと、誤った事前/分割を拒否することを照合する |
+| 変換座標 | `_MGMFRMNormalizedLocationLogDensity`と`_mgmfrm_location_to_raw` | Stan側の自由変数qから同じ直交人物座標と項目offsetの逆変換でraw betaを再構築する。prior/likelihoodはbetaで評価し、単位絶対Jacobianを導出・照合する。offsetへ独立な元priorを置かない |
+| 初期値・保存標本 | 既存CmdStanのchain seed、`beta`列・warmup・sampler統計parser、normalized sampleの復元検査 | 基準raw初期値とjitterの定義、qへの変換、実現chain初期値を保存する。raw betaへ戻した標本と`lp__`の定数差を照合し、sampling/stored座標を別々に記録する |
+| 診断・得点 | `check_target`、`geometry`、`score_draws`、既存の全診断roster | 凍結済み`check_fit`はAdvancedHMC/ForwardDiff専用であるため緩めず、Stan用のcontrols/seed/座標検査を比較adapterに置く。共通の復元・診断・得点計算へ接続し、scoreを得るために警告を無視しない |
+| CPU・時間 | pilotのJulia process CPU clock、各fitのcompile/GC・経過時間 | CmdStanは子プロセスで実行されるため、Julia親processのCPUだけでは測れない。終了時のOS資源使用記録等でStan子processのCPUを取得し、コンパイル・親処理・推定を区別する。両者の同じ範囲のCPU/実時間を比較する |
+| 保存と費用の対応 | 元のtarget/input/binding identityとsource/executable SHA | 比較専用の出力・controls・候補sourceを固定し、モデル同一性と実装同一性を混同しない。旧pilotの結果を更新せず、本評価へ採用する経路の保存・再読込も検査する |
+
+この点検は実装・適合・速度の実証ではない。候補のmodel/adapter、数値照合、比較用の
+対象ID・反復数・許容差・採用基準を完成させて固定する作業は、pilot終了後の比較段階に残る。

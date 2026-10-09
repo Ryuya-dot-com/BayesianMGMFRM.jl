@@ -110,6 +110,12 @@ No elapsed-time cap is introduced.
 The separately frozen prediction pilot resumes through the append-only storage
 continuation in §25, with a 5 GiB free-space reserve and no elapsed-time cap.
 The completed recovery assessment and its source hashes remain unchanged.
+The [closeout validator](scripts/mgmfrm_foundation_prediction_closeout.py) is
+prepared with six lightweight tests: it requires terminal continuation receipts,
+recomputes the final summary, preserves unknown costs and leaves main launch
+disabled. Its real-data call currently returns pending. Section 26 also maps the
+Stan target/coordinate/parser/scoring changes and the need to measure child-process
+CPU; no candidate sampling or native build has started during the pilot.
 Current decisions live here; dated receipts below preserve how they were reached
 instead of creating additional active work queues. Scientific acceptance and
 the subsequent main assessment remain open.
