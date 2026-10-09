@@ -2310,7 +2310,8 @@ pilotも本評価も未完了であり、本評価Nの選択、科学的事前�
 利用者の方針は、現在のpilotを完了し、その結果と効率を改善した実装を比較することである。
 同じ推定対象について必要な精度を満たす実装のうち、計算費用の小さいものを本評価に採用する。
 実行順序を**pilot完了 → 同一対象の効率比較 → 採用実装の固定 → 独立した本評価**とする。
-この節は比較の設計引継ぎであり、対象ID・件数・数値許容差まで固定した実行planではない。
+本節末尾の「有限比較の設計固定」で対象ID・件数・seed・数値許容差・費用判断を具体化した。
+これは設計receiptであり、候補実装・実行ファイルまで結合した実行planの凍結は未完了である。
 pilot中に候補fitを並走させず、元のChunk 12、座標、事前、seed、draw数、診断、件数規則を保持する。
 §22のChunk比較は既に完了しており、その結果や「両対象で5%以上」の判断を変更しない。
 
@@ -2421,5 +2422,96 @@ guardの異常・残存process・phase不一致、ID/状態不整合、欠測/�
 | CPU・時間 | pilotのJulia process CPU clock、各fitのcompile/GC・経過時間 | CmdStanは子プロセスで実行されるため、Julia親processのCPUだけでは測れない。終了時のOS資源使用記録等でStan子processのCPUを取得し、コンパイル・親処理・推定を区別する。両者の同じ範囲のCPU/実時間を比較する |
 | 保存と費用の対応 | 元のtarget/input/binding identityとsource/executable SHA | 比較専用の出力・controls・候補sourceを固定し、モデル同一性と実装同一性を混同しない。旧pilotの結果を更新せず、本評価へ採用する経路の保存・再読込も検査する |
 
-この点検は実装・適合・速度の実証ではない。候補のmodel/adapter、数値照合、比較用の
-対象ID・反復数・許容差・採用基準を完成させて固定する作業は、pilot終了後の比較段階に残る。
+この点検は実装・適合・速度の実証ではない。候補のmodel/adapter、数値照合、実行planの
+結合はpilot終了後に残る。対象と判定の設計は次項で固定する。
+
+### 有限比較の設計固定（MS2準備、2026-10-09）
+
+[設計receipt生成](../../scripts/mgmfrm_foundation_efficiency_design.py)は、下記8対象のinput・
+binding・既存review・全量名・本節をSHA256で結合し、32推定の順序とseedを保存する。
+標準ライブラリだけで動作し、推定、native build、pilotの変更を行わない。
+`execution_allowed=false`、`executable_protocol_frozen=false`であり、MS2の完了証拠ではない。
+実行planはMS1の終了receipt、候補source/実行ファイル/環境、以下のpreflightと実行・採点・
+費用計測コードのhashを追加して別途固定する。設計receiptを単に実行許可へ書き換えない。
+
+| 役割 | 対象ID | 選定の意味 |
+| --- | --- | --- |
+| 条件代表 | `B001-R0-025-F1`、`B002-R0-050-F2`、`B003-R0-100-F3` | R0の3幅 |
+| 条件代表 | `B001-R1-025-F4`、`B003-R1-050-F5`、`B003-R1-100-F1` | R1の3幅。6件全体でfold 1〜5を含む |
+| 既知難例 | `B002-R0-100-F2`、`B002-R1-050-F5` | 現在保存されているreviewで不適格の最初のR0/R1例。候補結果を見る前にIDを固定 |
+
+対象選定時点ではpilotの途中結果を閲覧済みである。代表6件も無作為抽出や全foldの性能推論
+とは呼ばず、難例は特に結果に基づく選定として区別する。以後のpilot結果でIDを差し替えない。
+同じ対象でも**新しいJuliaとStanの標本を対にして比較**し、古い不適格標本を一致判定の参照にしない。
+旧pilotの失敗を新しい成功で置き換えず、どちらの結果も保持する。
+
+各対象を各backendで2回、計32fit・128chain。2巡目は対象順と各対象のbackend順を反転する。
+master seedは`202610090 + 100*(8*反復index+対象index) + backend_offset`、indexは0始まり、
+offsetはJulia=0、Stan=10。Stan chain seedはmaster+1〜4とし、Juliaの実際のRNG展開も保存する。
+seed識別子の非重複は独立性の数学的証明ではなく、同じ番号のdrawを対応標本とは扱わない。
+4chain・warmup/保持各1,000・diagonal metric・accept=.9・depth=10・初期step=.03、
+raw zero+jitter SD=.1と現在の位置座標を維持する。初期点の実現値と適応設定を記録する。
+候補もJuliaも再試行・seed交換・draw増量は0回とする。
+
+**数学的preflight：** 各対象の128次元qで、zero、±`0.1sin(i)`、各座標の±0.1単位点の
+計259点を、サンプリング前に固定する。zeroとの差を取ったlog densityについて
+`abs(ΔStan−ΔJulia) <= 1e-8 + 1e-10*abs(ΔJulia)`、勾配について
+`max(abs(gStan−gJulia)/(1+abs(gJulia))) <= 1e-8`を要求する。
+省略した密度定数があれば数式上の由来を記録し、勾配・位置変換の連鎖律・単位絶対Jacobianも照合する。
+zeroと正のsin点では独立な中心差分（step=1e-5）と上式の勾配相対差1e-5以内も確認する。
+不正なQ・prior・観測分割・保存座標を拒否し、heldout応答が尤度に入らないことを確認する。
+これらの有限点検査だけを一般的な数学的証明とは呼ばない。不一致時はsamplingへ進まず理由を残す。
+
+**量と診断：** 元150量、位置量17、位置残差9、追加116量をblock付きで保存する（計292行）。
+重複する量も削除せず、独立な証拠数とは数えない。各量のmean・SD・5%/95%分位と、その統計量
+自身のMCSEを比較する。元のrank-normalized R-hat≤1.01、bulk/tail ESS≥400、chain毎EBFMI≥.3、
+保持drawのdivergence/depth hitなし、有限な変換・尤度、元の追加116量の局所精度を維持する。
+fitの警告を無視して比較だけ合格にはしない。新しいJuliaかStanのいずれかが不適格ならその対は未解決。
+
+16対×(292量×4要約+4予測指標)=**18,752比較**を一つの予定分母とする。
+`z = Φ⁻¹(1−.05/(2*18752))`、`δ=Stan−Julia`、`s=hypot(MCSE_J,MCSE_S)`とし、
+量のposterior SDの二乗平均平方根をσとする。MCSE・σは正かつ有限でなければ未解決とする。
+全事後要約について各MCSE≤.05σ、`abs(δ)≤z*s`、`abs(δ)+z*s≤.3σ`を要求する。
+これは[既存比較](normalized-prior-backend-comparison.md)の.05/.3という計算上の解像度を引き継ぎ、
+比較数に合わせて係数を計算したもので、科学的同等性の許容幅ではない。推定MCSE・正規近似を使う
+union-boundの設計であり、厳密な同時被覆保証やjoint posteriorの同一性は主張しない。
+差のscreen、MCSE精度、解像度不足を別々に記録し、1行の未解決も丸めて合格にはしない。
+
+**予測比較：** `score_draws`の4指標を全て使う。元の重みは100のperson×dimension群それぞれに
+1/100を与え、その群の10または15評定で等分したglobal weightである。各foldの250行を等重み
+1/1250へ置換せず、重み和で再正規化もしない。実際の重み和は対象ごとにreceiptへ残す。
+5fold全体の差の解像度.005を各foldへ等分し、各指標で影響量診断を通り、
+MCSE≤.005/(5×3)、`abs(δ)≤z*s`かつ`abs(δ)+z*s≤.001`を要求する。
+5fold全てでこの差の上界が成り立てば和の上界が.005以下になる配分であり、各foldの重み和が
+ちょうど.2だと仮定したものではない。負の対数予測確率とlog-score regretはnatの重み付き寄与、
+二乗確率誤差と二乗期待得点誤差は各指標の重み付き得点単位である。
+.005はbackend比較の局所解像度で、4指標に同じ科学的意味の差を与えるものではない。
+一次近似MCSEだけに依存せず、観測Jensen gap≤.005/5、絶対half差≤.01/5、
+各prefix差≤.01/5も4指標に適用する。これらは観測上の数値screenでありbias boundではない。
+8対象は完全な5fold panelではないため、ここからpilotのpanel適格率や独立反復SEは再計算しない。
+
+**費用と採用：** fit/chainとも同時実行1、Julia/BLAS/Stan各1thread、RSS上限8GiB、
+ディスク予備5GiB、時間上限なしで測る。候補のビルド・JuliaのJIT準備は別記録とし、準備に
+追加MCMCを使わない。残るcompile時間は各fitの費用に含めて開示する。各対は続けて実行し、
+他の重い処理と重なった測定は理由付き未解決とする。失敗も費用と予定分母から除外しない。
+共通の開始点（準備済み入力からsampling呼出し直前）から保存・再読込検査・全診断・得点終了までを
+主指標とし、sample/warmup/保持/後処理も別記する。初回起動・ビルド・準備を含む総費用も併記する。
+CPUは親のexclusive CPUと子の終了時CPUを合算し、再帰的に同じ子を二重計上しない。
+RSSは同じ頻度のprocess tree観測、GC/compile、適格bulk/tail ESS毎秒、統計量別MCSEを報告する。
+
+全対の数学的・診断・解像度条件を満たしたうえで、`Stan/Julia`の主費用比について、代表6件の
+幾何平均が**両巡で≤.80**、難例を含む全16対で≤1.00、代表6件のCPU比の幾何平均が両巡で≤1.00、
+資源制約内である場合に候補を採用する。20%はbackend維持の負担に見合う改善を要求する今回の
+工学的判断であり、§22の既完了5%規則を変更しない。2反復は順序と大きな揺れを見るためで、
+速度の母集団CIを推定できたとは扱わない。全比・範囲・初回費用・失敗費用を報告する。
+一条件でも不足すれば不採用または未解決として現行実装を維持し、同じ計画を成功まで延長しない。
+
+```sh
+python3 -B test/mgmfrm_foundation_efficiency_design.py
+python3 -B scripts/mgmfrm_foundation_efficiency_design.py \
+  results/workflows/20261006-foundation-prediction-pilot-01 \
+  --output results/workflows/20261009-foundation-efficiency-design-01/design.json
+```
+
+設計の検査は対象/条件/foldの網羅、順序反転、seedの範囲と重複、量の欠落/重複、元のglobal重みの
+保持、既存receiptの上書き拒否を対象とする。native密度・MCSE計算・費用計測・採用判定runnerの実装検査は別途必要。

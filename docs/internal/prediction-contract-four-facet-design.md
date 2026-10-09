@@ -218,3 +218,55 @@ MGMFRM_ADAPTER_REPLAY=results/workflows/20261006-foundation-prediction-pilot-01/
   JULIA_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 JULIA_PKG_PRECOMPILE_AUTO=0 \
   julia --project=. --startup-file=no test/prediction_criteria_adapter.jl
 ```
+
+## 8. MS5のAPI対応表と統合順序（2026-10-09）
+
+公開関数のexport有無だけでは対応済みと判断しない。以下は現行dispatch・保存/レポート経路と
+§6–7の試作を区別した棚卸しであり、モデルの科学的受入表はMS4で別途確定する。
+`Experimental`名の型はその名前空間の結果型を指す。
+
+| 結果型（合計8型） | 推定・診断/MCSE・保存復元 | 既存行の共通確率/観測別尤度 | fitからWAIC/LOO・比較/再推定 | 残る統合 |
+| --- | --- | --- | --- | --- |
+| `MFRMFit` | 既存package経路 | 既存経路＋試作 | `_ModelComparisonFit`に含まれる | 観測ID/予測契約を明示して互換性を保つ |
+| `GMFRMFit`、`MGMFRMFit` | Experimental推定、既存診断/MCSE/保存 | 既存経路＋試作 | 同unionに含まれる。現在の比較はD/Q等も一致を要求 | 科学的支持範囲、警告、比較可能性の契約を分離 |
+| `Experimental.NormalizedMGMFRMFit` | `NormalizedMGMFRMPrior`を明示するfit、記録型の診断/MCSE/手動保存 | native予測＋試作 | 共通union外。試作の指標計算まで | 今回のnormalized C評価と直接つながる最優先対象 |
+| `Experimental.CorrelatedMGMFRMFit` | 相関specからfit、記録型の診断/MCSE/手動保存 | native予測＋試作 | 共通union外。reportのWAIC/LOOはunsupported | 相関・尺度・条件づけを保持して接続。独立モデルの統計的受入を流用しない |
+| `MultidimensionalMFRMFit` | 固定Q係数fit、診断/MCSE/手動保存 | report内予測経路＋試作 | 共通union外。試作の指標計算まで | unit-logit尺度、旧v1記録の互換性 |
+| `Experimental.CorrelatedMFRMFit`、`Experimental.ExchangeableMFRMFit` | 相関/交換可能priorのfit、診断/MCSE/手動保存 | report内予測経路＋試作 | 共通union外。試作の指標計算まで | 固定係数、相関の一回だけの適用、固定されたrater kernel SDの意味 |
+
+根拠は[`_ModelComparisonFit`と指標dispatch](../../src/bayesian_fit.jl)、
+[`Experimental.fit/cached_fit`](../../src/experimental.jl)、
+[`normalized結果`](../../src/mgmfrm_normalized_fit.jl)、
+[`記録型MGMFRMの診断/保存`](../../src/mgmfrm_correlated_2d_samples.jl)、
+[`同レポートのunsupported項目`](../../src/mgmfrm_correlated_2d_reports.jl)、
+[`固定Q MFRMの診断/保存/レポート`](../../src/mfrm_fixed_q_samples.jl)、
+[`8型の試作dispatch`](../../scripts/prediction_observation_adapter.jl)である。
+全型で同じ自動`cached_fit`が使える、全型に同じ`posterior_predict`メソッドがある、という表ではない。
+手動の保存復元と推定要求の自動キャッシュを区別する。
+
+| 操作 | 再利用できる実装 | MS5で閉じる境界／未対応の扱い |
+| --- | --- | --- |
+| 共通抽出 | §7の8型、観測ID・カテゴリ・chain/iteration・条件づけ・重み・モデル制約 | MS4で選んだ対応型をpackageへ接続し、文書化した入口だけで抽出/再読込できる。private helperや利用者のdraw変形を要求しない |
+| 診断・MCSE・警告 | 型別の既存診断とMCSE、試作のsampling warning | 生標本全体の診断と選択drawの予測を混同しない。未収束・位置の問題・指標の問題を保存/復元/図/レポートまで引き継ぐ |
+| WAIC / raw IS-LOO | 共通尤度行列から既存関数を呼ぶ試作 | 公開入口・report・unsupported判定を同時更新する。数値計算可能と推奨可能は別。Hill平滑化は参照PSIS検証まで明示した実験扱い |
+| モデル比較 | 観測整列の試作、従来3型の比較関数 | 同じ観測・カテゴリ・学習/保留・重み・予測対象の検査を共有。異なるD/Qの解禁は尤度契約と分割の検査後に限定して行う。単にunionへ型を足して制約を外さない |
+| 較正・カテゴリ機能・残差 | 既存MFRM向けconsumer、共有効果文書の残差設計 | どの量をどの条件づけで診断するかを指定してconsumer単位で検証。相関/正規化/固定Q reportのunsupportedを、抽出に成功しただけでcomputedに変えない |
+| K-fold再推定 | 従来の計画/再推定、foundation専用binding/score | fit型別の再推定factoryとprior/尺度の再現が必要。foundation専用scriptの成功を一般APIの成功とは扱わない |
+| 未知水準・母集団予測 | 分割計画と別モデルの仕様案 | 現在の自動再推定は未知person/rater/itemを拒否。積分・共同/周辺得点・分割単位の実装検証まで未対応を維持。既知行の条件付き予測で代用しない |
+
+統合順序は次の三段階とする。全操作を完成させることを本評価の前提にはしない。
+
+1. **対応範囲を宣言する。** 最初の候補は現在の既知水準・既存行契約を核にし、legacy 3型との
+   互換性とnormalized結果の一貫した利用経路を必須とする。他の試作型は対応候補として維持し、
+   MS4で科学的支持の有無とexperimentalの範囲を記録する。新しいdefault priorは追加しない。
+2. **一つのpublic workflowを閉じる。** 小さい合成データから、仕様→推定→診断/MCSE→対応する
+   予測/比較・図→保存→再読込を同じ文書化された関数で再現する。package統合時に型別の小さい
+   契約テストを通常テストへ登録する。既存の1,087検査は再利用するが、それだけを公開経路の
+   検証とはしない。API実装はMS1後、稼働中の比較/本評価のsource snapshotと分離して行う。
+3. **consumerを一つずつ接続する。** 各操作について対応表、help、report、数値一致と反例検査を
+   同時に更新する。未実装の操作は明示的に拒否/unsupportedを返す。将来機能を黙って省略して
+   MS5の対応範囲を縮めず、MS4の支持表とMS6のレビューで候補版の範囲を確定する。
+
+MS5の終了証拠はAPI/互換性仕様、候補commit、上記public exampleの再現記録と型×操作の
+合否表である。MS6では実装者以外が再現・解釈を確認する。Chopin/Uchihara/EVAの入力準備は
+保存したまま、実データ推定はAPI確定と各応用が必要とする機能の受入後に行う。
