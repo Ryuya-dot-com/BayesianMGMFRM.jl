@@ -35,6 +35,26 @@ fresh main assessment. Prefer the faster implementation only after target,
 diagnostic and precision checks pass. The [comparison handoff, foundation §26](docs/internal/mgmfrm-foundation-scale-acceptance.md)
 defines this new stage; no candidate fitting starts during the pilot.
 
+**2026-10-09 application checkpoint:** the
+[updated portfolio](docs/internal/application-portfolio.md) separates the Chopin
+input audit, the synthetic Uchihara A0 workflow and the unstarted empirical
+reanalyses. Chopin's score/correction audit is reproducible; the next deliverable
+is a name/ID-verified first-stage dataset and a within-stage unidimensional model
+specification. It does not need the full multidimensional/shared-effect extension.
+Uchihara's existing A0 already has correlated speaker/recording effects, sparse
+paired ratings and limited new-recording integration. Reuse that implementation:
+its saved 16-draw engineering runs still have no qualified focal quantities.
+The new complete-crossing, scalar shared-task prototype is a different target,
+requires at least four criteria and does not replace A0 or fit the actual
+two-criterion data. Next complete a declared-precision synthetic analysis and
+keep real-data population/source/missingness reconciliation separate. Track
+application progress by reproducible answers and their uncertainty; more model
+code and passing checks alone add no application acceptance. The current pilot,
+matched efficiency comparison and fresh main retain priority. Lightweight input
+work can proceed during the pilot; neither application becomes a prerequisite
+for it, and EVA remains a later candidate. Historical time-limit proposals do
+not override the user's current no-elapsed-time-limit direction.
+
 **2026-10-09 analysis integration and next model extension:** adopt the
 [shared prediction contract and four-facet design](docs/internal/prediction-contract-four-facet-design.md)
 as the implementation handoff. Common observation identities, category log
