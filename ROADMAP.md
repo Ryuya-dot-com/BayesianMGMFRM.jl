@@ -38,9 +38,15 @@ defines this new stage; no candidate fitting starts during the pilot.
 **2026-10-09 application checkpoint:** the
 [updated portfolio](docs/internal/application-portfolio.md) separates the Chopin
 input audit, the synthetic Uchihara A0 workflow and the unstarted empirical
-reanalyses. Chopin's score/correction audit is reproducible; the next deliverable
-is a name/ID-verified first-stage dataset and a within-stage unidimensional model
-specification. It does not need the full multidimensional/shared-effect extension.
+reanalyses. Chopin's [first-stage input and unidimensional specification](docs/internal/chopin-stage1-analysis.md)
+now preserve 84 performance names, 17 judge columns, 1,395 raw ratings, 33 recusals
+and PDF positions. An independent coordinate extraction agrees on names and all
+raw/corrected cells; 19 Julia checks preserve 25 categories and the existing
+123-parameter target. No empirical fit has started. Next review prior predictions,
+reference-judge dependence and the asymmetric derived last-step variance, then
+declare the scientific prior, sensitivity cases and focal precision conditions.
+The default free-coordinate prior is only an engineering candidate. This example
+does not need the full multidimensional/shared-effect extension.
 Uchihara's existing A0 already has correlated speaker/recording effects, sparse
 paired ratings and limited new-recording integration. Reuse that implementation:
 its saved 16-draw engineering runs still have no qualified focal quantities.
