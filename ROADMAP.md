@@ -9,6 +9,9 @@ statistical validation and independent/user review. The broader model catalogue
 remains the long-term direction; neither completion of the fixed-coefficient
 MFRM reference nor an application alone completes that objective. See the
 [progress assessment and decision sequence](#decision-handoff-and-progress-accounting).
+The [completion milestones](#completion-milestones) define the current finish,
+its evidence and dependencies. They supersede historical M0–M3 scheduling below;
+those records retain their evidence and any separate release holds.
 
 ## Current decisions
 
@@ -237,18 +240,112 @@ decision. It adds no independent scientific replications. Record process CPU
 and elapsed time from the start, retaining failed attempts and uncertainty.
 No elapsed-time cap is introduced.
 
-| Order / responsible role | Next deliverable | Complete when |
+### Completion milestones
+
+**2026-10-09 completion contract.** The first finish is a reviewed, reusable
+MGMFRM foundation with an explicit supported domain and a finalized model API.
+The present evaluation domain is normalized C, two independent dimensions,
+fixed pure Q, 50 people / 5 items / 5 raters / 4 categories, with R0/R1 and three
+loading-prior widths. The prediction claim concerns known facet levels after
+1,000 training ratings. Other domains need their own evidence; these dimensions
+and counts are evaluation conditions, not universal package input limits.
+Preserve existing MFRM/GMFRM behavior and declare which result types and functions
+are included in the API candidate. Applications, all future model combinations
+and OS/distribution completion are separate later finishes.
+
+Use three distinct judgments. **Study closed** means every planned outcome,
+failure and unresolved quantity has been accounted for. **Claim supported**
+requires its declared evidence and precision criteria; a closed study can reject
+or leave a claim unresolved. **Foundation complete** requires the accepted scope,
+verified common workflow and independent review in MS6. A negative finding does
+not authorize silently reducing the objective or calling an unrun study complete.
+
+The 32-block / 192-fit recovery assessment, its eight numerical failures, the
+earlier Chunk comparison and the training/heldout binding audit are completed
+inputs to these milestones. Reuse them; no automatic repeat or successful-only
+replacement is scheduled.
+
+| Milestone / responsible role | Dependency and current state | Required artifact and completion condition | Consequence of a negative or unresolved result |
+| --- | --- | --- | --- |
+| **MS1 — Prediction pilot closure** / analyst | Frozen pilot is running. At the 2026-10-09 checkpoint: 158 completed, one external interruption, two incomplete, 79 unstarted; 152 of the completed fits pass the numerical screen. Counts are a dated execution snapshot | Final continuation summary plus a passing [closeout receipt](scripts/mgmfrm_foundation_prediction_closeout.py): all 240 attempts terminal, all 48 five-fold panels accounted for, no live workers, source/input/output hashes intact. Preserve failure classes, score-specific precision and CPU/elapsed costs; never renormalize partial folds | Numerical failures do not prevent an honest pilot closeout. Missing final receipts or unexplained artifacts keep MS1 open. Fewer than three eligible blocks in any required planning group prevents MS3 sample-size selection; it does not trigger extra pilot fits |
+| **MS2 — Efficiency and implementation decision** / numerical analyst, maintainer | Candidate execution follows MS1. [Foundation §26](docs/internal/mgmfrm-foundation-scale-acceptance.md) is a handoff; its executable protocol is not yet frozen | Before candidate sampling, freeze case IDs, seeds, repeated/interleaved timing, complete quantity roster, numerical agreement tolerances and minimum useful speed improvement. Then archive same-target density/gradient checks, posterior/prediction agreement at adequate MCSE, qualified ESS per CPU/elapsed second, memory and every failed attempt. Finish with an adoption decision and the exact implementation/source/control identity for MS3 | Faster implementation is adopted only when target, precision and cost conditions all pass. Rejection or inconclusive benefit closes the comparison with the baseline retained; faster execution is not required to finish MS2. A target mismatch never counts as an optimization |
+| **MS3 — Fresh main prediction assessment** / analyst | Requires MS1 and the MS2 implementation decision. Not started; main N is unselected | Freeze a new main plan using the unchanged pilot-based N rule below, new data/seed blocks, implementation hashes and all primary quantities. Complete and account for every planned attempt; publish all six condition means, seven paired contrasts, secondary scores, replication SE, MCMC MCSE, eligibility and failures with reproducible summaries | Precision shortfalls or weak differences produce an inconclusive assessment, not an extension until favorable. An unselected N or unrun cohort keeps MS3 open. If a different design is needed, record a separate prospective decision and retain the original result/status |
+| **MS4 — Supported-domain decision** / analyst, maintainer; independent review in MS6 | Draft evidence mapping can proceed now; final candidate decision follows MS3. Scientific prior/domain adoption is open | One claim-by-condition table links formulas, scale/constraints/normalized priors, numerical evidence, recovery/sensitivity/failures and heldout results. For each claim record supported, narrowed, rejected or inconclusive, with rationale and permitted interpretation. Explicitly decide prior defaults versus opt-in research choices and the supported API/model/prediction roster; carry exclusions into documentation and runtime behavior | The R1 / SD 0.25 I1 undercoverage cannot be hidden by good diagnostics or prediction. Missing calibration or new-level evidence stays unsupported. A completed decision table may narrow the scope, but no defensible supported core means MS6 cannot declare foundation completion |
+| **MS5 — Common API candidate verified** / maintainer | Contract and coverage inventory can proceed during the pilot without changing frozen sources. After MS1, implementation may overlap MS2/MS3; final acceptance uses MS4's supported roster. Prototype adapters are not this exit | Versioned API/compatibility specification plus a synthetic public-workflow example: data/specification → fit → diagnostics and MCSE → supported prediction/comparison and figures → save/reload → reproduce results. Verify observation/category/draw/conditioning alignment, native numerical agreement, relevant legacy behavior, saved-record compatibility, unsupported-input rejection and consistent help/report warnings on the candidate commit | A supported operation requiring private helpers, manual draw reshaping or dataset-specific glue keeps MS5 open. Unverified PSIS, category consumers or new levels cannot be advertised through the common API; explicitly retain their unsupported/experimental status. Changes affecting an evaluated target reopen the affected evidence, not every unrelated test |
+| **MS6 — Independent review and API finalization** / independent scientific reviewer, unfamiliar user, maintainer | Requires MS4's defensible scope and MS5's tested candidate. Reviewers are currently unassigned; assignment and review preparation must not be left implicit | Independent scientific review assesses target/interpretation/evidence; an unfamiliar user reproduces the selected public workflow and explains its limitations. Record feedback and its disposition. Close blocking issues, freeze the API version, supported scope, compatibility policy and documentation with the accepted candidate commit. This is the first foundation completion point | An implementer's self-check does not satisfy independent review. Reviewer unavailability, unresolved validity defects or workflow blockers keep MS6 open. A rejected review can finish a review activity, but cannot mark the foundation complete. OS-specific distribution work remains a separate release milestone |
+
+#### Dependencies, precision and finite decisions
+
+The execution dependency is **MS1 → MS2 → MS3 → MS4**, followed by **MS4 + MS5
+→ MS6**. MS5 design work and MS4 evidence preparation may proceed alongside the
+statistical sequence. Do not serialize independent documentation work behind
+long fits, or start candidate fits during the frozen pilot. An implementation
+change after a study freeze needs a separate identity and a reasoned equivalence
+check or fresh affected evaluation before its results can support the new API.
+While any frozen study is running, make API changes in an isolated candidate
+snapshot; never mutate that study's running source snapshot.
+
+MS3 keeps the existing rule from foundation §24: for all six primary means and
+seven paired contrasts compare replication-SE targets 0.005 / 0.01 / 0.02 nat;
+use the maximum planned N at **0.01 nat**, at least **32 independent paired
+blocks**, rounded up to an even number. Each planning group needs at least three
+eligible pilot blocks. Keep the baseline pilot's variance/eligibility provenance
+when adopting a faster implementation. Neither pilot blocks nor benchmark refits
+enter the fresh main denominator. Actual achieved precision and failure rates,
+not the planning calculation alone, determine what the main study establishes.
+
+Retain the existing numerical screens, including R-hat ≤ 1.01, bulk/tail ESS ≥
+400 and the full parameter/prediction MCSE and stability criteria in §24. These
+are numerical qualification conditions, not guarantees of scientific accuracy.
+Separately keep all three **90% interval calibration margins: ±2.5, ±5 and ±7.5
+percentage points**. Fixed-facet coverage and joint-prior SBC remain different
+claims. A positive calibration claim needs its own frozen estimands, independent
+replications, interval/simultaneity rule, classification uncertainty and precision
+design; neither the 32-block recovery study nor the prediction main supplies it
+automatically. In MS4 either provide the matching evidence or explicitly exclude
+that claim. A calibration study becomes a dependency only for a claim retained
+in the supported scope, not an unannounced expansion of the prediction main.
+
+No elapsed-time caps are introduced. Stop a planned study when its declared
+roster and accounting are complete, even with unfavorable or inconclusive
+results. A documented integrity/resource interruption retains its failed or
+pending status. No seed replacement, outcome-driven retries or precision-driven
+extension of an already frozen cohort; any further investigation gets a separate
+question and prospective plan. New priors are not adopted simply because they
+mix faster or improve a chosen recovery statistic.
+
+#### Milestones after the foundation
+
+| Workstream | Entry | Its own completion condition |
 | --- | --- | --- |
-| 1 — Completed: analyst/maintainer | Normalized-C training-only target and heldout-score binding audit; no new posterior fit | All 543 checks pass: training rows, facet IDs, prior, coordinates and scoring agree; full-data fits and wrong training rows/priors are rejected. Heldout-outcome changes leave the training target unchanged. This is not a sparse-design identification proof or a completed fitted-CV review |
-| 2 — Running: analyst | Complete the separate eight-block, 240-fit prediction pilot | The known-level target, six means/seven contrasts, priors, blocks, splits, draws, numerical screens and failure handling are frozen in §24. Account for every planned outcome and report score-specific variance, MCSE and CPU/elapsed cost; inadequate precision remains unresolved |
-| 3 — Numerical analyst / maintainer | Compare an efficient candidate with the completed pilot's posterior targets and saved results; begin with a matched Stan route | Freeze a separate protocol before candidate sampling: cases, independent RNG streams, repeated/interleaved timing schedule, full quantity roster, agreement margins, numerical gates, cost measures and minimum useful benefit. Confirm the same likelihood/prior/coordinates/Jacobian, then comparable MCSE and qualified ESS per CPU/elapsed second. Retain all outcomes; accept, reject or report inconclusive without extending until favorable. Freeze the adopted implementation before main fitting; §26 is a handoff, not yet an executable benchmark protocol |
-| 4 — Analyst / scientific reviewer | Apply the frozen pilot-based N rule, then execute a fresh main heldout assessment with the selected implementation | Compare replication SE targets 0.005/0.01/0.02 nat; select 0.01 with at least 32 paired blocks using all 13 primary means/contrasts and qualification fractions. Every planning group needs at least three usable pilot blocks. Use the validated continuation summary; exclude comparison refits from pilot variance/counts. Freeze N, backend and source identities before main fitting. Report that planning variance/eligibility came from the baseline sampler, along with actual achieved precision and failures; no outcome-driven retries/extensions |
-| Analysis integration — Maintainer | After the pilot, connect existing results through the [shared observation/prediction contract](docs/internal/prediction-contract-four-facet-design.md); prepare specifications now without touching frozen sources | Aligned IDs, draw selections, stable log probabilities and pointwise likelihoods agree with native results and survive reload; mismatched conditioning/data/folds are rejected. Connect WAIC/LOO, calibration and category-functioning consumers separately; do not claim unsupported new-level prediction |
-| API finalization, then applications — Maintainer / analyst | Finalize the selected model and common fit → diagnostics → prediction → save/reload contract on synthetic examples before empirical estimation | Record the supported scope, prior/constraint/conditioning semantics, API version and compatibility behavior with relevant mathematical, numerical, statistical and workflow evidence. Only then schedule Chopin/Uchihara/EVA within that scope; preserved inputs and adapter checks alone do not satisfy this exit. OS/distribution and unrelated future extensions are not prerequisites |
-| First model extension — Analyst / maintainer | Explicit person × task × rater × criterion, initially fixed coefficients and declared pure Q | Choose likelihood, location/scale reference and prior; verify constrained training-design rank and backend target agreement before prospective recovery/sensitivity/failure/prediction assessment. Do not add a redundant task term to unrestricted task × criterion difficulties or infer fitted terms from metadata |
-| Shared-effect / population extension — Analyst / maintainer | Follow the [shared-effect and hierarchy handoff](docs/internal/shared-effects-hierarchy-prediction.md): one person–task/testlet effect and scale, then rater-scale learning and supported halo/criterion deviations | Density/gradient/backend agreement and saved target identity precede fitting. Separate residual explanation from mechanism attribution; connect conditional and integrated prediction, training-only group refits and joint/marginal scoring. Preserve normalization, population-coordinate assumptions, failed fits and uncertainty in prospective recovery/prior-sensitivity/prediction checks |
-| Across these steps — Analyst / scientific reviewer | Resolve scientific units, prior/domain interpretation and the purpose of a separate calibration study | Retain all three prior widths as comparisons until there is a scientific adoption rationale. Distinguish fixed-facet coverage from joint-prior SBC; retain all three margins and original quantity rosters. Independent review remains unassigned and is not replaced by self-checks |
-| Conditional, then later — Numerical analyst / maintainer | Reopen common-scale mixing work only for a named obstacle to the selected analysis; return to delivery and model extensions after relevant foundation evidence | Preserve failures and verify the posterior target before any coordinate comparison. OS/distribution and broader model work retain their existing release conditions |
+| Empirical applications: Chopin, Uchihara, EVA | MS6 and the application's required model/prediction features within the finalized supported scope | Verify source/population/score/missingness correspondence, prospectively specify prior/sensitivity/focal precision, then fit and report through that API. Save reproducible estimates, diagnostics, uncertainty and predictive checks, including unresolved results. Prepared inputs and a successful fit alone do not complete an application; empirical reanalysis does not retroactively validate the foundation |
+| Distribution/release | Mathematical/analysis foundations and MS6 complete | On the selected release candidate, satisfy the declared platform/CI, installation, compatibility and documentation checks, resolve applicable historical release holds, and record the version/artifacts. This is separate from API finalization and is not a prerequisite for local empirical applications |
+| Further model domains | A named reusable requirement and a declared scope for the next version | Reuse [four-facet](docs/internal/prediction-contract-four-facet-design.md) and [shared-effect/hierarchy](docs/internal/shared-effects-hierarchy-prediction.md) work. Each extension closes its equation/identification/prior, backend, synthetic statistical and API/workflow checks before application. Correlation, sparse/mixed Q, learned rater scales and new-level integration do not inherit acceptance from the present independent fixed-Q assessment |
+
+The broad model catalogue is a sequence of versioned scopes, not a requirement
+to finish every combination before MS6. Existing extension prototypes remain
+evidence; add work now only if it closes a named MS1–MS6 gap. Shared effects,
+learned rater scales, halo and new-level prediction retain their separate
+validation requirements and are not added to the current main denominator.
+
+#### Progress reporting and the next actions
+
+Each milestone report records its work status, evidence commit/receipt, verdict,
+remaining blocker, responsible role and next allowed action. Show attempted,
+terminal, numerically qualified and statistically resolved counts separately;
+do not turn a fit count or a number of passed tests into an overall completion
+percentage. Update this table and the existing linked evidence documents rather
+than creating another competing roadmap.
+
+While MS1 runs, finish the MS2 comparison protocol and the MS5 inventory of
+public operations, supported result types and compatibility behavior; prepare
+MS4's claim/evidence mapping and the MS6 review packet/assignment. These are
+bounded preparation tasks with explicit outputs, not authorization to launch
+application fits, repeat completed suites or build unrelated extensions.
+After MS1 closes, execute the frozen MS2 comparison and only then freeze and
+launch MS3. A numerical study needs its question, roster, seed/controls, metrics,
+precision/decision rules and source identity filled in before launch; a document
+still containing those open decisions is a handoff, not a completed protocol.
 
 The separately frozen prediction pilot resumes through the append-only storage
 continuation in §25, with a 5 GiB free-space reserve and no elapsed-time cap.
@@ -1869,6 +1966,11 @@ The [UX delivery contract](#user-workflow-api-naming-and-visualization), includi
 [documentation/help acceptance](#public-documentation-and-help-acceptance),
 joins the existing work queue. Its acceptance criteria remain distinct from
 the dated implementation checks below and from independent scientific review.
+
+The following M0–M3 rows retain the earlier stage definitions and dated status.
+Use [MS1–MS6](#completion-milestones) for current completion decisions and work
+order. Historical release holds remain applicable to the later release branch;
+they do not reorder the current mathematical, statistical and API milestones.
 
 | Milestone | Status | Responsible role and concrete exit |
 | --- | --- | --- |
